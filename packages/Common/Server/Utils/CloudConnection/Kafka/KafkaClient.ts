@@ -199,9 +199,11 @@ export default class KafkaClient {
     }
 
     this.versions = new Map(
-      answer.versions.map((range: ApiVersionRange): [number, ApiVersionRange] => {
-        return [range.apiKey, range];
-      }),
+      answer.versions.map(
+        (range: ApiVersionRange): [number, ApiVersionRange] => {
+          return [range.apiKey, range];
+        },
+      ),
     );
 
     for (const apiKey of Object.keys(KAFKA_REQUEST_VERSIONS)) {
@@ -224,7 +226,10 @@ export default class KafkaClient {
   public async authenticateWithToken(token: string): Promise<void> {
     const handshake: { errorCode: number; mechanisms: Array<string> } =
       decodeSaslHandshake(
-        await this.send(API_KEY_SASL_HANDSHAKE, encodeSaslHandshake("OAUTHBEARER")),
+        await this.send(
+          API_KEY_SASL_HANDSHAKE,
+          encodeSaslHandshake("OAUTHBEARER"),
+        ),
       );
 
     if (handshake.errorCode !== KAFKA_ERROR_NONE) {
@@ -245,7 +250,8 @@ export default class KafkaClient {
 
     if (answer.errorCode !== KAFKA_ERROR_NONE) {
       throw new KafkaAuthenticationError(
-        answer.errorMessage || `The broker refused the token (error ${answer.errorCode}).`,
+        answer.errorMessage ||
+          `The broker refused the token (error ${answer.errorCode}).`,
       );
     }
   }
@@ -254,8 +260,12 @@ export default class KafkaClient {
     brokers: Array<KafkaBroker>;
     topic: KafkaTopicMetadata | null;
   }> {
-    const answer: { brokers: Array<KafkaBroker>; topics: Array<KafkaTopicMetadata> } =
-      decodeMetadata(await this.send(API_KEY_METADATA, encodeMetadata([topic])));
+    const answer: {
+      brokers: Array<KafkaBroker>;
+      topics: Array<KafkaTopicMetadata>;
+    } = decodeMetadata(
+      await this.send(API_KEY_METADATA, encodeMetadata([topic])),
+    );
 
     return {
       brokers: answer.brokers,
@@ -282,7 +292,10 @@ export default class KafkaClient {
     maxWaitMs: number;
     minBytes: number;
     maxBytes: number;
-  }): Promise<{ throttleTimeMs: number; partitions: Array<KafkaFetchedPartition> }> {
+  }): Promise<{
+    throttleTimeMs: number;
+    partitions: Array<KafkaFetchedPartition>;
+  }> {
     return decodeFetch(await this.send(API_KEY_FETCH, encodeFetch(data)));
   }
 
@@ -378,7 +391,8 @@ export default class KafkaClient {
       this.expectedBytes = null;
 
       const correlationId: number = frame.readInt32BE(0);
-      const request: PendingRequest | undefined = this.pending.get(correlationId);
+      const request: PendingRequest | undefined =
+        this.pending.get(correlationId);
 
       if (!request) {
         // An answer to no request: the stream cannot be trusted past it.

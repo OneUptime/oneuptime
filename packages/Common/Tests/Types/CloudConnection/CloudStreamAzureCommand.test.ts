@@ -57,16 +57,46 @@ const NAMES: ReturnType<typeof getAzureCloudStreamNames> =
   getAzureCloudStreamNames(CONNECTION);
 const GROUP_SCOPE: string = `/subscriptions/${SUB_A}/resourceGroups/${NAMES.resourceGroup}`;
 
-function armId(subscription: string, group: string, type: string, name: string): string {
+function armId(
+  subscription: string,
+  group: string,
+  type: string,
+  name: string,
+): string {
   return `/subscriptions/${subscription}/resourceGroups/${group}/providers/${type}/${name}`;
 }
 
-const VM: string = armId(SUB_A, "rg-prod", "Microsoft.Compute/virtualMachines", "web-01");
+const VM: string = armId(
+  SUB_A,
+  "rg-prod",
+  "Microsoft.Compute/virtualMachines",
+  "web-01",
+);
 const SITE: string = armId(SUB_A, "rg-prod", "Microsoft.Web/sites", "checkout");
-const VAULT: string = armId(SUB_B, "rg-sec", "Microsoft.KeyVault/vaults", "secrets");
-const FRONT_DOOR: string = armId(SUB_A, "rg-edge", "Microsoft.Network/frontdoors", "edge");
-const DISK: string = armId(SUB_B, "rg-data", "Microsoft.Compute/disks", "data-disk");
-const NSG: string = armId(SUB_A, "rg-prod", "Microsoft.Network/networkSecurityGroups", "nsg");
+const VAULT: string = armId(
+  SUB_B,
+  "rg-sec",
+  "Microsoft.KeyVault/vaults",
+  "secrets",
+);
+const FRONT_DOOR: string = armId(
+  SUB_A,
+  "rg-edge",
+  "Microsoft.Network/frontdoors",
+  "edge",
+);
+const DISK: string = armId(
+  SUB_B,
+  "rg-data",
+  "Microsoft.Compute/disks",
+  "data-disk",
+);
+const NSG: string = armId(
+  SUB_A,
+  "rg-prod",
+  "Microsoft.Network/networkSecurityGroups",
+  "nsg",
+);
 const OUR_NAMESPACE: string = armId(
   SUB_A,
   NAMES.resourceGroup,
@@ -203,8 +233,14 @@ const ALL_SUPPORTED: Record<string, string> = {
   [NSG]: "both",
 };
 
-function run(command: string, scenario: Scenario = {}, after: string = ""): ShellRun {
-  const directory: string = fs.mkdtempSync(path.join(os.tmpdir(), "cloud-stream-azure-"));
+function run(
+  command: string,
+  scenario: Scenario = {},
+  after: string = "",
+): ShellRun {
+  const directory: string = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cloud-stream-azure-"),
+  );
   const work: string = path.join(directory, "home");
   const calls: string = path.join(directory, "calls");
   const state: string = path.join(directory, "state");
@@ -263,7 +299,11 @@ function run(command: string, scenario: Scenario = {}, after: string = ""): Shel
 }
 
 function command(
-  data: { metrics?: boolean; logs?: boolean; subscriptions?: Array<string> } = {},
+  data: {
+    metrics?: boolean;
+    logs?: boolean;
+    subscriptions?: Array<string>;
+  } = {},
 ): string {
   return getAzureCloudStreamCommand({
     connectionId: CONNECTION,
@@ -339,13 +379,23 @@ describe("The Azure streaming command, run in bash", () => {
     expect(flag(group[0]!, "--subscription")).toBe(SUB_A);
     expect(flag(group[0]!, "--name")).toBe(NAMES.resourceGroup);
     expect(flag(group[0]!, "--location")).toBe("eastus");
-    expect(flag(group[0]!, "--tags")).toBe(`oneuptime-connection=${CONNECTION}`);
+    expect(flag(group[0]!, "--tags")).toBe(
+      `oneuptime-connection=${CONNECTION}`,
+    );
 
     // A namespace in each region with a resource of a known type - not for global, nor for a disk-only one twice.
-    const namespaces: Array<Array<string>> = callsOf(shellRun, "eventhubs namespace create");
+    const namespaces: Array<Array<string>> = callsOf(
+      shellRun,
+      "eventhubs namespace create",
+    );
     expect(
       namespaces.map((call: Array<string>): Array<string | undefined> => {
-        return [flag(call, "--name"), flag(call, "--location"), flag(call, "--sku"), flag(call, "--capacity")];
+        return [
+          flag(call, "--name"),
+          flag(call, "--location"),
+          flag(call, "--sku"),
+          flag(call, "--capacity"),
+        ];
       }),
     ).toEqual([
       [`${NAMES.namespacePrefix}eastus`, "eastus", "Standard", "1"],
@@ -360,7 +410,11 @@ describe("The Azure streaming command, run in bash", () => {
     expect(
       callsOf(shellRun, "eventhubs eventhub create").map(
         (call: Array<string>): Array<string | undefined> => {
-          return [flag(call, "--namespace-name"), flag(call, "--name"), flag(call, "--partition-count")];
+          return [
+            flag(call, "--namespace-name"),
+            flag(call, "--name"),
+            flag(call, "--partition-count"),
+          ];
         },
       ),
     ).toEqual([
@@ -369,7 +423,9 @@ describe("The Azure streaming command, run in bash", () => {
     ]);
 
     // Each resource to its region's event hub; the global one to the first region's.
-    const settings: Record<string, Array<string>> = settingsByResource(shellRun);
+    const settings: Record<string, Array<string>> = settingsByResource(
+      shellRun,
+    );
     expect(settings[SITE]).toEqual([`logs+metrics ${ruleOf("eastus")}`]);
     expect(settings[FRONT_DOOR]).toEqual([`logs+metrics ${ruleOf("eastus")}`]);
     expect(settings[VAULT]).toEqual([`logs+metrics ${ruleOf("westeurope")}`]);
@@ -436,7 +492,9 @@ describe("The Azure streaming command, run in bash", () => {
     const shellRun: ShellRun = run(command(), {
       support: { ...ALL_SUPPORTED, [SITE]: "logs", [VAULT]: "full" },
     });
-    const settings: Record<string, Array<string>> = settingsByResource(shellRun);
+    const settings: Record<string, Array<string>> = settingsByResource(
+      shellRun,
+    );
 
     expect(settings[SITE]).toEqual([
       `logs+metrics ${ruleOf("eastus")}`,
@@ -471,7 +529,10 @@ describe("The Azure streaming command, run in bash", () => {
 
   test("run again, it makes nothing twice: the event hubs and the role are there", () => {
     const shellRun: ShellRun = run(command(), {
-      namespaces: [`${NAMES.namespacePrefix}eastus`, `${NAMES.namespacePrefix}westeurope`],
+      namespaces: [
+        `${NAMES.namespacePrefix}eastus`,
+        `${NAMES.namespacePrefix}westeurope`,
+      ],
       roleExists: true,
     });
 
@@ -517,7 +578,9 @@ describe("The Azure streaming command, run in bash", () => {
   });
 
   test("a subscription whose resources cannot be listed stops it before anything is made", () => {
-    const shellRun: ShellRun = run(command(), { fail: [`resource list ${SUB_B}`] });
+    const shellRun: ShellRun = run(command(), {
+      fail: [`resource list ${SUB_B}`],
+    });
 
     expect(shellRun.output).toEqual([
       `${SUB_B}: its resources could not be listed.`,
@@ -537,13 +600,17 @@ describe("The Azure streaming command, run in bash", () => {
   });
 
   test("subscriptions that are not subscription IDs never reach the command", () => {
-    const text: string = command({ subscriptions: [SUB_A, "$(touch pwned)", SUB_B] });
+    const text: string = command({
+      subscriptions: [SUB_A, "$(touch pwned)", SUB_B],
+    });
 
     expect(text).not.toContain("pwned");
     expect(
-      callsOf(run(text), "resource list").map((call: Array<string>): string | undefined => {
-        return flag(call, "--subscription");
-      }),
+      callsOf(run(text), "resource list").map(
+        (call: Array<string>): string | undefined => {
+          return flag(call, "--subscription");
+        },
+      ),
     ).toEqual([SUB_A, SUB_B]);
   });
 });
@@ -555,18 +622,35 @@ describe("Stop streaming's command for Azure", () => {
       subscriptionIds: [SUB_A, SUB_B.toUpperCase(), SUB_B],
     });
     const shellRun: ShellRun = run(text, { groups: [SUB_A] });
-    const deleted: Array<string> = callsOf(shellRun, "monitor diagnostic-settings delete")
+    const deleted: Array<string> = callsOf(
+      shellRun,
+      "monitor diagnostic-settings delete",
+    )
       .map((call: Array<string>): string => {
         expect(flag(call, "--name")).toBe(NAMES.diagnosticSetting);
         return flag(call, "--resource") || "";
       })
       .sort();
 
-    expect(deleted).toEqual([VM, SITE, FRONT_DOOR, NSG, OUR_NAMESPACE, VAULT, DISK].sort());
+    expect(deleted).toEqual(
+      [VM, SITE, FRONT_DOOR, NSG, OUR_NAMESPACE, VAULT, DISK].sort(),
+    );
     expect(callsOf(shellRun, "group delete")).toEqual([
-      ["az", "group", "delete", "--subscription", SUB_A, "--name", NAMES.resourceGroup, "--yes", "--no-wait"],
+      [
+        "az",
+        "group",
+        "delete",
+        "--subscription",
+        SUB_A,
+        "--name",
+        NAMES.resourceGroup,
+        "--yes",
+        "--no-wait",
+      ],
     ]);
-    expect(shellRun.output).toEqual([`Deleting ${NAMES.resourceGroup} in ${SUB_A}.`]);
+    expect(shellRun.output).toEqual([
+      `Deleting ${NAMES.resourceGroup} in ${SUB_A}.`,
+    ]);
     expect(text).not.toMatch(NO_EXIT);
   });
 
@@ -579,11 +663,23 @@ describe("Stop streaming's command for Azure", () => {
       { groups: [SUB_B] },
     );
 
-    expect(callsOf(shellRun, "group exists").map((call: Array<string>) => {
-      return flag(call, "--subscription");
-    })).toEqual([SUB_A, SUB_B]);
+    expect(
+      callsOf(shellRun, "group exists").map((call: Array<string>) => {
+        return flag(call, "--subscription");
+      }),
+    ).toEqual([SUB_A, SUB_B]);
     expect(callsOf(shellRun, "group delete")).toEqual([
-      ["az", "group", "delete", "--subscription", SUB_B, "--name", NAMES.resourceGroup, "--yes", "--no-wait"],
+      [
+        "az",
+        "group",
+        "delete",
+        "--subscription",
+        SUB_B,
+        "--name",
+        NAMES.resourceGroup,
+        "--yes",
+        "--no-wait",
+      ],
     ]);
   });
 
@@ -614,15 +710,27 @@ describe("The Azure stream's names and problems", () => {
     );
     expect(getAzureCloudStreamNamespace(CONNECTION, "not a region")).toBeNull();
 
-    for (const region of ["germanywestcentral", "australiacentral2", "usgovarizona"]) {
-      const namespace: string = getAzureCloudStreamNamespace(CONNECTION, region)!;
+    for (const region of [
+      "germanywestcentral",
+      "australiacentral2",
+      "usgovarizona",
+    ]) {
+      const namespace: string = getAzureCloudStreamNamespace(
+        CONNECTION,
+        region,
+      )!;
 
       expect(isAzureEventHubsNamespace(namespace)).toBe(true);
-      expect(readAzureCloudStreamNamespaceRegion(CONNECTION, namespace)).toBe(region);
+      expect(readAzureCloudStreamNamespaceRegion(CONNECTION, namespace)).toBe(
+        region,
+      );
     }
 
     expect(
-      readAzureCloudStreamNamespaceRegion(CONNECTION, "oneuptime-11111111-eastus"),
+      readAzureCloudStreamNamespaceRegion(
+        CONNECTION,
+        "oneuptime-11111111-eastus",
+      ),
     ).toBeNull();
   });
 
@@ -640,17 +748,30 @@ describe("The Azure stream's names and problems", () => {
 
   test("a namespace's Kafka host is in the connection's own Azure cloud", () => {
     expect(
-      getAzureEventHubsHost({ namespace: "oneuptime-6f1c3a2e-eastus", cloud: "public" }),
+      getAzureEventHubsHost({
+        namespace: "oneuptime-6f1c3a2e-eastus",
+        cloud: "public",
+      }),
     ).toBe("oneuptime-6f1c3a2e-eastus.servicebus.windows.net");
     expect(
-      getAzureEventHubsHost({ namespace: "oneuptime-6f1c3a2e-usgovvirginia", cloud: "usgov" }),
+      getAzureEventHubsHost({
+        namespace: "oneuptime-6f1c3a2e-usgovvirginia",
+        cloud: "usgov",
+      }),
     ).toBe("oneuptime-6f1c3a2e-usgovvirginia.servicebus.usgovcloudapi.net");
-    expect(getAzureEventHubsHost({ namespace: "evil.example.com/x", cloud: "public" })).toBeNull();
+    expect(
+      getAzureEventHubsHost({
+        namespace: "evil.example.com/x",
+        cloud: "public",
+      }),
+    ).toBeNull();
   });
 
   test("the types it sets up are the ones a connection reads, lower case", () => {
     expect(AZURE_CLOUD_STREAM_RESOURCE_TYPES).toContain("microsoft.web/sites");
-    expect(AZURE_CLOUD_STREAM_RESOURCE_TYPES).toContain("microsoft.sql/servers/databases");
+    expect(AZURE_CLOUD_STREAM_RESOURCE_TYPES).toContain(
+      "microsoft.sql/servers/databases",
+    );
     expect(AZURE_CLOUD_STREAM_RESOURCE_TYPES).not.toContain(
       "microsoft.network/networksecuritygroups",
     );
@@ -663,20 +784,25 @@ describe("The Azure stream's names and problems", () => {
 
   test("subscriptions typed one a line or by commas are read lower case, each once", () => {
     expect(
-      readAzureCloudStreamSubscriptions(`${SUB_A.toUpperCase()}, ${SUB_A}\n${SUB_B},,`),
+      readAzureCloudStreamSubscriptions(
+        `${SUB_A.toUpperCase()}, ${SUB_A}\n${SUB_B},,`,
+      ),
     ).toEqual([SUB_A, SUB_B]);
   });
 
   test("what stops a command being written, each said", () => {
-    expect(getAzureCloudStreamProblem({ appId: APP, subscriptionIds: [SUB_A] })).toBeNull();
-    expect(getAzureCloudStreamProblem({ appId: "", subscriptionIds: [SUB_A] })?.text).toBe(
-      STREAM_NO_APP,
-    );
-    expect(getAzureCloudStreamProblem({ appId: APP, subscriptionIds: [] })?.text).toBe(
-      STREAM_NO_SUBSCRIPTION,
-    );
     expect(
-      getAzureCloudStreamProblem({ appId: APP, subscriptionIds: ["prod"] })?.text,
+      getAzureCloudStreamProblem({ appId: APP, subscriptionIds: [SUB_A] }),
+    ).toBeNull();
+    expect(
+      getAzureCloudStreamProblem({ appId: "", subscriptionIds: [SUB_A] })?.text,
+    ).toBe(STREAM_NO_APP);
+    expect(
+      getAzureCloudStreamProblem({ appId: APP, subscriptionIds: [] })?.text,
+    ).toBe(STREAM_NO_SUBSCRIPTION);
+    expect(
+      getAzureCloudStreamProblem({ appId: APP, subscriptionIds: ["prod"] })
+        ?.text,
     ).toBe(STREAM_NOT_A_SUBSCRIPTION);
     expect(
       getAzureCloudStreamProblem({

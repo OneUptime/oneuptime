@@ -100,15 +100,31 @@ import {
  * `jest` is the global one.
  */
 
-const PROJECT_A: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
-const PROJECT_B: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
-const CONNECTION_A: ObjectID = new ObjectID("6f1c3a2e-9b8d-4c7e-a1f0-2d3c4b5a6e7f");
-const CONNECTION_B: ObjectID = new ObjectID("7a2d4b3f-0c9e-4d8f-b2a1-3e4d5c6b7a8f");
+const PROJECT_A: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
+const PROJECT_B: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555555",
+);
+const CONNECTION_A: ObjectID = new ObjectID(
+  "6f1c3a2e-9b8d-4c7e-a1f0-2d3c4b5a6e7f",
+);
+const CONNECTION_B: ObjectID = new ObjectID(
+  "7a2d4b3f-0c9e-4d8f-b2a1-3e4d5c6b7a8f",
+);
 
 let brokers: Map<string, FakeEventHubsBroker>;
 let rows: Map<string, CloudConnection>;
-let metricJobs: Array<{ projectId: string; body: JSONObject; productType: string }>;
-let logJobs: Array<{ projectId: string; body: JSONObject; productType: string }>;
+let metricJobs: Array<{
+  projectId: string;
+  body: JSONObject;
+  productType: string;
+}>;
+let logJobs: Array<{
+  projectId: string;
+  body: JSONObject;
+  productType: string;
+}>;
 let redis: Map<string, string>;
 let summaries: Map<string, CloudStreamSummary>;
 
@@ -116,7 +132,10 @@ function namespaceOf(connectionId: ObjectID): string {
   return `oneuptime-${connectionId.toString().slice(0, 8)}-eastus`;
 }
 
-function connectionRow(connectionId: ObjectID, projectId: ObjectID): CloudConnection {
+function connectionRow(
+  connectionId: ObjectID,
+  projectId: ObjectID,
+): CloudConnection {
   const connection: CloudConnection = new CloudConnection();
   connection.id = connectionId;
   connection.projectId = projectId;
@@ -129,18 +148,37 @@ function connectionRow(connectionId: ObjectID, projectId: ObjectID): CloudConnec
     azureMetricDefinitions: {
       "microsoft.compute/virtualmachines": {
         at: "2026-11-06T09:00:00.000Z",
-        metrics: [{ name: "Percentage CPU", unit: "Percent", aggregation: "Average", grain: "PT1M" }],
+        metrics: [
+          {
+            name: "Percentage CPU",
+            unit: "Percent",
+            aggregation: "Average",
+            grain: "PT1M",
+          },
+        ],
       },
       "microsoft.web/sites": {
         at: "2026-11-06T09:00:00.000Z",
-        metrics: [{ name: "Requests", unit: "Count", aggregation: "Total", grain: "PT1M" }],
+        metrics: [
+          {
+            name: "Requests",
+            unit: "Count",
+            aggregation: "Total",
+            grain: "PT1M",
+          },
+        ],
       },
     },
   };
   return connection;
 }
 
-function resourceRow(id: string, type: string, name: string, region: string): CloudResource {
+function resourceRow(
+  id: string,
+  type: string,
+  name: string,
+  region: string,
+): CloudResource {
   const resource: CloudResource = new CloudResource();
   resource.name = name;
   resource.providerResourceId = id;
@@ -153,13 +191,20 @@ function resourceRow(id: string, type: string, name: string, region: string): Cl
 }
 
 // Resource Manager lists each connection's own namespace; Entra signs in each app.
-function transportFor(connectionId: ObjectID): (request: DataSourceHttpRequest) => Promise<DataSourceHttpResponse> {
-  return async (request: DataSourceHttpRequest): Promise<DataSourceHttpResponse> => {
+function transportFor(
+  connectionId: ObjectID,
+): (request: DataSourceHttpRequest) => Promise<DataSourceHttpResponse> {
+  return async (
+    request: DataSourceHttpRequest,
+  ): Promise<DataSourceHttpResponse> => {
     if (request.url.includes("/oauth2/v2.0/token")) {
       return {
         statusCode: 200,
         bodyText: "",
-        bodyJson: { access_token: `token-${connectionId.toString()}`, expires_in: 3600 },
+        bodyJson: {
+          access_token: `token-${connectionId.toString()}`,
+          expires_in: 3600,
+        },
       };
     }
 
@@ -189,24 +234,33 @@ async function read(connectionId: ObjectID): Promise<CloudStreamReadOutcome> {
   });
 }
 
-function resourceAttribute(resource: JSONObject, key: string): string | undefined {
+function resourceAttribute(
+  resource: JSONObject,
+  key: string,
+): string | undefined {
   const found: JSONObject | undefined = (
     (resource["resource"] as JSONObject)["attributes"] as Array<JSONObject>
   ).find((attribute: JSONObject) => {
     return attribute["key"] === key;
   });
-  return found ? ((found["value"] as JSONObject)["stringValue"] as string) : undefined;
+  return found
+    ? ((found["value"] as JSONObject)["stringValue"] as string)
+    : undefined;
 }
 
 function metricNames(jobs: Array<{ body: JSONObject }>): Array<string> {
   return jobs.flatMap((job: { body: JSONObject }) => {
-    return (job.body["resourceMetrics"] as Array<JSONObject>).flatMap((resource: JSONObject) => {
-      return ((resource["scopeMetrics"] as Array<JSONObject>)[0]!["metrics"] as Array<JSONObject>).map(
-        (metric: JSONObject) => {
+    return (job.body["resourceMetrics"] as Array<JSONObject>).flatMap(
+      (resource: JSONObject) => {
+        return (
+          (resource["scopeMetrics"] as Array<JSONObject>)[0]![
+            "metrics"
+          ] as Array<JSONObject>
+        ).map((metric: JSONObject) => {
           return metric["name"] as string;
-        },
-      );
-    });
+        });
+      },
+    );
   });
 }
 
@@ -238,46 +292,69 @@ beforeEach(async () => {
     rows.set(connectionId.toString(), connectionRow(connectionId, projectId));
   }
 
-  jest.spyOn(CloudConnectionService, "findOneById").mockImplementation((async (data: { id: ObjectID }) => {
-    return rows.get(data.id.toString()) || null;
-  }) as never);
+  jest
+    .spyOn(CloudConnectionService, "findOneById")
+    .mockImplementation((async (data: { id: ObjectID }) => {
+      return rows.get(data.id.toString()) || null;
+    }) as never);
   jest
     .spyOn(CloudConnectionService, "getConnectorSettings")
-    .mockImplementation(async (connection: CloudConnection): Promise<CloudConnectionSettings> => {
-      return {
-        provider: CloudProvider.Azure,
-        projectId: connection.projectId!.toString(),
-        config: {
-          tenantId: "22222222-bbbb-4bbb-8bbb-222222222222",
-          clientId: "0b9f6c1e-2d3a-4b5c-8d7e-9f0a1b2c3d4e",
-          cloud: "public",
-        },
-        secrets: { clientSecret: "app-secret" },
-      };
-    });
+    .mockImplementation(
+      async (connection: CloudConnection): Promise<CloudConnectionSettings> => {
+        return {
+          provider: CloudProvider.Azure,
+          projectId: connection.projectId!.toString(),
+          config: {
+            tenantId: "22222222-bbbb-4bbb-8bbb-222222222222",
+            clientId: "0b9f6c1e-2d3a-4b5c-8d7e-9f0a1b2c3d4e",
+            cloud: "public",
+          },
+          secrets: { clientSecret: "app-secret" },
+        };
+      },
+    );
   jest
     .spyOn(CloudConnectionService, "ensureTelemetryService")
     .mockImplementation(async (connection: CloudConnection) => {
       return {
         serviceId: ObjectID.generate(),
-        serviceName: connection.id!.toString() === CONNECTION_A.toString() ? "Production Azure" : "Staging Azure",
+        serviceName:
+          connection.id!.toString() === CONNECTION_A.toString()
+            ? "Production Azure"
+            : "Staging Azure",
       };
     });
   jest
     .spyOn(CloudConnectionService, "updateColumnsByIdWithoutHooks")
     .mockImplementation((async (data: { id: ObjectID; data: JSONObject }) => {
-      rows.get(data.id.toString())!.streamState = data.data["streamState"] as JSONObject;
+      rows.get(data.id.toString())!.streamState = data.data[
+        "streamState"
+      ] as JSONObject;
     }) as never);
   CloudStreamReader.loadResources = async (): Promise<Array<CloudResource>> => {
     return [
-      resourceRow(VM_ID, "Microsoft.Compute/virtualMachines", "web-01", "eastus"),
+      resourceRow(
+        VM_ID,
+        "Microsoft.Compute/virtualMachines",
+        "web-01",
+        "eastus",
+      ),
       resourceRow(SITE_ID, "Microsoft.Web/sites", "checkout", "eastus"),
-      resourceRow(VAULT_ID, "Microsoft.KeyVault/vaults", "acme-secrets", "westeurope"),
+      resourceRow(
+        VAULT_ID,
+        "Microsoft.KeyVault/vaults",
+        "acme-secrets",
+        "westeurope",
+      ),
     ];
   };
-  jest.spyOn(LlmConnectionPullRunner, "isTelemetryAllowed").mockResolvedValue(true);
+  jest
+    .spyOn(LlmConnectionPullRunner, "isTelemetryAllowed")
+    .mockResolvedValue(true);
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
-  jest.spyOn(PayAsYouGoBillingService, "requirePayAsYouGo").mockResolvedValue(undefined);
+  jest
+    .spyOn(PayAsYouGoBillingService, "requirePayAsYouGo")
+    .mockResolvedValue(undefined);
   jest.spyOn(Redis, "isConnected").mockReturnValue(true);
   jest.spyOn(Redis, "getClient").mockReturnValue({
     get: async (key: string): Promise<string | null> => {
@@ -294,25 +371,33 @@ beforeEach(async () => {
     },
   } as never);
 
-  (MetricsQueueService.addMetricIngestJob as jest.Mock).mockImplementation(async (job: unknown) => {
-    const request: JSONObject = job as JSONObject;
-    metricJobs.push({
-      projectId: (request["projectId"] as ObjectID).toString(),
-      body: request["body"] as JSONObject,
-      productType: request["productType"] as string,
-    });
-  });
-  (LogsQueueService.addLogIngestJob as jest.Mock).mockImplementation(async (job: unknown) => {
-    const request: JSONObject = job as JSONObject;
-    logJobs.push({
-      projectId: (request["projectId"] as ObjectID).toString(),
-      body: request["body"] as JSONObject,
-      productType: request["productType"] as string,
-    });
-  });
+  (MetricsQueueService.addMetricIngestJob as jest.Mock).mockImplementation(
+    async (job: unknown) => {
+      const request: JSONObject = job as JSONObject;
+      metricJobs.push({
+        projectId: (request["projectId"] as ObjectID).toString(),
+        body: request["body"] as JSONObject,
+        productType: request["productType"] as string,
+      });
+    },
+  );
+  (LogsQueueService.addLogIngestJob as jest.Mock).mockImplementation(
+    async (job: unknown) => {
+      const request: JSONObject = job as JSONObject;
+      logJobs.push({
+        projectId: (request["projectId"] as ObjectID).toString(),
+        body: request["body"] as JSONObject,
+        productType: request["productType"] as string,
+      });
+    },
+  );
 
-  CloudStreamActivity.readSummary = async (id: ObjectID): Promise<CloudStreamSummary> => {
-    return summaries.get(id.toString()) || { metricSources: [], logSources: [] };
+  CloudStreamActivity.readSummary = async (
+    id: ObjectID,
+  ): Promise<CloudStreamSummary> => {
+    return (
+      summaries.get(id.toString()) || { metricSources: [], logSources: [] }
+    );
   };
   CloudStreamActivity.writeSummary = async (data: {
     connectionId: ObjectID;
@@ -340,8 +425,22 @@ describe("an Azure connection's event hub", () => {
   test("its metrics and logs land as the connection's project's jobs, filed under the resources they are about", async () => {
     brokerOf(CONNECTION_A).addEvents(0, [
       eventOf([
-        metricRecord({ resourceId: VM_ID, metricName: "Percentage CPU", total: 48, count: 4, minimum: 6, maximum: 20 }),
-        metricRecord({ resourceId: SITE_ID, metricName: "Requests", total: 930, count: 60, minimum: 0, maximum: 31 }),
+        metricRecord({
+          resourceId: VM_ID,
+          metricName: "Percentage CPU",
+          total: 48,
+          count: 4,
+          minimum: 6,
+          maximum: 20,
+        }),
+        metricRecord({
+          resourceId: SITE_ID,
+          metricName: "Requests",
+          total: 930,
+          count: 60,
+          minimum: 0,
+          maximum: 31,
+        }),
       ]),
       eventOf([vaultAuditRecord(), appServiceConsoleRecord()]),
     ]);
@@ -349,16 +448,20 @@ describe("an Azure connection's event hub", () => {
     const outcome: CloudStreamReadOutcome = await read(CONNECTION_A);
 
     expect(outcome).toEqual({ status: "read", events: 2 });
-    expect(metricJobs.map((job: { projectId: string; productType: string }) => {
-      return [job.projectId, job.productType];
-    })).toEqual([[PROJECT_A.toString(), ProductType.Metrics]]);
+    expect(
+      metricJobs.map((job: { projectId: string; productType: string }) => {
+        return [job.projectId, job.productType];
+      }),
+    ).toEqual([[PROJECT_A.toString(), ProductType.Metrics]]);
     expect(metricNames(metricJobs).sort()).toEqual([
       "azure_percentage_cpu_average",
       "azure_requests_total",
     ]);
-    expect(logJobs.map((job: { projectId: string; productType: string }) => {
-      return [job.projectId, job.productType];
-    })).toEqual([[PROJECT_A.toString(), ProductType.Logs]]);
+    expect(
+      logJobs.map((job: { projectId: string; productType: string }) => {
+        return [job.projectId, job.productType];
+      }),
+    ).toEqual([[PROJECT_A.toString(), ProductType.Logs]]);
 
     const logs: Array<JSONObject> = logResources(logJobs);
     expect(
@@ -375,7 +478,9 @@ describe("an Azure connection's event hub", () => {
     ]);
 
     // The namespace was signed in to with the connection's own app, for itself alone.
-    expect(brokerOf(CONNECTION_A).tokens).toEqual([`token-${CONNECTION_A.toString()}`]);
+    expect(brokerOf(CONNECTION_A).tokens).toEqual([
+      `token-${CONNECTION_A.toString()}`,
+    ]);
   });
 
   test("an event read and queued is never queued again, whichever read comes next", async () => {
@@ -386,7 +491,10 @@ describe("an Azure connection's event hub", () => {
 
     // The next minute's read, and one after Postgres lost its offsets: Redis has them.
     await read(CONNECTION_A);
-    rows.get(CONNECTION_A.toString())!.streamState = { hostSubscriptionId: SUBSCRIPTION, offsets: {} };
+    rows.get(CONNECTION_A.toString())!.streamState = {
+      hostSubscriptionId: SUBSCRIPTION,
+      offsets: {},
+    };
     await read(CONNECTION_A);
     expect(logJobs).toHaveLength(1);
 
@@ -394,12 +502,16 @@ describe("an Azure connection's event hub", () => {
     brokerOf(CONNECTION_A).addEvents(0, [eventOf([appServiceConsoleRecord()])]);
     await read(CONNECTION_A);
     expect(logJobs).toHaveLength(2);
-    expect(resourceAttribute(logResources([logJobs[1]!])[0]!, "cloud.resource_id")).toBe(SITE_ID);
+    expect(
+      resourceAttribute(logResources([logJobs[1]!])[0]!, "cloud.resource_id"),
+    ).toBe(SITE_ID);
   });
 
   test("two connections of two projects read side by side, each into its own project only", async () => {
     brokerOf(CONNECTION_A).addEvents(0, [eventOf([vaultAuditRecord()])]);
-    brokerOf(CONNECTION_B).addEvents(1, [eventOf([vaultAuditRecord(), vaultAuditRecord()])]);
+    brokerOf(CONNECTION_B).addEvents(1, [
+      eventOf([vaultAuditRecord(), vaultAuditRecord()]),
+    ]);
 
     await Promise.all([read(CONNECTION_A), read(CONNECTION_B)]);
 
@@ -418,13 +530,22 @@ describe("an Azure connection's event hub", () => {
       [PROJECT_B.toString()]: ["Staging Azure"],
     });
     // Each namespace was asked by its own connection's token only.
-    expect(brokerOf(CONNECTION_B).tokens).toEqual([`token-${CONNECTION_B.toString()}`]);
+    expect(brokerOf(CONNECTION_B).tokens).toEqual([
+      `token-${CONNECTION_B.toString()}`,
+    ]);
   });
 
   test("what came is said on the connection: from which subscription and region, of which types and categories", async () => {
     brokerOf(CONNECTION_A).addEvents(0, [
       eventOf([
-        metricRecord({ resourceId: VM_ID, metricName: "Percentage CPU", total: 4, count: 1, minimum: 4, maximum: 4 }),
+        metricRecord({
+          resourceId: VM_ID,
+          metricName: "Percentage CPU",
+          total: 4,
+          count: 1,
+          minimum: 4,
+          maximum: 4,
+        }),
         vaultAuditRecord(),
       ]),
     ]);

@@ -49,7 +49,10 @@ function set(data: {
   };
 }
 
-function group(subscriptionId: string, metrics: CloudMetricGroup["metrics"]): CloudMetricGroup {
+function group(
+  subscriptionId: string,
+  metrics: CloudMetricGroup["metrics"],
+): CloudMetricGroup {
   return {
     resourceAttributes: [
       ...connectionResourceAttributes({
@@ -69,29 +72,54 @@ const PAYLOAD: JSONObject = buildMetricsPayloads([
       name: "azure_percentage_cpu_average",
       unit: "Percent",
       datapointSets: [
-        set({ name: "web-01", type: "Microsoft.Compute/virtualMachines", location: "eastus", grain: "PT1M" }),
-        set({ name: "web-02", type: "Microsoft.Compute/virtualMachines", location: "westeurope", grain: "PT1M" }),
+        set({
+          name: "web-01",
+          type: "Microsoft.Compute/virtualMachines",
+          location: "eastus",
+          grain: "PT1M",
+        }),
+        set({
+          name: "web-02",
+          type: "Microsoft.Compute/virtualMachines",
+          location: "westeurope",
+          grain: "PT1M",
+        }),
       ],
     },
     {
       name: "azure_transactions_total",
       unit: "Count",
       datapointSets: [
-        set({ name: "acmedata", type: "Microsoft.Storage/storageAccounts", location: "eastus", grain: "PT1M" }),
+        set({
+          name: "acmedata",
+          type: "Microsoft.Storage/storageAccounts",
+          location: "eastus",
+          grain: "PT1M",
+        }),
       ],
     },
     {
       name: "azure_usedcapacity_average",
       unit: "Bytes",
       datapointSets: [
-        set({ name: "acmedata", type: "Microsoft.Storage/storageAccounts", location: "eastus", grain: "PT1H" }),
+        set({
+          name: "acmedata",
+          type: "Microsoft.Storage/storageAccounts",
+          location: "eastus",
+          grain: "PT1H",
+        }),
       ],
     },
     {
       name: "azure_requests_total",
       unit: "Count",
       datapointSets: [
-        set({ name: "checkout", type: "Microsoft.Web/sites", location: "eastus", grain: "PT1M" }),
+        set({
+          name: "checkout",
+          type: "Microsoft.Web/sites",
+          location: "eastus",
+          grain: "PT1M",
+        }),
       ],
     },
   ]),
@@ -100,7 +128,12 @@ const PAYLOAD: JSONObject = buildMetricsPayloads([
       name: "azure_percentage_cpu_average",
       unit: "Percent",
       datapointSets: [
-        set({ name: "db-01", type: "Microsoft.Compute/virtualMachines", location: "eastus", grain: "PT1M" }),
+        set({
+          name: "db-01",
+          type: "Microsoft.Compute/virtualMachines",
+          location: "eastus",
+          grain: "PT1M",
+        }),
       ],
     },
   ]),
@@ -116,15 +149,19 @@ function written(payload: JSONObject | null): Array<string> {
 
   for (const resource of payload["resourceMetrics"] as Array<JSONObject>) {
     const subscription: string = (
-      ((resource["resource"] as JSONObject)["attributes"] as Array<JSONObject>).find(
-        (attribute: JSONObject) => {
-          return attribute["key"] === "azuremonitor.subscription_id";
-        },
-      )!["value"] as JSONObject
+      (
+        (resource["resource"] as JSONObject)["attributes"] as Array<JSONObject>
+      ).find((attribute: JSONObject) => {
+        return attribute["key"] === "azuremonitor.subscription_id";
+      })!["value"] as JSONObject
     )["stringValue"] as string;
 
-    for (const metric of (resource["scopeMetrics"] as Array<JSONObject>)[0]!["metrics"] as Array<JSONObject>) {
-      for (const point of (metric["gauge"] as JSONObject)["dataPoints"] as JSONArray) {
+    for (const metric of (resource["scopeMetrics"] as Array<JSONObject>)[0]![
+      "metrics"
+    ] as Array<JSONObject>) {
+      for (const point of (metric["gauge"] as JSONObject)[
+        "dataPoints"
+      ] as JSONArray) {
         const name: string = (
           ((point as JSONObject)["attributes"] as Array<JSONObject>).find(
             (attribute: JSONObject) => {
@@ -148,16 +185,20 @@ describe("an Azure connection's read, while its event hubs deliver", () => {
         {
           accountId: SUBSCRIPTION,
           region: "eastus",
-          namespaces: ["Microsoft.Compute/virtualMachines", "Microsoft.Storage/storageAccounts"],
+          namespaces: [
+            "Microsoft.Compute/virtualMachines",
+            "Microsoft.Storage/storageAccounts",
+          ],
           lastAt: new Date().toISOString(),
         },
       ],
       logSources: [],
     };
-    const result: { payload: JSONObject | null; leftOut: number } = withoutStreamedMetrics({
-      payload: PAYLOAD,
-      streamedKeys: getStreamedMetricKeys({ summary, now: new Date() }),
-    });
+    const result: { payload: JSONObject | null; leftOut: number } =
+      withoutStreamedMetrics({
+        payload: PAYLOAD,
+        streamedKeys: getStreamedMetricKeys({ summary, now: new Date() }),
+      });
 
     expect(result.leftOut).toBe(2);
     expect(written(result.payload)).toEqual([
@@ -173,25 +214,30 @@ describe("an Azure connection's read, while its event hubs deliver", () => {
   });
 
   test("the key is the subscription, the region and the type, whatever their case", () => {
-    const result: { payload: JSONObject | null; leftOut: number } = withoutStreamedMetrics({
-      payload: PAYLOAD,
-      streamedKeys: new Set<string>([
-        getStreamedMetricKey({
-          accountId: SUBSCRIPTION.toUpperCase(),
-          region: "EastUS",
-          namespace: "microsoft.web/SITES",
-        }),
-      ]),
-    });
+    const result: { payload: JSONObject | null; leftOut: number } =
+      withoutStreamedMetrics({
+        payload: PAYLOAD,
+        streamedKeys: new Set<string>([
+          getStreamedMetricKey({
+            accountId: SUBSCRIPTION.toUpperCase(),
+            region: "EastUS",
+            namespace: "microsoft.web/SITES",
+          }),
+        ]),
+      });
 
     expect(result.leftOut).toBe(1);
-    expect(written(result.payload)).not.toContain("11111111 azure_requests_total checkout");
+    expect(written(result.payload)).not.toContain(
+      "11111111 azure_requests_total checkout",
+    );
   });
 
   test("with no stream lately it writes everything, and what it is handed is never changed", () => {
     const before: string = JSON.stringify(PAYLOAD);
 
-    expect(withoutStreamedMetrics({ payload: PAYLOAD, streamedKeys: new Set() })).toEqual({
+    expect(
+      withoutStreamedMetrics({ payload: PAYLOAD, streamedKeys: new Set() }),
+    ).toEqual({
       payload: PAYLOAD,
       leftOut: 0,
     });

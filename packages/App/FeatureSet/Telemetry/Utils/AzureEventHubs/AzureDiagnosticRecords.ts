@@ -67,7 +67,8 @@ export const AZURE_STREAM_SCOPE_NAME: string = "oneuptime-azure-event-hubs";
 export const AZURE_CATEGORY_ATTRIBUTE: string = "azure.category";
 export const AZURE_OPERATION_ATTRIBUTE: string = "azure.operation.name";
 export const AZURE_RESULT_TYPE_ATTRIBUTE: string = "azure.result.type";
-export const AZURE_RESULT_SIGNATURE_ATTRIBUTE: string = "azure.result.signature";
+export const AZURE_RESULT_SIGNATURE_ATTRIBUTE: string =
+  "azure.result.signature";
 export const AZURE_CORRELATION_ATTRIBUTE: string = "azure.correlation.id";
 export const AZURE_DURATION_ATTRIBUTE: string = "azure.duration_ms";
 export const AZURE_RESOURCE_ID_ATTRIBUTE: string = "azure.resource.id";
@@ -92,7 +93,10 @@ function readObject(value: unknown): JSONObject | null {
     : null;
 }
 
-function readText(value: unknown, maxLength: number = MAX_VALUE_LENGTH): string {
+function readText(
+  value: unknown,
+  maxLength: number = MAX_VALUE_LENGTH,
+): string {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
 }
 
@@ -160,7 +164,9 @@ export function readAggregationValue(
         return average;
       }
 
-      return total !== null && count !== null && count > 0 ? total / count : null;
+      return total !== null && count !== null && count > 0
+        ? total / count
+        : null;
     }
     case "total":
       return readNumber(field(record, "total"));
@@ -176,18 +182,20 @@ export function readAggregationValue(
 }
 
 // What a log's level says, in OpenTelemetry's numbers and OneUptime's words.
-export const AZURE_LOG_LEVELS: ReadonlyMap<string, { number: number; text: string }> =
-  new Map<string, { number: number; text: string }>([
-    ["verbose", { number: 5, text: "DEBUG" }],
-    ["debug", { number: 5, text: "DEBUG" }],
-    ["informational", { number: 9, text: "INFO" }],
-    ["information", { number: 9, text: "INFO" }],
-    ["info", { number: 9, text: "INFO" }],
-    ["warning", { number: 13, text: "WARN" }],
-    ["warn", { number: 13, text: "WARN" }],
-    ["error", { number: 17, text: "ERROR" }],
-    ["critical", { number: 21, text: "FATAL" }],
-  ]);
+export const AZURE_LOG_LEVELS: ReadonlyMap<
+  string,
+  { number: number; text: string }
+> = new Map<string, { number: number; text: string }>([
+  ["verbose", { number: 5, text: "DEBUG" }],
+  ["debug", { number: 5, text: "DEBUG" }],
+  ["informational", { number: 9, text: "INFO" }],
+  ["information", { number: 9, text: "INFO" }],
+  ["info", { number: 9, text: "INFO" }],
+  ["warning", { number: 13, text: "WARN" }],
+  ["warn", { number: 13, text: "WARN" }],
+  ["error", { number: 17, text: "ERROR" }],
+  ["critical", { number: 21, text: "FATAL" }],
+]);
 
 // The fields a log states its message in, tried in order.
 const MESSAGE_FIELDS: ReadonlyArray<string> = [
@@ -208,7 +216,9 @@ export function readAzureLogBody(record: JSONObject): string {
 
   for (const name of MESSAGE_FIELDS) {
     for (const holder of [properties, record]) {
-      const value: JSONValue | undefined = holder ? field(holder, name) : undefined;
+      const value: JSONValue | undefined = holder
+        ? field(holder, name)
+        : undefined;
 
       if (typeof value === "string" && value.trim()) {
         return value.slice(0, MAX_BODY_LENGTH);
@@ -304,8 +314,10 @@ export function decodeAzureDiagnosticEvents(data: {
     string,
     { attributes: Array<OtlpAttribute>; records: Array<JSONObject> }
   > = new Map();
-  const metricPlaces: Map<string, { place: Place; types: Set<string> }> = new Map();
-  const logPlaces: Map<string, { place: Place; categories: Set<string> }> = new Map();
+  const metricPlaces: Map<string, { place: Place; types: Set<string> }> =
+    new Map();
+  const logPlaces: Map<string, { place: Place; categories: Set<string> }> =
+    new Map();
   const observed: string = toUnixNano(data.observedAtMs);
 
   for (const kafkaRecord of data.records) {
@@ -326,7 +338,9 @@ export function decodeAzureDiagnosticEvents(data: {
 
     for (const raw of records.slice(0, MAX_RECORDS_PER_EVENT)) {
       const record: JSONObject | null = readObject(raw);
-      const resourceId: string = record ? readText(field(record, "resourceId")) : "";
+      const resourceId: string = record
+        ? readText(field(record, "resourceId"))
+        : "";
       const parsed: ParsedAzureResourceId | null = resourceId
         ? parseAzureResourceId(resourceId)
         : null;
@@ -339,7 +353,8 @@ export function decodeAzureDiagnosticEvents(data: {
       const known: AzureStreamResource | undefined = data.context.resources.get(
         resourceId.toLowerCase(),
       );
-      const type: string = known?.type ||
+      const type: string =
+        known?.type ||
         getCanonicalCloudResourceType(CloudProvider.Azure, parsed.type);
       const subscriptionId: string = (
         known?.subscriptionId || parsed.subscriptionId
@@ -347,11 +362,14 @@ export function decodeAzureDiagnosticEvents(data: {
       const metricName: string = readText(field(record, "metricName"));
 
       if (metricName) {
-        const definition: AzureStreamMetricDefinition | undefined = data.context.definitions
-          .get(type.toLowerCase())
-          ?.get(metricName.toLowerCase());
+        const definition: AzureStreamMetricDefinition | undefined =
+          data.context.definitions
+            .get(type.toLowerCase())
+            ?.get(metricName.toLowerCase());
         const timeMs: number | null = readTimeMs(field(record, "time"));
-        const grain: string = readText(field(record, "timeGrain")).toUpperCase();
+        const grain: string = readText(
+          field(record, "timeGrain"),
+        ).toUpperCase();
 
         // Not a key metric, not read a minute at a time, or a resource the reads do not hold yet.
         if (
@@ -365,7 +383,10 @@ export function decodeAzureDiagnosticEvents(data: {
           continue;
         }
 
-        const value: number | null = readAggregationValue(record, definition.aggregation);
+        const value: number | null = readAggregationValue(
+          record,
+          definition.aggregation,
+        );
 
         if (value === null) {
           continue;
@@ -375,16 +396,18 @@ export function decodeAzureDiagnosticEvents(data: {
           definition.name,
           definition.aggregation,
         );
-        let byName: Map<string, { unit: string; dataPoints: Array<JSONObject> }> | undefined =
-          metricGroups.get(subscriptionId);
+        let byName:
+          | Map<string, { unit: string; dataPoints: Array<JSONObject> }>
+          | undefined = metricGroups.get(subscriptionId);
 
         if (!byName) {
           byName = new Map();
           metricGroups.set(subscriptionId, byName);
         }
 
-        let metric: { unit: string; dataPoints: Array<JSONObject> } | undefined =
-          byName.get(name);
+        let metric:
+          | { unit: string; dataPoints: Array<JSONObject> }
+          | undefined = byName.get(name);
 
         if (!metric) {
           metric = { unit: definition.unit, dataPoints: [] };
@@ -399,8 +422,13 @@ export function decodeAzureDiagnosticEvents(data: {
             stringAttribute("azuremonitor.resource_id", known.resourceId),
             stringAttribute("name", known.name),
             stringAttribute("type", known.type || type),
-            stringAttribute("resource_group", known.resourceGroup || parsed.resourceGroup),
-            ...(known.region ? [stringAttribute("location", known.region)] : []),
+            stringAttribute(
+              "resource_group",
+              known.resourceGroup || parsed.resourceGroup,
+            ),
+            ...(known.region
+              ? [stringAttribute("location", known.region)]
+              : []),
             stringAttribute("timegrain", STREAMED_TIME_GRAIN),
           ] as unknown as JSONArray,
         });
@@ -409,7 +437,9 @@ export function decodeAzureDiagnosticEvents(data: {
         // The resource's own region, as the read writes it on each datapoint: the key the read leaves to the stream.
         const region: string = known.region;
         const placeKey: string = `${subscriptionId}|${region}`;
-        const place: { place: Place; types: Set<string> } = metricPlaces.get(placeKey) || {
+        const place: { place: Place; types: Set<string> } = metricPlaces.get(
+          placeKey,
+        ) || {
           place: { subscriptionId, region },
           types: new Set<string>(),
         };
@@ -425,10 +455,13 @@ export function decodeAzureDiagnosticEvents(data: {
         readTimeMs(field(record, "timeStamp")) ||
         readTimeMs(field(record, "TimeGenerated"));
       const region: string =
-        known?.region || readRegion(field(record, "location")) || data.namespaceRegion;
+        known?.region ||
+        readRegion(field(record, "location")) ||
+        data.namespaceRegion;
       const groupKey: string = resourceId.toLowerCase();
-      let group: { attributes: Array<OtlpAttribute>; records: Array<JSONObject> } | undefined =
-        logGroups.get(groupKey);
+      let group:
+        | { attributes: Array<OtlpAttribute>; records: Array<JSONObject> }
+        | undefined = logGroups.get(groupKey);
 
       if (!group) {
         group = {
@@ -440,9 +473,17 @@ export function decodeAzureDiagnosticEvents(data: {
             }),
             stringAttribute("cloud.account.id", subscriptionId),
             ...(region ? [stringAttribute("cloud.region", region)] : []),
-            stringAttribute(AZURE_RESOURCE_ID_ATTRIBUTE, known?.resourceId || resourceId),
+            stringAttribute(
+              AZURE_RESOURCE_ID_ATTRIBUTE,
+              known?.resourceId || resourceId,
+            ),
             ...(known
-              ? [stringAttribute(CLOUD_RESOURCE_ID_ATTRIBUTE, known.providerResourceId)]
+              ? [
+                  stringAttribute(
+                    CLOUD_RESOURCE_ID_ATTRIBUTE,
+                    known.providerResourceId,
+                  ),
+                ]
               : []),
           ],
           records: [],
@@ -451,7 +492,9 @@ export function decodeAzureDiagnosticEvents(data: {
       }
 
       const level: string = readText(field(record, "level"), 32).toLowerCase();
-      const properties: JSONObject | null = readObject(field(record, "properties"));
+      const properties: JSONObject | null = readObject(
+        field(record, "properties"),
+      );
       const propertyLevel: string = properties
         ? readText(field(properties, "level"), 32).toLowerCase()
         : "";
@@ -497,7 +540,9 @@ export function decodeAzureDiagnosticEvents(data: {
       decoded.logRecords++;
 
       const placeKey: string = `${subscriptionId}|${region}`;
-      const place: { place: Place; categories: Set<string> } = logPlaces.get(placeKey) || {
+      const place: { place: Place; categories: Set<string> } = logPlaces.get(
+        placeKey,
+      ) || {
         place: { subscriptionId, region },
         categories: new Set<string>(),
       };

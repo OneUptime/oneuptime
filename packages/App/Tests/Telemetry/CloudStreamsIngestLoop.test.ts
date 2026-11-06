@@ -133,7 +133,9 @@ function rowsFor(target: FanInInsertTarget): Array<JSONObject> {
   return rowsByTarget.get(target) || [];
 }
 
-async function ingestMetrics(resourceMetrics: Array<JSONObject>): Promise<void> {
+async function ingestMetrics(
+  resourceMetrics: Array<JSONObject>,
+): Promise<void> {
   await OtelMetricsIngestService.processMetricsFromQueue({
     projectId: PROJECT_ID,
     body: { resourceMetrics },
@@ -177,12 +179,15 @@ beforeEach(() => {
   const discoveryMethods: Array<string> = Object.getOwnPropertyNames(
     OtelIngestBaseService,
   ).filter((property: string): boolean => {
-    return property.startsWith("autoDiscover") && typeof baseService[property] === "function";
+    return (
+      property.startsWith("autoDiscover") &&
+      typeof baseService[property] === "function"
+    );
   });
 
-  const recordCloudResources: (...args: Array<unknown>) => Promise<number> = async (
+  const recordCloudResources: (
     ...args: Array<unknown>
-  ): Promise<number> => {
+  ) => Promise<number> = async (...args: Array<unknown>): Promise<number> => {
     const data: { resources: Array<CloudMonitoredResource> } = args[0] as {
       resources: Array<CloudMonitoredResource>;
     };
@@ -192,20 +197,32 @@ beforeEach(() => {
   const recordServerless: (...args: Array<unknown>) => Promise<null> = async (
     ...args: Array<unknown>
   ): Promise<null> => {
-    serverlessAttributes.push((args[0] as { attributes: JSONArray }).attributes);
+    serverlessAttributes.push(
+      (args[0] as { attributes: JSONArray }).attributes,
+    );
     return null;
   };
 
-  for (const ingestService of [OtelLogsIngestService, OtelMetricsIngestService]) {
+  for (const ingestService of [
+    OtelLogsIngestService,
+    OtelMetricsIngestService,
+  ]) {
     /* eslint-disable @typescript-eslint/no-explicit-any */
-    const service: Record<string, any> = ingestService as unknown as Record<string, any>;
+    const service: Record<string, any> = ingestService as unknown as Record<
+      string,
+      any
+    >;
     /* eslint-enable @typescript-eslint/no-explicit-any */
     for (const method of discoveryMethods) {
       jest.spyOn(service, method).mockResolvedValue(null);
     }
 
-    jest.spyOn(service, "autoDiscoverCloudMonitoredResources").mockImplementation(recordCloudResources);
-    jest.spyOn(service, "autoDiscoverServerless").mockImplementation(recordServerless);
+    jest
+      .spyOn(service, "autoDiscoverCloudMonitoredResources")
+      .mockImplementation(recordCloudResources);
+    jest
+      .spyOn(service, "autoDiscoverServerless")
+      .mockImplementation(recordServerless);
     jest
       .spyOn(service, "resolveTelemetryResource")
       .mockImplementation(async (): Promise<TelemetryServiceMetadata> => {
@@ -213,7 +230,9 @@ beforeEach(() => {
       });
 
     if (ingestService === OtelMetricsIngestService) {
-      jest.spyOn(service, "runBatchHostEnrichment").mockResolvedValue(undefined);
+      jest
+        .spyOn(service, "runBatchHostEnrichment")
+        .mockResolvedValue(undefined);
     }
   }
 
@@ -223,14 +242,20 @@ beforeEach(() => {
   jest
     .spyOn(MetricPipelineRuleService, "loadRules")
     .mockResolvedValue({ projectRules: [], rulesByServiceId: new Map() });
-  jest.spyOn(TelemetryUtil, "indexMetricNameServiceNameMap").mockResolvedValue(undefined as never);
-  jest.spyOn(ExceptionUtil, "saveOrUpdateTelemetryExceptionsBatch").mockResolvedValue(undefined);
+  jest
+    .spyOn(TelemetryUtil, "indexMetricNameServiceNameMap")
+    .mockResolvedValue(undefined as never);
+  jest
+    .spyOn(ExceptionUtil, "saveOrUpdateTelemetryExceptionsBatch")
+    .mockResolvedValue(undefined);
   jest
     .spyOn(TelemetryFanInWriter, "submit")
-    .mockImplementation(async (target: FanInInsertTarget, batch: Array<JSONObject>) => {
-      rowsByTarget.set(target, [...rowsFor(target), ...batch]);
-      return { flushed: Promise.resolve() };
-    });
+    .mockImplementation(
+      async (target: FanInInsertTarget, batch: Array<JSONObject>) => {
+        rowsByTarget.set(target, [...rowsFor(target), ...batch]);
+        return { flushed: Promise.resolve() };
+      },
+    );
 });
 
 afterEach(() => {
@@ -274,19 +299,30 @@ function readVmCpu(value: number): Array<JSONObject> {
 
 describe("Azure's streamed metrics, through the real metrics ingest", () => {
   test("a streamed key metric and the read's are one series: its name, point type and attributes, the same resource", async () => {
-    await ingestMetrics(readVmCpu(9)[0]!["resourceMetrics"] as Array<JSONObject>);
+    await ingestMetrics(
+      readVmCpu(9)[0]!["resourceMetrics"] as Array<JSONObject>,
+    );
     const readResources: number = discoveredResources.length;
 
     await ingestMetrics(
       decodeAzure([
-        metricRecord({ resourceId: VM_ID, metricName: "Percentage CPU", total: 50, count: 4, minimum: 10, maximum: 20 }),
+        metricRecord({
+          resourceId: VM_ID,
+          metricName: "Percentage CPU",
+          total: 50,
+          count: 4,
+          minimum: 10,
+          maximum: 20,
+        }),
       ]).resourceMetrics.map((delivered: { resource: JSONObject }) => {
         return delivered.resource;
       }),
     );
 
     const [read, streamed] = rowsFor(MetricService) as [JSONObject, JSONObject];
-    const seriesOf: (row: JSONObject) => JSONObject = (row: JSONObject): JSONObject => {
+    const seriesOf: (row: JSONObject) => JSONObject = (
+      row: JSONObject,
+    ): JSONObject => {
       const attributes: JSONObject = { ...(row["attributes"] as JSONObject) };
 
       // Each ingest call's own service id, and which writer wrote it: never which series it is.
@@ -308,13 +344,17 @@ describe("Azure's streamed metrics, through the real metrics ingest", () => {
     // Filed under the very resource the read files the VM under.
     const polled: CloudMonitoredResource = resolveCloudResourceOf({
       metricName: "azure_percentage_cpu_average",
-      resourceAttributes: [stringAttribute("azuremonitor.subscription_id", SUBSCRIPTION)],
+      resourceAttributes: [
+        stringAttribute("azuremonitor.subscription_id", SUBSCRIPTION),
+      ],
       datapointAttributes: [stringAttribute("azuremonitor.resource_id", VM_ID)],
     })!;
     expect(
-      discoveredResources.slice(readResources).map((resource: CloudMonitoredResource) => {
-        return buildCloudMonitoredResourceIdentifier(resource);
-      }),
+      discoveredResources
+        .slice(readResources)
+        .map((resource: CloudMonitoredResource) => {
+          return buildCloudMonitoredResourceIdentifier(resource);
+        }),
     ).toEqual([buildCloudMonitoredResourceIdentifier(polled)]);
   });
 });
@@ -322,9 +362,11 @@ describe("Azure's streamed metrics, through the real metrics ingest", () => {
 describe("streamed logs, through the real logs ingest", () => {
   test("an Azure resource log's row is its resource's, with its subscription, region, category and severity", async () => {
     await ingestLogs(
-      decodeAzure([vaultAuditRecord()]).resourceLogs.map((delivered: { resource: JSONObject }) => {
-        return delivered.resource;
-      }),
+      decodeAzure([vaultAuditRecord()]).resourceLogs.map(
+        (delivered: { resource: JSONObject }) => {
+          return delivered.resource;
+        },
+      ),
     );
 
     const rows: Array<JSONObject> = rowsFor(LogService);
@@ -361,7 +403,9 @@ describe("streamed logs, through the real logs ingest", () => {
 
     expect(rows).toHaveLength(1);
     expect(rows[0]!["severityText"]).toBe("Error");
-    expect(rows[0]!["body"]).toBe("kernel: Out of memory: Killed process 1234 (java)");
+    expect(rows[0]!["body"]).toBe(
+      "kernel: Out of memory: Killed process 1234 (java)",
+    );
     expect(rows[0]!["attributes"]).toEqual(
       expect.objectContaining({
         "resource.cloud.resource_id": vm.providerResourceId,
@@ -400,9 +444,9 @@ describe("streamed logs, through the real logs ingest", () => {
 
     const attributes: Record<string, string> = {};
     for (const attribute of serverlessAttributes[0] as Array<JSONObject>) {
-      attributes[attribute["key"] as string] = (attribute["value"] as JSONObject)[
-        "stringValue"
-      ] as string;
+      attributes[attribute["key"] as string] = (
+        attribute["value"] as JSONObject
+      )["stringValue"] as string;
     }
 
     expect(attributes["cloud.platform"]).toBe("gcp_cloud_functions");

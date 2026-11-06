@@ -243,8 +243,6 @@ describe("A value for the shell", () => {
   test("it is single-quoted, and a single quote in it ends and restarts the quotes", () => {
     expect(quoteForShell("plain")).toBe("'plain'");
     expect(quoteForShell("it's")).toBe("'it'\\''s'");
-    expect(quoteForShell("$(touch x) `y` \"z\"")).toBe(
-      "'$(touch x) `y` \"z\"'",
-    );
+    expect(quoteForShell('$(touch x) `y` "z"')).toBe("'$(touch x) `y` \"z\"'");
   });
 });

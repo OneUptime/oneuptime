@@ -420,9 +420,9 @@ describe("which resource pages have a Logs tab", () => {
       "Microsoft.DocumentDB/databaseAccounts",
       "microsoft.web/SITES",
     ]) {
-      expect(canCloudResourceHaveStreamedLogs({ provider: "azure", type })).toBe(
-        true,
-      );
+      expect(
+        canCloudResourceHaveStreamedLogs({ provider: "azure", type }),
+      ).toBe(true);
     }
 
     // Every type the catalog lists either has the tab or is named as having no logs.
@@ -435,9 +435,13 @@ describe("which resource pages have a Logs tab", () => {
       return !canCloudResourceHaveStreamedLogs({ provider: "Azure", type });
     });
 
-    expect(withoutTab.map((type: string) => {
-      return type.toLowerCase();
-    }).sort()).toEqual(Array.from(AZURE_TYPES_WITHOUT_RESOURCE_LOGS).sort());
+    expect(
+      withoutTab
+        .map((type: string) => {
+          return type.toLowerCase();
+        })
+        .sort(),
+    ).toEqual(Array.from(AZURE_TYPES_WITHOUT_RESOURCE_LOGS).sort());
   });
 
   test("no Azure tab for a resource with no logs of its own, nor for a type no stream sets diagnostic settings on", () => {
@@ -452,9 +456,9 @@ describe("which resource pages have a Logs tab", () => {
       "Microsoft.Network/networkSecurityGroups",
       "",
     ]) {
-      expect(canCloudResourceHaveStreamedLogs({ provider: "azure", type })).toBe(
-        false,
-      );
+      expect(
+        canCloudResourceHaveStreamedLogs({ provider: "azure", type }),
+      ).toBe(false);
     }
   });
 
@@ -474,7 +478,12 @@ describe("which resource pages have a Logs tab", () => {
       );
     }
 
-    for (const type of ["instance_group", "http_load_balancer", "k8s_container", ""]) {
+    for (const type of [
+      "instance_group",
+      "http_load_balancer",
+      "k8s_container",
+      "",
+    ]) {
       expect(canCloudResourceHaveStreamedLogs({ provider: "GCP", type })).toBe(
         false,
       );

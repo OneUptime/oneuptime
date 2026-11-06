@@ -52,7 +52,10 @@ import CloudStreamAuthenticator from "Common/Server/Utils/CloudConnection/CloudS
 import CloudStreamKeyedConnections from "Common/Server/Utils/CloudConnection/CloudStreamKeyedConnections";
 import CloudStreamKeys from "Common/Server/Utils/CloudConnection/CloudStreamKeys";
 import GoogleOidcTokens from "Common/Server/Utils/CloudConnection/GoogleOidcTokens";
-import { createExpressApp, ExpressApplication } from "Common/Server/Utils/Express";
+import {
+  createExpressApp,
+  ExpressApplication,
+} from "Common/Server/Utils/Express";
 import { isCloudStreamPath } from "Common/Server/Utils/StartServer";
 import LlmConnectionPullRunner from "Common/Server/Utils/LlmObservability/LlmConnectionPullRunner";
 import TelemetryIngestionKeyRateLimiter, {
@@ -127,10 +130,18 @@ import {
  * `jest` is the global one.
  */
 
-const PROJECT_A: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
-const PROJECT_B: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
-const CONNECTION_A: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
-const CONNECTION_B: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
+const PROJECT_A: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
+const PROJECT_B: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555555",
+);
+const CONNECTION_A: ObjectID = new ObjectID(
+  "33333333-3333-4333-8333-333333333333",
+);
+const CONNECTION_B: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444444",
+);
 
 function keyOf(connectionId: ObjectID, pair: string): string {
   return buildCloudStreamKey({
@@ -156,7 +167,11 @@ const IMPOSTOR: FakeGoogleKey = makeGoogleKey("google-2026-11");
 let server: http.Server;
 let port: number;
 let google: FakeGoogleKeys;
-let logJobs: Array<{ projectId: string; body: JSONObject; productType: string }>;
+let logJobs: Array<{
+  projectId: string;
+  body: JSONObject;
+  productType: string;
+}>;
 let summaries: Map<string, CloudStreamSummary>;
 let rateDecision: TelemetryIngestionKeyLimitOutcome;
 let queueFails: boolean;
@@ -214,7 +229,8 @@ async function push(data: {
     token:
       data.authorization !== undefined
         ? undefined
-        : data.token ?? pushToken({ key: GOOGLE, audience: KEY_A, email: PUSHER_A }),
+        : data.token ??
+          pushToken({ key: GOOGLE, audience: KEY_A, email: PUSHER_A }),
     body: pushEnvelope({
       entry: data.entry || cloudRunRequestEntry(),
       rawData: data.rawData,
@@ -233,24 +249,35 @@ function expectPubSubAnswer(reply: PushReply, status: number): void {
     expect(reply.text).toBe("");
   } else {
     expect(reply.headers["content-type"]).toBe("application/json");
-    expect(typeof (JSON.parse(reply.text) as JSONObject)["error"]).toBe("string");
+    expect(typeof (JSON.parse(reply.text) as JSONObject)["error"]).toBe(
+      "string",
+    );
   }
 
   // What Pub/Sub takes as delivered, and what it pushes again.
   expect(PUBSUB_ACKNOWLEDGING_STATUSES.includes(status)).toBe(status === 204);
 }
 
-function resourceAttribute(resource: JSONObject, key: string): string | undefined {
+function resourceAttribute(
+  resource: JSONObject,
+  key: string,
+): string | undefined {
   const attributes: Array<JSONObject> = (resource["resource"] as JSONObject)[
     "attributes"
   ] as Array<JSONObject>;
-  const found: JSONObject | undefined = attributes.find((attribute: JSONObject) => {
-    return attribute["key"] === key;
-  });
-  return found ? ((found["value"] as JSONObject)["stringValue"] as string) : undefined;
+  const found: JSONObject | undefined = attributes.find(
+    (attribute: JSONObject) => {
+      return attribute["key"] === key;
+    },
+  );
+  return found
+    ? ((found["value"] as JSONObject)["stringValue"] as string)
+    : undefined;
 }
 
-function recordsOf(job: { body: JSONObject }): Array<{ resource: JSONObject; record: JSONObject }> {
+function recordsOf(job: {
+  body: JSONObject;
+}): Array<{ resource: JSONObject; record: JSONObject }> {
   const records: Array<{ resource: JSONObject; record: JSONObject }> = [];
 
   for (const resource of job.body["resourceLogs"] as Array<JSONObject>) {
@@ -264,25 +291,36 @@ function recordsOf(job: { body: JSONObject }): Array<{ resource: JSONObject; rec
   return records;
 }
 
-function allRecords(): Array<{ resource: JSONObject; record: JSONObject; projectId: string }> {
+function allRecords(): Array<{
+  resource: JSONObject;
+  record: JSONObject;
+  projectId: string;
+}> {
   return logJobs.flatMap((job: { projectId: string; body: JSONObject }) => {
-    return recordsOf(job).map((item: { resource: JSONObject; record: JSONObject }) => {
-      return { ...item, projectId: job.projectId };
-    });
+    return recordsOf(job).map(
+      (item: { resource: JSONObject; record: JSONObject }) => {
+        return { ...item, projectId: job.projectId };
+      },
+    );
   });
 }
 
 function attributeOf(record: JSONObject, key: string): JSONObject | undefined {
-  const found: JSONObject | undefined = (record["attributes"] as Array<JSONObject>).find(
-    (attribute: JSONObject) => {
-      return attribute["key"] === key;
-    },
-  );
+  const found: JSONObject | undefined = (
+    record["attributes"] as Array<JSONObject>
+  ).find((attribute: JSONObject) => {
+    return attribute["key"] === key;
+  });
   return found ? (found["value"] as JSONObject) : undefined;
 }
 
-function gcpResourceOf(type: string, labels: Record<string, string>): CloudMonitoredResource {
-  const attributes: Record<string, string> = { "resource.gcp.resource_type": type };
+function gcpResourceOf(
+  type: string,
+  labels: Record<string, string>,
+): CloudMonitoredResource {
+  const attributes: Record<string, string> = {
+    "resource.gcp.resource_type": type,
+  };
 
   for (const key of Object.keys(labels)) {
     attributes[`resource.${key}`] = labels[key]!;
@@ -385,13 +423,21 @@ beforeEach(() => {
         });
     });
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
-  jest.spyOn(PayAsYouGoBillingService, "requirePayAsYouGo").mockResolvedValue(undefined);
-  jest.spyOn(LlmConnectionPullRunner, "isTelemetryAllowed").mockResolvedValue(true);
+  jest
+    .spyOn(PayAsYouGoBillingService, "requirePayAsYouGo")
+    .mockResolvedValue(undefined);
+  jest
+    .spyOn(LlmConnectionPullRunner, "isTelemetryAllowed")
+    .mockResolvedValue(true);
   jest
     .spyOn(TelemetryIngestionKeyRateLimiter, "consume")
     .mockImplementation(async () => {
       return rateDecision === TelemetryIngestionKeyLimitOutcome.RateLimited
-        ? { outcome: rateDecision, retryAfterSeconds: 23, isFirstRejectionInWindow: true }
+        ? {
+            outcome: rateDecision,
+            retryAfterSeconds: 23,
+            isFirstRejectionInWindow: true,
+          }
         : { outcome: rateDecision };
     });
 
@@ -421,8 +467,15 @@ beforeEach(() => {
     },
   );
 
-  CloudStreamActivity.readSummary = async (connectionId: ObjectID): Promise<CloudStreamSummary> => {
-    return summaries.get(connectionId.toString()) || { metricSources: [], logSources: [] };
+  CloudStreamActivity.readSummary = async (
+    connectionId: ObjectID,
+  ): Promise<CloudStreamSummary> => {
+    return (
+      summaries.get(connectionId.toString()) || {
+        metricSources: [],
+        logSources: [],
+      }
+    );
   };
   CloudStreamActivity.writeSummary = async (data: {
     connectionId: ObjectID;
@@ -447,18 +500,23 @@ describe("a push Google signed, with the connection's key", () => {
     expect(logJobs[0]!.projectId).toBe(PROJECT_A.toString());
     expect(logJobs[0]!.productType).toBe(ProductType.Logs);
 
-    const records: Array<{ resource: JSONObject; record: JSONObject }> = recordsOf(logJobs[0]!);
+    const records: Array<{ resource: JSONObject; record: JSONObject }> =
+      recordsOf(logJobs[0]!);
     expect(records).toHaveLength(1);
 
     const { resource, record } = records[0]!;
-    expect(resourceAttribute(resource, "service.name")).toBe("Production Google Cloud");
+    expect(resourceAttribute(resource, "service.name")).toBe(
+      "Production Google Cloud",
+    );
     expect(resourceAttribute(resource, "oneuptime.cloud.connection.id")).toBe(
       CONNECTION_A.toString(),
     );
     expect(resourceAttribute(resource, "cloud.provider")).toBe("gcp");
     expect(resourceAttribute(resource, "cloud.account.id")).toBe(PROJECT);
     expect(resourceAttribute(resource, "cloud.region")).toBe("us-central1");
-    expect(resourceAttribute(resource, "gcp.resource_type")).toBe("cloud_run_revision");
+    expect(resourceAttribute(resource, "gcp.resource_type")).toBe(
+      "cloud_run_revision",
+    );
     // A Cloud Run log names no platform: no app is made up from the connection's service.
     expect(resourceAttribute(resource, "cloud.platform")).toBeUndefined();
 
@@ -467,7 +525,9 @@ describe("a push Google signed, with the connection's key", () => {
     expect(record["severityNumber"]).toBe(17);
     expect(record["traceId"]).toBe("4bf92f3577b34da6a3ce929d0e0e4736");
     expect(record["spanId"]).toBe("a1b2c3d4e5f60718");
-    expect(attributeOf(record, "http.response.status_code")).toEqual({ intValue: "503" });
+    expect(attributeOf(record, "http.response.status_code")).toEqual({
+      intValue: "503",
+    });
     expect(attributeOf(record, "gcp.log.id")).toEqual({
       stringValue: "run.googleapis.com/requests",
     });
@@ -484,11 +544,16 @@ describe("a push Google signed, with the connection's key", () => {
   });
 
   test("each kind of entry is filed under the resource its labels name, the one its metrics land on", async () => {
-    for (const entry of [computeSyslogEntry(), cloudFunctionEntry(), auditLogEntry()]) {
+    for (const entry of [
+      computeSyslogEntry(),
+      cloudFunctionEntry(),
+      auditLogEntry(),
+    ]) {
       expectPubSubAnswer(await push({ entry }), 204);
     }
 
-    const records: Array<{ resource: JSONObject; record: JSONObject }> = allRecords();
+    const records: Array<{ resource: JSONObject; record: JSONObject }> =
+      allRecords();
     expect(records).toHaveLength(3);
 
     const vm: CloudMonitoredResource = gcpResourceOf("gce_instance", {
@@ -501,17 +566,24 @@ describe("a push Google signed, with the connection's key", () => {
       project_id: PROJECT,
       region: "us-central1",
     });
-    const database: CloudMonitoredResource = gcpResourceOf("cloudsql_database", {
-      database_id: `${PROJECT}:orders-db`,
-      project_id: PROJECT,
-      region: "us-central1",
-    });
+    const database: CloudMonitoredResource = gcpResourceOf(
+      "cloudsql_database",
+      {
+        database_id: `${PROJECT}:orders-db`,
+        project_id: PROJECT,
+        region: "us-central1",
+      },
+    );
 
     expect(
       records.map((item: { resource: JSONObject }) => {
         return resourceAttribute(item.resource, "cloud.resource_id");
       }),
-    ).toEqual([vm.providerResourceId, fn.providerResourceId, database.providerResourceId]);
+    ).toEqual([
+      vm.providerResourceId,
+      fn.providerResourceId,
+      database.providerResourceId,
+    ]);
 
     // The syslog line, the function's message beside its fields, the audit log's one line.
     expect((records[0]!.record["body"] as JSONObject)["stringValue"]).toBe(
@@ -520,12 +592,18 @@ describe("a push Google signed, with the connection's key", () => {
     expect((records[1]!.record["body"] as JSONObject)["stringValue"]).toBe(
       "Payment failed: card declined",
     );
-    expect(attributeOf(records[1]!.record, "gcp.json_payload.orderId")).toEqual({
-      stringValue: "o-981",
-    });
+    expect(attributeOf(records[1]!.record, "gcp.json_payload.orderId")).toEqual(
+      {
+        stringValue: "o-981",
+      },
+    );
     // A Cloud Functions function's logs are the function's in Serverless too.
-    expect(resourceAttribute(records[1]!.resource, "cloud.platform")).toBe("gcp_cloud_functions");
-    expect(resourceAttribute(records[1]!.resource, "faas.name")).toBe("charge-card");
+    expect(resourceAttribute(records[1]!.resource, "cloud.platform")).toBe(
+      "gcp_cloud_functions",
+    );
+    expect(resourceAttribute(records[1]!.resource, "faas.name")).toBe(
+      "charge-card",
+    );
     expect((records[2]!.record["body"] as JSONObject)["stringValue"]).toBe(
       `cloudsql.instances.update projects/${PROJECT}/instances/orders-db`,
     );
@@ -538,11 +616,18 @@ describe("a push Google signed, with the connection's key", () => {
   test("an entry of a resource the catalog has no rule for streams all the same, unfiled", async () => {
     expectPubSubAnswer(await push({ entry: gkeContainerEntry() }), 204);
 
-    const records: Array<{ resource: JSONObject; record: JSONObject }> = allRecords();
+    const records: Array<{ resource: JSONObject; record: JSONObject }> =
+      allRecords();
     expect(records).toHaveLength(1);
-    expect(resourceAttribute(records[0]!.resource, "cloud.resource_id")).toBeUndefined();
-    expect(resourceAttribute(records[0]!.resource, "gcp.resource_type")).toBe("k8s_container");
-    expect(resourceAttribute(records[0]!.resource, "cloud.account.id")).toBe(PROJECT);
+    expect(
+      resourceAttribute(records[0]!.resource, "cloud.resource_id"),
+    ).toBeUndefined();
+    expect(resourceAttribute(records[0]!.resource, "gcp.resource_type")).toBe(
+      "k8s_container",
+    );
+    expect(resourceAttribute(records[0]!.resource, "cloud.account.id")).toBe(
+      PROJECT,
+    );
   });
 
   test("a message that is no log entry is taken and left out: Pub/Sub would only push it again", async () => {
@@ -607,13 +692,18 @@ describe("who a push is from", () => {
 
     expect(logJobs).toHaveLength(1);
     expect(logJobs[0]!.projectId).toBe(PROJECT_B.toString());
-    expect(resourceAttribute(recordsOf(logJobs[0]!)[0]!.resource, "service.name")).toBe(
-      "Data Google Cloud",
-    );
+    expect(
+      resourceAttribute(recordsOf(logJobs[0]!)[0]!.resource, "service.name"),
+    ).toBe("Data Google Cloud");
   });
 
   test("no token, or one that is no token, is refused alike: 401, and no connection read", async () => {
-    for (const authorization of ["", "Basic dXNlcjpwYXNz", "Bearer not.a-token", "Bearer x"]) {
+    for (const authorization of [
+      "",
+      "Basic dXNlcjpwYXNz",
+      "Bearer not.a-token",
+      "Bearer x",
+    ]) {
       expectPubSubAnswer(await push({ authorization }), 401);
     }
 
@@ -625,7 +715,9 @@ describe("who a push is from", () => {
     const wrong: string = keyOf(CONNECTION_A, "ff");
 
     expectPubSubAnswer(
-      await push({ token: pushToken({ key: GOOGLE, audience: wrong, email: PUSHER_A }) }),
+      await push({
+        token: pushToken({ key: GOOGLE, audience: wrong, email: PUSHER_A }),
+      }),
       401,
     );
     await CloudStreamActivity.flushAll(new Date());
@@ -637,11 +729,17 @@ describe("who a push is from", () => {
   });
 
   test("a key naming a connection that streams nothing is refused without reading it", async () => {
-    const stranger: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
+    const stranger: ObjectID = new ObjectID(
+      "66666666-6666-4666-8666-666666666666",
+    );
 
     expectPubSubAnswer(
       await push({
-        token: pushToken({ key: GOOGLE, audience: keyOf(stranger, "cd"), email: PUSHER_A }),
+        token: pushToken({
+          key: GOOGLE,
+          audience: keyOf(stranger, "cd"),
+          email: PUSHER_A,
+        }),
       }),
       401,
     );
@@ -650,7 +748,9 @@ describe("who a push is from", () => {
 
   test("the right key with a token anyone else signed is refused, and said on the connection", async () => {
     expectPubSubAnswer(
-      await push({ token: pushToken({ key: IMPOSTOR, audience: KEY_A, email: PUSHER_A }) }),
+      await push({
+        token: pushToken({ key: IMPOSTOR, audience: KEY_A, email: PUSHER_A }),
+      }),
       401,
     );
     await CloudStreamActivity.flushAll(new Date());
@@ -668,7 +768,9 @@ describe("who a push is from", () => {
       "someone@gmail.com",
     ]) {
       expectPubSubAnswer(
-        await push({ token: pushToken({ key: GOOGLE, audience: KEY_A, email }) }),
+        await push({
+          token: pushToken({ key: GOOGLE, audience: KEY_A, email }),
+        }),
         401,
       );
     }
@@ -719,7 +821,9 @@ describe("who a push is from", () => {
 
     rows.get(CONNECTION_A.toString())!.isEnabled = true;
     CloudStreamAuthenticator.forget(CONNECTION_A);
-    (ProjectService.isProjectBlocked as jest.Mock).mockResolvedValue(true as never);
+    (ProjectService.isProjectBlocked as jest.Mock).mockResolvedValue(
+      true as never,
+    );
     expectPubSubAnswer(await push({}), 403);
 
     expect(logJobs).toEqual([]);
@@ -754,7 +858,10 @@ describe("limits", () => {
     const reply: PushReply = await sendPush({
       port,
       token: pushToken({ key: GOOGLE, audience: KEY_A, email: PUSHER_A }),
-      body: Buffer.alloc(CLOUD_STREAM_PUBSUB_MAX_REQUEST_BYTES + 64 * 1024, 120),
+      body: Buffer.alloc(
+        CLOUD_STREAM_PUBSUB_MAX_REQUEST_BYTES + 64 * 1024,
+        120,
+      ),
       chunked: true,
     });
 
@@ -763,9 +870,10 @@ describe("limits", () => {
   });
 
   test("a message's data past its limit is refused before it is decoded", async () => {
-    const data: string = Buffer.alloc(CLOUD_STREAM_PUBSUB_MAX_MESSAGE_BYTES + 4096, 97).toString(
-      "base64",
-    );
+    const data: string = Buffer.alloc(
+      CLOUD_STREAM_PUBSUB_MAX_MESSAGE_BYTES + 4096,
+      97,
+    ).toString("base64");
 
     expectPubSubAnswer(await push({ rawData: data }), 413);
   });
@@ -788,7 +896,10 @@ describe("limits", () => {
     const reply: PushReply = await sendPush({
       port,
       token: pushToken({ key: GOOGLE, audience: KEY_A, email: PUSHER_A }),
-      body: pushEnvelope({ entry: cloudRunRequestEntry(), messageId: nextMessageId() }),
+      body: pushEnvelope({
+        entry: cloudRunRequestEntry(),
+        messageId: nextMessageId(),
+      }),
       headers: { "Content-Encoding": "gzip" },
     });
 
@@ -839,7 +950,9 @@ describe("a burst of pushes", () => {
   test("two projects' pushes are never one job", async () => {
     await Promise.all([
       push({}),
-      push({ token: pushToken({ key: GOOGLE, audience: KEY_B, email: PUSHER_B }) }),
+      push({
+        token: pushToken({ key: GOOGLE, audience: KEY_B, email: PUSHER_B }),
+      }),
       push({}),
     ]);
 
@@ -852,7 +965,9 @@ describe("a burst of pushes", () => {
 
       expect(services.size).toBe(1);
       expect(job.projectId).toBe(
-        services.has("Data Google Cloud") ? PROJECT_B.toString() : PROJECT_A.toString(),
+        services.has("Data Google Cloud")
+          ? PROJECT_B.toString()
+          : PROJECT_A.toString(),
       );
     }
 

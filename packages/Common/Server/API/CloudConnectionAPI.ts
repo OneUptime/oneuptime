@@ -257,9 +257,9 @@ export default class CloudConnectionAPI extends BaseAPI<
         try {
           const target: { connectionId: ObjectID; projectId: ObjectID } =
             await this.readStreamConnection(req, [CloudProvider.Azure]);
-          const hostSubscriptionId: unknown = (req.body as JSONObject | undefined)?.[
-            "hostSubscriptionId"
-          ];
+          const hostSubscriptionId: unknown = (
+            req.body as JSONObject | undefined
+          )?.["hostSubscriptionId"];
 
           if (typeof hostSubscriptionId !== "string") {
             throw new BadDataException(
@@ -365,9 +365,7 @@ export default class CloudConnectionAPI extends BaseAPI<
       projectId,
     });
 
-    if (
-      !providers.includes((connection?.provider || "") as CloudProvider)
-    ) {
+    if (!providers.includes((connection?.provider || "") as CloudProvider)) {
       throw new BadDataException(
         providers.length === 1 && providers[0] === CloudProvider.Azure
           ? "Only Azure connections are read from their event hubs."

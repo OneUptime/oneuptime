@@ -314,11 +314,9 @@ export function getGcpCloudStreamDeleteCommand(data: {
     .map((projectId: string): string => {
       return projectId.trim().toLowerCase();
     })
-    .filter(
-      (projectId: string, index: number, all: Array<string>): boolean => {
-        return isGcpProjectId(projectId) && all.indexOf(projectId) === index;
-      },
-    );
+    .filter((projectId: string, index: number, all: Array<string>): boolean => {
+      return isGcpProjectId(projectId) && all.indexOf(projectId) === index;
+    });
 
   return [
     ...(sources.length > 0

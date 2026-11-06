@@ -288,14 +288,12 @@ export const isCloudStreamPath: (path: string) => boolean = (
     normalized = normalized.slice(0, -1);
   }
 
-  return CLOUD_STREAM_PATHS.some(
-    (streamPath: string): boolean => {
-      return (
-        normalized === streamPath ||
-        normalized === `${CLOUD_STREAM_URL_PREFIX}${streamPath}`
-      );
-    },
-  );
+  return CLOUD_STREAM_PATHS.some((streamPath: string): boolean => {
+    return (
+      normalized === streamPath ||
+      normalized === `${CLOUD_STREAM_URL_PREFIX}${streamPath}`
+    );
+  });
 };
 
 const protobufBodyParserMiddleware: RequestHandler = ExpressRaw({

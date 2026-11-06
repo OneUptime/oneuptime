@@ -1041,7 +1041,8 @@ export function rotateCloudStreamKeyHashes(data: {
  * OneUptime takes a push only with a token Google signed for it.
  */
 
-export const CLOUD_STREAM_PUSH_SERVICE_ACCOUNT_PREFIX: string = "oneuptime-push";
+export const CLOUD_STREAM_PUSH_SERVICE_ACCOUNT_PREFIX: string =
+  "oneuptime-push";
 
 /*
  * A Google Cloud project id: 6 to 30 lowercase letters, digits and

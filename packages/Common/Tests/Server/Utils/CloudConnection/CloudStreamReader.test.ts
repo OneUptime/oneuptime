@@ -48,7 +48,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  */
 
 const PROJECT: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
-const CONNECTION: ObjectID = new ObjectID("6f1c3a2e-9b8d-4c7e-a1f0-2d3c4b5a6e7f");
+const CONNECTION: ObjectID = new ObjectID(
+  "6f1c3a2e-9b8d-4c7e-a1f0-2d3c4b5a6e7f",
+);
 const HOST_SUBSCRIPTION: string = "11111111-aaaa-4aaa-8aaa-111111111111";
 const NAMESPACE: string = "oneuptime-6f1c3a2e-eastus";
 const VM_ID: string =
@@ -59,10 +61,19 @@ let row: CloudConnection;
 let writes: Array<JSONObject>;
 let redis: Map<string, string>;
 let summaries: Map<string, CloudStreamSummary>;
-let handed: Array<{ context: AzureStreamContext; namespaceRegion: string; records: Array<KafkaRecord> }>;
+let handed: Array<{
+  context: AzureStreamContext;
+  namespaceRegion: string;
+  records: Array<KafkaRecord>;
+}>;
 let admitted: boolean;
 let queueFails: boolean;
-let jobs: Array<{ jobId: string; name: string; data: JSONObject; options: JSONObject }>;
+let jobs: Array<{
+  jobId: string;
+  name: string;
+  data: JSONObject;
+  options: JSONObject;
+}>;
 
 function connectionRow(): CloudConnection {
   const connection: CloudConnection = new CloudConnection();
@@ -72,14 +83,27 @@ function connectionRow(): CloudConnection {
   connection.isEnabled = true;
   connection.name = "Production Azure";
   connection.streamKeyCreatedAt = new Date("2026-11-06T09:00:00.000Z");
-  connection.streamState = { hostSubscriptionId: HOST_SUBSCRIPTION, offsets: {} };
+  connection.streamState = {
+    hostSubscriptionId: HOST_SUBSCRIPTION,
+    offsets: {},
+  };
   connection.pullState = {
     azureMetricDefinitions: {
       "microsoft.compute/virtualmachines": {
         at: "2026-11-06T09:00:00.000Z",
         metrics: [
-          { name: "Percentage CPU", unit: "Percent", aggregation: "Average", grain: "PT1M" },
-          { name: "Available Memory Bytes", unit: "Bytes", aggregation: "Average", grain: "PT1M" },
+          {
+            name: "Percentage CPU",
+            unit: "Percent",
+            aggregation: "Average",
+            grain: "PT1M",
+          },
+          {
+            name: "Available Memory Bytes",
+            unit: "Bytes",
+            aggregation: "Average",
+            grain: "PT1M",
+          },
         ],
       },
     },
@@ -87,7 +111,9 @@ function connectionRow(): CloudConnection {
   return connection;
 }
 
-async function transport(request: DataSourceHttpRequest): Promise<DataSourceHttpResponse> {
+async function transport(
+  request: DataSourceHttpRequest,
+): Promise<DataSourceHttpResponse> {
   if (request.url.includes("/oauth2/v2.0/token")) {
     return {
       statusCode: 200,
@@ -146,7 +172,12 @@ async function read(): Promise<CloudStreamReadOutcome> {
 
 async function summary(): Promise<CloudStreamSummary> {
   await CloudStreamActivity.flushAll(new Date());
-  return summaries.get(CONNECTION.toString()) || { metricSources: [], logSources: [] };
+  return (
+    summaries.get(CONNECTION.toString()) || {
+      metricSources: [],
+      logSources: [],
+    }
+  );
 }
 
 beforeEach(async () => {
@@ -164,9 +195,11 @@ beforeEach(async () => {
   CloudStreamReader.reset();
   CloudStreamActivity.reset();
 
-  jest.spyOn(CloudConnectionService, "findOneById").mockImplementation((async () => {
-    return row;
-  }) as never);
+  jest
+    .spyOn(CloudConnectionService, "findOneById")
+    .mockImplementation((async () => {
+      return row;
+    }) as never);
   jest
     .spyOn(CloudConnectionService, "getConnectorSettings")
     .mockImplementation(async (): Promise<CloudConnectionSettings> => {
@@ -181,10 +214,12 @@ beforeEach(async () => {
         secrets: { clientSecret: "app-secret" },
       };
     });
-  jest.spyOn(CloudConnectionService, "ensureTelemetryService").mockResolvedValue({
-    serviceId: new ObjectID("22222222-2222-4222-8222-222222222222"),
-    serviceName: "Production Azure",
-  });
+  jest
+    .spyOn(CloudConnectionService, "ensureTelemetryService")
+    .mockResolvedValue({
+      serviceId: new ObjectID("22222222-2222-4222-8222-222222222222"),
+      serviceName: "Production Azure",
+    });
   jest
     .spyOn(CloudConnectionService, "updateColumnsByIdWithoutHooks")
     .mockImplementation((async (data: { data: JSONObject }) => {
@@ -201,11 +236,15 @@ beforeEach(async () => {
     resource.cloudAccountId = HOST_SUBSCRIPTION;
     return [resource];
   };
-  jest.spyOn(LlmConnectionPullRunner, "isTelemetryAllowed").mockImplementation(async () => {
-    return admitted;
-  });
+  jest
+    .spyOn(LlmConnectionPullRunner, "isTelemetryAllowed")
+    .mockImplementation(async () => {
+      return admitted;
+    });
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
-  jest.spyOn(PayAsYouGoBillingService, "requirePayAsYouGo").mockResolvedValue(undefined);
+  jest
+    .spyOn(PayAsYouGoBillingService, "requirePayAsYouGo")
+    .mockResolvedValue(undefined);
   jest.spyOn(Redis, "isConnected").mockReturnValue(true);
   jest.spyOn(Redis, "getClient").mockReturnValue({
     get: async (key: string): Promise<string | null> => {
@@ -231,8 +270,12 @@ beforeEach(async () => {
     jobs.push({ jobId, name, data, options });
   }) as never);
 
-  CloudStreamActivity.readSummary = async (id: ObjectID): Promise<CloudStreamSummary> => {
-    return summaries.get(id.toString()) || { metricSources: [], logSources: [] };
+  CloudStreamActivity.readSummary = async (
+    id: ObjectID,
+  ): Promise<CloudStreamSummary> => {
+    return (
+      summaries.get(id.toString()) || { metricSources: [], logSources: [] }
+    );
   };
   CloudStreamActivity.writeSummary = async (data: {
     connectionId: ObjectID;
@@ -272,8 +315,15 @@ describe("a read of a streaming Azure connection", () => {
       subscriptionId: HOST_SUBSCRIPTION,
     });
     expect(
-      context.definitions.get("microsoft.compute/virtualmachines")?.get("percentage cpu"),
-    ).toEqual({ name: "Percentage CPU", aggregation: "Average", unit: "Percent", grain: "PT1M" });
+      context.definitions
+        .get("microsoft.compute/virtualmachines")
+        ?.get("percentage cpu"),
+    ).toEqual({
+      name: "Percentage CPU",
+      aggregation: "Average",
+      unit: "Percent",
+      grain: "PT1M",
+    });
     expect(handed[0]!.namespaceRegion).toBe("eastus");
   });
 
@@ -283,8 +333,12 @@ describe("a read of a streaming Azure connection", () => {
 
     await read();
 
-    expect(redis.get(`cloudstream:eventhub:${CONNECTION.toString()}:${NAMESPACE}:0`)).toBe("3");
-    expect(redis.get(`cloudstream:eventhub:${CONNECTION.toString()}:${NAMESPACE}:1`)).toBe("1");
+    expect(
+      redis.get(`cloudstream:eventhub:${CONNECTION.toString()}:${NAMESPACE}:0`),
+    ).toBe("3");
+    expect(
+      redis.get(`cloudstream:eventhub:${CONNECTION.toString()}:${NAMESPACE}:1`),
+    ).toBe("1");
     expect(writes).toEqual([
       {
         streamState: {
@@ -302,7 +356,10 @@ describe("a read of a streaming Azure connection", () => {
       hostSubscriptionId: HOST_SUBSCRIPTION,
       offsets: { [NAMESPACE]: { "0": 1 } },
     };
-    redis.set(`cloudstream:eventhub:${CONNECTION.toString()}:${NAMESPACE}:0`, "2");
+    redis.set(
+      `cloudstream:eventhub:${CONNECTION.toString()}:${NAMESPACE}:0`,
+      "2",
+    );
 
     await read();
 
@@ -321,7 +378,9 @@ describe("a read of a streaming Azure connection", () => {
     await read();
 
     const said: CloudStreamSummary = await summary();
-    expect(getCloudStreamState({ hasKey: true, summary: said, now: new Date() })).toBe("receiving");
+    expect(
+      getCloudStreamState({ hasKey: true, summary: said, now: new Date() }),
+    ).toBe("receiving");
     expect(said.metricSources[0]).toMatchObject({
       accountId: HOST_SUBSCRIPTION,
       region: "eastus",
@@ -344,7 +403,9 @@ describe("a read of a streaming Azure connection", () => {
 
     const said: CloudStreamSummary = await summary();
     expect(said.lastReadAt).toBeDefined();
-    expect(getCloudStreamState({ hasKey: true, summary: said, now: new Date() })).toBe("waiting");
+    expect(
+      getCloudStreamState({ hasKey: true, summary: said, now: new Date() }),
+    ).toBe("waiting");
   });
 
   test("a token the namespace refuses says no-access on the connection", async () => {
@@ -353,7 +414,9 @@ describe("a read of a streaming Azure connection", () => {
     const outcome: CloudStreamReadOutcome = await read();
 
     expect(outcome.status).toBe("failed");
-    expect((await summary()).lastRefusal?.reason).toBe(CloudStreamRefusalReason.NoAccess);
+    expect((await summary()).lastRefusal?.reason).toBe(
+      CloudStreamRefusalReason.NoAccess,
+    );
     expect(writes).toHaveLength(1);
   });
 
@@ -362,7 +425,9 @@ describe("a read of a streaming Azure connection", () => {
 
     await read();
 
-    expect((await summary()).lastRefusal?.reason).toBe(CloudStreamRefusalReason.Unreachable);
+    expect((await summary()).lastRefusal?.reason).toBe(
+      CloudStreamRefusalReason.Unreachable,
+    );
     broker = new FakeEventHubsBroker();
     await broker.start();
   });
@@ -376,7 +441,9 @@ describe("a read of a streaming Azure connection", () => {
     expect(outcome.status).toBe("skipped");
     expect(handed).toEqual([]);
     expect(broker.connections).toBe(0);
-    expect((await summary()).lastRefusal?.reason).toBe(CloudStreamRefusalReason.NotAllowed);
+    expect((await summary()).lastRefusal?.reason).toBe(
+      CloudStreamRefusalReason.NotAllowed,
+    );
   });
 
   test("events the queue could not take are read again, and nothing is said on the connection", async () => {
@@ -396,18 +463,18 @@ describe("a read of a streaming Azure connection", () => {
 
   test("streaming stopped while it read: the offsets it reached are not written back", async () => {
     broker.addEvents(0, ["{}"]);
-    jest.spyOn(CloudConnectionService, "findOneById").mockImplementation((async (data: {
-      select: JSONObject;
-    }) => {
-      // The read's own look at the row, then the look before it writes.
-      if (data.select["streamState"]) {
-        return row;
-      }
+    jest
+      .spyOn(CloudConnectionService, "findOneById")
+      .mockImplementation((async (data: { select: JSONObject }) => {
+        // The read's own look at the row, then the look before it writes.
+        if (data.select["streamState"]) {
+          return row;
+        }
 
-      const stopped: CloudConnection = connectionRow();
-      stopped.streamKeyCreatedAt = undefined as never;
-      return stopped;
-    }) as never);
+        const stopped: CloudConnection = connectionRow();
+        stopped.streamKeyCreatedAt = undefined as never;
+        return stopped;
+      }) as never);
 
     await read();
 
@@ -416,73 +483,118 @@ describe("a read of a streaming Azure connection", () => {
   });
 
   test.each([
-    ["an AWS connection", (connection: CloudConnection): void => {
-      connection.provider = CloudProvider.AWS;
-    }],
-    ["a connection turned off", (connection: CloudConnection): void => {
-      connection.isEnabled = false;
-    }],
-    ["a connection not streaming", (connection: CloudConnection): void => {
-      connection.streamKeyCreatedAt = undefined as never;
-    }],
-    ["a connection with no event hubs' subscription", (connection: CloudConnection): void => {
-      connection.streamState = {};
-    }],
-  ])("%s is not read", async (_name: string, change: (connection: CloudConnection) => void) => {
-    change(row);
+    [
+      "an AWS connection",
+      (connection: CloudConnection): void => {
+        connection.provider = CloudProvider.AWS;
+      },
+    ],
+    [
+      "a connection turned off",
+      (connection: CloudConnection): void => {
+        connection.isEnabled = false;
+      },
+    ],
+    [
+      "a connection not streaming",
+      (connection: CloudConnection): void => {
+        connection.streamKeyCreatedAt = undefined as never;
+      },
+    ],
+    [
+      "a connection with no event hubs' subscription",
+      (connection: CloudConnection): void => {
+        connection.streamState = {};
+      },
+    ],
+  ])(
+    "%s is not read",
+    async (_name: string, change: (connection: CloudConnection) => void) => {
+      change(row);
 
-    const outcome: CloudStreamReadOutcome = await read();
+      const outcome: CloudStreamReadOutcome = await read();
 
-    expect(outcome.status).toBe("skipped");
-    expect(broker.connections).toBe(0);
-  });
+      expect(outcome.status).toBe("skipped");
+      expect(broker.connections).toBe(0);
+    },
+  );
 
   test("with no event hub made yet, it reads nothing and says nothing", async () => {
     jest.restoreAllMocks();
-    jest.spyOn(CloudConnectionService, "findOneById").mockImplementation((async () => {
-      return row;
-    }) as never);
-    jest.spyOn(CloudConnectionService, "getConnectorSettings").mockResolvedValue({
-      provider: CloudProvider.Azure,
-      projectId: PROJECT.toString(),
-      config: { tenantId: "22222222-bbbb-4bbb-8bbb-222222222222", clientId: "0b9f6c1e-2d3a-4b5c-8d7e-9f0a1b2c3d4e" },
-      secrets: { clientSecret: "app-secret" },
-    });
-    jest.spyOn(LlmConnectionPullRunner, "isTelemetryAllowed").mockResolvedValue(true);
+    jest
+      .spyOn(CloudConnectionService, "findOneById")
+      .mockImplementation((async () => {
+        return row;
+      }) as never);
+    jest
+      .spyOn(CloudConnectionService, "getConnectorSettings")
+      .mockResolvedValue({
+        provider: CloudProvider.Azure,
+        projectId: PROJECT.toString(),
+        config: {
+          tenantId: "22222222-bbbb-4bbb-8bbb-222222222222",
+          clientId: "0b9f6c1e-2d3a-4b5c-8d7e-9f0a1b2c3d4e",
+        },
+        secrets: { clientSecret: "app-secret" },
+      });
+    jest
+      .spyOn(LlmConnectionPullRunner, "isTelemetryAllowed")
+      .mockResolvedValue(true);
     jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
-    jest.spyOn(PayAsYouGoBillingService, "requirePayAsYouGo").mockResolvedValue(undefined);
+    jest
+      .spyOn(PayAsYouGoBillingService, "requirePayAsYouGo")
+      .mockResolvedValue(undefined);
 
-    const outcome: CloudStreamReadOutcome = await CloudStreamReader.readAzure(CONNECTION, {
-      deliver,
-      transport: async (request: DataSourceHttpRequest): Promise<DataSourceHttpResponse> => {
-        if (request.url.includes("/oauth2/v2.0/token")) {
-          return { statusCode: 200, bodyText: "", bodyJson: { access_token: "t", expires_in: 3600 } };
-        }
+    const outcome: CloudStreamReadOutcome = await CloudStreamReader.readAzure(
+      CONNECTION,
+      {
+        deliver,
+        transport: async (
+          request: DataSourceHttpRequest,
+        ): Promise<DataSourceHttpResponse> => {
+          if (request.url.includes("/oauth2/v2.0/token")) {
+            return {
+              statusCode: 200,
+              bodyText: "",
+              bodyJson: { access_token: "t", expires_in: 3600 },
+            };
+          }
 
-        return {
-          statusCode: 404,
-          bodyText: "",
-          bodyJson: { error: { code: "ResourceGroupNotFound" } },
-        };
+          return {
+            statusCode: 404,
+            bodyText: "",
+            bodyJson: { error: { code: "ResourceGroupNotFound" } },
+          };
+        },
       },
-    });
+    );
 
-    expect(outcome).toEqual({ status: "read", events: 0, reason: "no event hubs yet" });
+    expect(outcome).toEqual({
+      status: "read",
+      events: 0,
+      reason: "no event hubs yet",
+    });
   });
 });
 
 describe("the reads queued each minute", () => {
   test("are one job per Azure connection that streams, each kept to one at a time", async () => {
-    const other: ObjectID = new ObjectID("7f1c3a2e-9b8d-4c7e-a1f0-2d3c4b5a6e7f");
+    const other: ObjectID = new ObjectID(
+      "7f1c3a2e-9b8d-4c7e-a1f0-2d3c4b5a6e7f",
+    );
     const findBy: jest.SpyInstance = jest
       .spyOn(CloudConnectionService, "findBy")
       .mockImplementation((async () => {
         return [row, Object.assign(new CloudConnection(), { id: other })];
       }) as never);
 
-    expect(await CloudStreamReader.enqueueDue(new Date("2026-11-06T10:00:30.000Z"))).toBe(2);
+    expect(
+      await CloudStreamReader.enqueueDue(new Date("2026-11-06T10:00:30.000Z")),
+    ).toBe(2);
 
-    const query: JSONObject = (findBy.mock.calls[0]![0] as { query: JSONObject }).query;
+    const query: JSONObject = (
+      findBy.mock.calls[0]![0] as { query: JSONObject }
+    ).query;
     expect(query["provider"]).toBe(CloudProvider.Azure);
     expect(query["isEnabled"]).toBe(true);
     expect(query["streamKeyCreatedAt"]).toBeDefined();
@@ -515,23 +627,36 @@ describe("the key metrics a read is decoded against", () => {
     const definitions: ReturnType<typeof CloudStreamReader.readDefinitions> =
       CloudStreamReader.readDefinitions(connectionRow().pullState);
 
-    expect(Array.from(definitions.keys())).toEqual(["microsoft.compute/virtualmachines"]);
+    expect(Array.from(definitions.keys())).toEqual([
+      "microsoft.compute/virtualmachines",
+    ]);
     expect(
       Array.from(definitions.get("microsoft.compute/virtualmachines")!.keys()),
     ).toEqual(["percentage cpu", "available memory bytes"]);
   });
 
   test("a pull state that holds none, or holds them broken, gives none", () => {
-    for (const state of [undefined, null, [], {}, { azureMetricDefinitions: [] }, {
-      azureMetricDefinitions: { x: { metrics: [{ name: "", aggregation: "Average" }, 7] } },
-    }]) {
+    for (const state of [
+      undefined,
+      null,
+      [],
+      {},
+      { azureMetricDefinitions: [] },
+      {
+        azureMetricDefinitions: {
+          x: { metrics: [{ name: "", aggregation: "Average" }, 7] },
+        },
+      },
+    ]) {
       const definitions: ReturnType<typeof CloudStreamReader.readDefinitions> =
         CloudStreamReader.readDefinitions(state);
 
       expect(
-        Array.from(definitions.values()).flatMap((byName: Map<string, unknown>) => {
-          return Array.from(byName.keys());
-        }),
+        Array.from(definitions.values()).flatMap(
+          (byName: Map<string, unknown>) => {
+            return Array.from(byName.keys());
+          },
+        ),
       ).toEqual([]);
     }
   });

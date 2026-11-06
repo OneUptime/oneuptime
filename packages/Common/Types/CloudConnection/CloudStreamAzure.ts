@@ -155,8 +155,7 @@ export function readAzureCloudStreamNamespaceRegion(
   connectionId: string,
   namespace: string,
 ): string | null {
-  const prefix: string =
-    getAzureCloudStreamNames(connectionId).namespacePrefix;
+  const prefix: string = getAzureCloudStreamNames(connectionId).namespacePrefix;
   const name: string = namespace.trim().toLowerCase();
 
   if (!name.startsWith(prefix)) {
@@ -256,12 +255,18 @@ export function readAzureCloudStreamState(
   const offsets: Record<string, Record<string, number>> = {};
   const rawOffsets: unknown = stored["offsets"];
 
-  if (rawOffsets && typeof rawOffsets === "object" && !Array.isArray(rawOffsets)) {
+  if (
+    rawOffsets &&
+    typeof rawOffsets === "object" &&
+    !Array.isArray(rawOffsets)
+  ) {
     for (const namespace of Object.keys(rawOffsets).slice(
       0,
       AZURE_CLOUD_STREAM_MAX_NAMESPACES,
     )) {
-      const partitions: unknown = (rawOffsets as Record<string, unknown>)[namespace];
+      const partitions: unknown = (rawOffsets as Record<string, unknown>)[
+        namespace
+      ];
 
       if (
         !isAzureEventHubsNamespace(namespace) ||
@@ -278,7 +283,9 @@ export function readAzureCloudStreamState(
         0,
         AZURE_CLOUD_STREAM_MAX_PARTITIONS,
       )) {
-        const offset: unknown = (partitions as Record<string, unknown>)[partition];
+        const offset: unknown = (partitions as Record<string, unknown>)[
+          partition
+        ];
         const index: number = Number(partition);
 
         if (
@@ -342,9 +349,7 @@ export function getAzureCloudStreamProblem(data: {
 }
 
 // Subscription IDs typed one a line or separated by commas, lower case, each once.
-export function readAzureCloudStreamSubscriptions(
-  text: string,
-): Array<string> {
+export function readAzureCloudStreamSubscriptions(text: string): Array<string> {
   const subscriptions: Array<string> = [];
 
   for (const line of text.split("\n")) {
@@ -475,7 +480,7 @@ export function getAzureCloudStreamCommand(data: {
     "  wait",
     "  DONE=$(grep -c '^ok$' \"$RESULTS\")",
     "  SKIPPED=$(grep -c '^skipped' \"$RESULTS\")",
-    "  echo \"Diagnostic settings: $DONE resources send to OneUptime's event hubs.\"",
+    '  echo "Diagnostic settings: $DONE resources send to OneUptime\'s event hubs."',
     '  if [ "$SKIPPED" -gt 0 ]; then',
     '    echo "$SKIPPED resources were left out: they have no diagnostic settings, or Azure refused:"',
     "    grep '^skipped' \"$RESULTS\" | head -" +
@@ -485,7 +490,8 @@ export function getAzureCloudStreamCommand(data: {
     "  " + cleanUp,
     "  echo " + quoteForShell(AZURE_CLOUD_STREAM_COMMAND_DONE),
     "}",
-    "oneuptime_stream || echo " + quoteForShell(AZURE_CLOUD_STREAM_COMMAND_STOPPED),
+    "oneuptime_stream || echo " +
+      quoteForShell(AZURE_CLOUD_STREAM_COMMAND_STOPPED),
   ].join("\n");
 }
 

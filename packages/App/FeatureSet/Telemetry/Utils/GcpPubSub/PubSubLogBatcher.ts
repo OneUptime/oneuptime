@@ -169,7 +169,8 @@ export default class PubSubLogBatcher {
     );
 
     const settle: () => void = (): void => {
-      const left: number = (PubSubLogBatcher.inFlight.get(key) || 0) - batch.records;
+      const left: number =
+        (PubSubLogBatcher.inFlight.get(key) || 0) - batch.records;
 
       if (left > 0) {
         PubSubLogBatcher.inFlight.set(key, left);

@@ -120,10 +120,7 @@ export function withoutStreamedMetrics(data: {
 
       if (subscriptionId) {
         const type: string = readStringAttribute(pointAttributes, "type");
-        const grain: string = readStringAttribute(
-          pointAttributes,
-          "timegrain",
-        );
+        const grain: string = readStringAttribute(pointAttributes, "timegrain");
 
         return (
           Boolean(type) &&

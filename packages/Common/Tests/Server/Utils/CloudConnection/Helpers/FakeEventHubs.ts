@@ -1,5 +1,4 @@
 import net from "net";
-import { AddressInfo } from "net";
 
 /*
  * A FAKE AZURE EVENT HUBS NAMESPACE, SPEAKING KAFKA ON A REAL SOCKET.
@@ -74,7 +73,9 @@ function int64(value: number): Buffer {
 }
 
 function readInt64(buffer: Buffer, offset: number): number {
-  return buffer.readInt32BE(offset) * 4294967296 + buffer.readUInt32BE(offset + 4);
+  return (
+    buffer.readInt32BE(offset) * 4294967296 + buffer.readUInt32BE(offset + 4)
+  );
 }
 
 function kafkaString(value: string | null): Buffer {
@@ -87,7 +88,9 @@ function kafkaString(value: string | null): Buffer {
 }
 
 function kafkaBytes(value: Buffer | null): Buffer {
-  return value === null ? int32(-1) : Buffer.concat([int32(value.length), value]);
+  return value === null
+    ? int32(-1)
+    : Buffer.concat([int32(value.length), value]);
 }
 
 function kafkaArray(items: Array<Buffer>): Buffer {
@@ -173,7 +176,11 @@ export function encodeBatch(data: {
     afterCrc,
   ]);
 
-  return Buffer.concat([int64(data.baseOffset), int32(afterLength.length), afterLength]);
+  return Buffer.concat([
+    int64(data.baseOffset),
+    int32(afterLength.length),
+    afterLength,
+  ]);
 }
 
 // One message of the older formats, v0 or v1, uncompressed.
@@ -223,15 +230,20 @@ export class FakeEventHubsBroker {
 
   public requests: Array<FakeRequest> = [];
   public tokens: Array<string> = [];
-  public fetches: Array<Array<{ partition: number; offset: number; maxBytes: number }>> =
-    [];
+  public fetches: Array<
+    Array<{ partition: number; offset: number; maxBytes: number }>
+  > = [];
   public connections: number = 0;
 
   private server: net.Server | null = null;
   private port: number = 0;
   private sockets: Set<net.Socket> = new Set();
 
-  public addEvents(partition: number, values: Array<string | Buffer>, startMs: number = Date.UTC(2026, 10, 6, 10, 0, 0)): void {
+  public addEvents(
+    partition: number,
+    values: Array<string | Buffer>,
+    startMs: number = Date.UTC(2026, 10, 6, 10, 0, 0),
+  ): void {
     const target: FakePartition = this.partitions[partition]!;
 
     values.forEach((value: string | Buffer, index: number): void => {
@@ -259,7 +271,7 @@ export class FakeEventHubsBroker {
     await new Promise<void>((resolve: () => void) => {
       this.server!.listen(0, "127.0.0.1", resolve);
     });
-    this.port = (this.server.address() as AddressInfo).port;
+    this.port = (this.server.address() as net.AddressInfo).port;
     return this.port;
   }
 
@@ -309,7 +321,9 @@ export class FakeEventHubsBroker {
     const correlationId: number = frame.readInt32BE(4);
     const clientIdLength: number = frame.readInt16BE(8);
     const clientId: string =
-      clientIdLength >= 0 ? frame.toString("utf8", 10, 10 + clientIdLength) : "";
+      clientIdLength >= 0
+        ? frame.toString("utf8", 10, 10 + clientIdLength)
+        : "";
     const body: Buffer = frame.subarray(10 + Math.max(0, clientIdLength));
 
     this.requests.push({ apiKey, apiVersion, clientId });
@@ -319,7 +333,9 @@ export class FakeEventHubsBroker {
     }
 
     if (this.hugeFrame !== null) {
-      socket.write(Buffer.concat([int32(this.hugeFrame), int32(correlationId)]));
+      socket.write(
+        Buffer.concat([int32(this.hugeFrame), int32(correlationId)]),
+      );
       return;
     }
 
@@ -402,10 +418,16 @@ export class FakeEventHubsBroker {
     this.tokens.push(token);
 
     return token === this.token
-      ? Buffer.concat([int16(0), kafkaString(null), kafkaBytes(Buffer.alloc(0))])
+      ? Buffer.concat([
+          int16(0),
+          kafkaString(null),
+          kafkaBytes(Buffer.alloc(0)),
+        ])
       : Buffer.concat([
           int16(58),
-          kafkaString("Invalid SAS token or the principal lacks the Listen claim."),
+          kafkaString(
+            "Invalid SAS token or the principal lacks the Listen claim.",
+          ),
           kafkaBytes(Buffer.alloc(0)),
         ]);
   }
@@ -428,7 +450,11 @@ export class FakeEventHubsBroker {
         ]);
       },
     );
-    const errorCode: number = this.isTopicDenied ? 29 : this.isTopicMissing ? 3 : 0;
+    const errorCode: number = this.isTopicDenied
+      ? 29
+      : this.isTopicMissing
+        ? 3
+        : 0;
     const topic: Buffer = Buffer.concat([
       int16(errorCode),
       kafkaString(this.hub),
@@ -473,7 +499,9 @@ export class FakeEventHubsBroker {
         );
       }
 
-      answers.push(Buffer.concat([kafkaString(this.hub), kafkaArray(partitionAnswers)]));
+      answers.push(
+        Buffer.concat([kafkaString(this.hub), kafkaArray(partitionAnswers)]),
+      );
     }
 
     return kafkaArray(answers);
@@ -484,7 +512,11 @@ export class FakeEventHubsBroker {
     const topics: number = body.readInt32BE(position);
     position += 4;
     const topicAnswers: Array<Buffer> = [];
-    const asked: Array<{ partition: number; offset: number; maxBytes: number }> = [];
+    const asked: Array<{
+      partition: number;
+      offset: number;
+      maxBytes: number;
+    }> = [];
 
     for (let topicIndex: number = 0; topicIndex < topics; topicIndex++) {
       const nameLength: number = body.readInt16BE(position);
@@ -502,15 +534,24 @@ export class FakeEventHubsBroker {
         partitionAnswers.push(this.fetchPartition(partition, offset, maxBytes));
       }
 
-      topicAnswers.push(Buffer.concat([kafkaString(this.hub), kafkaArray(partitionAnswers)]));
+      topicAnswers.push(
+        Buffer.concat([kafkaString(this.hub), kafkaArray(partitionAnswers)]),
+      );
     }
 
     this.fetches.push(asked);
 
-    return Buffer.concat([int32(this.throttleTimeMs), kafkaArray(topicAnswers)]);
+    return Buffer.concat([
+      int32(this.throttleTimeMs),
+      kafkaArray(topicAnswers),
+    ]);
   }
 
-  private fetchPartition(partition: number, offset: number, maxBytes: number): Buffer {
+  private fetchPartition(
+    partition: number,
+    offset: number,
+    maxBytes: number,
+  ): Buffer {
     const target: FakePartition | undefined = this.partitions[partition];
 
     if (this.isTopicDenied) {
@@ -534,8 +575,14 @@ export class FakeEventHubsBroker {
       Math.floor((offset - target.earliest) / this.batchSize) * this.batchSize;
 
     while (index < target.events.length) {
-      const events: Array<FakeEvent> = target.events.slice(index, index + this.batchSize);
-      const batch: Buffer = encodeBatch({ baseOffset: target.earliest + index, events });
+      const events: Array<FakeEvent> = target.events.slice(
+        index,
+        index + this.batchSize,
+      );
+      const batch: Buffer = encodeBatch({
+        baseOffset: target.earliest + index,
+        events,
+      });
 
       if (batches.length > 0 && size + batch.length > maxBytes) {
         if (this.cutsLastBatch) {

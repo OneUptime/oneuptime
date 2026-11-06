@@ -14,8 +14,12 @@ import PubSubLogBatcher, {
  * waits in a process never grows past its bound.
  */
 
-const PROJECT_A: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
-const PROJECT_B: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
+const PROJECT_A: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
+const PROJECT_B: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555555",
+);
 
 let queued: Array<{ projectId: string; resourceLogs: Array<JSONObject> }>;
 let releases: Array<() => void>;
@@ -53,7 +57,10 @@ beforeEach(() => {
       throw new Error("Redis is away");
     }
 
-    queued.push({ projectId: data.projectId.toString(), resourceLogs: data.resourceLogs });
+    queued.push({
+      projectId: data.projectId.toString(),
+      resourceLogs: data.resourceLogs,
+    });
   };
 });
 
@@ -64,9 +71,21 @@ afterEach(() => {
 describe("a project's pushes of a moment", () => {
   test("are one job, queued after the wait", async () => {
     await Promise.all([
-      PubSubLogBatcher.add({ projectId: PROJECT_A, resource: resource("1"), records: 1 }),
-      PubSubLogBatcher.add({ projectId: PROJECT_A, resource: resource("2"), records: 1 }),
-      PubSubLogBatcher.add({ projectId: PROJECT_A, resource: resource("3"), records: 1 }),
+      PubSubLogBatcher.add({
+        projectId: PROJECT_A,
+        resource: resource("1"),
+        records: 1,
+      }),
+      PubSubLogBatcher.add({
+        projectId: PROJECT_A,
+        resource: resource("2"),
+        records: 1,
+      }),
+      PubSubLogBatcher.add({
+        projectId: PROJECT_A,
+        resource: resource("3"),
+        records: 1,
+      }),
     ]);
 
     expect(queued).toEqual([
@@ -82,13 +101,16 @@ describe("a project's pushes of a moment", () => {
     PubSubLogBatcher.maxWaitMs = 60_000;
 
     await Promise.all(
-      Array.from({ length: PUBSUB_BATCH_MAX_RECORDS }, (_value: unknown, index: number) => {
-        return PubSubLogBatcher.add({
-          projectId: PROJECT_A,
-          resource: resource(String(index)),
-          records: 1,
-        });
-      }),
+      Array.from(
+        { length: PUBSUB_BATCH_MAX_RECORDS },
+        (_value: unknown, index: number) => {
+          return PubSubLogBatcher.add({
+            projectId: PROJECT_A,
+            resource: resource(String(index)),
+            records: 1,
+          });
+        },
+      ),
     );
 
     expect(queued).toHaveLength(1);
@@ -97,8 +119,16 @@ describe("a project's pushes of a moment", () => {
 
   test("two projects' pushes are two jobs", async () => {
     await Promise.all([
-      PubSubLogBatcher.add({ projectId: PROJECT_A, resource: resource("a"), records: 1 }),
-      PubSubLogBatcher.add({ projectId: PROJECT_B, resource: resource("b"), records: 1 }),
+      PubSubLogBatcher.add({
+        projectId: PROJECT_A,
+        resource: resource("a"),
+        records: 1,
+      }),
+      PubSubLogBatcher.add({
+        projectId: PROJECT_B,
+        resource: resource("b"),
+        records: 1,
+      }),
     ]);
 
     expect(
@@ -138,10 +168,20 @@ describe("each push", () => {
   test("is refused with its job when the queue cannot take it", async () => {
     fails = true;
 
-    const results: Array<PromiseSettledResult<void>> = await Promise.allSettled([
-      PubSubLogBatcher.add({ projectId: PROJECT_A, resource: resource("1"), records: 1 }),
-      PubSubLogBatcher.add({ projectId: PROJECT_A, resource: resource("2"), records: 1 }),
-    ]);
+    const results: Array<PromiseSettledResult<void>> = await Promise.allSettled(
+      [
+        PubSubLogBatcher.add({
+          projectId: PROJECT_A,
+          resource: resource("1"),
+          records: 1,
+        }),
+        PubSubLogBatcher.add({
+          projectId: PROJECT_A,
+          resource: resource("2"),
+          records: 1,
+        }),
+      ],
+    );
 
     expect(
       results.map((result: PromiseSettledResult<void>) => {
@@ -166,7 +206,11 @@ describe("each push", () => {
     });
 
     await expect(
-      PubSubLogBatcher.add({ projectId: PROJECT_A, resource: resource("one more"), records: 1 }),
+      PubSubLogBatcher.add({
+        projectId: PROJECT_A,
+        resource: resource("one more"),
+        records: 1,
+      }),
     ).rejects.toBeInstanceOf(PubSubBatchFull);
     // Another project is not held up by it.
     const other: Promise<void> = PubSubLogBatcher.add({

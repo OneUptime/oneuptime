@@ -36,7 +36,9 @@ import AzureEventHubsStream, {
   AzureEventHubsDeliveryFailed,
   AzureEventHubsRead,
 } from "./Azure/AzureEventHubsStream";
-import CloudStreamActivity, { CloudStreamSighting } from "./CloudStreamActivity";
+import CloudStreamActivity, {
+  CloudStreamSighting,
+} from "./CloudStreamActivity";
 import {
   CloudConnectionSettings,
   CloudConnectorTransport,
@@ -138,7 +140,9 @@ export type AzureStreamDeliver = (data: {
 export interface CloudStreamReadDependencies {
   deliver: AzureStreamDeliver;
   transport?: CloudConnectorTransport | undefined;
-  socketFactoryFor?: ((host: string) => Promise<KafkaSocketFactory>) | undefined;
+  socketFactoryFor?:
+    | ((host: string) => Promise<KafkaSocketFactory>)
+    | undefined;
   now?: (() => Date) | undefined;
 }
 
@@ -190,7 +194,9 @@ export default class CloudStreamReader {
         { connectionId: connection.id.toString() },
         {
           attempts: 1,
-          deduplication: { id: `cloud-stream-read-${connection.id.toString()}` },
+          deduplication: {
+            id: `cloud-stream-read-${connection.id.toString()}`,
+          },
         },
       );
     }
@@ -205,8 +211,10 @@ export default class CloudStreamReader {
   public static readDefinitions(
     pullState: unknown,
   ): Map<string, Map<string, AzureStreamMetricDefinition>> {
-    const definitions: Map<string, Map<string, AzureStreamMetricDefinition>> =
-      new Map();
+    const definitions: Map<
+      string,
+      Map<string, AzureStreamMetricDefinition>
+    > = new Map();
     const state: JSONObject =
       pullState && typeof pullState === "object" && !Array.isArray(pullState)
         ? (pullState as JSONObject)
@@ -286,8 +294,9 @@ export default class CloudStreamReader {
     now: number,
   ): Promise<Map<string, AzureStreamResource>> {
     const key: string = connectionId.toString();
-    const cached: { at: number; resources: Map<string, AzureStreamResource> } | undefined =
-      CloudStreamReader.resources.get(key);
+    const cached:
+      | { at: number; resources: Map<string, AzureStreamResource> }
+      | undefined = CloudStreamReader.resources.get(key);
 
     if (cached && now - cached.at < RESOURCES_TTL_MS) {
       return cached.resources;
@@ -317,7 +326,8 @@ export default class CloudStreamReader {
     }
 
     while (CloudStreamReader.resources.size >= MAX_CACHED_CONNECTIONS) {
-      const oldest: string | undefined = CloudStreamReader.resources.oldestKey();
+      const oldest: string | undefined =
+        CloudStreamReader.resources.oldestKey();
 
       if (oldest === undefined) {
         break;
@@ -339,8 +349,9 @@ export default class CloudStreamReader {
   }): Promise<Array<AzureEventHubNamespace>> {
     // Kept by subscription too: streaming started again elsewhere is looked for afresh.
     const key: string = `${data.connectionId.toString()}|${data.hostSubscriptionId}`;
-    const cached: { at: number; namespaces: Array<AzureEventHubNamespace> } | undefined =
-      CloudStreamReader.namespaces.get(key);
+    const cached:
+      | { at: number; namespaces: Array<AzureEventHubNamespace> }
+      | undefined = CloudStreamReader.namespaces.get(key);
 
     if (cached && data.now - cached.at < NAMESPACES_TTL_MS) {
       return cached.namespaces;
@@ -371,8 +382,11 @@ export default class CloudStreamReader {
     return namespaces;
   }
 
-
-  private static redisKey(connectionId: ObjectID, namespace: string, partition: number): string {
+  private static redisKey(
+    connectionId: ObjectID,
+    namespace: string,
+    partition: number,
+  ): string {
     return `${REDIS_OFFSET_PREFIX}${connectionId.toString()}:${namespace}:${partition}`;
   }
 
@@ -456,7 +470,10 @@ export default class CloudStreamReader {
         },
       );
 
-    if (!isTelemetryAllowed || (await ProjectService.isProjectBlocked(projectId))) {
+    if (
+      !isTelemetryAllowed ||
+      (await ProjectService.isProjectBlocked(projectId))
+    ) {
       return false;
     }
 
@@ -517,7 +534,11 @@ export default class CloudStreamReader {
       );
 
       if (!state) {
-        return { status: "skipped", events: 0, reason: "no event hubs' subscription" };
+        return {
+          status: "skipped",
+          events: 0,
+          reason: "no event hubs' subscription",
+        };
       }
 
       if (!(await CloudStreamReader.isAdmitted(connection.projectId))) {
@@ -526,7 +547,11 @@ export default class CloudStreamReader {
           reason: CloudStreamRefusalReason.NotAllowed,
           now,
         });
-        return { status: "skipped", events: 0, reason: "project may not take telemetry" };
+        return {
+          status: "skipped",
+          events: 0,
+          reason: "project may not take telemetry",
+        };
       }
 
       const settings: CloudConnectionSettings =
@@ -570,11 +595,20 @@ export default class CloudStreamReader {
         projectId: connection.projectId,
         connectionId,
         serviceName: service.serviceName,
-        resources: await CloudStreamReader.getResources(connectionId, now.getTime()),
+        resources: await CloudStreamReader.getResources(
+          connectionId,
+          now.getTime(),
+        ),
         definitions: CloudStreamReader.readDefinitions(connection.pullState),
       };
-      const offsets: Record<string, Record<string, number>> =
-        await CloudStreamReader.withRedisOffsets(connectionId, namespaces, state.offsets);
+      const offsets: Record<
+        string,
+        Record<string, number>
+      > = await CloudStreamReader.withRedisOffsets(
+        connectionId,
+        namespaces,
+        state.offsets,
+      );
       const sightings: Array<CloudStreamSighting> = [];
       const redis: ClientType | null = CloudStreamReader.getRedis();
 
@@ -620,11 +654,12 @@ export default class CloudStreamReader {
         offsets: { ...offsets, ...read.offsets },
       });
 
-      const problems: Array<AzureEventHubNamespaceRead> = read.namespaces.filter(
-        (namespace: AzureEventHubNamespaceRead): boolean => {
-          return Boolean(namespace.problem);
-        },
-      );
+      const problems: Array<AzureEventHubNamespaceRead> =
+        read.namespaces.filter(
+          (namespace: AzureEventHubNamespaceRead): boolean => {
+            return Boolean(namespace.problem);
+          },
+        );
 
       if (read.events > 0) {
         CloudStreamActivity.noteDelivery({ connectionId, now, sightings });
@@ -677,9 +712,10 @@ export default class CloudStreamReader {
 
       CloudStreamActivity.noteRefusal({
         connectionId,
-        reason: AzureEventHubsStream.describe(error).problem === "no-access"
-          ? CloudStreamRefusalReason.NoAccess
-          : CloudStreamRefusalReason.Unreachable,
+        reason:
+          AzureEventHubsStream.describe(error).problem === "no-access"
+            ? CloudStreamRefusalReason.NoAccess
+            : CloudStreamRefusalReason.Unreachable,
         now,
       });
 

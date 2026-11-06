@@ -33,10 +33,15 @@ import ObjectID from "../../../../Types/ObjectID";
  */
 
 const PROJECT: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
-const AWS_CONNECTION: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
-const GCP_CONNECTION: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
+const AWS_CONNECTION: ObjectID = new ObjectID(
+  "33333333-3333-4333-8333-333333333333",
+);
+const GCP_CONNECTION: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444444",
+);
 const NOW: Date = new Date("2026-11-06T10:00:00.000Z");
-const PUSHER: string = "oneuptime-push-44444444@acme-prod-1.iam.gserviceaccount.com";
+const PUSHER: string =
+  "oneuptime-push-44444444@acme-prod-1.iam.gserviceaccount.com";
 
 function key(connectionId: ObjectID, pair: string): string {
   return buildCloudStreamKey({
@@ -68,7 +73,10 @@ function row(data: {
   service.name = "Cloud";
   connection.service = service;
   connection.streamKeyHashes = {
-    current: { hash: CloudStreamKeys.hash(data.key), createdAt: NOW.toISOString() },
+    current: {
+      hash: CloudStreamKeys.hash(data.key),
+      createdAt: NOW.toISOString(),
+    },
     ...(data.pusher ? { pushServiceAccount: data.pusher } : {}),
   };
   return connection;
@@ -77,7 +85,9 @@ function row(data: {
 function checker(
   verdict: CloudStreamSenderVerdict,
 ): (sender: CloudStreamSender) => Promise<CloudStreamSenderVerdict> {
-  return async (sender: CloudStreamSender): Promise<CloudStreamSenderVerdict> => {
+  return async (
+    sender: CloudStreamSender,
+  ): Promise<CloudStreamSenderVerdict> => {
     senderChecks.push(sender);
     return verdict;
   };
@@ -115,8 +125,12 @@ beforeEach(() => {
       return Array.from(rows.keys());
     });
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
-  jest.spyOn(PayAsYouGoBillingService, "requirePayAsYouGo").mockResolvedValue(undefined);
-  jest.spyOn(LlmConnectionPullRunner, "isTelemetryAllowed").mockResolvedValue(true);
+  jest
+    .spyOn(PayAsYouGoBillingService, "requirePayAsYouGo")
+    .mockResolvedValue(undefined);
+  jest
+    .spyOn(LlmConnectionPullRunner, "isTelemetryAllowed")
+    .mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -126,38 +140,47 @@ afterEach(() => {
 describe("a key is taken only at its own cloud's endpoint", () => {
   test("an AWS key at Firehose's, and not at Pub/Sub's", async () => {
     expect(
-      (await CloudStreamAuthenticator.authenticate({ accessKey: AWS_KEY, now: NOW }))
-        .isAuthorized,
+      (
+        await CloudStreamAuthenticator.authenticate({
+          accessKey: AWS_KEY,
+          now: NOW,
+        })
+      ).isAuthorized,
     ).toBe(true);
 
-    const atPubSub: CloudStreamAuthentication = await CloudStreamAuthenticator.authenticate({
-      accessKey: AWS_KEY,
-      now: NOW,
-      provider: CloudProvider.GCP,
-      verifySender: checker("sender"),
-    });
+    const atPubSub: CloudStreamAuthentication =
+      await CloudStreamAuthenticator.authenticate({
+        accessKey: AWS_KEY,
+        now: NOW,
+        provider: CloudProvider.GCP,
+        verifySender: checker("sender"),
+      });
 
     expect(atPubSub.isAuthorized).toBe(false);
-    expect(!atPubSub.isAuthorized && atPubSub.reason).toBe(CloudStreamRefusalReason.WrongKey);
+    expect(!atPubSub.isAuthorized && atPubSub.reason).toBe(
+      CloudStreamRefusalReason.WrongKey,
+    );
     // A key that is not the endpoint's never reaches the sender check.
     expect(senderChecks).toEqual([]);
   });
 
   test("a Google Cloud key at Pub/Sub's, and not at Firehose's", async () => {
-    const atFirehose: CloudStreamAuthentication = await CloudStreamAuthenticator.authenticate({
-      accessKey: GCP_KEY,
-      now: NOW,
-    });
+    const atFirehose: CloudStreamAuthentication =
+      await CloudStreamAuthenticator.authenticate({
+        accessKey: GCP_KEY,
+        now: NOW,
+      });
     expect(!atFirehose.isAuthorized && atFirehose.reason).toBe(
       CloudStreamRefusalReason.WrongKey,
     );
 
-    const atPubSub: CloudStreamAuthentication = await CloudStreamAuthenticator.authenticate({
-      accessKey: GCP_KEY,
-      now: NOW,
-      provider: CloudProvider.GCP,
-      verifySender: checker("sender"),
-    });
+    const atPubSub: CloudStreamAuthentication =
+      await CloudStreamAuthenticator.authenticate({
+        accessKey: GCP_KEY,
+        now: NOW,
+        provider: CloudProvider.GCP,
+        verifySender: checker("sender"),
+      });
 
     expect(atPubSub).toMatchObject({
       isAuthorized: true,
@@ -172,12 +195,13 @@ describe("a key is taken only at its own cloud's endpoint", () => {
 
 describe("the sender check", () => {
   test("a push from anyone but the connection's push service account is refused, 401, and said on the connection", async () => {
-    const refused: CloudStreamAuthentication = await CloudStreamAuthenticator.authenticate({
-      accessKey: GCP_KEY,
-      now: NOW,
-      provider: CloudProvider.GCP,
-      verifySender: checker("not-sender"),
-    });
+    const refused: CloudStreamAuthentication =
+      await CloudStreamAuthenticator.authenticate({
+        accessKey: GCP_KEY,
+        now: NOW,
+        provider: CloudProvider.GCP,
+        verifySender: checker("not-sender"),
+      });
 
     expect(refused).toEqual({
       isAuthorized: false,
@@ -189,12 +213,13 @@ describe("the sender check", () => {
   });
 
   test("Google's keys that cannot be read are said on no connection, and answered so the push is sent again", async () => {
-    const refused: CloudStreamAuthentication = await CloudStreamAuthenticator.authenticate({
-      accessKey: GCP_KEY,
-      now: NOW,
-      provider: CloudProvider.GCP,
-      verifySender: checker("unavailable"),
-    });
+    const refused: CloudStreamAuthentication =
+      await CloudStreamAuthenticator.authenticate({
+        accessKey: GCP_KEY,
+        now: NOW,
+        provider: CloudProvider.GCP,
+        verifySender: checker("unavailable"),
+      });
 
     expect(refused).toEqual({
       isAuthorized: false,
@@ -208,21 +233,27 @@ describe("the sender check", () => {
     rows.get(GCP_CONNECTION.toString())!.isEnabled = false;
     CloudStreamAuthenticator.forget(GCP_CONNECTION);
 
-    const stranger: CloudStreamAuthentication = await CloudStreamAuthenticator.authenticate({
-      accessKey: GCP_KEY,
-      now: NOW,
-      provider: CloudProvider.GCP,
-      verifySender: checker("not-sender"),
-    });
-    expect(!stranger.isAuthorized && stranger.reason).toBe(CloudStreamRefusalReason.WrongToken);
+    const stranger: CloudStreamAuthentication =
+      await CloudStreamAuthenticator.authenticate({
+        accessKey: GCP_KEY,
+        now: NOW,
+        provider: CloudProvider.GCP,
+        verifySender: checker("not-sender"),
+      });
+    expect(!stranger.isAuthorized && stranger.reason).toBe(
+      CloudStreamRefusalReason.WrongToken,
+    );
 
-    const sender: CloudStreamAuthentication = await CloudStreamAuthenticator.authenticate({
-      accessKey: GCP_KEY,
-      now: NOW,
-      provider: CloudProvider.GCP,
-      verifySender: checker("sender"),
-    });
-    expect(!sender.isAuthorized && sender.reason).toBe(CloudStreamRefusalReason.TurnedOff);
+    const sender: CloudStreamAuthentication =
+      await CloudStreamAuthenticator.authenticate({
+        accessKey: GCP_KEY,
+        now: NOW,
+        provider: CloudProvider.GCP,
+        verifySender: checker("sender"),
+      });
+    expect(!sender.isAuthorized && sender.reason).toBe(
+      CloudStreamRefusalReason.TurnedOff,
+    );
   });
 
   test("a key made before the push service account was kept hands the check none", async () => {

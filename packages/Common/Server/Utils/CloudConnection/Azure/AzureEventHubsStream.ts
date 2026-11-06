@@ -126,7 +126,9 @@ export interface AzureEventHubsStreamOptions {
   arm: AzureArm;
   cloud: "public" | "usgov";
   // Test seam: the socket to a namespace. TLS, to its pinned address, when absent.
-  socketFactoryFor?: ((host: string) => Promise<KafkaSocketFactory>) | undefined;
+  socketFactoryFor?:
+    | ((host: string) => Promise<KafkaSocketFactory>)
+    | undefined;
   now?: (() => number) | undefined;
 }
 
@@ -169,7 +171,10 @@ export default class AzureEventHubsStream {
     let body: JSONObject;
 
     try {
-      body = await this.options.arm.getJson(url, "event hubs namespaces request");
+      body = await this.options.arm.getJson(
+        url,
+        "event hubs namespaces request",
+      );
     } catch (error) {
       // The group, or the subscription's Event Hubs, not made yet.
       if (error instanceof LlmProviderError && error.statusCode === 404) {
@@ -228,7 +233,11 @@ export default class AzureEventHubsStream {
     deadlineMs: number;
     deliver: (batch: AzureEventHubBatch) => Promise<void>;
     onOffset?:
-      | ((namespace: string, partition: number, offset: number) => Promise<void>)
+      | ((
+          namespace: string,
+          partition: number,
+          offset: number,
+        ) => Promise<void>)
       | undefined;
   }): Promise<AzureEventHubsRead> {
     const result: AzureEventHubsRead = {
@@ -240,7 +249,9 @@ export default class AzureEventHubsStream {
     };
 
     for (const namespace of data.namespaces) {
-      const kept: Record<string, number> = { ...(data.offsets[namespace.name] || {}) };
+      const kept: Record<string, number> = {
+        ...(data.offsets[namespace.name] || {}),
+      };
       result.offsets[namespace.name] = kept;
 
       if (result.bytes >= data.maxBytes || this.now() >= data.deadlineMs) {
@@ -279,7 +290,9 @@ export default class AzureEventHubsStream {
         targetLabel: "Event Hubs namespace",
       });
 
-    return createTlsSocketFactory(DataSourceEgressGuard.createPinnedLookup(addresses));
+    return createTlsSocketFactory(
+      DataSourceEgressGuard.createPinnedLookup(addresses),
+    );
   }
 
   private async readNamespace(data: {
@@ -289,7 +302,11 @@ export default class AzureEventHubsStream {
     deadlineMs: number;
     deliver: (batch: AzureEventHubBatch) => Promise<void>;
     onOffset?:
-      | ((namespace: string, partition: number, offset: number) => Promise<void>)
+      | ((
+          namespace: string,
+          partition: number,
+          offset: number,
+        ) => Promise<void>)
       | undefined;
     onBudgetSpent: () => void;
   }): Promise<AzureEventHubNamespaceRead> {
@@ -324,10 +341,13 @@ export default class AzureEventHubsStream {
       await client.readApiVersions();
       await client.authenticateWithToken(token);
 
-      const metadata: { topic: KafkaTopicMetadata | null } = await client.getMetadata(hub);
+      const metadata: { topic: KafkaTopicMetadata | null } =
+        await client.getMetadata(hub);
 
       if (!metadata.topic || metadata.topic.errorCode !== KAFKA_ERROR_NONE) {
-        if (metadata.topic?.errorCode === KAFKA_ERROR_TOPIC_AUTHORIZATION_FAILED) {
+        if (
+          metadata.topic?.errorCode === KAFKA_ERROR_TOPIC_AUTHORIZATION_FAILED
+        ) {
           return {
             ...read,
             problem: "no-access",
@@ -346,7 +366,9 @@ export default class AzureEventHubsStream {
           return partition.partition;
         })
         .filter((partition: number): boolean => {
-          return partition >= 0 && partition < AZURE_CLOUD_STREAM_MAX_PARTITIONS;
+          return (
+            partition >= 0 && partition < AZURE_CLOUD_STREAM_MAX_PARTITIONS
+          );
         })
         .sort((a: number, b: number): number => {
           return a - b;
@@ -374,19 +396,23 @@ export default class AzureEventHubsStream {
         // Never read, gone past by retention, or an event hub made again: from its first.
         positions.set(
           partition,
-          stored === undefined || stored < first || stored > last ? first : stored,
+          stored === undefined || stored < first || stored > last
+            ? first
+            : stored,
         );
       }
 
       const done: Set<number> = new Set();
 
       for (;;) {
-        const active: Array<number> = partitions.filter((partition: number): boolean => {
-          return (
-            !done.has(partition) &&
-            positions.get(partition)! < (latest.get(partition) ?? 0)
-          );
-        });
+        const active: Array<number> = partitions.filter(
+          (partition: number): boolean => {
+            return (
+              !done.has(partition) &&
+              positions.get(partition)! < (latest.get(partition) ?? 0)
+            );
+          },
+        );
 
         if (active.length === 0) {
           break;
@@ -408,7 +434,10 @@ export default class AzureEventHubsStream {
             return {
               partition,
               offset: positions.get(partition)!,
-              maxBytes: Math.min(AZURE_EVENT_HUBS_PARTITION_FETCH_BYTES, bytesLeft),
+              maxBytes: Math.min(
+                AZURE_EVENT_HUBS_PARTITION_FETCH_BYTES,
+                bytesLeft,
+              ),
             };
           }),
           maxWaitMs: AZURE_EVENT_HUBS_FETCH_WAIT_MS,
@@ -461,7 +490,10 @@ export default class AzureEventHubsStream {
             },
           );
 
-          if (fetched.nextOffset === null || fetched.nextOffset <= positions.get(fetched.partition)!) {
+          if (
+            fetched.nextOffset === null ||
+            fetched.nextOffset <= positions.get(fetched.partition)!
+          ) {
             // Nothing whole came back: the partition is read as far as it can be now.
             done.add(fetched.partition);
             continue;
@@ -489,7 +521,11 @@ export default class AzureEventHubsStream {
           data.offsets[String(fetched.partition)] = fetched.nextOffset;
 
           if (data.onOffset) {
-            await data.onOffset(data.namespace.name, fetched.partition, fetched.nextOffset);
+            await data.onOffset(
+              data.namespace.name,
+              fetched.partition,
+              fetched.nextOffset,
+            );
           }
         }
 
@@ -556,7 +592,9 @@ export default class AzureEventHubsStream {
     if (
       error instanceof KafkaAuthenticationError ||
       (error instanceof LlmProviderError &&
-        (error.statusCode === 400 || error.statusCode === 401 || error.statusCode === 403))
+        (error.statusCode === 400 ||
+          error.statusCode === 401 ||
+          error.statusCode === 403))
     ) {
       return { problem: "no-access", message };
     }

@@ -125,7 +125,10 @@ export function auditLogEntry(
       "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
       authenticationInfo: { principalEmail: "alice@acme.com" },
       methodName: "cloudsql.instances.update",
-      requestMetadata: { callerIp: "198.51.100.4", callerSuppliedUserAgent: "gcloud" },
+      requestMetadata: {
+        callerIp: "198.51.100.4",
+        callerSuppliedUserAgent: "gcloud",
+      },
       resourceName: `projects/${PROJECT}/instances/orders-db`,
       serviceName: "cloudsql.googleapis.com",
       status: {},
@@ -180,7 +183,9 @@ export function pushEnvelope(data: {
   const encoded: string =
     data.rawData !== undefined
       ? data.rawData
-      : Buffer.from(JSON.stringify(data.entry || {}), "utf8").toString("base64");
+      : Buffer.from(JSON.stringify(data.entry || {}), "utf8").toString(
+          "base64",
+        );
 
   return {
     message: {
@@ -202,9 +207,12 @@ export interface FakeGoogleKey {
 }
 
 export function makeGoogleKey(kid: string): FakeGoogleKey {
-  const pair: crypto.KeyPairKeyObjectResult = crypto.generateKeyPairSync("rsa", {
-    modulusLength: 2048,
-  });
+  const pair: crypto.KeyPairKeyObjectResult = crypto.generateKeyPairSync(
+    "rsa",
+    {
+      modulusLength: 2048,
+    },
+  );
 
   return {
     kid,
@@ -239,7 +247,11 @@ export function pushToken(data: {
     }),
   ).toString("base64url");
   const signature: string = crypto
-    .sign("RSA-SHA256", Buffer.from(`${header}.${payload}`), data.key.privateKey)
+    .sign(
+      "RSA-SHA256",
+      Buffer.from(`${header}.${payload}`),
+      data.key.privateKey,
+    )
     .toString("base64url");
 
   return `${header}.${payload}.${signature}`;
@@ -349,7 +361,8 @@ export async function sendPush(data: {
     : Buffer.from(JSON.stringify(data.body), "utf8");
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "User-Agent": "APIs-Google; (+https://developers.google.com/webmasters/APIs-Google.html)",
+    "User-Agent":
+      "APIs-Google; (+https://developers.google.com/webmasters/APIs-Google.html)",
     ...(data.chunked
       ? { "Transfer-Encoding": "chunked" }
       : { "Content-Length": String(data.declaredLength ?? payload.length) }),
@@ -411,7 +424,11 @@ export async function sendPush(data: {
       }
 
       if (data.chunked) {
-        for (let offset: number = 0; offset < payload.length; offset += 64 * 1024) {
+        for (
+          let offset: number = 0;
+          offset < payload.length;
+          offset += 64 * 1024
+        ) {
           request.write(payload.subarray(offset, offset + 64 * 1024));
         }
 

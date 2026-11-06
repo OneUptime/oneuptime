@@ -5,7 +5,10 @@ import {
   getRegionFromGcpLocation,
   resolveCloudMonitoredResource,
 } from "Common/Types/Cloud/CloudMonitoredResource";
-import { CloudProvider, FaasCloudPlatform } from "Common/Types/Cloud/CloudPlatform";
+import {
+  CloudProvider,
+  FaasCloudPlatform,
+} from "Common/Types/Cloud/CloudPlatform";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 
 /*
@@ -103,7 +106,10 @@ function readObject(value: unknown): JSONObject | null {
     : null;
 }
 
-function readText(value: unknown, maxLength: number = MAX_VALUE_LENGTH): string {
+function readText(
+  value: unknown,
+  maxLength: number = MAX_VALUE_LENGTH,
+): string {
   return typeof value === "string" ? value.slice(0, maxLength) : "";
 }
 
@@ -217,7 +223,9 @@ export function readLogProject(logName: string): string {
  * A message's data read as a log entry - or null when it is not one: an
  * entry has a log name, and a resource or a payload.
  */
-export function readCloudLoggingEntry(value: unknown): CloudLoggingEntry | null {
+export function readCloudLoggingEntry(
+  value: unknown,
+): CloudLoggingEntry | null {
   const entry: JSONObject | null = readObject(value);
 
   if (!entry) {
@@ -403,7 +411,8 @@ export function buildCloudLoggingResourceLogs(data: {
 }): { resourceLogs: JSONObject; facts: CloudLoggingFacts } {
   const entry: CloudLoggingEntry = data.entry;
   const labels: Record<string, string> = entry.resourceLabels;
-  const projectId: string = labels["project_id"] || readLogProject(entry.logName);
+  const projectId: string =
+    labels["project_id"] || readLogProject(entry.logName);
   const location: string =
     labels["location"] || labels["zone"] || labels["region"] || "";
   const region: string = location ? getRegionFromGcpLocation(location) : "";
@@ -445,7 +454,12 @@ export function buildCloudLoggingResourceLogs(data: {
     ...Object.keys(labels)
       .filter((key: string): boolean => {
         // The keys the resource already carries in its own words.
-        return !["service.name", "cloud.provider", "cloud.account.id", "cloud.region"].includes(key);
+        return ![
+          "service.name",
+          "cloud.provider",
+          "cloud.account.id",
+          "cloud.region",
+        ].includes(key);
       })
       .map((key: string): OtlpAttribute => {
         return stringAttribute(key, labels[key]!);
@@ -455,7 +469,10 @@ export function buildCloudLoggingResourceLogs(data: {
       : []),
     ...(entry.resourceType === "cloud_function" && labels["function_name"]
       ? [
-          stringAttribute("cloud.platform", FaasCloudPlatform.GcpCloudFunctions),
+          stringAttribute(
+            "cloud.platform",
+            FaasCloudPlatform.GcpCloudFunctions,
+          ),
           stringAttribute("faas.name", labels["function_name"]),
         ]
       : []),
@@ -463,7 +480,9 @@ export function buildCloudLoggingResourceLogs(data: {
 
   const attributes: Array<OtlpAttribute> = [
     stringAttribute(GCP_LOG_NAME_ATTRIBUTE, entry.logName),
-    ...(entry.logId ? [stringAttribute(GCP_LOG_ID_ATTRIBUTE, entry.logId)] : []),
+    ...(entry.logId
+      ? [stringAttribute(GCP_LOG_ID_ATTRIBUTE, entry.logId)]
+      : []),
     ...(entry.insertId
       ? [stringAttribute(GCP_INSERT_ID_ATTRIBUTE, entry.insertId)]
       : []),
@@ -515,7 +534,10 @@ export function buildCloudLoggingResourceLogs(data: {
     add("gcp.audit.resource_name", entry.protoPayload["resourceName"]);
     add("enduser.id", authentication?.["principalEmail"]);
     add("client.address", request?.["callerIp"]);
-    add("gcp.audit.status_code", readObject(entry.protoPayload["status"])?.["code"]);
+    add(
+      "gcp.audit.status_code",
+      readObject(entry.protoPayload["status"])?.["code"],
+    );
   }
 
   if (entry.httpRequest) {

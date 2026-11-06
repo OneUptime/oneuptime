@@ -20,8 +20,12 @@ import ObjectID from "Common/Types/ObjectID";
  */
 
 export const SUBSCRIPTION: string = "11111111-aaaa-4aaa-8aaa-111111111111";
-export const PROJECT_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
-export const CONNECTION_ID: ObjectID = new ObjectID("6f1c3a2e-9b8d-4c7e-a1f0-2d3c4b5a6e7f");
+export const PROJECT_ID: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
+export const CONNECTION_ID: ObjectID = new ObjectID(
+  "6f1c3a2e-9b8d-4c7e-a1f0-2d3c4b5a6e7f",
+);
 export const MINUTE: string = "2026-11-06T09:59:00.0000000Z";
 export const MINUTE_MS: number = Date.UTC(2026, 10, 6, 9, 59, 0);
 
@@ -29,10 +33,26 @@ function armId(group: string, type: string, name: string): string {
   return `/subscriptions/${SUBSCRIPTION}/resourceGroups/${group}/providers/${type}/${name}`;
 }
 
-export const VM_ID: string = armId("rg-Prod", "Microsoft.Compute/virtualMachines", "web-01");
-export const SITE_ID: string = armId("rg-Prod", "Microsoft.Web/sites", "checkout");
-export const VAULT_ID: string = armId("rg-Sec", "Microsoft.KeyVault/vaults", "acme-secrets");
-export const STORAGE_ID: string = armId("rg-Data", "Microsoft.Storage/storageAccounts", "acmedata");
+export const VM_ID: string = armId(
+  "rg-Prod",
+  "Microsoft.Compute/virtualMachines",
+  "web-01",
+);
+export const SITE_ID: string = armId(
+  "rg-Prod",
+  "Microsoft.Web/sites",
+  "checkout",
+);
+export const VAULT_ID: string = armId(
+  "rg-Sec",
+  "Microsoft.KeyVault/vaults",
+  "acme-secrets",
+);
+export const STORAGE_ID: string = armId(
+  "rg-Data",
+  "Microsoft.Storage/storageAccounts",
+  "acmedata",
+);
 export const AKS_ID: string = armId(
   "rg-Prod",
   "Microsoft.ContainerService/managedClusters",
@@ -61,16 +81,18 @@ function definitions(
   entries: Array<[string, Array<AzureStreamMetricDefinition>]>,
 ): Map<string, Map<string, AzureStreamMetricDefinition>> {
   return new Map(
-    entries.map(([type, metrics]: [string, Array<AzureStreamMetricDefinition>]) => {
-      return [
-        type.toLowerCase(),
-        new Map(
-          metrics.map((metric: AzureStreamMetricDefinition) => {
-            return [metric.name.toLowerCase(), metric];
-          }),
-        ),
-      ];
-    }),
+    entries.map(
+      ([type, metrics]: [string, Array<AzureStreamMetricDefinition>]) => {
+        return [
+          type.toLowerCase(),
+          new Map(
+            metrics.map((metric: AzureStreamMetricDefinition) => {
+              return [metric.name.toLowerCase(), metric];
+            }),
+          ),
+        ];
+      },
+    ),
   );
 }
 
@@ -119,28 +141,70 @@ export function streamContext(
       [
         "Microsoft.Compute/virtualMachines",
         [
-          { name: "Percentage CPU", aggregation: "Average", unit: "Percent", grain: "PT1M" },
-          { name: "Network In Total", aggregation: "Total", unit: "Bytes", grain: "PT1M" },
+          {
+            name: "Percentage CPU",
+            aggregation: "Average",
+            unit: "Percent",
+            grain: "PT1M",
+          },
+          {
+            name: "Network In Total",
+            aggregation: "Total",
+            unit: "Bytes",
+            grain: "PT1M",
+          },
         ],
       ],
       [
         "Microsoft.Web/sites",
         [
-          { name: "Requests", aggregation: "Total", unit: "Count", grain: "PT1M" },
-          { name: "Http5xx", aggregation: "Total", unit: "Count", grain: "PT1M" },
-          { name: "HttpResponseTime", aggregation: "Average", unit: "Seconds", grain: "PT1M" },
+          {
+            name: "Requests",
+            aggregation: "Total",
+            unit: "Count",
+            grain: "PT1M",
+          },
+          {
+            name: "Http5xx",
+            aggregation: "Total",
+            unit: "Count",
+            grain: "PT1M",
+          },
+          {
+            name: "HttpResponseTime",
+            aggregation: "Average",
+            unit: "Seconds",
+            grain: "PT1M",
+          },
         ],
       ],
       [
         "Microsoft.KeyVault/vaults",
-        [{ name: "ServiceApiHit", aggregation: "Count", unit: "Count", grain: "PT1M" }],
+        [
+          {
+            name: "ServiceApiHit",
+            aggregation: "Count",
+            unit: "Count",
+            grain: "PT1M",
+          },
+        ],
       ],
       [
         "Microsoft.Storage/storageAccounts",
         [
-          { name: "Transactions", aggregation: "Total", unit: "Count", grain: "PT1M" },
+          {
+            name: "Transactions",
+            aggregation: "Total",
+            unit: "Count",
+            grain: "PT1M",
+          },
           // Azure publishes it hourly: the read's to write.
-          { name: "UsedCapacity", aggregation: "Average", unit: "Bytes", grain: "PT1H" },
+          {
+            name: "UsedCapacity",
+            aggregation: "Average",
+            unit: "Bytes",
+            grain: "PT1H",
+          },
         ],
       ],
     ]),
@@ -184,7 +248,8 @@ export function vaultAuditRecord(overrides: JSONObject = {}): JSONObject {
     callerIpAddress: "203.0.113.24",
     identity: {
       claim: {
-        "http://schemas.microsoft.com/identity/claims/objectidentifier": "0b9f6c1e",
+        "http://schemas.microsoft.com/identity/claims/objectidentifier":
+          "0b9f6c1e",
         upn: "alice@acme.com",
       },
     },
@@ -192,7 +257,8 @@ export function vaultAuditRecord(overrides: JSONObject = {}): JSONObject {
       id: "https://acme-secrets.vault.azure.net/secrets/db-password",
       clientInfo: "AzureCLI/2.66.0",
       httpStatusCode: 200,
-      requestUri: "https://acme-secrets.vault.azure.net/secrets/db-password?api-version=7.4",
+      requestUri:
+        "https://acme-secrets.vault.azure.net/secrets/db-password?api-version=7.4",
       isAccessPolicyMatch: true,
       tlsVersion: "TLS1_2",
     },
@@ -208,14 +274,17 @@ export function vaultAuditRecord(overrides: JSONObject = {}): JSONObject {
 }
 
 // An App Service console line, as AppServiceConsoleLogs writes it.
-export function appServiceConsoleRecord(overrides: JSONObject = {}): JSONObject {
+export function appServiceConsoleRecord(
+  overrides: JSONObject = {},
+): JSONObject {
   return {
     time: "2026-11-06T09:59:20.000Z",
     resourceId: SITE_ID.toUpperCase(),
     category: "AppServiceConsoleLogs",
     operationName: "Microsoft.Web/sites/log",
     level: "Error",
-    resultDescription: "Error: connect ECONNREFUSED 10.0.0.5:5432\n    at TCPConnectWrap.afterConnect",
+    resultDescription:
+      "Error: connect ECONNREFUSED 10.0.0.5:5432\n    at TCPConnectWrap.afterConnect",
     properties: {
       ContainerId: "8c2f6b1e3a",
       Host: "lw1sdlwk000ABC",
@@ -236,7 +305,8 @@ export function functionAppRecord(overrides: JSONObject = {}): JSONObject {
     properties: {
       appName: "checkout",
       roleInstance: "54108609-638134129287469128",
-      message: "Executed 'Functions.ChargeCard' (Failed, Id=3f9a, Duration=1022ms)",
+      message:
+        "Executed 'Functions.ChargeCard' (Failed, Id=3f9a, Duration=1022ms)",
       category: "Function.ChargeCard",
       functionName: "Functions.ChargeCard",
       level: "Error",
@@ -253,7 +323,8 @@ export function aksRecord(overrides: JSONObject = {}): JSONObject {
     time: "2026-11-06T09:59:40.0000000Z",
     resourceId: AKS_ID.toUpperCase(),
     category: "kube-apiserver",
-    operationName: "Microsoft.ContainerService/managedClusters/diagnosticLogs/Read",
+    operationName:
+      "Microsoft.ContainerService/managedClusters/diagnosticLogs/Read",
     properties: {
       log: "E1106 09:59:40.123456 1 status.go:71] apiserver received an error that is not an metav1.Status",
       stream: "stderr",

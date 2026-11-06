@@ -33,7 +33,9 @@ import {
  * monitored resource's labels name, the very one its metrics land on.
  */
 
-function build(entry: JSONObject): ReturnType<typeof buildCloudLoggingResourceLogs> {
+function build(
+  entry: JSONObject,
+): ReturnType<typeof buildCloudLoggingResourceLogs> {
   const read: CloudLoggingEntry | null = readCloudLoggingEntry(entry);
 
   expect(read).not.toBeNull();
@@ -78,8 +80,13 @@ function recordAttributes(record: JSONObject): Record<string, JSONObject> {
   return values;
 }
 
-function resourceOf(type: string, labels: Record<string, string>): CloudMonitoredResource {
-  const attributes: Record<string, string> = { "resource.gcp.resource_type": type };
+function resourceOf(
+  type: string,
+  labels: Record<string, string>,
+): CloudMonitoredResource {
+  const attributes: Record<string, string> = {
+    "resource.gcp.resource_type": type,
+  };
 
   for (const key of Object.keys(labels)) {
     attributes[`resource.${key}`] = labels[key]!;
@@ -91,17 +98,30 @@ function resourceOf(type: string, labels: Record<string, string>): CloudMonitore
 describe("the entry's time", () => {
   test("is kept to the nanosecond, whatever fraction Cloud Logging writes", () => {
     expect(rfc3339ToUnixNano(ENTRY_TIME)).toBe(ENTRY_TIME_UNIX_NANO);
-    expect(rfc3339ToUnixNano("2026-11-06T09:59:01Z")).toBe("1793959141000000000");
-    expect(rfc3339ToUnixNano("2026-11-06T09:59:01.5Z")).toBe("1793959141500000000");
+    expect(rfc3339ToUnixNano("2026-11-06T09:59:01Z")).toBe(
+      "1793959141000000000",
+    );
+    expect(rfc3339ToUnixNano("2026-11-06T09:59:01.5Z")).toBe(
+      "1793959141500000000",
+    );
     expect(rfc3339ToUnixNano("2026-11-06T09:59:01.123456789123Z")).toBe(
       "1793959141123456789",
     );
-    expect(rfc3339ToUnixNano("2026-11-06T10:59:01.25+01:00")).toBe("1793959141250000000");
+    expect(rfc3339ToUnixNano("2026-11-06T10:59:01.25+01:00")).toBe(
+      "1793959141250000000",
+    );
     expect(rfc3339ToUnixNano("1970-01-01T00:00:00.000000042Z")).toBe("42");
   });
 
   test("a time that is none is no time", () => {
-    for (const value of ["", "yesterday", 1793959141, null, "x".repeat(100), "1969-12-31T23:59:59Z"]) {
+    for (const value of [
+      "",
+      "yesterday",
+      1793959141,
+      null,
+      "x".repeat(100),
+      "1969-12-31T23:59:59Z",
+    ]) {
       expect(rfc3339ToUnixNano(value)).toBeNull();
     }
   });
@@ -121,9 +141,9 @@ describe("the entry's log name", () => {
     expect(readLogId("projects/acme/logs/run.googleapis.com%2Frequests")).toBe(
       "run.googleapis.com/requests",
     );
-    expect(readLogId("organizations/123/logs/cloudaudit.googleapis.com%2Factivity")).toBe(
-      "cloudaudit.googleapis.com/activity",
-    );
+    expect(
+      readLogId("organizations/123/logs/cloudaudit.googleapis.com%2Factivity"),
+    ).toBe("cloudaudit.googleapis.com/activity");
     expect(readLogId("projects/acme/logs/%E0%A4%A")).toBe("%E0%A4%A");
     expect(readLogId("nothing")).toBe("");
     expect(readLogProject("projects/acme/logs/syslog")).toBe("acme");
@@ -160,37 +180,55 @@ describe("the entry's severity", () => {
 describe("the entry's body", () => {
   test("a text payload is the body", () => {
     expect(
-      (recordOf(build(computeSyslogEntry()).resourceLogs)["body"] as JSONObject)[
-        "stringValue"
-      ],
+      (
+        recordOf(build(computeSyslogEntry()).resourceLogs)["body"] as JSONObject
+      )["stringValue"],
     ).toBe("kernel: Out of memory: Killed process 1234 (java)");
   });
 
   test("a JSON payload's message is the body, its other fields beside it", () => {
-    const record: JSONObject = recordOf(build(cloudFunctionEntry()).resourceLogs);
+    const record: JSONObject = recordOf(
+      build(cloudFunctionEntry()).resourceLogs,
+    );
     const attributes: Record<string, JSONObject> = recordAttributes(record);
 
-    expect((record["body"] as JSONObject)["stringValue"]).toBe("Payment failed: card declined");
-    expect(attributes["gcp.json_payload.orderId"]).toEqual({ stringValue: "o-981" });
+    expect((record["body"] as JSONObject)["stringValue"]).toBe(
+      "Payment failed: card declined",
+    );
+    expect(attributes["gcp.json_payload.orderId"]).toEqual({
+      stringValue: "o-981",
+    });
     expect(attributes["gcp.json_payload.attempt"]).toEqual({ intValue: "2" });
-    expect(attributes["gcp.json_payload.retryable"]).toEqual({ boolValue: false });
+    expect(attributes["gcp.json_payload.retryable"]).toEqual({
+      boolValue: false,
+    });
     expect(attributes["gcp.json_payload.message"]).toBeUndefined();
-    expect(attributes["gcp.label.execution_id"]).toEqual({ stringValue: "abc123xyz" });
+    expect(attributes["gcp.label.execution_id"]).toEqual({
+      stringValue: "abc123xyz",
+    });
   });
 
   test("a JSON payload with msg is read like message; one with neither is the body whole", () => {
     expect(
       (
         recordOf(
-          build(cloudFunctionEntry({ jsonPayload: { msg: "pino says hi", pid: 7 } })).resourceLogs,
+          build(
+            cloudFunctionEntry({
+              jsonPayload: { msg: "pino says hi", pid: 7 },
+            }),
+          ).resourceLogs,
         )["body"] as JSONObject
       )["stringValue"],
     ).toBe("pino says hi");
 
     const whole: JSONObject = recordOf(
-      build(cloudFunctionEntry({ jsonPayload: { event: "deploy", version: 42 } })).resourceLogs,
+      build(
+        cloudFunctionEntry({ jsonPayload: { event: "deploy", version: 42 } }),
+      ).resourceLogs,
     );
-    expect((whole["body"] as JSONObject)["stringValue"]).toBe('{"event":"deploy","version":42}');
+    expect((whole["body"] as JSONObject)["stringValue"]).toBe(
+      '{"event":"deploy","version":42}',
+    );
     expect(recordAttributes(whole)["gcp.json_payload.event"]).toBeUndefined();
   });
 
@@ -202,7 +240,9 @@ describe("the entry's body", () => {
       `cloudsql.instances.update projects/${PROJECT}/instances/orders-db`,
     );
     expect(attributes["enduser.id"]).toEqual({ stringValue: "alice@acme.com" });
-    expect(attributes["client.address"]).toEqual({ stringValue: "198.51.100.4" });
+    expect(attributes["client.address"]).toEqual({
+      stringValue: "198.51.100.4",
+    });
     expect(attributes["gcp.audit.service_name"]).toEqual({
       stringValue: "cloudsql.googleapis.com",
     });
@@ -221,21 +261,28 @@ describe("the entry's body", () => {
     expect((failed["body"] as JSONObject)["stringValue"]).toBe(
       "storage.buckets.delete projects/_/buckets/orders: PERMISSION_DENIED",
     );
-    expect(recordAttributes(failed)["gcp.audit.status_code"]).toEqual({ intValue: "7" });
+    expect(recordAttributes(failed)["gcp.audit.status_code"]).toEqual({
+      intValue: "7",
+    });
   });
 
   test("a body is bounded, however long the payload", () => {
     const record: JSONObject = recordOf(
-      build(computeSyslogEntry({ textPayload: "x".repeat(200 * 1024) })).resourceLogs,
+      build(computeSyslogEntry({ textPayload: "x".repeat(200 * 1024) }))
+        .resourceLogs,
     );
 
-    expect(((record["body"] as JSONObject)["stringValue"] as string).length).toBe(64 * 1024);
+    expect(
+      ((record["body"] as JSONObject)["stringValue"] as string).length,
+    ).toBe(64 * 1024);
   });
 });
 
 describe("the entry's trace and HTTP request", () => {
   test("its trace and span are the record's own, so it lines up with the trace", () => {
-    const record: JSONObject = recordOf(build(cloudRunRequestEntry()).resourceLogs);
+    const record: JSONObject = recordOf(
+      build(cloudRunRequestEntry()).resourceLogs,
+    );
 
     expect(record["traceId"]).toBe("4bf92f3577b34da6a3ce929d0e0e4736");
     expect(record["spanId"]).toBe("a1b2c3d4e5f60718");
@@ -261,13 +308,19 @@ describe("the entry's trace and HTTP request", () => {
     expect(attributes["url.full"]).toEqual({
       stringValue: "https://checkout-abc123-uc.a.run.app/health",
     });
-    expect(attributes["http.response.status_code"]).toEqual({ intValue: "503" });
-    expect(attributes["client.address"]).toEqual({ stringValue: "203.0.113.7" });
+    expect(attributes["http.response.status_code"]).toEqual({
+      intValue: "503",
+    });
+    expect(attributes["client.address"]).toEqual({
+      stringValue: "203.0.113.7",
+    });
     expect(attributes["user_agent.original"]).toEqual({
       stringValue: "Mozilla/5.0 (X11; Linux x86_64)",
     });
     expect(attributes["http.response.body.size"]).toEqual({ intValue: "753" });
-    expect(attributes["http.server.request.duration"]).toEqual({ doubleValue: 0.004387 });
+    expect(attributes["http.server.request.duration"]).toEqual({
+      doubleValue: 0.004387,
+    });
   });
 });
 
@@ -318,7 +371,8 @@ describe("the entry's resource", () => {
     ];
 
     for (const [entry, expected] of cases) {
-      const built: ReturnType<typeof buildCloudLoggingResourceLogs> = build(entry);
+      const built: ReturnType<typeof buildCloudLoggingResourceLogs> =
+        build(entry);
 
       expect(resourceAttributes(built.resourceLogs)["cloud.resource_id"]).toBe(
         expected.providerResourceId,
@@ -365,7 +419,9 @@ describe("the entry's resource", () => {
       url_map_name: "shop-lb",
       forwarding_rule_name: "shop-lb-forwarding-rule",
     });
-    const attributes: Record<string, string> = resourceAttributes(built.resourceLogs);
+    const attributes: Record<string, string> = resourceAttributes(
+      built.resourceLogs,
+    );
 
     expect(attributes["cloud.resource_id"]).toBe(expected.providerResourceId);
     expect(built.facts.resource?.identityKey).toBe(expected.identityKey);
@@ -378,21 +434,32 @@ describe("the entry's resource", () => {
   });
 
   test("only a Cloud Functions function's logs name a platform: Cloud Run's and GKE's never", () => {
-    expect(resourceAttributes(build(cloudFunctionEntry()).resourceLogs)).toMatchObject({
+    expect(
+      resourceAttributes(build(cloudFunctionEntry()).resourceLogs),
+    ).toMatchObject({
       "cloud.platform": "gcp_cloud_functions",
       "faas.name": "charge-card",
     });
 
-    for (const entry of [cloudRunRequestEntry(), gkeContainerEntry(), computeSyslogEntry()]) {
-      expect(resourceAttributes(build(entry).resourceLogs)["cloud.platform"]).toBeUndefined();
+    for (const entry of [
+      cloudRunRequestEntry(),
+      gkeContainerEntry(),
+      computeSyslogEntry(),
+    ]) {
+      expect(
+        resourceAttributes(build(entry).resourceLogs)["cloud.platform"],
+      ).toBeUndefined();
     }
   });
 
   test("a resource of a type no rule reads, or of none, streams unfiled under its project", () => {
-    const gke: ReturnType<typeof buildCloudLoggingResourceLogs> = build(gkeContainerEntry());
+    const gke: ReturnType<typeof buildCloudLoggingResourceLogs> =
+      build(gkeContainerEntry());
 
     expect(gke.facts.resource).toBeNull();
-    expect(resourceAttributes(gke.resourceLogs)["cloud.resource_id"]).toBeUndefined();
+    expect(
+      resourceAttributes(gke.resourceLogs)["cloud.resource_id"],
+    ).toBeUndefined();
 
     const bare: ReturnType<typeof buildCloudLoggingResourceLogs> = build({
       logName: "projects/acme-data-2/logs/my-app",

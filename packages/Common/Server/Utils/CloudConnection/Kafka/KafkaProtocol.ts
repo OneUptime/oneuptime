@@ -95,7 +95,9 @@ export class KafkaWriter {
   // A signed 64-bit integer, from a safe JavaScript integer.
   public int64(value: number): this {
     if (!Number.isSafeInteger(value)) {
-      throw new KafkaProtocolError(`${value} is not a 64-bit integer this writes.`);
+      throw new KafkaProtocolError(
+        `${value} is not a 64-bit integer this writes.`,
+      );
     }
 
     const high: number = Math.floor(value / TWO_TO_32);
@@ -175,7 +177,9 @@ export class KafkaReader {
 
   private need(length: number): void {
     if (length < 0 || this.offset + length > this.buffer.length) {
-      throw new KafkaProtocolError("The message ends before what it says it holds.");
+      throw new KafkaProtocolError(
+        "The message ends before what it says it holds.",
+      );
     }
   }
 
@@ -247,7 +251,10 @@ export class KafkaReader {
     }
 
     this.need(length);
-    const value: Buffer = this.buffer.subarray(this.offset, this.offset + length);
+    const value: Buffer = this.buffer.subarray(
+      this.offset,
+      this.offset + length,
+    );
     this.offset += length;
     return value;
   }
@@ -261,7 +268,9 @@ export class KafkaReader {
     }
 
     if (count < 0 || count > limit) {
-      throw new KafkaProtocolError(`An array of ${count} items is past what this reads.`);
+      throw new KafkaProtocolError(
+        `An array of ${count} items is past what this reads.`,
+      );
     }
 
     const items: Array<T> = [];
@@ -307,7 +316,10 @@ export class KafkaReader {
 
   public slice(length: number): Buffer {
     this.need(length);
-    const value: Buffer = this.buffer.subarray(this.offset, this.offset + length);
+    const value: Buffer = this.buffer.subarray(
+      this.offset,
+      this.offset + length,
+    );
     this.offset += length;
     return value;
   }
@@ -368,7 +380,10 @@ export function frameRequest(data: {
     .raw(data.body)
     .toBuffer();
 
-  return Buffer.concat([new KafkaWriter().int32(message.length).toBuffer(), message]);
+  return Buffer.concat([
+    new KafkaWriter().int32(message.length).toBuffer(),
+    message,
+  ]);
 }
 
 export function encodeSaslHandshake(mechanism: string): Buffer {
@@ -690,8 +705,11 @@ export function decodeRecordSet(data: Buffer): {
     const magic: number = batch.length > 4 ? batch.readInt8(4) : -1;
 
     if (magic === 2) {
-      const read: { records: Array<KafkaRecord>; lastOffset: number; isSkipped: boolean } =
-        decodeBatchV2(baseOffset, batch);
+      const read: {
+        records: Array<KafkaRecord>;
+        lastOffset: number;
+        isSkipped: boolean;
+      } = decodeBatchV2(baseOffset, batch);
 
       records.push(...read.records);
       nextOffset = read.lastOffset + 1;
@@ -757,7 +775,9 @@ function decodeBatchV2(
 
   if (compression === COMPRESSION_GZIP) {
     try {
-      body = zlib.gunzipSync(body, { maxOutputLength: MAX_DECOMPRESSED_BATCH_BYTES });
+      body = zlib.gunzipSync(body, {
+        maxOutputLength: MAX_DECOMPRESSED_BATCH_BYTES,
+      });
     } catch {
       return { records: [], lastOffset, isSkipped: true };
     }
@@ -786,7 +806,8 @@ function decodeBatchV2(
     }
 
     const valueLength: number = record.varint();
-    const value: Buffer | null = valueLength >= 0 ? record.slice(valueLength) : null;
+    const value: Buffer | null =
+      valueLength >= 0 ? record.slice(valueLength) : null;
 
     records.push({
       offset: baseOffset + offsetDelta,

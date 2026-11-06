@@ -324,9 +324,11 @@ export const AZURE_TYPES_WITHOUT_RESOURCE_LOGS: ReadonlySet<string> =
   ]);
 
 const AZURE_TYPES: ReadonlySet<string> = new Set<string>(
-  AZURE_RESOURCE_TYPES.map((descriptor: CloudResourceTypeDescriptor): string => {
-    return descriptor.type.toLowerCase();
-  }),
+  AZURE_RESOURCE_TYPES.map(
+    (descriptor: CloudResourceTypeDescriptor): string => {
+      return descriptor.type.toLowerCase();
+    },
+  ),
 );
 
 /*
@@ -359,7 +361,9 @@ export function canCloudResourceHaveStreamedLogs(data: {
   if (provider === CloudProvider.Azure) {
     const lower: string = type.toLowerCase();
 
-    return AZURE_TYPES.has(lower) && !AZURE_TYPES_WITHOUT_RESOURCE_LOGS.has(lower);
+    return (
+      AZURE_TYPES.has(lower) && !AZURE_TYPES_WITHOUT_RESOURCE_LOGS.has(lower)
+    );
   }
 
   if (provider === CloudProvider.GCP) {

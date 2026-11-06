@@ -38,7 +38,11 @@ let armRequests: Array<DataSourceHttpRequest>;
 let namespacesAnswer: { status: number; body: JSONObject };
 let tokenScopes: Array<string>;
 
-function namespaceItem(name: string, location: string, state: string = "Succeeded"): JSONObject {
+function namespaceItem(
+  name: string,
+  location: string,
+  state: string = "Succeeded",
+): JSONObject {
   return {
     id: `/subscriptions/${HOST_SUBSCRIPTION}/resourceGroups/${GROUP}/providers/Microsoft.EventHub/namespaces/${name}`,
     name,
@@ -51,11 +55,15 @@ function namespaceItem(name: string, location: string, state: string = "Succeede
   };
 }
 
-async function transport(request: DataSourceHttpRequest): Promise<DataSourceHttpResponse> {
+async function transport(
+  request: DataSourceHttpRequest,
+): Promise<DataSourceHttpResponse> {
   armRequests.push(request);
 
   if (request.url.includes("/oauth2/v2.0/token")) {
-    const scope: string = String((request.body as Record<string, string>)["scope"] || "");
+    const scope: string = String(
+      (request.body as Record<string, string>)["scope"] || "",
+    );
     tokenScopes.push(scope);
     return {
       statusCode: 200,
@@ -126,7 +134,11 @@ async function readAll(data: {
   deadlineMs?: number;
   deliver?: (batch: AzureEventHubBatch) => Promise<void>;
   now?: () => number;
-}): Promise<{ read: AzureEventHubsRead; delivered: Array<AzureEventHubBatch>; moved: Array<string> }> {
+}): Promise<{
+  read: AzureEventHubsRead;
+  delivered: Array<AzureEventHubBatch>;
+  moved: Array<string>;
+}> {
   const delivered: Array<AzureEventHubBatch> = [];
   const moved: Array<string> = [];
   const read: AzureEventHubsRead = await stream(data.now).read({
@@ -139,7 +151,11 @@ async function readAll(data: {
       (async (batch: AzureEventHubBatch): Promise<void> => {
         delivered.push(batch);
       }),
-    onOffset: async (namespace: string, partition: number, offset: number): Promise<void> => {
+    onOffset: async (
+      namespace: string,
+      partition: number,
+      offset: number,
+    ): Promise<void> => {
       moved.push(`${namespace}:${partition}:${offset}`);
     },
   });
@@ -157,10 +173,11 @@ function values(batches: Array<AzureEventHubBatch>): Array<string> {
 
 describe("the connection's namespaces", () => {
   test("are the group's whose names are the connection's and are made, each in its region", async () => {
-    const namespaces: Array<AzureEventHubNamespace> = await stream().listNamespaces({
-      connectionId: CONNECTION,
-      hostSubscriptionId: HOST_SUBSCRIPTION,
-    });
+    const namespaces: Array<AzureEventHubNamespace> =
+      await stream().listNamespaces({
+        connectionId: CONNECTION,
+        hostSubscriptionId: HOST_SUBSCRIPTION,
+      });
 
     expect(namespaces).toEqual([
       EASTUS,
@@ -171,9 +188,11 @@ describe("the connection's namespaces", () => {
       },
     ]);
 
-    const listed: DataSourceHttpRequest = armRequests.find((request: DataSourceHttpRequest) => {
-      return request.url.includes("Microsoft.EventHub");
-    })!;
+    const listed: DataSourceHttpRequest = armRequests.find(
+      (request: DataSourceHttpRequest) => {
+        return request.url.includes("Microsoft.EventHub");
+      },
+    )!;
     expect(new URL(listed.url).pathname).toBe(
       `/subscriptions/${HOST_SUBSCRIPTION}/resourceGroups/${GROUP}/providers/Microsoft.EventHub/namespaces`,
     );
@@ -183,7 +202,12 @@ describe("the connection's namespaces", () => {
   test("a group the command has not made yet is no namespace yet, not a failure", async () => {
     namespacesAnswer = {
       status: 404,
-      body: { error: { code: "ResourceGroupNotFound", message: "Resource group not found." } },
+      body: {
+        error: {
+          code: "ResourceGroupNotFound",
+          message: "Resource group not found.",
+        },
+      },
     };
 
     expect(
@@ -205,7 +229,9 @@ describe("a read of an event hub", () => {
     expect(values(delivered).sort()).toEqual(["0:a", "0:b", "0:c", "1:d"]);
     expect(read.events).toBe(4);
     expect(read.offsets[EASTUS.name]).toEqual({ "0": 3, "1": 1 });
-    expect(moved).toEqual(expect.arrayContaining([`${EASTUS.name}:0:3`, `${EASTUS.name}:1:1`]));
+    expect(moved).toEqual(
+      expect.arrayContaining([`${EASTUS.name}:0:3`, `${EASTUS.name}:1:1`]),
+    );
     expect(tokenScopes).toEqual([`https://${EASTUS.host}/.default`]);
     expect(broker.tokens).toEqual(["entra-token"]);
   });
@@ -214,7 +240,9 @@ describe("a read of an event hub", () => {
     broker.addEvents(0, ["a", "b", "c", "e"]);
     broker.batchSize = 1;
 
-    const { delivered, read } = await readAll({ offsets: { [EASTUS.name]: { "0": 3, "1": 0 } } });
+    const { delivered, read } = await readAll({
+      offsets: { [EASTUS.name]: { "0": 3, "1": 0 } },
+    });
 
     expect(values(delivered)).toEqual(["0:e"]);
     expect(read.offsets[EASTUS.name]).toEqual({ "0": 4, "1": 0 });
@@ -224,7 +252,9 @@ describe("a read of an event hub", () => {
     broker.addEvents(0, ["a", "b", "c"]);
     broker.batchSize = 3;
 
-    const { delivered } = await readAll({ offsets: { [EASTUS.name]: { "0": 1 } } });
+    const { delivered } = await readAll({
+      offsets: { [EASTUS.name]: { "0": 1 } },
+    });
 
     expect(values(delivered)).toEqual(["0:b", "0:c"]);
   });
@@ -233,7 +263,9 @@ describe("a read of an event hub", () => {
     broker.partitions[0] = { earliest: 10, events: [] };
     broker.addEvents(0, ["k", "l"]);
 
-    const { delivered, read } = await readAll({ offsets: { [EASTUS.name]: { "0": 4 } } });
+    const { delivered, read } = await readAll({
+      offsets: { [EASTUS.name]: { "0": 4 } },
+    });
 
     expect(values(delivered)).toEqual(["0:k", "0:l"]);
     expect(read.offsets[EASTUS.name]!["0"]).toBe(12);
@@ -242,7 +274,9 @@ describe("a read of an event hub", () => {
   test("an event hub made again, behind where it stopped, is read from its first event", async () => {
     broker.addEvents(0, ["new"]);
 
-    const { delivered } = await readAll({ offsets: { [EASTUS.name]: { "0": 900 } } });
+    const { delivered } = await readAll({
+      offsets: { [EASTUS.name]: { "0": 900 } },
+    });
 
     expect(values(delivered)).toEqual(["0:new"]);
   });
@@ -263,14 +297,20 @@ describe("a read of an event hub", () => {
         deliver: async (): Promise<void> => {
           throw new Error("The queue is away");
         },
-        onOffset: async (namespace: string, partition: number, offset: number): Promise<void> => {
+        onOffset: async (
+          namespace: string,
+          partition: number,
+          offset: number,
+        ): Promise<void> => {
           moved.push(`${partition}:${offset}`);
         },
       }),
     ).rejects.toThrow(AzureEventHubsDeliveryFailed);
     expect(moved).toEqual([]);
 
-    const again: { delivered: Array<AzureEventHubBatch> } = await readAll({ offsets });
+    const again: { delivered: Array<AzureEventHubBatch> } = await readAll({
+      offsets,
+    });
     expect(values(again.delivered).sort()).toEqual(["0:a", "0:b", "1:c"]);
   });
 
@@ -347,7 +387,11 @@ describe("a read of an event hub", () => {
     broker.batchSize = 1;
     broker.throttleTimeMs = 500;
     // An event a fetch at a time: each is past half of what a partition answers.
-    broker.addEvents(0, ["a".repeat(600 * 1024), "b".repeat(600 * 1024), "c".repeat(600 * 1024)]);
+    broker.addEvents(0, [
+      "a".repeat(600 * 1024),
+      "b".repeat(600 * 1024),
+      "c".repeat(600 * 1024),
+    ]);
 
     const { read } = await readAll({});
 

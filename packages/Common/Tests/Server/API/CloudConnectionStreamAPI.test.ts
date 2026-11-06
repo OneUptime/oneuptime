@@ -384,7 +384,10 @@ describe("POST /cloud-connection/:connectionId/stream-key", () => {
   test("a Google Cloud key is kept with the push service account of its own service account's project", async () => {
     accessible!.provider = CloudProvider.GCP;
     stored.provider = CloudProvider.GCP;
-    stored.config = { keyProjectId: "acme-prod-1", clientEmail: "oneuptime-read@acme-prod-1.iam.gserviceaccount.com" };
+    stored.config = {
+      keyProjectId: "acme-prod-1",
+      clientEmail: "oneuptime-read@acme-prod-1.iam.gserviceaccount.com",
+    };
 
     await streamKeyHandler(
       request({ connectionId: CONNECTION.toString() }),
@@ -400,7 +403,8 @@ describe("POST /cloud-connection/:connectionId/stream-key", () => {
 
     expect(answer["pushServiceAccount"]).toBe(pusher);
     expect(
-      readCloudStreamKeyHashes(writes[0]!["streamKeyHashes"]).pushServiceAccount,
+      readCloudStreamKeyHashes(writes[0]!["streamKeyHashes"])
+        .pushServiceAccount,
     ).toBe(pusher);
   });
 
@@ -430,7 +434,8 @@ describe("POST /cloud-connection/:connectionId/stream-key", () => {
 
     expect(sent()["pushServiceAccount"]).toBeNull();
     expect(
-      readCloudStreamKeyHashes(writes[0]!["streamKeyHashes"]).pushServiceAccount,
+      readCloudStreamKeyHashes(writes[0]!["streamKeyHashes"])
+        .pushServiceAccount,
     ).toBeUndefined();
   });
 });
@@ -450,7 +455,10 @@ describe("POST /cloud-connection/:connectionId/start-streaming", () => {
       setPermission(permission);
 
       await startHandler(
-        request({ connectionId: CONNECTION.toString() }, { hostSubscriptionId: HOST.toUpperCase() }),
+        request(
+          { connectionId: CONNECTION.toString() },
+          { hostSubscriptionId: HOST.toUpperCase() },
+        ),
         res,
         next,
       );
@@ -477,7 +485,10 @@ describe("POST /cloud-connection/:connectionId/start-streaming", () => {
     };
 
     await startHandler(
-      request({ connectionId: CONNECTION.toString() }, { hostSubscriptionId: HOST }),
+      request(
+        { connectionId: CONNECTION.toString() },
+        { hostSubscriptionId: HOST },
+      ),
       res,
       next,
     );
@@ -498,7 +509,10 @@ describe("POST /cloud-connection/:connectionId/start-streaming", () => {
     };
 
     await startHandler(
-      request({ connectionId: CONNECTION.toString() }, { hostSubscriptionId: OTHER_HOST }),
+      request(
+        { connectionId: CONNECTION.toString() },
+        { hostSubscriptionId: OTHER_HOST },
+      ),
       res,
       next,
     );
@@ -514,7 +528,11 @@ describe("POST /cloud-connection/:connectionId/start-streaming", () => {
     ["a subscription that is no ID", { hostSubscriptionId: "prod" }],
     ["a subscription that is not text", { hostSubscriptionId: 42 }],
   ])("%s is refused", async (_name: string, body: JSONObject) => {
-    await startHandler(request({ connectionId: CONNECTION.toString() }, body), res, next);
+    await startHandler(
+      request({ connectionId: CONNECTION.toString() }, body),
+      res,
+      next,
+    );
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
     expect(writes).toHaveLength(0);
@@ -526,7 +544,10 @@ describe("POST /cloud-connection/:connectionId/start-streaming", () => {
       accessible!.provider = provider;
 
       await startHandler(
-        request({ connectionId: CONNECTION.toString() }, { hostSubscriptionId: HOST }),
+        request(
+          { connectionId: CONNECTION.toString() },
+          { hostSubscriptionId: HOST },
+        ),
         res,
         next,
       );
@@ -541,7 +562,10 @@ describe("POST /cloud-connection/:connectionId/start-streaming", () => {
   test("a member may not turn it on, nor anyone for another project's connection", async () => {
     setPermission(Permission.ProjectMember);
     await startHandler(
-      request({ connectionId: CONNECTION.toString() }, { hostSubscriptionId: HOST }),
+      request(
+        { connectionId: CONNECTION.toString() },
+        { hostSubscriptionId: HOST },
+      ),
       res,
       next,
     );
@@ -549,7 +573,10 @@ describe("POST /cloud-connection/:connectionId/start-streaming", () => {
     setPermission(Permission.ProjectAdmin);
     accessible = null;
     await startHandler(
-      request({ connectionId: CONNECTION.toString() }, { hostSubscriptionId: HOST }),
+      request(
+        { connectionId: CONNECTION.toString() },
+        { hostSubscriptionId: HOST },
+      ),
       res,
       next,
     );

@@ -59,7 +59,8 @@ const KEY: string = buildCloudStreamKey({
   secret: "0123456789abcdef".repeat(4),
 });
 const ENDPOINT: string = "https://oneuptime.com/telemetry/gcp-pubsub/v1/logs";
-const PUSHER: string = "oneuptime-push-6f1c3a2e@acme-prod-1.iam.gserviceaccount.com";
+const PUSHER: string =
+  "oneuptime-push-6f1c3a2e@acme-prod-1.iam.gserviceaccount.com";
 const NAMES: ReturnType<typeof getGcpCloudStreamNames> =
   getGcpCloudStreamNames(CONNECTION);
 
@@ -310,7 +311,10 @@ describe("The Google Cloud streaming command, run in bash", () => {
     expect(callsOf(shellRun, "pubsub subscriptions update")).toEqual([]);
 
     // A sink in each project, to the topic, with the filter.
-    const sinks: Array<Array<string>> = callsOf(shellRun, "logging sinks create");
+    const sinks: Array<Array<string>> = callsOf(
+      shellRun,
+      "logging sinks create",
+    );
     expect(
       sinks.map((call: Array<string>): string | undefined => {
         return flag(call, "--project");
@@ -319,7 +323,9 @@ describe("The Google Cloud streaming command, run in bash", () => {
 
     for (const sink of sinks) {
       expect(sink[4]).toBe(NAMES.sink);
-      expect(sink[5]).toBe(`pubsub.googleapis.com/projects/${HOST}/topics/${NAMES.topic}`);
+      expect(sink[5]).toBe(
+        `pubsub.googleapis.com/projects/${HOST}/topics/${NAMES.topic}`,
+      );
       expect(flag(sink, "--log-filter")).toBe(GCP_CLOUD_STREAM_WARNINGS_FILTER);
     }
 
@@ -330,7 +336,12 @@ describe("The Google Cloud streaming command, run in bash", () => {
     );
     expect(
       publishers.map((call: Array<string>): Array<string | undefined> => {
-        return [call[4], flag(call, "--project"), flag(call, "--member"), flag(call, "--role")];
+        return [
+          call[4],
+          flag(call, "--project"),
+          flag(call, "--member"),
+          flag(call, "--role"),
+        ];
       }),
     ).toEqual([
       [
@@ -359,7 +370,10 @@ describe("The Google Cloud streaming command, run in bash", () => {
         roles.push(`${call.slice(1, 4).join(" ")} ${call[4]} ${role}`);
       }
 
-      expect(call.slice(1, 3)).not.toEqual(["projects", "add-iam-policy-binding"]);
+      expect(call.slice(1, 3)).not.toEqual([
+        "projects",
+        "add-iam-policy-binding",
+      ]);
       expect(call[1]).not.toBe("organizations");
     }
 
@@ -484,7 +498,10 @@ describe("The Google Cloud streaming command, run in bash", () => {
 
     expect(text).toContain("<YOUR_STREAM_KEY>");
     expect(
-      flag(callsOf(shellRun, "pubsub subscriptions create")[0]!, "--push-auth-token-audience"),
+      flag(
+        callsOf(shellRun, "pubsub subscriptions create")[0]!,
+        "--push-auth-token-audience",
+      ),
     ).toBe("<YOUR_STREAM_KEY>");
   });
 
@@ -514,11 +531,56 @@ describe("Stop streaming's command for Google Cloud", () => {
     const shellRun: ShellRun = run(text);
 
     expect(shellRun.calls).toEqual([
-      ["gcloud", "logging", "sinks", "delete", NAMES.sink, "--project", HOST, "--quiet"],
-      ["gcloud", "logging", "sinks", "delete", NAMES.sink, "--project", "acme-data-2", "--quiet"],
-      ["gcloud", "pubsub", "subscriptions", "delete", NAMES.subscription, "--project", HOST, "--quiet"],
-      ["gcloud", "pubsub", "topics", "delete", NAMES.topic, "--project", HOST, "--quiet"],
-      ["gcloud", "iam", "service-accounts", "delete", PUSHER, "--project", HOST, "--quiet"],
+      [
+        "gcloud",
+        "logging",
+        "sinks",
+        "delete",
+        NAMES.sink,
+        "--project",
+        HOST,
+        "--quiet",
+      ],
+      [
+        "gcloud",
+        "logging",
+        "sinks",
+        "delete",
+        NAMES.sink,
+        "--project",
+        "acme-data-2",
+        "--quiet",
+      ],
+      [
+        "gcloud",
+        "pubsub",
+        "subscriptions",
+        "delete",
+        NAMES.subscription,
+        "--project",
+        HOST,
+        "--quiet",
+      ],
+      [
+        "gcloud",
+        "pubsub",
+        "topics",
+        "delete",
+        NAMES.topic,
+        "--project",
+        HOST,
+        "--quiet",
+      ],
+      [
+        "gcloud",
+        "iam",
+        "service-accounts",
+        "delete",
+        PUSHER,
+        "--project",
+        HOST,
+        "--quiet",
+      ],
     ]);
   });
 
@@ -542,34 +604,48 @@ describe("The Google Cloud stream's names, filters and problems", () => {
       sink: "oneuptime-stream-6f1c3a2e",
       pushServiceAccountId: "oneuptime-push-6f1c3a2e",
     });
-    expect(getGcpCloudStreamNames("11111111-2222-4333-8444-555555555555").topic).toBe(
-      "oneuptime-stream-11111111",
-    );
+    expect(
+      getGcpCloudStreamNames("11111111-2222-4333-8444-555555555555").topic,
+    ).toBe("oneuptime-stream-11111111");
     // A service account id is 6 to 30 characters.
     expect(NAMES.pushServiceAccountId.length).toBeLessThanOrEqual(30);
   });
 
   test("the push service account lives in the host project, a domain-scoped one too", () => {
     expect(
-      getCloudStreamPushServiceAccountEmail({ connectionId: CONNECTION, projectId: HOST }),
+      getCloudStreamPushServiceAccountEmail({
+        connectionId: CONNECTION,
+        projectId: HOST,
+      }),
     ).toBe(PUSHER);
     expect(
       getCloudStreamPushServiceAccountEmail({
         connectionId: CONNECTION,
         projectId: "example.com:acme-prod-1",
       }),
-    ).toBe("oneuptime-push-6f1c3a2e@acme-prod-1.example.com.iam.gserviceaccount.com");
+    ).toBe(
+      "oneuptime-push-6f1c3a2e@acme-prod-1.example.com.iam.gserviceaccount.com",
+    );
     expect(
-      getCloudStreamPushServiceAccountEmail({ connectionId: CONNECTION, projectId: "Bad Project" }),
+      getCloudStreamPushServiceAccountEmail({
+        connectionId: CONNECTION,
+        projectId: "Bad Project",
+      }),
     ).toBeNull();
   });
 
   test("each choice has its filter: warnings by default, every log without the data-read audit logs", () => {
     expect(
-      getGcpCloudStreamFilter({ logs: GcpCloudStreamLogs.WarningsAndErrors, customFilter: "x" }),
+      getGcpCloudStreamFilter({
+        logs: GcpCloudStreamLogs.WarningsAndErrors,
+        customFilter: "x",
+      }),
     ).toBe("severity>=WARNING");
     expect(
-      getGcpCloudStreamFilter({ logs: GcpCloudStreamLogs.Every, customFilter: "x" }),
+      getGcpCloudStreamFilter({
+        logs: GcpCloudStreamLogs.Every,
+        customFilter: "x",
+      }),
     ).toBe(GCP_CLOUD_STREAM_EVERY_LOG_FILTER);
     expect(GCP_CLOUD_STREAM_EVERY_LOG_FILTER).toContain(
       "cloudaudit.googleapis.com/data_access",
@@ -628,7 +704,8 @@ describe("The Google Cloud stream's names, filters and problems", () => {
       getGcpCloudStreamProblem({ ...base, projectIds: ["Prod"] })?.text,
     ).toBe(STREAM_NOT_A_PROJECT);
     expect(
-      getGcpCloudStreamProblem({ ...base, logs: GcpCloudStreamLogs.Custom })?.text,
+      getGcpCloudStreamProblem({ ...base, logs: GcpCloudStreamLogs.Custom })
+        ?.text,
     ).toBe(STREAM_NO_FILTER);
     expect(
       getGcpCloudStreamProblem({

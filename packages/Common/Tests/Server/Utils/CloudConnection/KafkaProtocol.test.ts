@@ -34,14 +34,26 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 describe("the primitives", () => {
   test("64-bit integers go both ways, negatives too, and past 2^53 are refused", () => {
-    for (const value of [0, 1, -1, -2, 4294967295, 4294967296, 1793959141000, Number.MAX_SAFE_INTEGER, -Number.MAX_SAFE_INTEGER]) {
+    for (const value of [
+      0,
+      1,
+      -1,
+      -2,
+      4294967295,
+      4294967296,
+      1793959141000,
+      Number.MAX_SAFE_INTEGER,
+      -Number.MAX_SAFE_INTEGER,
+    ]) {
       const bytes: Buffer = new KafkaWriter().int64(value).toBuffer();
 
       expect(bytes).toHaveLength(8);
       expect(new KafkaReader(bytes).int64()).toBe(value);
     }
 
-    const tooLarge: Buffer = Buffer.from([0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]);
+    const tooLarge: Buffer = Buffer.from([
+      0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    ]);
     expect(() => {
       return new KafkaReader(tooLarge).int64();
     }).toThrow(KafkaProtocolError);
@@ -49,7 +61,9 @@ describe("the primitives", () => {
       return new KafkaWriter().int64(2 ** 60);
     }).toThrow(KafkaProtocolError);
     // -1 is all ones, as Kafka writes "no value".
-    expect(new KafkaWriter().int64(-1).toBuffer()).toEqual(Buffer.alloc(8, 0xff));
+    expect(new KafkaWriter().int64(-1).toBuffer()).toEqual(
+      Buffer.alloc(8, 0xff),
+    );
   });
 
   test("varints read zigzag, as the record format writes them", () => {
@@ -77,9 +91,11 @@ describe("the primitives", () => {
     expect(crc32c(Buffer.from("123456789"))).toBe(0xe3069283);
     expect(slowCrc32c(Buffer.from("123456789"))).toBe(0xe3069283);
 
-    const data: Buffer = Buffer.from(Array.from({ length: 4096 }, (_v: unknown, index: number) => {
-      return (index * 31) % 256;
-    }));
+    const data: Buffer = Buffer.from(
+      Array.from({ length: 4096 }, (_v: unknown, index: number) => {
+        return (index * 31) % 256;
+      }),
+    );
     expect(crc32c(data)).toBe(slowCrc32c(data));
   });
 
@@ -91,9 +107,11 @@ describe("the primitives", () => {
       return new KafkaReader(Buffer.from([0, 0, 0, 9, 1])).bytes();
     }).toThrow(KafkaProtocolError);
     expect(() => {
-      return new KafkaReader(Buffer.from([0x7f, 0xff, 0xff, 0xff])).array(() => {
-        return 0;
-      });
+      return new KafkaReader(Buffer.from([0x7f, 0xff, 0xff, 0xff])).array(
+        () => {
+          return 0;
+        },
+      );
     }).toThrow(KafkaProtocolError);
   });
 
@@ -136,7 +154,11 @@ describe("record sets", () => {
 
     expect(
       read.records.map((record: KafkaRecord) => {
-        return [record.offset, record.timestampMs, record.value?.toString("utf8")];
+        return [
+          record.offset,
+          record.timestampMs,
+          record.value?.toString("utf8"),
+        ];
       }),
     ).toEqual([
       [40, 1793959141000, '{"records":[1]}'],
@@ -148,8 +170,14 @@ describe("record sets", () => {
   });
 
   test("several batches are read in order; one cut off at the end is left for the next fetch", () => {
-    const first: Buffer = encodeBatch({ baseOffset: 0, events: events.slice(0, 2) });
-    const second: Buffer = encodeBatch({ baseOffset: 2, events: events.slice(2) });
+    const first: Buffer = encodeBatch({
+      baseOffset: 0,
+      events: events.slice(0, 2),
+    });
+    const second: Buffer = encodeBatch({
+      baseOffset: 2,
+      events: events.slice(2),
+    });
     const read: ReturnType<typeof decodeRecordSet> = decodeRecordSet(
       Buffer.concat([first, second.subarray(0, second.length - 5)]),
     );
@@ -161,7 +189,11 @@ describe("record sets", () => {
   test("a batch whose checksum is wrong is left out, and passed", () => {
     const read: ReturnType<typeof decodeRecordSet> = decodeRecordSet(
       Buffer.concat([
-        encodeBatch({ baseOffset: 0, events: events.slice(0, 1), corruptCrc: true }),
+        encodeBatch({
+          baseOffset: 0,
+          events: events.slice(0, 1),
+          corruptCrc: true,
+        }),
         encodeBatch({ baseOffset: 1, events: events.slice(1, 2) }),
       ]),
     );
@@ -222,13 +254,22 @@ describe("record sets", () => {
     const read: ReturnType<typeof decodeRecordSet> = decodeRecordSet(
       Buffer.concat([
         encodeMessageV0V1({ offset: 9, magic: 0, value: Buffer.from("zero") }),
-        encodeMessageV0V1({ offset: 10, magic: 1, value: Buffer.from("one"), timestampMs: 1793959141000 }),
+        encodeMessageV0V1({
+          offset: 10,
+          magic: 1,
+          value: Buffer.from("one"),
+          timestampMs: 1793959141000,
+        }),
       ]),
     );
 
     expect(
       read.records.map((record: KafkaRecord) => {
-        return [record.offset, record.timestampMs, record.value?.toString("utf8")];
+        return [
+          record.offset,
+          record.timestampMs,
+          record.value?.toString("utf8"),
+        ];
       }),
     ).toEqual([
       [9, 0, "zero"],
@@ -238,7 +279,10 @@ describe("record sets", () => {
   });
 
   test("a batch of a magic no format has is refused", () => {
-    const batch: Buffer = encodeBatch({ baseOffset: 0, events: events.slice(0, 1) });
+    const batch: Buffer = encodeBatch({
+      baseOffset: 0,
+      events: events.slice(0, 1),
+    });
     batch.writeInt8(7, 16);
 
     expect(() => {
@@ -259,7 +303,9 @@ describe("the client, against a fake Event Hubs namespace on a real socket", () 
     await broker.stop();
   });
 
-  function client(options: { timeoutMs?: number; maxFrameBytes?: number } = {}): KafkaClient {
+  function client(
+    options: { timeoutMs?: number; maxFrameBytes?: number } = {},
+  ): KafkaClient {
     return new KafkaClient({
       host: broker.host,
       port: 9093,
@@ -283,7 +329,9 @@ describe("the client, against a fake Event Hubs namespace on a real socket", () 
 
     const metadata: Awaited<ReturnType<KafkaClient["getMetadata"]>> =
       await reader.getMetadata("oneuptime");
-    expect(metadata.brokers).toEqual([{ nodeId: 0, host: broker.host, port: 9093 }]);
+    expect(metadata.brokers).toEqual([
+      { nodeId: 0, host: broker.host, port: 9093 },
+    ]);
     expect(
       metadata.topic?.partitions.map((partition: { partition: number }) => {
         return partition.partition;
@@ -291,22 +339,27 @@ describe("the client, against a fake Event Hubs namespace on a real socket", () 
     ).toEqual([0, 1]);
 
     expect(
-      await reader.listOffsets({ topic: "oneuptime", partitions: [0, 1], timestamp: -1 }),
+      await reader.listOffsets({
+        topic: "oneuptime",
+        partitions: [0, 1],
+        timestamp: -1,
+      }),
     ).toEqual([
       { partition: 0, errorCode: 0, offset: 3 },
       { partition: 1, errorCode: 0, offset: 1 },
     ]);
 
-    const fetched: Awaited<ReturnType<KafkaClient["fetch"]>> = await reader.fetch({
-      topic: "oneuptime",
-      partitions: [
-        { partition: 0, offset: 1, maxBytes: 1024 * 1024 },
-        { partition: 1, offset: 0, maxBytes: 1024 * 1024 },
-      ],
-      maxWaitMs: 100,
-      minBytes: 1,
-      maxBytes: 4 * 1024 * 1024,
-    });
+    const fetched: Awaited<ReturnType<KafkaClient["fetch"]>> =
+      await reader.fetch({
+        topic: "oneuptime",
+        partitions: [
+          { partition: 0, offset: 1, maxBytes: 1024 * 1024 },
+          { partition: 1, offset: 0, maxBytes: 1024 * 1024 },
+        ],
+        maxWaitMs: 100,
+        minBytes: 1,
+        maxBytes: 4 * 1024 * 1024,
+      });
 
     // The batch holding offset 1 starts at 0: the reader sees it whole.
     expect(
@@ -315,7 +368,9 @@ describe("the client, against a fake Event Hubs namespace on a real socket", () 
       }),
     ).toEqual(["a", "b", "c"]);
     expect(fetched.partitions[0]!.highWatermark).toBe(3);
-    expect(fetched.partitions[1]!.records[0]!.value?.toString("utf8")).toBe("d");
+    expect(fetched.partitions[1]!.records[0]!.value?.toString("utf8")).toBe(
+      "d",
+    );
 
     // The broker was asked in the versions this client says it sends.
     expect(
@@ -367,8 +422,12 @@ describe("the client, against a fake Event Hubs namespace on a real socket", () 
     const reader: KafkaClient = client({ timeoutMs: 200 });
     await reader.connect();
 
-    await expect(reader.readApiVersions()).rejects.toThrow(KafkaConnectionError);
-    await expect(reader.getMetadata("oneuptime")).rejects.toThrow(KafkaConnectionError);
+    await expect(reader.readApiVersions()).rejects.toThrow(
+      KafkaConnectionError,
+    );
+    await expect(reader.getMetadata("oneuptime")).rejects.toThrow(
+      KafkaConnectionError,
+    );
   });
 
   test("an answer claiming more than is taken closes the connection before it is held", async () => {
@@ -377,7 +436,9 @@ describe("the client, against a fake Event Hubs namespace on a real socket", () 
     const reader: KafkaClient = client({ maxFrameBytes: 1024 });
     await reader.connect();
 
-    await expect(reader.readApiVersions()).rejects.toThrow("past the 1024 taken");
+    await expect(reader.readApiVersions()).rejects.toThrow(
+      "past the 1024 taken",
+    );
   });
 
   test("a namespace that is not there is a connection error", async () => {

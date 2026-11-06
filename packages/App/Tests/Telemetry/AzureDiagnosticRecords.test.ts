@@ -56,29 +56,40 @@ function attributes(list: unknown): Record<string, unknown> {
   for (const attribute of list as Array<JSONObject>) {
     const value: JSONObject = attribute["value"] as JSONObject;
     values[attribute["key"] as string] =
-      value["stringValue"] ?? value["intValue"] ?? value["doubleValue"] ?? value["boolValue"];
+      value["stringValue"] ??
+      value["intValue"] ??
+      value["doubleValue"] ??
+      value["boolValue"];
   }
 
   return values;
 }
 
 function metricsOf(decoded: AzureDiagnosticDecoded): Array<JSONObject> {
-  return decoded.resourceMetrics.flatMap((delivered: { resource: JSONObject }) => {
-    return ((delivered.resource["scopeMetrics"] as Array<JSONObject>)[0]!["metrics"] as Array<JSONObject>);
-  });
+  return decoded.resourceMetrics.flatMap(
+    (delivered: { resource: JSONObject }) => {
+      return (delivered.resource["scopeMetrics"] as Array<JSONObject>)[0]![
+        "metrics"
+      ] as Array<JSONObject>;
+    },
+  );
 }
 
-function logsOf(decoded: AzureDiagnosticDecoded): Array<{ resource: Record<string, unknown>; record: JSONObject }> {
+function logsOf(
+  decoded: AzureDiagnosticDecoded,
+): Array<{ resource: Record<string, unknown>; record: JSONObject }> {
   return decoded.resourceLogs.flatMap((delivered: { resource: JSONObject }) => {
     const resource: Record<string, unknown> = attributes(
       (delivered.resource["resource"] as JSONObject)["attributes"],
     );
 
-    return ((delivered.resource["scopeLogs"] as Array<JSONObject>)[0]!["logRecords"] as Array<JSONObject>).map(
-      (record: JSONObject) => {
-        return { resource, record };
-      },
-    );
+    return (
+      (delivered.resource["scopeLogs"] as Array<JSONObject>)[0]![
+        "logRecords"
+      ] as Array<JSONObject>
+    ).map((record: JSONObject) => {
+      return { resource, record };
+    });
   });
 }
 
@@ -86,7 +97,14 @@ describe("a platform metric's minute", () => {
   test("is the gauge the connection's read writes: its name, unit, value and datapoint attributes, the ARM id in the reads' casing", () => {
     const decoded: AzureDiagnosticDecoded = decode([
       eventOf([
-        metricRecord({ resourceId: VM_ID, metricName: "Percentage CPU", total: 50, count: 4, minimum: 10, maximum: 20 }),
+        metricRecord({
+          resourceId: VM_ID,
+          metricName: "Percentage CPU",
+          total: 50,
+          count: 4,
+          minimum: 10,
+          maximum: 20,
+        }),
       ]),
     ]);
 
@@ -94,7 +112,9 @@ describe("a platform metric's minute", () => {
     expect(decoded.resourceMetrics).toHaveLength(1);
 
     const resource: Record<string, unknown> = attributes(
-      ((decoded.resourceMetrics[0]!.resource["resource"] as JSONObject)["attributes"]),
+      (decoded.resourceMetrics[0]!.resource["resource"] as JSONObject)[
+        "attributes"
+      ],
     );
     expect(resource).toEqual({
       "service.name": "Production Azure",
@@ -107,7 +127,9 @@ describe("a platform metric's minute", () => {
     expect(metric["name"]).toBe("azure_percentage_cpu_average");
     expect(metric["unit"]).toBe("Percent");
 
-    const point: JSONObject = ((metric["gauge"] as JSONObject)["dataPoints"] as Array<JSONObject>)[0]!;
+    const point: JSONObject = (
+      (metric["gauge"] as JSONObject)["dataPoints"] as Array<JSONObject>
+    )[0]!;
     expect(point["asDouble"]).toBe(12.5);
     expect(point["timeUnixNano"]).toBe(`${MINUTE_MS}000000`);
     expect(point["startTimeUnixNano"]).toBe(`${MINUTE_MS}000000`);
@@ -125,17 +147,47 @@ describe("a platform metric's minute", () => {
   test("each aggregation is the read's: Total the total, Count the count, Average the average", () => {
     const decoded: AzureDiagnosticDecoded = decode([
       eventOf([
-        metricRecord({ resourceId: SITE_ID, metricName: "Requests", total: 1200, count: 60, minimum: 0, maximum: 70 }),
-        metricRecord({ resourceId: SITE_ID, metricName: "Http5xx", total: 3, count: 60, minimum: 0, maximum: 2 }),
-        metricRecord({ resourceId: SITE_ID, metricName: "HttpResponseTime", total: 6, count: 60, minimum: 0.01, maximum: 0.9 }),
-        metricRecord({ resourceId: VAULT_ID, metricName: "ServiceApiHit", total: 9, count: 9, minimum: 1, maximum: 1 }),
+        metricRecord({
+          resourceId: SITE_ID,
+          metricName: "Requests",
+          total: 1200,
+          count: 60,
+          minimum: 0,
+          maximum: 70,
+        }),
+        metricRecord({
+          resourceId: SITE_ID,
+          metricName: "Http5xx",
+          total: 3,
+          count: 60,
+          minimum: 0,
+          maximum: 2,
+        }),
+        metricRecord({
+          resourceId: SITE_ID,
+          metricName: "HttpResponseTime",
+          total: 6,
+          count: 60,
+          minimum: 0.01,
+          maximum: 0.9,
+        }),
+        metricRecord({
+          resourceId: VAULT_ID,
+          metricName: "ServiceApiHit",
+          total: 9,
+          count: 9,
+          minimum: 1,
+          maximum: 1,
+        }),
       ]),
     ]);
 
     const byName: Record<string, number> = {};
 
     for (const metric of metricsOf(decoded)) {
-      byName[metric["name"] as string] = (((metric["gauge"] as JSONObject)["dataPoints"] as Array<JSONObject>)[0]!["asDouble"] as number);
+      byName[metric["name"] as string] = (
+        (metric["gauge"] as JSONObject)["dataPoints"] as Array<JSONObject>
+      )[0]!["asDouble"] as number;
     }
 
     expect(byName).toEqual({
@@ -159,25 +211,77 @@ describe("a platform metric's minute", () => {
     const stranger: string = VM_ID.replace("web-01", "web-99");
     const decoded: AzureDiagnosticDecoded = decode([
       eventOf([
-        metricRecord({ resourceId: VM_ID, metricName: "Disk Read Operations/Sec", total: 1, count: 1, minimum: 1, maximum: 1 }),
-        metricRecord({ resourceId: STORAGE_ID, metricName: "UsedCapacity", total: 5e9, count: 1, minimum: 5e9, maximum: 5e9 }),
-        metricRecord({ resourceId: VM_ID, metricName: "Percentage CPU", total: 1, count: 1, minimum: 1, maximum: 1, timeGrain: "PT1H" }),
-        metricRecord({ resourceId: stranger, metricName: "Percentage CPU", total: 1, count: 1, minimum: 1, maximum: 1 }),
-        metricRecord({ resourceId: STORAGE_ID, metricName: "Transactions", total: 12, count: 12, minimum: 1, maximum: 1 }),
+        metricRecord({
+          resourceId: VM_ID,
+          metricName: "Disk Read Operations/Sec",
+          total: 1,
+          count: 1,
+          minimum: 1,
+          maximum: 1,
+        }),
+        metricRecord({
+          resourceId: STORAGE_ID,
+          metricName: "UsedCapacity",
+          total: 5e9,
+          count: 1,
+          minimum: 5e9,
+          maximum: 5e9,
+        }),
+        metricRecord({
+          resourceId: VM_ID,
+          metricName: "Percentage CPU",
+          total: 1,
+          count: 1,
+          minimum: 1,
+          maximum: 1,
+          timeGrain: "PT1H",
+        }),
+        metricRecord({
+          resourceId: stranger,
+          metricName: "Percentage CPU",
+          total: 1,
+          count: 1,
+          minimum: 1,
+          maximum: 1,
+        }),
+        metricRecord({
+          resourceId: STORAGE_ID,
+          metricName: "Transactions",
+          total: 12,
+          count: 12,
+          minimum: 1,
+          maximum: 1,
+        }),
       ]),
     ]);
 
     expect(decoded.leftToRead).toBe(4);
-    expect(metricsOf(decoded).map((metric: JSONObject) => {
-      return metric["name"];
-    })).toEqual(["azure_transactions_total"]);
+    expect(
+      metricsOf(decoded).map((metric: JSONObject) => {
+        return metric["name"];
+      }),
+    ).toEqual(["azure_transactions_total"]);
   });
 
   test("its sighting is the subscription, the resource's own region and its type: what the read leaves to the stream", () => {
     const decoded: AzureDiagnosticDecoded = decode([
       eventOf([
-        metricRecord({ resourceId: VM_ID, metricName: "Percentage CPU", total: 1, count: 1, minimum: 1, maximum: 1 }),
-        metricRecord({ resourceId: VAULT_ID, metricName: "ServiceApiHit", total: 1, count: 1, minimum: 1, maximum: 1 }),
+        metricRecord({
+          resourceId: VM_ID,
+          metricName: "Percentage CPU",
+          total: 1,
+          count: 1,
+          minimum: 1,
+          maximum: 1,
+        }),
+        metricRecord({
+          resourceId: VAULT_ID,
+          metricName: "ServiceApiHit",
+          total: 1,
+          count: 1,
+          minimum: 1,
+          maximum: 1,
+        }),
       ]),
     ]);
 
@@ -194,8 +298,13 @@ describe("a platform metric's minute", () => {
 
 describe("a resource log", () => {
   test("is a record of its resource: what its Logs tab filters on, its subscription and region", () => {
-    const decoded: AzureDiagnosticDecoded = decode([eventOf([vaultAuditRecord()])]);
-    const logs: Array<{ resource: Record<string, unknown>; record: JSONObject }> = logsOf(decoded);
+    const decoded: AzureDiagnosticDecoded = decode([
+      eventOf([vaultAuditRecord()]),
+    ]);
+    const logs: Array<{
+      resource: Record<string, unknown>;
+      record: JSONObject;
+    }> = logsOf(decoded);
 
     expect(logs).toHaveLength(1);
     expect(logs[0]!.resource).toEqual({
@@ -215,9 +324,13 @@ describe("a resource log", () => {
     const { record } = logsOf(decode([eventOf([vaultAuditRecord()])]))[0]!;
     const fields: Record<string, unknown> = attributes(record["attributes"]);
 
-    expect((record["body"] as JSONObject)["stringValue"]).toBe("SecretGet: Success (OK)");
+    expect((record["body"] as JSONObject)["stringValue"]).toBe(
+      "SecretGet: Success (OK)",
+    );
     expect(record["severityText"]).toBe("INFO");
-    expect(record["timeUnixNano"]).toBe(`${Date.UTC(2026, 10, 6, 9, 59, 12, 123)}000000`);
+    expect(record["timeUnixNano"]).toBe(
+      `${Date.UTC(2026, 10, 6, 9, 59, 12, 123)}000000`,
+    );
     expect(fields).toMatchObject({
       "azure.category": "AuditEvent",
       "azure.operation.name": "SecretGet",
@@ -233,7 +346,10 @@ describe("a resource log", () => {
   });
 
   test("an App Service line's message is its body; a function's log takes its own level", () => {
-    const logs: Array<{ resource: Record<string, unknown>; record: JSONObject }> = logsOf(
+    const logs: Array<{
+      resource: Record<string, unknown>;
+      record: JSONObject;
+    }> = logsOf(
       decode([eventOf([appServiceConsoleRecord(), functionAppRecord()])]),
     );
 
@@ -251,9 +367,10 @@ describe("a resource log", () => {
   });
 
   test("a resource the reads do not hold streams unfiled, under its own id and the location it states", () => {
-    const logs: Array<{ resource: Record<string, unknown>; record: JSONObject }> = logsOf(
-      decode([eventOf([aksRecord({ location: "West Europe" })])]),
-    );
+    const logs: Array<{
+      resource: Record<string, unknown>;
+      record: JSONObject;
+    }> = logsOf(decode([eventOf([aksRecord({ location: "West Europe" })])]));
 
     expect(logs[0]!.resource["cloud.resource_id"]).toBeUndefined();
     expect(logs[0]!.resource["azure.resource.id"]).toBe(AKS_ID.toUpperCase());
@@ -265,7 +382,10 @@ describe("a resource log", () => {
 
   test("its sighting is the subscription, the region and its category", () => {
     const decoded: AzureDiagnosticDecoded = decode([
-      eventOf([vaultAuditRecord(), vaultAuditRecord({ category: "AzurePolicyEvaluationDetails" })]),
+      eventOf([
+        vaultAuditRecord(),
+        vaultAuditRecord({ category: "AzurePolicyEvaluationDetails" }),
+      ]),
     ]);
 
     expect(decoded.sightings).toEqual([
@@ -278,18 +398,32 @@ describe("a resource log", () => {
   });
 
   test("levels are said as OneUptime says them", () => {
-    expect(AZURE_LOG_LEVELS.get("informational")).toEqual({ number: 9, text: "INFO" });
-    expect(AZURE_LOG_LEVELS.get("warning")).toEqual({ number: 13, text: "WARN" });
-    expect(AZURE_LOG_LEVELS.get("critical")).toEqual({ number: 21, text: "FATAL" });
-    expect(AZURE_LOG_LEVELS.get("verbose")).toEqual({ number: 5, text: "DEBUG" });
+    expect(AZURE_LOG_LEVELS.get("informational")).toEqual({
+      number: 9,
+      text: "INFO",
+    });
+    expect(AZURE_LOG_LEVELS.get("warning")).toEqual({
+      number: 13,
+      text: "WARN",
+    });
+    expect(AZURE_LOG_LEVELS.get("critical")).toEqual({
+      number: 21,
+      text: "FATAL",
+    });
+    expect(AZURE_LOG_LEVELS.get("verbose")).toEqual({
+      number: 5,
+      text: "DEBUG",
+    });
   });
 
   test("a log that states no message is its operation and result, else its properties whole", () => {
-    expect(readAzureLogBody({ operationName: "VaultGet", resultType: "Success" })).toBe(
-      "VaultGet: Success",
-    );
+    expect(
+      readAzureLogBody({ operationName: "VaultGet", resultType: "Success" }),
+    ).toBe("VaultGet: Success");
     expect(readAzureLogBody({ properties: { a: 1 } })).toBe('{"a":1}');
-    expect(readAzureLogBody({ Properties: { Message: "capitals" } })).toBe("capitals");
+    expect(readAzureLogBody({ Properties: { Message: "capitals" } })).toBe(
+      "capitals",
+    );
     expect(readAzureLogBody({})).toBe("");
   });
 });
@@ -299,7 +433,10 @@ describe("what is neither", () => {
     const decoded: AzureDiagnosticDecoded = decode([
       Buffer.from("not json"),
       Buffer.from(JSON.stringify({ hello: "world" })),
-      eventOf([{ metricName: "Percentage CPU" }, { resourceId: "not-an-arm-id", category: "x" }]),
+      eventOf([
+        { metricName: "Percentage CPU" },
+        { resourceId: "not-an-arm-id", category: "x" },
+      ]),
     ]);
 
     expect(decoded.unrecognized).toBe(4);
@@ -327,11 +464,19 @@ describe("what is neither", () => {
     }
 
     const { record } = logsOf(
-      decode([eventOf([vaultAuditRecord({ properties: { ...properties, message: "m".repeat(200_000) } })])]),
+      decode([
+        eventOf([
+          vaultAuditRecord({
+            properties: { ...properties, message: "m".repeat(200_000) },
+          }),
+        ]),
+      ]),
     )[0]!;
     const fields: Record<string, unknown> = attributes(record["attributes"]);
 
-    expect(((record["body"] as JSONObject)["stringValue"] as string).length).toBe(64 * 1024);
+    expect(
+      ((record["body"] as JSONObject)["stringValue"] as string).length,
+    ).toBe(64 * 1024);
     expect(
       Object.keys(fields).filter((key: string) => {
         return key.startsWith("azure.properties.");

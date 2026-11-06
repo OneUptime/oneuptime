@@ -129,7 +129,12 @@ export function readPubSubPush(body: Buffer): PubSubPushReading {
       : null;
   const message: JSONValue | undefined = document?.["message"];
 
-  if (!document || !message || typeof message !== "object" || Array.isArray(message)) {
+  if (
+    !document ||
+    !message ||
+    typeof message !== "object" ||
+    Array.isArray(message)
+  ) {
     return {
       problem: "The request body is not a Pub/Sub push: it has no message.",
       isTooLarge: false,
@@ -151,13 +156,19 @@ export function readPubSubPush(body: Buffer): PubSubPushReading {
   const encoded: JSONValue | undefined = fields["data"];
 
   if (encoded !== undefined && typeof encoded !== "string") {
-    return { problem: "A message's data must be base64 text.", isTooLarge: false };
+    return {
+      problem: "A message's data must be base64 text.",
+      isTooLarge: false,
+    };
   }
 
   const text: string = (encoded as string | undefined) || "";
 
   // Four characters of base64 are three bytes: too long is refused before decoding.
-  if (Math.floor((text.length * 3) / 4) > CLOUD_STREAM_PUBSUB_MAX_MESSAGE_BYTES + 2) {
+  if (
+    Math.floor((text.length * 3) / 4) >
+    CLOUD_STREAM_PUBSUB_MAX_MESSAGE_BYTES + 2
+  ) {
     return {
       problem: `A message's data is at most ${CLOUD_STREAM_PUBSUB_MAX_MESSAGE_BYTES} bytes.`,
       isTooLarge: true,
@@ -166,18 +177,29 @@ export function readPubSubPush(body: Buffer): PubSubPushReading {
 
   for (let index: number = 0; index < text.length; index++) {
     if (!isBase64Character(text.charCodeAt(index))) {
-      return { problem: "A message's data must be base64 text.", isTooLarge: false };
+      return {
+        problem: "A message's data must be base64 text.",
+        isTooLarge: false,
+      };
     }
   }
 
   const attributes: Record<string, string> = {};
   const rawAttributes: JSONValue | undefined = fields["attributes"];
 
-  if (rawAttributes && typeof rawAttributes === "object" && !Array.isArray(rawAttributes)) {
+  if (
+    rawAttributes &&
+    typeof rawAttributes === "object" &&
+    !Array.isArray(rawAttributes)
+  ) {
     for (const key of Object.keys(rawAttributes).slice(0, MAX_ATTRIBUTES)) {
       const value: JSONValue | undefined = (rawAttributes as JSONObject)[key];
 
-      if (typeof value === "string" && key.length <= 256 && key !== "__proto__") {
+      if (
+        typeof value === "string" &&
+        key.length <= 256 &&
+        key !== "__proto__"
+      ) {
         attributes[key] = value.slice(0, 1024);
       }
     }
@@ -185,7 +207,10 @@ export function readPubSubPush(body: Buffer): PubSubPushReading {
 
   const subscription: string =
     typeof document["subscription"] === "string"
-      ? (document["subscription"] as string).slice(0, PUBSUB_MAX_SUBSCRIPTION_LENGTH)
+      ? (document["subscription"] as string).slice(
+          0,
+          PUBSUB_MAX_SUBSCRIPTION_LENGTH,
+        )
       : "";
   const attempt: JSONValue | undefined = document["deliveryAttempt"];
 
@@ -194,12 +219,15 @@ export function readPubSubPush(body: Buffer): PubSubPushReading {
       messageId,
       data: Buffer.from(text, "base64"),
       attributes,
-      publishTime: typeof fields["publishTime"] === "string"
-        ? (fields["publishTime"] as string).slice(0, 64)
-        : "",
+      publishTime:
+        typeof fields["publishTime"] === "string"
+          ? (fields["publishTime"] as string).slice(0, 64)
+          : "",
       subscription,
       deliveryAttempt:
-        typeof attempt === "number" && Number.isFinite(attempt) ? attempt : null,
+        typeof attempt === "number" && Number.isFinite(attempt)
+          ? attempt
+          : null,
     },
   };
 }

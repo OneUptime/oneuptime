@@ -205,11 +205,14 @@ export default class AwsFirehoseIngestService {
       let body: Buffer;
 
       try {
-        body = await readCloudStreamBody(req, CLOUD_STREAM_MAX_REQUEST_BYTES).catch(
-          (error: unknown): never => {
-            throw error instanceof CloudStreamBodyTooLarge ? new TooLarge() : error;
-          },
-        );
+        body = await readCloudStreamBody(
+          req,
+          CLOUD_STREAM_MAX_REQUEST_BYTES,
+        ).catch((error: unknown): never => {
+          throw error instanceof CloudStreamBodyTooLarge
+            ? new TooLarge()
+            : error;
+        });
 
         if (encoding === "gzip") {
           body = await gunzipBounded(

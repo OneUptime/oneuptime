@@ -41,9 +41,12 @@ interface SigningKey {
 }
 
 function makeKey(kid: string): SigningKey {
-  const pair: crypto.KeyPairKeyObjectResult = crypto.generateKeyPairSync("rsa", {
-    modulusLength: 2048,
-  });
+  const pair: crypto.KeyPairKeyObjectResult = crypto.generateKeyPairSync(
+    "rsa",
+    {
+      modulusLength: 2048,
+    },
+  );
 
   return {
     kid,
@@ -109,45 +112,53 @@ function jwkOf(key: SigningKey): Record<string, unknown> {
 // The real fetch's shape, over a real socket to the fake.
 async function fetchFromFake(): Promise<GoogleKeysResponse> {
   return await new Promise<GoogleKeysResponse>(
-    (resolve: (value: GoogleKeysResponse) => void, reject: (error: Error) => void) => {
+    (
+      resolve: (value: GoogleKeysResponse) => void,
+      reject: (error: Error) => void,
+    ) => {
       http
-        .get(`http://127.0.0.1:${port}/oauth2/v3/certs`, (response: http.IncomingMessage) => {
-          const chunks: Array<Buffer> = [];
-          response.on("data", (chunk: Buffer) => {
-            chunks.push(chunk);
-          });
-          response.on("end", () => {
-            let body: unknown = undefined;
-
-            try {
-              body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-            } catch {
-              body = undefined;
-            }
-
-            resolve({
-              status: response.statusCode || 0,
-              body,
-              cacheControl: response.headers["cache-control"],
+        .get(
+          `http://127.0.0.1:${port}/oauth2/v3/certs`,
+          (response: http.IncomingMessage) => {
+            const chunks: Array<Buffer> = [];
+            response.on("data", (chunk: Buffer) => {
+              chunks.push(chunk);
             });
-          });
-        })
+            response.on("end", () => {
+              let body: unknown = undefined;
+
+              try {
+                body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+              } catch {
+                body = undefined;
+              }
+
+              resolve({
+                status: response.statusCode || 0,
+                body,
+                cacheControl: response.headers["cache-control"],
+              });
+            });
+          },
+        )
         .on("error", reject);
     },
   );
 }
 
 beforeAll(async () => {
-  server = http.createServer((request: http.IncomingMessage, response: http.ServerResponse) => {
-    keyReads++;
-    response.statusCode = keyStatus;
-    response.setHeader("Content-Type", "application/json; charset=UTF-8");
-    response.setHeader(
-      "Cache-Control",
-      "public, max-age=19500, must-revalidate, no-transform",
-    );
-    response.end(JSON.stringify({ keys: servedKeys.map(jwkOf) }));
-  });
+  server = http.createServer(
+    (request: http.IncomingMessage, response: http.ServerResponse) => {
+      keyReads++;
+      response.statusCode = keyStatus;
+      response.setHeader("Content-Type", "application/json; charset=UTF-8");
+      response.setHeader(
+        "Cache-Control",
+        "public, max-age=19500, must-revalidate, no-transform",
+      );
+      response.end(JSON.stringify({ keys: servedKeys.map(jwkOf) }));
+    },
+  );
   await new Promise<void>((resolve: () => void) => {
     server.listen(0, "127.0.0.1", resolve);
   });
@@ -188,7 +199,10 @@ function expectRefused(verdict: GoogleOidcVerdict, reason?: string): void {
 
 describe("A token Google signed for a push", () => {
   test("is taken, with what it says", async () => {
-    const verdict: GoogleOidcVerdict = await GoogleOidcTokens.verify(sign({}), NOW);
+    const verdict: GoogleOidcVerdict = await GoogleOidcTokens.verify(
+      sign({}),
+      NOW,
+    );
 
     expect(verdict).toEqual({
       isValid: true,
@@ -380,7 +394,10 @@ describe("Google's keys", () => {
   test("while they cannot be read, no token is taken - said as unavailable, so the push is sent again", async () => {
     keyStatus = 503;
 
-    const verdict: GoogleOidcVerdict = await GoogleOidcTokens.verify(sign({}), NOW);
+    const verdict: GoogleOidcVerdict = await GoogleOidcTokens.verify(
+      sign({}),
+      NOW,
+    );
 
     expect(verdict.isValid).toBe(false);
     if (!verdict.isValid) {
@@ -389,9 +406,16 @@ describe("Google's keys", () => {
 
     // A Google that cannot be reached at all is the same.
     GoogleOidcTokens.reset();
-    jest.spyOn(GoogleOidcTokens, "fetchKeys").mockRejectedValue(new Error("ECONNREFUSED"));
-    const unreachable: GoogleOidcVerdict = await GoogleOidcTokens.verify(sign({}), NOW);
-    expect(unreachable.isValid === false && unreachable.isUnavailable).toBe(true);
+    jest
+      .spyOn(GoogleOidcTokens, "fetchKeys")
+      .mockRejectedValue(new Error("ECONNREFUSED"));
+    const unreachable: GoogleOidcVerdict = await GoogleOidcTokens.verify(
+      sign({}),
+      NOW,
+    );
+    expect(unreachable.isValid === false && unreachable.isUnavailable).toBe(
+      true,
+    );
   });
 
   test("while Google cannot be reached, it is asked again only every 10 seconds, and the trouble logged once a minute", async () => {
@@ -456,7 +480,10 @@ describe("Google's keys", () => {
       },
     });
 
-    const verdict: GoogleOidcVerdict = await GoogleOidcTokens.verify(sign({}), NOW);
+    const verdict: GoogleOidcVerdict = await GoogleOidcTokens.verify(
+      sign({}),
+      NOW,
+    );
     expect(verdict.isValid === false && verdict.isUnavailable).toBe(true);
   });
 });
@@ -469,11 +496,17 @@ describe("The pieces of a token and its header", () => {
     expect(readBearerToken("Basic abc")).toBe("");
     expect(readBearerToken("abc.def.ghi")).toBe("");
     expect(readBearerToken(undefined)).toBe("");
-    expect(readBearerToken(`Bearer ${"a".repeat(CLOUD_STREAM_MAX_BEARER_TOKEN_LENGTH + 100)}`)).toBe("");
+    expect(
+      readBearerToken(
+        `Bearer ${"a".repeat(CLOUD_STREAM_MAX_BEARER_TOKEN_LENGTH + 100)}`,
+      ),
+    ).toBe("");
   });
 
   test("a token's parts are read without trusting them", () => {
-    const parts: ReturnType<typeof readUnverifiedJwt> = readUnverifiedJwt(sign({}));
+    const parts: ReturnType<typeof readUnverifiedJwt> = readUnverifiedJwt(
+      sign({}),
+    );
 
     expect(parts?.header["kid"]).toBe(GOOGLE.kid);
     expect(parts?.payload["email"]).toBe(PUSHER);
@@ -481,7 +514,9 @@ describe("The pieces of a token and its header", () => {
   });
 
   test("Cache-Control's max-age is read as Google writes it", () => {
-    expect(readMaxAgeSeconds("public, max-age=19500, must-revalidate, no-transform")).toBe(19500);
+    expect(
+      readMaxAgeSeconds("public, max-age=19500, must-revalidate, no-transform"),
+    ).toBe(19500);
     expect(readMaxAgeSeconds("no-store")).toBeNull();
     expect(readMaxAgeSeconds("max-age=soon")).toBeNull();
     expect(readMaxAgeSeconds(undefined)).toBeNull();

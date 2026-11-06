@@ -236,16 +236,14 @@ export default class GoogleOidcTokens {
   // Test seam: the fetch of Google's key set.
   public static fetchKeys: () => Promise<GoogleKeysResponse> =
     async (): Promise<GoogleKeysResponse> => {
-      const response: DataSourceHttpResponse = await DataSourceHttpFetch.fetch(
-        {
-          method: "GET",
-          url: GOOGLE_OIDC_CERTS_URL,
-          headers: { Accept: "application/json" },
-          timeoutInMs: 10_000,
-          acceptAnyStatus: true,
-          egressOptions: { targetLabel: "Google's token keys" },
-        },
-      );
+      const response: DataSourceHttpResponse = await DataSourceHttpFetch.fetch({
+        method: "GET",
+        url: GOOGLE_OIDC_CERTS_URL,
+        headers: { Accept: "application/json" },
+        timeoutInMs: 10_000,
+        acceptAnyStatus: true,
+        egressOptions: { targetLabel: "Google's token keys" },
+      });
 
       return {
         status: response.statusCode,
@@ -312,7 +310,10 @@ export default class GoogleOidcTokens {
     try {
       key = await GoogleOidcTokens.getKey(keyId, now);
     } catch (error) {
-      if (now.getTime() - GoogleOidcTokens.lastWarnedAt >= WARNING_INTERVAL_MS) {
+      if (
+        now.getTime() - GoogleOidcTokens.lastWarnedAt >=
+        WARNING_INTERVAL_MS
+      ) {
         GoogleOidcTokens.lastWarnedAt = now.getTime();
         logger.warn(
           `Google's token keys could not be read, so no Pub/Sub push is taken until they are: ${
@@ -329,7 +330,9 @@ export default class GoogleOidcTokens {
     }
 
     if (!key) {
-      return GoogleOidcTokens.invalid("signed by a key Google does not publish");
+      return GoogleOidcTokens.invalid(
+        "signed by a key Google does not publish",
+      );
     }
 
     let isSigned: boolean = false;
