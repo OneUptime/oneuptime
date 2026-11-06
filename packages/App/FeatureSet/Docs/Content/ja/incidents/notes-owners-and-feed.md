@@ -270,7 +270,7 @@ flowchart TB
 
 - **インシデント自体** — `IncidentCreated`、`IncidentUpdated`、`IncidentStateChanged`。`IncidentUpdated` エントリーは、編集で何が変わったかを記録します。タイトル、説明、根本原因、修復メモ、ラベル、重大度、モニターとそれに設定したステータス、そしてインシデントの範囲に追加または削除されたステータスページです。変わった値ごとに 1 行があり、同じ値のまま保存された値の行はないので、何も変えずにカードを保存した場合や、API クライアントやワークフローがインシデントをそのまま書き戻した場合は、エントリーはまったく追加されません。同じに読めるテキストは同じとみなされ（改行と前後の空白は除く）、ラベルは順序に関係なく同じ集合なら同じです。消した値は削除として読まれ、すべてのラベルを外すと「All labels removed.」と表示されます。アラートの **Alert updated** エントリーも同じように動作します。
 - **メモと文書** — `PublicNote`、`PrivateNote`、`RootCause`、`RemediationNotes`、`PostmortemNote`。`PostmortemNote` の項目は、ポストモーテムを保存するたびではなく、ポストモーテムのメモが変わったときに書き込まれます。
-- **人** — `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`、そして `ChannelMemberAdded` です。最後のものは **チャネル メンバー追加済み** として表示され、インシデントのページからその Slack チャネルに人が追加されたことを示します。[レコードのチャネルにいる人](/docs/workspace-connections/slack#レコードのチャネルにいる人) を参照してください。
+- **人** — `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`、そして `ChannelMemberAdded` です。最後のものは **チャネル メンバー追加済み** として表示され、インシデントのページからその Slack または Mattermost チャネルに人が追加されたことを示します。[レコードのチャネルにいる人](/docs/workspace-connections/slack#レコードのチャネルにいる人) を参照してください。
 - **リンクされたアラート** — `AlertLinked` と `AlertUnlinked`。**アラートリンク済み** と **アラートリンク解除済み** として表示されます。
 - **通知** — `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自動化** — `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。
@@ -306,7 +306,7 @@ flowchart TB
 - **インシデントテンプレートから** — テンプレートには **所有者** 項目があります。インシデントを所有し、作成や更新の際に通知を受ける人とチームで、**所有者を追加** と同じ一覧から選びます。テンプレートからインシデントを作成すると事前に入力され、インシデントの Slack と Microsoft Teams のチャネルができた時点で追加されるので、インシデントの所有者を新しいチャネルに招待する通知ルールは、彼らも招待します。ダッシュボードと、**Incident Template** を選んだワークフローの **Create One Incident** ステップは、「追加されました」という通知なしで彼らを追加します。テンプレートを持つ [フォーム](/docs/forms/on-submit) は彼らに通知し、彼らが追加されるまでインシデントの **インシデントが作成されました** 通知を保留します。[インシデントの宣言](/docs/incidents/declaring-incidents) を参照してください。
 - **インシデントの所有者ルールから** — 一致したルールが、作成時に自動で所有者を追加します。
 - **API での作成時に** — 作成の呼び出しで渡した所有者ユーザーとチームも、チャネルができた時点で同じように、「追加されました」という通知なしで追加されます。
-- **手動で** — インシデント中のいつでも、**所有者** ページの **所有者を追加** で追加します。インシデントが開いている間は、**概要** のヘッダーで所有者の下にある **追加** からも追加できます。
+- **By hand** — インシデント中のいつでも、**所有者** ページの **所有者を追加** で追加します。インシデントが開いている間は、**概要** のヘッダーで所有者の下にある **追加** からも追加できます。
 
 同じ人を 2 回追加しても問題ありません。すでに割り当てられた所有者が重複することはありません。
 
@@ -337,7 +337,7 @@ flowchart TB
 | **所有者に追加された**           | あなたが所有者として追加されたとき。                         | `You have been added as the owner of Incident {number} - {title}` |
 | **まだ解決していない**           | インシデントの次回リマインダー時刻に基づくリマインダー。     | `[Reminder] Incident {number} is still {state} - {title}`      |
 
-各通知は、その人が **ユーザー設定 → 通知設定** で有効にしたチャネル（メール、SMS、音声通話、プッシュ、WhatsApp、Telegram、Slack、Microsoft Teams、Webhook）で送られ、実際に何が送られるかはそれで決まります。受信者はそれぞれを個別にオフにできます。ユーザーごとの設定は、インシデントの作成、メモの投稿、状態の変更、所有者の追加、メンバーの割り当て、未解決のリマインダーの通知を送るかどうかとして表現されています。状態の変更のときだけ電話がほしい人は、まさにそのとおりに設定できます。状態の変更が何を意味するかは [インシデントの状態と重大度](/docs/incidents/states-and-severities) を参照してください。
+各通知は、その人が **ユーザー設定 → 通知設定** で有効にしたチャネル（メール、SMS、音声通話、プッシュ、WhatsApp、Telegram、Slack、Microsoft Teams、Mattermost、Webhook）で送られ、実際に何が送られるかはそれで決まります。受信者はそれぞれを個別にオフにできます。ユーザーごとの設定は、インシデントの作成、メモの投稿、状態の変更、所有者の追加、メンバーの割り当て、未解決のリマインダーの通知を送るかどうかとして表現されています。状態の変更のときだけ電話がほしい人は、まさにそのとおりに設定できます。状態の変更が何を意味するかは [インシデントの状態と重大度](/docs/incidents/states-and-severities) を参照してください。
 
 **所有者のいないインシデントも黙りません。** インシデントに所有者がまったくいない場合、通知ジョブはプロジェクトの所有者に送るので、何も取りこぼされません。テンプレートに所有者がいるフォームから報告されたインシデントの **インシデントが作成されました** 通知は、代わりにその所有者を待ちます。通知された人はそれぞれ対応するフィードの項目にも追加されるので、後から、誰にどのアドレスで知らせたかを正確に確認できます。
 

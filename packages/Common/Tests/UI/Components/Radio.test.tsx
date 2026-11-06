@@ -153,7 +153,7 @@ describe("Radio options with a line of their own", () => {
     expect(onChange).toHaveBeenCalledWith("windows-integrated");
   });
 
-  test("an option without a line is drawn as before: centred, and described by nothing", () => {
+  test("an option without a line is described by nothing, its radio level with the label's line", () => {
     render(
       <Radio
         options={[
@@ -168,7 +168,50 @@ describe("Radio options with a line of their own", () => {
     const radio: HTMLElement = screen.getByRole("radio", { name: "All" });
 
     expect(radio).not.toHaveAttribute("aria-describedby");
-    expect(radio).not.toHaveClass("mt-1");
-    expect(radio.parentElement).toHaveClass("items-center");
+    // mt-1 centres the 16px radio on the label's 24px line, as before.
+    expect(radio).toHaveClass("mt-1");
+    expect(radio.parentElement).toHaveClass("items-start");
+    expect(radio.parentElement).not.toHaveClass("items-center");
+  });
+
+  /*
+   * A label long enough to wrap - a level of an on-call policy named at
+   * length, on a phone - squeezed a centred radio to a dot halfway down its
+   * two lines. The radio keeps its size and stays by the first line, and
+   * the label wraps beside it.
+   */
+  test("a label that wraps never squeezes its radio, with or without a line", () => {
+    render(
+      <Radio
+        options={[
+          {
+            label:
+              "Payments platform engineering managers, EU and US regions (Level 3 of 3)",
+            value: "managers",
+          },
+          {
+            label: "Username and password",
+            value: "username-and-password",
+            description: "Signs in with a SQL Server login.",
+          },
+        ]}
+        value="managers"
+        ariaLabel="Escalate to"
+      />,
+    );
+
+    for (const radio of screen.getAllByRole("radio")) {
+      expect(radio).toHaveClass("flex-none", "h-4", "w-4", "mt-1");
+      expect(radio.parentElement).toHaveClass("items-start");
+    }
+
+    // The label can be narrower than its longest word, and breaks it.
+    const label: HTMLLabelElement = (
+      screen.getByRole("radio", {
+        name: "Payments platform engineering managers, EU and US regions (Level 3 of 3)",
+      }) as HTMLInputElement
+    ).labels![0]!;
+
+    expect(label).toHaveClass("min-w-0", "break-words");
   });
 });

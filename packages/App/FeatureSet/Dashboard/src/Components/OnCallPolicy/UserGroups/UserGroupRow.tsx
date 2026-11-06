@@ -16,6 +16,7 @@ import {
   USER_GROUPS_COPY,
   UserGroupStatusKind,
   UserGroupsWorkspaceCopy,
+  UserGroupWorkspaceType,
 } from "./UserGroupsCopy";
 import AppLink from "../../AppLink/AppLink";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -117,14 +118,15 @@ const PILL_CLASS_NAME: string =
 
 // The label column of the row's facts: as wide as its longest label.
 const FACT_LABEL_CLASS_NAME: string =
-  "text-xs font-medium uppercase tracking-wide text-gray-500 sm:pt-0.5";
+  "text-xs font-semibold text-gray-500 sm:pt-0.5";
 
 const UserGroupRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const view: WorkspaceUserGroupView = props.view;
-  const copy: UserGroupsWorkspaceCopy = USER_GROUPS_COPY[view.workspaceType];
+  const copy: UserGroupsWorkspaceCopy =
+    USER_GROUPS_COPY[view.workspaceType as UserGroupWorkspaceType];
   const status: UserGroupStatusKind = getUserGroupStatus(view);
   const tone: StatusTone = USER_GROUP_STATUS_TONES[status];
   const mention: string = getMention(view);

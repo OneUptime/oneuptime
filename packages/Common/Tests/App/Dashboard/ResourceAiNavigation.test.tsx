@@ -20,6 +20,7 @@ import DockerSwarmSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/
 import HostSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/SideMenu";
 import PodmanSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/View/SideMenu";
 import ProxmoxSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/SideMenu";
+import OpenStackSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/SideMenu";
 import VMwareSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/SideMenu";
 import { getCephBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/CephBreadcrumbs";
 import { getDatabaseBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DatabaseBreadcrumbs";
@@ -28,6 +29,7 @@ import { getDockerSwarmBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/
 import { getHostBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/HostBreadcrumbs";
 import { getPodmanBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/PodmanBreadcrumbs";
 import { getProxmoxBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ProxmoxBreadcrumbs";
+import { getOpenStackBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/OpenStackBreadcrumbs";
 import { getVMwareBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/VMwareBreadcrumbs";
 import { getResourceAiAgentDescriptor } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -37,6 +39,7 @@ import RouteMap, {
   DockerRoutePath,
   DockerSwarmRoutePath,
   HostRoutePath,
+  OpenStackRoutePath,
   PodmanRoutePath,
   ProxmoxRoutePath,
   RouteUtil,
@@ -269,6 +272,19 @@ const CASES: Array<ResourceCase> = [
     firstSection: "Basic",
     breadcrumbs: getHostBreadcrumbs,
     trail: ["Project", "Hosts", "View Host"],
+    metricsInsights: null,
+  },
+  {
+    type: AiResourceType.OpenStackCloud,
+    directory: "OpenStack",
+    routesFile: "OpenStackRoutes.tsx",
+    base: "openstack",
+    routePath: OpenStackRoutePath,
+    prefix: "OPENSTACK_CLOUD_VIEW",
+    menu: OpenStackSideMenu,
+    firstSection: "Basic",
+    breadcrumbs: getOpenStackBreadcrumbs,
+    trail: ["Project", "OpenStack", "View Cloud"],
     metricsInsights: null,
   },
 ];

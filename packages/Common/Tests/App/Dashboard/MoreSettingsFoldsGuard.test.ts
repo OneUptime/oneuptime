@@ -163,6 +163,11 @@ const COVERED: Record<string, Coverage> = {
       suites: [MORE_SETTINGS_ONE_CARD],
       drawnBy: "Pages/StatusPages/View/EmbeddedStatus",
     },
+  "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/View/PrivateUser.tsx":
+    {
+      suites: ["StatusPagePrivateUsersNotice.test.tsx"],
+      drawnBy: "Pages/StatusPages/View/PrivateUser",
+    },
   "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/View/StatusPageSettings.tsx":
     {
       suites: [

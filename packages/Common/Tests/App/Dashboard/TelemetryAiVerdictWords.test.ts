@@ -66,6 +66,8 @@ const FOUND_IN_THE_CODE: Record<string, string> = {
   [AIInsightType.MetricHistogramBuckets]:
     "Found buckets the code should change",
   [AIInsightType.MetricMissingMetrics]: "Found metrics the code should add",
+  [AIInsightType.MetricMissingRequestMetrics]:
+    "Found request metrics the code should add",
 };
 
 // The kinds that are errors: an expected error is one of their verdicts.

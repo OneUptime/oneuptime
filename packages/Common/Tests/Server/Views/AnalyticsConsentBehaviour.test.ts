@@ -266,6 +266,17 @@ const consentCommands: (page: OpenedPage) => Array<ConsentCommand> = (
   }) as Array<ConsentCommand>;
 };
 
+// What the tags that wait for consent in Tag Manager fire on.
+const consentGrantedEvents: (page: OpenedPage) => number = (
+  page: OpenedPage,
+): number => {
+  return (
+    (page.window.dataLayer || []) as Array<Record<string, unknown>>
+  ).filter((entry: Record<string, unknown>) => {
+    return entry && entry["event"] === "consent_granted";
+  }).length;
+};
+
 const cookieNames: (page: OpenedPage) => Array<string> = (
   page: OpenedPage,
 ): Array<string> => {
@@ -426,10 +437,16 @@ describe("where measurement runs until it is refused", () => {
       });
     };
 
-    test("loads no Google tag", () => {
+    /*
+     * Consent Mode's advanced mode: the container still loads, and the
+     * denied default is what keeps Google's tags from setting a cookie and
+     * every other tag in it from firing.
+     */
+    test("loads the container, under a denied default", () => {
       const page: OpenedPage = refused();
 
-      expect(googleTagSources(page)).toEqual([]);
+      expect(googleTagSources(page)).toEqual([CONTAINER_URL]);
+      expect(consentCommands(page)[0]![2]).toMatchObject(everySignal("denied"));
       page.window.close();
     });
 
@@ -508,10 +525,10 @@ describe("where the law asks for consent first", () => {
     page.window.close();
   });
 
-  test("loads nothing before the visitor answers", () => {
+  test("loads the container before the visitor answers, with every signal denied", () => {
     const page: OpenedPage = open({ timeZone: BERLIN });
 
-    expect(googleTagSources(page)).toEqual([]);
+    expect(googleTagSources(page)).toEqual([CONTAINER_URL]);
     expect(consentCommands(page)).toEqual([
       [
         "consent",
@@ -523,7 +540,7 @@ describe("where the law asks for consent first", () => {
   });
 
   describe('"Accept all"', () => {
-    test("loads the tag that was waiting for it", () => {
+    test("keeps the one container that loaded before it", () => {
       const page: OpenedPage = open({ timeZone: BERLIN });
 
       page.consent.grant();
@@ -532,24 +549,36 @@ describe("where the law asks for consent first", () => {
       page.window.close();
     });
 
-    test("tells Google before the tag boots", () => {
+    /*
+     * The container booted under the denied default, so the answer reaches it
+     * as an update - and then as consent_granted, which the tags that wait
+     * for consent in Tag Manager fire on, so they run on this page rather
+     * than the next.
+     */
+    test("tells the container already on the page, then the tags that wait for it", () => {
       const page: OpenedPage = open({ timeZone: BERLIN });
 
       page.consent.grant();
 
       const entries: Array<unknown> = page.window.dataLayer as Array<unknown>;
+      const boot: number = entries.findIndex((entry: unknown) => {
+        return (entry as Record<string, unknown>)["event"] === "gtm.js";
+      });
       const update: number = entries.findIndex((entry: unknown) => {
         const command: Array<unknown> = Array.from(
           (entry || []) as ArrayLike<unknown>,
         );
         return command[0] === "consent" && command[1] === "update";
       });
-      const boot: number = entries.findIndex((entry: unknown) => {
-        return (entry as Record<string, unknown>)["event"] === "gtm.js";
+      const granted: number = entries.findIndex((entry: unknown) => {
+        return (
+          (entry as Record<string, unknown>)["event"] === "consent_granted"
+        );
       });
 
-      expect(update).toBeGreaterThan(-1);
-      expect(boot).toBeGreaterThan(update);
+      expect(boot).toBeGreaterThan(-1);
+      expect(update).toBeGreaterThan(boot);
+      expect(granted).toBeGreaterThan(update);
       expect(consentCommands(page)[1]).toEqual([
         "consent",
         "update",
@@ -568,13 +597,14 @@ describe("where the law asks for consent first", () => {
       page.window.close();
     });
 
-    test("loads the tag once, however often it is pressed", () => {
+    test("loads the tag once, and tells its waiting tags once, however often it is pressed", () => {
       const page: OpenedPage = open({ timeZone: BERLIN });
 
       page.consent.grant();
       page.consent.grant();
 
       expect(googleTagSources(page)).toEqual([CONTAINER_URL]);
+      expect(consentGrantedEvents(page)).toBe(1);
       page.window.close();
     });
   });
@@ -629,7 +659,7 @@ describe("a browser that does not say where it is", () => {
     const page: OpenedPage = open({ timeZone: null });
 
     expect(page.consent.requiresConsentFirst()).toBe(true);
-    expect(googleTagSources(page)).toEqual([]);
+    expect(consentCommands(page)[0]![2]).toMatchObject(everySignal("denied"));
     page.window.close();
   });
 });
@@ -642,7 +672,6 @@ describe("Global Privacy Control", () => {
     });
 
     expect(page.consent.isAllowed()).toBe(false);
-    expect(googleTagSources(page)).toEqual([]);
     expect(consentCommands(page)[0]![2]).toMatchObject(everySignal("denied"));
     page.window.close();
   });
@@ -687,7 +716,7 @@ describe("a browser that refuses storage", () => {
 
     expect(page.consent.state()).toBe("unset");
     expect(page.consent.isAllowed()).toBe(false);
-    expect(googleTagSources(page)).toEqual([]);
+    expect(consentCommands(page)[0]![2]).toMatchObject(everySignal("denied"));
     page.window.close();
   });
 
@@ -714,6 +743,83 @@ describe("the Google tag", () => {
     expect(page.window.oneUptimeGoogleTagMode).toBe("tag-manager");
     expect(googleTagSources(page)).toEqual([CONTAINER_URL]);
     page.window.close();
+  });
+
+  /*
+   * While measurement is not allowed there is no cookie to keep an ad click
+   * in, so Google's tags carry it from page to page in the address - which
+   * they only do when told before the container boots.
+   */
+  test("on the website carries an ad click in the address, told so before the container boots", () => {
+    const page: OpenedPage = open({ timeZone: BERLIN });
+    const entries: Array<unknown> = page.window.dataLayer as Array<unknown>;
+
+    const passthrough: number = entries.findIndex((entry: unknown) => {
+      const command: Array<unknown> = Array.from(
+        (entry || []) as ArrayLike<unknown>,
+      );
+      return (
+        command[0] === "set" &&
+        command[1] === "url_passthrough" &&
+        command[2] === true
+      );
+    });
+    const boot: number = entries.findIndex((entry: unknown) => {
+      return (entry as Record<string, unknown>)["event"] === "gtm.js";
+    });
+
+    expect(passthrough).toBeGreaterThan(-1);
+    expect(boot).toBeGreaterThan(passthrough);
+    page.window.close();
+  });
+
+  /*
+   * The pixels in the container that are not Google's require ad_storage in
+   * Tag Manager, so they are blocked at page view while it is denied. They
+   * fire on consent_granted instead, which is sent only when this page's
+   * answer turns measurement on - where it was already on, they fired at page
+   * view and must not fire twice.
+   */
+  describe("tells the tags in the container that wait for consent", () => {
+    test("when the visitor accepts after the container booted", () => {
+      const page: OpenedPage = open({ timeZone: BERLIN });
+
+      expect(consentGrantedEvents(page)).toBe(0);
+
+      page.consent.grant();
+
+      expect(consentGrantedEvents(page)).toBe(1);
+      page.window.close();
+    });
+
+    test("not where measurement was already allowed", () => {
+      const page: OpenedPage = open({ timeZone: NEW_YORK });
+
+      page.consent.grant();
+
+      expect(consentGrantedEvents(page)).toBe(0);
+      page.window.close();
+    });
+
+    test("again when a visitor who refused on this page changes their mind", () => {
+      const page: OpenedPage = open({ timeZone: NEW_YORK });
+
+      page.consent.deny();
+      expect(consentGrantedEvents(page)).toBe(0);
+
+      page.consent.grant();
+      expect(consentGrantedEvents(page)).toBe(1);
+      page.window.close();
+    });
+
+    test("not on a refusal", () => {
+      const page: OpenedPage = open({ timeZone: BERLIN });
+
+      page.consent.deny();
+
+      expect(consentGrantedEvents(page)).toBe(0);
+      page.window.close();
+    });
   });
 
   /*
@@ -771,6 +877,26 @@ describe("the Google tag", () => {
       page.consent.grant();
 
       expect(googleTagSources(page)).toEqual([ANALYTICS_URL]);
+      page.window.close();
+    });
+
+    // Consent Mode's advanced mode is the website's; the product waits.
+    test("loads nothing before consent, and carries nothing in the address", () => {
+      const page: OpenedPage = open({
+        timeZone: BERLIN,
+        googleTagMode: "analytics-only",
+      });
+
+      expect(googleTagSources(page)).toEqual([]);
+      expect(
+        dataLayerCommands(page).some((command: Array<unknown>) => {
+          return command[0] === "set" && command[1] === "url_passthrough";
+        }),
+      ).toBe(false);
+
+      page.consent.grant();
+
+      expect(consentGrantedEvents(page)).toBe(0);
       page.window.close();
     });
   });
@@ -1077,13 +1203,20 @@ describe("attribution", () => {
     page.window.close();
   });
 
-  test("goes to Cal.com with a booking only while allowed - the booking kind always goes", () => {
+  /*
+   * Before consent a booking still says which campaign it came from - the
+   * campaign's labels - but nothing about the visit: no click id, landing
+   * address or first touch.
+   */
+  test("goes to Cal.com in full only while allowed - before that, the campaign's labels", () => {
     const before: OpenedPage = open({ timeZone: BERLIN, url: AD_URL });
 
     expect(
       before.window.oneUptimeCalAttributionMetadata("enterprise_demo"),
     ).toEqual({
       "metadata[ou_booking_kind]": "enterprise_demo",
+      "metadata[utm_source]": "google",
+      "metadata[utm_campaign]": "q3",
     });
 
     before.consent.grant();
@@ -1116,6 +1249,268 @@ describe("attribution", () => {
         utm_url: AD_URL,
       }),
     ]);
+    page.window.close();
+  });
+});
+
+/*
+ * While measurement is not allowed nothing is stored, so the campaign's
+ * labels - the UTM values and Google Ads' campaign parameters, which describe
+ * the ad and not the person - travel in the address instead: the website puts
+ * them on a link, under ou_campaign, as it is followed. That is what lets a
+ * demo booked three pages after a paid click still say which campaign it came
+ * from.
+ */
+describe("the campaign's labels, while measurement is not allowed", () => {
+  const CARRIED: string = "utm_source=google&utm_campaign=q3";
+  const CARRIED_URL: string = `https://oneuptime.com/pricing?ou_campaign=${encodeURIComponent(CARRIED)}`;
+
+  // Clicks a link the way a visitor does, and returns where it then leads.
+  const follow: (
+    page: OpenedPage,
+    href: string,
+    eventName?: string,
+  ) => string = (
+    page: OpenedPage,
+    href: string,
+    eventName: string = "click",
+  ): string => {
+    const link: any = page.window.document.createElement("a");
+    link.setAttribute("href", href);
+    link.textContent = "a link";
+    page.window.document.body.appendChild(link);
+
+    // jsdom cannot navigate: stop it trying, after the page has heard the click.
+    page.window.addEventListener(
+      eventName,
+      (event: any) => {
+        event.preventDefault();
+      },
+      { once: true },
+    );
+
+    link.dispatchEvent(
+      new page.window.MouseEvent(eventName, {
+        bubbles: true,
+        cancelable: true,
+        button: eventName === "auxclick" ? 1 : 0,
+      }),
+    );
+
+    return link.getAttribute("href") as string;
+  };
+
+  const carriedIn: (href: string) => Record<string, string> = (
+    href: string,
+  ): Record<string, string> => {
+    return Object.fromEntries(
+      new URLSearchParams(new URL(href).searchParams.get("ou_campaign") || ""),
+    );
+  };
+
+  test("are put on a link to another page of the website as it is followed", () => {
+    const page: OpenedPage = open({ timeZone: BERLIN, url: AD_URL });
+    const href: string = follow(page, "/pricing");
+
+    expect(new URL(href).pathname).toBe("/pricing");
+    expect(carriedIn(href)).toEqual({
+      utm_source: "google",
+      utm_campaign: "q3",
+    });
+    // The click id identifies the visit, and never travels.
+    expect(href).not.toContain("abc123");
+    page.window.close();
+  });
+
+  test("go to Cal.com from the page they were carried to", () => {
+    const page: OpenedPage = open({ timeZone: BERLIN, url: CARRIED_URL });
+
+    expect(
+      page.window.oneUptimeCalAttributionMetadata("enterprise_demo"),
+    ).toEqual({
+      "metadata[ou_booking_kind]": "enterprise_demo",
+      "metadata[utm_source]": "google",
+      "metadata[utm_campaign]": "q3",
+    });
+    page.window.close();
+  });
+
+  test("are carried on again from the page they were carried to", () => {
+    const page: OpenedPage = open({ timeZone: BERLIN, url: CARRIED_URL });
+
+    expect(carriedIn(follow(page, "/enterprise/demo"))).toEqual({
+      utm_source: "google",
+      utm_campaign: "q3",
+    });
+    page.window.close();
+  });
+
+  test("give way to a campaign the page itself arrived on", () => {
+    const page: OpenedPage = open({
+      timeZone: BERLIN,
+      url: `${AD_URL.replace("utm_source=google", "utm_source=linkedin")}&ou_campaign=${encodeURIComponent(CARRIED)}`,
+    });
+
+    expect(
+      page.window.oneUptimeCalAttributionMetadata()["metadata[utm_source]"],
+    ).toBe("linkedin");
+    page.window.close();
+  });
+
+  test.each(["auxclick", "contextmenu"])(
+    "are carried by a %s, which opens the link in a new tab",
+    (eventName: string) => {
+      const page: OpenedPage = open({ timeZone: BERLIN, url: AD_URL });
+
+      expect(carriedIn(follow(page, "/pricing", eventName))).toEqual({
+        utm_source: "google",
+        utm_campaign: "q3",
+      });
+      page.window.close();
+    },
+  );
+
+  test("are carried after a refusal, wherever the visitor is", () => {
+    const page: OpenedPage = open({
+      timeZone: NEW_YORK,
+      url: AD_URL,
+      storedAnswer: "false",
+    });
+
+    expect(carriedIn(follow(page, "/pricing"))).toEqual({
+      utm_source: "google",
+      utm_campaign: "q3",
+    });
+    page.window.close();
+  });
+
+  // A visitor who allows measurement has the stored touch; links stay as written.
+  test("are not carried while measurement is allowed", () => {
+    const page: OpenedPage = open({ timeZone: NEW_YORK, url: AD_URL });
+
+    expect(follow(page, "/pricing")).toBe("/pricing");
+    page.window.close();
+  });
+
+  test("stop being carried the moment the visitor accepts", () => {
+    const page: OpenedPage = open({ timeZone: BERLIN, url: AD_URL });
+
+    page.consent.grant();
+
+    expect(follow(page, "/pricing")).toBe("/pricing");
+    page.window.close();
+  });
+
+  test.each([
+    "/accounts/register",
+    "/dashboard",
+    "/admin",
+    "/identity/google",
+    "/status-page/acme",
+    "/public-dashboard/acme",
+    "https://example.com/pricing",
+    "mailto:sales@oneuptime.com",
+  ])("are not carried onto %s", (href: string) => {
+    const page: OpenedPage = open({ timeZone: BERLIN, url: AD_URL });
+
+    expect(follow(page, href)).toBe(href);
+    page.window.close();
+  });
+
+  test("leave a jump within the page a jump", () => {
+    const page: OpenedPage = open({ timeZone: BERLIN, url: CARRIED_URL });
+
+    expect(follow(page, "#faq")).toBe("#faq");
+    // Written with its path, it keeps this page's address, so it does not reload.
+    expect(follow(page, "/pricing#faq")).toBe(`${CARRIED_URL}#faq`);
+    page.window.close();
+  });
+
+  // An email address somebody put in a link describes a person, not an ad.
+  test("leave out a value that holds an @", () => {
+    const page: OpenedPage = open({
+      timeZone: BERLIN,
+      url: "https://oneuptime.com/?utm_source=newsletter&utm_content=jane%40acme.com",
+    });
+
+    expect(page.window.oneUptimeCalAttributionMetadata()).toEqual({
+      "metadata[utm_source]": "newsletter",
+    });
+    expect(follow(page, "/pricing")).not.toContain("acme");
+    page.window.close();
+  });
+
+  test("carry nothing that would make the address too long", () => {
+    const page: OpenedPage = open({
+      timeZone: BERLIN,
+      url: `https://oneuptime.com/?utm_source=google&utm_campaign=${"c".repeat(400)}&utm_term=${"t".repeat(400)}&utm_content=${"x".repeat(400)}`,
+    });
+
+    expect(follow(page, "/pricing")).toBe("/pricing");
+    page.window.close();
+  });
+
+  /*
+   * A visitor who accepts on a later page starts from there: the carried
+   * labels are not a touch, so nothing is stored from them and nothing is
+   * reported twice.
+   */
+  test("are neither stored nor reported when the visitor later accepts", async () => {
+    const page: OpenedPage = open({ timeZone: BERLIN, url: CARRIED_URL });
+
+    await loaded(page);
+    page.consent.grant();
+
+    expect(page.window.localStorage.getItem("utmSource")).toBeNull();
+    expect(page.window.localStorage.getItem("firstTouch")).toBeNull();
+    expect(page.captured).toEqual([]);
+    page.window.close();
+  });
+
+  test("are not stored while measurement is not allowed", () => {
+    const page: OpenedPage = open({ timeZone: BERLIN, url: AD_URL });
+
+    follow(page, "/pricing");
+
+    expect(page.window.localStorage.length).toBe(0);
+    page.window.close();
+  });
+
+  test("let the page's own click handlers read the link as it was written", () => {
+    const page: OpenedPage = open({ timeZone: BERLIN, url: AD_URL });
+    const link: any = page.window.document.createElement("a");
+    let seen: string | null = null;
+
+    link.setAttribute("href", "/enterprise/demo");
+    link.addEventListener("click", () => {
+      seen = link.getAttribute("href");
+    });
+    page.window.document.body.appendChild(link);
+    page.window.addEventListener(
+      "click",
+      (event: any) => {
+        event.preventDefault();
+      },
+      { once: true },
+    );
+
+    link.dispatchEvent(
+      new page.window.MouseEvent("click", { bubbles: true, cancelable: true }),
+    );
+
+    expect(seen).toBe("/enterprise/demo");
+    expect(link.getAttribute("href")).toContain("ou_campaign=");
+    page.window.close();
+  });
+
+  test("are not carried by the product, which rewrites no links", () => {
+    const page: OpenedPage = open({
+      timeZone: BERLIN,
+      url: AD_URL,
+      googleTagMode: "analytics-only",
+    });
+
+    expect(follow(page, "/pricing")).toBe("/pricing");
     page.window.close();
   });
 });

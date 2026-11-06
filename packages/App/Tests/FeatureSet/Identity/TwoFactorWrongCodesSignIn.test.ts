@@ -1172,12 +1172,22 @@ describe("the owner is told", () => {
 
     expect(sendTwoFactorWrongCodesEmail).not.toHaveBeenCalled();
 
-    await enterCode(account, account.wrongCode());
+    await enterCode(account, account.wrongCode(), {
+      clientIp: "203.0.113.50",
+    });
 
     expect(sendTwoFactorWrongCodesEmail).toHaveBeenCalledTimes(1);
     expect(sendTwoFactorWrongCodesEmail).toHaveBeenCalledWith({
       user: account.user,
       wrongCodesInARow: 5,
+      // The password began this sign-in (MagicLinkLogin.test.ts has the link's).
+      isMagicLinkSignIn: false,
+      // Where the fifth wrong code came from (RequestOriginUtil).
+      origin: {
+        ipAddress: "203.0.113.50",
+        location: undefined,
+        device: undefined,
+      },
     });
   });
 
@@ -1389,6 +1399,8 @@ describe("a caller with the password gets no more codes checked by changing the 
     expect(sendTwoFactorWrongCodesEmail).toHaveBeenCalledWith({
       user: account.user,
       wrongCodesInARow: 5,
+      isMagicLinkSignIn: false,
+      origin: expect.objectContaining({ ipAddress: expect.any(String) }),
     });
 
     expect((await enterCode(account, account.code())).errorCode).toBe(
@@ -1414,6 +1426,8 @@ describe("a caller with the password gets no more codes checked by changing the 
     expect(sendTwoFactorWrongCodesEmail).toHaveBeenCalledWith({
       user: account.user,
       wrongCodesInARow: 5,
+      isMagicLinkSignIn: false,
+      origin: expect.objectContaining({ ipAddress: expect.any(String) }),
     });
 
     consumeBackupCode.mockClear();

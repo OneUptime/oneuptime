@@ -18,7 +18,11 @@ import {
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
   CLOUD_AI_AGENT_NAME,
   CloudAiAgentProvider,
+  GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
+  GCP_CLOUD_AI_AGENT_HOSTS,
+  GCP_CLOUD_AI_AGENT_INSTANCE_NAME,
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
+  GcpCloudAiAgentHost,
   getCloudAiAgentOwnTargets,
 } from "Common/Types/ResourceAiAgent/CloudAiAgentNames";
 import {
@@ -39,7 +43,8 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * which changes AI may make (all; their tiers still apply), resources AI
  * must never change, only changing resources that carry a tag, reading the
  * account's logs during investigations (off), letting riskier changes run
- * without approval, and running the agent somewhere else.
+ * without approval, on Google Cloud what runs the agent (a small VM, or
+ * Cloud Run), and running the agent somewhere else.
  *
  * Import-clean on purpose (Common types and the cloud setup commands), so
  * the suites read it without a browser.
@@ -57,7 +62,30 @@ export interface CloudAiAgentSetupChoices {
   protectedTargetsText: string;
   // More fields: change only resources tagged CLOUD_AI_DEFAULT_REQUIRED_TAG.
   onlyTaggedResources: boolean;
+  // More fields, Google Cloud only: what runs the agent.
+  gcpHost: GcpCloudAiAgentHost;
 }
+
+/*
+ * Google Cloud's two hosts for the agent, as More fields offers them: a
+ * small VM, the default (about $10 a month), or Cloud Run (about $45: it
+ * keeps CPU allocated only for a whole vCPU) for a project whose
+ * organization allows no VM an external IP address.
+ */
+export const GCP_HOST_TITLES: Readonly<Record<GcpCloudAiAgentHost, string>> = {
+  "compute-engine": translationKey("A small VM"),
+  "cloud-run": translationKey("Cloud Run"),
+};
+export const GCP_HOST_DESCRIPTIONS: Readonly<
+  Record<GcpCloudAiAgentHost, string>
+> = {
+  "compute-engine": translationKey(
+    "One e2-micro Compute Engine VM in a network of its own that lets nothing in: about ${{usd}} a month.",
+  ),
+  "cloud-run": translationKey(
+    "A Cloud Run service with CPU always allocated: about ${{usd}} a month. For a project that allows no VM an external IP address.",
+  ),
+};
 
 // The two answers to the dialog's one question.
 export const CLOUD_AI_AGENT_ASK_FIRST_TITLE: string =
@@ -142,7 +170,10 @@ export function getCloudAiAgentReportedChoices(data: {
 }): Partial<
   Pick<
     CloudAiAgentSetupChoices,
-    "enabledOperations" | "onlyTaggedResources" | "protectedTargetsText"
+    | "enabledOperations"
+    | "onlyTaggedResources"
+    | "protectedTargetsText"
+    | "gcpHost"
   >
 > {
   const posture: ResourceAiAgentPosture | null | undefined = data.posture;
@@ -156,9 +187,27 @@ export function getCloudAiAgentReportedChoices(data: {
   const choices: Partial<
     Pick<
       CloudAiAgentSetupChoices,
-      "enabledOperations" | "onlyTaggedResources" | "protectedTargetsText"
+      | "enabledOperations"
+      | "onlyTaggedResources"
+      | "protectedTargetsText"
+      | "gcpHost"
     >
   > = {};
+
+  /*
+   * Where a Google Cloud agent runs, so the command keeps it there: what it
+   * reports, and Cloud Run for an agent too old to say, as every Google
+   * Cloud agent was before it could run on a VM.
+   */
+  if (data.provider === CloudProvider.GCP) {
+    const host: unknown = details["gcpHost"];
+
+    choices.gcpHost = (
+      GCP_CLOUD_AI_AGENT_HOSTS as ReadonlyArray<unknown>
+    ).includes(host)
+      ? (host as GcpCloudAiAgentHost)
+      : "cloud-run";
+  }
 
   const reportedOperations: unknown = details["enabledOperations"];
 
@@ -227,6 +276,7 @@ export function getDefaultCloudAiAgentSetupChoices(data: {
     enabledOperations: getCloudAiAgentChangeOperations(data.provider),
     protectedTargetsText: "",
     onlyTaggedResources: false,
+    gcpHost: GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
     ...getCloudAiAgentReportedChoices({
       provider: data.provider,
       accountId: data.accountId || "",
@@ -335,22 +385,47 @@ export function getCloudAiAgentSetupOptions(data: {
     requiredTag: data.choices.onlyTaggedResources
       ? CLOUD_AI_DEFAULT_REQUIRED_TAG
       : null,
+    ...(data.provider === CloudProvider.GCP
+      ? { gcpHost: data.choices.gcpHost }
+      : {}),
   };
 }
+
+// A Google Cloud project id, as the commands name it (nothing a shell reads).
+const GCP_PROJECT_ID_PATTERN: RegExp = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
 
 /*
  * How the agent's own logs are read in its cloud's shell: what to look at
  * when it does not connect.
  */
-export function getCloudAiAgentLogsCommand(provider: CloudProvider): string {
+export function getCloudAiAgentLogsCommand(
+  provider: CloudProvider,
+  // Google Cloud only: what runs the agent, and the project it runs in.
+  gcpHost: GcpCloudAiAgentHost = GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
+  projectId?: string | undefined,
+): string {
+  const project: string =
+    projectId && GCP_PROJECT_ID_PATTERN.test(projectId)
+      ? ` --project ${projectId}`
+      : "";
+
   switch (provider) {
     case CloudProvider.AWS:
       return `aws logs tail ${AWS_CLOUD_AI_AGENT_LOG_GROUP_NAME} --since 30m`;
     case CloudProvider.Azure:
       return `az containerapp logs show --name ${AZURE_CLOUD_AI_AGENT_APP_NAME} --resource-group ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP} --tail 100`;
     default:
+      if (gcpHost === "compute-engine") {
+        /*
+         * The agent's own log, which Docker on its VM writes to Cloud
+         * Logging; the VM's startup (pulling the image, reading the key)
+         * is on its serial port.
+         */
+        return `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/${GCP_CLOUD_AI_AGENT_INSTANCE_NAME}"'${project} --freshness 30m --limit 100 --format "value(jsonPayload.data)"`;
+      }
+
       // The service's own region, as the upgrade command finds it.
-      return `gcloud run services logs read ${GCP_CLOUD_AI_AGENT_SERVICE_NAME} --region "$(gcloud run services list --filter "metadata.name=${GCP_CLOUD_AI_AGENT_SERVICE_NAME}" --format "value(region)" | head -1)" --limit 100`;
+      return `gcloud run services logs read ${GCP_CLOUD_AI_AGENT_SERVICE_NAME}${project} --region "$(gcloud run services list${project} --filter "metadata.name=${GCP_CLOUD_AI_AGENT_SERVICE_NAME}" --format "value(region)" | head -1)" --limit 100`;
   }
 }
 

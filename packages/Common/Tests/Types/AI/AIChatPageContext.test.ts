@@ -45,6 +45,53 @@ describe("AIChatPageContextHelper", () => {
     });
   });
 
+  describe("a cloud account's pages", () => {
+    test("one account is an entity, the accounts list an area", () => {
+      expect(
+        AIChatPageContextHelper.isEntityType(
+          AIChatPageContextType.CloudAccount,
+        ),
+      ).toBe(true);
+      expect(
+        AIChatPageContextHelper.isEntityType(
+          AIChatPageContextType.CloudAccountsList,
+        ),
+      ).toBe(false);
+    });
+
+    test("an account's context keeps its OneUptime id and title", () => {
+      expect(
+        AIChatPageContextHelper.sanitize({
+          type: AIChatPageContextType.CloudAccount,
+          entityId: VALID_UUID,
+          entityTitle: "Production",
+        }),
+      ).toEqual({
+        type: AIChatPageContextType.CloudAccount,
+        entityId: VALID_UUID,
+        entityTitle: "Production",
+      });
+    });
+
+    test("an account's context with its id in its cloud, not OneUptime's, is dropped", () => {
+      expect(
+        AIChatPageContextHelper.sanitize({
+          type: AIChatPageContextType.CloudAccount,
+          entityId: "123456789012",
+        }),
+      ).toBeUndefined();
+    });
+
+    test("the accounts list carries no id", () => {
+      expect(
+        AIChatPageContextHelper.sanitize({
+          type: AIChatPageContextType.CloudAccountsList,
+          entityId: VALID_UUID,
+        }),
+      ).toEqual({ type: AIChatPageContextType.CloudAccountsList });
+    });
+  });
+
   describe("sanitize", () => {
     test("requires a valid application id for RUM context and sanitizes its title", () => {
       expect(

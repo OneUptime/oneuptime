@@ -14,6 +14,7 @@ import HashedString from "Common/Types/HashedString";
 import ObjectID from "Common/Types/ObjectID";
 import Exception from "Common/Types/Exception/Exception";
 import { JSONObject } from "Common/Types/JSON";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -296,6 +297,7 @@ type UpgradeWrite = {
 
 let upgradeWrites: Array<UpgradeWrite> = [];
 let updateOneByIdCalls: Array<JSONObject> = [];
+let updateOneByIdProps: Array<DatabaseCommonInteractionProps> = [];
 let findOneByCalls: Array<{ query: JSONObject; select: JSONObject }> = [];
 
 type MockFindOneByFunction = (user: User | null) => void;
@@ -439,6 +441,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   upgradeWrites = [];
   updateOneByIdCalls = [];
+  updateOneByIdProps = [];
   findOneByCalls = [];
 
   createSession.mockResolvedValue({
@@ -461,8 +464,10 @@ beforeEach(() => {
 
   jest.spyOn(UserService, "updateOneById").mockImplementation(((input: {
     data: JSONObject;
+    props: DatabaseCommonInteractionProps;
   }): Promise<number> => {
     updateOneByIdCalls.push(input.data);
+    updateOneByIdProps.push(input.props);
     return Promise.resolve(1);
   }) as never);
 });
@@ -862,7 +867,7 @@ describe("POST /reset-password — the new password reaches the write path unhas
     );
   });
 
-  it("revokes sessions and mails the user, because this one IS a real change", async () => {
+  it("revokes sessions, and hands the write where the reset came from, because this one IS a real change", async () => {
     const user: User = await storedUser({
       password: "old-password",
       salt: PasswordHash.generateSalt(),
@@ -874,7 +879,17 @@ describe("POST /reset-password — the new password reaches the write path unhas
     await reset("brand-new-password");
 
     expect(revokeAllSessionsByUserId).toHaveBeenCalled();
-    expect(sendMail).toHaveBeenCalled();
+
+    /*
+     * The user is mailed "Your password was changed" by the write's own hook
+     * (UserService.onUpdateSuccess, stubbed out with the write here), with
+     * where the reset came from. The route used to mail it as well, so a
+     * reset sent the same email twice.
+     */
+    expect(updateOneByIdProps).toHaveLength(1);
+    expect(updateOneByIdProps[0]!.isRoot).toBe(true);
+    expect(updateOneByIdProps[0]!.requestOrigin).toBeDefined();
+    expect(sendMail).not.toHaveBeenCalled();
   });
 
   it("writes nothing when the reset link has expired", async () => {

@@ -6,7 +6,7 @@ Elle répond à quatre questions :
 
 :::cards
 - [Où sont nos données sensibles ?](/docs/data-security/data-types): 143 types de données, des numéros de carte et identifiants nationaux aux clés API, trouvés dans des buckets, des tables et la télémétrie.
-- [Sont-elles exposées ?](/docs/data-security/checks-and-issues): 33 contrôles de chaque magasin de données : accès public, chiffrement, sauvegardes, journalisation, secrets et copies.
+- [Sont-elles exposées ?](/docs/data-security/checks-and-issues): 34 contrôles de chaque magasin de données : accès public, chiffrement, sauvegardes, journalisation, secrets et copies.
 - [Qui peut y accéder, et où vont-elles ?](/docs/data-security/flows-access-residency): Chaque identité qui peut accéder à chaque magasin de données, la plus risquée en premier, quels services l'utilisent, et quels fournisseurs d'IA et hôtes ses données atteignent.
 - [Respectent-elles nos règles ?](/docs/data-security/compliance): Des règles de résidence, et neuf référentiels de conformité notés d'après ce que les analyses ont trouvé.
 :::
@@ -66,10 +66,10 @@ Ouvrez **Sécurité des données**. Les magasins de données apparaissent sous *
 
 | Où | Magasins de données | Échantillons de contenu |
 | --- | --- | --- |
-| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System | AWS S3 Bucket |
+| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Bases de données que vous exploitez | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch | PostgreSQL, MySQL |
+| Bases de données que vous exploitez | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks | PostgreSQL, MySQL |
 | OneUptime | Journaux, Traces, Exceptions, Relectures de session, Conversations IA | Journaux, Traces, Exceptions, Relectures de session, Conversations IA |
 
 Chaque magasin de données reçoit les contrôles qui s'appliquent à son type. Un magasin de données dont le contenu ne peut pas être échantillonné est tout de même contrôlé : un bucket public ou une base de données non chiffrée est un problème, quoi qu'il contienne.

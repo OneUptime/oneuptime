@@ -40,7 +40,7 @@ flowchart TB
 
 ### 编写标题
 
-在 **事件标题** 或 **警报标题** 中输入标题，例如 `{{monitorName}} is down`。旁边的 **Learn about dynamic templates** 会打开 **Dynamic Template Variables**：列出该监视器类型的所有变量及其内容。点击变量即可复制。
+在 **事件标题** 或 **警报标题** 中输入标题，例如 `{{monitorName}} is down`。旁边的 **了解动态模板** 会打开 **动态模板变量**：列出该监视器类型的所有变量及其内容。点击变量即可复制。
 
 ### 编写描述和补救备注
 
@@ -433,7 +433,7 @@ Alerts for payments:
 | `collectionIssueSummary` | 关于每个不可用组的一行文字，可直接用于标题。全部收集成功时为空。 | `string` |
 | `metrics` | 收集到的值，按序列名称。 | `Object` |
 
-`metrics` 中的序列名称包含点号，例如 `oneuptime.monitor.database.connections.used.percent`，而路径会把每个点号当作进入对象的一步，因此模板无法从 `metrics` 中取出单个值。请把 `{{metrics}}` 作为 JSON 整体放入，或使用 `{{collectionIssueSummary}}`。未收集到的指标在 `metrics` 中不存在，而不是零。要针对单个值作出判断，请在条件中用 [JavaScript 表达式](/docs/monitor/javascript-expression) 进行比较。
+`metrics` 中的序列名称包含点号，例如 `oneuptime.monitor.database.connections.used.percent`，模板仍然可以取出单个值：在 `metrics.` 后写出完整名称，如 `{{metrics.oneuptime.monitor.database.connections.used.percent}}`。请把 `{{metrics}}` 作为 JSON 整体放入，或使用 `{{collectionIssueSummary}}`。未收集到的指标在 `metrics` 中不存在，而不是零。要针对单个值作出判断，请在条件中用 [JavaScript 表达式](/docs/monitor/javascript-expression) 进行比较。
 
 ### 外部状态页监视器
 
@@ -445,13 +445,14 @@ Alerts for payments:
 | `provider` | 状态页的类型：Atlassian Statuspage、incident.io、RSS 或 Atom。 | `string` |
 | `componentGroup` | 监视器关注的组件组(如果有)。 | `string` |
 | `componentName` | 监视器关注的组件，以逗号分隔(如果选择了组件)。 | `string` |
+| `componentNames` | 以列表形式给出的同一组组件，可用 `{{#each componentNames}}` 为每个组件重复一行。 | `Array<string>` |
 | `isOnline` | 状态页是否作出了响应。 | `boolean` |
 | `responseTimeInMs` | 状态页响应所用的时间，以毫秒为单位。 | `number` |
 | `failureCause` | 检查失败时的原因。 | `string` |
 
 ### 指标和基础设施监视器
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、VMware、Ceph、Storage Array 和 IoT Device 监视器各有一个自己的变量：
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、Storage Array 和 IoT Device 监视器各有一个自己的变量：
 
 | 变量 | 内容 | 类型 |
 | --- | --- | --- |
@@ -565,7 +566,7 @@ SNMP walk: {{responseTimeInMs}} ms
 ## 故障排查
 
 :::details 标题中显示了占位符，连同花括号
-这次检查中路径没有通向任何值。请对照上面的表格检查变量的名称和大小写，或在条件中打开 **Learn about dynamic templates**：它会列出该监视器类型的变量。进入响应或请求正文的路径必须与发送时的正文相符，而 `[*]` 和 `[-1]` 之类的负数索引什么也读不到：请使用 `[0]` 或 `[last]`。
+这次检查中路径没有通向任何值。请对照上面的表格检查变量的名称和大小写，或在条件中打开 **了解动态模板**：它会列出该监视器类型的变量。进入响应或请求正文的路径必须与发送时的正文相符，而 `[*]` 和 `[-1]` 之类的负数索引什么也读不到：请使用 `[0]` 或 `[last]`。
 :::
 
 :::details 某个值显示为 JSON

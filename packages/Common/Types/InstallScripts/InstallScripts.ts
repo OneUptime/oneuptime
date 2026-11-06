@@ -28,6 +28,7 @@
 export const INSTALL_SCRIPTS_ROUTE: string = "/install";
 
 export enum InstallScriptName {
+  AirGapped = "air-gapped",
   CephAgent = "ceph-agent",
   Cli = "cli",
   DatabaseAgent = "database-agent",
@@ -35,6 +36,7 @@ export enum InstallScriptName {
   DockerSwarmAgent = "docker-swarm-agent",
   HostAiAgent = "host-ai-agent",
   KubernetesAgent = "kubernetes-agent",
+  OpenStackAgent = "openstack-agent",
   PodmanAgent = "podman-agent",
   ProxmoxAgent = "proxmox-agent",
   StorageArrayAgent = "storage-array-agent",
@@ -71,6 +73,22 @@ export const INSTALL_SCRIPT_FILE: string = "install.sh";
 export const TROUBLESHOOT_SCRIPT_FILE: string = "troubleshoot.sh";
 
 export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
+  /*
+   * Not an agent: the script that carries a release into a network with no
+   * route to the internet (docs: installation/air-gapped). It saves every
+   * image the release's Helm chart runs, and the signed chart, on a machine
+   * that reaches the internet, and pushes them into the reader's own
+   * registry inside the gap. It downloads nothing from here: the chart comes
+   * from the Helm repository and the images from their registries, so a
+   * reader with no OneUptime yet fetches it from OneUptime Cloud.
+   */
+  {
+    name: InstallScriptName.AirGapped,
+    title: "Air-gapped image bundle",
+    sourceDirectory: "HelmChart/AirGap",
+    script: INSTALL_SCRIPT_FILE,
+    files: [INSTALL_SCRIPT_FILE],
+  },
   {
     name: InstallScriptName.CephAgent,
     title: "Ceph agent",
@@ -164,6 +182,48 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
     sourceDirectory: "HelmChart/Public/kubernetes-agent",
     script: null,
     files: [TROUBLESHOOT_SCRIPT_FILE],
+  },
+  /*
+   * clouds.yaml holds the credential, so it is generated on the agent's machine
+   * and never served. The access files are for whoever makes the credential, who
+   * may have no OneUptime checkout to hand: install.sh downloads neither.
+   */
+  {
+    name: InstallScriptName.OpenStackAgent,
+    title: "OpenStack agent",
+    sourceDirectory: "agents/OpenStackAgent",
+    script: INSTALL_SCRIPT_FILE,
+    files: [
+      INSTALL_SCRIPT_FILE,
+      "docker-compose.yml",
+      "otel-collector-config.yaml",
+      "systemd/oneuptime-openstack-agent.service",
+      "systemd/oneuptime-openstack-agent-native.service",
+      "systemd/oneuptime-openstack-exporter-native.service",
+      "systemd/oneuptime-openstack-quota-exporter-native.service",
+      "access/application-credential-access-rules.json",
+      "access/access-rules-for-cloud.py",
+      "access/policy/keystone.yaml",
+      "access/policy/neutron.yaml",
+      "access/policy/nova.yaml",
+      "access/policy/placement.yaml",
+      // The credential the AI agent makes changes with, kept apart from the one it reads with.
+      "access/write-application-credential-access-rules.json",
+      "access/policy/write-nova.yaml",
+      "control-plane-targets.py",
+      // The optional logs profile, on each controller and compute node.
+      "install-logs.sh",
+      "docker-compose.logs.yml",
+      "otel-collector-logs-files.yaml",
+      "otel-collector-logs-journald.yaml",
+      "systemd/oneuptime-openstack-logs-native.service",
+      // The optional traces profile, on each machine whose services are traced.
+      "install-traces.sh",
+      "docker-compose.traces.yml",
+      "otel-collector-traces.yaml",
+      "systemd/oneuptime-openstack-traces-native.service",
+      TROUBLESHOOT_SCRIPT_FILE,
+    ],
   },
   {
     name: InstallScriptName.PodmanAgent,

@@ -37,6 +37,11 @@ enum AIInsightType {
    */
   MetricDrift = "MetricDrift",
   /*
+   * A table's rows, or a data check's value, moved week over week by more than
+   * a slow change should, too slowly for any alert to fire (DataDriftDetector).
+   */
+  DataDrift = "DataDrift",
+  /*
    * A service that got measurably worse in the 30 minutes after a recorded
    * deploy (or another recorded change of it) than in the 30 minutes
    * before: more failing spans, a slower p99, more exceptions, or exception
@@ -125,6 +130,15 @@ enum AIInsightType {
    * latency over time without reading every span.
    */
   MetricMissingMetrics = "MetricMissingMetrics",
+  /*
+   * Missing request metrics: a busy service that sends metrics - its
+   * runtime's, its own - but has never sent one of the request metrics
+   * OpenTelemetry's semantic conventions name for what its spans serve
+   * (http.server.request.duration for the HTTP requests it handles, and
+   * the like), so its requests are charted and alerted on only by reading
+   * every span.
+   */
+  MetricMissingRequestMetrics = "MetricMissingRequestMetrics",
 }
 
 export default AIInsightType;

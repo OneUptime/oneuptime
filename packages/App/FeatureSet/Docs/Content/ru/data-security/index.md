@@ -6,7 +6,7 @@
 
 :::cards
 - [Где наши конфиденциальные данные?](/docs/data-security/data-types): 143 типа данных, от номеров карт и национальных идентификаторов до ключей API, найденные в бакетах, таблицах и телеметрии.
-- [Доступны ли они извне?](/docs/data-security/checks-and-issues): 33 проверки каждого хранилища: публичный доступ, шифрование, резервные копии, журналирование, секреты и копии.
+- [Доступны ли они извне?](/docs/data-security/checks-and-issues): 34 проверки каждого хранилища: публичный доступ, шифрование, резервные копии, журналирование, секреты и копии.
 - [Кто имеет к ним доступ и куда они уходят?](/docs/data-security/flows-access-residency): Каждый субъект, который может добраться до каждого хранилища, начиная с самого рискованного, какие сервисы его используют и до каких поставщиков ИИ и хостов доходят его данные.
 - [Соответствуют ли они нашим правилам?](/docs/data-security/compliance): Правила размещения данных и девять стандартов соответствия с оценкой по тому, что нашли сканирования.
 :::
@@ -66,10 +66,10 @@ flowchart TB
 
 | Где | Хранилища | Образцы содержимого |
 | --- | --- | --- |
-| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System | AWS S3 Bucket |
+| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Ваши собственные базы данных | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch | PostgreSQL, MySQL |
+| Ваши собственные базы данных | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks | PostgreSQL, MySQL |
 | OneUptime | Журналы, трассировки, исключения, записи сеансов, разговоры с ИИ | Журналы, трассировки, исключения, записи сеансов, разговоры с ИИ |
 
 Каждое хранилище получает проверки, которые подходят к его виду. Хранилище, из содержимого которого нельзя взять образцы, всё равно проверяется: публичный бакет или незашифрованная база данных — это проблема, что бы в них ни лежало.

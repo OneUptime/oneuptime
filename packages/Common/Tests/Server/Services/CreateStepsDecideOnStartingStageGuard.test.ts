@@ -130,6 +130,7 @@ const SERVICES: Array<ServiceSteps> = [
       "AutoRemediationRuleEngineService.onAlertCreated",
       "IncidentFollowUpCheck.onAlertOpened",
       "AiFirstResponder.onRecordCreated",
+      "AlertIncidentRuleEngineService.applyRulesToAlert",
     ],
     handedIsOngoing: ["AIAlertInvestigationRunner.investigateNewAlert"],
     grouping: "AlertGroupingEngineService.processAlert",

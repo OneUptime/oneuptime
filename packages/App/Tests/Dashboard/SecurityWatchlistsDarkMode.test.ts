@@ -10,8 +10,9 @@ import path from "path";
  *
  * So this reads every source of Security Events > Detections > Watchlists -
  * the two pages and every component of their folder: the rows' cells, the
- * common lists' tiles, Import Values, Use It in a Rule and the line under a
- * rule's YAML - and holds each colour class to what Theme.css remaps, as
+ * common lists' tiles, Import Values, Use This List, Read From an Address
+ * and the line under a rule's YAML - and a Security Events monitor's Filter
+ * by Watchlists, and holds each colour class to what Theme.css remaps, as
  * SecurityCaseContextDarkMode does for a case's Story. The folder is read
  * whole, so a part added to it later is covered too.
  */
@@ -35,6 +36,14 @@ const WATCHLISTS_DIR: string = path.join(
 const PAGE_FILES: Array<string> = [
   path.join(DASHBOARD_SRC, "Pages", "SecurityEvents", "Watchlists.tsx"),
   path.join(DASHBOARD_SRC, "Pages", "SecurityEvents", "WatchlistView.tsx"),
+  path.join(
+    DASHBOARD_SRC,
+    "Components",
+    "Form",
+    "Monitor",
+    "SecurityEventsMonitor",
+    "SecurityEventsWatchlistFilters.tsx",
+  ),
 ];
 
 const THEME_CSS_PATH: string = path.join(

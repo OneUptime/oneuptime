@@ -9,6 +9,14 @@
  * moves a record writes the name of whoever acknowledged the problem the
  * same way. They are held below beside the Jira and Dynamics 365 ones.
  *
+ * The Datadog and New Relic templates came after them, built the same way:
+ * the script that reads what the tool posted places a monitor's title,
+ * host, scope and message, or an issue's title, entities, policies and
+ * conditions, with the same asWritten, and links to the tool only on its
+ * own sites. Their scripts carry the same helpers, held below; what each
+ * writes, markup and long values included, is held in DatadogTemplates and
+ * NewRelicTemplates.
+ *
  * The Jira and Dynamics 365 templates that bring the other system into
  * OneUptime write what people wrote there into Markdown: an incident's or an
  * alert's title and description (the create templates), a private note (the
@@ -591,15 +599,24 @@ interface ScriptStep {
   componentId: string;
 }
 
-// Every script step of every Jira, Dynamics 365 and Zabbix template.
+// The templates of the other tools whose scripts write what came from them into OneUptime.
+const INTEGRATION_TEMPLATE_PREFIXES: Array<string> = [
+  "jira-",
+  "dynamics-",
+  "zabbix-",
+  "datadog-",
+  "new-relic-",
+];
+
+// Every script step of every Jira, Dynamics 365, Zabbix, Datadog and New Relic template.
 function integrationScripts(): Array<ScriptStep> {
   const steps: Array<ScriptStep> = [];
 
   for (const template of getWorkflowTemplates()) {
     if (
-      !template.id.startsWith("jira-") &&
-      !template.id.startsWith("dynamics-") &&
-      !template.id.startsWith("zabbix-")
+      !INTEGRATION_TEMPLATE_PREFIXES.some((prefix: string): boolean => {
+        return template.id.startsWith(prefix);
+      })
     ) {
       continue;
     }
@@ -633,10 +650,10 @@ function placingHelpersOf(code: string): string {
   return code.slice(start, end);
 }
 
-describe("the helpers every Jira, Dynamics 365 and Zabbix script starts with", () => {
+describe("the helpers every Jira, Dynamics 365, Zabbix, Datadog and New Relic script starts with", () => {
   const scripts: Array<ScriptStep> = integrationScripts();
 
-  test("finds the Jira, the Dynamics 365 and the Zabbix scripts", () => {
+  test("finds the Jira, the Dynamics 365, the Zabbix, the Datadog and the New Relic scripts", () => {
     const templates: Set<string> = new Set(
       scripts.map((script: ScriptStep): string => {
         return script.templateId;
@@ -644,17 +661,25 @@ describe("the helpers every Jira, Dynamics 365 and Zabbix script starts with", (
     );
 
     /*
-     * 17 Jira templates, 13 Dynamics 365 ones and 6 Zabbix ones, each with
-     * one script, but the four Dynamics 365 ones that read which case or
-     * note a request names before reading it, which have two.
+     * 17 Jira templates, 13 Dynamics 365 ones, 6 Zabbix ones and 2 each for
+     * Datadog and New Relic, each with one script, but the four Dynamics 365
+     * ones that read which case or note a request names before reading it,
+     * which have two.
      */
-    expect(templates.size).toBe(36);
-    expect(scripts).toHaveLength(40);
-    expect(
-      scripts.filter((script: ScriptStep): boolean => {
-        return script.templateId.startsWith("zabbix-");
-      }),
-    ).toHaveLength(6);
+    expect(templates.size).toBe(40);
+    expect(scripts).toHaveLength(44);
+
+    for (const [prefix, count] of [
+      ["zabbix-", 6],
+      ["datadog-", 2],
+      ["new-relic-", 2],
+    ] as Array<[string, number]>) {
+      expect(
+        scripts.filter((script: ScriptStep): boolean => {
+          return script.templateId.startsWith(prefix);
+        }),
+      ).toHaveLength(count);
+    }
   });
 
   test("every script carries the very same placing helpers, in its helper block", () => {
@@ -1006,6 +1031,20 @@ const PLACED_OUTPUTS: Array<string> = [
   "zabbix-create-alert-from-problem read-event-1 description -> description",
   "zabbix-create-alert-from-problem read-event-1 note -> note",
   "zabbix-create-alert-from-problem read-event-1 reason -> reason",
+  "datadog-declare-incident-from-monitor read-event-1 title -> title",
+  "datadog-declare-incident-from-monitor read-event-1 description -> description",
+  "datadog-declare-incident-from-monitor read-event-1 note -> note",
+  "datadog-declare-incident-from-monitor read-event-1 reason -> reason",
+  "datadog-create-alert-from-monitor read-event-1 title -> title",
+  "datadog-create-alert-from-monitor read-event-1 description -> description",
+  "datadog-create-alert-from-monitor read-event-1 note -> note",
+  "datadog-create-alert-from-monitor read-event-1 reason -> reason",
+  "new-relic-declare-incident-from-issue read-event-1 title -> title",
+  "new-relic-declare-incident-from-issue read-event-1 description -> description",
+  "new-relic-declare-incident-from-issue read-event-1 reason -> reason",
+  "new-relic-create-alert-from-issue read-event-1 title -> title",
+  "new-relic-create-alert-from-issue read-event-1 description -> description",
+  "new-relic-create-alert-from-issue read-event-1 reason -> reason",
 ];
 
 const DATA_OUTPUTS: Record<string, string> = {
@@ -1021,6 +1060,10 @@ const DATA_OUTPUTS: Record<string, string> = {
     "one of the record step's own words, or a state's name a script maps to",
   "eventId -> customFields.zabbixEventId":
     "a Zabbix event ID, which the read step takes as digits only",
+  "alertCycleKey -> customFields.datadogAlertCycleKey":
+    "a Datadog alert cycle key, which the read step takes only as letters, digits, dots, colons, dashes and underscores",
+  "issueId -> customFields.newRelicIssueId":
+    "a New Relic issue ID, which the read step takes only as letters, digits, dots, colons, dashes and underscores",
 };
 
 /*

@@ -20,6 +20,7 @@ import UserTwoFactorBackupCodeService from "../Services/UserTwoFactorBackupCodeS
 import TwoFactorBackupCode from "../Utils/TwoFactorBackupCode";
 import logger from "../Utils/Logger";
 import TwoFactorBackupCodeNotification from "../Utils/TwoFactorBackupCodeNotification";
+import RequestOriginUtil from "../Utils/RequestOrigin/RequestOriginUtil";
 import IdentityRateLimit, {
   IdentityRateLimitBucket,
 } from "../Middleware/IdentityRateLimit";
@@ -103,6 +104,7 @@ export default class UserWebAuthnAPI extends BaseAPI<
             TwoFactorBackupCodeNotification.notifyCodesCreated({
               userId: databaseProps.userId,
               codeCount: backupCodes.length,
+              origin: RequestOriginUtil.fromRequest(req),
             });
           }
 

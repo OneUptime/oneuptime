@@ -30,6 +30,8 @@ import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { actionTitleText } from "../../../Helpers/AIActionText";
+import { actionCardText } from "../../../Helpers/AIActionCardText";
 
 /*
  * The AI meta tools make the chat aware of the platform's other AI lanes:
@@ -404,6 +406,9 @@ describe("query_ai_insights", () => {
   });
 });
 
+// The card's heading: the incident by its number, then its title if it has one.
+const INCIDENT_12_HEADING: RegExp = /^#12( · .+)?$/;
+
 describe("start_investigation", () => {
   /*
    * The person may change the incident or alert (findOneUpdatableById).
@@ -446,6 +451,18 @@ describe("start_investigation", () => {
       params: { incidentId: INCIDENT_ID.toString() },
     });
     expect(result.widget).toBeDefined();
+    /*
+     * The card names the incident it investigates by its number, and says
+     * an investigation is queued - never the run's ID, which tells nobody
+     * anything.
+     */
+    expect(actionCardText(result.widget)).toEqual({
+      heading: expect.stringMatching(INCIDENT_12_HEADING),
+      kind: "Incident",
+      line: "AI investigation queued",
+      facts: [],
+    });
+    expect(JSON.stringify(result.widget)).not.toContain(RUN_ID.toString());
 
     const enqueueArgs: JSONObject = enqueueSpy.mock.calls[0]?.[0] as JSONObject;
     expect(enqueueArgs["projectId"]).toBe(ctx.projectId);
@@ -666,14 +683,18 @@ describe("start_investigation", () => {
 
   test("buildActionTitle names the subject from validated args", () => {
     expect(
-      StartInvestigationTool.buildActionTitle?.({
-        incidentId: INCIDENT_ID.toString(),
-      }),
+      actionTitleText(
+        StartInvestigationTool.buildActionTitle?.({
+          incidentId: INCIDENT_ID.toString(),
+        }),
+      ),
     ).toBe(`Start AI investigation for incident ${INCIDENT_ID.toString()}`);
     expect(
-      StartInvestigationTool.buildActionTitle?.({
-        alertId: ALERT_ID.toString(),
-      }),
+      actionTitleText(
+        StartInvestigationTool.buildActionTitle?.({
+          alertId: ALERT_ID.toString(),
+        }),
+      ),
     ).toBe(`Start AI investigation for alert ${ALERT_ID.toString()}`);
   });
 

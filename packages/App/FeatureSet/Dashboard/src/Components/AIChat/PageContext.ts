@@ -15,6 +15,7 @@ import ScheduledMaintenanceStateUtil from "../../Utils/ScheduledMaintenanceState
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -32,6 +33,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import Route from "Common/Types/API/Route";
@@ -215,6 +217,18 @@ const entityPageRules: Array<EntityPageRule> = [
     isValidId: isUuid,
   },
   /*
+   * A workflow's pages, its Builder among them: "this workflow" is this one,
+   * which Ask AI reads and can change - each change asked first.
+   */
+  {
+    pageMapKey: PageMap.WORKFLOW_VIEW,
+    type: AIChatPageContextType.Workflow,
+    noun: translationKey("workflow"),
+    chipLabel: "This workflow",
+    icon: IconProp.Workflow,
+    isValidId: isUuid,
+  },
+  /*
    * A security case's page: Ask AI reads the case, its detections and its
    * triage (query_security_cases), and can add a note or start a playbook
    * on it - each asked first.
@@ -249,6 +263,29 @@ const entityPageRules: Array<EntityPageRule> = [
     isValidId: isUuid,
   },
 ];
+
+/*
+ * A cloud account's pages, and Cloud > Accounts. Read before every other
+ * rule: they are under /cloud, where a cloud resource's own pages are
+ * (/cloud/:id), so the resource detection would take an account's
+ * address for a list of cloud resources.
+ */
+const CLOUD_ACCOUNT_PAGE_RULE: EntityPageRule = {
+  pageMapKey: PageMap.CLOUD_ACCOUNT_VIEW,
+  type: AIChatPageContextType.CloudAccount,
+  noun: translationKey("cloud account"),
+  chipLabel: "This cloud account",
+  icon: IconProp.Cloud,
+  isValidId: isUuid,
+};
+
+const CLOUD_ACCOUNTS_PAGE_RULE: AreaPageRule = {
+  baseRoute: RouteMap[PageMap.CLOUD_ACCOUNTS],
+  type: AIChatPageContextType.CloudAccountsList,
+  noun: translationKey("cloud accounts"),
+  chipLabel: "Cloud accounts",
+  icon: IconProp.Cloud,
+};
 
 const areaPageRules: Array<AreaPageRule> = [
   {
@@ -366,6 +403,12 @@ export default class PageContextUtil {
    */
   public static detectPageContext(): DashboardPageContext | null {
     try {
+      const cloudAccountContext: DashboardPageContext | null =
+        PageContextUtil.detectCloudAccountPage();
+      if (cloudAccountContext) {
+        return cloudAccountContext;
+      }
+
       const resourceContext: DashboardPageContext | null =
         ResourcePageContextUtil.detect();
       if (resourceContext) {
@@ -413,6 +456,49 @@ export default class PageContextUtil {
       }
     } catch {
       // Detection is a nice-to-have; fall through to "no context".
+    }
+
+    return null;
+  }
+
+  /*
+   * A cloud account's pages - Overview, Resources, Changes, Costs and the
+   * rest - are about that account; Cloud > Accounts about every one. Null
+   * on any other page.
+   */
+  private static detectCloudAccountPage(): DashboardPageContext | null {
+    const accountRoute: Route | undefined =
+      RouteMap[CLOUD_ACCOUNT_PAGE_RULE.pageMapKey];
+
+    if (accountRoute && Navigation.isStartWith(accountRoute)) {
+      const entityId: string | null = Navigation.getParamByName(
+        RouteParams.ModelID,
+        accountRoute,
+      );
+
+      if (entityId && CLOUD_ACCOUNT_PAGE_RULE.isValidId(entityId)) {
+        return {
+          type: CLOUD_ACCOUNT_PAGE_RULE.type,
+          entityId: entityId,
+          noun: CLOUD_ACCOUNT_PAGE_RULE.noun,
+          chipLabel: CLOUD_ACCOUNT_PAGE_RULE.chipLabel,
+          icon: CLOUD_ACCOUNT_PAGE_RULE.icon,
+          isEntity: true,
+        };
+      }
+    }
+
+    if (
+      CLOUD_ACCOUNTS_PAGE_RULE.baseRoute &&
+      Navigation.isStartWith(CLOUD_ACCOUNTS_PAGE_RULE.baseRoute)
+    ) {
+      return {
+        type: CLOUD_ACCOUNTS_PAGE_RULE.type,
+        noun: CLOUD_ACCOUNTS_PAGE_RULE.noun,
+        chipLabel: CLOUD_ACCOUNTS_PAGE_RULE.chipLabel,
+        icon: CLOUD_ACCOUNTS_PAGE_RULE.icon,
+        isEntity: false,
+      };
     }
 
     return null;
@@ -625,6 +711,14 @@ export default class PageContextUtil {
             item?.message || item?.exceptionType,
           );
         }
+        case AIChatPageContextType.Workflow: {
+          const item: Workflow | null = await ModelAPI.getItem<Workflow>({
+            modelType: Workflow,
+            id: id,
+            select: { name: true },
+          });
+          return PageContextUtil.titleOnly(item?.name);
+        }
         case AIChatPageContextType.SecurityCase: {
           const item: SecurityCase | null =
             await ModelAPI.getItem<SecurityCase>({
@@ -657,6 +751,16 @@ export default class PageContextUtil {
               select: { title: true },
             });
           return PageContextUtil.titleOnly(item?.title);
+        }
+        // An account by the name it has in OneUptime.
+        case AIChatPageContextType.CloudAccount: {
+          const item: CloudAccount | null =
+            await ModelAPI.getItem<CloudAccount>({
+              modelType: CloudAccount,
+              id: id,
+              select: { name: true },
+            });
+          return PageContextUtil.titleOnly(item?.name);
         }
         default:
           return null;
@@ -1290,6 +1394,31 @@ export default class PageContextUtil {
             question: "What holds the most memory in my services right now?",
           },
         ];
+      case AIChatPageContextType.Workflow:
+        return [
+          {
+            icon: IconProp.Document,
+            title: "Explain it",
+            question:
+              "Explain what this workflow does, step by step, and what starts it.",
+          },
+          {
+            icon: IconProp.Alert,
+            title: "Why did it fail?",
+            question:
+              "Did this workflow's recent runs fail? If so, why, and how do I fix it?",
+          },
+          {
+            icon: IconProp.Clock,
+            title: "When did it run?",
+            question: "When did this workflow last run, and what started it?",
+          },
+          {
+            icon: IconProp.Edit,
+            title: "Improve it",
+            question: "What would make this workflow simpler or more reliable?",
+          },
+        ];
       case AIChatPageContextType.SecurityCase:
         return [
           {
@@ -1421,6 +1550,65 @@ export default class PageContextUtil {
             title: "How serious",
             question:
               "How serious is this issue, given what the store holds and how exposed it is?",
+          },
+        ];
+      case AIChatPageContextType.CloudAccount:
+        return [
+          {
+            icon: IconProp.Clock,
+            title: "What changed",
+            question:
+              "What changed in this account in the last 24 hours? Start with what failed and with changes to networks and permissions.",
+          },
+          /*
+           * Who did what, from the activity log recent_changes reads: no
+           * tool reads which resources need attention, so it is not asked
+           * here (#5702's review).
+           */
+          {
+            icon: IconProp.User,
+            title: "Who changed it",
+            question:
+              "Who changed this account this week, and what did each of them change?",
+          },
+          {
+            icon: IconProp.Cloud,
+            title: "Provider health",
+            question:
+              "Did the cloud provider publish any health event about this account this week?",
+          },
+          {
+            icon: IconProp.SquareStack,
+            title: "What it holds",
+            question:
+              "What does this account hold, by type and region, and is a connection still reading it?",
+          },
+        ];
+      case AIChatPageContextType.CloudAccountsList:
+        return [
+          {
+            icon: IconProp.Cloud,
+            title: "Connections",
+            question:
+              "Which of our cloud accounts are connected, and is any of them no longer being read?",
+          },
+          {
+            icon: IconProp.Clock,
+            title: "What changed",
+            question:
+              "What changed in our cloud accounts in the last 24 hours? Start with what failed.",
+          },
+          {
+            icon: IconProp.SquareStack,
+            title: "Biggest accounts",
+            question:
+              "Which accounts hold the most resources, and of what types?",
+          },
+          {
+            icon: IconProp.Heartbeat,
+            title: "Provider health",
+            question:
+              "Did any cloud provider publish a health event about our accounts this week?",
           },
         ];
       case AIChatPageContextType.DataSecurity:

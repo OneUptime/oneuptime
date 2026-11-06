@@ -361,6 +361,16 @@ export default interface Field<TEntity> {
    */
   columnDefaultValue?: boolean | string | number | undefined;
   radioButtonOptions?: Array<RadioButton>;
+  /*
+   * The answers a radio field offers for the values the form holds, when
+   * they depend on another field: a permission's Scope offers only the
+   * answers that narrow the permission picked. Each is one of
+   * radioButtonOptions, which stays the field's whole list - its defaults
+   * are checked against it, and a folded section names the answer from it.
+   */
+  getRadioButtonOptions?:
+    | ((values: FormValues<TEntity>) => Array<RadioButton>)
+    | undefined;
   footerElement?: ReactElement | undefined;
   /*
    * Drawn under the field, from the form's values as they are now. error is
@@ -435,6 +445,15 @@ export default interface Field<TEntity> {
    * whether it creates or edits; a BasicForm used on its own ignores it.
    */
   doNotRequireWhenEditing?: boolean | undefined;
+
+  /*
+   * A write-only column with nothing stored to keep on this edit: an OpenStack cloud moving
+   * from its agent to a probe has no credential saved. An edit normally leaves such a field
+   * optional, because blank keeps what is stored. With nothing stored blank would keep
+   * nothing, so it is asked for as on a new record (ModelForm). Its value is still never read
+   * back.
+   */
+  hasNothingStoredWhenEditing?: boolean | undefined;
 
   /*
    * The field only drives the form: it fills in, or edits a part of,

@@ -307,6 +307,59 @@ export function riskFindingsForImportedAlerts(data: {
   return findings;
 }
 
+/*
+ * The threats security products wrote in the project's logs - a firewall's
+ * or an IDS's CEF, LEEF or own syslog, read by Your logs - at every
+ * severity, as a connection's imported alerts are (SecurityLogCases picks
+ * them). Each product's rule is a source of its own.
+ */
+export function riskFindingsForLogThreats(data: {
+  projectId: ObjectID;
+  threats: Array<NormalizedSecurityEvent>;
+  // The product a threat came from, as a person names it.
+  getProductName: (event: NormalizedSecurityEvent) => string;
+}): Array<SecurityRiskFinding> {
+  const threats: Array<NormalizedSecurityEvent> = [...data.threats]
+    .sort((a: NormalizedSecurityEvent, b: NormalizedSecurityEvent): number => {
+      return (
+        (OcsfSeverityId[b.severityName] || 0) -
+        (OcsfSeverityId[a.severityName] || 0)
+      );
+    })
+    .slice(0, IMPORTED_ALERT_RISK_LIMIT);
+
+  const findings: Array<SecurityRiskFinding> = [];
+
+  for (const event of threats) {
+    const points: number = getRiskPointsForSeverity(event.severityName);
+    const entities: Array<SecurityEntity> = importedAlertRiskEntities(event);
+
+    if (points <= 0 || entities.length === 0) {
+      continue;
+    }
+
+    const product: string = data.getProductName(event);
+    const ruleName: string = (event.ruleName || "").trim();
+
+    findings.push({
+      projectId: data.projectId,
+      source: SecurityDetectionSource.ConnectedProduct,
+      sourceKey: `logs:${product.toLowerCase()}:${(
+        ruleName || product
+      ).toLowerCase()}`,
+      sourceName: ruleName ? `${ruleName} (${product})` : product,
+      severity: event.severityName,
+      points,
+      entities,
+      mitreTactics: event.mitreTactics,
+      mitreTechniques: event.mitreTechniques,
+      seenAt: event.time,
+    });
+  }
+
+  return findings;
+}
+
 // One issue Data Security opened, as its risk reads it.
 export interface DataSecurityRiskIssue {
   // The check that failed: each check is a source of its own.

@@ -38,6 +38,7 @@ Ouvrez **Produits → Événements de sécurité**, sous **Sécurité**. Son men
 | **Tous les dossiers** | Dossiers de sécurité | Chaque dossier, ouvert ou fermé |
 | **Événements** | Événements | Rechercher et filtrer tous les événements, et en ouvrir un pour voir tous ses champs |
 | **Chasses** | Événements | Des recherches enregistrées depuis Événements, rouvertes en un clic ou exécutées selon une planification qui prévient des personnes quand elles trouvent quelque chose |
+| **Bibliothèque de chasses** | Événements | Des chasses prêtes à l'emploi à essayer sur Événements ou à ajouter à vos chasses, chacune avec les événements qu'elle lit et s'ils arrivent |
 | **Campagnes** | Événements | Chaque adresse qui a envoyé des requêtes d'attaque, et si l'une de ses requêtes est passée |
 | **Risque des entités** | Événements | Chaque utilisateur, hôte et adresse, noté selon ce qui a été trouvé à son sujet cette semaine, les plus à risque d'abord |
 | **Corréler** | Événements | Un graphe des événements qui partagent un hôte, un utilisateur ou une adresse IP |
@@ -181,22 +182,42 @@ La page **Guide de configuration**, sous **Connexions**, contient ces extraits a
 
 ### Trouver des événements de sécurité dans vos journaux
 
-La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous envoyez déjà à OneUptime une source. Avec **Trouver des événements de sécurité dans vos journaux** activé, les nouveaux journaux du projet sont lus chaque minute, et chaque connexion SSH ou Windows, commande sudo, entrée d'audit d'un cloud, enregistrement CEF ou LEEF d'un produit de sécurité, entrée d'audit Kubernetes et attaque web qu'ils contiennent est stocké comme événement de sécurité. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started#trouver-des-événements-de-sécurité-dans-vos-journaux) pour ce que couvre chaque type.
+La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous envoyez déjà à OneUptime une source. Avec **Trouver des événements de sécurité dans vos journaux** activé, les nouveaux journaux du projet sont lus chaque minute, et chaque connexion SSH ou Windows, commande sudo, entrée d'audit d'un cloud, enregistrement CEF ou LEEF d'un produit de sécurité, enregistrement d'un pare-feu Palo Alto Networks, FortiGate ou Cisco ASA, entrée d'audit Kubernetes et attaque web qu'ils contiennent est stocké comme événement de sécurité. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started#trouver-des-événements-de-sécurité-dans-vos-journaux) pour ce que couvre chaque type.
 
 Chaque type parvient à OneUptime sous forme de journaux ordinaires :
 
 | Type | L'envoyer depuis |
 | --- | --- |
 | Connexions SSH, sudo | Le journal système ou le journal d'authentification d'une machine Linux, avec l'[OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| Événements Windows | Le récepteur `windowseventlog` du collecteur sur la machine, ou un transmetteur qui écrit chaque événement en JSON, comme NXLog ou Winlogbeat |
-| AWS CloudTrail | Un trail livré à CloudWatch Logs, lu par le récepteur `awscloudwatch` du collecteur |
-| Journaux d'audit Google Cloud | Un récepteur de journaux vers Pub/Sub, lu par le récepteur `googlecloudpubsub` du collecteur avec `encoding: raw_text` |
-| Journaux d'activité Azure et d'Entra ID | Un paramètre de diagnostic qui diffuse vers un Event Hub, lu par le récepteur `azureeventhub` du collecteur avec `format: raw` |
+| Événements Windows | Le récepteur `windowseventlog` du collecteur sur la machine, ou un transmetteur qui écrit chaque événement en JSON, comme NXLog ou Winlogbeat. Un [hôte](/docs/telemetry/hosts) ajouté à OneUptime lit aussi Sysmon, Microsoft Defender et PowerShell là où il en a |
+| AWS CloudTrail | Un trail livré à CloudWatch Logs, lu par le récepteur `awscloudwatch` du collecteur, ou, pour un compte connecté sous **Cloud**, [Journaux d'audit cloud](#lire-les-journaux-daudit-de-vos-comptes-cloud) |
+| Journaux d'audit Google Cloud | Un récepteur de journaux vers Pub/Sub, lu par le récepteur `googlecloudpubsub` du collecteur avec `encoding: raw_text`, ou, pour un projet connecté sous **Cloud**, [Journaux d'audit cloud](#lire-les-journaux-daudit-de-vos-comptes-cloud) |
+| Journaux d'activité Azure et d'Entra ID | Un paramètre de diagnostic qui diffuse vers un Event Hub, lu par le récepteur `azureeventhub` du collecteur avec `format: raw`, ou, pour le journal d'activité d'un abonnement connecté sous **Cloud**, [Journaux d'audit cloud](#lire-les-journaux-daudit-de-vos-comptes-cloud) |
+| Piste d'audit OpenStack | Les notifications et le filtre d'audit d'un cloud envoyés vers ses journaux avec `driver = log`, lus par le [profil de journaux](/docs/telemetry/openstack#qui-a-fait-quoi) de l'agent |
 | CEF, LEEF | Le syslog du produit, relayé par [rsyslog](/docs/telemetry/syslog) |
+| Palo Alto Networks, FortiGate, Cisco ASA | Le syslog propre au pare-feu, relayé par [rsyslog](/docs/telemetry/syslog) |
 | Journaux d'audit Kubernetes | Le fichier de journal d'audit du serveur d'API, lu par le récepteur `filelog` du collecteur |
 | Attaques web | Le journal d'accès d'un serveur web, lu par le récepteur `filelog` du collecteur |
 
 Sur **Vos journaux**, chaque type indique quand il a été trouvé pour la dernière fois, et **Vérifier une ligne de journal** montre ce que devient une ligne que vous collez, avant qu'il en arrive une.
+
+Une menace qu'un produit de sécurité écrit dans vos journaux, comme une détection CEF ou LEEF ou une menace Palo Alto Networks, FortiGate ou Cisco ASA, ouvre un [dossier](/docs/telemetry/security-cases) comme le fait l'alerte d'un produit connecté, et accroît le risque de l'utilisateur, de l'hôte ou de l'adresse qu'elle nomme. **Ouvrir des dossiers à partir de**, sur **Vos journaux**, indique à partir de quelle gravité : **Élevé et au-dessus** sauf si vous en choisissez une autre, ou **Jamais**. Les authentifications du produit et les connexions qu'il bloque restent des événements, que vos règles lisent.
+
+Un enregistrement qui parvient à OneUptime par deux voies est stocké une seule fois : une authentification Microsoft Entra ID lue par sa connexion et exportée par Azure dans vos journaux, ou un enregistrement CloudTrail présent dans vos journaux et dans le journal d'audit d'un compte AWS connecté.
+
+### Lire les journaux d'audit de vos comptes cloud
+
+Un compte AWS, un projet Google Cloud ou un abonnement Azure [connecté sous **Cloud**](/docs/telemetry/cloud-accounts) n'a besoin d'aucun pipeline de journaux. Activez **Journaux d'audit cloud**, sous **Vos données OneUptime** sur **Connexions**, et chaque lecture du compte conserve son journal d'audit comme événements de sécurité :
+
+| Cloud | Ce qui est lu |
+| --- | --- |
+| AWS | Les événements de gestion de CloudTrail qui modifient quelque chose, dans chaque Région qu'utilise le compte : connexions à la console, modifications et appels refusés par AWS |
+| Google Cloud | Le journal d'audit Admin Activity : modifications des ressources et de qui peut y accéder, et appels refusés par Google |
+| Azure | Le journal d'activité : modifications faites dans l'abonnement, opérations qui ont échoué, refus d'Azure Policy et alertes de Defender for Cloud |
+
+- Chaque enregistrement est lu comme **Vos journaux** le lit depuis un pipeline, si bien que les règles CloudTrail, Google Cloud et Azure de la bibliothèque de règles le reconnaissent.
+- Un événement est horodaté au moment où il est stocké, l'heure propre de l'enregistrement étant dans `oneuptime.cloud.record_time` : un journal d'audit arrive dans OneUptime avec quelques minutes de retard, et une règle lit les événements selon leur heure.
+- La lecture du compte n'apporte rien de plus : les événements de données, les journaux Data Access et les journaux de Microsoft Entra ID passent toujours par **Vos journaux** ou par une [connexion](/docs/integrations/microsoft-entra-id).
 
 ### Connecter un produit de sécurité
 
@@ -212,7 +233,7 @@ Sur **Vos journaux**, chaque type indique quand il a été trouvé pour la derni
 | Elastic Security | Alertes de détection, comme Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, comme Detection et Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Événements de connexion, de MFA, de compte et de stratégie | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | Connexions et modifications d'annuaire, et, du journal d'audit Microsoft 365, les transferts de courrier, les partages et les verdicts d'hameçonnage | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | Connexions, modifications d'annuaire et détections de risque, si vous le choisissez les connexions en arrière-plan et d'applications qui ont échoué, et, du journal d'audit Microsoft 365, les transferts de courrier, les partages et les verdicts d'hameçonnage | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Connexions, détections propres à Google, modifications d'administration et accès accordés aux applications, et partages Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
 - Les alertes propres au produit d'un niveau égal ou supérieur à **Open Cases From** (**Élevé et au-dessus** sauf si vous choisissez un autre niveau, ou **Jamais**) ouvrent des [dossiers](/docs/telemetry/security-cases), regroupées selon l'utilisateur, l'hôte ou l'adresse qu'elles concernent.
@@ -256,6 +277,7 @@ La barre de recherche parle le même langage que les autres explorateurs de tél
 | `<field>:a*` | `*` est n'importe quel texte, `?` un caractère | `host:web-*` |
 | `@<attribute>:*` | L'attribut est présent | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | L'attribut contient le texte | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | Le champ est sur une [liste de surveillance](#listes-de-surveillance) | `user:%vip_users%` |
 
 Un champ est soit un nom court (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`), soit le nom propre du champ, comme `severityName` ou `principalHost`. Tout autre nom est lu comme un attribut de la source. `observable:<value>` trouve chaque événement qui mentionne une valeur, de quelque côté de l'activité qu'elle se trouve.
 
@@ -281,9 +303,17 @@ Une chasse est une recherche sur vos événements de sécurité enregistrée sou
 
 ### Enregistrer une recherche comme chasse
 
-Sur **Événements**, recherchez et filtrez jusqu'à ce que la liste montre ce que vous cherchez, puis ouvrez **Chasses** dans la barre d'outils et choisissez **Enregistrer comme chasse**. Nommez-la, choisissez si elle s'exécute selon une planification, et sa page s'ouvre. **Événements → Chasses** liste les chasses du projet, chacune avec sa recherche, sa fréquence, qui elle prévient et ce que sa dernière exécution a trouvé ; **Créer : Chasse** y prend la recherche telle que vous la taperiez sur **Événements**. Un projet conserve jusqu'à 200 chasses.
+Sur **Événements**, recherchez et filtrez jusqu'à ce que la liste montre ce que vous cherchez, puis ouvrez **Chasses** dans la barre d'outils et choisissez **Enregistrer comme chasse**. Nommez-la, choisissez si elle s'exécute selon une planification, et sa page s'ouvre. **Événements → Chasses** liste les chasses du projet, chacune avec sa recherche, sa fréquence, qui elle prévient et ce que sa dernière exécution a trouvé ; **Créer : Chasse** y prend la recherche telle que vous la taperiez sur **Événements**. Un projet conserve jusqu'à 200 chasses. Une recherche peut lire une [liste de surveillance](#listes-de-surveillance), comme le fait `user:%vip_users%`, et une chasse qui lit une liste que le projet n'a pas est refusée à l'enregistrement.
 
 La page d'une chasse est sa recherche, ouverte dans l'explorateur des événements. Modifiez-y la recherche ou les filtres, et l'en-tête de la chasse propose **Enregistrer les modifications** et **Annuler les modifications**. **Modifier** change son nom, sa recherche, jusqu'où elle remonte, sa planification et qui elle prévient, et **Supprimer la chasse** se trouve dans son menu. À partir de Security Member, on peut enregistrer, modifier et supprimer des chasses, et un Security Viewer peut les ouvrir.
+
+Une chasse enregistrée avec des filtres de la barre latérale d'Événements les affiche dans **Modifier** sous **Filtres**, comme Événements les dessine, chacun avec un x pour le retirer. Ajoutez des filtres sur la page de la chasse, depuis la barre latérale.
+
+### Partir de la bibliothèque de chasses
+
+**Événements → Bibliothèque de chasses** liste des chasses prêtes à l'emploi pour ce que les équipes de sécurité cherchent le plus, comme les connexions échouées, PowerShell encodé, le compte root AWS et les shells ouverts dans des pods Kubernetes. Chacune montre ce qu'elle trouve, sa recherche telle que vous la taperiez sur **Événements**, et si les événements qu'elle lit arrivent, comme le fait la **Bibliothèque de règles** pour ses règles. Filtrez-les par **Catégorie de chasse**, **Données** et **Statut**, ou recherchez-les.
+
+**Essayer** ouvre la recherche sur **Événements**, sur la fenêtre de la chasse, et n'enregistre rien. **Ajouter** l'enregistre aussitôt comme l'une des chasses du projet, nommée et décrite dans votre langue et non planifiée, comme toute nouvelle chasse. Elle indique ensuite **Ajouté**, et **Ouvrir** l'ouvre, où vous pouvez lui donner une planification.
 
 ### Exécuter une chasse selon une planification
 
@@ -302,9 +332,15 @@ Une exécution n'ouvre aucun dossier et ne déclenche aucune alerte : écrivez c
 
 Une chasse planifiée s'exécute sous la personne qui a défini sa planification, modifié sa recherche ou l'a enregistrée avec **Modifier** en dernier. Une clé d'API ne peut pas définir de planification. Quand cette personne quitte le projet ou ne peut plus lire les événements de sécurité, la chasse le signale : ouvrez **Modifier** et enregistrez-la pour qu'elle s'exécute sous votre nom.
 
+### Historique des exécutions
+
+Chaque exécution planifiée est conservée 90 jours. **Historique des exécutions**, au bout de la ligne qui dit ce que les exécutions d'une chasse ont trouvé, les liste de la plus récente à la plus ancienne : quand chacune s'est exécutée et les événements qu'elle a parcourus, puis combien elle en a trouvé, avec **Les afficher** pour ouvrir ces événements sur la page de la chasse ; qu'elle n'a rien trouvé ; ou pourquoi elle n'a pas pu s'exécuter. Quiconque peut ouvrir une chasse peut lire ses exécutions.
+
 ### Qui est prévenu
 
 La notification **Une chasse a trouvé des événements de sécurité** nomme la chasse et sa recherche, le nombre d'événements trouvés par son exécution et la fenêtre qu'elle a lue, et renvoie vers la page de la chasse sur ces événements ; aucun mot d'un événement n'y figure. Tout le monde la reçoit par e-mail et push, et choisit ses canaux sous **Paramètres utilisateur → Paramètres de notification**. Comme les autres e-mails de routine, elle peut être retenue dans un [récapitulatif d'e-mails](/docs/emails/notification-rollup).
+
+Pour publier dans Slack, Microsoft Teams ou Mattermost ce que trouvent les chasses, ajoutez une règle à **Règles des chasses** sous **Produits → Événements de sécurité → Espace de travail → Slack** (ou **Microsoft Teams** ou **Mattermost**), sous les règles qui publient les [dossiers de sécurité](/docs/telemetry/security-cases#publier-dans-des-canaux-slack-microsoft-teams-et-mattermost). Une règle nomme les canaux où publier (et, dans Microsoft Teams, les conversations) et, si vous le souhaitez, les chasses auxquelles elle s'applique, par **Nom de la chasse** : un nom qui est votre texte, le contient, commence par lui ou se termine par lui. Chaque fois qu'une exécution planifiée trouve des événements, elle publie la chasse, sa recherche, combien d'événements et quand, avec un lien vers eux, et aucun des mots propres à un événement. Une règle de chasse est mise en place par un rôle qui peut configurer des playbooks de sécurité, comme Project Owner, Project Admin ou Security Admin.
 
 ### Conserver des événements sur un dossier
 
@@ -312,7 +348,7 @@ Sélectionnez des événements sur **Événements** ou sur la page d'une chasse 
 
 OneUptime relit chaque événement en votre nom et le conserve tel qu'il était sur la page **Preuves** du dossier, si bien que le dossier le montre encore une fois la durée de conservation de l'événement dépassée. Un événement que vous ne pouvez pas lire n'est pas conservé, et un événement que le dossier conserve déjà est laissé tel quel. Un événement trouvé par une chasse nomme la chasse, et **Voir l'événement** l'ouvre tel qu'il a été conservé.
 
-Les chasses ont la même API REST que le reste de OneUptime, sous `/security-hunt`, et `POST /security-case-evidence/add-events` conserve des événements sur un dossier. Voir la [référence de l'API](/docs/api-reference/api-reference).
+Les chasses ont la même API REST que le reste de OneUptime, sous `/security-hunt`, et `POST /security-case-evidence/add-events` conserve des événements sur un dossier. Les exécutions d'une chasse se lisent sous `/security-hunt-run`. Voir la [référence de l'API](/docs/api-reference/api-reference).
 
 ## Règles de détection
 
@@ -511,7 +547,7 @@ Une exception est une chose qu'une règle ignore parce que vous vous y attendez,
 
 ### Listes de surveillance
 
-Une liste de surveillance est une liste que votre équipe tient une seule fois et que toute règle peut lire, comme les utilisateurs VIP, les hôtes critiques, les hachages de fichiers malveillants connus ou les adresses depuis lesquelles les administrateurs peuvent se connecter. Chaque liste se trouve sous **Produits → Événements de sécurité → Détections → Listes de surveillance** : créez-en une avec **Créer : Liste de surveillance**, qui demande son nom et ce qu'elle contient, ou ajoutez une liste courante depuis **Commencer par une liste courante**. La page d'une liste montre ses valeurs, et **L'utiliser dans une règle** donne une sélection qui lit la liste, à copier dans une règle.
+Une liste de surveillance est une liste que votre équipe tient une seule fois et que toute règle peut lire, comme les utilisateurs VIP, les hôtes critiques, les hachages de fichiers malveillants connus ou les adresses depuis lesquelles les administrateurs peuvent se connecter. Chaque liste se trouve sous **Produits → Événements de sécurité → Détections → Listes de surveillance** : créez-en une avec **Créer : Liste de surveillance**, qui demande son nom et ce qu'elle contient, ou ajoutez une liste courante depuis **Commencer par une liste courante**. La page d'une liste montre ses valeurs, et **Utiliser cette liste** donne une sélection qui lit la liste, à copier dans une règle, et la recherche qui la lit sur **Événements** ou dans une chasse.
 
 Une règle lit une liste avec `expand` et le nom de la liste entre deux signes `%`. Cette règle se déclenche quand un administrateur se connecte depuis une adresse qui n'est pas sur la liste autorisée :
 
@@ -529,10 +565,14 @@ level: high
 
 - Une liste contient des utilisateurs, des hôtes, des adresses IP, des hachages de fichiers, des domaines, des URL, des processus ou d'autres valeurs, choisis à sa création. Une valeur correspond quelle que soit la casse, et `*` remplace n'importe quelle suite de caractères : `svc-*` correspond à chaque compte de service. Une liste d'adresses IP accepte aussi des plages, comme `10.20.0.0/16`, et une liste de hachages de fichiers des hachages MD5, SHA-1, SHA-256 et SHA-512.
 - Ajoutez les valeurs une à une avec **Ajouter : Valeur**, ou plusieurs à la fois avec **Importer des valeurs** : collez-les, ou choisissez un fichier `.txt` ou `.csv`, une valeur par ligne, avec une note facultative après une virgule. **Ajouter à la liste** garde les valeurs déjà présentes, et **Remplacer la liste** retire celles que l'import ne contient pas.
+- Une valeur peut avoir un **Expire le** : dès lors, aucune règle, aucun moniteur, aucune chasse ni aucune recherche ne la lit, et OneUptime la retire de la liste dans la minute. Laissée vide, elle reste jusqu'à ce que quelqu'un la retire.
+- **Exporter les valeurs** télécharge les valeurs d'une liste dans un fichier CSV aux colonnes `value`, `note` et `expires`, que **Importer des valeurs** relit. Un fichier dont la première ligne nomme ces colonnes donne à chaque valeur sa note et sa date d'expiration : une date comme `2026-12-31`, ou une date et une heure en UTC.
+- Une liste peut plutôt être lue depuis un fichier à une adresse https, de nouveau **Chaque heure**, **Toutes les 6 heures** ou **Chaque jour** : choisissez **Un fichier à une adresse** sous **Plus de champs** en la créant. Chaque lecture fait de la liste ce que contient le fichier, lu comme un import le lit. Une lecture qui échoue ne change aucune valeur et la page de la liste dit pourquoi, et **Lire maintenant** la lit tout de suite.
 - Au lieu de tenir des valeurs, une liste d'adresses IP, de hachages de fichiers, de domaines ou d'URL peut suivre un flux de renseignements sur les menaces : ses valeurs sont alors les indicateurs actifs du flux qui sont du type de la liste, tenus à jour à chaque lecture du flux.
-- `expand` s'emploie seul, car les valeurs de la liste disent comment elles correspondent. Un champ qui contient plusieurs valeurs, comme `observables`, correspond quand l'une d'elles est sur la liste. **Lue par** nomme les règles qui lisent chaque liste, et sous le YAML d'une règle, son formulaire nomme les listes que la règle lit.
-- Une règle nomme une liste quelle que soit la casse. Une règle qui nomme une liste que le projet n'a pas est refusée à l'enregistrement, et une liste que des règles lisent ne peut être ni renommée ni supprimée tant qu'une règle la lit.
+- `expand` s'emploie seul, car les valeurs de la liste disent comment elles correspondent. Un champ qui contient plusieurs valeurs, comme `observables`, correspond quand l'une d'elles est sur la liste. **Lue par** nomme les règles, les moniteurs d'événements de sécurité et les chasses qui lisent chaque liste, et sous le YAML d'une règle, son formulaire nomme les listes que la règle lit.
+- Une règle nomme une liste quelle que soit la casse. Une règle, un moniteur ou une chasse qui nomme une liste que le projet n'a pas est refusé à l'enregistrement, et une liste que l'un d'eux lit ne peut être ni renommée ni supprimée tant que quelque chose la lit.
 - Une modification d'une liste atteint chaque règle qui la lit à la prochaine exécution de la règle. Les règles de corrélation et **Exécuter sur les événements passés** lisent aussi les listes.
+- Un moniteur d'événements de sécurité lit des listes dans son **Filtrer par listes de surveillance**, et une recherche sur **Événements** ou dans une chasse en lit une avec `user:%vip_users%`. Un signe moins devant, comme dans `-ip:%admin_addresses%`, garde les événements dont le champ n'est pas sur la liste.
 - Une liste contient au plus 5 000 valeurs, dont au plus 100 avec `*` et 100 plages, et un projet a au plus 200 listes : pour une liste plus longue, suivez un flux de renseignements sur les menaces. Quiconque peut créer, modifier ou supprimer des règles de détection peut faire de même avec les listes, et quiconque peut modifier les règles de détection ajoute, modifie et retire leurs valeurs. Chaque rôle Security peut les lire, et chaque changement est gardé dans le journal d'audit du projet.
 
 ### Exécuter sur les événements passés
@@ -549,11 +589,11 @@ level: high
 
 Un moniteur d'événements de sécurité compte les événements qui correspondent à ses filtres sur une fenêtre glissante et applique au comptage les critères habituels des moniteurs : il change le statut du moniteur, ouvre des alertes ou des incidents, et alerte l'astreinte. Créez-en un sous **Moniteurs → Créer un moniteur**, avec **Événements de sécurité** comme type ; il y est listé avec vos autres moniteurs.
 
-Son formulaire affiche **Surveiller les événements contenant ce texte**, **Surveiller les événements de sécurité pendant (durée)**, **Gravité de l'événement** et **Classe d'événements**. **Filtrer par service de télémétrie** et **Filtrer par attributs** attendent sous **Plus de champs**, dont l'en-tête montre ceux qu'un moniteur utilise. Ses critères vérifient **Security Event Count**.
+Son formulaire affiche **Surveiller les événements contenant ce texte**, **Surveiller les événements de sécurité pendant (durée)**, **Gravité de l'événement** et **Classe d'événements**. **Filtrer par service de télémétrie**, **Filtrer par attributs** et **Filtrer par listes de surveillance** attendent sous **Plus de champs**, dont l'en-tête montre ceux qu'un moniteur utilise. **Filtrer par listes de surveillance** garde les événements dont le champ est, ou n'est pas, sur l'une de vos [listes de surveillance](#listes-de-surveillance). Ses critères vérifient **Security Event Count**.
 
 | | Règle de détection | Moniteur d'événements de sécurité |
 | --- | --- | --- |
-| Correspond à | Une règle Sigma | Des filtres sur la gravité, la classe, le message, le service et les attributs |
+| Correspond à | Une règle Sigma | Des filtres sur la gravité, la classe, le message, le service, les attributs et les listes de surveillance |
 | Fenêtre | Bout à bout, une par exécution | Glissante : des 5 dernières secondes aux 24 dernières heures |
 | Compte par groupe | Oui, avec **Champ de regroupement** | Non : un seul comptage pour tout ce qui correspond |
 | Ouvre | Des alertes, des incidents et des constats | Un statut, des alertes et des incidents |
@@ -610,11 +650,15 @@ Vérifiez son **Statut** dans **Exceptions de règle** : une exception au statut
 :::
 
 :::details Une règle qui lit une liste de surveillance ne correspond pas
-Ouvrez la liste et vérifiez ses valeurs : une valeur sans `*` doit être égale au champ entier, quelle que soit la casse, et une liste qui suit un flux de renseignements sur les menaces ne contient que les indicateurs actifs du flux qui sont de son type. Vérifiez que la règle lit le champ que vos événements remplissent : **L'utiliser dans une règle** commence par le champ où se trouve d'habitude une liste de son type. Une modification d'une liste atteint une règle à sa prochaine exécution.
+Ouvrez la liste et vérifiez ses valeurs : une valeur sans `*` doit être égale au champ entier, quelle que soit la casse, et une liste qui suit un flux de renseignements sur les menaces ne contient que les indicateurs actifs du flux qui sont de son type. Vérifiez que la règle lit le champ que vos événements remplissent : **Utiliser cette liste** commence par le champ où se trouve d'habitude une liste de son type. Une modification d'une liste atteint une règle à sa prochaine exécution.
 :::
 
 :::details Une liste de surveillance ne peut être ni renommée ni supprimée
-Des règles la lisent encore par son nom, et le message les nomme. Changez le nom dans ces règles, ou retirez-en la liste, puis renommez-la ou supprimez-la.
+Des règles, des moniteurs ou des chasses la lisent encore par son nom, et le message les nomme. Changez le nom en eux, ou retirez-en la liste, puis renommez-la ou supprimez-la.
+:::
+
+:::details Une liste lue depuis une adresse affiche une erreur
+Sa page dit pourquoi sous **Lue depuis une adresse**, avec ce que l'adresse a répondu, et la liste garde les valeurs de sa dernière lecture réussie. L'adresse doit commencer par `https`, répondre depuis Internet sans connexion et télécharger un fichier texte ou CSV d'au plus 4 Mo, pas une page web. Corrigez-la dans **Modifier**, puis choisissez **Lire maintenant**.
 :::
 
 :::details L'exécution sur les événements passés ne trouve rien

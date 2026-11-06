@@ -1,0 +1,68 @@
+# HELP openstack_nova_agent_state agent_state
+# TYPE openstack_nova_agent_state gauge
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="compute-01",id="7917c88b-3401-4a21-b083-44c4bed345dc",service="nova-scheduler",zone="internal"} 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="compute-01",id="914fb18b-6ad3-4a55-9dbc-0c08d874379a",service="nova-compute",zone="nova"} 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="compute-01",id="d892a434-a720-4c60-92b1-cdeb36d42fe5",service="nova-conductor",zone="internal"} 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="compute-01",id="e5e15386-e06b-4a7b-a0ec-cc0f05903992",service="nova-conductor",zone="internal"} 1
+# HELP openstack_nova_availability_zones availability_zones
+# TYPE openstack_nova_availability_zones gauge
+openstack_nova_availability_zones 1
+# HELP openstack_nova_current_workload current_workload
+# TYPE openstack_nova_current_workload gauge
+openstack_nova_current_workload{aggregates="",availability_zone="",hostname="compute-01.example.internal"} 0
+# HELP openstack_nova_flavor flavor
+# TYPE openstack_nova_flavor gauge
+openstack_nova_flavor{disk="1",id="1",is_public="true",name="m1.tiny",ram="512",vcpus="1"} 1
+openstack_nova_flavor{disk="1",id="6ddefc2c-01a0-4924-9382-dccc12ec987e",is_public="true",name="ou.tiny",ram="128",vcpus="1"} 1
+openstack_nova_flavor{disk="1",id="c1",is_public="true",name="cirros256",ram="256",vcpus="1"} 1
+openstack_nova_flavor{disk="1",id="e197c7ab-b7bd-44d5-b2ab-c1102bb303b6",is_public="true",name="ou.impossible",ram="1048576",vcpus="1"} 1
+openstack_nova_flavor{disk="10",id="d2",is_public="true",name="ds1G",ram="1024",vcpus="1"} 1
+openstack_nova_flavor{disk="10",id="d3",is_public="true",name="ds2G",ram="2048",vcpus="2"} 1
+openstack_nova_flavor{disk="160",id="5",is_public="true",name="m1.xlarge",ram="16384",vcpus="8"} 1
+openstack_nova_flavor{disk="2",id="7d633b39-a6b8-4c80-a54f-82ba6167fafe",is_public="false",name="m1.amphora",ram="1024",vcpus="1"} 1
+openstack_nova_flavor{disk="20",id="2",is_public="true",name="m1.small",ram="2048",vcpus="1"} 1
+openstack_nova_flavor{disk="20",id="d4",is_public="true",name="ds4G",ram="4096",vcpus="4"} 1
+openstack_nova_flavor{disk="40",id="3",is_public="true",name="m1.medium",ram="4096",vcpus="2"} 1
+openstack_nova_flavor{disk="5",id="d1",is_public="true",name="ds512M",ram="512",vcpus="1"} 1
+openstack_nova_flavor{disk="80",id="4",is_public="true",name="m1.large",ram="8192",vcpus="4"} 1
+# HELP openstack_nova_flavors flavors
+# TYPE openstack_nova_flavors gauge
+openstack_nova_flavors 13
+# HELP openstack_nova_free_disk_bytes free_disk_bytes
+# TYPE openstack_nova_free_disk_bytes gauge
+openstack_nova_free_disk_bytes{aggregates="",availability_zone="",hostname="compute-01.example.internal"} 1.4495514624e+11
+# HELP openstack_nova_local_storage_available_bytes local_storage_available_bytes
+# TYPE openstack_nova_local_storage_available_bytes gauge
+openstack_nova_local_storage_available_bytes{aggregates="",availability_zone="",hostname="compute-01.example.internal"} 1.54618822656e+11
+# HELP openstack_nova_local_storage_used_bytes local_storage_used_bytes
+# TYPE openstack_nova_local_storage_used_bytes gauge
+openstack_nova_local_storage_used_bytes{aggregates="",availability_zone="",hostname="compute-01.example.internal"} 9.663676416e+09
+# HELP openstack_nova_memory_available_bytes memory_available_bytes
+# TYPE openstack_nova_memory_available_bytes gauge
+openstack_nova_memory_available_bytes{aggregates="",availability_zone="",hostname="compute-01.example.internal"} 1.6759390208e+10
+# HELP openstack_nova_memory_used_bytes memory_used_bytes
+# TYPE openstack_nova_memory_used_bytes gauge
+openstack_nova_memory_used_bytes{aggregates="",availability_zone="",hostname="compute-01.example.internal"} 4.160749568e+09
+# HELP openstack_nova_running_vms running_vms
+# TYPE openstack_nova_running_vms gauge
+openstack_nova_running_vms{aggregates="",availability_zone="",hostname="compute-01.example.internal"} 6
+# HELP openstack_nova_server_status server_status
+# TYPE openstack_nova_server_status gauge
+openstack_nova_server_status{address_ipv4="",address_ipv6="",availability_zone="nova",flavor_id="6ddefc2c-01a0-4924-9382-dccc12ec987e",host_id="ae9bd5ba8b76cc54f88f111ba0b9826d3033c3be4cbaea5d6f70c793",hypervisor_hostname="compute-01.example.internal",id="3b9aa988-0337-4b6b-bdda-6bd923656383",instance_libvirt="instance-00000006",name="ou-client",status="ACTIVE",tenant_id="1e59c0ba8e5c4bce9ce2fe412624b16a",user_id="e71c7346f76a44f8817cc08fd3972a6c",uuid="3b9aa988-0337-4b6b-bdda-6bd923656383"} 0
+openstack_nova_server_status{address_ipv4="",address_ipv6="",availability_zone="nova",flavor_id="6ddefc2c-01a0-4924-9382-dccc12ec987e",host_id="ae9bd5ba8b76cc54f88f111ba0b9826d3033c3be4cbaea5d6f70c793",hypervisor_hostname="compute-01.example.internal",id="4242fd1a-2858-4ae7-88c6-98f1ea5d6219",instance_libvirt="instance-00000001",name="ou-web-1",status="ACTIVE",tenant_id="1e59c0ba8e5c4bce9ce2fe412624b16a",user_id="e71c7346f76a44f8817cc08fd3972a6c",uuid="4242fd1a-2858-4ae7-88c6-98f1ea5d6219"} 0
+openstack_nova_server_status{address_ipv4="",address_ipv6="",availability_zone="nova",flavor_id="6ddefc2c-01a0-4924-9382-dccc12ec987e",host_id="ae9bd5ba8b76cc54f88f111ba0b9826d3033c3be4cbaea5d6f70c793",hypervisor_hostname="compute-01.example.internal",id="5bbe4cea-c90c-4e80-9f33-281a742abbe7",instance_libvirt="instance-00000002",name="ou-web-2",status="ACTIVE",tenant_id="1e59c0ba8e5c4bce9ce2fe412624b16a",user_id="e71c7346f76a44f8817cc08fd3972a6c",uuid="5bbe4cea-c90c-4e80-9f33-281a742abbe7"} 0
+openstack_nova_server_status{address_ipv4="",address_ipv6="",availability_zone="nova",flavor_id="7d633b39-a6b8-4c80-a54f-82ba6167fafe",host_id="a0fcaeb7828a95cec9fe5139536a22db57e4e74e34a72ae78ee6caa2",hypervisor_hostname="compute-01.example.internal",id="0be17642-0c16-43e8-a9c1-c365b1abd47a",instance_libvirt="instance-00000003",name="amphora-6cd767c2-c555-4e58-8307-07be689ad9a5",status="ACTIVE",tenant_id="2dd68e32ad4449978a812addf4c116f6",user_id="e71c7346f76a44f8817cc08fd3972a6c",uuid="0be17642-0c16-43e8-a9c1-c365b1abd47a"} 0
+openstack_nova_server_status{address_ipv4="",address_ipv6="",availability_zone="nova",flavor_id="7d633b39-a6b8-4c80-a54f-82ba6167fafe",host_id="a0fcaeb7828a95cec9fe5139536a22db57e4e74e34a72ae78ee6caa2",hypervisor_hostname="compute-01.example.internal",id="2b4ead68-c377-4d7a-94d6-24c88f1d716d",instance_libvirt="instance-00000004",name="amphora-46c373fb-70ec-49d5-a9ab-2ca7b3f7d758",status="ACTIVE",tenant_id="2dd68e32ad4449978a812addf4c116f6",user_id="e71c7346f76a44f8817cc08fd3972a6c",uuid="2b4ead68-c377-4d7a-94d6-24c88f1d716d"} 0
+openstack_nova_server_status{address_ipv4="",address_ipv6="",availability_zone="nova",flavor_id="7d633b39-a6b8-4c80-a54f-82ba6167fafe",host_id="a0fcaeb7828a95cec9fe5139536a22db57e4e74e34a72ae78ee6caa2",hypervisor_hostname="compute-01.example.internal",id="9c5165fd-925a-40d8-b808-227db081af65",instance_libvirt="instance-00000005",name="amphora-4857d190-5867-49f6-9390-1d3bc65eac9f",status="ACTIVE",tenant_id="2dd68e32ad4449978a812addf4c116f6",user_id="e71c7346f76a44f8817cc08fd3972a6c",uuid="9c5165fd-925a-40d8-b808-227db081af65"} 0
+# HELP openstack_nova_total_vms total_vms
+# TYPE openstack_nova_total_vms gauge
+openstack_nova_total_vms 6
+# HELP openstack_nova_up up
+# TYPE openstack_nova_up gauge
+openstack_nova_up 1
+# HELP openstack_nova_vcpus_available vcpus_available
+# TYPE openstack_nova_vcpus_available gauge
+openstack_nova_vcpus_available{aggregates="",availability_zone="",hostname="compute-01.example.internal"} 4
+# HELP openstack_nova_vcpus_used vcpus_used
+# TYPE openstack_nova_vcpus_used gauge
+openstack_nova_vcpus_used{aggregates="",availability_zone="",hostname="compute-01.example.internal"} 6

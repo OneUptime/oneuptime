@@ -295,11 +295,15 @@ async function forgotPassword(
   email: string,
   from: string,
   pageId: string = PAGE_ID,
+  requestHeaders: Record<string, string> = {},
 ): Promise<Answer> {
   const handler: RouteHandler = mockRouter.match("post", "/forgot-password");
   const req: ExpressRequest = buildRequest(
     { data: { email: email, statusPageId: pageId } },
-    { headers: { "x-forwarded-for": from }, socketAddress: "10.0.0.2" },
+    {
+      headers: { ...requestHeaders, "x-forwarded-for": from },
+      socketAddress: "10.0.0.2",
+    },
   );
   const headers: Record<string, string> = {};
   const res: ExpressResponse = buildResponse();
@@ -389,6 +393,29 @@ describe("POST /status-page/forgot-password", () => {
     expect(sendMail).toHaveBeenCalledTimes(5);
     expect(readerUpdateOneBy).toHaveBeenCalledTimes(5);
     expectRefused(refusals[0], RESET_FOR_ADDRESS);
+  });
+
+  /*
+   * Anybody who knows a reader's address can ask for their reset, so the
+   * email says when, from which address and on which device it was asked
+   * for (RequestOriginUtil) - the address the bundled Nginx appended, not
+   * the one the caller wrote first.
+   */
+  it("says when, from which address and on which device the reset was asked for", async () => {
+    await forgotPassword(READER_EMAIL, `198.51.100.66, ${CALLER}`, PAGE_ID, {
+      "user-agent":
+        "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36",
+    });
+
+    expect(sendMail).toHaveBeenCalledTimes(1);
+
+    const message: { vars: Record<string, string> } = sendMail.mock
+      .calls[0]![0] as { vars: Record<string, string> };
+
+    expect(message.vars["requestIpAddress"]).toBe(CALLER);
+    expect(message.vars["requestDevice"]).toBe("Chrome 130 on Android");
+    expect(message.vars["requestLocation"]).toBe("");
+    expect(message.vars["requestedAt"]).toContain("UTC");
   });
 
   it("one address, a reader of page after page, is sent no more than five in the hour from all of them", async () => {

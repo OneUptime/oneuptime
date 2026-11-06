@@ -10,19 +10,31 @@
  *                   address threat intel knows, large transfers out;
  *   audit log       API keys, roles, teams, MCP clients and packet captures
  *                   changed in OneUptime itself, and many deletes at once;
- *   session replay  one signed-in user in two countries within the hour.
+ *   session replay  one signed-in user in two countries within the hour;
+ *   cloud audit     the audit logs of the AWS accounts, Google Cloud
+ *                   projects and Azure subscriptions connected under Cloud:
+ *                   CloudTrail, Google Cloud's Admin Activity log and the
+ *                   Azure Activity Log, as OneUptime reads them for Cloud's
+ *                   changes - with no log pipeline to set up.
  *
- * One switch per kind per project (SecurityTelemetrySource), read every
- * minute by Server/Utils/SecurityEvent/TelemetryScan. Every event a kind
- * finds is attributed to the kind's own "OneUptime ..." service and carries
- * the vendor "OneUptime" and the kind's product, which is how the rule
- * library tells the project sends it (DetectionRuleDataKind).
+ * One switch per kind per project (SecurityTelemetrySource). The first four
+ * are read every minute by Server/Utils/SecurityEvent/TelemetryScan; every
+ * event one of them finds is attributed to the kind's own "OneUptime ..."
+ * service and carries the vendor "OneUptime" and the kind's product, which
+ * is how the rule library tells the project sends it (DetectionRuleDataKind).
+ *
+ * Cloud audit logs are read with each cloud account's own read
+ * (Server/Utils/SecurityEvent/CloudAudit): their records are the cloud's,
+ * read by the same parsers as "Your logs", so their events carry the
+ * cloud's vendor and product - AWS CloudTrail, Google Cloud Audit Logs,
+ * Azure Activity Log - and a record read both ways is stored once.
  */
 export enum SecurityTelemetrySourceKind {
   Traces = "traces",
   NetworkFlows = "network-flows",
   AuditLog = "audit-log",
   RumSessions = "rum-sessions",
+  CloudAudit = "cloud-audit",
 }
 
 export interface SecurityTelemetrySourceDefinition {
@@ -61,6 +73,16 @@ export const SECURITY_TELEMETRY_SOURCES: ReadonlyArray<SecurityTelemetrySourceDe
       vendorName: SECURITY_TELEMETRY_VENDOR_NAME,
       productName: "OneUptime Session Replay",
     },
+    /*
+     * Its events carry the cloud's own vendor and product (see the header):
+     * these name the service they are attributed to, and nothing else.
+     */
+    {
+      kind: SecurityTelemetrySourceKind.CloudAudit,
+      serviceName: "OneUptime Cloud Audit Logs",
+      vendorName: SECURITY_TELEMETRY_VENDOR_NAME,
+      productName: "OneUptime Cloud Audit Logs",
+    },
   ];
 
 export const SECURITY_TELEMETRY_SOURCE_KINDS: ReadonlyArray<SecurityTelemetrySourceKind> =
@@ -78,6 +100,30 @@ export function isSecurityTelemetrySourceKind(
   return (
     typeof value === "string" &&
     (SECURITY_TELEMETRY_SOURCE_KINDS as ReadonlyArray<string>).includes(value)
+  );
+}
+
+// The kinds the telemetry scan reads, every minute: all but cloud audit logs.
+export type SecurityTelemetryScannedKind = Exclude<
+  SecurityTelemetrySourceKind,
+  SecurityTelemetrySourceKind.CloudAudit
+>;
+
+export const SECURITY_TELEMETRY_SCANNED_KINDS: ReadonlyArray<SecurityTelemetryScannedKind> =
+  SECURITY_TELEMETRY_SOURCE_KINDS.filter(
+    (
+      kind: SecurityTelemetrySourceKind,
+    ): kind is SecurityTelemetryScannedKind => {
+      return kind !== SecurityTelemetrySourceKind.CloudAudit;
+    },
+  );
+
+export function isSecurityTelemetryScannedKind(
+  value: unknown,
+): value is SecurityTelemetryScannedKind {
+  return (
+    typeof value === "string" &&
+    (SECURITY_TELEMETRY_SCANNED_KINDS as ReadonlyArray<string>).includes(value)
   );
 }
 

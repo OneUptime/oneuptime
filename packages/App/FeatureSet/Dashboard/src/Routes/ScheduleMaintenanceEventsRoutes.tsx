@@ -19,6 +19,7 @@ import ScheduledMaintenanceEventView from "../Pages/ScheduledMaintenanceEvents/V
 import ScheduledMaintenanceEventViewDelete from "../Pages/ScheduledMaintenanceEvents/View/Delete";
 
 import ScheduledMaintenanceEventsWorkspaceConnectionMicrosoftTeams from "../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionMicrosoftTeams";
+import ScheduledMaintenanceEventsWorkspaceConnectionMattermost from "../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionMattermost";
 import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 
 import ScheduledMaintenanceEventViewOwner from "../Pages/ScheduledMaintenanceEvents/View/Owners";
@@ -208,6 +209,26 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={
             ScheduledMaintenanceEventsRoutePath[
+              PageMap
+                .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MATTERMOST
+            ] || ""
+          }
+          element={
+            <ScheduledMaintenanceEventsWorkspaceConnectionMattermost
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap
+                    .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MATTERMOST
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
               PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS
             ] || ""
           }
@@ -218,6 +239,9 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
               }
               microsoftTeamsPage={
                 PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              }
+              mattermostPage={
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MATTERMOST
               }
             />
           }

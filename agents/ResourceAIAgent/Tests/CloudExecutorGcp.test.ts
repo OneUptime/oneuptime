@@ -962,11 +962,15 @@ describe("Google Cloud: identity and posture", () => {
         requiredTag: null,
         gcpProjectNumber: GCP_PROJECT_NUMBER,
         gcpServiceAccount: GCP_SERVICE_ACCOUNT,
+        // Cloud Run says so itself: K_SERVICE.
+        gcpHost: "cloud-run",
       },
       protectedTargets: [
         `//run.googleapis.com/projects/${P}/locations/*/services/oneuptime-ai-agent`,
+        `//compute.googleapis.com/projects/${P}/zones/*/instances/oneuptime-ai-agent`,
         `//iam.googleapis.com/projects/${P}/serviceAccounts/oneuptime-ai-agent@*`,
         `//run.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/*/services/oneuptime-ai-agent`,
+        `//compute.googleapis.com/projects/${GCP_PROJECT_NUMBER}/zones/*/instances/oneuptime-ai-agent`,
         `//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/serviceAccounts/oneuptime-ai-agent@*`,
         `//run.googleapis.com/projects/${P}/locations/us-central1/services/oneuptime-ai-agent-eu`,
         `//run.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/us-central1/services/oneuptime-ai-agent-eu`,
@@ -981,6 +985,53 @@ describe("Google Cloud: identity and posture", () => {
         `cloud roll-back-service //run.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/us-central1/services/oneuptime-ai-agent-eu`,
       ),
       /which the Cloud AI agent protects \(\/\/run\.googleapis\.com\/projects\/987654321012\/locations\/us-central1\/services\/oneuptime-ai-agent-eu\)/,
+    );
+  });
+
+  /*
+   * Where it runs, as its setup command started it: running the command
+   * again from Change keeps the agent there.
+   */
+  test("on its own VM, as its startup script says, it reports compute-engine", async () => {
+    const h: CloudHarness = cloudHarness("gcp", {
+      env: { ONEUPTIME_AI_GCP_HOST: "compute-engine" },
+    });
+    const probe: ResourcePostureProbe = await h.executor.probePosture();
+
+    assert.strictEqual(probe.details?.["gcpHost"], "compute-engine");
+  });
+
+  test("Cloud Run's own K_SERVICE wins over anything a variable says", async () => {
+    const h: CloudHarness = cloudHarness("gcp", {
+      env: {
+        K_SERVICE: "oneuptime-ai-agent",
+        ONEUPTIME_AI_GCP_HOST: "compute-engine",
+      },
+    });
+    const probe: ResourcePostureProbe = await h.executor.probePosture();
+
+    assert.strictEqual(probe.details?.["gcpHost"], "cloud-run");
+  });
+
+  test("run some other way, or with a host it does not know, it reports none", async () => {
+    for (const env of [{}, { ONEUPTIME_AI_GCP_HOST: "kubernetes" }]) {
+      const h: CloudHarness = cloudHarness("gcp", { env });
+      const probe: ResourcePostureProbe = await h.executor.probePosture();
+
+      assert.strictEqual(probe.details?.["gcpHost"], null);
+    }
+  });
+
+  test("its own VM is one of the targets it never changes, by project id and number", async () => {
+    const h: CloudHarness = cloudHarness("gcp");
+
+    assert.match(
+      refusalOf(
+        h,
+        "gcp",
+        `cloud reboot-instance //compute.googleapis.com/projects/${P}/zones/us-central1-a/instances/oneuptime-ai-agent`,
+      ),
+      /which the Cloud AI agent protects/,
     );
   });
 

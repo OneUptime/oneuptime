@@ -6605,23 +6605,41 @@ function remediationCard(page: Page): Locator {
 }
 
 /*
- * Opens every fix on the Remediation step, as a reader does: a fix of
- * commands or changes is folded to its sentence (#5413's UI review: a
- * lighter fixes block), and Review and approve - Show details, for a fix
- * that waits for nobody - opens its commands, its reasoning and Approve &
- * Run. Waits for the first fix's press to be drawn.
+ * Opens every fix on the Remediation step, as a reader does: a fix reads as
+ * the steps it went through (issue #5598), and each step with more to read
+ * opens on its own press - the plan to its reasoning and each command, the
+ * run to each command's output, the rollback to each undo - while Review
+ * and approve opens the plan of a fix that waits, with Approve & Run under
+ * it. One press at a time, read again after each: Review and approve and
+ * the plan's own press open the same step. Waits for the first press.
  */
-async function openEveryFix(page: Page): Promise<void> {
-  const toggles: Locator = remediationStep(page).getByTestId(
-    "remediation-fix-details-toggle",
-  );
-  await expect(toggles.first()).toBeVisible({ timeout: 30000 });
+const FIX_OPENING_PRESSES: string =
+  "[data-testid='remediation-fix-details-toggle'], [data-testid='remediation-fix-step-toggle']";
 
-  for (const toggle of await toggles.all()) {
-    if ((await toggle.getAttribute("aria-expanded")) === "false") {
-      await toggle.click();
-      await expect(toggle).toHaveAttribute("aria-expanded", "true");
+async function openEveryFix(page: Page): Promise<void> {
+  const presses: Locator = remediationStep(page).locator(FIX_OPENING_PRESSES);
+  await expect(presses.first()).toBeVisible({ timeout: 30000 });
+  const closed: Locator = remediationStep(page).locator(
+    FIX_OPENING_PRESSES.split(", ")
+      .map((press: string): string => {
+        return `${press}[aria-expanded='false']`;
+      })
+      .join(", "),
+  );
+
+  for (let round: number = 0; round < 50; round++) {
+    const left: number = await closed.count();
+
+    if (left === 0) {
+      return;
     }
+
+    await closed.first().click();
+    await expect
+      .poll(() => {
+        return closed.count();
+      })
+      .toBeLessThan(left);
   }
 }
 
@@ -13109,6 +13127,38 @@ test.describe("the feed, as a timeline", () => {
     ).toHaveAttribute("datetime", "2026-09-14T18:09:00.000Z");
   });
 
+  /*
+   * #5623's follow-up: the fixture wrote its dates in English on German
+   * and Persian pages ("11 min. ago") - the Dashboard itself hands its
+   * i18next to followLanguageForDates, and now the fixture does too, so a
+   * page's relative times are its language's, as the reader sees them.
+   */
+  for (const language of [
+    { code: "de", feed: "Vorfalls-Feed", ago: "vor 11 Min." },
+    { code: "fa", feed: "فید حادثه", ago: "پیش" },
+  ]) {
+    test(`how long ago is said in the page's language (?lang=${language.code})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, INCIDENT_PATH, `lang=${language.code}`);
+
+      const feed: Locator = card(page, language.feed);
+      const rolledBack: Locator = feedEntry(
+        feed,
+        "Rolling checkout-api back",
+      ).getByTestId("feed-entry-time");
+      await expect(rolledBack).toBeVisible({ timeout: 30000 });
+
+      expect(await plainText(rolledBack)).toContain(language.ago);
+
+      for (const time of await feed.getByTestId("feed-entry-time").all()) {
+        expect(await plainText(time)).not.toContain("ago");
+      }
+    });
+  }
+
   test("an entry reads as a sentence that starts with who did it", async ({
     page,
   }: {
@@ -13614,7 +13664,7 @@ test.describe("links and quotes in a note", () => {
 
 /*
  * ---------------------------------------------------------------------------
- * Open in Slack / Open in Microsoft Teams
+ * Open in Slack / Open in Microsoft Teams / Open in Mattermost
  * ---------------------------------------------------------------------------
  *
  * A record a workspace notification rule made a channel for has a button in
@@ -13625,8 +13675,10 @@ test.describe("links and quotes in a note", () => {
 
 const SLACK_CHANNEL_URL: string =
   "https://slack.com/app_redirect?channel=C0ACME0001&team=T0ACMECOM";
+const MATTERMOST_CHANNEL_URL: string =
+  "https://chat.acme-commerce.example/acme/channels/incident-1042-checkout-latency";
 
-test.describe("Open in Slack / Microsoft Teams", () => {
+test.describe("Open in Slack / Microsoft Teams / Mattermost", () => {
   test("no channel, no button", async ({ page }: { page: Page }) => {
     await openReady(page, INCIDENT_PAGE);
 
@@ -13688,6 +13740,108 @@ test.describe("Open in Slack / Microsoft Teams", () => {
       "3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b",
     );
     await expect(teams).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  /*
+   * Mattermost is a server of the customer's own: the link is on the server
+   * the project was connected to, and the card's link to the channel too.
+   */
+  test("a Mattermost channel is a link to the project's own server, and its card says who is in it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=mattermost");
+
+    const mattermost: Locator = heroActions(page).getByRole("link", {
+      name: "Open in Mattermost",
+    });
+
+    await expect(mattermost).toHaveAttribute("href", MATTERMOST_CHANNEL_URL);
+    await expect(mattermost).toHaveAttribute("target", "_blank");
+    await expect(mattermost).toHaveAttribute("rel", "noopener noreferrer");
+
+    await mattermost.hover();
+    await expect(
+      page
+        .locator("[data-tippy-root]")
+        .getByText("incident-1042-checkout-latency", { exact: true }),
+    ).toBeVisible();
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-open-in-mattermost");
+
+    const card: Locator = page.getByTestId("record-channel-members-card");
+
+    await expect(
+      page.getByText("Mattermost Channel", { exact: true }),
+    ).toBeVisible();
+    await expect(card.getByTestId("record-channel-name")).toHaveAttribute(
+      "href",
+      MATTERMOST_CHANNEL_URL,
+    );
+    expect(
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("channels in Slack and Mattermost: one Open channel that lists them, and one card that lists them both", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page
+      .context()
+      .route(
+        "https://chat.acme-commerce.example/**",
+        async (route: PlaywrightRoute) => {
+          await route.fulfill({
+            status: 200,
+            contentType: "text/plain",
+            body: "Mattermost",
+          });
+        },
+      );
+    await openReady(page, INCIDENT_PAGE, "channels=mattermost,slack");
+
+    await expect(heroActions(page).getByRole("link")).toHaveCount(0);
+
+    await heroActions(page)
+      .getByRole("button", { name: "Open channel" })
+      .click();
+
+    const menu: Locator = page.getByRole("menu");
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "Slack · #incident-1042-checkout-latency",
+      "Mattermost · incident-1042-checkout-latency",
+    ]);
+    await screenshotElement(
+      hero(page),
+      "incident-hero-open-channel-mattermost",
+    );
+
+    await expect(page.getByTestId("record-channel-members-card")).toHaveCount(
+      1,
+    );
+    await expect(
+      page.getByText("Chat Channels", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByTestId("record-channel-name")).toHaveText([
+      "#incident-1042-checkout-latency",
+      "incident-1042-checkout-latency",
+    ]);
+
+    const opened: Promise<Page> = page.context().waitForEvent("page");
+    await menu
+      .getByRole("menuitem", {
+        name: "Mattermost · incident-1042-checkout-latency",
+      })
+      .click();
+    const tab: Page = await opened;
+    await expect(tab).toHaveURL(MATTERMOST_CHANNEL_URL);
+    await tab.close();
   });
 
   /*
@@ -14457,6 +14611,359 @@ test.describe("Escalate", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * Escalate to a level the person picks
+ * ---------------------------------------------------------------------------
+ *
+ * With two or more levels after the viewer's (?passOn=levels: Platform
+ * leads, DBA leads and Level 4 of 4), the Escalate dialog asks which to
+ * page first - "Escalate to", a radio for each, the next level picked - and
+ * its sentence follows the pick. Only a later level than the next is sent
+ * (escalateTo); ?passOn=levels-gone refuses the first such POST, as a
+ * server whose policy lost DBA leads meanwhile does.
+ */
+
+const PASS_ON_RUN_ID: string = uuid("73000000", 1);
+const DBA_LEADS_LEVEL_ID: string = uuid("74000000", 3);
+const LEVEL_4_ID: string = uuid("74000000", 4);
+
+function levelPicker(page: Page): Locator {
+  return escalateDialog(page).getByRole("radiogroup", { name: "Escalate to" });
+}
+
+async function passOnPosts(page: Page): Promise<Array<RecordedApiRequest>> {
+  return (
+    await apiRequestsTo(page, `/on-call-page/pass-on/incident/${INCIDENT_ID}`)
+  ).filter((request: RecordedApiRequest): boolean => {
+    return request.method === "POST";
+  });
+}
+
+test.describe("Escalate to a level the person picks", () => {
+  test("asks which level, the next picked; the sentence follows the pick, and the pick is sent", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=levels",
+    );
+
+    await escalateButton(page).click();
+
+    const radios: Locator = levelPicker(page).getByRole("radio");
+    await expect(radios).toHaveCount(3);
+    await expect(
+      levelPicker(page).getByLabel("Platform leads (Level 2 of 4)"),
+    ).toBeChecked();
+    await expect(
+      levelPicker(page).getByLabel("DBA leads (Level 3 of 4)"),
+    ).not.toBeChecked();
+    await expect(
+      levelPicker(page).getByLabel("Level 4 of 4"),
+    ).not.toBeChecked();
+    expect(await dialogLines(page, "pass-on-preview")).toEqual([
+      "This will immediately page Platform leads (Level 2 of 4), without waiting.",
+      NOT_PAGED_AGAIN,
+    ]);
+    await screenshotElement(escalateDialog(page), "escalate-dialog-levels-ask");
+
+    await levelPicker(page).getByLabel("DBA leads (Level 3 of 4)").check();
+
+    expect(await dialogLines(page, "pass-on-preview")).toEqual([
+      "This will immediately page DBA leads (Level 3 of 4), without waiting. It skips Platform leads (Level 2 of 4).",
+      NOT_PAGED_AGAIN,
+    ]);
+    await screenshotElement(
+      escalateDialog(page),
+      "escalate-dialog-levels-picked",
+    );
+
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
+
+    await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
+      "Incident escalated",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "The policy is now paging DBA leads (Level 3 of 4): Dana Kim.",
+      NOT_PAGED_AGAIN,
+    ]);
+    await expect(levelPicker(page)).toHaveCount(0);
+
+    const posts: Array<RecordedApiRequest> = await passOnPosts(page);
+    expect(posts).toHaveLength(1);
+    expect(posts[0]!.body).toEqual({
+      escalateTo: { [PASS_ON_RUN_ID]: DBA_LEADS_LEVEL_ID },
+    });
+  });
+
+  test("leaving the next level picked sends what Escalate always sent", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=levels",
+    );
+
+    await escalateButton(page).click();
+    await expect(levelPicker(page)).toBeVisible();
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
+
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "The policy is now paging Platform leads (Level 2 of 4): Sam Lee and Priya Patel.",
+      NOT_PAGED_AGAIN,
+    ]);
+
+    const posts: Array<RecordedApiRequest> = await passOnPosts(page);
+    expect(posts).toHaveLength(1);
+    expect(posts[0]!.body).toEqual({});
+  });
+
+  test("the keyboard moves between the levels, and the pick follows", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=levels",
+    );
+
+    await escalateButton(page).click();
+    await levelPicker(page).getByLabel("Platform leads (Level 2 of 4)").focus();
+    await page.keyboard.press("ArrowDown");
+
+    await expect(
+      levelPicker(page).getByLabel("DBA leads (Level 3 of 4)"),
+    ).toBeChecked();
+    await expect(
+      levelPicker(page).getByLabel("DBA leads (Level 3 of 4)"),
+    ).toBeFocused();
+    expect((await dialogLines(page, "pass-on-preview"))[0]).toBe(
+      "This will immediately page DBA leads (Level 3 of 4), without waiting. It skips Platform leads (Level 2 of 4).",
+    );
+  });
+
+  test("a level gone meanwhile: Not escalated, why, and the levels as they are now", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=levels-gone",
+    );
+
+    await escalateButton(page).click();
+    await levelPicker(page).getByLabel("DBA leads (Level 3 of 4)").check();
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
+
+    await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
+      "Not escalated",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.",
+    ]);
+
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
+
+    // Still paged: Escalate is there, with the levels the policy has now.
+    await escalateButton(page).click();
+    await expect(levelPicker(page).getByRole("radio")).toHaveCount(2);
+    await expect(
+      levelPicker(page).getByLabel("DBA leads (Level 3 of 4)"),
+    ).toHaveCount(0);
+
+    await levelPicker(page).getByLabel("Level 4 of 4").check();
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
+
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "The policy is now paging Level 4 of 4: Morgan Chen.",
+      NOT_PAGED_AGAIN,
+    ]);
+    expect(
+      (await passOnPosts(page)).map((request: RecordedApiRequest) => {
+        return request.body;
+      }),
+    ).toEqual([
+      { escalateTo: { [PASS_ON_RUN_ID]: DBA_LEADS_LEVEL_ID } },
+      { escalateTo: { [PASS_ON_RUN_ID]: LEVEL_4_ID } },
+    ]);
+  });
+
+  test("on a 390px phone, in the dark theme, the levels fit and each place stays on one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=levels&theme=dark",
+    );
+
+    await escalateButton(page).click();
+    await expect(levelPicker(page)).toBeVisible();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+
+    // A place's spaces are spaces no line breaks at: "(Level 3 of 4)" whole.
+    const label: string = await levelPicker(page)
+      .getByLabel("DBA leads (Level 3 of 4)")
+      .evaluate((input: Element): string => {
+        return (input as HTMLInputElement).labels![0]!.textContent || "";
+      });
+    expect(label).toBe("DBA leads (Level\u00a03\u00a0of\u00a04)");
+
+    await screenshotElement(
+      escalateDialog(page),
+      "escalate-dialog-levels-dark-mobile",
+    );
+  });
+
+  /*
+   * ?passOn=levels-two: two policies page the viewer about the record, each
+   * with levels of its own after theirs - Payments escalation's Level 3 named
+   * at length. Each policy's levels sit right over that policy's sentence,
+   * which names no policy (the levels' label does), and on a phone a level's
+   * name that wraps keeps its radio whole, by its first line.
+   */
+  test("two policies: each policy's levels over its own sentence, and a long level's radio whole on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=levels-two",
+    );
+
+    await escalateButton(page).click();
+
+    const picks: Locator =
+      escalateDialog(page).getByTestId("pass-on-level-pick");
+
+    await expect(picks).toHaveCount(2);
+    await expect(
+      picks.nth(0).getByRole("radiogroup", {
+        name: "Checkout on-call: escalate to",
+      }),
+    ).toBeVisible();
+    await expect(
+      picks.nth(1).getByRole("radiogroup", {
+        name: "Payments escalation: escalate to",
+      }),
+    ).toBeVisible();
+    await expect(picks.nth(0).locator("p")).toHaveText(
+      "This will immediately page Platform leads (Level 2 of 4), without waiting.",
+    );
+    await expect(picks.nth(1).locator("p")).toHaveText(
+      "This will immediately page Payments on-call (Level 2 of 3), without waiting.",
+    );
+
+    const longLevel: Locator = picks
+      .nth(1)
+      .getByLabel(
+        "Payments platform engineering managers, EU and US regions (Level 3 of 3)",
+      );
+
+    await longLevel.check();
+
+    await expect(picks.nth(1).locator("p")).toHaveText(
+      "This will immediately page Payments platform engineering managers, EU and US regions (Level 3 of 3), without waiting. It skips Payments on-call (Level 2 of 3).",
+    );
+    // A screen reader hears it too: each group is described by its sentence.
+    await expect(
+      picks.nth(1).getByRole("radiogroup", {
+        name: "Payments escalation: escalate to",
+      }),
+    ).toHaveAccessibleDescription(
+      "This will immediately page Payments platform engineering managers, EU and US regions (Level 3 of 3), without waiting. It skips Payments on-call (Level 2 of 3).",
+    );
+    await expect(picks.nth(1).locator("p")).toHaveAttribute(
+      "aria-live",
+      "polite",
+    );
+    // The first policy's sentence is its own, and stays as it was.
+    await expect(picks.nth(0).locator("p")).toHaveText(
+      "This will immediately page Platform leads (Level 2 of 4), without waiting.",
+    );
+
+    /*
+     * The long name wraps onto two lines beside its radio, which keeps its
+     * 16 pixels and sits by the name's first line - not squeezed to a dot
+     * halfway down both. Read once Tailwind has styled the dialog.
+     */
+    const label: Locator = picks
+      .nth(1)
+      .locator("label")
+      .filter({ hasText: "Payments platform engineering managers" });
+
+    await expect
+      .poll(
+        async (): Promise<string> => {
+          const [radio, text] = await boxesInOneFrame([longLevel, label]);
+          const lines: number = Math.round(text!.height / 24);
+
+          return JSON.stringify({
+            width: Math.round(radio!.width),
+            height: Math.round(radio!.height),
+            byFirstLine:
+              radio!.y >= text!.y && radio!.y + radio!.height <= text!.y + 24,
+            lines: lines,
+          });
+        },
+        { timeout: 10000 },
+      )
+      .toBe(
+        JSON.stringify({ width: 16, height: 16, byFirstLine: true, lines: 2 }),
+      );
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshotElement(escalateDialog(page), "escalate-dialog-levels-two");
+
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
+
+    await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
+      "Incident escalated",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "Checkout on-call: The policy is now paging Platform leads (Level 2 of 4): Sam Lee and Priya Patel.",
+      "Payments escalation: The policy is now paging Payments platform engineering managers, EU and US regions (Level 3 of 3): Ana Lopez.",
+      NOT_PAGED_AGAIN,
+    ]);
+
+    // Only the later level picked is sent, for its own run.
+    const posts: Array<RecordedApiRequest> = await passOnPosts(page);
+    expect(posts).toHaveLength(1);
+    expect(posts[0]!.body).toEqual({
+      escalateTo: { [uuid("73000000", 2)]: uuid("74100000", 3) },
+    });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * The record's channel card: who is in its channel, Join channel, Add people
  * ---------------------------------------------------------------------------
  *
@@ -14546,6 +15053,113 @@ test.describe("the record's channel card", () => {
     ).toHaveLength(1);
 
     await screenshotElement(card, "incident-channel-card");
+  });
+
+  test("an incident's Mattermost channel: who is in it, as Mattermost words it, with Join channel and Add people", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=mattermost");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-person-name")).toHaveText([
+      "Jordan Patel",
+      "Priya from Support",
+      "Sam Rivera",
+    ]);
+    await expect(card.getByTestId("record-channel-name")).toHaveText(
+      "incident-1042-checkout-latency",
+    );
+    await expect(card.getByTestId("record-channel-name")).toHaveAttribute(
+      "title",
+      "Open in Mattermost",
+    );
+    await expect(card.getByTestId("record-channel-meta")).toHaveText(
+      "Private channel · 3 people",
+    );
+    await expect(card.getByTestId("record-channel-join")).toBeVisible();
+    await expect(card.getByTestId("record-channel-add-people")).toBeVisible();
+
+    await screenshotElement(card, "incident-channel-card-mattermost");
+  });
+
+  test("Mattermost: Join channel and Add people go to its channel, and what they say names Mattermost", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1400 });
+    await openReady(page, INCIDENT_PAGE, "channels=mattermost&members=empty");
+
+    const card: Locator = channelCard(page);
+
+    await card.getByTestId("record-channel-join").click();
+    await expect(card.getByTestId("record-channel-join-result")).toContainText(
+      "You're in the channel now.",
+    );
+    await expect(
+      card.getByRole("link", { name: "Open in Mattermost" }),
+    ).toHaveAttribute("href", MATTERMOST_CHANNEL_URL);
+    await expect(card.getByTestId("record-channel-person-you")).toBeVisible();
+
+    await card.getByTestId("record-channel-add-people").click();
+
+    const dialog: Locator = page.getByRole("dialog", { name: "Add people" });
+    await dialog.getByRole("option", { name: /Sam Rivera/ }).click();
+    await expect(dialog.getByTestId("people-search-notice-done")).toHaveText(
+      "Added Sam Rivera.",
+    );
+
+    await dialog.getByRole("option", { name: /Alex Kim/ }).click();
+    await expect(dialog.getByRole("alert")).toContainText(
+      "OneUptime can't find Alex Kim in Mattermost",
+    );
+
+    expect(await channelAdds(page)).toEqual([
+      {
+        channelId: "c0acme0mattermost000000001",
+        userIds: [MAYA_ID],
+        teamIds: [],
+      },
+      {
+        channelId: "c0acme0mattermost000000001",
+        userIds: [SAM_ID],
+        teamIds: [],
+      },
+      {
+        channelId: "c0acme0mattermost000000001",
+        userIds: [ALEX_ID],
+        teamIds: [],
+      },
+    ]);
+  });
+
+  test("Mattermost: what a channel that can take nobody says names Mattermost, and where to connect it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "channels=mattermost&members=not-connected",
+    );
+
+    const state: Locator = channelCard(page).getByTestId(
+      "record-channel-state",
+    );
+
+    await expect(state).toContainText(
+      "Mattermost isn't connected to this project.",
+    );
+    await expect(
+      state.getByRole("link", { name: "Connect Mattermost" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/mattermost-integration`,
+    );
   });
 
   test("everybody left the private channel: Join channel lets the viewer back in", async ({
@@ -18993,6 +19607,67 @@ test.describe("a cluster whose Fixes are off (?fixing=cluster-fixes-off)", () =>
 });
 
 /*
+ * A cluster whose Fixes are on but whose Kubernetes AI agent never
+ * connected (?fixing=cluster-agent-not-connected, #5367's follow-up): the
+ * agent connecting makes OneUptime AI decide again about an open record
+ * (AutoRemediationRuleEngineService.onAgentConnected), so under what to do
+ * - a step that ends in a helm command - the line says so, on a line of
+ * its own. Resolved, it promises nothing.
+ */
+test("a cluster whose AI agent never connected: open, OneUptime AI tries again once it connects; resolved, nothing is promised (?fixing=cluster-agent-not-connected)", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  const INSTALL_STEP: string =
+    "Install the Kubernetes AI agent: helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent --set aiAgent.enabled=true";
+
+  await open(
+    page,
+    INCIDENT_PATH,
+    "state=created&fixing=cluster-agent-not-connected",
+  );
+
+  const line: Locator = remediationCard(page).getByTestId(
+    "remediation-decision-line",
+  );
+  await expect(line).toHaveCount(1, { timeout: 30000 });
+  await expect(line.getByTestId("remediation-decision-text")).toHaveText(
+    'Fixes are on for cluster "staging-us-east-1", but OneUptime AI cannot apply them yet.',
+  );
+  const whatToDo: Locator = line.getByTestId("remediation-decision-what-to-do");
+  await expect(whatToDo).toContainText(`What to do: ${INSTALL_STEP}`);
+  const next: Locator = line.getByTestId(
+    "remediation-decision-what-happens-next",
+  );
+  await expect(next).toHaveText(
+    "Once its AI agent connects, OneUptime AI tries again.",
+  );
+  // On a line of its own, under the command: never glued to its end.
+  const [step, after] = await boxesInOneFrame([
+    whatToDo.locator("dd").first(),
+    next,
+  ]);
+  expect(after!.y).toBeGreaterThanOrEqual(step!.y + step!.height - 1);
+  await page.mouse.move(0, 0);
+  await screenshotElement(
+    remediationCard(page),
+    "remediation-cluster-agent-not-connected-open",
+  );
+
+  await open(page, INCIDENT_PATH, "fixing=cluster-agent-not-connected");
+  await expect(
+    remediationCard(page)
+      .getByTestId("remediation-decision-line")
+      .getByTestId("remediation-decision-what-to-do"),
+  ).toContainText(INSTALL_STEP, { timeout: 30000 });
+  await expect(
+    remediationCard(page).getByTestId("remediation-decision-what-happens-next"),
+  ).toHaveCount(0);
+  await expect(remediationCard(page)).not.toContainText("tries again");
+});
+
+/*
  * #5413's follow-up: the AI-off one line folded an open record's
  * Remediation step away, so a fixing switch turned on since had no Try
  * again. Open, with the switch on now, the card is drawn whole.
@@ -19062,8 +19737,12 @@ test.describe("an action linking what a record is about waits for approval (issu
     await expect(prompt.getByTestId("tool-approval-description")).toHaveText(
       ADDS_HOST,
     );
-    // The arguments line keeps the incident and leaves the list out.
-    await expect(prompt).toContainText(`incidentId: ${INCIDENT_ID}`);
+    /*
+     * The title names the incident by its number, and the line names the
+     * host: neither's ID is repeated in the arguments.
+     */
+    await expect(prompt).not.toContainText("incidentId");
+    await expect(prompt).not.toContainText(INCIDENT_ID);
     await expect(prompt).not.toContainText("affectedResources");
     await expect(prompt).not.toContainText(HOST_ID);
 
@@ -19099,7 +19778,7 @@ test.describe("an action linking what a record is about waits for approval (issu
     await expect(prompt.getByTestId("tool-approval-description")).toHaveText(
       ADDS_HOST,
     );
-    await expect(prompt).toContainText(`alertId: ${ALERT_ID}`);
+    await expect(prompt).not.toContainText(ALERT_ID);
     await expect(prompt).not.toContainText(HOST_ID);
   });
 
@@ -19199,6 +19878,108 @@ test.describe("an action linking what a record is about waits for approval (issu
     expect(Math.abs(choiceBox!.y - titleBox!.y)).toBeLessThan(8);
     expect(choiceBox!.x).toBeGreaterThan(titleBox!.x + titleBox!.width);
   });
+
+  /*
+   * The server stores the card's title and line as sentences beside their
+   * English, and the incident's conversation says them in the reader's
+   * language: German, and Persian read right to left - the incident's
+   * number and the host's name as written, set apart in a Persian
+   * sentence. Its words are read from the locale file the page draws.
+   */
+  for (const language of ["de", "fa"]) {
+    test(`the card says it in the reader's language (?lang=${language})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: Record<string, string> = JSON.parse(
+        await fs.readFile(
+          path.resolve(
+            __dirname,
+            "../../App/FeatureSet/Dashboard/src/Locales",
+            `${language}.json`,
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const sentence: (
+        key: string,
+        values: Record<string, string>,
+      ) => string = (key: string, values: Record<string, string>): string => {
+        let text: string = words[key]!;
+        for (const name of Object.keys(values)) {
+          text = text.split(`{{${name}}}`).join(values[name]!);
+        }
+        return text;
+      };
+
+      await open(
+        page,
+        INCIDENT_PATH,
+        `thread=linking&lang=${language}${language === "fa" ? "&dir=auto" : ""}`,
+      );
+      const title: Locator = conversation(page).getByTestId(
+        "tool-approval-title",
+      );
+      const line: Locator = conversation(page).getByTestId(
+        "tool-approval-description",
+      );
+      await expect(title).toBeVisible({ timeout: 30000 });
+
+      const said: { title: string; line: string; direction: string } =
+        await conversation(page).evaluate(
+          (
+            element: Element,
+          ): { title: string; line: string; direction: string } => {
+            const read: (testId: string) => Element = (
+              testId: string,
+            ): Element => {
+              return element.querySelector(`[data-testid="${testId}"]`)!;
+            };
+            const marks: RegExp = /[\u2066-\u2069]/g;
+            return {
+              title: (read("tool-approval-title").textContent || "").replace(
+                marks,
+                "",
+              ),
+              line: (
+                read("tool-approval-description").textContent || ""
+              ).replace(marks, ""),
+              direction: window.getComputedStyle(
+                read("tool-approval-title").querySelector("bdi")!,
+              ).direction,
+            };
+          },
+        );
+
+      expect(said.title).toBe(
+        sentence("Link incident {{incident}} to affected resources", {
+          incident: "#1042",
+        }),
+      );
+      expect(said.line).toBe(
+        sentence("Adds {{resources}}.", {
+          resources: `${words["host"]} "checkout-api-7f9c"`,
+        }),
+      );
+      expect(said.direction).toBe(language === "fa" ? "rtl" : "ltr");
+      /*
+       * The question someone asked in English reads its own way on either
+       * page: left to right, its full stop at its end.
+       */
+      await expect(
+        conversation(page)
+          .getByTestId("investigation-conversation-question-text")
+          .first(),
+      ).toHaveCSS("direction", "ltr");
+      await expect(line).toBeVisible();
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await screenshotElement(
+        conversation(page),
+        `tool-approval-linking-${language}`,
+      );
+    });
+  }
 });
 
 /*
@@ -19902,13 +20683,23 @@ test.describe("a fix's changes in plain words, and how each went before", () => 
  * next steps. ?ruledout=on is such a report on Incident #1042.
  */
 test.describe("what the investigation ruled out", () => {
-  async function openRuledOut(page: Page, query: string): Promise<Locator> {
+  /*
+   * The report is the region its page's language names: "Investigation
+   * report" in English, the locale's words on a Persian page (the region is
+   * translated, so the English name found nothing there).
+   */
+  async function openRuledOut(
+    page: Page,
+    query: string,
+    reportName?: string,
+  ): Promise<Locator> {
     await open(page, INCIDENT_PATH, query);
     await showFullReport(page);
 
-    const list: Locator = reportSection(page).getByTestId(
-      "investigation-ruled-out",
-    );
+    const report: Locator = reportName
+      ? page.getByRole("region", { name: reportName, exact: true })
+      : reportSection(page);
+    const list: Locator = report.getByTestId("investigation-ruled-out");
     await expect(list).toBeVisible({ timeout: 30000 });
     return list;
   }
@@ -19974,9 +20765,20 @@ test.describe("what the investigation ruled out", () => {
     page: Page;
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
+    const persian: Record<string, string> = JSON.parse(
+      await fs.readFile(
+        path.resolve(
+          __dirname,
+          "../../App/FeatureSet/Dashboard/src/Locales",
+          "fa.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
     const list: Locator = await openRuledOut(
       page,
       "ruledout=on&lang=fa&dir=auto",
+      persian["Investigation report"],
     );
 
     const cause: Locator = list
@@ -20313,7 +21115,7 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
       remediation.getByTestId("remediation-approval-note"),
     ).toHaveCount(0);
     await expect(
-      remediation.getByRole("button", { name: "Dismiss" }),
+      remediation.getByRole("button", { name: "Dismiss fix" }),
     ).toHaveCount(0);
     await remediation
       .getByRole("button", { name: "Review and approve" })
@@ -20929,18 +21731,31 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
 });
 
 /*
- * A LIGHTER FIXES BLOCK (#5413's UI review): each fix of commands or changes
- * is folded to where it stands and its sentence - how many commands, and
- * where; how many changes, and through which servers - with a failure in
- * red beside where it stands, and Review and approve (or Show details) one
- * press from its commands, its reasoning and Approve & Run.
+ * A FIX, STEP BY STEP (issue #5598): each fix reads as the steps it went
+ * through, in the order they happened - planned, approved, ran, recovered
+ * or not, rolled back - each one line with when it happened and why or
+ * what went wrong, a failure in red beside where the fix stands, and each
+ * step with more to read opening on its own press. A fix that waits for
+ * approval is approved with its commands in sight: Review and approve opens
+ * its plan, with Approve & Run under it.
  */
-const KUBECTL_FIX_SENTENCE: string = "2 commands on cluster prod-eu-west-1.";
-const MCP_FIX_SENTENCE: string =
-  "2 changes through Feature flags and Status page.";
+const KUBECTL_FIX_PLAN: string = "Planned 2 commands on cluster prod-eu-west-1";
+const MCP_FIX_PLAN: string =
+  "Planned 2 changes through Feature flags and Status page";
 
-test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many)", () => {
-  test("where each stands and its sentence, a failure in red, and one press from its commands and Approve & Run", async ({
+// A fix's step of the given kind, and the words of its title.
+function fixStep(fix: Locator, kind: string): Locator {
+  return fix.locator(
+    `[data-testid='remediation-fix-step'][data-step='${kind}']`,
+  );
+}
+
+async function stepTitles(fix: Locator): Promise<Array<string>> {
+  return fix.getByTestId("remediation-fix-step-title").allTextContents();
+}
+
+test.describe("a busy incident's fixes, step by step (?fixes=many)", () => {
+  test("each fix reads as its steps, a failure in red, and the plan of the one that waits one press from Approve & Run", async ({
     page,
   }: {
     page: Page;
@@ -20951,9 +21766,48 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     const mcp: Locator = fixOnStep(page, "AI fix through MCP servers");
     const runbook: Locator = fixOnStep(page, "Restart checkout-api pods");
 
-    await expect(kubectl.getByTestId("remediation-fix-sentence")).toHaveText(
-      KUBECTL_FIX_SENTENCE,
-    );
+    // The order OneUptime AI tried them in: the oldest first.
+    expect(
+      await remediation.getByTestId("remediation-fix-title").allTextContents(),
+    ).toEqual([
+      "Restart checkout-api pods",
+      "AI fix through MCP servers",
+      "AI kubectl fix",
+    ]);
+
+    expect(await stepTitles(runbook)).toEqual([
+      "Picked this runbook",
+      "Approved",
+      "Started the runbook",
+      "Recovered",
+    ]);
+    await expect(
+      fixStep(runbook, "verify").getByTestId(
+        "remediation-fix-verification-note",
+      ),
+    ).toHaveText("p95 latency was back under 500 ms 4 minutes after the run.");
+    await expect(
+      fixStep(runbook, "run").getByRole("button", { name: "View Execution" }),
+    ).toBeVisible();
+
+    expect(await stepTitles(mcp)).toEqual([
+      MCP_FIX_PLAN,
+      "Approved automatically",
+      "1 of 2 changes failed",
+    ]);
+    await expect(fixStep(mcp, "run")).toHaveAttribute("data-tone", "failed");
+    await expect(
+      fixStep(mcp, "run").getByTestId("remediation-fix-step-summary"),
+    ).toHaveText("The server did not answer within 30 seconds.");
+    const failed: Locator = mcp.getByTestId("remediation-fix-failed-count");
+    await expect(failed).toHaveText("1 failed");
+    await expect(failed).toHaveAttribute("data-alarming", "true");
+    await expect(mcp.getByTestId("remediation-mcp-tool-call")).toHaveCount(0);
+
+    expect(await stepTitles(kubectl)).toEqual([
+      KUBECTL_FIX_PLAN,
+      "Needs your approval",
+    ]);
     await expect(
       kubectl.getByTestId("remediation-fix-details-toggle"),
     ).toHaveText("Review and approve");
@@ -20962,38 +21816,18 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
       0,
     );
     /*
-     * It is decided with its commands in sight: folded, Review and approve
-     * is its one press, and Dismiss waits beside Approve & Run inside.
+     * It is decided with its commands in sight: its plan's own press, and
+     * Review and approve, are all it offers until its plan is open.
      */
-    await expect(kubectl.getByRole("button")).toHaveCount(1);
-    await expect(kubectl.getByRole("button", { name: "Dismiss" })).toHaveCount(
-      0,
-    );
+    await expect(kubectl.getByRole("button")).toHaveCount(2);
+    await expect(
+      kubectl.getByRole("button", { name: "Dismiss fix" }),
+    ).toHaveCount(0);
     await expect(kubectl.getByTestId("remediation-approval-note")).toHaveCount(
       0,
     );
 
-    await expect(mcp.getByTestId("remediation-fix-sentence")).toHaveText(
-      MCP_FIX_SENTENCE,
-    );
-    await expect(mcp.getByTestId("remediation-fix-details-toggle")).toHaveText(
-      "Show details",
-    );
-    const failed: Locator = mcp.getByTestId("remediation-fix-failed-count");
-    await expect(failed).toHaveText("1 failed");
-    await expect(failed).toHaveAttribute("data-alarming", "true");
-    await expect(mcp.getByTestId("remediation-mcp-tool-call")).toHaveCount(0);
-
-    // A runbook has nothing to fold: its name is what approving runs.
-    await expect(
-      runbook.getByTestId("remediation-fix-details-toggle"),
-    ).toHaveCount(0);
-    await expect(
-      runbook.getByRole("button", { name: "View Execution" }),
-    ).toBeVisible();
-
-    // Folded, the three fixes take a fraction of the room they took open.
-    const folded: Box = await documentBox(
+    const closed: Box = await documentBox(
       remediation.getByTestId("remediation-fixes"),
     );
     expect(
@@ -21001,23 +21835,24 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     ).toEqual([]);
     expect(await panelsInsideTheCard(page)).toEqual([]);
     await page.mouse.move(0, 0);
-    await screenshotElement(remediation, "ai-card-fixes-folded-1280");
+    await screenshotElement(remediation, "ai-card-fixes-steps-1280");
 
-    // One press: the kubectl fix's commands, and Approve & Run under them.
+    // One press: the kubectl fix's plan, and Approve & Run under it.
     const toggle: Locator = kubectl.getByTestId(
       "remediation-fix-details-toggle",
     );
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
     await expect(toggle).toHaveText("Hide details");
-    await expect(kubectl.getByTestId("remediation-command")).toHaveCount(2);
-    // Why, shown first: never one more press inside the opened fix.
-    await expect(kubectl.getByTestId("remediation-fix-reasoning")).toHaveText(
+    const plan: Locator = fixStep(kubectl, "plan");
+    await expect(plan.getByTestId("remediation-command")).toHaveCount(2);
+    // Why, shown first: never one more press inside the opened plan.
+    await expect(plan.getByTestId("remediation-fix-reasoning")).toHaveText(
       "The pool exhaustion follows the 17:52 restart. Restarting the deployment brings the configured pool back.",
     );
     await expect(kubectl.getByText("Show reasoning")).toHaveCount(0);
     const details: Box = await documentBox(
-      kubectl.getByTestId("remediation-fix-details"),
+      plan.getByTestId("remediation-fix-step-details"),
     );
     const note: Box = await documentBox(
       kubectl.getByTestId("remediation-approval-note"),
@@ -21026,7 +21861,7 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
       kubectl.getByTestId("remediation-approve-button"),
     );
     const dismiss: Box = await documentBox(
-      kubectl.getByRole("button", { name: "Dismiss" }),
+      kubectl.getByRole("button", { name: "Dismiss fix" }),
     );
     // Under the commands: what approving does, then Approve & Run and Dismiss.
     expect(note.y).toBeGreaterThan(details.y + details.height - 1);
@@ -21034,11 +21869,23 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     expect(Math.abs(dismiss.y - approve.y)).toBeLessThan(2);
     expect(dismiss.x).toBeGreaterThan(approve.x + approve.width);
 
-    await mcp.getByTestId("remediation-fix-details-toggle").click();
+    // Each change through MCP servers, once the run that made them is open.
+    await fixStep(mcp, "run")
+      .getByTestId("remediation-fix-step-toggle")
+      .click();
+    expect(
+      await mcp
+        .getByTestId("remediation-mcp-tool-call-status")
+        .allTextContents(),
+    ).toEqual(["Done", "Failed"]);
+
+    // Closed, the three fixes take a fraction of the room they take open.
+    await openEveryFix(page);
     const opened: Box = await documentBox(
       remediation.getByTestId("remediation-fixes"),
     );
-    expect(folded.height).toBeLessThan(opened.height * 0.5);
+    expect(closed.height).toBeLessThan(opened.height * 0.6);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
     await expectNoErrorStates(page);
   });
 
@@ -21060,18 +21907,19 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
       const body: Box = await documentBox(
         page.getByTestId("ai-card-step-remediation-body"),
       );
-      for (const sentence of await remediation
-        .getByTestId("remediation-fix-sentence")
+      for (const title of await remediation
+        .getByTestId("remediation-fix-step-title")
         .all()) {
-        const box: Box = await documentBox(sentence);
+        const box: Box = await documentBox(title);
         expect(box.x).toBeGreaterThanOrEqual(body.x - 1);
         expect(box.x + box.width).toBeLessThanOrEqual(body.x + body.width + 1);
       }
-      // All three fixes fit a phone's screen.
-      const fixes: Box = await documentBox(
-        remediation.getByTestId("remediation-fixes"),
-      );
-      expect(fixes.height).toBeLessThan(700);
+      // Each fix, closed, is a third of a phone's screen at most.
+      for (const fix of await remediation
+        .getByTestId("remediation-fix")
+        .all()) {
+        expect((await documentBox(fix)).height).toBeLessThan(340);
+      }
 
       expect(
         await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
@@ -21080,12 +21928,12 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
       await page.mouse.move(0, 0);
       await screenshotElement(
         remediation,
-        `ai-card-fixes-folded-${width}-${theme}`,
+        `ai-card-fixes-steps-${width}-${theme}`,
       );
     });
   }
 
-  test("by keyboard: Review and approve opens the fix and keeps the keyboard, and Tab walks what it opened to Approve & Run, then Dismiss", async ({
+  test("by keyboard: Review and approve opens the plan and keeps the keyboard, and Tab goes on to Approve & Run, then Dismiss", async ({
     page,
   }: {
     page: Page;
@@ -21104,16 +21952,13 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     const controls: string | null = await toggle.getAttribute("aria-controls");
     expect(controls).toBeTruthy();
     await expect(
-      kubectl.getByTestId("remediation-fix-details"),
+      fixStep(kubectl, "plan").getByTestId("remediation-fix-step-details"),
     ).toHaveAttribute("id", controls!);
     await expect(
       kubectl.getByTestId("remediation-approve-button"),
     ).toBeVisible();
 
-    /*
-     * From the press, Tab stays inside the opened fix - its commands - until
-     * Approve & Run, and Dismiss is the stop after it.
-     */
+    // From the press, Tab stays inside the fix until Approve & Run, then Dismiss.
     const stops: Array<{ isInFix: boolean; name: string }> = [];
     for (let stop: number = 0; stop < 12; stop++) {
       await page.keyboard.press("Tab");
@@ -21142,7 +21987,7 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     ).toBe(true);
     await page.keyboard.press("Tab");
     await expect(
-      kubectl.getByRole("button", { name: "Dismiss" }),
+      kubectl.getByRole("button", { name: "Dismiss fix" }),
     ).toBeFocused();
 
     await toggle.focus();
@@ -21152,9 +21997,19 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     await expect(kubectl.getByTestId("remediation-approve-button")).toHaveCount(
       0,
     );
+
+    // A step's own press opens it by keyboard too, and keeps the keyboard.
+    const mcpRun: Locator = fixStep(
+      fixOnStep(page, "AI fix through MCP servers"),
+      "run",
+    ).getByTestId("remediation-fix-step-toggle");
+    await mcpRun.focus();
+    await page.keyboard.press("Enter");
+    await expect(mcpRun).toHaveAttribute("aria-expanded", "true");
+    await expect(mcpRun).toBeFocused();
   });
 
-  test("in Persian at 390px: each sentence reads right to left, its names in place", async ({
+  test("in Persian at 390px: each step reads right to left, its names in place", async ({
     page,
   }: {
     page: Page;
@@ -21162,11 +22017,13 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     await page.setViewportSize({ width: 390, height: 1000 });
     await openManyFixes(page, "lang=fa&dir=auto", { isFolded: true });
     const kubectl: Locator = fixOnStep(page, "prod-eu-west-1");
-    const sentence: Locator = kubectl.getByTestId("remediation-fix-sentence");
+    const plan: Locator = fixStep(kubectl, "plan").getByTestId(
+      "remediation-fix-step-title",
+    );
 
-    await expect(sentence).toContainText("prod-eu-west-1");
+    await expect(plan).toContainText("prod-eu-west-1");
     expect(
-      await sentence.evaluate((element: Element): string => {
+      await plan.evaluate((element: Element): string => {
         return window.getComputedStyle(element).direction;
       }),
     ).toBe("rtl");
@@ -21177,7 +22034,238 @@ test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many
     await page.mouse.move(0, 0);
     await screenshotElement(
       remediationStep(page),
-      "ai-card-fixes-folded-fa-390",
+      "ai-card-fixes-steps-fa-390",
+    );
+  });
+});
+
+/*
+ * A FIX THAT DID NOT WORK, STEP BY STEP (?fixes=rolled-back, issue #5598):
+ * the Remediation step the issue showed - a kubectl fix OneUptime AI ran on
+ * its own, after which the incident did not recover, so the change was
+ * undone; the runbooks it looked through; and a second round that found no
+ * safe fix - reads as what happened, in order, and each step opens to why,
+ * the commands that ran and what they printed.
+ */
+async function openRolledBackFixes(
+  page: Page,
+  query: string = "",
+): Promise<void> {
+  await open(
+    page,
+    INCIDENT_PATH,
+    `fixes=rolled-back${query ? `&${query}` : ""}`,
+  );
+  await expect(remediationStep(page)).toBeVisible({ timeout: 30000 });
+  await expect(
+    remediationStep(page).getByTestId("remediation-fix"),
+  ).toHaveCount(3, { timeout: 30000 });
+  await expectWhatHappenedSettled(page);
+}
+
+test.describe("a fix that did not work, step by step (?fixes=rolled-back)", () => {
+  test("planned, approved automatically, ran, did not recover, rolled back; then no runbook, and no safe fix", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRolledBackFixes(page);
+    const remediation: Locator = remediationStep(page);
+    const [ran, noRunbook, secondRound] = await remediation
+      .getByTestId("remediation-fix")
+      .all();
+
+    await expect(stepPillWords(remediation, "remediation")).toHaveText(
+      "Didn't work",
+    );
+    expect(await stepTitles(ran!)).toEqual([
+      "Planned 1 command on cluster prod-eu-west-1",
+      "Approved automatically",
+      "Ran 1 command",
+      "Did not recover",
+      "Rolled back 1 command",
+    ]);
+    expect(
+      await ran!
+        .getByTestId("remediation-fix-step")
+        .evaluateAll((steps: Array<Element>): Array<string | null> => {
+          return steps.map((step: Element): string | null => {
+            return step.getAttribute("data-tone");
+          });
+        }),
+    ).toEqual(["done", "done", "done", "failed", "done"]);
+    /*
+     * When each happened, on the pinned clock: the same day, so the time
+     * alone, in the reader's clock (en-US: twelve hours).
+     */
+    expect(
+      await ran!.getByTestId("remediation-fix-step-time").allTextContents(),
+    ).toEqual(["6:04 PM", "6:04 PM", "6:14 PM", "6:14 PM"]);
+    await expect(
+      fixStep(ran!, "verify").getByTestId("remediation-fix-verification-note"),
+    ).toContainText("did not recover within the verification window");
+
+    expect(await stepTitles(noRunbook!)).toEqual([
+      "Found no runbook that applies",
+    ]);
+    expect(await stepTitles(secondRound!)).toEqual(["Found no safe fix"]);
+    await expect(
+      fixStep(secondRound!, "plan").getByTestId("remediation-fix-step-summary"),
+    ).toContainText("would repeat the change that was just rolled back");
+
+    // Nothing is open until it is asked for.
+    await expect(
+      remediation.getByTestId("remediation-fix-step-details"),
+    ).toHaveCount(0);
+    expect(
+      await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
+    ).toEqual([]);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+    await page.mouse.move(0, 0);
+    await screenshotElement(remediation, "remediation-fix-steps-rolled-back");
+  });
+
+  test("each step opens to more: why and the command, the command as it ran and what it printed, the undo as it ran", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRolledBackFixes(page);
+    const ran: Locator = remediationStep(page)
+      .getByTestId("remediation-fix")
+      .first();
+
+    await fixStep(ran, "plan")
+      .getByTestId("remediation-fix-step-toggle")
+      .click();
+    const plan: Locator = fixStep(ran, "plan");
+    await expect(plan.getByTestId("remediation-fix-reasoning")).toContainText(
+      "HPA is pinned at its 3-replica ceiling",
+    );
+    const command: Locator = plan.getByTestId("remediation-command");
+    await expect(command).toContainText(
+      "kubectl set resources deployment/checkout-api -n checkout -c checkout-api --requests=memory=1Gi",
+    );
+    await expect(command.getByTestId("remediation-command-tier")).toHaveText(
+      "riskier change",
+    );
+    await expect(
+      command.getByTestId("remediation-command-approval"),
+    ).toHaveText("auto-approved");
+    await expect(
+      command.getByTestId("remediation-command-gitops"),
+    ).toContainText("Temporary fix");
+
+    await fixStep(ran, "run")
+      .getByTestId("remediation-fix-step-toggle")
+      .click();
+    const run: Locator = fixStep(ran, "run").getByTestId(
+      "remediation-command-run",
+    );
+    await expect(run.getByTestId("remediation-command-execution")).toHaveText(
+      "Succeeded",
+    );
+    await expect(run.getByTestId("remediation-command-duration")).toHaveText(
+      "3s",
+    );
+    await expect(run.getByTestId("remediation-command-output")).toHaveText(
+      "deployment.apps/checkout-api resource requirements updated",
+    );
+    await expect(run.getByTestId("remediation-command-exit-code")).toHaveText(
+      "Exit code: 0",
+    );
+
+    await fixStep(ran, "rollback")
+      .getByTestId("remediation-fix-step-toggle")
+      .click();
+    const undo: Locator = fixStep(ran, "rollback").getByTestId(
+      "remediation-rollback-outcome",
+    );
+    await expect(undo.getByTestId("remediation-command-line")).toHaveText(
+      "kubectl rollout undo deployment/checkout-api -n checkout",
+    );
+    await expect(undo.getByTestId("remediation-command-output")).toHaveText(
+      "deployment.apps/checkout-api rolled back",
+    );
+
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-fix-steps-rolled-back-open",
+    );
+  });
+
+  for (const [width, theme] of [
+    [390, "light"],
+    [390, "dark"],
+    [1280, "dark"],
+  ] as Array<[number, string]>) {
+    test(`at ${width}px, ${theme}: the steps and their output stay inside the step`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await openRolledBackFixes(page, theme === "dark" ? "theme=dark" : "");
+      await openEveryFix(page);
+      const body: Box = await documentBox(
+        page.getByTestId("ai-card-step-remediation-body"),
+      );
+
+      for (const transcript of await remediationStep(page)
+        .getByTestId("remediation-command-transcript")
+        .all()) {
+        const box: Box = await documentBox(transcript);
+        expect(box.x).toBeGreaterThanOrEqual(body.x - 1);
+        expect(box.x + box.width).toBeLessThanOrEqual(body.x + body.width + 1);
+      }
+      expect(
+        await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
+      ).toEqual([]);
+      expect(await panelsInsideTheCard(page)).toEqual([]);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await page.mouse.move(0, 0);
+      await screenshotElement(
+        remediationStep(page),
+        `remediation-fix-steps-rolled-back-${width}-${theme}`,
+      );
+    });
+  }
+
+  test("in Persian at 390px: the steps read right to left, the commands and their output left to right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 1000 });
+    await openRolledBackFixes(page, "lang=fa&dir=auto");
+    await openEveryFix(page);
+    const ran: Locator = remediationStep(page)
+      .getByTestId("remediation-fix")
+      .first();
+
+    expect(
+      await fixStep(ran, "run")
+        .getByTestId("remediation-fix-step-title")
+        .evaluate((element: Element): string => {
+          return window.getComputedStyle(element).direction;
+        }),
+    ).toBe("rtl");
+    expect(
+      await ran
+        .getByTestId("remediation-command-transcript")
+        .first()
+        .evaluate((element: Element): string => {
+          return window.getComputedStyle(element).direction;
+        }),
+    ).toBe("ltr");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-fix-steps-rolled-back-fa-390",
     );
   });
 });
@@ -21226,5 +22314,375 @@ test("the report's verdict fits a 320px phone: its two answers share the row, in
       false,
     );
   }
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * #5519's follow-ups (part 1): what an investigation says it hurts, first;
+ * how a runbook went before, over its Approve & Run; where a fix was
+ * approved; Dismiss fix, the step's own words, which asks what approving
+ * asks; a dry run's time in the reader's language; and an App Platforms
+ * environment named as one in the run's activity. Kept to five page loads:
+ * Event Overview's halves are near their groups' time.
+ * ---------------------------------------------------------------------------
+ */
+
+// The Dashboard's words in a language, as the page draws them.
+async function dashboardWords(
+  language: string,
+): Promise<Record<string, string>> {
+  return JSON.parse(
+    await fs.readFile(
+      path.resolve(
+        __dirname,
+        "../../App/FeatureSet/Dashboard/src/Locales",
+        `${language}.json`,
+      ),
+      "utf8",
+    ),
+  ) as Record<string, string>;
+}
+
+// A template's words with its values set in.
+function filledIn(template: string, values: Record<string, string>): string {
+  let text: string = template;
+  for (const name of Object.keys(values)) {
+    text = text.split(`{{${name}}}`).join(values[name]!);
+  }
+  return text;
+}
+
+// An element's words as read, without the marks that set a name apart.
+async function readWords(locator: Locator): Promise<string> {
+  return ((await locator.textContent()) || "")
+    .replace(/[⁦-⁩]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const DRY_RUN_WOULD_RUN: string =
+  "Dry run {{time}}: this change would run. Nothing was changed.";
+
+test.describe("what an investigation says it hurts, first (?impact=on)", () => {
+  function impactSection(page: Page): Locator {
+    return investigationStep(page).getByTestId("investigation-report-impact");
+  }
+
+  async function openImpact(page: Page, query: string): Promise<Locator> {
+    await open(page, INCIDENT_PATH, query);
+    await showFullReport(page);
+
+    const section: Locator = impactSection(page);
+    await expect(section).toBeVisible({ timeout: 30000 });
+    return section;
+  }
+
+  // Each line's mark, then its bold label: the line's first words.
+  async function markAndLabel(
+    page: Page,
+    line: Locator,
+  ): Promise<{ mark: Box; label: Box }> {
+    const [mark, label]: Array<Box> = await documentBoxes(page, [
+      line.locator("svg").first(),
+      line.locator("strong").first(),
+    ]);
+    return { mark: mark!, label: label! };
+  }
+
+  test("at 1280px: right under the summary, before the root cause - the users, the services and the SLOs, a line each with its mark and how it was worked out, cited", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const section: Locator = await openImpact(page, "impact=on");
+
+    await expect(section.getByRole("heading", { level: 3 })).toHaveText(
+      "Impact",
+    );
+    const lines: Locator = section.getByTestId("investigation-impact-line");
+    await expect(lines).toHaveCount(3);
+    expect(
+      await lines.evaluateAll(
+        (elements: Array<Element>): Array<string | null> => {
+          return elements.map((element: Element): string | null => {
+            return element.getAttribute("data-aspect");
+          });
+        },
+      ),
+    ).toEqual(["Users", "Services", "Slos"]);
+    await expect(lines.nth(0)).toContainText(
+      "Users: about 1,240 of 9,800 checkout requests took over 2 s or failed between 17:58 and 18:11 UTC",
+    );
+    await expect(lines.nth(1)).toContainText(
+      "Services: checkout-api, and the storefront, which calls it for every checkout",
+    );
+    await expect(lines.nth(2)).toContainText(
+      "SLOs: Checkout latency is At Risk",
+    );
+    // How the count was worked out is cited: it opens its evidence.
+    await expect(
+      lines.nth(0).getByRole("button", { name: /^Citation C7:/ }),
+    ).toBeVisible();
+
+    // A mark before each line's label, level with its first line.
+    for (let index: number = 0; index < 3; index++) {
+      const { mark, label } = await markAndLabel(page, lines.nth(index));
+      expect(mark.x + mark.width).toBeLessThanOrEqual(label.x);
+      expect(Math.abs(centreOf(mark) - centreOf(label))).toBeLessThanOrEqual(3);
+    }
+
+    // Said first: right under the summary, before the root cause.
+    const headings: Array<string> = await investigationStep(page)
+      .getByRole("heading", { level: 3 })
+      .allTextContents();
+    expect(headings.indexOf("Impact")).toBe(headings.indexOf("Summary") + 1);
+    expect(headings.indexOf("Most likely root cause")).toBeGreaterThan(
+      headings.indexOf("Impact"),
+    );
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshotElement(section, "investigation-impact-1280");
+  });
+
+  test("on a Persian phone in dark: each English line reads left to right, its mark at its left, inside the card - and a cloud fix's dry run says when in Persian", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const persian: Record<string, string> = await dashboardWords("fa");
+    const section: Locator = await openImpact(
+      page,
+      "impact=on&cloudfix=would-run&lang=fa&dir=auto&theme=dark",
+    );
+
+    const lines: Locator = section.getByTestId("investigation-impact-line");
+    await expect(lines).toHaveCount(3);
+    for (let index: number = 0; index < 3; index++) {
+      await expect(lines.nth(index)).toHaveAttribute("dir", "ltr");
+      const { mark, label } = await markAndLabel(page, lines.nth(index));
+      expect(mark.x).toBeLessThan(label.x);
+    }
+
+    const [stepBox, sectionBox]: Array<Box> = await documentBoxes(page, [
+      investigationStep(page),
+      section,
+    ]);
+    expect(sectionBox!.x).toBeGreaterThanOrEqual(stepBox!.x);
+    expect(sectionBox!.x + sectionBox!.width).toBeLessThanOrEqual(
+      stepBox!.x + stepBox!.width + 1,
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshotElement(section, "investigation-impact-390-fa-dark");
+
+    // Dry-run two minutes ago: Persian's words, in its own digits.
+    await openEveryFix(page);
+    const headline: Locator = remediationStep(page).getByTestId(
+      "remediation-dry-run-headline",
+    );
+    await expect
+      .poll(() => {
+        return readWords(headline);
+      })
+      .toBe(filledIn(persian[DRY_RUN_WOULD_RUN]!, { time: "۲ دقیقه پیش" }));
+  });
+});
+
+test.describe("a runbook's record, where a fix was approved, and Dismiss fix (?fixes=runbook)", () => {
+  const RUNBOOK_PROPOSAL_ID: string = uuid("93000000", 8);
+  const DISMISS_REFUSED: string =
+    "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.";
+
+  // The runbook that waits: "Restart checkout-api pods".
+  function runbookFix(page: Page): Locator {
+    return remediationStep(page)
+      .getByTestId("remediation-fix")
+      .filter({ hasText: "Restart checkout-api pods" });
+  }
+
+  // The kubectl fix on prod-eu-west-1 Maya Chen approved in Slack.
+  function slackApprovedFix(page: Page): Locator {
+    return remediationStep(page)
+      .getByTestId("remediation-fix")
+      .filter({ hasText: "prod-eu-west-1" });
+  }
+
+  function approvalTitle(fix: Locator): Locator {
+    return fix
+      .locator("[data-testid='remediation-fix-step'][data-step='approval']")
+      .getByTestId("remediation-fix-step-title");
+  }
+
+  async function openRunbookFixes(page: Page, query: string): Promise<void> {
+    await open(page, INCIDENT_PATH, query);
+    await expect(
+      runbookFix(page).getByTestId("remediation-runbook-track-record"),
+    ).toBeVisible({ timeout: 30000 });
+  }
+
+  test("at 1280px: the runbook says how it went before, over Approve & Run; the fix approved in Slack says so; Dismiss fix dismisses the runbook", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openRunbookFixes(page, "fixes=runbook");
+
+    const runbook: Locator = runbookFix(page);
+    const record: Locator = runbook.getByTestId(
+      "remediation-runbook-track-record",
+    );
+    await expect(
+      record.getByTestId("remediation-command-track-record"),
+    ).toHaveAttribute("data-tone", "Mixed");
+    await expect(
+      record.getByTestId("remediation-command-track-record-text"),
+    ).toHaveText("Worked 2 of the 3 times it ran here before");
+
+    // The incidents it ran for, each a link to its page; the one it did not fix in red.
+    const runs: Locator = record.getByTestId("remediation-track-record-run");
+    await expect(runs).toHaveText(["#1036", "#1029", "#1017"]);
+    expect(
+      await runs.evaluateAll((elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return element.getAttribute("href") || "";
+        });
+      }),
+    ).toEqual([incidentPath(1036), incidentPath(1029), incidentPath(1017)]);
+    await expect(runs.nth(1)).toHaveAttribute("title", "Didn't work here");
+
+    // Over what approving does, which is right over Approve & Run.
+    const [recordBox, noteBox, approveBox]: Array<Box> = await documentBoxes(
+      page,
+      [
+        record,
+        runbook.getByTestId("remediation-approval-note"),
+        runbook.getByTestId("remediation-approve-button"),
+      ],
+    );
+    expect(recordBox!.y + recordBox!.height).toBeLessThanOrEqual(noteBox!.y);
+    expect(noteBox!.y + noteBox!.height).toBeLessThanOrEqual(approveBox!.y);
+
+    // Where the other fix was approved, beside who approved it.
+    await expect
+      .poll(() => {
+        return readWords(approvalTitle(slackApprovedFix(page)));
+      })
+      .toBe("Approved by Maya Chen in Slack");
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-runbook-track-record-1280",
+    );
+
+    // Dismiss fix: a fix is dismissed, never hidden.
+    const dismiss: Locator = runbook.getByTestId("remediation-dismiss-button");
+    await expect(dismiss).toHaveText("Dismiss fix");
+    await dismiss.click();
+
+    await expect(runbook.getByTestId("remediation-fix-status")).toHaveText(
+      "Dismissed",
+      { timeout: 30000 },
+    );
+    const posts: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/auto-remediation/dismiss",
+    );
+    expect(posts).toHaveLength(1);
+    expect(posts[0]!.method).toBe("POST");
+    expect(posts[0]!.body).toEqual({ suggestionId: RUNBOOK_PROPOSAL_ID });
+    // Decided: how it went before is no longer what anyone weighs.
+    await expect(record).toHaveCount(0);
+  });
+
+  test("on a German phone in dark: the record, where the fix was approved and Dismiss fix in German - never its Hide - a refusal of it in German, and a dry run's time", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const german: Record<string, string> = await dashboardWords("de");
+    await openRunbookFixes(
+      page,
+      "fixes=runbook&cloudfix=would-run&fail=dismiss&lang=de&theme=dark",
+    );
+
+    const runbook: Locator = runbookFix(page);
+    await expect(
+      runbook.getByTestId("remediation-command-track-record-text"),
+    ).toHaveText(
+      filledIn(
+        german["Worked {{worked}} of the {{count}} times it ran here before"]!,
+        { worked: "2", count: "3" },
+      ),
+    );
+    await expect
+      .poll(() => {
+        return readWords(approvalTitle(slackApprovedFix(page)));
+      })
+      .toBe(
+        filledIn(german["Approved by {{name}} in Slack"]!, {
+          name: "Maya Chen",
+        }),
+      );
+
+    // Dismiss fix, never German's Hide, whatever the shared Dismiss reads.
+    const dismiss: Locator = runbook.getByTestId("remediation-dismiss-button");
+    await expect(dismiss).toHaveText(german["Dismiss fix"]!);
+    expect(german["Dismiss fix"]).not.toBe(german["Hide"]);
+
+    // Refused for want of the permission approving asks: why, in German.
+    await dismiss.click();
+    const refusal: Locator = runbook.getByTestId("remediation-action-error");
+    await expect(refusal).toContainText(
+      german["Could not save your action: the fix was not dismissed"]!,
+      { timeout: 30000 },
+    );
+    await expect(refusal).toContainText(german[DISMISS_REFUSED]!);
+    // Still waiting, its record and all.
+    await expect(
+      runbook.getByTestId("remediation-runbook-track-record"),
+    ).toBeVisible();
+
+    // The cloud fix's dry run, two minutes ago, as German says it.
+    await openEveryFix(page);
+    await expect
+      .poll(() => {
+        return readWords(
+          remediationStep(page).getByTestId("remediation-dry-run-headline"),
+        );
+      })
+      .toBe(filledIn(german[DRY_RUN_WOULD_RUN]!, { time: "vor 2 Minuten" }));
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-runbook-fixes-390-de-dark",
+    );
+  });
+});
+
+test("an App Platforms environment is named as one in the run's activity, beside a cloud resource (?linked=cloud)", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await open(page, INCIDENT_PATH, "ai=running&linked=cloud");
+  await expect(liveInvestigation(page)).toBeVisible({ timeout: 30000 });
+
+  await expect
+    .poll(async () => {
+      return (await stepTexts(page)).slice(0, 2);
+    })
+    .toEqual([
+      "Starting investigation",
+      "Read 2 open or recent alerts on Cloud environment checkout-web (Production), Cloud resource checkout-api and Service checkout-api",
+    ]);
   await expectNoSidewaysScroll(page, { tolerance: 1 });
 });

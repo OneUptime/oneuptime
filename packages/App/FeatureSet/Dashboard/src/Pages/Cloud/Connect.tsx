@@ -46,7 +46,9 @@ import React, {
  * service and region, with their key metrics. Nothing to install.
  *
  * Connected accounts are listed under the tiles with how each is doing and
- * what it holds. A link with ?cloud=aws (azure, gcp) opens that cloud's
+ * what it holds; an AWS account's row can also stream its CloudWatch
+ * metrics and logs through Amazon Data Firehose, within minutes of
+ * CloudWatch having them. A link with ?cloud=aws (azure, gcp) opens that cloud's
  * form at once, so the empty All Resources page can send people straight
  * to it.
  */
@@ -331,7 +333,7 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
           />
           <span>
             {translator.translateText(
-              "Already run an OpenTelemetry Collector, or need CloudWatch Metric Streams?",
+              "Already run an OpenTelemetry Collector?",
             )}{" "}
             <a
               href={cloudConnectionDocsUrl(
@@ -356,12 +358,18 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
           awsRoleSetup={awsRoleSetup}
           onClose={closeForm}
           onSaved={(saved: { name: string; isNew: boolean }) => {
+            const isAws: boolean = formState.provider === CloudProvider.AWS;
+
             closeForm();
             setNotice(
               saved.isNew
-                ? translator.translateText(
-                    "Connected. The first read starts within a minute; resources appear under All Resources as it finds them.",
-                  )
+                ? isAws
+                  ? translator.translateText(
+                      "Connected. The first read starts within a minute; resources appear under All Resources as it finds them. For metrics within minutes, and CloudWatch Logs, choose Stream metrics and logs in its row.",
+                    )
+                  : translator.translateText(
+                      "Connected. The first read starts within a minute; resources appear under All Resources as it finds them.",
+                    )
                 : translator.translateText(
                     "Saved. The connection is read again within a minute.",
                   ),

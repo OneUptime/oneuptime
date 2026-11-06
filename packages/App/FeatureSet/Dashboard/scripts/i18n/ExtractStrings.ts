@@ -132,6 +132,8 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   { directory: "packages/Common/Models/AnalyticsModels", kind: "models" },
   // What a failed vCenter collection means and what fixes it (VMwareCollectionError).
   { directory: "packages/Common/Types/VMware", kind: "ui" },
+  // What a failed OpenStack collection means and what fixes it (OpenStackCollectionError).
+  { directory: "packages/Common/Types/OpenStack", kind: "ui" },
   /*
    * What a case's verdicts mean, and what each playbook action does: the
    * close dialog and the step editor show them as written there.
@@ -192,12 +194,30 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "ui",
   },
   /*
+   * What is wrong with a Security Events monitor's watchlist filters: the
+   * monitor's form shows it under Filter by Watchlists, and the API answers
+   * a save with the same words.
+   */
+  {
+    directory: "packages/Common/Types/SecurityEvent/SecurityWatchlistFilter.ts",
+    kind: "ui",
+  },
+  /*
    * What is wrong with a hunt, and why a scheduled run could not be made:
    * the hunt's form shows each problem under its field, and its page and
    * the Hunts list say the last run's in the reader's language.
    */
   {
     directory: "packages/Common/Types/SecurityEvent/SecurityHunt.ts",
+    kind: "ui",
+  },
+  /*
+   * The Hunt Library's starters: each one's name and what it finds, as its
+   * row draws them and the hunt it becomes is named and described, in the
+   * reader's language. Its search is drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/SecurityEvent/SecurityHuntLibrary.ts",
     kind: "ui",
   },
   /*
@@ -208,6 +228,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Telemetry/TraceSpanType.ts",
+    kind: "keys",
+  },
+  /*
+   * Why Add or Delete is locked on the Global User Overrides page for a
+   * reader whose permission to add or delete overrides covers only some
+   * policies - the words the server refuses with. Only the sentences the
+   * file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/OnCallDutyPolicy/GlobalUserOverrideAccess.ts",
     kind: "keys",
   },
   /*
@@ -261,6 +292,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * A database's status and what needs attention on it, by the lines of its
+   * engine's recommended alerts: the Databases list and its Needs attention
+   * card, a database's hero and its Needs attention say them in the
+   * reader's language. Only the words the file marks are read: the alert
+   * templates' own names and the metric names stay as written.
+   */
+  {
+    directory: "packages/Common/Types/DatabaseServer/DatabaseHealth.ts",
+    kind: "keys",
+  },
+  /*
    * Where a database or a queue was found ("Application traces", "Added
    * manually") and what kind of cloud resource one is ("Databases and
    * caches"): a database's and a queue's Overview, their lists and a cloud
@@ -282,6 +324,37 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * A cloud resource's status and what needs attention on it, by one set
+   * of rules from its key metrics: the Cloud Overview's Needs attention,
+   * the lists, a resource's hero and tiles say them in the reader's
+   * language. Only the words the file marks are read: a metric's name is
+   * drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudResourceHealth.ts",
+    kind: "keys",
+  },
+  /*
+   * What the clouds cost and how to spend less: the kinds of saving the
+   * Savings page and its strip name. Only the words the file marks are
+   * read: the server keeps the clouds' own words for a recommendation.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudCost.ts",
+    kind: "keys",
+  },
+  /*
+   * A cloud change's title - "Failed: DeleteLoadBalancer on web-alb" - in
+   * the reader's language: a cloud resource's and an account's Changes,
+   * the chart markers and the security cards word it from what the change
+   * keeps. Only the frame is a key: the operation and the resource are the
+   * cloud's words and OneUptime's names, drawn as written.
+   */
+  {
+    directory: "packages/Common/Utils/Telemetry/CloudChangeTitle.ts",
+    kind: "keys",
+  },
+  /*
    * The column titles of the tables OneUptime AI's tools put beside an
    * answer ("Time", "Severity", "Last seen"): the chat draws each in the
    * reader's language (DataTableWidget). Only the titles the tools mark are
@@ -289,6 +362,63 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Server/Utils/AI/Toolbox",
+    kind: "keys",
+  },
+  /*
+   * What an AI action's approval card says - its title and the line under
+   * it - and the kinds of resource it names: the server stores each as a
+   * sentence of AIActionWords and the card says it in the reader's
+   * language (ToolActionWords). Only the words the files mark are read.
+   */
+  {
+    directory: "packages/Common/Types/AI/AIActionWords.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/AI/AiAffectedResources.ts",
+    kind: "keys",
+  },
+  /*
+   * How an AI remediation round reads on the Remediation step - 'AI
+   * remediation for cluster "prod"' - in the reader's language, and the
+   * kinds of resource a round runs on.
+   */
+  {
+    directory: "packages/Common/Types/AutoRemediation/RemediationRoundName.ts",
+    kind: "keys",
+  },
+  /*
+   * The curated metrics' names: a database's engine charts and tiles, a
+   * queue's Broker health charts and tiles (with the unit words their
+   * titles add, "Buffer pool size (pages)"), and the storage array, Proxmox,
+   * OpenStack and Ceph metric pickers and Metrics tabs. Only the names the
+   * files mark are read: metric names, attribute keys and descriptions stay
+   * as written.
+   */
+  {
+    directory:
+      "packages/Common/Types/DatabaseServer/DatabaseServerMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory:
+      "packages/Common/Types/MessageQueue/MessageQueueMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/StorageArrayMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/ProxmoxMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/OpenStackMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/CephMetricCatalog.ts",
     kind: "keys",
   },
 ];
@@ -351,6 +481,8 @@ export const USER_FACING_PROPS: ReadonlySet<string> = new Set<string>([
   "heading",
   "helpText",
   "hint",
+  // A resource overview's identifier line: "type", "account" (ResourceOverview).
+  "identifierLabel",
   // A telemetry explorer's chart title (TelemetryViewer looks it up).
   "histogramTitle",
   "label",
@@ -377,6 +509,8 @@ export const USER_FACING_PROPS: ReadonlySet<string> = new Set<string>([
   "seriesName",
   "singularLabel",
   "singularName",
+  // A resource overview's status pill's hover (ResourceOverview).
+  "statusDescription",
   "strongTitle",
   "sublabel",
   "submitButtonText",

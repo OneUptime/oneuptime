@@ -8,6 +8,10 @@ import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import Dictionary from "Common/Types/Dictionary";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import Permission from "Common/Types/Permission";
+import {
+  LinkedRecordColumn,
+  getLinkedRecordColumn,
+} from "Common/Types/Workflow/LinkedRecord";
 import { isSystemColumnId } from "Common/Types/Workflow/SystemColumns";
 import Entities from "Common/Models/DatabaseModels/Index";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -35,6 +39,15 @@ interface ColumnDescriptor {
    * Fields to watch names it in the relation's place.
    */
   relationIdColumn?: string | undefined;
+  /*
+   * For a column that names another record of the project - the ID of a
+   * related one, a list of them, a record's own ID - the table those records
+   * are in, when they can be listed. The builder then offers them by name, and
+   * what it writes is still the ID (Types/Workflow/LinkedRecord).
+   */
+  linkedTableName?: string | undefined;
+  // What the builder calls that setting: Incident Severity, not ... ID.
+  linkedTitle?: string | undefined;
   /** Whether a create must supply this column. Mirrors @TableColumn required. */
   required: boolean;
   /**
@@ -297,6 +310,22 @@ const describeColumns: (
       columns[column.manyToOneRelationColumn]
     ) {
       descriptor.relationIdColumn = column.manyToOneRelationColumn;
+    }
+
+    /*
+     * Only for the model being described: a related record's own columns are
+     * listed to be read, never to be pointed at another record.
+     */
+    if (options.includeRelations) {
+      const linked: LinkedRecordColumn | null = getLinkedRecordColumn(
+        modelInstance,
+        columnId,
+      );
+
+      if (linked) {
+        descriptor.linkedTableName = linked.tableName;
+        descriptor.linkedTitle = linked.title;
+      }
     }
 
     if (isRelation && column.modelType) {

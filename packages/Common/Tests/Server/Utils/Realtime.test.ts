@@ -833,6 +833,126 @@ describe("Realtime (server) ListenToModelEvent", () => {
   });
 
   /*
+   * A page that shows one record (a task's conversation in Code) listens
+   * to that record alone: the join, asked exactly as any other, takes the
+   * record's own room, where the server sends every change of it.
+   */
+  describe("a page that listens to one record", () => {
+    const RECORD_ID: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+    const RECORD_REQUEST: ListenToModelEventJSON = {
+      eventType: ModelEventType.Update,
+      modelType: DatabaseType.Database,
+      modelName: "AIRun",
+      tenantId: TENANT_ID,
+      modelId: RECORD_ID,
+    };
+
+    test("joins the record's own room - not the model's - after the same checks", async () => {
+      memberOf([TENANT_ID]);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await expect(listen(socket, RECORD_REQUEST)).resolves.toBe(
+        ListenToModelEventOutcome.Joined,
+      );
+
+      expect(socket.joinedRooms).toEqual([
+        RealtimeUtil.getRecordRoomId(TENANT_ID, "AIRun", RECORD_ID),
+      ]);
+      // The record's room is the one the server sends its changes to.
+      expect(socket.joinedRooms[0]).toBe(
+        RealtimeUtil.getRoomId(
+          TENANT_ID,
+          "AIRun",
+          ModelEventType.Create,
+          RECORD_ID,
+        ),
+      );
+      expect(Realtime.hasPermissionsByModelName).toHaveBeenCalledWith(
+        expect.anything(),
+        "AIRun",
+      );
+    });
+
+    test("a member who may not read the model joins no room of its records either", async () => {
+      memberOf([TENANT_ID]);
+      (
+        Realtime.hasPermissionsByModelName as unknown as jest.Mock
+      ).mockReturnValue(false);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await expect(listen(socket, RECORD_REQUEST)).resolves.toBe(
+        ListenToModelEventOutcome.NotAuthorized,
+      );
+
+      expect(socket.joinedRooms).toEqual([]);
+    });
+
+    test("not a member of the project: no record room either", async () => {
+      memberOf([OTHER_TENANT_ID]);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await expect(listen(socket, RECORD_REQUEST)).resolves.not.toBe(
+        ListenToModelEventOutcome.Joined,
+      );
+
+      expect(socket.joinedRooms).toEqual([]);
+    });
+
+    test.each([
+      ["a record that is not an id", "not-a-record"],
+      ["a number", 42],
+      ["an object", { id: RECORD_ID }],
+      ["an empty name", ""],
+    ])(
+      "%s is a malformed request: nothing is looked up, no room is joined",
+      async (_case: string, modelId: unknown) => {
+        memberOf([TENANT_ID]);
+
+        const socket: FakeServerSocket = new FakeServerSocket(
+          cookieWith(validToken()),
+        );
+
+        await expect(
+          listen(socket, {
+            ...RECORD_REQUEST,
+            modelId: modelId as string,
+          }),
+        ).resolves.toBe(ListenToModelEventOutcome.InvalidRequest);
+
+        expect(socket.joinedRooms).toEqual([]);
+        expect(socket.emitted).toEqual([]);
+        expect(tenantPermissionLookup).not.toHaveBeenCalled();
+      },
+    );
+
+    test("a request that names no record still joins the model's room for the kind", async () => {
+      memberOf([TENANT_ID]);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await expect(
+        listen(socket, { ...RECORD_REQUEST, modelId: undefined }),
+      ).resolves.toBe(ListenToModelEventOutcome.Joined);
+
+      expect(socket.joinedRooms).toEqual([
+        RealtimeUtil.getRoomId(TENANT_ID, "AIRun", ModelEventType.Update),
+      ]);
+    });
+  });
+
+  /*
    * The project's Require SSO rule - and the instance-wide one - apply to
    * live updates as they apply to requests: the join runs the API's own
    * project access check against the handshake's cookies.

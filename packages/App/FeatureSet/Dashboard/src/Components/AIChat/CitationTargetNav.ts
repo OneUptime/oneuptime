@@ -49,6 +49,7 @@ export const targetTypeToPageMap: {
   [AIChatCitationTargetType.RunbookView]: PageMap.RUNBOOK_VIEW,
   [AIChatCitationTargetType.Workflows]: PageMap.WORKFLOWS,
   [AIChatCitationTargetType.WorkflowView]: PageMap.WORKFLOW_VIEW,
+  [AIChatCitationTargetType.WorkflowBuilder]: PageMap.WORKFLOW_BUILDER,
   [AIChatCitationTargetType.Probes]: PageMap.MONITORS_SETTINGS_PROBES,
   [AIChatCitationTargetType.Teams]: PageMap.TEAMS,
   [AIChatCitationTargetType.SecurityEvents]: PageMap.SECURITY_EVENTS,
@@ -68,6 +69,8 @@ export const targetTypeToPageMap: {
   [AIChatCitationTargetType.DataSecurityIssueView]:
     PageMap.DATA_SECURITY_ISSUE_VIEW,
   [AIChatCitationTargetType.DataSecurityAccess]: PageMap.DATA_SECURITY_ACCESS,
+  [AIChatCitationTargetType.DataTableView]:
+    PageMap.DATA_OBSERVABILITY_TABLE_VIEW,
 };
 
 export const targetTypeToIcon: {
@@ -96,6 +99,7 @@ export const targetTypeToIcon: {
   [AIChatCitationTargetType.RunbookView]: IconProp.Book,
   [AIChatCitationTargetType.Workflows]: IconProp.Workflow,
   [AIChatCitationTargetType.WorkflowView]: IconProp.Workflow,
+  [AIChatCitationTargetType.WorkflowBuilder]: IconProp.Workflow,
   [AIChatCitationTargetType.Probes]: IconProp.Signal,
   [AIChatCitationTargetType.Teams]: IconProp.Team,
   [AIChatCitationTargetType.SecurityEvents]: IconProp.ShieldExclamation,
@@ -114,6 +118,7 @@ export const targetTypeToIcon: {
   [AIChatCitationTargetType.DataSecurityIssues]: IconProp.ShieldExclamation,
   [AIChatCitationTargetType.DataSecurityIssueView]: IconProp.ShieldExclamation,
   [AIChatCitationTargetType.DataSecurityAccess]: IconProp.Key,
+  [AIChatCitationTargetType.DataTableView]: IconProp.TableCells,
 };
 
 /*

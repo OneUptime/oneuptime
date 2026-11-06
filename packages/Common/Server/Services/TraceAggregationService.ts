@@ -33,6 +33,13 @@ import ResourceFacetResolver, {
   ResolvedFacetValue,
   ResourceFacetSpec,
 } from "../Utils/Telemetry/ResourceFacetResolver";
+import {
+  METRIC_INSIGHT_SERVED_PROTOCOLS,
+  METRIC_INSIGHT_SERVED_SPANS,
+  MetricServedProtocol,
+  MetricServedSpanDefinition,
+  MetricServedSpansReading,
+} from "../../Utils/Metrics/MetricInsight";
 
 export interface HistogramBucket {
   time: string;
@@ -295,6 +302,24 @@ export const CODE_FUNCTION_ATTRIBUTE_KEYS: Array<string> = [
 
 // How long the code location sample may read before it stops with an error.
 export const CODE_LOCATION_SAMPLE_TIME_LIMIT_IN_SECONDS: number = 20;
+
+/*
+ * What a service's requests are, from a sample of its entry spans
+ * (getServedSpanSample): Metrics AI's missing request metrics, which name
+ * the request metric for what a service serves (Utils/Metrics/
+ * MetricInsight).
+ */
+export interface ServedSpanSampleRequest {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  serviceId: ObjectID;
+  // The SERVER and CONSUMER spans read at most.
+  sampleSize: number;
+}
+
+// How long the sample may read before it stops with an error.
+export const SERVED_SPAN_SAMPLE_TIME_LIMIT_IN_SECONDS: number = 20;
 
 /*
  * Per-service latency profile over a whole window (no time buckets). Only
@@ -1994,6 +2019,156 @@ export class TraceAggregationService {
     );
 
     return statement;
+  }
+
+  /*
+   * What a service's requests are: how many of a sample of its entry spans
+   * of the window - its SERVER and CONSUMER spans - are an HTTP server's,
+   * an RPC server's and a messaging consumer's (MetricInsight's
+   * METRIC_INSIGHT_SERVED_SPANS: the kind, and an attribute the semantic
+   * conventions put on it). Metrics AI asks it, unattended, for the few
+   * services each hourly look leaves - busy, sending metrics, never one for
+   * their requests - so it reads little: at most `sampleSize` spans (no
+   * ORDER BY in the inner read, so ClickHouse stops once it has them), the
+   * kind's skip index first, only the attribute keys of the spans it
+   * keeps, four threads and small blocks, and it stops with an error at its
+   * time limit rather than answer with part of a sample.
+   */
+  @CaptureSpan()
+  public static async getServedSpanSample(
+    request: ServedSpanSampleRequest,
+  ): Promise<MetricServedSpansReading> {
+    const dbResult: Results = await SpanService.executeQuery(
+      TraceAggregationService.buildServedSpanSampleStatement(request),
+    );
+
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return TraceAggregationService.toServedSpanSample(
+      (response.data || [])[0] || {},
+    );
+  }
+
+  public static buildServedSpanSampleStatement(
+    request: ServedSpanSampleRequest,
+  ): Statement {
+    const statement: Statement = new Statement();
+
+    statement.append("SELECT count() AS sampled");
+
+    for (const protocol of METRIC_INSIGHT_SERVED_PROTOCOLS) {
+      const served: MetricServedSpanDefinition =
+        METRIC_INSIGHT_SERVED_SPANS[protocol];
+
+      // The kind is the code's own, one of two: never a caller's.
+      statement.append(`, countIf(kind = '${served.kind}' AND (`);
+
+      served.attributeKeys.forEach((key: string, index: number): void => {
+        if (index > 0) {
+          statement.append(" OR ");
+        }
+
+        statement.append(
+          SQL`has(attributeKeys, ${{
+            type: TableColumnType.Text,
+            value: key,
+          }})`,
+        );
+      });
+
+      statement.append(
+        `)) AS ${TraceAggregationService.SERVED_SPAN_ALIASES[protocol]}`,
+      );
+    }
+
+    const kinds: Array<string> = Array.from(
+      new Set(
+        METRIC_INSIGHT_SERVED_PROTOCOLS.map(
+          (protocol: MetricServedProtocol): string => {
+            return METRIC_INSIGHT_SERVED_SPANS[protocol].kind;
+          },
+        ),
+      ),
+    );
+
+    statement.append(
+      SQL` FROM (SELECT kind, attributeKeys FROM ${TraceAggregationService.TABLE_NAME} WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND startTime >= ${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }} AND startTime < ${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }}`,
+    );
+
+    statement.append(
+      ` AND kind IN (${kinds
+        .map((kind: string): string => {
+          return `'${kind}'`;
+        })
+        .join(", ")})`,
+    );
+
+    TelemetryReadScopeUtil.appendServiceFilter(statement, {
+      serviceIds: [request.serviceId],
+    });
+
+    statement.append(TraceAggregationService.RETENTION_FILTER);
+
+    statement.append(
+      SQL` LIMIT ${{
+        type: TableColumnType.Number,
+        value: request.sampleSize,
+      }})`,
+    );
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: SERVED_SPAN_SAMPLE_TIME_LIMIT_IN_SECONDS,
+        timeoutOverflowMode: "throw",
+        boundScanMemory: true,
+      }),
+    );
+
+    return statement;
+  }
+
+  // Each protocol's count, as the sample's statement names it.
+  private static readonly SERVED_SPAN_ALIASES: Readonly<
+    Record<MetricServedProtocol, string>
+  > = {
+    [MetricServedProtocol.Http]: "http_server",
+    [MetricServedProtocol.Rpc]: "rpc_server",
+    [MetricServedProtocol.Messaging]: "messaging_consumer",
+  };
+
+  // The sample's row, as Metrics AI's gate reads it. Pure.
+  public static toServedSpanSample(row: JSONObject): MetricServedSpansReading {
+    const count: (key: string) => number = (key: string): number => {
+      const value: number = Number(row[key] || 0);
+
+      return Number.isFinite(value) && value > 0 ? value : 0;
+    };
+
+    return {
+      sampledSpanCount: count("sampled"),
+      httpServerSpanCount: count(
+        TraceAggregationService.SERVED_SPAN_ALIASES[MetricServedProtocol.Http],
+      ),
+      rpcServerSpanCount: count(
+        TraceAggregationService.SERVED_SPAN_ALIASES[MetricServedProtocol.Rpc],
+      ),
+      messagingConsumerSpanCount: count(
+        TraceAggregationService.SERVED_SPAN_ALIASES[
+          MetricServedProtocol.Messaging
+        ],
+      ),
+    };
   }
 
   /**

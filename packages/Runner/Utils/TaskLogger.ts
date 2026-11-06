@@ -9,11 +9,36 @@ import logger from "Common/Server/Utils/Logger";
 import OneUptimeDate from "Common/Types/Date";
 import SecretRedactor from "./SecretRedactor";
 
+/*
+ * How long a line waits before it is sent: long enough that the lines a
+ * step writes together (a tool call, the note after it) go together, short
+ * enough that the step reaches the task's page as it happens - the server
+ * announces every line to the pages open on the run (CodeTaskLive). Lines
+ * used to wait for a five-second timer.
+ */
+export const DEFAULT_LOG_SEND_DELAY_MS: number = 250;
+
+/*
+ * The lines of one task, sent one at a time and in the order they were
+ * written, whichever of the task's loggers wrote them: the server numbers
+ * a run's lines as they arrive, so two sent at once could swap places.
+ */
+export interface TaskLogSendQueue {
+  tail: Promise<void>;
+}
+
 export interface TaskLoggerOptions {
   taskId: string;
   context?: string;
+  // Lines that are sent at once, without waiting, when this many wait.
   batchSize?: number;
+  /*
+   * The longest a written line waits before it is sent
+   * (DEFAULT_LOG_SEND_DELAY_MS). An error line is sent at once.
+   */
   flushIntervalMs?: number;
+  // A child logger's: its parent's queue (createChildLogger).
+  sendQueue?: TaskLogSendQueue | undefined;
 }
 
 interface LogEntry {
@@ -38,17 +63,20 @@ export default class TaskLogger {
   private logBuffer: Array<LogEntry> = [];
   private batchSize: number;
   private flushIntervalMs: number;
-  private flushTimer: ReturnType<typeof setInterval> | null = null;
+  /*
+   * Set while lines wait to be sent, and only then: a logger with nothing
+   * to send keeps no timer, so one that is never disposed wakes nothing.
+   */
+  private flushTimer: ReturnType<typeof setTimeout> | null = null;
+  private sendQueue: TaskLogSendQueue;
   private createLogUrl: URL | null = null;
 
   public constructor(options: TaskLoggerOptions) {
     this.taskId = options.taskId;
     this.context = options.context;
     this.batchSize = options.batchSize || 10;
-    this.flushIntervalMs = options.flushIntervalMs || 5000; // 5 seconds default
-
-    // Start periodic flush timer
-    this.startFlushTimer();
+    this.flushIntervalMs = options.flushIntervalMs || DEFAULT_LOG_SEND_DELAY_MS;
+    this.sendQueue = options.sendQueue || { tail: Promise.resolve() };
   }
 
   private getCreateLogUrl(): URL {
@@ -60,8 +88,15 @@ export default class TaskLogger {
     return this.createLogUrl;
   }
 
-  private startFlushTimer(): void {
-    this.flushTimer = setInterval(() => {
+  // Sends what waits once the line just written has waited flushIntervalMs.
+  private scheduleFlush(): void {
+    if (this.flushTimer) {
+      return;
+    }
+
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null;
+
       this.flush().catch((err: Error) => {
         logger.error(`Error flushing logs: ${err.message}`);
       });
@@ -70,7 +105,7 @@ export default class TaskLogger {
 
   private stopFlushTimer(): void {
     if (this.flushTimer) {
-      clearInterval(this.flushTimer);
+      clearTimeout(this.flushTimer);
       this.flushTimer = null;
     }
   }
@@ -135,7 +170,11 @@ export default class TaskLogger {
       this.flush().catch((err: Error) => {
         logger.error(`Error auto-flushing logs: ${err.message}`);
       });
+      return;
     }
+
+    // Otherwise in a moment, with whatever else is written meanwhile.
+    this.scheduleFlush();
   }
 
   private async sendLogToServer(entry: LogEntry): Promise<boolean> {
@@ -237,9 +276,16 @@ export default class TaskLogger {
     this.addToBuffer(severity, formattedCode);
   }
 
-  // Flush all buffered logs to the server
+  /*
+   * Sends every line waiting, after the task's lines already on their way:
+   * resolves once these are sent (or refused).
+   */
   public async flush(): Promise<void> {
+    this.stopFlushTimer();
+
     if (this.logBuffer.length === 0) {
+      // Nothing of this logger's waits; what is on its way finishes first.
+      await this.sendQueue.tail;
       return;
     }
 
@@ -247,17 +293,28 @@ export default class TaskLogger {
     const entries: Array<LogEntry> = [...this.logBuffer];
     this.logBuffer = [];
 
-    // Send each log entry separately to preserve individual log lines
-    for (const entry of entries) {
-      await this.sendLogToServer({
-        ...entry,
-        message: this.formatMessage(
-          entry.severity,
-          entry.message,
-          entry.timestamp,
-        ),
-      });
-    }
+    const sending: Promise<void> = this.sendQueue.tail.then(
+      async (): Promise<void> => {
+        // Send each log entry separately to preserve individual log lines
+        for (const entry of entries) {
+          await this.sendLogToServer({
+            ...entry,
+            message: this.formatMessage(
+              entry.severity,
+              entry.message,
+              entry.timestamp,
+            ),
+          });
+        }
+      },
+    );
+
+    // The next lines wait for these, whether or not they were taken.
+    this.sendQueue.tail = sending.catch((): void => {
+      // sendLogToServer logs its own failures.
+    });
+
+    await sending;
   }
 
   // Cleanup method - call when task is done
@@ -290,6 +347,8 @@ export default class TaskLogger {
       context: fullContext,
       batchSize: this.batchSize,
       flushIntervalMs: this.flushIntervalMs,
+      // One queue for the task: the child's lines take their turn with the parent's.
+      sendQueue: this.sendQueue,
     });
   }
 }

@@ -62,7 +62,7 @@ L'app mostra un progetto alla volta: tocca il nome del progetto in cima a una sc
 
 :::steps
 ### Trovare il dispositivo nella dashboard
-Nella dashboard, apri **Impostazioni utente → Metodi di notifica** e la scheda **Push Notifications**. L'iPhone o iPad compare in **Dispositivi per notifiche push** con il nome del modello. Ogni progetto tiene un suo elenco.
+Nella dashboard, apri **Impostazioni utente → Metodi di notifica** e la scheda **Notifiche push**. L'iPhone o iPad compare in **Dispositivi per notifiche push** con il nome del modello. Ogni progetto tiene un suo elenco.
 
 ### Inviare un test
 Fai clic su **Notifica di test** sulla riga del dispositivo. Sul dispositivo arriva una notifica; toccala per aprire l'app.
@@ -130,7 +130,7 @@ L'app non è riuscita a raggiungere `https://<your-oneuptime>/api/status`. Contr
 
 :::details Non arriva nessuna notifica
 - Controlla che **Consenti notifiche** sia attivo in **Impostazioni → Notifiche → OneUptime On-Call**, e che nessuna modalità Full immersion trattenga gli avvisi.
-- Controlla che il dispositivo compaia in **Push Notifications** in **Impostazioni utente → Metodi di notifica**, e inviagli una **Notifica di test**.
+- Controlla che il dispositivo compaia in **Notifiche push** in **Impostazioni utente → Metodi di notifica**, e inviagli una **Notifica di test**.
 - Se il dispositivo è segnato **Non riceve notifiche**, apri l'app da connesso. Registra di nuovo il dispositivo; vedi [Quando un telefono deve registrarsi di nuovo](/docs/mobile-desktop-apps/faq-troubleshooting#quando-un-telefono-deve-registrarsi-di-nuovo).
 - Controlla le tue regole di reperibilità in **Impostazioni utente → Regole di reperibilità**.
 - Su un OneUptime self-hosted, controlla che il server raggiunga il suo relay push: vedi [Notifiche push](/docs/self-hosted/push-notifications#accesso-di-rete).

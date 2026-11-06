@@ -1032,7 +1032,7 @@ describe("InsightScanner — the telemetry AI lanes", () => {
     });
   });
 
-  test("Metrics' three detectors run on its tick while its switch is on - apart from the other lanes'", () => {
+  test("Metrics' four detectors run on its tick while its switch is on - apart from the other lanes'", () => {
     const types: (project: Project, now: Date) => Array<AIInsightType> = (
       project: Project,
       now: Date,
@@ -1053,6 +1053,7 @@ describe("InsightScanner — the telemetry AI lanes", () => {
       AIInsightType.MetricHighCardinality,
       AIInsightType.MetricHistogramBuckets,
       AIInsightType.MetricMissingMetrics,
+      AIInsightType.MetricMissingRequestMetrics,
     ]);
     expect(types(metricsOnly, QUARTER_PAST)).toEqual([]);
 

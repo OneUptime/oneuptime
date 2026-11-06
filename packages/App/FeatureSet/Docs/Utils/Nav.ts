@@ -331,6 +331,10 @@ const DocsNav: NavGroup[] = [
         title: "VMware Monitor",
         url: "/docs/monitor/vmware-monitor",
       },
+      {
+        title: "OpenStack Monitor",
+        url: "/docs/monitor/openstack-monitor",
+      },
     ],
   },
   // Monitors whose criteria run over the telemetry OneUptime ingests.
@@ -617,6 +621,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/workspace-connections/microsoft-teams",
       },
       {
+        title: "Mattermost",
+        url: "/docs/workspace-connections/mattermost",
+      },
+      {
         title: "Video Calls",
         url: "/docs/workspace-connections/video-calls",
       },
@@ -796,6 +804,22 @@ const DocsNav: NavGroup[] = [
         title: "Serverless Functions",
         url: "/docs/telemetry/serverless-functions",
       },
+      {
+        title: "OpenStack Agent",
+        url: "/docs/telemetry/openstack",
+      },
+      {
+        title: "OpenStack Without an Agent",
+        url: "/docs/telemetry/openstack-agentless",
+      },
+      {
+        title: "OpenStack by Deployment Tool",
+        url: "/docs/telemetry/openstack-deployment-tools",
+      },
+      {
+        title: "Very Large OpenStack Clouds",
+        url: "/docs/telemetry/openstack-very-large-clouds",
+      },
     ],
   },
   /*
@@ -849,6 +873,14 @@ const DocsNav: NavGroup[] = [
       {
         title: "Cloud Resources (IaaS & PaaS)",
         url: "/docs/telemetry/cloud-resources",
+      },
+      {
+        title: "Cloud Costs and Savings",
+        url: "/docs/telemetry/cloud-costs",
+      },
+      {
+        title: "Stream CloudWatch Metrics and Logs",
+        url: "/docs/telemetry/cloud-streaming",
       },
     ],
   },
@@ -973,6 +1005,46 @@ const DocsNav: NavGroup[] = [
       {
         title: "Data Security Integrations",
         url: "/docs/data-security/integrations",
+      },
+    ],
+  },
+  /*
+   * Data Observability is its own product beside Data Security: whether the
+   * data in a project's databases and warehouses is fresh, right and
+   * whole, where it comes from, and who relies on it. The Dashboard's Data
+   * Observability pages link to its overview.
+   */
+  {
+    title: "Data Observability",
+    section: "Observability",
+    links: [
+      {
+        title: "Data Observability Overview",
+        url: "/docs/data-observability/index",
+      },
+      {
+        title: "Connect a Database",
+        url: "/docs/data-observability/connect",
+      },
+      {
+        title: "Table Health",
+        url: "/docs/data-observability/table-health",
+      },
+      {
+        title: "Checks and Reconciliations",
+        url: "/docs/data-observability/checks",
+      },
+      {
+        title: "Lineage and Pipelines",
+        url: "/docs/data-observability/lineage-and-pipelines",
+      },
+      {
+        title: "Data Products",
+        url: "/docs/data-observability/data-products",
+      },
+      {
+        title: "OneUptime AI and the API",
+        url: "/docs/data-observability/ai-and-api",
       },
     ],
   },
@@ -1262,6 +1334,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Datadog",
         url: "/docs/integrations/datadog",
+      },
+      {
+        title: "New Relic",
+        url: "/docs/integrations/new-relic",
       },
       {
         title: "Huntress",
@@ -1575,6 +1651,11 @@ const DocsNav: NavGroup[] = [
         title: "Kubernetes and Helm",
         url: "https://artifacthub.io/packages/helm/oneuptime/oneuptime",
       },
+      // A cluster with no route to the internet: a release's images and signed chart, carried across.
+      {
+        title: "Air-Gapped Installation",
+        url: "/docs/installation/air-gapped",
+      },
       {
         title: "Cloud Marketplaces",
         url: "/docs/installation/cloud-marketplaces",
@@ -1650,6 +1731,20 @@ const DocsNav: NavGroup[] = [
       {
         title: "Enterprise Edition",
         url: "/docs/self-hosted/enterprise",
+      },
+      // Verifying the images and the chart: signatures, SBOMs, provenance and vulnerability reports.
+      {
+        title: "Supply Chain Security",
+        url: "/docs/self-hosted/supply-chain-security",
+      },
+      // Least privilege, network, identity, audit and FIPS 140, for regulated networks.
+      {
+        title: "Hardening Guide",
+        url: "/docs/self-hosted/hardening",
+      },
+      {
+        title: "NIST SP 800-53 Mapping",
+        url: "/docs/self-hosted/nist-800-53",
       },
     ],
   },

@@ -12,6 +12,7 @@ import CloudConnectionResourceSync, {
 } from "../../../../Server/Utils/CloudConnection/CloudConnectionResourceSync";
 import CloudConnectionLanes from "../../../../Server/Utils/CloudConnection/CloudConnectionLanes";
 import CloudConnectorRegistry from "../../../../Server/Utils/CloudConnection/CloudConnectorRegistry";
+import CloudResourceReadingsWriter from "../../../../Server/Utils/CloudConnection/CloudResourceReadings";
 import {
   CloudConnectionSettings,
   CloudConnector,
@@ -547,5 +548,296 @@ describe("when the next read comes", () => {
     ).toEqual({
       accounts: ["a"],
     });
+  });
+});
+
+describe("each resource's readings", () => {
+  test("are written from the read's own payloads, after its metrics are imported", async () => {
+    const written: Array<JSONObject> = [];
+    jest
+      .spyOn(CloudResourceReadingsWriter, "writeFromPayloads")
+      .mockImplementation((async (data: JSONObject) => {
+        order.push("readings");
+        written.push(data);
+        return { written: 1, needingAttention: 0, cleared: 0 };
+      }) as never);
+
+    const payloads: Array<JSONObject> = [
+      { resourceMetrics: [{ resource: { attributes: [] } }] },
+    ];
+    readResult = async () => {
+      return result({ payloads });
+    };
+
+    const outcome: CloudConnectionPullOutcome = await run();
+
+    expect(outcome.status).toBe("success");
+    expect(order).toEqual(["sync", "import", "readings"]);
+    expect(written).toEqual([
+      {
+        projectId: PROJECT,
+        connectionId: CONNECTION,
+        payloads,
+        writtenAt: NOW,
+      },
+    ]);
+  });
+
+  test("a read that fails writes none", async () => {
+    const writeFromPayloads: jest.SpiedFunction<
+      typeof CloudResourceReadingsWriter.writeFromPayloads
+    > = jest.spyOn(CloudResourceReadingsWriter, "writeFromPayloads");
+    readResult = async () => {
+      throw new Error("throttled");
+    };
+
+    const outcome: CloudConnectionPullOutcome = await run();
+
+    expect(outcome.status).toBe("failed");
+    expect(writeFromPayloads).not.toHaveBeenCalled();
+  });
+});
+
+describe("what the accounts cost, and how to spend less", () => {
+  test("are read after the accounts are kept, with the read's state and bounds, their warnings the read's", async () => {
+    const lanes: Array<{ lane: string; data: JSONObject }> = [];
+    jest
+      .spyOn(CloudConnectionLanes, "keepAccounts")
+      .mockImplementation((async () => {
+        order.push("accounts");
+      }) as never);
+    jest.spyOn(CloudConnectionLanes, "runCosts").mockImplementation((async (
+      data: JSONObject,
+    ) => {
+      order.push("costs");
+      lanes.push({ lane: "costs", data });
+      return {
+        ran: true,
+        warnings: ["Cost Explorer is not turned on for 123456789012."],
+        rowsWritten: 0,
+        accountsRead: 0,
+      };
+    }) as never);
+    jest.spyOn(CloudConnectionLanes, "runSavings").mockImplementation((async (
+      data: JSONObject,
+    ) => {
+      order.push("savings");
+      lanes.push({ lane: "savings", data });
+      return { ran: true, warnings: [], recommendations: 3 };
+    }) as never);
+    jest
+      .spyOn(CloudResourceReadingsWriter, "writeFromPayloads")
+      .mockImplementation((async () => {
+        order.push("readings");
+        return { written: 0, needingAttention: 0, cleared: 0 };
+      }) as never);
+
+    const outcome: CloudConnectionPullOutcome = await run();
+
+    expect(outcome.status).toBe("success");
+    // Every payload imported first, then the accounts, then the two lanes.
+    expect(order.lastIndexOf("import")).toBeLessThan(order.indexOf("accounts"));
+    expect(
+      order.filter((step: string): boolean => {
+        return step !== "import";
+      }),
+    ).toEqual(["sync", "accounts", "costs", "savings", "readings"]);
+    expect(
+      lanes.map((entry: { lane: string }) => {
+        return entry.lane;
+      }),
+    ).toEqual(["costs", "savings"]);
+    expect(lanes[0]!.data).toMatchObject({
+      projectId: PROJECT,
+      connectionId: CONNECTION,
+      provider: CloudProvider.AWS,
+      now: NOW,
+    });
+    // The lane's warning is the read's: shown on the connection.
+    expect(JSON.stringify(lastRecord())).toContain(
+      "Cost Explorer is not turned on for 123456789012.",
+    );
+  });
+});
+
+describe("the namespaces the connection's streams deliver", () => {
+  // A read's export: EC2 and RDS of one account and Region, and S3's daily size.
+  function point(namespace: string): JSONObject {
+    return {
+      timeUnixNano: "1792584000000000000",
+      asDouble: 1,
+      attributes: [{ key: "Namespace", value: { stringValue: namespace } }],
+    } as unknown as JSONObject;
+  }
+
+  const PAYLOAD: JSONObject = {
+    resourceMetrics: [
+      {
+        resource: {
+          attributes: [
+            {
+              key: "cloud.account.id",
+              value: { stringValue: "123456789012" },
+            },
+            { key: "cloud.region", value: { stringValue: "us-east-1" } },
+          ],
+        },
+        scopeMetrics: [
+          {
+            metrics: [
+              {
+                name: "amazonaws.com/AWS/EC2/CPUUtilization",
+                gauge: { dataPoints: [point("AWS/EC2"), point("AWS/EC2")] },
+              },
+              {
+                name: "amazonaws.com/AWS/RDS/CPUUtilization",
+                gauge: { dataPoints: [point("AWS/RDS")] },
+              },
+              {
+                name: "amazonaws.com/AWS/S3/BucketSizeBytes",
+                gauge: { dataPoints: [point("AWS/S3")] },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  } as unknown as JSONObject;
+
+  function metricNames(payload: JSONObject): Array<string> {
+    return (
+      (
+        (payload["resourceMetrics"] as Array<JSONObject>)[0]![
+          "scopeMetrics"
+        ] as Array<JSONObject>
+      )[0]!["metrics"] as Array<JSONObject>
+    ).map((metric: JSONObject): string => {
+      return metric["name"] as string;
+    });
+  }
+
+  test("are left out of what a read writes, while every datapoint still judges the resources' health", async () => {
+    const written: Array<JSONObject> = [];
+    jest
+      .spyOn(CloudResourceReadingsWriter, "writeFromPayloads")
+      .mockImplementation((async (data: JSONObject) => {
+        written.push(data);
+        return { written: 1, needingAttention: 0, cleared: 0 };
+      }) as never);
+
+    connection.streamKeyCreatedAt = new Date(NOW.getTime() - 60 * MINUTE);
+    connection.streamSummary = {
+      lastDeliveryAt: new Date(NOW.getTime() - 2 * MINUTE).toISOString(),
+      metricSources: [
+        {
+          accountId: "123456789012",
+          region: "us-east-1",
+          namespaces: ["AWS/EC2", "AWS/S3"],
+          lastAt: new Date(NOW.getTime() - 2 * MINUTE).toISOString(),
+        },
+      ],
+      logSources: [],
+    };
+    readResult = async () => {
+      return result({ payloads: [PAYLOAD], pointsWritten: 4 });
+    };
+
+    const outcome: CloudConnectionPullOutcome = await run();
+
+    expect(outcome.status).toBe("success");
+    expect(imported).toHaveLength(1);
+    // EC2's two datapoints are the stream's; RDS is read; S3's daily size never streams.
+    expect(metricNames(imported[0]!.payload)).toEqual([
+      "amazonaws.com/AWS/RDS/CPUUtilization",
+      "amazonaws.com/AWS/S3/BucketSizeBytes",
+    ]);
+    expect(
+      (lastRecord()["lastPullResult"] as JSONObject)["pointsWritten"],
+    ).toBe(2);
+    // The readings come from all of it.
+    expect((written[0]!["payloads"] as Array<JSONObject>)[0]).toBe(PAYLOAD);
+  });
+
+  test("once streaming is stopped, the read writes everything again at once, whatever the streams delivered a minute ago", async () => {
+    // Stop streaming cleared the key; the stacks still deliver, and are refused.
+    expect(connection.streamKeyCreatedAt).toBeUndefined();
+    connection.streamSummary = {
+      lastDeliveryAt: new Date(NOW.getTime() - MINUTE).toISOString(),
+      metricSources: [
+        {
+          accountId: "123456789012",
+          region: "us-east-1",
+          namespaces: ["AWS/EC2", "AWS/RDS"],
+          lastAt: new Date(NOW.getTime() - MINUTE).toISOString(),
+        },
+      ],
+      logSources: [],
+    };
+    readResult = async () => {
+      return result({ payloads: [PAYLOAD], pointsWritten: 4 });
+    };
+
+    await run();
+
+    expect(imported).toHaveLength(1);
+    expect(imported[0]!.payload).toBe(PAYLOAD);
+    expect(
+      (lastRecord()["lastPullResult"] as JSONObject)["pointsWritten"],
+    ).toBe(4);
+  });
+
+  test("a stream quiet for fifteen minutes leaves the read to write everything again", async () => {
+    connection.streamKeyCreatedAt = new Date(NOW.getTime() - 60 * MINUTE);
+    connection.streamSummary = {
+      metricSources: [
+        {
+          accountId: "123456789012",
+          region: "us-east-1",
+          namespaces: ["AWS/EC2", "AWS/RDS"],
+          lastAt: new Date(NOW.getTime() - 16 * MINUTE).toISOString(),
+        },
+      ],
+      logSources: [],
+    };
+    readResult = async () => {
+      return result({ payloads: [PAYLOAD] });
+    };
+
+    await run();
+
+    expect(imported).toHaveLength(1);
+    expect(imported[0]!.payload).toBe(PAYLOAD);
+  });
+
+  test("another account's or Region's stream leaves this one's metrics to the read", async () => {
+    connection.streamKeyCreatedAt = new Date(NOW.getTime() - 60 * MINUTE);
+    connection.streamSummary = {
+      metricSources: [
+        {
+          accountId: "999999999999",
+          region: "us-east-1",
+          namespaces: ["AWS/EC2"],
+          lastAt: new Date(NOW.getTime() - MINUTE).toISOString(),
+        },
+        {
+          accountId: "123456789012",
+          region: "eu-west-1",
+          namespaces: ["AWS/EC2"],
+          lastAt: new Date(NOW.getTime() - MINUTE).toISOString(),
+        },
+      ],
+      logSources: [],
+    };
+    readResult = async () => {
+      return result({ payloads: [PAYLOAD] });
+    };
+
+    await run();
+
+    expect(metricNames(imported[0]!.payload)).toEqual([
+      "amazonaws.com/AWS/EC2/CPUUtilization",
+      "amazonaws.com/AWS/RDS/CPUUtilization",
+      "amazonaws.com/AWS/S3/BucketSizeBytes",
+    ]);
   });
 });

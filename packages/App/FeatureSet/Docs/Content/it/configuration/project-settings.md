@@ -31,7 +31,7 @@ flowchart LR
 | Sezione | Pagine | Dove leggere di più |
 | --- | --- | --- |
 | **Base** | **Progetto**, **Etichette** | [I dettagli del progetto](#i-dettagli-del-progetto), [Etichette](#etichette) |
-| **Area di lavoro** | **Slack**, **Microsoft Teams**, **Videochiamate** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Videochiamate](/docs/workspace-connections/video-calls) |
+| **Area di lavoro** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videochiamate** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videochiamate](/docs/workspace-connections/video-calls) |
 | **Telemetria e APM** | **Chiavi di acquisizione**, **Conservazione dei dati** | [Chiavi di acquisizione](/docs/telemetry/ingestion-keys), [Conservazione dei dati](/docs/telemetry/data-retention) |
 | **Notifiche** | **Impostazioni notifiche**, **Registri di notifica**, **App mobili** | [Notifiche](#notifiche) |
 | **IA** | **Funzionalità IA**, **Provider LLM**, **Server MCP esterni**, **Crediti IA**, **Registri IA**, **Server MCP** | [Provider LLM](/docs/ai/llm-provider), [Server MCP esterni](/docs/ai/external-mcp-servers), [Server MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#controllo-dei-costi) |

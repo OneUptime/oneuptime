@@ -41,6 +41,7 @@ import WorkspaceProjectAuthToken, {
   MicrosoftTeamsMiscData,
   MiscData,
   SlackMiscData,
+  MattermostMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -69,6 +70,8 @@ import Project from "../../Models/DatabaseModels/Project";
 import SecurityCase from "../../Models/DatabaseModels/SecurityCase";
 import SecurityPlaybook from "../../Models/DatabaseModels/SecurityPlaybook";
 import SecurityCaseService from "./SecurityCaseService";
+import SecurityHunt from "../../Models/DatabaseModels/SecurityHunt";
+import SecurityHuntService from "./SecurityHuntService";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -106,6 +109,10 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import SlackAccountByEmail, {
   SlackEmailAccount,
 } from "../Utils/Workspace/Slack/SlackAccountByEmail";
+import MattermostConnection from "../Utils/Workspace/Mattermost/MattermostConnection";
+import MattermostUtil, {
+  MattermostUser,
+} from "../Utils/Workspace/Mattermost/Mattermost";
 import QueryHelper from "../Types/Database/QueryHelper";
 
 export interface MessageBlocksByWorkspaceType {
@@ -182,6 +189,12 @@ export interface NotificationFor {
    * chats its Security Case rules name. It has no channel of its own.
    */
   securityCaseId?: ObjectID | undefined;
+  /*
+   * A hunt whose scheduled run found events (SecurityHuntNotifications):
+   * posted to the channels and chats its Security Hunt rules name. It has
+   * no channel of its own.
+   */
+  securityHuntId?: ObjectID | undefined;
 }
 
 // Slack conversation ids are short upper-case alphanumerics (C0123ABCD, G..., D...).
@@ -225,6 +238,7 @@ const LATER_CHANNEL_RECORD_WORDS: Record<NotificationRuleEventType, string> = {
   [NotificationRuleEventType.Monitor]: "monitor",
   [NotificationRuleEventType.OnCallDutyPolicy]: "on-call policy",
   [NotificationRuleEventType.SecurityCase]: "security case",
+  [NotificationRuleEventType.SecurityHunt]: "hunt",
 };
 
 /*
@@ -239,15 +253,58 @@ const LATER_CHANNEL_RECORD_WORDS: Record<NotificationRuleEventType, string> = {
 export const SECURITY_CASE_RULE_PERMISSION_MESSAGE: string =
   "A Security Case rule posts security cases to Slack and Microsoft Teams, so it takes a role that may set up security playbooks, such as Project Owner, Project Admin or Security Admin.";
 
+/*
+ * A Security Hunt rule posts what every hunt it matches finds - the hunt,
+ * its search, how many events and when - to the channels it names: security
+ * data, as a case is, so it is set up by the same roles.
+ */
+export const SECURITY_HUNT_RULE_PERMISSION_MESSAGE: string =
+  "A Security Hunt rule posts what hunts find to Slack and Microsoft Teams, so it takes a role that may set up security playbooks, such as Project Owner, Project Admin or Security Admin.";
+
+/*
+ * The rules that post security data, each with why setting one up takes a
+ * Security role: every other rule is set up by whoever may set up rules.
+ */
+const SECURITY_RULE_PERMISSION_MESSAGES: Readonly<
+  Partial<Record<NotificationRuleEventType, string>>
+> = {
+  [NotificationRuleEventType.SecurityCase]:
+    SECURITY_CASE_RULE_PERMISSION_MESSAGE,
+  [NotificationRuleEventType.SecurityHunt]:
+    SECURITY_HUNT_RULE_PERMISSION_MESSAGE,
+};
+
+/*
+ * The kinds of record a rule only posts about, in channels and chats that
+ * exist: a security case and a hunt never get a channel of their own.
+ */
+export function isPostOnlyNotificationRuleEventType(
+  eventType: NotificationRuleEventType | undefined,
+): boolean {
+  return (
+    eventType === NotificationRuleEventType.SecurityCase ||
+    eventType === NotificationRuleEventType.SecurityHunt
+  );
+}
+
 export class Service extends DatabaseService<WorkspaceNotificationRule> {
   public constructor() {
     super(WorkspaceNotificationRule);
   }
 
-  private assertMaySetUpSecurityCaseRules(
+  /*
+   * A rule that posts security data (SECURITY_RULE_PERMISSION_MESSAGES) is
+   * set up only by a role that may create a security playbook; `eventType`
+   * is the kind of rule asked about, and says why when the caller may not.
+   */
+  private assertMaySetUpSecurityRules(
     props: DatabaseCommonInteractionProps,
+    eventType: NotificationRuleEventType,
   ): void {
-    if (props.isRoot || props.isMasterAdmin) {
+    const message: string | undefined =
+      SECURITY_RULE_PERMISSION_MESSAGES[eventType];
+
+    if (!message || props.isRoot || props.isMasterAdmin) {
       return;
     }
 
@@ -258,31 +315,41 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         { projectId: props.tenantId },
       )
     ) {
-      throw new NotAuthorizedException(SECURITY_CASE_RULE_PERMISSION_MESSAGE);
+      throw new NotAuthorizedException(message);
     }
   }
 
+  // Whether a kind of rule posts security data: a Security Case or Security Hunt rule.
+  private static isSecurityRuleEventType(eventType: unknown): boolean {
+    return Boolean(
+      SECURITY_RULE_PERMISSION_MESSAGES[eventType as NotificationRuleEventType],
+    );
+  }
+
   /*
-   * Whether the rules a write changes include a Security Case rule. The
-   * rules are the ones the update writes or the delete removes, read the
-   * way every hook that judges a write by its rows reads them
+   * The first rule that posts security data among the rules a write
+   * changes, if any: the ones the update writes or the delete removes, read
+   * the way every hook that judges a write by its rows reads them
    * (findRowsAndHoldUpdateToThem, findRowsAndHoldDeleteToThem), with the
    * write held to them - so the rules judged are the rules written.
    */
-  private static includesSecurityCaseRule(
+  private static findSecurityRuleEventType(
     rules: Array<WorkspaceNotificationRule>,
-  ): boolean {
-    return rules.some((rule: WorkspaceNotificationRule): boolean => {
-      return rule.eventType === NotificationRuleEventType.SecurityCase;
-    });
+  ): NotificationRuleEventType | undefined {
+    return rules.find((rule: WorkspaceNotificationRule): boolean => {
+      return Service.isSecurityRuleEventType(rule.eventType);
+    })?.eventType;
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<WorkspaceNotificationRule>,
   ): Promise<OnCreate<WorkspaceNotificationRule>> {
-    if (createBy.data.eventType === NotificationRuleEventType.SecurityCase) {
-      this.assertMaySetUpSecurityCaseRules(createBy.props);
+    if (
+      createBy.data.eventType &&
+      Service.isSecurityRuleEventType(createBy.data.eventType)
+    ) {
+      this.assertMaySetUpSecurityRules(createBy.props, createBy.data.eventType);
     }
 
     return { createBy, carryForward: undefined };
@@ -292,17 +359,23 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<WorkspaceNotificationRule>,
   ): Promise<OnUpdate<WorkspaceNotificationRule>> {
-    if (
-      !updateBy.props.isRoot &&
-      ((updateBy.data as unknown as Record<string, unknown>)["eventType"] ===
-        NotificationRuleEventType.SecurityCase ||
-        Service.includesSecurityCaseRule(
-          await this.findRowsAndHoldUpdateToThem(updateBy, {
-            eventType: true,
-          }),
-        ))
-    ) {
-      this.assertMaySetUpSecurityCaseRules(updateBy.props);
+    if (!updateBy.props.isRoot) {
+      const sentEventType: unknown = (
+        updateBy.data as unknown as Record<string, unknown>
+      )["eventType"];
+
+      const eventType: NotificationRuleEventType | undefined =
+        Service.isSecurityRuleEventType(sentEventType)
+          ? (sentEventType as NotificationRuleEventType)
+          : Service.findSecurityRuleEventType(
+              await this.findRowsAndHoldUpdateToThem(updateBy, {
+                eventType: true,
+              }),
+            );
+
+      if (eventType) {
+        this.assertMaySetUpSecurityRules(updateBy.props, eventType);
+      }
     }
 
     return { updateBy, carryForward: null };
@@ -312,15 +385,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<WorkspaceNotificationRule>,
   ): Promise<OnDelete<WorkspaceNotificationRule>> {
-    if (
-      !deleteBy.props.isRoot &&
-      Service.includesSecurityCaseRule(
-        await this.findRowsAndHoldDeleteToThem(deleteBy, {
-          eventType: true,
-        }),
-      )
-    ) {
-      this.assertMaySetUpSecurityCaseRules(deleteBy.props);
+    if (!deleteBy.props.isRoot) {
+      const eventType: NotificationRuleEventType | undefined =
+        Service.findSecurityRuleEventType(
+          await this.findRowsAndHoldDeleteToThem(deleteBy, {
+            eventType: true,
+          }),
+        );
+
+      if (eventType) {
+        this.assertMaySetUpSecurityRules(deleteBy.props, eventType);
+      }
     }
 
     return { deleteBy, carryForward: null };
@@ -426,7 +501,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     let createdChannels: NotificationRuleWorkspaceChannel[] = [];
 
     if (
-      rule.eventType !== NotificationRuleEventType.SecurityCase &&
+      !isPostOnlyNotificationRuleEventType(rule.eventType) &&
       (notificationRule as IncidentNotificationRule).shouldCreateNewChannel
     ) {
       /*
@@ -987,10 +1062,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   }): void {
     if (
       data.workspaceType !== WorkspaceType.Slack &&
-      data.workspaceType !== WorkspaceType.MicrosoftTeams
+      data.workspaceType !== WorkspaceType.MicrosoftTeams &&
+      data.workspaceType !== WorkspaceType.Mattermost
     ) {
       throw new BadDataException(
-        "Test notifications can only be sent to Slack or Microsoft Teams.",
+        "Test notifications can only be sent to Slack, Microsoft Teams or Mattermost.",
       );
     }
 
@@ -1007,9 +1083,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     if (data.chatId) {
-      if (data.workspaceType === WorkspaceType.Slack) {
+      if (data.workspaceType !== WorkspaceType.MicrosoftTeams) {
         throw new BadDataException(
-          "Chats are only supported for Microsoft Teams. Please choose a Slack channel.",
+          `Chats are only supported for Microsoft Teams. Please choose a ${getWorkspaceTypeDisplayName(data.workspaceType)} channel.`,
         );
       }
 
@@ -1023,6 +1099,18 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     if (data.workspaceType === WorkspaceType.Slack) {
       if (!SLACK_CHANNEL_ID_REGEX.test(data.channelId)) {
         throw new BadDataException("The Slack channel id is not valid.");
+      }
+
+      return;
+    }
+
+    /*
+     * A Mattermost channel id is placed in the path of the calls that post
+     * to it, with the bot's token: only an id Mattermost could have made.
+     */
+    if (data.workspaceType === WorkspaceType.Mattermost) {
+      if (!MattermostConnection.isMattermostId(data.channelId)) {
+        throw new BadDataException("The Mattermost channel id is not valid.");
       }
 
       return;
@@ -1158,6 +1246,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     if (data.workspaceType === WorkspaceType.Slack && !data.isChat) {
       return `#${label}`;
+    }
+
+    if (data.workspaceType === WorkspaceType.Mattermost) {
+      return `~${label}`;
     }
 
     return `"${label}"`;
@@ -1990,12 +2082,20 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       return NotificationRuleEventType.SecurityCase;
     }
 
+    if (notificationFor.securityHuntId) {
+      return NotificationRuleEventType.SecurityHunt;
+    }
+
     throw new BadDataException("Notification for not found");
   }
 
   @CaptureSpan()
   public static getAllWorkspaceTypes(): Array<WorkspaceType> {
-    return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams];
+    return [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Mattermost,
+    ];
   }
 
   public getBotUserIdFromprojectAuthToken(data: {
@@ -2008,8 +2108,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       throw new BadDataException("Misc data not found in project auth token");
     }
 
-    if (data.workspaceType === WorkspaceType.Slack) {
-      const userId: string = (miscData as SlackMiscData).botUserId;
+    if (
+      data.workspaceType === WorkspaceType.Slack ||
+      data.workspaceType === WorkspaceType.Mattermost
+    ) {
+      const userId: string = (miscData as SlackMiscData | MattermostMiscData)
+        .botUserId;
 
       if (!userId) {
         throw new BadDataException(
@@ -2952,7 +3056,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       projectId: data.projectId,
       notificationRules: data.notificationRules,
       notificationFor: data.notificationFor,
-      ...(data.workspaceType === WorkspaceType.Slack
+      ...(data.workspaceType === WorkspaceType.Slack ||
+      data.workspaceType === WorkspaceType.Mattermost
         ? { peopleOnCallByRule: peopleOnCallByRule }
         : {}),
     });
@@ -3619,7 +3724,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     if (
-      data.workspaceType !== WorkspaceType.Slack ||
+      (data.workspaceType !== WorkspaceType.Slack &&
+        data.workspaceType !== WorkspaceType.Mattermost) ||
       !data.authToken ||
       notConnected.length === 0
     ) {
@@ -3629,6 +3735,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     const emails: Map<string, string> =
       await this.getEmailsOfUsers(notConnected);
+
+    if (data.workspaceType === WorkspaceType.Mattermost) {
+      return await this.findMattermostAccountsByEmail({
+        found: found,
+        authToken: data.authToken,
+        userIds: notConnected,
+        emails: emails,
+      });
+    }
 
     for (const userId of notConnected) {
       let account: SlackEmailAccount | null = null;
@@ -3668,6 +3783,59 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     return found;
+  }
+
+  /*
+   * Whom a rule's Mattermost channels invite among the people who have not
+   * connected their account: the account with their OneUptime email
+   * address, when the Mattermost server shows the bot people's email
+   * addresses (its Show Email Address setting). A guest's account is left
+   * out, as in Slack: Mattermost keeps guests out of the channels they were
+   * not let into. Whoever is not found is handed back for the channel's
+   * note (ChannelMembersNotAddedNotice).
+   */
+  private async findMattermostAccountsByEmail(data: {
+    found: WorkspaceInvitees;
+    authToken: string;
+    userIds: Array<ObjectID>;
+    emails: Map<string, string>;
+  }): Promise<WorkspaceInvitees> {
+    for (const userId of data.userIds) {
+      let account: MattermostUser | null = null;
+      const email: string =
+        data.emails.get(userId.toString().toLowerCase()) || "";
+
+      if (email) {
+        try {
+          account = await MattermostUtil.findUserByEmail({
+            authToken: data.authToken,
+            email: email,
+          });
+        } catch (err) {
+          logger.debug(
+            "Could not look somebody up in Mattermost by their email address to invite them to a channel.",
+          );
+          logger.debug(err);
+        }
+      }
+
+      const alreadyInvited: boolean = data.found.invitees.some(
+        (invitee: { workspaceUserId: string }): boolean => {
+          return invitee.workspaceUserId === account?.id;
+        },
+      );
+
+      if (account && !account.isBot && !account.isGuest && !alreadyInvited) {
+        data.found.invitees.push({
+          userId: userId,
+          workspaceUserId: account.id,
+        });
+      } else {
+        data.found.notFoundUserIds.push(userId);
+      }
+    }
+
+    return data.found;
   }
 
   /*
@@ -4716,6 +4884,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: incident.title || "",
         [NotificationRuleConditionCheckOn.IncidentDescription]:
@@ -4811,6 +4980,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -4925,6 +5095,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5012,6 +5183,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: monitor?.name || "",
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5112,6 +5284,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5189,6 +5362,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5268,6 +5442,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5357,6 +5532,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           securityCase.labels?.map((label: Label) => {
             return label._id?.toString() || "";
           }) || [],
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5394,6 +5570,48 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
       };
+    }
+
+    /*
+     * A hunt whose scheduled run found events: matched by its name, the one
+     * thing its rules ask of it. Read as it is now, so a renamed hunt is
+     * matched by its new name.
+     */
+    if (data.notificationFor.securityHuntId) {
+      const hunt: SecurityHunt | null = await SecurityHuntService.findOneById({
+        id: data.notificationFor.securityHuntId,
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!hunt) {
+        throw new BadDataException("Security Hunt ID not found");
+      }
+
+      const values: {
+        [key in NotificationRuleConditionCheckOn]:
+          | string
+          | Array<string>
+          | undefined;
+      } = {} as {
+        [key in NotificationRuleConditionCheckOn]:
+          | string
+          | Array<string>
+          | undefined;
+      };
+
+      for (const checkOn of Object.values(NotificationRuleConditionCheckOn)) {
+        values[checkOn] = undefined;
+      }
+
+      values[NotificationRuleConditionCheckOn.SecurityHuntName] =
+        hunt.name || "";
+
+      return values;
     }
 
     throw new BadDataException("NotificationFor is not supported");

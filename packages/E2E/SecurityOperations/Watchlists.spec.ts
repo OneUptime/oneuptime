@@ -13,10 +13,13 @@ import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 /*
  * Watchlists on the Security Operations fixture's synthetic month
  * (Fixture/WatchlistsFixture.js lays the lists out and answers Import
- * Values): Security Events > Detections > Watchlists, the common lists to
- * start with, Create Watchlist, a list's page with its rule snippet and its
- * values, Import Values, a list that follows a threat intel feed, and the
- * line under a rule's YAML that names the lists it reads. What the unit
+ * Values and Read Now): Security Events > Detections > Watchlists, the
+ * common lists to start with, Create Watchlist - a list kept by hand, and
+ * one read from an address - a list's page with the rule and the search
+ * that read it and its values, Import Values, Export Values, a list that
+ * follows a threat intel feed, a list read from an address with Read Now,
+ * what reads each list (rules and Security Events monitors), and the line
+ * under a rule's YAML that names the lists it reads. What the unit
  * tests cannot see: that the pages are reached from the side menu and their
  * rows, that the forms and the dialog send what they say, that each answer
  * reads on the page, and that each page fits a laptop's width and a
@@ -40,10 +43,16 @@ const THREAT_INTEL_PATH: string = `${PRODUCT}/threat-intel`;
 // The fixture's lists (WatchlistsFixture.js).
 const VIP_USERS_ID: string = "2f000000-0000-4000-8000-000000000001";
 const C2_ADDRESSES_ID: string = "2f000000-0000-4000-8000-000000000003";
+const CONTRACTORS_ID: string = "2f000000-0000-4000-8000-000000000005";
 const VIP_USERS_PATH: string = `${WATCHLISTS_PATH}/${VIP_USERS_ID}`;
 const C2_ADDRESSES_PATH: string = `${WATCHLISTS_PATH}/${C2_ADDRESSES_ID}`;
+const CONTRACTORS_PATH: string = `${WATCHLISTS_PATH}/${CONTRACTORS_ID}`;
+const CONTRACTORS_URL: string =
+  "https://hr.acme-commerce.example/exports/contractors.csv";
 
 const READING_RULE: string = "VIP sign-in from outside the office";
+const READING_MONITOR: string = "Contractor sign-ins";
+const MONITOR_ID: string = "3e000000-0000-4000-8000-000000000001";
 const FEODO_LIST: string = "Feodo Tracker botnet C2 servers";
 
 const SCREENSHOTS: string = path.resolve(
@@ -281,11 +290,19 @@ async function createsOf(
 async function importRequests(
   page: Page,
 ): Promise<Array<Record<string, unknown>>> {
+  return apiRequestsTo(page, "/security-watchlist/import");
+}
+
+// The bodies of the POSTs the page sent to an API route.
+async function apiRequestsTo(
+  page: Page,
+  route: string,
+): Promise<Array<Record<string, unknown>>> {
   return (await fixture(page)).apiRequests
     .filter((request: { method: string; url: string }): boolean => {
       return (
         request.method === "POST" &&
-        new URL(request.url).pathname.endsWith("/security-watchlist/import")
+        new URL(request.url).pathname.endsWith(route)
       );
     })
     .map((request: { body: Record<string, unknown> | null }) => {
@@ -344,7 +361,7 @@ test.describe("Watchlists", () => {
     expect(await columnTitles(page)).toEqual(["Watchlist", "Holds", "Read By"]);
 
     // By name, as rules write it.
-    await expect(page.locator("table tbody tr")).toHaveCount(4);
+    await expect(page.locator("table tbody tr")).toHaveCount(5);
     const names: Array<string> = await page
       .getByTestId("watchlist-name-cell")
       .locator("bdi.font-mono")
@@ -352,6 +369,7 @@ test.describe("Watchlists", () => {
     expect(names).toEqual([
       "admin_addresses",
       "c2_addresses",
+      "contractors",
       "lab_hosts",
       "vip_users",
     ]);
@@ -382,10 +400,23 @@ test.describe("Watchlists", () => {
     ).toHaveText(`Follows ${FEODO_LIST}`);
     await expect(
       rowWith(page, "c2_addresses").getByTestId("watchlist-read-by-cell"),
-    ).toHaveText("No rule reads it yet");
+    ).toHaveText("Nothing reads it yet");
     await expect(
       rowWith(page, "lab_hosts").getByTestId("watchlist-values-cell"),
     ).toHaveText("No values yet");
+
+    // A list read from an address: how many values its file gave, and from where.
+    const contractors: Locator = rowWith(page, "contractors");
+    await expect(contractors.getByTestId("watchlist-values-cell")).toHaveText(
+      "2 values from hr.acme-commerce.example",
+    );
+    // A Security Events monitor that reads a list says what it is.
+    await expect(contractors.getByTestId("watchlist-read-by-cell")).toHaveText(
+      `${READING_MONITOR} (Monitor)`,
+    );
+    await expect(contractors.getByTestId("watchlist-reader-kind")).toHaveText(
+      "(Monitor)",
+    );
 
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     expect(await tableOverflow(page)).toBeLessThanOrEqual(1);
@@ -544,10 +575,189 @@ test.describe("Watchlists", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * A list read from an address
+ * ---------------------------------------------------------------------------
+ */
+test.describe("a list read from an address", () => {
+  test("Create Watchlist reads one from a whole https address, every hour unless chosen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, WATCHLISTS_PATH);
+    await expect(rowWith(page, "vip_users")).toBeVisible({ timeout: 30000 });
+
+    await page
+      .getByRole("button", { name: "Create Watchlist", exact: true })
+      .first()
+      .click();
+    await expect(dialog(page)).toBeVisible();
+
+    await dialog(page).getByTestId("watchlist-name").fill("board_members");
+    await chooseOption(page, "Users");
+
+    // Where its values come from waits under More fields.
+    await dialog(page).getByRole("button", { name: "More fields" }).click();
+    await dialog(page)
+      .getByText("A file at an address", { exact: true })
+      .click();
+
+    // Only an https address is read.
+    await dialog(page)
+      .getByTestId("watchlist-import-url")
+      .fill("http://hr.acme-commerce.example/board.csv");
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(dialog(page)).toContainText("The address starts with https.");
+    expect(await createsOf(page, "SecurityWatchlist")).toEqual([]);
+    await screenshot(page, "watchlist-create-from-address", {
+      fullPage: false,
+    });
+
+    await dialog(page)
+      .getByTestId("watchlist-import-url")
+      .fill("https://hr.acme-commerce.example/board.csv");
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(dialog(page)).toHaveCount(0);
+
+    const [created] = await createsOf(page, "SecurityWatchlist");
+    expect(created).toMatchObject({
+      name: "board_members",
+      entityType: "User",
+      source: "URL",
+      importUrl: "https://hr.acme-commerce.example/board.csv",
+      importSchedule: "Every Hour",
+    });
+  });
+
+  test("its page says where its values come from and how its reads stand; its values are its file's, and Read Now reads it at once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CONTRACTORS_PATH, { width: 1344 });
+    const card: Locator = page.getByTestId("watchlist-url-card");
+    await expect(card).toBeVisible({ timeout: 30000 });
+
+    const address: Locator = page.getByTestId("watchlist-url-address");
+    await expect(address).toHaveText(CONTRACTORS_URL);
+    await expect(address).toHaveAttribute("href", CONTRACTORS_URL);
+    await expect(address).toHaveAttribute("target", "_blank");
+    await expect(card).toContainText("Every Day");
+    await expect(page.getByTestId("watchlist-url-status")).toHaveText(
+      "Last read 2 hours ago. 1 line of the file was left out.",
+    );
+
+    // Its values, put there by its reads: none added, changed or removed by hand.
+    await expect(page.locator("table tbody tr")).toHaveCount(2);
+    await expect(
+      page.getByRole("button", { name: "Add Value", exact: true }),
+    ).toHaveCount(0);
+    const jo: Locator = rowWith(page, "jo.kim@contractor.example");
+    await expect(jo.getByTestId("watchlist-value-added")).toHaveText(
+      "Read from its address 2 hours ago",
+    );
+    // A value kept for a while says when it leaves.
+    await expect(jo.getByTestId("watchlist-value-expires")).toHaveText(
+      "Expires in 12 days",
+    );
+    await expect(
+      cardTitled(page, "About This List").getByTestId("watchlist-read-by"),
+    ).toHaveText(`${READING_MONITOR} (Monitor)`);
+    // The monitor opens its own page.
+    await expect(
+      cardTitled(page, "About This List").getByRole("link", {
+        name: READING_MONITOR,
+      }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/monitors/${MONITOR_ID}`,
+    );
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "watchlist-from-address-desktop", {
+      fullPage: true,
+    });
+
+    // Read Now, on the card's header: one request, what it did, and the list as the file is now.
+    await cardTitled(page, "Read From an Address")
+      .getByRole("button", { name: "Read Now", exact: true })
+      .click();
+    await expect(
+      page.getByTestId("watchlist-url-read-now-result"),
+    ).toContainText("Read just now");
+    await expect(
+      page.getByTestId("watchlist-url-read-now-result"),
+    ).toContainText("1 value added");
+    expect(await apiRequestsTo(page, "/security-watchlist/read-now")).toEqual([
+      { securityWatchlistId: CONTRACTORS_ID },
+    ]);
+    await expect(page.locator("table tbody tr")).toHaveCount(3);
+    await expect(page.getByTestId("watchlist-url-status")).toHaveText(
+      "Last read a few seconds ago.",
+    );
+    await screenshot(page, "watchlist-read-now", { fullPage: false });
+  });
+
+  test("in the dark, and on a phone", async ({ page }: { page: Page }) => {
+    await open(page, CONTRACTORS_PATH, { theme: "dark" });
+    await expect(page.getByTestId("watchlist-url-card")).toBeVisible({
+      timeout: 30000,
+    });
+    await screenshot(page, "watchlist-from-address-dark", { fullPage: true });
+
+    await open(page, CONTRACTORS_PATH, { width: 390, height: 844 });
+    await expect(page.getByTestId("watchlist-url-address")).toBeVisible({
+      timeout: 30000,
+    });
+    // A long address breaks rather than run past the card.
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "watchlist-from-address-phone", { fullPage: true });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * A watchlist's page
  * ---------------------------------------------------------------------------
  */
 test.describe("a watchlist's page", () => {
+  test("Export Values downloads the list's values as a CSV file Import Values reads back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, VIP_USERS_PATH);
+    await expect(
+      page.getByText("alice.wong@acme-commerce.example"),
+    ).toBeVisible({ timeout: 30000 });
+
+    await cardTitled(page, "Values")
+      .getByRole("button", { name: "More options", exact: true })
+      .click();
+
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("menuitem", { name: "Export Values" }).click(),
+    ]);
+
+    expect(download.suggestedFilename()).toBe("vip_users.csv");
+
+    const file: string = await fs.readFile(
+      (await download.path()) as string,
+      "utf8",
+    );
+
+    // A byte order mark first, so a spreadsheet opens it as UTF-8; an import reads past it.
+    expect(file.charCodeAt(0)).toBe(0xfeff);
+    expect(file.slice(1).split("\r\n")).toEqual([
+      "value,note,expires",
+      "alice.wong@acme-commerce.example,CEO,",
+      "ben.ortiz@acme-commerce.example,CFO,",
+      "finance-admin-*@acme-commerce.example,The finance team's admin accounts.,",
+      "",
+    ]);
+  });
+
   test("its settings, the selection that reads it with the rule that does, and its values with why each is there", async ({
     page,
   }: {
@@ -578,8 +788,12 @@ test.describe("a watchlist's page", () => {
 
     const snippet: Locator = page.getByTestId("watchlist-rule-snippet");
     await expect(snippet).toContainText("principalUser|expand: '%vip_users%'");
+    // And the search that reads it on Events or in a hunt, left to right.
+    const search: Locator = page.getByTestId("watchlist-search-snippet");
+    await expect(search).toContainText("principalUser:%vip_users%");
+    await expect(search).toHaveAttribute("dir", "ltr");
 
-    // The important thing first: the list, its values, then how a rule reads it.
+    // The important thing first: the list, its values, then how a rule and a search read it.
     const cards: Array<string> = await page.evaluate((): Array<string> => {
       return Array.from(
         document.querySelectorAll('[data-testid="card-details-heading"]'),
@@ -587,7 +801,7 @@ test.describe("a watchlist's page", () => {
         return (heading.textContent || "").trim();
       });
     });
-    expect(cards).toEqual(["About This List", "Values", "Use It in a Rule"]);
+    expect(cards).toEqual(["About This List", "Values", "Use This List"]);
 
     // The values, each with its note and who added it under it.
     await expect(page.locator("table tbody tr")).toHaveCount(3);

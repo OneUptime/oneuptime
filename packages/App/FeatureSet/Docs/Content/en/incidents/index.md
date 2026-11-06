@@ -55,6 +55,7 @@ Five routes lead to the same object:
 
 - **By hand** — from the Incidents list, click **Declare Incident**. That opens the **Declare New Incident** wizard, three steps long: **Incident Details**, **Resources Affected**, **On-Call & Roles**. The first step asks for a title, a severity and a description, with what most incidents never need folded under **More fields**. Only the first step asks for anything you have to answer: **Next** walks the rest, and **Declare Incident** is on the summary at the end.
   - **From alerts** — **Declare Incident** on a selection of alerts, or in one alert's header, opens the same wizard, prefilled from the alerts, links them to the new incident and, unless you untick the box, acknowledges them so they stop escalating — see [Linked Alerts](/docs/incidents/linked-alerts).
+  - **From Ask AI** — in [Ask AI](/docs/ai/ask-ai), ask for an incident: it declares one as you, linked to the resource whose page you asked on, such as a host's. To write up a problem someone is already handling, or one that is already over, ask for it acknowledged or resolved: it starts in that state and pages no one — see [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
 - **From a template** — click **Create from Template** and pick a saved **Incident Template**. Templates prefill title, description, severity, initial state, resources, on-call policies, owners and labels.
 - **From a monitor** — a monitor criteria rule with the "declare an incident" toggle enabled creates the incident automatically the moment its filters match. Titles and descriptions there support `{{variable}}` templating.
 - **Over the API** — `POST /api/incident` with an API key. The server fills in `declaredAt`, the created state, and the incident number for you.
@@ -66,7 +67,7 @@ Workflows open incidents too: the [Huntress](/docs/integrations/huntress) workfl
 
 On creation OneUptime runs the automation you configured: privacy rules, owner rules, label rules, on-call rules and runbook rules. Any on-call duty policies attached to the incident — manually, from a template, or merged in by a matching on-call rule — are executed in parallel.
 
-Owners are notified on the channels each of them turned on in **User Settings → Notification Settings**: email, SMS, voice call, push, WhatsApp, Telegram, Slack, Microsoft Teams or webhook. If an incident has no owners at all, the notification falls back to the project owners rather than being dropped.
+Owners are notified on the channels each of them turned on in **User Settings → Notification Settings**: email, SMS, voice call, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost or webhook. If an incident has no owners at all, the notification falls back to the project owners rather than being dropped.
 
 If the incident is visible on a status page and subscriber notifications are enabled, subscribers get told too: the subscribers of every status page that lists one of its monitors, or only of the pages you limited it to. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) for giving each audience a status page of its own.
 
@@ -159,7 +160,7 @@ Open **Incidents** from the **Products** menu in the top bar. Its side menu is o
 | **Overview**  | **All Incidents**, **Active Incidents** and **Postmortems** — the second carries a red badge with the count of incidents in a state above the resolved state, and the third lists every incident's postmortem, to filter by owner, severity or status. |
 | **Episodes**  | Incident episodes, a separate grouping feature with its own pages.                                                                                                         |
 | **AI**        | **Insights**, **Logs**, **Settings**: what OneUptime AI learned from your incidents and everything it did for them, and what it may do on its own — with the rules for which incidents it investigates and fixes. See [AI SRE](/docs/ai/ai-sre). |
-| **Workspace** | The chat workspaces this project has connected: **Slack**, **Microsoft Teams** or both, each with its notification rules for incidents. With neither connected, it holds **Connect Slack or Teams**, a page showing both and how to connect them. |
+| **Workspace** | The chat workspaces this project has connected: **Slack**, **Microsoft Teams** and **Mattermost**, each with its notification rules for incidents. With none connected, it holds **Connect a workspace**, a page showing all three and how to connect them. |
 | **Rules**     | The rule engines: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules**. |
 | **Settings**  | **Incident State**, **Incident Severity**, **Incident Templates**, **Note Templates**, **Postmortem Templates**, **Postmortem Statuses**, **Custom Fields**, **Incident Roles**, **Measurements**, **Linked Alerts**, **Episode Membership**, **Numbering**. |
 

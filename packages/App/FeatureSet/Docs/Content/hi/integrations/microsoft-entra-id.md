@@ -1,6 +1,6 @@
 # Microsoft Entra ID
 
-[Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) के साइन-इन और डायरेक्टरी बदलाव OneUptime के सुरक्षा इवेंट में इम्पोर्ट करें, और चाहें तो [Microsoft 365 ऑडिट लॉग](https://learn.microsoft.com/en-us/purview/audit-log-activities) से Exchange, SharePoint, OneDrive और Teams की गतिविधि भी। वहां आप उन्हें अपने लॉग, ट्रेस और मेट्रिक्स के साथ खोजते हैं, हर दूसरे स्रोत के साथ उनका सहसंबंध देखते हैं, और ज़रूरी चीज़ों के लिए ऑन-कॉल को पेज करते हैं। OneUptime उन्हें आपके बनाए ऐप रजिस्ट्रेशन से पढ़ता है, और आपके टेनेंट में कुछ नहीं बदलता।
+[Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) के साइन-इन, डायरेक्टरी बदलाव और जोखिम पहचान OneUptime के सुरक्षा इवेंट में इम्पोर्ट करें, और चाहें तो ऐप के बैकग्राउंड में किए गए साइन-इन और [Microsoft 365 ऑडिट लॉग](https://learn.microsoft.com/en-us/purview/audit-log-activities) से Exchange, SharePoint, OneDrive और Teams की गतिविधि भी। वहां आप उन्हें अपने लॉग, ट्रेस और मेट्रिक्स के साथ खोजते हैं, हर दूसरे स्रोत के साथ उनका सहसंबंध देखते हैं, और ज़रूरी चीज़ों के लिए ऑन-कॉल को पेज करते हैं। OneUptime उन्हें आपके बनाए ऐप रजिस्ट्रेशन से पढ़ता है, और आपके टेनेंट में कुछ नहीं बदलता।
 
 :::cards
 - [कनेक्शन सेट करें](#कनेक्शन-सेट-करें): एक ऐप रजिस्ट्रेशन, उसकी अनुमतियां, और कनेक्शन का फ़ॉर्म।
@@ -19,15 +19,15 @@ flowchart TB
     list --> event["हर एक अपनी तरह<br/>के OCSF इवेंट के रूप<br/>में सहेजा जाता है"]
 ```
 
-हर मिनट OneUptime हर उस सक्षम कनेक्शन से पोल करता है जिसका पोल अंतराल बीत चुका है। एक पोल Microsoft Entra ID में आपके ऐप रजिस्ट्रेशन के रूप में साइन इन करता है और इस क्रम में पढ़ता है: पिछले पोल के बाद दर्ज डायरेक्टरी बदलाव ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) और साइन-इन ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)), फिर, जब **Microsoft 365 ऑडिट लॉग** विकल्प चालू हो, ऑडिट लॉग की नई सामग्री ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference))। हर रिकॉर्ड एक [OCSF](https://schema.ocsf.io/) इवेंट के रूप में सहेजा जाता है: साइन-इन एक Authentication इवेंट के रूप में, सौंपा गया रोल एक User Access Management इवेंट के रूप में, फ़िशिंग का निर्णय एक Detection Finding के रूप में।
+हर मिनट OneUptime हर उस सक्षम कनेक्शन से पोल करता है जिसका पोल अंतराल बीत चुका है। एक पोल Microsoft Entra ID में आपके ऐप रजिस्ट्रेशन के रूप में साइन इन करता है और इस क्रम में पढ़ता है: पिछले पोल के बाद दर्ज डायरेक्टरी बदलाव ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) और साइन-इन ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)), फिर Identity Protection की जोखिम पहचान ([List riskDetections](https://learn.microsoft.com/en-us/graph/api/riskdetection-list)), फिर, जब **बैकग्राउंड और ऐप साइन-इन** विकल्प चालू हो, बैकग्राउंड और ऐप साइन-इन, और जब **Microsoft 365 ऑडिट लॉग** विकल्प चालू हो, ऑडिट लॉग की नई सामग्री ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference))। हर रिकॉर्ड एक [OCSF](https://schema.ocsf.io/) इवेंट के रूप में सहेजा जाता है: साइन-इन एक Authentication इवेंट के रूप में, सौंपा गया रोल एक User Access Management इवेंट के रूप में, जोखिम पहचान या फ़िशिंग का निर्णय एक Detection Finding के रूप में।
 
 ## शुरू करने से पहले
 
 - OneUptime में Project Owner, Project Admin या Security Admin रोल। Security Member और Security Viewer कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
-- साइन-इन के लिए, Microsoft Entra ID P1 या P2, जो Microsoft 365 E3, E5 और Business Premium में शामिल हैं: Microsoft Graph साइन-इन सिर्फ़ ऐसे टेनेंट को देता है। डायरेक्टरी बदलाव किसी भी टेनेंट में पढ़े जाते हैं।
+- साइन-इन और जोखिम पहचान के लिए, Microsoft Entra ID P1 या P2, जो Microsoft 365 E3, E5 और Business Premium में शामिल हैं: Microsoft Graph इन्हें सिर्फ़ ऐसे टेनेंट को देता है, और P2 हर जोखिम पहचान का पूरा ब्यौरा देता है। डायरेक्टरी बदलाव किसी भी टेनेंट में पढ़े जाते हैं।
 - ऐप्लिकेशन रजिस्टर कर सकने वाला कोई Entra रोल, जैसे Application Administrator, और एडमिन सहमति देने के लिए एक Global Administrator या Privileged Role Administrator।
 - Microsoft 365 ऑडिट लॉग के लिए, टेनेंट में ऑडिटिंग चालू होनी चाहिए, जो डिफ़ॉल्ट रूप से होती है: [Microsoft Purview पोर्टल](https://purview.microsoft.com) में **Audit** को **Start recording user and admin activity** नहीं दिखाना चाहिए।
-- OneUptime ऐप और वर्कर से `login.microsoftonline.com`, `graph.microsoft.com` और `manage.office.com` तक, या Azure Government के लिए `login.microsoftonline.us`, `graph.microsoft.us` और `manage.office365.us` तक आउटबाउंड HTTPS।
+- OneUptime ऐप और वर्कर से `login.microsoftonline.com`, `graph.microsoft.com` और `manage.office.com` तक (Microsoft 365 GCC के लिए इसकी जगह `manage-gcc.office.com`), या GCC High के लिए `login.microsoftonline.us`, `graph.microsoft.us` और `manage.office365.us` तक, और DoD के लिए `login.microsoftonline.us`, `dod-graph.microsoft.us` और `manage.protection.apps.mil` तक आउटबाउंड HTTPS।
 
 ## कनेक्शन सेट करें
 
@@ -42,7 +42,7 @@ flowchart TB
 
 ### इसे लॉग पढ़ने दें
 
-1. **API permissions → Add a permission → Microsoft Graph → Application permissions** पर जाएं, `AuditLog.Read.All` चुनें, और **Add permissions** चुनें। Microsoft बताता है कि उसकी साइन-इन सूची `Directory.Read.All` भी मांग सकती है: सहमति देने के बाद भी अगर साइन-इन `403` से अस्वीकार हों, तो इसे जोड़ें।
+1. **API permissions → Add a permission → Microsoft Graph → Application permissions** पर जाएं, `AuditLog.Read.All` और, जोखिम पहचान के लिए, `IdentityRiskEvent.Read.All` चुनें, और **Add permissions** चुनें। Microsoft बताता है कि उसकी साइन-इन सूची `Directory.Read.All` भी मांग सकती है: सहमति देने के बाद भी अगर साइन-इन `403` से अस्वीकार हों, तो इसे जोड़ें।
 2. Microsoft 365 ऑडिट लॉग के लिए दूसरी अनुमति जोड़ें: **Add a permission → Office 365 Management APIs → Application permissions**, फिर `ActivityFeed.Read`।
 3. प्लेबुक को उपयोगकर्ताओं को अक्षम, सक्षम और साइन आउट करने देने के लिए (देखें [रोकथाम](/docs/telemetry/security-cases#रोकथाम)), इसी तरह `User.Read.All`, `User.EnableDisableAccount.All` और `User.RevokeSessions.All` जोड़ें। Microsoft किसी व्यवस्थापक का खाता सिर्फ़ ऐसे ऐप को बदलने देता है जिसके पास Privileged Authentication Administrator भूमिका भी हो।
 4. अपने टेनेंट के लिए **Grant admin consent for** चुनें, और पुष्टि करें। हर अनुमति की स्थिति **Granted** होनी चाहिए: सहमति के बिना हर रीड `403` से अस्वीकार होता है।
@@ -53,7 +53,7 @@ flowchart TB
 
 ### OneUptime में कनेक्शन जोड़ें
 
-**उत्पाद → सुरक्षा इवेंट → कनेक्शन** (`/dashboard/{projectId}/security-events/connections`) खोलें, **कनेक्शन जोड़ें** पर क्लिक करें, **पहचान** के नीचे **Microsoft Entra ID** चुनें, और **अगला** पर क्लिक करें। नीचे की तालिका की सेटिंग्स भरें, **अगला** पर क्लिक करें, और सीक्रेट का मान **क्लाइंट सीक्रेट** में पेस्ट करें। **पोलिंग** चरण में उसे भी पढ़ने के लिए **Microsoft 365 ऑडिट लॉग** चालू करें।
+**उत्पाद → सुरक्षा इवेंट → कनेक्शन** (`/dashboard/{projectId}/security-events/connections`) खोलें, **कनेक्शन जोड़ें** पर क्लिक करें, **पहचान** के नीचे **Microsoft Entra ID** चुनें, और **अगला** पर क्लिक करें। नीचे की तालिका की सेटिंग्स भरें, **अगला** पर क्लिक करें, और सीक्रेट का मान **क्लाइंट सीक्रेट** में पेस्ट करें। **पोलिंग** चरण में उन्हें भी पढ़ने के लिए **बैकग्राउंड और ऐप साइन-इन** या **Microsoft 365 ऑडिट लॉग** चालू करें। Azure सार्वजनिक क्लाउड से बाहर का टेनेंट सेटिंग्स वाले चरण में **और फ़ील्ड** के अंतर्गत अपना **क्लाउड** चुनता है।
 
 ### सहेजने से पहले इसे टेस्ट करें
 
@@ -63,8 +63,9 @@ flowchart TB
 | सेटिंग | कहां मिलेगी |
 | --- | --- |
 | **डायरेक्टरी (टेनेंट) ID** | ऐप का **Overview** पेज। टेनेंट का GUID, या `contoso.onmicrosoft.com` जैसा कोई सत्यापित डोमेन। **Microsoft 365 ऑडिट लॉग** चालू होने पर GUID: Management API किसी टेनेंट को सिर्फ़ उसी से पहचानता है। |
-| **एप्लिकेशन (क्लाइंट) ID** | ऐप का **Overview** पेज। उस ऐप का GUID जिसके पास `AuditLog.Read.All` है। |
-| **क्लाउड** | **Azure सार्वजनिक क्लाउड**, या GCC High के लिए **Azure Government (अमेरिका)** (`login.microsoftonline.us`, `graph.microsoft.us` और `manage.office365.us`)। |
+| **एप्लिकेशन (क्लाइंट) ID** | ऐप का **Overview** पेज। उस ऐप का GUID जिसके पास `AuditLog.Read.All` और `IdentityRiskEvent.Read.All` हैं। |
+| **क्लाउड** | **और फ़ील्ड** के अंतर्गत, जब तक आप कोई दूसरा न चुनें, **Azure सार्वजनिक क्लाउड**: GCC के लिए **Azure सार्वजनिक क्लाउड, Microsoft 365 GCC**, GCC High के लिए **Azure Government (अमेरिका), GCC High**, या DoD के लिए **Azure Government (अमेरिका), DoD**। |
+| **बैकग्राउंड और ऐप साइन-इन** | वैकल्पिक, डिफ़ॉल्ट रूप से बंद। चालू होने पर हर पोल Microsoft Graph की बीटा साइन-इन सूची से वे साइन-इन भी पढ़ता है जो ऐप लोगों की ओर से बैकग्राउंड में करते हैं, और सर्विस प्रिंसिपल के अपने साइन-इन भी, और विफल साइन-इन इम्पोर्ट करता है। |
 | **Microsoft 365 ऑडिट लॉग** | वैकल्पिक, डिफ़ॉल्ट रूप से बंद। चालू होने पर हर पोल Microsoft 365 ऑडिट लॉग भी पढ़ता है। ऐप को `ActivityFeed.Read` चाहिए। |
 | **क्लाइंट सीक्रेट** | सीक्रेट का **Value**। यह एन्क्रिप्ट किया जाता है, API इसे कभी नहीं लौटाता और यह फिर कभी नहीं दिखता। इसे कनेक्शन पर **क्रेडेंशियल अपडेट करें** से बदलें। |
 
@@ -80,6 +81,8 @@ flowchart TB
 | दूसरे चरण के इंतज़ार में साइन-इन, जैसे MFA (`50074`, `50076`) या पासवर्ड बदलने का संकेत | Authentication (`3002`), स्टेटस `Interrupted` | Informational: एक चरण, विफलता नहीं |
 | विफल साइन-इन, Entra के कारण और त्रुटि कोड के साथ | Authentication (`3002`), स्टेटस `Failure` | Low |
 | ऐसा साइन-इन जिसे Identity Protection ने मध्यम या उच्च जोखिम माना | Authentication (`3002`) | Medium या High |
+| Identity Protection का पहचाना गया कोई जोखिम, जैसे कोई अनाम IP पता या लीक हुआ क्रेडेंशियल | Detection Finding (`2004`) | उसका जोखिम स्तर; जिस उपयोगकर्ता का समझौता होना पक्का हो, उसके लिए Critical |
+| विफल बैकग्राउंड या ऐप साइन-इन, **बैकग्राउंड और ऐप साइन-इन** चालू होने पर | Authentication (`3002`), स्टेटस `Failure` | Low |
 | बदला गया उपयोगकर्ता, ग्रुप या रोल, उसकी श्रेणी के अनुसार | Account Change (`3001`), Group Management (`3006`), User Access Management (`3005`), या बाकी के लिए Entity Management (`3004`) | विशेषाधिकार वाले रोल, जैसे Global Administrator, के लिए Medium; विफल बदलाव के लिए Low |
 
 **Microsoft 365 ऑडिट लॉग** चालू होने पर उससे वे रिकॉर्ड इम्पोर्ट होते हैं जिन पर सुरक्षा टीम कार्रवाई करती है, और बाकी, जैसे खोली गई फ़ाइल या पढ़ा गया मेल, सिर्फ़ गिने जाते हैं:
@@ -96,22 +99,22 @@ flowchart TB
 
 Exchange का अपना रखरखाव, जो उसके सिस्टम खाते से चलता है, तब तक छोड़ दिया जाता है जब तक वह मेल फ़ॉरवर्ड न करे। हर इवेंट पूरा रिकॉर्ड रखता है, `status.errorCode` या `Parameters.ForwardTo` जैसी बिंदु वाली कुंजियों में फ़्लैट करके, ताकि कोई नियम किसी भी फ़ील्ड को उसी नाम से पढ़े जो Microsoft उसे देता है। Entra ID के लिए नियम लाइब्रेरी के नियम उन्हें वैसे ही पढ़ते हैं जैसे वे यहां इम्पोर्ट होते हैं।
 
-यही साइन-इन और डायरेक्टरी बदलाव लॉग के रूप में भी OneUptime तक पहुंच सकते हैं, जिन्हें Azure की डायग्नोस्टिक सेटिंग एक्सपोर्ट करती है और [आपके लॉग](/docs/telemetry/security-events#अपने-लॉग-में-सुरक्षा-इवेंट-खोजें) पढ़ता है। दोनों तरीकों से हर रिकॉर्ड को एक ही इवेंट ID मिलती है, लेकिन दोनों तरीकों से पढ़ा गया रिकॉर्ड दो बार सहेजा जाता है: Entra ID को एक ही तरीके से पढ़ें।
+यही साइन-इन, डायरेक्टरी बदलाव और जोखिम पहचान लॉग के रूप में भी OneUptime तक पहुंच सकते हैं, जिन्हें Azure की डायग्नोस्टिक सेटिंग एक्सपोर्ट करती है और [आपके लॉग](/docs/telemetry/security-events#अपने-लॉग-में-सुरक्षा-इवेंट-खोजें) पढ़ता है। दोनों तरीकों से हर रिकॉर्ड को एक ही इवेंट ID मिलती है, और दोनों तरीकों से पढ़ा गया रिकॉर्ड एक ही बार सहेजा जाता है, उस तरीके से जो उसे पहले पढ़ता है।
 
 ## पोलिंग कैसे काम करती है
 
-- **रिकॉर्ड इस आधार पर पढ़े जाते हैं कि Entra ID ने उन्हें कब दर्ज किया**, बदलाव के लिए `activityDateTime` और साइन-इन के लिए `createdDateTime`।
+- **रिकॉर्ड इस आधार पर पढ़े जाते हैं कि Entra ID ने उन्हें कब दर्ज किया**, बदलाव के लिए `activityDateTime`, साइन-इन के लिए `createdDateTime` और जोखिम पहचान के लिए `detectedDateTime`।
 - **पहला पोल 24 घंटे पीछे देखता है**, इसलिए नया कनेक्शन तुरंत अपने हाल के रिकॉर्ड दिखाता है।
 - **हर बाद वाला पोल सहेजे गए कर्सर से 30 मिनट पहले शुरू होता है।** Microsoft बताता है कि दोनों लॉग कुछ मिनट देर से आते हैं, इसलिए ओवरलैप देर से आया रिकॉर्ड अगले पोल में पढ़ लेता है, और डुप्लिकेट प्रोजेक्ट के भीतर रिकॉर्ड ID से हटा दिए जाते हैं।
 - **एक पोल कर्सर से आगे ज़्यादा से ज़्यादा 24 घंटे पढ़ता है।** जिस कनेक्शन का कर्सर पीछे रह गया, वह 24 घंटे की लगातार विंडो में बराबर आता है।
 - **Microsoft Entra ID P1 या P2 के बिना टेनेंट** अपने डायरेक्टरी बदलाव इम्पोर्ट करता है, और हर रन की **Read sign-ins** जांच चेतावनी देती है कि साइन-इन नहीं पढ़े गए।
 - **विफल रन कुछ नहीं बदलता।** किसी नेटवर्क त्रुटि, या Graph की त्रुटि स्थिति के बाद, कर्सर और विंडो लंबाई जैसे थे वैसे ही रहते हैं, और अगला पोल वही विंडो फिर से पढ़ता है। एकमात्र अपवाद वह अनुरोध है जिसका समय खत्म हो गया: कर्सर वहीं रहता है, पर अगली विंडो आधी लंबी होती है, क्योंकि समय पर जवाब के लिए बहुत भारी विंडो हर कोशिश में टाइम आउट होगी।
 
-Microsoft 365 ऑडिट लॉग इस आधार पर पढ़ा जाता है कि Microsoft ने हर कंटेंट ब्लॉब कब उपलब्ध कराया, एक बार में एक दिन, और उन 7 दिनों से पीछे नहीं जितने Microsoft उसे रखता है। पहला पोल ऐप को `Audit.Exchange`, `Audit.SharePoint` और `Audit.General` की सदस्यता दिलाता है, और Microsoft नई सदस्यता के पहले रिकॉर्ड 12 घंटे के भीतर उपलब्ध कराता है। ऑडिट लॉग Entra ID के लॉग को कभी नहीं रोकता: छूटी हुई अनुमति एक चेतावनी है और विंडो आगे बढ़ जाती है, जबकि Microsoft की तरफ़ की विफलता, जैसे `HTTP 503`, रन को **आंशिक** बना देती है ताकि विंडो फिर से पढ़ी जाए।
+Microsoft 365 ऑडिट लॉग इस आधार पर पढ़ा जाता है कि Microsoft ने हर कंटेंट ब्लॉब कब उपलब्ध कराया, एक बार में एक दिन, और उन 7 दिनों से पीछे नहीं जितने Microsoft उसे रखता है। पहला पोल ऐप को `Audit.Exchange`, `Audit.SharePoint` और `Audit.General` की सदस्यता दिलाता है, और Microsoft नई सदस्यता के पहले रिकॉर्ड 12 घंटे के भीतर उपलब्ध कराता है। ऑडिट लॉग Entra ID के लॉग को कभी नहीं रोकता: छूटी हुई अनुमति एक चेतावनी है और विंडो आगे बढ़ जाती है, जबकि Microsoft की तरफ़ की विफलता, जैसे `HTTP 503`, रन को **आंशिक** बना देती है ताकि विंडो फिर से पढ़ी जाए। जोखिम पहचान और बैकग्राउंड व ऐप साइन-इन भी ऐसे ही चलते हैं: वे साइन-इन और डायरेक्टरी बदलावों को कभी नहीं रोकते।
 
 ### जब किसी विंडो में एक पोल की क्षमता से ज़्यादा हो
 
-हर लॉग का अपना बजट है: 500 डायरेक्टरी बदलावों के 10 पेज, 500 साइन-इन के 20 पेज, और Microsoft 365 ऑडिट लॉग के लिए 120 अनुरोध और 10,000 रिकॉर्ड। एक पोल 4 मिनट बाद रुक जाता है। जब कोई बजट किसी लॉग को उसकी विंडो के अंत से पहले रोक देता है, तो रन **आंशिक** होता है, और उसकी चेतावनी लॉग और बजट का नाम बताती है। Microsoft Graph सबसे नए रिकॉर्ड पहले देता है, इसलिए OneUptime कर्सर को उन रिकॉर्ड से आगे ले जाने के बजाय जिन तक वह कभी पहुंचा ही नहीं, विंडो छोटी कर देता है:
+हर लॉग का अपना बजट है: 500 डायरेक्टरी बदलावों के 10 पेज, 500 साइन-इन के 20 पेज, 500 जोखिम पहचान के 4 पेज, हर तरह के बैकग्राउंड साइन-इन के 500 के 10 पेज, और Microsoft 365 ऑडिट लॉग के लिए 120 अनुरोध और 10,000 रिकॉर्ड। एक पोल 4 मिनट बाद रुक जाता है। जब कोई बजट किसी लॉग को उसकी विंडो के अंत से पहले रोक देता है, तो रन **आंशिक** होता है, और उसकी चेतावनी लॉग और बजट का नाम बताती है। Microsoft Graph सबसे नए रिकॉर्ड पहले देता है, इसलिए OneUptime कर्सर को उन रिकॉर्ड से आगे ले जाने के बजाय जिन तक वह कभी पहुंचा ही नहीं, विंडो छोटी कर देता है:
 
 1. **छोटा करें।** अगला पोल उसी शुरुआती बिंदु से आधी लंबाई की विंडो पढ़ता है, और तब तक आधा करता रहता है जब तक कोई विंडो पूरी न पढ़ी जाए, कम से कम एक मिनट तक। रन की चेतावनी यही बताती है: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` लंबी विंडो से पहले ही इम्पोर्ट हो चुके रिकॉर्ड डुप्लिकेट मानकर छोड़ दिए जाते हैं।
 2. **वापस बढ़ाएं।** किसी विंडो के पूरा पढ़े जाने के बाद कर्सर उसके अंत पर जाता है, और अगली विंडो फिर दोगुनी होती है, ज़्यादा से ज़्यादा 24 घंटे तक।
@@ -138,6 +141,8 @@ Microsoft 365 ऑडिट लॉग इस आधार पर पढ़ा ज
 | **Authenticate with Microsoft Entra** | Entra ID आपके चुने क्लाउड में ऐप को Microsoft Graph का टोकन जारी करता है। |
 | **Read sign-ins** | पिछले 24 घंटों के साइन-इन पढ़े जा सकते हैं। P1 या P2 के बिना टेनेंट में यह विफलता नहीं, चेतावनी है। |
 | **Read directory changes** | पिछले 24 घंटों के डायरेक्टरी बदलाव पढ़े जा सकते हैं। |
+| **Read risk detections** | पिछले 24 घंटों की Identity Protection जोखिम पहचान पढ़ी जा सकती हैं। अनुमति या लाइसेंस के बिना यह विफलता नहीं, चेतावनी है। |
+| **Read background and app sign-ins** | सिर्फ़ विकल्प चालू होने पर: Microsoft Graph की बीटा साइन-इन सूची दोनों तरह के लिए जवाब देती है। |
 | **Read the Microsoft 365 audit log** | सिर्फ़ विकल्प चालू होने पर: Management API जवाब देता है, और ऐप किन कंटेंट टाइप की सदस्यता में है। |
 | **Records available to import** | पिछले 24 घंटों में कितने साइन-इन और डायरेक्टरी बदलाव हैं, हर एक के ज़्यादा से ज़्यादा 500, इसलिए `500+` का मतलब है ज़्यादा। एक भी न होना चेतावनी है। |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime का अपना हिस्सा: कोई प्रोसेस Worker कतार के जॉब लेता है, पोल जॉब हर मिनट चलता है, और सुरक्षा इवेंट का स्टोर जवाब देता है। |
@@ -157,6 +162,11 @@ Microsoft 365 ऑडिट लॉग इस आधार पर पढ़ा ज
 :::details पिछली त्रुटि `sign-ins request failed (HTTP 403)` या `audit logs request failed (HTTP 403)` कहती है
 - त्रुटि कोड `Authorization_RequestDenied`: ऐप के पास `AuditLog.Read.All` नहीं है, या सहमति नहीं दी गई। एडमिन सहमति दें, कुछ मिनट रुकें, और फिर से टेस्ट करें। साइन-इन के लिए `Directory.Read.All` भी दें।
 - त्रुटि कोड `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: टेनेंट के पास Microsoft Entra ID P1 या P2 नहीं है। डायरेक्टरी बदलाव फिर भी इम्पोर्ट होते हैं।
+:::
+
+:::details जोखिम पहचान नहीं पढ़ी जातीं
+- `risk detections request failed (HTTP 403)`: ऐप के पास `IdentityRiskEvent.Read.All` नहीं है, या सहमति नहीं दी गई। साइन-इन और डायरेक्टरी बदलाव फिर भी इम्पोर्ट होते हैं।
+- त्रुटि कोड `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: टेनेंट के पास Microsoft Entra ID P1 या P2 नहीं है।
 :::
 
 :::details Microsoft 365 ऑडिट लॉग नहीं पढ़ा जाता

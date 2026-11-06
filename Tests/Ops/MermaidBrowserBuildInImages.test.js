@@ -26,7 +26,9 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
 const BUILD_SCRIPT = "packages/Common/Scripts/build-mermaid-browser.js";
 const BUILD = "RUN node /usr/src/Common/Scripts/build-mermaid-browser.js";
-const COPY_COMMON = "COPY ./packages/Common /usr/src/Common";
+// Home leaves Common's tests out as it copies; the App's pruned stages remove them.
+const COPY_COMMON =
+  /^COPY (?:--exclude=Tests )?\.\/packages\/Common \/usr\/src\/Common$/;
 const COMMON_WORKDIR = "WORKDIR /usr/src/Common";
 
 const IMAGES = ["packages/App/Dockerfile.tpl", "packages/Home/Dockerfile.tpl"];
@@ -99,7 +101,9 @@ describe("images that draw diagrams build mermaid from its source", () => {
             expect(builds).toHaveLength(1);
 
             const buildAt = lines.indexOf(BUILD);
-            const copyAt = lines.indexOf(COPY_COMMON);
+            const copyAt = lines.findIndex((line) => {
+              return COPY_COMMON.test(line);
+            });
             const workdirAt = lines.indexOf(COMMON_WORKDIR);
             const installAt = lines.findIndex((line, index) => {
               return index > workdirAt && /\bnpm ci\b/.test(line);

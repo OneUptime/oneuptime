@@ -307,7 +307,8 @@
       "forgotPassword": "忘記密碼？",
       "submit": "登入",
       "or": "或",
-      "logInWithSso": "透過 SSO 登入"
+      "logInWithSso": "透過 SSO 登入",
+      "emailSignInLink": "透過電子郵件傳送登入連結"
     },
     "sso": {
       "title": "透過 SSO 登入",
@@ -330,6 +331,23 @@
       "success": "您的密碼已更新。請登入。",
       "submit": "重設密碼",
       "knowPassword": "知道您的密碼？"
+    },
+    "magicLink": {
+      "title": "使用連結登入",
+      "description": "輸入您的電子郵件地址，我們會寄給您一個登入 {{statusPageName}} 的連結。無需密碼。",
+      "submit": "傳送登入連結",
+      "sentTitle": "請查看您的電子郵件",
+      "sent": "如果 {{email}} 可以登入 {{statusPageName}}，登入連結已寄出。此連結僅能使用一次，{{minutes}} 分鐘後失效。",
+      "notReceived": "收件匣中沒有？請檢查垃圾郵件資料夾，或請狀態頁面的團隊新增您。",
+      "sendAnother": "再傳送一個連結"
+    },
+    "magicLinkLogin": {
+      "title": "登入 {{statusPageName}}",
+      "description": "請使用下方按鈕完成登入。",
+      "submit": "登入",
+      "noLink": "此頁面需要您電子郵件中的登入連結。請重新開啟該連結，或申請新的連結。",
+      "turnedOff": "此狀態頁面已關閉登入連結。請使用您的電子郵件和密碼登入。",
+      "requestNewLink": "透過電子郵件傳送新連結"
     },
     "masterPassword": {
       "prompt": "輸入密碼以檢視此狀態頁。",

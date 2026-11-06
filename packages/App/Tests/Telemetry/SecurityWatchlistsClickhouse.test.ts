@@ -13,7 +13,11 @@ import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementG
 import { buildIndicatorRow } from "Common/Server/Utils/SecurityEvent/ThreatIntel/IndicatorRows";
 import { buildSecurityEventDbRow } from "Common/Server/Utils/SecurityEvent/SecurityEventRow";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Query from "Common/Types/BaseDatabase/Query";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject } from "Common/Types/JSON";
+import { MonitorStepSecurityEventsMonitorUtil } from "Common/Types/Monitor/MonitorStepSecurityEventsMonitor";
 import ObjectID from "Common/Types/ObjectID";
 import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import { DetectionRetrohuntResult } from "Common/Types/SecurityEvent/DetectionRetrohunt";
@@ -33,9 +37,15 @@ import ServiceType from "Common/Types/Telemetry/ServiceType";
 import SigmaRuleSetParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import { bindSigmaWatchlists } from "Common/Utils/SecurityEvent/Sigma/SigmaWatchlists";
 import {
+  applySecurityEventSearchToQuery,
+  parseSecurityEventSearch,
+} from "Common/Utils/SecurityEvent/SecurityEventSearch";
+import { buildSecurityHuntQuery } from "Common/Utils/SecurityEvent/SecurityHuntSearch";
+import {
   afterAll,
   afterEach,
   beforeAll,
+  beforeEach,
   describe,
   expect,
   jest,
@@ -65,6 +75,9 @@ import {
  *     values sent in parameters ClickHouse accepts;
  *   - Run on Past Events binds the lists a rule names, for a single rule
  *     and a correlation alike;
+ *   - a search on Events (`user:%vip_users%`), a Security Events monitor's
+ *     watchlist filters and a hunt read lists through the service's own
+ *     reads, the list and its count alike;
  *   - another project's events are never read.
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server:
@@ -904,6 +917,173 @@ detection:
         retrohunt(rule("  selection:\n    principalUser|expand: '%admins%'")),
       ).rejects.toThrow(
         "There is no watchlist named admins in this project. Create it under Security Events > Detections > Watchlists, or fix its name in the rule.",
+      );
+    });
+  });
+
+  /*
+   * A search on Events, a Security Events monitor and a hunt name a list on
+   * a field (#5391); every read of the table puts the list in place first,
+   * so the list, its count and its chart match the values a rule's read
+   * matches.
+   */
+  describe("a search, a monitor or a hunt that reads a list", () => {
+    const LISTS: Array<SigmaWatchlist> = [
+      keptList("vip_users", SecurityEntityType.User, [
+        "ALICE@example.com",
+        "svc-*",
+      ]),
+      keptList("office", SecurityEntityType.IpAddress, ["10.20.0.0/16"]),
+      feedList("bad_domains", SecurityEntityType.Domain, FEED_ID),
+      keptList("bad_hashes", SecurityEntityType.FileHash, [
+        "d41d8cd98f00b204e9800998ecf8427e",
+      ]),
+    ];
+
+    const WINDOW: InBetween<Date> = new InBetween<Date>(
+      new Date(BASE.getTime() - HOUR),
+      NOW,
+    );
+
+    beforeEach(() => {
+      jest.spyOn(SecurityWatchlists, "load").mockImplementation((async (data: {
+        projectId: ObjectID;
+        names: Array<string>;
+      }) => {
+        expect(data.projectId.toString()).toBe(projectId.toString());
+
+        const found: Map<string, SigmaWatchlist> = new Map();
+
+        for (const list of LISTS) {
+          if (
+            data.names
+              .map((name: string): string => {
+                return getSecurityWatchlistNameKey(name);
+              })
+              .includes(getSecurityWatchlistNameKey(list.name))
+          ) {
+            found.set(getSecurityWatchlistNameKey(list.name), list);
+          }
+        }
+
+        return found;
+      }) as never);
+    });
+
+    // The events a read of the project matches, by name, as OneUptime reads them.
+    async function listed(query: Query<SecurityEvent>): Promise<Array<string>> {
+      const events: Array<SecurityEvent> = await SecurityEventService.findBy({
+        query: { projectId, time: WINDOW, ...query } as Query<SecurityEvent>,
+        select: { message: true },
+        sort: { message: SortOrder.Ascending },
+        limit: 100,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      return events.map((item: SecurityEvent): string => {
+        return String(item.message);
+      });
+    }
+
+    async function counted(query: Query<SecurityEvent>): Promise<number> {
+      return (
+        await SecurityEventService.countBy({
+          query: { projectId, time: WINDOW, ...query } as Query<SecurityEvent>,
+          props: { isRoot: true },
+        })
+      ).toNumber();
+    }
+
+    function searched(search: string): Query<SecurityEvent> {
+      return applySecurityEventSearchToQuery({
+        query: {},
+        filters: parseSecurityEventSearch(search),
+      });
+    }
+
+    test("the Events search: a field on a list, whatever the case, patterns included", async () => {
+      expect(await listed(searched("user:%vip_users%"))).toEqual([
+        "alice-office",
+        "alice-outside",
+        "svc-backup",
+        "svc-deploy",
+      ]);
+    });
+
+    test("a minus in front keeps the events whose field is not on the list - empty addresses too", async () => {
+      expect(await listed(searched("-ip:%office%"))).toEqual(
+        allBut("alice-office"),
+      );
+    });
+
+    test("an array field matches when any of its values is on the list; a feed's list is its active indicators", async () => {
+      expect(await listed(searched("observables:%bad_domains%"))).toEqual([
+        "no-user",
+      ]);
+    });
+
+    test("a source attribute, whatever its case", async () => {
+      expect(await listed(searched("@file.hash.md5:%bad_hashes%"))).toEqual([
+        "hash",
+      ]);
+    });
+
+    test("the list and its count match the same events", async () => {
+      const query: Query<SecurityEvent> = searched(
+        "user:%vip_users% -ip:%office%",
+      );
+
+      expect(await listed(query)).toEqual([
+        "alice-outside",
+        "svc-backup",
+        "svc-deploy",
+      ]);
+      expect(await counted(query)).toBe(3);
+    });
+
+    test("a Security Events monitor's filters count what its step names", async () => {
+      const query: Query<SecurityEvent> =
+        MonitorStepSecurityEventsMonitorUtil.toQuery({
+          ...MonitorStepSecurityEventsMonitorUtil.getDefault(),
+          lastXSecondsOfEvents: 0,
+          watchlistFilters: [
+            { field: "principalUser", watchlist: "VIP_USERS" },
+            { field: "principalIp", watchlist: "office", isNotOnList: true },
+          ],
+        });
+
+      expect(await counted(query)).toBe(3);
+    });
+
+    test("a hunt's read is what the Events page lists for the same search", async () => {
+      const hunt: Query<SecurityEvent> = buildSecurityHuntQuery({
+        projectId,
+        searchQuery: "user:%vip_users% -ip:%office%",
+        filters: {},
+        startTime: WINDOW.startValue,
+        endTime: WINDOW.endValue,
+      });
+
+      expect(
+        (
+          await SecurityEventService.countBy({
+            query: hunt,
+            props: { isRoot: true },
+          })
+        ).toNumber(),
+      ).toBe(3);
+    });
+
+    test("another project's events are never read, whatever its lists", async () => {
+      expect(await listed(searched("user:%vip_users%"))).not.toContain(
+        "other-project",
+      );
+    });
+
+    test("a list the project does not have is refused before ClickHouse is asked", async () => {
+      await expect(listed(searched("user:%crown_jewels%"))).rejects.toThrow(
+        "There is no watchlist named crown_jewels in this project.",
       );
     });
   });

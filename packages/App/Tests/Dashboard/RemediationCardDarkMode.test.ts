@@ -160,11 +160,14 @@ const KNOWN_EXCEPTIONS: Record<string, Array<string>> = {
   /*
    * The dot of a settled fix's pill (Dismissed, No runbook applies, a
    * command Pending or Skipped, a change through an MCP server not sent):
-   * a mid-grey mark, as visible on the dark pill as on the light one.
+   * a mid-grey mark, as visible on the dark pill as on the light one. A
+   * command's facts moved with what its steps open to
+   * (RemediationFixStepDetails, issue #5598).
    */
   "bg-gray-400": [
     "AutoRemediation/RemediationStep.tsx",
     "AutoRemediation/McpToolCallList.tsx",
+    "AutoRemediation/RemediationFixStepDetails.tsx",
   ],
 };
 
@@ -254,6 +257,10 @@ describe("the Remediation step in the dark theme", () => {
         "AutoRemediation/RemediationCodeFix.tsx",
         "AutoRemediation/RemediationDecisionLines.ts",
         "AutoRemediation/RemediationDecisionList.tsx",
+        // A fix, step by step, and what each step opens to (#5598).
+        "AutoRemediation/RemediationFixStepDetails.tsx",
+        "AutoRemediation/RemediationFixStepList.tsx",
+        "AutoRemediation/RemediationFixSteps.ts",
         "AutoRemediation/RemediationStep.tsx",
         "AutoRemediation/RemediationStepCopy.ts",
         "AutoRemediation/RemediationStepStatus.ts",

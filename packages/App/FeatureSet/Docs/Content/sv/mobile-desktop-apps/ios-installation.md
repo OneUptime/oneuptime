@@ -62,7 +62,7 @@ Appen visar ett projekt i taget: tryck på projektets namn högst upp på en sk�
 
 :::steps
 ### Hitta enheten i instrumentpanelen
-Öppna **Användarinställningar → Aviseringsmetoder** och fliken **Push Notifications** i instrumentpanelen. Din iPhone eller iPad står under **Enheter för push-aviseringar** med sitt modellnamn. Varje projekt har sin egen lista.
+Öppna **Användarinställningar → Aviseringsmetoder** och fliken **Push-aviseringar** i instrumentpanelen. Din iPhone eller iPad står under **Enheter för push-aviseringar** med sitt modellnamn. Varje projekt har sin egen lista.
 
 ### Skicka ett test
 Klicka på **Testavisering** på enhetens rad. En notis kommer fram på enheten; tryck på den för att öppna appen.
@@ -130,7 +130,7 @@ Appen nådde inte `https://<your-oneuptime>/api/status`. Kontrollera adressen, i
 
 :::details Inga aviseringar kommer fram
 - Kontrollera att **Tillåt notiser** är på under **Inställningar → Notiser → OneUptime On-Call**, och att inget Fokus håller tillbaka larmen.
-- Kontrollera att enheten står under **Push Notifications** i **Användarinställningar → Aviseringsmetoder**, och skicka en **Testavisering** till den.
+- Kontrollera att enheten står under **Push-aviseringar** i **Användarinställningar → Aviseringsmetoder**, och skicka en **Testavisering** till den.
 - Är enheten markerad som **Tar inte emot aviseringar**, öppnar du appen medan du är inloggad. Den registrerar enheten igen; se [När en telefon måste registreras igen](/docs/mobile-desktop-apps/faq-troubleshooting#när-en-telefon-måste-registreras-igen).
 - Kontrollera dina jourregler under **Användarinställningar → Jourregler**.
 - På ett OneUptime i egen drift kontrollerar du att servern når sitt push-relä: se [Push-aviseringar](/docs/self-hosted/push-notifications#nätverksåtkomst).

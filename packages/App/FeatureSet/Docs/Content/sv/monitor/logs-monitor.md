@@ -48,7 +48,7 @@ I **Loggar att bevaka** anger du **Loggens allvarlighetsgrad** och **Meddelandet
 
 ### Begränsa dem (valfritt)
 
-Öppna **Fler fält** för att filtrera efter telemetritjänst, infrastrukturentitet eller attribut. Vill du ha ett larm per tunnel, användare eller gränssnitt i stället för en för hela monitorn lägger du till attributet under **Group by Attributes** (se [Larm per grupp](#larm-per-grupp-group-by)).
+Öppna **Fler fält** för att filtrera efter telemetritjänst, infrastrukturentitet eller attribut. Vill du ha ett larm per tunnel, användare eller gränssnitt i stället för en för hela monitorn lägger du till attributet under **Gruppera efter attribut** (se [Larm per grupp](#larm-per-grupp-group-by)).
 
 ### Säg när det ska larmas
 
@@ -70,8 +70,8 @@ Klicka på **Skapa monitor**. Monitorn öppnas på sin sida **Översikt**, och d
 | **Loggens allvarlighetsgrad** | Loggar med någon av de valda allvarlighetsgraderna. | Tomt: alla allvarlighetsgrader |
 | **Meddelandet innehåller** | Loggar vars brödtext innehåller denna text, utan skillnad på versaler och gemener. | Tomt: alla loggar |
 | **Tidsfönster** (i **När det ska larmas**) | Loggar från de senaste 5 sekunderna upp till de senaste 24 timmarna. | **Senaste 5 minuterna** |
-| **Group by Attributes** | Inget filter: räknar varje kombination av dessa attributs värden för sig. | Tomt: en räkning |
-| **Löst av attribut** | Inget filter: loggen som löser en grupp. Visas så snart **Group by Attributes** har ett attribut; se [Löst av en logg](#löst-av-en-logg). | Tomt: en grupp löses när dess loggar upphör |
+| **Gruppera efter attribut** | Inget filter: räknar varje kombination av dessa attributs värden för sig. | Tomt: en räkning |
+| **Löst av attribut** | Inget filter: loggen som löser en grupp. Visas så snart **Gruppera efter attribut** har ett attribut; se [Löst av en logg](#löst-av-en-logg). | Tomt: en grupp löses när dess loggar upphör |
 | **Filtrera efter telemetritjänst** (under **Fler fält**) | Loggar från någon av de valda tjänsterna. | Tomt: alla tjänster |
 | **Filtrera efter infrastrukturenhet** (under **Fler fält**) | Loggar från någon av de valda värdarna, poddarna, containrarna och andra entiteterna. | Tomt: alla entiteter |
 | **Filtrera efter attribut** (under **Fler fält**) | Loggar vars attribut uppfyller alla villkor. Varje villkor har en egen operator, som "är lika med" eller "innehåller". | Tomt: inga villkor |
@@ -157,7 +157,7 @@ Eftersom fönstren överlappar håller en enda skur av fel antalet högt i upp t
 
 ## Larm per grupp (Group By)
 
-**Group by Attributes** delar upp en loggmonitors räkning i en räkning per distinkt kombination av attributvärden (en per IPsec-tunnel, per VPN-användare, per brandväggsgränssnitt) och utvärderar kriterierna för varje grupp för sig. Det är loggarnas motsvarighet till en metrikmonitors [Group By](/docs/monitor/metrics-monitor#larm-per-serie-group-by).
+**Gruppera efter attribut** delar upp en loggmonitors räkning i en räkning per distinkt kombination av attributvärden (en per IPsec-tunnel, per VPN-användare, per brandväggsgränssnitt) och utvärderar kriterierna för varje grupp för sig. Det är loggarnas motsvarighet till en metrikmonitors [Group By](/docs/monitor/metrics-monitor#larm-per-serie-group-by).
 
 ### Ett larm per grupp
 
@@ -193,7 +193,7 @@ En enhet som rapporterar en tunnel nere rapporterar oftast också när den är u
 
 Ta en monitor som räknar loggar med `event.name` = `vpn.tunnel_down`, grupperade efter `event.device` och `vpn.tunnel.name`, med **Löst av attribut** satt till `event.name` = `vpn.tunnel_up`. När tunneln `HQ-Branch1` går ner öppnas dess larm. Larmet förblir öppen hela natten, trots att brandväggen inte loggar något mer om tunneln, och löses när brandväggen rapporterar `HQ-Branch1` uppe igen. Om tunneln faller igen öppnas ett nytt larm.
 
-- Fältet visas så snart **Group by Attributes** har ett attribut. Det tar upp till 10 attribut, och en lösande logg bär alla.
+- Fältet visas så snart **Gruppera efter attribut** har ett attribut. Det tar upp till 10 attribut, och en lösande logg bär alla.
 - En lösande logg hör till en grupp när den har gruppens värden för group by-attributen, så båda sorters loggar måste bära de attributen.
 - Monitorns telemetritjänster och tidsfönster gäller också för lösande loggar. Dess text- och allvarlighetsfilter gör det inte: de beskriver problemet.
 - En grupp vars nyaste logg är en lösande stängs. En grupp som loggade problemet igen efteråt förblir öppen.
@@ -213,7 +213,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 1. Skapa en monitor av typen **Loggar** och välj **Ett meddelande dyker upp**.
 2. Ställ in **Meddelandet innehåller** på `terminated` och **Tidsfönster** på **Senaste 5 minuterna**.
 3. Under **Fler fält** lägger du till attributfiltret `log_component` = `IPSec`.
-4. Under **Group by Attributes** lägger du till `con_name`.
+4. Under **Gruppera efter attribut** lägger du till `con_name`.
 5. Behåll regeln på **Fler än** `0`, och ge larmet eller incidenten titeln `IPsec tunnel {{con_name}} terminated`.
 :::
 
@@ -248,7 +248,7 @@ Kriterierna kontrolleras uppifrån och ned, och den första träffen avgör. Ett
 :::
 
 :::details Ett avvikelsekriterium utlöses aldrig
-Det lär sig fortfarande: monitorns tjänster har ännu inte två veckors historik. På en monitor med **Group by Attributes** matchar avvikelsevillkor aldrig; använd ett tröskelvärde där.
+Det lär sig fortfarande: monitorns tjänster har ännu inte två veckors historik. På en monitor med **Gruppera efter attribut** matchar avvikelsevillkor aldrig; använd ett tröskelvärde där.
 :::
 
 :::details Grupplarm kommer utan gruppvärde

@@ -45,7 +45,7 @@ Solo il primo passaggio ha campi obbligatori, più qualsiasi campo personalizzat
 **Dalla pagina di una risorsa.** **Dichiara incidente** nella scheda **Incidenti** di un monitor, di un host, di un servizio, di un cluster o della maggior parte delle altre risorse apre lo stesso modulo con quella risorsa già scelta in **Risorse interessate**, così bastano un titolo e una gravità, e l'incidente compare nella scheda da cui siete partiti.
 
 :::details Quali pagine di risorse lo offrono e che cosa scelgono
-**Dichiara incidente** nella scheda **Incidenti** di un monitor, di un host, di un dispositivo di rete, di un cluster Kubernetes, Proxmox, Ceph o Docker Swarm, di un host Docker o Podman, di un vCenter, di uno storage array, di una flotta IoT, di un database o di un servizio apre la stessa procedura guidata con quella risorsa già scelta in **Risorse interessate** (un monitor sotto **Monitor**, qualsiasi altra cosa sotto **Altre risorse interessate**), prima di qualsiasi cosa aggiunga un modello. Anche **Crea da modello** in quella scheda mantiene la risorsa. Il percorso di navigazione ripassa dalla scheda della risorsa, e una volta dichiarato arrivate sul nuovo incidente, come dall'elenco degli incidenti.
+**Dichiara incidente** nella scheda **Incidenti** di un monitor, di un host, di un dispositivo di rete, di un cluster Kubernetes, Proxmox, Ceph o Docker Swarm, di un host Docker o Podman, di un vCenter, di un cloud OpenStack, di uno storage array, di una flotta IoT, di un database o di un servizio apre la stessa procedura guidata con quella risorsa già scelta in **Risorse interessate** (un monitor sotto **Monitor**, qualsiasi altra cosa sotto **Altre risorse interessate**), prima di qualsiasi cosa aggiunga un modello. Anche **Crea da modello** in quella scheda mantiene la risorsa. Il percorso di navigazione ripassa dalla scheda della risorsa, e una volta dichiarato arrivate sul nuovo incidente, come dall'elenco degli incidenti.
 
 La scheda **Incidenti** di un elemento dell'inventario sceglie l'host, il servizio o il cluster Kubernetes a cui punta l'elemento, e il percorso di navigazione ripassa dalla scheda di quella risorsa. **Crea avviso** nella scheda **Avvisi** di una risorsa funziona allo stesso modo: da un monitor compila il **Monitor** dell'avviso, da qualsiasi altra risorsa **Altre risorse interessate**.
 
@@ -284,7 +284,7 @@ Da lì l'incidente è attivo: conta per il badge **Incidenti attivi** nel menu l
 
 ### Dichiarato già riconosciuto o risolto
 
-Scegliere uno **Stato iniziale** successivo — nel modulo, tramite lo **Stato iniziale dell'incidente** di un modello, oppure con `currentIncidentStateId` dall'API, da Terraform o da un workflow — registra un incidente di cui qualcuno si sta già occupando, o che è già finito. Non viene trattato come una nuova emergenza:
+Scegliere uno **Stato iniziale** successivo — nel modulo, tramite lo **Stato iniziale dell'incidente** di un modello, con `currentIncidentStateId` dall'API, da Terraform o da un workflow, oppure chiedendo a [Chiedi all'IA](/docs/ai/ask-ai) un incidente già riconosciuto o risolto — registra un incidente di cui qualcuno si sta già occupando, o che è già finito. Non viene trattato come una nuova emergenza:
 
 ```mermaid title="Che cosa mette in moto un nuovo incidente, in base allo stato in cui parte"
 flowchart TB

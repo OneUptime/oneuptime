@@ -1,5 +1,6 @@
 import UserCall from "../../../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../../../Models/DatabaseModels/UserEmail";
+import UserMattermost from "../../../../../Models/DatabaseModels/UserMattermost";
 import UserMicrosoftTeams from "../../../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../../../Models/DatabaseModels/UserPush";
@@ -40,9 +41,10 @@ import { describe, expect, test } from "@jest/globals";
  * decide it: a member with no matching rule was silently unpageable, and the
  * only person able to notice was the person who was not being notified.
  *
- * PHASE 3 SHIPPED THAT CAPABILITY ON THE RULE TABLE AND ONLY THERE. The nine
+ * PHASE 3 SHIPPED THAT CAPABILITY ON THE RULE TABLE AND ONLY THERE. The ten
  * notification-method models - UserEmail, UserSMS, UserCall, UserPush,
- * UserWhatsApp, UserTelegram, UserSlack, UserMicrosoftTeams, UserWebhook -
+ * UserWhatsApp, UserTelegram, UserSlack, UserMicrosoftTeams, UserMattermost,
+ * UserWebhook -
  * stay CurrentUser-only on every verb, so an administrator reading one of THEM
  * is refused exactly like any other member. That split is not a leftover; it
  * is the design, and it is the design because the alternative was tried and
@@ -152,7 +154,7 @@ const NEW_GRANULAR_PERMISSIONS: Array<Permission> = [
 /*
  * The nine notification methods a rule can point at. Every method assertion
  * runs against all nine rather than against a representative one: they are
- * nine copies of one decorator shape, and a widening applied to one of them is
+ * ten copies of one decorator shape, and a widening applied to one of them is
  * exactly the kind of thing that survives review.
  */
 const METHOD_MODELS: Array<[string, ModelConstructor]> = [
@@ -164,6 +166,7 @@ const METHOD_MODELS: Array<[string, ModelConstructor]> = [
   ["UserTelegram", UserTelegram],
   ["UserSlack", UserSlack],
   ["UserMicrosoftTeams", UserMicrosoftTeams],
+  ["UserMattermost", UserMattermost],
   ["UserWebhook", UserWebhook],
 ];
 
@@ -1292,6 +1295,7 @@ describe("the credentials behind a notification method, guarded by the table sco
     ["UserTelegram", "verificationCode", UserTelegram],
     ["UserSlack", "slackUserId", UserSlack],
     ["UserMicrosoftTeams", "microsoftTeamsUserId", UserMicrosoftTeams],
+    ["UserMattermost", "mattermostUserId", UserMattermost],
   ];
 
   test.each(CREDENTIAL_COLUMNS)(
@@ -1425,6 +1429,7 @@ describe("the rule relation - an administrator reads the FK, never the method be
     "userTelegramId",
     "userSlackId",
     "userMicrosoftTeamsId",
+    "userMattermostId",
     "userWebhookId",
   ];
 
@@ -1442,6 +1447,7 @@ describe("the rule relation - an administrator reads the FK, never the method be
     ["userTelegram", "telegramChatId"],
     ["userSlack", "slackUserId"],
     ["userMicrosoftTeams", "microsoftTeamsUserId"],
+    ["userMattermost", "mattermostUserId"],
     ["userWebhook", "webhookUrl"],
   ];
 

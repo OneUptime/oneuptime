@@ -6,7 +6,8 @@ import CategoryCheckbox from "../../CategoryCheckbox/Index";
 import CheckboxElement, {
   CategoryCheckboxValue,
 } from "../../Checkbox/Checkbox";
-import CodeEditor, { CodeEditorActions } from "../../CodeEditor/CodeEditor";
+import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
+import CodeEditor from "../../CodeEditor/LazyCodeEditor";
 import DictionaryForm, { ValueType } from "../../Dictionary/Dictionary";
 import Dropdown, { DropdownValue } from "../../Dropdown/Dropdown";
 import {
@@ -14,13 +15,15 @@ import {
   getDropdownChange,
 } from "../../Dropdown/DropdownChange";
 import EntityDropdown from "../../EntityDropdown/EntityDropdown";
-import FilePicker from "../../FilePicker/FilePicker";
+import FilePicker from "../../FilePicker/LazyFilePicker";
 import Input, { InputType } from "../../Input/Input";
 import TimePicker from "../../TimePicker/Index";
 import Link from "../../Link/Link";
 import Modal from "../../Modal/Modal";
 import IDGenerator from "../../ObjectID/IDGenerator";
-import RadioButtons from "../../RadioButtons/GroupRadioButtons";
+import RadioButtons, {
+  RadioButton,
+} from "../../RadioButtons/GroupRadioButtons";
 import TextArea from "../../TextArea/TextArea";
 import Toggle from "../../Toggle/Toggle";
 import ColorPicker from "../Fields/ColorPicker";
@@ -45,8 +48,8 @@ import React, { ReactElement, ReactNode, useEffect, useId } from "react";
 import Radio, { RadioValue } from "../../Radio/Radio";
 import { BasicRadioButtonOption } from "../../RadioButtons/BasicRadioButtons";
 import HorizontalRule from "../../HorizontalRule/HorizontalRule";
-import MarkdownEditor from "../../Markdown.tsx/MarkdownEditor";
-import YamlEditor from "../../CodeEditor/YamlEditor";
+import MarkdownEditor from "../../Markdown.tsx/LazyMarkdownEditor";
+import YamlEditor from "../../CodeEditor/LazyYamlEditor";
 import PeoplePicker from "../../PeoplePicker/PeoplePicker";
 import {
   getPeoplePickerKinds,
@@ -232,6 +235,15 @@ const FormField: <T extends GenericObject>(
   };
 
   const getFormField: GetReactElementFunction = (): ReactElement => {
+    /*
+     * The answers a radio field offers: for the values the form holds, when
+     * they depend on another field (getRadioButtonOptions), else its list.
+     */
+    const radioButtonOptions: Array<RadioButton> =
+      (props.field.getRadioButtonOptions
+        ? props.field.getRadioButtonOptions(props.currentValues)
+        : props.field.radioButtonOptions) || [];
+
     const [
       showMultiSelectCheckboxCategoryModal,
       setShowMultiSelectCheckboxCategoryModal,
@@ -905,7 +917,7 @@ const FormField: <T extends GenericObject>(
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
-              options={props.field.radioButtonOptions || []}
+              options={radioButtonOptions}
               initialValue={
                 props.currentValues &&
                 (props.currentValues as any)[props.fieldName]
@@ -930,23 +942,21 @@ const FormField: <T extends GenericObject>(
                * under it when it has one - a choice of modes reads as plain
                * answers (a reminder rule's Resolved / Acknowledged).
                */
-              options={
-                props.field.radioButtonOptions?.map(
-                  (option: BasicRadioButtonOption) => {
-                    return {
-                      label: translateString(option.title) || option.title,
-                      value: option.value,
-                      ...(option.description
-                        ? {
-                            description:
-                              translateString(option.description) ||
-                              option.description,
-                          }
-                        : {}),
-                    };
-                  },
-                ) || []
-              }
+              options={radioButtonOptions.map(
+                (option: BasicRadioButtonOption) => {
+                  return {
+                    label: translateString(option.title) || option.title,
+                    value: option.value,
+                    ...(option.description
+                      ? {
+                          description:
+                            translateString(option.description) ||
+                            option.description,
+                        }
+                      : {}),
+                  };
+                },
+              )}
               value={
                 props.currentValues &&
                 (props.currentValues as any)[props.fieldName]

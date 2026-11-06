@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### Начните новый монитор
 
-Откройте **Мониторы** и нажмите **Создать монитор**. В разделе **Тип монитора** нажмите **Другие типы мониторов** и выберите **Custom JavaScript Code** в группе **Synthetic Monitoring** или введите `script` в поле поиска. Укажите **Имя** и нажмите **Далее**.
+Откройте **Мониторы** и нажмите **Создать монитор**. В разделе **Тип монитора** нажмите **Другие типы мониторов** и выберите **Custom JavaScript Code** в группе **Синтетический мониторинг** или введите `script` в поле поиска. Укажите **Имя** и нажмите **Далее**.
 
 ### Добавьте скрипт
 
@@ -167,7 +167,7 @@ return {
 
 - Идентификация монитора: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
 - Всё в пространствах имён `oneuptime.` и `resource.`: в них хранятся идентификаторы, которые OneUptime проставляет при приёме данных.
-- Атрибуты идентификации ресурса: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` и `docker.swarm.cluster.name`.
+- Атрибуты идентификации ресурса: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` и `docker.swarm.cluster.name`.
 
 Эти имена — не просто метки: OneUptime читает их как утверждение о том, какому ресурсу принадлежит точка данных. Метрика с `service.name: payments-api` появилась бы на вкладке «Метрики» этого сервиса, а если бы вы позже создали монитор метрик с группировкой по `service.name`, его оповещения были бы привязаны к этому сервису, вызывали бы владельцев сервиса и замолкали бы во время его окна обслуживания. Чтобы связать монитор с сервисом или хостом, используйте собственные метки монитора.
 

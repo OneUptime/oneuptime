@@ -5,6 +5,7 @@ import Color from "Common/Types/Color";
 import { Gray500, Green500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
+import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
 import { DRY_RUN_COMMAND_STEP_ID_PREFIX } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
 import {
@@ -28,6 +29,37 @@ export const RESOURCE_AI_LOGS_PAGE_TITLE: string = translationKey("AI Logs");
 
 export const RESOURCE_AI_LOGS_EMPTY_TITLE: string =
   translationKey("Nothing yet");
+
+/*
+ * A fix's entry on the page has an anchor of its own, #fix-<its id>: a
+ * link to it (a cloud change OneUptime AI made, on the account's Changes)
+ * opens the page on that entry, marked.
+ */
+export const RESOURCE_AI_LOGS_FIX_ANCHOR_PREFIX: string = "fix-";
+
+export function getResourceAiLogsFixAnchor(fixId: string): string {
+  return `${RESOURCE_AI_LOGS_FIX_ANCHOR_PREFIX}${fixId.trim().toLowerCase()}`;
+}
+
+/*
+ * The fix an address's hash points at (#fix-<id>), lowercased, or null
+ * for any other hash.
+ */
+export function readResourceAiLogsFixAnchor(hash: string): string | null {
+  const anchor: string = (hash || "").startsWith("#")
+    ? hash.slice(1)
+    : hash || "";
+
+  if (!anchor.startsWith(RESOURCE_AI_LOGS_FIX_ANCHOR_PREFIX)) {
+    return null;
+  }
+
+  const id: string = anchor
+    .slice(RESOURCE_AI_LOGS_FIX_ANCHOR_PREFIX.length)
+    .toLowerCase();
+
+  return id ? id : null;
+}
 
 export function getResourceAiLogsPageSubtitle(
   descriptor: ResourceAiAgentDescriptor,
@@ -360,6 +392,62 @@ export function getResourceFixStatusLook(status: string): ResourceAiStatusLook {
       label: status,
       color: Gray500,
     }
+  );
+}
+
+/*
+ * How a command ended, in words: never the job's own status value
+ * ("TimedOut", "Claimed"), which no language reads. The commands table
+ * says it so, and the incidents' and alerts' AI Logs the same way.
+ */
+const COMMAND_STATUS_LOOKS: Record<RunnerJobStatus, ResourceAiStatusLook> = {
+  [RunnerJobStatus.Pending]: {
+    label: translationKey("Waiting to run"),
+    color: Yellow500,
+  },
+  [RunnerJobStatus.Claimed]: {
+    label: translationKey("Starting"),
+    color: Yellow500,
+  },
+  [RunnerJobStatus.Running]: {
+    label: translationKey("Running"),
+    color: Yellow500,
+  },
+  [RunnerJobStatus.Succeeded]: {
+    label: translationKey("Succeeded"),
+    color: Green500,
+  },
+  [RunnerJobStatus.Failed]: { label: translationKey("Failed"), color: Red500 },
+  [RunnerJobStatus.TimedOut]: {
+    label: translationKey("Not picked up in time"),
+    color: Red500,
+  },
+  [RunnerJobStatus.Cancelled]: {
+    label: translationKey("Cancelled"),
+    color: Gray500,
+  },
+};
+
+export function getResourceCommandStatusLook(
+  status: string,
+): ResourceAiStatusLook {
+  return (
+    COMMAND_STATUS_LOOKS[status as RunnerJobStatus] || {
+      label: status,
+      color: Gray500,
+    }
+  );
+}
+
+// The commands table's "Result" filter, each status in the same words.
+export function getResourceCommandStatusOptions(): Array<{
+  value: RunnerJobStatus;
+  label: string;
+}> {
+  return Object.values(RunnerJobStatus).map(
+    (status: RunnerJobStatus): { value: RunnerJobStatus; label: string } => {
+      return { value: status, label: COMMAND_STATUS_LOOKS[status].label };
+    },
   );
 }
 

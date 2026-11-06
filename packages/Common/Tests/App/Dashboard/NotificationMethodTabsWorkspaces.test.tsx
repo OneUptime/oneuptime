@@ -19,9 +19,9 @@ import React, { ReactElement } from "react";
 
 /*
  * User Settings > Notification Methods (and the same tabs an admin sees on
- * their own row under Users): Slack and Microsoft Teams are offered only for
- * the workspaces the project has connected. Adding either points at your own
- * account in a workspace the project is connected to, so a table for one it
+ * their own row under Users): Slack, Microsoft Teams and Mattermost are offered
+ * only for the workspaces the project has connected. Adding one points at your
+ * own account in a workspace the project is connected to, so a table for one it
  * never connected was a table nobody could add a row to.
  */
 
@@ -73,6 +73,12 @@ jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/MicrosoftTeams",
   () => {
     return { __esModule: true, default: stub("teams-methods") };
+  },
+);
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Mattermost",
+  () => {
+    return { __esModule: true, default: stub("mattermost-methods") };
   },
 );
 jest.mock(
@@ -181,11 +187,33 @@ describe("the Workspace Apps tab", () => {
   });
 
   test.each([
-    [[WorkspaceType.Slack], ["slack-methods"], ["teams-methods"]],
-    [[WorkspaceType.MicrosoftTeams], ["teams-methods"], ["slack-methods"]],
+    [
+      [WorkspaceType.Slack],
+      ["slack-methods"],
+      ["teams-methods", "mattermost-methods"],
+    ],
+    [
+      [WorkspaceType.MicrosoftTeams],
+      ["teams-methods"],
+      ["slack-methods", "mattermost-methods"],
+    ],
+    [
+      [WorkspaceType.Mattermost],
+      ["mattermost-methods"],
+      ["slack-methods", "teams-methods"],
+    ],
     [
       [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams],
       ["slack-methods", "teams-methods"],
+      ["mattermost-methods"],
+    ],
+    [
+      [
+        WorkspaceType.Slack,
+        WorkspaceType.MicrosoftTeams,
+        WorkspaceType.Mattermost,
+      ],
+      ["slack-methods", "teams-methods", "mattermost-methods"],
       [],
     ],
   ])(
@@ -238,7 +266,7 @@ describe("the Workspace Apps tab", () => {
     expect(screen.getByTestId("webhook-methods")).toBeInTheDocument();
   });
 
-  test("if asking fails, both tables are offered, as before", async () => {
+  test("if asking fails, every table is offered, as before", async () => {
     fetcher.mockRejectedValue(new Error("Permission denied"));
     await renderTabs();
 
@@ -246,6 +274,7 @@ describe("the Workspace Apps tab", () => {
 
     expect(screen.getByTestId("slack-methods")).toBeInTheDocument();
     expect(screen.getByTestId("teams-methods")).toBeInTheDocument();
+    expect(screen.getByTestId("mattermost-methods")).toBeInTheDocument();
   });
 
   test("on a first visit the page waits for the answer rather than adding or dropping a tab under the reader", async () => {
@@ -302,5 +331,6 @@ describe("the Workspace Apps tab", () => {
 
     expect(screen.getByTestId("slack-methods")).toBeInTheDocument();
     expect(screen.queryByTestId("teams-methods")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("mattermost-methods")).not.toBeInTheDocument();
   });
 });

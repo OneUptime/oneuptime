@@ -48,6 +48,18 @@
  * - It acknowledges nothing and changes nothing on the record. Acknowledging
  *   afterwards still works, and still stops all paging.
  *
+ * WHICH LEVEL. Escalating pages the next level. When the policy has more
+ * than one level after the person's, they can pick a later one instead - the
+ * next level is on leave, or the page needs the database team two levels
+ * up - wherever there is room to ask: the Dashboard's and the Escalate
+ * page's (OnCallPassOnLevelChoice). The next level stays picked, so pressing
+ * Escalate does what it always did. The levels between are skipped: the
+ * run's timeline gets a line for each saying so
+ * (ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE), and from the level
+ * picked the run goes on as from any level - its wait, the level after it,
+ * the Repeat Policy. A call, a text and a chat message's quick button page
+ * the next level, as before.
+ *
  * Only the person being paged can escalate their page: through a link only
  * their own messages carry (signed, OnCallPageLinkToken), their own phone
  * call, or signed in as themselves.
@@ -97,6 +109,28 @@ export const ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE: string =
 // The same line as runs before the rename wrote it.
 export const LEGACY_ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE: string =
   "Skipped because they passed this page on.";
+
+/*
+ * The line a level gets on the run's timeline when somebody escalating
+ * picked a later level to page (OnCallPassOnLevelChoice): the policy did not
+ * page it. It names nobody - the line of the person who escalated, just
+ * before it, says who - and it is no fault of the level's: the record's
+ * feed says the page was escalated past it, the Execution Timeline draws it
+ * without a warning, and the run's Slack and Microsoft Teams message leaves
+ * it out, where a level that pages nobody raises an alarm.
+ */
+export const ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE: string =
+  "Skipped: the page was escalated past this level.";
+
+// Whether a timeline line is the one a level skipped by escalating gets.
+export function isOnCallLevelSkippedByEscalationMessage(
+  message: string | undefined | null,
+): boolean {
+  return (
+    (message || "").trim() ===
+    ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE
+  );
+}
 
 /*
  * The status message of the delivery - the email, the text, the call - a
@@ -178,9 +212,27 @@ export enum OnCallPageRecordType {
  *   The signed-in person's open pages about one record, and what escalating
  *   them would do.
  * POST <api>/on-call-page/pass-on/<record type>/<record id>
- *   Escalates them, and answers what it did.
+ *   Escalates them, and answers what it did. Its body may say which level
+ *   to page for a page - OnCallPassOnRecordRequest - and a page it says
+ *   nothing of pages its next level.
  */
 export const ON_CALL_PAGE_PASS_ON_ROUTE: string = "/on-call-page/pass-on";
+
+/*
+ * The POST's body field with the level picked for each page, by the page's
+ * run: { "escalateTo": { "<execution log id>": "<escalation rule id>" } }.
+ */
+export const ON_CALL_PAGE_PASS_ON_ESCALATE_TO_FIELD: string = "escalateTo";
+
+export interface OnCallPassOnRecordRequest {
+  escalateTo?: Record<string, string> | undefined;
+}
+
+/*
+ * The field of the Escalate page's form (UserOnCallLogTimelineAPI) with the
+ * level picked: the escalation rule's id. Without it, the next level.
+ */
+export const ON_CALL_PAGE_PASS_ON_LEVEL_PARAM: string = "escalationRuleId";
 
 export function isOnCallPageRecordType(
   value: unknown,
@@ -250,12 +302,31 @@ export enum OnCallPassOnRefusal {
   NotPaged = "NotPaged",
   // The link was not one of the person's own, or it has expired.
   InvalidLink = "InvalidLink",
+  /*
+   * The level picked to page is not one escalating can page any more: the
+   * policy's levels changed since they were offered (a level was deleted or
+   * moved), or it is not a level of this policy at all. Nothing was
+   * changed, and the person can escalate again, picking from the levels as
+   * they are now.
+   */
+  LevelNotAvailable = "LevelNotAvailable",
 }
 
 // An escalation rule - a level of the policy - by its place and name.
 export interface OnCallPassOnRule {
   order: number;
   name?: string | undefined;
+}
+
+/*
+ * A LEVEL ESCALATING CAN PAGE: a level of the policy after the person's,
+ * by its escalation rule (see "Which level" at the top). Picked by the
+ * rule's id, which stays the same while a level is renamed or the levels
+ * around it change; the server checks, as the person escalates, that it is
+ * still a level after theirs.
+ */
+export interface OnCallPassOnLevelChoice extends OnCallPassOnRule {
+  escalationRuleId: string;
 }
 
 /*
@@ -289,6 +360,13 @@ export interface OnCallPassOnResult {
   nextRule?: OnCallPassOnRule | undefined;
   // How many levels the policy has, for "Level 2 of 3".
   ruleCount: number;
+  /*
+   * A preview that pages a level now (NextRulePaged): the levels escalating
+   * may page, in order - every level after the person's. The first is the
+   * next level, `rule`, which escalating pages unless another is picked; a
+   * later one skips those before it. Absent on any other answer.
+   */
+  levelChoices?: Array<OnCallPassOnLevelChoice> | undefined;
 }
 
 // What escalating one page answers: done, with what came of it, or refused.
@@ -642,11 +720,159 @@ export function getOnCallPassOnRefusalSentence(
       return "This page is over: the on-call policy has stopped paging.";
     case OnCallPassOnRefusal.InvalidLink:
       return "This link cannot escalate the page: it is not valid, or it has expired. Use the link in the newest message you were paged with.";
+    case OnCallPassOnRefusal.LevelNotAvailable:
+      return ON_CALL_PAGE_LEVEL_NOT_AVAILABLE_SENTENCE;
     case OnCallPassOnRefusal.NotPaged:
     default:
       return "You are not being paged about this right now.";
   }
 }
+
+// Why a level picked to page could not be (OnCallPassOnRefusal.LevelNotAvailable).
+export const ON_CALL_PAGE_LEVEL_NOT_AVAILABLE_SENTENCE: string =
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.";
+
+/*
+ * What the Escalate page a message's link opens says as it asks again,
+ * because the level picked was not there to page. The levels as they are
+ * now are right under it, the next one picked - so it says to pick one,
+ * never to press Escalate to get to them: pressing it as it stands pages
+ * the next level.
+ */
+export const ON_CALL_PAGE_LEVELS_CHANGED_PICK_AGAIN_NOTICE: string =
+  "The policy's levels have changed, so nothing was escalated. Pick a level and escalate again.";
+
+// The same, when one level is left after the person's: nothing to pick.
+export const ON_CALL_PAGE_LEVELS_CHANGED_NOTICE: string =
+  "The policy's levels have changed, so nothing was escalated.";
+
+/*
+ * The levels a preview offers to page (levelChoices), each once and in
+ * order; none when it offers none. A level whose place or id cannot be
+ * read is left out.
+ */
+export function getOnCallPassOnLevelChoices(
+  result: OnCallPassOnResult | undefined | null,
+): Array<OnCallPassOnLevelChoice> {
+  const choices: Array<OnCallPassOnLevelChoice> = [];
+  const seen: Set<string> = new Set<string>();
+  const offered: unknown = result?.levelChoices;
+
+  if (!Array.isArray(offered)) {
+    return choices;
+  }
+
+  for (const item of offered as Array<unknown>) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+
+    const choice: OnCallPassOnLevelChoice = item as OnCallPassOnLevelChoice;
+    const id: string =
+      typeof choice.escalationRuleId === "string"
+        ? choice.escalationRuleId.trim()
+        : "";
+
+    if (
+      !id ||
+      seen.has(id.toLowerCase()) ||
+      typeof choice.order !== "number" ||
+      !Number.isInteger(choice.order) ||
+      choice.order < 1
+    ) {
+      continue;
+    }
+
+    seen.add(id.toLowerCase());
+    choices.push(choice);
+  }
+
+  return choices.sort(
+    (a: OnCallPassOnLevelChoice, b: OnCallPassOnLevelChoice): number => {
+      return a.order - b.order;
+    },
+  );
+}
+
+/*
+ * Whether there is a level to pick: two or more levels after the person's.
+ * With one, escalating pages it, and nobody is asked which.
+ */
+export function hasOnCallPassOnLevelChoice(
+  result: OnCallPassOnResult | undefined | null,
+): boolean {
+  return getOnCallPassOnLevelChoices(result).length > 1;
+}
+
+/*
+ * The level of `choices` with the escalation rule given, or none - the
+ * rule ids compared as written, in any case.
+ */
+export function findOnCallPassOnLevelChoice(
+  choices: Array<OnCallPassOnLevelChoice>,
+  escalationRuleId: string | undefined | null,
+): OnCallPassOnLevelChoice | undefined {
+  const id: string = (escalationRuleId || "").trim().toLowerCase();
+
+  if (!id) {
+    return undefined;
+  }
+
+  return choices.find((choice: OnCallPassOnLevelChoice): boolean => {
+    return choice.escalationRuleId.trim().toLowerCase() === id;
+  });
+}
+
+/*
+ * What escalating would do with a later level picked: the preview with the
+ * level it pages, and the levels it skips. The next level - or a level the
+ * preview does not offer - is the preview as it is, skipping nothing.
+ */
+export function getOnCallPassOnPickedResult(
+  result: OnCallPassOnResult,
+  escalationRuleId: string | undefined | null,
+): { result: OnCallPassOnResult; skipped: Array<OnCallPassOnRule> } {
+  const choices: Array<OnCallPassOnLevelChoice> =
+    getOnCallPassOnLevelChoices(result);
+  const picked: OnCallPassOnLevelChoice | undefined =
+    findOnCallPassOnLevelChoice(choices, escalationRuleId);
+
+  if (
+    !picked ||
+    result.outcome !== OnCallPassOnOutcome.NextRulePaged ||
+    picked === choices[0]
+  ) {
+    return { result: result, skipped: [] };
+  }
+
+  return {
+    result: {
+      ...result,
+      rule: { order: picked.order, name: picked.name },
+    },
+    skipped: choices
+      .filter((choice: OnCallPassOnLevelChoice): boolean => {
+        return choice.order < picked.order;
+      })
+      .map((choice: OnCallPassOnLevelChoice): OnCallPassOnRule => {
+        return { order: choice.order, name: choice.name };
+      }),
+  };
+}
+
+/*
+ * What the Escalate page says where the person picks the level: the page
+ * cannot say which until they have - "This will immediately page the level
+ * you pick, without waiting."
+ */
+export const ON_CALL_PAGE_PICK_LEVEL_SENTENCE: string =
+  "This will immediately page the level you pick, without waiting.";
+
+/*
+ * The radio group's label where a level is picked, on the Escalate page and
+ * in the Dashboard's dialog: "Escalate to".
+ */
+export const ON_CALL_PAGE_ESCALATE_TO_LABEL: string = "Escalate to";
 
 /*
  * The headings over what came of it, on the pages a message's links open -
@@ -659,6 +885,8 @@ export const ON_CALL_PAGE_ALREADY_ACKNOWLEDGED_TITLE: string =
 export const ON_CALL_PAGE_ALREADY_ESCALATED_TITLE: string = "Already escalated";
 export const ON_CALL_PAGE_NOTHING_TO_ESCALATE_TITLE: string =
   "Nothing to escalate";
+// The level picked was not there to page (OnCallPassOnRefusal.LevelNotAvailable).
+export const ON_CALL_PAGE_NOT_ESCALATED_TITLE: string = "Not escalated";
 
 // "Incident escalated", "Alert Episode escalated": the heading once it is done.
 export function getOnCallPageEscalatedTitle(recordName: string): string {
@@ -695,21 +923,46 @@ export function getOnCallPageNotPagedAgainSentence(
     : "You will not be paged again for it.";
 }
 
-// Reads an answer's dates back after JSON: nextStepAt comes as a string.
+/*
+ * Reads an answer back after JSON: nextStepAt comes as a string, and the
+ * levels it offers are kept only as far as they can be read (each with an
+ * id and a place).
+ */
 export function readOnCallPassOnResult(
   value: OnCallPassOnResult,
 ): OnCallPassOnResult {
+  const levelChoices: Array<OnCallPassOnLevelChoice> = Array.isArray(
+    (value as { levelChoices?: unknown }).levelChoices,
+  )
+    ? getOnCallPassOnLevelChoices(value).map(
+        (choice: OnCallPassOnLevelChoice): OnCallPassOnLevelChoice => {
+          return {
+            escalationRuleId: String(choice.escalationRuleId),
+            order: choice.order,
+            ...(typeof choice.name === "string" && choice.name.trim()
+              ? { name: choice.name }
+              : {}),
+          };
+        },
+      )
+    : [];
+
+  const withChoices: OnCallPassOnResult = {
+    ...value,
+    levelChoices: levelChoices.length > 0 ? levelChoices : undefined,
+  };
+
   const nextStepAt: unknown = (value as { nextStepAt?: unknown }).nextStepAt;
 
   if (nextStepAt === undefined || nextStepAt === null) {
-    return { ...value, nextStepAt: undefined };
+    return { ...withChoices, nextStepAt: undefined };
   }
 
   const date: Date =
     nextStepAt instanceof Date ? nextStepAt : new Date(String(nextStepAt));
 
   return {
-    ...value,
+    ...withChoices,
     nextStepAt: isNaN(date.getTime()) ? undefined : date,
   };
 }

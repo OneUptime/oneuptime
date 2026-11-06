@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet } from "react-native";
 import {
+  act,
   render,
   screen,
   fireEvent,
@@ -10,17 +11,29 @@ import {
   describe,
   expect,
   test,
+  afterEach,
   beforeEach,
   jest as jestGlobal,
 } from "@jest/globals";
 import CreateOnCallOverrideScreen, {
   readPrefilledWindow,
 } from "./CreateOnCallOverrideScreen";
+import {
+  clearAllProjectPermissions,
+  recordProjectPermissions,
+} from "../api/projectPermissions";
+import {
+  GLOBAL_OVERRIDE_LIMITED_REASON,
+  GLOBAL_OVERRIDE_NOT_ALLOWED_REASON,
+} from "../oncall/globalOverrideAccess";
+import * as keychain from "../storage/keychain";
 import { ThemeProvider } from "../theme";
 import { darkColors, lightColors } from "../theme/colors";
 import { getScreenBottomPadding } from "../theme/layout";
 import { radius } from "../theme/tokens";
 import type { CreateOverrideInput } from "../hooks/useOnCallOverrides";
+import type { CoverPoliciesState } from "../hooks/useCoverPolicies";
+import type { CoverPolicy } from "../api/onCallOverrides";
 import type { CreateOnCallOverrideParams } from "../navigation/types";
 import type { ProjectItem, ProjectUserItem } from "../api/types";
 
@@ -204,6 +217,34 @@ describe("Coverage form recovery", () => {
     await rendered.rerender(<CreateOnCallOverrideScreen />);
     expect(screen.queryByTestId(`user-option-${TEAMMATE}`)).toBeNull();
   });
+});
+
+/*
+ * Which policies someone limited to some policies may cover, as the server
+ * answers (useCoverPolicies has its own tests): an older server's answer -
+ * no answer - unless a test says otherwise. Each call records what the
+ * sheet asked.
+ */
+const mockCoverPolicies: { current: CoverPoliciesState } = {
+  current: { status: "unavailable" },
+};
+const mockCoverPoliciesAsked: Array<{
+  projectId: string | null;
+  enabled: boolean;
+  shiftPolicies?: CoverPolicy[] | undefined;
+}> = [];
+
+jest.mock("../hooks/useCoverPolicies", () => {
+  return {
+    useCoverPolicies: (data: {
+      projectId: string | null;
+      enabled: boolean;
+      shiftPolicies?: CoverPolicy[] | undefined;
+    }): CoverPoliciesState => {
+      mockCoverPoliciesAsked.push(data);
+      return data.enabled ? mockCoverPolicies.current : { status: "not-asked" };
+    },
+  };
 });
 
 jest.mock("../hooks/useOnCallOverrides", () => {
@@ -834,9 +875,609 @@ describe("CreateOnCallOverrideScreen form layout", () => {
   });
 });
 
+/*
+ * ---------------------------------------------------------------------------
+ * Cover arranged here applies to every on-call policy, which takes a
+ * permission to add overrides over the whole project (issue #5617). For
+ * someone whose permission covers only some policies, or none, the sheet
+ * says why in place of the form - before anything is chosen - instead of
+ * refusing it on Confirm. What they hold comes from the server: the rows
+ * every answer about the project carries (api/projectPermissions).
+ * ---------------------------------------------------------------------------
+ */
+
+const LIMITED_TO_TEAM_LABEL: Record<string, unknown> = {
+  _type: "UserPermission",
+  permission: "OnCallMember",
+  labelIds: [{ _type: "ObjectID", value: "label-team-a" }],
+  scope: "Labels",
+  isBlockPermission: false,
+};
+
+const LIMITED_TO_OWNED: Record<string, unknown> = {
+  _type: "UserPermission",
+  permission: "OnCallMember",
+  labelIds: [],
+  scope: "Owned",
+  isBlockPermission: false,
+};
+
+const OVER_THE_WHOLE_PROJECT: Record<string, unknown> = {
+  _type: "UserPermission",
+  permission: "OnCallMember",
+  labelIds: [],
+  scope: "All",
+  isBlockPermission: false,
+};
+
+const ONLY_READS: Record<string, unknown> = {
+  _type: "UserPermission",
+  permission: "Viewer",
+  labelIds: [],
+  scope: "All",
+  isBlockPermission: false,
+};
+
+// The server's answer about `projectId` says the person holds `rows` there.
+function holding(
+  projectId: string,
+  rows: Array<Record<string, unknown>>,
+): void {
+  recordProjectPermissions(projectId, {
+    "project-permissions": JSON.stringify({
+      _type: "UserTenantAccessPermission",
+      projectId: { _type: "ObjectID", value: projectId },
+      permissions: rows,
+    }),
+  });
+}
+
+// A token whose payload says what `claims` say; the app never checks its signature.
+function tokenWith(claims: Record<string, unknown>): string {
+  const encode: (value: Record<string, unknown>) => string = (
+    value: Record<string, unknown>,
+  ): string => {
+    return Buffer.from(JSON.stringify(value)).toString("base64url");
+  };
+
+  return `${encode({ alg: "HS256", typ: "JWT" })}.${encode(claims)}.signature`;
+}
+
+describe("CreateOnCallOverrideScreen for someone limited to some policies", () => {
+  beforeEach(() => {
+    mockCoverPolicies.current = { status: "unavailable" };
+    mockCreateOverride.mockClear();
+    mockGoBack.mockClear();
+    mockUsersError.current = false;
+    mockProjects.current = PROJECTS;
+    mockUsers.current = USERS;
+    mockUserId.current = ME;
+    mockRouteParams.current = undefined;
+    clearAllProjectPermissions();
+  });
+
+  afterEach(() => {
+    clearAllProjectPermissions();
+    jestGlobal.restoreAllMocks();
+  });
+
+  function expectNoForm(): void {
+    expect(screen.queryByTestId("open-user-picker")).toBeNull();
+    expect(screen.queryByTestId("duration-4")).toBeNull();
+    expect(screen.queryByTestId("override-preview")).toBeNull();
+    expect(screen.queryByTestId("submit-override")).toBeNull();
+    expect(screen.queryByText("I'll take over")).toBeNull();
+  }
+
+  test("a role limited to the team's label: the sheet says why in place of the form, and sends nothing", async (): Promise<void> => {
+    holding("project-1", [LIMITED_TO_TEAM_LABEL]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    const locked: HostElement = screen.getByTestId("override-locked");
+    expect(
+      within(locked).getByText(GLOBAL_OVERRIDE_LIMITED_REASON),
+    ).toBeTruthy();
+    expect(
+      within(locked).getByText("Cover can't be arranged here"),
+    ).toBeTruthy();
+    // No promise of a handoff the sheet cannot make.
+    expect(
+      screen.queryByText("A clear handoff, for exactly as long as you need."),
+    ).toBeNull();
+    expectNoForm();
+    expect(mockCreateOverride).not.toHaveBeenCalled();
+  });
+
+  test("a role limited to what the team owns: locked the same way", async (): Promise<void> => {
+    holding("project-1", [LIMITED_TO_OWNED]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(
+      within(screen.getByTestId("override-locked")).getByText(
+        GLOBAL_OVERRIDE_LIMITED_REASON,
+      ),
+    ).toBeTruthy();
+    expectNoForm();
+  });
+
+  test("someone who may not add overrides at all is told that instead", async (): Promise<void> => {
+    holding("project-1", [ONLY_READS]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(
+      within(screen.getByTestId("override-locked")).getByText(
+        GLOBAL_OVERRIDE_NOT_ALLOWED_REASON,
+      ),
+    ).toBeTruthy();
+    expectNoForm();
+  });
+
+  test("someone over the whole project arranges cover as before", async (): Promise<void> => {
+    holding("project-1", [OVER_THE_WHOLE_PROJECT]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("override-locked")).toBeNull();
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(mockCreateOverride).toHaveBeenCalledTimes(1);
+    expect(lastCreateInput().routeAlertsToUserId).toBe(TEAMMATE);
+    expect("onCallDutyPolicyId" in lastCreateInput()).toBe(false);
+  });
+
+  test("before the server has said anything, the form shows as before: the server decides", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("override-locked")).toBeNull();
+    expect(screen.getByTestId("submit-override")).toBeTruthy();
+  });
+
+  test("rows of another project do not lock this one", async (): Promise<void> => {
+    holding("project-2", [LIMITED_TO_TEAM_LABEL]);
+    holding("project-1", [OVER_THE_WHOLE_PROJECT]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("override-locked")).toBeNull();
+    expect(screen.getByTestId("submit-override")).toBeTruthy();
+  });
+
+  test("the sheet follows the rows as an answer about the project brings them", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.getByTestId("submit-override")).toBeTruthy();
+
+    await act(async (): Promise<void> => {
+      holding("project-1", [LIMITED_TO_TEAM_LABEL]);
+    });
+
+    expect(screen.getByTestId("override-locked")).toBeTruthy();
+    expectNoForm();
+
+    await act(async (): Promise<void> => {
+      holding("project-1", [OVER_THE_WHOLE_PROJECT]);
+    });
+
+    expect(screen.queryByTestId("override-locked")).toBeNull();
+    expect(screen.getByTestId("submit-override")).toBeTruthy();
+  });
+
+  test("a master admin arranges cover whatever their rows say", async (): Promise<void> => {
+    jestGlobal
+      .spyOn(keychain, "getCachedAccessToken")
+      .mockReturnValue(tokenWith({ userId: ME, isMasterAdmin: true }));
+    holding("project-1", [LIMITED_TO_TEAM_LABEL]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("override-locked")).toBeNull();
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(mockCreateOverride).toHaveBeenCalledTimes(1);
+  });
+
+  test("a token that does not say master admin changes nothing", async (): Promise<void> => {
+    jestGlobal
+      .spyOn(keychain, "getCachedAccessToken")
+      .mockReturnValue(tokenWith({ userId: ME, isMasterAdmin: false }));
+    holding("project-1", [LIMITED_TO_TEAM_LABEL]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.getByTestId("override-locked")).toBeTruthy();
+  });
+
+  test("Get cover on a shift: the shift stays in view, with the reason in place of the form", async (): Promise<void> => {
+    mockProjects.current = [PROJECTS[1]!];
+    mockRouteParams.current = prefill();
+    holding("project-2", [LIMITED_TO_TEAM_LABEL]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.getByTestId("prefilled-shift")).toBeTruthy();
+    expect(
+      within(screen.getByTestId("override-locked")).getByText(
+        GLOBAL_OVERRIDE_LIMITED_REASON,
+      ),
+    ).toBeTruthy();
+    expectNoForm();
+  });
+
+  test("a shift that exists only inside one policy is covered on that policy: not a global override, so the form stays", async (): Promise<void> => {
+    mockProjects.current = [PROJECTS[1]!];
+    mockRouteParams.current = prefill({ policyId: "policy-1" });
+    holding("project-2", [LIMITED_TO_TEAM_LABEL]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("override-locked")).toBeNull();
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(lastCreateInput().onCallDutyPolicyId).toBe("policy-1");
+  });
+});
+
 type HostElement = ReturnType<typeof screen.getByTestId>;
 
 function flatStyle(testID: string): Record<string, unknown> {
   return (StyleSheet.flatten(screen.getByTestId(testID).props.style) ??
     {}) as Record<string, unknown>;
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * Where the server says which policies they may cover, the sheet offers
+ * those instead of the lock, and arranges the cover on each one ticked: one
+ * override per policy, never a global one they could not add. A server too
+ * old to say keeps today's lock.
+ * ---------------------------------------------------------------------------
+ */
+
+const PAYMENTS: CoverPolicy = {
+  policyId: "policy-payments",
+  policyName: "Payments",
+};
+const CHECKOUT: CoverPolicy = {
+  policyId: "policy-checkout",
+  policyName: "Checkout",
+};
+
+describe("CreateOnCallOverrideScreen offering the policies someone may cover", () => {
+  beforeEach(() => {
+    mockCoverPolicies.current = { status: "unavailable" };
+    mockCoverPoliciesAsked.length = 0;
+    mockCreateOverride.mockReset();
+    mockCreateOverride.mockResolvedValue(undefined);
+    mockGoBack.mockClear();
+    mockUsersError.current = false;
+    mockProjects.current = PROJECTS;
+    mockUsers.current = USERS;
+    mockUserId.current = ME;
+    mockRouteParams.current = undefined;
+    clearAllProjectPermissions();
+    holding("project-1", [LIMITED_TO_TEAM_LABEL]);
+  });
+
+  afterEach(() => {
+    clearAllProjectPermissions();
+  });
+
+  function createdPolicyIds(): Array<string | undefined> {
+    return mockCreateOverride.mock.calls.map(
+      (call: Array<unknown>): string | undefined => {
+        return (call[0] as CreateOverrideInput).onCallDutyPolicyId;
+      },
+    );
+  }
+
+  test("asks only for someone limited to some policies, about the project's policies", async (): Promise<void> => {
+    mockCoverPolicies.current = { status: "offered", policies: [PAYMENTS] };
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    const asked: (typeof mockCoverPoliciesAsked)[number] =
+      mockCoverPoliciesAsked[mockCoverPoliciesAsked.length - 1]!;
+
+    expect(asked.enabled).toBe(true);
+    expect(asked.projectId).toBe("project-1");
+    expect(asked.shiftPolicies).toBeUndefined();
+  });
+
+  test("one policy: named in place of a choice, and the cover is arranged on it alone", async (): Promise<void> => {
+    mockCoverPolicies.current = { status: "offered", policies: [PAYMENTS] };
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("override-locked")).toBeNull();
+    expect(
+      within(screen.getByTestId("cover-policy-only")).getByText("Payments"),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Your permission to add user overrides covers only this policy, so the cover applies to it alone.",
+      ),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByTestId("override-preview")).getByText(
+        "Only on Payments.",
+      ),
+    ).toBeTruthy();
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(createdPolicyIds()).toEqual([PAYMENTS.policyId]);
+    expect(lastCreateInput().overrideUserId).toBe(ME);
+    expect(lastCreateInput().routeAlertsToUserId).toBe(TEAMMATE);
+    expect(mockGoBack).toHaveBeenCalledTimes(1);
+  });
+
+  test("several: each is ticked, and the cover is arranged on every one, an override each", async (): Promise<void> => {
+    mockCoverPolicies.current = {
+      status: "offered",
+      policies: [PAYMENTS, CHECKOUT],
+    };
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    for (const policy of [PAYMENTS, CHECKOUT]) {
+      const toggle: HostElement = screen.getByTestId(
+        `cover-policy-${policy.policyId}`,
+      );
+      expect(toggle.props.accessibilityRole).toBe("checkbox");
+      expect(toggle.props.accessibilityState).toEqual({ checked: true });
+      expect(toggle.props.accessibilityLabel).toBe(policy.policyName);
+    }
+
+    expect(
+      within(screen.getByTestId("override-preview")).getByText(
+        "Only on Payments and Checkout.",
+      ),
+    ).toBeTruthy();
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(createdPolicyIds()).toEqual([PAYMENTS.policyId, CHECKOUT.policyId]);
+
+    // Every one is the same cover: the same people, the same window.
+    const [first, second] = mockCreateOverride.mock.calls.map(
+      (call: Array<unknown>): CreateOverrideInput => {
+        return call[0] as CreateOverrideInput;
+      },
+    ) as [CreateOverrideInput, CreateOverrideInput];
+    expect({ ...second, onCallDutyPolicyId: undefined }).toEqual({
+      ...first,
+      onCallDutyPolicyId: undefined,
+    });
+    expect(mockGoBack).toHaveBeenCalledTimes(1);
+  });
+
+  test("a policy unticked is left alone", async (): Promise<void> => {
+    mockCoverPolicies.current = {
+      status: "offered",
+      policies: [PAYMENTS, CHECKOUT],
+    };
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    await fireEvent.press(
+      screen.getByTestId(`cover-policy-${PAYMENTS.policyId}`),
+    );
+
+    expect(
+      screen.getByTestId(`cover-policy-${PAYMENTS.policyId}`).props
+        .accessibilityState,
+    ).toEqual({ checked: false });
+    expect(
+      within(screen.getByTestId("override-preview")).getByText(
+        "Only on Checkout.",
+      ),
+    ).toBeTruthy();
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(createdPolicyIds()).toEqual([CHECKOUT.policyId]);
+  });
+
+  test("with every policy unticked, nothing is sent and the sheet says what is missing", async (): Promise<void> => {
+    mockCoverPolicies.current = {
+      status: "offered",
+      policies: [PAYMENTS, CHECKOUT],
+    };
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    await fireEvent.press(
+      screen.getByTestId(`cover-policy-${PAYMENTS.policyId}`),
+    );
+    await fireEvent.press(
+      screen.getByTestId(`cover-policy-${CHECKOUT.policyId}`),
+    );
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(mockCreateOverride).not.toHaveBeenCalled();
+    expect(
+      within(screen.getByTestId("override-error")).getByText(
+        "Tick at least one on-call policy.",
+      ),
+    ).toBeTruthy();
+    expect(mockGoBack).not.toHaveBeenCalled();
+  });
+
+  test("a refusal part way is shown, and Confirm again arranges only the rest", async (): Promise<void> => {
+    mockCoverPolicies.current = {
+      status: "offered",
+      policies: [PAYMENTS, CHECKOUT],
+    };
+    mockCreateOverride
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("The server is busy."));
+
+    await render(<CreateOnCallOverrideScreen />);
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(createdPolicyIds()).toEqual([PAYMENTS.policyId, CHECKOUT.policyId]);
+    expect(screen.getByTestId("override-error")).toBeTruthy();
+    expect(mockGoBack).not.toHaveBeenCalled();
+
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(createdPolicyIds()).toEqual([
+      PAYMENTS.policyId,
+      CHECKOUT.policyId,
+      CHECKOUT.policyId,
+    ]);
+    expect(mockGoBack).toHaveBeenCalledTimes(1);
+  });
+
+  test("while the server is asked: a line saying so, and nothing to choose yet", async (): Promise<void> => {
+    mockCoverPolicies.current = { status: "checking" };
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.getByTestId("override-checking-policies")).toBeTruthy();
+    expect(screen.queryByTestId("override-locked")).toBeNull();
+    expect(screen.queryByTestId("submit-override")).toBeNull();
+    expect(screen.queryByTestId("open-user-picker")).toBeNull();
+  });
+
+  test("none of the policies allowed: locked, with the reason, as before", async (): Promise<void> => {
+    mockCoverPolicies.current = { status: "offered", policies: [] };
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(
+      within(screen.getByTestId("override-locked")).getByText(
+        GLOBAL_OVERRIDE_LIMITED_REASON,
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByTestId("submit-override")).toBeNull();
+  });
+
+  test("an older server, which cannot say: locked, as before", async (): Promise<void> => {
+    mockCoverPolicies.current = { status: "unavailable" };
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(
+      within(screen.getByTestId("override-locked")).getByText(
+        GLOBAL_OVERRIDE_LIMITED_REASON,
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByTestId("cover-policies")).toBeNull();
+  });
+
+  test("Get cover on a shift asks about the shift's own policies, and covers its window on each", async (): Promise<void> => {
+    mockProjects.current = [PROJECTS[1]!];
+    holding("project-2", [LIMITED_TO_TEAM_LABEL]);
+    mockRouteParams.current = prefill({ policies: [PAYMENTS, CHECKOUT] });
+    mockCoverPolicies.current = { status: "offered", policies: [CHECKOUT] };
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    const asked: (typeof mockCoverPoliciesAsked)[number] =
+      mockCoverPoliciesAsked[mockCoverPoliciesAsked.length - 1]!;
+
+    expect(asked.enabled).toBe(true);
+    expect(asked.projectId).toBe("project-2");
+    expect(asked.shiftPolicies).toEqual([PAYMENTS, CHECKOUT]);
+    expect(screen.getByTestId("prefilled-shift")).toBeTruthy();
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(createdPolicyIds()).toEqual([CHECKOUT.policyId]);
+    expect(lastCreateInput().endsAt.toISOString()).toBe(
+      mockRouteParams.current!.endsAt,
+    );
+  });
+
+  test("Get cover on a shift no policy pages through: nothing to offer, so locked", async (): Promise<void> => {
+    mockProjects.current = [PROJECTS[1]!];
+    holding("project-2", [LIMITED_TO_TEAM_LABEL]);
+    mockRouteParams.current = prefill();
+    mockCoverPolicies.current = { status: "offered", policies: [] };
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(
+      mockCoverPoliciesAsked[mockCoverPoliciesAsked.length - 1]!.shiftPolicies,
+    ).toEqual([]);
+    expect(screen.getByTestId("override-locked")).toBeTruthy();
+  });
+
+  test("someone over the whole project is not asked, and arranges a global override as before", async (): Promise<void> => {
+    holding("project-1", [OVER_THE_WHOLE_PROJECT]);
+    mockCoverPolicies.current = { status: "offered", policies: [PAYMENTS] };
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(
+      mockCoverPoliciesAsked.every(
+        (asked: (typeof mockCoverPoliciesAsked)[number]): boolean => {
+          return !asked.enabled;
+        },
+      ),
+    ).toBe(true);
+    expect(screen.queryByTestId("cover-policies")).toBeNull();
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(createdPolicyIds()).toEqual([undefined]);
+  });
+
+  test("someone who may add no override at all is not asked: locked as before", async (): Promise<void> => {
+    holding("project-1", [ONLY_READS]);
+    mockCoverPolicies.current = { status: "offered", policies: [PAYMENTS] };
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(
+      within(screen.getByTestId("override-locked")).getByText(
+        GLOBAL_OVERRIDE_NOT_ALLOWED_REASON,
+      ),
+    ).toBeTruthy();
+    expect(
+      mockCoverPoliciesAsked.every(
+        (asked: (typeof mockCoverPoliciesAsked)[number]): boolean => {
+          return !asked.enabled;
+        },
+      ),
+    ).toBe(true);
+  });
+
+  test("a shift that exists only inside one policy is that policy's cover, and asks nothing", async (): Promise<void> => {
+    mockProjects.current = [PROJECTS[1]!];
+    holding("project-2", [LIMITED_TO_TEAM_LABEL]);
+    mockRouteParams.current = prefill({ policyId: "policy-variant" });
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(
+      mockCoverPoliciesAsked.every(
+        (asked: (typeof mockCoverPoliciesAsked)[number]): boolean => {
+          return !asked.enabled;
+        },
+      ),
+    ).toBe(true);
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(createdPolicyIds()).toEqual(["policy-variant"]);
+  });
+});

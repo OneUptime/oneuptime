@@ -39,6 +39,7 @@ const SECTION_HEADINGS: Array<string> = [
   "What reaches out, and what to use instead",
   "OneUptime AI, on a model you run",
   "Your data, inside your boundary",
+  "Everything your security review asks for",
   "Questions buyers ask",
   "Bring us your network. Leave with an install plan.",
 ];
@@ -119,7 +120,7 @@ test.describe("Home: Air-gapped installs", () => {
       const values: Locator = page.getByTestId("air-gapped-values");
       await values.scrollIntoViewIfNeeded();
       await expect(values).toBeVisible();
-      await expect(values).toContainText("registry: registry.example.com");
+      await expect(values).toContainText("imageRegistry: registry.example.com");
       await expect(values).toContainText("disabled: true");
 
       /*
@@ -206,7 +207,9 @@ test.describe("Home: Air-gapped installs", () => {
 
     expect(body).toContain("# Air-Gapped Monitoring & Observability");
     expect(body).toContain("## What reaches out, and what to use instead");
-    expect(body).toContain("```yaml\nimage:\n  registry: registry.example.com");
+    expect(body).toContain(
+      "```yaml\nglobal:\n  imageRegistry: registry.example.com",
+    );
 
     const llms: string = await (
       await page.request.get(addressOn("/llms.txt"))

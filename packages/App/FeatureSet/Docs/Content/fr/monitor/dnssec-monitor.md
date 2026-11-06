@@ -50,7 +50,7 @@ Une signature à qui il reste moins d'un jour compte déjà comme rompue, donc v
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **DNSSEC** sous **DNS Monitoring**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **DNSSEC** sous **Surveillance DNS**.
 
 ### Le nommer
 

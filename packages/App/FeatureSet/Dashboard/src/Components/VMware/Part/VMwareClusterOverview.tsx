@@ -235,7 +235,7 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
         data-testid="vmware-cluster-tiles"
       >
         <GoldenMetricTile
-          title={tx("Effective hosts")}
+          title="Effective hosts"
           icon={IconProp.ServerStack}
           iconColor="emerald"
           value={
@@ -264,7 +264,7 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
           description={VMWARE_METRIC_DESCRIPTIONS.clusterHosts}
         />
         <GoldenMetricTile
-          title={tx("CPU")}
+          title="CPU"
           icon={IconProp.CPUChip}
           iconColor="blue"
           value={formatPercent(usage.cpuPercent)}
@@ -281,7 +281,7 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
           description={VMWARE_METRIC_DESCRIPTIONS.clusterCpuInUse}
         />
         <GoldenMetricTile
-          title={tx("Memory")}
+          title="Memory"
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={formatPercent(usage.memoryPercent)}
@@ -299,7 +299,7 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
           description={VMWARE_METRIC_DESCRIPTIONS.clusterMemoryInUse}
         />
         <GoldenMetricTile
-          title={tx("Host failure")}
+          title="Host failure"
           icon={IconProp.ShieldCheck}
           iconColor="slate"
           value={

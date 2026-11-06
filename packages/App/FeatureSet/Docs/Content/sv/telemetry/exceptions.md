@@ -56,7 +56,7 @@ Varje rad visar också hur många användare undantaget drabbade under den valda
 
 ### Välj vad som räknas som ett problem
 
-**Problem**, som är standard, döljer användarfel och förväntade nekanden, så att listan visar det som behöver rättas. **User errors** visar bara dem, och **Alla** visar alla undantag.
+**Problem**, som är standard, döljer användarfel och förväntade nekanden, så att listan visar det som behöver rättas. **Användarfel** visar bara dem, och **Alla** visar alla undantag.
 
 ### Sök och filtrera
 

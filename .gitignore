@@ -107,6 +107,15 @@ secret.env
 # branch, so an ignored (uncommitted) one fails every scan.
 # Tests/Ops/OssScannerImage.test.js fails if it is ever ignored again.
 !.oss-scanner/Dockerfile
+# ...and except the Iron Bank projects' Dockerfiles, hand-written as well: each
+# is the Dockerfile Iron Bank's pipeline builds from the project's files on
+# Repo1 (IronBank/README.md), and an ignored one never left this machine (the
+# App's merged without its Dockerfile). Tests/Ops/IronBankApp.test.js fails if
+# it is ever ignored again.
+!IronBank/**/Dockerfile
+# The resources Scripts/IronBank/fetch_resources.sh downloads into a project:
+# Iron Bank's pipeline downloads its own copies, and Repo1 never holds them.
+IronBank/**/*.deb
 config.env
 config.env.tmp
 config.env.temp

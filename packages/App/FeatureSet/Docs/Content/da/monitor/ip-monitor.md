@@ -47,7 +47,7 @@ En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet result
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Klik på **Flere monitortyper** under **Monitortype**, og vælg **IP** under **Basic Monitoring**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Klik på **Flere monitortyper** under **Monitortype**, og vælg **IP** under **Grundlæggende overvågning**.
 
 ### Navngiv den
 

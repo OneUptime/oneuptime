@@ -56,7 +56,7 @@ Kunngjøringer beskrives på [Abonnenter og kunngjøringer](/docs/status-pages/s
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Oversikt**  | **Alle hendelser** og **Pågående hendelser**, der merket teller hendelsene som pågår akkurat nå.                            |
 | **Kalender** | **Vedlikeholdskalender**: hver hendelse på en måned, en uke eller en dag, ved siden av kalenderne utenfor prosjektet som du legger til. |
-| **Arbeidsområde** | **Slack** og **Microsoft Teams**, avhengig av hva prosjektet har koblet til, eller **Koble til Slack eller Teams** når det ikke har noen av dem. |
+| **Arbeidsområde** | **Slack**, **Microsoft Teams** og **Mattermost**, avhengig av hva prosjektet har koblet til, eller **Koble til et arbeidsområde** når det ikke har noen av dem. |
 | **Regler**    | **Eierregler**, **Runbook-regler**, **Etikettregler**, **Påminnelsesregler**.                                                  |
 | **Innstillinger** | **Hendelsesstatus**, **Hendelsesmaler**, **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger**, **Nummerering**.       |
 
@@ -75,7 +75,7 @@ Mens en hendelse pågår, behandler OneUptime avbruddet den planlegger, som forv
 - **Nettverkslokasjoner og SLO-er holder igjen.** En nettverkslokasjon som hendelsen dekker, slutter å regne det planlagte avbruddet sitt mot lokasjonene over den, og forbruksratereglene til en SLO utløser ingenting så lenge en av monitorene dens er i vedlikehold. Se [Nettverkslokasjoner](/docs/monitor/network-sites#planlagt-vedlikehold-for-nettverkslokasjoner) og [Forbruksratevarsler og -hendelser](/docs/slo/burn-rate-alerts#planlagt-vedlikehold).
 - **Statussidene dine viser den.** Hendelsen vises på statussidene du har valgt, først som kommende, så som pågående og så som over, så lenge **Synlig på statussiden** er slått på i **Innstillinger** for den, og fra **Publiser den** for den hvis du har valgt et. Når den har startet, viser oppetidshistorikken på disse sidene for hver ressurs monitorene står på den på hver dag vinduet berører, og de ressursene viser «Under vedlikehold» mens den pågår; monitorens oppetidshistorikk i dashbordet viser den på samme måte. Se [Oppetidsprosenter og historikkdiagrammer](/docs/status-pages/resources-and-groups#oppetidsprosenter-og-historikkdiagrammer).
 - **Abonnentene får høre om den.** Som standard får abonnentene på disse sidene beskjed når den planlegges, når den starter og når den slutter, og en påminnelse før start hvis du setter opp påminnelser. Se [Planlagte vedlikeholdshendelser](/docs/status-pages/subscribers#planlagte-vedlikeholdshendelser).
-- **Teamet ditt får høre om den.** Eierne får beskjed slik [varselinnstillingene](/docs/notifications/notification-settings) deres sier, og Slack- og Microsoft Teams-reglene under **Arbeidsområde** poster den i kanalene dine.
+- **Teamet ditt får høre om den.** Eierne får beskjed slik [varselinnstillingene](/docs/notifications/notification-settings) deres sier, og Slack-, Microsoft Teams- og Mattermost-reglene under **Arbeidsområde** poster den i kanalene dine.
 
 ## En hendelses egne sider
 

@@ -38,6 +38,7 @@ flowchart TB
 | **全部案例** | 安全案例 | 每個案件，無論未結還是已關閉 |
 | **事件** | 事件 | 搜尋和篩選每個事件，並開啟某個事件查看它的所有欄位 |
 | **獵捕** | 事件 | 從事件儲存的搜尋，一鍵再次開啟，或依排程執行，發現內容時通知相關人員 |
+| **獵捕庫** | 事件 | 可在事件中試用或新增到你的獵捕的現成獵捕，每個都顯示它讀取的事件以及這些事件是否送達 |
 | **攻擊活動** | 事件 | 每個傳送過攻擊請求的位址，以及它的請求中是否有任何一個通過 |
 | **實體風險** | 事件 | 依本週發現評分的每個使用者、主機和位址，風險最高的在前 |
 | **關聯分析** | 事件 | 共用同一主機、使用者或 IP 位址的事件構成的圖 |
@@ -181,22 +182,42 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### 在日誌中尋找安全性事件
 
-**連線** 頂端的 **你的日誌** 會把您已經傳送到 OneUptime 的日誌變成一個來源。開啟 **在日誌中尋找安全事件** 後，專案的新日誌每分鐘都會被讀取，其中的每次 SSH 或 Windows 登入、sudo 命令、雲端稽核記錄、安全性產品的 CEF 或 LEEF 記錄、Kubernetes 稽核記錄和 Web 攻擊都會儲存為安全性事件。各類內容的範圍請參閱 [安全性入門](/docs/telemetry/security-getting-started#在日誌中尋找安全性事件)。
+**連線** 頂端的 **你的日誌** 會把您已經傳送到 OneUptime 的日誌變成一個來源。開啟 **在日誌中尋找安全事件** 後，專案的新日誌每分鐘都會被讀取，其中的每次 SSH 或 Windows 登入、sudo 命令、雲端稽核記錄、安全性產品的 CEF 或 LEEF 記錄、Palo Alto Networks、FortiGate 或 Cisco ASA 防火牆的記錄、Kubernetes 稽核記錄和 Web 攻擊都會儲存為安全性事件。各類內容的範圍請參閱 [安全性入門](/docs/telemetry/security-getting-started#在日誌中尋找安全性事件)。
 
 每一類都以一般日誌的形式到達 OneUptime：
 
 | 類型 | 從哪裡傳送 |
 | --- | --- |
 | SSH 登入、sudo | Linux 機器的 journal 或驗證日誌，使用 [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 傳送 |
-| Windows 事件 | 機器上收集器的 `windowseventlog` 接收器，或把每個事件寫成 JSON 的轉送程式，例如 NXLog 或 Winlogbeat |
-| AWS CloudTrail | 傳遞到 CloudWatch Logs 的追蹤，由收集器的 `awscloudwatch` 接收器讀取 |
-| Google Cloud 稽核日誌 | 指向 Pub/Sub 的日誌接收器（sink），由收集器的 `googlecloudpubsub` 接收器以 `encoding: raw_text` 讀取 |
-| Azure 活動與 Entra ID 日誌 | 串流到 Event Hub 的診斷設定，由收集器的 `azureeventhub` 接收器以 `format: raw` 讀取 |
+| Windows 事件 | 機器上收集器的 `windowseventlog` 接收器，或把每個事件寫成 JSON 的轉送程式，例如 NXLog 或 Winlogbeat。新增到 OneUptime 的 [主機](/docs/telemetry/hosts) 也會讀取它上面的 Sysmon、Microsoft Defender 與 PowerShell |
+| AWS CloudTrail | 傳遞到 CloudWatch Logs 的追蹤，由收集器的 `awscloudwatch` 接收器讀取；對於在 **雲端** 下連線的帳戶，也可以用 [雲端稽核日誌](#讀取雲端帳戶的稽核日誌) |
+| Google Cloud 稽核日誌 | 指向 Pub/Sub 的日誌接收器（sink），由收集器的 `googlecloudpubsub` 接收器以 `encoding: raw_text` 讀取；對於在 **雲端** 下連線的專案，也可以用 [雲端稽核日誌](#讀取雲端帳戶的稽核日誌) |
+| Azure 活動與 Entra ID 日誌 | 串流到 Event Hub 的診斷設定，由收集器的 `azureeventhub` 接收器以 `format: raw` 讀取；對於在 **雲端** 下連線的訂用帳戶的活動記錄，也可以用 [雲端稽核日誌](#讀取雲端帳戶的稽核日誌) |
+| OpenStack 稽核軌跡 | 雲端的通知與稽核過濾器以 `driver = log` 送到其日誌，由代理程式的 [日誌設定檔](/docs/telemetry/openstack#誰做了什麼) 讀取 |
 | CEF、LEEF | 產品的 syslog，由 [rsyslog](/docs/telemetry/syslog) 轉送 |
+| Palo Alto Networks、FortiGate、Cisco ASA | 防火牆本身的 syslog，由 [rsyslog](/docs/telemetry/syslog) 轉送 |
 | Kubernetes 稽核日誌 | API 伺服器的稽核日誌檔案，由收集器的 `filelog` 接收器讀取 |
 | Web 攻擊 | Web 伺服器的存取日誌，由收集器的 `filelog` 接收器讀取 |
 
 在 **你的日誌** 上，每一類都會顯示上次找到它的時間，**檢查一行日誌** 則會在任何日誌到達之前，顯示你貼上的一行會變成什麼。
+
+安全性產品寫入日誌的威脅，例如 CEF 或 LEEF 的發現，或 Palo Alto Networks、FortiGate 或 Cisco ASA 的威脅，會像已連線產品的警示一樣開啟 [案件](/docs/telemetry/security-cases)，並提高它所指的使用者、主機或位址的風險。**你的日誌** 上的 **從以下等級開啟案例** 決定從哪個嚴重程度開始：預設為 **高及以上**，你也可以選擇其他等級或 **從未**。該產品的登入和被封鎖的連線仍然是事件，供你的規則讀取。
+
+透過兩條途徑到達 OneUptime 的記錄只會儲存一次：例如由其連線讀取、又由 Azure 匯出到您的日誌中的 Microsoft Entra ID 登入，或同時出現在您的日誌和已連線 AWS 帳戶稽核日誌中的 CloudTrail 記錄。
+
+### 讀取雲端帳戶的稽核日誌
+
+[在 **雲端** 下連線的](/docs/telemetry/cloud-accounts) AWS 帳戶、Google Cloud 專案或 Azure 訂用帳戶不需要日誌管線。在 **連線** 的 **你的 OneUptime 資料** 下開啟 **雲端稽核日誌** 後，每次讀取帳戶都會把它的稽核日誌保存為安全性事件：
+
+| 雲端 | 讀取的內容 |
+| --- | --- |
+| AWS | 帳戶使用的每個區域中會變更內容的 CloudTrail 管理事件：主控台登入、變更，以及被 AWS 拒絕的呼叫 |
+| Google Cloud | Admin Activity 稽核日誌：對資源及其存取權限的變更，以及被 Google 拒絕的呼叫 |
+| Azure | 活動記錄：訂用帳戶中的變更、失敗的作業、Azure Policy 的拒絕以及 Defender for Cloud 警示 |
+
+- 每筆記錄的讀取方式與 **你的日誌** 從管線讀取它的方式相同，因此規則庫中的 CloudTrail、Google Cloud 與 Azure 規則都能比對它。
+- 事件以儲存時的時間為時間戳記，記錄本身的時間保存在 `oneuptime.cloud.record_time` 中：稽核日誌會晚幾分鐘到達 OneUptime，而規則依事件的時間讀取事件。
+- 帳戶本身的讀取只帶來這些：資料事件、Data Access 日誌與 Microsoft Entra ID 的日誌仍然需要 **你的日誌** 或 [連線](/docs/integrations/microsoft-entra-id)。
 
 ### 連線安全性產品
 
@@ -212,7 +233,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | Elastic Security | 偵測警示，作為 Detection Finding | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Finding，作為 Detection Finding 和 Compliance Finding | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | 登入、MFA、帳戶和原則事件 | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | 登入和目錄變更，以及 Microsoft 365 稽核日誌中的郵件轉寄、共用和網路釣魚判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | 登入、目錄變更和風險偵測，可選的失敗的背景和應用程式登入，以及 Microsoft 365 稽核日誌中的郵件轉寄、共用和網路釣魚判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | 登入、Google 自身的偵測、管理員變更和應用程式授權，以及雲端硬碟中的共用 | [Google Workspace](/docs/integrations/google-workspace) |
 
 - 產品本身的警示，只要等級達到或高於 **Open Cases From**（預設為 **高及以上**，你也可以選擇其他等級或 **從未**），就會開啟 [案件](/docs/telemetry/security-cases)，並依它們涉及的使用者、主機或位址分組。
@@ -256,6 +277,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `<field>:a*` | `*` 代表任意文字，`?` 代表一個字元 | `host:web-*` |
 | `@<attribute>:*` | 存在該屬性 | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | 屬性包含該文字 | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | 該欄位在某份[監看清單](#監看清單)中 | `user:%vip_users%` |
 
 欄位要麼是簡稱（`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`processname`、`commandline`、`parentprocessname`、`observable`、`tactic`、`technique`、`requestoutcome`、`trace`、`session`），要麼是欄位本身的名稱，例如 `severityName` 或 `principalHost`。任何其他名稱都會被讀作來源屬性。`observable:<value>` 會找出提到某個值的每個事件，無論該值出現在活動的哪一方。
 
@@ -281,9 +303,17 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### 將搜尋儲存為獵捕
 
-在 **事件** 中搜尋和篩選，直到清單顯示你要找的內容，然後開啟工具列上的 **獵捕** 並選擇 **另存為獵捕**。為它命名，選擇是否依排程執行，隨後會開啟它的頁面。**事件 → 獵捕** 列出專案的所有獵捕，每個都顯示其搜尋、執行頻率、通知對象，以及上次執行發現的內容；那裡的 **建立獵捕** 依你在 **事件** 中輸入的方式接收搜尋。一個專案最多可儲存 200 個獵捕。
+在 **事件** 中搜尋和篩選，直到清單顯示你要找的內容，然後開啟工具列上的 **獵捕** 並選擇 **另存為獵捕**。為它命名，選擇是否依排程執行，隨後會開啟它的頁面。**事件 → 獵捕** 列出專案的所有獵捕，每個都顯示其搜尋、執行頻率、通知對象，以及上次執行發現的內容；那裡的 **建立獵捕** 依你在 **事件** 中輸入的方式接收搜尋。一個專案最多可儲存 200 個獵捕。搜尋可以像 `user:%vip_users%` 那樣讀取[監看清單](#監看清單)；讀取專案中不存在的清單的獵捕會在儲存時被拒絕。
 
 獵捕的頁面就是它的搜尋，在事件探索器中開啟。在那裡變更搜尋或篩選條件後，獵捕的頁首會提供 **儲存變更** 和 **捨棄變更**。**編輯** 可以變更它的名稱、搜尋、回溯範圍、排程和通知對象，**刪除獵捕** 在它的選單中。Security Member 以上的角色可以儲存、變更和刪除獵捕，Security Viewer 可以開啟它們。
+
+使用事件側欄中的篩選條件儲存的獵捕，會在 **編輯** 的 **篩選器** 下依事件的樣式顯示它們，每個都帶有一個用於移除的 x。在獵捕頁面上透過側欄新增篩選條件。
+
+### 從獵捕庫開始
+
+**事件 → 獵捕庫** 列出針對安全團隊最常查找內容的現成獵捕，例如登入失敗、編碼的 PowerShell、AWS root 帳戶，以及在 Kubernetes Pod 中開啟的 shell。每個獵捕都會顯示它查找的內容、依你在 **事件** 中輸入的方式寫出的搜尋，以及它讀取的事件是否送達，就像 **規則庫** 對其規則所顯示的那樣。可依 **獵捕分類**、**資料** 和 **狀態** 縮小範圍，或進行搜尋。
+
+**試試看** 會在 **事件** 中依獵捕的時間範圍開啟該搜尋，不儲存任何內容。**新增** 會立即將其儲存為專案的一個獵捕，名稱和描述使用你的語言，並且與每個新獵捕一樣不依排程執行。之後會顯示 **已新增**，**開啟** 會開啟它，你可以在那裡為它設定排程。
 
 ### 依排程執行獵捕
 
@@ -302,9 +332,15 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 依排程執行的獵捕以最後一次設定其排程、變更其搜尋或透過 **編輯** 儲存它的人員身分執行。API 金鑰無法設定排程。當該人員離開專案或無法再讀取安全性事件時，獵捕會顯示這個情況：開啟 **編輯** 並儲存，即可改為以你的身分執行。
 
+### 執行歷史
+
+每次排程執行都會保留 90 天。**執行歷史** 位於說明獵捕執行發現了什麼的那一行末尾，依從新到舊列出執行：每次執行的時間和搜尋的事件，然後是發現了多少，並帶有 **顯示** 以在獵捕頁面上開啟這些事件；或者沒有發現任何內容；或者無法執行的原因。能開啟獵捕的人都能讀取它的執行。
+
 ### 誰會收到通知
 
 通知 **獵捕發現了安全事件** 會寫明獵捕及其搜尋、執行發現的事件數量和讀取的時間範圍，並連結到顯示這些事件的獵捕頁面；其中不包含任何事件本身的內容。每個人預設透過電子郵件和推播接收，並可在 **使用者設定 → 通知設定** 中選擇管道。與其他例行郵件一樣，它可能會被歸入 [郵件彙整](/docs/emails/notification-rollup)。
+
+要將獵捕的發現張貼到 Slack、Microsoft Teams 或 Mattermost，請在 **產品 → 安全事件 → 工作區 → Slack**（或 **Microsoft Teams**、**Mattermost**）中，在張貼[安全案件](/docs/telemetry/security-cases#張貼到-slackmicrosoft-teams-和-mattermost-頻道)的規則下方，向 **獵捕規則** 新增規則。規則指定要張貼到的頻道（在 Microsoft Teams 中還包括聊天），以及（如有需要）它適用的獵捕，依 **獵捕名稱** 比對：名稱等於、包含、以你的文字開頭或以你的文字結尾。每當排程執行發現事件時，它會張貼該獵捕、其搜尋、事件數量和時間，並附上指向這些事件的連結，不含事件本身的任何內容。獵捕規則由可以設定安全劇本的角色設定，例如 Project Owner、Project Admin 或 Security Admin。
 
 ### 將事件保存到案件
 
@@ -312,7 +348,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 OneUptime 會以你的身分重新讀取每個事件，並依原樣保存在案件的 **證據** 頁面上，因此即使事件的保留期結束，案件仍會顯示它。你無法讀取的事件不會被保存，案件中已保存的事件維持不變。從獵捕中找到的事件會註明該獵捕，**檢視事件** 會依保存時的樣子開啟它。
 
-獵捕擁有與 OneUptime 其他部分相同的 REST API，位於 `/security-hunt` 下，`POST /security-case-evidence/add-events` 用於將事件保存到案件。請參閱 [API 參考](/docs/api-reference/api-reference)。
+獵捕擁有與 OneUptime 其他部分相同的 REST API，位於 `/security-hunt` 下，`POST /security-case-evidence/add-events` 用於將事件保存到案件。獵捕的執行可在 `/security-hunt-run` 下讀取。請參閱 [API 參考](/docs/api-reference/api-reference)。
 
 ## 偵測規則
 
@@ -511,7 +547,7 @@ Detection Finding 是來自產品 `OneUptime Detections`、類別為 `Detection 
 
 ### 監看清單
 
-監看清單是團隊只需維護一次、任何規則都能讀取的清單，例如 VIP 使用者、關鍵主機、已知惡意檔案雜湊，或管理員可以從哪些位址登入。所有清單都在 **產品 → 安全事件 → 偵測 → 監看清單** 下：在那裡用 **建立監看清單** 建立一份，填寫名稱並選擇它包含的內容，或從 **從常用清單開始** 新增一份常用清單。清單頁面會顯示它的值， **在規則中使用** 提供一個讀取該清單的選取項目，可複製到規則中。
+監看清單是團隊只需維護一次、任何規則都能讀取的清單，例如 VIP 使用者、關鍵主機、已知惡意檔案雜湊，或管理員可以從哪些位址登入。所有清單都在 **產品 → 安全事件 → 偵測 → 監看清單** 下：在那裡用 **建立監看清單** 建立一份，填寫名稱並選擇它包含的內容，或從 **從常用清單開始** 新增一份常用清單。清單頁面會顯示它的值， **使用此清單** 提供一個讀取該清單的選取項目（可複製到規則中），以及在 **事件** 或獵捕中讀取它的搜尋。
 
 規則用 `expand` 加上寫在兩個 `%` 之間的清單名稱來讀取清單。下面這條規則會在管理員從不在允許清單中的位址登入時觸發：
 
@@ -529,10 +565,14 @@ level: high
 
 - 清單包含使用者、主機、IP 位址、檔案雜湊、網域、URL、處理程序或其他值，在建立時選定。值的比對不分大小寫， `*` 代表任意一串字元： `svc-*` 會比對到每個服務帳戶。IP 位址清單也接受範圍，例如 `10.20.0.0/16` ，檔案雜湊清單接受 MD5、SHA-1、SHA-256 和 SHA-512 雜湊。
 - 用 **新增值** 逐一新增值，或用 **匯入值** 一次新增許多值：貼上它們，或選擇一個 `.txt` 或 `.csv` 檔案，每行一個值，逗號後可以接一則備註。 **新增到清單** 保留清單中已有的值， **取代清單** 會移除匯入內容中沒有的值。
+- 值可以設定 **到期於**：從那時起，任何規則、監測器、獵捕或搜尋都不再讀取它，OneUptime 會在一分鐘內將其從清單中移除。留空則一直保留，直到有人移除它。
+- **匯出值** 會將清單的值下載為包含 `value`、`note` 和 `expires` 欄的 CSV 檔案， **匯入值** 可以再讀回它。第一行指明這些欄的檔案會為每個值提供備註和到期時間：寫成 `2026-12-31` 這樣的日期，或 UTC 的日期和時間。
+- 清單也可以改為從 https 位址上的檔案讀取，並依 **每小時**、**每 6 小時** 或 **每天** 重新讀取：建立時在 **更多欄位** 下選擇 **某個位址上的檔案**。每次讀取都會讓清單變成檔案中的內容，讀取方式與匯入相同。讀取失敗不會變更任何值，清單頁面會說明原因；**立即讀取** 會馬上讀取。
 - IP 位址、檔案雜湊、網域或 URL 清單可以不自行維護值，而是跟隨一個威脅情報來源：此時它的值就是情報來源中與清單類型相同的有效指標，並在讀取情報來源時保持更新。
-- `expand` 需單獨使用，因為如何比對由清單的值決定。像 `observables` 這樣包含多個值的欄位，只要其中任一個在清單中就會比對成功。 **讀取它的規則** 列出讀取每份清單的規則，規則表單中 YAML 下方也會列出該規則讀取的清單。
-- 規則依名稱引用清單，不區分大小寫。引用了專案中不存在的清單的規則會在儲存時被拒絕；只要還有規則讀取某份清單，就不能重新命名或刪除它。
+- `expand` 需單獨使用，因為如何比對由清單的值決定。像 `observables` 這樣包含多個值的欄位，只要其中任一個在清單中就會比對成功。 **讀取方** 列出讀取每份清單的規則、Security Events 監測器和獵捕，規則表單中 YAML 下方也會列出該規則讀取的清單。
+- 規則依名稱引用清單，不區分大小寫。引用了專案中不存在的清單的規則、監測器或獵捕會在儲存時被拒絕；只要還有任何項目讀取某份清單，就不能重新命名或刪除它。
 - 對清單的變更會在每條讀取它的規則下次執行時生效。關聯規則和 **在過去的事件上執行** 也會讀取清單。
+- Security Events 監測器在其 **依監看清單篩選** 中讀取清單， **事件** 或獵捕中的搜尋則像 `user:%vip_users%` 這樣讀取清單。在前面加上減號（如 `-ip:%admin_addresses%`）會保留欄位不在清單中的事件。
 - 一份清單最多包含 5,000 個值，其中含 `*` 的值最多 100 個、範圍最多 100 個；一個專案最多有 200 份清單，更長的清單請跟隨威脅情報來源。能建立、編輯或刪除偵測規則的人，也能對清單做同樣的操作；能編輯偵測規則的人可以新增、修改和移除清單中的值。每個 Security 角色都能讀取它們，每次修改都會記入專案的稽核記錄。
 
 ### 在過去的事件上執行
@@ -549,11 +589,11 @@ level: high
 
 安全性事件監測器會在滾動時間窗內統計符合其篩選條件的事件，並對計數執行一般的監測器條件：它會改變監測器的狀態、開啟警示或事件，並呼叫待命人員。請在 **監測 → 建立監測器** 下建立，類型選擇 **安全事件** ；它會和您的其他監測器一起列在那裡。
 
-它的表單會顯示 **Monitor events that include this text**、**Monitor Security Events for (time)**、**Event Severity** 和 **事件類別** 。**依遙測服務篩選** 和 **依屬性篩選** 位於 **更多欄位** 下，其標題會顯示監測器正在使用哪些。它的條件會檢查 **Security Event Count** 。
+它的表單會顯示 **Monitor events that include this text**、**Monitor Security Events for (time)**、**Event Severity** 和 **事件類別** 。**依遙測服務篩選**、**依屬性篩選** 和 **依監看清單篩選** 位於 **更多欄位** 下，其標題會顯示監測器正在使用哪些。**依監看清單篩選** 會保留欄位在（或不在）某份[監看清單](#監看清單)中的事件。它的條件會檢查 **Security Event Count** 。
 
 | | 偵測規則 | 安全性事件監測器 |
 | --- | --- | --- |
-| 符合依據 | 一條 Sigma 規則 | 針對嚴重程度、類別、訊息、服務和屬性的篩選條件 |
+| 符合依據 | 一條 Sigma 規則 | 針對嚴重程度、類別、訊息、服務、屬性和監看清單的篩選條件 |
 | 時間窗 | 首尾相接，每次執行一個 | 滾動：最近 5 秒到 24 小時 |
 | 依群組計數 | 是，透過 **分組欄位** | 否：所有符合合計一個計數 |
 | 開啟的內容 | 警示、事件和偵測結果 | 狀態、警示和事件 |
@@ -610,11 +650,15 @@ level: high
 :::
 
 :::details 讀取監看清單的規則沒有比對成功
-開啟清單檢查它的值：不含 `*` 的值必須與整個欄位相同（不分大小寫），而跟隨威脅情報來源的清單只包含情報來源中與其類型相同的有效指標。檢查規則讀取的是否是你的事件會填寫的欄位： **在規則中使用** 以這類清單通常所在的欄位開頭。對清單的變更會在規則下次執行時生效。
+開啟清單檢查它的值：不含 `*` 的值必須與整個欄位相同（不分大小寫），而跟隨威脅情報來源的清單只包含情報來源中與其類型相同的有效指標。檢查規則讀取的是否是你的事件會填寫的欄位： **使用此清單** 以這類清單通常所在的欄位開頭。對清單的變更會在規則下次執行時生效。
 :::
 
 :::details 無法重新命名或刪除監看清單
-仍有規則依名稱讀取它，提示訊息會列出這些規則。先在這些規則中修改名稱或移除該清單，然後再重新命名或刪除它。
+仍有規則、監測器或獵捕依名稱讀取它，提示訊息會列出它們。先在其中修改名稱或移除該清單，然後再重新命名或刪除它。
+:::
+
+:::details 從位址讀取的清單顯示錯誤
+它的頁面會在 **從位址讀取** 中說明原因以及該位址的回應，清單會保留上次成功讀取的值。位址必須以 `https` 開頭，無需登入即可從網際網路存取，並且下載的是不超過 4 MB 的文字或 CSV 檔案，而不是網頁。在 **編輯** 中修正後，再選擇 **立即讀取**。
 :::
 
 :::details 在過去的事件上執行什麼也沒找到

@@ -37,7 +37,7 @@ import {
 } from "../../Types/DataSecurity/DataStorePosture";
 import SecuritySeverity from "../../Types/SecuritySeverity";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import { JSONObject } from "../../Types/JSON";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import {
   Column,
   Entity,
@@ -990,6 +990,20 @@ export default class DataStore extends BaseModel {
 
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({
+    type: TableColumnType.VeryLongText,
+    required: false,
+    title: "Watched Paths",
+    description:
+      "The paths of a bucket Data Observability watches like tables, one per line.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public watchedPaths?: string = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
     type: TableColumnType.LongText,
     required: false,
     canReadOnRelationQuery: true,
@@ -1096,6 +1110,137 @@ export default class DataStore extends BaseModel {
     nullable: true,
   })
   public contentScanState?: JSONObject = undefined;
+
+  /*
+   * DATA OBSERVABILITY. Automatic table health collects the store's tables
+   * on its own schedule, apart from Data Security's content scans: reading
+   * the catalog is cheap and wanted every few minutes; sampling content is
+   * neither. Utils/DataObservability writes these.
+   */
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Watch Table Health",
+    description:
+      "Data Observability collects the store's tables every few minutes: their columns, row counts, sizes and when they last changed. Only the catalog is read, never a row.",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public isTableHealthEnabled?: boolean = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Table Health Collected At",
+    description: "When Data Observability last collected the store's tables.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public tableHealthCollectedAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Table Health Status",
+    description:
+      "How the last collection of the store's tables ended: Collected, or Failed.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public tableHealthStatus?: string = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    computed: true,
+    title: "Table Health Message",
+    description: "Why the last collection failed, or what it had to leave out.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public tableHealthMessage?: string = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Tables Watched",
+    description: "How many tables and views the last collection found.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public tableHealthAssetCount?: number = undefined;
+
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Table Health Target",
+    description:
+      "The database the last collection read - its name, host and port, never a credential - so the spans of the services using it can be tied to its tables.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public tableHealthTarget?: JSONObject = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "New Personal Data Columns",
+    description:
+      "Columns added lately whose names say they hold personal data, as a collection saw them appear.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public newPersonalDataColumns?: JSONArray = undefined;
+
+  @ColumnAccessControl(hiddenColumnAccess)
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    title: "Next Table Health Collection At",
+    description: "When the store's tables are next collected.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public nextTableHealthCollectionAt?: Date = undefined;
 
   @ColumnAccessControl(hiddenColumnAccess)
   @TableColumn({

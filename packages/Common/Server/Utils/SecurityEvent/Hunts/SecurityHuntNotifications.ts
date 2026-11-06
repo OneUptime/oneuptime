@@ -32,7 +32,13 @@ import ProjectService from "../../../Services/ProjectService";
 import SecurityHuntService from "../../../Services/SecurityHuntService";
 import TeamMemberService from "../../../Services/TeamMemberService";
 import UserNotificationSettingService from "../../../Services/UserNotificationSettingService";
+import WorkspaceNotificationRuleService from "../../../Services/WorkspaceNotificationRuleService";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../../Utils/Markdown/FeedMarkdown";
 import logger from "../../Logger";
+import WorkspaceMessageTime from "../../Workspace/WorkspaceMessageTime";
 import CallerPermission from "../../Permission/CallerPermission";
 import PushNotificationUtil from "../../PushNotificationUtil";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -52,6 +58,13 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * hunt, how many events its run found, and when those events arrived, with
  * the way to them - the hunt's page on that window, which reads the events
  * as whoever opens it. No event's own words travel in a message.
+ *
+ * The same is posted to the Slack and Microsoft Teams channels (and Teams
+ * chats) of every Security Hunt rule the hunt matches
+ * (WorkspaceNotificationRuleService, NotificationRuleEventType.SecurityHunt)
+ * - the rules security cases are posted by, set up by the same Security
+ * roles - whether or not any person was told. A hunt gets no channel of its
+ * own.
  *
  * The scheduler only queues the job and never waits on, or fails on, a
  * notification.
@@ -190,6 +203,49 @@ export function buildHuntFoundMessage(data: {
   };
 }
 
+/*
+ * What a hunt's find says in a Slack or Microsoft Teams channel: the
+ * headline, the hunt (to its page on the run's window), its search, and the
+ * window, each moment in each reader's own time. The hunt's name and search
+ * are the team's own words, placed where they sit (mdText); no event's own
+ * words are in it.
+ */
+export function buildHuntFoundChannelMarkdown(
+  facts: SecurityHuntFoundFacts,
+): MarkdownText {
+  const found: string = describeSecurityEventCount(facts.eventCount);
+  const search: string = facts.searchQuery.trim();
+  const filters: string =
+    facts.filterCount === 0
+      ? ""
+      : `${facts.filterCount} ${facts.filterCount === 1 ? "filter" : "filters"}`;
+
+  const searchLine: MarkdownText | null = search
+    ? filters
+      ? mdText`Search: ${FeedMarkdown.code(search)} and ${filters}`
+      : mdText`Search: ${FeedMarkdown.code(search)}`
+    : filters
+      ? mdText`Search: ${filters}`
+      : null;
+
+  return FeedMarkdown.join(
+    [
+      mdText`🔎 **Hunt found ${found}**`,
+      mdText`**[${facts.huntName}](${facts.url})**`,
+      ...(searchLine ? [searchLine] : []),
+      mdText`Events from ${WorkspaceMessageTime.dateAndTime(facts.startTime)} to ${WorkspaceMessageTime.dateAndTime(facts.endTime)}`,
+    ],
+    "\n\n",
+  );
+}
+
+// What a phone shows for the post: "Hunt found 3 security events: Encoded PowerShell".
+export function buildHuntFoundChannelText(
+  facts: SecurityHuntFoundFacts,
+): string {
+  return `Hunt found ${describeSecurityEventCount(facts.eventCount)}: ${facts.huntName}`;
+}
+
 function readId(data: JSONObject, key: string): ObjectID | undefined {
   const value: JSONValue | undefined = data[key];
 
@@ -286,7 +342,8 @@ export default class SecurityHuntNotifications {
 
   /*
    * Tell the people a hunt names, and its teams' members, who can read it,
-   * that a run found events. Returns who was told.
+   * that a run found events, and post it to the channels of the Security
+   * Hunt rules the hunt matches. Returns who was told.
    */
   @CaptureSpan()
   public static async notifyHuntFound(data: {
@@ -351,10 +408,6 @@ export default class SecurityHuntNotifications {
       people,
     });
 
-    if (recipients.length === 0) {
-      return [];
-    }
-
     const project: Project | null = await ProjectService.findOneById({
       id: data.projectId,
       select: {
@@ -386,7 +439,48 @@ export default class SecurityHuntNotifications {
       endTime: data.window.endTime,
     };
 
-    return await this.sendToPeople({ facts, recipients });
+    const notified: Array<SecurityHuntRecipient> =
+      recipients.length > 0
+        ? await this.sendToPeople({ facts, recipients })
+        : [];
+
+    // The channels too, whoever of the people could be told.
+    await this.postToChannels(facts);
+
+    return notified;
+  }
+
+  /*
+   * The find, posted to the Slack and Microsoft Teams channels and chats of
+   * the project's Security Hunt rules that match the hunt as it is now.
+   * Never throws: the people were told already. Says whether it was asked
+   * of the workspaces.
+   */
+  @CaptureSpan()
+  public static async postToChannels(
+    facts: SecurityHuntFoundFacts,
+  ): Promise<boolean> {
+    try {
+      await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
+        projectId: facts.projectId,
+        notificationFor: {
+          securityHuntId: facts.huntId,
+        },
+        feedInfoInMarkdown: buildHuntFoundChannelMarkdown(facts).toString(),
+        notificationText: buildHuntFoundChannelText(facts),
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+        },
+      });
+
+      return true;
+    } catch (error) {
+      logger.error(
+        `SecurityHuntNotifications: could not post what hunt ${facts.huntId.toString()} found to Slack or Microsoft Teams:`,
+      );
+      logger.error(error);
+      return false;
+    }
   }
 
   // ---------- Who ----------

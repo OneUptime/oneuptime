@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "@jest/globals";
 import {
   AFFECTED_RESOURCES_PLACE_ID,
+  AGENT_CONNECTS_TRIES_AGAIN,
   getRemediationDecisionLines,
   pickRemediationDecision,
   RemediationDecision,
@@ -9,6 +10,7 @@ import {
   RemediationSwitchesNow,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionLines";
 import {
+  AGENT_NOT_CONNECTED_GAP_CODES,
   AutoRemediationDecisionEntry,
   AutoRemediationDecisionLane,
   AutoRemediationDecisionReason,
@@ -1071,5 +1073,166 @@ describe("getRemediationDecisionLines", () => {
         }),
       ).size,
     ).toBe(2);
+  });
+});
+
+/*
+ * A cluster's or resource's AI agent connecting makes OneUptime AI decide
+ * again about an open record that waited for it (#5367's follow-up:
+ * AutoRemediationRuleEngineService.onAgentConnected). Its line says so
+ * under what to do, on a line of its own (a step can end in a command) -
+ * so nobody has to come back for Try again - while the record is open,
+ * and only where the gap shown is that the agent is not connected or
+ * stopped reporting.
+ */
+describe("an AI agent that is not connected: OneUptime AI tries again once it connects", () => {
+  const TRIES_AGAIN: string =
+    "Once its AI agent connects, OneUptime AI tries again.";
+
+  function notReady(
+    lane: "cluster" | "resource",
+    gaps: AutoRemediationDecisionEntry["gaps"],
+  ): AutoRemediationDecisionEntry {
+    return lane === "cluster"
+      ? {
+          lane: AutoRemediationDecisionLane.KubernetesCluster,
+          reason: AutoRemediationDecisionReason.ClusterNotReady,
+          kubernetesClusterId: CLUSTER_ID,
+          kubernetesClusterName: "prod-east",
+          gaps,
+        }
+      : {
+          lane: AutoRemediationDecisionLane.Resource,
+          reason: AutoRemediationDecisionReason.ResourceNotReady,
+          resourceType: "AwsAccount",
+          resourceId: RESOURCE_ID,
+          resourceName: "Production",
+          gaps,
+        };
+  }
+
+  function lineFor(
+    entry: AutoRemediationDecisionEntry,
+    isRecordResolved?: boolean,
+  ): RemediationDecisionLine {
+    const lines: Array<RemediationDecisionLine> = getRemediationDecisionLines({
+      decision: evaluated([entry]),
+      signal: "incident",
+      translator: getGlobalTranslator(),
+      ...(isRecordResolved !== undefined ? { isRecordResolved } : {}),
+    });
+    expect(lines).toHaveLength(1);
+    return lines[0]!;
+  }
+
+  test("no agent ever connected: what to do, and then that OneUptime AI tries again once it does", () => {
+    const line: RemediationDecisionLine = lineFor(
+      notReady("resource", [
+        {
+          code: "ai_agent_not_connected",
+          title: "No Cloud AI agent is connected",
+          nextStep: "Run the setup command on the account's AI agent page.",
+        },
+      ]),
+    );
+
+    expect(line.why).toBe("No Cloud AI agent is connected");
+    expect(line.whatToDo).toBe(
+      "Run the setup command on the account's AI agent page.",
+    );
+    expect(line.whatHappensNext).toBe(TRIES_AGAIN);
+    expect(AGENT_CONNECTS_TRIES_AGAIN).toBe(TRIES_AGAIN);
+  });
+
+  test("an agent that stopped reporting: the same, for a cluster whose step ends in a command", () => {
+    const line: RemediationDecisionLine = lineFor(
+      notReady("cluster", [
+        {
+          code: "ai_agent_offline",
+          title: "The Kubernetes AI agent is offline",
+          nextStep:
+            "Check the agent's pod: kubectl logs -n oneuptime deploy/oneuptime-kubernetes-agent-ai-agent --tail=100",
+        },
+      ]),
+    );
+
+    // The command is left as it is: the sentence is not glued to its end.
+    expect(line.whatToDo).toBe(
+      "Check the agent's pod: kubectl logs -n oneuptime deploy/oneuptime-kubernetes-agent-ai-agent --tail=100",
+    );
+    expect(line.whatHappensNext).toBe(TRIES_AGAIN);
+  });
+
+  test("a gap with no step of its own says only what happens next", () => {
+    const line: RemediationDecisionLine = lineFor(
+      notReady("resource", [
+        {
+          code: "ai_agent_offline",
+          title: "The agent is offline",
+          nextStep: "",
+        },
+      ]),
+    );
+
+    expect(line.whatToDo).toBeUndefined();
+    expect(line.whatHappensNext).toBe(TRIES_AGAIN);
+  });
+
+  test("a resolved record promises nothing: OneUptime AI does not decide about it again", () => {
+    const line: RemediationDecisionLine = lineFor(
+      notReady("resource", [
+        {
+          code: "ai_agent_not_connected",
+          title: "No Cloud AI agent is connected",
+          nextStep: "Run the setup command on the account's AI agent page.",
+        },
+      ]),
+      true,
+    );
+
+    expect(line.whatToDo).toBe(
+      "Run the setup command on the account's AI agent page.",
+    );
+    expect(line.whatHappensNext).toBeUndefined();
+  });
+
+  test("a gap shown that is not about the agent connecting says nothing of it", () => {
+    const line: RemediationDecisionLine = lineFor(
+      notReady("cluster", [
+        {
+          code: "remediation_write_access_missing",
+          title: "The AI agent is read-only",
+          nextStep: "Upgrade the chart with aiAgent.remediation.enabled=true.",
+        },
+        {
+          code: "ai_agent_not_connected",
+          title: "The Kubernetes AI agent is not connected",
+          nextStep: "Install it.",
+        },
+      ]),
+    );
+
+    expect(line.whatToDo).toBe(
+      "Upgrade the chart with aiAgent.remediation.enabled=true.",
+    );
+    expect(line.whatHappensNext).toBeUndefined();
+  });
+
+  test("a line without a gap, Fixes off for one, says nothing of an agent", () => {
+    const line: RemediationDecisionLine = lineFor({
+      lane: AutoRemediationDecisionLane.KubernetesCluster,
+      reason: AutoRemediationDecisionReason.ClusterFixesOff,
+      kubernetesClusterId: CLUSTER_ID,
+      kubernetesClusterName: "prod-east",
+    });
+
+    expect(line.whatHappensNext).toBeUndefined();
+  });
+
+  test("the gaps it reads are the ones the rule engine decides again for", () => {
+    expect([...AGENT_NOT_CONNECTED_GAP_CODES].sort()).toEqual([
+      "ai_agent_not_connected",
+      "ai_agent_offline",
+    ]);
   });
 });

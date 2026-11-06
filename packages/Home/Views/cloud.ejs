@@ -521,7 +521,7 @@
                 <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Resource Utilization</span>
               </div>
               <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Metrics, straight from your provider</h3>
-              <p class="mt-4 text-lg text-gray-600">CloudWatch, Azure Monitor and Cloud Monitoring already measure every resource. OneUptime reads those metrics for each one — CPU, memory, requests, errors, latency, queue depth — with no agent and no instrumentation.</p>
+              <p class="mt-4 text-lg text-gray-600">CloudWatch, Azure Monitor and Cloud Monitoring already measure every resource. OneUptime reads those metrics for each one — CPU, memory, requests, errors, latency, queue depth — with no agent and no instrumentation, and says from them how each resource is doing: failing status checks, failed requests, throttling or a disk filling up put it under Needs attention, the most urgent first.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -540,6 +540,12 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
                   The busiest resources, first
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Each resource's health, and what needs attention
                 </li>
               </ul>
               <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
@@ -721,6 +727,108 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </a>
+            </div>
+          </div>
+
+          <!-- Feature 5: Spend -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center" id="cloud-spend">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                  <svg class="h-5 w-5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Spend</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">What it costs, and how to spend less</h3>
+              <p class="mt-4 text-lg text-gray-600">The same read-only connection reads each account's costs from its cloud's own billing — AWS Cost Explorer, Azure Cost Management, Google Cloud's billing export — by day, service, Region and resource, and the ways to spend less from its own recommender: a smaller size, an idle volume, a commitment. Budgets alert as a month's spend passes 80% and 100%, and before, when the month is on course to pass them.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  The month so far, where it is heading, and why
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Rightsizing and idle resources, the largest saving first
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Budgets that alert before the money is spent
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Spend mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Cloud · Costs</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-4">
+                    <div class="grid grid-cols-3 gap-3">
+                      <div>
+                        <div class="text-[10px] font-medium uppercase tracking-wide text-gray-500">This month</div>
+                        <div class="mt-1 text-lg font-semibold text-gray-900">$8,412</div>
+                      </div>
+                      <div>
+                        <div class="text-[10px] font-medium uppercase tracking-wide text-gray-500">On course for</div>
+                        <div class="mt-1 text-lg font-semibold text-gray-900">$17,030</div>
+                      </div>
+                      <div>
+                        <div class="text-[10px] font-medium uppercase tracking-wide text-gray-500">Could save</div>
+                        <div class="mt-1 text-lg font-semibold text-emerald-700">$1,279</div>
+                      </div>
+                    </div>
+                    <div class="space-y-2">
+                      <div>
+                        <div class="flex justify-between text-xs text-gray-700"><span>Amazon EC2</span><span class="font-semibold">$3,610</span></div>
+                        <div class="mt-1 h-1.5 rounded-full bg-gray-100"><div class="h-1.5 w-full rounded-full bg-indigo-500"></div></div>
+                      </div>
+                      <div>
+                        <div class="flex justify-between text-xs text-gray-700"><span>Amazon S3</span><span class="font-semibold">$2,250</span></div>
+                        <div class="mt-1 h-1.5 rounded-full bg-gray-100"><div class="h-1.5 w-2/3 rounded-full bg-indigo-500"></div></div>
+                      </div>
+                      <div>
+                        <div class="flex justify-between text-xs text-gray-700"><span>Amazon RDS</span><span class="font-semibold">$1,830</span></div>
+                        <div class="mt-1 h-1.5 rounded-full bg-gray-100"><div class="h-1.5 w-1/2 rounded-full bg-indigo-500"></div></div>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2">
+                      <div>
+                        <div class="text-xs font-semibold text-gray-900">Rightsize orders-db</div>
+                        <div class="text-[10px] text-gray-500">db.r6g.2xlarge &rarr; db.r6g.xlarge</div>
+                      </div>
+                      <div class="text-xs font-semibold text-emerald-700">$410 a month</div>
+                    </div>
+                    <div class="flex items-center gap-2 text-[10px] text-gray-500">
+                      <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                      Budget "Production": on course to pass
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

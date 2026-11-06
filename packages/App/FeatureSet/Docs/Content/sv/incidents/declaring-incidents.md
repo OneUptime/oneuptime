@@ -45,7 +45,7 @@ Bara det första steget har obligatoriska fält, plus alla anpassade fält som d
 **Från en resurs egen sida.** **Deklarera incident** på fliken **Incidenter** för en monitor, en värd, en tjänst, ett kluster eller de flesta andra resurser öppnar samma formulär med den resursen redan vald på **Berörda resurser**, så att en titel och en allvarlighetsgrad är allt som behövs, och incidenten visas på fliken du började från.
 
 :::details Vilka resurssidor som erbjuder det, och vad de väljer
-**Deklarera incident** på fliken **Incidenter** för en monitor, en värd, en nätverksenhet, ett Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-kluster, en Docker- eller Podman-värd, en vCenter, en lagringsmatris, en IoT-flotta, en databas eller en tjänst öppnar samma guide med den resursen redan vald på **Berörda resurser** (en monitor under **Monitorer**, allt annat under **Andra påverkade resurser**), före allt som en mall lägger till. **Skapa från mall** på den fliken behåller också resursen. Brödsmulorna leder tillbaka via resursens flik, och när incidenten är deklarerad hamnar du på den nya incidenten, som från listan över incidenter.
+**Deklarera incident** på fliken **Incidenter** för en monitor, en värd, en nätverksenhet, ett Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-kluster, en Docker- eller Podman-värd, en vCenter, ett OpenStack-moln, en lagringsmatris, en IoT-flotta, en databas eller en tjänst öppnar samma guide med den resursen redan vald på **Berörda resurser** (en monitor under **Monitorer**, allt annat under **Andra påverkade resurser**), före allt som en mall lägger till. **Skapa från mall** på den fliken behåller också resursen. Brödsmulorna leder tillbaka via resursens flik, och när incidenten är deklarerad hamnar du på den nya incidenten, som från listan över incidenter.
 
 Fliken **Incidenter** för ett lagerobjekt väljer värden, tjänsten eller Kubernetes-klustret som objektet pekar på, och brödsmulorna leder tillbaka via den resursens flik. **Skapa larm** på fliken **Larm** för en resurs fungerar på samma sätt: från en monitor fyller den i larmets **Övervakning**, från allt annat **Andra påverkade resurser**.
 
@@ -284,7 +284,7 @@ Därifrån är incidenten live: den räknas in i märket **Aktiva incidenter** i
 
 ### Deklarerad redan bekräftad eller löst
 
-Att välja ett senare **Inledande tillstånd** — på formuläret, via en malls **Inledande incidenttillstånd** eller med `currentIncidentStateId` från API:t, Terraform eller ett arbetsflöde — registrerar en incident som någon redan hanterar, eller som redan är över. Den behandlas inte som en ny nödsituation:
+Att välja ett senare **Inledande tillstånd** — på formuläret, via en malls **Inledande incidenttillstånd**, med `currentIncidentStateId` från API:t, Terraform eller ett arbetsflöde, eller genom att be [Fråga AI](/docs/ai/ask-ai) om en incident som redan är bekräftad eller löst — registrerar en incident som någon redan hanterar, eller som redan är över. Den behandlas inte som en ny nödsituation:
 
 ```mermaid title="Vad en ny incident sätter igång, efter tillståndet den börjar i"
 flowchart TB

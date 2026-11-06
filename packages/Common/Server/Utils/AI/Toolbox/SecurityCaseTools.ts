@@ -61,6 +61,64 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import {
+  AI_ACTION_CARD_FACTS,
+  AI_ACTION_CARD_KINDS,
+  AI_ACTION_CARD_LINES,
+  AI_ACTION_TITLES,
+  aiActionCardFact,
+  AIActionCardWords,
+  AIActionSentence,
+  aiActionSentence,
+  aiActionTerm,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  getRecordTitleName,
+  prepareRecordNamesInTitle,
+  RecordNames,
+} from "./RecordNamesForPerson";
+
+/*
+ * The case writes' card titles: the case by its number and the playbook
+ * by its name once read, else by their IDs.
+ */
+function buildSecurityCaseNoteTitle(
+  args: JSONObject,
+  names: RecordNames,
+): AIActionSentence {
+  const securityCase: string | undefined = getRecordTitleName(
+    args,
+    names,
+    "securityCaseId",
+  );
+
+  return securityCase
+    ? aiActionSentence(AI_ACTION_TITLES.addSecurityCaseNote, { securityCase })
+    : aiActionSentence(AI_ACTION_TITLES.addSecurityCaseNoteUnnamed);
+}
+
+function buildRunSecurityPlaybookTitle(
+  args: JSONObject,
+  names: RecordNames,
+): AIActionSentence {
+  const securityCase: string | undefined = getRecordTitleName(
+    args,
+    names,
+    "securityCaseId",
+  );
+  const playbook: string | undefined = getRecordTitleName(
+    args,
+    names,
+    "securityPlaybookId",
+  );
+
+  return securityCase && playbook
+    ? aiActionSentence(AI_ACTION_TITLES.runSecurityPlaybook, {
+        playbook,
+        securityCase,
+      })
+    : aiActionSentence(AI_ACTION_TITLES.runSecurityPlaybookUnnamed);
+}
 
 /*
  * THE SECURITY CASE TOOLS: how OneUptime AI reads a security case and the
@@ -773,6 +831,44 @@ export const SecurityEntityActivityTool: ObservabilityTool = {
  */
 
 /*
+ * The card starting a playbook leaves (WidgetBuilder.actionCard): the
+ * playbook started on the case and - when some of its steps wait for a
+ * person to approve them - that they wait on the case, in the reader's
+ * language. The steps themselves are the answer's to list: a count of
+ * them under its line read "Steps: 4 steps" and said nothing to act on.
+ */
+export function describePlaybookCard(data: {
+  playbookName: string;
+  steps: unknown;
+}): AIActionCardWords {
+  let parsed: Array<SecurityPlaybookStep> = [];
+
+  try {
+    parsed = parseSecurityPlaybookSteps(data.steps);
+  } catch {
+    parsed = [];
+  }
+
+  const waitsForApproval: boolean = parsed.some(
+    (step: SecurityPlaybookStep): boolean => {
+      return doesStepNeedApproval(step);
+    },
+  );
+
+  return {
+    kind: aiActionTerm(AI_ACTION_CARD_KINDS.securityCase),
+    line: [
+      aiActionSentence(AI_ACTION_CARD_LINES.playbookStarted, {
+        playbook: JSON.stringify(data.playbookName),
+      }),
+      ...(waitsForApproval
+        ? [aiActionSentence(AI_ACTION_CARD_LINES.playbookStepsWaitForApproval)]
+        : []),
+    ],
+  };
+}
+
+/*
  * One playbook's steps in a line: "Check threat intel, then Contain
  * CrowdStrike host (only if step 1 found a known-bad entity; needs
  * approval)". Steps that cannot be read say so, rather than keep every
@@ -919,9 +1015,14 @@ export const AddSecurityCaseNoteTool: ObservabilityTool = {
     });
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Add a note to security case ${ToolArgs.getString(args, "securityCaseId") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildSecurityCaseNoteTitle(args, {});
   },
+  // The case by its number, as the person knows it.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["securityCaseId"],
+    buildTitle: buildSecurityCaseNoteTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -993,16 +1094,19 @@ export const AddSecurityCaseNoteTool: ObservabilityTool = {
       citationTarget: target,
       redactionCount: 0,
       isTruncated: false,
-      widget: WidgetBuilder.resourceCard({
+      widget: WidgetBuilder.actionCard({
         title: "Note added",
-        resourceType: "Security Case",
         heading: caseLabel(securityCase),
-        fields: [
-          {
-            label: "Note",
-            value: note.length > 200 ? `${note.substring(0, 200)}…` : note,
-          },
-        ],
+        words: {
+          kind: aiActionTerm(AI_ACTION_CARD_KINDS.securityCase),
+          line: [aiActionSentence(AI_ACTION_CARD_LINES.noteAdded)],
+          facts: [
+            aiActionCardFact(
+              AI_ACTION_CARD_FACTS.note,
+              note.length > 200 ? `${note.substring(0, 200)}…` : note,
+            ),
+          ],
+        },
         link: target,
       }),
     };
@@ -1041,9 +1145,14 @@ export const RunSecurityPlaybookTool: ObservabilityTool = {
     );
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Run playbook ${ToolArgs.getString(args, "securityPlaybookId") || ""} on security case ${ToolArgs.getString(args, "securityCaseId") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildRunSecurityPlaybookTitle(args, {});
   },
+  // The playbook by its name and the case by its number.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["securityCaseId", "securityPlaybookId"],
+    buildTitle: buildRunSecurityPlaybookTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -1125,12 +1234,17 @@ export const RunSecurityPlaybookTool: ObservabilityTool = {
       citationTarget: target,
       redactionCount: 0,
       isTruncated: false,
-      widget: WidgetBuilder.resourceCard({
+      /*
+       * The case, the playbook started on it, how many steps it runs, and -
+       * when some wait for a person - that they wait on the case.
+       */
+      widget: WidgetBuilder.actionCard({
         title: "Playbook started",
-        resourceType: "Security Case",
         heading: caseLabel(securityCase),
-        subheading: playbook.name || "",
-        fields: [{ label: "Steps", value: steps || "-" }],
+        words: describePlaybookCard({
+          playbookName: playbook.name || "",
+          steps: playbook.steps,
+        }),
         link: target,
       }),
     };

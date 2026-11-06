@@ -16,6 +16,9 @@ import CloudAccountFeed, {
 import CloudResourceFeed, {
   CloudResourceFeedEventType,
 } from "../../../../Models/DatabaseModels/CloudResourceFeed";
+import DataAssetFeed, {
+  DataAssetFeedEventType,
+} from "../../../../Models/DatabaseModels/DataAssetFeed";
 import DataSecurityIssueFeed, {
   DataSecurityIssueFeedEventType,
 } from "../../../../Models/DatabaseModels/DataSecurityIssueFeed";
@@ -52,6 +55,9 @@ import MonitorFeed, {
 import OnCallDutyPolicyFeed, {
   OnCallDutyPolicyFeedEventType,
 } from "../../../../Models/DatabaseModels/OnCallDutyPolicyFeed";
+import OpenStackCloudFeed, {
+  OpenStackCloudFeedEventType,
+} from "../../../../Models/DatabaseModels/OpenStackCloudFeed";
 import PodmanHostFeed, {
   PodmanHostFeedEventType,
 } from "../../../../Models/DatabaseModels/PodmanHostFeed";
@@ -210,6 +216,14 @@ const FEED_MODELS: Array<FeedModelEntry> = [
     eventTypeColumn: "cloudResourceFeedEventType",
   },
   {
+    file: "DataAssetFeed",
+    enumName: "DataAssetFeedEventType",
+    modelType: DataAssetFeed,
+    eventTypes: Object.values(DataAssetFeedEventType),
+    resourceIdColumn: "dataAssetId",
+    eventTypeColumn: "dataAssetFeedEventType",
+  },
+  {
     file: "DataSecurityIssueFeed",
     enumName: "DataSecurityIssueFeedEventType",
     modelType: DataSecurityIssueFeed,
@@ -296,6 +310,14 @@ const FEED_MODELS: Array<FeedModelEntry> = [
     eventTypes: Object.values(OnCallDutyPolicyFeedEventType),
     resourceIdColumn: "onCallDutyPolicyId",
     eventTypeColumn: "onCallDutyPolicyFeedEventType",
+  },
+  {
+    file: "OpenStackCloudFeed",
+    enumName: "OpenStackCloudFeedEventType",
+    modelType: OpenStackCloudFeed,
+    eventTypes: Object.values(OpenStackCloudFeedEventType),
+    resourceIdColumn: "openStackCloudId",
+    eventTypeColumn: "openStackCloudFeedEventType",
   },
   {
     file: "PodmanHostFeed",

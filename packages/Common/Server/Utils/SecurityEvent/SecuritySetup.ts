@@ -8,6 +8,7 @@ import {
   SecurityTelemetrySourceKind,
 } from "../../../Types/SecurityEvent/SecurityTelemetrySource";
 import SecurityTelemetrySourceService from "../../Services/SecurityTelemetrySourceService";
+import CloudConnectionService from "../../Services/CloudConnectionService";
 import EnterpriseEdition from "../../Enterprise/EnterpriseEdition";
 import SecurityPlaybook from "../../../Models/DatabaseModels/SecurityPlaybook";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
@@ -536,9 +537,11 @@ export default class SecuritySetup {
   /*
    * Your OneUptime data: each kind of telemetry beyond logs that the project
    * does not read yet - traces, network flows, the audit log, session
-   * replays - added, or turned back on. The audit log is left alone where
-   * nothing writes it (OneUptime Community), so no switch says it watches
-   * what is not there. Each kind on its own, as the rules are.
+   * replays, its cloud accounts' audit logs - added, or turned back on. The
+   * audit log is left alone where nothing writes it (OneUptime Community),
+   * and cloud audit logs where no cloud account is connected under Cloud,
+   * so no switch says it watches what is not there. Each kind on its own,
+   * as the rules are.
    */
   private static async turnOnTelemetrySources(data: {
     projectId: ObjectID;
@@ -572,6 +575,13 @@ export default class SecuritySetup {
       if (
         kind === SecurityTelemetrySourceKind.AuditLog &&
         !EnterpriseEdition.isLoaded()
+      ) {
+        continue;
+      }
+
+      if (
+        kind === SecurityTelemetrySourceKind.CloudAudit &&
+        !(await this.hasCloudConnection(projectId))
       ) {
         continue;
       }
@@ -611,6 +621,33 @@ export default class SecuritySetup {
           error,
         });
       }
+    }
+  }
+
+  /*
+   * Whether a cloud account is connected under Cloud: what cloud audit logs
+   * read. Asked as OneUptime, whoever turns the recommended sources on - it
+   * only decides whether there is anything to read. False when it cannot
+   * be told.
+   */
+  private static async hasCloudConnection(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    try {
+      return (
+        (
+          await CloudConnectionService.countBy({
+            query: { projectId },
+            props: { isRoot: true },
+          })
+        ).toNumber() > 0
+      );
+    } catch (error) {
+      logger.error(
+        `SecuritySetup: could not tell whether project ${projectId.toString()} has a cloud account connected:`,
+      );
+      logger.error(error);
+      return false;
     }
   }
 

@@ -4,14 +4,14 @@ Eine Warnung macht Ihr Team auf ein Problem aufmerksam, das es sich ansehen soll
 
 :::cards
 - [Warnungen und Vorfälle](#warnungen-und-vorfälle): Was ein Problem sein sollte, und wie beide zusammenhängen.
-- [Woher Warnungen kommen](#woher-warnungen-kommen): Monitore, SLOs, Chat, die API oder von Hand.
+- [Woher Warnungen kommen](#woher-warnungen-kommen): Monitore, SLOs, Chat, KI fragen, die API oder von Hand.
 - [Eine Warnung von Hand erstellen](#eine-warnung-von-hand-erstellen): Zwei Schritte im Dashboard.
 - [Auf eine Warnung reagieren](#auf-eine-warnung-reagieren): Bestätigen, beheben oder einen Vorfall melden.
 :::
 
 ## So funktioniert es
 
-Die meisten Warnungen löst ein Monitor aus, dessen Kriterien zutreffen. Andere kommen von einem SLO, das sein Fehlerbudget verbraucht, von einer Sicherheitsregel, von einer Alarmierung aus Slack oder Microsoft Teams oder von einer Person. Wie sie auch eintrifft: Eine Warnung ist immer derselbe Datensatz, und dieselben Regeln laufen auf ihr.
+Die meisten Warnungen löst ein Monitor aus, dessen Kriterien zutreffen. Andere kommen von einem SLO, das sein Fehlerbudget verbraucht, von einer Sicherheitsregel, von einer Alarmierung aus Slack oder Microsoft Teams, von KI fragen oder von einer Person. Wie sie auch eintrifft: Eine Warnung ist immer derselbe Datensatz, und dieselben Regeln laufen auf ihr.
 
 ```mermaid title="Von einem Signal zu den Menschen, die es bearbeiten"
 flowchart TB
@@ -44,6 +44,7 @@ Lösen Sie eine Warnung aus, wenn Ihr Team nachsehen sollte, bevor jemand außer
 
 - **Die Kriterien eines Monitors.** Schalten Sie unter den **Aktionen** eines Kriteriums **Wenn Filter übereinstimmen, eine Warnung erstellen.** ein und füllen Sie die Warnung aus, die es erstellt: **Warnungstitel** und **Schweregrad**, dann, jeweils eingeklappt, **Beschreibung**, **Eigentümerschaft & Beschriftungen**, **Bereitschaft** und **Weitere Felder** mit **Warnung automatisch beheben**, **Private Warnung** und **Behebungs-Notizen**. Ein Kriterium hält jeweils eine offene Warnung, bei einem Monitor, der nach einem Feld gruppiert, eine pro Reihe, und **Warnung automatisch beheben** behebt sie, sobald das Kriterium nicht mehr zutrifft. Siehe [Einen Monitor erstellen](/docs/monitor/create-monitor) und [Vorfall- & Warnmeldungsvorlagen](/docs/monitor/incident-alert-templating).
 - **Von Hand.** Klicken Sie in der Warnungsliste auf **Warnung erstellen**, oder auf dem Tab **Warnungen** eines Monitors, eines Hosts, eines Netzwerkgeräts oder einer anderen Ressource, der diese Ressource für Sie auswählt. Siehe [Eine Warnung von Hand erstellen](#eine-warnung-von-hand-erstellen).
+- **KI fragen.** Bitten Sie in [KI fragen](/docs/ai/ask-ai) um eine Warnung: Es erstellt sie in Ihrem Namen, verknüpft mit der Ressource, auf deren Seite Sie gefragt haben, etwa der eines Hosts. Um ein Problem festzuhalten, um das sich schon jemand kümmert oder das schon vorbei ist, bitten Sie um eine bereits bestätigte oder behobene Warnung: Sie beginnt in diesem Status und alarmiert niemanden. Siehe [Bereits bestätigt oder behoben erstellt](#bereits-bestätigt-oder-behoben-erstellt).
 - **Die Burn-Rate eines SLO.** Eine Burn-Rate-Regel kann eine Warnung erstellen, wenn ein SLO sein Fehlerbudget zu schnell verbraucht. Siehe [Burn-Rate-Warnungen und -Vorfälle](/docs/slo/burn-rate-alerts).
 - **Netzwerkstandorte und Sicherheitsereignisse.** Ein Netzwerkstandort, der bei schlechtem Zustand warnen soll, öffnet eine Warnung, sobald seine Zusammenfassung nicht mehr betriebsbereit ist, und auch Ihre Erkennungsregeln für Sicherheitsereignisse öffnen Warnungen. Siehe [Netzwerkstandorte (Integritätszusammenfassung & Verfügbarkeit)](/docs/monitor/network-sites) und [Sicherheitsereignisse (SIEM)](/docs/telemetry/security-events).
 - **Eine Alarmierung.** `/oneuptime page` in Slack oder Microsoft Teams, überall außer im eigenen Kanal eines Vorfalls oder einer Warnung, öffnet eine Warnung mit Ihrer Nachricht als Titel und alarmiert die Personen, die Sie nennen. Die Alarmierungsblöcke eines Workflows tun dasselbe mit dem Titel und der Nachricht, die Sie ihnen geben. Siehe [Jemanden aus Slack alarmieren](/docs/workspace-connections/slack#jemanden-aus-slack-alarmieren) und [Alarmierung](/docs/workflows/components#paging).
@@ -58,8 +59,8 @@ Lösen Sie eine Warnung aus, wenn Ihr Team nachsehen sollte, bevor jemand außer
 | **Warnungen** | **Alle Warnungen** und **Aktive Warnungen**, deren rotes Abzeichen die noch nicht behobenen Warnungen zählt.                |
 | **Episoden** | **Alle Episoden** und **Aktive Episoden**: zusammengehörige Warnungen, gebündelt zu einem Problem, an dem Sie arbeiten. |
 | **KI**        | **Einblicke**, **Protokolle** und **Einstellungen**: was OneUptime AI aus Ihren Warnungen gelernt hat, alles, was es getan hat, und was es darf. |
-| **Arbeitsbereich** | **Slack** und **Microsoft Teams**, je nachdem, was das Projekt verbunden hat, oder **Slack oder Teams verbinden**, wenn es keines hat. |
-| **Regeln**    | **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **Erinnerungsregeln**. |
+| **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**, je nachdem, was das Projekt verbunden hat, oder **Arbeitsbereich verbinden**, wenn es keines hat. |
+| **Regeln**    | **Gruppierungsregeln**, **Bereitschaftsregeln**, **Vorfallsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **Erinnerungsregeln**. |
 | **Einstellungen** | **Warnungsstatus**, **Warnungsschweregrad**, **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen**, **Episodenzugehörigkeit**, **Nummerierung**. |
 
 **Warnungen** und **Episoden** sind geöffnet; **KI**, **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind zunächst eingeklappt, und ein Bereich öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. Die Konfiguration von Warnungen liegt hier, nicht in den **Projekteinstellungen**.
@@ -94,12 +95,12 @@ Lassen Sie **Anfangsstatus** leer, beginnt die Warnung dort, wo jede neue Warnun
 
 Sobald eine Warnung erstellt wird, arbeitet OneUptime diese Schritte in dieser Reihenfolge ab:
 
-1. **Sie bekommt eine Nummer und einen Status.** Die Warnungsnummer stammt aus einem Zähler pro Projekt und wird mit Ihrem Präfix angezeigt (`ALT-42`). Die Warnung beginnt in Ihrem Erstellungsstatus, sofern das Formular, die API oder ein Workflow keinen anderen gewählt hat.
+1. **Sie bekommt eine Nummer und einen Status.** Die Warnungsnummer stammt aus einem Zähler pro Projekt und wird mit Ihrem Präfix angezeigt (`ALT-42`). Die Warnung beginnt in Ihrem Erstellungsstatus, sofern das Formular, die API, ein Workflow oder KI fragen keinen anderen gewählt hat.
 2. **Datenschutzregeln laufen zuerst**, damit alles danach weiß, ob die Warnung privat ist.
 3. **Der Feed und Ihre Chat-Werkzeuge erfahren davon.** Ein Eintrag **Warnung erstellt** wird in den **Warnungs-Feed** geschrieben, und die Kanäle, die Ihre Slack- und Microsoft-Teams-Regeln nennen, werden informiert; eine Regel kann einen Kanal für die Warnung anlegen.
 4. **Eigentümer und Beschriftungen kommen hinzu**: die, die die Kriterien des Monitors oder die Anfrage nennen, dann die passender Eigentümer- und Beschriftungsregeln.
 5. **Bereitschaftsregeln fügen ihre Richtlinien hinzu**, dann starten Runbook-Regeln die passenden Runbooks.
-6. **Bereitschaftsrichtlinien laufen.** Jede Richtlinie der Warnung alarmiert ihre Personen gleichzeitig; scheitert eine, hält das die anderen nicht auf.
+6. **Bereitschaftsrichtlinien laufen.** Jede Richtlinie der Warnung alarmiert ihre Personen gleichzeitig; scheitert eine, hält das die anderen nicht auf. Danach meldet die erste passende Vorfallsregel einen Vorfall aus der Warnung, sofort oder sobald ihre Wartezeit um ist.
 7. **Gruppierungsregeln fügen sie einer Episode hinzu**, wenn eine zutrifft. Siehe [Warnungsepisoden & Gruppierungsregeln](/docs/alerts/episodes).
 8. **Erinnerungen werden geplant**, wenn eine Erinnerungsregel zutrifft, und **OneUptime AI** untersucht die Warnung, wenn **Neue Warnungen untersuchen** unter **Warnungen → KI → Einstellungen** eingeschaltet ist, und behebt sie, wenn **Neue Warnungen automatisch beheben** eingeschaltet ist. Siehe [AI SRE](/docs/ai/ai-sre).
 
@@ -110,7 +111,7 @@ Ein Hintergrundjob informiert die Eigentümer der Warnung innerhalb einer Minute
 Eine Warnung, die in einem späteren Status beginnt, hält ein Problem fest, um das sich schon jemand kümmert, und wird deshalb nicht als neuer Notfall behandelt:
 
 - **In Ihrem bestätigten Status oder danach** läuft keine Bereitschaftsrichtlinie. Die Warnung behält ihre Richtlinien, und ihr Feed sagt in einer Zeile, warum niemand alarmiert wurde. Sie kann einer offenen Episode beitreten, öffnet aber nie eine, denn die würde über die Richtlinien der Episode alarmieren.
-- **In Ihrem behobenen Status oder danach** ist die Warnung vorbei: Sie wird keiner Episode zugeordnet, kein Runbook und keine automatische Behebung greift, OneUptime AI untersucht sie nicht, und es wird kein Slack- oder Microsoft-Teams-Kanal für sie angelegt.
+- **In Ihrem behobenen Status oder danach** ist die Warnung vorbei: Sie wird keiner Episode zugeordnet, kein Runbook, keine automatische Behebung und keine Vorfallsregel greift, OneUptime AI untersucht sie nicht, und es wird kein Slack- oder Microsoft-Teams-Kanal für sie angelegt.
 
 Ihre Regeln, ihre Eigentümer, ihr Feed und ihr erster Status passieren in beiden Fällen trotzdem. Für Vorfälle gilt dieselbe Regel: siehe [Bereits bestätigt oder behoben gemeldet](/docs/incidents/declaring-incidents#bereits-bestätigt-oder-behoben-gemeldet).
 

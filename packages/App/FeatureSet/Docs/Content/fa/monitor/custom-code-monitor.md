@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### یک مانیتور تازه آغاز کنید
 
-به **مانیتورها** بروید و روی **ساخت مانیتور** کلیک کنید. در **نوع مانیتور** روی **انواع دیگر مانیتور** کلیک کنید و **Custom JavaScript Code** را زیر **Synthetic Monitoring** برگزینید، یا در جعبه جست‌وجو `script` را تایپ کنید. یک **نام** وارد کنید و سپس روی **بعدی** کلیک کنید.
+به **مانیتورها** بروید و روی **ساخت مانیتور** کلیک کنید. در **نوع مانیتور** روی **انواع دیگر مانیتور** کلیک کنید و **Custom JavaScript Code** را زیر **پایش مصنوعی** برگزینید، یا در جعبه جست‌وجو `script` را تایپ کنید. یک **نام** وارد کنید و سپس روی **بعدی** کلیک کنید.
 
 ### اسکریپت را اضافه کنید
 
@@ -167,7 +167,7 @@ return {
 
 - هویت مانیتور: `monitorId`، `projectId`، `monitorName`، `probeName`، `probeId`، `isCustomMetric`.
 - هر چیزی در فضای‌نام‌های `oneuptime.` یا `resource.` — این‌ها شناسه‌هایی را دارند که OneUptime هنگام دریافت داده می‌زند.
-- ویژگی‌های هویت منبع: `service.name`، `host.name`، `k8s.cluster.name`، `iot.fleet.name`، `proxmox.cluster.name`، `vmware.vcenter.name`، `ceph.cluster.name`، `storage.array.name` و `docker.swarm.cluster.name`.
+- ویژگی‌های هویت منبع: `service.name`، `host.name`، `k8s.cluster.name`، `iot.fleet.name`، `proxmox.cluster.name`، `openstack.cloud.name`، `vmware.vcenter.name`، `ceph.cluster.name`، `storage.array.name` و `docker.swarm.cluster.name`.
 
 این نام‌ها فقط برچسب نیستند — OneUptime آن‌ها را به‌عنوان ادعایی درباره اینکه یک نقطه داده به کدام منبع تعلق دارد بازمی‌خواند. متریکی با برچسب `service.name: payments-api` در زبانه متریک‌های آن سرویس نشان داده می‌شود، و اگر بعدها مانیتور متریکی بسازید که بر پایه `service.name` گروه‌بندی شده باشد، هشدارهایش به آن سرویس پیوند می‌خورند، مالکان آن سرویس را فرا می‌خوانند، و در بازه نگهداری آن سرویس خاموش می‌مانند. برای پیوند دادن یک مانیتور به یک سرویس یا میزبان، به‌جای این کار از برچسب‌های خود مانیتور استفاده کنید.
 

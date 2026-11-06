@@ -37,6 +37,8 @@ const ACCOUNT_FORM_PAGES: ReadonlyArray<string> = [
   "Pages/Accounts/Login.tsx",
   "Pages/Accounts/ForgotPassword.tsx",
   "Pages/Accounts/ResetPassword.tsx",
+  // Asking for a private user's sign-in link.
+  "Pages/Accounts/MagicLink.tsx",
 ];
 
 /**

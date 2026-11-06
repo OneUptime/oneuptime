@@ -38,6 +38,62 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import {
+  AI_ACTION_CARD_KINDS,
+  AI_ACTION_CARD_LINES,
+  AI_ACTION_TITLES,
+  AIActionSentence,
+  aiActionSentence,
+  aiActionTerm,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  getAlertNumberText,
+  getIncidentNumberText,
+  getRecordTitleName,
+  prepareRecordNamesInTitle,
+  RecordNames,
+} from "./RecordNamesForPerson";
+
+// A card's heading: the record's number, then its title when it has one.
+function describeCardHeading(
+  number: string,
+  title: string | undefined,
+): string {
+  const shownTitle: string = (title || "").trim();
+
+  return shownTitle ? `${number} · ${shownTitle}` : number;
+}
+
+/*
+ * start_investigation's card title: its incident or alert by its number
+ * once read, else by its ID.
+ */
+function buildStartInvestigationTitle(
+  args: JSONObject,
+  names: RecordNames,
+): AIActionSentence {
+  const incident: string | undefined = getRecordTitleName(
+    args,
+    names,
+    "incidentId",
+  );
+
+  if (incident) {
+    return aiActionSentence(AI_ACTION_TITLES.startIncidentInvestigation, {
+      incident,
+    });
+  }
+
+  const alert: string | undefined = getRecordTitleName(args, names, "alertId");
+
+  if (alert) {
+    return aiActionSentence(AI_ACTION_TITLES.startAlertInvestigation, {
+      alert,
+    });
+  }
+
+  return aiActionSentence(AI_ACTION_TITLES.startInvestigation);
+}
 
 /*
  * AI meta tools — make the chat aware of OneUptime's OTHER AI lanes.
@@ -129,6 +185,13 @@ interface AIInvestigationSubject {
   alertId: ObjectID | undefined;
   // "Incident #12" / "Alert #7" — falls back to the raw id when no number exists.
   label: string;
+  /*
+   * The card it leaves: the kind of record (AI_ACTION_CARD_KINDS) and the
+   * record by the number and title the person knows it by ("INC-12 ·
+   * Checkout down").
+   */
+  cardKind: string;
+  cardHeading: string;
   citationType: AIChatCitationTargetType;
   citationParams: { [key: string]: string };
   // First affected monitor — the dedupe key the automatic investigation lanes record.
@@ -189,6 +252,8 @@ const fetchInvestigationSubject: (
       select: {
         _id: true,
         incidentNumber: true,
+        incidentNumberWithPrefix: true,
+        title: true,
         monitors: {
           _id: true,
         },
@@ -211,6 +276,11 @@ const fetchInvestigationSubject: (
       label: incident.incidentNumber
         ? `Incident #${incident.incidentNumber}`
         : `Incident ${incidentId.toString()}`,
+      cardKind: AI_ACTION_CARD_KINDS.incident,
+      cardHeading: describeCardHeading(
+        getIncidentNumberText(incident),
+        incident.title,
+      ),
       citationType: AIChatCitationTargetType.IncidentView,
       citationParams: { incidentId: incidentId.toString() },
       monitorId: firstMonitorIdString
@@ -225,6 +295,8 @@ const fetchInvestigationSubject: (
       select: {
         _id: true,
         alertNumber: true,
+        alertNumberWithPrefix: true,
+        title: true,
         monitorId: true,
       },
       props: ctx.props,
@@ -240,6 +312,8 @@ const fetchInvestigationSubject: (
       label: alert.alertNumber
         ? `Alert #${alert.alertNumber}`
         : `Alert ${alertId.toString()}`,
+      cardKind: AI_ACTION_CARD_KINDS.alert,
+      cardHeading: describeCardHeading(getAlertNumberText(alert), alert.title),
       citationType: AIChatCitationTargetType.AlertView,
       citationParams: { alertId: alertId.toString() },
       monitorId: alert.monitorId,
@@ -756,22 +830,14 @@ export const StartInvestigationTool: ObservabilityTool = {
     return resolveStartInvestigationPermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    const incidentId: string | undefined = ToolArgs.getString(
-      args,
-      "incidentId",
-    );
-    if (incidentId) {
-      return `Start AI investigation for incident ${incidentId}`;
-    }
-
-    const alertId: string | undefined = ToolArgs.getString(args, "alertId");
-    if (alertId) {
-      return `Start AI investigation for alert ${alertId}`;
-    }
-
-    return "Start AI investigation";
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildStartInvestigationTitle(args, {});
   },
+  // The incident or alert by its number, as the person knows it.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["incidentId", "alertId"],
+    buildTitle: buildStartInvestigationTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -959,15 +1025,18 @@ export const StartInvestigationTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: false,
-      widget: WidgetBuilder.resourceCard({
+      /*
+       * The incident or alert it investigates, by its number and title,
+       * and that an investigation is queued for it - never the run's ID,
+       * which tells nobody anything.
+       */
+      widget: WidgetBuilder.actionCard({
         title: "AI investigation queued",
-        resourceType: "AIRun",
-        heading: subject.label,
-        subheading: "Investigation queued",
-        fields: [
-          { label: "Run", value: enqueuedRunId.toString() },
-          { label: "Subject", value: subject.label },
-        ],
+        heading: subject.cardHeading,
+        words: {
+          kind: aiActionTerm(subject.cardKind),
+          line: [aiActionSentence(AI_ACTION_CARD_LINES.investigationQueued)],
+        },
         link: {
           type: subject.citationType,
           params: subject.citationParams,

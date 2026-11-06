@@ -114,7 +114,7 @@ A conectividade dos dispositivos é um requisito à parte. Dispositivos iOS prec
 
 :::steps
 1. Verifique o DNS e o HTTPS a partir do contêiner ou pod que envia as notificações até o destino do seu modo de entrega: o relay, o Expo ou o serviço de push de um navegador.
-2. Envie um teste em **Configurações do usuário > Métodos de notificação > Push Notifications** com **Notificação de teste**, e confirme que ele chega a um dispositivo registrado. Para o Web Push, teste cada navegador separadamente.
+2. Envie um teste em **Configurações do usuário > Métodos de notificação > Notificações push** com **Notificação de teste**, e confirme que ele chega a um dispositivo registrado. Para o Web Push, teste cada navegador separadamente.
 3. Verifique os erros do relay, do Expo ou do Web Push nos logs do OneUptime; um envio bem-sucedido à API, sozinho, não confirma a entrega no dispositivo.
 :::
 
@@ -122,12 +122,12 @@ Para os pushes móveis, o OneUptime também lê o recibo de entrega do Expo cerc
 
 ## Desativando o push para o servidor inteiro
 
-Se nada pode sair da sua rede pelo Expo, pelo relay de push ou pelo serviço de push de um navegador, um administrador master pode desativar o push em **Admin Dashboard > Configurações > Push Notifications**: desative **Send push notifications** e confirme.
+Se nada pode sair da sua rede pelo Expo, pelo relay de push ou pelo serviço de push de um navegador, um administrador master pode desativar o push em **Admin Dashboard > Configurações > Notificações push**: desative **Send push notifications** e confirme.
 
 Enquanto o push estiver desativado:
 
 - Nada é enviado por push a celulares ou navegadores, em nenhum projeto.
-- Nenhum dispositivo pode ser registrado. A aba **Push Notifications** de cada pessoa, em **Configurações do usuário > Métodos de notificação**, diz que o push está desativado, e as regras de plantão não oferecem dispositivos de push.
+- Nenhum dispositivo pode ser registrado. A aba **Notificações push** de cada pessoa, em **Configurações do usuário > Métodos de notificação**, diz que o push está desativado, e as regras de plantão não oferecem dispositivos de push.
 - Um alerta por uma regra de push não é enviado. O registro de plantão da pessoa diz `Push notification not sent: Push notifications are turned off on this server.`
 - A prontidão do plantão conta os dispositivos de push como inutilizáveis, e a alternativa os ignora. Quem tem um dispositivo de push como único método verificado aparece como inacessível.
 
@@ -191,7 +191,7 @@ Dois mecanismos atuam, e cobrem casos diferentes:
 O Android congela as configurações de um canal quando ele é criado pela primeira vez, então elas não podem ser alteradas por uma atualização do app – só lançando um novo id de canal.
 :::
 
-Para verificar se funciona, envie uma notificação de teste ao dispositivo em **Configurações do usuário > Métodos de notificação > Push Notifications**. Quando o dispositivo tem os alertas críticos ativados, o teste também é enviado como alerta crítico – então silencie o celular antes, e você vai ouvir se um alerta real chegaria até você. A mesma lista mostra se cada dispositivo tem os alertas críticos ativados e, para um celular que não tem, como ativá-los.
+Para verificar se funciona, envie uma notificação de teste ao dispositivo em **Configurações do usuário > Métodos de notificação > Notificações push**. Quando o dispositivo tem os alertas críticos ativados, o teste também é enviado como alerta crítico – então silencie o celular antes, e você vai ouvir se um alerta real chegaria até você. A mesma lista mostra se cada dispositivo tem os alertas críticos ativados e, para um celular que não tem, como ativá-los.
 
 ### Escolhendo o som do alarme
 
@@ -214,7 +214,7 @@ Uma regra de push pode enviar seu alerta de novo até alguém confirmá-lo. Em *
 - Verifique se o dispositivo está registrado na tabela `UserPush` do seu banco de dados
 - Procure erros da API do Expo Push nos logs do servidor do OneUptime
 - Confirme que o dispositivo tem conexão ativa com a internet e as permissões de notificação ativadas
-- Confira **Configurações do usuário > Métodos de notificação > Push Notifications**: um dispositivo marcado como **Não está recebendo notificações** deixou de recebê-las e precisa ser registrado de novo (veja abaixo)
+- Confira **Configurações do usuário > Métodos de notificação > Notificações push**: um dispositivo marcado como **Não está recebendo notificações** deixou de recebê-las e precisa ser registrado de novo (veja abaixo)
 
 ### Não há interruptor de Critical Alerts nos ajustes do iOS
 
@@ -244,7 +244,7 @@ Quando o Expo recusa um push de imediato, o log de push mostra o motivo na hora.
 
 ### Erros "DeviceNotRegistered" nos logs
 
-O Expo informa `DeviceNotRegistered` quando o app móvel foi removido do dispositivo ou o token de push do dispositivo não é mais válido. Normalmente isso aparece no recibo de entrega de um push, que o OneUptime lê cerca de 15 minutos depois do push, e às vezes o Expo recusa o push de imediato. Em qualquer caso, o OneUptime para de enviar para esse dispositivo. Ele é marcado como não recebendo notificações em vez de ser excluído, então as regras de notificação dele continuam, e o log de push e a linha do tempo do plantão do alerta que não chegou dizem o porquê. **Configurações do usuário > Métodos de notificação > Push Notifications** o mostra como **Não está recebendo notificações**. Os outros dispositivos e métodos de notificação do dono dele continuam sendo alertados.
+O Expo informa `DeviceNotRegistered` quando o app móvel foi removido do dispositivo ou o token de push do dispositivo não é mais válido. Normalmente isso aparece no recibo de entrega de um push, que o OneUptime lê cerca de 15 minutos depois do push, e às vezes o Expo recusa o push de imediato. Em qualquer caso, o OneUptime para de enviar para esse dispositivo. Ele é marcado como não recebendo notificações em vez de ser excluído, então as regras de notificação dele continuam, e o log de push e a linha do tempo do plantão do alerta que não chegou dizem o porquê. **Configurações do usuário > Métodos de notificação > Notificações push** o mostra como **Não está recebendo notificações**. Os outros dispositivos e métodos de notificação do dono dele continuam sendo alertados.
 
 Para recuperar o dispositivo, abra o app móvel nele com a sessão iniciada. O app se registra de novo, o que renova o token de push dele no Expo, e o dispositivo volta a receber notificações com as suas regras. Se o app foi removido, instale-o de novo e entre. Um recibo de um push enviado antes de o app se registrar de novo não marca o dispositivo. Quando um app móvel atualizado é configurado num celular novo a partir de um backup do antigo, ele informa ao OneUptime o token de push que tinha antes; se o dispositivo do celular antigo não recebe mais notificações, o celular novo o assume com as suas regras.
 

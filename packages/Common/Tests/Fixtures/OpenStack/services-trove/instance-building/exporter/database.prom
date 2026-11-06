@@ -1,0 +1,15 @@
+# HELP openstack_trove_instance_status instance_status
+# TYPE openstack_trove_instance_status gauge
+openstack_trove_instance_status{datastore_type="mysql",datastore_version="8.4",health_status="",id="1bcb3905-8800-473c-83c6-e800c6922080",name="ou-db-ok",region="RegionOne",status="BUILD",tenant_id="be5872d641e34ab18a2151cc7c1cee73"} 1
+# HELP openstack_trove_instance_volume_size_gb instance_volume_size_gb
+# TYPE openstack_trove_instance_volume_size_gb gauge
+openstack_trove_instance_volume_size_gb{datastore_type="mysql",datastore_version="8.4",health_status="",id="1bcb3905-8800-473c-83c6-e800c6922080",name="ou-db-ok",region="RegionOne",status="BUILD",tenant_id="be5872d641e34ab18a2151cc7c1cee73"} 1
+# HELP openstack_trove_instance_volume_used_gb instance_volume_used_gb
+# TYPE openstack_trove_instance_volume_used_gb gauge
+openstack_trove_instance_volume_used_gb{datastore_type="mysql",datastore_version="8.4",health_status="",id="1bcb3905-8800-473c-83c6-e800c6922080",name="ou-db-ok",region="RegionOne",status="BUILD",tenant_id="be5872d641e34ab18a2151cc7c1cee73"} 0
+# HELP openstack_trove_total_instances total_instances
+# TYPE openstack_trove_total_instances gauge
+openstack_trove_total_instances 1
+# HELP openstack_trove_up up
+# TYPE openstack_trove_up gauge
+openstack_trove_up 1

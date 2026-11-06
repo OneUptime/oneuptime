@@ -4,6 +4,8 @@ import MonitorStepSecurityEventsMonitor, {
 import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import NotOnWatchlist from "../../../Types/BaseDatabase/NotOnWatchlist";
+import OnWatchlist from "../../../Types/BaseDatabase/OnWatchlist";
 import Query from "../../../Types/BaseDatabase/Query";
 import Search from "../../../Types/BaseDatabase/Search";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
@@ -45,6 +47,7 @@ describe("MonitorStepSecurityEventsMonitorUtil.getDefault", () => {
       classNames: [],
       telemetryServiceIds: [],
       lastXSecondsOfEvents: 60,
+      watchlistFilters: [],
     });
   });
 });
@@ -149,6 +152,91 @@ describe("MonitorStepSecurityEventsMonitorUtil.toQuery", () => {
 
     expect(query.attributes).toBeUndefined();
   });
+
+  test("a watchlist filter puts the list's name on its field: on the list, or not on it", () => {
+    const query: Query<SecurityEvent> =
+      MonitorStepSecurityEventsMonitorUtil.toQuery(
+        buildConfig({
+          lastXSecondsOfEvents: 0,
+          watchlistFilters: [
+            { field: "principalUser", watchlist: "vip_users" },
+            {
+              field: "principalIp",
+              watchlist: "admin_addresses",
+              isNotOnList: true,
+            },
+          ],
+        }),
+      );
+
+    expect(query).toEqual({
+      principalUser: new OnWatchlist("vip_users"),
+      principalIp: new NotOnWatchlist("admin_addresses"),
+    });
+    expect(query.principalUser).toBeInstanceOf(OnWatchlist);
+    expect(query.principalIp).toBeInstanceOf(NotOnWatchlist);
+  });
+
+  test("two lists on one field must both hold, and every other filter stays", () => {
+    const query: Query<SecurityEvent> =
+      MonitorStepSecurityEventsMonitorUtil.toQuery(
+        buildConfig({
+          lastXSecondsOfEvents: 0,
+          severityNames: [OcsfSeverity.High],
+          watchlistFilters: [
+            { field: "principalUser", watchlist: "vip_users" },
+            {
+              field: "principalUser",
+              watchlist: "service_accounts",
+              isNotOnList: true,
+            },
+          ],
+        }),
+      );
+
+    expect(query.severityName).toEqual(new Includes([OcsfSeverity.High]));
+    expect(query.principalUser).toEqual([
+      new OnWatchlist("vip_users"),
+      new NotOnWatchlist("service_accounts"),
+    ]);
+  });
+
+  test("an unfinished watchlist filter adds nothing, and none leaves the query as it was", () => {
+    const unfinished: Query<SecurityEvent> =
+      MonitorStepSecurityEventsMonitorUtil.toQuery(
+        buildConfig({
+          lastXSecondsOfEvents: 0,
+          watchlistFilters: [
+            { field: "principalUser", watchlist: "" },
+            { field: "", watchlist: "vip_users" },
+            // Not a field a list is read in.
+            { field: "message", watchlist: "vip_users" },
+          ],
+        }),
+      );
+
+    expect(unfinished).toEqual({});
+
+    const withoutFilters: Query<SecurityEvent> =
+      MonitorStepSecurityEventsMonitorUtil.toQuery(
+        buildConfig({ lastXSecondsOfEvents: 0, messageContains: "x" }),
+      );
+
+    expect(Object.keys(withoutFilters)).toEqual(["message"]);
+  });
+
+  test("a monitor saved before watchlists could be read has none", () => {
+    const config: MonitorStepSecurityEventsMonitor = buildConfig({
+      lastXSecondsOfEvents: 0,
+      classNames: ["Authentication"],
+    });
+
+    delete config.watchlistFilters;
+
+    expect(MonitorStepSecurityEventsMonitorUtil.toQuery(config)).toEqual({
+      className: new Includes(["Authentication"]),
+    });
+  });
 });
 
 describe("MonitorStepSecurityEventsMonitorUtil toJSON/fromJSON", () => {
@@ -160,6 +248,14 @@ describe("MonitorStepSecurityEventsMonitorUtil toJSON/fromJSON", () => {
       classNames: ["Authentication"],
       telemetryServiceIds: [SERVICE_ID_A, SERVICE_ID_B],
       lastXSecondsOfEvents: 300,
+      watchlistFilters: [
+        { field: "principalUser", watchlist: "VIP_Users" },
+        {
+          field: "principalIp",
+          watchlist: "admin_addresses",
+          isNotOnList: true,
+        },
+      ],
     };
 
     const json: JSONObject =
@@ -175,6 +271,15 @@ describe("MonitorStepSecurityEventsMonitorUtil toJSON/fromJSON", () => {
     ]);
     expect(roundTripped.classNames).toEqual(["Authentication"]);
     expect(roundTripped.lastXSecondsOfEvents).toBe(300);
+    // The list's name as written: a list is found whatever its case.
+    expect(roundTripped.watchlistFilters).toEqual([
+      { field: "principalUser", watchlist: "VIP_Users", isNotOnList: false },
+      {
+        field: "principalIp",
+        watchlist: "admin_addresses",
+        isNotOnList: true,
+      },
+    ]);
 
     expect(roundTripped.telemetryServiceIds).toHaveLength(2);
     for (const serviceId of roundTripped.telemetryServiceIds) {
@@ -197,5 +302,40 @@ describe("MonitorStepSecurityEventsMonitorUtil toJSON/fromJSON", () => {
       );
 
     expect(roundTripped).toEqual(config);
+  });
+
+  test("a step saved before watchlists could be read reads back with none", () => {
+    const json: JSONObject = MonitorStepSecurityEventsMonitorUtil.toJSON(
+      MonitorStepSecurityEventsMonitorUtil.getDefault(),
+    );
+
+    delete json["watchlistFilters"];
+
+    expect(
+      MonitorStepSecurityEventsMonitorUtil.fromJSON(json).watchlistFilters,
+    ).toEqual([]);
+  });
+
+  test("a stored row that is not a filter is never read as one", () => {
+    const json: JSONObject = {
+      ...MonitorStepSecurityEventsMonitorUtil.toJSON(
+        MonitorStepSecurityEventsMonitorUtil.getDefault(),
+      ),
+      watchlistFilters: [
+        "principalUser:%vip_users%",
+        null,
+        { field: "principalHost", watchlist: "  critical_hosts  " },
+      ],
+    };
+
+    expect(
+      MonitorStepSecurityEventsMonitorUtil.fromJSON(json).watchlistFilters,
+    ).toEqual([
+      {
+        field: "principalHost",
+        watchlist: "critical_hosts",
+        isNotOnList: false,
+      },
+    ]);
   });
 });

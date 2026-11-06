@@ -17,6 +17,7 @@ Open **Alerts** from the **Products** menu in the top bar. The **Rules** and **S
 | ------------------- | ---------------------------------------------------------------------------------------------- |
 | **Grouping Rules**  | Puts related alerts into episodes. See [Alert Episodes & Grouping Rules](/docs/alerts/episodes). |
 | **On-Call Rules**   | Runs on-call policies for matching alerts and episodes.                                        |
+| **Incident Rules**  | Declares an incident from matching alerts, right away or once an alert stays unresolved. |
 | **Owner Rules**     | Adds owners to matching alerts and episodes.                                                   |
 | **Runbook Rules**   | Starts runbooks for matching alerts.                                                           |
 | **Privacy Rules**   | Makes matching alerts and episodes private.                                                    |
@@ -54,7 +55,7 @@ flowchart TB
 
 The rules differ in how several matches resolve:
 
-- **Grouping Rules** and **Reminder Rules** are checked from the top of their list down, and the first match wins. Drag a rule to change its place; a new rule goes to the end.
+- **Grouping Rules**, **Incident Rules** and **Reminder Rules** are checked from the top of their list down, and the first match wins. Drag a rule to change its place; a new rule goes to the end.
 - **On-Call Rules**, **Owner Rules**, **Label Rules**, **Privacy Rules** and **Runbook Rules** all act when they match. On-call policies, owners and labels that several rules add are added once.
 
 **On-Call Rules**, **Owner Rules**, **Label Rules** and **Privacy Rules** have two tabs: **Alert Rules**, for alerts, and **Episode Rules**, which act the same way on each new alert episode. A new rule starts enabled; switch **Enabled** off on its edit form to pause it, and the list shows a green **Enabled** or red **Disabled** for each rule.
@@ -89,6 +90,22 @@ On **On-Call Policies**, pick the **On-Call Duty Policies** the rule pages. Its 
 A severity pages nobody on its own: an on-call rule that matches **Alert Severities** is how "page the database team for every High alert" is set up. To see what ran for one alert, open its **On-Call Executions** page. Each person is then reached the way they set up under **User Settings → On-Call Rules**, on the **Alerts** tab; see [Escalation Rules](/docs/on-call/escalation-rules).
 
 A rule pages as soon as an alert matches it. To make it wait for working hours instead, answer **When should this rule page?** under **More fields** with **Only during working hours**. The **Working Hours** start as Monday to Friday, 09:00 to 17:00, in your own time zone: pick other days, another **Start Time** or **End Time**, or another **Timezone**, and a sentence under the choice says what will happen. In the list, the rule shows its hours under its name. An alert that matches outside those hours gets a run that waits and pages nobody; when the hours begin, the policy pages its first escalation rule and escalates as usual. If the alert is acknowledged or resolved first, nobody is paged. If the alert changes while it waits and now matches a rule that pages right away, for example when its severity is raised, the run starts paging at once, and the alert's feed says why. Two rules that page the same policy page it as soon as either one lets it, so a rule for your top severities that pages right away, beside a rule for the rest that waits for working hours, keeps the nights quiet.
+
+## Incident rules
+
+**Alerts → Rules → Incident Rules** turns alerts into incidents on their own. The first rule that matches a new alert, from the top of the list down, declares an incident from it, as **Declare Incident** on the alert's page would, and links the alert to it.
+
+:::steps
+### Pick the alerts
+
+On **Match**, **All alerts**, where a new rule starts, matches every new alert. To narrow it down, pick **Only alerts that match conditions** and add the conditions an alert must meet.
+
+### Describe the incident
+
+On **Incident**, pick the **Incident Severity**, or leave it empty to give each incident the severity that matches its alert's. Set **Declare After (Minutes)** above 0 to declare the incident only if the alert is still unresolved by then. The rule's **Name** follows the severity, such as "Declare SEV1 incidents", until you type your own. Then create the rule.
+:::
+
+The incident takes the alert's title, description, monitor, affected resources and labels, and is private when the alert is. Its own rules then run on it as on any new incident, so its on-call rules decide who is paged. An alert that resolves before the wait is up never becomes an incident, and an alert already linked to an incident is left alone. **Show on Status Pages**, under **More fields**, decides whether the incident appears on the status pages that list its monitor.
 
 ## Owner and label rules
 

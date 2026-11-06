@@ -145,6 +145,7 @@ Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um
 - **Os modelos de contagem e de estado usam Max**, então uma única coleta que mostre a condição os dispara: erros de pacotes, ballooning, swapping, status vermelho e amarelo, hosts não efetivos, congestionamento.
 - **Host Not Responding usa Max e dispara em 0:** um host ESXi em execução sempre usa memória, então uma coleta que informa memória em uso é um host que responde, e só uma janela em que nenhuma informou o dispara.
 - **Todo modelo agrupa pelo atributo de identidade do próprio objeto**, então um incidente dispara por objeto afetado, e o incidente o nomeia. A exceção é **vCenter Stopped Reporting**, que observa o vCenter inteiro: quando os dados param, os outros modelos não têm nada para comparar e mantêm o último status, então é este que avisa você.
+- **Os modelos de contagem por datacenter recuperam quando sua série desaparece:** o receptor registra uma contagem apenas para os estados que existem, então quando o último host vermelho fica verde não resta nenhuma série, e seus critérios de recuperação contam uma série ausente como 0. Quando nenhum datacenter tem mais uma série, eles só recuperam se `vcenter.datacenter.cpu.limit` tiver chegado na mesma janela, então um vCenter que parou de reportar não fecha nada.
 - **Os limites ficam fixados na sua unidade** (`%`, `ms`, `us`), então mantêm o seu significado seja qual for a unidade que um gráfico mostre.
 
 ## Métricas coletadas
@@ -273,7 +274,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | --- | --- |
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da sua variável. |
 | **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todo valor precisa corresponder, na janela inteira) ou **Any Value** (basta um). |
-| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo. |
+| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo. **Previsão acima de** e **Previsão abaixo de** correspondem quando a tendência da métrica na janela tiver passado do limite ao fim de **Horizonte**. |
 | **Limite** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece nas condições de anomalia. |
 | **Sensibilidade** | Só condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |
 | **Janela de linha de base** | Só condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |

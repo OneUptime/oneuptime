@@ -72,7 +72,7 @@ El interruptor añadió una regla de guardia para los incidentes y otra para las
 
 ### Elegir cómo te localizan
 
-Tu correo de inicio de sesión ya es una forma de localizarte. Para recibir también SMS o llamadas, abre **Ajustes de usuario** en la barra bajo la barra superior, ve a **Métodos de notificación** y, en la pestaña **Direct Contact**, añade tu número en **Números de teléfono para notificaciones SMS** o **Números de teléfono para notificaciones por llamada**. Haz clic en **Verificar** y escribe el código que OneUptime te envía. Un número verificado se usa para los avisos de guardia al instante.
+Tu correo de inicio de sesión ya es una forma de localizarte. Para recibir también SMS o llamadas, abre **Ajustes de usuario** en la barra bajo la barra superior, ve a **Métodos de notificación** y, en la pestaña **Contacto directo**, añade tu número en **Números de teléfono para notificaciones SMS** o **Números de teléfono para notificaciones por llamada**. Haz clic en **Verificar** y escribe el código que OneUptime te envía. Un número verificado se usa para los avisos de guardia al instante.
 :::
 
 > [!NOTE]

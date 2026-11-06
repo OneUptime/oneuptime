@@ -307,7 +307,8 @@
       "forgotPassword": "Password dimenticata?",
       "submit": "Accedi",
       "or": "oppure",
-      "logInWithSso": "Accedi con SSO"
+      "logInWithSso": "Accedi con SSO",
+      "emailSignInLink": "Inviami un link di accesso"
     },
     "sso": {
       "title": "Accedi con SSO",
@@ -330,6 +331,23 @@
       "success": "La tua password è stata aggiornata. Effettua l'accesso.",
       "submit": "Reimposta password",
       "knowPassword": "Conosci la tua password?"
+    },
+    "magicLink": {
+      "title": "Accedi con un link",
+      "description": "Inserisci il tuo indirizzo e-mail e ti invieremo un link per accedere a {{statusPageName}}. Nessuna password necessaria.",
+      "submit": "Inviami un link di accesso",
+      "sentTitle": "Controlla la tua e-mail",
+      "sent": "Se {{email}} può accedere a {{statusPageName}}, un link di accesso è in arrivo. Funziona una sola volta e scade tra {{minutes}} minuti.",
+      "notReceived": "Non è nella posta in arrivo? Controlla la cartella spam o chiedi al team della pagina di stato di aggiungerti.",
+      "sendAnother": "Invia un altro link"
+    },
+    "magicLinkLogin": {
+      "title": "Accedi a {{statusPageName}}",
+      "description": "Usa il pulsante qui sotto per completare l'accesso.",
+      "submit": "Accedi",
+      "noLink": "Questa pagina richiede il link di accesso ricevuto via e-mail. Apri di nuovo il link o richiedine uno nuovo.",
+      "turnedOff": "I link di accesso sono disattivati per questa pagina di stato. Accedi con la tua e-mail e password.",
+      "requestNewLink": "Inviami un nuovo link"
     },
     "masterPassword": {
       "prompt": "Inserisci la password per vedere questa pagina di stato.",

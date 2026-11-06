@@ -10,6 +10,7 @@ import type { SpyInstance } from "jest-mock";
 import CloudAccountService from "../../../../Server/Services/CloudAccountService";
 import CloudChangeRecorder from "../../../../Server/Utils/CloudConnection/CloudChangeRecorder";
 import CloudConnectionLanes, {
+  AUDIT_RECORDS_NOT_SAVED_WARNING,
   CHANGES_NOT_SAVED_WARNING,
   CLOUD_CHANGES_MAX_DURATION_MS,
   CLOUD_CHANGES_MAX_REQUESTS,
@@ -27,6 +28,7 @@ import CloudConnectionResourceSync, {
   CloudConnectionSyncResult,
 } from "../../../../Server/Utils/CloudConnection/CloudConnectionResourceSync";
 import {
+  CloudAuditRecord,
   CloudChange,
   CloudChangesOptions,
   CloudChangesResult,
@@ -38,6 +40,11 @@ import {
 } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
 import logger from "../../../../Server/Utils/Logger";
+import CloudAuditSecurityEvents, {
+  CloudAuditStoreOutcome,
+} from "../../../../Server/Utils/SecurityEvent/CloudAudit/CloudAuditSecurityEvents";
+import SecurityTelemetrySource from "../../../../Models/DatabaseModels/SecurityTelemetrySource";
+import OneUptimeDate from "../../../../Types/Date";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import { JSONObject } from "../../../../Types/JSON";
@@ -195,6 +202,10 @@ beforeEach(() => {
   refreshSummary = jest
     .spyOn(CloudAccountService, "refreshSummary")
     .mockResolvedValue(undefined as never);
+  // Security Events' Cloud audit logs are off unless a test turns them on.
+  jest
+    .spyOn(CloudAuditSecurityEvents, "findEnabledSource")
+    .mockResolvedValue(null);
   jest.spyOn(logger, "error").mockImplementation(() => {
     return undefined;
   });
@@ -821,5 +832,178 @@ describe("the connection's accounts", () => {
     });
 
     expect(logger.error).toHaveBeenCalled();
+  });
+});
+
+/*
+ * While the project's Security Events read its cloud audit logs, the
+ * changes lane asks the read for every audit record it brings in and keeps
+ * them as security events, after the changes (CloudAuditSecurityEvents),
+ * stamped as they are stored. Records that cannot be stored are read again:
+ * the cursors go back, and the changes already written stay seen.
+ */
+describe("the changes lane, for Security Events' cloud audit logs", () => {
+  const RECORDS: Array<CloudAuditRecord> = [
+    { accountId: "123456789012", record: { eventID: "evt-1" } },
+    { accountId: "123456789012", record: { eventID: "evt-2" } },
+  ];
+  const STORED_AT: Date = new Date(NOW.getTime() + 3 * MINUTE);
+
+  function auditSource(): SecurityTelemetrySource {
+    const value: SecurityTelemetrySource = new SecurityTelemetrySource();
+    value.id = new ObjectID("c10da0d1-0000-4000-8000-0000000000s1");
+    value.isEnabled = true;
+    return value;
+  }
+
+  function readingAudit(seen: {
+    options?: CloudChangesOptions;
+  }): CloudConnector {
+    return connector({
+      readChanges: async (
+        _settings: CloudConnectionSettings,
+        given: CloudChangesOptions,
+      ): Promise<CloudChangesResult> => {
+        seen.options = given;
+        given.state.changeCursors = {
+          "123456789012|eu-west-1": NOW.toISOString(),
+        };
+        given.state.recentChanges = {
+          "123456789012|eu-west-1": { a: NOW.getTime() - MINUTE },
+        };
+        return {
+          changes: [change("a")],
+          warnings: [],
+          complete: true,
+          ...(given.keepAuditRecords ? { auditRecords: RECORDS } : {}),
+        };
+      },
+    });
+  }
+
+  test("on: the read keeps its records, and they are stored as security events after the changes", async () => {
+    const source: SecurityTelemetrySource = auditSource();
+    const order: Array<string> = [];
+    const seen: { options?: CloudChangesOptions } = {};
+
+    jest
+      .spyOn(CloudAuditSecurityEvents, "findEnabledSource")
+      .mockResolvedValue(source);
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(STORED_AT);
+    recordChanges.mockImplementation(
+      async (data: { changes: Array<CloudChange> }) => {
+        order.push("changes");
+        return {
+          recorded: data.changes.length,
+          alreadyRecorded: 0,
+          unwritten: [],
+        };
+      },
+    );
+    const store: SpyInstance<typeof CloudAuditSecurityEvents.store> = jest
+      .spyOn(CloudAuditSecurityEvents, "store")
+      .mockImplementation(async (): Promise<CloudAuditStoreOutcome> => {
+        order.push("security events");
+        return {
+          recordsRead: 2,
+          eventsFound: 1,
+          byFormat: { "aws-cloudtrail": 1 },
+        };
+      });
+
+    const outcome: CloudChangesLaneOutcome =
+      await CloudConnectionLanes.runChanges(
+        lane({ connector: readingAudit(seen) }),
+      );
+
+    expect(seen.options!.keepAuditRecords).toBe(true);
+    expect(CloudAuditSecurityEvents.findEnabledSource).toHaveBeenCalledWith(
+      PROJECT,
+    );
+    expect(store).toHaveBeenCalledWith({
+      projectId: PROJECT,
+      provider: CloudProvider.AWS,
+      connectionId: CONNECTION,
+      source,
+      records: RECORDS,
+      // Stamped as they are stored, not when the read began.
+      now: STORED_AT,
+    });
+    expect(order).toEqual(["changes", "security events"]);
+    expect(outcome).toEqual({
+      ran: true,
+      warnings: [],
+      recorded: 1,
+      securityEventsStored: 1,
+    });
+  });
+
+  test("on, with nothing read: the source is still told it was read", async () => {
+    jest
+      .spyOn(CloudAuditSecurityEvents, "findEnabledSource")
+      .mockResolvedValue(auditSource());
+    const store: SpyInstance<typeof CloudAuditSecurityEvents.store> = jest
+      .spyOn(CloudAuditSecurityEvents, "store")
+      .mockResolvedValue({ recordsRead: 0, eventsFound: 0, byFormat: {} });
+
+    await CloudConnectionLanes.runChanges(
+      lane({
+        connector: connector({
+          readChanges: async (): Promise<CloudChangesResult> => {
+            return { changes: [], warnings: [], complete: true };
+          },
+        }),
+      }),
+    );
+
+    expect(store).toHaveBeenCalledTimes(1);
+    expect(store.mock.calls[0]![0].records).toEqual([]);
+  });
+
+  test("off: the read is not asked for its records, and nothing is stored", async () => {
+    const seen: { options?: CloudChangesOptions } = {};
+    const store: SpyInstance<typeof CloudAuditSecurityEvents.store> =
+      jest.spyOn(CloudAuditSecurityEvents, "store");
+
+    const outcome: CloudChangesLaneOutcome =
+      await CloudConnectionLanes.runChanges(
+        lane({ connector: readingAudit(seen) }),
+      );
+
+    expect(seen.options!.keepAuditRecords).toBe(false);
+    expect(store).not.toHaveBeenCalled();
+    expect(outcome).toEqual({ ran: true, warnings: [], recorded: 1 });
+  });
+
+  test("records that cannot be stored are read again: the cursors go back, the changes written stay seen", async () => {
+    const before: string = new Date(NOW.getTime() - 10 * MINUTE).toISOString();
+    const state: CloudConnectionPullState = {
+      changeCursors: { "123456789012|eu-west-1": before },
+    };
+
+    jest
+      .spyOn(CloudAuditSecurityEvents, "findEnabledSource")
+      .mockResolvedValue(auditSource());
+    jest
+      .spyOn(CloudAuditSecurityEvents, "store")
+      .mockRejectedValue(new Error("ClickHouse is not answering"));
+
+    const outcome: CloudChangesLaneOutcome =
+      await CloudConnectionLanes.runChanges(
+        lane({ state, connector: readingAudit({}) }),
+      );
+
+    expect(outcome).toEqual({
+      ran: true,
+      warnings: [
+        `${AUDIT_RECORDS_NOT_SAVED_WARNING} ClickHouse is not answering`,
+      ],
+      recorded: 1,
+    });
+    expect(state.changeCursors).toEqual({ "123456789012|eu-west-1": before });
+    // The change written is not written twice when the stretch is read again.
+    expect(state.recentChanges).toEqual({
+      "123456789012|eu-west-1": { a: NOW.getTime() - MINUTE },
+    });
   });
 });

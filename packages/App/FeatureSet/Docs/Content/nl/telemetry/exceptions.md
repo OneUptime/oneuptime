@@ -56,7 +56,7 @@ Elke rij toont ook hoeveel gebruikers de uitzondering in de gekozen periode trof
 
 ### Kiezen wat als probleem telt
 
-**Problemen**, de standaard, verbergt gebruikersfouten en verwachte weigeringen, zodat de lijst toont wat een oplossing nodig heeft. **User errors** toont alleen die, en **Alle** toont elke uitzondering.
+**Problemen**, de standaard, verbergt gebruikersfouten en verwachte weigeringen, zodat de lijst toont wat een oplossing nodig heeft. **Gebruikersfouten** toont alleen die, en **Alle** toont elke uitzondering.
 
 ### Zoeken en filteren
 

@@ -458,9 +458,28 @@ function worded(locale: Record<string, string>, key: string): string {
 }
 
 // A golden tile, by the title it shows: the box that has a tile's line.
+/*
+ * The elements whose whole text is these words. A tile's title draws its
+ * long words in spans of their own, hyphenated in the reader's language
+ * (GoldenMetricTile, HyphenatedWords), so getByText - which reads one
+ * element's own text - does not find a German title whole.
+ */
+function wholeText(words: string): Array<HTMLElement> {
+  return screen.queryAllByText(
+    (_content: string, element: Element | null): boolean => {
+      if (!element || element.textContent !== words) {
+        return false;
+      }
+
+      return Array.from(element.children).every((child: Element): boolean => {
+        return child.textContent !== words;
+      });
+    },
+  );
+}
+
 function tileTitled(title: string): HTMLElement {
-  const tiles: Array<HTMLElement> = screen
-    .getAllByText(title)
+  const tiles: Array<HTMLElement> = wholeText(title)
     .map((element: HTMLElement): HTMLElement | null => {
       return element.closest(".rounded-xl");
     })

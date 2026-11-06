@@ -72,7 +72,7 @@ Kontakten tilføjede en vagtregel for hændelser og en for advarsler. For at se 
 
 ### Vælg, hvordan du bliver kontaktet
 
-Din login-e-mail er allerede en måde at kontakte dig på. For også at få SMS eller opkald åbner du **Brugerindstillinger** i bjælken under topbjælken, går til **Notifikationsmetoder** og tilføjer på fanen **Direct Contact** dit nummer under **Telefonnumre til SMS-meddelelser** eller **Telefonnumre til opkaldsnotifikationer**. Klik på **Bekræft**, og indtast den kode, OneUptime sender dig. Et bekræftet nummer bruges straks til vagtkald.
+Din login-e-mail er allerede en måde at kontakte dig på. For også at få SMS eller opkald åbner du **Brugerindstillinger** i bjælken under topbjælken, går til **Notifikationsmetoder** og tilføjer på fanen **Direkte kontakt** dit nummer under **Telefonnumre til SMS-meddelelser** eller **Telefonnumre til opkaldsnotifikationer**. Klik på **Bekræft**, og indtast den kode, OneUptime sender dig. Et bekræftet nummer bruges straks til vagtkald.
 :::
 
 > [!NOTE]

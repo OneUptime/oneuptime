@@ -214,6 +214,27 @@ export default class SecurityWatchlistItem extends BaseModel {
   })
   public note?: string = undefined;
 
+  /*
+   * A value kept for a while: from this moment no rule, monitor, hunt or
+   * search reads it, and OneUptime deletes it within a minute
+   * (SecurityWatchlistExpiry). Indexed for that sweep.
+   */
+  @ColumnAccessControl(editableColumnAccess)
+  @Index()
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Expires At",
+    description:
+      "When the value leaves the list: from then on no rule, monitor, hunt or search reads it, and OneUptime removes it. Empty: it stays until someone removes it.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public expiresAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: writePermissions,
     read: readPermissions,

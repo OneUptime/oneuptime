@@ -82,7 +82,9 @@
  *            refused, as the server refuses someone who may not page
  *            on-call policies: "You need permission to page on-call
  *            policies to page now."), dry-run (Dry run on a cloud fix,
- *            ?cloudfix=, is refused: the account's agent is offline). The matching API call throws HTTPErrorResponse. "conversation" is
+ *            ?cloudfix=, is refused: the account's agent is offline),
+ *            dismiss (Dismiss fix, ?fixes=, is refused: the viewer may not
+ *            start runbook executions). The matching API call throws HTTPErrorResponse. "conversation" is
  *            the read of the AI card's thread and "conversation-send" a
  *            question sent to it. "resend" also marks the subscriber
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
@@ -105,7 +107,7 @@
  *            stopped answer, or twelve messages from six people (long enough
  *            to open folded). Sending, approving and stopping are modelled:
  *            see "The investigation card's conversation" below.
- *   ?linked= none (default) | alerts | more | followup
+ *   ?linked= none (default) | alerts | more | followup | cloud
  *            What the AI investigations read about the infrastructure their
  *            incident or alert is linked to, as the run's activity records
  *            it (LinkedInfrastructureContext). "alerts": Incident #1042's
@@ -115,7 +117,10 @@
  *            #318 opened on #1042's host after its first analysis, so the
  *            run on the card is the follow-up check (IncidentFollowUpCheck)
  *            - its activity starts with why, its report leads with
- *            "Checked again", and the feed holds both reports.
+ *            "Checked again", and the feed holds both reports. "cloud":
+ *            #1042 is linked to an App Platforms environment, a cloud
+ *            resource and its service, and its investigation read 2 alerts
+ *            on them: the environment is named as one (#5519's follow-ups).
  *   ?calls=  none (default) | zoom | teams | reading | stuck | transcript
  *            | not-enough | accepted | dismissed | failed | skipped | two
  *            | waiting | fetch-stopped | summary | teams-recorded
@@ -164,12 +169,13 @@
  *            case that declared it, the open cases naming a host and the
  *            cluster it affects, or both. Left out, Security Events has
  *            nothing to say about any incident here, and no card is drawn.
- *   ?channels= the record's own Slack / Microsoft Teams channels, as
- *            GET /workspace-channel-link answers them (the header's Open in
- *            Slack / Open in Microsoft Teams): a comma list of slack (one
- *            Slack channel), slack2 (a second one), teams (one Teams
- *            channel). None by default: no button, and no channel card.
- *   ?members= who is in those Slack channels, as
+ *   ?channels= the record's own Slack / Microsoft Teams / Mattermost channels,
+ *            as GET /workspace-channel-link answers them (the header's Open in
+ *            Slack / Open in Microsoft Teams / Open in Mattermost): a comma
+ *            list of slack (one Slack channel), slack2 (a second one), teams
+ *            (one Teams channel), mattermost (one Mattermost channel). None by
+ *            default: no button, and no channel card.
+ *   ?members= who is in those Slack and Mattermost channels, as
  *            GET /workspace-channel-members answers it for the channel card:
  *            some (default: Sam, Jordan and Priya, who is in Slack only;
  *            the viewer is not in it), in (the viewer is), empty (everybody
@@ -195,8 +201,13 @@
  *            left to page), acknowledged (Sam Rivera acknowledged it
  *            meanwhile: the POST refuses, and incident #1042 is
  *            Acknowledged from then on) or two (two policies page the
- *            viewer about it). Once escalated, the record no longer pages
- *            the viewer.
+ *            viewer about it), levels (three levels after the viewer's to
+ *            pick from - Platform leads, DBA leads and Level 4 of 4 - and the
+ *            POST pages the one its escalateTo names) or levels-gone (the
+ *            same, but DBA leads was deleted meanwhile: a POST that picks a
+ *            later level is refused, LevelNotAvailable, and the page then
+ *            offers Platform leads and Level 4 of 4). Once escalated, the
+ *            record no longer pages the viewer.
  *   ?hold=   1: OneUptime AI holds the on-call pages of Incident #1042 and
  *            Alert #311 while it works (OnCallPolicyAiHold): an on-call rule
  *            set to After OneUptime AI tries holds each record's policy run
@@ -251,8 +262,10 @@
  *            (linked to no cluster and no resource with an AI agent, and
  *            no monitor either - an incident Ask AI declared, #5293) |
  *            nothing-linked-monitor (the same, with its monitor named so
- *            the card links it) | none (nothing recorded, as for a record
- *            from before decisions were).
+ *            the card links it) | cluster-fixes-off | cluster-agent-not-
+ *            connected (Fixes on for staging-us-east-1, whose Kubernetes AI
+ *            agent never connected) | none (nothing recorded, as for a
+ *            record from before decisions were).
  *   ?switches= on: the project's "Investigate new ..." and "Fix new ...
  *            automatically" switches are on now (and Enable AI). By
  *            default they are off - and with ?ai=off-project so is Enable
@@ -278,6 +291,11 @@
  *            its evidence and its next steps - the database, a traffic spike
  *            and the cloud underneath, each with why, cited - as the
  *            investigation persona asks for one.
+ *   ?impact= on: Incident #1042's report has an Impact section right after
+ *            its Summary - the users (failed checkout requests, counted from
+ *            its traces), the services and the SLO it burns, each with how
+ *            it was worked out, cited - as the investigation persona asks
+ *            for one (#5519's follow-ups).
  *   ?codefix= act | no-repository | writing | opened: what came of the fix
  *            in the code the completed investigations of #1042 and #311
  *            recommend, as FixFromIncidentTaskTrigger.getSuggestionForSubject
@@ -301,6 +319,14 @@
  *            Dismiss (POST /auto-remediation/dismiss) dismisses it;
  *            ?fail=approve refuses the approval, as the server does when
  *            the cluster's fixes were turned off after it was proposed.
+ *            runbook: the rule "Checkout fixes" proposed the runbook
+ *            "Restart checkout-api pods", waiting for approval, with how it
+ *            went the last times OneUptime AI ran it here (it worked for
+ *            #1036 and #1017, not for #1029), and Maya Chen approved the
+ *            kubectl fix on prod-eu-west-1 from its Slack message
+ *            (approvedFrom), verified fixed. Dismiss fix dismisses the
+ *            runbook; ?fail=dismiss refuses it, as the server refuses
+ *            someone who may not start runbook executions.
  *   Try again (POST /auto-remediation/try-again) decides again for an open
  *            record, as AutoRemediationRuleEngineService.tryAgain does:
  *            the record's decision is written afresh - OneUptime AI started
@@ -339,6 +365,7 @@ import AlertEpisodeView from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import WorkspaceChannelLinkUtil from "Common/Types/Workspace/WorkspaceChannelLink";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import { FIX_DISMISS_REFUSED_MESSAGE } from "Common/Types/Runbook/RunbookRunPermissions";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
@@ -365,6 +392,11 @@ import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediatio
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
+import DataAlert from "Common/Models/DatabaseModels/DataAlert";
+import DataAsset from "Common/Models/DatabaseModels/DataAsset";
+import DataAssetUsage from "Common/Models/DatabaseModels/DataAssetUsage";
+import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
+import { DataAssetAccessKind } from "Common/Types/DataObservability/DataAssetUsage";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
@@ -432,6 +464,14 @@ import {
   AIChatToolActionStatus,
   AIChatWidgetType,
 } from "Common/Types/AI/AIChatTypes";
+import {
+  AI_ACTION_LINES,
+  AI_ACTION_TITLES,
+  aiActionList,
+  aiActionResourceByName,
+  aiActionSentence,
+  describeAIActionWords,
+} from "Common/Types/AI/AIActionWords";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -469,6 +509,7 @@ import CallSummaryFeedMarkdown from "Common/Utils/VideoCall/CallSummaryFeedMarkd
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 
 /*
  * ---------------------------------------------------------------------------
@@ -618,6 +659,13 @@ const securityMode = ["declared", "naming", "both"].includes(
   ? params.get("security")
   : "";
 /*
+ * ?data=table: alert #311 was raised by a data monitor, on a table, while
+ * alert #310 was open on the table it is built from - so #311 is #310's
+ * consequence (see "Data alerts" below). Left out, no alert here was raised
+ * by a data monitor.
+ */
+const dataMode = params.get("data") === "table" ? "table" : "";
+/*
  * ?ai=off-*: not investigated because something was off for the record;
  * ?fixing=: what auto-remediation recorded beside it; ?switches=: the
  * project's switches as they are now (see the parameters above).
@@ -639,6 +687,7 @@ const FIXING_MODES = [
   "nothing-linked",
   "nothing-linked-monitor",
   "cluster-fixes-off",
+  "cluster-agent-not-connected",
   "none",
 ];
 const DEFAULT_FIXING_MODES = {
@@ -665,13 +714,20 @@ const trackRecordMode = TRACK_RECORD_MODES.includes(params.get("trackrecord"))
   : "";
 // ?ruledout=on: Incident #1042's report says what it ruled out.
 const ruledOutMode = params.get("ruledout") === "on";
+// ?impact=on: Incident #1042's report says first who and what it hurts.
+const impactMode = params.get("impact") === "on";
 // ?codefix=: what came of the fix in the code the investigations recommend.
 const CODE_FIX_MODES = ["act", "no-repository", "writing", "opened"];
 const codeFixMode = CODE_FIX_MODES.includes(params.get("codefix"))
   ? params.get("codefix")
   : "";
-// ?fixes=: more fixes, of every kind, on Incident #1042's Remediation step.
-const FIXES_MODES = ["many"];
+/*
+ * ?fixes=: more fixes on Incident #1042's Remediation step - of every kind
+ * (many), the three rounds of a fix that ran, did not work and was rolled
+ * back (rolled-back, issue #5598), or a runbook that waits with its track
+ * record beside a fix approved in Slack (runbook, #5519's follow-ups).
+ */
+const FIXES_MODES = ["many", "rolled-back", "runbook"];
 const fixesMode = FIXES_MODES.includes(params.get("fixes"))
   ? params.get("fixes")
   : "";
@@ -712,7 +768,8 @@ const threadMode = THREAD_MODES.includes(params.get("thread"))
   : "empty";
 /*
  * The record's own chat channels (?channels=), each link built by the real
- * WorkspaceChannelLink rules from ids of the shapes Slack and Teams give.
+ * WorkspaceChannelLink rules from ids of the shapes Slack and Teams give and
+ * the names of the shape Mattermost gives.
  */
 const channelModes = new Set(
   (params.get("channels") || "").split(",").filter((value) => value.length > 0),
@@ -749,6 +806,9 @@ const PASS_ON_MODES = [
   "stopped",
   "acknowledged",
   "two",
+  "levels",
+  "levels-gone",
+  "levels-two",
 ];
 const passOnMode = PASS_ON_MODES.includes(params.get("passOn"))
   ? params.get("passOn")
@@ -780,7 +840,7 @@ const feedMode = FEED_MODES.includes(params.get("feed"))
  * ?linked=: what the investigations read about the infrastructure their
  * incident or alert is linked to (see "Linked infrastructure" below).
  */
-const LINKED_MODES = ["alerts", "more", "followup"];
+const LINKED_MODES = ["alerts", "more", "followup", "cloud"];
 const linkedMode = LINKED_MODES.includes(params.get("linked"))
   ? params.get("linked")
   : "none";
@@ -896,6 +956,7 @@ const ID = {
   slo: (number) => uuid("86000000", number),
   cluster: (number) => uuid("83000000", number),
   measurement: (number) => uuid("87000000", number),
+  dataAsset: (number) => uuid("8b000000", number),
 };
 let rowCounter = 0;
 function rowId() {
@@ -924,6 +985,7 @@ const fixture = {
     publish: publishMode,
     fail: Array.from(failures),
     role: roleMode,
+    data: dataMode,
     resources: resourcesMode,
     clusters: clustersMode,
     thread: threadMode,
@@ -940,6 +1002,7 @@ const fixture = {
     cloudfix: cloudFixMode,
     codefix: codeFixMode,
     fixes: fixesMode,
+    impact: impactMode,
     hold: isAiHoldMode,
   },
   // What the channel card asked to add: { channelId, userIds, teamIds }.
@@ -1437,6 +1500,14 @@ const roles = {
  *
  * The incident and alert pages also list the record's video calls; no call
  * has been started for any of them here.
+ *
+ * The alert page reads what a data monitor's alert is about, and the alerts
+ * downstream it caused (Components/DataObservability/DataAlertLineage): its
+ * data alert by { alertId }, and the data alerts naming it by
+ * { causeAlertId }. No alert here was raised by a data monitor (but with
+ * ?data=table: see "Data alerts" below), so the API answers two empty lists
+ * and neither the Data nor the Downstream Impact card is drawn, as on any
+ * other alert's page.
  */
 for (const modelType of [
   IncidentCustomField,
@@ -1450,6 +1521,7 @@ for (const modelType of [
   AutoRemediationDecision,
   IncidentVideoCall,
   AlertVideoCall,
+  DataAlert,
 ]) {
   table(modelType);
 }
@@ -2099,6 +2171,101 @@ const mainAlert = defineAlert({
   services: [services.payments],
   episode: alertEpisodeRecord,
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Data alerts (?data=table)
+ * ---------------------------------------------------------------------------
+ * What a data monitor's alert is about, and the alert it is a consequence
+ * of, as Server/Utils/DataObservability/DataAlertCause records them, with
+ * the relations the server's read joins in. Alert #310 is about the table
+ * payments.provider_callbacks; #311, raised three minutes later on
+ * payments.ledger_entries, which is built from it, is #310's consequence.
+ * Two services write ledger_entries - payments-webhooks, 37 of its writes
+ * failed - and payments-webhooks was deployed eight minutes before #311.
+ *
+ * ?fail=data-alert refuses the alert page's two data alert reads;
+ * ?fail=data-writers fails the read of who writes #311's table (a server
+ * error); and ?fail=data-changes refuses the read of the writers' changes
+ * (ChangeEvent, kept in ClickHouse), as the server refuses it to a team
+ * given Read Data Asset alone.
+ */
+const DATA_CAUSE_ALERT_NUMBER = 310;
+const DATA_ALERT_REFUSAL = "You do not have permission to read data alerts.";
+const DATA_WRITERS_FAILURE =
+  "Who writes this table could not be read. Please try again.";
+const DATA_CHANGES_REFUSAL =
+  "You do not have permission to read change events.";
+// The writers' changes, an analytics table: AnalyticsModelAPI answers them.
+const dataChangeEvents = [];
+
+// An alert as a data alert's read joins it in.
+function dataAlertRelation(number) {
+  const record = table(Alert).find((item) => {
+    return String(item._id) === ID.alert(number);
+  });
+  return make(Alert, {
+    _id: record._id,
+    title: record.title,
+    alertNumberWithPrefix: record.alertNumberWithPrefix,
+    createdAt: record.createdAt,
+  });
+}
+
+if (dataMode === "table") {
+  const providerCallbacksId = new ObjectID(ID.dataAsset(1));
+  const ledgerEntriesId = new ObjectID(ID.dataAsset(2));
+  insert(DataAlert, {
+    alertId: new ObjectID(ID.alert(DATA_CAUSE_ALERT_NUMBER)),
+    alert: dataAlertRelation(DATA_CAUSE_ALERT_NUMBER),
+    dataAssetId: providerCallbacksId,
+    dataAsset: make(DataAsset, {
+      _id: ID.dataAsset(1),
+      assetKey: "payments.provider_callbacks",
+      dataStoreName: "Payments warehouse",
+    }),
+    createdAt: at("18:03"),
+  });
+  insert(DataAlert, {
+    alertId: new ObjectID(ID.alert(ALERT_NUMBER)),
+    alert: dataAlertRelation(ALERT_NUMBER),
+    causeAlertId: new ObjectID(ID.alert(DATA_CAUSE_ALERT_NUMBER)),
+    causeAlert: dataAlertRelation(DATA_CAUSE_ALERT_NUMBER),
+    dataAssetId: ledgerEntriesId,
+    dataAsset: make(DataAsset, {
+      _id: ID.dataAsset(2),
+      assetKey: "payments.ledger_entries",
+      dataStoreName: "Payments warehouse",
+    }),
+    createdAt: at("18:06"),
+  });
+  insert(DataAssetUsage, {
+    dataAssetId: ledgerEntriesId,
+    accessKind: DataAssetAccessKind.Write,
+    serviceId: services.payments.id,
+    serviceName: "payments-webhooks",
+    callCount: 4120,
+    errorCount: 37,
+    lastSeenAt: at("18:05"),
+  });
+  insert(DataAssetUsage, {
+    dataAssetId: ledgerEntriesId,
+    accessKind: DataAssetAccessKind.Write,
+    serviceId: services.checkout.id,
+    serviceName: "checkout-api",
+    callCount: 860,
+    errorCount: 0,
+    lastSeenAt: at("17:50"),
+  });
+  dataChangeEvents.push({
+    _id: new ObjectID(rowId()),
+    projectId: projectObjectId,
+    time: at("17:58"),
+    title: "Deployed payments-webhooks v2.14.0",
+    eventType: "Deployment",
+    primaryEntityId: services.payments.id,
+  });
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -3833,6 +4000,17 @@ const INCIDENT_CITATIONS = [
 
 const INCIDENT_ANALYSIS = [
   `**Summary** — Checkout API p95 latency passed 2s at 18:01 UTC because checkout-api restarted at 17:52 with its orders-db connection pool capped at 10 connections instead of 40, so requests queued for a connection [C2][C3][C6]. This is the same pool exhaustion recorded on prior incidents #1017, #1029 and #1036 [C1].`,
+  // ?impact=on: who and what it hurts, first, as the persona asks.
+  ...(impactMode
+    ? [
+        [
+          "**Impact**",
+          "- **Users:** about 1,240 of 9,800 checkout requests took over 2 s or failed between 17:58 and 18:11 UTC - root spans of checkout-api, counted with query_traces; requests, not users [C7].",
+          "- **Services:** checkout-api, and the storefront, which calls it for every checkout; orders-db waited on the pool, not on its own load [C6][C9].",
+          "- **SLOs:** Checkout latency is At Risk - 99.62% of requests under 2 s against its 99.9% target over a rolling 30 days, 41% of its error budget left, burning it at 6.2x [C2].",
+        ].join("\n"),
+      ]
+    : []),
   `**Most likely root cause** — Release 2026.09.14-2 of checkout-api started at 17:52:04 with \`db pool configured max=10\` (previously max=40) [C3]. Under normal evening load the pool sat at its 10-connection ceiling from 17:58 [C6], checkout requests waited up to 2s for a connection and p95 latency rose from about 310 ms to 2.35 s [C2]. The slowest sampled trace spent 1.94 s of 2.31 s in \`pg.pool.connect\` [C7]. No new exception groups appeared in the last hour, so this is capacity, not a code fault [C8]. Incidents #1017, #1029 and #1036 were resolved with the same root cause [C1].`,
   [
     "**Evidence**",
@@ -4410,6 +4588,34 @@ function remediationDecisionEntries() {
     ];
   }
   /*
+   * Linked to cluster staging-us-east-1, whose Fixes are on but whose
+   * Kubernetes AI agent never connected: OneUptime AI could not apply a
+   * fix there. While the record is open, the agent connecting makes it
+   * decide again (AutoRemediationRuleEngineService.onAgentConnected), and
+   * the line says so under what to do.
+   */
+  if (fixingMode === "cluster-agent-not-connected") {
+    return [
+      {
+        lane: "KubernetesCluster",
+        reason: "ClusterNotReady",
+        kubernetesClusterId: ID.kubernetesCluster(2),
+        kubernetesClusterName: "staging-us-east-1",
+        remediationMode: "RequireApproval",
+        gaps: [
+          {
+            code: "ai_agent_not_connected",
+            title: "The Kubernetes AI agent is not connected",
+            description:
+              "OneUptime AI runs kubectl on this cluster through the Kubernetes AI agent, and no agent has connected for this cluster yet.",
+            nextStep:
+              "Install the Kubernetes AI agent: helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent --set aiAgent.enabled=true",
+          },
+        ],
+      },
+    ];
+  }
+  /*
    * Linked to nothing a fix acts on (#5293): no cluster, no resource with
    * an AI agent. The engine names the signal's monitors on both entries,
    * so the card can link them; one Ask AI declared has none.
@@ -4508,18 +4714,21 @@ function cloudFixDryRun(mode, checkedAt) {
  * it on the account, as RemediationTrackRecordReader writes it on the
  * proposed change - the newest runs first, for the prior incidents.
  */
-function cloudFixTrackRecord(mode) {
-  const run = (number, daysAgo, outcome) => {
-    return {
-      subjectKind: "incident",
-      subjectId: ID.incident(number),
-      subjectNumber: `#${number}`,
-      ranAt: new Date(
-        NOW.getTime() - daysAgo * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-      outcome,
-    };
+// One earlier run of a change or a runbook, for a prior incident.
+function trackRecordRun(number, daysAgo, outcome) {
+  return {
+    subjectKind: "incident",
+    subjectId: ID.incident(number),
+    subjectNumber: `#${number}`,
+    ranAt: new Date(
+      NOW.getTime() - daysAgo * 24 * 60 * 60 * 1000,
+    ).toISOString(),
+    outcome,
   };
+}
+
+function cloudFixTrackRecord(mode) {
+  const run = trackRecordRun;
 
   if (mode === "worked") {
     return {
@@ -4628,9 +4837,21 @@ function kubectlFixCommand(sequence, tier, command, words) {
 }
 
 function kubectlFixPlan(hasRun) {
-  const execution = hasRun
-    ? { execution: { status: "Succeeded", exitCode: 0 } }
-    : {};
+  // Run the moment it is approved, as the approved-plan executor does.
+  const ranAt = new Date().toISOString();
+  const execution = (output) => {
+    return hasRun
+      ? {
+          execution: {
+            status: "Succeeded",
+            exitCode: 0,
+            output,
+            startedAt: ranAt,
+            completedAt: ranAt,
+          },
+        }
+      : {};
+  };
   return {
     commands: [
       kubectlFixCommand(
@@ -4644,7 +4865,7 @@ function kubectlFixPlan(hasRun) {
             "Fresh pods open up to 40 connections and the queue drains within 2 minutes.",
           rollbackCommand:
             "kubectl rollout undo deployment/checkout-api -n checkout",
-          ...execution,
+          ...execution("deployment.apps/checkout-api restarted"),
         },
       ),
       kubectlFixCommand(
@@ -4657,11 +4878,17 @@ function kubectlFixPlan(hasRun) {
           expectedEffect: "p95 latency falls back under 500 ms.",
           rollbackCommand:
             "kubectl scale deployment/checkout-api --replicas=4 -n checkout",
-          ...execution,
+          ...execution("deployment.apps/checkout-api scaled"),
         },
       ),
     ],
-    ...(hasRun ? { executionStatus: "Completed" } : {}),
+    ...(hasRun
+      ? {
+          executionStatus: "Completed",
+          executionStartedAt: ranAt,
+          executionCompletedAt: ranAt,
+        }
+      : {}),
   };
 }
 
@@ -4730,6 +4957,169 @@ if (fixesMode === "many") {
   });
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * A fix that ran, did not work and was rolled back (?fixes=rolled-back), the
+ * Remediation step of issue #5598: a kubectl fix OneUptime AI ran on its own
+ * on prod-eu-west-1 - raising checkout-api's memory request, which its Helm
+ * release puts back on the next upgrade - after which p95 latency did not
+ * recover, so the change was undone; the runbooks it looked through, none
+ * of which applies; and a second round, which found no safe fix.
+ * ---------------------------------------------------------------------------
+ */
+const ROLLED_BACK_FIX_SUGGESTION_ID = uuid("93000000", 5);
+const NO_RUNBOOK_SUGGESTION_ID = uuid("93000000", 6);
+const SECOND_ROUND_SUGGESTION_ID = uuid("93000000", 7);
+
+if (fixesMode === "rolled-back") {
+  insert(AutoRemediationSuggestion, {
+    _id: ROLLED_BACK_FIX_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "AutoExecuted",
+    suggestionType: "CommandPlan",
+    ruleNameSnapshot: 'AI remediation for cluster "prod-eu-west-1"',
+    kubernetesClusterId: new ObjectID(ID.kubernetesCluster(1)),
+    rationaleMarkdown:
+      "checkout-api's HPA is pinned at its 3-replica ceiling: each pod uses about **515Mi** against a **512Mi** memory request, so the memory-as-%-of-request metric reads ~99% against an 80% target and can never scale down. Raising the request to 1Gi brings the metric to ~50%.",
+    commandPlan: {
+      commands: [
+        {
+          ...kubectlFixCommand(
+            1,
+            "RiskyWrite",
+            "kubectl set resources deployment/checkout-api -n checkout -c checkout-api --requests=memory=1Gi",
+            {
+              rationale:
+                "Each pod's memory (~515Mi) exceeds its 512Mi request, so the HPA reads ~99% and stays at 3 replicas.",
+              expectedEffect:
+                "The deployment rolls out with a 1Gi memory request, and the HPA's metric falls from ~99% to ~50%.",
+              rollbackCommand:
+                "kubectl rollout undo deployment/checkout-api -n checkout",
+            },
+          ),
+          wasAutoExecuted: true,
+          gitOps: {
+            controller: "Helm",
+            ownerKind: "release",
+            ownerName: "checkout",
+            ownerNamespace: "checkout",
+            evidence: "annotation meta.helm.sh/release-name",
+            objectKind: "Deployment",
+            objectName: "checkout-api",
+            objectNamespace: "checkout",
+            putsBack: true,
+            reconcilesOnItsOwn: false,
+            summary:
+              "Helm release \"checkout\" (namespace checkout) declares deployment/checkout-api, and this change edits a container's resources: the release's next helm upgrade puts it back. Treat it as a stopgap - the lasting fix is the same change in the release's chart values.",
+          },
+          execution: {
+            status: "Succeeded",
+            exitCode: 0,
+            output:
+              "deployment.apps/checkout-api resource requirements updated",
+            startedAt: at("18:04", 18).toISOString(),
+            completedAt: at("18:04", 21).toISOString(),
+          },
+          rollbackExecution: {
+            status: "Succeeded",
+            exitCode: 0,
+            output: "deployment.apps/checkout-api rolled back",
+            startedAt: at("18:14", 25).toISOString(),
+            completedAt: at("18:14", 27).toISOString(),
+          },
+        },
+      ],
+      executionStatus: "Completed",
+      executionStartedAt: at("18:04", 18).toISOString(),
+      executionCompletedAt: at("18:04", 21).toISOString(),
+      rollbackStatus: "Completed",
+    },
+    verificationStatus: "Failed",
+    verificationNote:
+      "The AI command remediation completed but the service did not recover within the verification window — escalation continues as normal. Rollback completed: 1 command(s) undone.",
+    verificationWindowMinutes: 10,
+    verificationCompletedAt: at("18:14", 21),
+    createdAt: at("18:04", 10),
+  });
+  insert(AutoRemediationSuggestion, {
+    _id: NO_RUNBOOK_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "NoneApplicable",
+    suggestionType: "Runbook",
+    ruleNameSnapshot: "All incidents",
+    rationaleMarkdown:
+      "None of this project's 4 runbooks changes checkout-api's resources or restarts it, so none applies to this incident.",
+    createdAt: at("18:04", 30),
+  });
+  insert(AutoRemediationSuggestion, {
+    _id: SECOND_ROUND_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "NoneApplicable",
+    suggestionType: "CommandPlan",
+    ruleNameSnapshot: 'AI remediation for cluster "prod-eu-west-1" (round 2)',
+    kubernetesClusterId: new ObjectID(ID.kubernetesCluster(1)),
+    rationaleMarkdown:
+      "Raising the memory request again would repeat the change that was just rolled back, and nothing else on the cluster explains the latency, so OneUptime AI proposes no change.",
+    createdAt: at("18:15", 2),
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * A runbook that waits, and a fix approved in Slack (?fixes=runbook,
+ * #5519's follow-ups). The rule "Checkout fixes" proposed the runbook
+ * "Restart checkout-api pods" at 18:03, with how it went the last times
+ * OneUptime AI ran it here, as RemediationTrackRecordReader
+ * .readRunbookTrackRecords keeps it on the proposal: it worked for #1036
+ * and #1017 and did not for #1029. OneUptime AI also proposed a kubectl fix
+ * on prod-eu-west-1, which Maya Chen approved from its Slack message - the
+ * server keeps where (approvedFrom) - and which was verified fixed; the
+ * runbook still waits.
+ * ---------------------------------------------------------------------------
+ */
+const RUNBOOK_PROPOSAL_SUGGESTION_ID = uuid("93000000", 8);
+const SLACK_APPROVED_FIX_SUGGESTION_ID = uuid("93000000", 9);
+
+if (fixesMode === "runbook") {
+  insert(AutoRemediationSuggestion, {
+    _id: RUNBOOK_PROPOSAL_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "Suggested",
+    suggestionType: "Runbook",
+    ruleNameSnapshot: "Checkout fixes",
+    runbookNameSnapshot: "Restart checkout-api pods",
+    runbookId: new ObjectID(uuid("98000000", 1)),
+    runbookTrackRecord: {
+      workedCount: 2,
+      didNotWorkCount: 1,
+      runs: [
+        trackRecordRun(1036, 6, "Worked"),
+        trackRecordRun(1029, 19, "DidNotWork"),
+        trackRecordRun(1017, 41, "Worked"),
+      ],
+    },
+    createdAt: at("18:03", 30),
+  });
+  insert(AutoRemediationSuggestion, {
+    _id: SLACK_APPROVED_FIX_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "Approved",
+    suggestionType: "CommandPlan",
+    ruleNameSnapshot: 'AI remediation for cluster "prod-eu-west-1"',
+    kubernetesClusterId: new ObjectID(ID.kubernetesCluster(1)),
+    rationaleMarkdown:
+      "The pool exhaustion follows the 17:52 restart. Restarting the deployment brings the configured pool back.",
+    commandPlan: kubectlFixPlan(true),
+    approvedAt: at("18:05", 10),
+    approvedByUser: people.maya,
+    approvedFrom: "Slack",
+    verificationStatus: "Verified",
+    verificationNote:
+      "p95 latency was back under 500 ms 3 minutes after the run.",
+    createdAt: at("18:04", 10),
+  });
+}
+
 // Approve & Run (POST /auto-remediation/approve) on a fix that waits.
 function approveFix(suggestionId) {
   const record = table(AutoRemediationSuggestion).find((row) => {
@@ -4745,6 +5135,10 @@ function approveFix(suggestionId) {
     throw fail(400, "Only suggested remediations can be approved.");
   }
   record.status = "Approved";
+  // Who approved it and when, as the server stamps them.
+  record.approvedAt = new Date();
+  record.approvedByUser = people.maya;
+  record.approvedFrom = "Dashboard";
   if (String(record._id) === KUBECTL_FIX_SUGGESTION_ID) {
     record.commandPlan = kubectlFixPlan(true);
   }
@@ -4755,10 +5149,15 @@ function dismissFix(suggestionId) {
   const record = table(AutoRemediationSuggestion).find((row) => {
     return String(row._id) === String(suggestionId);
   });
+  if (failures.has("dismiss")) {
+    throw fail(403, FIX_DISMISS_REFUSED_MESSAGE);
+  }
   if (!record || record.status !== "Suggested") {
     throw fail(400, "Only suggested remediations can be dismissed.");
   }
   record.status = "Dismissed";
+  record.dismissedAt = new Date();
+  record.dismissedByUser = people.maya;
 }
 
 /*
@@ -4985,6 +5384,9 @@ const LINKED_KIND_NOUNS = {
   DockerHost: "Docker host",
   KubernetesCluster: "Kubernetes cluster",
   DatabaseServer: "Database",
+  CloudResource: "Cloud resource",
+  // An App Platforms environment, as buildActivityNote records it.
+  CloudEnvironment: "Cloud environment",
   Service: "Service",
 };
 
@@ -4997,6 +5399,13 @@ const INCIDENT_LINKED_RESOURCES = [
 ];
 
 const ALERT_LINKED_RESOURCES = [{ kind: "Host", name: "payments-web-2" }];
+
+// ?linked=cloud: an App Platforms environment, a cloud resource and their service.
+const INCIDENT_CLOUD_LINKED_RESOURCES = [
+  { kind: "CloudEnvironment", name: "checkout-web (Production)" },
+  { kind: "CloudResource", name: "checkout-api" },
+  { kind: "Service", name: "checkout-api" },
+];
 
 function linkedInfrastructureNote(data) {
   const names = data.resources.slice(0, 3).map((resource) => {
@@ -5045,6 +5454,23 @@ if (linkedMode === "alerts" || linkedMode === "more") {
       resources: ALERT_LINKED_RESOURCES,
       alertCount: 0,
       openAlertCount: 0,
+      hasMoreAlerts: false,
+    }),
+  ];
+}
+
+/*
+ * ?linked=cloud: #1042 is linked to the App Platforms environment
+ * checkout-web (Production), the cloud resource checkout-api and its
+ * service. The run's activity records the environment by a kind of its
+ * own - CloudEnvironment, not CloudResource - so it is named as one.
+ */
+if (linkedMode === "cloud") {
+  investigations.incident.contextNotes = [
+    linkedInfrastructureNote({
+      resources: INCIDENT_CLOUD_LINKED_RESOURCES,
+      alertCount: 2,
+      openAlertCount: 1,
       hasMoreAlerts: false,
     }),
   ];
@@ -5880,6 +6306,12 @@ ModelAPI.getList = async (options) => {
     skip,
     limit,
   });
+  if (failures.has("data-alert") && modelName === tableName(DataAlert)) {
+    throw fail(403, DATA_ALERT_REFUSAL);
+  }
+  if (failures.has("data-writers") && modelName === tableName(DataAssetUsage)) {
+    throw fail(500, DATA_WRITERS_FAILURE);
+  }
   const known = knownTable(options.modelType, "getList", {
     query: serialize(options.query),
   });
@@ -6140,7 +6572,9 @@ ModelAPI.deleteItem = async (options) => {
 
 /*
  * No telemetry is attached to these events, so analytics reads are not
- * modelled: they answer empty and are recorded as unhandled.
+ * modelled: they answer empty and are recorded as unhandled. All but one:
+ * with ?data=table, the changes of the services that write #311's table,
+ * which its Data card reads around the alert.
  */
 AnalyticsModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
@@ -6154,6 +6588,26 @@ AnalyticsModelAPI.getList = async (options) => {
     limit: Number(options.limit || 10),
   };
   fixture.listRequests.push(record);
+  if (dataMode && modelName === tableName(ChangeEvent)) {
+    if (failures.has("data-changes")) {
+      throw fail(403, DATA_CHANGES_REFUSAL);
+    }
+    // The time window is not modelled: every change here is inside it.
+    const rows = sortRecords(
+      dataChangeEvents.filter((row) => {
+        return matches(row, options.query);
+      }),
+      options.sort,
+    );
+    return {
+      data: rows.slice(record.skip, record.skip + record.limit).map((row) => {
+        return make(ChangeEvent, row);
+      }),
+      count: rows.length,
+      skip: record.skip,
+      limit: record.limit,
+    };
+  }
   fixture.unhandled.push({ kind: "analytics.getList", modelName });
   return { data: [], count: 0, skip: record.skip, limit: record.limit };
 };
@@ -6325,6 +6779,67 @@ function threadRunEvents(runId, startedAt, options) {
 const THREAD_ANSWER_TO_SENT_QUESTION =
   "checkout-api is still the only service above its latency threshold: its p95 is back under 500 ms since 18:12 and no other monitor has changed state [C1].";
 
+/*
+ * An action's card as the server stores it: its title and line as
+ * sentences (Common/Types/AI/AIActionWords), which the card says in the
+ * reader's language, the record by its number and the host by its name as
+ * data - beside their English, which the model and the exports read.
+ */
+function storedActionWords(words) {
+  const english = describeAIActionWords(words);
+
+  return {
+    title: english.title,
+    ...(english.description ? { description: english.description } : {}),
+    words,
+  };
+}
+
+// Acknowledging the thread's incident or alert, named by its number.
+function acknowledgeWords(kind, number) {
+  return storedActionWords({
+    title:
+      kind === "alert"
+        ? aiActionSentence(AI_ACTION_TITLES.acknowledgeAlert, {
+            alert: `#${number}`,
+          })
+        : aiActionSentence(AI_ACTION_TITLES.acknowledgeIncident, {
+            incident: `#${number}`,
+          }),
+    namedArguments: [`${kind}Id`],
+  });
+}
+
+/*
+ * What acknowledge_incident and acknowledge_alert take: the record's ID,
+ * which the title names by its number (namedArguments).
+ */
+function acknowledgeArguments(kind, number) {
+  return {
+    [`${kind}Id`]: kind === "alert" ? ID.alert(number) : ID.incident(number),
+  };
+}
+
+// Linking it to host checkout-api-7f9c, as its prepare names both.
+function linkWords(kind, number) {
+  return storedActionWords({
+    title:
+      kind === "alert"
+        ? aiActionSentence(AI_ACTION_TITLES.linkAlert, { alert: `#${number}` })
+        : aiActionSentence(AI_ACTION_TITLES.linkIncident, {
+            incident: `#${number}`,
+          }),
+    description: [
+      aiActionSentence(AI_ACTION_LINES.adds, {
+        resources: aiActionList([
+          aiActionResourceByName({ noun: "host", name: "checkout-api-7f9c" }),
+        ]),
+      }),
+    ],
+    namedArguments: [`${kind}Id`],
+  });
+}
+
 function seedThread(kind, number) {
   const subject = `${kind} #${number}`;
   const messages = [];
@@ -6403,8 +6918,10 @@ function seedThread(kind, number) {
           {
             id: "call_acknowledge",
             toolName: `acknowledge_${kind}`,
-            title: `Acknowledge ${subject}`,
-            arguments: { [`${kind}Number`]: number },
+            // "Acknowledge incident #1042", and its sentence.
+            ...acknowledgeWords(kind, number),
+            // The record by its ID, as acknowledge_<kind> takes it.
+            arguments: acknowledgeArguments(kind, number),
             isMutation: true,
             requiresApproval: false,
             status: AIChatToolActionStatus.Executed,
@@ -6524,8 +7041,13 @@ function seedThread(kind, number) {
         {
           id: "call_acknowledge",
           toolName: `acknowledge_${kind}`,
-          title: `Acknowledge ${subject}`,
-          arguments: { [`${kind}Number`]: number },
+          // "Acknowledge incident #1042", and its sentence.
+          ...acknowledgeWords(kind, number),
+          /*
+           * The record by its ID, as acknowledge_<kind> takes it: the title
+           * names it by its number, so the card shows no argument at all.
+           */
+          arguments: acknowledgeArguments(kind, number),
           isMutation: true,
           requiresApproval: true,
           status: AIChatToolActionStatus.Pending,
@@ -6562,8 +7084,12 @@ function seedThread(kind, number) {
         {
           id: "call_link",
           toolName: `add_${kind}_affected_resources`,
-          title: `Link ${kind} #${number} to affected resources`,
-          description: 'Adds host "checkout-api-7f9c".',
+          /*
+           * "Link incident #1042 to affected resources" and 'Adds host
+           * "checkout-api-7f9c".', and their sentences: the title names
+           * the record, so the card leaves its ID out of the arguments.
+           */
+          ...linkWords(kind, number),
           arguments: {
             [`${kind}Id`]:
               kind === "incident" ? ID.incident(number) : ID.alert(number),
@@ -6797,6 +7323,8 @@ function cancelThreadRun(body) {
 const SLACK_TEAM_ID = "T0ACMECOM";
 const TEAMS_TEAM_ID = "3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b";
 const TEAMS_TENANT_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
+const MATTERMOST_SERVER_URL = "https://chat.acme-commerce.example";
+const MATTERMOST_TEAM_NAME = "acme";
 
 function channelLinks(url) {
   const [recordType] = url.split("/workspace-channel-link/")[1].split("/");
@@ -6840,6 +7368,18 @@ function channelLinks(url) {
         tenantId: TEAMS_TENANT_ID,
         teamId: TEAMS_TEAM_ID,
         channelId: "19:acme0001acme0001acme0001acme0001@thread.tacv2",
+        channelName: name,
+      }),
+    });
+  }
+
+  if (channelModes.has("mattermost")) {
+    links.push({
+      workspaceType: WorkspaceType.Mattermost,
+      channelName: name,
+      url: WorkspaceChannelLinkUtil.getMattermostChannelUrl({
+        serverUrl: MATTERMOST_SERVER_URL,
+        teamName: MATTERMOST_TEAM_NAME,
         channelName: name,
       }),
     });
@@ -6902,10 +7442,14 @@ function initialChannelPeople() {
   }
 }
 
-// The people in each Slack channel, as the card's adds change them.
+// A Mattermost id: 26 lowercase letters and digits.
+const MATTERMOST_CHANNEL_ID = "c0acme0mattermost000000001";
+
+// The people in each Slack and Mattermost channel, as the card's adds change them.
 const channelPeopleById = {
   C0ACME0001: initialChannelPeople(),
   C0ACME0002: initialChannelPeople(),
+  [MATTERMOST_CHANNEL_ID]: initialChannelPeople(),
 };
 
 const SLACK_CHANNEL_IDS_BY_NAME = {
@@ -6945,7 +7489,9 @@ function channelMembers(url) {
     }
 
     const channelId =
-      SLACK_CHANNEL_IDS_BY_NAME[link.channelName] || "C0ACME0001";
+      link.workspaceType === WorkspaceType.Mattermost
+        ? MATTERMOST_CHANNEL_ID
+        : SLACK_CHANNEL_IDS_BY_NAME[link.channelName] || "C0ACME0001";
     const listed = state === "members" || state === "archived";
     const inChannel = listed ? channelPeopleById[channelId] : [];
     const viewerId = people.maya.id.toString();
@@ -6955,7 +7501,7 @@ function channelMembers(url) {
 
     return {
       channelId,
-      workspaceType: WorkspaceType.Slack,
+      workspaceType: link.workspaceType,
       name: link.channelName,
       url: link.url,
       isPrivate: listed ? membersMode !== "readonly-public" : null,
@@ -7022,7 +7568,7 @@ function addToChannel(body) {
     });
     const name = member ? member.name.toString() : "Someone";
 
-    // Nobody in Slack has their email address (?unknown=, Alex by default).
+    // Nobody in the workspace has their email address (?unknown=, Alex by default).
     const memberKey = Object.keys(people).find((key) => {
       return people[key] === member;
     });
@@ -7686,6 +8232,18 @@ async function handleApi(method, options) {
     return ok(subscriberAudience(body));
   }
 
+  /*
+   * Why a data alert happened (DataAlertExplanationCard), asked only for an
+   * alert a data monitor raised: nothing found, so the card draws nothing.
+   */
+  if (
+    method === "POST" &&
+    url.includes("/data-observability/alerts/") &&
+    url.endsWith("/explanation")
+  ) {
+    return ok({ explanation: null });
+  }
+
   if (
     url.includes("/ai-investigation/incident") ||
     url.includes("/ai-investigation/alert")
@@ -7854,7 +8412,7 @@ async function handleApi(method, options) {
       if (failures.has("pass-on")) {
         throw fail(500, "The page could not be escalated.");
       }
-      return ok({ answers: passOnAnswers(recordType, recordId) });
+      return ok({ answers: passOnAnswers(recordType, recordId, body) });
     }
   }
 
@@ -7875,6 +8433,18 @@ async function handleApi(method, options) {
    */
   if (method === "POST" && url.endsWith("/security-case/incident-security")) {
     return ok(incidentSecurity(body));
+  }
+
+  /*
+   * The dashboards built on a data alert's table and the tables built from
+   * it (?data=table), which its Data card lists under the table
+   * (DataObservabilityApi.getTableDashboards): none are modelled.
+   */
+  if (
+    method === "POST" &&
+    url.endsWith("/data-observability/tables/dashboards")
+  ) {
+    return ok({ dashboards: [] });
   }
 
   // Try again on the Remediation step: decided again, or refused.
@@ -7928,7 +8498,100 @@ async function handleApi(method, options) {
  */
 const passedOnRecords = new Set();
 
+/*
+ * ?passOn=levels / levels-gone: the levels after the viewer's, as the
+ * preview offers them (levelChoices), each with who it pages.
+ */
+const LATER_LEVELS = [
+  {
+    escalationRuleId: uuid("74000000", 2),
+    order: 2,
+    name: "Platform leads",
+    paged: ["Sam Lee", "Priya Patel"],
+  },
+  {
+    escalationRuleId: uuid("74000000", 3),
+    order: 3,
+    name: "DBA leads",
+    paged: ["Dana Kim"],
+  },
+  {
+    escalationRuleId: uuid("74000000", 4),
+    order: 4,
+    name: "Level 4",
+    paged: ["Morgan Chen"],
+  },
+];
+
+/*
+ * ?passOn=levels-two: the second policy paging the viewer, Payments
+ * escalation, has levels of its own after the viewer's - one with a name
+ * as long as people give them.
+ */
+const PAYMENTS_POLICY = "Payments escalation";
+const PAYMENTS_LATER_LEVELS = [
+  {
+    escalationRuleId: uuid("74100000", 2),
+    order: 2,
+    name: "Payments on-call",
+    paged: ["Lee Wong"],
+  },
+  {
+    escalationRuleId: uuid("74100000", 3),
+    order: 3,
+    name: "Payments platform engineering managers, EU and US regions",
+    paged: ["Ana Lopez"],
+  },
+];
+
+// levels-gone: DBA leads was deleted while the dialog asked.
+let isDbaLevelGone = false;
+
+function laterLevels(policyName) {
+  if (policyName === PAYMENTS_POLICY) {
+    return PAYMENTS_LATER_LEVELS;
+  }
+
+  return LATER_LEVELS.filter((level) => {
+    return !(isDbaLevelGone && level.order === 3);
+  });
+}
+
+function levelsResult(isPreview, policyName, pickedLevel) {
+  const level = pickedLevel || laterLevels(policyName)[0];
+
+  return {
+    isPreview,
+    isDirectPage: false,
+    policyName,
+    stillPagedNames: [],
+    ruleCount: policyName === PAYMENTS_POLICY ? 3 : 4,
+    outcome: "NextRulePaged",
+    rule: { order: level.order, name: level.name },
+    pagedNames: isPreview ? [] : level.paged,
+    ...(isPreview
+      ? {
+          levelChoices: laterLevels(policyName).map((choice) => {
+            return {
+              escalationRuleId: choice.escalationRuleId,
+              order: choice.order,
+              name: choice.name,
+            };
+          }),
+        }
+      : {}),
+  };
+}
+
 function passOnResult(isPreview, policyName) {
+  if (
+    passOnMode === "levels" ||
+    passOnMode === "levels-gone" ||
+    passOnMode === "levels-two"
+  ) {
+    return levelsResult(isPreview, policyName);
+  }
+
   const base = {
     isPreview,
     isDirectPage: false,
@@ -7989,8 +8652,8 @@ function openPassOnPages(recordType, recordId) {
   }
 
   const policies =
-    passOnMode === "two"
-      ? ["Checkout on-call", "Payments escalation"]
+    passOnMode === "two" || passOnMode === "levels-two"
+      ? ["Checkout on-call", PAYMENTS_POLICY]
       : ["Checkout on-call"];
 
   return policies.map((policyName, index) => {
@@ -8046,11 +8709,45 @@ function acknowledgeMeanwhile(recordType, recordId) {
   mainIncident.record.currentIncidentStateId = acknowledged.id;
 }
 
-function passOnAnswers(recordType, recordId) {
+function passOnAnswers(recordType, recordId, body) {
   const pages = openPassOnPages(recordType, recordId);
 
   if (pages.length === 0) {
     return [{ passedOn: false, refusal: "NotPaged" }];
+  }
+
+  /*
+   * ?passOn=levels: the level the POST picked for the page's run, or the
+   * next. levels-gone: a later level picked is no longer offered - the
+   * first time - and nothing is escalated; the page is still paging.
+   * levels-two: each policy's page pages the level picked for its own run.
+   */
+  if (
+    passOnMode === "levels" ||
+    passOnMode === "levels-gone" ||
+    passOnMode === "levels-two"
+  ) {
+    const escalateTo = (body && body.escalateTo) || {};
+    const pickedId = escalateTo[pages[0].executionLogId];
+
+    if (pickedId && passOnMode === "levels-gone" && !isDbaLevelGone) {
+      isDbaLevelGone = true;
+      return [{ passedOn: false, refusal: "LevelNotAvailable" }];
+    }
+
+    passedOnRecords.add(`${recordType}:${recordId}`);
+
+    return pages.map((page) => {
+      const policyName = page.preview.policyName;
+      const picked = laterLevels(policyName).find((level) => {
+        return level.escalationRuleId === escalateTo[page.executionLogId];
+      });
+
+      return {
+        passedOn: true,
+        result: levelsResult(false, policyName, picked),
+      };
+    });
   }
 
   if (passOnMode === "acknowledged") {
@@ -8137,6 +8834,14 @@ async function loadTranslation(lang) {
 
   return response.json();
 }
+
+/*
+ * Dates follow the page's language, as the Dashboard's own setup has them
+ * (Dashboard/src/Utils/i18n): "vor 2 Monaten" on a German page, never
+ * "2 months ago" in the middle of German words. Handed the instance before
+ * it starts, as the Dashboard does.
+ */
+followLanguageForDates(i18next);
 
 await i18next.use(initReactI18next).init({
   lng: language,

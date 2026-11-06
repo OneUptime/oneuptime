@@ -547,6 +547,15 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
     delivery: "skip",
   },
   /*
+   * Write a Check from a Sentence on a table's Checks: the person waits on
+   * the request (POST /data-observability/checks/suggest), and a refusal is
+   * the message the card shows under the sentence.
+   */
+  {
+    file: "Common/Server/Utils/DataObservability/DataCheckFromSentence.ts",
+    delivery: "throw",
+  },
+  /*
    * Reading an incident call's transcript runs in the background: start()
    * checks the switch first and stores "Skipped" with the sentence that
    * says where to turn it on, and a refusal while it reads is stored on the

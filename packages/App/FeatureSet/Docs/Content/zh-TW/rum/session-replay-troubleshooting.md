@@ -132,7 +132,7 @@ OneUptimeReplay.captureSession("installation test");
 
 要找的是帶有 `chunk-accepted` 的 `202` 。 `204` 則會記錄 `chunk-not-recorded` ：請求沒有問題，是伺服器選擇不儲存它 — 預算超標、未被取樣，或應用程式已關閉。這是策略給出的答案，而不是安裝錯誤，旁邊的 `server-directive` 行會說明是哪一種。
 
-若要重新錄製每個工作階段，請在應用程式的 **Replay Policy** 頁面上將 **何時上傳錄製** 設為 _Always_ ，並將 **取樣百分比** 設為大於 0。這是出廠預設值。
+若要重新錄製每個工作階段，請在應用程式的 **重播政策** 頁面上將 **何時上傳錄製** 設為 _Always_ ，並將 **取樣百分比** 設為大於 0。這是出廠預設值。
 
 ## 代碼
 
@@ -179,13 +179,13 @@ OneUptimeReplay.captureSession("installation test");
 
 | 值 | 處理 |
 | --- | --- |
-| `not-enabled-for-application` | 這個 RUM 應用程式關閉了工作階段重播、識別碼與任何應用程式都不相符，或者專案不允許使用重播。 `disabledDetail` 會說明是哪一種： `application-not-enabled` （該應用程式的開關）、 `project-not-allowed` （位於 **真實使用者監測 → 設定 → 工作階段重播** 下的專案層級開關）、 `application-unknown` （沒有應用程式使用這個 `appIdentifier` — 請在應用程式的 **Replay Policy** 頁面上核對拼字），或 `project-killed` （此部署上維運人員的緊急開關）。 |
-| `budget-exhausted` | 專案的每日位元組預算或應用程式的每月預算已經用完，因此錄製器被告知不要錄製，而不是上傳會被拒絕的區塊。 `disabledDetail` 為 `project-daily-budget-exhausted` 或 `app-monthly-budget-exhausted` ， `budgetResetsAt` 會說明何時解除。請在 **Replay Policy** 頁面上提高預算，或等待重設。 |
+| `not-enabled-for-application` | 這個 RUM 應用程式關閉了工作階段重播、識別碼與任何應用程式都不相符，或者專案不允許使用重播。 `disabledDetail` 會說明是哪一種： `application-not-enabled` （該應用程式的開關）、 `project-not-allowed` （位於 **真實使用者監測 → 設定 → 工作階段重播** 下的專案層級開關）、 `application-unknown` （沒有應用程式使用這個 `appIdentifier` — 請在應用程式的 **重播政策** 頁面上核對拼字），或 `project-killed` （此部署上維運人員的緊急開關）。 |
+| `budget-exhausted` | 專案的每日位元組預算或應用程式的每月預算已經用完，因此錄製器被告知不要錄製，而不是上傳會被拒絕的區塊。 `disabledDetail` 為 `project-daily-budget-exhausted` 或 `app-monthly-budget-exhausted` ， `budgetResetsAt` 會說明何時解除。請在 **重播政策** 頁面上提高預算，或等待重設。 |
 | `recorder-not-built` | **該部署沒有錄製器成品。** 用戶端無法修正這個問題。產生 `packages/App/FeatureSet/BrowserRecorder/public/dist/manifest.json` 的建置沒有執行，或者其輸出從未進入正在執行的映像。請重新建置並重新部署 OneUptime 應用程式。對於重播從未正常運作過的自行託管安裝，這就是典型的答案。 |
 | `disabled-by-default` | 此部署上設定了 `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` 。請將其設為 `true` — 如果是自行託管，請先設定 `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` ，因為重播是你最重的資料表。 |
 | `ingest-disabled` | 此部署上設定了 `SESSION_REPLAY_INGEST_ENABLED=false` 。 |
 | `policy-unavailable` | 伺服器無法決定策略 — 通常是 Redis 或 Postgres 的問題。這是刻意的失敗即關閉。請檢查 OneUptime 應用程式的日誌。 |
-| `not-reported` | 伺服器比這個欄位舊。請改用儀表板中 **Replay Policy** 頁面上的 **Test your installation** 面板。 |
+| `not-reported` | 伺服器比這個欄位舊。請改用儀表板中 **重播政策** 頁面上的 **Test your installation** 面板。 |
 
 ### 成品
 
@@ -210,7 +210,7 @@ OneUptimeReplay.captureSession("installation test");
 | --- | --- |
 | `not-sampled` | 這個工作階段在取樣抽籤中落選，因此完全不會被錄製。取樣由工作階段 ID 決定，是確定性的，所以重新載入對這個工作階段沒有幫助。請提高取樣百分比。 |
 | `recording` | 正在錄製。請閱讀詳細資料：在預設觸發器 `Always` 下， `uploading: true` 是正常狀態。 `captureTrigger: "OnErrorOrFrustration"` 時的 `uploading: false` 是另一種正常狀態，不會送出請求。 |
-| `same-origin-propagation` | 錄製器啟動時記錄一次：它是否會在傳往頁面本身來源的請求中加入追蹤內容（ `traceparent` ，以及帶有工作階段 ID 的 `tracestate` ）。帶 `reason: "on"` 的 `enabled: true` 是預設值。 `reason: "policy-off"` 表示應用程式的 **Replay Policy** 頁面上關閉了 **同源追蹤傳播** ； `reason: "opaque-origin"` 表示頁面沒有自己的來源（沙箱化的 iframe、 `about:blank` 、 `srcdoc` 或 `file:` ），因此沒有任何東西算作同源。即使開啟，這些標頭也只會隨工作階段上傳期間送出的請求一起傳送，並且絕不會附加到路徑以 `/v1/traces` 、 `/v1/logs` 或 `/v1/metrics` 結尾的 `POST` 上（頁面本身的 OpenTelemetry 匯出）。當錄製器在一次頁面載入中第一次把同源請求的 `traceparent` 讓給某個代理程式時（因為該代理程式被設定為追蹤該請求；對 Datadog RUM 而言僅限它追蹤的工作階段），還會再記錄一次，帶有 `reason: "agent-stand-down"` 和一個 `agent` 欄位（ `DD_RUM` 、 `NREUM` 或 `elasticApm` ）；該請求仍會取得 `tracestate` 成員，而且只有在代理程式確實傳送了 `traceparent` 時才會被關聯，而 Datadog 只會在它所追蹤、且被取樣用於追蹤的 Datadog 工作階段中傳送。New Relic（ `NREUM` ）會傳送它自己的 `tracestate` 來取代該成員，因此它的請求只能透過追蹤 ID 關聯（請參閱 [Logs 與 Traces 分頁為空](#播放器的-logs-與-traces-分頁為空) ）。請參閱 [與其他遙測資料關聯](/docs/telemetry/session-replay#與其他遙測資料關聯) 。 |
+| `same-origin-propagation` | 錄製器啟動時記錄一次：它是否會在傳往頁面本身來源的請求中加入追蹤內容（ `traceparent` ，以及帶有工作階段 ID 的 `tracestate` ）。帶 `reason: "on"` 的 `enabled: true` 是預設值。 `reason: "policy-off"` 表示應用程式的 **重播政策** 頁面上關閉了 **同源追蹤傳播** ； `reason: "opaque-origin"` 表示頁面沒有自己的來源（沙箱化的 iframe、 `about:blank` 、 `srcdoc` 或 `file:` ），因此沒有任何東西算作同源。即使開啟，這些標頭也只會隨工作階段上傳期間送出的請求一起傳送，並且絕不會附加到路徑以 `/v1/traces` 、 `/v1/logs` 或 `/v1/metrics` 結尾的 `POST` 上（頁面本身的 OpenTelemetry 匯出）。當錄製器在一次頁面載入中第一次把同源請求的 `traceparent` 讓給某個代理程式時（因為該代理程式被設定為追蹤該請求；對 Datadog RUM 而言僅限它追蹤的工作階段），還會再記錄一次，帶有 `reason: "agent-stand-down"` 和一個 `agent` 欄位（ `DD_RUM` 、 `NREUM` 或 `elasticApm` ）；該請求仍會取得 `tracestate` 成員，而且只有在代理程式確實傳送了 `traceparent` 時才會被關聯，而 Datadog 只會在它所追蹤、且被取樣用於追蹤的 Datadog 工作階段中傳送。New Relic（ `NREUM` ）會傳送它自己的 `tracestate` 來取代該成員，因此它的請求只能透過追蹤 ID 關聯（請參閱 [Logs 與 Traces 分頁為空](#播放器的-logs-與-traces-分頁為空) ）。請參閱 [與其他遙測資料關聯](/docs/telemetry/session-replay#與其他遙測資料關聯) 。 |
 | `same-origin-propagation-tripped` | 錄製器加入了追蹤內容的某個請求在網路層失敗，通常是一個被重新導向到另一個來源的同源請求，而那個來源不允許 `traceparent` 與 `tracestate` 。在本次頁面載入的剩餘時間裡，錄製器不再加入它們。 `retried: true` 表示它是不帶本文的 `fetch` `GET` 或 `HEAD` ，並已依你的頁面送出的原樣再傳送了一次； `false` 表示它無法重試並且失敗了：只有不帶本文的 `fetch` `GET` 或 `HEAD` 會被重試（不包括 XHR、其他方法和帶本文的請求）。你自己頁面的中止與逾時不會觸發它，瀏覽器回報離線期間的失敗也不會；下一次頁面載入會重新開始。請參閱 [啟用工作階段重播後下載或重新導向失敗](#啟用工作階段重播後下載或重新導向失敗) 。 |
 | `trigger` | 發生了值得保留的事情。 `reason` 是 `error` 、 `frustration` 、 `performance` 、 `sampled` 或 `manual` 之一。 |
 | `upload-started` | 正在清出緩衝區中的預錄內容。區塊 POST 從這裡開始。 |
@@ -435,7 +435,7 @@ OpenTelemetry 瀏覽器 SDK 的 OTLP/HTTP 匯出工具傳送 `application/json` 
 錄製器在第一次出現這種失敗時就會觸發斷路器。它會記錄 `same-origin-propagation-tripped` ，在本次頁面載入的剩餘時間裡停止加入這些標頭，並把不帶本文的 `fetch` `GET` 或 `HEAD` 依你的頁面送出的原樣重試一次（詳細資料中的 `retried: true` ），因此你的頁面會得到重試的結果。除了不帶本文的 `fetch` `GET` 或 `HEAD` 之外的任何請求（任何 `XMLHttpRequest` 、任何其他方法、任何帶本文的請求）都不會重試，所以那個請求仍然會失敗，而下一次頁面載入又會重新加入這些標頭。若要徹底解決，可以：
 
 - 在另一個來源的 CORS 設定中允許 `traceparent` 與 `tracestate` （在 S3 上是儲存貯體 CORS 的 `AllowedHeaders` ），或者
-- 在應用程式的 **Replay Policy** 頁面上關閉 **同源追蹤傳播** ，如果你把自己的來源加入了 **追蹤傳播來源** ，也請把它移除，否則它的請求會繼續取得 `traceparent` 。這樣一來，只有 **追蹤傳播來源** 中的來源，以及你的頁面自行追蹤的請求，才會關聯後端遙測。
+- 在應用程式的 **重播政策** 頁面上關閉 **同源追蹤傳播** ，如果你把自己的來源加入了 **追蹤傳播來源** ，也請把它移除，否則它的請求會繼續取得 `traceparent` 。這樣一來，只有 **追蹤傳播來源** 中的來源，以及你的頁面自行追蹤的請求，才會關聯後端遙測。
 
 請參閱 [重新導向到其他來源](/docs/telemetry/session-replay#重新導向到其他來源) 。
 
@@ -467,7 +467,7 @@ OpenTelemetry 瀏覽器 SDK 的 OTLP/HTTP 匯出工具傳送 `application/json` 
 
 - `OneUptimeReplay.getDiagnostics()` 的輸出。
 - `session-replay/v1/config` 請求的狀態。
-- 應用程式的 **健康狀況** 頁面，以及 **Replay Policy** 上的 **Test your installation** 面板顯示的內容。它們從伺服器端回答，也就是瀏覽器看不到的那一半。
+- 應用程式的 **健康狀況** 頁面，以及 **重播政策** 上的 **Test your installation** 面板顯示的內容。它們從伺服器端回答，也就是瀏覽器看不到的那一半。
 - 對於遺失的圖片、圖示或樣式：一個未能載入之檔案的位址（ **Missing assets** 會列出它們），以及瀏覽器主控台為它輸出的那一行。
 
 然後聯絡 support@oneuptime.com，或在 [GitHub](https://github.com/OneUptime/oneuptime) 上提出 issue。

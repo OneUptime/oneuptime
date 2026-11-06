@@ -145,6 +145,7 @@ La **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte
 - **Les modèles de comptage et d'état utilisent Max**, donc une seule collecte qui montre la condition les déclenche : erreurs de paquets, ballooning, swap, statuts rouge et jaune, hôtes non effectifs, congestion.
 - **Host Not Responding utilise Max et se déclenche à 0 :** un hôte ESXi en marche utilise toujours de la mémoire, donc une collecte qui remonte de la mémoire utilisée est un hôte qui répond, et seule une fenêtre où aucune ne l'a fait le déclenche.
 - **Chaque modèle regroupe sur le propre attribut d'identité de l'objet**, donc un incident se déclenche par objet concerné, et l'incident le nomme. L'exception est **vCenter Stopped Reporting**, qui surveille l'ensemble du vCenter : quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient.
+- **Les modèles de comptage par datacenter se rétablissent quand leur série a disparu :** le récepteur n'enregistre un comptage que pour les états qui existent, donc le dernier hôte rouge qui passe au vert ne laisse aucune série, et leurs critères de rétablissement comptent une série absente comme 0. Quand plus aucun datacenter n'a de série, ils ne se rétablissent que si `vcenter.datacenter.cpu.limit` est arrivé dans la même fenêtre, si bien qu'un vCenter qui ne rapporte plus ne ferme rien.
 - **Les seuils sont fixés dans leur unité** (`%`, `ms`, `us`), donc ils gardent leur sens quelle que soit l'unité qu'affiche un graphique.
 
 ## Métriques collectées
@@ -273,7 +274,7 @@ Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les
 | --- | --- |
 | **Métrique** | La requête ou la formule à vérifier, par son nom de variable. |
 | **Agrégation** | La façon dont les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value**, **All Values** (chaque valeur doit correspondre, sur toute la fenêtre) ou **Any Value** (une seule suffit). |
-| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** — ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Aucune donnée** est vraie quand la requête n'a rien renvoyé dans la fenêtre, **Données reçues** quand elle a renvoyé quelque chose. |
+| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** — ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Aucune donnée** est vraie quand la requête n'a rien renvoyé dans la fenêtre, **Données reçues** quand elle a renvoyé quelque chose. **Devrait dépasser** et **Devrait passer sous** correspondent quand la tendance de la métrique sur la fenêtre aura franchi le seuil à la fin de **Horizon**. |
 | **Seuil** | La valeur à laquelle comparer. Une liste d'unités se trouve à côté lorsque la métrique a une unité. Non affiché pour les conditions d'anomalie. |
 | **Sensibilité** | Conditions d'anomalie uniquement. **Faible** (4σ), **Moyen** (3σ, la valeur par défaut) ou **Élevé** (2σ). |
 | **Fenêtre de référence** | Conditions d'anomalie uniquement. 14 jours (la valeur par défaut), 28, 60 ou 90 jours d'historique. |

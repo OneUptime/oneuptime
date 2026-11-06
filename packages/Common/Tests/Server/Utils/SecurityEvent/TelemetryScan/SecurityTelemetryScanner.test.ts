@@ -30,6 +30,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import NormalizedSecurityEvent from "../../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../../../Types/SecurityEvent/OcsfSeverity";
 import {
+  SecurityTelemetryScannedKind,
   SecurityTelemetrySignal,
   SecurityTelemetrySourceKind,
 } from "../../../../../Types/SecurityEvent/SecurityTelemetrySource";
@@ -498,12 +499,13 @@ describe("a project's turn", () => {
 });
 
 describe("which reader reads a kind", () => {
-  test.each([
+  // The kinds the scan reads: cloud audit logs are read with each cloud account's own read.
+  test.each<[SecurityTelemetryScannedKind, string]>([
     [SecurityTelemetrySourceKind.Traces, "trace"],
     [SecurityTelemetrySourceKind.NetworkFlows, "flow"],
     [SecurityTelemetrySourceKind.AuditLog, "audit"],
     [SecurityTelemetrySourceKind.RumSessions, "rum"],
-  ])("%s", async (kind: SecurityTelemetrySourceKind, reader: string) => {
+  ])("%s", async (kind: SecurityTelemetryScannedKind, reader: string) => {
     const read: TelemetryWindowRead = {
       events: [],
       recordsRead: 0,
@@ -539,5 +541,86 @@ describe("which reader reads a kind", () => {
         name === reader ? 1 : 0,
       ]);
     }
+  });
+});
+
+/*
+ * Cloud audit logs are a kind of "Your OneUptime data" no minute's scan
+ * reads: each cloud account's own read brings their records in
+ * (CloudAudit/CloudAuditSecurityEvents.ts). A project that turned on only
+ * them is never queued, and a turn passes their source by.
+ */
+describe("cloud audit logs, read with each cloud account's own read", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the cron never queues a project for them alone", async () => {
+    const findAll: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(SecurityTelemetrySourceService, "findAllBy")
+      .mockResolvedValue([
+        source(SecurityTelemetrySourceKind.CloudAudit, NOW.toISOString()),
+        source(SecurityTelemetrySourceKind.Traces, NOW.toISOString()),
+        source(SecurityTelemetrySourceKind.CloudAudit, NOW.toISOString()),
+      ] as never);
+    const enqueue: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(SecurityProjectWork, "enqueueProjects")
+      .mockResolvedValue(1);
+
+    await SecurityTelemetryScanner.enqueueProjectsWithEnabledSources();
+
+    expect(enqueue).toHaveBeenCalledWith(SECURITY_TELEMETRY_SCAN_PROJECT_WORK, [
+      PROJECT_ID,
+    ]);
+    // The kind is read with each source, to leave them out.
+    expect(
+      (findAll.mock.calls[0]![0] as { select: JSONObject }).select,
+    ).toEqual({ _id: true, projectId: true, kind: true });
+  });
+
+  test("a turn scans the project's other sources and passes them by", async () => {
+    const harness: Harness = stand({});
+    const settle: number =
+      TELEMETRY_SCAN_PLANS[SecurityTelemetrySourceKind.Traces].settleInSeconds;
+    const scanned: Array<string> = [];
+
+    jest
+      .spyOn(SecurityTelemetrySourceService, "findAllBy")
+      .mockResolvedValue([
+        source(SecurityTelemetrySourceKind.CloudAudit, NOW.toISOString()),
+        source(
+          SecurityTelemetrySourceKind.Traces,
+          new Date(NOW.getTime() - settle * 1000 - 30 * 1000).toISOString(),
+        ),
+      ] as never);
+    jest
+      .spyOn(SecurityTelemetryScanner, "scanSource")
+      .mockImplementation((async (scannedSource: SecurityTelemetrySource) => {
+        scanned.push(String(scannedSource.kind));
+        return {} as SecurityTelemetryScanResult;
+      }) as never);
+
+    await SecurityTelemetryScanner.scanProject(PROJECT_ID);
+
+    expect(scanned).toEqual([SecurityTelemetrySourceKind.Traces]);
+    expect(harness.updates).toEqual([]);
+  });
+
+  test("asked to scan them anyway, the scan refuses: there is no window of theirs to read", async () => {
+    stand({});
+
+    await expect(
+      SecurityTelemetryScanner.scanSource(
+        source(SecurityTelemetrySourceKind.CloudAudit, NOW.toISOString()),
+      ),
+    ).rejects.toThrow("not one the telemetry scan reads");
+    expect(Object.keys(TELEMETRY_SCAN_PLANS).sort()).toEqual(
+      [
+        SecurityTelemetrySourceKind.Traces,
+        SecurityTelemetrySourceKind.NetworkFlows,
+        SecurityTelemetrySourceKind.AuditLog,
+        SecurityTelemetrySourceKind.RumSessions,
+      ].sort(),
+    );
   });
 });

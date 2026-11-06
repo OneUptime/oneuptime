@@ -91,10 +91,14 @@ const SENTENCES_NAMING_A_LABEL: ReadonlyArray<SentenceNamingALabel> = [
     label: "Stale",
   },
   { sentence: "Broker health stays empty →", label: "Broker health" },
-  {
-    sentence: "Broker health metrics in the Queues guide →",
-    label: "Broker health",
-  },
+  /*
+   * "Broker health metrics in the Queues guide →" is not here: it says the
+   * Queues guide's heading it opens (LINKS_TO_DOCS_HEADINGS), which German,
+   * Dutch, the Nordic languages, Russian and Chinese word apart from the
+   * section's label ("Zustandsmetriken des Brokers" under the Dashboard's
+   * "Broker-Zustand"). It starts with the label in English, so it is not a
+   * sentence that names it inside.
+   */
   {
     sentence:
       "No broker metrics chart under Broker health for this system; where its metrics show instead.",

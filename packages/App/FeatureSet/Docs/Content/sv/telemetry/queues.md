@@ -256,10 +256,10 @@ Ett topic namnges likadant från båda sidor: span rapporterar dess ARN eller de
 
 | Mätvärde | Visas som | Typ |
 | --- | --- | --- |
-| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON-ström: `numberofmessagespublished`) | Messages published | Antal per period |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON-ström: `numberofnotificationsdelivered`) | Notifications delivered | Antal per period |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON-ström: `numberofnotificationsfailed`) | Notifications failed | Antal per period |
-| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON-ström: `numberofnotificationsredriventodlq`) | Redriven to dead-letter queue | Antal per period |
+| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON-ström: `numberofmessagespublished`) | Publicerade meddelanden | Antal per period |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON-ström: `numberofnotificationsdelivered`) | Levererade aviseringar | Antal per period |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON-ström: `numberofnotificationsfailed`) | Misslyckade aviseringar | Antal per period |
+| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON-ström: `numberofnotificationsredriventodlq`) | Omdirigerade till dead-letter-kö | Antal per period |
 
 ### Amazon SQS
 
@@ -303,7 +303,7 @@ service:
 - `delay` väntar på att CloudWatch publicerar en period (det tar några minuter), så med den här konfigurationen kommer en kös brokermätvärden 11 till 17 minuter sent: en monitor över dem behöver ett längre fönster (se **Fördröjda mätvärden** under [Larm](#larm)).
 - En receiver läser en region och ett namespace: lägg till en instans per region.
 
-**Strömning** skickar mätvärdena allteftersom CloudWatch publicerar dem. Skapa en CloudWatch Metric Stream för namespacen `AWS/SQS` (och `AWS/SNS`) med utdataformatet **OpenTelemetry 1.0**, som levererar till en Amazon Data Firehose-ström vars destination är en HTTP-slutpunkt: din collector, med en åtkomstnyckel. Firehose levererar bara till `https://` på port 443, så collectorn behöver ett certifikat och en offentlig port 443 (till exempel bakom en lastbalanserare):
+**Strömmar**: skickar mätvärdena allteftersom CloudWatch publicerar dem. Skapa en CloudWatch Metric Stream för namespacen `AWS/SQS` (och `AWS/SNS`) med utdataformatet **OpenTelemetry 1.0**, som levererar till en Amazon Data Firehose-ström vars destination är en HTTP-slutpunkt: din collector, med en åtkomstnyckel. Firehose levererar bara till `https://` på port 443, så collectorn behöver ett certifikat och en offentlig port 443 (till exempel bakom en lastbalanserare):
 
 ```yaml
 extensions:
@@ -345,12 +345,12 @@ En dead-letter-kö är en vanlig SQS-kö med egna mätvärden, så den är en eg
 
 | Mätvärde | Visas som | Typ |
 | --- | --- | --- |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON-ström: `approximatenumberofmessagesvisible`) | Messages visible | Gauge |
-| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON-ström: `approximateageofoldestmessage`) | Oldest message age | Gauge |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON-ström: `approximatenumberofmessagesnotvisible`) | Messages in flight | Gauge |
-| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON-ström: `numberofmessagessent`) | Messages sent | Antal per period |
-| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON-ström: `numberofmessagesreceived`) | Messages received | Antal per period |
-| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON-ström: `numberofmessagesdeleted`) | Messages deleted | Antal per period |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON-ström: `approximatenumberofmessagesvisible`) | Synliga meddelanden | Gauge |
+| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON-ström: `approximateageofoldestmessage`) | Ålder på äldsta meddelandet | Gauge |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON-ström: `approximatenumberofmessagesnotvisible`) | Meddelanden under överföring | Gauge |
+| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON-ström: `numberofmessagessent`) | Skickade meddelanden | Antal per period |
+| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON-ström: `numberofmessagesreceived`) | Mottagna meddelanden | Antal per period |
+| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON-ström: `numberofmessagesdeleted`) | Borttagna meddelanden | Antal per period |
 
 ### Apache ActiveMQ
 
@@ -384,14 +384,14 @@ Brokerns mätvärden ansluter till den kö som dess JMS-klienters span har skapa
 
 | Mätvärde | Visas som | Typ |
 | --- | --- | --- |
-| `activemq.message.queue.size` | Queue size | Gauge |
-| `activemq.message.current` | Queue size (legacy names) | Gauge |
-| `activemq.message.enqueued` | Enqueued | Räknare, visad per sekund |
-| `activemq.message.dequeued` | Dequeued | Räknare, visad per sekund |
-| `activemq.message.expired` | Expired | Räknare, visad per sekund |
-| `activemq.consumer.count` | Consumers | Gauge |
-| `activemq.message.enqueue.average_duration` | Average time in queue | Gauge |
-| `activemq.message.wait_time.avg` | Average time in queue (legacy names) | Gauge |
+| `activemq.message.queue.size` | Köstorlek | Gauge |
+| `activemq.message.current` | Köstorlek (gamla namn) | Gauge |
+| `activemq.message.enqueued` | Köade | Räknare, visad per sekund |
+| `activemq.message.dequeued` | Avköade | Räknare, visad per sekund |
+| `activemq.message.expired` | Utgången | Räknare, visad per sekund |
+| `activemq.consumer.count` | Konsumenter | Gauge |
+| `activemq.message.enqueue.average_duration` | Genomsnittlig tid i kö | Gauge |
+| `activemq.message.wait_time.avg` | Genomsnittlig tid i kö (gamla namn) | Gauge |
 
 ### Apache Kafka
 
@@ -434,10 +434,10 @@ För ett kluster med SASL eller TLS avkommenterar du `auth` och `tls`. Receivern
 
 | Mätvärde | Visas som | Typ |
 | --- | --- | --- |
-| `kafka.consumer_group.lag_sum` | Consumer lag | Gauge |
-| `kafka.consumer_group.lag` | Partition lag | Gauge |
-| `kafka.consumer_group.offset_sum` | Consumed | Räknare, visad per sekund |
-| `kafka.partition.current_offset` | Produced | Räknare, visad per sekund |
+| `kafka.consumer_group.lag_sum` | Konsumentfördröjning | Gauge |
+| `kafka.consumer_group.lag` | Partitionsfördröjning | Gauge |
+| `kafka.consumer_group.offset_sum` | Konsumerade | Räknare, visad per sekund |
+| `kafka.partition.current_offset` | Producerade | Räknare, visad per sekund |
 
 ### Apache Pulsar
 
@@ -486,11 +486,11 @@ service:
 
 | Mätvärde | Visas som | Typ |
 | --- | --- | --- |
-| `pulsar_msg_backlog` | Backlog | Gauge |
-| `pulsar_subscription_back_log` | Subscription backlog | Gauge |
-| `pulsar_storage_backlog_age_seconds` | Backlog age | Gauge |
-| `pulsar_in_messages_total` | Messages in | Räknare, visad per sekund |
-| `pulsar_out_messages_total` | Messages out | Räknare, visad per sekund |
+| `pulsar_msg_backlog` | Eftersläpning | Gauge |
+| `pulsar_subscription_back_log` | Prenumerationens eftersläpning | Gauge |
+| `pulsar_storage_backlog_age_seconds` | Eftersläpningens ålder | Gauge |
+| `pulsar_in_messages_total` | Meddelanden in | Räknare, visad per sekund |
+| `pulsar_out_messages_total` | Meddelanden ut | Räknare, visad per sekund |
 
 ### Apache RocketMQ
 
@@ -536,10 +536,10 @@ Det här är RocketMQ 5:s inbyggda exportör. RocketMQ 4 har ingen; den separata
 
 | Mätvärde | Visas som | Typ |
 | --- | --- | --- |
-| `rocketmq_consumer_lag_messages` | Consumer lag | Gauge |
-| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |
-| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Räknare, visad per sekund |
-| `rocketmq_messages_in_total` | Messages in | Räknare, visad per sekund |
+| `rocketmq_consumer_lag_messages` | Konsumentfördröjning | Gauge |
+| `rocketmq_consumer_ready_messages` | Redo meddelanden | Gauge |
+| `rocketmq_send_to_dlq_messages_total` | Skickade till dead-letter-kö | Räknare, visad per sekund |
+| `rocketmq_messages_in_total` | Meddelanden in | Räknare, visad per sekund |
 
 ### Azure Event Grid
 
@@ -642,12 +642,12 @@ Azure Monitor har inget mätvärde för konsumentlagg för Event Hubs: dess `Con
 
 | Mätvärde | Visas som | Typ |
 | --- | --- | --- |
-| `azure_incomingmessages_total` | Incoming messages | Antal per period |
-| `azure_outgoingmessages_total` | Outgoing messages | Antal per period |
-| `azure_servererrors_total` | Server errors | Antal per period |
-| `azure_usererrors_total` | User errors | Antal per period |
-| `azure_quotaexceedederrors_total` | Quota exceeded errors | Antal per period |
-| `azure_throttledrequests_total` | Throttled requests | Antal per period |
+| `azure_incomingmessages_total` | Inkommande meddelanden | Antal per period |
+| `azure_outgoingmessages_total` | Utgående meddelanden | Antal per period |
+| `azure_servererrors_total` | Serverfel | Antal per period |
+| `azure_usererrors_total` | Användarfel | Antal per period |
+| `azure_quotaexceedederrors_total` | Fel vid överskriden kvot | Antal per period |
+| `azure_throttledrequests_total` | Strypta begäranden | Antal per period |
 
 ### Azure Service Bus
 
@@ -711,15 +711,15 @@ service:
 
 | Mätvärde | Visas som | Typ |
 | --- | --- | --- |
-| `azure_activemessages_average` | Active messages | Gauge |
-| `azure_deadletteredmessages_average` | Dead-lettered messages | Gauge |
-| `azure_incomingmessages_total` | Incoming messages | Antal per period |
-| `azure_outgoingmessages_total` | Outgoing messages | Antal per period |
-| `azure_completemessage_total` | Completed messages | Antal per period |
-| `azure_abandonmessage_total` | Abandoned messages | Antal per period |
-| `azure_servererrors_total` | Server errors | Antal per period |
-| `azure_usererrors_total` | User errors | Antal per period |
-| `azure_throttledrequests_total` | Throttled requests | Antal per period |
+| `azure_activemessages_average` | Aktiva meddelanden | Gauge |
+| `azure_deadletteredmessages_average` | Meddelanden i dead-letter | Gauge |
+| `azure_incomingmessages_total` | Inkommande meddelanden | Antal per period |
+| `azure_outgoingmessages_total` | Utgående meddelanden | Antal per period |
+| `azure_completemessage_total` | Slutförda meddelanden | Antal per period |
+| `azure_abandonmessage_total` | Övergivna meddelanden | Antal per period |
+| `azure_servererrors_total` | Serverfel | Antal per period |
+| `azure_usererrors_total` | Användarfel | Antal per period |
+| `azure_throttledrequests_total` | Strypta begäranden | Antal per period |
 
 ### BullMQ
 
@@ -837,11 +837,11 @@ service:
 
 | Mätvärde | Visas som | Typ |
 | --- | --- | --- |
-| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Undelivered messages | Gauge |
-| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Oldest unacked message age | Gauge |
-| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Dead-lettered messages | Antal per period |
-| `pubsub.googleapis.com/subscription/ack_message_count` | Acknowledged messages | Antal per period |
-| `pubsub.googleapis.com/topic/send_request_count` | Publish requests | Antal per period |
+| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Olevererade meddelanden | Gauge |
+| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Ålder på äldsta obekräftade meddelandet | Gauge |
+| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Meddelanden i dead-letter | Antal per period |
+| `pubsub.googleapis.com/subscription/ack_message_count` | Bekräftade meddelanden | Antal per period |
+| `pubsub.googleapis.com/topic/send_request_count` | Publiceringsbegäranden | Antal per period |
 
 ### JMS
 
@@ -936,12 +936,12 @@ service:
 
 | Mätvärde | Visas som | Typ |
 | --- | --- | --- |
-| `rabbitmq.message.current` | Queue depth | Gauge |
-| `rabbitmq.message.published` | Published | Räknare, visad per sekund |
-| `rabbitmq.message.delivered` | Delivered | Räknare, visad per sekund |
-| `rabbitmq.message.acknowledged` | Acknowledged | Räknare, visad per sekund |
-| `rabbitmq.message.dropped` | Dropped | Räknare, visad per sekund |
-| `rabbitmq.consumer.count` | Consumers | Gauge |
+| `rabbitmq.message.current` | Ködjup | Gauge |
+| `rabbitmq.message.published` | Publicerade | Räknare, visad per sekund |
+| `rabbitmq.message.delivered` | Levererade | Räknare, visad per sekund |
+| `rabbitmq.message.acknowledged` | Bekräftad | Räknare, visad per sekund |
+| `rabbitmq.message.dropped` | Kasserade | Räknare, visad per sekund |
+| `rabbitmq.consumer.count` | Konsumenter | Gauge |
 
 ## Larm
 
@@ -994,7 +994,7 @@ service:
 
 Varje punkt i `rabbitmq.message.published.delta` är antalet meddelanden som publicerats sedan föregående skrapning, så en mätvärdesmonitor på den, filtrerad på `resource.rabbitmq.queue.name` och summerad över sitt fönster, räknar det som publicerades i det fönstret: under 1 under 15 minuter betyder att ingen publicerar. Efter varje start av collectorn har processorn inget tidigare värde att dra en kös första punkt från, och som standard skickar den punkten som den är: räknarens hela löpande summa, som om varje meddelande kön någonsin haft hade publicerats i en skrapning. `initial_value: drop` håller tillbaka den punkten, så att en kös kopia börjar med den andra skrapning som rapporterar dess räknare. Kopiera en annan räknare på samma sätt, med en `copy_metric`-sats och en `include`-post för varje. ActiveMQ:s JMX Scraper måste då skicka genom en sådan collector, till en `otlp`-receiver i stället för `rabbitmq`; RocketMQ:s räknare tar samma två processorer i pipelinen för dess `prometheus`-receiver.
 
-**Manuellt** filtrerar du på det attribut som namnger kön i det mätvärdet; det är samma för varje kö i ett system:
+**By hand** filtrerar du på det attribut som namnger kön i det mätvärdet; det är samma för varje kö i ett system:
 
 | Varna när | Mätvärde | Filter | Aggregering |
 | --- | --- | --- | --- |

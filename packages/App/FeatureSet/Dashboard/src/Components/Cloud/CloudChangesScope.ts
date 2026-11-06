@@ -7,6 +7,7 @@ import {
   ChangeEventAttribute,
   ChangeEventSource,
   ChangeEventType,
+  CloudAiChangeStep,
 } from "Common/Utils/Telemetry/ChangeEventFields";
 
 /*
@@ -60,6 +61,86 @@ export function isCloudHealthChange(change: {
     : undefined;
 
   return source === ChangeEventSource.CloudHealth;
+}
+
+/*
+ * A change OneUptime AI made in a cloud account, through the account's
+ * Cloud AI agent, as its change event says (CloudChangeRecorder, from
+ * CloudAiChangeAttribution on the server): the cloud recorded it under the
+ * agent's role, and the event names the fix it belongs to - its fix (an
+ * auto-remediation suggestion), the incident or alert it fixed, and
+ * whether it made the fix or rolled it back. Any of them may be missing:
+ * a change of the agent's that no job explained names none.
+ */
+export interface CloudAiChange {
+  runnerJobId: string | null;
+  suggestionId: string | null;
+  incidentId: string | null;
+  alertId: string | null;
+  isRollback: boolean;
+  // The Cloud Account it was made in: where its AI Logs are.
+  cloudAccountId: string | null;
+}
+
+function readId(attributes: JSONObject, key: string): string | null {
+  const value: unknown = attributes[key];
+
+  return typeof value === "string" && ObjectID.isValidUUID(value.trim())
+    ? value.trim().toLowerCase()
+    : null;
+}
+
+/*
+ * The change's AI side when OneUptime AI made it, else null: a person's
+ * change, a health event, or anything a pipeline posted (which can never
+ * carry a oneuptime.* key).
+ */
+export function readCloudAiChange(change: {
+  attributes?: JSONObject | undefined;
+}): CloudAiChange | null {
+  const attributes: JSONObject = change.attributes || {};
+
+  if (
+    attributes[ChangeEventAttribute.MadeBy] !== ChangeEventSource.OneUptimeAi
+  ) {
+    return null;
+  }
+
+  return {
+    runnerJobId: readId(attributes, ChangeEventAttribute.RunnerJobId),
+    suggestionId: readId(
+      attributes,
+      ChangeEventAttribute.AutoRemediationSuggestionId,
+    ),
+    incidentId: readId(attributes, ChangeEventAttribute.IncidentId),
+    alertId: readId(attributes, ChangeEventAttribute.AlertId),
+    isRollback:
+      attributes[ChangeEventAttribute.AiStep] === CloudAiChangeStep.Rollback,
+    cloudAccountId: readId(
+      attributes,
+      ChangeEventAttribute.CloudAccountRecordId,
+    ),
+  };
+}
+
+/*
+ * The fixes a page of changes names, each once: what the list reads, as
+ * the reader, to say who approved each one and which record it fixed.
+ */
+export function getCloudAiChangeSuggestionIds(
+  changes: Array<{ attributes?: JSONObject | undefined }>,
+): Array<string> {
+  const ids: Array<string> = [];
+
+  for (const change of changes) {
+    const id: string | null = readCloudAiChange(change)?.suggestionId || null;
+
+    if (id && !ids.includes(id)) {
+      ids.push(id);
+    }
+  }
+
+  return ids;
 }
 
 // How far back an account's Overview counts its changes: the last day.

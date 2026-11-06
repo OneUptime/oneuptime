@@ -256,10 +256,10 @@ service:
 
 | 메트릭 | 표시 이름 | 유형 |
 | --- | --- | --- |
-| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON 스트림: `numberofmessagespublished`) | Messages published | 기간별 개수 |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON 스트림: `numberofnotificationsdelivered`) | Notifications delivered | 기간별 개수 |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON 스트림: `numberofnotificationsfailed`) | Notifications failed | 기간별 개수 |
-| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON 스트림: `numberofnotificationsredriventodlq`) | Redriven to dead-letter queue | 기간별 개수 |
+| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON 스트림: `numberofmessagespublished`) | 게시된 메시지 | 기간별 개수 |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON 스트림: `numberofnotificationsdelivered`) | 전달된 알림 | 기간별 개수 |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON 스트림: `numberofnotificationsfailed`) | 실패한 알림 | 기간별 개수 |
+| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON 스트림: `numberofnotificationsredriventodlq`) | 배달 못 한 편지 큐로 재전송 | 기간별 개수 |
 
 ### Amazon SQS
 
@@ -303,7 +303,7 @@ service:
 - `delay`는 CloudWatch가 기간을 게시하기를 기다리므로(몇 분이 걸립니다), 이 구성에서는 큐의 브로커 메트릭이 11분에서 17분 늦게 도착합니다: 이 메트릭에 대한 모니터에는 더 긴 창이 필요합니다([알림](#알림)의 **늦게 도착하는 메트릭** 참조).
 - 하나의 리시버는 하나의 리전과 하나의 네임스페이스를 읽습니다: 리전마다 인스턴스를 추가하세요.
 
-**스트리밍**은 CloudWatch가 메트릭을 게시하는 대로 푸시합니다. `AWS/SQS`(및 `AWS/SNS`) 네임스페이스에 대해 출력 형식이 **OpenTelemetry 1.0**인 CloudWatch Metric Stream을 만들고, 대상이 HTTP 엔드포인트(액세스 키를 가진 Collector)인 Amazon Data Firehose 스트림으로 전달하세요. Firehose는 포트 443의 `https://`로만 전달하므로, Collector에는 인증서와 공개 포트 443이 필요합니다(예: 로드 밸런서 뒤):
+**스트리밍 중**은 CloudWatch가 메트릭을 게시하는 대로 푸시합니다. `AWS/SQS`(및 `AWS/SNS`) 네임스페이스에 대해 출력 형식이 **OpenTelemetry 1.0**인 CloudWatch Metric Stream을 만들고, 대상이 HTTP 엔드포인트(액세스 키를 가진 Collector)인 Amazon Data Firehose 스트림으로 전달하세요. Firehose는 포트 443의 `https://`로만 전달하므로, Collector에는 인증서와 공개 포트 443이 필요합니다(예: 로드 밸런서 뒤):
 
 ```yaml
 extensions:
@@ -345,12 +345,12 @@ service:
 
 | 메트릭 | 표시 이름 | 유형 |
 | --- | --- | --- |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON 스트림: `approximatenumberofmessagesvisible`) | Messages visible | 게이지 |
-| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON 스트림: `approximateageofoldestmessage`) | Oldest message age | 게이지 |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON 스트림: `approximatenumberofmessagesnotvisible`) | Messages in flight | 게이지 |
-| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON 스트림: `numberofmessagessent`) | Messages sent | 기간별 개수 |
-| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON 스트림: `numberofmessagesreceived`) | Messages received | 기간별 개수 |
-| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON 스트림: `numberofmessagesdeleted`) | Messages deleted | 기간별 개수 |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON 스트림: `approximatenumberofmessagesvisible`) | 표시되는 메시지 | 게이지 |
+| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON 스트림: `approximateageofoldestmessage`) | 가장 오래된 메시지 경과 시간 | 게이지 |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON 스트림: `approximatenumberofmessagesnotvisible`) | 처리 중인 메시지 | 게이지 |
+| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON 스트림: `numberofmessagessent`) | 보낸 메시지 | 기간별 개수 |
+| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON 스트림: `numberofmessagesreceived`) | 받은 메시지 | 기간별 개수 |
+| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON 스트림: `numberofmessagesdeleted`) | 삭제된 메시지 | 기간별 개수 |
 
 ### Apache ActiveMQ
 
@@ -384,14 +384,14 @@ java -jar opentelemetry-jmx-scraper.jar
 
 | 메트릭 | 표시 이름 | 유형 |
 | --- | --- | --- |
-| `activemq.message.queue.size` | Queue size | 게이지 |
-| `activemq.message.current` | Queue size (legacy names) | 게이지 |
-| `activemq.message.enqueued` | Enqueued | 카운터, 초당으로 표시 |
-| `activemq.message.dequeued` | Dequeued | 카운터, 초당으로 표시 |
-| `activemq.message.expired` | Expired | 카운터, 초당으로 표시 |
-| `activemq.consumer.count` | Consumers | 게이지 |
-| `activemq.message.enqueue.average_duration` | Average time in queue | 게이지 |
-| `activemq.message.wait_time.avg` | Average time in queue (legacy names) | 게이지 |
+| `activemq.message.queue.size` | 큐 크기 | 게이지 |
+| `activemq.message.current` | 큐 크기 (레거시 이름) | 게이지 |
+| `activemq.message.enqueued` | 큐에 추가됨 | 카운터, 초당으로 표시 |
+| `activemq.message.dequeued` | 큐에서 제거됨 | 카운터, 초당으로 표시 |
+| `activemq.message.expired` | 만료됨 | 카운터, 초당으로 표시 |
+| `activemq.consumer.count` | 컨슈머 | 게이지 |
+| `activemq.message.enqueue.average_duration` | 큐 평균 대기 시간 | 게이지 |
+| `activemq.message.wait_time.avg` | 큐 평균 대기 시간 (레거시 이름) | 게이지 |
 
 ### Apache Kafka
 
@@ -434,10 +434,10 @@ SASL이나 TLS를 쓰는 클러스터에서는 `auth`와 `tls`의 주석을 해�
 
 | 메트릭 | 표시 이름 | 유형 |
 | --- | --- | --- |
-| `kafka.consumer_group.lag_sum` | Consumer lag | 게이지 |
-| `kafka.consumer_group.lag` | Partition lag | 게이지 |
-| `kafka.consumer_group.offset_sum` | Consumed | 카운터, 초당으로 표시 |
-| `kafka.partition.current_offset` | Produced | 카운터, 초당으로 표시 |
+| `kafka.consumer_group.lag_sum` | 컨슈머 지연 | 게이지 |
+| `kafka.consumer_group.lag` | 파티션 지연 | 게이지 |
+| `kafka.consumer_group.offset_sum` | 소비됨 | 카운터, 초당으로 표시 |
+| `kafka.partition.current_offset` | 생성됨 | 카운터, 초당으로 표시 |
 
 ### Apache Pulsar
 
@@ -486,11 +486,11 @@ service:
 
 | 메트릭 | 표시 이름 | 유형 |
 | --- | --- | --- |
-| `pulsar_msg_backlog` | Backlog | 게이지 |
-| `pulsar_subscription_back_log` | Subscription backlog | 게이지 |
-| `pulsar_storage_backlog_age_seconds` | Backlog age | 게이지 |
-| `pulsar_in_messages_total` | Messages in | 카운터, 초당으로 표시 |
-| `pulsar_out_messages_total` | Messages out | 카운터, 초당으로 표시 |
+| `pulsar_msg_backlog` | 백로그 | 게이지 |
+| `pulsar_subscription_back_log` | 구독 백로그 | 게이지 |
+| `pulsar_storage_backlog_age_seconds` | 백로그 경과 시간 | 게이지 |
+| `pulsar_in_messages_total` | 수신 메시지 | 카운터, 초당으로 표시 |
+| `pulsar_out_messages_total` | 송신 메시지 | 카운터, 초당으로 표시 |
 
 ### Apache RocketMQ
 
@@ -536,10 +536,10 @@ service:
 
 | 메트릭 | 표시 이름 | 유형 |
 | --- | --- | --- |
-| `rocketmq_consumer_lag_messages` | Consumer lag | 게이지 |
-| `rocketmq_consumer_ready_messages` | Ready messages | 게이지 |
-| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | 카운터, 초당으로 표시 |
-| `rocketmq_messages_in_total` | Messages in | 카운터, 초당으로 표시 |
+| `rocketmq_consumer_lag_messages` | 컨슈머 지연 | 게이지 |
+| `rocketmq_consumer_ready_messages` | 준비된 메시지 | 게이지 |
+| `rocketmq_send_to_dlq_messages_total` | 배달 못 한 편지 큐로 전송 | 카운터, 초당으로 표시 |
+| `rocketmq_messages_in_total` | 수신 메시지 | 카운터, 초당으로 표시 |
 
 ### Azure Event Grid
 
@@ -642,12 +642,12 @@ Azure Monitor에는 Event Hubs의 컨슈머 지연 메트릭이 없습니다: �
 
 | 메트릭 | 표시 이름 | 유형 |
 | --- | --- | --- |
-| `azure_incomingmessages_total` | Incoming messages | 기간별 개수 |
-| `azure_outgoingmessages_total` | Outgoing messages | 기간별 개수 |
-| `azure_servererrors_total` | Server errors | 기간별 개수 |
-| `azure_usererrors_total` | User errors | 기간별 개수 |
-| `azure_quotaexceedederrors_total` | Quota exceeded errors | 기간별 개수 |
-| `azure_throttledrequests_total` | Throttled requests | 기간별 개수 |
+| `azure_incomingmessages_total` | 들어오는 메시지 | 기간별 개수 |
+| `azure_outgoingmessages_total` | 나가는 메시지 | 기간별 개수 |
+| `azure_servererrors_total` | 서버 오류 | 기간별 개수 |
+| `azure_usererrors_total` | 사용자 오류 | 기간별 개수 |
+| `azure_quotaexceedederrors_total` | 할당량 초과 오류 | 기간별 개수 |
+| `azure_throttledrequests_total` | 제한된 요청 | 기간별 개수 |
 
 ### Azure Service Bus
 
@@ -711,15 +711,15 @@ service:
 
 | 메트릭 | 표시 이름 | 유형 |
 | --- | --- | --- |
-| `azure_activemessages_average` | Active messages | 게이지 |
-| `azure_deadletteredmessages_average` | Dead-lettered messages | 게이지 |
-| `azure_incomingmessages_total` | Incoming messages | 기간별 개수 |
-| `azure_outgoingmessages_total` | Outgoing messages | 기간별 개수 |
-| `azure_completemessage_total` | Completed messages | 기간별 개수 |
-| `azure_abandonmessage_total` | Abandoned messages | 기간별 개수 |
-| `azure_servererrors_total` | Server errors | 기간별 개수 |
-| `azure_usererrors_total` | User errors | 기간별 개수 |
-| `azure_throttledrequests_total` | Throttled requests | 기간별 개수 |
+| `azure_activemessages_average` | 활성 메시지 | 게이지 |
+| `azure_deadletteredmessages_average` | 배달 못 한 메시지 | 게이지 |
+| `azure_incomingmessages_total` | 들어오는 메시지 | 기간별 개수 |
+| `azure_outgoingmessages_total` | 나가는 메시지 | 기간별 개수 |
+| `azure_completemessage_total` | 완료된 메시지 | 기간별 개수 |
+| `azure_abandonmessage_total` | 중단된 메시지 | 기간별 개수 |
+| `azure_servererrors_total` | 서버 오류 | 기간별 개수 |
+| `azure_usererrors_total` | 사용자 오류 | 기간별 개수 |
+| `azure_throttledrequests_total` | 제한된 요청 | 기간별 개수 |
 
 ### BullMQ
 
@@ -837,11 +837,11 @@ service:
 
 | 메트릭 | 표시 이름 | 유형 |
 | --- | --- | --- |
-| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Undelivered messages | 게이지 |
-| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Oldest unacked message age | 게이지 |
-| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Dead-lettered messages | 기간별 개수 |
-| `pubsub.googleapis.com/subscription/ack_message_count` | Acknowledged messages | 기간별 개수 |
-| `pubsub.googleapis.com/topic/send_request_count` | Publish requests | 기간별 개수 |
+| `pubsub.googleapis.com/subscription/num_undelivered_messages` | 전달되지 않은 메시지 | 게이지 |
+| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | 가장 오래된 미확인 메시지 경과 시간 | 게이지 |
+| `pubsub.googleapis.com/subscription/dead_letter_message_count` | 배달 못 한 메시지 | 기간별 개수 |
+| `pubsub.googleapis.com/subscription/ack_message_count` | 확인된 메시지 | 기간별 개수 |
+| `pubsub.googleapis.com/topic/send_request_count` | 게시 요청 | 기간별 개수 |
 
 ### JMS
 
@@ -936,12 +936,12 @@ service:
 
 | 메트릭 | 표시 이름 | 유형 |
 | --- | --- | --- |
-| `rabbitmq.message.current` | Queue depth | 게이지 |
-| `rabbitmq.message.published` | Published | 카운터, 초당으로 표시 |
-| `rabbitmq.message.delivered` | Delivered | 카운터, 초당으로 표시 |
-| `rabbitmq.message.acknowledged` | Acknowledged | 카운터, 초당으로 표시 |
-| `rabbitmq.message.dropped` | Dropped | 카운터, 초당으로 표시 |
-| `rabbitmq.consumer.count` | Consumers | 게이지 |
+| `rabbitmq.message.current` | 큐 깊이 | 게이지 |
+| `rabbitmq.message.published` | 게시됨 | 카운터, 초당으로 표시 |
+| `rabbitmq.message.delivered` | 전달됨 | 카운터, 초당으로 표시 |
+| `rabbitmq.message.acknowledged` | 인지됨 | 카운터, 초당으로 표시 |
+| `rabbitmq.message.dropped` | 삭제됨 | 카운터, 초당으로 표시 |
+| `rabbitmq.consumer.count` | 컨슈머 | 게이지 |
 
 ## 알림
 
@@ -994,7 +994,7 @@ service:
 
 `rabbitmq.message.published.delta`의 각 포인트는 이전 스크레이프 이후 게시된 메시지 수이므로, `resource.rabbitmq.queue.name`으로 필터링하고 창 전체에서 합산하는 메트릭 모니터는 그 창에서 게시된 양을 셉니다: 15분 동안 1 미만이면 아무도 게시하지 않는 것입니다. Collector가 시작할 때마다 프로세서에는 큐의 첫 포인트에서 뺄 이전 값이 없으며, 기본적으로 그 포인트를 그대로 보냅니다: 카운터의 누적 합계 전체이며, 마치 큐가 지금까지 받은 모든 메시지가 한 번의 스크레이프에서 게시된 것처럼 보입니다. `initial_value: drop`은 그 포인트를 보류하므로, 큐의 복사본은 카운터를 보고하는 두 번째 스크레이프부터 시작합니다. 다른 카운터도 같은 방식으로, 각각 `copy_metric` 문과 `include` 항목을 하나씩 추가해 복사하세요. 이 경우 ActiveMQ의 JMX Scraper는 `rabbitmq` 대신 `otlp` 리시버가 있는 그런 Collector를 거쳐 보내야 합니다. RocketMQ의 카운터에는 그 `prometheus` 리시버의 파이프라인에 같은 두 프로세서를 사용합니다.
 
-**직접 만들 때는** 그 메트릭에서 큐를 지정하는 속성으로 필터링하세요. 이 속성은 한 시스템의 모든 큐에서 같습니다:
+**By hand**로 만들 때는 그 메트릭에서 큐를 지정하는 속성으로 필터링하세요. 이 속성은 한 시스템의 모든 큐에서 같습니다:
 
 | 알림 조건 | 메트릭 | 필터 | 집계 |
 | --- | --- | --- | --- |

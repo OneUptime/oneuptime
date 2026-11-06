@@ -74,7 +74,7 @@ Sophos 回報為 active 的通道只表示其安全關聯已建立。若要證�
 1. 探測器的 syslog 接收器預設為開啟。它在連接埠 5140 上透過 UDP 和 TCP 監聽（可用 `PROBE_SYSLOG_RECEIVER_PORT` 變更）；如果探測器在 Docker 中執行，請發布該連接埠。訊息會比對到主機名稱或某個**其他位址**是傳送方位址的網路裝置，並顯示在裝置的**事件**和**日誌**頁面上。
 2. 在防火牆上，在 **System services → Log settings** 下新增指向探測器和該連接埠的 syslog 伺服器，並勾選 IPsec 和閘道的 **Event** 日誌類型以及 **SD-WAN** 日誌類型：在勾選之前，SLA 日誌一直處於關閉狀態。
 3. 不需要剖析。OneUptime 會把防火牆的 `key=value` 欄位讀取為 `sophos.*` 屬性，並從中讀出通道、閘道、SD-WAN SLA 變化、容錯移轉和登入，作為[網路事件](/docs/monitor/network-events)。在裝置的**日誌**頁面上開啟一則日誌，即可看到你的 SFOS 版本產生的確切屬性名稱。
-4. 在裝置的**事件**頁面上按一下**建立警示**並選擇一個警示。它會開啟一個已填好的[日誌監測器](/docs/monitor/logs-monitor)，其中設定了 **Group by Attributes**，讓每條通道或每個閘道單獨發出警示，並設定了**依屬性解決**，讓每個警示在防火牆回報恢復時關閉。下表中的三列是可以先建立的監測器。
+4. 在裝置的**事件**頁面上按一下**建立警示**並選擇一個警示。它會開啟一個已填好的[日誌監測器](/docs/monitor/logs-monitor)，其中設定了 **依屬性分組**，讓每條通道或每個閘道單獨發出警示，並設定了**依屬性解決**，讓每個警示在防火牆回報恢復時關閉。下表中的三列是可以先建立的監測器。
 5. 繪製 SD-WAN 品質圖表：開啟 SD-WAN 日誌後，防火牆會依設定檔和閘道寫入 SLA 摘要（`latency`、`jitter`、`packet_loss`）。在**日誌 → 設定 → 記錄規則**下，為每個數字建立一條規則，例如依 `sophos.gw_name` 和 `sophos.profile_name` 分組的 `sophos.latency` 平均值，然後繪製結果圖表，或用依閘道分組的 [Metrics 監測器](/docs/monitor/metrics-monitor)為其發出警示。[日誌記錄規則](/docs/telemetry/log-recording-rules)逐步講解了這個範例。
 :::
 

@@ -101,6 +101,9 @@ import MonitorStepPodmanMonitor, {
 import MonitorStepProxmoxMonitor, {
   MonitorStepProxmoxMonitorUtil,
 } from "./MonitorStepProxmoxMonitor";
+import MonitorStepOpenStackMonitor, {
+  MonitorStepOpenStackMonitorUtil,
+} from "./MonitorStepOpenStackMonitor";
 import MonitorStepVMwareMonitor, {
   MonitorStepVMwareMonitorUtil,
 } from "./MonitorStepVMwareMonitor";
@@ -119,6 +122,10 @@ import MonitorStepIoTMonitor, {
 import MetricsViewConfig from "../Metrics/MetricsViewConfig";
 import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import MonitorTemplateSyncFieldUtil from "./MonitorTemplateSyncField";
+import {
+  getSecurityWatchlistFiltersProblem,
+  readSecurityWatchlistFilters,
+} from "../SecurityEvent/SecurityWatchlistFilter";
 
 /*
  * Caps and defaults for per-step request timeout and retry settings.
@@ -271,6 +278,9 @@ export interface MonitorStepType {
   // Proxmox monitor
   proxmoxMonitor?: MonitorStepProxmoxMonitor | undefined;
 
+  // OpenStack monitor
+  openstackMonitor?: MonitorStepOpenStackMonitor | undefined;
+
   // VMware monitor
   vmwareMonitor?: MonitorStepVMwareMonitor | undefined;
 
@@ -335,6 +345,7 @@ export default class MonitorStep extends DatabaseProperty {
       hostMonitor: undefined,
       podmanMonitor: undefined,
       proxmoxMonitor: undefined,
+      openstackMonitor: undefined,
       vmwareMonitor: undefined,
       dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
@@ -441,6 +452,7 @@ export default class MonitorStep extends DatabaseProperty {
       hostMonitor: undefined,
       podmanMonitor: undefined,
       proxmoxMonitor: undefined,
+      openstackMonitor: undefined,
       vmwareMonitor: undefined,
       dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
@@ -488,6 +500,7 @@ export default class MonitorStep extends DatabaseProperty {
       data.hostMonitor?.metricViewConfig ||
       data.podmanMonitor?.metricViewConfig ||
       data.proxmoxMonitor?.metricViewConfig ||
+      data.openstackMonitor?.metricViewConfig ||
       data.vmwareMonitor?.metricViewConfig ||
       data.cephMonitor?.metricViewConfig ||
       data.storageArrayMonitor?.metricViewConfig
@@ -793,6 +806,13 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setOpenStackMonitor(
+    openstackMonitor: MonitorStepOpenStackMonitor,
+  ): MonitorStep {
+    this.data!.openstackMonitor = openstackMonitor;
+    return this;
+  }
+
   public setVMwareMonitor(
     vmwareMonitor: MonitorStepVMwareMonitor,
   ): MonitorStep {
@@ -865,6 +885,7 @@ export default class MonitorStep extends DatabaseProperty {
         hostMonitor: undefined,
         podmanMonitor: undefined,
         proxmoxMonitor: undefined,
+        openstackMonitor: undefined,
         vmwareMonitor: undefined,
         dockerSwarmMonitor: undefined,
         cephMonitor: undefined,
@@ -1011,6 +1032,24 @@ export default class MonitorStep extends DatabaseProperty {
     if (monitorType === MonitorType.NetworkDevice) {
       if (!value.data.networkDeviceMonitor?.networkDeviceId) {
         return "Network Device is required";
+      }
+    }
+
+    /*
+     * A Security Events monitor's watchlist filters each name a field and a
+     * list, and there are at most ten. Whether the project has each list is
+     * the server's to say (MonitorStepsProjectValidator).
+     */
+    if (monitorType === MonitorType.SecurityEvents) {
+      const watchlistProblem: string | null =
+        getSecurityWatchlistFiltersProblem(
+          readSecurityWatchlistFilters(
+            value.data.securityEventsMonitor?.watchlistFilters,
+          ),
+        );
+
+      if (watchlistProblem) {
+        return watchlistProblem;
       }
     }
 
@@ -1170,6 +1209,16 @@ export default class MonitorStep extends DatabaseProperty {
 
       if (!value.data.proxmoxMonitor.clusterIdentifier) {
         return "Proxmox cluster is required";
+      }
+    }
+
+    if (monitorType === MonitorType.OpenStack) {
+      if (!value.data.openstackMonitor) {
+        return "OpenStack monitor configuration is required";
+      }
+
+      if (!value.data.openstackMonitor.cloudIdentifier) {
+        return "OpenStack cloud is required";
       }
     }
 
@@ -1371,6 +1420,9 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           proxmoxMonitor: this.data.proxmoxMonitor
             ? MonitorStepProxmoxMonitorUtil.toJSON(this.data.proxmoxMonitor)
+            : undefined,
+          openstackMonitor: this.data.openstackMonitor
+            ? MonitorStepOpenStackMonitorUtil.toJSON(this.data.openstackMonitor)
             : undefined,
           vmwareMonitor: this.data.vmwareMonitor
             ? MonitorStepVMwareMonitorUtil.toJSON(this.data.vmwareMonitor)
@@ -1608,6 +1660,9 @@ export default class MonitorStep extends DatabaseProperty {
         : undefined,
       proxmoxMonitor: json["proxmoxMonitor"]
         ? (json["proxmoxMonitor"] as JSONObject)
+        : undefined,
+      openstackMonitor: json["openstackMonitor"]
+        ? (json["openstackMonitor"] as JSONObject)
         : undefined,
       vmwareMonitor: json["vmwareMonitor"]
         ? (json["vmwareMonitor"] as JSONObject)

@@ -35,6 +35,8 @@ import {
   getResourceAiAgentSignedOffText,
   getResourceAiAgentSilentText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentStatus";
+import { getCloudAiAgentLogsCommand } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudAiAgentSetup";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   RESOURCE_REMEDIATION_MODE_SHORT_NAMES,
   RESOURCE_REMEDIATION_MODE_SUMMARIES,
@@ -83,6 +85,7 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   CLOUD_AI_RESOURCE_TYPES,
   isCloudAiResourceType,
+  isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import {
@@ -3576,6 +3579,93 @@ describe("every resource type", () => {
     },
   );
 
+  /*
+   * A Google Cloud agent that stopped reporting: its logs where it said it
+   * runs - Cloud Logging for one on its VM, Cloud Run's for one there, and
+   * Cloud Run's for an agent too old to say, as every one ran there - in
+   * the account's own project.
+   */
+  test.each([
+    ["on its VM", { gcpHost: "compute-engine" }, "gcloud logging read "],
+    [
+      "on Cloud Run",
+      { gcpHost: "cloud-run" },
+      "gcloud run services logs read ",
+    ],
+    ["too old to say", {}, "gcloud run services logs read "],
+  ] as Array<[string, Record<string, string>, string]>)(
+    "Google Cloud, an offline agent %s: its logs command is for where it runs",
+    async (
+      _label: string,
+      details: Record<string, string>,
+      expected: string,
+    ) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(AiResourceType.GoogleCloudProject);
+      serve(
+        makeStatus({
+          resourceType: AiResourceType.GoogleCloudProject,
+          agent: makeAgent({
+            isOnline: false,
+            lastAliveAt: minutesAgo(30),
+            posture: makePosture({
+              resourceType: AiResourceType.GoogleCloudProject,
+              resourceIdentifier: "shop-prod",
+              allowWrites: true,
+              details: {
+                cloudProvider: "gcp",
+                cloudAccountId: "shop-prod",
+                ...details,
+              },
+            }),
+          }),
+        }),
+      );
+      openAgentPage(
+        descriptor,
+        cloudAccountOf(AiResourceType.GoogleCloudProject),
+      );
+
+      const logs: string = codeIn(await findTestId("ai-agent-logs-command"));
+      expect(logs.startsWith(expected)).toBe(true);
+      expect(logs).toContain("--project shop-prod");
+      expect(logs).toBe(
+        getCloudAiAgentLogsCommand(
+          CloudProvider.GCP,
+          details["gcpHost"] === "compute-engine"
+            ? "compute-engine"
+            : "cloud-run",
+          "shop-prod",
+        ),
+      );
+    },
+  );
+
+  test("AWS, an offline agent: its log group, as ever", async () => {
+    serve(
+      makeStatus({
+        resourceType: AiResourceType.AwsAccount,
+        agent: makeAgent({
+          isOnline: false,
+          lastAliveAt: minutesAgo(30),
+          posture: makePosture({
+            resourceType: AiResourceType.AwsAccount,
+            resourceIdentifier: "123456789012",
+            allowWrites: true,
+          }),
+        }),
+      }),
+    );
+    openAgentPage(
+      getResourceAiAgentDescriptor(AiResourceType.AwsAccount),
+      cloudAccountOf(AiResourceType.AwsAccount),
+    );
+
+    expect(codeIn(await findTestId("ai-agent-logs-command"))).toBe(
+      "aws logs tail /oneuptime/oneuptime-ai-agent --since 30m",
+    );
+  });
+
   test.each(CLOUD_AI_RESOURCE_TYPES)(
     "%s: with no agent yet the card says it once, and fixes that are off point at Change's command",
     async (type: AiResourceType) => {
@@ -3632,7 +3722,7 @@ describe("every resource type", () => {
       );
 
       expect(line).toHaveTextContent(
-        `AI investigations are on by default: once the ${descriptor.agentName} connects, OneUptime AI runs ${descriptor.readOnlyCommandsPhrase} on this ${descriptor.noun} whenever it investigates an incident or alert here. Fixes stay off until you allow them.`,
+        `AI investigations are on by default: once the ${descriptor.agentName} connects, OneUptime AI runs ${descriptor.readOnlyCommandsPhrase} on this ${descriptor.noun} whenever it investigates an incident or alert here. ${descriptor.isReadOnly ? "It has no command that changes one." : "Fixes stay off until you allow them."}`,
       );
     },
   );
@@ -3820,7 +3910,11 @@ describe("every resource type", () => {
     },
   );
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(
+    ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+      return !isReadOnlyAiResourceType(type);
+    }),
+  )(
     "%s: the Change modal's mode cards name its own riskier changes",
     async (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =

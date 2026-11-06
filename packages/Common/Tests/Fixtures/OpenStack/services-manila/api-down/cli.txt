@@ -1,0 +1,6 @@
+$ openstack share list --all-projects
+Service Unavailable (HTTP 503)
+$ openstack share service list
+Service Unavailable (HTTP 503)
+$ openstack share pool list
+Service Unavailable (HTTP 503)

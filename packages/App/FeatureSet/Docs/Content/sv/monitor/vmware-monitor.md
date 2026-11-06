@@ -14,7 +14,7 @@ En VMware-monitor bevakar ett vCenter - datacenter, kluster, ESXi-värdar, virtu
 Mätvärdena kommer från vCenters API och läses med ett skrivskyddat konto på ett av två sätt:
 
 - **VMware Agent**, en OpenTelemetry Collector med receivern `vcenter`, som du kör på en maskin som når vCenter. Se [VMware-agent](/docs/telemetry/vmware).
-- **En probe**, utan något att installera: du ansluter ditt vCenter i OneUptime och väljer den probe som når det. Se [VMware utan agent](/docs/telemetry/vmware-agentless).
+- **A probe**, utan något att installera: du ansluter ditt vCenter i OneUptime och väljer den probe som når det. Se [VMware utan agent](/docs/telemetry/vmware-agentless).
 
 Båda skickar samma serier varje insamlingsintervall (2 minuter som standard), märkta med vCentrets namn, `vmware.vcenter.name`. Ett vCenter är en vSphere-endpoint: en vCenter Server eller en fristående ESXi-värd. En VMware-monitor är kopplad till ett vCenter. Varje minut kör den sin fråga mot det vCentrets mätvärden och jämför resultatet med sina kriterier.
 
@@ -145,6 +145,7 @@ Mallarna läser de senaste 5 minuterna, om inte tabellen säger något annat. Et
 - **Antals- och tillståndsmallar använder Max**, så en enda insamling som visar tillståndet utlöser dem: paketfel, ballooning, swappning, röd och gul status, värdar som inte är effektiva, överbelastning.
 - **Host Not Responding använder Max och utlöses vid 0:** en ESXi-värd som körs använder alltid minne, så en insamling som rapporterar minne i användning är en värd som svarar, och bara ett fönster där ingen gjorde det utlöser den.
 - **Varje mall grupperar på objektets eget identitetsattribut**, så det utlöses en incident per berört objekt, och incidenten nämner det. Undantaget är **vCenter Stopped Reporting**, som bevakar hela vCenter: när data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
+- **Räknemallar för datacenter återställs när deras serie är borta:** mottagaren registrerar ett antal bara för tillstånd som finns, så när den sista röda värden blir grön finns ingen serie kvar, och deras återställningskriterier räknar en saknad serie som 0. När inget datacenter har någon serie kvar återställs de bara om `vcenter.datacenter.cpu.limit` kom i samma fönster, så en vCenter som har slutat rapportera stänger ingenting.
 - **Tröskelvärden är låsta till sin enhet** (`%`, `ms`, `us`), så de behåller sin betydelse oavsett vilken enhet ett diagram visar.
 
 ## Insamlade mätvärden
@@ -273,7 +274,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som ska kontrolleras, efter variabelnamnet. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
-| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. |
+| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. **Väntas stiga över** och **Väntas sjunka under** matchar när mätvärdets trend i fönstret har passerat tröskeln vid slutet av **Tidshorisont**. |
 | **Tröskel** | Värdet som det jämförs med. En enhetslista står bredvid när mätvärdet har en enhet. Visas inte för anomalivillkor. |
 | **Känslighet** | Bara anomalivillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Bara anomalivillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |

@@ -23,9 +23,11 @@ import {
 import OnCallDutyPolicyStatus from "../../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
   LEGACY_ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE,
+  ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE,
   ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE,
   ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
 } from "../../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE } from "../../../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import UserNotificationStatus from "../../../../../Types/UserNotification/UserNotificationStatus";
 
 /*
@@ -347,6 +349,72 @@ describe("a person who escalated the page", () => {
     );
 
     expect(markdown).toContain("**Level 2 of 3**");
+  });
+});
+
+/*
+ * Ana escalated at Level 1 and picked Level 3: Level 2 got a line of its own
+ * saying the page was escalated past it. That is no level that "reached
+ * nobody" - nothing to fix - so the message raises no alarm over it and
+ * lists nothing for it: it names the level the run is on.
+ */
+describe("a level skipped by escalating to a later one", () => {
+  function skippedTo3(
+    level2Message: string,
+  ): Array<OnCallDutyPolicyExecutionLogTimeline> {
+    return [
+      step({
+        status: OnCallDutyExecutionLogTimelineStatus.PassedOn,
+        ruleId: RULE_1,
+        userId: ANA,
+        userName: "Ana Lopez",
+        statusMessage: ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
+      }),
+      step({
+        status: OnCallDutyExecutionLogTimelineStatus.Skipped,
+        ruleId: RULE_2,
+        statusMessage: level2Message,
+      }),
+      step({
+        status: OnCallDutyExecutionLogTimelineStatus.Executing,
+        ruleId: RULE_3,
+        userId: BOB,
+        userName: "Bob Smith",
+      }),
+    ];
+  }
+
+  test("raises no alarm, and lists nothing for it", () => {
+    const run: OnCallPolicyRun = build({
+      log: runOn(RULE_3, 3),
+      timeline: skippedTo3(
+        ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE,
+      ),
+    });
+
+    expect(run.firstRuleThatReachedNobody).toBeUndefined();
+    expect(OnCallPolicyRunMessageView.getAlarms(run)).toEqual([]);
+    expect(run.notPaged).toEqual([]);
+
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(run);
+
+    expect(markdown).not.toContain("nobody to page");
+    expect(markdown).not.toContain("Level 2 of 3");
+    // Where the run is: the level picked.
+    expect(markdown).toContain("**Level 3 of 3**");
+    expect(markdown).toContain("**Ana Lopez**: escalated");
+    expect(markdown).toContain("**Bob Smith**: being paged now");
+  });
+
+  test("while a level that truly had nobody to page still does", () => {
+    // The same run, its Level 2 a level with no responders: the alarm.
+    const run: OnCallPolicyRun = build({
+      log: runOn(RULE_3, 3),
+      timeline: skippedTo3(ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE),
+    });
+
+    expect(run.firstRuleThatReachedNobody).toBeDefined();
+    expect(OnCallPolicyRunMessageView.getAlarms(run)).not.toEqual([]);
   });
 });
 

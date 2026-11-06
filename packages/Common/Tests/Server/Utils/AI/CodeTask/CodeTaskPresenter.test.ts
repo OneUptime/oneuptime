@@ -449,6 +449,7 @@ describe("CodeTaskPresenter.summarize", () => {
       hotFunctionCount: report.hotFunctions.length,
       incidentCount: 2,
       suspectDeployCount: report.suspectDeploys.length,
+      dataImpactCount: 0,
       headSha: report.pullRequest.headSha,
       reviewedAt: report.reviewedAt,
       posting: ProductionReviewPosting.Link,

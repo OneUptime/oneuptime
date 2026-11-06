@@ -1,0 +1,263 @@
+# global.imageRegistry moves every image the chart builds a reference for to
+# one registry - OneUptime's own and the PostgreSQL, ClickHouse, Valkey,
+# PgBouncer, vLLM and kubectl images it deploys - so an air-gapped install
+# names its registry once (oneuptime.imageReference, _helpers.tpl).
+#
+# What it leaves alone is as much a part of it: a repository that already
+# names a registry, and every image.overrides and global.azure.images entry,
+# are used exactly as written, and with the value empty every reference is the
+# one the chart built before it existed.
+suite: global image registry
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: changes nothing while it is empty (OneUptime's images)
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/app:release
+
+  - it: changes nothing while it is empty (the bundled PostgreSQL)
+    templates:
+      - templates/postgresql-statefulset.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      postgresql.image.tag: "15"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: postgres:15
+
+  - it: takes OneUptime's images from the registry, in place of image.registry
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      global.imageRegistry: registry.example.com
+      image.registry: docker.io
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/oneuptime/app:release
+
+  - it: takes the probe, the ingress and the runner from it too (probe)
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      global.imageRegistry: registry.example.com
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/oneuptime/probe:release
+
+  - it: takes the probe, the ingress and the runner from it too (ingress)
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      global.imageRegistry: registry.example.com
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/oneuptime/nginx:release
+
+  - it: takes the probe, the ingress and the runner from it too (runner)
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      global.imageRegistry: registry.example.com
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/oneuptime/runner:release
+
+  - it: keeps the Enterprise Edition's tag
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      global.imageRegistry: registry.example.com
+      image.type: enterprise-edition
+      image.tag: 14.0.102
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/oneuptime/app:enterprise-14.0.102
+
+  - it: runs the migrations from the registry
+    templates:
+      - templates/migrate-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    set:
+      global.imageRegistry: registry.example.com
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/oneuptime/app:release
+
+  - it: puts the registry in front of the bundled PostgreSQL, keeping its name and tag
+    templates:
+      - templates/postgresql-statefulset.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      global.imageRegistry: registry.example.com
+      postgresql.image.tag: "15"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/postgres:15
+
+  - it: puts the registry in front of ClickHouse, keeping its path
+    templates:
+      - templates/clickhouse-statefulset.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      global.imageRegistry: registry.example.com
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: '^registry\.example\.com/clickhouse/clickhouse-server:'
+
+  - it: puts the registry in front of Valkey
+    templates:
+      - templates/valkey-statefulset.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      global.imageRegistry: registry.example.com
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: '^registry\.example\.com/valkey/valkey:'
+
+  - it: puts the registry in front of PgBouncer once it is on
+    templates:
+      - templates/pgbouncer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      global.imageRegistry: registry.example.com
+      pgbouncer.enabled: true
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: '^registry\.example\.com/edoburu/pgbouncer:'
+
+  - it: takes a registry with a path, and drops a trailing slash
+    templates:
+      - templates/postgresql-statefulset.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      global.imageRegistry: registry.example.com/mirror/
+      postgresql.image.tag: "15"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/mirror/postgres:15
+
+  - it: leaves a repository that already names a registry as it is
+    templates:
+      - templates/postgresql-statefulset.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      global.imageRegistry: registry.example.com
+      postgresql.image.repository: other.example.com/postgres
+      postgresql.image.tag: "15"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: other.example.com/postgres:15
+
+  - it: reads a host with a port, or localhost, as a registry
+    templates:
+      - templates/postgresql-statefulset.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      global.imageRegistry: registry.example.com
+      postgresql.image.repository: localhost:5000/postgres
+      postgresql.image.tag: "15"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: localhost:5000/postgres:15
+
+  - it: uses an override exactly as written
+    templates:
+      - templates/valkey-statefulset.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      global.imageRegistry: registry.example.com
+      image.overrides.valkey: mirror.example.com/valkey:9.1
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: mirror.example.com/valkey:9.1
+
+  - it: uses an override map without a registry exactly as written
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      global.imageRegistry: registry.example.com
+      image.overrides.app:
+        repository: oneuptime/app
+        tag: enterprise-14.0.102
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: oneuptime/app:enterprise-14.0.102
+
+  - it: lets a Microsoft Marketplace image win over it
+    templates:
+      - templates/postgresql-statefulset.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      global.imageRegistry: registry.example.com
+      global.azure.images.postgres:
+        registry: marketplace.azurecr.io
+        image: postgres
+        tag: "15"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: marketplace.azurecr.io/postgres:15

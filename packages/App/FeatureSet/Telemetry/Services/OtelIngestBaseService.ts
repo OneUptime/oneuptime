@@ -6,6 +6,11 @@ import KubernetesClusterService from "Common/Server/Services/KubernetesClusterSe
 import DockerHostService from "Common/Server/Services/DockerHostService";
 import PodmanHostService from "Common/Server/Services/PodmanHostService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
+import { isOpenStackCheckResource } from "Common/Utils/OpenStack/OpenStackCheckMetrics";
+import OpenStackAcrossProducts from "Common/Server/Utils/OpenStack/OpenStackAcrossProducts";
+import { isOpenStackInstanceId } from "Common/Types/OpenStack/OpenStackInstanceMetrics";
+import { OpenStackPlacement } from "Common/Types/OpenStack/OpenStackLinks";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import { stampStoredIoTFleetName } from "../Utils/StoredIoTFleetName";
@@ -639,6 +644,12 @@ export default abstract class OtelIngestBaseService {
           name: identity,
         });
         break;
+      case "OpenStackCloud":
+        row = await OpenStackCloudService.findOrCreateByName({
+          projectId: projectId,
+          name: identity,
+        });
+        break;
       case "VMwareVCenter":
         row = await VMwareVCenterService.findOrCreateByName({
           projectId: projectId,
@@ -1118,6 +1129,7 @@ export default abstract class OtelIngestBaseService {
     podmanHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
     proxmoxClusterId?: ObjectID | null;
+    openStackCloudId?: ObjectID | null;
     vmwareVCenterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
     storageArrayId?: ObjectID | null;
@@ -1242,6 +1254,20 @@ export default abstract class OtelIngestBaseService {
     });
 
     /*
+     * A service whose telemetry says which OpenStack instance it is on. Fire-and-forget like
+     * the registry, and fenced: nothing is asked of a resource whose host.id isn't one.
+     */
+    void this.tryPlaceServiceOnOpenStack({
+      projectId: data.projectId,
+      serviceName: this.getStringAttribute(data.attributes, "service.name"),
+      serviceNamespace: this.getStringAttribute(
+        data.attributes,
+        "service.namespace",
+      ),
+      hostIdAttribute: this.getStringAttribute(data.attributes, "host.id"),
+    });
+
+    /*
      * A new service.version, or a Deployment's new ReplicaSet, is a change
      * worth recording (TelemetryChangeDetector). Fire-and-forget like the
      * registry above: it answers from an in-process memo in the steady
@@ -1309,6 +1335,7 @@ export default abstract class OtelIngestBaseService {
     podmanHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
     proxmoxClusterId?: ObjectID | null;
+    openStackCloudId?: ObjectID | null;
     vmwareVCenterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
     storageArrayId?: ObjectID | null;
@@ -1401,6 +1428,18 @@ export default abstract class OtelIngestBaseService {
         serviceName: clusterName ? `proxmox/${clusterName}` : "Proxmox Cluster",
         resourceId: data.proxmoxClusterId,
         primaryEntityType: ServiceType.ProxmoxCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.openStackCloudId) {
+      const cloudName: string | null = this.getOpenStackCloudNameFromAttributes(
+        data.attributes,
+      );
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: cloudName ? `openstack/${cloudName}` : "OpenStack Cloud",
+        resourceId: data.openStackCloudId,
+        primaryEntityType: ServiceType.OpenStackCloud,
         projectId: data.projectId,
       });
     }
@@ -1969,6 +2008,12 @@ export default abstract class OtelIngestBaseService {
     return this.getStringAttribute(attributes, "proxmox.cluster.name");
   }
 
+  protected static getOpenStackCloudNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return this.getStringAttribute(attributes, "openstack.cloud.name");
+  }
+
   protected static async autoDiscoverProxmoxCluster(data: {
     projectId: ObjectID;
     attributes: JSONArray;
@@ -1988,6 +2033,28 @@ export default abstract class OtelIngestBaseService {
       projectId: data.projectId,
       attributes: data.attributes,
       clusterName: clusterName,
+    });
+  }
+
+  protected static async autoDiscoverOpenStackCloud(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    const cloudName: string | null = this.readDiscoveryMatch({
+      resource: "OpenStack cloud",
+      read: (): string | null => {
+        return this.getOpenStackCloudNameFromAttributes(data.attributes);
+      },
+    });
+
+    if (!cloudName) {
+      return null;
+    }
+
+    return await this.discoverMatchedOpenStackCloud({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      cloudName: cloudName,
     });
   }
 
@@ -2054,6 +2121,77 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverOpenStackCloud" })
+  private static async discoverMatchedOpenStackCloud(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    cloudName: string;
+  }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
+    try {
+      const cloudIdStr: string | null = await this.resolveDiscoveredResourceId({
+        kindName: "OpenStackCloud",
+        projectId: data.projectId,
+        identity: data.cloudName,
+      });
+
+      if (!cloudIdStr) {
+        return null;
+      }
+
+      /*
+       * What a probe checked from outside: it belongs to this cloud, and says nothing of
+       * whether whatever collects the cloud is still reporting. An agent that stopped has to
+       * read as stopped, however well the cloud answers.
+       */
+      if (isOpenStackCheckResource(data.attributes)) {
+        return new ObjectID(cloudIdStr);
+      }
+
+      /*
+       * Same fence rationale as the Kubernetes path — skip the
+       * per-batch maintenance UPDATE + label upsert when we
+       * already ran it within the fence window.
+       */
+      const liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.OpenStackCloud,
+        id: cloudIdStr,
+        fenceScope: "openstack-cloud",
+        armedFences: armedFences,
+        heartbeat: async (
+          cloudId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          return await OpenStackCloudService.updateLastSeen(cloudId, {
+            agentVersion: agentVersion || undefined,
+          });
+        },
+        promoteLabels: async (cloudId: ObjectID): Promise<void> => {
+          await this.promoteOneuptimeLabelsToOpenStackCloud({
+            projectId: data.projectId,
+            openStackCloudId: cloudId,
+            attributes: data.attributes,
+          });
+        },
+      });
+
+      return liveIdStr ? new ObjectID(liveIdStr) : null;
+    } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
+      logger.error(
+        "Error auto-discovering OpenStack cloud: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
   /*
    * Promote `oneuptime.label.<dim>=<val>` resource attributes into
    * project labels and attach them to the discovered Proxmox
@@ -2088,6 +2226,39 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.warn(
         `Proxmox cluster label promotion failed for ${data.proxmoxClusterId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  protected static async promoteOneuptimeLabelsToOpenStackCloud(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await OpenStackCloudService.attachLabels({
+        openStackCloudId: data.openStackCloudId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `OpenStack cloud label promotion failed for ${data.openStackCloudId.toString()}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
@@ -5618,6 +5789,17 @@ export default abstract class OtelIngestBaseService {
             hostName,
           });
 
+          /*
+           * The same for OpenStack: this host is one of a cloud's hypervisors, or the
+           * instance its host.id names. Best effort, on the same fence.
+           */
+          await this.tryLinkHostToOpenStack({
+            projectId: data.projectId,
+            hostId: hostId,
+            hostName,
+            hostIdAttribute: hostIdAttr,
+          });
+
           return heartbeat;
         },
       });
@@ -5633,7 +5815,7 @@ export default abstract class OtelIngestBaseService {
   private static readonly HOST_PROXMOX_LINK_CACHE_NAMESPACE: string =
     "host-proxmox-guest-link";
   private static readonly HOST_PROXMOX_LINK_CACHE_EXPIRY_SECONDS: number =
-    24 * 60 * 60; // 1 day
+    24 * 60 * 60;
 
   /**
    * WI-17 ingest heuristic: a Host whose hostIdentifier
@@ -5724,6 +5906,145 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.warn(
         `Host → Proxmox guest link failed for host ${data.hostId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  private static readonly HOST_OPENSTACK_LINK_CACHE_NAMESPACE: string =
+    "host-openstack-link";
+  private static readonly HOST_OPENSTACK_LINK_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60;
+
+  /**
+   * A Host that is a part of an OpenStack cloud: an instance, when its host.id
+   * is that instance's UUID (the collector's `nova` resource detector), or a
+   * hypervisor, when its name matches one. Stamps Host.openStackCloudId, the
+   * way tryLinkHostToProxmoxGuest stamps its own:
+   *
+   *   - NEVER overwrites a value already set.
+   *   - No link on a guess: a UUID or a name that two clouds hold links to
+   *     neither (OpenStackLinks), and is tried again on the next window, by
+   *     when one of them may be gone.
+   *   - A link already made is cached for a day. A miss is not: the inventory
+   *     may not have been scraped yet.
+   *   - Failures are logged and swallowed. Host discovery never depends on
+   *     the OpenStack inventory.
+   *
+   * It also tells the entity graph where the host's services run, so
+   * Topology's Infrastructure view can draw them under the instance. That
+   * part runs every window rather than once a day: a map leaves out what
+   * hasn't reported inside its time range, and an instance can move.
+   */
+  protected static async tryLinkHostToOpenStack(data: {
+    projectId: ObjectID;
+    hostId: ObjectID;
+    hostName: string;
+    hostIdAttribute: string | null;
+  }): Promise<void> {
+    try {
+      const cacheKey: string = `${data.projectId.toString()}:${data.hostId.toString()}`;
+      const isLinked: boolean = Boolean(
+        await GlobalCache.getString(
+          this.HOST_OPENSTACK_LINK_CACHE_NAMESPACE,
+          cacheKey,
+        ),
+      );
+
+      if (!isLinked) {
+        const host: Host | null = await HostService.findOneById({
+          id: data.hostId,
+          select: { _id: true, openStackCloudId: true, hostId: true },
+          props: { isRoot: true },
+        });
+        if (!host) {
+          return;
+        }
+
+        if (!host.openStackCloudId) {
+          /*
+           * A batch that doesn't carry host.id still comes from the host that once said it:
+           * without it, a guest called what a hypervisor is called would read as that machine.
+           */
+          const openStackCloudId: ObjectID | null =
+            await OpenStackAcrossProducts.findCloudOfHost({
+              projectId: data.projectId,
+              hostIdAttribute: data.hostIdAttribute || host.hostId,
+              hostIdentifier: data.hostName,
+            });
+          if (!openStackCloudId) {
+            return; // Nothing matches, or two do. Next fence window.
+          }
+          await HostService.updateOneById({
+            id: data.hostId,
+            data: { openStackCloudId },
+            props: { isRoot: true },
+          });
+        }
+
+        await GlobalCache.setString(
+          this.HOST_OPENSTACK_LINK_CACHE_NAMESPACE,
+          cacheKey,
+          "1",
+          { expiresInSeconds: this.HOST_OPENSTACK_LINK_CACHE_EXPIRY_SECONDS },
+        );
+      }
+
+      const placement: OpenStackPlacement | null =
+        await OpenStackAcrossProducts.getPlacementOfHost({
+          projectId: data.projectId,
+          hostId: data.hostId,
+        });
+      if (placement) {
+        await OpenStackAcrossProducts.reconcilePlacementInTopology({
+          projectId: data.projectId,
+          host: { hostIdentifier: data.hostName },
+          placement,
+        });
+      }
+    } catch (err) {
+      logger.warn(
+        `Host → OpenStack link failed for host ${data.hostId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /**
+   * Topology's Infrastructure view draws a service under the instance its own
+   * telemetry names, whether or not OneUptime's agent reports that host. At
+   * most one read per (service, instance) per fence window, and none at all
+   * for a host.id that isn't shaped like an instance's. Failures are logged
+   * and swallowed: ingest never depends on the OpenStack inventory.
+   */
+  protected static async tryPlaceServiceOnOpenStack(data: {
+    projectId: ObjectID;
+    serviceName: string | null;
+    serviceNamespace: string | null;
+    hostIdAttribute: string | null;
+  }): Promise<void> {
+    if (!data.serviceName || !isOpenStackInstanceId(data.hostIdAttribute)) {
+      return;
+    }
+    try {
+      const fenced: boolean = await this.shouldRunMaintenance(
+        "service-openstack-placement",
+        `${data.projectId.toString()}:${data.hostIdAttribute}:${data.serviceNamespace || ""}:${data.serviceName}`,
+      );
+      if (!fenced) {
+        return;
+      }
+      await OpenStackAcrossProducts.reconcileServiceOnInstance({
+        projectId: data.projectId,
+        instanceId: data.hostIdAttribute as string,
+        serviceName: data.serviceName,
+        serviceNamespace: data.serviceNamespace,
+      });
+    } catch (err) {
+      logger.warn(
+        `Service → OpenStack placement failed for ${data.serviceName}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );

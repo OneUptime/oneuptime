@@ -208,17 +208,19 @@ const setupGuide: PageFunction = (page: PageMap): PageSearchPage => {
 };
 
 /*
- * A product's Slack and Microsoft Teams pages: which of its events are sent
- * to which channel. The menu lists only the workspaces the project has
- * connected; Search offers both, because each page says how to connect
- * its workspace when it is not.
+ * A product's Slack, Microsoft Teams and Mattermost pages: which of its
+ * events are sent to which channel. The menu lists only the workspaces the
+ * project has connected; Search offers them all, because each page says how
+ * to connect its workspace when it is not.
  */
 const workspaceSection: (pages: {
   slack: PageMap;
   microsoftTeams: PageMap;
+  mattermost: PageMap;
 }) => PageSearchSection = (pages: {
   slack: PageMap;
   microsoftTeams: PageMap;
+  mattermost: PageMap;
 }): PageSearchSection => {
   return {
     title: "Workspace",
@@ -234,6 +236,12 @@ const workspaceSection: (pages: {
         title: "Microsoft Teams",
         icon: IconProp.MicrosoftTeams,
         keywords: ["ms teams", "teams channel", "teams notifications"],
+      },
+      {
+        page: pages.mattermost,
+        title: "Mattermost",
+        icon: IconProp.Mattermost,
+        keywords: ["mattermost channel", "mattermost notifications"],
       },
     ],
   };
@@ -458,6 +466,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "teams integration",
               "chat",
             ],
+          },
+          {
+            page: PageMap.SETTINGS_MATTERMOST_INTEGRATION,
+            title: "Mattermost",
+            icon: IconProp.Mattermost,
+            keywords: ["connect mattermost", "mattermost integration", "chat"],
           },
           {
             page: PageMap.SETTINGS_VIDEO_CALLS,
@@ -906,6 +920,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       workspaceSection({
         slack: PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams: PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        mattermost: PageMap.MONITORS_WORKSPACE_CONNECTION_MATTERMOST,
       }),
       {
         title: "Settings",
@@ -993,6 +1008,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       workspaceSection({
         slack: PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        mattermost: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST,
       }),
       {
         title: "Rules",
@@ -1165,6 +1181,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       workspaceSection({
         slack: PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams: PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        mattermost: PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST,
       }),
       {
         title: "Rules",
@@ -1180,6 +1197,16 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "On-Call Rules",
             icon: IconProp.Call,
             keywords: ["who gets paged", "paging", "page on-call"],
+          },
+          {
+            page: PageMap.ALERTS_SETTINGS_INCIDENT_RULES,
+            title: "Incident Rules",
+            icon: IconProp.ArrowTrendingUp,
+            keywords: [
+              "escalate to incident",
+              "declare incident automatically",
+              "alert to incident",
+            ],
           },
           ownerRules(PageMap.ALERTS_SETTINGS_OWNER_RULES),
           {
@@ -1374,6 +1401,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         slack: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams:
           PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        mattermost: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MATTERMOST,
       }),
       {
         title: "Settings",
@@ -1475,6 +1503,8 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         slack: PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams:
           PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        mattermost:
+          PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MATTERMOST,
       }),
       {
         title: "Rules",
@@ -2063,6 +2093,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.SECURITY_EVENTS_HUNT_LIBRARY,
+            title: "Hunt Library",
+            icon: IconProp.SquareStack,
+            keywords: [
+              "starter hunts",
+              "hunt templates",
+              "ready-made searches",
+              "hunting queries",
+              "threat hunting",
+            ],
+          },
+          {
             page: PageMap.SECURITY_EVENTS_CAMPAIGNS,
             title: "Campaigns",
             icon: IconProp.Flag,
@@ -2222,6 +2264,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         slack: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams:
           PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        mattermost: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST,
       }),
       {
         title: "Connections",
@@ -2483,6 +2526,136 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Archive,
             keywords: ["deleted stores", "gone stores"],
           },
+        ],
+      },
+    ],
+  },
+  {
+    id: "data-observability",
+    title: "Data Observability",
+    productPage: PageMap.DATA_OBSERVABILITY_OVERVIEW,
+    icon: IconProp.TableCells,
+    iconColor: "cyan",
+    // The menu's sections and their pages. A table's pages need the record, so they are not here.
+    sections: [
+      {
+        title: "Data Observability",
+        pages: [
+          {
+            page: PageMap.DATA_OBSERVABILITY_OVERVIEW,
+            title: "Overview",
+            icon: IconProp.Home,
+            keywords: ["data health", "late tables", "stale data"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS,
+            title: "Data Products",
+            icon: IconProp.Layers,
+            keywords: ["freshness sla", "data consumers", "data as of badge"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_TABLES,
+            title: "Tables",
+            icon: IconProp.TableCells,
+            keywords: [
+              "data catalog",
+              "row counts",
+              "table sizes",
+              "freshness",
+            ],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_CHECKS,
+            title: "Checks",
+            icon: IconProp.CheckCircle,
+            keywords: ["data quality", "data tests", "dbt tests"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_RECONCILIATIONS,
+            title: "Reconciliations",
+            icon: IconProp.Scale,
+            keywords: ["compare two tables", "data parity", "source and copy"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_PIPELINES,
+            title: "Pipelines",
+            icon: IconProp.Workflow,
+            keywords: ["openlineage", "airflow", "etl jobs"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS,
+            title: "BI Dashboards",
+            icon: IconProp.ChartBar,
+            keywords: ["metabase", "tableau", "looker", "power bi", "superset"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_SPEND,
+            title: "Warehouse Spend",
+            icon: IconProp.Billing,
+            keywords: [
+              "snowflake credits",
+              "bigquery bytes billed",
+              "query costs",
+            ],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES,
+            title: "Schema Changes",
+            icon: IconProp.List,
+            keywords: ["columns added", "columns removed", "schema drift"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_STORES,
+            title: "Databases",
+            icon: IconProp.Database,
+            keywords: ["connect a database", "collect now"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_STORAGE_PATHS,
+            title: "Storage Paths",
+            icon: IconProp.Folder,
+            keywords: ["s3", "gcs", "azure blob", "bucket", "partition"],
+          },
+        ],
+      },
+      {
+        title: "Help",
+        pages: [
+          {
+            page: PageMap.DATA_OBSERVABILITY_DOCUMENTATION,
+            title: "Documentation",
+            icon: IconProp.Book,
+            keywords: ["read-only login", "probe", "metrics"],
+          },
+        ],
+      },
+      {
+        title: "Advanced",
+        pages: [
+          {
+            page: PageMap.DATA_OBSERVABILITY_TABLES_UNUSED,
+            title: "Unused Tables",
+            icon: IconProp.Moon,
+            keywords: ["unread tables", "never read", "wasted storage"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_TABLES_DROPPED,
+            title: "Dropped Tables",
+            icon: IconProp.Archive,
+            keywords: ["deleted tables", "gone tables"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_SETTINGS,
+            title: "Settings",
+            icon: IconProp.Settings,
+            keywords: [
+              "keep failing rows",
+              "most a check may read",
+              "wait when a database is busy",
+            ],
+          },
+          ownerRules(PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES),
+          labelRules(PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES),
         ],
       },
     ],
@@ -2925,13 +3098,25 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
   {
     id: "cloud",
     title: "Cloud",
-    productPage: PageMap.CLOUD_ACCOUNTS,
+    productPage: PageMap.CLOUD_OVERVIEW,
     icon: IconProp.Cloud,
     iconColor: "blue",
     sections: [
       {
         title: "Cloud",
         pages: [
+          {
+            page: PageMap.CLOUD_OVERVIEW,
+            title: "Overview",
+            icon: IconProp.Home,
+            keywords: [
+              "cloud overview",
+              "cloud health",
+              "needs attention",
+              "unhealthy resources",
+              "cloud spend",
+            ],
+          },
           {
             page: PageMap.CLOUD_ACCOUNTS,
             title: "Accounts",
@@ -2977,6 +3162,54 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      {
+        title: "Spend",
+        pages: [
+          {
+            page: PageMap.CLOUD_COSTS,
+            title: "Costs",
+            icon: IconProp.Billing,
+            keywords: [
+              "cloud costs",
+              "cloud spend",
+              "cloud bill",
+              "billing",
+              "aws cost explorer",
+              "azure cost management",
+              "gcp billing export",
+              "finops",
+            ],
+          },
+          {
+            page: PageMap.CLOUD_SAVINGS,
+            title: "Savings",
+            icon: IconProp.ArrowTrendingDown,
+            keywords: [
+              "right-sizing",
+              "rightsizing",
+              "cost optimization",
+              "idle resources",
+              "savings plans",
+              "reserved instances",
+              "azure advisor",
+              "cost optimization hub",
+              "recommender",
+            ],
+          },
+          {
+            page: PageMap.CLOUD_BUDGETS,
+            title: "Budgets",
+            icon: IconProp.Wallet,
+            keywords: [
+              "cloud budgets",
+              "spend alerts",
+              "budget alerts",
+              "spend controls",
+              "cost alerts",
+            ],
+          },
+        ],
+      },
       ...resourceSettingsSections({
         ownerRules: PageMap.CLOUD_SETTINGS_OWNER_RULES,
         labelRules: PageMap.CLOUD_SETTINGS_LABEL_RULES,
@@ -3002,6 +3235,27 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         ownerRules: PageMap.PROXMOX_SETTINGS_OWNER_RULES,
         labelRules: PageMap.PROXMOX_SETTINGS_LABEL_RULES,
         archived: PageMap.PROXMOX_ARCHIVED,
+      }),
+    ],
+  },
+  {
+    id: "openstack",
+    title: "OpenStack",
+    productPage: PageMap.OPENSTACK_CLOUDS,
+    icon: IconProp.Cloud,
+    iconColor: "blue",
+    sections: [
+      {
+        title: "OpenStack",
+        pages: [
+          allListPage(PageMap.OPENSTACK_CLOUDS, "All Clouds"),
+          documentation(PageMap.OPENSTACK_DOCUMENTATION),
+        ],
+      },
+      ...resourceSettingsSections({
+        ownerRules: PageMap.OPENSTACK_SETTINGS_OWNER_RULES,
+        labelRules: PageMap.OPENSTACK_SETTINGS_LABEL_RULES,
+        archived: PageMap.OPENSTACK_ARCHIVED,
       }),
     ],
   },
@@ -3261,6 +3515,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Advanced",
         pages: [
+          {
+            page: PageMap.NETWORK_SNMP_WALK,
+            title: "SNMP Walk",
+            icon: IconProp.Search,
+            keywords: [
+              "snmpwalk",
+              "walk many devices",
+              "oid",
+              "compare devices",
+              "collect oid",
+            ],
+          },
           {
             page: PageMap.NETWORK_DEVICE_ARCHIVED,
             title: "Archived Devices",
@@ -3648,6 +3914,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Microsoft Teams",
             icon: IconProp.MicrosoftTeams,
             keywords: ["link my microsoft teams account"],
+          },
+          {
+            page: PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION,
+            title: "Mattermost",
+            icon: IconProp.Mattermost,
+            keywords: ["link my mattermost account"],
           },
         ],
       },

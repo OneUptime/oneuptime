@@ -1,6 +1,7 @@
 import PageMap from "./PageMap";
 import { getSecurityCasePages } from "./SecurityCaseNavigation";
 import IconProp from "Common/Types/Icon/IconProp";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 
 /*
  * The Security Events menu, as data.
@@ -15,10 +16,12 @@ import IconProp from "Common/Types/Icon/IconProp";
  *   Events           every security event, who is riskiest and how they
  *                    connect: Events, Hunts (searches over them saved to
  *                    open again, or run on a schedule that tells people
- *                    what they find), Campaigns (who is attacking, and
- *                    whether any of it got through), Entity Risk (every
- *                    user, host and address scored by everything found
- *                    about it, and a lookup for any value) and Correlate
+ *                    what they find), the Hunt Library (ready-made hunts,
+ *                    one click from being the project's own), Campaigns
+ *                    (who is attacking, and whether any of it got
+ *                    through), Entity Risk (every user, host and address
+ *                    scored by everything found about it, and a lookup
+ *                    for any value) and Correlate
  *   Detections       what finds threats in them: Detection Rules, the
  *                    Rule Exceptions they skip, the Watchlists they match
  *                    against, the Rule Library, Threat Intel and ATT&CK
@@ -155,6 +158,17 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         title: "Hunts",
         icon: IconProp.ViewfinderCircle,
         detailPages: [PageMap.SECURITY_EVENTS_HUNT_VIEW],
+      },
+      {
+        /*
+         * Ready-made hunts - failed sign-ins, encoded PowerShell, the AWS
+         * root account, a shell in a pod - each one click from being a hunt
+         * of the project's own, as the Rule Library's rules are from being
+         * its detection rules (Types/SecurityEvent/SecurityHuntLibrary).
+         */
+        page: PageMap.SECURITY_EVENTS_HUNT_LIBRARY,
+        title: "Hunt Library",
+        icon: IconProp.SquareStack,
       },
       {
         /*
@@ -373,10 +387,10 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
  * (and Teams chats), one page per workspace, and the page that connects one.
  * The section is drawn as every product's Workspace section is
  * (useWorkspaceSideMenuSection): an entry for each workspace the project has
- * connected - "Slack", "Microsoft Teams" - or, with neither, one entry to
- * the page that connects them, "Connect Slack or Teams"; folded, as every
- * Workspace section is, and open by itself on its own pages. It is not in
- * SECURITY_EVENTS_MENU, whose entries every project has: which of these it
+ * connected - "Slack", "Microsoft Teams", "Mattermost" - or, with none, one
+ * entry to the page that connects them, "Connect a workspace"; folded, as
+ * every Workspace section is, and open by itself on its own pages. It is not
+ * in SECURITY_EVENTS_MENU, whose entries every project has: which of these it
  * lists is known only once the project's connections are.
  *
  * It sits before Connections: the sections set up once close the menu, as
@@ -385,6 +399,7 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
 export interface SecurityEventsWorkspacePages {
   slack: PageMap;
   microsoftTeams: PageMap;
+  mattermost: PageMap;
   // The page a project with nothing connected is sent to.
   connect: PageMap;
 }
@@ -394,6 +409,7 @@ export const SECURITY_EVENTS_WORKSPACE_SECTION_TITLE: string = "Workspace";
 export const SECURITY_EVENTS_WORKSPACE_PAGES: SecurityEventsWorkspacePages = {
   slack: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
   microsoftTeams: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+  mattermost: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST,
   connect: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS,
 };
 
@@ -401,9 +417,20 @@ export const SECURITY_EVENTS_WORKSPACE_PAGES: SecurityEventsWorkspacePages = {
 export const SECURITY_EVENTS_WORKSPACE_SECTION_BEFORE: string = "Connections";
 
 /*
- * Where each Workspace page is, as its breadcrumbs say it. Slack and
- * Microsoft Teams are named as their entries are; the page that connects
- * either shows both, so it is the section's own page, named once.
+ * The kinds of rule the Slack, Microsoft Teams and Mattermost pages hold, a
+ * card each, one under the other: the rules that post security cases, then
+ * the rules that post what hunts find.
+ */
+export const SECURITY_EVENTS_WORKSPACE_EVENT_TYPES: ReadonlyArray<NotificationRuleEventType> =
+  [
+    NotificationRuleEventType.SecurityCase,
+    NotificationRuleEventType.SecurityHunt,
+  ];
+
+/*
+ * Where each Workspace page is, as its breadcrumbs say it. Slack, Microsoft
+ * Teams and Mattermost are named as their entries are; the page that
+ * connects one shows them all, so it is the section's own page, named once.
  */
 const WORKSPACE_PAGE_TRAILS: Array<[PageMap, Array<string>]> = [
   [
@@ -419,12 +446,16 @@ const WORKSPACE_PAGE_TRAILS: Array<[PageMap, Array<string>]> = [
     ],
   ],
   [
+    SECURITY_EVENTS_WORKSPACE_PAGES.mattermost,
+    ["Security Events", SECURITY_EVENTS_WORKSPACE_SECTION_TITLE, "Mattermost"],
+  ],
+  [
     SECURITY_EVENTS_WORKSPACE_PAGES.connect,
     ["Security Events", SECURITY_EVENTS_WORKSPACE_SECTION_TITLE],
   ],
 ];
 
-// The Workspace section's pages: Slack, Microsoft Teams, and the one that connects either.
+// The Workspace section's pages: Slack, Microsoft Teams, Mattermost, and the one that connects one.
 export function getSecurityEventsWorkspacePages(): Array<PageMap> {
   return WORKSPACE_PAGE_TRAILS.map(
     ([page]: [PageMap, Array<string>]): PageMap => {

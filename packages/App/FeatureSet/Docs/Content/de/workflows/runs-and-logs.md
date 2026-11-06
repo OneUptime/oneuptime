@@ -18,6 +18,8 @@ Jedes Mal, wenn ein Workflow läuft, speichert OneUptime, was passiert ist – w
 
 Eine Ausführung, die Sie aus dem **Editor** starten, öffnet dieselbe Ansicht **Arbeitsablauf-Ausführung**, die der Ausführung bereits folgt, sodass Sie ihr zusehen können, statt sie hinterher zu suchen.
 
+Um einen Lauf mit denselben Werten erneut zu versuchen, drücken Sie in seiner Ansicht oder im ⋯-Menü seiner Zeile auf Erneut ausführen. Ein neuer Lauf beginnt beim Auslöser mit dem, womit dieser Lauf begonnen hat, sodass die Nutzlast eines Webhooks nicht erneut gesendet werden muss, und er führt den Workflow in seinem aktuellen Zustand aus, sodass Sie einen Schritt ändern und es sofort ausprobieren können. Seine Schritte werden wirklich ausgeführt, und solange der Workflow ausgeschaltet ist, ist es ein Testlauf. Das Bedienfeld zum Ausführen des Workflows im Builder bietet die Werte des letzten Laufs auf dieselbe Weise an. Der Test eines einzelnen Schritts wird vom Schritt aus erneut ausgeführt. Ein Lauf, der mit mehr als 1 MB an Werten begonnen hat, kann nicht erneut ausgeführt werden, ebenso wenig ein Lauf aus der Zeit, bevor OneUptime diese Werte aufbewahrt hat. Sie sind verschlüsselt und niemand kann sie über die API lesen.
+
 ## Status einer Ausführung
 
 ```mermaid title="Die Status, die eine Ausführung durchläuft"
@@ -126,7 +128,7 @@ Ein Baustein, der nicht läuft, ist meist ein Verdrahtungsproblem. Öffnen Sie d
 Öffnen Sie die Ausführung und sehen Sie sich den Schritt an. Ein Verweis, der sich nicht aufgelöst hat, wird am Schritt selbst als Warnung gemeldet, und seine Einstellung im Block **Empfangen** ist mit **Nicht behoben** markiert.
 
 - Sehen Sie den wörtlichen Text `{{local.components.…}}`, hat sich der Verweis nicht aufgelöst. Meist ist das ein Tippfehler in der Komponenten-ID oder der Rückgabewert-ID – denken Sie daran, dass es die **Kennung** des Bausteins ist, nicht der darauf angezeigte Name. Prüfen Sie auch die Schreibweise von `local.components` selbst: `{{local.componets.api-get-1.returnValues.response-body}}` wird als wörtlicher Text gesendet, und die Ausführung meldet trotzdem **Ausgeführt**. War die Ausführung ein Test mit **Nur diesen Schritt ausführen**, lief der frühere Baustein überhaupt nicht – führen Sie stattdessen den ganzen Workflow aus.
-- Sehen Sie **Leerer Text**, lief der frühere Baustein, hat dieses Feld aber nicht erzeugt.
+- Sehen Sie **Leerer Text** oder eine Lücke in einer Nachricht, lief der frühere Baustein, hat in diesem Feld aber nichts. Entweder enthält der Datensatz dort keinen Wert, was der Reiter **Full Log** in einer eigenen Zeile vermerkt, oder der Baustein reicht das Feld nicht weiter, wovor der Schritt warnt.
 
 Dieselbe Warnung steht im Reiter **Full Log** als Zeile, die mit `Warning:` beginnt.
 :::

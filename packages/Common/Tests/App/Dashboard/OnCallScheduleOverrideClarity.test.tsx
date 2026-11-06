@@ -600,14 +600,27 @@ describe("The overrides card states the substitution in full", () => {
      * distinguishes them. The start is the fixture's own: reading the clock
      * again once the card is up can land in the next minute, and expect a
      * minute later than the one the card shows.
+     *
+     * Each moment is written the way a list of hand-offs writes it: no zone
+     * (the View as row says it once) and no year while it is this year, read
+     * against the fixture's own now - a start in the first hour of a year is
+     * of the year before, and keeps its year.
      */
-    const startHour: string = OneUptimeDate.getDateAsFormattedStringInTimezone({
-      date: override.startsAt,
-      timezone: "UTC",
-      showWeekday: true,
-    });
+    const fixtureNow: Date = OneUptimeDate.addRemoveHours(override.startsAt, 1);
 
-    expect(card.textContent).toContain(startHour);
+    const handOffMoment: (date: Date) => string = (date: Date): string => {
+      return OneUptimeDate.getDateAsFormattedStringInTimezone({
+        date,
+        timezone: "UTC",
+        showWeekday: true,
+        hideZone: true,
+        hideYear: OneUptimeDate.isSameYearInTimezone(date, fixtureNow, "UTC"),
+      });
+    };
+
+    expect(card.textContent).toContain(handOffMoment(override.startsAt));
+    expect(card.textContent).toContain(handOffMoment(override.endsAt));
+    expect(card.textContent).not.toContain("UTC");
   });
 });
 

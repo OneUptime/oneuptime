@@ -10,8 +10,10 @@ import SecurityProjectWork, {
 import AccessTokenService from "../../../../../Server/Services/AccessTokenService";
 import AnalyticsDatabaseService from "../../../../../Server/Services/AnalyticsDatabaseService";
 import SecurityEventService from "../../../../../Server/Services/SecurityEventService";
+import SecurityHuntRunService from "../../../../../Server/Services/SecurityHuntRunService";
 import SecurityHuntService from "../../../../../Server/Services/SecurityHuntService";
 import logger from "../../../../../Server/Utils/Logger";
+import { SecurityWatchlistMissingException } from "../../../../../Server/Utils/SecurityEvent/Watchlists/SecurityWatchlists";
 import SecurityHunt from "../../../../../Models/DatabaseModels/SecurityHunt";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
@@ -108,6 +110,7 @@ let propsOf: Spy;
 let countBy: Spy;
 let compareAndSet: Spy;
 let huntFound: Spy;
+let keepRun: Spy;
 
 beforeEach(() => {
   propsOf = getJestSpyOn(
@@ -125,6 +128,10 @@ beforeEach(() => {
     SecurityHuntNotifications,
     "huntFound",
   ).mockResolvedValue(true as never);
+  // Each run is kept in the hunt's history (SecurityHuntRunHistory.test.ts).
+  keepRun = getJestSpyOn(SecurityHuntRunService, "create").mockResolvedValue(
+    {} as never,
+  );
   getJestSpyOn(logger, "error").mockImplementation((() => {
     return undefined;
   }) as never);
@@ -342,6 +349,16 @@ describe("what a run counts", () => {
         new Error("Code: 62. DB::Exception: Syntax error near attributes"),
       ),
     ).toBe(SECURITY_HUNT_RUN_ERRORS.searchFailed.message);
+
+    // A watchlist its search reads is gone: the hunt says so, and how to mend it.
+    expect(
+      SecurityHuntScheduler.describeRunError(
+        new SecurityWatchlistMissingException(["vip_users"]),
+      ),
+    ).toBe(SECURITY_HUNT_RUN_ERRORS.watchlistMissing.message);
+    expect(SECURITY_HUNT_RUN_ERRORS.watchlistMissing.message).toBe(
+      "Its search reads a watchlist this project no longer has. Open the hunt to fix its search.",
+    );
   });
 });
 
@@ -361,8 +378,10 @@ describe("one run of a hunt", () => {
       eventCount: 3,
       error: null,
       isRecorded: true,
+      isKeptInHistory: true,
       isNotificationQueued: true,
     });
+    expect(keepRun).toHaveBeenCalledTimes(1);
     expect(recorded()).toEqual({
       lastRunAt: NOW,
       lastRunEventCount: 3,

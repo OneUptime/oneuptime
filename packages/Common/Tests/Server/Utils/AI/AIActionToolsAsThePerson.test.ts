@@ -27,6 +27,7 @@ import {
   RUNBOOK_RUN_REFUSED_MESSAGE,
 } from "../../../../Types/Runbook/RunbookRunPermissions";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { actionCardText } from "../../../Helpers/AIActionCardText";
 
 /*
  * The AI assistant's actions ask what the dashboard asks of the person, with
@@ -343,6 +344,13 @@ describe("run_runbook asks what the dashboard's Run Runbook asks", () => {
     );
 
     expect(result.dataForLlm).toContain('Started runbook "Restart checkout".');
+    // The card: the runbook by its name, and the incident its run is for.
+    expect(actionCardText(result.widget)).toEqual({
+      heading: "Restart checkout",
+      kind: "Runbook",
+      line: "Run started for incident #42",
+      facts: [],
+    });
     expect(start).toHaveBeenCalledTimes(1);
     const started: {
       projectId: ObjectID;
@@ -394,6 +402,9 @@ describe("change_incident_severity changes the incident as the person", () => {
     expect(result.dataForLlm).toContain(
       "Changed incident #42 severity to Critical.",
     );
+    // The card: the severity it now has, said once, in words.
+    expect(actionCardText(result.widget)?.line).toBe("Severity: Critical");
+    expect(actionCardText(result.widget)?.facts).toEqual([]);
     const written: {
       id: ObjectID;
       data: { incidentSeverityId: ObjectID };

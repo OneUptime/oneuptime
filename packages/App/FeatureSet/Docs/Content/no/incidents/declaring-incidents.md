@@ -45,7 +45,7 @@ Bare det første trinnet har påkrevde felt, pluss ethvert egendefinert felt adm
 **Fra en ressurs' egen side.** **Erklær hendelse** på fanen **Hendelser** for en monitor, en vert, en tjeneste, en klynge eller de fleste andre ressurser åpner det samme skjemaet med den ressursen allerede valgt på **Berørte ressurser**, så en tittel og en alvorlighetsgrad er alt som trengs, og hendelsen vises på fanen du startet fra.
 
 :::details Hvilke ressurssider som tilbyr det, og hva de velger
-**Erklær hendelse** på fanen **Hendelser** for en monitor, en vert, en nettverksenhet, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vert, en vCenter, et lagringsarray, en IoT-flåte, en database eller en tjeneste åpner den samme veiviseren med den ressursen allerede valgt på **Berørte ressurser** (en monitor under **Monitorer**, alt annet under **Andre berørte ressurser**), foran alt en mal legger til. **Opprett fra mal** på den fanen beholder også ressursen. Brødsmulestien fører tilbake via ressursens fane, og når hendelsen er erklært, havner du på den nye hendelsen, som fra listen over hendelser.
+**Erklær hendelse** på fanen **Hendelser** for en monitor, en vert, en nettverksenhet, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vert, en vCenter, en OpenStack-sky, et lagringsarray, en IoT-flåte, en database eller en tjeneste åpner den samme veiviseren med den ressursen allerede valgt på **Berørte ressurser** (en monitor under **Monitorer**, alt annet under **Andre berørte ressurser**), foran alt en mal legger til. **Opprett fra mal** på den fanen beholder også ressursen. Brødsmulestien fører tilbake via ressursens fane, og når hendelsen er erklært, havner du på den nye hendelsen, som fra listen over hendelser.
 
 Fanen **Hendelser** for et lagerelement velger verten, tjenesten eller Kubernetes-klyngen elementet peker på, og brødsmulestien fører tilbake via den ressursens fane. **Opprett varsel** på fanen **Varsler** for en ressurs fungerer på samme måte: fra en monitor fyller den ut varselets **Overvåking**, fra alt annet **Andre berørte ressurser**.
 
@@ -284,7 +284,7 @@ Derfra er hendelsen live: den teller med i merket **Aktive hendelser** i sidemen
 
 ### Erklært allerede bekreftet eller løst
 
-Å velge en senere **Innledende tilstand** — på skjemaet, via en mals **Innledende hendelsestilstand** eller med `currentIncidentStateId` fra API-et, Terraform eller en arbeidsflyt — registrerer en hendelse som noen allerede håndterer, eller som allerede er over. Den behandles ikke som en ny nødsituasjon:
+Å velge en senere **Innledende tilstand** — på skjemaet, via en mals **Innledende hendelsestilstand**, med `currentIncidentStateId` fra API-et, Terraform eller en arbeidsflyt, eller ved å be [Spør AI](/docs/ai/ask-ai) om en hendelse som allerede er bekreftet eller løst — registrerer en hendelse som noen allerede håndterer, eller som allerede er over. Den behandles ikke som en ny nødsituasjon:
 
 ```mermaid title="Hva en ny hendelse setter i gang, etter tilstanden den starter i"
 flowchart TB

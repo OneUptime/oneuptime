@@ -45,6 +45,12 @@ export const IngestRoutePrefixesToSkip: Array<string> = [
    */
   "/vercel",
   /*
+   * The Amazon Data Firehose endpoint an AWS connection streams to
+   * (/aws-firehose/v1/metrics and /logs), mounted on both "/telemetry" and
+   * "/" the same way. POST-only; reserved for the same reason as /fluentd.
+   */
+  "/aws-firehose",
+  /*
    * Queue-depth and shed-rate endpoints polled by the KEDA metrics-api
    * scaler (HelmChart/.../keda-scaledobjects.yaml). The worker and api tiers
    * only kept working because App/Index.ts mounts AppMetricsAPI on "/"

@@ -258,6 +258,13 @@ const LEDGER: Record<string, Array<Choice>> = {
         why: "Unsubscribe: one subscriber's unsubscribing touches nothing another's does.",
       },
     ],
+  "packages/App/FeatureSet/Dashboard/src/Components/StatusPage/useStatusPageBulkAdd.tsx":
+    [
+      {
+        expression: SEVERAL,
+        why: "Add in Bulk on a status page's subscriber lists and private users: each is a row of its own; a contact already on the page and the Free plan's subscriber limit are decided with each INSERT under a lock, the list holds each address once, and the message limits count each contact, never the team.",
+      },
+    ],
   "packages/App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Archived.tsx": [
     {
       expression: "1",
@@ -297,10 +304,21 @@ const LEDGER: Record<string, Array<Choice>> = {
       why: "Block and Unblock users: each user's switch is their own.",
     },
     {
+      expression: SEVERAL,
+      why: "Require and Do Not Require Two Factor Auth: each request writes one user's requirement and signs that user out, nothing another user's request reads.",
+    },
+    {
       expression: "1",
       why: "Delete users: a project keeps at least one owner, a rule two deletes at once would each check against the other's user.",
     },
   ],
+  "packages/App/FeatureSet/AdminDashboard/src/Components/User/BulkAddUsersToProject.ts":
+    [
+      {
+        expression: "1",
+        why: "Add users to a project: each membership runs the project's seat accounting (seatLimit against the subscription's seats), which creates at once would race past the limit.",
+      },
+    ],
   "ee/AdminDashboard/EnterpriseLicenses/Components/useLicenseBulkActions.tsx": [
     {
       expression: "1",

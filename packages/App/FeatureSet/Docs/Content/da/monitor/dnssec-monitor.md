@@ -50,7 +50,7 @@ En signatur med mindre end en dag tilbage tæller allerede som brudt, så du få
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Klik på **Flere monitortyper** under **Monitortype**, og vælg **DNSSEC** under **DNS Monitoring**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Klik på **Flere monitortyper** under **Monitortype**, og vælg **DNSSEC** under **DNS-overvågning**.
 
 ### Navngiv den
 

@@ -413,6 +413,70 @@ describe("query_cloud_accounts", () => {
     expect(result.dataForLlm).not.toContain("Sandbox");
   });
 
+  test("one account by OneUptime's id of it: the account a page is about", async () => {
+    const ACCOUNT_RECORD_ID: string = "66666666-6666-4666-8666-666666666666";
+    const find: SpyInstance<typeof CloudAccountService.findBy> = jest
+      .spyOn(CloudAccountService, "findBy")
+      .mockResolvedValue([
+        {
+          name: "Production",
+          provider: CloudProvider.AWS,
+          accountId: ACCOUNT,
+          resourceCount: 42,
+        },
+      ] as never);
+
+    const result: ToolExecutionResult = await QueryCloudAccountsTool.execute(
+      { cloudAccountRecordId: ` ${ACCOUNT_RECORD_ID} ` },
+      ctx,
+    );
+
+    expect((find.mock.calls[0]![0] as never as JSONObject)["query"]).toEqual({
+      projectId: PROJECT_ID,
+      _id: ACCOUNT_RECORD_ID,
+    });
+    expect(result.rowCount).toBe(1);
+    expect(result.dataForLlm).toContain(`accountId=${ACCOUNT}`);
+  });
+
+  test("an id that is not OneUptime's is refused before anything is read", async () => {
+    const find: SpyInstance<typeof CloudAccountService.findBy> = jest
+      .spyOn(CloudAccountService, "findBy")
+      .mockResolvedValue([]);
+
+    // The account's id in its cloud is not the id a page names.
+    await expect(
+      QueryCloudAccountsTool.execute({ cloudAccountRecordId: ACCOUNT }, ctx),
+    ).rejects.toBeInstanceOf(BadDataException);
+    expect(find).not.toHaveBeenCalled();
+  });
+
+  test("no account of that id says so, not how to connect one", async () => {
+    jest.spyOn(CloudAccountService, "findBy").mockResolvedValue([]);
+
+    const result: ToolExecutionResult = await QueryCloudAccountsTool.execute(
+      { cloudAccountRecordId: "66666666-6666-4666-8666-666666666666" },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toBe(
+      "No cloud account of this project has that id, or you may not read it.",
+    );
+  });
+
+  test("its schema names the id a page gives", () => {
+    const properties: JSONObject = (
+      QueryCloudAccountsTool.inputSchema as JSONObject
+    )["properties"] as JSONObject;
+
+    expect(Object.keys(properties)).toEqual(
+      expect.arrayContaining(["cloudAccountRecordId", "provider", "search"]),
+    );
+    expect(
+      (QueryCloudAccountsTool.inputSchema as JSONObject)["required"],
+    ).toBeUndefined();
+  });
+
   test("an unknown cloud filters nothing; no account says how to connect one", async () => {
     const find: SpyInstance<typeof CloudAccountService.findBy> = jest
       .spyOn(CloudAccountService, "findBy")

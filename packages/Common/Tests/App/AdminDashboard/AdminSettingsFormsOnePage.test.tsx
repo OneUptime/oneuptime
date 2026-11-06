@@ -1359,9 +1359,16 @@ describe("Settings > Global LLM Providers", () => {
     return screen.getByTestId("modal");
   }
 
-  function stepTitles(dialog: HTMLElement): Array<string> {
+  /*
+   * The step list, by its name in the dialog's language: the Admin
+   * Dashboard's locales word the shared form's "Progress" since 2807833b3d5.
+   */
+  function stepTitles(
+    dialog: HTMLElement,
+    locale: Locale = ENGLISH,
+  ): Array<string> {
     const progress: HTMLElement = within(dialog).getByRole("navigation", {
-      name: "Progress",
+      name: text(locale, "Progress"),
     });
 
     return within(progress)
@@ -1371,11 +1378,16 @@ describe("Settings > Global LLM Providers", () => {
       });
   }
 
-  async function waitForSteps(dialog: HTMLElement): Promise<void> {
+  async function waitForSteps(
+    dialog: HTMLElement,
+    locale: Locale = ENGLISH,
+  ): Promise<void> {
     await waitFor(
       () => {
         expect(
-          within(dialog).getByRole("navigation", { name: "Progress" }),
+          within(dialog).getByRole("navigation", {
+            name: text(locale, "Progress"),
+          }),
         ).toBeVisible();
       },
       { timeout: WAIT_FOR_TIMEOUT },
@@ -1427,10 +1439,11 @@ describe("Settings > Global LLM Providers", () => {
   test("names its two steps in the reader's language", async () => {
     const dialog: HTMLElement = await openDialog(FormType.Create, "de");
 
-    await waitForSteps(dialog);
+    await waitForSteps(dialog, GERMAN);
 
-    const titles: Array<string> = stepTitles(dialog);
+    const titles: Array<string> = stepTitles(dialog, GERMAN);
 
+    expect(text(GERMAN, "Progress")).toBe("Fortschritt");
     expect(titles).toHaveLength(2);
     expect(titles[0]).toContain(text(GERMAN, "Provider"));
     expect(titles[1]).toContain(text(GERMAN, "Connection"));

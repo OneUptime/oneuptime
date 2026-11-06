@@ -49,6 +49,10 @@ import {
   runStoryEvents,
 } from "../../../../Utils/SecurityCase/SecurityCaseStoryItems";
 import { readChangeEventFields } from "../../../../Utils/Telemetry/ChangeEventFields";
+import {
+  CloudChangeTitleFacts,
+  readCloudChangeTitleFacts,
+} from "../../../../Utils/Telemetry/CloudChangeTitle";
 import AlertService from "../../../Services/AlertService";
 import ChangeEventService from "../../../Services/ChangeEventService";
 import IncidentService from "../../../Services/IncidentService";
@@ -613,12 +617,20 @@ export default class SecurityCaseStory {
 
       const version: string | undefined = fields["version"];
 
+      // A cloud change's title is worded from these on the page.
+      const cloudChange: CloudChangeTitleFacts | null =
+        readCloudChangeTitleFacts({
+          title: row.title,
+          attributes: (row.attributes as Dictionary<unknown>) || {},
+        });
+
       items.push({
         key: `change:${row._id?.toString() || time}`,
         kind: SecurityCaseStoryItemKind.Change,
         time,
         title: cutStoryText(row.title || row.eventType || "Change"),
         ...(version ? { detail: cutStoryText(version) } : {}),
+        ...(cloudChange ? { cloudChange } : {}),
         stateName: row.eventType || "change",
         links: {
           resource: {

@@ -1093,13 +1093,20 @@ test.describe("Logs → AI → a finding", () => {
       expect(Math.abs(fact.valueLeft - fact.rowLeft)).toBeLessThanOrEqual(1);
     }
 
-    // English text keeps its own order on a Persian page.
+    /*
+     * A value in its own direction, in its own <bdi>: a time, written in
+     * Persian as the Dashboard writes every date in the reader's language
+     * ("۴ دقیقه پیش", never "4 minutes ago").
+     */
     await expect(
       page
         .getByTestId("insight-fact-value")
         .locator("bdi")
-        .filter({ hasText: "minutes ago" }),
-    ).toHaveText("4 minutes ago");
+        .filter({ hasText: "۴ دقیقه پیش" }),
+    ).toHaveText("۴ دقیقه پیش");
+    await expect(
+      page.getByTestId("insight-fact-value").filter({ hasText: "minutes ago" }),
+    ).toHaveCount(0);
 
     if (isPhone(testInfo)) {
       await expectNoSidewaysScroll(page);

@@ -1882,7 +1882,7 @@ describe("CreateWorkflowModal Jira templates", () => {
    * new alert: its description says the page opens one. The incident
    * templates never mention alerts, so they stay out of it.
    */
-  test("searching for alert shows the Alerts templates, then the alert Jira templates, then the alert Dynamics 365 and Zabbix ones, then the one that pages about a new alert", () => {
+  test("searching for alert shows the Alerts templates, then the alert Jira templates, then the alert Dynamics 365, Zabbix, Datadog and New Relic ones, then the one that pages about a new alert", () => {
     renderModal();
 
     const alertCategoryTemplateIds: Array<string> =
@@ -1894,6 +1894,15 @@ describe("CreateWorkflowModal Jira templates", () => {
 
     expect(alertCategoryTemplateIds.length).toBeGreaterThan(0);
 
+    /*
+     * Filed under Alerts, but its name never says the word, so it scores below every name
+     * that does: only the Alerts templates that say alert lead the results.
+     */
+    const OPENSTACK_TEMPLATE_ID: string =
+      "openstack-compute-down-propose-disabling";
+
+    expect(alertCategoryTemplateIds).toContain(OPENSTACK_TEMPLATE_ID);
+
     for (const query of ["alert", "ALERT", "  Alert  "]) {
       searchTemplates(query);
 
@@ -1903,10 +1912,16 @@ describe("CreateWorkflowModal Jira templates", () => {
       }).toEqual({
         query: query,
         results: [
-          ...alertCategoryTemplateIds,
+          ...alertCategoryTemplateIds.filter((id: string): boolean => {
+            return id !== OPENSTACK_TEMPLATE_ID;
+          }),
           ...ALERT_JIRA_KIND.templateIds,
           ...ALERT_DYNAMICS_TEMPLATE_IDS,
           ...ALERT_ZABBIX_TEMPLATE_IDS,
+          // Only the versions that make OneUptime alerts: the incident ones say monitor and issue.
+          "datadog-create-alert-from-monitor",
+          "new-relic-create-alert-from-issue",
+          OPENSTACK_TEMPLATE_ID,
           "webhook-page-users",
         ],
       });

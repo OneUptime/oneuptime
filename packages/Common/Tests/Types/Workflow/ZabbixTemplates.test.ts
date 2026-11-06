@@ -190,7 +190,7 @@ function scriptsOf(templateId: string): Array<[string, string]> {
 /* ------------------------------- The category ------------------------------- */
 
 describe("the Zabbix category", () => {
-  test("is in the picker after Huntress, before the general Integrations", () => {
+  test("is in the picker after Huntress, first of the monitoring tools, before the general Integrations", () => {
     const order: Array<WorkflowTemplateCategory> = [
       ...WorkflowTemplateCategories,
     ];
@@ -198,9 +198,12 @@ describe("the Zabbix category", () => {
     expect(order.indexOf(WorkflowTemplateCategory.Zabbix)).toBe(
       order.indexOf(WorkflowTemplateCategory.Huntress) + 1,
     );
-    expect(order.indexOf(WorkflowTemplateCategory.Integrations)).toBe(
+    expect(order.indexOf(WorkflowTemplateCategory.Datadog)).toBe(
       order.indexOf(WorkflowTemplateCategory.Zabbix) + 1,
     );
+    expect(
+      order.indexOf(WorkflowTemplateCategory.Integrations),
+    ).toBeGreaterThan(order.indexOf(WorkflowTemplateCategory.Zabbix));
   });
 
   test("is labelled with the product's name, says what it is for in one line, and has the icon of the servers Zabbix watches", () => {

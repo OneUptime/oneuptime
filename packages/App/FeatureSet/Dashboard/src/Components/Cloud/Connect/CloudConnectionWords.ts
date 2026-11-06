@@ -1,7 +1,7 @@
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
-import { getCloudResourceTypeLabel } from "Common/Types/Cloud/CloudResourceCatalog";
+import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
 import {
   CloudConnectionCostEstimate,
   estimateCloudConnectionCost,
@@ -471,7 +471,7 @@ export function getResourceTypeEntries(data: {
   return data.resourceTypes.map(
     (entry: CloudConnectionTypeCount): { label: string; count: number } => {
       return {
-        label: getCloudResourceTypeLabel(data.provider, entry.type),
+        label: getCloudResourceTypeDisplayName(data.provider, entry.type),
         count: entry.count,
       };
     },

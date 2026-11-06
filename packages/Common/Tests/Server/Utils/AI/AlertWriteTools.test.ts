@@ -19,6 +19,14 @@ import Permission from "../../../../Types/Permission";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { actionTitleText } from "../../../Helpers/AIActionText";
+import {
+  AI_ACTION_CARD_KINDS,
+  AI_ACTION_CARD_LINES,
+  aiActionSentence,
+  aiActionTerm,
+  isKnownAIActionCardWords,
+} from "../../../../Types/AI/AIActionWords";
 
 /*
  * acknowledge_alert / resolve_alert move an alert's state from the AI copilot.
@@ -235,21 +243,58 @@ describe.each(cases)(
       >;
       expect(widgetData["resourceType"]).toBe("Alert");
       expect(widgetData["heading"]).toBe("#9 · High CPU on api-1");
-      expect(widgetData["subheading"]).toBe(`Now ${newStateName}`);
+      expect(widgetData["subheading"]).toBe(
+        `Now ${newStateName.toLowerCase()}`,
+      );
       expect(widgetData["link"]).toEqual({
         type: AIChatCitationTargetType.AlertView,
         params: { alertId: ALERT_ID.toString() },
       });
       // The heading names it and the line under it says its new state.
       expect(widgetData["fields"]).toEqual([]);
+
+      // The same card as words, said in the reader's language.
+      expect(isKnownAIActionCardWords(widgetData["words"])).toBe(true);
+      expect(widgetData["words"]).toEqual({
+        kind: aiActionTerm(AI_ACTION_CARD_KINDS.alert),
+        line: [
+          aiActionSentence(
+            memberAction === "acknowledge"
+              ? AI_ACTION_CARD_LINES.nowAcknowledged
+              : AI_ACTION_CARD_LINES.nowResolved,
+          ),
+        ],
+      });
+    });
+
+    test("the card names the alert by the number the person knows it by", async () => {
+      const alert: Alert = buildAlert();
+      alert.alertNumberWithPrefix = "ALT-9";
+      jest.spyOn(AlertService, "findOneById").mockResolvedValue(alert);
+      jest
+        .spyOn(WorkspaceMemberActions, memberAction)
+        .mockResolvedValue(undefined as never);
+
+      const result: ToolExecutionResult = await tool.execute(
+        { alertId: ALERT_ID.toString() },
+        ctx,
+      );
+
+      expect((result.widget?.data as Record<string, unknown>)["heading"]).toBe(
+        "ALT-9 · High CPU on api-1",
+      );
     });
 
     test("buildActionTitle names the alert, and stays tidy with no id", () => {
-      expect(tool.buildActionTitle!({ alertId: ALERT_ID.toString() })).toBe(
-        `${actionTitlePrefix} ${ALERT_ID.toString()}`,
-      );
+      expect(
+        actionTitleText(
+          tool.buildActionTitle!({ alertId: ALERT_ID.toString() }),
+        ),
+      ).toBe(`${actionTitlePrefix} ${ALERT_ID.toString()}`);
       // No trailing space when the model calls it before it has an id.
-      expect(tool.buildActionTitle!({})).toBe(actionTitlePrefix);
+      expect(actionTitleText(tool.buildActionTitle!({}))).toBe(
+        actionTitlePrefix,
+      );
     });
 
     test("is a mutation that needs what the dashboard's state panel needs: to change the alert's state", () => {

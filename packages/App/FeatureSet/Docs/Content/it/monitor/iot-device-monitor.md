@@ -34,7 +34,7 @@ flowchart TB
 ## Prima di iniziare
 
 - **Fai inviare dati ai tuoi dispositivi.** La [guida ai dispositivi IoT](/docs/telemetry/iot-devices) mostra come inviare metriche con un SDK o un Collector OpenTelemetry, oppure tramite MQTT.
-- **Verifica che la flotta sia registrata.** Compare in **Prodotti → Infrastruttura → IoT → All Fleets**, con il nome dello `iot.fleet.name` che inviano i dispositivi.
+- **Verifica che la flotta sia registrata.** Compare in **Prodotti → Infrastruttura → IoT → Tutte le flotte**, con il nome dello `iot.fleet.name` che inviano i dispositivi.
 - **Registra i dispositivi che ti aspetti**, nel **Registro dei dispositivi** della flotta, per essere avvisato quando uno smette di trasmettere: vedi [Rilevamento offline](#rilevamento-offline).
 
 ## Creare un monitor di dispositivi IoT
@@ -50,7 +50,7 @@ In **Tipo di monitor**, fai clic su **Altri tipi di monitor** e scegli **Disposi
 
 ### Scegliere la flotta
 
-In **IoT Monitor Configuration**, scegli la flotta da **IoT Fleet**. Ogni flotta che ha inviato dati è nell'elenco. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi flotta IoT** apre i passi di configurazione con le tue chiavi già inserite, che attendono i primi dati.
+In **IoT Monitor Configuration**, scegli la flotta da **Flotta IoT**. Ogni flotta che ha inviato dati è nell'elenco. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi flotta IoT** apre i passi di configurazione con le tue chiavi già inserite, che attendono i primi dati.
 
 ### Scegliere cosa osservare
 
@@ -76,7 +76,7 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 
 | Campo | Scheda | Cosa fa |
 | --- | --- | --- |
-| **IoT Fleet** | Tutte | Obbligatorio. Limita ogni query a `resource.iot.fleet.name`. |
+| **Flotta IoT** | Tutte | Obbligatorio. Limita ogni query a `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avanzato | Facoltativo. Un dispositivo, tramite il suo `device.id`, come `sensor-001`. |
 | **Tipo di dispositivo** | Custom Metric, Avanzato | Facoltativo. I dispositivi che segnalano questo `iot.device.type`, come `sensor` o `gateway`. |
 | **IoT Metric** | Custom Metric | Una metrica del [catalogo](#metriche-raccolte). |
@@ -146,7 +146,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | **Tipo di filtro** | Sempre **Metric Value**, l'unico controllo che questo monitor offre. |
 | **Select Metric Variable** | La query o la formula da controllare, tramite il nome della sua variabile. |
 | **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
-| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a** — oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa. |
+| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a** — oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa. **Previsto sopra** e **Previsto sotto** corrispondono quando la tendenza della metrica nella finestra avrà superato la soglia alla fine di **Orizzonte**. |
 | **Soglia** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non mostrato per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Bassa** (4σ), **Media** (3σ, il predefinito) o **Alta** (2σ). |
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (il predefinito), 28, 60 o 90 giorni di storico. |

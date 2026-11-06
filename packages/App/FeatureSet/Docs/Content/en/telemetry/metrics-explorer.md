@@ -112,15 +112,16 @@ The **Insights** tab counts the metrics in a time range: **Active metrics**, **R
 
 ## Improve metrics and add missing ones with AI
 
-Every hour OneUptime looks through the metrics your services sent in the last hour for ones that record too many values, histograms whose buckets do not fit, and busy services that send no metrics. It files what it finds as AI insights, with the evidence. OneUptime AI then looks into each one and opens a pull request to fix it. Nothing is ever merged: your team reviews each pull request.
+Every hour OneUptime looks through the metrics your services sent in the last hour for ones that record too many values, histograms whose buckets do not fit, and busy services that send no metrics for their requests. It files what it finds as AI insights, with the evidence. OneUptime AI then looks into each one and opens a pull request to fix it. Nothing is ever merged: your team reviews each pull request.
 
-OneUptime reads closely the 10 metrics your services sent the most data points for in the hour, each with at least 1,000 of them, and files three kinds of finding:
+OneUptime reads closely the 10 metrics your services sent the most data points for in the hour, each with at least 1,000 of them, and files four kinds of finding:
 
 | Finding | When OneUptime files it | The pull request |
 | --- | --- | --- |
 | **High Cardinality** | An attribute the code sets on one of those metrics took 1,000 or more values in the hour, such as user IDs or full URLs, so every value is a series of its own. Or 50 or more of a service's metric names are one name with a different ID in it. | Stops recording the value on the metric, or takes the IDs out of its names. |
 | **Wrong Histogram Buckets** | One of those metrics is a histogram that recorded 1,000 or more values, and 90% or more of them fell in its smallest bucket or above its largest one, or it has no buckets, so its percentiles cannot be told apart. | Gives the histogram buckets that fit its values, or fixes its unit. |
 | **Missing Metrics** | A service sent 1,000 or more spans in the hour and has never sent a metric. | Adds the request count, errors and duration of its busiest operations as metrics. |
+| **Missing Request Metrics** | A service sent 1,000 or more spans in the hour, and metrics, but has never sent a request metric for the HTTP requests, RPC calls or messages it handles, such as `http.server.request.duration`. | Adds those request metrics, with the OpenTelemetry instrumentation of its framework. |
 
 A finding never stores an attribute's values: only the attribute's name, how many values it took and what they look like.
 
@@ -144,9 +145,34 @@ Under **More fields** a rule picks the code repositories, the MCP servers and th
 
 ### See what it did
 
-- **Metrics → AI → Insights** lists what OneUptime found, each finding with its evidence and **Open in Metrics**, which opens its metric for its service, from the hour it was found in. A service with no metrics offers **Open in Traces** instead: the spans its metrics would measure.
+- **Metrics → AI → Insights** lists what OneUptime found, each finding with its evidence and **Open in Metrics**, which opens its metric for its service, from the hour it was found in. A service with no metrics, or none for its requests, offers **Open in Traces** instead: the spans its metrics would measure.
 - **Metrics → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found.
 - In Code, the task says OneUptime started it, with a link to its finding, and the pull request says why it was opened.
+
+### Record request metrics without changing code
+
+A **Missing Metrics** or **Missing Request Metrics** finding offers **Without changing code** beside **Fix with AI**: the OpenTelemetry Collector your traces go through records the request metrics from them. **Show the collector step** gives the lines to add, `spanmetrics` as an exporter of the traces pipeline and as a receiver of the metrics pipeline:
+
+```yaml title="otel-collector-config.yaml"
+connectors:
+  spanmetrics:
+    histogram:
+      unit: s
+    aggregation_temporality: AGGREGATION_TEMPORALITY_DELTA
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp, spanmetrics]
+    metrics:
+      receivers: [otlp, spanmetrics]
+      processors: [batch]
+      exporters: [otlphttp]
+```
+
+Restart the collector. Each service whose traces pass through it then sends `traces.span.metrics.calls` and `traces.span.metrics.duration` (in seconds) for each operation, span kind and status, and OneUptime no longer finds the problem, so resolve the finding. The connector counts every span the collector receives, even ones a sampler drops later. A service that sends straight to OneUptime needs a collector in front of it first: see [Send through an OpenTelemetry Collector](/docs/telemetry/open-telemetry#send-through-an-opentelemetry-collector).
 
 ## What happens to metrics as they arrive
 

@@ -1,0 +1,5 @@
+nova-api: service_type = compute
+neutron-server: service_type = network
+cinder-api: service_type = volume
+placement-api: service_type = placement
+glance-api: service_type = image

@@ -209,7 +209,7 @@ describe("Cloud Environments docs", (): void => {
       );
     });
 
-    it("is the group just before Cloud's, which holds the accounts and their resources", (): void => {
+    it("is the group just before Cloud's, which holds the accounts, their resources, what they cost and their streams", (): void => {
       const titles: Array<string> = DocsNav.map((group: NavGroup): string => {
         return group.title;
       });
@@ -224,6 +224,8 @@ describe("Cloud Environments docs", (): void => {
       ).toEqual([
         "/docs/telemetry/cloud-accounts",
         "/docs/telemetry/cloud-resources",
+        "/docs/telemetry/cloud-costs",
+        "/docs/telemetry/cloud-streaming",
       ]);
     });
 

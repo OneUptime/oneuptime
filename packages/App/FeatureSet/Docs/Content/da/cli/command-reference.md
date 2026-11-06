@@ -6,7 +6,7 @@ Hver kommando i CLI'en `oneuptime` med dens argumenter, indstillinger og standar
 - [Globale indstillinger](#globale-indstillinger): De indstillinger, hver kommando tager.
 - [Login og kontekster](#login-og-kontekster): login og context-kommandoerne.
 - [Ressourcekommandoer](#ressourcekommandoer): Hver ressources operationer, felter og handlinger.
-- [Andre kommandoer](#andre-kommandoer): deploy, whoami, resources, version og help.
+- [Andre kommandoer](#andre-kommandoer): deploy, dbt upload, data-checks apply, whoami, resources, version og help.
 :::
 
 ## Kommandoerne
@@ -19,6 +19,8 @@ flowchart LR
     O --> R["incident, monitor<br/>og hver ressource"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
+    O --> D["dbt"]
+    D --> D1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -304,6 +306,35 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 | `--time <time>` | Nej | Hvornår det skete, for eksempel `2026-10-19T10:00:00Z` | Nu |
 | `--attribute <key=value...>` | Nej | Flere attributter som `key=value`, én eller flere | |
 | `--ingestion-key <key>` | Nej | En telemetri-indtagelsesnøgle til projektet | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime dbt upload`
+
+Sender et dbt-projekts artefakter efter et build, fra CI eller et dbt Cloud-job, til Dataobservabilitet. Projektets modeller vises på de tabeller, de bygger, med deres afstamning, dets tests vises ved siden af OneUptimes tjek og kan udløse advarsler, og hvert build er en kørsel af projektets pipeline. Den læser `manifest.json` og `run_results.json` fra dbt's målmappe, sender kun det, som Dataobservabilitet læser af dem, og skriver med en telemetri-indtagelsesnøgle, ikke en API-nøgle. Siden Dokumentation under Dataobservabilitet i dit dashboard viser den i et CI-job.
+
+```bash
+oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <file>] [--project <name>] [--ingestion-key <key>]
+```
+
+| Indstilling | Påkrævet | Hvad det er | Standard |
+| --- | --- | --- | --- |
+| `--target-path <dir>` | Nej | Den mappe, som dbt skrev sine artefakter til | `target` |
+| `--manifest <file>` | Nej | Det manifest, der sendes | `manifest.json` i målmappen |
+| `--run-results <file>` | Nej | De kørselsresultater, der sendes | `run_results.json` i målmappen |
+| `--project <name>` | Nej | dbt-projektets navn, kun nødvendigt, når der ikke sendes et manifest | Manifestets projekt |
+| `--ingestion-key <key>` | Nej | En telemetri-indtagelsesnøgle til projektet | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime data-checks apply`
+
+Får projektets datatjek til at matche en YAML-fil, så de opbevares i et repository og gennemgås som kode. En fejl et vilkårligt sted i filen anvender intet og afslutter med en fejl. Filens format står i [Kontroller og afstemninger](/docs/data-observability/checks).
+
+```bash
+oneuptime data-checks apply <file> [--dry-run] [--prune]
+```
+
+| Indstilling | Påkrævet | Hvad det er | Standard |
+| --- | --- | --- | --- |
+| `--dry-run` | Nej | Viser, hvad der ville ændre sig, og ændrer intet | Fra |
+| `--prune` | Nej | Sletter tjek, som en tidligere apply har oprettet, og som filen ikke længere nævner | Fra |
 
 ### `oneuptime whoami`
 

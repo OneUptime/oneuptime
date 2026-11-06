@@ -506,8 +506,16 @@ describe("Page now for who may not page", () => {
           "You do not have permission to page on-call policies.",
         );
       });
+      /*
+       * The permission by what it allows, as the custom role picker names
+       * it - never the row it writes ("Create On-Call Duty Policy Execution
+       * Log", as #5412's UI review found it).
+       */
       expect(screen.getByRole("tooltip")).toHaveTextContent(
-        "Create On-Call Duty Policy Execution Log",
+        "You need this permission: Execute On-Call Duty Policy.",
+      );
+      expect(screen.getByRole("tooltip").textContent).not.toContain(
+        "Execution Log",
       );
 
       fireEvent.click(pageNow);
@@ -521,7 +529,7 @@ describe("Page now for who may not page", () => {
     ["a Project Member", Permission.ProjectMember],
     ["an On-Call Member", Permission.OnCallMember],
     [
-      "someone given Create On-Call Duty Policy Execution Log",
+      "someone given Execute On-Call Duty Policy",
       Permission.CreateProjectOnCallDutyPolicyExecutionLog,
     ],
   ] as Array<[string, Permission]>)(

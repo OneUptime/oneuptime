@@ -221,12 +221,14 @@ Hver varsling kan eskaleres fra der den nådde deg:
 | --- | --- |
 | E-post | Knappen **Escalate**, deretter **Escalate** på siden den åpner |
 | SMS og WhatsApp | Lenken i meldingen åpner bekreftelsessiden, som også har **Escalate** |
-| Telegram, Slack og Microsoft Teams | Lenken "Can't take it? Escalate", deretter **Escalate** på siden den åpner |
+| Telegram, Slack, Microsoft Teams og Mattermost | Lenken "Can't take it? Escalate", deretter **Escalate** på siden den åpner |
 | Anrop | Trykk 2. Anropet sier deretter hva som skjedde |
 | Push-varsel | Trykk på det: hendelsen, varselet eller episoden åpnes i OneUptime On-Call-appen, med **Escalate** under seg |
 | OneUptime | **Eskaler** øverst i hendelsen, varselet eller episoden, etter tilstandsknappene |
 
 Alle veier unntatt anropet spør før de gjør noe, og sier hva som vil skje, for eksempel "This will immediately page Platform leads (Level 2 of 3), without waiting."; i et anrop er det å trykke 2 svaret. Bare den som blir varslet, kan eskalere varslingen sin: knappen i OneUptime vises bare for vedkommende, og lenken i en melding eskalerer bare den varslingen den ble sendt om, for den personen den ble sendt til, i 7 dager.
+
+Med to eller flere nivåer etter ditt spør OneUptime og sidene som lenkene i en melding åpner, også hvilket nivå som skal varsles, under **Eskaler til**, med neste nivå valgt. La det stå for å varsle neste nivå som alltid, eller velg et senere nivå for å varsle det med en gang i stedet: nivåene imellom hoppes over, og policyen fortsetter fra nivået du valgte. Et anrop og appen OneUptime On-Call varsler neste nivå.
 
 Hva som skjer videre, avhenger av hvem andre som blir varslet:
 
@@ -238,7 +240,7 @@ Hva som skjer videre, avhenger av hvem andre som blir varslet:
 
 En varsling som en arbeidsflyt sender direkte til personer, har ingen nivåer: eskalerer du den, blir du ikke varslet mer, og når alle den varslet har eskalert den, stopper varslingen.
 
-Hver gang en varsling eskaleres, blir det registrert. Kjøringens **Tidslinje for utførelsen** merker personens linje **Eskalert**, hendelsens feed sier "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", kjøringens melding i Slack og Microsoft Teams sier at vedkommende eskalerte den, og vedkommendes **Vaktlogger** viser varslingen som **Eskalert**.
+Hver gang en varsling eskaleres, blir det registrert. Kjøringens **Tidslinje for utførelsen** merker personens linje **Eskalert**, hendelsens feed sier "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", kjøringens melding i Slack og Microsoft Teams sier at vedkommende eskalerte den, og vedkommendes **Vaktlogger** viser varslingen som **Eskalert**. Et nivå som ble hoppet over for et senere, er merket **Hoppet over** i **Tidslinje for utførelsen**, og feeden sier "On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it."
 
 ## Rediger, endre rekkefølge på og slett regler
 

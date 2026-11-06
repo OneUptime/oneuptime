@@ -31,7 +31,12 @@ import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaint
 import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
-import ObservabilityAssistant from "../../../Server/Utils/AI/Chat/ObservabilityAssistant";
+import ObservabilityAssistant, {
+  ObservabilityAssistantRequest,
+} from "../../../Server/Utils/AI/Chat/ObservabilityAssistant";
+import WorkspacePageAbout from "../../../Server/Utils/Workspace/WorkspacePageAbout";
+import { OnCallPageRecordType } from "../../../Server/Services/OnCallPageService";
+import AIChatPageContextType from "../../../Types/AI/AIChatPageContext";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../../Utils/Project/ProjectBalance";
 import ProductBrandingText from "../../../Server/Utils/ProductBrandingText";
@@ -1257,6 +1262,135 @@ describe("@mentions are answered wherever they are", () => {
       ),
     ]);
     expect(assistantCalls).toEqual([]);
+  });
+});
+
+/*
+ * WHERE THE QUESTION WAS ASKED (#5315's and #5409's follow-ups): the
+ * answer knows it is read in Slack - how to make a change from there,
+ * never "switch modes" - and, asked in an incident's own channel, that the
+ * question is about that incident, read as the person who asked.
+ */
+describe("OneUptime AI knows where in Slack it was asked", () => {
+  const INCIDENT_ID: ObjectID = new ObjectID(
+    "c4768000-0000-4000-8000-0000000000c1",
+  );
+
+  // What the assistant was asked with, whole.
+  function askedWith(): Array<ObservabilityAssistantRequest> {
+    const asked: Array<ObservabilityAssistantRequest> = [];
+
+    jest
+      .spyOn(ObservabilityAssistant, "answerQuestion")
+      .mockImplementation((async (data: ObservabilityAssistantRequest) => {
+        asked.push(data);
+
+        return {
+          contentInMarkdown: ANSWER_MARKDOWN,
+          citations: [],
+          totalTokens: 10,
+          llmCallCount: 1,
+          toolCallCount: 1,
+        };
+      }) as never);
+
+    return asked;
+  }
+
+  test("asked in an incident's own channel: the incident, read as the person, and Slack's ways to act", async () => {
+    const asked: Array<ObservabilityAssistantRequest> = askedWith();
+    const findChannelRecord: SpyInstance<
+      typeof WorkspacePageAbout.findChannelRecord
+    > = jest.spyOn(WorkspacePageAbout, "findChannelRecord").mockResolvedValue({
+      type: OnCallPageRecordType.Incident,
+      id: INCIDENT_ID,
+    });
+    const incident: Incident = new Incident();
+    incident._id = INCIDENT_ID.toString();
+    incident.title = "Checkout is down";
+    incident.incidentNumber = 42;
+    incident.incidentNumberWithPrefix = "INC-42";
+    const incidentRead: SpyInstance<typeof IncidentService.findOneById> = jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(incident);
+
+    await say({
+      user: ALICE,
+      text: `<@${ONEUPTIME}> why did this happen?`,
+      threadTs: notificationTs,
+    });
+    await untilWrites(2);
+
+    expect(findChannelRecord).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      channelId: OPS,
+    });
+    // Read as the person who asked: one they may not read is never named.
+    expect(
+      (incidentRead.mock.calls[0]![0] as { props: unknown }).props,
+    ).toEqual(PROPS);
+
+    expect(asked).toHaveLength(1);
+    expect(asked[0]!.pageContext).toEqual({
+      type: AIChatPageContextType.Incident,
+      entityId: INCIDENT_ID.toString(),
+      entityTitle: "INC-42 Checkout is down",
+    });
+    expect(asked[0]!.chatApp).toEqual({
+      name: "Slack",
+      incidentCommand: "/oneuptime incident",
+      pageCommand: "/oneuptime page",
+      askAiUrl: `${DASHBOARD_URL}/${PROJECT_ID.toString()}/ai/chat`,
+    });
+  });
+
+  test("an incident the person may not read is not named: the question is answered as anywhere else", async () => {
+    const asked: Array<ObservabilityAssistantRequest> = askedWith();
+    jest.spyOn(WorkspacePageAbout, "findChannelRecord").mockResolvedValue({
+      type: OnCallPageRecordType.Incident,
+      id: INCIDENT_ID,
+    });
+    jest.spyOn(IncidentService, "findOneById").mockResolvedValue(null);
+
+    await say({
+      user: ALICE,
+      text: `<@${ONEUPTIME}> why did this happen?`,
+      threadTs: notificationTs,
+    });
+    await untilWrites(2);
+
+    expect(asked).toHaveLength(1);
+    expect(asked[0]!.pageContext).toBeUndefined();
+    expect(asked[0]!.chatApp?.name).toBe("Slack");
+  });
+
+  test("a channel that is no record's own: no record, Slack's ways to act all the same", async () => {
+    const asked: Array<ObservabilityAssistantRequest> = askedWith();
+    jest.spyOn(WorkspacePageAbout, "findChannelRecord").mockResolvedValue(null);
+
+    await say({
+      user: ALICE,
+      text: `<@${ONEUPTIME}> which monitors are down?`,
+      threadTs: notificationTs,
+    });
+    await untilWrites(2);
+
+    expect(asked[0]!.pageContext).toBeUndefined();
+    expect(asked[0]!.chatApp?.incidentCommand).toBe("/oneuptime incident");
+  });
+
+  test("a direct message is no record's channel: nothing is looked up", async () => {
+    const asked: Array<ObservabilityAssistantRequest> = askedWith();
+    const findChannelRecord: SpyInstance<
+      typeof WorkspacePageAbout.findChannelRecord
+    > = jest.spyOn(WorkspacePageAbout, "findChannelRecord");
+
+    await directMessage({ user: ALICE, text: "which monitors are down?" });
+    await untilWrites(2);
+
+    expect(findChannelRecord).not.toHaveBeenCalled();
+    expect(asked[0]!.pageContext).toBeUndefined();
+    expect(asked[0]!.chatApp?.name).toBe("Slack");
   });
 });
 

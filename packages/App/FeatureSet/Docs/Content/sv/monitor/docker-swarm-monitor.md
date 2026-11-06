@@ -55,7 +55,7 @@ Klicka på **Fler monitortyper** under **Monitortyp** och välj **Docker Swarm**
 
 ### Välj klustret
 
-Välj klustret i **Docker Swarm Cluster** under **Docker Swarm Monitor Configuration**. Varje kluster som har skickat data finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till Docker Swarm-kluster** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
+Välj klustret i **Docker Swarm-kluster** under **Docker Swarm Monitor Configuration**. Varje kluster som har skickat data finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till Docker Swarm-kluster** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
 
 ### Välj vad som ska övervakas
 
@@ -81,7 +81,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 | Fält | Flik | Vad det gör |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | Alla | Krävs. Begränsar varje fråga till `resource.docker.swarm.cluster.name`. En uppgifts mätvärden bär `container.runtime=docker` precis som en Docker-värds gör, och agenten stämplar aldrig `host.name`, så monitorn filtrerar på ingetdera. |
+| **Docker Swarm-kluster** | Alla | Krävs. Begränsar varje fråga till `resource.docker.swarm.cluster.name`. En uppgifts mätvärden bär `container.runtime=docker` precis som en Docker-värds gör, och agenten stämplar aldrig `host.name`, så monitorn filtrerar på ingetdera. |
 | **Tjänstenamn** | Custom Metric, Avancerad | Valfritt. Exakt matchning mot `resource.docker.swarm.service.name`, tjänsten så som `docker service ls` namnger den, till exempel `web` (`<stack>_web` i en stack). |
 | **Nodnamn** | Custom Metric, Avancerad | Valfritt. Exakt matchning mot `resource.docker.swarm.node.name`, nodens värdnamn så som `docker node ls` visar det, till exempel `swarm-node-1`. Agenten på den noden stämplar det från `DOCKER_SWARM_NODE_NAME`. |
 | **Containernamn** | Custom Metric, Avancerad | Valfritt. Exakt matchning mot `resource.container.name`. En uppgifts container heter `<service>.<slot>.<taskid>`, till exempel `web.1.abc123`. |
@@ -176,7 +176,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med en tröskel. En
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som kontrolleras, efter dess variabelnamn. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
-| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** – eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. |
+| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** – eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. **Väntas stiga över** och **Väntas sjunka under** matchar när mätvärdets trend i fönstret har passerat tröskeln vid slutet av **Tidshorisont**. |
 | **Tröskel** | Värdet att jämföra med. En lista med enheter står bredvid när mätvärdet har en enhet. Visas inte för avvikelsevillkor. |
 | **Känslighet** | Bara avvikelsevillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Bara avvikelsevillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |

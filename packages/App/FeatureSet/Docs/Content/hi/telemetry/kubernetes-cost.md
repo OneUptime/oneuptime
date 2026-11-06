@@ -193,5 +193,5 @@ OneUptime इंजन के मिलान समायोजन हर ल�
 :::cards
 - [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent): एजेंट इंस्टॉल करें, और वह सब जो यह इकट्ठा करता है।
 - [मेट्रिक्स मॉनिटर](/docs/monitor/metrics-monitor): जब खर्च किसी बजट को पार करे तो अलर्ट करें।
-- [Kubernetes मॉनिटर](/docs/monitor/kubernetes-monitor): क्लस्टर की सेहत पर भी अलर्ट करें।
+- [Kubernetes मॉनिटर](/docs/monitor/kubernetes-monitor): क्लस्टर के स्वास्थ्य पर भी अलर्ट करें।
 :::

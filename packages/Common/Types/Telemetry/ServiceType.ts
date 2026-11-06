@@ -25,6 +25,7 @@ enum ServiceType {
   PodmanHost = "PodmanHost",
   KubernetesCluster = "KubernetesCluster",
   ProxmoxCluster = "ProxmoxCluster",
+  OpenStackCloud = "OpenStackCloud",
   CephCluster = "CephCluster",
   StorageArray = "StorageArray",
   DockerSwarmCluster = "DockerSwarmCluster",
@@ -41,6 +42,31 @@ enum ServiceType {
    * database through its endpoint entity keys instead.
    */
   DatabaseServer = "DatabaseServer",
+  /*
+   * The oneuptime.data.table.* readings Data Observability writes for each
+   * table of a data store at every collection. Like Monitor and SLO rows they
+   * are OneUptime's own operational data, so TelemetryUsageBillingService
+   * never bills them as ingested telemetry.
+   */
+  DataStore = "DataStore",
+  /*
+   * Data Observability's pipeline run rows (oneuptime.data.pipeline.*),
+   * from OpenLineage events: the pipeline whose runs they describe. Like
+   * table health, never billed as ingested telemetry.
+   */
+  DataPipeline = "DataPipeline",
+  /*
+   * Data Observability's data product rows (oneuptime.data.product.*):
+   * whether a product's tables are fresh by its SLA. Like table health and
+   * pipeline runs, never billed as ingested telemetry.
+   */
+  DataProduct = "DataProduct",
+  /*
+   * Data Observability's reconciliation rows (oneuptime.data.reconciliation.*):
+   * whether two copies of the same data agree. Like table health, never
+   * billed as ingested telemetry.
+   */
+  DataReconciliation = "DataReconciliation",
   /*
    * Telemetry that arrived without an OTel service.name and with no
    * host / docker / k8s resource signal. Instead of synthesising a

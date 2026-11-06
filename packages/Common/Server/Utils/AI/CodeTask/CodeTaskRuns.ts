@@ -4,6 +4,7 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import FixRunBudget from "../CodeFix/FixRunBudget";
+import CodeTaskLive from "./CodeTaskLive";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import AIRunStatus, {
@@ -289,7 +290,7 @@ export default class CodeTaskRuns {
         continue;
       }
 
-      stopped += await AIRunService.attemptStatusTransition({
+      const stoppedNow: number = await AIRunService.attemptStatusTransition({
         aiRunId: turn.id,
         fromStatus: turn.status,
         set: {
@@ -300,6 +301,20 @@ export default class CodeTaskRuns {
             : "Stopped.",
         },
       });
+
+      if (stoppedNow > 0) {
+        /*
+         * Everyone else with the task open sees it stopped now, not on
+         * their next look (CodeTaskLive).
+         */
+        await CodeTaskLive.announce({
+          projectId: data.projectId,
+          runId: turn.id,
+          codeTaskId: turn.id.equals(data.task.id!) ? null : data.task.id!,
+        });
+      }
+
+      stopped += stoppedNow;
     }
 
     return stopped;

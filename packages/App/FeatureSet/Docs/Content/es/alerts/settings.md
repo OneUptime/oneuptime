@@ -17,6 +17,7 @@ Abre **Alertas** desde el menú **Productos** de la barra superior. Las seccione
 | ----------------------------- | ---------------------------------------------------------------------------------------------- |
 | **Reglas de agrupación**      | Reúne las alertas relacionadas en episodios. Consulta [Episodios de alertas y reglas de agrupación](/docs/alerts/episodes). |
 | **Reglas de guardia**         | Ejecuta políticas de guardia para las alertas y los episodios que coinciden.                   |
+| **Reglas de incidentes** | Declara un incidente a partir de las alertas que coinciden, en el acto o cuando una alerta sigue sin resolverse. |
 | **Reglas del propietario**    | Añade propietarios a las alertas y los episodios que coinciden.                                |
 | **Reglas de runbook**         | Pone en marcha runbooks para las alertas que coinciden.                                        |
 | **Reglas de privacidad**      | Hace privados las alertas y los episodios que coinciden.                                       |
@@ -54,7 +55,7 @@ flowchart TB
 
 Las reglas se diferencian en cómo se resuelven varias coincidencias:
 
-- **Reglas de agrupación** y **Reglas de recordatorio** se comprueban de arriba abajo en su lista, y gana la primera que coincide. Arrastra una regla para cambiar su posición; una regla nueva va al final.
+- **Reglas de agrupación**, **Reglas de incidentes** y **Reglas de recordatorio** se comprueban de arriba abajo en su lista, y gana la primera que coincide. Arrastra una regla para cambiar su posición; una regla nueva va al final.
 - **Reglas de guardia**, **Reglas del propietario**, **Reglas de etiquetas**, **Reglas de privacidad** y **Reglas de runbook** actúan todas cuando coinciden. Las políticas de guardia, los propietarios y las etiquetas que añaden varias reglas se añaden una sola vez.
 
 **Reglas de guardia**, **Reglas del propietario**, **Reglas de etiquetas** y **Reglas de privacidad** tienen dos pestañas: **Reglas de alerta**, para las alertas, y **Reglas de episodios**, que actúan igual sobre cada episodio de alerta nuevo. Una regla nueva empieza habilitada; desactiva **Habilitado** en su formulario de edición para pausarla, y la lista muestra un **Habilitado** verde o un **Deshabilitado** rojo para cada regla.
@@ -89,6 +90,22 @@ En **Políticas de guardia**, elige las **Políticas de guardia** que activa la 
 Una gravedad no avisa a nadie por sí sola: una regla de guardia que coincide con **Gravedades de alerta** es la forma de configurar "avisar al equipo de base de datos por cada alerta de gravedad Alta". Para ver lo que se ejecutó para una alerta, abre su página **Ejecuciones de guardia**. Después se localiza a cada persona como la haya configurado en **Ajustes de usuario → Reglas de guardia**, en la pestaña **Alertas**; consulta [Reglas de escalado](/docs/on-call/escalation-rules).
 
 Una regla avisa en cuanto una alerta coincide con ella. Para que espere al horario laboral, responde **¿Cuándo debe avisar esta regla?** en **Más campos** con **Solo en horario laboral**. El **Horario laboral** empieza de lunes a viernes, de 09:00 a 17:00, en tu propia zona horaria: elige otros días, otra **Hora de inicio** u **Hora de finalización**, u otra **Zona horaria**, y una frase bajo la opción dice lo que pasará. En la lista, la regla muestra su horario bajo su nombre. Una alerta que coincide fuera de ese horario recibe una ejecución que espera y no avisa a nadie; cuando empieza el horario, la política activa su primera regla de escalado y escala como siempre. Si la alerta se reconoce o se resuelve antes, no se avisa a nadie. Si la alerta cambia mientras espera y ahora coincide con una regla que avisa de inmediato, por ejemplo porque se sube su gravedad, la ejecución empieza a avisar en ese momento, y el feed de la alerta dice por qué. Dos reglas que activan la misma política la activan en cuanto cualquiera de ellas lo permite: una regla para tus gravedades más altas que avisa de inmediato, junto a una regla para el resto que espera al horario laboral, mantiene tranquilas las noches.
+
+## Reglas de incidentes
+
+**Alertas → Reglas → Reglas de incidentes** convierte las alertas en incidentes por sí solas. La primera regla que coincide con una alerta nueva, de arriba abajo en la lista, declara un incidente a partir de ella, como haría **Declarar incidente** en la página de la alerta, y vincula la alerta con él.
+
+:::steps
+### Elegir las alertas afectadas
+
+En **Coincidencia**, **Todas las alertas**, donde empieza una regla nueva, coincide con cada alerta nueva. Para acotarla, elige **Solo las alertas que cumplen las condiciones** y añade las condiciones que debe cumplir una alerta.
+
+### Describir el incidente
+
+En **Incidente**, elige la **Gravedad del incidente**, o déjala vacía para dar a cada incidente la gravedad que corresponde a la de su alerta. Pon **Declare After (Minutes)** por encima de 0 para declarar el incidente solo si la alerta sigue sin resolverse para entonces. El **Nombre** de la regla sigue a la gravedad, como "Declare SEV1 incidents", hasta que escribas uno propio. Después crea la regla.
+:::
+
+El incidente toma el título, la descripción, el monitor, los recursos afectados y las etiquetas de la alerta, y es privado cuando la alerta lo es. Después se ejecutan sus propias reglas como en cualquier incidente nuevo, así que sus reglas de guardia deciden a quién se avisa. Una alerta que se resuelve antes de que termine la espera nunca se convierte en incidente, y una alerta ya vinculada a un incidente se deja como está. **Mostrar en las páginas de estado**, en **Más campos**, decide si el incidente aparece en las páginas de estado que muestran su monitor.
 
 ## Reglas de propietario y de etiquetas
 

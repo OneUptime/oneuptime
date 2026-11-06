@@ -162,6 +162,7 @@ Sie funktioniert in GitHub-, GitLab-, Forgejo- und Gitea-Repositorys. GitHub tei
 | **Rechenintensive Funktionen** | Die Funktionen des geänderten Codes, die in der letzten Stunde einen Anteil an den Profilen der Dienste haben. |
 | **Vorfälle** | Die Vorfälle der Dienste aus den letzten 30 Tagen, die noch offen sind oder deren Grundursache oder Postmortem den geänderten Code nennt. Nie ein privater Vorfall. |
 | **Deploys** | Die Deploys der Dienste aus den letzten 7 Tagen, die OneUptime einer Regression verdächtigt. |
+| **Daten** | Die überwachten Tabellen, die seine Migrationen und dbt-Modelle entfernen, umbenennen oder deren Typ sie ändern, mit den Diensten, deren Abfragen des letzten Tages eine geänderte Spalte nutzen, den daraus erstellten Tabellen und ihren Datenprodukten. |
 
 Wenn die Produktion etwas zeigt, liest OneUptime AI es neben dem Diff und ergänzt **Worauf zu achten ist**: ein paar kurze Punkte, die jeweils auf den Fakten beruhen. OneUptime AI liest dabei mit dem Standard-LLM-Anbieter des Projekts, es sei denn, **LLM-Anbieter der Produktionsprüfung** unter **Weitere Einstellungen** auf der Seite **Einstellungen** des Repositorys wählt einen anderen Anbieter des Projekts oder einen globalen. Das läuft nur, solange KI für das Projekt eingeschaltet ist, höchstens 10 Mal am Tag für einen Pull Request und 100 Mal für ein Repository, und wird wie jeder KI-Aufruf abgerechnet; die Fakten werden jedes Mal ohne KI gelesen. Wenn die Produktion nichts über die Änderung zeigt, veröffentlicht OneUptime keinen Kommentar.
 

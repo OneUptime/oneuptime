@@ -18,6 +18,8 @@ Ogni volta che un workflow viene eseguito, OneUptime salva un resoconto di ciò 
 
 Avviare un'esecuzione dal **Costruttore** apre la stessa vista **Esecuzione del flusso di lavoro**, che già segue l'esecuzione, così la vedi accadere invece di doverla cercare dopo.
 
+Per riprovare un'esecuzione con gli stessi valori, premi Esegui di nuovo nella sua vista o nel menu ⋯ della sua riga. Una nuova esecuzione parte dal trigger con ciò con cui è partita quell'esecuzione, quindi il payload di un webhook non deve essere inviato di nuovo, ed esegue il workflow così com'è ora, quindi puoi modificare un passaggio e riprovare subito. I suoi passaggi vengono eseguiti davvero e, finché il workflow è disattivato, è un'esecuzione di prova. Il pannello di esecuzione del workflow nel Builder offre i valori dell'ultima esecuzione allo stesso modo. Il test di un singolo passaggio si riesegue dal passaggio. Un'esecuzione partita con più di 1 MB di valori non può essere rieseguita, e nemmeno un'esecuzione precedente al momento in cui OneUptime ha iniziato a conservare questi valori. Sono cifrati e nessuno può leggerli tramite l'API.
+
 ## Stati di un'esecuzione
 
 ```mermaid title="Gli stati che attraversa un'esecuzione"
@@ -126,7 +128,7 @@ Un blocco che non viene eseguito è di solito un problema di collegamento. Apri 
 Apri l'esecuzione e guarda il passaggio. Un riferimento che non si è risolto viene segnalato sul passaggio stesso come avviso, e la sua impostazione nel blocco **Ricevuti** è contrassegnata come **Did not resolve**.
 
 - Se vedi il testo letterale `{{local.components.…}}`, il riferimento non si è risolto. Di solito è un errore di battitura nell'ID del componente o nell'ID del valore di ritorno: ricorda che è l'**Identifier** del blocco, non il nome visualizzato su di esso. Controlla anche come è scritto `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` viene inviato come testo letterale e l'esecuzione riporta comunque **Eseguito**. Se l'esecuzione era una prova con **Run just this step**, il blocco precedente non è stato eseguito affatto: esegui invece l'intero workflow.
-- Se vedi **Empty text**, il blocco precedente è stato eseguito ma non ha prodotto quel campo.
+- Se vedi **Empty text**, o un vuoto in un messaggio, il blocco precedente è stato eseguito ma non ha nulla in quel campo. O il record non vi contiene alcun valore, cosa che la scheda **Full Log** annota su una riga a parte, o il blocco non trasmette il campo, cosa di cui il passaggio avvisa.
 
 Lo stesso avviso si trova nella scheda **Full Log**, su una riga che inizia con `Warning:`.
 :::

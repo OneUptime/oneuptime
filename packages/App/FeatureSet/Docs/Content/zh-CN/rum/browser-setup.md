@@ -350,7 +350,7 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
 });
 ```
 
-使用 [会话回放](/docs/telemetry/session-replay) 时，录制器也会捕获未捕获的错误，并在回放的时间轴上标记出来。异常页面随后会显示 **Watch what the user saw** 卡片，从错误发生前十秒打开回放。在默认策略下，无论是否出错，每个会话都会被录制；错误只决定卡片从哪里打开。
+使用 [会话回放](/docs/telemetry/session-replay) 时，录制器也会捕获未捕获的错误，并在回放的时间轴上标记出来。异常页面随后会显示 **观看用户看到的内容** 卡片，从错误发生前十秒打开回放。在默认策略下，无论是否出错，每个会话都会被录制；错误只决定卡片从哪里打开。
 
 ## 添加日志和指标
 

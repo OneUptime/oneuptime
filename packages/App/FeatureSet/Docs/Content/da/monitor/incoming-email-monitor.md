@@ -39,7 +39,7 @@ Gå til **Monitorer**, og klik på **Opret monitor**.
 
 ### Vælg Incoming Email
 
-Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **Incoming Email** under **Inbound Monitoring** eller skrive `email` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
+Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **Incoming Email** under **Indgående overvågning** eller skrive `email` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
 
 ### Gennemgå kriterierne
 

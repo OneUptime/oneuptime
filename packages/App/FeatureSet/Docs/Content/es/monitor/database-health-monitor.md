@@ -160,7 +160,7 @@ La sonda reconoce Azure SQL Database por `SERVERPROPERTY('EngineEdition')` y no 
 :::steps
 ### Empezar un monitor nuevo
 
-Ve a **Monitores** y haz clic en **Crear monitor**. En **Tipo de monitor**, haz clic en **Más tipos de monitor** y elige **Salud de la base de datos** en **Database Monitoring**, o escribe `health` en el cuadro de búsqueda. Escribe un **Nombre** y haz clic en **Siguiente**.
+Ve a **Monitores** y haz clic en **Crear monitor**. En **Tipo de monitor**, haz clic en **Más tipos de monitor** y elige **Salud de la base de datos** en **Monitoreo de bases de datos**, o escribe `health` en el cuadro de búsqueda. Escribe un **Nombre** y haz clic en **Siguiente**.
 
 ### Introducir los datos de conexión
 
@@ -396,7 +396,7 @@ Para un monitor de salud de la base de datos, la expresión tiene acceso a:
 {{isOnline}} === true && {{collectedGroups}}.length >= 5
 ```
 
-Para leer una métrica en una expresión, indexa el objeto `metrics` completo: los nombres de las series contienen puntos, así que no pueden ir dentro de las llaves:
+Para leer una métrica en una expresión, escribe el nombre de la serie con sus puntos dentro de las llaves o indexa el objeto `metrics` completo: ambas formas funcionan:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

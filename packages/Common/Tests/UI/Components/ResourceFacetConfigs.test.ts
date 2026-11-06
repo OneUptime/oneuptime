@@ -26,7 +26,7 @@ describe("buildResourceFacetConfigs", () => {
         return config.key;
       }),
     ).toEqual([...RESOURCE_FACET_CATALOG_KEYS]);
-    expect(configs).toHaveLength(14);
+    expect(configs).toHaveLength(15);
   });
 
   test("covers every resource type, not only the original four", () => {
@@ -43,6 +43,7 @@ describe("buildResourceFacetConfigs", () => {
       "kubernetesClusterId",
       "dockerSwarmClusterId",
       "proxmoxClusterId",
+      "openStackCloudId",
       "vmwareVCenterId",
       "cephClusterId",
       "storageArrayId",

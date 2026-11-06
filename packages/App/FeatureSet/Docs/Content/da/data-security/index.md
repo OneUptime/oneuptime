@@ -6,7 +6,7 @@ Den besvarer fire spørgsmål:
 
 :::cards
 - [Hvor er vores følsomme data?](/docs/data-security/data-types): 143 datatyper, fra kortnumre og nationale ID-numre til API-nøgler, fundet i buckets, tabeller og telemetri.
-- [Er de eksponeret?](/docs/data-security/checks-and-issues): 33 kontroller af hvert datalager: offentlig adgang, kryptering, backup, logning, hemmeligheder og kopier.
+- [Er de eksponeret?](/docs/data-security/checks-and-issues): 34 kontroller af hvert datalager: offentlig adgang, kryptering, backup, logning, hemmeligheder og kopier.
 - [Hvem kan nå dem, og hvor ender de?](/docs/data-security/flows-access-residency): Hver identitet, der kan nå hvert datalager, den mest risikable først, hvilke tjenester der bruger det, og hvilke AI-udbydere og værter dets data når.
 - [Lever de op til vores regler?](/docs/data-security/compliance): Residensregler og ni compliancerammer, scoret ud fra det, scanningerne fandt.
 :::
@@ -66,10 +66,10 @@ Under **Flere felter** sætter du **Datasikkerhed** til **Kun konfiguration** fo
 
 | Hvor | Datalagre | Indholdsprøver |
 | --- | --- | --- |
-| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System | AWS S3 Bucket |
+| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Databaser, du selv driver | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch | PostgreSQL, MySQL |
+| Databaser, du selv driver | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks | PostgreSQL, MySQL |
 | OneUptime | Logs, traces, undtagelser, sessionsafspilninger, AI-samtaler | Logs, traces, undtagelser, sessionsafspilninger, AI-samtaler |
 
 Hvert datalager får de kontroller, der gælder for dets type. Et datalager, hvis indhold der ikke kan tages prøver af, kontrolleres stadig: en offentlig bucket eller en ukrypteret database er et problem, uanset hvad den indeholder.

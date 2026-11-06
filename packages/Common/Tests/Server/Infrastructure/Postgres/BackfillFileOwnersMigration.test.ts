@@ -80,6 +80,10 @@ const MARKDOWN_COLUMNS_ADDED_LATER: Array<string> = [
   "SecurityCaseNoteTemplate.note",
   // The AI context an AI rule gives OneUptime AI (#5230) came after it too.
   "AutoRemediationRule.aiContext",
+  // A data asset's description, from Data Observability (#5647), came after it too.
+  "DataAsset.description",
+  // And a data pipeline's (#5634).
+  "DataPipeline.description",
 ];
 
 async function statementsFor(

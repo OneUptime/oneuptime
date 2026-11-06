@@ -407,6 +407,18 @@ function buildStepForMonitorType(monitorType: MonitorType): MonitorStep {
           rollingTime: RollingTime.Past1Hour,
         },
       });
+    case MonitorType.OpenStack:
+      return buildStep({
+        openstackMonitor: {
+          cloudIdentifier: "prod",
+          resourceFilters: {
+            regionName: "RegionOne",
+            hypervisorName: "compute-01.example.internal",
+          },
+          metricViewConfig: METRIC_VIEW_CONFIG,
+          rollingTime: RollingTime.Past15Minutes,
+        },
+      });
     case MonitorType.VMware:
       return buildStep({
         vmwareMonitor: {
@@ -1501,6 +1513,7 @@ describe("MonitorStepViewModel.getRows — metric-backed monitors", () => {
     MonitorType.Podman,
     MonitorType.Host,
     MonitorType.Proxmox,
+    MonitorType.OpenStack,
     MonitorType.VMware,
     MonitorType.DockerSwarm,
     MonitorType.Ceph,
@@ -1611,6 +1624,26 @@ describe("MonitorStepViewModel.getRows — metric-backed monitors", () => {
     expect(getRow(MonitorType.Proxmox, "proxmoxGuestId")?.value).toBe(
       "qemu/100",
     );
+  });
+
+  it("shows the OpenStack cloud and every resource filter that is set", () => {
+    expect(getRow(MonitorType.OpenStack, "cloudIdentifier")?.value).toBe(
+      "prod",
+    );
+    expect(getRowTitles(MonitorType.OpenStack)).toContain("Cloud");
+    expect(getRow(MonitorType.OpenStack, "openstackRegion")?.value).toBe(
+      "RegionOne",
+    );
+    expect(getRow(MonitorType.OpenStack, "openstackHypervisor")?.value).toBe(
+      "compute-01.example.internal",
+    );
+
+    // A filter nobody set is not a row.
+    expect(
+      getRow(MonitorType.OpenStack, "openstackAvailabilityZone"),
+    ).toBeUndefined();
+    expect(getRow(MonitorType.OpenStack, "openstackService")).toBeUndefined();
+    expect(getRow(MonitorType.OpenStack, "openstackProject")).toBeUndefined();
   });
 
   it("shows the VMware vCenter and every resource filter that is set", () => {
@@ -1807,6 +1840,12 @@ describe("MonitorStepViewModel metric helpers", () => {
 
     expect(
       MonitorStepViewModel.getRollingTime(
+        buildStepForMonitorType(MonitorType.OpenStack),
+      ),
+    ).toBe(RollingTime.Past15Minutes);
+
+    expect(
+      MonitorStepViewModel.getRollingTime(
         buildStepForMonitorType(MonitorType.VMware),
       ),
     ).toBe(RollingTime.Past30Minutes);
@@ -1828,6 +1867,7 @@ describe("MonitorStepViewModel metric helpers", () => {
       MonitorType.Podman,
       MonitorType.Host,
       MonitorType.Proxmox,
+      MonitorType.OpenStack,
       MonitorType.VMware,
       MonitorType.DockerSwarm,
       MonitorType.Ceph,
@@ -2073,5 +2113,62 @@ describe("MonitorStepViewModel.translateRowValue", () => {
     expect(
       MonitorStepViewModel.translateRowValue(rowOf(true), undefined, translate),
     ).toBeUndefined();
+  });
+});
+
+/*
+ * A Security Events monitor's watchlist filters (#5391): read on its page as
+ * the Events search writes them, the same in every language, as a rule's
+ * YAML is; none, no row.
+ */
+describe("MonitorStepViewModel.getRows — a Security Events monitor's watchlist filters", () => {
+  function watchlistRow(
+    watchlistFilters: unknown,
+  ): MonitorStepViewRow | undefined {
+    const step: MonitorStep = buildStepForMonitorType(
+      MonitorType.SecurityEvents,
+    );
+    const data: MonitorStepType = step.data as MonitorStepType;
+
+    data.securityEventsMonitor = {
+      ...data.securityEventsMonitor!,
+      watchlistFilters: watchlistFilters as never,
+    };
+
+    return MonitorStepViewModel.getRows({
+      monitorStep: step,
+      monitorType: MonitorType.SecurityEvents,
+    }).find((row: MonitorStepViewRow) => {
+      return row.key === "securityEventWatchlistFilters";
+    });
+  }
+
+  it("names each filter as the Events search writes it, a minus for one that keeps what is not on the list", () => {
+    const row: MonitorStepViewRow | undefined = watchlistRow([
+      { field: "principalUser", watchlist: "vip_users" },
+      { field: "principalIp", watchlist: "admin_addresses", isNotOnList: true },
+    ]);
+
+    expect(row).toBeDefined();
+    expect(row!.title).toBe("Filter by Watchlists");
+    expect(row!.valueType).toBe(MonitorStepViewValueType.ArrayOfText);
+    expect(row!.value).toEqual([
+      "principalUser:%vip_users%",
+      "-principalIp:%admin_addresses%",
+    ]);
+  });
+
+  it("a row left unfinished is not named", () => {
+    expect(
+      watchlistRow([
+        { field: "principalUser", watchlist: "" },
+        { field: "principalHost", watchlist: "critical_hosts" },
+      ])!.value,
+    ).toEqual(["principalHost:%critical_hosts%"]);
+  });
+
+  it("a monitor that reads no watchlist shows no row for them", () => {
+    expect(watchlistRow([])).toBeUndefined();
+    expect(watchlistRow(undefined)).toBeUndefined();
   });
 });

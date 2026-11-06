@@ -48,7 +48,7 @@ Stel in **Te bewaken logs** de velden **Logernst** en **Bericht bevat** in. Een 
 
 ### Verder verfijnen (optioneel)
 
-Open **Meer velden** om te filteren op telemetrieservice, infrastructuurentiteit of attribuut. Wilt u één waarschuwing per tunnel, gebruiker of interface in plaats van één voor de hele monitor, voeg het attribuut dan toe onder **Group by Attributes** (zie [Waarschuwingen per groep](#waarschuwingen-per-groep-group-by)).
+Open **Meer velden** om te filteren op telemetrieservice, infrastructuurentiteit of attribuut. Wilt u één waarschuwing per tunnel, gebruiker of interface in plaats van één voor de hele monitor, voeg het attribuut dan toe onder **Groeperen op attributen** (zie [Waarschuwingen per groep](#waarschuwingen-per-groep-group-by)).
 
 ### Zeggen wanneer er gewaarschuwd wordt
 
@@ -70,8 +70,8 @@ Klik op **Monitor maken**. De monitor opent op zijn pagina **Overzicht**, en zij
 | **Logernst** | Logs met een van de gekozen ernstniveaus. | Leeg: elk ernstniveau |
 | **Bericht bevat** | Logs waarvan de body deze tekst bevat, zonder onderscheid tussen hoofd- en kleine letters. | Leeg: elke log |
 | **Tijdvenster** (in **Wanneer waarschuwen**) | Logs van de laatste 5 seconden tot de laatste 24 uur. | **Laatste 5 minuten** |
-| **Group by Attributes** | Geen filter: telt elke combinatie van waarden van deze attributen apart. | Leeg: één telling |
-| **Opgelost door attributen** | Geen filter: de log die een groep oplost. Verschijnt zodra **Group by Attributes** een attribuut heeft; zie [Opgelost door een log](#opgelost-door-een-log). | Leeg: een groep wordt opgelost wanneer de logs ervan stoppen |
+| **Groeperen op attributen** | Geen filter: telt elke combinatie van waarden van deze attributen apart. | Leeg: één telling |
+| **Opgelost door attributen** | Geen filter: de log die een groep oplost. Verschijnt zodra **Groeperen op attributen** een attribuut heeft; zie [Opgelost door een log](#opgelost-door-een-log). | Leeg: een groep wordt opgelost wanneer de logs ervan stoppen |
 | **Filteren op telemetrieservice** (onder **Meer velden**) | Logs van een van de gekozen services. | Leeg: elke service |
 | **Filteren op infrastructuurentiteit** (onder **Meer velden**) | Logs van een van de gekozen hosts, pods, containers en andere entiteiten. | Leeg: elke entiteit |
 | **Filteren op attributen** (onder **Meer velden**) | Logs waarvan de attributen aan elke voorwaarde voldoen. Elke voorwaarde heeft een eigen operator, zoals "is gelijk aan" of "bevat". | Leeg: geen voorwaarde |
@@ -157,7 +157,7 @@ Omdat de vensters overlappen, houdt één uitbarsting van fouten het aantal tot 
 
 ## Waarschuwingen per groep (Group By)
 
-**Group by Attributes** splitst de telling van een logs-monitor op in één telling per afzonderlijke combinatie van attribuutwaarden (één per IPsec-tunnel, per VPN-gebruiker, per firewall-interface) en evalueert de criteria voor elke groep apart. Het is de tegenhanger voor logs van de [Group By](/docs/monitor/metrics-monitor#waarschuwingen-per-reeks-group-by) van een metrics-monitor.
+**Groeperen op attributen** splitst de telling van een logs-monitor op in één telling per afzonderlijke combinatie van attribuutwaarden (één per IPsec-tunnel, per VPN-gebruiker, per firewall-interface) en evalueert de criteria voor elke groep apart. Het is de tegenhanger voor logs van de [Group By](/docs/monitor/metrics-monitor#waarschuwingen-per-reeks-group-by) van een metrics-monitor.
 
 ### Eén waarschuwing per groep
 
@@ -193,7 +193,7 @@ Een apparaat dat een tunnel als uitgevallen meldt, meldt meestal ook dat hij wee
 
 Neem een monitor die logs met `event.name` = `vpn.tunnel_down` telt, gegroepeerd op `event.device` en `vpn.tunnel.name`, met **Opgelost door attributen** ingesteld op `event.name` = `vpn.tunnel_up`. Valt tunnel `HQ-Branch1` uit, dan opent dat de waarschuwing ervan. De waarschuwing blijft de hele nacht open, ook al logt de firewall niets meer over de tunnel, en wordt opgelost wanneer de firewall meldt dat `HQ-Branch1` weer werkt. Valt de tunnel opnieuw weg, dan opent dat een nieuwe waarschuwing.
 
-- Het veld verschijnt zodra **Group by Attributes** een attribuut heeft. Het neemt tot 10 attributen aan, en een oplossende log draagt ze allemaal.
+- Het veld verschijnt zodra **Groeperen op attributen** een attribuut heeft. Het neemt tot 10 attributen aan, en een oplossende log draagt ze allemaal.
 - Een oplossende log hoort bij een groep als hij voor de group-by-attributen de waarden van de groep heeft, dus beide soorten logs moeten die attributen dragen.
 - De telemetrieservices en het tijdvenster van de monitor gelden ook voor oplossende logs. De tekst- en ernstfilters niet: die beschrijven het probleem.
 - Een groep waarvan de nieuwste log een oplossende is, wordt gesloten. Een groep die het probleem daarna opnieuw logde, blijft open.
@@ -213,7 +213,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 1. Maak een monitor van het type **Logboeken** en kies **Er verschijnt een bericht**.
 2. Zet **Bericht bevat** op `terminated` en het **Tijdvenster** op **Laatste 5 minuten**.
 3. Voeg onder **Meer velden** het attribuutfilter `log_component` = `IPSec` toe.
-4. Voeg onder **Group by Attributes** `con_name` toe.
+4. Voeg onder **Groeperen op attributen** `con_name` toe.
 5. Laat de regel op **Meer dan** `0` staan, en geef de waarschuwing of het incident de titel `IPsec tunnel {{con_name}} terminated`.
 :::
 
@@ -248,7 +248,7 @@ De criteria worden van boven naar beneden gecontroleerd en de eerste overeenkoms
 :::
 
 :::details Een anomaliecriterium gaat nooit af
-Het is nog aan het leren: de services van de monitor hebben nog geen twee weken geschiedenis. Bij een monitor met **Group by Attributes** komen anomaliecondities nooit overeen; gebruik daar een drempel.
+Het is nog aan het leren: de services van de monitor hebben nog geen twee weken geschiedenis. Bij een monitor met **Groeperen op attributen** komen anomaliecondities nooit overeen; gebruik daar een drempel.
 :::
 
 :::details Groepswaarschuwingen komen binnen zonder groepswaarde

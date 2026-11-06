@@ -804,7 +804,9 @@ describe("the custom channels page without a license", () => {
  * section starts folded - so "open Settings, then Custom Channels" sent a
  * reader looking for an entry the menu does not show. The step names the
  * section, and says it starts folded, in the Admin Dashboard's own words, as
- * the SMTP page names Emails.
+ * the SMTP page names Emails - Custom Channels too, which the Admin
+ * Dashboard's locales word now (its side menu entry was English in every
+ * language).
  *
  * Core draws the entries the Enterprise plugin adds to Notifications
  * (SettingsNotificationSideMenuItems) at the end of that folded section;
@@ -911,17 +913,19 @@ describe("the custom channels page says where the page is", () => {
         language,
         "sideMenu.settingsNotifications",
       );
+      const customChannels: string = adminText(language, "Custom Channels");
       // A right-to-left page bolds each step of a path on its own.
       const menuPath: string =
         language === "fa"
-          ? `**${notifications}** > **Custom Channels**`
-          : `**${notifications} > Custom Channels**`;
+          ? `**${notifications}** > **${customChannels}**`
+          : `**${notifications} > ${customChannels}**`;
 
       expect({
         language,
         step: step.startsWith("1. "),
         settings: step.includes(`**${settings}**`),
         path: step.includes(menuPath),
+        worded: customChannels !== "Custom Channels",
         folded: step.split(`**${notifications}`).length - 1,
         add: step.includes("**Add**"),
         settingsFirst: step.indexOf(`**${settings}**`) < step.indexOf(menuPath),
@@ -930,9 +934,133 @@ describe("the custom channels page says where the page is", () => {
         step: true,
         settings: true,
         path: true,
+        worded: true,
         folded: 2,
         add: true,
         settingsFirst: true,
+      });
+    },
+  );
+});
+
+/*
+ * THE PAGE NAMES THE SHORT WAY TO TURN A CHANNEL OFF, AND WHAT TEAM
+ * COMPLIANCE DOES WITHOUT A LICENSE.
+ *
+ * Each row's ⋯ menu turns its channel off and on again (Disable, Enable:
+ * the shared row switch on the form's On), saved at once - the page told
+ * only of editing the channel. And while no custom channel can carry a page
+ * (no license that includes them), a team's compliance rule that asks for
+ * one is not checked (TeamComplianceStatus's channelsNotChecked, drawn
+ * "Not checked"); Without a License did not say so. Both in every
+ * language, in the words the Admin Dashboard and the Dashboard draw.
+ */
+describe("the custom channels page on turning a channel off", () => {
+  const STOP_LINE: string =
+    "To stop sending without changing anyone's rules, choose **Disable** in the channel's ⋯ menu, or edit the channel and turn off **On**; **Enable** in the same menu turns it back on. Pages that would have gone to it are recorded in the on-call log as not sent. Deleting a channel deletes every on-call rule that uses it.";
+  const COMPLIANCE_LINE: string =
+    "- **Team compliance does not check custom channels.** A team's compliance rule that asks for a custom channel shows **Not checked**, and members are not checked for one until a custom channel can carry a page again.";
+
+  const localeValue: (
+    app: "AdminDashboard" | "Dashboard",
+    language: string,
+    key: string,
+  ) => string = (
+    app: "AdminDashboard" | "Dashboard",
+    language: string,
+    key: string,
+  ): string => {
+    const locale: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          PACKAGES_DIR,
+          "App",
+          "FeatureSet",
+          app,
+          "src",
+          "Locales",
+          `${language}.json`,
+        ),
+        "utf8",
+      ),
+    ) as Record<string, unknown>;
+    const value: unknown = locale[key];
+
+    expect({ app, language, key, found: typeof value === "string" }).toEqual({
+      app,
+      language,
+      key,
+      found: true,
+    });
+
+    return value as string;
+  };
+
+  const lineIn: (language: string, englishLine: string) => string = (
+    language: string,
+    englishLine: string,
+  ): string => {
+    const at: number = english.split("\n").indexOf(englishLine);
+
+    expect(at).toBeGreaterThan(0);
+
+    return readPage(language, PAGE).split("\n")[at] || "";
+  };
+
+  it("says Disable in the row turns a channel off, Enable back on, as editing it does", () => {
+    expect(section("Add a Channel")).toContain(STOP_LINE);
+  });
+
+  it("says team compliance does not check custom channels while none can carry a page", () => {
+    const withoutALicense: string = section("Without a License");
+    const offered: number = withoutALicense.indexOf(
+      "- **Channels are no longer offered.**",
+    );
+
+    expect(withoutALicense).toContain(COMPLIANCE_LINE);
+    expect(withoutALicense.indexOf(COMPLIANCE_LINE)).toBeGreaterThan(offered);
+    expect(
+      fs.readFileSync(
+        path.join(
+          PACKAGES_DIR,
+          "Common",
+          "Types",
+          "Team",
+          "TeamComplianceStatus.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain("channelsNotChecked?:");
+  });
+
+  it.each(TRANSLATED_LANGUAGES)(
+    "says both in %s, in its dashboards' words",
+    (language: string) => {
+      const stop: string = lineIn(language, STOP_LINE);
+      const compliance: string = lineIn(language, COMPLIANCE_LINE);
+
+      expect({
+        language,
+        disable: stop.includes(
+          `**${localeValue("AdminDashboard", language, "Disable")}**`,
+        ),
+        enable: stop.includes(
+          `**${localeValue("AdminDashboard", language, "Enable")}**`,
+        ),
+        on: stop.includes(
+          `**${localeValue("AdminDashboard", language, "On")}**`,
+        ),
+        bullet: compliance.startsWith("- **"),
+        notChecked: compliance.includes(
+          `**${localeValue("Dashboard", language, "Not checked")}**`,
+        ),
+      }).toEqual({
+        language,
+        disable: true,
+        enable: true,
+        on: true,
+        bullet: true,
+        notChecked: true,
       });
     },
   );

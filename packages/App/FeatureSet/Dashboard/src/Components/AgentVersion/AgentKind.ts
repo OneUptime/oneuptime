@@ -61,6 +61,8 @@ export enum AgentKind {
   HostCollector = "host-collector",
   // agents/ProxmoxAgent: a Proxmox cluster.
   ProxmoxAgent = "proxmox-agent",
+  // agents/OpenStackAgent: an OpenStack cloud.
+  OpenStackAgent = "openstack-agent",
   // agents/CephAgent: a Ceph cluster.
   CephAgent = "ceph-agent",
   // agents/VMwareAgent: a vCenter.
@@ -151,12 +153,20 @@ export const DOCKER_SWARM_AGENT_COLLECTOR_VERSION: string = "0.161.0";
 export const DOCKER_SWARM_AGENT_VERSION: string = "0.161.3";
 
 /*
- * The collector version the Database agent reports: the
- * oneuptime.agent.version every agents/DatabaseAgent/configs/*.yaml stamps,
- * kept equal to the collector image docker-compose.yml pins.
- * AgentKind.test.ts fails when the agent's files move on without this.
+ * The version the Database agent reports: the oneuptime.agent.version every
+ * agents/DatabaseAgent/configs/*.yaml stamps - the collector release its
+ * docker-compose.yml pins (DATABASE_AGENT_COLLECTOR_VERSION), its last
+ * number raised when the files change on the same collector: 0.161.1, the
+ * PostgreSQL config's own SQL checks (a restart, transaction ID wraparound,
+ * long transactions, lock waits); 0.161.2, the MySQL config's own readings of
+ * Galera. So an agent still running the old files reports its older number and
+ * is told to upgrade. AgentKind.test.ts and AgentFilesVersion.test.ts fail when
+ * the agent's files move on without this.
  */
-export const DATABASE_AGENT_VERSION: string = "0.161.0";
+export const DATABASE_AGENT_VERSION: string = "0.161.2";
+
+// The collector the Database agent runs: the image its docker-compose.yml pins.
+export const DATABASE_AGENT_COLLECTOR_VERSION: string = "0.161.0";
 
 /*
  * The collector versions the Proxmox, Ceph, VMware and Storage Array agents
@@ -177,6 +187,17 @@ export const PROXMOX_AGENT_VERSION: string = "0.161.1";
  * old files reports 0.161.0 and is told to upgrade.
  */
 export const PROXMOX_AGENT_COLLECTOR_VERSION: string = "0.161.0";
+/*
+ * The version the OpenStack agent reports. Its files changed on the same collector -
+ * 0.161.1, real per-instance usage read from libvirt or Ceilometer when asked; 0.161.2,
+ * load balancers, bare metal, stacks, clusters, shares, DNS, object storage, databases
+ * and Gnocchi read where a cloud runs them; 0.161.3, what says Open vSwitch and
+ * ovn-controller are running, each RabbitMQ queue, and Geneve's interfaces and no others -
+ * so an agent still running the old files reports what it reported and is told to upgrade.
+ */
+export const OPENSTACK_AGENT_VERSION: string = "0.161.4";
+// The collector the OpenStack agent runs: the image its docker-compose.yml pins.
+export const OPENSTACK_AGENT_COLLECTOR_VERSION: string = "0.161.0";
 export const CEPH_AGENT_VERSION: string = "0.161.0";
 export const VMWARE_AGENT_VERSION: string = "0.161.0";
 export const STORAGE_ARRAY_AGENT_VERSION: string = "0.161.0";
@@ -214,7 +235,7 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
     name: "OneUptime Database Agent",
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: DATABASE_AGENT_VERSION,
-    collectorVersion: DATABASE_AGENT_VERSION,
+    collectorVersion: DATABASE_AGENT_COLLECTOR_VERSION,
   },
   [AgentKind.Runner]: {
     name: "Runner",
@@ -245,6 +266,12 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: PROXMOX_AGENT_VERSION,
     collectorVersion: PROXMOX_AGENT_COLLECTOR_VERSION,
+  },
+  [AgentKind.OpenStackAgent]: {
+    name: "OneUptime OpenStack Agent",
+    latestVersionSource: AgentLatestVersionSource.PinnedCollector,
+    pinnedVersion: OPENSTACK_AGENT_VERSION,
+    collectorVersion: OPENSTACK_AGENT_COLLECTOR_VERSION,
   },
   [AgentKind.CephAgent]: {
     name: "OneUptime Ceph Agent",

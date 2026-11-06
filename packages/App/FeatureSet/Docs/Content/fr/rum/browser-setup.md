@@ -350,7 +350,7 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
 });
 ```
 
-Avec la [Relecture de session](/docs/telemetry/session-replay), l'enregistreur capture lui aussi les erreurs non interceptées et les marque sur la chronologie de la relecture. La page de l'exception affiche alors une carte **Watch what the user saw**, qui ouvre la relecture dix secondes avant l'erreur. Avec la politique par défaut, chaque session est enregistrée, qu'une erreur survienne ou non ; l'erreur décide seulement où la carte s'ouvre.
+Avec la [Relecture de session](/docs/telemetry/session-replay), l'enregistreur capture lui aussi les erreurs non interceptées et les marque sur la chronologie de la relecture. La page de l'exception affiche alors une carte **Voir ce que l'utilisateur a vu**, qui ouvre la relecture dix secondes avant l'erreur. Avec la politique par défaut, chaque session est enregistrée, qu'une erreur survienne ou non ; l'erreur décide seulement où la carte s'ouvre.
 
 ## Ajouter journaux et métriques
 

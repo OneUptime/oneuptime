@@ -19,6 +19,11 @@ import SsoProviderType from "./SsoProviderType";
  * refuses them (Common/Server/Utils/SsoRequiredSignIn.ts) - for everyone but
  * master admins, who sign in with their password at /accounts/admin-login.
  *
+ * It also says whether the sign-in page offers a sign-in link emailed to the
+ * account (Types/Accounts/MagicLink): on until a master admin turns them off
+ * (Admin Dashboard > Settings > Authentication), and never while SSO is
+ * required.
+ *
  * GET /identity/project-sign-in-methods/:projectId answers the page a project
  * that requires SSO sends people to (Dashboard, /dashboard/<project>/sso): the
  * project's own providers and the instance-wide ones that sign people in to
@@ -48,6 +53,12 @@ export interface SignInMethods {
    * otherwise - the pages keep the lookup anyway, and the server does not say.
    */
   hasProjectSsoProviders: boolean;
+  /*
+   * The sign-in page offers "Email me a sign-in link". Read as false from an
+   * answer that does not say true - an older server's included - so the
+   * option is only drawn where the server takes links.
+   */
+  isMagicLinkLoginEnabled: boolean;
 }
 
 // What the answer for a project holds: the providers that sign people in to it.
@@ -191,6 +202,8 @@ export default class SignInMethodsUtil {
       ),
       hasProjectSsoProviders:
         isSsoRequired && answer["hasProjectSsoProviders"] === true,
+      isMagicLinkLoginEnabled:
+        !isSsoRequired && answer["isMagicLinkLoginEnabled"] === true,
     };
   }
 

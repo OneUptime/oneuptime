@@ -55,7 +55,7 @@ flowchart TB
 
 ### 選擇叢集
 
-在 **Docker Swarm Monitor Configuration** 下，從 **Docker Swarm Cluster** 中選擇叢集。傳送過資料的每個叢集都在清單中。選好後，欄位下方的一行會顯示是否有資料傳入。**新增 Docker Swarm 叢集** 會開啟已填好你的金鑰的設定步驟，並等待第一批資料。
+在 **Docker Swarm Monitor Configuration** 下，從 **Docker Swarm 叢集** 中選擇叢集。傳送過資料的每個叢集都在清單中。選好後，欄位下方的一行會顯示是否有資料傳入。**新增 Docker Swarm 叢集** 會開啟已填好你的金鑰的設定步驟，並等待第一批資料。
 
 ### 選擇要監控的內容
 
@@ -81,7 +81,7 @@ flowchart TB
 
 | 欄位 | 分頁 | 作用 |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | 全部 | 必填。把每個查詢限定在 `resource.docker.swarm.cluster.name`。任務的指標和 Docker 主機的指標一樣帶有 `container.runtime=docker`，而代理程式從不加上 `host.name`，所以監測器對這兩者都不篩選。 |
+| **Docker Swarm 叢集** | 全部 | 必填。把每個查詢限定在 `resource.docker.swarm.cluster.name`。任務的指標和 Docker 主機的指標一樣帶有 `container.runtime=docker`，而代理程式從不加上 `host.name`，所以監測器對這兩者都不篩選。 |
 | **服務名稱** | Custom Metric、進階 | 選用。與 `resource.docker.swarm.service.name` 完全相符，即 `docker service ls` 顯示的服務名稱，例如 `web`（在堆疊中為 `<stack>_web`）。 |
 | **節點名稱** | Custom Metric、進階 | 選用。與 `resource.docker.swarm.node.name` 完全相符，即 `docker node ls` 顯示的節點主機名稱，例如 `swarm-node-1`。該節點上的代理程式會根據 `DOCKER_SWARM_NODE_NAME` 加上它。 |
 | **容器名稱** | Custom Metric、進階 | 選用。與 `resource.container.name` 完全相符。任務的容器命名為 `<service>.<slot>.<taskid>`，例如 `web.1.abc123`。 |
@@ -176,7 +176,7 @@ flowchart TB
 | --- | --- |
 | **指標** | 要檢查的查詢或公式，以其變數名稱指定。 |
 | **彙總** | 視窗中的值如何變成一個結果：**平均**、**總和**、**Maximum Value**、**Minimum Value**、**All Values**（整個視窗內每個值都必須符合）或 **Any Value**（一個就夠）。 |
-| **條件** | **大於**、**小於**、**大於或等於**、**小於或等於** 或 **等於**，或是異常條件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。**無資料** 在查詢於視窗內沒有傳回任何資料時符合，**有資料** 在傳回了資料時符合。 |
+| **條件** | **大於**、**小於**、**大於或等於**、**小於或等於** 或 **等於**，或是異常條件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。**無資料** 在查詢於視窗內沒有傳回任何資料時符合，**有資料** 在傳回了資料時符合。 **預計高於** 和 **預計低於** 在時間範圍內指標的趨勢到 **預測範圍** 結束時越過閾值時符合。 |
 | **閾值** | 用來比較的值。如果指標有單位，旁邊會有單位清單。異常條件下不會顯示。 |
 | **敏感度** | 僅限異常條件。**低**（4σ）、**中**（3σ，預設）或 **高**（2σ）。 |
 | **基準視窗** | 僅限異常條件。14 天（預設）、28、60 或 90 天的歷史。 |

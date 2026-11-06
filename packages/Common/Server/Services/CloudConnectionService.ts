@@ -14,6 +14,11 @@ import {
   getCloudConnectionFieldsForMethod,
   isCloudConnectionProvider,
 } from "../../Types/CloudConnection/CloudConnectionCatalog";
+import {
+  CloudStreamKeyHashes,
+  readCloudStreamKeyHashes,
+  rotateCloudStreamKeyHashes,
+} from "../../Types/CloudConnection/CloudStream";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -23,6 +28,8 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CloudConnectorRegistry from "../Utils/CloudConnection/CloudConnectorRegistry";
 import { CloudConnectionSettings } from "../Utils/CloudConnection/CloudConnectorTypes";
+import CloudStreamAuthenticator from "../Utils/CloudConnection/CloudStreamAuthentication";
+import CloudStreamKeys from "../Utils/CloudConnection/CloudStreamKeys";
 import GcpCloudConnector from "../Utils/CloudConnection/Gcp/GcpCloudConnector";
 import logger from "../Utils/Logger";
 
@@ -583,6 +590,84 @@ export class Service extends DatabaseService<Model> {
     }
 
     return `${base} ${ObjectID.generate().toString().substring(0, 8)}`;
+  }
+
+  /*
+   * A new stream key for an AWS connection (CloudStream): returned this
+   * once and stored only as its SHA-256. The key it replaces keeps working
+   * for CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS, so streams set up with it keep
+   * delivering until their stacks are updated. The caller has checked the
+   * connection is the project's and the person may change it.
+   */
+  public async createStreamKey(data: {
+    connectionId: ObjectID;
+    now: Date;
+  }): Promise<{
+    streamKey: string;
+    createdAt: Date;
+    previousKeyWorksUntil: Date | null;
+  }> {
+    const connection: Model | null = await this.findOneById({
+      id: data.connectionId,
+      select: { _id: true, provider: true, streamKeyHashes: true },
+      props: { isRoot: true },
+    });
+
+    if (!connection) {
+      throw new BadDataException("The connection no longer exists.");
+    }
+
+    if (connection.provider !== CloudProvider.AWS) {
+      throw new BadDataException(
+        "Only AWS connections stream metrics and logs through Amazon Data Firehose.",
+      );
+    }
+
+    const generated: { key: string; hash: string } = CloudStreamKeys.generate(
+      data.connectionId,
+    );
+    const hashes: CloudStreamKeyHashes = rotateCloudStreamKeyHashes({
+      hashes: readCloudStreamKeyHashes(connection.streamKeyHashes),
+      newHash: generated.hash,
+      now: data.now,
+    });
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: data.connectionId,
+      // JSON columns make the typed partial too deep for TypeScript.
+      data: {
+        streamKeyHashes: hashes as unknown as JSONObject,
+        streamKeyCreatedAt: data.now,
+      } as never,
+    });
+
+    CloudStreamAuthenticator.forget(data.connectionId);
+
+    return {
+      streamKey: generated.key,
+      createdAt: data.now,
+      // The key this one replaced: the newest of those that still work.
+      previousKeyWorksUntil: hashes.previous?.[0]
+        ? new Date(hashes.previous[0].expiresAt)
+        : null,
+    };
+  }
+
+  /*
+   * Stops every stream of the connection: its keys stop working at once
+   * here and within a minute everywhere (CloudStreamAuthenticator's cache).
+   * What the streams delivered stays, and so does what they last said.
+   */
+  public async stopStreaming(connectionId: ObjectID): Promise<void> {
+    await this.updateColumnsByIdWithoutHooks({
+      id: connectionId,
+      data: {
+        streamKeyHashes: null,
+        streamKeyCreatedAt: null,
+      } as never,
+    });
+
+    CloudStreamAuthenticator.forget(connectionId);
   }
 
   /*

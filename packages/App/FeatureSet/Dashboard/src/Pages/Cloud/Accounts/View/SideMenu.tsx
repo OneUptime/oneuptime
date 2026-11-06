@@ -17,7 +17,7 @@ export interface ComponentProps {
 
 /*
  * A cloud account's pages: what it holds first (its Overview, its
- * Resources and how they fit together), then what OneUptime AI did and may
+ * Resources and how they fit together, and what it costs), then what OneUptime AI did and may
  * do in it, what changed in it - in the cloud (Changes) and in OneUptime
  * (Feed: its Cloud AI agent, and who changed what AI may do) - its own
  * settings, its API pages and, last, deleting it.
@@ -57,6 +57,20 @@ const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.FlowDiagram}
+        />
+        {/*
+         * What it costs from its cloud's own billing, and the ways its
+         * cloud's recommender says it could spend less.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Costs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_COSTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Billing}
         />
       </SideMenuSection>
 

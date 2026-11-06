@@ -1,5 +1,6 @@
 import SecurityEvent from "../../../../Models/AnalyticsModels/SecurityEvent";
 import SecurityHunt from "../../../../Models/DatabaseModels/SecurityHunt";
+import SecurityHuntRun from "../../../../Models/DatabaseModels/SecurityHuntRun";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Query from "../../../../Types/BaseDatabase/Query";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -21,6 +22,7 @@ import { buildSecurityHuntQuery } from "../../../../Utils/SecurityEvent/Security
 import AccessTokenService from "../../../Services/AccessTokenService";
 import AnalyticsDatabaseService from "../../../Services/AnalyticsDatabaseService";
 import SecurityEventService from "../../../Services/SecurityEventService";
+import SecurityHuntRunService from "../../../Services/SecurityHuntRunService";
 import SecurityHuntService from "../../../Services/SecurityHuntService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import Select from "../../../Types/Database/Select";
@@ -33,6 +35,7 @@ import SecurityProjectWork, {
   UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
 } from "../SecurityProjectWork";
 import SecurityHuntNotifications from "./SecurityHuntNotifications";
+import { SecurityWatchlistMissingException } from "../Watchlists/SecurityWatchlists";
 
 /*
  * SCHEDULED HUNTS (Types/SecurityEvent/SecurityHunt).
@@ -57,12 +60,15 @@ import SecurityHuntNotifications from "./SecurityHuntNotifications";
  *      schedule it was read with, so a hunt changed while it ran keeps the
  *      change (its new schedule starts from the change) and a second worker
  *      never records the same window twice;
- *   4. when it found events, queues the notification
+ *   4. keeps the run in the hunt's history (SecurityHuntRun): its window,
+ *      and how many events it found - only once its record holds, so a
+ *      window two workers read is kept once;
+ *   5. when it found events, queues the notification
  *      (SecurityHuntNotifications), only once its record holds.
  *
- * A run that cannot be made records why (lastRunError) and is tried again
- * within the hour; its window stays where it was, so the next run reads
- * what this one could not.
+ * A run that cannot be made records why (lastRunError), is kept in the
+ * history with its reason, and is tried again within the hour; its window
+ * stays where it was, so the next run reads what this one could not.
  */
 
 export const SECURITY_HUNTS_PROJECT_WORK: SecurityProjectWorkDefinition = {
@@ -92,6 +98,8 @@ export interface SecurityHuntRunOutcome {
   error: string | null;
   // Whether the run's record held: false when the hunt changed while it ran.
   isRecorded: boolean;
+  // Whether the run is in the hunt's history (SecurityHuntRun).
+  isKeptInHistory: boolean;
   isNotificationQueued: boolean;
 }
 
@@ -239,6 +247,10 @@ export default class SecurityHuntScheduler {
       return error.message;
     }
 
+    if (error instanceof SecurityWatchlistMissingException) {
+      return SECURITY_HUNT_RUN_ERRORS.watchlistMissing.message;
+    }
+
     if (
       error instanceof QueryTimeoutException ||
       AnalyticsDatabaseService.isQueryTimeoutError(error)
@@ -264,6 +276,7 @@ export default class SecurityHuntScheduler {
       eventCount: null,
       error: null,
       isRecorded: false,
+      isKeptInHistory: false,
       isNotificationQueued: false,
     };
 
@@ -323,6 +336,15 @@ export default class SecurityHuntScheduler {
         nextRunAt: getSecurityHuntRetryAt({ schedule: hunt.schedule, now }),
       });
 
+      if (outcome.isRecorded) {
+        outcome.isKeptInHistory = await this.keepInHistory({
+          hunt,
+          window,
+          eventCount: null,
+          error: outcome.error,
+        });
+      }
+
       return outcome;
     }
 
@@ -343,6 +365,15 @@ export default class SecurityHuntScheduler {
         : {}),
     });
 
+    if (outcome.isRecorded) {
+      outcome.isKeptInHistory = await this.keepInHistory({
+        hunt,
+        window,
+        eventCount,
+        error: null,
+      });
+    }
+
     if (outcome.isRecorded && eventCount > 0) {
       outcome.isNotificationQueued = await SecurityHuntNotifications.huntFound({
         projectId: hunt.projectId,
@@ -353,6 +384,51 @@ export default class SecurityHuntScheduler {
     }
 
     return outcome;
+  }
+
+  /*
+   * One run in the hunt's history: the window it read, and what it found
+   * there or why it could not. Written once its record has held, so a
+   * window is kept once however many workers read it. Never throws: a run
+   * whose history could not be written is still recorded on its hunt, and
+   * its people are still told.
+   */
+  public static async keepInHistory(data: {
+    hunt: SecurityHunt;
+    window: SecurityHuntRunWindow;
+    eventCount: number | null;
+    error: string | null;
+  }): Promise<boolean> {
+    try {
+      const run: SecurityHuntRun = new SecurityHuntRun();
+      run.projectId = data.hunt.projectId!;
+      run.securityHuntId = data.hunt.id!;
+      run.windowStartAt = data.window.startTime;
+      run.windowEndAt = data.window.endTime;
+
+      if (data.eventCount !== null) {
+        run.eventCount = data.eventCount;
+      }
+
+      if (data.error) {
+        run.error = data.error;
+      }
+
+      await SecurityHuntRunService.create({
+        data: run,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return true;
+    } catch (error) {
+      logger.error(
+        `SecurityHuntScheduler: could not keep a run of hunt ${data.hunt.id?.toString() || ""} in its history:`,
+      );
+      logger.error(error);
+      return false;
+    }
   }
 
   /*

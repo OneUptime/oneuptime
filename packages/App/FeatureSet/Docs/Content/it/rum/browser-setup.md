@@ -350,7 +350,7 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
 });
 ```
 
-Con la [Session Replay](/docs/telemetry/session-replay), anche il recorder cattura gli errori non gestiti e li segna sulla timeline della riproduzione. La pagina dell'eccezione mostra allora una scheda **Watch what the user saw**, che apre la riproduzione dieci secondi prima dell'errore. Con la policy predefinita ogni sessione viene registrata, che qualcosa fallisca o no; l'errore decide solo dove si apre la scheda.
+Con la [Session Replay](/docs/telemetry/session-replay), anche il recorder cattura gli errori non gestiti e li segna sulla timeline della riproduzione. La pagina dell'eccezione mostra allora una scheda **Guarda cosa ha visto l'utente**, che apre la riproduzione dieci secondi prima dell'errore. Con la policy predefinita ogni sessione viene registrata, che qualcosa fallisca o no; l'errore decide solo dove si apre la scheda.
 
 ## Aggiungere log e metriche
 

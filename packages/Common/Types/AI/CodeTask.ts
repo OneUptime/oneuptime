@@ -520,6 +520,29 @@ export interface CodeTaskTurnJSON {
   needsInput: boolean;
 }
 
+/*
+ * How a turn that AI is working on stands now, and the steps it took since
+ * the page last read it (POST /code-task/progress/:taskId): what a task's
+ * conversation reads as each step happens, instead of the whole task again.
+ * Once the turn is no longer working, the page reads the whole task - its
+ * reply, the files it changed, its pull request.
+ */
+export interface CodeTaskTurnProgressJSON {
+  runId: string;
+  status: string;
+  state: CodeTaskState;
+  // Working, but no Runner has picked the turn up yet.
+  isQueued: boolean;
+  startedAt?: string | undefined;
+  // The turn's steps after the one the page asked from, oldest first.
+  steps: Array<CodeTaskStepJSON>;
+  /*
+   * More steps were taken since than one read sends: the page reads the
+   * whole task instead, which holds the latest of them.
+   */
+  hasMore: boolean;
+}
+
 export interface CodeTaskRepositoryJSON {
   id: string;
   name: string;

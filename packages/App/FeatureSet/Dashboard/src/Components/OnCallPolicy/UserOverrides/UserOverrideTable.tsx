@@ -4,8 +4,11 @@ import {
   getUserOverrideFormFields,
   prepareUserOverrideForCreate,
 } from "./UserOverrideForm";
+import { getGlobalUserOverrideLock } from "./GlobalUserOverrideLock";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import { ModelAction } from "Common/UI/Utils/PermissionGate";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -57,6 +60,14 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
  * folded Advanced section - the global one in the On-Call Duty menu, a
  * policy's own in the policy's menu - so the way there names Advanced
  * (OnCallDutyMenuPathsInProductText holds such paths to the menu).
+ *
+ * A global override applies to every policy, so adding or deleting one
+ * takes a permission over the whole project (issue #5617). For someone
+ * whose permission covers only some policies, the global page locks Add
+ * and each row's Delete, saying why (GlobalUserOverrideLock). "Get cover"
+ * is locked on the shift itself for them; a link that still brings them
+ * here - followed before the browser had that project's permissions -
+ * says so instead of opening a form they cannot save.
  */
 
 export interface ComponentProps {
@@ -221,6 +232,18 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
     }
   }, []);
 
+  /*
+   * On the global page: why Add and Delete are locked for a reader whose
+   * permission covers only some policies, or null.
+   */
+  const isGlobal: boolean = !props.onCallDutyPolicyId;
+  const addLock: string | null = isGlobal
+    ? getGlobalUserOverrideLock(ModelAction.Create)
+    : null;
+  const deleteLock: string | null = isGlobal
+    ? getGlobalUserOverrideLock(ModelAction.Delete)
+    : null;
+
   const formFields: Array<ModelField<OnCallDutyPolicyUserOverride>> =
     useMemo((): Array<ModelField<OnCallDutyPolicyUserOverride>> => {
       return getUserOverrideFormFields<OnCallDutyPolicyUserOverride>({
@@ -230,6 +253,15 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
 
   return (
     <>
+      {coverRequest && addLock ? (
+        <Alert
+          type={AlertType.INFO}
+          dataTestId="global-user-override-cover-locked"
+          title={addLock}
+        />
+      ) : (
+        <></>
+      )}
       <ModelTable<OnCallDutyPolicyUserOverride>
         modelType={OnCallDutyPolicyUserOverride}
         query={query}
@@ -237,8 +269,17 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         name="On-Call Policy > User Overrides"
         userPreferencesKey="on-call-user-override-table"
         isDeleteable={true}
+        getDeleteDisabledReason={
+          deleteLock
+            ? (): string => {
+                return deleteLock;
+              }
+            : undefined
+        }
         isEditable={false}
         isCreateable={true}
+        // Locked, Add stays on the card with the reason on hover.
+        createDisabledReason={addLock || undefined}
         isViewable={false}
         createVerb="Add"
         showCreateForm={isCoverDialogAsked}

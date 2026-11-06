@@ -27,7 +27,9 @@ import { MemoryRouter } from "react-router-dom";
  * Metrics → AI in the reader's language, with the shipped Dashboard locales:
  * the inbox scoped to the Metric lane (its intro, its kinds, statuses and
  * severities, its filters and its footer) and a finding's page (Fix with AI
- * for metric names with IDs, and how many times it was detected). Every
+ * for metric names with IDs, and how many times it was detected; and a
+ * service with no request metrics: its kind, Fix with AI and the collector
+ * step that changes no code). Every
  * label here read English on a German page until the UI review: the AI
  * Insights inbox's status, severity, filter and sort words had no German,
  * and the Detections fact was glued together in English ("5 times").
@@ -132,9 +134,15 @@ import {
   getTelemetryAiInsightsScope,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
 import {
+  TELEMETRY_AI_FIX_LEADS,
   TELEMETRY_AI_FIX_LEAD_METRIC_NAMES,
   TELEMETRY_AI_FIX_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiFixCopy";
+import {
+  SPAN_METRICS_STEP_COPY,
+  SPAN_METRICS_STEP_TEST_IDS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/SpanMetricsStepCopy";
+import { INSIGHT_TYPE_LABELS } from "../../../../App/FeatureSet/Dashboard/src/Components/AIInsights/InsightPresentation";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
 import { MetricInsightEvidence } from "../../../Types/AI/AIInsightEvidence";
 import AIInsightSeverity from "../../../Types/AI/AIInsightSeverity";
@@ -196,6 +204,34 @@ function finding(data: {
   insight.occurrenceCount = data.occurrenceCount;
   insight.firstSeenAt = new Date("2026-10-24T05:00:00.000Z");
   insight.lastSeenAt = new Date("2026-10-24T09:00:00.000Z");
+  return insight;
+}
+
+// A service that sends its runtime's metrics, none for its HTTP requests.
+const NO_REQUEST_METRICS: MetricInsightEvidence = {
+  serviceId: SERVICE_ID,
+  kind: "MissingRequestMetrics",
+  windowStartTime: "2026-10-24T08:00:00.000Z",
+  windowEndTime: "2026-10-24T09:00:00.000Z",
+  spanCount: 12400,
+  failedSpanCount: 310,
+  servedProtocols: ["Http"],
+  sentMetricNames: ["jvm.memory.used"],
+  sentMetricCount: 1,
+};
+
+function requestMetricsFinding(): AIInsight {
+  const insight: AIInsight = finding({
+    index: 4,
+    insightType: AIInsightType.MetricMissingRequestMetrics,
+    severity: AIInsightSeverity.Low,
+    status: AIInsightStatus.Detected,
+    occurrenceCount: 6,
+  });
+  insight.id = new ObjectID(INSIGHT_ID);
+  insight.title = "worker sends no metrics for the HTTP requests it handles";
+  insight.evidence = { metric: NO_REQUEST_METRICS };
+  insight.detailMarkdown = "**Missing request metrics in worker**";
   return insight;
 }
 
@@ -400,5 +436,73 @@ describe("a finding's page in German", () => {
     expect(
       await screen.findByTestId(TELEMETRY_AI_FIX_TEST_IDS.lead),
     ).toHaveTextContent(TELEMETRY_AI_FIX_LEAD_METRIC_NAMES);
+  });
+});
+
+describe("a service with no request metrics, in German", () => {
+  const LABEL: string =
+    INSIGHT_TYPE_LABELS[AIInsightType.MetricMissingRequestMetrics];
+  const LEAD: string =
+    TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricMissingRequestMetrics]!;
+
+  test("the inbox names its kind in German", async () => {
+    rows = [requestMetricsFinding()];
+    await readIn("de");
+    renderInbox();
+
+    await screen.findByText(
+      "worker sends no metrics for the HTTP requests it handles",
+    );
+
+    expect(GERMAN[LABEL]).toBe("Fehlende Anfragemetriken");
+    expect(
+      screen.getAllByText("Fehlende Anfragemetriken").length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText(LABEL)).not.toBeInTheDocument();
+  });
+
+  test("its page says in German what Fix with AI does, and offers the collector step beside it", async () => {
+    item = requestMetricsFinding();
+    await readIn("de");
+    await renderFinding();
+
+    const lead: HTMLElement = await screen.findByTestId(
+      TELEMETRY_AI_FIX_TEST_IDS.lead,
+    );
+
+    expect(GERMAN[LEAD]).toBe(
+      "OneUptime AI öffnet einen Pull Request, der diesem Dienst Anfragemetriken hinzufügt, damit Sie ihn prüfen können.",
+    );
+    expect(lead).toHaveTextContent(GERMAN[LEAD]!);
+
+    const panel: HTMLElement = await screen.findByTestId(
+      SPAN_METRICS_STEP_TEST_IDS.panel,
+    );
+
+    for (const words of [
+      SPAN_METRICS_STEP_COPY.panelTitle,
+      SPAN_METRICS_STEP_COPY.panelDescription,
+      SPAN_METRICS_STEP_COPY.showStep,
+    ]) {
+      expect(panel).toHaveTextContent(GERMAN[words]!);
+      expect(panel).not.toHaveTextContent(words);
+    }
+
+    expect(
+      screen.getAllByText("Fehlende Anfragemetriken").length,
+    ).toBeGreaterThan(0);
+  });
+
+  test("in English, the same page reads as it was written", async () => {
+    item = requestMetricsFinding();
+    await renderFinding();
+
+    expect(
+      await screen.findByTestId(TELEMETRY_AI_FIX_TEST_IDS.lead),
+    ).toHaveTextContent(LEAD);
+    expect(
+      await screen.findByTestId(SPAN_METRICS_STEP_TEST_IDS.panel),
+    ).toHaveTextContent(SPAN_METRICS_STEP_COPY.panelTitle);
+    expect(screen.getAllByText(LABEL).length).toBeGreaterThan(0);
   });
 });

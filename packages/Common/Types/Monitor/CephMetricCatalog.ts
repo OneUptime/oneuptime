@@ -1,5 +1,6 @@
 import { CephResourceScope } from "./MonitorStepCephMonitor";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type CephMetricCategory = "Cluster Health" | "OSD" | "Pool" | "PG";
 
@@ -73,7 +74,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   // Cluster Health Metrics
   {
     id: "ceph-health-status",
-    friendlyName: "Cluster Health Status",
+    friendlyName: translationKey("Cluster Health Status"),
     description:
       "Overall Ceph cluster health: 0 = HEALTH_OK, 1 = HEALTH_WARN, 2 = HEALTH_ERR. The single most important Ceph metric to alert on.",
     metricName: "ceph_health_status",
@@ -83,7 +84,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-health-detail",
-    friendlyName: "Health Check Detail",
+    friendlyName: translationKey("Health Check Detail"),
     description:
       "One series per health check (e.g. OSD_DOWN, PG_DEGRADED) with name and severity labels: 1 while the check is active, 0 after it clears, and no series for a check that has never fired. Exposed by the mgr prometheus module on Quincy and later — absent on older releases.",
     metricName: "ceph_health_detail",
@@ -94,7 +95,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-healthcheck-slow-ops",
-    friendlyName: "Slow Operations",
+    friendlyName: translationKey("Slow Operations"),
     description:
       "Number of slow OSD/monitor operations reported by the SLOW_OPS health check. Non-zero values surface as client I/O latency or hangs.",
     metricName: "ceph_healthcheck_slow_ops",
@@ -105,7 +106,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-daemon-health-metrics",
-    friendlyName: "Daemon Health Metrics",
+    friendlyName: translationKey("Daemon Health Metrics"),
     description:
       "Per-daemon health metrics from the mgr, keyed by a type label (e.g. SLOW_OPS, PENDING_CREATING_PGS) and a ceph_daemon label. Filter type = SLOW_OPS and group by ceph_daemon to pinpoint the exact OSD or monitor reporting slow operations.",
     metricName: "ceph_daemon_health_metrics",
@@ -116,7 +117,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-mon-quorum-status",
-    friendlyName: "Monitor Quorum Status",
+    friendlyName: translationKey("Monitor Quorum Status"),
     description:
       "Whether each Ceph monitor daemon is in quorum (1) or not (0). One series per monitor: the minimum reads 0 when any monitor is out of quorum. A Sum adds every scrape in the minute, so it does not count members.",
     metricName: "ceph_mon_quorum_status",
@@ -127,7 +128,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-mon-metadata",
-    friendlyName: "Monitor Metadata",
+    friendlyName: translationKey("Monitor Metadata"),
     description:
       "Metadata series for each monitor daemon (value is always 1) carrying hostname and ceph_version labels: 1 while the monitor reports. A Sum adds every scrape in the minute, so it does not count monitors.",
     metricName: "ceph_mon_metadata",
@@ -138,7 +139,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-cluster-total-bytes",
-    friendlyName: "Cluster Total Capacity",
+    friendlyName: translationKey("Cluster Total Capacity"),
     description:
       "Total raw storage capacity of the cluster across all OSDs, before replication or erasure-coding overhead.",
     metricName: "ceph_cluster_total_bytes",
@@ -149,7 +150,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-cluster-total-used-bytes",
-    friendlyName: "Cluster Used Capacity",
+    friendlyName: translationKey("Cluster Used Capacity"),
     description:
       "Raw storage currently used across all OSDs. Compare against Cluster Total Capacity to track how full the cluster is.",
     metricName: "ceph_cluster_total_used_bytes",
@@ -162,7 +163,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   // OSD Metrics
   {
     id: "ceph-osd-up",
-    friendlyName: "OSD Up",
+    friendlyName: translationKey("OSD Up"),
     description:
       "Whether each OSD daemon is up (1) or down (0). One series per OSD: the minimum reads 0 when any OSD is down. A Sum adds every scrape in the minute, so it does not count OSDs.",
     metricName: "ceph_osd_up",
@@ -173,7 +174,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-osd-in",
-    friendlyName: "OSD In",
+    friendlyName: translationKey("OSD In"),
     description:
       "Whether each OSD is in the cluster (1) or marked out (0): the minimum reads 0 when any OSD is out. An OSD that is up but out no longer stores data and triggers rebalancing.",
     metricName: "ceph_osd_in",
@@ -184,7 +185,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-osd-apply-latency",
-    friendlyName: "OSD Apply Latency",
+    friendlyName: translationKey("OSD Apply Latency"),
     description:
       "Time for each OSD to apply an operation to its backing store, in milliseconds. Sustained high values point to a failing or saturated disk.",
     metricName: "ceph_osd_apply_latency_ms",
@@ -195,7 +196,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-osd-commit-latency",
-    friendlyName: "OSD Commit Latency",
+    friendlyName: translationKey("OSD Commit Latency"),
     description:
       "Time for each OSD to commit an operation to its journal/WAL, in milliseconds. Compare against apply latency to distinguish journal from backing-store slowness.",
     metricName: "ceph_osd_commit_latency_ms",
@@ -206,7 +207,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-osd-stat-bytes",
-    friendlyName: "OSD Total Capacity",
+    friendlyName: translationKey("OSD Total Capacity"),
     description: "Total raw capacity of each OSD's backing device.",
     metricName: "ceph_osd_stat_bytes",
     category: "OSD",
@@ -216,7 +217,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-osd-stat-bytes-used",
-    friendlyName: "OSD Used Capacity",
+    friendlyName: translationKey("OSD Used Capacity"),
     description:
       "Raw bytes used on each OSD. Compare against OSD Total Capacity to spot imbalanced or nearfull OSDs before they block writes.",
     metricName: "ceph_osd_stat_bytes_used",
@@ -227,7 +228,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-osd-numpg",
-    friendlyName: "OSD Placement Groups",
+    friendlyName: translationKey("OSD Placement Groups"),
     description:
       "Number of placement groups hosted by each OSD. Outliers indicate CRUSH imbalance — overloaded OSDs become latency hotspots.",
     metricName: "ceph_osd_numpg",
@@ -238,7 +239,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-osd-metadata",
-    friendlyName: "OSD Metadata",
+    friendlyName: translationKey("OSD Metadata"),
     description:
       "Metadata series for each OSD daemon (value is always 1) carrying hostname, device_class, and ceph_version labels: 1 while the OSD reports. A Sum adds every scrape in the minute, so it does not count OSDs.",
     metricName: "ceph_osd_metadata",
@@ -251,7 +252,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   // Pool Metrics
   {
     id: "ceph-pool-stored",
-    friendlyName: "Pool Stored Data",
+    friendlyName: translationKey("Pool Stored Data"),
     description:
       "Logical data stored in each pool, before replication or erasure-coding overhead.",
     metricName: "ceph_pool_stored",
@@ -262,7 +263,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-pool-max-avail",
-    friendlyName: "Pool Max Available",
+    friendlyName: translationKey("Pool Max Available"),
     description:
       "Estimated space still writable to each pool given current cluster capacity and the pool's replication factor. Alert when this gets low to avoid a full pool.",
     metricName: "ceph_pool_max_avail",
@@ -273,7 +274,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-pool-objects",
-    friendlyName: "Pool Object Count",
+    friendlyName: translationKey("Pool Object Count"),
     description: "Number of objects stored in each pool.",
     metricName: "ceph_pool_objects",
     category: "Pool",
@@ -283,7 +284,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-pool-rd",
-    friendlyName: "Pool Read Operations",
+    friendlyName: translationKey("Pool Read Operations"),
     description:
       "Cumulative read operations served by each pool. Chart as a rate to see read IOPS. Max reads its latest total.",
     metricName: "ceph_pool_rd",
@@ -294,7 +295,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-pool-wr",
-    friendlyName: "Pool Write Operations",
+    friendlyName: translationKey("Pool Write Operations"),
     description:
       "Cumulative write operations served by each pool. Chart as a rate to see write IOPS. Max reads its latest total.",
     metricName: "ceph_pool_wr",
@@ -305,7 +306,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-pool-rd-bytes",
-    friendlyName: "Pool Read Throughput",
+    friendlyName: translationKey("Pool Read Throughput"),
     description:
       "Cumulative bytes read from each pool. Chart as a rate to see read throughput. Max reads its latest total.",
     metricName: "ceph_pool_rd_bytes",
@@ -316,7 +317,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-pool-wr-bytes",
-    friendlyName: "Pool Write Throughput",
+    friendlyName: translationKey("Pool Write Throughput"),
     description:
       "Cumulative bytes written to each pool. Chart as a rate to see write throughput. Max reads its latest total.",
     metricName: "ceph_pool_wr_bytes",
@@ -327,7 +328,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-pool-metadata",
-    friendlyName: "Pool Metadata",
+    friendlyName: translationKey("Pool Metadata"),
     description:
       "Metadata series for each pool (value is always 1) carrying the pool's name label — the ONLY series that maps pool_id to a name: 1 while the pool exists.",
     metricName: "ceph_pool_metadata",
@@ -349,7 +350,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
    */
   {
     id: "ceph-pg-total",
-    friendlyName: "Total PGs",
+    friendlyName: translationKey("Total PGs"),
     description:
       "Number of placement groups per pool (pool_id label). A Custom Metric judges each pool on its own. To compare Active or Clean PGs with it, as the PG templates do, use Advanced and group both by pool_id: a Sum adds every scrape in the minute as well as every pool.",
     metricName: "ceph_pg_total",
@@ -360,7 +361,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-pg-active",
-    friendlyName: "Active PGs",
+    friendlyName: translationKey("Active PGs"),
     description:
       "Number of placement groups in the active state (able to serve I/O) per pool (pool_id label). In a healthy pool it equals Total PGs; to compare the two, use Advanced and group both by pool_id.",
     metricName: "ceph_pg_active",
@@ -371,7 +372,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-pg-clean",
-    friendlyName: "Clean PGs",
+    friendlyName: translationKey("Clean PGs"),
     description:
       "Number of placement groups in the clean state (fully replicated, no recovery pending) per pool (pool_id label). In a healthy pool it equals Total PGs; to compare the two, use Advanced and group both by pool_id.",
     metricName: "ceph_pg_clean",
@@ -382,7 +383,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-pg-degraded",
-    friendlyName: "Degraded PGs",
+    friendlyName: translationKey("Degraded PGs"),
     description:
       "Number of placement groups with fewer data replicas than configured, per pool (pool_id label). Non-zero values mean redundancy is reduced — typically after an OSD failure.",
     metricName: "ceph_pg_degraded",
@@ -393,7 +394,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-pg-undersized",
-    friendlyName: "Undersized PGs",
+    friendlyName: translationKey("Undersized PGs"),
     description:
       "Number of placement groups mapped to fewer OSDs than their configured replica count, per pool (pool_id label). Sustained non-zero values mean the cluster cannot restore full redundancy.",
     metricName: "ceph_pg_undersized",
@@ -404,7 +405,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-num-objects-degraded",
-    friendlyName: "Degraded Objects",
+    friendlyName: translationKey("Degraded Objects"),
     description:
       "Number of objects with fewer replicas than configured. Should trend to zero as recovery completes after an OSD failure.",
     metricName: "ceph_num_objects_degraded",
@@ -415,7 +416,7 @@ const cephMetricCatalog: Array<CephMetricDefinition> = [
   },
   {
     id: "ceph-num-objects-misplaced",
-    friendlyName: "Misplaced Objects",
+    friendlyName: translationKey("Misplaced Objects"),
     description:
       "Number of objects not stored on their CRUSH-intended OSDs (data is safe, placement is wrong). Non-zero during rebalancing — should trend to zero.",
     metricName: "ceph_num_objects_misplaced",

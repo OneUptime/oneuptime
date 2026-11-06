@@ -66,7 +66,7 @@ Il controllo di raggiungibilità è anche l'ultima risorsa quando un provider sc
 :::steps
 ### Iniziare un nuovo monitor
 
-Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **External Status Page** sotto **Basic Monitoring**, oppure digitate `statuspage` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
+Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **External Status Page** sotto **Monitoraggio di base**, oppure digitate `statuspage` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
 
 ### Inserire l'URL della pagina di stato
 
@@ -74,7 +74,7 @@ Inserite l'**URL della pagina di stato**. Lasciate il **Provider** su **Auto** a
 
 ### Scegliere i componenti, se serve
 
-Aprite **Componenti** e scegliete dall'elenco della pagina i componenti da cui dipendete, come `Git Operations` e `Pull Requests` su quella di GitHub; lasciatelo vuoto per controllare l'intera pagina. Per controllare invece un gruppo, aprite **Altri campi** e inserite un **Component Group Filter**, come `APIs`.
+Aprite **Componenti** e scegliete dall'elenco della pagina i componenti da cui dipendete, come `Git Operations` e `Pull Requests` su quella di GitHub; lasciatelo vuoto per controllare l'intera pagina. Per controllare invece un gruppo, aprite **Altri campi** e inserite un **Filtro del gruppo di componenti**, come `APIs`.
 
 ### Testarlo
 
@@ -96,7 +96,7 @@ Selezionate le **Sonde** e un **Intervallo di monitoraggio** (parte da **Ogni 5 
 | **URL della pagina di stato** | L'URL della pagina di stato. Per i siti basati su Atlassian Statuspage e incident.io è di solito l'URL radice (ad es. `https://status.example.com`). Per i feed RSS/Atom, inserite direttamente l'URL del feed. | — |
 | **Provider** | **Auto** per riconoscere il formato, oppure **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** o **Atom** se lo conoscete. | **Auto** |
 | **Componenti** | I componenti da controllare, scelti dall'elenco della pagina o digitati. | L'intera pagina |
-| **Component Group Filter** | Il gruppo a cui limitare il monitor. In **Altri campi**. | Tutti i gruppi |
+| **Filtro del gruppo di componenti** | Il gruppo a cui limitare il monitor. In **Altri campi**. | Tutti i gruppi |
 | **Timeout (ms)** | Il tempo massimo di attesa della pagina di stato. In **Altri campi**. | `10000` (10 secondi) |
 | **Tentativi** | Quante volte ritentare, a un secondo di distanza, dopo che il primo tentativo fallisce; `0` significa un solo tentativo. In **Altri campi**. | `3` (fino a 4 tentativi) |
 
@@ -115,7 +115,7 @@ Un monitor salvato con il vecchio Filtro nome componente continua a controllare 
 > [!WARNING]
 > Un nome che non corrisponde a nulla non controlla nulla, e sembra sano. **Componenti** e **Testa il monitor** nominano entrambi i componenti scelti che la pagina non elenca.
 
-### Component Group Filter
+### Filtro del gruppo di componenti
 
 Se la pagina di stato organizza i componenti in gruppi, potete limitare il monitor a un solo gruppo. Per esempio, su `https://status.openai.com`, inserire `APIs` limita il monitor ai servizi API di OpenAI.
 
@@ -131,7 +131,7 @@ Potete configurare criteri per decidere quando il servizio esterno è considerat
 | --- | --- | --- |
 | **External Status Page Is Online** | Se la pagina di stato è raggiungibile e restituisce dati di stato | Vero o Falso |
 | **External Status Page Overall Status** | Lo stato generale indicato dalla pagina | Uguale a, Diverso da, Contiene, Non contiene, Inizia con, Finisce con |
-| **External Status Page Component Status** | Lo stato di ogni componente dell'ambito (i componenti scelti, o quelli del gruppo, se impostati): Operativo, Under Maintenance, Degraded Performance, Partial Outage, Major Outage o Full Outage | Uguale a, Diverso da, Contiene, Non contiene, Inizia con, Finisce con |
+| **External Status Page Component Status** | Lo stato di ogni componente dell'ambito (i componenti scelti, o quelli del gruppo, se impostati): Operativo, In manutenzione, Prestazioni ridotte, Interruzione parziale, Interruzione grave o Interruzione totale | Uguale a, Diverso da, Contiene, Non contiene, Inizia con, Finisce con |
 | **External Status Page Active Incidents** | Il numero di incidenti attualmente attivi riportati sulla pagina di stato (solo quelli che riguardano un componente dell'ambito, quando sono scelti dei componenti o un gruppo) | Uguale a, Diverso da e i confronti numerici |
 | **External Status Page Response Time (in ms)** | Quanto tempo serve a scaricare i dati della pagina di stato | Maggiore di, Minore di, Maggiore o uguale a, Minore o uguale a |
 
@@ -145,7 +145,7 @@ Per impostazione predefinita, OneUptime crea criteri basati su ciò che conta da
 
 | Criterio | Filtri | Effetto |
 | --- | --- | --- |
-| Offline | **Qualsiasi** tra: la pagina non è online; c'è almeno un incidente attivo nell'ambito; un componente dell'ambito segnala Degraded Performance, Partial Outage, Major Outage o Full Outage | Segna il monitor offline e dichiara un incidente, che si risolve da solo quando il criterio smette di corrispondere |
+| Offline | **Qualsiasi** tra: la pagina non è online; c'è almeno un incidente attivo nell'ambito; un componente dell'ambito segnala Prestazioni ridotte, Interruzione parziale, Interruzione grave o Interruzione totale | Segna il monitor offline e dichiara un incidente, che si risolve da solo quando il criterio smette di corrispondere |
 | Online | **Tutti** tra: la pagina è online; non ci sono incidenti attivi nell'ambito | Segna il monitor online |
 
 Poiché il numero di incidenti attivi e gli stati dei componenti rispettano i componenti e il gruppo scelti, questi criteri predefiniti si concentrano automaticamente solo sui componenti che vi interessano.
@@ -154,7 +154,7 @@ Poiché il numero di incidenti attivi e gli stati dei componenti rispettano i co
 
 Scegliete **OneUptime Status Page** come provider, o lasciate **Auto**, per tenere d'occhio una pagina di stato creata con OneUptime: il progetto di un altro team, o la pagina di un provider su OneUptime Cloud o su un OneUptime self-hosted. Inserite l'indirizzo della pagina stessa in **URL della pagina di stato**: il suo dominio, come `https://status.example.com`, oppure `https://oneuptime.com/status-page/<status-page-id>` per una pagina che non ne ha uno.
 
-Il monitor legge il riepilogo della pagina, `/status-page-api/summary/<page>` (vedete [Leggere il riepilogo](/docs/status-pages/public-api#leggere-il-riepilogo)): solo ciò che la pagina mostra ai suoi visitatori, e nient'altro dell'altro progetto. Ogni risorsa della pagina, un monitor o un gruppo di monitor, è un componente, con il nome che la pagina le dà, nel gruppo della pagina; un gruppo dentro un altro si legge `Core / Databases`. Scegliete le risorse in **Componenti**, o tenete d'occhio un gruppo con **Component Group Filter**.
+Il monitor legge il riepilogo della pagina, `/status-page-api/summary/<page>` (vedete [Leggere il riepilogo](/docs/status-pages/public-api#leggere-il-riepilogo)): solo ciò che la pagina mostra ai suoi visitatori, e nient'altro dell'altro progetto. Ogni risorsa della pagina, un monitor o un gruppo di monitor, è un componente, con il nome che la pagina le dà, nel gruppo della pagina; un gruppo dentro un altro si legge `Core / Databases`. Scegliete le risorse in **Componenti**, o tenete d'occhio un gruppo con **Filtro del gruppo di componenti**.
 
 Lo stato di un componente è il valore che rappresenta il suo stato sulla pagina, così i criteri sullo stato dei componenti funzionano come su qualsiasi pagina di stato:
 
@@ -208,6 +208,7 @@ Quando create incidenti o avvisi da monitor di pagina di stato esterna, potete u
 | `{{provider}}`            | Provider riconosciuto (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); vuoto dopo un controllo di raggiungibilità |
 | `{{componentGroup}}`      | Gruppo di componenti a cui è limitato il monitor, se presente |
 | `{{componentName}}`       | I componenti che il monitor controlla, separati da virgole, se ne ha scelti |
+| `{{componentNames}}`      | Gli stessi componenti come elenco, per ripetere una riga per ciascuno con `{{#each componentNames}}` |
 
 ## URL di pagine di stato più diffuse
 
@@ -248,7 +249,7 @@ Ecco un elenco di pagine di stato di servizi diffusi. Molte usano Atlassian Stat
 ## Risoluzione dei problemi
 
 :::details Il monitor è offline, ma l'incidente riguarda una parte del servizio che non uso
-Scegliete in **Componenti** i componenti da cui dipendete, o un gruppo in **Component Group Filter**. Il numero di incidenti attivi e gli stati dei componenti contano allora solo quelli; un incidente che non nomina alcun componente non conta.
+Scegliete in **Componenti** i componenti da cui dipendete, o un gruppo in **Filtro del gruppo di componenti**. Il numero di incidenti attivi e gli stati dei componenti contano allora solo quelli; un incidente che non nomina alcun componente non conta.
 :::
 
 :::details Il monitor non va mai offline, nemmeno durante un'interruzione

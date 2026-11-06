@@ -2364,6 +2364,57 @@ export default class StatusPage extends BaseModel {
     ],
   })
   @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Sign-In Links",
+    description:
+      "Can private users sign in to this private status page with a one-time link emailed to them (a magic link), instead of typing a password? They can still sign in with their password. Not offered while SSO is required.",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  /*
+   * On by default, for pages made before it too (#5600): a private user can
+   * already get into their account from their inbox with a password reset,
+   * so a sign-in link asks nothing more of the inbox than that does - the
+   * same address, the same kind of single-use link. A page's team turns it
+   * off to keep its readers on passwords. See
+   * Types/StatusPage/StatusPageMagicLink.
+   */
+  public enableMagicLinkLogin?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
     type: TableColumnType.Number,
     required: false,
     title: "Sign Readers Out After (Hours)",

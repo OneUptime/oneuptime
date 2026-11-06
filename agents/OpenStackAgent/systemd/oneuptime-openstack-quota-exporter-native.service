@@ -1,0 +1,39 @@
+# Each project's quotas without Docker: a second openstack-exporter, the same release, run by
+# systemd with the flags docker-compose.yml gives openstack-quota-exporter. `install.sh
+# --without-docker` installs it as /etc/systemd/system/oneuptime-openstack-quota-exporter.service
+# when OPENSTACK_COLLECT_QUOTAS=true. Not installed otherwise.
+[Unit]
+Description=OneUptime OpenStack Agent (project quotas, without Docker)
+Documentation=https://oneuptime.com/docs/telemetry/openstack
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Quotas change slowly and cost four API calls per project, so the agent's collector asks this
+# once an hour. An exporter reads what its flags say whichever job asks, so reading them less
+# often takes an exporter of their own, which reads nothing else: each flag turns off the series
+# that reads the others. It answers on this machine alone.
+ExecStart=/opt/oneuptime-openstack-agent/openstack-exporter --multi-cloud --os-client-config=/opt/oneuptime-openstack-agent/clouds.yaml --web.listen-address=127.0.0.1:9182 --disable-metric=nova-flavors --disable-metric=nova-availability_zones --disable-metric=nova-security_groups --disable-metric=nova-total_vms --disable-metric=nova-agent_state --disable-metric=nova-running_vms --disable-metric=nova-server_local_gb --disable-metric=nova-quota_cores --disable-metric=neutron-floating_ips --disable-metric=neutron-networks --disable-metric=neutron-security_groups --disable-metric=neutron-subnets --disable-metric=neutron-port --disable-metric=neutron-ports --disable-metric=neutron-ports_no_ips --disable-metric=neutron-ports_lb_not_active --disable-metric=neutron-routers --disable-metric=neutron-vpn_endpoint_groups --disable-metric=neutron-vpn_ike_policies --disable-metric=neutron-vpn_ipsec_policies --disable-metric=neutron-vpn_services --disable-metric=neutron-vpn_siteconnections --disable-metric=neutron-agent_state --disable-metric=neutron-network_ip_availabilities_total --disable-metric=neutron-subnets_total --disable-metric=cinder-volumes --disable-metric=cinder-snapshots --disable-metric=cinder-agent_state --disable-metric=cinder-volume_status --disable-metric=cinder-pool_capacity_free_gb
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+# A system user of its own, not a throwaway one: clouds.yaml holds the credential,
+# is readable by its owner alone, and a file needs an owner that lasts.
+User=oneuptime-openstack
+Group=oneuptime-openstack
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,4 +1,4 @@
-import AskAiDialog from "./Components/AIChat/AskAiDialog";
+import AskAiPanel from "./Components/AIChat/AskAiPanel";
 import DashboardCommandPalette from "./Components/CommandPalette/DashboardCommandPalette";
 import DashboardKeyboardShortcuts from "./Components/KeyboardShortcuts/DashboardKeyboardShortcuts";
 import MasterPage from "./Components/MasterPage/MasterPage";
@@ -33,6 +33,7 @@ import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import usePermissionSnapshot from "Common/UI/Utils/UsePermissionSnapshot";
 import BlockedProject from "Common/UI/Utils/BlockedProject";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -164,6 +165,9 @@ const SecurityEventsRoutes: LazyRoutes = lazy(() => {
 const DataSecurityRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/DataSecurityRoutes");
 });
+const DataObservabilityRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/DataObservabilityRoutes");
+});
 const MetricsRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/MetricsRoutes");
 });
@@ -243,6 +247,9 @@ const PodmanRoutes: LazyRoutes = lazy(() => {
 const ProxmoxRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/ProxmoxRoutes");
 });
+const OpenStackRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/OpenStackRoutes");
+});
 const VMwareRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/VMwareRoutes");
 });
@@ -313,6 +320,9 @@ const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(location);
   Navigation.setParams(useParams());
+
+  // Every page's gates read the snapshot that lands after they drew.
+  usePermissionSnapshot();
 
   const [isLoading, setLoading] = useState<boolean>(true);
   const [showProjectModal, setShowProjectModal] = useState<boolean>(false);
@@ -631,7 +641,7 @@ const App: () => JSX.Element = () => {
       }}
     >
       <UseTimezoneInitElement />
-      <AskAiDialog />
+      <AskAiPanel />
       <DashboardCommandPalette />
       <DashboardKeyboardShortcuts />
       {/*
@@ -817,6 +827,12 @@ const App: () => JSX.Element = () => {
               element={<DataSecurityRoutes {...commonPageProps} />}
             />
 
+            {/* Data Observability */}
+            <PageRoute
+              path={RouteMap[PageMap.DATA_OBSERVABILITY_ROOT]?.toString() || ""}
+              element={<DataObservabilityRoutes {...commonPageProps} />}
+            />
+
             {/* Metrics */}
             <PageRoute
               path={RouteMap[PageMap.METRICS_ROOT]?.toString() || ""}
@@ -923,6 +939,12 @@ const App: () => JSX.Element = () => {
             <PageRoute
               path={RouteMap[PageMap.PROXMOX_ROOT]?.toString() || ""}
               element={<ProxmoxRoutes {...commonPageProps} />}
+            />
+
+            {/* OpenStack */}
+            <PageRoute
+              path={RouteMap[PageMap.OPENSTACK_ROOT]?.toString() || ""}
+              element={<OpenStackRoutes {...commonPageProps} />}
             />
 
             {/* VMware */}

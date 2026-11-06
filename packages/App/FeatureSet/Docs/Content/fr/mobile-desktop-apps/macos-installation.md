@@ -61,7 +61,7 @@ L'application affiche des notifications une fois que vous l'avez enregistrée po
 
 :::steps
 ### Ouvrir vos appareils push
-Dans l'application, ouvrez **Paramètres utilisateur → Méthodes de notification** et l'onglet **Push Notifications**.
+Dans l'application, ouvrez **Paramètres utilisateur → Méthodes de notification** et l'onglet **Notifications push**.
 
 ### Enregistrer cette application
 Cliquez sur **Enregistrer l'appareil**, gardez la valeur proposée dans **Nom de l'appareil**, par exemple `Safari on macOS`, ou modifiez-la, puis cliquez de nouveau sur **Enregistrer l'appareil**. Quand macOS ou le navigateur demande si OneUptime peut envoyer des notifications, choisissez **Autoriser**.
@@ -89,7 +89,7 @@ Dans la fenêtre de l'application, ouvrez le menu **⋮**, choisissez l'élémen
 Ouvrez `edge://apps` dans Edge, choisissez **Détails** sur OneUptime, puis **Désinstaller**.
 :::
 
-Désinstaller l'application ne la désenregistre pas : son navigateur reçoit toujours des notifications. Pour les arrêter, supprimez-la sous **Paramètres utilisateur → Méthodes de notification**, dans l'onglet **Push Notifications**, avec **Supprimer**.
+Désinstaller l'application ne la désenregistre pas : son navigateur reçoit toujours des notifications. Pour les arrêter, supprimez-la sous **Paramètres utilisateur → Méthodes de notification**, dans l'onglet **Notifications push**, avec **Supprimer**.
 
 ## Dépannage
 
@@ -98,7 +98,7 @@ Safari ajoute des apps web au Dock à partir de macOS Sonoma 14. Mettez macOS à
 :::
 
 :::details Aucune notification n'apparaît
-- Dans **Paramètres utilisateur → Méthodes de notification**, onglet **Push Notifications**, vérifiez que l'application ou son navigateur est listé, et envoyez-lui une **Notification de test**.
+- Dans **Paramètres utilisateur → Méthodes de notification**, onglet **Notifications push**, vérifiez que l'application ou son navigateur est listé, et envoyez-lui une **Notification de test**.
 - Sur le Mac, ouvrez **Réglages Système → Notifications** et vérifiez que OneUptime, ou le navigateur depuis lequel il a été installé, peut envoyer des notifications, et qu'aucun mode de concentration ne les retient.
 - Si le navigateur bloque les notifications pour OneUptime, autorisez-les dans ses réglages pour le site, puis enregistrez à nouveau.
 - Sur un OneUptime auto-hébergé, la boîte de dialogue **Enregistrer l'appareil** indique quand le serveur n'a pas de clés VAPID.

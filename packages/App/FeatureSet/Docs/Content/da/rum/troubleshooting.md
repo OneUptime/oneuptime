@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-Applikationens side **Sundhed**, i dens sektion **Sessionsafspilning**, og panelet **Test your installation** på **Replay Policy** tjekker nøglen, listerne over tilladte oprindelser og politikken fra serversiden og siger, hvorfor intet kommer ind. Browserkonsollen giver dig den halvdel, serveren ikke kan se.
+Applikationens side **Sundhed**, i dens sektion **Sessionsafspilning**, og panelet **Test your installation** på **Afspilningspolitik** tjekker nøglen, listerne over tilladte oprindelser og politikken fra serversiden og siger, hvorfor intet kommer ind. Browserkonsollen giver dig den halvdel, serveren ikke kan se.
 
 Med standardpolitikken sender en optager en chunk omtrent hvert 15. sekund, mens brugeren interagerer med siden. En inaktiv fane har intet at sende, så klik eller bevæg musen først; hvis der derefter ingen chunk-forespørgsel er, er der noget galt. Hvis appen kun uploader _On error or frustration_, er stilhed forventet, indtil noget fejler. Kald `OneUptimeReplay.captureSession()` for at tvinge en upload og teste vejen alligevel.
 

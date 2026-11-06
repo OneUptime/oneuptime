@@ -7,6 +7,7 @@ import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityComplianceResponse,
   DataSecurityExplainResult,
+  DataSecurityFindingOccurrences,
   DataSecurityFixResult,
   DataSecurityOverview,
   DataSecurityRecordOfProcessingResponse,
@@ -91,6 +92,24 @@ export default class DataSecurityApi {
     return (await post(
       DATA_SECURITY_API_ROUTES.scrubFinding(findingId.toString()),
     )) as unknown as DataSecurityScrubResult;
+  }
+
+  // The newest records a telemetry finding's data was seen in, read now.
+  public static async getFindingOccurrences(
+    findingId: ObjectID,
+  ): Promise<DataSecurityFindingOccurrences> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.findingOccurrences(findingId.toString()),
+    );
+
+    return {
+      ...(answer as unknown as DataSecurityFindingOccurrences),
+      occurrences: Array.isArray(answer["occurrences"])
+        ? (answer[
+            "occurrences"
+          ] as unknown as DataSecurityFindingOccurrences["occurrences"])
+        : [],
+    };
   }
 
   public static async explainIssue(

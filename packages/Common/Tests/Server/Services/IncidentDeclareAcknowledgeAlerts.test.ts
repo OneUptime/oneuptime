@@ -123,6 +123,11 @@ type CarriedForward = {
   alertIdsToLink: Array<ObjectID>;
   acknowledgedAlertStateId: ObjectID | null;
   alertIdsToAcknowledge: Array<ObjectID>;
+  /*
+   * The alert incident rule that declared the incident: null for every
+   * declare here, which a person makes or which names no rule.
+   */
+  declaredByAlertIncidentRuleName: string | null;
 };
 
 /*
@@ -134,6 +139,7 @@ const NOTHING_CARRIED: CarriedForward = {
   alertIdsToLink: [],
   acknowledgedAlertStateId: null,
   alertIdsToAcknowledge: [],
+  declaredByAlertIncidentRuleName: null,
 };
 
 type AuthorizeArgs = {
@@ -764,6 +770,7 @@ function carried(
     alertIdsToLink: alertIds,
     acknowledgedAlertStateId: acknowledgedAlertStateId,
     alertIdsToAcknowledge: alertIdsToAcknowledge,
+    declaredByAlertIncidentRuleName: null,
   };
 }
 
@@ -844,8 +851,11 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       "acknowledgedAlertStateId",
       "alertIdsToAcknowledge",
       "alertIdsToLink",
+      "declaredByAlertIncidentRuleName",
       "startingStage",
     ]);
+    // A member's declaration names no alert incident rule.
+    expect(carriedForward.declaredByAlertIncidentRuleName).toBeNull();
     expect(carriedForward.startingStage).toBe(StartingStage.Open);
     expect(ids(carriedForward.alertIdsToLink)).toEqual([ALERT_ID, ALERT_ID_2]);
     expect(carriedForward.acknowledgedAlertStateId).toBeNull();
@@ -919,8 +929,11 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       "acknowledgedAlertStateId",
       "alertIdsToAcknowledge",
       "alertIdsToLink",
+      "declaredByAlertIncidentRuleName",
       "startingStage",
     ]);
+    // A member's declaration names no alert incident rule.
+    expect(carriedForward.declaredByAlertIncidentRuleName).toBeNull();
     expect(ids(carriedForward.alertIdsToLink)).toEqual([ALERT_ID, ALERT_ID_2]);
     expect(carriedForward.acknowledgedAlertStateId).toBeInstanceOf(ObjectID);
     expect(carriedForward.acknowledgedAlertStateId!.toString()).toBe(
@@ -1201,6 +1214,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       alertIdsToLink: [new ObjectID(ALERT_ID)],
       acknowledgedAlertStateId: null,
       alertIdsToAcknowledge: [],
+      declaredByAlertIncidentRuleName: null,
     });
   });
 
@@ -1418,6 +1432,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       alertIdsToLink: [new ObjectID(ALERT_ID)],
       acknowledgedAlertStateId: null,
       alertIdsToAcknowledge: [],
+      declaredByAlertIncidentRuleName: null,
     });
     expect(counter).toHaveBeenCalledTimes(1);
 

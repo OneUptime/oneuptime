@@ -70,7 +70,7 @@ Aldri forsinket og aldri talt med:
 | Abonnenter på statussider | Hver e-post statussiden din sender til dine egne abonnenter |
 | SLA-brudd | En hendelse du eier som overskrider SLA-fristen for respons eller løsning |
 
-Bare e-post påvirkes. SMS, telefonsamtaler, push-varsler, WhatsApp, Telegram, Slack, Microsoft Teams og webhooks leveres med en gang, akkurat som før — også for varslene der e-posten ble holdt tilbake.
+Bare e-post påvirkes. SMS, telefonsamtaler, push-varsler, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost og webhooks leveres med en gang, akkurat som før — også for varslene der e-posten ble holdt tilbake.
 
 ## Grenser
 
@@ -105,7 +105,7 @@ Hva den **ikke** berører:
 
 - **Hvilke varsler du får.** Det er innstillingen per hendelsestype og per kanal under **Brukerinnstillinger → Varselinnstillinger**, én side bortenfor. Oppsummeringen og denne bryteren endrer bare hvor mange e-poster varslene pakkes i.
 - **Vaktvarsling og vakt-e-post**, **e-post om kontosikkerhet**, **fakturerings-e-post**, advarsler om instansens helse og e-post til statusside-abonnenter. Ingenting av dette oppsummeres noen gang, så det endrer ingenting for dem å slå av oppsummeringen — se [Det som aldri oppsummeres](#det-som-aldri-oppsummeres).
-- **Alle andre kanaler.** SMS, telefonsamtaler, push, WhatsApp, Telegram, Slack, Microsoft Teams og webhooks er allerede umiddelbare.
+- **Alle andre kanaler.** SMS, telefonsamtaler, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost og webhooks er allerede umiddelbare.
 
 ## Skru enda mer ned
 

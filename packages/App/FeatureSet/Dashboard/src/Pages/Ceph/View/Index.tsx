@@ -1100,7 +1100,7 @@ const CephClusterOverview: FunctionComponent<
     return (
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <GoldenMetricTile
-          title={tx("Capacity Used")}
+          title="Capacity Used"
           description={CEPH_METRIC_DESCRIPTIONS.capacityUsed}
           icon={IconProp.ChartBar}
           iconColor="blue"
@@ -1113,7 +1113,7 @@ const CephClusterOverview: FunctionComponent<
           }}
         />
         <GoldenMetricTile
-          title={tx("OSDs Up")}
+          title="OSDs Up"
           description={CEPH_METRIC_DESCRIPTIONS.osdsUp}
           icon={IconProp.Database}
           iconColor="emerald"
@@ -1130,7 +1130,7 @@ const CephClusterOverview: FunctionComponent<
           higherIsBetter={true}
         />
         <GoldenMetricTile
-          title={tx("Mons In Quorum")}
+          title="Mons In Quorum"
           description={CEPH_METRIC_DESCRIPTIONS.monsInQuorum}
           icon={IconProp.CheckCircle}
           iconColor="sky"
@@ -1141,10 +1141,10 @@ const CephClusterOverview: FunctionComponent<
                 ? String(cluster.monCount)
                 : "—"
           }
-          sublabel={tx("monitor daemons")}
+          sublabel="monitor daemons"
         />
         <GoldenMetricTile
-          title={tx("Problem PGs")}
+          title="Problem PGs"
           description={CEPH_METRIC_DESCRIPTIONS.problemPgs}
           icon={IconProp.Alert}
           iconColor="amber"

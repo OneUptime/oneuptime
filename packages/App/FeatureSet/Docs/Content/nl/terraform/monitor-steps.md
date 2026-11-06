@@ -180,7 +180,7 @@ Elk item van `monitor_steps` is één ding om te controleren:
 
 ### Instellingen per monitortype
 
-Monitortypen waarbij meer in te stellen is dan een adres, bewaren hun instellingen (een logquery, een databaseverbinding, een cluster om te bewaken) in een eigen attribuut, als ruwe JSON geschreven met `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` en `probe_status_monitor`.
+Monitortypen waarbij meer in te stellen is dan een adres, bewaren hun instellingen (een logquery, een databaseverbinding, een cluster om te bewaken) in een eigen attribuut, als ruwe JSON geschreven met `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` en `probe_status_monitor`.
 
 Hun JSON is dezelfde als die van het dashboard, met sleutels in camelCase. Een ID daarin schrijf je zoals de API hem schrijft: `{ _type = "ObjectID", value = "..." }`. Een Logs-monitor die de fouten van één service telt:
 
@@ -333,6 +333,7 @@ De `check_on`-waarden die elk monitortype het meest gebruikt. De criteria-editor
 | Serverprocessen | `Is Executing`, `Is Not Executing` |
 | Scripts | `Evaluates To True` |
 | Afwijkingen, voor metrieken, logs en traces | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Voorspellingen, voor metrieken | `Forecast Above`, `Forecast Below` (de termijn is `forecast.horizonInHours` in `metric_monitor_options`: een week als die ontbreekt) |
 
 Een filter die overeenkomt als een SSL-certificaat binnen 14 dagen of minder verloopt:
 

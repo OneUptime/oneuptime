@@ -1,13 +1,20 @@
+import {
+  DocsAnchorAlias,
+  getEnglishAnchorAliases,
+} from "../../../FeatureSet/Docs/Utils/AnchorAliases";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import {
   DocsLink,
   DocsPageLink,
   NAV_PAGES,
   NOT_PAGE_CATEGORIES,
+  TRANSLATED_LANGUAGES,
   anchorsOf,
   decodeAnchor,
+  hasPage,
   listPages,
   parseDocsLink,
+  readPage,
   scanPage,
 } from "./DocsContentSupport";
 import {
@@ -32,6 +39,10 @@ import path from "path";
  *     names a page the nav lists and, with an anchor, a heading of it;
  *   - and none is a category's own address (/docs/terraform): that opens
  *     the category's first page, so a link names the page it means.
+ *   - a translated copy of a page the product links a heading of answers
+ *     the link's English anchor at the heading in the English heading's
+ *     place (Utils/AnchorAliases.ts): the reader who picks their language
+ *     on the page the link opened stays at that heading.
  *     (/docs/compliance, /docs/rbac and /docs/api, which are not even
  *     categories, were linked from the website as such addresses and
  *     answered 404 while every check here looked only at pages.)
@@ -267,4 +278,80 @@ describe("docs links in the product", () => {
 
     expect(broken).toEqual([]);
   });
+});
+
+/*
+ * The product links to a heading by its English anchor, and every
+ * translated copy of the page answers it at the heading in the English
+ * heading's place (Utils/AnchorAliases.ts): its headings line up with the
+ * English page's, and no other heading of the copy has the English anchor
+ * for its own, which would take the link instead. Read from the Markdown
+ * the way the page route pairs them; DocsEnglishAnchors serves the pages.
+ */
+describe("docs links in the product, on a translated copy of their page", () => {
+  const anchored: Array<ProductPageLink> = pageLinks.filter(
+    (link: ProductPageLink): boolean => {
+      return (
+        link.link.anchor !== null &&
+        link.link.anchor !== "" &&
+        NAV_PAGES.includes(link.page)
+      );
+    },
+  );
+
+  // A page as the route draws it: its first line, the title, is the header's.
+  const withoutTitle: (markdown: string) => string = (
+    markdown: string,
+  ): string => {
+    return markdown.split("\n").slice(1).join("\n");
+  };
+
+  it("are found: the dashboards link to headings of their guides", () => {
+    expect(anchored.length).toBeGreaterThan(40);
+  });
+
+  it.each(TRANSLATED_LANGUAGES)(
+    "land on the heading in the English heading's place in %s",
+    (language: string) => {
+      const broken: Array<string> = [];
+
+      for (const link of anchored) {
+        if (!hasPage(language, link.page)) {
+          // The English copy is served, with its English anchors.
+          continue;
+        }
+
+        const aliases: Array<DocsAnchorAlias> = getEnglishAnchorAliases(
+          withoutTitle(readPage("en", link.page)),
+          withoutTitle(readPage(language, link.page)),
+        );
+        const place: number = aliases.findIndex(
+          (alias: DocsAnchorAlias): boolean => {
+            return alias.englishAnchor === link.link.anchor;
+          },
+        );
+
+        if (place === -1) {
+          broken.push(
+            `${whereOf(link.link)} (the ${language} page's headings do not line up with the English page's)`,
+          );
+          continue;
+        }
+
+        const takenBy: number = aliases.findIndex(
+          (alias: DocsAnchorAlias, index: number): boolean => {
+            return index !== place && alias.anchor === link.link.anchor;
+          },
+        );
+
+        if (takenBy !== -1) {
+          broken.push(
+            `${whereOf(link.link)} (another ${language} heading has #${link.link.anchor} for its own)`,
+          );
+        }
+      }
+
+      expect(broken).toEqual([]);
+    },
+  );
 });

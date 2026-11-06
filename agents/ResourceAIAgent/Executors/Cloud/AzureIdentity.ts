@@ -85,6 +85,37 @@ export class AzureTokenProvider {
     this.cached = null;
   }
 
+  /*
+   * The object id of the identity the agent signs in as - its token's oid
+   * claim - lowercased: what the Activity Log names as the caller of every
+   * change the agent makes, so OneUptime marks those changes as OneUptime
+   * AI's (the posture reports it). Read from the token the agent already
+   * holds and never verified: nothing trusts it beyond naming the agent's
+   * own changes. Null before a token was read, or when its payload holds
+   * no object id.
+   */
+  public principalId(): string | null {
+    const token: string | undefined = this.cached?.token;
+    const payload: string | undefined = token ? token.split(".")[1] : "";
+
+    if (!payload) {
+      return null;
+    }
+
+    try {
+      const claims: unknown = JSON.parse(
+        Buffer.from(payload, "base64url").toString("utf8"),
+      );
+      const oid: unknown = isPlainObject(claims) ? claims["oid"] : undefined;
+
+      return typeof oid === "string" && CLIENT_ID_PATTERN.test(oid)
+        ? oid.toLowerCase()
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
   public async get(send: CloudSender): Promise<string> {
     const now: number = this.nowMs();
 

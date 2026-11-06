@@ -24,6 +24,7 @@ import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/
 import { getHostConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
+import { OpenStackPlacementOfHost } from "../../../Components/OpenStack/Part/OpenStackPlacementOfHost";
 import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
@@ -1634,7 +1635,7 @@ const HostOverview: FunctionComponent<
     return (
       <div className={HOST_OVERVIEW_TILES_GRID_CLASS_NAME}>
         <GoldenMetricTile
-          title={tx("CPU")}
+          title="CPU"
           icon={IconProp.ChartBar}
           iconColor="blue"
           value={formatPercent(s.cpuPercent)}
@@ -1647,7 +1648,7 @@ const HostOverview: FunctionComponent<
           description={HOST_METRIC_DESCRIPTIONS.cpu}
         />
         <GoldenMetricTile
-          title={tx("Memory")}
+          title="Memory"
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={formatPercent(s.memoryPercent)}
@@ -1665,7 +1666,7 @@ const HostOverview: FunctionComponent<
          * where the host's Needs attention starts to list it.
          */}
         <GoldenMetricTile
-          title={tx("Filesystem")}
+          title="Filesystem"
           icon={IconProp.Cube}
           iconColor="amber"
           value={formatPercent(s.filesystemPercent)}
@@ -1684,7 +1685,7 @@ const HostOverview: FunctionComponent<
          * Needs attention says so in amber.
          */}
         <GoldenMetricTile
-          title={tx("Load avg (1m)")}
+          title="Load avg (1m)"
           icon={IconProp.Heartbeat}
           iconColor="emerald"
           value={formatNumber(s.load1m)}
@@ -1697,7 +1698,7 @@ const HostOverview: FunctionComponent<
           description={HOST_METRIC_DESCRIPTIONS.loadAverage}
         />
         <GoldenMetricTile
-          title={tx("Processes")}
+          title="Processes"
           icon={IconProp.List}
           iconColor="slate"
           value={formatInt(runningProcessCount)}
@@ -2237,6 +2238,7 @@ const HostOverview: FunctionComponent<
        * What Security Events found about it this week, for whoever
        * may read it (Components/SecurityConnections).
        */}
+      <OpenStackPlacementOfHost hostId={modelId} />
       <ResourceSecurityCard
         kind={SecurityConnectionKind.Host}
         modelId={modelId}

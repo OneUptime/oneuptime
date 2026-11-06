@@ -73,6 +73,7 @@ import TableEmptyState, {
 import API from "Common/UI/Utils/API/API";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getCloudChangeTitle } from "Common/Utils/Telemetry/CloudChangeTitle";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -157,6 +158,13 @@ function useItemTitle(item: SecurityCaseStoryItemJson): string {
       translator.translateText(STORY_MILESTONE_TITLES[item.milestone]) ||
       STORY_MILESTONE_TITLES[item.milestone]
     );
+  }
+
+  // An operation a cloud account recorded, in the reader's language.
+  if (item.kind === SecurityCaseStoryItemKind.Change && item.cloudChange) {
+    return getCloudChangeTitle(item.cloudChange, translator, {
+      setsValuesApart: true,
+    });
   }
 
   return item.title;

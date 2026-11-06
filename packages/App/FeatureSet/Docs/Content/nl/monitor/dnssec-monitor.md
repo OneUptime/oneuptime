@@ -50,7 +50,7 @@ Een handtekening met minder dan een dag te gaan telt al als gebroken, zodat u he
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **DNSSEC** onder **DNS Monitoring**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **DNSSEC** onder **DNS-bewaking**.
 
 ### Hem een naam geven
 

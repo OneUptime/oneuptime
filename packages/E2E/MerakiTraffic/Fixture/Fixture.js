@@ -69,6 +69,7 @@ import {
   useParams,
 } from "react-router-dom";
 import i18next from "i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
@@ -291,8 +292,13 @@ const DEVICE_ADDS = {
     });
   },
 };
-const initialDeviceAdd = DEVICE_ADDS[params.get("adding")]
-  ? DEVICE_ADDS[params.get("adding")]()
+// Only a scenario named above: ?adding=toString must not call Object's own.
+const deviceAddScenario = params.get("adding") || "";
+const initialDeviceAdd = Object.prototype.hasOwnProperty.call(
+  DEVICE_ADDS,
+  deviceAddScenario,
+)
+  ? DEVICE_ADDS[deviceAddScenario]()
   : undefined;
 
 const GLOBAL_PERMISSIONS = [
@@ -1491,6 +1497,8 @@ await i18next.use(initReactI18next).init({
   },
   interpolation: { escapeValue: false },
 });
+// Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
+followLanguageForDates(i18next);
 
 /*
  * ---------------------------------------------------------------------------

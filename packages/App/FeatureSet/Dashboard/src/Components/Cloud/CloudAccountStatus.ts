@@ -29,8 +29,27 @@ export const CLOUD_ACCOUNT_STATUS_COLORS: Readonly<
 export interface CloudAccountStatus {
   // English, translated where it is shown.
   label: string;
+  // What the state means, as the pill's hover (English, translated where shown).
+  description: string;
   tone: CloudAccountStatusTone;
 }
+
+// What each state means, for the pill's hover on an account's Overview.
+export const CLOUD_ACCOUNT_STATUS_DESCRIPTIONS: {
+  reading: string;
+  notReadLately: string;
+  notConnected: string;
+} = {
+  reading: translationKey(
+    "A cloud connection read this account within the last hour.",
+  ),
+  notReadLately: translationKey(
+    "No cloud connection has read this account for over an hour. Cloud > Connect says why.",
+  ),
+  notConnected: translationKey(
+    "No cloud connection reads this account any more. Connect it again from Cloud > Connect.",
+  ),
+};
 
 export function getCloudAccountStatus(data: {
   lastSeenAt: Date | string | undefined | null;
@@ -38,7 +57,11 @@ export function getCloudAccountStatus(data: {
   now: Date;
 }): CloudAccountStatus {
   if (!data.hasConnection) {
-    return { label: translationKey("Not connected"), tone: "neutral" };
+    return {
+      label: translationKey("Not connected"),
+      description: CLOUD_ACCOUNT_STATUS_DESCRIPTIONS.notConnected,
+      tone: "neutral",
+    };
   }
 
   const lastSeen: number = data.lastSeenAt
@@ -49,8 +72,16 @@ export function getCloudAccountStatus(data: {
     Number.isFinite(lastSeen) &&
     data.now.getTime() - lastSeen <= CLOUD_ACCOUNT_READING_WINDOW_MS
   ) {
-    return { label: translationKey("Reading"), tone: "positive" };
+    return {
+      label: translationKey("Reading"),
+      description: CLOUD_ACCOUNT_STATUS_DESCRIPTIONS.reading,
+      tone: "positive",
+    };
   }
 
-  return { label: translationKey("Not read lately"), tone: "warning" };
+  return {
+    label: translationKey("Not read lately"),
+    description: CLOUD_ACCOUNT_STATUS_DESCRIPTIONS.notReadLately,
+    tone: "warning",
+  };
 }

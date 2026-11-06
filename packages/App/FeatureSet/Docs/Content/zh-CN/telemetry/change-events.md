@@ -35,6 +35,7 @@ flowchart LR
 | 运行手册 | OneUptime 运行的运行手册在开始后完成、失败或被取消 | `runbook` |
 | 云变更 | 已连接云账户的活动日志记录了一项变更：AWS CloudTrail、Azure 活动日志或 Google Cloud 的 Admin Activity 审核日志 | `cloud` |
 | 提供商事件 | 云提供商发布了关于该账户的健康事件：AWS Health、Azure Service Health 或 Resource Health，或 Google Cloud Service Health | `cloud-health` |
+| OpenStack 变更 | OpenStack 云自身的通知说明了其某个部分发生了什么，或者探测对 Nova 的读取说明了：参见[生命周期事件](/docs/telemetry/openstack#生命周期事件) | `openstack` |
 
 - **服务上报的第一个版本是它的基线，而不是一次部署。** 一个已经运行了数月的服务，并不是在 OneUptime 开始接收其遥测数据的那一刻才部署的。
 - **回滚到过去 30 天内出现过的版本不会被记录，** 因为那个版本并不新。OneUptime AI 执行的回滚会作为修复被记录。
@@ -50,7 +51,7 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 
 应用部署需要应用运行在 [托管应用平台](/docs/telemetry/cloud-environments#应用与部署) 上。它会记录在应用所属的环境下，并绘制在环境的图表和应用自己的图表上；在那里，回滚到应用之前运行过的修订版本也会被记录。
 
-云变更和提供商事件需要一个[已连接的云账户](/docs/telemetry/cloud-accounts)。当 OneUptime 列出了相应资源时，每一项都会关联到它所指的云资源，并绘制在该资源的图表上。其类型取决于操作：操作名称表明时为 `deployment`、`scaling` 或 `rollback`，否则为 `config-change`，健康事件则为 `provider-event`。未筛选到任何资源的图表不会显示云账户的活动日志，这样繁忙的账户就不会挤掉你的部署；提供商的健康事件仍会保留在这些图表上。
+云变更和提供商事件需要一个[已连接的云账户](/docs/telemetry/cloud-accounts)。当 OneUptime 列出了相应资源时，每一项都会关联到它所指的云资源，并绘制在该资源的图表上。其类型取决于操作：操作名称表明时为 `deployment`、`scaling` 或 `rollback`，否则为 `config-change`，健康事件则为 `provider-event`。未筛选到任何资源的图表不会显示云账户的活动日志和 OpenStack 云的变更，这样繁忙的账户就不会挤掉你的部署；提供商的健康事件仍会保留在这些图表上。
 
 ## 从流水线记录部署
 
@@ -147,7 +148,7 @@ OneUptime AI 打开的修复拉取请求也会以同样的方式检查：一旦�
 
 名称以 `oneuptime.` 开头的属性是 OneUptime 自己的属性，会从流水线发送的内容中丢弃。流水线记录的每个变更都会在 `oneuptime.change.source` 中注明这一点，其值为 `api`。
 
-从云账户读取的变更会用 OpenTelemetry 的名称 `cloud.provider`、`cloud.account.id`、`cloud.region` 和 `cloud.resource_id` 标明账户和资源，并把操作记在 `oneuptime.cloud.operation`，执行者记在 `oneuptime.cloud.actor`，是否失败记在 `oneuptime.change.status`，所属云账户记在 `oneuptime.cloud_account.id`。
+从云账户读取的变更会用 OpenTelemetry 的名称 `cloud.provider`、`cloud.account.id`、`cloud.region` 和 `cloud.resource_id` 标明账户和资源，并把操作记在 `oneuptime.cloud.operation`，执行者记在 `oneuptime.cloud.actor`，是否失败记在 `oneuptime.change.status`，资源在 OneUptime 中的名称记在 `oneuptime.cloud.resource_name`，所属云账户记在 `oneuptime.cloud_account.id`。其标题以英文保存，供 API 和 OneUptime AI 读取；各页面根据这些属性，以读者的语言显示标题。OneUptime AI 通过云 AI 代理所做的更改会在 `oneuptime.change.made_by` 中注明（值为 `oneuptime-ai`），并在 `oneuptime.runner_job.id` 中记录代理的作业，在 `oneuptime.auto_remediation_suggestion.id` 中记录其修复，在 `oneuptime.ai_run.id` 中记录规划它的 AI 运行，在 `oneuptime.ai.step` 中记录它是修复还是其回滚（`fix` 或 `rollback`），并在 `oneuptime.incident.id` 或 `oneuptime.alert.id` 中记录它修复的事件或警报。
 
 ### 限制
 

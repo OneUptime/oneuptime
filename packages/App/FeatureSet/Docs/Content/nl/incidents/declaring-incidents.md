@@ -45,7 +45,7 @@ Alleen de eerste stap heeft verplichte velden, plus elk aangepast veld dat je be
 **Vanaf de eigen pagina van een middel.** **Incident melden** op het tabblad **Incidenten** van een monitor, een host, een service, een cluster of de meeste andere middelen opent hetzelfde formulier met dat middel al gekozen op **Getroffen middelen**, zodat een titel en een ernst volstaan, en het incident verschijnt op het tabblad waar je begon.
 
 :::details Welke pagina's van middelen het aanbieden, en wat ze kiezen
-**Incident melden** op het tabblad **Incidenten** van een monitor, een host, een netwerkapparaat, een Kubernetes-, Proxmox-, Ceph- of Docker Swarm-cluster, een Docker- of Podman-host, een vCenter, een opslagarray, een IoT-vloot, een database of een service opent dezelfde wizard met dat middel al gekozen op **Getroffen middelen** (een monitor onder **Monitoren**, al het andere onder **Andere getroffen resources**), vóór alles wat een sjabloon toevoegt. **Maken op basis van sjabloon** op dat tabblad houdt het middel ook vast. Het kruimelpad leidt terug via het tabblad van het middel, en na het melden kom je op het nieuwe incident terecht, net als vanuit de incidentenlijst.
+**Incident melden** op het tabblad **Incidenten** van een monitor, een host, een netwerkapparaat, een Kubernetes-, Proxmox-, Ceph- of Docker Swarm-cluster, een Docker- of Podman-host, een vCenter, een OpenStack-cloud, een opslagarray, een IoT-vloot, een database of een service opent dezelfde wizard met dat middel al gekozen op **Getroffen middelen** (een monitor onder **Monitoren**, al het andere onder **Andere getroffen resources**), vóór alles wat een sjabloon toevoegt. **Maken op basis van sjabloon** op dat tabblad houdt het middel ook vast. Het kruimelpad leidt terug via het tabblad van het middel, en na het melden kom je op het nieuwe incident terecht, net als vanuit de incidentenlijst.
 
 Het tabblad **Incidenten** van een inventarisitem kiest de host, de service of het Kubernetes-cluster waarnaar het item verwijst, en het kruimelpad leidt terug via het tabblad van dat middel. **Waarschuwing maken** op het tabblad **Waarschuwingen** van een middel werkt net zo: vanuit een monitor vult het de **Monitor** van de waarschuwing in, vanuit al het andere **Andere getroffen resources**.
 
@@ -284,7 +284,7 @@ Vanaf dan is het incident live: het telt mee voor de badge **Actieve incidenten*
 
 ### Al bevestigd of opgelost gemeld
 
-Een latere **Initiële status** kiezen — op het formulier, via de **Initiële incidentstatus** van een sjabloon, of met `currentIncidentStateId` vanuit de API, Terraform of een workflow — legt een incident vast dat iemand al afhandelt, of dat al voorbij is. Het wordt niet behandeld als een nieuwe noodsituatie:
+Een latere **Initiële status** kiezen — op het formulier, via de **Initiële incidentstatus** van een sjabloon, met `currentIncidentStateId` vanuit de API, Terraform of een workflow, of door [AI vragen](/docs/ai/ask-ai) om een al bevestigd of opgelost incident te vragen — legt een incident vast dat iemand al afhandelt, of dat al voorbij is. Het wordt niet behandeld als een nieuwe noodsituatie:
 
 ```mermaid title="Wat een nieuw incident in gang zet, naar de status waarin het begint"
 flowchart TB

@@ -46,10 +46,31 @@ class QueueEvents {
 
 class Job {}
 
+/*
+ * What UnknownQueueJob throws: DelayedError once it has moved a job back to
+ * its queue, UnrecoverableError when it gives up. Named as BullMQ names
+ * them, since BullMQ (and QueueWorker) recognise them by name.
+ */
+class DelayedError extends Error {
+  constructor(message = "bullmq:movedToDelayed") {
+    super(message);
+    this.name = "DelayedError";
+  }
+}
+
+class UnrecoverableError extends Error {
+  constructor(message = "bullmq:unrecoverable") {
+    super(message);
+    this.name = "UnrecoverableError";
+  }
+}
+
 module.exports = {
   __esModule: true,
   Queue,
   Worker,
   QueueEvents,
   Job,
+  DelayedError,
+  UnrecoverableError,
 };

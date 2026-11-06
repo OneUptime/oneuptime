@@ -57,6 +57,9 @@ import { MAX_WILDCARD_PATTERNS } from "../../../Types/BaseDatabase/WildcardPatte
 import NotWildcard from "../../../Types/BaseDatabase/NotWildcard";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import QueryOperator from "../../../Types/BaseDatabase/QueryOperator";
+import OnWatchlist from "../../../Types/BaseDatabase/OnWatchlist";
+import NotOnWatchlist from "../../../Types/BaseDatabase/NotOnWatchlist";
+import BoundQueryCondition from "../../Types/AnalyticsDatabase/BoundQueryCondition";
 import GenericObject from "../../../Types/GenericObject";
 import Search from "../../../Types/BaseDatabase/Search";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
@@ -450,10 +453,39 @@ const CREATE_VALUE_WRITERS: Record<TableColumnType, CreateValueWriter> = {
   },
 };
 
+/*
+ * A watchlist named in a query is read before the read is compiled, and only
+ * by a read of security events (SecurityEventService): anywhere else - or
+ * left unread - the name is refused rather than compiled into nothing.
+ */
+export const WATCHLIST_NOT_READ_MESSAGE: string =
+  "A watchlist is matched only in a search of security events.";
+
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   public model!: TBaseModel;
   public modelType!: { new (): TBaseModel };
   public database!: ClickhouseDatabase;
+
+  /*
+   * What a condition compiled before the read is handed to read its column
+   * by: the column itself, for text or an array of text. A watchlist holds
+   * text, so a column of anything else refuses one.
+   */
+  private toBoundConditionExpression(
+    tableColumn: AnalyticsTableColumn,
+    column: string | QualifiedColumn,
+  ): Statement {
+    if (
+      tableColumn.type !== TableColumnType.Text &&
+      tableColumn.type !== TableColumnType.ArrayText
+    ) {
+      throw new BadDataException(
+        `A watchlist is matched against a field of text, and ${tableColumn.key} is not one.`,
+      );
+    }
+
+    return SQL`${column}`;
+  }
 
   public constructor(data: {
     modelType: { new (): TBaseModel };
@@ -1153,6 +1185,31 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         continue;
       }
 
+      /*
+       * A condition the service compiled before the read - a watchlist,
+       * whose values it read from Postgres (SecurityWatchlistQueryBinder) -
+       * placed on the column it filters: any element of an array column,
+       * the text of any other.
+       */
+      if (value instanceof BoundQueryCondition) {
+        whereStatement.append(SQL`AND `);
+        whereStatement.append(
+          value.toStatement({
+            expression: this.toBoundConditionExpression(
+              tableColumn,
+              columnRef(key),
+            ),
+            isArray: tableColumn.type === TableColumnType.ArrayText,
+          }),
+        );
+        continue;
+      }
+
+      // A watchlist only a read of security events reads, by its name: never compiled unread.
+      if (value instanceof OnWatchlist || value instanceof NotOnWatchlist) {
+        throw new BadDataException(WATCHLIST_NOT_READ_MESSAGE);
+      }
+
       if (
         value instanceof Search &&
         tableColumn.type === TableColumnType.ArrayText
@@ -1629,6 +1686,28 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             }
 
             continue;
+          }
+
+          // A watchlist on a source attribute, as a rule reads `attributes[...]`.
+          if (mapEntry instanceof BoundQueryCondition) {
+            whereStatement.append(SQL`AND `);
+            whereStatement.append(
+              mapEntry.toStatement({
+                expression: SQL`${columnRef(key)}[${{
+                  value: mapKey,
+                  type: TableColumnType.Text,
+                }}]`,
+                isArray: false,
+              }),
+            );
+            continue;
+          }
+
+          if (
+            mapEntry instanceof OnWatchlist ||
+            mapEntry instanceof NotOnWatchlist
+          ) {
+            throw new BadDataException(WATCHLIST_NOT_READ_MESSAGE);
           }
 
           if (mapEntry instanceof IsNull) {

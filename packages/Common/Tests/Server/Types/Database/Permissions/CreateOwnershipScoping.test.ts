@@ -4,6 +4,7 @@ import User from "../../../../../Models/DatabaseModels/User";
 import UserCall from "../../../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../../../Models/DatabaseModels/UserEmail";
 import UserIncomingCallNumber from "../../../../../Models/DatabaseModels/UserIncomingCallNumber";
+import UserMattermost from "../../../../../Models/DatabaseModels/UserMattermost";
 import UserMicrosoftTeams from "../../../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../../../Models/DatabaseModels/UserNotificationRule";
 import UserNotificationSetting from "../../../../../Models/DatabaseModels/UserNotificationSetting";
@@ -162,6 +163,7 @@ const CURRENT_USER_ONLY_MODELS: Array<[string, ModelConstructor]> = [
   ["UserTelegram", UserTelegram],
   ["UserSlack", UserSlack],
   ["UserMicrosoftTeams", UserMicrosoftTeams],
+  ["UserMattermost", UserMattermost],
   ["UserNotificationSetting", UserNotificationSetting],
   ["UserIncomingCallNumber", UserIncomingCallNumber],
   ["UserSession", UserSession],

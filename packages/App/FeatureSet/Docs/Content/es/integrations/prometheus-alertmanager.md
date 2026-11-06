@@ -86,6 +86,8 @@ Una instalación autoalojada tiene su propio host en lugar de `oneuptime.com`.
 > [!WARNING]
 > Agrupa por un valor que cambie de una alerta a otra dentro de una notificación. El `fingerprint` de Alertmanager es un hash de todo el conjunto de etiquetas de una alerta, así que siempre cambia. Una etiqueta del `group_by` de tu ruta nunca cambia: es lo que pone las alertas en una misma notificación. Agrupar por `requestBody.alerts[*].labels.alertname` con la ruta de abajo junta todas las alertas de una notificación en un incidente, que toma el estado de la primera alerta.
 
+En una nube OpenStack, vincula también el monitor a la nube. Los ajustes propios de un monitor de Incoming Request no nombran ninguna nube, así que sus incidentes llegarían a **Incidentes** y no a la nube. Abre **Vista general → Recursos vinculados** del monitor y añade la nube OpenStack: cada incidente aparece entonces también en la página **Incidentes** de esa nube. [OpenStack por herramienta de despliegue](/docs/telemetry/openstack-deployment-tools) tiene el receptor para cada herramienta que ejecuta un Alertmanager, en el lugar desde donde esa herramienta lo lee.
+
 ## Nombrar los incidentes
 
 El título de arriba lee etiquetas que comparten todas las alertas de la notificación: `commonLabels` contiene esas etiquetas, y `commonAnnotations` las anotaciones que comparten. Con la ruta de abajo, que agrupa por `alertname` e `instance`, ambas están ahí. En **Descripción**, da al incidente una **Descripción del incidente** como esta:
@@ -166,7 +168,7 @@ curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   }'
 ```
 
-Se abren dos incidentes, uno por `fingerprint`, cada uno titulado `DiskFull on web-1`. Envía la misma solicitud con cada `status` en `resolved` y ambos se resuelven.
+Se abren dos incidentes, uno por `fingerprint`, cada uno titulado `DiskFull on web-1` y luego lo que los distingue, como en `DiskFull on web-1 - Fingerprint: a1b2c3d4e5f60001`. Envía la misma solicitud con cada `status` en `resolved` y ambos se resuelven.
 
 Para probar todo el camino desde Alertmanager, dispara una alerta con `amtool`. Alertmanager la envía tras `group_wait` y luego envía su recuperación cuando la alerta caduca unos minutos después:
 

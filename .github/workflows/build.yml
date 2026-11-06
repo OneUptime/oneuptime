@@ -10,13 +10,22 @@ concurrency:
 # both editions, with the release's own build script - and its e2e jobs check
 # the App's editions on the pushed images. Building them here as well on each
 # push to master cost ~40 runner-minutes (the home image alone ~20) and showed
-# nothing those jobs do not.
+# nothing those jobs do not. The Kubernetes cost agent and log tailer are the
+# exceptions: test-release.yaml does not build them (see their jobs below).
 on:
   pull_request:
 
 # Every job checks out and runs `docker build`; none pushes or calls the API.
 permissions:
   contents: read
+
+# The builds run in nick-fields/retry, as the runner's own user (it is in the
+# docker group), never through sudo. An attempt that reaches its
+# timeout_minutes is stopped by the action killing the command's processes,
+# which it cannot do to a root-owned `sudo docker build`: the action died on
+# "Error: kill EPERM" and failed the job instead of trying again (Build run
+# 41681440927, whose Home image's blog clone stalled).
+# Tests/Ops/RetryStepsWithoutSudo.test.js keeps sudo out of them.
 
 jobs:
 
@@ -57,7 +66,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./packages/Home/Dockerfile .
+          command: docker build --no-cache -f ./packages/Home/Dockerfile .
 
 
   docker-build-app:
@@ -108,14 +117,14 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache --target community -t oneuptime-app:community -f ./packages/App/Dockerfile .
+          command: docker build --no-cache --target community -t oneuptime-app:community -f ./packages/App/Dockerfile .
 
       - name: build the Enterprise Edition image
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --target enterprise -t oneuptime-app:enterprise -f ./packages/App/Dockerfile .
+          command: docker build --target enterprise -t oneuptime-app:enterprise -f ./packages/App/Dockerfile .
 
       # Nothing else would notice a Community image that picked up ee/, or an
       # Enterprise image whose Dashboard quietly fell back to the Community UI.
@@ -187,7 +196,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./packages/E2E/Dockerfile .
+          command: docker build --no-cache -f ./packages/E2E/Dockerfile .
 
   docker-build-probe:
     runs-on: ubuntu-latest
@@ -226,7 +235,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./packages/Probe/Dockerfile .
+          command: docker build --no-cache -f ./packages/Probe/Dockerfile .
 
   docker-build-runner:
     runs-on: ubuntu-latest
@@ -265,7 +274,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -t oneuptime-runner:ci -f ./packages/Runner/Dockerfile .
+          command: docker build --no-cache -t oneuptime-runner:ci -f ./packages/Runner/Dockerfile .
 
       # The image is pruned to the packages the Runner reaches
       # (Scripts/Docker/PruneUnreachablePackages.js), so a package the walk
@@ -329,7 +338,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./agents/KubernetesAIAgent/Dockerfile .
+          command: docker build --no-cache -f ./agents/KubernetesAIAgent/Dockerfile .
 
   # The resource AI agent image (agents/ResourceAIAgent), which the Docker,
   # Podman, Swarm, Proxmox, VMware, Ceph, database and host agents run as
@@ -370,7 +379,86 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./agents/ResourceAIAgent/Dockerfile .
+          command: docker build --no-cache -f ./agents/ResourceAIAgent/Dockerfile .
+
+  # The Kubernetes cost agent image (agents/KubernetesCostAgent), which the
+  # kubernetes-agent chart runs when cost collection is on. release.yml is the
+  # only other workflow that builds it, so this is what stops a template that
+  # does not build, or an agent that does not compile inside the image (with
+  # production dependencies only, and without its tests), from first failing
+  # in a release. This builds the runner's architecture (amd64) only. Unlike
+  # the two AI agents above it is not built for both in test-release.yaml: it
+  # adds only ca-certificates and tini to Node's base image and has no native
+  # modules, so nothing in it differs by architecture.
+  docker-build-kubernetes-cost-agent:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Preinstall
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
+
+      # Seeds the base image into the local store first, from Docker Hub if
+      # public.ecr.aws will not serve it (its shared anonymous quota runs out
+      # in a busy CI window); see docker-build-kubernetes-ai-agent above.
+      - name: Warm base images
+        run: bash ./Scripts/GHA/warm_base_images.sh ./agents/KubernetesCostAgent/Dockerfile
+
+      - name: build docker image
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: docker build --no-cache -f ./agents/KubernetesCostAgent/Dockerfile .
+
+  # The Kubernetes log tailer image (agents/KubernetesLogTailer), which the
+  # kubernetes-agent chart runs when logs.mode is "api", as the GKE Autopilot,
+  # EKS Fargate and OpenShift restricted presets choose. Built here, and for
+  # amd64 only, for the reasons the cost agent above is.
+  docker-build-kubernetes-log-tailer:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Preinstall
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
+
+      # Seeds the base image into the local store first, from Docker Hub if
+      # public.ecr.aws will not serve it (its shared anonymous quota runs out
+      # in a busy CI window); see docker-build-kubernetes-ai-agent above.
+      - name: Warm base images
+        run: bash ./Scripts/GHA/warm_base_images.sh ./agents/KubernetesLogTailer/Dockerfile
+
+      - name: build docker image
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: docker build --no-cache -f ./agents/KubernetesLogTailer/Dockerfile .
 
   docker-build-test-server:
     runs-on: ubuntu-latest
@@ -409,4 +497,4 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./packages/TestServer/Dockerfile .
+          command: docker build --no-cache -f ./packages/TestServer/Dockerfile .

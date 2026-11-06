@@ -4,7 +4,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 import { translateTemplate } from "../../Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
-import { DraggableProvidedDragHandleProps } from "react-beautiful-dnd";
+import type { DraggableProvidedDragHandleProps } from "react-beautiful-dnd";
 
 /*
  * The grip a row of a reorderable list is dragged by - the same six dots the

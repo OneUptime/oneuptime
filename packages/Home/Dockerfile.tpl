@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.19
 #
 # OneUptime-App Dockerfile
 #
@@ -56,7 +56,8 @@ RUN mkdir /usr/src
 WORKDIR /usr/src/Common
 COPY ./packages/Common/package*.json /usr/src/Common/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
-COPY ./packages/Common /usr/src/Common
+# Common without its tests, which no image runs (see packages/Probe/Dockerfile.tpl).
+COPY --exclude=Tests ./packages/Common /usr/src/Common
 # mermaid for the blog, built from mermaid's ES module source with the
 # packages npm just installed (Common/Scripts/build-mermaid-browser.js) and
 # served at /oneuptime-assets/mermaid. A build that fails stops the image here
@@ -83,18 +84,23 @@ EXPOSE 1444
 
 # The blog repo is cloned per-branch below. In production it is cloned as the
 # non-root `node` user so the runtime UpdateBlog `git pull` can write into it
-# without a costly recursive chown of its ~100k files.
+# without a costly recursive chown of its ~250k files. Both clones run
+# Scripts/CloneBlog.sh: the blog is ~4 GB with its history, and the script
+# gives up a transfer that stalls and clones again.
 
 {{ if eq .Env.ENVIRONMENT "development" }}
-# Clone blog repo (dev container runs as root).
-RUN cd /usr/src && git clone https://github.com/oneuptime/blog
+# Clone blog repo (dev container runs as root). The dev image has no Home
+# sources of its own (they are mounted), so the script is copied in for it.
+COPY ./packages/Home/Scripts/CloneBlog.sh /usr/src/CloneBlog.sh
+RUN bash /usr/src/CloneBlog.sh /usr/src/blog && rm /usr/src/CloneBlog.sh
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source. --chown sets node (UID 1000) ownership at copy time so we
 # avoid a slow recursive `chown -R` over node_modules; deps stay root-owned and
-# world-readable.
-COPY --chown=1000:1000 ./packages/Home /usr/src/app
+# world-readable. Without its tests, like Common above: they import Common's, so
+# the compile below type-checks neither, and the Compile workflow does.
+COPY --chown=1000:1000 --exclude=Tests ./packages/Home /usr/src/app
 # Bundle app source
 RUN npm run compile
 # Give node ownership of /usr/src itself (non-recursive — instant) so it can
@@ -104,8 +110,8 @@ RUN npm run compile
 RUN mkdir -p /usr/src/app/build && chown 1000:1000 /usr/src /usr/src/app/build
 USER node
 # Clone the blog as node so the runtime UpdateBlog `git pull` (runs as node) can
-# write into it — avoids a recursive chown of the blog's ~100k files.
-RUN cd /usr/src && git clone https://github.com/oneuptime/blog
+# write into it — avoids a recursive chown of the blog's ~250k files.
+RUN bash /usr/src/app/Scripts/CloneBlog.sh /usr/src/blog
 # The marketing site's Tailwind CSS (Scripts/BuildTailwindCss.ts): one
 # content-hashed stylesheet that every page links, instead of the Play CDN
 # runtime building the CSS in each visitor's browser. It reads the class

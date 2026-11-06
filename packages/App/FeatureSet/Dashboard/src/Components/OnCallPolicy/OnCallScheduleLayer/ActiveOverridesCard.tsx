@@ -1,4 +1,4 @@
-import { formatShiftInstant } from "./LayerSummary";
+import HandOffTimes from "./HandOffTimes";
 import { SECTION_LABEL_CLASS_NAME } from "./FinalScheduleSummary";
 import { getUserAvatarStyle, getUserInitials } from "./LayerUserColors";
 import {
@@ -174,11 +174,11 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
-          <span>
-            {formatShiftInstant(row.startsAt, props.timezone)}
-            <span className="mx-1 text-gray-300">&rarr;</span>
-            {formatShiftInstant(row.endsAt, props.timezone)}
-          </span>
+          <HandOffTimes
+            start={row.startsAt}
+            end={row.endsAt}
+            timezone={props.timezone}
+          />
           <span className="text-gray-300">&middot;</span>
           {/*
            * The scope pill is the answer to "will this cover the page I care

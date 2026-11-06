@@ -139,7 +139,8 @@ describe("the list", () => {
     for (const item of INSTALL_SCRIPTS) {
       if (
         item.name === InstallScriptName.KubernetesAgent ||
-        item.name === InstallScriptName.Cli
+        item.name === InstallScriptName.Cli ||
+        item.name === InstallScriptName.AirGapped
       ) {
         continue;
       }
@@ -168,6 +169,26 @@ describe("the list", () => {
     expect(
       fs.existsSync(
         path.join(REPO_ROOT, "packages", "CLI", "Install", INSTALL_SCRIPT_FILE),
+      ),
+    ).toBe(true);
+  });
+
+  /*
+   * Not an agent either: the script that saves a release's images and chart
+   * on a connected machine and pushes them into a registry inside an air
+   * gap. It sits beside the chart it reads, and is the only file it needs.
+   */
+  test("the air-gapped image bundle script is HelmChart/AirGap/install.sh, and only that", () => {
+    expect(entry(InstallScriptName.AirGapped)).toEqual({
+      name: "air-gapped",
+      title: "Air-gapped image bundle",
+      sourceDirectory: "HelmChart/AirGap",
+      script: INSTALL_SCRIPT_FILE,
+      files: [INSTALL_SCRIPT_FILE],
+    });
+    expect(
+      fs.existsSync(
+        path.join(REPO_ROOT, "HelmChart", "AirGap", INSTALL_SCRIPT_FILE),
       ),
     ).toBe(true);
   });

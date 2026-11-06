@@ -43,6 +43,8 @@ error: option '-o, --output <format>' argument 'yaml' is invalid. Allowed choice
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ cloud-cost                 │ Cloud Cost                 │ Cloud Costs                 │ analytics │ /cloud-cost                 │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ exception-instance         │ Exception Instance         │ Exception Instances         │ analytics │ /exceptions                 │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
@@ -68,7 +70,7 @@ error: option '-o, --output <format>' argument 'yaml' is invalid. Allowed choice
 │ threat-intel-indicator     │ Threat Intel Indicator     │ Threat Intel Indicators     │ analytics │ /threat-intel-indicators    │
 └────────────────────────────┴────────────────────────────┴─────────────────────────────┴───────────┴─────────────────────────────┘
 
-Total: 14 resources
+Total: 15 resources
 ```
 
 레코드 목록의 경우 표에는 최대 6개 열이 나옵니다. 먼저 `_id`, `name`, `title`, `status`, `createdAt`, `updatedAt` 중 레코드에 있는 것이, 그다음 레코드의 나머지 필드가 순서대로 나옵니다. 열은 첫 번째 레코드에서 가져옵니다. 60자보다 긴 값은 앞의 57자로 잘리고 뒤에 `...`이 붙습니다.

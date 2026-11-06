@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### नया मॉनिटर शुरू करें
 
-**मॉनिटर** पर जाएँ और **मॉनिटर बनाएं** पर क्लिक करें। **मॉनिटर प्रकार** में **और मॉनिटर प्रकार** पर क्लिक करें और **Synthetic Monitoring** के अंतर्गत **Custom JavaScript Code** चुनें, या खोज बॉक्स में `script` टाइप करें। एक **नाम** दर्ज करें, फिर **अगला** पर क्लिक करें।
+**मॉनिटर** पर जाएँ और **मॉनिटर बनाएं** पर क्लिक करें। **मॉनिटर प्रकार** में **और मॉनिटर प्रकार** पर क्लिक करें और **सिंथेटिक निगरानी** के अंतर्गत **Custom JavaScript Code** चुनें, या खोज बॉक्स में `script` टाइप करें। एक **नाम** दर्ज करें, फिर **अगला** पर क्लिक करें।
 
 ### स्क्रिप्ट जोड़ें
 
@@ -167,7 +167,7 @@ return {
 
 - मॉनिटर की पहचान: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`।
 - `oneuptime.` या `resource.` namespaces में मौजूद सब कुछ — इनमें वे पहचानकर्ता होते हैं जो OneUptime डेटा ग्रहण करते समय लगाता है।
-- संसाधन पहचान attributes: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` और `docker.swarm.cluster.name`।
+- संसाधन पहचान attributes: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` और `docker.swarm.cluster.name`।
 
 ये नाम सिर्फ़ लेबल नहीं हैं — OneUptime इन्हें इस दावे के रूप में वापस पढ़ता है कि कोई डेटा पॉइंट किस संसाधन का है। `service.name: payments-api` वाला मेट्रिक उस सेवा के मेट्रिक्स टैब पर दिखेगा, और अगर आप बाद में `service.name` के अनुसार समूहित एक मेट्रिक मॉनिटर बनाते, तो उसके अलर्ट उस सेवा से जुड़ जाते, उस सेवा के मालिकों को पेज करते, और उस पर रखरखाव विंडो के दौरान चुप रहते। किसी मॉनिटर को किसी सेवा या होस्ट से जोड़ने के लिए इसके बजाय मॉनिटर के अपने लेबल का उपयोग करें।
 

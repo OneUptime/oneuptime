@@ -9,7 +9,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Route from "Common/Types/API/Route";
 import { CloudEndpointSuggestion } from "Common/Types/Cloud/CloudEndpointMatch";
-import { getCloudResourceTypeLabel } from "Common/Types/Cloud/CloudResourceCatalog";
+import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Button, {
@@ -132,7 +132,7 @@ const MonitorCloudLinkSuggestions: FunctionComponent<ComponentProps> = (
       <ul className="mt-3 space-y-2">
         {suggestions.map(
           (suggestion: CloudEndpointSuggestion): ReactElement => {
-            const typeLabel: string = getCloudResourceTypeLabel(
+            const typeLabel: string = getCloudResourceTypeDisplayName(
               suggestion.provider,
               suggestion.type,
             );

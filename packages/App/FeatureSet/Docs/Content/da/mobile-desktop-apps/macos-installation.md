@@ -61,7 +61,7 @@ Appen viser notifikationer, når du har registreret den til push-notifikationer 
 
 :::steps
 ### Åbn dine push-enheder
-Åbn **Brugerindstillinger → Notifikationsmetoder** og fanen **Push Notifications** i appen.
+Åbn **Brugerindstillinger → Notifikationsmetoder** og fanen **Push-notifikationer** i appen.
 
 ### Registrer denne app
 Klik på **Registrer enhed**, behold det foreslåede **Enhedsnavn**, for eksempel `Safari on macOS`, eller ret det, og klik på **Registrer enhed** igen. Når macOS eller browseren spørger, om OneUptime må sende notifikationer, vælger du **Tillad**.
@@ -89,7 +89,7 @@ Der er intet at opdatere. Appen henter dashboardet fra dit OneUptime, hver gang 
 Åbn `edge://apps` i Edge, vælg **Detaljer** ved OneUptime, og derefter **Afinstaller**.
 :::
 
-At afinstallere appen afregistrerer den ikke: dens browser får stadig notifikationer. Vil du stoppe dem, så slet den under **Brugerindstillinger → Notifikationsmetoder** på fanen **Push Notifications** med **Slet**.
+At afinstallere appen afregistrerer den ikke: dens browser får stadig notifikationer. Vil du stoppe dem, så slet den under **Brugerindstillinger → Notifikationsmetoder** på fanen **Push-notifikationer** med **Slet**.
 
 ## Fejlfinding
 
@@ -98,7 +98,7 @@ Safari føjer webapps til Dock fra macOS Sonoma 14. Opdater macOS, eller install
 :::
 
 :::details Der vises ingen notifikationer
-- Tjek under **Brugerindstillinger → Notifikationsmetoder** på fanen **Push Notifications**, at appen eller dens browser står på listen, og send en **Testnotifikation**.
+- Tjek under **Brugerindstillinger → Notifikationsmetoder** på fanen **Push-notifikationer**, at appen eller dens browser står på listen, og send en **Testnotifikation**.
 - Åbn **Systemindstillinger → Notifikationer** på din Mac, og tjek, at OneUptime eller browseren, det blev installeret fra, må sende notifikationer, og at intet Fokus holder dem tilbage.
 - Blokerer browseren notifikationer for OneUptime, så tillad dem i dens indstillinger for webstedet, og registrer igen.
 - På et selv-hostet OneUptime siger dialogen **Registrer enhed**, når serveren ikke har VAPID-nøgler.

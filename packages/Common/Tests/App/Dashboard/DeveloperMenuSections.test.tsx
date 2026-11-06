@@ -165,6 +165,12 @@ const DASHBOARD_SRC: string = path.join(
 const VIEW_MENUS_WITHOUT_DEVELOPER_PAGES: Readonly<Record<string, string>> = {
   "Pages/AIInsights/View/SideMenu.tsx":
     "An AI insight is written by OneUptime AI; the API cannot create one, so there is nothing to manage as code.",
+  "Pages/DataObservability/TableView/SideMenu.tsx":
+    "A table is found by Data Observability's collection of its database, which rewrites its columns, rows and size each time and marks it dropped when it goes, not set up as code; the API and MCP read it as a Data Asset.",
+  "Pages/DataObservability/View/SideMenu.tsx":
+    "A database here is Data Security's data store, discovered or connected, not set up as code - and only the Security tiers may read it over the API, so Data Observability reads it through a route of its own.",
+  "Pages/DataPipeline/View/SideMenu.tsx":
+    "A pipeline is made from the OpenLineage events its job sends, or from a dbt project's artifacts, and the API cannot create one: there is nothing to set up as code.",
   "Pages/DataSecurity/IssueView/SideMenu.tsx":
     "A data security issue is opened, updated and resolved by Data Security's checks and worked on its own pages, not set up as code; its API and MCP tools are on the Data Security docs page.",
   "Pages/DataSecurity/StoreView/SideMenu.tsx":

@@ -44,6 +44,7 @@ import {
 } from "./LogParserFixtures";
 import { sigmaRuleMatchesEvent } from "./SigmaTestMatcher";
 import { DEVICE_LINES } from "./SecurityDeviceFixtures";
+import { ASA_LINES, FORTIGATE_LINES, PAN_LINES } from "./FirewallFixtures";
 import { LogKind, googleAuditEntry } from "./GoogleCloudAuditFixtures";
 import {
   NAMED_SHAPES,
@@ -193,6 +194,19 @@ const EVENT_LINES: Array<[SecurityLogFormat, string]> = [
   [SecurityLogFormat.Cef, DEVICE_LINES.mikroTikLoginFailure],
   [SecurityLogFormat.Leef, DEVICE_LINES.zscalerLeefBlocked],
   [SecurityLogFormat.Leef, DEVICE_LINES.qradarLeef2],
+  [SecurityLogFormat.PaloAlto, PAN_LINES.threatVulnerability],
+  [SecurityLogFormat.PaloAlto, PAN_LINES.trafficDeny],
+  [SecurityLogFormat.PaloAlto, PAN_LINES.globalProtectFailed],
+  [SecurityLogFormat.PaloAlto, PAN_LINES.systemAuthFail],
+  [SecurityLogFormat.PaloAlto, PAN_LINES.configSet],
+  [SecurityLogFormat.FortiGate, FORTIGATE_LINES.ips],
+  [SecurityLogFormat.FortiGate, FORTIGATE_LINES.trafficDeny],
+  [SecurityLogFormat.FortiGate, FORTIGATE_LINES.adminLoginFailed],
+  [SecurityLogFormat.FortiGate, FORTIGATE_LINES.configChanged],
+  [SecurityLogFormat.CiscoAsa, ASA_LINES.aclDeny],
+  [SecurityLogFormat.CiscoAsa, ASA_LINES.scanning],
+  [SecurityLogFormat.CiscoAsa, ASA_LINES.managementDenied],
+  [SecurityLogFormat.CiscoAsa, ASA_LINES.ftdAclDeny],
   [
     SecurityLogFormat.GoogleCloudAudit,
     JSON.stringify(googleAuditEntry("activity")),
@@ -242,6 +256,18 @@ describe("SecurityLogParser", () => {
       DEVICE_LINES.fortiGateAccept,
       DEVICE_LINES.uniFiClientDisconnected,
       DEVICE_LINES.zscalerLeefAllowed,
+      PAN_LINES.trafficAllow,
+      PAN_LINES.threatUrlAlert,
+      PAN_LINES.threatWildfireBenign,
+      PAN_LINES.globalProtectConnected,
+      PAN_LINES.systemRouting,
+      FORTIGATE_LINES.trafficAccept,
+      FORTIGATE_LINES.webfilterPassthrough,
+      FORTIGATE_LINES.adminLogout,
+      FORTIGATE_LINES.systemPerformance,
+      ASA_LINES.built,
+      ASA_LINES.teardown,
+      ASA_LINES.aclPermittedHit,
       JSON.stringify(googleAuditEntry("data_access")),
       JSON.stringify(azureActivityExport({ resultType: "Start" })),
       JSON.stringify(

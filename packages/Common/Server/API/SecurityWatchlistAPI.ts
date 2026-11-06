@@ -16,6 +16,9 @@ import SecurityWatchlistItemService, {
 import SecurityWatchlistService, {
   Service as SecurityWatchlistServiceType,
 } from "../Services/SecurityWatchlistService";
+import SecurityWatchlistUrlImport, {
+  SecurityWatchlistUrlReadOutcome,
+} from "../Utils/SecurityEvent/Watchlists/SecurityWatchlistUrlImport";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -28,14 +31,20 @@ import CommonAPI from "./CommonAPI";
 /*
  * Watchlists: their CRUD, and
  *
- *   POST /security-watchlist/import   values from a file or a paste, added
- *                                     to a list the team keeps or replacing
- *                                     what it holds
+ *   POST /security-watchlist/import    values from a file or a paste, added
+ *                                      to a list the team keeps or replacing
+ *                                      what it holds
+ *   POST /security-watchlist/read-now  a list read from an address, read at
+ *                                      once rather than at its next turn
  *
  * An import adds values, so it takes the permission to add them - and, to
  * replace a list, to remove them; the list is read as the caller, so a list
  * they cannot read is not found. What it did comes back: how many values
  * were added, removed and already there, and the lines it left out.
+ *
+ * Read Now changes what a list holds as its schedule would, so it takes the
+ * permission to edit watchlists; what it did - or why it could not - comes
+ * back, and is recorded on the list as a scheduled read's is.
  */
 export default class SecurityWatchlistAPI extends BaseAPI<
   SecurityWatchlist,
@@ -121,6 +130,59 @@ export default class SecurityWatchlistAPI extends BaseAPI<
                 };
               },
             ),
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    this.router.post(
+      `${basePath}/read-now`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions: new SecurityWatchlist().getUpdatePermissions(),
+            errorMessage:
+              "Reading a list from its address takes a role that can edit watchlists.",
+          });
+
+          const body: JSONObject =
+            req.body && typeof req.body === "object" && !Array.isArray(req.body)
+              ? (req.body as JSONObject)
+              : {};
+
+          const watchlistId: unknown = body["securityWatchlistId"];
+
+          if (
+            typeof watchlistId !== "string" ||
+            !ObjectID.isValidUUID(watchlistId)
+          ) {
+            throw new BadDataException("Choose the watchlist to read.");
+          }
+
+          const outcome: SecurityWatchlistUrlReadOutcome =
+            await SecurityWatchlistUrlImport.readNow({
+              watchlistId: new ObjectID(watchlistId),
+              props,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            error: outcome.error,
+            errorDetail: outcome.errorDetail,
+            added: outcome.summary?.added || 0,
+            removed: outcome.summary?.removed || 0,
+            unchanged: outcome.summary?.unchanged || 0,
+            problemCount: outcome.summary?.problemCount || 0,
+            valueCount: outcome.summary?.valueCount || 0,
           });
         } catch (error) {
           next(error);

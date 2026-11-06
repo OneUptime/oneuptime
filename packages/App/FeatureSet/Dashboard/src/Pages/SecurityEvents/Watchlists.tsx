@@ -23,7 +23,9 @@ import {
   getWatchlistHoldsDropdownOptions,
   prepareNewWatchlist,
 } from "../../Components/SecurityEvents/Watchlists/WatchlistFormFields";
+import { renderWatchlistSourceChoice } from "../../Components/SecurityEvents/Watchlists/WatchlistSourceRadio";
 import {
+  describeWatchlistReader,
   describeWatchlistValues,
   getWatchlistHoldsLabel,
   getWatchlistReaders,
@@ -44,6 +46,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { SecurityWatchlistSource } from "Common/Types/SecurityEvent/SecurityWatchlist";
+import { WatchlistReader } from "Common/Types/SecurityEvent/SecurityWatchlistFilter";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
@@ -75,14 +78,19 @@ function valuesOf(item: SecurityWatchlist): WatchlistValuesFacts {
     valueCount: item.valueCount,
     threatIntelFeedId: item.threatIntelFeedId,
     feedName: item.threatIntelFeed?.name,
+    importUrl: item.importUrl,
+    lastImportSucceededAt: item.lastImportSucceededAt,
+    lastImportError: item.lastImportError,
   };
 }
 
 /*
  * SECURITY EVENTS > DETECTIONS > WATCHLISTS: the lists the project's rules
  * match against - VIP users, critical hosts, known-bad file hashes, allowed
- * admin addresses - each with what it holds, its values (how many it keeps,
- * or the threat intel feed it follows) and the rules that read it.
+ * admin addresses - each with what it holds, its values (how many it keeps
+ * or read from an address - and whether its last read failed - or the
+ * threat intel feed it follows) and what reads it: rules, Security Events
+ * monitors and hunts.
  *
  * Above them, while the project lacks one, the common lists to start with,
  * one click each (WatchlistStarters). A row opens the list's page, where its
@@ -211,7 +219,10 @@ const SecurityWatchlistsPage: FunctionComponent<PageComponentProps> = (
             ...(nameToCreate ? { name: nameToCreate } : {}),
           } as FormValues<SecurityWatchlist>
         }
-        formFields={getWatchlistCreateFields({ translator })}
+        formFields={getWatchlistCreateFields({
+          translator,
+          renderSourceChoice: renderWatchlistSourceChoice,
+        })}
         // What the form hid is not sent: a list no feed can fill keeps its own values.
         onBeforeCreate={(
           item: SecurityWatchlist,
@@ -234,6 +245,9 @@ const SecurityWatchlistsPage: FunctionComponent<PageComponentProps> = (
           source: true,
           valueCount: true,
           threatIntelFeedId: true,
+          importUrl: true,
+          lastImportSucceededAt: true,
+          lastImportError: true,
         }}
         /*
          * Three columns that wrap inside their caps, so the list fits its
@@ -310,8 +324,8 @@ const SecurityWatchlistsPage: FunctionComponent<PageComponentProps> = (
             contentClassName: "min-w-[6rem]",
             getExportValue: (item: SecurityWatchlist): string => {
               return getWatchlistReaders(readers.readersByKey, item.name)
-                .map((reader: { id: string; name: string }): string => {
-                  return reader.name;
+                .map((reader: WatchlistReader): string => {
+                  return describeWatchlistReader(translator, reader);
                 })
                 .join(", ");
             },

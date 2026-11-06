@@ -32,6 +32,21 @@ export function telemetryDataStoreKey(data: {
   return `telemetry:${data.serviceId}:${data.kind}`;
 }
 
+/*
+ * The service - or, for session replays, the RUM application - a telemetry
+ * store's key names: its records are sent under that id. Null for any
+ * other key.
+ */
+export function readTelemetryDataStoreKeyOwnerId(
+  storeKey: string | null | undefined,
+): string | null {
+  const parts: Array<string> = (storeKey || "").split(":");
+
+  return parts.length === 3 && parts[0] === "telemetry" && parts[1]
+    ? parts[1]
+    : null;
+}
+
 export function databaseServerDataStoreKey(databaseServerId: string): string {
   return `database:${databaseServerId}`;
 }

@@ -7,6 +7,7 @@ import {
   useParams,
 } from "react-router-dom";
 import i18next from "i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import "Common/UI/Styles/Theme.css";
 import UserSettingsOnCallCalendarFeed from "../../App/FeatureSet/Dashboard/src/Pages/UserSettings/OnCallCalendarFeed";
@@ -99,6 +100,8 @@ await i18next.use(initReactI18next).init({
   keySeparator: false,
   nsSeparator: false,
 });
+// Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
+followLanguageForDates(i18next);
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "10000000-0000-4000-8000-000000000002";

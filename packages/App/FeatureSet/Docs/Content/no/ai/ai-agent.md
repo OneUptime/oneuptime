@@ -162,6 +162,7 @@ Den fungerer i GitHub-, GitLab-, Forgejo- og Gitea-repositorier. GitHub sier fra
 | **Tunge funksjoner** | Funksjonene i den endrede koden som tar en del av tjenestenes profiler den siste timen. |
 | **Hendelser** | Tjenestenes hendelser fra de siste 30 dagene som fortsatt er åpne, eller der rotårsaken eller etteranalysen nevner den endrede koden. Aldri en privat hendelse. |
 | **Utrullinger** | Tjenestenes utrullinger fra de siste 7 dagene som OneUptime mistenker for en regresjon. |
+| **Data** | De overvåkede tabellene som migreringene og dbt-modellene fjerner, gir nytt navn eller endrer typen til, med tjenestene der spørringer det siste døgnet bruker en endret kolonne, tabellene som bygges av dem, og dataproduktene deres. |
 
 Når produksjonen viser noe, leser OneUptime AI det ved siden av diffen og legger til **Hva du bør følge med på**: noen få korte punkter som hvert bygger på fakta. Det skjer med prosjektets standard-LLM-leverandør, med mindre **LLM-leverandør for produksjonsgjennomgang** under **Flere innstillinger** på repositoriets side **Innstillinger** velger en annen av prosjektets leverandører eller en global. Det kjører bare mens AI er slått på for prosjektet, høyst 10 ganger om dagen for en pull request og 100 for et repositorium, og måles som alle AI-kall; fakta leses hver gang uten det. Når produksjonen ikke viser noe om endringen, publiserer OneUptime ingen kommentar.
 

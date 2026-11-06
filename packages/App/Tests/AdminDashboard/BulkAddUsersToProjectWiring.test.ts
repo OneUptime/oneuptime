@@ -454,7 +454,9 @@ describe("Bulk add users to project memberships", () => {
      * rejected; without teamId every selected user would land on whatever team
      * the server picked, which is none.
      */
-    expect(bulkAddSource).toMatch(/teamMember\.userId\s*=\s*user\.id\s*;/);
+    expect(bulkAddSource).toMatch(
+      /teamMember\.userId\s*=\s*options\.user\.id\s*;/,
+    );
     expect(bulkAddSource).toMatch(
       /teamMember\.teamId\s*=\s*options\.teamId\s*;/,
     );
@@ -484,9 +486,9 @@ describe("Bulk add users to project memberships", () => {
      * The body in one match, so the three assertions above cannot be satisfied
      * by a create that never runs or whose rejection never surfaces: the writer
      * is the whole of this function, it is awaited, and it is not wrapped in a
-     * condition. Dropping the `await` is the quiet one - the loop's try/catch
-     * would see a resolved promise and report every user as added while the
-     * creates rejected behind it.
+     * condition. Dropping the `await` is the quiet one - the runner would see
+     * each step resolve and report every user as added while the creates
+     * rejected behind it.
      */
     expect(defaultWriter).toMatch(
       /^\{\s*await AdminModelAPI\.create<TeamMember>\(\{\s*model: teamMember,\s*modelType: TeamMember,\s*\}\);\s*\}$/,
@@ -695,100 +697,60 @@ describe("Bulk add users to project action registration", () => {
     expect(onClick).not.toContain("onProgressInfo");
   });
 
-  test("the page still starts and ends the run once the picker is submitted", () => {
+  test("once the picker is submitted, the click goes to the run, with the pick", () => {
     /*
-     * Guards the assertion above against a rename: if `onBulkActionStart` were
-     * spelled some other way, "the onClick does not contain it" would pass for
-     * the wrong reason. The run itself is where both callbacks belong, and the
-     * table only clears the selection and refetches when the progress modal is
-     * closed, which stays disabled until `onBulkActionEnd` is reached.
+     * The run (BulkAddUsersToProject, on the shared runner) opens the progress
+     * dialog, counts the users down and ends it - all through the click it is
+     * handed, which is how they reach the dialog that click belongs to.
      */
     const runBody: string = blockAfter(
       usersPageSource,
       "const addSelectedUsersToProject",
     );
 
-    expect(runBody).toContain("onBulkActionStart()");
-    expect(runBody).toContain("onBulkActionEnd()");
-    expect(runBody).toContain("bulkAddUsersToProject(");
-  });
-
-  test("a run that breaks outright still ends the bulk action", () => {
-    /*
-     * bulkAddUsersToProject turns a per-user failure into a row in the progress
-     * modal, so a rejected promise means the run itself broke. If that path
-     * skips `onBulkActionEnd` the progress modal's Close button stays disabled,
-     * the selection is never cleared and the table never refetches - the
-     * admin's only way out is a page reload.
-     *
-     * `finally`, not a call at the end of the happy path and a second one in
-     * the catch: the two-call shape ends the action twice as soon as someone
-     * adds an early `return`, and misses it entirely on any path neither of
-     * them covers. So the assertion is that exactly one `onBulkActionEnd()`
-     * exists in this function and that it sits in the `finally`, which is what
-     * makes "every exit from this function ends the action" true by
-     * construction rather than by inspection.
-     *
-     * Bounded to the run's own body. The page has three sibling bulk actions
-     * that each call `onBulkActionEnd` at the end of their own handler, so an
-     * unbounded search would pass on their calls no matter what this one does.
-     */
-    const runBody: string = blockAfter(
-      usersPageSource,
-      "const addSelectedUsersToProject",
-    );
-
-    const finallyBlock: string = blockAfter(runBody, "} finally");
-
-    expect(finallyBlock).toContain("onBulkActionEnd()");
-    expect(countOccurrences(runBody, "onBulkActionEnd()")).toBe(1);
-
-    /*
-     * The finally block is that call and nothing else. A condition around it -
-     * even one that reads as always true - puts the progress modal back in the
-     * state this `finally` exists to prevent, and would satisfy both assertions
-     * above.
-     */
-    expect(finallyBlock).toMatch(/^\{\s*onBulkActionEnd\(\);\s*\}$/);
-
-    /*
-     * And the thing that can throw is inside the guarded region: a `finally`
-     * that only wraps the bookkeeping would satisfy the assertions above while
-     * a rejected bulkAddUsersToProject still escaped it.
-     */
-    const tryBlock: string = blockAfter(runBody, "try {");
-
-    expect(tryBlock).toContain("bulkAddUsersToProject(");
-    expect(runBody.indexOf("bulkAddUsersToProject(")).toBeLessThan(
-      runBody.indexOf("} finally"),
+    expect(runBody).toMatch(
+      /await bulkAddUsersToProject\(\{\s*actionProps:\s*onClickProps,\s*projectId:\s*selection\.projectId,\s*teamId:\s*selection\.teamId,\s*hasAcceptedInvitation:\s*selection\.hasAcceptedInvitation,\s*\}\);/,
     );
   });
 
-  test("a mid-run break reports only the users it never attempted", () => {
+  test("the page starts, reports and ends nothing itself: the runner does, in a finally", () => {
     /*
-     * The recovery path had a choice: report the whole selection as failed, or
-     * keep what the progress callback last said and fail only the remainder.
-     * Reporting the whole selection tells an admin that nothing was added when
-     * some users were - so they re-run the action, and the users already added
-     * come back as "already invited" failures the admin did not cause.
-     *
-     * Pinned as: the recovery report reuses the last progress' succeeded list
-     * and turns its not-yet-attempted list into the new failures, rather than
-     * naming `items` (the full selection) anywhere in the catch.
+     * The runner ends the action in a `finally` whatever the users did - so
+     * the dialog's Close unlocks, and closing it clears the selection - and
+     * the page must not end it a second time, or start a report of its own
+     * the runner's would fight. Its old loop, with a recovery report of its
+     * own for a run that broke, is gone: a user whose create fails is the
+     * runner's to name, and the rest go on.
      */
     const runBody: string = blockAfter(
       usersPageSource,
       "const addSelectedUsersToProject",
     );
 
-    const catchBlock: string = blockAfter(runBody, "} catch (err)");
+    expect(runBody).not.toContain("onBulkActionStart");
+    expect(runBody).not.toContain("onProgressInfo");
+    expect(runBody).not.toContain("onBulkActionEnd");
+    expect(runBody).not.toMatch(/\bcatch\b/);
+    expect(usersPageSource).not.toContain("lastProgress");
+  });
 
-    expect(catchBlock).toContain("succeededUsers: lastProgress.succeededUsers");
-    expect(catchBlock).toContain("lastProgress.inProgressUsers.map(");
-    expect(catchBlock).toContain("...lastProgress.failedUsers,");
-    expect(catchBlock).toContain("inProgressUsers: []");
-    expect(catchBlock).not.toMatch(/\bsucceededUsers:\s*\[\]/);
-    expect(catchBlock).not.toMatch(/:\s*items\b/);
+  test("the module runs the users through the shared runner, one at a time, catching nothing", () => {
+    /*
+     * One at a time for the project's seat accounting (each create reads the
+     * seat count against the limit), as the Concurrency ledger
+     * (Common/Tests/UI/BulkActionConcurrencyLedger) holds with why. Each user
+     * once, and each step throws its failure to the runner, which names it.
+     */
+    const run: string = blockAfter(bulkAddSource, "runBulkAction<User>(");
+
+    expect(run).toContain("concurrency: 1,");
+    expect(run).toMatch(
+      /actionProps:\s*\{\s*\.\.\.options\.actionProps,\s*items:\s*getUsersToAdd\(options\.actionProps\.items\),\s*\}/,
+    );
+    expect(run).toContain("await addUserToProject(");
+    expect(bulkAddSource).not.toMatch(/\bcatch\b/);
+    expect(bulkAddSource).not.toContain("onBulkActionStart");
+    expect(bulkAddSource).not.toContain("onBulkActionEnd");
   });
 
   test("the call site cannot raise an unhandled rejection", () => {

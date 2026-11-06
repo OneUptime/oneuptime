@@ -1,9 +1,9 @@
 # Canais de notificação personalizados
 
-Um canal personalizado envia os acionamentos de plantão para um serviço que você mantém: o app da sua empresa, um sistema de pager ou um gateway que controla o que sai da sua rede. Você o adiciona uma única vez, para o servidor inteiro, e todos podem ser acionados por ele sem configurar nada. No Admin Dashboard eles se chamam **Custom Channels**.
+Um canal personalizado envia os acionamentos de plantão para um serviço que você mantém: o app da sua empresa, um sistema de pager ou um gateway que controla o que sai da sua rede. Você o adiciona uma única vez, para o servidor inteiro, e todos podem ser acionados por ele sem configurar nada. No Admin Dashboard eles se chamam **Canais personalizados**.
 
 > [!NOTE]
-> Os canais personalizados fazem parte da [Enterprise Edition do OneUptime](/docs/self-hosted/enterprise) e precisam de uma licença Enterprise que os inclua. A Community Edition não tem a página **Custom Channels** e não envia nada a nenhum canal. Veja [Sem licença](#sem-licença).
+> Os canais personalizados fazem parte da [Enterprise Edition do OneUptime](/docs/self-hosted/enterprise) e precisam de uma licença Enterprise que os inclua. A Community Edition não tem a página **Canais personalizados** e não envia nada a nenhum canal. Veja [Sem licença](#sem-licença).
 
 :::cards
 - [Adicionar um canal](#adicionar-um-canal): Um nome, uma URL e um segredo de assinatura.
@@ -31,18 +31,18 @@ Quando uma política de plantão aciona alguém e a regra de plantão dessa pess
 
 ## Adicionar um canal
 
-1. No Admin Dashboard, abra **Configurações**, depois **Notificações > Custom Channels** no menu lateral (**Notificações** começa recolhido), e selecione **Add**.
+1. No Admin Dashboard, abra **Configurações**, depois **Notificações > Canais personalizados** no menu lateral (**Notificações** começa recolhido), e selecione **Add**.
 2. Na etapa **Channel**, preencha:
    - **Nome**: o que as pessoas veem nos seus métodos de notificação e nas suas regras de plantão, por exemplo `CorpoApp`.
    - **Webhook URL**: para onde o OneUptime envia cada acionamento. Pode estar na sua rede privada.
-   - **Signing Secret**: o OneUptime cria um para você. Copie-o para o seu serviço, que confere cada solicitação com ele. Você pode vê-lo de novo editando o canal.
-3. Na etapa **Delivery**, salve e depois selecione **Send test** para enviar ao seu serviço uma [solicitação de teste](#solicitações-de-teste).
+   - **Segredo de assinatura**: o OneUptime cria um para você. Copie-o para o seu serviço, que confere cada solicitação com ele. Você pode vê-lo de novo editando o canal.
+3. Na etapa **Delivery**, salve e depois selecione **Enviar teste** para enviar ao seu serviço uma [solicitação de teste](#solicitações-de-teste).
 
 Na etapa **Delivery**, **Page everyone through this channel** está ativado. O OneUptime então adiciona o canal às regras de plantão de todos em todos os projetos, e às regras de quem entrar em um projeto depois, e o usa para alcançar um plantonista que não tem regra para o que disparou. Desative-o para deixar que cada pessoa adicione o canal às próprias regras.
 
-As pessoas veem o canal em **Configurações do usuário**, depois **Métodos de notificação**, depois **Custom Channels**, com um botão **Send test**, e o escolhem nas suas regras de plantão como `Custom Channel: CorpoApp`. Elas não configuram nada: o seu serviço fica sabendo para quem é cada acionamento.
+As pessoas veem o canal em **Configurações do usuário**, depois **Métodos de notificação**, depois **Canais personalizados**, com um botão **Enviar teste**, e o escolhem nas suas regras de plantão como `Custom Channel: CorpoApp`. Elas não configuram nada: o seu serviço fica sabendo para quem é cada acionamento.
 
-Para parar de enviar sem mudar as regras de ninguém, edite o canal e desative **Ativado**. Os acionamentos que iriam para ele são registrados no registro de plantão como não enviados. Excluir um canal exclui todas as regras de plantão que o usam.
+Para parar de enviar sem mudar as regras de ninguém, escolha **Desativar** no menu ⋯ do canal, ou edite o canal e desative **Ativado**; **Ativar** no mesmo menu o liga de novo. Os acionamentos que iriam para ele são registrados no registro de plantão como não enviados. Excluir um canal exclui todas as regras de plantão que o usam.
 
 ## O que o seu serviço recebe
 
@@ -149,7 +149,7 @@ A resposta diz o que aconteceu, em palavras que o seu app pode exibir como estã
 
 ## Outras notificações
 
-Os acionamentos não são as únicas notificações que as pessoas recebem: o OneUptime também avisa quando um incidente do qual são responsáveis muda de estado, quando uma nota é publicada, quando o turno de plantão delas começa, e mais. Cada pessoa escolhe para onde vai cada uma delas em **Configurações do usuário > Configurações de notificação**, que tem uma coluna **Custom Channels** enquanto houver um canal ativado. Ela fica desativada para todos até que cada pessoa a ative.
+Os acionamentos não são as únicas notificações que as pessoas recebem: o OneUptime também avisa quando um incidente do qual são responsáveis muda de estado, quando uma nota é publicada, quando o turno de plantão delas começa, e mais. Cada pessoa escolhe para onde vai cada uma delas em **Configurações do usuário > Configurações de notificação**, que tem uma coluna **Canais personalizados** enquanto houver um canal ativado. Ela fica desativada para todos até que cada pessoa a ative.
 
 Uma notificação vai para cada canal ativado, como uma solicitação por canal, com `event` definido como `notification`:
 
@@ -186,7 +186,7 @@ O resultado de cada tentativa fica no registro de plantão da pessoa, com o nome
 
 ## Solicitações de teste
 
-**Send test**, na página do Admin Dashboard ou nos métodos de notificação de uma pessoa, envia uma solicitação com `event` definido como `test`, a pessoa que o apertou como `user`, e `notificationId`, `record` e `actions` definidos como `null`. Use-o para experimentar o seu serviço antes que chegue um acionamento de verdade.
+**Enviar teste**, na página do Admin Dashboard ou nos métodos de notificação de uma pessoa, envia uma solicitação com `event` definido como `test`, a pessoa que o apertou como `user`, e `notificationId`, `record` e `actions` definidos como `null`. Use-o para experimentar o seu serviço antes que chegue um acionamento de verdade.
 
 ## Sem licença
 
@@ -194,6 +194,7 @@ Os canais personalizados funcionam durante o período de teste de 14 dias da Ent
 
 - **Nada é enviado a um canal personalizado.** Um acionamento que iria para um deles é registrado no registro de plantão da pessoa como não enviado, e um teste também.
 - **Os canais deixam de ser oferecidos.** Eles saem dos métodos de notificação, das regras de plantão e das configurações de notificação das pessoas, e a prontidão e a alternativa deixam de contá-los.
+- **A conformidade das equipes não verifica canais personalizados.** Uma regra de conformidade de uma equipe que exige um canal personalizado mostra **Não verificado**, e os membros não são verificados quanto a ela até que um canal personalizado possa voltar a levar um acionamento.
 - **A página fica somente leitura.** Você pode ver e excluir canais, mas não adicioná-los nem alterá-los, e ninguém pode apontar uma regra ou uma configuração de notificação para um deles.
 - **Nada é excluído.** Os canais, e as regras de plantão e as configurações que os usam, são mantidos.
 

@@ -39,6 +39,7 @@ import SeriesContextEnricher from "./SeriesContextEnricher";
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
+import MonitorDependencyRule from "../../../Utils/Monitor/MonitorDependencyRule";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
@@ -48,6 +49,13 @@ import { IncidentMemberRoleAssignment } from "../../../Types/Monitor/CriteriaInc
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 import MonitorResourceContextUtil from "./MonitorResourceContext";
 import PerSeriesResolutionRootCause from "./PerSeriesResolutionRootCause";
+import OpenStackAlertContext, {
+  OpenStackSeriesDescription,
+} from "../OpenStack/OpenStackAlertContext";
+import OpenStackProjectNotices from "../OpenStack/OpenStackProjectNotices";
+import OpenStackScopedRules, {
+  OpenStackScopedRulesMatch,
+} from "../OpenStack/OpenStackScopedRules";
 import SeriesResourceLinker, {
   SeriesResolvedResourceIds,
 } from "./SeriesResourceLinker";
@@ -494,10 +502,14 @@ export default class MonitorIncident {
      * purpose — an incident raised before the parent went down must still
      * resolve normally; only new creation is silenced.
      */
-    if (input.dependencySuppression?.isSuppressed) {
+    if (
+      MonitorDependencyRule.isWholeMonitorSuppressed(
+        input.dependencySuppression,
+      )
+    ) {
       const suppressionReason: string =
         MonitorDependencySuppression.buildSuppressionReason(
-          input.dependencySuppression.suppressingParents,
+          input.dependencySuppression!.suppressingParents,
         );
 
       logger.debug(
@@ -610,6 +622,28 @@ export default class MonitorIncident {
               title: "Incident suppressed by scheduled maintenance",
               message:
                 "Skipped creating an incident because the resource for this series is under an active scheduled maintenance window.",
+              relatedCriteriaId: input.criteriaInstance.data?.id,
+              at: OneUptimeDate.getCurrentDate(),
+            });
+            continue;
+          }
+
+          /*
+           * The same, for a parent that speaks for only some of this
+           * monitor's series.
+           */
+          if (
+            MonitorDependencyRule.isSeriesSuppressed({
+              suppression: input.dependencySuppression,
+              labels: seriesLabels,
+            })
+          ) {
+            input.evaluationSummary?.events.push({
+              type: "incident-skipped",
+              title: "Incident suppressed by monitor dependency",
+              message: `Skipped creating an incident for this series because ${MonitorDependencySuppression.buildSuppressionReason(
+                input.dependencySuppression!.suppressingParents,
+              )}. This monitor's status still updates normally; open incidents still auto-resolve.`,
               relatedCriteriaId: input.criteriaInstance.data?.id,
               at: OneUptimeDate.getCurrentDate(),
             });
@@ -899,6 +933,27 @@ export default class MonitorIncident {
             resolved: await getLinkedResources(),
           });
 
+          // What a part of an OpenStack cloud takes with it, and whose that is.
+          const openStackSeries: OpenStackSeriesDescription =
+            await OpenStackAlertContext.describeSeries({
+              description: incident.description,
+              projectId: input.monitor.projectId!,
+              clouds: incident.openStackClouds,
+              seriesLabels: seriesLabels,
+              monitorSteps: input.monitor.monitorSteps,
+            });
+
+          if (openStackSeries.description !== undefined) {
+            incident.description = openStackSeries.description;
+          }
+
+          const openStackRules: OpenStackScopedRulesMatch =
+            await OpenStackScopedRules.read({
+              projectId: input.monitor.projectId!,
+              openStackCloudId: openStackSeries.openStackCloudId,
+              reached: openStackSeries.reached,
+            });
+
           /*
            * On-call policies and labels from the criteria. IncidentService
            * rejects any that belong to another project or no longer exist,
@@ -939,6 +994,8 @@ export default class MonitorIncident {
             return label;
           });
 
+          OpenStackScopedRules.addLabels(incident, openStackRules);
+
           incident.isCreatedAutomatically = true;
 
           // Set status page visibility (defaults to true if not specified)
@@ -977,6 +1034,21 @@ export default class MonitorIncident {
             props: {
               isRoot: true,
             },
+          });
+
+          await OpenStackScopedRules.finishIncident({
+            projectId: input.monitor.projectId!,
+            incidentId: createdIncident.id!,
+            match: openStackRules,
+          });
+
+          // Whoever asked to hear about a project this reaches, once they have seen who that tells.
+          await OpenStackProjectNotices.recordForIncident({
+            projectId: input.monitor.projectId!,
+            incidentId: createdIncident.id!,
+            isPrivate: incident.isPrivate,
+            series: openStackSeries,
+            monitorSteps: input.monitor.monitorSteps,
           });
 
           /*

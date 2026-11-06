@@ -7,6 +7,8 @@ import {
   CLOUD_SHELL_NAMES,
   CloudAiAgentProtectedTargetsProblem,
   CloudAiAgentSetupChoices,
+  GCP_HOST_DESCRIPTIONS,
+  GCP_HOST_TITLES,
   getCloudAiAgentLogsCommand,
   getCloudAiAgentSetupOptions,
   getDefaultCloudAiAgentSetupChoices,
@@ -57,6 +59,11 @@ import {
   CLOUD_AI_DEFAULT_REQUIRED_TAG,
   ResourceAiAccessStatus,
 } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
+import {
+  GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
+  GCP_CLOUD_AI_AGENT_HOSTS,
+  GcpCloudAiAgentHost,
+} from "Common/Types/ResourceAiAgent/CloudAiAgentNames";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
@@ -96,6 +103,11 @@ import React, {
  * dialog starts from what the agent reports it runs with, so the command
  * keeps every earlier choice. The one setting OneUptime keeps - reading
  * the account's logs during investigations - is saved here directly.
+ *
+ * On Google Cloud, More fields also asks what runs the agent: a small VM
+ * by default (about $10 a month), or Cloud Run (about $45) for a project
+ * that allows no VM an external address. The cost line and the logs
+ * command follow the answer, and Change starts from where the agent runs.
  */
 
 export const CLOUD_AI_AGENT_SETUP_TEST_ID: string = "cloud-ai-agent-setup";
@@ -271,7 +283,12 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
   const command: string = problem ? "" : getCloudAiAgentSetupCommand(options);
   const cost: CloudAiAgentCostEstimate = estimateCloudAiAgentMonthlyCost(
     props.provider,
+    choices.gcpHost,
   );
+  // Google Cloud's agent on a VM of its own: the cost is the VM's.
+  const isGcpVm: boolean =
+    props.provider === CloudProvider.GCP &&
+    choices.gcpHost === "compute-engine";
   const everyChange: Array<string> = getCloudAiAgentChangeOperations(
     props.provider,
   );
@@ -354,6 +371,18 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
       value: FOLDED_SECTION_ON,
       translateValue: true,
     },
+    // What runs a Google Cloud agent, named once it is not the default.
+    ...(props.provider === CloudProvider.GCP
+      ? [
+          {
+            key: "host",
+            title: translationKey("Runs on"),
+            isSet: choices.gcpHost !== GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
+            value: GCP_HOST_TITLES[choices.gcpHost],
+            translateValue: true,
+          },
+        ]
+      : []),
     {
       key: "elsewhere",
       title: "Run the agent somewhere else",
@@ -413,10 +442,21 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
             className="text-xs text-gray-500"
             data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-cost`}
           >
-            {translator.translateTemplate(
-              "It runs one small always-on container in your account: about ${{usd}} a month at list prices, billed by your cloud.",
-              { usd: String(cost.usd) },
-            )}
+            {isGcpVm
+              ? translator.translateTemplate(
+                  "It runs on one small always-on VM in your project: about ${{usd}} a month at list prices, billed by your cloud. Google Cloud's free tier can cover it.",
+                  { usd: String(cost.usd) },
+                )
+              : props.provider === CloudProvider.GCP
+                ? // Google Cloud names it a project, as the VM's line does.
+                  translator.translateTemplate(
+                    "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.",
+                    { usd: String(cost.usd) },
+                  )
+                : translator.translateTemplate(
+                    "It runs one small always-on container in your account: about ${{usd}} a month at list prices, billed by your cloud.",
+                    { usd: String(cost.usd) },
+                  )}
           </p>
         </div>
       ),
@@ -488,7 +528,11 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
               </p>
               <CodeBlock
                 language="bash"
-                code={getCloudAiAgentLogsCommand(props.provider)}
+                code={getCloudAiAgentLogsCommand(
+                  props.provider,
+                  choices.gcpHost,
+                  props.accountId,
+                )}
               />
             </div>
           )}
@@ -572,6 +616,62 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
           dataTestId={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-more-fields`}
         >
           <div className="space-y-5">
+            {props.provider === CloudProvider.GCP ? (
+              <fieldset
+                className="space-y-2"
+                data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-host`}
+              >
+                <legend className="text-sm font-medium text-gray-900">
+                  {translator.translateText(
+                    translationKey("Where the agent runs"),
+                  )}
+                </legend>
+                {GCP_CLOUD_AI_AGENT_HOSTS.map(
+                  (host: GcpCloudAiAgentHost): ReactElement => {
+                    return (
+                      <label
+                        key={host}
+                        className="flex items-start gap-2 text-sm text-gray-800"
+                      >
+                        <input
+                          type="radio"
+                          name={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-host`}
+                          value={host}
+                          checked={choices.gcpHost === host}
+                          className="mt-0.5 h-4 w-4 flex-shrink-0 border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500"
+                          data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-host-${host}`}
+                          onChange={() => {
+                            update({ gcpHost: host });
+                          }}
+                        />
+                        <span className="min-w-0">
+                          <span className="block font-medium text-gray-900">
+                            {translator.translateText(GCP_HOST_TITLES[host]) ||
+                              GCP_HOST_TITLES[host]}
+                          </span>
+                          <span className="block text-xs text-gray-500">
+                            {translator.translateTemplate(
+                              GCP_HOST_DESCRIPTIONS[host],
+                              {
+                                usd: String(
+                                  estimateCloudAiAgentMonthlyCost(
+                                    CloudProvider.GCP,
+                                    host,
+                                  ).usd,
+                                ),
+                              },
+                            )}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  },
+                )}
+              </fieldset>
+            ) : (
+              <></>
+            )}
+
             <div className="space-y-2">
               <p className="text-sm font-medium text-gray-900">
                 {translator.translateText(

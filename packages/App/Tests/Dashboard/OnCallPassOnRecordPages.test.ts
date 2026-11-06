@@ -165,8 +165,9 @@ describe("the button and the dialog are worded in one place", () => {
     expect(hook).toContain("label: PASS_ON_PAGE_TEXT.button,");
     expect(hook).toContain("title={getPassOnQuestionTitle(data.recordType)}");
     expect(hook).toContain("submitButtonText={PASS_ON_PAGE_TEXT.button}");
+    // With the level picked for each page (the next one until another is).
     expect(hook).toContain(
-      "getPassOnQuestionLines(pages, translator, data.recordType)",
+      "getPassOnQuestionLines(pages, translator, data.recordType, picks)",
     );
     expect(hook).toContain(
       "getPassOnAnswerLines(answers, translator, data.recordType)",

@@ -15,6 +15,7 @@ import {
 import {
   getOnCallPassOnLevelCount,
   getOnCallPassOnLevelName,
+  isOnCallLevelSkippedByEscalationMessage,
   isOnCallPagePassedOnStatusMessage,
 } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import {
@@ -129,6 +130,16 @@ import ProductBrandingText from "../ProductBrandingText";
  *
  * Runs whose people escalated before the action was renamed from "Pass it
  * on" wrote their messages in those words; they are read back the same.
+ *
+ * Somebody escalating may pick a later level than the next (OnCallPagePassOn's
+ * level choice). Each level between gets an entry of its own, saying it was
+ * skipped and why, before the entries of the level picked:
+ *
+ *   Ana Lopez escalated the page from on-call policy PolicyX at Level 1
+ *     of 3.
+ *   On-call policy PolicyX skipped Platform leads (Level 2 of 3): the page
+ *     was escalated past it.
+ *   On-call policy PolicyX paged Sam Lee at DBA leads (Level 3 of 3).
  */
 export interface OnCallStepFeedTextInput {
   status: OnCallDutyExecutionLogTimelineStatus;
@@ -391,7 +402,10 @@ const isSaidInItsOwnWords: (input: OnCallStepFeedTextInput) => boolean = (
     return false;
   }
 
-  if (readOnCallEmptyLevelLine(input.statusMessage)) {
+  if (
+    readOnCallEmptyLevelLine(input.statusMessage) ||
+    isOnCallLevelSkippedByEscalationMessage(input.statusMessage)
+  ) {
     return true;
   }
 
@@ -407,6 +421,14 @@ const getStepHeadline: (input: OnCallStepFeedTextInput) => MarkdownText = (
   const policy: MarkdownText = getPolicy(input.policyLink);
 
   if (!hasMarkdown(input.recipient)) {
+    /*
+     * A level the person escalating skipped for a later one: no fault of
+     * the level's, and nobody to name - the entry before says who.
+     */
+    if (isOnCallLevelSkippedByEscalationMessage(input.statusMessage)) {
+      return mdText`${policy} skipped ${getLevel(input)}: the page was escalated past it.`;
+    }
+
     const emptyLevelLine: OnCallEmptyLevelLine | null =
       readOnCallEmptyLevelLine(input.statusMessage);
 

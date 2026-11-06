@@ -6,7 +6,7 @@
 
 :::cards
 - [我們的敏感資料在哪裡？](/docs/data-security/data-types): 143 種資料類型，從卡號、國民身分證號碼到 API 金鑰，可在儲存貯體、資料表和遙測中找到。
-- [資料是否暴露在外？](/docs/data-security/checks-and-issues): 對每個資料儲存區進行 33 項檢查：公開存取、加密、備份、日誌記錄、祕密和複本。
+- [資料是否暴露在外？](/docs/data-security/checks-and-issues): 對每個資料儲存區進行 34 項檢查：公開存取、加密、備份、日誌記錄、祕密和複本。
 - [誰可以存取它，它又流向哪裡？](/docs/data-security/flows-access-residency): 可以存取每個資料儲存區的每個身分（風險最高的排在前面）、哪些服務使用它，以及它的資料會到達哪些 AI 供應商和主機。
 - [它符合我們的規定嗎？](/docs/data-security/compliance): 資料落地規則，以及根據掃描結果評分的九個合規框架。
 :::
@@ -66,10 +66,10 @@ flowchart TB
 
 | 位置 | 資料儲存區 | 內容樣本 |
 | --- | --- | --- |
-| AWS | AWS S3 Bucket、AWS RDS Instance、AWS Aurora Cluster、AWS RDS Snapshot、AWS DynamoDB Table、AWS Redshift Cluster、AWS DocumentDB Cluster、AWS OpenSearch Domain、AWS ElastiCache Cluster、AWS EFS File System | AWS S3 Bucket |
+| AWS | AWS S3 Bucket、AWS RDS Instance、AWS Aurora Cluster、AWS RDS Snapshot、AWS DynamoDB Table、AWS Redshift Cluster、AWS DocumentDB Cluster、AWS OpenSearch Domain、AWS ElastiCache Cluster、AWS EFS File System、Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
-| 你自行執行的資料庫 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch | PostgreSQL、MySQL |
+| 你自行執行的資料庫 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks | PostgreSQL、MySQL |
 | OneUptime | 日誌、追蹤、例外、工作階段重播、AI 對話 | 日誌、追蹤、例外、工作階段重播、AI 對話 |
 
 每個資料儲存區都會執行適用於其種類的檢查。無法對內容取樣的資料儲存區仍會接受檢查：公開的儲存貯體或未加密的資料庫，無論其中保存什麼，都是缺失。

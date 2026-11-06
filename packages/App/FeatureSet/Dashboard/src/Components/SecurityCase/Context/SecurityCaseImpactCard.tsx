@@ -103,6 +103,7 @@ import TableEmptyState, {
 import API from "Common/UI/Utils/API/API";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getChangeTitleForReader } from "Common/Utils/Telemetry/CloudChangeTitle";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -711,8 +712,20 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
                           ? IMPACT_CHANGE_BEFORE
                           : IMPACT_CHANGE_AFTER,
                         {
-                          title:
-                            leading.change.title || leading.change.eventType,
+                          /*
+                           * A cloud change's title in the sentence's own
+                           * language, worded from its facts.
+                           */
+                          title: composedValue(
+                            (sentence: Translator): string => {
+                              return getChangeTitleForReader({
+                                title: leading.change.title,
+                                eventType: leading.change.eventType,
+                                facts: leading.change.cloudChange,
+                                translator: sentence,
+                              });
+                            },
+                          ),
                           name: leading.record.name,
                           time: OneUptimeDate.fromNow(
                             new Date(leading.change.time),

@@ -56,7 +56,7 @@ Hver række viser også, hvor mange brugere undtagelsen ramte i det valgte tidsr
 
 ### Vælg, hvad der tæller som et problem
 
-**Problemer**, som er standard, skjuler brugerfejl og forventede afvisninger, så listen viser det, der kræver en rettelse. **User errors** viser kun dem, og **Alle** viser hver undtagelse.
+**Problemer**, som er standard, skjuler brugerfejl og forventede afvisninger, så listen viser det, der kræver en rettelse. **Brugerfejl** viser kun dem, og **Alle** viser hver undtagelse.
 
 ### Søg og filtrér
 

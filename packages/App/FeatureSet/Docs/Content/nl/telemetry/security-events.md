@@ -38,6 +38,7 @@ Open **Producten → Beveiligingsgebeurtenissen**, onder **Beveiliging**. Het me
 | **Alle zaken** | Beveiligingszaken | Elke zaak, open of gesloten |
 | **Gebeurtenissen** | Gebeurtenissen | Elke gebeurtenis zoeken en filteren, en er een openen om al haar velden te zien |
 | **Hunts** | Gebeurtenissen | Zoekopdrachten opgeslagen vanuit Gebeurtenissen, met één klik weer geopend of volgens een schema uitgevoerd dat mensen laat weten wanneer ze iets vinden |
+| **Huntbibliotheek** | Gebeurtenissen | Kant-en-klare hunts om op Gebeurtenissen te proberen of aan je hunts toe te voegen, elk met de gebeurtenissen die hij leest en of die binnenkomen |
 | **Campagnes** | Gebeurtenissen | Elk adres dat aanvalsverzoeken stuurde, en of een van zijn verzoeken erdoor kwam |
 | **Entiteitrisico** | Gebeurtenissen | Elke gebruiker, host en elk adres, gescoord op wat er deze week over werd gevonden, de riskantste eerst |
 | **Correleren** | Gebeurtenissen | Een grafiek van de gebeurtenissen die een host, een gebruiker of een IP-adres delen |
@@ -181,22 +182,42 @@ De pagina **Installatiegids**, onder **Verbindingen**, bevat deze snippets, met 
 
 ### Beveiligingsgebeurtenissen in uw logs vinden
 
-De kaart **Uw logboeken**, boven aan **Verbindingen**, maakt van de logs die u al naar OneUptime stuurt een bron. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan worden de nieuwe logs van het project elke minuut gelezen, en elke SSH- of Windows-aanmelding, sudo-opdracht, auditregel van een cloud, CEF- of LEEF-record van een beveiligingsproduct, Kubernetes-auditregel en webaanval daarin wordt opgeslagen als beveiligingsgebeurtenis. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started#beveiligingsgebeurtenissen-in-uw-logs-vinden) voor wat elke soort omvat.
+De kaart **Uw logboeken**, boven aan **Verbindingen**, maakt van de logs die u al naar OneUptime stuurt een bron. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan worden de nieuwe logs van het project elke minuut gelezen, en elke SSH- of Windows-aanmelding, sudo-opdracht, auditregel van een cloud, CEF- of LEEF-record van een beveiligingsproduct, record van een firewall van Palo Alto Networks, FortiGate of Cisco ASA, Kubernetes-auditregel en webaanval daarin wordt opgeslagen als beveiligingsgebeurtenis. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started#beveiligingsgebeurtenissen-in-uw-logs-vinden) voor wat elke soort omvat.
 
 Elke soort bereikt OneUptime als gewone logs:
 
 | Soort | Stuur het vanuit |
 | --- | --- |
 | SSH-aanmeldingen, sudo | De journal of het authenticatielog van een Linux-machine, met de [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| Windows-gebeurtenissen | De `windowseventlog`-receiver van de collector op de machine, of een forwarder die elke gebeurtenis als JSON schrijft, zoals NXLog of Winlogbeat |
-| AWS CloudTrail | Een trail die aan CloudWatch Logs wordt geleverd, gelezen door de `awscloudwatch`-receiver van de collector |
-| Google Cloud-auditlogs | Een log-sink naar Pub/Sub, gelezen door de `googlecloudpubsub`-receiver van de collector met `encoding: raw_text` |
-| Azure-activiteitslogs en Entra ID-logs | Een diagnostische instelling die naar een Event Hub streamt, gelezen door de `azureeventhub`-receiver van de collector met `format: raw` |
+| Windows-gebeurtenissen | De `windowseventlog`-receiver van de collector op de machine, of een forwarder die elke gebeurtenis als JSON schrijft, zoals NXLog of Winlogbeat. Een aan OneUptime toegevoegde [host](/docs/telemetry/hosts) leest ook Sysmon, Microsoft Defender en PowerShell waar hij ze heeft |
+| AWS CloudTrail | Een trail die aan CloudWatch Logs wordt geleverd, gelezen door de `awscloudwatch`-receiver van de collector, of, voor een account dat onder **Cloud** is gekoppeld, [Cloud-auditlogboeken](#de-auditlogs-van-uw-cloudaccounts-lezen) |
+| Google Cloud-auditlogs | Een log-sink naar Pub/Sub, gelezen door de `googlecloudpubsub`-receiver van de collector met `encoding: raw_text`, of, voor een project dat onder **Cloud** is gekoppeld, [Cloud-auditlogboeken](#de-auditlogs-van-uw-cloudaccounts-lezen) |
+| Azure-activiteitslogs en Entra ID-logs | Een diagnostische instelling die naar een Event Hub streamt, gelezen door de `azureeventhub`-receiver van de collector met `format: raw`, of, voor het activiteitenlogboek van een abonnement dat onder **Cloud** is gekoppeld, [Cloud-auditlogboeken](#de-auditlogs-van-uw-cloudaccounts-lezen) |
+| OpenStack-audittrail | De notificaties en het auditfilter van een cloud, met `driver = log` naar de logs gestuurd en gelezen door het [logprofiel](/docs/telemetry/openstack#wie-deed-wat) van de agent |
 | CEF, LEEF | De syslog van het product, doorgestuurd door [rsyslog](/docs/telemetry/syslog) |
+| Palo Alto Networks, FortiGate, Cisco ASA | De eigen syslog van de firewall, doorgestuurd door [rsyslog](/docs/telemetry/syslog) |
 | Kubernetes-auditlogs | Het auditlogbestand van de API-server, gelezen door de `filelog`-receiver van de collector |
 | Webaanvallen | Het toegangslog van een webserver, gelezen door de `filelog`-receiver van de collector |
 
 Op **Uw logboeken** zegt elke soort wanneer ze voor het laatst is gevonden, en **Een logboekregel controleren** laat zien wat een regel die u plakt wordt, nog voordat er een binnenkomt.
+
+Een bedreiging die een beveiligingsproduct in uw logs schrijft, zoals een CEF- of LEEF-bevinding of een bedreiging van Palo Alto Networks, FortiGate of Cisco ASA, opent een [zaak](/docs/telemetry/security-cases) zoals de waarschuwing van een gekoppeld product dat doet, en verhoogt het risico van de gebruiker, de host of het adres dat ze noemt. **Cases openen vanaf**, op **Uw logboeken**, bepaalt vanaf welke ernst: **Hoog en hoger**, tenzij u een andere kiest, of **Nooit**. De aanmeldingen en geblokkeerde verbindingen van het product blijven gebeurtenissen, die uw regels lezen.
+
+Een record dat OneUptime langs twee wegen bereikt, wordt één keer opgeslagen: een aanmelding bij Microsoft Entra ID die de verbinding leest en die Azure ook naar uw logs exporteert, of een CloudTrail-record in uw logs en in het auditlog van een gekoppeld AWS-account.
+
+### De auditlogs van uw cloudaccounts lezen
+
+Een AWS-account, Google Cloud-project of Azure-abonnement dat [onder **Cloud** is gekoppeld](/docs/telemetry/cloud-accounts), heeft geen logpijplijn nodig. Zet **Cloud-auditlogboeken** aan, onder **Uw OneUptime-gegevens** op **Verbindingen**, en elke leesbeurt van het account bewaart het auditlog als beveiligingsgebeurtenissen:
+
+| Cloud | Wat er wordt gelezen |
+| --- | --- |
+| AWS | De beheergebeurtenissen van CloudTrail die iets wijzigen, in elke regio die het account gebruikt: aanmeldingen bij de console, wijzigingen en aanroepen die AWS weigerde |
+| Google Cloud | Het auditlog Admin Activity: wijzigingen aan resources en aan wie ze mag bereiken, en aanroepen die Google weigerde |
+| Azure | Het activiteitenlogboek: wijzigingen in het abonnement, mislukte bewerkingen, weigeringen door Azure Policy en waarschuwingen van Defender for Cloud |
+
+- Elk record wordt gelezen zoals **Uw logboeken** het uit een pijplijn leest, zodat de CloudTrail-, Google Cloud- en Azure-regels van de regelbibliotheek erop matchen.
+- Een gebeurtenis krijgt het tijdstip waarop ze wordt opgeslagen, met de eigen tijd van het record in `oneuptime.cloud.record_time`: een auditlog bereikt OneUptime minuten te laat, en een regel leest gebeurtenissen op hun tijd.
+- De leesbeurt van het account zelf levert niets meer op: data-events, Data Access-logs en de logs van Microsoft Entra ID hebben nog steeds **Uw logboeken** of een [verbinding](/docs/integrations/microsoft-entra-id) nodig.
 
 ### Een beveiligingsproduct koppelen
 
@@ -212,7 +233,7 @@ Op **Uw logboeken** zegt elke soort wanneer ze voor het laatst is gevonden, en *
 | Elastic Security | Detectiewaarschuwingen, als Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, als Detection en Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Gebeurtenissen over aanmeldingen, MFA, accounts en beleid | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | Aanmeldingen en directorywijzigingen, en uit het Microsoft 365-auditlogboek het doorsturen van e-mail, delen en phishingoordelen | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | Aanmeldingen, directorywijzigingen en risicodetecties, desgewenst mislukte achtergrond- en app-aanmeldingen, en uit het Microsoft 365-auditlogboek het doorsturen van e-mail, delen en phishingoordelen | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Aanmeldingen, de eigen detecties van Google, beheerwijzigingen en app-toegang, en delen in Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
 - De eigen waarschuwingen van het product vanaf het niveau dat in **Open Cases From** is ingesteld (**Hoog en hoger**, tenzij je een ander niveau kiest, of **Nooit**), openen [zaken](/docs/telemetry/security-cases), gegroepeerd op de gebruiker, de host of het adres waar ze over gaan.
@@ -256,6 +277,7 @@ De zoekbalk spreekt dezelfde taal als de andere telemetrieverkenners (zie [Zoeks
 | `<field>:a*` | `*` is willekeurige tekst, `?` één teken | `host:web-*` |
 | `@<attribute>:*` | Het attribuut is aanwezig | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Het attribuut bevat de tekst | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | Het veld staat op een [volglijst](#volglijsten) | `user:%vip_users%` |
 
 Een veld is ofwel een korte naam (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) ofwel de eigen naam van het veld, zoals `severityName` of `principalHost`. Elke andere naam wordt gelezen als bronattribuut. `observable:<value>` vindt elke gebeurtenis die een waarde noemt, aan welke kant van de activiteit die ook stond.
 
@@ -281,9 +303,17 @@ Een hunt is een zoekopdracht in je beveiligingsgebeurtenissen die onder een naam
 
 ### Een zoekopdracht opslaan als hunt
 
-Zoek en filter op **Gebeurtenissen** tot de lijst laat zien wat je zoekt, open dan **Hunts** in de werkbalk en kies **Opslaan als hunt**. Geef hem een naam, kies of hij volgens een schema draait, en zijn pagina opent. **Gebeurtenissen → Hunts** toont de hunts van het project, elk met zijn zoekopdracht, hoe vaak hij draait, wie hij op de hoogte stelt en wat zijn laatste run vond; **Hunt aanmaken** neemt daar de zoekopdracht zoals je die op **Gebeurtenissen** zou typen. Een project bewaart tot 200 hunts.
+Zoek en filter op **Gebeurtenissen** tot de lijst laat zien wat je zoekt, open dan **Hunts** in de werkbalk en kies **Opslaan als hunt**. Geef hem een naam, kies of hij volgens een schema draait, en zijn pagina opent. **Gebeurtenissen → Hunts** toont de hunts van het project, elk met zijn zoekopdracht, hoe vaak hij draait, wie hij op de hoogte stelt en wat zijn laatste run vond; **Hunt aanmaken** neemt daar de zoekopdracht zoals je die op **Gebeurtenissen** zou typen. Een project bewaart tot 200 hunts. Een zoekopdracht kan een [volglijst](#volglijsten) lezen, zoals `user:%vip_users%` doet, en een hunt die een lijst leest die het project niet heeft, wordt bij het opslaan geweigerd.
 
 De pagina van een hunt is zijn zoekopdracht, geopend in de verkenner Gebeurtenissen. Wijzig daar de zoekopdracht of de filters, en de kop van de hunt biedt **Wijzigingen opslaan** en **Wijzigingen verwerpen**. **Bewerken** wijzigt zijn naam, zijn zoekopdracht, hoe ver hij terugkijkt, zijn schema en wie hij op de hoogte stelt, en **Hunt verwijderen** staat in zijn menu. Vanaf Security Member kun je hunts opslaan, wijzigen en verwijderen, en een Security Viewer kan ze openen.
+
+Een hunt die is opgeslagen met filters uit de zijbalk van Gebeurtenissen, toont ze in **Bewerken** onder **Filters**, zoals Gebeurtenissen ze tekent, elk met een x om het weg te halen. Voeg filters toe op de pagina van de hunt, vanuit de zijbalk.
+
+### Begin vanuit de Huntbibliotheek
+
+**Gebeurtenissen → Huntbibliotheek** toont kant-en-klare hunts voor waar beveiligingsteams het vaakst naar zoeken, zoals mislukte aanmeldingen, gecodeerde PowerShell, het AWS-rootaccount en shells die in Kubernetes-pods zijn geopend. Elke hunt toont wat hij vindt, zijn zoekopdracht zoals je die op **Gebeurtenissen** zou typen, en of de gebeurtenissen die hij leest binnenkomen, zoals de **Regelbibliotheek** dat voor haar regels doet. Verfijn ze op **Huntcategorie**, **Gegevens** en **Status**, of doorzoek ze.
+
+**Uitproberen** opent de zoekopdracht op **Gebeurtenissen**, over het tijdvenster van de hunt, en slaat niets op. **Toevoegen** slaat hem meteen op als een van de hunts van het project, benoemd en beschreven in jouw taal en zonder schema, zoals elke nieuwe hunt. Daarna staat er **Toegevoegd**, en **Openen** opent hem, waar je hem een schema kunt geven.
 
 ### Een hunt volgens een schema uitvoeren
 
@@ -302,9 +332,15 @@ Een run opent geen zaak en geeft geen waarschuwing: schrijf wat zaken moet opene
 
 Een geplande hunt draait onder de persoon die als laatste zijn schema instelde, zijn zoekopdracht wijzigde of hem opsloeg met **Bewerken**. Een API-sleutel kan geen schema instellen. Als die persoon het project verlaat of geen beveiligingsgebeurtenissen meer mag lezen, zegt de hunt dat: open **Bewerken** en sla hem op om hem onder jou te laten draaien.
 
+### Runhistorie
+
+Elke geplande run wordt 90 dagen bewaard. **Runhistorie**, aan het eind van de regel die zegt wat de runs van een hunt vonden, toont ze met de nieuwste eerst: wanneer elke run draaide en welke gebeurtenissen hij doorzocht, dan hoeveel hij vond, met **Tonen** om die gebeurtenissen op de pagina van de hunt te openen; dat hij niets vond; of waarom hij niet kon draaien. Wie een hunt kan openen, kan zijn runs lezen.
+
 ### Wie op de hoogte wordt gesteld
 
 De melding **Hunt heeft beveiligingsgebeurtenissen gevonden** noemt de hunt en zijn zoekopdracht, hoeveel gebeurtenissen zijn run vond en welk venster die las, en linkt naar de pagina van de hunt op die gebeurtenissen; er staat geen woord van een gebeurtenis zelf in. Iedereen krijgt hem per e-mail en push, en kiest de kanalen onder **Gebruikersinstellingen → Meldingsinstellingen**. Net als andere routine-e-mails kan hij worden vastgehouden in een [e-mailoverzicht](/docs/emails/notification-rollup).
+
+Om wat hunts vinden in Slack, Microsoft Teams of Mattermost te plaatsen, voeg je een regel toe aan **Regels voor hunts** onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams** of **Mattermost**), onder de regels die [beveiligingszaken](/docs/telemetry/security-cases#plaatsen-in-kanalen-van-slack-microsoft-teams-en-mattermost) plaatsen. Een regel noemt de kanalen waarin geplaatst wordt (en in Microsoft Teams de chats) en, als je wilt, de hunts waarvoor hij geldt, op **Naam van hunt**: een naam die jouw tekst is, die bevat, ermee begint of ermee eindigt. Telkens wanneer een geplande run gebeurtenissen vindt, plaatst hij de hunt, zijn zoekopdracht, hoeveel gebeurtenissen en wanneer, met een link ernaar, en geen van de eigen woorden van een gebeurtenis. Een huntregel wordt ingesteld door een rol die beveiligingsplaybooks mag instellen, zoals Project Owner, Project Admin of Security Admin.
 
 ### Gebeurtenissen bij een zaak bewaren
 
@@ -312,7 +348,7 @@ Selecteer gebeurtenissen op **Gebeurtenissen** of op de pagina van een hunt en k
 
 OneUptime leest elke gebeurtenis opnieuw namens jou en bewaart haar zoals ze was op de pagina **Bewijs** van de zaak, zodat de zaak haar nog toont als de bewaartermijn van de gebeurtenis voorbij is. Een gebeurtenis die je niet mag lezen, wordt niet bewaard, en een die de zaak al bewaart, blijft zoals ze is. Een gebeurtenis die via een hunt is gevonden, noemt de hunt, en **Gebeurtenis bekijken** opent haar zoals ze werd bewaard.
 
-Hunts hebben dezelfde REST API als de rest van OneUptime, onder `/security-hunt`, en `POST /security-case-evidence/add-events` bewaart gebeurtenissen bij een zaak. Zie [API-referentie](/docs/api-reference/api-reference).
+Hunts hebben dezelfde REST API als de rest van OneUptime, onder `/security-hunt`, en `POST /security-case-evidence/add-events` bewaart gebeurtenissen bij een zaak. De runs van een hunt worden gelezen onder `/security-hunt-run`. Zie [API-referentie](/docs/api-reference/api-reference).
 
 ## Detectieregels
 
@@ -511,7 +547,7 @@ Een uitzondering is iets dat een regel overslaat omdat je het verwacht, zoals ee
 
 ### Volglijsten
 
-Een volglijst is een lijst die je team één keer bijhoudt en die elke regel kan lezen, zoals VIP-gebruikers, kritieke hosts, bekende kwaadaardige bestandshashes of de adressen waarvandaan beheerders mogen inloggen. Elke lijst staat onder **Producten → Beveiligingsgebeurtenissen → Detecties → Volglijsten**: maak er daar een met **Volglijst aanmaken**, dat om de naam en de inhoud vraagt, of voeg een veelgebruikte toe via **Begin met een veelgebruikte lijst**. De pagina van een lijst toont de waarden, en **Gebruiken in een regel** geeft een selectie die de lijst leest, om in een regel te kopiëren.
+Een volglijst is een lijst die je team één keer bijhoudt en die elke regel kan lezen, zoals VIP-gebruikers, kritieke hosts, bekende kwaadaardige bestandshashes of de adressen waarvandaan beheerders mogen inloggen. Elke lijst staat onder **Producten → Beveiligingsgebeurtenissen → Detecties → Volglijsten**: maak er daar een met **Volglijst aanmaken**, dat om de naam en de inhoud vraagt, of voeg een veelgebruikte toe via **Begin met een veelgebruikte lijst**. De pagina van een lijst toont de waarden, en **Deze lijst gebruiken** geeft een selectie die de lijst leest, om in een regel te kopiëren, en de zoekopdracht die haar leest op **Gebeurtenissen** of in een hunt.
 
 Een regel leest een lijst met `expand` en de naam van de lijst tussen twee `%`-tekens. Deze regel gaat af wanneer een beheerder inlogt vanaf een adres dat niet op de toegestane lijst staat:
 
@@ -529,10 +565,14 @@ level: high
 
 - Een lijst bevat gebruikers, hosts, IP-adressen, bestandshashes, domeinen, URL's, processen of andere waarden, gekozen bij het aanmaken. Een waarde komt overeen ongeacht hoofdletters, en `*` staat voor elke reeks tekens: `svc-*` past op elk serviceaccount. Een lijst met IP-adressen neemt ook bereiken, zoals `10.20.0.0/16`, en een lijst met bestandshashes MD5-, SHA-1-, SHA-256- en SHA-512-hashes.
 - Voeg waarden een voor een toe met **Waarde toevoegen**, of veel tegelijk met **Waarden importeren**: plak ze, of kies een `.txt`- of `.csv`-bestand, één waarde per regel, met een optionele notitie na een komma. **Aan de lijst toevoegen** houdt de waarden die er al op staan, en **De lijst vervangen** verwijdert de waarden die niet in de import staan.
+- Een waarde kan een **Verloopt om** hebben: vanaf dan leest geen regel, monitor, hunt of zoekopdracht haar nog, en OneUptime haalt haar binnen een minuut van de lijst. Leeg gelaten blijft ze tot iemand haar weghaalt.
+- **Waarden exporteren** downloadt de waarden van een lijst als een CSV-bestand met de kolommen `value`, `note` en `expires`, dat **Waarden importeren** weer inleest. Een bestand waarvan de eerste regel deze kolommen noemt, geeft elke waarde haar notitie en wanneer ze verloopt: een datum zoals `2026-12-31`, of een datum en tijd in UTC.
+- Een lijst kan in plaats daarvan worden gelezen uit een bestand op een https-adres, opnieuw **Elk uur**, **Elke 6 uur** of **Elke dag**: kies **Een bestand op een adres** onder **Meer velden** wanneer je haar aanmaakt. Elke leesactie maakt de lijst tot wat het bestand bevat, gelezen zoals een import het leest. Een mislukte leesactie verandert geen enkele waarde en de pagina van de lijst zegt waarom, en **Nu lezen** leest haar meteen.
 - In plaats van waarden bij te houden kan een lijst met IP-adressen, bestandshashes, domeinen of URL's een feed met dreigingsinformatie volgen: de waarden zijn dan de actieve indicatoren van de feed van de soort van de lijst, actueel gehouden terwijl de feed wordt gelezen.
-- `expand` gebruik je alleen, omdat de waarden van de lijst bepalen hoe ze overeenkomen. Een veld met meerdere waarden, zoals `observables`, komt overeen wanneer een ervan op de lijst staat. **Gelezen door** noemt de regels die elke lijst lezen, en onder de YAML van een regel noemt het formulier de lijsten die de regel leest.
-- Een regel noemt een lijst ongeacht hoofdletters. Een regel die een lijst noemt die het project niet heeft, wordt bij het opslaan geweigerd, en een lijst die regels lezen kan pas worden hernoemd of verwijderd als geen regel haar nog leest.
+- `expand` gebruik je alleen, omdat de waarden van de lijst bepalen hoe ze overeenkomen. Een veld met meerdere waarden, zoals `observables`, komt overeen wanneer een ervan op de lijst staat. **Gelezen door** noemt de regels, Security Events-monitors en hunts die elke lijst lezen, en onder de YAML van een regel noemt het formulier de lijsten die de regel leest.
+- Een regel noemt een lijst ongeacht hoofdletters. Een regel, een monitor of een hunt die een lijst noemt die het project niet heeft, wordt bij het opslaan geweigerd, en een lijst die een van hen leest kan pas worden hernoemd of verwijderd als niets haar nog leest.
 - Een wijziging aan een lijst bereikt elke regel die haar leest bij de volgende run van die regel. Ook correlatieregels en **Uitvoeren op eerdere gebeurtenissen** lezen lijsten.
+- Een Security Events-monitor leest lijsten in zijn **Filteren op volglijsten**, en een zoekopdracht op **Gebeurtenissen** of in een hunt leest er een als `user:%vip_users%`. Een minteken ervoor, zoals in `-ip:%admin_addresses%`, houdt de gebeurtenissen waarvan het veld niet op de lijst staat.
 - Een lijst bevat hoogstens 5.000 waarden, waarvan hoogstens 100 met `*` en 100 bereiken, en een project heeft hoogstens 200 lijsten: volg voor een langere lijst een feed met dreigingsinformatie. Wie detectieregels mag aanmaken, bewerken of verwijderen, mag hetzelfde doen met lijsten, en wie detectieregels mag bewerken, voegt hun waarden toe, wijzigt en verwijdert ze. Elke Security-rol kan ze lezen, en elke wijziging staat in het auditlogboek van het project.
 
 ### Uitvoeren op eerdere gebeurtenissen
@@ -549,11 +589,11 @@ level: high
 
 Een monitor voor beveiligingsgebeurtenissen telt de gebeurtenissen die aan zijn filters voldoen over een glijdend venster en past de gebruikelijke monitorcriteria toe op de telling: hij wijzigt de status van de monitor, opent waarschuwingen of incidenten, en roept de dienstdoende op. Maak er een aan onder **Monitoren → Monitor maken**, met **Beveiligingsgebeurtenissen** als type; daar staat hij tussen uw andere monitoren.
 
-Het formulier toont **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** en **Gebeurtenisklasse**. **Filteren op telemetrieservice** en **Filteren op attributen** wachten onder **Meer velden**, waarvan de kop toont welke een monitor gebruikt. De criteria controleren **Security Event Count**.
+Het formulier toont **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** en **Gebeurtenisklasse**. **Filteren op telemetrieservice**, **Filteren op attributen** en **Filteren op volglijsten** wachten onder **Meer velden**, waarvan de kop toont welke een monitor gebruikt. **Filteren op volglijsten** houdt de gebeurtenissen waarvan het veld wel of niet op een van je [volglijsten](#volglijsten) staat. De criteria controleren **Security Event Count**.
 
 | | Detectieregel | Monitor voor beveiligingsgebeurtenissen |
 | --- | --- | --- |
-| Matcht | Een Sigma-regel | Filters op ernst, klasse, bericht, service en attributen |
+| Matcht | Een Sigma-regel | Filters op ernst, klasse, bericht, service, attributen en volglijsten |
 | Venster | Aansluitend, één per uitvoering | Glijdend: de laatste 5 seconden tot 24 uur |
 | Telt per groep | Ja, met **Groeperingsveld** | Nee: één telling voor alles wat matcht |
 | Opent | Waarschuwingen, incidenten en bevindingen | Een status, waarschuwingen en incidenten |
@@ -610,11 +650,15 @@ Controleer haar **Status** in **Regeluitzonderingen**: een uitzondering met de s
 :::
 
 :::details Een regel die een volglijst leest, komt niet overeen
-Open de lijst en controleer de waarden: een waarde zonder `*` moet gelijk zijn aan het hele veld, ongeacht hoofdletters, en een lijst die een feed met dreigingsinformatie volgt, bevat alleen de actieve indicatoren van de feed van haar soort. Controleer of de regel het veld leest dat je gebeurtenissen vullen: **Gebruiken in een regel** begint met het veld waarin een lijst van haar soort meestal staat. Een wijziging aan een lijst bereikt een regel bij de volgende run.
+Open de lijst en controleer de waarden: een waarde zonder `*` moet gelijk zijn aan het hele veld, ongeacht hoofdletters, en een lijst die een feed met dreigingsinformatie volgt, bevat alleen de actieve indicatoren van de feed van haar soort. Controleer of de regel het veld leest dat je gebeurtenissen vullen: **Deze lijst gebruiken** begint met het veld waarin een lijst van haar soort meestal staat. Een wijziging aan een lijst bereikt een regel bij de volgende run.
 :::
 
 :::details Een volglijst kan niet worden hernoemd of verwijderd
-Regels lezen haar nog via haar naam, en de melding noemt ze. Wijzig de naam in die regels, of haal de lijst eruit, en hernoem of verwijder haar daarna.
+Regels, monitors of hunts lezen haar nog via haar naam, en de melding noemt ze. Wijzig de naam daarin, of haal de lijst eruit, en hernoem of verwijder haar daarna.
+:::
+
+:::details Een lijst die van een adres wordt gelezen, toont een fout
+De pagina zegt waarom onder **Gelezen van een adres**, met wat het adres antwoordde, en de lijst behoudt de waarden van haar laatste geslaagde leesactie. Het adres moet beginnen met `https`, vanaf internet antwoorden zonder aanmelding en een tekst- of CSV-bestand van hoogstens 4 MB downloaden, geen webpagina. Corrigeer het in **Bewerken** en kies daarna **Nu lezen**.
 :::
 
 :::details Een regel uitvoeren op eerdere gebeurtenissen vindt niets

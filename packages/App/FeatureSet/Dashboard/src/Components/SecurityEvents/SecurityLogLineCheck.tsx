@@ -310,6 +310,11 @@ const SecurityLogLineCheck: FunctionComponent<ComponentProps> = (
               ariaLabel={LOG_LINE_CHECK_EXAMPLES}
               isMenuPortaled={true}
               isMenuLeftAligned={isPageRightToLeft()}
+              /*
+               * Wide: a kind's name ("Azure activity and Entra ID logs")
+               * keeps one line beside its mark.
+               */
+              isMenuWide={true}
               elementToBeShownInsteadOfButton={
                 <button
                   type="button"

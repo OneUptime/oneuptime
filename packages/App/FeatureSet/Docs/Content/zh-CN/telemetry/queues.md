@@ -256,10 +256,10 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON 流: `numberofmessagespublished`) | Messages published | 每周期计数 |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON 流: `numberofnotificationsdelivered`) | Notifications delivered | 每周期计数 |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON 流: `numberofnotificationsfailed`) | Notifications failed | 每周期计数 |
-| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON 流: `numberofnotificationsredriventodlq`) | Redriven to dead-letter queue | 每周期计数 |
+| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON 流: `numberofmessagespublished`) | 已发布消息 | 每周期计数 |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON 流: `numberofnotificationsdelivered`) | 已投递通知 | 每周期计数 |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON 流: `numberofnotificationsfailed`) | 失败的通知 | 每周期计数 |
+| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON 流: `numberofnotificationsredriventodlq`) | 重新驱动到死信队列 | 每周期计数 |
 
 ### Amazon SQS
 
@@ -303,7 +303,7 @@ service:
 - `delay` 等待 CloudWatch 发布一个周期（这需要几分钟），因此在此配置下，队列的 broker 指标会延迟 11 到 17 分钟到达：基于它们的监视器需要更长的窗口（见 [警报](#警报) 下的 **延迟到达的指标**）。
 - 一个接收器读取一个区域和一个命名空间：每个区域添加一个实例。
 
-**流式传输** 会在 CloudWatch 发布指标时推送它们。为 `AWS/SQS`（和 `AWS/SNS`）命名空间创建输出格式为 **OpenTelemetry 1.0** 的 CloudWatch Metric Stream，投递到目标为 HTTP 端点的 Amazon Data Firehose 流：即你的 Collector，并带有访问密钥。Firehose 只投递到 443 端口上的 `https://`，因此 Collector 需要证书和公开的 443 端口（例如在负载均衡器之后）：
+**流式传输中** 会在 CloudWatch 发布指标时推送它们。为 `AWS/SQS`（和 `AWS/SNS`）命名空间创建输出格式为 **OpenTelemetry 1.0** 的 CloudWatch Metric Stream，投递到目标为 HTTP 端点的 Amazon Data Firehose 流：即你的 Collector，并带有访问密钥。Firehose 只投递到 443 端口上的 `https://`，因此 Collector 需要证书和公开的 443 端口（例如在负载均衡器之后）：
 
 ```yaml
 extensions:
@@ -345,12 +345,12 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON 流: `approximatenumberofmessagesvisible`) | Messages visible | 仪表 |
-| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON 流: `approximateageofoldestmessage`) | Oldest message age | 仪表 |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON 流: `approximatenumberofmessagesnotvisible`) | Messages in flight | 仪表 |
-| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON 流: `numberofmessagessent`) | Messages sent | 每周期计数 |
-| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON 流: `numberofmessagesreceived`) | Messages received | 每周期计数 |
-| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON 流: `numberofmessagesdeleted`) | Messages deleted | 每周期计数 |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON 流: `approximatenumberofmessagesvisible`) | 可见消息 | 仪表 |
+| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON 流: `approximateageofoldestmessage`) | 最旧消息的时长 | 仪表 |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON 流: `approximatenumberofmessagesnotvisible`) | 传输中的消息 | 仪表 |
+| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON 流: `numberofmessagessent`) | 已发送消息 | 每周期计数 |
+| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON 流: `numberofmessagesreceived`) | 已接收消息 | 每周期计数 |
+| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON 流: `numberofmessagesdeleted`) | 已删除消息 | 每周期计数 |
 
 ### Apache ActiveMQ
 
@@ -384,14 +384,14 @@ broker 的指标会并入其 JMS 客户端的 span 所创建的队列，从那�
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `activemq.message.queue.size` | Queue size | 仪表 |
-| `activemq.message.current` | Queue size (legacy names) | 仪表 |
-| `activemq.message.enqueued` | Enqueued | 计数器，按每秒绘制 |
-| `activemq.message.dequeued` | Dequeued | 计数器，按每秒绘制 |
-| `activemq.message.expired` | Expired | 计数器，按每秒绘制 |
-| `activemq.consumer.count` | Consumers | 仪表 |
-| `activemq.message.enqueue.average_duration` | Average time in queue | 仪表 |
-| `activemq.message.wait_time.avg` | Average time in queue (legacy names) | 仪表 |
+| `activemq.message.queue.size` | 队列大小 | 仪表 |
+| `activemq.message.current` | 队列大小 (旧名称) | 仪表 |
+| `activemq.message.enqueued` | 已入队 | 计数器，按每秒绘制 |
+| `activemq.message.dequeued` | 已出队 | 计数器，按每秒绘制 |
+| `activemq.message.expired` | 已过期 | 计数器，按每秒绘制 |
+| `activemq.consumer.count` | 消费者 | 仪表 |
+| `activemq.message.enqueue.average_duration` | 队列中的平均时间 | 仪表 |
+| `activemq.message.wait_time.avg` | 队列中的平均时间 (旧名称) | 仪表 |
 
 ### Apache Kafka
 
@@ -434,10 +434,10 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `kafka.consumer_group.lag_sum` | Consumer lag | 仪表 |
-| `kafka.consumer_group.lag` | Partition lag | 仪表 |
-| `kafka.consumer_group.offset_sum` | Consumed | 计数器，按每秒绘制 |
-| `kafka.partition.current_offset` | Produced | 计数器，按每秒绘制 |
+| `kafka.consumer_group.lag_sum` | 消费者延迟 | 仪表 |
+| `kafka.consumer_group.lag` | 分区延迟 | 仪表 |
+| `kafka.consumer_group.offset_sum` | 已消费 | 计数器，按每秒绘制 |
+| `kafka.partition.current_offset` | 已生产 | 计数器，按每秒绘制 |
 
 ### Apache Pulsar
 
@@ -486,11 +486,11 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `pulsar_msg_backlog` | Backlog | 仪表 |
-| `pulsar_subscription_back_log` | Subscription backlog | 仪表 |
-| `pulsar_storage_backlog_age_seconds` | Backlog age | 仪表 |
-| `pulsar_in_messages_total` | Messages in | 计数器，按每秒绘制 |
-| `pulsar_out_messages_total` | Messages out | 计数器，按每秒绘制 |
+| `pulsar_msg_backlog` | 积压 | 仪表 |
+| `pulsar_subscription_back_log` | 订阅积压 | 仪表 |
+| `pulsar_storage_backlog_age_seconds` | 积压时长 | 仪表 |
+| `pulsar_in_messages_total` | 流入消息 | 计数器，按每秒绘制 |
+| `pulsar_out_messages_total` | 流出消息 | 计数器，按每秒绘制 |
 
 ### Apache RocketMQ
 
@@ -536,10 +536,10 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `rocketmq_consumer_lag_messages` | Consumer lag | 仪表 |
-| `rocketmq_consumer_ready_messages` | Ready messages | 仪表 |
-| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | 计数器，按每秒绘制 |
-| `rocketmq_messages_in_total` | Messages in | 计数器，按每秒绘制 |
+| `rocketmq_consumer_lag_messages` | 消费者延迟 | 仪表 |
+| `rocketmq_consumer_ready_messages` | 就绪消息 | 仪表 |
+| `rocketmq_send_to_dlq_messages_total` | 已发送到死信队列 | 计数器，按每秒绘制 |
+| `rocketmq_messages_in_total` | 流入消息 | 计数器，按每秒绘制 |
 
 ### Azure Event Grid
 
@@ -642,12 +642,12 @@ Azure Monitor 没有 Event Hubs 的消费者滞后指标：它的 `ConsumerLag` 
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `azure_incomingmessages_total` | Incoming messages | 每周期计数 |
-| `azure_outgoingmessages_total` | Outgoing messages | 每周期计数 |
-| `azure_servererrors_total` | Server errors | 每周期计数 |
-| `azure_usererrors_total` | User errors | 每周期计数 |
-| `azure_quotaexceedederrors_total` | Quota exceeded errors | 每周期计数 |
-| `azure_throttledrequests_total` | Throttled requests | 每周期计数 |
+| `azure_incomingmessages_total` | 传入消息 | 每周期计数 |
+| `azure_outgoingmessages_total` | 传出消息 | 每周期计数 |
+| `azure_servererrors_total` | 服务器错误 | 每周期计数 |
+| `azure_usererrors_total` | 用户错误 | 每周期计数 |
+| `azure_quotaexceedederrors_total` | 超出配额错误 | 每周期计数 |
+| `azure_throttledrequests_total` | 被限流的请求 | 每周期计数 |
 
 ### Azure Service Bus
 
@@ -711,15 +711,15 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `azure_activemessages_average` | Active messages | 仪表 |
-| `azure_deadletteredmessages_average` | Dead-lettered messages | 仪表 |
-| `azure_incomingmessages_total` | Incoming messages | 每周期计数 |
-| `azure_outgoingmessages_total` | Outgoing messages | 每周期计数 |
-| `azure_completemessage_total` | Completed messages | 每周期计数 |
-| `azure_abandonmessage_total` | Abandoned messages | 每周期计数 |
-| `azure_servererrors_total` | Server errors | 每周期计数 |
-| `azure_usererrors_total` | User errors | 每周期计数 |
-| `azure_throttledrequests_total` | Throttled requests | 每周期计数 |
+| `azure_activemessages_average` | 活动消息 | 仪表 |
+| `azure_deadletteredmessages_average` | 死信消息 | 仪表 |
+| `azure_incomingmessages_total` | 传入消息 | 每周期计数 |
+| `azure_outgoingmessages_total` | 传出消息 | 每周期计数 |
+| `azure_completemessage_total` | 已完成消息 | 每周期计数 |
+| `azure_abandonmessage_total` | 已放弃的消息 | 每周期计数 |
+| `azure_servererrors_total` | 服务器错误 | 每周期计数 |
+| `azure_usererrors_total` | 用户错误 | 每周期计数 |
+| `azure_throttledrequests_total` | 被限流的请求 | 每周期计数 |
 
 ### BullMQ
 
@@ -837,11 +837,11 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Undelivered messages | 仪表 |
-| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Oldest unacked message age | 仪表 |
-| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Dead-lettered messages | 每周期计数 |
-| `pubsub.googleapis.com/subscription/ack_message_count` | Acknowledged messages | 每周期计数 |
-| `pubsub.googleapis.com/topic/send_request_count` | Publish requests | 每周期计数 |
+| `pubsub.googleapis.com/subscription/num_undelivered_messages` | 未投递消息 | 仪表 |
+| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | 最旧未确认消息的时长 | 仪表 |
+| `pubsub.googleapis.com/subscription/dead_letter_message_count` | 死信消息 | 每周期计数 |
+| `pubsub.googleapis.com/subscription/ack_message_count` | 已确认消息 | 每周期计数 |
+| `pubsub.googleapis.com/topic/send_request_count` | 发布请求 | 每周期计数 |
 
 ### JMS
 
@@ -936,12 +936,12 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `rabbitmq.message.current` | Queue depth | 仪表 |
-| `rabbitmq.message.published` | Published | 计数器，按每秒绘制 |
-| `rabbitmq.message.delivered` | Delivered | 计数器，按每秒绘制 |
-| `rabbitmq.message.acknowledged` | Acknowledged | 计数器，按每秒绘制 |
-| `rabbitmq.message.dropped` | Dropped | 计数器，按每秒绘制 |
-| `rabbitmq.consumer.count` | Consumers | 仪表 |
+| `rabbitmq.message.current` | 队列深度 | 仪表 |
+| `rabbitmq.message.published` | 已发布 | 计数器，按每秒绘制 |
+| `rabbitmq.message.delivered` | 已投递 | 计数器，按每秒绘制 |
+| `rabbitmq.message.acknowledged` | 已确认 | 计数器，按每秒绘制 |
+| `rabbitmq.message.dropped` | 已丢弃 | 计数器，按每秒绘制 |
+| `rabbitmq.consumer.count` | 消费者 | 仪表 |
 
 ## 警报
 
@@ -994,7 +994,7 @@ service:
 
 `rabbitmq.message.published.delta` 的每个点都是自上一次抓取以来发布的消息数，因此一个基于它、按 `resource.rabbitmq.queue.name` 过滤并在其窗口内求和的指标监视器，统计的就是该窗口内发布的数量：15 分钟内低于 1，就说明没有人在发布。每次 Collector 启动后，处理器都没有更早的值可供从队列的第一个点中减去，默认情况下会原样发送该点：也就是计数器的整个累计总数，仿佛队列曾经有过的每条消息都在一次抓取中发布。`initial_value: drop` 会扣下这个点，因此队列的副本从报告其计数器的第二次抓取开始。用同样的方式复制另一个计数器，每个计数器各用一条 `copy_metric` 语句和一个 `include` 条目。此时 ActiveMQ 的 JMX Scraper 必须通过这样的 Collector 发送，发送到 `otlp` 接收器而不是 `rabbitmq`；RocketMQ 的计数器在其 `prometheus` 接收器的管道中使用同样的两个处理器。
 
-**手动创建时**，按在该指标中指明队列的属性过滤；对于一个系统的所有队列，这些属性都相同：
+**By hand** 创建时，按在该指标中指明队列的属性过滤；对于一个系统的所有队列，这些属性都相同：
 
 | 何时警报 | 指标 | 过滤条件 | 聚合 |
 | --- | --- | --- | --- |

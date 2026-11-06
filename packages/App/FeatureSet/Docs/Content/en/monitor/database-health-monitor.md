@@ -396,7 +396,7 @@ For a Database Health monitor the expression has access to:
 {{isOnline}} === true && {{collectedGroups}}.length >= 5
 ```
 
-To read one metric in an expression, index the whole `metrics` object — the series names contain dots, so they cannot go inside the braces:
+To read one metric in an expression, put its dotted series name inside the braces, or index the whole `metrics` object — either works:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

@@ -415,22 +415,31 @@ on a case, with their own spec, `Hunts.spec.ts`, which runs as a suite of its ow
 `npm run test-security-hunts-ui` (`playwright.security-hunts-ui.config.ts`, App Test's group 6);
 `test-security-operations-ui` leaves it out:
 
-| Page   | Route (from `RouteMap`)                                     | Production components                                                           |
-| ------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Hunts  | `SECURITY_EVENTS_HUNTS` `.../security-events/hunts`         | `Pages/SecurityEvents/Hunts`, `SecurityEvents/Hunts/{HuntCells,HuntFormFields}` |
-| A hunt | `SECURITY_EVENTS_HUNT_VIEW` `.../security-events/hunts/:id` | `Pages/SecurityEvents/HuntView`, `HuntHeader`, the Events explorer under it     |
-| Events | `SECURITY_EVENTS` `/dashboard/:projectId/security-events`   | `SecurityEventsViewer`, its toolbar's `HuntsMenu`, `useAddEventsToCase`         |
+| Page         | Route (from `RouteMap`)                                                                       | Production components                                                                              |
+| ------------ | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Hunts        | `SECURITY_EVENTS_HUNTS` `.../security-events/hunts`                                           | `Pages/SecurityEvents/Hunts`, `SecurityEvents/Hunts/{HuntCells,HuntFormFields,HuntFormFilters}`    |
+| A hunt       | `SECURITY_EVENTS_HUNT_VIEW` `.../security-events/hunts/:id`                                   | `Pages/SecurityEvents/HuntView`, `HuntHeader`, `HuntRunHistory`, the Events explorer under it      |
+| Hunt Library | `SECURITY_EVENTS_HUNT_LIBRARY` `.../security-events/hunt-library`                             | `Pages/SecurityEvents/HuntLibrary`, `SecurityEvents/Hunts/{HuntLibraryFilterBar,HuntLibraryTable}` |
+| Events       | `SECURITY_EVENTS` `/dashboard/:projectId/security-events`                                     | `SecurityEventsViewer`, its toolbar's `HuntsMenu`, `useAddEventsToCase`                            |
+| Slack        | `SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK` `.../security-events/workspace-connection-slack` | `Pages/SecurityEvents/WorkspaceConnectionSlack`, `Workspace/WorkspaceNotificationRulesTable`       |
 
 `Fixture/HuntsFixture.js` lays out four hunts - Encoded PowerShell (every day, tells Maya Chen and
 SOC Tier 2; its last run found the three encoded PowerShell starts on web-03 of the past day; its
 description runs past two lines on a phone),
 Admin sign-ins outside the office (every hour, tells Diego; nothing found yet), Threat intel
 matches (not scheduled; a chip alone) and Sudo by service accounts (every 6 hours; its last run
-could not be made, as the person who set its schedule can no longer read security events) - and
-the events the Events explorer reads, matched as ClickHouse matches the search the page compiles.
+could not be made, as the person who set its schedule can no longer read security events) - the
+runs each scheduled hunt's Run History lists (`SecurityHuntRun`: Encoded PowerShell's four - 3
+events, nothing, 1 event in a window read again after a run that took too long, and that run -
+three hours of Admin sign-ins finding nothing, and Sudo's failed run), Encoded PowerShell kept as
+added from the Hunt Library (`libraryHuntId`), and the events the Events explorer reads, matched as
+ClickHouse matches the search the page compiles.
 `POST /security-case-evidence/add-events` answers as the server does: each event read again and
 kept as it was, one the case keeps already left alone. CASE-138 keeps one of the PowerShell events,
-found by the first hunt.
+found by the first hunt. The project's Slack page holds two rules (`WorkspaceNotificationRule`, in
+`Fixture.js` beside the connected Slack): New cases to #soc under Security Case Rules, and
+PowerShell finds to #threat-hunting under Hunt Rules (Security Hunt Name contains PowerShell);
+`GET /workspace-notification-rule/number-prefixes` answers no prefixes.
 
 | Parameter | Values                                     |
 | --------- | ------------------------------------------ |
@@ -448,9 +457,22 @@ own search; on a phone, that notice's saved search wrapped whole and its two but
 failed run said on its page, and Delete Hunt going back to the list; a hunt's page on a phone, its
 description in two lines with Show more, and in Persian, right to left, with the list's English
 descriptions reading their own way; Add to Case from a hunt's page onto CASE-138's Evidence, the
-kept event naming the hunt and View Event opening it as it was kept; and Add to Case from an
-event's panel onto CASE-141, said under the button with a check and a link to the case's Evidence.
-Its screenshots are named `hunts-*`.
+kept event naming the hunt and View Event opening it as it was kept; Add to Case from an
+event's panel onto CASE-141, said under the button with a check and a link to the case's Evidence;
+a hunt's Run History, opened from beside what its runs found (and from beside a failed run), each
+run newest first with what it found and its moments as every list writes a date ("Oct 14, 10:00
+AM", the whole date under the pointer), Show them closing it on that run's window, at 390 and in
+Persian; on a phone, Show them and Run history taking the line under what was found together, and
+a failed run's Run history after its last word, never under its icon, and in German who a hunt tells
+and when it runs next a line each, the next run's dot cut off at its line's start; Edit drawing a hunt's chips
+as Events does and a chip taken off saved as gone; the Hunt Library, opened from the Hunts list's
+menu and the side menu, every starter with its search and whether its events arrive, each row
+ending on one line - Try it (a link) and Add, or Open and Added in Add's place - narrowed by
+category, search and status in the page's address, Try it opening Events on the starter's search
+and window, Add saving it as a hunt opened by hand, and the page at 390 (its search as wide as the
+filters under it), in German and in Persian; and the Slack page's Security Case Rules over its Hunt
+Rules, each card with its own rules and Create, and a new hunt rule matching Security Hunt Name
+saved as a Security Hunt rule. Its screenshots are named `hunts-*`.
 
 ## Rule exceptions and Run on Past Events
 
@@ -494,16 +516,21 @@ a threat intel match. Its screenshots are named `rule-exceptions-*`, `rule-retro
 ## Watchlists
 
 The lists the rules match against, with their own spec, `Watchlists.spec.ts`.
-`Fixture/WatchlistsFixture.js` lays out four: `vip_users` (users, kept by hand: the CEO, the CFO
+`Fixture/WatchlistsFixture.js` lays out five: `vip_users` (users, kept by hand: the CEO, the CFO
 and the finance admins' accounts, a pattern with `*`), `admin_addresses` (IP addresses, kept by
 hand: the office range, the VPN's address and the bastion hosts' range), `c2_addresses` (IP
-addresses, following the Feodo Tracker list) and `lab_hosts` (hosts, no values yet). So the common
-lists still offered are Critical hosts and Known-bad file hashes. "VIP sign-in from outside the
-office", off while it is tuned (the Overview's count of rules on is unchanged), reads `vip_users`
-and `admin_addresses`. A list's `valueCount` follows its values as they are added, imported and
+addresses, following the Feodo Tracker list), `contractors` (users, read every day from HR's file
+at an https address: two contractors, one leaving the list in twelve days, the last read two hours
+ago with a line of the file left out) and `lab_hosts` (hosts, no values yet). So the common lists
+still offered are Critical hosts and Known-bad file hashes. "VIP sign-in from outside the office",
+off while it is tuned (the Overview's count of rules on is unchanged), reads `vip_users` and
+`admin_addresses`; the Security Events monitor "Contractor sign-ins" reads `contractors` in its
+Filter by Watchlists. A list's `valueCount` follows its values as they are added, imported and
 deleted, and a list's values go with it, as the server keeps them. `POST
 /security-watchlist/import` reads its text with the shared reader the server uses
-(`parseSecurityWatchlistImport`), adds to the list or replaces it, and answers what it did.
+(`parseSecurityWatchlistImport`), adds to the list or replaces it, and answers what it did; `POST
+/security-watchlist/read-now` reads a list from its address at once - HR's file holding one more
+contractor - and records the read on the list, as a scheduled one is.
 
 `Watchlists.spec.ts` covers: the list under Detections, its entry lit and its trail, three columns
 at 1280 (a name in the mono type with what it is for, what it holds with its values or the feed
@@ -512,16 +539,21 @@ a table that never runs under its row buttons; below lg (768), Holds and Read By
 name; the common lists, one added and drawn as Added, created empty and kept by hand; Create
 Watchlist refusing a name rules cannot write, then opening the new list's page, named in the
 trail; a list's page, the list first (its settings with the rule that reads it), then its values
-with their notes and who added them, then Use It in a Rule and Open Detection Rules; at 768 a
-value's note folded under it; an empty list's Import Values; Add Value refusing a lone `*` and
-adding a value, the count following; Import Values from the Values card's ⋯ - the paste box
-across the dialog, the preview as it is typed, one request, what it did - and Replace the list; a
-list that follows a feed, with no table of its own; the line under a rule's YAML, with a list the
-project does not have on a line of its own in red, whose Create it in Watchlists opens Create
-Watchlist with the name (`?create=`); a phone; a new project's common lists; a Security Viewer,
-Add and Import Values locked; German, and Persian, right to left, with `svc-*` in order inside a
-Persian sentence. Its screenshots are named `watchlists-*`, `watchlist-*` and
-`watchlist-rule-line-desktop`.
+with their notes and who added them, then Use This List - the selection a rule copies and the
+search that reads the list on Events or in a hunt - and Open Detection Rules; at 768 a value's
+note folded under it; an empty list's Import Values; Add Value refusing a lone `*` and adding a
+value, the count following; Import Values from the Values card's ⋯ - the paste box across the
+dialog, the preview as it is typed, one request, what it did - and Replace the list; Export Values
+downloading the list as a CSV of `value`, `note` and `expires`; a list that follows a feed, with
+no table of its own; a list read from an address - Create Watchlist refusing an http address and
+creating one read every hour, its page's Read From an Address card (the address, its schedule, the
+last read and the lines it left out), its values read-only with when each leaves the list, the
+monitor that reads it opening its own page, and Read Now's one request and what it did, in the
+dark and on a phone; the line under a rule's YAML, with a list the project does not have on a line
+of its own in red, whose Create it in Watchlists opens Create Watchlist with the name
+(`?create=`); a phone; a new project's common lists; a Security Viewer, Add and Import Values
+locked; German, and Persian, right to left, with `svc-*` in order inside a Persian sentence. Its
+screenshots are named `watchlists-*`, `watchlist-*` and `watchlist-rule-line-desktop`.
 
 ## Response targets, tasks and evidence
 

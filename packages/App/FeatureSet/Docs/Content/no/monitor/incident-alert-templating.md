@@ -40,7 +40,7 @@ Slå på **Når filtre samsvarer, erklær en hendelse.** eller **Når filtre sam
 
 ### Skriv tittelen
 
-Skriv tittelen i **Hendelsestittel** eller **Varseltittel**, for eksempel `{{monitorName}} is down`. **Learn about dynamic templates** ved siden av åpner **Dynamic Template Variables**: hver variabel denne monitortypen har, med hva den inneholder. Klikk på en variabel for å kopiere den.
+Skriv tittelen i **Hendelsestittel** eller **Varseltittel**, for eksempel `{{monitorName}} is down`. **Les om dynamiske maler** ved siden av åpner **Dynamiske malvariabler**: hver variabel denne monitortypen har, med hva den inneholder. Klikk på en variabel for å kopiere den.
 
 ### Skriv beskrivelsen og utbedringsnotatene
 
@@ -433,7 +433,7 @@ En nettverksenhet pinges ved hver avspørring og gås bare gjennom via SNMP når
 | `collectionIssueSummary` | Én linje om hver utilgjengelig gruppe, klar for en tittel. Tom når alt ble samlet inn. | `string` |
 | `metrics` | De innsamlede verdiene, etter serienavn. | `Object` |
 
-Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.connections.used.percent`, og en sti leser hvert punktum som et steg inn i et objekt, så en mal kan ikke plukke én verdi ut av `metrics`. Sett inn `{{metrics}}` i sin helhet, som JSON, eller bruk `{{collectionIssueSummary}}`. En metrikk som ikke ble samlet inn, mangler i `metrics`; den er ikke null. For å handle på én verdi sammenligner du den i kriteriet med et [JavaScript-uttrykk](/docs/monitor/javascript-expression).
+Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.connections.used.percent`, og en mal kan likevel plukke ut én: skriv hele navnet etter `metrics.`, som i `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Sett inn `{{metrics}}` i sin helhet, som JSON, eller bruk `{{collectionIssueSummary}}`. En metrikk som ikke ble samlet inn, mangler i `metrics`; den er ikke null. For å handle på én verdi sammenligner du den i kriteriet med et [JavaScript-uttrykk](/docs/monitor/javascript-expression).
 
 ### Monitorer for eksterne statussider
 
@@ -445,13 +445,14 @@ Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.con
 | `provider` | Typen statusside: Atlassian Statuspage, incident.io, RSS eller Atom. | `string` |
 | `componentGroup` | Komponentgruppen monitoren følger med på, hvis den følger med på en. | `string` |
 | `componentName` | Komponentene monitoren følger med på, skilt med komma, hvis den har valgt noen. | `string` |
+| `componentNames` | De samme komponentene som en liste, for å gjenta en linje for hver av dem med `{{#each componentNames}}`. | `Array<string>` |
 | `isOnline` | Om statussiden svarte. | `boolean` |
 | `responseTimeInMs` | Hvor lang tid statussiden brukte på å svare, i millisekunder. | `number` |
 | `failureCause` | Hvorfor sjekken feilet, når den gjorde det. | `string` |
 
 ### Metrikk- og infrastrukturmonitorer
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, VMware-, Ceph-, Storage Array- og IoT Device-monitorer har én egen variabel:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Storage Array- og IoT Device-monitorer har én egen variabel:
 
 | Variabel | Hva den inneholder | Type |
 | --- | --- | --- |
@@ -565,7 +566,7 @@ SNMP walk: {{responseTimeInMs}} ms
 ## Feilsøking
 
 :::details Tittelen viser plassholderen, med krøllparenteser og alt
-Stien fører ikke til en verdi i denne sjekken. Sjekk variabelens navn og store og små bokstaver mot tabellene over, eller åpne **Learn about dynamic templates** i kriteriet: den viser variablene for denne monitortypen. En sti inn i en svar- eller forespørselsbody må passe til bodyen slik den ble sendt, og `[*]` og negative indekser som `[-1]` leser ingenting: bruk `[0]` eller `[last]`.
+Stien fører ikke til en verdi i denne sjekken. Sjekk variabelens navn og store og små bokstaver mot tabellene over, eller åpne **Les om dynamiske maler** i kriteriet: den viser variablene for denne monitortypen. En sti inn i en svar- eller forespørselsbody må passe til bodyen slik den ble sendt, og `[*]` og negative indekser som `[-1]` leser ingenting: bruk `[0]` eller `[last]`.
 :::
 
 :::details En verdi vises som JSON

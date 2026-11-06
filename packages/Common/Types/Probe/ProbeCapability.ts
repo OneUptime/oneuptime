@@ -40,6 +40,15 @@ enum ProbeCapability {
    * work only to a probe that declares this.
    */
   DataSecurityScan = "dataSecurityScan",
+  /*
+   * The probe collects table health for Data Observability (Jobs/
+   * DataObservability/CollectTableHealth): it reads each store's connection
+   * string from the environment variable the store names and reads the
+   * database's catalog - columns, row counts, sizes, last changes - never a
+   * row. The server hands table-health work only to a probe that declares
+   * this.
+   */
+  DataObservabilityCollect = "dataObservabilityCollect",
 }
 
 // The first probe release that walks SNMP tables.

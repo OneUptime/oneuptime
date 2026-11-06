@@ -6,6 +6,11 @@ import { AIInvestigationStage } from "../AIInvestigationStatus";
 import { InvestigationConversationFold } from "../AiOffSummaryData";
 import InvestigationNotice, { noticeFailedIcon } from "../InvestigationNotice";
 import ToolApprovalCard, { ToolDecision } from "../../AIChat/ToolApprovalCard";
+import ToolActionSentence from "../../AIChat/ToolActionSentence";
+import {
+  getShownToolActions,
+  getToolActionTitle,
+} from "../../AIChat/ToolActionWords";
 import WidgetRenderer from "../../AIChat/Widgets/WidgetRenderer";
 import AnswerCitationChip from "./AnswerCitationChip";
 import AnswerSources from "./AnswerSources";
@@ -354,7 +359,16 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
           )}
         </div>
         <div className={MESSAGE_BODY_CLASS_NAME}>
-          <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-6 text-gray-900">
+          {/*
+           * The question reads its own way, as Ask AI's does: one asked in
+           * English on a Persian page kept its full stop at its start
+           * (".Link it to that host").
+           */}
+          <p
+            dir="auto"
+            data-testid="investigation-conversation-question-text"
+            className="mt-0.5 whitespace-pre-wrap break-words text-start text-sm leading-6 text-gray-900"
+          >
             {message.content}
           </p>
         </div>
@@ -386,7 +400,13 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
           />
         </div>
         <p className="min-w-0 break-words text-gray-700">
-          {action.title}
+          {/*
+           * What it was, in the reader's language (ToolActionWords), then
+           * how it ended.
+           */}
+          <ToolActionSentence
+            sentence={getToolActionTitle(action, translator)}
+          />
           <span className="text-gray-500">
             {" "}
             · {translator.translateText(outcome.label)}
@@ -416,11 +436,16 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
     );
     const awaitingApproval: Array<AIChatToolAction> =
       message.toolActions.filter(isToolActionAwaitingApproval);
-    const settledActions: Array<AIChatToolAction> = message.toolActions.filter(
-      (action: AIChatToolAction): boolean => {
-        return !isToolActionAwaitingApproval(action);
-      },
-    );
+    /*
+     * An action that ran and left a card above is that card: its own line
+     * is not drawn again under it (ToolActionWords getShownToolActions).
+     */
+    const settledActions: Array<AIChatToolAction> = getShownToolActions(
+      message.toolActions,
+      widgets,
+    ).filter((action: AIChatToolAction): boolean => {
+      return !isToolActionAwaitingApproval(action);
+    });
     // What this answer's Copy last did: Idle unless it was copied last.
     const copyStatus: ClipboardCopyStatus = answerClipboard.statusOf(
       message.id,

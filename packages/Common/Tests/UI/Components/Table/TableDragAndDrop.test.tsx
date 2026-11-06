@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -25,6 +26,7 @@ import FieldType from "../../../../UI/Components/Types/FieldType";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
 import IconProp from "../../../../Types/Icon/IconProp";
+import { loadDragAndDrop } from "../../../../UI/Components/DragAndDrop/DragAndDropLoader";
 
 /*
  * Reordering a table by dragging its rows - the shared Table every
@@ -177,6 +179,16 @@ const dragFromKeyboard: (from: number, steps: number) => Promise<void> = async (
   // The drop animation has to finish before onDragEnd is called.
   await wait(400);
 };
+
+/*
+ * The drag-and-drop library is there before the first table is drawn, as it
+ * is on every page once a list has loaded it (DragAndDropLoader): the grips
+ * drag from their first frame. TableDragAndDropLoading.test.tsx draws a table
+ * before it arrives.
+ */
+beforeAll(async () => {
+  await loadDragAndDrop();
+});
 
 beforeEach(() => {
   onDragDrop = jest.fn();

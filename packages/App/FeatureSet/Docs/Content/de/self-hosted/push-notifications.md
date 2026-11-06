@@ -114,7 +114,7 @@ Die Konnektivität der Geräte ist eine eigene Voraussetzung. iOS-Geräte brauch
 
 :::steps
 1. Prüfen Sie DNS und HTTPS aus dem Container oder Pod, der Benachrichtigungen sendet, zum Ziel Ihres Zustellwegs: dem Relay, Expo oder dem Push-Dienst eines Browsers.
-2. Senden Sie unter **Benutzereinstellungen > Benachrichtigungsmethoden > Push Notifications** mit **Testbenachrichtigung** einen Test und bestätigen Sie, dass er auf einem registrierten Gerät ankommt. Testen Sie für Web Push jeden Browser einzeln.
+2. Senden Sie unter **Benutzereinstellungen > Benachrichtigungsmethoden > Push-Benachrichtigungen** mit **Testbenachrichtigung** einen Test und bestätigen Sie, dass er auf einem registrierten Gerät ankommt. Testen Sie für Web Push jeden Browser einzeln.
 3. Prüfen Sie Fehler von Relay, Expo oder Web Push in den Logs von OneUptime; eine erfolgreiche Übermittlung an die API allein bestätigt nicht die Zustellung auf dem Gerät.
 :::
 
@@ -122,12 +122,12 @@ Bei mobilen Pushes liest OneUptime außerdem etwa 15 Minuten nach jedem Push den
 
 ## Push für den ganzen Server ausschalten
 
-Darf nichts Ihr Netzwerk über Expo, das Push-Relay oder den Push-Dienst eines Browsers verlassen, kann ein Master-Admin Push unter **Admin Dashboard > Einstellungen > Push Notifications** ausschalten: Schalten Sie **Send push notifications** aus und bestätigen Sie.
+Darf nichts Ihr Netzwerk über Expo, das Push-Relay oder den Push-Dienst eines Browsers verlassen, kann ein Master-Admin Push unter **Admin Dashboard > Einstellungen > Push-Benachrichtigungen** ausschalten: Schalten Sie **Send push notifications** aus und bestätigen Sie.
 
 Solange Push ausgeschaltet ist:
 
 - In keinem Projekt wird etwas an Telefone oder Browser gepusht.
-- Kein Gerät kann registriert werden. Der Tab **Push Notifications** unter **Benutzereinstellungen > Benachrichtigungsmethoden** zeigt jeder Person an, dass Push ausgeschaltet ist, und Bereitschaftsregeln bieten keine Push-Geräte an.
+- Kein Gerät kann registriert werden. Der Tab **Push-Benachrichtigungen** unter **Benutzereinstellungen > Benachrichtigungsmethoden** zeigt jeder Person an, dass Push ausgeschaltet ist, und Bereitschaftsregeln bieten keine Push-Geräte an.
 - Ein Alarm über eine Push-Regel wird nicht gesendet. Im Bereitschaftsprotokoll der Person steht `Push notification not sent: Push notifications are turned off on this server.`
 - Die Einsatzbereitschaft zählt Push-Geräte als unbrauchbar, und der Rückfall überspringt sie. Wer als einzige verifizierte Methode ein Push-Gerät hat, erscheint als nicht erreichbar.
 
@@ -191,7 +191,7 @@ Zwei Mechanismen wirken hier, und sie decken unterschiedliche Fälle ab:
 Android friert die Einstellungen eines Kanals ein, wenn der Kanal zum ersten Mal angelegt wird; sie lassen sich also nicht durch ein App-Update ändern – nur durch eine neue Kanal-ID.
 :::
 
-Um zu prüfen, ob es funktioniert, senden Sie unter **Benutzereinstellungen > Benachrichtigungsmethoden > Push Notifications** eine Testbenachrichtigung an das Gerät. Hat das Gerät kritische Warnungen aktiviert, wird auch der Test als kritische Warnung gesendet – schalten Sie das Telefon also zuerst stumm, dann hören Sie, ob ein echter Alarm Sie erreichen würde. Dieselbe Liste zeigt für jedes Gerät, ob kritische Warnungen eingeschaltet sind, und für ein Telefon, bei dem sie aus sind, wie man sie einschaltet.
+Um zu prüfen, ob es funktioniert, senden Sie unter **Benutzereinstellungen > Benachrichtigungsmethoden > Push-Benachrichtigungen** eine Testbenachrichtigung an das Gerät. Hat das Gerät kritische Warnungen aktiviert, wird auch der Test als kritische Warnung gesendet – schalten Sie das Telefon also zuerst stumm, dann hören Sie, ob ein echter Alarm Sie erreichen würde. Dieselbe Liste zeigt für jedes Gerät, ob kritische Warnungen eingeschaltet sind, und für ein Telefon, bei dem sie aus sind, wie man sie einschaltet.
 
 ### Den Alarmton wählen
 
@@ -214,7 +214,7 @@ Eine Push-Regel kann ihren Alarm erneut senden, bis jemand ihn bestätigt. Unter
 - Prüfen Sie, ob das Gerät in der Tabelle `UserPush` Ihrer Datenbank registriert ist
 - Prüfen Sie die Serverlogs von OneUptime auf Fehler der Expo Push API
 - Bestätigen Sie, dass das Gerät eine aktive Internetverbindung hat und Benachrichtigungen erlaubt sind
-- Prüfen Sie **Benutzereinstellungen > Benachrichtigungsmethoden > Push Notifications**: Ein Gerät mit der Markierung **Keine Benachrichtigungen** empfängt keine mehr und muss neu registriert werden (siehe unten)
+- Prüfen Sie **Benutzereinstellungen > Benachrichtigungsmethoden > Push-Benachrichtigungen**: Ein Gerät mit der Markierung **Keine Benachrichtigungen** empfängt keine mehr und muss neu registriert werden (siehe unten)
 
 ### Kein Schalter für Critical Alerts in den iOS-Einstellungen
 
@@ -244,7 +244,7 @@ Lehnt Expo einen Push direkt ab, nennt das Push-Log den Grund sofort. Über das 
 
 ### „DeviceNotRegistered“-Fehler in den Logs
 
-Expo meldet `DeviceNotRegistered`, wenn die mobile App vom Gerät entfernt wurde oder das Push-Token des Geräts nicht mehr gültig ist. Meist steht das im Zustellbeleg eines Pushs, den OneUptime etwa 15 Minuten nach dem Push liest, und manchmal lehnt Expo den Push direkt ab. In beiden Fällen sendet OneUptime nicht mehr an dieses Gerät. Es wird als „empfängt keine Benachrichtigungen“ markiert statt gelöscht, sodass seine Benachrichtigungsregeln bleiben, und das Push-Log und die Bereitschafts-Zeitleiste des nicht angekommenen Alarms nennen den Grund. **Benutzereinstellungen > Benachrichtigungsmethoden > Push Notifications** zeigt es als **Keine Benachrichtigungen**. Die anderen Geräte und Benachrichtigungsmethoden seines Besitzers werden weiter alarmiert.
+Expo meldet `DeviceNotRegistered`, wenn die mobile App vom Gerät entfernt wurde oder das Push-Token des Geräts nicht mehr gültig ist. Meist steht das im Zustellbeleg eines Pushs, den OneUptime etwa 15 Minuten nach dem Push liest, und manchmal lehnt Expo den Push direkt ab. In beiden Fällen sendet OneUptime nicht mehr an dieses Gerät. Es wird als „empfängt keine Benachrichtigungen“ markiert statt gelöscht, sodass seine Benachrichtigungsregeln bleiben, und das Push-Log und die Bereitschafts-Zeitleiste des nicht angekommenen Alarms nennen den Grund. **Benutzereinstellungen > Benachrichtigungsmethoden > Push-Benachrichtigungen** zeigt es als **Keine Benachrichtigungen**. Die anderen Geräte und Benachrichtigungsmethoden seines Besitzers werden weiter alarmiert.
 
 Um das Gerät zurückzuholen, öffnen Sie darauf die mobile App, während Sie angemeldet sind. Die App registriert sich neu, was ihr Push-Token bei Expo erneuert, und das Gerät empfängt mit seinen Regeln wieder Benachrichtigungen. Wurde die App entfernt, installieren Sie sie erneut und melden Sie sich an. Ein Beleg für einen Push, der vor der erneuten Registrierung gesendet wurde, markiert das Gerät nicht. Wird eine aktuelle mobile App auf einem neuen Telefon aus einem Backup des alten eingerichtet, teilt sie OneUptime das Push-Token mit, das sie vorher hatte; empfängt das Gerät des alten Telefons keine Benachrichtigungen mehr, übernimmt das neue Telefon es mit seinen Regeln.
 

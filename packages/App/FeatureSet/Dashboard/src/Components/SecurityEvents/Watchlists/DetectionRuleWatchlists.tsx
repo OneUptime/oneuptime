@@ -107,6 +107,8 @@ const DetectionRuleWatchlists: FunctionComponent<ComponentProps> = (
               source: true,
               valueCount: true,
               threatIntelFeedId: true,
+              importUrl: true,
+              lastImportSucceededAt: true,
             },
             sort: {},
             skip: 0,
@@ -209,6 +211,9 @@ const DetectionRuleWatchlists: FunctionComponent<ComponentProps> = (
                         source: entry.watchlist.source,
                         valueCount: entry.watchlist.valueCount,
                         threatIntelFeedId: entry.watchlist.threatIntelFeedId,
+                        importUrl: entry.watchlist.importUrl,
+                        lastImportSucceededAt:
+                          entry.watchlist.lastImportSucceededAt,
                       })}
                       )
                     </span>

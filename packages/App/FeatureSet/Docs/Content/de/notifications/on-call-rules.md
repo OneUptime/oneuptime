@@ -24,7 +24,7 @@ flowchart TB
     ack["Sie bestätigen"] -.->|"stoppt den Rest"| third
 ```
 
-Die meisten Nachrichten können den Alarm bestätigen: E-Mails, SMS und Nachrichten über WhatsApp, Telegram, Slack und Microsoft Teams enthalten einen Bestätigungslink, und ein Anruf bittet Sie, die 1 zu drücken. Können Sie einen Alarm nicht übernehmen, können Sie ihn über dieselben Nachrichten eskalieren, und ein Anruf bittet Sie, die 2 zu drücken: Die Richtlinie alarmiert sofort ihre nächste Stufe, und Sie werden dazu nicht mehr alarmiert. Siehe [Eine Alarmierung eskalieren](/docs/on-call/escalation-rules#eine-alarmierung-eskalieren). Jeder Alarm an Sie steht unter **Benutzereinstellungen → Bereitschaftsprotokolle**, wo **Zeitachse anzeigen** jede gesendete Nachricht zeigt und ob sie zugestellt wurde.
+Die meisten Nachrichten können den Alarm bestätigen: E-Mails, SMS und Nachrichten über WhatsApp, Telegram, Slack, Microsoft Teams und Mattermost enthalten einen Bestätigungslink, und ein Anruf bittet Sie, die 1 zu drücken. Können Sie einen Alarm nicht übernehmen, können Sie ihn über dieselben Nachrichten eskalieren, und ein Anruf bittet Sie, die 2 zu drücken: Die Richtlinie alarmiert sofort ihre nächste Stufe, und Sie werden dazu nicht mehr alarmiert. Siehe [Eine Alarmierung eskalieren](/docs/on-call/escalation-rules#eine-alarmierung-eskalieren). Jeder Alarm an Sie steht unter **Benutzereinstellungen → Bereitschaftsprotokolle**, wo **Zeitachse anzeigen** jede gesendete Nachricht zeigt und ob sie zugestellt wurde.
 
 ## Die vier Tabs
 
@@ -101,7 +101,7 @@ Ein Schweregrad, den Ihr Projekt später hinzufügt, erhält innerhalb weniger M
 Ein Alarm, der trotzdem keine Regel findet, geht dennoch an Ihre verifizierten Methoden, und Sie erhalten darüber eine E-Mail; siehe [Wenn keine Regel passt](/docs/notifications/index#wenn-keine-regel-passt).
 
 :::details Einen Schweregrad bewusst ausschalten
-Die API kann eine Opt-out-Regel speichern, mit gesetztem `isOptOut` und ohne Methode: Sie werden dann für diese Art von Alarm und diesen Schweregrad gar nicht alarmiert, und nichts springt ein. Die Zeile zeigt **Muted - notifications turned off for this rule**, und sie zu löschen schaltet die Alarme wieder ein. Auch ein später hinzugefügter Schweregrad bleibt stumm, wenn jede Regel, die Sie auf diesem Tab haben, eine Opt-out-Regel ist.
+Die API kann eine Opt-out-Regel speichern, mit gesetztem `isOptOut` und ohne Methode: Sie werden dann für diese Art von Alarm und diesen Schweregrad gar nicht alarmiert, und nichts springt ein. Die Zeile zeigt **Stummgeschaltet – Benachrichtigungen für diese Regel sind aus**, und sie zu löschen schaltet die Alarme wieder ein. Auch ein später hinzugefügter Schweregrad bleibt stumm, wenn jede Regel, die Sie auf diesem Tab haben, eine Opt-out-Regel ist.
 :::
 
 :::details Den Rückfall für ein ganzes Projekt ausschalten
@@ -115,7 +115,7 @@ Projekteigentümer und Admins können dieselbe Seite für jeden im Projekt anseh
 ## Fehlerbehebung
 
 :::details Mein Telefon blieb bei einem kritischen Alarm stumm
-Prüfen Sie, ob der Push der Regel **Kritische Warnung** ist und nicht **Normal**, und ob **Kritische Warnungen** für das Telefon eingeschaltet ist, unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push Notifications**.
+Prüfen Sie, ob der Push der Regel **Kritische Warnung** ist und nicht **Normal**, und ob **Kritische Warnungen** für das Telefon eingeschaltet ist, unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push-Benachrichtigungen**.
 :::
 
 :::details Ich werde bei jedem Vorfall zweimal alarmiert

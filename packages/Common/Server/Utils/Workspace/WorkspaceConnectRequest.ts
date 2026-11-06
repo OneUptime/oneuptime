@@ -9,7 +9,6 @@ import ObjectID from "../../../Types/ObjectID";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import ConnectCallbackUtil, {
   CONNECT_REQUEST_QUERY_PARAM,
-  ConnectProvider,
   ConnectStartPage,
 } from "../../../Types/Workspace/ConnectCallback";
 import { WorkspaceEventType } from "./WorkspaceMemberActions";
@@ -417,9 +416,7 @@ export default class WorkspaceConnectRequest {
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
       `/${data.projectId.toString()}${ConnectCallbackUtil.getPagePath(
-        data.workspaceType === WorkspaceType.MicrosoftTeams
-          ? ConnectProvider.MicrosoftTeams
-          : ConnectProvider.Slack,
+        ConnectCallbackUtil.getProviderOfWorkspace(data.workspaceType),
         ConnectStartPage.UserSettings,
       )}`,
     );

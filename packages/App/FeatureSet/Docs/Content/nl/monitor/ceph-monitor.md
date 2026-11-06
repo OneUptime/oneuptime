@@ -159,6 +159,7 @@ Sjablonen lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een crit
 - **PG- en poolreeksen zijn er per pool**: er is geen meetwaarde voor het hele cluster, dus die sjablonen groeperen op `pool_id` en openen één incident per pool.
 - **Capaciteitsratio's** nemen aan beide kanten de **Som**. Beide komen uit dezelfde bevraging van de mgr, dus het resultaat is een echt percentage. **Inactive Placement Groups** gebruikt in plaats daarvan **Maximum** per pool, omdat een som bij een aftrekking de bevragingen zou optellen.
 - **Health-check-sjablonen** herstellen wanneer de check verdwijnt: hun herstelcriteria tellen een ontbrekende reeks als 0.
+- **Daemon Slow Operations** heeft één reeks per daemon, dus als geen enkele daemon nog een reeks heeft, valt er niets meer te lezen. Het herstelt dan alleen als `ceph_health_status` in hetzelfde venster is binnengekomen, zodat een gestopte agent niets sluit.
 
 Sommige waarschuwingen hebben geen sjabloon. Een onevenwichtige PG-verdeling vraagt om statistiek over meerdere reeksen die criteria niet kunnen berekenen. Een capaciteitsprognose vraagt om een groeicurve, die het dashboard van het cluster in plaats daarvan tekent. Voorspelde schijfuitval en achterstallige scrubbing hebben geen mgr-metric, en NVMe-oF, RBD-mirroring en cephadm hebben andere exporters nodig.
 
@@ -227,7 +228,7 @@ Een criterium vergelijkt een van de query's of formules van de monitor met een d
 | --- | --- |
 | **Metriek** | De query of formule die wordt gecontroleerd, via de variabelenaam. |
 | **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet voldoen, over het hele venster) of **Any Value** (één is genoeg). |
-| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde. |
+| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde. **Verwacht boven** en **Verwacht onder** komen overeen wanneer de trend van de metriek in het venster aan het eind van **Termijn** voorbij de drempel is. |
 | **Drempel** | De waarde om mee te vergelijken. Ernaast staat een eenhedenlijst als de metric een eenheid heeft. Niet zichtbaar bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (standaard), 28, 60 of 90 dagen geschiedenis. |

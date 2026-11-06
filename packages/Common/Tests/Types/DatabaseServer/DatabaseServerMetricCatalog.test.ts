@@ -208,8 +208,18 @@ const RECEIVER_DATAPOINT_ATTRIBUTES: Record<string, Array<string>> = {
  * delivered for these engines, read back from ClickHouse: Elasticsearch
  * 8.15.3, OpenSearch 2.17.1 (the same receiver), Memcached 1.6, MySQL
  * 8.4.11 and MariaDB 11.4.13 (the same receiver). A curated tile for
- * anything else would stay empty.
+ * anything else would stay empty. Galera's five came from the agent's own SQL on a real
+ * three-node MariaDB Galera (Tests/Ops/openstack-e2e/control-plane-clusters.sh, run 41957567444):
+ * a server in no cluster sends none, and the Overview charts only what arrived.
  */
+const GALERA_READINGS: Array<string> = [
+  "mysql.wsrep.cluster_size",
+  "mysql.wsrep.local_state",
+  "mysql.wsrep.desync_count",
+  "mysql.wsrep.flow_control_paused",
+  "mysql.wsrep.local_recv_queue",
+];
+
 const SEEN_ARRIVING_FROM_AGENT: Record<string, Array<string>> = {
   mysql: [
     "mysql.buffer_pool.data_pages",
@@ -240,6 +250,7 @@ const SEEN_ARRIVING_FROM_AGENT: Record<string, Array<string>> = {
     "mysql.threads",
     "mysql.tmp_resources",
     "mysql.uptime",
+    ...GALERA_READINGS,
   ],
   // No mysql.row_operations: MariaDB has no Innodb_rows_* status counters.
   mariadb: [
@@ -269,6 +280,7 @@ const SEEN_ARRIVING_FROM_AGENT: Record<string, Array<string>> = {
     "mysql.threads",
     "mysql.tmp_resources",
     "mysql.uptime",
+    ...GALERA_READINGS,
   ],
   elasticsearch: [
     "elasticsearch.breaker.memory.estimated",
@@ -350,10 +362,57 @@ function entriesNamed(name: string): Array<DatabaseServerMetricDefinition> {
 }
 
 describe("DATABASE_SERVER_METRICS", () => {
-  test.each(CURATED_SYSTEMS)("%s has 5-8 curated metrics", (system: string) => {
-    const count: number = getDatabaseServerMetrics(system).length;
-    expect(count).toBeGreaterThanOrEqual(5);
-    expect(count).toBeLessThanOrEqual(8);
+  test.each(CURATED_SYSTEMS)(
+    "%s has 5-8 curated metrics from its receiver",
+    (system: string) => {
+      const count: number = getDatabaseServerMetrics(system).filter(
+        (metric: DatabaseServerMetricDefinition): boolean => {
+          return metric.source !== "agent-query";
+        },
+      ).length;
+      expect(count).toBeGreaterThanOrEqual(5);
+      expect(count).toBeLessThanOrEqual(8);
+    },
+  );
+
+  /*
+   * What a receiver does not report and the Database Agent reads with SQL
+   * of its own: PostgreSQL's config runs such a query (its four checks), and
+   * so does MySQL's (where it stands in a Galera cluster). Each of PostgreSQL's
+   * tiles and two of Galera's are metrics the alert library reads.
+   */
+  test("the agent's own SQL checks add PostgreSQL's four tiles and Galera's five, and no other engine's", () => {
+    const agentQuery: Array<DatabaseServerMetricDefinition> =
+      DATABASE_SERVER_METRICS.filter(
+        (metric: DatabaseServerMetricDefinition): boolean => {
+          return metric.source === "agent-query";
+        },
+      );
+    expect(
+      agentQuery.map((metric: DatabaseServerMetricDefinition): string => {
+        return `${metric.system} ${metric.metricName}`;
+      }),
+    ).toEqual([
+      "postgresql postgresql.uptime",
+      "postgresql postgresql.xid.oldest_age",
+      "postgresql postgresql.transaction.longest_duration",
+      "postgresql postgresql.sessions.waiting_on_lock",
+      "mysql mysql.wsrep.cluster_size",
+      "mysql mysql.wsrep.local_state",
+      "mysql mysql.wsrep.desync_count",
+      "mysql mysql.wsrep.flow_control_paused",
+      "mysql mysql.wsrep.local_recv_queue",
+    ]);
+    for (const metric of agentQuery) {
+      expect(metric.enabledByDefault).toBe(false);
+      expect(readAgentConfig(metric.system)).toContain(
+        `- metric_name: ${metric.metricName}`,
+      );
+      expect(metric.description).toContain(
+        "the Database Agent reads it with SQL",
+      );
+      expect(metric.description).not.toContain("Off by default");
+    }
   });
 
   test("only the curated engines have entries", () => {
@@ -540,7 +599,9 @@ describe("DATABASE_SERVER_METRICS", () => {
     const optional: Array<DatabaseServerMetricDefinition> =
       DATABASE_SERVER_METRICS.filter(
         (metric: DatabaseServerMetricDefinition): boolean => {
-          return metric.enabledByDefault === false;
+          return (
+            metric.enabledByDefault === false && metric.source !== "agent-query"
+          );
         },
       );
     expect(

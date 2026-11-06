@@ -35,7 +35,9 @@ export const CLOUD_AZURE_CONTAINER_APPS: string =
 export const CLOUD_OTHER_PLATFORMS: string = "telemetry/cloud-other-platforms";
 export const CLOUD_TROUBLESHOOTING: string = "telemetry/cloud-troubleshooting";
 export const CLOUD_ACCOUNTS: string = "telemetry/cloud-accounts";
+export const CLOUD_COSTS: string = "telemetry/cloud-costs";
 export const CLOUD_RESOURCES: string = "telemetry/cloud-resources";
+export const CLOUD_STREAMING: string = "telemetry/cloud-streaming";
 
 export interface CloudDocsPage {
   page: string;
@@ -51,6 +53,8 @@ export const CLOUD_DOCS_PAGES: ReadonlyArray<CloudDocsPage> = [
   { page: CLOUD_OTHER_PLATFORMS, navTitle: "Other Cloud Platforms" },
   { page: CLOUD_TROUBLESHOOTING, navTitle: "Cloud Troubleshooting" },
   { page: CLOUD_ACCOUNTS, navTitle: "Connect a Cloud Account" },
+  { page: CLOUD_STREAMING, navTitle: "Stream CloudWatch Metrics and Logs" },
+  { page: CLOUD_COSTS, navTitle: "Cloud Costs and Savings" },
   { page: CLOUD_RESOURCES, navTitle: "Cloud Resources (IaaS & PaaS)" },
 ];
 
@@ -182,12 +186,23 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
     "Cloud Asset Viewer",
     "Logs Viewer",
     "Service Health Viewer",
+    // The roles a connection reads costs and the ways to spend less with.
+    "Cost Management Reader",
+    "BigQuery Job User",
+    "Compute Recommender Viewer",
     /*
      * The Azure role the content level of the connection's Data security
      * field grants. The field and its levels are Dashboard labels, drawn as
      * each language's Dashboard draws them.
      */
     "Storage Blob Data Reader",
+  ],
+  [CLOUD_COSTS]: [
+    "Cost Management Reader",
+    "Monitoring Reader",
+    "BigQuery Data Viewer",
+    "BigQuery Job User",
+    "Compute Recommender Viewer",
   ],
   [CLOUD_RESOURCES]: [
     "Monitoring Reader",
@@ -197,6 +212,8 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
     "JSON",
     "Monitoring Viewer",
   ],
+  // The streaming page names no console label: its bold words are the dialog's.
+  [CLOUD_STREAMING]: [],
 };
 
 /*
@@ -287,12 +304,26 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "OneUptime reads on a schedule.",
     "Each resource has a page of its own.",
     "Each account has a page of its own.",
+    "Cloud opens on its Overview.",
     "OneUptime AI reads what changed.",
     "A project owner or admin.",
     "Your cloud's terminal",
     "An account's page.",
     "A resource's changes.",
     "Incidents and alerts.",
+    "A resource's health.",
+    "What the accounts cost.",
+  ],
+  [CLOUD_COSTS]: [
+    "Costs come from your cloud's own billing.",
+    "A cloud reports the last day or two late.",
+    "The month's projection is the last week's pace.",
+    "Savings come from your cloud's own recommender.",
+    "A connected account.",
+    "Cloud's Overview.",
+    "Every day's spend.",
+    "An account's costs.",
+    "A resource's cost.",
   ],
   [CLOUD_RESOURCES]: [
     "The provider already measures your resources.",
@@ -319,6 +350,16 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "Discovery follows the metrics.",
     "No retention setting of its own.",
     "Polling costs money",
+  ],
+  [CLOUD_STREAMING]: [
+    "One stack in each Region.",
+    "The stream key says whose it is.",
+    "The reads leave streamed metrics to the stream.",
+    "Nothing is lost while OneUptime cannot take it.",
+    "A connected AWS account.",
+    "A project owner or admin.",
+    "AWS CloudShell in that account",
+    "An HTTPS address, on a self-hosted OneUptime.",
   ],
 };
 

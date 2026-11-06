@@ -47,6 +47,7 @@ import SecurityCaseCustomFieldsPage from "../Pages/SecurityEvents/CaseView/Custo
 import SecurityCaseAuditLogsPage from "../Pages/SecurityEvents/CaseView/AuditLogs";
 import SecurityCaseDeletePage from "../Pages/SecurityEvents/CaseView/Delete";
 import RuleLibraryPage from "../Pages/SecurityEvents/RuleLibrary";
+import HuntLibraryPage from "../Pages/SecurityEvents/HuntLibrary";
 import AttackCoveragePage from "../Pages/SecurityEvents/AttackCoverage";
 import SecurityPlaybooksPage from "../Pages/SecurityEvents/Playbooks";
 import SecurityPlaybookViewPage from "../Pages/SecurityEvents/PlaybookView";
@@ -54,6 +55,7 @@ import SecurityPlaybookRunsPage from "../Pages/SecurityEvents/PlaybookRuns";
 import SecurityProtectedEntitiesPage from "../Pages/SecurityEvents/ProtectedEntities";
 import SecurityEventsWorkspaceConnectionSlackPage from "../Pages/SecurityEvents/WorkspaceConnectionSlack";
 import SecurityEventsWorkspaceConnectionMicrosoftTeamsPage from "../Pages/SecurityEvents/WorkspaceConnectionMicrosoftTeams";
+import SecurityEventsWorkspaceConnectionMattermostPage from "../Pages/SecurityEvents/WorkspaceConnectionMattermost";
 import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 import SecurityEventsAISettingsPage from "../Pages/SecurityEvents/AISettings";
 import SecurityCasePrioritiesPage from "../Pages/SecurityEvents/Settings/CasePriorities";
@@ -127,6 +129,20 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             <SecurityHuntsPage
               {...props}
               pageRoute={RouteMap[PageMap.SECURITY_EVENTS_HUNTS] as Route}
+            />
+          }
+        />
+        {/* Ready-made hunts, under Hunts in the menu. */}
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_HUNT_LIBRARY] || ""
+          }
+          element={
+            <HuntLibraryPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SECURITY_EVENTS_HUNT_LIBRARY] as Route
+              }
             />
           }
         />
@@ -412,6 +428,24 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[
+              PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST
+            ] || ""
+          }
+          element={
+            <SecurityEventsWorkspaceConnectionMattermostPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST
+                ] as Route
+              }
+            />
+          }
+        />
         <PageRoute
           path={
             SecurityEventsRoutePath[
@@ -423,6 +457,9 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
               slackPage={PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK}
               microsoftTeamsPage={
                 PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              }
+              mattermostPage={
+                PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST
               }
             />
           }

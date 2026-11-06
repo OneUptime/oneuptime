@@ -128,7 +128,7 @@ describe("InsightDetectors.getAllDetectors", () => {
     ).toEqual([AIInsightType.ProfileHotspot]);
   });
 
-  test("Metrics' detectors find high cardinality, histogram buckets that do not fit and missing metrics; the drift detector stays AI Insights'", () => {
+  test("Metrics' detectors find high cardinality, histogram buckets that do not fit, missing metrics and missing request metrics; the drift detector stays AI Insights'", () => {
     expect(
       InsightDetectors.getTelemetryAiDetectors(TelemetryAiLane.Metric).map(
         (detector: InsightDetector): AIInsightType => {
@@ -139,6 +139,7 @@ describe("InsightDetectors.getAllDetectors", () => {
       AIInsightType.MetricHighCardinality,
       AIInsightType.MetricHistogramBuckets,
       AIInsightType.MetricMissingMetrics,
+      AIInsightType.MetricMissingRequestMetrics,
     ]);
     expect(
       InsightDetectors.getAllDetectors().map(

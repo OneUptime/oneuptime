@@ -5,18 +5,20 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { readFileSync } from "fs";
 import fs from "fs/promises";
 import path from "path";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
- * Ask AI on the main stage, in real Chromium, against the offline fixture
- * (Fixture/Fixture.js): the production dialog (AskAiDialog) and everything
- * in it, over a Dashboard page, with only the data boundary replaced.
+ * Ask AI beside the page, in real Chromium, against the offline fixture
+ * (Fixture/Fixture.js): the production panel (AskAiPanel) and everything in it,
+ * docked beside a Dashboard page, with only the data boundary replaced.
  *
- * The maintainer, of Ask AI: "It is very clunky to use currently, and it
- * shows up on the side. Please let it take the main stage: open a modal
- * with a blurred background [...] The ask AI is very noisy as well."
+ * The maintainer, of Ask AI (issue #5597): "It should basically be on the
+ * side, so I can still do like everything on the left side in oneuptime (go
+ * to different pages) investigate stuff and ask AI again."
  *
  * Every test pins the browser clock, fences the network to the fixture
  * server, and fails on an uncaught page error or on a request the fixture
@@ -182,8 +184,8 @@ async function load(
   await expect(page.getByTestId("fixture-page")).toBeVisible();
 }
 
-function dialog(page: Page): Locator {
-  return page.getByTestId("ask-ai-dialog");
+function askAi(page: Page): Locator {
+  return page.getByTestId("ask-ai-panel");
 }
 
 function composer(page: Page): Locator {
@@ -237,7 +239,7 @@ async function navigateInApp(page: Page, to: string): Promise<void> {
 // Opens Ask AI as a person does: the header's button.
 async function openAskAi(page: Page): Promise<void> {
   await headerAskAi(page).click();
-  await expect(dialog(page)).toBeVisible();
+  await expect(askAi(page)).toBeVisible();
   await settle(page);
 }
 
@@ -249,7 +251,7 @@ async function ask(page: Page, question: string): Promise<void> {
   ).toBeVisible();
 }
 
-// Every finite animation finished: the dialog's entrance, an answer's rise.
+// Every finite animation finished: the panel's entrance, an answer's rise.
 async function settle(page: Page): Promise<void> {
   await page.waitForFunction((): boolean => {
     return document.getAnimations().every((animation: Animation): boolean => {
@@ -265,17 +267,42 @@ async function settle(page: Page): Promise<void> {
   await page.waitForTimeout(100);
 }
 
+/*
+ * The width this browser kept for the panel, as if the person had dragged it
+ * there before the page loaded.
+ */
+async function keepPanelWidth(page: Page, width: number): Promise<void> {
+  await page.addInitScript((kept: number): void => {
+    window.localStorage.setItem("ask-ai-panel-width", String(kept));
+  }, width);
+}
+
+// Drags the panel's edge by a distance: negative is towards the window's left.
+async function dragEdge(page: Page, distance: number): Promise<void> {
+  const edge: Box = await boxOf(page.getByTestId("ask-ai-resize"));
+  const x: number = edge.x + edge.width / 2;
+
+  await page.mouse.move(x, 400);
+  await page.mouse.down();
+  await page.mouse.move(x + distance, 400, { steps: 5 });
+  await page.mouse.up();
+}
+
+async function widthOf(locator: Locator): Promise<number> {
+  return Math.round((await boxOf(locator)).width);
+}
+
 async function boxOf(locator: Locator): Promise<Box> {
   const box: Box | null = await locator.boundingBox();
   expect(box, "a box on screen").not.toBeNull();
   return box as Box;
 }
 
-// What the dialog says: its words, lines of text and elements.
+// What the panel says: its words, lines of text and elements.
 async function quietness(page: Page): Promise<Quiet> {
   return page.evaluate((): Quiet => {
     const root: HTMLElement | null = document.querySelector(
-      '[data-testid="ask-ai-dialog"]',
+      '[data-testid="ask-ai-panel"]',
     );
     const text: string = root?.innerText || "";
     return {
@@ -295,8 +322,71 @@ async function screenshot(page: Page, name: string): Promise<void> {
 }
 
 /*
+ * The Dashboard's words in a language, from the locale file the fixture
+ * draws them from: a test about what a card says reads its words there, so
+ * a translator rewording one breaks nothing - a word the card never looks
+ * up does.
+ */
+function dashboardWords(language: string): Record<string, string> {
+  return JSON.parse(
+    readFileSync(
+      path.resolve(
+        __dirname,
+        "../../App/FeatureSet/Dashboard/src/Locales",
+        `${language}.json`,
+      ),
+      "utf8",
+    ),
+  ) as Record<string, string>;
+}
+
+// A sentence of the language with its values in, as the card fills it.
+function filled(
+  words: Record<string, string>,
+  key: string,
+  values: Record<string, string> = {},
+): string {
+  let text: string | undefined = words[key];
+  expect(text, `the locale words "${key}"`).toBeTruthy();
+
+  for (const name of Object.keys(values)) {
+    text = text!.split(`{{${name}}}`).join(values[name]!);
+  }
+
+  return text!;
+}
+
+// LRI, RLI, FSI and PDI: the marks a sentence sets its values apart with.
+const ISOLATE_MARKS: RegExp = /[\u2066-\u2069]/g;
+
+// What an element says, without the marks that set its values apart.
+async function wordsOf(locator: Locator): Promise<string> {
+  const text: string = await locator.evaluate((element: Element): string => {
+    return element.textContent || "";
+  });
+  return text.replace(ISOLATE_MARKS, "");
+}
+
+// The approval card's one action: its title, its line and its Allow / Skip.
+interface ApprovalAction {
+  box: Box;
+  title: Box;
+  choice: Box;
+}
+
+async function approvalActionBoxes(page: Page): Promise<ApprovalAction> {
+  const action: Locator = page.getByTestId("tool-approval-action");
+  const [box, title, choice] = await boxesInOneFrame([
+    action,
+    action.getByTestId("tool-approval-title"),
+    action.getByTestId("tool-approval-choice"),
+  ]);
+  return { box: box!, title: title!, choice: choice! };
+}
+
+/*
  * Nothing is wider than the screen: no sideways scroll, in the page or the
- * dialog - each read until it has settled.
+ * panel - each read until it has settled.
  */
 async function expectNothingScrollsSideways(page: Page): Promise<void> {
   await expectNoSidewaysScroll(page);
@@ -305,12 +395,12 @@ async function expectNothingScrollsSideways(page: Page): Promise<void> {
       (): Promise<number> => {
         return page.evaluate((): number => {
           const root: HTMLElement | null = document.querySelector(
-            '[data-testid="ask-ai-dialog"]',
+            '[data-testid="ask-ai-panel"]',
           );
           return root ? root.scrollWidth - root.clientWidth : 0;
         });
       },
-      { message: "how many pixels the Ask AI dialog scrolls sideways" },
+      { message: "how many pixels the Ask AI panel scrolls sideways" },
     )
     .toBeLessThanOrEqual(0);
 }
@@ -321,8 +411,8 @@ async function expectNothingScrollsSideways(page: Page): Promise<void> {
  * ---------------------------------------------------------------------------
  */
 
-test.describe("Ask AI takes the main stage", () => {
-  test("the header's Ask AI opens a dialog in the middle of the screen, over the dimmed, blurred page", async ({
+test.describe("Ask AI beside the page", () => {
+  test("the header's Ask AI opens it at the side of the window, and the page makes room", async ({
     page,
   }: {
     page: Page;
@@ -330,67 +420,74 @@ test.describe("Ask AI takes the main stage", () => {
     await load(page);
     await openAskAi(page);
 
-    const panel: Locator = page.getByRole("dialog", { name: "Ask AI" });
-    await expect(panel).toHaveAttribute("aria-modal", "true");
+    const panel: Locator = page.getByRole("complementary", { name: "Ask AI" });
+    await expect(panel).toBeVisible();
+    await expect(panel).not.toHaveAttribute("aria-modal", "true");
 
-    // In the middle: as wide as the old full page's text, a margin all round.
-    const box: Box = await boxOf(panel);
-    expect(Math.round(box.width)).toBe(896);
-    expect(Math.abs(box.x - (1280 - box.x - box.width))).toBeLessThanOrEqual(1);
-    expect(Math.round(box.y)).toBe(24);
-    expect(Math.round(box.height)).toBe(800 - 48);
+    // The whole height of the window, at its end.
+    expect(await boxOf(panel)).toEqual({
+      x: 840,
+      y: 0,
+      width: 440,
+      height: 800,
+    });
 
-    // Over the page, dimmed and blurred.
-    const backdrop: { filter: string; color: string } = await page
-      .getByTestId("ask-ai-backdrop")
-      .evaluate((element: Element): { filter: string; color: string } => {
-        const style: CSSStyleDeclaration = window.getComputedStyle(element);
-        return {
-          filter: style.backdropFilter,
-          color: style.backgroundColor,
-        };
-      });
-    expect(backdrop.filter).toBe("blur(12px)");
-    expect(backdrop.color).toBe("rgba(3, 7, 18, 0.4)");
+    // The page ends where it starts: nothing dims it, nothing is behind it.
+    const beside: Box = await boxOf(page.getByTestId("fixture-page"));
+    expect(beside.x).toBe(0);
+    expect(beside.width).toBe(840);
+    await expect(page.getByTestId("ask-ai-backdrop")).toHaveCount(0);
 
     // The question is the first thing it asks for.
     await expect(composer(page)).toBeFocused();
+    // And the way in, still in sight, says it is open.
+    await expect(headerAskAi(page)).toHaveAttribute("aria-pressed", "true");
 
     await screenshot(page, "start-incident-1280");
   });
 
-  test("the page behind is inert and still while it is open", async ({
+  for (const width of [1024, 1280, 1920]) {
+    test(`nothing on the page is behind it (${width})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: width, height: 800 });
+      await load(page);
+      await openAskAi(page);
+
+      const panel: Box = await boxOf(askAi(page));
+      const furthest: number = await page
+        .getByTestId("fixture-page")
+        .evaluate((root: Element): number => {
+          let end: number = 0;
+
+          for (const element of Array.from(root.querySelectorAll("*"))) {
+            const rect: DOMRect = element.getBoundingClientRect();
+
+            if (rect.width > 0) {
+              end = Math.max(end, rect.right);
+            }
+          }
+
+          return end;
+        });
+
+      expect(furthest).toBeGreaterThan(0);
+      expect(furthest).toBeLessThanOrEqual(panel.x);
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, `beside-the-page-${width}`);
+    });
+  }
+
+  test("the page stays all there: not inert, and what is on it scrolls and answers", async ({
     page,
   }: {
     page: Page;
   }) => {
+    await page.setViewportSize({ width: 1280, height: 420 });
     await load(page);
     await openAskAi(page);
-
-    const behind: { inert: boolean; overflow: string } = await page.evaluate(
-      (): { inert: boolean; overflow: string } => {
-        return {
-          inert: document.getElementById("root")!.hasAttribute("inert"),
-          overflow: document.body.style.overflow,
-        };
-      },
-    );
-    expect(behind).toEqual({ inert: true, overflow: "hidden" });
-
-    // Nothing behind it takes the focus.
-    for (let index: number = 0; index < 12; index++) {
-      await page.keyboard.press("Tab");
-      expect(
-        await page.evaluate((): boolean => {
-          return Boolean(
-            document.activeElement?.closest('[data-testid="ask-ai-dialog"]'),
-          );
-        }),
-      ).toBe(true);
-    }
-
-    await page.getByRole("button", { name: "Close" }).click();
-    await expect(dialog(page)).toBeHidden();
 
     expect(
       await page.evaluate((): { inert: boolean; overflow: string } => {
@@ -400,9 +497,108 @@ test.describe("Ask AI takes the main stage", () => {
         };
       }),
     ).toEqual({ inert: false, overflow: "" });
+
+    // It scrolls under the wheel, with the panel where it was.
+    await page.mouse.move(400, 300);
+    await page.mouse.wheel(0, 200);
+    await expect
+      .poll((): Promise<number> => {
+        return page.evaluate((): number => {
+          return window.scrollY;
+        });
+      })
+      .toBeGreaterThan(0);
+    expect((await boxOf(askAi(page))).y).toBe(0);
+
+    // Its buttons take a click and the focus, and the panel stays.
+    const search: Locator = page.getByTestId("fixture-page-button");
+    await search.click();
+    await expect(search).toBeFocused();
+    await expect(askAi(page)).toBeVisible();
+
+    // The keyboard leaves it too: nothing keeps the focus inside.
+    await composer(page).focus();
+    let isOutside: boolean = false;
+
+    for (let index: number = 0; index < 12 && !isOutside; index++) {
+      await page.keyboard.press("Tab");
+      isOutside = await page.evaluate((): boolean => {
+        return !document.activeElement?.closest('[data-testid="ask-ai-panel"]');
+      });
+    }
+
+    expect(isOutside).toBe(true);
   });
 
-  test("Ctrl + I and Cmd + I open it, Esc closes it, and the focus goes back to what had it", async ({
+  test("it stays while the person goes to other pages, and what it asks about follows them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=answered");
+    await expect(askAi(page)).toBeVisible();
+    await expect(page.getByTestId("ai-chat-context")).toHaveText(INCIDENT_CHIP);
+    const asked: Locator = page
+      .getByTestId("ai-chat-question")
+      .filter({ hasText: LATENCY_QUESTION });
+
+    await page.getByTestId("fixture-link-logs").click();
+
+    await expect(page.getByRole("heading", { name: "Logs" })).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
+    await expect(asked).toBeVisible();
+    await expect(page.getByTestId("ai-chat-context")).toHaveText("Logs");
+
+    await page.getByTestId("fixture-link-home").click();
+
+    await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+    await expect(asked).toBeVisible();
+    await expect(page.getByTestId("ai-chat-context")).toHaveCount(0);
+
+    await page.getByTestId("fixture-link-incident").click();
+
+    await expect(page.getByTestId("ai-chat-context")).toHaveText(INCIDENT_CHIP);
+    await expect(asked).toBeVisible();
+  });
+
+  test("the start's suggestions, and the next question, are the page's on screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "run=hold");
+    await openAskAi(page);
+    await expect(page.getByTestId("ai-chat-suggestion")).toHaveText(
+      INCIDENT_SUGGESTIONS,
+    );
+
+    await page.getByTestId("fixture-link-home").click();
+
+    await expect(page.getByTestId("ai-chat-suggestion")).toHaveText(
+      GENERIC_SUGGESTIONS,
+    );
+
+    await page.getByTestId("fixture-link-incident").click();
+    await expect(page.getByTestId("ai-chat-suggestion")).toHaveText(
+      INCIDENT_SUGGESTIONS,
+    );
+    // Its title read, as the pill says: the question goes out with it.
+    await expect(page.getByTestId("ai-chat-context")).toHaveText(INCIDENT_CHIP);
+    await ask(page, LATENCY_QUESTION);
+
+    expect((await state(page)).sent).toEqual([
+      expect.objectContaining({
+        content: LATENCY_QUESTION,
+        pageContext: {
+          type: "Incident",
+          entityId: INCIDENT_ID,
+          entityTitle: "#42 Checkout latency above 2s",
+        },
+      }),
+    ]);
+  });
+
+  test("the keys: Ctrl + I opens it, goes back to it from the page, and closes it from inside; Esc is the page's on the page", async ({
     page,
   }: {
     page: Page;
@@ -412,21 +608,54 @@ test.describe("Ask AI takes the main stage", () => {
     await search.focus();
 
     await page.keyboard.press("Control+i");
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     await expect(composer(page)).toBeFocused();
 
+    // Working on the page beside it, Esc is the page's.
+    await search.focus();
     await page.keyboard.press("Escape");
-    await expect(dialog(page)).toBeHidden();
+    await expect(askAi(page)).toBeVisible();
+
+    // The same keys go back to the box, to ask the next question.
+    await page.keyboard.press("Control+i");
+    await expect(askAi(page)).toBeVisible();
+    await expect(composer(page)).toBeFocused();
+
+    // From inside it, Esc closes it, and the focus goes back.
+    await page.keyboard.press("Escape");
+    await expect(askAi(page)).toBeHidden();
     await expect(search).toBeFocused();
 
     await page.keyboard.press("Meta+i");
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     // In its own composer, which has no italics, the keys close it again.
     await page.keyboard.press("Control+i");
-    await expect(dialog(page)).toBeHidden();
+    await expect(askAi(page)).toBeHidden();
   });
 
-  test("a click beside it closes it; a drag that ends beside it does not", async ({
+  test("pressed again, the header's Ask AI gives the page its whole width back, and leaves the focus alone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page);
+    await openAskAi(page);
+    await expect(headerAskAi(page)).toHaveAttribute("aria-pressed", "true");
+
+    await headerAskAi(page).click();
+
+    await expect(askAi(page)).toBeHidden();
+    await expect(headerAskAi(page)).toHaveAttribute("aria-pressed", "false");
+    await expect(headerAskAi(page)).toBeFocused();
+    expect((await boxOf(page.getByTestId("fixture-page"))).width).toBe(1280);
+    expect(
+      await page.evaluate((): string => {
+        return document.documentElement.getAttribute("style") || "";
+      }),
+    ).not.toContain("--page-dock-width");
+  });
+
+  test("one of the app's own side panels opens beside it, not behind it, and it still answers", async ({
     page,
   }: {
     page: Page;
@@ -434,17 +663,19 @@ test.describe("Ask AI takes the main stage", () => {
     await load(page);
     await openAskAi(page);
 
-    // Selecting what was typed, and letting go beside the dialog.
-    await composer(page).fill("Why is checkout slow?");
-    const box: Box = await boxOf(composer(page));
-    await page.mouse.move(box.x + 10, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(8, 400, { steps: 4 });
-    await page.mouse.up();
-    await expect(dialog(page)).toBeVisible();
+    await page.getByTestId("fixture-open-side-over").click();
+    await expect(page.getByTestId("side-over-title")).toBeVisible();
+    await settle(page);
 
-    await page.mouse.click(8, 400);
-    await expect(dialog(page)).toBeHidden();
+    const panel: Box = await boxOf(askAi(page));
+    const layer: Box = await boxOf(page.getByTestId("side-over-layer"));
+    expect(layer.x + layer.width).toBe(panel.x);
+    await screenshot(page, "side-over-beside-1280");
+
+    await composer(page).click();
+    await composer(page).fill(LATENCY_QUESTION);
+    await expect(composer(page)).toHaveValue(LATENCY_QUESTION);
+    await expect(page.getByTestId("side-over-title")).toBeVisible();
   });
 
   test("Explain with AI opens a new conversation with its question in the composer, unsent", async ({
@@ -456,13 +687,21 @@ test.describe("Ask AI takes the main stage", () => {
 
     await page.getByTestId("fixture-explain-with-ai").click();
 
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     await expect(composer(page)).toHaveValue(EXPLAIN_PROMPT);
     await expect(page.getByTestId("ai-chat-context")).toHaveText("Logs");
     expect((await state(page)).sent).toEqual([]);
+
+    // With the panel already open, it still goes to the box the question is in.
+    await page.getByTestId("fixture-page-button").focus();
+    await page.getByTestId("fixture-explain-with-ai").click();
+
+    await expect(askAi(page)).toBeVisible();
+    await expect(composer(page)).toBeFocused();
+    await expect(composer(page)).toHaveValue(EXPLAIN_PROMPT);
   });
 
-  test("the chat's own address opens the dialog over the page the person came from", async ({
+  test("the chat's own address opens the panel beside the page the person came from", async ({
     page,
   }: {
     page: Page;
@@ -473,18 +712,18 @@ test.describe("Ask AI takes the main stage", () => {
     // A link to one conversation, followed inside the app.
     await navigateInApp(page, `${DASHBOARD}/ai/chat/${ids.answered}`);
 
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`${INCIDENT_PATH}\\?`));
     await expect(
       page
         .getByTestId("ai-chat-question")
         .filter({ hasText: LATENCY_QUESTION }),
     ).toBeVisible();
-    // The page under it is the incident, and the next question is about it.
+    // The page beside it is the incident, and the next question is about it.
     await expect(page.getByTestId("ai-chat-context")).toHaveText(INCIDENT_CHIP);
   });
 
-  test("opened at its own address, the dialog opens over Home", async ({
+  test("opened at its own address, the panel opens beside Home", async ({
     page,
   }: {
     page: Page;
@@ -494,7 +733,7 @@ test.describe("Ask AI takes the main stage", () => {
 
     await load(page, "history=some", `${DASHBOARD}/ai/chat/${ids.answered}`);
 
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`${HOME_PATH}`));
     await expect(
       page
@@ -504,8 +743,218 @@ test.describe("Ask AI takes the main stage", () => {
 
     // Closing it leaves the person on a page, never on an empty one.
     await page.keyboard.press("Escape");
-    await expect(dialog(page)).toBeHidden();
+    await expect(askAi(page)).toBeHidden();
     await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Its edge
+ * ---------------------------------------------------------------------------
+ */
+
+test.describe("its edge", () => {
+  test("drags to the width the work needs, the page following, and is kept for the next time", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page);
+    await openAskAi(page);
+    const edge: Locator = page.getByTestId("ask-ai-resize");
+    await expect(edge).toHaveAttribute("role", "separator");
+    await expect(edge).toHaveAttribute("aria-valuenow", "440");
+
+    await dragEdge(page, -160);
+
+    expect(await widthOf(askAi(page))).toBe(600);
+    expect(await widthOf(page.getByTestId("fixture-page"))).toBe(680);
+    await expect(edge).toHaveAttribute("aria-valuenow", "600");
+    await screenshot(page, "dragged-wider-1280");
+
+    await load(page);
+    await openAskAi(page);
+
+    expect(await widthOf(askAi(page))).toBe(600);
+    expect(await widthOf(page.getByTestId("fixture-page"))).toBe(680);
+  });
+
+  test("never narrower than it can be used, and never so wide the page has no room", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page);
+    await openAskAi(page);
+
+    await dragEdge(page, -1000);
+    expect(await widthOf(askAi(page))).toBe(640);
+    expect(await widthOf(page.getByTestId("fixture-page"))).toBe(640);
+
+    await dragEdge(page, 1000);
+    expect(await widthOf(askAi(page))).toBe(340);
+    expect(await widthOf(page.getByTestId("fixture-page"))).toBe(940);
+    await expectNothingScrollsSideways(page);
+    await screenshot(page, "narrowest-1280");
+  });
+
+  test("a press that moves nothing keeps nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page);
+    await openAskAi(page);
+
+    await dragEdge(page, 0);
+
+    expect(
+      await page.evaluate((): string | null => {
+        return window.localStorage.getItem("ask-ai-panel-width");
+      }),
+    ).toBeNull();
+  });
+
+  test("a double click puts it back at the width it opens at", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await keepPanelWidth(page, 600);
+    await load(page);
+    await openAskAi(page);
+    expect(await widthOf(askAi(page))).toBe(600);
+
+    await page.getByTestId("ask-ai-resize").dblclick();
+
+    expect(await widthOf(askAi(page))).toBe(440);
+    expect(await widthOf(page.getByTestId("fixture-page"))).toBe(840);
+  });
+
+  test("by keyboard: the arrows move it the way they point, Home and End to its ends", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page);
+    await openAskAi(page);
+    const edge: Locator = page.getByTestId("ask-ai-resize");
+    await edge.focus();
+
+    await page.keyboard.press("ArrowLeft");
+    await expect(edge).toHaveAttribute("aria-valuenow", "464");
+    expect(await widthOf(askAi(page))).toBe(464);
+    expect(await widthOf(page.getByTestId("fixture-page"))).toBe(816);
+
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowRight");
+    await expect(edge).toHaveAttribute("aria-valuenow", "416");
+
+    await page.keyboard.press("Home");
+    await expect(edge).toHaveAttribute("aria-valuenow", "340");
+
+    await page.keyboard.press("End");
+    await expect(edge).toHaveAttribute("aria-valuenow", "640");
+    await expect(edge).toHaveAttribute("aria-valuemin", "340");
+    await expect(edge).toHaveAttribute("aria-valuemax", "640");
+    expect(await widthOf(askAi(page))).toBe(640);
+  });
+
+  test("a window made narrower narrows it for the page's sake, and made wide again puts it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page);
+    await openAskAi(page);
+
+    await page.setViewportSize({ width: 1024, height: 800 });
+    await expect
+      .poll((): Promise<number> => {
+        return widthOf(askAi(page));
+      })
+      .toBe(384);
+    expect(await widthOf(page.getByTestId("fixture-page"))).toBe(640);
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect
+      .poll((): Promise<number> => {
+        return widthOf(askAi(page));
+      })
+      .toBe(440);
+    expect(await widthOf(page.getByTestId("fixture-page"))).toBe(840);
+  });
+
+  test("a window with no room for both makes it a sheet, and everything in it stays", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=answered");
+    await expect(askAi(page)).toHaveAttribute("data-docked", "true");
+    const asked: Locator = page
+      .getByTestId("ai-chat-question")
+      .filter({ hasText: LATENCY_QUESTION });
+    await composer(page).fill("And what about payments?");
+
+    await page.setViewportSize({ width: 800, height: 800 });
+
+    await expect(askAi(page)).toHaveAttribute("data-docked", "false");
+    await expect(askAi(page)).toHaveAttribute("role", "dialog");
+    await expect(page.getByTestId("ask-ai-resize")).toHaveCount(0);
+    await expect(asked).toBeVisible();
+    await expect(composer(page)).toHaveValue("And what about payments?");
+    expect(
+      await page.evaluate((): boolean => {
+        return document.getElementById("root")!.hasAttribute("inert");
+      }),
+    ).toBe(true);
+    expect(await widthOf(page.getByTestId("fixture-page"))).toBe(800);
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+
+    await expect(askAi(page)).toHaveAttribute("data-docked", "true");
+    await expect(asked).toBeVisible();
+    await expect(composer(page)).toHaveValue("And what about payments?");
+    expect(
+      await page.evaluate((): boolean => {
+        return document.getElementById("root")!.hasAttribute("inert");
+      }),
+    ).toBe(false);
+    expect(await widthOf(page.getByTestId("fixture-page"))).toBe(840);
+  });
+
+  test("right to left it docks at the left, the page beside it, and its edge drags the way it is pulled", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "lang=fa");
+    await openAskAi(page);
+
+    expect(await boxOf(askAi(page))).toEqual({
+      x: 0,
+      y: 0,
+      width: 440,
+      height: 800,
+    });
+    const beside: Box = await boxOf(page.getByTestId("fixture-page"));
+    expect(beside.x).toBe(440);
+    expect(beside.width).toBe(840);
+    await screenshot(page, "beside-the-page-1280-fa");
+
+    await dragEdge(page, 100);
+
+    expect(await widthOf(askAi(page))).toBe(540);
+    expect((await boxOf(page.getByTestId("fixture-page"))).x).toBe(540);
+
+    const edge: Locator = page.getByTestId("ask-ai-resize");
+    await edge.focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(edge).toHaveAttribute("aria-valuenow", "564");
+    await page.keyboard.press("ArrowLeft");
+    await expect(edge).toHaveAttribute("aria-valuenow", "540");
   });
 });
 
@@ -524,12 +973,12 @@ test.describe("the start", () => {
     await load(page);
     await openAskAi(page);
 
-    await expect(dialog(page).getByRole("heading", { level: 3 })).toHaveText(
+    await expect(askAi(page).getByRole("heading", { level: 3 })).toHaveText(
       "What would you like to know?",
     );
     await expect(page.getByTestId("ai-chat-context")).toHaveText(INCIDENT_CHIP);
     // What the pill says is not said again under the question.
-    await expect(dialog(page).getByText(HOME_SENTENCE)).toHaveCount(0);
+    await expect(askAi(page).getByText(HOME_SENTENCE)).toHaveCount(0);
 
     const chips: Locator = page.getByTestId("ai-chat-suggestion");
     await expect(chips).toHaveText(INCIDENT_SUGGESTIONS);
@@ -538,16 +987,17 @@ test.describe("the start", () => {
       "Summarize this incident: what happened, its current state, and the impact.",
     );
 
-    // The question, then the box under it, then the suggestions.
+    // The question, then the suggestions, then the box at the panel's foot.
     const heading: Box = await boxOf(
-      dialog(page).getByRole("heading", { level: 3 }),
+      askAi(page).getByRole("heading", { level: 3 }),
     );
-    const box: Box = await boxOf(page.getByTestId("ai-chat-composer"));
     const suggestions: Box = await boxOf(
       page.getByTestId("ai-chat-suggestions"),
     );
-    expect(heading.y).toBeLessThan(box.y);
-    expect(box.y + box.height).toBeLessThanOrEqual(suggestions.y);
+    const box: Box = await boxOf(page.getByTestId("ai-chat-composer"));
+    expect(heading.y).toBeLessThan(suggestions.y);
+    expect(suggestions.y + suggestions.height).toBeLessThanOrEqual(box.y);
+    expect(800 - (box.y + box.height)).toBeLessThanOrEqual(16);
 
     // Quiet: the start is a handful of words, not eight cards and two paragraphs.
     const quiet: Quiet = await quietness(page);
@@ -555,7 +1005,7 @@ test.describe("the start", () => {
     expect(quiet.elements).toBeLessThanOrEqual(110);
   });
 
-  test("the start sits in the middle of the dialog", async ({
+  test("the start sits in the middle of the room over the composer", async ({
     page,
   }: {
     page: Page;
@@ -563,13 +1013,54 @@ test.describe("the start", () => {
     await load(page);
     await openAskAi(page);
 
-    const panel: Box = await boxOf(dialog(page));
+    const panel: Box = await boxOf(askAi(page));
     const start: Box = await boxOf(page.getByTestId("ai-chat-home"));
-    // Under the 56px header, the start's middle is the space's middle.
-    const spaceMiddle: number = panel.y + 56 + (panel.height - 56) / 2;
+    const box: Box = await boxOf(page.getByTestId("ai-chat-composer"));
+    // Under the 64px header, its middle is the middle of what is left.
+    const roomTop: number = panel.y + 64;
+    const roomMiddle: number = roomTop + (box.y - 4 - roomTop) / 2;
     expect(
-      Math.abs(start.y + start.height / 2 - spaceMiddle),
+      Math.abs(start.y + start.height / 2 - roomMiddle),
     ).toBeLessThanOrEqual(2);
+  });
+
+  test("the box stays where it is as the first question is sent: the next goes where this one went", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "run=hold");
+    await openAskAi(page);
+    const before: Box = await boxOf(page.getByTestId("ai-chat-composer"));
+
+    await composer(page).fill(LATENCY_QUESTION);
+    await composer(page).press("Enter");
+    await expect(page.getByTestId("ai-chat-live")).toBeVisible();
+    await settle(page);
+
+    const after: Box = await boxOf(page.getByTestId("ai-chat-composer"));
+    expect(after.x).toBe(before.x);
+    expect(after.width).toBe(before.width);
+    expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(1);
+    // The focus stayed in it, as the composer itself stayed.
+    await expect(composer(page)).toBeFocused();
+  });
+
+  test("a suggestion picked keeps the focus in the panel, on the box", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "run=hold");
+    await openAskAi(page);
+
+    await page
+      .getByTestId("ai-chat-suggestion")
+      .filter({ hasText: "Summarize" })
+      .click();
+
+    await expect(page.getByTestId("ai-chat-live")).toBeVisible();
+    await expect(composer(page)).toBeFocused();
   });
 
   test("a suggestion asks its question about the incident", async ({
@@ -611,7 +1102,7 @@ test.describe("the start", () => {
     await page.getByRole("button", { name: "Remove page context" }).click();
 
     await expect(page.getByTestId("ai-chat-context")).toHaveCount(0);
-    await expect(dialog(page).getByText(HOME_SENTENCE)).toBeVisible();
+    await expect(askAi(page).getByText(HOME_SENTENCE)).toBeVisible();
     await expect(page.getByTestId("ai-chat-suggestion")).toHaveText(
       GENERIC_SUGGESTIONS,
     );
@@ -635,7 +1126,7 @@ test.describe("the start", () => {
     await openAskAi(page);
 
     await expect(page.getByTestId("ai-chat-context")).toHaveCount(0);
-    await expect(dialog(page).getByText(HOME_SENTENCE)).toBeVisible();
+    await expect(askAi(page).getByText(HOME_SENTENCE)).toBeVisible();
     await expect(page.getByTestId("ai-chat-suggestion")).toHaveText(
       GENERIC_SUGGESTIONS,
     );
@@ -716,7 +1207,7 @@ test.describe("an answer, written quietly", () => {
     page: Page;
   }) => {
     await load(page, "thread=answered");
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     await settle(page);
 
     const answer: Locator = page.getByTestId("ai-chat-answer");
@@ -783,13 +1274,13 @@ test.describe("an answer, written quietly", () => {
     ]);
   });
 
-  test("a citation opens what it cites: the dialog steps aside, and the conversation waits", async ({
+  test("a citation opens what it cites in the page beside it, and the conversation stays on screen", async ({
     page,
   }: {
     page: Page;
   }) => {
     await load(page, "thread=answered");
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
 
     await page
       .getByTestId("ai-chat-answer-text")
@@ -797,18 +1288,15 @@ test.describe("an answer, written quietly", () => {
       .first()
       .click();
 
-    await expect(dialog(page)).toBeHidden();
     await expect(page).toHaveURL(new RegExp(`${DASHBOARD}/logs`));
     await expect(page.getByRole("heading", { name: "Logs" })).toBeVisible();
-    // Read already: nothing floats over the page that was opened.
-    await expect(page.getByTestId("ask-ai-resume")).toHaveCount(0);
-
-    await page.keyboard.press("Control+i");
+    await expect(askAi(page)).toBeVisible();
     await expect(
       page
         .getByTestId("ai-chat-question")
         .filter({ hasText: LATENCY_QUESTION }),
     ).toBeVisible();
+    await expect(page.getByTestId("ask-ai-resume")).toHaveCount(0);
   });
 
   test("Stop stops an answer being written", async ({
@@ -822,23 +1310,23 @@ test.describe("an answer, written quietly", () => {
 
     await page.getByRole("button", { name: "Stop generating" }).click();
 
-    await expect(dialog(page).getByText("Stopped by user.")).toBeVisible();
+    await expect(askAi(page).getByText("Stopped by user.")).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Send (Enter)" }),
     ).toBeVisible();
     expect((await state(page)).cancelled).toBe(1);
   });
 
-  test("an approval is decided inside the dialog, and leaves a card that says each fact once", async ({
+  test("an approval is decided inside the panel, and leaves a card that says each fact once", async ({
     page,
   }: {
     page: Page;
   }) => {
     await load(page, "thread=approval");
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
 
     await expect(
-      dialog(page).getByText("The AI wants to perform 1 action"),
+      askAi(page).getByText("The AI wants to perform 1 action"),
     ).toBeVisible();
     // Nothing else is sent until it is decided.
     await expect(
@@ -856,6 +1344,12 @@ test.describe("an answer, written quietly", () => {
     // Said by the heading and the line under it, not again under them.
     await expect(card.getByText("Number", { exact: true })).toHaveCount(0);
     await expect(card.getByText("Severity", { exact: true })).toHaveCount(0);
+    /*
+     * The card says what the action made: the action's own "Executed" row
+     * is not drawn again under it (#5349's reviewer).
+     */
+    await expect(page.getByTestId("tool-approval-history")).toHaveCount(0);
+    await expect(askAi(page).getByText("Executed")).toHaveCount(0);
     await expect(
       card.getByRole("button", {
         name: "Open ALT-12 · High memory usage on test01",
@@ -879,7 +1373,7 @@ test.describe("an answer, written quietly", () => {
     page: Page;
   }) => {
     await load(page, "thread=error&run=hold");
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
 
     await expect(page.getByTestId("ai-chat-answer-error")).toContainText(
       "The LLM provider did not answer in time.",
@@ -977,7 +1471,7 @@ test.describe("what an answer carries fits where it is drawn", () => {
     page: Page;
   }) => {
     await load(page, "thread=answered");
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     await settle(page);
 
     const text: Locator = page.getByTestId("ai-chat-answer-text");
@@ -1009,7 +1503,7 @@ test.describe("what an answer carries fits where it is drawn", () => {
     }) => {
       await page.setViewportSize({ width: width, height: 844 });
       await load(page, "thread=answered");
-      await expect(dialog(page)).toBeVisible();
+      await expect(askAi(page)).toBeVisible();
       // The chart draws its axes once it has measured its box.
       await expect(page.locator(Y_AXIS_LABEL).first()).toBeAttached();
       await settle(page);
@@ -1037,7 +1531,7 @@ test.describe("what an answer carries fits where it is drawn", () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await load(page, "thread=rich");
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     await settle(page);
 
     const table: Locator = page.locator("table").filter({
@@ -1113,7 +1607,7 @@ test.describe("what an answer carries fits where it is drawn", () => {
     }) => {
       await page.setViewportSize({ width: view.width, height: 900 });
       await load(page, `thread=rich${view.lang ? `&lang=${view.lang}` : ""}`);
-      await expect(dialog(page)).toBeVisible();
+      await expect(askAi(page)).toBeVisible();
 
       const table: Locator = page
         .locator("table")
@@ -1171,7 +1665,8 @@ test.describe("what an answer carries fits where it is drawn", () => {
       );
 
       expect(date.lines).toBe(1);
-      expect(date.cellWidth).toBeLessThan(date.tableWidth / 4);
+      // Beside three other columns in the panel's width: it leaves them the most.
+      expect(date.cellWidth).toBeLessThan(date.tableWidth / 3);
       expect(date.text).not.toContain("2026");
       expect(date.title).toContain("2026");
 
@@ -1191,17 +1686,27 @@ test.describe("what an answer carries fits where it is drawn", () => {
   }
 
   for (const viewport of [
-    { width: 1280, rows: 1 },
-    { width: 390, rows: 2 },
+    { name: "two by two in the panel", width: 1280, kept: 0, rows: 2 },
+    {
+      name: "one row in a panel dragged wide",
+      width: 1280,
+      kept: 640,
+      rows: 1,
+    },
+    { name: "two by two on a phone", width: 390, kept: 0, rows: 2 },
   ]) {
-    test(`four figures fill their rows: ${viewport.rows === 1 ? "one row on a laptop" : "two by two on a phone"} (${viewport.width})`, async ({
+    test(`four figures fill their rows: ${viewport.name} (${viewport.width})`, async ({
       page,
     }: {
       page: Page;
     }) => {
+      if (viewport.kept) {
+        await keepPanelWidth(page, viewport.kept);
+      }
+
       await page.setViewportSize({ width: viewport.width, height: 844 });
       await load(page, "thread=rich");
-      await expect(dialog(page)).toBeVisible();
+      await expect(askAi(page)).toBeVisible();
       await settle(page);
 
       const tiles: Array<Box> = [];
@@ -1233,7 +1738,7 @@ test.describe("what an answer carries fits where it is drawn", () => {
     page: Page;
   }) => {
     await load(page, "thread=rich&theme=dark");
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     await settle(page);
 
     const bars: Array<string> = await page
@@ -1261,7 +1766,7 @@ test.describe("what an answer carries fits where it is drawn", () => {
  */
 
 test.describe("conversations within reach", () => {
-  test("the start shows the last three; All conversations lists them all, inside the dialog", async ({
+  test("the start shows the last three; All conversations lists them all, inside the panel", async ({
     page,
   }: {
     page: Page;
@@ -1276,13 +1781,13 @@ test.describe("conversations within reach", () => {
     await recent.getByRole("button", { name: "All conversations" }).click();
 
     await expect(
-      page.getByRole("dialog", { name: "All conversations" }),
+      page.getByRole("complementary", { name: "All conversations" }),
     ).toBeVisible();
     const rows: Locator = page
       .getByTestId("ai-chat-history")
       .getByRole("listitem");
     await expect(rows).toHaveCount(25);
-    // The list scrolls inside the dialog; the page under it does not.
+    // The list scrolls inside the panel; the page beside it does not.
     const scroll: { inner: boolean; page: number } = await page
       .getByTestId("ai-chat-history")
       .evaluate((list: Element): { inner: boolean; page: number } => {
@@ -1330,10 +1835,10 @@ test.describe("conversations within reach", () => {
     expect((await state(page)).deleted).toEqual([]);
     await screenshot(page, "history-delete-asks-1280");
 
-    // Esc keeps it, and leaves the dialog open.
+    // Esc keeps it, and leaves the panel open.
     await page.keyboard.press("Escape");
     await expect(asking).toHaveCount(0);
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     await expect(bin).toBeFocused();
 
     await bin.click();
@@ -1358,7 +1863,9 @@ test.describe("conversations within reach", () => {
       .click();
 
     await expect(
-      page.getByRole("dialog", { name: "Why did checkout latency spike?" }),
+      page.getByRole("complementary", {
+        name: "Why did checkout latency spike?",
+      }),
     ).toBeVisible();
     await expect(page.getByTestId("ai-chat-answer-text")).toBeVisible();
     await expect(composer(page)).toHaveAttribute(
@@ -1385,7 +1892,7 @@ test.describe("conversations within reach", () => {
     await page.keyboard.press("Enter");
 
     await expect(
-      page.getByRole("dialog", { name: "All conversations" }),
+      page.getByRole("complementary", { name: "All conversations" }),
     ).toBeVisible();
     await expect(
       page
@@ -1412,7 +1919,7 @@ test.describe("closing Ask AI loses nothing", () => {
     await ask(page, LATENCY_QUESTION);
 
     await page.keyboard.press("Escape");
-    await expect(dialog(page)).toBeHidden();
+    await expect(askAi(page)).toBeHidden();
 
     const resume: Locator = page.getByTestId("ask-ai-resume");
     await expect(resume).toHaveText("Ask AI is answering…");
@@ -1428,7 +1935,7 @@ test.describe("closing Ask AI loses nothing", () => {
     await expect(resume.getByRole("status")).toHaveText("Ask AI has answered");
 
     await page.getByTestId("ask-ai-resume-open").click();
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     await expect(page.getByTestId("ai-chat-answer-text")).toBeVisible();
     await expect(resume).toHaveCount(0);
   });
@@ -1452,31 +1959,6 @@ test.describe("closing Ask AI loses nothing", () => {
  */
 
 test.describe("by keyboard", () => {
-  test("Tab and Shift + Tab go round inside the dialog", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    await load(page, "thread=answered");
-    await expect(dialog(page)).toBeVisible();
-    await settle(page);
-
-    for (const key of ["Tab", "Shift+Tab"]) {
-      for (let index: number = 0; index < 40; index++) {
-        await page.keyboard.press(key);
-        expect({
-          key,
-          index,
-          inside: await page.evaluate((): boolean => {
-            return Boolean(
-              document.activeElement?.closest('[data-testid="ask-ai-dialog"]'),
-            );
-          }),
-        }).toEqual({ key, index, inside: true });
-      }
-    }
-  });
-
   test("Esc in a menu closes the menu only", async ({
     page,
   }: {
@@ -1494,51 +1976,60 @@ test.describe("by keyboard", () => {
       page.getByRole("menu", { name: "AI permissions" }),
     ).toBeVisible();
     await settle(page);
-    /*
-     * On a laptop window 720 px tall the start's composer sits in the
-     * middle of the dialog, too low for the menu to open down without the
-     * dialog's foot cutting its last choice in half: it opens up, whole.
-     */
+    // From the composer at the panel's foot it opens up, whole, inside the panel.
     const menu: Box = await boxOf(
       page.getByRole("menu", { name: "AI permissions" }),
     );
     const button: Box = await boxOf(mode);
-    const panel: Box = await boxOf(dialog(page));
+    const panel: Box = await boxOf(askAi(page));
     expect(menu.y + menu.height).toBeLessThanOrEqual(button.y);
     expect(menu.y).toBeGreaterThanOrEqual(panel.y);
     await screenshot(page, "start-menu-up-1280");
 
     await page.keyboard.press("Escape");
     await expect(page.getByRole("menu")).toHaveCount(0);
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     await expect(mode).toBeFocused();
 
     await page.keyboard.press("Escape");
-    await expect(dialog(page)).toBeHidden();
+    await expect(askAi(page)).toBeHidden();
   });
 
-  test("with room under the start's composer, its menu opens down, as asked", async ({
+  test("in a panel at its narrowest, either menu of the composer stays inside it", async ({
     page,
   }: {
     page: Page;
   }) => {
-    // The recent conversations under it lift the start's composer.
-    await load(page, "history=some");
+    await keepPanelWidth(page, 340);
+    await load(page, "providers=two");
     await openAskAi(page);
-    const mode: Locator = page.getByTitle(
-      "Choose what the AI is allowed to do",
-    );
+    const panel: Box = await boxOf(askAi(page));
 
-    await mode.click();
-    const opened: Locator = page.getByRole("menu", { name: "AI permissions" });
-    await expect(opened).toBeVisible();
-    await settle(page);
+    for (const control of [
+      { title: "Choose AI provider", menu: "AI provider" },
+      {
+        title: "Choose what the AI is allowed to do",
+        menu: "AI permissions",
+      },
+    ]) {
+      await page.getByTitle(control.title).click();
+      const opened: Locator = page.getByRole("menu", { name: control.menu });
+      await expect(opened).toBeVisible();
+      await settle(page);
 
-    const menu: Box = await boxOf(opened);
-    const button: Box = await boxOf(mode);
-    const panel: Box = await boxOf(dialog(page));
-    expect(menu.y).toBeGreaterThanOrEqual(button.y + button.height);
-    expect(menu.y + menu.height).toBeLessThanOrEqual(panel.y + panel.height);
+      const menu: Box = await boxOf(opened);
+      expect({ menu: control.menu, x: menu.x >= panel.x }).toEqual({
+        menu: control.menu,
+        x: true,
+      });
+      expect({
+        menu: control.menu,
+        end: menu.x + menu.width <= panel.x + panel.width,
+      }).toEqual({ menu: control.menu, end: true });
+
+      await page.keyboard.press("Escape");
+      await expect(opened).toHaveCount(0);
+    }
   });
 
   test("one LLM provider: nothing to choose; two: the picker lists them", async ({
@@ -1557,7 +2048,7 @@ test.describe("by keyboard", () => {
     await expect(menu.getByRole("menuitemradio")).toHaveCount(2);
     await page.keyboard.press("Escape");
     await expect(menu).toHaveCount(0);
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
   });
 
   test("with AI switched off it says so, and offers nothing to type into", async ({
@@ -1568,7 +2059,7 @@ test.describe("by keyboard", () => {
     await load(page, "ai=off");
     await openAskAi(page);
 
-    await expect(page.getByTestId("ask-ai-dialog")).toHaveAttribute(
+    await expect(page.getByTestId("ask-ai-panel")).toHaveAttribute(
       "data-view",
       "unavailable",
     );
@@ -1583,23 +2074,136 @@ test.describe("by keyboard", () => {
  * ---------------------------------------------------------------------------
  */
 
-test.describe("on a tablet", () => {
+test.describe("on a tablet, where there is no room for both", () => {
   test.use({ viewport: { width: 768, height: 1024 } });
 
-  test("the dialog keeps a margin of the page round it", async ({
+  test("a sheet at the side, over the dimmed page, which is inert and still", async ({
     page,
   }: {
     page: Page;
   }) => {
     await load(page, "thread=answered");
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     await settle(page);
 
-    const box: Box = await boxOf(dialog(page));
-    expect(Math.round(box.x)).toBe(24);
-    expect(Math.round(box.width)).toBe(768 - 48);
+    await expect(askAi(page)).toHaveAttribute("role", "dialog");
+    await expect(askAi(page)).toHaveAttribute("aria-modal", "true");
+    expect(await boxOf(askAi(page))).toEqual({
+      x: 320,
+      y: 0,
+      width: 448,
+      height: 1024,
+    });
+    await expect(page.getByTestId("ask-ai-resize")).toHaveCount(0);
+
+    expect(
+      await page.evaluate((): { inert: boolean; overflow: string } => {
+        return {
+          inert: document.getElementById("root")!.hasAttribute("inert"),
+          overflow: document.body.style.overflow,
+        };
+      }),
+    ).toEqual({ inert: true, overflow: "hidden" });
+    expect(await widthOf(page.getByTestId("fixture-page"))).toBe(768);
+
     await expectNothingScrollsSideways(page);
     await screenshot(page, "answer-768");
+  });
+
+  test("Tab and Shift + Tab go round inside it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=answered");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    for (const key of ["Tab", "Shift+Tab"]) {
+      for (let index: number = 0; index < 40; index++) {
+        await page.keyboard.press(key);
+        expect({
+          key,
+          index,
+          inside: await page.evaluate((): boolean => {
+            return Boolean(
+              document.activeElement?.closest('[data-testid="ask-ai-panel"]'),
+            );
+          }),
+        }).toEqual({ key, index, inside: true });
+      }
+    }
+  });
+
+  test("a click beside it closes it, and the page wakes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page);
+    await page.getByTestId("fixture-open-side-over").focus();
+    await page.keyboard.press("Control+i");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await page.mouse.click(40, 400);
+
+    await expect(askAi(page)).toBeHidden();
+    expect(
+      await page.evaluate((): { inert: boolean; overflow: string } => {
+        return {
+          inert: document.getElementById("root")!.hasAttribute("inert"),
+          overflow: document.body.style.overflow,
+        };
+      }),
+    ).toEqual({ inert: false, overflow: "" });
+    await expect(page.getByTestId("fixture-open-side-over")).toBeFocused();
+  });
+
+  test("Esc closes it, and the focus goes back to what had it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page);
+    const button: Locator = page.getByTestId("fixture-open-side-over");
+    await button.focus();
+
+    await page.keyboard.press("Control+i");
+    await expect(askAi(page)).toBeVisible();
+    await expect(composer(page)).toBeFocused();
+
+    await page.keyboard.press("Escape");
+    await expect(askAi(page)).toBeHidden();
+    await expect(button).toBeFocused();
+  });
+
+  test("a citation opens what it cites: the sheet steps aside for the page to be seen, and the conversation waits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=answered");
+    await expect(askAi(page)).toBeVisible();
+
+    await page
+      .getByTestId("ai-chat-answer-text")
+      .locator('[data-citation-id="C3"]')
+      .first()
+      .click();
+
+    await expect(askAi(page)).toBeHidden();
+    await expect(page).toHaveURL(new RegExp(`${DASHBOARD}/logs`));
+    await expect(page.getByRole("heading", { name: "Logs" })).toBeVisible();
+    // Read already: nothing floats over the page that was opened.
+    await expect(page.getByTestId("ask-ai-resume")).toHaveCount(0);
+
+    await page.keyboard.press("Control+i");
+    await expect(
+      page
+        .getByTestId("ai-chat-question")
+        .filter({ hasText: LATENCY_QUESTION }),
+    ).toBeVisible();
   });
 });
 
@@ -1614,10 +2218,10 @@ test.describe("on a phone", () => {
     await load(page);
     await openAskAi(page);
 
-    const box: Box = await boxOf(dialog(page));
+    const box: Box = await boxOf(askAi(page));
     expect(box).toEqual({ x: 0, y: 0, width: 390, height: 844 });
     expect(
-      await dialog(page).evaluate((element: Element): string => {
+      await askAi(page).evaluate((element: Element): string => {
         return window.getComputedStyle(element).borderTopLeftRadius;
       }),
     ).toBe("0px");
@@ -1631,7 +2235,7 @@ test.describe("on a phone", () => {
     page: Page;
   }) => {
     await load(page, "thread=answered");
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     await settle(page);
 
     const box: Box = await boxOf(page.getByTestId("ai-chat-composer"));
@@ -1689,7 +2293,7 @@ async function luminanceOf(
 }
 
 test.describe("in the dark", () => {
-  test("the dialog, its start, its answer and its card are drawn dark", async ({
+  test("the panel, its start, its answer and its card are drawn dark", async ({
     page,
   }: {
     page: Page;
@@ -1697,12 +2301,12 @@ test.describe("in the dark", () => {
     await load(page, "theme=dark");
     await openAskAi(page);
 
-    expect(await luminanceOf(dialog(page), "background-color")).toBeLessThan(
+    expect(await luminanceOf(askAi(page), "background-color")).toBeLessThan(
       0.05,
     );
     expect(
       await luminanceOf(
-        dialog(page).getByRole("heading", { level: 3 }),
+        askAi(page).getByRole("heading", { level: 3 }),
         "color",
       ),
     ).toBeGreaterThan(0.6);
@@ -1712,14 +2316,24 @@ test.describe("in the dark", () => {
         "background-color",
       ),
     ).toBeLessThan(0.1);
-    // A deeper veil: a dark one over a dark page still sets the dialog apart.
-    expect(
-      await page
-        .getByTestId("ask-ai-backdrop")
-        .evaluate((element: Element): string => {
-          return window.getComputedStyle(element).backgroundColor;
-        }),
-    ).toBe("rgba(2, 6, 23, 0.62)");
+    // The box says it has the focus in the dark too: its indigo edge and glow.
+    await expect(composer(page)).toBeFocused();
+    await expect
+      .poll((): Promise<{ border: string; shadow: string }> => {
+        return page
+          .getByTestId("ai-chat-composer")
+          .evaluate((element: Element): { border: string; shadow: string } => {
+            const style: CSSStyleDeclaration = window.getComputedStyle(element);
+            return {
+              border: style.borderTopColor,
+              shadow: style.boxShadow,
+            };
+          });
+      })
+      .toEqual({
+        border: "rgb(99, 102, 241)",
+        shadow: expect.stringContaining("rgba(99, 102, 241, 0.25)"),
+      });
     /*
      * The start's mark glows in its own indigo, not in the deep black
      * shadow the dark theme gives every shadow-lg (a dark smudge).
@@ -1735,14 +2349,14 @@ test.describe("in the dark", () => {
     await screenshot(page, "start-incident-1280-dark");
 
     await load(page, "theme=dark&thread=answered");
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     expect(
       await luminanceOf(page.getByTestId("ai-chat-answer-text"), "color"),
     ).toBeGreaterThan(0.5);
     await screenshot(page, "answer-1280-dark");
 
     await load(page, "theme=dark&thread=approval");
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     await screenshot(page, "approval-1280-dark");
     await page.getByRole("button", { name: "Run 1 action" }).click();
     await expect(page.getByTestId("ai-chat-resource-card")).toBeVisible();
@@ -1756,6 +2370,29 @@ test.describe("in the dark", () => {
   });
 });
 
+test.describe("in the dark, on a tablet", () => {
+  test.use({ viewport: { width: 768, height: 1024 } });
+
+  test("a deeper veil over the page: a dark one over a dark page still sets the sheet apart", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "theme=dark&thread=answered");
+    await expect(askAi(page)).toBeVisible();
+
+    await expect
+      .poll((): Promise<string> => {
+        return page
+          .getByTestId("ask-ai-backdrop")
+          .evaluate((element: Element): string => {
+            return window.getComputedStyle(element).backgroundColor;
+          });
+      })
+      .toBe("rgba(2, 6, 23, 0.62)");
+  });
+});
+
 test.describe("in German", () => {
   test("the start, the live line and the answer's row speak German", async ({
     page,
@@ -1765,8 +2402,10 @@ test.describe("in German", () => {
     await load(page, "lang=de&run=hold");
     await openAskAi(page);
 
-    await expect(page.getByRole("dialog", { name: "KI fragen" })).toBeVisible();
-    await expect(dialog(page).getByRole("heading", { level: 3 })).toHaveText(
+    await expect(
+      page.getByRole("complementary", { name: "KI fragen" }),
+    ).toBeVisible();
+    await expect(askAi(page).getByRole("heading", { level: 3 })).toHaveText(
       "Was möchten Sie wissen?",
     );
     await expect(page.getByTestId("ai-chat-context")).toHaveText(
@@ -1831,12 +2470,134 @@ test.describe("in German", () => {
     await expect(mode).toHaveText("Nur Lesezugriff");
   });
 
+  /*
+   * The approval card said what the AI would do in the server's English -
+   * "Create alert: High memory usage on test01", 'Severity: High. Linked
+   * to host "test01".' - in the middle of a German page. The server now
+   * stores it as sentences, and the card says them in German, the alert's
+   * title, its severity and the host's name as written.
+   */
+  test("an approval card says what the AI will do in German, and the card it leaves too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const words: Record<string, string> = dashboardWords("de");
+    const title: string = filled(words, "Create alert: {{title}}", {
+      title: "High memory usage on test01",
+    });
+
+    await keepPanelWidth(page, 640);
+    await load(page, "lang=de&thread=approval");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const action: Locator = page.getByTestId("tool-approval-action");
+    await expect(action.getByTestId("tool-approval-title")).toHaveText(title);
+    await expect(action.getByTestId("tool-approval-description")).toHaveText(
+      `${filled(words, "Severity: {{severity}}.", { severity: "High" })} ${filled(
+        words,
+        "Linked to {{resources}}.",
+        { resources: `${words["host"]} "test01"` },
+      )}`,
+    );
+    await expect(
+      askAi(page).getByText(
+        filled(words, "The AI wants to perform {{count}} actions_one", {
+          count: "1",
+        }),
+      ),
+    ).toBeVisible();
+
+    const choice: Locator = page.getByRole("group", { name: title });
+    await expect(
+      choice.getByRole("button", { name: words["Allow"]! }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      choice.getByRole("button", { name: words["Skip"]! }),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByRole("button", { name: words["Deny all"]! }),
+    ).toBeVisible();
+
+    // Beside the title in a panel wide enough: on the title's row, at its end.
+    const boxes: ApprovalAction = await approvalActionBoxes(page);
+    expect(boxes.choice.x).toBeGreaterThan(boxes.title.x + boxes.title.width);
+    expect(Math.abs(boxes.choice.y - boxes.title.y)).toBeLessThanOrEqual(4);
+    await screenshot(page, "approval-1280-de");
+
+    await page
+      .getByRole("button", {
+        name: filled(words, "Run {{count}} actions_one", { count: "1" }),
+      })
+      .click();
+
+    /*
+     * What it made is the card under the answer, in German: its kind, its
+     * severity and the host it is linked to in German words, the alert's
+     * number, title and the host's name as written (#5623's follow-up) -
+     * and no row of the action under it, which only said it again.
+     */
+    const card: Locator = page.getByTestId("ai-chat-resource-card");
+    await expect(card).toBeVisible();
+    await expect(card.getByTestId("ai-chat-resource-card-kind")).toHaveText(
+      words["Alert"]!,
+    );
+    await expect(card.getByTestId("ai-chat-resource-card-heading")).toHaveText(
+      "ALT-12 · High memory usage on test01",
+    );
+    await expect(card.getByTestId("ai-chat-resource-card-line")).toHaveText(
+      filled(words, "Severity: {{severity}}", { severity: "High" }),
+    );
+    await expect(
+      card.getByTestId("ai-chat-resource-card-fact-label"),
+    ).toHaveText([words["Affected resources"]!]);
+    await expect(
+      card.getByTestId("ai-chat-resource-card-fact-value"),
+    ).toHaveText(`${words["host"]} "test01"`);
+    for (const english of ["Severity:", "Affected resources", "ALERT"]) {
+      await expect(card).not.toContainText(english);
+    }
+    await expect(page.getByTestId("tool-approval-history")).toHaveCount(0);
+    await screenshot(page, "approval-done-1280-de");
+  });
+
+  test("an action saved before cards had words still leaves its row, and its card reads its English", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const words: Record<string, string> = dashboardWords("de");
+
+    await load(page, "lang=de&thread=approval&words=none");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await page
+      .getByRole("button", {
+        name: filled(words, "Run {{count}} actions_one", { count: "1" }),
+      })
+      .click();
+
+    // Saved before actions named their cards: what ran is still a row.
+    await expect(page.getByTestId("tool-approval-history-title")).toHaveText(
+      "Create alert: High memory usage on test01",
+    );
+    await expect(askAi(page).getByText(words["Executed"]!)).toBeVisible();
+    // Its card is the English it stores, each fact once.
+    const card: Locator = page.getByTestId("ai-chat-resource-card");
+    await expect(card.getByTestId("ai-chat-resource-card-line")).toHaveText(
+      "Severity: High",
+    );
+    await expect(card.getByText("Number", { exact: true })).toHaveCount(0);
+  });
+
   test.describe("on a phone", () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
     test("its longer words still fit", async ({ page }: { page: Page }) => {
       await load(page, "lang=de&thread=answered");
-      await expect(dialog(page)).toBeVisible();
+      await expect(askAi(page)).toBeVisible();
       await settle(page);
 
       await expectNothingScrollsSideways(page);
@@ -1846,6 +2607,82 @@ test.describe("in German", () => {
       await openAskAi(page);
       await expectNothingScrollsSideways(page);
       await screenshot(page, "start-incident-390-de");
+    });
+
+    test("an approval card in German fits: Allow and Skip under its whole title", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: Record<string, string> = dashboardWords("de");
+
+      await load(page, "lang=de&thread=approval");
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      await expect(page.getByTestId("tool-approval-title")).toHaveText(
+        filled(words, "Create alert: {{title}}", {
+          title: "High memory usage on test01",
+        }),
+      );
+
+      // Under the title, never squeezing it: the box is under 28rem wide.
+      const boxes: ApprovalAction = await approvalActionBoxes(page);
+      expect(boxes.choice.y).toBeGreaterThanOrEqual(
+        boxes.title.y + boxes.title.height - 1,
+      );
+      // The title is whole, not cut at its three lines.
+      expect(
+        await page
+          .getByTestId("tool-approval-title")
+          .evaluate((element: Element): boolean => {
+            return element.scrollHeight <= element.clientHeight + 1;
+          }),
+      ).toBe(true);
+
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "approval-390-de");
+
+      /*
+       * What did not run stays as a row, whole: cut at one line, a phone
+       * lost what it was ("Warnung erstellen: High memory usage on te...").
+       * Skipped, it leaves no card to say it instead.
+       */
+      await page
+        .getByRole("group", {
+          name: filled(words, "Create alert: {{title}}", {
+            title: "High memory usage on test01",
+          }),
+        })
+        .getByRole("button", { name: words["Skip"]! })
+        .click();
+      await page.getByRole("button", { name: words["Skip all"]! }).click();
+      const row: Locator = page.getByTestId("tool-approval-history-title");
+      await expect(row).toHaveText(
+        filled(words, "Create alert: {{title}}", {
+          title: "High memory usage on test01",
+        }),
+      );
+      await settle(page);
+      const drawn: { isCut: boolean; lines: number } = await row.evaluate(
+        (element: Element): { isCut: boolean; lines: number } => {
+          const lineHeight: number = parseFloat(
+            window.getComputedStyle(element).lineHeight,
+          );
+          return {
+            isCut:
+              element.scrollWidth > element.clientWidth + 1 ||
+              element.scrollHeight > element.clientHeight + 1,
+            lines: Math.round(
+              element.getBoundingClientRect().height / lineHeight,
+            ),
+          };
+        },
+      );
+      expect(drawn.isCut).toBe(false);
+      expect(drawn.lines).toBeGreaterThanOrEqual(2);
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "approval-done-390-de");
     });
   });
 });
@@ -1888,7 +2725,7 @@ test.describe("in Persian", () => {
     await screenshot(page, "start-incident-1280-fa");
 
     await load(page, "lang=fa&thread=answered");
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
     await settle(page);
     // The question sits on the left; asked in English, it reads left to right.
     const question: Locator = page
@@ -1946,13 +2783,104 @@ test.describe("in Persian", () => {
     }
   });
 
-  test("an approval's English lines keep their punctuation at their end", async ({
+  /*
+   * The card says what the AI will do in Persian, read right to left: the
+   * alert's English title and the host's English name set apart inside
+   * the Persian sentences, so each keeps its place and its punctuation.
+   */
+  test("an approval card says what the AI will do in Persian, right to left, its English names set apart", async ({
     page,
   }: {
     page: Page;
   }) => {
+    const words: Record<string, string> = dashboardWords("fa");
+    const title: string = filled(words, "Create alert: {{title}}", {
+      title: "High memory usage on test01",
+    });
+
+    await keepPanelWidth(page, 640);
     await load(page, "lang=fa&thread=approval");
-    await expect(dialog(page)).toBeVisible();
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const action: Locator = page.getByTestId("tool-approval-action");
+    const titleLine: Locator = action.getByTestId("tool-approval-title");
+    const line: Locator = action.getByTestId("tool-approval-description");
+
+    expect(await wordsOf(titleLine)).toBe(title);
+    expect(await wordsOf(line)).toBe(
+      `${filled(words, "Severity: {{severity}}.", { severity: "High" })} ${filled(
+        words,
+        "Linked to {{resources}}.",
+        { resources: `${words["host"]} "test01"` },
+      )}`,
+    );
+
+    // Each sentence reads right to left, and starts where the card does.
+    const read: {
+      directions: Array<string>;
+      titleRight: number;
+      lineRight: number;
+    } = await action.evaluate(
+      (
+        element: Element,
+      ): {
+        directions: Array<string>;
+        titleRight: number;
+        lineRight: number;
+      } => {
+        const title: HTMLElement = element.querySelector(
+          '[data-testid="tool-approval-title"] bdi',
+        ) as HTMLElement;
+        const sentences: Array<HTMLElement> = Array.from(
+          element.querySelectorAll(
+            '[data-testid="tool-approval-description"] bdi',
+          ),
+        );
+        const titleRange: Range = document.createRange();
+        titleRange.selectNodeContents(title);
+        const lineRange: Range = document.createRange();
+        lineRange.selectNodeContents(sentences[0]!);
+        return {
+          directions: [title, ...sentences].map(
+            (sentence: HTMLElement): string => {
+              return window.getComputedStyle(sentence).direction;
+            },
+          ),
+          titleRight: titleRange.getBoundingClientRect().right,
+          lineRight: lineRange.getBoundingClientRect().right,
+        };
+      },
+    );
+    expect(read.directions).toEqual(["rtl", "rtl", "rtl"]);
+    expect(Math.abs(read.titleRight - read.lineRight)).toBeLessThanOrEqual(2);
+
+    await expect(
+      askAi(page).getByText(
+        filled(words, "The AI wants to perform {{count}} actions_one", {
+          count: "۱",
+        }),
+      ),
+    ).toBeVisible();
+    // The pair is named by the title's words, with no marks in its name.
+    await expect(page.getByRole("group", { name: title })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: words["Deny all"]! }),
+    ).toBeVisible();
+
+    // In a panel wide enough the pair sits beside the title, on the side it ends on.
+    const boxes: ApprovalAction = await approvalActionBoxes(page);
+    expect(boxes.choice.x + boxes.choice.width).toBeLessThan(boxes.title.x);
+    await screenshot(page, "approval-1280-fa");
+  });
+
+  test("an approval saved before actions stored their words keeps its English lines' punctuation at their end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "lang=fa&thread=approval&words=none");
+    await expect(askAi(page)).toBeVisible();
     await settle(page);
 
     const line: { direction: string; stop: number; end: number } = await page
@@ -1993,7 +2921,7 @@ test.describe("in Persian", () => {
       page: Page;
     }) => {
       await load(page, "lang=fa&thread=answered");
-      await expect(dialog(page)).toBeVisible();
+      await expect(askAi(page)).toBeVisible();
       await settle(page);
 
       const heading: {
@@ -2035,11 +2963,37 @@ test.describe("in Persian", () => {
       page: Page;
     }) => {
       await load(page, "lang=fa&thread=answered");
-      await expect(dialog(page)).toBeVisible();
+      await expect(askAi(page)).toBeVisible();
       await settle(page);
 
       await expectNothingScrollsSideways(page);
       await screenshot(page, "answer-390-fa");
+    });
+
+    test("an approval card in Persian fits, its pair under the title", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await load(page, "lang=fa&thread=approval");
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const boxes: ApprovalAction = await approvalActionBoxes(page);
+      expect(boxes.choice.y).toBeGreaterThanOrEqual(
+        boxes.title.y + boxes.title.height - 1,
+      );
+      // Under the title, at the side the page reads from: the right.
+      expect(
+        Math.abs(
+          boxes.choice.x +
+            boxes.choice.width -
+            (boxes.title.x + boxes.title.width),
+        ),
+      ).toBeLessThanOrEqual(2);
+
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "approval-390-fa");
     });
   });
 });
@@ -2047,7 +3001,7 @@ test.describe("in Persian", () => {
 test.describe("with reduced motion", () => {
   test.use({ reducedMotion: "reduce" });
 
-  test("the dialog appears without moving, and nothing pulses", async ({
+  test("the panel appears without moving, and nothing pulses", async ({
     page,
   }: {
     page: Page;
@@ -2055,19 +3009,11 @@ test.describe("with reduced motion", () => {
     await load(page, "run=hold");
     await openAskAi(page);
 
-    const motion: { dialog: string; backdrop: string } = await page.evaluate(
-      (): { dialog: string; backdrop: string } => {
-        return {
-          dialog: window.getComputedStyle(
-            document.querySelector('[data-testid="ask-ai-dialog"]')!,
-          ).transitionProperty,
-          backdrop: window.getComputedStyle(
-            document.querySelector('[data-testid="ask-ai-backdrop"]')!,
-          ).transitionProperty,
-        };
-      },
-    );
-    expect(motion).toEqual({ dialog: "none", backdrop: "none" });
+    expect(
+      await askAi(page).evaluate((element: Element): string => {
+        return window.getComputedStyle(element).transitionProperty;
+      }),
+    ).toBe("none");
 
     await ask(page, LATENCY_QUESTION);
     const animations: Array<string> = await page
@@ -2200,6 +3146,256 @@ test.describe("on a resolved incident", () => {
         await expectNothingScrollsSideways(page);
         await screenshot(page, `start-resolved-incident-390-${lang}`);
       }
+    });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * An action's arguments and the cards it leaves, read at a glance
+ * (fu-ask-ai-polish's UI review)
+ *
+ * The approval card ran an action's arguments together on one line cut at
+ * two, each value cut at 80 characters and set in monospace: a public
+ * status update's note was cut mid-sentence, and its "Notify subscribers:
+ * Yes" fell off the end on a phone, never seen before the update was
+ * approved. Each argument is a line of its own now, read whole, in the
+ * card's own face. The cards an action leaves set each fact beside its
+ * name at every width, which on a phone left a German fact's value a
+ * third of the card: below 22rem of card the facts sit under their names.
+ * ---------------------------------------------------------------------------
+ */
+
+const STATUS_UPDATE_NOTE: string =
+  "We have found the cause of the slow checkouts and are rolling out a fix. Payments are not affected, and orders placed during the slowdown will go through.";
+const INTERNAL_NOTE: string =
+  "pgbouncer on test01 held 400 connections to the old primary after the failover. Restarted it at 14:25.";
+
+// The text of each argument row of an action on the approval card.
+async function argumentRows(action: Locator): Promise<Array<string>> {
+  return action
+    .getByTestId("tool-approval-argument")
+    .evaluateAll((rows: Array<Element>): Array<string> => {
+      return rows.map((row: Element): string => {
+        return (row.textContent || "").replace(/\s+/g, " ").trim();
+      });
+    });
+}
+
+// Whether any of the elements is cut short: clamped or overflowing.
+async function anyCut(locator: Locator): Promise<boolean> {
+  return locator.evaluateAll((elements: Array<Element>): boolean => {
+    return elements.some((element: Element): boolean => {
+      return (
+        element.scrollHeight > element.clientHeight + 1 ||
+        element.scrollWidth > element.clientWidth + 1
+      );
+    });
+  });
+}
+
+test.describe("an action's arguments and the cards it leaves", () => {
+  test("each argument is a line of its own, read whole, in the card's own face", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=actions");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await expect(
+      askAi(page).getByText("The AI wants to perform 2 actions"),
+    ).toBeVisible();
+
+    const [statusUpdate, note] = [
+      page.getByTestId("tool-approval-action").nth(0),
+      page.getByTestId("tool-approval-action").nth(1),
+    ];
+    await expect(statusUpdate.getByTestId("tool-approval-title")).toHaveText(
+      "Post public status update on incident #42",
+    );
+    // The update's text is named as the card it leaves names it.
+    expect(await argumentRows(statusUpdate)).toEqual([
+      `Status update: ${STATUS_UPDATE_NOTE}`,
+      "Notify subscribers: Yes",
+    ]);
+    expect(await argumentRows(note)).toEqual([`Note: ${INTERNAL_NOTE}`]);
+
+    // Nothing cut short, and never the incident's ID the title names.
+    expect(await anyCut(page.getByTestId("tool-approval-argument"))).toBe(
+      false,
+    );
+    await expect(
+      page.getByTestId("tool-approval-arguments").first(),
+    ).not.toContainText(INCIDENT_ID);
+
+    // A note is prose: in the card's face, not in monospace.
+    const fonts: Array<string> = await page
+      .getByTestId("tool-approval-argument-value")
+      .evaluateAll((values: Array<Element>): Array<string> => {
+        return values.map((value: Element): string => {
+          return window.getComputedStyle(value.querySelector("bdi") || value)
+            .fontFamily;
+        });
+      });
+    expect(fonts).toHaveLength(3);
+    for (const font of fonts) {
+      expect(font).not.toMatch(MONOSPACE);
+    }
+
+    await screenshot(page, "approval-arguments-1280");
+  });
+
+  test("the cards they leave set each fact beside its name in a panel with room for it, and no row repeats them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await keepPanelWidth(page, 640);
+    await load(page, "thread=actions");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await page.getByRole("button", { name: "Run 2 actions" }).click();
+
+    const cards: Locator = page.getByTestId("ai-chat-resource-card");
+    await expect(cards).toHaveCount(2);
+    await expect(
+      cards.nth(0).getByTestId("ai-chat-resource-card-line"),
+    ).toHaveText("Status update posted, subscribers notified");
+    await expect(
+      cards.nth(1).getByTestId("ai-chat-resource-card-line"),
+    ).toHaveText("Private note added, for your team only");
+    // Each action is its card: no Executed row under them.
+    await expect(page.getByTestId("tool-approval-history")).toHaveCount(0);
+    await settle(page);
+
+    const fact: Locator = cards
+      .nth(0)
+      .getByTestId("ai-chat-resource-card-fact");
+    await expect(
+      fact.getByTestId("ai-chat-resource-card-fact-label"),
+    ).toHaveText("Status update");
+    const [label, value] = await boxesInOneFrame([
+      fact.getByTestId("ai-chat-resource-card-fact-label"),
+      fact.getByTestId("ai-chat-resource-card-fact-value"),
+    ]);
+    // Beside its name, on its line.
+    expect(Math.abs(label!.y - value!.y)).toBeLessThanOrEqual(2);
+    expect(label!.x + label!.width).toBeLessThanOrEqual(value!.x);
+
+    await screenshot(page, "cards-wide-1280");
+  });
+
+  test("in the panel at the width it opens at, a card's facts sit under their names, the card's whole width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=actions");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await page.getByRole("button", { name: "Run 2 actions" }).click();
+
+    const card: Locator = page.getByTestId("ai-chat-resource-card").first();
+    await expect(card).toBeVisible();
+    await settle(page);
+
+    const fact: Locator = card.getByTestId("ai-chat-resource-card-fact");
+    const [text, label, value] = await boxesInOneFrame([
+      card.getByTestId("ai-chat-resource-card-heading"),
+      fact.getByTestId("ai-chat-resource-card-fact-label"),
+      fact.getByTestId("ai-chat-resource-card-fact-value"),
+    ]);
+    expect(value!.y).toBeGreaterThanOrEqual(label!.y + label!.height - 1);
+    expect(Math.abs(value!.x - label!.x)).toBeLessThanOrEqual(1);
+    expect(value!.width).toBeGreaterThanOrEqual(text!.width - 1);
+
+    await expectNothingScrollsSideways(page);
+    await screenshot(page, "cards-1280");
+  });
+
+  test.describe("on a phone, in German", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("whether subscribers hear of an update is in sight, under its whole note", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: Record<string, string> = dashboardWords("de");
+
+      await load(page, "lang=de&thread=actions");
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const statusUpdate: Locator = page
+        .getByTestId("tool-approval-action")
+        .nth(0);
+      expect(await argumentRows(statusUpdate)).toEqual([
+        `${words["Status update"]}: ${STATUS_UPDATE_NOTE}`,
+        `${words["Notify subscribers"]}: ${words["Yes"]}`,
+      ]);
+      expect(await anyCut(page.getByTestId("tool-approval-argument"))).toBe(
+        false,
+      );
+
+      // Inside its action's box, above Allow and Skip.
+      const [box, notify, choice] = await boxesInOneFrame([
+        statusUpdate,
+        statusUpdate.getByTestId("tool-approval-argument").nth(1),
+        statusUpdate.getByTestId("tool-approval-choice"),
+      ]);
+      expect(notify!.height).toBeGreaterThan(0);
+      expect(notify!.y).toBeGreaterThanOrEqual(box!.y);
+      expect(notify!.y + notify!.height).toBeLessThanOrEqual(choice!.y);
+
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "approval-arguments-390-de");
+    });
+
+    test("a card's facts sit under their names, the card's whole width", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: Record<string, string> = dashboardWords("de");
+
+      await load(page, "lang=de&thread=actions");
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      await page
+        .getByRole("button", {
+          name: filled(words, "Run {{count}} actions", { count: "2" }),
+        })
+        .click();
+
+      const cards: Locator = page.getByTestId("ai-chat-resource-card");
+      await expect(cards).toHaveCount(2);
+      await settle(page);
+
+      for (const index of [0, 1]) {
+        const card: Locator = cards.nth(index);
+        const fact: Locator = card.getByTestId("ai-chat-resource-card-fact");
+        const [text, label, value] = await boxesInOneFrame([
+          card.getByTestId("ai-chat-resource-card-heading"),
+          fact.getByTestId("ai-chat-resource-card-fact-label"),
+          fact.getByTestId("ai-chat-resource-card-fact-value"),
+        ]);
+        // Under its name, from the same edge, as wide as the card's text.
+        expect(value!.y).toBeGreaterThanOrEqual(label!.y + label!.height - 1);
+        expect(Math.abs(value!.x - label!.x)).toBeLessThanOrEqual(1);
+        expect(value!.width).toBeGreaterThanOrEqual(text!.width - 1);
+      }
+
+      await expect(
+        cards.nth(0).getByTestId("ai-chat-resource-card-fact-label"),
+      ).toHaveText(words["Status update"]!);
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "cards-390-de");
     });
   });
 });

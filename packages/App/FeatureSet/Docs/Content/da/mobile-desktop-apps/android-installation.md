@@ -72,7 +72,7 @@ Appen viser ét projekt ad gangen: tryk på projektets navn øverst på en skær
 
 :::steps
 ### Find telefonen i dashboardet
-Åbn **Brugerindstillinger → Notifikationsmetoder** og fanen **Push Notifications** i dashboardet. Telefonen står under **Enheder til push-notifikationer** med sit modelnavn. Hvert projekt har sin egen liste.
+Åbn **Brugerindstillinger → Notifikationsmetoder** og fanen **Push-notifikationer** i dashboardet. Telefonen står under **Enheder til push-notifikationer** med sit modelnavn. Hvert projekt har sin egen liste.
 
 ### Send en test
 Klik på **Testnotifikation** i telefonens række. En notifikation kommer frem på telefonen; tryk på den for at åbne appen.
@@ -137,7 +137,7 @@ Appen kunne ikke nå `https://<your-oneuptime>/api/status`. Tjek adressen, inklu
 
 :::details Der kommer ingen notifikationer
 - Tjek i Androids indstillinger, at notifikationer er slået til for appen, og at Forstyr ikke er slået fra eller kritiske advarsler slået til.
-- Tjek, at telefonen står under **Push Notifications** i **Brugerindstillinger → Notifikationsmetoder**, og send den en **Testnotifikation**.
+- Tjek, at telefonen står under **Push-notifikationer** i **Brugerindstillinger → Notifikationsmetoder**, og send den en **Testnotifikation**.
 - Er telefonen markeret som **Modtager ikke notifikationer**, så åbn appen, mens du er logget ind. Den registrerer telefonen igen; se [Når en telefon skal registreres igen](/docs/mobile-desktop-apps/faq-troubleshooting#når-en-telefon-skal-registreres-igen).
 - Tjek dine vagtregler under **Brugerindstillinger → Vagtregler**.
 - På et selv-hostet OneUptime skal du tjekke, at din server kan nå sit push-relæ: se [Push-notifikationer](/docs/self-hosted/push-notifications#netværksadgang).

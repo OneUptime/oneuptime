@@ -67,7 +67,7 @@ Vurderingen er OneUptime AI sin, aldri sakens konklusjon: **Lukk sak** starter p
 - **Foreslått prioritet**, med **Angi prioritet** når saken har en annen prioritet.
 - **Foreslått playbook**, med **Kjør playbook**, som kjører den på dine vegne, med hver godkjenning den trenger. Mens den playbooken allerede kjører på saken, står statusen til kjøringen, for eksempel **Venter på godkjenning**, i stedet for **Kjør playbook**: kjøringen ligger under sakens **Playbooks**, og en ny ville be om den samme godkjenningen igjen.
 - Rapporten: hva som skjedde, hvor sikker vurderingen er og hva som bør gjøres videre, hver påstand fulgt av en henvisning som C1.
-- **Evidence checked**: hver spørring vurderingen kjørte. En henvisning åpner spørringen sin, og når du folder ut en, kjører den på nytt med dine tillatelser, over tidsrommet vurderingen leste.
+- **Kontrollerte bevis**: hver spørring vurderingen kjørte. En henvisning åpner spørringen sin, og når du folder ut en, kjører den på nytt med dine tillatelser, over tidsrommet vurderingen leste.
 - **Spør om denne saken**, som åpner Ask AI på saken.
 
 Hver liste over saker viser vurderingen ved siden av tittelen på hver sak, og filtrerer på den med **KI-vurdering**.

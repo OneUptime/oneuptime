@@ -62,6 +62,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentUpgradeModal";
 import {
   AgentKind,
+  DATABASE_AGENT_VERSION,
   DOCKER_SWARM_AGENT_VERSION,
   PROXMOX_AGENT_VERSION,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
@@ -544,8 +545,9 @@ describe("the upgrade dialog", () => {
         }}
       />,
     );
+    // Its files' version, raised past the collector's when they change on it.
     const dialog: HTMLElement = await openDialog(
-      "Agent 0.154.0 is outdated. A newer agent is available: 0.161.0. Show how to upgrade.",
+      `Agent 0.154.0 is outdated. A newer agent is available: ${DATABASE_AGENT_VERSION}. Show how to upgrade.`,
     );
 
     expect(

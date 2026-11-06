@@ -1,0 +1,15 @@
+$ openstack server event list cc6e577a-bb98-409f-aef6-c9aaee0494b0 -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "action": "create",
+    "request_id": "req-b86b5713-3f8d-4e21-9a25-c8ba53f6b25a",
+    "start_time": "2026-11-05T05:29:33.000000",
+    "updated_at": "2026-11-05T05:29:36.000000",
+    "message": null,
+    "user_id": "4a532d8e0b2c42aeb60370f0e764e42c"
+  }
+]

@@ -31,7 +31,7 @@ flowchart LR
 | بخش | صفحه‌ها | کجا بیشتر بخوانید |
 | --- | --- | --- |
 | **پایه** | **پروژه**، **برچسب‌ها** | [جزئیات پروژه](#جزئیات-پروژه)، [برچسب‌ها](#برچسبها) |
-| **فضای کاری** | **Slack**، **Microsoft Teams**، **تماس‌های تصویری** | [Slack](/docs/workspace-connections/slack)، [Microsoft Teams](/docs/workspace-connections/microsoft-teams)، [تماس‌های تصویری](/docs/workspace-connections/video-calls) |
+| **فضای کاری** | **Slack**، **Microsoft Teams**، **Mattermost**، **تماس‌های تصویری** | [Slack](/docs/workspace-connections/slack)، [Microsoft Teams](/docs/workspace-connections/microsoft-teams)، [Mattermost](/docs/workspace-connections/mattermost)، [تماس‌های تصویری](/docs/workspace-connections/video-calls) |
 | **تله‌متری و APM** | **کلیدهای دریافت داده**، **نگهداری داده** | [کلیدهای دریافت داده](/docs/telemetry/ingestion-keys)، [نگهداری داده](/docs/telemetry/data-retention) |
 | **اعلان‌ها** | **تنظیمات اعلان**، **گزارش‌های اعلان**، **اپلیکیشن‌های موبایل** | [اعلان‌ها](#اعلانها) |
 | **هوش مصنوعی** | **قابلیت‌های هوش مصنوعی**، **ارائه‌دهندگان LLM**، **سرورهای MCP خارجی**، **اعتبار هوش مصنوعی**، **گزارش‌های هوش مصنوعی**، **سرور MCP** | [ارائه‌دهندگان LLM](/docs/ai/llm-provider)، [سرورهای MCP خارجی](/docs/ai/external-mcp-servers)، [سرور MCP](/docs/ai/mcp-server)، [AI SRE](/docs/ai/ai-sre#کنترلهای-هزینه) |

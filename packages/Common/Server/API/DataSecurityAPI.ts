@@ -34,6 +34,8 @@ import DataSecurityIssueStatus from "../../Types/DataSecurity/DataSecurityIssueS
 import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityComplianceResponse,
+  DataSecurityFindingOccurrences,
+  DataSecurityOccurrencesUnavailableReason,
   DataSecurityOverview,
   DataSecurityOverviewIssue,
   DataSecurityRecordOfProcessingResponse,
@@ -60,10 +62,20 @@ import { withAiContext } from "../Utils/AI/AiContext/AiContextPrompt";
 import { AiContextActivity } from "../../Types/AI/AiContext";
 import CodeTaskRuns from "../Utils/AI/CodeTask/CodeTaskRuns";
 import {
-  DATA_SECURITY_EXPLAIN_SYSTEM_PROMPT,
+  DataSecurityFindingForAi,
+  MAX_ISSUE_FINDINGS_FOR_AI,
   buildDataSecurityFixRequest,
   describeDataSecurityIssueForAi,
+  getDataSecurityExplainSystemPrompt,
 } from "../Utils/AI/DataSecurity/DataSecurityIssuePrompt";
+import QueryHelper from "../Types/Database/QueryHelper";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import {
+  FINDING_FRESHNESS_IN_DAYS,
+  getTelemetryCheckIdOfDataType,
+  isTelemetryFindingCheck,
+  isUnscrubbedTelemetryFinding,
+} from "../../Types/DataSecurity/DataSecurityCheckCatalog";
 import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
 import DataSecurityIntegrations from "../Utils/DataSecurity/DataSecurityIntegrations";
 import DataSecurityResponse from "../Utils/DataSecurity/DataSecurityResponse";
@@ -76,8 +88,27 @@ import {
   queueDataSecurityEvaluation,
   queueDataStoreScan,
 } from "../Utils/DataSecurity/DataSecurityJobs";
-import { getConnectionDataSecurityLevel } from "../Utils/DataSecurity/DataSecurityRunner";
+import DataSecurityRunner, {
+  getConnectionDataSecurityLevel,
+} from "../Utils/DataSecurity/DataSecurityRunner";
+import {
+  findTelemetryFindingOccurrences,
+  getOccurrenceModel,
+  getOccurrenceWindow,
+  getTelemetryStoreOwnerId,
+  OccurrencePlan,
+  planOccurrenceRead,
+} from "../Utils/DataSecurity/Telemetry/TelemetryFindingOccurrences";
 import { createScrubRuleForFinding } from "../Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import AnalyticsModelPermission from "../Types/AnalyticsDatabase/ModelPermission";
+import AnalyticsQuery from "../Types/AnalyticsDatabase/Query";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
+import TelemetryReadAccess from "../Utils/Telemetry/TelemetryReadAccess";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+} from "../Utils/Telemetry/TelemetryReadScope";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -98,9 +129,15 @@ import CommonAPI from "./CommonAPI";
  *  - Scan Now and Check Now on a store, for anyone who may edit it;
  *  - Scrub It on a telemetry finding, for anyone who may create scrub
  *    rules - the rule is theirs, made under their own permissions;
+ *  - a telemetry finding's newest records, read now
+ *    (TelemetryFindingOccurrences), for anyone who may read its masked
+ *    samples and the store's telemetry itself - its logs, traces,
+ *    exceptions or sessions, as the explorers would let them;
  *  - Explain and Fix With AI on an issue, under the project's OneUptime AI
  *    switches and limits, sending the issue, its evidence and how to fix
- *    it - never a finding's samples;
+ *    it - and, for a telemetry issue, where in the telemetry each kind of
+ *    data sits, so the fix goes in the service's code - never a finding's
+ *    samples, nor a record;
  *  - Block public access and Revoke sharing on a cloud store, for anyone
  *    who may edit it, through the store's cloud connection and only when
  *    its "Data security response" setting is on (DataSecurityResponse) -
@@ -137,6 +174,20 @@ const SCRUB_PERMISSIONS: Array<Permission> = [
   Permission.ProjectAdmin,
   Permission.CreateProjectLogScrubRule,
   Permission.CreateProjectTraceScrubRule,
+];
+
+/*
+ * Who may see a telemetry finding's records: who may read its masked
+ * samples (DataStoreFinding's restricted columns), which they carry too.
+ * The records are shown only to a reader who may read that telemetry
+ * themselves as well (canReadTelemetryOf).
+ */
+const OCCURRENCE_PERMISSIONS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.SecurityAdmin,
+  Permission.SecurityMember,
+  Permission.ReadDataStoreFinding,
 ];
 
 const ISSUE_PERMISSIONS: Array<Permission> = [
@@ -351,6 +402,22 @@ export default class DataSecurityAPI extends BaseAPI<
     );
 
     this.post(
+      DATA_SECURITY_API_ROUTES.findingOccurrences(":id"),
+      OCCURRENCE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataSecurityAPI.getFindingOccurrences({
+          projectId,
+          findingId: DataSecurityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
       DATA_SECURITY_API_ROUTES.explainIssue(":id"),
       READ_PERMISSIONS,
       async (
@@ -370,6 +437,8 @@ export default class DataSecurityAPI extends BaseAPI<
         const aiContext: AiContextActivity | null = await AiContextReader.read({
           projectId,
         });
+        const findings: Array<DataSecurityFindingForAi> =
+          await DataSecurityAPI.readFindingsForAi(projectId, issue);
         const response: { content: string } =
           await AIService.executeWithLogging({
             projectId,
@@ -379,11 +448,14 @@ export default class DataSecurityAPI extends BaseAPI<
               {
                 role: "system",
                 content: withAiContext(
-                  DATA_SECURITY_EXPLAIN_SYSTEM_PROMPT,
+                  getDataSecurityExplainSystemPrompt(issue.checkId),
                   aiContext,
                 ),
               },
-              { role: "user", content: DataSecurityAPI.describeIssue(issue) },
+              {
+                role: "user",
+                content: DataSecurityAPI.describeIssue(issue, findings),
+              },
             ],
             maxTokens: 900,
           });
@@ -440,17 +512,22 @@ export default class DataSecurityAPI extends BaseAPI<
             props: { isRoot: true },
           });
 
+        // A telemetry issue is fixed in the service's code, any other in infrastructure code.
+        const isTelemetry: boolean = isTelemetryFindingCheck(issue.checkId);
+
         if (repositories.length === 0) {
           return {
-            message:
-              "Connect the repository that holds this store's infrastructure code under Code, then ask again.",
+            message: isTelemetry
+              ? "Connect the repository that holds this service's code under Code, then ask again."
+              : "Connect the repository that holds this store's infrastructure code under Code, then ask again.",
           };
         }
 
         if (repositories.length > 1 && !repositoryId) {
           return {
-            message:
-              "This project has several repositories: choose the one that holds this store's infrastructure code.",
+            message: isTelemetry
+              ? "This project has several repositories: choose the one that holds this service's code."
+              : "This project has several repositories: choose the one that holds this store's infrastructure code.",
           };
         }
 
@@ -458,7 +535,10 @@ export default class DataSecurityAPI extends BaseAPI<
           projectId,
           userId: props.userId,
           repository: repositories[0]!,
-          message: buildDataSecurityFixRequest(issue),
+          message: buildDataSecurityFixRequest(
+            issue,
+            await DataSecurityAPI.readFindingsForAi(projectId, issue),
+          ),
           context: [],
         });
 
@@ -591,6 +671,7 @@ export default class DataSecurityAPI extends BaseAPI<
           evidence: true,
           severity: true,
           dataTypeIds: true,
+          dataStoreId: true,
           dataStore: {
             name: true,
             kind: true,
@@ -609,9 +690,213 @@ export default class DataSecurityAPI extends BaseAPI<
     return issue;
   }
 
+  /*
+   * The newest records a telemetry finding's data was seen in, for a
+   * reader who may read the store's telemetry; why there are none to show
+   * otherwise. A finding of another project, or in a data store, is not
+   * found.
+   */
+  public static async getFindingOccurrences(data: {
+    projectId: ObjectID;
+    findingId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    now?: Date | undefined;
+  }): Promise<DataSecurityFindingOccurrences> {
+    const finding: DataStoreFinding | null =
+      await DataStoreFindingService.findOneBy({
+        query: { _id: data.findingId, projectId: data.projectId },
+        select: {
+          _id: true,
+          dataTypeId: true,
+          location: true,
+          dataStoreId: true,
+          dataStore: { kind: true, serviceId: true, storeKey: true },
+        },
+        props: { isRoot: true },
+      });
+
+    if (!finding?.dataTypeId || !finding.location || !finding.dataStore?.kind) {
+      throw new BadDataException("Finding not found.");
+    }
+
+    if (
+      !TELEMETRY_DATA_STORE_KINDS.includes(
+        finding.dataStore.kind as DataStoreKind,
+      )
+    ) {
+      throw new BadDataException(
+        "Only a finding in telemetry has records to show; this finding is in a data store.",
+      );
+    }
+
+    const now: Date = data.now || OneUptimeDate.getCurrentDate();
+    const none: (
+      reason: DataSecurityOccurrencesUnavailableReason,
+    ) => DataSecurityFindingOccurrences = (
+      reason: DataSecurityOccurrencesUnavailableReason,
+    ): DataSecurityFindingOccurrences => {
+      return {
+        occurrences: [],
+        since: getOccurrenceWindow(now).since.toISOString(),
+        until: now.toISOString(),
+        recordsRead: 0,
+        isComplete: true,
+        unavailableReason: reason,
+      };
+    };
+    const plan: OccurrencePlan | null = planOccurrenceRead(
+      finding.dataStore.kind,
+      finding.location,
+    );
+
+    if (!plan) {
+      return none(DataSecurityOccurrencesUnavailableReason.UnreadableLocation);
+    }
+
+    const ownerId: string | null = getTelemetryStoreOwnerId(finding.dataStore);
+
+    if (!ownerId) {
+      return none(DataSecurityOccurrencesUnavailableReason.NoOwner);
+    }
+
+    if (
+      !(await DataSecurityAPI.canReadTelemetryOf({
+        projectId: data.projectId,
+        plan,
+        ownerId,
+        props: data.props,
+      }))
+    ) {
+      return none(DataSecurityOccurrencesUnavailableReason.NoTelemetryAccess);
+    }
+
+    return await findTelemetryFindingOccurrences({
+      projectId: data.projectId,
+      plan,
+      ownerId,
+      location: finding.location,
+      dataTypeId: finding.dataTypeId,
+      options: (await DataSecurityRunner.getScanSetup(data.projectId)).options,
+      now,
+    });
+  }
+
+  /*
+   * Whether the reader may read this owner's records of the plan's signal
+   * themselves: the table's read permission (ModelPermission), and the
+   * resources their grants reach (TelemetryReadAccess) - its labels, its
+   * owners, and a company AI tool's conversations for owners and admins
+   * only - as the explorers decide it when the record is opened.
+   */
+  public static async canReadTelemetryOf(data: {
+    projectId: ObjectID;
+    plan: OccurrencePlan;
+    ownerId: string;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<boolean> {
+    const modelType: { new (): AnalyticsBaseModel } = getOccurrenceModel(
+      data.plan.source,
+    );
+
+    try {
+      await AnalyticsModelPermission.checkReadPermission(
+        modelType,
+        {
+          projectId: data.projectId,
+          primaryEntityId: new ObjectID(data.ownerId),
+        } as AnalyticsQuery<AnalyticsBaseModel>,
+        null,
+        data.props,
+      );
+
+      const scope: TelemetryReadScope = await TelemetryReadAccess.getScope(
+        modelType,
+        data.props,
+      );
+
+      return TelemetryReadScopeUtil.isReadable(scope, data.ownerId);
+    } catch (error) {
+      if (
+        error instanceof NotAuthorizedException ||
+        error instanceof PaymentRequiredException
+      ) {
+        return false;
+      }
+
+      throw error;
+    }
+  }
+
   // The issue in words for OneUptime AI: no samples, only what a check saw.
-  public static describeIssue(issue: DataSecurityIssue): string {
-    return describeDataSecurityIssueForAi(issue);
+  public static describeIssue(
+    issue: DataSecurityIssue,
+    findings: ReadonlyArray<DataSecurityFindingForAi> = [],
+  ): string {
+    return describeDataSecurityIssueForAi(issue, undefined, findings);
+  }
+
+  /*
+   * Where a telemetry issue's data sits, for OneUptime AI: the findings its
+   * check counts (isUnscrubbedTelemetryFinding) - each data type and its
+   * location, never a sample - the most matched first. None for any other
+   * issue.
+   */
+  public static async readFindingsForAi(
+    projectId: ObjectID,
+    issue: DataSecurityIssue,
+  ): Promise<Array<DataSecurityFindingForAi>> {
+    if (!isTelemetryFindingCheck(issue.checkId) || !issue.dataStoreId) {
+      return [];
+    }
+
+    const findings: Array<DataStoreFinding> =
+      await DataStoreFindingService.findBy({
+        query: {
+          projectId,
+          dataStoreId: issue.dataStoreId,
+          isSuppressed: false,
+          isScrubbed: false,
+          lastSeenAt: QueryHelper.greaterThanEqualTo(
+            OneUptimeDate.addRemoveDays(
+              OneUptimeDate.getCurrentDate(),
+              -FINDING_FRESHNESS_IN_DAYS,
+            ),
+          ),
+        },
+        select: {
+          dataTypeId: true,
+          dataTypeName: true,
+          location: true,
+          locationKind: true,
+          confidence: true,
+          matchCount: true,
+          isConfirmed: true,
+          isAiSuggested: true,
+          isScrubbed: true,
+        },
+        sort: { matchCount: SortOrder.Descending },
+        skip: 0,
+        limit: 100,
+        props: { isRoot: true },
+      });
+
+    return findings
+      .filter((finding: DataStoreFinding): boolean => {
+        return (
+          isUnscrubbedTelemetryFinding(finding) &&
+          getTelemetryCheckIdOfDataType(finding.dataTypeId || "") ===
+            issue.checkId
+        );
+      })
+      .slice(0, MAX_ISSUE_FINDINGS_FOR_AI)
+      .map((finding: DataStoreFinding): DataSecurityFindingForAi => {
+        return {
+          dataTypeId: finding.dataTypeId,
+          dataTypeName: finding.dataTypeName,
+          location: finding.location,
+          locationKind: finding.locationKind,
+        };
+      });
   }
 
   public static async getOverview(

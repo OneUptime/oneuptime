@@ -14,6 +14,7 @@ import YAxis, {
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
+import { withTranslatedSeriesNames } from "Common/UI/Components/Charts/Utils/SeriesNames";
 import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import {
@@ -58,9 +59,17 @@ const colorClasses: Record<
 };
 
 export interface ChartCardProps {
+  // The chart's name, as an English literal: the card translates it.
   title: string;
   icon: IconProp;
   iconColor: ChartCardColor;
+  /*
+   * The lines it plots, each named by the page in English ("Requests",
+   * "Page loads", "p95", a catalog metric's title): the legend, the hover
+   * line and the tooltip name them in the reader's language
+   * (withTranslatedSeriesNames). A name the locale has no words for reads
+   * as given.
+   */
   series: Array<SeriesPoint>;
   windowStart: Date | null;
   windowEnd: Date | null;
@@ -224,7 +233,7 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
     <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       {header}
       <LineChartElement
-        data={props.series}
+        data={withTranslatedSeriesNames(props.series, translator)}
         xAxis={xAxis}
         yAxis={yAxis}
         curve={ChartCurve.MONOTONE}

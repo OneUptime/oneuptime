@@ -58,8 +58,8 @@ export const RULE_LIBRARY_CATEGORY_FILTER_TEST_ID: string =
 export const RULE_LIBRARY_DATA_FILTER_TEST_ID: string = "rule-library-data";
 export const RULE_LIBRARY_STATUS_FILTER_TEST_ID: string = "rule-library-status";
 
-// The categories as the old cards drew them, now beside each in the chip's list.
-const CATEGORY_ICONS: Record<DetectionRuleLibraryCategory, IconProp> = {
+// The categories as the old cards drew them, now beside each in the chip's list (the Hunt Library's too).
+export const CATEGORY_ICONS: Record<DetectionRuleLibraryCategory, IconProp> = {
   [DetectionRuleLibraryCategory.Identity]: IconProp.User,
   [DetectionRuleLibraryCategory.Endpoint]: IconProp.ServerStack,
   [DetectionRuleLibraryCategory.Cloud]: IconProp.Cloud,
@@ -73,8 +73,8 @@ const CATEGORY_ICONS: Record<DetectionRuleLibraryCategory, IconProp> = {
  * The dots the Data column draws beside Receiving and Not receiving
  * (RuleLibraryDataStatus): Tailwind's emerald-500 and gray-400.
  */
-const RECEIVING_DOT_COLOR: string = "#10b981";
-const NOT_RECEIVING_DOT_COLOR: string = "#9ca3af";
+export const RECEIVING_DOT_COLOR: string = "#10b981";
+export const NOT_RECEIVING_DOT_COLOR: string = "#9ca3af";
 
 export interface ComponentProps {
   filters: RuleLibraryFilters;
@@ -96,10 +96,10 @@ export interface ComponentProps {
   isNothingSent: boolean;
 }
 
-const NOTICE_CLASS_NAME: string =
+export const NOTICE_CLASS_NAME: string =
   "-mt-2 mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500";
 
-const NOTICE_LINK_CLASS_NAME: string =
+export const NOTICE_LINK_CLASS_NAME: string =
   "inline-flex items-center gap-1 rounded-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 const RuleLibraryFilterBar: FunctionComponent<ComponentProps> = (

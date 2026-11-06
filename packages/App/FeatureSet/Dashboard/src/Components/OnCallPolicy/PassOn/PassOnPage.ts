@@ -5,17 +5,24 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  ON_CALL_PAGE_PASS_ON_ESCALATE_TO_FIELD,
   ON_CALL_PAGE_PASS_ON_ROUTE,
+  ON_CALL_PASS_ON_NO_BREAK_SPACE,
   OnCallOpenPage,
   OnCallPageRecordType,
   OnCallPassOnAnswer,
+  OnCallPassOnLevelChoice,
   OnCallPassOnOutcome,
   OnCallPassOnRefusal,
   OnCallPassOnResult,
   OnCallPassOnRule,
+  findOnCallPassOnLevelChoice,
+  getOnCallPassOnLevelChoices,
   getOnCallPassOnLevelCount,
   getOnCallPassOnLevelName,
+  getOnCallPassOnPickedResult,
   getOnCallPassOnTimeOfDay,
+  hasOnCallPassOnLevelChoice,
   isOnCallPassOnPagingStopped,
   isOnCallPassOnTimeToday,
   readOnCallPassOnResult,
@@ -52,6 +59,13 @@ import { formatNameList } from "../../AiAccess/AiAccessModes";
  * Common/Types/OnCallDutyPolicy/OnCallPagePassOn (whose code keeps the
  * action's first name, "pass on"); the server does it (OnCallPagePassOnAPI).
  *
+ * With two or more levels after the person's, the dialog asks which to
+ * page first - "Escalate to", a radio for each, the next level picked - and
+ * its sentence follows the pick: "This will immediately page DBA leads
+ * (Level 3 of 3), without waiting. It skips Platform leads (Level 2 of
+ * 3)." Leaving the next level picked sends nothing, and escalates exactly
+ * as Escalate always has.
+ *
  * React-free: the words, the requests and the answers, so they can be read
  * and tested on their own. The sentences are the Dashboard's translation
  * keys (src/Locales/README.md), each a whole sentence, and in English they
@@ -66,8 +80,10 @@ export const PASS_ON_PAGE_TEXT: {
   alreadyAcknowledgedTitle: string;
   alreadyPassedOnTitle: string;
   nothingToPassOnTitle: string;
+  notEscalatedTitle: string;
   failed: string;
   passedOnStatus: string;
+  escalateTo: string;
 } = {
   // The header's button, and the dialog's.
   button: translationKey("Escalate"),
@@ -79,6 +95,8 @@ export const PASS_ON_PAGE_TEXT: {
   alreadyAcknowledgedTitle: translationKey("Already acknowledged"),
   alreadyPassedOnTitle: translationKey("Already escalated"),
   nothingToPassOnTitle: translationKey("Nothing to escalate"),
+  // The level picked was not there to page any more (LevelNotAvailable).
+  notEscalatedTitle: translationKey("Not escalated"),
   failed: translationKey("Could not escalate. Please try again."),
   /*
    * The status an escalated page has, on the run's Execution Timeline and in
@@ -86,6 +104,11 @@ export const PASS_ON_PAGE_TEXT: {
    * and status filters draw it with this word (PassedOnStatus).
    */
   passedOnStatus: translationKey("Escalated"),
+  /*
+   * The radio group's label where the person picks the level to page, as
+   * the Escalate page a message's link opens labels it.
+   */
+  escalateTo: translationKey("Escalate to"),
 };
 
 /*
@@ -303,17 +326,26 @@ export async function acknowledgePagesAgain(data: {
     : 0;
 }
 
-// Escalates the signed-in person's open pages about the record.
+/*
+ * Escalates the signed-in person's open pages about the record. `escalateTo`
+ * is a later level picked for a page, by its run (getPassOnEscalateTo): a
+ * page it does not name pages its next level, and with none picked the
+ * request is the one Escalate always sent.
+ */
 export async function passOnPages(data: {
   recordType: OnCallPageRecordType;
   recordId: ObjectID;
+  escalateTo?: PassOnLevelPicks | undefined;
 }): Promise<Array<OnCallPassOnAnswer>> {
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
     await API.post<JSONObject>({
       url: URL.fromString(APP_API_URL.toString()).addRoute(
         getPassOnPageRoute(data),
       ),
-      data: {},
+      data:
+        data.escalateTo && Object.keys(data.escalateTo).length > 0
+          ? { [ON_CALL_PAGE_PASS_ON_ESCALATE_TO_FIELD]: data.escalateTo }
+          : {},
       headers: ModelAPI.getCommonHeaders(),
     });
 
@@ -371,6 +403,181 @@ function levelLabel(
 
 // Stands in for a level's name while its place is read out of its label.
 const LEVEL_NAME_MARK: string = String.fromCharCode(0xe000);
+
+/*
+ * PICKING THE LEVEL TO PAGE.
+ *
+ * A page whose preview offers two or more levels (hasOnCallPassOnLevelChoice)
+ * asks which: the dialog draws a radio for each, the next level picked.
+ * `PassOnLevelPicks` is what the person picked, by the page's run: the
+ * escalation rule of the level. A page with no pick pages its next level.
+ */
+export type PassOnLevelPicks = Record<string, string>;
+
+// The levels a page asks the person to pick from; none when there is no choice.
+export function getPassOnLevelChoices(
+  page: OnCallOpenPage,
+): Array<OnCallPassOnLevelChoice> {
+  return hasOnCallPassOnLevelChoice(page.preview)
+    ? getOnCallPassOnLevelChoices(page.preview)
+    : [];
+}
+
+/*
+ * The level picked for a page: the one the person picked, while the page
+ * still offers it, and the next level otherwise.
+ */
+export function getPassOnPickedLevel(
+  page: OnCallOpenPage,
+  picks: PassOnLevelPicks,
+): OnCallPassOnLevelChoice | undefined {
+  const choices: Array<OnCallPassOnLevelChoice> = getPassOnLevelChoices(page);
+
+  return (
+    findOnCallPassOnLevelChoice(choices, picks[page.executionLogId]) ||
+    choices[0]
+  );
+}
+
+/*
+ * What a page would do with the level picked: the level it pages, and the
+ * levels it skips (getOnCallPassOnPickedResult).
+ */
+export function getPassOnPickedPreview(
+  page: OnCallOpenPage,
+  picks: PassOnLevelPicks,
+): { result: OnCallPassOnResult; skipped: Array<OnCallPassOnRule> } {
+  return getOnCallPassOnPickedResult(
+    page.preview,
+    getPassOnPickedLevel(page, picks)?.escalationRuleId,
+  );
+}
+
+/*
+ * What the POST says of the levels picked: only a later level than the
+ * next, and only one the page still offers. Leaving the next level picked
+ * sends nothing, so it escalates exactly as Escalate always has, whatever
+ * the policy's levels have become meanwhile.
+ */
+export function getPassOnEscalateTo(
+  pages: Array<OnCallOpenPage>,
+  picks: PassOnLevelPicks,
+): PassOnLevelPicks {
+  const escalateTo: PassOnLevelPicks = {};
+
+  for (const page of pages) {
+    const choices: Array<OnCallPassOnLevelChoice> = getPassOnLevelChoices(page);
+    const picked: OnCallPassOnLevelChoice | undefined =
+      findOnCallPassOnLevelChoice(choices, picks[page.executionLogId]);
+
+    if (picked && picked !== choices[0]) {
+      escalateTo[page.executionLogId] = picked.escalationRuleId;
+    }
+  }
+
+  return escalateTo;
+}
+
+/*
+ * A level as a radio names it, in the reader's language: "Platform leads
+ * (Level 2 of 3)", or "Level 3 of 3" for a level with no name of its own -
+ * its place written with spaces no line breaks at, so a phone never breaks
+ * it as "(Level 2 of" / "3)". The name keeps its own spaces.
+ */
+export function getPassOnLevelChoiceLabel(
+  choice: OnCallPassOnRule,
+  ruleCount: number,
+  translator: Translator,
+): string {
+  const label: string = levelLabel(
+    translator,
+    choice,
+    ruleCount,
+    getOnCallPassOnLevelName(choice),
+  );
+
+  const places: Array<string> = levelLabel(
+    translator,
+    choice,
+    ruleCount,
+    getOnCallPassOnLevelName(choice) ? LEVEL_NAME_MARK : undefined,
+  )
+    .split(LEVEL_NAME_MARK)
+    .map((piece: string): string => {
+      return piece.trim();
+    })
+    .filter((piece: string): boolean => {
+      return piece.length > 0;
+    });
+
+  return getPassOnLinePieces(label, places)
+    .map((piece: PassOnLinePiece): string => {
+      return piece.keepTogether
+        ? piece.text.split(" ").join(ON_CALL_PASS_ON_NO_BREAK_SPACE)
+        : piece.text;
+    })
+    .join("");
+}
+
+/*
+ * The radio group's label: "Escalate to" - or, with two policies paging the
+ * person about the record, "Payments: escalate to", so each group says
+ * whose levels it offers.
+ */
+export function getPassOnLevelPickerLabel(
+  page: OnCallOpenPage,
+  pages: Array<OnCallOpenPage>,
+  translator: Translator,
+): string {
+  const policy: string = page.preview.policyName.trim();
+
+  if (pages.length > 1 && policy) {
+    return translator.translateTemplate("{{policy}}: escalate to", {
+      policy: policy,
+    });
+  }
+
+  return (
+    translator.translateText(PASS_ON_PAGE_TEXT.escalateTo) ||
+    PASS_ON_PAGE_TEXT.escalateTo
+  );
+}
+
+/*
+ * "It skips Platform leads (Level 2 of 3)." - what a later level picked
+ * passes over, said after what escalating does. Empty when it skips none.
+ */
+export function describePassOnSkippedLevels(
+  skipped: Array<OnCallPassOnRule>,
+  ruleCount: number,
+  translator: Translator,
+): string {
+  const levels: Array<ComposedValue> = [];
+
+  for (const rule of skipped) {
+    const level: ComposedValue | null = levelValue(rule, ruleCount);
+
+    if (level) {
+      levels.push(level);
+    }
+  }
+
+  if (levels.length === 0) {
+    return "";
+  }
+
+  return translator.translateTemplate("It skips {{levels}}.", {
+    levels: composedValue((sentence: Translator): string => {
+      return formatNameList(
+        levels.map((level: ComposedValue): string => {
+          return level.compose(sentence);
+        }),
+        "and",
+        sentence,
+      );
+    }),
+  });
+}
 
 /*
  * What the dialog keeps on one line: each level's place - "(Level 2 of 3)"
@@ -646,6 +853,11 @@ export function describePassOnRefusal(
       return translator.translateTemplate(
         "This page is over: the on-call policy has stopped paging.",
       );
+    // The level picked was not there to page: nothing changed.
+    case OnCallPassOnRefusal.LevelNotAvailable:
+      return translator.translateTemplate(
+        "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.",
+      );
     case OnCallPassOnRefusal.NotPaged:
     case OnCallPassOnRefusal.InvalidLink:
     default:
@@ -681,21 +893,72 @@ function perPage<T>(
   });
 }
 
-// What the dialog says before escalating: the person's own pages about it.
+/*
+ * What the dialog says before escalating: the person's own pages about it,
+ * each with the level picked for it (`picks`; the next level without one),
+ * and what that level skips.
+ *
+ * Beside a second policy's page, a sentence names its policy - "Payments:
+ * This will immediately page ..." - unless the page asks which level to
+ * page: its sentence is drawn right under its own levels, whose label names
+ * the policy already ("Payments: escalate to").
+ */
 export function describePassOnPreview(
   pages: Array<OnCallOpenPage>,
   translator: Translator,
+  picks: PassOnLevelPicks = {},
 ): Array<string> {
   return perPage(
     pages,
     (page: OnCallOpenPage): string => {
-      return describePassOnResult(page.preview, translator);
+      const picked: {
+        result: OnCallPassOnResult;
+        skipped: Array<OnCallPassOnRule>;
+      } = getPassOnPickedPreview(page, picks);
+      const skips: string = describePassOnSkippedLevels(
+        picked.skipped,
+        picked.result.ruleCount,
+        translator,
+      );
+      const sentence: string = describePassOnResult(picked.result, translator);
+
+      return skips ? `${sentence} ${skips}` : sentence;
     },
     (page: OnCallOpenPage): string => {
-      return page.preview.policyName;
+      return getPassOnLevelChoices(page).length > 0
+        ? ""
+        : page.preview.policyName;
     },
     translator,
   );
+}
+
+/*
+ * What the dialog keeps on one line before escalating: the places of the
+ * levels each page names with the level picked - the one it pages, and the
+ * ones it skips - and the time it moves on (getPassOnKeptTogether).
+ */
+export function getPassOnQuestionKeptTogether(
+  pages: Array<OnCallOpenPage>,
+  picks: PassOnLevelPicks,
+  translator: Translator,
+): Array<string> {
+  const results: Array<OnCallPassOnResult> = [];
+
+  for (const page of pages) {
+    const picked: {
+      result: OnCallPassOnResult;
+      skipped: Array<OnCallPassOnRule>;
+    } = getPassOnPickedPreview(page, picks);
+
+    results.push(picked.result);
+
+    for (const rule of picked.skipped) {
+      results.push({ ...picked.result, rule: rule, nextStepAt: undefined });
+    }
+  }
+
+  return getPassOnKeptTogether(results, translator);
 }
 
 // What the dialog says once it has escalated them - or why it could not.
@@ -758,10 +1021,15 @@ export function isRecordTakenMeanwhile(
  * paged (isOnCallPassOnPagingStopped) - a warning, drawn apart and first.
  * Nobody is on the record then, and the person reading may decide to take
  * it after all.
+ *
+ * Before escalating, a page's own sentence says which page it is about (its
+ * run, executionLogId): a page that asks which level to page draws its
+ * levels right above it, so each pick sits over what it does.
  */
 export interface PassOnDialogLine {
   text: string;
   isWarning: boolean;
+  executionLogId?: string | undefined;
 }
 
 // Warnings first, the rest in their order.
@@ -800,8 +1068,13 @@ export function getPassOnQuestionLines(
   pages: Array<OnCallOpenPage>,
   translator: Translator,
   recordType: OnCallPageRecordType,
+  picks: PassOnLevelPicks = {},
 ): Array<PassOnDialogLine> {
-  const sentences: Array<string> = describePassOnPreview(pages, translator);
+  const sentences: Array<string> = describePassOnPreview(
+    pages,
+    translator,
+    picks,
+  );
 
   return warningsFirst([
     ...sentences.map((text: string, index: number): PassOnDialogLine => {
@@ -810,6 +1083,7 @@ export function getPassOnQuestionLines(
       return {
         text: text,
         isWarning: Boolean(page && isOnCallPassOnPagingStopped(page.preview)),
+        ...(page ? { executionLogId: page.executionLogId } : {}),
       };
     }),
     notPagedAgain(translator, recordType),
@@ -887,6 +1161,10 @@ export function getPassOnAnswerTitle(
 
   if (everyOne(OnCallPassOnRefusal.AlreadyPassedOn)) {
     return PASS_ON_PAGE_TEXT.alreadyPassedOnTitle;
+  }
+
+  if (everyOne(OnCallPassOnRefusal.LevelNotAvailable)) {
+    return PASS_ON_PAGE_TEXT.notEscalatedTitle;
   }
 
   return PASS_ON_PAGE_TEXT.nothingToPassOnTitle;

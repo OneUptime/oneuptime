@@ -99,6 +99,7 @@ Monitorer, hændelser, alarmer, statussider, SLO'er og mange andre ressourcer ha
 | Inventarelementer | `Inventory Item` |
 | Collector-konfigurationer | `Collector Config` |
 | vCentre | `vCenter` |
+| OpenStack-clouds og de tjek, der kører mod dem | `OpenStack Cloud`, `OpenStack Cloud Check` |
 | Pakkeopsamlinger og deres downloads | `Packet Capture` |
 | Sikkerhedssager og deres prioriteter og statusser, playbooks og deres kørsler, beskyttede enheder, entitetskritikalitet samt en entitets risiko, når nogen nulstiller den | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Regelundtagelser | `Rule Exception` |
@@ -107,6 +108,7 @@ Monitorer, hændelser, alarmer, statussider, SLO'er og mange andre ressourcer ha
 | Hunts | `Hunt` |
 | Sikkerhedssagers opgaver og beviser | `Security Case Task`, `Security Case Evidence` |
 | Datalagre og deres fund samt Datasikkerheds problemer, indstillinger, kontrolindstillinger, brugerdefinerede datatyper og residensregler | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
+| Indstillinger for Dataobservabilitet | `Data Observability Setting` |
 | Eksporter af auditloggen | `Audit Log Export` |
 
 Det registreres også, når en administrator tilføjer eller fjerner en notifikationsmetode eller en personlig vagtregel på en andens konto, uden selve adressen eller nummeret.

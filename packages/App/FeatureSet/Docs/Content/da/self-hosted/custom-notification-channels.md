@@ -1,9 +1,9 @@
 # Brugerdefinerede notifikationskanaler
 
-En brugerdefineret kanal sender vagttilkald til en tjeneste, du selv driver: din virksomheds egen app, et personsøgersystem eller en gateway, der kontrollerer, hvad der forlader dit netværk. Du tilføjer den én gang for hele serveren, og alle kan tilkaldes gennem den uden at sætte noget op. I Admin Dashboard hedder de **Custom Channels**.
+En brugerdefineret kanal sender vagttilkald til en tjeneste, du selv driver: din virksomheds egen app, et personsøgersystem eller en gateway, der kontrollerer, hvad der forlader dit netværk. Du tilføjer den én gang for hele serveren, og alle kan tilkaldes gennem den uden at sætte noget op. I Admin Dashboard hedder de **Brugerdefinerede kanaler**.
 
 > [!NOTE]
-> Brugerdefinerede kanaler er en del af [OneUptime Enterprise Edition](/docs/self-hosted/enterprise) og kræver en Enterprise-licens, der omfatter dem. Community Edition har ingen side **Custom Channels** og sender intet til en kanal. Se [Uden licens](#uden-licens).
+> Brugerdefinerede kanaler er en del af [OneUptime Enterprise Edition](/docs/self-hosted/enterprise) og kræver en Enterprise-licens, der omfatter dem. Community Edition har ingen side **Brugerdefinerede kanaler** og sender intet til en kanal. Se [Uden licens](#uden-licens).
 
 :::cards
 - [Tilføj en kanal](#tilføj-en-kanal): Et navn, en URL og en signeringshemmelighed.
@@ -31,18 +31,18 @@ Når en vagtpolitik tilkalder nogen, og vedkommendes vagtregel bruger kanalen, s
 
 ## Tilføj en kanal
 
-1. Åbn **Indstillinger** i Admin Dashboard, derefter **Notifikationer > Custom Channels** i sidemenuen (**Notifikationer** er foldet sammen fra start), og vælg **Add**.
+1. Åbn **Indstillinger** i Admin Dashboard, derefter **Notifikationer > Brugerdefinerede kanaler** i sidemenuen (**Notifikationer** er foldet sammen fra start), og vælg **Add**.
 2. Udfyld i trinnet **Channel**:
    - **Navn**: det, folk ser i deres notifikationsmetoder og vagtregler, for eksempel `CorpoApp`.
    - **Webhook URL**: hvor OneUptime sender hvert tilkald. Den kan ligge på dit private netværk.
-   - **Signing Secret**: OneUptime laver en til dig. Kopiér den ind i din tjeneste, som kontrollerer hver anmodning med den. Du kan se den igen ved at redigere kanalen.
+   - **Signeringshemmelighed**: OneUptime laver en til dig. Kopiér den ind i din tjeneste, som kontrollerer hver anmodning med den. Du kan se den igen ved at redigere kanalen.
 3. Gem i trinnet **Delivery**, og vælg derefter **Send test** for at sende din tjeneste en [testanmodning](#testanmodninger).
 
 I trinnet **Delivery** er **Page everyone through this channel** slået til. OneUptime tilføjer så kanalen til alles vagtregler i hvert projekt og til reglerne for alle, der senere slutter sig til et projekt, og bruger den til at nå en vagthavende, der ikke har nogen regel for det, der udløste tilkaldet. Slå det fra, så folk selv kan tilføje kanalen til deres regler.
 
-Folk ser kanalen under **Brugerindstillinger**, derefter **Notifikationsmetoder**, derefter **Custom Channels**, med en knap **Send test**, og vælger den i deres vagtregler som `Custom Channel: CorpoApp`. De skal ikke sætte noget op: Din tjeneste får at vide, hvem hvert tilkald er til.
+Folk ser kanalen under **Brugerindstillinger**, derefter **Notifikationsmetoder**, derefter **Brugerdefinerede kanaler**, med en knap **Send test**, og vælger den i deres vagtregler som `Custom Channel: CorpoApp`. De skal ikke sætte noget op: Din tjeneste får at vide, hvem hvert tilkald er til.
 
-For at stoppe udsendelsen uden at ændre nogens regler skal du redigere kanalen og slå **Til** fra. Tilkald, der ville være gået til den, registreres i vagtloggen som ikke sendt. Sletter du en kanal, slettes alle vagtregler, der bruger den.
+For at stoppe udsendelsen uden at ændre nogens regler skal du vælge **Deaktivér** i kanalens ⋯-menu eller redigere kanalen og slå **Til** fra; **Aktivér** i samme menu slår den til igen. Tilkald, der ville være gået til den, registreres i vagtloggen som ikke sendt. Sletter du en kanal, slettes alle vagtregler, der bruger den.
 
 ## Hvad din tjeneste modtager
 
@@ -149,7 +149,7 @@ Svaret fortæller, hvad der skete, med ord, som din app kan vise, som de er:
 
 ## Andre notifikationer
 
-Tilkald er ikke de eneste notifikationer, folk får: OneUptime fortæller dem også, når en hændelse, de ejer, skifter tilstand, når der bliver skrevet en note, når deres vagt begynder, og mere. Hver person vælger, hvor hver af dem skal hen, under **Brugerindstillinger > Notifikationsindstillinger**, som har en kolonne **Custom Channels**, så længe en kanal er slået til. Den er slået fra for alle, indtil de selv slår den til.
+Tilkald er ikke de eneste notifikationer, folk får: OneUptime fortæller dem også, når en hændelse, de ejer, skifter tilstand, når der bliver skrevet en note, når deres vagt begynder, og mere. Hver person vælger, hvor hver af dem skal hen, under **Brugerindstillinger > Notifikationsindstillinger**, som har en kolonne **Brugerdefinerede kanaler**, så længe en kanal er slået til. Den er slået fra for alle, indtil de selv slår den til.
 
 En notifikation går til hver kanal, der er slået til, som én anmodning pr. kanal, med `event` sat til `notification`:
 
@@ -194,6 +194,7 @@ Brugerdefinerede kanaler virker i Enterprise Editions prøveperiode på 14 dage 
 
 - **Der sendes intet til en brugerdefineret kanal.** Et tilkald, der ville være gået til en, registreres i personens vagtlog som ikke sendt, og det samme gælder en test.
 - **Kanaler bliver ikke længere tilbudt.** De forsvinder fra folks notifikationsmetoder, vagtregler og notifikationsindstillinger, og parathed og reserven holder op med at tælle dem med.
+- **Teamets overholdelse kontrollerer ikke brugerdefinerede kanaler.** En overholdelsesregel for et team, der kræver en brugerdefineret kanal, viser **Ikke kontrolleret**, og medlemmer kontrolleres ikke for den, før en brugerdefineret kanal igen kan bære et tilkald.
 - **Siden er skrivebeskyttet.** Du kan se og slette kanaler, men ikke tilføje eller ændre dem, og ingen kan pege en regel eller en notifikationsindstilling på en kanal.
 - **Intet bliver slettet.** Kanalerne og de vagtregler og indstillinger, der bruger dem, bevares.
 

@@ -6,7 +6,7 @@
 - [چارچوب‌ها](#چارچوبها): این نُه چارچوب، و اینکه هر کدام کدام مخازن را پوشش می‌دهد.
 - [یک چارچوب چگونه امتیاز می‌گیرد](#یک-چارچوب-چگونه-امتیاز-میگیرد): الزامات موفق، ناموفق و ارزیابی‌نشده.
 - [الزامات و بررسی‌های آن‌ها](#الزامات-و-بررسیهای-آنها): هر الزام، و بررسی‌هایی که شاهد آن‌اند.
-- [سوابق پردازش](#سوابق-پردازش): مادهٔ 30 GDPR، نوشته‌شده از روی مخازن شما.
+- [سوابق پردازش](#سوابق-پردازش): مادهٔ ۳۰ GDPR، نوشته‌شده از روی مخازن شما.
 :::
 
 ## چارچوب‌ها
@@ -21,7 +21,7 @@
 | ISO 27001 | ISO/IEC 27001:2022 | هر مخزن داده. |
 | NIST CSF | چارچوب امنیت سایبری NIST 2.0 | هر مخزن داده. |
 | LGPD | قانون عمومی حفاظت از دادهٔ برزیل | مخازنی که دادهٔ شخصی افراد در برزیل را دارند. |
-| DPDP | قانون حفاظت از دادهٔ شخصی دیجیتال هند، 2023 | مخازنی که دادهٔ شخصی افراد در هند را دارند. |
+| DPDP | قانون حفاظت از دادهٔ شخصی دیجیتال هند، ۲۰۲۳ | مخازنی که دادهٔ شخصی افراد در هند را دارند. |
 
 ## یک چارچوب کدام مخازن را پوشش می‌دهد
 
@@ -46,7 +46,7 @@ flowchart TB
 
 - **یک الزام موفق است** وقتی هیچ مسئلهٔ بازی از بررسی‌های نگاشته‌شده به آن روی مخزنی در دامنهٔ چارچوب نباشد، و **ناموفق است** وقتی چنین مسئله‌ای باشد.
 - **ارزیابی‌نشده است** تا وقتی پیکربندی هیچ مخزنی در دامنه خوانده یا محتوایش اسکن نشده باشد.
-- **دو الزام را خود امنیت داده برآورده می‌کند**: مادهٔ 30 GDPR، سوابق فعالیت‌های پردازش، و A.5.12 در ISO 27001، طبقه‌بندی اطلاعات. این دو وقتی همهٔ مخازن در دامنه خوانده یا اسکن شده باشند موفق‌اند، و تا وقتی یکی خوانده یا اسکن نشده ناموفق‌اند.
+- **دو الزام را خود امنیت داده برآورده می‌کند**: مادهٔ ۳۰ GDPR، سوابق فعالیت‌های پردازش، و A.5.12 در ISO 27001، طبقه‌بندی اطلاعات. این دو وقتی همهٔ مخازن در دامنه خوانده یا اسکن شده باشند موفق‌اند، و تا وقتی یکی خوانده یا اسکن نشده ناموفق‌اند.
 - **امتیاز** سهم الزامات ارزیابی‌شدهٔ یک چارچوب است که موفق‌اند، به‌صورت یک درصد صحیح. چارچوبی که هیچ چیز ارزیابی‌شده‌ای ندارد امتیازی ندارد.
 
 فقط مسائل باز به شمار می‌آیند. مسئله‌ای که ریسکش پذیرفته شده، یا مسئله نیست، الزاماتش را ناموفق نمی‌کند، پس یک ریسک پذیرفته‌شده تصمیمی است که ممیزی شما می‌تواند روی مسئله ببیند: چه کسی آن را پذیرفت، چرا، و تا کی.
@@ -57,9 +57,9 @@ flowchart TB
 
 | الزام | چه می‌خواهد | بررسی‌ها |
 | --- | --- | --- |
-| Art. 5(1)(c) | کمینه‌سازی داده | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
+| Art. 5(1)(c) | کمینه‌سازی داده | `production-data-in-non-production`، `stale-sensitive-data`, `new-personal-data-column`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
 | Art. 5(1)(e) | محدودیت ذخیره‌سازی | `stale-sensitive-data` |
-| Art. 25 | حفاظت از داده در طراحی و به‌طور پیش‌فرض | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
+| Art. 25 | حفاظت از داده در طراحی و به‌طور پیش‌فرض | `production-data-in-non-production`، `stale-sensitive-data`, `new-personal-data-column`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
 | Art. 28 | پردازشگران | `sensitive-data-to-ai` |
 | Art. 30 | سوابق فعالیت‌های پردازش | با خود امنیت داده برآورده می‌شود |
 | Art. 32 | امنیت پردازش | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `not-encrypted-at-rest`، `no-customer-managed-key`، `encryption-in-transit-not-enforced`، `weak-tls`، `no-backups`، `no-point-in-time-recovery`، `deletion-protection-off`، `deleted-data-not-recoverable`، `access-not-logged`، `shared-key-access`، `object-acls-enabled`، `many-readers`، `unused-access`، `secrets-stored`، `plaintext-passwords`، `secrets-in-telemetry` |
@@ -69,7 +69,7 @@ flowchart TB
 
 | الزام | چه می‌خواهد | بررسی‌ها |
 | --- | --- | --- |
-| 1798.100(c) | گردآوری محدود به آنچه لازم است | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
+| 1798.100(c) | گردآوری محدود به آنچه لازم است | `production-data-in-non-production`، `stale-sensitive-data`, `new-personal-data-column`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
 | 1798.150 | رویه‌های امنیتی معقول | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `shared-key-access`، `object-acls-enabled`، `many-readers` |
 
 ### HIPAA
@@ -114,8 +114,8 @@ flowchart TB
 | A.5.12 | طبقه‌بندی اطلاعات | با خود امنیت داده برآورده می‌شود |
 | A.5.15 | کنترل دسترسی | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `shared-key-access`، `object-acls-enabled`، `many-readers` |
 | A.5.18 | حقوق دسترسی | `unused-access` |
-| A.5.34 | حریم خصوصی و حفاظت از PII | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
-| A.8.11 | پوشاندن داده | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
+| A.5.34 | حریم خصوصی و حفاظت از PII | `production-data-in-non-production`، `stale-sensitive-data`, `new-personal-data-column`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
+| A.8.11 | پوشاندن داده | `production-data-in-non-production`، `stale-sensitive-data`, `new-personal-data-column`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
 | A.8.12 | پیشگیری از نشت داده | `secrets-stored`، `secrets-in-telemetry` |
 | A.8.13 | پشتیبان‌گیری از اطلاعات | `no-backups`، `no-point-in-time-recovery`، `deletion-protection-off`، `deleted-data-not-recoverable` |
 | A.8.15 | ثبت لاگ | `access-not-logged` |
@@ -136,7 +136,7 @@ flowchart TB
 
 | الزام | چه می‌خواهد | بررسی‌ها |
 | --- | --- | --- |
-| Art. 6 | ضرورت و محدودیت هدف | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
+| Art. 6 | ضرورت و محدودیت هدف | `production-data-in-non-production`، `stale-sensitive-data`, `new-personal-data-column`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
 | Art. 33 | انتقال بین‌المللی داده | `residency-violation` |
 | Art. 46 | تدابیر امنیتی | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `not-encrypted-at-rest`، `no-customer-managed-key`، `shared-key-access`، `object-acls-enabled`، `many-readers` |
 
@@ -145,12 +145,12 @@ flowchart TB
 | الزام | چه می‌خواهد | بررسی‌ها |
 | --- | --- | --- |
 | Sec. 8(5) | تدابیر حفاظتی امنیتی معقول | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `not-encrypted-at-rest`، `no-customer-managed-key`، `shared-key-access`، `object-acls-enabled`، `many-readers` |
-| Sec. 8(7) | پاک کردن داده پس از برآورده شدن هدف | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
+| Sec. 8(7) | پاک کردن داده پس از برآورده شدن هدف | `production-data-in-non-production`، `stale-sensitive-data`, `new-personal-data-column`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
 | Sec. 16 | انتقال به بیرون از هند | `residency-violation` |
 
 ## سوابق پردازش
 
-مادهٔ 30 GDPR از شما می‌خواهد سوابق فعالیت‌های پردازش خود را نگه دارید. امنیت داده آن بخش از این سوابق را می‌نویسد که دربارهٔ محل نگهداری دادهٔ شخصی است: یک ردیف برای هر مخزنی که دادهٔ شخصی دارد.
+مادهٔ ۳۰ GDPR از شما می‌خواهد سوابق فعالیت‌های پردازش خود را نگه دارید. امنیت داده آن بخش از این سوابق را می‌نویسد که دربارهٔ محل نگهداری دادهٔ شخصی است: یک ردیف برای هر مخزنی که دادهٔ شخصی دارد.
 
 | ستون | از کجا می‌آید |
 | --- | --- |

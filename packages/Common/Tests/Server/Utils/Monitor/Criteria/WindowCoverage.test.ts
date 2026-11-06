@@ -327,6 +327,216 @@ describe("WindowCoverage.judge", () => {
     });
   });
 
+  /*
+   * When the readings arrived (#4912's follow-up). A reading is stamped with
+   * the time it measures; it can be old by that time and still keep coming -
+   * a source late by design, a collector whose clock runs behind. With its
+   * arrivals known, a series goes stale only once nothing of it has arrived
+   * for one and a half times its cadence (or how often it arrives), and its
+   * window counts as far as its readings reach.
+   */
+  describe("with the readings' arrivals known", () => {
+    function judgeArrived(input: {
+      readingTimesMs: Array<number>;
+      sinceNewestArrivalMs: number;
+      arrivalIntervalMs?: number | null;
+      freshAsOfMs?: number;
+      intervalMs?: number;
+    }): WindowCoverageResult {
+      return WindowCoverage.judge({
+        windowStartMs: WINDOW_START,
+        windowEndMs: WINDOW_END,
+        readingTimesMs: input.readingTimesMs,
+        intervalMs: input.intervalMs ?? MINUTE,
+        readingSpanMs: MINUTE,
+        holesBreakCoverage: true,
+        freshAsOfMs: input.freshAsOfMs,
+        arrival: {
+          sinceNewestArrivalMs: input.sinceNewestArrivalMs,
+          arrivalIntervalMs: input.arrivalIntervalMs,
+        },
+      });
+    }
+
+    test("readings five minutes old by their own time, still arriving, are late, not stale", () => {
+      const late: Array<number> = minutes(0, 9);
+
+      // By their own time they stopped five minutes before the end.
+      expect(judgeBuckets(late).shortfall).toBe(WindowCoverageShortfall.Stale);
+
+      const result: WindowCoverageResult = judgeArrived({
+        readingTimesMs: late,
+        sinceNewestArrivalMs: 20 * SECOND,
+      });
+
+      expect(result.isCovered).toBe(true);
+      expect(result.shortfall).toBeNull();
+      // Covered as far as they reach.
+      expect(result.runStartMs).toBe(WINDOW_START);
+      expect(result.runEndMs).toBe(WINDOW_START + 10 * MINUTE);
+      // How old the newest reading is, by the end of the window, is still said.
+      expect(result.sinceNewestReadingMs).toBe(5 * MINUTE);
+      expect(result.sinceNewestArrivalMs).toBe(20 * SECOND);
+      expect(result.allowedArrivalGapMs).toBe(1.5 * MINUTE);
+    });
+
+    test("readings right up to the end are stale once nothing has arrived for one and a half intervals", () => {
+      const result: WindowCoverageResult = judgeArrived({
+        readingTimesMs: minutes(0, 14),
+        sinceNewestArrivalMs: 3 * MINUTE,
+      });
+
+      expect(result.shortfall).toBe(WindowCoverageShortfall.Stale);
+      expect(result.sinceNewestReadingMs).toBe(0);
+    });
+
+    test("the allowance is exactly one and a half intervals", () => {
+      expect(
+        judgeArrived({
+          readingTimesMs: minutes(0, 9),
+          sinceNewestArrivalMs: 90 * SECOND,
+        }).isCovered,
+      ).toBe(true);
+      expect(
+        judgeArrived({
+          readingTimesMs: minutes(0, 9),
+          sinceNewestArrivalMs: 90 * SECOND + 1,
+        }).shortfall,
+      ).toBe(WindowCoverageShortfall.Stale);
+    });
+
+    test("a source that delivers in batches may go one and a half batches without anything new", () => {
+      // One-minute readings, delivered five at a time every five minutes.
+      const batched: Array<number> = minutes(0, 9);
+
+      expect(
+        judgeArrived({
+          readingTimesMs: batched,
+          sinceNewestArrivalMs: 4 * MINUTE + 50 * SECOND,
+          arrivalIntervalMs: 5 * MINUTE,
+        }).isCovered,
+      ).toBe(true);
+      expect(
+        judgeArrived({
+          readingTimesMs: batched,
+          sinceNewestArrivalMs: 7.5 * MINUTE + 1,
+          arrivalIntervalMs: 5 * MINUTE,
+        }).shortfall,
+      ).toBe(WindowCoverageShortfall.Stale);
+      // Without it, the same pause is a stop.
+      expect(
+        judgeArrived({
+          readingTimesMs: batched,
+          sinceNewestArrivalMs: 4 * MINUTE + 50 * SECOND,
+        }).shortfall,
+      ).toBe(WindowCoverageShortfall.Stale);
+    });
+
+    test("an arrival interval finer than the cadence never narrows it", () => {
+      const result: WindowCoverageResult = judgeArrived({
+        readingTimesMs: minutes(0, 9),
+        sinceNewestArrivalMs: 80 * SECOND,
+        arrivalIntervalMs: 10 * SECOND,
+      });
+
+      expect(result.isCovered).toBe(true);
+      expect(result.allowedArrivalGapMs).toBe(1.5 * MINUTE);
+    });
+
+    test("an unreadable arrival interval is left out", () => {
+      for (const arrivalIntervalMs of [Number.NaN, -MINUTE, 0, null]) {
+        expect({
+          arrivalIntervalMs,
+          allowed: judgeArrived({
+            readingTimesMs: minutes(0, 9),
+            sinceNewestArrivalMs: 0,
+            arrivalIntervalMs,
+          }).allowedArrivalGapMs,
+        }).toEqual({ arrivalIntervalMs, allowed: 1.5 * MINUTE });
+      }
+    });
+
+    test("freshAsOfMs is not read: the arrivals decide", () => {
+      // A reference the readings are far behind, but they still arrive.
+      expect(
+        judgeArrived({
+          readingTimesMs: minutes(0, 5),
+          sinceNewestArrivalMs: 30 * SECOND,
+          freshAsOfMs: WINDOW_END,
+        }).isCovered,
+      ).toBe(true);
+      // A reference they reach, but nothing has arrived for a while.
+      expect(
+        judgeArrived({
+          readingTimesMs: minutes(0, 5),
+          sinceNewestArrivalMs: 6 * MINUTE,
+          freshAsOfMs: WINDOW_START + 6 * MINUTE,
+        }).shortfall,
+      ).toBe(WindowCoverageShortfall.Stale);
+    });
+
+    test("a late start and a hole are judged as before", () => {
+      expect(
+        judgeArrived({
+          readingTimesMs: minutes(5, 9),
+          sinceNewestArrivalMs: 10 * SECOND,
+        }).shortfall,
+      ).toBe(WindowCoverageShortfall.StartsLate);
+      expect(
+        judgeArrived({
+          readingTimesMs: [...minutes(0, 3), ...minutes(6, 9)],
+          sinceNewestArrivalMs: 10 * SECOND,
+        }).shortfall,
+      ).toBe(WindowCoverageShortfall.Hole);
+    });
+
+    test("stale is named before a hole or a late start, as by the readings' times", () => {
+      expect(
+        judgeArrived({
+          readingTimesMs: minutes(5, 9),
+          sinceNewestArrivalMs: 10 * MINUTE,
+        }).shortfall,
+      ).toBe(WindowCoverageShortfall.Stale);
+    });
+
+    test("a slower cadence widens the allowance as it does by the readings' times", () => {
+      // A source read every five minutes.
+      expect(
+        judgeArrived({
+          readingTimesMs: [0, 5, 10].map((minute: number) => {
+            return WINDOW_START + minute * MINUTE;
+          }),
+          intervalMs: 5 * MINUTE,
+          sinceNewestArrivalMs: 7 * MINUTE,
+        }).isCovered,
+      ).toBe(true);
+    });
+
+    test("an arrival that cannot be read leaves the readings' times to decide", () => {
+      const result: WindowCoverageResult = WindowCoverage.judge({
+        windowStartMs: WINDOW_START,
+        windowEndMs: WINDOW_END,
+        readingTimesMs: minutes(0, 9),
+        intervalMs: MINUTE,
+        readingSpanMs: MINUTE,
+        holesBreakCoverage: true,
+        arrival: { sinceNewestArrivalMs: Number.NaN },
+      });
+
+      expect(result.shortfall).toBe(WindowCoverageShortfall.Stale);
+      expect(result.sinceNewestArrivalMs).toBeNull();
+      expect(result.allowedArrivalGapMs).toBeNull();
+    });
+
+    test("a probe monitor's checks, which carry no arrivals, are judged exactly as before", () => {
+      const result: WindowCoverageResult = judgeChecks(minutes(0, 14));
+
+      expect(result.isCovered).toBe(true);
+      expect(result.sinceNewestArrivalMs).toBeNull();
+      expect(result.allowedArrivalGapMs).toBeNull();
+    });
+  });
+
   describe("no readings", () => {
     test("is never covered", () => {
       expect(judgeBuckets([])).toEqual({
@@ -337,6 +547,8 @@ describe("WindowCoverage.judge", () => {
         runEndMs: null,
         holeBeforeRunMs: null,
         sinceNewestReadingMs: null,
+        sinceNewestArrivalMs: null,
+        allowedArrivalGapMs: null,
       });
     });
 

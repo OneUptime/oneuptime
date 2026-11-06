@@ -36,11 +36,14 @@ export const DATA_STORE_COLUMNS_ON_THE_TIMELINE: ReadonlyArray<TimelineColumn> =
     { column: "isPublicByDesign", shown: "onOrOff" },
     { column: "isAiData", shown: "onOrOff" },
     { column: "isContentScanEnabled", shown: "onOrOff" },
+    // Watch Table Health (#5662): its tables' recommended alerts.
+    { column: "isTableHealthEnabled", shown: "onOrOff" },
     { column: "scanProbe", alsoNamed: ["scanProbeId"], shown: "named" },
     { column: "probeConnectionVariable", shown: "named" },
     // A secret: that it changed, never what to.
     { column: "connectionString", shown: "named" },
     { column: "scanExclusions", shown: "named" },
+    { column: "watchedPaths", shown: "named" },
     { column: "purpose", shown: "named" },
     { column: "retention", shown: "named" },
     { column: "labels", shown: "named" },

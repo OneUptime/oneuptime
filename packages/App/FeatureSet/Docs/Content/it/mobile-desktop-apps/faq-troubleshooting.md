@@ -85,7 +85,7 @@ flowchart TB
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
-Expo dà un telefono per perso quando l'app ne è stata rimossa, o quando il suo token push non è più valido. Il telefono non viene eliminato: **Impostazioni utente → Metodi di notifica**, nella scheda **Push Notifications**, lo mostra come **Non riceve notifiche**, e la cronologia di reperibilità di un avviso che non gli è arrivato dice perché. Gli altri tuoi telefoni e metodi di notifica ricevono avvisi come sempre.
+Expo dà un telefono per perso quando l'app ne è stata rimossa, o quando il suo token push non è più valido. Il telefono non viene eliminato: **Impostazioni utente → Metodi di notifica**, nella scheda **Notifiche push**, lo mostra come **Non riceve notifiche**, e la cronologia di reperibilità di un avviso che non gli è arrivato dice perché. Gli altri tuoi telefoni e metodi di notifica ricevono avvisi come sempre.
 
 L'app registra il telefono a ogni avvio, quando accedi, e quando ci torni, al massimo una volta ogni cinque minuti. La registrazione chiede di nuovo il token push a Expo, che così lo rinnova, e il telefono riceve di nuovo gli avvisi con le regole che aveva.
 
@@ -124,7 +124,7 @@ Le passkey richiedono che l'indirizzo del tuo OneUptime inizi con `https://`, e 
 
 :::details Nessuna notifica sul telefono
 - Controlla che il telefono consenta le notifiche di OneUptime On-Call, e che Non disturbare o una modalità Full immersion non le trattengano.
-- In **Impostazioni utente → Metodi di notifica**, scheda **Push Notifications**, controlla che il telefono sia elencato, e inviagli una **Notifica di test**.
+- In **Impostazioni utente → Metodi di notifica**, scheda **Notifiche push**, controlla che il telefono sia elencato, e inviagli una **Notifica di test**.
 - Se è segnato **Non riceve notifiche**, apri l'app da connesso: vedi [Quando un telefono deve registrarsi di nuovo](#quando-un-telefono-deve-registrarsi-di-nuovo).
 - Controlla le tue regole di reperibilità in **Impostazioni utente → Regole di reperibilità**: decidono quali avvisi raggiungono quale metodo.
 - Su un OneUptime self-hosted, controlla che il server raggiunga il suo relay push: vedi [Notifiche push](/docs/self-hosted/push-notifications#accesso-di-rete).
@@ -145,7 +145,7 @@ Installa da una pagina della dashboard dopo l'accesso, in `https://`, in Edge o 
 :::
 
 :::details Nessuna notifica sul desktop
-Registra il browser in **Impostazioni utente → Metodi di notifica**, scheda **Push Notifications**, con **Registra dispositivo**, consenti le notifiche quando ti viene chiesto, e controlla le impostazioni di notifica del computer stesso. Un OneUptime self-hosted ha bisogno delle sue chiavi VAPID per le notifiche del browser.
+Registra il browser in **Impostazioni utente → Metodi di notifica**, scheda **Notifiche push**, con **Registra dispositivo**, consenti le notifiche quando ti viene chiesto, e controlla le impostazioni di notifica del computer stesso. Un OneUptime self-hosted ha bisogno delle sue chiavi VAPID per le notifiche del browser.
 :::
 
 ## Ottenere aiuto

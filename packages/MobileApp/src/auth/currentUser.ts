@@ -45,6 +45,19 @@ export function getUserIdFromToken(
 }
 
 /**
+ * Whether a JWT says its user is a master admin, whom the server lets do
+ * anything. Only ever used to offer something the server would allow - a
+ * token that cannot be read says no, and the server still decides.
+ */
+export function isMasterAdminToken(token: string | null | undefined): boolean {
+  if (!token) {
+    return false;
+  }
+
+  return decodeJwtPayload(token)?.["isMasterAdmin"] === true;
+}
+
+/**
  * The signed-in user's id from the in-memory token only, with no await.
  *
  * Null does NOT mean "signed out" - it means the keychain has not been read

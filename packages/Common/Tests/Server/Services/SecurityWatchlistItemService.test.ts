@@ -632,4 +632,323 @@ describe("importing values", () => {
     await expect(importText("alice\nbob")).rejects.toThrow("insert failed");
     expect(updateList).toHaveBeenCalled();
   });
+
+  test("a file's moments to leave go on its new values", async () => {
+    await importText(
+      "value,note,expires\nalice,CFO,2099-12-31\nbob,,\ncarol,,2020-01-01",
+    );
+
+    const rows: Array<SecurityWatchlistItem> = insert.mock
+      .calls[0]![0] as Array<SecurityWatchlistItem>;
+
+    expect(
+      rows.map((row: SecurityWatchlistItem): unknown => {
+        return [row.value, row.expiresAt];
+      }),
+    ).toEqual([
+      ["alice", new Date("2099-12-31T00:00:00.000Z")],
+      ["bob", undefined],
+    ]);
+  });
+
+  test("a person's import leaves a value already on the list as it is", async () => {
+    const update: Spy = getJestSpyOn(
+      SecurityWatchlistItemService,
+      "updateOneById",
+    ).mockResolvedValue(undefined as never);
+    findValues.mockResolvedValue([item("alice")] as never);
+
+    await importText("value,note,expires\nalice,A new note,2099-12-31");
+
+    expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe("a value that leaves its list", () => {
+  test("is given a moment still to come, or none", async () => {
+    await expect(
+      create(newValue({ expiresAt: new Date(Date.now() + 60 * 60 * 1000) })),
+    ).resolves.toBeDefined();
+    await expect(create(newValue())).resolves.toBeDefined();
+    await expect(
+      create(newValue({ expiresAt: new Date(Date.now() - 1000) })),
+    ).rejects.toThrow(
+      "A value leaves its list in the future. To take one off now, delete it.",
+    );
+    await expect(
+      create(newValue({ expiresAt: "next week" as never })),
+    ).rejects.toThrow(
+      "Enter when the value leaves the list, or leave it empty.",
+    );
+  });
+
+  test("a new moment is checked as a new value's is; none keeps the value until someone removes it", async () => {
+    const rows: Spy = getJestSpyOn(
+      SecurityWatchlistItemService,
+      "findRowsAndHoldUpdateToThem",
+    ).mockResolvedValue([item("alice", ROW_ID.toString())] as never);
+
+    const change: (
+      data: JSONObject,
+    ) => Promise<OnUpdate<SecurityWatchlistItem>> = (
+      data: JSONObject,
+    ): Promise<OnUpdate<SecurityWatchlistItem>> => {
+      return service.onBeforeUpdate({
+        query: { _id: ROW_ID },
+        data,
+        props: { isRoot: true },
+      } as unknown as UpdateBy<SecurityWatchlistItem>);
+    };
+
+    await expect(
+      change({ expiresAt: new Date(Date.now() - 1000) }),
+    ).rejects.toThrow(
+      "A value leaves its list in the future. To take one off now, delete it.",
+    );
+    await expect(change({ expiresAt: null })).resolves.toBeDefined();
+    await expect(
+      change({ expiresAt: new Date(Date.now() + 60 * 60 * 1000) }),
+    ).resolves.toBeDefined();
+    // Its list is asked about: a list read from an address takes none.
+    expect(rows).toHaveBeenCalled();
+  });
+});
+
+describe("a list read from an address", () => {
+  const URL_LIST: SecurityWatchlist = list({
+    source: SecurityWatchlistSource.Url,
+    importUrl: "https://hr.example.com/vip.csv",
+  });
+  const KEPT_BY_URL: string =
+    "This watchlist is read from an address, which keeps its values. To keep values by hand, create a watchlist of your own.";
+  const PERSON: { userId: ObjectID; tenantId: ObjectID } = {
+    userId: USER_ID,
+    tenantId: PROJECT_ID,
+  };
+
+  beforeEach(() => {
+    findList.mockResolvedValue(URL_LIST as never);
+  });
+
+  test("takes no value by hand", async () => {
+    await expect(create(newValue())).rejects.toThrow(KEPT_BY_URL);
+  });
+
+  test("a person changes none of its values; its reads do", async () => {
+    getJestSpyOn(
+      SecurityWatchlistItemService,
+      "findRowsAndHoldUpdateToThem",
+    ).mockResolvedValue([item("alice", ROW_ID.toString())] as never);
+
+    await expect(
+      service.onBeforeUpdate({
+        query: { _id: ROW_ID },
+        data: { note: "Mine now" },
+        props: PERSON,
+      } as unknown as UpdateBy<SecurityWatchlistItem>),
+    ).rejects.toThrow(KEPT_BY_URL);
+    await expect(
+      service.onBeforeUpdate({
+        query: { _id: ROW_ID },
+        data: { note: "As the file says" },
+        props: { isRoot: true },
+      } as unknown as UpdateBy<SecurityWatchlistItem>),
+    ).resolves.toBeDefined();
+  });
+
+  test("a person deletes none of its values - they would be back at the next read - while OneUptime's deletes go through", async () => {
+    getJestSpyOn(
+      SecurityWatchlistItemService,
+      "findRowsAndHoldDeleteToThem",
+    ).mockResolvedValue([item("alice")] as never);
+    const lists: Spy = getJestSpyOn(
+      SecurityWatchlistService,
+      "findAllBy",
+    ).mockResolvedValue([URL_LIST] as never);
+
+    await expect(
+      service.onBeforeDelete({
+        query: { _id: ROW_ID },
+        props: PERSON,
+      } as unknown as DeleteBy<SecurityWatchlistItem>),
+    ).rejects.toThrow(KEPT_BY_URL);
+
+    const args: { query: JSONObject; props: JSONObject } = lists.mock
+      .calls[0]![0] as never;
+
+    expect((args.query["_id"] as Includes).values).toEqual([
+      LIST_ID.toString(),
+    ]);
+    expect(args.props).toEqual({ isRoot: true });
+
+    lists.mockClear();
+
+    await expect(
+      service.onBeforeDelete({
+        query: { _id: ROW_ID },
+        props: { isRoot: true },
+      } as unknown as DeleteBy<SecurityWatchlistItem>),
+    ).resolves.toMatchObject({ carryForward: [LIST_ID.toString()] });
+    expect(lists).not.toHaveBeenCalled();
+  });
+
+  test("a person deletes the values of a list the team keeps as before", async () => {
+    getJestSpyOn(
+      SecurityWatchlistItemService,
+      "findRowsAndHoldDeleteToThem",
+    ).mockResolvedValue([item("alice")] as never);
+    getJestSpyOn(SecurityWatchlistService, "findAllBy").mockResolvedValue([
+      list(),
+    ] as never);
+
+    await expect(
+      service.onBeforeDelete({
+        query: { _id: ROW_ID },
+        props: PERSON,
+      } as unknown as DeleteBy<SecurityWatchlistItem>),
+    ).resolves.toMatchObject({ carryForward: [LIST_ID.toString()] });
+  });
+
+  describe("its reads", () => {
+    let insert: Mock<(rows: unknown) => Promise<unknown>>;
+    let deleteBy: Spy;
+    let update: Spy;
+
+    beforeEach(() => {
+      insert = jest.fn<(rows: unknown) => Promise<unknown>>(
+        (rows: unknown): Promise<unknown> => {
+          return Promise.resolve({
+            identifiers: (rows as Array<unknown>).map(() => {
+              return { _id: "aaaaaaaa-aaaa-4aaa-8aaa-000000000001" };
+            }),
+          });
+        },
+      );
+      getJestSpyOn(
+        SecurityWatchlistItemService,
+        "getRepository",
+      ).mockReturnValue({ insert } as never);
+      deleteBy = getJestSpyOn(
+        SecurityWatchlistItemService,
+        "deleteBy",
+      ).mockResolvedValue(1 as never);
+      update = getJestSpyOn(
+        SecurityWatchlistItemService,
+        "updateOneById",
+      ).mockResolvedValue(undefined as never);
+      getJestSpyOn(AuditLogService, "recordCreate").mockResolvedValue(
+        undefined as never,
+      );
+    });
+
+    function read(text: string): Promise<SecurityWatchlistImportSummary> {
+      return SecurityWatchlistItemService.importValues({
+        watchlistId: LIST_ID,
+        text,
+        mode: SecurityWatchlistImportMode.Replace,
+        props: { isRoot: true },
+        fromUrl: true,
+        now: new Date("2026-11-03T12:00:00.000Z"),
+      });
+    }
+
+    test("a person's import is refused: the list is its file's", async () => {
+      await expect(
+        SecurityWatchlistItemService.importValues({
+          watchlistId: LIST_ID,
+          text: "alice",
+          mode: SecurityWatchlistImportMode.Add,
+          props: PERSON,
+        }),
+      ).rejects.toThrow(KEPT_BY_URL);
+    });
+
+    test("make the list the file: new values added, gone ones removed, kept ones given the file's note and moment", async () => {
+      const kept: SecurityWatchlistItem = item(
+        "alice",
+        "99999999-9999-4999-8999-00000000000a",
+      );
+      kept.note = "Old note";
+      const same: SecurityWatchlistItem = item(
+        "bob",
+        "99999999-9999-4999-8999-00000000000b",
+      );
+      same.note = "Board";
+      same.expiresAt = new Date("2099-01-01T00:00:00.000Z");
+      const gone: SecurityWatchlistItem = item(
+        "dave",
+        "99999999-9999-4999-8999-00000000000d",
+      );
+      findValues.mockResolvedValue([kept, same, gone] as never);
+
+      const summary: SecurityWatchlistImportSummary = await read(
+        "value,note,expires\nALICE,CFO,2099-12-31\nbob,Board,2099-01-01\ncarol,,",
+      );
+
+      expect(summary).toMatchObject({ added: 1, removed: 1, unchanged: 2 });
+      expect(
+        (deleteBy.mock.calls[0]![0] as { query: JSONObject }).query["_id"],
+      ).toEqual(new Includes(["99999999-9999-4999-8999-00000000000d"]));
+      // Only the value whose note or moment the file changed is written.
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update).toHaveBeenCalledWith({
+        id: kept.id,
+        data: {
+          note: "CFO",
+          expiresAt: new Date("2099-12-31T00:00:00.000Z"),
+        },
+        props: { isRoot: true },
+      });
+      expect(
+        (insert.mock.calls[0]![0] as Array<SecurityWatchlistItem>).map(
+          (row: SecurityWatchlistItem): string | undefined => {
+            return row.value;
+          },
+        ),
+      ).toEqual(["carol"]);
+    });
+
+    test("a kept value the file no longer gives a note or a moment loses them", async () => {
+      const kept: SecurityWatchlistItem = item(
+        "alice",
+        "99999999-9999-4999-8999-00000000000a",
+      );
+      kept.note = "CFO";
+      kept.expiresAt = new Date("2099-01-01T00:00:00.000Z");
+      findValues.mockResolvedValue([kept] as never);
+
+      await read("alice");
+
+      expect(update).toHaveBeenCalledWith({
+        id: kept.id,
+        data: { note: null, expiresAt: null },
+        props: { isRoot: true },
+      });
+    });
+
+    test("the text a read already read is not read again", async () => {
+      findValues.mockResolvedValue([] as never);
+
+      await SecurityWatchlistItemService.importValues({
+        watchlistId: LIST_ID,
+        text: "this text is not read",
+        parsed: {
+          values: [{ value: "erin", note: "" }],
+          problems: [],
+          duplicates: 0,
+        },
+        mode: SecurityWatchlistImportMode.Replace,
+        props: { isRoot: true },
+        fromUrl: true,
+      });
+
+      expect(
+        (insert.mock.calls[0]![0] as Array<SecurityWatchlistItem>).map(
+          (row: SecurityWatchlistItem): string | undefined => {
+            return row.value;
+          },
+        ),
+      ).toEqual(["erin"]);
+    });
+  });
 });

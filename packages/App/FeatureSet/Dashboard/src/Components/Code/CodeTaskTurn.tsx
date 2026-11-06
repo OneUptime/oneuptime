@@ -20,7 +20,7 @@ import {
   CODE_TURN_FAILED,
 } from "./CodeTaskCopy";
 import CodeTaskStateBadge from "./CodeTaskStateBadge";
-import CodeTaskSteps from "./CodeTaskSteps";
+import CodeTaskSteps, { ARRIVED_STEP_CLASS_NAME } from "./CodeTaskSteps";
 import CodeTimeAgo from "./CodeTimeAgo";
 import {
   EventDurationPart,
@@ -50,7 +50,6 @@ import {
   CodeTaskState,
   CodeTaskTurnJSON,
 } from "Common/Types/AI/CodeTask";
-import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -58,8 +57,15 @@ import Link from "Common/UI/Components/Link/Link";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useClockTick from "Common/UI/Utils/UseClockTick";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 
 /*
  * AI's side of a turn - and what OneUptime started a task from - is its
@@ -437,11 +443,19 @@ const PullRequestLine: FunctionComponent<{
   );
 };
 
-// How long the turn has taken, or took.
+/*
+ * How long the turn has taken, or took. While it works the time counts up
+ * on its own clock (useClockTick): the page reads only what is new as AI
+ * works (CodeTaskLive), so through a long quiet step - a test suite that
+ * runs for minutes - nothing else draws the turn again.
+ */
 const TurnDuration: FunctionComponent<{ turn: CodeTaskTurnJSON }> = (props: {
   turn: CodeTaskTurnJSON;
 }): ReactElement => {
   const translator: Translator = useTranslator();
+  const now: Date = useClockTick(true, {
+    isEnabled: Boolean(props.turn.startedAt) && !props.turn.completedAt,
+  });
 
   if (!props.turn.startedAt) {
     return <></>;
@@ -450,7 +464,7 @@ const TurnDuration: FunctionComponent<{ turn: CodeTaskTurnJSON }> = (props: {
   const start: Date = new Date(props.turn.startedAt);
   const end: Date = props.turn.completedAt
     ? new Date(props.turn.completedAt)
-    : OneUptimeDate.getCurrentDate();
+    : now;
 
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
     return <></>;
@@ -467,6 +481,69 @@ const TurnDuration: FunctionComponent<{ turn: CodeTaskTurnJSON }> = (props: {
       {props.turn.completedAt
         ? translator.translateTemplate("worked {{duration}}", { duration })
         : translator.translateTemplate("{{duration}} so far", { duration })}
+    </span>
+  );
+};
+
+/*
+ * A turn no Runner has picked up for long says what to check, and where:
+ * the repository's Runner in its settings, or the project's Runners. Its
+ * own clock tells when the wait has grown long - nothing is announced while
+ * a turn waits, so nothing else draws it again.
+ */
+const SlowQueueHint: FunctionComponent<{
+  queuedAt: string;
+  repositorySettingsRoute?: Route | undefined;
+}> = (props: {
+  queuedAt: string;
+  repositorySettingsRoute?: Route | undefined;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const now: Date = useClockTick(true);
+  const queuedMinutes: number = Math.floor(
+    (now.getTime() - new Date(props.queuedAt).getTime()) / 60000,
+  );
+
+  if (Number.isNaN(queuedMinutes) || queuedMinutes < SLOW_QUEUE_IN_MINUTES) {
+    return <></>;
+  }
+
+  return (
+    <span
+      data-testid="code-turn-slow-queue"
+      className="mt-1 block text-xs text-gray-500"
+    >
+      {props.repositorySettingsRoute ? (
+        <TranslatedSentence
+          template="Taking longer than usual? Check that this repository's Runner is online in its {{settings}}."
+          slots={{
+            settings: (
+              <Link
+                to={props.repositorySettingsRoute}
+                className="font-medium text-indigo-600 hover:text-indigo-500"
+              >
+                <>{translator.translateText("Settings")}</>
+              </Link>
+            ),
+          }}
+        />
+      ) : (
+        <TranslatedSentence
+          template="Taking longer than usual? Check that a Runner is online and up to date in {{runners}}."
+          slots={{
+            runners: (
+              <Link
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.RUNBOOKS_RUNNERS] as Route,
+                )}
+                className="font-medium text-indigo-600 hover:text-indigo-500"
+              >
+                <>{translator.translateText("Runners")}</>
+              </Link>
+            ),
+          }}
+        />
+      )}
     </span>
   );
 };
@@ -526,9 +603,20 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
   const personName: string =
     turn.requestedBy?.name || translator.translateTemplate("Someone");
 
-  const queuedMinutes: number = Math.floor(
-    (Date.now() - new Date(turn.createdAt).getTime()) / 60000,
-  );
+  /*
+   * AI's side of the turn rises into place when the turn ends while the
+   * page watches it work (ou-ai-rise, as Ask AI's answers do): the steps
+   * fold into their summary and the reply comes in. A turn the page opened
+   * on already finished never moves.
+   */
+  const isSeenWorkingRef: MutableRefObject<boolean> = useRef<boolean>(false);
+  const hasEndedInView: boolean = !isWorking && isSeenWorkingRef.current;
+
+  useEffect(() => {
+    if (isWorking) {
+      isSeenWorkingRef.current = true;
+    }
+  }, [isWorking]);
 
   /*
    * A request nobody typed - OneUptime wrote it from a problem it found
@@ -584,7 +672,15 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
           data-testid="code-turn-request-message"
           className="mt-1.5 max-w-[88%] rounded-2xl rounded-tr-md bg-white px-4 py-2.5 shadow-sm ring-1 ring-inset ring-gray-200 sm:max-w-[80%]"
         >
-          <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-900">
+          {/*
+            The person's own words, laid out the way they wrote them
+            (dir="auto"): an English request on a Persian page keeps its
+            full stop at its end.
+          */}
+          <p
+            dir="auto"
+            className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-900"
+          >
             {turn.request.message}
           </p>
         </div>
@@ -663,7 +759,10 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
                   data-testid="code-turn-request-message"
                   className="mt-2 rounded-xl bg-gray-50 px-4 py-2.5 ring-1 ring-inset ring-gray-200"
                 >
-                  <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-800">
+                  <p
+                    dir="auto"
+                    className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-800"
+                  >
                     {turn.request.message}
                   </p>
                 </div>
@@ -703,19 +802,34 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
           ) : (
             <CodeTaskStateBadge state={turn.state} isQueued={isQueued} />
           )}
-          <TurnDuration turn={turn} />
-          {props.logRoute && !isQueued ? (
-            <Link
-              to={props.logRoute}
-              className="text-xs font-medium text-gray-500 hover:text-gray-700 hover:underline"
-            >
-              <>{translator.translateText("Log")}</>
-            </Link>
-          ) : (
-            <></>
-          )}
+          {/*
+            How long it took and its Log go together: on a phone they wrap
+            onto the next line as one, never "Log" alone.
+          */}
+          <span
+            data-testid="code-turn-facts"
+            className="inline-flex flex-wrap items-center gap-x-2 gap-y-1"
+          >
+            <TurnDuration turn={turn} />
+            {props.logRoute && !isQueued ? (
+              <Link
+                to={props.logRoute}
+                className="text-xs font-medium text-gray-500 hover:text-gray-700 hover:underline"
+              >
+                <>{translator.translateText("Log")}</>
+              </Link>
+            ) : (
+              <></>
+            )}
+          </span>
         </div>
-        <div className={`${MESSAGE_BODY_CLASS_NAME} space-y-3`}>
+        <div
+          data-testid="code-turn-body"
+          data-turn-ended-in-view={hasEndedInView ? "true" : undefined}
+          className={`${MESSAGE_BODY_CLASS_NAME} space-y-3${
+            hasEndedInView ? ` ${ARRIVED_STEP_CLASS_NAME}` : ""
+          }`}
+        >
           {isWorking && (isQueued || turn.steps.length === 0) ? (
             <div
               role="status"
@@ -729,43 +843,11 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
                       "Waiting for a Runner to pick this up…",
                     )
                   : translator.translateText("Working on it…")}
-                {isQueued && queuedMinutes >= SLOW_QUEUE_IN_MINUTES ? (
-                  <span
-                    data-testid="code-turn-slow-queue"
-                    className="mt-1 block text-xs text-gray-500"
-                  >
-                    {props.repositorySettingsRoute ? (
-                      <TranslatedSentence
-                        template="Taking longer than usual? Check that this repository's Runner is online in its {{settings}}."
-                        slots={{
-                          settings: (
-                            <Link
-                              to={props.repositorySettingsRoute}
-                              className="font-medium text-indigo-600 hover:text-indigo-500"
-                            >
-                              <>{translator.translateText("Settings")}</>
-                            </Link>
-                          ),
-                        }}
-                      />
-                    ) : (
-                      <TranslatedSentence
-                        template="Taking longer than usual? Check that a Runner is online and up to date in {{runners}}."
-                        slots={{
-                          runners: (
-                            <Link
-                              to={RouteUtil.populateRouteParams(
-                                RouteMap[PageMap.RUNBOOKS_RUNNERS] as Route,
-                              )}
-                              className="font-medium text-indigo-600 hover:text-indigo-500"
-                            >
-                              <>{translator.translateText("Runners")}</>
-                            </Link>
-                          ),
-                        }}
-                      />
-                    )}
-                  </span>
+                {isQueued ? (
+                  <SlowQueueHint
+                    queuedAt={turn.createdAt}
+                    repositorySettingsRoute={props.repositorySettingsRoute}
+                  />
                 ) : (
                   <></>
                 )}
@@ -775,11 +857,11 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          {turn.steps.length > 0 ? (
-            <CodeTaskSteps steps={turn.steps} isLive={isWorking} />
-          ) : (
-            <></>
-          )}
+          {/*
+            Drawn from the turn's start, before its first step, so the
+            steps that arrive - its first ones too - rise into place.
+          */}
+          <CodeTaskSteps steps={turn.steps} isLive={isWorking} />
 
           {summary ? (
             <div

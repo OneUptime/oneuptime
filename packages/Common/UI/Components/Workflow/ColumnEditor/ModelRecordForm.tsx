@@ -17,6 +17,7 @@ import { isOfferableColumn, jsonOnlyColumns } from "./ColumnControl";
 import ColumnFieldRow from "./ColumnFieldRow";
 import { ModelColumnRow, makeColumnRow } from "./ColumnRow";
 import { ColumnUse } from "./ColumnUse";
+import { CustomFieldRowCopy } from "../CustomFields/CustomFieldColumns";
 import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
 import React, {
   FunctionComponent,
@@ -37,6 +38,11 @@ export interface ComponentProps {
    */
   use: ColumnUse.Create | ColumnUse.Update;
   onChange: (rows: Array<ModelColumnRow>) => void;
+  /*
+   * A setting that holds custom fields and nothing else, where the list is the
+   * project's own: no adding a column by name, which only Edit as JSON has.
+   */
+  customFieldsOnly?: boolean | undefined;
 }
 
 const ModelRecordForm: FunctionComponent<ComponentProps> = (
@@ -81,6 +87,15 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
       );
     },
   );
+
+  const hasNoCustomFields: boolean =
+    Boolean(props.customFieldsOnly) &&
+    !props.columns.some((column: ModelSchemaColumn): boolean => {
+      return Boolean(column.customField);
+    });
+
+  const canAddField: boolean =
+    !isViewOnly && (!props.customFieldsOnly || offerableColumns.length > 0);
 
   const unofferableColumnTitles: Array<string> = jsonOnlyColumns(
     props.columns,
@@ -131,7 +146,11 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
             ) : (
               <p className="mt-1 text-xs text-gray-500">
                 {translator.translateText(
-                  "Pick a field below to start building this record.",
+                  hasNoCustomFields
+                    ? CustomFieldRowCopy.noneYet
+                    : translationKey(
+                        "Pick a field below to start building this record.",
+                      ),
                 )}
               </p>
             )}
@@ -163,16 +182,14 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        {isViewOnly ? (
-          <></>
-        ) : (
+        {canAddField ? (
           <div className="border-t border-gray-100 bg-gray-50/40 px-3 py-2.5">
             <AddColumnPicker
               columns={offerableColumns}
               use={props.use}
               requiredColumnIds={requiredColumnIds}
               triggerLabel={translationKey("Add a field")}
-              allowCustomColumn={true}
+              allowCustomColumn={!props.customFieldsOnly}
               dataTestId="model-column-add"
               onAdd={(columnId: string) => {
                 const added: ModelColumnRow = makeColumnRow({
@@ -184,6 +201,8 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
               }}
             />
           </div>
+        ) : (
+          <></>
         )}
       </div>
 

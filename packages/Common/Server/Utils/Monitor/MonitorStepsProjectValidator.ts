@@ -35,6 +35,8 @@ import ObjectID from "../../../Types/ObjectID";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Probe from "../../../Models/DatabaseModels/Probe";
+import { getSecurityWatchlistNameKey } from "../../../Types/SecurityEvent/SecurityWatchlist";
+import SecurityWatchlists from "../SecurityEvent/Watchlists/SecurityWatchlists";
 
 /*
  * `monitorSteps` is a JSON blob that embeds ids of other records — the default
@@ -135,6 +137,39 @@ const ARCHIVABLE_REFERENCE_MODELS: Partial<
 };
 
 export default class MonitorStepsProjectValidator {
+  /*
+   * The watchlists a Security Events monitor's filters read are kept by
+   * name, as a rule's are: a list this write starts reading must be the
+   * project's, or the save is refused with the words a rule's save uses. A
+   * name the monitor read already is its inheritance, never refused here -
+   * a list is not deleted or renamed while a monitor reads it.
+   */
+  public static async validateWatchlistsExist(data: {
+    monitorSteps: MonitorSteps | JSONObject;
+    projectId: ObjectID;
+    alreadyStoredMonitorSteps?: MonitorSteps | JSONObject | undefined | null;
+  }): Promise<void> {
+    const stored: Set<string> = new Set(
+      MonitorStepsReferenceExtractor.extractWatchlistNames(
+        data.alreadyStoredMonitorSteps,
+      ).map((name: string): string => {
+        return getSecurityWatchlistNameKey(name);
+      }),
+    );
+
+    const introduced: Array<string> =
+      MonitorStepsReferenceExtractor.extractWatchlistNames(
+        data.monitorSteps,
+      ).filter((name: string): boolean => {
+        return !stored.has(getSecurityWatchlistNameKey(name));
+      });
+
+    await SecurityWatchlists.assertProjectHas({
+      projectId: data.projectId,
+      names: introduced,
+    });
+  }
+
   public static async validateMonitorStepsBelongToProject(data: {
     monitorSteps: MonitorSteps | JSONObject | undefined;
     projectId: ObjectID | undefined;
@@ -158,6 +193,12 @@ export default class MonitorStepsProjectValidator {
     }
 
     await MonitorStepsProjectValidator.validateWatchedProbesBelongToProject({
+      monitorSteps: data.monitorSteps,
+      projectId: data.projectId,
+      alreadyStoredMonitorSteps: data.alreadyStoredMonitorSteps,
+    });
+
+    await MonitorStepsProjectValidator.validateWatchlistsExist({
       monitorSteps: data.monitorSteps,
       projectId: data.projectId,
       alreadyStoredMonitorSteps: data.alreadyStoredMonitorSteps,

@@ -61,6 +61,7 @@ import {
 } from "./SplunkOnCallFixtures";
 import { FixtureApi } from "./ToolImportFixtureTransport";
 import { DataSource } from "typeorm";
+import { dropSchemaOneTableAtATime } from "../../../Helpers/DropSchemaOneTableAtATime";
 
 /*
  * AN IMPORT FROM ANOTHER TOOL, END TO END, AGAINST A REAL, MIGRATED DATABASE.
@@ -667,7 +668,7 @@ describePostgres("an import from another tool, against Postgres", () => {
     ToolImportRunExecutor.transportFactory = originalTransportFactory;
 
     if (database?.isInitialized) {
-      await database.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+      await dropSchemaOneTableAtATime(database, schema);
       await database.destroy();
     }
   });

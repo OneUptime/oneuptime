@@ -595,7 +595,8 @@ describe("VMware overview (Index.tsx)", () => {
   });
 });
 
-const TRANSLATED_TITLE: RegExp = /title=\{tx\("([^"]+)"\)\}/;
+// A tile is handed its English title: it draws it in the reader's words.
+const TRANSLATED_TITLE: RegExp = /title="([^"]+)"/;
 const ROW_LABEL: RegExp = /label: "([^"]+)"/;
 
 // A part page's tiles, in order: each one's title and its text.

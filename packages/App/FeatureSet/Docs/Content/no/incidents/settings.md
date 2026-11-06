@@ -603,7 +603,7 @@ Grupperings-, SLA-, påminnelses- og AI-regler virker også på den nye hendelse
 > [!IMPORTANT]
 > **Betydningen av rekkefølge er ikke lik overalt.** Grupperingsregler, SLA-regler og Reminder Rules evalueres i rekkefølge, og listene deres ordnes ved å dra: en ny regel legges til på slutten. Vaktregler gjør ikke det — hver samsvarende regel utløses. Ikke gå ut fra at én modell gjelder for alle ni.
 
-Sidene **Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har faner — en fane **Incident Rules** og en fane **Episode Rules**, hver med sin egen tabell. Sett opp fanen **Incident Rules** med mindre du spesifikt mener episoder. **Grupperingsregler**, **Runbook-regler**, **AI-regler**, **SLA-regler** og **Påminnelsesregler** er enkle tabeller.
+Sidene **Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har faner — en fane **Hendelsesregler** og en fane **Episode Rules**, hver med sin egen tabell. Sett opp fanen **Hendelsesregler** med mindre du spesifikt mener episoder. **Grupperingsregler**, **Runbook-regler**, **AI-regler**, **SLA-regler** og **Påminnelsesregler** er enkle tabeller.
 
 Eier-, etikett- og personvernregler virker bare på hendelser og episoder som opprettes etter at regelen finnes. For å bruke en av dem på hendelser som allerede finnes, bruker du **Kjør nå** på regelens rad, på dens egen side eller fra tabellens massehandlinger — se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now). Vakt-, runbook-, AI-, grupperings-, SLA- og påminnelsesregler kan ikke kjøres mot eksisterende hendelser.
 
@@ -649,7 +649,7 @@ Regler som ble lagret før skjemaet spurte om eiere, kan fortsatt ha et standard
 
 ## Vaktregler for hendelser
 
-**Hendelser → Regler → Vaktregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) er der du gjør tilkalling automatisk. Kortet, **Hendelsesvaktregler**, sier hva de gjør: tilkaller automatisk via vaktretningslinjer for nye hendelser som samsvarer. Siden har to faner: **Incident Rules** og **Episode Rules**.
+**Hendelser → Regler → Vaktregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) er der du gjør tilkalling automatisk. Kortet, **Hendelsesvaktregler**, sier hva de gjør: tilkaller automatisk via vaktretningslinjer for nye hendelser som samsvarer. Siden har to faner: **Hendelsesregler** og **Episode Rules**.
 
 Opprettelsesskjemaet har to trinn:
 

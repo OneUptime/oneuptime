@@ -55,7 +55,7 @@ Appen visar aviseringar genom sin webbläsare, när du har registrerat webbläsa
 
 :::steps
 ### Öppna dina push-enheter
-Öppna **Användarinställningar → Aviseringsmetoder** och fliken **Push Notifications** i appen.
+Öppna **Användarinställningar → Aviseringsmetoder** och fliken **Push-aviseringar** i appen.
 
 ### Registrera den här webbläsaren
 Klicka på **Registrera enhet**, behåll det föreslagna **Enhetsnamn**, till exempel `Edge on Windows`, eller ändra det, och klicka på **Registrera enhet** igen. När webbläsaren frågar om OneUptime får visa aviseringar väljer du **Tillåt**.
@@ -83,7 +83,7 @@ Det finns inget att uppdatera. Appen hämtar instrumentpanelen från ditt OneUpt
 
 Windows visar också appen under **Inställningar → Appar → Installerade appar**, där **Avinstallera** också tar bort den.
 
-Att avinstallera appen avregistrerar inte dess webbläsare: den får fortfarande aviseringar. Vill du stoppa dem tar du bort webbläsaren under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**, med **Ta bort**.
+Att avinstallera appen avregistrerar inte dess webbläsare: den får fortfarande aviseringar. Vill du stoppa dem tar du bort webbläsaren under **Användarinställningar → Aviseringsmetoder**, på fliken **Push-aviseringar**, med **Ta bort**.
 
 ## Felsökning
 
@@ -92,7 +92,7 @@ Att avinstallera appen avregistrerar inte dess webbläsare: den får fortfarande
 :::
 
 :::details Inga aviseringar visas
-- Kontrollera under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**, att den här webbläsaren finns i listan, och skicka en **Testavisering** till den.
+- Kontrollera under **Användarinställningar → Aviseringsmetoder**, på fliken **Push-aviseringar**, att den här webbläsaren finns i listan, och skicka en **Testavisering** till den.
 - Öppna **Inställningar → System → Meddelanden** i Windows: aviseringar måste vara på, även för webbläsaren, och Stör ej av. Windows 10 kallar sidan ”Meddelanden och åtgärder”.
 - Blockerar webbläsaren aviseringar för OneUptime, klicka på ikonen till vänster i adressfältet, tillåt aviseringar för webbplatsen och registrera webbläsaren igen.
 - På ett OneUptime i egen drift säger dialogrutan **Registrera enhet** när servern saknar VAPID-nycklar.

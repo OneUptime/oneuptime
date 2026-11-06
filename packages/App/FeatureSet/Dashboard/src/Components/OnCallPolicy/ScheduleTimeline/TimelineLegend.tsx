@@ -1,3 +1,4 @@
+import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "../OnCallLabelClasses";
 import { OVERRIDE_TITLE_MARKER } from "../OnCallScheduleLayer/OverridePresentation";
 import { TimelinePerson } from "./TimelineModel";
 import ScheduleTimelineLayout, {
@@ -33,7 +34,7 @@ const TimelineLegend: FunctionComponent<ComponentProps> = (
     <div className="mt-4 space-y-3" data-testid="timeline-legend">
       {props.people.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <span className={`mr-1 ${ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}`}>
             {translator.translateText(
               isMonth ? "On call this month" : "On call this week",
             )}

@@ -89,13 +89,15 @@ const SEVERITY_ID: ObjectID = new ObjectID(
 
 /*
  * What onBeforeCreate hands onCreateSuccess for an incident declared in the
- * created state from no alerts: only where it starts (StartingStage).
+ * created state from no alerts: only where it starts (StartingStage), and no
+ * alert incident rule that declared it.
  */
 const NOTHING_CARRIED: Record<string, unknown> = {
   startingStage: StartingStage.Open,
   alertIdsToLink: [],
   acknowledgedAlertStateId: null,
   alertIdsToAcknowledge: [],
+  declaredByAlertIncidentRuleName: null,
 };
 
 type HookFunction = (...args: Array<unknown>) => Promise<unknown>;

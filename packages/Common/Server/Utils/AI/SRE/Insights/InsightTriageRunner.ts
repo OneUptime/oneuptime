@@ -237,11 +237,12 @@ where <verdict> is exactly one of: code-fault, user-error, expected-denial, infr
 user-error and expected-denial do not apply to log hygiene findings: do not use them.`;
 
 /*
- * The Metrics product's AI section's three kinds of problem (Utils/Metrics/
+ * The Metrics product's AI section's four kinds of problem (Utils/Metrics/
  * MetricInsight), each framed for what is to be established: where the code
  * puts a value with too many values on a metric (or an id into its name),
- * why a histogram's buckets do not fit its values, and where a busy service
- * would record the metrics it does not send.
+ * why a histogram's buckets do not fit its values, where a busy service
+ * would record the metrics it does not send, and which instrumentation
+ * would record the request metrics a service that sends others lacks.
  */
 const METRIC_CARDINALITY_TRIAGE_FRAMING: string = `IMPORTANT — this is METRICS TRIAGE, not an incident investigation: NO incident or alert exists and nobody has been paged. A deterministic sensor (no AI involved) read this service's metrics and found the metric described below recording a value with far too many values - an attribute that took thousands of values in an hour, or an id written into the metric's name - so every value is a series of its own, with the numbers it computed. Your job:
 - Find where the code records this metric and sets that attribute (or builds that name): read it with the code tools when a repository holds it, and the metric with the metric tools.
@@ -285,6 +286,20 @@ where <verdict> is exactly one of: code-fault, user-error, expected-denial, infr
 - unknown: the evidence does not support a confident verdict.
 user-error and expected-denial do not apply to observability findings: do not use them.`;
 
+const METRIC_MISSING_REQUEST_TRIAGE_FRAMING: string = `IMPORTANT — this is OBSERVABILITY TRIAGE, not an incident investigation: NO incident or alert exists and nobody has been paged. A deterministic sensor (no AI involved) found that the service described below sends metrics, and many spans of the requests it handles, but has never sent one of the request metrics OpenTelemetry's semantic conventions name for them (such as http.server.request.duration for HTTP requests), so nothing charts or alerts on its request rate, errors or latency over time without reading every span, with the numbers it computed. Your job:
+- Establish how the service's telemetry is set up: read its OpenTelemetry setup with the code tools when a repository holds it - it exports metrics already - and its busiest requests with the trace tools.
+- Say which instrumentation would record its request metrics, and where: the OpenTelemetry instrumentation package for the framework that handles its requests, or the metrics of the instrumentation it already uses, turned on.
+- Recommend exactly ONE change, naming the file it goes in.
+Cite the evidence for every factual claim. If the telemetry and the code cannot support a conclusion, say so plainly. Do not refer to "the incident" — there is none.
+
+CLASSIFICATION — you MUST end your analysis with one line in EXACTLY this format, on its own line, with nothing after it:
+Classification: <verdict>
+where <verdict> is exactly one of: code-fault, user-error, expected-denial, infrastructure, unknown.
+- code-fault: the code's instrumentation records no request metrics, and a code change should add them.
+- infrastructure: the service's request metrics are, or belong, outside this code (a collector's span metrics, an agent, a sidecar, a proxy in front of it), and the change belongs there.
+- unknown: the evidence does not support a confident verdict.
+user-error and expected-denial do not apply to observability findings: do not use them.`;
+
 // The framing an insight's triage is given, by what kind of finding it is.
 const TRIAGE_FRAMING_BY_TYPE: Partial<Record<AIInsightType, string>> = {
   [AIInsightType.ProfileHotspot]: PROFILE_TRIAGE_FRAMING,
@@ -299,6 +314,8 @@ const TRIAGE_FRAMING_BY_TYPE: Partial<Record<AIInsightType, string>> = {
   [AIInsightType.MetricHighCardinality]: METRIC_CARDINALITY_TRIAGE_FRAMING,
   [AIInsightType.MetricHistogramBuckets]: METRIC_HISTOGRAM_TRIAGE_FRAMING,
   [AIInsightType.MetricMissingMetrics]: METRIC_MISSING_TRIAGE_FRAMING,
+  [AIInsightType.MetricMissingRequestMetrics]:
+    METRIC_MISSING_REQUEST_TRIAGE_FRAMING,
 };
 
 export default class InsightTriageRunner {

@@ -11,10 +11,13 @@ import React, { FunctionComponent, ReactElement } from "react";
  * they go, top to bottom.
  *
  *   Your logs             the logs the project already sends, read for
- *                         sign-ins, sudo, Kubernetes audit, CloudTrail and
- *                         web attacks - one switch
- *   Your OneUptime data   the project's traces, network flows, audit log
- *                         and session replays - one switch each
+ *                         sign-ins, sudo, Kubernetes audit, CloudTrail,
+ *                         security products' CEF and LEEF, firewalls' own
+ *                         syslog and web attacks - one switch, and which
+ *                         of their threats open cases
+ *   Your OneUptime data   the project's traces, network flows, audit log,
+ *                         session replays and the audit logs of the cloud
+ *                         accounts connected under Cloud - one switch each
  *   Your security tools   the security products OneUptime imports from
  *   Send to your SIEM     the SIEMs OneUptime sends what it finds to
  *

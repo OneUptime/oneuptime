@@ -142,7 +142,8 @@ const ConversationComposer: FunctionComponent<ComponentProps> = (
           no room between the picker and Send, so it takes the row under
           them instead of wrapping into a column a few words wide.
         */}
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 px-2.5 pb-2.5 pt-1.5">
+        {/* Relative: the picker's menu is placed against this row (PermissionModePicker). */}
+        <div className="relative flex flex-wrap items-center gap-x-2.5 gap-y-1.5 px-2 pb-2.5 pt-1.5">
           <PermissionModePicker
             value={props.permissionMode}
             onChange={props.onPermissionModeChange}

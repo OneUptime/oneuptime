@@ -164,6 +164,25 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
     readOnly: false,
   },
   {
+    name: "get_data_table_freshness",
+    title: "Get Data Table Freshness",
+    description:
+      "Whether a table Data Observability watches is fresh, before you use its data: fresh or late by its own learned rhythm, when it last changed and how often it usually does, its open alerts, the pipelines that write it with how their latest run went, and the data products it is part of. Pass table: its schema.table key (public.orders), its name alone (orders), or its ID. A name several databases share answers with each match. Read-only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        table: {
+          type: "string",
+          description:
+            "The table: its schema.table key (public.orders), its name alone (orders), or its ID.",
+        },
+      },
+      required: ["table"],
+      additionalProperties: false,
+    },
+    readOnly: true,
+  },
+  {
     name: "oneuptime_whoami",
     title: "Who Am I",
     description:
@@ -271,6 +290,8 @@ export async function handleWorkflowTool(
       return addIncidentNote(args, credential);
     case "add_alert_note":
       return addAlertNote(args, credential);
+    case "get_data_table_freshness":
+      return getDataTableFreshness(args, credential);
     case "oneuptime_whoami":
       return whoami(credential);
     default:
@@ -576,6 +597,44 @@ async function addAlertNote(
     alertId,
     noteId: ((created as JSONObject)?.["_id"] as string) || null,
     message: "Internal note added to the alert.",
+  } as JSONObject;
+}
+
+/**
+ * Whether a watched table is fresh, from Data Observability's own route
+ * (/api/data-observability/tables/freshness), read as the caller: one
+ * answer per table the name matches, each with a sentence an agent can quote.
+ */
+async function getDataTableFreshness(
+  args: Record<string, unknown>,
+  credential: McpCredentialInput,
+): Promise<JSONObject> {
+  const table: string = requireString(args, "table");
+
+  const response: unknown = await OneUptimeApiService.makeAuthenticatedApiCall({
+    method: "POST",
+    path: "/api/data-observability/tables/freshness",
+    body: { table } as JSONObject,
+    credential,
+  });
+  const tables: JSONArray =
+    ((response as JSONObject | null)?.["tables"] as JSONArray | undefined) ||
+    [];
+
+  return {
+    success: true,
+    operation: "get_data_table_freshness",
+    table,
+    matches: tables.length,
+    tables,
+    message:
+      tables.length === 0
+        ? `No table Data Observability watches is called "${table}".`
+        : tables
+            .map((row: unknown): string => {
+              return String((row as JSONObject)["answer"] || "");
+            })
+            .join("\n"),
   } as JSONObject;
 }
 

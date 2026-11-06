@@ -31,6 +31,11 @@ import MetricMonitorCriteria, {
   MetricSeriesEvaluationResult,
 } from "./Criteria/MetricMonitorCriteria";
 import CriteriaInEffect from "./CriteriaInEffect";
+import GroupedSeriesGone, {
+  GROUPED_SERIES_GONE_MET_NOTE,
+  GROUPED_SERIES_GONE_NOT_MET_MESSAGE,
+} from "./GroupedSeriesGone";
+import MetricWindowCoverage from "./Criteria/MetricWindowCoverage";
 import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
 import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
 import ProfileMonitorCriteria from "./Criteria/ProfileMonitorCriteria";
@@ -114,7 +119,9 @@ import MetricMonitorResponse, {
   KubernetesAffectedResource,
   KubernetesResourceBreakdown,
   ProxmoxAffectedResource,
+  OpenStackAffectedResource,
   ProxmoxResourceBreakdown,
+  OpenStackResourceBreakdown,
   VMwareAffectedResource,
   VMwareResourceBreakdown,
   CephAffectedResource,
@@ -129,6 +136,7 @@ import MetricCriteriaContext, {
   MetricBreachingSample,
   MetricComponent,
   MetricComponentValue,
+  MetricForecastDetails,
   MetricWindowAggregate,
 } from "../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMonitor";
@@ -136,6 +144,9 @@ import MonitorStepHostMonitor from "../../../Types/Monitor/MonitorStepHostMonito
 import MonitorStepPodmanMonitor from "../../../Types/Monitor/MonitorStepPodmanMonitor";
 import MonitorStepIoTMonitor from "../../../Types/Monitor/MonitorStepIoTMonitor";
 import MonitorStepProxmoxMonitor from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
+import MonitorStepOpenStackMonitor, {
+  OpenStackResourceFilters,
+} from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
 import MonitorStepVMwareMonitor from "../../../Types/Monitor/MonitorStepVMwareMonitor";
 import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
 import MonitorStepStorageArrayMonitor, {
@@ -145,6 +156,7 @@ import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDoc
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import { getKubernetesMetricByMetricName } from "../../../Types/Monitor/KubernetesMetricCatalog";
 import { getProxmoxMetricByMetricName } from "../../../Types/Monitor/ProxmoxMetricCatalog";
+import { getOpenStackMetricByMetricName } from "../../../Types/Monitor/OpenStackMetricCatalog";
 import { getVMwareMetricByMetricName } from "../../../Types/Monitor/VMwareMetricCatalog";
 import { getCephMetricByMetricName } from "../../../Types/Monitor/CephMetricCatalog";
 import { getStorageArrayMetric } from "../../../Types/Monitor/StorageArrayMetricCatalog";
@@ -160,6 +172,7 @@ import PlatformResourceIdentity, {
   DockerSwarmResourceIdentity,
   KubernetesResourceIdentity,
   ProxmoxResourceIdentity,
+  OpenStackResourceIdentity,
   StorageArrayResourceIdentity,
   VMwareResourceIdentity,
 } from "../../../Utils/Monitor/PlatformResourceIdentity";
@@ -226,6 +239,7 @@ interface MatchHistoryContext {
 type PlatformName =
   | "kubernetes"
   | "proxmox"
+  | "openstack"
   | "vmware"
   | "dockerSwarm"
   | "ceph"
@@ -263,6 +277,11 @@ interface CriteriaMetricTarget {
   formulaExpression: string | undefined;
   /** For a formula: the variable behind each alias it references. */
   components: Array<CriteriaMetricTargetComponent>;
+  /*
+   * How late the compared data arrives, when it was judged as far as it
+   * reaches (MetricCriteriaContext.dataLagMs): the details block says so.
+   */
+  dataLagMs?: number | undefined;
 }
 
 /**
@@ -574,17 +593,36 @@ export default class MonitorCriteriaEvaluator {
        * one unattributed whole-monitor alert that then blocked every
        * real per-host alert. Skip the criteria instead and let the next
        * one decide.
+       *
+       * Unless every series is gone: a recovery criteria that counts a
+       * missing series as zero then holds, opens nothing and has no series
+       * to name (GroupedSeriesGone). Matching is what closes the records of
+       * the series that went, and puts the monitor back on its status.
        */
-      if (
+      const namesNoSeries: boolean =
         fanOutAcrossCriteria &&
         perSeriesMatches.length === 0 &&
-        !judgesWholeMonitor
-      ) {
+        !judgesWholeMonitor;
+
+      const isMetWithNoSeries: boolean =
+        namesNoSeries &&
+        GroupedSeriesGone.isCriteriaMet({
+          monitorType: input.monitor.monitorType,
+          criteriaInstance: criteriaInstance,
+          dataToProcess: input.dataToProcess,
+        });
+
+      if (namesNoSeries && !isMetWithNoSeries) {
         criteriaResult.met = false;
-        criteriaResult.message =
-          "Criteria was not met: no single series satisfied it. " +
-          "This monitor raises one alert per series, so a criteria that " +
-          "only holds across different series combined does not fire.";
+        criteriaResult.message = GroupedSeriesGone.isWaitingForResource({
+          monitorType: input.monitor.monitorType,
+          criteriaInstance: criteriaInstance,
+          dataToProcess: input.dataToProcess,
+        })
+          ? GROUPED_SERIES_GONE_NOT_MET_MESSAGE
+          : "Criteria was not met: no single series satisfied it. " +
+            "This monitor raises one alert per series, so a criteria that " +
+            "only holds across different series combined does not fire.";
 
         input.evaluationSummary.events.push({
           type: "criteria-not-met",
@@ -651,6 +689,15 @@ ${contextBlock}
       if (incomingRequestGrouping?.rootCauseNote) {
         renderedRootCause = mdText`${renderedRootCause}
 ${incomingRequestGrouping.rootCauseNote}
+`;
+      }
+
+      // Why a grouped criteria matched with no series to name.
+      if (isMetWithNoSeries) {
+        criteriaResult.message = `${criteriaResult.message} ${GROUPED_SERIES_GONE_MET_NOTE}`;
+
+        renderedRootCause = mdText`${renderedRootCause}
+**Series**: ${GROUPED_SERIES_GONE_MET_NOTE}
 `;
       }
 
@@ -1235,9 +1282,21 @@ ${incomingRequestGrouping.rootCauseNote}
        * For the per-series rootCause, concatenate the matched filter
        * messages so the incident message reflects exactly what
        * breached on this specific series.
+       *
+       * The series' alert and incident open with these lines alone, without
+       * the details block the whole monitor's root cause has, so a series
+       * whose late data was judged as far as it reaches says how late it
+       * arrives here: "... above the 0 threshold. Its data arrives about 3
+       * minutes late."
        */
       const rootCauseLines: Array<MarkdownText> = matched.map(
         (r: MetricSeriesEvaluationResult) => {
+          const dataLagMs: number | undefined = r.context.dataLagMs;
+
+          if (typeof dataLagMs === "number" && dataLagMs > 0) {
+            return mdText`- ${r.rootCause} ${MetricWindowCoverage.describeLag(dataLagMs)}`;
+          }
+
           return mdText`- ${r.rootCause}`;
         },
       );
@@ -1959,6 +2018,10 @@ ${incomingRequestGrouping.rootCauseNote}
       return MonitorCriteriaEvaluator.buildProxmoxRootCauseContext(input);
     }
 
+    if (input.monitor.monitorType === MonitorType.OpenStack) {
+      return MonitorCriteriaEvaluator.buildOpenStackRootCauseContext(input);
+    }
+
     // Handle VMware monitors with vCenter resource context
     if (input.monitor.monitorType === MonitorType.VMware) {
       return MonitorCriteriaEvaluator.buildVMwareRootCauseContext(input);
@@ -2147,6 +2210,33 @@ ${incomingRequestGrouping.rootCauseNote}
       );
   }
 
+  /*
+   * The line a root cause's details block ends with when the series' data
+   * arrives well after the time it measures - a source late by design, a
+   * collector whose clock runs behind - so its window was judged as far as
+   * its data reaches, and what the alert or incident describes is that long
+   * ago: "- Data Arrives: about 12 minutes late". Nothing when its data
+   * arrives on time or its arrivals were not read
+   * (MetricCriteriaContext.dataLagMs). The Metric Details and every
+   * platform's details block (Kubernetes, Proxmox, vCenter, Docker Swarm,
+   * Ceph, Storage Array) end with it.
+   */
+  private static describeDataLag(
+    dataLagMs: number | undefined,
+  ): Array<MarkdownText> {
+    if (
+      typeof dataLagMs !== "number" ||
+      !Number.isFinite(dataLagMs) ||
+      dataLagMs <= 0
+    ) {
+      return [];
+    }
+
+    return [
+      mdText`- Data Arrives: about ${MetricWindowCoverage.describeDuration(dataLagMs)} late`,
+    ];
+  }
+
   private static buildMetricRootCauseContext(input: {
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;
@@ -2246,9 +2336,23 @@ ${incomingRequestGrouping.rootCauseNote}
       );
     }
 
+    // Last, right above the samples whose times it explains.
+    lines.push(...MonitorCriteriaEvaluator.describeDataLag(ctx.dataLagMs));
+
     const sections: Array<MarkdownText> = [
       mdText`**Metric Details**\n${FeedMarkdown.join(lines, "\n")}`,
     ];
+
+    // A forecast matched on where the metric is headed: say where, and when.
+    if (ctx.forecast?.state === "Forecast") {
+      sections.push(
+        mdText`\n\n${MonitorCriteriaEvaluator.formatForecastSection({
+          forecast: ctx.forecast,
+          unit: ctx.unit,
+          unitHeuristicMetricName: unitHeuristicMetricName,
+        })}`,
+      );
+    }
 
     const breachingSamples: Array<MetricBreachingSample> =
       ctx.breachingSamples && ctx.breachingSamples.length > 0
@@ -2590,6 +2694,69 @@ ${incomingRequestGrouping.rootCauseNote}
     }
 
     return mdText`${lead} ${String(input.listedCount)} of them breached the threshold on their own:`;
+  }
+
+  /*
+   * The Forecast section of a forecast criteria's root cause: the trend
+   * fitted to the window, where it puts the metric now and at the end of the
+   * horizon, and when it crosses the threshold.
+   *
+   *   **Forecast**
+   *   - Now, on its trend: **84.8%**
+   *   - In 7 days: **93.2%**
+   *   - Trend: rising 1.2% a day over the last 7 days, from 168 samples
+   *   - Reaches 90%: in about 4 days
+   */
+  private static formatForecastSection(input: {
+    forecast: MetricForecastDetails;
+    unit: string | null;
+    unitHeuristicMetricName: string | undefined;
+  }): MarkdownText {
+    const forecast: MetricForecastDetails = input.forecast;
+    const format: (value: number) => string = (value: number): string => {
+      return MetricValueFormatter.format({
+        value: value,
+        unit: input.unit,
+        metricName: input.unitHeuristicMetricName,
+      });
+    };
+
+    const horizonInHours: number = forecast.horizonInHours;
+    const horizon: string =
+      horizonInHours >= 24 && horizonInHours % 24 === 0
+        ? `${horizonInHours / 24} ${horizonInHours === 24 ? "day" : "days"}`
+        : `${horizonInHours} ${horizonInHours === 1 ? "hour" : "hours"}`;
+
+    // Under a day ahead, the trend reads by the hour.
+    const byHour: boolean = horizonInHours < 24;
+    const rate: number = (forecast.slopePerDay ?? 0) / (byHour ? 24 : 1);
+    const per: string = byHour ? "an hour" : "a day";
+    const trend: string =
+      rate > 0
+        ? `rising ${format(rate)} ${per}`
+        : rate < 0
+          ? `falling ${format(-rate)} ${per}`
+          : "flat";
+
+    const lines: Array<MarkdownText> = [
+      mdText`**Forecast**`,
+      mdText`- Now, on its trend: **${format(forecast.currentValue ?? 0)}**`,
+      mdText`- In ${horizon}: **${format(forecast.projectedValue ?? 0)}**`,
+      mdText`- Trend: ${trend} over the last ${MetricWindowCoverage.describeDuration(forecast.windowMs)}, from ${String(forecast.sampleCount)} sample${forecast.sampleCount === 1 ? "" : "s"}`,
+    ];
+
+    const reachesInMs: number | null | undefined =
+      forecast.reachesThresholdInMs;
+
+    if (typeof reachesInMs === "number") {
+      lines.push(
+        reachesInMs > 0
+          ? mdText`- Reaches ${format(forecast.threshold)}: in about ${MetricWindowCoverage.describeDuration(reachesInMs)}`
+          : mdText`- Reaches ${format(forecast.threshold)}: already ${forecast.direction} it`,
+      );
+    }
+
+    return FeedMarkdown.join(lines, "\n");
   }
 
   private static formatBreachingSamplesSummary(input: {
@@ -2942,6 +3109,8 @@ ${incomingRequestGrouping.rootCauseNote}
         return getKubernetesMetricByMetricName(input.metricName)?.friendlyName;
       case "proxmox":
         return getProxmoxMetricByMetricName(input.metricName)?.friendlyName;
+      case "openstack":
+        return getOpenStackMetricByMetricName(input.metricName)?.friendlyName;
       case "vmware":
         return getVMwareMetricByMetricName(input.metricName)?.friendlyName;
       case "dockerSwarm":
@@ -3042,6 +3211,9 @@ ${incomingRequestGrouping.rootCauseNote}
     const thresholdUnit: string | undefined =
       filter.metricMonitorOptions?.thresholdUnit || undefined;
 
+    const dataLagMs: number | undefined =
+      filter.metricCriteriaContext?.dataLagMs;
+
     const alias: string = filter.metricMonitorOptions?.metricAlias || "";
     const queryConfigs: Array<MetricQueryConfigData> =
       metricViewConfig?.queryConfigs || [];
@@ -3104,6 +3276,7 @@ ${incomingRequestGrouping.rootCauseNote}
         }),
         formulaExpression: expression || undefined,
         components: components,
+        dataLagMs: dataLagMs,
       };
     }
 
@@ -3131,6 +3304,7 @@ ${incomingRequestGrouping.rootCauseNote}
       }),
       formulaExpression: undefined,
       components: [],
+      dataLagMs: dataLagMs,
     };
   }
 
@@ -3697,6 +3871,18 @@ ${incomingRequestGrouping.rootCauseNote}
     context: MetricCriteriaContext | undefined;
     worstIsLowest: boolean;
   }): number | null {
+    // A forecast is judged on where the series is headed, not where it is.
+    const projectedValue: number | undefined =
+      input.context?.forecast?.projectedValue;
+
+    if (
+      input.context?.forecast?.state === "Forecast" &&
+      typeof projectedValue === "number" &&
+      Number.isFinite(projectedValue)
+    ) {
+      return projectedValue;
+    }
+
     const windowAggregate: MetricWindowAggregate | undefined =
       input.context?.windowAggregate;
 
@@ -4023,6 +4209,10 @@ ${incomingRequestGrouping.rootCauseNote}
     if (namespaceFilter) {
       clusterDetails.push(mdText`- Namespace: ${namespaceFilter}`);
     }
+
+    clusterDetails.push(
+      ...MonitorCriteriaEvaluator.describeDataLag(target?.dataLagMs),
+    );
 
     sections.push(
       mdText`**Kubernetes Cluster Details**\n${FeedMarkdown.join(clusterDetails, "\n")}`,
@@ -4534,6 +4724,20 @@ ${incomingRequestGrouping.rootCauseNote}
     return resource.resourceType || resource.scope || "Resource";
   }
 
+  private static getOpenStackAffectedResourceKind(
+    resource: OpenStackResourceIdentity,
+  ): string {
+    if (resource.serviceName) {
+      return "Service";
+    }
+
+    if (resource.hostName && !resource.resourceId && !resource.resourceName) {
+      return "Hypervisor";
+    }
+
+    return "Resource";
+  }
+
   /*
    * One Proxmox resource as an "Affected Resources" list item: its kind,
    * its name next to its `qemu/100`-style id, and the node it runs on.
@@ -4654,6 +4858,10 @@ ${incomingRequestGrouping.rootCauseNote}
         );
       }
 
+      clusterDetails.push(
+        ...MonitorCriteriaEvaluator.describeDataLag(target?.dataLagMs),
+      );
+
       sections.push(
         mdText`**Proxmox Cluster Details**\n${FeedMarkdown.join(clusterDetails, "\n")}`,
       );
@@ -4727,6 +4935,256 @@ ${incomingRequestGrouping.rootCauseNote}
                   : MonitorCriteriaEvaluator.getProxmoxAffectedResourceEntry({
                       resource: row.identity,
                       clusterName: clusterName,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    });
+              },
+            ),
+        }),
+      );
+      renderedBreakdownList = true;
+    }
+
+    // Metric results summary (fallback context when no list rendered)
+    if (
+      !renderedBreakdownList &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
+      const resultDetails: Array<MarkdownText> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            mdText`- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(
+          mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`,
+        );
+      }
+    }
+
+    return sections.length > 0 ? FeedMarkdown.join(sections, "\n") : null;
+  }
+
+  /*
+   * One part of an OpenStack cloud as an "Affected Resources" list item: what it is,
+   * its name next to its id, and where it sits.
+   */
+  private static getOpenStackAffectedResourceEntry(input: {
+    resource: OpenStackResourceIdentity;
+    cloudName: string;
+    value: MarkdownValue;
+  }): AffectedResourceListEntry {
+    const resource: OpenStackResourceIdentity = input.resource;
+
+    let kind: string =
+      MonitorCriteriaEvaluator.getOpenStackAffectedResourceKind(resource);
+    let name: MarkdownText = AffectedResourceList.codeWithId({
+      name: resource.serviceName || resource.resourceName,
+      id: resource.resourceId,
+    });
+
+    if (name.isEmpty() && resource.hostName) {
+      name = AffectedResourceList.code(resource.hostName);
+    }
+
+    if (name.isEmpty() && resource.regionName) {
+      kind = "Region";
+      name = AffectedResourceList.code(resource.regionName);
+    }
+
+    if (name.isEmpty()) {
+      // Nothing narrower than the cloud: a series for all of it.
+      kind = "Cloud";
+      name = AffectedResourceList.code(input.cloudName);
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    // A hypervisor's own row would only repeat its name as "Host: …".
+    if (resource.hostName && kind !== "Hypervisor") {
+      details.push({
+        label: "Host",
+        value: AffectedResourceList.code(resource.hostName),
+      });
+    }
+
+    if (resource.regionName && kind !== "Region") {
+      details.push({
+        label: "Region",
+        value: AffectedResourceList.code(resource.regionName),
+      });
+    }
+
+    if (resource.projectId) {
+      details.push({
+        label: "Project",
+        value: AffectedResourceList.code(resource.projectId),
+      });
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
+    };
+  }
+
+  private static buildOpenStackRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+    perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
+  }): MarkdownText | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const openstackMonitor: MonitorStepOpenStackMonitor | undefined =
+      input.monitorStep.data?.openstackMonitor;
+
+    const target: CriteriaMetricTarget | null =
+      MonitorCriteriaEvaluator.resolveCriteriaMetricTarget({
+        criteriaInstance: input.criteriaInstance,
+        monitorStep: input.monitorStep,
+        metricResponse: metricResponse,
+      });
+
+    const breakdown: OpenStackResourceBreakdown | undefined =
+      MonitorCriteriaEvaluator.selectPlatformBreakdown({
+        breakdowns: metricResponse.openStackResourceBreakdowns,
+        target: target,
+      });
+
+    const cloudName: string =
+      breakdown?.cloudName || openstackMonitor?.cloudIdentifier || "Unknown";
+
+    const sections: Array<MarkdownText> = [];
+
+    if (openstackMonitor || breakdown) {
+      const cloudDetails: Array<MarkdownText> = [];
+      cloudDetails.push(mdText`- Cloud: ${cloudName}`);
+      cloudDetails.push(
+        ...MonitorCriteriaEvaluator.describeCriteriaMetric({
+          platform: "openstack",
+          target: target,
+          breakdown: breakdown,
+          fallbackMetricName: openstackMonitor?.metricViewConfig
+            ?.queryConfigs?.[0]?.metricQueryData?.filterData?.metricName as
+            | string
+            | undefined,
+        }),
+      );
+
+      const filters: OpenStackResourceFilters | undefined =
+        openstackMonitor?.resourceFilters;
+
+      if (filters?.regionName) {
+        cloudDetails.push(mdText`- Region Filter: ${filters.regionName}`);
+      }
+
+      if (filters?.availabilityZone) {
+        cloudDetails.push(
+          mdText`- Availability Zone Filter: ${filters.availabilityZone}`,
+        );
+      }
+
+      if (filters?.hypervisorName) {
+        cloudDetails.push(
+          mdText`- Hypervisor Filter: ${filters.hypervisorName}`,
+        );
+      }
+
+      if (filters?.serviceName) {
+        cloudDetails.push(mdText`- Service Filter: ${filters.serviceName}`);
+      }
+
+      if (filters?.projectId) {
+        cloudDetails.push(mdText`- Project Filter: ${filters.projectId}`);
+      }
+
+      sections.push(
+        mdText`**OpenStack Cloud Details**\n${FeedMarkdown.join(cloudDetails, "\n")}`,
+      );
+    }
+
+    // Affected resources: a ranked list of kind, name and where it sits.
+    let renderedBreakdownList: boolean = false;
+
+    /*
+     * The parts the matched criteria breached, worst first, top 10 - not simply
+     * the non-zero rows: a worker is down at 0, so the zero rows are the ones to
+     * name.
+     */
+    const rows: Array<PlatformAffectedRow<OpenStackResourceIdentity>> | null =
+      MonitorCriteriaEvaluator.getPlatformAffectedRows<
+        OpenStackResourceIdentity,
+        OpenStackAffectedResource
+      >({
+        platform: "openstack",
+        perSeriesMatches: input.perSeriesMatches,
+        namesObject: (identity: OpenStackResourceIdentity): boolean => {
+          return Boolean(
+            identity.resourceId ||
+              identity.resourceName ||
+              identity.hostName ||
+              identity.regionName,
+          );
+        },
+        metricResponse: metricResponse,
+        monitorStep: input.monitorStep,
+        target: target,
+        breakdown: breakdown,
+        breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
+          criteriaInstance: input.criteriaInstance,
+        }),
+        toIdentity: PlatformResourceIdentity.openstack,
+        withContext: PlatformResourceIdentity.withOpenStackContext,
+      });
+
+    /*
+     * Skip the list when no row carries any identity label
+     * (a series for the whole cloud): it would add nothing.
+     */
+    const hasIdentity: boolean = (rows || []).some(
+      (row: PlatformAffectedRow<OpenStackResourceIdentity>) => {
+        return Boolean(
+          row.seriesLabels ||
+            row.identity.resourceId ||
+            row.identity.resourceName ||
+            row.identity.hostName ||
+            row.identity.regionName,
+        );
+      },
+    );
+
+    if (rows && rows.length > 0 && hasIdentity) {
+      sections.push(
+        AffectedResourceList.render({
+          heading: "Affected Resources",
+          overflowNoun: "affected resources",
+          totalCount: rows.length,
+          entries: rows
+            .slice(0, AffectedResourceList.MAX_ENTRIES)
+            .map(
+              (
+                row: PlatformAffectedRow<OpenStackResourceIdentity>,
+              ): AffectedResourceListEntry => {
+                return row.seriesLabels
+                  ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                      labels: row.seriesLabels,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    })
+                  : MonitorCriteriaEvaluator.getOpenStackAffectedResourceEntry({
+                      resource: row.identity,
+                      cloudName: cloudName,
                       value:
                         MonitorCriteriaEvaluator.renderAffectedRowValue(row),
                     });
@@ -4981,6 +5439,10 @@ ${incomingRequestGrouping.rootCauseNote}
         );
       }
 
+      vcenterDetails.push(
+        ...MonitorCriteriaEvaluator.describeDataLag(target?.dataLagMs),
+      );
+
       sections.push(
         mdText`**vCenter Details**\n${FeedMarkdown.join(vcenterDetails, "\n")}`,
       );
@@ -5214,6 +5676,10 @@ ${incomingRequestGrouping.rootCauseNote}
           mdText`- Container Image Filter: ${dockerSwarmMonitor.resourceFilters.containerImage}`,
         );
       }
+
+      clusterDetails.push(
+        ...MonitorCriteriaEvaluator.describeDataLag(target?.dataLagMs),
+      );
 
       sections.push(
         mdText`**Docker Swarm Cluster Details**\n${FeedMarkdown.join(clusterDetails, "\n")}`,
@@ -5655,6 +6121,10 @@ ${incomingRequestGrouping.rootCauseNote}
         );
       }
 
+      clusterDetails.push(
+        ...MonitorCriteriaEvaluator.describeDataLag(target?.dataLagMs),
+      );
+
       sections.push(
         mdText`**Ceph Cluster Details**\n${FeedMarkdown.join(clusterDetails, "\n")}`,
       );
@@ -5978,6 +6448,10 @@ ${incomingRequestGrouping.rootCauseNote}
           );
         }
       }
+
+      arrayDetails.push(
+        ...MonitorCriteriaEvaluator.describeDataLag(target?.dataLagMs),
+      );
 
       sections.push(
         mdText`**Storage Array Details**\n${FeedMarkdown.join(arrayDetails, "\n")}`,

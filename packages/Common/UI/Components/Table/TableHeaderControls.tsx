@@ -80,6 +80,15 @@ export const TABLE_HEADER_FOLDED_BUTTONS_CLASS_NAME: string =
   "max-w-0 -ml-3 gap-0 opacity-0 pointer-events-none overflow-hidden whitespace-nowrap invisible";
 
 /*
+ * The box the buttons are in, folded or not - and none at all while it
+ * holds nothing (empty:hidden): a header that is its search alone, as the
+ * Hunt Library's is, still gave the empty box the row's gap, and on a
+ * phone the search stopped 12px short of the card's edge.
+ */
+export const TABLE_HEADER_BUTTONS_BOX_CLASS_NAME: string =
+  "flex items-center transition-all duration-300 ease-out [&_button]:md:ml-0 empty:hidden";
+
+/*
  * The same buttons, unfolded. On a phone they wrap onto a second line, at
  * the right edge, when they do not fit on one - Saved Views over the main
  * button and the ⋯ - each as wide as its words (a Button fills a phone's
@@ -583,10 +592,11 @@ export const TableHeaderToolbar: FunctionComponent<TableHeaderToolbarProps> = (
        * apparent "no menu appears" bug when they click ⋯. The wrapper is
        * hidden via opacity + pointer-events instead, and its width
        * collapses by setting both `max-width` and `gap` to 0 so the search
-       * slot to the left can grow into the freed space.
+       * slot to the left can grow into the freed space. With no buttons
+       * it is not drawn at all (TABLE_HEADER_BUTTONS_BOX_CLASS_NAME).
        */}
       <div
-        className={`flex items-center transition-all duration-300 ease-out [&_button]:md:ml-0 ${
+        className={`${TABLE_HEADER_BUTTONS_BOX_CLASS_NAME} ${
           isFolded
             ? TABLE_HEADER_FOLDED_BUTTONS_CLASS_NAME
             : TABLE_HEADER_BUTTONS_CLASS_NAME

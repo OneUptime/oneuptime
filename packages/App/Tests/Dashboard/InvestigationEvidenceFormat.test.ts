@@ -3,6 +3,9 @@ import { AIChatCitationTargetType } from "Common/Types/AI/AIChatTypes";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Timezone from "Common/Types/Timezone";
+import { createTranslator, Translator } from "Common/Types/Translator";
+import fs from "fs";
+import path from "path";
 import {
   EvidenceToolDescription,
   FormattedEvidenceArgument,
@@ -320,6 +323,67 @@ describe("formatRowCount", () => {
   test("formatRowCount treats a missing count as no rows", () => {
     expect(formatRowCount(undefined)).toBe("No rows");
     expect(formatRowCount(null)).toBe("No rows");
+  });
+});
+
+/*
+ * An evidence row's pill says how many rows a query returned in the
+ * reader's language, the count written their way - "1.234 Zeilen", a
+ * Russian count in its own form - from the shipped locale files.
+ */
+describe("formatRowCount in the reader's language", () => {
+  function locale(language: string): Record<string, string> {
+    return JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../FeatureSet/Dashboard/src/Locales",
+          `${language}.json`,
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+  }
+
+  function translatorFor(language: string): Translator {
+    const words: Record<string, string> = locale(language);
+
+    return createTranslator((text: string): string | undefined => {
+      return typeof words[text] === "string" ? words[text] : undefined;
+    }, language);
+  }
+
+  test("German: one row, many rows written with German digits, and none", () => {
+    const words: Record<string, string> = locale("de");
+    const german: Translator = translatorFor("de");
+
+    expect(formatRowCount(1, german)).toBe(
+      words["{{count}} rows_one"]!.replace("{{count}}", "1"),
+    );
+    expect(formatRowCount(1234, german)).toBe(
+      words["{{count}} rows"]!.replace("{{count}}", "1.234"),
+    );
+    expect(formatRowCount(0, german)).toBe(words["No rows"]);
+    expect(formatRowCount(1234, german)).not.toContain("rows");
+  });
+
+  test("Persian: the count in Persian digits", () => {
+    const words: Record<string, string> = locale("fa");
+    const persian: Translator = translatorFor("fa");
+
+    expect(formatRowCount(12, persian)).toBe(
+      words["{{count}} rows"]!.replace("{{count}}", "۱۲"),
+    );
+    expect(formatRowCount(null, persian)).toBe(words["No rows"]);
+  });
+
+  test("Russian: a count of three takes the language's form for it, never English's", () => {
+    const russian: Translator = translatorFor("ru");
+
+    expect(formatRowCount(3, russian)).not.toContain("rows");
+    expect(formatRowCount(1, russian)).toBe(
+      locale("ru")["{{count}} rows_one"]!.replace("{{count}}", "1"),
+    );
   });
 });
 

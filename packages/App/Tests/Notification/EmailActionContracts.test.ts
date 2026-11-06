@@ -305,6 +305,11 @@ const SINGLE_ACTION_CONTRACTS: Array<
   ],
   ["EmailChanged", "tokenVerifyUrl", "Verify Email", "tokenVerifyUrl"],
   ["ForgotPassword", "tokenVerifyUrl", "Reset Password", "tokenVerifyUrl"],
+  /*
+   * "Your password was changed": the way out for somebody who did not
+   * change it is a reset, sent to the address on the account.
+   */
+  ["PasswordChanged", "forgotPasswordUrl", "Reset your password", null],
   [
     "IncidentEpisodeOwnerAdded",
     "episodeViewLink",
@@ -371,6 +376,7 @@ const SINGLE_ACTION_CONTRACTS: Array<
     "View on Dashboard",
     "incidentViewLink",
   ],
+  ["MagicLink", "tokenVerifyUrl", "Sign In", "tokenVerifyUrl"],
   [
     "ManageExistingStatusPageSubscriberSubscription",
     "manageSubscriptionUrl",
@@ -482,6 +488,7 @@ const SINGLE_ACTION_CONTRACTS: Array<
     "Reset your password",
     "tokenVerifyUrl",
   ],
+  ["StatusPageMagicLink", "tokenVerifyUrl", "Log In", "tokenVerifyUrl"],
   [
     "StatusPageOwnerAdded",
     "statusPageViewLink",

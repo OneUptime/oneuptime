@@ -142,11 +142,21 @@ limit so the two never drift apart. Unsuffixed input is treated as bytes.
   {{- end -}}
 {{- end -}}
 
+{{/*
+global.imageRegistry, without a trailing slash: the registry every image the
+chart builds a reference for comes from, in place of Docker Hub. Empty when it
+is not set.
+*/}}
+{{- define "oneuptime.globalImageRegistry" -}}
+  {{- trimSuffix "/" (toString ((((.Values).global).imageRegistry) | default "")) -}}
+{{- end -}}
+
 {{- define "oneuptime.image" -}}
   {{- $values := .Values -}}
   {{- $service := .ServiceName -}}
   {{- $imageName := default $service .ImageName -}}
-  {{- $default := printf "%s/%s/%s:%s" $values.image.registry $values.image.repository $imageName (include "oneuptime.image.tag" (dict "Values" $values)) -}}
+  {{- $registry := include "oneuptime.globalImageRegistry" (dict "Values" $values) | default $values.image.registry -}}
+  {{- $default := printf "%s/%s/%s:%s" $registry $values.image.repository $imageName (include "oneuptime.image.tag" (dict "Values" $values)) -}}
   {{- include "oneuptime.imageReference" (dict "Values" $values "Key" $imageName "Default" $default) -}}
 {{- end -}}
 
@@ -162,6 +172,14 @@ nothing replaces it:
                               registry and rewrites these values at install.
   image.overrides.<key>       a full reference, as the Google Cloud Marketplace
                               deployer passes its images.
+
+Both are used exactly as written. Otherwise the reference is `Default`, with
+global.imageRegistry in front of it when that is set and `Default` does not
+already name a registry: "postgres:15" becomes
+"registry.example.com/postgres:15", while "ghcr.io/cloudnative-pg/postgresql:17"
+or a repository someone wrote with their own registry in it stays as it is. A
+first path segment names a registry when it holds a "." or a ":" or is
+"localhost", as Docker reads an image name.
 
 Usage:
   image: {{`{{ include "oneuptime.imageReference" (dict "Values" .Values "Key" "postgres" "Default" "postgres:15") }}`}}
@@ -191,7 +209,14 @@ Usage:
   {{- else if and $override (kindIs "string" $override) -}}
     {{- $override -}}
   {{- else -}}
-    {{- .Default -}}
+    {{- $registry := include "oneuptime.globalImageRegistry" (dict "Values" .Values) -}}
+    {{- $first := first (splitList "/" .Default) -}}
+    {{- $namesRegistry := and (contains "/" .Default) (or (contains "." $first) (contains ":" $first) (eq $first "localhost")) -}}
+    {{- if and $registry (not $namesRegistry) -}}
+      {{- printf "%s/%s" $registry .Default -}}
+    {{- else -}}
+      {{- .Default -}}
+    {{- end -}}
   {{- end -}}
 {{- end -}}
 
@@ -474,6 +499,16 @@ the button when it is set; the secret is in oneuptime.env.runtime.
   value: {{ $.Values.dashboard.cnameRecord | default "" }}
 - name: ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN
   value: {{ $.Values.billing.allowedActiveMonitorCountInFreePlan | quote }}
+- name: WATCHED_TABLES_INCLUDED_PER_PROJECT
+  value: {{ $.Values.billing.watchedTables.includedPerProject | quote }}
+- name: WATCHED_TABLE_PRICE_IN_USD
+  value: {{ $.Values.billing.watchedTables.pricePerTableInUSD | quote }}
+- name: WATCHED_TABLE_VOLUME_THRESHOLD
+  value: {{ $.Values.billing.watchedTables.volumeThreshold | quote }}
+- name: WATCHED_TABLE_VOLUME_PRICE_IN_USD
+  value: {{ $.Values.billing.watchedTables.volumePricePerTableInUSD | quote }}
+- name: WATCHED_TABLE_STRIPE_PRICE_ID
+  value: {{ $.Values.billing.watchedTables.stripePriceId | default "" | quote }}
 - name: LOG_LEVEL
   value: {{ $.Values.logLevel }}
 - name: HTTP_PROTOCOL
@@ -1385,6 +1420,20 @@ values are set. Secrets can come from an existing Kubernetes secret.
 {{- else }}
   value: {{ $.Values.trustedProxyHops | squote }}
 {{- end }}
+
+{{/*
+  The headers a CDN or load balancer in front writes the visitor's country,
+  region and city into, which security emails read to say roughly where a
+  request came from. Empty, the default, reads none.
+*/}}
+- name: TRUSTED_GEO_COUNTRY_HEADER
+  value: {{ default "" (($.Values.trustedGeoHeaders).country) | quote }}
+
+- name: TRUSTED_GEO_REGION_HEADER
+  value: {{ default "" (($.Values.trustedGeoHeaders).region) | quote }}
+
+- name: TRUSTED_GEO_CITY_HEADER
+  value: {{ default "" (($.Values.trustedGeoHeaders).city) | quote }}
 
 {{/*
   On-call calendar feeds: the kill switch and the fixed-window rate limits for

@@ -6,7 +6,7 @@
 
 :::cards
 - [민감한 데이터는 어디에 있나요?](/docs/data-security/data-types): 카드 번호와 국가 신분증 번호부터 API 키까지, 버킷, 테이블, 텔레메트리에서 찾아내는 143가지 데이터 유형.
-- [노출되어 있나요?](/docs/data-security/checks-and-issues): 각 저장소에 대한 33가지 검사: 공개 액세스, 암호화, 백업, 로깅, 시크릿, 복사본.
+- [노출되어 있나요?](/docs/data-security/checks-and-issues): 각 저장소에 대한 34가지 검사: 공개 액세스, 암호화, 백업, 로깅, 시크릿, 복사본.
 - [누가 접근할 수 있고, 데이터는 어디로 가나요?](/docs/data-security/flows-access-residency): 각 저장소에 접근할 수 있는 모든 ID(위험한 순), 어떤 서비스가 사용하는지, 그 데이터가 어떤 AI 공급자와 호스트에 도달하는지.
 - [규칙을 지키고 있나요?](/docs/data-security/compliance): 데이터 상주 규칙, 그리고 스캔에서 찾은 내용으로 점수를 매기는 아홉 가지 프레임워크.
 :::
@@ -66,10 +66,10 @@ flowchart TB
 
 | 위치 | 저장소 | 콘텐츠 샘플 |
 | --- | --- | --- |
-| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System | AWS S3 Bucket |
+| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| 직접 운영하는 데이터베이스 | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch | PostgreSQL, MySQL |
+| 직접 운영하는 데이터베이스 | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks | PostgreSQL, MySQL |
 | OneUptime | 로그, 트레이스, 예외, 세션 리플레이, AI 대화 | 로그, 트레이스, 예외, 세션 리플레이, AI 대화 |
 
 모든 저장소는 그 종류에 해당하는 검사를 받습니다. 콘텐츠를 샘플링할 수 없는 저장소도 검사합니다. 공개 버킷이나 암호화되지 않은 데이터베이스는 무엇을 담고 있든 문제이기 때문입니다.

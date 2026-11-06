@@ -64,6 +64,7 @@ import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAut
 import WorkspaceActionAuthorization from "../Utils/Workspace/WorkspaceActionAuthorization";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObservabilityAssistant from "../Utils/AI/Chat/ObservabilityAssistant";
+import WorkspaceAiContext from "../Utils/Workspace/WorkspaceAiContext";
 import { AIChatCitation } from "../../Types/AI/AIChatTypes";
 import WorkspaceNotificationRuleService from "../Services/WorkspaceNotificationRuleService";
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
@@ -2217,6 +2218,8 @@ export default class SlackAPI {
       projectId: context.projectId,
       userId: context.userId,
       question: questionText,
+      slackChannelId: slackChannelId,
+      slackCommand: data.question.command,
     });
 
     await API.post({
@@ -2518,6 +2521,11 @@ export default class SlackAPI {
         userId: context.userId,
         question: questionText,
         history: history,
+        // A direct message is no record's channel.
+        slackChannelId:
+          message.kind === SlackMessageKind.DirectMessage
+            ? undefined
+            : slackChannelId,
       });
 
       await SlackUtil.sendMessageToThread({
@@ -2783,6 +2791,12 @@ export default class SlackAPI {
    * the finished markdown answer with a compact "Sources" footer appended.
    * `history` (oldest-first prior turns, excluding the current question) makes
    * threaded / DM follow-ups context-aware.
+   *
+   * Asked in an incident's or an alert's own channel (`slackChannelId`),
+   * the question is about that record, as Ask AI opened on its page knows
+   * it; and asked to change something, the answer says how to from Slack
+   * - `/oneuptime incident`, the buttons, or Ask AI in the Dashboard -
+   * never "switch modes" (WorkspaceAiContext).
    */
   private static async getAiOpsAnswerMarkdown(data: {
     projectId: ObjectID;
@@ -2791,6 +2805,9 @@ export default class SlackAPI {
     history?:
       | Array<{ role: "user" | "assistant"; content: string }>
       | undefined;
+    slackChannelId?: string | undefined;
+    // The command the workspace runs OneUptime with: "/oneuptime".
+    slackCommand?: string | undefined;
   }): Promise<string> {
     let props: DatabaseCommonInteractionProps;
 
@@ -2823,6 +2840,16 @@ export default class SlackAPI {
       question: data.question,
       history: data.history,
       feature: "Slack ChatOps",
+      chatApp: await WorkspaceAiContext.getChatApp({
+        workspaceType: WorkspaceType.Slack,
+        projectId: data.projectId,
+        slackCommand: data.slackCommand,
+      }),
+      pageContext: await WorkspaceAiContext.getChannelRecord({
+        projectId: data.projectId,
+        channelId: data.slackChannelId,
+        props: props,
+      }),
     });
 
     /*

@@ -126,6 +126,21 @@ const NO_METRICS: MetricInsightEvidence = {
   sdkLanguage: "nodejs",
 };
 
+// Its runtime's metrics reach OneUptime; none for its HTTP requests.
+const NO_REQUEST_METRICS: MetricInsightEvidence = {
+  serviceId: CHECKOUT,
+  kind: MetricInsightKind.MissingRequestMetrics,
+  windowStartTime: "2026-10-24T08:00:00.000Z",
+  windowEndTime: "2026-10-24T09:00:00.000Z",
+  spanCount: 12400,
+  failedSpanCount: 310,
+  servedProtocols: ["Http"],
+  sentMetricNames: ["jvm.memory.used", "process.cpu.time"],
+  sentMetricCount: 2,
+  topOperations: [{ name: "GET /orders", spanCount: 4000 }],
+  sdkLanguage: "java",
+};
+
 function insight(
   overrides: Partial<AIInsight> = {},
   evidence: MetricInsightEvidence | null = USER_IDS_ON_A_COUNTER,
@@ -354,6 +369,13 @@ describe("MetricInsightFix.start - OneUptime on its own", () => {
       ),
       work: ANYWHERE,
     });
+    await MetricInsightFix.start({
+      insight: insight(
+        { insightType: AIInsightType.MetricMissingRequestMetrics },
+        NO_REQUEST_METRICS,
+      ),
+      work: ANYWHERE,
+    });
 
     const messages: Array<string> = startForOneUptime.mock.calls.map(
       (call: Array<unknown>): string => {
@@ -369,6 +391,30 @@ describe("MetricInsightFix.start - OneUptime on its own", () => {
     expect(messages[1]).toContain(
       "Set up the OpenTelemetry metrics SDK in this service",
     );
+    expect(messages[2]!.split("\n")[0]).toBe("Add request metrics to checkout");
+    expect(messages[2]).toContain(
+      "This service already exports metrics to OneUptime, but none for its requests.",
+    );
+    expect(messages[2]).toContain(
+      "http.server.request.duration for its HTTP requests",
+    );
+    expect(messages[2]).not.toContain(
+      "Set up the OpenTelemetry metrics SDK in this service",
+    );
+  });
+
+  test("evidence of a kind the lane does not know is never fixed", async () => {
+    const result: { taskId?: unknown; skip?: unknown } =
+      await MetricInsightFix.start({
+        insight: insight(
+          { insightType: AIInsightType.MetricMissingRequestMetrics },
+          { ...NO_REQUEST_METRICS, kind: "MissingRequests" },
+        ),
+        work: ANYWHERE,
+      });
+
+    expect(result.taskId).toBeUndefined();
+    expect(result.skip).toBeDefined();
   });
 
   test("the repository is told by the service's name, within the rules' repositories: a metric names no file", async () => {

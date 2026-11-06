@@ -21,6 +21,7 @@ import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import DataCategory from "../../../Types/DataSecurity/DataCategory";
+import { FINDING_FRESHNESS_IN_DAYS } from "../../../Types/DataSecurity/DataSecurityCheckCatalog";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import {
   DataTypeInfo,
@@ -51,8 +52,11 @@ import { FieldClassification } from "../../../Utils/DataSecurity/FieldClassifier
  * confidence whatever a later scan is sure of.
  */
 
-// How long a finding counts toward its store after a scan last saw it.
-export const FINDING_FRESHNESS_IN_DAYS: number = 30;
+/*
+ * How long a finding counts toward its store after a scan last saw it: the
+ * check catalog's, which the issue page reads too.
+ */
+export { FINDING_FRESHNESS_IN_DAYS };
 
 // How long an unseen finding is kept, for its history, before it goes.
 export const FINDING_RETENTION_IN_DAYS: number = 90;

@@ -99,6 +99,9 @@ jest.mock(
   },
 );
 
+// An i18next placeholder, "{{name}}".
+const mockPlaceholder: RegExp = /\{\{(\w+)\}\}/g;
+
 jest.mock("react-i18next", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "react-i18next",
@@ -108,8 +111,14 @@ jest.mock("react-i18next", () => {
     ...actual,
     useTranslation: () => {
       return {
-        t: (value: string): string => {
-          return value;
+        // English, with the {{placeholders}} filled in as i18next fills them.
+        t: (value: string, values?: Record<string, string>): string => {
+          return value.replace(
+            mockPlaceholder,
+            (whole: string, name: string): string => {
+              return values && name in values ? String(values[name]) : whole;
+            },
+          );
         },
         i18n: { language: "en" },
       };
@@ -661,6 +670,91 @@ describe("Send test", () => {
     ]);
     expect(new ObjectID(CHANNEL_ID).toString()).toBe(
       (request["data"] as JSONObject)["customNotificationChannelId"],
+    );
+  });
+});
+
+/*
+ * On a right-to-left page a long URL read in the cell's direction was cut
+ * at its start, and the server's English answer put its full stop first.
+ * The URL is drawn in a box of its own direction, cut at its end with the
+ * whole URL under the pointer, and the answer in an isolate that reads the
+ * way its letters do. The dialog's title is one sentence with the
+ * channel's name in it, so a language can put the name where it goes.
+ */
+describe("read the way they are written", () => {
+  const URL_VALUE: string =
+    "https://push.example.com/oneuptime/hooks/escalations/production";
+
+  test("the Webhook URL column draws each URL left to right, cut at its end", async () => {
+    await renderPage();
+
+    const column: {
+      getElement?: (item: CustomNotificationChannel) => ReactElement;
+    } = (
+      table()["columns"] as Array<{
+        title: string;
+        getElement?: (item: CustomNotificationChannel) => ReactElement;
+      }>
+    ).find((candidate: { title: string }): boolean => {
+      return candidate.title === "Webhook URL";
+    })!;
+    const channel: CustomNotificationChannel = corpoApp();
+    channel.webhookUrl = URL_VALUE;
+
+    render(<>{column.getElement!(channel)}</>);
+
+    const cell: HTMLElement = screen.getByTestId("custom-channel-webhook-url");
+
+    expect(cell.tagName).toBe("BDI");
+    expect(cell).toHaveAttribute("dir", "ltr");
+    expect(cell).toHaveClass("block", "truncate");
+    expect(cell).toHaveAttribute("title", URL_VALUE);
+    expect(cell).toHaveTextContent(URL_VALUE);
+  });
+
+  test("a channel with no URL draws nothing in the column", async () => {
+    await renderPage();
+
+    const column: {
+      getElement?: (item: CustomNotificationChannel) => ReactElement;
+    } = (
+      table()["columns"] as Array<{
+        title: string;
+        getElement?: (item: CustomNotificationChannel) => ReactElement;
+      }>
+    ).find((candidate: { title: string }): boolean => {
+      return candidate.title === "Webhook URL";
+    })!;
+
+    render(<div data-testid="no-url">{column.getElement!(corpoApp())}</div>);
+
+    expect(screen.getByTestId("no-url")).toBeEmptyDOMElement();
+  });
+
+  test("the service's answer keeps its full stop at its end: an isolate of its own direction", async () => {
+    await renderPage();
+    await sendTest();
+
+    const message: HTMLElement = within(dialog()).getByTestId(
+      "custom-channel-test-message",
+    );
+
+    expect(message.tagName).toBe("BDI");
+    expect(message).toHaveAttribute("dir", "ltr");
+    expect(message).toHaveTextContent("Sent to CorpoApp (HTTP 202).");
+  });
+
+  test("the title is one sentence with the name in it, and an unnamed channel is a custom channel", async () => {
+    await renderPage();
+
+    const unnamed: CustomNotificationChannel = corpoApp();
+    unnamed.name = "";
+
+    await sendTest(unnamed);
+
+    expect(within(dialog()).getByTestId("modal-title")).toHaveTextContent(
+      "Send test: Custom channel",
     );
   });
 });

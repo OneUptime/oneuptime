@@ -127,6 +127,9 @@ export interface CloudConnectionDefinition {
 // The setting that says how often a connection's metrics are read.
 export const READ_INTERVAL_FIELD_KEY: string = "readIntervalInMinutes";
 
+// Google Cloud: the billing export to BigQuery a connection reads costs from.
+export const GCP_BILLING_EXPORT_TABLE_FIELD_KEY: string = "billingExportTable";
+
 /*
  * The setting that says whether a connection reads the one account its
  * command was run in, or every account of the organization
@@ -506,6 +509,22 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         type: "text",
         required: false,
         placeholder: "my-project-123456",
+        isAdvanced: true,
+      },
+      /*
+       * Google Cloud answers costs only in a billing account's export to
+       * BigQuery: the table it writes, which a person turns on once in the
+       * console (Billing > Billing export).
+       */
+      {
+        key: GCP_BILLING_EXPORT_TABLE_FIELD_KEY,
+        title: "Billing export table",
+        description:
+          "For costs: your billing export to BigQuery, as project.dataset.table. Leave empty to read no costs.",
+        type: "text",
+        required: false,
+        placeholder:
+          "billing-project.billing_export.gcp_billing_export_resource_v1_0A1B2C_3D4E5F_6A7B8C",
         isAdvanced: true,
       },
       readIntervalField(5),

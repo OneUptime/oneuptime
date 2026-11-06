@@ -116,7 +116,7 @@ Im SMS- oder Anrufprotokoll und bei einem Bereitschaftsalarm im Bereitschaftspro
 
 ## Testanfragen
 
-**Send test** sendet eine Anfrage, bei der `event` auf `test` und `to`, `project` und `actions` auf `null` gesetzt sind. Beantworten Sie sie mit einem 2xx-Status und senden Sie nichts.
+**Test senden** sendet eine Anfrage, bei der `event` auf `test` und `to`, `project` und `actions` auf `null` gesetzt sind. Beantworten Sie sie mit einem 2xx-Status und senden Sie nichts.
 
 ## Nächste Schritte
 

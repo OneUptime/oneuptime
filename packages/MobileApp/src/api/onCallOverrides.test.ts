@@ -2,7 +2,10 @@ import apiClient from "./client";
 import {
   createOnCallOverride,
   deleteOnCallOverride,
+  fetchCoverPolicies,
   fetchOnCallOverrides,
+  fetchOverrideAddAccess,
+  toOverrideAddAccess,
 } from "./onCallOverrides";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import type { OnCallOverrideItem } from "./types";
@@ -224,5 +227,112 @@ describe("fetchOnCallOverrides", () => {
     } as never);
 
     await expect(fetchOnCallOverrides(PROJECT)).resolves.toEqual([]);
+  });
+});
+
+/*
+ * Where someone whose permission covers only some policies may arrange
+ * cover: the server's answer, asked about the policies the sheet would
+ * reach, in the project they belong to. A server older than the question
+ * answers 404, and the sheet keeps its lock there.
+ */
+describe("fetchOverrideAddAccess", () => {
+  beforeEach(() => {
+    postSpy().mockReset();
+  });
+
+  test("asks about the policies, in the project, and reads the answer", async () => {
+    postSpy().mockResolvedValue({
+      data: { global: false, onCallDutyPolicyIds: ["policy-1"] },
+    } as never);
+
+    await expect(
+      fetchOverrideAddAccess("project-1", ["policy-1", "policy-2"]),
+    ).resolves.toEqual({ global: false, onCallDutyPolicyIds: ["policy-1"] });
+
+    expect(lastPost()).toEqual([
+      "/api/on-call-duty-policy-user-override/add-access",
+      { onCallDutyPolicyIds: ["policy-1", "policy-2"] },
+      { headers: { tenantid: "project-1" } },
+    ]);
+  });
+
+  test("a server older than the question (404) answers nothing", async () => {
+    postSpy().mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 404 },
+    } as never);
+
+    await expect(
+      fetchOverrideAddAccess("project-1", ["policy-1"]),
+    ).resolves.toBeNull();
+  });
+
+  test("any other failure is the caller's to handle", async () => {
+    const refusal: unknown = {
+      isAxiosError: true,
+      response: { status: 500 },
+    };
+    postSpy().mockRejectedValue(refusal as never);
+
+    await expect(
+      fetchOverrideAddAccess("project-1", ["policy-1"]),
+    ).rejects.toBe(refusal);
+  });
+});
+
+describe("toOverrideAddAccess", () => {
+  test("grants nothing it does not plainly say", () => {
+    expect(toOverrideAddAccess(undefined)).toEqual({
+      global: false,
+      onCallDutyPolicyIds: [],
+    });
+    expect(toOverrideAddAccess(["policy-1"])).toEqual({
+      global: false,
+      onCallDutyPolicyIds: [],
+    });
+    expect(
+      toOverrideAddAccess({ global: "true", onCallDutyPolicyIds: "policy-1" }),
+    ).toEqual({ global: false, onCallDutyPolicyIds: [] });
+    expect(
+      toOverrideAddAccess({
+        global: true,
+        onCallDutyPolicyIds: ["policy-1", "", 3, null],
+      }),
+    ).toEqual({ global: true, onCallDutyPolicyIds: ["policy-1"] });
+  });
+});
+
+describe("fetchCoverPolicies", () => {
+  beforeEach(() => {
+    postSpy().mockReset();
+  });
+
+  test("lists the project's policies by name, in the project", async () => {
+    postSpy().mockResolvedValue({
+      data: {
+        data: [
+          { _id: "policy-1", name: "Payments" },
+          { _id: "policy-2" },
+          { name: "No id" },
+          null,
+        ],
+      },
+    } as never);
+
+    await expect(fetchCoverPolicies("project-1")).resolves.toEqual([
+      { policyId: "policy-1", policyName: "Payments" },
+      { policyId: "policy-2", policyName: "policy-2" },
+    ]);
+
+    const [url, body, config] = lastPost() as [string, unknown, unknown];
+
+    expect(url).toBe("/api/on-call-duty-policy/get-list?skip=0&limit=100");
+    expect(body).toEqual({
+      query: {},
+      select: { _id: true, name: true },
+      sort: { name: "ASC" },
+    });
+    expect(config).toEqual({ headers: { tenantid: "project-1" } });
   });
 });

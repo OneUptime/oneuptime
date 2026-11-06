@@ -205,15 +205,15 @@ export default class Probe extends BaseModel {
   })
   @TableColumn({
     required: true,
-    type: TableColumnType.Name,
+    type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     example: "US East Coast Probe",
     description: "Any friendly name of this object",
   })
   @Column({
     nullable: false,
-    type: ColumnType.Name,
-    length: ColumnLength.Name,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
   })
   public name?: string = undefined;
 
@@ -238,14 +238,14 @@ export default class Probe extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.Name,
+    type: TableColumnType.LongText,
     example: "Monitors services from the US East Coast region",
     description: "Friendly description that will help you remember",
   })
   @Column({
     nullable: true,
-    type: ColumnType.Name,
-    length: ColumnLength.Name,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public description?: string = undefined;
 

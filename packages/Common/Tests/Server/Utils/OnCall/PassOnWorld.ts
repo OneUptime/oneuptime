@@ -817,14 +817,20 @@ export default class PassOnWorld {
     });
   }
 
+  /*
+   * A person escalates their page - from a notification (`via`), and to a
+   * later level than the next when they picked one (`toEscalationRuleId`).
+   */
   public async passOn(
     userId: ObjectID,
     via?: ObjectID | undefined,
+    toEscalationRuleId?: ObjectID | undefined,
   ): Promise<OnCallPassOnAnswer> {
     return await OnCallPagePassOn.passOn({
       userId: userId,
       executionLogId: RUN_ID,
       viaUserOnCallLogTimelineId: via,
+      toEscalationRuleId: toEscalationRuleId,
     });
   }
 
@@ -878,6 +884,31 @@ export default class PassOnWorld {
   // The rule the run is on now, by order.
   public currentOrder(): number {
     return this.run.lastExecutedEscalationRuleOrder || 0;
+  }
+
+  /*
+   * The run's lines that name nobody - a level's own - by the level's
+   * place: its order and the line's message, in the order written.
+   */
+  public levelLines(): Array<{ order: number; message: string }> {
+    return this.steps
+      .filter((step: OnCallDutyPolicyExecutionLogTimeline) => {
+        return !step.alertSentToUserId;
+      })
+      .map((step: OnCallDutyPolicyExecutionLogTimeline) => {
+        const rule: OnCallDutyPolicyEscalationRule | undefined =
+          this.rules.find((candidate: OnCallDutyPolicyEscalationRule) => {
+            return sameKey(
+              candidate._id,
+              step.onCallDutyPolicyEscalationRuleId,
+            );
+          });
+
+        return {
+          order: rule?.order || 0,
+          message: step.statusMessage || "",
+        };
+      });
   }
 
   public lineStatuses(): Array<OnCallDutyExecutionLogTimelineStatus> {

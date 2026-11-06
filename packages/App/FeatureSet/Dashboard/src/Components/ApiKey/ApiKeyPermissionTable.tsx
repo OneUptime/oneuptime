@@ -4,6 +4,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
+import PermissionScopeNarrowing from "Common/Types/Database/AccessControl/PermissionScopeNarrowing";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { FormProps } from "Common/UI/Components/Forms/BasicForm";
@@ -25,6 +26,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import { getApiKeyPermissionsEmptyMessage } from "../CustomRole/CustomRolesFold";
 import { getRolePickerFormField } from "../Permission/RolePickerFormField";
 import PermissionScopeCell from "../Permission/PermissionScopeCell";
+import { holdsPermissionLabels } from "../Permission/PermissionScopeChoice";
 import {
   ADD_PERMISSION_DIALOG_WORDS,
   AddPermissionDialogKind,
@@ -49,6 +51,12 @@ import React, {
  * with nothing, so the empty table repeats Add Role as the way forward.
  *
  * Block permissions keep the one-permission form they always had.
+ *
+ * A key owns nothing, so its permission has no Scope: it reaches every
+ * resource, or - picked under Labels - the ones carrying one of them. Labels
+ * are asked for wherever they narrow the permission picked
+ * (PermissionScopeNarrowing): Create Workflow as much as Read Workflow, and
+ * not Create Team, which labels narrow nothing of.
  *
  * Only the key's own permissions are listed: what comes with a custom role
  * given to the key is the role's, listed by role under More settings
@@ -209,8 +217,11 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
           return false;
         }
 
-        return PermissionHelper.isAccessControlPermission(
-          values["permission"] as Permission,
+        // A row stored with labels shows them, so Edit never hides them.
+        return (
+          PermissionScopeNarrowing.isNarrowedByLabels(
+            values["permission"] as Permission,
+          ) || holdsPermissionLabels(values)
         );
       },
       required: false,

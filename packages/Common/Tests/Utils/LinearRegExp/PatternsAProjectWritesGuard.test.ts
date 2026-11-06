@@ -88,6 +88,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     builtFrom: "a count of spaces",
   },
   {
+    file: "packages/Common/Server/Utils/DataObservability/DataCheckValidation.ts",
+    count: 1,
+    builtFrom:
+      "a Format Mismatch check's pattern, whose syntax JavaScript checks; it is never run here, but in the project's own database (DataCheckSql: !~ or NOT REGEXP)",
+  },
+  {
     file: "packages/Common/Server/Utils/DataSource/SqlQueryGuard.ts",
     count: 1,
     builtFrom: "the keywords FORBIDDEN_KEYWORDS lists",
@@ -193,6 +199,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
  * pattern written in the file: what each file's calls read as a pattern.
  */
 const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
+  {
+    file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewDataImpact.ts",
+    count: 1,
+    builtFrom:
+      "the migration patterns of Rails, Alembic, Django, Sequelize, TypeORM and Knex the file lists (RAILS, PYTHON, JAVASCRIPT), each a pattern literal",
+  },
   {
     file: "packages/Common/Server/Utils/DataSecurity/DataSecurityChangeSignals.ts",
     count: 1,

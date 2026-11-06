@@ -84,6 +84,20 @@ const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
  */
 export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
   {
+    file: `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/View/Index.tsx`,
+    form: "CardModelDetail: Affected Resources",
+    reason:
+      "One question, what this maintenance affects, asked per kind of resource: every field is an optional picker, and one of them only shows with a monitor picked.",
+  },
+  ...["#1", "#2", "#3", "#4"].map((form: string): ListedForm => {
+    return {
+      file: `${DASHBOARD}/Components/OpenStack/Checks/OpenStackCheckFormModals.tsx`,
+      form: `ModelFormModal ${form}`,
+      reason:
+        "Switching an OpenStack check on asks one question, how often it runs. The address, probe and login it borrows from the cloud's connection are folded, for the rare cloud whose checks need their own.",
+    };
+  }),
+  {
     file: "packages/App/FeatureSet/Accounts/src/Pages/Register.tsx",
     form: "ModelForm: Register",
     reason:
@@ -139,6 +153,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     form: "BasicFormModal: Security Events > Update Threat Intel Feed Credentials",
     reason:
       "Never more than three fields at once: the authentication mode, then either the API token or the basic auth username and password - the two are alternatives.",
+  },
+  {
+    file: `${DASHBOARD}/Pages/SecurityEvents/WatchlistView.tsx`,
+    form: "CardModelDetail: Security Events > Watchlist",
+    reason:
+      "A list's Edit asks for what the list is, and only that: its name, then the feed it follows or the address it is read from with how often - alternatives, by where its values come from, never both - with its description folded under More fields. A list kept by hand edits two rows, one that follows a feed three, one read from an address four: its address and how often it is read are one decision, which a step between them would split.",
   },
   /*
    * The maintainer, on the Create Custom Field form: "The only thing I

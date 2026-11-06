@@ -97,11 +97,6 @@ jest.mock(
   },
 );
 
-/*
- * Replaced whole rather than spied on: the real module loads the browser
- * telemetry SDK, whose zone.js swaps out the global Promise, and React then
- * reports every awaited act() as not awaited.
- */
 jest.mock("../../../UI/Utils/Project", () => {
   return {
     __esModule: true,

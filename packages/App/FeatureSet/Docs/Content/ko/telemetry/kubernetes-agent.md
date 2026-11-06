@@ -527,7 +527,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 엔드포인트는 서비스 계정 토큰으로 HTTPS를 통해 스크레이프되지만, `http://`로 시작하는 엔드포인트는 일반 HTTP로 스크레이프됩니다. 한 구성 요소의 엔드포인트는 같은 스킴을 공유합니다. 구성 요소에 엔드포인트로 도달할 수 없으면 그 스크레이프는 매 간격마다 실패합니다. Collector는 스크레이프 오류를 기록하고 대상을 다운으로 보고하며, 그 밖에는 아무것도 바뀌지 않습니다.
 
 - **스케줄러**(`10259`)와 **컨트롤러 매니저**(`10257`)는 HTTPS를 제공하고 토큰을 받지만, kubeadm은 컨트롤 플레인 노드에서 이들을 `127.0.0.1`에 바인딩합니다. 에이전트의 Pod가 도달할 수 있는 `--bind-address`가 필요합니다.
-- **etcd**는 `2381`에서 일반 HTTP로 메트릭을 제공합니다(kubeadm의 `--listen-metrics-urls`, 노드의 주소를 추가하기 전까지는 `127.0.0.1`에 바인딩됨). 위 예시와 같습니다. 클라이언트 포트 `2379`는 HTTPS를 제공하며 클라이언트 인증서를 요구합니다. 인증서를 에이전트 네임스페이스의 Secret에 `ca.crt`, `tls.crt`, `tls.key` 키로 넣고, 그 Secret을 `controlPlane.etcd.clientCertSecret`에 지정하세요. kubeadm 컨트롤 플레인 노드에서는 헬스 체크 클라이언트의 인증서를 쓸 수 있습니다:
+- **etcd**는 `2381`에서 일반 HTTP로 메트릭을 제공합니다(kubeadm의 `--listen-metrics-urls`, 노드의 주소를 추가하기 전까지는 `127.0.0.1`에 바인딩됨). 위 예시와 같습니다. 클라이언트 포트 `2379`는 HTTPS를 제공하며 클라이언트 인증서를 요구합니다. 인증서를 에이전트 네임스페이스의 Secret에 `ca.crt`, `tls.crt`, `tls.key` 키로 넣고, 그 Secret을 `controlPlane.etcd.clientCertSecret`에 지정하세요. kubeadm 컨트롤 플레인 노드에서는 상태 확인 클라이언트의 인증서를 쓸 수 있습니다:
 
 ```bash
 kubectl -n oneuptime-agent create secret generic etcd-client-cert \
@@ -703,7 +703,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 이 클러스터에서 인시던트나 알림이 발생하면 OneUptime AI가 조사합니다. 차트의 **Kubernetes AI 에이전트**는 AI에게 터미널을 줍니다. 온콜 엔지니어처럼 읽기 전용 `kubectl`을 실행하고(실패하는 Pod를 describe하고, 이벤트를 읽고, 크래시하는 컨테이너의 로그를 tail하고, 노드 용량을 확인), 실행한 모든 명령을 인시던트 페이지에 인용합니다.
 
-에이전트는 **기본적으로 켜져** 있고 **읽기 전용**입니다. 작은 Deployment 하나(`kubernetes-agent-ai-agent`, Pod 레이블 `component=ai-agent`, 이미지 `oneuptime/kubernetes-ai-agent`)이며, 그 ServiceAccount는 읽기만 할 수 있습니다. Collector와 같은 `oneuptime.apiKey`와 `clusterName`으로 스스로 등록하므로 대시보드에서 설정할 것이 없습니다. 클러스터의 **AI 에이전트** 페이지(Kubernetes → 클러스터 → AI → 에이전트)에 1분 안에 연결됨으로 표시되며, 그 상태 옆 **⋯** 메뉴의 **연결 테스트**는 에이전트를 통해 `kubectl version`과 `kubectl auth can-i --list`를 실행합니다. AI가 에이전트로 한 모든 작업은 클러스터의 **AI 로그** 페이지(AI → 로그)에 있고, 클러스터에 대해 알아 둘 만한 것(계속 반복되는 문제와 그 이유, 그 대부분의 원인인 노드나 워크로드, AI가 고친 것)은 **AI 인사이트** 페이지(AI → Insights)에 있습니다. 에이전트에는 고정된 kubectl(v1.36.5)이 포함되어 있습니다. Runner가 아니며 Runbooks → Runners 아래에 나타나지 않습니다. OneUptime은 에이전트에 자격 증명을 넘기지 않고, 런북을 실행하지 않으며, AI 규칙의 명령 Runner로도 받아들이지 않습니다.
+에이전트는 **기본적으로 켜져** 있고 **읽기 전용**입니다. 작은 Deployment 하나(`kubernetes-agent-ai-agent`, Pod 레이블 `component=ai-agent`, 이미지 `oneuptime/kubernetes-ai-agent`)이며, 그 ServiceAccount는 읽기만 할 수 있습니다. Collector와 같은 `oneuptime.apiKey`와 `clusterName`으로 스스로 등록하므로 대시보드에서 설정할 것이 없습니다. 클러스터의 **AI 에이전트** 페이지(Kubernetes → 클러스터 → AI → 에이전트)에 1분 안에 연결됨으로 표시되며, 그 상태 옆 **⋯** 메뉴의 **연결 테스트**는 에이전트를 통해 `kubectl version`과 `kubectl auth can-i --list`를 실행합니다. AI가 에이전트로 한 모든 작업은 클러스터의 **AI 로그** 페이지(AI → 로그)에 있고, 클러스터에 대해 알아 둘 만한 것(계속 반복되는 문제와 그 이유, 그 대부분의 원인인 노드나 워크로드, AI가 고친 것)은 **AI 인사이트** 페이지(AI → Insights)에 있습니다. 에이전트에는 고정된 kubectl(v1.36.6)이 포함되어 있습니다. Runner가 아니며 Runbooks → Runners 아래에 나타나지 않습니다. OneUptime은 에이전트에 자격 증명을 넘기지 않고, 런북을 실행하지 않으며, AI 규칙의 명령 Runner로도 받아들이지 않습니다.
 
 AI 에이전트가 생기기 전에 설치한 에이전트에서는 먼저 차트 인덱스를 새로 고친 다음 업그레이드하세요(자체 호스팅 OneUptime에서는 OneUptime을 먼저 업그레이드하세요. [에이전트 업그레이드](#에이전트-업그레이드) 참조):
 

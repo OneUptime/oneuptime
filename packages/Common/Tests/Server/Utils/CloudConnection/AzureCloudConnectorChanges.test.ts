@@ -430,3 +430,94 @@ describe("what changed in an Azure subscription", () => {
     expect(state.changeCursors).toBeUndefined();
   });
 });
+
+/*
+ * While the project's Security Events read the subscription's Activity Log
+ * (Cloud audit logs), the same read hands back each event whole - an
+ * operation's start too, which is no change of Cloud's - for the Azure
+ * activity parser to judge, and selects the caller's address it names.
+ * Only when asked, and never for a look back.
+ */
+describe("an Azure subscription's Activity Log events, for Security Events", () => {
+  const events: Array<JSONObject> = [
+    administrative({
+      id: "evt-started",
+      operation: "Microsoft.Authorization/roleAssignments/write",
+      status: "Started",
+      at: "2026-10-21T11:00:00Z",
+    }),
+    administrative({
+      id: "evt-write",
+      operation: "Microsoft.Authorization/roleAssignments/write",
+      status: "Succeeded",
+      at: "2026-10-21T11:01:00Z",
+    }),
+  ];
+
+  test("asked, every event the read brought in comes back whole, beside the changes", async () => {
+    const fake: FakeActivity = createFakeActivity({
+      events: { [SUB_A]: events },
+    });
+    const result: CloudChangesResult = await connector.readChanges(
+      settings(),
+      changeOptions(fake, { accounts: [SUB_A] }, { keepAuditRecords: true }),
+    );
+
+    expect(
+      result.changes.map((change: CloudChange): string => {
+        return change.eventId;
+      }),
+    ).toEqual(["evt-write"]);
+    expect(result.auditRecords).toEqual([
+      { accountId: SUB_A, record: events[0] },
+      { accountId: SUB_A, record: events[1] },
+    ]);
+  });
+
+  test("the read selects the caller's address, the correlation and the subscription, and still no claims", async () => {
+    const fake: FakeActivity = createFakeActivity({
+      events: { [SUB_A]: events },
+    });
+
+    await connector.readChanges(
+      settings(),
+      changeOptions(fake, { accounts: [SUB_A] }),
+    );
+
+    const select: Array<string> = (
+      fake.logCalls[0]!.searchParams.get("$select") || ""
+    ).split(",");
+
+    expect(select).toEqual(
+      expect.arrayContaining([
+        "eventDataId",
+        "httpRequest",
+        "correlationId",
+        "subscriptionId",
+      ]),
+    );
+    expect(select).not.toContain("claims");
+  });
+
+  test("not asked, or reading back for an investigation, no event comes back", async () => {
+    const plain: CloudChangesResult = await connector.readChanges(
+      settings(),
+      changeOptions(createFakeActivity({ events: { [SUB_A]: events } }), {
+        accounts: [SUB_A],
+      }),
+    );
+
+    expect(plain.auditRecords).toBeUndefined();
+
+    const lookBack: CloudChangesResult = await connector.readChanges(
+      settings(),
+      changeOptions(
+        createFakeActivity({ events: { [SUB_A]: events } }),
+        { accounts: [SUB_A] },
+        { keepAuditRecords: true, since: new Date("2026-10-21T10:00:00Z") },
+      ),
+    );
+
+    expect(lookBack.auditRecords).toBeUndefined();
+  });
+});

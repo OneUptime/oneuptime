@@ -241,6 +241,12 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
       english: "Add to calendar",
       key: "scheduledEvents.calendar.addToCalendar",
     },
+    // A private user's sign-in link: asking for one, then the page it opens.
+    {
+      english: "Email me a sign-in link",
+      key: "accounts.login.emailSignInLink",
+    },
+    { english: "Log in", key: "accounts.magicLinkLogin.submit" },
   ],
   [SUBSCRIBERS]: [
     { english: "Subscribe", key: "nav.subscribe" },
@@ -435,6 +441,7 @@ const PROSE: Record<string, Array<string>> = {
     "Images.",
     "What it stores.",
     "Private users and the password don't stack.",
+    "Sign-in links.",
     "Embedded status badge.",
     "RSS feed.",
     "Is offline.",

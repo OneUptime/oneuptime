@@ -24,7 +24,7 @@ flowchart TB
     ack["Você confirma"] -.->|"interrompe o resto"| third
 ```
 
-A maioria das mensagens pode confirmar o acionamento: e-mails, SMS e mensagens do WhatsApp, do Telegram, do Slack e do Microsoft Teams trazem um link de confirmação, e uma chamada pede que você pressione 1. Se você não puder atender um acionamento, as mesmas mensagens permitem escaloná-lo, e uma chamada pede que você pressione 2: a política aciona o próximo nível na hora, e você não é mais acionado sobre isso. Veja [Escalonar um acionamento](/docs/on-call/escalation-rules#escalonar-um-acionamento). Cada acionamento que você recebe aparece em **Configurações do usuário → Registros de plantão**, onde **Ver linha do tempo** mostra cada mensagem enviada e se ela foi entregue.
+A maioria das mensagens pode confirmar o acionamento: e-mails, SMS e mensagens do WhatsApp, do Telegram, do Slack, do Microsoft Teams e do Mattermost trazem um link de confirmação, e uma chamada pede que você pressione 1. Se você não puder atender um acionamento, as mesmas mensagens permitem escaloná-lo, e uma chamada pede que você pressione 2: a política aciona o próximo nível na hora, e você não é mais acionado sobre isso. Veja [Escalonar um acionamento](/docs/on-call/escalation-rules#escalonar-um-acionamento). Cada acionamento que você recebe aparece em **Configurações do usuário → Registros de plantão**, onde **Ver linha do tempo** mostra cada mensagem enviada e se ela foi entregue.
 
 ## As quatro abas
 
@@ -101,7 +101,7 @@ Uma gravidade que o seu projeto adiciona depois recebe regras em poucos minutos,
 Um acionamento que mesmo assim não encontra regra é enviado aos seus métodos verificados de qualquer forma, e você recebe um e-mail sobre isso; veja [Quando nenhuma regra corresponde](/docs/notifications/index#quando-nenhuma-regra-corresponde).
 
 :::details Desativar uma gravidade de propósito
-A API pode salvar uma regra de exclusão, com `isOptOut` definido e sem método: aí você não é acionado para esse tipo de acionamento e essa gravidade, e nada assume no lugar. A linha mostra **Muted - notifications turned off for this rule**, e excluí-la reativa os acionamentos. Uma gravidade adicionada depois também fica silenciada quando todas as regras que você tem nessa aba são exclusões.
+A API pode salvar uma regra de exclusão, com `isOptOut` definido e sem método: aí você não é acionado para esse tipo de acionamento e essa gravidade, e nada assume no lugar. A linha mostra **Silenciado: notificações desativadas para esta regra**, e excluí-la reativa os acionamentos. Uma gravidade adicionada depois também fica silenciada quando todas as regras que você tem nessa aba são exclusões.
 :::
 
 :::details Desativar a alternativa para um projeto inteiro
@@ -115,7 +115,7 @@ Proprietários e administradores do projeto podem ver e alterar a mesma página 
 ## Solução de problemas
 
 :::details O meu telefone ficou em silêncio em um acionamento crítico
-Confira se o push da regra é **Alerta crítico**, e não **Normal**, e se **Alertas críticos** está ativado para o telefone em **Configurações do usuário → Métodos de notificação**, na aba **Push Notifications**.
+Confira se o push da regra é **Alerta crítico**, e não **Normal**, e se **Alertas críticos** está ativado para o telefone em **Configurações do usuário → Métodos de notificação**, na aba **Notificações push**.
 :::
 
 :::details Sou acionado duas vezes a cada incidente

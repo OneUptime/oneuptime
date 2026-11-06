@@ -1,6 +1,8 @@
 enum EmailTemplateType {
   BlankTemplate = "BlankTemplate.hbs",
   ForgotPassword = "ForgotPassword.hbs",
+  // An account's sign-in link (Types/Accounts/MagicLink).
+  MagicLink = "MagicLink.hbs",
   ProbeOffline = "ProbeOffline.hbs",
   SignupWelcomeEmail = "SignupWelcomeEmail.hbs",
   CompleteRegistration = "CompleteRegistration.hbs",
@@ -31,6 +33,8 @@ enum EmailTemplateType {
   ManageExistingStatusPageSubscriberSubscription = "ManageExistingStatusPageSubscriberSubscription.hbs",
   SubscriberScheduledMaintenanceEventStateChanged = "SubscriberScheduledMaintenanceEventStateChanged.hbs",
   StatusPageForgotPassword = "StatusPageForgotPassword.hbs",
+  // A private user's sign-in link (Types/StatusPage/StatusPageMagicLink).
+  StatusPageMagicLink = "StatusPageMagicLink.hbs",
   StatusPagePasswordChanged = "StatusPagePasswordChanged.hbs",
   StatusPageWelcomeEmail = "StatusPageWelcomeEmail.hbs",
   SubscriberScheduledMaintenanceEventNoteCreated = "SubscriberScheduledMaintenanceEventNoteCreated.hbs",

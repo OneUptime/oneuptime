@@ -752,12 +752,12 @@ describe("DataSecurityEvaluator.evaluateStore", () => {
       checkOn("checkout · Logs", "sensitive-data-in-telemetry")?.result,
     ).toEqual({
       status: CheckCatalog.DataSecurityCheckStatus.Fail,
-      evidence: "1 kind(s) of sensitive data are not scrubbed.",
+      evidence: "1 kind of sensitive data is not scrubbed: Email address.",
       severity: undefined,
     });
     expect(
       checkOn("checkout · Logs", "secrets-in-telemetry")?.result.evidence,
-    ).toBe("1 kind(s) of secret are not scrubbed.");
+    ).toBe("1 kind of secret is not scrubbed: Password or secret.");
     expect(
       checkRunOf("support-attachments").input.unscrubbedDataTypeIds,
     ).toEqual([]);
@@ -1383,6 +1383,44 @@ describe("DataSecurityEvaluator.evaluateProject: what it reads", () => {
       dataCategories: [DataCategory.Financial],
       findingCount: 2,
     });
+  });
+
+  test("a telemetry issue names the project's own data type by the name the project gave it, and counts only what is unscrubbed and sure", async () => {
+    const traces: DataStore = storeOf({
+      name: "oneuptime-app · Traces",
+      kind: DataStoreKind.TelemetryTraces,
+      storeKey: "telemetry:service-1:Traces",
+    });
+    const loyalty: DataSecurityCustomDataType = new DataSecurityCustomDataType(
+      ObjectID.generate(),
+    );
+    loyalty.name = "Loyalty card number";
+    loyalty.sensitivity = DataSensitivity.Confidential;
+    loyalty.category = DataCategory.Financial;
+    const loyaltyId: string = customDataTypeId(loyalty.id!.toString());
+
+    fixture.stores = [traces];
+    fixture.customTypes = [loyalty];
+    fixture.findings = [
+      findingOf(traces, loyaltyId),
+      findingOf(traces, "ie-ppsn"),
+      // Scrubbed, unsure, or nobody's verdict yet: none of them is named.
+      findingOf(traces, "email-address", { isScrubbed: true }),
+      findingOf(traces, "phone-number", { confidence: DataConfidence.Low }),
+      findingOf(traces, "us-ssn", { isAiSuggested: true, matchCount: 0 }),
+    ];
+
+    await evaluate();
+
+    expect(checkRunOf("oneuptime-app · Traces").input.dataTypeNames).toEqual({
+      [loyaltyId]: "Loyalty card number",
+    });
+    expect(
+      checkOn("oneuptime-app · Traces", "sensitive-data-in-telemetry")?.result
+        .evidence,
+    ).toBe(
+      "2 kinds of sensitive data are not scrubbed: Ireland PPS number, Loyalty card number.",
+    );
   });
 
   test("an owner, directly or through a team, makes a store owned", async () => {

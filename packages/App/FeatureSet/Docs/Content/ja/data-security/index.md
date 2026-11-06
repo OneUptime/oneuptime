@@ -6,7 +6,7 @@
 
 :::cards
 - [機密データはどこにあるか？](/docs/data-security/data-types): カード番号や国民 ID から API キーまで、143 のデータタイプを、バケット、テーブル、テレメトリの中から見つけます。
-- [露出していないか？](/docs/data-security/checks-and-issues): 各データストアに対する 33 のチェック。パブリックアクセス、暗号化、バックアップ、ログ記録、シークレット、コピー。
+- [露出していないか？](/docs/data-security/checks-and-issues): 各データストアに対する 34 のチェック。パブリックアクセス、暗号化、バックアップ、ログ記録、シークレット、コピー。
 - [誰がアクセスでき、データはどこへ流れるか？](/docs/data-security/flows-access-residency): 各データストアにアクセスできるすべての ID (リスクの高い順)、どのサービスが使っているか、そのデータがどの AI プロバイダーとホストに届くか。
 - [ルールを満たしているか？](/docs/data-security/compliance): データ所在地ルールと、スキャンで見つかったものからスコアを付ける 9 つのフレームワーク。
 :::
@@ -66,10 +66,10 @@ flowchart TB
 
 | 場所 | データストア | コンテンツのサンプル |
 | --- | --- | --- |
-| AWS | AWS S3 Bucket、AWS RDS Instance、AWS Aurora Cluster、AWS RDS Snapshot、AWS DynamoDB Table、AWS Redshift Cluster、AWS DocumentDB Cluster、AWS OpenSearch Domain、AWS ElastiCache Cluster、AWS EFS File System | AWS S3 Bucket |
+| AWS | AWS S3 Bucket、AWS RDS Instance、AWS Aurora Cluster、AWS RDS Snapshot、AWS DynamoDB Table、AWS Redshift Cluster、AWS DocumentDB Cluster、AWS OpenSearch Domain、AWS ElastiCache Cluster、AWS EFS File System、Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
-| 自分で運用するデータベース | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch | PostgreSQL、MySQL |
+| 自分で運用するデータベース | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks | PostgreSQL、MySQL |
 | OneUptime | ログ、トレース、例外、セッションリプレイ、AI の会話 | ログ、トレース、例外、セッションリプレイ、AI の会話 |
 
 すべてのデータストアに、その種類に当てはまるチェックが行われます。コンテンツをサンプリングできないデータストアもチェックされます: 公開されたバケットや暗号化されていないデータベースは、何を保持していても問題だからです。

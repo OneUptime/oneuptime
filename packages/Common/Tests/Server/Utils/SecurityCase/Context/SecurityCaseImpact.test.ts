@@ -541,6 +541,36 @@ describe("SecurityCaseImpact.build", () => {
     });
   });
 
+  test("a cloud change keeps the facts its title is worded from in the reader's language", async () => {
+    const cloud: ChangeEvent = new ChangeEvent();
+    cloud._id = new ObjectID("abababab-abab-4bab-8bab-abababababac");
+    cloud.time = at(-90);
+    cloud.title = "UpdateService on checkout";
+    cloud.eventType = "deployment";
+    cloud.primaryEntityId = new ObjectID(SERVICE_ID);
+    cloud.attributes = {
+      "oneuptime.change.source": "cloud",
+      "oneuptime.cloud.operation": "UpdateService",
+      "oneuptime.change.status": "succeeded",
+    } as never;
+    jest.spyOn(ChangeEventService, "findBy").mockResolvedValue([cloud]);
+
+    expect(
+      recordOf(await impact(), SecurityConnectionKind.Service).lastChange,
+    ).toEqual({
+      id: "abababab-abab-4bab-8bab-abababababac",
+      time: at(-90).toISOString(),
+      title: "UpdateService on checkout",
+      eventType: "deployment",
+      cloudChange: {
+        operation: "UpdateService",
+        resource: "checkout",
+        failed: false,
+      },
+      isBeforeFirstDetection: true,
+    });
+  });
+
   test("lists the machines the case's addresses talked to, the busiest first", async () => {
     const json: SecurityCaseImpactJson = await impact();
 

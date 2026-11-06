@@ -31,6 +31,7 @@ import {
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
 } from "./ResourceHeroLayout";
 import { getReportedResourceOverviewDetailRows } from "./ResourceOverviewDetails";
+import { ResourceOverviewHealth } from "./ResourceOverviewHealth";
 
 export interface ResourceOverviewChip {
   icon: IconProp;
@@ -91,12 +92,32 @@ export interface ResourceOverviewTile {
 }
 
 // The status pill's colour: green, amber or gray.
-export type ResourceOverviewStatusTone = "positive" | "warning" | "neutral";
+/*
+ * "danger" is a resource broken by its own rules (a cloud resource failing
+ * its status checks): the red the lists' Unhealthy pill draws.
+ */
+export type ResourceOverviewStatusTone =
+  | "positive"
+  | "warning"
+  | "danger"
+  | "neutral";
+
+/*
+ * The resource's health, beside its status pill, by its product's own rules
+ * (a database's: the lines of its engine's recommended alerts) - the pill
+ * every infrastructure hero draws, for the Overviews drawn here.
+ */
+export type { ResourceOverviewHealth };
 
 export interface ResourceOverviewProps {
   icon: IconProp;
   title: string;
   identifier: string;
+  /*
+   * What the identifier is, as the line under the title names it: an
+   * attribute's own name ("service.name") drawn as written, or an English
+   * word ("type", "account") the line draws in the reader's language.
+   */
   identifierLabel: string;
   status: string | undefined;
   /*
@@ -107,15 +128,27 @@ export interface ResourceOverviewProps {
    */
   statusLabel?: string | undefined;
   statusTone?: ResourceOverviewStatusTone | undefined;
-  // What the pill means, as its hover text.
+  /*
+   * What the pill means, as its hover text: English the hover says in the
+   * reader's language, or words a page already put in it.
+   */
   statusDescription?: string | undefined;
+  // Its health beside the status pill; left out, no health pill.
+  health?: ResourceOverviewHealth | undefined;
   lastSeenAt: Date | undefined;
   /*
    * Drawn straight under the hero, beside the status pill it explains: the
    * "how do I connect this?" card (ResourceConnectionGuideCard), which draws
-   * nothing once the resource is connected.
+   * nothing once the resource is connected - or, for a resource read from
+   * its cloud, what needs attention on it (NeedsAttentionCard), before any
+   * number, as a host's and a cluster's Overview lead with theirs.
    */
   connectionGuide?: ReactElement | undefined;
+  /*
+   * What on the resource needs someone (NeedsAttentionCard), under the hero
+   * and before any number, as on every infrastructure Overview.
+   */
+  needsAttention?: ReactElement | undefined;
   /*
    * What the resource is, in its owner's words (its Settings): drawn under
    * its name in the hero, where it is read with the name at every width. It
@@ -222,9 +255,26 @@ const STATUS_TONE_CLASSES: Record<
     badge: "bg-amber-50 text-amber-700 ring-amber-200",
     dot: "bg-amber-500",
   },
+  danger: {
+    badge: "bg-red-50 text-red-700 ring-red-200",
+    dot: "bg-red-500",
+  },
   neutral: {
     badge: "bg-gray-50 text-gray-700 ring-gray-200",
     dot: "bg-gray-400",
+  },
+};
+
+const HEALTH_TONE_CLASSES: Record<
+  ResourceOverviewHealth["tone"],
+  { badge: string; dot: string }
+> = {
+  positive: STATUS_TONE_CLASSES.positive,
+  warning: STATUS_TONE_CLASSES.warning,
+  neutral: STATUS_TONE_CLASSES.neutral,
+  danger: {
+    badge: "bg-red-50 text-red-700 ring-red-200",
+    dot: "bg-red-500",
   },
 };
 
@@ -446,6 +496,18 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
       : translationKey("Disconnected"));
   const statusLabel: string =
     translator.translateText(givenStatusLabel) || givenStatusLabel;
+  // The pill's hover, in the reader's language too.
+  const statusDescription: string | undefined = props.statusDescription
+    ? translator.translateText(props.statusDescription) ||
+      props.statusDescription
+    : undefined;
+  /*
+   * The identifier's label: a word ("type", "account") in the reader's
+   * language, an attribute's name ("service.name") as written - the
+   * locale has no word for it.
+   */
+  const identifierLabel: string =
+    translator.translateText(props.identifierLabel) || props.identifierLabel;
 
   return (
     <Fragment>
@@ -488,7 +550,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                   </h1>
                   <span
                     data-testid="resource-overview-status"
-                    title={props.statusDescription}
+                    title={statusDescription}
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass}`}
                   >
                     <span
@@ -496,11 +558,65 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                     />
                     {statusLabel}
                   </span>
+                  {props.health ? (
+                    <span className="inline-flex items-center gap-1">
+                      <span
+                        data-testid="resource-overview-health"
+                        data-health={props.health.state}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                          HEALTH_TONE_CLASSES[props.health.tone].badge
+                        }`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            HEALTH_TONE_CLASSES[props.health.tone].dot
+                          }`}
+                        />
+                        {translator.translateText(props.health.label) ||
+                          props.health.label}
+                      </span>
+                      {props.health.description ? (
+                        <InfoTooltip
+                          label={props.health.descriptionLabel || "Health"}
+                          text={props.health.description}
+                        />
+                      ) : (
+                        <></>
+                      )}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
                 </div>
                 <ResourceHeroDescription text={props.description} />
                 {props.identifier ? (
-                  <div className="mt-1 truncate font-mono text-sm text-gray-500">
-                    {props.identifierLabel}: {props.identifier}
+                  /*
+                   * The identifier is set apart from its label, so a type
+                   * or a name in Latin letters keeps its brackets and its
+                   * place on a page read right to left. Too long for the
+                   * line, it is cut at its own end, in its own direction:
+                   * cut with the line, a Persian page lost its start
+                   * ("…d Balancer (ALB, NLB, GWLB)" on a phone).
+                   *
+                   * Each piece is set in monospace itself, as the whole
+                   * line always was: the page gives every element Inter
+                   * (index.ejs's universal rule), so a child would not
+                   * keep the line's font. The gap is a monospace space.
+                   */
+                  <div
+                    data-testid="resource-overview-identifier"
+                    className="mt-1 flex min-w-0 items-baseline gap-2 font-mono text-sm text-gray-500"
+                  >
+                    <span className="flex-none font-mono">
+                      {identifierLabel}:
+                    </span>{" "}
+                    <bdi
+                      dir="auto"
+                      data-testid="resource-overview-identifier-value"
+                      className="min-w-0 truncate font-mono"
+                    >
+                      {props.identifier}
+                    </bdi>
                   </div>
                 ) : (
                   <></>
@@ -544,6 +660,8 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
       </div>
 
       {props.connectionGuide ? props.connectionGuide : <></>}
+
+      {props.needsAttention ? props.needsAttention : <></>}
 
       {/* Golden metric tiles */}
       {props.tilesLoading && props.tiles.length === 0 ? (

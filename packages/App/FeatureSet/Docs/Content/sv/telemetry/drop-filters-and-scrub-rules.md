@@ -52,7 +52,7 @@ Under **Åtgärd** behåller du **Kassera** för att kasta varje matchande post,
 Filtret börjar kassera inom en minut. För att spara det utan att kassera något ännu stänger du av **Aktiverad** under **Avancerad** innan du skapar det.
 
 > [!WARNING]
-> En kasserad post går inte att få tillbaka. Håll ett filters fråga smal, och håll ett öga på dess **Dropped**-räknare efter att du har skapat det.
+> En kasserad post går inte att få tillbaka. Håll ett filters fråga smal, och håll ett öga på dess **Kasserade**-räknare efter att du har skapat det.
 
 Ett filter kan testa de här fälten, och vilket attribut som helst med **Custom Attribute...**:
 
@@ -131,7 +131,7 @@ Hash:   Payment failed for [HASHED:8c87b489]
 
 ## Se vad ett filter kasserade
 
-Listan **Drop-filter** visar för varje filter dess **Dropped**-räknare och när det senast kasserade något, **Last Dropped**. **Nothing dropped yet** betyder att det aldrig har matchat. Ett filters egen sida visar samma sak under **Aktivitet**, uppdaterat inom en minut efter en kassering. Dess kort **Filtervillkor** visar vad det väljer ut, och där kan du ändra villkoren.
+Listan **Drop-filter** visar för varje filter dess **Kasserade**-räknare och när det senast kasserade något, **Last Dropped**. **Nothing dropped yet** betyder att det aldrig har matchat. Ett filters egen sida visar samma sak under **Aktivitet**, uppdaterat inom en minut efter en kassering. Dess kort **Filtervillkor** visar vad det väljer ut, och där kan du ändra villkoren.
 
 ## Felsökning
 
@@ -140,7 +140,7 @@ Listan **Drop-filter** visar för varje filter dess **Dropped**-räknare och nä
 :::
 
 :::details Loggar som jag väntade mig saknas
-Titta på **Dropped**-räknaren och tiden för **Last Dropped** för varje drop-filter. Stäng av **Aktiverad** på det du misstänker, så kommer nästa loggar in igen.
+Titta på **Kasserade**-räknaren och tiden för **Last Dropped** för varje drop-filter. Stäng av **Aktiverad** på det du misstänker, så kommer nästa loggar in igen.
 :::
 
 :::details En anpassad scrub-regel säger Rensar ingenting

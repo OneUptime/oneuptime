@@ -50,7 +50,7 @@ Eine Signatur mit weniger als einem Tag Restlaufzeit gilt bereits als unterbroch
 :::steps
 ### Einen neuen Monitor beginnen
 
-Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **DNSSEC** unter **DNS Monitoring**.
+Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **DNSSEC** unter **DNS-Überwachung**.
 
 ### Ihn benennen
 

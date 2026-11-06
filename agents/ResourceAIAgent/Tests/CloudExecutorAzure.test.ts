@@ -1200,12 +1200,97 @@ describe("Azure: identity and posture", () => {
         azureSubscriptionName: "Shop production",
         azureSubscriptionState: "Enabled",
         azureIdentity: IDENTITY,
+        // The fake's token is no JWT: it names no object id.
+        azurePrincipalId: null,
       },
       protectedTargets: [
         `/subscriptions/${SUB}/resourcegroups/oneuptime-ai-agent/*`,
         `/subscriptions/${SUB}/resourcegroups/*/providers/microsoft.app/containerapps/oneuptime-ai-agent-2`,
       ],
     });
+  });
+
+  /*
+   * The Activity Log names the caller of every change the agent makes by
+   * its managed identity's object id: the agent reports it, read from its
+   * own token's oid claim, so OneUptime can mark those changes as
+   * OneUptime AI's on the subscription's Changes page.
+   */
+  function jwtWith(claims: Record<string, unknown>): string {
+    const part: (value: Record<string, unknown>) => string = (
+      value: Record<string, unknown>,
+    ): string => {
+      return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+    };
+
+    return `${part({ alg: "RS256", typ: "JWT" })}.${part(claims)}.c2lnbmF0dXJl`;
+  }
+
+  function readablySubscribed(h: CloudHarness): void {
+    h.arm.handle("GET", `/subscriptions/${SUB}`, (): FakeAnswer => {
+      return jsonReply({
+        subscriptionId: SUB,
+        displayName: "Shop production",
+        state: "Enabled",
+      });
+    });
+  }
+
+  test("reports its managed identity's object id, from its token's oid claim, lowercased", async () => {
+    const h: CloudHarness = cloudHarness("azure");
+
+    h.arm.token = jwtWith({
+      aud: "https://management.azure.com/",
+      oid: "9F3C2B1A-0D4E-4F5A-8B6C-7D8E9F0A1B2C",
+      idtyp: "app",
+    });
+    readablySubscribed(h);
+
+    const probe: ResourcePostureProbe = await h.executor.probePosture();
+
+    assert.strictEqual(
+      probe.details?.["azurePrincipalId"],
+      "9f3c2b1a-0d4e-4f5a-8b6c-7d8e9f0a1b2c",
+    );
+  });
+
+  test("reports no object id when its token names none, names something that is no id, or cannot be read", async () => {
+    for (const token of [
+      jwtWith({ aud: "https://management.azure.com/" }),
+      jwtWith({ oid: "not-an-object-id" }),
+      jwtWith({ oid: 42 }),
+      "header.not-json.signature",
+      "no-dots-at-all",
+    ]) {
+      const h: CloudHarness = cloudHarness("azure");
+
+      h.arm.token = token;
+      readablySubscribed(h);
+
+      const probe: ResourcePostureProbe = await h.executor.probePosture();
+
+      assert.strictEqual(probe.details?.["azurePrincipalId"], null, token);
+    }
+  });
+
+  test("reports its object id even when its subscription cannot be read: who it is does not depend on what it may read", async () => {
+    const h: CloudHarness = cloudHarness("azure");
+
+    h.arm.token = jwtWith({ oid: "9f3c2b1a-0d4e-4f5a-8b6c-7d8e9f0a1b2c" });
+    h.arm.handle("GET", `/subscriptions/${SUB}`, (): FakeAnswer => {
+      return jsonReply(
+        { error: { code: "SubscriptionNotFound", message: "not found" } },
+        404,
+      );
+    });
+
+    const probe: ResourcePostureProbe = await h.executor.probePosture();
+
+    assert.strictEqual(probe.reachable, false);
+    assert.strictEqual(
+      probe.details?.["azurePrincipalId"],
+      "9f3c2b1a-0d4e-4f5a-8b6c-7d8e9f0a1b2c",
+    );
   });
 
   test("unreachable when the subscription cannot be read", async () => {

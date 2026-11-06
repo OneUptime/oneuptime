@@ -7,7 +7,15 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
+import { loadCodeHighlighter } from "../../../../UI/Components/CodeEditor/CodeEditorHighlight";
 import YamlEditor, {
   ComponentProps,
   YAML_DEFAULT_HINT,
@@ -93,6 +101,16 @@ const Harness: (props: HarnessProps) => ReactElement = (
 afterEach(() => {
   cleanup();
   jest.useRealTimers();
+});
+
+/*
+ * The grammars are there before the first editor is drawn, as on any page
+ * once an editor has loaded them (CodeEditorHighlight's loadCodeHighlighter):
+ * tokens are coloured from the first frame. CodeEditorHighlightLoading.test.tsx
+ * draws an editor before they arrive.
+ */
+beforeAll(async () => {
+  await loadCodeHighlighter();
 });
 
 describe("YamlEditor — it is a YAML editor, not a rich text editor", () => {

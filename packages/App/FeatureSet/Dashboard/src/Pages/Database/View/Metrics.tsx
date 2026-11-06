@@ -33,12 +33,14 @@ import {
   getDatabaseMetricRowUnit,
   getDatabaseMetricsRangeFromSearch,
 } from "../Utils/DatabaseServerTelemetryQueries";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The caption under a row the catalog does not know: the list's generic
  * value, the average of every series of the metric per bucket.
  */
-export const DATABASE_METRIC_LIST_DEFAULT_CAPTION: string = "average of series";
+export const DATABASE_METRIC_LIST_DEFAULT_CAPTION: string =
+  translationKey("average of series");
 
 /** The catalog list values as the metric list's row overrides. */
 export function toMetricRowValueOverrides(

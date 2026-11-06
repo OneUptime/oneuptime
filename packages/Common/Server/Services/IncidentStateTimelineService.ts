@@ -1476,6 +1476,12 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
             },
             props: {
               isRoot: true,
+              /*
+               * Its own hooks would work out the incident's metrics and
+               * measurements now, with the entry still there: the delete
+               * works them out once it is gone (onDeleteSuccess).
+               */
+              ignoreHooks: true,
             },
           });
           logger.debug("This is the last state.", {
@@ -1493,6 +1499,8 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
             },
             props: {
               isRoot: true,
+              // Worked out once the entry is gone, as above.
+              ignoreHooks: true,
             },
           });
 
@@ -1564,6 +1572,14 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
           incidentId: incidentId?.toString(),
         } as LogAttributes);
       });
+
+      /*
+       * A deleted entry removes the point some measurement anchors resolved
+       * to - time to acknowledge, time to resolve. Worked out once, from
+       * what is left: the neighbour that closed the gap was moved without
+       * its hooks (onBeforeDelete), and deleting the first entry moves none.
+       */
+      this.recomputeMeasurementsForIncidentIds([incidentId]);
     }
 
     return onDelete;

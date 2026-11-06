@@ -307,7 +307,8 @@
       "forgotPassword": "Esqueceu a senha?",
       "submit": "Entrar",
       "or": "ou",
-      "logInWithSso": "Entrar com SSO"
+      "logInWithSso": "Entrar com SSO",
+      "emailSignInLink": "Enviar um link de acesso por e-mail"
     },
     "sso": {
       "title": "Entrar com SSO",
@@ -330,6 +331,23 @@
       "success": "Sua senha foi atualizada. Por favor, faça login.",
       "submit": "Redefinir senha",
       "knowPassword": "Sabe sua senha?"
+    },
+    "magicLink": {
+      "title": "Entrar com um link",
+      "description": "Informe seu e-mail e enviaremos um link para você entrar em {{statusPageName}}. Não é preciso senha.",
+      "submit": "Enviar link de acesso",
+      "sentTitle": "Verifique seu e-mail",
+      "sent": "Se {{email}} puder entrar em {{statusPageName}}, um link de acesso está a caminho. Ele funciona uma vez e expira em {{minutes}} minutos.",
+      "notReceived": "Não está na caixa de entrada? Verifique a pasta de spam ou peça à equipe da página de status para adicionar você.",
+      "sendAnother": "Enviar outro link"
+    },
+    "magicLinkLogin": {
+      "title": "Entrar em {{statusPageName}}",
+      "description": "Use o botão abaixo para concluir o acesso.",
+      "submit": "Entrar",
+      "noLink": "Esta página precisa do link de acesso do seu e-mail. Abra o link novamente ou solicite um novo.",
+      "turnedOff": "Os links de acesso estão desativados para esta página de status. Entre com seu e-mail e senha.",
+      "requestNewLink": "Enviar um novo link por e-mail"
     },
     "masterPassword": {
       "prompt": "Digite a senha para ver esta página de status.",

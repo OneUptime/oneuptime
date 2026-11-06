@@ -180,7 +180,7 @@ Hvert element i `monitor_steps` er én ting som skal sjekkes:
 
 ### Innstillinger for hver monitortype
 
-Monitortyper med mer å angi enn en adresse har innstillingene sine (en loggspørring, en databasetilkobling, en klynge å overvåke) i et eget attributt, som rå JSON skrevet med `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` og `probe_status_monitor`.
+Monitortyper med mer å angi enn en adresse har innstillingene sine (en loggspørring, en databasetilkobling, en klynge å overvåke) i et eget attributt, som rå JSON skrevet med `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` og `probe_status_monitor`.
 
 JSON-en deres er den samme som dashbordets, med nøkler i camelCase. En ID i den skrives slik API-et skriver den: `{ _type = "ObjectID", value = "..." }`. En Logs-monitor som teller feil fra én tjeneste:
 
@@ -333,6 +333,7 @@ Et filter kan også bedømme et tidsvindu i stedet for den siste sjekken: angi `
 | Serverprosesser | `Is Executing`, `Is Not Executing` |
 | Skript | `Evaluates To True` |
 | Avvik, for metrikker, logger og spor | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Prognoser, for metrikker | `Forecast Above`, `Forecast Below` (tidshorisonten er `forecast.horizonInHours` i `metric_monitor_options`: en uke hvis den utelates) |
 
 Et filter som stemmer når et SSL-sertifikat utløper om 14 dager eller mindre:
 

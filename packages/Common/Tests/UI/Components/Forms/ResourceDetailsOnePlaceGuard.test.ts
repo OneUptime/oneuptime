@@ -18,6 +18,7 @@ import DockerSwarmCluster from "../../../../Models/DatabaseModels/DockerSwarmClu
 import Host from "../../../../Models/DatabaseModels/Host";
 import IoTFleet from "../../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
+import OpenStackCloud from "../../../../Models/DatabaseModels/OpenStackCloud";
 import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../../Models/DatabaseModels/ProxmoxCluster";
 import RumApplication from "../../../../Models/DatabaseModels/RumApplication";
@@ -537,6 +538,7 @@ const MODEL_TYPES: Record<string, { new (): BaseModel }> = {
   CloudAccount: CloudAccount,
   CephCluster: CephCluster,
   ProxmoxCluster: ProxmoxCluster,
+  OpenStackCloud: OpenStackCloud,
   VMwareVCenter: VMwareVCenter,
   StorageArray: StorageArray,
   DockerSwarmCluster: DockerSwarmCluster,
@@ -705,6 +707,12 @@ export const DISCOVERED_RESOURCES: Array<DiscoveredResource> = [
     "Proxmox",
     "Index.tsx",
     "PROXMOX_CLUSTER_VIEW_SETTINGS",
+  ),
+  matchedOnName(
+    "OpenStackCloud",
+    "OpenStack",
+    null,
+    "OPENSTACK_CLOUD_VIEW_SETTINGS",
   ),
   matchedOnName(
     "VMwareVCenter",

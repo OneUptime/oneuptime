@@ -159,6 +159,11 @@ const PROSE: Record<string, Array<string>> = {
    * parsing rules: the words, not the screens that share them.
    */
   [PIPELINES]: ["filter", "Keys", "Limits:"],
+  /*
+   * "Attribute **keys** are matched case-insensitively": the word, not
+   * the unit a key-value store's key count is drawn with.
+   */
+  [SEARCH]: ["keys"],
   // "**Ruby** and **Rust** work like Go": the languages.
   [PROFILES]: ["Ruby", "Rust"],
 };
@@ -170,7 +175,7 @@ const PROSE: Record<string, Array<string>> = {
  * until it is put in SHOWN_IN_ENGLISH, PERMISSIONS or here.
  */
 const PROSE_LEADS: Record<string, Array<string>> = {
-  [SEARCH]: ["every filter must match", "spaces", "not", "between", "keys"],
+  [SEARCH]: ["every filter must match", "spaces", "not", "between"],
   [ZOOM]: [
     "Drag across the spike",
     "Double-click any chart",

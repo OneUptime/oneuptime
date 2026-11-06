@@ -34,7 +34,7 @@ flowchart TB
 ## Innan du börjar
 
 - **Få dina enheter att skicka data.** [Guiden för IoT-enheter](/docs/telemetry/iot-devices) visar hur du skickar mätvärden med en OpenTelemetry-SDK eller -Collector, eller över MQTT.
-- **Kontrollera att flottan är registrerad.** Den visas under **Produkter → Infrastruktur → IoT → All Fleets**, med namnet från det `iot.fleet.name` som enheterna skickar.
+- **Kontrollera att flottan är registrerad.** Den visas under **Produkter → Infrastruktur → IoT → Alla flottor**, med namnet från det `iot.fleet.name` som enheterna skickar.
 - **Registrera de enheter du förväntar dig**, under flottans **Enhetsregister**, för att få veta när en blir tyst: se [Offlinedetektering](#offlinedetektering).
 
 ## Skapa en IoT-enhetsmonitor
@@ -50,7 +50,7 @@ Klicka på **Fler monitortyper** under **Monitortyp** och välj **IoT-enhet** un
 
 ### Välj flottan
 
-Välj flottan i **IoT Fleet** under **IoT Monitor Configuration**. Varje flotta som har skickat data finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till IoT-flotta** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
+Välj flottan i **IoT-flotta** under **IoT Monitor Configuration**. Varje flotta som har skickat data finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till IoT-flotta** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
 
 ### Välj vad som ska bevakas
 
@@ -76,7 +76,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 | Fält | Flik | Vad det gör |
 | --- | --- | --- |
-| **IoT Fleet** | Alla | Krävs. Begränsar varje fråga till `resource.iot.fleet.name`. |
+| **IoT-flotta** | Alla | Krävs. Begränsar varje fråga till `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avancerad | Valfritt. En enhet, via `device.id`, som `sensor-001`. |
 | **Enhetstyp** | Custom Metric, Avancerad | Valfritt. Enheterna som rapporterar denna `iot.device.type`, som `sensor` eller `gateway`. |
 | **IoT Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
@@ -146,7 +146,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | **Filtertyp** | Alltid **Metric Value**, den enda kontrollen som den här monitorn erbjuder. |
 | **Select Metric Variable** | Frågan eller formeln som ska kontrolleras, efter variabelnamnet. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
-| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. |
+| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. **Väntas stiga över** och **Väntas sjunka under** matchar när mätvärdets trend i fönstret har passerat tröskeln vid slutet av **Tidshorisont**. |
 | **Tröskel** | Värdet som det jämförs med. En enhetslista står bredvid när mätvärdet har en enhet. Visas inte för anomalivillkor. |
 | **Känslighet** | Bara anomalivillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Bara anomalivillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |

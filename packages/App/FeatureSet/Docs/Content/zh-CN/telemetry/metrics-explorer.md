@@ -112,15 +112,16 @@ flowchart TB
 
 ## 用 AI 改进指标并添加缺失的指标
 
-OneUptime 每小时在你的服务最近一小时发送的指标中查找记录的值过多或直方图桶不合适的指标，以及没有发送任何指标的繁忙服务，并将发现连同证据记录为 AI 洞察。随后 OneUptime AI 会调查每一条，并打开一个修复它的拉取请求。绝不会自动合并：每个拉取请求都由你的团队审查。
+OneUptime 每小时在你的服务最近一小时发送的指标中查找记录的值过多或直方图桶不合适的指标，以及没有为其请求发送任何指标的繁忙服务，并将发现连同证据记录为 AI 洞察。随后 OneUptime AI 会调查每一条，并打开一个修复它的拉取请求。绝不会自动合并：每个拉取请求都由你的团队审查。
 
-OneUptime 会仔细读取这一小时内你的服务发送数据点最多的 10 个指标（每个至少有 1,000 个数据点），并记录三类发现：
+OneUptime 会仔细读取这一小时内你的服务发送数据点最多的 10 个指标（每个至少有 1,000 个数据点），并记录四类发现：
 
 | 发现 | OneUptime 何时记录 | 拉取请求 |
 | --- | --- | --- |
 | **高基数** | 代码在其中某个指标上设置的属性在这一小时内取了 1,000 个或更多的值，例如用户 ID 或完整的 URL，因此每个值都成为单独的一条序列。或者某个服务的 50 个或更多指标名称是同一个名称，只是其中的 ID 不同。 | 不再在该指标上记录这个值，或从其名称中去掉 ID。 |
 | **不合适的直方图桶** | 其中某个指标是一个记录了 1,000 个或更多值的直方图，其中 90% 或更多的值落在最小的桶里或高于最大的桶，或者它根本没有桶，因此无法区分它的百分位数。 | 为直方图设置与其值相符的桶，或修正它的单位。 |
 | **缺失的指标** | 某个服务在这一小时内发送了 1,000 个或更多 span，却从未发送过指标。 | 将其最繁忙操作的请求数、错误数和持续时间添加为指标。 |
+| **缺失的请求指标** | 某个服务在这一小时内发送了 1,000 个或更多 span，也发送了指标，却从未为它处理的 HTTP 请求、RPC 调用或消息发送过请求指标，例如 `http.server.request.duration`。 | 用其框架的 OpenTelemetry 插桩添加这些请求指标。 |
 
 发现从不存储属性的值：只存储属性的名称、它取了多少个值以及这些值的样子。
 
@@ -144,9 +145,34 @@ OneUptime AI 每天（UTC）最多自行打开 5 个拉取请求，每条发现�
 
 ### 查看它做了什么
 
-- **指标 → 人工智能 → 洞察** 列出 OneUptime 发现的内容，每条发现都附有证据和 **在指标中打开**，它会打开这条发现所涉及服务的指标，时间为发现当时那一小时。没有指标的服务会改为提供 **在追踪中打开**：即它的指标本应衡量的那些 span。
+- **指标 → 人工智能 → 洞察** 列出 OneUptime 发现的内容，每条发现都附有证据和 **在指标中打开**，它会打开这条发现所涉及服务的指标，时间为发现当时那一小时。没有指标或没有请求指标的服务会改为提供 **在追踪中打开**：即它的指标本应衡量的那些 span。
 - **指标 → 人工智能 → 日志** 按最新优先列出每次调查和每个拉取请求，以及各自的状态和每次调查的发现。
 - 在“代码”中，任务会说明是 OneUptime 启动的，并附有指向其发现的链接，拉取请求则会说明打开它的原因。
+
+### 无需更改代码即可记录请求指标
+
+**缺失的指标** 或 **缺失的请求指标** 发现会在 **用 AI 修复** 旁边提供 **无需更改代码**：你的追踪经过的 OpenTelemetry Collector 会根据追踪记录请求指标。**显示 Collector 步骤** 会给出要添加的行，即把 `spanmetrics` 作为 traces 管道的 exporter 和 metrics 管道的 receiver：
+
+```yaml title="otel-collector-config.yaml"
+connectors:
+  spanmetrics:
+    histogram:
+      unit: s
+    aggregation_temporality: AGGREGATION_TEMPORALITY_DELTA
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp, spanmetrics]
+    metrics:
+      receivers: [otlp, spanmetrics]
+      processors: [batch]
+      exporters: [otlphttp]
+```
+
+重启 Collector。此后，追踪经过它的每个服务都会按操作、span 类型和状态发送 `traces.span.metrics.calls` 和 `traces.span.metrics.duration`（以秒为单位），OneUptime 也不会再发现这个问题，因此请解决这条发现。连接器会统计 Collector 收到的每个 span，包括采样器之后丢弃的那些。直接发送到 OneUptime 的服务需要先在前面部署一个 Collector：参见 [通过 OpenTelemetry Collector 发送](/docs/telemetry/open-telemetry#通过-opentelemetry-collector-发送)。
 
 ## 指标到达时会发生什么
 

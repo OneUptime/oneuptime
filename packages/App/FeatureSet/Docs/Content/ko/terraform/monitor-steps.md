@@ -180,7 +180,7 @@ resource "oneuptime_monitor" "website" {
 
 ### 모니터 유형별 설정
 
-주소 말고도 설정할 것이 있는 모니터 유형은 그 설정(로그 쿼리, 데이터베이스 연결, 감시할 클러스터 등)을 자체 속성에 `jsonencode()`로 쓴 원시 JSON으로 둡니다: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor`, `probe_status_monitor`.
+주소 말고도 설정할 것이 있는 모니터 유형은 그 설정(로그 쿼리, 데이터베이스 연결, 감시할 클러스터 등)을 자체 속성에 `jsonencode()`로 쓴 원시 JSON으로 둡니다: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor`, `probe_status_monitor`.
 
 그 JSON은 대시보드의 것과 같으며 키는 camelCase입니다. 그 안의 ID는 API가 쓰는 대로 `{ _type = "ObjectID", value = "..." }`로 씁니다. 서비스 하나의 오류를 세는 Logs 모니터의 예입니다.
 
@@ -333,6 +333,7 @@ criteria = [
 | 서버 프로세스 | `Is Executing`, `Is Not Executing` |
 | 스크립트 | `Evaluates To True` |
 | 이상 징후(메트릭, 로그, 트레이스용) | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| 예측(메트릭용) | `Forecast Above`, `Forecast Below` (예측 기간은 `forecast.horizonInHours`이며 `metric_monitor_options`에 씁니다. 생략하면 일주일) |
 
 SSL 인증서가 14일 이내에 만료될 때 일치하는 필터:
 

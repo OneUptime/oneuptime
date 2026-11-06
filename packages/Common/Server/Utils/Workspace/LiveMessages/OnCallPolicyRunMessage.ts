@@ -19,7 +19,10 @@ import {
   ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
   isOnCallPolicyRunEverybodyPassedOnMessage,
 } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
-import { isOnCallPagePassedOnSkipTimelineMessage } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
+  isOnCallLevelSkippedByEscalationMessage,
+  isOnCallPagePassedOnSkipTimelineMessage,
+} from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
   isOnCallPolicyRunEndedWhileWaiting,
@@ -100,6 +103,7 @@ const METHOD_LABELS: Array<{
   { field: "userEmailId", label: "email" },
   { field: "userSlackId", label: "Slack" },
   { field: "userMicrosoftTeamsId", label: "Microsoft Teams" },
+  { field: "userMattermostId", label: "Mattermost" },
   { field: "userWebhookId", label: "webhook" },
   { field: "customNotificationChannelId", label: "custom channel" },
 ];
@@ -886,6 +890,7 @@ export default class OnCallPolicyRunMessage {
           userEmailId: true,
           userSlackId: true,
           userMicrosoftTeamsId: true,
+          userMattermostId: true,
           userWebhookId: true,
           customNotificationChannelId: true,
         },
@@ -1358,6 +1363,16 @@ export default class OnCallPolicyRunMessage {
       }
 
       if (status !== OnCallDutyExecutionLogTimelineStatus.Skipped) {
+        continue;
+      }
+
+      /*
+       * A level the person escalating skipped for a later one: it paged
+       * nobody on purpose. It is no level that "reached nobody" - no alarm,
+       * no fix to ask for - and the message, which names the level the run
+       * is on, has nothing to say of it.
+       */
+      if (isOnCallLevelSkippedByEscalationMessage(step.statusMessage)) {
         continue;
       }
 

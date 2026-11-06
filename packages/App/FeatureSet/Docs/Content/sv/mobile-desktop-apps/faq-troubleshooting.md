@@ -85,7 +85,7 @@ flowchart TB
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
-Expo anmäler en telefon borta när appen har tagits bort från den, eller när dess push-token inte längre är giltig. Telefonen tas inte bort: **Användarinställningar → Aviseringsmetoder** visar den på fliken **Push Notifications** som **Tar inte emot aviseringar**, och jourtidslinjen för ett larm som inte nådde den säger varför. Dina andra telefoner och aviseringsmetoder larmas som vanligt.
+Expo anmäler en telefon borta när appen har tagits bort från den, eller när dess push-token inte längre är giltig. Telefonen tas inte bort: **Användarinställningar → Aviseringsmetoder** visar den på fliken **Push-aviseringar** som **Tar inte emot aviseringar**, och jourtidslinjen för ett larm som inte nådde den säger varför. Dina andra telefoner och aviseringsmetoder larmas som vanligt.
 
 Appen registrerar telefonen varje gång den startar, när du loggar in och när du går tillbaka till den, högst en gång var femte minut. Registreringen ber Expo om push-token igen, vilket förnyar den, och telefonen får larm igen med de regler den hade.
 
@@ -124,7 +124,7 @@ Passkeys kräver att adressen till ditt OneUptime börjar med `https://`, och en
 
 :::details Inga aviseringar på telefonen
 - Kontrollera att telefonen tillåter aviseringar från OneUptime On-Call, och att Stör ej eller ett Fokus inte håller tillbaka dem.
-- Kontrollera under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**, att telefonen finns i listan, och skicka en **Testavisering** till den.
+- Kontrollera under **Användarinställningar → Aviseringsmetoder**, på fliken **Push-aviseringar**, att telefonen finns i listan, och skicka en **Testavisering** till den.
 - Är den markerad som **Tar inte emot aviseringar**, öppnar du appen medan du är inloggad: se [När en telefon måste registreras igen](#när-en-telefon-måste-registreras-igen).
 - Kontrollera dina jourregler under **Användarinställningar → Jourregler**: de avgör vilka larm som når vilken metod.
 - På ett OneUptime i egen drift kontrollerar du att servern når sitt push-relä: se [Push-aviseringar](/docs/self-hosted/push-notifications#nätverksåtkomst).
@@ -145,7 +145,7 @@ Installera från en sida i instrumentpanelen efter inloggningen, över `https://
 :::
 
 :::details Inga skrivbordsaviseringar
-Registrera webbläsaren under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**, med **Registrera enhet**, tillåt aviseringar när du tillfrågas, och kontrollera datorns egna aviseringsinställningar. Ett OneUptime i egen drift behöver sina VAPID-nycklar för webbläsaraviseringar.
+Registrera webbläsaren under **Användarinställningar → Aviseringsmetoder**, på fliken **Push-aviseringar**, med **Registrera enhet**, tillåt aviseringar när du tillfrågas, och kontrollera datorns egna aviseringsinställningar. Ett OneUptime i egen drift behöver sina VAPID-nycklar för webbläsaraviseringar.
 :::
 
 ## Få hjälp

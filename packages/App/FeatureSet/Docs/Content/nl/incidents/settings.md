@@ -603,7 +603,7 @@ Groeperings-, SLA-, herinnerings- en AI-regels werken ook op het nieuwe incident
 > [!IMPORTANT]
 > **De betekenis van volgorde is niet overal gelijk.** Groeperingsregels, SLA-regels en Reminder Rules worden op volgorde geëvalueerd, en hun lijsten worden door slepen geordend: een nieuwe regel wordt aan het eind toegevoegd. Bereikbaarheidsregels niet — elke overeenkomende regel gaat af. Ga er niet van uit dat één model voor alle negen geldt.
 
-De pagina's **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben tabbladen — een tabblad **Incident Rules** en een tabblad **Episode Rules**, elk met een eigen tabel. Stel het tabblad **Incident Rules** in, tenzij je specifiek episodes bedoelt. **Groeperingsregels**, **Runbook-regels**, **AI-regels**, **SLA-regels** en **Herinneringsregels** zijn enkele tabellen.
+De pagina's **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben tabbladen — een tabblad **Incidentregels** en een tabblad **Episode Rules**, elk met een eigen tabel. Stel het tabblad **Incidentregels** in, tenzij je specifiek episodes bedoelt. **Groeperingsregels**, **Runbook-regels**, **AI-regels**, **SLA-regels** en **Herinneringsregels** zijn enkele tabellen.
 
 Eigenaars-, label- en privacyregels werken alleen op incidenten en episodes die worden aangemaakt nadat de regel bestaat. Om er een toe te passen op incidenten die er al zijn, gebruik je **Nu uitvoeren** op de rij van de regel, op haar eigen pagina, of vanuit de bulkacties van de tabel — zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now). Bereikbaarheids-, runbook-, AI-, groeperings-, SLA- en herinneringsregels kunnen niet op bestaande incidenten worden uitgevoerd.
 
@@ -649,7 +649,7 @@ Regels die werden opgeslagen voordat het formulier om eigenaren vroeg, kunnen no
 
 ## Bereikbaarheidsregels voor incidenten
 
-**Incidenten → Regels → Bereikbaarheidsregels** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is waar je het oproepen automatisch maakt. De kaart, **Bereikbaarheidsregels incident**, zegt wat ze doen: automatisch bereikbaarheidsbeleid oproepen voor nieuwe incidenten die overeenkomen. De pagina heeft twee tabbladen: **Incident Rules** en **Episode Rules**.
+**Incidenten → Regels → Bereikbaarheidsregels** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is waar je het oproepen automatisch maakt. De kaart, **Bereikbaarheidsregels incident**, zegt wat ze doen: automatisch bereikbaarheidsbeleid oproepen voor nieuwe incidenten die overeenkomen. De pagina heeft twee tabbladen: **Incidentregels** en **Episode Rules**.
 
 Het aanmaakformulier heeft twee stappen:
 

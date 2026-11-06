@@ -20,6 +20,7 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { actionTitleText, actionLineText } from "../../../Helpers/AIActionText";
 
 /*
  * add_alert_affected_resources, the alert twin of
@@ -189,7 +190,9 @@ describe("add_alert_affected_resources", () => {
         { resourceType: "DockerHost", resourceId: DOCKER_HOST_ID },
       ],
     });
-    expect(prepared.description).toBe('Adds Docker host "web-1".');
+    expect(actionLineText(prepared.description)).toBe(
+      'Adds Docker host "web-1".',
+    );
   });
 
   test("one linked already is not written again", async () => {
@@ -301,9 +304,11 @@ describe("add_alert_affected_resources", () => {
       );
 
     expect(prepared.arguments["alertId"]).toBe(ALERT_ID);
-    expect(prepared.title).toBe("Link alert ALR-7 to affected resources");
-    expect(prepared.title).not.toContain(ALERT_ID);
-    expect(prepared.description).toBe('Adds host "test01".');
+    expect(actionTitleText(prepared.title)).toBe(
+      "Link alert ALR-7 to affected resources",
+    );
+    expect(actionTitleText(prepared.title)).not.toContain(ALERT_ID);
+    expect(actionLineText(prepared.description)).toBe('Adds host "test01".');
     const args: { id: ObjectID; props: unknown } = read.mock.calls[0]![0] as {
       id: ObjectID;
       props: unknown;
@@ -330,16 +335,18 @@ describe("add_alert_affected_resources", () => {
     };
 
     expect(
-      (await AddAlertAffectedResourcesTool.prepareMutation!(call, context()))
-        .title,
+      actionTitleText(
+        (await AddAlertAffectedResourcesTool.prepareMutation!(call, context()))
+          .title,
+      ),
     ).toBe("Link alert #7 to affected resources");
 
     for (let attempt: number = 0; attempt < 2; attempt++) {
       const prepared: PreparedMutation =
         await AddAlertAffectedResourcesTool.prepareMutation!(call, context());
 
-      expect(prepared.title).toBeUndefined();
-      expect(prepared.description).toBe('Adds host "test01".');
+      expect(actionTitleText(prepared.title)).toBeUndefined();
+      expect(actionLineText(prepared.description)).toBe('Adds host "test01".');
     }
   });
 
@@ -348,11 +355,13 @@ describe("add_alert_affected_resources", () => {
     expect(AddAlertAffectedResourcesTool.requiredPermissions).toEqual(
       new Alert().getUpdatePermissions(),
     );
-    expect(AddAlertAffectedResourcesTool.buildActionTitle!({})).toBe(
-      "Link this alert to affected resources",
-    );
     expect(
-      AddAlertAffectedResourcesTool.buildActionTitle!({ alertId: ALERT_ID }),
+      actionTitleText(AddAlertAffectedResourcesTool.buildActionTitle!({})),
+    ).toBe("Link this alert to affected resources");
+    expect(
+      actionTitleText(
+        AddAlertAffectedResourcesTool.buildActionTitle!({ alertId: ALERT_ID }),
+      ),
     ).toBe(`Link alert ${ALERT_ID} to affected resources`);
   });
 });

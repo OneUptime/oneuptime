@@ -603,7 +603,7 @@ Anche le regole di raggruppamento, SLA, dei promemoria e le regole IA agiscono s
 > [!IMPORTANT]
 > **La semantica dell'ordine non è uniforme.** Le regole di raggruppamento, le regole SLA e le Reminder Rules vengono valutate in ordine, e i loro elenchi si ordinano trascinando: una nuova regola viene aggiunta in fondo. Le regole di reperibilità no — scatta ogni regola corrispondente. Non date per scontato che un unico modello valga per tutte e nove.
 
-Le pagine **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno delle schede — una scheda **Incident Rules** e una scheda **Episode Rules**, ciascuna con la propria tabella. Configurate la scheda **Incident Rules** a meno che non intendiate specificamente gli episodi. **Regole di raggruppamento**, **Regole di runbook**, **Regole IA**, **Regole SLA** e **Regole dei promemoria** sono tabelle singole.
+Le pagine **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno delle schede — una scheda **Regole degli incidenti** e una scheda **Episode Rules**, ciascuna con la propria tabella. Configurate la scheda **Regole degli incidenti** a meno che non intendiate specificamente gli episodi. **Regole di raggruppamento**, **Regole di runbook**, **Regole IA**, **Regole SLA** e **Regole dei promemoria** sono tabelle singole.
 
 Le regole del proprietario, delle etichette e di privacy agiscono solo sugli incidenti e sugli episodi creati dopo che la regola esiste. Per applicarne una agli incidenti già presenti, usate **Esegui ora** sulla riga della regola, nella sua pagina, oppure dalle azioni di massa della tabella — vedete [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now). Le regole di reperibilità e di runbook, le regole IA e le regole di raggruppamento, SLA e dei promemoria non possono essere eseguite su incidenti esistenti.
 
@@ -649,7 +649,7 @@ Le regole salvate prima che il modulo chiedesse i proprietari possono avere anco
 
 ## Regole di reperibilità degli incidenti
 
-**Incidenti → Regole → Regole di reperibilità** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) è dove rendete automatici gli avvisi. La scheda, **Regole di reperibilità incidente**, dice cosa fanno: attivare automaticamente le policy di reperibilità per i nuovi incidenti che corrispondono. La pagina ha due schede: **Incident Rules** ed **Episode Rules**.
+**Incidenti → Regole → Regole di reperibilità** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) è dove rendete automatici gli avvisi. La scheda, **Regole di reperibilità incidente**, dice cosa fanno: attivare automaticamente le policy di reperibilità per i nuovi incidenti che corrispondono. La pagina ha due schede: **Regole degli incidenti** ed **Episode Rules**.
 
 Il modulo di creazione ha due passaggi:
 

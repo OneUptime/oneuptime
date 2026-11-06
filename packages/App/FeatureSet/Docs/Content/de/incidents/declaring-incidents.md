@@ -45,7 +45,7 @@ Nur der erste Schritt hat Pflichtfelder, dazu jedes benutzerdefinierte Feld, das
 **Von der Seite einer Ressource aus.** **Vorfall melden** auf dem Reiter **Vorfälle** eines Monitors, eines Hosts, eines Dienstes, eines Clusters oder der meisten anderen Ressourcen öffnet dasselbe Formular, in dem diese Ressource unter **Betroffene Ressourcen** schon ausgewählt ist – ein Titel und ein Schweregrad genügen dann, und der Vorfall erscheint auf dem Reiter, von dem Sie kamen.
 
 :::details Welche Ressourcenseiten es anbieten und was sie auswählen
-**Vorfall melden** auf dem Reiter **Vorfälle** eines Monitors, eines Hosts, eines Netzwerkgeräts, eines Kubernetes-, Proxmox-, Ceph- oder Docker-Swarm-Clusters, eines Docker- oder Podman-Hosts, eines vCenters, eines Speicher-Arrays, einer IoT-Flotte, einer Datenbank oder eines Dienstes öffnet denselben Assistenten mit dieser Ressource schon unter **Betroffene Ressourcen** ausgewählt (ein Monitor unter **Monitore**, alles andere unter **Andere betroffene Ressourcen**), vor allem, was eine Vorlage hinzufügt. **Aus Vorlage erstellen** auf diesem Reiter behält die Ressource ebenfalls. Die Brotkrümel führen über den Reiter der Ressource zurück, und nach dem Melden landen Sie – wie aus der Vorfallliste – beim neuen Vorfall.
+**Vorfall melden** auf dem Reiter **Vorfälle** eines Monitors, eines Hosts, eines Netzwerkgeräts, eines Kubernetes-, Proxmox-, Ceph- oder Docker-Swarm-Clusters, eines Docker- oder Podman-Hosts, eines vCenters, einer OpenStack-Cloud, eines Speicher-Arrays, einer IoT-Flotte, einer Datenbank oder eines Dienstes öffnet denselben Assistenten mit dieser Ressource schon unter **Betroffene Ressourcen** ausgewählt (ein Monitor unter **Monitore**, alles andere unter **Andere betroffene Ressourcen**), vor allem, was eine Vorlage hinzufügt. **Aus Vorlage erstellen** auf diesem Reiter behält die Ressource ebenfalls. Die Brotkrümel führen über den Reiter der Ressource zurück, und nach dem Melden landen Sie – wie aus der Vorfallliste – beim neuen Vorfall.
 
 Der Reiter **Vorfälle** eines Inventarelements wählt den Host, den Dienst oder den Kubernetes-Cluster, auf den das Element verweist, und die Brotkrümel führen über den Reiter dieser Ressource zurück. **Warnung erstellen** auf dem Reiter **Warnungen** einer Ressource funktioniert genauso: Von einem Monitor aus füllt es das Feld **Überwachung** der Warnung, von allem anderen aus **Andere betroffene Ressourcen**.
 
@@ -284,7 +284,7 @@ Ab da ist der Vorfall live: Er zählt zum Badge **Aktive Vorfälle** im Seitenme
 
 ### Bereits bestätigt oder behoben gemeldet
 
-Ein späterer **Anfangsstatus** – im Formular, über den **Anfänglicher Vorfallstatus** einer Vorlage oder mit `currentIncidentStateId` aus der API, aus Terraform oder einem Workflow – erfasst einen Vorfall, um den sich schon jemand kümmert oder der schon vorbei ist. Er wird nicht wie ein neuer Notfall behandelt:
+Ein späterer **Anfangsstatus** – im Formular, über den **Anfänglicher Vorfallstatus** einer Vorlage, mit `currentIncidentStateId` aus der API, aus Terraform oder einem Workflow oder mit der Bitte an [KI fragen](/docs/ai/ask-ai) um einen bereits bestätigten oder behobenen Vorfall – erfasst einen Vorfall, um den sich schon jemand kümmert oder der schon vorbei ist. Er wird nicht wie ein neuer Notfall behandelt:
 
 ```mermaid title="Was ein neuer Vorfall auslöst, je nach dem Status, in dem er beginnt"
 flowchart TB

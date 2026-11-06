@@ -104,7 +104,7 @@ En applikasjons telemetri og opptakene dens oppbevares i ulik tid:
 | Data | Oppbevares | Stilles inn på |
 | --- | --- | --- |
 | Logger, målinger, spor og profiler | Prosjektets oppbevaring, med mindre applikasjonen overstyrer den | Applikasjonens side **Innstillinger** |
-| Opptak fra øktavspilling | 7 dager som standard, eller 1, 14, 30 eller 90 dager | **Replay Policy**, med **Rediger policy → Grenser** |
+| Opptak fra øktavspilling | 7 dager som standard, eller 1, 14, 30 eller 90 dager | **Avspillingspolicy**, med **Rediger policy → Grenser** |
 
 ### Oppbevaring av telemetri
 
@@ -119,7 +119,7 @@ På et lavere Cloud-abonnement fortsetter en overstyring som er igjen etter en p
 
 ### Oppbevaring av øktavspillinger
 
-Opptak har sin egen oppbevaring, som stilles inn på applikasjonens side **Replay Policy** med **Rediger policy → Grenser**: 7 dager som standard, eller 1, 14, 30 eller 90 dager. Den er kort med vilje, fordi et opptak er langt mer følsomt, og langt større, enn et spenn. Kortet **Oppbevaring av øktavspilling** under **Flere innstillinger** på siden **Innstillinger** viser den (_Session replays are kept for 7 days._), og knappen **Rediger i Replay Policy** åpner retningslinjen.
+Opptak har sin egen oppbevaring, som stilles inn på applikasjonens side **Avspillingspolicy** med **Rediger policy → Grenser**: 7 dager som standard, eller 1, 14, 30 eller 90 dager. Den er kort med vilje, fordi et opptak er langt mer følsomt, og langt større, enn et spenn. Kortet **Oppbevaring av øktavspilling** under **Flere innstillinger** på siden **Innstillinger** viser den (_Session replays are kept for 7 days._), og knappen **Rediger i Replay Policy** åpner retningslinjen.
 
 En lengre oppbevaring av telemetri beholder ikke opptak lenger. En økts tellinger, signaler og enhet utløper sammen med opptaket; bare øktens logger, spenn og unntak følger telemetriens oppbevaring. Se [Oppbevaring og sletting](/docs/telemetry/session-replay#oppbevaring-og-sletting).
 

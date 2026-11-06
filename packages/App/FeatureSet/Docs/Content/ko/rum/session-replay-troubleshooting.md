@@ -132,7 +132,7 @@ OneUptimeReplay.captureSession("installation test");
 
 찾아야 할 것은 `chunk-accepted`와 함께 오는 `202`입니다. `204`는 대신 `chunk-not-recorded`를 로그에 남깁니다. 요청은 정상이었고 서버가 저장하지 않기로 한 것입니다. 예산 초과, 샘플링 제외, 또는 애플리케이션이 꺼진 경우입니다. 이는 정책의 답이지 설치 오류가 아니며, 옆의 `server-directive` 줄이 어느 쪽인지 알려 줍니다.
 
-모든 세션을 다시 녹화하려면 애플리케이션의 **Replay Policy** 페이지에서 **녹화 업로드 시점**을 _Always_ 값으로, **샘플 비율**을 0보다 크게 설정하세요. 이것이 출고 시 기본값입니다.
+모든 세션을 다시 녹화하려면 애플리케이션의 **리플레이 정책** 페이지에서 **녹화 업로드 시점**을 _Always_ 값으로, **샘플 비율**을 0보다 크게 설정하세요. 이것이 출고 시 기본값입니다.
 
 ## 코드
 
@@ -179,13 +179,13 @@ OneUptimeReplay.captureSession("installation test");
 
 | 값 | 할 일 |
 | --- | --- |
-| `not-enabled-for-application` | 이 RUM 애플리케이션에서 세션 리플레이가 꺼져 있거나, 식별자가 어느 것과도 일치하지 않거나, 프로젝트가 리플레이를 사용할 수 없습니다. `disabledDetail`이 어느 쪽인지 알려 줍니다. `application-not-enabled`(이 애플리케이션의 스위치), `project-not-allowed`(**실제 사용자 모니터링 → 설정 → 세션 리플레이**에 있는 프로젝트 전체 스위치), `application-unknown`(이 `appIdentifier`를 가진 애플리케이션이 없음. 애플리케이션의 **Replay Policy** 페이지에서 철자를 확인하세요), 또는 `project-killed`(이 배포에서 운영자의 킬 스위치)입니다. |
-| `budget-exhausted` | 프로젝트의 일일 바이트 예산이나 애플리케이션의 월간 예산을 이미 다 써서, 거부될 청크를 업로드하는 대신 녹화하지 말라고 레코더에 지시합니다. `disabledDetail`은 `project-daily-budget-exhausted` 또는 `app-monthly-budget-exhausted`이며, `budgetResetsAt`이 언제 풀리는지 알려 줍니다. **Replay Policy** 페이지에서 예산을 올리거나 초기화를 기다리세요. |
+| `not-enabled-for-application` | 이 RUM 애플리케이션에서 세션 리플레이가 꺼져 있거나, 식별자가 어느 것과도 일치하지 않거나, 프로젝트가 리플레이를 사용할 수 없습니다. `disabledDetail`이 어느 쪽인지 알려 줍니다. `application-not-enabled`(이 애플리케이션의 스위치), `project-not-allowed`(**실제 사용자 모니터링 → 설정 → 세션 리플레이**에 있는 프로젝트 전체 스위치), `application-unknown`(이 `appIdentifier`를 가진 애플리케이션이 없음. 애플리케이션의 **리플레이 정책** 페이지에서 철자를 확인하세요), 또는 `project-killed`(이 배포에서 운영자의 킬 스위치)입니다. |
+| `budget-exhausted` | 프로젝트의 일일 바이트 예산이나 애플리케이션의 월간 예산을 이미 다 써서, 거부될 청크를 업로드하는 대신 녹화하지 말라고 레코더에 지시합니다. `disabledDetail`은 `project-daily-budget-exhausted` 또는 `app-monthly-budget-exhausted`이며, `budgetResetsAt`이 언제 풀리는지 알려 줍니다. **리플레이 정책** 페이지에서 예산을 올리거나 초기화를 기다리세요. |
 | `recorder-not-built` | **배포에 레코더 아티팩트가 없습니다.** 고객 측에서는 아무것도 고칠 수 없습니다. `packages/App/FeatureSet/BrowserRecorder/public/dist/manifest.json`을 만드는 빌드가 실행되지 않았거나, 그 결과가 실행 중인 이미지에 들어가지 않았습니다. OneUptime 앱을 다시 빌드하고 다시 배포하세요. 리플레이가 한 번도 작동한 적 없는 자체 호스팅 설치에서 전형적인 답입니다. |
 | `disabled-by-default` | 이 배포에서 `SESSION_REPLAY_ENABLED_BY_DEFAULT=false`입니다. `true`로 설정하세요. 자체 호스팅이라면 리플레이가 가장 무거운 테이블이므로 먼저 `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY`를 설정하세요. |
 | `ingest-disabled` | 이 배포에서 `SESSION_REPLAY_INGEST_ENABLED=false`입니다. |
 | `policy-unavailable` | 서버가 정책을 결정할 수 없었습니다. 보통 Redis나 Postgres 때문입니다. 의도적으로 닫힌 쪽으로 실패합니다. OneUptime 앱의 로그를 확인하세요. |
-| `not-reported` | 서버가 이 필드보다 오래되었습니다. 대신 대시보드의 **Replay Policy** 페이지에 있는 **Test your installation** 패널을 사용하세요. |
+| `not-reported` | 서버가 이 필드보다 오래되었습니다. 대신 대시보드의 **리플레이 정책** 페이지에 있는 **Test your installation** 패널을 사용하세요. |
 
 ### 아티팩트
 
@@ -210,7 +210,7 @@ OneUptimeReplay.captureSession("installation test");
 | --- | --- |
 | `not-sampled` | 이 세션은 샘플링 추첨에서 떨어져 전혀 녹화되지 않습니다. 샘플링은 세션 ID로 결정적으로 정해지므로, 새로고침해도 이 세션에는 도움이 되지 않습니다. 샘플링 비율을 높이세요. |
 | `recording` | 녹화 중입니다. 세부 정보를 읽으세요. 기본 트리거 `Always`에서는 `uploading: true`가 정상 상태입니다. `captureTrigger: "OnErrorOrFrustration"`에서의 `uploading: false`는 요청이 없는 또 다른 정상 상태입니다. |
-| `same-origin-propagation` | 레코더가 시작될 때 한 번 로그에 남습니다. 페이지 자체 출처로 가는 요청에 트레이스 컨텍스트(`traceparent`, 그리고 세션 ID를 담은 `tracestate`)를 추가하는지 여부입니다. `reason: "on"`과 함께 `enabled: true`가 기본값입니다. `reason: "policy-off"`는 애플리케이션의 **Replay Policy** 페이지에서 **동일 출처 트레이스 전파**가 꺼져 있다는 뜻이고, `reason: "opaque-origin"`은 페이지에 자체 출처가 없어(샌드박스된 iframe, `about:blank`, `srcdoc`, `file:`) 아무것도 같은 출처로 간주되지 않는다는 뜻입니다. 켜져 있어도 헤더는 세션이 업로드하는 동안 보낸 요청에만 붙으며, `/v1/traces`, `/v1/logs`, `/v1/metrics`로 끝나는 경로로 가는 `POST`(페이지 자체의 OpenTelemetry 내보내기)에는 절대 붙지 않습니다. 또한 에이전트가 요청을 트레이스하도록 구성되어 있어서 레코더가 페이지 로드 중 처음으로 같은 출처 요청의 `traceparent`를 그 에이전트에 양보할 때(Datadog RUM은 추적 중인 세션에서만) `reason: "agent-stand-down"`과 `agent` 필드(`DD_RUM`, `NREUM`, `elasticApm`)와 함께 한 번 더 로그에 남습니다. 요청은 여전히 `tracestate` 멤버를 받으며, 에이전트가 실제로 `traceparent`를 보낼 때만 연결됩니다. Datadog는 트레이스 샘플링 대상인 추적 중인 Datadog 세션에서만 이를 보냅니다. New Relic(`NREUM`)은 멤버 대신 자체 `tracestate`를 보내므로, 그 요청은 트레이스 ID로만 연결됩니다([Logs와 Traces 탭이 비어 있음](#플레이어의-logs와-traces-탭이-비어-있음) 참고). [나머지 텔레메트리와 연결하기](/docs/telemetry/session-replay#나머지-텔레메트리와-연결하기)를 참고하세요. |
+| `same-origin-propagation` | 레코더가 시작될 때 한 번 로그에 남습니다. 페이지 자체 출처로 가는 요청에 트레이스 컨텍스트(`traceparent`, 그리고 세션 ID를 담은 `tracestate`)를 추가하는지 여부입니다. `reason: "on"`과 함께 `enabled: true`가 기본값입니다. `reason: "policy-off"`는 애플리케이션의 **리플레이 정책** 페이지에서 **동일 출처 트레이스 전파**가 꺼져 있다는 뜻이고, `reason: "opaque-origin"`은 페이지에 자체 출처가 없어(샌드박스된 iframe, `about:blank`, `srcdoc`, `file:`) 아무것도 같은 출처로 간주되지 않는다는 뜻입니다. 켜져 있어도 헤더는 세션이 업로드하는 동안 보낸 요청에만 붙으며, `/v1/traces`, `/v1/logs`, `/v1/metrics`로 끝나는 경로로 가는 `POST`(페이지 자체의 OpenTelemetry 내보내기)에는 절대 붙지 않습니다. 또한 에이전트가 요청을 트레이스하도록 구성되어 있어서 레코더가 페이지 로드 중 처음으로 같은 출처 요청의 `traceparent`를 그 에이전트에 양보할 때(Datadog RUM은 추적 중인 세션에서만) `reason: "agent-stand-down"`과 `agent` 필드(`DD_RUM`, `NREUM`, `elasticApm`)와 함께 한 번 더 로그에 남습니다. 요청은 여전히 `tracestate` 멤버를 받으며, 에이전트가 실제로 `traceparent`를 보낼 때만 연결됩니다. Datadog는 트레이스 샘플링 대상인 추적 중인 Datadog 세션에서만 이를 보냅니다. New Relic(`NREUM`)은 멤버 대신 자체 `tracestate`를 보내므로, 그 요청은 트레이스 ID로만 연결됩니다([Logs와 Traces 탭이 비어 있음](#플레이어의-logs와-traces-탭이-비어-있음) 참고). [나머지 텔레메트리와 연결하기](/docs/telemetry/session-replay#나머지-텔레메트리와-연결하기)를 참고하세요. |
 | `same-origin-propagation-tripped` | 레코더가 트레이스 컨텍스트를 추가한 요청이 네트워크 수준에서 실패했습니다. 보통은 `traceparent`와 `tracestate`를 허용하지 않는 다른 출처로 리디렉션된 같은 출처 요청입니다. 레코더는 이번 페이지 로드의 나머지 동안 헤더 추가를 멈췄습니다. `retried: true`는 그것이 본문 없는 `fetch` `GET` 또는 `HEAD`였고 페이지가 보낸 그대로 한 번 더 보냈다는 뜻이며, `false`는 재시도할 수 없어 실패했다는 뜻입니다. 재시도되는 것은 본문 없는 `fetch` `GET` 또는 `HEAD`뿐입니다(XHR, 다른 메서드, 본문이 있는 요청은 제외). 페이지 자체의 중단과 시간 초과는 이를 일으키지 않으며, 브라우저가 오프라인이라고 보고하는 동안의 실패도 마찬가지입니다. 다음 페이지 로드에서 다시 시작합니다. [세션 리플레이를 켠 뒤 다운로드나 리디렉션이 실패함](#세션-리플레이를-켠-뒤-다운로드나-리디렉션이-실패함)을 참고하세요. |
 | `trigger` | 보관할 가치가 있는 일이 일어났습니다. `reason`은 `error`, `frustration`, `performance`, `sampled`, `manual` 중 하나입니다. |
 | `upload-started` | 버퍼의 사전 녹화분을 내보내고 있습니다. 청크 POST는 여기서 시작됩니다. |
@@ -435,7 +435,7 @@ Network 탭에 OTLP 요청이 없다면, 이는 이 레코더가 아니라 페�
 레코더는 이런 실패가 처음 일어날 때 서킷 브레이커를 작동시킵니다. `same-origin-propagation-tripped`를 로그에 남기고, 페이지 로드의 나머지 동안 헤더 추가를 멈추며, 본문 없는 `fetch` `GET` 또는 `HEAD`는 페이지가 보낸 그대로 한 번 재시도하므로(세부 정보의 `retried: true`), 페이지는 재시도 결과를 받습니다. 본문 없는 `fetch` `GET` 또는 `HEAD` 외의 것(`XMLHttpRequest`, 다른 메서드, 본문이 있는 요청)은 재시도하지 않으므로 그 요청은 계속 실패하며, 다음 페이지 로드에서는 다시 헤더가 추가됩니다. 영구적으로 고치려면 다음 중 하나를 하세요.
 
 - 다른 출처의 CORS 구성에서 `traceparent`와 `tracestate`를 허용합니다(S3에서는 버킷 CORS의 `AllowedHeaders`). 또는
-- 애플리케이션의 **Replay Policy** 페이지에서 **동일 출처 트레이스 전파**를 끄고, 자신의 출처를 **트레이스 전파 출처**에 추가했다면 거기서도 제거합니다. 그렇지 않으면 그 요청에 계속 `traceparent`가 붙습니다. 그러면 백엔드 텔레메트리는 **트레이스 전파 출처**의 출처와 페이지가 스스로 트레이스하는 요청에 대해서만 연결됩니다.
+- 애플리케이션의 **리플레이 정책** 페이지에서 **동일 출처 트레이스 전파**를 끄고, 자신의 출처를 **트레이스 전파 출처**에 추가했다면 거기서도 제거합니다. 그렇지 않으면 그 요청에 계속 `traceparent`가 붙습니다. 그러면 백엔드 텔레메트리는 **트레이스 전파 출처**의 출처와 페이지가 스스로 트레이스하는 요청에 대해서만 연결됩니다.
 
 [다른 출처로의 리디렉션](/docs/telemetry/session-replay#다른-출처로의-리디렉션)을 참고하세요.
 
@@ -467,7 +467,7 @@ Network 탭에 OTLP 요청이 없다면, 이는 이 레코더가 아니라 페�
 
 - `OneUptimeReplay.getDiagnostics()`의 출력.
 - `session-replay/v1/config` 요청의 상태.
-- 애플리케이션의 **상태** 페이지와 **Replay Policy**의 **Test your installation** 패널이 알려 주는 내용. 이들은 서버 측, 즉 브라우저가 볼 수 없는 절반에서 답합니다.
+- 애플리케이션의 **상태** 페이지와 **리플레이 정책**의 **Test your installation** 패널이 알려 주는 내용. 이들은 서버 측, 즉 브라우저가 볼 수 없는 절반에서 답합니다.
 - 이미지, 아이콘, 스타일이 빠졌다면: 로드되지 않은 파일 하나의 주소(**Missing assets**에 나열됨)와 그 파일에 대해 브라우저 콘솔이 출력한 줄.
 
 그런 다음 support@oneuptime.com으로 문의하거나 [GitHub](https://github.com/OneUptime/oneuptime)에서 이슈를 여세요.

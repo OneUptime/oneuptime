@@ -33,8 +33,9 @@ const mockRouter: MockIdentityRouter = createMockIdentityRouter();
  * A private status page's "Require SSO for login", in every edition.
  *
  * The three password surfaces of a status page - /login, /forgot-password and
- * /reset-password - refuse with "Status Page supports authentication by SSO" when the page
- * requires SSO. Status page SSO is part of the Community Edition, so the refusal holds in
+ * /reset-password - and its two sign-in link surfaces - /send-magic-link and
+ * /login-with-magic-link - refuse with "Status Page supports authentication by SSO" when the
+ * page requires SSO. Status page SSO is part of the Community Edition, so the refusal holds in
  * EVERY edition and license state: the Community Edition (billing off and on), the
  * Enterprise Edition licensed, in its trial or grace, lapsed, with a license that leaves
  * SCIM and audit logs out, or in an unknown license state, and OneUptime Cloud. A page that
@@ -86,6 +87,7 @@ jest.mock("Common/Server/Utils/Express", () => {
 const privateUserFindOneBy: jest.Mock = jest.fn();
 const privateUserUpdateOneBy: jest.Mock = jest.fn();
 const privateUserUpdateOneById: jest.Mock = jest.fn();
+const privateUserConsumeMagicLinkToken: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Services/StatusPagePrivateUserService", () => {
   return {
@@ -100,6 +102,9 @@ jest.mock("Common/Server/Services/StatusPagePrivateUserService", () => {
       },
       updateOneById: (...args: Array<unknown>): unknown => {
         return privateUserUpdateOneById(...args);
+      },
+      consumeMagicLinkToken: (...args: Array<unknown>): unknown => {
+        return privateUserConsumeMagicLinkToken(...args);
       },
       verifyHashedColumnValue: jest.fn(),
     },
@@ -260,18 +265,29 @@ const USER_EMAIL: string = "subscriber@example.com";
 const SSO_REFUSAL: string =
   "Status Page supports authentication by SSO. You cannot use email and password for authentication.";
 
+const MAGIC_LINK_SSO_REFUSAL: string =
+  "Status Page supports authentication by SSO. You cannot use a sign-in link for authentication.";
+
+const MAGIC_LINK_TOKEN: string = "6f1c7e4a-2b3d-4c5e-8f90-a1b2c3d4e5f6";
+
 const EDITION_CASES: Array<EditionStateCase> = createEditionStateCases();
 
 type InvokeResult = {
   nextError: Exception | null;
 };
 
-const invoke: (uri: string, body: unknown) => Promise<InvokeResult> = async (
+const invoke: (
   uri: string,
   body: unknown,
+  params?: Record<string, string>,
+) => Promise<InvokeResult> = async (
+  uri: string,
+  body: unknown,
+  params?: Record<string, string>,
 ): Promise<InvokeResult> => {
   const handler: RouteHandler = mockRouter.match("post", uri);
   const req: ExpressRequest = buildRequest(body);
+  (req as unknown as { params: Record<string, string> }).params = params || {};
   const res: ExpressResponse = buildResponse();
 
   let nextError: Exception | null = null;
@@ -318,9 +334,30 @@ const resetPassword: () => Promise<InvokeResult> =
     });
   };
 
+const sendMagicLink: () => Promise<InvokeResult> =
+  async (): Promise<InvokeResult> => {
+    return await invoke("/send-magic-link", {
+      data: {
+        statusPageId: STATUS_PAGE_ID,
+        email: USER_EMAIL,
+      },
+    });
+  };
+
+const loginWithMagicLink: () => Promise<InvokeResult> =
+  async (): Promise<InvokeResult> => {
+    return await invoke(
+      "/login-with-magic-link/:statuspageid",
+      { token: MAGIC_LINK_TOKEN },
+      { statuspageid: STATUS_PAGE_ID },
+    );
+  };
+
 type Scenario = {
   label: string;
   run: () => Promise<InvokeResult>;
+  // What the surface says when the page requires SSO.
+  refusal: string;
   // Evidence that the password flow ran past the SSO check.
   expectPasswordFlowRan: (result: InvokeResult) => void;
   expectPasswordFlowStopped: () => void;
@@ -329,6 +366,7 @@ type Scenario = {
 const SCENARIOS: Array<Scenario> = [
   {
     label: "POST /login",
+    refusal: SSO_REFUSAL,
     run: login,
     expectPasswordFlowRan: (result: InvokeResult): void => {
       // No such user here, so the ordinary credential refusal - not the SSO one.
@@ -341,6 +379,7 @@ const SCENARIOS: Array<Scenario> = [
   },
   {
     label: "POST /forgot-password",
+    refusal: SSO_REFUSAL,
     run: forgotPassword,
     expectPasswordFlowRan: (result: InvokeResult): void => {
       expect(result.nextError).toBeNull();
@@ -356,6 +395,7 @@ const SCENARIOS: Array<Scenario> = [
   },
   {
     label: "POST /reset-password",
+    refusal: SSO_REFUSAL,
     run: resetPassword,
     expectPasswordFlowRan: (result: InvokeResult): void => {
       expect(result.nextError).toBeNull();
@@ -365,6 +405,50 @@ const SCENARIOS: Array<Scenario> = [
     expectPasswordFlowStopped: (): void => {
       expect(privateUserUpdateOneById).not.toHaveBeenCalled();
       expect(sendMail).not.toHaveBeenCalled();
+    },
+  },
+  {
+    label: "POST /send-magic-link",
+    run: sendMagicLink,
+    refusal: MAGIC_LINK_SSO_REFUSAL,
+    expectPasswordFlowRan: (result: InvokeResult): void => {
+      expect(result.nextError).toBeNull();
+      expect(privateUserUpdateOneBy).toHaveBeenCalledTimes(1);
+      expect(sendMail).toHaveBeenCalledTimes(1);
+      expect(sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+    },
+    expectPasswordFlowStopped: (): void => {
+      /*
+       * Refused before the address is looked up. (A run of every surface in
+       * a row shares the mocks, and /reset-password looks its user up by
+       * the token's digest before it reads the page: only a lookup by
+       * address would be this route's.)
+       */
+      expect(
+        privateUserFindOneBy.mock.calls.filter(
+          (call: Array<unknown>): boolean => {
+            return Boolean(
+              (call[0] as { query: Record<string, unknown> }).query["email"],
+            );
+          },
+        ),
+      ).toHaveLength(0);
+      expect(privateUserUpdateOneBy).not.toHaveBeenCalled();
+      expect(sendMail).not.toHaveBeenCalled();
+    },
+  },
+  {
+    label: "POST /login-with-magic-link/:statuspageid",
+    run: loginWithMagicLink,
+    refusal: MAGIC_LINK_SSO_REFUSAL,
+    expectPasswordFlowRan: (result: InvokeResult): void => {
+      // No such link here, so the ordinary refusal of a spent link - not the SSO one.
+      expect(privateUserConsumeMagicLinkToken).toHaveBeenCalledTimes(1);
+      expect(result.nextError?.message).not.toBe(MAGIC_LINK_SSO_REFUSAL);
+    },
+    expectPasswordFlowStopped: (): void => {
+      // Refused before the link is looked up, so it is not spent.
+      expect(privateUserConsumeMagicLinkToken).not.toHaveBeenCalled();
     },
   },
 ];
@@ -379,6 +463,8 @@ beforeEach(() => {
     _id: STATUS_PAGE_ID,
     name: "Customer Status",
     projectId: new ObjectID(PROJECT_ID),
+    isPublicStatusPage: false,
+    enableMagicLinkLogin: true,
     requireSsoForLogin: true,
   });
 
@@ -412,6 +498,7 @@ beforeEach(() => {
   );
   privateUserUpdateOneBy.mockResolvedValue(1);
   privateUserUpdateOneById.mockResolvedValue(1);
+  privateUserConsumeMagicLinkToken.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -428,7 +515,7 @@ describe("status page password surfaces when the page requires SSO", () => {
 
           const result: InvokeResult = await scenario.run();
 
-          expect(result.nextError?.message).toBe(SSO_REFUSAL);
+          expect(result.nextError?.message).toBe(scenario.refusal);
           scenario.expectPasswordFlowStopped();
         });
       }
@@ -473,7 +560,7 @@ describe("status page password surfaces when the page requires SSO", () => {
       for (const scenario of SCENARIOS) {
         const result: InvokeResult = await scenario.run();
 
-        expect(result.nextError?.message).toBe(SSO_REFUSAL);
+        expect(result.nextError?.message).toBe(scenario.refusal);
         scenario.expectPasswordFlowStopped();
       }
     }
@@ -504,6 +591,8 @@ describe("status page password surfaces when the page does not require SSO", () 
       _id: STATUS_PAGE_ID,
       name: "Customer Status",
       projectId: new ObjectID(PROJECT_ID),
+      isPublicStatusPage: false,
+      enableMagicLinkLogin: true,
       requireSsoForLogin: false,
     });
   });
@@ -516,7 +605,7 @@ describe("status page password surfaces when the page does not require SSO", () 
 
           const result: InvokeResult = await scenario.run();
 
-          expect(result.nextError?.message).not.toBe(SSO_REFUSAL);
+          expect(result.nextError?.message).not.toBe(scenario.refusal);
           scenario.expectPasswordFlowRan(result);
         });
       }

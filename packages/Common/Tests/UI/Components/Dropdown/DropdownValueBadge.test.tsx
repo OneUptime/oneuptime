@@ -11,6 +11,18 @@ import "@testing-library/jest-dom";
 import React from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
+/*
+ * The pill that holds a label. The label itself reads in an isolate of its
+ * own (IsolatedText), so the text's element is the bdi inside the pill.
+ */
+const badgeNamed: (label: string) => HTMLElement = (
+  label: string,
+): HTMLElement => {
+  return screen
+    .getByText(label)
+    .closest('[data-dropdown-value-badge="true"]') as HTMLElement;
+};
+
 afterEach(() => {
   cleanup();
 });
@@ -32,7 +44,7 @@ describe("DropdownValueBadge", () => {
     const indigo: PillColors = getPillColors(DROPDOWN_VALUE_DEFAULT_COLOR);
     render(<DropdownValueBadge label="High" />);
 
-    const badge: HTMLElement = screen.getByText("High");
+    const badge: HTMLElement = badgeNamed("High");
     expect(badge).toHaveStyle({
       backgroundColor: indigo.light.backgroundColor,
       color: indigo.light.textColor,
@@ -54,7 +66,7 @@ describe("DropdownValueBadge", () => {
       <DropdownValueBadge label="Critical" color={new Color("#dc2626")} />,
     );
 
-    const badge: HTMLElement = screen.getByText("Critical");
+    const badge: HTMLElement = badgeNamed("Critical");
     expect(badge).toHaveStyle({
       backgroundColor: colors.light.backgroundColor,
       color: colors.light.textColor,
@@ -70,7 +82,7 @@ describe("DropdownValueBadge", () => {
       <DropdownValueBadge label="Critical" color={new Color("#dc2626")} />,
     );
 
-    expect(getDot(screen.getByText("Critical"))).toHaveStyle({
+    expect(getDot(badgeNamed("Critical"))).toHaveStyle({
       backgroundColor: "#dc2626",
     });
   });
@@ -78,7 +90,7 @@ describe("DropdownValueBadge", () => {
   test("is a tint with a ring, not the old solid fill and border", () => {
     render(<DropdownValueBadge label="Critical" color="#dc2626" />);
 
-    const badge: HTMLElement = screen.getByText("Critical");
+    const badge: HTMLElement = badgeNamed("Critical");
     expect(badge.style.backgroundColor).toMatch(/^rgba\(.+, 0\.\d+\)$/);
     expect(badge.style.borderColor).toBe("");
     expect(badge).not.toHaveClass("border");
@@ -87,10 +99,10 @@ describe("DropdownValueBadge", () => {
   test("also accepts a serialized color string", () => {
     render(<DropdownValueBadge label="Warning" color="#f97316" />);
 
-    expect(getDot(screen.getByText("Warning"))).toHaveStyle({
+    expect(getDot(badgeNamed("Warning"))).toHaveStyle({
       backgroundColor: "#f97316",
     });
-    expect(screen.getByText("Warning")).toHaveStyle({
+    expect(badgeNamed("Warning")).toHaveStyle({
       color: getPillColors("#f97316").light.textColor,
     });
   });
@@ -99,7 +111,7 @@ describe("DropdownValueBadge", () => {
     // Slate already reads on its pale wash.
     render(<DropdownValueBadge label="Dark" color="#1e293b" />);
 
-    expect(screen.getByText("Dark")).toHaveStyle({ color: "#1e293b" });
+    expect(badgeNamed("Dark")).toHaveStyle({ color: "#1e293b" });
   });
 
   test("sets a light colour's text in a deeper, readable shade of it", () => {
@@ -107,14 +119,14 @@ describe("DropdownValueBadge", () => {
 
     const textColor: string = getPillColors("#fef08a").light.textColor;
     expect(textColor).not.toBe("#fef08a");
-    expect(screen.getByText("Light")).toHaveStyle({ color: textColor });
+    expect(badgeNamed("Light")).toHaveStyle({ color: textColor });
   });
 
   test("carries the dark theme's colours for Theme.css", () => {
     const colors: PillColors = getPillColors("#dc2626");
     render(<DropdownValueBadge label="Critical" color="#dc2626" />);
 
-    const badge: HTMLElement = screen.getByText("Critical");
+    const badge: HTMLElement = badgeNamed("Critical");
     expect(badge).toHaveAttribute("data-ou-pill");
     expect(badge.style.getPropertyValue("--ou-pill-dark-bg")).toBe(
       colors.dark.backgroundColor,
@@ -131,7 +143,7 @@ describe("DropdownValueBadge", () => {
   test("falls back safely when given an invalid color", () => {
     render(<DropdownValueBadge label="Invalid" color="not-a-color" />);
 
-    const badge: HTMLElement = screen.getByText("Invalid");
+    const badge: HTMLElement = badgeNamed("Invalid");
     expect(badge).toHaveStyle({
       color: getPillColors(DROPDOWN_VALUE_DEFAULT_COLOR).light.textColor,
     });

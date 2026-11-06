@@ -159,6 +159,7 @@ Les modèles lisent les 5 dernières minutes sauf indication contraire dans le t
 - **Les séries de PG et de pools sont par pool** : il n'existe pas de jauge pour tout le cluster, donc ces modèles regroupent par `pool_id` et ouvrent un incident par pool.
 - **Les ratios de capacité** prennent la **Somme** des deux côtés. Les deux viennent de la même collecte du mgr, le résultat est donc un vrai pourcentage. **Inactive Placement Groups** utilise plutôt **Maximum** par pool, car une somme additionnerait les collectes dans une soustraction.
 - **Les modèles de health checks** se rétablissent quand le check disparaît : leurs critères de rétablissement comptent une série absente comme 0.
+- **Daemon Slow Operations** a une série par daemon : quand plus aucun daemon n'a de série, il n'y a plus rien à lire. Le modèle ne se rétablit alors que si `ceph_health_status` est arrivé dans la même fenêtre, si bien qu'un agent arrêté ne ferme rien.
 
 Certaines alertes n'ont pas de modèle. Le déséquilibre des PG demande des statistiques sur plusieurs séries que les critères ne savent pas calculer. La prévision de capacité demande un ajustement de croissance, que le tableau de bord du cluster trace à la place. La prédiction de panne de disque et l'ancienneté du scrubbing n'ont pas de métrique mgr, et NVMe-oF, la réplication RBD et cephadm demandent d'autres exportateurs.
 
@@ -227,7 +228,7 @@ Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les
 | --- | --- |
 | **Métrique** | La requête ou formule à vérifier, par son nom de variable. |
 | **Agrégation** | Comment les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value**, **All Values** (chaque valeur doit correspondre, sur toute la fenêtre) ou **Any Value** (une seule suffit). |
-| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** — ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Aucune donnée** est vraie quand la requête n'a rien renvoyé dans la fenêtre, **Données reçues** quand elle a renvoyé quelque chose. |
+| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** — ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Aucune donnée** est vraie quand la requête n'a rien renvoyé dans la fenêtre, **Données reçues** quand elle a renvoyé quelque chose. **Devrait dépasser** et **Devrait passer sous** correspondent quand la tendance de la métrique sur la fenêtre aura franchi le seuil à la fin de **Horizon**. |
 | **Seuil** | La valeur de comparaison. Une liste d'unités s'affiche à côté quand la métrique a une unité. Non affiché pour les conditions d'anomalie. |
 | **Sensibilité** | Conditions d'anomalie uniquement. **Faible** (4σ), **Moyen** (3σ, par défaut) ou **Élevé** (2σ). |
 | **Fenêtre de référence** | Conditions d'anomalie uniquement. 14 jours (par défaut), 28, 60 ou 90 jours d'historique. |

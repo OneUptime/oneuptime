@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### 开始一个新监视器
 
-进入 **监视器**，点击 **创建监视器**。在 **监视器类型** 下点击 **更多监视器类型**，然后在 **Synthetic Monitoring** 下选择 **Custom JavaScript Code**，或在搜索框中输入 `script`。输入 **名称**，然后点击 **下一步**。
+进入 **监视器**，点击 **创建监视器**。在 **监视器类型** 下点击 **更多监视器类型**，然后在 **合成监控** 下选择 **Custom JavaScript Code**，或在搜索框中输入 `script`。输入 **名称**，然后点击 **下一步**。
 
 ### 添加脚本
 
@@ -167,7 +167,7 @@ return {
 
 - 监视器的标识：`monitorId`、`projectId`、`monitorName`、`probeName`、`probeId`、`isCustomMetric`。
 - `oneuptime.` 或 `resource.` 命名空间中的所有内容，它们承载 OneUptime 在接收数据时打上的标识符。
-- 资源标识属性：`service.name`、`host.name`、`k8s.cluster.name`、`iot.fleet.name`、`proxmox.cluster.name`、`vmware.vcenter.name`、`ceph.cluster.name`、`storage.array.name` 和 `docker.swarm.cluster.name`。
+- 资源标识属性：`service.name`、`host.name`、`k8s.cluster.name`、`iot.fleet.name`、`proxmox.cluster.name`、`openstack.cloud.name`、`vmware.vcenter.name`、`ceph.cluster.name`、`storage.array.name` 和 `docker.swarm.cluster.name`。
 
 这些名称不只是标签：OneUptime 会把它们读回，当作数据点属于哪个资源的声明。带有 `service.name: payments-api` 的指标会出现在该服务的指标选项卡上；如果你之后创建按 `service.name` 分组的指标监视器，它的告警会关联到该服务、呼叫该服务的负责人，并在该服务的维护窗口期间保持静默。要把监视器与服务或主机关联起来，请改用监视器自己的标签。
 

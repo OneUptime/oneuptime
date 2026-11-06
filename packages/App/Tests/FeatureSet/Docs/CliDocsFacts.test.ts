@@ -15,6 +15,7 @@ import {
   COMMANDER_HELP_FLAGS,
   COMMANDER_VERSION_FLAGS,
   RESOURCE_COMMAND,
+  cliProgramSources,
   everyCommandsOptionFlags,
   jsonOptionFlags,
   operationRegisterFunctions,
@@ -249,6 +250,7 @@ describe("the command reference", () => {
         "whoami",
         "resources",
         "deploy",
+        "dbt upload",
         "<resource> list",
         "<resource> get",
         "<resource> create",
@@ -267,6 +269,35 @@ describe("the command reference", () => {
     expect(cliSource("Commands/ConfigCommands.ts")).toContain(
       '.option("--context-name <name>", "Name for this context", "default")',
     );
+
+    // The commands of each register function buildProgram calls, dbt's among them.
+    expect(cliSource("Program.ts")).toContain(
+      'import { registerDbtCommands } from "./Commands/DbtCommands";',
+    );
+    expect(cliSource("Program.ts")).toContain(
+      "  registerDbtCommands(program);",
+    );
+    expect(cliProgramSources()).toEqual(
+      expect.arrayContaining([
+        "Program.ts",
+        "Commands/ConfigCommands.ts",
+        "Commands/UtilityCommands.ts",
+        "Commands/DeployCommands.ts",
+        "Commands/DbtCommands.ts",
+      ]),
+    );
+
+    // A default the constant of its file gives is read as the constant's value.
+    expect(cliSource("Commands/DbtCommands.ts")).toContain(
+      'export const DEFAULT_DBT_TARGET_PATH: string = "target";',
+    );
+    expect(
+      commandNamed(program, "dbt upload").options.find(
+        (option: CliOption): boolean => {
+          return option.flags === "--target-path <dir>";
+        },
+      )?.defaultValue,
+    ).toBe("target");
 
     // A resource's subcommands are Common's operations, fields and actions, each once.
     expect(

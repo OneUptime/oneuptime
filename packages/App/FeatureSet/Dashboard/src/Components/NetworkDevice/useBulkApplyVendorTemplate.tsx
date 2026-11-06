@@ -1,9 +1,12 @@
 import React, { ReactElement, useState } from "react";
 
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import Query from "Common/Types/BaseDatabase/Query";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
 import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import { SnmpVendorTemplate } from "Common/Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -13,6 +16,7 @@ import {
   bulkItemUnchanged,
   runBulkAction,
 } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
+import BulkReadAhead from "Common/UI/Components/BulkUpdate/BulkReadAhead";
 import {
   BulkActionButtonSchema,
   BulkActionOnClickProps,
@@ -20,14 +24,14 @@ import {
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "Common/UI/Utils/Project";
 import {
   PluralTemplate,
   Translator,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import BulkDeviceReader from "./BulkDeviceReader";
 import { APPLY_VENDOR_TEMPLATE_ACTION_TITLE } from "./BulkDeviceActionTitles";
 import { gateDeviceBulkAction } from "./BulkDeviceActionGate";
 import {
@@ -59,7 +63,10 @@ import {
  * the dialog's preview uses too, so what the dialog says is what happens.
  * Each device is decided again from a fresh read when the action runs (the
  * rows are as old as the page), and its lists are merged into what it holds
- * now, never overwritten.
+ * now, never overwritten. The devices are read fifty at a time, each window
+ * just before its devices are written (BulkReadAhead, as every bulk action
+ * that reads before it writes): one list request for fifty devices, not one
+ * read each.
  *
  * The writes go through the ordinary device update, one request per device
  * that needs one, so permissions, label and owner scopes and the server's
@@ -80,6 +87,15 @@ export { APPLY_VENDOR_TEMPLATE_ACTION_TITLE };
 
 // Health-OID writes are independent of each other; see the note above.
 export const APPLY_VENDOR_TEMPLATE_CONCURRENCY: number = 4;
+
+/*
+ * A device the fresh read did not find: deleted since the list was loaded,
+ * or no longer one the person may read. It fails on its own, saying so, and
+ * nothing is written to it.
+ */
+export const DEVICE_NOT_READABLE_MESSAGE: string = translationKey(
+  "This device could not be read. It may have been deleted since the list was loaded.",
+);
 
 /*
  * Why a device was left as it is, one sentence each. Shown against the
@@ -173,6 +189,92 @@ export const VENDOR_TEMPLATE_DEVICE_SELECT: {
 };
 
 /*
+ * The fresh reads of a run, a window of fifty devices at a time
+ * (BULK_READ_WINDOW_SIZE): the first device of a window the run asks about
+ * reads the whole window in one list request, and the window's other
+ * devices wait for that same request. A device the answer leaves out was
+ * deleted since, or is out of reach: read() answers null for it. A window
+ * whose request fails reads each of its devices on its own (getItem), so
+ * one failed request costs speed, not devices.
+ */
+export function createVendorTemplateDeviceReader(
+  items: Array<NetworkDevice>,
+): BulkReadAhead<NetworkDevice, NetworkDevice> {
+  return new BulkReadAhead<NetworkDevice, NetworkDevice>({
+    items: items,
+    getKey: (item: NetworkDevice): string => {
+      return item.id?.toString() || "";
+    },
+    readWindow: async (
+      windowItems: Array<NetworkDevice>,
+    ): Promise<Map<string, NetworkDevice>> => {
+      const found: Map<string, NetworkDevice> = new Map<
+        string,
+        NetworkDevice
+      >();
+
+      const ids: Array<string> = windowItems
+        .map((item: NetworkDevice): string => {
+          return item.id?.toString() || "";
+        })
+        .filter((id: string): boolean => {
+          return id.length > 0;
+        });
+
+      if (ids.length === 0) {
+        return found;
+      }
+
+      const query: Query<NetworkDevice> = {
+        _id: new Includes(ids),
+      } as Query<NetworkDevice>;
+
+      /*
+       * The project the page is working in. The API scopes every read to it
+       * anyway; naming it keeps this read the same shape as the table's.
+       */
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+      if (projectId) {
+        (query as Record<string, unknown>)["projectId"] = projectId;
+      }
+
+      const result: ListResult<NetworkDevice> =
+        await ModelAPI.getList<NetworkDevice>({
+          modelType: NetworkDevice,
+          query: query,
+          limit: ids.length,
+          skip: 0,
+          select: VENDOR_TEMPLATE_DEVICE_SELECT,
+          sort: {},
+        });
+
+      for (const device of result.data) {
+        const id: string | undefined = device._id?.toString();
+
+        if (id) {
+          found.set(id, device);
+        }
+      }
+
+      return found;
+    },
+    readOne: async (item: NetworkDevice): Promise<NetworkDevice | null> => {
+      if (!item.id) {
+        return null;
+      }
+
+      // Null for a device the API cannot find (404), as the window's answer.
+      return await ModelAPI.getItem<NetworkDevice>({
+        modelType: NetworkDevice,
+        id: item.id,
+        select: VENDOR_TEMPLATE_DEVICE_SELECT,
+      });
+    },
+  });
+}
+
+/*
  * The one field the dialog asks. A type alias rather than an interface so it
  * satisfies BasicFormModal's GenericObject constraint.
  */
@@ -233,12 +335,8 @@ function useBulkApplyVendorTemplate(): BulkApplyVendorTemplateResult {
     actionProps: BulkActionOnClickProps<NetworkDevice>,
     choice: VendorTemplateChoice,
   ): Promise<void> => {
-    const reader: BulkDeviceReader = new BulkDeviceReader({
-      deviceIds: actionProps.items.map((item: NetworkDevice): string => {
-        return item._id?.toString() || "";
-      }),
-      select: VENDOR_TEMPLATE_DEVICE_SELECT,
-    });
+    const reader: BulkReadAhead<NetworkDevice, NetworkDevice> =
+      createVendorTemplateDeviceReader(actionProps.items);
 
     await runBulkAction<NetworkDevice>({
       actionProps: actionProps,
@@ -248,7 +346,14 @@ function useBulkApplyVendorTemplate(): BulkApplyVendorTemplateResult {
           throw new BadDataException("Item ID not found");
         }
 
-        const device: NetworkDevice = await reader.read(item.id);
+        const device: NetworkDevice | null = await reader.read(item);
+
+        if (!device) {
+          throw new BadDataException(
+            translator.translateText(DEVICE_NOT_READABLE_MESSAGE) ||
+              DEVICE_NOT_READABLE_MESSAGE,
+          );
+        }
 
         const decision: VendorTemplateDecision = decideVendorTemplate(
           device,

@@ -1,3 +1,7 @@
+import {
+  CloudCostState,
+  CloudSavingKind,
+} from "../../../Types/Cloud/CloudCost";
 import { CloudResourceRelationship } from "../../../Types/Cloud/CloudInventory";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudMonitoredResource } from "../../../Types/Cloud/CloudMonitoredResource";
@@ -129,6 +133,14 @@ export interface CloudConnectionPullState {
    * written twice.
    */
   recentChanges?: Record<string, Record<string, number>> | undefined;
+  /*
+   * When the accounts' costs were last read (CloudConnectionLanes): they
+   * are due again CLOUD_COSTS_INTERVAL_MS later. Absent until the first
+   * read, which reads further back than the ones after it.
+   */
+  costsReadAt?: string | undefined;
+  // When the ways to spend less were last read: due a day later.
+  savingsReadAt?: string | undefined;
 }
 
 /*
@@ -338,6 +350,15 @@ export interface CloudChange {
   // Who did it: an IAM user or role, an Azure caller, a Google principal.
   actor: string;
   /*
+   * AWS only: who did it, exactly - the caller's ARN, which for an assumed
+   * role's session is arn:aws:sts::<account>:assumed-role/<role>/<session>,
+   * where the actor is only the session's name. (Azure's caller and Google
+   * Cloud's principal already are exact.) Read to tell the changes the
+   * account's Cloud AI agent made (CloudAiChangeAttribution); never shown,
+   * never kept.
+   */
+  actorIdentity?: string | undefined;
+  /*
    * What it changed, as the cloud names it: an ARN, an ARM id, a full
    * resource name, or a plain id with its type ("sg-0abc", AWS::EC2::SecurityGroup).
    */
@@ -357,6 +378,12 @@ export interface CloudChangesOptions extends CloudConnectorCallOptions {
   connectionId: string;
   budget: CloudReadBudget;
   /*
+   * Also hand back every audit record the read brought in, as the cloud
+   * wrote it (CloudChangesResult.auditRecords): the project's Security
+   * Events read them (Cloud audit logs). Never for a look back.
+   */
+  keepAuditRecords?: boolean | undefined;
+  /*
    * Read from this time, not from the cursors, and move no cursor: an
    * investigation's look back over the accounts it names in `only`.
    */
@@ -370,10 +397,143 @@ export interface CloudChangesResult {
   changes: Array<CloudChange>;
   warnings: Array<string>;
   complete: boolean;
+  // Every audit record read, when keepAuditRecords asked for them.
+  auditRecords?: Array<CloudAuditRecord> | undefined;
+}
+
+/*
+ * One audit record as the cloud wrote it, beside the changes made of it: a
+ * CloudTrail event (LookupEvents' CloudTrailEvent), a Google Cloud audit
+ * log entry, an Azure Activity Log event. Security Events' Cloud audit logs
+ * keep each as a security event, read by the same parsers as "Your logs"
+ * (SecurityEvent/CloudAudit/CloudAuditSecurityEvents) - every record the
+ * read brought in, the ones Cloud leaves out of its changes as machinery
+ * (a sign-in, a read) too, for the parsers to judge.
+ */
+export interface CloudAuditRecord {
+  // The AWS account, Google Cloud project or Azure subscription it is of.
+  accountId: string;
+  record: JSONObject;
+}
+
+// Whether a read hands back its audit records: asked to, and no look back.
+export function keepsAuditRecords(options: CloudChangesOptions): boolean {
+  return Boolean(options.keepAuditRecords) && !options.since;
+}
+
+/*
+ * One day's cost of one series of a connection's account, as the cloud's
+ * billing reports it - before credits and refunds.
+ */
+export interface CloudCostRecord {
+  // The account billed for it: an AWS account, a subscription, a project.
+  accountId: string;
+  // The UTC day, "2026-11-02".
+  day: string;
+  // The service, as the cloud's billing names it.
+  service: string;
+  // The Region; "" for a cost with none.
+  region: string;
+  // The resource, as getCloudCostResourceKey keeps it; "" when not one resource.
+  resourceId: string;
+  currency: string;
+  amount: number;
+}
+
+/*
+ * What a read of costs or savings made of one account: read (and so in
+ * full, for costs: what it did not bring is not there), or why it could
+ * not be.
+ */
+export interface CloudCostAccountOutcome {
+  accountId: string;
+  state: CloudCostState;
+  message?: string | undefined;
+}
+
+export interface CloudCostsOptions extends CloudConnectorCallOptions {
+  state: CloudConnectionPullState;
+  connectionId: string;
+  budget: CloudReadBudget;
+  // The first day read, and the day after the last, in UTC.
+  start: Date;
+  end: Date;
+  /*
+   * The resources the connection holds: the Region of a cost the cloud
+   * gives by resource but not by Region (Azure Cost Management).
+   */
+  knownResources?: Array<CloudKnownResource> | undefined;
+}
+
+export interface CloudCostsResult {
+  records: Array<CloudCostRecord>;
+  accounts: Array<CloudCostAccountOutcome>;
+  warnings: Array<string>;
+  complete: boolean;
+}
+
+// One way to spend less in a connection's account, as its cloud's recommender says it.
+export interface CloudSavingRecord {
+  // The recommender's own id: one row per recommendation, kept across reads.
+  recommendationId: string;
+  accountId: string;
+  region: string;
+  // The resource it is about, as its cloud names it; "" when none.
+  resourceId: string;
+  resourceType: string;
+  resourceName: string;
+  kind: CloudSavingKind;
+  // What to do, in the recommender's words: "Rightsize", "Delete unattached disk".
+  action: string;
+  currentConfiguration: string;
+  recommendedConfiguration: string;
+  monthlySavings: number;
+  // What the resource costs a month now, when the recommender says.
+  monthlyCost: number | null;
+  currency: string;
+  // How much work it is, in the recommender's words ("Low"); "" when not said.
+  effort: string;
+  // Which recommender said it (CLOUD_SAVINGS_SOURCE_*).
+  source: string;
+}
+
+export interface CloudSavingsOptions extends CloudConnectorCallOptions {
+  state: CloudConnectionPullState;
+  connectionId: string;
+  budget: CloudReadBudget;
+  /*
+   * The resources the connection holds: where a recommender that answers
+   * per place (a Google Cloud zone) is asked.
+   */
+  knownResources?: Array<CloudKnownResource> | undefined;
+}
+
+export interface CloudSavingsResult {
+  recommendations: Array<CloudSavingRecord>;
+  // The accounts whose recommendations were read: theirs are kept in step.
+  accounts: Array<CloudCostAccountOutcome>;
+  warnings: Array<string>;
+  complete: boolean;
 }
 
 export interface CloudConnector {
   provider: CloudProvider;
+  /*
+   * What the connection's accounts cost per day, service, Region and
+   * resource from the cloud's own billing. Optional, like the inventory.
+   */
+  readCosts?(
+    settings: CloudConnectionSettings,
+    options: CloudCostsOptions,
+  ): Promise<CloudCostsResult>;
+  /*
+   * The ways to spend less in the connection's accounts, from the cloud's
+   * own recommender.
+   */
+  readSavings?(
+    settings: CloudConnectionSettings,
+    options: CloudSavingsOptions,
+  ): Promise<CloudSavingsResult>;
   /*
    * What changed in the connection's accounts since the last read, and the
    * provider's health events about them. Optional, like the inventory.

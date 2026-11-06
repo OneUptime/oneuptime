@@ -1,0 +1,10 @@
+<%# Data Observability Icon - a table's rows with a pulse across them: the data's health, watched. %>
+<% const iconSpriteHref = typeof useIconSprite !== 'undefined' && useIconSprite && typeof productIconSpriteHref !== 'undefined' && productIconSpriteHref ? productIconSpriteHref : null; -%>
+<svg class="<%= typeof iconClass !== 'undefined' ? iconClass : 'h-5 w-5' %> text-cyan-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+<% if (iconSpriteHref) { -%>
+  <use href="<%= iconSpriteHref %>#data-observability"></use>
+<% } else { -%>
+  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75c0-1.243 3.694-2.25 8.25-2.25s8.25 1.007 8.25 2.25S16.556 9 12 9 3.75 7.993 3.75 6.75Zm0 0v10.5c0 1.243 3.694 2.25 8.25 2.25m8.25-12.75v4.5" />
+  <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 15.75h2.25l1.5-3 2.25 6 1.5-3h2.25" />
+<% } -%>
+</svg>

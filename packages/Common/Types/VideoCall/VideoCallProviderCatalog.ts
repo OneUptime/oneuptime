@@ -249,7 +249,7 @@ export const VideoCallProviderCatalog: Array<VideoCallProviderDefinition> = [
         key: "clientSecret",
         title: "Client secret",
         description:
-          "From the App Credentials page of your Zoom Server-to-Server OAuth app. Encrypted at rest and never returned by the API.",
+          "From the App Credentials page of your Zoom Server-to-Server OAuth app.",
         type: "password",
         required: true,
       },
@@ -293,7 +293,7 @@ export const VideoCallProviderCatalog: Array<VideoCallProviderDefinition> = [
         key: "serviceAccountJson",
         title: "Service account JSON key",
         description:
-          "The JSON key of a Google Cloud service account that has domain-wide delegation for the Meet scope. Encrypted at rest and never returned by the API.",
+          "The JSON key of a Google Cloud service account that has domain-wide delegation for the Meet scope.",
         type: "json",
         required: true,
         placeholder:
@@ -355,7 +355,7 @@ export const VideoCallProviderCatalog: Array<VideoCallProviderDefinition> = [
         key: "clientSecret",
         title: "Client secret",
         description:
-          "A client secret VALUE of the app registration (not its Secret ID). Encrypted at rest and never returned by the API.",
+          "A client secret VALUE of the app registration (not its Secret ID).",
         type: "password",
         required: true,
       },

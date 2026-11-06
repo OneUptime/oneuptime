@@ -40,7 +40,7 @@ Schakel in een criterium onder **Acties** **Wanneer filters overeenkomen, verkla
 
 ### De titel schrijven
 
-Typ de titel in **Incidenttitel** of **Waarschuwingstitel**, bijvoorbeeld `{{monitorName}} is down`. **Learn about dynamic templates**, ernaast, opent **Dynamic Template Variables**: elke variabele die het type van deze monitor heeft, met wat ze bevat. Klik op een variabele om haar te kopiëren.
+Typ de titel in **Incidenttitel** of **Waarschuwingstitel**, bijvoorbeeld `{{monitorName}} is down`. **Meer over dynamische sjablonen**, ernaast, opent **Dynamische sjabloonvariabelen**: elke variabele die het type van deze monitor heeft, met wat ze bevat. Klik op een variabele om haar te kopiëren.
 
 ### De beschrijving en de herstelnotities schrijven
 
@@ -433,7 +433,7 @@ Een netwerkapparaat wordt bij elke poll gepingd en alleen via SNMP doorlopen als
 | `collectionIssueSummary` | Eén regel over elke niet-beschikbare groep, klaar voor een titel. Leeg als alles werd verzameld. | `string` |
 | `metrics` | De verzamelde waarden, op reeksnaam. | `Object` |
 
-De reeksnamen in `metrics` bevatten punten, zoals `oneuptime.monitor.database.connections.used.percent`, en een pad leest elke punt als een stap in een object, dus een template kan geen enkele waarde uit `metrics` halen. Zet `{{metrics}}` in zijn geheel, als JSON, of gebruik `{{collectionIssueSummary}}`. Een metriek die niet werd verzameld ontbreekt in `metrics`; ze is geen nul. Om op één waarde te handelen, vergelijk je haar in het criterium met een [JavaScript-expressie](/docs/monitor/javascript-expression).
+De reeksnamen in `metrics` bevatten punten, zoals `oneuptime.monitor.database.connections.used.percent`, en een template kan er toch een uitpikken: schrijf de hele naam na `metrics.`, zoals in `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Zet `{{metrics}}` in zijn geheel, als JSON, of gebruik `{{collectionIssueSummary}}`. Een metriek die niet werd verzameld ontbreekt in `metrics`; ze is geen nul. Om op één waarde te handelen, vergelijk je haar in het criterium met een [JavaScript-expressie](/docs/monitor/javascript-expression).
 
 ### Monitoren van externe statuspagina's
 
@@ -445,13 +445,14 @@ De reeksnamen in `metrics` bevatten punten, zoals `oneuptime.monitor.database.co
 | `provider` | Het soort statuspagina: Atlassian Statuspage, incident.io, RSS of Atom. | `string` |
 | `componentGroup` | De componentgroep die de monitor in de gaten houdt, als hij er een volgt. | `string` |
 | `componentName` | De componenten die de monitor in de gaten houdt, gescheiden door komma's, als hij er heeft gekozen. | `string` |
+| `componentNames` | Dezelfde componenten als lijst, om met `{{#each componentNames}}` voor elk een regel te herhalen. | `Array<string>` |
 | `isOnline` | Of de statuspagina antwoordde. | `boolean` |
 | `responseTimeInMs` | Hoe lang de statuspagina over het antwoord deed, in milliseconden. | `number` |
 | `failureCause` | Waarom de controle mislukte, als dat zo was. | `string` |
 
 ### Metriek- en infrastructuurmonitoren
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, VMware-, Ceph-, Storage Array- en IoT Device-monitoren hebben één eigen variabele:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Storage Array- en IoT Device-monitoren hebben één eigen variabele:
 
 | Variabele | Wat ze bevat | Type |
 | --- | --- | --- |
@@ -565,7 +566,7 @@ SNMP walk: {{responseTimeInMs}} ms
 ## Problemen oplossen
 
 :::details De titel toont de placeholder, accolades en al
-Het pad leidt in deze controle niet naar een waarde. Controleer de naam van de variabele en de hoofdletters aan de hand van de tabellen hierboven, of open **Learn about dynamic templates** in het criterium: dat somt de variabelen van het type van deze monitor op. Een pad in de body van een antwoord of een verzoek moet overeenkomen met de body zoals die werd verstuurd, en `[*]` en negatieve indexen zoals `[-1]` lezen niets: gebruik `[0]` of `[last]`.
+Het pad leidt in deze controle niet naar een waarde. Controleer de naam van de variabele en de hoofdletters aan de hand van de tabellen hierboven, of open **Meer over dynamische sjablonen** in het criterium: dat somt de variabelen van het type van deze monitor op. Een pad in de body van een antwoord of een verzoek moet overeenkomen met de body zoals die werd verstuurd, en `[*]` en negatieve indexen zoals `[-1]` lezen niets: gebruik `[0]` of `[last]`.
 :::
 
 :::details Een waarde wordt als JSON getoond

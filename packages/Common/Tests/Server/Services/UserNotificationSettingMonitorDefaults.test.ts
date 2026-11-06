@@ -43,6 +43,7 @@ interface StoredSetting {
   alertByTelegram: boolean;
   alertBySlack: boolean;
   alertByMicrosoftTeams: boolean;
+  alertByMattermost: boolean;
   alertByWebhook: boolean;
   isRoot: boolean;
 }
@@ -104,6 +105,7 @@ describe("UserNotificationSettingService monitor defaults", () => {
           alertByTelegram: Boolean(item.alertByTelegram),
           alertBySlack: Boolean(item.alertBySlack),
           alertByMicrosoftTeams: Boolean(item.alertByMicrosoftTeams),
+          alertByMattermost: Boolean(item.alertByMattermost),
           alertByWebhook: Boolean(item.alertByWebhook),
           isRoot: Boolean(args.props.isRoot),
         };
@@ -169,6 +171,7 @@ describe("UserNotificationSettingService monitor defaults", () => {
         alertByTelegram: false,
         alertBySlack: false,
         alertByMicrosoftTeams: false,
+        alertByMattermost: false,
         alertByWebhook: false,
         isRoot: true,
       });
@@ -207,6 +210,7 @@ describe("UserNotificationSettingService monitor defaults", () => {
       alertByTelegram: false,
       alertBySlack: true,
       alertByMicrosoftTeams: false,
+      alertByMattermost: false,
       alertByWebhook: false,
       isRoot: true,
     };

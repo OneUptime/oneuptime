@@ -1,5 +1,4 @@
 import SecurityWatchlistService, {
-  describeRulesReading,
   getWrittenThreatIntelFeedId,
 } from "../../../Server/Services/SecurityWatchlistService";
 import ThreatIntelFeedService from "../../../Server/Services/ThreatIntelFeedService";
@@ -22,8 +21,14 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import {
   SECURITY_WATCHLISTS_PER_PROJECT_MAX,
+  SECURITY_WATCHLIST_MESSAGES,
+  SecurityWatchlistImportSchedule,
   SecurityWatchlistSource,
 } from "../../../Types/SecurityEvent/SecurityWatchlist";
+import {
+  WatchlistReader,
+  WatchlistReaderKind,
+} from "../../../Types/SecurityEvent/SecurityWatchlistFilter";
 import { getJestSpyOn } from "../../Spy";
 import {
   afterEach,
@@ -37,9 +42,11 @@ import {
 /*
  * A PROJECT'S WATCHLISTS, AS THEY ARE SAVED: each checked with the rules
  * the form shows (getSecurityWatchlistProblems), its name stored trimmed,
- * a list that follows a feed naming one of the project's feeds, at most
- * SECURITY_WATCHLISTS_PER_PROJECT_MAX a project - and a list a rule reads
- * by its name neither renamed nor deleted, the refusal naming the rules.
+ * a list that follows a feed naming one of the project's feeds, a list read
+ * from an address naming a whole https address and a schedule, at most
+ * SECURITY_WATCHLISTS_PER_PROJECT_MAX a project - and a list a rule, a
+ * monitor or a hunt reads by its name neither renamed nor deleted, the
+ * refusal naming what reads it.
  */
 
 type Spy = ReturnType<typeof getJestSpyOn>;
@@ -48,9 +55,11 @@ type HookCaller = {
   onBeforeCreate: (
     createBy: CreateBy<SecurityWatchlist>,
   ) => Promise<OnCreate<SecurityWatchlist>>;
+  onCreatePermitted: (onCreate: OnCreate<SecurityWatchlist>) => Promise<void>;
   onBeforeUpdate: (
     updateBy: UpdateBy<SecurityWatchlist>,
   ) => Promise<OnUpdate<SecurityWatchlist>>;
+  onUpdatePermitted: (updateBy: UpdateBy<SecurityWatchlist>) => Promise<void>;
   onBeforeUpdateUniqueCheck: (
     updateBy: UpdateBy<SecurityWatchlist>,
   ) => Promise<void>;
@@ -156,12 +165,22 @@ function uniqueCheck(
   } as unknown as UpdateBy<SecurityWatchlist>);
 }
 
-function readers(
-  byKey: Record<string, Array<{ id: string; name: string }>>,
-): Spy {
-  return getJestSpyOn(SecurityWatchlists, "findRulesReading").mockResolvedValue(
+function readers(byKey: Record<string, Array<WatchlistReader>>): Spy {
+  return getJestSpyOn(SecurityWatchlists, "findReaders").mockResolvedValue(
     new Map(Object.entries(byKey)) as never,
   );
+}
+
+function rule(name: string): WatchlistReader {
+  return { kind: WatchlistReaderKind.DetectionRule, id: name, name };
+}
+
+function monitor(name: string): WatchlistReader {
+  return { kind: WatchlistReaderKind.Monitor, id: name, name };
+}
+
+function hunt(name: string): WatchlistReader {
+  return { kind: WatchlistReaderKind.Hunt, id: name, name };
 }
 
 describe("the feed a write names", () => {
@@ -176,25 +195,6 @@ describe("the feed a write names", () => {
     ).toBe(FEED_ID.toString());
     expect(getWrittenThreatIntelFeedId({})).toBeUndefined();
     expect(getWrittenThreatIntelFeedId({ threatIntelFeedId: null })).toBeNull();
-  });
-});
-
-describe("the rules a refusal names", () => {
-  test("up to three by name, then how many more", () => {
-    expect(describeRulesReading([{ name: "A" }])).toBe("A");
-    expect(
-      describeRulesReading([{ name: "A" }, { name: "B" }, { name: "C" }]),
-    ).toBe("A, B, C");
-    expect(
-      describeRulesReading([
-        { name: "A" },
-        { name: "B" },
-        { name: "C" },
-        { name: "D" },
-        { name: "E" },
-      ]),
-    ).toBe("A, B, C and 2 more");
-    expect(describeRulesReading([{ name: "" }])).toBe("a rule with no name");
   });
 });
 
@@ -359,7 +359,7 @@ describe("changing a watchlist", () => {
 
 describe("renaming a watchlist", () => {
   test("the same name in another case is no rename", async () => {
-    const reading: Spy = readers({ vip_users: [{ id: "r1", name: "VIP" }] });
+    const reading: Spy = readers({ vip_users: [rule("VIP")] });
 
     await uniqueCheck({ name: "VIP_Users" });
 
@@ -381,27 +381,40 @@ describe("renaming a watchlist", () => {
     );
   });
 
-  test("a list rules read by its name keeps it: the refusal names the rules", async () => {
+  test("a list rules, monitors or hunts read by its name keeps it: the refusal names each and what it is", async () => {
     getJestSpyOn(SecurityWatchlistService, "findOneBy").mockResolvedValue(
       null as never,
     );
-    readers({
+    const reading: Spy = readers({
       vip_users: [
-        { id: "r1", name: "VIP sign-in" },
-        { id: "r2", name: "VIP new country" },
+        rule("VIP sign-in"),
+        monitor("VIP failures"),
+        hunt("Weekly VIP review"),
       ],
     });
 
     await expect(uniqueCheck({ name: "vip_people" })).rejects.toThrow(
-      "Rules read this watchlist by its name: VIP sign-in, VIP new country. Change the name in those rules first, then rename the list.",
+      "This watchlist is read by its name in: VIP sign-in (rule), VIP failures (monitor), Weekly VIP review (hunt). Change the name there first, then rename the list.",
     );
+    expect(reading).toHaveBeenCalledWith(PROJECT_ID);
   });
 
-  test("a list no rule reads is renamed", async () => {
+  test("a list only a monitor reads keeps its name too", async () => {
     getJestSpyOn(SecurityWatchlistService, "findOneBy").mockResolvedValue(
       null as never,
     );
-    readers({ other_list: [{ id: "r1", name: "Other" }] });
+    readers({ vip_users: [monitor("VIP failures")] });
+
+    await expect(uniqueCheck({ name: "vip_people" })).rejects.toThrow(
+      "This watchlist is read by its name in: VIP failures (monitor).",
+    );
+  });
+
+  test("a list nothing reads is renamed", async () => {
+    getJestSpyOn(SecurityWatchlistService, "findOneBy").mockResolvedValue(
+      null as never,
+    );
+    readers({ other_list: [rule("Other")] });
 
     await expect(uniqueCheck({ name: "vip_people" })).resolves.toBeUndefined();
   });
@@ -448,23 +461,26 @@ describe("deleting a watchlist", () => {
     } as unknown as DeleteBy<SecurityWatchlist>);
   }
 
-  test("a list rules still read is kept, and the refusal says which rules", async () => {
+  test("a list still read is kept, and the refusal says what reads it", async () => {
     readers({
-      vip_users: [
-        { id: "r1", name: "A" },
-        { id: "r2", name: "B" },
-        { id: "r3", name: "C" },
-        { id: "r4", name: "D" },
-      ],
+      vip_users: [rule("A"), monitor("B"), hunt("C"), rule("D")],
     });
 
     await expect(remove([storedRow()])).rejects.toThrow(
-      "Rules still read vip_users: A, B, C and 1 more. Remove it from those rules first, then delete the list.",
+      "vip_users is still read by its name in: A (rule), B (monitor), C (hunt) and 1 more. Take it out of them first, then delete the list.",
     );
   });
 
-  test("a list no rule reads is deleted; each project's rules are read once", async () => {
-    const reading: Spy = readers({ other: [{ id: "r1", name: "Other" }] });
+  test("a list a hunt alone reads is kept", async () => {
+    readers({ vip_users: [hunt("Weekly VIP review")] });
+
+    await expect(remove([storedRow()])).rejects.toThrow(
+      "vip_users is still read by its name in: Weekly VIP review (hunt).",
+    );
+  });
+
+  test("a list nothing reads is deleted; each project's readers are found once", async () => {
+    const reading: Spy = readers({ other: [rule("Other")] });
 
     await expect(
       remove([
@@ -474,5 +490,208 @@ describe("deleting a watchlist", () => {
     ).resolves.toMatchObject({ carryForward: null });
     expect(reading).toHaveBeenCalledTimes(1);
     expect(reading).toHaveBeenCalledWith(PROJECT_ID);
+  });
+});
+
+describe("a watchlist read from an address", () => {
+  const ADDRESS: string = "https://example.com/vip-users.csv";
+
+  function urlList(
+    values: Partial<Record<string, unknown>> = {},
+  ): SecurityWatchlist {
+    return newList({
+      source: SecurityWatchlistSource.Url,
+      importUrl: ADDRESS,
+      ...values,
+    });
+  }
+
+  async function createAndPermit(
+    data: SecurityWatchlist,
+  ): Promise<OnCreate<SecurityWatchlist>> {
+    const onCreate: OnCreate<SecurityWatchlist> = await create(data);
+    await service.onCreatePermitted(onCreate);
+    return onCreate;
+  }
+
+  test("is created with its address trimmed, read every hour unless it says otherwise, and read within a minute", async () => {
+    const before: number = Date.now();
+    const data: SecurityWatchlist = urlList({ importUrl: `  ${ADDRESS} ` });
+
+    await createAndPermit(data);
+
+    expect(data.importUrl).toBe(ADDRESS);
+    expect(data.importSchedule).toBe(SecurityWatchlistImportSchedule.EveryHour);
+    expect(data.nextImportAt).toBeInstanceOf(Date);
+    expect(data.nextImportAt!.getTime()).toBeGreaterThanOrEqual(before);
+    expect(data.nextImportAt!.getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
+  test("keeps the schedule it is given", async () => {
+    const data: SecurityWatchlist = urlList({
+      importSchedule: SecurityWatchlistImportSchedule.EveryDay,
+    });
+
+    await createAndPermit(data);
+
+    expect(data.importSchedule).toBe(SecurityWatchlistImportSchedule.EveryDay);
+  });
+
+  test("an address that is not a whole https one, or carries a sign-in, is refused in the form's words", async () => {
+    await expect(create(urlList({ importUrl: "" }))).rejects.toThrow(
+      SECURITY_WATCHLIST_MESSAGES.enterUrl.message,
+    );
+    await expect(
+      create(urlList({ importUrl: "http://example.com/vip.csv" })),
+    ).rejects.toThrow(SECURITY_WATCHLIST_MESSAGES.urlNotHttps.message);
+    await expect(
+      create(urlList({ importUrl: "https://me:secret@example.com/vip.csv" })),
+    ).rejects.toThrow(SECURITY_WATCHLIST_MESSAGES.urlHasCredentials.message);
+    await expect(
+      create(urlList({ importSchedule: "Every Minute" })),
+    ).rejects.toThrow(SECURITY_WATCHLIST_MESSAGES.chooseSchedule.message);
+  });
+
+  test("any other list reads no address, whatever its create named, and is never read", async () => {
+    const data: SecurityWatchlist = newList({
+      importUrl: ADDRESS,
+      importSchedule: SecurityWatchlistImportSchedule.EveryDay,
+    });
+
+    await createAndPermit(data);
+
+    expect(data.importUrl).toBeUndefined();
+    expect(data.importSchedule).toBeUndefined();
+    expect(data.nextImportAt).toBeUndefined();
+  });
+
+  test("a create a check refused starts no read", async () => {
+    const data: SecurityWatchlist = urlList({ importUrl: "ftp://example.com" });
+    const createBy: CreateBy<SecurityWatchlist> = {
+      data,
+      props: { isRoot: true },
+    };
+
+    await expect(service.onBeforeCreate(createBy)).rejects.toThrow(
+      BadDataException,
+    );
+    await service.onCreatePermitted({ createBy, carryForward: null });
+
+    expect(data.nextImportAt).toBeUndefined();
+  });
+
+  test("when it is next read, and what its reads did, are OneUptime's to write", () => {
+    const model: SecurityWatchlist = new SecurityWatchlist();
+
+    for (const column of [
+      "nextImportAt",
+      "lastImportAt",
+      "lastImportSucceededAt",
+      "lastImportError",
+      "lastImportErrorDetail",
+      "lastImportLinesLeftOut",
+    ]) {
+      expect({
+        column,
+        create: model.getColumnAccessControlFor(column)?.create || [],
+        update: model.getColumnAccessControlFor(column)?.update || [],
+      }).toEqual({ column, create: [], update: [] });
+    }
+
+    // Its address and schedule are the list's to change, as its name is.
+    for (const column of ["importUrl", "importSchedule"]) {
+      expect(model.getColumnAccessControlFor(column)?.update).toEqual(
+        model.getColumnAccessControlFor("name")?.update,
+      );
+    }
+  });
+
+  test("a new address or schedule is checked, and the list read again within a minute", async () => {
+    const urlRow: SecurityWatchlist = storedRow({
+      source: SecurityWatchlistSource.Url,
+      importUrl: ADDRESS,
+    });
+    const data: JSONObject = {
+      importUrl: " https://example.com/new.csv ",
+      importSchedule: SecurityWatchlistImportSchedule.EverySixHours,
+    };
+    const rows: Spy = getJestSpyOn(
+      SecurityWatchlistService,
+      "findRowsAndHoldUpdateToThem",
+    ).mockResolvedValue([urlRow] as never);
+    const updateBy: UpdateBy<SecurityWatchlist> = {
+      query: { _id: ROW_ID },
+      data,
+      props: { isRoot: true },
+    } as unknown as UpdateBy<SecurityWatchlist>;
+
+    await service.onBeforeUpdate(updateBy);
+    await service.onUpdatePermitted(updateBy);
+
+    expect(data["importUrl"]).toBe("https://example.com/new.csv");
+    expect(data["nextImportAt"]).toBeInstanceOf(Date);
+    expect(rows).toHaveBeenCalledWith(updateBy, { _id: true, source: true });
+  });
+
+  test("an update that leaves the address and schedule alone does not read the list again", async () => {
+    getJestSpyOn(
+      SecurityWatchlistService,
+      "findRowsAndHoldUpdateToThem",
+    ).mockResolvedValue([
+      storedRow({ source: SecurityWatchlistSource.Url, importUrl: ADDRESS }),
+    ] as never);
+    const data: JSONObject = { description: "Read from HR." };
+    const updateBy: UpdateBy<SecurityWatchlist> = {
+      query: { _id: ROW_ID },
+      data,
+      props: { isRoot: true },
+    } as unknown as UpdateBy<SecurityWatchlist>;
+
+    await service.onBeforeUpdate(updateBy);
+    await service.onUpdatePermitted(updateBy);
+
+    expect(data["nextImportAt"]).toBeUndefined();
+  });
+
+  test("a bad address or schedule in an update is refused", async () => {
+    const urlRow: SecurityWatchlist = storedRow({
+      source: SecurityWatchlistSource.Url,
+      importUrl: ADDRESS,
+    });
+
+    await expect(
+      update({ importUrl: "http://example.com/x.csv" }, [urlRow]),
+    ).rejects.toThrow(SECURITY_WATCHLIST_MESSAGES.urlNotHttps.message);
+    await expect(update({ importUrl: "" }, [urlRow])).rejects.toThrow(
+      SECURITY_WATCHLIST_MESSAGES.enterUrl.message,
+    );
+    await expect(
+      update({ importSchedule: "Every Minute" }, [urlRow]),
+    ).rejects.toThrow(SECURITY_WATCHLIST_MESSAGES.chooseSchedule.message);
+  });
+
+  test("a list kept by hand, or following a feed, is given no address", async () => {
+    await expect(update({ importUrl: ADDRESS }, [storedRow()])).rejects.toThrow(
+      "Only a watchlist read from an address reads one. To read a list from an address, create a watchlist that does.",
+    );
+    await expect(
+      update({ importSchedule: SecurityWatchlistImportSchedule.EveryDay }, [
+        storedRow({
+          source: SecurityWatchlistSource.ThreatIntelFeed,
+          entityType: SecurityEntityType.IpAddress,
+          threatIntelFeedId: FEED_ID,
+        }),
+      ]),
+    ).rejects.toThrow("Only a watchlist read from an address reads one.");
+  });
+
+  test("a list read from an address follows no feed", async () => {
+    await expect(
+      update({ threatIntelFeedId: FEED_ID.toString() }, [
+        storedRow({ source: SecurityWatchlistSource.Url, importUrl: ADDRESS }),
+      ]),
+    ).rejects.toThrow(
+      "This watchlist is read from an address, so it follows no feed. To follow a feed, create a watchlist that does.",
+    );
   });
 });

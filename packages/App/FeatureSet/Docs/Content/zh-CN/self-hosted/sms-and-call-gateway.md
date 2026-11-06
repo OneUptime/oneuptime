@@ -33,7 +33,7 @@ flowchart TB
 4. 点击 **Send Test**。你的网关应以 2xx 状态响应，并且不发送任何内容。
 :::
 
-要更换密钥，请在 **更多字段** 下清空 **Signing Secret** 并保存：OneUptime 会生成一个新的密钥。要改回 Twilio，请选择 **Twilio** 并保存。
+要更换密钥，请在 **更多字段** 下清空 **签名密钥** 并保存：OneUptime 会生成一个新的密钥。要改回 Twilio，请选择 **Twilio** 并保存。
 
 ## 你的网关会收到什么
 
@@ -116,7 +116,7 @@ curl -X POST "https://oneuptime.example.com/api/custom-notification-channel/page
 
 ## 测试请求
 
-**Send test** 会发送一个 `event` 设为 `test`，且 `to`、`project` 和 `actions` 设为 `null` 的请求。请以 2xx 状态响应，并且不要发送任何内容。
+**发送测试** 会发送一个 `event` 设为 `test`，且 `to`、`project` 和 `actions` 设为 `null` 的请求。请以 2xx 状态响应，并且不要发送任何内容。
 
 ## 后续步骤
 

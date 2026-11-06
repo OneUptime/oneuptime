@@ -34,6 +34,7 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
     useWorkspaceSideMenuSection({
       slack: PageMap.USER_SETTINGS_SLACK_INTEGRATION,
       microsoftTeams: PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
+      mattermost: PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION,
     });
 
   /*

@@ -24,8 +24,13 @@ Stubbed:
 
 - The data boundary: `ModelAPI`, `AnalyticsModelAPI` and `API`. Every table answers empty, so
   both pages show their empty state. The search bar's attribute lookup answers with no
-  attributes. Turning Your logs on is the one write modelled: it creates the project's
-  `SecurityLogSource`, which the card then reads back.
+  attributes. The writes modelled are the Connections cards' own: turning Your logs on
+  creates the project's `SecurityLogSource` (with `caseMinimumSeverity` High, the column's
+  default), which the card then reads back; turning a kind of Your OneUptime data on creates
+  its `SecurityTelemetrySource`; and Your logs' Open cases from, or a switch whose record
+  exists, updates it (`ModelAPI.updateById`), applied to the record so the card reads it back.
+- Your OneUptime data's Cloud audit logs count the project's cloud accounts
+  (`ModelAPI.count` of `CloudConnection`): none, unless `?cloud=connected` says one.
 - The signed-in user ("Maya Chen" of a generic "Acme Commerce" workspace) and her
   permissions. The fixture header says the data is synthetic
   ("Preview workspace · Synthetic data").
@@ -48,20 +53,24 @@ The clock is pinned: the spec fixes the browser clock to `2026-09-22T12:00:00Z`.
 
 Query parameters, parsed once per page load:
 
-| Parameter  | Values                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `?role=`   | `owner` (default) or `viewer`: Security Viewer only, so it can read connections but not create them. Both Add connection buttons are disabled, the reason is written out under the hero button and the tiles become a static "Supported products" list.                                                                                                                                                                                                                                                |
-| `?theme=`  | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `?latest=` | Once its time window comes back empty, the Security Events page looks up the project's newest event (one row, no time window) to tell "nothing ever arrived" from "nothing in this window". `none` (default): there is no event at all, so the page shows its empty state. `pending`: the lookup does not answer until the spec calls `window.__securityEventsEmptyStatesFixture.resolveLatestEvent()`. `old`: the newest event arrived at `2026-09-01T09:30:00Z`, outside the default one-day window. |
-| `?siem=`   | `rows`: three SIEMs in the Send to your SIEM table - sending, failing (with its last error) and not sent yet. Without it the table is empty.                                                                                                                                                                                                                                                                                                                                                           |
-| `?logs=`   | `on`: the project's Your logs is on, checked two minutes before the pinned clock, nothing found yet, so the Events page's Your logs card says On and Open Your logs. `check-failed`: on, and that last check failed, which the card says under its status line. `fail`: reading Your logs fails (a 500), on the Events page and on Connections. Without it, Your logs is off (no record yet).                                                                                                          |
-| `?events=` | `one`: the window holds one event - Defender's encoded PowerShell on `web-03`, by `k.morgan@acme-commerce.example` from `203.0.113.30`, twenty minutes before the pinned clock - so its row opens the event's drawer. The drawer's Connected tab asks `POST /security-case/connections` what the event names, answered from Security Operations' records (`web-03`, its staging namesake, Kai Morgan) with the server's own matching rules (`../SecurityOperations/Fixture/ConnectionsFixture.js`).    |
+| Parameter      | Values                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `?role=`       | `owner` (default) or `viewer`: Security Viewer only, so it can read connections but not create them. Both Add connection buttons are disabled, the reason is written out under the hero button and the tiles become a static "Supported products" list.                                                                                                                                                                                                                                                |
+| `?theme=`      | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `?latest=`     | Once its time window comes back empty, the Security Events page looks up the project's newest event (one row, no time window) to tell "nothing ever arrived" from "nothing in this window". `none` (default): there is no event at all, so the page shows its empty state. `pending`: the lookup does not answer until the spec calls `window.__securityEventsEmptyStatesFixture.resolveLatestEvent()`. `old`: the newest event arrived at `2026-09-01T09:30:00Z`, outside the default one-day window. |
+| `?siem=`       | `rows`: three SIEMs in the Send to your SIEM table - sending, failing (with its last error) and not sent yet. Without it the table is empty.                                                                                                                                                                                                                                                                                                                                                           |
+| `?logs=`       | `on`: the project's Your logs is on, checked two minutes before the pinned clock, nothing found yet, so the Events page's Your logs card says On and Open Your logs. `check-failed`: on, and that last check failed, which the card says under its status line. `fail`: reading Your logs fails (a 500), on the Events page and on Connections. Without it, Your logs is off (no record yet).                                                                                                          |
+| `?cloud=`      | `connected`: one cloud account is connected under Cloud, so Cloud audit logs has something to read. Without it there is none, and its row says so, with a link to Connect a Cloud Account.                                                                                                                                                                                                                                                                                                             |
+| `?cloudaudit=` | `on`: Cloud audit logs are on and not read yet. `found`: read two minutes before the pinned clock, 7 CloudTrail events found. `check-failed`: its last read failed, which the row says. Without it, Cloud audit logs are off (no record yet).                                                                                                                                                                                                                                                          |
+| `?save=`       | `fail`: the server refuses every update with its reason (a 400), so Open cases from goes back to what Your logs has and says why.                                                                                                                                                                                                                                                                                                                                                                      |
+| `?events=`     | `one`: the window holds one event - Defender's encoded PowerShell on `web-03`, by `k.morgan@acme-commerce.example` from `203.0.113.30`, twenty minutes before the pinned clock - so its row opens the event's drawer. The drawer's Connected tab asks `POST /security-case/connections` what the event names, answered from Security Operations' records (`web-03`, its staging namesake, Kai Morgan) with the server's own matching rules (`../SecurityOperations/Fixture/ConnectionsFixture.js`).    |
 
 ## What the fixture records
 
 `window.__securityEventsEmptyStatesFixture` holds `role`, `latest`, `siem`, `events`,
-`listRequests` (analytics lists carry `analytics: true`), `countRequests`,
-`aggregateRequests`, `apiRequests` (each with the body it sent), `creates` and `unhandled`.
+`cloud`, `cloudAudit`, `listRequests` (analytics lists carry `analytics: true`),
+`countRequests`, `aggregateRequests`, `apiRequests` (each with the body it sent), `creates`,
+`updates` (each with the record's id and what was written) and `unhandled`.
 Anything a page reads that the fixture does not
 model (a model table, an analytics query or an API URL), and any create, answers empty and
 is listed in `unhandled`; the spec's `afterEach` fails when that list is not empty.
@@ -70,9 +79,16 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
 
 `SecurityEventsEmptyStates.spec.ts` (44 tests):
 
-- **Connections, top to bottom**: Your logs, Your security tools, Send to your SIEM; the Your
-  logs switch turns the logs on in one press and says when the first check runs, and a
-  viewer cannot flip it; Send to your SIEM (and the card's Add destination) opens its form on
+- **Connections, top to bottom**: Your logs, Your OneUptime data, Your security tools, Send to
+  your SIEM; the Your logs switch turns the logs on in one press and says when the first
+  check runs, and a viewer cannot flip it; once Your logs is on, Open cases from sits under
+  it at High and above with what it is for on one line, a level saves at once and says Saved
+  (Never writes the empty value), a refused pick goes back with the reason, a viewer reads it
+  locked, and it fits a phone and reads in the dark; Cloud audit logs is Your OneUptime data's
+  last row, says when no cloud account is connected and links to connecting one, promises no
+  first check while there is nothing to read, waits for the cloud accounts' next read once
+  one is connected, says what its last read found or why it failed, and reads on a phone and
+  in the dark; Send to your SIEM (and the card's Add destination) opens its form on
   the SIEM step - Google SecOps, Splunk, Microsoft Sentinel and Elastic Security - and Next
   opens that SIEM's own settings alone, what most people leave at its default folded under
   More fields (none for Google SecOps), its test event waiting for the settings; with SIEMs

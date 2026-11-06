@@ -37,6 +37,9 @@ import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
+import { withTranslatedSeriesNames } from "Common/UI/Components/Charts/Utils/SeriesNames";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import DataPoint from "Common/UI/Components/Charts/Types/DataPoint";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
@@ -121,6 +124,8 @@ const BURN_RULE_LINE_COLOR: string = "#ef4444";
 const SloHistoryCharts: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // Each chart's line in the reader's words: SLI %, Budget Remaining %, Burn Rate.
+  const translator: Translator = useTranslator();
   /*
    * Effects key on the id STRING: a parent that builds a new ObjectID on every
    * render must not restart the fetch each time.
@@ -477,7 +482,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
     return withSloChartZoomHint(
       true,
       <LineChartElement
-        data={series}
+        data={withTranslatedSeriesNames(series, translator)}
         xAxis={xAxis}
         yAxis={yAxis}
         curve={ChartCurve.MONOTONE}

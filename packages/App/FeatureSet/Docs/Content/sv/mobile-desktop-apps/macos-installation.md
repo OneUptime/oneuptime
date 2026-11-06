@@ -61,7 +61,7 @@ Appen visar notiser när du har registrerat den för push-aviseringar, i varje p
 
 :::steps
 ### Öppna dina push-enheter
-Öppna **Användarinställningar → Aviseringsmetoder** och fliken **Push Notifications** i appen.
+Öppna **Användarinställningar → Aviseringsmetoder** och fliken **Push-aviseringar** i appen.
 
 ### Registrera den här appen
 Klicka på **Registrera enhet**, behåll det föreslagna **Enhetsnamn**, till exempel `Safari on macOS`, eller ändra det, och klicka på **Registrera enhet** igen. När macOS eller webbläsaren frågar om OneUptime får skicka notiser väljer du **Tillåt**.
@@ -89,7 +89,7 @@ Det finns inget att uppdatera. Appen hämtar instrumentpanelen från ditt OneUpt
 Öppna `edge://apps` i Edge, välj **Detaljer** för OneUptime och sedan **Avinstallera**.
 :::
 
-Att avinstallera appen avregistrerar den inte: dess webbläsare får fortfarande notiser. Vill du stoppa dem tar du bort den under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**, med **Ta bort**.
+Att avinstallera appen avregistrerar den inte: dess webbläsare får fortfarande notiser. Vill du stoppa dem tar du bort den under **Användarinställningar → Aviseringsmetoder**, på fliken **Push-aviseringar**, med **Ta bort**.
 
 ## Felsökning
 
@@ -98,7 +98,7 @@ Safari lägger till webbappar i Dock från och med macOS Sonoma 14. Uppdatera ma
 :::
 
 :::details Inga notiser visas
-- Kontrollera under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**, att appen eller dess webbläsare finns i listan, och skicka en **Testavisering**.
+- Kontrollera under **Användarinställningar → Aviseringsmetoder**, på fliken **Push-aviseringar**, att appen eller dess webbläsare finns i listan, och skicka en **Testavisering**.
 - Öppna **Systeminställningar → Notiser** på datorn och kontrollera att OneUptime, eller webbläsaren det installerades från, får skicka notiser, och att inget Fokus håller tillbaka dem.
 - Blockerar webbläsaren notiser för OneUptime, tillåt dem i dess inställningar för webbplatsen och registrera igen.
 - På ett OneUptime i egen drift säger dialogrutan **Registrera enhet** när servern saknar VAPID-nycklar.

@@ -795,13 +795,16 @@ describe(`${RELEASE}: the release is tagged on the commit the run built`, () => 
  *
  * The app builds are waited for but not required: a failed app build still
  * publishes the release, without that app, rather than leaving a draft
- * behind images and tags that have already gone out. So the publish's `if`
- * is read here the way Actions reads it.
+ * behind images and tags that have already gone out. The vulnerability scan
+ * of the SBOMs is the same: a failed scan publishes the release without its
+ * reports. So the publish's `if` is read here the way Actions reads it.
  */
 describe(`${RELEASE}: nothing writes the release once it is published`, () => {
   const jobs = readYaml(RELEASE).jobs;
   const PUBLISH = "finalize-github-release";
   const APP_JOBS = ["mobile-app-android-build", "mobile-app-ios-build"];
+  const SCAN_JOB = "scan-sbom-vulnerabilities";
+  const OPTIONAL_JOBS = [...APP_JOBS, SCAN_JOB];
 
   // A step that creates, fills or edits this repository's GitHub release.
   function writesTheRelease(step) {
@@ -905,6 +908,7 @@ describe(`${RELEASE}: nothing writes the release once it is published`, () => {
       }),
     ).toEqual([
       "Attach SBOMs to release",
+      "Attach vulnerability reports to release",
       "Attach the infrastructure agent to release",
       "Upload APK to GitHub Release",
       "Upload IPA to GitHub Release",
@@ -934,11 +938,13 @@ describe(`${RELEASE}: nothing writes the release once it is published`, () => {
 
   describe(`${PUBLISH} publishes the release`, () => {
     const required = needsOf(jobs[PUBLISH]).filter((need) => {
-      return !APP_JOBS.includes(need);
+      return !OPTIONAL_JOBS.includes(need);
     });
 
-    test("waiting for both app jobs and requiring the rest (the checks below are not vacuous)", () => {
-      expect(needsOf(jobs[PUBLISH])).toEqual(expect.arrayContaining(APP_JOBS));
+    test("waiting for both app jobs and the scan, and requiring the rest (the checks below are not vacuous)", () => {
+      expect(needsOf(jobs[PUBLISH])).toEqual(
+        expect.arrayContaining(OPTIONAL_JOBS),
+      );
       expect(required).toEqual(
         expect.arrayContaining([
           "draft-github-release",
@@ -963,6 +969,13 @@ describe(`${RELEASE}: nothing writes the release once it is published`, () => {
     )("without that app when %s ended %s", (job, result) => {
       expect(publishRuns({ results: { [job]: result } })).toBe(true);
     });
+
+    test.each(["failure", "cancelled", "skipped"])(
+      "without the vulnerability reports when the scan ended %s",
+      (result) => {
+        expect(publishRuns({ results: { [SCAN_JOB]: result } })).toBe(true);
+      },
+    );
 
     test("without either app when both app jobs failed", () => {
       const results = Object.fromEntries(

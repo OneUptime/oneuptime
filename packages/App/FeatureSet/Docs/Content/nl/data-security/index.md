@@ -6,7 +6,7 @@ Het beantwoordt vier vragen:
 
 :::cards
 - [Waar staan onze gevoelige gegevens?](/docs/data-security/data-types): 143 gegevenstypen, van kaartnummers en nationale identiteitsnummers tot API-sleutels, gevonden in buckets, tabellen en telemetrie.
-- [Is het blootgesteld?](/docs/data-security/checks-and-issues): 33 controles van elke opslag: openbare toegang, versleuteling, back-ups, logging, geheimen en kopieën.
+- [Is het blootgesteld?](/docs/data-security/checks-and-issues): 34 controles van elke opslag: openbare toegang, versleuteling, back-ups, logging, geheimen en kopieën.
 - [Wie kan erbij, en waar gaat het heen?](/docs/data-security/flows-access-residency): Elke identiteit die bij elke opslag kan, de riskantste eerst, welke services hem gebruiken, en welke AI-providers en hosts zijn gegevens bereiken.
 - [Voldoet het aan onze regels?](/docs/data-security/compliance): Residentieregels, en negen kaders gescoord op wat de scans vonden.
 :::
@@ -66,10 +66,10 @@ Open **Gegevensbeveiliging**. Opslagen verschijnen onder **Gegevensopslagen** zo
 
 | Waar | Opslagen | Inhoudsvoorbeelden |
 | --- | --- | --- |
-| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System | AWS S3 Bucket |
+| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Databases die je zelf beheert | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch | PostgreSQL, MySQL |
+| Databases die je zelf beheert | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks | PostgreSQL, MySQL |
 | OneUptime | Logs, traces, uitzonderingen, sessieherhalingen, AI-gesprekken | Logs, traces, uitzonderingen, sessieherhalingen, AI-gesprekken |
 
 Elke opslag krijgt de controles die bij zijn soort horen. Een opslag waarvan de inhoud niet kan worden bemonsterd, wordt toch gecontroleerd: een openbare bucket of een onversleutelde database is een probleem, wat er ook in staat.

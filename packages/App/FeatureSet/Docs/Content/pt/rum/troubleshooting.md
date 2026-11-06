@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-A página **Integridade** da aplicação, na seção **Reprodução de sessões** dela, e o painel **Test your installation** de **Replay Policy** verificam a chave, as listas de origens permitidas e a política do lado do servidor, e dizem por que nada chega. O console do navegador dá a metade que o servidor não consegue ver.
+A página **Integridade** da aplicação, na seção **Reprodução de sessões** dela, e o painel **Test your installation** de **Política de reprodução** verificam a chave, as listas de origens permitidas e a política do lado do servidor, e dizem por que nada chega. O console do navegador dá a metade que o servidor não consegue ver.
 
 Com a política padrão, um gravador envia um fragmento a cada 15 segundos, mais ou menos, enquanto o usuário interage com a página. Uma aba ociosa não tem nada para enviar, então clique ou mova o mouse primeiro; depois, se não houver nenhuma requisição de fragmento, algo está errado. Se o aplicativo só envia _On error or frustration_, o silêncio é esperado até algo falhar. Chame `OneUptimeReplay.captureSession()` para forçar um envio e testar o caminho de qualquer forma.
 

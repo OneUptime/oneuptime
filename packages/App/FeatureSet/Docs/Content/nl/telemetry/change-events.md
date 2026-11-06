@@ -35,6 +35,7 @@ Hiervoor hoef je niets te sturen. OneUptime legt ze vast op basis van de telemet
 | Een runbook | Een runbook dat OneUptime uitvoerde, wordt voltooid, mislukt of wordt geannuleerd nadat het is gestart | `runbook` |
 | Een cloudwijziging | Het activiteitenlogboek van een gekoppeld cloudaccount legt een wijziging vast: AWS CloudTrail, het Azure-activiteitenlogboek of het auditlogboek Admin Activity van Google Cloud | `cloud` |
 | Een gebeurtenis van de provider | De cloudprovider publiceert een statusgebeurtenis over het account: AWS Health, Azure Service Health of Resource Health, of Google Cloud Service Health | `cloud-health` |
+| Een OpenStack-wijziging | De eigen notificaties van een OpenStack-cloud zeggen wat een van zijn onderdelen is overkomen, of de leesactie van een probe naar Nova doet dat: zie [Levenscyclusgebeurtenissen](/docs/telemetry/openstack#levenscyclusgebeurtenissen) | `openstack` |
 
 - **De eerste versie die een service rapporteert, is zijn uitgangspunt, geen deploy.** Een service die al maanden draait, wordt niet gedeployd op het moment dat OneUptime zijn telemetrie begint te ontvangen.
 - **Een rollback naar een versie die in de afgelopen 30 dagen is gezien, wordt niet vastgelegd,** omdat die versie niet nieuw is. Een rollback die OneUptime AI uitvoert, wordt als fix vastgelegd.
@@ -50,7 +51,7 @@ Een rollout heeft de [Kubernetes-agent](/docs/telemetry/kubernetes-agent) nodig,
 
 Een app-implementatie heeft een app nodig die op een [beheerd app-platform](/docs/telemetry/cloud-environments#apps-en-implementaties) draait. Ze wordt vastgelegd onder de omgeving van de app en getekend in de grafieken van de omgeving en die van de app, en daar wordt ook een rollback naar een revisie die de app eerder draaide vastgelegd.
 
-Een cloudwijziging of een gebeurtenis van de provider heeft een [gekoppeld cloudaccount](/docs/telemetry/cloud-accounts) nodig. Elk ervan wordt gekoppeld aan de cloudresource die het noemt, als OneUptime die resource vermeldt, en getekend op de grafieken van de resource. Het type volgt uit de bewerking: `deployment`, `scaling` of `rollback` als de naam van de bewerking dat zegt, anders `config-change`, en `provider-event` voor een statusgebeurtenis. Grafieken die op geen enkele resource zijn gefilterd, laten het activiteitenlogboek van een cloudaccount weg, zodat een druk account je deploys niet verdringt; de statusgebeurtenissen van de provider blijven erop staan.
+Een cloudwijziging of een gebeurtenis van de provider heeft een [gekoppeld cloudaccount](/docs/telemetry/cloud-accounts) nodig. Elk ervan wordt gekoppeld aan de cloudresource die het noemt, als OneUptime die resource vermeldt, en getekend op de grafieken van de resource. Het type volgt uit de bewerking: `deployment`, `scaling` of `rollback` als de naam van de bewerking dat zegt, anders `config-change`, en `provider-event` voor een statusgebeurtenis. Grafieken die op geen enkele resource zijn gefilterd, laten het activiteitenlogboek van een cloudaccount en de wijzigingen van een OpenStack-cloud weg, zodat een druk account je deploys niet verdringt; de statusgebeurtenissen van de provider blijven erop staan.
 
 ## Een deploy vastleggen vanuit een pipeline
 
@@ -147,7 +148,7 @@ De velden op het hoogste niveau worden opgeslagen als attributen onder de namen 
 
 Attributen waarvan de naam begint met `oneuptime.` zijn van OneUptime zelf en worden weggelaten uit wat een pipeline stuurt. Elke wijziging die een pipeline vastlegt, vermeldt dat in `oneuptime.change.source`, met de waarde `api`.
 
-Een wijziging die uit een cloudaccount is gelezen, noemt het account en de resource onder de namen van OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` en `cloud.resource_id`, en bewaart de bewerking in `oneuptime.cloud.operation`, wie hem uitvoerde in `oneuptime.cloud.actor`, of hij mislukte in `oneuptime.change.status` en het cloudaccount in `oneuptime.cloud_account.id`.
+Een wijziging die uit een cloudaccount is gelezen, noemt het account en de resource onder de namen van OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` en `cloud.resource_id`, en bewaart de bewerking in `oneuptime.cloud.operation`, wie hem uitvoerde in `oneuptime.cloud.actor`, of hij mislukte in `oneuptime.change.status`, de naam waaronder OneUptime de resource kent in `oneuptime.cloud.resource_name` en het cloudaccount in `oneuptime.cloud_account.id`. De titel wordt in het Engels opgeslagen, zoals de API en OneUptime AI hem lezen, en elke pagina formuleert hem hieruit in de taal van wie hem leest. Een wijziging die OneUptime AI via een Cloud-AI-agent heeft gemaakt, zegt dat in `oneuptime.change.made_by`, dat `oneuptime-ai` is, en noemt de taak van de agent in `oneuptime.runner_job.id`, de oplossing in `oneuptime.auto_remediation_suggestion.id`, de AI-run die haar plande in `oneuptime.ai_run.id`, of het de oplossing of het terugdraaien ervan was in `oneuptime.ai.step` (`fix` of `rollback`), en het incident of de waarschuwing die ze verhielp in `oneuptime.incident.id` of `oneuptime.alert.id`.
 
 ### Limieten
 

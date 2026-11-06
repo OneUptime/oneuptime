@@ -8,10 +8,13 @@ import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import Service from "Common/Models/DatabaseModels/Service";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import DataStore from "Common/Models/DatabaseModels/DataStore";
+import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
 import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
 import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/DatabaseSystem";
 import { OPENSHIFT_KUBERNETES_PROVIDER } from "Common/Types/Kubernetes/KubernetesClusterProvider";
@@ -31,6 +34,20 @@ import {
   MonitorRecommendationResourceType,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import ObjectID from "Common/Types/ObjectID";
+import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
+import { getOpenStackOptionalServicesOf } from "Common/Types/OpenStack/OpenStackOptionalServices";
+import {
+  OPENSTACK_SERVICE_TITLES,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OpenStackChecksOn,
+  OpenStackInventorySummary,
+  fetchOpenStackChecksOn,
+  fetchOpenStackInventorySummary,
+} from "../../Pages/OpenStack/Utils/OpenStackResourceUtils";
+import { DataObservabilityStoreSummary } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 
 /*
  * The App-side half of the recommendation registry.
@@ -107,6 +124,17 @@ export interface RecommendationResourceDefinition {
   describeContext?:
     | ((context: MonitorRecommendationContext) => string | undefined)
     | undefined;
+  /*
+   * How to read ONE resource when its model cannot be read with the
+   * person's own permissions. A data store is Data Security's record,
+   * readable by the Security tiers only, while anyone who may read Data
+   * Observability may see its recommendations - so it is read from Data
+   * Observability's own route, which hands back what they need: its id and
+   * its name. Absent for every resource type its own model's read serves.
+   */
+  loadResource?:
+    | ((resourceId: ObjectID) => Promise<BaseModel | null>)
+    | undefined;
 }
 
 /*
@@ -153,6 +181,12 @@ function readSessionReplayMonthlyBudgetInGB(value: unknown): number | null {
  *   Database    _id                the `oneuptime.database.server.id` stamp
  *                                  every template query filters on is the
  *                                  DatabaseServer row id
+ *   DataStore   _id                the `oneuptime.data.store.id` stamp table
+ *                                  health writes on every row is the
+ *                                  DataStore row id
+ *   DataPipeline _id               the `oneuptime.data.pipeline.id` each
+ *                                  run's metrics carry is the DataPipeline
+ *                                  row id
  *
  * The six `name` rows mean renaming one of those resources orphans its
  * existing monitors from the diff — they will show as available again. That is
@@ -227,6 +261,80 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     modelType: ProxmoxCluster,
     identifierFieldName: "name",
     displayNameFieldName: "name",
+  },
+  /*
+   * Some of an OpenStack cloud's recommendations need a service it may not run, or a series only a
+   * probe sends (OpenStackAlertTemplate.forService, requiresProbe). Its row says how it is collected,
+   * and only its inventory says what it runs: asked for whole, not a region at a time, because a
+   * monitor is for the cloud. A read that fails leaves them withheld, which is what the page shows
+   * anyway on a cloud that has none of them.
+   */
+  {
+    resourceType: MonitorRecommendationResourceType.OpenStack,
+    modelType: OpenStackCloud,
+    identifierFieldName: "name",
+    displayNameFieldName: "name",
+    contextFieldNames: ["collectionMethod"],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      return {
+        openStackIsCollectedByProbe:
+          (model as unknown as Record<string, unknown>)["collectionMethod"] ===
+          OpenStackCollectionMethod.Probe,
+      };
+    },
+    loadContext: async (data: {
+      model: BaseModel;
+      context: MonitorRecommendationContext;
+    }): Promise<MonitorRecommendationContext> => {
+      const [summary, checks]: [
+        OpenStackInventorySummary | null,
+        OpenStackChecksOn,
+      ] = await Promise.all([
+        fetchOpenStackInventorySummary(data.model.id as ObjectID),
+        fetchOpenStackChecksOn(data.model.id as ObjectID),
+      ]);
+      return {
+        ...data.context,
+        /*
+         * A service that has never let this credential in has nothing for its alerts to read but its
+         * API, and that would read down for as long as the credential stays as it is.
+         */
+        openStackServices: summary
+          ? getOpenStackOptionalServicesOf(summary.services).filter(
+              (service: string): boolean => {
+                return !summary.closedServices.includes(service);
+              },
+            )
+          : null,
+        openStackIsApiCheckOn: checks.isApiCheckOn,
+        openStackIsLifecycleCheckOn: checks.isLifecycleCheckOn,
+      };
+    },
+    /*
+     * Said only where what a cloud runs changed the list. A cloud without them is offered what
+     * every cloud is, which needs no note, and is told nothing about what it doesn't run.
+     */
+    describeContext: (
+      context: MonitorRecommendationContext,
+    ): string | undefined => {
+      const services: ReadonlyArray<string> = context.openStackServices || [];
+      if (services.length === 0) {
+        return undefined;
+      }
+      return translateTemplate(
+        "This cloud runs {{services}}, so the recommendations below include alerts on them.",
+        {
+          services: services
+            .map((service: string): string => {
+              return (
+                OPENSTACK_SERVICE_TITLES[service as OpenStackServiceType] ||
+                service
+              );
+            })
+            .join(", "),
+        },
+      );
+    },
   },
   {
     resourceType: MonitorRecommendationResourceType.VMware,
@@ -586,6 +694,46 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
         { engine: engineName },
       );
     },
+  },
+  /*
+   * A data store whose tables Data Observability watches. The same set for
+   * every store: every template reads the oneuptime.data.table.* metrics
+   * table health writes for any engine it collects. Read through
+   * `loadResource`, as a DataStore row is readable by the Security tiers
+   * only.
+   */
+  {
+    resourceType: MonitorRecommendationResourceType.DataStore,
+    modelType: DataStore,
+    identifierFieldName: "_id",
+    displayNameFieldName: "name",
+    loadResource: async (resourceId: ObjectID): Promise<BaseModel | null> => {
+      // Imported here: its client reads the browser's config as it loads.
+      const api: typeof import("../DataObservability/DataObservabilityApi") =
+        await import("../DataObservability/DataObservabilityApi");
+      const summary: DataObservabilityStoreSummary | undefined = (
+        await api.default.getStores()
+      ).find((candidate: DataObservabilityStoreSummary) => {
+        return candidate.dataStoreId === resourceId.toString();
+      });
+
+      if (!summary) {
+        return null;
+      }
+
+      const store: DataStore = new DataStore();
+      store._id = summary.dataStoreId;
+      store.name = summary.name;
+
+      return store;
+    },
+  },
+  // A data pipeline: every template filters on its id, as each run's metrics carry it.
+  {
+    resourceType: MonitorRecommendationResourceType.DataPipeline,
+    modelType: DataPipeline,
+    identifierFieldName: "_id",
+    displayNameFieldName: "jobName",
   },
 ];
 

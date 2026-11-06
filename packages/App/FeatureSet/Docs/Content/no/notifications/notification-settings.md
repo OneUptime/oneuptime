@@ -18,7 +18,7 @@ flowchart TB
     setting -->|"alt av"| nothing["Ingenting sendes"]
 ```
 
-- Hver rad er en hendelse, og hver kolonne en kanal: E-post, SMS, Anrop, Push, WhatsApp, Telegram, Slack og Microsoft Teams, og Webhook. Slack og Microsoft Teams er bare kolonner når prosjektet har koblet dem til.
+- Hver rad er en hendelse, og hver kolonne en kanal: E-post, SMS, Anrop, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost og Webhook. Slack, Microsoft Teams og Mattermost er bare kolonner når prosjektet har koblet dem til.
 - En kanal som er slått på, sender til hver verifisert metode du har på den i dette prosjektet, ikke bare til én.
 - En kanal som er slått på uten en verifisert metode bak seg, sender ingenting. **Your setup checklist** sier fra om det under **Staying informed**.
 - En oppdatering går til eierne av tingen: personene som er oppført som eiere, og medlemmene av eierteamene dens. Har en ting ingen eiere, går den i stedet til prosjektets eiere. En hendelse om å ha blitt lagt til som eier går bare til personen som ble lagt til.

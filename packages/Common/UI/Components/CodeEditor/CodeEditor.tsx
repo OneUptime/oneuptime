@@ -19,8 +19,21 @@ import {
   toggleLineComment,
   typeCharacter,
 } from "./CodeEditorCommands";
-import { escapeHtml, highlightCode } from "./CodeEditorHighlight";
+import {
+  CodeHighlighter,
+  escapeHtml,
+  highlightCode,
+  useCodeHighlighter,
+} from "./CodeEditorHighlight";
 import { CodeLanguage, getCodeLanguage } from "./CodeEditorLanguages";
+import {
+  CODE_EDITOR_DEFAULT_MAX_HEIGHT,
+  CODE_EDITOR_DEFAULT_MIN_LINES,
+  CODE_EDITOR_LINE_HEIGHT_PX,
+  CODE_EDITOR_PADDING_X_PX,
+  CODE_EDITOR_PADDING_Y_PX,
+  toEditorText,
+} from "./CodeEditorSize";
 import Icon from "../Icon/Icon";
 import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import CodeType from "../../../Types/Code/CodeType";
@@ -127,14 +140,14 @@ export interface CodeEditorActions {
   focus: () => void;
 }
 
-/*
- * These two have to match .ou-code-editor's --ou-code-line-height and
- * --ou-code-padding-y in CodeEditor.css: the gutter's click target and the
- * current-line band are placed with them.
- */
-export const CODE_EDITOR_LINE_HEIGHT_PX: number = 20;
-export const CODE_EDITOR_PADDING_Y_PX: number = 10;
-export const CODE_EDITOR_PADDING_X_PX: number = 12;
+export {
+  CODE_EDITOR_DEFAULT_MAX_HEIGHT,
+  CODE_EDITOR_DEFAULT_MIN_LINES,
+  CODE_EDITOR_LINE_HEIGHT_PX,
+  CODE_EDITOR_PADDING_X_PX,
+  CODE_EDITOR_PADDING_Y_PX,
+  toEditorText,
+};
 
 // Columns a tab advances to, as `tab-size` in CodeEditor.css draws it.
 const TAB_SIZE: number = 4;
@@ -142,35 +155,10 @@ const TAB_SIZE: number = 4;
 // Characters in the hidden run the character width is measured from.
 const MEASURE_LENGTH: number = 32;
 
-export const CODE_EDITOR_DEFAULT_MIN_LINES: number = 5;
-export const CODE_EDITOR_DEFAULT_MAX_HEIGHT: string = "min(60vh, 30rem)";
-
 /** How long the document sits still before it is checked again. */
 export const CODE_EDITOR_VALIDATION_DEBOUNCE_MS: number = 250;
 
 const FALLBACK_INDENT: IndentUnit = spacesIndent(2);
-
-/*
- * Callers hand us `any` through Form's currentValues, so a non-string can
- * still reach a prop typed as string. Line breaks are normalised because a
- * textarea's value always reads back with "\n": keeping "\r\n" here would
- * put the highlighted layer one character per line out of step with it.
- */
-type ToEditorTextFunction = (value: string | undefined) => string;
-
-export const toEditorText: ToEditorTextFunction = (
-  value: string | undefined,
-): string => {
-  if (value === undefined || value === null) {
-    return "";
-  }
-
-  if (typeof value !== "string") {
-    return JSON.stringify(value, null, 4);
-  }
-
-  return value.replace(/\r\n?/g, "\n");
-};
 
 type SetNativeValueFunction = (
   textarea: HTMLTextAreaElement,
@@ -509,11 +497,22 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
     );
   }, [language.canFormat, readOnly, checkedText]);
 
+  /*
+   * The grammars, loaded with the first editor that has one: until they are
+   * there the text is drawn plain, in the same places (CodeEditorHighlight).
+   */
+  const highlighter: CodeHighlighter | null = useCodeHighlighter(
+    Boolean(language.grammar),
+  );
+
   const highlightedHtml: string = useMemo(() => {
-    return highlightCode(text, language.grammar, {
-      showTabs: language.showTabs,
-    });
-  }, [text, language.grammar, language.showTabs]);
+    return highlightCode(
+      text,
+      language.grammar,
+      { showTabs: language.showTabs },
+      highlighter,
+    );
+  }, [text, language.grammar, language.showTabs, highlighter]);
 
   const example: string = (props.example || "")
     .replace(/^\s*\n/, "")
@@ -534,11 +533,13 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
       return `<span class="ou-code-editor__example">${highlightCode(
         example,
         language.grammar,
+        undefined,
+        highlighter,
       )}</span>`;
     }
 
     return null;
-  }, [text, placeholder, example, language.grammar]);
+  }, [text, placeholder, example, language.grammar, highlighter]);
 
   const lineCount: number = useMemo(() => {
     return countLines(text);

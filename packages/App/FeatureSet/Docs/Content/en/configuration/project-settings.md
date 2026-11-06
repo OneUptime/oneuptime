@@ -31,7 +31,7 @@ flowchart LR
 | Section | Pages | Where to read more |
 | --- | --- | --- |
 | **Basic** | **Project**, **Labels** | [The project's details](#the-projects-details), [Labels](#labels) |
-| **Workspace** | **Slack**, **Microsoft Teams**, **Video Calls** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Video Calls](/docs/workspace-connections/video-calls) |
+| **Workspace** | **Slack**, **Microsoft Teams**, **Mattermost**, **Video Calls** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Video Calls](/docs/workspace-connections/video-calls) |
 | **Telemetry & APM** | **Ingestion Keys**, **Data Retention** | [Ingestion Keys](/docs/telemetry/ingestion-keys), [Data Retention](/docs/telemetry/data-retention) |
 | **Notifications** | **Notification Settings**, **Notification Logs**, **Mobile Apps** | [Notifications](#notifications) |
 | **AI** | **AI Features**, **LLM Providers**, **External MCP Servers**, **AI Credits**, **AI Logs**, **MCP Server** | [LLM Providers](/docs/ai/llm-provider), [External MCP Servers](/docs/ai/external-mcp-servers), [MCP Server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#cost-controls) |

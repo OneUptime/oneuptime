@@ -1,10 +1,10 @@
 # Datasikkerhedskontroller og problemer
 
-Datasikkerhed kører 33 kontroller på hvert datalager, fordelt på ni grupper. En kontrol læser det, der vides om ét datalager - hvordan det er konfigureret, hvad der er fundet i det, hvem der kan nå det, hvor det ligger - og består, fejler eller kan ikke afgøre det. En kontrol, der fejler, åbner ét problem på det datalager, og problemet lukker af sig selv, når kontrollen består. Denne side viser alle kontroller, hvordan et problems alvorlighed og risikoscore beregnes, og hvad der sker med et problem i løbet af dets levetid.
+Datasikkerhed kører 34 kontroller på hvert datalager, fordelt på ni grupper. En kontrol læser det, der vides om ét datalager - hvordan det er konfigureret, hvad der er fundet i det, hvem der kan nå det, hvor det ligger - og består, fejler eller kan ikke afgøre det. En kontrol, der fejler, åbner ét problem på det datalager, og problemet lukker af sig selv, når kontrollen består. Denne side viser alle kontroller, hvordan et problems alvorlighed og risikoscore beregnes, og hvad der sker med et problem i løbet af dets levetid.
 
 :::cards
 - [Sådan afgør en kontrol](#sådan-afgør-en-kontrol): Bestået, fejlet eller kan ikke afgøre, og hvor slem en fejl er.
-- [Alle kontroller](#alle-kontroller): Alle 33, med hvad hver enkelt kontrollerer, og hvordan det rettes.
+- [Alle kontroller](#alle-kontroller): Alle 34, med hvad hver enkelt kontrollerer, og hvordan det rettes.
 - [Risikoscore](#risikoscore): Hvordan problemer ordnes inden for en alvorlighed.
 - [Hvad der sker med et problem](#hvad-der-sker-med-et-problem): Åben, løst, accepteret, ikke et problem.
 - [Ret det herfra](#ret-det-herfra): Luk en eksponering, eller slå en manglende beskyttelse til, med ét klik.
@@ -87,6 +87,7 @@ Alvorligheden angives for data med følsomheden Begrænset, Fortrolig, Intern og
 | Adgangskoder gemmes i klartekst (`plaintext-passwords`) | Alle datalagre undtagen telemetri | Et adgangskodefelt indeholder værdier, der ikke er adgangskode-hashes (bcrypt, argon2, scrypt eller PBKDF2). | Kritisk / Kritisk / Kritisk / Kritisk | Hash adgangskoder med bcrypt, scrypt eller argon2, migrér de gemte, og få alle konti til at nulstille deres adgangskode. |
 | Produktionsdata blev kopieret til et datalager uden for produktion (`production-data-in-non-production`) | Alle datalagre undtagen telemetri | Værdier fundet i et produktionsdatalager blev også fundet her, i et udviklings-, test- eller stagingdatalager. | Høj / Middel / — / — | Erstat kopien med maskerede eller syntetiske data, og slet de rigtige data fra datalageret uden for produktion. |
 | Følsomme data, som ingen har brugt i 90 dage (`stale-sensitive-data`) | Alle datalagre undtagen telemetri | Datalageret indeholder følsomme data og har ikke haft nogen læsninger eller skrivninger i 90 dage. | Middel / Lav / — / — | Bekræft, at dataene ikke længere er nødvendige, og arkivér dem derefter med en opbevaringsdato, eller slet dem. |
+| En ny kolonne indeholder personoplysninger (`new-personal-data-column`) | Alle datalagre undtagen telemetri | En kolonne, der er tilføjet inden for de seneste 14 dage, har et navn, der siger, at den indeholder personoplysninger. | Høj / Høj / Middel / Middel | Bekræft, at kolonnen skal indeholde disse data, og notér hvorfor. Hvis den ikke skal, så fjern den, eller hold op med at skrive til den. |
 | Ingen ejer dette følsomme datalager (`no-owner`) | Alle datalagre | Datalageret indeholder følsomme data og har ingen ejer. | Middel / Lav / — / — | Tilføj en ejer på datalagerets side **Ejere** eller en ejerregel, der matcher dets tags. |
 
 ### Telemetri
@@ -177,6 +178,16 @@ Et åbent problem, som én ændring af et datalagers indstillinger retter - en o
 Den spørger først og fortæller, hvad der ændres, hvad der holder op med at virke, og hvad det koster. Den ændrer datalagerets indstillinger, aldrig dets data, og ændrer intet, der allerede er, som det skal være. Et datalager, der er markeret **Offentlig med vilje**, blokeres aldrig.
 
 Den handler via datalagerets cloudforbindelse, så forbindelsen skal have **Datasikkerhedsrespons** slået til og sin opsætningskommando kørt igen (se [Konfigurer Datasikkerhed](/docs/data-security/setup#lad-datasikkerhed-lukke-en-eksponering)). Indtil da fortæller panelet, hvad der skal slås til. Datalageret kontrolleres igen lige bagefter, og problemet løses af sig selv, når dets kontrol består. Problemets **Tidslinje** og datalagerets **Tidslinje** fortæller, hvad der blev gjort, og hvem der gjorde det.
+
+## Hvor dataene i et telemetriproblem blev fundet
+
+Et telemetriproblem - **Følsomme data når ind i din telemetri** eller **Hemmeligheder når ind i din telemetri** - nævner i sit bevis hver type data, som ingen rensningsregel maskerer, for eksempel "2 kinds of sensitive data are not scrubbed: IP address, Ireland PPS number." Dets side viser under **Hvor det blev fundet**, hvor hver af dem ligger:
+
+- **Hvad og hvor.** Hver datatype med sin følsomhed og det sted i telemetrien, hvor den ligger: en attribut som `attributes.user.pps`, teksten i en loglinje, beskeden i en undtagelse, en prompt. Nedenunder, hvor mange af prøveværdierne der matchede, hvornår en scanning sidst så den, og dens maskerede prøver. Tjenesten, eller RUM-applikationen, linker til dens protokoller, spor, undtagelser eller sessionsafspilninger.
+- **De poster, dataene blev set i.** **Vis de poster, de blev set i** læser de nyeste poster fra de seneste 7 dage, der indeholder dataene på det sted, højst 10: hvornår hver blev skrevet, hvad den er - et span og dets navn, en loglinje og dens alvorlighed, en undtagelse og dens type, et AI-kald, en session - og værdien, maskeret som et funds prøver er. Hver åbnes, hvor OneUptime allerede viser den: **Åbn spor** fokuserer sporvisningen på spannet, **Åbn i Protokoller** filtrerer logudforskeren til linjens span i minutterne omkring den, **Åbn undtagelse** viser undtagelsens gruppe, og **Åbn sessionsafspilning** afspiller sessionen. Det første fund viser sine poster, når siden åbnes.
+- **Rens.** Ved siden af hvert fund, der endnu ikke er maskeret, opretter **Rens** den rensningsregel, der maskerer det ved modtagelsen (se [Rens](/docs/data-security/telemetry#rens)). Et fund, der allerede er renset, bliver på listen, markeret som **Renset**, så du kan se, hvad der er tilbage. Problemet løses af sig selv, så snart alle fund bag det er renset, og datalageret kontrolleres igen.
+
+Listen indeholder de fund, kontrollen tæller: dem, der er mindst middel sikre, som en værdi matchede eller en person bekræftede, set inden for de seneste 30 dage og ikke markeret som ikke følsomme. En værdi vises aldrig helt her: åbn posten for at se den, hvilket kræver samme tilladelse som at læse den telemetri alle andre steder. Posterne vises derfor for den, der må læse maskerede prøver - Security Members og derover - og må læse tjenestens protokoller, spor, undtagelser eller sessioner; Security Viewers ser, hvad der blev fundet og hvor, uden prøver eller poster. En værdi, der kun er en testværdi, en værdi, projektet tillader, eller en, som en rensningsregel allerede har maskeret ved modtagelsen, er ikke et match.
 
 ## Indstillinger for kontroller
 

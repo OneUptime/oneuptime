@@ -312,12 +312,49 @@ describe("ReplayCard moment (correlation-1)", () => {
 
     await screen.findByTestId("replay-card");
 
-    expect(
-      screen.getByText(/Recorded with MaskAllInputs masking/),
-    ).toBeInTheDocument();
+    // A mode this dashboard does not know is shown as the recorder wrote it.
+    expect(screen.getByTestId("replay-card-masking")).toHaveTextContent(
+      "Masking when recorded: MaskAllInputs",
+    );
     expect(
       screen.getByText(/Before the error: 2 rage clicks/),
     ).toBeInTheDocument();
+  });
+
+  it("names a known masking mode by the policy's own choice, never by its value", async () => {
+    postMock.mockResolvedValue(
+      okResponse([sessionRow({ maskingMode: "MaskInputsOnly" })]),
+    );
+
+    renderCard();
+
+    await screen.findByTestId("replay-card");
+
+    expect(screen.getByTestId("replay-card-masking")).toHaveTextContent(
+      "Masking when recorded: Mask inputs only",
+    );
+    expect(screen.getByTestId("replay-card-masking")).not.toHaveTextContent(
+      "MaskInputsOnly",
+    );
+  });
+
+  it("says one rage click, and lists several signals with commas", async () => {
+    postMock.mockResolvedValue(
+      okResponse([
+        sessionRow({ rageClickCount: 1, deadClickCount: 3, maskingMode: "" }),
+      ]),
+    );
+
+    renderCard();
+
+    await screen.findByTestId("replay-card");
+
+    expect(screen.getByTestId("replay-card-signals")).toHaveTextContent(
+      "Before the error: 1 rage click, 3 dead clicks",
+    );
+    expect(screen.getByTestId("replay-card-masking")).toHaveTextContent(
+      "Masking when recorded: not reported",
+    );
   });
 });
 

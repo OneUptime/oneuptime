@@ -39,67 +39,6 @@ AIR_GAPPED_VALUES="${TESTS_DIR}/air-gapped-values.yaml"
 REGISTRY="registry.example.com"
 PULL_SECRET="internal-registry"
 
-render() {
-    # render <output-file> [extra helm template arguments...]
-    local out="$1"
-    shift
-    if ! helm template oneuptime "$HELM_CHART_DIR" "$@" >"$out" 2>"${out}.err"; then
-        fail "helm template failed for $(basename "$out")"
-        sed 's/^/        /' "${out}.err"
-        harness_report
-        exit 1
-    fi
-}
-
-# Splits a rendered manifest into one file per pod-bearing object under
-# <dir>, named "<kind>@<metadata.name>": the chart's own Deployments,
-# StatefulSets, Jobs, CronJobs, DaemonSets and Pods (the `helm test` hook is
-# a bare Pod). Subchart output is left out: helm stamps every document with a
-# "# Source:" line, and only "oneuptime/templates/..." is this chart's own.
-split_workloads() {
-    # split_workloads <manifest> <dir>
-    mkdir -p "$2"
-    awk -v dir="$2" '
-        /^---[[:space:]]*$/ { flush(); next }
-        { doc = doc $0 "\n" }
-        END { flush() }
-        function flush(   kind, name, own, n, i, lines, line) {
-            if (doc == "") { return }
-            kind = ""; name = ""; own = 0
-            n = split(doc, lines, "\n")
-            for (i = 1; i <= n; i++) {
-                line = lines[i]
-                if (line ~ /^# Source: oneuptime\/templates\//) { own = 1 }
-                else if (kind == "" && line ~ /^kind:[[:space:]]/) {
-                    sub(/^kind:[[:space:]]*/, "", line); kind = line
-                }
-                else if (name == "" && line ~ /^  name:[[:space:]]/) {
-                    sub(/^  name:[[:space:]]*/, "", line); name = line
-                }
-            }
-            if (own && name != "" && (kind == "Deployment" || kind == "StatefulSet" || \
-                    kind == "Job" || kind == "CronJob" || kind == "DaemonSet" || kind == "Pod")) {
-                gsub(/["\047]/, "", name)
-                print doc > (dir "/" kind "@" name)
-                close(dir "/" kind "@" name)
-            }
-            doc = ""
-        }
-    ' "$1"
-}
-
-# Every image a rendered document runs, one per line, unquoted.
-images_of() {
-    # images_of <file>
-    awk '
-        /^[[:space:]]*(-[[:space:]]+)?image:[[:space:]]/ {
-            sub(/^[[:space:]]*(-[[:space:]]+)?image:[[:space:]]*/, "")
-            gsub(/["\047]/, "")
-            print
-        }
-    ' "$1"
-}
-
 # The nameservers a rendered pod spec lists under dnsConfig, one per line.
 nameservers_of() {
     # nameservers_of <file>
@@ -108,22 +47,6 @@ nameservers_of() {
         /^[[:space:]]*nameservers:[[:space:]]*$/ { inblock = 1; indent = match($0, /[^ ]/); next }
         inblock && /^[[:space:]]*-[[:space:]]/ { sub(/^[[:space:]]*-[[:space:]]*/, ""); gsub(/["\047]/, ""); print; next }
         inblock && /^[[:space:]]*[a-zA-Z]/ { if (match($0, /[^ ]/) <= indent) { inblock = 0 } }
-    ' "$1"
-}
-
-# The value the first env entry named <name> carries in a rendered document.
-env_value_of() {
-    # env_value_of <file> <name>
-    awk -v want="$2" '
-        found && /^[[:space:]]*value:[[:space:]]/ {
-            sub(/^[[:space:]]*value:[[:space:]]*/, ""); gsub(/["\047]/, ""); print; exit
-        }
-        /^[[:space:]]*-[[:space:]]+name:[[:space:]]/ {
-            line = $0
-            sub(/^[[:space:]]*-[[:space:]]+name:[[:space:]]*/, "", line)
-            gsub(/["\047]/, "", line)
-            found = (line == want)
-        }
     ' "$1"
 }
 
@@ -248,12 +171,16 @@ assert_eq "the app lets webhooks reach private addresses" "true" \
     "$(env_value_of "${WORK_DIR}/air-gapped.d/Deployment@oneuptime-app" ALLOW_PRIVATE_NETWORK_WEBHOOKS)"
 
 # ---------------------------------------------------------------------------
-# 3. Every pod the chart can run takes the pull secret, whatever is switched
-#    on and in both database layouts: a private registry that asks for
-#    credentials serves all of them. The operators themselves (CloudNativePG,
-#    Altinity, KEDA) are subcharts with values of their own, so only what this
-#    chart's templates write is checked - including the PostgreSQL cluster and
-#    the ClickHouse installation those operators run.
+# 3. Every pod the chart can run takes the pull secret and its images from the
+#    registry, whatever is switched on and in both database layouts: a private
+#    registry that asks for credentials serves all of them, and
+#    global.imageRegistry moves PgBouncer, vLLM and kubectl as it moves the
+#    rest. The operators themselves (CloudNativePG, Altinity, KEDA) are
+#    subcharts with values of their own, so only what this chart's templates
+#    write is checked - including the PostgreSQL cluster and the ClickHouse
+#    installation those operators run. The PostgreSQL cluster's image names
+#    its registry (ghcr.io/cloudnative-pg/postgresql), so the registry leaves
+#    it as written and postgresOperator.cnpg.imageName moves it.
 # ---------------------------------------------------------------------------
 cat >"${WORK_DIR}/all-on.yaml" <<'YAML'
 worker:
@@ -324,13 +251,31 @@ check_pull_secrets() {
     assert_eq "[${label}] every one of the chart's ${seen} workloads gets the pull secret" "" "$missing"
 }
 
+check_registry() {
+    # check_registry <label> <split-dir>
+    local label="$1" dir="$2" file image outside="" seen=0
+    for file in "${dir}"/*; do
+        while read -r image; do
+            [ -z "$image" ] && continue
+            seen=$((seen + 1))
+            case "$image" in
+                "${REGISTRY}/"*) ;;
+                *) outside="${outside} $(basename "$file")=${image}" ;;
+            esac
+        done <<<"$(images_of "$file")"
+    done
+    assert_eq "[${label}] every one of the chart's ${seen} images comes from ${REGISTRY}" "" "$outside"
+}
+
 render "${WORK_DIR}/all-standalone.yaml" -f "${WORK_DIR}/all-on.yaml" -f "$AIR_GAPPED_VALUES"
 split_workloads "${WORK_DIR}/all-standalone.yaml" "${WORK_DIR}/all-standalone.d"
 check_pull_secrets "everything on, standalone databases" "${WORK_DIR}/all-standalone.d"
+check_registry "everything on, standalone databases" "${WORK_DIR}/all-standalone.d"
 
 render "${WORK_DIR}/all-operators.yaml" -f "${WORK_DIR}/all-on.yaml" -f "${WORK_DIR}/operators.yaml" -f "$AIR_GAPPED_VALUES"
 split_workloads "${WORK_DIR}/all-operators.yaml" "${WORK_DIR}/all-operators.d"
 check_pull_secrets "everything on, database operators" "${WORK_DIR}/all-operators.d"
+check_registry "everything on, database operators" "${WORK_DIR}/all-operators.d"
 
 cnpg_cluster="$(documents_of_kind "${WORK_DIR}/all-operators.yaml" Cluster)"
 if [ -n "$cnpg_cluster" ]; then
@@ -344,6 +289,8 @@ altinity_chi="$(documents_of_kind "${WORK_DIR}/all-operators.yaml" ClickHouseIns
 if [ -n "$altinity_chi" ]; then
     assert_present "the ClickHouse installation's pods get the pull secret" \
         "$(grep -A1 -E '^[[:space:]]*imagePullSecrets:' <<<"$altinity_chi")" "name: ${PULL_SECRET}"
+    assert_eq "the ClickHouse installation's image comes from ${REGISTRY}" "" \
+        "$(images_of /dev/stdin <<<"$altinity_chi" | grep -v "^${REGISTRY}/" || true)"
 else
     fail "the operator layout rendered no ClickHouseInstallation"
 fi

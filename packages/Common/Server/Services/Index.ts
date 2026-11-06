@@ -93,20 +93,32 @@ import PodmanHostOwnerUserService from "./PodmanHostOwnerUserService";
 import PodmanHostOwnerTeamService from "./PodmanHostOwnerTeamService";
 import PodmanHostLabelRuleService from "./PodmanHostLabelRuleService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
+import OpenStackCloudService from "./OpenStackCloudService";
+import OpenStackCloudConnectionTestService from "./OpenStackCloudConnectionTestService";
+import OpenStackProjectUsageService from "./OpenStackProjectUsageService";
+import OpenStackBudgetService from "./OpenStackBudgetService";
+import OpenStackProjectNoticeService from "./OpenStackProjectNoticeService";
+import OpenStackProjectNoticeDeliveryService from "./OpenStackProjectNoticeDeliveryService";
+import OpenStackCloudCheckService from "./OpenStackCloudCheckService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
 import CephClusterService from "./CephClusterService";
 import ProxmoxResourceService from "./ProxmoxResourceService";
+import OpenStackResourceService from "./OpenStackResourceService";
 import DockerSwarmResourceService from "./DockerSwarmResourceService";
 import CephResourceService from "./CephResourceService";
 import StorageArrayService from "./StorageArrayService";
 import StorageArrayResourceService from "./StorageArrayResourceService";
 import ProxmoxClusterLabelRuleService from "./ProxmoxClusterLabelRuleService";
+import OpenStackCloudLabelRuleService from "./OpenStackCloudLabelRuleService";
 import DockerSwarmClusterLabelRuleService from "./DockerSwarmClusterLabelRuleService";
 import ProxmoxClusterOwnerRuleService from "./ProxmoxClusterOwnerRuleService";
+import OpenStackCloudOwnerRuleService from "./OpenStackCloudOwnerRuleService";
 import DockerSwarmClusterOwnerRuleService from "./DockerSwarmClusterOwnerRuleService";
 import ProxmoxClusterOwnerTeamService from "./ProxmoxClusterOwnerTeamService";
+import OpenStackCloudOwnerTeamService from "./OpenStackCloudOwnerTeamService";
 import DockerSwarmClusterOwnerTeamService from "./DockerSwarmClusterOwnerTeamService";
 import ProxmoxClusterOwnerUserService from "./ProxmoxClusterOwnerUserService";
+import OpenStackCloudOwnerUserService from "./OpenStackCloudOwnerUserService";
 import DockerSwarmClusterOwnerUserService from "./DockerSwarmClusterOwnerUserService";
 import CephClusterLabelRuleService from "./CephClusterLabelRuleService";
 import CephClusterOwnerRuleService from "./CephClusterOwnerRuleService";
@@ -181,6 +193,7 @@ import StorageArrayFeedService from "./StorageArrayFeedService";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import PodmanHostFeedService from "./PodmanHostFeedService";
 import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
+import OpenStackCloudFeedService from "./OpenStackCloudFeedService";
 import VMwareVCenterFeedService from "./VMwareVCenterFeedService";
 import HostFeedService from "./HostFeedService";
 import CloudResourceFeedService from "./CloudResourceFeedService";
@@ -344,6 +357,7 @@ import UserWhatsAppService from "./UserWhatsAppService";
 import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import UserMattermostService from "./UserMattermostService";
 import WorkflowLogService from "./WorkflowLogService";
 import WorkflowOwnerRuleService from "./WorkflowOwnerRuleService";
 import WorkflowOwnerUserService from "./WorkflowOwnerUserService";
@@ -360,6 +374,7 @@ import InventoryItemCustomFieldService from "./InventoryItemCustomFieldService";
 import InventoryItemRelationshipService from "./InventoryItemRelationshipService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import KubernetesCostAllocationService from "./KubernetesCostAllocationService";
+import CloudCostService from "./CloudCostService";
 import ScheduledMaintenanceTemplateService from "./ScheduledMaintenanceTemplateService";
 import ScheduledMaintenanceTemplateOwnerTeamService from "./ScheduledMaintenanceTemplateOwnerTeamService";
 import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenanceTemplateOwnerUserService";
@@ -367,6 +382,7 @@ import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenance
 // Alert Services
 import AlertStateService from "./AlertStateService";
 import AlertOnCallRuleService from "./AlertOnCallRuleService";
+import AlertIncidentRuleService from "./AlertIncidentRuleService";
 import AlertPrivacyRuleService from "./AlertPrivacyRuleService";
 import AlertLabelRuleService from "./AlertLabelRuleService";
 import AlertService from "./AlertService";
@@ -382,6 +398,7 @@ import DetectionRuleExceptionService from "./DetectionRuleExceptionService";
 import SecurityWatchlistService from "./SecurityWatchlistService";
 import SecurityWatchlistItemService from "./SecurityWatchlistItemService";
 import SecurityHuntService from "./SecurityHuntService";
+import SecurityHuntRunService from "./SecurityHuntRunService";
 import SecurityEventConnectionService from "./SecurityEventConnectionService";
 import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
 import SecurityEventDestinationService from "./SecurityEventDestinationService";
@@ -404,7 +421,10 @@ import SecurityCaseCustomFieldService from "./SecurityCaseCustomFieldService";
 import SecurityDetectionService from "./SecurityDetectionService";
 import SecurityPlaybookService from "./SecurityPlaybookService";
 import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
+import DataBiConnectionService from "./DataBiConnectionService";
+import DataDashboardService from "./DataDashboardService";
 import DataStoreService from "./DataStoreService";
+import DataWarehouseJobService from "./DataWarehouseJobService";
 import DataStoreFindingService from "./DataStoreFindingService";
 import DataStoreAccessService from "./DataStoreAccessService";
 import DataSecurityIdentityService from "./DataSecurityIdentityService";
@@ -421,6 +441,22 @@ import DataSecurityCustomDataTypeService from "./DataSecurityCustomDataTypeServi
 import DataSecurityCheckSettingService from "./DataSecurityCheckSettingService";
 import DataSecurityResidencyRuleService from "./DataSecurityResidencyRuleService";
 import DataSecuritySettingService from "./DataSecuritySettingService";
+import DataAssetService from "./DataAssetService";
+import DataAssetFeedService from "./DataAssetFeedService";
+import DataAssetUsageService from "./DataAssetUsageService";
+import DataCheckService from "./DataCheckService";
+import DataPipelineService from "./DataPipelineService";
+import DataPipelineRunService from "./DataPipelineRunService";
+import DataProductService from "./DataProductService";
+import DataReconciliationService from "./DataReconciliationService";
+import DataIssueReportService from "./DataIssueReportService";
+import DataAssetOwnerUserService from "./DataAssetOwnerUserService";
+import DataAssetOwnerTeamService from "./DataAssetOwnerTeamService";
+import DataAssetOwnerRuleService from "./DataAssetOwnerRuleService";
+import DataAssetLabelRuleService from "./DataAssetLabelRuleService";
+import DataObservabilitySettingService from "./DataObservabilitySettingService";
+import DataAssetLineageService from "./DataAssetLineageService";
+import DataAlertService from "./DataAlertService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
 import SecurityEntityRiskService from "./SecurityEntityRiskService";
 import SecurityEntityCriticalityService from "./SecurityEntityCriticalityService";
@@ -527,6 +563,8 @@ import RunnerOwnerTeamService from "./RunnerOwnerTeamService";
 import RunnerOwnerUserService from "./RunnerOwnerUserService";
 import CloudAccountService from "./CloudAccountService";
 import CloudAccountFeedService from "./CloudAccountFeedService";
+import CloudBudgetService from "./CloudBudgetService";
+import CloudCostRecommendationService from "./CloudCostRecommendationService";
 import CloudConnectionService from "./CloudConnectionService";
 import CloudResourceLabelRuleService from "./CloudResourceLabelRuleService";
 import CloudResourceOwnerRuleService from "./CloudResourceOwnerRuleService";
@@ -671,20 +709,32 @@ const services: Array<BaseService> = [
   PodmanHostOwnerTeamService,
   PodmanHostLabelRuleService,
   ProxmoxClusterService,
+  OpenStackCloudService,
+  OpenStackCloudConnectionTestService,
+  OpenStackProjectUsageService,
+  OpenStackBudgetService,
+  OpenStackProjectNoticeService,
+  OpenStackProjectNoticeDeliveryService,
+  OpenStackCloudCheckService,
   DockerSwarmClusterService,
   CephClusterService,
   ProxmoxResourceService,
+  OpenStackResourceService,
   DockerSwarmResourceService,
   CephResourceService,
   StorageArrayService,
   StorageArrayResourceService,
   ProxmoxClusterLabelRuleService,
+  OpenStackCloudLabelRuleService,
   DockerSwarmClusterLabelRuleService,
   ProxmoxClusterOwnerRuleService,
+  OpenStackCloudOwnerRuleService,
   DockerSwarmClusterOwnerRuleService,
   ProxmoxClusterOwnerTeamService,
+  OpenStackCloudOwnerTeamService,
   DockerSwarmClusterOwnerTeamService,
   ProxmoxClusterOwnerUserService,
+  OpenStackCloudOwnerUserService,
   DockerSwarmClusterOwnerUserService,
   CephClusterLabelRuleService,
   CephClusterOwnerRuleService,
@@ -742,6 +792,7 @@ const services: Array<BaseService> = [
   DatabaseServerFeedService,
   PodmanHostFeedService,
   ProxmoxClusterFeedService,
+  OpenStackCloudFeedService,
   VMwareVCenterFeedService,
   HostFeedService,
   CloudResourceFeedService,
@@ -849,6 +900,7 @@ const services: Array<BaseService> = [
   UserTelegramService,
   UserSlackService,
   UserMicrosoftTeamsService,
+  UserMattermostService,
   UserTotpAuthService,
   UserTwoFactorBackupCodeService,
   UserWebAuthnService,
@@ -909,6 +961,7 @@ const services: Array<BaseService> = [
 
   AlertStateService,
   AlertOnCallRuleService,
+  AlertIncidentRuleService,
   AlertPrivacyRuleService,
   AlertLabelRuleService,
   AlertService,
@@ -924,6 +977,7 @@ const services: Array<BaseService> = [
   SecurityWatchlistService,
   SecurityWatchlistItemService,
   SecurityHuntService,
+  SecurityHuntRunService,
   SecurityEventConnectionService,
   SecurityEventConnectionRunService,
   SecurityEventDestinationService,
@@ -947,7 +1001,10 @@ const services: Array<BaseService> = [
   SecurityPlaybookRunService,
 
   // Data Security (DSPM)
+  DataBiConnectionService,
+  DataDashboardService,
   DataStoreService,
+  DataWarehouseJobService,
   DataStoreFindingService,
   DataStoreAccessService,
   DataSecurityIdentityService,
@@ -964,6 +1021,22 @@ const services: Array<BaseService> = [
   DataSecurityCheckSettingService,
   DataSecurityResidencyRuleService,
   DataSecuritySettingService,
+  DataAssetService,
+  DataAssetFeedService,
+  DataAssetUsageService,
+  DataCheckService,
+  DataPipelineService,
+  DataPipelineRunService,
+  DataProductService,
+  DataReconciliationService,
+  DataIssueReportService,
+  DataAssetOwnerUserService,
+  DataAssetOwnerTeamService,
+  DataAssetOwnerRuleService,
+  DataAssetLabelRuleService,
+  DataObservabilitySettingService,
+  DataAssetLineageService,
+  DataAlertService,
   SecurityProtectedEntityService,
   SecurityEntityRiskService,
   SecurityEntityCriticalityService,
@@ -1061,6 +1134,8 @@ const services: Array<BaseService> = [
    */
   CloudAccountService,
   CloudAccountFeedService,
+  CloudBudgetService,
+  CloudCostRecommendationService,
   CloudConnectionService,
   CloudResourceLabelRuleService,
   CloudResourceOwnerRuleService,
@@ -1129,6 +1204,7 @@ export const AnalyticsServices: Array<
   LogCountBaselineService,
   ExceptionInstanceService,
   KubernetesCostAllocationService,
+  CloudCostService,
   MonitorLogService,
   NetworkFlowService,
   NetworkTrafficUsageService,

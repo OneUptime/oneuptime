@@ -100,6 +100,10 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("Oracle"),
   translationKey("Redis"),
   translationKey("Elasticsearch"),
+  translationKey("Snowflake"),
+  translationKey("ClickHouse"),
+  translationKey("Databricks"),
+  translationKey("Amazon Athena"),
   translationKey("Logs"),
   translationKey("Traces"),
   translationKey("Exceptions"),
@@ -711,6 +715,16 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   ),
   translationKey(
     "Data you no longer use is pure risk; GDPR's storage limitation principle says to delete it.",
+  ),
+  translationKey("A new column holds personal data"),
+  translationKey(
+    "A column added in the last 14 days has a name that says it holds personal data.",
+  ),
+  translationKey(
+    "A migration can start collecting personal data without anyone deciding it should. Catching it the day it ships is when it is cheapest to mask, move or drop.",
+  ),
+  translationKey(
+    "Confirm the column should hold this data, and record why. If it should not, drop it or stop writing to it.",
   ),
   translationKey("Nobody owns this sensitive store"),
   translationKey("The store holds sensitive data and has no owner."),

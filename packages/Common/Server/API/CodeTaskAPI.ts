@@ -77,6 +77,7 @@ import {
   CodeTaskRepositoryJSON,
   CodeTaskSummaryJSON,
   CodeTaskTurnJSON,
+  CodeTaskTurnProgressJSON,
 } from "../../Types/AI/CodeTask";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -102,6 +103,9 @@ import { CodeHost } from "../../Types/CodeRepository/CodeHost";
  *   POST /code-task/branches/:id          a repository's branches, for the
  *                                         branch a task starts from
  *   POST /code-task/get/:taskId           a task's conversation
+ *   POST /code-task/progress/:taskId      how a turn AI is working on stands,
+ *                                         and the steps it took since the
+ *                                         page last read it
  *   POST /code-task/create                ask AI something in a repository
  *   POST /code-task/reply/:taskId         reply in a task: its next turn
  *   POST /code-task/retry/:taskId         ask a failed turn again
@@ -172,6 +176,7 @@ export default class CodeTaskAPI {
     this.route("/code-task/list", this.listTasks);
     this.route("/code-task/branches/:repositoryId", this.listBranches);
     this.route("/code-task/get/:taskId", this.getTask);
+    this.route("/code-task/progress/:taskId", this.getTurnProgress);
     this.route("/code-task/create", this.createTask);
     this.route("/code-task/reply/:taskId", this.replyToTask);
     this.route("/code-task/retry/:taskId", this.retryTask);
@@ -1309,6 +1314,42 @@ export default class CodeTaskAPI {
       projectId: data.projectId,
       connectionIds,
     });
+  }
+
+  /*
+   * How a turn AI is working on stands, and the steps it took after the
+   * step the page has: what a task's conversation reads as each step
+   * happens (CodeTaskLive), rather than the whole task. Read as the task is
+   * (getReadableTask). Body: { runId, afterSequence } - the turn, and the
+   * sequence of the last step the page shows (-1 for none).
+   */
+  private async getTurnProgress(
+    req: ExpressRequest,
+    props: DatabaseCommonInteractionProps,
+    projectId: ObjectID,
+  ): Promise<JSONObject> {
+    const { task } = await this.getReadableTask(req, props, projectId);
+    const body: JSONObject = (req.body as JSONObject) || {};
+
+    const runId: ObjectID = CodeTaskAPI.readId(body["runId"], "turn");
+    const afterSequence: number = CodeTaskAPI.readNumber(
+      body["afterSequence"],
+      { defaultValue: -1, min: -1, max: Number.MAX_SAFE_INTEGER },
+    );
+
+    const progress: CodeTaskTurnProgressJSON | null =
+      await CodeTaskPresenter.getTurnProgress({
+        projectId,
+        task,
+        runId,
+        afterSequence,
+      });
+
+    if (!progress) {
+      throw new NotFoundException(CODE_TASK_NOT_FOUND_MESSAGE);
+    }
+
+    return progress as unknown as JSONObject;
   }
 
   private static readId(raw: unknown, what: string): ObjectID {

@@ -1082,6 +1082,16 @@ describe("Broker health with data", () => {
     ).toBeInTheDocument();
     expect(within(tiles[2]!).getByText("0 consumers")).toBeInTheDocument();
 
+    // A tile's title is one line, cut short on a narrow tile, whole on hover.
+    for (const tile of tiles) {
+      const tileTitle: HTMLElement = within(tile).getByTestId(
+        "message-queue-broker-metric-title",
+      );
+
+      expect(tileTitle.className).toContain("truncate");
+      expect(tileTitle).toHaveAttribute("title", tileTitle.textContent || "");
+    }
+
     const titles: Array<string> = chartCardMock.mock.calls.map(
       (call: Array<unknown>): string => {
         return (call[0] as { title: string }).title;

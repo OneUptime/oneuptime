@@ -72,7 +72,7 @@ L'interruttore ha aggiunto una regola di reperibilità per gli incidenti e una p
 
 ### Scegliere come essere raggiunto
 
-La tua e-mail di accesso è già un modo per raggiungerti. Per ricevere anche SMS o chiamate, apri **Impostazioni utente** nella barra sotto la barra superiore, vai in **Metodi di notifica** e, nella scheda **Direct Contact**, aggiungi il tuo numero in **Numeri di telefono per le notifiche SMS** o **Numeri di telefono per le notifiche tramite chiamata**. Fai clic su **Verifica** e inserisci il codice che OneUptime ti invia. Un numero verificato viene usato subito per gli avvisi di reperibilità.
+La tua e-mail di accesso è già un modo per raggiungerti. Per ricevere anche SMS o chiamate, apri **Impostazioni utente** nella barra sotto la barra superiore, vai in **Metodi di notifica** e, nella scheda **Contatto diretto**, aggiungi il tuo numero in **Numeri di telefono per le notifiche SMS** o **Numeri di telefono per le notifiche tramite chiamata**. Fai clic su **Verifica** e inserisci il codice che OneUptime ti invia. Un numero verificato viene usato subito per gli avvisi di reperibilità.
 :::
 
 > [!NOTE]

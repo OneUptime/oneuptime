@@ -142,6 +142,7 @@ const WORKFLOW_TOOL_NAMES: string[] = [
   "resolve_alert",
   "add_incident_note",
   "add_alert_note",
+  "get_data_table_freshness",
   "oneuptime_whoami",
 ];
 
@@ -635,6 +636,60 @@ describe("WorkflowTools", () => {
     });
   });
 
+  describe("get_data_table_freshness", () => {
+    it("asks the API as the caller, and answers with each table's answer", async () => {
+      apiCallSpy.mockResolvedValueOnce({
+        tables: [
+          {
+            dataAssetId: "asset-1",
+            table: "public.orders",
+            answer: "public.orders on Orders DB is Late.",
+          },
+        ],
+      } as never);
+
+      const result: JSONObject = await handleWorkflowTool(
+        "get_data_table_freshness",
+        { table: "public.orders" },
+        API_KEY,
+      );
+
+      expect(apiCallSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: "POST",
+          path: "/api/data-observability/tables/freshness",
+          body: { table: "public.orders" },
+          credential: API_KEY,
+        }),
+      );
+      expect(result["success"]).toBe(true);
+      expect(result["matches"]).toBe(1);
+      expect(result["message"]).toBe("public.orders on Orders DB is Late.");
+    });
+
+    it("says so when no watched table has the name", async () => {
+      apiCallSpy.mockResolvedValueOnce({ tables: [] } as never);
+
+      const result: JSONObject = await handleWorkflowTool(
+        "get_data_table_freshness",
+        { table: "orders" },
+        API_KEY,
+      );
+
+      expect(result["matches"]).toBe(0);
+      expect(result["message"]).toBe(
+        'No table Data Observability watches is called "orders".',
+      );
+    });
+
+    it("needs a table", async () => {
+      await expect(
+        handleWorkflowTool("get_data_table_freshness", {}, API_KEY),
+      ).rejects.toThrow(/table/);
+      expect(apiCallSpy).not.toHaveBeenCalled();
+    });
+  });
+
   describe("unknown tools", () => {
     it("rejects unknown workflow tool names", async () => {
       await expect(
@@ -644,12 +699,12 @@ describe("WorkflowTools", () => {
   });
 
   describe("isReadOnlyWorkflowTool", () => {
-    it("marks whoami, and only whoami, as a tool that only reads", () => {
+    it("marks whoami and a table's freshness, and only those, as tools that only read", () => {
       expect(
         WORKFLOW_TOOL_NAMES.filter((name: string): boolean => {
           return isReadOnlyWorkflowTool(name);
-        }),
-      ).toEqual(["oneuptime_whoami"]);
+        }).sort(),
+      ).toEqual(["get_data_table_freshness", "oneuptime_whoami"]);
     });
 
     it("agrees with the readOnlyHint each tool shows to clients", () => {

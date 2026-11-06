@@ -38,6 +38,7 @@ Open **Products → Security Events**, under **Security**. Its menu has a sectio
 | **All Cases** | Security Cases | Every case, open or closed |
 | **Events** | Events | Search and filter every event, and open one to see all its fields |
 | **Hunts** | Events | Searches saved from Events, opened again in one click or run on a schedule that tells people when they find something |
+| **Hunt Library** | Events | Ready-made hunts to try on Events or add to your hunts, each with the events it reads and whether they arrive |
 | **Campaigns** | Events | Every address that sent attack requests, and whether any of its requests got through |
 | **Entity Risk** | Events | Every user, host and address scored by what was found about it this week, the riskiest first |
 | **Correlate** | Events | A graph of the events that share a host, a user or an IP address |
@@ -181,22 +182,42 @@ The **Setup Guide** page, under **Connections**, has these snippets with your ow
 
 ### Find security events in your logs
 
-**Your logs**, at the top of **Connections**, turns the logs you already send OneUptime into a source. With **Find security events in your logs** on, the project's new logs are read every minute, and each SSH or Windows sign-in, sudo command, cloud audit record, security product's CEF or LEEF record, Kubernetes audit record and web attack in them is stored as a security event. See [Get Started with Security](/docs/telemetry/security-getting-started#find-security-events-in-your-logs) for what each kind covers.
+**Your logs**, at the top of **Connections**, turns the logs you already send OneUptime into a source. With **Find security events in your logs** on, the project's new logs are read every minute, and each SSH or Windows sign-in, sudo command, cloud audit record, security product's CEF or LEEF record, Palo Alto Networks, FortiGate or Cisco ASA firewall record, Kubernetes audit record and web attack in them is stored as a security event. See [Get Started with Security](/docs/telemetry/security-getting-started#find-security-events-in-your-logs) for what each kind covers.
 
 Each kind reaches OneUptime as ordinary logs:
 
 | Kind | Send it from |
 | --- | --- |
 | SSH sign-ins, sudo | A Linux machine's journal or auth log, with the [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| Windows events | The collector's `windowseventlog` receiver on the machine, or a forwarder that writes each event as JSON, such as NXLog or Winlogbeat |
-| AWS CloudTrail | A trail delivered to CloudWatch Logs, read by the collector's `awscloudwatch` receiver |
-| Google Cloud audit logs | A log sink to Pub/Sub, read by the collector's `googlecloudpubsub` receiver with `encoding: raw_text` |
-| Azure activity and Entra ID logs | A diagnostic setting that streams to an Event Hub, read by the collector's `azureeventhub` receiver with `format: raw` |
+| Windows events | The collector's `windowseventlog` receiver on the machine, or a forwarder that writes each event as JSON, such as NXLog or Winlogbeat. A [host](/docs/telemetry/hosts) added to OneUptime also reads Sysmon, Microsoft Defender and PowerShell where it has them |
+| AWS CloudTrail | A trail delivered to CloudWatch Logs, read by the collector's `awscloudwatch` receiver, or, for an account connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
+| Google Cloud audit logs | A log sink to Pub/Sub, read by the collector's `googlecloudpubsub` receiver with `encoding: raw_text`, or, for a project connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
+| Azure activity and Entra ID logs | A diagnostic setting that streams to an Event Hub, read by the collector's `azureeventhub` receiver with `format: raw`, or, for a subscription's Activity Log, connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
+| OpenStack audit trail | A cloud's notifications and audit filter sent to its logs with `driver = log`, read by the agent's [logs profile](/docs/telemetry/openstack#who-did-what) |
 | CEF, LEEF | The product's syslog, relayed by [rsyslog](/docs/telemetry/syslog) |
+| Palo Alto Networks, FortiGate, Cisco ASA | The firewall's own syslog, relayed by [rsyslog](/docs/telemetry/syslog) |
 | Kubernetes audit logs | The API server's audit log file, read by the collector's `filelog` receiver |
 | Web attacks | A web server's access log, read by the collector's `filelog` receiver |
 
 On **Your logs**, each kind says when it was last found, and **Check a log line** shows what a line you paste becomes, before any arrives.
+
+A threat a security product writes in your logs, such as a CEF or LEEF finding or a Palo Alto Networks, FortiGate or Cisco ASA threat, opens a [case](/docs/telemetry/security-cases) as a connected product's alert does, and adds to the risk of the user, host or address it names. **Open cases from**, on **Your logs**, says from which severity: **High and above** unless you choose another, or **Never**. The product's sign-ins and blocked connections stay events, for your rules to read.
+
+A record that reaches OneUptime two ways is stored once: a Microsoft Entra ID sign-in its connection reads and Azure's export of it in your logs, or a CloudTrail record in your logs and in a connected AWS account's audit log.
+
+### Read your cloud accounts' audit logs
+
+An AWS account, Google Cloud project or Azure subscription [connected under **Cloud**](/docs/telemetry/cloud-accounts) needs no log pipeline. Turn on **Cloud audit logs**, under **Your OneUptime data** on **Connections**, and each read of the account keeps its audit log as security events:
+
+| Cloud | What is read |
+| --- | --- |
+| AWS | CloudTrail's management events that change something, in each Region the account uses: console sign-ins, changes and calls AWS refused |
+| Google Cloud | The Admin Activity audit log: changes to resources and to who may reach them, and calls Google refused |
+| Azure | The Activity Log: changes made in the subscription, operations that failed, Azure Policy refusals and Defender for Cloud alerts |
+
+- Each record is read as **Your logs** reads it from a pipeline, so the rule library's CloudTrail, Google Cloud and Azure rules match it.
+- An event is stamped when it is stored, with the record's own time in `oneuptime.cloud.record_time`: an audit log reaches OneUptime minutes late, and a rule reads events by their time.
+- The account's own read brings nothing more: data events, Data Access logs and Microsoft Entra ID's logs still take **Your logs** or a [connection](/docs/integrations/microsoft-entra-id).
 
 ### Connect a security product
 
@@ -212,7 +233,7 @@ On **Your logs**, each kind says when it was last found, and **Check a log line*
 | Elastic Security | Detection alerts, as Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, as Detection and Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Sign-in, MFA, account and policy events | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | Sign-ins and directory changes, and the Microsoft 365 audit log's mail forwarding, sharing and phishing verdicts | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | Sign-ins, directory changes and risk detections, failed background and app sign-ins if you choose, and the Microsoft 365 audit log's mail forwarding, sharing and phishing verdicts | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Sign-ins, Google's own findings, admin changes and app grants, and Drive sharing | [Google Workspace](/docs/integrations/google-workspace) |
 
 - The product's own alerts at or above **Open Cases From** (**High and above** unless you choose another level, or **Never**) open [cases](/docs/telemetry/security-cases), grouped by the user, host or address they are about.
@@ -256,6 +277,7 @@ The search bar speaks the same language as the other telemetry explorers (see [S
 | `<field>:a*` | `*` is any text, `?` one character | `host:web-*` |
 | `@<attribute>:*` | The attribute is present | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | The attribute contains the text | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | The field is on a [watchlist](#watchlists) | `user:%vip_users%` |
 
 A field is either a short name (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) or the field's own name, such as `severityName` or `principalHost`. Any other name is read as a source attribute. `observable:<value>` finds every event that mentions a value, on whichever side of the activity it was.
 
@@ -281,9 +303,17 @@ A hunt is a search over your security events kept with a name: the search bar's 
 
 ### Save a search as a hunt
 
-On **Events**, search and filter until the list shows what you are after, then open **Hunts** on the toolbar and choose **Save as Hunt**. Name it, choose whether it runs on a schedule, and its page opens. **Events → Hunts** lists the project's hunts, each with its search, how often it runs, who it tells and what its last run found; **Create Hunt** there takes the search as you would type it on **Events**. A project keeps up to 200 hunts.
+On **Events**, search and filter until the list shows what you are after, then open **Hunts** on the toolbar and choose **Save as Hunt**. Name it, choose whether it runs on a schedule, and its page opens. **Events → Hunts** lists the project's hunts, each with its search, how often it runs, who it tells and what its last run found; **Create Hunt** there takes the search as you would type it on **Events**. A project keeps up to 200 hunts. A search can read a [watchlist](#watchlists), as `user:%vip_users%` does, and a hunt that reads a list the project does not have is refused when you save it.
 
 A hunt's page is its search, opened on the Events explorer. Change the search or the filters there, and the hunt's header offers **Save Changes** and **Discard Changes**. **Edit** changes its name, its search, how far back it looks, its schedule and who it tells, and **Delete Hunt** is in its menu. A Security Member or higher can save, change and delete hunts, and a Security Viewer can open them.
+
+A hunt saved with filters from the Events sidebar shows them in **Edit** under **Filters**, as Events draws them, each with an x to take it off. Add filters on the hunt's page, from the sidebar.
+
+### Start from the Hunt Library
+
+**Events → Hunt Library** lists ready-made hunts for what security teams look for most, such as failed sign-ins, encoded PowerShell, the AWS root account and shells opened in Kubernetes pods. Each shows what it finds, its search as you would type it on **Events**, and whether the events it reads arrive, as the **Rule Library** does for its rules. Narrow them by **Hunt category**, **Data** and **Status**, or search them.
+
+**Try it** opens the search on **Events**, over the hunt's window, and saves nothing. **Add** saves it at once as one of the project's hunts, named and described in your language and not scheduled, as every new hunt is. It then says **Added**, and **Open** opens it, where you can give it a schedule.
 
 ### Run a hunt on a schedule
 
@@ -302,9 +332,15 @@ A run opens no case and raises no alert: write what should open cases as a [dete
 
 A scheduled hunt runs as the person who last set its schedule, changed its search or saved it with **Edit**. An API key cannot set a schedule. When that person leaves the project or can no longer read security events, the hunt says so: open **Edit** and save it to run it as you.
 
+### Run history
+
+Each scheduled run is kept for 90 days. **Run history**, at the end of the line that says what a hunt's runs found, lists them newest first: when each ran and the events it searched, then how many it found, with **Show them** to open those events on the hunt's page; that it found nothing; or why it could not run. Whoever can open a hunt can read its runs.
+
 ### Who is told
 
 The notification **Hunt found security events** names the hunt and its search, how many events its run found and the window it read, and links to the hunt's page on those events; no event's own words are in it. Everyone has it by email and push, and chooses its channels under **User Settings → Notification Settings**. Like other routine emails, it can be held back in an [email rollup](/docs/emails/notification-rollup).
+
+To post what hunts find to Slack, Microsoft Teams or Mattermost, add a rule to **Hunt Rules** under **Products → Security Events → Workspace → Slack** (or **Microsoft Teams**, or **Mattermost**), below the rules that post [security cases](/docs/telemetry/security-cases#post-to-slack-microsoft-teams-and-mattermost-channels). A rule names the channels to post to (and, in Microsoft Teams, the chats) and, if you want, the hunts it is for by **Security Hunt Name**: a name that is, contains, starts with or ends with your text. Each time a scheduled run finds events, it posts the hunt, its search, how many events and when, with a link to them, and none of an event's own words. A hunt rule is set up by a role that may set up security playbooks, such as Project Owner, Project Admin or Security Admin.
 
 ### Keep events on a case
 
@@ -312,7 +348,7 @@ Select events on **Events** or on a hunt's page and choose **Bulk Actions → Ad
 
 OneUptime reads each event again as you and keeps it on the case's **Evidence** page as it was, so the case still shows it after the event's retention ends. An event you cannot read is not kept, and one the case keeps already is left as it is. An event found from a hunt names the hunt, and **View Event** opens it as it was kept.
 
-Hunts have the same REST API as the rest of OneUptime, under `/security-hunt`, and `POST /security-case-evidence/add-events` keeps events on a case. See [API Reference](/docs/api-reference/api-reference).
+Hunts have the same REST API as the rest of OneUptime, under `/security-hunt`, and `POST /security-case-evidence/add-events` keeps events on a case. A hunt's runs are read under `/security-hunt-run`. See [API Reference](/docs/api-reference/api-reference).
 
 ## Detection rules
 
@@ -511,7 +547,7 @@ An exception is something a rule skips because you expect it, such as a vulnerab
 
 ### Watchlists
 
-A watchlist is a list your team keeps once and any rule can read, such as VIP users, critical hosts, known-bad file hashes or the addresses admins may sign in from. Every list is under **Products → Security Events → Detections → Watchlists**: create one there with **Create Watchlist**, which asks for its name and what it holds, or add a common one from **Start with a common list**. A list's page shows its values, and **Use It in a Rule** gives a selection that reads the list, to copy into a rule.
+A watchlist is a list your team keeps once and any rule can read, such as VIP users, critical hosts, known-bad file hashes or the addresses admins may sign in from. Every list is under **Products → Security Events → Detections → Watchlists**: create one there with **Create Watchlist**, which asks for its name and what it holds, or add a common one from **Start with a common list**. A list's page shows its values, and **Use This List** gives a selection that reads the list, to copy into a rule, and the search that reads it on **Events** or in a hunt.
 
 A rule reads a list with `expand` and the list's name between `%` signs. This rule fires when an admin signs in from an address that is not on the allowed list:
 
@@ -529,10 +565,14 @@ level: high
 
 - A list holds users, hosts, IP addresses, file hashes, domains, URLs, processes or other values, chosen when it is created. A value matches whatever its case, and `*` stands for any run of characters: `svc-*` matches every service account. An IP address list also takes ranges, such as `10.20.0.0/16`, and a file hash list takes MD5, SHA-1, SHA-256 and SHA-512 hashes.
 - Add values one at a time with **Add Value**, or many at once with **Import Values**: paste them, or choose a `.txt` or `.csv` file, one value a line, with an optional note after a comma. **Add to the list** keeps the values already on it, and **Replace the list** removes the ones the import does not have.
+- A value can have an **Expires At**: from then on no rule, monitor, hunt or search reads it, and OneUptime removes it from the list within a minute. Left empty, it stays until someone removes it.
+- **Export Values** downloads a list's values as a CSV file with the columns `value`, `note` and `expires`, which **Import Values** reads back. A file whose first line names these columns gives each value its note and when it expires: a date such as `2026-12-31`, or a date and time in UTC.
+- A list can be read from a file at an https address instead, again **Every Hour**, **Every 6 Hours** or **Every Day**: choose **A file at an address** under **More fields** when you create it. Each read makes the list what the file holds, read as an import reads it. A read that fails changes no value and the list's page says why, and **Read Now** reads it at once.
 - Instead of keeping values, a list of IP addresses, file hashes, domains or URLs can follow a threat intel feed: its values are the feed's active indicators of the list's kind, kept up to date as the feed is read.
-- `expand` is used alone, since the list's values say how they match. A field that holds several values, such as `observables`, matches when any of them is on the list. **Read By** names the rules that read each list, and under a rule's YAML its form names the lists the rule reads.
-- A rule names a list whatever the case. A rule that names a list the project does not have is refused when you save it, and a list that rules read cannot be renamed or deleted until no rule reads it.
+- `expand` is used alone, since the list's values say how they match. A field that holds several values, such as `observables`, matches when any of them is on the list. **Read By** names the rules, Security Events monitors and hunts that read each list, and under a rule's YAML its form names the lists the rule reads.
+- A rule names a list whatever the case. A rule, a monitor or a hunt that names a list the project does not have is refused when you save it, and a list that one of them reads cannot be renamed or deleted until nothing reads it.
 - A change to a list reaches every rule that reads it at the rule's next run. Correlation rules and **Run on Past Events** read lists too.
+- A Security Events monitor reads lists in its **Filter by Watchlists**, and a search on **Events** or in a hunt reads one as `user:%vip_users%`. A minus in front, as in `-ip:%admin_addresses%`, keeps the events whose field is not on the list.
 - A list holds at most 5,000 values, at most 100 of them with `*` and 100 of them ranges, and a project has at most 200 lists: for a longer list, follow a threat intel feed. Whoever may create, edit or delete detection rules may do the same to lists, and whoever may edit detection rules adds, changes and removes their values. Every Security role can read them, and each change is kept in the project's audit log.
 
 ### Run on Past Events
@@ -549,11 +589,11 @@ level: high
 
 A Security Events monitor counts the events that match its filters over a rolling window and runs the usual monitor criteria on the count: it changes the monitor's status, opens alerts or incidents, and pages on-call. Create one under **Monitors → Create Monitor**, with **Security Events** as the type; it is listed there with your other monitors.
 
-Its form shows **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** and **Event Class**. **Filter by Telemetry Service** and **Filter by Attributes** wait under **More fields**, whose header shows the ones a monitor uses. Its criteria check **Security Event Count**.
+Its form shows **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** and **Event Class**. **Filter by Telemetry Service**, **Filter by Attributes** and **Filter by Watchlists** wait under **More fields**, whose header shows the ones a monitor uses. **Filter by Watchlists** keeps the events whose field is, or is not, on one of your [watchlists](#watchlists). Its criteria check **Security Event Count**.
 
 | | Detection rule | Security Events monitor |
 | --- | --- | --- |
-| Matches | A Sigma rule | Filters on severity, class, message, service and attributes |
+| Matches | A Sigma rule | Filters on severity, class, message, service, attributes and watchlists |
 | Window | Back to back, one per run | Rolling: the last 5 seconds to 24 hours |
 | Counts per group | Yes, with **Group By Field** | No: one count for everything that matches |
 | Opens | Alerts, incidents and findings | A status, alerts and incidents |
@@ -610,11 +650,15 @@ Check its **Status** in **Rule Exceptions**: an **Expired** one skips nothing, a
 :::
 
 :::details A rule that reads a watchlist doesn't match
-Open the list and check its values: a value without `*` must equal the whole field, whatever its case, and a list that follows a threat intel feed holds only the feed's active indicators of its kind. Check that the rule reads the field your events fill: **Use It in a Rule** starts with the field a list of its kind is usually in. A change to a list reaches a rule at the rule's next run.
+Open the list and check its values: a value without `*` must equal the whole field, whatever its case, and a list that follows a threat intel feed holds only the feed's active indicators of its kind. Check that the rule reads the field your events fill: **Use This List** starts with the field a list of its kind is usually in. A change to a list reaches a rule at the rule's next run.
 :::
 
 :::details A watchlist can't be renamed or deleted
-Rules still read it by its name, and the message names them. Change the name in those rules, or take the list out of them, then rename or delete it.
+Rules, monitors or hunts still read it by its name, and the message names them. Change the name in them, or take the list out of them, then rename or delete it.
+:::
+
+:::details A list read from an address shows an error
+Its page says why under **Read From an Address**, with what the address answered, and the list keeps the values of its last read that worked. The address must start with `https`, answer from the internet without a sign-in, and download a text or CSV file of at most 4 MB, not a web page. Fix it in **Edit**, then choose **Read Now**.
 :::
 
 :::details Run on Past Events finds nothing

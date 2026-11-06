@@ -2353,7 +2353,7 @@ describe("the criteria of the telemetry-backed monitors", () => {
     );
   });
 
-  it("offer the comparisons and anomaly conditions the pages list", () => {
+  it("offer the comparisons, anomaly and forecast conditions the pages list", () => {
     const conditions: Array<string> =
       CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(CheckOn.MetricValue).map(
         (option: DropdownOption): string => {
@@ -2371,6 +2371,8 @@ describe("the criteria of the telemetry-backed monitors", () => {
         FilterType.AnomalouslyHigh,
         FilterType.AnomalouslyLow,
         FilterType.Anomalous,
+        FilterType.ForecastAbove,
+        FilterType.ForecastBelow,
         FilterType.IsEmpty,
         FilterType.IsNotEmpty,
       ].sort(),
@@ -2379,8 +2381,13 @@ describe("the criteria of the telemetry-backed monitors", () => {
     const written: string =
       "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.";
 
+    // The forecast conditions, as the Condition dropdown draws them.
+    const forecastWritten: string =
+      "**Forecast To Rise Above** and **Forecast To Fall Below** match when the metric's trend over the window will be past the threshold by the end of **Within**.";
+
     for (const page of [DOCKER, HOST, PODMAN, PROXMOX, SWARM]) {
       expect(englishPage(page)).toContain(written);
+      expect(englishPage(page)).toContain(forecastWritten);
     }
 
     expect(englishPage(KUBERNETES)).toContain(
@@ -2396,6 +2403,8 @@ describe("the criteria of the telemetry-backed monitors", () => {
       );
     expect(labels).toContain("Has No Data");
     expect(labels).toContain("Has Data");
+    expect(labels).toContain("Forecast To Rise Above");
+    expect(labels).toContain("Forecast To Fall Below");
   });
 
   it("aggregate the window as the pages list", () => {

@@ -4,14 +4,14 @@ An alert tells your team about a problem to look into before your users notice i
 
 :::cards
 - [Alerts and incidents](#alerts-and-incidents): Which one a problem should be, and how the two connect.
-- [Where alerts come from](#where-alerts-come-from): Monitors, SLOs, chat, the API, or by hand.
+- [Where alerts come from](#where-alerts-come-from): Monitors, SLOs, chat, Ask AI, the API, or by hand.
 - [Create an alert by hand](#create-an-alert-by-hand): Two steps in the dashboard.
 - [Respond to an alert](#respond-to-an-alert): Acknowledge it, resolve it, or declare an incident.
 :::
 
 ## How it works
 
-Most alerts are raised by a monitor whose criteria match. Some come from an SLO burning its error budget, a security rule, a page sent from Slack or Microsoft Teams, or a person. Whichever way it arrives, an alert is the same record, and the same rules run on it.
+Most alerts are raised by a monitor whose criteria match. Some come from an SLO burning its error budget, a security rule, a page sent from Slack or Microsoft Teams, Ask AI, or a person. Whichever way it arrives, an alert is the same record, and the same rules run on it.
 
 ```mermaid title="From a signal to the people who handle it"
 flowchart TB
@@ -44,6 +44,7 @@ Raise an alert when your team should look before anyone outside notices, and dec
 
 - **A monitor's criteria.** Under a criteria's **Actions**, turn on **When filters match, create an alert.** and fill in the alert it creates: **Alert Title** and **Severity**, then, each folded, **Description**, **Ownership & Labels**, **On-Call** and **More fields**, which holds **Auto Resolve Alert**, **Private Alert** and **Remediation Notes**. A criteria keeps one open alert at a time, one per series on a monitor that groups by a field, and **Auto Resolve Alert** resolves it once the criteria stops matching. See [Creating a Monitor](/docs/monitor/create-monitor) and [Incident & Alert Templating](/docs/monitor/incident-alert-templating).
 - **By hand.** Click **Create Alert** on the alerts list, or on the **Alerts** tab of a monitor, a host, a network device or another resource, which picks that resource for you. See [Create an alert by hand](#create-an-alert-by-hand).
+- **Ask AI.** In [Ask AI](/docs/ai/ask-ai), ask for an alert: it raises one as you, linked to the resource whose page you asked on, such as a host's. To write up a problem someone is already handling, or one that is already over, ask for it acknowledged or resolved: it starts in that state and pages nobody. See [Created already acknowledged or resolved](#created-already-acknowledged-or-resolved).
 - **An SLO's burn rate.** A burn rate rule can create an alert when an SLO spends its error budget too fast. See [Burn Rate Alerts and Incidents](/docs/slo/burn-rate-alerts).
 - **Network sites and security events.** A network site set to alert when it is unhealthy opens an alert when its rollup stops being operational, and your security detection rules open alerts too. See [Network Sites (Health Rollup & Uptime)](/docs/monitor/network-sites) and [Security Events](/docs/telemetry/security-events).
 - **A page.** `/oneuptime page` in Slack or Microsoft Teams, anywhere but an incident's or an alert's own channel, opens an alert whose title is your message, and pages the people you name. A workflow's paging blocks do the same with the title and message you give them. See [Paging someone from Slack](/docs/workspace-connections/slack#paging-someone-from-slack) and [Paging](/docs/workflows/components#paging).
@@ -58,8 +59,8 @@ Open **Alerts** from the **Products** menu in the top bar. The alerts list is at
 | **Alerts**    | **All Alerts** and **Active Alerts**, whose red badge counts the alerts that are not resolved yet.                          |
 | **Episodes** | **All Episodes** and **Active Episodes**: related alerts grouped into one problem to work on. |
 | **AI**        | **Insights**, **Logs** and **Settings**: what OneUptime AI learned from your alerts, everything it did, and what it may do. |
-| **Workspace** | **Slack** and **Microsoft Teams**, whichever the project has connected, or **Connect Slack or Teams** when it has neither. |
-| **Rules**     | **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **Reminder Rules**. |
+| **Workspace** | **Slack**, **Microsoft Teams** and **Mattermost**, whichever the project has connected, or **Connect a workspace** when it has none. |
+| **Rules**     | **Grouping Rules**, **On-Call Rules**, **Incident Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **Reminder Rules**. |
 | **Settings**  | **Alert State**, **Alert Severity**, **Note Templates**, **Custom Fields**, **Measurements**, **Episode Membership**, **Numbering**.                |
 
 **Alerts** and **Episodes** are open; **AI**, **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. Alert configuration lives here, not in **Project Settings**.
@@ -94,12 +95,12 @@ Leave **Initial State** empty and the alert starts where every new alert does: y
 
 The moment an alert is created, OneUptime works through these steps, in this order:
 
-1. **It gets a number and a state.** The alert number comes from a per-project counter, shown with your prefix (`ALT-42`). The alert starts in your created state unless the form, the API or a workflow picked another.
+1. **It gets a number and a state.** The alert number comes from a per-project counter, shown with your prefix (`ALT-42`). The alert starts in your created state unless the form, the API, a workflow or Ask AI picked another.
 2. **Privacy rules run first**, so everything after them sees whether the alert is private.
 3. **The feed and your chat tools hear of it.** An **Alert Created** entry is written to the **Alert Feed**, and the channels your Slack and Microsoft Teams rules name are told; a rule can create a channel for the alert.
 4. **Owners and labels are added**: the ones the monitor's criteria or the request names, then those of matching owner and label rules.
 5. **On-call rules add their policies**, then runbook rules start the runbooks that match.
-6. **On-call policies run.** Every policy on the alert pages its people in parallel; one failing does not stop the others.
+6. **On-call policies run.** Every policy on the alert pages its people in parallel; one failing does not stop the others. Then the first incident rule that matches declares an incident from the alert, right away or once its wait is up.
 7. **Grouping rules put it into an episode**, when one matches. See [Alert Episodes & Grouping Rules](/docs/alerts/episodes).
 8. **Reminders are scheduled**, when a reminder rule matches, and **OneUptime AI** investigates the alert when **Investigate new alerts** is on at **Alerts → AI → Settings**, and fixes it when **Fix new alerts automatically** is on. See [AI SRE](/docs/ai/ai-sre).
 
@@ -110,7 +111,7 @@ A background job tells the alert's owners within a minute, and the **On Create A
 An alert that starts in a later state is a record of a problem someone is already on, so it is not treated as a new emergency:
 
 - **At or past your acknowledged state**, no on-call policy runs. The alert keeps its policies, and its feed says in one line why nobody was paged. It can join an open episode, but never opens one, which would page through the episode's policies.
-- **At or past your resolved state**, the alert is over: it is not grouped into an episode, no runbook or auto-remediation acts on it, OneUptime AI does not investigate it, and no Slack or Microsoft Teams channel is created for it.
+- **At or past your resolved state**, the alert is over: it is not grouped into an episode, no runbook, auto-remediation or incident rule acts on it, OneUptime AI does not investigate it, and no Slack or Microsoft Teams channel is created for it.
 
 Its rules, its owners, its feed and its first state still happen either way. Incidents follow the same rule: see [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
 

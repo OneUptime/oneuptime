@@ -206,6 +206,9 @@ const NEW_STRINGS: Array<string> = [
   "Integrations",
   // The Zabbix category, which came later.
   "Zabbix",
+  // The Datadog and New Relic categories, which came after it.
+  "Datadog",
+  "New Relic",
   // Who a template pages, asked in the wizard.
   "Pick who this workflow pages. You can change it later on its Page step in the Builder.",
   "Pick who to page.",
@@ -240,6 +243,8 @@ const IDENTICAL_TO_ENGLISH: Record<string, Array<string>> = {
   Jira: NON_ENGLISH_LANGUAGES,
   "Dynamics 365": NON_ENGLISH_LANGUAGES,
   Zabbix: NON_ENGLISH_LANGUAGES,
+  Datadog: NON_ENGLISH_LANGUAGES,
+  "New Relic": NON_ENGLISH_LANGUAGES,
   /*
    * The word these languages' workflow docs and tools already use for it.
    * Not German: its Dashboard calls a trigger "Auslöser" on the builder's
@@ -615,6 +620,31 @@ describe("Create a workflow's strings", () => {
 
       if (file !== "en.json") {
         expect(locale[line]).not.toBe(line);
+      }
+    },
+  );
+
+  test.each(LOCALE_FILES)(
+    "%s carries the Datadog and New Relic categories' names as the products write them, and their lines, naming the products",
+    (file: string) => {
+      const locale: Record<string, unknown> = readLocale(file);
+
+      for (const [category, name] of [
+        [WorkflowTemplateCategory.Datadog, "Datadog"],
+        [WorkflowTemplateCategory.NewRelic, "New Relic"],
+      ] as Array<[WorkflowTemplateCategory, string]>) {
+        const line: string =
+          getWorkflowTemplateCategoryInfo(category).description;
+
+        expect(locale[name]).toBe(name);
+        expect({ file, line: locale[line] }).toEqual({
+          file,
+          line: expect.stringContaining(name),
+        });
+
+        if (file !== "en.json") {
+          expect(locale[line]).not.toBe(line);
+        }
       }
     },
   );

@@ -337,7 +337,7 @@ Synthetic मॉनिटर जिन सीमाओं में चलता
 | SNMP ट्रैप | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | चालू, UDP 162 | [नेटवर्क डिवाइस मॉनिटर](/docs/monitor/network-device-monitor) |
 | Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | चालू, UDP और TCP 5140 | [नेटवर्क इवेंट](/docs/monitor/network-events) |
 | NetFlow, IPFIX और sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | चालू, UDP 2055, 4739 और 6343 | [नेटवर्क ट्रैफ़िक](/docs/monitor/network-traffic) |
-| हेल्थ चेक | `PORT` | चालू, TCP 3874 | `/status/live` और `/status/ready` |
+| स्वास्थ्य जाँच | `PORT` | चालू, TCP 3874 | `/status/live` और `/status/ready` |
 
 कंटेनर के अंदर कोई पोर्ट दूसरी मशीनों से केवल होस्ट नेटवर्किंग के साथ या उसे पब्लिश करने पर ही पहुँच में होता है।
 

@@ -145,6 +145,19 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// The title of the fix's first step: what OneUptime AI planned.
+function planStepTitle(): HTMLElement {
+  const plan: Element | null = document.querySelector(
+    "[data-testid='remediation-fix-step'][data-step='plan']",
+  );
+
+  if (!plan) {
+    throw new Error("The fix has no plan step.");
+  }
+
+  return within(plan as HTMLElement).getByTestId("remediation-fix-step-title");
+}
+
 describe("the Remediation card", () => {
   beforeEach(() => {
     jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
@@ -177,13 +190,13 @@ describe("the Remediation card", () => {
     expect(screen.getByText("Waiting for approval")).toBeInTheDocument();
 
     /*
-     * Folded to its sentence - how many changes, through which servers -
-     * with its changes and Approve & Run one press away: Review and approve
-     * (#5413's UI review). Nothing is shown yet, so nothing says approving
-     * runs what is shown.
+     * Its plan says how many changes and through which servers, with its
+     * changes and Approve & Run one press away: Review and approve (issue
+     * #5598: a fix reads as the steps it went through). Nothing is shown
+     * yet, so nothing says approving runs what is shown.
      */
-    expect(screen.getByTestId("remediation-fix-sentence")).toHaveTextContent(
-      /^2 changes through AWS\.$/,
+    expect(planStepTitle()).toHaveTextContent(
+      /^Planned 2 changes through AWS$/,
     );
     expect(screen.queryByTestId("remediation-mcp-tool-call")).toBeNull();
     expect(screen.queryByTestId("remediation-approve-button")).toBeNull();
@@ -195,7 +208,7 @@ describe("the Remediation card", () => {
     expect(note).toHaveTextContent(REMEDIATION_APPROVAL_NOTE);
     expect(
       screen
-        .getByTestId("remediation-fix-details")
+        .getByTestId("remediation-fix-step-details")
         .compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
@@ -271,12 +284,13 @@ describe("the Remediation card", () => {
     });
 
     /*
-     * Folded, it says how many changes it made and through which server,
-     * and that one failed, in red beside where it stands.
+     * Its plan says how many changes and through which server, and one
+     * failed, in red beside where it stands.
      */
-    expect(
-      await screen.findByTestId("remediation-fix-sentence"),
-    ).toHaveTextContent(/^3 changes through AWS\.$/);
+    await screen.findAllByTestId("remediation-fix-step");
+    expect(planStepTitle()).toHaveTextContent(
+      /^Planned 3 changes through AWS$/,
+    );
     expect(
       screen.getByTestId("remediation-fix-failed-count"),
     ).toHaveTextContent(/^1 failed$/);

@@ -162,6 +162,7 @@ Funziona nei repository GitHub, GitLab, Forgejo e Gitea. GitHub avvisa OneUptime
 | **Funzioni costose** | Le funzioni del codice modificato che occupano una quota dei profili dei servizi nell'ultima ora. |
 | **Incidenti** | Gli incidenti dei servizi degli ultimi 30 giorni ancora aperti, o la cui causa principale o il cui post-mortem cita il codice modificato. Mai un incidente privato. |
 | **Deploy** | I deploy dei servizi degli ultimi 7 giorni che OneUptime sospetta di una regressione. |
+| **Dati** | Le tabelle monitorate che le sue migrazioni e i suoi modelli dbt eliminano, rinominano o di cui cambiano il tipo, con i servizi le cui query dell'ultimo giorno usano una colonna modificata, le tabelle costruite a partire da esse e i loro prodotti di dati. |
 
 Quando la produzione dice qualcosa, OneUptime AI la legge accanto al diff e aggiunge **Cosa tenere d'occhio**: pochi punti brevi, ognuno basato sui fatti. Legge con il fornitore LLM predefinito del progetto, a meno che **Provider LLM della revisione di produzione**, sotto **Altre impostazioni** nella pagina **Impostazioni** del repository, non ne scelga un altro del progetto o uno globale. Viene eseguita solo finché l'IA è attiva per il progetto, al massimo 10 volte al giorno per una pull request e 100 per un repository, ed è conteggiata come ogni chiamata di IA; i fatti vengono letti ogni volta senza di essa. Quando la produzione non mostra nulla della modifica, OneUptime non pubblica alcun commento.
 

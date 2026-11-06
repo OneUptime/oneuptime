@@ -426,6 +426,67 @@ export default class WorkflowLog extends BaseModel {
   public isTestRun?: boolean = undefined;
 
   /*
+   * Internal. What this run's trigger started with, as JSON text, so a person
+   * can run it again with the same values (Types/Workflow/WorkflowRunAgain).
+   * The step trace is no substitute: it is cut short and has secrets taken out.
+   * Text rather than jsonb, so the payload comes back as it was sent, its keys
+   * in their order. A payload can hold anything, so it is encrypted at rest and
+   * read by nobody but the route that starts the new run.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "Trigger Values",
+    description:
+      "Internal copy of what the run's trigger started with, used to run it again. Encrypted at rest and never returned by the API.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public triggerValues?: string = undefined;
+
+  /*
+   * Whether this run can be run again: triggerValues holds what it started
+   * with. False for a test of one step, for a run that started with too much to
+   * keep, and for every run from before this column existed.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflowLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Can Run Again",
+    description:
+      "True when OneUptime kept what this run started with, so a person can run the workflow again with the same values.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public canRunAgain?: boolean = undefined;
+
+  /*
    * The person who started this run by hand from the Builder, with Run
    * Workflow or Run just this step, whether the workflow was on or off. Empty
    * for a run its trigger or another workflow started. OneUptime records it

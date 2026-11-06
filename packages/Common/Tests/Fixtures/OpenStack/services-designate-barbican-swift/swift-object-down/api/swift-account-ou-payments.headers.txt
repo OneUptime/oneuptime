@@ -1,0 +1,17 @@
+HTTP/1.1 204 No Content
+Content-Type: text/plain; charset=utf-8
+Content-Length: 0
+X-Account-Container-Count: 1
+X-Account-Object-Count: 2
+X-Account-Bytes-Used: 4096
+X-Timestamp: 1793853386.72173
+X-Account-Storage-Policy-Policy-0-Container-Count: 1
+X-Account-Storage-Policy-Policy-0-Object-Count: 2
+X-Account-Storage-Policy-Policy-0-Bytes-Used: 4096
+Accept-Ranges: bytes
+X-Account-Project-Domain-Id: default
+Vary: Accept
+X-Trans-Id: txb0dcda4984ee403b9e6f2-006aec08b4
+X-Openstack-Request-Id: txb0dcda4984ee403b9e6f2-006aec08b4
+Date: Thu, 05 Nov 2026 04:40:20 GMT
+

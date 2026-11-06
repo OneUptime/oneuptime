@@ -940,7 +940,7 @@ describe("a rule's details", () => {
       "No events of this kind arrived in the last 7 days. The rule runs, but finds nothing until they do.",
     );
     expect(howToSend).toHaveTextContent(
-      "Send CloudTrail to OneUptime as logs and find security events in your logs.",
+      "Connect the AWS account under Cloud and turn on Cloud audit logs, or send CloudTrail to OneUptime as logs and find security events in your logs.",
     );
     expect(
       within(data).getAllByText(/No events of this kind arrived/),

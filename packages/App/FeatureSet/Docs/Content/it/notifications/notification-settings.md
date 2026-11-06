@@ -18,7 +18,7 @@ flowchart TB
     setting -->|"tutto spento"| nothing["Non viene inviato nulla"]
 ```
 
-- Ogni riga è un evento, e ogni colonna un canale: E-mail, SMS, Chiamata, Push, WhatsApp, Telegram, Slack e Microsoft Teams, e Webhook. Slack e Microsoft Teams sono colonne solo se il progetto li ha collegati.
+- Ogni riga è un evento, e ogni colonna un canale: E-mail, SMS, Chiamata, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost e Webhook. Slack, Microsoft Teams e Mattermost sono colonne solo se il progetto li ha collegati.
 - Un canale attivo invia a ogni metodo verificato che avete su di esso in questo progetto, non a uno solo.
 - Un canale attivo senza un metodo verificato dietro non invia nulla. **Your setup checklist** lo segnala in **Staying informed**.
 - Un aggiornamento va ai proprietari dell'elemento: le persone indicate come proprietari e i membri dei suoi team proprietari. Quando un elemento non ha proprietari, va invece ai proprietari del progetto. Un evento sull'essere stati aggiunti come proprietari va solo alla persona aggiunta.

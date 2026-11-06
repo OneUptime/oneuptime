@@ -22,6 +22,7 @@ import AlertViewAILogs from "../Pages/Alerts/View/AILogs";
 import AlertsWorkspaceConnectionSlack from "../Pages/Alerts/WorkspaceConnectionSlack";
 
 import AlertsWorkspaceConnectionMicrosoftTeams from "../Pages/Alerts/WorkspaceConnectionMicrosoftTeams";
+import AlertsWorkspaceConnectionMattermost from "../Pages/Alerts/WorkspaceConnectionMattermost";
 import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 
 import AlertOnCallPolicyExecutionLogs from "../Pages/Alerts/View/OnCallPolicyExecutionLogs";
@@ -60,6 +61,8 @@ import AlertSettingsCustomFields from "../Pages/Alerts/Settings/AlertCustomField
 import AlertSettingsGroupingRules from "../Pages/Alerts/Settings/AlertGroupingRules";
 
 import AlertSettingsOnCallRules from "../Pages/Alerts/Settings/AlertOnCallRules";
+
+import AlertSettingsIncidentRules from "../Pages/Alerts/Settings/AlertIncidentRules";
 
 import AlertSettingsOwnerRules from "../Pages/Alerts/Settings/AlertOwnerRules";
 import AlertSettingsRunbookRules from "../Pages/Alerts/Settings/AlertRunbookRules";
@@ -259,6 +262,23 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={
+            AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST] ||
+            ""
+          }
+          element={
+            <AlertsWorkspaceConnectionMattermost
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
           path={AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTIONS] || ""}
           element={
             <WorkspaceConnectionsOverview
@@ -266,6 +286,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               microsoftTeamsPage={
                 PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
               }
+              mattermostPage={PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST}
             />
           }
         />
@@ -360,6 +381,18 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.ALERTS_SETTINGS_ON_CALL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_INCIDENT_RULES] || ""}
+          element={
+            <AlertSettingsIncidentRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_INCIDENT_RULES] as Route
               }
             />
           }

@@ -1,14 +1,23 @@
 import {
+  CONNECT_CLOUD_ACCOUNT_LINK_TEXT,
   NEEDS_ENTERPRISE_NOTE,
+  NO_CLOUD_ACCOUNT_NOTE,
   SECURITY_TELEMETRY_SOURCES_CARD_ID,
   SECURITY_TELEMETRY_SOURCE_ROWS,
   SecurityTelemetrySourceRow,
   SecurityTelemetrySourceStatus,
   SecurityTelemetrySourceStatusKind,
   getSecurityTelemetrySourceStatus,
+  getSecurityTelemetrySourceWaitingLine,
   isSecurityTelemetrySourceAvailable,
+  needsCloudAccountNote,
 } from "./SecurityTelemetrySourcesModel";
+import AppLink from "../AppLink/AppLink";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import SecurityTelemetrySource from "Common/Models/DatabaseModels/SecurityTelemetrySource";
+import Route from "Common/Types/API/Route";
 import { SecurityTelemetrySourceKind } from "Common/Types/SecurityEvent/SecurityTelemetrySource";
 import Card from "Common/UI/Components/Card/Card";
 import {
@@ -37,10 +46,13 @@ import React, {
 /*
  * "Your OneUptime data": the telemetry beyond logs that OneUptime already
  * holds for the project - traces, network flows, its own audit log, session
- * replays - each one switch that makes it a security source. A minute after
- * one is on, what arrives of that kind is read for what an attack leaves
- * in it (Server/Utils/SecurityEvent/TelemetryScan) - nothing to install,
- * nothing to send twice.
+ * replays, and the audit logs of the cloud accounts connected under Cloud -
+ * each one switch that makes it a security source. A minute after one is
+ * on, what arrives of that kind is read for what an attack leaves in it
+ * (Server/Utils/SecurityEvent/TelemetryScan; cloud audit logs with each
+ * cloud account's own read, Server/Utils/SecurityEvent/CloudAudit) -
+ * nothing to install, nothing to send twice. Cloud audit logs say so where
+ * no cloud account is connected yet, with the way to connect one.
  *
  * Each switch saves when it is flipped. A kind has no record until the
  * first time it is turned on, so the first flip creates it; whoever may not
@@ -64,6 +76,13 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
     value: boolean;
   } | null>(null);
   const [error, setError] = useState<string>("");
+  /*
+   * How many cloud accounts the project has connected under Cloud, for cloud
+   * audit logs - null until known, or when it cannot be read.
+   */
+  const [cloudConnectionCount, setCloudConnectionCount] = useState<
+    number | null
+  >(null);
 
   const read: () => Promise<Array<SecurityTelemetrySource>> = async (): Promise<
     Array<SecurityTelemetrySource>
@@ -107,6 +126,19 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
         if (isCurrent) {
           setIsLoading(false);
         }
+      });
+
+    ModelAPI.count<CloudConnection>({
+      modelType: CloudConnection,
+      query: { projectId: ProjectUtil.getCurrentProjectId()! },
+    })
+      .then((count: number) => {
+        if (isCurrent) {
+          setCloudConnectionCount(count);
+        }
+      })
+      .catch(() => {
+        // A reader who may not see Cloud is told nothing about it.
       });
 
     return () => {
@@ -182,15 +214,24 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
     );
   };
 
-  const statusLine: (status: SecurityTelemetrySourceStatus) => string = (
+  const statusLine: (
+    row: SecurityTelemetrySourceRow,
     status: SecurityTelemetrySourceStatus,
+    isMissingCloudAccount: boolean,
+  ) => string = (
+    row: SecurityTelemetrySourceRow,
+    status: SecurityTelemetrySourceStatus,
+    isMissingCloudAccount: boolean,
   ): string => {
     switch (status.kind) {
-      case SecurityTelemetrySourceStatusKind.Waiting:
-        return (
-          translator.translateText("The first check runs within a minute.") ||
-          ""
-        );
+      case SecurityTelemetrySourceStatusKind.Waiting: {
+        const waiting: string | null = getSecurityTelemetrySourceWaitingLine({
+          row,
+          isMissingCloudAccount,
+        });
+
+        return waiting ? translator.translateText(waiting) || "" : "";
+      }
       case SecurityTelemetrySourceStatusKind.Checked:
         return [
           translator.translateTemplate("Checked {{time}}.", {
@@ -211,7 +252,7 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="Your OneUptime data"
-      description="Attacks show up in your traces, network traffic, audit log and session replays too. Turn on what OneUptime should watch."
+      description="Attacks show up in your traces, network traffic, audit log, session replays and cloud accounts too. Turn on what OneUptime should watch."
     >
       <div
         id={SECURITY_TELEMETRY_SOURCES_CARD_ID}
@@ -255,7 +296,15 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
                   lastScanResult: source?.lastScanResult,
                   lastError: source?.lastError,
                 });
-              const line: string = statusLine(status);
+              const isMissingCloudAccount: boolean = needsCloudAccountNote({
+                row,
+                cloudConnectionCount,
+              });
+              const line: string = statusLine(
+                row,
+                status,
+                isMissingCloudAccount,
+              );
 
               return (
                 <li
@@ -298,6 +347,29 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
                       <></>
                     )}
 
+                    {isMissingCloudAccount ? (
+                      <p
+                        className="text-xs text-gray-500"
+                        data-testid={`security-telemetry-source-cloud-note-${row.kind}`}
+                      >
+                        {translator.translateText(NO_CLOUD_ACCOUNT_NOTE)}{" "}
+                        <AppLink
+                          to={RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.CLOUD_CONNECT] as Route,
+                          )}
+                          className="font-medium text-indigo-600 hover:text-indigo-700"
+                        >
+                          <span>
+                            {translator.translateText(
+                              CONNECT_CLOUD_ACCOUNT_LINK_TEXT,
+                            )}
+                          </span>
+                        </AppLink>
+                      </p>
+                    ) : (
+                      <></>
+                    )}
+
                     {savingKind === row.kind || savedKind === row.kind ? (
                       <p role="status" className="text-xs text-gray-500">
                         {savingKind === row.kind
@@ -314,8 +386,14 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
                         data-testid={`security-telemetry-source-status-${row.kind}`}
                       >
                         {line}
+                        {/*
+                         * A space, not a margin, before the count: read
+                         * aloud, the line and its count are two sentences,
+                         * never "ago.Found".
+                         */}
+                        {status.foundInLastCheck > 0 ? " " : ""}
                         {status.foundInLastCheck > 0 ? (
-                          <span className="ml-1 font-medium text-emerald-700">
+                          <span className="font-medium text-emerald-700">
                             {translator.translateTemplate(
                               "Found in the last check: {{count}}",
                               {

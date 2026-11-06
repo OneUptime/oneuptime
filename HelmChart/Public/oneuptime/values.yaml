@@ -4,6 +4,19 @@
 global:
   storageClass:
   clusterDomain: &global-cluster-domain cluster.local
+  # One registry for every image the chart runs, in place of Docker Hub: set
+  # it to the registry you mirror the images into, as an air-gapped install
+  # does (registry.example.com, or with a path, registry.example.com/mirror).
+  # OneUptime's images then come from <imageRegistry>/<image.repository>/<name>
+  # (image.registry is not used), and the bundled PostgreSQL, ClickHouse,
+  # Valkey, PgBouncer, vLLM and kubectl images from <imageRegistry>/<their
+  # repository>, so keep the names and tags when you mirror. A repository that
+  # already names a registry (ghcr.io/..., or one you wrote yourself) and every
+  # entry of image.overrides and global.azure.images are used as written. The
+  # operators this chart can install (KEDA, CloudNativePG and the Altinity
+  # ClickHouse operator) take their registry from their own values.
+  # Empty: every image comes from where its own values say.
+  imageRegistry: ""
 
 # Please change this to the domain name / IP where OneUptime server is hosted on.
 host: localhost
@@ -1192,6 +1205,21 @@ billing:
   smsHighRiskValueInCents:
   callHighRiskValueInCentsPerMinute:
   allowedActiveMonitorCountInFreePlan: 10
+  # What Data Observability's watched tables cost. Only used with billing.enabled.
+  # A view is free, and so is any table of a database nobody is watching.
+  watchedTables:
+    # Tables every project watches free.
+    includedPerProject: 100
+    # What each table past those costs a month, in USD.
+    pricePerTableInUSD: 1
+    # Past this many tables, each further table costs volumePricePerTableInUSD.
+    volumeThreshold: 1000
+    volumePricePerTableInUSD: 0.25
+    # The Stripe price watched tables bill against: metered, one cent a unit,
+    # aggregating usage as "last during period". OneUptime works out each month's
+    # cost from the rates above and reports it in cents. Leave it empty and nothing
+    # is charged: projects only see what their tables would cost.
+    stripePriceId:
   telemetry:
     averageSpanRowSizeInBytes: 1024
     averageLogRowSizeInBytes: 1024
@@ -1385,7 +1413,8 @@ updateCheck:
 # version it runs, so OneUptime knows which installations still run a release
 # with a security issue and can reach the admins who registered them. Nothing
 # about your users, projects or monitoring data is sent.
-# Set disabled to true to make no call at all.
+# Set disabled to true to make no call at all. The sign-up form then no longer
+# offers release emails from oneuptime.com either, so nothing reports to it.
 instanceCheckIn:
   disabled: false
 
@@ -1409,6 +1438,26 @@ instanceCheckIn:
 #
 # 0 ignores X-Forwarded-For entirely and uses the connecting address.
 trustedProxyHops: 1
+
+# Security emails - a password reset, a changed password, wrong two factor
+# codes, a backup code used - say when, from which IP address and on which
+# device and browser the request came. They also say roughly where ("Berlin,
+# Germany") once you name the request headers your CDN or load balancer writes
+# the visitor's location into. Empty, the default, names no place.
+#
+# Name only headers a proxy in front of OneUptime always writes itself,
+# replacing whatever the visitor sent. Any other header is the visitor's own
+# writing: whoever asks for someone's password reset could choose the place
+# their email shows.
+#
+# Behind Cloudflare, with "Add visitor location headers" turned on in its
+# Managed Transforms: cf-ipcountry, cf-region and cf-ipcity. Behind
+# CloudFront: cloudfront-viewer-country, cloudfront-viewer-country-region-name
+# and cloudfront-viewer-city.
+trustedGeoHeaders:
+  country: ""
+  region: ""
+  city: ""
 
 # On-call calendar feeds: people subscribe Google Calendar / Outlook / Apple
 # Calendar to their on-call shifts through a secret .ics URL

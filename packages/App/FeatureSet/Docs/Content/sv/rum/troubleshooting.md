@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-Applikationens sida **Hälsa**, i avsnittet **Sessionsuppspelning**, och panelen **Test your installation** på **Replay Policy** kontrollerar nyckeln, listorna över tillåtna ursprung och policyn från serversidan och säger varför ingenting kommer in. Webbläsarkonsolen ger dig den halva som servern inte kan se.
+Applikationens sida **Hälsa**, i avsnittet **Sessionsuppspelning**, och panelen **Test your installation** på **Uppspelningspolicy** kontrollerar nyckeln, listorna över tillåtna ursprung och policyn från serversidan och säger varför ingenting kommer in. Webbläsarkonsolen ger dig den halva som servern inte kan se.
 
 Med standardpolicyn skickar en inspelare en chunk ungefär var 15:e sekund medan användaren interagerar med sidan. En inaktiv flik har inget att skicka, så klicka eller rör musen först; om det sedan inte finns någon chunk-förfrågan är något fel. Om appen bara laddar upp _On error or frustration_ är tystnad väntad tills något går fel. Anropa `OneUptimeReplay.captureSession()` för att tvinga fram en uppladdning och testa vägen ändå.
 

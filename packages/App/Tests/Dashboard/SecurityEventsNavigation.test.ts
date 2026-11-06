@@ -170,12 +170,23 @@ describe("the Security Events menu", () => {
       ],
       /*
        * The events, and the searches over them saved and run on a schedule
-       * (Hunts) right under them. Who is attacking, and who is riskiest from
+       * (Hunts) right under them, with the ready-made ones to start from
+       * (Hunt Library) after. Who is attacking, and who is riskiest from
        * everything found about each: the one list that says so. Entities, a
        * second "riskiest" by how many findings named a value, folded into
        * Entity Risk.
        */
-      ["Events", ["Events", "Hunts", "Campaigns", "Entity Risk", "Correlate"]],
+      [
+        "Events",
+        [
+          "Events",
+          "Hunts",
+          "Hunt Library",
+          "Campaigns",
+          "Entity Risk",
+          "Correlate",
+        ],
+      ],
       /*
        * What the rules skip on purpose sits right under the rules, and the
        * lists they match against (VIP users, critical hosts) after it,
@@ -237,6 +248,7 @@ describe("the Security Events menu", () => {
       ["All Cases", "SECURITY_CASES_ALL"],
       ["Events", "SECURITY_EVENTS"],
       ["Hunts", "SECURITY_EVENTS_HUNTS"],
+      ["Hunt Library", "SECURITY_EVENTS_HUNT_LIBRARY"],
       ["Campaigns", "SECURITY_EVENTS_CAMPAIGNS"],
       ["Entity Risk", "SECURITY_EVENTS_ENTITY_RISK"],
       ["Correlate", "SECURITY_EVENTS_CORRELATE"],
@@ -377,22 +389,24 @@ describe("the Security Events menu", () => {
 });
 
 /*
- * "Products → Security Events → Workspace → Slack (or Microsoft Teams)", as
- * the Security Cases docs send people: the rules that post cases to
- * channels. Drawn by useWorkspaceSideMenuSection, so it lists only what the
- * project has connected, and kept out of SECURITY_EVENTS_MENU, whose entries
- * every project has.
+ * "Products → Security Events → Workspace → Slack (or Microsoft Teams, or
+ * Mattermost)", as the Security Cases docs send people: the rules that post
+ * cases to channels. Drawn by useWorkspaceSideMenuSection, so it lists only
+ * what the project has connected, and kept out of SECURITY_EVENTS_MENU, whose
+ * entries every project has.
  */
 describe("the Workspace section", () => {
-  test("is the security cases' Slack and Microsoft Teams pages, and the page that connects either", () => {
+  test("is the security cases' Slack, Microsoft Teams and Mattermost pages, and the page that connects one", () => {
     expect(SECURITY_EVENTS_WORKSPACE_PAGES).toEqual({
       slack: "SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK",
       microsoftTeams: "SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+      mattermost: "SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST",
       connect: "SECURITY_EVENTS_WORKSPACE_CONNECTIONS",
     });
     expect(getSecurityEventsWorkspacePages()).toEqual([
       "SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK",
       "SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+      "SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST",
       "SECURITY_EVENTS_WORKSPACE_CONNECTIONS",
     ]);
   });
@@ -434,16 +448,19 @@ describe("the Workspace section", () => {
     ).toEqual([
       "workspace-connection-slack",
       "workspace-connection-microsoft-teams",
+      "workspace-connection-mattermost",
       "workspace-connections",
     ]);
     // Monitors' are the same words, one level under its own root.
     expect([
       MonitorsRoutePath["MONITORS_WORKSPACE_CONNECTION_SLACK"],
       MonitorsRoutePath["MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS"],
+      MonitorsRoutePath["MONITORS_WORKSPACE_CONNECTION_MATTERMOST"],
       MonitorsRoutePath["MONITORS_WORKSPACE_CONNECTIONS"],
     ]).toEqual([
       "workspace-connection-slack",
       "workspace-connection-microsoft-teams",
+      "workspace-connection-mattermost",
       "workspace-connections",
     ]);
     expect(routeFor("SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK")).toBe(
@@ -454,12 +471,15 @@ describe("the Workspace section", () => {
     ).toBe(
       `/dashboard/${PROJECT_ID}/security-events/workspace-connection-microsoft-teams`,
     );
+    expect(routeFor("SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST")).toBe(
+      `/dashboard/${PROJECT_ID}/security-events/workspace-connection-mattermost`,
+    );
     expect(routeFor("SECURITY_EVENTS_WORKSPACE_CONNECTIONS")).toBe(
       `/dashboard/${PROJECT_ID}/security-events/workspace-connections`,
     );
   });
 
-  test("its pages say where they are: Slack and Microsoft Teams under Workspace, and the connect page as Workspace itself", () => {
+  test("its pages say where they are: Slack, Microsoft Teams and Mattermost under Workspace, and the connect page as Workspace itself", () => {
     expect(
       getSecurityEventsWorkspacePages().map(
         (page: string): Array<string> | undefined => {
@@ -469,6 +489,7 @@ describe("the Workspace section", () => {
     ).toEqual([
       ["Security Events", "Workspace", "Slack"],
       ["Security Events", "Workspace", "Microsoft Teams"],
+      ["Security Events", "Workspace", "Mattermost"],
       ["Security Events", "Workspace"],
     ]);
   });
@@ -681,6 +702,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Security Cases", "All Cases"],
       ["Security Events", "Events"],
       ["Security Events", "Events", "Hunts"],
+      ["Security Events", "Events", "Hunt Library"],
       ["Security Events", "Events", "Campaigns"],
       ["Security Events", "Events", "Entity Risk"],
       ["Security Events", "Events", "Correlate"],

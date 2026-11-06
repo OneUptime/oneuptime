@@ -154,7 +154,7 @@ export default class VideoCallConnection extends BaseModel {
   })
   @TableColumn({
     required: true,
-    type: TableColumnType.Name,
+    type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Name",
     description:
@@ -163,8 +163,8 @@ export default class VideoCallConnection extends BaseModel {
   })
   @Column({
     nullable: false,
-    type: ColumnType.Name,
-    length: ColumnLength.Name,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
   })
   public name?: string = undefined;
 

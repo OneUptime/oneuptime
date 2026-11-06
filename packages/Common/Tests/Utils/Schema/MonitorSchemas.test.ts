@@ -8,6 +8,11 @@ import path from "path";
 import ts from "typescript";
 import type { ZodObject, ZodType } from "zod";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
+import {
+  CheckOn,
+  CriteriaFilter,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
@@ -133,6 +138,16 @@ const PAIRS: Array<InterfaceSchemaPair> = [
       return fieldOf(
         fieldOf(CriteriaFilterSchema, "metricMonitorOptions"),
         "anomalyDetection",
+      );
+    },
+  },
+  {
+    file: "Types/Monitor/CriteriaFilter.ts",
+    name: "MetricForecastOptions",
+    schema: (): ZodObject => {
+      return fieldOf(
+        fieldOf(CriteriaFilterSchema, "metricMonitorOptions"),
+        "forecast",
       );
     },
   },
@@ -342,6 +357,26 @@ describe("what monitors store parses whole", () => {
     expect((parsed["value"] as JSONObject)["exceptionMonitor"]).toEqual(
       settings,
     );
+  });
+
+  /*
+   * A forecast criteria keeps how far ahead it looks in its metric options:
+   * a schema without it dropped the horizon from every forecast the API
+   * took, and the criteria fell back to a week.
+   */
+  test("a metric forecast keeps its horizon: the filter schema lists forecast", () => {
+    const filter: CriteriaFilter = {
+      checkOn: CheckOn.MetricValue,
+      filterType: FilterType.ForecastAbove,
+      value: 90,
+      metricMonitorOptions: {
+        metricAlias: "disk",
+        forecast: { horizonInHours: 72 },
+      },
+    };
+    const stored: JSONObject = asStored(filter) as JSONObject;
+
+    expect(asStored(CriteriaFilterSchema.parse(stored))).toEqual(stored);
   });
 });
 

@@ -4,6 +4,17 @@ import LayerCard from "./LayerCard";
 import { formatWindowSpan } from "./LayerSummary";
 import LayersPreview from "./LayersPreview";
 import SkipLayerUserModal from "./SkipLayerUserModal";
+import {
+  GlobalUserOverrideShortcut,
+  GlobalUserOverrideShortcutKind,
+  getGlobalUserOverrideShortcut,
+} from "../UserOverrides/GlobalUserOverrideLock";
+import {
+  UserOverridePolicy,
+  fetchSchedulePolicies,
+  fetchUserOverrideAddAccess,
+  getPoliciesToOffer,
+} from "../UserOverrides/UserOverridePolicies";
 import { SCHEDULE_FINAL_SCHEDULE_DESCRIPTION } from "./ScheduleOverviewCopy";
 import {
   ScheduleOverrideResolution,
@@ -119,6 +130,89 @@ const Layers: FunctionComponent<ComponentProps> = (
   } | null>(null);
 
   const [overrideRefreshKey, setOverrideRefreshKey] = React.useState<number>(0);
+
+  /*
+   * What "Skip until..." adds for the reader (GlobalUserOverrideLock). The
+   * skip applies to every on-call policy, so it takes a permission to add
+   * overrides over the whole project. Read on every render: the snapshot
+   * can land after the page first draws.
+   */
+  const skipShortcut: GlobalUserOverrideShortcut =
+    getGlobalUserOverrideShortcut();
+
+  const isSkipOnSomePolicies: boolean =
+    skipShortcut.kind === GlobalUserOverrideShortcutKind.SomePolicies;
+
+  /*
+   * For a reader whose permission covers only some policies: the policies
+   * that page through this schedule which the server says they may cover
+   * (UserOverridePolicies) - the skip is added on those, one override on
+   * each - or null until it has answered.
+   */
+  const [skipPolicies, setSkipPolicies] =
+    React.useState<Array<UserOverridePolicy> | null>(null);
+
+  useEffect(() => {
+    if (!isSkipOnSomePolicies) {
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    const askServer: () => Promise<
+      Array<UserOverridePolicy>
+    > = async (): Promise<Array<UserOverridePolicy>> => {
+      const policies: Array<UserOverridePolicy> = await fetchSchedulePolicies(
+        props.onCallDutyPolicyScheduleId,
+      );
+
+      if (policies.length === 0) {
+        return [];
+      }
+
+      return getPoliciesToOffer({
+        policies: policies,
+        access: await fetchUserOverrideAddAccess({
+          projectId: props.projectId.toString(),
+          onCallDutyPolicyIds: policies.map(
+            (policy: UserOverridePolicy): string => {
+              return policy.id;
+            },
+          ),
+        }),
+      });
+    };
+
+    askServer()
+      .then((policies: Array<UserOverridePolicy>) => {
+        if (isCurrent) {
+          setSkipPolicies(policies);
+        }
+      })
+      .catch(() => {
+        // Not knowing which, it offers none: the button stays locked.
+        if (isCurrent) {
+          setSkipPolicies([]);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [isSkipOnSomePolicies, props.onCallDutyPolicyScheduleId.toString()]);
+
+  /*
+   * Why "Skip until..." is locked for the reader, or null: they may add no
+   * override at all, or their permission covers only some policies and
+   * the server allows none of this schedule's - or has not answered yet.
+   * Locked, each row's button stays where it is, says why, and the dialog
+   * never opens.
+   */
+  let skipLockedReason: string | null = skipShortcut.reason;
+
+  if (isSkipOnSomePolicies && skipPolicies && skipPolicies.length > 0) {
+    skipLockedReason = null;
+  }
 
   const hasInitialized: React.MutableRefObject<boolean> =
     React.useRef<boolean>(false);
@@ -945,8 +1039,13 @@ const Layers: FunctionComponent<ComponentProps> = (
                 updateLayerUsers(layerId, users);
               }}
               onSkipUser={(person: { userId: string; name: string }) => {
+                if (skipLockedReason) {
+                  return;
+                }
+
                 setPersonToSkip(person);
               }}
+              skipLockedReason={skipLockedReason}
             />
           );
         })}
@@ -991,11 +1090,12 @@ const Layers: FunctionComponent<ComponentProps> = (
         </Card>
       </div>
 
-      {personToSkip && (
+      {personToSkip && !skipLockedReason && (
         <SkipLayerUserModal
           userId={personToSkip.userId}
           name={personToSkip.name}
           nameById={scheduleUserNameById}
+          policies={isSkipOnSomePolicies ? skipPolicies || [] : undefined}
           onClose={() => {
             setPersonToSkip(null);
           }}

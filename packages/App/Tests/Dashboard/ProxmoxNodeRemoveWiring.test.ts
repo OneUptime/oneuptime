@@ -443,16 +443,14 @@ describe("the last CPU and memory reading stays on the page", () => {
       'data-testid="proxmox-node-tiles"',
       "<ResourcePartOpenEventsCard",
     );
-    expect(
-      between(tiles, '<GoldenMetricTile title={tx("CPU")}', "/>"),
-    ).toContain("value={formatPercent(cpu)}");
-    expect(
-      between(tiles, '<GoldenMetricTile title={tx("Memory")}', "/>"),
-    ).toContain("value={formatPercent(memoryPercent)}");
-
-    expect(count(NODE_OVERVIEW, '<GoldenMetricTile title={tx("CPU")}')).toBe(1);
-    expect(count(NODE_OVERVIEW, '<GoldenMetricTile title={tx("Memory")}')).toBe(
-      1,
+    expect(between(tiles, '<GoldenMetricTile title="CPU"', "/>")).toContain(
+      "value={formatPercent(cpu)}",
     );
+    expect(between(tiles, '<GoldenMetricTile title="Memory"', "/>")).toContain(
+      "value={formatPercent(memoryPercent)}",
+    );
+
+    expect(count(NODE_OVERVIEW, '<GoldenMetricTile title="CPU"')).toBe(1);
+    expect(count(NODE_OVERVIEW, '<GoldenMetricTile title="Memory"')).toBe(1);
   });
 });

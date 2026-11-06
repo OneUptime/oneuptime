@@ -123,6 +123,14 @@ export const BULK_SWITCH_CONSEQUENCES: Readonly<
       ),
     },
   },
+  // Cloud > Budgets: the hourly check reads enabled budgets only.
+  CloudBudget: {
+    isEnabled: {
+      off: translationKey(
+        "A disabled budget is not checked, so it raises no alerts until it is enabled again.",
+      ),
+    },
+  },
   StatusPageSubscriber: {
     isUnsubscribed: {
       on: translationKey(

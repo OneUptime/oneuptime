@@ -114,7 +114,7 @@ Enheternas anslutning är ett separat krav. iOS-enheter behöver åtkomst till A
 
 :::steps
 1. Kontrollera DNS och HTTPS från den container eller pod som skickar aviseringar till målet för ditt leveranssätt: reläet, Expo eller en webbläsares push-tjänst.
-2. Skicka ett test från **Användarinställningar > Aviseringsmetoder > Push Notifications** med **Testavisering**, och bekräfta att det kommer fram till en registrerad enhet. Testa varje webbläsare separat för Web Push.
+2. Skicka ett test från **Användarinställningar > Aviseringsmetoder > Push-aviseringar** med **Testavisering**, och bekräfta att det kommer fram till en registrerad enhet. Testa varje webbläsare separat för Web Push.
 3. Kontrollera fel från reläet, Expo eller Web Push i OneUptimes loggar; en lyckad inskickning till API:et bekräftar inte i sig leverans till enheten.
 :::
 
@@ -122,12 +122,12 @@ För mobila pushar läser OneUptime också Expos leveranskvitto ungefär 15 minu
 
 ## Stänga av push för hela servern
 
-Om ingenting får lämna ditt nätverk via Expo, push-reläet eller en webbläsares push-tjänst, kan en huvudadministratör stänga av push under **Admin Dashboard > Inställningar > Push Notifications**: stäng av **Send push notifications** och bekräfta.
+Om ingenting får lämna ditt nätverk via Expo, push-reläet eller en webbläsares push-tjänst, kan en huvudadministratör stänga av push under **Admin Dashboard > Inställningar > Push-aviseringar**: stäng av **Send push notifications** och bekräfta.
 
 Så länge push är avstängt:
 
 - Ingenting pushas till telefoner eller webbläsare, i något projekt.
-- Ingen enhet kan registreras. Fliken **Push Notifications** under **Användarinställningar > Aviseringsmetoder** visar för varje person att push är avstängt, och jourregler erbjuder inga push-enheter.
+- Ingen enhet kan registreras. Fliken **Push-aviseringar** under **Användarinställningar > Aviseringsmetoder** visar för varje person att push är avstängt, och jourregler erbjuder inga push-enheter.
 - Ett larm via en push-regel skickas inte. Personens jourlogg säger `Push notification not sent: Push notifications are turned off on this server.`
 - Beredskapen räknar push-enheter som oanvändbara, och reservlösningen hoppar över dem. Den vars enda verifierade metod är en push-enhet visas som onåbar.
 
@@ -191,7 +191,7 @@ Två mekanismer är i spel, och de täcker olika fall:
 Android fryser en kanals inställningar när kanalen skapas första gången, så de kan inte ändras med en appuppdatering – bara genom att leverera ett nytt kanal-id.
 :::
 
-För att kontrollera att det fungerar skickar du en testavisering till enheten från **Användarinställningar > Aviseringsmetoder > Push Notifications**. När enheten har kritiska larm aktiverade skickas även testet som ett kritiskt larm – så stäng av ljudet på telefonen först, så hör du om ett riktigt larm skulle nå dig. Samma lista visar om varje enhet har kritiska larm aktiverade och, för en telefon som inte har det, hur du slår på dem.
+För att kontrollera att det fungerar skickar du en testavisering till enheten från **Användarinställningar > Aviseringsmetoder > Push-aviseringar**. När enheten har kritiska larm aktiverade skickas även testet som ett kritiskt larm – så stäng av ljudet på telefonen först, så hör du om ett riktigt larm skulle nå dig. Samma lista visar om varje enhet har kritiska larm aktiverade och, för en telefon som inte har det, hur du slår på dem.
 
 ### Välja larmljud
 
@@ -214,7 +214,7 @@ En push-regel kan skicka sitt larm igen tills någon bekräftar det. Under **Anv
 - Kontrollera att enheten är registrerad i tabellen `UserPush` i din databas
 - Kontrollera OneUptimes serverloggar efter fel från Expo Push API
 - Bekräfta att enheten har en aktiv internetanslutning och att aviseringsbehörigheter är aktiverade
-- Kontrollera **Användarinställningar > Aviseringsmetoder > Push Notifications**: en enhet markerad **Tar inte emot aviseringar** har slutat ta emot dem och måste registreras igen (se nedan)
+- Kontrollera **Användarinställningar > Aviseringsmetoder > Push-aviseringar**: en enhet markerad **Tar inte emot aviseringar** har slutat ta emot dem och måste registreras igen (se nedan)
 
 ### Inget reglage för Critical Alerts i iOS-inställningarna
 
@@ -244,7 +244,7 @@ När Expo avvisar en push direkt anger push-loggen orsaken med en gång. Via pus
 
 ### "DeviceNotRegistered"-fel i loggarna
 
-Expo rapporterar `DeviceNotRegistered` när mobilappen har tagits bort från enheten eller enhetens push-token inte längre är giltig. Oftast står det i en pushs leveranskvitto, som OneUptime läser ungefär 15 minuter efter pushen, och ibland avvisar Expo pushen direkt. Hur som helst slutar OneUptime skicka till den enheten. Den markeras som att den inte tar emot aviseringar i stället för att tas bort, så dess aviseringsregler finns kvar, och push-loggen och jourtidslinjen för larmet som inte kom fram anger varför. **Användarinställningar > Aviseringsmetoder > Push Notifications** visar den som **Tar inte emot aviseringar**. Ägarens andra enheter och aviseringsmetoder larmas fortfarande.
+Expo rapporterar `DeviceNotRegistered` när mobilappen har tagits bort från enheten eller enhetens push-token inte längre är giltig. Oftast står det i en pushs leveranskvitto, som OneUptime läser ungefär 15 minuter efter pushen, och ibland avvisar Expo pushen direkt. Hur som helst slutar OneUptime skicka till den enheten. Den markeras som att den inte tar emot aviseringar i stället för att tas bort, så dess aviseringsregler finns kvar, och push-loggen och jourtidslinjen för larmet som inte kom fram anger varför. **Användarinställningar > Aviseringsmetoder > Push-aviseringar** visar den som **Tar inte emot aviseringar**. Ägarens andra enheter och aviseringsmetoder larmas fortfarande.
 
 För att få tillbaka enheten öppnar du mobilappen på den medan du är inloggad. Appen registrerar sig igen, vilket förnyar dess push-token hos Expo, och enheten tar emot aviseringar igen med sina regler. Om appen har tagits bort installerar du den igen och loggar in. Ett kvitto för en push som skickades innan appen registrerade sig igen markerar inte enheten. När en uppdaterad mobilapp konfigureras på en ny telefon från en säkerhetskopia av den gamla, talar den om för OneUptime vilken push-token den hade tidigare; om den gamla telefonens enhet inte längre tar emot aviseringar tar den nya telefonen över den med dess regler.
 

@@ -180,6 +180,12 @@ export default class MonitorCriteriaExpectationBuilder {
       case FilterType.EvaluatesToTrue:
         expectation = "to evaluate to true";
         break;
+      case FilterType.ForecastAbove:
+        expectation = `to be forecast above ${comparedValue}${unitSuffix} within ${MonitorCriteriaExpectationBuilder.describeForecastHorizon(criteriaFilter)}`;
+        break;
+      case FilterType.ForecastBelow:
+        expectation = `to be forecast below ${comparedValue}${unitSuffix} within ${MonitorCriteriaExpectationBuilder.describeForecastHorizon(criteriaFilter)}`;
+        break;
       default:
         expectation = `${criteriaFilter.filterType}${value ? ` ${value}` : ""}`;
         break;
@@ -196,6 +202,21 @@ export default class MonitorCriteriaExpectationBuilder {
     }
 
     return expectation.trim();
+  }
+
+  // A forecast's horizon: "1 hour", "12 hours", "7 days".
+  private static describeForecastHorizon(
+    criteriaFilter: CriteriaFilter,
+  ): string {
+    const hours: number =
+      CriteriaFilterUtil.getForecastHorizonInHours(criteriaFilter);
+
+    if (hours >= 24 && hours % 24 === 0) {
+      const days: number = hours / 24;
+      return `${days} ${days === 1 ? "day" : "days"}`;
+    }
+
+    return `${hours} ${hours === 1 ? "hour" : "hours"}`;
   }
 
   public static getEvaluationWindowDescription(
@@ -233,7 +254,11 @@ export default class MonitorCriteriaExpectationBuilder {
         : undefined) ||
       criteriaFilter.metricMonitorOptions?.metricAggregationType;
 
-    if (aggregation) {
+    // A forecast reads every value of the window into its trend.
+    if (
+      aggregation &&
+      !CriteriaFilterUtil.isForecastFilterType(criteriaFilter.filterType)
+    ) {
       parts.push(`using ${aggregation.toLowerCase()}`);
     }
 

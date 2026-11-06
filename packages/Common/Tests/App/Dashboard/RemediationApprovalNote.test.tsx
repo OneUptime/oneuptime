@@ -231,10 +231,10 @@ describe("RemediationStep: what approving does, right over Approve & Run", () =>
     return await screen.findByTestId("remediation-fixes");
   }
 
-  test("a fix folded to its sentence shows nothing, so nothing says approving runs what is shown; opened, the note is over Approve & Run, under what it runs", async () => {
+  test("a fix whose plan is closed shows nothing it runs, so nothing says approving runs what is shown; opened, the note is over Approve & Run, under what it runs", async () => {
     const fixes: HTMLElement = await renderStep([resourceRound()]);
 
-    // Folded: one press, Review and approve, and no note over nothing.
+    // Its plan closed: one press, Review and approve, and no note over nothing.
     expect(within(fixes).queryByTestId("remediation-approval-note")).toBeNull();
     expect(within(fixes).queryByText("Approve & Run")).toBeNull();
 
@@ -248,10 +248,11 @@ describe("RemediationStep: what approving does, right over Approve & Run", () =>
     expect(REMEDIATION_APPROVAL_NOTE).toBe(
       "Approving runs exactly what is shown, under your name.",
     );
-    // Under the commands it runs, right over the buttons.
+    // Under the commands it runs - its open plan - right over the buttons.
     const details: HTMLElement = within(fix).getByTestId(
-      "remediation-fix-details",
+      "remediation-fix-step-details",
     );
+    expect(details).toHaveAttribute("data-step", "plan");
     const actions: HTMLElement = within(fix).getByTestId(
       "remediation-fix-actions",
     );
@@ -262,7 +263,7 @@ describe("RemediationStep: what approving does, right over Approve & Run", () =>
     expect(within(actions).getByText("Approve & Run")).toBeInTheDocument();
   });
 
-  test("a runbook that waits for approval has nothing to fold: its note is over its Approve & Run straight away", async () => {
+  test("a runbook that waits for approval has nothing to review but its name: its note is over its Approve & Run straight away", async () => {
     const fixes: HTMLElement = await renderStep([runbookPick()]);
 
     const note: HTMLElement = await within(fixes).findByTestId(

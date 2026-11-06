@@ -83,6 +83,7 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
@@ -191,6 +192,8 @@ const ID = {
   alert: (n) => uuid("e0000000", n),
   incident: (n) => uuid("f0000000", n),
   identity: (n) => uuid("1a000000", n),
+  // The checkout service, whose logs are a store.
+  service: (n) => uuid("1b000000", n),
 };
 
 const fixture = {
@@ -201,6 +204,10 @@ const fixture = {
     database: ID.store(2),
     warehouse: ID.store(3),
     logs: ID.store(4),
+    checkoutService: ID.service(1),
+    emailInLogsFinding: ID.finding(3),
+    ipInLogsFinding: ID.finding(8),
+    phoneInLogsFinding: ID.finding(9),
     publicBucketIssue: ID.issue(1),
     unencryptedIssue: ID.issue(2),
     emailInLogsIssue: ID.issue(3),
@@ -418,13 +425,15 @@ const STORES = [
     name: "checkout · Logs",
     description: "",
     kind: DataStoreKind.TelemetryLogs,
+    serviceId: new ObjectID(ID.service(1)),
+    storeKey: `telemetry:${ID.service(1)}:Logs`,
     provider: "oneuptime",
     family: "Telemetry",
     discoveredFrom: "Telemetry",
     region: "",
     environment: DataStoreEnvironment.Production,
     sensitivity: DataSensitivity.Confidential,
-    dataTypeIds: ["email-address"],
+    dataTypeIds: ["email-address", "ip-address", "phone-number"],
     dataCategories: [DataCategory.ContactAndIdentity],
     exposure: DataStoreExposure.Private,
     posture: {},
@@ -433,7 +442,7 @@ const STORES = [
     isContentScanEnabled: true,
     contentScannedAt: ago(40 * MINUTE),
     contentScanStatus: "Succeeded",
-    findingCount: 1,
+    findingCount: 3,
     openIssueCount: 1,
     highestIssueSeverity: SecuritySeverity.Medium,
     riskScore: 38,
@@ -514,9 +523,9 @@ table(DataSecurityIssue).push(
     dataStoreId: ID.store(4),
     checkId: "sensitive-data-in-telemetry",
     evidence:
-      "37 log records in the last hour hold an email address in attributes.user.email.",
+      "2 kinds of sensitive data are not scrubbed: Email address, IP address.",
     severity: SecuritySeverity.Medium,
-    dataTypeIds: ["email-address"],
+    dataTypeIds: ["email-address", "ip-address", "phone-number"],
     firstDetectedAt: ago(2 * DAY),
     lastDetectedAt: ago(40 * MINUTE),
   }),
@@ -706,6 +715,62 @@ table(DataStoreFinding).push(
     isConfirmed: true,
     firstSeenAt: ago(6 * DAY),
     lastSeenAt: ago(5 * HOUR),
+  },
+  /*
+   * Two more in the checkout service's logs: client IP addresses on every
+   * request line, and phone numbers a scrub rule already masks at ingest.
+   */
+  {
+    _id: ID.finding(8),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(4)),
+    findingKey: "ip-address:attributes.http.client_ip",
+    dataTypeId: "ip-address",
+    dataTypeName: "IP address",
+    dataCategory: DataCategory.ContactAndIdentity,
+    sensitivity: DataSensitivity.Confidential,
+    location: "attributes.http.client_ip",
+    locationKind: "Attribute",
+    confidence: "High",
+    matchCount: 50,
+    valueCount: 50,
+    matchPercent: 100,
+    distinctValues: 31,
+    testValueCount: 0,
+    maskedSamples: ["81.***.***.***", "2a01:***:***:***"],
+    isFreeText: false,
+    isNameHinted: true,
+    isFoundByName: false,
+    isScrubbed: false,
+    isSuppressed: false,
+    firstSeenAt: ago(2 * DAY),
+    lastSeenAt: ago(40 * MINUTE),
+  },
+  {
+    _id: ID.finding(9),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(4)),
+    findingKey: "phone-number:attributes.user.phone",
+    dataTypeId: "phone-number",
+    dataTypeName: "Phone number",
+    dataCategory: DataCategory.ContactAndIdentity,
+    sensitivity: DataSensitivity.Confidential,
+    location: "attributes.user.phone",
+    locationKind: "Attribute",
+    confidence: "High",
+    matchCount: 9,
+    valueCount: 12,
+    matchPercent: 75,
+    distinctValues: 9,
+    testValueCount: 0,
+    maskedSamples: ["+44 **** ***901"],
+    isFreeText: false,
+    isNameHinted: true,
+    isFoundByName: false,
+    isScrubbed: true,
+    isSuppressed: false,
+    firstSeenAt: ago(5 * DAY),
+    lastSeenAt: ago(2 * DAY),
   },
 );
 
@@ -1561,6 +1626,16 @@ function matches(record, query) {
       }
       continue;
     }
+    if (condition instanceof GreaterThanOrEqual) {
+      if (
+        actual === null ||
+        actual === undefined ||
+        comparable(actual) < comparable(condition.value)
+      ) {
+        return false;
+      }
+      continue;
+    }
     if (condition instanceof NotEqual) {
       if (String(comparable(actual)) === String(comparable(condition.value))) {
         return false;
@@ -2042,12 +2117,96 @@ function respond(dataStoreId, body) {
   return { changed: true, summary };
 }
 
+/*
+ * The newest records a telemetry finding's data was seen in, as the server
+ * answers them (TelemetryFindingOccurrences): log lines of the checkout
+ * service, two in a request's trace and one written outside any request,
+ * each value masked.
+ */
+const CHECKOUT_TRACE = "4bf92f3577b34da6a3ce929d0e0e4736";
+
+function occurrences(findingId) {
+  const since = ago(7 * DAY).toISOString();
+  const until = NOW.toISOString();
+  const line = (minutesAgo, data) => {
+    return {
+      time: ago(minutesAgo * MINUTE).toISOString(),
+      recordKind: "Log",
+      serviceId: ID.service(1),
+      ...data,
+    };
+  };
+
+  if (findingId === ID.finding(3)) {
+    return {
+      occurrences: [
+        line(3, {
+          traceId: CHECKOUT_TRACE,
+          spanId: "00f067aa0ba902b7",
+          severity: "Info",
+          maskedValue: "k***@a*************.example",
+        }),
+        line(11, {
+          traceId: "a3ce929d0e0e47364bf92f3577b34da6",
+          spanId: "53995c3f42cd8ad8",
+          severity: "Warning",
+          maskedValue: "j***@a********.com",
+        }),
+        line(26, {
+          severity: "Info",
+          maskedValue: "m***@b******.io",
+        }),
+      ],
+      since,
+      until,
+      recordsRead: 37,
+      isComplete: true,
+    };
+  }
+
+  if (findingId === ID.finding(8)) {
+    return {
+      occurrences: [
+        line(2, {
+          traceId: CHECKOUT_TRACE,
+          spanId: "00f067aa0ba902b7",
+          severity: "Info",
+          maskedValue: "81.***.***.***",
+        }),
+      ],
+      since,
+      until,
+      recordsRead: 50,
+      isComplete: true,
+    };
+  }
+
+  return { occurrences: [], since, until, recordsRead: 12, isComplete: true };
+}
+
+// Scrub It: the finding is masked at ingest from now on, by a rule as named.
+function scrub(findingId) {
+  const finding = table(DataStoreFinding).find((row) => {
+    return row._id === findingId;
+  });
+  if (finding) {
+    finding.isScrubbed = true;
+  }
+  return {
+    signal: "log",
+    scrubRuleId: uuid("1c000000", 1),
+    scrubRuleName: `Data Security: ${finding?.dataTypeName || "Data"} in ${finding?.location || ""}`,
+  };
+}
+
 const ROUTE = {
   overview: DATA_SECURITY_API_ROUTES.overview,
   compliance: DATA_SECURITY_API_ROUTES.compliance,
   responseActions: DATA_SECURITY_API_ROUTES.responseActions(":id"),
   respond: DATA_SECURITY_API_ROUTES.respond(":id"),
   explain: DATA_SECURITY_API_ROUTES.explainIssue(":id"),
+  occurrences: DATA_SECURITY_API_ROUTES.findingOccurrences(":id"),
+  scrub: DATA_SECURITY_API_ROUTES.scrubFinding(":id"),
 };
 
 // "/data-security/store/:id/respond" against a request's path.
@@ -2096,6 +2255,31 @@ async function handleApi(method, options) {
       );
     }
     return new HTTPResponse(200, respond(respondTo, body), {});
+  }
+
+  const occurrencesOf = idOf(ROUTE.occurrences, pathname);
+  if (method === "POST" && occurrencesOf) {
+    // A Security Viewer does not read masked samples, nor the records.
+    if (role === "viewer") {
+      return new HTTPErrorResponse(
+        403,
+        { message: "You do not have permission to do this in Data Security." },
+        {},
+      );
+    }
+    return new HTTPResponse(200, occurrences(occurrencesOf), {});
+  }
+
+  const scrubOf = idOf(ROUTE.scrub, pathname);
+  if (method === "POST" && scrubOf) {
+    if (role === "viewer") {
+      return new HTTPErrorResponse(
+        403,
+        { message: "You do not have permission to do this in Data Security." },
+        {},
+      );
+    }
+    return new HTTPResponse(200, scrub(scrubOf), {});
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

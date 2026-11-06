@@ -53,9 +53,12 @@ const COMPONENT_RECORD_IMPORT: RegExp =
 const TOOLTIP_IMPORT: string =
   'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";';
 
-// A tile as the parts and the Overview write it: its title, then its description.
+/*
+ * A tile as the parts and the Overview write it: its English title, which
+ * the tile translates, then its description.
+ */
 const DESCRIBED_TILE: RegExp =
-  /<GoldenMetricTile title=\{tx\("([^"]+)"\)\}(?:(?!<GoldenMetricTile ).)*?description=\{PROXMOX_METRIC_DESCRIPTIONS\.(\w+)\}/g;
+  /<GoldenMetricTile title="([^"]+)"(?:(?!<GoldenMetricTile ).)*?description=\{PROXMOX_METRIC_DESCRIPTIONS\.(\w+)\}/g;
 // A details row with a description, before the next row's label.
 const DESCRIBED_ROW: RegExp =
   /label: "([^"]+)",(?:(?!label: ").)*?description: PROXMOX_METRIC_DESCRIPTIONS\.(\w+),/g;

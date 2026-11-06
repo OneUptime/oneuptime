@@ -61,7 +61,7 @@ Die App zeigt Mitteilungen, sobald Sie sie in jedem Projekt, aus dem Sie sie bek
 
 :::steps
 ### Ihre Push-Geräte öffnen
-Öffnen Sie in der App **Benutzereinstellungen → Benachrichtigungsmethoden** und den Tab **Push Notifications**.
+Öffnen Sie in der App **Benutzereinstellungen → Benachrichtigungsmethoden** und den Tab **Push-Benachrichtigungen**.
 
 ### Diese App registrieren
 Klicken Sie auf **Gerät registrieren**, behalten Sie im Feld **Gerätename** den Vorschlag, etwa `Safari on macOS`, oder ändern Sie ihn, und klicken Sie erneut auf **Gerät registrieren**. Wenn macOS oder der Browser fragt, ob OneUptime Mitteilungen senden darf, wählen Sie **Erlauben**.
@@ -89,7 +89,7 @@ Es gibt nichts zu aktualisieren. Die App lädt das Dashboard bei jedem Öffnen v
 Öffnen Sie in Edge `edge://apps`, wählen Sie bei OneUptime **Details** und dann **Deinstallieren**.
 :::
 
-Die Deinstallation der App meldet sie nicht ab: Ihr Browser bekommt weiter Mitteilungen. Um sie zu beenden, löschen Sie sie unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push Notifications** mit **Löschen**.
+Die Deinstallation der App meldet sie nicht ab: Ihr Browser bekommt weiter Mitteilungen. Um sie zu beenden, löschen Sie sie unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push-Benachrichtigungen** mit **Löschen**.
 
 ## Fehlerbehebung
 
@@ -98,7 +98,7 @@ Safari fügt Web-Apps ab macOS Sonoma 14 zum Dock hinzu. Aktualisieren Sie macOS
 :::
 
 :::details Es erscheinen keine Mitteilungen
-- Prüfen Sie unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push Notifications**, dass die App oder ihr Browser aufgeführt ist, und senden Sie eine **Testbenachrichtigung**.
+- Prüfen Sie unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push-Benachrichtigungen**, dass die App oder ihr Browser aufgeführt ist, und senden Sie eine **Testbenachrichtigung**.
 - Öffnen Sie auf dem Mac **Systemeinstellungen → Mitteilungen** und prüfen Sie, dass OneUptime oder der Browser, aus dem es installiert wurde, Mitteilungen senden darf und dass kein Fokus sie zurückhält.
 - Blockiert der Browser Mitteilungen für OneUptime, erlauben Sie sie in seinen Einstellungen für die Website und registrieren Sie erneut.
 - Bei einem selbst gehosteten OneUptime sagt der Dialog **Gerät registrieren**, wenn der Server keine VAPID-Schlüssel hat.

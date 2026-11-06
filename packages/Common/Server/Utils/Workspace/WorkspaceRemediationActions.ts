@@ -17,6 +17,7 @@ import RemediationApproval from "../AutoRemediation/RemediationApproval";
 import RemediationChatMessage, {
   RemediationActionValue,
   RemediationChatFix,
+  TrackRecordRunLinks,
 } from "../AutoRemediation/RemediationChatMessage";
 import { REMEDIATION_CHAT_WORDS } from "../AutoRemediation/RemediationChatWords";
 import logger from "../Logger";
@@ -131,6 +132,8 @@ export default class WorkspaceRemediationActions {
           mcpToolCallPlan: true,
           runbookId: true,
           runbookNameSnapshot: true,
+          // How the runbook went before: the dialog says it under its name.
+          runbookTrackRecord: true,
           verificationWindowMinutes: true,
           approvedByUserId: true,
           approvedAt: true,
@@ -273,6 +276,9 @@ export default class WorkspaceRemediationActions {
 
     const subject: { name: string; title?: string | undefined } =
       await this.getSubject(suggestion);
+    // Each incident and alert a track record names, linked to its page.
+    const runLinks: TrackRecordRunLinks =
+      await RemediationChatMessage.getTrackRecordRunLinks(fix);
 
     return {
       title: REMEDIATION_CHAT_WORDS.dialogTitle,
@@ -280,12 +286,14 @@ export default class WorkspaceRemediationActions {
         fix,
         subjectName: subject.name,
         subjectTitle: subject.title,
+        runLinks,
       }).toString(),
       teamsParts: RemediationChatMessage.describeApprovalParts({
         fix,
         subjectName: subject.name,
         subjectTitle: subject.title,
         workspaceType: WorkspaceType.MicrosoftTeams,
+        runLinks,
       }).map((part: MarkdownText): string => {
         return part.toString();
       }),

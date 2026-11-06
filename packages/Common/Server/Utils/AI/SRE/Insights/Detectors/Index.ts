@@ -4,6 +4,7 @@ import ExceptionSpikeDetector from "./ExceptionSpikeDetector";
 import ErrorLogSpikeDetector from "./ErrorLogSpikeDetector";
 import TraceLatencyRegressionDetector from "./TraceLatencyRegressionDetector";
 import MetricDriftDetector from "./MetricDriftDetector";
+import DataDriftDetector from "./DataDriftDetector";
 import DeployRegressionDetector from "./DeployRegressionDetector";
 import ProfileHotspotDetector from "./ProfileHotspotDetector";
 import ExceptionMissingStackTraceDetector from "./ExceptionMissingStackTraceDetector";
@@ -21,6 +22,7 @@ import {
   MetricHighCardinalityDetector,
   MetricHistogramBucketsDetector,
   MetricMissingMetricsDetector,
+  MetricMissingRequestMetricsDetector,
 } from "./MetricProblemDetector";
 import { TelemetryAiLane } from "../../../../../../Types/AI/TelemetryAi";
 
@@ -41,6 +43,7 @@ export default class InsightDetectors {
       new TraceLatencyRegressionDetector(),
       new ErrorLogSpikeDetector(),
       new MetricDriftDetector(),
+      new DataDriftDetector(),
       new DeployRegressionDetector(),
     ];
   }
@@ -57,9 +60,9 @@ export default class InsightDetectors {
    * and the services whose exceptions carry no stack trace. Logs: error,
    * missing and noisy logs - one detector each, sharing one look at the
    * project's logs (LogProblemDetector). Metrics: high
-   * cardinality, histogram buckets that do not fit and missing metrics -
-   * one detector each, sharing one look at the project's metrics
-   * (MetricProblemDetector).
+   * cardinality, histogram buckets that do not fit, missing metrics and
+   * missing request metrics - one detector each, sharing one look at the
+   * project's metrics (MetricProblemDetector).
    */
   public static getTelemetryAiDetectors(
     lane: TelemetryAiLane,
@@ -91,6 +94,7 @@ export default class InsightDetectors {
           new MetricHighCardinalityDetector(),
           new MetricHistogramBucketsDetector(),
           new MetricMissingMetricsDetector(),
+          new MetricMissingRequestMetricsDetector(),
         ];
       default:
         return [];

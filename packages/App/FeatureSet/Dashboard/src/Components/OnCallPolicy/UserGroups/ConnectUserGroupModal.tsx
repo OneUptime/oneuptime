@@ -8,6 +8,7 @@ import {
   USER_GROUP_LABELS,
   USER_GROUPS_COPY,
   UserGroupsWorkspaceCopy,
+  UserGroupWorkspaceType,
 } from "./UserGroupsCopy";
 import {
   getSuggestedSlackHandle,
@@ -56,7 +57,7 @@ import React, {
  */
 
 export interface ComponentProps {
-  workspaceType: WorkspaceType;
+  workspaceType: UserGroupWorkspaceType;
   scheduleId: string;
   scheduleName: string;
   /*

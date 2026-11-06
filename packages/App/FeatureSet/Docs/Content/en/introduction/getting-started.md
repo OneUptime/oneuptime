@@ -66,6 +66,7 @@ The docs are organized like the sidebar, in nine sections. Pick the part you nee
 - [AI observability](/docs/telemetry/ai-llm-observability): Follow your AI's conversations, and get told when it answers badly.
 - [Security](/docs/telemetry/security-events): Collect security events and threat intelligence.
 - [Data security](/docs/data-security/index): Find the sensitive data in your buckets, databases and telemetry, and fix how it is kept.
+- [Data observability](/docs/data-observability/index): Know when the data in your databases and warehouses is late, wrong or broken, and which run, deploy or table is behind it.
 - [Real user monitoring](/docs/rum/index): Measure what real users experience, with Core Web Vitals and session replay.
 - [Dashboards](/docs/dashboards/index): Build dashboards from your metrics, logs and monitors.
 - [Inventory](/docs/inventory/overview): See every service, host and device OneUptime knows about.

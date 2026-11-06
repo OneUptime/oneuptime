@@ -36,7 +36,7 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat en kan
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **DNS** onder **DNS Monitoring**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **DNS** onder **DNS-bewaking**.
 
 ### Hem een naam geven
 

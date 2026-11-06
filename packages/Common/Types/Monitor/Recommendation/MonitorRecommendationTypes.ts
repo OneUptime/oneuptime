@@ -27,6 +27,7 @@ export enum MonitorRecommendationResourceType {
   DockerSwarm = "DockerSwarm",
   Podman = "Podman",
   Proxmox = "Proxmox",
+  OpenStack = "OpenStack",
   VMware = "VMware",
   Ceph = "Ceph",
   /*
@@ -56,6 +57,19 @@ export enum MonitorRecommendationResourceType {
    * ordinary Metrics monitors over the engine's collector-receiver metrics.
    */
   DatabaseServer = "DatabaseServer",
+  /*
+   * A data store whose tables Data Observability watches (the DataStore
+   * model). Its recommendations are Metrics monitors over the store's
+   * oneuptime.data.table.* metrics, one monitor per store alerting once per
+   * table; the set is a constant.
+   */
+  DataStore = "DataStore",
+  /*
+   * A data pipeline (the DataPipeline model): a job that sends OpenLineage
+   * events. Its recommendations are Metrics monitors over its runs'
+   * oneuptime.data.pipeline.* metrics; the set is a constant.
+   */
+  DataPipeline = "DataPipeline",
 }
 
 /*
@@ -79,6 +93,12 @@ export enum MonitorRecommendationResourceType {
  * database, and no budget alerts for a RUM application — rather than a guess.
  */
 export interface MonitorRecommendationContext {
+  /*
+   * The services a cloud has reported, by what Keystone's catalog calls them. A template about a
+   * service a cloud may not run is offered only to a cloud reporting it. Not known is the same as
+   * not reporting it: an alert that could never fire is worse than one a moment late.
+   */
+  openStackServices?: ReadonlyArray<string> | null | undefined;
   /*
    * The service's detected runtime. `null` and `undefined` mean the same
    * thing here — nothing identified the runtime — and both are accepted
@@ -150,6 +170,17 @@ export interface MonitorRecommendationContext {
    * monitor over logs nobody sends.
    */
   kubernetesProvider?: string | null | undefined;
+  /*
+   * Whether a probe collects this cloud. Some series only a native read of an API sends, and on an
+   * agent's cloud a template over one would never fire. Anything but true withholds them.
+   */
+  openStackIsCollectedByProbe?: boolean | null | undefined;
+  /*
+   * Whether this cloud's checks from outside are on. What they report is sent by nothing else, so
+   * an alert on one would never fire with it off. Anything but true withholds them.
+   */
+  openStackIsApiCheckOn?: boolean | null | undefined;
+  openStackIsLifecycleCheckOn?: boolean | null | undefined;
 }
 
 /*
@@ -165,6 +196,7 @@ export type MonitorRecommendationSeverity = "Critical" | "Warning";
  * except for the name of the resource-identifier field:
  *
  *   clusterIdentifier -> Kubernetes, DockerSwarm, Proxmox, Ceph
+ *   cloudIdentifier   -> OpenStack
  *   vcenterIdentifier -> VMware
  *   hostIdentifier    -> Host, Docker, Podman
  *   fleetIdentifier   -> IoTDevice

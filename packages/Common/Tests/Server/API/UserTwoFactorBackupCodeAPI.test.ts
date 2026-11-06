@@ -207,6 +207,8 @@ type CallRouteOptions = {
   params?: Dictionary<string> | undefined;
   query?: Dictionary<string> | undefined;
   body?: Dictionary<unknown> | undefined;
+  // The request's headers, as the browser and the bundled Nginx send them.
+  headers?: Dictionary<string> | undefined;
 
   /*
    * Spliced onto the request in place of the default signed-in caller. An
@@ -226,7 +228,7 @@ const callRoute: CallRouteFunction = async (
     params: data.params || {},
     query: data.query || {},
     body: data.body || {},
-    headers: {},
+    headers: data.headers || {},
     ...(data.authorization || { userAuthorization: { userId: CALLER_ID } }),
   } as unknown as OneUptimeRequest;
 
@@ -1013,6 +1015,32 @@ describe("POST /user-two-factor-backup-code/generate -- telling the owner", () =
     }
 
     expect(violations).toEqual([]);
+  });
+
+  /*
+   * A stolen session can replace the codes; where the regeneration came from
+   * - the address and the device - is how the owner tells (RequestOriginUtil).
+   */
+  test("says where the regeneration came from: the address and the device", async () => {
+    await callRoute({
+      method: "POST",
+      route: GENERATE_ROUTE,
+      headers: {
+        "x-forwarded-for": "203.0.113.7",
+        "user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0",
+      },
+    });
+    await flushDetachedWork();
+
+    const sent: { vars: Dictionary<string> } = (
+      sendMailSpy.mock.calls[0] as Array<unknown>
+    )[0] as { vars: Dictionary<string> };
+
+    expect(sent.vars["requestIpAddress"]).toBe("203.0.113.7");
+    expect(sent.vars["requestDevice"]).toBe("Firefox 132 on Windows");
+    expect(sent.vars["requestLocation"]).toBe("");
+    expect(sent.vars["requestedAt"]!.length).toBeGreaterThan(0);
   });
 
   /*

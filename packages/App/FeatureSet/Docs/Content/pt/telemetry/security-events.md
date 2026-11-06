@@ -38,6 +38,7 @@ Abra **Produtos → Eventos de segurança**, em **Segurança**. O menu dele tem 
 | **Todos os casos** | Casos de segurança | Todo caso, aberto ou fechado |
 | **Eventos** | Eventos | Pesquisar e filtrar todos os eventos, e abrir um para ver todos os campos dele |
 | **Caçadas** | Eventos | Pesquisas salvas a partir de Eventos, abertas de novo com um clique ou executadas em um agendamento que avisa pessoas quando encontram algo |
+| **Biblioteca de caçadas** | Eventos | Caçadas prontas para experimentar em Eventos ou adicionar às suas caçadas, cada uma com os eventos que lê e se eles chegam |
 | **Campanhas** | Eventos | Cada endereço que enviou requisições de ataque, e se alguma de suas requisições passou |
 | **Risco de entidades** | Eventos | Cada usuário, host e endereço, pontuado pelo que foi encontrado sobre ele nesta semana, os de maior risco primeiro |
 | **Correlacionar** | Eventos | Um grafo dos eventos que compartilham um host, um usuário ou um endereço IP |
@@ -181,22 +182,42 @@ A página **Guia de configuração**, em **Conexões**, tem esses trechos com o 
 
 ### Encontrar eventos de segurança nos seus logs
 
-O cartão **Seus logs**, no topo de **Conexões**, transforma em uma origem os logs que você já envia ao OneUptime. Com **Encontrar eventos de segurança nos seus logs** ativado, os logs novos do projeto são lidos a cada minuto, e cada login SSH ou do Windows, comando sudo, registro de auditoria de uma nuvem, registro CEF ou LEEF de um produto de segurança, registro de auditoria do Kubernetes e ataque web que eles contêm é salvo como evento de segurança. Consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started#encontrar-eventos-de-segurança-nos-seus-logs) para saber o que cada tipo cobre.
+O cartão **Seus logs**, no topo de **Conexões**, transforma em uma origem os logs que você já envia ao OneUptime. Com **Encontrar eventos de segurança nos seus logs** ativado, os logs novos do projeto são lidos a cada minuto, e cada login SSH ou do Windows, comando sudo, registro de auditoria de uma nuvem, registro CEF ou LEEF de um produto de segurança, registro de um firewall Palo Alto Networks, FortiGate ou Cisco ASA, registro de auditoria do Kubernetes e ataque web que eles contêm é salvo como evento de segurança. Consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started#encontrar-eventos-de-segurança-nos-seus-logs) para saber o que cada tipo cobre.
 
 Cada tipo chega ao OneUptime como logs comuns:
 
 | Tipo | Envie a partir de |
 | --- | --- |
 | Logins SSH, sudo | O journal ou o log de autenticação de uma máquina Linux, com o [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| Eventos do Windows | O receptor `windowseventlog` do coletor na máquina, ou um encaminhador que grava cada evento como JSON, como NXLog ou Winlogbeat |
-| AWS CloudTrail | Uma trilha entregue ao CloudWatch Logs, lida pelo receptor `awscloudwatch` do coletor |
-| Logs de auditoria do Google Cloud | Um sink de logs para o Pub/Sub, lido pelo receptor `googlecloudpubsub` do coletor com `encoding: raw_text` |
-| Logs de atividade do Azure e do Entra ID | Uma configuração de diagnóstico que transmite para um Event Hub, lida pelo receptor `azureeventhub` do coletor com `format: raw` |
+| Eventos do Windows | O receptor `windowseventlog` do coletor na máquina, ou um encaminhador que grava cada evento como JSON, como NXLog ou Winlogbeat. Um [host](/docs/telemetry/hosts) adicionado ao OneUptime também lê Sysmon, Microsoft Defender e PowerShell onde os tem |
+| AWS CloudTrail | Uma trilha entregue ao CloudWatch Logs, lida pelo receptor `awscloudwatch` do coletor, ou, para uma conta conectada em **Nuvem**, [Logs de auditoria da nuvem](#ler-os-logs-de-auditoria-das-suas-contas-de-nuvem) |
+| Logs de auditoria do Google Cloud | Um sink de logs para o Pub/Sub, lido pelo receptor `googlecloudpubsub` do coletor com `encoding: raw_text`, ou, para um projeto conectado em **Nuvem**, [Logs de auditoria da nuvem](#ler-os-logs-de-auditoria-das-suas-contas-de-nuvem) |
+| Logs de atividade do Azure e do Entra ID | Uma configuração de diagnóstico que transmite para um Event Hub, lida pelo receptor `azureeventhub` do coletor com `format: raw`, ou, para o log de atividades de uma assinatura conectada em **Nuvem**, [Logs de auditoria da nuvem](#ler-os-logs-de-auditoria-das-suas-contas-de-nuvem) |
+| Trilha de auditoria do OpenStack | As notificações e o filtro de auditoria de uma nuvem enviados aos seus logs com `driver = log`, lidos pelo [perfil de logs](/docs/telemetry/openstack#quem-fez-o-quê) do agente |
 | CEF, LEEF | O syslog do produto, retransmitido pelo [rsyslog](/docs/telemetry/syslog) |
+| Palo Alto Networks, FortiGate, Cisco ASA | O próprio syslog do firewall, retransmitido pelo [rsyslog](/docs/telemetry/syslog) |
 | Logs de auditoria do Kubernetes | O arquivo de log de auditoria do servidor de API, lido pelo receptor `filelog` do coletor |
 | Ataques web | O log de acesso de um servidor web, lido pelo receptor `filelog` do coletor |
 
 Em **Seus logs**, cada tipo mostra quando foi encontrado pela última vez, e **Verificar uma linha de log** mostra no que uma linha que você cola se transforma, antes que chegue alguma.
+
+Uma ameaça que um produto de segurança escreve nos seus logs, como uma detecção CEF ou LEEF ou uma ameaça do Palo Alto Networks, FortiGate ou Cisco ASA, abre um [caso](/docs/telemetry/security-cases) como o alerta de um produto conectado faz, e aumenta o risco do usuário, host ou endereço que ela cita. **Abrir casos a partir de**, em **Seus logs**, diz a partir de qual gravidade: **Alta e acima**, a menos que você escolha outra, ou **Nunca**. Os logins e as conexões bloqueadas do produto continuam sendo eventos, para as suas regras lerem.
+
+Um registro que chega ao OneUptime por dois caminhos é salvo uma única vez: um login do Microsoft Entra ID lido pela conexão dele e exportado pelo Azure para os seus logs, ou um registro do CloudTrail nos seus logs e no log de auditoria de uma conta da AWS conectada.
+
+### Ler os logs de auditoria das suas contas de nuvem
+
+Uma conta da AWS, um projeto do Google Cloud ou uma assinatura do Azure [conectados em **Nuvem**](/docs/telemetry/cloud-accounts) não precisam de nenhum pipeline de logs. Ative **Logs de auditoria da nuvem**, em **Seus dados do OneUptime** na página **Conexões**, e cada leitura da conta guarda o log de auditoria dela como eventos de segurança:
+
+| Nuvem | O que é lido |
+| --- | --- |
+| AWS | Os eventos de gerenciamento do CloudTrail que mudam algo, em cada Região que a conta usa: logins no console, mudanças e chamadas que a AWS recusou |
+| Google Cloud | O log de auditoria Admin Activity: mudanças nos recursos e em quem pode acessá-los, e chamadas que o Google recusou |
+| Azure | O log de atividades: mudanças feitas na assinatura, operações que falharam, recusas do Azure Policy e alertas do Defender for Cloud |
+
+- Cada registro é lido como **Seus logs** o lê de um pipeline, então as regras de CloudTrail, Google Cloud e Azure da biblioteca de regras correspondem a ele.
+- Um evento recebe o horário em que é salvo, com o horário do próprio registro em `oneuptime.cloud.record_time`: um log de auditoria chega ao OneUptime com minutos de atraso, e uma regra lê os eventos pelo horário deles.
+- A leitura da conta não traz mais nada: eventos de dados, logs Data Access e os logs do Microsoft Entra ID ainda precisam de **Seus logs** ou de uma [conexão](/docs/integrations/microsoft-entra-id).
 
 ### Conecte um produto de segurança
 
@@ -212,7 +233,7 @@ Em **Seus logs**, cada tipo mostra quando foi encontrado pela última vez, e **V
 | Elastic Security | Alertas de detecção, como Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, como Detection e Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Eventos de login, MFA, contas e políticas | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | Logins e mudanças de diretório, e do log de auditoria do Microsoft 365 o encaminhamento de e-mail, os compartilhamentos e os veredictos de phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | Logins, mudanças de diretório e detecções de risco, se você quiser os logins em segundo plano e de aplicativos que falharam, e do log de auditoria do Microsoft 365 o encaminhamento de e-mail, os compartilhamentos e os veredictos de phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Logins, as detecções do próprio Google, mudanças de administração e acessos concedidos a aplicativos, e compartilhamentos no Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
 - Os alertas do próprio produto no nível de **Open Cases From** ou acima (**Alta e acima**, a menos que você escolha outro nível, ou **Nunca**) abrem [casos](/docs/telemetry/security-cases), agrupados pelo usuário, host ou endereço de que tratam.
@@ -256,6 +277,7 @@ A barra de pesquisa fala a mesma linguagem dos outros exploradores de telemetria
 | `<field>:a*` | `*` é qualquer texto, `?` um caractere | `host:web-*` |
 | `@<attribute>:*` | O atributo está presente | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | O atributo contém o texto | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | O campo está em uma [lista de observação](#listas-de-observação) | `user:%vip_users%` |
 
 Um campo é um nome curto (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) ou o nome próprio do campo, como `severityName` ou `principalHost`. Qualquer outro nome é lido como atributo de origem. `observable:<value>` encontra cada evento que menciona um valor, de qualquer lado da atividade em que ele estivesse.
 
@@ -281,9 +303,17 @@ Uma caçada é uma pesquisa sobre seus eventos de segurança salva com um nome: 
 
 ### Salvar uma pesquisa como caçada
 
-Em **Eventos**, pesquise e filtre até a lista mostrar o que você procura, depois abra **Caçadas** na barra de ferramentas e escolha **Salvar como caçada**. Dê um nome a ela, escolha se ela é executada em um agendamento, e a página dela se abre. **Eventos → Caçadas** lista as caçadas do projeto, cada uma com sua pesquisa, a frequência com que é executada, quem ela avisa e o que sua última execução encontrou; **Criar: Caçada** ali recebe a pesquisa como você a digitaria em **Eventos**. Um projeto guarda até 200 caçadas.
+Em **Eventos**, pesquise e filtre até a lista mostrar o que você procura, depois abra **Caçadas** na barra de ferramentas e escolha **Salvar como caçada**. Dê um nome a ela, escolha se ela é executada em um agendamento, e a página dela se abre. **Eventos → Caçadas** lista as caçadas do projeto, cada uma com sua pesquisa, a frequência com que é executada, quem ela avisa e o que sua última execução encontrou; **Criar: Caçada** ali recebe a pesquisa como você a digitaria em **Eventos**. Um projeto guarda até 200 caçadas. Uma pesquisa pode ler uma [lista de observação](#listas-de-observação), como `user:%vip_users%` faz, e uma caçada que lê uma lista que o projeto não tem é recusada ao salvar.
 
 A página de uma caçada é a pesquisa dela, aberta no explorador de eventos. Mude ali a pesquisa ou os filtros, e o cabeçalho da caçada oferece **Salvar alterações** e **Descartar alterações**. **Editar** muda o nome, a pesquisa, até quando ela olha para trás, o agendamento e quem ela avisa, e **Excluir caçada** fica no menu dela. A partir de Security Member é possível salvar, alterar e excluir caçadas, e um Security Viewer pode abri-las.
+
+Uma caçada salva com filtros da barra lateral de Eventos os mostra em **Editar** sob **Filtros**, como Eventos os desenha, cada um com um x para removê-lo. Adicione filtros na página da caçada, pela barra lateral.
+
+### Comece pela biblioteca de caçadas
+
+**Eventos → Biblioteca de caçadas** lista caçadas prontas para o que as equipes de segurança mais procuram, como entradas com falha, PowerShell codificado, a conta root da AWS e shells abertos em pods do Kubernetes. Cada uma mostra o que encontra, sua pesquisa como você a digitaria em **Eventos** e se os eventos que ela lê chegam, como a **Biblioteca de regras** faz com suas regras. Restrinja-as por **Categoria de caçada**, **Dados** e **Status**, ou pesquise-as.
+
+**Experimente** abre a pesquisa em **Eventos**, na janela da caçada, e não salva nada. **Adicionar** a salva na hora como uma das caçadas do projeto, com nome e descrição no seu idioma e sem agendamento, como toda caçada nova. Depois ela diz **Adicionado**, e **Abrir** a abre, onde você pode dar a ela um agendamento.
 
 ### Executar uma caçada em um agendamento
 
@@ -302,9 +332,15 @@ Uma execução não abre nenhum caso nem dispara nenhum alerta: escreva o que de
 
 Uma caçada agendada é executada com a pessoa que por último definiu seu agendamento, alterou sua pesquisa ou a salvou com **Editar**. Uma chave de API não pode definir um agendamento. Quando essa pessoa sai do projeto ou não pode mais ler eventos de segurança, a caçada avisa: abra **Editar** e salve-a para executá-la com sua conta.
 
+### Histórico de execuções
+
+Cada execução agendada é guardada por 90 dias. **Histórico de execuções**, no fim da linha que diz o que as execuções de uma caçada encontraram, as lista da mais recente para a mais antiga: quando cada uma foi executada e os eventos que pesquisou, depois quantos encontrou, com **Mostrá-los** para abrir esses eventos na página da caçada; que não encontrou nada; ou por que não pôde ser executada. Quem pode abrir uma caçada pode ler as execuções dela.
+
 ### Quem é avisado
 
 A notificação **Uma caçada encontrou eventos de segurança** nomeia a caçada e sua pesquisa, quantos eventos sua execução encontrou e a janela que ela leu, e leva à página da caçada nesses eventos; nenhuma palavra dos eventos está nela. Todos a recebem por e-mail e push, e escolhem seus canais em **Configurações do usuário → Configurações de notificação**. Como outros e-mails de rotina, ela pode ser retida em um [resumo de e-mails](/docs/emails/notification-rollup).
+
+Para publicar no Slack, no Microsoft Teams ou no Mattermost o que as caçadas encontram, adicione uma regra a **Regras de caçadas** em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams** ou **Mattermost**), abaixo das regras que publicam os [casos de segurança](/docs/telemetry/security-cases#publique-em-canais-do-slack-do-microsoft-teams-e-do-mattermost). Uma regra nomeia os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, as caçadas a que se aplica, por **Nome da caçada**: um nome que é o seu texto, o contém, começa ou termina com ele. Cada vez que uma execução agendada encontra eventos, ela publica a caçada, sua pesquisa, quantos eventos e quando, com um link para eles, e nenhuma das palavras próprias de um evento. Uma regra de caçadas é configurada por uma função que pode configurar playbooks de segurança, como Project Owner, Project Admin ou Security Admin.
 
 ### Guardar eventos em um caso
 
@@ -312,7 +348,7 @@ Selecione eventos em **Eventos** ou na página de uma caçada e escolha **Açõe
 
 O OneUptime lê cada evento de novo como você e o guarda como era na página **Evidências** do caso, então o caso continua mostrando-o depois que a retenção do evento termina. Um evento que você não pode ler não é guardado, e um que o caso já guarda fica como está. Um evento encontrado a partir de uma caçada nomeia a caçada, e **Ver evento** o abre como foi guardado.
 
-As caçadas têm a mesma API REST que o resto do OneUptime, em `/security-hunt`, e `POST /security-case-evidence/add-events` guarda eventos em um caso. Veja a [referência da API](/docs/api-reference/api-reference).
+As caçadas têm a mesma API REST que o resto do OneUptime, em `/security-hunt`, e `POST /security-case-evidence/add-events` guarda eventos em um caso. As execuções de uma caçada são lidas em `/security-hunt-run`. Veja a [referência da API](/docs/api-reference/api-reference).
 
 ## Regras de detecção
 
@@ -511,7 +547,7 @@ Uma exceção é algo que uma regra ignora porque você já espera, como um scan
 
 ### Listas de observação
 
-Uma lista de observação é uma lista que sua equipe mantém uma única vez e que qualquer regra pode ler, como usuários VIP, hosts críticos, hashes de arquivos maliciosos conhecidos ou os endereços de onde os administradores podem entrar. Toda lista fica em **Produtos → Eventos de segurança → Detecções → Listas de observação**: crie uma ali com **Criar: Lista de observação**, que pede o nome dela e o que ela contém, ou adicione uma comum em **Comece com uma lista comum**. A página de uma lista mostra seus valores, e **Use-a em uma regra** dá uma seleção que lê a lista, para copiar em uma regra.
+Uma lista de observação é uma lista que sua equipe mantém uma única vez e que qualquer regra pode ler, como usuários VIP, hosts críticos, hashes de arquivos maliciosos conhecidos ou os endereços de onde os administradores podem entrar. Toda lista fica em **Produtos → Eventos de segurança → Detecções → Listas de observação**: crie uma ali com **Criar: Lista de observação**, que pede o nome dela e o que ela contém, ou adicione uma comum em **Comece com uma lista comum**. A página de uma lista mostra seus valores, e **Usar esta lista** dá uma seleção que lê a lista, para copiar em uma regra, e a pesquisa que a lê em **Eventos** ou em uma caçada.
 
 Uma regra lê uma lista com `expand` e o nome da lista entre sinais `%`. Esta regra dispara quando um administrador entra a partir de um endereço que não está na lista permitida:
 
@@ -529,10 +565,14 @@ level: high
 
 - Uma lista contém usuários, hosts, endereços IP, hashes de arquivos, domínios, URLs, processos ou outros valores, escolhidos ao criá-la. Um valor corresponde sem diferenciar maiúsculas e minúsculas, e `*` representa qualquer sequência de caracteres: `svc-*` corresponde a toda conta de serviço. Uma lista de endereços IP também aceita intervalos, como `10.20.0.0/16`, e uma lista de hashes de arquivos aceita hashes MD5, SHA-1, SHA-256 e SHA-512.
 - Adicione valores um a um com **Adicionar: Valor**, ou vários de uma vez com **Importar valores**: cole-os, ou escolha um arquivo `.txt` ou `.csv`, um valor por linha, com uma nota opcional depois de uma vírgula. **Adicionar à lista** mantém os valores que já estão nela, e **Substituir a lista** remove os que a importação não tem.
+- Um valor pode ter um **Expira em**: a partir daí nenhuma regra, monitor, caçada ou pesquisa o lê, e o OneUptime o tira da lista em até um minuto. Se ficar em branco, ele fica até alguém removê-lo.
+- **Exportar valores** baixa os valores de uma lista em um arquivo CSV com as colunas `value`, `note` e `expires`, que **Importar valores** lê de volta. Um arquivo cuja primeira linha nomeia essas colunas dá a cada valor sua nota e quando ele expira: uma data como `2026-12-31`, ou uma data e hora em UTC.
+- Uma lista pode ser lida de um arquivo em um endereço https, de novo **A cada hora**, **A cada 6 horas** ou **Todos os dias**: escolha **Um arquivo em um endereço** em **Mais campos** ao criá-la. Cada leitura deixa a lista como o arquivo está, lido como uma importação o lê. Uma leitura que falha não muda nenhum valor e a página da lista diz por quê, e **Ler agora** a lê na hora.
 - Em vez de manter valores, uma lista de endereços IP, hashes de arquivos, domínios ou URLs pode seguir um feed de inteligência de ameaças: seus valores são então os indicadores ativos do feed do tipo da lista, mantidos atualizados à medida que o feed é lido.
-- `expand` é usado sozinho, porque os valores da lista dizem como correspondem. Um campo que contém vários valores, como `observables`, corresponde quando algum deles está na lista. **Lida por** nomeia as regras que leem cada lista, e abaixo do YAML de uma regra seu formulário nomeia as listas que a regra lê.
-- Uma regra nomeia uma lista sem diferenciar maiúsculas e minúsculas. Uma regra que nomeia uma lista que o projeto não tem é recusada ao salvar, e uma lista que regras leem não pode ser renomeada nem excluída até que nenhuma regra a leia.
+- `expand` é usado sozinho, porque os valores da lista dizem como correspondem. Um campo que contém vários valores, como `observables`, corresponde quando algum deles está na lista. **Lida por** nomeia as regras, os monitores Security Events e as caçadas que leem cada lista, e abaixo do YAML de uma regra seu formulário nomeia as listas que a regra lê.
+- Uma regra nomeia uma lista sem diferenciar maiúsculas e minúsculas. Uma regra, um monitor ou uma caçada que nomeia uma lista que o projeto não tem é recusado ao salvar, e uma lista que algum deles lê não pode ser renomeada nem excluída até que nada a leia.
 - Uma mudança em uma lista chega a toda regra que a lê na próxima execução da regra. As regras de correlação e **Executar em eventos passados** também leem listas.
+- Um monitor Security Events lê listas no seu **Filtrar por listas de observação**, e uma pesquisa em **Eventos** ou em uma caçada lê uma como `user:%vip_users%`. Um sinal de menos na frente, como em `-ip:%admin_addresses%`, mantém os eventos cujo campo não está na lista.
 - Uma lista tem no máximo 5.000 valores, dos quais no máximo 100 com `*` e 100 intervalos, e um projeto tem no máximo 200 listas: para uma lista mais longa, siga um feed de inteligência de ameaças. Quem pode criar, editar ou excluir regras de detecção pode fazer o mesmo com as listas, e quem pode editar regras de detecção adiciona, altera e remove seus valores. Toda função de Security pode lê-las, e cada alteração fica no log de auditoria do projeto.
 
 ### Executar em eventos passados
@@ -549,11 +589,11 @@ level: high
 
 Um monitor de eventos de segurança conta os eventos que correspondem aos filtros dele em uma janela deslizante e aplica à contagem os critérios habituais de monitor: muda o status do monitor, abre alertas ou incidentes e aciona o plantão. Crie um em **Monitores → Criar monitor**, com **Eventos de segurança** como tipo; ele aparece lá junto com seus outros monitores.
 
-O formulário dele mostra **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** e **Classe de evento**. **Filtrar por serviço de telemetria** e **Filtrar por atributos** ficam em **Mais campos**, cujo cabeçalho mostra os que um monitor usa. Os critérios dele verificam **Security Event Count**.
+O formulário dele mostra **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** e **Classe de evento**. **Filtrar por serviço de telemetria**, **Filtrar por atributos** e **Filtrar por listas de observação** ficam em **Mais campos**, cujo cabeçalho mostra os que um monitor usa. **Filtrar por listas de observação** mantém os eventos cujo campo está, ou não está, em uma das suas [listas de observação](#listas-de-observação). Os critérios dele verificam **Security Event Count**.
 
 | | Regra de detecção | Monitor de eventos de segurança |
 | --- | --- | --- |
-| Corresponde a | Uma regra Sigma | Filtros de gravidade, classe, mensagem, serviço e atributos |
+| Corresponde a | Uma regra Sigma | Filtros de gravidade, classe, mensagem, serviço, atributos e listas de observação |
 | Janela | Uma depois da outra, uma por execução | Deslizante: dos últimos 5 segundos às últimas 24 horas |
 | Conta por grupo | Sim, com **Campo de agrupamento** | Não: uma única contagem para tudo o que corresponde |
 | Abre | Alertas, incidentes e achados | Um status, alertas e incidentes |
@@ -610,11 +650,15 @@ Verifique seu **Status** em **Exceções de regra**: uma exceção com status **
 :::
 
 :::details Uma regra que lê uma lista de observação não corresponde
-Abra a lista e confira seus valores: um valor sem `*` precisa ser igual ao campo inteiro, sem diferenciar maiúsculas e minúsculas, e uma lista que segue um feed de inteligência de ameaças contém só os indicadores ativos do feed do seu tipo. Confira se a regra lê o campo que seus eventos preenchem: **Use-a em uma regra** começa pelo campo em que uma lista do seu tipo costuma estar. Uma mudança em uma lista chega a uma regra na próxima execução dela.
+Abra a lista e confira seus valores: um valor sem `*` precisa ser igual ao campo inteiro, sem diferenciar maiúsculas e minúsculas, e uma lista que segue um feed de inteligência de ameaças contém só os indicadores ativos do feed do seu tipo. Confira se a regra lê o campo que seus eventos preenchem: **Usar esta lista** começa pelo campo em que uma lista do seu tipo costuma estar. Uma mudança em uma lista chega a uma regra na próxima execução dela.
 :::
 
 :::details Uma lista de observação não pode ser renomeada nem excluída
-Regras ainda a leem pelo nome, e a mensagem as nomeia. Mude o nome nessas regras, ou tire a lista delas, e depois renomeie ou exclua a lista.
+Regras, monitores ou caçadas ainda a leem pelo nome, e a mensagem os nomeia. Mude o nome neles, ou tire a lista deles, e depois renomeie ou exclua a lista.
+:::
+
+:::details Uma lista lida de um endereço mostra um erro
+A página dela diz por quê em **Lida de um endereço**, com o que o endereço respondeu, e a lista mantém os valores da última leitura que funcionou. O endereço deve começar com `https`, responder pela internet sem login e baixar um arquivo de texto ou CSV de no máximo 4 MB, não uma página web. Corrija-o em **Editar** e depois escolha **Ler agora**.
 :::
 
 :::details Executar uma regra em eventos passados não encontra nada

@@ -4,18 +4,22 @@ import { drawnActionLabel } from "./DocsDashboardLabels";
 import {
   REMEDIATION_FIX_HIDE_DETAILS,
   REMEDIATION_FIX_REVIEW_AND_APPROVE,
-  REMEDIATION_FIX_SHOW_DETAILS,
 } from "../../../FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepCopy";
-import { MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON } from "Common/Server/Services/AutoRemediationRuleEngineService";
+import {
+  AGENT_NOT_CONNECTED_GAP_CODES,
+  MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON,
+} from "Common/Server/Services/AutoRemediationRuleEngineService";
 import { describe, expect, test } from "@jest/globals";
 
 /*
  * The AI SRE page and the External MCP Servers page say what the AI card's
- * Remediation step does with a fix (#5413's follow-ups, fu-ai-remediation):
+ * Remediation step does with a fix (#5413's follow-ups, fu-ai-remediation;
+ * issue #5598):
  *
- *   - each fix is folded to one sentence beside where it stands, and
- *     Review and approve (Show details, for any other) opens its commands
- *     and Approve & Run, in the words the step draws in each language;
+ *   - each fix reads as the steps it went through - planned, approved, ran,
+ *     recovered, rolled back - each step opening to more, and Review and
+ *     approve opens the plan of a fix that waits, with Approve & Run under
+ *     it, in the words the step draws in each language;
  *   - a cluster's or resource's Fixes turned on make OneUptime AI decide
  *     again for as many open records as the engine tries again
  *     (MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON), and a resolved record is
@@ -35,9 +39,9 @@ function lineStarting(lines: Array<string>, start: string): number {
   });
 }
 
-const FOLDED_LINE: number = lineStarting(
+const STEPS_LINE: number = lineStarting(
   ENGLISH_AI_SRE,
-  "Each fix is folded to one sentence beside where it stands",
+  "Each fix reads as the steps it went through",
 );
 const DECIDED_ONCE_LINE: number = lineStarting(
   ENGLISH_AI_SRE,
@@ -58,27 +62,36 @@ function writtenCount(language: string, count: number): string {
 }
 
 describe("the English pages", () => {
-  test("say a fix is folded to its sentence, and name the presses the step draws", () => {
-    expect(FOLDED_LINE).toBeGreaterThan(0);
+  test("say a fix reads as its steps, what each opens to, and name the presses the step draws", () => {
+    expect(STEPS_LINE).toBeGreaterThan(0);
     expect(
-      ENGLISH_AI_SRE.lastIndexOf("### Before you approve a fix", FOLDED_LINE),
-    ).toBe(FOLDED_LINE - 2);
+      ENGLISH_AI_SRE.lastIndexOf("### Before you approve a fix", STEPS_LINE),
+    ).toBe(STEPS_LINE - 2);
 
-    const line: string = ENGLISH_AI_SRE[FOLDED_LINE]!;
+    const line: string = ENGLISH_AI_SRE[STEPS_LINE]!;
     expect(REMEDIATION_FIX_REVIEW_AND_APPROVE).toBe("Review and approve");
-    expect(REMEDIATION_FIX_SHOW_DETAILS).toBe("Show details");
+    expect(line).toContain("in the order they happened, one line each");
     expect(line).toContain(
       "how many commands it runs and where, or how many changes it makes and through which MCP servers",
     );
+    expect(line).toContain(
+      "how it ran, whether the incident recovered, and what was rolled back",
+    );
+    expect(line).toContain(
+      "the plan opens to the reasoning and each command, the run to each command's output and exit code, and the rollback to each undo",
+    );
+    expect(line).toContain(
+      "says in red how many of its commands or changes failed",
+    );
     expect(line).toContain(`**${REMEDIATION_FIX_REVIEW_AND_APPROVE}**`);
-    expect(line).toContain(`**${REMEDIATION_FIX_SHOW_DETAILS}**`);
-    expect(line).toContain("**Approve & Run** under them");
-    expect(line).toContain("says in red how many of them failed");
-    // Hide details is the press that folds it again: not something to read.
+    expect(line).toContain("**Approve & Run** under it");
+    // Hide details is the press that closes it again: not something to read.
     expect(line).not.toContain(REMEDIATION_FIX_HIDE_DETAILS);
-    // The list of what an opened fix shows follows it.
+    // A fix that ran opens step by step, with no press of its own.
+    expect(line).not.toContain("Show details");
+    // The list of what a waiting fix's plan shows follows it.
     expect(line.endsWith(":")).toBe(true);
-    expect(ENGLISH_AI_SRE[FOLDED_LINE + 2]?.startsWith("- **")).toBe(true);
+    expect(ENGLISH_AI_SRE[STEPS_LINE + 2]?.startsWith("- **")).toBe(true);
   });
 
   test("say Fixes turned on reach back, for as many open records as the engine tries again, and a resolved one never", () => {
@@ -91,6 +104,19 @@ describe("the English pages", () => {
     expect(line).toContain(
       "A resolved incident or alert is never tried again: its lines say what happened, and how the next one is linked.",
     );
+  });
+
+  test("say an AI agent connecting reaches back too, once, for as many open records as the engine tries again", () => {
+    const line: string = ENGLISH_AI_SRE[DECIDED_ONCE_LINE]!;
+
+    expect(line).toContain(
+      `A cluster's or resource's AI agent connecting reaches back too: when it registers, or reports in again after it was offline, OneUptime AI decides again, once, for the ${MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON} most recent open incidents and alerts it did not fix because that agent was not connected.`,
+    );
+    // What the engine reads: the decisions whose agent was not connected or offline.
+    expect(AGENT_NOT_CONNECTED_GAP_CODES).toEqual([
+      "ai_agent_not_connected",
+      "ai_agent_offline",
+    ]);
   });
 
   test("the External MCP Servers page sums the changes up, and Review and approve lists them", () => {
@@ -112,14 +138,10 @@ describe.each(TRANSLATED_LANGUAGES)("the %s pages", (language: string) => {
     expect(mcp.length).toBe(ENGLISH_MCP.length);
   });
 
-  test("name Review and approve, Show details and Approve & Run as the step draws them", () => {
-    const line: string = aiSre[FOLDED_LINE] || "";
+  test("name Review and approve and Approve & Run as the step draws them", () => {
+    const line: string = aiSre[STEPS_LINE] || "";
 
-    for (const label of [
-      REMEDIATION_FIX_REVIEW_AND_APPROVE,
-      REMEDIATION_FIX_SHOW_DETAILS,
-      "Approve & Run",
-    ]) {
+    for (const label of [REMEDIATION_FIX_REVIEW_AND_APPROVE, "Approve & Run"]) {
       const drawn: string = drawnActionLabel(language, label);
 
       expect({ label, drawn, has: line.includes(`**${drawn}**`) }).toEqual({
@@ -141,5 +163,16 @@ describe.each(TRANSLATED_LANGUAGES)("the %s pages", (language: string) => {
     expect(line).toContain(
       writtenCount(language, MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON),
     );
+  });
+
+  test("say an AI agent connecting reaches back too, for the same number of open records", () => {
+    const line: string = aiSre[DECIDED_ONCE_LINE] || "";
+    const count: string = writtenCount(
+      language,
+      MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON,
+    );
+
+    // Once for Fixes turned on, once for an agent connecting.
+    expect(line.split(count).length - 1).toBe(2);
   });
 });

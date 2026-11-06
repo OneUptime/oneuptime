@@ -159,6 +159,7 @@ Mallar läser de senaste 5 minuterna om inte tabellen säger något annat. Ett k
 - **PG- och poolserier finns per pool**: Det finns inget mått för hela klustret, så de mallarna grupperar efter `pool_id` och öppnar en incident per pool.
 - **Kapacitetskvoter** tar **Summa** av båda sidor. Båda kommer från samma hämtning från mgr:n, så resultatet blir en riktig procentsats. **Inactive Placement Groups** använder i stället **Maximum** per pool, eftersom en summa skulle lägga ihop hämtningar i en subtraktion.
 - **Health check-mallar** återställs när checken försvinner: Deras återställningskriterier räknar en saknad serie som 0.
+- **Daemon Slow Operations** har en serie per daemon, så när ingen daemon har någon serie kvar finns det inget att läsa. Den återställs då bara om `ceph_health_status` kom i samma fönster, så en stoppad agent stänger ingenting.
 
 Vissa larm har ingen mall. Ojämnt fördelade PG:er kräver statistik över flera serier som kriterier inte kan beräkna. Kapacitetsprognoser kräver en tillväxtkurva, som klustrets instrumentpanel ritar i stället. Förutsägelse av diskfel och eftersläpande scrubbing har inget mätvärde i mgr:n, och NVMe-oF, RBD-spegling och cephadm kräver andra exportörer.
 
@@ -227,7 +228,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som kontrolleras, efter dess variabelnamn. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
-| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. |
+| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. **Väntas stiga över** och **Väntas sjunka under** matchar när mätvärdets trend i fönstret har passerat tröskeln vid slutet av **Tidshorisont**. |
 | **Tröskel** | Värdet att jämföra med. Bredvid finns en enhetslista när mätvärdet har en enhet. Visas inte för avvikelsevillkor. |
 | **Känslighet** | Endast avvikelsevillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Endast avvikelsevillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |

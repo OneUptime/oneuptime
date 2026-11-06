@@ -40,7 +40,7 @@ Slå på **När filter matchar, deklarera en incident.** eller **När filter mat
 
 ### Skriv titeln
 
-Skriv titeln i **Incidenttitel** eller **Larmtitel**, till exempel `{{monitorName}} is down`. **Learn about dynamic templates** bredvid öppnar **Dynamic Template Variables**: varje variabel som den här monitortypen har, med vad den innehåller. Klicka på en variabel för att kopiera den.
+Skriv titeln i **Incidenttitel** eller **Larmtitel**, till exempel `{{monitorName}} is down`. **Läs om dynamiska mallar** bredvid öppnar **Dynamiska mallvariabler**: varje variabel som den här monitortypen har, med vad den innehåller. Klicka på en variabel för att kopiera den.
 
 ### Skriv beskrivningen och åtgärdsanteckningarna
 
@@ -433,7 +433,7 @@ En nätverksenhet pingas vid varje avsökning och gås bara igenom via SNMP när
 | `collectionIssueSummary` | En rad om varje otillgänglig grupp, klar för en titel. Tom när allt samlades in. | `string` |
 | `metrics` | De insamlade värdena, efter serienamn. | `Object` |
 
-Serienamnen i `metrics` innehåller punkter, som `oneuptime.monitor.database.connections.used.percent`, och en sökväg läser varje punkt som ett steg in i ett objekt, så en mall kan inte plocka ut ett enskilt värde ur `metrics`. Sätt in `{{metrics}}` i sin helhet, som JSON, eller använd `{{collectionIssueSummary}}`. Ett mätvärde som inte samlades in saknas i `metrics`; det är inte noll. För att agera på ett värde jämför du det i kriteriet med ett [JavaScript-uttryck](/docs/monitor/javascript-expression).
+Serienamnen i `metrics` innehåller punkter, som `oneuptime.monitor.database.connections.used.percent`, och en mall kan ändå plocka ut ett: skriv hela namnet efter `metrics.`, som i `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Sätt in `{{metrics}}` i sin helhet, som JSON, eller använd `{{collectionIssueSummary}}`. Ett mätvärde som inte samlades in saknas i `metrics`; det är inte noll. För att agera på ett värde jämför du det i kriteriet med ett [JavaScript-uttryck](/docs/monitor/javascript-expression).
 
 ### Monitorer för externa statussidor
 
@@ -445,13 +445,14 @@ Serienamnen i `metrics` innehåller punkter, som `oneuptime.monitor.database.con
 | `provider` | Typen av statussida: Atlassian Statuspage, incident.io, RSS eller Atom. | `string` |
 | `componentGroup` | Komponentgruppen som monitorn bevakar, om den bevakar en. | `string` |
 | `componentName` | Komponenterna som monitorn bevakar, åtskilda med kommatecken, om den har valt några. | `string` |
+| `componentNames` | Samma komponenter som en lista, för att upprepa en rad för var och en med `{{#each componentNames}}`. | `Array<string>` |
 | `isOnline` | Om statussidan svarade. | `boolean` |
 | `responseTimeInMs` | Hur lång tid statussidan tog på sig att svara, i millisekunder. | `number` |
 | `failureCause` | Varför kontrollen misslyckades, när den gjorde det. | `string` |
 
 ### Mätvärdes- och infrastrukturmonitorer
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, VMware-, Ceph-, Storage Array- och IoT Device-monitorer har en egen variabel:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Storage Array- och IoT Device-monitorer har en egen variabel:
 
 | Variabel | Vad den innehåller | Typ |
 | --- | --- | --- |
@@ -565,7 +566,7 @@ SNMP walk: {{responseTimeInMs}} ms
 ## Felsökning
 
 :::details Titeln visar platshållaren, med klammerparenteser och allt
-Sökvägen leder inte till något värde i den här kontrollen. Kontrollera variabelns namn och skiftläge mot tabellerna ovan, eller öppna **Learn about dynamic templates** i kriteriet: den listar variablerna för den här monitortypen. En sökväg in i en svars- eller förfrågningskropp måste stämma med kroppen som den skickades, och `[*]` och negativa index som `[-1]` läser ingenting: använd `[0]` eller `[last]`.
+Sökvägen leder inte till något värde i den här kontrollen. Kontrollera variabelns namn och skiftläge mot tabellerna ovan, eller öppna **Läs om dynamiska mallar** i kriteriet: den listar variablerna för den här monitortypen. En sökväg in i en svars- eller förfrågningskropp måste stämma med kroppen som den skickades, och `[*]` och negativa index som `[-1]` läser ingenting: använd `[0]` eller `[last]`.
 :::
 
 :::details Ett värde visas som JSON

@@ -69,7 +69,7 @@ Il menu Rete tiene in vista ciò che apri ogni giorno: **Panoramica**, **Disposi
 | **Topologia** | **Topologia del dispositivo**, **Endpoint**, **Matrice di latenza**, **Collegamenti del sito**, **Collegamenti del dispositivo** |
 | **Regole** | **Regole di importazione automatica**, **Regole di assegnazione dei siti**, **Regole del proprietario**, **Regole etichette**, **Regole dei collegamenti** |
 | **Impostazioni** | **Policy di avviso**, **Credenziali SNMP**, **Ruoli dei dispositivi**, **Tipi di sito**, **Nomi indirizzo**, **Modelli di raccolta OID** |
-| **Avanzato** | **Dispositivi archiviati** |
+| **Avanzato** | **Walk SNMP**, **Dispositivi archiviati** |
 
 ## Aggiungere un dispositivo di rete
 
@@ -154,7 +154,7 @@ Ogni azione è una finestra e un salvataggio per l'intera selezione, e ogni disp
 
 Al termine, un'azione elenca quanti dispositivi sono cambiati, quali hanno fallito e perché — un dispositivo che il tuo ruolo non può modificare, un elenco oltre il suo limite — e quali non ha cambiato e perché: un dispositivo che era già in quel sito o in quel ruolo, o uno che il modello del produttore lascia invariato.
 
-Le altre azioni di massa sono descritte dove servono: **Set OID Collection Template** in [OID Collection Templates](#modelli-di-raccolta-oid), **Set SNMP Credential Profile**, **Switch to Probe Polling** e **Create Ping Monitors** in [In blocco](#in-blocco), e **Shorten Names to Hostname** in [Come vengono chiamati i dispositivi rilevati](#come-vengono-chiamati-i-dispositivi-rilevati).
+Le altre azioni di massa sono descritte dove servono: **Set OID Collection Template** in [OID Collection Templates](#modelli-di-raccolta-oid), **Walk SNMP** in [Eseguire il walk di molti dispositivi insieme](#eseguire-il-walk-di-molti-dispositivi-insieme), **Set SNMP Credential Profile**, **Switch to Probe Polling** e **Create Ping Monitors** in [In blocco](#in-blocco), e **Shorten Names to Hostname** in [Come vengono chiamati i dispositivi rilevati](#come-vengono-chiamati-i-dispositivi-rilevati).
 
 ## Cosa fa davvero un polling
 
@@ -397,6 +397,21 @@ Ogni riga dice dove il suo OID è noto: un valore che raccoglie un modello di sa
 **Scarica**, accanto al riepilogo del walk, salva ciò che il walk ha letto in un file: **Testo snmpwalk (.txt)**, un OID per riga come lo stampa `snmpwalk -On`, che ogni strumento SNMP e il supporto di ogni produttore sanno leggere, oppure **Foglio di calcolo CSV (.csv)**, con nome, MIB, tipo e valore di ogni OID. Il file contiene ogni OID letto dal walk, walk continuati compresi, qualunque cosa mostri il filtro, e prende il nome dal dispositivo, dal sottoalbero e dall'ora in cui è stato salvato. Chiunque possa leggere l'ultimo walk del dispositivo può scaricarlo.
 
 Un walk che fallisce dice perché, e cosa controllare: un dispositivo che non risponde (SNMP spento, UDP 161 bloccata o, in v1 e v2c, una community string errata, che un agente ignora senza dire nulla), un utente, una password o un protocollo SNMPv3 che il dispositivo ha rifiutato, o una parte dell'albero che la vista SNMP delle credenziali esclude. Un walk che si ferma a metà conserva ciò che ha letto. Per un walk servono l'autorizzazione **Create Network Device Diagnostic** e una sonda abbastanza recente da fare walk SNMP: con una più vecchia, la pagina ti chiede di aggiornarla.
+
+### Eseguire il walk di molti dispositivi insieme
+
+Quando un valore conta su un'intera flotta, come la CPU di ogni router o la temperatura di ogni switch di un sito, esegui il walk dei dispositivi insieme invece di aprire la pagina di un dispositivo alla volta. Selezionali nell'elenco **Dispositivi**, spuntando le righe o selezionando tutti i dispositivi che corrispondono ai filtri, e usa **Walk SNMP** in **Azioni di massa**. Oppure premi **Confronta con altri dispositivi** nel menu di un OID nella pagina **Walk SNMP** di un dispositivo: la pagina si apre con quel dispositivo scelto e quell'OID come punto di partenza, e tu aggiungi gli altri. La pagina si trova anche in **Rete → Avanzato → Walk SNMP**, dove scegli i dispositivi uno a uno o tutti quelli con un'etichetta.
+
+Il walk di ogni dispositivo viene eseguito come lo esegue la sua pagina: dalla propria sonda, con le credenziali SNMP che OneUptime conserva per esso (v1, v2c o v3, dal dispositivo, dal suo profilo di credenziali o dal suo sito), al massimo 1.000 OID per dispositivo. Si possono sottoporre a walk fino a 50 dispositivi alla volta. Parti da un solo OID per controllare quel valore su ogni dispositivo, o da un sottoalbero per confrontare ciò che i dispositivi espongono sotto di esso. La risposta di ogni dispositivo compare appena arriva, e la pagina attende fino a cinque minuti la sonda più lenta.
+
+I risultati elencano ogni OID a cui ha risposto almeno un dispositivo, un OID per riga:
+
+- **Risposte** dice quanti dei dispositivi il cui walk ha raggiunto l'OID vi rispondono, e si apre sul valore di ogni dispositivo. Un dispositivo il cui walk si è fermato al limite prima dell'OID non viene mai contato come un dispositivo che non lo ha.
+- Un valore uguale su tutti i dispositivi viene mostrato una volta sola; i numeri che differiscono sono mostrati come il più basso e il più alto, e il testo che differisce come il numero di valori diversi.
+- **Solo gli OID a cui alcuni dispositivi non rispondono**, accanto al filtro, tiene solo gli OID che una parte della flotta non ha.
+- **Raccogli su 12 dispositivi** aggiunge l'OID a ogni dispositivo che vi risponde e non lo raccoglie ancora, come fa **Raccogli** su un solo dispositivo: una volta per dispositivo, mai due, e un dispositivo che rifiuta, perché la sua lista è piena per esempio, viene indicato con il motivo mentre gli altri procedono. Quando quei dispositivi sono collegati a un OID Collection Template, il menu della riga può invece aggiungere l'OID al modello, per ogni dispositivo che lo usa.
+
+Sopra i risultati, ogni dispositivo il cui walk non è stato completato è elencato con il motivo e cosa correggere: nessuna sonda, nessuna credenziale SNMP, credenziali rifiutate, nessuna risposta o nessun resoconto dalla sua sonda. Il nome di un dispositivo apre la sua pagina **Walk SNMP** su questo suo walk, dove **Continua il walk** legge oltre e **Crea un avviso** apre un nuovo monitor. **Scarica CSV** salva ogni OID di ogni dispositivo in un solo file, con il nome del dispositivo nella prima colonna. L'indirizzo della pagina conserva i dispositivi e l'OID, così un ricaricamento o un link condiviso apre lo stesso walk, e i walk vengono conservati per due giorni.
 
 ### Tabelle SNMP
 

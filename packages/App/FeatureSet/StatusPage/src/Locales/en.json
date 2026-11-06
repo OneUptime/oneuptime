@@ -307,7 +307,8 @@
       "forgotPassword": "Forgot password?",
       "submit": "Login",
       "or": "or",
-      "logInWithSso": "Log in with SSO"
+      "logInWithSso": "Log in with SSO",
+      "emailSignInLink": "Email me a sign-in link"
     },
     "sso": {
       "title": "Log in with SSO",
@@ -330,6 +331,23 @@
       "success": "Your password has been updated. Please log in.",
       "submit": "Reset Password",
       "knowPassword": "Know your password?"
+    },
+    "magicLink": {
+      "title": "Log in with a link",
+      "description": "Enter your email address and we'll send you a link that logs you in to {{statusPageName}}. No password needed.",
+      "submit": "Email me a sign-in link",
+      "sentTitle": "Check your email",
+      "sent": "If {{email}} can log in to {{statusPageName}}, a sign-in link is on its way. It works once and expires in {{minutes}} minutes.",
+      "notReceived": "Not in your inbox? Check your spam folder, or ask the status page's team to add you.",
+      "sendAnother": "Send another link"
+    },
+    "magicLinkLogin": {
+      "title": "Log in to {{statusPageName}}",
+      "description": "Use the button below to finish logging in.",
+      "submit": "Log in",
+      "noLink": "This page needs the sign-in link from your email. Open the link again, or ask for a new one.",
+      "turnedOff": "Sign-in links are turned off for this status page. Please log in with your email and password.",
+      "requestNewLink": "Email me a new link"
     },
     "masterPassword": {
       "prompt": "Enter the password to view this status page.",

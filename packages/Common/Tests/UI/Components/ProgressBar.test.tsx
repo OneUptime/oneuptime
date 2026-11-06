@@ -1,8 +1,14 @@
-import ProgressBar from "../../../UI/Components/ProgressBar/ProgressBar";
+import ProgressBar, {
+  formatProgressPercent,
+} from "../../../UI/Components/ProgressBar/ProgressBar";
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import { createInstance, i18n } from "i18next";
 import * as React from "react";
-import { describe, expect, test } from "@jest/globals";
+import { I18nextProvider } from "react-i18next";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
+
+const LATIN_DIGIT: RegExp = /[0-9]/;
 
 describe("ProgressBar Component", () => {
   function getProgressBar(): HTMLElement {
@@ -79,5 +85,119 @@ describe("ProgressBar Component", () => {
     render(<ProgressBar count={150} totalCount={100} suffix="items" />);
     const progressBar: HTMLElement = getProgressBar();
     expect(progressBar).toHaveStyle({ width: "100%" });
+  });
+
+  test("reads its percent beside the count, as English writes it", () => {
+    render(<ProgressBar count={1} totalCount={7} suffix="Subscribers" />);
+    expect(screen.getByTestId("progress-bar-percent")).toHaveTextContent("15%");
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-label",
+      "Progress: 1 of 7 Subscribers (15%)",
+    );
+  });
+});
+
+/*
+ * A Persian bulk dialog read "۱ از ۷ (مشترکان)" beside "15%": the count in
+ * the reader's digits, the percent in English's. The percent is now
+ * written the way the reader's language writes one.
+ */
+describe("formatProgressPercent", () => {
+  test("writes a percent the reader's way", () => {
+    expect(formatProgressPercent(15, "en")).toBe("15%");
+    expect(formatProgressPercent(0, "en")).toBe("0%");
+    expect(formatProgressPercent(100, "en")).toBe("100%");
+    // German and French set the sign apart, with a space that never breaks.
+    expect(formatProgressPercent(15, "de")).toBe("15\u00a0%");
+    // Persian in its own digits and sign, as its count beside it.
+    expect(formatProgressPercent(15, "fa")).toBe("\u06f1\u06f5\u066a");
+    expect(formatProgressPercent(3, "ja")).toBe("3%");
+  });
+
+  test("never writes a fraction: the bar rounds up to a whole percent first", () => {
+    expect(formatProgressPercent(33, "en")).toBe("33%");
+  });
+
+  test("falls back to the number and a sign for a language Intl does not know", () => {
+    expect(formatProgressPercent(15, "not a language")).toBe("15%");
+  });
+});
+
+/*
+ * The percent beside the bar is written the reader's way, as the count
+ * beside it already was: in Persian digits with the Persian percent sign on
+ * a Persian page ("100%" in Latin digits stood among Persian numbers), with
+ * the space German and French put before the sign. English reads exactly as
+ * before.
+ */
+describe("ProgressBar in the reader's language", () => {
+  const languages: Record<string, i18n> = {};
+
+  beforeAll(async () => {
+    for (const code of ["en", "de", "fa", "ja"]) {
+      const instance: i18n = createInstance();
+      await instance.init({
+        lng: code,
+        resources: { [code]: { translation: {} } },
+        interpolation: { escapeValue: false },
+        keySeparator: false,
+        nsSeparator: false,
+      });
+      languages[code] = instance;
+    }
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  function renderIn(code: string, count: number, total: number): void {
+    render(
+      <I18nextProvider i18n={languages[code] as i18n}>
+        <ProgressBar count={count} totalCount={total} suffix="items" />
+      </I18nextProvider>,
+    );
+  }
+
+  test.each([
+    ["en", "34%"],
+    ["de", "34\u{a0}%"],
+    ["fa", "\u{6f3}\u{6f4}\u{66a}"],
+    ["ja", "34%"],
+  ])("%s writes the percent as %s", (code: string, expected: string) => {
+    renderIn(code, 34, 100);
+
+    expect(screen.getByTestId("progress-bar-percent").textContent).toBe(
+      expected,
+    );
+  });
+
+  test("Persian digits in the percent, never Latin ones", () => {
+    renderIn("fa", 1, 1);
+
+    const percent: string =
+      screen.getByTestId("progress-bar-percent").textContent || "";
+
+    expect(percent).toBe("\u{6f1}\u{6f0}\u{6f0}\u{66a}");
+    expect(percent).not.toMatch(LATIN_DIGIT);
+  });
+
+  test("the bar's width and its value for assistive technology stay plain numbers", () => {
+    renderIn("fa", 1, 2);
+
+    expect(screen.getByTestId("progress-bar")).toHaveStyle({ width: "50%" });
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "50",
+    );
+  });
+
+  test("the bar's label carries the percent in the reader's digits", () => {
+    renderIn("fa", 1, 2);
+
+    // With no Persian words given for the label, the number is still Persian.
+    expect(
+      screen.getByRole("progressbar").getAttribute("aria-label"),
+    ).toContain("\u{6f5}\u{6f0}");
   });
 });

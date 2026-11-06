@@ -1735,7 +1735,7 @@ const VMwareVCenterOverview: FunctionComponent<
     return (
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <GoldenMetricTile
-          title={tx("Effective hosts")}
+          title="Effective hosts"
           icon={IconProp.Heartbeat}
           iconColor="emerald"
           value={
@@ -1755,16 +1755,16 @@ const VMwareVCenterOverview: FunctionComponent<
           description={VMWARE_METRIC_DESCRIPTIONS.overviewHostEffectiveness}
         />
         <GoldenMetricTile
-          title={tx("Host CPU")}
+          title="Host CPU"
           icon={IconProp.ChartBar}
           iconColor="blue"
           value={formatPercent(s.hostCpuPercent)}
-          sublabel={tx("capacity-weighted across ESXi hosts")}
+          sublabel="capacity-weighted across ESXi hosts"
           percent={s.hostCpuPercent}
           description={VMWARE_METRIC_DESCRIPTIONS.overviewHostCpu}
         />
         <GoldenMetricTile
-          title={tx("Host Memory")}
+          title="Host Memory"
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={formatPercent(s.hostMemoryPercent)}
@@ -1781,7 +1781,7 @@ const VMwareVCenterOverview: FunctionComponent<
           description={VMWARE_METRIC_DESCRIPTIONS.overviewHostMemory}
         />
         <GoldenMetricTile
-          title={tx("Datastores")}
+          title="Datastores"
           icon={IconProp.Database}
           iconColor="amber"
           value={formatPercent(worstDatastorePercent)}
@@ -1800,7 +1800,7 @@ const VMwareVCenterOverview: FunctionComponent<
           description={VMWARE_METRIC_DESCRIPTIONS.overviewDatastores}
         />
         <GoldenMetricTile
-          title={tx("VM CPU Ready")}
+          title="VM CPU Ready"
           icon={IconProp.CPUChip}
           iconColor="sky"
           value={formatPercent(s.vmCpuReadyAvgPercent)}

@@ -160,7 +160,7 @@ La sonde reconnaît Azure SQL Database à `SERVERPROPERTY('EngineEdition')` plut
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Santé de la base de données** sous **Database Monitoring**, ou tapez `health` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Santé de la base de données** sous **Surveillance des bases de données**, ou tapez `health` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
 
 ### Saisir les informations de connexion
 
@@ -396,7 +396,7 @@ Pour un moniteur de santé de base de données, l'expression a accès à :
 {{isOnline}} === true && {{collectedGroups}}.length >= 5
 ```
 
-Pour lire une métrique dans une expression, indexez l'objet `metrics` en entier — les noms de séries contiennent des points et ne peuvent donc pas aller entre les accolades :
+Pour lire une métrique dans une expression, écrivez le nom de la série, points compris, entre les accolades, ou indexez l'objet `metrics` en entier — les deux fonctionnent :
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

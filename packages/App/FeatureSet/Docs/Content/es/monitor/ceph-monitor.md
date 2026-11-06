@@ -159,6 +159,7 @@ Las plantillas leen los últimos 5 minutos salvo que la tabla diga otra cosa. Un
 - **Las series de PG y de pools son por pool**: no hay un indicador de todo el clúster, así que esas plantillas agrupan por `pool_id` y abren un incidente por pool.
 - **Las proporciones de capacidad** toman la **Suma** de ambos lados. Los dos salen de la misma consulta al mgr, así que el resultado es un porcentaje real. **Inactive Placement Groups** usa en cambio **Máximo** por pool, porque una suma acumularía consultas en una resta.
 - **Las plantillas de health checks** se recuperan cuando el check desaparece: sus criterios de recuperación cuentan una serie ausente como 0.
+- **Daemon Slow Operations** tiene una serie por daemon, así que cuando ningún daemon conserva su serie no queda nada que leer. Entonces se recupera solo si `ceph_health_status` llegó en la misma ventana, de modo que un agente detenido no cierra nada.
 
 Algunas alertas no tienen plantilla. El desequilibrio de PG necesita estadísticas entre series que los criterios no pueden calcular. La previsión de capacidad necesita un ajuste de crecimiento, que en su lugar dibuja el panel del clúster. La predicción de fallos de disco y el scrubbing atrasado no tienen métrica en el mgr, y NVMe-oF, la replicación de RBD y cephadm necesitan otros exportadores.
 
@@ -227,7 +228,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | --- | --- |
 | **Métrica** | La consulta o fórmula que se comprueba, por su nombre de variable. |
 | **Agregación** | Cómo los valores de la ventana se convierten en una sola respuesta: **Promedio**, **Suma**, **Maximum Value**, **Minimum Value**, **All Values** (todos los valores deben cumplirse, en toda la ventana) o **Any Value** (basta con uno). |
-| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Sin datos** se cumple cuando la consulta no devolvió nada en la ventana, y **Con datos** cuando devolvió algo. |
+| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Sin datos** se cumple cuando la consulta no devolvió nada en la ventana, y **Con datos** cuando devolvió algo. **Previsto por encima de** y **Previsto por debajo de** coinciden cuando la tendencia de la métrica en la ventana habrá cruzado el umbral al final de **Plazo**. |
 | **Umbral** | El valor con el que se compara. Junto a él aparece una lista de unidades cuando la métrica tiene unidad. No se muestra con las condiciones de anomalía. |
 | **Sensibilidad** | Solo condiciones de anomalía. **Baja** (4σ), **Media** (3σ, la predeterminada) o **Alta** (2σ). |
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (la predeterminada), 28, 60 o 90 días de historial. |

@@ -40,7 +40,7 @@ Em um critério, em **Ações**, ative **Quando os filtros corresponderem, decla
 
 ### Escrever o título
 
-Digite o título em **Título do Incidente** ou **Título do alerta**, por exemplo `{{monitorName}} is down`. **Learn about dynamic templates**, ao lado, abre **Dynamic Template Variables**: cada variável que o tipo deste monitor tem, com o que ela contém. Clique em uma variável para copiá-la.
+Digite o título em **Título do Incidente** ou **Título do alerta**, por exemplo `{{monitorName}} is down`. **Saiba mais sobre modelos dinâmicos**, ao lado, abre **Variáveis dinâmicas de modelo**: cada variável que o tipo deste monitor tem, com o que ela contém. Clique em uma variável para copiá-la.
 
 ### Escrever a descrição e as notas de remediação
 
@@ -433,7 +433,7 @@ Um dispositivo de rede recebe ping a cada coleta e só é varrido por SNMP quand
 | `collectionIssueSummary` | Uma linha sobre cada grupo indisponível, pronta para um título. Vazia quando tudo foi coletado. | `string` |
 | `metrics` | Os valores coletados, por nome de série. | `Object` |
 
-Os nomes de série em `metrics` contêm pontos, como `oneuptime.monitor.database.connections.used.percent`, e um caminho lê cada ponto como um passo dentro de um objeto, então um modelo não consegue tirar um único valor de `metrics`. Coloque `{{metrics}}` inteiro, como JSON, ou use `{{collectionIssueSummary}}`. Uma métrica que não foi coletada fica ausente de `metrics`, não vale zero. Para agir sobre um valor, compare-o no critério com uma [expressão JavaScript](/docs/monitor/javascript-expression).
+Os nomes de série em `metrics` contêm pontos, como `oneuptime.monitor.database.connections.used.percent`, e mesmo assim um modelo consegue tirar um valor: escreva o nome inteiro depois de `metrics.`, como em `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Coloque `{{metrics}}` inteiro, como JSON, ou use `{{collectionIssueSummary}}`. Uma métrica que não foi coletada fica ausente de `metrics`, não vale zero. Para agir sobre um valor, compare-o no critério com uma [expressão JavaScript](/docs/monitor/javascript-expression).
 
 ### Monitores de páginas de status externas
 
@@ -445,13 +445,14 @@ Os nomes de série em `metrics` contêm pontos, como `oneuptime.monitor.database
 | `provider` | O tipo de página de status: Atlassian Statuspage, incident.io, RSS ou Atom. | `string` |
 | `componentGroup` | O grupo de componentes que o monitor observa, se observa um. | `string` |
 | `componentName` | Os componentes que o monitor observa, separados por vírgulas, se escolheu algum. | `string` |
+| `componentNames` | Os mesmos componentes como lista, para repetir uma linha para cada um com `{{#each componentNames}}`. | `Array<string>` |
 | `isOnline` | Se a página de status respondeu. | `boolean` |
 | `responseTimeInMs` | Quanto tempo a página de status levou para responder, em milissegundos. | `number` |
 | `failureCause` | Por que a verificação falhou, quando falhou. | `string` |
 
 ### Monitores de métricas e infraestrutura
 
-Os monitores Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array e IoT Device têm uma variável própria:
+Os monitores Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array e IoT Device têm uma variável própria:
 
 | Variável | O que contém | Tipo |
 | --- | --- | --- |
@@ -565,7 +566,7 @@ SNMP walk: {{responseTimeInMs}} ms
 ## Solução de problemas
 
 :::details O título mostra o marcador, com chaves e tudo
-O caminho não leva a um valor nesta verificação. Confira o nome da variável e as maiúsculas nas tabelas acima, ou abra **Learn about dynamic templates** no critério: ele lista as variáveis do tipo deste monitor. Um caminho dentro do corpo de uma resposta ou de uma requisição precisa corresponder ao corpo como foi enviado, e `[*]` e índices negativos como `[-1]` não leem nada: use `[0]` ou `[last]`.
+O caminho não leva a um valor nesta verificação. Confira o nome da variável e as maiúsculas nas tabelas acima, ou abra **Saiba mais sobre modelos dinâmicos** no critério: ele lista as variáveis do tipo deste monitor. Um caminho dentro do corpo de uma resposta ou de uma requisição precisa corresponder ao corpo como foi enviado, e `[*]` e índices negativos como `[-1]` não leem nada: use `[0]` ou `[last]`.
 :::
 
 :::details Um valor aparece como JSON

@@ -145,6 +145,7 @@ Las plantillas leen los últimos 5 minutos salvo que la tabla diga otra cosa. Un
 - **Las plantillas de recuento y de estado usan Max**, así que una sola recogida que muestre la condición las dispara: errores de paquetes, ballooning, swapping, estado rojo y amarillo, hosts no efectivos, congestión.
 - **Host Not Responding usa Max y se activa en 0:** un host ESXi en marcha siempre usa memoria, así que una recogida que informa de memoria en uso es un host que responde, y solo una ventana en la que ninguna lo hizo la activa.
 - **Cada plantilla agrupa por el atributo de identidad propio del objeto**, así que se dispara un incidente por cada objeto afectado, y el incidente lo nombra. La excepción es **vCenter Stopped Reporting**, que vigila todo el vCenter: cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
+- **Las plantillas de recuento de datacenter se recuperan cuando su serie desaparece:** el receptor registra un recuento solo para los estados que existen, así que cuando el último host rojo pasa a verde no queda ninguna serie, y sus criterios de recuperación cuentan una serie ausente como 0. Si ningún datacenter conserva una serie, solo se recuperan si `vcenter.datacenter.cpu.limit` llegó en la misma ventana, de modo que un vCenter que dejó de informar no cierra nada.
 - **Los umbrales están fijados en su unidad** (`%`, `ms`, `us`), así que conservan su significado sea cual sea la unidad que muestre un gráfico.
 
 ## Métricas recogidas
@@ -273,7 +274,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | --- | --- |
 | **Métrica** | La consulta o fórmula que se comprueba, por su nombre de variable. |
 | **Agregación** | Cómo se convierten los valores de la ventana en una sola respuesta: **Promedio**, **Suma**, **Maximum Value**, **Minimum Value**, **All Values** (todos los valores deben coincidir, en toda la ventana) o **Any Value** (basta con uno). |
-| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a** — o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Sin datos** se cumple cuando la consulta no devolvió nada en la ventana, y **Con datos** cuando devolvió algo. |
+| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a** — o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Sin datos** se cumple cuando la consulta no devolvió nada en la ventana, y **Con datos** cuando devolvió algo. **Previsto por encima de** y **Previsto por debajo de** coinciden cuando la tendencia de la métrica en la ventana habrá cruzado el umbral al final de **Plazo**. |
 | **Umbral** | El valor con el que se compara. Junto a él hay una lista de unidades cuando la métrica tiene unidad. No se muestra para las condiciones de anomalía. |
 | **Sensibilidad** | Solo condiciones de anomalía. **Bajo** (4σ), **Medio** (3σ, el predeterminado) o **Alto** (2σ). |
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (el predeterminado), 28, 60 o 90 días de historial. |

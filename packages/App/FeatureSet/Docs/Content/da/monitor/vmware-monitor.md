@@ -14,7 +14,7 @@ En VMware-monitor holder øje med ét vCenter - dets datacentre, klynger, ESXi-v
 Metrikkerne kommer fra vCenters API og læses med en skrivebeskyttet konto på en af to måder:
 
 - **VMware Agent**, en OpenTelemetry Collector med sin receiver `vcenter`, som du kører på en maskine, der kan nå vCenter. Se [VMware-agent](/docs/telemetry/vmware).
-- **En probe**, uden noget at installere: du forbinder vCenteret i OneUptime og vælger den probe, der kan nå det. Se [VMware uden agent](/docs/telemetry/vmware-agentless).
+- **A probe**, uden noget at installere: du forbinder vCenteret i OneUptime og vælger den probe, der kan nå det. Se [VMware uden agent](/docs/telemetry/vmware-agentless).
 
 Begge sender de samme serier hvert indsamlingsinterval (2 minutter som standard), mærket med vCenterets navn, `vmware.vcenter.name`. Et vCenter er ét vSphere-endpoint: en vCenter Server eller en selvstændig ESXi-vært. En VMware-monitor er knyttet til ét vCenter. Hvert minut kører den sin forespørgsel på det vCenters metrikker og sammenligner resultatet med sine kriterier.
 
@@ -145,6 +145,7 @@ Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et krit
 - **Antals- og tilstandsskabeloner bruger Max**, så én indsamling, der viser tilstanden, udløser dem: pakkefejl, ballooning, swapping, rød og gul status, værter, der ikke er effektive, overbelastning.
 - **Host Not Responding bruger Max og udløses ved 0:** en ESXi-vært, der kører, bruger altid hukommelse, så én indsamling, der rapporterer hukommelse i brug, er en vært, der svarer, og kun et vindue, hvor ingen gjorde det, udløser den.
 - **Hver skabelon grupperer på objektets egen identitetsattribut**, så der udløses én hændelse pr. berørt objekt, og hændelsen nævner det. Undtagelsen er **vCenter Stopped Reporting**, som overvåger hele vCenteret: når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked.
+- **Datacenter-tælleskabeloner genopretter, når deres serie er væk:** modtageren registrerer kun et antal for de tilstande, der findes, så når den sidste røde vært bliver grøn, er der ingen serie tilbage, og deres genopretningskriterier tæller en manglende serie som 0. Når intet datacenter har en serie tilbage, genopretter de kun, hvis `vcenter.datacenter.cpu.limit` er ankommet i samme vindue, så en vCenter, der er holdt op med at rapportere, lukker intet.
 - **Tærskler er fastlåst i deres enhed** (`%`, `ms`, `us`), så de beholder deres betydning, uanset hvilken enhed en graf viser.
 
 ## Indsamlede metrikker
@@ -273,7 +274,7 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | --- | --- |
 | **Metrik** | Den forespørgsel eller formel, der skal tjekkes, efter dens variabelnavn. |
 | **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver værdi skal matche, i hele vinduet) eller **Any Value** (én er nok). |
-| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, og **Har data**, når den sendte noget. |
+| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, og **Har data**, når den sendte noget. **Forventes at stige over** og **Forventes at falde under** matcher, når metrikkens tendens i vinduet er forbi tærsklen ved udgangen af **Tidshorisont**. |
 | **Tærskel** | Den værdi, der sammenlignes med. En enhedsliste står ved siden af, når metrikken har en enhed. Vises ikke for anomalibetingelser. |
 | **Følsomhed** | Kun anomalibetingelser. **Lav** (4σ), **Mellem** (3σ, standarden) eller **Høj** (2σ). |
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standarden), 28, 60 eller 90 dages historik. |

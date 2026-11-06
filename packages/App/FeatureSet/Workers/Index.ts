@@ -38,6 +38,9 @@ import "./Jobs/AlertOwners/SendStateChangeNotification";
 import "./Jobs/AlertOwners/SendUnresolvedReminderNotification";
 import "./Jobs/Alert/KeepCurrentStateConsistent";
 
+// Alert Incident Rules
+import "./Jobs/AlertIncidentRules/DeclareIncidentsWhenWaitIsUp";
+
 // Alert Episodes
 import "./Jobs/AlertEpisode/AutoResolve";
 import "./Jobs/AlertEpisode/ResolveInactiveEpisodes";
@@ -304,6 +307,7 @@ import "./Jobs/SecurityEvents/ForwardSecurityEvents";
 import "./Jobs/SecurityEvents/EntityRisk";
 import "./Jobs/SecurityEvents/RunScheduledHunts";
 import "./Jobs/SecurityEvents/SendSecurityHuntNotification";
+import "./Jobs/SecurityEvents/SecurityWatchlists";
 import "./Jobs/ThreatIntel/PollThreatIntelFeeds";
 import "./Jobs/ThreatIntel/MatchThreatIntelIndicators";
 import "./Jobs/SecurityPlaybooks/RunSecurityPlaybook";
@@ -342,6 +346,12 @@ import "./Jobs/Host/CleanupStaleHosts";
 
 // Proxmox cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/Proxmox/CleanupStaleResources";
+import "./Jobs/OpenStack/CleanupStaleResources";
+import "./Jobs/OpenStack/RefreshCapacity";
+import "./Jobs/OpenStack/RefreshUsage";
+import "./Jobs/OpenStack/SendProjectNotices";
+// Cloud connection tests no probe will answer: failed, secret wiped.
+import "./Jobs/OpenStack/ExpireConnectionTests";
 
 // VMware vCenter disconnection sweeper + inventory cleanup.
 import "./Jobs/VMware/CleanupStaleResources";
@@ -363,7 +373,9 @@ import "./Jobs/IoT/CleanupStaleResources";
 // Cloud environment disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Cloud/CleanupStaleResources";
 import "./Jobs/Cloud/ReadCloudConnections";
+import "./Jobs/Cloud/EvaluateCloudBudgets";
 import "./Jobs/DataSecurity/DataSecurityJobs";
+import "./Jobs/DataObservability/DataObservabilityJobs";
 // Network controller connections (Meraki): traffic read on a schedule.
 import "./Jobs/Network/ReadNetworkControllerConnections";
 // ...and their devices added as network devices, when someone asks.
@@ -603,12 +615,12 @@ const WorkersFeatureSet: FeatureSet = {
       } else {
         QueueWorker.getWorker(
           QueueName.Worker,
-          async (job: QueueJob) => {
+          async (job: QueueJob, token?: string) => {
             const name: string = job.name;
 
             logger.debug("Running Job: " + name, { service: "workers" });
 
-            await runWorkerJob(job);
+            await runWorkerJob(job, token);
           },
           { concurrency: WORKER_CONCURRENCY },
         );

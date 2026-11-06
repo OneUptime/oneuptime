@@ -10,27 +10,37 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import SecurityWatchlist from "../../../Models/DatabaseModels/SecurityWatchlist";
 import SecurityWatchlistItem from "../../../Models/DatabaseModels/SecurityWatchlistItem";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
+import { SECURITY_HUNT_RUN_ERRORS } from "../../../Types/SecurityEvent/SecurityHunt";
 import {
+  getSecurityWatchlistExpiryProblem,
   getSecurityWatchlistNameProblem,
   getSecurityWatchlistNoteProblem,
   getSecurityWatchlistProblems,
   getSecurityWatchlistSizeProblem,
   getSecurityWatchlistValueProblem,
+  parseSecurityWatchlistImport,
   SECURITY_WATCHLIST_MESSAGES,
+  SecurityWatchlistImportProblem,
   SecurityWatchlistProblem,
   SecurityWatchlistShape,
   SecurityWatchlistSource,
 } from "../../../Types/SecurityEvent/SecurityWatchlist";
+import {
+  SECURITY_WATCHLIST_FILTER_MESSAGES,
+  getSecurityWatchlistFiltersProblem,
+} from "../../../Types/SecurityEvent/SecurityWatchlistFilter";
 import { PluralTemplate } from "../../../UI/Utils/TranslateTemplate";
 
 /*
  * EVERY WORD OF WATCHLISTS IS EVERY LANGUAGE'S OWN: the list and its
  * common lists to start with, the form, a list's page and its Import
- * Values dialog, the line under a rule's YAML, the guide's |expand row,
- * the two models' names and titles, and every problem the shared rules
- * answer a form, an import or a save with - read from the Dashboard's
- * locale files themselves, so a key that lost its translation, kept the
- * English or dropped a placeholder is caught.
+ * Values dialog, a list read from an address, the line under a rule's
+ * YAML, a Security Events monitor's Filter by Watchlists, the guide's
+ * |expand row, the two models' names and titles, and every problem the
+ * shared rules answer a form, an import, a read of an address, a monitor
+ * or a save with - read from the Dashboard's locale files themselves, so a
+ * key that lost its translation, kept the English or dropped a placeholder
+ * is caught.
  *
  * A watchlist is named the way rules write it, so a name in an example
  * (vip_users, '%vip_users%', svc-*, 10.20.0.0/16) stays exactly as written
@@ -132,6 +142,61 @@ const WRONG_LISTS: Array<SecurityWatchlistShape> = [
     entityType: SecurityEntityType.User,
     source: SecurityWatchlistSource.ThreatIntelFeed,
   },
+  // A list read from an address: no address, or one it cannot read.
+  {
+    name: "vip_users",
+    entityType: SecurityEntityType.User,
+    source: SecurityWatchlistSource.Url,
+    importSchedule: "Every Minute",
+  },
+  {
+    name: "vip_users",
+    entityType: SecurityEntityType.User,
+    source: SecurityWatchlistSource.Url,
+    importUrl: "not an address",
+  },
+  {
+    name: "vip_users",
+    entityType: SecurityEntityType.User,
+    source: SecurityWatchlistSource.Url,
+    importUrl: "http://example.com/vip.csv",
+  },
+  {
+    name: "vip_users",
+    entityType: SecurityEntityType.User,
+    source: SecurityWatchlistSource.Url,
+    importUrl: "https://me:secret@example.com/vip.csv",
+  },
+  {
+    name: "vip_users",
+    entityType: SecurityEntityType.User,
+    source: SecurityWatchlistSource.Url,
+    importUrl: `https://example.com/${"a".repeat(500)}`,
+  },
+];
+
+const NOW: Date = new Date("2026-11-03T12:00:00.000Z");
+
+// What an import's lines with a moment to leave can be told.
+const IMPORT_EXPIRY_PROBLEMS: Array<string> = parseSecurityWatchlistImport({
+  text: "value,note,expires\nalice,,12/31/2026\nbob,,2020-01-01",
+  entityType: SecurityEntityType.User,
+  now: NOW,
+}).problems.map((problem: SecurityWatchlistImportProblem): string => {
+  return problem.message;
+});
+
+/*
+ * What a read of a list's address says on its page, and what the API says
+ * to a hand that changes a list read from one: the words a read and a
+ * refusal are made of.
+ */
+const READ_AND_REFUSAL_MESSAGES: Array<string> = [
+  SECURITY_WATCHLIST_MESSAGES.urlFileIsWebPage.message,
+  SECURITY_WATCHLIST_MESSAGES.urlFileHasNoValues.message,
+  SECURITY_WATCHLIST_MESSAGES.urlFileTooLarge.message,
+  SECURITY_WATCHLIST_MESSAGES.urlNotRead.message,
+  SECURITY_WATCHLIST_MESSAGES.keptByUrl.message,
 ];
 
 const PROBLEMS: Array<string> = Array.from(
@@ -154,6 +219,10 @@ const PROBLEMS: Array<string> = Array.from(
       getSecurityWatchlistSizeProblem({ total: 5001, patterns: 0, ranges: 0 }),
       getSecurityWatchlistSizeProblem({ total: 101, patterns: 101, ranges: 0 }),
       getSecurityWatchlistSizeProblem({ total: 101, patterns: 0, ranges: 101 }),
+      getSecurityWatchlistExpiryProblem("next week", NOW),
+      getSecurityWatchlistExpiryProblem("2020-01-01T00:00:00.000Z", NOW),
+      ...IMPORT_EXPIRY_PROBLEMS,
+      ...READ_AND_REFUSAL_MESSAGES,
     ].filter((problem: string | null): problem is string => {
       return Boolean(problem);
     }),
@@ -211,22 +280,75 @@ const MODEL_TEXTS: Array<string> = [
   ...modelTexts(new SecurityWatchlistItem()),
 ];
 
+/*
+ * What a monitor's watchlist filters can be told, found by asking about
+ * rows wrong in each way they can be; and a hunt whose list is gone.
+ */
+const FILTER_PROBLEMS: Array<string> = Array.from(
+  new Set(
+    [
+      getSecurityWatchlistFiltersProblem([
+        { field: "principalUser", watchlist: "" },
+      ]),
+      getSecurityWatchlistFiltersProblem([
+        { field: "message", watchlist: "vip_users" },
+      ]),
+      getSecurityWatchlistFiltersProblem(
+        new Array(11).fill({ field: "principalUser", watchlist: "vip_users" }),
+      ),
+    ].filter((problem: string | null): problem is string => {
+      return Boolean(problem);
+    }),
+  ),
+).sort();
+
 const SENTENCES: Array<string> = Array.from(
   new Set([
     ...COPY_SENTENCES,
     ...PROBLEMS,
+    ...FILTER_PROBLEMS,
+    SECURITY_HUNT_RUN_ERRORS.watchlistMissing.message,
     ...(EXPAND_DOC ? [EXPAND_DOC.meaning] : []),
     ...MODEL_TEXTS,
   ]),
 );
 
-// A rule's name for a list: written the same in every language.
-const MAY_STAY_AS_WRITTEN: Array<string> = ["vip_users"];
+/*
+ * A rule's name for a list, and the example address a list is read from:
+ * written the same in every language.
+ */
+const MAY_STAY_AS_WRITTEN: Array<string> = [
+  "vip_users",
+  "https://example.com/vip-users.csv",
+];
 
 // A word some languages write as English does.
 const SAME_WORD_IN: Record<string, Array<string>> = {
   Description: ["fr"],
   Hosts: ["de", "es", "pt", "nl"],
+  // A word every language's Dashboard keeps: an address on the web.
+  URL: [
+    "de",
+    "fr",
+    "es",
+    "it",
+    "pt",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ja",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+  ],
+  // As each of these languages names a monitor and a hunt everywhere else.
+  Monitor: ["es", "it", "pt", "nl"],
+  Hunt: ["nl", "da", "no", "sv"],
+  Match: ["da"],
   Name: ["de"],
   Note: ["fr", "da"],
   Project: ["nl"],
@@ -265,6 +387,18 @@ const WRITTEN_AS_IS: Record<string, Array<string>> = {
     [".txt", ".csv", "alice@example.com, CFO"],
   "The field is on one of your watchlists, named between % signs. Used alone: the list's values say how they match.":
     ["%"],
+  "Write when the value leaves the list as a date such as 2026-12-31, or leave it empty.":
+    ["2026-12-31"],
+  "The https address of a text or CSV file: one value a line, with an optional note after a comma. The list is what the file holds at its last read.":
+    ["https", "CSV"],
+  "Read again on a schedule from an https address: a text or CSV file, one value a line.":
+    ["https", "CSV"],
+  "Enter the https address of the file to read.": ["https"],
+  "Enter a whole address, with https and the host name.": ["https"],
+  "The address starts with https.": ["https"],
+  "The file at the address is larger than 4 MB, so the list keeps the values it had. Split the list into smaller files.":
+    ["4"],
+  "A monitor reads at most 10 watchlist filters.": ["10"],
 };
 
 function placeholders(text: string): Array<string> {
@@ -299,14 +433,35 @@ describe("the words there are", () => {
         "Enter an IP address, a range such as 10.20.0.0/16, or a pattern with *.",
         "Enter an MD5, SHA-1, SHA-256 or SHA-512 hash.",
         "Use letters, digits and underscores, starting with a letter, such as vip_users.",
+        SECURITY_WATCHLIST_MESSAGES.expiryNotADate.message,
+        SECURITY_WATCHLIST_MESSAGES.expiryPassed.message,
+        SECURITY_WATCHLIST_MESSAGES.importExpiryNotADate.message,
+        SECURITY_WATCHLIST_MESSAGES.importExpiryPassed.message,
+        SECURITY_WATCHLIST_MESSAGES.enterUrl.message,
+        SECURITY_WATCHLIST_MESSAGES.urlNotAnAddress.message,
+        SECURITY_WATCHLIST_MESSAGES.urlNotHttps.message,
+        SECURITY_WATCHLIST_MESSAGES.urlHasCredentials.message,
+        SECURITY_WATCHLIST_MESSAGES.urlTooLong.message,
+        SECURITY_WATCHLIST_MESSAGES.chooseSchedule.message,
+        ...READ_AND_REFUSAL_MESSAGES,
       ].sort(),
     );
   });
 
-  test("every message the shared rules keep is one a form can show", () => {
+  test("every message the shared rules keep is one a form, a read or a save can show", () => {
     for (const entry of Object.values(SECURITY_WATCHLIST_MESSAGES)) {
       expect(PROBLEMS).toContain(entry.message);
     }
+  });
+
+  test("every problem a monitor's watchlist filters can show", () => {
+    expect(FILTER_PROBLEMS).toEqual(
+      Object.values(SECURITY_WATCHLIST_FILTER_MESSAGES)
+        .map((entry: { message: string }): string => {
+          return entry.message;
+        })
+        .sort(),
+    );
   });
 
   test("the guide has its |expand row", () => {
@@ -315,7 +470,8 @@ describe("the words there are", () => {
 
   test("the copy's words, its plurals and the models' titles", () => {
     expect(COPY_SENTENCES.length).toBeGreaterThan(80);
-    expect(PLURALS.length).toBe(11);
+    // With a read's lines left out, and a list's values from its address.
+    expect(PLURALS.length).toBe(13);
     expect(MODEL_TEXTS).toEqual(
       expect.arrayContaining([
         "Watchlist",

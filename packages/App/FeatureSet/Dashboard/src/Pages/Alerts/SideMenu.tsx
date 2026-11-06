@@ -32,6 +32,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     useWorkspaceSideMenuSection({
       slack: PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK,
       microsoftTeams: PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      mattermost: PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST,
       connect: PageMap.ALERTS_WORKSPACE_CONNECTIONS,
     });
 
@@ -174,6 +175,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.Call,
+        },
+        // Which alerts have an incident declared from them.
+        {
+          link: {
+            title: "Incident Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_INCIDENT_RULES] as Route,
+            ),
+          },
+          icon: IconProp.ArrowTrendingUp,
         },
         {
           link: {

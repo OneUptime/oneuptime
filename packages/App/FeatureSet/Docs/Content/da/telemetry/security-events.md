@@ -38,6 +38,7 @@ flowchart TB
 | **Alle sager** | Sikkerhedssager | Hver sag, åben eller lukket |
 | **Begivenheder** | Begivenheder | Søg i og filtrér alle begivenheder, og åbn en for at se alle dens felter |
 | **Hunts** | Begivenheder | Søgninger gemt fra Begivenheder, åbnet igen med ét klik eller kørt efter en tidsplan, der giver personer besked, når de finder noget |
+| **Huntbibliotek** | Begivenheder | Færdige hunts at prøve under Begivenheder eller føje til dine hunts, hver med de begivenheder, den læser, og om de kommer |
 | **Kampagner** | Begivenheder | Hver adresse, der sendte angrebsforespørgsler, og om nogen af dens forespørgsler kom igennem |
 | **Entitetsrisiko** | Begivenheder | Hver bruger, vært og adresse, scoret efter hvad der er fundet om den i denne uge, de mest risikable først |
 | **Korrelér** | Begivenheder | En graf over de begivenheder, der deler en vært, en bruger eller en IP-adresse |
@@ -181,22 +182,42 @@ Siden **Opsætningsvejledning**, under **Forbindelser**, har disse kodestykker m
 
 ### Find sikkerhedshændelser i dine logs
 
-Kortet **Dine logs**, øverst på **Forbindelser**, gør de logs, du allerede sender til OneUptime, til en kilde. Med **Find sikkerhedshændelser i dine logs** slået til læses projektets nye logs hvert minut, og hvert SSH- eller Windows-login, hver sudo-kommando, hver auditpost fra en cloud, hver CEF- eller LEEF-post fra et sikkerhedsprodukt, hver Kubernetes-auditpost og hvert webangreb i dem gemmes som en sikkerhedshændelse. Se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started#find-sikkerhedshændelser-i-dine-logs) for, hvad hver slags dækker.
+Kortet **Dine logs**, øverst på **Forbindelser**, gør de logs, du allerede sender til OneUptime, til en kilde. Med **Find sikkerhedshændelser i dine logs** slået til læses projektets nye logs hvert minut, og hvert SSH- eller Windows-login, hver sudo-kommando, hver auditpost fra en cloud, hver CEF- eller LEEF-post fra et sikkerhedsprodukt, hver post fra en Palo Alto Networks-, FortiGate- eller Cisco ASA-firewall, hver Kubernetes-auditpost og hvert webangreb i dem gemmes som en sikkerhedshændelse. Se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started#find-sikkerhedshændelser-i-dine-logs) for, hvad hver slags dækker.
 
 Hver slags når OneUptime som almindelige logs:
 
 | Slags | Send den fra |
 | --- | --- |
 | SSH-logins, sudo | En Linux-maskines journal eller auth-log, med [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| Windows-hændelser | Collectorens `windowseventlog`-receiver på maskinen, eller en videresender, der skriver hver hændelse som JSON, som NXLog eller Winlogbeat |
-| AWS CloudTrail | Et trail leveret til CloudWatch Logs, læst af collectorens `awscloudwatch`-receiver |
-| Google Cloud-auditlogs | En log-sink til Pub/Sub, læst af collectorens `googlecloudpubsub`-receiver med `encoding: raw_text` |
-| Azure-aktivitetslogs og Entra ID-logs | En diagnosticeringsindstilling, der streamer til en Event Hub, læst af collectorens `azureeventhub`-receiver med `format: raw` |
+| Windows-hændelser | Collectorens `windowseventlog`-receiver på maskinen, eller en videresender, der skriver hver hændelse som JSON, som NXLog eller Winlogbeat. En [vært](/docs/telemetry/hosts), der er tilføjet i OneUptime, læser også Sysmon, Microsoft Defender og PowerShell, hvor den har dem |
+| AWS CloudTrail | Et trail leveret til CloudWatch Logs, læst af collectorens `awscloudwatch`-receiver, eller, for en konto, der er forbundet under **Cloud**, [Cloud-auditlogs](#læs-auditlogs-fra-dine-cloudkonti) |
+| Google Cloud-auditlogs | En log-sink til Pub/Sub, læst af collectorens `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, for et projekt, der er forbundet under **Cloud**, [Cloud-auditlogs](#læs-auditlogs-fra-dine-cloudkonti) |
+| Azure-aktivitetslogs og Entra ID-logs | En diagnosticeringsindstilling, der streamer til en Event Hub, læst af collectorens `azureeventhub`-receiver med `format: raw`, eller, for aktivitetsloggen fra et abonnement, der er forbundet under **Cloud**, [Cloud-auditlogs](#læs-auditlogs-fra-dine-cloudkonti) |
+| OpenStack-auditspor | En clouds notifikationer og auditfilter sendt til dens logs med `driver = log`, læst af agentens [logprofil](/docs/telemetry/openstack#hvem-gjorde-hvad) |
 | CEF, LEEF | Produktets syslog, videresendt af [rsyslog](/docs/telemetry/syslog) |
+| Palo Alto Networks, FortiGate, Cisco ASA | Firewallens egen syslog, videresendt af [rsyslog](/docs/telemetry/syslog) |
 | Kubernetes-auditlogs | API-serverens auditlogfil, læst af collectorens `filelog`-receiver |
 | Webangreb | En webservers adgangslog, læst af collectorens `filelog`-receiver |
 
 På **Dine logs** viser hver slags, hvornår den sidst blev fundet, og **Tjek en loglinje** viser, hvad en linje, du indsætter, bliver til, før der kommer nogen.
+
+En trussel, som et sikkerhedsprodukt skriver i dine logs, for eksempel et CEF- eller LEEF-fund eller en trussel fra Palo Alto Networks, FortiGate eller Cisco ASA, åbner en [sag](/docs/telemetry/security-cases), som et forbundet produkts advarsel gør, og øger risikoen for den bruger, vært eller adresse, den nævner. **Åbn sager fra** på **Dine logs** angiver, fra hvilken alvorlighed: **Høj og højere**, medmindre du vælger en anden, eller **Aldrig**. Produktets logins og blokerede forbindelser forbliver hændelser, som dine regler kan læse.
+
+En post, der når OneUptime ad to veje, gemmes én gang: et Microsoft Entra ID-login, som dets forbindelse læser, og som Azure også eksporterer til dine logs, eller en CloudTrail-post i dine logs og i auditloggen for en forbundet AWS-konto.
+
+### Læs auditlogs fra dine cloudkonti
+
+En AWS-konto, et Google Cloud-projekt eller et Azure-abonnement, der er [forbundet under **Cloud**](/docs/telemetry/cloud-accounts), behøver ingen logpipeline. Slå **Cloud-auditlogs** til under **Dine OneUptime-data** på **Forbindelser**, så gemmer hver læsning af kontoen dens auditlog som sikkerhedshændelser:
+
+| Cloud | Hvad der læses |
+| --- | --- |
+| AWS | CloudTrails administrationshændelser, der ændrer noget, i hver region, kontoen bruger: logins til konsollen, ændringer og kald, som AWS afviste |
+| Google Cloud | Auditloggen Admin Activity: ændringer af ressourcer og af, hvem der må nå dem, og kald, som Google afviste |
+| Azure | Aktivitetsloggen: ændringer i abonnementet, handlinger, der mislykkedes, afvisninger fra Azure Policy og advarsler fra Defender for Cloud |
+
+- Hver post læses, som **Dine logs** læser den fra en pipeline, så regelbibliotekets CloudTrail-, Google Cloud- og Azure-regler matcher den.
+- En hændelse får tidspunktet, hvor den gemmes, med postens egen tid i `oneuptime.cloud.record_time`: En auditlog når OneUptime minutter for sent, og en regel læser hændelser efter deres tid.
+- Kontoens egen læsning giver ikke mere: datahændelser, Data Access-logs og Microsoft Entra ID's logs kræver stadig **Dine logs** eller en [forbindelse](/docs/integrations/microsoft-entra-id).
 
 ### Forbind et sikkerhedsprodukt
 
@@ -212,7 +233,7 @@ På **Dine logs** viser hver slags, hvornår den sidst blev fundet, og **Tjek en
 | Elastic Security | Detektionsadvarsler, som Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, som Detection og Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Begivenheder om login, MFA, konti og politikker | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | Logins og mappeændringer, og fra Microsoft 365-auditloggen videresendelse af mail, deling og phishingdomme | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | Logins, mappeændringer og risikoregistreringer, hvis du vælger det mislykkede baggrunds- og app-logins, og fra Microsoft 365-auditloggen videresendelse af mail, deling og phishingdomme | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Logins, Googles egne fund, administratorændringer og app-adgang, og deling i Drev | [Google Workspace](/docs/integrations/google-workspace) |
 
 - Produktets egne advarsler på eller over **Open Cases From** (**Høj og højere**, medmindre du vælger et andet niveau, eller **Aldrig**) åbner [sager](/docs/telemetry/security-cases), grupperet efter den bruger, vært eller adresse, de handler om.
@@ -256,6 +277,7 @@ Søgefeltet taler det samme sprog som de andre telemetrioversigter (se [Søgesyn
 | `<field>:a*` | `*` er vilkårlig tekst, `?` ét tegn | `host:web-*` |
 | `@<attribute>:*` | Attributten findes | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Attributten indeholder teksten | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | Feltet står på en [overvågningsliste](#overvågningslister) | `user:%vip_users%` |
 
 Et felt er enten et kort navn (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) eller feltets eget navn, f.eks. `severityName` eller `principalHost`. Alle andre navne læses som en kildeattribut. `observable:<value>` finder hver begivenhed, der nævner en værdi, uanset hvilken side af aktiviteten den var på.
 
@@ -281,9 +303,17 @@ En hunt er en søgning i dine sikkerhedsbegivenheder, gemt med et navn: søgefel
 
 ### Gem en søgning som en hunt
 
-Søg og filtrér under **Begivenheder**, indtil listen viser det, du leder efter, åbn derefter **Hunts** på værktøjslinjen, og vælg **Gem som hunt**. Giv den et navn, vælg, om den kører efter en tidsplan, og dens side åbnes. **Begivenheder → Hunts** viser projektets hunts, hver med sin søgning, hvor ofte den kører, hvem den giver besked, og hvad dens seneste kørsel fandt; **Opret Hunt** tager der søgningen, som du ville skrive den under **Begivenheder**. Et projekt gemmer op til 200 hunts.
+Søg og filtrér under **Begivenheder**, indtil listen viser det, du leder efter, åbn derefter **Hunts** på værktøjslinjen, og vælg **Gem som hunt**. Giv den et navn, vælg, om den kører efter en tidsplan, og dens side åbnes. **Begivenheder → Hunts** viser projektets hunts, hver med sin søgning, hvor ofte den kører, hvem den giver besked, og hvad dens seneste kørsel fandt; **Opret Hunt** tager der søgningen, som du ville skrive den under **Begivenheder**. Et projekt gemmer op til 200 hunts. En søgning kan læse en [overvågningsliste](#overvågningslister), som `user:%vip_users%` gør, og en hunt, der læser en liste, projektet ikke har, afvises, når du gemmer den.
 
 En hunts side er dens søgning, åbnet i begivenhedsoversigten. Ændr søgningen eller filtrene der, så tilbyder huntens overskrift **Gem ændringer** og **Kassér ændringer**. **Rediger** ændrer dens navn, dens søgning, hvor langt tilbage den ser, dens tidsplan og hvem den giver besked, og **Slet hunt** findes i dens menu. Fra Security Member og op kan man gemme, ændre og slette hunts, og en Security Viewer kan åbne dem.
+
+En hunt, der er gemt med filtre fra sidepanelet under Begivenheder, viser dem i **Rediger** under **Filtre**, som Begivenheder tegner dem, hvert med et x til at fjerne det. Tilføj filtre på huntens side, fra sidepanelet.
+
+### Start fra Huntbiblioteket
+
+**Begivenheder → Huntbibliotek** viser færdige hunts til det, sikkerhedsteams oftest leder efter, såsom mislykkede logins, kodet PowerShell, AWS-rodkontoen og shells åbnet i Kubernetes-pods. Hver viser, hvad den finder, dens søgning, som du ville skrive den under **Begivenheder**, og om de begivenheder, den læser, kommer, som **Regelbibliotek** gør det for sine regler. Indsnævr dem efter **Huntkategori**, **Data** og **Status**, eller søg i dem.
+
+**Prøv det** åbner søgningen under **Begivenheder** over huntens tidsvindue og gemmer intet. **Tilføj** gemmer den med det samme som en af projektets hunts, navngivet og beskrevet på dit sprog og uden tidsplan, som enhver ny hunt. Derefter står der **Tilføjet**, og **Åbn** åbner den, hvor du kan give den en tidsplan.
 
 ### Kør en hunt efter en tidsplan
 
@@ -302,9 +332,15 @@ En kørsel åbner ingen sag og udløser ingen advarsel: skriv det, der skal åbn
 
 En planlagt hunt kører som den person, der sidst satte dens tidsplan, ændrede dens søgning eller gemte den med **Rediger**. En API-nøgle kan ikke sætte en tidsplan. Når den person forlader projektet eller ikke længere må læse sikkerhedsbegivenheder, siger hunten det: åbn **Rediger**, og gem den for at køre den som dig.
 
+### Kørselshistorik
+
+Hver planlagt kørsel gemmes i 90 dage. **Kørselshistorik**, for enden af linjen, der siger, hvad en hunts kørsler fandt, viser dem med den nyeste først: hvornår hver kørte, og hvilke begivenheder den søgte i, derefter hvor mange den fandt, med **Vis dem** til at åbne de begivenheder på huntens side; at den intet fandt; eller hvorfor den ikke kunne køre. Den, der kan åbne en hunt, kan læse dens kørsler.
+
 ### Hvem der får besked
 
 Notifikationen **En hunt fandt sikkerhedsbegivenheder** nævner hunten og dens søgning, hvor mange begivenheder dens kørsel fandt, og hvilket vindue den læste, og linker til huntens side på de begivenheder; ingen af begivenhedernes egne ord står i den. Alle får den på e-mail og push og vælger dens kanaler under **Brugerindstillinger → Notifikationsindstillinger**. Ligesom andre rutinemails kan den holdes tilbage i en [e-mailsamling](/docs/emails/notification-rollup).
+
+For at slå det op, hunts finder, i Slack, Microsoft Teams eller Mattermost tilføjer du en regel til **Regler for hunts** under **Produkter → Sikkerhedshændelser → Arbejdsområde → Slack** (eller **Microsoft Teams** eller **Mattermost**), under de regler, der slår [sikkerhedssager](/docs/telemetry/security-cases#slå-op-i-slack-microsoft-teams-og-mattermost-kanaler) op. En regel angiver de kanaler, der skal slås op i (og i Microsoft Teams chattene), og, hvis du vil, de hunts, den gælder for, efter **Huntens navn**: et navn, der er din tekst, indeholder den, begynder eller slutter med den. Hver gang en planlagt kørsel finder begivenheder, slår den hunten op, dens søgning, hvor mange begivenheder og hvornår, med et link til dem, og ingen af en begivenheds egne ord. En huntregel oprettes af en rolle, der må oprette sikkerheds-playbooks, såsom Project Owner, Project Admin eller Security Admin.
 
 ### Gem begivenheder på en sag
 
@@ -312,7 +348,7 @@ Vælg begivenheder under **Begivenheder** eller på en hunts side, og vælg **Ma
 
 OneUptime læser hver begivenhed igen som dig og gemmer den, som den var, på sagens side **Beviser**, så sagen stadig viser den, når begivenhedens opbevaringstid er udløbet. En begivenhed, du ikke må læse, gemmes ikke, og en, som sagen allerede gemmer, forbliver, som den er. En begivenhed fundet via en hunt nævner hunten, og **Vis begivenhed** åbner den, som den blev gemt.
 
-Hunts har den samme REST API som resten af OneUptime, under `/security-hunt`, og `POST /security-case-evidence/add-events` gemmer begivenheder på en sag. Se [API-reference](/docs/api-reference/api-reference).
+Hunts har den samme REST API som resten af OneUptime, under `/security-hunt`, og `POST /security-case-evidence/add-events` gemmer begivenheder på en sag. En hunts kørsler læses under `/security-hunt-run`. Se [API-reference](/docs/api-reference/api-reference).
 
 ## Detektionsregler
 
@@ -511,7 +547,7 @@ En undtagelse er noget, en regel springer over, fordi du forventer det, som en s
 
 ### Overvågningslister
 
-En overvågningsliste er en liste, dit team vedligeholder én gang, og som enhver regel kan læse, som VIP-brugere, kritiske værter, kendte ondsindede filhashes eller de adresser, administratorer må logge ind fra. Alle lister ligger under **Produkter → Sikkerhedshændelser → Detektioner → Overvågningslister**: Opret en der med **Opret Overvågningsliste**, som spørger om dens navn og hvad den indeholder, eller tilføj en almindelig fra **Start med en almindelig liste**. En listes side viser dens værdier, og **Brug den i en regel** giver en selektion, der læser listen, til at kopiere ind i en regel.
+En overvågningsliste er en liste, dit team vedligeholder én gang, og som enhver regel kan læse, som VIP-brugere, kritiske værter, kendte ondsindede filhashes eller de adresser, administratorer må logge ind fra. Alle lister ligger under **Produkter → Sikkerhedshændelser → Detektioner → Overvågningslister**: Opret en der med **Opret Overvågningsliste**, som spørger om dens navn og hvad den indeholder, eller tilføj en almindelig fra **Start med en almindelig liste**. En listes side viser dens værdier, og **Brug denne liste** giver en selektion, der læser listen, til at kopiere ind i en regel, og den søgning, der læser den under **Begivenheder** eller i en hunt.
 
 En regel læser en liste med `expand` og listens navn mellem to `%`-tegn. Denne regel udløser, når en administrator logger ind fra en adresse, der ikke er på den tilladte liste:
 
@@ -529,10 +565,14 @@ level: high
 
 - En liste indeholder brugere, værter, IP-adresser, filhashes, domæner, URL'er, processer eller andre værdier, valgt når den oprettes. En værdi matcher uanset store og små bogstaver, og `*` står for en vilkårlig række tegn: `svc-*` matcher alle tjenestekonti. En liste med IP-adresser tager også intervaller som `10.20.0.0/16`, og en liste med filhashes MD5-, SHA-1-, SHA-256- og SHA-512-hashes.
 - Tilføj værdier én ad gangen med **Tilføj Værdi**, eller mange på én gang med **Importér værdier**: indsæt dem, eller vælg en `.txt`- eller `.csv`-fil, én værdi pr. linje, med en valgfri note efter et komma. **Føj til listen** beholder de værdier, der allerede er på den, og **Erstat listen** fjerner dem, importen ikke har.
+- En værdi kan have en **Udløber den**: Derefter læser ingen regel, monitor, hunt eller søgning den, og OneUptime fjerner den fra listen inden for et minut. Står feltet tomt, bliver værdien, til nogen fjerner den.
+- **Eksportér værdier** henter en listes værdier som en CSV-fil med kolonnerne `value`, `note` og `expires`, som **Importér værdier** læser igen. En fil, hvis første linje nævner disse kolonner, giver hver værdi sin note, og hvornår den udløber: en dato som `2026-12-31` eller en dato og et klokkeslæt i UTC.
+- En liste kan i stedet læses fra en fil på en https-adresse, igen **Hver time**, **Hver 6. time** eller **Hver dag**: Vælg **En fil på en adresse** under **Flere felter**, når du opretter den. Hver læsning gør listen til det, filen indeholder, læst som en import læser den. En mislykket læsning ændrer ingen værdier, og listens side siger hvorfor, og **Læs nu** læser den med det samme.
 - I stedet for at vedligeholde værdier kan en liste med IP-adresser, filhashes, domæner eller URL'er følge et feed med trusselsinformation: Dens værdier er så feedets aktive indikatorer af listens type, holdt opdateret, efterhånden som feedet læses.
-- `expand` bruges alene, fordi listens værdier afgør, hvordan de matcher. Et felt med flere værdier, som `observables`, matcher, når en af dem er på listen. **Læses af** nævner de regler, der læser hver liste, og under en regels YAML nævner dens formular de lister, reglen læser.
-- En regel nævner en liste uanset store og små bogstaver. En regel, der nævner en liste, projektet ikke har, afvises, når du gemmer den, og en liste, som regler læser, kan ikke omdøbes eller slettes, før ingen regel læser den.
+- `expand` bruges alene, fordi listens værdier afgør, hvordan de matcher. Et felt med flere værdier, som `observables`, matcher, når en af dem er på listen. **Læses af** nævner de regler, Security Events-monitorer og hunts, der læser hver liste, og under en regels YAML nævner dens formular de lister, reglen læser.
+- En regel nævner en liste uanset store og små bogstaver. En regel, en monitor eller en hunt, der nævner en liste, projektet ikke har, afvises, når du gemmer den, og en liste, som en af dem læser, kan ikke omdøbes eller slettes, før intet læser den.
 - En ændring af en liste når alle regler, der læser den, ved reglens næste kørsel. Korrelationsregler og **Kør på tidligere hændelser** læser også lister.
+- En Security Events-monitor læser lister i sin **Filtrér efter overvågningslister**, og en søgning under **Begivenheder** eller i en hunt læser en som `user:%vip_users%`. Et minus foran, som i `-ip:%admin_addresses%`, beholder de hændelser, hvis felt ikke står på listen.
 - En liste rummer højst 5.000 værdier, heraf højst 100 med `*` og 100 intervaller, og et projekt har højst 200 lister: Følg et feed med trusselsinformation for en længere liste. Den, der må oprette, redigere eller slette detektionsregler, må gøre det samme med lister, og den, der må redigere detektionsregler, tilføjer, ændrer og fjerner deres værdier. Alle Security-roller kan læse dem, og hver ændring gemmes i projektets revisionslog.
 
 ### Kør på tidligere hændelser
@@ -549,11 +589,11 @@ level: high
 
 En monitor for sikkerhedsbegivenheder tæller de begivenheder, der matcher dens filtre, over et glidende vindue og kører de sædvanlige monitorkriterier på optællingen: den ændrer monitorens status, åbner advarsler eller hændelser og tilkalder vagthavende. Opret en under **Overvågninger → Opret monitor** med **Sikkerhedshændelser** som type; den vises der sammen med dine andre monitorer.
 
-Dens formular viser **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** og **Begivenhedsklasse**. **Filtrér efter telemetritjeneste** og **Filtrér efter attributter** venter under **Flere felter**, hvis overskrift viser dem, en monitor bruger. Dens kriterier tjekker **Security Event Count**.
+Dens formular viser **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** og **Begivenhedsklasse**. **Filtrér efter telemetritjeneste**, **Filtrér efter attributter** og **Filtrér efter overvågningslister** venter under **Flere felter**, hvis overskrift viser dem, en monitor bruger. **Filtrér efter overvågningslister** beholder de hændelser, hvis felt står eller ikke står på en af dine [overvågningslister](#overvågningslister). Dens kriterier tjekker **Security Event Count**.
 
 | | Detektionsregel | Monitor for sikkerhedsbegivenheder |
 | --- | --- | --- |
-| Matcher | En Sigma-regel | Filtre på alvorlighed, klasse, besked, tjeneste og attributter |
+| Matcher | En Sigma-regel | Filtre på alvorlighed, klasse, besked, tjeneste, attributter og overvågningslister |
 | Vindue | I forlængelse af hinanden, ét pr. kørsel | Glidende: de seneste 5 sekunder til 24 timer |
 | Tæller pr. gruppe | Ja, med **Grupperingsfelt** | Nej: én optælling for alt, der matcher |
 | Åbner | Advarsler, hændelser og fund | En status, advarsler og hændelser |
@@ -610,11 +650,15 @@ Tjek dens **Status** i **Regelundtagelser**: en undtagelse med status **Udløbet
 :::
 
 :::details En regel, der læser en overvågningsliste, matcher ikke
-Åbn listen, og tjek dens værdier: En værdi uden `*` skal svare til hele feltet, uanset store og små bogstaver, og en liste, der følger et feed med trusselsinformation, indeholder kun feedets aktive indikatorer af dens type. Tjek, at reglen læser det felt, dine hændelser udfylder: **Brug den i en regel** begynder med det felt, en liste af dens type plejer at stå i. En ændring af en liste når en regel ved dens næste kørsel.
+Åbn listen, og tjek dens værdier: En værdi uden `*` skal svare til hele feltet, uanset store og små bogstaver, og en liste, der følger et feed med trusselsinformation, indeholder kun feedets aktive indikatorer af dens type. Tjek, at reglen læser det felt, dine hændelser udfylder: **Brug denne liste** begynder med det felt, en liste af dens type plejer at stå i. En ændring af en liste når en regel ved dens næste kørsel.
 :::
 
 :::details En overvågningsliste kan ikke omdøbes eller slettes
-Regler læser den stadig via dens navn, og meddelelsen nævner dem. Ret navnet i de regler, eller tag listen ud af dem, og omdøb eller slet den derefter.
+Regler, monitorer eller hunts læser den stadig via dens navn, og meddelelsen nævner dem. Ret navnet i dem, eller tag listen ud af dem, og omdøb eller slet den derefter.
+:::
+
+:::details En liste, der læses fra en adresse, viser en fejl
+Dens side siger hvorfor under **Læst fra en adresse**, med det, adressen svarede, og listen beholder værdierne fra sin seneste vellykkede læsning. Adressen skal begynde med `https`, svare fra internettet uden login og hente en tekst- eller CSV-fil på højst 4 MB, ikke en webside. Ret den under **Rediger**, og vælg derefter **Læs nu**.
 :::
 
 :::details At køre en regel på tidligere hændelser finder intet

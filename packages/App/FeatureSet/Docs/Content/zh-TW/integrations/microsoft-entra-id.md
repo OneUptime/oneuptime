@@ -1,6 +1,6 @@
 # Microsoft Entra ID
 
-把 [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) 的登入和目錄變更匯入 OneUptime 的安全性事件；如果你願意，還可以匯入 [Microsoft 365 稽核日誌](https://learn.microsoft.com/en-us/purview/audit-log-activities) 中 Exchange、SharePoint、OneDrive 和 Teams 的活動。在那裡，你可以把它們與日誌、追蹤和指標放在一起搜尋，與其他所有來源進行關聯分析，並為重要的內容呼叫待命人員。OneUptime 透過你建立的應用程式註冊讀取它們，不會變更你租用戶中的任何內容。
+把 [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) 的登入、目錄變更和風險偵測匯入 OneUptime 的安全性事件；如果你願意，還可以匯入應用程式在背景進行的登入，以及 [Microsoft 365 稽核日誌](https://learn.microsoft.com/en-us/purview/audit-log-activities) 中 Exchange、SharePoint、OneDrive 和 Teams 的活動。在那裡，你可以把它們與日誌、追蹤和指標放在一起搜尋，與其他所有來源進行關聯分析，並為重要的內容呼叫待命人員。OneUptime 透過你建立的應用程式註冊讀取它們，不會變更你租用戶中的任何內容。
 
 :::cards
 - [設定連線](#設定連線): 一個應用程式註冊、它的權限，以及連線的表單。
@@ -19,15 +19,15 @@ flowchart TB
     list --> event["每個都儲存為<br/>對應類型的<br/>OCSF 事件"]
 ```
 
-OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一次輪詢會以你的應用程式註冊身分登入 Microsoft Entra ID，按以下順序讀取自上次輪詢以來記錄的目錄變更（[List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)）和登入（[List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)），然後在 **Microsoft 365 稽核日誌** 選項開啟時，讀取稽核日誌的新內容（[Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)）。每筆記錄都儲存為一個 [OCSF](https://schema.ocsf.io/) 事件：登入存為 Authentication 事件，指派的角色存為 User Access Management 事件，網路釣魚判定存為 Detection Finding。
+OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一次輪詢會以你的應用程式註冊身分登入 Microsoft Entra ID，按以下順序讀取自上次輪詢以來記錄的目錄變更（[List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)）和登入（[List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)），接著讀取 Identity Protection 的風險偵測（[List riskDetections](https://learn.microsoft.com/en-us/graph/api/riskdetection-list)），然後在 **背景和應用程式登入** 選項開啟時讀取背景和應用程式登入，在 **Microsoft 365 稽核日誌** 選項開啟時，讀取稽核日誌的新內容（[Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)）。每筆記錄都儲存為一個 [OCSF](https://schema.ocsf.io/) 事件：登入存為 Authentication 事件，指派的角色存為 User Access Management 事件，風險偵測和網路釣魚判定存為 Detection Finding。
 
 ## 開始之前
 
 - 在 OneUptime 中擁有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以檢視連線及其執行歷史，但不能更改它們。
-- 對於登入：Microsoft Entra ID P1 或 P2，Microsoft 365 E3、E5 和 Business Premium 都包含它們：Microsoft Graph 只向這類租用戶提供登入。目錄變更在任何租用戶中都能讀取。
+- 對於登入和風險偵測：Microsoft Entra ID P1 或 P2，Microsoft 365 E3、E5 和 Business Premium 都包含它們：Microsoft Graph 只向這類租用戶提供這些資料，P2 還會提供每個風險偵測的詳細資訊。目錄變更在任何租用戶中都能讀取。
 - 一個可以註冊應用程式的 Entra 角色，例如 Application Administrator，以及一位能授予管理員同意的 Global Administrator 或 Privileged Role Administrator。
 - 對於 Microsoft 365 稽核日誌：租用戶已開啟稽核，預設即為開啟：在 [Microsoft Purview 入口網站](https://purview.microsoft.com) 中，**Audit** 不應顯示 **Start recording user and admin activity**。
-- 從 OneUptime 應用程式和工作程序到 `login.microsoftonline.com`、`graph.microsoft.com` 和 `manage.office.com` 的傳出 HTTPS；Azure Government 則是到 `login.microsoftonline.us`、`graph.microsoft.us` 和 `manage.office365.us`。
+- 從 OneUptime 應用程式和工作程序到 `login.microsoftonline.com`、`graph.microsoft.com` 和 `manage.office.com` 的傳出 HTTPS（Microsoft 365 GCC 改為 `manage-gcc.office.com`）；GCC High 則是到 `login.microsoftonline.us`、`graph.microsoft.us` 和 `manage.office365.us`，DoD 則是到 `login.microsoftonline.us`、`dod-graph.microsoft.us` 和 `manage.protection.apps.mil`。
 
 ## 設定連線
 
@@ -42,7 +42,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ### 允許它讀取日誌
 
-1. 前往 **API permissions → Add a permission → Microsoft Graph → Application permissions**，選擇 `AuditLog.Read.All`，然後選擇 **Add permissions**。Microsoft 文件說明登入清單還可能需要 `Directory.Read.All`：如果授予同意後登入仍以 `403` 被拒絕，請新增它。
+1. 前往 **API permissions → Add a permission → Microsoft Graph → Application permissions**，選擇 `AuditLog.Read.All`，以及用於風險偵測的 `IdentityRiskEvent.Read.All`，然後選擇 **Add permissions**。Microsoft 文件說明登入清單還可能需要 `Directory.Read.All`：如果授予同意後登入仍以 `403` 被拒絕，請新增它。
 2. 對於 Microsoft 365 稽核日誌，新增第二項權限：**Add a permission → Office 365 Management APIs → Application permissions**，然後選擇 `ActivityFeed.Read`。
 3. 若要讓劇本停用、啟用和登出使用者（請參閱 [圍堵](/docs/telemetry/security-cases#圍堵)），請以同樣方式新增 `User.Read.All`、`User.EnableDisableAccount.All` 和 `User.RevokeSessions.All`。Microsoft 只允許同時具有 Privileged Authentication Administrator 角色的應用程式變更管理員的帳戶。
 4. 為你的租用戶選擇 **Grant admin consent for**，並確認。每項權限的狀態都必須顯示為 **Granted**：沒有同意時，每次讀取都會以 `403` 被拒絕。
@@ -53,7 +53,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ### 在 OneUptime 中新增連線
 
-開啟 **產品 → 安全事件 → 連線**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，在 **身分** 下選擇 **Microsoft Entra ID**，然後點選 **下一步**。填寫下表中的設定，點選 **下一步**，並把密碼的值貼上到 **用戶端密碼** 中。在 **輪詢** 步驟中開啟 **Microsoft 365 稽核日誌**，即可同時讀取它。
+開啟 **產品 → 安全事件 → 連線**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，在 **身分** 下選擇 **Microsoft Entra ID**，然後點選 **下一步**。填寫下表中的設定，點選 **下一步**，並把密碼的值貼上到 **用戶端密碼** 中。在 **輪詢** 步驟中開啟 **背景和應用程式登入** 或 **Microsoft 365 稽核日誌**，即可同時讀取它們。Azure 公用雲端之外的租用戶在設定步驟的 **更多欄位** 中選擇它的 **雲端**。
 
 ### 儲存之前先測試
 
@@ -63,8 +63,9 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 | 設定 | 在哪裡找到 |
 | --- | --- |
 | **目錄（租用戶）ID** | 應用程式的 **Overview** 頁面。租用戶的 GUID，或已驗證的網域，例如 `contoso.onmicrosoft.com`。開啟 **Microsoft 365 稽核日誌** 時必須是 GUID：Management API 只按 GUID 識別租用戶。 |
-| **應用程式（用戶端）ID** | 應用程式的 **Overview** 頁面。擁有 `AuditLog.Read.All` 的應用程式的 GUID。 |
-| **雲端** | **Azure 公用雲端**，或用於 GCC High 的 **Azure Government（美國）** （`login.microsoftonline.us`、`graph.microsoft.us` 和 `manage.office365.us`）。 |
+| **應用程式（用戶端）ID** | 應用程式的 **Overview** 頁面。擁有 `AuditLog.Read.All` 和 `IdentityRiskEvent.Read.All` 的應用程式的 GUID。 |
+| **雲端** | 位於 **更多欄位** 下，除非你選擇其他雲端，否則為 **Azure 公用雲端**：GCC 選 **Azure 公用雲端，Microsoft 365 GCC**，GCC High 選 **Azure Government（美國），GCC High**，DoD 選 **Azure Government（美國），DoD**。 |
+| **背景和應用程式登入** | 選用，預設關閉。開啟後，每次輪詢還會從 Microsoft Graph 的 beta 登入清單讀取應用程式在背景代表使用者進行的登入以及服務主體本身的登入，並匯入失敗的登入。 |
 | **Microsoft 365 稽核日誌** | 選用，預設關閉。開啟後，每次輪詢也會讀取 Microsoft 365 稽核日誌。應用程式需要 `ActivityFeed.Read`。 |
 | **用戶端密碼** | 密碼的 **Value**。它會被加密，API 從不傳回，也不會再次顯示。在連線上用 **更新憑證** 替換它。 |
 
@@ -80,6 +81,8 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 | 等待第二步的登入，例如 MFA（`50074`、`50076`）或要求變更密碼的提示 | Authentication (`3002`)，狀態 `Interrupted` | Informational：是一個步驟，不是失敗 |
 | 失敗的登入，附帶 Entra 的原因和錯誤代碼 | Authentication (`3002`)，狀態 `Failure` | Low |
 | Identity Protection 評為中等或高風險的登入 | Authentication (`3002`) | Medium 或 High |
+| Identity Protection 偵測到的風險，例如匿名 IP 位址或外洩的認證 | Detection Finding (`2004`) | 它的風險等級；已確認遭入侵的使用者為 Critical |
+| 失敗的背景或應用程式登入，需開啟 **背景和應用程式登入** | Authentication (`3002`)，狀態 `Failure` | Low |
 | 依類別劃分的使用者、群組或角色變更 | Account Change (`3001`)、Group Management (`3006`)、User Access Management (`3005`)，其餘為 Entity Management (`3004`) | 特殊權限角色（例如 Global Administrator）為 Medium；失敗的變更為 Low |
 
 開啟 **Microsoft 365 稽核日誌** 後，會從中匯入安全性團隊需要處理的記錄，其餘記錄（例如開啟的檔案或閱讀的郵件）只計數：
@@ -96,22 +99,22 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 Exchange 以其系統帳戶執行的內部維護作業會被排除，除非它轉寄郵件。每個事件都保留整筆記錄，並展平為帶點的鍵，例如 `status.errorCode` 或 `Parameters.ForwardTo`，因此規則可以按 Microsoft 給欄位取的名稱讀取任何欄位。規則庫中針對 Entra ID 的規則按這裡匯入的形式讀取它們。
 
-同樣的登入和目錄變更也可以作為日誌到達 OneUptime：由 Azure 診斷設定匯出，並由 [你的日誌](/docs/telemetry/security-events#在日誌中尋找安全性事件) 讀取。無論走哪條路，每筆記錄都會得到相同的事件 ID，但兩條路都讀取的記錄會被儲存兩次：只透過一條路讀取 Entra ID。
+同樣的登入、目錄變更和風險偵測也可以作為日誌到達 OneUptime：由 Azure 診斷設定匯出，並由 [你的日誌](/docs/telemetry/security-events#在日誌中尋找安全性事件) 讀取。無論走哪條路，每筆記錄都會得到相同的事件 ID，兩條路都讀取的記錄只會儲存一次，由先讀取它的那條路儲存。
 
 ## 輪詢的運作方式
 
-- **記錄按 Entra ID 記錄它們的時間讀取**：變更為 `activityDateTime`，登入為 `createdDateTime`。
+- **記錄按 Entra ID 記錄它們的時間讀取**：變更為 `activityDateTime`，登入為 `createdDateTime`，風險偵測為 `detectedDateTime`。
 - **第一次輪詢會回溯 24 小時**，所以新連線會立刻顯示最近的記錄。
 - **之後的每次輪詢都從儲存的游標之前 30 分鐘開始。** Microsoft 文件說明這兩個日誌都會晚幾分鐘到達，因此重疊部分會在下一次輪詢中讀取遲到的記錄，重複項目會在專案內按記錄 ID 捨棄。
 - **一次輪詢最多讀取游標之後 24 小時。** 游標落後的連線會透過一連串 24 小時的時間窗追趕。
 - **沒有 Microsoft Entra ID P1 或 P2 的租用戶** 會匯入其目錄變更，並且每次執行的 **Read sign-ins** 檢查都會警告未讀取登入。
 - **失敗的執行不會改變任何東西。** 發生網路錯誤或 Graph 傳回錯誤狀態後，游標和時間窗長度保持不變，下一次輪詢會再次讀取同一個時間窗。唯一的例外是請求逾時：游標保持不變，但下一個時間窗的長度減半，因為太重而無法及時回應的時間窗每次重試都會逾時。
 
-Microsoft 365 稽核日誌按 Microsoft 提供每個內容 blob 的時間讀取，每次一天，並且不會早於 Microsoft 保留它的 7 天。第一次輪詢會讓應用程式訂閱 `Audit.Exchange`、`Audit.SharePoint` 和 `Audit.General`，Microsoft 會在 12 小時內提供新訂閱的首批記錄。稽核日誌從不會阻止 Entra ID 日誌：缺少權限只是一個警告，時間窗照常前進；而 Microsoft 一側的故障（例如 `HTTP 503`）會讓執行變為 **部分**，以便重新讀取該時間窗。
+Microsoft 365 稽核日誌按 Microsoft 提供每個內容 blob 的時間讀取，每次一天，並且不會早於 Microsoft 保留它的 7 天。第一次輪詢會讓應用程式訂閱 `Audit.Exchange`、`Audit.SharePoint` 和 `Audit.General`，Microsoft 會在 12 小時內提供新訂閱的首批記錄。稽核日誌從不會阻止 Entra ID 日誌：缺少權限只是一個警告，時間窗照常前進；而 Microsoft 一側的故障（例如 `HTTP 503`）會讓執行變為 **部分**，以便重新讀取該時間窗。風險偵測以及背景和應用程式登入也是如此：它們從不會阻止登入和目錄變更。
 
 ### 當一個時間窗包含的內容超過一次輪詢能讀取的量時
 
-每個日誌都有自己的預算：10 頁、每頁 500 筆目錄變更，20 頁、每頁 500 筆登入，以及 Microsoft 365 稽核日誌的 120 個請求和 10,000 筆記錄。一次輪詢在 4 分鐘後停止。當預算在時間窗結束前讓某個日誌停止時，執行為 **部分**，其警告會指明該日誌和預算。Microsoft Graph 先列出最新的記錄，因此 OneUptime 會縮短時間窗，而不是把游標移過它從未讀到的記錄：
+每個日誌都有自己的預算：10 頁、每頁 500 筆目錄變更，20 頁、每頁 500 筆登入，4 頁、每頁 500 筆風險偵測，每種背景登入各 10 頁、每頁 500 筆，以及 Microsoft 365 稽核日誌的 120 個請求和 10,000 筆記錄。一次輪詢在 4 分鐘後停止。當預算在時間窗結束前讓某個日誌停止時，執行為 **部分**，其警告會指明該日誌和預算。Microsoft Graph 先列出最新的記錄，因此 OneUptime 會縮短時間窗，而不是把游標移過它從未讀到的記錄：
 
 1. **縮小。** 下一次輪詢從同一個起點讀取長度減半的時間窗，並不斷減半，直到某個時間窗能被完整讀取，最短為一分鐘。執行的警告會說明這一點：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 已從較長時間窗匯入的記錄會作為重複項目被跳過。
 2. **恢復。** 一個時間窗被完整讀取後，游標會移到它的末尾，下一個時間窗的長度會再次加倍，最長為 24 小時。
@@ -138,6 +141,8 @@ Microsoft 365 稽核日誌按 Microsoft 提供每個內容 blob 的時間讀取�
 | **Authenticate with Microsoft Entra** | Entra ID 在你選擇的雲端中為應用程式頒發 Microsoft Graph 的權杖。 |
 | **Read sign-ins** | 可以讀取過去 24 小時的登入。在沒有 P1 或 P2 的租用戶中是警告，而不是失敗。 |
 | **Read directory changes** | 可以讀取過去 24 小時的目錄變更。 |
+| **Read risk detections** | 可以讀取過去 24 小時 Identity Protection 的風險偵測。缺少權限或授權時是警告，而不是失敗。 |
+| **Read background and app sign-ins** | 僅在開啟該選項時：Microsoft Graph 的 beta 登入清單對兩種登入都有回應。 |
 | **Read the Microsoft 365 audit log** | 僅在開啟該選項時：Management API 有回應，以及應用程式訂閱了哪些內容類型。 |
 | **Records available to import** | 過去 24 小時內有多少登入和目錄變更，每種最多數到 500，因此 `500+` 表示更多。一筆都沒有時為警告。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一側：有程序在處理 Worker 佇列的作業，輪詢作業每分鐘執行一次，安全性事件儲存能夠回應。 |
@@ -157,6 +162,11 @@ Microsoft 365 稽核日誌按 Microsoft 提供每個內容 blob 的時間讀取�
 :::details 最近的錯誤 顯示 `sign-ins request failed (HTTP 403)` 或 `audit logs request failed (HTTP 403)`
 - 錯誤代碼 `Authorization_RequestDenied`：應用程式缺少 `AuditLog.Read.All`，或未授予同意。請授予管理員同意，等待幾分鐘後再測試。對於登入，還要授予 `Directory.Read.All`。
 - 錯誤代碼 `Authentication_RequestFromNonPremiumTenantOrB2CTenant`：租用戶沒有 Microsoft Entra ID P1 或 P2。目錄變更仍會被匯入。
+:::
+
+:::details 未讀取風險偵測
+- `risk detections request failed (HTTP 403)`：應用程式缺少 `IdentityRiskEvent.Read.All`，或未授予同意。登入和目錄變更仍會被匯入。
+- 錯誤代碼 `Authentication_RequestFromNonPremiumTenantOrB2CTenant`：租用戶沒有 Microsoft Entra ID P1 或 P2。
 :::
 
 :::details 未讀取 Microsoft 365 稽核日誌

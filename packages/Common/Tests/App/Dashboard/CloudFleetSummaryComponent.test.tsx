@@ -211,7 +211,17 @@ describe("CloudFleetSummary", () => {
     expect(screen.getByText("3")).toBeInTheDocument();
     expect(screen.getByText("in the last 24 hours")).toBeInTheDocument();
 
-    expect(screen.getByText("Live instances")).toBeInTheDocument();
+    /*
+     * The title's last word is held to its (i) (CloudStatTileTitle), so
+     * the title is read whole from its block.
+     */
+    expect(
+      screen
+        .getAllByTestId("cloud-fleet-summary-tile-title")
+        .map((title: HTMLElement): string => {
+          return title.textContent || "";
+        }),
+    ).toEqual(["Apps", "Environments", "Deploys", "Live instances"]);
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText("seen in the last 15 min")).toBeInTheDocument();
   });

@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-应用程序 **会话回放** 部分中的 **健康状况** 页面，以及 **Replay Policy** 上的 **Test your installation** 面板，会从服务器端检查密钥、允许列表和策略，并说明为什么没有数据到达。浏览器控制台则告诉你服务器看不到的那一半。
+应用程序 **会话回放** 部分中的 **健康状况** 页面，以及 **回放策略** 上的 **Test your installation** 面板，会从服务器端检查密钥、允许列表和策略，并说明为什么没有数据到达。浏览器控制台则告诉你服务器看不到的那一半。
 
 在默认策略下，用户与页面交互时，录制器大约每 15 秒发送一个分块。空闲的选项卡没有东西可发送，所以先点击或移动鼠标；如果之后仍然完全没有分块请求，那就是出了问题。如果应用程序只在 _On error or frustration_ 时上传，那么在出问题之前保持静默是正常的。调用 `OneUptimeReplay.captureSession()` 强制上传，无论哪种情况都能验证这条路径。
 

@@ -312,7 +312,7 @@ export const ArchitectureTiers: Array<ArchitectureTier> = [
       {
         name: "Agents",
         description:
-          "Infrastructure, Docker, Docker Swarm, Podman, Proxmox, VMware, Kubernetes, Ceph, and Database agents report into the same ingest path.",
+          "Infrastructure, Docker, Docker Swarm, Podman, Proxmox, VMware, Kubernetes, Ceph, OpenStack, and Database agents report into the same ingest path.",
         scaling: "One per host or cluster",
       },
       {
@@ -452,8 +452,8 @@ export const AirGapSteps: Array<AirGapStep> = [
   {
     title: "Mirror the images",
     description:
-      "Pull the OneUptime images into your internal registry and point the chart at it. Nothing needs to reach Docker Hub at runtime.",
-    setting: "image.registry / image.repository",
+      "Mirror the OneUptime images, and the PostgreSQL, ClickHouse and Valkey images the chart runs, into your internal registry, and point the chart at it with one value. Nothing needs to reach Docker Hub at runtime.",
+    setting: "global.imageRegistry",
   },
   {
     title: "Turn off the update check",

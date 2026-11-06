@@ -1,9 +1,9 @@
 # Aangepaste meldingskanalen
 
-Een aangepast kanaal stuurt oproepen van de bereikbaarheidsdienst naar een dienst die u zelf beheert: de eigen app van uw bedrijf, een pagersysteem of een gateway die controleert wat uw netwerk verlaat. U voegt het één keer toe, voor de hele server, en iedereen kan er zonder iets in te stellen via worden opgeroepen. In het Admin Dashboard heten ze **Custom Channels**.
+Een aangepast kanaal stuurt oproepen van de bereikbaarheidsdienst naar een dienst die u zelf beheert: de eigen app van uw bedrijf, een pagersysteem of een gateway die controleert wat uw netwerk verlaat. U voegt het één keer toe, voor de hele server, en iedereen kan er zonder iets in te stellen via worden opgeroepen. In het Admin Dashboard heten ze **Aangepaste kanalen**.
 
 > [!NOTE]
-> Aangepaste kanalen maken deel uit van de [Enterprise Edition van OneUptime](/docs/self-hosted/enterprise) en vereisen een Enterprise-licentie die ze omvat. De Community Edition heeft geen pagina **Custom Channels** en stuurt niets naar een kanaal. Zie [Zonder licentie](#zonder-licentie).
+> Aangepaste kanalen maken deel uit van de [Enterprise Edition van OneUptime](/docs/self-hosted/enterprise) en vereisen een Enterprise-licentie die ze omvat. De Community Edition heeft geen pagina **Aangepaste kanalen** en stuurt niets naar een kanaal. Zie [Zonder licentie](#zonder-licentie).
 
 :::cards
 - [Een kanaal toevoegen](#een-kanaal-toevoegen): Een naam, een URL en een ondertekeningsgeheim.
@@ -31,18 +31,18 @@ Wanneer een bereikbaarheidsbeleid iemand oproept en diens bereikbaarheidsregel h
 
 ## Een kanaal toevoegen
 
-1. Open in het Admin Dashboard **Instellingen**, dan **Meldingen > Custom Channels** in het zijmenu (**Meldingen** is eerst ingeklapt), en kies **Add**.
+1. Open in het Admin Dashboard **Instellingen**, dan **Meldingen > Aangepaste kanalen** in het zijmenu (**Meldingen** is eerst ingeklapt), en kies **Add**.
 2. Vul bij de stap **Channel** in:
    - **Naam**: wat mensen zien in hun meldingsmethoden en bereikbaarheidsregels, bijvoorbeeld `CorpoApp`.
    - **Webhook URL**: waar OneUptime elke oproep naartoe stuurt. Die mag in uw privénetwerk liggen.
-   - **Signing Secret**: OneUptime maakt er een voor u. Kopieer het naar uw dienst, die er elk verzoek mee controleert. U kunt het opnieuw zien door het kanaal te bewerken.
-3. Sla bij de stap **Delivery** op en kies daarna **Send test** om uw dienst een [testverzoek](#testverzoeken) te sturen.
+   - **Ondertekeningsgeheim**: OneUptime maakt er een voor u. Kopieer het naar uw dienst, die er elk verzoek mee controleert. U kunt het opnieuw zien door het kanaal te bewerken.
+3. Sla bij de stap **Delivery** op en kies daarna **Test verzenden** om uw dienst een [testverzoek](#testverzoeken) te sturen.
 
 Bij de stap **Delivery** staat **Page everyone through this channel** aan. OneUptime voegt het kanaal dan toe aan de bereikbaarheidsregels van iedereen in elk project, en aan de regels van iedereen die later aan een project deelneemt, en gebruikt het om iemand van dienst te bereiken die geen regel heeft voor wat er afging. Zet het uit om mensen het kanaal zelf aan hun regels te laten toevoegen.
 
-Mensen zien het kanaal onder **Gebruikersinstellingen**, dan **Meldingsmethoden**, dan **Custom Channels**, met een knop **Send test**, en kiezen het in hun bereikbaarheidsregels als `Custom Channel: CorpoApp`. Ze stellen niets in: uw dienst krijgt te horen voor wie elke oproep is.
+Mensen zien het kanaal onder **Gebruikersinstellingen**, dan **Meldingsmethoden**, dan **Aangepaste kanalen**, met een knop **Test verzenden**, en kiezen het in hun bereikbaarheidsregels als `Custom Channel: CorpoApp`. Ze stellen niets in: uw dienst krijgt te horen voor wie elke oproep is.
 
-Om te stoppen met versturen zonder iemands regels te wijzigen, bewerkt u het kanaal en zet u **Aan** uit. Oproepen die er anders heen waren gegaan, worden in het bereikbaarheidslogboek vastgelegd als niet verstuurd. Een kanaal verwijderen verwijdert elke bereikbaarheidsregel die het gebruikt.
+Om te stoppen met versturen zonder iemands regels te wijzigen, kiest u **Uitschakelen** in het ⋯-menu van het kanaal, of bewerkt u het kanaal en zet u **Aan** uit; **Inschakelen** in hetzelfde menu zet het weer aan. Oproepen die er anders heen waren gegaan, worden in het bereikbaarheidslogboek vastgelegd als niet verstuurd. Een kanaal verwijderen verwijdert elke bereikbaarheidsregel die het gebruikt.
 
 ## Wat uw dienst ontvangt
 
@@ -149,7 +149,7 @@ Het antwoord zegt wat er is gebeurd, in woorden die uw app zo kan tonen:
 
 ## Andere meldingen
 
-Oproepen zijn niet de enige meldingen die mensen krijgen: OneUptime laat hen ook weten wanneer een incident waarvan ze eigenaar zijn van status verandert, wanneer er een notitie wordt geplaatst, wanneer hun bereikbaarheidsdienst begint, en meer. Ieder kiest waar elk daarvan heen gaat onder **Gebruikersinstellingen > Meldingsinstellingen**, waar een kolom **Custom Channels** staat zolang er een kanaal aan staat. Die staat voor iedereen uit totdat men hem zelf aanzet.
+Oproepen zijn niet de enige meldingen die mensen krijgen: OneUptime laat hen ook weten wanneer een incident waarvan ze eigenaar zijn van status verandert, wanneer er een notitie wordt geplaatst, wanneer hun bereikbaarheidsdienst begint, en meer. Ieder kiest waar elk daarvan heen gaat onder **Gebruikersinstellingen > Meldingsinstellingen**, waar een kolom **Aangepaste kanalen** staat zolang er een kanaal aan staat. Die staat voor iedereen uit totdat men hem zelf aanzet.
 
 Een melding gaat naar elk kanaal dat aan staat, als één verzoek per kanaal, met `event` op `notification`:
 
@@ -186,7 +186,7 @@ De uitkomst van elke poging staat in het bereikbaarheidslogboek van de persoon, 
 
 ## Testverzoeken
 
-**Send test**, op de pagina in het Admin Dashboard of bij iemands meldingsmethoden, stuurt een verzoek met `event` op `test`, de persoon die erop drukte als `user`, en `notificationId`, `record` en `actions` op `null`. Gebruik het om uw dienst uit te proberen voordat er een echte oproep binnenkomt.
+**Test verzenden**, op de pagina in het Admin Dashboard of bij iemands meldingsmethoden, stuurt een verzoek met `event` op `test`, de persoon die erop drukte als `user`, en `notificationId`, `record` en `actions` op `null`. Gebruik het om uw dienst uit te proberen voordat er een echte oproep binnenkomt.
 
 ## Zonder licentie
 
@@ -194,6 +194,7 @@ Aangepaste kanalen werken tijdens de proefperiode van 14 dagen van de Enterprise
 
 - **Er wordt niets naar een aangepast kanaal gestuurd.** Een oproep die naar een kanaal zou zijn gegaan, wordt in het bereikbaarheidslogboek van de persoon vastgelegd als niet verstuurd, en een test ook.
 - **Kanalen worden niet meer aangeboden.** Ze verdwijnen uit de meldingsmethoden, bereikbaarheidsregels en meldingsinstellingen van mensen, en gereedheid en de terugval tellen ze niet meer mee.
+- **Team-compliance controleert aangepaste kanalen niet.** Een complianceregel van een team die om een aangepast kanaal vraagt, toont **Niet gecontroleerd**, en leden worden daar niet op gecontroleerd totdat een aangepast kanaal weer een oproep kan overbrengen.
 - **De pagina is alleen-lezen.** U kunt kanalen zien en verwijderen, maar niet toevoegen of wijzigen, en niemand kan een regel of een meldingsinstelling op een kanaal richten.
 - **Er wordt niets verwijderd.** De kanalen, en de bereikbaarheidsregels en instellingen die ze gebruiken, blijven bewaard.
 

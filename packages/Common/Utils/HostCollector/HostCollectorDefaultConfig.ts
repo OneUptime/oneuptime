@@ -215,6 +215,43 @@ service:
 `;
 }
 
+/*
+ * The event logs of the security tools a Windows host may have - Sysmon,
+ * Microsoft Defender and PowerShell - which Security Events reads for
+ * what an attack leaves (Utils/SecurityEvent/LogParsers/WindowsEventLogParser).
+ * A host without one runs all the same: ignore_channel_errors keeps the
+ * collector going and logs a warning, where a channel that does not exist
+ * would otherwise stop it and send nothing at all.
+ */
+export const WINDOWS_SECURITY_TOOL_CHANNELS: ReadonlyArray<{
+  receiver: string;
+  channel: string;
+}> = [
+  {
+    receiver: "windows_event_log/sysmon",
+    channel: "Microsoft-Windows-Sysmon/Operational",
+  },
+  {
+    receiver: "windows_event_log/defender",
+    channel: "Microsoft-Windows-Windows Defender/Operational",
+  },
+  {
+    receiver: "windows_event_log/powershell",
+    channel: "Microsoft-Windows-PowerShell/Operational",
+  },
+];
+
+const WINDOWS_SECURITY_TOOL_RECEIVERS: string = `  # Sysmon, Microsoft Defender and PowerShell, where the host has them: a
+  # host without one keeps running, and the collector logs a warning.
+${WINDOWS_SECURITY_TOOL_CHANNELS.map(
+  (tool: { receiver: string; channel: string }): string => {
+    return `  ${tool.receiver}:
+    channel: ${tool.channel}
+    start_at: end
+    ignore_channel_errors: true`;
+  },
+).join("\n\n")}`;
+
 const WINDOWS_DEFAULT_CONFIG: string = `# OneUptime's default config for Windows hosts.
 receivers:
 ${HOST_METRICS_RECEIVER}
@@ -230,6 +267,8 @@ ${HOST_METRICS_RECEIVER}
   windows_event_log/security:
     channel: Security
     start_at: end
+
+${WINDOWS_SECURITY_TOOL_RECEIVERS}
 
   # The Services page: the state of every Windows service.
   windows_service:
@@ -250,6 +289,11 @@ service:
         - windows_event_log/system
         - windows_event_log/application
         - windows_event_log/security
+${WINDOWS_SECURITY_TOOL_CHANNELS.map(
+  (tool: { receiver: string; channel: string }): string => {
+    return `        - ${tool.receiver}`;
+  },
+).join("\n")}
       processors: [resource_detection, batch]
       exporters: [otlp_http/oneuptime]
 `;

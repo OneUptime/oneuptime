@@ -64,7 +64,7 @@ export interface CodeTaskLogRecordCopy {
 
 export const CODE_TASK_LOG_TASK_RECORD_COPY: CodeTaskLogRecordCopy = {
   stepsSoFar: translationKey(
-    "Every step this task has taken so far. Updates every 5 seconds.",
+    "Every step this task has taken so far. New steps show as they happen.",
   ),
   steps: translationKey(
     "Every step this task took, in order. Expand a step to see what the model was sent and what it said.",
@@ -82,7 +82,7 @@ export const CODE_TASK_LOG_TASK_RECORD_COPY: CodeTaskLogRecordCopy = {
 
 export const CODE_TASK_LOG_TURN_RECORD_COPY: CodeTaskLogRecordCopy = {
   stepsSoFar: translationKey(
-    "Every step this turn has taken so far. Updates every 5 seconds.",
+    "Every step this turn has taken so far. New steps show as they happen.",
   ),
   steps: translationKey(
     "Every step this turn took, in order. Expand a step to see what the model was sent and what it said.",

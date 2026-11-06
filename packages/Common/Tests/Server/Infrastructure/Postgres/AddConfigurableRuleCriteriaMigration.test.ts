@@ -44,6 +44,14 @@ const RULE_MODELS_INTRODUCED_AFTER_MIGRATION: ReadonlyArray<string> = [
   // 1808500000000-AddDataSecurity
   "DataStoreLabelRule",
   "DataStoreOwnerRule",
+  // 1808991210000-AddAlertIncidentRules
+  "AlertIncidentRule",
+  // 1808992700000-AddDataAssetOwnersAndFeedback
+  "DataAssetLabelRule",
+  "DataAssetOwnerRule",
+  // 1808992900000-AddOpenStackClouds
+  "OpenStackCloudLabelRule",
+  "OpenStackCloudOwnerRule",
 ];
 
 type IsCoveredByMigrationFunction = (modelName: string) => boolean;

@@ -48,6 +48,7 @@ const RESOURCES: Array<ArchivableResource> = [
   { resource: "VMware", model: "VMwareVCenter", overview: "Index.tsx" },
   { resource: "IoT", model: "IoTFleet", overview: "Index.tsx" },
   { resource: "Proxmox", model: "ProxmoxCluster", overview: "Index.tsx" },
+  { resource: "OpenStack", model: "OpenStackCloud", overview: "Index.tsx" },
   { resource: "NetworkDevice", model: "NetworkDevice", overview: "Index.tsx" },
   { resource: "Service", model: "Service", overview: "Index.tsx" },
   { resource: "Inventory", model: "InventoryItem", overview: "Index.tsx" },

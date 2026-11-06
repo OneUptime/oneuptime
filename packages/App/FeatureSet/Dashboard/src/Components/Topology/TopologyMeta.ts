@@ -36,6 +36,15 @@ const META_BY_TYPE: Record<EntityType, EntityTypeMeta> = {
   [EntityType.ProxmoxCluster]: { label: "Proxmox Cluster", color: "#ea580c" },
   [EntityType.ProxmoxNode]: { label: "Proxmox Node", color: "#f97316" },
   [EntityType.ProxmoxGuest]: { label: "Proxmox Guest", color: "#fb923c" },
+  [EntityType.OpenStackCloud]: { label: "OpenStack Cloud", color: "#dc2626" },
+  [EntityType.OpenStackHypervisor]: {
+    label: "OpenStack Hypervisor",
+    color: "#ef4444",
+  },
+  [EntityType.OpenStackInstance]: {
+    label: "OpenStack Instance",
+    color: "#f87171",
+  },
   /*
    * VMware family in sky blues — distinct from the Kubernetes royal blues and
    * the Proxmox oranges next to it.
@@ -84,6 +93,11 @@ const META_BY_TYPE: Record<EntityType, EntityTypeMeta> = {
    * the Remote Service a queue's broker becomes on the service map.
    */
   [EntityType.MessageQueue]: { label: "Message Queue", color: "#115e59" },
+  // Membership-only too: what an OpenStack trace says it touched.
+  [EntityType.OpenStackResource]: {
+    label: "OpenStack Resource",
+    color: "#7c2d12",
+  },
   /*
    * Inventory-mirrored types. Greens, to read as one family distinct from the
    * telemetry-derived types above — on the graph these are things OneUptime

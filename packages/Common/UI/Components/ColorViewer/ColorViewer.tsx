@@ -2,6 +2,7 @@ import { Gray500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -66,7 +67,14 @@ const ColorInput: FunctionComponent<ComponentProps> = (
           aria-hidden="true"
         ></div>
       )}
-      <div>{colorLabel}</div>
+      {/*
+       * The colour's code reads the way it is written: on a Persian page
+       * "#FF0000" read "FF0000#". The placeholder, in the reader's words,
+       * reads their way.
+       */}
+      <div>
+        <IsolatedText text={colorLabel} />
+      </div>
     </div>
   );
 };

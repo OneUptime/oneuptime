@@ -37,9 +37,15 @@ const ForgotPasswordPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
  * (McpAuthorizeWiring holds this file to that).
  */
 const LoginPage: React.LazyExoticComponent<
-  ComponentType<{ isMasterAdminSignIn?: boolean | undefined }>
+  ComponentType<{
+    isMasterAdminSignIn?: boolean | undefined;
+    isMagicLinkSignIn?: boolean | undefined;
+  }>
 > = lazy(() => {
   return import("./Pages/Login");
+});
+const MagicLinkPage: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
+  return import("./Pages/MagicLink");
 });
 const MobilePasskeyPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
   () => {
@@ -160,6 +166,27 @@ function App(): ReactElement {
             <Route
               path="/accounts/forgot-password"
               element={<ForgotPasswordPage />}
+            />
+            {/*
+             * Signing in with a link emailed to the account
+             * (Common/Types/Accounts/MagicLink): asked for here, and opened
+             * at /accounts/magic-link-login/<token> - the sign-in page,
+             * drawing one button that signs in with the link in place of
+             * the password form. Keyed apart from the sign-in page's other
+             * routes, so it always starts from the link the tab opened.
+             */}
+            <Route path="/accounts/magic-link" element={<MagicLinkPage />} />
+            <Route
+              path="/accounts/magic-link-login"
+              element={
+                <LoginPage key="magic-link-login" isMagicLinkSignIn={true} />
+              }
+            />
+            <Route
+              path="/accounts/magic-link-login/:token"
+              element={
+                <LoginPage key="magic-link-login" isMagicLinkSignIn={true} />
+              }
             />
             {/*
              * Both forms of each token-bearing route are registered. The head

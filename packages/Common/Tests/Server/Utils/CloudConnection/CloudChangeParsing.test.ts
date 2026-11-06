@@ -83,6 +83,62 @@ describe("an AWS CloudTrail event", () => {
     expect(JSON.stringify(change)).not.toContain("hunter2");
   });
 
+  test("who called, exactly: an assumed role's session by its ARN, never its request", () => {
+    const session: string = `arn:aws:sts::${ACCOUNT}:assumed-role/OneUptimeAiAgentWrite/oneuptime-ai-scale-out-1a2b3c4d`;
+    const change: CloudChange | null = readAwsTrailEvent({
+      event: {
+        EventId: "e2",
+        EventName: "UpdateService",
+        EventSource: "ecs.amazonaws.com",
+        EventTime: "2026-11-03T10:00:00Z",
+        // CloudTrail names an assumed role's session by its name alone.
+        Username: "oneuptime-ai-scale-out-1a2b3c4d",
+        Resources: [],
+        CloudTrailEvent: JSON.stringify({
+          awsRegion: "us-east-1",
+          userIdentity: {
+            type: "AssumedRole",
+            principalId: "AROAEXAMPLE:oneuptime-ai-scale-out-1a2b3c4d",
+            arn: session,
+            accountId: ACCOUNT,
+            sessionContext: {
+              sessionIssuer: {
+                type: "Role",
+                arn: `arn:aws:iam::${ACCOUNT}:role/OneUptimeAiAgentWrite`,
+              },
+            },
+          },
+          requestParameters: { desiredCount: 8 },
+        }),
+      },
+      accountId: ACCOUNT,
+      region: "us-east-1",
+    });
+
+    expect(change?.actor).toBe("oneuptime-ai-scale-out-1a2b3c4d");
+    expect(change?.actorIdentity).toBe(session);
+    expect(JSON.stringify(change)).not.toContain("desiredCount");
+    expect(JSON.stringify(change)).not.toContain("AROAEXAMPLE");
+  });
+
+  test("a trail document that names no caller leaves who called to the user name", () => {
+    const change: CloudChange | null = readAwsTrailEvent({
+      event: {
+        EventId: "e3",
+        EventName: "UpdateService",
+        EventSource: "ecs.amazonaws.com",
+        EventTime: "2026-11-03T10:00:00Z",
+        Username: "alice",
+        CloudTrailEvent: JSON.stringify({ awsRegion: "us-east-1" }),
+      },
+      accountId: ACCOUNT,
+      region: "us-east-1",
+    });
+
+    expect(change?.actor).toBe("alice");
+    expect(change?.actorIdentity).toBeUndefined();
+  });
+
   test("an event with an unreadable trail document is read from what it lists", () => {
     const change: CloudChange | null = readAwsTrailEvent({
       event: {

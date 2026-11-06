@@ -34,6 +34,12 @@ import {
   ChangeEventStatus,
   ChangeEventType,
 } from "../../../../Utils/Telemetry/ChangeEventFields";
+import {
+  CloudChangeTitleFacts,
+  getCloudChangeTitle,
+  readCloudChangeTitleFacts,
+} from "../../../../Utils/Telemetry/CloudChangeTitle";
+import { dashboardTranslator } from "../../../Helpers/DashboardLocales";
 
 /*
  * A cloud account's changes and its provider's health events, kept as
@@ -238,6 +244,7 @@ describe("one change as a change event", () => {
       [ChangeEventAttribute.CloudResourceId]: "resize",
       [ChangeEventAttribute.ResourceType]: "CloudResource",
       [ChangeEventAttribute.ResourceId]: RESOURCE_ID.toString(),
+      [ChangeEventAttribute.CloudResourceName]: "resize",
       [ChangeEventAttribute.CloudAccountRecordId]: ACCOUNT_ROW_ID.toString(),
     });
   });
@@ -287,6 +294,112 @@ describe("one change as a change event", () => {
       ChangeEventSource.CloudHealth,
     );
     expect(entry.attributes[ChangeEventAttribute.Status]).toBeUndefined();
+  });
+
+  test("keeps the facts its title is worded from, so a page words it in its reader's language", () => {
+    const entry: ReturnType<typeof buildCloudChangeEntry> =
+      buildCloudChangeEntry({
+        change: change({ failed: true, operation: "DeleteFunction" }),
+        resource: { id: RESOURCE_ID, name: "image-resizer" },
+        accountRecordId: ACCOUNT_ROW_ID,
+      });
+    const facts: CloudChangeTitleFacts | null = readCloudChangeTitleFacts({
+      title: entry.title,
+      attributes: entry.attributes,
+    });
+
+    expect(entry.title).toBe("Failed: DeleteFunction on image-resizer");
+    expect(facts).toEqual({
+      operation: "DeleteFunction",
+      resource: "image-resizer",
+      failed: true,
+    });
+    // The stored English and the facts say the same.
+    expect(getCloudChangeTitle(facts!)).toBe(entry.title);
+    expect(getCloudChangeTitle(facts!, dashboardTranslator("de"))).toBe(
+      "Fehlgeschlagen: DeleteFunction für image-resizer",
+    );
+  });
+
+  test("a change no held resource names is worded from its title, by the cloud's id", () => {
+    const entry: ReturnType<typeof buildCloudChangeEntry> =
+      buildCloudChangeEntry({
+        change: change({
+          resources: [{ id: FUNCTION_ARN, type: "AWS::Lambda::Function" }],
+        }),
+        resource: null,
+        accountRecordId: ACCOUNT_ROW_ID,
+      });
+
+    expect(
+      entry.attributes[ChangeEventAttribute.CloudResourceName],
+    ).toBeUndefined();
+    expect(
+      readCloudChangeTitleFacts({
+        title: entry.title,
+        attributes: entry.attributes,
+      }),
+    ).toEqual({
+      operation: "lambda:UpdateFunctionCode20150331v2",
+      resource: FUNCTION_ARN,
+      failed: false,
+    });
+  });
+
+  test("a row written before the name was kept is worded from its title too", () => {
+    const entry: ReturnType<typeof buildCloudChangeEntry> =
+      buildCloudChangeEntry({
+        change: change({ failed: true }),
+        resource: { id: RESOURCE_ID, name: "resize" },
+        accountRecordId: ACCOUNT_ROW_ID,
+      });
+    const older: Dictionary<string> = { ...entry.attributes };
+
+    delete older[ChangeEventAttribute.CloudResourceName];
+
+    expect(
+      getCloudChangeTitle(
+        readCloudChangeTitleFacts({ title: entry.title, attributes: older })!,
+        dashboardTranslator("fr"),
+      ),
+    ).toBe("Échec : lambda:UpdateFunctionCode20150331v2 sur resize");
+  });
+
+  test("a health event keeps no resource name and no facts: its title is its provider's", () => {
+    const entry: ReturnType<typeof buildCloudChangeEntry> =
+      buildCloudChangeEntry({
+        change: change({
+          kind: "health",
+          operation: "AWS_EC2_OPERATIONAL_ISSUE",
+          actor: "",
+          title: "AWS Health: EC2 operational issue (open)",
+        }),
+        resource: { id: RESOURCE_ID, name: "resize" },
+        accountRecordId: ACCOUNT_ROW_ID,
+      });
+
+    expect(
+      entry.attributes[ChangeEventAttribute.CloudResourceName],
+    ).toBeUndefined();
+    expect(
+      readCloudChangeTitleFacts({
+        title: entry.title,
+        attributes: entry.attributes,
+      }),
+    ).toBeNull();
+  });
+
+  test("a resource's long name is clamped to the attribute's limit", () => {
+    const entry: ReturnType<typeof buildCloudChangeEntry> =
+      buildCloudChangeEntry({
+        change: change(),
+        resource: { id: RESOURCE_ID, name: "n".repeat(1000) },
+        accountRecordId: null,
+      });
+
+    expect(
+      entry.attributes[ChangeEventAttribute.CloudResourceName]!.length,
+    ).toBeLessThanOrEqual(300);
   });
 
   test("a provider's long words are clamped to a change event's limits", () => {

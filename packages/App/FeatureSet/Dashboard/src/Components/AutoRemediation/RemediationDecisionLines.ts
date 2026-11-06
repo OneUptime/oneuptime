@@ -3,6 +3,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { REMEDIATION_STEP_WAITING } from "./RemediationStepCopy";
 import Route from "Common/Types/API/Route";
 import {
+  AGENT_NOT_CONNECTED_GAP_CODES,
   AutoRemediationDecisionEntry,
   AutoRemediationDecisionGap,
   AutoRemediationDecisionHelper,
@@ -44,7 +45,8 @@ import {
  * act says it all.
  *
  * OneUptime AI decides again only about an open record - once it is linked,
- * once a cluster's or resource's Fixes are turned on, on Try again - so the
+ * once a cluster's or resource's Fixes are turned on, once the AI agent it
+ * waited for connects, on Try again - so the
  * lines of a resolved one promise none of it (isRecordResolved): they say
  * what happened, and what links the next one, and ask nothing of the reader
  * for this one.
@@ -85,6 +87,13 @@ export interface RemediationDecisionLine {
   // A cluster's or resource's readiness gap, as its AI agent page words it.
   why?: string | undefined;
   whatToDo?: string | undefined;
+  /*
+   * Translated. What follows once the reader has done it, on a line of its
+   * own under what to do - a step that ends in a command (helm, kubectl)
+   * reads wrong with a sentence glued to it: OneUptime AI trying again once
+   * the agent connects.
+   */
+  whatHappensNext?: string | undefined;
   // A place on the same page the line sends the reader to, first.
   place?: RemediationDecisionPlace | undefined;
   links: Array<RemediationDecisionLink>;
@@ -184,6 +193,17 @@ const UNNAMED_MONITOR: string = translationKey("the monitor");
  */
 export const TURN_FIXES_ON_WHAT_TO_DO: string = translationKey(
   "Turn its Fixes on, and OneUptime AI tries again.",
+);
+
+/*
+ * What happens next, under what to do, on a line that says a cluster's or
+ * resource's AI agent is not connected or stopped reporting, while the
+ * record is open: its agent connecting - registering, or reporting in
+ * again - makes OneUptime AI decide again
+ * (AutoRemediationRuleEngineService.onAgentConnected).
+ */
+export const AGENT_CONNECTS_TRIES_AGAIN: string = translationKey(
+  "Once its AI agent connects, OneUptime AI tries again.",
 );
 
 /*
@@ -324,9 +344,21 @@ function getResourceKindTerm(
   return translatableTerm(displayName, { inSentence: true });
 }
 
-function getGapText(entry: AutoRemediationDecisionEntry): {
+/*
+ * The readiness gap's "why" and "what to do". Where the gap is that the
+ * cluster's or resource's AI agent is not connected (or stopped
+ * reporting), and the record is open, what happens next follows: the
+ * agent connecting makes OneUptime AI try again on its own
+ * (AutoRemediationRuleEngineService.onAgentConnected), so nobody has to
+ * come back for Try again. A resolved record promises nothing.
+ */
+function getGapText(
+  entry: AutoRemediationDecisionEntry,
+  options: { translator: Translator; isOpen: boolean },
+): {
   why?: string | undefined;
   whatToDo?: string | undefined;
+  whatHappensNext?: string | undefined;
 } {
   const gap: AutoRemediationDecisionGap | undefined = entry.gaps?.[0];
 
@@ -334,9 +366,20 @@ function getGapText(entry: AutoRemediationDecisionEntry): {
     return {};
   }
 
+  const triesAgainOnConnect: boolean =
+    options.isOpen && AGENT_NOT_CONNECTED_GAP_CODES.includes(gap.code);
+
   return {
     why: gap.description ? `${gap.title}. ${gap.description}` : gap.title,
     whatToDo: gap.nextStep || undefined,
+    ...(triesAgainOnConnect
+      ? {
+          whatHappensNext: translateText(
+            options.translator,
+            AGENT_CONNECTS_TRIES_AGAIN,
+          ),
+        }
+      : {}),
   };
 }
 
@@ -796,7 +839,7 @@ export function getRemediationDecisionLines(input: {
             'Fixes are on for cluster "{{clusterName}}", but OneUptime AI cannot apply them yet.',
             { clusterName },
           ),
-          ...getGapText(entry),
+          ...getGapText(entry, { translator, isOpen }),
           links: clusterLink(translator, entry),
         });
         return;
@@ -903,7 +946,7 @@ export function getRemediationDecisionLines(input: {
             'Fixes are on for {{resourceKind}} "{{resourceName}}", but OneUptime AI cannot apply them yet.',
             { resourceKind: getResourceKindTerm(entry), resourceName },
           ),
-          ...getGapText(entry),
+          ...getGapText(entry, { translator, isOpen }),
           links: resourceLink(translator, entry),
         });
         return;

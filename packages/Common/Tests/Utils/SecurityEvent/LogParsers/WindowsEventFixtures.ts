@@ -166,7 +166,10 @@ export function nxlogBody(spec: WindowsEventSpec): string {
   return JSON.stringify(body);
 }
 
-// Fluent Bit's winevtlog: the event's fields by position only.
+/*
+ * Fluent Bit's winevtlog: the event's fields by position only - EventData's,
+ * or UserData's for an event that has those instead (a log cleared).
+ */
 export function fluentBitBody(spec: WindowsEventSpec): string {
   return JSON.stringify({
     ProviderName: spec.provider,
@@ -174,7 +177,8 @@ export function fluentBitBody(spec: WindowsEventSpec): string {
     Qualifiers: "",
     EventID: spec.eventId,
     Version: 0,
-    Level: 0,
+    // Windows' level number: 3 is a warning.
+    Level: spec.level === "Warning" ? 3 : 0,
     Task: 12544,
     Opcode: 0,
     Keywords: "0x8010000000000000",
@@ -188,7 +192,7 @@ export function fluentBitBody(spec: WindowsEventSpec): string {
     Computer: spec.computer,
     UserID: "",
     Message: spec.message || "",
-    StringInserts: (spec.data || []).map(
+    StringInserts: [...(spec.data || []), ...(spec.userData?.fields || [])].map(
       ([, value]: [string, string]): string => {
         return value;
       },

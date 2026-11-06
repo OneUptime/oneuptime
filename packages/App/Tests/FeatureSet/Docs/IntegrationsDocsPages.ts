@@ -27,6 +27,7 @@ export const DYNAMICS: string = "integrations/microsoft-dynamics-365";
 export const ALERTMANAGER: string = "integrations/prometheus-alertmanager";
 export const GRAFANA: string = "integrations/grafana";
 export const DATADOG: string = "integrations/datadog";
+export const NEW_RELIC: string = "integrations/new-relic";
 
 // Task 28b: the Security Events connections.
 export const GOOGLE_SECOPS: string = "integrations/google-secops";
@@ -60,7 +61,8 @@ export const IRC: string = "integrations/irc";
 /*
  * The pages these tasks rewrote, in nav order: task 28a's are the first
  * seven links of the Integrations group, and task 28b's follow, with
- * Huntress, which has suites of its own, between Datadog and Google SecOps.
+ * New Relic after Datadog, and Huntress, which has suites of its own, between
+ * New Relic and Google SecOps.
  * Task 28c's come after CrowdStrike Falcon, and IRC, which has suites of
  * its own too, is the group's last link.
  */
@@ -75,6 +77,7 @@ export const INTEGRATIONS_PAGES: ReadonlyArray<IntegrationsDocsPageEntry> = [
   { page: ALERTMANAGER, navTitle: "Prometheus Alertmanager" },
   { page: GRAFANA, navTitle: "Grafana" },
   { page: DATADOG, navTitle: "Datadog" },
+  { page: NEW_RELIC, navTitle: "New Relic" },
   { page: GOOGLE_SECOPS, navTitle: "Google SecOps" },
   { page: SENTINEL, navTitle: "Microsoft Sentinel" },
   { page: DEFENDER, navTitle: "Microsoft Defender XDR" },
@@ -94,11 +97,17 @@ export const INTEGRATIONS_PAGES: ReadonlyArray<IntegrationsDocsPageEntry> = [
 // How many of the Integrations nav group's first links are task 28a's pages.
 export const FIRST_TASK_PAGE_COUNT: number = 7;
 
-// The alerting tools' pages: an Incoming Request monitor, or a workflow.
+// The alerting tools' pages that set up an Incoming Request monitor.
 export const ALERTING_PAGES: ReadonlyArray<string> = [
   ALERTMANAGER,
   GRAFANA,
   DATADOG,
+];
+
+// The alerting tools' pages that build a workflow step by step, from a Webhook.
+export const INBOUND_WORKFLOW_PAGES: ReadonlyArray<string> = [
+  ALERTMANAGER,
+  GRAFANA,
 ];
 
 // The Security Events connections' pages: one for every connector.
@@ -161,6 +170,19 @@ const INBOUND_WORKFLOW_STEPS: ReadonlyArray<string> = [
   "Yes",
   "Incident Template",
   "JSON Object",
+  "No",
+];
+
+/*
+ * The steps of the Datadog and New Relic templates a page names: the Webhook,
+ * the step that reads what the tool sent and how it stops, the step that keeps
+ * one record per alert, and the Datadog templates' If / Else.
+ */
+const ALERTING_TOOL_TEMPLATE_STEPS: ReadonlyArray<string> = [
+  "Webhook",
+  "Check With JavaScript",
+  "Incident From Another Tool",
+  "Alert From Another Tool",
   "No",
 ];
 
@@ -307,7 +329,8 @@ export const STEP_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
   [ALERTMANAGER]: INBOUND_WORKFLOW_STEPS,
   [GRAFANA]: INBOUND_WORKFLOW_STEPS,
-  [DATADOG]: INBOUND_WORKFLOW_STEPS,
+  [DATADOG]: [...ALERTING_TOOL_TEMPLATE_STEPS, "Compare with", "If / Else"],
+  [NEW_RELIC]: ALERTING_TOOL_TEMPLATE_STEPS,
   [GITHUB]: ISSUE_WORKFLOW_STEPS,
   [GITLAB]: ISSUE_WORKFLOW_STEPS,
   [DISCORD]: [
@@ -338,8 +361,8 @@ export const STEP_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
 };
 
 /*
- * The names of the Jira, Dynamics 365, Discord and Telegram templates, the
- * names of the workflows they create, and the settings their create wizard
+ * The names of the Zabbix, Datadog, New Relic, Jira, Dynamics 365, Discord and
+ * Telegram templates, the names of the workflows they create, and the settings their create wizard
  * asks for, as the picker and the wizard show them. The Dashboard shows
  * them in English in every language, so the pages keep them as written.
  * The facts suites hold each to the templates.
@@ -354,6 +377,18 @@ export const TEMPLATE_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Zabbix API Token",
     "Acknowledge or close the Zabbix problem with the incident",
     "Copy incident private notes to the Zabbix problem",
+  ],
+  [DATADOG]: [
+    "Declare an incident when a Datadog monitor triggers",
+    "Create an alert when a Datadog monitor triggers",
+    // What the create wizard asks who to page by.
+    "Who to page for P1 and P2 monitors",
+  ],
+  [NEW_RELIC]: [
+    "Declare an incident for each New Relic issue",
+    "Create an alert for each New Relic issue",
+    // What the create wizard asks who to page by.
+    "Who to page for new New Relic issues",
   ],
   [JIRA]: [
     "Create an alert when a Jira issue is created",
@@ -574,6 +609,22 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Payload",
     "Test Notifications",
     "Alert",
+  ],
+  // New Relic's destination and workflow screens, and when a workflow notifies.
+  [NEW_RELIC]: [
+    "Alerts → Destinations",
+    "Webhook name",
+    "Endpoint URL",
+    "Use authorization",
+    "Alerts → Workflows",
+    "Add a workflow",
+    "Update message",
+    "Notify when",
+    "Activated",
+    "Acknowledged",
+    "Closed",
+    "Activate workflow",
+    "Send test notification",
   ],
   // A SOAR playbook's HTTP request action, Google Cloud and SecOps.
   [GOOGLE_SECOPS]: [
@@ -893,6 +944,8 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Authenticate with Microsoft Entra",
       "Read sign-ins",
       "Read directory changes",
+      "Read risk detections",
+      "Read background and app sign-ins",
       "Read the Microsoft 365 audit log",
       "Records available to import",
       "Background workers",
@@ -905,6 +958,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Authenticate with Google",
       "Read the audit logs",
       "Read Drive activity",
+      "Read late OAuth token activity",
       "Activities available to import",
       "Background workers",
       "Poll scheduler",
@@ -918,6 +972,8 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
 // The plans the pages name: the Dashboard shows a plan's name as written.
 export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
   [ZABBIX]: ["Growth"],
+  [DATADOG]: ["Growth"],
+  [NEW_RELIC]: ["Growth"],
   [PAGERDUTY]: ["Growth"],
   [OPSGENIE]: ["Growth"],
   [SERVICENOW]: ["Growth"],
@@ -1031,7 +1087,16 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
   [ALERTMANAGER]: ["Treat the URL like a password.", "Self-hosted?"],
   [GRAFANA]: ["Treat the URL like a password.", "Self-hosted?"],
-  [DATADOG]: ["Treat the URL like a password.", "Self-hosted?"],
+  [DATADOG]: [
+    "Treat the URL like a password.",
+    "Links go to Datadog.",
+    "Self-hosted?",
+  ],
+  [NEW_RELIC]: [
+    "Treat the URL like a password.",
+    "Links go to New Relic.",
+    "Self-hosted?",
+  ],
   [GOOGLE_SECOPS]: [
     "Rule detections by created time.",
     "Curated rule detections by created time.",
@@ -1226,6 +1291,34 @@ export const GROUPING_VARIABLES: Readonly<
 > = {
   [ALERTMANAGER]: ["fingerprint"],
   [GRAFANA]: ["fingerprint"],
+};
+
+/*
+ * The double braces a page writes that are another tool's, not a reference the
+ * workflow runtime reads: the variables of New Relic's payload template, as
+ * the page's payload writes them. The New Relic facts hold each to that payload.
+ */
+export const OTHER_TOOL_VARIABLES: Readonly<
+  Record<string, ReadonlyArray<string>>
+> = {
+  [NEW_RELIC]: [
+    "json issueId",
+    "json issuePageUrl",
+    "json annotations.title.[0]",
+    "json priority",
+    "json entitiesData.names",
+    "json totalIncidents",
+    "json state",
+    "json isAcknowledged",
+    "json triggerEvent",
+    "json isCorrelated",
+    "createdAt",
+    "updatedAt",
+    "json accumulations.source",
+    "json accumulations.policyName",
+    "json accumulations.conditionName",
+    "json workflowName",
+  ],
 };
 
 /*

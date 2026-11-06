@@ -17,6 +17,7 @@ Konfigurasjonen av varsler ligger under **Varsler**, ikke i **Prosjektinnstillin
 | --------------------- | ---------------------------------------------------------------------------------------------- |
 | **Grupperingsregler** | Samler relaterte varsler i episoder. Se [Varselepisoder og grupperingsregler](/docs/alerts/episodes). |
 | **Vaktregler**        | Kjører vaktpolicyer for samsvarende varsler og episoder.                                       |
+| **Hendelsesregler** | Erklærer en hendelse ut fra samsvarende varsler, med en gang eller når et varsel forblir uløst. |
 | **Eierregler**        | Legger til eiere på samsvarende varsler og episoder.                                           |
 | **Runbook-regler**    | Starter runbooks for samsvarende varsler.                                                      |
 | **Personvernregler**  | Gjør samsvarende varsler og episoder private.                                                  |
@@ -54,7 +55,7 @@ flowchart TB
 
 Reglene skiller seg i hvordan flere samsvar avgjøres:
 
-- **Grupperingsregler** og **Påminnelsesregler** kontrolleres ovenfra og ned i listen sin, og det første samsvaret vinner. Dra en regel for å endre plassen; en ny regel havner sist.
+- **Grupperingsregler**, **Hendelsesregler** og **Påminnelsesregler** kontrolleres ovenfra og ned i listen sin, og det første samsvaret vinner. Dra en regel for å endre plassen; en ny regel havner sist.
 - **Vaktregler**, **Eierregler**, **Etikettregler**, **Personvernregler** og **Runbook-regler** virker alle når de samsvarer. Vaktpolicyer, eiere og etiketter som flere regler legger til, legges til én gang.
 
 **Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har to faner: **Alert Rules** for varsler og **Episode Rules**, som virker på samme måte på hver ny varselepisode. En ny regel starter aktivert; slå av **Aktivert** i redigeringsskjemaet for å sette den på pause, og listen viser en grønn **Aktivert** eller en rød **Deaktivert** for hver regel.
@@ -89,6 +90,22 @@ Under **Vaktretningslinjer** velger du **Vaktpolicyer** regelen tilkaller. **Nav
 En alvorlighetsgrad tilkaller ingen på egen hånd: En vaktregel som samsvarer på **Varsel Alvorligheter**, er måten å sette opp "tilkall databaseteamet for hvert High-varsel" på. For å se hva som kjørte for ett varsel, åpner du siden **Vaktutførelser**. Hver person nås deretter på den måten de har satt opp under **Brukerinnstillinger → Vaktregler** på fanen **Varsler**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
 En regel tilkaller så snart et varsel samsvarer med den. For å la den vente på arbeidstiden i stedet, svarer du **Bare i arbeidstiden** på **Når skal denne regelen tilkalle?** under **Flere felt**. **Arbeidstid** starter som mandag til fredag, 09:00 til 17:00, i din egen tidssone: velg andre dager, et annet **Starttidspunkt** eller **Sluttidspunkt** eller en annen **Tidssone**, og en setning under valget forteller hva som skjer. I listen viser regelen arbeidstiden under navnet. Et varsel som samsvarer utenfor disse tidene, får en kjøring som venter og ikke tilkaller noen; når arbeidstiden begynner, tilkaller retningslinjen sin første eskaleringsregel og eskalerer som vanlig. Blir varselet bekreftet eller løst først, blir ingen tilkalt. Endrer varselet seg mens det venter, slik at det nå samsvarer med en regel som tilkaller med en gang, for eksempel fordi alvorlighetsgraden heves, begynner kjøringen å tilkalle straks, og feeden til varselet forteller hvorfor. To regler som tilkaller den samme retningslinjen, tilkaller den så snart en av dem tillater det: en regel for de høyeste alvorlighetsgradene som tilkaller med en gang, ved siden av en regel for resten som venter på arbeidstiden, holder nettene rolige.
+
+## Hendelsesregler
+
+**Varsler → Regler → Hendelsesregler** gjør selv varsler om til hendelser. Den første regelen som samsvarer med et nytt varsel, ovenfra og ned i listen, erklærer en hendelse ut fra det, slik **Erklær hendelse** på varselets side ville gjort, og knytter varselet til den.
+
+:::steps
+### Velg ut varslene
+
+Under **Treff** samsvarer **Alle varsler**, som en ny regel starter med, med hvert nytt varsel. For å snevre den inn velger du **Bare varsler som oppfyller betingelsene** og legger til betingelsene et varsel må oppfylle.
+
+### Beskriv hendelsen
+
+Under **Hendelse** velger du **Hendelsesalvor**, eller lar feltet stå tomt for å gi hver hendelse alvoret som svarer til varselets. Sett **Declare After (Minutes)** over 0 for bare å erklære hendelsen hvis varselet fortsatt er uløst da. Regelens **Navn** følger alvoret, for eksempel "Declare SEV1 incidents", til du skriver inn ditt eget. Opprett så regelen.
+:::
+
+Hendelsen får varselets tittel, beskrivelse, monitor, berørte ressurser og etiketter, og er privat når varselet er det. Deretter kjører hendelsens egne regler som for enhver ny hendelse, så vaktreglene dens avgjør hvem som tilkalles. Et varsel som løses før ventetiden er over, blir aldri en hendelse, og et varsel som allerede er knyttet til en hendelse, blir latt være. **Vis på statussider**, under **Flere felt**, avgjør om hendelsen vises på statussidene som viser monitoren dens.
 
 ## Eier- og etikettregler
 

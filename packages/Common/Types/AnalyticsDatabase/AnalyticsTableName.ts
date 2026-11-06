@@ -38,6 +38,15 @@ enum AnalyticsTableName {
   AuditLog = "AuditLogV2",
   KubernetesCostAllocation = "KubernetesCostAllocationV1",
   /*
+   * What each connected cloud account cost, per day, service, Region and
+   * resource, as its cloud's billing reports it (AWS Cost Explorer, Azure
+   * Cost Management, a Google Cloud billing export). MergeTree: the costs
+   * lane writes only the difference between the cloud's figure and what is
+   * stored, so a plain sum is always the latest figure. Monthly
+   * partitions and a 400-day TTL of its own, apart from the telemetry.
+   */
+  CloudCost = "CloudCostV1",
+  /*
    * Materialized-view target tables. These hold AggregateFunction
    * states populated by attached MVs on the source `Metric` table.
    * The `_mv` triggers themselves live in DataMigrations and are not

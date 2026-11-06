@@ -413,6 +413,29 @@ export default class OtelPayloadDecoder {
     );
   }
 
+  /*
+   * Length-delimited OTLP metrics, one message after another, each led by
+   * its size as a varint - how a CloudWatch metric stream in OpenTelemetry
+   * 1.0 writes a Firehose record (ExportMetricsServiceRequest has
+   * MetricsData's one field, so it decodes as one). Each message as the
+   * plain object a protobuf body decodes to (`.toJSON()`, as
+   * decodeFromQueue). Throws on bytes that are not that.
+   */
+  public static decodeDelimitedMetrics(raw: Buffer): Array<JSONObject> {
+    const reader: protobuf.Reader = protobuf.Reader.create(
+      raw as unknown as Uint8Array,
+    );
+    const messages: Array<JSONObject> = [];
+
+    while (reader.pos < reader.len) {
+      const message: protobuf.Message<Record<string, unknown>> =
+        MetricsData.decodeDelimited(reader);
+      messages.push(message.toJSON() as JSONObject);
+    }
+
+    return messages;
+  }
+
   public static formatFromContentType(
     contentType: string | undefined,
   ): OtelPayloadFormat {

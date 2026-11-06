@@ -72,7 +72,7 @@ Bryteren la til en vaktregel for hendelser og en for varsler. For å se din åpn
 
 ### Velg hvordan du nås
 
-E-posten du logger inn med, er allerede en måte å nå deg på. For også å få SMS eller anrop åpner du **Brukerinnstillinger** i linjen under topplinjen, går til **Varselmetoder** og legger på fanen **Direct Contact** til nummeret ditt under **Telefonnumre for SMS-varsler** eller **Telefonnumre for anropsvarsler**. Klikk på **Verifiser**, og skriv inn koden OneUptime sender deg. Et verifisert nummer brukes til vaktvarsler med en gang.
+E-posten du logger inn med, er allerede en måte å nå deg på. For også å få SMS eller anrop åpner du **Brukerinnstillinger** i linjen under topplinjen, går til **Varselmetoder** og legger på fanen **Direkte kontakt** til nummeret ditt under **Telefonnumre for SMS-varsler** eller **Telefonnumre for anropsvarsler**. Klikk på **Verifiser**, og skriv inn koden OneUptime sender deg. Et verifisert nummer brukes til vaktvarsler med en gang.
 :::
 
 > [!NOTE]

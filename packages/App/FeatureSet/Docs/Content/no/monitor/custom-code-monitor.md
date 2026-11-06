@@ -29,7 +29,7 @@ Sandkassen er ikke Node.js: det finnes ingen `require`, `process`, `fetch` eller
 
 ## Før du begynner
 
-- En **sonde** som når alle endepunktene skriptet kaller. Bruk en [egendefinert sonde](/docs/probe/custom-probe) for endepunkter inne i nettverket ditt.
+- En **probe** som når alle endepunktene skriptet kaller. Bruk en [egendefinert sonde](/docs/probe/custom-probe) for endepunkter inne i nettverket ditt.
 - For å kalle en privat adresse (som `10.0.0.5`) må sonden tillate det: sett `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` på den sonden. Loopback-, link-local- og skymetadata-adresser avvises alltid. Se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access).
 - Alle passord, API-nøkler og tokener skriptet trenger, lagret som [overvåkingshemmeligheter](/docs/monitor/monitor-secrets).
 
@@ -38,7 +38,7 @@ Sandkassen er ikke Node.js: det finnes ingen `require`, `process`, `fetch` eller
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Custom JavaScript Code** under **Synthetic Monitoring**, eller skriver `script` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Custom JavaScript Code** under **Syntetisk overvåking**, eller skriver `script` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
 ### Legg til skriptet
 
@@ -167,7 +167,7 @@ Noen attributtnavn tilhører OneUptime selv, og et skript kan ikke skrive dem. H
 
 - Monitorens identitet: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
 - Alt i navnerommene `oneuptime.` eller `resource.` — de bærer identifikatorene OneUptime setter på ved inntak.
-- Attributter for ressursidentitet: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` og `docker.swarm.cluster.name`.
+- Attributter for ressursidentitet: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` og `docker.swarm.cluster.name`.
 
 Disse navnene er ikke bare etiketter — OneUptime leser dem tilbake som en påstand om hvilken ressurs et datapunkt tilhører. En metrikk merket `service.name: payments-api` ville dukke opp på fanen Målinger for den tjenesten, og hvis du senere bygde en metrikkmonitor gruppert etter `service.name`, ville varslene den gir, bli knyttet til den tjenesten, tilkalle eierne av tjenesten og tie under et vedlikeholdsvindu på den. Bruk i stedet monitorens egne etiketter for å knytte en monitor til en tjeneste eller en vert.
 

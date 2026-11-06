@@ -112,6 +112,7 @@ import MicrosoftTeamsActivityDeduplicator from "./MicrosoftTeamsActivityDeduplic
 import MicrosoftTeamsCreateCommands from "./MicrosoftTeamsCreateCommands";
 import MicrosoftTeamsIncidentMoreActions from "./Actions/IncidentMoreActions";
 import MicrosoftTeamsPage from "./MicrosoftTeamsPage";
+import WorkspaceAiContext from "../WorkspaceAiContext";
 import MicrosoftTeamsMentionText from "./MicrosoftTeamsMentionText";
 import MicrosoftTeamsHome from "./MicrosoftTeamsHome";
 import MicrosoftTeamsCommands, {
@@ -5058,6 +5059,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         require("../../AI/Chat/ObservabilityAssistant").default;
       /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
+      /*
+       * Asked in an incident's or an alert's own channel, the question is
+       * about that record, as Ask AI opened on its page knows it; and asked
+       * to change something, the answer says how to from Microsoft Teams -
+       * the commands typed to the bot, the buttons, or Ask AI in the
+       * Dashboard - never "switch modes" (WorkspaceAiContext).
+       */
       const result: ObservabilityAssistantResult =
         await ObservabilityAssistant.answerQuestion({
           projectId: projectId,
@@ -5066,6 +5074,16 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           question: question,
           ...(history.length > 0 && { history: history }),
           feature: "Microsoft Teams ChatOps",
+          chatApp: await WorkspaceAiContext.getChatApp({
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            projectId: projectId,
+            botName: MicrosoftTeamsCommands.getBotName(turnContext),
+          }),
+          pageContext: await WorkspaceAiContext.getChannelRecord({
+            projectId: projectId,
+            channelId: MicrosoftTeamsPage.getChannelId(activity),
+            props: props,
+          }),
         });
 
       /*

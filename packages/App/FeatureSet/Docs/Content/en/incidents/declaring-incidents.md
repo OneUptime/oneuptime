@@ -45,7 +45,7 @@ Only the first step has required fields, plus any custom field your admins marke
 **From a resource's own page.** **Declare Incident** on the **Incidents** tab of a monitor, a host, a service, a cluster or most other resources opens the same form with that resource already picked on **Resources Affected**, so a title and a severity are all it takes, and the incident shows on the tab you started from.
 
 :::details Which resource pages offer it, and what they pick
-**Declare Incident** on the **Incidents** tab of a monitor, a host, a network device, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, a storage array, an IoT fleet, a database or a service opens the same wizard with that resource already picked on **Resources Affected** (a monitor under **Monitors**, anything else under **Other Affected Resources**), ahead of anything a template adds. **Create from Template** on that tab keeps the resource too. The breadcrumbs go back through the resource's tab, and once declared you land on the new incident, as from the incidents list.
+**Declare Incident** on the **Incidents** tab of a monitor, a host, a network device, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database or a service opens the same wizard with that resource already picked on **Resources Affected** (a monitor under **Monitors**, anything else under **Other Affected Resources**), ahead of anything a template adds. **Create from Template** on that tab keeps the resource too. The breadcrumbs go back through the resource's tab, and once declared you land on the new incident, as from the incidents list.
 
 An inventory item's **Incidents** tab picks the host, service or Kubernetes cluster the item points at, and the breadcrumbs go back through that resource's tab. **Create Alert** on a resource's **Alerts** tab works the same way: from a monitor it fills in the alert's **Monitor**, from anything else **Other Affected Resources**.
 
@@ -284,7 +284,7 @@ From there the incident is live: it counts toward the **Active Incidents** badge
 
 ### Declared already acknowledged or resolved
 
-Picking a later **Initial State** — on the form, through a template's **Initial Incident State**, or with `currentIncidentStateId` from the API, Terraform or a workflow — records an incident that someone is already handling, or that is already over. It is not treated as a new emergency:
+Picking a later **Initial State** — on the form, through a template's **Initial Incident State**, with `currentIncidentStateId` from the API, Terraform or a workflow, or by asking [Ask AI](/docs/ai/ask-ai) for an incident already acknowledged or resolved — records an incident that someone is already handling, or that is already over. It is not treated as a new emergency:
 
 ```mermaid title="What a new incident sets off, by the state it starts in"
 flowchart TB

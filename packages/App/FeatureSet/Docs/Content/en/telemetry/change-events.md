@@ -35,6 +35,7 @@ You do not have to send anything for these. OneUptime records them from the tele
 | A runbook | A runbook OneUptime ran completes, fails, or is cancelled after it started | `runbook` |
 | A cloud change | A connected cloud account's activity log records a change: AWS CloudTrail, the Azure Activity Log or Google Cloud's Admin Activity audit log | `cloud` |
 | A provider event | The cloud provider publishes a health event about the account: AWS Health, Azure Service Health or Resource Health, or Google Cloud Service Health | `cloud-health` |
+| An OpenStack change | An OpenStack cloud's own notifications say what happened to one of its parts, or a probe's read of Nova does: see [Lifecycle events](/docs/telemetry/openstack#lifecycle-events) | `openstack` |
 
 - **The first version a service reports is its baseline, not a deploy.** A service that has run for months is not deployed the moment OneUptime starts receiving its telemetry.
 - **A rollback to a version seen in the last 30 days is not recorded,** because that version is not new. A rollback OneUptime AI runs is recorded as a fix.
@@ -50,7 +51,7 @@ A rollout needs the [Kubernetes agent](/docs/telemetry/kubernetes-agent), which 
 
 An app deploy needs the app to run on a [managed app platform](/docs/telemetry/cloud-environments#apps-and-deploys). It is recorded under the app's environment and drawn on the environment's charts and the app's own, and there a rollback to a revision the app ran before is recorded too.
 
-A cloud change or a provider event needs a [connected cloud account](/docs/telemetry/cloud-accounts). Each is tied to the cloud resource it names, when OneUptime lists that resource, and drawn on the resource's charts. Its type comes from the operation: `deployment`, `scaling` or `rollback` when the operation's name says so, `config-change` otherwise, and `provider-event` for a health event. Charts filtered to no resource leave a cloud account's activity log out, so a busy account cannot crowd out your deploys; the provider's health events stay on them.
+A cloud change or a provider event needs a [connected cloud account](/docs/telemetry/cloud-accounts). Each is tied to the cloud resource it names, when OneUptime lists that resource, and drawn on the resource's charts. Its type comes from the operation: `deployment`, `scaling` or `rollback` when the operation's name says so, `config-change` otherwise, and `provider-event` for a health event. Charts filtered to no resource leave a cloud account's activity log and an OpenStack cloud's changes out, so a busy account cannot crowd out your deploys; the provider's health events stay on them.
 
 ## Record a deploy from a pipeline
 
@@ -147,7 +148,7 @@ The top-level fields are stored as attributes under the OpenTelemetry names: `ve
 
 Attributes whose names start with `oneuptime.` are OneUptime's own and are dropped from what a pipeline sends. Every change a pipeline records says so in `oneuptime.change.source`, which is `api`.
 
-A change read from a cloud account names the account and the resource under OpenTelemetry's names, `cloud.provider`, `cloud.account.id`, `cloud.region` and `cloud.resource_id`, and keeps the operation in `oneuptime.cloud.operation`, who ran it in `oneuptime.cloud.actor`, whether it failed in `oneuptime.change.status` and its Cloud Account in `oneuptime.cloud_account.id`.
+A change read from a cloud account names the account and the resource under OpenTelemetry's names, `cloud.provider`, `cloud.account.id`, `cloud.region` and `cloud.resource_id`, and keeps the operation in `oneuptime.cloud.operation`, who ran it in `oneuptime.cloud.actor`, whether it failed in `oneuptime.change.status`, the name OneUptime holds the resource by in `oneuptime.cloud.resource_name` and its Cloud Account in `oneuptime.cloud_account.id`. Its title is stored in English, as the API and OneUptime AI read it, and each page words it from these in its reader's language. A change OneUptime AI made through a Cloud AI agent says so in `oneuptime.change.made_by`, which is `oneuptime-ai`, and names the agent's job in `oneuptime.runner_job.id`, its fix in `oneuptime.auto_remediation_suggestion.id`, the AI run that planned it in `oneuptime.ai_run.id`, whether it was the fix or its rollback in `oneuptime.ai.step` (`fix` or `rollback`), and the incident or alert it fixed in `oneuptime.incident.id` or `oneuptime.alert.id`.
 
 ### Limits
 

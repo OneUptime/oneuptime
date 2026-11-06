@@ -21,10 +21,10 @@ export interface NotConnectedProps {
 }
 
 /*
- * A product's Slack or Microsoft Teams page, when the project has not
- * connected that workspace. It used to end with "Please go to Project
- * Settings > Workspace Connections > Slack", a path to retype by hand; it
- * now has the button that goes there.
+ * A product's Slack, Microsoft Teams or Mattermost page, when the project
+ * has not connected that workspace. It used to end with "Please go to
+ * Project Settings > Workspace Connections > Slack", a path to retype by
+ * hand; it now has the button that goes there.
  */
 export const WorkspaceNotConnected: FunctionComponent<NotConnectedProps> = (
   props: NotConnectedProps,
@@ -64,9 +64,9 @@ export interface ComponentProps {
 }
 
 /*
- * The body of a product's Slack or Microsoft Teams page: the page itself
- * once this page load knows the workspace is connected, and the way to
- * connect it once it knows it is not.
+ * The body of a product's Slack, Microsoft Teams or Mattermost page: the
+ * page itself once this page load knows the workspace is connected, and the
+ * way to connect it once it knows it is not.
  *
  * It waits for this page load's own answer (from the store the side menu
  * shares, so it is asked once), not the one remembered from an earlier

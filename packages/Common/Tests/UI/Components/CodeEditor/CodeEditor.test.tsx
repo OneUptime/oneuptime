@@ -8,7 +8,14 @@ import {
   screen,
   within,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
 import CodeEditor, {
   CODE_EDITOR_DEFAULT_MAX_HEIGHT,
   CODE_EDITOR_DEFAULT_MIN_LINES,
@@ -21,6 +28,7 @@ import CodeEditor, {
   toEditorText,
 } from "../../../../UI/Components/CodeEditor/CodeEditor";
 import { TextEdit } from "../../../../UI/Components/CodeEditor/CodeEditorCommands";
+import { loadCodeHighlighter } from "../../../../UI/Components/CodeEditor/CodeEditorHighlight";
 import CodeType from "../../../../Types/Code/CodeType";
 
 /*
@@ -30,6 +38,16 @@ import CodeType from "../../../../Types/Code/CodeType";
  * value written through the prototype setter plus an input event - which is
  * exactly the path that has to keep React's onChange in step.
  */
+
+/*
+ * The grammars are there before the first editor is drawn, as on any page
+ * once an editor has loaded them (CodeEditorHighlight's loadCodeHighlighter):
+ * tokens are coloured from the first frame. CodeEditorHighlightLoading.test.tsx
+ * draws an editor before they arrive.
+ */
+beforeAll(async () => {
+  await loadCodeHighlighter();
+});
 
 type GetElementFunction = () => HTMLElement;
 type GetInputFunction = () => HTMLTextAreaElement;

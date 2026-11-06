@@ -38,6 +38,7 @@ flowchart TB
 | **全部案例** | 安全案例 | 每个案例，无论未结还是已关闭 |
 | **事件** | 事件 | 搜索和过滤每个事件，并打开某个事件查看它的所有字段 |
 | **狩猎** | 事件 | 从事件保存的搜索，一键再次打开，或按计划运行，发现内容时通知相关人员 |
+| **狩猎库** | 事件 | 可在事件中试用或添加到你的狩猎的现成狩猎，每个都显示它读取的事件以及这些事件是否到达 |
 | **攻击活动** | 事件 | 每个发送过攻击请求的地址，以及它的请求中是否有任何一个通过 |
 | **实体风险** | 事件 | 按本周发现评分的每个用户、主机和地址，风险最高的在前 |
 | **关联分析** | 事件 | 共享同一主机、用户或 IP 地址的事件构成的图 |
@@ -181,22 +182,42 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### 在日志中查找安全事件
 
-**连接** 顶部的 **你的日志** 会把您已经发送到 OneUptime 的日志变成一个来源。开启 **在日志中查找安全事件** 后，项目的新日志每分钟都会被读取，其中的每次 SSH 或 Windows 登录、sudo 命令、云审计记录、安全产品的 CEF 或 LEEF 记录、Kubernetes 审计记录和 Web 攻击都会存储为安全事件。各类内容的范围请参阅 [安全入门](/docs/telemetry/security-getting-started#在日志中查找安全事件)。
+**连接** 顶部的 **你的日志** 会把您已经发送到 OneUptime 的日志变成一个来源。开启 **在日志中查找安全事件** 后，项目的新日志每分钟都会被读取，其中的每次 SSH 或 Windows 登录、sudo 命令、云审计记录、安全产品的 CEF 或 LEEF 记录、Palo Alto Networks、FortiGate 或 Cisco ASA 防火墙的记录、Kubernetes 审计记录和 Web 攻击都会存储为安全事件。各类内容的范围请参阅 [安全入门](/docs/telemetry/security-getting-started#在日志中查找安全事件)。
 
 每一类都以普通日志的形式到达 OneUptime：
 
 | 类型 | 从哪里发送 |
 | --- | --- |
 | SSH 登录、sudo | Linux 机器的 journal 或认证日志，使用 [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 发送 |
-| Windows 事件 | 机器上收集器的 `windowseventlog` 接收器，或把每个事件写成 JSON 的转发器，例如 NXLog 或 Winlogbeat |
-| AWS CloudTrail | 投递到 CloudWatch Logs 的跟踪，由收集器的 `awscloudwatch` 接收器读取 |
-| Google Cloud 审计日志 | 指向 Pub/Sub 的日志接收器（sink），由收集器的 `googlecloudpubsub` 接收器以 `encoding: raw_text` 读取 |
-| Azure 活动和 Entra ID 日志 | 流式传输到 Event Hub 的诊断设置，由收集器的 `azureeventhub` 接收器以 `format: raw` 读取 |
+| Windows 事件 | 机器上收集器的 `windowseventlog` 接收器，或把每个事件写成 JSON 的转发器，例如 NXLog 或 Winlogbeat。添加到 OneUptime 的 [主机](/docs/telemetry/hosts) 还会读取它上面的 Sysmon、Microsoft Defender 和 PowerShell |
+| AWS CloudTrail | 投递到 CloudWatch Logs 的跟踪，由收集器的 `awscloudwatch` 接收器读取；对于在 **云** 下连接的账户，也可以用 [云审计日志](#读取云账户的审计日志) |
+| Google Cloud 审计日志 | 指向 Pub/Sub 的日志接收器（sink），由收集器的 `googlecloudpubsub` 接收器以 `encoding: raw_text` 读取；对于在 **云** 下连接的项目，也可以用 [云审计日志](#读取云账户的审计日志) |
+| Azure 活动和 Entra ID 日志 | 流式传输到 Event Hub 的诊断设置，由收集器的 `azureeventhub` 接收器以 `format: raw` 读取；对于在 **云** 下连接的订阅的活动日志，也可以用 [云审计日志](#读取云账户的审计日志) |
+| OpenStack 审计轨迹 | 云的通知和审计过滤器以 `driver = log` 发送到其日志，由代理的[日志配置档](/docs/telemetry/openstack#谁做了什么)读取 |
 | CEF、LEEF | 产品的 syslog，由 [rsyslog](/docs/telemetry/syslog) 转发 |
+| Palo Alto Networks、FortiGate、Cisco ASA | 防火墙自身的 syslog，由 [rsyslog](/docs/telemetry/syslog) 转发 |
 | Kubernetes 审计日志 | API 服务器的审计日志文件，由收集器的 `filelog` 接收器读取 |
 | Web 攻击 | Web 服务器的访问日志，由收集器的 `filelog` 接收器读取 |
 
 在 **你的日志** 上，每一类都会显示上次发现它的时间，**检查一行日志** 则会在任何日志到达之前，显示你粘贴的一行会变成什么。
+
+安全产品写入日志的威胁，例如 CEF 或 LEEF 的发现，或 Palo Alto Networks、FortiGate 或 Cisco ASA 的威胁，会像已连接产品的警报一样打开 [案例](/docs/telemetry/security-cases)，并提高它所指的用户、主机或地址的风险。**你的日志** 上的 **从以下级别开启案例** 决定从哪个严重程度开始：默认为 **高及以上**，你也可以选择其他级别或 **从未**。该产品的登录和被阻止的连接仍然是事件，供你的规则读取。
+
+通过两条途径到达 OneUptime 的记录只存储一次：例如由其连接读取、又由 Azure 导出到您的日志中的 Microsoft Entra ID 登录，或同时出现在您的日志和已连接 AWS 账户审计日志中的 CloudTrail 记录。
+
+### 读取云账户的审计日志
+
+[在 **云** 下连接的](/docs/telemetry/cloud-accounts) AWS 账户、Google Cloud 项目或 Azure 订阅不需要日志管道。在 **连接** 的 **你的 OneUptime 数据** 下开启 **云审计日志** 后，每次读取账户都会把它的审计日志保存为安全事件：
+
+| 云 | 读取的内容 |
+| --- | --- |
+| AWS | 账户使用的每个区域中会更改内容的 CloudTrail 管理事件：控制台登录、更改，以及被 AWS 拒绝的调用 |
+| Google Cloud | Admin Activity 审计日志：对资源及其访问权限的更改，以及被 Google 拒绝的调用 |
+| Azure | 活动日志：订阅中的更改、失败的操作、Azure Policy 的拒绝以及 Defender for Cloud 警报 |
+
+- 每条记录的读取方式与 **你的日志** 从管道读取它的方式相同，因此规则库中的 CloudTrail、Google Cloud 和 Azure 规则都能匹配它。
+- 事件以存储时的时间为时间戳，记录本身的时间保存在 `oneuptime.cloud.record_time` 中：审计日志会晚几分钟到达 OneUptime，而规则按事件的时间读取事件。
+- 账户本身的读取只带来这些：数据事件、Data Access 日志和 Microsoft Entra ID 的日志仍然需要 **你的日志** 或 [连接](/docs/integrations/microsoft-entra-id)。
 
 ### 连接安全产品
 
@@ -212,7 +233,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | Elastic Security | 检测警报，作为 Detection Finding | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Finding，作为 Detection Finding 和 Compliance Finding | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | 登录、MFA、账户和策略事件 | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | 登录和目录更改，以及 Microsoft 365 审计日志中的邮件转发、共享和钓鱼判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | 登录、目录更改和风险检测，可选的失败的后台和应用登录，以及 Microsoft 365 审计日志中的邮件转发、共享和钓鱼判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | 登录、Google 自身的检测、管理员更改和应用授权，以及云端硬盘中的共享 | [Google Workspace](/docs/integrations/google-workspace) |
 
 - 产品自身的警报，只要级别达到或高于 **Open Cases From**（默认为 **高及以上**，你也可以选择其他级别或 **从未**），就会打开 [案例](/docs/telemetry/security-cases)，并按它们涉及的用户、主机或地址分组。
@@ -256,6 +277,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `<field>:a*` | `*` 表示任意文本，`?` 表示一个字符 | `host:web-*` |
 | `@<attribute>:*` | 存在该属性 | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | 属性包含该文本 | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | 该字段在某个[监视列表](#监视列表)中 | `user:%vip_users%` |
 
 字段要么是简称（`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`processname`、`commandline`、`parentprocessname`、`observable`、`tactic`、`technique`、`requestoutcome`、`trace`、`session`），要么是字段本身的名称，例如 `severityName` 或 `principalHost`。任何其他名称都会被读作来源属性。`observable:<value>` 会找出提到某个值的每个事件，无论该值出现在活动的哪一方。
 
@@ -281,9 +303,17 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### 将搜索保存为狩猎
 
-在 **事件** 中搜索和过滤，直到列表显示你要找的内容，然后打开工具栏上的 **狩猎** 并选择 **另存为狩猎**。为它命名，选择是否按计划运行，随后会打开它的页面。**事件 → 狩猎** 列出项目的所有狩猎，每个都显示其搜索、运行频率、通知对象以及上次运行发现的内容；那里的 **创建狩猎** 按你在 **事件** 中输入的方式接收搜索。一个项目最多可保存 200 个狩猎。
+在 **事件** 中搜索和过滤，直到列表显示你要找的内容，然后打开工具栏上的 **狩猎** 并选择 **另存为狩猎**。为它命名，选择是否按计划运行，随后会打开它的页面。**事件 → 狩猎** 列出项目的所有狩猎，每个都显示其搜索、运行频率、通知对象以及上次运行发现的内容；那里的 **创建狩猎** 按你在 **事件** 中输入的方式接收搜索。一个项目最多可保存 200 个狩猎。搜索可以像 `user:%vip_users%` 那样读取[监视列表](#监视列表)；读取项目中不存在的列表的狩猎会在保存时被拒绝。
 
 狩猎的页面就是它的搜索，在事件浏览器中打开。在那里更改搜索或过滤器后，狩猎的页眉会提供 **保存更改** 和 **放弃更改**。**编辑** 可以更改它的名称、搜索、回溯范围、计划和通知对象，**删除狩猎** 在它的菜单中。Security Member 及以上角色可以保存、更改和删除狩猎，Security Viewer 可以打开它们。
+
+使用事件侧栏中的过滤器保存的狩猎，会在 **编辑** 的 **过滤器** 下按事件的样式显示它们，每个都带有一个用于移除的 x。在狩猎页面上通过侧栏添加过滤器。
+
+### 从狩猎库开始
+
+**事件 → 狩猎库** 列出针对安全团队最常查找内容的现成狩猎，例如登录失败、编码的 PowerShell、AWS root 账户以及在 Kubernetes Pod 中打开的 shell。每个狩猎都会显示它查找的内容、按你在 **事件** 中输入的方式写出的搜索，以及它读取的事件是否到达，就像 **规则库** 对其规则所显示的那样。可按 **狩猎分类**、**数据** 和 **状态** 缩小范围，或进行搜索。
+
+**试一试** 会在 **事件** 中按狩猎的时间窗口打开该搜索，不保存任何内容。**添加** 会立即将其保存为项目的一个狩猎，名称和描述使用你的语言，并且与每个新狩猎一样不按计划运行。之后会显示 **已添加**，**打开** 会打开它，你可以在那里为它设置计划。
 
 ### 按计划运行狩猎
 
@@ -302,9 +332,15 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 计划运行的狩猎以最后一次设置其计划、更改其搜索或通过 **编辑** 保存它的人员身份运行。API 密钥无法设置计划。当该人员离开项目或无法再读取安全事件时，狩猎会显示这一情况：打开 **编辑** 并保存，即可改为以你的身份运行。
 
+### 运行历史
+
+每次计划运行都会保留 90 天。**运行历史** 位于说明狩猎运行发现了什么的那一行末尾，按从新到旧列出运行：每次运行的时间和搜索的事件，然后是发现了多少，并带有 **显示** 以在狩猎页面上打开这些事件；或者没有发现任何内容；或者无法运行的原因。能打开狩猎的人都能读取它的运行。
+
 ### 谁会收到通知
 
 通知 **狩猎发现了安全事件** 会写明狩猎及其搜索、运行发现的事件数量和读取的时间窗口，并链接到显示这些事件的狩猎页面；其中不包含任何事件本身的内容。每个人默认通过电子邮件和推送接收，并可在 **用户设置 → 通知设置** 中选择渠道。与其他例行邮件一样，它可能会被归入 [邮件汇总](/docs/emails/notification-rollup)。
+
+要将狩猎的发现发布到 Slack、Microsoft Teams 或 Mattermost，请在 **产品 → 安全事件 → 工作区 → Slack**（或 **Microsoft Teams**、**Mattermost**）中，在发布[安全案例](/docs/telemetry/security-cases#发布到-slackmicrosoft-teams-和-mattermost-频道)的规则下方，向 **狩猎规则** 添加规则。规则指定要发布到的频道（在 Microsoft Teams 中还包括聊天），以及（如果需要）它适用的狩猎，按 **狩猎名称** 匹配：名称等于、包含、以你的文本开头或以你的文本结尾。每当计划运行发现事件时，它会发布该狩猎、其搜索、事件数量和时间，并附上指向这些事件的链接，不含事件本身的任何内容。狩猎规则由可以设置安全剧本的角色设置，例如 Project Owner、Project Admin 或 Security Admin。
 
 ### 将事件保存到案例
 
@@ -312,7 +348,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 OneUptime 会以你的身份重新读取每个事件，并按原样保存在案例的 **证据** 页面上，因此即使事件的保留期结束，案例仍会显示它。你无法读取的事件不会被保存，案例中已保存的事件保持不变。从狩猎中找到的事件会注明该狩猎，**查看事件** 会按保存时的样子打开它。
 
-狩猎拥有与 OneUptime 其他部分相同的 REST API，位于 `/security-hunt` 下，`POST /security-case-evidence/add-events` 用于将事件保存到案例。请参阅 [API 参考](/docs/api-reference/api-reference)。
+狩猎拥有与 OneUptime 其他部分相同的 REST API，位于 `/security-hunt` 下，`POST /security-case-evidence/add-events` 用于将事件保存到案例。狩猎的运行可在 `/security-hunt-run` 下读取。请参阅 [API 参考](/docs/api-reference/api-reference)。
 
 ## 检测规则
 
@@ -511,7 +547,7 @@ Detection Finding 是来自产品 `OneUptime Detections`、类别为 `Detection 
 
 ### 监视列表
 
-监视列表是团队只需维护一次、任何规则都能读取的列表，例如 VIP 用户、关键主机、已知恶意文件哈希，或管理员可以从哪些地址登录。所有列表都在 **产品 → 安全事件 → 检测 → 监视列表** 下：在那里用 **创建监视列表** 创建一个，填写名称并选择它包含的内容，或从 **从常用列表开始** 添加一个常用列表。列表页面显示它的值， **在规则中使用** 给出一个读取该列表的选择项，可复制到规则中。
+监视列表是团队只需维护一次、任何规则都能读取的列表，例如 VIP 用户、关键主机、已知恶意文件哈希，或管理员可以从哪些地址登录。所有列表都在 **产品 → 安全事件 → 检测 → 监视列表** 下：在那里用 **创建监视列表** 创建一个，填写名称并选择它包含的内容，或从 **从常用列表开始** 添加一个常用列表。列表页面显示它的值， **使用此列表** 给出一个读取该列表的选择项（可复制到规则中），以及在 **事件** 或狩猎中读取它的搜索。
 
 规则用 `expand` 加上写在两个 `%` 之间的列表名称来读取列表。下面这条规则会在管理员从不在允许列表中的地址登录时触发：
 
@@ -529,10 +565,14 @@ level: high
 
 - 列表包含用户、主机、IP 地址、文件哈希、域名、URL、进程或其他值，在创建时选定。值的匹配不区分大小写， `*` 代表任意一串字符： `svc-*` 匹配每个服务账号。IP 地址列表也接受范围，例如 `10.20.0.0/16` ，文件哈希列表接受 MD5、SHA-1、SHA-256 和 SHA-512 哈希。
 - 用 **添加值** 逐个添加值，或用 **导入值** 一次添加许多值：粘贴它们，或选择一个 `.txt` 或 `.csv` 文件，每行一个值，逗号后可以跟一条备注。 **添加到列表** 保留列表中已有的值， **替换列表** 会移除导入内容中没有的值。
+- 值可以设置 **过期时间**：从那时起，任何规则、监视器、狩猎或搜索都不再读取它，OneUptime 会在一分钟内将其从列表中移除。留空则一直保留，直到有人移除它。
+- **导出值** 会将列表的值下载为包含 `value`、`note` 和 `expires` 列的 CSV 文件， **导入值** 可以再读回它。第一行指明这些列的文件会为每个值提供备注和过期时间：写成 `2026-12-31` 这样的日期，或 UTC 的日期和时间。
+- 列表也可以改为从 https 地址上的文件读取，并按 **每小时**、**每 6 小时** 或 **每天** 重新读取：创建时在 **更多字段** 下选择 **某个地址上的文件**。每次读取都会让列表变成文件中的内容，读取方式与导入相同。读取失败不会更改任何值，列表页面会说明原因；**立即读取** 会马上读取。
 - IP 地址、文件哈希、域名或 URL 列表可以不自行维护值，而是跟随一个威胁情报源：此时它的值就是情报源中与列表类型相同的有效指标，并在读取情报源时保持更新。
-- `expand` 需单独使用，因为如何匹配由列表的值决定。像 `observables` 这样包含多个值的字段，只要其中任意一个在列表中就匹配。 **读取它的规则** 列出读取每个列表的规则，规则表单中 YAML 下方也会列出该规则读取的列表。
-- 规则按名称引用列表，不区分大小写。引用了项目中不存在的列表的规则会在保存时被拒绝；只要还有规则读取某个列表，就不能重命名或删除它。
+- `expand` 需单独使用，因为如何匹配由列表的值决定。像 `observables` 这样包含多个值的字段，只要其中任意一个在列表中就匹配。 **读取方** 列出读取每个列表的规则、Security Events 监视器和狩猎，规则表单中 YAML 下方也会列出该规则读取的列表。
+- 规则按名称引用列表，不区分大小写。引用了项目中不存在的列表的规则、监视器或狩猎会在保存时被拒绝；只要还有任何项读取某个列表，就不能重命名或删除它。
 - 对列表的更改会在每条读取它的规则下次运行时生效。关联规则和 **在过去的事件上运行** 也会读取列表。
+- Security Events 监视器在其 **按监视列表筛选** 中读取列表， **事件** 或狩猎中的搜索则像 `user:%vip_users%` 这样读取列表。在前面加减号（如 `-ip:%admin_addresses%`）会保留字段不在列表中的事件。
 - 一个列表最多包含 5,000 个值，其中带 `*` 的值最多 100 个、范围最多 100 个；一个项目最多有 200 个列表，更长的列表请跟随威胁情报源。能创建、编辑或删除检测规则的人，也能对列表做同样的操作；能编辑检测规则的人可以添加、修改和移除列表中的值。每个 Security 角色都能读取它们，每次修改都会记入项目的审计日志。
 
 ### 在过去的事件上运行
@@ -549,11 +589,11 @@ level: high
 
 安全事件监视器在滚动时间窗口内统计与其过滤器匹配的事件，并对计数运行常规的监视器条件：它会改变监视器的状态、打开警报或事件，并呼叫值班人员。请在 **监控 → 创建监视器** 下创建，类型选择 **安全事件** ；它会和您的其他监视器一起列在那里。
 
-它的表单显示 **Monitor events that include this text**、**Monitor Security Events for (time)**、**Event Severity** 和 **事件类别** 。**按遥测服务过滤** 和 **按属性过滤** 位于 **更多字段** 下，其标题会显示监视器正在使用哪些。它的条件检查 **Security Event Count** 。
+它的表单显示 **Monitor events that include this text**、**Monitor Security Events for (time)**、**Event Severity** 和 **事件类别** 。**按遥测服务过滤**、**按属性过滤** 和 **按监视列表筛选** 位于 **更多字段** 下，其标题会显示监视器正在使用哪些。**按监视列表筛选** 会保留字段在（或不在）某个[监视列表](#监视列表)中的事件。它的条件检查 **Security Event Count** 。
 
 | | 检测规则 | 安全事件监视器 |
 | --- | --- | --- |
-| 匹配依据 | 一条 Sigma 规则 | 针对严重程度、类别、消息、服务和属性的过滤器 |
+| 匹配依据 | 一条 Sigma 规则 | 针对严重程度、类别、消息、服务、属性和监视列表的过滤器 |
 | 时间窗口 | 首尾相接，每次运行一个 | 滚动：最近 5 秒到 24 小时 |
 | 按分组计数 | 是，通过 **分组字段** | 否：所有匹配合计一个计数 |
 | 打开的内容 | 警报、事件和检测结果 | 状态、警报和事件 |
@@ -610,11 +650,15 @@ level: high
 :::
 
 :::details 读取监视列表的规则没有匹配
-打开列表检查它的值：不带 `*` 的值必须与整个字段相同（不区分大小写），而跟随威胁情报源的列表只包含情报源中与其类型相同的有效指标。检查规则读取的是否是你的事件会填写的字段： **在规则中使用** 以这类列表通常所在的字段开头。对列表的更改会在规则下次运行时生效。
+打开列表检查它的值：不带 `*` 的值必须与整个字段相同（不区分大小写），而跟随威胁情报源的列表只包含情报源中与其类型相同的有效指标。检查规则读取的是否是你的事件会填写的字段： **使用此列表** 以这类列表通常所在的字段开头。对列表的更改会在规则下次运行时生效。
 :::
 
 :::details 无法重命名或删除监视列表
-仍有规则按名称读取它，提示信息会列出这些规则。先在这些规则中修改名称或移除该列表，然后再重命名或删除它。
+仍有规则、监视器或狩猎按名称读取它，提示信息会列出它们。先在其中修改名称或移除该列表，然后再重命名或删除它。
+:::
+
+:::details 从地址读取的列表显示错误
+它的页面会在 **从地址读取** 中说明原因以及该地址的回应，列表会保留上次成功读取的值。地址必须以 `https` 开头，无需登录即可从互联网访问，并且下载的是不超过 4 MB 的文本或 CSV 文件，而不是网页。在 **编辑** 中修正后，再选择 **立即读取**。
 :::
 
 :::details 在过去的事件上运行什么也没找到

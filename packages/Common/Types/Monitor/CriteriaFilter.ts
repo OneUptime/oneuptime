@@ -400,9 +400,38 @@ export interface MetricAnomalyDetectionOptions {
   minimumCount?: number | undefined;
 }
 
+/*
+ * How far ahead a forecast criteria looks, in hours, the default first
+ * (DEFAULT_FORECAST_HORIZON_IN_HOURS): from an hour, for a queue that fills
+ * up within the shift, to a month, for a disk that fills up over weeks.
+ */
+export const FORECAST_HORIZON_IN_HOURS_OPTIONS: ReadonlyArray<number> = [
+  1, 6, 12, 24, 72, 168, 336, 720,
+];
+
+// A week: time to add a disk, or to clean one up, before it fills.
+export const DEFAULT_FORECAST_HORIZON_IN_HOURS: number = 168;
+
+export interface MetricForecastOptions {
+  /*
+   * How far past now the trend line is followed before it is compared with
+   * the threshold, in hours. Defaults to DEFAULT_FORECAST_HORIZON_IN_HOURS.
+   */
+  horizonInHours?: number | undefined;
+}
+
 export interface MetricMonitorOptions {
   metricAlias?: string | undefined;
   metricAggregationType?: EvaluateOverTimeType | undefined;
+  /*
+   * A query of the monitor that reports as often as this one's source does, for a criteria whose
+   * own series come and go: one per status word exists only while something has that status. With
+   * nothing else to go by, one data point in the window is taken to mean the time range is no
+   * longer than the metric's reporting interval, and is judged on its value, so something seen
+   * once on its way to something else would fire. This says how often they report instead, so it
+   * waits for a full window like any new series (MetricWindowCoverage).
+   */
+  cadenceMetricAlias?: string | undefined;
   /*
    * Governs how the evaluator handles the case where the metric query
    * returned zero samples in the evaluation window. Defaults to Ignore
@@ -421,6 +450,11 @@ export interface MetricMonitorOptions {
    * AnomalouslyLow / Anomalous). Ignored for static-threshold filters.
    */
   anomalyDetection?: MetricAnomalyDetectionOptions | undefined;
+  /*
+   * Configuration for the forecast filter types (ForecastAbove /
+   * ForecastBelow). Ignored by every other filter type.
+   */
+  forecast?: MetricForecastOptions | undefined;
 }
 
 export enum EvaluateOverTimeMinutes {
@@ -497,6 +531,16 @@ export enum FilterType {
   AnomalouslyHigh = "Anomalously High",
   AnomalouslyLow = "Anomalously Low",
   Anomalous = "Anomalous",
+  /*
+   * Forecast filter types, for metrics. The "value" field is the threshold
+   * and the horizon lives in metricMonitorOptions.forecast. The evaluator
+   * fits a straight line to each series' data points in the time window
+   * and compares where that line is at the end of the horizon with the
+   * threshold (MetricForecast): a disk that fills up a little every day
+   * matches days before it is full.
+   */
+  ForecastAbove = "Forecast Above",
+  ForecastBelow = "Forecast Below",
 }
 
 export class CriteriaFilterUtil {
@@ -513,6 +557,35 @@ export class CriteriaFilterUtil {
       filterType === FilterType.AnomalouslyLow ||
       filterType === FilterType.Anomalous
     );
+  }
+
+  /**
+   * Whether the filter forecasts: it compares where the metric's trend is
+   * headed with its threshold, not the values it has had. Its threshold is
+   * the `value` field, as for a static comparison, and its horizon is in
+   * metricMonitorOptions.forecast.
+   */
+  public static isForecastFilterType(
+    filterType: FilterType | undefined,
+  ): boolean {
+    return (
+      filterType === FilterType.ForecastAbove ||
+      filterType === FilterType.ForecastBelow
+    );
+  }
+
+  // How far ahead a forecast filter looks, in hours: its own, or the default.
+  public static getForecastHorizonInHours(
+    criteriaFilter: CriteriaFilter | undefined,
+  ): number {
+    const horizonInHours: number | undefined =
+      criteriaFilter?.metricMonitorOptions?.forecast?.horizonInHours;
+
+    return typeof horizonInHours === "number" &&
+      Number.isFinite(horizonInHours) &&
+      horizonInHours > 0
+      ? horizonInHours
+      : DEFAULT_FORECAST_HORIZON_IN_HOURS;
   }
 
   public static hasValueField(data: {

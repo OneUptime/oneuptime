@@ -755,7 +755,13 @@ describe("Set Up Data Security", () => {
 
     const writer: string = `${SERVER}/DataSecurityFindingWriter.ts`;
 
-    expect(constant(writer, "FINDING_FRESHNESS_IN_DAYS")).toBe(30);
+    // The check catalog's, which the writer, the evaluator and the issue page read.
+    expect(
+      constant(
+        "Common/Types/DataSecurity/DataSecurityCheckCatalog.ts",
+        "FINDING_FRESHNESS_IN_DAYS",
+      ),
+    ).toBe(30);
     expect(constant(writer, "FINDING_RETENTION_IN_DAYS")).toBe(90);
     expect(constant(writer, "MAX_FINDINGS_PER_STORE")).toBe(2000);
     expect(keeps).toContain(
@@ -2197,10 +2203,23 @@ describe("Data Security Integrations", () => {
       "Fix this data security issue in the infrastructure code (Terraform, CloudFormation, Bicep or similar)",
     );
     expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "message: buildDataSecurityFixRequest(issue),",
+      "message: buildDataSecurityFixRequest(",
     );
     expect(section(page, "## OneUptime AI")).toContain(
       "Terraform, CloudFormation, Bicep or the like",
+    );
+    // A telemetry issue is fixed in the service's code, from where its data sits.
+    expect(prompt).toContain(
+      "Fix this data security issue in the code of the service that writes this data to its telemetry",
+    );
+    expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
+      "await DataSecurityAPI.readFindingsForAi(projectId, issue)",
+    );
+    expect(section(page, "## OneUptime AI")).toContain(
+      "For a telemetry issue it asks for a change to the code of the service that writes the data instead",
+    );
+    expect(section(page, "## OneUptime AI")).toContain(
+      "the data type and the attribute, log body or prompt it sits in, never a sample or a record",
     );
     expect(
       source(

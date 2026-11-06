@@ -48,7 +48,7 @@ De browsers zijn Chromium en Firefox.
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **Synthetic Monitor** onder **Synthetic Monitoring**, of typ `playwright` in het zoekvak. Voer een **Naam** in en klik op **Volgende**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **Synthetic Monitor** onder **Synthetische bewaking**, of typ `playwright` in het zoekvak. Voer een **Naam** in en klik op **Volgende**.
 
 ### Het script toevoegen
 

@@ -1,6 +1,6 @@
 # Microsoft Entra ID
 
-Importa gli accessi e le modifiche alla directory di [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) negli eventi di sicurezza di OneUptime e, se vuoi, l'attività di Exchange, SharePoint, OneDrive e Teams del [log di audit di Microsoft 365](https://learn.microsoft.com/en-us/purview/audit-log-activities). Lì li cerchi accanto a log, trace e metriche, li correli con ogni altra fonte e chiami la reperibilità per quelli che contano. OneUptime li legge con una registrazione dell'app che crei tu, e non cambia nulla nel tuo tenant.
+Importa gli accessi, le modifiche alla directory e i rilevamenti di rischio di [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) negli eventi di sicurezza di OneUptime e, se vuoi, gli accessi che le app fanno in background e l'attività di Exchange, SharePoint, OneDrive e Teams del [log di audit di Microsoft 365](https://learn.microsoft.com/en-us/purview/audit-log-activities). Lì li cerchi accanto a log, trace e metriche, li correli con ogni altra fonte e chiami la reperibilità per quelli che contano. OneUptime li legge con una registrazione dell'app che crei tu, e non cambia nulla nel tuo tenant.
 
 :::cards
 - [Configurare la connessione](#configurare-la-connessione): Una registrazione dell'app, le sue autorizzazioni e il modulo della connessione.
@@ -19,15 +19,15 @@ flowchart TB
     list --> event["Ognuno è salvato<br/>come evento OCSF<br/>del suo tipo"]
 ```
 
-Ogni minuto, OneUptime interroga ogni connessione abilitata il cui intervallo di polling è trascorso. Un'interrogazione accede a Microsoft Entra ID come la tua registrazione dell'app e legge, in quest'ordine, le modifiche alla directory ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) e gli accessi ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)) registrati dall'ultima interrogazione, poi, quando l'opzione **Log di audit di Microsoft 365** è attiva, il nuovo contenuto del log di audit ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)). Ogni record viene salvato come un evento [OCSF](https://schema.ocsf.io/): un accesso come un evento Authentication, un ruolo assegnato come un evento User Access Management, un verdetto di phishing come un Detection Finding.
+Ogni minuto, OneUptime interroga ogni connessione abilitata il cui intervallo di polling è trascorso. Un'interrogazione accede a Microsoft Entra ID come la tua registrazione dell'app e legge, in quest'ordine, le modifiche alla directory ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) e gli accessi ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)) registrati dall'ultima interrogazione, poi i rilevamenti di rischio di Identity Protection ([List riskDetections](https://learn.microsoft.com/en-us/graph/api/riskdetection-list)), poi, quando l'opzione **Accessi in background e delle app** è attiva, gli accessi in background e delle app e, quando l'opzione **Log di audit di Microsoft 365** è attiva, il nuovo contenuto del log di audit ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)). Ogni record viene salvato come un evento [OCSF](https://schema.ocsf.io/): un accesso come un evento Authentication, un ruolo assegnato come un evento User Access Management, un rilevamento di rischio o un verdetto di phishing come un Detection Finding.
 
 ## Prima di iniziare
 
 - In OneUptime, il ruolo Project Owner, Project Admin o Security Admin. I ruoli Security Member e Security Viewer vedono le connessioni e la cronologia delle loro esecuzioni, ma non possono modificarle.
-- Per gli accessi, Microsoft Entra ID P1 o P2, inclusi in Microsoft 365 E3, E5 e Business Premium: Microsoft Graph fornisce gli accessi solo a questi tenant. Le modifiche alla directory si leggono in qualsiasi tenant.
+- Per gli accessi e i rilevamenti di rischio, Microsoft Entra ID P1 o P2, inclusi in Microsoft 365 E3, E5 e Business Premium: Microsoft Graph li fornisce solo a questi tenant, e P2 dà i dettagli di ogni rilevamento di rischio. Le modifiche alla directory si leggono in qualsiasi tenant.
 - Un ruolo Entra che può registrare applicazioni, come Amministratore applicazione, e un Amministratore globale o un Amministratore ruolo con privilegi per concedere il consenso dell'amministratore.
 - Per il log di audit di Microsoft 365, l'audit attivato per il tenant, come lo è per impostazione predefinita: nel [portale di Microsoft Purview](https://purview.microsoft.com), **Audit** non deve proporre **Start recording user and admin activity**.
-- HTTPS in uscita dall'app e dai worker di OneUptime verso `login.microsoftonline.com`, `graph.microsoft.com` e `manage.office.com`, oppure verso `login.microsoftonline.us`, `graph.microsoft.us` e `manage.office365.us` per Azure Government.
+- HTTPS in uscita dall'app e dai worker di OneUptime verso `login.microsoftonline.com`, `graph.microsoft.com` e `manage.office.com`, con `manage-gcc.office.com` al suo posto per Microsoft 365 GCC, oppure verso `login.microsoftonline.us`, `graph.microsoft.us` e `manage.office365.us` per GCC High, e `login.microsoftonline.us`, `dod-graph.microsoft.us` e `manage.protection.apps.mil` per DoD.
 
 ## Configurare la connessione
 
@@ -42,7 +42,7 @@ La connessione accede con il [flusso delle credenziali client di OAuth 2.0](http
 
 ### Permetterle di leggere i log
 
-1. Vai su **API permissions → Add a permission → Microsoft Graph → Application permissions**, scegli `AuditLog.Read.All` e seleziona **Add permissions**. Microsoft documenta che il suo elenco degli accessi può richiedere anche `Directory.Read.All`: aggiungilo se gli accessi vengono rifiutati con `403` una volta concesso il consenso.
+1. Vai su **API permissions → Add a permission → Microsoft Graph → Application permissions**, scegli `AuditLog.Read.All` e, per i rilevamenti di rischio, `IdentityRiskEvent.Read.All`, e seleziona **Add permissions**. Microsoft documenta che il suo elenco degli accessi può richiedere anche `Directory.Read.All`: aggiungilo se gli accessi vengono rifiutati con `403` una volta concesso il consenso.
 2. Per il log di audit di Microsoft 365, aggiungi una seconda autorizzazione: **Add a permission → Office 365 Management APIs → Application permissions**, poi `ActivityFeed.Read`.
 3. Perché i playbook possano disabilitare, abilitare e disconnettere utenti (vedi [Contenimento](/docs/telemetry/security-cases#contenimento)), aggiungi allo stesso modo `User.Read.All`, `User.EnableDisableAccount.All` e `User.RevokeSessions.All`. Microsoft lascia modificare l'account di un amministratore solo a un'app che ha anche il ruolo Privileged Authentication Administrator.
 4. Seleziona **Grant admin consent for** il tuo tenant e conferma. Lo stato di ogni autorizzazione deve indicare **Granted**: senza consenso, ogni lettura viene rifiutata con `403`.
@@ -53,7 +53,7 @@ Vai su **Certificates & secrets → Client secrets → New client secret**, sceg
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Eventi di sicurezza → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Microsoft Entra ID** in **Identità** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il valore del segreto in **Segreto client**. Nel passaggio **Interrogazione**, attiva **Log di audit di Microsoft 365** per leggere anche quello.
+Apri **Prodotti → Eventi di sicurezza → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Microsoft Entra ID** in **Identità** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il valore del segreto in **Segreto client**. Nel passaggio **Interrogazione**, attiva **Accessi in background e delle app** o **Log di audit di Microsoft 365** per leggere anche quelli. Un tenant fuori dal cloud pubblico di Azure sceglie il suo **Cloud** in **Altri campi**, nel passaggio delle impostazioni.
 
 ### Provarla prima di salvare
 
@@ -63,8 +63,9 @@ Fai clic su **Prova queste impostazioni** in **Testa prima di salvare**. Il test
 | Impostazione | Dove trovarla |
 | --- | --- |
 | **ID directory (tenant)** | La pagina **Overview** dell'app. Il GUID del tenant, o un dominio verificato come `contoso.onmicrosoft.com`. Con **Log di audit di Microsoft 365** attivo, il GUID: la Management API identifica un tenant solo con quello. |
-| **ID applicazione (client)** | La pagina **Overview** dell'app. Il GUID dell'app che ha `AuditLog.Read.All`. |
-| **Cloud** | **Cloud pubblico di Azure**, o **Azure Government (USA)** per GCC High (`login.microsoftonline.us`, `graph.microsoft.us` e `manage.office365.us`). |
+| **ID applicazione (client)** | La pagina **Overview** dell'app. Il GUID dell'app che ha `AuditLog.Read.All` e `IdentityRiskEvent.Read.All`. |
+| **Cloud** | In **Altri campi**, **Cloud pubblico di Azure** a meno che tu non ne scelga un altro: **Cloud pubblico di Azure, Microsoft 365 GCC** per GCC, **Azure Government (USA), GCC High** per GCC High, o **Azure Government (USA), DoD** per DoD. |
+| **Accessi in background e delle app** | Facoltativo, disattivato per impostazione predefinita. Se attivo, ogni interrogazione legge anche gli accessi che le app fanno in background per le persone e quelli delle entità servizio stesse, dall'elenco beta degli accessi di Microsoft Graph, e importa quelli non riusciti. |
 | **Log di audit di Microsoft 365** | Facoltativo, disattivato per impostazione predefinita. Se attivo, ogni interrogazione legge anche il log di audit di Microsoft 365. L'app ha bisogno di `ActivityFeed.Read`. |
 | **Segreto client** | Il **Value** del segreto. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Aggiorna le credenziali** sulla connessione. |
 
@@ -80,6 +81,8 @@ Ogni evento ha il fornitore `Microsoft` e il prodotto `Microsoft Entra ID`. Il s
 | Un accesso in attesa di un secondo passaggio, come l'MFA (`50074`, `50076`) o la richiesta di cambiare la password | Authentication (`3002`), stato `Interrupted` | Informational: un passaggio, non un errore |
 | Un accesso non riuscito, con il motivo e il codice di errore di Entra | Authentication (`3002`), stato `Failure` | Low |
 | Un accesso che Identity Protection ha valutato a rischio medio o alto | Authentication (`3002`) | Medium o High |
+| Un rischio rilevato da Identity Protection, come un indirizzo IP anonimo o una credenziale trapelata | Detection Finding (`2004`) | Il suo livello di rischio; Critical per un utente confermato come compromesso |
+| Un accesso in background o di un'app non riuscito, con **Accessi in background e delle app** attivo | Authentication (`3002`), stato `Failure` | Low |
 | Un utente, un gruppo o un ruolo modificato, secondo la sua categoria | Account Change (`3001`), Group Management (`3006`), User Access Management (`3005`), o Entity Management (`3004`) per il resto | Medium per un ruolo con privilegi, come Global Administrator; Low per una modifica non riuscita |
 
 Con **Log di audit di Microsoft 365** attivo, da esso vengono importati i record su cui agisce un team di sicurezza, e il resto, come un file aperto o una mail letta, viene solo contato:
@@ -96,22 +99,22 @@ Con **Log di audit di Microsoft 365** attivo, da esso vengono importati i record
 
 Le attività di manutenzione di Exchange, eseguite con il suo account di sistema, vengono escluse a meno che non inoltrino la posta. Ogni evento conserva l'intero record, appiattito in chiavi puntate come `status.errorCode` o `Parameters.ForwardTo`, così una regola legge qualsiasi campo con il nome che gli dà Microsoft. Le regole della libreria per Entra ID li leggono come vengono importati qui.
 
-Gli stessi accessi e le stesse modifiche alla directory possono invece arrivare a OneUptime come log, esportati da un'impostazione di diagnostica di Azure e letti da [I tuoi log](/docs/telemetry/security-events#trovare-eventi-di-sicurezza-nei-tuoi-log). Ogni record riceve lo stesso ID evento in entrambi i modi, ma un record letto in entrambi i modi viene salvato due volte: leggi Entra ID in un solo modo.
+Gli stessi accessi, modifiche alla directory e rilevamenti di rischio possono arrivare a OneUptime anche come log, esportati da un'impostazione di diagnostica di Azure e letti da [I tuoi log](/docs/telemetry/security-events#trovare-eventi-di-sicurezza-nei-tuoi-log). Ogni record riceve lo stesso ID evento in entrambi i modi, e un record letto in entrambi i modi viene salvato una sola volta, da quello che lo legge per primo.
 
 ## Come funziona il polling
 
-- **I record vengono letti in base a quando Entra ID li ha registrati**, `activityDateTime` per una modifica e `createdDateTime` per un accesso.
+- **I record vengono letti in base a quando Entra ID li ha registrati**, `activityDateTime` per una modifica, `createdDateTime` per un accesso e `detectedDateTime` per un rilevamento di rischio.
 - **La prima interrogazione guarda indietro di 24 ore**, così una nuova connessione mostra subito i suoi record recenti.
 - **Ogni interrogazione successiva parte 30 minuti prima del cursore salvato.** Microsoft documenta che entrambi i log arrivano con minuti di ritardo, quindi la sovrapposizione legge un record in ritardo all'interrogazione successiva, e i duplicati vengono scartati in base all'ID del record all'interno del progetto.
 - **Un'interrogazione legge al massimo 24 ore oltre il cursore.** Una connessione il cui cursore è rimasto indietro recupera in una serie di finestre di 24 ore.
 - **Un tenant senza Microsoft Entra ID P1 o P2** importa le sue modifiche alla directory, e il controllo **Read sign-ins** di ogni esecuzione avvisa che gli accessi non sono stati letti.
 - **Un'esecuzione fallita non cambia nulla.** Dopo un errore di rete, o uno stato di errore di Graph, il cursore e la lunghezza della finestra restano com'erano, e l'interrogazione successiva rilegge la stessa finestra. L'unica eccezione è una richiesta scaduta: il cursore resta, ma la finestra successiva è lunga la metà, perché una finestra troppo pesante per ricevere risposta in tempo scadrebbe a ogni tentativo.
 
-Il log di audit di Microsoft 365 viene letto in base a quando Microsoft ha reso disponibile ogni blob di contenuto, un giorno alla volta, e non oltre i 7 giorni che Microsoft lo conserva. La prima interrogazione iscrive l'app a `Audit.Exchange`, `Audit.SharePoint` e `Audit.General`, e Microsoft rende disponibili i primi record di una nuova sottoscrizione entro 12 ore. Il log di audit non ferma mai i log di Entra ID: un'autorizzazione mancante è un avviso e la finestra va avanti, mentre un errore dal lato di Microsoft, come `HTTP 503`, rende l'esecuzione **Parziale** così la finestra viene riletta.
+Il log di audit di Microsoft 365 viene letto in base a quando Microsoft ha reso disponibile ogni blob di contenuto, un giorno alla volta, e non oltre i 7 giorni che Microsoft lo conserva. La prima interrogazione iscrive l'app a `Audit.Exchange`, `Audit.SharePoint` e `Audit.General`, e Microsoft rende disponibili i primi record di una nuova sottoscrizione entro 12 ore. Il log di audit non ferma mai i log di Entra ID: un'autorizzazione mancante è un avviso e la finestra va avanti, mentre un errore dal lato di Microsoft, come `HTTP 503`, rende l'esecuzione **Parziale** così la finestra viene riletta. I rilevamenti di rischio e gli accessi in background e delle app si comportano allo stesso modo: non fermano mai gli accessi e le modifiche alla directory.
 
 ### Quando una finestra contiene più di quanto un'interrogazione possa leggere
 
-Ogni log ha un budget proprio: 10 pagine da 500 modifiche alla directory, 20 pagine da 500 accessi e, per il log di audit di Microsoft 365, 120 richieste e 10.000 record. Un'interrogazione si ferma dopo 4 minuti. Quando un budget ferma un log prima della fine della sua finestra, l'esecuzione è **Parziale**, e il suo avviso nomina il log e il budget. Microsoft Graph elenca prima i record più recenti, quindi OneUptime accorcia la finestra invece di spostare il cursore oltre record che non ha mai raggiunto:
+Ogni log ha un budget proprio: 10 pagine da 500 modifiche alla directory, 20 pagine da 500 accessi, 4 pagine da 500 rilevamenti di rischio, 10 pagine da 500 di ogni tipo di accesso in background e, per il log di audit di Microsoft 365, 120 richieste e 10.000 record. Un'interrogazione si ferma dopo 4 minuti. Quando un budget ferma un log prima della fine della sua finestra, l'esecuzione è **Parziale**, e il suo avviso nomina il log e il budget. Microsoft Graph elenca prima i record più recenti, quindi OneUptime accorcia la finestra invece di spostare il cursore oltre record che non ha mai raggiunto:
 
 1. **Restringere.** L'interrogazione successiva legge una finestra lunga la metà, dallo stesso punto di partenza, e continua a dimezzarla finché una finestra non viene letta per intero, fino a un minuto. L'avviso dell'esecuzione lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` I record già importati dalla finestra più lunga vengono saltati come duplicati.
 2. **Tornare a crescere.** Dopo che una finestra è stata letta per intero, il cursore passa alla sua fine, e la finestra successiva è di nuovo lunga il doppio, fino a 24 ore.
@@ -138,6 +141,8 @@ Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti
 | **Authenticate with Microsoft Entra** | Entra ID rilascia all'app un token per Microsoft Graph, nel cloud che hai scelto. |
 | **Read sign-ins** | Gli accessi delle ultime 24 ore si possono leggere. Un avviso, non un errore, in un tenant senza P1 o P2. |
 | **Read directory changes** | Le modifiche alla directory delle ultime 24 ore si possono leggere. |
+| **Read risk detections** | I rilevamenti di rischio di Identity Protection delle ultime 24 ore si possono leggere. Un avviso, non un errore, senza l'autorizzazione o la licenza. |
+| **Read background and app sign-ins** | Solo con l'opzione attiva: l'elenco beta degli accessi di Microsoft Graph risponde per entrambi i tipi. |
 | **Read the Microsoft 365 audit log** | Solo con l'opzione attiva: la Management API risponde, e a quali tipi di contenuto è iscritta l'app. |
 | **Records available to import** | Quanti accessi e modifiche alla directory contengono le ultime 24 ore, al massimo 500 ciascuno, quindi `500+` significa di più. Nessuno è un avviso. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Il lato di OneUptime stesso: un processo prende i job della coda Worker, il job di polling gira ogni minuto e l'archivio degli eventi di sicurezza risponde. |
@@ -157,6 +162,11 @@ L'**Ultimo errore** della connessione conserva il messaggio di errore completo, 
 :::details Ultimo errore dice `sign-ins request failed (HTTP 403)` o `audit logs request failed (HTTP 403)`
 - Codice di errore `Authorization_RequestDenied`: all'app manca `AuditLog.Read.All`, o il consenso non è stato concesso. Concedi il consenso dell'amministratore, attendi qualche minuto e riprova. Per gli accessi, concedi anche `Directory.Read.All`.
 - Codice di errore `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: il tenant non ha Microsoft Entra ID P1 o P2. Le modifiche alla directory vengono comunque importate.
+:::
+
+:::details I rilevamenti di rischio non vengono letti
+- `risk detections request failed (HTTP 403)`: all'app manca `IdentityRiskEvent.Read.All`, o il consenso non è stato concesso. Gli accessi e le modifiche alla directory vengono comunque importati.
+- Codice di errore `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: il tenant non ha Microsoft Entra ID P1 o P2.
 :::
 
 :::details Il log di audit di Microsoft 365 non viene letto

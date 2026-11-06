@@ -52,7 +52,7 @@ Em **Ação**, mantenha **Descartar** para jogar fora cada entrada correspondent
 O filtro começa a descartar em até um minuto. Para salvá-lo sem descartar nada ainda, desative **Habilitado** em **Avançado** antes de criá-lo.
 
 > [!WARNING]
-> Uma entrada descartada não pode ser recuperada. Mantenha a consulta de um filtro restrita, e acompanhe a contagem **Dropped** dele depois de criá-lo.
+> Uma entrada descartada não pode ser recuperada. Mantenha a consulta de um filtro restrita, e acompanhe a contagem **Descartadas** dele depois de criá-lo.
 
 Um filtro pode testar estes campos, e qualquer atributo com **Custom Attribute...**:
 
@@ -131,7 +131,7 @@ Hash:   Payment failed for [HASHED:8c87b489]
 
 ## Verificar o que um filtro descartou
 
-A lista **Filtros de descarte** mostra de cada filtro a contagem **Dropped** e quando foi o seu **Last Dropped**. **Nothing dropped yet** significa que ele nunca correspondeu. A página de um filtro mostra o mesmo em **Atividade**, atualizado em até um minuto após um descarte. O seu cartão **Condições de filtro** mostra o que ele seleciona, e você pode alterar as condições ali.
+A lista **Filtros de descarte** mostra de cada filtro a contagem **Descartadas** e quando foi o seu **Last Dropped**. **Nothing dropped yet** significa que ele nunca correspondeu. A página de um filtro mostra o mesmo em **Atividade**, atualizado em até um minuto após um descarte. O seu cartão **Condições de filtro** mostra o que ele seleciona, e você pode alterar as condições ali.
 
 ## Solução de problemas
 
@@ -140,7 +140,7 @@ A lista **Filtros de descarte** mostra de cada filtro a contagem **Dropped** e q
 :::
 
 :::details Faltam registros que eu esperava
-Veja a contagem **Dropped** e a hora do **Last Dropped** de cada filtro de descarte. Desative **Habilitado** naquele de que você suspeita, e os próximos registros voltam a chegar.
+Veja a contagem **Descartadas** e a hora do **Last Dropped** de cada filtro de descarte. Desative **Habilitado** naquele de que você suspeita, e os próximos registros voltam a chegar.
 :::
 
 :::details Uma regra de mascaramento personalizada mostra Não limpa nada

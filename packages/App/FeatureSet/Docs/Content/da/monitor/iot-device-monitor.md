@@ -34,7 +34,7 @@ flowchart TB
 ## Før du begynder
 
 - **Få dine enheder til at sende data.** [Vejledningen til IoT-enheder](/docs/telemetry/iot-devices) viser, hvordan du sender metrikker med en OpenTelemetry-SDK eller -Collector, eller over MQTT.
-- **Tjek, at flåden er registreret.** Den vises under **Produkter → Infrastruktur → IoT → All Fleets**, opkaldt efter det `iot.fleet.name`, enhederne sender.
+- **Tjek, at flåden er registreret.** Den vises under **Produkter → Infrastruktur → IoT → Alle flåder**, opkaldt efter det `iot.fleet.name`, enhederne sender.
 - **Registrér de enheder, du forventer**, under flådens **Enhedsregister**, så du får besked, når en bliver tavs: se [Offline-registrering](#offline-registrering).
 
 ## Opret en IoT-enhedsmonitor
@@ -50,7 +50,7 @@ Klik under **Monitortype** på **Flere monitortyper**, og vælg **IoT-enhed** un
 
 ### Vælg flåden
 
-Vælg under **IoT Monitor Configuration** flåden i **IoT Fleet**. Hver flåde, der har sendt data, står på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj IoT-flåde** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
+Vælg under **IoT Monitor Configuration** flåden i **IoT-flåde**. Hver flåde, der har sendt data, står på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj IoT-flåde** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
@@ -76,7 +76,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 | Felt | Fane | Hvad det gør |
 | --- | --- | --- |
-| **IoT Fleet** | Alle | Påkrævet. Begrænser hver forespørgsel til `resource.iot.fleet.name`. |
+| **IoT-flåde** | Alle | Påkrævet. Begrænser hver forespørgsel til `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avanceret | Valgfrit. Én enhed, via dens `device.id`, som `sensor-001`. |
 | **Enhedstype** | Custom Metric, Avanceret | Valgfrit. De enheder, der rapporterer dette `iot.device.type`, som `sensor` eller `gateway`. |
 | **IoT Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
@@ -146,7 +146,7 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | **Filtertype** | Altid **Metric Value**, det eneste tjek, denne monitor tilbyder. |
 | **Select Metric Variable** | Den forespørgsel eller formel, der skal tjekkes, efter dens variabelnavn. |
 | **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver værdi skal matche, i hele vinduet) eller **Any Value** (én er nok). |
-| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, og **Har data**, når den sendte noget. |
+| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, og **Har data**, når den sendte noget. **Forventes at stige over** og **Forventes at falde under** matcher, når metrikkens tendens i vinduet er forbi tærsklen ved udgangen af **Tidshorisont**. |
 | **Tærskel** | Den værdi, der sammenlignes med. En enhedsliste står ved siden af, når metrikken har en enhed. Vises ikke for anomalibetingelser. |
 | **Følsomhed** | Kun anomalibetingelser. **Lav** (4σ), **Mellem** (3σ, standarden) eller **Høj** (2σ). |
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standarden), 28, 60 eller 90 dages historik. |

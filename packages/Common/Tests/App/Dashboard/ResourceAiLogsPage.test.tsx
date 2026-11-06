@@ -30,6 +30,7 @@ import {
   RESOURCE_AI_LOGS_PAGE_TITLE,
   RESOURCE_COMMAND_JOB_ORIGIN_LABELS,
   ResourceAiLogs,
+  getResourceAiLogsFixAnchor,
   describeResourceCommandJobOrigin,
   describeResourceFixType,
   describeResourceInvestigationSubject,
@@ -330,12 +331,16 @@ function logsPath(
     .replace(":id", resourceId);
 }
 
-function openLogsPage(descriptor: ResourceAiAgentDescriptor = CEPH): void {
+function openLogsPage(
+  descriptor: ResourceAiAgentDescriptor = CEPH,
+  // The address's hash: #fix-<id> opens the page on that fix's entry.
+  hash: string = "",
+): void {
   const path: string = logsPath(descriptor);
   goTo(path);
 
   render(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter initialEntries={[`${path}${hash}`]}>
       <NavigationProbe />
       <Routes>
         <PageRoute
@@ -910,6 +915,105 @@ describe("the AI Logs page", () => {
     expect(
       screen.queryByText("Incident #42: HEALTH_WARN on ceph-prod"),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * A cloud change OneUptime AI made links its fix's entry here
+ * (#fix-<id>, from the account's Changes): the page opens on that entry,
+ * marked, and brings it into view once the fixes are in.
+ */
+describe("a link to one fix's entry", () => {
+  let scrolled: Array<Element>;
+
+  beforeEach(() => {
+    scrolled = [];
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      configurable: true,
+      writable: true,
+      value: function (this: Element): void {
+        scrolled.push(this);
+      },
+    });
+  });
+
+  afterEach(() => {
+    delete (Element.prototype as unknown as Record<string, unknown>)[
+      "scrollIntoView"
+    ];
+  });
+
+  test("every fix's entry has the anchor a link names", async () => {
+    openLogsPage();
+
+    await findText("Mark osd.3 out so its PGs recover elsewhere.");
+
+    const fixes: Array<HTMLElement> = screen.getAllByTestId("ai-logs-fix");
+
+    expect(
+      fixes.map((fix: HTMLElement): string => {
+        return fix.id;
+      }),
+    ).toEqual([
+      getResourceAiLogsFixAnchor(FIX_ID),
+      getResourceAiLogsFixAnchor(SECOND_FIX_ID),
+    ]);
+    // Opened on none: none marked, nothing scrolled.
+    for (const fix of fixes) {
+      expect(fix).not.toHaveAttribute("data-linked");
+    }
+    expect(scrolled).toEqual([]);
+  });
+
+  test("opened on a fix: that entry is marked and brought into view, the others are not", async () => {
+    openLogsPage(CEPH, `#${getResourceAiLogsFixAnchor(SECOND_FIX_ID)}`);
+
+    await findText("Mark osd.3 out so its PGs recover elsewhere.");
+
+    const fixes: Array<HTMLElement> = screen.getAllByTestId("ai-logs-fix");
+
+    await waitFor(() => {
+      expect(scrolled).toEqual([fixes[1]]);
+    });
+    expect(fixes[1]).toHaveAttribute("data-linked", "true");
+    expect(fixes[1]).toHaveClass("bg-indigo-50");
+    // A screen reader hears it as the current entry, as it is shown.
+    expect(fixes[1]).toHaveAttribute("aria-current", "true");
+    expect(fixes[0]).not.toHaveAttribute("data-linked");
+    expect(fixes[0]).not.toHaveClass("bg-indigo-50");
+    expect(fixes[0]).not.toHaveAttribute("aria-current");
+  });
+
+  test("the anchor reads in any case", async () => {
+    openLogsPage(CEPH, `#fix-${FIX_ID.toUpperCase()}`);
+
+    await findText("Mark osd.3 out so its PGs recover elsewhere.");
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("ai-logs-fix")[0]).toHaveAttribute(
+        "data-linked",
+        "true",
+      );
+    });
+  });
+
+  test("a fix older than the page lists leaves the page where it opens", async () => {
+    openLogsPage(CEPH, "#fix-99999999-0000-4000-8000-000000000009");
+
+    await findText("Mark osd.3 out so its PGs recover elsewhere.");
+
+    for (const fix of screen.getAllByTestId("ai-logs-fix")) {
+      expect(fix).not.toHaveAttribute("data-linked");
+    }
+    expect(scrolled).toEqual([]);
+  });
+
+  test("another hash is no fix's", async () => {
+    openLogsPage(CEPH, "#commands");
+
+    await findText("Mark osd.3 out so its PGs recover elsewhere.");
+
+    expect(scrolled).toEqual([]);
   });
 });
 

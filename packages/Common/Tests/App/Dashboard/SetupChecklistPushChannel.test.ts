@@ -62,6 +62,9 @@ describe("the channels the step holds the reader to", () => {
       "Push",
       "WhatsApp",
       "Telegram",
+      "Slack",
+      "Microsoft Teams",
+      "Mattermost",
       "Webhook",
     ]);
   });

@@ -1,6 +1,7 @@
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import MetricBaselineHourly from "Common/Models/AnalyticsModels/MetricBaselineHourly";
+import Span, { SpanKind } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
 import { ClickHouseClientConfigOptions } from "Common/Server/Infrastructure/ClickhouseConfig";
 import ClickhouseDatabase, {
@@ -22,9 +23,13 @@ import {
   METRIC_NAME_ID_PATTERN,
   METRIC_NAME_ID_PLACEHOLDER,
   MetricBucketProblem,
+  METRIC_INSIGHT_SERVED_SPAN_SAMPLE_SIZE,
   MetricHighCardinalityReading,
   MetricHistogramBucketsReading,
+  MetricInsightKind,
   MetricNamePatternReading,
+  MetricServedProtocol,
+  MetricServedSpansReading,
   MetricShapeReading,
   MetricValueShape,
   MetricVolumeReading,
@@ -34,8 +39,10 @@ import {
   pickHistogramReading,
   readHighCardinalityAttributes,
   readHistogramBuckets,
+  readServedProtocols,
 } from "Common/Utils/Metrics/MetricInsight";
 import { generatedTexts } from "Common/Tests/Helpers/GeneratedTexts";
+import type { SpyInstance } from "jest-mock";
 import {
   afterAll,
   beforeAll,
@@ -64,6 +71,15 @@ import {
  * materialized view), runs each read through MetricService, on both
  * analyzers, and runs one look of the real detector over them.
  *
+ * Missing request metrics read a sample of a service's entry spans
+ * (TraceAggregationService.getServedSpanSample): so a table built from
+ * the real Span model holds an hour of search's spans - its HTTP server,
+ * RPC server and messaging consumer spans, under new attribute names and
+ * old, among client and internal spans, other services' and projects'
+ * spans, spans outside the hour and past their retention - and the sample
+ * is shown to count only the service's own entry spans of the hour, at
+ * most its size, the same on both analyzers.
+ *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server:
  *
  *   docker run -d --rm -p 18124:8123 -e CLICKHOUSE_PASSWORD=test \
@@ -89,6 +105,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
 });
 
 import MetricService from "Common/Server/Services/MetricService";
+import SpanService from "Common/Server/Services/SpanService";
 import MetricAggregationService, {
   MetricAttributeCardinalityRow,
   MetricSeriesKey,
@@ -125,6 +142,9 @@ const otherProjectId: ObjectID = new ObjectID(
 );
 const CHECKOUT: string = "5231dddd-0000-4000-8000-00000000000c";
 const PAYMENTS: string = "5231dddd-0000-4000-8000-00000000000d";
+// Sends its runtime's metrics, none for the requests and messages it handles.
+const SEARCH: string = "5231dddd-0000-4000-8000-00000000000e";
+const RUNTIME_METRIC: string = "jvm.memory.used";
 
 const REQUEST_COUNT: string = "http.server.request.count";
 const DURATION: string = "http.server.duration";
@@ -296,7 +316,152 @@ function fixtures(): Array<PointFixture> {
     });
   }
 
+  // search's runtime metric: its metrics arrive, none for its requests.
+  for (let index: number = 0; index < 60; index++) {
+    points.push({
+      name: RUNTIME_METRIC,
+      at: index * 60,
+      serviceId: SEARCH,
+      pointType: "Gauge",
+      value: 512,
+    });
+  }
+
   return points;
+}
+
+interface SpanFixture {
+  // Seconds into the hour.
+  at: number;
+  kind: SpanKind;
+  attributes: Record<string, string>;
+  serviceId?: string;
+  projectId?: ObjectID;
+  retentionDate?: string;
+}
+
+/*
+ * An hour of search's spans, and the spans its sample must never count.
+ * search handles 360 HTTP requests (300 under semantic conventions 1.20's
+ * http.request.method, 60 under the old http.method), 150 messages and 40
+ * RPC calls - too few to serve - and 30 entry spans of no known kind.
+ */
+const SERVED: {
+  http: number;
+  oldHttp: number;
+  messaging: number;
+  rpc: number;
+  unknown: number;
+} = { http: 300, oldHttp: 60, messaging: 150, rpc: 40, unknown: 30 };
+
+function spanFixtures(): Array<SpanFixture> {
+  const spans: Array<SpanFixture> = [];
+
+  function add(
+    count: number,
+    fixture: Omit<SpanFixture, "at"> & { at?: number },
+  ): void {
+    for (let index: number = 0; index < count; index++) {
+      spans.push({ at: (index * 7) % 3600, ...fixture });
+    }
+  }
+
+  add(SERVED.http, {
+    kind: SpanKind.Server,
+    attributes: {
+      "http.request.method": "GET",
+      "http.route": "/search",
+      "url.path": "/search",
+    },
+  });
+  add(SERVED.oldHttp, {
+    kind: SpanKind.Server,
+    attributes: { "http.method": "GET", "http.target": "/suggest?q=a" },
+  });
+  add(SERVED.messaging, {
+    kind: SpanKind.Consumer,
+    attributes: {
+      "messaging.system": "kafka",
+      "messaging.destination.name": "catalog-updates",
+    },
+  });
+  add(SERVED.rpc, {
+    kind: SpanKind.Server,
+    attributes: { "rpc.system": "grpc", "rpc.method": "Reindex" },
+  });
+  add(SERVED.unknown, { kind: SpanKind.Server, attributes: {} });
+
+  // Not entry spans: what search calls, and its own steps.
+  add(500, {
+    kind: SpanKind.Client,
+    attributes: { "http.request.method": "GET" },
+  });
+  add(400, { kind: SpanKind.Internal, attributes: {} });
+  add(100, {
+    kind: SpanKind.Producer,
+    attributes: { "messaging.system": "kafka" },
+  });
+
+  // search's HTTP requests outside the hour, and past their retention.
+  add(100, {
+    kind: SpanKind.Server,
+    at: -120,
+    attributes: { "http.request.method": "GET" },
+  });
+  add(100, {
+    kind: SpanKind.Server,
+    at: 3600 + 60,
+    attributes: { "http.request.method": "GET" },
+  });
+  add(100, {
+    kind: SpanKind.Server,
+    attributes: { "http.request.method": "GET" },
+    retentionDate: yesterday,
+  });
+
+  // Another service's RPC calls, and another project's messages.
+  add(300, {
+    kind: SpanKind.Server,
+    serviceId: CHECKOUT,
+    attributes: { "rpc.system.name": "grpc" },
+  });
+  add(300, {
+    kind: SpanKind.Consumer,
+    projectId: otherProjectId,
+    attributes: { "messaging.system": "kafka" },
+  });
+
+  return spans;
+}
+
+function spanRow(fixture: SpanFixture, index: number): JSONObject {
+  const start: Date = new Date(HOUR_START.getTime() + fixture.at * 1000);
+  const startNs: string = String(BigInt(start.getTime()) * BigInt(1000000));
+  const durationNs: number = 12 * 1000000;
+
+  return {
+    _id: ObjectID.generate().toString(),
+    createdAt: OneUptimeDate.toClickhouseDateTime(new Date()),
+    projectId: (fixture.projectId || projectId).toString(),
+    primaryEntityId: fixture.serviceId || SEARCH,
+    primaryEntityType: "Service",
+    startTime: OneUptimeDate.toClickhouseDateTime64(start),
+    endTime: OneUptimeDate.toClickhouseDateTime64(start),
+    startTimeUnixNano: startNs,
+    endTimeUnixNano: String(BigInt(startNs) + BigInt(durationNs)),
+    durationUnixNano: String(durationNs),
+    traceId: `trace-${index}`,
+    spanId: `span-${index}`,
+    parentSpanId: `parent-${index}`,
+    attributes: fixture.attributes,
+    attributeKeys: Object.keys(fixture.attributes).sort(),
+    entityKeys: [],
+    statusCode: 0,
+    name: `span ${index}`,
+    kind: fixture.kind,
+    isRootSpan: false,
+    retentionDate: (fixture.retentionDate || inThirty).substring(0, 10),
+  };
 }
 
 async function createTable(
@@ -333,13 +498,28 @@ interface ServiceConnection {
   ingestDatabaseClient: ClickhouseClient | null;
 }
 
-function connectionOf(service: typeof MetricService): ServiceConnection {
+function connectionOf(
+  service: typeof MetricService | typeof SpanService,
+): ServiceConnection {
   return {
     database: service.database,
     databaseClient: service.databaseClient,
     ingestDatabase: service.ingestDatabase,
     ingestDatabaseClient: service.ingestDatabaseClient,
   };
+}
+
+// search's sample of the hour, as the detector asks for it.
+function readSearchSample(
+  sampleSize: number = METRIC_INSIGHT_SERVED_SPAN_SAMPLE_SIZE,
+): Promise<MetricServedSpansReading> {
+  return TraceAggregationService.getServedSpanSample({
+    projectId,
+    startTime: HOUR_START,
+    endTime: HOUR_END,
+    serviceId: new ObjectID(SEARCH),
+    sampleSize,
+  });
 }
 
 const keys: Array<MetricSeriesKey> = [
@@ -395,6 +575,7 @@ integration("Metrics' AI reads against ClickHouse", () => {
   let clickhouse: ClickhouseDatabase;
   let client: ClickhouseClient;
   let original: ServiceConnection | undefined;
+  let originalSpans: ServiceConnection | undefined;
   let reads: Reads;
 
   beforeAll(async (): Promise<void> => {
@@ -420,6 +601,7 @@ integration("Metrics' AI reads against ClickHouse", () => {
 
     await createTable(client, clickhouse, Metric);
     await createTable(client, clickhouse, MetricBaselineHourly);
+    await createTable(client, clickhouse, Span);
 
     original = connectionOf(MetricService);
     MetricService.database = clickhouse;
@@ -427,8 +609,20 @@ integration("Metrics' AI reads against ClickHouse", () => {
     MetricService.ingestDatabase = clickhouse;
     MetricService.ingestDatabaseClient = client;
 
+    originalSpans = connectionOf(SpanService);
+    SpanService.database = clickhouse;
+    SpanService.databaseClient = client;
+    SpanService.ingestDatabase = clickhouse;
+    SpanService.ingestDatabaseClient = client;
+
     await MetricService.insertJsonRows(fixtures().map(metricRow), {
       clickhouseSettings: { wait_for_async_insert: 1 },
+    });
+
+    await client.insert({
+      table: `${database}.${new Span().tableName}`,
+      values: spanFixtures().map(spanRow),
+      format: "JSONEachRow",
     });
 
     reads = await readAll();
@@ -437,6 +631,10 @@ integration("Metrics' AI reads against ClickHouse", () => {
   afterAll(async (): Promise<void> => {
     if (original) {
       Object.assign(MetricService, original);
+    }
+
+    if (originalSpans) {
+      Object.assign(SpanService, originalSpans);
     }
 
     if (client) {
@@ -457,12 +655,90 @@ integration("Metrics' AI reads against ClickHouse", () => {
       { metricName: REQUEST_COUNT, serviceId: CHECKOUT, dataPointCount: 1204 },
       { metricName: DURATION, serviceId: CHECKOUT, dataPointCount: 1020 },
     ]);
-    expect(reads.volumes).toHaveLength(2 + 60);
+    // checkout's two and its 60 job names, and search's runtime metric.
+    expect(reads.volumes).toHaveLength(2 + 60 + 1);
     expect(
-      reads.volumes.every((reading: MetricVolumeReading): boolean => {
-        return reading.serviceId === CHECKOUT;
-      }),
+      reads.volumes
+        .filter((reading: MetricVolumeReading): boolean => {
+          return reading.serviceId !== SEARCH;
+        })
+        .every((reading: MetricVolumeReading): boolean => {
+          return reading.serviceId === CHECKOUT;
+        }),
     ).toBe(true);
+    expect(
+      reads.volumes.filter((reading: MetricVolumeReading): boolean => {
+        return reading.serviceId === SEARCH;
+      }),
+    ).toEqual([
+      { metricName: RUNTIME_METRIC, serviceId: SEARCH, dataPointCount: 60 },
+    ]);
+  });
+
+  test("a service's sample of the hour counts its own entry spans: each kind of request by its kind and an attribute, new name or old", async () => {
+    const sample: MetricServedSpansReading = await readSearchSample();
+
+    expect(sample).toEqual({
+      sampledSpanCount:
+        SERVED.http +
+        SERVED.oldHttp +
+        SERVED.messaging +
+        SERVED.rpc +
+        SERVED.unknown,
+      httpServerSpanCount: SERVED.http + SERVED.oldHttp,
+      rpcServerSpanCount: SERVED.rpc,
+      messagingConsumerSpanCount: SERVED.messaging,
+    });
+
+    // 40 RPC calls in a sample are too few to be what it serves.
+    expect(readServedProtocols(sample)).toEqual([
+      MetricServedProtocol.Http,
+      MetricServedProtocol.Messaging,
+    ]);
+
+    // Another service's: its own RPC calls only.
+    expect(
+      await TraceAggregationService.getServedSpanSample({
+        projectId,
+        startTime: HOUR_START,
+        endTime: HOUR_END,
+        serviceId: new ObjectID(CHECKOUT),
+        sampleSize: METRIC_INSIGHT_SERVED_SPAN_SAMPLE_SIZE,
+      }),
+    ).toEqual({
+      sampledSpanCount: 300,
+      httpServerSpanCount: 0,
+      rpcServerSpanCount: 300,
+      messagingConsumerSpanCount: 0,
+    });
+  });
+
+  test("a sample reads at most its size", async () => {
+    const sample: MetricServedSpansReading = await readSearchSample(100);
+
+    expect(sample.sampledSpanCount).toBe(100);
+    expect(
+      sample.httpServerSpanCount +
+        sample.rpcServerSpanCount +
+        sample.messagingConsumerSpanCount,
+    ).toBeLessThanOrEqual(100);
+  });
+
+  test("a sample of a service with no entry spans in the hour reads none", async () => {
+    expect(
+      await TraceAggregationService.getServedSpanSample({
+        projectId,
+        startTime: HOUR_START,
+        endTime: HOUR_END,
+        serviceId: new ObjectID(PAYMENTS),
+        sampleSize: METRIC_INSIGHT_SERVED_SPAN_SAMPLE_SIZE,
+      }),
+    ).toEqual({
+      sampledSpanCount: 0,
+      httpServerSpanCount: 0,
+      rpcServerSpanCount: 0,
+      messagingConsumerSpanCount: 0,
+    });
   });
 
   test("a metric name's ids collapse into the pattern its names share", () => {
@@ -661,8 +937,39 @@ integration("Metrics' AI reads against ClickHouse", () => {
       } as unknown as JSONObject;
     };
 
+    const executeSpanQuery: typeof SpanService.executeQuery =
+      SpanService.executeQuery.bind(SpanService);
+
+    jest
+      .spyOn(SpanService, "executeQuery")
+      .mockImplementation(
+        (
+          statement: Statement | string,
+          runOptions?: ClickhouseExecuteOptions,
+        ): Promise<never> => {
+          return executeSpanQuery(statement, {
+            ...(runOptions || {}),
+            clickhouseSettings: {
+              ...(runOptions?.clickhouseSettings || {}),
+              [setting.name]: 0,
+            } as ClickHouseSettings,
+          }) as Promise<never>;
+        },
+      );
+
     try {
       expect(withoutSamples(await readAll())).toEqual(withoutSamples(reads));
+      expect(await readSearchSample()).toEqual({
+        sampledSpanCount:
+          SERVED.http +
+          SERVED.oldHttp +
+          SERVED.messaging +
+          SERVED.rpc +
+          SERVED.unknown,
+        httpServerSpanCount: SERVED.http + SERVED.oldHttp,
+        rpcServerSpanCount: SERVED.rpc,
+        messagingConsumerSpanCount: SERVED.messaging,
+      });
     } finally {
       jest.restoreAllMocks();
     }
@@ -740,6 +1047,89 @@ integration("Metrics' AI reads against ClickHouse", () => {
 
       // No user's id is kept.
       expect(JSON.stringify(found)).not.toContain("6f1c2d3e-4a5b");
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+
+  test("one look finds search missing its request metrics, from its real entry spans", async () => {
+    jest
+      .spyOn(LlmConversationPrivacy, "getRestrictedServiceIds")
+      .mockResolvedValue([]);
+    jest
+      .spyOn(ServiceService, "findBy")
+      .mockResolvedValue([
+        service(CHECKOUT, "checkout"),
+        service(PAYMENTS, "payments"),
+        service(SEARCH, "search"),
+      ]);
+    // The catalog records no unit, and no request metric ever from search.
+    jest.spyOn(MetricTypeService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(TraceAggregationService, "getServiceSpanHealth")
+      .mockResolvedValue([
+        {
+          primaryEntityId: SEARCH,
+          spanCount: 12400,
+          failedSpanCount: 310,
+          rootSpanCount: 0,
+        },
+      ]);
+    jest
+      .spyOn(TraceAggregationService, "getAnalyticsTable")
+      .mockResolvedValue([]);
+
+    const sample: SpyInstance<
+      typeof TraceAggregationService.getServedSpanSample
+    > = jest.spyOn(TraceAggregationService, "getServedSpanSample");
+
+    try {
+      const found: Array<InsightCandidate> = await MetricProblemDetector.look({
+        projectId,
+        now: new Date(HOUR_END.getTime() + 4000),
+      });
+      const requests: Array<InsightCandidate> = found.filter(
+        (candidate: InsightCandidate): boolean => {
+          return (
+            candidate.insightType === AIInsightType.MetricMissingRequestMetrics
+          );
+        },
+      );
+
+      expect(requests).toHaveLength(1);
+      expect(requests[0]!.fingerprint).toBe(
+        `metric-missing-request-metrics:${SEARCH}`,
+      );
+      expect(requests[0]!.title).toBe(
+        "search sends no metrics for the HTTP requests and messages it handles",
+      );
+      expect(requests[0]!.severity).toBe(AIInsightSeverity.Low);
+      expect(requests[0]!.evidence.metric).toMatchObject({
+        serviceId: SEARCH,
+        kind: MetricInsightKind.MissingRequestMetrics,
+        spanCount: 12400,
+        failedSpanCount: 310,
+        servedProtocols: [
+          MetricServedProtocol.Http,
+          MetricServedProtocol.Messaging,
+        ],
+        sentMetricNames: [RUNTIME_METRIC],
+        sentMetricCount: 1,
+      });
+      // The real sample was read, once, for the hour.
+      expect(sample).toHaveBeenCalledTimes(1);
+      expect(sample.mock.calls[0]![0].startTime.toISOString()).toBe(
+        HOUR_START.toISOString(),
+      );
+      // search sent metrics in the hour: it is not missing all of them.
+      expect(
+        found.filter((candidate: InsightCandidate): boolean => {
+          return (
+            candidate.insightType === AIInsightType.MetricMissingMetrics &&
+            candidate.fingerprint.endsWith(SEARCH)
+          );
+        }),
+      ).toEqual([]);
     } finally {
       jest.restoreAllMocks();
     }

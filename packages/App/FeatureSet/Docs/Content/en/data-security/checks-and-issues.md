@@ -1,10 +1,10 @@
 # Data Security Checks and Issues
 
-Data Security runs 33 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life.
+Data Security runs 34 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life.
 
 :::cards
 - [How a check decides](#how-a-check-decides): Pass, fail or cannot tell, and how bad a failure is.
-- [Every check](#every-check): All 33, with what each one checks and how to fix it.
+- [Every check](#every-check): All 34, with what each one checks and how to fix it.
 - [Risk score](#risk-score): How issues are ordered inside a severity.
 - [What happens to an issue](#what-happens-to-an-issue): Open, resolved, accepted, not an issue.
 - [Fix it from here](#fix-it-from-here): Close an exposure, or turn on a missing protection, in one click.
@@ -87,6 +87,7 @@ Severity is given for Restricted, Confidential, Internal and Public data, in tha
 | Passwords are stored in plain text (`plaintext-passwords`) | Every store but telemetry | A password field holds values that are not password hashes (bcrypt, argon2, scrypt or PBKDF2). | Critical / Critical / Critical / Critical | Hash passwords with bcrypt, scrypt or argon2, migrate the stored ones, and make every account reset its password. |
 | Production data was copied into a non-production store (`production-data-in-non-production`) | Every store but telemetry | Values found in a production store were also found here, in a development, test or staging store. | High / Medium / — / — | Replace the copy with masked or synthetic data, and delete the real data from the non-production store. |
 | Sensitive data nobody has used in 90 days (`stale-sensitive-data`) | Every store but telemetry | The store holds sensitive data and has had no reads or writes for 90 days. | Medium / Low / — / — | Confirm the data is no longer needed, then archive it with a retention date, or delete it. |
+| A new column holds personal data (`new-personal-data-column`) | Every store but telemetry | A column added in the last 14 days has a name that says it holds personal data. | High / High / Medium / Medium | Confirm the column should hold this data, and record why. If it should not, drop it or stop writing to it. |
 | Nobody owns this sensitive store (`no-owner`) | Every store | The store holds sensitive data and has no owner. | Medium / Low / — / — | Add an owner on the store's **Owners** page, or an owner rule that matches its tags. |
 
 ### Telemetry
@@ -177,6 +178,16 @@ An open issue that one change to a store's settings fixes - a public bucket, a s
 It asks first, saying what changes, what stops working and what it costs. It changes the store's settings, never its data, and changes nothing that is already as it should be. A store marked **Public By Design** is never blocked.
 
 It acts through the store's cloud connection, so the connection needs **Data security response** turned on and its setup command run again (see [Set Up Data Security](/docs/data-security/setup#let-data-security-close-an-exposure)). Until then the panel says what to turn on. The store is checked again right after, and the issue resolves on its own once its check passes. The issue's **Timeline** and the store's **Timeline** say what was done, and who did it.
+
+## Where a telemetry issue's data was found
+
+A telemetry issue - **Sensitive data is reaching your telemetry** or **Secrets are reaching your telemetry** - names in its evidence each kind of data no scrub rule masks, such as "2 kinds of sensitive data are not scrubbed: IP address, Ireland PPS number." Its page shows where each one is, under **Where It Was Found**:
+
+- **What and where.** Each data type with its sensitivity, and the place in the telemetry it sits: an attribute such as `attributes.user.pps`, a log's body, an exception's message, a prompt. Under it, how many of the sampled values matched, when a scan last saw it, and its masked samples. The service, or the RUM application, links to its logs, traces, exceptions or session replays.
+- **The records it was seen in.** **Show the records it was seen in** reads the newest records of the last 7 days that carry the data there, up to 10: when each was written, what it is - a span and its name, a log line and its severity, an exception and its type, an AI call, a session - and the value, masked as a finding's samples are. Each opens where OneUptime already shows it: **Open trace** focuses the trace view on the span, **Open in Logs** filters the logs explorer to the line's span in the minutes around it, **Open exception** shows the exception's group, and **Open session replay** plays the session. The first finding shows its records when the page opens.
+- **Scrub It.** Beside each finding not yet masked, **Scrub It** makes the scrub rule that masks it at ingest (see [Scrub It](/docs/data-security/telemetry#scrub-it)). A finding already scrubbed stays on the list, marked **Scrubbed**, so you see what is left. The issue resolves on its own once every finding behind it is scrubbed and the store is checked again.
+
+The list holds the findings the check counts: those at least Medium sure that a value matched, or a person confirmed, seen in the last 30 days and not marked not sensitive. A value is never shown in full here: open the record to see it, which takes the same permission as reading that telemetry anywhere else. So the records are shown to someone who may read masked samples - Security Members and above - and who may read that service's logs, traces, exceptions or sessions; Security Viewers see what was found and where, without samples or records. A value that is only a test value, a value the project allows, or one a scrub rule already masked at ingest is not a match.
 
 ## Check settings
 

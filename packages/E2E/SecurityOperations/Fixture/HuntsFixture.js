@@ -18,6 +18,21 @@
  *                                     schedule can no longer read security
  *                                     events
  *
+ * Encoded PowerShell was added from the Hunt Library (its libraryHuntId is
+ * the encoded-powershell starter's), so the library says Added for it.
+ *
+ * Each scheduled hunt's Run History (SecurityHuntRun), newest first:
+ *
+ *   Encoded PowerShell   2 hours ago: 3 events (the past day's, as its last
+ *                        find says); a day ago: nothing found; 2 days ago:
+ *                        1 event (the scheduled-task start on web-01, in a
+ *                        window that reads again what the failed run before
+ *                        it could not); 3 days ago: its search took too
+ *                        long
+ *   Admin sign-ins       each of the last three hours: nothing found
+ *   Sudo by service      3 hours ago: could not run (its scheduler can no
+ *                        longer read events); 9 hours ago: nothing found
+ *
  * CASE-138 (Defender XDR: suspicious PowerShell on web-03) keeps one of the
  * PowerShell events as evidence, found by the first hunt.
  *
@@ -34,6 +49,7 @@
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
 import SecurityHunt from "Common/Models/DatabaseModels/SecurityHunt";
+import SecurityHuntRun from "Common/Models/DatabaseModels/SecurityHuntRun";
 import Service from "Common/Models/DatabaseModels/Service";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -384,9 +400,78 @@ export function createHuntsFixture(options) {
         }),
       ];
 
+  /*
+   * One scheduled run, as the scheduler keeps it: when it ran, and the
+   * window it searched - from `fromAgo` to two minutes before it ran.
+   */
+  function huntRun(number, huntNumber, values) {
+    const ranAt = ago(values.ranAgo);
+
+    return insert(SecurityHuntRun, {
+      _id: ID.huntRun(number),
+      securityHuntId: new ObjectID(ID.hunt(huntNumber)),
+      windowStartAt: ago(values.fromAgo),
+      windowEndAt: new Date(ranAt.getTime() - 2 * MINUTE),
+      eventCount: values.eventCount === undefined ? null : values.eventCount,
+      error: values.error || null,
+      createdAt: ranAt,
+    });
+  }
+
+  function seedRuns() {
+    // Encoded PowerShell, every day.
+    huntRun(1, 1, {
+      ranAgo: 2 * HOUR,
+      fromAgo: 26 * HOUR + 2 * MINUTE,
+      eventCount: 3,
+    });
+    huntRun(2, 1, {
+      ranAgo: 26 * HOUR,
+      fromAgo: 50 * HOUR + 2 * MINUTE,
+      eventCount: 0,
+    });
+    // It reads again the window the failed run before it could not.
+    huntRun(3, 1, {
+      ranAgo: 50 * HOUR,
+      fromAgo: 98 * HOUR + 2 * MINUTE,
+      eventCount: 1,
+    });
+    huntRun(4, 1, {
+      ranAgo: 74 * HOUR,
+      fromAgo: 98 * HOUR + 2 * MINUTE,
+      error: SECURITY_HUNT_RUN_ERRORS.timedOut.message,
+    });
+
+    // Admin sign-ins outside the office, every hour: nothing yet.
+    for (const [number, hours] of [
+      [5, 0],
+      [6, 1],
+      [7, 2],
+    ]) {
+      huntRun(number, 2, {
+        ranAgo: hours * HOUR + 20 * MINUTE,
+        fromAgo: (hours + 1) * HOUR + 22 * MINUTE,
+        eventCount: 0,
+      });
+    }
+
+    // Sudo by service accounts, every 6 hours: its last run failed.
+    huntRun(8, 4, {
+      ranAgo: 3 * HOUR,
+      fromAgo: 9 * HOUR,
+      error: SECURITY_HUNT_RUN_ERRORS.schedulerCannotRead.message,
+    });
+    huntRun(9, 4, {
+      ranAgo: 9 * HOUR - 2 * MINUTE,
+      fromAgo: 15 * HOUR,
+      eventCount: 0,
+    });
+  }
+
   function seed() {
     // Known even when empty: a page that reads them is answered, not refused.
     table(SecurityHunt);
+    table(SecurityHuntRun);
     table(Service);
 
     for (const source of Object.values(SOURCES)) {
@@ -417,6 +502,8 @@ export function createHuntsFixture(options) {
       lastFoundAt: ago(2 * HOUR + 2 * MINUTE),
       lastFoundSinceAt: ago(26 * HOUR + 2 * MINUTE),
       lastFoundEventCount: 3,
+      // Added from the Hunt Library: the library says Added for its starter.
+      libraryHuntId: "encoded-powershell",
       createdByUserId: people.maya._id,
       createdAt: ago(12 * DAY),
     });
@@ -468,6 +555,8 @@ export function createHuntsFixture(options) {
       createdByUserId: people.sam._id,
       createdAt: ago(9 * DAY),
     });
+
+    seedRuns();
 
     // One of the PowerShell events, kept on the web-03 case as evidence.
     const securityCase = findCaseByNumber(FOUND_EVIDENCE_CASE);

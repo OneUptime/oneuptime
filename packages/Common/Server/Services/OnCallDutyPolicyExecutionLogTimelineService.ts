@@ -25,7 +25,10 @@ import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicy
 import OnCallFeedText from "../Utils/OnCall/OnCallFeedText";
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import { isOnCallDirectPage } from "../../Types/OnCallDutyPolicy/OnCallDirectPage";
-import { isOnCallPagePassedOnSkipTimelineMessage } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
+  isOnCallLevelSkippedByEscalationMessage,
+  isOnCallPagePassedOnSkipTimelineMessage,
+} from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import FirstPagedAt from "../Utils/OnCall/FirstPagedAt";
 import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -240,9 +243,19 @@ export class Service extends DatabaseService<Model> {
           status === OnCallDutyExecutionLogTimelineStatus.PassedOn ||
           status === OnCallDutyExecutionLogTimelineStatus.NotificationSent)
       ) {
-        const displayColor: Color = status
-          ? this.getColorBasedOnStatus(status)
-          : Blue500;
+        /*
+         * A level skipped because somebody escalated past it is no failure:
+         * it is drawn as the escalation is, not as a page that went wrong.
+         */
+        const displayColor: Color = isOnCallLevelSkippedByEscalationMessage(
+          onCallDutyPolicyExecutionLogTimeline.statusMessage,
+        )
+          ? this.getColorBasedOnStatus(
+              OnCallDutyExecutionLogTimelineStatus.PassedOn,
+            )
+          : status
+            ? this.getColorBasedOnStatus(status)
+            : Blue500;
 
         /*
          * One sentence in the words the run's Slack and Microsoft Teams

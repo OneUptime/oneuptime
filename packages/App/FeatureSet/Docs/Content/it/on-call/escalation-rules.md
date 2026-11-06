@@ -221,12 +221,14 @@ Ogni avviso si può escalare da dove ti ha raggiunto:
 | --- | --- |
 | E-mail | Il pulsante **Escalate**, poi **Escalate** nella pagina che apre |
 | SMS e WhatsApp | Il link nel messaggio apre la pagina di conferma, che ha anche **Escalate** |
-| Telegram, Slack e Microsoft Teams | Il link "Can't take it? Escalate", poi **Escalate** nella pagina che apre |
+| Telegram, Slack, Microsoft Teams e Mattermost | Il link "Can't take it? Escalate", poi **Escalate** nella pagina che apre |
 | Telefonata | Premi 2. La telefonata poi dice che cosa è successo |
 | Notifica push | Toccala: l'incidente, l'avviso o l'episodio si apre nell'app OneUptime On-Call, con **Escalate** sotto |
 | OneUptime | **Escala** in cima all'incidente, all'avviso o all'episodio, dopo i suoi pulsanti di stato |
 
 Ogni via tranne la telefonata chiede prima di fare qualsiasi cosa e dice che cosa succederà, per esempio «This will immediately page Platform leads (Level 2 of 3), without waiting.»; in una telefonata, premere 2 è la risposta. Solo la persona avvisata può escalare il proprio avviso: il pulsante in OneUptime compare solo a lei, e il link in un messaggio escala solo l'avviso di cui parla, per la persona a cui è stato inviato, per 7 giorni.
+
+Con due o più livelli dopo il tuo, OneUptime e le pagine aperte dai link di un messaggio chiedono anche quale livello avvisare, sotto **Escala a**, con il livello successivo già scelto. Lascialo così per avvisare il livello successivo, come sempre, oppure scegli un livello più avanti per avvisarlo subito al suo posto: i livelli intermedi vengono saltati, e la policy prosegue dal livello scelto. Una telefonata e l'app OneUptime On-Call avvisano il livello successivo.
 
 Che cosa succede dopo dipende da chi altro viene avvisato:
 
@@ -238,7 +240,7 @@ Escalare un avviso non lo conferma: l'incidente o l'avviso continua ad attendere
 
 Un avviso che un workflow invia direttamente alle persone non ha livelli: escalarlo smette di avvisarti, e quando tutti quelli che ha avvisato l'hanno escalato, gli avvisi si fermano.
 
-Ogni escalation viene registrata. La **Cronologia di esecuzione** dell'esecuzione segna la riga della persona come **Escalato**, il feed dell'incidente dice «Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.», il messaggio dell'esecuzione in Slack e Microsoft Teams dice che l'ha escalato, e i suoi **Registri di reperibilità** mostrano l'avviso come **Escalato**.
+Ogni escalation viene registrata. La **Cronologia di esecuzione** dell'esecuzione segna la riga della persona come **Escalato**, il feed dell'incidente dice «Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.», il messaggio dell'esecuzione in Slack e Microsoft Teams dice che l'ha escalato, e i suoi **Registri di reperibilità** mostrano l'avviso come **Escalato**. Un livello saltato per uno più avanti è segnato come **Saltato** nella **Cronologia di esecuzione**, e il feed dice «On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it.»
 
 ## Modificare, riordinare ed eliminare le regole
 

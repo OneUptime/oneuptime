@@ -20,6 +20,7 @@ import UserService from "../Services/UserService";
 import UserTwoFactorBackupCodeService from "../Services/UserTwoFactorBackupCodeService";
 import logger from "../Utils/Logger";
 import TwoFactorBackupCodeNotification from "../Utils/TwoFactorBackupCodeNotification";
+import RequestOriginUtil from "../Utils/RequestOrigin/RequestOriginUtil";
 
 export default class UserTotpAuthAPI extends BaseAPI<
   UserTotpAuth,
@@ -150,6 +151,7 @@ export default class UserTotpAuthAPI extends BaseAPI<
             TwoFactorBackupCodeNotification.notifyCodesCreated({
               userId: userTotpAuth.userId!,
               codeCount: backupCodes.length,
+              origin: RequestOriginUtil.fromRequest(req),
             });
           }
 

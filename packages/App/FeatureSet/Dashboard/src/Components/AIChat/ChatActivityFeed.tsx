@@ -10,7 +10,9 @@ import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import {
   AIPromptOmissions,
+  AIToolRefusal,
   FollowUpCheckActivity,
+  isAIToolRefusal,
   LinkedInfrastructureActivity,
   RecentChangesActivity,
 } from "Common/Types/AI/AIChatTypes";
@@ -31,6 +33,10 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatNameList, getListSeparator } from "../AiAccess/AiAccessModes";
+import {
+  EvidenceToolDescription,
+  getKnownEvidenceTool,
+} from "../../Utils/InvestigationEvidenceFormat";
 import {
   LlmProviderActivity,
   isLlmProviderActivityWarning,
@@ -267,8 +273,13 @@ interface ActivityStep {
   aiContext?: AiContextActivity | undefined;
 }
 
-// English keys, translated as the steps are built.
-const friendlyToolNames: { [key: string]: string } = {
+/*
+ * What a step does, by the tool it runs: English keys, translated as the
+ * steps are built. Every toolbox tool and every tool a run adds has one
+ * (ActivityStepLabelsGuard), so a step never reads as a tool's own name
+ * ("Running query_slos").
+ */
+export const friendlyToolNames: { [key: string]: string } = {
   query_incidents: translationKey("Checking incidents"),
   query_alerts: translationKey("Checking alerts"),
   query_monitors: translationKey("Checking monitors"),
@@ -280,6 +291,55 @@ const friendlyToolNames: { [key: string]: string } = {
   query_telemetry_resources: translationKey("Listing infrastructure resources"),
   query_resource_telemetry: translationKey("Reading a resource's telemetry"),
   query_containers: translationKey("Checking the host's containers"),
+  query_network_transceivers: translationKey(
+    "Reading a network device's optics",
+  ),
+  query_cloud_resource: translationKey("Reading a cloud resource's inventory"),
+  query_cloud_accounts: translationKey("Listing the connected cloud accounts"),
+  query_rum_applications: translationKey("Checking RUM applications"),
+  query_rum_web_vitals: translationKey("Checking web vitals"),
+  /*
+   * The operational surface: who is on call, the runbooks, what customers
+   * see, the error budgets, the platform's own automation.
+   */
+  query_scheduled_maintenance: translationKey("Checking scheduled maintenance"),
+  query_on_call_policies: translationKey("Checking on-call policies"),
+  get_on_call_status: translationKey("Checking who is on call"),
+  query_on_call_pages: translationKey("Checking on-call pages"),
+  query_status_pages: translationKey("Checking status pages"),
+  query_status_page_announcements: translationKey(
+    "Checking status page announcements",
+  ),
+  query_slos: translationKey("Checking SLOs"),
+  query_runbooks: translationKey("Checking runbooks"),
+  query_workflows: translationKey("Checking workflows"),
+  find_workflow_components: translationKey("Looking up workflow steps"),
+  check_workflow_draft: translationKey("Checking the workflow"),
+  query_probes: translationKey("Checking probes"),
+  query_teams: translationKey("Checking teams"),
+  // OneUptime AI's own earlier work.
+  get_ai_investigation: translationKey("Reading the AI investigation"),
+  query_ai_insights: translationKey("Checking AI insights"),
+  // Data Security: the stores, what to fix first, and who can reach what.
+  query_data_stores: translationKey("Checking data stores"),
+  get_data_table_freshness: translationKey("Checking whether a table is fresh"),
+  query_data_security_issues: translationKey("Checking data security issues"),
+  query_data_store_access: translationKey(
+    "Checking who can reach a data store",
+  ),
+  // Continuous profiling, what a change shipped, and the code behind it.
+  get_profile_hotspots: translationKey(
+    "Reading where a service spends its time",
+  ),
+  compare_profiles: translationKey("Comparing profiles before and after"),
+  get_profile_function: translationKey("Reading a function's profile"),
+  get_change_details: translationKey("Reading what a change shipped"),
+  list_code_repositories: translationKey("Listing code repositories"),
+  find_code_for_exception: translationKey(
+    "Finding the code behind an exception",
+  ),
+  search_code: translationKey("Searching code"),
+  read_code_file: translationKey("Reading a code file"),
   /*
    * Security Events: the events, the cases, what threat intel knows and how
    * unusual an entity is - what a security case's triage reads.
@@ -304,6 +364,8 @@ const friendlyToolNames: { [key: string]: string } = {
   get_trace: translationKey("Reading trace"),
   lookup_context: translationKey("Resolving names"),
   create_incident: translationKey("Creating incident"),
+  create_workflow: translationKey("Creating workflow"),
+  update_workflow: translationKey("Updating workflow"),
   acknowledge_incident: translationKey("Acknowledging incident"),
   resolve_incident: translationKey("Resolving incident"),
   // An alert raised from the conversation (#5301), as an incident is declared.
@@ -313,6 +375,18 @@ const friendlyToolNames: { [key: string]: string } = {
   // What an incident or alert is about (#5293), never the tool's own name.
   add_incident_affected_resources: translationKey("Linking affected resources"),
   add_alert_affected_resources: translationKey("Linking affected resources"),
+  // The other changes Ask AI makes, once allowed.
+  change_incident_severity: translationKey("Changing the incident's severity"),
+  create_incident_note: translationKey("Adding a note to the incident"),
+  create_alert_note: translationKey("Adding a note to the alert"),
+  post_incident_status_update: translationKey("Posting a status update"),
+  page_on_call_policy: translationKey("Paging an on-call policy"),
+  run_runbook: translationKey("Starting a runbook"),
+  start_investigation: translationKey("Starting an AI investigation"),
+  open_code_pull_request: translationKey("Opening a pull request"),
+  commit_code_to_branch: translationKey("Committing code to a branch"),
+  // The rest of a long output a command printed.
+  read_tool_output: translationKey("Reading the rest of an output"),
   run_kubectl: translationKey("Running kubectl on the cluster"),
   list_cluster_access: translationKey("Checking cluster access"),
   run_infrastructure_command: translationKey(
@@ -322,6 +396,7 @@ const friendlyToolNames: { [key: string]: string } = {
   list_command_targets: translationKey("Listing where commands may run"),
   execute_remediation_command: translationKey("Applying a fix"),
   propose_remediation_commands: translationKey("Proposing a fix for approval"),
+  roll_back_change: translationKey("Rolling back a change"),
   // The project's external MCP servers (Settings → AI → External MCP Servers).
   [LIST_MCP_TOOLS_TOOL_NAME]: translationKey(
     "Listing the tools of your MCP servers",
@@ -345,15 +420,47 @@ function friendlyToolName(
 }
 
 /*
- * The detail for a failed call. A failed kubectl call produced nothing to
- * read: either it never reached the cluster, or a Runner took it and never
- * reported back, in which case it may have run. Say which rather than
- * implying it ran and will be retried.
+ * Why a refused call was not done, by what the server recorded
+ * (AIToolRefusal): a refused call is never tried again, so its step never
+ * says it is being retried.
  */
-function describeFailedToolCall(
+export const REFUSED_TOOL_CALL_DETAILS: { [key in AIToolRefusal]: string } = {
+  [AIToolRefusal.Permission]: translationKey(
+    "not done — your role does not allow it",
+  ),
+  [AIToolRefusal.TeamBlock]: translationKey(
+    "not done — a team you belong to blocks it",
+  ),
+  [AIToolRefusal.Plan]: translationKey(
+    "not done — the project's plan does not include it",
+  ),
+  [AIToolRefusal.NotAllowed]: translationKey(
+    "not done — you are not allowed to do this",
+  ),
+};
+
+/*
+ * The detail for a failed call. A refused call - the person may not make
+ * it, a team blocks it, the plan does not include it - is never tried
+ * again: it was not done, and the step says why. A failed action (a tool
+ * that changes the project) was not done either, and the answer says why;
+ * the model may well not try it again, so the step never promises it. A
+ * failed kubectl call produced nothing to read: either it never reached the
+ * cluster, or a Runner took it and never reported back, in which case it
+ * may have run. Say which rather than implying it ran and will be retried.
+ */
+export function describeFailedToolCall(
   event: AIRunEvent,
   translator: Translator,
 ): string {
+  const refusal: unknown = event.resultSummary?.refusal;
+
+  if (isAIToolRefusal(refusal)) {
+    return translator.translateText(
+      REFUSED_TOOL_CALL_DETAILS[refusal],
+    ) as string;
+  }
+
   // The same three outcomes for a command on an infrastructure resource.
   if (event.toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME) {
     return translator.translateText(
@@ -361,6 +468,14 @@ function describeFailedToolCall(
         ? "no result came back — it may have run"
         : "did not run on the infrastructure",
     ) as string;
+  }
+
+  // An action that failed: not done, whatever the model does next.
+  if (
+    event.toolName !== RUN_KUBECTL_TOOL_NAME &&
+    event.resultSummary?.isAction === true
+  ) {
+    return translator.translateText("not done") as string;
   }
 
   if (event.toolName !== RUN_KUBECTL_TOOL_NAME) {
@@ -435,7 +550,10 @@ export function describePromptOmissions(
  * What a kind of linked resource is called (LinkedAffectedResourceType, as
  * the server records it in an investigation's activity): one noun for each
  * kind the server names (LINKED_INFRASTRUCTURE_KINDS), or a linked cloud
- * resource would read "Resource web-alb".
+ * resource would read "Resource web-alb" - and one for an App Platforms
+ * environment, which the server records as a kind of its own
+ * (CLOUD_ENVIRONMENT_ACTIVITY_KIND): a place apps run, never "Cloud
+ * resource checkout · us-east-1".
  */
 export const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
   Host: translationKey("Host"),
@@ -445,12 +563,14 @@ export const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
   KubernetesCluster: translationKey("Kubernetes cluster"),
   DockerSwarmCluster: translationKey("Docker Swarm cluster"),
   ProxmoxCluster: translationKey("Proxmox cluster"),
+  OpenStackCloud: translationKey("OpenStack cloud"),
   VMwareVCenter: translationKey("VMware vCenter"),
   CephCluster: translationKey("Ceph cluster"),
   StorageArray: translationKey("Storage array"),
   IoTFleet: translationKey("IoT fleet"),
   DatabaseServer: translationKey("Database"),
   CloudResource: translationKey("Cloud resource"),
+  CloudEnvironment: translationKey("Cloud environment"),
   Service: translationKey("Service"),
 };
 
@@ -626,6 +746,52 @@ export function describeFollowUpCheck(
 }
 
 /*
+ * How long a step took, as its detail says it beside its rows: "0.6s" in
+ * English, and in the reader's language its own way ("0,6 Sek.", "۰٫۶s"),
+ * so "1.234 Zeilen · 0,6 Sek." writes its two figures alike. An engine
+ * without Intl's unit style writes the English.
+ */
+export function formatStepDuration(
+  durationInMs: number,
+  language: string | undefined,
+): string {
+  const seconds: number = durationInMs / 1000;
+  const english: string = `${seconds.toFixed(1)}s`;
+
+  if (!language || language === "en" || language.startsWith("en-")) {
+    return english;
+  }
+
+  try {
+    const said: string = new Intl.NumberFormat(language, {
+      style: "unit",
+      unit: "second",
+      unitDisplay: "narrow",
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    } as Intl.NumberFormatOptions).format(seconds);
+    const bare: string = seconds.toLocaleString(language, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+
+    // The unit style not known: the bare number alone would lose the unit.
+    return said === bare ? english : said;
+  } catch {
+    return english;
+  }
+}
+
+// An address an action's line carries, which makes the line its link.
+const ACTION_LINK: RegExp = /https?:\/\/\S+/;
+
+export function getActionStepLink(text: string): string | null {
+  const match: RegExpMatchArray | null = text.match(ACTION_LINK);
+
+  return match && match[0] ? match[0] : null;
+}
+
+/*
  * The steps the events draw, in the reader's language. A step is completed
  * by matching its text, which is always produced by the same translator.
  */
@@ -702,7 +868,7 @@ function buildSteps(
           );
         }
         if (durationInMs !== undefined) {
-          parts.push(`${(durationInMs / 1000).toFixed(1)}s`);
+          parts.push(formatStepDuration(durationInMs, translator.language));
         }
         completeLastRunning(
           friendlyToolName(event.toolName, translator),
@@ -863,6 +1029,17 @@ function buildSteps(
       case AIRunEventType.ActionExecuted: {
         const message: string | undefined = event.resultSummary?.message;
         let text: string | undefined = message;
+        /*
+         * What it did, in the words an evidence list uses for the same
+         * tool - "Declared an incident" - never the tool's own name.
+         */
+        const done: EvidenceToolDescription | null = getKnownEvidenceTool(
+          event.toolName,
+        );
+
+        if (!text && done) {
+          text = translator.translateText(done.description) as string;
+        }
 
         if (!text) {
           text = event.toolName
@@ -974,11 +1151,21 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * An action that ran: a line that carries an address opens it (a pull
+     * request), so it is drawn as a link; any other - "Declared an
+     * incident" - is a change that is done, never a link to nowhere.
+     */
     if (step.kind === "action") {
-      return (
+      return getActionStepLink(step.text) ? (
         <Icon
           icon={IconProp.ExternalLink}
           className="h-3 w-3 flex-shrink-0 text-indigo-500"
+        />
+      ) : (
+        <Icon
+          icon={IconProp.CheckCircle}
+          className="h-3 w-3 flex-shrink-0 text-emerald-500"
         />
       );
     }
@@ -1052,14 +1239,13 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     step: ActivityStep,
   ): ReactElement => {
     if (step.kind === "action") {
-      // Link-ish: if the message carries a URL, make the whole line a link.
-      const urlMatch: RegExpMatchArray | null =
-        step.text.match(/https?:\/\/\S+/);
+      // A line that carries an address is its link (an opened pull request).
+      const link: string | null = getActionStepLink(step.text);
 
-      if (urlMatch && urlMatch[0]) {
+      if (link) {
         return (
           <a
-            href={urlMatch[0]}
+            href={link}
             target="_blank"
             rel="noreferrer"
             className="break-words font-medium text-indigo-600 hover:underline"
@@ -1069,8 +1255,15 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
         );
       }
 
+      /*
+       * What it changed, in the words of a step that is done - set apart
+       * from the reads around it by its weight, not by a link's colour.
+       */
       return (
-        <span className="break-words font-medium text-indigo-600">
+        <span
+          data-testid="activity-step-action"
+          className="break-words font-medium text-gray-700"
+        >
           {step.text}
         </span>
       );

@@ -350,7 +350,7 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
 });
 ```
 
-Com o [Session Replay](/docs/telemetry/session-replay), o gravador também captura erros não tratados e os marca na linha do tempo da reprodução. A página da exceção mostra então um cartão **Watch what the user saw**, que abre a reprodução dez segundos antes do erro. Com a política padrão, toda sessão é gravada, falhe algo ou não; o erro só decide onde o cartão abre.
+Com o [Session Replay](/docs/telemetry/session-replay), o gravador também captura erros não tratados e os marca na linha do tempo da reprodução. A página da exceção mostra então um cartão **Veja o que o usuário viu**, que abre a reprodução dez segundos antes do erro. Com a política padrão, toda sessão é gravada, falhe algo ou não; o erro só decide onde o cartão abre.
 
 ## Adicionar registros e métricas
 

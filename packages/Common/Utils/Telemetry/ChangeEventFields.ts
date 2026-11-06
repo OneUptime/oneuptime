@@ -37,6 +37,12 @@ export enum ChangeEventType {
    * the provider's side.
    */
   ProviderEvent = "provider-event",
+  /*
+   * What an OpenStack cloud's own notifications said happened to one of its
+   * parts: an instance created or failed, a compute service disabled, a volume
+   * attached (OpenStackEventEntries).
+   */
+  OpenStackEvent = "openstack-event",
   Custom = "custom",
 }
 
@@ -65,6 +71,8 @@ export enum ChangeEventSource {
   Cloud = "cloud",
   // A health event the cloud provider published about the account.
   CloudHealth = "cloud-health",
+  // What an OpenStack cloud's notifications, or a probe's read of Nova, said happened.
+  OpenStack = "openstack",
 }
 
 // The attribute keys OneUptime writes on the change events it records.
@@ -96,10 +104,18 @@ export const ChangeEventAttribute: {
   readonly CloudAccountId: string;
   readonly CloudRegion: string;
   readonly CloudResourceId: string;
+  readonly CloudResourceName: string;
   readonly CloudOperation: string;
   readonly CloudActor: string;
   readonly CloudEventId: string;
   readonly CloudAccountRecordId: string;
+  readonly MadeBy: string;
+  readonly ApprovedBy: string;
+  readonly ApprovedByUserId: string;
+  readonly ApprovedFrom: string;
+  readonly RunnerJobId: string;
+  readonly AutoRemediationSuggestionId: string;
+  readonly AiStep: string;
   readonly CloudPlatform: string;
   readonly AppPlatformApp: string;
   readonly AppPlatformAppId: string;
@@ -134,12 +150,37 @@ export const ChangeEventAttribute: {
   CloudAccountId: "cloud.account.id",
   CloudRegion: "cloud.region",
   CloudResourceId: "cloud.resource_id",
+  /*
+   * The name OneUptime holds the changed resource by (its Cloud Resource's),
+   * which the change's title names: the title is worded from it in the
+   * reader's language (Utils/Telemetry/CloudChangeTitle).
+   */
+  CloudResourceName: "oneuptime.cloud.resource_name",
   // What the activity log recorded, and who did it.
   CloudOperation: "oneuptime.cloud.operation",
   CloudActor: "oneuptime.cloud.actor",
   CloudEventId: "oneuptime.cloud.event_id",
   // The CloudAccount row the change belongs to.
   CloudAccountRecordId: "oneuptime.cloud_account.id",
+  /*
+   * Who made a change a cloud's activity log recorded, when it was
+   * OneUptime itself: oneuptime-ai (ChangeEventSource.OneUptimeAi) for a
+   * change the account's Cloud AI agent made, under its own role
+   * (CloudAiChangeAttribution). The fix it belongs to: the agent's job,
+   * the fix (an auto-remediation suggestion) and whether the job made the
+   * fix or rolled it back (CloudAiChangeStep).
+   */
+  MadeBy: "oneuptime.change.made_by",
+  /*
+   * Who said yes to a change a person approved, and where. Absent from one nobody
+   * was asked about.
+   */
+  ApprovedBy: "oneuptime.change.approved_by",
+  ApprovedByUserId: "oneuptime.change.approved_by_user_id",
+  ApprovedFrom: "oneuptime.change.approved_from",
+  RunnerJobId: "oneuptime.runner_job.id",
+  AutoRemediationSuggestionId: "oneuptime.auto_remediation_suggestion.id",
+  AiStep: "oneuptime.ai.step",
   // The app platform an app runs on: OpenTelemetry's cloud.platform.
   CloudPlatform: "cloud.platform",
   // An App Platforms app (CloudApp): its name, its row and its revisions.
@@ -156,6 +197,16 @@ export const ChangeEventAttribute: {
  * do with: investigations match changes to incidents by these keys.
  */
 export const RESERVED_CHANGE_ATTRIBUTE_PREFIX: string = "oneuptime.";
+
+/*
+ * What the job behind a change OneUptime AI made did (oneuptime.ai.step):
+ * the fix itself, or the rollback that undid it once verification found it
+ * did not help.
+ */
+export enum CloudAiChangeStep {
+  Fix = "fix",
+  Rollback = "rollback",
+}
 
 // Whether a change event's outcome was a success (oneuptime.change.status).
 export enum ChangeEventStatus {
@@ -249,6 +300,7 @@ export interface ChangeEventFields {
   cloudAccountId?: string | undefined;
   cloudRegion?: string | undefined;
   cloudResourceId?: string | undefined;
+  cloudResourceName?: string | undefined;
   cloudOperation?: string | undefined;
   cloudActor?: string | undefined;
   cloudAccountRecordId?: string | undefined;
@@ -323,6 +375,7 @@ export function readChangeEventFields(
     cloudAccountId: read(ChangeEventAttribute.CloudAccountId),
     cloudRegion: read(ChangeEventAttribute.CloudRegion),
     cloudResourceId: read(ChangeEventAttribute.CloudResourceId),
+    cloudResourceName: read(ChangeEventAttribute.CloudResourceName),
     cloudOperation: read(ChangeEventAttribute.CloudOperation),
     cloudActor: read(ChangeEventAttribute.CloudActor),
     cloudAccountRecordId: read(ChangeEventAttribute.CloudAccountRecordId),
@@ -466,6 +519,8 @@ export function describeChangeEventSource(source: string): string {
       return "the cloud account's activity log";
     case ChangeEventSource.CloudHealth:
       return "the cloud provider's health events";
+    case ChangeEventSource.OpenStack:
+      return "the OpenStack cloud's own notifications";
     default:
       return source;
   }

@@ -86,6 +86,8 @@ https://oneuptime.com/heartbeat/<secret key>
 > [!WARNING]
 > 한 통지 안에서 알림마다 다른 값으로 그룹화하세요. Alertmanager의 `fingerprint`는 알림의 전체 레이블 집합의 해시이므로 항상 다릅니다. 라우트의 `group_by`에 있는 레이블은 절대 다르지 않습니다. 그것이 바로 알림을 한 통지로 묶는 기준이기 때문입니다. 아래 라우트에서 `requestBody.alerts[*].labels.alertname`으로 그룹화하면 통지의 모든 알림이 인시던트 하나로 합쳐지고, 그 인시던트는 첫 번째 알림의 상태를 따릅니다.
 
+OpenStack 클라우드에서는 모니터를 클라우드에도 연결하세요. Incoming Request 모니터의 자체 설정에는 클라우드가 지정되지 않으므로, 그 인시던트는 **인시던트**에는 나타나지만 클라우드에는 나타나지 않습니다. 모니터의 **개요 → 연결된 리소스**를 열어 OpenStack 클라우드를 추가하세요. 그러면 각 인시던트가 그 클라우드의 **인시던트** 페이지에도 표시됩니다. [배포 도구별 OpenStack](/docs/telemetry/openstack-deployment-tools)에 Alertmanager를 실행하는 각 도구의 수신기가, 그 도구가 읽는 위치에 맞게 나와 있습니다.
+
 ## 인시던트 이름 짓기
 
 위 제목은 통지의 모든 알림이 공유하는 레이블을 읽습니다. `commonLabels`에는 그 레이블이, `commonAnnotations`에는 공유하는 주석이 들어 있습니다. `alertname`과 `instance`로 그룹화하는 아래 라우트에서는 둘 다 들어 있습니다. **설명** 아래에서 인시던트에 다음과 같은 **인시던트 설명**을 지정합니다:
@@ -166,7 +168,7 @@ curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   }'
 ```
 
-`fingerprint`마다 하나씩 인시던트 두 개가 열리며, 각각의 제목은 `DiskFull on web-1`입니다. 각 `status`를 `resolved`로 바꿔 같은 요청을 보내면 둘 다 해결됩니다.
+`fingerprint`마다 하나씩 인시던트 두 개가 열리며, 각각의 제목은 `DiskFull on web-1`에 둘을 구분하는 값이 이어진 `DiskFull on web-1 - Fingerprint: a1b2c3d4e5f60001` 형식입니다. 각 `status`를 `resolved`로 바꿔 같은 요청을 보내면 둘 다 해결됩니다.
 
 Alertmanager부터 전체 경로를 테스트하려면 `amtool`로 알림을 발생시킵니다. Alertmanager는 `group_wait` 후에 알림을 보내고, 몇 분 뒤 알림이 만료되면 복구를 보냅니다:
 

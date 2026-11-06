@@ -76,6 +76,8 @@ const NOT_OFFERED: Readonly<Partial<Record<PageMap, string>>> = {
     "an old address of Security Events: it opens Entity Risk, which is offered and found by Entities' words",
   [PageMap.DATA_SECURITY]:
     "Data Security's own address: it opens Data Security's Overview, which is offered",
+  [PageMap.DATA_OBSERVABILITY]:
+    "Data Observability's own address: it opens Data Observability's Overview, which is offered",
   [PageMap.INIT_PROJECT]: "a project's address: it opens Home",
   [PageMap.WELCOME]: "the first-run welcome, shown once",
   [PageMap.PROJECT_SSO]: "the sign-in step of a project that requires SSO",
@@ -91,17 +93,17 @@ const NOT_OFFERED: Readonly<Partial<Record<PageMap, string>>> = {
   [PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS]:
     "a Home tab: Scheduled Maintenance > Ongoing Events is offered",
   [PageMap.MONITORS_WORKSPACE_CONNECTIONS]:
-    "Connect Slack or Teams: connected from Project Settings > Slack / Microsoft Teams",
+    "Connect a workspace: connected from Project Settings > Slack / Microsoft Teams / Mattermost",
   [PageMap.INCIDENTS_WORKSPACE_CONNECTIONS]:
-    "Connect Slack or Teams: connected from Project Settings > Slack / Microsoft Teams",
+    "Connect a workspace: connected from Project Settings > Slack / Microsoft Teams / Mattermost",
   [PageMap.ALERTS_WORKSPACE_CONNECTIONS]:
-    "Connect Slack or Teams: connected from Project Settings > Slack / Microsoft Teams",
+    "Connect a workspace: connected from Project Settings > Slack / Microsoft Teams / Mattermost",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS]:
-    "Connect Slack or Teams: connected from Project Settings > Slack / Microsoft Teams",
+    "Connect a workspace: connected from Project Settings > Slack / Microsoft Teams / Mattermost",
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS]:
-    "Connect Slack or Teams: connected from Project Settings > Slack / Microsoft Teams",
+    "Connect a workspace: connected from Project Settings > Slack / Microsoft Teams / Mattermost",
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]:
-    "Connect Slack or Teams: connected from Project Settings > Slack / Microsoft Teams",
+    "Connect a workspace: connected from Project Settings > Slack / Microsoft Teams / Mattermost",
   [PageMap.INCIDENT_EPISODE_CREATE]:
     "an episode is created from Incidents > All Episodes, which is offered",
   [PageMap.ALERT_EPISODE_CREATE]:
@@ -127,8 +129,6 @@ const NOT_OFFERED: Readonly<Partial<Record<PageMap, string>>> = {
     "the prefix an exception's own pages hang off; the Exceptions product is offered",
   [PageMap.INVENTORY_VIEW_ROOT]:
     "the prefix an item's own pages hang off; it forwards to All Items, which is offered",
-  [PageMap.CLOUD_HOME]:
-    "Cloud's own address, the trail's link to the product: it forwards to Accounts, which is offered",
   [PageMap.CONNECT_RETURN]:
     "where a Slack, Microsoft Teams or GitHub connection comes back: it passes the browser on to that provider's page",
   [PageMap.AUTOMATION_SCRIPTS]: "in RouteMap, but no page is mounted there",

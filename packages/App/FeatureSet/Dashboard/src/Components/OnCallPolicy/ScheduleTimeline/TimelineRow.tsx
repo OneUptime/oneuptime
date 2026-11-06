@@ -1,3 +1,4 @@
+import { ON_CALL_TAG_TEXT_CLASS_NAME } from "../OnCallLabelClasses";
 import { GapBlock, OverriddenSegment, ShiftBar } from "./TimelineBar";
 import { getColorForUserId } from "../OnCallScheduleLayer/LayerUserColors";
 import TimelineModel, {
@@ -230,7 +231,7 @@ const TimelineRow: FunctionComponent<ComponentProps> = (
           </AppLink>
           {schedule.isCurrentUserOnRoster && (
             <span
-              className="shrink-0 rounded bg-indigo-50 px-1 py-px text-[10px] font-semibold uppercase tracking-wide text-indigo-700 ring-1 ring-inset ring-indigo-200"
+              className={`shrink-0 rounded bg-indigo-50 px-1 py-px ${ON_CALL_TAG_TEXT_CLASS_NAME} text-indigo-700 ring-1 ring-inset ring-indigo-200`}
               title={translator.translateText(
                 "You are on this schedule's roster",
               )}

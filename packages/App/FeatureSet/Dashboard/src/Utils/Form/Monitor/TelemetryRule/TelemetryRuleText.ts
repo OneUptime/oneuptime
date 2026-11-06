@@ -1,7 +1,9 @@
 import {
   CheckOn,
+  DEFAULT_FORECAST_HORIZON_IN_HOURS,
   EvaluateOverTimeType,
   FilterType,
+  FORECAST_HORIZON_IN_HOURS_OPTIONS,
 } from "Common/Types/Monitor/CriteriaFilter";
 import { isExceptionMeasure } from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -206,6 +208,56 @@ const METRIC_COMPARISON_LABELS: Record<string, string> = {
   [FilterType.AnomalouslyHigh]: translationKey("Unusually high"),
   [FilterType.AnomalouslyLow]: translationKey("Unusually low"),
   [FilterType.Anomalous]: translationKey("Unusually high or low"),
+  [FilterType.ForecastAbove]: translationKey("Forecast to rise above"),
+  [FilterType.ForecastBelow]: translationKey("Forecast to fall below"),
+};
+
+// A forecast's horizon as the Within field says it: "12 hours", "7 days".
+export const formatForecastHorizon: (
+  hours: number,
+  translator: Translator,
+) => string = (hours: number, translator: Translator): string => {
+  if (hours >= 24 && hours % 24 === 0) {
+    return translator.translatePlural(
+      { one: "{{count}} day", other: "{{count}} days" },
+      hours / 24,
+    );
+  }
+
+  return translator.translatePlural(
+    { one: "{{count}} hour", other: "{{count}} hours" },
+    hours,
+  );
+};
+
+/*
+ * How far ahead a forecast rule can look (MetricForecastOptions
+ * .horizonInHours), as the Within field offers it, with the horizon a rule
+ * holds added when the API stored another (48 hours), so the dropdown never
+ * drops it.
+ */
+export const getForecastHorizonChoices: (data: {
+  current: number | undefined;
+  translator: Translator;
+}) => Array<TelemetryRuleChoice<number>> = (data: {
+  current: number | undefined;
+  translator: Translator;
+}): Array<TelemetryRuleChoice<number>> => {
+  const hours: Array<number> = [...FORECAST_HORIZON_IN_HOURS_OPTIONS];
+
+  if (data.current && data.current > 0 && !hours.includes(data.current)) {
+    hours.push(data.current);
+    hours.sort((a: number, b: number) => {
+      return a - b;
+    });
+  }
+
+  return hours.map((value: number): TelemetryRuleChoice<number> => {
+    return {
+      value: value,
+      label: formatForecastHorizon(value, data.translator),
+    };
+  });
 };
 
 // The same comparisons, as they read in the middle of a sentence.
@@ -407,6 +459,8 @@ export const TelemetryRuleCopy: {
   anomalyHint: string;
   exceptionAnomalyHint: string;
   groupedHint: string;
+  forecastHorizonTitle: string;
+  forecastHint: string;
 } = {
   whenToAlertTitle: translationKey("When to alert"),
   whenToAlertDescription: translationKey(
@@ -485,6 +539,10 @@ export const TelemetryRuleCopy: {
   groupedHint: translationKey(
     "Counted together here. The monitor counts each group on its own.",
   ),
+  forecastHorizonTitle: translationKey("Within"),
+  forecastHint: translationKey(
+    "Draws a straight line through the metric's values in the time window and follows it ahead. Use a long window, such as 7 days, so the line shows how the metric grows rather than its daily ups and downs. A new series waits until it has data for half the window.",
+  ),
 };
 
 /*
@@ -532,6 +590,7 @@ export const getRuleSentence: (data: {
     | "rollingTime"
     | "metricAggregationType"
     | "measure"
+    | "forecast"
   >;
   translator: Translator;
   metricName?: string | undefined;
@@ -546,6 +605,7 @@ export const getRuleSentence: (data: {
     | "rollingTime"
     | "metricAggregationType"
     | "measure"
+    | "forecast"
   >;
   translator: Translator;
   metricName?: string | undefined;
@@ -796,7 +856,11 @@ const getExceptionMeasureSentence: (data: {
 const getMetricRuleSentence: (data: {
   rule: Pick<
     TelemetryAlertRule,
-    "filterType" | "threshold" | "rollingTime" | "metricAggregationType"
+    | "filterType"
+    | "threshold"
+    | "rollingTime"
+    | "metricAggregationType"
+    | "forecast"
   >;
   translator: Translator;
   metricName?: string | undefined;
@@ -804,7 +868,11 @@ const getMetricRuleSentence: (data: {
 }) => string = (data: {
   rule: Pick<
     TelemetryAlertRule,
-    "filterType" | "threshold" | "rollingTime" | "metricAggregationType"
+    | "filterType"
+    | "threshold"
+    | "rollingTime"
+    | "metricAggregationType"
+    | "forecast"
   >;
   translator: Translator;
   metricName?: string | undefined;
@@ -843,6 +911,45 @@ const getMetricRuleSentence: (data: {
       "Alerts when {{aggregation}} of {{metric}} over the last {{window}} is unusually high or low for this hour of the week.",
       { window, metric, aggregation: translatableTerm(aggregation) },
     );
+  }
+
+  /*
+   * A forecast reads the window as one trend, so the sentence names no
+   * aggregation: it says where the trend is headed, and by when.
+   */
+  if (TelemetryAlertRuleUtil.isForecast(rule.filterType)) {
+    const horizon: string = formatWindow(
+      (rule.forecast?.horizonInHours || DEFAULT_FORECAST_HORIZON_IN_HOURS) *
+        3600,
+      translator,
+    );
+    const isAbove: boolean = rule.filterType === FilterType.ForecastAbove;
+
+    if (rule.threshold === undefined) {
+      return isAbove
+        ? translator.translateTemplate(
+            "Alerts when the trend of {{metric}} over the last {{window}} is forecast to rise above the value you enter within {{horizon}}.",
+            { window, metric, horizon },
+          )
+        : translator.translateTemplate(
+            "Alerts when the trend of {{metric}} over the last {{window}} is forecast to fall below the value you enter within {{horizon}}.",
+            { window, metric, horizon },
+          );
+    }
+
+    const forecastValue: string = `${translator.formatNumber(rule.threshold)}${
+      data.unit ? ` ${data.unit}` : ""
+    }`;
+
+    return isAbove
+      ? translator.translateTemplate(
+          "Alerts when the trend of {{metric}} over the last {{window}} is forecast to rise above {{value}} within {{horizon}}.",
+          { window, metric, horizon, value: forecastValue },
+        )
+      : translator.translateTemplate(
+          "Alerts when the trend of {{metric}} over the last {{window}} is forecast to fall below {{value}} within {{horizon}}.",
+          { window, metric, horizon, value: forecastValue },
+        );
   }
 
   if (rule.threshold === undefined) {

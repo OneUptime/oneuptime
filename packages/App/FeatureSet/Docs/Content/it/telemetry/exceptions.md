@@ -56,7 +56,7 @@ Ogni riga mostra anche quanti utenti l'eccezione ha colpito nell'intervallo scel
 
 ### Scegliere che cosa conta come problema
 
-**Problemi**, il predefinito, nasconde gli errori degli utenti e i rifiuti previsti, così l'elenco mostra ciò che richiede una correzione. **User errors** mostra solo quelli, e **Tutti** mostra ogni eccezione.
+**Problemi**, il predefinito, nasconde gli errori degli utenti e i rifiuti previsti, così l'elenco mostra ciò che richiede una correzione. **Errori utente** mostra solo quelli, e **Tutti** mostra ogni eccezione.
 
 ### Cercare e filtrare
 

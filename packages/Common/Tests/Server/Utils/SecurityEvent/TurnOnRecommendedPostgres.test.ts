@@ -51,14 +51,17 @@ import { DataSource, QueryRunner } from "typeorm";
 
 /*
  * The kinds of your OneUptime data the click turns on: every one, but the
- * audit log only where OneUptime Enterprise writes it.
+ * audit log only where OneUptime Enterprise writes it, and cloud audit logs
+ * only where a cloud account is connected under Cloud - the project here
+ * has none until a test connects one.
  */
 const TELEMETRY_SOURCES_TURNED_ON: number =
   SECURITY_TELEMETRY_SOURCE_KINDS.filter(
     (kind: SecurityTelemetrySourceKind): boolean => {
       return (
-        kind !== SecurityTelemetrySourceKind.AuditLog ||
-        EnterpriseEdition.isLoaded()
+        kind !== SecurityTelemetrySourceKind.CloudAudit &&
+        (kind !== SecurityTelemetrySourceKind.AuditLog ||
+          EnterpriseEdition.isLoaded())
       );
     },
   ).length;
@@ -145,6 +148,8 @@ const TABLES: Array<string> = [
   "SecurityTelemetrySource",
   "SecurityCasePriority",
   "SecurityCaseStatus",
+  // Read, never written: whether a cloud account is connected under Cloud.
+  "CloudConnection",
 ];
 
 const SEQUENCE_TITLE: string =
@@ -408,6 +413,12 @@ describePostgres("Turn on recommended against a migrated Postgres", () => {
       createdByUserId: string;
     }> = await telemetrySources();
     expect(sources).toHaveLength(TELEMETRY_SOURCES_TURNED_ON);
+    // No cloud account here: nothing for cloud audit logs to read.
+    expect(
+      sources.map((source: { kind: string }): string => {
+        return source.kind;
+      }),
+    ).not.toContain(SecurityTelemetrySourceKind.CloudAudit);
     for (const source of sources) {
       expect(source.isEnabled).toBe(true);
       expect(source.createdByUserId).toBe(userId.toString());
@@ -421,6 +432,34 @@ describePostgres("Turn on recommended against a migrated Postgres", () => {
       trigger: "Case Opened",
     });
     expect(playbookRows[0]!.steps.length).toBeGreaterThan(0);
+  });
+
+  /*
+   * Cloud audit logs read the cloud accounts connected under Cloud: with
+   * none (every test above), the click leaves them off, so no switch says it
+   * watches what is not there; with one, they are turned on with the rest.
+   */
+  test("with a cloud account connected under Cloud, its audit logs are turned on with the rest", async () => {
+    expect(
+      (await telemetrySources()).map((source: { kind: string }): string => {
+        return source.kind;
+      }),
+    ).toEqual([]);
+    await database.query(
+      `INSERT INTO "${schema}"."CloudConnection" ("version", "projectId", "name", "provider", "secrets") VALUES (1, $1, 'Production AWS', 'aws', '')`,
+      [projectId.toString()],
+    );
+
+    const answer: JSONObject = await turnOn();
+
+    expect(answer["telemetrySourcesTurnedOn"]).toBe(
+      TELEMETRY_SOURCES_TURNED_ON + 1,
+    );
+    expect(
+      (await telemetrySources()).map((source: { kind: string }): string => {
+        return source.kind;
+      }),
+    ).toContain(SecurityTelemetrySourceKind.CloudAudit);
   });
 
   test("run twice: the second run writes nothing, and answers that nothing was left", async () => {

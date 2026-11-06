@@ -1,7 +1,11 @@
 import AlignItem from "../../Types/AlignItem";
 import { Logger } from "../../Utils/Logger";
 import useTranslateValue from "../../Utils/Translation";
-import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import {
+  formatList,
+  translatableTerm,
+  Translator,
+} from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import CodeBlock from "../CodeBlock/CodeBlock";
@@ -52,6 +56,7 @@ import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import GenericObject from "../../../Types/GenericObject";
 import IsolatedText from "../IsolatedText/IsolatedText";
+import IsolatedTextList from "../IsolatedText/IsolatedTextList";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export enum DetailStyle {
@@ -766,8 +771,32 @@ const Detail: DetailFunction = <T extends GenericObject>(
       );
     }
 
+    /*
+     * A list of values someone wrote - the components a monitor watches, a
+     * pattern - each read the way it is written, separated the reader's way
+     * (IsolatedTextList): joined into one string, a Persian page turned
+     * "Git*" into "*Git". What a copy button copies is the list as drawn.
+     */
+    let listCopyText: string | undefined = undefined;
+
     if (data && field.fieldType === FieldType.ArrayOfText) {
-      data = (data as any).join(", ");
+      const texts: Array<string> = (
+        Array.isArray(data) ? (data as Array<unknown>) : [data]
+      )
+        .map((item: unknown): string => {
+          return item === null || item === undefined ? "" : String(item);
+        })
+        .filter((text: string): boolean => {
+          return text.length > 0;
+        });
+
+      listCopyText = texts.length > 0 ? formatList(texts, translator) : "";
+      data =
+        texts.length > 0 ? (
+          <IsolatedTextList texts={texts} dataTestId="detail-text-list" />
+        ) : (
+          ""
+        );
     }
 
     if (!data && field.fieldType === FieldType.Color && field.placeholder) {
@@ -970,10 +999,14 @@ const Detail: DetailFunction = <T extends GenericObject>(
       );
     }
 
+    /*
+     * A key, a path or a version, read the way it is written: on a Persian
+     * page "/var/lib/postgresql" read "var/lib/postgresql/".
+     */
     if (data && field.fieldType === FieldType.InlineCode) {
       data = (
         <code className="px-2 py-1 bg-gray-100 text-gray-800 rounded font-mono text-sm border border-gray-200 break-all">
-          {data as string}
+          <IsolatedText text={String(data)} />
         </code>
       );
     }
@@ -993,7 +1026,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
       data = (
         <div className="inline-flex items-center">
           <span className="text-2xl font-bold text-gray-900 tracking-tight">
-            {data.toString()}
+            <IsolatedText text={data.toString()} />
           </span>
         </div>
       );
@@ -1066,7 +1099,10 @@ const Detail: DetailFunction = <T extends GenericObject>(
     }
 
     // What a copy button beside this value copies (DetailValue.ts).
-    const copyText: string | undefined = getDetailCopyText(data, value);
+    const copyText: string | undefined =
+      listCopyText !== undefined
+        ? listCopyText || undefined
+        : getDetailCopyText(data, value);
 
     // Determine style-based classes
     const styleType: DetailStyle = props.style || DetailStyle.Default;

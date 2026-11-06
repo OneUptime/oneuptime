@@ -185,7 +185,7 @@ flowchart TB
     field -->|"Non"| nothing
 ```
 
-**On Create**, **On Update** et **On Create or Update** transmettent l'enregistrement au bloc suivant, avec les champs que vous choisissez dans le **Fields to pass on** du déclencheur. Par exemple, le déclencheur **Incident → On Create** transmet le nouvel incident : le bloc suivant peut lire son titre, sa description, sa gravité ou tout autre champ sélectionné, comme `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un champ que vous n'avez pas sélectionné arrive vide.
+**On Create**, **On Update** et **On Create or Update** transmettent l'enregistrement au bloc suivant, avec les champs que vous choisissez dans le **Fields to pass on** du déclencheur. Par exemple, le déclencheur **Incident → On Create** transmet le nouvel incident : le bloc suivant peut lire son titre, sa description, sa gravité ou tout autre champ sélectionné, comme `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un champ que vous n'avez pas sélectionné arrive vide. Il en va de même d'un champ où l'enregistrement n'a rien, comme le moniteur d'une alerte qu'aucun moniteur n'a déclenchée.
 
 **On Create or Update** transmet aussi **What Happened** : `created` quand un nouvel enregistrement a lancé l'exécution, et `updated` quand c'est une modification, comme dans `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Pour traiter les deux différemment, comparez-le dans un bloc **If / Else**, ou prenez un chemin pour chacun avec **Switch / Case**.
 

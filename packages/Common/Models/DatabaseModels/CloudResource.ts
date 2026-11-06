@@ -85,6 +85,16 @@ import {
  */
 @Index(["projectId", "resourceIdentifier"], { unique: true })
 @Index(["projectId", "isArchived"])
+/*
+ * What needs attention in a project's clouds (healthSeverity set): what the
+ * Cloud Overview and an account's Overview read every time they open.
+ * Partial, so it holds the few resources that need someone rather than
+ * every resource of every account; "deletedAt" IS NULL as the read always
+ * carries it. Built online in its own migration (OnlineDdl).
+ */
+@Index(["projectId"], {
+  where: '"healthSeverity" IS NOT NULL AND "deletedAt" IS NULL',
+})
 @TableMetadata({
   tableName: "CloudResource",
   singularName: "Cloud Resource",
@@ -785,6 +795,98 @@ export default class CloudResource extends BaseModel {
     type: ColumnType.Date,
   })
   public inventoriedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Cloud Readings",
+    description:
+      "The newest value of the key metrics that say whether the resource is well, as its cloud connection last read them, keyed by metric.",
+    example:
+      '{"aws/ec2/statuscheckfailed": {"value": 0, "time": "2026-11-03T09:55:00.000Z"}}',
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public cloudReadings?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Readings Written At",
+    description:
+      "When a cloud connection last wrote the resource's readings. Readings older than an hour are not judged.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public cloudReadingsAt?: Date = undefined;
+
+  /*
+   * The resource's verdict when its readings were last written, by
+   * Common/Types/Cloud/CloudResourceHealth: what the Cloud Overview's and
+   * an account's Needs attention read, instead of every resource. Written
+   * by the cloud connection's read only, and cleared when its readings go
+   * stale or it stops reporting.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Health Severity",
+    description:
+      "Whether the resource needed attention when its readings were last written: critical or warning, empty when it did not.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public healthSeverity?: string = undefined;
 
   /*
    * What the last listing said of the resource, as one hash: a listing

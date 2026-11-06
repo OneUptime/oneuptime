@@ -23,6 +23,7 @@ import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
 import { CephClusterFeedEventType } from "../../../Models/DatabaseModels/CephClusterFeed";
 import { CloudAccountFeedEventType } from "../../../Models/DatabaseModels/CloudAccountFeed";
 import { CloudResourceFeedEventType } from "../../../Models/DatabaseModels/CloudResourceFeed";
+import { DataAssetFeedEventType } from "../../../Models/DatabaseModels/DataAssetFeed";
 import { DataSecurityIssueFeedEventType } from "../../../Models/DatabaseModels/DataSecurityIssueFeed";
 import { DataStoreFeedEventType } from "../../../Models/DatabaseModels/DataStoreFeed";
 import { DatabaseServerFeedEventType } from "../../../Models/DatabaseModels/DatabaseServerFeed";
@@ -38,6 +39,7 @@ import MonitorFeed, {
   MonitorFeedEventType,
 } from "../../../Models/DatabaseModels/MonitorFeed";
 import { OnCallDutyPolicyFeedEventType } from "../../../Models/DatabaseModels/OnCallDutyPolicyFeed";
+import { OpenStackCloudFeedEventType } from "../../../Models/DatabaseModels/OpenStackCloudFeed";
 import { PodmanHostFeedEventType } from "../../../Models/DatabaseModels/PodmanHostFeed";
 import { ProxmoxClusterFeedEventType } from "../../../Models/DatabaseModels/ProxmoxClusterFeed";
 import { ScheduledMaintenanceFeedEventType } from "../../../Models/DatabaseModels/ScheduledMaintenanceFeed";
@@ -97,6 +99,11 @@ const FEEDS: Array<FeedEventTypeSpec> = [
     eventTypes: Object.values(CloudResourceFeedEventType),
   },
   {
+    name: "DataAssetFeed",
+    enumName: "DataAssetFeedEventType",
+    eventTypes: Object.values(DataAssetFeedEventType),
+  },
+  {
     name: "DataSecurityIssueFeed",
     enumName: "DataSecurityIssueFeedEventType",
     eventTypes: Object.values(DataSecurityIssueFeedEventType),
@@ -150,6 +157,11 @@ const FEEDS: Array<FeedEventTypeSpec> = [
     name: "OnCallDutyPolicyFeed",
     enumName: "OnCallDutyPolicyFeedEventType",
     eventTypes: Object.values(OnCallDutyPolicyFeedEventType),
+  },
+  {
+    name: "OpenStackCloudFeed",
+    enumName: "OpenStackCloudFeedEventType",
+    eventTypes: Object.values(OpenStackCloudFeedEventType),
   },
   {
     name: "PodmanHostFeed",
@@ -431,6 +443,15 @@ describe("getFeedEventTypeLabel", () => {
     [
       VMwareVCenterFeedEventType.VMwareVCenterRestored,
       "VMware vCenter Restored",
+    ],
+    // "OpenStack" keeps its product spelling, never "Open Stack".
+    [
+      OpenStackCloudFeedEventType.OpenStackCloudCreated,
+      "OpenStack Cloud Created",
+    ],
+    [
+      OpenStackCloudFeedEventType.OpenStackCloudRestored,
+      "OpenStack Cloud Restored",
     ],
     // The SLO feed's long prefix is "SLO" everywhere else in the dashboard.
     [

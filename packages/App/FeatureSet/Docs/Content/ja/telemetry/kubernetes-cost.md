@@ -193,5 +193,5 @@ OneUptime はエンジンの調整 (reconciliation) 分を各コスト要素に�
 :::cards
 - [Kubernetes エージェント](/docs/telemetry/kubernetes-agent): エージェントのインストールと、それが収集するほかのすべてのもの。
 - [メトリクス モニター](/docs/monitor/metrics-monitor): 支出が予算を超えたときにアラートを出します。
-- [Kubernetes モニター](/docs/monitor/kubernetes-monitor): クラスターの健全性についてもアラートを出します。
+- [Kubernetes モニター](/docs/monitor/kubernetes-monitor): クラスターのヘルスについてもアラートを出します。
 :::

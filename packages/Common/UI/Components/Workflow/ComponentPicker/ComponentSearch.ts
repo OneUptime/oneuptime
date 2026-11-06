@@ -359,6 +359,16 @@ export const COMPONENT_KEYWORDS: Readonly<
     "another",
     "chain",
   ],
+  [ComponentID.OpenStackProposeFix]: [
+    "nova",
+    "compute",
+    "hypervisor",
+    "remediate",
+    "remediation",
+    "approve",
+    "approval",
+    "repair",
+  ],
   [ComponentID.AIGenerateText]: [
     "llm",
     "gpt",

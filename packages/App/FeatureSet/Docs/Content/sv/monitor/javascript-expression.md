@@ -123,7 +123,7 @@ För en monitor för SQL-frågor vars fråga returnerar ett antal, larma vid ett
 {{scalarValue}} > 50 || {{executionTimeInMs}} > 2000
 ```
 
-För en monitor för databashälsa läser du ett mätvärde genom att slå upp i hela objektet `metrics` — seriernas namn innehåller punkter, så de kan inte stå inom klammerparenteserna:
+För en monitor för databashälsa läser du ett mätvärde genom att skriva serienamnet med punkter inom klammerparenteserna eller genom att slå upp i hela objektet `metrics` — båda sätten fungerar:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

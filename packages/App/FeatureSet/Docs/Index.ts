@@ -1,4 +1,8 @@
 import { ContentPath, StaticPath, ViewsPath } from "./Utils/Config";
+import {
+  addEnglishAnchorAliases,
+  getEnglishAnchorAliases,
+} from "./Utils/AnchorAliases";
 import LlmsTxtUtil from "./Utils/LlmsTxt";
 import DocsNav, { NavGroup, NavLink } from "./Utils/Nav";
 import DocsRender from "./Utils/Render";
@@ -81,6 +85,47 @@ async function readContent(
     }
   }
   return null;
+}
+
+/*
+ * A page's markdown as the page draws it: without its first line, the
+ * title the page's header shows, and with its placeholders filled in.
+ */
+function pageMarkdown(markdown: string, lang: string): string {
+  return DocsPlaceholders.render(
+    markdown.split("\n").slice(1).join("\n"),
+    lang,
+  );
+}
+
+/*
+ * A translated page's HTML with each heading answering the anchor of the
+ * English heading in its place too (Utils/AnchorAliases.ts): the anchors
+ * the product links to, and the language switcher keeps the reader's
+ * place by. Unchanged when the page has no English copy, or a stale
+ * translation whose headings do not line up with it.
+ */
+async function answerEnglishAnchors(
+  fullPath: string,
+  translatedMarkdown: string,
+  html: string,
+): Promise<string> {
+  const english: DocsContent | null = await readContent(
+    fullPath,
+    DEFAULT_DOCS_LANGUAGE,
+  );
+
+  if (english === null) {
+    return html;
+  }
+
+  return addEnglishAnchorAliases(
+    html,
+    getEnglishAnchorAliases(
+      pageMarkdown(english.markdown, DEFAULT_DOCS_LANGUAGE),
+      translatedMarkdown,
+    ),
+  );
 }
 
 /*
@@ -717,17 +762,24 @@ const DocsFeatureSet: FeatureSet = {
            * Strip the first line (title) — it already shows up in the page
            * header chrome.
            */
-          let contentInMarkdown: string = content.markdown
-            .split("\n")
-            .slice(1)
-            .join("\n");
+          const contentInMarkdown: string = pageMarkdown(
+            content.markdown,
+            lang,
+          );
 
-          contentInMarkdown = DocsPlaceholders.render(contentInMarkdown, lang);
-
-          const renderedContent: string = await DocsRender.render(
+          let renderedContent: string = await DocsRender.render(
             contentInMarkdown,
             { lang: lang, contentLang: content.lang },
           );
+
+          // An English copy's headings have their English anchors already.
+          if (content.lang !== DEFAULT_DOCS_LANGUAGE) {
+            renderedContent = await answerEnglishAnchors(
+              fullPath,
+              contentInMarkdown,
+              renderedContent,
+            );
+          }
 
           /*
            * Match against the canonical English nav so we can find the

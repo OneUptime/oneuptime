@@ -1017,6 +1017,19 @@ describe("the Status Pages Overview: the password, the badge, the feed and archi
     );
   });
 
+  it("says a private user's new password signs them out and ends the links already sent, as the writes do", () => {
+    const service: string = readSource(
+      "Common/Server/Services/StatusPagePrivateUserService.ts",
+    );
+
+    expect(service).toContain("updateBy.data.magicLinkToken = null!;");
+    expect(service).toContain("updateBy.data.resetPasswordToken = null!;");
+    expect(service).toContain("revokeAllSessionsByPrivateUserId");
+    expect(page).toContain(
+      "A new password signs them out on every device, and any sign-in link or reset link already sent stops working.",
+    );
+  });
+
   it("serves the badge on its route, with its token, from the Embedded Status screen", () => {
     const api: string = readSource(STATUS_PAGE_API);
     const screen: string = readSource(EMBEDDED_STATUS);

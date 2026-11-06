@@ -307,7 +307,8 @@
       "forgotPassword": "비밀번호를 잊으셨나요?",
       "submit": "로그인",
       "or": "또는",
-      "logInWithSso": "SSO로 로그인"
+      "logInWithSso": "SSO로 로그인",
+      "emailSignInLink": "로그인 링크를 이메일로 받기"
     },
     "sso": {
       "title": "SSO로 로그인",
@@ -330,6 +331,23 @@
       "success": "비밀번호가 업데이트되었습니다. 로그인해주세요.",
       "submit": "비밀번호 재설정",
       "knowPassword": "비밀번호를 알고 계신가요?"
+    },
+    "magicLink": {
+      "title": "링크로 로그인",
+      "description": "이메일 주소를 입력하시면 {{statusPageName}}에 로그인할 수 있는 링크를 보내드립니다. 비밀번호는 필요 없습니다.",
+      "submit": "로그인 링크 보내기",
+      "sentTitle": "이메일을 확인하세요",
+      "sent": "{{email}}(으)로 {{statusPageName}}에 로그인할 수 있다면 로그인 링크가 발송되었습니다. 링크는 한 번만 사용할 수 있으며 {{minutes}}분 후에 만료됩니다.",
+      "notReceived": "받은편지함에 없나요? 스팸 폴더를 확인하거나 상태 페이지 팀에 추가를 요청하세요.",
+      "sendAnother": "다른 링크 보내기"
+    },
+    "magicLinkLogin": {
+      "title": "{{statusPageName}}에 로그인",
+      "description": "아래 버튼을 눌러 로그인을 완료하세요.",
+      "submit": "로그인",
+      "noLink": "이 페이지에는 이메일로 받은 로그인 링크가 필요합니다. 링크를 다시 열거나 새 링크를 요청하세요.",
+      "turnedOff": "이 상태 페이지에서는 로그인 링크가 꺼져 있습니다. 이메일과 비밀번호로 로그인하세요.",
+      "requestNewLink": "새 링크를 이메일로 받기"
     },
     "masterPassword": {
       "prompt": "이 상태 페이지를 보려면 비밀번호를 입력해주세요.",

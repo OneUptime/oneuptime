@@ -34,7 +34,7 @@ flowchart TB
 ## Voordat je begint
 
 - **Laat je apparaten gegevens sturen.** De [handleiding voor IoT-apparaten](/docs/telemetry/iot-devices) laat zien hoe je metrieken stuurt met een OpenTelemetry-SDK of -Collector, of via MQTT.
-- **Controleer of de vloot geregistreerd is.** Ze verschijnt onder **Producten → Infrastructuur → IoT → All Fleets**, genoemd naar de `iot.fleet.name` die de apparaten sturen.
+- **Controleer of de vloot geregistreerd is.** Ze verschijnt onder **Producten → Infrastructuur → IoT → Alle vloten**, genoemd naar de `iot.fleet.name` die de apparaten sturen.
 - **Registreer de apparaten die je verwacht**, in het **Apparaatregister** van de vloot, om te horen wanneer er een stil wordt: zie [Offline-detectie](#offline-detectie).
 
 ## Een IoT-apparaat-monitor maken
@@ -50,7 +50,7 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **IoT-apparaat** ond
 
 ### De vloot kiezen
 
-Kies onder **IoT Monitor Configuration** de vloot uit **IoT Fleet**. Elke vloot die gegevens heeft gestuurd, staat in de lijst. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **IoT-vloot toevoegen** opent installatiestappen met je sleutels al ingevuld, die op de eerste gegevens wachten.
+Kies onder **IoT Monitor Configuration** de vloot uit **IoT-vloot**. Elke vloot die gegevens heeft gestuurd, staat in de lijst. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **IoT-vloot toevoegen** opent installatiestappen met je sleutels al ingevuld, die op de eerste gegevens wachten.
 
 ### Kiezen wat je in de gaten houdt
 
@@ -76,7 +76,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 
 | Veld | Tabblad | Wat het doet |
 | --- | --- | --- |
-| **IoT Fleet** | Alle | Verplicht. Beperkt elke query tot `resource.iot.fleet.name`. |
+| **IoT-vloot** | Alle | Verplicht. Beperkt elke query tot `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Geavanceerd | Optioneel. Eén apparaat, via zijn `device.id`, zoals `sensor-001`. |
 | **Apparaattype** | Custom Metric, Geavanceerd | Optioneel. De apparaten die deze `iot.device.type` melden, zoals `sensor` of `gateway`. |
 | **IoT Metric** | Custom Metric | Eén metriek uit de [catalogus](#verzamelde-metrieken). |
@@ -146,7 +146,7 @@ Een criterium vergelijkt een van de queries of formules van de monitor met een d
 | **Filtertype** | Altijd **Metric Value**, de enige controle die deze monitor biedt. |
 | **Select Metric Variable** | De query of formule om te controleren, op haar variabelenaam. |
 | **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen, over het hele venster) of **Any Value** (één is genoeg). |
-| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde. |
+| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde. **Verwacht boven** en **Verwacht onder** komen overeen wanneer de trend van de metriek in het venster aan het eind van **Termijn** voorbij de drempel is. |
 | **Drempel** | De waarde om mee te vergelijken. Er staat een eenhedenlijst naast als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |

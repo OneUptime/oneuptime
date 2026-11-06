@@ -492,6 +492,39 @@ describe("SecurityCaseStory.build", () => {
     );
   });
 
+  test("tells a cloud change with the facts its title is worded from in the reader's language", async () => {
+    const cloud: ChangeEvent = new ChangeEvent();
+    cloud._id = new ObjectID(CHANGE_ID);
+    cloud.time = at(-10);
+    cloud.title = "Failed: UpdateService on checkout";
+    cloud.eventType = "deployment";
+    cloud.attributes = {
+      "oneuptime.change.source": "cloud",
+      "oneuptime.cloud.operation": "UpdateService",
+      "oneuptime.change.status": "failed",
+      "oneuptime.cloud.resource_name": "checkout",
+      "oneuptime.resource.id": SERVICE_ID,
+    } as never;
+    changeRead.mockResolvedValue([cloud]);
+
+    expect(
+      itemOf(await story(), SecurityCaseStoryItemKind.Change),
+    ).toMatchObject({
+      title: "Failed: UpdateService on checkout",
+      cloudChange: {
+        operation: "UpdateService",
+        resource: "checkout",
+        failed: true,
+      },
+    });
+  });
+
+  test("a change that is not a cloud's keeps only its title", async () => {
+    expect(
+      itemOf(await story(), SecurityCaseStoryItemKind.Change),
+    ).not.toHaveProperty("cloudChange");
+  });
+
   test("tells the incident the case declared once, and those raised on its records, with the record", async () => {
     const told: SecurityCaseStoryJson = await story();
     const incidents: Array<SecurityCaseStoryItemJson> = told.items.filter(

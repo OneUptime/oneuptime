@@ -86,11 +86,11 @@ Et projekts første politik kan gøre det allerede, når den oprettes: lad **Udl
 | **Indgående opkald** | **Indgående opkaldspolitikker**: et telefonnummer, der ringer til den, der har vagt |
 | **Avanceret** | **Brugertilsidesættelser**, **Udførelseslogs** og **Arkiverede politikker** |
 | **Rapporter** | **Brugerens vagttid**: hvor længe hver person havde vagt |
-| **Arbejdsområde** | **Slack** og **Microsoft Teams**: regler, der sender vagthændelser til en kanal |
+| **Arbejdsområde** | **Slack**, **Microsoft Teams** og **Mattermost**: regler, der sender vagthændelser til en kanal |
 | **Indstillinger** | **Brugerdefinerede felter**, **Etiketregler** og **Ejerregler** |
 | **Udvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: vagt sat op fra kode |
 
-**Politikker**, **Tidsplaner** og **Indgående opkald** er åbne; de andre sektioner starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Arbejdsområde** viser de chatværktøjer, projektet har forbundet, eller **Forbind Slack eller Teams**, når det ikke har nogen.
+**Politikker**, **Tidsplaner** og **Indgående opkald** er åbne; de andre sektioner starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Arbejdsområde** viser de chatværktøjer, projektet har forbundet, eller **Forbind et arbejdsområde**, når det ikke har nogen.
 
 Når du har vagt for en politik, viser klokken øverst til højre det. Klik på den for at åbne **Mine vagtpolitikker**: alle politikker, du har vagt for, i alle dine projekter, og om du er nævnt direkte, via et team eller via en vagtplan.
 

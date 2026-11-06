@@ -89,8 +89,10 @@
  *   ?hunts=  empty: the project has saved no hunt yet. Otherwise four hunts
  *            - one that found events, one that found nothing, one opened
  *            by hand and one whose last run failed - over the month's
- *            security events, which the Events page and a hunt's page list
- *            (HuntsFixture.js lays them out, and keeps events on a case).
+ *            security events, which the Events page and a hunt's page list,
+ *            with the runs each hunt's Run History lists; the first was
+ *            added from the Hunt Library (HuntsFixture.js lays them out,
+ *            and keeps events on a case).
  *   The project's case setup is laid out by CaseSetupFixture.js: two case
  *            custom fields (Business Unit and External Ticket, filled in on
  *            CASE-142), two note templates, and CASE- numbering.
@@ -182,6 +184,20 @@ import { HUNT_SCENARIOS, createHuntsFixture } from "./HuntsFixture";
 import SecurityEventsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Index";
 import SecurityHuntsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Hunts";
 import SecurityHuntViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/HuntView";
+import SecurityHuntLibraryPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/HuntLibrary";
+import SecurityEventsWorkspaceConnectionSlackPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WorkspaceConnectionSlack";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
+import FilterCondition from "Common/Types/Filter/FilterCondition";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
+import {
+  ConditionType,
+  NotificationRuleConditionCheckOn,
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import {
@@ -603,7 +619,10 @@ const ID = {
   evidence: (n) => uuid("2e000000", n),
   watchlist: (n) => uuid("2f000000", n),
   watchlistValue: (n) => uuid("3a000000", n),
+  monitor: (n) => uuid("3e000000", n),
   hunt: (n) => uuid("3b000000", n),
+  huntRun: (n) => uuid("3f000000", n),
+  workspaceRule: (n) => uuid("4c000000", n),
   event: (n) => uuid("3c000000", n),
   source: (n) => uuid("3d000000", n),
   caseField: (n) => uuid("4a000000", n),
@@ -2643,6 +2662,59 @@ insert(StatusPage, { name: "Engineering Tools" });
  */
 insert(WorkspaceProjectAuthToken, { workspaceType: WorkspaceType.Slack });
 
+/*
+ * Its Slack page's rules (Security Events > Workspace > Slack): one under
+ * Security Case Rules, posting new cases to #soc, and one under Hunt Rules,
+ * posting what the PowerShell hunts find to #threat-hunting. The rule form's
+ * value pickers read the other products' states and schedules: none here.
+ */
+table(WorkspaceNotificationRule);
+for (const modelType of [
+  AlertState,
+  IncidentState,
+  ScheduledMaintenanceState,
+  MonitorStatus,
+  OnCallDutyPolicySchedule,
+]) {
+  table(modelType);
+}
+if (!isEmpty) {
+  insert(WorkspaceNotificationRule, {
+    _id: ID.workspaceRule(1),
+    name: "New cases to #soc",
+    eventType: NotificationRuleEventType.SecurityCase,
+    workspaceType: WorkspaceType.Slack,
+    notificationRule: {
+      _type: "SecurityCaseNotificationRule",
+      filterCondition: FilterCondition.All,
+      filters: [],
+      shouldPostToExistingChannel: true,
+      existingChannelNames: "#soc",
+    },
+    createdAt: ago(20 * DAY),
+  });
+  insert(WorkspaceNotificationRule, {
+    _id: ID.workspaceRule(2),
+    name: "PowerShell finds to #threat-hunting",
+    eventType: NotificationRuleEventType.SecurityHunt,
+    workspaceType: WorkspaceType.Slack,
+    notificationRule: {
+      _type: "SecurityHuntNotificationRule",
+      filterCondition: FilterCondition.All,
+      filters: [
+        {
+          checkOn: NotificationRuleConditionCheckOn.SecurityHuntName,
+          conditionType: ConditionType.Contains,
+          value: "PowerShell",
+        },
+      ],
+      shouldPostToExistingChannel: true,
+      existingChannelNames: "#threat-hunting",
+    },
+    createdAt: ago(10 * DAY),
+  });
+}
+
 // Tables the pages may read even when they are empty.
 for (const modelType of [
   SecurityCasePriority,
@@ -2942,10 +3014,15 @@ function turnOnRecommended(body) {
     /*
      * The rest of your OneUptime data beside the logs, as SecuritySetup
      * turns it on: each kind added, or turned back on. The audit log is
-     * left alone - this is OneUptime Community, which does not write one.
+     * left alone - this is OneUptime Community, which does not write one -
+     * and so are cloud audit logs: the project has no cloud account
+     * connected under Cloud for them to read.
      */
     for (const kind of SECURITY_TELEMETRY_SOURCE_KINDS) {
-      if (kind === SecurityTelemetrySourceKind.AuditLog) {
+      if (
+        kind === SecurityTelemetrySourceKind.AuditLog ||
+        kind === SecurityTelemetrySourceKind.CloudAudit
+      ) {
         continue;
       }
       const existing = table(SecurityTelemetrySource).find((item) => {
@@ -4230,6 +4307,13 @@ async function handleApi(method, options) {
   if (method === "POST" && path.endsWith("/security-case/setup/test")) {
     return new HTTPResponse(200, runSetupTest(), {});
   }
+  // What a rule's channel would be named from: no channel here is a rule's own.
+  if (
+    method === "GET" &&
+    path.endsWith("/workspace-notification-rule/number-prefixes")
+  ) {
+    return new HTTPResponse(200, { numberPrefixes: {} }, {});
+  }
   if (method === "GET" && path.endsWith(`/project/${PROJECT_ID}/numbering`)) {
     return new HTTPResponse(200, caseSetup.numbering(), {});
   }
@@ -4282,6 +4366,12 @@ async function handleApi(method, options) {
   }
   if (method === "POST" && path.endsWith("/security-watchlist/import")) {
     const answer = watchlists.importValues(options.data);
+    return answer.status === 200
+      ? new HTTPResponse(200, answer.body, {})
+      : new HTTPErrorResponse(answer.status, answer.body, {});
+  }
+  if (method === "POST" && path.endsWith("/security-watchlist/read-now")) {
+    const answer = watchlists.readNow(options.data);
     return answer.status === 200
       ? new HTTPResponse(200, answer.body, {})
       : new HTTPErrorResponse(answer.status, answer.body, {});
@@ -4414,6 +4504,11 @@ const PAGES = [
   [PageMap.SECURITY_EVENTS, SecurityEventsPage],
   [PageMap.SECURITY_EVENTS_HUNTS, SecurityHuntsPage],
   [PageMap.SECURITY_EVENTS_HUNT_VIEW, SecurityHuntViewPage],
+  [PageMap.SECURITY_EVENTS_HUNT_LIBRARY, SecurityHuntLibraryPage],
+  [
+    PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
+    SecurityEventsWorkspaceConnectionSlackPage,
+  ],
   ...SECURITY_CASE_QUEUE_VIEWS.map((view) => {
     return [view.page, SecurityCasesPage, view.key];
   }),

@@ -1825,21 +1825,26 @@ describe("attribution capture and consent", () => {
     });
 
     /*
-     * The booking still goes through and still says what kind it is; it just
-     * carries no campaign. The CRM receives it unattributed.
+     * The booking still goes through, still says what kind it is, and still
+     * says which campaign it came from: the campaign's labels, read off the
+     * address. Nothing about the visit - no click id, landing address or first
+     * touch - because keeping those is what the visitor said no to.
      */
-    test("carries only the booking kind while measurement waits for consent", () => {
+    test("carries the campaign's labels and the booking kind while measurement waits for consent", () => {
       const harness: Harness = loadHarness(html, {
         url: AD_URL,
         timeZone: CONSENT_FIRST_ZONE,
       });
 
       expect(harness.calMetadata("enterprise_demo")).toEqual({
+        "metadata[utm_source]": "google",
+        "metadata[utm_medium]": "cpc",
+        "metadata[utm_campaign]": "enterprise-q3",
         "metadata[ou_booking_kind]": "enterprise_demo",
       });
     });
 
-    test("carries only the booking kind after a refusal", () => {
+    test("carries the campaign's labels and the booking kind after a refusal", () => {
       const harness: Harness = loadHarness(html, {
         url: AD_URL,
         timeZone: OPT_OUT_ZONE,
@@ -1848,8 +1853,82 @@ describe("attribution capture and consent", () => {
       harness.consent.deny();
 
       expect(harness.calMetadata("support_call")).toEqual({
+        "metadata[utm_source]": "google",
+        "metadata[utm_medium]": "cpc",
+        "metadata[utm_campaign]": "enterprise-q3",
         "metadata[ou_booking_kind]": "support_call",
       });
+    });
+
+    test("sends every campaign label and nothing about the visit while measurement is not allowed", () => {
+      const harness: Harness = loadHarness(html, {
+        url: EVERY_PARAM_URL,
+        timeZone: CONSENT_FIRST_ZONE,
+      });
+
+      const metadata: Record<string, string> =
+        harness.calMetadata("enterprise_demo");
+
+      for (const wireKey of Object.keys(UtmWireKeyToPropertyKey)) {
+        expect(metadata[`metadata[${wireKey}]`]).toBe(`${wireKey}-value`);
+      }
+
+      for (const clickIdKey of AdClickIdKeys) {
+        expect([clickIdKey, metadata[`metadata[${clickIdKey}]`]]).toEqual([
+          clickIdKey,
+          undefined,
+        ]);
+      }
+
+      expect(metadata["metadata[utm_url]"]).toBeUndefined();
+      expect(metadata["metadata[ou_first_touch]"]).toBeUndefined();
+    });
+
+    /*
+     * The page the visitor books on is rarely the one the ad landed on. While
+     * nothing may be stored, the website carries the labels between them in
+     * ou_campaign (see AnalyticsConsentBehaviour.test.ts for the links).
+     */
+    test("carries the labels an earlier page passed on in the address", () => {
+      const harness: Harness = loadHarness(html, {
+        url: `https://oneuptime.com/enterprise/demo?ou_campaign=${encodeURIComponent(
+          "utm_source=google&utm_campaign=enterprise-q3&gad_campaignid=987",
+        )}`,
+        timeZone: CONSENT_FIRST_ZONE,
+      });
+
+      expect(harness.calMetadata("enterprise_demo")).toEqual({
+        "metadata[utm_source]": "google",
+        "metadata[utm_campaign]": "enterprise-q3",
+        "metadata[gad_campaignid]": "987",
+        "metadata[ou_booking_kind]": "enterprise_demo",
+      });
+    });
+
+    test("reads no click id out of the labels an earlier page passed on", () => {
+      const harness: Harness = loadHarness(html, {
+        url: `https://oneuptime.com/enterprise/demo?ou_campaign=${encodeURIComponent(
+          "utm_source=google&gclid=abc123",
+        )}`,
+        timeZone: CONSENT_FIRST_ZONE,
+      });
+
+      expect(harness.calMetadata()).toEqual({
+        "metadata[utm_source]": "google",
+      });
+    });
+
+    // Allowed measurement has the stored touch, and the address adds nothing to it.
+    test("ignores labels passed on in the address while measurement is allowed", () => {
+      const harness: Harness = loadHarness(html, {
+        url: `https://oneuptime.com/enterprise/demo?ou_campaign=${encodeURIComponent(
+          "utm_source=google",
+        )}`,
+        storedConsent: "true",
+      });
+
+      expect(harness.calMetadata()).toEqual({});
+      expect(harness.storage.store.get("utmSource")).toBeUndefined();
     });
 
     test("drops an oversized first touch rather than sending it", () => {

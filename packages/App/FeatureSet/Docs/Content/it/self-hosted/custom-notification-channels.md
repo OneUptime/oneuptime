@@ -1,9 +1,9 @@
 # Canali di notifica personalizzati
 
-Un canale personalizzato invia gli avvisi di reperibilità a un servizio che gestisci tu: l'app della tua azienda, un sistema di cercapersone o un gateway che controlla ciò che esce dalla tua rete. Lo aggiungi una sola volta, per l'intero server, e chiunque può essere avvisato tramite esso senza configurare nulla. Nell'Admin Dashboard si chiamano **Custom Channels**.
+Un canale personalizzato invia gli avvisi di reperibilità a un servizio che gestisci tu: l'app della tua azienda, un sistema di cercapersone o un gateway che controlla ciò che esce dalla tua rete. Lo aggiungi una sola volta, per l'intero server, e chiunque può essere avvisato tramite esso senza configurare nulla. Nell'Admin Dashboard si chiamano **Canali personalizzati**.
 
 > [!NOTE]
-> I canali personalizzati fanno parte della [Enterprise Edition di OneUptime](/docs/self-hosted/enterprise) e richiedono una licenza Enterprise che li includa. La Community Edition non ha la pagina **Custom Channels** e non invia nulla a nessun canale. Vedi [Senza licenza](#senza-licenza).
+> I canali personalizzati fanno parte della [Enterprise Edition di OneUptime](/docs/self-hosted/enterprise) e richiedono una licenza Enterprise che li includa. La Community Edition non ha la pagina **Canali personalizzati** e non invia nulla a nessun canale. Vedi [Senza licenza](#senza-licenza).
 
 :::cards
 - [Aggiungere un canale](#aggiungere-un-canale): Un nome, un URL e un segreto di firma.
@@ -31,18 +31,18 @@ Quando una policy di reperibilità avvisa qualcuno e la sua regola di reperibili
 
 ## Aggiungere un canale
 
-1. Nell'Admin Dashboard apri **Impostazioni**, poi **Notifiche > Custom Channels** nel menu laterale (**Notifiche** è inizialmente chiuso), e seleziona **Add**.
+1. Nell'Admin Dashboard apri **Impostazioni**, poi **Notifiche > Canali personalizzati** nel menu laterale (**Notifiche** è inizialmente chiuso), e seleziona **Add**.
 2. Nel passaggio **Channel**, compila:
    - **Nome**: ciò che le persone vedono nei loro metodi di notifica e nelle regole di reperibilità, per esempio `CorpoApp`.
    - **Webhook URL**: dove OneUptime invia ogni avviso. Può trovarsi nella tua rete privata.
-   - **Signing Secret**: OneUptime ne crea uno per te. Copialo nel tuo servizio, che controlla ogni richiesta con questo segreto. Puoi rivederlo modificando il canale.
-3. Nel passaggio **Delivery**, salva, poi seleziona **Send test** per inviare al tuo servizio una [richiesta di test](#richieste-di-test).
+   - **Segreto di firma**: OneUptime ne crea uno per te. Copialo nel tuo servizio, che controlla ogni richiesta con questo segreto. Puoi rivederlo modificando il canale.
+3. Nel passaggio **Delivery**, salva, poi seleziona **Invia test** per inviare al tuo servizio una [richiesta di test](#richieste-di-test).
 
 Nel passaggio **Delivery**, **Page everyone through this channel** è attivo. OneUptime aggiunge allora il canale alle regole di reperibilità di tutti in ogni progetto, e alle regole di chiunque entri in un progetto in seguito, e lo usa per raggiungere un reperibile che non ha alcuna regola per ciò che è scattato. Disattivalo per lasciare che ognuno aggiunga il canale alle proprie regole.
 
-Le persone vedono il canale in **Impostazioni utente**, poi **Metodi di notifica**, poi **Custom Channels**, con un pulsante **Send test**, e lo scelgono nelle loro regole di reperibilità come `Custom Channel: CorpoApp`. Non devono configurare nulla: il tuo servizio sa per chi è ogni avviso.
+Le persone vedono il canale in **Impostazioni utente**, poi **Metodi di notifica**, poi **Canali personalizzati**, con un pulsante **Invia test**, e lo scelgono nelle loro regole di reperibilità come `Custom Channel: CorpoApp`. Non devono configurare nulla: il tuo servizio sa per chi è ogni avviso.
 
-Per smettere di inviare senza cambiare le regole di nessuno, modifica il canale e disattiva **Attivato**. Gli avvisi che sarebbero andati al canale vengono annotati nel registro di reperibilità come non inviati. Eliminare un canale elimina tutte le regole di reperibilità che lo usano.
+Per smettere di inviare senza cambiare le regole di nessuno, scegli **Disattiva** nel menu ⋯ del canale, oppure modifica il canale e disattiva **Attivato**; **Attiva** nello stesso menu lo riaccende. Gli avvisi che sarebbero andati al canale vengono annotati nel registro di reperibilità come non inviati. Eliminare un canale elimina tutte le regole di reperibilità che lo usano.
 
 ## Cosa riceve il tuo servizio
 
@@ -149,7 +149,7 @@ La risposta dice cosa è successo, con parole che la tua app può mostrare così
 
 ## Altre notifiche
 
-Gli avvisi non sono le uniche notifiche che le persone ricevono: OneUptime le informa anche quando un incidente di cui sono proprietarie cambia stato, quando viene pubblicata una nota, quando inizia il loro turno di reperibilità, e altro ancora. Ognuno sceglie dove va ciascuna di queste in **Impostazioni utente > Impostazioni notifiche**, che ha una colonna **Custom Channels** finché un canale è attivo. È disattivata per tutti finché ognuno non la attiva.
+Gli avvisi non sono le uniche notifiche che le persone ricevono: OneUptime le informa anche quando un incidente di cui sono proprietarie cambia stato, quando viene pubblicata una nota, quando inizia il loro turno di reperibilità, e altro ancora. Ognuno sceglie dove va ciascuna di queste in **Impostazioni utente > Impostazioni notifiche**, che ha una colonna **Canali personalizzati** finché un canale è attivo. È disattivata per tutti finché ognuno non la attiva.
 
 Una notifica va a ogni canale attivo, come una richiesta per canale, con `event` impostato a `notification`:
 
@@ -186,7 +186,7 @@ L'esito di ogni tentativo compare nel registro di reperibilità della persona, c
 
 ## Richieste di test
 
-**Send test**, nella pagina dell'Admin Dashboard o nei metodi di notifica di una persona, invia una richiesta con `event` impostato a `test`, la persona che l'ha premuto come `user`, e `notificationId`, `record` e `actions` impostati a `null`. Usalo per provare il tuo servizio prima che arrivi un avviso vero.
+**Invia test**, nella pagina dell'Admin Dashboard o nei metodi di notifica di una persona, invia una richiesta con `event` impostato a `test`, la persona che l'ha premuto come `user`, e `notificationId`, `record` e `actions` impostati a `null`. Usalo per provare il tuo servizio prima che arrivi un avviso vero.
 
 ## Senza licenza
 
@@ -194,6 +194,7 @@ I canali personalizzati funzionano durante la prova di 14 giorni della Enterpris
 
 - **Non viene inviato nulla a nessun canale personalizzato.** Un avviso che sarebbe andato a un canale viene annotato nel registro di reperibilità della persona come non inviato, e così anche un test.
 - **I canali non vengono più proposti.** Spariscono dai metodi di notifica, dalle regole di reperibilità e dalle impostazioni delle notifiche delle persone, e la prontezza e il ripiego smettono di contarli.
+- **La conformità dei team non verifica i canali personalizzati.** Una regola di conformità di un team che richiede un canale personalizzato mostra **Non verificato**, e i membri non vengono verificati su di essa finché un canale personalizzato non può di nuovo recapitare un avviso.
 - **La pagina è di sola lettura.** Puoi vedere ed eliminare i canali, ma non aggiungerli né modificarli, e nessuno può indirizzare una regola o un'impostazione delle notifiche verso uno di essi.
 - **Non viene eliminato nulla.** I canali, e le regole di reperibilità e le impostazioni che li usano, vengono conservati.
 

@@ -112,15 +112,16 @@ Der Tab **Einblicke** zählt die Metriken eines Zeitraums: **Aktive Metriken**, 
 
 ## Metriken mit KI verbessern und fehlende ergänzen
 
-Jede Stunde durchsucht OneUptime die Metriken, die Ihre Dienste in der letzten Stunde gesendet haben, nach solchen, die zu viele Werte erfassen, nach Histogrammen, deren Buckets nicht passen, und nach ausgelasteten Diensten, die keine Metriken senden. Seine Befunde legt es mit den Belegen als KI-Einblicke an. OneUptime AI untersucht dann jeden Befund und öffnet einen Pull Request, der ihn behebt. Nichts wird je zusammengeführt: Ihr Team prüft jeden Pull Request.
+Jede Stunde durchsucht OneUptime die Metriken, die Ihre Dienste in der letzten Stunde gesendet haben, nach solchen, die zu viele Werte erfassen, nach Histogrammen, deren Buckets nicht passen, und nach ausgelasteten Diensten, die keine Metriken für ihre Anfragen senden. Seine Befunde legt es mit den Belegen als KI-Einblicke an. OneUptime AI untersucht dann jeden Befund und öffnet einen Pull Request, der ihn behebt. Nichts wird je zusammengeführt: Ihr Team prüft jeden Pull Request.
 
-OneUptime liest die 10 Metriken genau, für die Ihre Dienste in der Stunde die meisten Datenpunkte gesendet haben, jede mit mindestens 1.000 davon, und legt drei Arten von Befunden an:
+OneUptime liest die 10 Metriken genau, für die Ihre Dienste in der Stunde die meisten Datenpunkte gesendet haben, jede mit mindestens 1.000 davon, und legt vier Arten von Befunden an:
 
 | Befund | Wann OneUptime ihn anlegt | Der Pull Request |
 | --- | --- | --- |
 | **Hohe Kardinalität** | Ein Attribut, das der Code an eine dieser Metriken hängt, hatte in der Stunde 1.000 oder mehr Werte, etwa Benutzer-IDs oder vollständige URLs, sodass jeder Wert eine eigene Reihe ist. Oder 50 oder mehr Metriknamen eines Dienstes sind ein Name mit jeweils einer anderen ID darin. | Erfasst den Wert nicht mehr an der Metrik oder nimmt die IDs aus ihren Namen. |
 | **Falsche Histogramm-Buckets** | Eine dieser Metriken ist ein Histogramm, das 1.000 oder mehr Werte erfasst hat, und 90 % oder mehr davon fielen in seinen kleinsten Bucket oder über seinen größten, oder es hat keine Buckets, sodass sich seine Perzentile nicht unterscheiden lassen. | Gibt dem Histogramm Buckets, die zu seinen Werten passen, oder korrigiert seine Einheit. |
 | **Fehlende Metriken** | Ein Dienst hat in der Stunde 1.000 oder mehr Spans gesendet und noch nie eine Metrik. | Ergänzt die Anzahl der Anfragen, die Fehler und die Dauer seiner meistgenutzten Vorgänge als Metriken. |
+| **Fehlende Anfragemetriken** | Ein Dienst hat in der Stunde 1.000 oder mehr Spans und auch Metriken gesendet, aber noch nie eine Anfragemetrik für die HTTP-Anfragen, RPC-Aufrufe oder Nachrichten, die er verarbeitet, etwa `http.server.request.duration`. | Ergänzt diese Anfragemetriken mit der OpenTelemetry-Instrumentierung seines Frameworks. |
 
 Ein Befund speichert nie die Werte eines Attributs: nur den Namen des Attributs, wie viele Werte es hatte und wie sie aussehen.
 
@@ -144,9 +145,34 @@ Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server
 
 ### Sehen, was es getan hat
 
-- **Metriken → KI → Einblicke** listet, was OneUptime gefunden hat, jeden Befund mit seinen Belegen und **In Metriken öffnen**, das seine Metrik für seinen Dienst aus der Stunde öffnet, in der er gefunden wurde. Ein Dienst ohne Metriken bietet stattdessen **In Traces öffnen** an: die Spans, die seine Metriken messen würden.
+- **Metriken → KI → Einblicke** listet, was OneUptime gefunden hat, jeden Befund mit seinen Belegen und **In Metriken öffnen**, das seine Metrik für seinen Dienst aus der Stunde öffnet, in der er gefunden wurde. Ein Dienst ohne Metriken, oder ohne Metriken für seine Anfragen, bietet stattdessen **In Traces öffnen** an: die Spans, die seine Metriken messen würden.
 - **Metriken → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand und dem, was jede Untersuchung gefunden hat.
 - In Code sagt die Aufgabe, dass OneUptime sie gestartet hat, mit einem Link zu ihrem Befund, und der Pull Request sagt, warum er geöffnet wurde.
+
+### Anfragemetriken ohne Codeänderung aufzeichnen
+
+Ein Befund **Fehlende Metriken** oder **Fehlende Anfragemetriken** bietet neben **Mit KI beheben** auch **Ohne Codeänderung** an: Der OpenTelemetry Collector, durch den Ihre Traces laufen, zeichnet die Anfragemetriken aus ihnen auf. **Collector-Schritt anzeigen** zeigt die Zeilen, die Sie ergänzen, `spanmetrics` als Exporter der Traces-Pipeline und als Receiver der Metriken-Pipeline:
+
+```yaml title="otel-collector-config.yaml"
+connectors:
+  spanmetrics:
+    histogram:
+      unit: s
+    aggregation_temporality: AGGREGATION_TEMPORALITY_DELTA
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp, spanmetrics]
+    metrics:
+      receivers: [otlp, spanmetrics]
+      processors: [batch]
+      exporters: [otlphttp]
+```
+
+Starten Sie den Collector neu. Jeder Dienst, dessen Traces durch ihn laufen, sendet dann `traces.span.metrics.calls` und `traces.span.metrics.duration` (in Sekunden) für jeden Vorgang, jede Span-Art und jeden Status, und OneUptime findet das Problem nicht mehr: Beheben Sie dann den Befund. Der Connector zählt jeden Span, den der Collector empfängt, auch solche, die ein Sampler später verwirft. Ein Dienst, der direkt an OneUptime sendet, braucht zuerst einen Collector vor sich: siehe [Über einen OpenTelemetry Collector senden](/docs/telemetry/open-telemetry#über-einen-opentelemetry-collector-senden).
 
 ## Was mit Metriken beim Eintreffen geschieht
 

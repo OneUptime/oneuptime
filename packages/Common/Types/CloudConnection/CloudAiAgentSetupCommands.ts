@@ -20,9 +20,14 @@ import {
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
   AZURE_CLOUD_AI_AGENT_ROLE_NAME,
   CLOUD_AI_AGENT_NAME,
+  GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
+  GCP_CLOUD_AI_AGENT_HOSTS,
+  GCP_CLOUD_AI_AGENT_INSTANCE_NAME,
+  GCP_CLOUD_AI_AGENT_NETWORK_NAME,
   GCP_CLOUD_AI_AGENT_ROLE_ID,
   GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID,
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
+  GcpCloudAiAgentHost,
   getCloudAiAgentOwnTargets,
 } from "../ResourceAiAgent/CloudAiAgentNames";
 import {
@@ -37,6 +42,7 @@ import {
   RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
+  RESOURCE_AI_GCP_HOST_ENV,
   RESOURCE_AI_PROTECTED_TARGETS_ENV,
   ResourceCommandTier,
 } from "../ResourceAiAgent/ResourceAiAccess";
@@ -74,9 +80,13 @@ import {
  *     subscription, and the ingestion key as a Container Apps secret.
  *   - Google Cloud (Cloud Shell): a custom role from the operations, a
  *     service account holding it on the project, the ingestion key in
- *     Secret Manager (only that service account may read it), and a Cloud
- *     Run service with CPU always allocated running as that service
- *     account.
+ *     Secret Manager (only that service account may read it), and the
+ *     agent running as that service account on one small Compute Engine
+ *     VM of Container-Optimized OS, in a network of its own that lets
+ *     nothing in, whose startup script reads the key from Secret Manager
+ *     at every boot - or, for a project that allows no VM an external
+ *     address, on a Cloud Run service with CPU always allocated (four
+ *     times the cost: Cloud Run keeps CPU allocated only for a whole vCPU).
  *
  * On every cloud the key is a secret of the platform's, never a plain
  * variable: a task definition's or a Cloud Run service's variables are
@@ -144,6 +154,8 @@ export interface CloudAiAgentSetupOptions {
   requiredTag?: string | null | undefined;
   // Where the agent itself runs (CLOUD_AI_AGENT_DEFAULT_REGIONS when absent).
   region?: string | undefined;
+  // Google Cloud only: what runs it (GCP_CLOUD_AI_AGENT_DEFAULT_HOST when absent).
+  gcpHost?: GcpCloudAiAgentHost | undefined;
   // The image's tag (CLOUD_AI_AGENT_IMAGE_TAG when absent).
   imageTag?: string | undefined;
 }
@@ -179,9 +191,10 @@ export interface CloudAiAgentSize {
 }
 
 /*
- * Fargate's and Container Apps' smallest size. Cloud Run keeps CPU
- * allocated only for a whole vCPU or more, and 512 MiB is the least it
- * gives one.
+ * Fargate's and Container Apps' smallest size, and Google Cloud's on Cloud
+ * Run: Cloud Run keeps CPU allocated only for a whole vCPU or more, and
+ * 512 MiB is the least it gives one. On Google Cloud's default host the
+ * agent has a VM of its own instead (GCP_CLOUD_AI_AGENT_MACHINE_TYPE).
  */
 export const CLOUD_AI_AGENT_SIZES: Readonly<
   Record<CloudProvider, CloudAiAgentSize>
@@ -241,6 +254,76 @@ export const GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_MESSAGE: string = `Cloud Run did no
 
 // How long the agent's AWS logs are kept: long enough to read what went wrong.
 export const AWS_CLOUD_AI_AGENT_LOG_RETENTION_DAYS: number = 7;
+
+/*
+ * The Google Cloud agent's VM: the smallest machine (two shared vCPUs and
+ * 1 GB, which the free tier covers once a month in us-central1, us-west1
+ * and us-east1), the smallest boot disk Container-Optimized OS takes, on
+ * standard persistent disk, and Google's own image family of it, which
+ * updates itself. Shielded (secure boot, vTPM, integrity monitoring), with
+ * OS Login and no project-wide SSH keys - not that its network lets an SSH
+ * connection in.
+ */
+export const GCP_CLOUD_AI_AGENT_MACHINE_TYPE: string = "e2-micro";
+export const GCP_CLOUD_AI_AGENT_BOOT_DISK_GB: number = 10;
+export const GCP_CLOUD_AI_AGENT_BOOT_DISK_TYPE: string = "pd-standard";
+export const GCP_CLOUD_AI_AGENT_IMAGE_FAMILY: string = "cos-stable";
+export const GCP_CLOUD_AI_AGENT_IMAGE_PROJECT: string = "cos-cloud";
+// The VM's subnet: a network of its own, so any range does; 16 addresses.
+export const GCP_CLOUD_AI_AGENT_SUBNET_RANGE: string = "10.250.0.0/28";
+// What the VM's own startup script is written to in the shell's directory.
+export const GCP_CLOUD_AI_AGENT_STARTUP_FILE: string = `${CLOUD_AI_AGENT_NAME}.startup.sh`;
+// Its own logs: Docker's Cloud Logging driver, which the VM's role may write with.
+export const GCP_CLOUD_AI_AGENT_LOG_WRITER_ROLE: string =
+  "roles/logging.logWriter";
+// Where the VM keeps what its startup script writes: memory, never its disk.
+export const GCP_CLOUD_AI_AGENT_RUN_DIRECTORY: string = `/run/${CLOUD_AI_AGENT_NAME}`;
+/*
+ * What the Google Cloud command says when the VM could not be made, and
+ * what to do: an organization policy refusing a VM an external address is
+ * the one a command cannot know beforehand. Echoed in double quotes: it
+ * holds none, and no $, ` or backslash.
+ */
+export const GCP_CLOUD_AI_AGENT_VM_REFUSED_MESSAGE: string =
+  "The agent's VM could not be created. If an organization policy allows no VM an external IP address, choose Cloud Run under More fields and run the command again.";
+
+/*
+ * How the VM's startup script reads the key: a small Node.js program run
+ * in the agent's own image (the VM has no gcloud), which asks the metadata
+ * server for the service account's token and Secret Manager for the
+ * secret's latest version, and prints it. The key passes through memory
+ * only: it is never on the VM's disk, in its metadata or on a command line.
+ * Written without a $ or a backtick, and without a ! - an interactive
+ * shell expands one even inside a here-document, and the command is pasted
+ * into one.
+ */
+export const GCP_CLOUD_AI_AGENT_KEY_READER: string = [
+  'const secret = process.argv[2] || "";',
+  "const metadata =",
+  '  "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token";',
+  "async function readKey() {",
+  "  const token = await (",
+  '    await fetch(metadata, { headers: { "Metadata-Flavor": "Google" } })',
+  "  ).json();",
+  "  const answer = await fetch(",
+  '    "https://secretmanager.googleapis.com/v1/" + secret + ":access",',
+  '    { headers: { Authorization: "Bearer " + token.access_token } },',
+  "  );",
+  "  if (answer.ok === false) {",
+  '    throw new Error("Secret Manager answered HTTP " + answer.status + " for " + secret);',
+  "  }",
+  "  const version = await answer.json();",
+  '  const key = Buffer.from(version.payload.data, "base64").toString("utf8").trim();',
+  "  if (key.length === 0) {",
+  '    throw new Error(secret + " holds no key");',
+  "  }",
+  "  process.stdout.write(key);",
+  "}",
+  "readKey().catch((error) => {",
+  '  console.error("Could not read the agent key: " + String(error && error.message ? error.message : error));',
+  "  process.exit(1);",
+  "});",
+].join("\n");
 
 // The role's title on Azure and Google Cloud.
 const ROLE_TITLE: string = "OneUptime AI Agent";
@@ -547,6 +630,7 @@ interface CloudAiAgentSetup {
   requiredTag: { key: string; value: string } | null;
   region: string | null;
   image: string;
+  gcpHost: GcpCloudAiAgentHost;
 }
 
 function readSetup(
@@ -658,6 +742,15 @@ function readSetup(
     return `${JSON.stringify(imageTag.slice(0, 64))} is not an image tag.`;
   }
 
+  const gcpHost: unknown =
+    options.gcpHost === undefined
+      ? GCP_CLOUD_AI_AGENT_DEFAULT_HOST
+      : options.gcpHost;
+
+  if (!(GCP_CLOUD_AI_AGENT_HOSTS as ReadonlyArray<unknown>).includes(gcpHost)) {
+    return "Pick where the Google Cloud agent runs: a small VM, or Cloud Run.";
+  }
+
   return {
     provider,
     oneuptimeUrl: url,
@@ -672,6 +765,7 @@ function readSetup(
     requiredTag,
     region: regionSetting || CLOUD_AI_AGENT_DEFAULT_REGIONS[provider],
     image: getCloudAiAgentImage(imageTag),
+    gcpHost: gcpHost as GcpCloudAiAgentHost,
   };
 }
 
@@ -799,10 +893,17 @@ function environmentOf(
   /*
    * Cloud Run starts an instance only once it accepts connections on its
    * port, from outside the container: the health server listens on every
-   * interface there, on the PORT Cloud Run sets from --port.
+   * interface there, on the PORT Cloud Run sets from --port. On its VM the
+   * agent keeps the health server to itself, and says where it runs, as
+   * Cloud Run says so itself (K_SERVICE): its posture reports it, so the
+   * command written from Change keeps it there.
    */
   if (setup.provider === CloudProvider.GCP) {
-    environment.push(variable(CLOUD_AI_AGENT_HEALTH_HOST_ENV, "0.0.0.0"));
+    environment.push(
+      setup.gcpHost === "cloud-run"
+        ? variable(CLOUD_AI_AGENT_HEALTH_HOST_ENV, "0.0.0.0")
+        : variable(RESOURCE_AI_GCP_HOST_ENV, setup.gcpHost),
+    );
   }
 
   return environment;
@@ -1417,16 +1518,19 @@ const GCP_PERMISSION_APIS: Readonly<Record<string, string>> = {
 };
 
 /*
- * The APIs the Google Cloud command turns on: Cloud Run (the agent runs on
- * it), IAM and Resource Manager (the role, the service account and its
- * binding), Secret Manager (the key), and those of the operations turned
- * on.
+ * The APIs the Google Cloud command turns on: what the agent runs on
+ * (Compute Engine and Cloud Logging for its VM, or Cloud Run), IAM and
+ * Resource Manager (the role, the service account and its binding),
+ * Secret Manager (the key), and those of the operations turned on.
  */
 export function getGcpCloudAiAgentServices(
   enabledOperations?: Array<string> | undefined,
+  gcpHost: GcpCloudAiAgentHost = GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
 ): Array<string> {
   const services: Array<string> = [
-    "run.googleapis.com",
+    ...(gcpHost === "cloud-run"
+      ? ["run.googleapis.com"]
+      : ["compute.googleapis.com", "logging.googleapis.com"]),
     "iam.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "secretmanager.googleapis.com",
@@ -1452,13 +1556,26 @@ export function getGcpCloudAiAgentServices(
  * (every call names it): the APIs, the role (created, or updated to
  * exactly these permissions), the service account (created when it is not
  * there) and its binding, the key as a new version of a Secret Manager
- * secret only that service account may read, then the service, which
- * `gcloud run deploy` creates or moves to a new revision with exactly
- * these variables and the key from the secret - tried again, 30 seconds
- * later, while Cloud Run cannot read the secret yet. The variables and the
- * key go through files the shell does not expand, each removed once read:
- * the key is never on a command line, and never one of the service's
- * variables, which anyone who may view the service reads.
+ * secret only that service account may read, then the agent on its host:
+ *
+ *   - compute-engine (the default): a network of its own whose firewall
+ *     lets nothing in (a VPC denies every connection in until a rule
+ *     allows one, and none is made), and one e2-micro VM of
+ *     Container-Optimized OS in it, running as the service account, whose
+ *     startup script - every boot - pulls the agent's image, reads the key
+ *     from Secret Manager (GCP_CLOUD_AI_AGENT_KEY_READER, in the image) and
+ *     starts the agent. Run again, the command writes the startup script
+ *     anew and restarts the VM, which starts the agent the new way.
+ *   - cloud-run: `gcloud run deploy` creates the service or moves it to a
+ *     new revision with exactly these variables and the key from the
+ *     secret - tried again, 30 seconds later, while Cloud Run cannot read
+ *     the secret yet.
+ *
+ * One agent per account: once the agent runs on one host, the command
+ * removes the one an earlier run started on the other. The variables and
+ * the key go through files the shell does not expand, each removed once
+ * read: the key is never on a command line, in the VM's metadata or one of
+ * the service's variables, which anyone who may view them reads.
  */
 export function getGcpCloudAiAgentSetupCommand(
   options: CloudAiAgentSetupOptions,
@@ -1466,17 +1583,154 @@ export function getGcpCloudAiAgentSetupCommand(
   return writeGcpCommand(checkedSetup(options, CloudProvider.GCP));
 }
 
-function writeGcpCommand(setup: CloudAiAgentSetup): string {
-  const size: CloudAiAgentSize = CLOUD_AI_AGENT_SIZES[CloudProvider.GCP];
-  const project: string = '--project "$PROJECT_ID"';
-  const member: string = `${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID}@$PROJECT_ID.iam.gserviceaccount.com`;
+// The service account the agent runs as, in the command's shell.
+const GCP_MEMBER: string = `${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID}@$PROJECT_ID.iam.gserviceaccount.com`;
+const GCP_PROJECT_FLAG: string = '--project "$PROJECT_ID"';
+
+/*
+ * Whether an API is on in the project, as a shell condition: a list call
+ * of a service whose API is off asks, in Cloud Shell, whether to turn it
+ * on - and would read the next line pasted as the answer. --quiet answers
+ * no to every question.
+ */
+function gcpApiIsOn(api: string): string {
+  return `gcloud services list ${GCP_PROJECT_FLAG} --enabled --filter "config.name=${api}" --format "value(config.name)" --quiet 2> /dev/null | grep -q .`;
+}
+
+// What both hosts share: the APIs, the role and its account, and the key.
+function writeGcpCommandStart(setup: CloudAiAgentSetup): Array<string> {
   // The same title, description and permissions whether it creates or updates.
   const role: string = [
     `--title ${shellQuote(ROLE_TITLE)}`,
     `--description ${shellQuote(ROLE_DESCRIPTION)}`,
     '--permissions "$PERMISSIONS" --stage GA --quiet',
   ].join(" ");
+  const secret: string = GCP_CLOUD_AI_AGENT_SECRET_NAME;
 
+  return [
+    `PROJECT_ID=${setup.accountId}`,
+    `PERMISSIONS=${shellQuote(getCloudAiAgentRolePermissions(CloudProvider.GCP, setup.operations).join(","))}`,
+    `gcloud services enable ${getGcpCloudAiAgentServices(setup.operations, setup.gcpHost).join(" ")} ${GCP_PROJECT_FLAG}`,
+    `gcloud iam roles create ${GCP_CLOUD_AI_AGENT_ROLE_ID} ${GCP_PROJECT_FLAG} ${role} > /dev/null 2>&1 || gcloud iam roles update ${GCP_CLOUD_AI_AGENT_ROLE_ID} ${GCP_PROJECT_FLAG} ${role} > /dev/null`,
+    `gcloud iam service-accounts create ${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID} ${GCP_PROJECT_FLAG} --display-name ${shellQuote("OneUptime Cloud AI agent")} > /dev/null 2>&1 || true`,
+    `gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${GCP_MEMBER}" --role "projects/$PROJECT_ID/roles/${GCP_CLOUD_AI_AGENT_ROLE_ID}" --condition=None > /dev/null`,
+    // The key: a secret only the agent's service account may read.
+    `cat > ${GCP_CLOUD_AI_AGENT_KEY_FILE} <<'${GCP_CLOUD_AI_AGENT_KEY_FILE_END}'`,
+    setup.ingestionKey,
+    GCP_CLOUD_AI_AGENT_KEY_FILE_END,
+    `gcloud secrets create ${secret} ${GCP_PROJECT_FLAG} --replication-policy automatic > /dev/null 2>&1 || true`,
+    `tr -d '\\n' < ${GCP_CLOUD_AI_AGENT_KEY_FILE} | gcloud secrets versions add ${secret} ${GCP_PROJECT_FLAG} --data-file=- > /dev/null`,
+    `rm ${GCP_CLOUD_AI_AGENT_KEY_FILE}`,
+    `gcloud secrets add-iam-policy-binding ${secret} ${GCP_PROJECT_FLAG} --member "serviceAccount:${GCP_MEMBER}" --role ${GCP_SECRET_ACCESSOR_ROLE} --condition=None > /dev/null`,
+  ];
+}
+
+/*
+ * The VM's startup script: run as root at every boot, it holds no secret
+ * (anyone who may view the VM reads its metadata). The agent's variables
+ * and the key reader go to memory (/run), the image is pulled until the
+ * network answers, the key is read from Secret Manager in the image itself,
+ * and the agent starts - read-only, its /tmp in memory, on the VM's own
+ * network (the metadata server answers its tokens there), its log in Cloud
+ * Logging, started again by Docker should it stop - the file with the key
+ * removed once Docker has read it.
+ */
+export function getGcpCloudAiAgentStartupScript(
+  options: CloudAiAgentSetupOptions,
+): string {
+  return writeGcpStartupScript(checkedSetup(options, CloudProvider.GCP));
+}
+
+function writeGcpStartupScript(setup: CloudAiAgentSetup): string {
+  const variables: Array<CloudAiAgentEnvironmentVariable> =
+    environmentOf(setup);
+  const keyVariable: string =
+    variables.find((variable: CloudAiAgentEnvironmentVariable): boolean => {
+      return variable.isSecret;
+    })?.name || CLOUD_AI_AGENT_INGESTION_KEY_ENV;
+  const run: string = GCP_CLOUD_AI_AGENT_RUN_DIRECTORY;
+
+  /*
+   * No #! line: the guest environment runs a startup script with bash, and
+   * a "!" in the pasted command would be expanded by Cloud Shell's
+   * interactive bash, even inside the here-document.
+   */
+  return [
+    "# The OneUptime Cloud AI agent, started by bash on every boot. Written by its setup command; it holds no secret.",
+    `IMAGE=${setup.image}`,
+    `SECRET=projects/${setup.accountId}/secrets/${GCP_CLOUD_AI_AGENT_SECRET_NAME}/versions/latest`,
+    "umask 077",
+    `mkdir -p ${run}`,
+    `cat > ${run}/agent.env <<'ENV'`,
+    ...variables
+      .filter((variable: CloudAiAgentEnvironmentVariable): boolean => {
+        return !variable.isSecret;
+      })
+      .map((variable: CloudAiAgentEnvironmentVariable): string => {
+        return `${variable.name}=${variable.value}`;
+      }),
+    "ENV",
+    `cat > ${run}/key.js <<'KEYJS'`,
+    GCP_CLOUD_AI_AGENT_KEY_READER,
+    "KEYJS",
+    // The image runs as its own user, which reads the key reader.
+    `chmod 755 ${run}`,
+    `chmod 644 ${run}/key.js`,
+    'until docker pull "$IMAGE" > /dev/null; do sleep 10; done',
+    `KEY=$(docker run --rm --network host -v ${run}/key.js:/key.js:ro --entrypoint node "$IMAGE" /key.js "$SECRET") || { rm -f ${run}/agent.env; exit 1; }`,
+    `printf '%s=%s\\n' ${keyVariable} "$KEY" >> ${run}/agent.env`,
+    `docker rm -f ${GCP_CLOUD_AI_AGENT_INSTANCE_NAME} > /dev/null 2>&1`,
+    `docker run -d --name ${GCP_CLOUD_AI_AGENT_INSTANCE_NAME} --restart unless-stopped --network host --read-only --tmpfs /tmp --log-driver gcplogs --env-file ${run}/agent.env "$IMAGE" > /dev/null`,
+    `rm -f ${run}/agent.env`,
+  ].join("\n");
+}
+
+// The agent on its VM, in a network that lets nothing in.
+function writeGcpVmCommand(setup: CloudAiAgentSetup): Array<string> {
+  const vm: string = GCP_CLOUD_AI_AGENT_INSTANCE_NAME;
+  const network: string = GCP_CLOUD_AI_AGENT_NETWORK_NAME;
+  const startup: string = GCP_CLOUD_AI_AGENT_STARTUP_FILE;
+  const region: string = setup.region as string;
+  const create: string = [
+    `gcloud compute instances create ${vm} ${GCP_PROJECT_FLAG} --zone "$ZONE"`,
+    `--machine-type ${GCP_CLOUD_AI_AGENT_MACHINE_TYPE} --network ${network} --subnet ${network}`,
+    `--image-family ${GCP_CLOUD_AI_AGENT_IMAGE_FAMILY} --image-project ${GCP_CLOUD_AI_AGENT_IMAGE_PROJECT}`,
+    `--boot-disk-size ${GCP_CLOUD_AI_AGENT_BOOT_DISK_GB}GB --boot-disk-type ${GCP_CLOUD_AI_AGENT_BOOT_DISK_TYPE}`,
+    `--service-account "${GCP_MEMBER}" --scopes cloud-platform`,
+    "--shielded-secure-boot --shielded-vtpm --shielded-integrity-monitoring",
+    "--metadata enable-oslogin=TRUE,block-project-ssh-keys=TRUE",
+    `--metadata-from-file startup-script=${startup} --quiet > /dev/null`,
+  ].join(" ");
+
+  return [
+    // Its own log in Cloud Logging, written by Docker on the VM.
+    `gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${GCP_MEMBER}" --role ${GCP_CLOUD_AI_AGENT_LOG_WRITER_ROLE} --condition=None > /dev/null`,
+    // A network of its own: no firewall rule, so nothing gets in.
+    `gcloud compute networks create ${network} ${GCP_PROJECT_FLAG} --subnet-mode custom > /dev/null 2>&1 || true`,
+    `gcloud compute networks subnets create ${network} ${GCP_PROJECT_FLAG} --network ${network} --region ${region} --range ${GCP_CLOUD_AI_AGENT_SUBNET_RANGE} > /dev/null 2>&1 || true`,
+    `cat > ${startup} <<'STARTUP'`,
+    writeGcpStartupScript(setup),
+    "STARTUP",
+    // The VM an earlier run made, wherever it is: written anew and restarted.
+    `ZONE=$(gcloud compute instances list ${GCP_PROJECT_FLAG} --filter "name=${vm}" --format "value(zone.basename())" --quiet | head -1)`,
+    'if [ -n "$ZONE" ]; then',
+    `  gcloud compute instances add-metadata ${vm} ${GCP_PROJECT_FLAG} --zone "$ZONE" --metadata-from-file startup-script=${startup} > /dev/null && gcloud compute instances reset ${vm} ${GCP_PROJECT_FLAG} --zone "$ZONE" --quiet > /dev/null && STARTED=1`,
+    "else",
+    `  ZONE=$(gcloud compute zones list ${GCP_PROJECT_FLAG} --filter "region:${region}" --format "value(name)" --sort-by name --limit 1 --quiet)`,
+    `  ${create} && STARTED=1`,
+    "fi",
+    `rm ${startup}`,
+    // One agent per account: the Cloud Run service an earlier run started goes.
+    `if [ -n "$STARTED" ] && ${gcpApiIsOn("run.googleapis.com")}; then`,
+    `  for REGION in $(gcloud run services list ${GCP_PROJECT_FLAG} --filter "metadata.name=${GCP_CLOUD_AI_AGENT_SERVICE_NAME}" --format "value(region)" --quiet); do gcloud run services delete ${GCP_CLOUD_AI_AGENT_SERVICE_NAME} ${GCP_PROJECT_FLAG} --region "$REGION" --quiet > /dev/null; done`,
+    "fi",
+    `if [ -n "$STARTED" ]; then echo "${CLOUD_AI_AGENT_STARTED_MESSAGE}"; else echo "${GCP_CLOUD_AI_AGENT_VM_REFUSED_MESSAGE}"; fi`,
+  ];
+}
+
+// The agent as a Cloud Run service with CPU always allocated.
+function writeGcpCloudRunCommand(setup: CloudAiAgentSetup): Array<string> {
+  const size: CloudAiAgentSize = CLOUD_AI_AGENT_SIZES[CloudProvider.GCP];
   const secret: string = GCP_CLOUD_AI_AGENT_SECRET_NAME;
   const variables: Array<CloudAiAgentEnvironmentVariable> =
     environmentOf(setup);
@@ -1488,8 +1742,8 @@ function writeGcpCommand(setup: CloudAiAgentSetup): string {
       return `${variable.name}=${secret}:latest`;
     });
   const deploy: string = [
-    `gcloud run deploy ${GCP_CLOUD_AI_AGENT_SERVICE_NAME} ${project} --region ${setup.region as string}`,
-    `--image ${setup.image} --service-account "${member}"`,
+    `gcloud run deploy ${GCP_CLOUD_AI_AGENT_SERVICE_NAME} ${GCP_PROJECT_FLAG} --region ${setup.region as string}`,
+    `--image ${setup.image} --service-account "${GCP_MEMBER}"`,
     `--no-cpu-throttling --min-instances 1 --max-instances 1 --cpu ${size.vcpu} --memory ${size.memoryGiB * 1024}Mi`,
     `--no-allow-unauthenticated --ingress internal --port ${RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT}`,
     `--env-vars-file ${GCP_CLOUD_AI_AGENT_ENV_FILE} --set-secrets ${secrets.join(",")} --quiet`,
@@ -1502,20 +1756,6 @@ function writeGcpCommand(setup: CloudAiAgentSetup): string {
   );
 
   return [
-    `PROJECT_ID=${setup.accountId}`,
-    `PERMISSIONS=${shellQuote(getCloudAiAgentRolePermissions(CloudProvider.GCP, setup.operations).join(","))}`,
-    `gcloud services enable ${getGcpCloudAiAgentServices(setup.operations).join(" ")} ${project}`,
-    `gcloud iam roles create ${GCP_CLOUD_AI_AGENT_ROLE_ID} ${project} ${role} > /dev/null 2>&1 || gcloud iam roles update ${GCP_CLOUD_AI_AGENT_ROLE_ID} ${project} ${role} > /dev/null`,
-    `gcloud iam service-accounts create ${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID} ${project} --display-name ${shellQuote("OneUptime Cloud AI agent")} > /dev/null 2>&1 || true`,
-    `gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${member}" --role "projects/$PROJECT_ID/roles/${GCP_CLOUD_AI_AGENT_ROLE_ID}" --condition=None > /dev/null`,
-    // The key: a secret only the agent's service account may read.
-    `cat > ${GCP_CLOUD_AI_AGENT_KEY_FILE} <<'${GCP_CLOUD_AI_AGENT_KEY_FILE_END}'`,
-    setup.ingestionKey,
-    GCP_CLOUD_AI_AGENT_KEY_FILE_END,
-    `gcloud secrets create ${secret} ${project} --replication-policy automatic > /dev/null 2>&1 || true`,
-    `tr -d '\\n' < ${GCP_CLOUD_AI_AGENT_KEY_FILE} | gcloud secrets versions add ${secret} ${project} --data-file=- > /dev/null`,
-    `rm ${GCP_CLOUD_AI_AGENT_KEY_FILE}`,
-    `gcloud secrets add-iam-policy-binding ${secret} ${project} --member "serviceAccount:${member}" --role ${GCP_SECRET_ACCESSOR_ROLE} --condition=None > /dev/null`,
     `cat > ${GCP_CLOUD_AI_AGENT_ENV_FILE} <<'ENV'`,
     ...variables
       .filter((variable: CloudAiAgentEnvironmentVariable): boolean => {
@@ -1527,10 +1767,23 @@ function writeGcpCommand(setup: CloudAiAgentSetup): string {
     "ENV",
     // A deploy that did not work is tried again: the key's access may still be on its way.
     `for ATTEMPT in ${attempts.join(" ")}; do`,
-    `  if ${deploy}; then echo "${CLOUD_AI_AGENT_STARTED_MESSAGE}"; break; fi`,
+    `  if ${deploy}; then STARTED=1; echo "${CLOUD_AI_AGENT_STARTED_MESSAGE}"; break; fi`,
     `  [ "$ATTEMPT" = ${GCP_CLOUD_AI_AGENT_DEPLOY_ATTEMPTS} ] || { echo "${GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_MESSAGE}"; sleep ${GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_SECONDS}; }`,
     "done",
     `rm ${GCP_CLOUD_AI_AGENT_ENV_FILE}`,
+    // One agent per account: the VM an earlier run started goes.
+    `if [ -n "$STARTED" ] && ${gcpApiIsOn("compute.googleapis.com")}; then`,
+    `  for ZONE in $(gcloud compute instances list ${GCP_PROJECT_FLAG} --filter "name=${GCP_CLOUD_AI_AGENT_INSTANCE_NAME}" --format "value(zone.basename())" --quiet); do gcloud compute instances delete ${GCP_CLOUD_AI_AGENT_INSTANCE_NAME} ${GCP_PROJECT_FLAG} --zone "$ZONE" --quiet > /dev/null; done`,
+    "fi",
+  ];
+}
+
+function writeGcpCommand(setup: CloudAiAgentSetup): string {
+  return [
+    ...writeGcpCommandStart(setup),
+    ...(setup.gcpHost === "cloud-run"
+      ? writeGcpCloudRunCommand(setup)
+      : writeGcpVmCommand(setup)),
   ].join("\n");
 }
 

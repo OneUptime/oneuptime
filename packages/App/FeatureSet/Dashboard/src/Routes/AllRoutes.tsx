@@ -2,6 +2,7 @@
 export { default as LogsRoutes } from "./LogsRoutes";
 export { default as SecurityEventsRoutes } from "./SecurityEventsRoutes";
 export { default as DataSecurityRoutes } from "./DataSecurityRoutes";
+export { default as DataObservabilityRoutes } from "./DataObservabilityRoutes";
 export { default as MetricsRoutes } from "./MetricsRoutes";
 export { default as TracesRoutes } from "./TracesRoutes";
 export { default as ExceptionsRoutes } from "./ExceptionsRoutes";
@@ -35,6 +36,7 @@ export { default as NetworkDeviceRoutes } from "./NetworkDeviceRoutes";
 export { default as NetworkSiteRoutes } from "./NetworkSiteRoutes";
 export { default as PodmanRoutes } from "./PodmanRoutes";
 export { default as ProxmoxRoutes } from "./ProxmoxRoutes";
+export { default as OpenStackRoutes } from "./OpenStackRoutes";
 export { default as VMwareRoutes } from "./VMwareRoutes";
 export { default as IoTRoutes } from "./IoTRoutes";
 export { default as DockerSwarmRoutes } from "./DockerSwarmRoutes";

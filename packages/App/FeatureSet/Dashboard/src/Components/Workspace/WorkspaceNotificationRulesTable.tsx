@@ -80,7 +80,7 @@ import {
   NOTIFICATION_RULE_CONDITIONS_TITLES,
   NOTIFICATION_RULE_DESTINATION_TITLES,
   NOTIFICATION_RULES_CARD_DESCRIPTIONS,
-  NOTIFICATION_RULES_CARD_TITLE,
+  getNotificationRulesCardTitle,
   RULE_PLURAL_NAMES,
   RULE_SINGULAR_NAMES,
   VIDEO_CALL_STEP_DESCRIPTIONS,
@@ -114,6 +114,10 @@ const STEP_HEADING: {
  */
 export const NOTIFICATION_RULE_VIDEO_CALL_FIELD_KEY: string =
   "notificationRuleVideoCall";
+
+// The table of the rules that post what hunts find (Security Events' Workspace pages).
+export const SECURITY_HUNT_RULES_TABLE_ID: string =
+  "security-hunt-notification-rules";
 
 // Only incident and alert rules can start a video call.
 export function canRuleStartVideoCall(
@@ -766,7 +770,15 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         ]}
         singularName={RULE_SINGULAR_NAMES[props.eventType]}
         pluralName={RULE_PLURAL_NAMES[props.eventType]}
-        id="servie-provider-table"
+        /*
+         * Security Events' Slack and Microsoft Teams pages hold two tables,
+         * one under the other: the hunt rules' has an id of its own.
+         */
+        id={
+          props.eventType === NotificationRuleEventType.SecurityHunt
+            ? SECURITY_HUNT_RULES_TABLE_ID
+            : "servie-provider-table"
+        }
         name="Settings > Workspace Notification Rules"
         isDeleteable={true}
         isEditable={true}
@@ -806,7 +818,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
          * for, then what it does with them.
          */
         cardProps={{
-          title: NOTIFICATION_RULES_CARD_TITLE,
+          title: getNotificationRulesCardTitle(props.eventType),
           description: NOTIFICATION_RULES_CARD_DESCRIPTIONS[props.eventType],
         }}
         /*

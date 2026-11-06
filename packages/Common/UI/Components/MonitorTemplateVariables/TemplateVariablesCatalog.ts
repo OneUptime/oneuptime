@@ -915,6 +915,12 @@ export default class TemplateVariablesCatalog {
               example: "Git Operations, Pull Requests",
             },
             {
+              key: "componentNames",
+              description:
+                "The same components as a list, for a template that repeats a line for each of them.",
+              example: '["Git Operations", "Pull Requests"]',
+            },
+            {
               key: "isOnline",
               description: "True if the status page responded.",
             },

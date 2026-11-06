@@ -7,6 +7,7 @@ import {
   CodeTaskContextType,
   CodeTaskListKind,
   CodeTaskState,
+  CodeTaskTurnProgressJSON,
 } from "../../../Types/AI/CodeTask";
 import { APP_API_URL } from "../../../UI/Config";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -415,6 +416,60 @@ describe("every Code route", () => {
     expect(response.repository).toBeNull();
     expect(response.canReadLogContent).toBe(true);
     expect(lastCall().url).toBe(apiUrl(`/get/${TASK_ID}`));
+  });
+
+  test("a working turn's progress: the turn and the last step the page has are sent, the steps and the state read back", async () => {
+    postMock.mockResolvedValue(
+      answer({
+        runId: TASK_ID,
+        status: "Running",
+        state: CodeTaskState.Working,
+        isQueued: false,
+        startedAt: "2026-11-03T10:00:10.000Z",
+        steps: [
+          { sequence: 5, kind: "Ran", subject: "npm test", isError: false },
+        ],
+        hasMore: false,
+      }) as never,
+    );
+
+    const progress: CodeTaskTurnProgressJSON = await CodeApi.getTurnProgress({
+      taskId: TASK_ID,
+      runId: TASK_ID,
+      afterSequence: 4,
+    });
+
+    expect(lastCall().url).toBe(apiUrl(`/progress/${TASK_ID}`));
+    expect(lastCall().data).toEqual({ runId: TASK_ID, afterSequence: 4 });
+    expect(progress).toEqual({
+      runId: TASK_ID,
+      status: "Running",
+      state: CodeTaskState.Working,
+      isQueued: false,
+      startedAt: "2026-11-03T10:00:10.000Z",
+      steps: [
+        { sequence: 5, kind: "Ran", subject: "npm test", isError: false },
+      ],
+      hasMore: false,
+    });
+  });
+
+  test("a progress answer missing its parts reads as no steps, not queued, nothing more - and keeps the turn asked about", async () => {
+    postMock.mockResolvedValue(
+      answer({ state: CodeTaskState.Working, steps: "none" }) as never,
+    );
+
+    const progress: CodeTaskTurnProgressJSON = await CodeApi.getTurnProgress({
+      taskId: TASK_ID,
+      runId: REPOSITORY_ID,
+      afterSequence: -1,
+    });
+
+    expect(progress.runId).toBe(REPOSITORY_ID);
+    expect(progress.steps).toEqual([]);
+    expect(progress.isQueued).toBe(false);
+    expect(progress.hasMore).toBe(false);
+    expect(progress).not.toHaveProperty("startedAt");
   });
 
   test("asking sends the words and the context as written, and answers the new task's id", async () => {

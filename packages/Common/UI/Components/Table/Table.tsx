@@ -99,7 +99,11 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { DragDropContext, DropResult } from "react-beautiful-dnd";
+import type { DropResult } from "react-beautiful-dnd";
+import {
+  DragAndDropLibrary,
+  useDragAndDrop,
+} from "../DragAndDrop/DragAndDropLoader";
 
 export interface BulkActionProps<T extends GenericObject> {
   buttons: Array<BulkActionButtonSchema<T>>;
@@ -325,6 +329,13 @@ const Table: TableFunction = <T extends GenericObject>(
     useRef<HTMLDivElement>(null);
   const [dragColumnWidths, setDragColumnWidths] =
     useState<Array<number> | null>(null);
+  /*
+   * The drag-and-drop library, loaded for a table that reorders its rows
+   * (DragAndDropLoader); null while it loads and for every other table.
+   */
+  const dragAndDrop: DragAndDropLibrary | null = useDragAndDrop(
+    Boolean(props.enableDragAndDrop),
+  );
   const [bulkSelectedItems, setBulkSelectedItems] = useState<Array<T>>([]);
 
   /*
@@ -627,8 +638,13 @@ const Table: TableFunction = <T extends GenericObject>(
   const scrollState: TableScrollState = useTableScrollState({
     scrollRef: scrollBoxRef,
     tableRef: tableElementRef,
-    // A new page of rows can hold longer names in as many rows.
-    watch: [isMobile, props.data, drawnColumns.length],
+    /*
+     * A new page of rows can hold longer names in as many rows. And the
+     * drag-and-drop library arriving draws the rows again, as new cells
+     * without what the last reading wrote on them (a name set free): they
+     * are read again in that same commit, before the page is painted.
+     */
+    watch: [isMobile, props.data, drawnColumns.length, dragAndDrop],
     hold: scrollStateHold,
     // Too wide even given way: folded, then as cards (TableFit).
     onCannotFit: onCannotFit,
@@ -942,7 +958,7 @@ const Table: TableFunction = <T extends GenericObject>(
       return <></>;
     }
 
-    return (
+    const tableBody: ReactElement = (
       <TableBody
         id={`${props.id}-body`}
         data={props.data}
@@ -954,6 +970,7 @@ const Table: TableFunction = <T extends GenericObject>(
         getColumnId={getDrawnColumnId}
         actionButtons={props.actionButtons}
         enableDragAndDrop={props.enableDragAndDrop}
+        dragAndDrop={dragAndDrop}
         dragAndDropScope={`${props.id}-dnd`}
         dragDropIdField={props.dragDropIdField}
         dragDropIndexField={props.dragDropIndexField}
@@ -998,6 +1015,64 @@ const Table: TableFunction = <T extends GenericObject>(
         isMobile={isMobile}
         isPhone={isPhone}
       />
+    );
+
+    if (!dragAndDrop) {
+      return tableBody;
+    }
+
+    /*
+     * Around the rows alone, which are all it reaches: when the library
+     * arrives, only they are drawn again - the header, the toolbar and the
+     * pagination keep what they hold. It draws nothing of its own, so it may
+     * sit between a <table> and its <tbody>.
+     */
+    const DragDropContext: DragAndDropLibrary["DragDropContext"] =
+      dragAndDrop.DragDropContext;
+
+    return (
+      <DragDropContext
+        dragHandleUsageInstructions={
+          translateString(DRAG_HANDLE_USAGE_INSTRUCTIONS) ||
+          DRAG_HANDLE_USAGE_INSTRUCTIONS
+        }
+        onBeforeCapture={() => {
+          const headerCells: Array<Element> = Array.from(
+            tableElementRef.current?.querySelectorAll("thead tr th") || [],
+          );
+
+          setDragColumnWidths(
+            headerCells.length > 0
+              ? headerCells.map((cell: Element) => {
+                  return cell.getBoundingClientRect().width;
+                })
+              : null,
+          );
+        }}
+        onDragEnd={(result: DropResult) => {
+          setDragColumnWidths(null);
+
+          /*
+           * The top of the list is index 0 - which the old truthiness check
+           * here threw away, so a row could never be dragged to the top.
+           */
+          if (
+            !props.onDragDrop ||
+            !result.destination ||
+            result.destination.index === result.source.index
+          ) {
+            return;
+          }
+
+          props.onDragDrop(
+            result.draggableId,
+            result.destination.index,
+            result.source.index,
+          );
+        }}
+      >
+        {tableBody}
+      </DragDropContext>
     );
   };
 
@@ -1124,221 +1199,177 @@ const Table: TableFunction = <T extends GenericObject>(
           itemToString={props.bulkItemToString}
         />
       )}
-      <DragDropContext
-        dragHandleUsageInstructions={
-          translateString(DRAG_HANDLE_USAGE_INSTRUCTIONS) ||
-          DRAG_HANDLE_USAGE_INSTRUCTIONS
-        }
-        onBeforeCapture={() => {
-          const headerCells: Array<Element> = Array.from(
-            tableElementRef.current?.querySelectorAll("thead tr th") || [],
-          );
-
-          setDragColumnWidths(
-            headerCells.length > 0
-              ? headerCells.map((cell: Element) => {
-                  return cell.getBoundingClientRect().width;
-                })
-              : null,
-          );
-        }}
-        onDragEnd={(result: DropResult) => {
-          setDragColumnWidths(null);
-
-          /*
-           * The top of the list is index 0 - which the old truthiness check
-           * here threw away, so a row could never be dragged to the top.
-           */
-          if (
-            !props.onDragDrop ||
-            !result.destination ||
-            result.destination.index === result.source.index
-          ) {
-            return;
-          }
-
-          props.onDragDrop(
-            result.draggableId,
-            result.destination.index,
-            result.source.index,
-          );
-        }}
+      {/*
+       * The table runs to the card's edges (TABLE_SCROLL_BOX_CLASS_NAME),
+       * on a phone too. When its columns are wider than the card it
+       * scrolls sideways in this box, its Actions column stuck at the
+       * box's right edge; when they fit there is no scroll box at all, so
+       * the header row can stick to the page (useTableScrollState).
+       */}
+      <div
+        ref={scrollBoxRef}
+        data-testid="table-scroll"
+        data-overflowing={scrollState.isOverflowing ? "true" : "false"}
+        onFocus={onScrollBoxFocus}
+        className={[
+          TABLE_SCROLL_BOX_CLASS_NAME,
+          scrollState.isOverflowing ? "overflow-x-auto" : "",
+          props.tableContainerClassName || "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
       >
         {/*
-         * The table runs to the card's edges (TABLE_SCROLL_BOX_CLASS_NAME),
-         * on a phone too. When its columns are wider than the card it
-         * scrolls sideways in this box, its Actions column stuck at the
-         * box's right edge; when they fit there is no scroll box at all, so
-         * the header row can stick to the page (useTableScrollState).
+         * Dims the stale rows (header included) while a refetch is in
+         * flight and blocks clicks on them - a sort or row action against
+         * data about to be replaced is a race. The wrapper sits OUTSIDE
+         * the <table> because a <div> cannot legally wrap a <tbody> inside
+         * one.
          */}
         <div
-          ref={scrollBoxRef}
-          data-testid="table-scroll"
-          data-overflowing={scrollState.isOverflowing ? "true" : "false"}
-          onFocus={onScrollBoxFocus}
-          className={[
-            TABLE_SCROLL_BOX_CLASS_NAME,
-            scrollState.isOverflowing ? "overflow-x-auto" : "",
-            props.tableContainerClassName || "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
+          data-testid="table-content"
+          className={
+            isRefetchingWithData
+              ? "opacity-60 pointer-events-none transition-opacity duration-150"
+              : "transition-opacity duration-150"
+          }
         >
-          {/*
-           * Dims the stale rows (header included) while a refetch is in
-           * flight and blocks clicks on them - a sort or row action against
-           * data about to be replaced is a race. The wrapper sits OUTSIDE
-           * the <table> because a <div> cannot legally wrap a <tbody> inside
-           * one.
-           */}
-          <div
-            data-testid="table-content"
-            className={
-              isRefetchingWithData
-                ? "opacity-60 pointer-events-none transition-opacity duration-150"
-                : "transition-opacity duration-150"
-            }
-          >
-            {isMobile ? (
-              /*
-               * Cards: each row a card of its column names over their
-               * values, under a band that does what the header row does -
-               * selects the page, and says and changes the order
-               * (TableCardsHeader). With nothing listed, only its rule.
-               */
-              <div className="min-w-full">
-                {isEmptyResult || isLoadError ? (
-                  <div className="border-t border-gray-200" />
-                ) : (
-                  <TableCardsHeader<T>
-                    columns={drawnColumns}
-                    sortBy={props.sortBy}
-                    sortOrder={props.sortOrder}
-                    onSortChanged={props.onSortChanged}
-                    isBulkActionsEnabled={isBulkActionsEnabled}
-                    hasTableItems={selectableRowsOnThePage.length > 0}
-                    isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
-                    isSomeItemsOnThePageSelected={isSomeItemsOnThePageSelected}
-                    onAllItemsOnThePageSelected={onAllItemsOnThePageSelected}
-                    onAllItemsDeselected={onAllItemsDeselected}
-                    hasBulkSelection={
-                      bulkActionButtons.length > 0 &&
-                      bulkSelectedItems.length > 0
-                    }
-                    bulkLineRef={
-                      bulkActionButtons.length > 0
-                        ? setCardsBulkLine
-                        : undefined
-                    }
+          {isMobile ? (
+            /*
+             * Cards: each row a card of its column names over their
+             * values, under a band that does what the header row does -
+             * selects the page, and says and changes the order
+             * (TableCardsHeader). With nothing listed, only its rule.
+             */
+            <div className="min-w-full">
+              {isEmptyResult || isLoadError ? (
+                <div className="border-t border-gray-200" />
+              ) : (
+                <TableCardsHeader<T>
+                  columns={drawnColumns}
+                  sortBy={props.sortBy}
+                  sortOrder={props.sortOrder}
+                  onSortChanged={props.onSortChanged}
+                  isBulkActionsEnabled={isBulkActionsEnabled}
+                  hasTableItems={selectableRowsOnThePage.length > 0}
+                  isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
+                  isSomeItemsOnThePageSelected={isSomeItemsOnThePageSelected}
+                  onAllItemsOnThePageSelected={onAllItemsOnThePageSelected}
+                  onAllItemsDeselected={onAllItemsDeselected}
+                  hasBulkSelection={
+                    bulkActionButtons.length > 0 && bulkSelectedItems.length > 0
+                  }
+                  bulkLineRef={
+                    bulkActionButtons.length > 0 ? setCardsBulkLine : undefined
+                  }
+                />
+              )}
+              {isEmptyResult ? <></> : getTablebody()}
+            </div>
+          ) : (
+            // Desktop view: render as table
+            <>
+              {isColumnResizeOn ? (
+                <>
+                  <SizedColumnsStyle
+                    store={columnWidths.store}
+                    scope={columnWidthsScope}
+                    columns={resizableColumns}
                   />
-                )}
+                  <style
+                    ref={dragStyleRef}
+                    data-column-resize-drag-style={columnWidthsScope}
+                  />
+                </>
+              ) : (
+                <></>
+              )}
+              <table
+                ref={tableElementRef}
+                className={TABLE_CLASS_NAME}
+                {...{
+                  [COLUMN_WIDTHS_SCOPE_ATTRIBUTE]: columnWidthsScope,
+                  [TABLE_DENSITY_ATTRIBUTE]: density,
+                }}
+              >
+                <TableHeader
+                  id={`${props.id}-header`}
+                  columns={drawnColumns}
+                  onSortChanged={props.onSortChanged}
+                  enableDragAndDrop={props.enableDragAndDrop}
+                  sortBy={props.sortBy}
+                  sortOrder={props.sortOrder}
+                  isBulkActionsEnabled={isBulkActionsEnabled}
+                  isSticky={scrollState.canStickHeader}
+                  isOverflowing={scrollState.isOverflowing}
+                  columnResize={
+                    isColumnResizeOn
+                      ? {
+                          getColumnId: (column: Column<T>) => {
+                            return columnIdByColumn.get(column);
+                          },
+                          store: columnWidths.store,
+                          onWidthChange: (
+                            columnId: string,
+                            width: number | null,
+                          ) => {
+                            columnWidths.setColumnWidth(
+                              columnId,
+                              width,
+                              drawnColumnIds,
+                            );
+                          },
+                          onResizeStart: onColumnResizeStart,
+                          onResizeMove: onColumnResizeMove,
+                          onResizeEnd: onColumnResizeEnd,
+                          onReset: columnWidths.resetColumnWidths,
+                          ownerId: columnWidthsScope,
+                        }
+                      : undefined
+                  }
+                  hasEndFiller={hasEndFiller}
+                  onAllItemsDeselected={onAllItemsDeselected}
+                  onAllItemsOnThePageSelected={onAllItemsOnThePageSelected}
+                  isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
+                  isSomeItemsOnThePageSelected={isSomeItemsOnThePageSelected}
+                  hasTableItems={selectableRowsOnThePage.length > 0}
+                />
                 {isEmptyResult ? <></> : getTablebody()}
-              </div>
-            ) : (
-              // Desktop view: render as table
-              <>
-                {isColumnResizeOn ? (
-                  <>
-                    <SizedColumnsStyle
-                      store={columnWidths.store}
-                      scope={columnWidthsScope}
-                      columns={resizableColumns}
-                    />
-                    <style
-                      ref={dragStyleRef}
-                      data-column-resize-drag-style={columnWidthsScope}
-                    />
-                  </>
-                ) : (
-                  <></>
-                )}
-                <table
-                  ref={tableElementRef}
-                  className={TABLE_CLASS_NAME}
-                  {...{
-                    [COLUMN_WIDTHS_SCOPE_ATTRIBUTE]: columnWidthsScope,
-                    [TABLE_DENSITY_ATTRIBUTE]: density,
-                  }}
-                >
-                  <TableHeader
-                    id={`${props.id}-header`}
-                    columns={drawnColumns}
-                    onSortChanged={props.onSortChanged}
-                    enableDragAndDrop={props.enableDragAndDrop}
-                    sortBy={props.sortBy}
-                    sortOrder={props.sortOrder}
-                    isBulkActionsEnabled={isBulkActionsEnabled}
-                    isSticky={scrollState.canStickHeader}
-                    isOverflowing={scrollState.isOverflowing}
-                    columnResize={
-                      isColumnResizeOn
-                        ? {
-                            getColumnId: (column: Column<T>) => {
-                              return columnIdByColumn.get(column);
-                            },
-                            store: columnWidths.store,
-                            onWidthChange: (
-                              columnId: string,
-                              width: number | null,
-                            ) => {
-                              columnWidths.setColumnWidth(
-                                columnId,
-                                width,
-                                drawnColumnIds,
-                              );
-                            },
-                            onResizeStart: onColumnResizeStart,
-                            onResizeMove: onColumnResizeMove,
-                            onResizeEnd: onColumnResizeEnd,
-                            onReset: columnWidths.resetColumnWidths,
-                            ownerId: columnWidthsScope,
-                          }
-                        : undefined
-                    }
-                    hasEndFiller={hasEndFiller}
-                    onAllItemsDeselected={onAllItemsDeselected}
-                    onAllItemsOnThePageSelected={onAllItemsOnThePageSelected}
-                    isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
-                    isSomeItemsOnThePageSelected={isSomeItemsOnThePageSelected}
-                    hasTableItems={selectableRowsOnThePage.length > 0}
-                  />
-                  {isEmptyResult ? <></> : getTablebody()}
-                </table>
-              </>
-            )}
-          </div>
-        </div>
-        {isEmptyResult && getNoItemsElement()}
-        {isLoadError && getLoadErrorElement()}
-        {/*
-         * The footer sits flush on the card's rounded bottom edge
-         * (TableLayout's getTableFooterClassName). Clipped to the same curve,
-         * so the pagination bar's square white corners do not paint over the
-         * card's corners and border. A section of a card (CardSections) has
-         * square corners, and the divider under it runs straight: its footer
-         * is square too.
-         */}
-        <div className={footerClassName} data-testid="table-footer">
-          {!isPaginationHidden && (
-            <Pagination
-              singularLabel={translatedSingularLabel}
-              pluralLabel={translatedPluralLabel}
-              currentPageNumber={props.currentPageNumber}
-              totalItemsCount={props.totalItemsCount}
-              hasMore={props.hasMore}
-              itemsOnCurrentPage={props.data.length}
-              itemsOnPage={props.itemsOnPage}
-              itemsOnPageOptions={props.itemsOnPageOptions}
-              onNavigateToPage={props.onNavigateToPage}
-              isLoading={props.isLoading}
-              isError={Boolean(props.error)}
-              {...(props.paginationDataTestId
-                ? { dataTestId: props.paginationDataTestId }
-                : {})}
-            />
+              </table>
+            </>
           )}
         </div>
-      </DragDropContext>
+      </div>
+      {isEmptyResult && getNoItemsElement()}
+      {isLoadError && getLoadErrorElement()}
+      {/*
+       * The footer sits flush on the card's rounded bottom edge
+       * (TableLayout's getTableFooterClassName). Clipped to the same curve,
+       * so the pagination bar's square white corners do not paint over the
+       * card's corners and border. A section of a card (CardSections) has
+       * square corners, and the divider under it runs straight: its footer
+       * is square too.
+       */}
+      <div className={footerClassName} data-testid="table-footer">
+        {!isPaginationHidden && (
+          <Pagination
+            singularLabel={translatedSingularLabel}
+            pluralLabel={translatedPluralLabel}
+            currentPageNumber={props.currentPageNumber}
+            totalItemsCount={props.totalItemsCount}
+            hasMore={props.hasMore}
+            itemsOnCurrentPage={props.data.length}
+            itemsOnPage={props.itemsOnPage}
+            itemsOnPageOptions={props.itemsOnPageOptions}
+            onNavigateToPage={props.onNavigateToPage}
+            isLoading={props.isLoading}
+            isError={Boolean(props.error)}
+            {...(props.paginationDataTestId
+              ? { dataTestId: props.paginationDataTestId }
+              : {})}
+          />
+        )}
+      </div>
     </div>
   );
 };

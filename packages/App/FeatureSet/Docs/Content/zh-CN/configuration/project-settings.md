@@ -31,7 +31,7 @@ flowchart LR
 | 部分 | 页面 | 详细阅读 |
 | --- | --- | --- |
 | **基础** | **项目**、**标签** | [项目详情](#项目详情)、[标签](#标签) |
-| **工作区** | **Slack**、**Microsoft Teams**、**视频通话** | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[视频通话](/docs/workspace-connections/video-calls) |
+| **工作区** | **Slack**、**Microsoft Teams**、**Mattermost**、**视频通话** | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[Mattermost](/docs/workspace-connections/mattermost)、[视频通话](/docs/workspace-connections/video-calls) |
 | **遥测与 APM** | **摄取密钥**、**数据保留** | [摄取密钥](/docs/telemetry/ingestion-keys)、[数据保留](/docs/telemetry/data-retention) |
 | **通知** | **通知设置**、**通知日志**、**移动应用** | [通知](#通知) |
 | **人工智能** | **AI 功能**、**LLM 提供商**、**外部 MCP 服务器**、**AI 积分**、**AI 日志**、**MCP 服务器** | [LLM 提供商](/docs/ai/llm-provider)、[外部 MCP 服务器](/docs/ai/external-mcp-servers)、[MCP 服务器](/docs/ai/mcp-server)、[AI SRE](/docs/ai/ai-sre#成本控制) |

@@ -86,11 +86,11 @@ Aprite **Reperibilità** dal menu **Prodotti** nella barra superiore. Si apre su
 | **Chiamate in entrata** | **Policy chiamate in entrata**: un numero di telefono che fa squillare chi è reperibile |
 | **Avanzato** | **Sostituzioni utente**, **Registri di esecuzione** e **Policy archiviate** |
 | **Report** | **Tempo di reperibilità dell'utente**: per quanto tempo ogni persona è stata reperibile |
-| **Area di lavoro** | **Slack** e **Microsoft Teams**: regole che pubblicano gli eventi di reperibilità in un canale |
+| **Area di lavoro** | **Slack**, **Microsoft Teams** e **Mattermost**: regole che pubblicano gli eventi di reperibilità in un canale |
 | **Impostazioni** | **Campi personalizzati**, **Regole etichette** e **Regole del proprietario** |
 | **Sviluppatori** | **Terraform**, **API**, **CLI** e **Assistenti IA**: la reperibilità configurata dal codice |
 
-**Policy**, **Pianificazioni** e **Chiamate in entrata** sono aperte; le altre sezioni partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Area di lavoro** elenca gli strumenti di chat che il progetto ha collegato, oppure **Collega Slack o Teams** se non ne ha nessuno.
+**Policy**, **Pianificazioni** e **Chiamate in entrata** sono aperte; le altre sezioni partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Area di lavoro** elenca gli strumenti di chat che il progetto ha collegato, oppure **Collega un'area di lavoro** se non ne ha nessuno.
 
 Quando siete reperibili per una policy, la campanella in alto a destra lo indica. Fateci clic per aprire **I miei criteri di reperibilità**: ogni policy per cui siete reperibili, in tutti i vostri progetti, e se vi siete nominati direttamente, tramite un team o tramite una pianificazione.
 

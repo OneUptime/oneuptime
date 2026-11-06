@@ -1,0 +1,3 @@
+# HELP openstack_trove_up up
+# TYPE openstack_trove_up gauge
+openstack_trove_up 0

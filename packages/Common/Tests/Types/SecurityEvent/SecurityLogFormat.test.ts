@@ -59,7 +59,52 @@ describe("SecurityLogFormat - groups", () => {
           return definition.format;
         },
       ),
-    ).toEqual([SecurityLogFormat.Cef, SecurityLogFormat.Leef]);
+    ).toEqual([
+      SecurityLogFormat.Cef,
+      SecurityLogFormat.Leef,
+      SecurityLogFormat.PaloAlto,
+      SecurityLogFormat.FortiGate,
+      SecurityLogFormat.CiscoAsa,
+    ]);
+  });
+
+  test("the three firewalls' own formats are security devices, each named by its maker's own words", () => {
+    expect(
+      [
+        SecurityLogFormat.PaloAlto,
+        SecurityLogFormat.FortiGate,
+        SecurityLogFormat.CiscoAsa,
+      ].map((format: SecurityLogFormat) => {
+        const definition: SecurityLogFormatDefinition =
+          getSecurityLogFormatDefinition(format)!;
+
+        return [
+          definition.title,
+          definition.vendorName,
+          definition.productName,
+          definition.group,
+        ];
+      }),
+    ).toEqual([
+      [
+        "Palo Alto Networks",
+        "Palo Alto Networks",
+        "PAN-OS",
+        SecurityLogFormatGroup.SecurityDevices,
+      ],
+      [
+        "Fortinet FortiGate",
+        "Fortinet",
+        "FortiGate",
+        SecurityLogFormatGroup.SecurityDevices,
+      ],
+      [
+        "Cisco ASA",
+        "Cisco",
+        "Cisco ASA",
+        SecurityLogFormatGroup.SecurityDevices,
+      ],
+    ]);
   });
 
   test("no group is empty", () => {

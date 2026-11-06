@@ -29,16 +29,16 @@ import WorkspaceChannelMembersUtil, {
  * (WorkspaceChannelMembers).
  *
  * GET /workspace-channel-members/<record type>/<record id>
- *   The record's Slack and Microsoft Teams channels, the people in each and
- *   whether the caller is one of them, and whether the caller may add
+ *   The record's Slack, Microsoft Teams and Mattermost channels, the people in
+ *   each and whether the caller is one of them, and whether the caller may add
  *   people: { canAddPeople, channels: [...] }. For whoever can read the
  *   record - it is read with their own permissions first.
  *
  * POST /workspace-channel-members/<record type>/<record id>/add
  *   { channelId, userIds?, teamIds? }: adds those people, and everybody in
- *   those teams, to one of the record's own Slack channels, and answers for
- *   each: { channelState?, results: [{ userId, name, outcome }] }. For a
- *   signed-in member of the project who may edit the record.
+ *   those teams, to one of the record's own Slack or Mattermost channels, and
+ *   answers for each: { channelState?, results: [{ userId, name, outcome }] }.
+ *   For a signed-in member of the project who may edit the record.
  */
 const router: ExpressRouter = Express.getRouter();
 

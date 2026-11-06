@@ -499,6 +499,109 @@ describe("the sentences that say what a rule does", () => {
     ).toEqual([]);
   });
 
+  /*
+   * A hunt gets no channel of its own either (SecurityHuntNotificationRule):
+   * what its scheduled runs find is posted to channels and chats people
+   * have, and its rule says only that.
+   */
+  test("a hunt rule says only where it posts, whatever channel switches it holds", () => {
+    expect(canRuleCreateChannel(NotificationRuleEventType.SecurityHunt)).toBe(
+      false,
+    );
+
+    expect(
+      sentences({
+        eventType: NotificationRuleEventType.SecurityHunt,
+        exampleChannelName: "#security-hunt",
+        rule: rule({
+          shouldCreateNewChannel: true,
+          shouldInviteOwnersToNewChannel: true,
+          archiveChannelAutomatically: true,
+          shouldPostToExistingChannel: true,
+          existingChannelNames: "#soc-hunts",
+        }),
+      }),
+    ).toEqual(["Posts updates in #soc-hunts."]);
+
+    expect(
+      sentences({
+        eventType: NotificationRuleEventType.SecurityHunt,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        chatNames: ["Threat hunting"],
+        rule: rule({
+          shouldPostToExistingChat: true,
+          existingChatIds: ["chat-1"],
+        }),
+      }),
+    ).toEqual(["Posts updates in the chat Threat hunting."]);
+
+    expect(
+      Copy.getNotificationRuleDestinationDescription({
+        eventType: NotificationRuleEventType.SecurityHunt,
+        workspaceType: WorkspaceType.Slack,
+      }),
+    ).toBe("The channels the rule posts in.");
+    expect(
+      Copy.getNothingChosenSentence({
+        eventType: NotificationRuleEventType.SecurityHunt,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      }),
+    ).toBe("Pick where this rule posts: existing channels, chats, or both.");
+  });
+
+  test("a hunt rule is named, its records counted and its card titled in its own words", () => {
+    expect(
+      Copy.NOTIFICATION_RULE_CONDITIONS_TITLES[
+        NotificationRuleEventType.SecurityHunt
+      ],
+    ).toBe("Which hunts");
+    expect(
+      Copy.NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS[
+        NotificationRuleEventType.SecurityHunt
+      ],
+    ).toBe(
+      "Conditions are checked each time a scheduled run of a hunt finds security events.",
+    );
+    expect(
+      Copy.NO_CONDITIONS_SENTENCES[NotificationRuleEventType.SecurityHunt],
+    ).toBe("Every hunt.");
+    expect(
+      Copy.RULE_SINGULAR_NAMES[NotificationRuleEventType.SecurityHunt],
+    ).toBe("Hunt Notification Rule");
+    expect(Copy.RULE_PLURAL_NAMES[NotificationRuleEventType.SecurityHunt]).toBe(
+      "Hunt Notification Rules",
+    );
+    expect(
+      Copy.NOTIFICATION_RULES_CARD_DESCRIPTIONS[
+        NotificationRuleEventType.SecurityHunt
+      ],
+    ).toBe(
+      "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.",
+    );
+
+    /*
+     * Security Events' Slack and Microsoft Teams pages hold both kinds, one
+     * card under the other: each is titled for its kind. Every other kind
+     * is the only one on its page, and is titled Notification Rules.
+     */
+    expect(
+      Copy.getNotificationRulesCardTitle(
+        NotificationRuleEventType.SecurityCase,
+      ),
+    ).toBe("Security Case Rules");
+    expect(
+      Copy.getNotificationRulesCardTitle(
+        NotificationRuleEventType.SecurityHunt,
+      ),
+    ).toBe("Hunt Rules");
+
+    for (const eventType of CHANNEL_RECORD_EVENT_TYPES) {
+      expect(Copy.getNotificationRulesCardTitle(eventType)).toBe(
+        Copy.NOTIFICATION_RULES_CARD_TITLE,
+      );
+    }
+  });
+
   test("what is left to pick, and the Destination step's words, for a rule that only posts", () => {
     expect(
       Copy.getNothingChosenSentence({
@@ -608,7 +711,7 @@ describe("the sentences that say what a rule does", () => {
   });
 
   // The words about a channel of the record's own: only where it can have one.
-  test("every kind of record a rule can create a channel for has the words of that channel, and a security case has none", () => {
+  test("every kind of record a rule can create a channel for has the words of that channel, and a security case and a hunt have none", () => {
     const channelMaps: Array<Readonly<Record<string, string>>> = [
       Copy.CREATE_CHANNEL_TITLES,
       Copy.CREATE_CHANNEL_DESCRIPTIONS,
@@ -620,7 +723,10 @@ describe("the sentences that say what a rule does", () => {
 
     expect([...CHANNEL_RECORD_EVENT_TYPES].sort()).toEqual(
       ALL_EVENT_TYPES.filter((eventType: NotificationRuleEventType) => {
-        return eventType !== NotificationRuleEventType.SecurityCase;
+        return (
+          eventType !== NotificationRuleEventType.SecurityCase &&
+          eventType !== NotificationRuleEventType.SecurityHunt
+        );
       }).sort(),
     );
 
@@ -634,6 +740,7 @@ describe("the sentences that say what a rule does", () => {
       }
 
       expect(map[NotificationRuleEventType.SecurityCase]).toBeUndefined();
+      expect(map[NotificationRuleEventType.SecurityHunt]).toBeUndefined();
     }
   });
 
@@ -652,6 +759,7 @@ describe("the sentences that say what a rule does", () => {
       [NotificationRuleEventType.Monitor]: "All monitors",
       [NotificationRuleEventType.OnCallDutyPolicy]: "All on-call policies",
       [NotificationRuleEventType.SecurityCase]: "All security cases",
+      [NotificationRuleEventType.SecurityHunt]: "All hunts",
     });
 
     for (const eventType of ALL_EVENT_TYPES) {

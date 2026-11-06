@@ -1,6 +1,7 @@
 import { describeSubject } from "../AI/ActivityInsights/AiActivityInsightsData";
 import {
   ResourceAiStatusLook,
+  getResourceCommandStatusLook,
   getResourceFixStatusLook,
   getResourceInvestigationStatusLook,
   getResourceInvestigationSummary,
@@ -20,10 +21,9 @@ import {
 import AutoRemediationExecutionMode from "Common/Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "Common/Types/AutoRemediation/AutoRemediationVerificationStatus";
-import { Gray500, Green500, Red500, Yellow500 } from "Common/Types/BrandColors";
+import { Green500, Yellow500 } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
-import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -364,34 +364,6 @@ const FIX_TASK_STATUS_LOOKS: Partial<Record<AIRunStatus, AiLogsStatusLook>> = {
   },
 };
 
-const COMMAND_STATUS_LOOKS: Record<RunnerJobStatus, AiLogsStatusLook> = {
-  [RunnerJobStatus.Pending]: {
-    label: translationKey("Waiting to run"),
-    color: Yellow500,
-  },
-  [RunnerJobStatus.Claimed]: {
-    label: translationKey("Starting"),
-    color: Yellow500,
-  },
-  [RunnerJobStatus.Running]: {
-    label: translationKey("Running"),
-    color: Yellow500,
-  },
-  [RunnerJobStatus.Succeeded]: {
-    label: translationKey("Succeeded"),
-    color: Green500,
-  },
-  [RunnerJobStatus.Failed]: { label: translationKey("Failed"), color: Red500 },
-  [RunnerJobStatus.TimedOut]: {
-    label: translationKey("Not picked up in time"),
-    color: Red500,
-  },
-  [RunnerJobStatus.Cancelled]: {
-    label: translationKey("Cancelled"),
-    color: Gray500,
-  },
-};
-
 /*
  * An entry's status pill: an investigation's and a fix's as a resource's AI
  * Logs show them. A status a newer server added shows as it is, in a
@@ -415,12 +387,8 @@ export function getAiLogStatusLook(
     case IncidentAlertAiLogKind.Fix:
       return getResourceFixStatusLook(entry.status);
     default:
-      return (
-        COMMAND_STATUS_LOOKS[entry.status as RunnerJobStatus] || {
-          label: entry.status,
-          color: Gray500,
-        }
-      );
+      // A command's, in the words a resource's commands table uses.
+      return getResourceCommandStatusLook(entry.status);
   }
 }
 

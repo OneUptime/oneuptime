@@ -26,6 +26,7 @@ export class StringUtils {
     "IoT",
     "vCenter",
     "VMware",
+    "OpenStack",
     "OAuth",
     "GitHub",
     "GitLab",

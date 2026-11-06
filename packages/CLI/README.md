@@ -153,12 +153,13 @@ oneuptime team-member create --team-id <team-id> --user-email new-hire@example.c
 
 ### Utility Commands
 
-| Command               | Description                                                     |
-| --------------------- | --------------------------------------------------------------- |
-| `oneuptime version`   | Print CLI version                                               |
-| `oneuptime whoami`    | Show current authentication info                                |
-| `oneuptime resources` | List all available resource types                               |
-| `oneuptime deploy`    | Record a deploy, or another change, for charts and OneUptime AI |
+| Command                | Description                                                        |
+| ---------------------- | ------------------------------------------------------------------ |
+| `oneuptime version`    | Print CLI version                                                  |
+| `oneuptime whoami`     | Show current authentication info                                   |
+| `oneuptime resources`  | List all available resource types                                  |
+| `oneuptime deploy`     | Record a deploy, or another change, for charts and OneUptime AI    |
+| `oneuptime dbt upload` | Send a dbt project's artifacts to Data Observability after a build |
 
 `oneuptime deploy` writes with a telemetry ingestion key, not an API key:
 
@@ -166,6 +167,14 @@ oneuptime team-member create --team-id <team-id> --user-email new-hire@example.c
 ONEUPTIME_URL=https://oneuptime.com \
 ONEUPTIME_TELEMETRY_INGESTION_KEY=xxx \
 oneuptime deploy --service checkout --service-version 2.3.1 --commit "$GIT_SHA" --environment production
+```
+
+`oneuptime dbt upload` sends a dbt project's `manifest.json` and `run_results.json` after a build, with the same key:
+
+```bash
+ONEUPTIME_URL=https://oneuptime.com \
+ONEUPTIME_TELEMETRY_INGESTION_KEY=xxx \
+oneuptime dbt upload --target-path target
 ```
 
 ## Output Formats
@@ -212,12 +221,12 @@ An agent that runs commands can work with OneUptime through the CLI instead of t
 
 ## Environment Variables
 
-| Variable                            | Description                                    |
-| ----------------------------------- | ---------------------------------------------- |
-| `ONEUPTIME_API_KEY`                 | API key for authentication                     |
-| `ONEUPTIME_URL`                     | OneUptime instance URL                         |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Telemetry ingestion key for `oneuptime deploy` |
-| `NO_COLOR`                          | Disable colored output                         |
+| Variable                            | Description                                                               |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| `ONEUPTIME_API_KEY`                 | API key for authentication                                                |
+| `ONEUPTIME_URL`                     | OneUptime instance URL                                                    |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Telemetry ingestion key for `oneuptime deploy` and `oneuptime dbt upload` |
+| `NO_COLOR`                          | Disable colored output                                                    |
 
 ## Configuration File
 

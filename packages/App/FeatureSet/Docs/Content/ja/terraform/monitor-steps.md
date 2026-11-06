@@ -180,7 +180,7 @@ resource "oneuptime_monitor" "website" {
 
 ### モニタータイプごとの設定
 
-アドレス以外にも設定することがあるモニタータイプは、その設定 (ログのクエリ、データベース接続、監視するクラスターなど) を専用の属性に、`jsonencode()` で書いた生の JSON として持ちます: `log_monitor`、`trace_monitor`、`llm_monitor`、`metric_monitor`、`exception_monitor`、`profile_monitor`、`dns_monitor`、`domain_monitor`、`dnssec_monitor`、`sql_monitor`、`database_monitor`、`external_status_page_monitor`、`network_device_monitor`、`kubernetes_monitor`、`docker_monitor`、`docker_swarm_monitor`、`host_monitor`、`podman_monitor`、`proxmox_monitor`、`vmware_monitor`、`ceph_monitor`、`storage_array_monitor`、`iot_monitor`、`probe_status_monitor`。
+アドレス以外にも設定することがあるモニタータイプは、その設定 (ログのクエリ、データベース接続、監視するクラスターなど) を専用の属性に、`jsonencode()` で書いた生の JSON として持ちます: `log_monitor`、`trace_monitor`、`llm_monitor`、`metric_monitor`、`exception_monitor`、`profile_monitor`、`dns_monitor`、`domain_monitor`、`dnssec_monitor`、`sql_monitor`、`database_monitor`、`external_status_page_monitor`、`network_device_monitor`、`kubernetes_monitor`、`docker_monitor`、`docker_swarm_monitor`、`host_monitor`、`podman_monitor`、`proxmox_monitor`、`openstack_monitor`、`vmware_monitor`、`ceph_monitor`、`storage_array_monitor`、`iot_monitor`、`probe_status_monitor`。
 
 その JSON はダッシュボードのものと同じで、キーは camelCase です。中の ID は、API と同じく `{ _type = "ObjectID", value = "..." }` と書きます。1 つのサービスのエラーを数える Logs モニターの例です。
 
@@ -317,7 +317,7 @@ criteria = [
 | ドメイン | `Domain Expires In Days`、`Domain Is Expired`、`Domain Registrar`、`Domain Name Server` |
 | DNSSEC | `DNSSEC Chain Is Valid`、`DNSSEC DS Record Exists At Parent`、`DNSSEC Signature Expires In Days` |
 | SQL クエリ | `SQL Is Online`、`SQL Query Row Count`、`SQL Query Scalar Value` |
-| データベースの健全性 | `Database Is Online`、`Database Metric` (系列を指定する JSON を `database_monitor_options` に書きます。例: `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`)、`Database Collection Error` |
+| データベースのヘルス | `Database Is Online`、`Database Metric` (系列を指定する JSON を `database_monitor_options` に書きます。例: `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`)、`Database Collection Error` |
 | 外部ステータスページ | `External Status Page Is Online`、`External Status Page Active Incidents`、`External Status Page Component Status` |
 | NTP | `NTP Is Online`、`NTP Is Synchronized`、`NTP Stratum`、`NTP Clock Offset (in ms)`、`NTP Response Time (in ms)`、`NTP Root Dispersion (in ms)` (`NTP Is Online` と `NTP Is Synchronized` は `value` を取りません) |
 | ネットワーク機器 (SNMP) | `SNMP Device Is Online` (ping または SNMP に応答する)、`SNMP Walk Is Succeeding` (応答するがウォークできないときは false)、`SNMP OID Value` (SNMP のフィルターは `snmp_monitor_options` に JSON を受け付けます) |
@@ -333,6 +333,7 @@ criteria = [
 | サーバーのプロセス | `Is Executing`、`Is Not Executing` |
 | スクリプト | `Evaluates To True` |
 | 異常 (メトリクス、ログ、トレース用) | `Anomalously High`、`Anomalously Low`、`Anomalous` |
+| 予測 (メトリクス用) | `Forecast Above`、`Forecast Below` (予測期間は `forecast.horizonInHours` で、`metric_monitor_options` に書きます。省略時は一週間) |
 
 SSL 証明書の有効期限が 14 日以内になったときに一致するフィルター:
 

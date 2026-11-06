@@ -14,6 +14,10 @@ import {
   HOLDS_USERS,
   NO_VALUES_YET,
   READ_BY_NO_RULE,
+  SOURCE_FEED_TITLE,
+  SOURCE_URL_TITLE,
+  SOURCE_VALUES_TITLE,
+  URL_WAITING,
   VALUES_TABLE_DESCRIPTION,
   VALUES_TABLE_DESCRIPTION_HASH,
   VALUES_TABLE_DESCRIPTION_IP,
@@ -23,9 +27,11 @@ import {
   WATCHLIST_IMPORT_PROBLEMS_SHOWN,
   WATCHLIST_READERS_SHOWN,
   WATCHLIST_STARTERS,
+  WatchlistSourceChoice,
   WatchlistStarter,
   canChooseWatchlistSource,
   describeWatchlistImportPreview,
+  describeWatchlistReader,
   describeWatchlistReaders,
   describeWatchlistValues,
   getAvailableWatchlistStarters,
@@ -33,9 +39,13 @@ import {
   getWatchlistHoldsKey,
   getWatchlistHoldsLabel,
   getWatchlistHoldsOptions,
+  getWatchlistReaderKindKey,
   getWatchlistReaders,
+  getWatchlistSourceChoicesFor,
+  getWatchlistUrlHost,
   getWatchlistValuesHint,
   isFeedWatchlist,
+  isUrlWatchlist,
   splitWatchlistName,
   summarizeWatchlistReaders,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistsModel";
@@ -53,6 +63,10 @@ import {
   getSecurityWatchlistValueProblem,
   parseSecurityWatchlistImport,
 } from "../../../Types/SecurityEvent/SecurityWatchlist";
+import {
+  WatchlistReader,
+  WatchlistReaderKind,
+} from "../../../Types/SecurityEvent/SecurityWatchlistFilter";
 import { getRulesReadingWatchlists } from "../../../Utils/SecurityEvent/Sigma/SigmaWatchlists";
 import {
   Translator,
@@ -62,7 +76,8 @@ import {
 /*
  * WHAT THE WATCHLISTS PAGES SAY ABOUT A LIST, worked out without React:
  * what it holds, in words and as an icon; its values - how many it keeps,
- * or the feed it follows; the rules that read it; the common lists a
+ * the feed it follows, or what it read from its address; the rules,
+ * monitors and hunts that read it; the common lists a
  * project is offered to start with; and what an import is about to do -
  * in English, and in the reader's language from the Dashboard's own
  * locale files.
@@ -270,6 +285,53 @@ describe("what a list holds", () => {
     expect(isFeedWatchlist(SecurityWatchlistSource.Values)).toBe(false);
     expect(isFeedWatchlist(undefined)).toBe(false);
   });
+
+  test("a list is read from an address only when its source says so", () => {
+    expect(isUrlWatchlist(SecurityWatchlistSource.Url)).toBe(true);
+    expect(isUrlWatchlist(SecurityWatchlistSource.Values)).toBe(false);
+    expect(isUrlWatchlist(SecurityWatchlistSource.ThreatIntelFeed)).toBe(false);
+    expect(isUrlWatchlist(undefined)).toBe(false);
+  });
+
+  test("any list may be kept by hand or read from an address; a feed's kinds may also follow one", () => {
+    const titles: (entityType: SecurityEntityType) => Array<string> = (
+      entityType: SecurityEntityType,
+    ): Array<string> => {
+      return getWatchlistSourceChoicesFor(entityType).map(
+        (choice: WatchlistSourceChoice): string => {
+          return choice.title;
+        },
+      );
+    };
+
+    expect(titles(SecurityEntityType.User)).toEqual([
+      SOURCE_VALUES_TITLE,
+      SOURCE_URL_TITLE,
+    ]);
+    expect(titles(SecurityEntityType.IpAddress)).toEqual([
+      SOURCE_VALUES_TITLE,
+      SOURCE_URL_TITLE,
+      SOURCE_FEED_TITLE,
+    ]);
+    expect(
+      getWatchlistSourceChoicesFor(undefined).map(
+        (choice: WatchlistSourceChoice): SecurityWatchlistSource => {
+          return choice.value;
+        },
+      ),
+    ).toEqual([SecurityWatchlistSource.Values, SecurityWatchlistSource.Url]);
+  });
+
+  test("a list's address is named by its host, or as written when it is no address", () => {
+    expect(getWatchlistUrlHost("https://hr.example.com/vip.csv")).toBe(
+      "hr.example.com",
+    );
+    expect(getWatchlistUrlHost(" https://example.com:8443/a.txt ")).toBe(
+      "example.com:8443",
+    );
+    expect(getWatchlistUrlHost("not an address")).toBe("not an address");
+    expect(getWatchlistUrlHost(undefined)).toBe("");
+  });
 });
 
 describe("a list's values, as a row says them", () => {
@@ -369,9 +431,59 @@ describe("a list's values, as a row says them", () => {
       }),
     ).toBe("Sein Threat-Intel-Feed wurde gelöscht");
   });
+
+  test("a list read from an address: how many values it read, and from where", () => {
+    expect(
+      describeWatchlistValues(ENGLISH, {
+        source: SecurityWatchlistSource.Url,
+        valueCount: 1200,
+        importUrl: "https://hr.example.com/vip.csv",
+        lastImportSucceededAt: new Date("2026-11-03T12:00:00.000Z"),
+      }),
+    ).toBe("1,200 values from hr.example.com");
+    expect(
+      describeWatchlistValues(ENGLISH, {
+        source: SecurityWatchlistSource.Url,
+        valueCount: 1,
+        importUrl: "https://hr.example.com/vip.csv",
+      }),
+    ).toBe("1 value from hr.example.com");
+    expect(
+      describeWatchlistValues(GERMAN, {
+        source: SecurityWatchlistSource.Url,
+        valueCount: 1200,
+        importUrl: "https://hr.example.com/vip.csv",
+      }),
+    ).toBe("1.200 Werte von hr.example.com");
+  });
+
+  test("a list read from an address that has not been read yet waits for its first read", () => {
+    expect(
+      describeWatchlistValues(ENGLISH, {
+        source: SecurityWatchlistSource.Url,
+        valueCount: 0,
+        importUrl: "https://hr.example.com/vip.csv",
+      }),
+    ).toBe(URL_WAITING);
+    expect(
+      describeWatchlistValues(GERMAN, {
+        source: SecurityWatchlistSource.Url,
+        importUrl: "https://hr.example.com/vip.csv",
+      }),
+    ).toBe("Wartet auf den ersten Lesevorgang");
+    // A read that worked and found the file empty of values is no wait.
+    expect(
+      describeWatchlistValues(ENGLISH, {
+        source: SecurityWatchlistSource.Url,
+        valueCount: 0,
+        importUrl: "https://hr.example.com/vip.csv",
+        lastImportSucceededAt: new Date("2026-11-03T12:00:00.000Z"),
+      }),
+    ).toBe("0 values from hr.example.com");
+  });
 });
 
-describe("the rules that read a list", () => {
+describe("what reads a list", () => {
   const RULES: Array<{ id: string; name: string }> = [
     { id: "r1", name: "VIP sign-in from a new country" },
     { id: "r2", name: "VIP MFA reset" },
@@ -382,17 +494,56 @@ describe("the rules that read a list", () => {
   test("the first two by name, then how many more", () => {
     expect(WATCHLIST_READERS_SHOWN).toBe(2);
     expect(summarizeWatchlistReaders(RULES)).toEqual({
-      names: ["VIP sign-in from a new country", "VIP MFA reset"],
+      shown: [
+        { name: "VIP sign-in from a new country", kind: undefined },
+        { name: "VIP MFA reset", kind: undefined },
+      ],
       more: 2,
     });
-    expect(summarizeWatchlistReaders(RULES.slice(0, 2))).toEqual({
-      names: ["VIP sign-in from a new country", "VIP MFA reset"],
-      more: 0,
-    });
+    expect(summarizeWatchlistReaders(RULES.slice(0, 2)).more).toBe(0);
     expect(summarizeWatchlistReaders(undefined)).toEqual({
-      names: [],
+      shown: [],
       more: 0,
     });
+  });
+
+  test("a monitor or a hunt says what it is after its name; a rule, the usual reader, needs no word", () => {
+    const readers: Array<{
+      id: string;
+      name: string;
+      kind: WatchlistReaderKind;
+    }> = [
+      {
+        id: "m1",
+        name: "VIP failures",
+        kind: WatchlistReaderKind.Monitor,
+      },
+      { id: "h1", name: "Weekly VIP review", kind: WatchlistReaderKind.Hunt },
+      {
+        id: "r1",
+        name: "VIP sign-in",
+        kind: WatchlistReaderKind.DetectionRule,
+      },
+    ];
+
+    expect(getWatchlistReaderKindKey(WatchlistReaderKind.Monitor)).toBe(
+      "Monitor",
+    );
+    expect(getWatchlistReaderKindKey(WatchlistReaderKind.Hunt)).toBe("Hunt");
+    expect(
+      getWatchlistReaderKindKey(WatchlistReaderKind.DetectionRule),
+    ).toBeNull();
+    expect(getWatchlistReaderKindKey(undefined)).toBeNull();
+
+    expect(
+      describeWatchlistReaders(ENGLISH, summarizeWatchlistReaders(readers)),
+    ).toBe("VIP failures (Monitor), Weekly VIP review (Hunt) and 1 more");
+    expect(
+      describeWatchlistReaders(GERMAN, summarizeWatchlistReaders(readers)),
+    ).toBe(
+      "VIP failures (Überwachung), Weekly VIP review (Bedrohungssuche) und 1 weitere",
+    );
+    expect(describeWatchlistReader(ENGLISH, readers[2]!)).toBe("VIP sign-in");
   });
 
   test("in words: names, and more in the reader's language", () => {
@@ -410,17 +561,18 @@ describe("the rules that read a list", () => {
     ).toBe("VIP sign-in from a new country, VIP MFA reset und 2 weitere");
   });
 
-  test("a list no rule reads says so", () => {
+  test("a list nothing reads says so", () => {
     expect(
       describeWatchlistReaders(ENGLISH, summarizeWatchlistReaders([])),
     ).toBe(READ_BY_NO_RULE);
-    expect(describeWatchlistReaders(GERMAN, { names: [], more: 0 })).toBe(
-      "Noch liest keine Regel sie",
+    expect(READ_BY_NO_RULE).toBe("Nothing reads it yet");
+    expect(describeWatchlistReaders(GERMAN, { shown: [], more: 0 })).toBe(
+      "Noch nichts liest sie",
     );
   });
 
   test("a list's readers are found by its name, whatever the case", () => {
-    const readers: Map<
+    const rules: Map<
       string,
       Array<{ id: string; name: string }>
     > = getRulesReadingWatchlists([
@@ -452,8 +604,24 @@ describe("the rules that read a list", () => {
       },
     ]);
 
+    // Each rule as the readers hook keeps it: a reader of the rule kind.
+    const readers: Map<string, Array<WatchlistReader>> = new Map();
+
+    for (const [key, found] of rules) {
+      readers.set(
+        key,
+        found.map((rule: { id: string; name: string }): WatchlistReader => {
+          return { kind: WatchlistReaderKind.DetectionRule, ...rule };
+        }),
+      );
+    }
+
     expect(getWatchlistReaders(readers, "vip_users")).toEqual([
-      { id: "r1", name: "VIP sign-in" },
+      {
+        kind: WatchlistReaderKind.DetectionRule,
+        id: "r1",
+        name: "VIP sign-in",
+      },
     ]);
     expect(getWatchlistReaders(readers, "critical_hosts")).toEqual([]);
     expect(getWatchlistReaders(readers, undefined)).toEqual([]);

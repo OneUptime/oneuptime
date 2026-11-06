@@ -24,6 +24,8 @@ export const SSO_NOT_REQUIRED: SignInMethods = {
   isSsoRequired: false,
   ssoProviders: [],
   hasProjectSsoProviders: false,
+  // Off, so the suites about something else see the options they always did.
+  isMagicLinkLoginEnabled: false,
 };
 
 export interface SignInMethodsModuleStandIn {

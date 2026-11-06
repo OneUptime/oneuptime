@@ -61,6 +61,9 @@ export const DATA_KIND_TITLES: Record<DetectionRuleDataKind, string> = {
   [DetectionRuleDataKind.KubernetesAuditLogs]: translationKey(
     "Kubernetes audit logs",
   ),
+  [DetectionRuleDataKind.OpenStackAuditTrail]: translationKey(
+    "OpenStack audit trail",
+  ),
   [DetectionRuleDataKind.OneUptimeTraces]: translationKey("Traces"),
   [DetectionRuleDataKind.NetworkFlows]: translationKey("Network flows"),
   [DetectionRuleDataKind.OneUptimeAuditLog]: translationKey(
@@ -75,7 +78,8 @@ export const DATA_KIND_TITLES: Record<DetectionRuleDataKind, string> = {
 /*
  * How to start sending a kind of event, for a rule whose events do not
  * arrive yet, and where that is done: Connections - a product to connect,
- * or "Your logs" on it - or, for network events, which come from a
+ * "Your logs" on it, or a cloud account's audit logs (Cloud audit logs,
+ * under Your OneUptime data) - or, for network events, which come from a
  * firewall or a SIEM, the Setup Guide; for Data Security's, which come
  * from a cloud account it reads, connecting one.
  */
@@ -105,13 +109,13 @@ export const DATA_KIND_HOW_TO_SEND: Record<DetectionRuleDataKind, string> = {
     "Send your servers' auth logs to OneUptime and find security events in your logs.",
   ),
   [DetectionRuleDataKind.AwsCloudTrail]: translationKey(
-    "Send CloudTrail to OneUptime as logs and find security events in your logs.",
+    "Connect the AWS account under Cloud and turn on Cloud audit logs, or send CloudTrail to OneUptime as logs and find security events in your logs.",
   ),
   [DetectionRuleDataKind.GoogleCloudAuditLogs]: translationKey(
-    "Send your Google Cloud audit logs to OneUptime and find security events in your logs.",
+    "Connect the Google Cloud project under Cloud and turn on Cloud audit logs, or send its audit logs to OneUptime and find security events in your logs.",
   ),
   [DetectionRuleDataKind.AzureActivityLog]: translationKey(
-    "Send your Azure Activity Log to OneUptime through a diagnostic setting and find security events in your logs.",
+    "Connect the Azure subscription under Cloud and turn on Cloud audit logs, or send its Activity Log to OneUptime through a diagnostic setting and find security events in your logs.",
   ),
   [DetectionRuleDataKind.NetworkActivity]: translationKey(
     "Send firewall, flow log or IDS events to OneUptime, or connect a SIEM that has them.",
@@ -121,6 +125,9 @@ export const DATA_KIND_HOW_TO_SEND: Record<DetectionRuleDataKind, string> = {
   ),
   [DetectionRuleDataKind.KubernetesAuditLogs]: translationKey(
     "Send your clusters' audit logs to OneUptime and find security events in your logs.",
+  ),
+  [DetectionRuleDataKind.OpenStackAuditTrail]: translationKey(
+    "Send your OpenStack cloud's notifications to its logs, install the agent's logs profile and find security events in your logs.",
   ),
   [DetectionRuleDataKind.OneUptimeTraces]: translationKey(
     "Send traces to OneUptime and find security events in your traces.",
@@ -174,6 +181,8 @@ export const DATA_KIND_SEND_PAGE: Record<DetectionRuleDataKind, PageMap> = {
     PageMap.SECURITY_EVENTS_DOCUMENTATION,
   [DetectionRuleDataKind.WebRequests]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.KubernetesAuditLogs]:
+    PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.OpenStackAuditTrail]:
     PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.OneUptimeTraces]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.NetworkFlows]: PageMap.SECURITY_EVENTS_CONNECTIONS,

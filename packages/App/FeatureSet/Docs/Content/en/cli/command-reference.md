@@ -6,7 +6,7 @@ Every command of the `oneuptime` CLI, with its arguments, options and defaults. 
 - [Global options](#global-options): The options every command takes.
 - [Login and contexts](#login-and-contexts): login and the context commands.
 - [Resource commands](#resource-commands): The operations, fields and actions of every resource.
-- [Other commands](#other-commands): deploy, whoami, resources, version and help.
+- [Other commands](#other-commands): deploy, dbt upload, data-checks apply, whoami, resources, version and help.
 :::
 
 ## The commands
@@ -19,6 +19,8 @@ flowchart LR
     O --> R["incident, monitor<br/>and every resource"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
+    O --> D["dbt"]
+    D --> D1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -304,6 +306,35 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 | `--time <time>` | No | When it happened, such as `2026-10-19T10:00:00Z` | Now |
 | `--attribute <key=value...>` | No | More attributes, as `key=value`, one or more | |
 | `--ingestion-key <key>` | No | A telemetry ingestion key of the project | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime dbt upload`
+
+Sends a dbt project's artifacts after a build, from CI or a dbt Cloud job, to Data Observability. Its models show on the tables they build, with their lineage, its tests show beside OneUptime's checks and can alert, and each build is a run of the project's pipeline. It reads `manifest.json` and `run_results.json` from dbt's target folder, sends only what Data Observability reads of them, and writes with a telemetry ingestion key, not an API key. The Documentation page of Data Observability, in your dashboard, shows it in a CI job.
+
+```bash
+oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <file>] [--project <name>] [--ingestion-key <key>]
+```
+
+| Option | Required | What it is | Default |
+| --- | --- | --- | --- |
+| `--target-path <dir>` | No | The folder dbt wrote its artifacts to | `target` |
+| `--manifest <file>` | No | The manifest to send | `manifest.json` in the target folder |
+| `--run-results <file>` | No | The run results to send | `run_results.json` in the target folder |
+| `--project <name>` | No | The dbt project's name, needed only when no manifest is sent | The manifest's project |
+| `--ingestion-key <key>` | No | A telemetry ingestion key of the project | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime data-checks apply`
+
+Makes the project's data checks match a YAML file, so they are kept in a repository and reviewed like code. A mistake anywhere in the file applies nothing and exits with an error. The file's format is in [Checks and Reconciliations](/docs/data-observability/checks).
+
+```bash
+oneuptime data-checks apply <file> [--dry-run] [--prune]
+```
+
+| Option | Required | What it is | Default |
+| --- | --- | --- | --- |
+| `--dry-run` | No | Says what would change, and changes nothing | Off |
+| `--prune` | No | Deletes checks an earlier apply made that the file no longer names | Off |
 
 ### `oneuptime whoami`
 

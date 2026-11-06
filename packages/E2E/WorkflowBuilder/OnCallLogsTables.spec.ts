@@ -1029,3 +1029,124 @@ test.describe("On-call logs: a run that passed levels with nobody to page", () =
     await expectNoSidewaysScroll(page);
   });
 });
+
+async function openEscalatedPastTimeline(
+  page: Page,
+  theme?: string,
+): Promise<void> {
+  await page.goto(
+    `/?page=on-call-timeline&run=escalated-past${theme ? `&theme=${theme}` : ""}`,
+  );
+  await expect(page.getByText("Execution Timeline")).toBeVisible();
+  await expect(
+    page.getByTestId("on-call-timeline-level-skipped-by-escalation"),
+  ).toHaveCount(1);
+}
+
+/*
+ * Somebody escalating may pick a later level than the next (the Escalate
+ * dialog's Escalate to): Jane escalated at First responders and picked DBA
+ * leads, so Platform leads - the level between - got a line of its own that
+ * names nobody. Where a person would be named, it says the page was
+ * escalated past the level: in grey, with the escalate arrow, never the
+ * amber warning of a level that paged nobody - nothing went wrong, and
+ * nothing needs fixing. What it says is unit tested in packages/Common
+ * (OnCallTimelineEmptyLevel); here, that it is drawn whole and readable in
+ * the phone's cards, the layout where a chip has least room, in both themes.
+ *
+ * On the phone only: the suite's laptop half runs in a Dashboard Offline UI
+ * group already at its 22-minute budget (Tests/Ops/DashboardOfflineUiBudget,
+ * 2026-11-04), and the chip is the same element in the laptop's table row.
+ */
+test.describe("On-call logs: a run escalated past a level", () => {
+  let pageErrors: Array<string> = [];
+
+  test.beforeEach(async ({ page }: { page: Page }) => {
+    pageErrors = [];
+    page.on("pageerror", (error: Error) => {
+      pageErrors.push(error.message);
+    });
+  });
+
+  test.afterEach(() => {
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("the level escalated past says so where a person would be, in grey, between the escalation and the level picked", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(!isMobile, "Its laptop half's group is at its budget.");
+
+    await openEscalatedPastTimeline(page);
+
+    const skipped: Locator = page.getByTestId(
+      "on-call-timeline-level-skipped-by-escalation",
+    );
+
+    await expect(skipped).toHaveText("The page was escalated past this level");
+    // Its arrow, beside the words: the one the header's Escalate draws.
+    await expect(skipped.locator("svg")).toHaveCount(1);
+    // No warning of a level that paged nobody, nor its Moved on at once.
+    await expect(
+      page.getByTestId("on-call-timeline-level-paged-nobody"),
+    ).toHaveCount(0);
+    await expect(
+      page.getByTestId("on-call-timeline-moved-on-at-once"),
+    ).toHaveCount(0);
+
+    /*
+     * Grey, not amber: the chip's colours are near grey (Tailwind's greys
+     * lean a little blue: grey-700 is 26 from grey), where the amber of a
+     * level that paged nobody is over a hundred away.
+     */
+    const colors: { text: string; background: string } =
+      await colorsOf(skipped);
+
+    expect(saturationOf(colors.text)).toBeLessThanOrEqual(40);
+    expect(saturationOf(colors.background)).toBeLessThanOrEqual(40);
+
+    // Jane escalated at the level before it; Alex was paged at the one after.
+    await expect(page.getByText("Jane Doe").first()).toBeVisible();
+    await expect(page.getByText("Alex Kim").first()).toBeVisible();
+    await expect(page.getByText("Escalated").first()).toBeVisible();
+
+    // Readable on the light card.
+    expect(
+      contrastOf(colors.text, await backgroundBehind(skipped)),
+    ).toBeGreaterThanOrEqual(4.5);
+
+    // Its words wrap inside the chip, which stays inside the phone's width.
+    const chip: Box = await boxOf(skipped);
+
+    expect(chip.x).toBeGreaterThanOrEqual(0);
+    expect(chip.x + chip.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+
+    await expectNoSidewaysScroll(page);
+  });
+
+  test("the line reads in the dark theme too", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(!isMobile, "Its laptop half's group is at its budget.");
+
+    await openEscalatedPastTimeline(page, "dark");
+
+    const skipped: Locator = page.getByTestId(
+      "on-call-timeline-level-skipped-by-escalation",
+    );
+    const text: string = (await colorsOf(skipped)).text;
+
+    expect(
+      contrastOf(text, await backgroundBehind(skipped)),
+    ).toBeGreaterThanOrEqual(4.5);
+    expect(saturationOf(text)).toBeLessThanOrEqual(40);
+  });
+});

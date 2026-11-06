@@ -42,12 +42,22 @@ import PodmanHostOwnerTeam from "./PodmanHostOwnerTeam";
 import PodmanHostOwnerUser from "./PodmanHostOwnerUser";
 import PodmanResource from "./PodmanResource";
 import ProxmoxCluster from "./ProxmoxCluster";
+import OpenStackCloud from "./OpenStackCloud";
+import OpenStackCloudConnectionTest from "./OpenStackCloudConnectionTest";
+import OpenStackCloudCheck from "./OpenStackCloudCheck";
 import DockerSwarmCluster from "./DockerSwarmCluster";
 import ProxmoxClusterOwnerTeam from "./ProxmoxClusterOwnerTeam";
+import OpenStackCloudOwnerTeam from "./OpenStackCloudOwnerTeam";
 import DockerSwarmClusterOwnerTeam from "./DockerSwarmClusterOwnerTeam";
 import ProxmoxClusterOwnerUser from "./ProxmoxClusterOwnerUser";
+import OpenStackCloudOwnerUser from "./OpenStackCloudOwnerUser";
 import DockerSwarmClusterOwnerUser from "./DockerSwarmClusterOwnerUser";
 import ProxmoxResource from "./ProxmoxResource";
+import OpenStackResource from "./OpenStackResource";
+import OpenStackProjectUsage from "./OpenStackProjectUsage";
+import OpenStackBudget from "./OpenStackBudget";
+import OpenStackProjectNotice from "./OpenStackProjectNotice";
+import OpenStackProjectNoticeDelivery from "./OpenStackProjectNoticeDelivery";
 import DockerSwarmResource from "./DockerSwarmResource";
 import IoTFleet from "./IoTFleet";
 import IoTFleetOwnerTeam from "./IoTFleetOwnerTeam";
@@ -80,6 +90,8 @@ import ServerlessFunctionLabelRule from "./ServerlessFunctionLabelRule";
 import ServerlessFunctionOwnerRule from "./ServerlessFunctionOwnerRule";
 import CloudAccount from "./CloudAccount";
 import CloudAccountFeed from "./CloudAccountFeed";
+import CloudBudget from "./CloudBudget";
+import CloudCostRecommendation from "./CloudCostRecommendation";
 import CloudConnection from "./CloudConnection";
 import CloudResource from "./CloudResource";
 import CloudResourceOwnerTeam from "./CloudResourceOwnerTeam";
@@ -168,6 +180,7 @@ import DetectionRuleException from "./DetectionRuleException";
 import SecurityWatchlist from "./SecurityWatchlist";
 import SecurityWatchlistItem from "./SecurityWatchlistItem";
 import SecurityHunt from "./SecurityHunt";
+import SecurityHuntRun from "./SecurityHuntRun";
 import SecurityEventConnection from "./SecurityEventConnection";
 import SecurityEventConnectionRun from "./SecurityEventConnectionRun";
 import ToolImportRun from "./ToolImportRun";
@@ -202,6 +215,25 @@ import DataSecurityCustomDataType from "./DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "./DataSecurityCheckSetting";
 import DataSecurityResidencyRule from "./DataSecurityResidencyRule";
 import DataSecuritySetting from "./DataSecuritySetting";
+import DataAsset from "./DataAsset";
+import DataAssetFeed from "./DataAssetFeed";
+import DataAssetUsage from "./DataAssetUsage";
+import DataCheck from "./DataCheck";
+import DataPipeline from "./DataPipeline";
+import DataPipelineRun from "./DataPipelineRun";
+import DataProduct from "./DataProduct";
+import DataBiConnection from "./DataBiConnection";
+import DataDashboard from "./DataDashboard";
+import DataWarehouseJob from "./DataWarehouseJob";
+import DataReconciliation from "./DataReconciliation";
+import DataIssueReport from "./DataIssueReport";
+import DataAssetOwnerUser from "./DataAssetOwnerUser";
+import DataAssetOwnerTeam from "./DataAssetOwnerTeam";
+import DataAssetOwnerRule from "./DataAssetOwnerRule";
+import DataAssetLabelRule from "./DataAssetLabelRule";
+import DataObservabilitySetting from "./DataObservabilitySetting";
+import DataAssetLineage from "./DataAssetLineage";
+import DataAlert from "./DataAlert";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
 import SecurityEntityRisk from "./SecurityEntityRisk";
 import SecurityEntityCriticality from "./SecurityEntityCriticality";
@@ -397,6 +429,7 @@ import UserWhatsApp from "./UserWhatsApp";
 import UserTelegram from "./UserTelegram";
 import UserSlack from "./UserSlack";
 import UserMicrosoftTeams from "./UserMicrosoftTeams";
+import UserMattermost from "./UserMattermost";
 import UserWebhook from "./UserWebhook";
 import CustomNotificationChannel from "./CustomNotificationChannel";
 // User Notification Rules
@@ -468,6 +501,7 @@ import AlertEpisodeInternalNote from "./AlertEpisodeInternalNote";
 import AlertEpisodeFeed from "./AlertEpisodeFeed";
 import AlertGroupingRule from "./AlertGroupingRule";
 import AlertOnCallRule from "./AlertOnCallRule";
+import AlertIncidentRule from "./AlertIncidentRule";
 import AlertOwnerRule from "./AlertOwnerRule";
 import AlertPrivacyRule from "./AlertPrivacyRule";
 import AlertLabelRule from "./AlertLabelRule";
@@ -532,8 +566,10 @@ import PodmanHostLabelRule from "./PodmanHostLabelRule";
 import KubernetesClusterOwnerRule from "./KubernetesClusterOwnerRule";
 import KubernetesClusterLabelRule from "./KubernetesClusterLabelRule";
 import ProxmoxClusterOwnerRule from "./ProxmoxClusterOwnerRule";
+import OpenStackCloudOwnerRule from "./OpenStackCloudOwnerRule";
 import DockerSwarmClusterOwnerRule from "./DockerSwarmClusterOwnerRule";
 import ProxmoxClusterLabelRule from "./ProxmoxClusterLabelRule";
+import OpenStackCloudLabelRule from "./OpenStackCloudLabelRule";
 import DockerSwarmClusterLabelRule from "./DockerSwarmClusterLabelRule";
 import IoTFleetOwnerRule from "./IoTFleetOwnerRule";
 import IoTFleetLabelRule from "./IoTFleetLabelRule";
@@ -579,6 +615,7 @@ import CephClusterFeed from "./CephClusterFeed";
 import StorageArrayFeed from "./StorageArrayFeed";
 import PodmanHostFeed from "./PodmanHostFeed";
 import ProxmoxClusterFeed from "./ProxmoxClusterFeed";
+import OpenStackCloudFeed from "./OpenStackCloudFeed";
 import VMwareVCenterFeed from "./VMwareVCenterFeed";
 import HostFeed from "./HostFeed";
 import CloudResourceFeed from "./CloudResourceFeed";
@@ -633,6 +670,7 @@ const AllModelTypes: Array<{
   SecurityWatchlist,
   SecurityWatchlistItem,
   SecurityHunt,
+  SecurityHuntRun,
   SecurityEventConnection,
   SecurityEventConnectionRun,
   ToolImportRun,
@@ -669,6 +707,25 @@ const AllModelTypes: Array<{
   DataSecurityCheckSetting,
   DataSecurityResidencyRule,
   DataSecuritySetting,
+  DataAsset,
+  DataAssetFeed,
+  DataAssetUsage,
+  DataCheck,
+  DataPipeline,
+  DataPipelineRun,
+  DataProduct,
+  DataBiConnection,
+  DataDashboard,
+  DataWarehouseJob,
+  DataReconciliation,
+  DataIssueReport,
+  DataAssetOwnerUser,
+  DataAssetOwnerTeam,
+  DataAssetOwnerRule,
+  DataAssetLabelRule,
+  DataObservabilitySetting,
+  DataAssetLineage,
+  DataAlert,
   SecurityProtectedEntity,
   SecurityEntityRisk,
   SecurityEntityCriticality,
@@ -759,6 +816,7 @@ const AllModelTypes: Array<{
   AlertEpisodeFeed,
   AlertGroupingRule,
   AlertOnCallRule,
+  AlertIncidentRule,
   AlertOwnerRule,
   AlertPrivacyRule,
   AlertLabelRule,
@@ -824,8 +882,10 @@ const AllModelTypes: Array<{
   KubernetesClusterOwnerRule,
   KubernetesClusterLabelRule,
   ProxmoxClusterOwnerRule,
+  OpenStackCloudOwnerRule,
   DockerSwarmClusterOwnerRule,
   ProxmoxClusterLabelRule,
+  OpenStackCloudLabelRule,
   DockerSwarmClusterLabelRule,
   IoTFleetOwnerRule,
   IoTFleetLabelRule,
@@ -939,6 +999,7 @@ const AllModelTypes: Array<{
   UserTelegram,
   UserSlack,
   UserMicrosoftTeams,
+  UserMattermost,
   UserWebhook,
   CustomNotificationChannel,
   UserIncomingCallNumber,
@@ -1083,6 +1144,7 @@ const AllModelTypes: Array<{
   StorageArrayFeed,
   PodmanHostFeed,
   ProxmoxClusterFeed,
+  OpenStackCloudFeed,
   VMwareVCenterFeed,
   HostFeed,
   CloudResourceFeed,
@@ -1139,12 +1201,22 @@ const AllModelTypes: Array<{
   PodmanHostOwnerUser,
   PodmanResource,
   ProxmoxCluster,
+  OpenStackCloud,
+  OpenStackCloudConnectionTest,
+  OpenStackCloudCheck,
   DockerSwarmCluster,
   ProxmoxClusterOwnerTeam,
+  OpenStackCloudOwnerTeam,
   DockerSwarmClusterOwnerTeam,
   ProxmoxClusterOwnerUser,
+  OpenStackCloudOwnerUser,
   DockerSwarmClusterOwnerUser,
   ProxmoxResource,
+  OpenStackResource,
+  OpenStackProjectUsage,
+  OpenStackBudget,
+  OpenStackProjectNotice,
+  OpenStackProjectNoticeDelivery,
   DockerSwarmResource,
   IoTFleet,
   IoTFleetOwnerTeam,
@@ -1176,6 +1248,8 @@ const AllModelTypes: Array<{
   ServerlessFunctionOwnerRule,
   CloudAccount,
   CloudAccountFeed,
+  CloudBudget,
+  CloudCostRecommendation,
   CloudConnection,
   CloudResource,
   CloudResourceOwnerTeam,

@@ -1,0 +1,204 @@
+import {
+  DEFAULT_MAX_FILE_SIZE_IN_BYTES,
+  FilePickerLayout,
+  FilePickerPromptData,
+  FilePickerPromptWords,
+  formatFileSizeLimit,
+  getFilePickerLayout,
+  getFilePickerPromptWords,
+  getMaxFileSizeInBytes,
+} from "../../../UI/Components/FilePicker/FilePickerLayout";
+import * as FilePicker from "../../../UI/Components/FilePicker/FilePicker";
+import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
+import MimeType from "../../../Types/File/MimeType";
+import { describe, expect, test } from "@jest/globals";
+
+/*
+ * What a file picker shows for the files it holds, and the words it asks for
+ * them with, read by the picker and by what draws in its place until its file
+ * has arrived (LazyFilePicker): the same words wrap the same way.
+ */
+
+const layoutOf: (data: {
+  fileCount: number;
+  isMultiFilePicker?: boolean;
+  maxFiles?: number;
+}) => FilePickerLayout = (data: {
+  fileCount: number;
+  isMultiFilePicker?: boolean;
+  maxFiles?: number;
+}): FilePickerLayout => {
+  return getFilePickerLayout({
+    fileCount: data.fileCount,
+    isMultiFilePicker: data.isMultiFilePicker,
+    maxFiles: data.maxFiles,
+  });
+};
+
+describe("a picker of one file", () => {
+  test("empty, it shows the prompt in full", () => {
+    expect(layoutOf({ fileCount: 0 })).toEqual({
+      maxFiles: null,
+      isFull: false,
+      showsPrompt: true,
+      isCollapsed: false,
+      isCompactPrompt: false,
+    });
+  });
+
+  test("holding its file, it shows the file alone", () => {
+    expect(layoutOf({ fileCount: 1 })).toEqual({
+      maxFiles: null,
+      isFull: false,
+      showsPrompt: false,
+      isCollapsed: true,
+      isCompactPrompt: false,
+    });
+  });
+
+  test("takes no notice of a limit, which is for a picker of several", () => {
+    expect(layoutOf({ fileCount: 1, maxFiles: 1 }).maxFiles).toBeNull();
+    expect(layoutOf({ fileCount: 1, maxFiles: 1 }).isFull).toBe(false);
+  });
+});
+
+describe("a picker of several files", () => {
+  test("empty, it shows the prompt in full", () => {
+    expect(layoutOf({ fileCount: 0, isMultiFilePicker: true })).toEqual({
+      maxFiles: null,
+      isFull: false,
+      showsPrompt: true,
+      isCollapsed: false,
+      isCompactPrompt: false,
+    });
+  });
+
+  test("holding files, it asks for more in a smaller prompt", () => {
+    expect(layoutOf({ fileCount: 2, isMultiFilePicker: true })).toEqual({
+      maxFiles: null,
+      isFull: false,
+      showsPrompt: true,
+      isCollapsed: false,
+      isCompactPrompt: true,
+    });
+  });
+
+  test("holding as many as it may, it has no prompt and is not collapsed", () => {
+    expect(
+      layoutOf({ fileCount: 3, isMultiFilePicker: true, maxFiles: 3 }),
+    ).toEqual({
+      maxFiles: 3,
+      isFull: true,
+      showsPrompt: false,
+      isCollapsed: false,
+      isCompactPrompt: false,
+    });
+  });
+
+  test("holding fewer than it may, it still asks for more", () => {
+    const layout: FilePickerLayout = layoutOf({
+      fileCount: 2,
+      isMultiFilePicker: true,
+      maxFiles: 3,
+    });
+
+    expect(layout.isFull).toBe(false);
+    expect(layout.isCompactPrompt).toBe(true);
+  });
+
+  test("a limit that is not a whole positive number is rounded down, or none", () => {
+    expect(
+      layoutOf({ fileCount: 0, isMultiFilePicker: true, maxFiles: 2.9 })
+        .maxFiles,
+    ).toBe(2);
+
+    for (const maxFiles of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(
+        layoutOf({ fileCount: 5, isMultiFilePicker: true, maxFiles }).maxFiles,
+      ).toBeNull();
+    }
+  });
+});
+
+describe("the prompt's words", () => {
+  const wordsOf: (
+    data: Partial<FilePickerPromptData>,
+  ) => FilePickerPromptWords = (
+    data: Partial<FilePickerPromptData>,
+  ): FilePickerPromptWords => {
+    return getFilePickerPromptWords(getGlobalTranslator(), {
+      hasFiles: false,
+      ...data,
+    });
+  };
+
+  test("an empty picker of one asks for a file, up to the everyday limit", () => {
+    expect(wordsOf({})).toEqual({
+      label: "Upload files",
+      instruction: "Click to choose a file or drag & drop.",
+      hint: "Max 10MB each.",
+    });
+  });
+
+  test("an empty picker of several asks for files", () => {
+    expect(wordsOf({ isMultiFilePicker: true }).instruction).toBe(
+      "Click to choose files or drag & drop.",
+    );
+  });
+
+  test("a picker holding files asks for more", () => {
+    const words: FilePickerPromptWords = wordsOf({
+      isMultiFilePicker: true,
+      hasFiles: true,
+    });
+
+    expect(words.label).toBe("Add more files");
+    expect(words.instruction).toBe("Click to add more or drag & drop.");
+  });
+
+  test("the words it is given win over its own", () => {
+    const words: FilePickerPromptWords = wordsOf({
+      placeholder: "Add your logo",
+      hint: "PDF, pictures or ZIP, up to 10 MB.",
+      mimeTypes: [MimeType.png],
+    });
+
+    expect(words.label).toBe("Add your logo");
+    expect(words.hint).toBe("PDF, pictures or ZIP, up to 10 MB.");
+  });
+
+  test("it names the types it takes, each once", () => {
+    expect(
+      wordsOf({ mimeTypes: [MimeType.png, MimeType.jpg, MimeType.png] }).hint,
+    ).toBe("Types: PNG, JPG. Max 10MB each.");
+  });
+
+  test("it names its own limit when it has one", () => {
+    expect(wordsOf({ maxFileSizeInBytes: 512 * 1024 }).hint).toBe(
+      "Max 512 KB each.",
+    );
+    expect(
+      wordsOf({ maxFileSizeInBytes: 512 * 1024, mimeTypes: [MimeType.png] })
+        .hint,
+    ).toBe("Types: PNG. Max 512 KB each.");
+  });
+
+  test("a file dragged over it says what letting go does", () => {
+    expect(wordsOf({ isDragActive: true }).instruction).toBe(
+      "Release to start uploading.",
+    );
+    expect(
+      wordsOf({ isDragActive: true, keepFilesInBrowser: true }).instruction,
+    ).toBe("Release to add them.");
+  });
+});
+
+describe("the picker's size limit", () => {
+  test("is read from the same place as the picker exports it", () => {
+    expect(FilePicker.DEFAULT_MAX_FILE_SIZE_IN_BYTES).toBe(
+      DEFAULT_MAX_FILE_SIZE_IN_BYTES,
+    );
+    expect(FilePicker.getMaxFileSizeInBytes).toBe(getMaxFileSizeInBytes);
+    expect(FilePicker.formatFileSizeLimit).toBe(formatFileSizeLimit);
+  });
+});

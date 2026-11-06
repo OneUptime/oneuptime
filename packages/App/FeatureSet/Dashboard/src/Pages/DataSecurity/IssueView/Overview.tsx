@@ -39,6 +39,7 @@ import IssueResponseAction from "../../../Components/DataSecurity/IssueResponseA
 import IssueRiskScore, {
   readIssueRiskFactors,
 } from "../../../Components/DataSecurity/IssueRiskScore";
+import IssueTelemetryFindings from "../../../Components/DataSecurity/IssueTelemetryFindings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import useAiOffered from "../../../Utils/UseAiOffered";
@@ -58,6 +59,7 @@ import {
   DataSecurityCheckInfo,
   FrameworkRequirementRef,
   getDataSecurityCheck,
+  isTelemetryFindingCheck,
 } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
 import { isComplianceFramework } from "Common/Types/DataSecurity/ComplianceFramework";
 import DataSecurityIssueStatus from "Common/Types/DataSecurity/DataSecurityIssueStatus";
@@ -125,6 +127,13 @@ const UNKNOWN_CHECK: string = translationKey(
   "This check is no longer in the catalog. Its evidence is below.",
 );
 const OPEN_TASK: string = translationKey("Open the task");
+const HOW_TO_FIX: string = translationKey(
+  "Fix it in the console, from the CLI or with Terraform, then mark it resolved: the store is checked again at once.",
+);
+// A telemetry issue is fixed at ingest and in the code that writes the data.
+const HOW_TO_FIX_TELEMETRY: string = translationKey(
+  "Scrub it at ingest from the list above, then fix the code that writes it. The issue resolves once the store is checked again.",
+);
 const MORE_ACTIONS: string = translationKey("More actions");
 
 type IssueDialog = "accept" | "assign" | "repository" | null;
@@ -202,8 +211,11 @@ const RequirementChip: FunctionComponent<{
  * with its severity, where it stands and its risk score, the store it is
  * on and who has it; what the check saw; why it matters - the check's
  * reason, what the store holds, who can reach it and the requirements it
- * affects; how to fix it on this store's cloud, as console steps, a CLI
- * command and Terraform to copy; and how the risk score was worked out.
+ * affects; for a telemetry issue, each kind of data it found, where it
+ * sits and the newest records that carry it, which open in the trace, the
+ * logs, the exception or the session (IssueTelemetryFindings); how to fix
+ * it on this store's cloud, as console steps, a CLI command and Terraform
+ * to copy; and how the risk score was worked out.
  *
  * The moves are in the header: Mark Resolved once it is fixed (the store
  * is checked again at once), Accept Risk with a reason and an end date,
@@ -818,9 +830,25 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
         </Card>
       </CardGrid>
 
+      {isTelemetryFindingCheck(issue.checkId) && storeId ? (
+        <IssueTelemetryFindings
+          issue={issue}
+          store={store}
+          onChanged={() => {
+            view.refresh();
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
       <Card
         title="How to Fix"
-        description="Fix it in the console, from the CLI or with Terraform, then mark it resolved: the store is checked again at once."
+        description={
+          isTelemetryFindingCheck(issue.checkId)
+            ? HOW_TO_FIX_TELEMETRY
+            : HOW_TO_FIX
+        }
         buttons={fixButtons}
       >
         <div className="space-y-4">

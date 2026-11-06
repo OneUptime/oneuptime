@@ -1,6 +1,7 @@
 enum WorkspaceType {
   Slack = "Slack",
   MicrosoftTeams = "MicrosoftTeams",
+  Mattermost = "Mattermost",
 }
 
 export function getWorkspaceTypeDisplayName(
@@ -13,6 +14,11 @@ export function getWorkspaceTypeDisplayName(
   if (workspaceType === WorkspaceType.Slack) {
     return "Slack";
   }
+
+  if (workspaceType === WorkspaceType.Mattermost) {
+    return "Mattermost";
+  }
+
   return workspaceType;
 }
 

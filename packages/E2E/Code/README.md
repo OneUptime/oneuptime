@@ -22,8 +22,12 @@ Behind the data boundary is an in-memory Code server that answers what the
 real one does (`packages/Common/Server/API/CodeTaskAPI.ts`): repositories with
 their tasks and branches, every task a conversation of turns, and an AI that
 takes each new turn through Queued, Running (its steps as it takes them) and
-Done, one stage each time the page reads the task - so the page's own polling
-drives it.
+Done, one stage each time the page reads the task or its working turn's
+progress (`/code-task/progress`) - so the page's own reads drive it. With
+`?live=1` the Dashboard's live connection is open instead: the pages listen
+on it, and the AI moves only when a test says (`window.__fixture.work(taskId)`
+takes one stage, or one more step, and announces it as the server announces
+each line a Runner reports).
 
 The suite drives the pages the way a person does, on a laptop and on a phone:
 
@@ -80,6 +84,15 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   question waiting for an answer, live steps ending in "Working on it…" and
   Stop, Try again, a failed turn and why, a task OneUptime started from an
   exception, a turn's Log and back, and the trail;
+- each step reaching the page as it is announced (`?live=1`): read as its
+  turn's new steps, never the whole task until the turn is done, rising
+  into place, in a conversation a screen reader follows as a log; a turn
+  seen from queued to done; a reader at the end of the page keeping the
+  newest step in view, and one who scrolled up left where they are; a
+  long reply that ends the turn read from its first line, not its end
+  (`?ai=long`); the turn's time counting, and a turn no Runner picks up
+  saying what to check, with nothing announced (Playwright's clock); a
+  turn's Log reading its record again as each step is announced;
 - a turn's Log: the Turn picker of a task of more than one turn, its record
   said to be the turn's, each step's words on a line of their own on a
   phone, and a record that cannot be read (`?fail=log`, or `logonce` for its
@@ -125,7 +138,9 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
 
 What the pages send is recorded on `window.__fixture` (`creates`, `replies`,
 `retries`, `stops`, `settings`, `deletes`, `navigations`, `branchReads`,
-`lists`, `reviewLists`, `reviewAgains`, `reviewAsks`, and the connect dialog's
+`lists`, `reviewLists`, `reviewAgains`, `reviewAsks`, `progressReads` (each
+read of a working turn's progress), `liveSubscriptions` (what the pages
+listen to on the live connection), and the connect dialog's
 `connectReads`, `connects`, `gitConnects` and `tokenReplacements`), so the
 tests check what was sent as
 well as what was drawn. The

@@ -35,6 +35,7 @@ import {
   type CompleteSsoLoginOutcome,
 } from "../sso/session";
 import { clearAllSsoDenials } from "../sso/ssoDenials";
+import { clearAllProjectPermissions } from "../api/projectPermissions";
 import {
   signInWithPasskey,
   discardPasskeySession,
@@ -250,6 +251,9 @@ export function AuthProvider({
        * the other direction is showing one account another account's data.
        */
       queryClient.clear();
+
+      // And what the departing person may do, for the same reason.
+      clearAllProjectPermissions();
     });
   }, []);
 
@@ -484,6 +488,13 @@ export function AuthProvider({
      * whoever signs in next on the same handset.
      */
     clearAllSsoDenials();
+
+    /*
+     * So are the departing person's permission rows: until the next person's
+     * first answer replaced them, the cover sheet would follow the last
+     * person's role.
+     */
+    clearAllProjectPermissions();
 
     /*
      * Everything the departing user's screens fetched is still sitting in the

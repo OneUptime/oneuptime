@@ -138,6 +138,7 @@ describe("BulkSwitchConsequences: the catalog", () => {
         "LogDropFilter.isEnabled:off",
         "TraceDropFilter.isEnabled:off",
         "MonitorProbe.isEnabled:off",
+        "CloudBudget.isEnabled:off",
         "StatusPageSubscriber.isUnsubscribed:on",
       ].sort(),
     );
@@ -421,5 +422,19 @@ describe("BulkSwitchConsequences: what the sentences claim", () => {
     // The Edit form's Status offers Subscribed again.
     expect(choices).toContain('Subscribed = "subscribed",');
     expect(choices).toContain('Unsubscribed = "unsubscribed",');
+  });
+
+  test("a disabled cloud budget is not checked: the checks after a read of the costs and every hour read enabled budgets only", () => {
+    const evaluator: string = readSource(
+      "Common/Server/Utils/CloudConnection/CloudBudgetEvaluator.ts",
+    );
+
+    // After a read of a project's costs, and the hourly worker.
+    expect(evaluator).toContain("query: { projectId, isEnabled: true },");
+    expect(evaluator).toContain("query: { isEnabled: true },");
+    // One turned off between the read and its check raises nothing.
+    expect(evaluator).toContain(
+      "if (decision.raise.length > 0 && budget.isEnabled !== false) {",
+    );
   });
 });

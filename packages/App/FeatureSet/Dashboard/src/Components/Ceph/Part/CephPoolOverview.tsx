@@ -237,7 +237,7 @@ const CephPoolOverview: FunctionComponent<ComponentProps> = (
           data-testid="ceph-pool-tiles"
         >
           <GoldenMetricTile
-            title={tx("Used")}
+            title="Used"
             icon={IconProp.Database}
             iconColor="blue"
             value={formatShare(readings.usedPercent)}
@@ -265,7 +265,7 @@ const CephPoolOverview: FunctionComponent<ComponentProps> = (
             description={CEPH_METRIC_DESCRIPTIONS.poolUsedTile}
           />
           <GoldenMetricTile
-            title={tx("Placement Groups")}
+            title="Placement Groups"
             icon={IconProp.SquareStack}
             iconColor="violet"
             value={pgSummary ? translator.formatNumber(pgSummary.total) : "—"}
@@ -289,7 +289,7 @@ const CephPoolOverview: FunctionComponent<ComponentProps> = (
             description={CEPH_METRIC_DESCRIPTIONS.poolPgsTile}
           />
           <GoldenMetricTile
-            title={tx("Objects")}
+            title="Objects"
             icon={IconProp.Cube}
             iconColor="sky"
             value={
@@ -297,7 +297,7 @@ const CephPoolOverview: FunctionComponent<ComponentProps> = (
                 ? "—"
                 : translator.formatNumber(Math.round(readings.objects))
             }
-            sublabel={tx("RADOS objects")}
+            sublabel="RADOS objects"
             description={CEPH_METRIC_DESCRIPTIONS.poolObjects}
           />
         </div>

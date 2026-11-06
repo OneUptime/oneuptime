@@ -350,7 +350,7 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
 });
 ```
 
-Med [Øktavspilling](/docs/telemetry/session-replay) fanger også opptakeren ufangede feil og markerer dem på avspillingens tidslinje. Unntakets side viser da et kort **Watch what the user saw**, som åpner avspillingen ti sekunder før feilen. Med standardpolicyen tas hver økt opp, enten noe feiler eller ikke; feilen avgjør bare hvor kortet åpner.
+Med [Øktavspilling](/docs/telemetry/session-replay) fanger også opptakeren ufangede feil og markerer dem på avspillingens tidslinje. Unntakets side viser da et kort **Se hva brukeren så**, som åpner avspillingen ti sekunder før feilen. Med standardpolicyen tas hver økt opp, enten noe feiler eller ikke; feilen avgjør bare hvor kortet åpner.
 
 ## Legg til logger og målinger
 

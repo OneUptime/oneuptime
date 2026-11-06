@@ -55,7 +55,7 @@ flowchart TB
 
 ### 选择集群
 
-在 **Docker Swarm Monitor Configuration** 下，从 **Docker Swarm Cluster** 中选择集群。发送过数据的每个集群都在列表中。选好后，字段下方的一行会显示是否有数据到达。**添加 Docker Swarm 集群** 会打开已填好你的密钥的设置步骤，并等待第一批数据。
+在 **Docker Swarm Monitor Configuration** 下，从 **Docker Swarm 集群** 中选择集群。发送过数据的每个集群都在列表中。选好后，字段下方的一行会显示是否有数据到达。**添加 Docker Swarm 集群** 会打开已填好你的密钥的设置步骤，并等待第一批数据。
 
 ### 选择要监控的内容
 
@@ -81,7 +81,7 @@ flowchart TB
 
 | 字段 | 选项卡 | 作用 |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | 全部 | 必填。把每个查询限定在 `resource.docker.swarm.cluster.name`。任务的指标和 Docker 主机的指标一样带有 `container.runtime=docker`，而代理从不打上 `host.name`，所以监视器对这两者都不过滤。 |
+| **Docker Swarm 集群** | 全部 | 必填。把每个查询限定在 `resource.docker.swarm.cluster.name`。任务的指标和 Docker 主机的指标一样带有 `container.runtime=docker`，而代理从不打上 `host.name`，所以监视器对这两者都不过滤。 |
 | **服务名称** | Custom Metric、高级 | 可选。与 `resource.docker.swarm.service.name` 完全匹配，即 `docker service ls` 显示的服务名称，例如 `web`（在栈中为 `<stack>_web`）。 |
 | **节点名称** | Custom Metric、高级 | 可选。与 `resource.docker.swarm.node.name` 完全匹配，即 `docker node ls` 显示的节点主机名，例如 `swarm-node-1`。该节点上的代理根据 `DOCKER_SWARM_NODE_NAME` 打上它。 |
 | **容器名称** | Custom Metric、高级 | 可选。与 `resource.container.name` 完全匹配。任务的容器命名为 `<service>.<slot>.<taskid>`，例如 `web.1.abc123`。 |
@@ -176,7 +176,7 @@ flowchart TB
 | --- | --- |
 | **指标** | 要检查的查询或公式，按其变量名指定。 |
 | **聚合** | 窗口中的值如何变成一个结果：**平均值**、**总和**、**Maximum Value**、**Minimum Value**、**All Values**（整个窗口内每个值都必须匹配）或 **Any Value**（一个就够）。 |
-| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**，或者异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。**无数据** 在查询于窗口内没有返回任何数据时匹配，**有数据** 在返回了数据时匹配。 |
+| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**，或者异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。**无数据** 在查询于窗口内没有返回任何数据时匹配，**有数据** 在返回了数据时匹配。 **预计高于** 和 **预计低于** 在窗口内指标的趋势到 **预测范围** 结束时越过阈值时匹配。 |
 | **阈值** | 用于比较的值。如果指标有单位，旁边会有单位列表。异常条件下不显示。 |
 | **灵敏度** | 仅限异常条件。**低**（4σ）、**中**（3σ，默认）或 **高**（2σ）。 |
 | **基线窗口** | 仅限异常条件。14 天（默认）、28、60 或 90 天的历史。 |

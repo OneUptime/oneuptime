@@ -104,7 +104,7 @@ En applikations telemetri og dens optagelser opbevares i forskellig tid:
 | Data | Opbevares | Indstilles på |
 | --- | --- | --- |
 | Logs, metrikker, spor og profiler | Projektets opbevaring, medmindre applikationen tilsidesætter den | Applikationens side **Indstillinger** |
-| Optagelser fra sessionsafspilning | 7 dage som standard, eller 1, 14, 30 eller 90 dage | **Replay Policy**, med **Rediger politik → Grænser** |
+| Optagelser fra sessionsafspilning | 7 dage som standard, eller 1, 14, 30 eller 90 dage | **Afspilningspolitik**, med **Rediger politik → Grænser** |
 
 ### Opbevaring af telemetri
 
@@ -119,7 +119,7 @@ På et lavere Cloud-abonnement fortsætter en tilsidesættelse, der er tilbage f
 
 ### Opbevaring af sessionsafspilninger
 
-Optagelser har deres egen opbevaring, der indstilles på applikationens side **Replay Policy** med **Rediger politik → Grænser**: 7 dage som standard, eller 1, 14, 30 eller 90 dage. Den er kort med vilje, fordi en optagelse er langt mere følsom, og langt større, end et span. Kortet **Opbevaring af sessionsafspilning** under **Yderligere indstillinger** på siden **Indstillinger** viser den (_Session replays are kept for 7 days._), og dets knap **Rediger i Replay Policy** åbner politikken.
+Optagelser har deres egen opbevaring, der indstilles på applikationens side **Afspilningspolitik** med **Rediger politik → Grænser**: 7 dage som standard, eller 1, 14, 30 eller 90 dage. Den er kort med vilje, fordi en optagelse er langt mere følsom, og langt større, end et span. Kortet **Opbevaring af sessionsafspilning** under **Yderligere indstillinger** på siden **Indstillinger** viser den (_Session replays are kept for 7 days._), og dets knap **Rediger i Replay Policy** åbner politikken.
 
 En længere opbevaring af telemetri bevarer ikke optagelser længere. En sessions tællinger, signaler og enhed udløber sammen med dens optagelse; kun sessionens logs, spans og undtagelser følger telemetriens opbevaring. Se [Opbevaring og sletning](/docs/telemetry/session-replay#opbevaring-og-sletning).
 

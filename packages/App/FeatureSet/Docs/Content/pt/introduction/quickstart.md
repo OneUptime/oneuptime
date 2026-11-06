@@ -72,7 +72,7 @@ O botão adicionou uma regra de plantão para incidentes e outra para alertas. P
 
 ### Escolher como você é contatado
 
-Seu e-mail de login já é uma forma de contatar você. Para receber também SMS ou chamadas, abra **Configurações do usuário** na barra abaixo da barra superior, vá em **Métodos de notificação** e, na aba **Direct Contact**, adicione seu número em **Números de telefone para notificações SMS** ou **Números de telefone para notificações por chamada**. Clique em **Verificar** e digite o código que o OneUptime enviar. Um número verificado passa a ser usado nos acionamentos de plantão na hora.
+Seu e-mail de login já é uma forma de contatar você. Para receber também SMS ou chamadas, abra **Configurações do usuário** na barra abaixo da barra superior, vá em **Métodos de notificação** e, na aba **Contato direto**, adicione seu número em **Números de telefone para notificações SMS** ou **Números de telefone para notificações por chamada**. Clique em **Verificar** e digite o código que o OneUptime enviar. Um número verificado passa a ser usado nos acionamentos de plantão na hora.
 :::
 
 > [!NOTE]

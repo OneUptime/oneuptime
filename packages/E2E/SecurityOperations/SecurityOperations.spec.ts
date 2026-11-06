@@ -930,7 +930,8 @@ test.describe("the overview", () => {
     await expect(gettingStarted(page)).toHaveCount(0);
     /*
      * Your logs, and your other OneUptime data beside them: traces, network
-     * flows and session replays (the audit log is OneUptime Enterprise's).
+     * flows and session replays (the audit log is OneUptime Enterprise's,
+     * and cloud audit logs wait for a cloud account connected under Cloud).
      */
     await expect(stage(page, "sources")).toContainText("4 sources");
     await expect(stage(page, "detections")).toContainText(
@@ -6199,7 +6200,7 @@ test.describe("detections", () => {
       await expect(
         panel.getByTestId("rule-library-details-how-to-send"),
       ).toContainText(
-        "Send CloudTrail to OneUptime as logs and find security events in your logs.",
+        "Connect the AWS account under Cloud and turn on Cloud audit logs, or send CloudTrail to OneUptime as logs and find security events in your logs.",
       );
       await expect(
         panel.getByTestId("rule-library-details-runs"),
@@ -6799,7 +6800,7 @@ test.describe("detections", () => {
     await menuSection(page, "Workspace").click();
     await expect(menuEntry(page, "Slack")).toBeVisible();
     await expect(menuEntry(page, "Microsoft Teams")).toHaveCount(0);
-    await expect(menuEntry(page, "Connect Slack or Teams")).toHaveCount(0);
+    await expect(menuEntry(page, "Connect a workspace")).toHaveCount(0);
 
     await open(page, OVERVIEW_PATH, { theme: "dark", width: 1280 });
     await expect(page.getByText("Riskiest Entities")).toBeVisible({

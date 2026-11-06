@@ -301,12 +301,66 @@ export function buildWatchlistArrayMatch(
   column: string,
   watchlist: SigmaWatchlist,
 ): Statement {
+  return buildWatchlistArrayExpressionMatch(
+    new Statement([column], []),
+    watchlist,
+  );
+}
+
+/*
+ * buildWatchlistArrayMatch for an array read by SQL of its own: a column
+ * bound as an identifier, or a table-qualified one, as the statement
+ * generator reads a query's columns.
+ */
+export function buildWatchlistArrayExpressionMatch(
+  array: Statement,
+  watchlist: SigmaWatchlist,
+): Statement {
   const statement: Statement = new Statement([
     `arrayExists(${WATCHLIST_ELEMENT} -> `,
   ]);
   statement.append(
     buildWatchlistTextMatch(new Statement([WATCHLIST_ELEMENT], []), watchlist),
   );
-  statement.append(`, ${column})`);
+  statement.append(", ");
+  statement.append(array);
+  statement.append(")");
   return statement;
+}
+
+/*
+ * What a set of watchlists sends ClickHouse at most, in the request URL:
+ * every value and pattern as a parameter, every range too. An upper bound
+ * - a read that names a list twice sends it twice - for a read whose SQL a
+ * statement generator writes, where assertDetectionReadFits cannot see the
+ * whole statement before it is sent.
+ */
+export function getWatchlistsParameterUrlBytes(
+  watchlists: ReadonlyArray<SigmaWatchlist>,
+): number {
+  // A parameter's name, its `=`, its `&`, and an array's brackets: more than any takes.
+  const perParameter: number = 32;
+  let total: number = 0;
+
+  for (const watchlist of watchlists) {
+    for (const group of splitWatchlistValueParameters(watchlist.exactValues)) {
+      total += perParameter;
+
+      for (const value of group) {
+        total += getWatchlistValueUrlBytes(value);
+      }
+    }
+
+    for (const pattern of watchlist.patterns) {
+      total +=
+        perParameter +
+        getParameterTextUrlBytes(wildcardValueToLikePattern(pattern));
+    }
+
+    for (const range of watchlist.ranges) {
+      total += perParameter + getParameterTextUrlBytes(range);
+    }
+  }
+
+  return total;
 }

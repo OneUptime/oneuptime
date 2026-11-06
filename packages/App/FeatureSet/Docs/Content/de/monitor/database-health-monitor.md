@@ -160,7 +160,7 @@ Die Sonde erkennt Azure SQL Database an `SERVERPROPERTY('EngineEdition')` statt 
 :::steps
 ### Einen neuen Monitor beginnen
 
-Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **Datenbank-Integrität** unter **Database Monitoring**, oder geben Sie `health` in das Suchfeld ein. Geben Sie einen **Name** ein und klicken Sie dann auf **Weiter**.
+Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **Datenbank-Integrität** unter **Datenbanküberwachung**, oder geben Sie `health` in das Suchfeld ein. Geben Sie einen **Name** ein und klicken Sie dann auf **Weiter**.
 
 ### Die Verbindungsdaten eingeben
 
@@ -396,7 +396,7 @@ Bei einem Datenbank-Integritäts-Monitor hat der Ausdruck Zugriff auf:
 {{isOnline}} === true && {{collectedGroups}}.length >= 5
 ```
 
-Um eine Metrik in einem Ausdruck zu lesen, indizieren Sie das ganze `metrics`-Objekt — die Zeitreihennamen enthalten Punkte und können daher nicht in die geschweiften Klammern:
+Um eine Metrik in einem Ausdruck zu lesen, setzen Sie den Zeitreihennamen mit seinen Punkten in die geschweiften Klammern oder indizieren Sie das ganze `metrics`-Objekt — beides funktioniert:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

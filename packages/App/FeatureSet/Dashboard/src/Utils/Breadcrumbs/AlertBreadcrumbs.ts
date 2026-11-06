@@ -20,6 +20,10 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       ["Project", "Alerts", "Microsoft Teams Connection"],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST,
+      ["Project", "Alerts", "Mattermost"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_WORKSPACE_CONNECTIONS, [
       "Project",
       "Alerts",
@@ -229,6 +233,12 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "Alerts",
       "Rules",
       "On-Call Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_INCIDENT_RULES, [
+      "Project",
+      "Alerts",
+      "Rules",
+      "Incident Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_OWNER_RULES, [
       "Project",

@@ -87,6 +87,9 @@ export type SettingsStackParamList = {
  * and schedule the shift is on, its window as ISO strings (navigation params
  * are serialized, so no Dates), and - for a shift that only exists inside one
  * escalation policy - that policy, so the cover is scoped the same way.
+ * `policies` are the policies that page through the shift: for someone
+ * whose permission covers only some policies, the sheet offers those of
+ * them they may cover, one override on each.
  */
 export interface CreateOnCallOverrideParams {
   projectId: string;
@@ -95,6 +98,7 @@ export interface CreateOnCallOverrideParams {
   startsAt: string;
   endsAt: string;
   policyId?: string;
+  policies?: Array<{ policyId: string; policyName: string }>;
 }
 
 /*

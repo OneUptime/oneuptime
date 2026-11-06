@@ -38,7 +38,7 @@ El sandbox no es Node.js: no hay `require`, ni `process`, ni `fetch`, ni sistema
 :::steps
 ### Empezar un monitor nuevo
 
-Vaya a **Monitores** y haga clic en **Crear monitor**. En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Custom JavaScript Code** en **Synthetic Monitoring**, o escriba `script` en el cuadro de búsqueda. Introduzca un **Nombre** y haga clic en **Siguiente**.
+Vaya a **Monitores** y haga clic en **Crear monitor**. En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Custom JavaScript Code** en **Monitoreo sintético**, o escriba `script` en el cuadro de búsqueda. Introduzca un **Nombre** y haga clic en **Siguiente**.
 
 ### Añadir el script
 
@@ -167,7 +167,7 @@ Algunos nombres de atributo son propios de OneUptime, y un script no puede escri
 
 - La identidad del monitor: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
 - Cualquier cosa en los espacios de nombres `oneuptime.` o `resource.`: contienen los identificadores que OneUptime añade en la ingesta.
-- Los atributos de identidad de recursos: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` y `docker.swarm.cluster.name`.
+- Los atributos de identidad de recursos: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` y `docker.swarm.cluster.name`.
 
 Estos nombres no son solo etiquetas: OneUptime los lee como la afirmación de a qué recurso pertenece un punto de datos. Una métrica etiquetada con `service.name: payments-api` aparecería en la pestaña Métricas de ese servicio, y si más adelante creara un monitor de métricas agrupado por `service.name`, sus alertas quedarían vinculadas a ese servicio, avisarían a los responsables de ese servicio y se silenciarían durante una ventana de mantenimiento del servicio. Para asociar un monitor a un servicio o a un host, use en su lugar las etiquetas propias del monitor.
 

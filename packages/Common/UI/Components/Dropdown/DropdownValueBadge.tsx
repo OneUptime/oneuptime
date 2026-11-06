@@ -6,6 +6,7 @@ import {
   WRAPPING_PILL_DOT_CLASS_NAME,
   PILL_DOT_CLASS_NAME,
 } from "../Pill/Pill";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   getPillColors,
@@ -59,6 +60,11 @@ const getColor: (color: Color | string | undefined) => Color | undefined = (
  * was a 12px badge with square-ish corners beside 13px round label pills.
  * A long value runs onto a next line inside it, as a wrapping Pill's does,
  * rather than being cut short.
+ *
+ * The value reads the way it is written (IsolatedText): a choice or a
+ * record named "Git*" or "Payments (EU)" keeps its star and its bracket
+ * where they were written on a Persian page, while the dot stays at the
+ * pill's start, the page's way.
  */
 const DropdownValueBadge: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -84,7 +90,7 @@ const DropdownValueBadge: FunctionComponent<ComponentProps> = (
         className={`${PILL_DOT_CLASS_NAME} ${WRAPPING_PILL_DOT_CLASS_NAME}`}
         style={getPillDotStyle(colors)}
       ></span>
-      {props.label}
+      <IsolatedText text={props.label} />
     </span>
   );
 };

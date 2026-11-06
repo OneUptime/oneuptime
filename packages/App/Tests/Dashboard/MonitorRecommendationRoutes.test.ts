@@ -99,6 +99,8 @@ beforeAll(async () => {
       PageMap.PODMAN_HOST_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.Proxmox]:
       PageMap.PROXMOX_CLUSTER_VIEW_RECOMMENDATIONS,
+    [MonitorRecommendationResourceType.OpenStack]:
+      PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.VMware]:
       PageMap.VMWARE_VCENTER_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.Ceph]:
@@ -113,6 +115,10 @@ beforeAll(async () => {
       PageMap.SERVICE_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.DatabaseServer]:
       PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS,
+    [MonitorRecommendationResourceType.DataStore]:
+      PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS,
+    [MonitorRecommendationResourceType.DataPipeline]:
+      PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS,
   };
 });
 

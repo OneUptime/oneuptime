@@ -1,6 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
 import MicrosoftEntraIdConnector, {
+  ENTRA_BACKGROUND_SIGN_IN_PAGE_BUDGET,
   ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET,
+  ENTRA_RISK_DETECTION_PAGE_BUDGET,
   ENTRA_SIGN_IN_PAGE_BUDGET,
   MICROSOFT_365_RECORD_BUDGET,
   MICROSOFT_365_REQUEST_BUDGET,
@@ -24,7 +26,10 @@ import {
   SecurityConnectorSample,
 } from "../../../../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import SecurityEventConnectorProvider from "../../../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
-import { MICROSOFT_365_AUDIT_KEY } from "../../../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
+import {
+  ENTRA_BACKGROUND_SIGN_INS_KEY,
+  MICROSOFT_365_AUDIT_KEY,
+} from "../../../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import {
   FAKE_CLIENT_ID,
   FAKE_CLIENT_SECRET,
@@ -38,6 +43,7 @@ import {
 } from "./MicrosoftEntraIdFakeApi";
 import {
   entraFailedSignIn,
+  entraRiskDetection,
   entraRoleAssignment,
   entraSignIn,
 } from "../../../../../Utils/SecurityEvent/Connectors/EntraIdFixtures";
@@ -87,6 +93,28 @@ function settings(
 
 function withMicrosoft365(config: JSONObject = {}): SecurityConnectorSettings {
   return settings({ [MICROSOFT_365_AUDIT_KEY]: true, ...config });
+}
+
+function withBackgroundSignIns(
+  config: JSONObject = {},
+): SecurityConnectorSettings {
+  return settings({ [ENTRA_BACKGROUND_SIGN_INS_KEY]: true, ...config });
+}
+
+// What Graph requests carried, by log: the host, the version and the filter.
+function graphRequests(
+  api: FakeEntraApi,
+  pathEnd: string,
+): Array<{ host: string; version: string; filter: string }> {
+  return requestsTo(api, pathEnd).map((request: DataSourceHttpRequest) => {
+    const url: URL = new URL(request.url);
+
+    return {
+      host: url.host,
+      version: url.pathname.split("/")[1] || "",
+      filter: url.searchParams.get("$filter") || "",
+    };
+  });
 }
 
 function fetchOptions(
@@ -199,7 +227,10 @@ describe("MicrosoftEntraIdConnector - settings", () => {
         "Directory (tenant) ID must be",
       ],
       [settings({ clientId: "my-app" }), "Application (client) ID must be"],
-      [settings({ cloud: "china" }), "Cloud must be one of: public, usgov."],
+      [
+        settings({ cloud: "china" }),
+        "Cloud must be one of: public, gcc, usgov, dod.",
+      ],
       [settings({}, {}), "Client secret is required."],
     ];
 
@@ -208,6 +239,33 @@ describe("MicrosoftEntraIdConnector - settings", () => {
         connector.validateSettings(candidate);
       }).toThrow(message);
     }
+  });
+
+  test("every cloud Microsoft runs Entra ID and Microsoft 365 in is accepted, and none set is the public one", () => {
+    for (const cloud of ["public", "gcc", "usgov", "dod"]) {
+      expect(() => {
+        connector.validateSettings(withMicrosoft365({ cloud }));
+      }).not.toThrow();
+    }
+
+    // Cloud sits under More fields now: a connection that never set it reads the public cloud.
+    expect(() => {
+      connector.validateSettings(settings({ cloud: "" }));
+    }).not.toThrow();
+  });
+
+  test("background and app sign-ins are an option, off unless turned on", () => {
+    expect(MicrosoftEntraIdConnector.readsBackgroundSignIns(settings())).toBe(
+      false,
+    );
+    expect(
+      MicrosoftEntraIdConnector.readsBackgroundSignIns(withBackgroundSignIns()),
+    ).toBe(true);
+    expect(
+      MicrosoftEntraIdConnector.readsBackgroundSignIns(
+        settings({ [ENTRA_BACKGROUND_SIGN_INS_KEY]: false }),
+      ),
+    ).toBe(false);
   });
 
   test("settings for another provider are refused", () => {
@@ -257,10 +315,14 @@ describe("MicrosoftEntraIdConnector - testConnection", () => {
       ["authentication", "pass"],
       ["read-sign-ins", "pass"],
       ["read-directory-audits", "pass"],
+      ["read-risk-detections", "pass"],
       ["detections-available", "pass"],
     ]);
     expect(check(result.checks, "authentication").message).toBe(
       "Microsoft Entra issued an access token for Microsoft Graph in the Azure public cloud.",
+    );
+    expect(check(result.checks, "read-risk-detections").message).toBe(
+      "Microsoft Graph accepted a read of Identity Protection's risk detections. There were none in the last 24 hours.",
     );
     expect(check(result.checks, "read-sign-ins").message).toContain(
       "alice@contoso.example signed in to Azure Portal from 203.0.113.7 in Seattle, US",
@@ -365,6 +427,7 @@ describe("MicrosoftEntraIdConnector - testConnection", () => {
       ["authentication", "fail"],
       ["read-sign-ins", "skip"],
       ["read-directory-audits", "skip"],
+      ["read-risk-detections", "skip"],
       ["read-microsoft-365", "skip"],
       ["detections-available", "skip"],
     ]);
@@ -483,6 +546,159 @@ describe("MicrosoftEntraIdConnector - testConnection", () => {
     );
   });
 
+  test("risk detections are counted with the rest; a tenant without the permission or the licence is warned, never failed", async () => {
+    const { connector } = connectorFor({
+      signIns: [entraSignIn({ createdDateTime: ago(HOUR_IN_MS) })],
+      riskDetections: [
+        entraRiskDetection({ detectedDateTime: ago(2 * HOUR_IN_MS) }),
+        entraRiskDetection({
+          id: "second-risk",
+          detectedDateTime: ago(3 * HOUR_IN_MS),
+        }),
+      ],
+    });
+    const result: ConnectorTestResult = await connector.testConnection(
+      settings(),
+      { requestTimeoutInMs: 15000 },
+    );
+
+    expect(check(result.checks, "read-risk-detections")).toMatchObject({
+      status: "pass",
+      message:
+        "Microsoft Graph returned Identity Protection's risk detections: 2 in the last 24 hours.",
+    });
+    expect(check(result.checks, "detections-available").message).toBe(
+      "1 sign-in, 0 directory changes and 2 risk detections in the last 24 hours.",
+    );
+
+    const { connector: withoutPermission } = connectorFor({
+      signIns: [entraSignIn({ createdDateTime: ago(HOUR_IN_MS) })],
+      riskDetectionsFailure: {
+        statusCode: 403,
+        body: apiError(
+          "Authorization_RequestDenied",
+          "Insufficient privileges to complete the operation.",
+        ),
+      },
+    });
+    const refused: ConnectorTestResult = await withoutPermission.testConnection(
+      settings(),
+      { requestTimeoutInMs: 15000 },
+    );
+    const risk: SecurityConnectorCheck = check(
+      refused.checks,
+      "read-risk-detections",
+    );
+
+    expect(risk.status).toBe("warn");
+    expect(risk.message).toContain(
+      "Sign-ins and directory changes are still imported.",
+    );
+    expect(risk.remediation).toContain("IdentityRiskEvent.Read.All");
+    expect(check(refused.checks, "detections-available").status).toBe("pass");
+    expect(
+      refused.checks.some((candidate: SecurityConnectorCheck): boolean => {
+        return candidate.status === "fail";
+      }),
+    ).toBe(false);
+  });
+
+  test("background and app sign-ins are tested only when the option is on, from Graph's beta list", async () => {
+    const { api, connector } = connectorFor({});
+    const off: ConnectorTestResult = await connector.testConnection(
+      settings(),
+      { requestTimeoutInMs: 15000 },
+    );
+
+    expect(
+      off.checks.some((candidate: SecurityConnectorCheck): boolean => {
+        return candidate.key === "read-background-and-app-sign-ins";
+      }),
+    ).toBe(false);
+    expect(
+      graphRequests(api, "/auditLogs/signIns").filter(
+        (request: { version: string }) => {
+          return request.version === "beta";
+        },
+      ),
+    ).toEqual([]);
+
+    const on: ConnectorTestResult = await connector.testConnection(
+      withBackgroundSignIns(),
+      { requestTimeoutInMs: 15000 },
+    );
+
+    expect(check(on.checks, "read-background-and-app-sign-ins")).toMatchObject({
+      status: "pass",
+      message:
+        "Microsoft Graph accepted a read of the sign-ins apps make for people in the background and of apps' own. The ones that fail are imported.",
+    });
+    expect(
+      graphRequests(api, "/auditLogs/signIns")
+        .filter((request: { version: string }) => {
+          return request.version === "beta";
+        })
+        .map((request: { filter: string }) => {
+          return request.filter.slice(request.filter.indexOf(") and ") + 6);
+        }),
+    ).toEqual([
+      "signInEventTypes/any(t: t eq 'nonInteractiveUser')",
+      "signInEventTypes/any(t: t eq 'servicePrincipal')",
+    ]);
+
+    const { connector: refusing } = connectorFor({
+      servicePrincipalSignInsFailure: {
+        statusCode: 400,
+        body: apiError("BadRequest", "Invalid filter clause"),
+      },
+    });
+    const refused: ConnectorTestResult = await refusing.testConnection(
+      withBackgroundSignIns(),
+      { requestTimeoutInMs: 15000 },
+    );
+    const background: SecurityConnectorCheck = check(
+      refused.checks,
+      "read-background-and-app-sign-ins",
+    );
+
+    expect(background.status).toBe("warn");
+    expect(background.message).toContain("Not read: app sign-ins:");
+    expect(background.message).not.toContain("background sign-ins:");
+  });
+
+  test.each([
+    ["public", "graph.microsoft.com", "the Azure public"],
+    ["gcc", "graph.microsoft.com", "the Azure public (Microsoft 365 GCC)"],
+    ["usgov", "graph.microsoft.us", "the Azure Government (GCC High)"],
+    ["dod", "dod-graph.microsoft.us", "the Azure Government (DoD)"],
+  ])(
+    "the %s cloud is read from its own Graph host",
+    async (cloud: string, graphHost: string, label: string) => {
+      const { api, connector } = connectorFor({});
+      const result: ConnectorTestResult = await connector.testConnection(
+        settings({ cloud }),
+        { requestTimeoutInMs: 15000 },
+      );
+
+      expect(check(result.checks, "authentication").message).toBe(
+        `Microsoft Entra issued an access token for Microsoft Graph in ${label} cloud.`,
+      );
+      expect(
+        Array.from(
+          new Set(
+            [
+              ...graphRequests(api, "/auditLogs/signIns"),
+              ...graphRequests(api, "/auditLogs/directoryAudits"),
+              ...graphRequests(api, "/identityProtection/riskDetections"),
+            ].map((request: { host: string }) => {
+              return request.host;
+            }),
+          ),
+        ),
+      ).toEqual([graphHost]);
+    },
+  );
+
   test("an empty day is a warning that names the likely cause", async () => {
     const { connector } = connectorFor({});
     const result: ConnectorTestResult = await connector.testConnection(
@@ -535,8 +751,13 @@ describe("MicrosoftEntraIdConnector - fetchEvents, Microsoft Entra ID", () => {
     ).toEqual([
       ["read-directory-audits", "pass"],
       ["read-sign-ins", "pass"],
+      ["read-risk-detections", "pass"],
     ]);
-    expect(result.details).toEqual({ directoryAudits: 1, signIns: 3 });
+    expect(result.details).toEqual({
+      directoryAudits: 1,
+      signIns: 3,
+      riskDetections: 0,
+    });
     expect(result.requestCount).toBe(api.requests.length);
     expect(result.samples[0]!.createdTime).toBeDefined();
     // Nothing went to the Management API without the option.
@@ -548,15 +769,18 @@ describe("MicrosoftEntraIdConnector - fetchEvents, Microsoft Entra ID", () => {
       signIns: signIns(30),
       graphPageCap: 5,
     });
+    const planned: number =
+      ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET +
+      ENTRA_SIGN_IN_PAGE_BUDGET +
+      ENTRA_RISK_DETECTION_PAGE_BUDGET;
     const result: ConnectorFetchResult = await connector.fetchEvents(
       settings(),
       lastHour(),
-      fetchOptions({
-        maxRequests:
-          (ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET + ENTRA_SIGN_IN_PAGE_BUDGET) / 10,
-      }),
+      // 4 of the 34 requests planned: sign-ins keep their share, 2 pages.
+      fetchOptions({ maxRequests: Math.ceil(planned / 10) }),
     );
 
+    expect(planned).toBe(34);
     expect(result.complete).toBe(false);
     expect(result.resumeAfter).toBeUndefined();
     expect(result.events).toHaveLength(10);
@@ -571,10 +795,10 @@ describe("MicrosoftEntraIdConnector - fetchEvents, Microsoft Entra ID", () => {
     const result: ConnectorFetchResult = await connector.fetchEvents(
       settings(),
       lastHour(),
-      fetchOptions({ maxEvents: 30 }),
+      fetchOptions({ maxEvents: 34 }),
     );
 
-    // 30 of 15,000 planned: sign-ins keep their share, 20.
+    // 34 of 17,000 planned: sign-ins keep their share, 20.
     expect(result.complete).toBe(false);
     expect(result.events).toHaveLength(20);
     expect(result.warnings.join(" ")).toContain("the per-run record limit");
@@ -902,7 +1126,10 @@ describe("MicrosoftEntraIdConnector - fetchEvents, the Microsoft 365 audit log",
       ],
     });
     const planned: number =
-      (ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET + ENTRA_SIGN_IN_PAGE_BUDGET) * 500 +
+      (ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET +
+        ENTRA_SIGN_IN_PAGE_BUDGET +
+        ENTRA_RISK_DETECTION_PAGE_BUDGET) *
+        500 +
       MICROSOFT_365_RECORD_BUDGET;
     const result: ConnectorFetchResult = await connector.fetchEvents(
       withMicrosoft365(),
@@ -942,6 +1169,7 @@ describe("MicrosoftEntraIdConnector - fetchEvents, the Microsoft 365 audit log",
       maxRequests: Math.floor(
         (ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET +
           ENTRA_SIGN_IN_PAGE_BUDGET +
+          ENTRA_RISK_DETECTION_PAGE_BUDGET +
           MICROSOFT_365_REQUEST_BUDGET) /
           4,
       ),
@@ -957,12 +1185,350 @@ describe("MicrosoftEntraIdConnector - fetchEvents, the Microsoft 365 audit log",
       },
     ).length;
 
-    const share: number = MicrosoftEntraIdConnector.splitBudget(options, true)
-      .microsoft365.maxRequests;
+    const share: number = MicrosoftEntraIdConnector.splitBudget(options, {
+      includeBackgroundSignIns: false,
+      includeMicrosoft365: true,
+    }).microsoft365!.maxRequests;
 
     expect(share).toBeLessThan(MICROSOFT_365_REQUEST_BUDGET);
     expect(managementRequests).toBe(share);
     expect(result.complete).toBe(false);
     expect(result.warnings.join(" ")).toContain("the per-run request limit");
   });
+});
+
+describe("MicrosoftEntraIdConnector - fetchEvents, risk detections", () => {
+  test("Identity Protection's risk detections are read on every poll, after the connection's own records", async () => {
+    const { api, connector } = connectorFor({
+      signIns: signIns(1),
+      riskDetections: [
+        entraRiskDetection({ detectedDateTime: ago(10 * MINUTE_IN_MS) }),
+        // Dismissed already: read, never imported.
+        entraRiskDetection({
+          id: "dismissed",
+          riskState: "dismissed",
+          detectedDateTime: ago(11 * MINUTE_IN_MS),
+        }),
+        // Outside the window.
+        entraRiskDetection({
+          id: "older",
+          detectedDateTime: ago(2 * HOUR_IN_MS),
+        }),
+      ],
+    });
+    const result: ConnectorFetchResult = await connector.fetchEvents(
+      settings(),
+      lastHour(),
+      fetchOptions(),
+    );
+
+    expect(
+      result.checks!.map((candidate: SecurityConnectorCheck) => {
+        return candidate.key;
+      }),
+    ).toEqual([
+      "read-directory-audits",
+      "read-sign-ins",
+      "read-risk-detections",
+    ]);
+    expect(result.details!["riskDetections"]).toBe(2);
+
+    const risks: Array<NormalizedSecurityEvent> = result.events.filter(
+      (event: NormalizedSecurityEvent): boolean => {
+        return event.eventUid.startsWith("entra:risk:");
+      },
+    );
+
+    expect(risks).toHaveLength(1);
+    expect(risks[0]).toMatchObject({
+      vendorName: "Microsoft",
+      productName: "Microsoft Entra ID",
+      principalUser: "alice@contoso.example",
+    });
+    // Graph's v1.0 list, filtered by when each was detected.
+    expect(graphRequests(api, "/identityProtection/riskDetections")).toEqual([
+      {
+        host: "graph.microsoft.com",
+        version: "v1.0",
+        filter: expect.stringMatching(
+          /^detectedDateTime ge \S+ and detectedDateTime le \S+$/,
+        ),
+      },
+    ]);
+  });
+
+  test("risk detections Graph will not give out are a warning: the connection's records are imported all the same", async () => {
+    const { connector } = connectorFor({
+      signIns: signIns(2),
+      riskDetectionsFailure: {
+        statusCode: 403,
+        body: apiError(
+          "Authorization_RequestDenied",
+          "Insufficient privileges to complete the operation.",
+        ),
+      },
+    });
+    const result: ConnectorFetchResult = await connector.fetchEvents(
+      settings(),
+      lastHour(),
+      fetchOptions(),
+    );
+
+    expect(result.events).toHaveLength(2);
+    // Asking again would not change the answer: the window is complete.
+    expect(result.complete).toBe(true);
+    expect(check(result.checks!, "read-risk-detections").status).toBe("warn");
+    expect(check(result.checks!, "read-risk-detections").remediation).toContain(
+      "IdentityRiskEvent.Read.All",
+    );
+    expect(result.details!["riskDetectionsUnavailable"]).toBe("refused");
+    expect(result.warnings.join(" ")).toContain(
+      "Risk detections were not read:",
+    );
+  });
+
+  test("a risk detection read Microsoft may answer next time leaves the window to be read again", async () => {
+    const { connector } = connectorFor({
+      signIns: signIns(1),
+      riskDetectionsFailure: {
+        statusCode: 503,
+        body: apiError("ServiceUnavailable", "Try again later."),
+      },
+    });
+    const result: ConnectorFetchResult = await connector.fetchEvents(
+      settings(),
+      lastHour(),
+      fetchOptions(),
+    );
+
+    expect(result.events).toHaveLength(1);
+    expect(result.complete).toBe(false);
+    expect(result.details!["riskDetectionsUnavailable"]).toBe(
+      "transient-failure",
+    );
+    expect(result.warnings.join(" ")).toContain(
+      "The window is read again on the next poll.",
+    );
+  });
+});
+
+describe("MicrosoftEntraIdConnector - fetchEvents, background and app sign-ins", () => {
+  const failedBackground: JSONObject = entraFailedSignIn({
+    id: "background-failed",
+    isInteractive: false,
+    createdDateTime: ago(5 * MINUTE_IN_MS),
+  });
+  const workedBackground: JSONObject = entraSignIn({
+    id: "background-worked",
+    isInteractive: false,
+    createdDateTime: ago(6 * MINUTE_IN_MS),
+  });
+  const failedApp: JSONObject = entraFailedSignIn({
+    id: "app-failed",
+    isInteractive: false,
+    userPrincipalName: null,
+    servicePrincipalName: "Mail Exporter Pro",
+    servicePrincipalId: "5e6f7a8b-0000-4000-8000-000000000003",
+    createdDateTime: ago(7 * MINUTE_IN_MS),
+  });
+
+  test("off: never read, nor asked of Graph's beta list", async () => {
+    const { api, connector } = connectorFor({
+      nonInteractiveSignIns: [failedBackground],
+      servicePrincipalSignIns: [failedApp],
+    });
+    const result: ConnectorFetchResult = await connector.fetchEvents(
+      settings(),
+      lastHour(),
+      fetchOptions(),
+    );
+
+    expect(result.events).toEqual([]);
+    expect(
+      graphRequests(api, "/auditLogs/signIns").map(
+        (request: { version: string }) => {
+          return request.version;
+        },
+      ),
+    ).toEqual(["v1.0"]);
+  });
+
+  test("on: the failed ones of each kind are imported, the ones that worked are not", async () => {
+    const { api, connector } = connectorFor({
+      nonInteractiveSignIns: [failedBackground, workedBackground],
+      servicePrincipalSignIns: [failedApp],
+    });
+    const result: ConnectorFetchResult = await connector.fetchEvents(
+      withBackgroundSignIns(),
+      lastHour(),
+      fetchOptions(),
+    );
+
+    expect(
+      result.checks!.map((candidate: SecurityConnectorCheck) => {
+        return [candidate.key, candidate.status];
+      }),
+    ).toEqual([
+      ["read-directory-audits", "pass"],
+      ["read-sign-ins", "pass"],
+      ["read-risk-detections", "pass"],
+      ["read-background-sign-ins", "pass"],
+      ["read-app-sign-ins", "pass"],
+    ]);
+    expect(
+      result.events
+        .map((event: NormalizedSecurityEvent) => {
+          return event.eventUid;
+        })
+        .sort(),
+    ).toEqual(["entra:signin:app-failed", "entra:signin:background-failed"]);
+    expect(result.details).toMatchObject({
+      nonInteractiveSignIns: 2,
+      servicePrincipalSignIns: 1,
+    });
+    expect(
+      result.events.every((event: NormalizedSecurityEvent): boolean => {
+        return event.statusName === "Failure";
+      }),
+    ).toBe(true);
+    expect(
+      graphRequests(api, "/auditLogs/signIns")
+        .filter((request: { version: string }) => {
+          return request.version === "beta";
+        })
+        .map((request: { filter: string }) => {
+          return request.filter.slice(request.filter.indexOf(") and ") + 6);
+        }),
+    ).toEqual([
+      "signInEventTypes/any(t: t eq 'nonInteractiveUser')",
+      "signInEventTypes/any(t: t eq 'servicePrincipal')",
+    ]);
+  });
+
+  test("a kind Graph's beta list refuses is a warning under its own name; the other is still read", async () => {
+    const { connector } = connectorFor({
+      nonInteractiveSignIns: [failedBackground],
+      servicePrincipalSignInsFailure: {
+        statusCode: 400,
+        body: apiError("BadRequest", "Invalid filter clause"),
+      },
+    });
+    const result: ConnectorFetchResult = await connector.fetchEvents(
+      withBackgroundSignIns(),
+      lastHour(),
+      fetchOptions(),
+    );
+
+    expect(result.events).toHaveLength(1);
+    expect(result.complete).toBe(true);
+    expect(check(result.checks!, "read-background-sign-ins").status).toBe(
+      "pass",
+    );
+    expect(check(result.checks!, "read-app-sign-ins").status).toBe("warn");
+    expect(result.warnings.join(" ")).toContain("App sign-ins were not read:");
+  });
+
+  test("each pass has its own budget, the background kinds' within the fetch's", () => {
+    const connector: MicrosoftEntraIdConnector =
+      new MicrosoftEntraIdConnector();
+    const full: ConnectorFetchOptions = fetchOptions();
+    const budgets: ReturnType<typeof MicrosoftEntraIdConnector.splitBudget> =
+      MicrosoftEntraIdConnector.splitBudget(full, {
+        includeBackgroundSignIns: true,
+        includeMicrosoft365: true,
+      });
+
+    expect(budgets).toEqual({
+      directoryAudits: {
+        maxRequests: ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET,
+        maxRecords: ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET * 500,
+      },
+      signIns: {
+        maxRequests: ENTRA_SIGN_IN_PAGE_BUDGET,
+        maxRecords: ENTRA_SIGN_IN_PAGE_BUDGET * 500,
+      },
+      riskDetections: {
+        maxRequests: ENTRA_RISK_DETECTION_PAGE_BUDGET,
+        maxRecords: ENTRA_RISK_DETECTION_PAGE_BUDGET * 500,
+      },
+      nonInteractiveSignIns: {
+        maxRequests: ENTRA_BACKGROUND_SIGN_IN_PAGE_BUDGET,
+        maxRecords: ENTRA_BACKGROUND_SIGN_IN_PAGE_BUDGET * 500,
+      },
+      servicePrincipalSignIns: {
+        maxRequests: ENTRA_BACKGROUND_SIGN_IN_PAGE_BUDGET,
+        maxRecords: ENTRA_BACKGROUND_SIGN_IN_PAGE_BUDGET * 500,
+      },
+      microsoft365: {
+        maxRequests: MICROSOFT_365_REQUEST_BUDGET,
+        maxRecords: MICROSOFT_365_RECORD_BUDGET,
+      },
+    });
+    // The fetch's own budget is every pass's, with room for the tokens and a retry.
+    expect(connector.fetchBudget.maxRequests).toBe(
+      ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET +
+        ENTRA_SIGN_IN_PAGE_BUDGET +
+        ENTRA_RISK_DETECTION_PAGE_BUDGET +
+        2 * ENTRA_BACKGROUND_SIGN_IN_PAGE_BUDGET +
+        MICROSOFT_365_REQUEST_BUDGET +
+        4,
+    );
+    expect(connector.fetchBudget.maxEvents).toBe(
+      (ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET +
+        ENTRA_SIGN_IN_PAGE_BUDGET +
+        ENTRA_RISK_DETECTION_PAGE_BUDGET +
+        2 * ENTRA_BACKGROUND_SIGN_IN_PAGE_BUDGET) *
+        500 +
+        MICROSOFT_365_RECORD_BUDGET,
+    );
+    // A connection without the options plans no budget for them.
+    expect(
+      Object.keys(
+        MicrosoftEntraIdConnector.splitBudget(full, {
+          includeBackgroundSignIns: false,
+          includeMicrosoft365: false,
+        }),
+      ),
+    ).toEqual(["directoryAudits", "signIns", "riskDetections"]);
+  });
+});
+
+describe("MicrosoftEntraIdConnector - fetchEvents, the clouds", () => {
+  test.each([
+    ["gcc", "graph.microsoft.com", "manage-gcc.office.com"],
+    ["usgov", "graph.microsoft.us", "manage.office365.us"],
+    ["dod", "dod-graph.microsoft.us", "manage.protection.apps.mil"],
+  ])(
+    "%s reads Graph and the Office 365 Management API from its own hosts",
+    async (cloud: string, graphHost: string, manageHost: string) => {
+      const { api, connector } = connectorFor({
+        signIns: signIns(1),
+        subscriptions: [
+          { contentType: "Audit.Exchange", status: "enabled" },
+          { contentType: "Audit.SharePoint", status: "enabled" },
+          { contentType: "Audit.General", status: "enabled" },
+        ],
+      });
+      const result: ConnectorFetchResult = await connector.fetchEvents(
+        withMicrosoft365({ cloud }),
+        lastHour(),
+        fetchOptions(),
+      );
+
+      expect(result.events).toHaveLength(1);
+      expect(
+        Array.from(
+          new Set(
+            api.requests
+              .map((request: DataSourceHttpRequest): string => {
+                return new URL(request.url).host;
+              })
+              .filter((host: string): boolean => {
+                return !host.startsWith("login.");
+              }),
+          ),
+        ).sort(),
+      ).toEqual([graphHost, manageHost].sort());
+    },
+  );
 });

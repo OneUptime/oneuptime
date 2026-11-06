@@ -152,7 +152,6 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Change it, or publish right away.",
   ],
   [MAINTENANCE_STATES]: [
-    "state",
     "The clock",
     "The header",
     "The timeline",

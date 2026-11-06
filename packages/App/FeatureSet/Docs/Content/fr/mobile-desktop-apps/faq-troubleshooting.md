@@ -85,7 +85,7 @@ flowchart TB
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
-Expo signale un téléphone disparu quand l'application en a été supprimée, ou quand son jeton push n'est plus valide. Le téléphone n'est pas supprimé : **Paramètres utilisateur → Méthodes de notification**, dans l'onglet **Push Notifications**, l'affiche comme **Ne reçoit pas de notifications**, et la chronologie d'astreinte d'une alerte qui ne l'a pas atteint dit pourquoi. Vos autres téléphones et méthodes de notification sont alertés comme d'habitude.
+Expo signale un téléphone disparu quand l'application en a été supprimée, ou quand son jeton push n'est plus valide. Le téléphone n'est pas supprimé : **Paramètres utilisateur → Méthodes de notification**, dans l'onglet **Notifications push**, l'affiche comme **Ne reçoit pas de notifications**, et la chronologie d'astreinte d'une alerte qui ne l'a pas atteint dit pourquoi. Vos autres téléphones et méthodes de notification sont alertés comme d'habitude.
 
 L'application enregistre le téléphone à chaque démarrage, quand vous vous connectez, et quand vous y revenez, au plus une fois toutes les cinq minutes. L'enregistrement redemande le jeton push à Expo, ce qui le renouvelle, et le téléphone reçoit de nouveau les alertes avec les règles qu'il avait.
 
@@ -124,7 +124,7 @@ Les clés d'accès demandent une adresse de votre OneUptime qui commence par `ht
 
 :::details Aucune notification sur le téléphone
 - Vérifiez que le téléphone autorise les notifications de OneUptime On-Call, et que Ne pas déranger ou un mode de concentration ne les retient pas.
-- Dans **Paramètres utilisateur → Méthodes de notification**, onglet **Push Notifications**, vérifiez que le téléphone est listé, et envoyez-lui une **Notification de test**.
+- Dans **Paramètres utilisateur → Méthodes de notification**, onglet **Notifications push**, vérifiez que le téléphone est listé, et envoyez-lui une **Notification de test**.
 - S'il est marqué **Ne reçoit pas de notifications**, ouvrez l'application en étant connecté : voir [Quand un téléphone doit se réenregistrer](#quand-un-téléphone-doit-se-réenregistrer).
 - Vérifiez vos règles d'astreinte sous **Paramètres utilisateur → Règles d'astreinte** : elles décident quelles alertes atteignent quelle méthode.
 - Sur un OneUptime auto-hébergé, vérifiez que le serveur joint son relais push : voir [Notifications push](/docs/self-hosted/push-notifications#accès-réseau).
@@ -145,7 +145,7 @@ Installez depuis une page du tableau de bord une fois connecté, en `https://`, 
 :::
 
 :::details Pas de notifications sur le bureau
-Enregistrez le navigateur sous **Paramètres utilisateur → Méthodes de notification**, onglet **Push Notifications**, avec **Enregistrer l'appareil**, autorisez les notifications quand on vous le demande, et vérifiez les réglages de notification de l'ordinateur lui-même. Un OneUptime auto-hébergé a besoin de ses clés VAPID pour les notifications du navigateur.
+Enregistrez le navigateur sous **Paramètres utilisateur → Méthodes de notification**, onglet **Notifications push**, avec **Enregistrer l'appareil**, autorisez les notifications quand on vous le demande, et vérifiez les réglages de notification de l'ordinateur lui-même. Un OneUptime auto-hébergé a besoin de ses clés VAPID pour les notifications du navigateur.
 :::
 
 ## Obtenir de l'aide

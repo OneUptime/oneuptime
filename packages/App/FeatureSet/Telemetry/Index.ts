@@ -4,8 +4,12 @@ import MetricsAPI from "./API/Metrics";
 import SyslogAPI from "./API/Syslog";
 import FluentAPI from "./API/Fluent";
 import VercelLogDrainAPI from "./API/VercelLogDrain";
+import AwsFirehoseAPI from "./API/AwsFirehose";
 import SecurityEventsIngestAPI from "./API/SecurityEventsIngest";
 import ChangeEventsIngestAPI from "./API/ChangeEventsIngest";
+import OpenLineageIngestAPI from "./API/OpenLineageIngest";
+import DbtArtifactsIngestAPI from "./API/DbtArtifactsIngest";
+import SyncWebhooksIngestAPI from "./API/SyncWebhooksIngest";
 import PyroscopeAPI from "./API/Pyroscope";
 import SourceMapIngestAPI from "./API/SourceMapIngest";
 import SessionReplayIngestAPI from "./API/SessionReplayIngest";
@@ -23,7 +27,10 @@ import ProbeIngestAPI from "./API/ProbeIngest/Probe";
 import ProbeIngestSyslogAPI from "./API/ProbeIngest/Syslog";
 import ProbeIngestNetworkFlowAPI from "./API/ProbeIngest/NetworkFlow";
 import ProbeIngestVMwareCollectionAPI from "./API/ProbeIngest/VMwareCollection";
+import ProbeIngestOpenStackCollectionAPI from "./API/ProbeIngest/OpenStackCollection";
+import ProbeIngestOpenStackChecksAPI from "./API/ProbeIngest/OpenStackChecks";
 import ProbeIngestDataSecurityAPI from "./API/ProbeIngest/DataSecurity";
+import ProbeIngestDataObservabilityAPI from "./API/ProbeIngest/DataObservability";
 import IncomingEmailAPI from "./API/ProbeIngest/IncomingEmail";
 // ServerMonitorIngest routes
 import ServerMonitorAPI from "./API/ServerMonitorIngest/ServerMonitor";
@@ -85,8 +92,16 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(TELEMETRY_PREFIXES, SyslogAPI);
       app.use(TELEMETRY_PREFIXES, FluentAPI);
       app.use(TELEMETRY_PREFIXES, VercelLogDrainAPI);
+      /*
+       * Amazon Data Firehose: an AWS connection's metric streams and
+       * CloudWatch Logs subscriptions (/aws-firehose/v1/metrics, /logs).
+       */
+      app.use(TELEMETRY_PREFIXES, AwsFirehoseAPI);
       app.use(TELEMETRY_PREFIXES, SecurityEventsIngestAPI);
       app.use(TELEMETRY_PREFIXES, ChangeEventsIngestAPI);
+      app.use(TELEMETRY_PREFIXES, OpenLineageIngestAPI);
+      app.use(TELEMETRY_PREFIXES, DbtArtifactsIngestAPI);
+      app.use(TELEMETRY_PREFIXES, SyncWebhooksIngestAPI);
       app.use(TELEMETRY_PREFIXES, PyroscopeAPI);
       app.use(TELEMETRY_PREFIXES, SourceMapIngestAPI);
       /*
@@ -135,7 +150,10 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestSyslogAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestNetworkFlowAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestVMwareCollectionAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestOpenStackCollectionAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestOpenStackChecksAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestDataSecurityAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestDataObservabilityAPI);
       app.use(["/probe-ingest", "/"], IncomingEmailAPI);
 
       // ServerMonitorIngest routes under ["/server-monitor-ingest", "/"]

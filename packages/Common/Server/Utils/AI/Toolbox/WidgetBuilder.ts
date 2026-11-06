@@ -9,6 +9,10 @@ import {
   AIChatWidgetType,
 } from "../../../../Types/AI/AIChatTypes";
 import { getFactsNotInHeading } from "../../../../Types/AI/ResourceCardFacts";
+import {
+  AIActionCardWords,
+  describeAIActionCardWords,
+} from "../../../../Types/AI/AIActionWords";
 
 /*
  * Builds the inline widgets a tool attaches to its result. Widgets are built
@@ -165,6 +169,8 @@ export default class WidgetBuilder {
     subheading?: string | undefined;
     fields: Array<{ label: string; value: string }>;
     link?: AIChatCitationTarget | undefined;
+    // The same card as words the Dashboard says in the reader's language.
+    words?: AIActionCardWords | undefined;
   }): AIChatWidget {
     return {
       id: "",
@@ -179,9 +185,44 @@ export default class WidgetBuilder {
           subheading: params.subheading,
           fields: params.fields,
         }),
+        ...(params.words ? { words: params.words } : {}),
         link: params.link,
       },
     };
+  }
+
+  /*
+   * The card an action leaves under the answer once it ran - what it made
+   * or changed - from its words (Types/AI/AIActionWords): the kind of
+   * record, the line about what happened to it and its facts, which the
+   * Dashboard says in the reader's language. The heading is data in every
+   * language: the record by its number and title, a policy by its name.
+   * The English the card stores beside its words - what the exports print,
+   * and what a Dashboard that cannot read the words draws - is the same
+   * words in English, so the two never say different things. Every card a
+   * write tool leaves is one of these (ResourceCardWordsGuard).
+   */
+  public static actionCard(params: {
+    title: string;
+    heading: string;
+    words: AIActionCardWords;
+    link?: AIChatCitationTarget | undefined;
+  }): AIChatWidget {
+    const english: {
+      kind: string;
+      line?: string | undefined;
+      facts: Array<{ label: string; value: string }>;
+    } = describeAIActionCardWords(params.words);
+
+    return this.resourceCard({
+      title: params.title,
+      resourceType: english.kind,
+      heading: params.heading,
+      subheading: english.line,
+      fields: english.facts,
+      link: params.link,
+      words: params.words,
+    });
   }
 
   public static stats(params: {

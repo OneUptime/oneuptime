@@ -344,6 +344,10 @@ type SelectCoversFunction = (
   path: Array<string>,
 ) => boolean;
 
+const JSON_COLUMNS_A_TEMPLATE_READS_INTO: ReadonlyArray<string> = [
+  "seriesLabels",
+];
+
 const selectCovers: SelectCoversFunction = (
   select: JSONValue | undefined,
   path: Array<string>,
@@ -383,6 +387,11 @@ const selectCovers: SelectCoversFunction = (
 
   if (path.length === 1) {
     return Boolean(branch);
+  }
+
+  // A JSON column comes back whole, so what is inside it is there to read.
+  if (JSON_COLUMNS_A_TEMPLATE_READS_INTO.includes(head) && branch === true) {
+    return true;
   }
 
   return selectCovers(branch, path.slice(1));

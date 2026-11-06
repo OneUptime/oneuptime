@@ -33,6 +33,7 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import MetricCatalog from "../Utils/MetricCatalog";
 import MetricsQueueService from "./Queue/MetricsQueueService";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
 import { DiscoveredResourceKinds } from "Common/Server/Utils/Telemetry/DiscoveredResourceIdCache";
 import { ResourceHeartbeatResult } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
 import OtelIngestBaseService, {
@@ -84,6 +85,30 @@ import CephResourceService, {
   CephResourceLatestMetric,
 } from "Common/Server/Services/CephResourceService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
+import OpenStackEventRecorder from "Common/Server/Utils/OpenStack/OpenStackEventRecorder";
+import OpenStackResourceService, {
+  OpenStackInventorySummary,
+  ParsedOpenStackResource,
+} from "Common/Server/Services/OpenStackResourceService";
+import {
+  OpenStackOptionalServiceScrape,
+  OpenStackResourceBufferEntry,
+  bufferOpenStackOptionalServiceScrape,
+  bufferOpenStackSnapshotMetric,
+  finishOpenStackBatch,
+  getOpenStackHostsToReconcile,
+  getOpenStackHostsWithPartReadings,
+  getOpenStackRoutersWithoutAgents,
+  hasOpenStackContainerClusterProjectToJoin,
+  isOpenStackDatapointKept,
+  isOpenStackOptionalServiceScrapeDatapoint,
+  isOpenStackSnapshotDatapoint,
+} from "Common/Server/Utils/Telemetry/OpenStackSnapshotScan";
+import OpenStackInstanceMetricsIngest from "Common/Server/Utils/Telemetry/OpenStackInstanceMetricsIngest";
+import OpenStackSummaryMode, {
+  OpenStackSummaryChoice,
+} from "Common/Server/Utils/Telemetry/OpenStackSummaryMode";
 import VMwareResourceService, {
   ParsedVMwareResource,
   VMwareResourceLatestMetric,
@@ -116,6 +141,13 @@ import Host from "Common/Models/DatabaseModels/Host";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import { HEARTBEAT_MAX_BACKDATE_MS } from "Common/Utils/Telemetry/HeartbeatAvailability";
 import { normalizeHostIpAddresses } from "Common/Utils/Telemetry/HostIpAddresses";
+import DatabaseServerService from "Common/Server/Services/DatabaseServerService";
+import {
+  DatabaseEngineReadingAccumulators,
+  accumulateDatabaseEngineReadings,
+  finishDatabaseEngineReadings,
+  getDatabaseEngineReadingsInstanceFromAttributes,
+} from "Common/Server/Utils/Telemetry/DatabaseEngineReadingsScan";
 import {
   HostReadings,
   hasHostReadings,
@@ -189,6 +221,12 @@ type MetricTimestamp = {
   db: string;
   date: Date;
 };
+
+// By database id, then by reporting agent: a batch's engine readings so far.
+type DatabaseEngineReadingsBuffer = Map<
+  string,
+  Map<string, DatabaseEngineReadingAccumulators>
+>;
 
 /*
  * ------------------------------------------------------------------
@@ -1061,6 +1099,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        * Per cluster: the native-push nodes this batch's live nodes
        * reported as not reporting, for the inventory flush.
        */
+      /*
+       * OpenStack parts folded per cloud: see OpenStackSnapshotScan. The counts
+       * are read back from the inventory at flush, so nothing here counts.
+       */
+      const openStackResourceBuffer: Map<
+        string,
+        Map<string, OpenStackResourceBufferEntry>
+      > = new Map();
+      // What scrapes said of services a cloud may not run: never a row of its own.
+      const openStackOptionalServiceScrapes: Map<
+        string,
+        Map<string, OpenStackOptionalServiceScrape>
+      > = new Map();
       const proxmoxSilentNodeReports: Map<string, ProxmoxSilentNodeReport> =
         new Map();
       const vmwareResourceMetricsBuffer: Map<
@@ -1093,6 +1144,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        * the metric names imply — see flushStorageArraySnapshotBuffers.
        */
       const storageArrayDeclaredSystems: Map<string, string> = new Map();
+      /*
+       * Per database, per reporting agent: this batch's datapoints of the
+       * queries the database's alert templates read
+       * (DatabaseEngineReadingsScan), stored on the database once the rows
+       * have landed (flushDatabaseEngineReadings).
+       */
+      const databaseEngineReadingsBuffer: DatabaseEngineReadingsBuffer =
+        new Map();
       const iotResourceMetricsBuffer: Map<
         string,
         Map<string, IoTDeviceBufferEntry>
@@ -1204,6 +1263,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             dockerHostId,
             podmanHostId,
             proxmoxClusterId,
+            openStackCloudId,
             vmwareVCenterId,
             cephClusterId,
             storageArrayId,
@@ -1211,6 +1271,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             iotFleetId,
             databaseServerId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -1235,6 +1296,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
             this.autoDiscoverProxmoxCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverOpenStackCloud({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -1278,6 +1343,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             }
           }
 
+          // What a database's engine reports, as its alert templates read it.
+          if (databaseServerId) {
+            this.bufferDatabaseEngineReadings({
+              buffer: databaseEngineReadingsBuffer,
+              databaseServerId: databaseServerId,
+              resourceAttributes: resourceAttributes_raw,
+              scopeMetrics: scopeMetricsForScan,
+            });
+          }
+
           /*
            * A native-push node's own status push also reports the
            * siblings that have stopped reporting (pve_up = 0), so Node
@@ -1293,6 +1368,25 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               reports: proxmoxSilentNodeReports,
             });
           }
+
+          /*
+           * What libvirt's or Ceilometer's exporter says about an instance, in the one shape
+           * the pages and templates read, appended before the rows are built for the same
+           * reason as above.
+           */
+          if (openStackCloudId) {
+            await OpenStackInstanceMetricsIngest.normalizeEnvelope({
+              projectId,
+              openStackCloudId,
+              envelope: resourceMetric as JSONObject,
+            });
+          }
+
+          // Past a stated size a cloud keeps its rows and counts, and no series per instance.
+          const openStackSummary: OpenStackSummaryChoice | null =
+            openStackCloudId
+              ? await OpenStackSummaryMode.readChoice(openStackCloudId)
+              : null;
 
           /*
            * The same pure gate autoDiscoverDatabaseServer ran: it names the
@@ -1386,6 +1480,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               podmanHostId,
               kubernetesClusterId,
               proxmoxClusterId,
+              openStackCloudId,
               vmwareVCenterId,
               cephClusterId,
               storageArrayId,
@@ -1913,6 +2008,60 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         }
 
                         if (
+                          openStackCloudId &&
+                          isOpenStackSnapshotDatapoint({
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                          })
+                        ) {
+                          const cloudIdStr: string =
+                            openStackCloudId.toString();
+                          let cloudBuffer:
+                            | Map<string, OpenStackResourceBufferEntry>
+                            | undefined =
+                            openStackResourceBuffer.get(cloudIdStr);
+                          if (!cloudBuffer) {
+                            cloudBuffer = new Map();
+                            openStackResourceBuffer.set(
+                              cloudIdStr,
+                              cloudBuffer,
+                            );
+                          }
+                          bufferOpenStackSnapshotMetric({
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            buffer: cloudBuffer,
+                          });
+                        }
+
+                        if (
+                          openStackCloudId &&
+                          isOpenStackOptionalServiceScrapeDatapoint({
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                          })
+                        ) {
+                          const cloudIdStr: string =
+                            openStackCloudId.toString();
+                          let cloudScrapes:
+                            | Map<string, OpenStackOptionalServiceScrape>
+                            | undefined =
+                            openStackOptionalServiceScrapes.get(cloudIdStr);
+                          if (!cloudScrapes) {
+                            cloudScrapes = new Map();
+                            openStackOptionalServiceScrapes.set(
+                              cloudIdStr,
+                              cloudScrapes,
+                            );
+                          }
+                          bufferOpenStackOptionalServiceScrape({
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            buffer: cloudScrapes,
+                          });
+                        }
+
+                        if (
                           cephClusterId &&
                           CEPH_SNAPSHOT_METRIC_NAMES.has(metricName)
                         ) {
@@ -1972,6 +2121,18 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                             resourceBuffer: vmwareResourceMetricsBuffer,
                             vcenterBuffer: vmwareVCenterSnapshotBuffer,
                           });
+                        }
+
+                        // Its row was folded above. The series is what this may leave out.
+                        if (
+                          openStackSummary?.isSummaryMode &&
+                          !isOpenStackDatapointKept({
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            keptProjectIds: openStackSummary.keptProjectIds,
+                          })
+                        ) {
+                          continue;
                         }
 
                         /*
@@ -2212,6 +2373,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         silentNodeReports: proxmoxSilentNodeReports,
       });
 
+      await this.flushOpenStackSnapshotBuffers({
+        projectId,
+        resourceBuffer: openStackResourceBuffer,
+      });
+
+      await this.flushOpenStackOptionalServiceScrapes({
+        projectId,
+        scrapes: openStackOptionalServiceScrapes,
+      });
+
       await this.flushVMwareSnapshotBuffers({
         projectId,
         resourceBuffer: vmwareResourceMetricsBuffer,
@@ -2235,6 +2406,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         projectId,
         resourceBuffer: iotResourceMetricsBuffer,
         fleetBuffer: iotFleetSnapshotBuffer,
+      });
+
+      await this.flushDatabaseEngineReadings({
+        buffer: databaseEngineReadingsBuffer,
       });
 
       /*
@@ -3866,6 +4041,179 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
    * are logged and swallowed: snapshots are best-effort and must never
    * affect ClickHouse ingest.
    */
+  /*
+   * The counts a cloud in summary mode keeps in place of a series per instance, through the same
+   * ingest as everything else, so its bill and retention are the cloud's. Best effort: the rows
+   * are already written, and the next round says the same.
+   */
+  private static async writeOpenStackSummarySeries(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+  }): Promise<void> {
+    const resourceMetrics: JSONArray | null =
+      await OpenStackSummaryMode.getSeriesIfDue(data);
+
+    if (resourceMetrics) {
+      await MetricsQueueService.addMetricIngestJob({
+        projectId: data.projectId,
+        body: { resourceMetrics: resourceMetrics },
+        headers: {},
+        productType: ProductType.Metrics,
+      } as unknown as TelemetryRequest);
+    }
+  }
+
+  /*
+   * Write what one batch said about each OpenStack cloud, then recount the cloud
+   * from its inventory. A batch only ever holds one service of one region, so its
+   * own counts would flip with every scrape. A failure here costs one snapshot of
+   * the inventory and never the telemetry itself.
+   */
+  private static async flushOpenStackSnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, OpenStackResourceBufferEntry>>;
+  }): Promise<void> {
+    for (const [cloudIdStr, byKey] of data.resourceBuffer) {
+      try {
+        const finishedEntries: Array<OpenStackResourceBufferEntry> =
+          finishOpenStackBatch(byKey.values());
+        const resources: Array<ParsedOpenStackResource> = finishedEntries.map(
+          (finished: OpenStackResourceBufferEntry) => {
+            return {
+              kind: finished.kind,
+              externalId: finished.externalId,
+              name: finished.name,
+              regionName: finished.regionName,
+              availabilityZone: finished.availabilityZone,
+              hypervisorName: finished.hypervisorName,
+              openStackProjectId: finished.openStackProjectId,
+              status: finished.status,
+              adminState: finished.adminState,
+              disabledReason: finished.disabledReason,
+              vcpuCapacity: finished.vcpuCapacity,
+              vcpuAllocated: finished.vcpuAllocated,
+              memoryCapacityBytes: finished.memoryCapacityBytes,
+              memoryAllocatedBytes: finished.memoryAllocatedBytes,
+              diskCapacityBytes: finished.diskCapacityBytes,
+              diskAllocatedBytes: finished.diskAllocatedBytes,
+              instanceCount: finished.instanceCount,
+              facts: finished.facts,
+              lastSeenAt: finished.observedAt,
+            };
+          },
+        );
+
+        await this.writeForDiscoveredResource({
+          kind: DiscoveredResourceKinds.OpenStackCloud,
+          id: cloudIdStr,
+          write: async (openStackCloudId: ObjectID): Promise<void> => {
+            await OpenStackResourceService.bulkUpsert({
+              projectId: data.projectId,
+              openStackCloudId,
+              resources,
+            });
+
+            await OpenStackResourceService.reconcileHypervisorStates({
+              projectId: data.projectId,
+              openStackCloudId,
+              shortHostNames: getOpenStackHostsToReconcile(finishedEntries),
+            });
+
+            await OpenStackResourceService.reconcileHypervisorCapacity({
+              projectId: data.projectId,
+              openStackCloudId,
+              hypervisorNames:
+                getOpenStackHostsWithPartReadings(finishedEntries),
+            });
+
+            await OpenStackResourceService.forgetAgentsOfRouters({
+              projectId: data.projectId,
+              openStackCloudId,
+              routers: getOpenStackRoutersWithoutAgents(finishedEntries),
+            });
+
+            if (hasOpenStackContainerClusterProjectToJoin(finishedEntries)) {
+              await OpenStackResourceService.reconcileContainerClusterProjects({
+                projectId: data.projectId,
+                openStackCloudId,
+              });
+            }
+
+            // A part this scrape just told the inventory about may have an event waiting.
+            await OpenStackEventRecorder.applyPendingStateChanges({
+              projectId: data.projectId,
+              cloudId: openStackCloudId,
+            });
+
+            /*
+             * A large cloud arrives in many batches, and each would recount every row. Its
+             * numbers do not change that fast, and the heartbeat still says it is reporting.
+             */
+            if (!OpenStackSummaryMode.isRecountDue(openStackCloudId)) {
+              await OpenStackCloudService.updateLastSeen(openStackCloudId);
+              return;
+            }
+
+            const summary: OpenStackInventorySummary =
+              await OpenStackResourceService.getInventorySummary({
+                projectId: data.projectId,
+                openStackCloudId,
+              });
+
+            OpenStackSummaryMode.noteRecount(
+              openStackCloudId,
+              summary.instanceCount,
+            );
+
+            await OpenStackCloudService.updateLastSeen(
+              openStackCloudId,
+              summary,
+            );
+
+            await this.writeOpenStackSummarySeries({
+              projectId: data.projectId,
+              openStackCloudId,
+            });
+          },
+        });
+      } catch (err) {
+        logger.warn(
+          `OpenStack snapshot writeback failed for cloud ${cloudIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * After the rows above, so a scrape's `_up` has reached its row first. A scrape that read nothing
+   * has no rows in the batch, on a cloud that has never run the service, and that is every empty
+   * answer most clouds ever send: one small UPDATE per service, which finds nothing to change.
+   */
+  private static async flushOpenStackOptionalServiceScrapes(data: {
+    projectId: ObjectID;
+    scrapes: Map<string, Map<string, OpenStackOptionalServiceScrape>>;
+  }): Promise<void> {
+    for (const [cloudIdStr, byKey] of data.scrapes) {
+      try {
+        await this.writeForDiscoveredResource({
+          kind: DiscoveredResourceKinds.OpenStackCloud,
+          id: cloudIdStr,
+          write: async (openStackCloudId: ObjectID): Promise<void> => {
+            await OpenStackResourceService.recordOptionalServiceScrapes({
+              projectId: data.projectId,
+              openStackCloudId,
+              scrapes: Array.from(byKey.values()),
+            });
+          },
+        });
+      } catch (err) {
+        logger.warn(
+          `OpenStack service scrape writeback failed for cloud ${cloudIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
   private static async flushProxmoxSnapshotBuffers(data: {
     projectId: ObjectID;
     resourceBuffer: Map<string, Map<string, ProxmoxResourceBufferEntry>>;
@@ -4398,6 +4746,78 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
    * never drift. Failures are logged and swallowed: snapshots are
    * best-effort and must never affect ClickHouse ingest.
    */
+  /*
+   * One resource of a database's engine telemetry, read for the queries its
+   * alert templates read (DatabaseEngineReadingsScan) and added to the
+   * database's readings for this batch - per reporting agent, so the
+   * members of a replica set that share one DATABASE_SERVER_ID each keep
+   * their own. A resource that carries none of those metrics adds nothing.
+   */
+  private static bufferDatabaseEngineReadings(data: {
+    buffer: DatabaseEngineReadingsBuffer;
+    databaseServerId: ObjectID;
+    resourceAttributes: JSONArray;
+    scopeMetrics: JSONArray;
+  }): void {
+    const databaseServerId: string = data.databaseServerId.toString();
+    const instance: string = getDatabaseEngineReadingsInstanceFromAttributes(
+      data.resourceAttributes,
+    );
+    const byInstance: Map<string, DatabaseEngineReadingAccumulators> =
+      data.buffer.get(databaseServerId) ||
+      new Map<string, DatabaseEngineReadingAccumulators>();
+    const accumulators: DatabaseEngineReadingAccumulators =
+      byInstance.get(instance) || new Map();
+
+    const read: number = accumulateDatabaseEngineReadings({
+      accumulators: accumulators,
+      scopeMetrics: data.scopeMetrics,
+    });
+
+    if (read === 0) {
+      return;
+    }
+
+    byInstance.set(instance, accumulators);
+    data.buffer.set(databaseServerId, byInstance);
+  }
+
+  /*
+   * Each database's readings of this batch, stored on the database
+   * (DatabaseServerService.recordEngineReadings: at most once a minute per
+   * database and agent, judged by its engine's alert template lines on the
+   * way). Best-effort like the snapshot buffers: readings describe a batch
+   * whose rows already landed, and must never fail it.
+   */
+  private static async flushDatabaseEngineReadings(data: {
+    buffer: DatabaseEngineReadingsBuffer;
+  }): Promise<void> {
+    for (const [databaseServerId, byInstance] of data.buffer) {
+      for (const [instance, accumulators] of byInstance) {
+        const values: Record<string, number> =
+          finishDatabaseEngineReadings(accumulators);
+
+        if (Object.keys(values).length === 0) {
+          continue;
+        }
+
+        try {
+          await DatabaseServerService.recordEngineReadings({
+            databaseServerId: new ObjectID(databaseServerId),
+            instance: instance,
+            values: values,
+          });
+        } catch (error) {
+          logger.warn(
+            `Database engine readings for ${databaseServerId} failed (best-effort): ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+    }
+  }
+
   private static async flushIoTSnapshotBuffers(data: {
     projectId: ObjectID;
     resourceBuffer: Map<string, Map<string, IoTDeviceBufferEntry>>;

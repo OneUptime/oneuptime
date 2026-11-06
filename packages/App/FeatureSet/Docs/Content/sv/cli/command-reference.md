@@ -6,7 +6,7 @@ Varje kommando i CLI:n `oneuptime`, med dess argument, alternativ och standardv�
 - [Globala alternativ](#globala-alternativ): Alternativen som varje kommando tar.
 - [Inloggning och kontexter](#inloggning-och-kontexter): login och context-kommandona.
 - [Resurskommandon](#resurskommandon): Varje resurs operationer, fält och åtgärder.
-- [Andra kommandon](#andra-kommandon): deploy, whoami, resources, version och help.
+- [Andra kommandon](#andra-kommandon): deploy, dbt upload, data-checks apply, whoami, resources, version och help.
 :::
 
 ## Kommandona
@@ -19,6 +19,8 @@ flowchart LR
     O --> R["incident, monitor<br/>och varje resurs"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
+    O --> D["dbt"]
+    D --> D1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -304,6 +306,35 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 | `--time <time>` | Nej | När den hände, till exempel `2026-10-19T10:00:00Z` | Nu |
 | `--attribute <key=value...>` | Nej | Fler attribut, som `key=value`, ett eller flera | |
 | `--ingestion-key <key>` | Nej | En intagningsnyckel för telemetri från projektet | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime dbt upload`
+
+Skickar ett dbt-projekts artefakter efter ett bygge, från CI eller ett dbt Cloud-jobb, till Dataobserverbarhet. Projektets modeller visas på tabellerna de bygger, med sin härkomst, dess tester visas bredvid OneUptimes kontroller och kan utlösa larm, och varje bygge är en körning av projektets pipeline. Kommandot läser `manifest.json` och `run_results.json` från dbt:s målmapp, skickar bara det som Dataobserverbarhet läser av dem och skriver med en intagningsnyckel för telemetri, inte med en API-nyckel. Sidan Dokumentation under Dataobserverbarhet i din instrumentpanel visar det i ett CI-jobb.
+
+```bash
+oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <file>] [--project <name>] [--ingestion-key <key>]
+```
+
+| Alternativ | Krävs | Vad det är | Standard |
+| --- | --- | --- | --- |
+| `--target-path <dir>` | Nej | Mappen som dbt skrev sina artefakter till | `target` |
+| `--manifest <file>` | Nej | Manifestet som skickas | `manifest.json` i målmappen |
+| `--run-results <file>` | Nej | Körningsresultaten som skickas | `run_results.json` i målmappen |
+| `--project <name>` | Nej | dbt-projektets namn, behövs bara när inget manifest skickas | Manifestets projekt |
+| `--ingestion-key <key>` | Nej | En intagningsnyckel för telemetri från projektet | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime data-checks apply`
+
+Gör projektets datakontroller likadana som en YAML-fil, så att de förvaras i ett repository och granskas som kod. Ett fel var som helst i filen gör att ingenting tillämpas och kommandot avslutas med ett fel. Filens format finns i [Kontroller och avstämningar](/docs/data-observability/checks).
+
+```bash
+oneuptime data-checks apply <file> [--dry-run] [--prune]
+```
+
+| Alternativ | Krävs | Vad det är | Standard |
+| --- | --- | --- | --- |
+| `--dry-run` | Nej | Visar vad som skulle ändras, och ändrar ingenting | Av |
+| `--prune` | Nej | Tar bort kontroller som en tidigare apply skapade och som filen inte längre nämner | Av |
 
 ### `oneuptime whoami`
 

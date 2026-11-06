@@ -66,6 +66,7 @@ flowchart TB
 - [AI 可觀測性](/docs/telemetry/ai-llm-observability): 追蹤你的 AI 的對話，並在它回答得不好時收到通知。
 - [安全性](/docs/telemetry/security-events): 收集安全性事件和威脅情報。
 - [資料安全](/docs/data-security/index): 找出你的儲存貯體、資料庫和遙測中的敏感資料，並修正其保存方式。
+- [資料可觀測性](/docs/data-observability/index): 在資料庫和資料倉儲中的資料延遲、出錯或損壞時及時知曉，並找出背後的執行、部署或資料表。
 - [真實使用者監控](/docs/rum/index): 透過 Core Web Vitals 和工作階段重播，衡量真實使用者的體驗。
 - [儀表板](/docs/dashboards/index): 用你的指標、日誌和監測器建立儀表板。
 - [資產清單](/docs/inventory/overview): 查看 OneUptime 所知道的每個服務、主機和裝置。

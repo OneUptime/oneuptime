@@ -61,6 +61,8 @@ const SIGN_IN_CALLBACKS: Record<string, number> = {
   "packages/Common/Server/API/SlackAPI.ts": 2,
   // The sign-in callback.
   "packages/Common/Server/API/MicrosoftTeamsAPI.ts": 1,
+  // The callback of the link the bot sends a member's Mattermost account.
+  "packages/Common/Server/API/MattermostAPI.ts": 1,
 };
 
 const REFRESH_CALL: RegExp =

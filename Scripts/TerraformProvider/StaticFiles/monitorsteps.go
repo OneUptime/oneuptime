@@ -254,6 +254,8 @@ var monitorStepsFilterTypeValues = []string{
 	"Anomalously High",
 	"Anomalously Low",
 	"Anomalous",
+	"Forecast Above",
+	"Forecast Below",
 }
 
 // Enum validators, exposed at package level so tests can exercise them
@@ -306,6 +308,7 @@ var monitorStepsSubConfigs = []monitorStepsSubConfig{
 	{"host_monitor", "hostMonitor"},
 	{"podman_monitor", "podmanMonitor"},
 	{"proxmox_monitor", "proxmoxMonitor"},
+	{"openstack_monitor", "openstackMonitor"},
 	{"vmware_monitor", "vmwareMonitor"},
 	{"docker_swarm_monitor", "dockerSwarmMonitor"},
 	{"ceph_monitor", "cephMonitor"},
@@ -978,12 +981,13 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 		"dnssec_monitor":               "Raw JSON escape hatch for the DNSSEC monitor config (domainName, resolvers).",
 		"sql_monitor":                  "Raw JSON escape hatch for the SQL Query monitor config (databaseType, host, port, databaseName, query, ...).",
 		"database_monitor":             "Raw JSON escape hatch for the Database Health monitor config (databaseType, host, port, databaseName, username, password, enabledMetricGroups, ...).",
-		"external_status_page_monitor": "Raw JSON escape hatch for the External Status Page monitor config (statusPageUrl, providerType).",
+		"external_status_page_monitor": "Raw JSON escape hatch for the External Status Page monitor config (statusPageUrl, provider, componentGroupName, componentNames).",
 		"kubernetes_monitor":           "Raw JSON escape hatch for the Kubernetes monitor config (clusterIdentifier, ...).",
 		"docker_monitor":               "Raw JSON escape hatch for the Docker monitor config (hostIdentifier, ...).",
 		"host_monitor":                 "Raw JSON escape hatch for the Host monitor config (hostIdentifier, ...).",
 		"podman_monitor":               "Raw JSON escape hatch for the Podman monitor config (hostIdentifier, ...).",
 		"proxmox_monitor":              "Raw JSON escape hatch for the Proxmox monitor config (clusterIdentifier, ...).",
+		"openstack_monitor":            "Raw JSON escape hatch for the OpenStack monitor config (cloudIdentifier, resourceFilters, ...).",
 		"vmware_monitor":               "Raw JSON escape hatch for the VMware monitor config (vcenterIdentifier, resourceFilters, ...).",
 		"docker_swarm_monitor":         "Raw JSON escape hatch for the Docker Swarm monitor config (clusterIdentifier, ...).",
 		"ceph_monitor":                 "Raw JSON escape hatch for the Ceph monitor config (clusterIdentifier, ...).",

@@ -431,3 +431,114 @@ describe.each([
     ).toBeNull();
   });
 });
+
+/*
+ * BaseModelTable.createDisabledReason: Create locked for a reader whose
+ * permissions allow it, because a record the list makes reaches more than
+ * their permission does - a global user override, every on-call policy,
+ * for a permission limited to some (issue #5617). The button stays on the
+ * card, locked, saying why, and showCreateForm opens nothing.
+ */
+describe("Create, locked by createDisabledReason", () => {
+  const CREATE_LOCKED_REASON: string =
+    "This list's records reach every policy, and your permission covers only some.";
+
+  // The card's Create button (or its locked stand-in), by its words.
+  const createButton: () => Promise<HTMLElement> =
+    async (): Promise<HTMLElement> => {
+      return await waitFor((): HTMLElement => {
+        const found: HTMLElement | undefined = screen
+          .getAllByTestId("card-button")
+          .find((candidate: HTMLElement): boolean => {
+            return (candidate.textContent || "").includes("Create");
+          });
+
+        if (!found) {
+          throw new Error("No Create button yet");
+        }
+
+        return found;
+      });
+    };
+
+  // A locked button says why on a press of the wrapper it is drawn in.
+  const pressLocked: (button: HTMLElement) => void = (
+    button: HTMLElement,
+  ): void => {
+    fireEvent.click(button.closest("span[tabindex]") as HTMLElement);
+  };
+
+  test("Create stays on the card, locked, and pressing it opens nothing", async () => {
+    render(
+      <BaseModelTable<IncidentState>
+        {...makeProps({ withLock: false })}
+        createDisabledReason={CREATE_LOCKED_REASON}
+      />,
+    );
+
+    const button: HTMLElement = await createButton();
+
+    expect(button).toHaveAttribute("aria-disabled", "true");
+
+    fireEvent.click(button);
+
+    expect(screen.queryByTestId("create-edit-modal")).toBeNull();
+
+    pressLocked(button);
+
+    await waitFor(() => {
+      expect(document.body).toHaveTextContent(CREATE_LOCKED_REASON);
+    });
+  });
+
+  test("a showCreateForm request opens nothing while Create is locked", async () => {
+    render(
+      <BaseModelTable<IncidentState>
+        {...makeProps({ withLock: false })}
+        createDisabledReason={CREATE_LOCKED_REASON}
+        showCreateForm={true}
+      />,
+    );
+
+    await createButton();
+
+    expect(screen.queryByTestId("create-edit-modal")).toBeNull();
+  });
+
+  test("without a reason, Create works as before, and showCreateForm opens the form", async () => {
+    render(
+      <BaseModelTable<IncidentState>
+        {...makeProps({ withLock: false })}
+        showCreateForm={true}
+      />,
+    );
+
+    const button: HTMLElement = await createButton();
+
+    expect(button).not.toHaveAttribute("aria-disabled", "true");
+    expect(await screen.findByTestId("create-edit-modal")).toBeInTheDocument();
+  });
+
+  test("a reader who may not create at all is told so by their permissions, not by the list's reason", async () => {
+    permissionsForTest = [Permission.ReadIncidentState];
+
+    render(
+      <BaseModelTable<IncidentState>
+        {...makeProps({ withLock: false })}
+        createDisabledReason={CREATE_LOCKED_REASON}
+      />,
+    );
+
+    const button: HTMLElement = await createButton();
+
+    expect(button).toHaveAttribute("aria-disabled", "true");
+
+    // The permission gate's reason, which names what they would need.
+    pressLocked(button);
+
+    await waitFor(() => {
+      expect(document.body).toHaveTextContent(/permission/);
+    });
+    expect(document.body).not.toHaveTextContent(CREATE_LOCKED_REASON);
+  });
+});

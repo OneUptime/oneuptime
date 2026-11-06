@@ -374,6 +374,54 @@ export default class CloudAccount extends BaseModel {
   })
   public resourceSummary?: JSONObject = undefined;
 
+  /*
+   * What the account costs at a glance (CloudCost's CloudAccountCostSummary):
+   * this month so far and at its pace, last month, the last 30 days, its
+   * top services, and whether its costs could be read. Written by the
+   * cloud connection's costs lane after every read of them.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Cost Summary",
+    description:
+      "What the account cost this month so far, at its pace and last month, from its cloud's billing, and whether its costs could be read.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public costSummary?: JSONObject = undefined;
+
+  /*
+   * The account's ways to spend less at a glance (CloudCost's
+   * CloudAccountSavingsSummary): how many its cloud's recommender has and
+   * what they save a month together, and whether they could be read.
+   * Written by the cloud connection's savings lane after every read.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Savings Summary",
+    description:
+      "How many ways to spend less the account's cloud recommends and what they would save a month, and whether they could be read.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public savingsSummary?: JSONObject = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: readPermissions,

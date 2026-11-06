@@ -27,6 +27,8 @@ npm run test-resource-overviews-ui
 - The hero's row is every resource hero's (ResourceHeroLayout): the controls
   wrap under the title to the row's end from 768px (to its other end right to
   left), sit beside the title at 1280, and give way to a long name there.
+- A service on OpenStack (`?openstack=instance|several`): where it runs, down to the hypervisor, in one
+  card however many machines, and a service on no cloud saying nothing of it.
 - A service's and a serverless function's Security card (`?security=`): the page asks about
   that record alone, by its kind and id; the events and findings read from its own logs, each
   opening Security Events on its logs, no open cases or risk (neither has a name an event would

@@ -66,7 +66,7 @@ Die Erreichbarkeitsprüfung ist auch die Rückfallebene, wenn ein ausdrücklich 
 :::steps
 ### Einen neuen Monitor beginnen
 
-Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **Externe Statusseite** unter **Basic Monitoring**, oder tippen Sie `statuspage` in das Suchfeld. Geben Sie einen **Name** ein und klicken Sie dann auf **Weiter**.
+Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **Externe Statusseite** unter **Grundlegende Überwachung**, oder tippen Sie `statuspage` in das Suchfeld. Geben Sie einen **Name** ein und klicken Sie dann auf **Weiter**.
 
 ### Die Statusseiten-URL eingeben
 
@@ -208,6 +208,7 @@ Wenn Sie aus Monitoren für externe Statusseiten Vorfälle oder Warnungen erstel
 | `{{provider}}`            | Erkannter Anbieter (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); leer nach einer Erreichbarkeitsprüfung |
 | `{{componentGroup}}`      | Komponentengruppe, auf die der Monitor beschränkt ist, falls vorhanden |
 | `{{componentName}}`       | Die Komponenten, die der Monitor beobachtet, durch Kommas getrennt, falls welche gewählt sind |
+| `{{componentNames}}`      | Dieselben Komponenten als Liste, um mit `{{#each componentNames}}` für jede eine Zeile zu wiederholen |
 
 ## Beliebte Statusseiten-URLs
 

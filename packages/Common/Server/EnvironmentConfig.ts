@@ -12,6 +12,10 @@ import { getDistributedDdlTaskTimeoutSeconds } from "./Utils/AnalyticsDatabase/C
 import Protocol from "../Types/API/Protocol";
 import URL from "../Types/API/URL";
 import Route from "../Types/API/Route";
+import {
+  DEFAULT_WATCHED_TABLE_PRICING,
+  WatchedTablePricing,
+} from "../Types/Billing/PayAsYouGoPricing";
 import SubscriptionPlan from "../Types/Billing/SubscriptionPlan";
 import Email from "../Types/Email";
 import { JSONObject } from "../Types/JSON";
@@ -69,6 +73,11 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "CAPTCHA_ENABLED",
   "CAPTCHA_SITE_KEY",
   "INBOUND_EMAIL_DOMAIN",
+  /*
+   * With the daily check-in off, a self-hosted sign-up form no longer offers
+   * release emails from oneuptime.com (Accounts' Register page).
+   */
+  "DISABLE_INSTANCE_CHECK_IN",
 ];
 
 /*
@@ -1156,6 +1165,43 @@ export const TrustedProxyHops: number = ((): number => {
   return parsedValue;
 })();
 
+/*
+ * The request headers a CDN or load balancer in front of OneUptime writes
+ * the visitor's country, region and city into, which security emails read
+ * to say roughly where a request came from - "Berlin, Germany" in a password
+ * reset (Utils/RequestOrigin/RequestLocation). Behind Cloudflare these are
+ * cf-ipcountry, and cf-region and cf-ipcity with its visitor location
+ * headers turned on.
+ *
+ * Empty, the default, reads no header and the emails name no place: a
+ * request header is the caller's own writing unless a proxy overwrites it,
+ * so only a header that something in front of OneUptime always writes may
+ * be named here. Anything that is not a header name reads nothing.
+ */
+const TRUSTED_HEADER_NAME: RegExp = /^[a-z0-9_-]{1,128}$/;
+
+type ReadTrustedHeaderNameFunction = (value: string | undefined) => string;
+
+const readTrustedHeaderName: ReadTrustedHeaderNameFunction = (
+  value: string | undefined,
+): string => {
+  const name: string = (value || "").trim().toLowerCase();
+
+  return TRUSTED_HEADER_NAME.test(name) ? name : "";
+};
+
+export const TrustedGeoCountryHeader: string = readTrustedHeaderName(
+  process.env["TRUSTED_GEO_COUNTRY_HEADER"],
+);
+
+export const TrustedGeoRegionHeader: string = readTrustedHeaderName(
+  process.env["TRUSTED_GEO_REGION_HEADER"],
+);
+
+export const TrustedGeoCityHeader: string = readTrustedHeaderName(
+  process.env["TRUSTED_GEO_CITY_HEADER"],
+);
+
 export const ProvisionSsl: boolean = process.env["PROVISION_SSL"] === "true";
 
 // One year: what browsers and security scanners expect of an HTTPS-only site.
@@ -1228,6 +1274,40 @@ export const AllowedActiveMonitorCountInFreePlan: number = process.env[
       process.env["ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN"].toString(),
     )
   : 10;
+
+function readAmount(variableName: string, fallback: number): number {
+  const amount: number = parseFloat(process.env[variableName] || "");
+
+  return Number.isFinite(amount) && amount >= 0 ? amount : fallback;
+}
+
+/*
+ * What Data Observability's watched tables cost where billing is on:
+ * billing.watchedTables in the Helm chart. Nothing is charged while
+ * WatchedTableStripePriceId is empty.
+ */
+export const WatchedTablePricingConfig: WatchedTablePricing = {
+  includedTables: readAmount(
+    "WATCHED_TABLES_INCLUDED_PER_PROJECT",
+    DEFAULT_WATCHED_TABLE_PRICING.includedTables,
+  ),
+  pricePerTableInUSD: readAmount(
+    "WATCHED_TABLE_PRICE_IN_USD",
+    DEFAULT_WATCHED_TABLE_PRICING.pricePerTableInUSD,
+  ),
+  volumeThresholdInTables: readAmount(
+    "WATCHED_TABLE_VOLUME_THRESHOLD",
+    DEFAULT_WATCHED_TABLE_PRICING.volumeThresholdInTables,
+  ),
+  volumePricePerTableInUSD: readAmount(
+    "WATCHED_TABLE_VOLUME_PRICE_IN_USD",
+    DEFAULT_WATCHED_TABLE_PRICING.volumePricePerTableInUSD,
+  ),
+};
+
+export const WatchedTableStripePriceId: string = (
+  process.env["WATCHED_TABLE_STRIPE_PRICE_ID"] || ""
+).trim();
 
 export const AllowedStatusPageCountInFreePlan: number = process.env[
   "ALLOWED_STATUS_PAGE_COUNT_IN_FREE_PLAN"

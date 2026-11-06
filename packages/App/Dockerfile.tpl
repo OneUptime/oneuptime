@@ -238,12 +238,15 @@ COPY ./agents/DatabaseAgent /usr/src/agents/DatabaseAgent
 COPY ./agents/DockerAgent /usr/src/agents/DockerAgent
 COPY ./agents/DockerSwarmAgent /usr/src/agents/DockerSwarmAgent
 COPY ./agents/HostAIAgent /usr/src/agents/HostAIAgent
+COPY ./agents/OpenStackAgent /usr/src/agents/OpenStackAgent
 COPY ./agents/PodmanAgent /usr/src/agents/PodmanAgent
 COPY ./agents/ProxmoxAgent /usr/src/agents/ProxmoxAgent
 COPY ./agents/StorageArrayAgent /usr/src/agents/StorageArrayAgent
 COPY ./agents/VMwareAgent /usr/src/agents/VMwareAgent
-# .dockerignore leaves HelmChart/ out of the context except this one file.
+# .dockerignore leaves HelmChart/ out of the context except these two files.
 COPY ./HelmChart/Public/kubernetes-agent/troubleshoot.sh /usr/src/HelmChart/Public/kubernetes-agent/troubleshoot.sh
+# The air-gapped image bundle script, served at /install/air-gapped.
+COPY ./HelmChart/AirGap/install.sh /usr/src/HelmChart/AirGap/install.sh
 # The CLI's installer, served at /install/cli: it installs the npm package of
 # this release's version.
 COPY ./packages/CLI/Install /usr/src/packages/CLI/Install
@@ -344,7 +347,7 @@ RUN node /tmp/PruneUnreachablePackages.js \
         --package /usr/src/Common \
     && npm prune --omit=dev --offline --no-audit --no-fund \
     && node -e "require('ts-node'); require('typescript')" \
-    && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/*/node_modules
+    && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/BrowserRecorder/Tests /usr/src/app/FeatureSet/MCP/Tests /usr/src/app/FeatureSet/MobileRecorder/Tests /usr/src/app/FeatureSet/*/node_modules
 
 # ---------------------------------------------------------------------------
 # enterprise: the Enterprise Edition image (--target enterprise).
@@ -411,7 +414,7 @@ RUN node /tmp/PruneUnreachablePackages.js \
         --package /usr/src/Common \
     && npm prune --omit=dev --offline --no-audit --no-fund \
     && node -e "require('ts-node'); require('typescript')" \
-    && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/*/node_modules
+    && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/BrowserRecorder/Tests /usr/src/app/FeatureSet/MCP/Tests /usr/src/app/FeatureSet/MobileRecorder/Tests /usr/src/app/FeatureSet/*/node_modules
 
 # ---------------------------------------------------------------------------
 # community: the Community Edition image (--target community, and the default

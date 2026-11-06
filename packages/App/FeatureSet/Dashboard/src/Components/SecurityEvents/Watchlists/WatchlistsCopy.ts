@@ -5,9 +5,10 @@ import {
 
 /*
  * The words of watchlists in the Dashboard: Security Events > Detections >
- * Watchlists, a watchlist's page, its Import Values dialog, and the line
- * under a detection rule's YAML that says which lists the rule reads. Each
- * is an en.json key, looked up where it is drawn. What is wrong with a list
+ * Watchlists, a watchlist's page, its Import Values dialog, the line under
+ * a detection rule's YAML that says which lists the rule reads, and a
+ * Security Events monitor's Filter by Watchlists. Each is an en.json key,
+ * looked up where it is drawn. What is wrong with a list
  * or a value is the shared rules' own words
  * (Common/Types/SecurityEvent/SecurityWatchlist), keys too.
  *
@@ -59,15 +60,21 @@ export const FEED_GONE: string = translationKey(
   "Its threat intel feed was deleted",
 );
 
-// Which rules read a list: its first two names, then how many more.
-export const READ_BY_NO_RULE: string = translationKey("No rule reads it yet");
+/*
+ * What reads a list - its detection rules, Security Events monitors and
+ * hunts: the first two names, then how many more. A monitor or a hunt says
+ * what it is after its name; a rule, the usual reader, needs no word.
+ */
+export const READ_BY_NO_RULE: string = translationKey("Nothing reads it yet");
 export const READ_BY_MORE: PluralTemplate = {
   one: "and {{count}} more",
   other: "and {{count}} more",
 };
-// When the rules could not be read: the list still shows, without them.
+export const READER_KIND_MONITOR: string = translationKey("Monitor");
+export const READER_KIND_HUNT: string = translationKey("Hunt");
+// When what reads it could not be read: the list still shows, without them.
 export const READ_BY_UNKNOWN: string = translationKey(
-  "Couldn't load the rules",
+  "Couldn't load what reads it",
 );
 
 // ---------- What a list holds ----------
@@ -148,6 +155,23 @@ export const SOURCE_FEED_TITLE: string = translationKey("A threat intel feed");
 export const SOURCE_FEED_DESCRIPTION: string = translationKey(
   "The feed's indicators of this kind, kept up to date by the feed.",
 );
+export const SOURCE_URL_TITLE: string = translationKey("A file at an address");
+export const SOURCE_URL_DESCRIPTION: string = translationKey(
+  "Read again on a schedule from an https address: a text or CSV file, one value a line.",
+);
+
+// A list read from an address: where, and how often.
+export const IMPORT_URL_FIELD_TITLE: string = translationKey("URL");
+export const IMPORT_URL_FIELD_DESCRIPTION: string = translationKey(
+  "The https address of a text or CSV file: one value a line, with an optional note after a comma. The list is what the file holds at its last read.",
+);
+export const IMPORT_URL_FIELD_PLACEHOLDER: string = translationKey(
+  "https://example.com/vip-users.csv",
+);
+export const IMPORT_SCHEDULE_FIELD_TITLE: string = translationKey("Schedule");
+export const IMPORT_SCHEDULE_FIELD_DESCRIPTION: string = translationKey(
+  "How often OneUptime reads the file again.",
+);
 
 export const FEED_FIELD_TITLE: string = translationKey("Threat Intel Feed");
 export const FEED_FIELD_DESCRIPTION: string = translationKey(
@@ -165,10 +189,19 @@ export const WATCHLIST_NOT_FOUND: string = translationKey(
   "This watchlist was deleted, or you cannot read it.",
 );
 
-// Use it in a rule.
-export const USE_IN_RULE_TITLE: string = translationKey("Use It in a Rule");
+/*
+ * Use this list: in a rule's detection, and in a search - on Events or in
+ * a hunt. A Security Events monitor picks the list from its own filters.
+ */
+export const USE_IN_RULE_TITLE: string = translationKey("Use This List");
 export const USE_IN_RULE_DESCRIPTION: string = translationKey(
-  "Match a field against this list in any detection or correlation rule. Paste this into a rule's detection.",
+  "Match a field against this list in a detection or correlation rule, a search on Events or a hunt, or a Security Events monitor's Filter by Watchlists.",
+);
+export const USE_IN_RULE_LABEL: string = translationKey(
+  "In a rule's detection",
+);
+export const USE_IN_SEARCH_LABEL: string = translationKey(
+  "In a search on Events or a hunt",
 );
 export const READ_BY_LABEL: string = translationKey("Read by");
 export const OPEN_DETECTION_RULES: string = translationKey(
@@ -208,6 +241,19 @@ export const NOTE_FIELD_DESCRIPTION: string = translationKey(
   "Why it is on the list.",
 );
 
+/*
+ * A value kept for a while: the moment it leaves the list, as a rule
+ * exception's expiry is written ({{time}}: "in 30 days").
+ */
+export const EXPIRES_FIELD_TITLE: string = translationKey("Expires At");
+export const EXPIRES_FIELD_DESCRIPTION: string = translationKey(
+  "When the value leaves the list. Leave it empty to keep it until someone removes it.",
+);
+export const VALUE_EXPIRES: string = translationKey("Expires {{time}}");
+
+// A list's values to a file an import reads back.
+export const EXPORT_VALUES: string = translationKey("Export Values");
+
 // A list that follows a feed keeps no values of its own.
 export const FEED_VALUES_TITLE: string = translationKey("Values");
 export const FEED_VALUES_DESCRIPTION: string = translationKey(
@@ -217,6 +263,86 @@ export const FEED_VALUES_GONE: string = translationKey(
   "The threat intel feed this list followed was deleted, so the list holds nothing. Choose another feed in Edit.",
 );
 export const OPEN_THREAT_INTEL: string = translationKey("Open Threat Intel");
+
+// ---------- A list read from an address ----------
+
+export const URL_CARD_TITLE: string = translationKey("Read From an Address");
+export const URL_CARD_DESCRIPTION: string = translationKey(
+  "The list is what the file at this address holds at its last read. A read that fails changes no value.",
+);
+export const URL_LAST_READ: string = translationKey("Last read {{time}}");
+export const URL_LINES_LEFT_OUT: PluralTemplate = {
+  one: "{{count}} line of the file was left out.",
+  other: "{{count}} lines of the file were left out.",
+};
+export const URL_WAITING: string = translationKey("Waiting for its first read");
+export const URL_WAITING_DESCRIPTION: string = translationKey(
+  "OneUptime reads the file within a minute of the list being saved, or now with Read Now.",
+);
+export const URL_LAST_READ_FAILED: string = translationKey(
+  "The last read failed {{time}}",
+);
+export const URL_KEEPS_VALUES_FROM: string = translationKey(
+  "The list keeps the values it read {{time}}.",
+);
+export const URL_NO_GOOD_READ: string = translationKey(
+  "The list holds no values until a read works.",
+);
+export const URL_READ_NOW: string = translationKey("Read Now");
+export const URL_READ_NOW_DONE: string = translationKey("Read just now");
+// A row's values: how many, and from where.
+export const URL_VALUES_FROM: PluralTemplate = {
+  one: "{{count}} value from {{host}}",
+  other: "{{count}} values from {{host}}",
+};
+export const URL_READ_FAILED_SHORT: string = translationKey(
+  "Its last read failed",
+);
+// Who put a value there: the list's reads.
+export const READ_FROM_ADDRESS: string = translationKey(
+  "Read from its address {{time}}",
+);
+export const URL_VALUES_EMPTY_TITLE: string =
+  translationKey("No values read yet");
+export const URL_VALUES_EMPTY_DESCRIPTION: string = translationKey(
+  "The file's values show here after a read that works.",
+);
+
+// ---------- A Security Events monitor's Filter by Watchlists ----------
+
+export const WATCHLIST_FILTERS_TITLE: string = translationKey(
+  "Filter by Watchlists",
+);
+export const WATCHLIST_FILTERS_DESCRIPTION: string = translationKey(
+  "Only events whose field is, or is not, on one of your watchlists, matched as a detection rule matches it.",
+);
+export const WATCHLIST_FILTER_FIELD: string = translationKey("Field");
+export const WATCHLIST_FILTER_FIELD_PLACEHOLDER: string =
+  translationKey("Choose a field");
+export const WATCHLIST_FILTER_MATCH: string = translationKey("Match");
+export const WATCHLIST_FILTER_IS_ON: string = translationKey("Is on the list");
+export const WATCHLIST_FILTER_IS_NOT_ON: string =
+  translationKey("Is not on the list");
+export const WATCHLIST_FILTER_WATCHLIST: string = translationKey("Watchlist");
+export const WATCHLIST_FILTER_WATCHLIST_PLACEHOLDER: string =
+  translationKey("Choose a watchlist");
+export const WATCHLIST_FILTER_ADD: string = translationKey(
+  "Add a Watchlist Filter",
+);
+export const WATCHLIST_FILTER_REMOVE: string =
+  translationKey("Remove this filter");
+export const WATCHLIST_FILTER_NO_LISTS: string = translationKey(
+  "No watchlists yet. Create one under Security Events > Detections > Watchlists.",
+);
+export const WATCHLIST_FILTER_LISTS_FAILED: string = translationKey(
+  "Couldn't load the watchlists.",
+);
+export const WATCHLIST_FILTER_OPEN_WATCHLISTS: string =
+  translationKey("Open Watchlists");
+// The step's summary on a monitor's page.
+export const WATCHLIST_FILTERS_SUMMARY_DESCRIPTION: string = translationKey(
+  "Only events whose field is, or is not, on these watchlists.",
+);
 
 // ---------- Import Values ----------
 
@@ -326,6 +452,19 @@ export const WATCHLISTS_TEST_IDS: {
   importSummary: string;
   ruleWatchlists: string;
   ruleWatchlist: string;
+  searchSnippet: string;
+  exportValues: string;
+  urlCard: string;
+  urlAddress: string;
+  urlStatus: string;
+  urlReadNow: string;
+  urlReadNowResult: string;
+  expiresLine: string;
+  readerKind: string;
+  monitorFilters: string;
+  monitorFilter: string;
+  monitorFilterAdd: string;
+  monitorFilterRemove: string;
 } = {
   table: "security-watchlists-table",
   nameCell: "watchlist-name-cell",
@@ -352,4 +491,17 @@ export const WATCHLISTS_TEST_IDS: {
   importSummary: "watchlist-import-summary",
   ruleWatchlists: "detection-rule-watchlists",
   ruleWatchlist: "detection-rule-watchlist",
+  searchSnippet: "watchlist-search-snippet",
+  exportValues: "watchlist-export-values",
+  urlCard: "watchlist-url-card",
+  urlAddress: "watchlist-url-address",
+  urlStatus: "watchlist-url-status",
+  urlReadNow: "watchlist-url-read-now",
+  urlReadNowResult: "watchlist-url-read-now-result",
+  expiresLine: "watchlist-value-expires",
+  readerKind: "watchlist-reader-kind",
+  monitorFilters: "security-events-watchlist-filters",
+  monitorFilter: "security-events-watchlist-filter",
+  monitorFilterAdd: "security-events-watchlist-filter-add",
+  monitorFilterRemove: "security-events-watchlist-filter-remove",
 };

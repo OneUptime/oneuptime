@@ -180,7 +180,7 @@ Jedes Element von `monitor_steps` ist eine Sache, die geprüft wird:
 
 ### Einstellungen jedes Monitortyps
 
-Monitortypen, bei denen mehr als eine Adresse einzustellen ist, halten ihre Einstellungen (eine Log-Abfrage, eine Datenbankverbindung, einen zu beobachtenden Cluster) in einem eigenen Attribut, als rohes JSON, geschrieben mit `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` und `probe_status_monitor`.
+Monitortypen, bei denen mehr als eine Adresse einzustellen ist, halten ihre Einstellungen (eine Log-Abfrage, eine Datenbankverbindung, einen zu beobachtenden Cluster) in einem eigenen Attribut, als rohes JSON, geschrieben mit `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` und `probe_status_monitor`.
 
 Ihr JSON ist dasselbe wie das des Dashboards, mit Schlüsseln in camelCase. Eine ID darin wird so geschrieben, wie die API eine schreibt: `{ _type = "ObjectID", value = "..." }`. Ein Logs-Monitor, der die Fehler eines Dienstes zählt:
 
@@ -333,6 +333,7 @@ Die `check_on`-Werte, die jeder Monitortyp am häufigsten nutzt. Der Kriterien-E
 | Serverprozesse | `Is Executing`, `Is Not Executing` |
 | Skripte | `Evaluates To True` |
 | Anomalien, für Metriken, Logs und Traces | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Prognosen, für Metriken | `Forecast Above`, `Forecast Below` (der Prognosezeitraum steht als `forecast.horizonInHours` in `metric_monitor_options`: ohne Angabe eine Woche) |
 
 Ein Filter, der passt, wenn ein SSL-Zertifikat in 14 Tagen oder weniger abläuft:
 

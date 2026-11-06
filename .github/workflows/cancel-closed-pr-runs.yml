@@ -61,14 +61,17 @@ jobs:
           - Infrastructure Agent MSI Test
           - Infrastructure Agent Release Status
           - Infrastructure Agent Test
+          - Iron Bank Preflight
           - Kubernetes AI Agent Test
           - Kubernetes Agent eBPF E2E
+          - Kubernetes Cost Agent Test
           - Kubernetes Log Tailer Test
           - Mobile Recorder Native Consumer Build
           - Mobile Recorder Test
           - MobileApp Test
           - Nginx Test
           - OpenAPI Spec Generation
+          - OpenStack E2E
           - Ops Config Test
           - Postgres Schema Drift
           - Probe Test

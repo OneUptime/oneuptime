@@ -19,6 +19,7 @@
     "^locter$": "<rootDir>/Tests/__mocks__/locter.js",
     "^yaml$": "<rootDir>/Tests/__mocks__/yaml.js",
     "^otpauth$": "<rootDir>/node_modules/otpauth/dist/otpauth.node.cjs",
+    "^bson$": "<rootDir>/node_modules/bson/lib/bson.cjs",
     "^@simplewebauthn/server$": "<rootDir>/Tests/__mocks__/simplewebauthn.js",
     "^botbuilder$": "<rootDir>/Tests/__mocks__/botbuilder.js",
     "^botbuilder-core$": "<rootDir>/Tests/__mocks__/botbuilder.js",

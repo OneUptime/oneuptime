@@ -35,7 +35,7 @@ Gehen Sie zu **Geplante Wartung → Alle Ereignisse** und klicken Sie auf **Gepl
 
 ### Sagen, was passiert und wann
 
-Geben Sie einen **Titel** ein und fügen Sie bei Bedarf eine **Beschreibung** hinzu: Sie ist Markdown und wird auf Ihren Statusseiten angezeigt. **Beginnt am** steht bereits auf der nächsten vollen Stunde Ihrer Uhr und **Endet am** eine Stunde später; ändern Sie beides nur, wenn es nicht stimmt. Wenn Sie **Beginnt am** verschieben, wandert **Endet am** mit, sodass das Zeitfenster seine Länge behält. **Eigentümer** und **Beschriftungen** liegen eingeklappt unter **Weitere Felder**.
+Geben Sie einen **Titel** ein und fügen Sie bei Bedarf eine **Beschreibung** hinzu: Sie ist Markdown und wird auf Ihren Statusseiten angezeigt. **Beginnt am** steht bereits auf der nächsten vollen Stunde Ihrer Uhr und **Endet am** eine Stunde später; ändern Sie beides nur, wenn es nicht stimmt. Wenn Sie **Beginnt am** verschieben, wandert **Endet am** mit, sodass das Zeitfenster seine Länge behält. **Eigentümer**, **Beschriftungen** und **Data Observability Datenbanken** liegen eingeklappt unter **Weitere Felder**.
 
 ### Auswählen, was es betrifft
 
@@ -75,7 +75,7 @@ Zwei Dinge füllen das Formular unterwegs für Sie aus:
 
 ## Von einer Ressource oder einer Vorlage aus beginnen
 
-Auf dem Tab **Geplante Wartung** eines Hosts, eines Kubernetes-, Proxmox-, Ceph- oder Docker-Swarm-Clusters, eines Docker- oder Podman-Hosts, eines vCenters, eines Speicherarrays, einer IoT-Flotte, einer Datenbank, eines Dienstes oder eines Netzwerkstandorts öffnet **Geplantes Wartungsereignis erstellen** dasselbe Formular, mit dieser Ressource bereits unter **Andere betroffene Ressourcen** ausgewählt, und der Tab listet die Ereignisse auf, die sie betreffen. Der Tab eines Inventarelements wählt den Host, den Dienst oder den Kubernetes-Cluster, auf den das Element verweist.
+Auf dem Tab **Geplante Wartung** eines Hosts, eines Kubernetes-, Proxmox-, Ceph- oder Docker-Swarm-Clusters, eines Docker- oder Podman-Hosts, eines vCenters, einer OpenStack-Cloud, eines Speicherarrays, einer IoT-Flotte, einer Datenbank, eines Dienstes oder eines Netzwerkstandorts öffnet **Geplantes Wartungsereignis erstellen** dasselbe Formular, mit dieser Ressource bereits unter **Andere betroffene Ressourcen** ausgewählt, und der Tab listet die Ereignisse auf, die sie betreffen. Der Tab eines Inventarelements wählt den Host, den Dienst oder den Kubernetes-Cluster, auf den das Element verweist.
 
 **Aus Vorlage erstellen**, neben der Schaltfläche zum Erstellen, fragt nach **Vorlage für geplante Wartung auswählen** und öffnet dann das Formular, aus der Vorlage ausgefüllt. Siehe [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates).
 

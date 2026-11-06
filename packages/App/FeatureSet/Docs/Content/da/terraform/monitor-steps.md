@@ -180,7 +180,7 @@ Hvert element i `monitor_steps` er én ting at tjekke:
 
 ### Indstillinger for hver monitortype
 
-Monitortyper med mere at angive end en adresse har deres indstillinger (en logforespørgsel, en databaseforbindelse, en klynge at overvåge) i deres egen attribut, som rå JSON skrevet med `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` og `probe_status_monitor`.
+Monitortyper med mere at angive end en adresse har deres indstillinger (en logforespørgsel, en databaseforbindelse, en klynge at overvåge) i deres egen attribut, som rå JSON skrevet med `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` og `probe_status_monitor`.
 
 Deres JSON er den samme som dashboardets, med nøgler i camelCase. Et ID i den skrives, som API'et skriver det: `{ _type = "ObjectID", value = "..." }`. En Logs-monitor, der tæller fejl fra én tjeneste:
 
@@ -333,6 +333,7 @@ De `check_on`-værdier, hver monitortype bruger mest. Dashboardets kriterieedito
 | Serverprocesser | `Is Executing`, `Is Not Executing` |
 | Scripts | `Evaluates To True` |
 | Anomalier, for metrikker, logs og traces | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Prognoser, for metrikker | `Forecast Above`, `Forecast Below` (tidshorisonten er `forecast.horizonInHours` i `metric_monitor_options`: en uge, hvis den udelades) |
 
 Et filter, der passer, når et SSL-certifikat udløber om 14 dage eller mindre:
 

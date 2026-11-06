@@ -546,6 +546,12 @@ describe("ArgumentsForm — every setting that can take a value offers one", () 
         return;
       }
 
+      if (arg.customFieldsOf) {
+        // Rows too: each custom field's value gets the picker once it has one.
+        expect(button).toBeNull();
+        return;
+      }
+
       if (HAS_PICKER.includes(argumentControl)) {
         expect(button).not.toBeNull();
       } else {

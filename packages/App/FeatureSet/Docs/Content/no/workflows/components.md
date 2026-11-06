@@ -29,6 +29,7 @@ Du trenger sjelden å ha den åpen mens du bygger. Innstillingene til hver blokk
 | Lese eller endre hendelser, monitorer og andre poster         | [OneUptime-datakomponenter](#oneuptime-datakomponenter)           |
 | Åpne, bekrefte og løse hendelser eller varsler for et annet verktøys problemer | [Hendelser og varsler fra andre verktøy](#hendelser-og-varsler-fra-andre-verktøy) |
 | Bekrefte eller lukke et Zabbix-problem                        | [Zabbix](#zabbix)                                                 |
+| Be et menneske godkjenne en rettelse i en OpenStack-sky       | [Propose an OpenStack fix](#propose-an-openstack-fix)             |
 
 En dedikert blokk slår en generell: Slack-blokken kjenner grensene til Slack, og en postblokk kjenner feltene til posten, så du får tydeligere feil og logger enn fra en **API**-blokk som gjør den samme jobben.
 
@@ -428,6 +429,28 @@ For å bekrefte eller lukke leser blokken problemet først. Et problem Zabbix al
 
 **Updated** utløses når Zabbix tok imot oppdateringen, og **Error** når Zabbix ikke kunne nås eller avviste den, med Zabbix' begrunnelse: Zabbix besvarer en avvist forespørsel med en suksessstatus, så blokken leser hva Zabbix svarte i stedet for statusen. Den returnerer **Summary**, det den gjorde, i én setning.
 
+## OpenStack
+
+### Propose an OpenStack fix
+
+Ber et menneske godkjenne én endring i OpenStack-skyen et varsel eller en hendelse gjelder. Blokken gjør aldri selve endringen. Rettelsen venter på varselet eller hendelsen, og i kanalene den poster til, som en OneUptime AI foreslår, uansett hvilken rettelsesmodus skyen har. En arbeidsflyt kan ikke godkjenne det den selv foreslår.
+
+Den trenger ingen AI-modell, og den følger de samme reglene som en rettelse OneUptime AI foreslår: kommandopolicyen, agentens skrivemål og beskyttede mål, og agentens lesing av hva endringen berører. En evakuering av en vert som fortsatt er oppe, eller en som agenten ikke kan lese i sin helhet, blir ikke foreslått.
+
+| Innstilling | Hva den gjør |
+| -------------------- | ---- |
+| **Varsel-ID** | Varselet rettelsen gjelder, som regel ID-en triggeren din returnerte. Fyll ut denne eller **Hendelse-ID**, så kommer skyen fra det posten er koblet til. |
+| **Hendelse-ID** | Hendelsen rettelsen gjelder, som regel ID-en triggeren din returnerte. Fyll ut denne eller **Varsel-ID**. |
+| **Kommando** | Endringen som skal foreslås, i den ene skrivemåten OneUptime tar imot. Se [endringene en rettelse kan gjøre](/docs/telemetry/openstack#rettelser). Den kan bruke verdier fra tidligere blokker, og leses etter at de er fylt ut. |
+| **Hvorfor** | Det personen som godkjenner den, leser først. Står den tom, sier den hvilken arbeidsflyt som ba om det. |
+| **ID for OpenStack-sky** | Under **Flere felt**. Bare for en post som er koblet til mer enn én sky, eller til ingen. |
+
+Den returnerer **Suggestion ID** (rettelsen som venter på godkjenning), **Tier** (Safe eller Riskier, slik OneUptime leser kommandoen) og **Already Waiting** (sann når den samme endringen i den skyen allerede ventet, så det ikke ble lagt til en til).
+
+**Suksess** utløses når et menneske er spurt, uten å vente på svaret. **Feil** utløses når ingenting ble foreslått, med årsaken i **Feil**: kommandoen avvises, rettelser er ikke tillatt i den skyen ennå, eller et prosjekts arbeidsflyter har foreslått 20 rettelser den siste timen.
+
+Malen [Propose taking a failing OpenStack compute service out of scheduling](/docs/workflows/authoring) er et sted å begynne.
+
 ## OneUptime-datakomponenter
 
 For hver type post i OneUptime (monitorer, hendelser, varsler, statussider, vaktpolicyer og mange flere) har panelet **Legg til komponent** disse komponentene: under **OneUptime-ressurser** klikker du på posttypen (**Bla gjennom alle ressurser** har de som ikke vises), eller du søker etter navnet på typen. Hver tittel genereres ut fra posttypen, så settet for Monitor lyder:
@@ -485,7 +508,7 @@ En spørring er alltid begrenset til prosjektet arbeidsflyten kjører i. Du kan 
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-En nøkkel som ikke er en kolonne, ignoreres i stedet for å bli avvist — kjøringens logg nevner de som ble droppet, så se der når et felt ikke lander. **Fields to pass on**, på Find-komponentene og triggerne, velges fra en liste; **Rediger som JSON** der viser de samme kolonnenøklene med verdien `true`: `{"_id": true, "name": true}`.
+En nøkkel som ikke er en kolonne, ignoreres i stedet for å bli avvist — kjøringens logg nevner de som ble droppet, så se der når et felt ikke lander. **Fields to pass on**, på Find-komponentene og triggerne, velges fra en liste; **Rediger som JSON** der viser de samme kolonnenøklene med verdien `true`: `{"_id": true, "name": true}`. Feltene til en relatert post står under nøkkelen dens, som i `{"monitor": {"name": true}}`: `{"monitor": true}` sender bare ID-en dens videre.
 
 **Egendefinerte felt** er én kolonne, `customFields`, som rommer verdien til hvert egendefinerte felt under navnet på feltet. Update-komponentene endrer bare de egendefinerte feltene du nevner, og alle andre beholder verdien sin:
 
@@ -495,7 +518,11 @@ En nøkkel som ikke er en kolonne, ignoreres i stedet for å bli avvist — kjø
 
 setter **Notification Count** og lar de andre egendefinerte feltene på posten være som de var. Sett et egendefinert felt til `null` for å tømme det, eller sett selve `customFields` til `null` for å tømme alle. To arbeidsflyter som oppdaterer forskjellige egendefinerte felt på samme post i samme øyeblikk, lander begge. Det gjelder bare Update-komponentene: OneUptime-API-et skriver `customFields` i sin helhet, så en forespørsel til det må ha med hvert egendefinerte felt du vil beholde.
 
+Hvert egendefinerte felt i prosjektet vises som et eget felt der en komponent nevner feltene til en post: i feltene en komponent skriver, med typens egen inndata og en nedtrekksliste sine egne alternativer; i betingelsene for en spørring; i verdiene et senere trinn kan bruke; og i feltene en utløser overvåker, slik at en arbeidsflyt kan kjøre når ett egendefinert felt endres. Et egendefinert filfelt lastes opp til en post, så det er den eneste typen som blir værende i JSON.
+
 Du skriver sjelden disse nøklene selv. I komponentens innstillinger viser **Add a field** (eller **Add a condition** på en spørring) modellens kolonner etter navn, med typen verdi hver tar. Søk etter navn, etter kolonnenøkkel eller etter hva feltet gjør, og trykk på **Enter** for å legge til det beste treffet. Ved oppretting kommer feltene posten ikke kan opprettes uten, først, deretter modellens hovedfelt (de den fyller ut selv hvis du utelater dem) og så resten.
+
+Et felt som peker på en annen post, for eksempel alvorlighetsgraden til en hendelse, viser prosjektets poster etter navn: Velg én, så skrives ID-en for deg. En liste over poster, for eksempel etikettene til en hendelse, fungerer på samme måte. Klikk på `{ }` ved siden av listen for å bruke en verdi fra et tidligere trinn i stedet.
 
 Felt som OneUptime fyller ut selv, tilbys ikke når du skriver en post: postens `_id`, **Opprettet den**, **Oppdatert den**, **Opprettet av bruker**, slugger, postnumre og varslingsstatuser. Hvem som opprettet, arkiverte eller løste en post, og når, er aldri noe en arbeidsflyt setter: en post som en arbeidsflyt oppretter, er opprettet av ingen, en verdi en arbeidsflyt sender for et av de feltene ved siden av andre felt, ignoreres, og en Update som ikke sender noe annet, mislykkes med en melding som nevner dem. En oppdatering tilbyr bare felt som kan endres etter at en post finnes. En spørring tilbyr fortsatt ID-en, tidsstemplene og **Opprettet av bruker**, fordi de er nyttige å filtrere på. **Deleted At** tilbys ingen steder: poster slettes helt, så det er alltid tomt.
 

@@ -1,6 +1,7 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "Common/Models/DatabaseModels/Label";
 import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
+import PermissionScopeNarrowing from "Common/Types/Database/AccessControl/PermissionScopeNarrowing";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import type { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
@@ -57,6 +58,22 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * says so on the same line ("Scope: Only resources they own"), so Edit
  * never hides it. A labels answer left without a label opens the fold by
  * itself.
+ *
+ * ONE PERMISSION IS OFFERED THE ANSWERS THAT NARROW IT. A role reaches
+ * records of many kinds, and each answer narrows some of them, so a role
+ * is offered all three. One permission reaches one kind, and an answer
+ * that narrows nothing of it would save a row that says "Only resources
+ * they own" and reaches every resource. So Add Permission offers a Scope
+ * for a permission a scope narrows (PermissionScopeNarrowing, held to the
+ * server's rules) - Create Workflow as much as Read Workflow (issue
+ * #5602) - with Owned where owners narrow it and labels where labels do,
+ * and none for one no scope narrows (Create Team).
+ *
+ * A BLOCK IS NEVER OWNED. A block takes a permission away: everywhere, or
+ * on the records carrying its labels (HeldPermissionsUtil, the server's
+ * labelled blocks). The server reads no owners on a block, so a block
+ * saved as "Only resources they own" took the permission away everywhere.
+ * A block is offered All and, where labels narrow it, Labels.
  */
 
 export const PERMISSION_SCOPE_FIELD_TITLE: string = translationKey("Scope");
@@ -99,19 +116,25 @@ export const PERMISSION_SCOPE_ANSWERS: ReadonlyArray<PermissionScope> = [
   PermissionScope.Labels,
 ];
 
-// The Scope field's answers, each with its line.
-export const getPermissionScopeChoices: () => Array<RadioButton> =
-  (): Array<RadioButton> => {
-    return PERMISSION_SCOPE_ANSWERS.map(
-      (scope: PermissionScope): RadioButton => {
-        return {
-          value: scope,
-          title: PERMISSION_SCOPE_TITLES[scope],
-          description: PERMISSION_SCOPE_DESCRIPTIONS[scope],
-        };
-      },
-    );
-  };
+/*
+ * The Scope field's answers, each with its line: every answer, or the ones
+ * `scopes` names, in the form's order whatever order they are named in.
+ */
+export const getPermissionScopeChoices: (
+  scopes?: ReadonlyArray<PermissionScope>,
+) => Array<RadioButton> = (
+  scopes?: ReadonlyArray<PermissionScope>,
+): Array<RadioButton> => {
+  return PERMISSION_SCOPE_ANSWERS.filter((scope: PermissionScope): boolean => {
+    return !scopes || scopes.includes(scope);
+  }).map((scope: PermissionScope): RadioButton => {
+    return {
+      value: scope,
+      title: PERMISSION_SCOPE_TITLES[scope],
+      description: PERMISSION_SCOPE_DESCRIPTIONS[scope],
+    };
+  });
+};
 
 /*
  * The labels the third answer asks for. No line under it: the answer just
@@ -214,21 +237,147 @@ export const isScopeShownFor: (permission: unknown) => boolean = (
   );
 };
 
+/*
+ * Whether one permission a form holds takes a scope: one a scope narrows
+ * (PermissionScopeNarrowing), which leaves out the roles that reach the
+ * whole project by definition too. Add Permission asks this, a role's
+ * isScopeShownFor.
+ */
+export const isScopeShownForPermission: (permission: unknown) => boolean = (
+  permission: unknown,
+): boolean => {
+  return (
+    isScopeShownFor(permission) &&
+    PermissionScopeNarrowing.isNarrowedByAnyScope(permission as Permission)
+  );
+};
+
+export interface ScopesOptions {
+  // A block takes a permission away, everywhere or by labels: never owned.
+  isBlock?: boolean | undefined;
+}
+
+// What a block may be narrowed to, of `scopes`: never what its owners own.
+const withoutOwnedOnBlock: (
+  scopes: Array<PermissionScope>,
+  options?: ScopesOptions,
+) => Array<PermissionScope> = (
+  scopes: Array<PermissionScope>,
+  options?: ScopesOptions,
+): Array<PermissionScope> => {
+  return options?.isBlock
+    ? scopes.filter((scope: PermissionScope): boolean => {
+        return scope !== PermissionScope.Owned;
+      })
+    : scopes;
+};
+
+/*
+ * The answers a role's Scope offers: all three - a role reaches records of
+ * many kinds, and each answer narrows some of them - or, on a block, All
+ * and Labels.
+ */
+export const getRoleScopes: (
+  options?: ScopesOptions,
+) => Array<PermissionScope> = (
+  options?: ScopesOptions,
+): Array<PermissionScope> => {
+  return withoutOwnedOnBlock([...PERMISSION_SCOPE_ANSWERS], options);
+};
+
+/*
+ * The answers one permission's Scope offers: All, then Owned where owners
+ * narrow it and Labels where labels do (PermissionScopeNarrowing) - on a
+ * block, never Owned. All alone before a permission is picked.
+ */
+export const getPermissionScopes: (
+  permission: unknown,
+  options?: ScopesOptions,
+) => Array<PermissionScope> = (
+  permission: unknown,
+  options?: ScopesOptions,
+): Array<PermissionScope> => {
+  if (!isScopeShownForPermission(permission)) {
+    return [PermissionScope.All];
+  }
+
+  return withoutOwnedOnBlock(
+    PermissionScopeNarrowing.getScopes(permission as Permission),
+    options,
+  );
+};
+
+/*
+ * The scope a form keeps when its permission changes to `permission`: the
+ * one it holds, while that answer is still offered, else All - an answer
+ * the new permission does not offer would narrow nothing of it.
+ */
+export const getScopeKeptOnPermissionChange: (data: {
+  permission: unknown;
+  heldScope: unknown;
+  options?: ScopesOptions | undefined;
+}) => PermissionScope = (data: {
+  permission: unknown;
+  heldScope: unknown;
+  options?: ScopesOptions | undefined;
+}): PermissionScope => {
+  const scope: PermissionScope = readPermissionScope(data.heldScope);
+
+  return getPermissionScopes(data.permission, data.options).includes(scope)
+    ? scope
+    : PermissionScope.All;
+};
+
 export interface PermissionScopeFieldsOptions<TEntity> {
   /*
    * Whether the permission the form holds takes a scope at all: some are
-   * project-wide by definition (PermissionHelper.isScopeApplicable).
+   * project-wide by definition (PermissionHelper.isScopeApplicable), and a
+   * scope narrows nothing of some single permissions
+   * (isScopeShownForPermission).
    */
   isScopeShown: (values: FormValues<TEntity>) => boolean;
+  /*
+   * The answers offered for what the form holds (getRoleScopes,
+   * getPermissionScopes). Left out, all three.
+   */
+  getScopes?:
+    | ((values: FormValues<TEntity>) => ReadonlyArray<PermissionScope>)
+    | undefined;
 }
+
+/*
+ * The answers the Scope field shows for what the form holds: the ones
+ * offered, and the one the row holds when that is not among them - a row an
+ * API or Terraform caller saved with it - so Edit never hides what the row
+ * says.
+ */
+export const getOfferedPermissionScopeChoices: (data: {
+  scopes: ReadonlyArray<PermissionScope>;
+  heldScope: unknown;
+}) => Array<RadioButton> = (data: {
+  scopes: ReadonlyArray<PermissionScope>;
+  heldScope: unknown;
+}): Array<RadioButton> => {
+  const held: PermissionScope | null =
+    data.heldScope === PermissionScope.All ||
+    data.heldScope === PermissionScope.Owned ||
+    data.heldScope === PermissionScope.Labels
+      ? data.heldScope
+      : null;
+
+  return getPermissionScopeChoices(
+    held && !data.scopes.includes(held) ? [...data.scopes, held] : data.scopes,
+  );
+};
 
 /**
  * The Scope choice and the labels it may ask for, for a team's permission
  * and a custom role's permission alike, folded under More fields.
  *
- * - Scope: the three answers, All picked to start with. Picking All or
- *   "Only resources they own" clears the labels, which would otherwise be
- *   saved with the row and narrow it while the form hid them.
+ * - Scope: the answers offered (getScopes; all three without it), All
+ *   picked to start with. Picking All or "Only resources they own" clears
+ *   the labels, which would otherwise be saved with the row and narrow it
+ *   while the form hid them.
  * - Labels: asked for, and required, once "Only resources with certain
  *   labels" is picked. A row stored with labels under another scope (an
  *   API or Terraform caller can write one) shows them too, so the form
@@ -259,6 +408,14 @@ export const getPermissionScopeFields: <TEntity extends BaseModel>(
       description: PERMISSION_SCOPE_FIELD_DESCRIPTION,
       fieldType: FormFieldSchemaType.RadioButton,
       radioButtonOptions: getPermissionScopeChoices(),
+      getRadioButtonOptions: options.getScopes
+        ? (values: FormValues<TEntity>): Array<RadioButton> => {
+            return getOfferedPermissionScopeChoices({
+              scopes: options.getScopes!(values),
+              heldScope: asRecord(values)["scope"],
+            });
+          }
+        : undefined,
       defaultValue: PermissionScope.All,
       required: true,
       dataTestId: "permission-scope",

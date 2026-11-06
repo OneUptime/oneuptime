@@ -17,6 +17,7 @@ Aprite **Avvisi** dal menu **Prodotti** nella barra superiore. Le sezioni **Rego
 | ------------------------------ | ---------------------------------------------------------------------------------------------- |
 | **Regole di raggruppamento**   | Mette gli avvisi correlati negli episodi. Vedere [Episodi di avvisi e regole di raggruppamento](/docs/alerts/episodes). |
 | **Regole di reperibilità**     | Esegue policy di reperibilità per gli avvisi e gli episodi corrispondenti.                     |
+| **Regole degli incidenti** | Dichiara un incidente dagli avvisi corrispondenti, subito o quando un avviso resta irrisolto. |
 | **Regole del proprietario**    | Aggiunge proprietari agli avvisi e agli episodi corrispondenti.                                |
 | **Regole di runbook**          | Avvia runbook per gli avvisi corrispondenti.                                                   |
 | **Regole di privacy**          | Rende privati gli avvisi e gli episodi corrispondenti.                                         |
@@ -54,7 +55,7 @@ flowchart TB
 
 Le regole differiscono nel modo in cui si risolvono più corrispondenze:
 
-- **Regole di raggruppamento** e **Regole dei promemoria** vengono controllate dall'alto verso il basso del loro elenco, e vince la prima corrispondenza. Trascinate una regola per cambiarne la posizione; una nuova regola va in fondo.
+- **Regole di raggruppamento**, **Regole degli incidenti** e **Regole dei promemoria** vengono controllate dall'alto verso il basso del loro elenco, e vince la prima corrispondenza. Trascinate una regola per cambiarne la posizione; una nuova regola va in fondo.
 - **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette**, **Regole di privacy** e **Regole di runbook** agiscono tutte quando corrispondono. Policy di reperibilità, proprietari ed etichette aggiunti da più regole vengono aggiunti una sola volta.
 
 **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno due schede: **Alert Rules**, per gli avvisi, ed **Episode Rules**, che agiscono allo stesso modo su ogni nuovo episodio di avviso. Una nuova regola parte abilitata; disattivate **Abilitato** nel suo modulo di modifica per sospenderla, e l'elenco mostra un **Abilitato** verde o un **Disabilitato** rosso per ogni regola.
@@ -89,6 +90,22 @@ In **Policy di reperibilità**, scegliete le **Policy di reperibilità** che la 
 Una gravità da sola non chiama nessuno: una regola di reperibilità che corrisponde su **Avviso Gravità** è il modo per impostare «chiamare il team del database per ogni avviso High». Per vedere che cosa è stato eseguito per un avviso, aprite la sua pagina **Esecuzioni di reperibilità**. Ogni persona viene poi raggiunta nel modo impostato in **Impostazioni utente → Regole di reperibilità**, nella scheda **Avvisi**; vedere [Regole di escalation](/docs/on-call/escalation-rules).
 
 Una regola chiama appena un avviso corrisponde. Perché attenda invece l'orario di lavoro, rispondete **Solo durante l'orario di lavoro** a **Quando deve chiamare questa regola?** sotto **Altri campi**. L'**Orario di lavoro** parte dal lunedì al venerdì, dalle 09:00 alle 17:00, nel vostro fuso orario: scegliete altri giorni, un'altra **Ora di inizio** o **Ora di fine**, o un altro **Fuso orario**, e una frase sotto la scelta dice cosa succederà. Nell'elenco, la regola mostra il suo orario sotto il nome. Un avviso che corrisponde fuori da quell'orario riceve un'esecuzione che attende e non chiama nessuno; quando inizia l'orario, la policy chiama con la sua prima regola di escalation ed esegue l'escalation come sempre. Se l'avviso viene riconosciuto o risolto prima, nessuno viene chiamato. Se l'avviso cambia mentre attende e ora corrisponde a una regola che chiama subito, per esempio perché ne è stata alzata la gravità, l'esecuzione inizia a chiamare in quel momento, e il feed dell'avviso dice perché. Due regole che attivano la stessa policy la attivano appena una delle due lo consente: una regola per le gravità più alte che chiama subito, accanto a una regola per il resto che attende l'orario di lavoro, tiene tranquille le notti.
+
+## Regole degli incidenti
+
+**Avvisi → Regole → Regole degli incidenti** trasforma da sole gli avvisi in incidenti. La prima regola che corrisponde a un nuovo avviso, dall'alto verso il basso dell'elenco, ne dichiara un incidente, come farebbe **Dichiara incidente** sulla pagina dell'avviso, e vi collega l'avviso.
+
+:::steps
+### Scegliere gli avvisi interessati
+
+In **Corrispondenza**, **Tutti gli avvisi**, da cui parte una nuova regola, corrisponde a ogni nuovo avviso. Per restringerla, scegliete **Solo gli avvisi che soddisfano le condizioni** e aggiungete le condizioni che un avviso deve rispettare.
+
+### Descrivere l'incidente
+
+In **Incidente**, scegliete la **Gravità incidente**, oppure lasciatela vuota per dare a ogni incidente la gravità che corrisponde a quella del suo avviso. Impostate **Declare After (Minutes)** sopra 0 per dichiarare l'incidente solo se l'avviso è ancora irrisolto a quel punto. Il **Nome** della regola segue la gravità, come «Declare SEV1 incidents», finché non ne digitate uno vostro. Poi create la regola.
+:::
+
+L'incidente prende titolo, descrizione, monitor, risorse interessate ed etichette dell'avviso, ed è privato quando lo è l'avviso. Poi le sue regole vengono eseguite come per ogni nuovo incidente, quindi sono le sue regole di reperibilità a decidere chi viene chiamato. Un avviso che si risolve prima della fine dell'attesa non diventa mai un incidente, e un avviso già collegato a un incidente viene lasciato com'è. **Mostra nelle pagine di stato**, sotto **Altri campi**, decide se l'incidente compare nelle pagine di stato che elencano il suo monitor.
 
 ## Regole del proprietario e delle etichette
 

@@ -159,6 +159,7 @@ Maler leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriteriu
 - **PG- og poolserier er per pool**: Det finnes ingen måling for hele klyngen, så disse malene grupperer etter `pool_id` og åpner én hendelse per pool.
 - **Kapasitetsforhold** tar **Sum** av begge sider. Begge kommer fra samme innhenting fra mgr-en, så resultatet er en ekte prosentandel. **Inactive Placement Groups** bruker i stedet **Maksimum** per pool, fordi en sum ville lagt sammen innhentingene i en subtraksjon.
 - **Health check-maler** gjenoppretter når checken forsvinner: Gjenopprettingskriteriene deres teller en manglende serie som 0.
+- **Daemon Slow Operations** har én serie per daemon, så når ingen daemon har en serie igjen, er det ingenting å lese. Den gjenoppretter da bare hvis `ceph_health_status` kom i samme vindu, så en stoppet agent lukker ingenting.
 
 Noen varsler har ingen mal. Skjevfordelte PG-er krever statistikk på tvers av serier som kriterier ikke kan beregne. Kapasitetsprognoser krever en vekstkurve, som klyngens dashbord tegner i stedet. Forutsigelse av diskfeil og forsinket scrubbing har ingen mgr-metrikk, og NVMe-oF, RBD-speiling og cephadm krever andre eksportører.
 
@@ -227,7 +228,7 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | --- | --- |
 | **Metrikk** | Spørringen eller formelen som sjekkes, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må stemme, i hele vinduet) eller **Any Value** (én er nok). |
-| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. |
+| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når metrikkens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
 | **Terskel** | Verdien det sammenlignes med. Ved siden av står en enhetsliste når metrikken har en enhet. Vises ikke for anomalibetingelser. |
 | **Følsomhet** | Bare for anomalibetingelser. **Lav** (4σ), **Middels** (3σ, standard) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare for anomalibetingelser. 14 dager (standard), 28, 60 eller 90 dager historikk. |

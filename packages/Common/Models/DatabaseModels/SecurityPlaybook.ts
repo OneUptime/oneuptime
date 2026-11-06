@@ -156,15 +156,15 @@ export default class SecurityPlaybook extends BaseModel {
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({
     required: true,
-    type: TableColumnType.Name,
+    type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Name",
     description: "What the playbook does, in a few words.",
   })
   @Column({
     nullable: false,
-    type: ColumnType.Name,
-    length: ColumnLength.Name,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
   })
   public name?: string = undefined;
 

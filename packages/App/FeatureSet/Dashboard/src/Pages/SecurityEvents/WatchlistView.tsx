@@ -1,6 +1,9 @@
 import PageComponentProps from "../PageComponentProps";
 import {
   DESCRIPTION_FIELD_TITLE,
+  EXPIRES_FIELD_DESCRIPTION,
+  EXPIRES_FIELD_TITLE,
+  EXPORT_VALUES,
   FEED_VALUES_DESCRIPTION,
   FEED_VALUES_GONE,
   FEED_VALUES_TITLE,
@@ -12,6 +15,8 @@ import {
   NOTE_FIELD_TITLE,
   OPEN_THREAT_INTEL,
   READ_BY_COLUMN_TITLE,
+  URL_VALUES_EMPTY_DESCRIPTION,
+  URL_VALUES_EMPTY_TITLE,
   VALUES_COLUMN_TITLE,
   VALUES_EMPTY_DESCRIPTION,
   VALUES_EMPTY_TITLE,
@@ -36,10 +41,12 @@ import {
 import { getWatchlistEditFields } from "../../Components/SecurityEvents/Watchlists/WatchlistFormFields";
 import WatchlistImportModal from "../../Components/SecurityEvents/Watchlists/WatchlistImportModal";
 import WatchlistRuleSnippet from "../../Components/SecurityEvents/Watchlists/WatchlistRuleSnippet";
+import WatchlistUrlCard from "../../Components/SecurityEvents/Watchlists/WatchlistUrlCard";
 import {
   getWatchlistReaders,
   getWatchlistValuesHint,
   isFeedWatchlist,
+  isUrlWatchlist,
 } from "../../Components/SecurityEvents/Watchlists/WatchlistsModel";
 import useWatchlistReaders, {
   WatchlistReadersResult,
@@ -50,12 +57,21 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SecurityWatchlist from "Common/Models/DatabaseModels/SecurityWatchlist";
 import SecurityWatchlistItem from "Common/Models/DatabaseModels/SecurityWatchlistItem";
 import Route from "Common/Types/API/Route";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/Types/Link";
 import ObjectID from "Common/Types/ObjectID";
 import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
-import { getSecurityWatchlistValueProblem } from "Common/Types/SecurityEvent/SecurityWatchlist";
+import {
+  getSecurityWatchlistExpiryProblem,
+  getSecurityWatchlistValueProblem,
+  hasSecurityWatchlistValueExpired,
+  writeSecurityWatchlistCsv,
+} from "Common/Types/SecurityEvent/SecurityWatchlist";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
@@ -74,6 +90,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import TableColumnsToCsv from "Common/UI/Utils/TableColumnsToCsv";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -97,11 +114,61 @@ function addedByOf(item: SecurityWatchlistItem): string | undefined {
 }
 
 /*
+ * The values of a list, as a file an import reads back (value, note,
+ * expires): every value still on it, those whose moment to leave has come
+ * left out. Read whole - a list holds at most 5,000.
+ */
+export async function exportWatchlistValues(data: {
+  projectId: ObjectID;
+  watchlistId: ObjectID;
+  name: string;
+}): Promise<void> {
+  const result: ListResult<SecurityWatchlistItem> =
+    await ModelAPI.getList<SecurityWatchlistItem>({
+      modelType: SecurityWatchlistItem,
+      query: {
+        projectId: data.projectId,
+        securityWatchlistId: data.watchlistId,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      select: {
+        value: true,
+        note: true,
+        expiresAt: true,
+      },
+      sort: { value: SortOrder.Ascending },
+    });
+
+  const now: Date = OneUptimeDate.getCurrentDate();
+
+  TableColumnsToCsv.downloadCsv({
+    csv: writeSecurityWatchlistCsv(
+      result.data
+        .filter((item: SecurityWatchlistItem): boolean => {
+          return !hasSecurityWatchlistValueExpired(item.expiresAt, now);
+        })
+        .map((item: SecurityWatchlistItem) => {
+          return {
+            value: item.value || "",
+            note: item.note,
+            expiresAt: item.expiresAt,
+          };
+        }),
+    ),
+    filename: `${data.name || "watchlist"}.csv`,
+  });
+}
+
+/*
  * ONE WATCHLIST, the important thing first: what it is - what it holds,
- * its values (how many, or the feed it follows), the rules that read it -
- * then its values themselves, kept by hand (added, imported, edited,
- * deleted) or, for a list that follows a threat intel feed, the feed's,
- * and last how a rule reads it, to copy.
+ * its values (how many, or the feed it follows), what reads it - then,
+ * for a list read from an address, where and how its reads stand; then
+ * its values themselves, kept by hand (added, imported, edited, deleted,
+ * each perhaps only for a while), read from the address, or, for a list
+ * that follows a threat intel feed, the feed's; and last how a rule and a
+ * search read it, to copy. A list's values export to a file an import
+ * reads back.
  *
  * Inside the Security Events menu, Watchlists lit; its crumb names the
  * list once it is read (nameRecordInTrail, as a playbook's does).
@@ -120,8 +187,11 @@ const SecurityWatchlistViewPage: FunctionComponent<
   // The read failed (rather than finding no list): it may work again.
   const [canRetry, setCanRetry] = useState<boolean>(false);
   const [isImporting, setIsImporting] = useState<boolean>(false);
-  // Bumped when the values change from outside the table: an import.
+  // Bumped when the values change from outside the table: an import, a read of the address.
   const [valuesVersion, setValuesVersion] = useState<number>(0);
+  // Why the last export could not be made.
+  const [exportError, setExportError] = useState<string>("");
+  const [isExporting, setIsExporting] = useState<boolean>(false);
 
   const readers: WatchlistReadersResult = useWatchlistReaders(projectId);
 
@@ -140,6 +210,13 @@ const SecurityWatchlistViewPage: FunctionComponent<
             valueCount: true,
             threatIntelFeedId: true,
             threatIntelFeed: { name: true },
+            importUrl: true,
+            importSchedule: true,
+            lastImportAt: true,
+            lastImportSucceededAt: true,
+            lastImportError: true,
+            lastImportErrorDetail: true,
+            lastImportLinesLeftOut: true,
           },
         });
 
@@ -198,24 +275,65 @@ const SecurityWatchlistViewPage: FunctionComponent<
   }
 
   const isFeed: boolean = isFeedWatchlist(watchlist.source);
+  // A list read from an address: its reads keep its values, nobody's hand.
+  const isUrl: boolean = isUrlWatchlist(watchlist.source);
   const entityType: SecurityEntityType | undefined = watchlist.entityType;
   // How this list's values match, in its kind's words (svc-*, ranges, hashes).
   const valuesHint: string = getWatchlistValuesHint(entityType);
 
-  const importButton: CardButtonSchema | null = isFeed
-    ? null
-    : PermissionGate.gateCardButton(
-        {
-          title: IMPORT_VALUES,
-          buttonStyle: ButtonStyleType.OUTLINE,
-          icon: IconProp.Upload,
-          onClick: (): void => {
-            setIsImporting(true);
+  const reloadValues: () => void = (): void => {
+    setValuesVersion((current: number): number => {
+      return current + 1;
+    });
+    void load();
+  };
+
+  const importButton: CardButtonSchema | null =
+    isFeed || isUrl
+      ? null
+      : PermissionGate.gateCardButton(
+          {
+            title: IMPORT_VALUES,
+            buttonStyle: ButtonStyleType.OUTLINE,
+            icon: IconProp.Upload,
+            onClick: (): void => {
+              setIsImporting(true);
+            },
           },
-        },
-        new SecurityWatchlistItem(),
-        ModelAction.Create,
-      );
+          new SecurityWatchlistItem(),
+          ModelAction.Create,
+        );
+
+  // A list with values exports them, whoever may read them.
+  const exportButton: CardButtonSchema | null =
+    (watchlist.valueCount || 0) > 0
+      ? PermissionGate.gateCardButton(
+          {
+            title: EXPORT_VALUES,
+            buttonStyle: ButtonStyleType.OUTLINE,
+            icon: IconProp.Download,
+            isLoading: isExporting,
+            onClick: (): void => {
+              setExportError("");
+              setIsExporting(true);
+
+              exportWatchlistValues({
+                projectId: projectId!,
+                watchlistId,
+                name: watchlist.name || "",
+              })
+                .catch((err: unknown) => {
+                  setExportError(API.getFriendlyMessage(err));
+                })
+                .finally(() => {
+                  setIsExporting(false);
+                });
+            },
+          },
+          new SecurityWatchlistItem(),
+          ModelAction.Read,
+        )
+      : null;
 
   const threatIntel: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.SECURITY_EVENTS_THREAT_INTEL] as Route,
@@ -284,6 +402,9 @@ const SecurityWatchlistViewPage: FunctionComponent<
                     valueCount={watchlist.valueCount}
                     threatIntelFeedId={watchlist.threatIntelFeedId}
                     feedName={watchlist.threatIntelFeed?.name}
+                    importUrl={watchlist.importUrl}
+                    lastImportSucceededAt={watchlist.lastImportSucceededAt}
+                    lastImportError={watchlist.lastImportError}
                   />
                 );
               },
@@ -314,6 +435,29 @@ const SecurityWatchlistViewPage: FunctionComponent<
           ],
         }}
       />
+
+      {isUrl ? (
+        <WatchlistUrlCard
+          watchlistId={watchlistId}
+          watchlist={watchlist}
+          onRead={reloadValues}
+        />
+      ) : (
+        <></>
+      )}
+
+      {exportError ? (
+        <Alert
+          type={AlertType.DANGER}
+          title={exportError}
+          onClose={() => {
+            setExportError("");
+          }}
+          dataTestId={WATCHLISTS_TEST_IDS.exportValues}
+        />
+      ) : (
+        <></>
+      )}
 
       {isFeed ? (
         <Card title={FEED_VALUES_TITLE}>
@@ -370,12 +514,13 @@ const SecurityWatchlistViewPage: FunctionComponent<
             securityWatchlistId: watchlistId,
           }}
           refreshToggle={String(valuesVersion)}
-          isDeleteable={true}
-          isEditable={true}
-          isCreateable={true}
+          // A list read from an address is its file's: shown, never changed by hand.
+          isDeleteable={!isUrl}
+          isEditable={!isUrl}
+          isCreateable={!isUrl}
           isViewable={false}
           bulkActions={{
-            buttons: [ModalTableBulkDefaultActions.Delete],
+            buttons: isUrl ? [] : [ModalTableBulkDefaultActions.Delete],
           }}
           onCreateSuccess={(
             item: SecurityWatchlistItem,
@@ -391,30 +536,43 @@ const SecurityWatchlistViewPage: FunctionComponent<
           cardProps={{
             title: VALUES_TABLE_TITLE,
             description: valuesHint,
-            buttons: importButton ? [importButton] : [],
+            buttons: [importButton, exportButton].filter(
+              (button: CardButtonSchema | null): boolean => {
+                return button !== null;
+              },
+            ) as Array<CardButtonSchema>,
           }}
           /*
            * An empty list offers both ways to fill it, as its words say:
            * Add Value, and Import Values - otherwise only in the card's ⋯ -
-           * locked with the same reason when the reader may not add.
+           * locked with the same reason when the reader may not add. An
+           * empty list read from an address waits for a read that works.
            */
-          emptyState={{
-            title: VALUES_EMPTY_TITLE,
-            description: VALUES_EMPTY_DESCRIPTION,
-            icon: IconProp.ListBullet,
-            actions: importButton
-              ? [
-                  {
-                    title: IMPORT_VALUES,
-                    icon: IconProp.Upload,
-                    disabled: importButton.disabled,
-                    tooltip: importButton.tooltip,
-                    dataTestId: WATCHLISTS_TEST_IDS.importEmpty,
-                    onClick: importButton.onClick,
-                  },
-                ]
-              : [],
-          }}
+          emptyState={
+            isUrl
+              ? {
+                  title: URL_VALUES_EMPTY_TITLE,
+                  description: URL_VALUES_EMPTY_DESCRIPTION,
+                  icon: IconProp.ListBullet,
+                }
+              : {
+                  title: VALUES_EMPTY_TITLE,
+                  description: VALUES_EMPTY_DESCRIPTION,
+                  icon: IconProp.ListBullet,
+                  actions: importButton
+                    ? [
+                        {
+                          title: IMPORT_VALUES,
+                          icon: IconProp.Upload,
+                          disabled: importButton.disabled,
+                          tooltip: importButton.tooltip,
+                          dataTestId: WATCHLISTS_TEST_IDS.importEmpty,
+                          onClick: importButton.onClick,
+                        },
+                      ]
+                    : [],
+                }
+          }
           createInitialValues={
             {
               securityWatchlistId: watchlistId,
@@ -452,6 +610,32 @@ const SecurityWatchlistViewPage: FunctionComponent<
               required: false,
               dataTestId: "watchlist-note",
             },
+            /*
+             * A value kept for a while - a contractor's account, an
+             * address blocked for a month - leaves the list then, as a
+             * rule exception expires.
+             */
+            {
+              field: { expiresAt: true },
+              title: EXPIRES_FIELD_TITLE,
+              description: EXPIRES_FIELD_DESCRIPTION,
+              fieldType: FormFieldSchemaType.DateTime,
+              required: false,
+              customValidation: (
+                values: FormValues<SecurityWatchlistItem>,
+              ): string | null => {
+                const problem: string | null =
+                  getSecurityWatchlistExpiryProblem(
+                    (values as Record<string, unknown>)["expiresAt"],
+                    OneUptimeDate.getCurrentDate(),
+                  );
+
+                return problem
+                  ? translator.translateText(problem) || problem
+                  : null;
+              },
+              dataTestId: "watchlist-expires-at",
+            },
           ]}
           onBeforeCreate={(
             item: SecurityWatchlistItem,
@@ -465,6 +649,7 @@ const SecurityWatchlistViewPage: FunctionComponent<
           selectMoreFields={{
             createdAt: true,
             createdByUser: { name: true, email: true },
+            expiresAt: true,
           }}
           /*
            * Two columns, as a rule exception's list reads: the value, and
@@ -492,6 +677,8 @@ const SecurityWatchlistViewPage: FunctionComponent<
                     note={item.note}
                     addedBy={addedByOf(item)}
                     createdAt={item.createdAt}
+                    expiresAt={item.expiresAt}
+                    isReadFromUrl={isUrl}
                   />
                 );
               },
@@ -514,6 +701,8 @@ const SecurityWatchlistViewPage: FunctionComponent<
                     note={item.note}
                     addedBy={addedByOf(item)}
                     createdAt={item.createdAt}
+                    expiresAt={item.expiresAt}
+                    isReadFromUrl={isUrl}
                   />
                 );
               },
@@ -534,12 +723,7 @@ const SecurityWatchlistViewPage: FunctionComponent<
           onClose={() => {
             setIsImporting(false);
           }}
-          onImported={() => {
-            setValuesVersion((current: number): number => {
-              return current + 1;
-            });
-            void load();
-          }}
+          onImported={reloadValues}
         />
       ) : (
         <></>

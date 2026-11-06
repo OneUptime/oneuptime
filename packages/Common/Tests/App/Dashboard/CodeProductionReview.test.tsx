@@ -37,6 +37,7 @@ import {
 } from "../../../Types/AI/LlmProviderChoice";
 import {
   ProductionReviewAiNoteCode,
+  ProductionReviewDataChange,
   ProductionReviewOperationMatch,
   ProductionReviewPosting,
   ProductionReviewReport,
@@ -689,6 +690,70 @@ describe("the review: what production shows of the changed code", () => {
     expect(deploy).toHaveTextContent(
       "p95 latency of POST /api/charges rose from 420 ms to 1.2 s after it.",
     );
+  });
+
+  test("a watched table the change drops a column of: the services whose queries name it, the tables built from it, its data products", () => {
+    const tableId: string = ObjectID.generate().toString();
+    const serviceId: string = ObjectID.generate().toString();
+
+    drawReview(
+      emptyReport({
+        dataImpact: [
+          {
+            dataAssetId: tableId,
+            table: "public.orders",
+            storeName: "Orders DB",
+            change: ProductionReviewDataChange.DropColumn,
+            column: "total",
+            path: "db/migrations/20261104_drop_total.sql",
+            services: [
+              {
+                serviceId,
+                name: "checkout-api",
+                reads: true,
+                writes: false,
+                columnQueryCount: 1240,
+              },
+              { name: "billing-worker", reads: false, writes: true },
+            ],
+            downstreamTables: [
+              {
+                dataAssetId: ObjectID.generate().toString(),
+                table: "analytics.orders_daily",
+              },
+            ],
+            downstreamCount: 3,
+            dataProducts: [
+              {
+                dataProductId: ObjectID.generate().toString(),
+                name: "Revenue",
+                owner: "Data Team",
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    const row: HTMLElement = screen.getByTestId(
+      "production-review-data-impact",
+    );
+
+    expect(screen.getByTestId("production-review-data")).toHaveTextContent(
+      "Data this change touches",
+    );
+    expect(row).toHaveTextContent("Drops column total of public.orders");
+    expect(within(row).getByText("total").tagName).toBe("CODE");
+    expect(row).toHaveTextContent("In db/migrations/20261104_drop_total.sql");
+    expect(row).toHaveTextContent(
+      "checkout-api (Names the column in 1,240 queries of the last day)",
+    );
+    expect(row).toHaveTextContent("billing-worker (Writes it)");
+    expect(row).toHaveTextContent("Tables built from it");
+    expect(row).toHaveTextContent("analytics.orders_daily");
+    expect(row).toHaveTextContent("+2");
+    expect(row).toHaveTextContent("Revenue (Data Team)");
+    expect(within(row).getByText("checkout-api").closest("a")).not.toBeNull();
   });
 
   test("a part that found nothing is not drawn at all", () => {

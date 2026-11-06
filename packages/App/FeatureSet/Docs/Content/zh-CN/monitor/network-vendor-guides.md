@@ -74,7 +74,7 @@ Sophos 报告为 active 的隧道只说明其安全关联已建立。要证明�
 1. 探测器的 syslog 接收器默认开启。它在端口 5140 上通过 UDP 和 TCP 监听（可用 `PROBE_SYSLOG_RECEIVER_PORT` 更改）；如果探测器运行在 Docker 中，请发布该端口。消息会匹配到主机名或某个**其他地址**是发送方地址的网络设备，并显示在设备的**事件**和**日志**页面上。
 2. 在防火墙上，在 **System services → Log settings** 下添加指向探测器和该端口的 syslog 服务器，并勾选 IPsec 和网关的 **Event** 日志类型以及 **SD-WAN** 日志类型：在勾选之前，SLA 日志一直处于关闭状态。
 3. 无需解析。OneUptime 会把防火墙的 `key=value` 字段读取为 `sophos.*` 属性，并从中读出隧道、网关、SD-WAN SLA 变化、故障切换和登录，作为[网络事件](/docs/monitor/network-events)。在设备的**日志**页面上打开一条日志，即可看到你的 SFOS 版本生成的确切属性名称。
-4. 在设备的**事件**页面上点击**创建警报**并选择一个警报。它会打开一个已填好的[日志监视器](/docs/monitor/logs-monitor)，其中设置了 **Group by Attributes**，让每条隧道或每个网关单独发出警报，并设置了**按属性解决**，让每个警报在防火墙报告恢复时关闭。下表中的三行是可以先建立的监视器。
+4. 在设备的**事件**页面上点击**创建警报**并选择一个警报。它会打开一个已填好的[日志监视器](/docs/monitor/logs-monitor)，其中设置了 **按属性分组**，让每条隧道或每个网关单独发出警报，并设置了**按属性解决**，让每个警报在防火墙报告恢复时关闭。下表中的三行是可以先建立的监视器。
 5. 绘制 SD-WAN 质量图表：开启 SD-WAN 日志后，防火墙会按配置文件和网关写入 SLA 摘要（`latency`、`jitter`、`packet_loss`）。在**日志 → 设置 → 记录规则**下，为每个数字创建一条规则，例如按 `sophos.gw_name` 和 `sophos.profile_name` 分组的 `sophos.latency` 平均值，然后绘制结果图表，或用按网关分组的 [Metrics 监视器](/docs/monitor/metrics-monitor)对其发出警报。[日志记录规则](/docs/telemetry/log-recording-rules)逐步讲解了这个示例。
 :::
 

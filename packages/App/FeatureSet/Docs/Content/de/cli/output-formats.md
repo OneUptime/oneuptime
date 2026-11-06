@@ -43,6 +43,8 @@ Eine Tabelle ist im Terminal der Standard. `oneuptime resources --type analytics
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ cloud-cost                 │ Cloud Cost                 │ Cloud Costs                 │ analytics │ /cloud-cost                 │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ exception-instance         │ Exception Instance         │ Exception Instances         │ analytics │ /exceptions                 │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
@@ -68,7 +70,7 @@ Eine Tabelle ist im Terminal der Standard. `oneuptime resources --type analytics
 │ threat-intel-indicator     │ Threat Intel Indicator     │ Threat Intel Indicators     │ analytics │ /threat-intel-indicators    │
 └────────────────────────────┴────────────────────────────┴─────────────────────────────┴───────────┴─────────────────────────────┘
 
-Total: 14 resources
+Total: 15 resources
 ```
 
 Für eine Liste von Datensätzen zeigt eine Tabelle bis zu sechs Spalten: zuerst `_id`, `name`, `title`, `status`, `createdAt` und `updatedAt`, soweit die Datensätze sie haben, dann die nächsten Felder der Datensätze der Reihe nach. Die Spalten werden aus dem ersten Datensatz genommen. Ein Wert, der länger als 60 Zeichen ist, wird auf seine ersten 57 gekürzt, gefolgt von `...`.

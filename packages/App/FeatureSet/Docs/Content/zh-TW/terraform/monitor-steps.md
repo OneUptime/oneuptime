@@ -180,7 +180,7 @@ resource "oneuptime_monitor" "website" {
 
 ### 各監測器類型的設定
 
-除位址外還有更多設定的監測器類型，會把設定（日誌查詢、資料庫連線、要監視的叢集）放在各自的屬性中，以 `jsonencode()` 寫成原始 JSON：`log_monitor`、`trace_monitor`、`llm_monitor`、`metric_monitor`、`exception_monitor`、`profile_monitor`、`dns_monitor`、`domain_monitor`、`dnssec_monitor`、`sql_monitor`、`database_monitor`、`external_status_page_monitor`、`network_device_monitor`、`kubernetes_monitor`、`docker_monitor`、`docker_swarm_monitor`、`host_monitor`、`podman_monitor`、`proxmox_monitor`、`vmware_monitor`、`ceph_monitor`、`storage_array_monitor`、`iot_monitor` 和 `probe_status_monitor`。
+除位址外還有更多設定的監測器類型，會把設定（日誌查詢、資料庫連線、要監視的叢集）放在各自的屬性中，以 `jsonencode()` 寫成原始 JSON：`log_monitor`、`trace_monitor`、`llm_monitor`、`metric_monitor`、`exception_monitor`、`profile_monitor`、`dns_monitor`、`domain_monitor`、`dnssec_monitor`、`sql_monitor`、`database_monitor`、`external_status_page_monitor`、`network_device_monitor`、`kubernetes_monitor`、`docker_monitor`、`docker_swarm_monitor`、`host_monitor`、`podman_monitor`、`proxmox_monitor`、`openstack_monitor`、`vmware_monitor`、`ceph_monitor`、`storage_array_monitor`、`iot_monitor` 和 `probe_status_monitor`。
 
 它們的 JSON 與儀表板的相同，鍵使用 camelCase。其中的 ID 按 API 的寫法書寫：`{ _type = "ObjectID", value = "..." }`。一個統計某個服務錯誤數的 Logs 監測器：
 
@@ -333,6 +333,7 @@ criteria = [
 | 伺服器處理程序 | `Is Executing`、`Is Not Executing` |
 | 指令碼 | `Evaluates To True` |
 | 異常偵測（用於指標、日誌和追蹤） | `Anomalously High`、`Anomalously Low`、`Anomalous` |
+| 預測（用於指標） | `Forecast Above`、`Forecast Below`（預測範圍是 `forecast.horizonInHours`，寫在 `metric_monitor_options` 中；省略時為一週） |
 
 一個在 SSL 憑證 14 天內到期時相符的篩選器：
 

@@ -114,7 +114,7 @@ Enhetenes tilkobling er et eget krav. iOS-enheter trenger tilgang til APNs, vanl
 
 :::steps
 1. Kontroller DNS og HTTPS fra containeren eller poden som sender varsler, til målet for leveringsmåten din: reléet, Expo eller push-tjenesten til en nettleser.
-2. Send en test fra **Brukerinnstillinger > Varselmetoder > Push Notifications** med **Testvarsel**, og bekreft at den kommer frem til en registrert enhet. Test hver nettleser for seg for Web Push.
+2. Send en test fra **Brukerinnstillinger > Varselmetoder > Push-varsler** med **Testvarsel**, og bekreft at den kommer frem til en registrert enhet. Test hver nettleser for seg for Web Push.
 3. Se etter feil fra reléet, Expo eller Web Push i loggene til OneUptime; en vellykket innsending til API-et alene bekrefter ikke levering på enheten.
 :::
 
@@ -122,12 +122,12 @@ For mobile pusher leser OneUptime også leveringskvitteringen fra Expo omtrent 1
 
 ## Slå av push for hele serveren
 
-Hvis ingenting får forlate nettverket ditt gjennom Expo, push-reléet eller push-tjenesten til en nettleser, kan en hovedadministrator slå av push i **Admin Dashboard > Innstillinger > Push Notifications**: Slå av **Send push notifications**, og bekreft.
+Hvis ingenting får forlate nettverket ditt gjennom Expo, push-reléet eller push-tjenesten til en nettleser, kan en hovedadministrator slå av push i **Admin Dashboard > Innstillinger > Push-varsler**: Slå av **Send push notifications**, og bekreft.
 
 Mens push er slått av:
 
 - Ingenting pushes til telefoner eller nettlesere, i noe prosjekt.
-- Ingen enhet kan registreres. Fanen **Push Notifications** til hver person under **Brukerinnstillinger > Varselmetoder** sier at push er slått av, og vaktregler tilbyr ingen push-enheter.
+- Ingen enhet kan registreres. Fanen **Push-varsler** til hver person under **Brukerinnstillinger > Varselmetoder** sier at push er slått av, og vaktregler tilbyr ingen push-enheter.
 - Et varsel gjennom en push-regel sendes ikke. Vaktloggen til personen sier `Push notification not sent: Push notifications are turned off on this server.`
 - Beredskapen teller push-enheter som ubrukelige, og reserveløsningen hopper over dem. Den som bare har en push-enhet som verifisert metode, vises som utilgjengelig.
 
@@ -191,7 +191,7 @@ To mekanismer er i spill, og de dekker ulike tilfeller:
 Android fryser innstillingene til en kanal når kanalen opprettes første gang, så de kan ikke endres med en appoppdatering – bare ved å levere en ny kanal-ID.
 :::
 
-For å sjekke at det virker, sender du et testvarsel til enheten fra **Brukerinnstillinger > Varselmetoder > Push Notifications**. Når enheten har kritiske varsler slått på, sendes også testen som et kritisk varsel – så sett telefonen på lydløs først, og du hører om et ekte varsel ville nådd deg. Den samme listen viser om hver enhet har kritiske varsler slått på, og for en telefon som ikke har det, hvordan du slår dem på.
+For å sjekke at det virker, sender du et testvarsel til enheten fra **Brukerinnstillinger > Varselmetoder > Push-varsler**. Når enheten har kritiske varsler slått på, sendes også testen som et kritisk varsel – så sett telefonen på lydløs først, og du hører om et ekte varsel ville nådd deg. Den samme listen viser om hver enhet har kritiske varsler slått på, og for en telefon som ikke har det, hvordan du slår dem på.
 
 ### Velge alarmlyd
 
@@ -214,7 +214,7 @@ En push-regel kan sende varselet sitt på nytt til noen bekrefter det. Under **B
 - Kontroller at enheten er registrert i tabellen `UserPush` i databasen din
 - Sjekk serverloggene til OneUptime for feil fra Expo Push API
 - Bekreft at enheten har en aktiv internettforbindelse og at varslingstillatelser er slått på
-- Sjekk **Brukerinnstillinger > Varselmetoder > Push Notifications**: En enhet merket **Mottar ikke varsler** har sluttet å motta dem og må registreres på nytt (se nedenfor)
+- Sjekk **Brukerinnstillinger > Varselmetoder > Push-varsler**: En enhet merket **Mottar ikke varsler** har sluttet å motta dem og må registreres på nytt (se nedenfor)
 
 ### Ingen bryter for Critical Alerts i iOS-innstillingene
 
@@ -244,7 +244,7 @@ Når Expo avviser en push med en gang, gir push-loggen årsaken umiddelbart. Gje
 
 ### «DeviceNotRegistered»-feil i loggene
 
-Expo melder `DeviceNotRegistered` når mobilappen er fjernet fra enheten eller enhetens push-token ikke lenger er gyldig. Vanligvis står det i leveringskvitteringen til en push, som OneUptime leser omtrent 15 minutter etter pushen, og noen ganger avviser Expo pushen med en gang. Uansett slutter OneUptime å sende til den enheten. Den merkes som at den ikke mottar varsler i stedet for å bli slettet, så varslingsreglene blir værende, og push-loggen og vakttidslinjen til varselet som ikke kom frem, sier hvorfor. **Brukerinnstillinger > Varselmetoder > Push Notifications** viser den som **Mottar ikke varsler**. Eierens andre enheter og varselmetoder varsles fortsatt.
+Expo melder `DeviceNotRegistered` når mobilappen er fjernet fra enheten eller enhetens push-token ikke lenger er gyldig. Vanligvis står det i leveringskvitteringen til en push, som OneUptime leser omtrent 15 minutter etter pushen, og noen ganger avviser Expo pushen med en gang. Uansett slutter OneUptime å sende til den enheten. Den merkes som at den ikke mottar varsler i stedet for å bli slettet, så varslingsreglene blir værende, og push-loggen og vakttidslinjen til varselet som ikke kom frem, sier hvorfor. **Brukerinnstillinger > Varselmetoder > Push-varsler** viser den som **Mottar ikke varsler**. Eierens andre enheter og varselmetoder varsles fortsatt.
 
 For å få enheten tilbake åpner du mobilappen på den mens du er pålogget. Appen registrerer seg på nytt, noe som fornyer push-tokenet hos Expo, og enheten mottar varsler igjen med reglene sine. Er appen fjernet, installerer du den på nytt og logger på. En kvittering for en push som ble sendt før appen registrerte seg på nytt, merker ikke enheten. Når en oppdatert mobilapp settes opp på en ny telefon fra en sikkerhetskopi av den gamle, forteller den OneUptime push-tokenet den hadde før; hvis enheten til den gamle telefonen ikke lenger mottar varsler, tar den nye telefonen den over med reglene sine.
 

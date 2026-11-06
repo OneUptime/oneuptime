@@ -66,6 +66,21 @@ export const CLOUD_SERVICE_MODEL_LABELS: Readonly<
 };
 
 /*
+ * What each service model is, in words, for a resource's Details: the
+ * Dashboard draws them in the reader's language. The chips and the docs'
+ * table keep the short names above.
+ *
+ * IaaS is "Infrastructure", not "self-managed": a load balancer, a
+ * network or a disk is IaaS here, and its cloud runs it (#5702's review).
+ */
+export const CLOUD_SERVICE_MODEL_WORDS: Readonly<
+  Record<CloudServiceModel, string>
+> = {
+  [CloudServiceModel.IaaS]: translationKey("Infrastructure (IaaS)"),
+  [CloudServiceModel.PaaS]: translationKey("Managed service (PaaS)"),
+};
+
+/*
  * What each category is called, in English: the docs' table names them so,
  * and the Dashboard draws them in the reader's language (each is a key of
  * its locale files, read from here: the extractor reads only what this file
@@ -1922,6 +1937,435 @@ export function getCloudResourceTypeLabel(
   const descriptor: CloudResourceTypeDescriptor | null =
     getCloudResourceTypeDescriptor(provider, type);
   return descriptor ? descriptor.label : (type || "").trim();
+}
+
+/*
+ * ---- Named only ----------------------------------------------------------
+ *
+ * Types an inventory never lists as resources of their own but names as
+ * what one runs in, is protected by or is attached to - a subnet, a
+ * security group, a network interface - so a resource's Connected
+ * Resources says what each is instead of "AWS::EC2::Subnet". Only for
+ * naming: no list, filter, topology or rule counts them. Each label is a
+ * common noun, so it is a key of the Dashboard's locale files and reads in
+ * the reader's language; the catalog's own labels above are the clouds'
+ * product names, drawn as written.
+ */
+export interface CloudNamedOnlyResourceType {
+  provider: CloudProvider;
+  type: string;
+  label: string;
+}
+
+function namedOnly(
+  provider: CloudProvider,
+  type: string,
+  label: string,
+): CloudNamedOnlyResourceType {
+  return { provider, type, label };
+}
+
+export const NAMED_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudNamedOnlyResourceType> =
+  [
+    // AWS: what an instance, a load balancer or a function runs in and behind.
+    namedOnly(CloudProvider.AWS, "AWS::EC2::Subnet", translationKey("Subnet")),
+    namedOnly(
+      CloudProvider.AWS,
+      "AWS::EC2::SecurityGroup",
+      translationKey("Security Group"),
+    ),
+    namedOnly(
+      CloudProvider.AWS,
+      "AWS::EC2::NetworkInterface",
+      translationKey("Network Interface"),
+    ),
+    namedOnly(
+      CloudProvider.AWS,
+      "AWS::EC2::RouteTable",
+      translationKey("Route Table"),
+    ),
+    namedOnly(
+      CloudProvider.AWS,
+      "AWS::EC2::InternetGateway",
+      translationKey("Internet Gateway"),
+    ),
+    namedOnly(
+      CloudProvider.AWS,
+      "AWS::EC2::VPCEndpoint",
+      translationKey("VPC Endpoint"),
+    ),
+    namedOnly(
+      CloudProvider.AWS,
+      "AWS::EC2::EIP",
+      translationKey("Elastic IP Address"),
+    ),
+    namedOnly(
+      CloudProvider.AWS,
+      "AWS::EC2::LaunchTemplate",
+      translationKey("Launch Template"),
+    ),
+    namedOnly(
+      CloudProvider.AWS,
+      "AWS::EC2::KeyPair",
+      translationKey("Key Pair"),
+    ),
+    namedOnly(CloudProvider.AWS, "AWS::IAM::Role", translationKey("IAM Role")),
+    namedOnly(
+      CloudProvider.AWS,
+      "AWS::IAM::InstanceProfile",
+      translationKey("Instance Profile"),
+    ),
+    namedOnly(
+      CloudProvider.AWS,
+      "AWS::ElasticLoadBalancingV2::TargetGroup",
+      translationKey("Target Group"),
+    ),
+    namedOnly(
+      CloudProvider.AWS,
+      "AWS::ElasticLoadBalancingV2::Listener",
+      translationKey("Listener"),
+    ),
+    namedOnly(
+      CloudProvider.AWS,
+      "AWS::ECS::TaskDefinition",
+      translationKey("Task Definition"),
+    ),
+    namedOnly(
+      CloudProvider.AWS,
+      "AWS::RDS::DBSubnetGroup",
+      translationKey("DB Subnet Group"),
+    ),
+    namedOnly(
+      CloudProvider.AWS,
+      "AWS::SecretsManager::Secret",
+      translationKey("Secret"),
+    ),
+    // Azure: what a virtual machine or an app runs in and behind.
+    namedOnly(
+      CloudProvider.Azure,
+      "Microsoft.Network/virtualNetworks/subnets",
+      translationKey("Subnet"),
+    ),
+    namedOnly(
+      CloudProvider.Azure,
+      "Microsoft.Network/networkSecurityGroups",
+      translationKey("Network Security Group"),
+    ),
+    namedOnly(
+      CloudProvider.Azure,
+      "Microsoft.Network/applicationSecurityGroups",
+      translationKey("Application Security Group"),
+    ),
+    namedOnly(
+      CloudProvider.Azure,
+      "Microsoft.Network/routeTables",
+      translationKey("Route Table"),
+    ),
+    namedOnly(
+      CloudProvider.Azure,
+      "Microsoft.Network/privateDnsZones",
+      translationKey("Private DNS Zone"),
+    ),
+    namedOnly(
+      CloudProvider.Azure,
+      "Microsoft.ManagedIdentity/userAssignedIdentities",
+      translationKey("Managed Identity"),
+    ),
+    namedOnly(
+      CloudProvider.Azure,
+      "Microsoft.Compute/availabilitySets",
+      translationKey("Availability Set"),
+    ),
+    namedOnly(
+      CloudProvider.Azure,
+      "Microsoft.Compute/snapshots",
+      translationKey("Disk Snapshot"),
+    ),
+    // Google Cloud: what an instance runs in, and what guards and runs it.
+    namedOnly(
+      CloudProvider.GCP,
+      "compute.googleapis.com/Subnetwork",
+      translationKey("Subnet"),
+    ),
+    namedOnly(
+      CloudProvider.GCP,
+      "compute.googleapis.com/Firewall",
+      translationKey("Firewall Rule"),
+    ),
+    namedOnly(
+      CloudProvider.GCP,
+      "compute.googleapis.com/Address",
+      translationKey("IP Address"),
+    ),
+    namedOnly(
+      CloudProvider.GCP,
+      "compute.googleapis.com/Route",
+      translationKey("Route"),
+    ),
+    namedOnly(
+      CloudProvider.GCP,
+      "compute.googleapis.com/InstanceGroup",
+      translationKey("Instance Group"),
+    ),
+    namedOnly(
+      CloudProvider.GCP,
+      "iam.googleapis.com/ServiceAccount",
+      translationKey("Service Account"),
+    ),
+    namedOnly(
+      CloudProvider.GCP,
+      "cloudkms.googleapis.com/CryptoKey",
+      translationKey("KMS Key"),
+    ),
+  ];
+
+const NAMED_ONLY_LABELS: ReadonlyMap<string, string> = new Map(
+  NAMED_ONLY_RESOURCE_TYPES.map(
+    (named: CloudNamedOnlyResourceType): [string, string] => {
+      return [typeLookupKey(named.provider, named.type), named.label];
+    },
+  ),
+);
+
+/*
+ * The services a Google Cloud asset type is named after, as people call
+ * them: "compute.googleapis.com/TargetPool" is a Compute Engine target
+ * pool. A service not here is written as its host names it.
+ */
+const GCP_SERVICE_NAMES: Readonly<Record<string, string>> = {
+  aiplatform: "Vertex AI",
+  alloydb: "AlloyDB",
+  artifactregistry: "Artifact Registry",
+  bigquery: "BigQuery",
+  bigtableadmin: "Bigtable",
+  cloudfunctions: "Cloud Functions",
+  cloudkms: "Cloud KMS",
+  compute: "Compute Engine",
+  container: "GKE",
+  dns: "Cloud DNS",
+  file: "Filestore",
+  iam: "IAM",
+  logging: "Cloud Logging",
+  memcache: "Memorystore",
+  pubsub: "Pub/Sub",
+  redis: "Memorystore",
+  run: "Cloud Run",
+  secretmanager: "Secret Manager",
+  spanner: "Spanner",
+  sqladmin: "Cloud SQL",
+  storage: "Cloud Storage",
+};
+
+function isUpperCaseLetter(character: string): boolean {
+  return (
+    character !== character.toLowerCase() &&
+    character === character.toUpperCase()
+  );
+}
+
+function isLowerCaseLetter(character: string): boolean {
+  return (
+    character !== character.toUpperCase() &&
+    character === character.toLowerCase()
+  );
+}
+
+/*
+ * A run-together name in words, by its capitals, in one pass:
+ * "TransitGateway" -> Transit Gateway, "VPCEndpoint" -> VPC Endpoint,
+ * "publicIPAddresses" -> public IP Addresses, "BalancingV2" -> Balancing
+ * V2. A word starts at a capital after a small letter or a digit, and at
+ * the last capital of a run that a small letter follows.
+ */
+function splitNameIntoWords(name: string): Array<string> {
+  const words: Array<string> = [];
+  let word: string = "";
+
+  for (let index: number = 0; index < name.length; index++) {
+    const character: string = name.charAt(index);
+    const previous: string = index > 0 ? name.charAt(index - 1) : "";
+    const next: string = index + 1 < name.length ? name.charAt(index + 1) : "";
+
+    if (character === "_" || character === "-" || character === " ") {
+      if (word) {
+        words.push(word);
+      }
+      word = "";
+      continue;
+    }
+
+    const startsWord: boolean =
+      word.length > 0 &&
+      isUpperCaseLetter(character) &&
+      (isLowerCaseLetter(previous) ||
+        (previous >= "0" && previous <= "9") ||
+        (isUpperCaseLetter(previous) && isLowerCaseLetter(next)));
+
+    if (startsWord) {
+      words.push(word);
+      word = "";
+    }
+
+    word += character;
+  }
+
+  if (word) {
+    words.push(word);
+  }
+
+  return words;
+}
+
+// "gateways" -> "gateway", "policies" -> "policy", "Addresses" -> "Address"; "Redis" stays.
+function toSingular(word: string): string {
+  const lower: string = word.toLowerCase();
+
+  if (lower.length > 3 && lower.endsWith("ies")) {
+    return `${word.slice(0, -3)}${word.slice(-3) === "IES" ? "Y" : "y"}`;
+  }
+
+  for (const ending of ["sses", "xes", "ches", "shes", "zes"]) {
+    if (lower.length > ending.length && lower.endsWith(ending)) {
+      return word.slice(0, -2);
+    }
+  }
+
+  if (
+    lower.length > 2 &&
+    lower.endsWith("s") &&
+    !lower.endsWith("ss") &&
+    !lower.endsWith("is") &&
+    !lower.endsWith("us")
+  ) {
+    return word.slice(0, -1);
+  }
+
+  return word;
+}
+
+// Each word with its first letter a capital; an acronym kept as it is.
+function toTitleWords(words: Array<string>): string {
+  return words
+    .map((word: string): string => {
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ");
+}
+
+/*
+ * Any cloud resource type, in words, for one the catalog does not name -
+ * whatever its cloud spells it like:
+ *
+ *   AWS::EC2::TransitGatewayAttachment      Transit Gateway Attachment (EC2)
+ *   Microsoft.Network/loadBalancers/inboundNatRules
+ *                                           Inbound Nat Rule (Network)
+ *   compute.googleapis.com/TargetHttpsProxy Target Https Proxy (Compute Engine)
+ *   gce_router                              Gce Router
+ *
+ * A type of no shape it knows is returned as it came; nothing renders
+ * blank. Plain string reads, in time that grows with the type's length:
+ * the type is text a cloud wrote.
+ */
+export function getReadableCloudResourceType(
+  type: string | null | undefined,
+): string {
+  const trimmed: string = (type || "").trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  // AWS: AWS::<Service>::<Resource>.
+  if (trimmed.startsWith("AWS::")) {
+    const parts: Array<string> = trimmed.slice("AWS::".length).split("::");
+
+    if (parts.length === 2 && parts[0] && parts[1]) {
+      return `${toTitleWords(splitNameIntoWords(parts[1]))} (${toTitleWords(
+        splitNameIntoWords(parts[0]),
+      )})`;
+    }
+
+    return trimmed;
+  }
+
+  // Azure: Microsoft.<Namespace>/<type>[/<child type>...].
+  if (trimmed.startsWith("Microsoft.")) {
+    const slash: number = trimmed.indexOf("/");
+    const namespace: string = trimmed.slice(
+      "Microsoft.".length,
+      slash >= 0 ? slash : undefined,
+    );
+    const segments: Array<string> =
+      slash >= 0 ? trimmed.slice(slash + 1).split("/") : [];
+    const last: string = segments[segments.length - 1] || "";
+
+    if (!namespace || !last) {
+      return trimmed;
+    }
+
+    const words: Array<string> = splitNameIntoWords(last);
+    words[words.length - 1] = toSingular(words[words.length - 1] || "");
+
+    return `${toTitleWords(words)} (${toTitleWords(
+      splitNameIntoWords(namespace),
+    )})`;
+  }
+
+  // Google Cloud asset: <service>.googleapis.com/<Kind>.
+  const assetMarker: string = ".googleapis.com/";
+  const marker: number = trimmed.indexOf(assetMarker);
+
+  if (marker > 0) {
+    const service: string = trimmed.slice(0, marker);
+    const kind: string = trimmed.slice(marker + assetMarker.length);
+
+    if (!kind || kind.includes("/")) {
+      return trimmed;
+    }
+
+    return `${toTitleWords(splitNameIntoWords(kind))} (${
+      GCP_SERVICE_NAMES[service] || toTitleWords(splitNameIntoWords(service))
+    })`;
+  }
+
+  // Google Cloud Monitoring: snake_case, "gce_router".
+  if (trimmed.includes("_") && !trimmed.includes(" ")) {
+    const words: Array<string> = splitNameIntoWords(trimmed);
+    return words.length > 0 ? toTitleWords(words) : trimmed;
+  }
+
+  return trimmed;
+}
+
+/*
+ * What a page calls a resource of this type: the catalog's label, a named
+ * only type's (Subnet, Security Group), else the type in words
+ * (getReadableCloudResourceType). For a page only: what is stored - a
+ * resource's name, a rule, the AI's facts - keeps getCloudResourceTypeLabel,
+ * whose fallback is the type as the cloud spells it.
+ */
+export function getCloudResourceTypeDisplayName(
+  provider: string | null | undefined,
+  type: string | null | undefined,
+): string {
+  const descriptor: CloudResourceTypeDescriptor | null =
+    getCloudResourceTypeDescriptor(provider, type);
+
+  if (descriptor) {
+    return descriptor.label;
+  }
+
+  if (provider && type) {
+    const named: string | undefined = NAMED_ONLY_LABELS.get(
+      typeLookupKey(provider, type),
+    );
+
+    if (named) {
+      return named;
+    }
+  }
+
+  return getReadableCloudResourceType(type);
 }
 
 /*

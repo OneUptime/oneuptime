@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+#
+# Start the OpenStack agent's pinned exporter and collector against the cloud
+# DevStack deployed on this runner, with the collector's real config. The
+# collector writes what it would send to a file instead, so the recording holds
+# exactly the OTLP OneUptime would ingest, attributes and all.
+#
+# Beside it runs the exporter's last non-alpha release, for record.sh to
+# compare: see "To settle" on the epic.
+
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AGENT_DIR="$HERE/../../../agents/OpenStackAgent"
+OUTPUT_DIR="${OUTPUT_DIR:-out}"
+
+# Read the pins from what ships, so this rig can never test another version.
+EXPORTER_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*ghcr.io/openstack-exporter/' "$AGENT_DIR/docker-compose.yml" | head -1 | awk '{print $2}')"
+COLLECTOR_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*otel/opentelemetry-collector-contrib' "$AGENT_DIR/docker-compose.yml" | head -1 | awk '{print $2}')"
+EXPORTER_STABLE_IMAGE="${EXPORTER_STABLE_IMAGE:-ghcr.io/openstack-exporter/openstack-exporter:1.7.0}"
+
+# The same goes for what it is told to leave out: one flag per word, on purpose.
+# Only its own service's: the compose file also starts an exporter with most reads turned off.
+EXPORTER_FLAGS="$(sed -n '/^  openstack-exporter:$/,/^  [a-z-]*:$/p' "$AGENT_DIR/docker-compose.yml" | grep -E '^[[:space:]]*- --disable-metric=' | sed -E 's/^[[:space:]]*- //' | tr '\n' ' ')"
+
+[ -n "$EXPORTER_IMAGE" ] && [ -n "$COLLECTOR_IMAGE" ] || {
+  echo "Could not read the agent's image pins from $AGENT_DIR/docker-compose.yml" >&2
+  exit 1
+}
+
+mkdir -p "$OUTPUT_DIR/otlp"
+chmod 0777 "$OUTPUT_DIR/otlp"
+
+# DevStack's admin cloud is the credential on this runner. The agent names each
+# clouds.yaml entry for its region, because the exporter's series do not say which
+# region they are from, so the same is done here.
+REGION="${OPENSTACK_REGION:-RegionOne}"
+CLOUDS_FILE="$(cd "$OUTPUT_DIR" && pwd)/clouds.yaml"
+sudo sed "s/^\( *\)devstack-admin:/\1$REGION:/" /etc/openstack/clouds.yaml | sudo tee "$CLOUDS_FILE" >/dev/null
+sudo chmod a+r "$CLOUDS_FILE"
+
+docker run -d --name ou-openstack-exporter --network host \
+  -v "$CLOUDS_FILE:/etc/openstack/clouds.yaml:ro" \
+  "$EXPORTER_IMAGE" --multi-cloud --web.listen-address=:9180 --os-client-config=/etc/openstack/clouds.yaml \
+  $EXPORTER_FLAGS
+
+docker run -d --name ou-openstack-exporter-stable --network host \
+  -v "$CLOUDS_FILE:/etc/openstack/clouds.yaml:ro" \
+  "$EXPORTER_STABLE_IMAGE" --multi-cloud --web.listen-address=:9181 --os-client-config=/etc/openstack/clouds.yaml
+
+docker run -d --name ou-openstack-collector --network host \
+  -v "$(cd "$AGENT_DIR" && pwd)/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro" \
+  -v "$HERE/collector-recording.yaml:/etc/otelcol-contrib/recording.yaml:ro" \
+  -v "$(cd "$OUTPUT_DIR" && pwd)/otlp:/recording" \
+  -e ONEUPTIME_URL=http://127.0.0.1:9 \
+  -e ONEUPTIME_TELEMETRY_INGESTION_KEY=recording \
+  -e OPENSTACK_CLOUD_NAME=devstack \
+  -e OPENSTACK_EXPORTER_CLOUDS="[$REGION]" \
+  -e OPENSTACK_EXPORTER_ADDRESS=127.0.0.1:9180 \
+  -e OPENSTACK_QUOTA_CLOUDS='[]' \
+  -e OPENSTACK_QUOTA_EXPORTER_ADDRESS=127.0.0.1:9183 \
+  -e OPENSTACK_LIBVIRT_EXPORTER_TARGETS="${OPENSTACK_LIBVIRT_EXPORTER_TARGETS:-[]}" \
+  -e OPENSTACK_CEILOMETER_EXPORTER_TARGETS="${OPENSTACK_CEILOMETER_EXPORTER_TARGETS:-[]}" \
+  -e OPENSTACK_RABBITMQ_TARGETS="${OPENSTACK_RABBITMQ_TARGETS:-[]}" \
+  -e OPENSTACK_MARIADB_TARGETS="${OPENSTACK_MARIADB_TARGETS:-[]}" \
+  -e OPENSTACK_MEMCACHED_TARGETS="${OPENSTACK_MEMCACHED_TARGETS:-[]}" \
+  -e OPENSTACK_HAPROXY_TARGETS="${OPENSTACK_HAPROXY_TARGETS:-[]}" \
+  -e OPENSTACK_NETWORK_EXPORTER_TARGETS="${OPENSTACK_NETWORK_EXPORTER_TARGETS:-[]}" \
+  -e OPENSTACK_LIBVIRT_HEALTH_TARGETS="${OPENSTACK_LIBVIRT_HEALTH_TARGETS:-[]}" \
+  -e OPENSTACK_CONTROL_PLANE_REGION="$REGION" \
+  -e OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS='[]' \
+  -e OPENSTACK_AGENT_SERVICES='.*' \
+  -e OPENSTACK_AGENT_MEMORY_LIMIT_MIB=512 \
+  -e OPENSTACK_DATABASE_EXPORTER_TARGETS='[]' \
+  -e OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX= \
+  -e OPENSTACK_WORKER_STATE_CLOUDS='[]' \
+  -e OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS=127.0.0.1:9182 \
+  "$COLLECTOR_IMAGE" --config=/etc/otelcol-contrib/config.yaml --config=/etc/otelcol-contrib/recording.yaml
+
+# A collector that refuses its config exits at once, and the run only finds out at its
+# very end, when stop-agent.sh sees nothing was exported. The scenes are still worth
+# recording without it, so this says so now and carries on.
+sleep 5
+if [ "$(docker inspect -f '{{.State.Running}}' ou-openstack-collector 2>/dev/null)" != "true" ]; then
+  echo "::warning::The agent's collector stopped as it started, so this run records no OTLP."
+  docker logs ou-openstack-collector 2>&1 | tail -20 >&2
+fi
+
+# The exporter answers once it is listening. Keystone's answer is the real test,
+# and a scrape of the identity service exercises it.
+for attempt in $(seq 1 30); do
+  if curl -fsS --max-time 60 "http://127.0.0.1:9180/probe?cloud=$REGION&include_services=identity" | grep -q '^openstack_identity_up'; then
+    echo "The exporter reads the cloud."
+    exit 0
+  fi
+  sleep 5
+  : "$attempt"
+done
+
+docker logs ou-openstack-exporter 2>&1 | tail -40 >&2
+echo "The exporter never read the cloud." >&2
+exit 1

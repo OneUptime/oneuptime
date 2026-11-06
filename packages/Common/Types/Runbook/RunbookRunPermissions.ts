@@ -70,6 +70,16 @@ export const RUNBOOK_ADVANCE_GRANULAR_PERMISSIONS: ReadonlyArray<Permission> = [
 export const RUNBOOK_RUN_REFUSED_MESSAGE: string =
   "You do not have permission to start runbook executions in this project.";
 
+/*
+ * What a refused Dismiss of a fix OneUptime AI proposed says. Dismissing
+ * decides as much about a fix as approving it, so it asks what approving
+ * asks - the run list above - on the AI card
+ * (Server/Utils/AutoRemediation/RemediationApproval) as on the fix's Slack
+ * and Microsoft Teams message (WorkspaceRemediationActions).
+ */
+export const FIX_DISMISS_REFUSED_MESSAGE: string =
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.";
+
 // What a refused complete, skip or cancel says.
 export const RUNBOOK_ADVANCE_REFUSED_MESSAGE: string =
   "You do not have permission to change runbook executions in this project.";

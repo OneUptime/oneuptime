@@ -166,8 +166,8 @@ describe("what Fix with AI says", () => {
       leads.push(lead!);
     }
 
-    // Three kinds, three different pull requests.
-    expect(new Set(leads).size).toBe(3);
+    // Four kinds, four different pull requests.
+    expect(new Set(leads).size).toBe(4);
     expect(TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricHighCardinality]).toBe(
       "OneUptime AI opens a pull request that stops recording these values on the metric, for you to review.",
     );
@@ -176,6 +176,12 @@ describe("what Fix with AI says", () => {
     );
     expect(TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricMissingMetrics]).toBe(
       "OneUptime AI opens a pull request that adds metrics to this service, for you to review.",
+    );
+    // A service that sends metrics already: only the request metrics are added.
+    expect(
+      TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricMissingRequestMetrics],
+    ).toBe(
+      "OneUptime AI opens a pull request that adds request metrics to this service, for you to review.",
     );
   });
 

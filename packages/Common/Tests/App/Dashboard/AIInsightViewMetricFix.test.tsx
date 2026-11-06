@@ -25,8 +25,11 @@ import { MemoryRouter } from "react-router-dom";
  * server decides what is offered (POST /telemetry-ai/fix-suggestion) and the
  * strip draws exactly that. "Open in Metrics" opens the metric for the
  * service in the hour it was found in; names with ids open the metric list
- * searched for them; a service with no metrics opens its spans instead.
- * That no finding of the lane offers a monitor is AIInsightViewCreateMonitor's.
+ * searched for them; a service with no metrics, or none for its requests,
+ * opens its spans instead - and those two findings offer, beside Fix with
+ * AI, the way that changes no code: the OpenTelemetry Collector's span
+ * metrics step (its dialog is SpanMetricsStepPanel's own suite). That no
+ * finding of the lane offers a monitor is AIInsightViewCreateMonitor's.
  */
 
 const INSIGHT_ID: string = "5231fafa-1111-4111-8111-111111111111";
@@ -100,6 +103,10 @@ import {
   TELEMETRY_AI_FIX_LEAD_METRIC_NAMES,
   TELEMETRY_AI_FIX_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiFixCopy";
+import {
+  SPAN_METRICS_STEP_COPY,
+  SPAN_METRICS_STEP_TEST_IDS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/SpanMetricsStepCopy";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
 import { MetricInsightEvidence } from "../../../Types/AI/AIInsightEvidence";
 import AIInsightSeverity from "../../../Types/AI/AIInsightSeverity";
@@ -147,6 +154,18 @@ const NO_METRICS: MetricInsightEvidence = {
   windowEndTime: "2026-10-24T09:00:00.000Z",
   spanCount: 4200,
   failedSpanCount: 12,
+};
+
+const NO_REQUEST_METRICS: MetricInsightEvidence = {
+  serviceId: SERVICE_ID,
+  kind: "MissingRequestMetrics",
+  windowStartTime: "2026-10-24T08:00:00.000Z",
+  windowEndTime: "2026-10-24T09:00:00.000Z",
+  spanCount: 12400,
+  failedSpanCount: 310,
+  servedProtocols: ["Http"],
+  sentMetricNames: ["jvm.memory.used"],
+  sentMetricCount: 1,
 };
 
 interface Finding {
@@ -298,6 +317,7 @@ describe("a Metrics finding's page", () => {
   test.each([
     [AIInsightType.MetricHistogramBuckets],
     [AIInsightType.MetricMissingMetrics],
+    [AIInsightType.MetricMissingRequestMetrics],
   ])("the %s finding says what its fix does", async (type: AIInsightType) => {
     finding.insightType = type;
     await renderPage();
@@ -404,5 +424,116 @@ describe("a Metrics finding's page", () => {
     expect(opened.query.get("start")).toBe("2026-10-24T08:00:00.000Z");
     expect(opened.query.get("end")).toBe("2026-10-24T09:00:00.000Z");
     expect(screen.queryByText("Open in Metrics")).not.toBeInTheDocument();
+  });
+
+  test("a service with no metrics for its requests opens its spans of the hour too: its requests", async () => {
+    finding.insightType = AIInsightType.MetricMissingRequestMetrics;
+    finding.evidence = NO_REQUEST_METRICS;
+
+    const opened: { path: string; query: URLSearchParams } =
+      await openedRoute("Open in Traces");
+
+    expect(opened.path).toMatch(/\/traces$/u);
+    expect(opened.query.toString()).toContain(SERVICE_ID);
+    expect(opened.query.get("start")).toBe("2026-10-24T08:00:00.000Z");
+    expect(opened.query.get("end")).toBe("2026-10-24T09:00:00.000Z");
+    expect(screen.queryByText("Open in Metrics")).not.toBeInTheDocument();
+  });
+});
+
+describe("the way past a missing metrics finding that changes no code", () => {
+  test.each([
+    [AIInsightType.MetricMissingMetrics, NO_METRICS],
+    [AIInsightType.MetricMissingRequestMetrics, NO_REQUEST_METRICS],
+  ])(
+    "a %s finding offers the collector's span metrics step, below Fix with AI",
+    async (type: AIInsightType, evidence: MetricInsightEvidence) => {
+      finding.insightType = type;
+      finding.evidence = evidence;
+      await renderPage();
+
+      const panel: HTMLElement = await screen.findByTestId(
+        SPAN_METRICS_STEP_TEST_IDS.panel,
+      );
+
+      expect(panel).toHaveTextContent(SPAN_METRICS_STEP_COPY.panelTitle);
+      expect(panel).toHaveTextContent(SPAN_METRICS_STEP_COPY.panelDescription);
+      expect(
+        screen.getByTestId(SPAN_METRICS_STEP_TEST_IDS.show),
+      ).toHaveTextContent(SPAN_METRICS_STEP_COPY.showStep);
+
+      // Below Fix with AI, the code fix it is the other way to.
+      const strip: HTMLElement = await screen.findByTestId(
+        TELEMETRY_AI_FIX_TEST_IDS.strip,
+      );
+
+      expect(
+        strip.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    },
+  );
+
+  test.each([
+    [AIInsightType.MetricHighCardinality],
+    [AIInsightType.MetricHistogramBuckets],
+    [AIInsightType.MetricDrift],
+  ])(
+    "a %s finding offers no collector step: its problem is not a missing metric",
+    async (type: AIInsightType) => {
+      finding.insightType = type;
+      await renderPage();
+
+      await screen.findByText(TITLE);
+      expect(
+        screen.queryByTestId(SPAN_METRICS_STEP_TEST_IDS.panel),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test("a closed finding offers no step", async () => {
+    finding.insightType = AIInsightType.MetricMissingRequestMetrics;
+    finding.evidence = NO_REQUEST_METRICS;
+    finding.status = AIInsightStatus.Resolved;
+    await renderPage();
+
+    await screen.findByText(TITLE);
+    expect(
+      screen.queryByTestId(SPAN_METRICS_STEP_TEST_IDS.panel),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a finding being fixed in code offers no step: the pull request adds the metrics", async () => {
+    finding.insightType = AIInsightType.MetricMissingMetrics;
+    finding.evidence = NO_METRICS;
+    finding.fixAiRunId = new ObjectID(TASK_ID);
+    finding.status = AIInsightStatus.FixOpened;
+    await renderPage();
+
+    expect(
+      await screen.findByText("View the fix task and pull request"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(SPAN_METRICS_STEP_TEST_IDS.panel),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the step goes once Fix with AI starts the pull request", async () => {
+    finding.insightType = AIInsightType.MetricMissingRequestMetrics;
+    finding.evidence = NO_REQUEST_METRICS;
+    await renderPage();
+
+    expect(
+      await screen.findByTestId(SPAN_METRICS_STEP_TEST_IDS.panel),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      await screen.findByTestId(TELEMETRY_AI_FIX_TEST_IDS.button),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId(SPAN_METRICS_STEP_TEST_IDS.panel),
+      ).not.toBeInTheDocument();
+    });
   });
 });

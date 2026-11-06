@@ -52,6 +52,7 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 const mockRouter: MockIdentityRouter = createMockIdentityRouter();
 
 let mockBillingEnabled: boolean = true;
+let mockInstanceCheckInDisabled: boolean = false;
 
 /*
  * The server does not require single sign-on here: every sign-in and sign-up
@@ -80,6 +81,12 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
   Object.defineProperty(mocked, "IsBillingEnabled", {
     get: (): boolean => {
       return mockBillingEnabled;
+    },
+  });
+
+  Object.defineProperty(mocked, "DisableInstanceCheckIn", {
+    get: (): boolean => {
+      return mockInstanceCheckInDisabled;
     },
   });
 
@@ -812,6 +819,28 @@ describe("POST /signup on a self-hosted install (billing disabled)", () => {
     );
 
     expect(apiPost).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * An air-gapped install turns the daily check-in off, and with it every
+   * report to oneuptime.com: the form no longer offers release emails, and a
+   * request that asks for them anyway sends nothing.
+   */
+  it("sends nothing to the self-hosted registry once the daily check-in is off, even when asked to", async () => {
+    mockInstanceCheckInDisabled = true;
+
+    try {
+      await invoke(
+        "/signup",
+        signupBody(undefined, {
+          notifySelfHosted: true,
+        }),
+      );
+
+      expect(apiPost).not.toHaveBeenCalled();
+    } finally {
+      mockInstanceCheckInDisabled = false;
+    }
   });
 });
 

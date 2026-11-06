@@ -17,6 +17,7 @@ Die Konfiguration von Warnungen liegt unter **Warnungen**, nicht in den **Projek
 | ----------------------- | ----------------------------------------------------------------------------------------------- |
 | **Gruppierungsregeln**  | Fasst zusammengehörige Warnungen in Episoden zusammen. Siehe [Warnungsepisoden & Gruppierungsregeln](/docs/alerts/episodes). |
 | **Bereitschaftsregeln** | Führt Bereitschaftsrichtlinien für passende Warnungen und Episoden aus.                         |
+| **Vorfallsregeln** | Meldet einen Vorfall aus passenden Warnungen, sofort oder sobald eine Warnung zu lange unbehoben bleibt. |
 | **Eigentümerregeln**    | Fügt passenden Warnungen und Episoden Eigentümer hinzu.                                         |
 | **Runbook-Regeln**      | Startet Runbooks für passende Warnungen.                                                        |
 | **Datenschutzregeln**   | Macht passende Warnungen und Episoden privat.                                                   |
@@ -54,7 +55,7 @@ flowchart TB
 
 Die Regeln unterscheiden sich darin, wie mehrere Treffer aufgelöst werden:
 
-- **Gruppierungsregeln** und **Erinnerungsregeln** werden von oben nach unten in ihrer Liste geprüft, und der erste Treffer gewinnt. Ziehen Sie eine Regel, um ihren Platz zu ändern; eine neue Regel kommt ans Ende.
+- **Gruppierungsregeln**, **Vorfallsregeln** und **Erinnerungsregeln** werden von oben nach unten in ihrer Liste geprüft, und der erste Treffer gewinnt. Ziehen Sie eine Regel, um ihren Platz zu ändern; eine neue Regel kommt ans Ende.
 - **Bereitschaftsregeln**, **Eigentümerregeln**, **Beschriftungsregeln**, **Datenschutzregeln** und **Runbook-Regeln** wirken alle, wenn sie zutreffen. Bereitschaftsrichtlinien, Eigentümer und Beschriftungen, die mehrere Regeln hinzufügen, werden einmal hinzugefügt.
 
 **Bereitschaftsregeln**, **Eigentümerregeln**, **Beschriftungsregeln** und **Datenschutzregeln** haben zwei Tabs: **Warnungsregeln** für Warnungen und **Episodenregeln**, die auf jede neue Warnungsepisode genauso wirken. Eine neue Regel beginnt aktiviert; schalten Sie **Aktiviert** im Bearbeitungsformular aus, um sie zu pausieren, und die Liste zeigt für jede Regel ein grünes **Aktiviert** oder ein rotes **Deaktiviert**.
@@ -89,6 +90,22 @@ Wählen Sie unter **Bereitschaftsrichtlinien** die **Bereitschaftsrichtlinien**,
 Ein Schweregrad alarmiert für sich niemanden: Eine Bereitschaftsregel, die auf **Warnungsschweregrade** prüft, ist der Weg, „bei jeder Warnung mit Schweregrad Hoch das Datenbankteam alarmieren“ einzurichten. Um zu sehen, was für eine Warnung lief, öffnen Sie ihre Seite **Bereitschaftsausführungen**. Jede Person wird dann so erreicht, wie sie es unter **Benutzereinstellungen → Bereitschaftsregeln** auf dem Tab **Warnungen** eingerichtet hat; siehe [Eskalationsregeln](/docs/on-call/escalation-rules).
 
 Eine Regel alarmiert, sobald eine Warnung zu ihr passt. Damit sie stattdessen auf die Arbeitszeiten wartet, beantworten Sie **Wann soll diese Regel alarmieren?** unter **Weitere Felder** mit **Nur während der Arbeitszeiten**. Die **Arbeitszeiten** beginnen mit Montag bis Freitag, 09:00 bis 17:00, in Ihrer eigenen Zeitzone: Wählen Sie andere Tage, eine andere **Startzeit** oder **Endzeit** oder eine andere **Zeitzone**, und ein Satz unter der Auswahl sagt, was passiert. In der Liste zeigt die Regel ihre Zeiten unter ihrem Namen. Eine Warnung, die außerhalb dieser Zeiten passt, bekommt einen Lauf, der wartet und niemanden alarmiert; sobald die Arbeitszeiten beginnen, alarmiert die Richtlinie über ihre erste Eskalationsregel und eskaliert wie gewohnt. Wird die Warnung vorher bestätigt oder behoben, wird niemand alarmiert. Ändert sich die Warnung, während sie wartet, und passt sie nun zu einer Regel, die sofort alarmiert, etwa weil ihr Schweregrad erhöht wurde, beginnt der Lauf umgehend zu alarmieren, und der Feed der Warnung sagt, warum. Zwei Regeln, die dieselbe Richtlinie auslösen, lösen sie aus, sobald eine von beiden es zulässt: Eine Regel für Ihre höchsten Schweregrade, die sofort alarmiert, neben einer Regel für den Rest, die auf die Arbeitszeiten wartet, hält die Nächte ruhig.
+
+## Vorfallsregeln
+
+**Warnungen → Regeln → Vorfallsregeln** macht aus Warnungen von selbst Vorfälle. Die erste Regel, von oben nach unten in der Liste, die zu einer neuen Warnung passt, meldet daraus einen Vorfall, wie es **Vorfall melden** auf der Seite der Warnung täte, und verknüpft die Warnung mit ihm.
+
+:::steps
+### Die Warnungen auswählen
+
+Unter **Übereinstimmung** trifft **Alle Warnungen**, womit eine neue Regel beginnt, auf jede neue Warnung zu. Um sie einzugrenzen, wählen Sie **Nur Warnungen, die den Bedingungen entsprechen** und fügen die Bedingungen hinzu, die eine Warnung erfüllen muss.
+
+### Den Vorfall beschreiben
+
+Wählen Sie unter **Vorfall** den **Vorfallsschweregrad**, oder lassen Sie ihn leer, damit jeder Vorfall den Schweregrad erhält, der zu dem seiner Warnung passt. Setzen Sie **Declare After (Minutes)** auf mehr als 0, um den Vorfall nur zu melden, wenn die Warnung bis dahin noch nicht behoben ist. Der **Name** der Regel folgt dem Schweregrad, etwa „Declare SEV1 incidents“, bis Sie einen eigenen eingeben. Erstellen Sie dann die Regel.
+:::
+
+Der Vorfall übernimmt Titel, Beschreibung, Monitor, betroffene Ressourcen und Beschriftungen der Warnung und ist privat, wenn die Warnung es ist. Seine eigenen Regeln laufen dann wie bei jedem neuen Vorfall, sodass seine Bereitschaftsregeln entscheiden, wer alarmiert wird. Eine Warnung, die behoben wird, bevor die Wartezeit um ist, wird nie zum Vorfall, und eine Warnung, die schon mit einem Vorfall verknüpft ist, bleibt unberührt. **Auf Statusseiten anzeigen** unter **Weitere Felder** entscheidet, ob der Vorfall auf den Statusseiten erscheint, die seinen Monitor auflisten.
 
 ## Eigentümer- und Beschriftungsregeln
 

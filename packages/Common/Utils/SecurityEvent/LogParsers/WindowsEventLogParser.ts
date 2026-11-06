@@ -506,7 +506,11 @@ function accountChanged(
 ): EventReader {
   return (event: WindowsEvent): WindowsEventReading => {
     const subject: string = event.field("SubjectUserName");
-    const target: string = event.field("TargetUserName");
+    // A rename (4781) names the account as it is called now.
+    const target: string = event.firstField([
+      "TargetUserName",
+      "NewTargetUserName",
+    ]);
 
     return {
       classUid: ACCOUNT_CHANGE,

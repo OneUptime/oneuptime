@@ -55,7 +55,7 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **Docker Swarm** ond
 
 ### Het cluster kiezen
 
-Kies onder **Docker Swarm Monitor Configuration** het cluster in **Docker Swarm Cluster**. Elk cluster dat gegevens heeft verstuurd, staat in de lijst. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **Docker Swarm-cluster toevoegen** opent installatiestappen met uw sleutels al ingevuld, die op de eerste gegevens wachten.
+Kies onder **Docker Swarm Monitor Configuration** het cluster in **Docker Swarm-cluster**. Elk cluster dat gegevens heeft verstuurd, staat in de lijst. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **Docker Swarm-cluster toevoegen** opent installatiestappen met uw sleutels al ingevuld, die op de eerste gegevens wachten.
 
 ### Kiezen wat u bewaakt
 
@@ -81,7 +81,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 
 | Veld | Tabblad | Wat het doet |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | Alle | Verplicht. Beperkt elke query tot `resource.docker.swarm.cluster.name`. De metrieken van een taak dragen `container.runtime=docker`, net als die van een Docker-host, en de agent geeft nooit `host.name` mee, dus de monitor filtert op geen van beide. |
+| **Docker Swarm-cluster** | Alle | Verplicht. Beperkt elke query tot `resource.docker.swarm.cluster.name`. De metrieken van een taak dragen `container.runtime=docker`, net als die van een Docker-host, en de agent geeft nooit `host.name` mee, dus de monitor filtert op geen van beide. |
 | **Servicenaam** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst met `resource.docker.swarm.service.name`, de service zoals `docker service ls` hem noemt, bijvoorbeeld `web` (`<stack>_web` in een stack). |
 | **Nodenaam** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst met `resource.docker.swarm.node.name`, de hostnaam van de node zoals `docker node ls` die toont, bijvoorbeeld `swarm-node-1`. De agent op die node geeft hem mee vanuit `DOCKER_SWARM_NODE_NAME`. |
 | **Containernaam** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst met `resource.container.name`. De container van een taak heet `<service>.<slot>.<taskid>`, bijvoorbeeld `web.1.abc123`. |
@@ -176,7 +176,7 @@ Een criterium vergelijkt een van de query's of formules van de monitor met een d
 | --- | --- |
 | **Metriek** | De query of formule die wordt gecontroleerd, op naam van de variabele. |
 | **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen, over het hele venster) of **Any Value** (één is genoeg). |
-| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** – of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde. |
+| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** – of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde. **Verwacht boven** en **Verwacht onder** komen overeen wanneer de trend van de metriek in het venster aan het eind van **Termijn** voorbij de drempel is. |
 | **Drempel** | De waarde waarmee wordt vergeleken. Ernaast staat een lijst met eenheden als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |

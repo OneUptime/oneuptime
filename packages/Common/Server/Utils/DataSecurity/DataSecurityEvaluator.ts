@@ -1,3 +1,7 @@
+import {
+  describeNewPersonalDataColumn,
+  readNewPersonalDataColumns,
+} from "../../../Types/DataObservability/DataColumnSensitivity";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
 import DataStoreAccess from "../../../Models/DatabaseModels/DataStoreAccess";
 import DataStoreFinding from "../../../Models/DatabaseModels/DataStoreFinding";
@@ -30,7 +34,6 @@ import DataSecurityIssueReconciler, {
   ReconcileStoreOutput,
   ReconciledIssue,
 } from "./DataSecurityIssueReconciler";
-import { FINDING_FRESHNESS_IN_DAYS } from "./DataSecurityFindingWriter";
 import DataSecurityIssueAlerts, {
   ClosedDataSecurityIssue,
 } from "./DataSecurityIssueAlerts";
@@ -66,7 +69,10 @@ import {
 import {
   DataStoreCheckInput,
   EvaluatedCheck,
+  FINDING_FRESHNESS_IN_DAYS,
   evaluateDataStoreChecks,
+  isFindingCounted,
+  isUnscrubbedTelemetryFinding,
 } from "../../../Types/DataSecurity/DataSecurityCheckCatalog";
 import {
   getStoreSensitivity,
@@ -116,6 +122,13 @@ const PAGE_SIZE: number = 1000;
 
 // The most stores one evaluation reaches; a project beyond it is evaluated in parts.
 export const MAX_STORES_PER_EVALUATION: number = 10000;
+
+// A project's own data type: what it is called, and what it makes a store.
+interface CustomDataTypeFacts {
+  name: string;
+  sensitivity: DataSensitivity;
+  category: DataCategory;
+}
 
 interface StoreFacts {
   findings: Array<SensitivityFinding>;
@@ -177,10 +190,16 @@ export default class DataSecurityEvaluator {
       facts.set(store.id!.toString(), newFacts());
     }
 
-    const custom: Map<
-      string,
-      { sensitivity: DataSensitivity; category: DataCategory }
-    > = await this.readCustomTypes(projectId);
+    const custom: Map<string, CustomDataTypeFacts> =
+      await this.readCustomTypes(projectId);
+    // What the issues call the project's own data types.
+    const dataTypeNames: Record<string, string> = {};
+
+    for (const [dataTypeId, customType] of custom) {
+      if (customType.name) {
+        dataTypeNames[dataTypeId] = customType.name;
+      }
+    }
 
     await this.readFindings(projectId, now, facts, custom);
     await this.readOwners(projectId, facts);
@@ -226,6 +245,7 @@ export default class DataSecurityEvaluator {
           facts: storeFacts,
           checkSettings,
           residencyRules,
+          dataTypeNames,
           now,
         });
 
@@ -311,6 +331,8 @@ export default class DataSecurityEvaluator {
       overrides: Map<string, SecuritySeverity>;
     };
     residencyRules: Array<ResidencyRuleInput>;
+    // What the project calls its own data types, by id.
+    dataTypeNames?: Readonly<Record<string, string>> | undefined;
     now: Date;
   }): Promise<{
     output: ReconcileStoreOutput;
@@ -371,10 +393,17 @@ export default class DataSecurityEvaluator {
         kindInfo?.family === DataStoreFamily.Telemetry
           ? [...facts.unscrubbedDataTypeIds]
           : [],
+      dataTypeNames: data.dataTypeNames,
       aiProvidersReached: [...facts.aiProvidersReached],
       isAiData: Boolean(store.isAiData),
       residencyViolations,
       plaintextPasswordFields,
+      // Only a store whose tables are collected can say: the others have no columns to judge.
+      newPersonalDataColumns: store.tableHealthCollectedAt
+        ? readNewPersonalDataColumns(store.newPersonalDataColumns, now).map(
+            describeNewPersonalDataColumn,
+          )
+        : undefined,
       now,
     };
 
@@ -460,6 +489,8 @@ export default class DataSecurityEvaluator {
       lastActivityAt: true,
       estimatedRecords: true,
       contentScanState: true,
+      newPersonalDataColumns: true,
+      tableHealthCollectedAt: true,
       serviceId: true,
       fingerprints: true,
       firstSeenAt: true,
@@ -484,25 +515,21 @@ export default class DataSecurityEvaluator {
 
   private static async readCustomTypes(
     projectId: ObjectID,
-  ): Promise<
-    Map<string, { sensitivity: DataSensitivity; category: DataCategory }>
-  > {
+  ): Promise<Map<string, CustomDataTypeFacts>> {
     const rows: Array<DataSecurityCustomDataType> =
       await DataSecurityCustomDataTypeService.findBy({
         query: { projectId },
-        select: { _id: true, sensitivity: true, category: true },
+        select: { _id: true, name: true, sensitivity: true, category: true },
         skip: 0,
         limit: 500,
         props: { isRoot: true },
       });
-    const custom: Map<
-      string,
-      { sensitivity: DataSensitivity; category: DataCategory }
-    > = new Map();
+    const custom: Map<string, CustomDataTypeFacts> = new Map();
 
     for (const row of rows) {
       if (row.id && row.sensitivity && row.category) {
         custom.set(customDataTypeId(row.id.toString()), {
+          name: row.name || "",
           sensitivity: row.sensitivity,
           category: row.category,
         });
@@ -516,10 +543,7 @@ export default class DataSecurityEvaluator {
     projectId: ObjectID,
     now: Date,
     facts: Map<string, StoreFacts>,
-    custom: Map<
-      string,
-      { sensitivity: DataSensitivity; category: DataCategory }
-    >,
+    custom: Map<string, CustomDataTypeFacts>,
   ): Promise<void> {
     const since: Date = OneUptimeDate.addRemoveDays(
       now,
@@ -560,18 +584,13 @@ export default class DataSecurityEvaluator {
        * it, as they do OneUptime AI's suggestions, which match no value.
        * A suggestion nobody confirmed counts toward nothing.
        */
-      if (
-        !storeFacts ||
-        !finding.dataTypeId ||
-        (!finding.matchCount && !finding.isConfirmed) ||
-        (finding.isAiSuggested && !finding.isConfirmed)
-      ) {
+      if (!storeFacts || !finding.dataTypeId || !isFindingCounted(finding)) {
         continue;
       }
 
-      const customType:
-        | { sensitivity: DataSensitivity; category: DataCategory }
-        | undefined = custom.get(finding.dataTypeId);
+      const customType: CustomDataTypeFacts | undefined = custom.get(
+        finding.dataTypeId,
+      );
 
       storeFacts.findings.push({
         dataTypeId: finding.dataTypeId,
@@ -580,7 +599,8 @@ export default class DataSecurityEvaluator {
         customCategory: customType?.category,
       });
 
-      if (!finding.isScrubbed && finding.confidence !== DataConfidence.Low) {
+      // Only a telemetry store's findings are scrubbed (evaluateStore).
+      if (isUnscrubbedTelemetryFinding(finding)) {
         storeFacts.unscrubbedDataTypeIds.add(finding.dataTypeId);
       }
     }

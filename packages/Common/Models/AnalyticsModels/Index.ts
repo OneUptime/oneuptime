@@ -17,6 +17,7 @@ import MonitorLog from "./MonitorLog";
 import NetworkFlow from "./NetworkFlow";
 import NetworkTrafficUsage from "./NetworkTrafficUsage";
 import KubernetesCostAllocation from "./KubernetesCostAllocation";
+import CloudCost from "./CloudCost";
 import Profile from "./Profile";
 import ProfileSample from "./ProfileSample";
 import RumSession from "./RumSession";
@@ -61,6 +62,7 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   NetworkFlow,
   NetworkTrafficUsage,
   KubernetesCostAllocation,
+  CloudCost,
   Profile,
   ProfileSample,
   /*

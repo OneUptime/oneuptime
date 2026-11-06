@@ -307,7 +307,8 @@
       "forgotPassword": "Glemt adgangskode?",
       "submit": "Log ind",
       "or": "eller",
-      "logInWithSso": "Log ind med SSO"
+      "logInWithSso": "Log ind med SSO",
+      "emailSignInLink": "Send mig et login-link"
     },
     "sso": {
       "title": "Log ind med SSO",
@@ -330,6 +331,23 @@
       "success": "Din adgangskode er blevet opdateret. Log venligst ind.",
       "submit": "Nulstil adgangskode",
       "knowPassword": "Kender du din adgangskode?"
+    },
+    "magicLink": {
+      "title": "Log ind med et link",
+      "description": "Indtast din e-mailadresse, så sender vi dig et link, der logger dig ind på {{statusPageName}}. Ingen adgangskode nødvendig.",
+      "submit": "Send mig et login-link",
+      "sentTitle": "Tjek din e-mail",
+      "sent": "Hvis {{email}} kan logge ind på {{statusPageName}}, er et login-link på vej. Det virker én gang og udløber om {{minutes}} minutter.",
+      "notReceived": "Ikke i din indbakke? Tjek din spam-mappe, eller bed statussidens team om at tilføje dig.",
+      "sendAnother": "Send et nyt link"
+    },
+    "magicLinkLogin": {
+      "title": "Log ind på {{statusPageName}}",
+      "description": "Brug knappen nedenfor for at fuldføre login.",
+      "submit": "Log ind",
+      "noLink": "Denne side kræver login-linket fra din e-mail. Åbn linket igen, eller bed om et nyt.",
+      "turnedOff": "Login-links er slået fra for denne statusside. Log ind med din e-mail og adgangskode.",
+      "requestNewLink": "Send mig et nyt link"
     },
     "masterPassword": {
       "prompt": "Indtast adgangskoden for at se denne statusside.",

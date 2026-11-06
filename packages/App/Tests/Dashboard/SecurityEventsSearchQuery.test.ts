@@ -7,6 +7,8 @@ import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
+import NotOnWatchlist from "Common/Types/BaseDatabase/NotOnWatchlist";
+import OnWatchlist from "Common/Types/BaseDatabase/OnWatchlist";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
 import Wildcard from "Common/Types/BaseDatabase/Wildcard";
@@ -152,6 +154,27 @@ describe("the help table", () => {
           Object.keys(filters.attributes).length,
       ).toBeGreaterThan(0);
     }
+  });
+
+  test("the watchlist row reads the list on its field, and a minus in front keeps what is not on it", () => {
+    const row: SearchHelpRow | undefined = (
+      SECURITY_EVENT_SEARCH_HELP_ROWS as Array<SearchHelpRow>
+    ).find((candidate: SearchHelpRow): boolean => {
+      return candidate.syntax === "<field>:%<watchlist>%";
+    });
+
+    expect(row).toEqual({
+      syntax: "<field>:%<watchlist>%",
+      description: "The field is on a watchlist",
+      example: "user:%vip_users%",
+    });
+
+    expect(
+      parseSecurityEventSearch(row!.example).fields["principalUser"],
+    ).toEqual(new OnWatchlist("vip_users"));
+    expect(
+      parseSecurityEventSearch(`-${row!.example}`).fields["principalUser"],
+    ).toEqual(new NotOnWatchlist("vip_users"));
   });
 
   test("the combined example is a real query too", () => {

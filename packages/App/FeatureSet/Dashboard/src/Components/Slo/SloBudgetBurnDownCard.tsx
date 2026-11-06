@@ -26,6 +26,9 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import Card from "Common/UI/Components/Card/Card";
 import { ChartColorValue } from "Common/UI/Components/Charts/ChartLibrary/Utils/ChartColors";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
+import { withTranslatedSeriesNames } from "Common/UI/Components/Charts/Utils/SeriesNames";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import DataPoint from "Common/UI/Components/Charts/Types/DataPoint";
 import ChartReferenceLineProps from "Common/UI/Components/Charts/Types/ReferenceLineProps";
@@ -64,8 +67,13 @@ import React, {
   useState,
 } from "react";
 
-export const BURN_DOWN_BUDGET_SERIES_NAME: string = "Budget remaining";
-export const BURN_DOWN_IDEAL_SERIES_NAME: string = "Even burn";
+/*
+ * The chart's two lines, in English: the legend and the tooltip name them in
+ * the reader's language (withTranslatedSeriesNames).
+ */
+export const BURN_DOWN_BUDGET_SERIES_NAME: string =
+  translationKey("Budget remaining");
+export const BURN_DOWN_IDEAL_SERIES_NAME: string = translationKey("Even burn");
 
 const AT_RISK_LINE_COLOR: string = "#f59e0b";
 const EXHAUSTED_LINE_COLOR: string = "#ef4444";
@@ -109,6 +117,8 @@ export interface ComponentProps {
 const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // The two lines' names in the reader's words, in the legend and tooltip.
+  const translator: Translator = useTranslator();
   const slo: ServiceLevelObjective = props.slo;
   const isCalendarMonth: boolean =
     slo.windowType === SloWindowType.CalendarMonth;
@@ -359,7 +369,7 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
       true,
       <div data-testid="slo-burn-down-chart">
         <LineChartElement
-          data={data}
+          data={withTranslatedSeriesNames(data, translator)}
           xAxis={xAxis}
           yAxis={yAxis}
           curve={ChartCurve.MONOTONE}
@@ -369,7 +379,12 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
           showLegend={isCalendarMonth}
           colors={SERIES_COLORS}
           ghostSeriesNames={
-            isCalendarMonth ? [BURN_DOWN_IDEAL_SERIES_NAME] : undefined
+            isCalendarMonth
+              ? [
+                  translator.translateText(BURN_DOWN_IDEAL_SERIES_NAME) ||
+                    BURN_DOWN_IDEAL_SERIES_NAME,
+                ]
+              : undefined
           }
           referenceLines={referenceLines}
         />

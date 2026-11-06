@@ -1982,6 +1982,12 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
             },
             props: {
               isRoot: true,
+              /*
+               * Its own hooks would work out the event's measurements now,
+               * with the entry still there: the delete works them out once
+               * it is gone (onDeleteSuccess).
+               */
+              ignoreHooks: true,
             },
           });
           logger.debug("This is the last state.", {
@@ -1999,6 +2005,8 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
             },
             props: {
               isRoot: true,
+              // Worked out once the entry is gone, as above.
+              ignoreHooks: true,
             },
           });
 

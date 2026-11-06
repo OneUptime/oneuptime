@@ -108,6 +108,26 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
     surfaceMember: "Pyroscope",
   },
   {
+    file: `${TELEMETRY_API_DIRECTORY}/OpenLineageIngest.ts`,
+    routePath: "/openlineage/api/v1/lineage",
+    surfaceMember: "OpenLineage",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/DbtArtifactsIngest.ts`,
+    routePath: "/dbt/v1/artifacts",
+    surfaceMember: "DbtArtifacts",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/SyncWebhooksIngest.ts`,
+    routePath: "/fivetran/v1/webhook/:ingestionKeyId",
+    surfaceMember: "SyncWebhooks",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/SyncWebhooksIngest.ts`,
+    routePath: "/airbyte/v1/webhook/:ingestionKey",
+    surfaceMember: "SyncWebhooks",
+  },
+  {
     file: `${TELEMETRY_API_DIRECTORY}/SecurityEventsIngest.ts`,
     routePath: "/security-events/v1/ingest",
     surfaceMember: "SecurityEvents",

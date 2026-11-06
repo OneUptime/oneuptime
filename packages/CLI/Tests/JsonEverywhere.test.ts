@@ -119,6 +119,7 @@ describe("JSON on every command", () => {
         ["whoami"],
         ["version"],
         ["deploy"],
+        ["dbt", "upload"],
       ]) {
         const run: CliRun = await runCli([...command, "--help"]);
 

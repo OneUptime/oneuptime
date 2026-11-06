@@ -52,7 +52,7 @@ Houd bij **Actie** de keuze **Verwijderen** om elk overeenkomend record weg te g
 Het filter begint binnen een minuut met weggooien. Om het op te slaan zonder al iets weg te gooien, zet u **Ingeschakeld** uit onder **Geavanceerd** voordat u het aanmaakt.
 
 > [!WARNING]
-> Een weggegooid record kan niet worden teruggehaald. Houd de query van een filter smal, en let op zijn telling **Dropped** nadat u het hebt aangemaakt.
+> Een weggegooid record kan niet worden teruggehaald. Houd de query van een filter smal, en let op zijn telling **Verworpen** nadat u het hebt aangemaakt.
 
 Een filter kan deze velden testen, en elk attribuut met **Custom Attribute...**:
 
@@ -131,7 +131,7 @@ Hash:   Payment failed for [HASHED:8c87b489]
 
 ## Controleren wat een filter weggooide
 
-De lijst **Drop-filters** toont van elk filter de telling **Dropped** en wanneer het voor het laatst iets weggooide, **Last Dropped**. **Nothing dropped yet** betekent dat het nog nooit overeenkwam. De eigen pagina van een filter toont hetzelfde onder **Activiteit**, bijgewerkt binnen een minuut na het weggooien. Zijn kaart **Filtervoorwaarden** toont wat het selecteert, en daar kunt u de voorwaarden wijzigen.
+De lijst **Drop-filters** toont van elk filter de telling **Verworpen** en wanneer het voor het laatst iets weggooide, **Last Dropped**. **Nothing dropped yet** betekent dat het nog nooit overeenkwam. De eigen pagina van een filter toont hetzelfde onder **Activiteit**, bijgewerkt binnen een minuut na het weggooien. Zijn kaart **Filtervoorwaarden** toont wat het selecteert, en daar kunt u de voorwaarden wijzigen.
 
 ## Problemen oplossen
 
@@ -140,7 +140,7 @@ De lijst **Drop-filters** toont van elk filter de telling **Dropped** en wanneer
 :::
 
 :::details Logboeken die ik verwachtte, ontbreken
-Bekijk de telling **Dropped** en het tijdstip van **Last Dropped** van elk drop-filter. Zet **Ingeschakeld** uit op het filter dat u verdenkt, en de volgende logboeken komen weer binnen.
+Bekijk de telling **Verworpen** en het tijdstip van **Last Dropped** van elk drop-filter. Zet **Ingeschakeld** uit op het filter dat u verdenkt, en de volgende logboeken komen weer binnen.
 :::
 
 :::details Een aangepaste scrub-regel zegt Schoont niets op

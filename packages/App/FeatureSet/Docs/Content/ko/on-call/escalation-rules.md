@@ -221,12 +221,14 @@ flowchart TB
 | --- | --- |
 | 이메일 | **Escalate** 버튼을 누른 다음, 열린 페이지에서 **Escalate** 을 누릅니다 |
 | SMS 및 WhatsApp | 메시지의 링크가 확인 페이지를 열며, 그 페이지에도 **Escalate** 이 있습니다 |
-| Telegram, Slack, Microsoft Teams | "Can't take it? Escalate" 링크를 연 다음, 열린 페이지에서 **Escalate** 을 누릅니다 |
+| Telegram, Slack, Microsoft Teams, Mattermost | "Can't take it? Escalate" 링크를 연 다음, 열린 페이지에서 **Escalate** 을 누릅니다 |
 | 전화 | 2번을 누릅니다. 그러면 전화가 무슨 일이 일어났는지 알려 줍니다 |
 | 푸시 알림 | 탭하면 인시던트, 알림 또는 에피소드가 OneUptime On-Call 앱에서 열리고, 그 아래에 **Escalate** 이 있습니다 |
 | OneUptime | 인시던트, 알림 또는 에피소드 상단의 상태 버튼 다음에 있는 **에스컬레이션** |
 
 전화를 제외한 모든 방법은 무엇이든 하기 전에 먼저 묻고, 무슨 일이 일어날지 알려 줍니다. 예: "This will immediately page Platform leads (Level 2 of 3), without waiting." 전화에서는 2번을 누르는 것이 그 답입니다. 호출을 에스컬레이션할 수 있는 사람은 호출받는 본인뿐입니다. OneUptime의 버튼은 본인에게만 보이고, 메시지의 링크는 그 메시지로 보낸 호출만, 받은 사람 본인을 위해서만, 7일 동안 에스컬레이션할 수 있습니다.
+
+내 레벨 다음에 레벨이 두 개 이상 있으면 OneUptime과 메시지의 링크가 여는 페이지는 어느 레벨을 호출할지도 **에스컬레이션 대상** 에서 묻고, 다음 레벨이 선택되어 있습니다. 그대로 두면 늘 그렇듯 다음 레벨을 호출하고, 더 뒤의 레벨을 고르면 그 레벨을 바로 호출합니다. 그 사이의 레벨은 건너뛰며, 정책은 고른 레벨부터 계속됩니다. 전화와 OneUptime On-Call 앱은 다음 레벨을 호출합니다.
 
 그다음에 일어나는 일은 다른 누가 호출되고 있는지에 따라 다릅니다.
 
@@ -238,7 +240,7 @@ flowchart TB
 
 워크플로우가 사람들에게 직접 보내는 호출에는 단계가 없습니다. 에스컬레이션하면 더 이상 호출되지 않으며, 호출받은 모든 사람이 에스컬레이션하면 호출이 중지됩니다.
 
-에스컬레이션한 내역은 모두 기록됩니다. 실행의 **실행 타임라인** 은 그 사람의 줄을 **에스컬레이션됨** 으로 표시하고, 인시던트의 피드에는 "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3." 라고 표시되며, Slack과 Microsoft Teams의 실행 메시지는 그 사람이 에스컬레이션했다고 알리고, 그 사람의 **온콜 로그** 는 그 호출을 **에스컬레이션됨** 으로 보여 줍니다.
+에스컬레이션한 내역은 모두 기록됩니다. 실행의 **실행 타임라인** 은 그 사람의 줄을 **에스컬레이션됨** 으로 표시하고, 인시던트의 피드에는 "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3." 라고 표시되며, Slack과 Microsoft Teams의 실행 메시지는 그 사람이 에스컬레이션했다고 알리고, 그 사람의 **온콜 로그** 는 그 호출을 **에스컬레이션됨** 으로 보여 줍니다. 뒤의 레벨 때문에 건너뛴 레벨은 **실행 타임라인** 에 **건너뜀** 으로 표시되고, 피드에는 "On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it." 라고 표시됩니다.
 
 ## 규칙 편집, 순서 변경, 삭제
 

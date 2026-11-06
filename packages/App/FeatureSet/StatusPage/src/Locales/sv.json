@@ -307,7 +307,8 @@
       "forgotPassword": "Glömt lösenord?",
       "submit": "Logga in",
       "or": "eller",
-      "logInWithSso": "Logga in med SSO"
+      "logInWithSso": "Logga in med SSO",
+      "emailSignInLink": "Skicka en inloggningslänk till mig"
     },
     "sso": {
       "title": "Logga in med SSO",
@@ -330,6 +331,23 @@
       "success": "Ditt lösenord har uppdaterats. Vänligen logga in.",
       "submit": "Återställ lösenord",
       "knowPassword": "Kommer du ihåg ditt lösenord?"
+    },
+    "magicLink": {
+      "title": "Logga in med en länk",
+      "description": "Ange din e-postadress så skickar vi en länk som loggar in dig på {{statusPageName}}. Inget lösenord behövs.",
+      "submit": "Skicka en inloggningslänk till mig",
+      "sentTitle": "Kolla din e-post",
+      "sent": "Om {{email}} kan logga in på {{statusPageName}} är en inloggningslänk på väg. Den fungerar en gång och slutar gälla om {{minutes}} minuter.",
+      "notReceived": "Inte i inkorgen? Kolla skräppostmappen eller be statussidans team att lägga till dig.",
+      "sendAnother": "Skicka en ny länk"
+    },
+    "magicLinkLogin": {
+      "title": "Logga in på {{statusPageName}}",
+      "description": "Använd knappen nedan för att slutföra inloggningen.",
+      "submit": "Logga in",
+      "noLink": "Den här sidan behöver inloggningslänken från din e-post. Öppna länken igen eller be om en ny.",
+      "turnedOff": "Inloggningslänkar är avstängda för den här statussidan. Logga in med din e-postadress och ditt lösenord.",
+      "requestNewLink": "Skicka en ny länk till mig"
     },
     "masterPassword": {
       "prompt": "Ange lösenordet för att se den här statussidan.",

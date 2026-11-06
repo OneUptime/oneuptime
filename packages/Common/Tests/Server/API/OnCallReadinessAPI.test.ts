@@ -22,6 +22,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserPushService from "../../../Server/Services/UserPushService";
@@ -325,6 +326,7 @@ let userWhatsAppFindBy: jest.SpyInstance;
 let userTelegramFindBy: jest.SpyInstance;
 let userSlackFindBy: jest.SpyInstance;
 let userMicrosoftTeamsFindBy: jest.SpyInstance;
+let userMattermostFindBy: jest.SpyInstance;
 let userWebhookFindBy: jest.SpyInstance;
 let notificationRuleFindBy: jest.SpyInstance;
 let incidentSeverityFindBy: jest.SpyInstance;
@@ -348,6 +350,7 @@ function everyFindBySpy(): Array<jest.SpyInstance> {
     userTelegramFindBy,
     userSlackFindBy,
     userMicrosoftTeamsFindBy,
+    userMattermostFindBy,
     userWebhookFindBy,
     notificationRuleFindBy,
     incidentSeverityFindBy,
@@ -442,6 +445,9 @@ beforeEach(() => {
     .mockResolvedValue([] as never);
   userMicrosoftTeamsFindBy = jest
     .spyOn(UserMicrosoftTeamsService, "findBy")
+    .mockResolvedValue([] as never);
+  userMattermostFindBy = jest
+    .spyOn(UserMattermostService, "findBy")
     .mockResolvedValue([] as never);
   userWebhookFindBy = jest
     .spyOn(UserWebhookService, "findBy")
@@ -2046,6 +2052,15 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
 
     expect(call.select?.["microsoftTeamsUserName"]).toBe(true);
     expect(call.select?.["microsoftTeamsUserId"]).toBeUndefined();
+  });
+
+  test("the mattermost read takes the username, never the addressable account id", async () => {
+    await readUser();
+
+    const call: CapturedFindBy = firstCall(userMattermostFindBy);
+
+    expect(call.select?.["mattermostUserName"]).toBe(true);
+    expect(call.select?.["mattermostUserId"]).toBeUndefined();
   });
 });
 

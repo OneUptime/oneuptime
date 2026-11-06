@@ -14,7 +14,7 @@ Un monitor VMware osserva un vCenter - i suoi datacenter, cluster, host ESXi, ma
 Le metriche provengono dall'API di vCenter, lette con un account in sola lettura in uno di due modi:
 
 - **Il VMware Agent**, un OpenTelemetry Collector con il suo receiver `vcenter`, che esegui su una macchina in grado di raggiungere vCenter. Vedi [Agent VMware](/docs/telemetry/vmware).
-- **Una sonda**, senza nulla da installare: colleghi il vCenter in OneUptime e scegli la sonda che lo raggiunge. Vedi [VMware senza agent](/docs/telemetry/vmware-agentless).
+- **A probe**, senza nulla da installare: colleghi il vCenter in OneUptime e scegli la sonda che lo raggiunge. Vedi [VMware senza agent](/docs/telemetry/vmware-agentless).
 
 Entrambi inviano le stesse serie a ogni intervallo di raccolta (2 minuti per impostazione predefinita), contrassegnate con il nome del vCenter, `vmware.vcenter.name`. Un vCenter è un endpoint vSphere: un vCenter Server o un host ESXi autonomo. Un monitor VMware è legato a un vCenter. Ogni minuto esegue la sua query sulle metriche di quel vCenter e confronta il risultato con i suoi criteri.
 
@@ -145,6 +145,7 @@ I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. 
 - **I modelli di conteggio e di stato usano Max**, così una sola raccolta che mostra la condizione li fa scattare: errori di pacchetto, ballooning, swapping, stato rosso e giallo, host non effettivi, congestione.
 - **Host Not Responding usa Max e scatta a 0:** un host ESXi in funzione usa sempre memoria, quindi una raccolta che riporta memoria in uso è un host che risponde, e solo una finestra in cui nessuna lo ha fatto lo fa scattare.
 - **Ogni modello raggruppa sull'attributo di identità proprio dell'oggetto**, quindi scatta un incidente per ogni oggetto interessato, e l'incidente lo nomina. L'eccezione è **vCenter Stopped Reporting**, che osserva l'intero vCenter: quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che te lo segnala.
+- **I modelli di conteggio per datacenter rientrano quando la loro serie scompare:** il ricevitore registra un conteggio solo per gli stati che esistono, quindi quando l'ultimo host rosso diventa verde non resta alcuna serie, e i loro criteri di rientro contano una serie mancante come 0. Quando nessun datacenter ha più una serie, rientrano solo se `vcenter.datacenter.cpu.limit` è arrivato nella stessa finestra, quindi un vCenter che ha smesso di riferire non chiude nulla.
 - **Le soglie sono fissate nella loro unità** (`%`, `ms`, `us`), così mantengono il loro significato qualunque unità mostri un grafico.
 
 ## Metriche raccolte
@@ -273,7 +274,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | --- | --- |
 | **Metrica** | La query o la formula da controllare, tramite il nome della sua variabile. |
 | **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
-| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a** — oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa. |
+| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a** — oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa. **Previsto sopra** e **Previsto sotto** corrispondono quando la tendenza della metrica nella finestra avrà superato la soglia alla fine di **Orizzonte**. |
 | **Soglia** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non mostrato per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Bassa** (4σ), **Media** (3σ, il predefinito) o **Alta** (2σ). |
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (il predefinito), 28, 60 o 90 giorni di storico. |

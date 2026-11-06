@@ -58,6 +58,15 @@ import {
   getAllProxmoxAlertTemplates,
 } from "../ProxmoxAlertTemplates";
 import {
+  OpenStackAlertTemplate,
+  getAllOpenStackAlertTemplates,
+  getOpenStackAlertTemplatesForCloud,
+} from "../OpenStackAlertTemplates";
+import {
+  OpenStackLogAlertTemplate,
+  getAllOpenStackLogAlertTemplates,
+} from "../OpenStackLogAlertTemplates";
+import {
   ProxmoxNotificationAlertTemplate,
   getAllProxmoxNotificationAlertTemplates,
 } from "../ProxmoxNotificationAlertTemplates";
@@ -81,6 +90,14 @@ import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
 } from "../VMwareAlertTemplates";
+import {
+  DataObservabilityAlertTemplate,
+  getAllDataObservabilityAlertTemplates,
+} from "../DataObservabilityAlertTemplates";
+import {
+  DataPipelineAlertTemplate,
+  getAllDataPipelineAlertTemplates,
+} from "../DataPipelineAlertTemplates";
 
 /*
  * A resource type's entry in the registry.
@@ -103,13 +120,16 @@ export interface MonitorRecommendationResourceTypeDefinition {
   // The field name in the owning module's own args interface.
   identifierFieldName:
     | "clusterIdentifier"
+    | "cloudIdentifier"
     | "vcenterIdentifier"
     | "hostIdentifier"
     | "fleetIdentifier"
     | "arrayIdentifier"
     | "rumApplicationId"
     | "serviceId"
-    | "databaseServerId";
+    | "databaseServerId"
+    | "dataStoreId"
+    | "dataPipelineId";
   icon: IconProp;
   /*
    * What to recommend for ONE resource of this type.
@@ -426,6 +446,85 @@ function getProxmoxRecommendations(): Array<MonitorRecommendation> {
   return [...metricRecommendations, ...notificationRecommendations];
 }
 
+/*
+ * What a cloud is offered: everything every cloud has, and what needs a service it may not run or a
+ * series only a probe sends only if it has them. Knowing nothing about a cloud offers what every
+ * cloud has.
+ */
+function getOpenStackRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  const isOffered: Set<string> = new Set(
+    getOpenStackAlertTemplatesForCloud({
+      services: context?.openStackServices,
+      isCollectedByProbe: context?.openStackIsCollectedByProbe,
+      isApiCheckOn: context?.openStackIsApiCheckOn,
+      isLifecycleCheckOn: context?.openStackIsLifecycleCheckOn,
+    }).map((template: OpenStackAlertTemplate): string => {
+      return template.id;
+    }),
+  );
+
+  return getAllPossibleOpenStackRecommendations().filter(
+    (recommendation: MonitorRecommendation): boolean => {
+      return (
+        recommendation.monitorType !== MonitorType.OpenStack ||
+        isOffered.has(recommendation.templateId)
+      );
+    },
+  );
+}
+
+function getAllPossibleOpenStackRecommendations(): Array<MonitorRecommendation> {
+  const metricRecommendations: Array<MonitorRecommendation> =
+    getAllOpenStackAlertTemplates().map((template: OpenStackAlertTemplate) => {
+      return normalize({
+        resourceType: MonitorRecommendationResourceType.OpenStack,
+        monitorType: MonitorType.OpenStack,
+        template: template,
+        getMonitorStep: (args: MonitorRecommendationArgs) => {
+          return template.getMonitorStep({
+            cloudIdentifier: args.resourceIdentifier,
+            onlineMonitorStatusId: args.onlineMonitorStatusId,
+            offlineMonitorStatusId: args.offlineMonitorStatusId,
+            defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+            defaultAlertSeverityId: args.defaultAlertSeverityId,
+            monitorName: args.monitorName,
+          });
+        },
+      });
+    });
+
+  /*
+   * What only a cloud's services say - a request no host could take, a lost message bus -
+   * are logs of the cloud once the agent's logs profile runs on its machines
+   * (OpenStackLogAlertTemplates), so their alerts are Logs monitors scoped to the cloud:
+   * offered beside the metric templates, last, under their own headings.
+   */
+  const logRecommendations: Array<MonitorRecommendation> =
+    getAllOpenStackLogAlertTemplates().map(
+      (template: OpenStackLogAlertTemplate) => {
+        return normalize({
+          resourceType: MonitorRecommendationResourceType.OpenStack,
+          monitorType: MonitorType.Logs,
+          template: template,
+          getMonitorStep: (args: MonitorRecommendationArgs) => {
+            return template.getMonitorStep({
+              cloudIdentifier: args.resourceIdentifier,
+              onlineMonitorStatusId: args.onlineMonitorStatusId,
+              offlineMonitorStatusId: args.offlineMonitorStatusId,
+              defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+              defaultAlertSeverityId: args.defaultAlertSeverityId,
+              monitorName: args.monitorName,
+            });
+          },
+        });
+      },
+    );
+
+  return [...metricRecommendations, ...logRecommendations];
+}
+
 function getVMwareRecommendations(): Array<MonitorRecommendation> {
   return getAllVMwareAlertTemplates().map((template: VMwareAlertTemplate) => {
     return normalize({
@@ -707,6 +806,52 @@ function getAllDatabaseRecommendations(): Array<MonitorRecommendation> {
   );
 }
 
+// A data store's tables: the same set for every store, whatever its engine.
+function getDataStoreRecommendations(): Array<MonitorRecommendation> {
+  return getAllDataObservabilityAlertTemplates().map(
+    (template: DataObservabilityAlertTemplate) => {
+      return normalize({
+        resourceType: MonitorRecommendationResourceType.DataStore,
+        monitorType: template.monitorType,
+        template: template,
+        getMonitorStep: (args: MonitorRecommendationArgs) => {
+          return template.getMonitorStep({
+            dataStoreId: args.resourceIdentifier,
+            onlineMonitorStatusId: args.onlineMonitorStatusId,
+            offlineMonitorStatusId: args.offlineMonitorStatusId,
+            defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+            defaultAlertSeverityId: args.defaultAlertSeverityId,
+            monitorName: args.monitorName,
+          });
+        },
+      });
+    },
+  );
+}
+
+// A data pipeline's runs: the same set for every pipeline, whatever sends its events.
+function getDataPipelineRecommendations(): Array<MonitorRecommendation> {
+  return getAllDataPipelineAlertTemplates().map(
+    (template: DataPipelineAlertTemplate) => {
+      return normalize({
+        resourceType: MonitorRecommendationResourceType.DataPipeline,
+        monitorType: template.monitorType,
+        template: template,
+        getMonitorStep: (args: MonitorRecommendationArgs) => {
+          return template.getMonitorStep({
+            dataPipelineId: args.resourceIdentifier,
+            onlineMonitorStatusId: args.onlineMonitorStatusId,
+            offlineMonitorStatusId: args.offlineMonitorStatusId,
+            defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+            defaultAlertSeverityId: args.defaultAlertSeverityId,
+            monitorName: args.monitorName,
+          });
+        },
+      });
+    },
+  );
+}
+
 const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefinition> =
   [
     {
@@ -759,6 +904,16 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       identifierFieldName: "clusterIdentifier",
       icon: IconProp.Server,
       getRecommendations: getProxmoxRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.OpenStack,
+      // Metric templates, and the Logs monitors over what its services say.
+      monitorTypes: [MonitorType.OpenStack, MonitorType.Logs],
+      resourceLabel: "OpenStack Cloud",
+      identifierFieldName: "cloudIdentifier",
+      icon: IconProp.Cloud,
+      getRecommendations: getOpenStackRecommendations,
+      getAllPossibleRecommendations: getAllPossibleOpenStackRecommendations,
     },
     {
       resourceType: MonitorRecommendationResourceType.VMware,
@@ -827,6 +982,22 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       icon: IconProp.Database,
       getRecommendations: getDatabaseRecommendations,
       getAllPossibleRecommendations: getAllDatabaseRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.DataStore,
+      monitorTypes: [MonitorType.Metrics],
+      resourceLabel: "Data Store",
+      identifierFieldName: "dataStoreId",
+      icon: IconProp.TableCells,
+      getRecommendations: getDataStoreRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.DataPipeline,
+      monitorTypes: [MonitorType.Metrics],
+      resourceLabel: "Data Pipeline",
+      identifierFieldName: "dataPipelineId",
+      icon: IconProp.Workflow,
+      getRecommendations: getDataPipelineRecommendations,
     },
   ];
 

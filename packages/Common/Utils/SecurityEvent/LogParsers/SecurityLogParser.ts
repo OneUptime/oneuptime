@@ -9,10 +9,23 @@ import GoogleCloudAuditLogParser, {
   GOOGLE_AUDIT_REFUSAL_MARKERS,
 } from "./GoogleCloudAuditLogParser";
 import KubernetesAuditLogParser from "./KubernetesAuditLogParser";
+import OpenStackAuditLogParser, {
+  OPENSTACK_AUDIT_PREFILTER_REQUIRES,
+  OPENSTACK_AUDIT_PREFILTER_WORDS,
+} from "./OpenStackAuditLogParser";
 import SecurityDeviceLogParser, {
   SECURITY_DEVICE_PREFILTER_WORDS,
 } from "./SecurityDeviceLogParser";
 import { SecurityLogLine } from "./SecurityLogLine";
+import CiscoAsaLogParser, {
+  CISCO_ASA_PREFILTER_GROUPS,
+} from "./CiscoAsaLogParser";
+import FortiGateLogParser, {
+  FORTIGATE_PREFILTER_GROUPS,
+} from "./FortiGateLogParser";
+import PaloAltoLogParser, {
+  PALO_ALTO_PREFILTER_GROUPS,
+} from "./PaloAltoLogParser";
 import SshLogParser, { SSH_AUTHENTICATION_METHODS } from "./SshLogParser";
 import SudoLogParser from "./SudoLogParser";
 import WebAttackLogParser, { WEB_ATTACK_MARKERS } from "./WebAttackLogParser";
@@ -28,8 +41,9 @@ import WindowsEventLogParser, {
  * a CloudTrail file of records.
  *
  * The parsers are tried from the most specific shape to the least: a JSON
- * audit, CloudTrail, Google Cloud audit or Azure record, then a Windows
- * event, then a security product's CEF or LEEF record, then SSH and sudo
+ * audit, CloudTrail, Google Cloud audit, Azure or OpenStack record, then a
+ * Windows event, then a security product's CEF or LEEF record, then a firewall's
+ * own syslog (Palo Alto Networks, FortiGate, Cisco ASA), then SSH and sudo
  * lines, and last an attack string in a request. A line is one kind of
  * record, so the first parser that reads it wins - a WAF's CEF record of
  * an attack is one event, never a second one for the attack string in it.
@@ -51,10 +65,22 @@ const PARSERS: ReadonlyArray<LogLineParser> = [
     return AzureActivityLogParser.parse(line);
   },
   (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
+    return OpenStackAuditLogParser.parse(line);
+  },
+  (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
     return WindowsEventLogParser.parse(line);
   },
   (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
     return SecurityDeviceLogParser.parse(line);
+  },
+  (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
+    return PaloAltoLogParser.parse(line);
+  },
+  (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
+    return FortiGateLogParser.parse(line);
+  },
+  (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
+    return CiscoAsaLogParser.parse(line);
   },
   (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
     return SshLogParser.parse(line);
@@ -194,6 +220,15 @@ export const SECURITY_LOG_PREFILTER: SecurityLogPrefilter = {
       requires: '"category"',
       anyOf: AZURE_PREFILTER_WORDS,
     },
+    /*
+     * OpenStack's audit trail, through oslo.messaging's log driver: who did what in
+     * Keystone, what changed or was refused on the other APIs, a security group opened
+     * and an image made public (OpenStackAuditLogParser).
+     */
+    {
+      requires: OPENSTACK_AUDIT_PREFILTER_REQUIRES,
+      anyOf: OPENSTACK_AUDIT_PREFILTER_WORDS,
+    },
     // Windows: each provider read, by the ids read (WindowsEventLogParser).
     ...WINDOWS_PREFILTER_GROUPS.map(
       (group: WindowsPrefilterGroup): SecurityLogPrefilterGroup => {
@@ -213,6 +248,14 @@ export const SECURITY_LOG_PREFILTER: SecurityLogPrefilter = {
       requires: "leef:",
       anyOf: SECURITY_DEVICE_PREFILTER_WORDS,
     },
+    /*
+     * A firewall's own syslog: a record of a type read, with the words
+     * that make it an event (PaloAltoLogParser, FortiGateLogParser,
+     * CiscoAsaLogParser).
+     */
+    ...PALO_ALTO_PREFILTER_GROUPS,
+    ...FORTIGATE_PREFILTER_GROUPS,
+    ...CISCO_ASA_PREFILTER_GROUPS,
   ],
 };
 

@@ -794,6 +794,39 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/data-observability": {
+    title: "Data Observability | Freshness & Lineage | OneUptime",
+    description:
+      "Know your data is fresh before anyone asks: table freshness, volume and schema changes for PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks and Athena, with checks, lineage, pipelines and data products. Open source.",
+    canonicalPath: "/product/data-observability",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Data Observability", url: "/product/data-observability" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Data Observability",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Watch the tables your company relies on: freshness learned from each table's own rhythm, volume and schema changes, checks and reconciliations, lineage from pipelines and query history, and data products with freshness SLAs.",
+      features: [
+        "PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks and Athena",
+        "Table health reads the catalog - a check brings back only its number by default",
+        "Freshness learned from each table's own rhythm",
+        "Volume, schema change and unused table detection",
+        "Checks, suggested checks and reconciliations between copies",
+        "Lineage from OpenLineage, dbt, Fivetran, Airbyte, views and query history",
+        "One issue per cause, downstream alerts acknowledged",
+        "Data products with freshness SLAs on status pages and as SLOs",
+        "Private networks through a probe",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/ceph": {
     title: "Ceph Monitoring | Cluster Health, OSDs & Pools | OneUptime",
     description:
@@ -823,6 +856,41 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Fleet view across every cluster",
         "Alert templates with on-call built in",
         "No Grafana or Alertmanager required",
+        "Open source",
+      ],
+    },
+  },
+
+  "/product/openstack": {
+    title: "Monitoring for OpenStack | Clouds & Instances | OneUptime",
+    description:
+      "Monitor an OpenStack cloud from what needs someone first down to the hypervisor, instance, network and volume behind it, with incidents, on-call and status pages in the same product. Agent or agentless, self-hosted and air-gap capable. Open source.",
+    canonicalPath: "/product/openstack",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "OpenStack", url: "/product/openstack" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Monitoring for OpenStack",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor an OpenStack cloud with one agent or a probe and no agent: a triage-first overview, services, hypervisors, instances, networks, volumes, storage pools, projects, capacity and spend, ready-made alert templates, and incidents with on-call and status pages in a single product.",
+      features: [
+        "Overview that lists what needs someone first",
+        "Services, hypervisors, instances, networks, volumes, storage pools, images and projects",
+        "Capacity: how many more of each flavor fit, and days until full",
+        "Spend and unused resources by project",
+        "More than 90 ready-made alert templates",
+        "What the cloud stands on: RabbitMQ, MariaDB and Galera, Memcached, HAProxy, OVN",
+        "Service logs, lifecycle events and audit trails",
+        "Checks from outside, including booting an instance",
+        "Incidents, on-call and status pages in the same product",
+        "Agent or agentless collection",
+        "Self-hosted and air-gap capable",
         "Open source",
       ],
     },
@@ -1351,7 +1419,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   "/product/cloud": {
     title: "Cloud Monitoring | AWS, Google Cloud & Azure | OneUptime",
     description:
-      "Connect AWS, Google Cloud, and Azure accounts read-only and monitor every resource in them: provider metrics, changes, health events, a topology map, and alerting across every region and account. Open source.",
+      "Connect AWS, Google Cloud, and Azure accounts read-only and monitor every resource in them: health, provider metrics, changes, a topology map, what it costs and how to spend less, and budgets that alert. Open source.",
     canonicalPath: "/product/cloud",
     twitterCard: "summary_large_image",
     pageType: "product",
@@ -1378,6 +1446,10 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Multi-account and multi-region rollups",
         "Linked incidents and alerts",
         "Resource saturation alerting",
+        "Each resource's health from its key metrics",
+        "Costs from AWS Cost Explorer, Azure Cost Management and Google Cloud billing",
+        "Rightsizing and savings from each cloud's own recommender",
+        "Monthly budgets that alert before the money is spent",
         "Open source",
       ],
     },
@@ -1527,7 +1599,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   "/enterprise/air-gapped": {
     title: "Air-Gapped Monitoring & Observability | OneUptime",
     description:
-      "Run OneUptime on a network with no internet: mirror the images, bring in the signed Helm chart, license offline, and use AI on a model you run.",
+      "Run OneUptime on a network with no internet: carry signed images and the signed Helm chart across in one bundle, license offline, and run AI locally.",
     canonicalPath: "/enterprise/air-gapped",
     twitterCard: "summary_large_image",
     pageType: "enterprise",

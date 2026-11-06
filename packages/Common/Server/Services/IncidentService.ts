@@ -140,7 +140,9 @@ import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
 import IncidentOwnerRuleEngineService from "./IncidentOwnerRuleEngineService";
 import IncidentPrivacyRuleEngineService from "./IncidentPrivacyRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
-import AutoRemediationRuleEngineService from "./AutoRemediationRuleEngineService";
+import AutoRemediationRuleEngineService, {
+  doesWriteRemediationLinks,
+} from "./AutoRemediationRuleEngineService";
 import { Blue500, Gray500, Red500 } from "../../Types/BrandColors";
 import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
@@ -183,6 +185,7 @@ import IncidentAlertService, {
 import {
   INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
+  INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY,
 } from "../../Types/Incident/IncidentAlertLink";
 import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
 import StartingStageUtil, {
@@ -327,6 +330,12 @@ type IncidentCreateCarryForward =
        */
       acknowledgedAlertStateId: ObjectID | null;
       alertIdsToAcknowledge: Array<ObjectID>;
+      /*
+       * The alert incident rule that declared the incident from its alert,
+       * by name, for its "Declared from 1 alert" entry
+       * (INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY). Null otherwise.
+       */
+      declaredByAlertIncidentRuleName: string | null;
     })
   | null;
 
@@ -3348,6 +3357,10 @@ export class Service extends ProjectReferencesService<Model> {
       acknowledgedAlertStateId:
         alertsToAcknowledge?.acknowledgedAlertStateId || null,
       alertIdsToAcknowledge: alertsToAcknowledge?.alertIdsToAcknowledge || [],
+      declaredByAlertIncidentRuleName: this.getDeclaringAlertIncidentRuleName({
+        createBy: createBy,
+        alertIdsToLink: validatedAlertIds,
+      }),
     };
 
     /*
@@ -3664,6 +3677,8 @@ export class Service extends ProjectReferencesService<Model> {
               apiKeyActor: FeedApiKeyActorUtil.fromProps(
                 onCreate.createBy.props,
               ),
+              declaredByRuleName:
+                this.getAlertIncidentRuleNameDeclaredWith(onCreate),
             });
           }
         } catch (error) {
@@ -4124,6 +4139,43 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     return createdItem;
+  }
+
+  /*
+   * The name of the alert incident rule declaring the incident from its
+   * alert (INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY): read only off a
+   * root create that links alerts - OneUptime's own engine - so no API
+   * request can put a rule's name on an incident. Null otherwise, and for a
+   * name that is not text or is only spaces.
+   */
+  private getDeclaringAlertIncidentRuleName(data: {
+    createBy: CreateBy<Model>;
+    alertIdsToLink: Array<ObjectID>;
+  }): string | null {
+    if (!data.createBy.props.isRoot || data.alertIdsToLink.length === 0) {
+      return null;
+    }
+
+    const name: unknown =
+      data.createBy.miscDataProps?.[
+        INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY
+      ];
+
+    if (typeof name !== "string" || !name.trim()) {
+      return null;
+    }
+
+    return name.trim();
+  }
+
+  // The alert incident rule that declared the incident, by name, if one did.
+  private getAlertIncidentRuleNameDeclaredWith(
+    onCreate: OnCreate<Model>,
+  ): string | undefined {
+    const carryForward: IncidentCreateCarryForward =
+      (onCreate.carryForward as IncidentCreateCarryForward) || null;
+
+    return carryForward?.declaredByAlertIncidentRuleName || undefined;
   }
 
   // The validated alert ids an incident is being declared from, if any.
@@ -5427,7 +5479,67 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
     > = new Map();
 
     if (updatedItemIds.length > 0) {
+      const updatedIncidentData: IncidentUpdatePayload = (onUpdate.updateBy
+        .data ?? {}) as IncidentUpdatePayload;
+
+      /*
+       * Whether the update links the incidents to a cluster, a resource or
+       * a monitor (REMEDIATION_LINK_COLUMNS): OneUptime AI may then try a
+       * fix again (onSubjectUpdated, below), even when nothing else changed.
+       */
+      const writesRemediationLinks: boolean =
+        doesWriteRemediationLinks(updatedIncidentData);
+
       for (const incidentId of updatedItemIds) {
+        const incidentCarryForward: UpdateCarryForward[string] | undefined = (
+          onUpdate.carryForward as UpdateCarryForward | undefined
+        )?.[incidentId.toString()];
+
+        /*
+         * An incident the read before the write did not see has no entry,
+         * and counts as changed (ReferenceChange), so a real change is never
+         * missed.
+         */
+        const isSeverityChanged: boolean = ReferenceChange.isChanged({
+          writtenId: writtenIncidentSeverityId,
+          idBeforeUpdate: incidentCarryForward?.severityIdBeforeUpdate,
+        });
+
+        /*
+         * What the update changed of the title, root cause, description,
+         * remediation notes, labels and Send reminders switch, against what
+         * the incident held before the write (recordStoredValuesBeforeUpdate).
+         * One the read did not see counts as changed.
+         */
+        const fieldChanges: EventFieldSet = EventFieldChange.getChanges({
+          written: updatedIncidentData,
+          valuesBeforeUpdate: incidentCarryForward?.valuesBeforeUpdate,
+        });
+
+        /*
+         * Nothing below follows from this update for this incident: it wrote
+         * the incident's state, say, which changeIncidentState above
+         * recorded with every follow-on a state change needs - the timeline,
+         * owners, subscribers, workspace messages. No feed entry, no
+         * postmortem, monitor or status page change, no rule to match again
+         * and no fix to try again, so the incident is not read for one.
+         * Every state change comes here (StateChangeFollowOn), and a bulk
+         * Resolve of thousands of incidents read each one again for nothing,
+         * as alerts did before #5309.
+         */
+        if (
+          !this.hasUpdateFollowOn({
+            written: updatedIncidentData as Record<string, unknown>,
+            carryForward: incidentCarryForward,
+            isSeverityChanged: isSeverityChanged,
+            fieldChanges: fieldChanges,
+            writesRemediationLinks: writesRemediationLinks,
+            writtenPostmortemStatusId: writtenPostmortemStatusId,
+          })
+        ) {
+          continue;
+        }
+
         const incident: Model | null = await this.findOneById({
           id: incidentId,
           select: {
@@ -5449,9 +5561,6 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
           projectId,
           incidentId,
         );
-
-        const updatedIncidentData: IncidentUpdatePayload = (onUpdate.updateBy
-          .data ?? {}) as IncidentUpdatePayload;
 
         /*
          * Linked to what it is about - a cluster, a host, a monitor - after
@@ -5529,26 +5638,6 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
             );
           }
         }
-
-        const isSeverityChanged: boolean = ReferenceChange.isChanged({
-          writtenId: writtenIncidentSeverityId,
-          idBeforeUpdate: (
-            onUpdate.carryForward as UpdateCarryForward | undefined
-          )?.[incidentId.toString()]?.severityIdBeforeUpdate,
-        });
-
-        /*
-         * What the update changed of the title, root cause, description,
-         * remediation notes, labels and Send reminders switch, against what
-         * the incident held before the write (recordStoredValuesBeforeUpdate).
-         * One the read did not see counts as changed.
-         */
-        const fieldChanges: EventFieldSet = EventFieldChange.getChanges({
-          written: updatedIncidentData,
-          valuesBeforeUpdate: (
-            onUpdate.carryForward as UpdateCarryForward | undefined
-          )?.[incidentId.toString()]?.valuesBeforeUpdate,
-        });
 
         /*
          * The reminder rule is matched on the severity and the labels, and
@@ -6134,6 +6223,79 @@ ${incidentSeverity.name}
     }
 
     return onUpdate;
+  }
+
+  /*
+   * Whether onUpdateSuccess has anything to do for one incident after the
+   * state change: each of what follows below, by the same rule it is
+   * decided by there, read from the update and what the incident held
+   * before it (carryForward) - never from the incident itself, which is
+   * read only when one of them holds:
+   *
+   * - a severity, a title, root cause, description, remediation notes,
+   *   labels or Send reminders switch that really changed: the feed, the
+   *   SLA, reminders, the investigation wait and the on-call rules;
+   * - a link OneUptime AI can fix through (onSubjectUpdated);
+   * - the postmortem: its note or switch, showing the incident, its posted
+   *   time or a status picked that really changed;
+   * - custom field values written (their feed lines);
+   * - monitors put on or taken off, a monitor status that really changed,
+   *   or a status page scope change (the feed, the monitors, the 'created'
+   *   notification).
+   */
+  private hasUpdateFollowOn(data: {
+    written: Record<string, unknown>;
+    carryForward: UpdateCarryForward[string] | undefined;
+    isSeverityChanged: boolean;
+    fieldChanges: EventFieldSet;
+    writesRemediationLinks: boolean;
+    writtenPostmortemStatusId: ObjectID | null;
+  }): boolean {
+    if (
+      data.isSeverityChanged ||
+      EventFieldChange.isAnySet(data.fieldChanges) ||
+      data.writesRemediationLinks
+    ) {
+      return true;
+    }
+
+    if (
+      IncidentPostmortemPublication.isComparedBy(data.written) ||
+      IncidentPostmortemPublication.isWrittenBy(data.written) ||
+      Boolean(
+        Object.prototype.hasOwnProperty.call(
+          data.written,
+          "postmortemPostedAt",
+        ) && data.written["postmortemPostedAt"],
+      )
+    ) {
+      return true;
+    }
+
+    if (
+      data.writtenPostmortemStatusId &&
+      ReferenceChange.isChanged({
+        writtenId: data.writtenPostmortemStatusId,
+        idBeforeUpdate: data.carryForward?.postmortemStatusIdBeforeUpdate,
+      })
+    ) {
+      return true;
+    }
+
+    if (data.written["customFields"] !== undefined) {
+      return true;
+    }
+
+    const carryForward: UpdateCarryForward[string] | undefined =
+      data.carryForward;
+
+    return Boolean(
+      carryForward &&
+        (carryForward.monitorsAdded.length > 0 ||
+          carryForward.monitorsRemoved.length > 0 ||
+          carryForward.statusPageScopeChange ||
+          this.isMonitorStatusChangedByUpdate(carryForward)),
+    );
   }
 
   /*

@@ -112,15 +112,16 @@ La pestaña **Análisis** cuenta las métricas de un intervalo de tiempo: **Mét
 
 ## Mejorar las métricas y añadir las que faltan con IA
 
-Cada hora OneUptime revisa las métricas que sus servicios enviaron en la última hora en busca de las que registran demasiados valores, de histogramas cuyos buckets no encajan y de servicios con mucho tráfico que no envían métricas. Registra lo que encuentra como hallazgos de IA, con las pruebas. Después, la IA de OneUptime analiza cada uno y abre una pull request para corregirlo. Nunca se fusiona nada: su equipo revisa cada pull request.
+Cada hora OneUptime revisa las métricas que sus servicios enviaron en la última hora en busca de las que registran demasiados valores, de histogramas cuyos buckets no encajan y de servicios con mucho tráfico que no envían métricas de sus solicitudes. Registra lo que encuentra como hallazgos de IA, con las pruebas. Después, la IA de OneUptime analiza cada uno y abre una pull request para corregirlo. Nunca se fusiona nada: su equipo revisa cada pull request.
 
-OneUptime lee con detalle las 10 métricas para las que sus servicios enviaron más puntos de datos en la hora, cada una con al menos 1,000 de ellos, y registra tres tipos de hallazgo:
+OneUptime lee con detalle las 10 métricas para las que sus servicios enviaron más puntos de datos en la hora, cada una con al menos 1,000 de ellos, y registra cuatro tipos de hallazgo:
 
 | Hallazgo | Cuándo lo registra OneUptime | La pull request |
 | --- | --- | --- |
 | **Alta cardinalidad** | Un atributo que el código pone en una de esas métricas tomó 1,000 o más valores en la hora, como ID de usuario o URL completas, así que cada valor es una serie propia. O 50 o más de los nombres de métricas de un servicio son un mismo nombre con un ID distinto dentro. | Deja de registrar el valor en la métrica, o quita los ID de sus nombres. |
 | **Buckets de histograma incorrectos** | Una de esas métricas es un histograma que registró 1,000 o más valores, y el 90 % o más cayó en su bucket más pequeño o por encima del más grande, o no tiene buckets, así que sus percentiles no se pueden distinguir. | Da al histograma buckets que encajan con sus valores, o corrige su unidad. |
 | **Métricas faltantes** | Un servicio envió 1,000 o más spans en la hora y nunca ha enviado una métrica. | Añade como métricas el número de solicitudes, los errores y la duración de sus operaciones más concurridas. |
+| **Métricas de solicitudes faltantes** | Un servicio envió 1,000 o más spans en la hora, y métricas, pero nunca ha enviado una métrica de solicitudes para las solicitudes HTTP, las llamadas RPC o los mensajes que atiende, como `http.server.request.duration`. | Añade esas métricas de solicitudes, con la instrumentación de OpenTelemetry de su framework. |
 
 Un hallazgo nunca guarda los valores de un atributo: solo el nombre del atributo, cuántos valores tomó y cómo son.
 
@@ -144,9 +145,34 @@ En **Más campos** una regla elige los repositorios de código, los servidores M
 
 ### Ver lo que hizo
 
-- **Métricas → IA → Análisis** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas y **Abrir en Métricas**, que abre su métrica para su servicio, de la hora en que se encontró. Un servicio sin métricas ofrece en su lugar **Abrir en Trazas**: los spans que sus métricas medirían.
+- **Métricas → IA → Análisis** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas y **Abrir en Métricas**, que abre su métrica para su servicio, de la hora en que se encontró. Un servicio sin métricas, o sin métricas de sus solicitudes, ofrece en su lugar **Abrir en Trazas**: los spans que sus métricas medirían.
 - **Métricas → IA → Registros** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una y lo que encontró cada investigación.
 - En Código, la tarea indica que OneUptime la inició, con un enlace a su hallazgo, y la pull request explica por qué se abrió.
+
+### Registrar métricas de solicitudes sin cambiar el código
+
+Un hallazgo **Métricas faltantes** o **Métricas de solicitudes faltantes** ofrece **Sin cambiar el código** junto a **Corregir con IA**: el OpenTelemetry Collector por el que pasan sus trazas registra a partir de ellas las métricas de solicitudes. **Mostrar el paso del collector** muestra las líneas que hay que añadir, `spanmetrics` como exporter del pipeline de trazas y como receiver del pipeline de métricas:
+
+```yaml title="otel-collector-config.yaml"
+connectors:
+  spanmetrics:
+    histogram:
+      unit: s
+    aggregation_temporality: AGGREGATION_TEMPORALITY_DELTA
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp, spanmetrics]
+    metrics:
+      receivers: [otlp, spanmetrics]
+      processors: [batch]
+      exporters: [otlphttp]
+```
+
+Reinicie el collector. Cada servicio cuyas trazas pasan por él envía entonces `traces.span.metrics.calls` y `traces.span.metrics.duration` (en segundos) por cada operación, tipo de span y estado, y OneUptime deja de encontrar el problema, así que resuelva el hallazgo. El conector cuenta cada span que recibe el collector, incluso los que un muestreador descarte después. Un servicio que envía directamente a OneUptime necesita antes un collector delante: consulte [Enviar a través de un OpenTelemetry Collector](/docs/telemetry/open-telemetry#enviar-a-través-de-un-opentelemetry-collector).
 
 ## Qué les pasa a las métricas al llegar
 

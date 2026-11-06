@@ -1,0 +1,19 @@
+$ openstack project show 35998d4e3ca145dcb5a06a286817ff77 -f json
+success: true
+exit code: 0
+
+[stdout]
+{
+  "id": "35998d4e3ca145dcb5a06a286817ff77",
+  "name": "alt_demo",
+  "domain_id": "default",
+  "description": "",
+  "enabled": true,
+  "parent_id": "default",
+  "is_domain": false,
+  "tags": [],
+  "options": {},
+  "links": {
+    "self": "http://10.1.0.196/identity/v3/projects/35998d4e3ca145dcb5a06a286817ff77"
+  }
+}

@@ -83,6 +83,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Numbers in a new project",
     "A monitor's criteria.",
     "By hand.",
+    "Ask AI.",
     "An SLO's burn rate.",
     "Network sites and security events.",
     "A page.",
@@ -102,7 +103,6 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Your chat tools.",
   ],
   [ALERT_STATES]: [
-    "state",
     "severity",
     "Backwards moves are refused",
     "Moving to the state it is already in is refused",

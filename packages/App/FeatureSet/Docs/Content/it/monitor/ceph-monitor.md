@@ -159,6 +159,7 @@ I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. 
 - **Le serie di PG e pool sono per pool**: non esiste una misura dell'intero cluster, quindi quei modelli raggruppano per `pool_id` e aprono un incidente per pool.
 - **I rapporti di capacità** usano la **Somma** di entrambi i lati. Entrambi provengono dalla stessa raccolta del mgr, quindi il risultato è una vera percentuale. **Inactive Placement Groups** usa invece **Massimo** per pool, perché una somma accumulerebbe le raccolte in una sottrazione.
 - **I modelli degli health check** rientrano quando il check scompare: i loro criteri di rientro contano una serie mancante come 0.
+- **Daemon Slow Operations** ha una serie per daemon, quindi quando nessun daemon ha più una serie non c'è nulla da leggere. Rientra allora solo se `ceph_health_status` è arrivato nella stessa finestra, quindi un agente fermo non chiude nulla.
 
 Alcuni avvisi non hanno un modello. Lo sbilanciamento dei PG richiede statistiche su più serie che i criteri non possono calcolare. La previsione della capacità richiede una curva di crescita, che invece disegna la dashboard del cluster. La previsione dei guasti dei dischi e lo scrubbing arretrato non hanno metriche del mgr, mentre NVMe-oF, il mirroring RBD e cephadm richiedono altri exporter.
 
@@ -227,7 +228,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | --- | --- |
 | **Metrica** | La query o formula da controllare, tramite il suo nome di variabile. |
 | **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
-| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a**, oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa. |
+| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a**, oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa. **Previsto sopra** e **Previsto sotto** corrispondono quando la tendenza della metrica nella finestra avrà superato la soglia alla fine di **Orizzonte**. |
 | **Soglia** | Il valore di confronto. Accanto compare un elenco di unità quando la metrica ne ha una. Non visibile per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Basso** (4σ), **Medio** (3σ, predefinito) o **Alto** (2σ). |
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (predefinito), 28, 60 o 90 giorni di storico. |

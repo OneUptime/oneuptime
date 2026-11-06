@@ -713,6 +713,8 @@ describe("getAIInsightMonitorBlocker", () => {
       AIInsightType.MetricHighCardinality,
       AIInsightType.MetricHistogramBuckets,
       AIInsightType.MetricMissingMetrics,
+      // The request metrics a service does not send: nothing to count yet.
+      AIInsightType.MetricMissingRequestMetrics,
     ];
 
     for (const insightType of notOffered) {
@@ -725,6 +727,7 @@ describe("getAIInsightMonitorBlocker", () => {
       AIInsightType.MetricHighCardinality,
       AIInsightType.MetricHistogramBuckets,
       AIInsightType.MetricMissingMetrics,
+      AIInsightType.MetricMissingRequestMetrics,
     ]);
 
     for (const insightType of Object.values(AIInsightType).filter(

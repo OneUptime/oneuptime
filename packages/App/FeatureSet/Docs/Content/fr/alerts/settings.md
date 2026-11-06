@@ -17,6 +17,7 @@ Ouvrez **Alertes** depuis le menu **Produits** de la barre supérieure. Les sect
 | ------------------------------- | ---------------------------------------------------------------------------------------------- |
 | **Règles de regroupement**      | Réunit les alertes liées en épisodes. Voir [Épisodes d'alertes et règles de regroupement](/docs/alerts/episodes). |
 | **Règles d'astreinte**          | Exécute des politiques d'astreinte pour les alertes et les épisodes qui correspondent.         |
+| **Règles d'incident** | Déclare un incident à partir des alertes qui correspondent, tout de suite ou dès qu'une alerte reste non résolue. |
 | **Règles de propriétaire**      | Ajoute des propriétaires aux alertes et aux épisodes qui correspondent.                        |
 | **Règles de runbook**           | Lance des runbooks pour les alertes qui correspondent.                                         |
 | **Règles de confidentialité**   | Rend privés les alertes et les épisodes qui correspondent.                                     |
@@ -54,7 +55,7 @@ flowchart TB
 
 Les règles diffèrent dans la façon dont plusieurs correspondances se résolvent :
 
-- **Règles de regroupement** et **Règles de rappel** sont vérifiées de haut en bas de leur liste, et la première correspondance l'emporte. Faites glisser une règle pour changer sa place ; une nouvelle règle va à la fin.
+- **Règles de regroupement**, **Règles d'incident** et **Règles de rappel** sont vérifiées de haut en bas de leur liste, et la première correspondance l'emporte. Faites glisser une règle pour changer sa place ; une nouvelle règle va à la fin.
 - **Règles d'astreinte**, **Règles de propriétaire**, **Règles d'étiquettes**, **Règles de confidentialité** et **Règles de runbook** agissent toutes quand elles correspondent. Les politiques d'astreinte, propriétaires et étiquettes qu'ajoutent plusieurs règles ne sont ajoutés qu'une fois.
 
 **Règles d'astreinte**, **Règles de propriétaire**, **Règles d'étiquettes** et **Règles de confidentialité** ont deux onglets : **Règles d'alerte**, pour les alertes, et **Règles d'épisode**, qui agissent de la même façon sur chaque nouvel épisode d'alerte. Une nouvelle règle commence activée ; désactivez **Activé** dans son formulaire de modification pour la mettre en pause, et la liste affiche un **Activé** vert ou un **Désactivé** rouge pour chaque règle.
@@ -89,6 +90,22 @@ Dans **Politiques d'astreinte**, choisissez les **Politiques d'astreinte** que l
 Une gravité n'alerte personne à elle seule : une règle d'astreinte qui porte sur les **Gravités d'alerte** est la façon de mettre en place « alerter l'équipe base de données pour chaque alerte Élevé ». Pour voir ce qui s'est exécuté pour une alerte, ouvrez sa page **Exécutions d'astreinte**. Chaque personne est ensuite jointe comme elle l'a configuré dans **Paramètres utilisateur → Règles d'astreinte**, dans l'onglet **Alertes** ; voir [Règles d'escalade](/docs/on-call/escalation-rules).
 
 Une règle alerte dès qu'une alerte lui correspond. Pour qu'elle attende plutôt les heures ouvrées, répondez **Uniquement pendant les heures ouvrées** à **Quand cette règle doit-elle alerter ?** sous **Plus de champs**. Les **Heures ouvrées** commencent du lundi au vendredi, de 09:00 à 17:00, dans votre propre fuseau horaire : choisissez d'autres jours, une autre **Heure de début** ou **Heure de fin**, ou un autre **Fuseau horaire**, et une phrase sous le choix indique ce qui se passera. Dans la liste, la règle affiche ses heures sous son nom. Une alerte qui correspond en dehors de ces heures reçoit une exécution qui attend et n'alerte personne ; quand les heures commencent, la politique déclenche sa première règle d'escalade et escalade comme d'habitude. Si l'alerte est prise en compte ou résolue avant, personne n'est alerté. Si l'alerte change pendant qu'elle attend et correspond désormais à une règle qui alerte immédiatement, par exemple parce que sa gravité a été relevée, l'exécution commence aussitôt à alerter, et le fil d'activité de l'alerte indique pourquoi. Deux règles qui déclenchent la même politique la déclenchent dès que l'une d'elles le permet : une règle pour vos gravités les plus hautes qui alerte immédiatement, à côté d'une règle pour le reste qui attend les heures ouvrées, garde les nuits calmes.
+
+## Règles d'incident
+
+**Alertes → Règles → Règles d'incident** transforme d'elles-mêmes des alertes en incidents. La première règle qui correspond à une nouvelle alerte, du haut de la liste vers le bas, en déclare un incident, comme le ferait **Déclarer un incident** sur la page de l'alerte, et y lie l'alerte.
+
+:::steps
+### Choisir les alertes concernées
+
+Sous **Correspondance**, **Toutes les alertes**, où commence une nouvelle règle, correspond à chaque nouvelle alerte. Pour la restreindre, choisissez **Uniquement les alertes qui correspondent aux conditions** et ajoutez les conditions qu'une alerte doit remplir.
+
+### Décrire l'incident
+
+Sous **Incident**, choisissez la **Gravité de l'incident**, ou laissez-la vide pour donner à chaque incident la gravité qui correspond à celle de son alerte. Réglez **Declare After (Minutes)** au-dessus de 0 pour ne déclarer l'incident que si l'alerte n'est toujours pas résolue d'ici là. Le **Nom** de la règle suit la gravité, comme « Declare SEV1 incidents », jusqu'à ce que vous saisissiez le vôtre. Créez ensuite la règle.
+:::
+
+L'incident reprend le titre, la description, le moniteur, les ressources concernées et les étiquettes de l'alerte, et il est privé quand l'alerte l'est. Ses propres règles s'exécutent ensuite comme pour tout nouvel incident : ses règles d'astreinte décident donc qui est appelé. Une alerte résolue avant la fin de l'attente ne devient jamais un incident, et une alerte déjà liée à un incident est laissée telle quelle. **Afficher sur les pages de statut**, sous **Plus de champs**, décide si l'incident apparaît sur les pages de statut qui listent son moniteur.
 
 ## Règles de propriétaire et d'étiquettes
 

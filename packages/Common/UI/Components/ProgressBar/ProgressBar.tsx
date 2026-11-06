@@ -21,6 +21,26 @@ export interface ComponentProps {
   size?: ProgressBarSize;
 }
 
+/*
+ * How far along, as the reader's language writes a percentage: "15%",
+ * "15 %" in German and French, "۱۵٪" in Persian - in the digits the count
+ * beside it is written in (Translator.formatNumber), so a Persian bar no
+ * longer read "۱ از ۷" next to "15%".
+ */
+export const formatProgressPercent: (
+  percent: number,
+  language: string,
+) => string = (percent: number, language: string): string => {
+  try {
+    return new Intl.NumberFormat(language, {
+      style: "percent",
+      maximumFractionDigits: 0,
+    }).format(percent / 100);
+  } catch {
+    return `${percent}%`;
+  }
+};
+
 const ProgressBar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -76,7 +96,12 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
             suffix: translatableTerm(props.suffix),
           })}
         </div>
-        <div className="text-sm font-medium text-indigo-600">{percent}%</div>
+        <div
+          data-testid="progress-bar-percent"
+          className="text-sm font-medium text-indigo-600"
+        >
+          {formatProgressPercent(percent, translator.language)}
+        </div>
       </div>
       <div
         className={`w-full ${progressBarSize} bg-gray-200 rounded-full overflow-hidden`}
@@ -90,7 +115,7 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
             count: translator.formatNumber(props.count),
             total: translator.formatNumber(props.totalCount),
             suffix: translatableTerm(props.suffix),
-            percent: percent,
+            percent: translator.formatNumber(percent),
           },
         )}
       >

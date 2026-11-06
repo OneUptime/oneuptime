@@ -66,7 +66,7 @@ flowchart TB
 :::steps
 ### 开始一个新监视器
 
-进入 **监视器**，点击 **创建监视器**。在 **监视器类型** 下点击 **更多监视器类型**，然后在 **Basic Monitoring** 下选择 **External Status Page**，或在搜索框中输入 `statuspage`。输入 **名称**，然后点击 **下一步**。
+进入 **监视器**，点击 **创建监视器**。在 **监视器类型** 下点击 **更多监视器类型**，然后在 **基础监控** 下选择 **External Status Page**，或在搜索框中输入 `statuspage`。输入 **名称**，然后点击 **下一步**。
 
 ### 输入状态页 URL
 
@@ -74,7 +74,7 @@ flowchart TB
 
 ### 如有需要，选择组件
 
-打开 **组件**，从页面自己的列表中选择你依赖的组件，例如 GitHub 的 `Git Operations` 和 `Pull Requests`；留空则关注整个页面。如果改为只关注一个组，请打开 **更多字段**，输入 **Component Group Filter**（例如 `APIs`）。
+打开 **组件**，从页面自己的列表中选择你依赖的组件，例如 GitHub 的 `Git Operations` 和 `Pull Requests`；留空则关注整个页面。如果改为只关注一个组，请打开 **更多字段**，输入 **组件组过滤器**（例如 `APIs`）。
 
 ### 测试
 
@@ -96,7 +96,7 @@ flowchart TB
 | **状态页 URL** | 状态页的 URL。对于由 Atlassian Statuspage 和 incident.io 提供的站点，通常是根 URL（例如 `https://status.example.com`）。对于 RSS/Atom 订阅源，请直接输入订阅源的 URL。 | — |
 | **提供商** | **Auto** 表示自动识别格式；如果你知道格式，可选择 **Atlassian Statuspage**、**incident.io**、**OneUptime Status Page**、**RSS** 或 **Atom**。 | **Auto** |
 | **组件** | 要关注的组件，从页面自己的列表中选择或直接输入。 | 整个页面 |
-| **Component Group Filter** | 监视器限定到的组。位于 **更多字段** 下。 | 所有组 |
+| **组件组过滤器** | 监视器限定到的组。位于 **更多字段** 下。 | 所有组 |
 | **超时（ms）** | 等待状态页的最长时间。位于 **更多字段** 下。 | `10000`（10 秒） |
 | **重试** | 第一次尝试失败后重试的次数，每次间隔一秒；`0` 表示只尝试一次。位于 **更多字段** 下。 | `3`（最多 4 次尝试） |
 
@@ -115,7 +115,7 @@ flowchart TB
 > [!WARNING]
 > 什么都匹配不到的名称什么也不关注，看起来却是健康的。**组件** 和 **测试监视器** 都会列出页面上没有的所选组件。
 
-### Component Group Filter
+### 组件组过滤器
 
 如果状态页把组件分成了组，你可以把监视器限定到单个组。例如，在 `https://status.openai.com` 上输入 `APIs`，就会把监视器限定到 OpenAI 的 API 服务。
 
@@ -131,7 +131,7 @@ flowchart TB
 | --- | --- | --- |
 | **External Status Page Is Online** | 状态页是否可访问并返回状态数据 | 是 或 否 |
 | **External Status Page Overall Status** | 页面报告的整体状态 | 等于、不等于、包含、不包含、开头是、结尾是 |
-| **External Status Page Component Status** | 范围内每个组件的状态（设置后为所选组件或该组的组件）：运行正常、Under Maintenance、Degraded Performance、Partial Outage、Major Outage 或 Full Outage | 等于、不等于、包含、不包含、开头是、结尾是 |
+| **External Status Page Component Status** | 范围内每个组件的状态（设置后为所选组件或该组的组件）：运行正常、维护中、性能下降、部分中断、重大中断 或 完全中断 | 等于、不等于、包含、不包含、开头是、结尾是 |
 | **External Status Page Active Incidents** | 状态页上当前进行中的事件数（选择了组件或组时，只计算影响范围内组件的事件） | 等于、不等于以及数值比较 |
 | **External Status Page Response Time (in ms)** | 获取状态页数据所花的时间 | 大于、小于、大于或等于、小于或等于 |
 
@@ -145,7 +145,7 @@ flowchart TB
 
 | 条件 | 过滤器 | 效果 |
 | --- | --- | --- |
-| Offline | 以下 **任意** 一项：页面不在线；范围内至少有一个进行中的事件；范围内有组件报告 Degraded Performance、Partial Outage、Major Outage 或 Full Outage | 把监视器标记为离线并宣布一个事件，该事件会在条件不再匹配时自动解决 |
+| Offline | 以下 **任意** 一项：页面不在线；范围内至少有一个进行中的事件；范围内有组件报告 性能下降、部分中断、重大中断 或 完全中断 | 把监视器标记为离线并宣布一个事件，该事件会在条件不再匹配时自动解决 |
 | Online | 以下 **全部** 成立：页面在线；范围内没有进行中的事件 | 把监视器标记为在线 |
 
 由于进行中的事件数和组件状态都遵循所选的组件和组，这些默认条件会自动只针对你关心的组件。
@@ -154,7 +154,7 @@ flowchart TB
 
 要监视用 OneUptime 制作的状态页（另一个团队的项目，或者服务商在 OneUptime Cloud 或自托管 OneUptime 上的页面），把提供商选为 **OneUptime Status Page** ，或保留 **Auto** 。在 **状态页 URL** 中输入页面自己的地址：有域名就输入域名，例如 `https://status.example.com`，没有就输入 `https://oneuptime.com/status-page/<status-page-id>`。
 
-监视器读取页面的摘要 `/status-page-api/summary/<page>`（参见 [读取摘要](/docs/status-pages/public-api#读取摘要)）：只读取页面向访客展示的内容，不读取另一个项目的其他任何内容。页面上的每个资源（一个监视器或一个监视器组）都是一个组件，使用页面为它起的名称，位于页面的分组中；一个分组中的分组写作 `Core / Databases`。在 **组件** 中选择资源，或用 **Component Group Filter** 监视一个分组。
+监视器读取页面的摘要 `/status-page-api/summary/<page>`（参见 [读取摘要](/docs/status-pages/public-api#读取摘要)）：只读取页面向访客展示的内容，不读取另一个项目的其他任何内容。页面上的每个资源（一个监视器或一个监视器组）都是一个组件，使用页面为它起的名称，位于页面的分组中；一个分组中的分组写作 `Core / Databases`。在 **组件** 中选择资源，或用 **组件组过滤器** 监视一个分组。
 
 组件的状态是它在页面上的状态所代表的值，因此组件状态条件的用法与任何状态页相同：
 
@@ -208,6 +208,7 @@ flowchart TB
 | `{{provider}}`            | 识别出的服务商（Atlassian Statuspage、incident.io、OneUptime Status Page、RSS、Atom）；可达性检查之后为空 |
 | `{{componentGroup}}`      | 监视器限定到的组件组（如果有） |
 | `{{componentName}}`       | 监视器关注的组件，以逗号分隔（如果选择了组件） |
+| `{{componentNames}}`      | 以列表形式给出的同一组组件（可用 `{{#each componentNames}}` 为每个组件重复一行） |
 
 ## 常用状态页 URL
 
@@ -248,7 +249,7 @@ flowchart TB
 ## 故障排除
 
 :::details 监视器离线了，但事件涉及的是我没有使用的那部分服务
-在 **组件** 中选择你依赖的组件，或在 **Component Group Filter** 中指定一个组。这样进行中的事件数和组件状态就只计算这些内容；没有指明任何组件的事件不会被计入。
+在 **组件** 中选择你依赖的组件，或在 **组件组过滤器** 中指定一个组。这样进行中的事件数和组件状态就只计算这些内容；没有指明任何组件的事件不会被计入。
 :::
 
 :::details 即使在故障期间，监视器也从不离线

@@ -824,3 +824,95 @@ describe("someone who may read a key but not change what it can do", () => {
     expect(screen.queryByTestId("modal")).toBeNull();
   });
 });
+
+/*
+ * AN API KEY'S PERMISSION IS NARROWED BY LABELS WHEREVER LABELS NARROW IT
+ * (issue #5602). A key owns nothing, so its permission has no Scope - it
+ * reaches every resource, or the ones carrying the labels picked - and the
+ * labels were asked for only where the legacy flag marked the permission:
+ * a resource's own read, edit and delete. They are now asked for wherever
+ * labels narrow the permission (PermissionScopeNarrowing), and nowhere they
+ * narrow nothing.
+ */
+describe("the labels one permission takes", () => {
+  const LABELS_DESCRIPTION: string =
+    "Leave empty to reach every resource, or pick labels to reach only resources that carry one.";
+
+  async function addPermissionDialog(): Promise<HTMLElement> {
+    await renderPage();
+
+    return await openModal(
+      await moreMenuItem(card("Permissions"), "Add Permission"),
+    );
+  }
+
+  async function settle(): Promise<void> {
+    for (let tick: number = 0; tick < 3; tick++) {
+      await act(async (): Promise<void> => {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+      });
+    }
+  }
+
+  test("Create Workflow, the permission the issue tried to scope, asks for labels", async () => {
+    const modal: HTMLElement = await addPermissionDialog();
+
+    // Nothing picked: nothing to narrow yet.
+    expect(within(modal).queryByText(LABELS_DESCRIPTION)).toBeNull();
+
+    await pickPermission(modal, Permission.CreateWorkflow);
+    await settle();
+
+    expect(
+      await within(modal).findByText(LABELS_DESCRIPTION),
+    ).toBeInTheDocument();
+    // A key owns nothing: there is no Scope to pick.
+    expect(within(modal).queryAllByRole("radio")).toEqual([]);
+  });
+
+  test("a permission labels narrow nothing of - Create Team, the same for everyone - asks for none", async () => {
+    const modal: HTMLElement = await addPermissionDialog();
+
+    await pickPermission(modal, Permission.CreateProjectTeam);
+    await settle();
+
+    expect(within(modal).queryByText(LABELS_DESCRIPTION)).toBeNull();
+  });
+
+  test("a permission only owners narrow asks for no labels: a key owns nothing, and labels would narrow nothing", async () => {
+    const modal: HTMLElement = await addPermissionDialog();
+
+    await pickPermission(modal, Permission.ReadSecurityCaseNote);
+    await settle();
+
+    expect(within(modal).queryByText(LABELS_DESCRIPTION)).toBeNull();
+  });
+
+  test("a network site type, which the legacy flag marked, asks for none: labels narrow nothing of it", async () => {
+    const modal: HTMLElement = await addPermissionDialog();
+
+    await pickPermission(modal, Permission.ReadNetworkSiteType);
+    await settle();
+
+    expect(within(modal).queryByText(LABELS_DESCRIPTION)).toBeNull();
+  });
+
+  test("a block of Create Workflow asks for labels too: a block with labels applies to the resources carrying them", async () => {
+    await renderPage();
+
+    fireEvent.click(advancedHeader());
+
+    const modal: HTMLElement = await openModal(
+      cardButton(card("Block Permissions"), "Add Block Permission"),
+    );
+
+    await pickPermission(modal, Permission.CreateWorkflow);
+    await settle();
+
+    expect(
+      await within(modal).findByText(LABELS_DESCRIPTION),
+    ).toBeInTheDocument();
+  });
+});

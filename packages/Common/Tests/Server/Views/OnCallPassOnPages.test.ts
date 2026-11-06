@@ -317,6 +317,275 @@ describe("the warning when nobody is left to page", () => {
   });
 });
 
+/*
+ * PICKING THE LEVEL: with two or more levels after the person's, the form
+ * asks which to page - a fieldset, "Escalate to", a radio for each level
+ * inside the form that posts, the next level picked and sending nothing.
+ */
+describe("picking the level", () => {
+  const LEVEL_3_ID: string = "0f900000-0000-4000-8000-000000000013";
+
+  const LEVELS: Record<string, unknown> = {
+    label: "Escalate to",
+    param: "escalationRuleId",
+    options: [
+      {
+        value: "",
+        label: "Platform leads (Level 2 of 3)",
+        isPicked: true,
+      },
+      {
+        value: LEVEL_3_ID,
+        label: "DBA leads (Level 3 of 3)",
+        isPicked: false,
+      },
+    ],
+  };
+
+  const PASS_ON_PAGE: Record<string, unknown> = {
+    title: "Escalate Incident INC-42?",
+    message:
+      "This will immediately page the level you pick, without waiting. You will not be paged again for this incident.",
+    passOnText: "Escalate",
+    passOnFormUrl: FORM_URL,
+    pageTokenParam: "pageToken",
+    pageToken: TOKEN,
+    acknowledgeText: "Acknowledge Incident instead",
+    acknowledgeUrl:
+      "https://oneuptime.example.com/api/user-notification-log-timeline/acknowledge/1",
+    resourceTitle: "Checkout is down",
+  };
+
+  // The form's markup, from its opening tag to its end.
+  function formOf(html: string): string {
+    const start: number = html.indexOf("<form");
+
+    expect(start).toBeGreaterThan(0);
+
+    return html.slice(start, html.indexOf("</form>", start));
+  }
+
+  // The radio inputs of the form, as [value, checked].
+  function radiosOf(html: string): Array<[string, boolean]> {
+    return formOf(html)
+      .split("<input")
+      .slice(1)
+      .filter((input: string): boolean => {
+        return input.includes('type="radio"');
+      })
+      .map((input: string): [string, boolean] => {
+        const tag: string = input.slice(0, input.indexOf(">"));
+        const valueStart: number = tag.indexOf('value="') + 'value="'.length;
+
+        return [
+          tag.slice(valueStart, tag.indexOf('"', valueStart)),
+          tag.includes(" checked"),
+        ];
+      });
+  }
+
+  test("the escalate page draws a radio for each level inside its form, the next one picked", () => {
+    const html: string = render(PASS_ON_VIEW, {
+      ...PASS_ON_PAGE,
+      levelChoices: LEVELS,
+    });
+
+    const form: string = formOf(html);
+
+    expect(form).toContain(
+      '<fieldset class="mb-4" data-testid="pass-on-levels">',
+    );
+    expect(htmlAsText(form)).toContain("Escalate to");
+    expect(htmlAsText(form)).toContain("Platform leads (Level 2 of 3)");
+    expect(htmlAsText(form)).toContain("DBA leads (Level 3 of 3)");
+    expect(form.split('name="escalationRuleId"')).toHaveLength(3);
+    expect(radiosOf(html)).toEqual([
+      ["", true],
+      [LEVEL_3_ID, false],
+    ]);
+    // The levels come before the button that sends them.
+    expect(form.indexOf("pass-on-levels")).toBeLessThan(
+      form.indexOf('data-testid="pass-on-button"'),
+    );
+  });
+
+  test("the acknowledge page's Can't take it? draws the same in its form", () => {
+    const html: string = render(ACKNOWLEDGE_VIEW, {
+      ...ACKNOWLEDGE_BASE,
+      passOn: { ...PASS_ON_BLOCK, levelChoices: LEVELS },
+    });
+
+    expect(radiosOf(html)).toEqual([
+      ["", true],
+      [LEVEL_3_ID, false],
+    ]);
+  });
+
+  test("with no levels to pick from, or only one, the form is the one it always was", () => {
+    for (const levelChoices of [
+      undefined,
+      null,
+      { ...LEVELS, options: [] },
+      {
+        ...LEVELS,
+        options: [(LEVELS["options"] as Array<unknown>)[0]],
+      },
+    ]) {
+      const html: string = render(PASS_ON_VIEW, {
+        ...PASS_ON_PAGE,
+        ...(levelChoices === undefined ? {} : { levelChoices: levelChoices }),
+      });
+
+      expect(html).not.toContain("pass-on-levels");
+      expect(html).not.toContain('type="radio"');
+    }
+
+    expect(
+      render(ACKNOWLEDGE_VIEW, { ...ACKNOWLEDGE_BASE, passOn: PASS_ON_BLOCK }),
+    ).not.toContain("pass-on-levels");
+  });
+
+  test("escapes the levels' names and values: a name is no way into the page", () => {
+    const html: string = render(PASS_ON_VIEW, {
+      ...PASS_ON_PAGE,
+      levelChoices: {
+        ...LEVELS,
+        options: [
+          { value: "", label: "<b>Platform</b> leads", isPicked: true },
+          {
+            value: '"><i>quoted</i>',
+            label: "DBA leads",
+            isPicked: false,
+          },
+        ],
+      },
+    });
+
+    expect(html).not.toContain("<b>Platform</b>");
+    expect(html).not.toContain('"><i>quoted</i>');
+    expect(html).toContain("&lt;b&gt;Platform&lt;/b&gt;");
+  });
+
+  test("why it asks again is drawn apart, under what escalating does, as the warning is", () => {
+    const notice: string =
+      "The policy's levels have changed, so nothing was escalated. Pick a level and escalate again.";
+    const html: string = render(PASS_ON_VIEW, {
+      ...PASS_ON_PAGE,
+      levelChoices: LEVELS,
+      notice: notice,
+    });
+
+    const marker: number = html.indexOf('data-testid="pass-on-notice"');
+
+    expect(marker).toBeGreaterThan(0);
+
+    const box: string = html.slice(
+      html.lastIndexOf("<div", marker),
+      html.indexOf("</div>", marker),
+    );
+
+    expect(box).toContain('role="alert"');
+    expect(box).toContain("bg-amber-50");
+    expect(htmlAsText(box)).toContain(notice);
+    expect(marker).toBeGreaterThan(
+      html.indexOf("This will immediately page the level you pick"),
+    );
+    // Before the levels it asks about again.
+    expect(marker).toBeLessThan(html.indexOf('data-testid="pass-on-levels"'));
+    // Not the warning that nobody is left to page.
+    expect(html).not.toContain('data-testid="pass-on-warning"');
+  });
+
+  test("without a notice, none is drawn", () => {
+    expect(render(PASS_ON_VIEW, PASS_ON_PAGE)).not.toContain("pass-on-notice");
+  });
+});
+
+/*
+ * What the page is about - Severity, State, Project - read at three in the
+ * morning: each label in its own case, as the Dashboard's on-call labels
+ * read since #5412's review, never letter-spaced capitals that shout over
+ * the values they label. The same partial draws them on the acknowledge
+ * page, the Escalate page and the message after either.
+ */
+describe("the record's details on these pages", () => {
+  const DETAILS: Array<Record<string, unknown>> = [
+    { label: "Severity", value: "Critical", color: "#dc2626" },
+    { label: "State", value: "Created", color: "#ef4444" },
+    { label: "Project", value: "Payments", color: "" },
+  ];
+
+  // Each label's class attribute, as the page draws it.
+  function labelClassesOf(html: string): Array<string> {
+    return html
+      .split("<dt")
+      .slice(1)
+      .map((after: string): string => {
+        const classStart: number = after.indexOf('class="') + 'class="'.length;
+
+        return after.slice(classStart, after.indexOf('"', classStart));
+      });
+  }
+
+  test.each([
+    [
+      "the acknowledge page",
+      ACKNOWLEDGE_VIEW,
+      { ...ACKNOWLEDGE_BASE, details: DETAILS },
+    ],
+    [
+      "the Escalate page",
+      PASS_ON_VIEW,
+      {
+        title: "Escalate Incident INC-42?",
+        message: "This will immediately page Platform leads.",
+        passOnText: "Escalate",
+        passOnFormUrl: FORM_URL,
+        pageTokenParam: "pageToken",
+        pageToken: TOKEN,
+        acknowledgeText: "Acknowledge Incident instead",
+        acknowledgeUrl:
+          "https://oneuptime.example.com/api/user-notification-log-timeline/acknowledge/1",
+        resourceTitle: "Checkout is down",
+        details: DETAILS,
+      },
+    ],
+  ])(
+    "%s labels them in their own case",
+    (_page: string, view: string, variables: Record<string, unknown>) => {
+      const html: string = render(view, variables);
+      const classes: Array<string> = labelClassesOf(html);
+
+      expect(classes).toHaveLength(3);
+
+      for (const className of classes) {
+        const tokens: Array<string> = className.split(" ");
+
+        expect(tokens).not.toContain("uppercase");
+        expect(
+          tokens.filter((token: string): boolean => {
+            return token.startsWith("tracking-");
+          }),
+        ).toEqual([]);
+        // Small and grey beside the value, in both themes.
+        expect(tokens).toEqual(
+          expect.arrayContaining([
+            "text-xs",
+            "text-gray-500",
+            "dark:text-slate-400",
+          ]),
+        );
+      }
+
+      const text: string = htmlAsText(html);
+
+      for (const label of ["Severity", "State", "Project"]) {
+        expect(text).toContain(label);
+      }
+    },
+  );
+});
+
 describe("the templates themselves", () => {
   test("draw no words of the action of their own: the server hands them every word", () => {
     for (const view of [

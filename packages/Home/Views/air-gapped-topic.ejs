@@ -439,6 +439,13 @@
           </li>
           <% }); -%>
         </ol>
+
+        <p class="mt-8 max-w-3xl text-sm leading-6 text-gray-600" data-testid="air-gapped-topic-install-more">
+          Every step, with the script that carries a release across, is in the
+          <a href="<%= topic.hub.installationDocs %>" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600">air-gapped installation guide</a>.
+          Every image and the chart are signed, and each image has an SBOM and a vulnerability report:
+          <a href="<%= topic.hub.evidencePath %>" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600">see the evidence</a>.
+        </p>
       </div>
     </section>
 

@@ -72,7 +72,7 @@ Der Schalter hat eine Bereitschaftsregel für Vorfälle und eine für Warnungen 
 
 ### Festlegen, wie Sie erreicht werden
 
-Ihre Anmelde-E-Mail ist bereits ein Weg, Sie zu erreichen. Damit Sie auch per SMS oder Anruf benachrichtigt werden, öffnen Sie **Benutzereinstellungen** in der Leiste unter der oberen Leiste, gehen zu **Benachrichtigungsmethoden** und fügen auf dem Tab **Direct Contact** Ihre Nummer unter **Telefonnummern für SMS-Benachrichtigungen** oder **Telefonnummern für Anrufbenachrichtigungen** hinzu. Klicken Sie auf **Verifizieren** und geben Sie den Code ein, den OneUptime Ihnen sendet. Eine verifizierte Nummer wird sofort für Bereitschaftsalarme genutzt.
+Ihre Anmelde-E-Mail ist bereits ein Weg, Sie zu erreichen. Damit Sie auch per SMS oder Anruf benachrichtigt werden, öffnen Sie **Benutzereinstellungen** in der Leiste unter der oberen Leiste, gehen zu **Benachrichtigungsmethoden** und fügen auf dem Tab **Direkter Kontakt** Ihre Nummer unter **Telefonnummern für SMS-Benachrichtigungen** oder **Telefonnummern für Anrufbenachrichtigungen** hinzu. Klicken Sie auf **Verifizieren** und geben Sie den Code ein, den OneUptime Ihnen sendet. Eine verifizierte Nummer wird sofort für Bereitschaftsalarme genutzt.
 :::
 
 > [!NOTE]

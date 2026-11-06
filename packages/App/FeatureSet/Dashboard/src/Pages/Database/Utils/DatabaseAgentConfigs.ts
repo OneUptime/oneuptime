@@ -50,10 +50,12 @@ export const DATABASE_AGENT_DOCKER_COMPOSE: string = `services:
     # install.sh downloads next to this file from configs/<receiver>.yaml.
     # The native postgresql / mysql / redis / mongodb / sqlserver / oracledb
     # / elasticsearch / memcached receivers talk to the database directly,
-    # so no exporter sidecar is needed. This is the
-    # version Tests/Ops/validate-collector-configs.sh validates the configs
-    # against; bump the two together (and oneuptime.agent.version in every
-    # configs/*.yaml).
+    # so no exporter sidecar is needed (the PostgreSQL config also runs
+    # the collector's sqlquery receiver for what its receiver does not
+    # report). This is the version Tests/Ops/validate-collector-configs.sh
+    # validates the configs against; bump the two together. The
+    # oneuptime.agent.version every configs/*.yaml stamps is this release,
+    # its last number raised each time the files change on it.
     image: otel/opentelemetry-collector-contrib:0.161.0
     # Deliberately no container_name: one agent monitors ONE database, so a
     # machine watching several databases runs several copies of this file
@@ -117,6 +119,13 @@ export const DATABASE_AGENT_DOCKER_COMPOSE: string = `services:
       # certificate the collector image does not trust.
       - DATABASE_TLS_INSECURE=\${DATABASE_TLS_INSECURE:-true}
       - DATABASE_TLS_INSECURE_SKIP_VERIFY=\${DATABASE_TLS_INSECURE_SKIP_VERIFY:-false}
+      # The same two switches as a libpq sslmode - disable, require or
+      # verify-full - for the PostgreSQL config's SQL checks (install.sh
+      # works it out from them).
+      - DATABASE_TLS_SSLMODE=\${DATABASE_TLS_SSLMODE:-disable}
+      # And as the MySQL driver's tls - false, skip-verify or true - for the
+      # MySQL config's readings of Galera.
+      - DATABASE_TLS_MYSQL=\${DATABASE_TLS_MYSQL:-false}
       # How often the database is queried for its statistics.
       - DATABASE_COLLECTION_INTERVAL=\${DATABASE_COLLECTION_INTERVAL:-30s}
       # true ships query samples and top queries (PostgreSQL, MySQL,
@@ -336,6 +345,64 @@ receivers:
       db.server.top_query:
         enabled: \${env:DATABASE_QUERY_EVENTS}
 
+  # What the postgresql receiver does not report, read over the same
+  # monitoring login with one catalog query per collection interval
+  # (pg_monitor covers every view it reads): how long the server has been
+  # up (a restart), the age of the oldest transaction ID of any database
+  # (wraparound: PostgreSQL stops accepting writes near 2.1 billion), how
+  # long the oldest open transaction has been open (it holds back vacuum and
+  # its locks), and how many sessions are waiting on a lock. The Server
+  # Restarted, Transaction ID Wraparound, Long-Running Transaction and
+  # Sessions Waiting on Locks monitors read these four metrics.
+  #
+  # It connects to the "postgres" database, as the postgresql receiver
+  # does. DATABASE_TLS_SSLMODE is libpq's sslmode for the two TLS switches
+  # above (install.sh works it out: disable, require or verify-full). The
+  # receiver cannot log in with a password that contains a space; the rest
+  # of the engine metrics are not affected.
+  sqlquery/oneuptime:
+    driver: postgres
+    host: "\${env:DATABASE_ENDPOINT_HOST}"
+    # Unquoted on purpose: port is an integer field.
+    port: \${env:DATABASE_ENDPOINT_PORT}
+    database: postgres
+    username: "\${env:DATABASE_USERNAME}"
+    password: "\${env:DATABASE_PASSWORD}"
+    additional_params:
+      sslmode: "\${env:DATABASE_TLS_SSLMODE}"
+    collection_interval: "\${env:DATABASE_COLLECTION_INTERVAL}"
+    initial_delay: 1s
+    queries:
+      - sql: >-
+          SELECT
+          EXTRACT(EPOCH FROM (now() - pg_postmaster_start_time()))::bigint AS uptime_seconds,
+          (SELECT max(age(datfrozenxid)) FROM pg_database)::bigint AS oldest_xid_age,
+          COALESCE((SELECT EXTRACT(EPOCH FROM max(now() - xact_start)) FROM pg_stat_activity
+          WHERE xact_start IS NOT NULL AND backend_type = 'client backend' AND pid <> pg_backend_pid()), 0)::bigint
+          AS longest_transaction_seconds,
+          (SELECT count(*) FROM pg_stat_activity WHERE wait_event_type = 'Lock')::bigint AS sessions_waiting_on_locks
+        metrics:
+          - metric_name: postgresql.uptime
+            value_column: uptime_seconds
+            value_type: int
+            data_type: gauge
+            unit: s
+          - metric_name: postgresql.xid.oldest_age
+            value_column: oldest_xid_age
+            value_type: int
+            data_type: gauge
+            unit: "{transactions}"
+          - metric_name: postgresql.transaction.longest_duration
+            value_column: longest_transaction_seconds
+            value_type: int
+            data_type: gauge
+            unit: s
+          - metric_name: postgresql.sessions.waiting_on_lock
+            value_column: sessions_waiting_on_locks
+            value_type: int
+            data_type: gauge
+            unit: "{sessions}"
+
   # Optional: ship PostgreSQL's own log file. Uncomment this receiver, add
   # it to the logs pipeline at the bottom, and mount the server's log
   # directory at /var/log/database in docker-compose.yml, e.g.
@@ -376,10 +443,12 @@ processors:
       - key: oneuptime.database.agent
         value: "true"
         action: upsert
-      # Shown as the agent version on the database's page. Keep it in step
-      # with the image pin in docker-compose.yml.
+      # Shown as the agent version on the database's page, with a sign when
+      # a newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time these files change on that collector
+      # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.161.2"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -444,7 +513,7 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [postgresql]
+      receivers: [postgresql, sqlquery/oneuptime]
       processors: [memory_limiter, resource, transform/optional_identity, batch]
       exporters: [otlphttp]
     # Query samples and top queries (DATABASE_QUERY_EVENTS=true). Add
@@ -536,6 +605,77 @@ receivers:
       db.server.top_query:
         enabled: \${env:DATABASE_QUERY_EVENTS}
 
+  # What the mysql receiver does not report: where this server stands in a
+  # Galera cluster, for the database's Overview and its Galera monitors. It
+  # asks the server once per collection interval over the same login, with a
+  # statement every login may run on MySQL and MariaDB alike. MariaDB reports
+  # a size of 0 when it is in no cluster, so that is left out: a server in no
+  # cluster answers with no rows, and nothing here says it is unwell. The
+  # strings Galera also reports (wsrep_ready ON or OFF, wsrep_cluster_status
+  # Primary) are left out too, because this receiver can only keep a number:
+  # wsrep_local_state says the same, and 0 is a node outside the Primary
+  # component.
+  sqlquery/oneuptime:
+    driver: mysql
+    host: "\${env:DATABASE_ENDPOINT_HOST}"
+    # Unquoted on purpose: port is an integer field.
+    port: \${env:DATABASE_ENDPOINT_PORT}
+    # A schema every login can open. The statement reads nothing from it.
+    database: information_schema
+    username: "\${env:DATABASE_USERNAME}"
+    password: "\${env:DATABASE_PASSWORD}"
+    additional_params:
+      tls: "\${env:DATABASE_TLS_MYSQL}"
+    collection_interval: "\${env:DATABASE_COLLECTION_INTERVAL}"
+    initial_delay: 1s
+    queries:
+      - sql: >-
+          SHOW GLOBAL STATUS WHERE Variable_name IN
+          ('wsrep_local_state', 'wsrep_desync_count',
+          'wsrep_flow_control_paused', 'wsrep_local_recv_queue')
+          OR (Variable_name = 'wsrep_cluster_size' AND Value > 0)
+        metrics:
+          - metric_name: mysql.wsrep.cluster_size
+            value_column: Value
+            value_type: int
+            data_type: gauge
+            unit: "{nodes}"
+            row_condition:
+              column: Variable_name
+              value: wsrep_cluster_size
+          - metric_name: mysql.wsrep.local_state
+            value_column: Value
+            value_type: int
+            data_type: gauge
+            unit: "{state}"
+            row_condition:
+              column: Variable_name
+              value: wsrep_local_state
+          - metric_name: mysql.wsrep.desync_count
+            value_column: Value
+            value_type: int
+            data_type: gauge
+            unit: "{requests}"
+            row_condition:
+              column: Variable_name
+              value: wsrep_desync_count
+          - metric_name: mysql.wsrep.flow_control_paused
+            value_column: Value
+            value_type: double
+            data_type: gauge
+            unit: "1"
+            row_condition:
+              column: Variable_name
+              value: wsrep_flow_control_paused
+          - metric_name: mysql.wsrep.local_recv_queue
+            value_column: Value
+            value_type: int
+            data_type: gauge
+            unit: "{writesets}"
+            row_condition:
+              column: Variable_name
+              value: wsrep_local_recv_queue
+
   # Optional: ship the MySQL error log. Uncomment this receiver, add it to
   # the logs pipeline at the bottom, and mount the server's log directory
   # at /var/log/database in docker-compose.yml, e.g.
@@ -577,10 +717,12 @@ processors:
       - key: oneuptime.database.agent
         value: "true"
         action: upsert
-      # Shown as the agent version on the database's page. Keep it in step
-      # with the image pin in docker-compose.yml.
+      # Shown as the agent version on the database's page, with a sign when
+      # a newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time these files change on that collector
+      # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.161.2"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -645,7 +787,7 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [mysql]
+      receivers: [mysql, sqlquery/oneuptime]
       processors: [memory_limiter, resource, transform/optional_identity, batch]
       exporters: [otlphttp]
     # Query samples and top queries (DATABASE_QUERY_EVENTS=true). Add
@@ -765,10 +907,12 @@ processors:
       - key: oneuptime.database.agent
         value: "true"
         action: upsert
-      # Shown as the agent version on the database's page. Keep it in step
-      # with the image pin in docker-compose.yml.
+      # Shown as the agent version on the database's page, with a sign when
+      # a newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time these files change on that collector
+      # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.161.2"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -962,10 +1106,12 @@ processors:
       - key: oneuptime.database.agent
         value: "true"
         action: upsert
-      # Shown as the agent version on the database's page. Keep it in step
-      # with the image pin in docker-compose.yml.
+      # Shown as the agent version on the database's page, with a sign when
+      # a newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time these files change on that collector
+      # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.161.2"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -1155,10 +1301,12 @@ processors:
       - key: oneuptime.database.agent
         value: "true"
         action: upsert
-      # Shown as the agent version on the database's page. Keep it in step
-      # with the image pin in docker-compose.yml.
+      # Shown as the agent version on the database's page, with a sign when
+      # a newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time these files change on that collector
+      # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.161.2"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -1332,10 +1480,12 @@ processors:
       - key: oneuptime.database.agent
         value: "true"
         action: upsert
-      # Shown as the agent version on the database's page. Keep it in step
-      # with the image pin in docker-compose.yml.
+      # Shown as the agent version on the database's page, with a sign when
+      # a newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time these files change on that collector
+      # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.161.2"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -1492,10 +1642,12 @@ processors:
       - key: oneuptime.database.agent
         value: "true"
         action: upsert
-      # Shown as the agent version on the database's page. Keep it in step
-      # with the image pin in docker-compose.yml.
+      # Shown as the agent version on the database's page, with a sign when
+      # a newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time these files change on that collector
+      # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.161.2"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -1609,10 +1761,12 @@ processors:
       - key: oneuptime.database.agent
         value: "true"
         action: upsert
-      # Shown as the agent version on the database's page. Keep it in step
-      # with the image pin in docker-compose.yml.
+      # Shown as the agent version on the database's page, with a sign when
+      # a newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time these files change on that collector
+      # (0.161.2: the MySQL config's own readings of Galera).
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.161.2"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime

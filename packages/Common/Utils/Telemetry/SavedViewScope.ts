@@ -36,14 +36,18 @@ export enum SavedViewScopeKind {
   PodmanHost = "podman-host",
   PodmanContainer = "podman-container",
   ProxmoxCluster = "proxmox-cluster",
+  OpenStackCloud = "openstack-cloud",
   CephCluster = "ceph-cluster",
   StorageArray = "storage-array",
   VMwareVCenter = "vmware-vcenter",
   VMwareHost = "vmware-host",
   DatabaseServer = "database-server",
   ServerlessFunction = "serverless-function",
+  // An environment's Logs tab, in App Platforms.
   CloudResource = "cloud-resource",
   CloudApp = "cloud-app",
+  // A cloud resource's Logs tab in Cloud: what a stream delivered from it.
+  CloudMonitoredResource = "cloud-monitored-resource",
   RumApplication = "rum-application",
   IoTFleet = "iot-fleet",
   NetworkDevice = "network-device",

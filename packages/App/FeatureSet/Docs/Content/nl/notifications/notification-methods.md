@@ -1,6 +1,6 @@
 # Meldingsmethoden
 
-Een meldingsmethode is een adres waarop OneUptime je in één project mag bereiken: een e-mailadres, een telefoonnummer voor sms of oproepen, een WhatsApp-nummer, een Telegram-account, je Slack- of Microsoft Teams-account, een telefoon of browser voor pushmeldingen, of een webhook. Je voegt ze toe onder **Gebruikersinstellingen → Meldingsmethoden**, verifieert ze, en OneUptime gebruikt ze meteen voor je oproepen.
+Een meldingsmethode is een adres waarop OneUptime je in één project mag bereiken: een e-mailadres, een telefoonnummer voor sms of oproepen, een WhatsApp-nummer, een Telegram-account, je Slack-, Microsoft Teams- of Mattermost-account, een telefoon of browser voor pushmeldingen, of een webhook. Je voegt ze toe onder **Gebruikersinstellingen → Meldingsmethoden**, verifieert ze, en OneUptime gebruikt ze meteen voor je oproepen.
 
 :::cards
 - [Een methode kiezen](#een-methode-kiezen): Wat elke methode nodig heeft, en hoe ze wordt geverifieerd.
@@ -20,7 +20,7 @@ flowchart TB
     rules --> used["Oproepen en nieuws<br/>kunnen haar bereiken"]
 ```
 
-Een methode die je niet hebt geverifieerd, wordt nooit gebruikt. Pushapparaten, Slack, Microsoft Teams en webhooks hebben geen code nodig: een apparaat registreren of je account koppelen bewijst dat het van jou is, en een webhook heeft geen bewijs nodig. Een methode verifiëren voegt meteen je [standaardregels](/docs/notifications/on-call-rules#de-regels-waarmee-je-begint) ervoor toe, dus een nieuw telefoonnummer roept je op voor elke ernst tot je de regels ervan wijzigt.
+Een methode die je niet hebt geverifieerd, wordt nooit gebruikt. Pushapparaten, Slack, Microsoft Teams, Mattermost en webhooks hebben geen code nodig: een apparaat registreren of je account koppelen bewijst dat het van jou is, en een webhook heeft geen bewijs nodig. Een methode verifiëren voegt meteen je [standaardregels](/docs/notifications/on-call-rules#de-regels-waarmee-je-begint) ervoor toe, dus een nieuw telefoonnummer roept je op voor elke ernst tot je de regels ervan wijzigt.
 
 ## Een methode kiezen
 
@@ -28,17 +28,18 @@ Elk tabblad van **Meldingsmethoden** bevat een of meer kaarten, één per soort 
 
 | Kaart | Tabblad | Wat je toevoegt | Hoe ze wordt geverifieerd |
 | --- | --- | --- | --- |
-| **E-mails voor meldingen** | **Direct Contact** | Een e-mailadres | Een code per e-mail |
-| **Telefoonnummers voor SMS-meldingen** | **Direct Contact** | Een telefoonnummer | Een code per sms |
-| **Telefoonnummers voor oproepmeldingen** | **Direct Contact** | Een telefoonnummer | Een code die in een gesprek wordt voorgelezen, of geen voor een nummer dat voor sms is geverifieerd |
-| **WhatsApp-nummers voor meldingen** | **Direct Contact** | Een WhatsApp-nummer | Een code via WhatsApp |
-| **Telegram-accounts voor meldingen** | **Direct Contact** | Je Telegram-account | Een bericht aan de OneUptime-bot |
-| **Slack Account for Notifications** | **Workspace Apps** | Je Slack-account | Je account koppelen aan de werkruimte van het project |
-| **Microsoft Teams Account for Notifications** | **Workspace Apps** | Je Microsoft Teams-account | Je account koppelen aan de werkruimte van het project |
-| **Apparaten voor pushmeldingen** | **Push Notifications** | Een telefoon met de app OneUptime On-Call, of een browser | Het apparaat registreren |
+| **E-mails voor meldingen** | **Direct contact** | Een e-mailadres | Een code per e-mail |
+| **Telefoonnummers voor SMS-meldingen** | **Direct contact** | Een telefoonnummer | Een code per sms |
+| **Telefoonnummers voor oproepmeldingen** | **Direct contact** | Een telefoonnummer | Een code die in een gesprek wordt voorgelezen, of geen voor een nummer dat voor sms is geverifieerd |
+| **WhatsApp-nummers voor meldingen** | **Direct contact** | Een WhatsApp-nummer | Een code via WhatsApp |
+| **Telegram-accounts voor meldingen** | **Direct contact** | Je Telegram-account | Een bericht aan de OneUptime-bot |
+| **Slack Account for Notifications** | **Werkruimte-apps** | Je Slack-account | Je account koppelen aan de werkruimte van het project |
+| **Microsoft Teams Account for Notifications** | **Werkruimte-apps** | Je Microsoft Teams-account | Je account koppelen aan de werkruimte van het project |
+| **Mattermost-account voor meldingen** | **Werkruimte-apps** | Je Mattermost-account | Je account koppelen aan de werkruimte van het project |
+| **Apparaten voor pushmeldingen** | **Pushmeldingen** | Een telefoon met de app OneUptime On-Call, of een browser | Het apparaat registreren |
 | **Webhooks voor meldingen** | **Webhooks** | Een eigen HTTPS-endpoint | Geen |
 
-**Workspace Apps** verschijnt alleen als het project Slack of Microsoft Teams heeft gekoppeld, en bevat alleen de gekoppelde. Sms, oproepen, WhatsApp en Telegram kunnen voor het hele project uitstaan; zie [Een kanaal aanzetten voor je project](#een-kanaal-aanzetten-voor-je-project).
+**Werkruimte-apps** verschijnt alleen als het project Slack, Microsoft Teams of Mattermost heeft gekoppeld, en bevat alleen de gekoppelde. Sms, oproepen, WhatsApp en Telegram kunnen voor het hele project uitstaan; zie [Een kanaal aanzetten voor je project](#een-kanaal-aanzetten-voor-je-project).
 
 ## Een methode toevoegen en verifiëren
 
@@ -47,7 +48,7 @@ E-mailadressen, sms-nummers, oproepnummers en WhatsApp-nummers worden geverifiee
 :::steps
 ### Je methoden openen
 
-Ga naar **Gebruikersinstellingen → Meldingsmethoden**. **Direct Contact** is het eerste tabblad.
+Ga naar **Gebruikersinstellingen → Meldingsmethoden**. **Direct contact** is het eerste tabblad.
 
 ### Het adres toevoegen
 
@@ -85,15 +86,15 @@ Klik terug in OneUptime op **I've sent the message — check**. Zodra de bot je 
 
 **Code roteren** maakt een nieuwe code voor een account dat nog niet geverifieerd is. De QR-code en de link die je eerder opende, werken dan niet meer. In een zelfgehoste OneUptime koppelt de beheerder van de server een Telegram-bot voordat iemand een account kan koppelen.
 
-## Slack en Microsoft Teams
+## Slack, Microsoft Teams en Mattermost
 
-1. Koppel je eigen account aan de werkruimte van het project: **Gebruikersinstellingen → Werkruimte → Slack**, of **Microsoft Teams**. Zie [Slack](/docs/workspace-connections/slack) en [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
-2. Klik op het tabblad **Workspace Apps** op **Add Slack Account** of **Add Microsoft Teams Account**. Het account is geverifieerd zodra het is toegevoegd.
-3. Klik op **Send Test Message** in de rij ervan. Oproepen komen binnen als directe berichten van de OneUptime-app.
+1. Koppel je eigen account aan de werkruimte van het project: **Gebruikersinstellingen → Werkruimte → Slack**, **Microsoft Teams** of **Mattermost**. Zie [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) en [Mattermost](/docs/workspace-connections/mattermost).
+2. Klik op het tabblad **Werkruimte-apps** op **Add Slack Account**, **Add Microsoft Teams Account** of **Mattermost-account toevoegen**. Het account is geverifieerd zodra het is toegevoegd.
+3. Klik op **Send Test Message** in de rij ervan. Oproepen komen binnen als directe berichten van de OneUptime-app, of in Mattermost van de bot van het project.
 
 ## Pushmeldingen
 
-Het tabblad **Push Notifications** toont je **Apparaten voor pushmeldingen**.
+Het tabblad **Pushmeldingen** toont je **Apparaten voor pushmeldingen**.
 
 - **Een telefoon.** Installeer de app OneUptime On-Call, verbind hem met je OneUptime, meld je aan en sta meldingen toe: de telefoon zet zichzelf in deze lijst. Zie [Apps – Overzicht](/docs/mobile-desktop-apps/index).
 - **Deze browser.** Klik op **Apparaat registreren**, vul een **Apparaatnaam** in, en sta meldingen toe wanneer de browser erom vraagt.
@@ -167,7 +168,7 @@ Een webhook heeft geen verificatie nodig, dus toevoegen voegt meteen de regels e
 
 ## Een kanaal aanzetten voor je project
 
-**SMS**, **Telefoonoproepen**, **WhatsApp** en **Telegram** staan in elk nieuw project uit, omdat elk bericht geld kost: in OneUptime Cloud wordt het betaald uit het tegoed van het project, en sms en oproepen lopen in plaats daarvan via het eigen Twilio-account van het project als het standaardaccount ze verstuurt. E-mail, push, Slack, Microsoft Teams en webhooks staan altijd aan.
+**SMS**, **Telefoonoproepen**, **WhatsApp** en **Telegram** staan in elk nieuw project uit, omdat elk bericht geld kost: in OneUptime Cloud wordt het betaald uit het tegoed van het project, en sms en oproepen lopen in plaats daarvan via het eigen Twilio-account van het project als het standaardaccount ze verstuurt. E-mail, push, Slack, Microsoft Teams, Mattermost en webhooks staan altijd aan.
 
 Zolang een kanaal uitstaat, kan niemand in het project er een methode op toevoegen: de kaart ervan heeft geen knop om toe te voegen, en zegt wie het kan aanzetten. Een projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet het aan, in de kaart **Meldingskanalen** onder **Projectinstellingen → Meldingen → Meldingsinstellingen**. Een projectbeheerder kan dat niet. In een zelfgehoste OneUptime hebben sms en oproepen ook een Twilio-account of een gateway die u zelf beheert nodig, en Telegram een bot die de beheerder van de server koppelt; zie [Twilio-integratie](/docs/self-hosted/twilio-integration) en [Sms- en belgateway](/docs/self-hosted/sms-and-call-gateway).
 

@@ -5,11 +5,13 @@ import URL from "../../Types/API/URL";
 import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import ObjectID from "../../Types/ObjectID";
+import RequestOrigin from "../../Types/RequestOrigin";
 import { DashboardRoute } from "../../ServiceRoute";
 import User from "../../Models/DatabaseModels/User";
 import DatabaseConfig from "../DatabaseConfig";
 import MailService from "../Services/MailService";
 import ProductBrandingText from "./ProductBrandingText";
+import RequestOriginUtil from "./RequestOrigin/RequestOriginUtil";
 import UserService from "../Services/UserService";
 import logger from "./Logger";
 
@@ -42,6 +44,8 @@ export default class TwoFactorBackupCodeNotification {
   public static async sendCodesCreatedEmail(data: {
     userId: ObjectID;
     codeCount: number;
+    // The request that set the second factor up: where it came from.
+    origin?: RequestOrigin | undefined;
   }): Promise<void> {
     /*
      * The address is read off the account rather than taken from the caller.
@@ -53,6 +57,7 @@ export default class TwoFactorBackupCodeNotification {
       id: data.userId,
       select: {
         email: true,
+        timezone: true,
       },
       props: {
         isRoot: true,
@@ -82,6 +87,14 @@ export default class TwoFactorBackupCodeNotification {
           ),
         ).toString(),
         homeUrl: new URL(httpProtocol, host).toString(),
+        /*
+         * Which address, place and device set the second factor up: a
+         * stolen session can, and this is how the owner tells.
+         */
+        ...RequestOriginUtil.getEmailVars({
+          origin: data.origin,
+          timezone: user.timezone,
+        }),
       },
     });
   }
@@ -98,6 +111,7 @@ export default class TwoFactorBackupCodeNotification {
   public static notifyCodesCreated(data: {
     userId: ObjectID;
     codeCount: number;
+    origin?: RequestOrigin | undefined;
   }): void {
     TwoFactorBackupCodeNotification.sendCodesCreatedEmail(data).catch(
       (err: Error) => {

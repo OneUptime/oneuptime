@@ -52,7 +52,10 @@ import User from "Common/Models/DatabaseModels/User";
 import React, { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useAsyncEffect from "use-async-effect";
-import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import {
+  DisableInstanceCheckIn,
+  IsBillingEnabled,
+} from "Common/Server/EnvironmentConfig";
 import { SSO_REQUIRED_SIGN_UP_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import LoginWithSsoPage from "./LoginWithSSO";
 import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
@@ -475,7 +478,8 @@ const RegisterPage: () => JSX.Element = () => {
     },
   ]);
 
-  if (!IsBillingEnabled) {
+  // With the daily check-in off, this install does not report to oneuptime.com.
+  if (!IsBillingEnabled && !DisableInstanceCheckIn) {
     formFields = formFields.concat([
       {
         overrideField: {

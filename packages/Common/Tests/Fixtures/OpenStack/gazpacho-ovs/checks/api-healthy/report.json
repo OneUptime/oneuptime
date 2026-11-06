@@ -1,0 +1,79 @@
+{
+  "startedAt": "2026-11-05T06:33:39.393Z",
+  "durationInMs": 499,
+  "regionNames": [
+    "RegionOne"
+  ],
+  "token": {
+    "status": "Passed",
+    "durationInMs": 27
+  },
+  "services": [
+    {
+      "regionName": "RegionOne",
+      "serviceType": "block-storage",
+      "serviceName": "cinder",
+      "read": "GET /volumes?limit=1",
+      "outcome": "Answered",
+      "status": 200,
+      "durationInMs": 111
+    },
+    {
+      "regionName": "RegionOne",
+      "serviceType": "compute",
+      "serviceName": "nova",
+      "read": "GET /servers?limit=1",
+      "outcome": "Answered",
+      "status": 200,
+      "durationInMs": 85
+    },
+    {
+      "regionName": "RegionOne",
+      "serviceType": "compute_legacy",
+      "serviceName": "nova_legacy",
+      "read": "GET /",
+      "outcome": "Answered",
+      "status": 404,
+      "durationInMs": 122
+    },
+    {
+      "regionName": "RegionOne",
+      "serviceType": "identity",
+      "serviceName": "keystone",
+      "read": "GET /auth/projects",
+      "outcome": "Answered",
+      "status": 200,
+      "durationInMs": 56
+    },
+    {
+      "regionName": "RegionOne",
+      "serviceType": "image",
+      "serviceName": "glance",
+      "read": "GET /images?limit=1",
+      "outcome": "Answered",
+      "status": 200,
+      "durationInMs": 310
+    },
+    {
+      "regionName": "RegionOne",
+      "serviceType": "network",
+      "serviceName": "neutron",
+      "read": "GET /networks?limit=1",
+      "outcome": "Answered",
+      "status": 200,
+      "durationInMs": 464
+    },
+    {
+      "regionName": "RegionOne",
+      "serviceType": "placement",
+      "serviceName": "placement",
+      "read": "GET /resource_classes",
+      "outcome": "Refused",
+      "status": 403,
+      "durationInMs": 37,
+      "message": "Access was denied to this resource.\n\n Policy does not allow placement:resource_classes:list to be performed."
+    }
+  ],
+  "certificates": [],
+  "warnings": []
+}

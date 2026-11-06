@@ -1,0 +1,2 @@
+A share in error, because no backend could take it.
+On its own: no backend matches its share type, so the scheduler gave up on it.

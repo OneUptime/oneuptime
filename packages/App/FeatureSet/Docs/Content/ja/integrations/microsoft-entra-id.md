@@ -1,6 +1,6 @@
 # Microsoft Entra ID
 
-[Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) のサインインとディレクトリの変更を、OneUptime のセキュリティイベントにインポートします。必要なら、[Microsoft 365 監査ログ](https://learn.microsoft.com/en-us/purview/audit-log-activities) にある Exchange、SharePoint、OneDrive、Teams のアクティビティもインポートできます。そこではログ、トレース、メトリクスと並べて検索し、他のあらゆるソースと相関付け、重要なものについてオンコールを呼び出せます。OneUptime は作成したアプリの登録で読み取り、テナントでは何も変更しません。
+[Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) のサインイン、ディレクトリの変更、リスク検出を、OneUptime のセキュリティイベントにインポートします。必要なら、アプリがバックグラウンドで行うサインインや、[Microsoft 365 監査ログ](https://learn.microsoft.com/en-us/purview/audit-log-activities) にある Exchange、SharePoint、OneDrive、Teams のアクティビティもインポートできます。そこではログ、トレース、メトリクスと並べて検索し、他のあらゆるソースと相関付け、重要なものについてオンコールを呼び出せます。OneUptime は作成したアプリの登録で読み取り、テナントでは何も変更しません。
 
 :::cards
 - [接続を設定する](#接続を設定する): アプリの登録、そのアクセス許可、接続のフォーム。
@@ -19,15 +19,15 @@ flowchart TB
     list --> event["それぞれを<br/>種類に応じた<br/>OCSF イベントとして<br/>保存"]
 ```
 
-OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接続をそれぞれポーリングします。ポーリングはアプリの登録として Microsoft Entra ID にサインインし、前回のポーリング以降に記録されたディレクトリの変更（[List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)）とサインイン（[List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)）をこの順に読み取り、**Microsoft 365 監査ログ** オプションがオンのときは、続いて監査ログの新しいコンテンツ（[Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)）を読み取ります。各レコードは [OCSF](https://schema.ocsf.io/) イベントとして保存されます。サインインは Authentication イベント、ロールの割り当ては User Access Management イベント、フィッシングの判定は Detection Finding になります。
+OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接続をそれぞれポーリングします。ポーリングはアプリの登録として Microsoft Entra ID にサインインし、前回のポーリング以降に記録されたディレクトリの変更（[List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)）とサインイン（[List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)）をこの順に読み取り、続いて Identity Protection のリスク検出（[List riskDetections](https://learn.microsoft.com/en-us/graph/api/riskdetection-list)）を読み取ります。**バックグラウンドとアプリのサインイン** オプションがオンのときはバックグラウンドとアプリのサインインを、**Microsoft 365 監査ログ** オプションがオンのときは監査ログの新しいコンテンツ（[Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)）を読み取ります。各レコードは [OCSF](https://schema.ocsf.io/) イベントとして保存されます。サインインは Authentication イベント、ロールの割り当ては User Access Management イベント、リスク検出とフィッシングの判定は Detection Finding になります。
 
 ## 前提条件
 
 - OneUptime で Project Owner、Project Admin、または Security Admin のロール。Security Member と Security Viewer は接続とその実行履歴を見ることはできますが、変更はできません。
-- サインインには、Microsoft 365 E3、E5、Business Premium に含まれる Microsoft Entra ID P1 または P2。Microsoft Graph はこうしたテナントにしかサインインを提供しません。ディレクトリの変更はどのテナントでも読み取れます。
+- サインインとリスク検出には、Microsoft 365 E3、E5、Business Premium に含まれる Microsoft Entra ID P1 または P2。Microsoft Graph はこうしたテナントにしかこれらを提供せず、各リスク検出の詳細は P2 で得られます。ディレクトリの変更はどのテナントでも読み取れます。
 - アプリケーション管理者など、アプリケーションを登録できる Entra ロールと、管理者の同意を付与するためのグローバル管理者または特権ロール管理者。
 - Microsoft 365 監査ログには、テナントで監査がオンになっていること（既定でオン）。[Microsoft Purview ポータル](https://purview.microsoft.com) の **Audit** に **Start recording user and admin activity** が表示されていてはいけません。
-- OneUptime のアプリと worker から `login.microsoftonline.com`、`graph.microsoft.com`、`manage.office.com` への送信 HTTPS。Azure Government では `login.microsoftonline.us`、`graph.microsoft.us`、`manage.office365.us` への送信 HTTPS。
+- OneUptime のアプリと worker から `login.microsoftonline.com`、`graph.microsoft.com`、`manage.office.com` への送信 HTTPS (Microsoft 365 GCC では代わりに `manage-gcc.office.com`)。GCC High では `login.microsoftonline.us`、`graph.microsoft.us`、`manage.office365.us`、DoD では `login.microsoftonline.us`、`dod-graph.microsoft.us`、`manage.protection.apps.mil` への送信 HTTPS。
 
 ## 接続を設定する
 
@@ -42,7 +42,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 ### ログの読み取りを許可する
 
-1. **API permissions → Add a permission → Microsoft Graph → Application permissions** に移動し、`AuditLog.Read.All` を選んで **Add permissions** を選びます。Microsoft によると、サインインの一覧では `Directory.Read.All` も求められることがあります。同意を付与した後もサインインが `403` で拒否される場合は追加してください。
+1. **API permissions → Add a permission → Microsoft Graph → Application permissions** に移動し、`AuditLog.Read.All` と、リスク検出用に `IdentityRiskEvent.Read.All` を選んで **Add permissions** を選びます。Microsoft によると、サインインの一覧では `Directory.Read.All` も求められることがあります。同意を付与した後もサインインが `403` で拒否される場合は追加してください。
 2. Microsoft 365 監査ログには、2 つ目のアクセス許可を追加します。**Add a permission → Office 365 Management APIs → Application permissions** を選び、`ActivityFeed.Read` を追加します。
 3. プレイブックでユーザーの無効化、有効化、サインアウトを行うには ( [封じ込め](/docs/telemetry/security-cases#封じ込め) を参照)、同じ手順で `User.Read.All`、 `User.EnableDisableAccount.All`、 `User.RevokeSessions.All` を追加します。管理者のアカウントを変更できるのは、Privileged Authentication Administrator ロールも持つアプリだけです。
 4. テナントに対して **Grant admin consent for** を選び、確認します。各アクセス許可の状態は **Granted** になっている必要があります。同意がないと、すべての読み取りが `403` で拒否されます。
@@ -53,7 +53,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 ### OneUptime で接続を追加する
 
-**製品 → セキュリティイベント → 接続**（`/dashboard/{projectId}/security-events/connections`）を開き、**接続を追加** をクリックし、**アイデンティティ** の下の **Microsoft Entra ID** を選んで **次へ** をクリックします。下の表の設定を入力して **次へ** をクリックし、シークレットの値を **クライアントシークレット** に貼り付けます。**ポーリング** ステップで **Microsoft 365 監査ログ** をオンにすると、それも読み取ります。
+**製品 → セキュリティイベント → 接続**（`/dashboard/{projectId}/security-events/connections`）を開き、**接続を追加** をクリックし、**アイデンティティ** の下の **Microsoft Entra ID** を選んで **次へ** をクリックします。下の表の設定を入力して **次へ** をクリックし、シークレットの値を **クライアントシークレット** に貼り付けます。**ポーリング** ステップで **バックグラウンドとアプリのサインイン** や **Microsoft 365 監査ログ** をオンにすると、それらも読み取ります。Azure パブリック クラウド以外のテナントは、設定ステップの **その他の項目** で **クラウド** を選びます。
 
 ### 保存する前にテストする
 
@@ -63,8 +63,9 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 | 設定 | 確認場所 |
 | --- | --- |
 | **ディレクトリ (テナント) ID** | アプリの **Overview** ページ。テナントの GUID、または `contoso.onmicrosoft.com` のような検証済みドメイン。**Microsoft 365 監査ログ** がオンの場合は GUID。Management API はテナントを GUID でしか識別しません。 |
-| **アプリケーション (クライアント) ID** | アプリの **Overview** ページ。`AuditLog.Read.All` を持つアプリの GUID。 |
-| **クラウド** | **Azure パブリック クラウド**、または GCC High 向けの **Azure Government (米国)**（`login.microsoftonline.us`、`graph.microsoft.us`、`manage.office365.us`）。 |
+| **アプリケーション (クライアント) ID** | アプリの **Overview** ページ。`AuditLog.Read.All` と `IdentityRiskEvent.Read.All` を持つアプリの GUID。 |
+| **クラウド** | **その他の項目** にあり、別のものを選ばない限り **Azure パブリック クラウド**。GCC には **Azure パブリック クラウド、Microsoft 365 GCC**、GCC High には **Azure Government (米国)、GCC High**、DoD には **Azure Government (米国)、DoD** を選びます。 |
+| **バックグラウンドとアプリのサインイン** | 任意。既定ではオフ。オンにすると、各ポーリングで、アプリがユーザーのためにバックグラウンドで行うサインインとサービス プリンシパル自身のサインインも Microsoft Graph のベータ版サインイン一覧から読み取り、失敗したものをインポートします。 |
 | **Microsoft 365 監査ログ** | 任意。既定ではオフ。オンにすると、各ポーリングで Microsoft 365 監査ログも読み取ります。アプリには `ActivityFeed.Read` が必要です。 |
 | **クライアントシークレット** | シークレットの **Value**。暗号化され、API から返されることはなく、二度と表示されません。接続の **認証情報を更新** で置き換えます。 |
 
@@ -80,6 +81,8 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 | MFA (`50074`、`50076`) やパスワード変更の求めなど、次のステップを待っているサインイン | Authentication (`3002`)、ステータス `Interrupted` | Informational: 失敗ではなく途中のステップ |
 | 失敗したサインイン（Entra の理由とエラーコード付き） | Authentication (`3002`)、ステータス `Failure` | Low |
 | Identity Protection が中または高のリスクと評価したサインイン | Authentication (`3002`) | Medium または High |
+| Identity Protection が検出したリスク (匿名 IP アドレスや漏洩した資格情報など) | Detection Finding (`2004`) | そのリスク レベル。侵害が確認されたユーザーは Critical |
+| 失敗したバックグラウンドまたはアプリのサインイン (**バックグラウンドとアプリのサインイン** がオンのとき) | Authentication (`3002`)、ステータス `Failure` | Low |
 | 変更されたユーザー、グループ、ロール（カテゴリ別） | Account Change (`3001`)、Group Management (`3006`)、User Access Management (`3005`)、それ以外は Entity Management (`3004`) | Global Administrator などの特権ロールは Medium、失敗した変更は Low |
 
 **Microsoft 365 監査ログ** がオンのときは、セキュリティチームが対応するレコードがそこからインポートされ、開いたファイルや読んだメールなどの残りは件数だけが数えられます。
@@ -96,22 +99,22 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 Exchange 自身のシステムアカウントで実行される内部処理は、メールを転送しない限り除外されます。どのイベントもレコード全体を `status.errorCode` や `Parameters.ForwardTo` のようなドット区切りのキーに平坦化して保持するため、ルールは Microsoft が付けた名前でどのフィールドでも読み取れます。ルールライブラリの Entra ID 用ルールは、ここでインポートされる形のまま読み取ります。
 
-同じサインインとディレクトリの変更は、Azure の診断設定でエクスポートし [ログ](/docs/telemetry/security-events#ログからセキュリティイベントを見つける) で読み取るログとして OneUptime に届けることもできます。どちらの経路でも各レコードには同じイベント ID が付きますが、両方の経路で読み取ったレコードは 2 回保存されます。Entra ID はどちらか一方の経路で読み取ってください。
+同じサインイン、ディレクトリの変更、リスク検出は、Azure の診断設定でエクスポートし [ログ](/docs/telemetry/security-events#ログからセキュリティイベントを見つける) で読み取るログとして OneUptime に届けることもできます。どちらの経路でも各レコードには同じイベント ID が付き、両方の経路で読み取ったレコードは、先に読み取った経路で一度だけ保存されます。
 
 ## ポーリングの仕組み
 
-- **レコードは Entra ID が記録した時刻で読み取られます**。変更は `activityDateTime`、サインインは `createdDateTime` です。
+- **レコードは Entra ID が記録した時刻で読み取られます**。変更は `activityDateTime`、サインインは `createdDateTime`、リスク検出は `detectedDateTime` です。
 - **最初のポーリングは 24 時間前までさかのぼります**。そのため、新しい接続にはすぐに最近のレコードが表示されます。
 - **以降の各ポーリングは、保存されたカーソルの 30 分前から始まります。** Microsoft によると、どちらのログも数分遅れて届きます。重なりによって遅れたレコードは次のポーリングで読まれ、重複はプロジェクト内でレコード ID によって除外されます。
 - **1 回のポーリングで読むのは、カーソルから最大 24 時間先までです。** カーソルが遅れた接続は、24 時間の時間枠を続けて読んで追いつきます。
 - **Microsoft Entra ID P1 も P2 もないテナント** はディレクトリの変更をインポートし、各実行の **Read sign-ins** チェックが、サインインを読み取れなかったことを警告します。
 - **失敗した実行は何も変えません。** ネットワークエラーや Graph のエラーステータスの後は、カーソルと時間枠の長さはそのままで、次のポーリングが同じ時間枠を読み直します。唯一の例外はタイムアウトしたリクエストです。カーソルはそのままですが、次の時間枠は半分の長さになります。時間内に応答できないほど重い時間枠は、何度試してもタイムアウトするからです。
 
-Microsoft 365 監査ログは、Microsoft が各コンテンツ BLOB を利用可能にした時刻で、1 日ずつ、Microsoft が保持する 7 日を超えない範囲で読み取られます。最初のポーリングでアプリを `Audit.Exchange`、`Audit.SharePoint`、`Audit.General` にサブスクライブし、Microsoft は新しいサブスクリプションの最初のレコードを 12 時間以内に利用可能にします。監査ログが Entra ID のログを止めることはありません。アクセス許可の不足は警告になり時間枠は先に進みますが、`HTTP 503` のような Microsoft 側の障害は実行を **部分的** にし、時間枠が読み直されます。
+Microsoft 365 監査ログは、Microsoft が各コンテンツ BLOB を利用可能にした時刻で、1 日ずつ、Microsoft が保持する 7 日を超えない範囲で読み取られます。最初のポーリングでアプリを `Audit.Exchange`、`Audit.SharePoint`、`Audit.General` にサブスクライブし、Microsoft は新しいサブスクリプションの最初のレコードを 12 時間以内に利用可能にします。監査ログが Entra ID のログを止めることはありません。アクセス許可の不足は警告になり時間枠は先に進みますが、`HTTP 503` のような Microsoft 側の障害は実行を **部分的** にし、時間枠が読み直されます。リスク検出とバックグラウンドやアプリのサインインも同じで、サインインとディレクトリの変更を止めることはありません。
 
 ### 1 回のポーリングで読み切れないほど時間枠にデータがある場合
 
-各ログには独自の予算があります。ディレクトリの変更は 500 件のページを 10 ページ、サインインは 500 件のページを 20 ページ、Microsoft 365 監査ログは 120 リクエストと 10,000 レコードです。ポーリングは 4 分で止まります。予算によって時間枠の終わりより前にログの読み取りが止まると、実行は **部分的** になり、その警告にはログと予算が示されます。Microsoft Graph は新しいレコードから順に返すため、OneUptime は到達しなかったレコードを越えてカーソルを進めるのではなく、時間枠を短くします。
+各ログには独自の予算があります。ディレクトリの変更は 500 件のページを 10 ページ、サインインは 500 件のページを 20 ページ、リスク検出は 500 件のページを 4 ページ、バックグラウンドのサインインは種類ごとに 500 件のページを 10 ページ、Microsoft 365 監査ログは 120 リクエストと 10,000 レコードです。ポーリングは 4 分で止まります。予算によって時間枠の終わりより前にログの読み取りが止まると、実行は **部分的** になり、その警告にはログと予算が示されます。Microsoft Graph は新しいレコードから順に返すため、OneUptime は到達しなかったレコードを越えてカーソルを進めるのではなく、時間枠を短くします。
 
 1. **縮める。** 次のポーリングは同じ開始点から半分の長さの時間枠を読み、時間枠を最後まで読めるようになるまで、最短 1 分まで半分にし続けます。実行の警告にはそのことが示されます: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 長い時間枠からすでにインポートされたレコードは、重複としてスキップされます。
 2. **元に戻す。** 時間枠を最後まで読めたら、カーソルはその終わりに移り、次の時間枠は再び 2 倍になり、最長 24 時間まで戻ります。
@@ -138,6 +141,8 @@ Microsoft 365 監査ログは、Microsoft が各コンテンツ BLOB を利用�
 | **Authenticate with Microsoft Entra** | 選んだクラウドで、Entra ID がアプリに Microsoft Graph 用のトークンを発行すること。 |
 | **Read sign-ins** | 過去 24 時間のサインインを読み取れること。P1 も P2 もないテナントでは、失敗ではなく警告になります。 |
 | **Read directory changes** | 過去 24 時間のディレクトリの変更を読み取れること。 |
+| **Read risk detections** | 過去 24 時間の Identity Protection のリスク検出を読み取れること。アクセス許可やライセンスがない場合は、失敗ではなく警告になります。 |
+| **Read background and app sign-ins** | オプションがオンの場合のみ。Microsoft Graph のベータ版サインイン一覧が両方の種類について応答すること。 |
 | **Read the Microsoft 365 audit log** | オプションがオンの場合のみ。Management API が応答すること、およびアプリがどのコンテンツの種類にサブスクライブしているか。 |
 | **Records available to import** | 過去 24 時間のサインインとディレクトリの変更の件数。それぞれ最大 500 件までなので、`500+` はそれ以上を意味します。まったくない場合は警告です。 |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime 側の状態。プロセスが Worker キューのジョブを取得していること、ポーリングジョブが毎分実行されていること、セキュリティイベントのストアが応答すること。 |
@@ -157,6 +162,11 @@ Microsoft 365 監査ログは、Microsoft が各コンテンツ BLOB を利用�
 :::details 最終エラーに `sign-ins request failed (HTTP 403)` または `audit logs request failed (HTTP 403)` と表示される
 - エラーコード `Authorization_RequestDenied`: アプリに `AuditLog.Read.All` がないか、同意が付与されていません。管理者の同意を付与し、数分待ってから再度テストします。サインインについては `Directory.Read.All` も付与します。
 - エラーコード `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: テナントに Microsoft Entra ID P1 も P2 もありません。ディレクトリの変更は引き続きインポートされます。
+:::
+
+:::details リスク検出が読み取られない
+- `risk detections request failed (HTTP 403)`: アプリに `IdentityRiskEvent.Read.All` がないか、同意が付与されていません。サインインとディレクトリの変更は引き続きインポートされます。
+- エラーコード `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: テナントに Microsoft Entra ID P1 も P2 もありません。
 :::
 
 :::details Microsoft 365 監査ログが読み取られない

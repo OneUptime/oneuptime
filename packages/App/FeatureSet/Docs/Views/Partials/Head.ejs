@@ -407,8 +407,9 @@ var metaDescription = typeof pageDescription !== 'undefined' && pageDescription 
 
 <%#
     The Google Tag Manager container, through the consent partial the
-    marketing site uses: it loads once consent allows, and the answer given on
-    the marketing site's banner is the answer here.
+    marketing site uses: it loads in Consent Mode's advanced mode, with every
+    tag but Google's waiting for consent, and the answer given on the
+    marketing site's banner is the answer here.
 -%>
 <%- include('../../../../../Common/Server/Views/Partials/AnalyticsConsent', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false

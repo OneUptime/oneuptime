@@ -22,7 +22,10 @@ import FetchNetworkDeviceDiagnostics from "./Jobs/NetworkDevice/FetchDiagnostics
 import FetchPacketCaptures from "./Jobs/PacketCapture/FetchPacketCaptures";
 import ReportPacketCaptureCapability from "./Jobs/PacketCapture/ReportCapability";
 import FetchVMwareWork from "./Jobs/VMware/FetchVMwareWork";
+import FetchOpenStackWork from "./Jobs/OpenStack/FetchOpenStackWork";
+import FetchOpenStackChecks from "./Jobs/OpenStack/FetchOpenStackChecks";
 import ScanDataSecurityDatabases from "./Jobs/DataSecurity/ScanDatabases";
+import CollectDataObservabilityTableHealth from "./Jobs/DataObservability/CollectTableHealth";
 import { describePacketCaptureSettings } from "./Utils/PacketCapture/PacketCaptureSettings";
 import Register from "./Services/Register";
 import NetFlowReceiver from "./Services/NetFlowReceiver";
@@ -183,10 +186,28 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       FetchVMwareWork();
 
       /*
+       * OpenStack clouds this probe collects with the credential saved in OneUptime:
+       * OpenStack monitoring without an agent, and its connection tests.
+       */
+      FetchOpenStackWork();
+
+      /*
+       * What a user would meet at those clouds, from outside: the API checks, and for a cloud that
+       * opted in, a server made, waited for and deleted in a project of its own.
+       */
+      FetchOpenStackChecks();
+
+      /*
        * Databases Data Security scans from inside this network, each with
        * the connection string in the environment variable its store names.
        */
       ScanDataSecurityDatabases();
+
+      /*
+       * The table health of databases Data Observability collects from
+       * inside this network: catalogs only, with the same variables.
+       */
+      CollectDataObservabilityTableHealth();
 
       // Optional SNMP trap receiver (PROBE_SNMP_TRAP_RECEIVER_ENABLED).
       SnmpTrapReceiver.start();

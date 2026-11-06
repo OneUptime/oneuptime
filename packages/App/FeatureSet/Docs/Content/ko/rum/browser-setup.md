@@ -350,7 +350,7 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
 });
 ```
 
-[세션 리플레이](/docs/telemetry/session-replay)를 쓰면 레코더도 처리되지 않은 오류를 수집해 리플레이 타임라인에 표시합니다. 그러면 예외 페이지에 **Watch what the user saw** 카드가 나타나며, 오류 10초 전부터 리플레이를 엽니다. 기본 정책에서는 오류 여부와 관계없이 모든 세션이 녹화되며, 오류는 카드가 어디서 열릴지만 정합니다.
+[세션 리플레이](/docs/telemetry/session-replay)를 쓰면 레코더도 처리되지 않은 오류를 수집해 리플레이 타임라인에 표시합니다. 그러면 예외 페이지에 **사용자가 본 화면 보기** 카드가 나타나며, 오류 10초 전부터 리플레이를 엽니다. 기본 정책에서는 오류 여부와 관계없이 모든 세션이 녹화되며, 오류는 카드가 어디서 열릴지만 정합니다.
 
 ## 로그와 메트릭 추가하기
 

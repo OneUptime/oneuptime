@@ -1,6 +1,6 @@
 # Microsoft Entra ID
 
-Importera inloggningarna och katalogändringarna i [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) till säkerhetshändelserna i OneUptime och, om du vill, aktiviteten i Exchange, SharePoint, OneDrive och Teams från [Microsoft 365-granskningsloggen](https://learn.microsoft.com/en-us/purview/audit-log-activities). Där söker du i dem bredvid dina loggar, spårningar och mätvärden, korrelerar dem med alla andra källor och larmar jouren för de som spelar roll. OneUptime läser dem med en appregistrering som du skapar, och ändrar ingenting i din klientorganisation.
+Importera inloggningarna, katalogändringarna och riskidentifieringarna i [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) till säkerhetshändelserna i OneUptime och, om du vill, inloggningarna som appar gör i bakgrunden och aktiviteten i Exchange, SharePoint, OneDrive och Teams från [Microsoft 365-granskningsloggen](https://learn.microsoft.com/en-us/purview/audit-log-activities). Där söker du i dem bredvid dina loggar, spårningar och mätvärden, korrelerar dem med alla andra källor och larmar jouren för de som spelar roll. OneUptime läser dem med en appregistrering som du skapar, och ändrar ingenting i din klientorganisation.
 
 :::cards
 - [Konfigurera anslutningen](#konfigurera-anslutningen): En appregistrering, dess behörigheter och anslutningens formulär.
@@ -19,15 +19,15 @@ flowchart TB
     list --> event["Var och en sparas<br/>som en OCSF-händelse<br/>av sitt slag"]
 ```
 
-Varje minut avsöker OneUptime varje aktiverad anslutning vars avsökningsintervall har passerat. En avsökning loggar in i Microsoft Entra ID som din appregistrering och läser, i den här ordningen, katalogändringarna ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) och inloggningarna ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)) som har registrerats sedan förra avsökningen, och sedan, när alternativet **Microsoft 365-granskningslogg** är påslaget, granskningsloggens nya innehåll ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)). Varje post sparas som en [OCSF](https://schema.ocsf.io/)-händelse: en inloggning som en händelse av typen Authentication, en tilldelad roll som en händelse av typen User Access Management, ett nätfiskeutlåtande som ett Detection Finding.
+Varje minut avsöker OneUptime varje aktiverad anslutning vars avsökningsintervall har passerat. En avsökning loggar in i Microsoft Entra ID som din appregistrering och läser, i den här ordningen, katalogändringarna ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) och inloggningarna ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)) som har registrerats sedan förra avsökningen, sedan Identity Protections riskidentifieringar ([List riskDetections](https://learn.microsoft.com/en-us/graph/api/riskdetection-list)), sedan, när alternativet **Bakgrunds- och appinloggningar** är påslaget, bakgrunds- och appinloggningarna och, när alternativet **Microsoft 365-granskningslogg** är påslaget, granskningsloggens nya innehåll ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)). Varje post sparas som en [OCSF](https://schema.ocsf.io/)-händelse: en inloggning som en händelse av typen Authentication, en tilldelad roll som en händelse av typen User Access Management, en riskidentifiering eller ett nätfiskeutlåtande som ett Detection Finding.
 
 ## Innan du börjar
 
 - I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member och Security Viewer kan se anslutningar och deras körningshistorik, men inte ändra dem.
-- För inloggningar: Microsoft Entra ID P1 eller P2, som ingår i Microsoft 365 E3, E5 och Business Premium: Microsoft Graph ger inloggningar bara till sådana klientorganisationer. Katalogändringar läses i alla klientorganisationer.
+- För inloggningar och riskidentifieringar: Microsoft Entra ID P1 eller P2, som ingår i Microsoft 365 E3, E5 och Business Premium: Microsoft Graph ger dem bara till sådana klientorganisationer, och P2 ger detaljerna för varje riskidentifiering. Katalogändringar läses i alla klientorganisationer.
 - En Entra-roll som kan registrera program, till exempel Programadministratör, och en Global administratör eller Administratör för privilegierade roller för att ge administratörsmedgivande.
 - För Microsoft 365-granskningsloggen: granskning påslagen för klientorganisationen, vilket den är som standard: i [Microsoft Purview-portalen](https://purview.microsoft.com) får **Audit** inte erbjuda **Start recording user and admin activity**.
-- Utgående HTTPS från OneUptimes app och workers till `login.microsoftonline.com`, `graph.microsoft.com` och `manage.office.com`, eller till `login.microsoftonline.us`, `graph.microsoft.us` och `manage.office365.us` för Azure Government.
+- Utgående HTTPS från OneUptimes app och workers till `login.microsoftonline.com`, `graph.microsoft.com` och `manage.office.com`, med `manage-gcc.office.com` i stället för Microsoft 365 GCC, eller till `login.microsoftonline.us`, `graph.microsoft.us` och `manage.office365.us` för GCC High och `login.microsoftonline.us`, `dod-graph.microsoft.us` och `manage.protection.apps.mil` för DoD.
 
 ## Konfigurera anslutningen
 
@@ -42,7 +42,7 @@ Anslutningen loggar in med [OAuth 2.0-flödet för klientautentiseringsuppgifter
 
 ### Låt den läsa loggarna
 
-1. Gå till **API permissions → Add a permission → Microsoft Graph → Application permissions**, välj `AuditLog.Read.All` och välj **Add permissions**. Microsoft dokumenterar att listan över inloggningar också kan kräva `Directory.Read.All`: lägg till den om inloggningar avvisas med `403` när medgivandet har getts.
+1. Gå till **API permissions → Add a permission → Microsoft Graph → Application permissions**, välj `AuditLog.Read.All` och, för riskidentifieringar, `IdentityRiskEvent.Read.All`, och välj **Add permissions**. Microsoft dokumenterar att listan över inloggningar också kan kräva `Directory.Read.All`: lägg till den om inloggningar avvisas med `403` när medgivandet har getts.
 2. För Microsoft 365-granskningsloggen lägger du till en andra behörighet: **Add a permission → Office 365 Management APIs → Application permissions**, sedan `ActivityFeed.Read`.
 3. Om playbooks ska kunna inaktivera, aktivera och logga ut användare (se [Begränsning](/docs/telemetry/security-cases#begränsning)) lägger du till `User.Read.All`, `User.EnableDisableAccount.All` och `User.RevokeSessions.All` på samma sätt. Microsoft låter bara en app som också har rollen Privileged Authentication Administrator ändra en administratörs konto.
 4. Välj **Grant admin consent for** din klientorganisation och bekräfta. Varje behörighets status måste vara **Granted**: utan medgivande avvisas varje läsning med `403`.
@@ -53,7 +53,7 @@ Gå till **Certificates & secrets → Client secrets → New client secret**, v�
 
 ### Lägg till anslutningen i OneUptime
 
-Öppna **Produkter → Säkerhetshändelser → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Microsoft Entra ID** under **Identitet** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in hemlighetens värde i **Klienthemlighet**. Slå på **Microsoft 365-granskningslogg** i steget **Hämtning** för att läsa den också.
+Öppna **Produkter → Säkerhetshändelser → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Microsoft Entra ID** under **Identitet** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in hemlighetens värde i **Klienthemlighet**. Slå på **Bakgrunds- och appinloggningar** eller **Microsoft 365-granskningslogg** i steget **Hämtning** för att läsa dem också. En klientorganisation utanför det offentliga Azure-molnet väljer sitt **Moln** under **Fler fält** i inställningssteget.
 
 ### Testa den innan du sparar
 
@@ -63,8 +63,9 @@ Klicka på **Testa de här inställningarna** under **Testa innan du sparar**. T
 | Inställning | Var du hittar den |
 | --- | --- |
 | **Katalog-ID (tenant)** | Appens sida **Overview**. Klientorganisationens GUID, eller en verifierad domän som `contoso.onmicrosoft.com`. Med **Microsoft 365-granskningslogg** påslaget GUID:t: Management API:et känner bara igen en klientorganisation på det. |
-| **Program-ID (klient)** | Appens sida **Overview**. GUID:t för den app som har `AuditLog.Read.All`. |
-| **Moln** | **Offentligt Azure-moln**, eller **Azure Government (USA)** för GCC High (`login.microsoftonline.us`, `graph.microsoft.us` och `manage.office365.us`). |
+| **Program-ID (klient)** | Appens sida **Overview**. GUID:t för den app som har `AuditLog.Read.All` och `IdentityRiskEvent.Read.All`. |
+| **Moln** | Under **Fler fält**, **Offentligt Azure-moln** om du inte väljer ett annat: **Offentligt Azure-moln, Microsoft 365 GCC** för GCC, **Azure Government (USA), GCC High** för GCC High, eller **Azure Government (USA), DoD** för DoD. |
+| **Bakgrunds- och appinloggningar** | Valfritt, avstängt som standard. Påslaget läser varje avsökning också inloggningarna som appar gör i bakgrunden åt personer och tjänsthuvudnamnens egna, från Microsoft Graphs betalista över inloggningar, och importerar de som misslyckades. |
 | **Microsoft 365-granskningslogg** | Valfritt, avstängt som standard. Påslaget läser varje avsökning också Microsoft 365-granskningsloggen. Appen behöver `ActivityFeed.Read`. |
 | **Klienthemlighet** | Hemlighetens **Value**. Den krypteras, returneras aldrig av API:et och visas aldrig igen. Ersätt den med **Uppdatera inloggningsuppgifter** på anslutningen. |
 
@@ -80,6 +81,8 @@ Varje händelse har leverantören `Microsoft` och produkten `Microsoft Entra ID`
 | En inloggning som väntar på ett andra steg, till exempel MFA (`50074`, `50076`) eller en uppmaning att byta lösenord | Authentication (`3002`), status `Interrupted` | Informational: ett steg, inte ett fel |
 | En inloggning som misslyckades, med Entras orsak och felkod | Authentication (`3002`), status `Failure` | Low |
 | En inloggning som Identity Protection bedömde som medelhög eller hög risk | Authentication (`3002`) | Medium eller High |
+| En risk som Identity Protection identifierade, till exempel en anonym IP-adress eller en läckt autentiseringsuppgift | Detection Finding (`2004`) | Dess risknivå; Critical för en användare som bekräftats komprometterad |
+| En bakgrunds- eller appinloggning som misslyckades, med **Bakgrunds- och appinloggningar** påslaget | Authentication (`3002`), status `Failure` | Low |
 | En ändrad användare, grupp eller roll, efter dess kategori | Account Change (`3001`), Group Management (`3006`), User Access Management (`3005`), eller Entity Management (`3004`) för resten | Medium för en privilegierad roll, till exempel Global Administrator; Low för en ändring som misslyckades |
 
 Med **Microsoft 365-granskningslogg** påslaget importeras de poster som ett säkerhetsteam agerar på från den, och resten, som en öppnad fil eller ett läst e-postmeddelande, räknas bara:
@@ -96,22 +99,22 @@ Med **Microsoft 365-granskningslogg** påslaget importeras de poster som ett sä
 
 Exchanges eget underhåll, som körs som dess systemkonto, utelämnas om det inte vidarebefordrar e-post. Varje händelse behåller hela posten, utplattad till nycklar med punkter som `status.errorCode` eller `Parameters.ForwardTo`, så att en regel läser vilket fält som helst under Microsofts namn på det. Regelbibliotekets regler för Entra ID läser dem så som de importeras här.
 
-Samma inloggningar och katalogändringar kan i stället nå OneUptime som loggar, exporterade av en diagnostikinställning i Azure och lästa av [Dina loggar](/docs/telemetry/security-events#hitta-säkerhetshändelser-i-dina-loggar). Varje post får samma händelse-ID båda vägarna, men en post som läses båda vägarna sparas två gånger: läs Entra ID en väg.
+Samma inloggningar, katalogändringar och riskidentifieringar kan också nå OneUptime som loggar, exporterade av en diagnostikinställning i Azure och lästa av [Dina loggar](/docs/telemetry/security-events#hitta-säkerhetshändelser-i-dina-loggar). Varje post får samma händelse-ID båda vägarna, och en post som läses båda vägarna sparas en gång, av den väg som läser den först.
 
 ## Så fungerar avsökningen
 
-- **Poster läses efter när Entra ID registrerade dem**, `activityDateTime` för en ändring och `createdDateTime` för en inloggning.
+- **Poster läses efter när Entra ID registrerade dem**, `activityDateTime` för en ändring, `createdDateTime` för en inloggning och `detectedDateTime` för en riskidentifiering.
 - **Den första avsökningen ser 24 timmar bakåt**, så att en ny anslutning direkt visar sina senaste poster.
 - **Varje senare avsökning börjar 30 minuter före den sparade markören.** Microsoft dokumenterar att båda loggarna kommer minuter för sent, så överlappningen läser en försenad post vid nästa avsökning, och dubbletter tas bort efter post-ID inom projektet.
 - **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar.
 - **En klientorganisation utan Microsoft Entra ID P1 eller P2** importerar sina katalogändringar, och varje körnings kontroll **Read sign-ins** varnar för att inloggningarna inte lästes.
 - **En misslyckad körning ändrar ingenting.** Efter ett nätverksfel, eller en felstatus från Graph, förblir markören och fönsterlängden som de var, och nästa avsökning läser samma fönster igen. Det enda undantaget är en begäran som fick tidsgräns: markören stannar, men nästa fönster är hälften så långt, eftersom ett fönster som är för tungt för att besvaras i tid skulle få tidsgräns vid varje försök.
 
-Microsoft 365-granskningsloggen läses efter när Microsoft gjorde varje innehållsblob tillgänglig, en dag i taget, och inte längre bakåt än de 7 dagar Microsoft sparar den. Den första avsökningen prenumererar appen på `Audit.Exchange`, `Audit.SharePoint` och `Audit.General`, och Microsoft gör de första posterna i en ny prenumeration tillgängliga inom 12 timmar. Granskningsloggen stoppar aldrig loggarna från Entra ID: en saknad behörighet är en varning och fönstret går vidare, medan ett fel på Microsofts sida, till exempel `HTTP 503`, gör körningen **Delvis** så att fönstret läses igen.
+Microsoft 365-granskningsloggen läses efter när Microsoft gjorde varje innehållsblob tillgänglig, en dag i taget, och inte längre bakåt än de 7 dagar Microsoft sparar den. Den första avsökningen prenumererar appen på `Audit.Exchange`, `Audit.SharePoint` och `Audit.General`, och Microsoft gör de första posterna i en ny prenumeration tillgängliga inom 12 timmar. Granskningsloggen stoppar aldrig loggarna från Entra ID: en saknad behörighet är en varning och fönstret går vidare, medan ett fel på Microsofts sida, till exempel `HTTP 503`, gör körningen **Delvis** så att fönstret läses igen. Riskidentifieringar och bakgrunds- och appinloggningar beter sig likadant: de stoppar aldrig inloggningarna och katalogändringarna.
 
 ### När ett fönster innehåller mer än en avsökning kan läsa
 
-Varje logg har en egen budget: 10 sidor med 500 katalogändringar, 20 sidor med 500 inloggningar och, för Microsoft 365-granskningsloggen, 120 begäranden och 10 000 poster. En avsökning stoppar efter 4 minuter. När en budget stoppar en logg före slutet av dess fönster är körningen **Delvis**, och dess varning namnger loggen och budgeten. Microsoft Graph listar de nyaste posterna först, så OneUptime kortar fönstret i stället för att flytta markören förbi poster som den aldrig nådde:
+Varje logg har en egen budget: 10 sidor med 500 katalogändringar, 20 sidor med 500 inloggningar, 4 sidor med 500 riskidentifieringar, 10 sidor med 500 av varje typ av bakgrundsinloggning och, för Microsoft 365-granskningsloggen, 120 begäranden och 10 000 poster. En avsökning stoppar efter 4 minuter. När en budget stoppar en logg före slutet av dess fönster är körningen **Delvis**, och dess varning namnger loggen och budgeten. Microsoft Graph listar de nyaste posterna först, så OneUptime kortar fönstret i stället för att flytta markören förbi poster som den aldrig nådde:
 
 1. **Smalna av.** Nästa avsökning läser ett fönster som är hälften så långt, från samma startpunkt, och fortsätter att halvera tills ett fönster läses helt, ner till en minut. Körningens varning säger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Poster som redan har importerats från det längre fönstret hoppas över som dubbletter.
 2. **Växa igen.** När ett fönster har lästs helt flyttas markören till dess slut, och nästa fönster är dubbelt så långt igen, upp till 24 timmar.
@@ -138,6 +141,8 @@ Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar 
 | **Authenticate with Microsoft Entra** | Entra ID utfärdar en token för Microsoft Graph till appen, i det moln du valde. |
 | **Read sign-ins** | Inloggningar från de senaste 24 timmarna kan läsas. En varning, inte ett fel, i en klientorganisation utan P1 eller P2. |
 | **Read directory changes** | Katalogändringar från de senaste 24 timmarna kan läsas. |
+| **Read risk detections** | Identity Protections riskidentifieringar från de senaste 24 timmarna kan läsas. En varning, inte ett fel, utan behörigheten eller licensen. |
+| **Read background and app sign-ins** | Bara med alternativet påslaget: Microsoft Graphs betalista över inloggningar svarar för båda typerna. |
 | **Read the Microsoft 365 audit log** | Bara med alternativet påslaget: Management API:et svarar, och vilka innehållstyper appen prenumererar på. |
 | **Records available to import** | Hur många inloggningar och katalogändringar de senaste 24 timmarna innehåller, högst 500 av varje, så `500+` betyder fler. Inga är en varning. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen sida: en process tar jobben från Worker-kön, avsökningsjobbet körs varje minut och lagringen för säkerhetshändelser svarar. |
@@ -157,6 +162,11 @@ Anslutningens **Senaste fel** sparar hela felmeddelandet, med autentiseringsuppg
 :::details Senaste fel säger `sign-ins request failed (HTTP 403)` eller `audit logs request failed (HTTP 403)`
 - Felkod `Authorization_RequestDenied`: appen saknar `AuditLog.Read.All`, eller så har medgivandet inte getts. Ge administratörsmedgivande, vänta några minuter och testa igen. För inloggningar ger du också `Directory.Read.All`.
 - Felkod `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: klientorganisationen har inte Microsoft Entra ID P1 eller P2. Katalogändringar importeras fortfarande.
+:::
+
+:::details Riskidentifieringar läses inte
+- `risk detections request failed (HTTP 403)`: appen saknar `IdentityRiskEvent.Read.All`, eller så har medgivandet inte getts. Inloggningar och katalogändringar importeras fortfarande.
+- Felkod `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: klientorganisationen har inte Microsoft Entra ID P1 eller P2.
 :::
 
 :::details Microsoft 365-granskningsloggen läses inte

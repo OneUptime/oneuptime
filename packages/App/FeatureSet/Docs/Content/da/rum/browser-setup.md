@@ -350,7 +350,7 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
 });
 ```
 
-Med [Sessionsafspilning](/docs/telemetry/session-replay) fanger optageren også ufangede fejl og markerer dem på afspilningens tidslinje. Undtagelsens side viser så et kort **Watch what the user saw**, som åbner afspilningen ti sekunder før fejlen. Med standardpolitikken optages hver session, uanset om noget fejler eller ej; fejlen afgør kun, hvor kortet åbner.
+Med [Sessionsafspilning](/docs/telemetry/session-replay) fanger optageren også ufangede fejl og markerer dem på afspilningens tidslinje. Undtagelsens side viser så et kort **Se, hvad brugeren så**, som åbner afspilningen ti sekunder før fejlen. Med standardpolitikken optages hver session, uanset om noget fejler eller ej; fejlen afgør kun, hvor kortet åbner.
 
 ## Tilføj logs og metrikker
 

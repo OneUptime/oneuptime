@@ -270,7 +270,7 @@ const POLICY_MENU_SOURCE: string = POLICY_MENU_FILE.slice(
   POLICY_MENU_FILE.indexOf("<SideMenu>"),
 );
 
-const CONNECT_ENTRY_TITLE: string = "Connect Slack or Teams";
+const CONNECT_ENTRY_TITLE: string = "Connect a workspace";
 
 // The On-Call Duty menu, with the sections it adds from elsewhere.
 function onCallDutyMenu(): Array<MenuSection> {
@@ -1836,6 +1836,122 @@ describe("user overrides", () => {
     );
     expect(english(USER_OVERRIDES)).toContain(
       "On OneUptime Cloud, user overrides need the **Growth** plan.",
+    );
+  });
+
+  /*
+   * Issue #5617: an override on a policy follows the policy's scope, and a
+   * global one - every policy - takes the override permission over the
+   * whole project. The service refuses it, and the global page locks Add
+   * and Delete, with the words the page says.
+   */
+  it("says a global override takes the override permission over the whole project, as the service and the page hold it", () => {
+    const service: string = readCommonSource(
+      "Server/Services/OnCallDutyPolicyUserOverrideService.ts",
+    );
+    const access: string = readCommonSource(
+      "Types/OnCallDutyPolicy/GlobalUserOverrideAccess.ts",
+    );
+
+    expect(service).toContain(
+      'this.checkGlobalOverrideAccess(createBy.props, "create");',
+    );
+    expect(service).toContain(
+      'this.checkGlobalOverrideAccess(deleteBy.props, "delete");',
+    );
+    expect(access).toContain("projectWideOnly: true,");
+    expect(USER_OVERRIDE_TABLE).toContain(
+      "createDisabledReason={addLock || undefined}",
+    );
+    expect(USER_OVERRIDE_TABLE).toContain("getDeleteDisabledReason={");
+
+    const page: string = english(USER_OVERRIDES);
+
+    expect(page).toContain(
+      "An override on a policy follows the policy's scope.",
+    );
+    expect(page).toContain(
+      "A global override applies to every policy, another team's included, so adding or deleting one takes the override permission over the whole project.",
+    );
+    expect(page).toContain(
+      "**Add User Override** and **Delete** on **On-Call Duty → Advanced → User Overrides** are locked and say why",
+    );
+    expect(page).toContain(
+      "an override with no `onCallDutyPolicyId` is refused for a permission limited to labels or to owned policies.",
+    );
+  });
+
+  /*
+   * The shortcuts that add a global override - Skip until... on a layer,
+   * Get cover on an upcoming shift and the mobile app's cover sheet - ask
+   * the server, for a team whose role covers only some policies, which
+   * policies it may cover (POST .../add-access, getAddAccess running a
+   * create's checks), offer those with one override on each, and lock by
+   * the same rule only where it allows none.
+   */
+  it("says Skip until…, Get cover and the mobile app's cover offer the policies a narrower role may cover, as their code does", () => {
+    expect(
+      readCommonSource("Server/API/OnCallDutyPolicyUserOverrideAPI.ts"),
+    ).toContain("USER_OVERRIDE_ADD_ACCESS_ROUTE");
+    expect(
+      readCommonSource("Types/OnCallDutyPolicy/UserOverrideAddAccess.ts"),
+    ).toContain(
+      'export const USER_OVERRIDE_ADD_ACCESS_ROUTE: string = "/add-access";',
+    );
+    expect(
+      readCommonSource(
+        "Server/Services/OnCallDutyPolicyUserOverrideService.ts",
+      ),
+    ).toContain("await this.checkCallerMayCreate({");
+
+    const policies: string = readDashboardSource(
+      "Components/OnCallPolicy/UserOverrides/UserOverridePolicies.ts",
+    );
+
+    expect(policies).toContain(
+      '"/on-call-duty-policy-user-override/add-access"',
+    );
+    expect(policies).toContain("export const addUserOverrideOnPolicies");
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/UserOverrides/GlobalUserOverrideLock.ts",
+      ),
+    ).toContain("GlobalUserOverrideShortcutKind.SomePolicies");
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/OnCallScheduleLayer/Layers.tsx",
+      ),
+    ).toContain(
+      "policies={isSkipOnSomePolicies ? skipPolicies || [] : undefined}",
+    );
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/OnCallScheduleLayer/SkipLayerUserModal.tsx",
+      ),
+    ).toContain('title: "On-call policies",');
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/CalendarFeed/UpcomingShiftRow.tsx",
+      ),
+    ).toContain("coverPolicies = getPoliciesToOffer({");
+
+    const screen: string = readPackageFile(
+      "MobileApp/src/screens/CreateOnCallOverrideScreen.tsx",
+    );
+
+    expect(screen).toContain("useCoverPolicies({");
+    expect(screen).toContain("onCallDutyPolicyId: policy.policyId,");
+    expect(readPackageFile("MobileApp/src/api/onCallOverrides.ts")).toContain(
+      '"/api/on-call-duty-policy-user-override/add-access"',
+    );
+
+    const page: string = english(USER_OVERRIDES);
+
+    expect(page).toContain(
+      "**Skip until…** on a schedule's layers and **Get cover** on your upcoming shifts, which add global overrides, offer instead the policies you may cover, one override on each, and so does the mobile app's cover; where you may cover none of them, they are locked and say why.",
+    );
+    expect(page).toContain(
+      "**Skip until…**, **Get cover** and the mobile app then offer only the policies you may cover, and are locked where you may cover none of them.",
     );
   });
 

@@ -92,6 +92,7 @@ import Permission from "Common/Types/Permission";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
 import {
   ConnectorField,
+  ENTRA_BACKGROUND_SIGN_INS_KEY,
   SecurityEventConnectorCatalog,
   SecurityEventConnectorDefinition,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
@@ -254,7 +255,10 @@ const OTHER_CONNECTION_SETTINGS: Partial<
     secrets: { apiToken: "00a-test-okta-api-token" },
     alertingOnly: false,
   },
-  // With its option on, so the test's checklist has the audit log's check.
+  /*
+   * With its options on, so the test's checklist has the audit log's check
+   * and the background and app sign-ins' check.
+   */
   [SecurityEventConnectorProvider.MicrosoftEntraId]: {
     provider: SecurityEventConnectorProvider.MicrosoftEntraId,
     config: {
@@ -262,6 +266,7 @@ const OTHER_CONNECTION_SETTINGS: Partial<
       clientId: CLIENT_ID,
       cloud: "public",
       includeMicrosoft365Audit: true,
+      [ENTRA_BACKGROUND_SIGN_INS_KEY]: true,
     },
     secrets: { clientSecret: SECRET },
     alertingOnly: false,

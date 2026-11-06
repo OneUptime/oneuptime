@@ -55,7 +55,7 @@ L'app mostra notifiche tramite il suo browser, una volta che hai registrato il b
 
 :::steps
 ### Aprire i tuoi dispositivi push
-Nell'app, apri **Impostazioni utente → Metodi di notifica** e la scheda **Push Notifications**.
+Nell'app, apri **Impostazioni utente → Metodi di notifica** e la scheda **Notifiche push**.
 
 ### Registrare questo browser
 Fai clic su **Registra dispositivo**, mantieni il valore proposto in **Nome del dispositivo**, ad esempio `Edge on Windows`, o modificalo, e fai di nuovo clic su **Registra dispositivo**. Quando il browser chiede se OneUptime può mostrare notifiche, scegli **Consenti**.
@@ -83,7 +83,7 @@ Nella finestra dell'app, apri il menu **⋮**, scegli la voce che disinstalla l'
 
 Windows elenca l'app anche in **Impostazioni → App → App installate**, dove **Disinstalla** la rimuove a sua volta.
 
-Disinstallare l'app non annulla la registrazione del suo browser: continua a ricevere notifiche. Per fermarle, elimina il browser in **Impostazioni utente → Metodi di notifica**, nella scheda **Push Notifications**, con **Elimina**.
+Disinstallare l'app non annulla la registrazione del suo browser: continua a ricevere notifiche. Per fermarle, elimina il browser in **Impostazioni utente → Metodi di notifica**, nella scheda **Notifiche push**, con **Elimina**.
 
 ## Risoluzione dei problemi
 
@@ -92,7 +92,7 @@ Apri una pagina della dashboard dopo l'accesso, non la pagina di accesso, e cont
 :::
 
 :::details Non compare nessuna notifica
-- In **Impostazioni utente → Metodi di notifica**, scheda **Push Notifications**, controlla che questo browser sia elencato, e inviagli una **Notifica di test**.
+- In **Impostazioni utente → Metodi di notifica**, scheda **Notifiche push**, controlla che questo browser sia elencato, e inviagli una **Notifica di test**.
 - In Windows, apri **Impostazioni → Sistema → Notifiche**: le notifiche devono essere attive, anche per il browser, e Non disturbare disattivato. Windows 10 chiama la pagina «Notifiche e azioni».
 - Se il browser blocca le notifiche per OneUptime, fai clic sull'icona a sinistra della barra degli indirizzi, consenti le notifiche per il sito e registra di nuovo il browser.
 - Su un OneUptime self-hosted, la finestra di dialogo **Registra dispositivo** indica quando il server non ha le chiavi VAPID.

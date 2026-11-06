@@ -108,7 +108,7 @@ Für eine engere Berechtigung geben Sie dem Benutzer `SELECT` nur auf die Tabell
 :::steps
 ### Einen neuen Monitor beginnen
 
-Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **SQL-Abfrage** unter **Database Monitoring**, oder tippen Sie `query` in das Suchfeld. Geben Sie einen **Name** ein und klicken Sie dann auf **Weiter**.
+Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **SQL-Abfrage** unter **Datenbanküberwachung**, oder tippen Sie `query` in das Suchfeld. Geben Sie einen **Name** ein und klicken Sie dann auf **Weiter**.
 
 ### Die Verbindungsdaten eingeben
 

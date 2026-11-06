@@ -35,6 +35,7 @@ Você não precisa enviar nada para que estas alterações sejam registradas. O 
 | Um runbook | Um runbook que o OneUptime executou é concluído, falha ou é cancelado depois de ter começado | `runbook` |
 | Uma alteração na nuvem | O log de atividades de uma conta de nuvem conectada registra uma alteração: AWS CloudTrail, o log de atividades do Azure ou o log de auditoria Admin Activity do Google Cloud | `cloud` |
 | Um evento do provedor | O provedor de nuvem publica um evento de integridade sobre a conta: AWS Health, Azure Service Health ou Resource Health, ou Google Cloud Service Health | `cloud-health` |
+| Uma alteração no OpenStack | As notificações da própria nuvem OpenStack dizem o que aconteceu com uma das partes dela, ou a leitura do Nova feita por uma sonda: veja [Eventos de ciclo de vida](/docs/telemetry/openstack#eventos-de-ciclo-de-vida) | `openstack` |
 
 - **A primeira versão que um serviço reporta é a linha de base dele, não um deploy.** Um serviço que roda há meses não recebe um deploy no momento em que o OneUptime começa a receber a telemetria dele.
 - **Um rollback para uma versão vista nos últimos 30 dias não é registrado,** porque essa versão não é nova. Um rollback que a OneUptime AI executa é registrado como uma correção.
@@ -50,7 +51,7 @@ Um rollout precisa do [agente Kubernetes](/docs/telemetry/kubernetes-agent), que
 
 Uma implantação de app precisa de um app rodando numa [plataforma de aplicativos gerenciada](/docs/telemetry/cloud-environments#apps-e-implantações). Ela é registrada no ambiente do app e desenhada nos gráficos do ambiente e nos do próprio app, e lá um rollback para uma revisão que o app executou antes também é registrado.
 
-Uma alteração na nuvem ou um evento do provedor precisa de uma [conta de nuvem conectada](/docs/telemetry/cloud-accounts). Cada um fica vinculado ao recurso de nuvem que ele nomeia, quando o OneUptime lista esse recurso, e aparece nos gráficos do recurso. O tipo vem da operação: `deployment`, `scaling` ou `rollback` quando o nome da operação diz isso, `config-change` nos outros casos, e `provider-event` para um evento de integridade. Gráficos que não estão filtrados para nenhum recurso deixam de fora o log de atividades de uma conta de nuvem, para que uma conta movimentada não esconda os seus deploys; os eventos de integridade do provedor continuam neles.
+Uma alteração na nuvem ou um evento do provedor precisa de uma [conta de nuvem conectada](/docs/telemetry/cloud-accounts). Cada um fica vinculado ao recurso de nuvem que ele nomeia, quando o OneUptime lista esse recurso, e aparece nos gráficos do recurso. O tipo vem da operação: `deployment`, `scaling` ou `rollback` quando o nome da operação diz isso, `config-change` nos outros casos, e `provider-event` para um evento de integridade. Gráficos que não estão filtrados para nenhum recurso deixam de fora o log de atividades de uma conta de nuvem e as alterações de uma nuvem OpenStack, para que uma conta movimentada não esconda os seus deploys; os eventos de integridade do provedor continuam neles.
 
 ## Registrar um deploy a partir de um pipeline
 
@@ -147,7 +148,7 @@ Os campos de nível superior são armazenados como atributos com os nomes do Ope
 
 Os atributos cujos nomes começam com `oneuptime.` são do próprio OneUptime e são descartados do que um pipeline envia. Cada alteração que um pipeline registra diz isso em `oneuptime.change.source`, cujo valor é `api`.
 
-Uma alteração lida de uma conta de nuvem nomeia a conta e o recurso com os nomes do OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` e `cloud.resource_id`, e guarda a operação em `oneuptime.cloud.operation`, quem a executou em `oneuptime.cloud.actor`, se ela falhou em `oneuptime.change.status` e a conta de nuvem em `oneuptime.cloud_account.id`.
+Uma alteração lida de uma conta de nuvem nomeia a conta e o recurso com os nomes do OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` e `cloud.resource_id`, e guarda a operação em `oneuptime.cloud.operation`, quem a executou em `oneuptime.cloud.actor`, se ela falhou em `oneuptime.change.status`, o nome com que o OneUptime conhece o recurso em `oneuptime.cloud.resource_name` e a conta de nuvem em `oneuptime.cloud_account.id`. O título é guardado em inglês, como a API e o OneUptime AI o leem, e cada página o escreve a partir destes atributos no idioma de quem a lê. Uma alteração que o OneUptime AI fez por meio de um agente de IA de nuvem diz isso em `oneuptime.change.made_by`, que é `oneuptime-ai`, e indica o job do agente em `oneuptime.runner_job.id`, a correção dela em `oneuptime.auto_remediation_suggestion.id`, a execução de IA que a planejou em `oneuptime.ai_run.id`, se foi a correção ou a reversão dela em `oneuptime.ai.step` (`fix` ou `rollback`), e o incidente ou alerta que ela corrigiu em `oneuptime.incident.id` ou `oneuptime.alert.id`.
 
 ### Limites
 

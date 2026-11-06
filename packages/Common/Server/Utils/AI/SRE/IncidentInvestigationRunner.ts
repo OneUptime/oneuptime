@@ -70,6 +70,7 @@ import WorkspaceNotificationText from "../../Workspace/WorkspaceNotificationText
 import LinkedInfrastructureContext, {
   LinkedInfrastructure,
 } from "./LinkedInfrastructureContext";
+import InvestigationImpactContext from "./InvestigationImpactContext";
 import RecentChangesContext, { RecentChanges } from "./RecentChangesContext";
 import IncidentFollowUpCheck, {
   FollowUpCheckContext,
@@ -619,6 +620,24 @@ export default class AIIncidentInvestigationRunner {
       } catch (error) {
         logger.error(
           `AI: could not read the linked infrastructure of incident ${incidentId.toString()}; investigating it without it: ${error}`,
+        );
+      }
+
+      /*
+       * What the incident's users rely on, for the report's Impact section:
+       * the SLOs linked to it or counting its monitors, as their evaluation
+       * last measured them (InvestigationImpactContext). Enrichment only.
+       */
+      try {
+        contextSummary += InvestigationImpactContext.buildContextSection(
+          await InvestigationImpactContext.readForIncident({
+            projectId,
+            incidentId,
+          }),
+        );
+      } catch (error) {
+        logger.error(
+          `AI: could not read the SLOs that count incident ${incidentId.toString()}; investigating it without them: ${error}`,
         );
       }
 

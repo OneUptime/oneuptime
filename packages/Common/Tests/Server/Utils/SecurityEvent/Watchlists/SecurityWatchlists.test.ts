@@ -1,12 +1,26 @@
 import DetectionRule from "../../../../../Models/DatabaseModels/DetectionRule";
+import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import SecurityHunt from "../../../../../Models/DatabaseModels/SecurityHunt";
 import SecurityWatchlist from "../../../../../Models/DatabaseModels/SecurityWatchlist";
 import SecurityWatchlistItem from "../../../../../Models/DatabaseModels/SecurityWatchlistItem";
 import DetectionRuleService from "../../../../../Server/Services/DetectionRuleService";
+import MonitorService from "../../../../../Server/Services/MonitorService";
+import SecurityHuntService from "../../../../../Server/Services/SecurityHuntService";
 import SecurityWatchlistItemService from "../../../../../Server/Services/SecurityWatchlistItemService";
 import SecurityWatchlistService from "../../../../../Server/Services/SecurityWatchlistService";
 import SecurityWatchlists, {
+  SecurityWatchlistMissingException,
   SecurityWatchlistReader,
 } from "../../../../../Server/Utils/SecurityEvent/Watchlists/SecurityWatchlists";
+import MonitorStep from "../../../../../Types/Monitor/MonitorStep";
+import { MonitorStepSecurityEventsMonitorUtil } from "../../../../../Types/Monitor/MonitorStepSecurityEventsMonitor";
+import MonitorSteps from "../../../../../Types/Monitor/MonitorSteps";
+import MonitorType from "../../../../../Types/Monitor/MonitorType";
+import {
+  WatchlistReader,
+  WatchlistReaderKind,
+} from "../../../../../Types/SecurityEvent/SecurityWatchlistFilter";
+import { FindOperator } from "typeorm";
 import Includes from "../../../../../Types/BaseDatabase/Includes";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -16,6 +30,7 @@ import {
   SecurityWatchlistSource,
   SigmaWatchlist,
   SigmaWatchlists,
+  getMissingSecurityWatchlistsMessage,
 } from "../../../../../Types/SecurityEvent/SecurityWatchlist";
 import { DetectionRuleDefinition } from "../../../../../Types/SecurityEvent/SigmaCorrelation";
 import SigmaRule from "../../../../../Types/SecurityEvent/SigmaRule";
@@ -260,6 +275,257 @@ describe("SecurityWatchlists.load", () => {
     await expect(
       SecurityWatchlists.load({ projectId: PROJECT_ID, names: ["vip_users"] }),
     ).rejects.toThrow("database is down");
+  });
+
+  test("a value whose moment to leave has come is not read: the values still to leave, and those that stay", async () => {
+    const now: Date = new Date("2026-11-03T12:00:00.000Z");
+    stubLists([VIP_ROW]);
+    const items: Spy = stubItems([itemRow(VIP_ID, "alice")]);
+
+    await SecurityWatchlists.load({
+      projectId: PROJECT_ID,
+      names: ["vip_users"],
+      now,
+    });
+
+    const operator: FindOperator<unknown> = (
+      items.mock.calls[0]![0] as { query: JSONObject }
+    ).query["expiresAt"] as unknown as FindOperator<unknown>;
+
+    expect(operator.type).toBe("raw");
+    expect(operator.getSql!("expiresAt")).toMatch(
+      /^\(expiresAt > :\w+ or expiresAt IS NULL\)$/,
+    );
+    expect(Object.values(operator.objectLiteralParameters!)).toEqual([now]);
+  });
+
+  test("a list read from an address is its own rows, as a list kept by hand", async () => {
+    const urlRow: SecurityWatchlist = watchlistRow({
+      id: VIP_ID,
+      name: "hr_vips",
+      entityType: SecurityEntityType.User,
+      source: SecurityWatchlistSource.Url,
+    });
+    stubLists([urlRow]);
+    const items: Spy = stubItems([itemRow(VIP_ID, "Alice")]);
+
+    const loaded: Map<string, SigmaWatchlist> = await SecurityWatchlists.load({
+      projectId: PROJECT_ID,
+      names: ["hr_vips"],
+    });
+
+    expect(items).toHaveBeenCalledTimes(1);
+    expect(loaded.get("hr_vips")).toEqual({
+      name: "hr_vips",
+      entityType: SecurityEntityType.User,
+      exactValues: ["alice"],
+      patterns: [],
+      ranges: [],
+    });
+  });
+});
+
+describe("SecurityWatchlists.assertProjectHas: what a monitor's and a hunt's save ask", () => {
+  test("no name asks nothing", async () => {
+    const lists: Spy = stubLists([]);
+
+    await SecurityWatchlists.assertProjectHas({
+      projectId: PROJECT_ID,
+      names: [],
+    });
+
+    expect(lists).not.toHaveBeenCalled();
+  });
+
+  test("names the project has, whatever the case, pass: only the names are read, as root", async () => {
+    const lists: Spy = stubLists([VIP_ROW, ADMINS_ROW]);
+
+    await expect(
+      SecurityWatchlists.assertProjectHas({
+        projectId: PROJECT_ID,
+        names: ["vip_users", "ADMIN_ADDRESSES", "vip_users"],
+      }),
+    ).resolves.toBeUndefined();
+
+    const args: { query: JSONObject; props: JSONObject; select: JSONObject } =
+      lists.mock.calls[0]![0] as {
+        query: JSONObject;
+        props: JSONObject;
+        select: JSONObject;
+      };
+
+    expect(args.query["projectId"]).toBe(PROJECT_ID);
+    expect(args.props).toEqual({ isRoot: true });
+    expect(args.select).toEqual({ _id: true, name: true });
+  });
+
+  test("a name the project has no list of is refused in a rule's words, each named once", async () => {
+    stubLists([VIP_ROW]);
+
+    const refusal: unknown = await SecurityWatchlists.assertProjectHas({
+      projectId: PROJECT_ID,
+      names: ["vip_users", "board_members", "BOARD_MEMBERS", "leavers"],
+    }).catch((error: unknown) => {
+      return error;
+    });
+
+    expect(refusal).toBeInstanceOf(SecurityWatchlistMissingException);
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect((refusal as SecurityWatchlistMissingException).names).toEqual([
+      "board_members",
+      "leavers",
+    ]);
+    expect((refusal as Error).message).toBe(
+      getMissingSecurityWatchlistsMessage(["board_members", "leavers"]),
+    );
+  });
+});
+
+describe("SecurityWatchlists.findReaders: everything that reads each list", () => {
+  function securityMonitor(
+    id: string,
+    name: string,
+    lists: Array<string>,
+  ): Monitor {
+    const monitor: Monitor = new Monitor();
+    monitor._id = id;
+    monitor.name = name;
+
+    const step: MonitorStep = new MonitorStep();
+    step.setSecurityEventsMonitor({
+      ...MonitorStepSecurityEventsMonitorUtil.getDefault(),
+      watchlistFilters: lists.map((list: string) => {
+        return { field: "principalUser", watchlist: list };
+      }),
+    });
+
+    const steps: MonitorSteps = new MonitorSteps();
+    steps.setMonitorStepsInstanceArray([step]);
+    monitor.monitorSteps = steps;
+    return monitor;
+  }
+
+  function hunt(id: string, name: string, searchQuery: string): SecurityHunt {
+    const item: SecurityHunt = new SecurityHunt();
+    item._id = id;
+    item.name = name;
+    item.searchQuery = searchQuery;
+    return item;
+  }
+
+  test("rules, Security Events monitors and hunts, by the name key of each list they read", async () => {
+    const rule: DetectionRule = new DetectionRule();
+    rule._id = "cccccccc-cccc-4ccc-8ccc-ccccccccccc1";
+    rule.name = "VIP sign-in";
+    rule.sigmaRuleYaml = `title: VIP sign-in
+detection:
+  selection:
+    principalUser|expand: '%vip_users%'
+  condition: selection
+`;
+
+    getJestSpyOn(DetectionRuleService, "findAllBy").mockResolvedValue([
+      rule,
+    ] as never);
+    const monitors: Spy = getJestSpyOn(
+      MonitorService,
+      "findAllBy",
+    ).mockResolvedValue([
+      securityMonitor("dddddddd-dddd-4ddd-8ddd-ddddddddddd1", "VIP failures", [
+        "VIP_USERS",
+        "admin_addresses",
+        "vip_users",
+      ]),
+    ] as never);
+    const hunts: Spy = getJestSpyOn(
+      SecurityHuntService,
+      "findAllBy",
+    ).mockResolvedValue([
+      hunt(
+        "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1",
+        "Weekly admin review",
+        "-ip:%admin_addresses% severity:High",
+      ),
+      hunt(
+        "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2",
+        "Failed logons",
+        "failed logon",
+      ),
+    ] as never);
+
+    const readers: Map<
+      string,
+      Array<WatchlistReader>
+    > = await SecurityWatchlists.findReaders(PROJECT_ID);
+
+    expect(readers.get("vip_users")).toEqual([
+      {
+        kind: WatchlistReaderKind.DetectionRule,
+        id: rule._id,
+        name: "VIP sign-in",
+      },
+      {
+        kind: WatchlistReaderKind.Monitor,
+        id: "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
+        name: "VIP failures",
+      },
+    ]);
+    expect(readers.get("admin_addresses")).toEqual([
+      {
+        kind: WatchlistReaderKind.Monitor,
+        id: "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
+        name: "VIP failures",
+      },
+      {
+        kind: WatchlistReaderKind.Hunt,
+        id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1",
+        name: "Weekly admin review",
+      },
+    ]);
+    expect(Array.from(readers.keys()).sort()).toEqual([
+      "admin_addresses",
+      "vip_users",
+    ]);
+
+    // Only Security Events monitors read lists; every read is the server's own.
+    const monitorArgs: { query: JSONObject; props: JSONObject } = monitors.mock
+      .calls[0]![0] as { query: JSONObject; props: JSONObject };
+
+    expect(monitorArgs.query).toEqual({
+      projectId: PROJECT_ID,
+      monitorType: MonitorType.SecurityEvents,
+    });
+    expect(monitorArgs.props).toEqual({ isRoot: true });
+
+    const huntArgs: {
+      query: JSONObject;
+      props: JSONObject;
+      select: JSONObject;
+    } = hunts.mock.calls[0]![0] as {
+      query: JSONObject;
+      props: JSONObject;
+      select: JSONObject;
+    };
+
+    expect(huntArgs.query).toEqual({ projectId: PROJECT_ID });
+    expect(huntArgs.props).toEqual({ isRoot: true });
+    expect(huntArgs.select).toEqual({
+      _id: true,
+      name: true,
+      searchQuery: true,
+    });
+  });
+
+  test("a project where nothing reads a list has no readers", async () => {
+    getJestSpyOn(DetectionRuleService, "findAllBy").mockResolvedValue(
+      [] as never,
+    );
+    getJestSpyOn(MonitorService, "findAllBy").mockResolvedValue([] as never);
+    getJestSpyOn(SecurityHuntService, "findAllBy").mockResolvedValue(
+      [] as never,
+    );
+
+    expect((await SecurityWatchlists.findReaders(PROJECT_ID)).size).toBe(0);
   });
 });
 

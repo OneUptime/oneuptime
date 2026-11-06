@@ -28,6 +28,15 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import {
+  AI_ACTION_PLURAL_TITLES,
+  AI_ACTION_TERMS,
+  AI_ACTION_TITLES,
+  AIActionSentence,
+  aiActionPluralSentence,
+  aiActionSentence,
+  aiActionTerm,
+} from "../../../../Types/AI/AIActionWords";
 import { resolveTargetRepository } from "./CodeTools";
 import PromptText from "../../../../Utils/AI/PromptText";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
@@ -385,12 +394,16 @@ export const CommitCodeToBranchTool: ObservabilityTool = {
   get requiredPermissions(): Array<Permission> {
     return resolveUpdatePermissions();
   },
-  buildActionTitle: (args: JSONObject): string => {
-    const branch: string = ToolArgs.getString(args, "branchName") || "a branch";
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
     const count: number = Array.isArray(args["changes"])
       ? args["changes"].length
       : 0;
-    return `Commit ${count} file${count === 1 ? "" : "s"} to ${branch}`;
+
+    return aiActionPluralSentence(AI_ACTION_PLURAL_TITLES.commitFiles, count, {
+      branch:
+        ToolArgs.getString(args, "branchName") ||
+        aiActionTerm(AI_ACTION_TERMS.aBranch),
+    });
   },
   execute: async (
     args: JSONObject,
@@ -478,8 +491,12 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
   get requiredPermissions(): Array<Permission> {
     return resolveUpdatePermissions();
   },
-  buildActionTitle: (args: JSONObject): string => {
-    return `Open pull request: ${ToolArgs.getString(args, "title") || "Untitled"}`;
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return aiActionSentence(AI_ACTION_TITLES.openPullRequest, {
+      title:
+        ToolArgs.getString(args, "title") ||
+        aiActionTerm(AI_ACTION_TERMS.untitled),
+    });
   },
   execute: async (
     args: JSONObject,

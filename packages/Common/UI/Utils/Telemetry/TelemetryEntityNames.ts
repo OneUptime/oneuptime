@@ -3,6 +3,10 @@ import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
+import DataStore from "../../../Models/DatabaseModels/DataStore";
+import DataPipeline from "../../../Models/DatabaseModels/DataPipeline";
+import DataProduct from "../../../Models/DatabaseModels/DataProduct";
+import DataReconciliation from "../../../Models/DatabaseModels/DataReconciliation";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -14,6 +18,7 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
@@ -105,6 +110,11 @@ export const TELEMETRY_ENTITY_TYPES: Record<
     modelType: ProxmoxCluster,
     nameFields: ["name"],
   },
+  [ServiceType.OpenStackCloud]: {
+    label: "OpenStack Cloud",
+    modelType: OpenStackCloud,
+    nameFields: ["name"],
+  },
   [ServiceType.CephCluster]: {
     label: "Ceph Cluster",
     modelType: CephCluster,
@@ -147,6 +157,30 @@ export const TELEMETRY_ENTITY_TYPES: Record<
   [ServiceType.DatabaseServer]: {
     label: "Database",
     modelType: DatabaseServer,
+    nameFields: ["name"],
+  },
+  // Data Observability's table health rows: the data store whose tables they describe.
+  [ServiceType.DataStore]: {
+    label: "Data Store",
+    modelType: DataStore,
+    nameFields: ["name"],
+  },
+  // Data Observability's pipeline run rows: the pipeline whose runs they describe.
+  [ServiceType.DataPipeline]: {
+    label: "Data Pipeline",
+    modelType: DataPipeline,
+    nameFields: ["jobName"],
+  },
+  // Data Observability's data product rows: the product whose freshness they describe.
+  [ServiceType.DataProduct]: {
+    label: "Data Product",
+    modelType: DataProduct,
+    nameFields: ["name"],
+  },
+  // Data Observability's reconciliation rows: the reconciliation whose comparisons they describe.
+  [ServiceType.DataReconciliation]: {
+    label: "Data Reconciliation",
+    modelType: DataReconciliation,
     nameFields: ["name"],
   },
   [ServiceType.NetworkDevice]: {
@@ -203,8 +237,13 @@ export const TELEMETRY_ENTITY_RESOLUTION_ORDER: Array<ServiceType> = [
   ServiceType.ServerlessFunction,
   ServiceType.CloudResource,
   ServiceType.DatabaseServer,
+  ServiceType.DataStore,
+  ServiceType.DataPipeline,
+  ServiceType.DataProduct,
+  ServiceType.DataReconciliation,
   ServiceType.IoTDevice,
   ServiceType.ProxmoxCluster,
+  ServiceType.OpenStackCloud,
   ServiceType.CephCluster,
   ServiceType.StorageArray,
   ServiceType.DockerSwarmCluster,

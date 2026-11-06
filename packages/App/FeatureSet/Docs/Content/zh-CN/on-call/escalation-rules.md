@@ -221,12 +221,14 @@ flowchart TB
 | --- | --- |
 | 邮件 | 点击 **Escalate** 按钮，然后在打开的页面上点击 **Escalate** |
 | 短信和 WhatsApp | 消息中的链接会打开确认页面，那里也有 **Escalate** |
-| Telegram、Slack 和 Microsoft Teams | 打开 "Can't take it? Escalate" 链接，然后在打开的页面上点击 **Escalate** |
+| Telegram、Slack、Microsoft Teams 和 Mattermost | 打开 "Can't take it? Escalate" 链接，然后在打开的页面上点击 **Escalate** |
 | 电话 | 按 2。电话随后会说明发生了什么 |
 | 推送通知 | 点击它：事件、告警或片段会在 OneUptime On-Call 应用中打开，下方有 **Escalate** |
 | OneUptime | 事件、告警或片段顶部、状态按钮之后的 **升级** |
 
 除电话外，每种方式都会在执行任何操作前先询问，并说明将会发生什么，例如 "This will immediately page Platform leads (Level 2 of 3), without waiting."；在电话中，按 2 就是回答。只有被呼叫的人才能升级自己的呼叫：OneUptime 中的按钮只对其本人显示，消息中的链接只能升级该消息所涉及的呼叫，只对收件人本人有效，有效期为 7 天。
+
+如果你的级别之后还有两个或更多级别，OneUptime 和消息链接打开的页面还会在 **升级到** 下询问要呼叫哪个级别，并默认选中下一个级别。保持不变即像以往一样呼叫下一个级别；选择更靠后的级别则会立即呼叫该级别：中间的级别会被跳过，策略从你选择的级别继续。电话和 OneUptime On-Call 应用会呼叫下一个级别。
 
 接下来会发生什么，取决于还有谁正在被呼叫：
 
@@ -238,7 +240,7 @@ flowchart TB
 
 工作流直接发给相关人员的呼叫没有级别：升级后你不会再被呼叫，当它呼叫的所有人都已升级时，呼叫停止。
 
-每次升级都会被记录。执行的 **执行时间线** 会把此人的那一行标为 **已升级** ，事件的 Feed 会写 "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3."，策略执行在 Slack 和 Microsoft Teams 中的消息会注明此人已升级，此人的 **值班日志** 也会把这次呼叫显示为 **已升级** 。
+每次升级都会被记录。执行的 **执行时间线** 会把此人的那一行标为 **已升级** ，事件的 Feed 会写 "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3."，策略执行在 Slack 和 Microsoft Teams 中的消息会注明此人已升级，此人的 **值班日志** 也会把这次呼叫显示为 **已升级** 。为更靠后的级别而跳过的级别在 **执行时间线** 中标为 **已跳过** ，Feed 会写 "On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it."。
 
 ## 编辑、重新排序和删除规则
 

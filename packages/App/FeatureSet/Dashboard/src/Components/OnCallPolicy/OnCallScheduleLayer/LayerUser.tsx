@@ -24,6 +24,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
 import {
@@ -60,6 +61,14 @@ export interface ComponentProps {
    * rotation covering (SkipLayerUserModal). Left out, it is not offered.
    */
   onSkipUser?: ((person: { userId: string; name: string }) => void) | undefined;
+  /*
+   * Why "Skip until..." is locked for the reader, or null when it is not.
+   * The skip it saves applies to every on-call policy, so a reader whose
+   * permission to add overrides covers only some policies would be refused
+   * on save (GlobalUserOverrideLock). Locked, the button stays on each row,
+   * opens nothing, and says why on hover, focus or a press.
+   */
+  skipLockedReason?: string | null | undefined;
 }
 
 /*
@@ -187,6 +196,10 @@ const LayerUser: FunctionComponent<ComponentProps> = (
   );
   const [isReordering, setIsReordering] = useState<boolean>(false);
   const [showAddUserModal, setShowAddUserModal] = useState<boolean>(false);
+
+  // Every row's locked "Skip until..." is described by the one reason.
+  const skipLockedReasonId: string = useId();
+  const skipLockedReason: string | null = props.skipLockedReason || null;
 
   useEffect(() => {
     fetchUsers().catch((err: Error) => {
@@ -329,6 +342,68 @@ const LayerUser: FunctionComponent<ComponentProps> = (
     setIsReordering(false);
   };
 
+  /*
+   * "Skip until..." on a person's row. Locked (skipLockedReason), it stays
+   * a button - reached with Tab, named as before - that opens nothing: it
+   * says why on hover, focus or a press, and a screen reader hears the
+   * reason as its description. While a reorder or a removal is in flight
+   * it is disabled for that moment, as before.
+   */
+  const getSkipButton: (
+    userId: ObjectID,
+    displayName: string,
+  ) => ReactElement = (userId: ObjectID, displayName: string): ReactElement => {
+    const isLocked: boolean = Boolean(skipLockedReason);
+
+    const button: ReactElement = (
+      <button
+        type="button"
+        data-testid="layer-user-skip-button"
+        aria-label={translator.translateTemplate("Skip {{name}} until a date", {
+          name: displayName,
+        })}
+        aria-disabled={isLocked ? true : undefined}
+        aria-describedby={isLocked ? skipLockedReasonId : undefined}
+        disabled={isBusy && !isLocked}
+        onClick={() => {
+          if (isLocked) {
+            return;
+          }
+
+          props.onSkipUser?.({
+            userId: userId.toString(),
+            name: displayName,
+          });
+        }}
+        className={`flex h-8 flex-shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-gray-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+          {
+            isLocked: isBusy || isLocked,
+            hoverClassName: "hover:bg-gray-100 hover:text-gray-900",
+          },
+        )}`}
+      >
+        <Icon icon={IconProp.Forward} className="h-4 w-4" />
+        <span className="max-sm:hidden sm:inline">
+          {translator.translateText("Skip until…")}
+        </span>
+      </button>
+    );
+
+    if (!skipLockedReason) {
+      return button;
+    }
+
+    return (
+      <Tooltip
+        text={skipLockedReason}
+        isShownOnPress={true}
+        isTriggerAlreadyDescribed={true}
+      >
+        {button}
+      </Tooltip>
+    );
+  };
+
   const getUserRow: (
     layerUser: OnCallDutyPolicyScheduleLayerUser,
     index: number,
@@ -402,34 +477,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
           <LayerUserDetailLine userId={user?.id} name={name} email={email} />
         </div>
 
-        {props.onSkipUser && user?.id && (
-          <button
-            type="button"
-            data-testid="layer-user-skip-button"
-            aria-label={translator.translateTemplate(
-              "Skip {{name}} until a date",
-              { name: displayName },
-            )}
-            disabled={isBusy}
-            onClick={() => {
-              props.onSkipUser?.({
-                userId: user.id!.toString(),
-                name: displayName,
-              });
-            }}
-            className={`flex h-8 flex-shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-gray-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
-              {
-                isLocked: isBusy,
-                hoverClassName: "hover:bg-gray-100 hover:text-gray-900",
-              },
-            )}`}
-          >
-            <Icon icon={IconProp.Forward} className="h-4 w-4" />
-            <span className="max-sm:hidden sm:inline">
-              {translator.translateText("Skip until…")}
-            </span>
-          </button>
-        )}
+        {props.onSkipUser && user?.id && getSkipButton(user.id, displayName)}
 
         <button
           type="button"
@@ -571,6 +619,12 @@ const LayerUser: FunctionComponent<ComponentProps> = (
     <div>
       {getContent()}
       {getAddUserButton()}
+
+      {skipLockedReason && (
+        <span id={skipLockedReasonId} hidden={true}>
+          {translator.translateText(skipLockedReason)}
+        </span>
+      )}
 
       {showAddUserModal && (
         <AddLayerUserModal

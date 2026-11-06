@@ -1,0 +1,2 @@
+A rule on, and at least one period rated above 0.
+On its own: hashmap enabled, with 0.5 flat for each instance each five-minute period. The periods before it stay at 0. The summary's rows and those above 0: 2 2.

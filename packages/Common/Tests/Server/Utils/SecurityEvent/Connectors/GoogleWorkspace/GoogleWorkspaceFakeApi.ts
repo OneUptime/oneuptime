@@ -55,6 +55,13 @@ export interface FakeWorkspace {
   tokenFailure?: FakeFailure | undefined;
   // Failures per application.
   failures?: Dictionary<FakeFailure> | undefined;
+  /*
+   * An application's failure for the listings that start before a time
+   * only: the day before a poll's window a late sweep reads, say.
+   */
+  failuresStartingBefore?:
+    | Dictionary<{ time: string; failure: FakeFailure }>
+    | undefined;
   // The administrators domain-wide delegation lets the account act as.
   admins?: Array<string> | undefined;
 }
@@ -202,6 +209,15 @@ export function createFakeWorkspaceApi(
       const start: number = new Date(
         url.searchParams.get("startTime") || 0,
       ).getTime();
+      const earlyFailure: { time: string; failure: FakeFailure } | undefined =
+        workspace.failuresStartingBefore?.[application];
+
+      if (earlyFailure && start < new Date(earlyFailure.time).getTime()) {
+        return respond(
+          earlyFailure.failure.statusCode,
+          earlyFailure.failure.body,
+        );
+      }
       const end: number = url.searchParams.get("endTime")
         ? new Date(url.searchParams.get("endTime")!).getTime()
         : Date.now();

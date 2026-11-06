@@ -76,11 +76,6 @@ jest.mock("../../../UI/Config", () => {
   return mocked;
 });
 
-/*
- * A refused request is an async function that throws, not
- * mockRejectedValue: the imports load zone.js, whose patched Promise
- * reports a rejected one as unhandled although the list catches it.
- */
 const getListMock: MockFunction = getJestMockFunction();
 const apiGetMock: MockFunction = getJestMockFunction();
 const copyMock: MockFunction = getJestMockFunction();

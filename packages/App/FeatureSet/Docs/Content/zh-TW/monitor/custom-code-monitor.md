@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### 開始一個新的監測器
 
-前往 **監測器**，點選 **建立監測器**。在 **監測器類型** 下點選 **更多監測器類型**，然後在 **Synthetic Monitoring** 下選擇 **Custom JavaScript Code**，或在搜尋方塊中輸入 `script`。輸入 **名稱**，然後點選 **下一步**。
+前往 **監測器**，點選 **建立監測器**。在 **監測器類型** 下點選 **更多監測器類型**，然後在 **合成監控** 下選擇 **Custom JavaScript Code**，或在搜尋方塊中輸入 `script`。輸入 **名稱**，然後點選 **下一步**。
 
 ### 加入指令碼
 
@@ -167,7 +167,7 @@ return {
 
 - 監測器的識別資訊：`monitorId`、`projectId`、`monitorName`、`probeName`、`probeId`、`isCustomMetric`。
 - `oneuptime.` 或 `resource.` 命名空間中的所有內容，它們承載 OneUptime 在擷取資料時加上的識別碼。
-- 資源識別屬性：`service.name`、`host.name`、`k8s.cluster.name`、`iot.fleet.name`、`proxmox.cluster.name`、`vmware.vcenter.name`、`ceph.cluster.name`、`storage.array.name` 和 `docker.swarm.cluster.name`。
+- 資源識別屬性：`service.name`、`host.name`、`k8s.cluster.name`、`iot.fleet.name`、`proxmox.cluster.name`、`openstack.cloud.name`、`vmware.vcenter.name`、`ceph.cluster.name`、`storage.array.name` 和 `docker.swarm.cluster.name`。
 
 這些名稱不只是標籤：OneUptime 會把它們讀回來，當作資料點屬於哪個資源的宣告。帶有 `service.name: payments-api` 的指標會出現在該服務的指標分頁上；如果你之後建立依 `service.name` 分組的指標監測器，它的警示會關聯到該服務、呼叫該服務的負責人，並在該服務的維護時段內保持靜默。要把監測器與服務或主機關聯起來，請改用監測器本身的標籤。
 

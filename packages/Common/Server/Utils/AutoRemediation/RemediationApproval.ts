@@ -57,7 +57,10 @@ import { getKubernetesAiPlanApprovalEditRefusal } from "../../../Types/Kubernete
  * scripts. Shared with the runbook routes so the two surfaces can never
  * disagree about who may start an execution.
  */
-import { assertCanExecuteRunbooks } from "../Runbook/RunbookExecutePermission";
+import {
+  assertCanDismissFixes,
+  assertCanExecuteRunbooks,
+} from "../Runbook/RunbookExecutePermission";
 import RunbookRunAccess from "../Runbook/RunbookRunAccess";
 import { Indigo500 } from "../../../Types/BrandColors";
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
@@ -90,7 +93,11 @@ import {
   ResourceCommandTier,
 } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import ResourceCommandPolicy from "../../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
-import { ResourceCommandPolicyResult } from "../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
+import {
+  ResourceCommandPolicyResult,
+  tokenizeResourceCommand,
+} from "../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
+import { readOpenStackChange } from "../../../Utils/AiRemediation/Resource/OpenStackCommandPolicy";
 import logger from "../Logger";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import ExternalMcpServer from "../../../Models/DatabaseModels/ExternalMcpServer";
@@ -108,6 +115,7 @@ import {
 import WorkspaceType, {
   getWorkspaceTypeDisplayName,
 } from "../../../Types/Workspace/WorkspaceType";
+import { getRemediationApprovalSource } from "../../../Types/AutoRemediation/AutoRemediationApprovalSource";
 import ProductBrandingText from "../ProductBrandingText";
 import {
   getRemediationPlanFingerprint,
@@ -688,6 +696,22 @@ async function assertResourceCommandsStillRunnable(data: {
     }
 
     /*
+     * A person approves an evacuation knowing which instances it touches and whose
+     * they are. A plan without that was not proposed by this build, and is never
+     * approved blind.
+     */
+    if (
+      status.resourceType === AiResourceType.OpenStackCloud &&
+      readOpenStackChange(tokenizeResourceCommand(command.command).argv)
+        ?.requiresHuman === true &&
+      !command.reach
+    ) {
+      throw new BadDataException(
+        `Command ${command.sequence} evacuates instances of ${label}, and this plan does not say which, or whose they are. Nothing ran. Dismiss the suggestion and let a new plan be composed.`,
+      );
+    }
+
+    /*
      * The command and its rollback, re-checked live: the policy (a command
      * the policy denies now never runs, whoever approves it) and the
      * agent's write scope as it reports it now — a rollback it would refuse
@@ -995,6 +1019,7 @@ async function approveMcpToolCalls(data: {
         status: AutoRemediationSuggestionStatus.Approved,
         approvedByUserId: props.userId!.toString(),
         approvedAt: OneUptimeDate.getCurrentDate(),
+        approvedFrom: getRemediationApprovalSource(data.from),
         verificationStatus: AutoRemediationVerificationStatus.Pending,
         verificationDeadlineAt: OneUptimeDate.addRemoveMinutes(
           OneUptimeDate.getCurrentDate(),
@@ -1289,6 +1314,8 @@ export default class RemediationApproval {
             status: AutoRemediationSuggestionStatus.Approved,
             approvedByUserId: props.userId!.toString(),
             approvedAt: OneUptimeDate.getCurrentDate(),
+            // Where it was approved: the card, or the fix's chat message.
+            approvedFrom: getRemediationApprovalSource(data.from),
             verificationStatus: AutoRemediationVerificationStatus.Pending,
             verificationDeadlineAt: OneUptimeDate.addRemoveMinutes(
               OneUptimeDate.getCurrentDate(),
@@ -1360,6 +1387,7 @@ export default class RemediationApproval {
           status: AutoRemediationSuggestionStatus.Approved,
           approvedByUserId: props.userId!.toString(),
           approvedAt: OneUptimeDate.getCurrentDate(),
+          approvedFrom: getRemediationApprovalSource(data.from),
           /*
            * The runbook starts next — the outcome verifier watches for
            * monitor recovery until this deadline.
@@ -1568,6 +1596,18 @@ export default class RemediationApproval {
 
     const suggestion: AutoRemediationSuggestion =
       await loadSuggestionAsRoot(suggestionId);
+
+    /*
+     * Who may dismiss a fix is who may approve it: someone who may start
+     * runbook executions in the project - what the fix's Dismiss in Slack
+     * and Microsoft Teams asks of the member (WorkspaceRemediationActions).
+     * Reading the fix was all the card's Dismiss fix asked before.
+     */
+    if (!suggestion.projectId) {
+      throw new BadDataException("This suggestion has no project.");
+    }
+
+    assertCanDismissFixes(props, suggestion.projectId);
 
     /*
      * From a message, only the fix it showed, while it waits: a fix that

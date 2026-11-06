@@ -6,6 +6,7 @@ import SamlAssertionOneTimeUse, {
 import SamlServiceProviders, {
   SamlServiceProvider,
 } from "../Utils/SamlServiceProvider";
+import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
 import ProjectSsoSignInConfirmation, {
   PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR,
   PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
@@ -690,6 +691,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
           projectId: projectIdForConfirmation,
           kind: ProjectSsoKind.SAML,
           providerId: new ObjectID(req.params["projectSsoId"] as string),
+          origin: RequestOriginUtil.fromRequest(req),
         });
 
         if (

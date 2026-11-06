@@ -249,3 +249,104 @@ describe("the line under a field's title in a model form", () => {
     expect(await screen.findByText("When reminders stop.")).toBeInTheDocument();
   });
 });
+
+/*
+ * ANSWERS THAT DEPEND ON ANOTHER FIELD (Field.getRadioButtonOptions): a
+ * permission's Scope offers only the answers that narrow the permission
+ * picked (issue #5602). The field keeps its whole list in
+ * radioButtonOptions - its defaults are checked against it, and a folded
+ * section names the answer from it - and draws the answers
+ * getRadioButtonOptions gives for the values the form holds.
+ */
+describe("a RadioButton field whose answers depend on the form's values", () => {
+  interface ScopedEntity extends JSONObject {
+    kind?: string;
+    scope?: string;
+  }
+
+  const ALL_ANSWERS: Array<{ title: string; value: string }> = [
+    { title: "Everything", value: "all" },
+    { title: "Mine", value: "mine" },
+    { title: "Tagged", value: "tagged" },
+  ];
+
+  const SCOPE_FIELD: Field<ScopedEntity> = {
+    title: "Scope",
+    field: { scope: true },
+    fieldType: FormFieldSchemaType.RadioButton,
+    radioButtonOptions: ALL_ANSWERS,
+    getRadioButtonOptions: (
+      values: FormValues<ScopedEntity>,
+    ): Array<{ title: string; value: string }> => {
+      // A "plain" kind has nothing of its own to narrow to.
+      return values.kind === "plain"
+        ? ALL_ANSWERS.filter((answer: { value: string }): boolean => {
+            return answer.value !== "mine";
+          })
+        : ALL_ANSWERS;
+    },
+  };
+
+  function renderScopeField(values: ScopedEntity): void {
+    render(
+      <FormField<ScopedEntity>
+        field={SCOPE_FIELD}
+        fieldName="scope"
+        index={0}
+        isDisabled={false}
+        error=""
+        touched={false}
+        currentValues={values as FormValues<ScopedEntity>}
+        setFieldTouched={() => {}}
+        setFieldValue={() => {}}
+      />,
+    );
+  }
+
+  // The answers drawn, by their titles, in the field's order.
+  function answers(): Array<string> {
+    return ALL_ANSWERS.map((answer: { title: string }): string => {
+      return answer.title;
+    }).filter((title: string): boolean => {
+      return screen.queryByRole("radio", { name: title }) !== null;
+    });
+  }
+
+  test("draws the answers given for the values the form holds", () => {
+    renderScopeField({ kind: "plain", scope: "all" });
+
+    expect(answers()).toEqual(["Everything", "Tagged"]);
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    expect(screen.queryByRole("radio", { name: "Mine" })).toBeNull();
+    expect(screen.getByRole("radio", { name: "Everything" })).toBeChecked();
+  });
+
+  test("draws every answer where the values give them all", () => {
+    renderScopeField({ kind: "owned", scope: "mine" });
+
+    expect(answers()).toEqual(["Everything", "Mine", "Tagged"]);
+    expect(screen.getByRole("radio", { name: "Mine" })).toBeChecked();
+  });
+
+  test("without getRadioButtonOptions the field draws its whole list, as before", () => {
+    render(
+      <FormField<ScopedEntity>
+        field={{ ...SCOPE_FIELD, getRadioButtonOptions: undefined }}
+        fieldName="scope"
+        index={0}
+        isDisabled={false}
+        error=""
+        touched={false}
+        currentValues={{ kind: "plain" } as FormValues<ScopedEntity>}
+        setFieldTouched={() => {}}
+        setFieldValue={() => {}}
+      />,
+    );
+
+    expect(answers()).toEqual(["Everything", "Mine", "Tagged"]);
+  });
+
+  test("the whole list stays the field's own: what its defaults and a folded line read", () => {
+    expect(SCOPE_FIELD.radioButtonOptions).toEqual(ALL_ANSWERS);
+  });
+});

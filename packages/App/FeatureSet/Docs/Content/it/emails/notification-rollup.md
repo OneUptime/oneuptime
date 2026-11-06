@@ -70,7 +70,7 @@ Mai ritardate e mai conteggiate:
 | Iscritti alle pagine di stato | Ogni e-mail che la tua pagina di stato invia ai tuoi iscritti |
 | Violazioni degli SLA | Un incidente di cui sei proprietario che supera la scadenza SLA di risposta o di risoluzione |
 
-Riguarda solo le e-mail. SMS, telefonate, notifiche push, WhatsApp, Telegram, Slack, Microsoft Teams e webhook vengono recapitati subito, esattamente come prima, anche per le notifiche la cui e-mail è stata trattenuta.
+Riguarda solo le e-mail. SMS, telefonate, notifiche push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost e webhook vengono recapitati subito, esattamente come prima, anche per le notifiche la cui e-mail è stata trattenuta.
 
 ## Limiti
 
@@ -105,7 +105,7 @@ Cosa **non** tocca:
 
 - **Quali notifiche ricevi.** Questa è l'impostazione per tipo di evento e per canale in **Impostazioni utente → Impostazioni notifiche**, nella pagina accanto. Il riepilogo e questo interruttore cambiano soltanto in quante e-mail vengono raccolte quelle notifiche.
 - **Chiamate di reperibilità ed e-mail sui turni**, **e-mail sulla sicurezza dell'account**, **e-mail di fatturazione**, avvisi sullo stato dell'istanza ed e-mail agli iscritti delle pagine di stato. Nessuna di queste viene mai riepilogata, quindi disattivare il riepilogo non cambia nulla per loro: vedi [Cosa non viene mai riepilogato](#cosa-non-viene-mai-riepilogato).
-- **Qualsiasi altro canale.** SMS, telefonate, push, WhatsApp, Telegram, Slack, Microsoft Teams e webhook sono già immediati.
+- **Qualsiasi altro canale.** SMS, telefonate, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost e webhook sono già immediati.
 
 ## Ridurre ancora
 

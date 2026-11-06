@@ -162,6 +162,7 @@ It works in GitHub, GitLab, Forgejo and Gitea repositories. GitHub tells OneUpti
 | **Hot functions** | The functions of the changed code that take a share of the services' profiles in the last hour. |
 | **Incidents** | The services' incidents of the last 30 days that are still open, or whose root cause or postmortem names the changed code. Never a private incident. |
 | **Deploys** | The services' deploys of the last 7 days that OneUptime suspects of a regression. |
+| **Data** | The watched tables its migrations and dbt models drop, rename or retype, with the services whose queries of the last day use a changed column, the tables built from them, and their data products. |
 
 When production says something, OneUptime AI reads it beside the diff and adds **What to watch**: a few short points, each resting on the facts. It reads with the project's default LLM provider, unless **Production Review LLM Provider**, under **More settings** on the repository's **Settings** page, picks another of the project's providers or a global one. It runs only while AI is on for the project, at most 10 times a day for a pull request and 100 for a repository, and is metered like every AI call; the facts are read every time without it. When production shows nothing about the change, OneUptime posts no comment.
 

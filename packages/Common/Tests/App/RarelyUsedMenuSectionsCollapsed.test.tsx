@@ -222,6 +222,11 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
    * section (the deeper wiring views and the hand-drawn links): Network's
    * everyday pages are Overview, Devices, Sites, Map and Discovery.
    */
+  // What an OpenStack cloud is made of, which its menu exists to open.
+  "Compute",
+  "Control Plane",
+  "Network",
+  "Tenancy",
   // A resource's own views.
   "Activity",
   /*
@@ -260,6 +265,14 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
   "Security Cases",
   "Events",
   "Playbooks",
+  /*
+   * Cloud's Spend: what the accounts cost, the ways to spend less and the
+   * budgets that alert (Costs, Savings, Budgets). Everyone with a cloud
+   * account pays its bill, so they are what Cloud is opened for beside the
+   * accounts themselves: its Overview leads with the month's spend, and
+   * search finds Cloud by its costs' words.
+   */
+  "Spend",
 ];
 
 /*
@@ -657,7 +670,7 @@ describe("the Incidents menu, as the maintainer drew it", () => {
       linksIn("Workspace").map((link: MenuLink): string => {
         return link.title;
       }),
-    ).toEqual(["Connect Slack or Teams"]);
+    ).toEqual(["Connect a workspace"]);
   });
 });
 

@@ -38,6 +38,7 @@ flowchart TB
 | **Alle Fälle** | Sicherheitsfälle | Jeder Fall, offen oder geschlossen |
 | **Ereignisse** | Ereignisse | Jedes Ereignis suchen und filtern, und eines öffnen, um alle seine Felder zu sehen |
 | **Bedrohungssuchen** | Ereignisse | Unter Ereignisse gespeicherte Suchen, mit einem Klick wieder geöffnet oder nach einem Zeitplan ausgeführt, der Personen benachrichtigt, wenn sie etwas finden |
+| **Suchbibliothek** | Ereignisse | Fertige Bedrohungssuchen zum Ausprobieren unter Ereignisse oder zum Hinzufügen zu Ihren Bedrohungssuchen, jede mit den Ereignissen, die sie liest, und ob diese eingehen |
 | **Kampagnen** | Ereignisse | Jede Adresse, die Angriffsanfragen gesendet hat, und ob eine ihrer Anfragen durchkam |
 | **Entitätsrisiko** | Ereignisse | Jeder Benutzer, Host und jede Adresse, bewertet nach dem, was diese Woche dazu gefunden wurde, die riskantesten zuerst |
 | **Korrelieren** | Ereignisse | Ein Graph der Ereignisse, die einen Host, einen Benutzer oder eine IP-Adresse teilen |
@@ -181,22 +182,42 @@ Die Seite **Einrichtungsanleitung**, unter **Verbindungen**, hat diese Snippets 
 
 ### Sicherheitsereignisse in Ihren Logs finden
 
-Die Karte **Ihre Protokolle** oben auf **Verbindungen** macht die Logs, die Sie bereits an OneUptime senden, zu einer Quelle. Ist **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet, werden die neuen Logs des Projekts jede Minute gelesen, und jede SSH- oder Windows-Anmeldung, jeder sudo-Befehl, jeder Audit-Eintrag einer Cloud, jeder CEF- oder LEEF-Datensatz eines Sicherheitsprodukts, jeder Kubernetes-Audit-Eintrag und jeder Webangriff darin wird als Sicherheitsereignis gespeichert. Was jede Art abdeckt, steht unter [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started#sicherheitsereignisse-in-ihren-logs-finden).
+Die Karte **Ihre Protokolle** oben auf **Verbindungen** macht die Logs, die Sie bereits an OneUptime senden, zu einer Quelle. Ist **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet, werden die neuen Logs des Projekts jede Minute gelesen, und jede SSH- oder Windows-Anmeldung, jeder sudo-Befehl, jeder Audit-Eintrag einer Cloud, jeder CEF- oder LEEF-Datensatz eines Sicherheitsprodukts, jeder Datensatz einer Firewall von Palo Alto Networks, FortiGate oder Cisco ASA, jeder Kubernetes-Audit-Eintrag und jeder Webangriff darin wird als Sicherheitsereignis gespeichert. Was jede Art abdeckt, steht unter [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started#sicherheitsereignisse-in-ihren-logs-finden).
 
 Jede Art erreicht OneUptime als gewöhnliche Logs:
 
 | Art | Senden Sie sie von |
 | --- | --- |
 | SSH-Anmeldungen, sudo | Dem Journal oder Auth-Log eines Linux-Rechners, mit dem [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| Windows-Ereignisse | Dem Empfänger `windowseventlog` des Collectors auf dem Rechner, oder einem Weiterleiter, der jedes Ereignis als JSON schreibt, etwa NXLog oder Winlogbeat |
-| AWS CloudTrail | Einem Trail, der an CloudWatch Logs geliefert und vom Empfänger `awscloudwatch` des Collectors gelesen wird |
-| Google Cloud-Audit-Logs | Einer Log-Senke nach Pub/Sub, gelesen vom Empfänger `googlecloudpubsub` des Collectors mit `encoding: raw_text` |
-| Azure-Aktivitäts- und Entra-ID-Logs | Einer Diagnoseeinstellung, die an einen Event Hub streamt, gelesen vom Empfänger `azureeventhub` des Collectors mit `format: raw` |
+| Windows-Ereignisse | Dem Empfänger `windowseventlog` des Collectors auf dem Rechner, oder einem Weiterleiter, der jedes Ereignis als JSON schreibt, etwa NXLog oder Winlogbeat. Ein zu OneUptime hinzugefügter [Host](/docs/telemetry/hosts) liest außerdem Sysmon, Microsoft Defender und PowerShell, wo er sie hat |
+| AWS CloudTrail | Einem Trail, der an CloudWatch Logs geliefert und vom Empfänger `awscloudwatch` des Collectors gelesen wird, oder, bei einem unter **Cloud** verbundenen Konto, über [Cloud-Audit-Protokolle](#die-audit-logs-ihrer-cloud-konten-lesen) |
+| Google Cloud-Audit-Logs | Einer Log-Senke nach Pub/Sub, gelesen vom Empfänger `googlecloudpubsub` des Collectors mit `encoding: raw_text`, oder, bei einem unter **Cloud** verbundenen Projekt, über [Cloud-Audit-Protokolle](#die-audit-logs-ihrer-cloud-konten-lesen) |
+| Azure-Aktivitäts- und Entra-ID-Logs | Einer Diagnoseeinstellung, die an einen Event Hub streamt, gelesen vom Empfänger `azureeventhub` des Collectors mit `format: raw`, oder, für das Aktivitätsprotokoll eines unter **Cloud** verbundenen Abonnements, über [Cloud-Audit-Protokolle](#die-audit-logs-ihrer-cloud-konten-lesen) |
+| OpenStack-Audit-Trail | Den Benachrichtigungen und dem Audit-Filter einer Cloud, die mit `driver = log` in deren Logs geschrieben und vom [Logs-Profil](/docs/telemetry/openstack#wer-was-getan-hat) des Agents gelesen werden |
 | CEF, LEEF | Dem Syslog des Produkts, weitergeleitet von [rsyslog](/docs/telemetry/syslog) |
+| Palo Alto Networks, FortiGate, Cisco ASA | Dem eigenen Syslog der Firewall, weitergeleitet von [rsyslog](/docs/telemetry/syslog) |
 | Kubernetes-Audit-Logs | Der Audit-Log-Datei des API-Servers, gelesen vom Empfänger `filelog` des Collectors |
 | Webangriffe | Dem Zugriffslog eines Webservers, gelesen vom Empfänger `filelog` des Collectors |
 
 Auf **Ihre Protokolle** sagt jede Art, wann sie zuletzt gefunden wurde, und **Eine Protokollzeile prüfen** zeigt, was aus einer eingefügten Zeile wird, bevor eine ankommt.
+
+Eine Bedrohung, die ein Sicherheitsprodukt in Ihre Logs schreibt, etwa ein CEF- oder LEEF-Fund oder eine Bedrohung von Palo Alto Networks, FortiGate oder Cisco ASA, eröffnet einen [Fall](/docs/telemetry/security-cases), wie es die Warnung eines verbundenen Produkts tut, und erhöht das Risiko des Benutzers, Hosts oder der Adresse, die sie nennt. **Fälle eröffnen ab** auf **Ihre Protokolle** legt fest, ab welchem Schweregrad: **Hoch und höher**, sofern Sie keinen anderen wählen, oder **Nie**. Die Anmeldungen und blockierten Verbindungen des Produkts bleiben Ereignisse, die Ihre Regeln lesen.
+
+Ein Datensatz, der OneUptime auf zwei Wegen erreicht, wird einmal gespeichert: eine Anmeldung in Microsoft Entra ID, die ihre Verbindung liest und die Azure auch in Ihre Logs exportiert, oder ein CloudTrail-Datensatz in Ihren Logs und im Audit-Log eines verbundenen AWS-Kontos.
+
+### Die Audit-Logs Ihrer Cloud-Konten lesen
+
+Ein AWS-Konto, Google Cloud-Projekt oder Azure-Abonnement, das [unter **Cloud** verbunden](/docs/telemetry/cloud-accounts) ist, braucht keine Log-Pipeline. Schalten Sie **Cloud-Audit-Protokolle** unter **Ihre OneUptime-Daten** auf **Verbindungen** ein, dann behält jeder Lesevorgang des Kontos sein Audit-Log als Sicherheitsereignisse:
+
+| Cloud | Was gelesen wird |
+| --- | --- |
+| AWS | Die Verwaltungsereignisse von CloudTrail, die etwas ändern, in jeder Region, die das Konto nutzt: Anmeldungen an der Konsole, Änderungen und Aufrufe, die AWS abgelehnt hat |
+| Google Cloud | Das Audit-Log Admin Activity: Änderungen an Ressourcen und daran, wer sie erreichen darf, und Aufrufe, die Google abgelehnt hat |
+| Azure | Das Aktivitätsprotokoll: Änderungen im Abonnement, fehlgeschlagene Vorgänge, Ablehnungen durch Azure Policy und Warnungen von Defender for Cloud |
+
+- Jeder Datensatz wird so gelesen, wie **Ihre Protokolle** ihn aus einer Pipeline liest, sodass die CloudTrail-, Google Cloud- und Azure-Regeln der Regelbibliothek auf ihn passen.
+- Ein Ereignis erhält den Zeitpunkt, zu dem es gespeichert wird, und die eigene Zeit des Datensatzes steht in `oneuptime.cloud.record_time`: Ein Audit-Log erreicht OneUptime Minuten verspätet, und eine Regel liest Ereignisse nach ihrer Zeit.
+- Mehr bringt der Lesevorgang des Kontos nicht: Datenereignisse, Data Access-Logs und die Logs von Microsoft Entra ID brauchen weiterhin **Ihre Protokolle** oder eine [Verbindung](/docs/integrations/microsoft-entra-id).
 
 ### Ein Sicherheitsprodukt verbinden
 
@@ -212,7 +233,7 @@ Auf **Ihre Protokolle** sagt jede Art, wann sie zuletzt gefunden wurde, und **Ei
 | Elastic Security | Erkennungswarnungen, als Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, als Detection und Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Anmelde-, MFA-, Konto- und Richtlinienereignisse | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | Anmeldungen und Verzeichnisänderungen, und aus dem Microsoft 365-Audit-Protokoll Weiterleitungen von E-Mails, Freigaben und Phishing-Urteile | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | Anmeldungen, Verzeichnisänderungen und Risikoerkennungen, auf Wunsch fehlgeschlagene Hintergrund- und App-Anmeldungen, und aus dem Microsoft 365-Audit-Protokoll Weiterleitungen von E-Mails, Freigaben und Phishing-Urteile | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Anmeldungen, die eigenen Erkennungen von Google, Admin-Änderungen und App-Freigaben, und Freigaben in Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
 - Die eigenen Warnungen des Produkts ab der Stufe, die in **Open Cases From** eingestellt ist (**Hoch und höher**, sofern Sie keine andere Stufe wählen, oder **Nie**), eröffnen [Fälle](/docs/telemetry/security-cases), gruppiert nach dem Benutzer, dem Host oder der Adresse, um die es jeweils geht.
@@ -256,6 +277,7 @@ Die Suchleiste spricht dieselbe Sprache wie die anderen Telemetrie-Explorer (sie
 | `<field>:a*` | `*` ist beliebiger Text, `?` ein Zeichen | `host:web-*` |
 | `@<attribute>:*` | Das Attribut ist vorhanden | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Das Attribut enthält den Text | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | Das Feld steht auf einer [Beobachtungsliste](#beobachtungslisten) | `user:%vip_users%` |
 
 Ein Feld ist entweder ein Kurzname (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) oder der eigene Name des Felds, etwa `severityName` oder `principalHost`. Jeder andere Name wird als Quellattribut gelesen. `observable:<value>` findet jedes Ereignis, das einen Wert erwähnt, egal auf welcher Seite der Aktivität er stand.
 
@@ -281,9 +303,17 @@ Eine Bedrohungssuche ist eine Suche über Ihre Sicherheitsereignisse, unter eine
 
 ### Eine Suche als Bedrohungssuche speichern
 
-Suchen und filtern Sie unter **Ereignisse**, bis die Liste zeigt, was Sie suchen, öffnen Sie dann **Bedrohungssuchen** in der Werkzeugleiste und wählen Sie **Als Bedrohungssuche speichern**. Geben Sie ihr einen Namen, wählen Sie, ob sie nach einem Zeitplan läuft, und ihre Seite öffnet sich. **Ereignisse → Bedrohungssuchen** listet die Bedrohungssuchen des Projekts, jede mit ihrer Suche, wie oft sie läuft, wen sie benachrichtigt und was ihr letzter Lauf gefunden hat; **Bedrohungssuche erstellen** nimmt dort die Suche so, wie Sie sie unter **Ereignisse** eingeben würden. Ein Projekt bewahrt bis zu 200 Bedrohungssuchen auf.
+Suchen und filtern Sie unter **Ereignisse**, bis die Liste zeigt, was Sie suchen, öffnen Sie dann **Bedrohungssuchen** in der Werkzeugleiste und wählen Sie **Als Bedrohungssuche speichern**. Geben Sie ihr einen Namen, wählen Sie, ob sie nach einem Zeitplan läuft, und ihre Seite öffnet sich. **Ereignisse → Bedrohungssuchen** listet die Bedrohungssuchen des Projekts, jede mit ihrer Suche, wie oft sie läuft, wen sie benachrichtigt und was ihr letzter Lauf gefunden hat; **Bedrohungssuche erstellen** nimmt dort die Suche so, wie Sie sie unter **Ereignisse** eingeben würden. Ein Projekt bewahrt bis zu 200 Bedrohungssuchen auf. Eine Suche kann eine [Beobachtungsliste](#beobachtungslisten) lesen, wie `user:%vip_users%` es tut, und eine Bedrohungssuche, die eine Liste liest, die das Projekt nicht hat, wird beim Speichern abgelehnt.
 
 Die Seite einer Bedrohungssuche ist ihre Suche, im Explorer für Ereignisse geöffnet. Ändern Sie dort die Suche oder die Filter, dann bietet der Kopf der Bedrohungssuche **Änderungen speichern** und **Änderungen verwerfen** an. **Bearbeiten** ändert ihren Namen, ihre Suche, wie weit sie zurückblickt, ihren Zeitplan und wen sie benachrichtigt, und **Bedrohungssuche löschen** steht in ihrem Menü. Ab Security Member können Bedrohungssuchen gespeichert, geändert und gelöscht werden, und ein Security Viewer kann sie öffnen.
+
+Eine Bedrohungssuche, die mit Filtern aus der Seitenleiste von Ereignisse gespeichert wurde, zeigt diese in **Bearbeiten** unter **Filter** so, wie Ereignisse sie darstellt, jeden mit einem x, um ihn zu entfernen. Filter fügen Sie auf der Seite der Bedrohungssuche über die Seitenleiste hinzu.
+
+### Mit der Suchbibliothek beginnen
+
+**Ereignisse → Suchbibliothek** listet fertige Bedrohungssuchen für das, wonach Sicherheitsteams am häufigsten suchen, etwa fehlgeschlagene Anmeldungen, codiertes PowerShell, das AWS-Root-Konto und in Kubernetes-Pods geöffnete Shells. Jede zeigt, was sie findet, ihre Suche so, wie Sie sie unter **Ereignisse** eingeben würden, und ob die Ereignisse eingehen, die sie liest, so wie die **Regelbibliothek** es für ihre Regeln tut. Grenzen Sie sie nach **Kategorie der Suche**, **Daten** und **Status** ein, oder durchsuchen Sie sie.
+
+**Ausprobieren** öffnet die Suche unter **Ereignisse** über das Zeitfenster der Bedrohungssuche und speichert nichts. **Hinzufügen** speichert sie sofort als eine der Bedrohungssuchen des Projekts, benannt und beschrieben in Ihrer Sprache und ohne Zeitplan, wie jede neue Bedrohungssuche. Danach steht dort **Hinzugefügt**, und **Öffnen** öffnet sie, wo Sie ihr einen Zeitplan geben können.
 
 ### Eine Bedrohungssuche nach Zeitplan ausführen
 
@@ -302,9 +332,15 @@ Ein Lauf öffnet keinen Fall und löst keine Warnung aus: Schreiben Sie, was Fä
 
 Eine geplante Bedrohungssuche läuft unter der Person, die zuletzt ihren Zeitplan festgelegt, ihre Suche geändert oder sie mit **Bearbeiten** gespeichert hat. Ein API-Schlüssel kann keinen Zeitplan festlegen. Verlässt diese Person das Projekt oder darf sie keine Sicherheitsereignisse mehr lesen, zeigt die Bedrohungssuche das an: Öffnen Sie **Bearbeiten** und speichern Sie sie, damit sie unter Ihnen läuft.
 
+### Ausführungsverlauf
+
+Jeder geplante Lauf wird 90 Tage aufbewahrt. **Ausführungsverlauf**, am Ende der Zeile, die sagt, was die Läufe einer Bedrohungssuche gefunden haben, listet sie mit dem neuesten zuerst: wann jeder lief und welche Ereignisse er durchsucht hat, dann wie viele er gefunden hat, mit **Anzeigen**, um diese Ereignisse auf der Seite der Bedrohungssuche zu öffnen; dass er nichts gefunden hat; oder warum er nicht laufen konnte. Wer eine Bedrohungssuche öffnen kann, kann auch ihre Läufe lesen.
+
 ### Wer benachrichtigt wird
 
 Die Benachrichtigung **Bedrohungssuche hat Sicherheitsereignisse gefunden** nennt die Bedrohungssuche und ihre Suche, wie viele Ereignisse ihr Lauf gefunden hat und welches Zeitfenster er gelesen hat, und verlinkt auf die Seite der Bedrohungssuche mit diesen Ereignissen; kein Wortlaut eines Ereignisses steht darin. Alle erhalten sie per E-Mail und Push und wählen ihre Kanäle unter **Benutzereinstellungen → Benachrichtigungseinstellungen**. Wie andere Routine-E-Mails kann sie in einer [E-Mail-Zusammenfassung](/docs/emails/notification-rollup) zurückgehalten werden.
+
+Um in Slack, Microsoft Teams oder Mattermost zu posten, was Bedrohungssuchen finden, fügen Sie unter **Produkte → Sicherheitsereignisse → Arbeitsbereich → Slack** (oder **Microsoft Teams** oder **Mattermost**) eine Regel zu **Regeln für Bedrohungssuchen** hinzu, unterhalb der Regeln, die [Sicherheitsfälle](/docs/telemetry/security-cases#in-kanäle-von-slack-microsoft-teams-und-mattermost-posten) posten. Eine Regel nennt die Kanäle, in die gepostet wird (und in Microsoft Teams die Chats), und, wenn Sie möchten, die Bedrohungssuchen, für die sie gilt, nach **Name der Bedrohungssuche**: ein Name, der Ihr Text ist, ihn enthält, mit ihm beginnt oder auf ihn endet. Jedes Mal, wenn ein geplanter Lauf Ereignisse findet, werden die Bedrohungssuche, ihre Suche, wie viele Ereignisse und wann mit einem Link zu ihnen gepostet, und keines der eigenen Worte eines Ereignisses. Eine Regel für Bedrohungssuchen richtet eine Rolle ein, die Sicherheits-Playbooks einrichten darf, etwa Project Owner, Project Admin oder Security Admin.
 
 ### Ereignisse in einem Fall aufbewahren
 
@@ -312,7 +348,7 @@ Wählen Sie Ereignisse unter **Ereignisse** oder auf der Seite einer Bedrohungss
 
 OneUptime liest jedes Ereignis erneut als Sie und bewahrt es so, wie es war, auf der Seite **Belege** des Falls auf, sodass der Fall es auch nach dem Ende der Aufbewahrungsfrist des Ereignisses zeigt. Ein Ereignis, das Sie nicht lesen dürfen, wird nicht aufbewahrt, und eines, das der Fall bereits aufbewahrt, bleibt, wie es ist. Ein über eine Bedrohungssuche gefundenes Ereignis nennt die Bedrohungssuche, und **Ereignis anzeigen** öffnet es so, wie es aufbewahrt wurde.
 
-Bedrohungssuchen haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-hunt`, und `POST /security-case-evidence/add-events` bewahrt Ereignisse in einem Fall auf. Siehe [API-Referenz](/docs/api-reference/api-reference).
+Bedrohungssuchen haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-hunt`, und `POST /security-case-evidence/add-events` bewahrt Ereignisse in einem Fall auf. Die Läufe einer Bedrohungssuche werden unter `/security-hunt-run` gelesen. Siehe [API-Referenz](/docs/api-reference/api-reference).
 
 ## Erkennungsregeln
 
@@ -511,7 +547,7 @@ Eine Ausnahme ist etwas, das eine Regel auslässt, weil Sie es erwarten, etwa ei
 
 ### Beobachtungslisten
 
-Eine Beobachtungsliste ist eine Liste, die Ihr Team einmal pflegt und die jede Regel lesen kann, etwa VIP-Benutzer, kritische Hosts, bekannte schädliche Datei-Hashes oder die Adressen, von denen sich Admins anmelden dürfen. Jede Liste steht unter **Produkte → Sicherheitsereignisse → Erkennungen → Beobachtungslisten**: Erstellen Sie dort eine mit **Beobachtungsliste erstellen**, das nach ihrem Namen und ihrem Inhalt fragt, oder fügen Sie eine gängige unter **Mit einer gängigen Liste beginnen** hinzu. Die Seite einer Liste zeigt ihre Werte, und **In einer Regel verwenden** gibt eine Selektion, die die Liste liest, zum Kopieren in eine Regel.
+Eine Beobachtungsliste ist eine Liste, die Ihr Team einmal pflegt und die jede Regel lesen kann, etwa VIP-Benutzer, kritische Hosts, bekannte schädliche Datei-Hashes oder die Adressen, von denen sich Admins anmelden dürfen. Jede Liste steht unter **Produkte → Sicherheitsereignisse → Erkennungen → Beobachtungslisten**: Erstellen Sie dort eine mit **Beobachtungsliste erstellen**, das nach ihrem Namen und ihrem Inhalt fragt, oder fügen Sie eine gängige unter **Mit einer gängigen Liste beginnen** hinzu. Die Seite einer Liste zeigt ihre Werte, und **Diese Liste verwenden** gibt eine Selektion, die die Liste liest, zum Kopieren in eine Regel, und die Suche, die sie unter **Ereignisse** oder in einer Bedrohungssuche liest.
 
 Eine Regel liest eine Liste mit `expand` und dem Namen der Liste zwischen zwei `%`-Zeichen. Diese Regel löst aus, wenn sich ein Admin von einer Adresse anmeldet, die nicht auf der erlaubten Liste steht:
 
@@ -529,10 +565,14 @@ level: high
 
 - Eine Liste enthält Benutzer, Hosts, IP-Adressen, Datei-Hashes, Domains, URLs, Prozesse oder andere Werte, gewählt beim Erstellen. Ein Wert passt unabhängig von Groß- und Kleinschreibung, und `*` steht für eine beliebige Zeichenfolge: `svc-*` passt auf jedes Dienstkonto. Eine Liste von IP-Adressen nimmt auch Bereiche wie `10.20.0.0/16` an, und eine Liste von Datei-Hashes MD5-, SHA-1-, SHA-256- und SHA-512-Hashes.
 - Fügen Sie Werte einzeln mit **Wert hinzufügen** hinzu oder viele auf einmal mit **Werte importieren**: Fügen Sie sie ein oder wählen Sie eine `.txt`- oder `.csv`-Datei, ein Wert pro Zeile, mit einer optionalen Notiz nach einem Komma. **Zur Liste hinzufügen** behält die Werte, die schon darauf stehen, und **Liste ersetzen** entfernt die, die der Import nicht enthält.
+- Ein Wert kann ein **Läuft ab am** haben: Ab dann liest ihn keine Regel, kein Monitor, keine Bedrohungssuche und keine Suche mehr, und OneUptime entfernt ihn innerhalb einer Minute von der Liste. Bleibt das Feld leer, bleibt der Wert, bis jemand ihn entfernt.
+- **Werte exportieren** lädt die Werte einer Liste als CSV-Datei mit den Spalten `value`, `note` und `expires` herunter, die **Werte importieren** wieder einliest. Eine Datei, deren erste Zeile diese Spalten nennt, gibt jedem Wert seine Notiz und seinen Ablauf: ein Datum wie `2026-12-31` oder ein Datum mit Uhrzeit in UTC.
+- Eine Liste kann stattdessen aus einer Datei unter einer https-Adresse gelesen werden, erneut **Jede Stunde**, **Alle 6 Stunden** oder **Jeden Tag**: Wählen Sie beim Erstellen **Eine Datei unter einer Adresse** unter **Weitere Felder**. Jeder Lesevorgang macht die Liste zu dem, was die Datei enthält, gelesen wie bei einem Import. Ein fehlgeschlagener Lesevorgang ändert keinen Wert, und die Seite der Liste sagt, warum; **Jetzt lesen** liest sie sofort.
 - Statt Werte zu pflegen, kann eine Liste von IP-Adressen, Datei-Hashes, Domains oder URLs einem Threat-Intel-Feed folgen: Ihre Werte sind dann die aktiven Indikatoren des Feeds von der Art der Liste, aktuell gehalten, während der Feed gelesen wird.
-- `expand` wird allein verwendet, da die Werte der Liste bestimmen, wie sie passen. Ein Feld mit mehreren Werten, etwa `observables`, passt, wenn einer davon auf der Liste steht. **Gelesen von** nennt die Regeln, die jede Liste lesen, und unter dem YAML einer Regel nennt ihr Formular die Listen, die die Regel liest.
-- Eine Regel nennt eine Liste unabhängig von Groß- und Kleinschreibung. Eine Regel, die eine Liste nennt, die das Projekt nicht hat, wird beim Speichern abgelehnt, und eine Liste, die Regeln lesen, lässt sich erst umbenennen oder löschen, wenn keine Regel sie mehr liest.
+- `expand` wird allein verwendet, da die Werte der Liste bestimmen, wie sie passen. Ein Feld mit mehreren Werten, etwa `observables`, passt, wenn einer davon auf der Liste steht. **Gelesen von** nennt die Regeln, Monitore für Sicherheitsereignisse und Bedrohungssuchen, die jede Liste lesen, und unter dem YAML einer Regel nennt ihr Formular die Listen, die die Regel liest.
+- Eine Regel nennt eine Liste unabhängig von Groß- und Kleinschreibung. Eine Regel, ein Monitor oder eine Bedrohungssuche, die eine Liste nennen, die das Projekt nicht hat, werden beim Speichern abgelehnt, und eine Liste, die einer von ihnen liest, lässt sich erst umbenennen oder löschen, wenn nichts sie mehr liest.
 - Eine Änderung an einer Liste erreicht jede Regel, die sie liest, bei deren nächstem Lauf. Auch Korrelationsregeln und **Auf vergangene Ereignisse anwenden** lesen Listen.
+- Ein Monitor für Sicherheitsereignisse liest Listen unter **Nach Beobachtungslisten filtern**, und eine Suche unter **Ereignisse** oder in einer Bedrohungssuche liest eine als `user:%vip_users%`. Ein Minus davor, wie in `-ip:%admin_addresses%`, behält die Ereignisse, deren Feld nicht auf der Liste steht.
 - Eine Liste enthält höchstens 5.000 Werte, davon höchstens 100 mit `*` und 100 Bereiche, und ein Projekt hat höchstens 200 Listen: Für eine längere Liste folgen Sie einem Threat-Intel-Feed. Wer Erkennungsregeln erstellen, bearbeiten oder löschen darf, darf dasselbe mit Listen tun, und wer Erkennungsregeln bearbeiten darf, fügt ihre Werte hinzu, ändert und entfernt sie. Jede Sicherheitsrolle kann sie lesen, und jede Änderung steht im Audit-Log des Projekts.
 
 ### Auf vergangene Ereignisse anwenden
@@ -549,11 +589,11 @@ level: high
 
 Ein Monitor für Sicherheitsereignisse zählt die Ereignisse, die auf seine Filter passen, über ein gleitendes Fenster und wendet die üblichen Monitorkriterien auf die Zählung an: Er ändert den Status des Monitors, öffnet Warnungen oder Vorfälle und alarmiert die Bereitschaft. Erstellen Sie einen unter **Monitore → Monitor erstellen**, mit **Sicherheitsereignisse** als Typ; dort wird er mit Ihren anderen Monitoren aufgeführt.
 
-Sein Formular zeigt **Ereignisse überwachen, die diesen Text enthalten**, **Sicherheitsereignisse überwachen für (Zeit)**, **Ereignisschweregrad** und **Ereignisklasse**. **Nach Telemetrie-Dienst filtern** und **Nach Attributen filtern** warten unter **Weitere Felder**, dessen Kopf die zeigt, die ein Monitor nutzt. Seine Kriterien prüfen **Security Event Count**.
+Sein Formular zeigt **Ereignisse überwachen, die diesen Text enthalten**, **Sicherheitsereignisse überwachen für (Zeit)**, **Ereignisschweregrad** und **Ereignisklasse**. **Nach Telemetrie-Dienst filtern**, **Nach Attributen filtern** und **Nach Beobachtungslisten filtern** warten unter **Weitere Felder**, dessen Kopf die zeigt, die ein Monitor nutzt. **Nach Beobachtungslisten filtern** behält die Ereignisse, deren Feld auf einer Ihrer [Beobachtungslisten](#beobachtungslisten) steht oder nicht steht. Seine Kriterien prüfen **Security Event Count**.
 
 | | Erkennungsregel | Monitor für Sicherheitsereignisse |
 | --- | --- | --- |
-| Passt auf | Eine Sigma-Regel | Filter auf Schweregrad, Klasse, Nachricht, Dienst und Attribute |
+| Passt auf | Eine Sigma-Regel | Filter auf Schweregrad, Klasse, Nachricht, Dienst, Attribute und Beobachtungslisten |
 | Fenster | Lückenlos hintereinander, eines pro Lauf | Gleitend: die letzten 5 Sekunden bis 24 Stunden |
 | Zählt pro Gruppe | Ja, mit **Nach Feld gruppieren** | Nein: eine Zählung für alles, was passt |
 | Öffnet | Warnungen, Vorfälle und Befunde | Einen Status, Warnungen und Vorfälle |
@@ -610,11 +650,15 @@ Prüfen Sie ihren **Status** in **Regelausnahmen**: Eine Ausnahme mit dem Status
 :::
 
 :::details Eine Regel, die eine Beobachtungsliste liest, trifft nicht
-Öffnen Sie die Liste und prüfen Sie ihre Werte: Ein Wert ohne `*` muss dem ganzen Feld entsprechen, unabhängig von Groß- und Kleinschreibung, und eine Liste, die einem Threat-Intel-Feed folgt, enthält nur die aktiven Indikatoren des Feeds von ihrer Art. Prüfen Sie, ob die Regel das Feld liest, das Ihre Ereignisse füllen: **In einer Regel verwenden** beginnt mit dem Feld, in dem eine Liste ihrer Art meist steht. Eine Änderung an einer Liste erreicht eine Regel bei deren nächstem Lauf.
+Öffnen Sie die Liste und prüfen Sie ihre Werte: Ein Wert ohne `*` muss dem ganzen Feld entsprechen, unabhängig von Groß- und Kleinschreibung, und eine Liste, die einem Threat-Intel-Feed folgt, enthält nur die aktiven Indikatoren des Feeds von ihrer Art. Prüfen Sie, ob die Regel das Feld liest, das Ihre Ereignisse füllen: **Diese Liste verwenden** beginnt mit dem Feld, in dem eine Liste ihrer Art meist steht. Eine Änderung an einer Liste erreicht eine Regel bei deren nächstem Lauf.
 :::
 
 :::details Eine Beobachtungsliste lässt sich nicht umbenennen oder löschen
-Regeln lesen sie noch über ihren Namen, und die Meldung nennt sie. Ändern Sie den Namen in diesen Regeln oder nehmen Sie die Liste aus ihnen heraus, und benennen Sie sie dann um oder löschen Sie sie.
+Regeln, Monitore oder Bedrohungssuchen lesen sie noch über ihren Namen, und die Meldung nennt sie. Ändern Sie den Namen darin oder nehmen Sie die Liste aus ihnen heraus, und benennen Sie sie dann um oder löschen Sie sie.
+:::
+
+:::details Eine von einer Adresse gelesene Liste zeigt einen Fehler
+Ihre Seite sagt unter **Von einer Adresse gelesen**, warum, mit dem, was die Adresse geantwortet hat, und die Liste behält die Werte ihres letzten erfolgreichen Lesevorgangs. Die Adresse muss mit `https` beginnen, ohne Anmeldung aus dem Internet antworten und eine Text- oder CSV-Datei von höchstens 4 MB herunterladen, keine Webseite. Korrigieren Sie sie unter **Bearbeiten** und wählen Sie dann **Jetzt lesen**.
 :::
 
 :::details „Auf vergangene Ereignisse anwenden“ findet nichts

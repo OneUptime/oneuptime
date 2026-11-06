@@ -25,6 +25,11 @@
  *                         two levels at once: Level 1 has no responders,
  *                         nobody was on call in Level 2's schedule, and
  *                         Level 3 paged Alex, all in the same minute
+ *                         &run=escalated-past is a policy's run that Jane
+ *                         escalated from Level 1 to Level 3, picked in the
+ *                         Escalate dialog: Level 2, Platform leads, got the
+ *                         line a level skipped that way gets, and Level 3
+ *                         paged Alex
  *
  * Nothing of the tables is faked: the columns, the cells' wrapping, the
  * phone layout and the card are the Dashboard's own. Only the API is stood
@@ -52,6 +57,10 @@ import {
   ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE,
   ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE,
 } from "Common/Types/OnCallDutyPolicy/OnCallEmptyLevel";
+import {
+  ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE,
+  ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
+} from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import Permission from "Common/Types/Permission";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -380,8 +389,38 @@ const EMPTY_LEVELS_TIMELINE = [
 ];
 
 /*
- * The run the timeline is of: a direct page, &run=next-in-rotation or
- * &run=empty-levels.
+ * A policy's run that the person paged escalated to a later level than the
+ * next, picked in the Escalate dialog (Common's OnCallPagePassOn level
+ * choice): Jane escalated at Level 1 and picked Level 3, so Level 2,
+ * Platform leads, was skipped - its line names nobody and says the page was
+ * escalated past it - and Level 3 paged Alex, all in the same minute.
+ */
+const ESCALATED_PAST_TIMELINE = [
+  step({
+    id: "c",
+    ruleName: "First responders",
+    user: JANE,
+    status: OnCallDutyExecutionLogTimelineStatus.PassedOn,
+    statusMessage: ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
+  }),
+  step({
+    id: "d",
+    ruleName: "Platform leads",
+    status: OnCallDutyExecutionLogTimelineStatus.Skipped,
+    statusMessage: ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE,
+  }),
+  step({
+    id: "e",
+    ruleName: "DBA leads",
+    user: ALEX,
+    status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+    statusMessage: "Notification sent by SMS and email.",
+  }),
+];
+
+/*
+ * The run the timeline is of: a direct page, &run=next-in-rotation,
+ * &run=empty-levels or &run=escalated-past.
  */
 function shownTimeline() {
   const shown = new URLSearchParams(window.location.search).get("run");
@@ -392,6 +431,10 @@ function shownTimeline() {
 
   if (shown === "empty-levels") {
     return EMPTY_LEVELS_TIMELINE;
+  }
+
+  if (shown === "escalated-past") {
+    return ESCALATED_PAST_TIMELINE;
   }
 
   return TIMELINE;

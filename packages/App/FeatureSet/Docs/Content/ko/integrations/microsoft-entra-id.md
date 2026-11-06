@@ -1,6 +1,6 @@
 # Microsoft Entra ID
 
-[Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/)의 로그인과 디렉터리 변경을 OneUptime의 보안 이벤트로 가져오고, 원하면 [Microsoft 365 감사 로그](https://learn.microsoft.com/en-us/purview/audit-log-activities)의 Exchange, SharePoint, OneDrive, Teams 활동도 가져옵니다. 그곳에서 로그, 트레이스, 메트릭과 나란히 검색하고, 다른 모든 소스와 상관 분석하고, 중요한 것에 대해 온콜을 호출할 수 있습니다. OneUptime은 직접 만든 앱 등록으로 이를 읽으며, 테넌트에서 아무것도 바꾸지 않습니다.
+[Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/)의 로그인, 디렉터리 변경, 위험 탐지를 OneUptime의 보안 이벤트로 가져오고, 원하면 앱이 백그라운드에서 하는 로그인과 [Microsoft 365 감사 로그](https://learn.microsoft.com/en-us/purview/audit-log-activities)의 Exchange, SharePoint, OneDrive, Teams 활동도 가져옵니다. 그곳에서 로그, 트레이스, 메트릭과 나란히 검색하고, 다른 모든 소스와 상관 분석하고, 중요한 것에 대해 온콜을 호출할 수 있습니다. OneUptime은 직접 만든 앱 등록으로 이를 읽으며, 테넌트에서 아무것도 바꾸지 않습니다.
 
 :::cards
 - [연결 설정](#연결-설정): 앱 등록, 그 권한, 그리고 연결 양식.
@@ -19,15 +19,15 @@ flowchart TB
     list --> event["각각을 종류에<br/>맞는 OCSF<br/>이벤트로 저장"]
 ```
 
-OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 폴링합니다. 폴링은 앱 등록으로 Microsoft Entra ID에 로그인하고, 지난 폴링 이후 기록된 디렉터리 변경([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list))과 로그인([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list))을 이 순서로 읽은 다음, **Microsoft 365 감사 로그** 옵션이 켜져 있으면 감사 로그의 새 콘텐츠([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference))를 읽습니다. 각 레코드는 [OCSF](https://schema.ocsf.io/) 이벤트로 저장됩니다. 로그인은 Authentication 이벤트로, 역할 할당은 User Access Management 이벤트로, 피싱 판정은 Detection Finding으로 저장됩니다.
+OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 폴링합니다. 폴링은 앱 등록으로 Microsoft Entra ID에 로그인하고, 지난 폴링 이후 기록된 디렉터리 변경([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list))과 로그인([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list))을 이 순서로 읽고, 이어서 Identity Protection의 위험 탐지([List riskDetections](https://learn.microsoft.com/en-us/graph/api/riskdetection-list))를 읽은 다음, **백그라운드 및 앱 로그인** 옵션이 켜져 있으면 백그라운드 및 앱 로그인을, **Microsoft 365 감사 로그** 옵션이 켜져 있으면 감사 로그의 새 콘텐츠([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference))를 읽습니다. 각 레코드는 [OCSF](https://schema.ocsf.io/) 이벤트로 저장됩니다. 로그인은 Authentication 이벤트로, 역할 할당은 User Access Management 이벤트로, 위험 탐지와 피싱 판정은 Detection Finding으로 저장됩니다.
 
 ## 사전 요건
 
 - OneUptime에서 Project Owner, Project Admin 또는 Security Admin 역할. Security Member와 Security Viewer는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
-- 로그인의 경우 Microsoft 365 E3, E5, Business Premium에 포함된 Microsoft Entra ID P1 또는 P2. Microsoft Graph는 이런 테넌트에만 로그인을 제공합니다. 디렉터리 변경은 어떤 테넌트에서든 읽습니다.
+- 로그인과 위험 탐지의 경우 Microsoft 365 E3, E5, Business Premium에 포함된 Microsoft Entra ID P1 또는 P2. Microsoft Graph는 이런 테넌트에만 이를 제공하며, 각 위험 탐지의 세부 정보는 P2에서 제공됩니다. 디렉터리 변경은 어떤 테넌트에서든 읽습니다.
 - Application Administrator처럼 애플리케이션을 등록할 수 있는 Entra 역할, 그리고 관리자 동의를 부여할 Global Administrator 또는 Privileged Role Administrator.
 - Microsoft 365 감사 로그의 경우 테넌트에서 감사가 켜져 있어야 하며, 기본값이 켜짐입니다. [Microsoft Purview 포털](https://purview.microsoft.com)의 **Audit**에 **Start recording user and admin activity**가 표시되면 안 됩니다.
-- OneUptime 앱과 워커에서 `login.microsoftonline.com`, `graph.microsoft.com`, `manage.office.com`으로, Azure Government의 경우 `login.microsoftonline.us`, `graph.microsoft.us`, `manage.office365.us`로 나가는 HTTPS.
+- OneUptime 앱과 워커에서 `login.microsoftonline.com`, `graph.microsoft.com`, `manage.office.com`으로(Microsoft 365 GCC는 대신 `manage-gcc.office.com`으로), GCC High의 경우 `login.microsoftonline.us`, `graph.microsoft.us`, `manage.office365.us`로, DoD의 경우 `login.microsoftonline.us`, `dod-graph.microsoft.us`, `manage.protection.apps.mil`로 나가는 HTTPS.
 
 ## 연결 설정
 
@@ -42,7 +42,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ### 로그를 읽도록 허용
 
-1. **API permissions → Add a permission → Microsoft Graph → Application permissions**로 이동해 `AuditLog.Read.All`을 고르고 **Add permissions**를 선택합니다. Microsoft는 로그인 목록에 `Directory.Read.All`도 필요할 수 있다고 안내합니다. 동의를 부여한 뒤에도 로그인이 `403`으로 거부되면 추가하세요.
+1. **API permissions → Add a permission → Microsoft Graph → Application permissions**로 이동해 `AuditLog.Read.All`과, 위험 탐지를 위해 `IdentityRiskEvent.Read.All`을 고르고 **Add permissions**를 선택합니다. Microsoft는 로그인 목록에 `Directory.Read.All`도 필요할 수 있다고 안내합니다. 동의를 부여한 뒤에도 로그인이 `403`으로 거부되면 추가하세요.
 2. Microsoft 365 감사 로그를 위해 두 번째 권한을 추가합니다. **Add a permission → Office 365 Management APIs → Application permissions**를 선택한 다음 `ActivityFeed.Read`를 고릅니다.
 3. 플레이북이 사용자를 비활성화, 활성화, 로그아웃할 수 있게 하려면( [봉쇄](/docs/telemetry/security-cases#봉쇄) 참고), 같은 방법으로 `User.Read.All`, `User.EnableDisableAccount.All`, `User.RevokeSessions.All` 를 추가합니다. Microsoft는 Privileged Authentication Administrator 역할도 가진 앱만 관리자의 계정을 바꾸게 합니다.
 4. 테넌트에 대해 **Grant admin consent for**를 선택하고 확인합니다. 각 권한의 상태가 **Granted**여야 합니다. 동의가 없으면 모든 읽기가 `403`으로 거부됩니다.
@@ -53,7 +53,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ### OneUptime에서 연결 추가
 
-**제품 → 보안 이벤트 → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 다음, **아이덴티티** 아래의 **Microsoft Entra ID**를 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 시크릿 값을 **클라이언트 시크릿**에 붙여 넣습니다. **폴링** 단계에서 **Microsoft 365 감사 로그**를 켜면 그것도 읽습니다.
+**제품 → 보안 이벤트 → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 다음, **아이덴티티** 아래의 **Microsoft Entra ID**를 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 시크릿 값을 **클라이언트 시크릿**에 붙여 넣습니다. **폴링** 단계에서 **백그라운드 및 앱 로그인**이나 **Microsoft 365 감사 로그**를 켜면 그것도 읽습니다. Azure 퍼블릭 클라우드 밖의 테넌트는 설정 단계의 **추가 필드**에서 **클라우드**를 고릅니다.
 
 ### 저장하기 전에 테스트
 
@@ -63,8 +63,9 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 | 설정 | 찾는 위치 |
 | --- | --- |
 | **디렉터리(테넌트) ID** | 앱의 **Overview** 페이지. 테넌트의 GUID 또는 `contoso.onmicrosoft.com` 같은 확인된 도메인. **Microsoft 365 감사 로그**가 켜져 있으면 GUID여야 합니다. Management API는 테넌트를 GUID로만 식별합니다. |
-| **애플리케이션(클라이언트) ID** | 앱의 **Overview** 페이지. `AuditLog.Read.All`을 가진 앱의 GUID. |
-| **클라우드** | **Azure 퍼블릭 클라우드**, 또는 GCC High용 **Azure Government(미국)** (`login.microsoftonline.us`, `graph.microsoft.us`, `manage.office365.us`). |
+| **애플리케이션(클라이언트) ID** | 앱의 **Overview** 페이지. `AuditLog.Read.All`과 `IdentityRiskEvent.Read.All`을 가진 앱의 GUID. |
+| **클라우드** | **추가 필드**에 있으며, 다른 것을 고르지 않는 한 **Azure 퍼블릭 클라우드**. GCC는 **Azure 퍼블릭 클라우드, Microsoft 365 GCC**, GCC High는 **Azure Government(미국), GCC High**, DoD는 **Azure Government(미국), DoD**를 고릅니다. |
+| **백그라운드 및 앱 로그인** | 선택 사항이며 기본값은 꺼짐. 켜면 폴링할 때마다 앱이 사용자를 위해 백그라운드에서 하는 로그인과 서비스 주체 자체의 로그인도 Microsoft Graph 베타 로그인 목록에서 읽고, 실패한 것을 가져옵니다. |
 | **Microsoft 365 감사 로그** | 선택 사항이며 기본값은 꺼짐. 켜면 폴링할 때마다 Microsoft 365 감사 로그도 읽습니다. 앱에 `ActivityFeed.Read`가 필요합니다. |
 | **클라이언트 시크릿** | 시크릿의 **Value**. 암호화되며, API가 반환하지 않고 다시는 표시되지 않습니다. 연결의 **자격 증명 업데이트**로 교체합니다. |
 
@@ -80,6 +81,8 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 | MFA(`50074`, `50076`)나 비밀번호 변경 요청처럼 두 번째 단계를 기다리는 로그인 | Authentication (`3002`), 상태 `Interrupted` | Informational: 실패가 아니라 한 단계 |
 | 실패한 로그인(Entra의 이유와 오류 코드 포함) | Authentication (`3002`), 상태 `Failure` | Low |
 | Identity Protection이 중간 또는 높은 위험으로 평가한 로그인 | Authentication (`3002`) | Medium 또는 High |
+| Identity Protection이 탐지한 위험(익명 IP 주소나 유출된 자격 증명 등) | Detection Finding (`2004`) | 그 위험 수준. 침해가 확인된 사용자는 Critical |
+| 실패한 백그라운드 또는 앱 로그인(**백그라운드 및 앱 로그인**이 켜져 있을 때) | Authentication (`3002`), 상태 `Failure` | Low |
 | 변경된 사용자, 그룹 또는 역할(범주별) | Account Change (`3001`), Group Management (`3006`), User Access Management (`3005`), 나머지는 Entity Management (`3004`) | Global Administrator 같은 권한 있는 역할은 Medium, 실패한 변경은 Low |
 
 **Microsoft 365 감사 로그**가 켜져 있으면 보안 팀이 대응하는 레코드를 그곳에서 가져오고, 열린 파일이나 읽은 메일 같은 나머지는 개수만 셉니다.
@@ -96,22 +99,22 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 시스템 계정으로 실행되는 Exchange 자체의 내부 작업은 메일을 전달하지 않는 한 제외됩니다. 모든 이벤트는 `status.errorCode`나 `Parameters.ForwardTo` 같은 점 구분 키로 평탄화한 레코드 전체를 보관하므로, 규칙은 Microsoft가 붙인 이름으로 어떤 필드든 읽을 수 있습니다. 규칙 라이브러리의 Entra ID 규칙은 여기서 가져온 그대로 읽습니다.
 
-같은 로그인과 디렉터리 변경은 Azure 진단 설정으로 내보내 [내 로그](/docs/telemetry/security-events#로그에서-보안-이벤트-찾기)가 읽는 로그로 OneUptime에 들어올 수도 있습니다. 어느 경로든 각 레코드는 같은 이벤트 ID를 받지만, 두 경로로 모두 읽은 레코드는 두 번 저장됩니다. Entra ID는 한 경로로만 읽으세요.
+같은 로그인, 디렉터리 변경, 위험 탐지는 Azure 진단 설정으로 내보내 [내 로그](/docs/telemetry/security-events#로그에서-보안-이벤트-찾기)가 읽는 로그로 OneUptime에 들어올 수도 있습니다. 어느 경로든 각 레코드는 같은 이벤트 ID를 받으며, 두 경로로 모두 읽은 레코드는 먼저 읽은 경로로 한 번만 저장됩니다.
 
 ## 폴링 작동 방식
 
-- **레코드는 Entra ID가 기록한 시각으로 읽습니다**. 변경은 `activityDateTime`, 로그인은 `createdDateTime`입니다.
+- **레코드는 Entra ID가 기록한 시각으로 읽습니다**. 변경은 `activityDateTime`, 로그인은 `createdDateTime`, 위험 탐지는 `detectedDateTime`입니다.
 - **첫 폴링은 24시간 전까지 거슬러 올라가므로**, 새 연결에서 최근 레코드가 바로 보입니다.
 - **이후의 모든 폴링은 저장된 커서보다 30분 앞에서 시작합니다.** Microsoft는 두 로그 모두 몇 분 늦게 도착한다고 안내하므로, 겹치는 부분 덕분에 늦은 레코드는 다음 폴링에서 읽히고, 중복은 프로젝트 안에서 레코드 ID로 걸러집니다.
 - **한 번의 폴링은 커서 이후 최대 24시간까지 읽습니다.** 커서가 뒤처진 연결은 24시간 구간을 연달아 읽으며 따라잡습니다.
 - **Microsoft Entra ID P1도 P2도 없는 테넌트**는 디렉터리 변경을 가져오며, 각 실행의 **Read sign-ins** 검사가 로그인을 읽지 못했다고 경고합니다.
 - **실패한 실행은 아무것도 바꾸지 않습니다.** 네트워크 오류나 Graph의 오류 상태 뒤에는 커서와 구간 길이가 그대로 유지되고, 다음 폴링이 같은 구간을 다시 읽습니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 커서는 그대로지만 다음 구간은 절반 길이가 됩니다. 제시간에 응답할 수 없을 만큼 무거운 구간은 매번 시간 초과될 것이기 때문입니다.
 
-Microsoft 365 감사 로그는 Microsoft가 각 콘텐츠 Blob을 사용할 수 있게 한 시각으로, 하루씩, Microsoft가 보관하는 7일보다 이전으로는 거슬러 가지 않고 읽습니다. 첫 폴링에서 앱을 `Audit.Exchange`, `Audit.SharePoint`, `Audit.General`에 구독시키며, Microsoft는 새 구독의 첫 레코드를 12시간 안에 사용할 수 있게 합니다. 감사 로그가 Entra ID 로그를 멈추는 일은 없습니다. 권한이 없으면 경고가 되고 구간은 다음으로 넘어가지만, `HTTP 503` 같은 Microsoft 쪽 장애는 실행을 **부분**으로 만들어 구간을 다시 읽게 합니다.
+Microsoft 365 감사 로그는 Microsoft가 각 콘텐츠 Blob을 사용할 수 있게 한 시각으로, 하루씩, Microsoft가 보관하는 7일보다 이전으로는 거슬러 가지 않고 읽습니다. 첫 폴링에서 앱을 `Audit.Exchange`, `Audit.SharePoint`, `Audit.General`에 구독시키며, Microsoft는 새 구독의 첫 레코드를 12시간 안에 사용할 수 있게 합니다. 감사 로그가 Entra ID 로그를 멈추는 일은 없습니다. 권한이 없으면 경고가 되고 구간은 다음으로 넘어가지만, `HTTP 503` 같은 Microsoft 쪽 장애는 실행을 **부분**으로 만들어 구간을 다시 읽게 합니다. 위험 탐지와 백그라운드 및 앱 로그인도 마찬가지로, 로그인과 디렉터리 변경을 멈추지 않습니다.
 
 ### 한 번의 폴링으로 다 읽을 수 없는 구간
 
-각 로그에는 자체 예산이 있습니다. 디렉터리 변경은 500개짜리 페이지 10개, 로그인은 500개짜리 페이지 20개, Microsoft 365 감사 로그는 요청 120개와 레코드 10,000개입니다. 폴링은 4분 뒤에 멈춥니다. 예산 때문에 구간이 끝나기 전에 로그 읽기가 멈추면 실행은 **부분**이 되고, 그 경고에 로그와 예산이 표시됩니다. Microsoft Graph는 최신 레코드부터 나열하므로, OneUptime은 닿지 못한 레코드 너머로 커서를 옮기는 대신 구간을 줄입니다.
+각 로그에는 자체 예산이 있습니다. 디렉터리 변경은 500개짜리 페이지 10개, 로그인은 500개짜리 페이지 20개, 위험 탐지는 500개짜리 페이지 4개, 백그라운드 로그인은 종류마다 500개짜리 페이지 10개, Microsoft 365 감사 로그는 요청 120개와 레코드 10,000개입니다. 폴링은 4분 뒤에 멈춥니다. 예산 때문에 구간이 끝나기 전에 로그 읽기가 멈추면 실행은 **부분**이 되고, 그 경고에 로그와 예산이 표시됩니다. Microsoft Graph는 최신 레코드부터 나열하므로, OneUptime은 닿지 못한 레코드 너머로 커서를 옮기는 대신 구간을 줄입니다.
 
 1. **좁히기.** 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽으며, 구간을 끝까지 읽을 수 있게 될 때까지 계속 절반으로 줄이고, 가장 짧게는 1분까지 줄입니다. 실행의 경고에 그렇게 적힙니다: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 더 긴 구간에서 이미 가져온 레코드는 중복으로 건너뜁니다.
 2. **다시 늘리기.** 구간을 끝까지 읽으면 커서가 그 끝으로 옮겨지고, 다음 구간은 다시 두 배가 되며, 최대 24시간까지 늘어납니다.
@@ -138,6 +141,8 @@ Microsoft 365 감사 로그는 Microsoft가 각 콘텐츠 Blob을 사용할 수 
 | **Authenticate with Microsoft Entra** | 선택한 클라우드에서 Entra ID가 앱에 Microsoft Graph용 토큰을 발급하는지. |
 | **Read sign-ins** | 지난 24시간의 로그인을 읽을 수 있는지. P1도 P2도 없는 테넌트에서는 실패가 아니라 경고입니다. |
 | **Read directory changes** | 지난 24시간의 디렉터리 변경을 읽을 수 있는지. |
+| **Read risk detections** | 지난 24시간의 Identity Protection 위험 탐지를 읽을 수 있는지. 권한이나 라이선스가 없으면 실패가 아니라 경고입니다. |
+| **Read background and app sign-ins** | 옵션이 켜져 있을 때만: Microsoft Graph 베타 로그인 목록이 두 종류 모두에 응답하는지. |
 | **Read the Microsoft 365 audit log** | 옵션이 켜져 있을 때만: Management API가 응답하는지, 그리고 앱이 어떤 콘텐츠 유형을 구독하는지. |
 | **Records available to import** | 지난 24시간에 로그인과 디렉터리 변경이 몇 개 있는지. 각각 최대 500개까지 세므로 `500+`는 그보다 많다는 뜻입니다. 하나도 없으면 경고입니다. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime 쪽: Worker 큐의 작업을 가져가는 프로세스가 있고, 폴링 작업이 매분 실행되고, 보안 이벤트 저장소가 응답하는지. |
@@ -157,6 +162,11 @@ Microsoft 365 감사 로그는 Microsoft가 각 콘텐츠 Blob을 사용할 수 
 :::details 마지막 오류에 `sign-ins request failed (HTTP 403)` 또는 `audit logs request failed (HTTP 403)`가 나옴
 - 오류 코드 `Authorization_RequestDenied`: 앱에 `AuditLog.Read.All`이 없거나 동의가 부여되지 않았습니다. 관리자 동의를 부여하고 몇 분 기다린 뒤 다시 테스트하세요. 로그인을 위해서는 `Directory.Read.All`도 부여하세요.
 - 오류 코드 `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: 테넌트에 Microsoft Entra ID P1도 P2도 없습니다. 디렉터리 변경은 계속 가져옵니다.
+:::
+
+:::details 위험 탐지를 읽지 못함
+- `risk detections request failed (HTTP 403)`: 앱에 `IdentityRiskEvent.Read.All`이 없거나 동의가 부여되지 않았습니다. 로그인과 디렉터리 변경은 계속 가져옵니다.
+- 오류 코드 `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: 테넌트에 Microsoft Entra ID P1도 P2도 없습니다.
 :::
 
 :::details Microsoft 365 감사 로그를 읽지 못함

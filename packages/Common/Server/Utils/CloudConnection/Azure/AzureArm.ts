@@ -66,8 +66,13 @@ export const AZURE_METRICS_API_VERSION: string = "2023-10-01";
 export const AZURE_RESOURCE_GRAPH_API_VERSION: string = "2022-10-01";
 export const AZURE_ACTIVITY_LOG_API_VERSION: string = "2015-04-01";
 // The fields of an Activity Log event read: never its claims or request.
+/*
+ * Of each Activity Log event: what a change and a health event are made of,
+ * and what Security Events' Cloud audit logs name besides - the caller's
+ * address (httpRequest), the operation's correlation and its subscription.
+ */
 const ACTIVITY_LOG_FIELDS: string =
-  "eventDataId,eventTimestamp,operationName,status,caller,resourceId,category,level,properties,resourceType";
+  "eventDataId,eventTimestamp,operationName,status,caller,resourceId,category,level,properties,resourceType,httpRequest,correlationId,subscriptionId";
 // Rows of a Resource Graph page, and pages of one query at most.
 const RESOURCE_GRAPH_PAGE_SIZE: number = 1000;
 const RESOURCE_GRAPH_MAX_PAGES: number = 20;

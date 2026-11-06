@@ -9,6 +9,7 @@ import {
   useParams,
 } from "react-router-dom";
 import i18next from "i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import "Common/UI/Styles/Theme.css";
 import CloudConnectPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Connect";
@@ -35,6 +36,7 @@ import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import FA from "../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
@@ -114,9 +116,29 @@ import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
  *   ?agentsettings=custom  the connected agent reports three changes, the
  *               tag it requires and two protected resources (Change opens
  *               the dialog on them)
+ *   ?changes=ai the AWS account's Changes also hold two changes OneUptime
+ *               AI made through its Cloud AI agent, as the recorder marks
+ *               them: the approved fix of incident #18 and its rollback
  *
  * window.__cloudConnectFixture.connectAgent() makes the agent connect, as
- * it does a few minutes after the setup command finished. The page says
+ * it does a few minutes after the setup command finished.
+ *
+ * How the AWS connection streams its CloudWatch metrics and logs through
+ * Amazon Data Firehose (Stream metrics and logs, on its row), answered
+ * from POST /cloud-connection/<id>/stream-key and /stop-streaming as the
+ * server answers them:
+ *
+ *   ?stream=    none (default: it has no stream key)
+ *               | waiting (a key, and no delivery yet)
+ *               | receiving (metrics from us-east-1 and logs from
+ *               eu-west-1, a minute ago)
+ *               | refused (its last delivery came with a key that no
+ *               longer works)
+ *   ?https=1    the page is a OneUptime on an HTTPS address (server.js):
+ *               Firehose delivers to no other
+ *
+ * window.__cloudConnectFixture.deliver() makes the first delivery arrive,
+ * as it does a few minutes after the stream's command finished. The page says
  * which language it is in and which way it reads, as production's
  * followLanguageForPage does: Persian is laid out right to left.
  */
@@ -156,6 +178,78 @@ const language = ["ja", "de", "fa"].includes(params.get("lang"))
 const securityState = ["news", "quiet"].includes(params.get("security"))
   ? params.get("security")
   : "none";
+const streamState = ["waiting", "receiving", "refused"].includes(
+  params.get("stream"),
+)
+  ? params.get("stream")
+  : "none";
+
+// What the AWS connection's streams delivered: metrics and logs a minute ago.
+function receivingSummary() {
+  const at = new Date(Date.now() - 60 * 1000).toISOString();
+  return {
+    lastDeliveryAt: at,
+    metricSources: [
+      {
+        accountId: "123456789012",
+        region: "us-east-1",
+        namespaces: [
+          "AWS/EC2",
+          "AWS/RDS",
+          "AWS/Lambda",
+          "AWS/ApplicationELB",
+          "AWS/SQS",
+          "AWS/DynamoDB",
+          "AWS/S3",
+          "AWS/ElastiCache",
+          "AWS/SNS",
+          "AWS/Kinesis",
+          "AWS/ECS",
+          "AWS/NATGateway",
+        ],
+        lastAt: at,
+      },
+    ],
+    logSources: [
+      {
+        accountId: "123456789012",
+        region: "eu-west-1",
+        logGroups: [
+          "/aws/lambda/nightly-export",
+          "/aws/rds/instance/orders-db/error",
+          "/aws/lambda/checkout",
+        ],
+        lastAt: at,
+      },
+    ],
+  };
+}
+
+// The AWS connection's stream key and what its streams said, as ?stream= sets them.
+function streamFields() {
+  if (streamState === "none") {
+    return {};
+  }
+  const madeAt = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  if (streamState === "waiting") {
+    return { streamKeyCreatedAt: madeAt, streamSummary: {} };
+  }
+  if (streamState === "receiving") {
+    return { streamKeyCreatedAt: madeAt, streamSummary: receivingSummary() };
+  }
+  return {
+    streamKeyCreatedAt: madeAt,
+    streamSummary: {
+      lastDeliveryAt: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
+      metricSources: [],
+      logSources: [],
+      lastRefusal: {
+        reason: "wrong-key",
+        at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+      },
+    },
+  };
+}
 
 if (params.get("theme") === "dark") {
   document.documentElement.classList.add("dark");
@@ -174,6 +268,8 @@ await i18next.use(initReactI18next).init({
   keySeparator: false,
   nsSeparator: false,
 });
+// Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
+followLanguageForDates(i18next);
 setPageLanguage(language);
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
@@ -258,6 +354,7 @@ const connections =
       ? NEW_CONNECTIONS
       : [
           connection("20000000-0000-4000-8000-000000000001", {
+            ...streamFields(),
             name: "AWS 123456789012",
             provider: "aws",
             config: {
@@ -905,6 +1002,70 @@ const CHANGES =
     : [];
 
 /*
+ * ?changes=ai: what the Cloud AI agent changed for OneUptime AI, as the
+ * recorder marks a change it matched to the agent's job - its identity
+ * (an assumed-role session of OneUptimeAiAgentWrite), the job, the fix,
+ * the AI run that planned it, whether it was the fix or its rollback, and
+ * the incident it fixed. Its fix is the one the account's AI Logs list,
+ * approved by Maya Chen.
+ */
+const AI_FIX_ID = "80000000-0000-4000-8000-000000000001";
+const AI_FIX_INCIDENT_ID = "70000000-0000-4000-8000-000000000001";
+const AI_SESSION = "oneuptime-ai-scale-out-9f2c61d0";
+
+function aiChange(minutesAgo, step, title) {
+  return cloudChange(
+    minutesAgo,
+    {
+      eventType: "scaling",
+      title: title,
+      description: `${AI_SESSION} ran UpdateService in account 123456789012 (us-east-1), on checkout.`,
+    },
+    {
+      "oneuptime.change.status": "succeeded",
+      "cloud.region": "us-east-1",
+      "oneuptime.cloud.actor": AI_SESSION,
+      "oneuptime.cloud.operation": "UpdateService",
+      "oneuptime.change.made_by": "oneuptime-ai",
+      "oneuptime.runner_job.id": "90000000-0000-4000-8000-000000000001",
+      "oneuptime.auto_remediation_suggestion.id": AI_FIX_ID,
+      "oneuptime.ai_run.id": "60000000-0000-4000-8000-000000000001",
+      "oneuptime.ai.step": step,
+      "oneuptime.incident.id": AI_FIX_INCIDENT_ID,
+    },
+  );
+}
+
+if (dataState === "connected" && params.get("changes") === "ai") {
+  CHANGES.push(
+    aiChange(39, "fix", "UpdateService on checkout"),
+    aiChange(30, "rollback", "UpdateService on checkout (rolled back)"),
+  );
+  // Newest first, as the list reads them.
+  CHANGES.sort((left, right) => {
+    return right.time.getTime() - left.time.getTime();
+  });
+}
+
+// The fix the agent's changes name, as the reader may read it.
+const AI_FIXES = [
+  {
+    _id: AI_FIX_ID,
+    status: "Approved",
+    incidentId: new ObjectID(AI_FIX_INCIDENT_ID),
+    approvedByUser: {
+      _id: "10000000-0000-4000-8000-000000000003",
+      name: "Maya Chen",
+    },
+    incident: {
+      _id: AI_FIX_INCIDENT_ID,
+      incidentNumber: 18,
+      incidentNumberWithPrefix: "#18",
+    },
+  },
+];
+
+/*
  * Whether a row matches a list's query, as far as these lists ask: each
  * field equal, an Includes any of its values, an attributes map each of
  * its keys. A relation (cloudResources) matches by the ids it holds.
@@ -990,6 +1151,9 @@ const state = {
   held: [],
   // What each Security card asked about: the kind and id of its record.
   securityReads: [],
+  // Every stream key made, by connection, and every Stop streaming.
+  streamKeys: [],
+  streamStops: [],
 };
 
 /*
@@ -1387,6 +1551,15 @@ const RUNNER_JOBS = [
 
 window.__cloudConnectFixture = {
   state: state,
+  // The first delivery arrives, a few minutes after the stream's command.
+  deliver: () => {
+    const found = connections.find((item) => {
+      return item.provider === "aws";
+    });
+    if (found) {
+      found.streamSummary = receivingSummary();
+    }
+  },
   // The Cloud AI agent connects, as it does once its command finished.
   connectAgent: () => {
     state.ai = "connected";
@@ -1488,6 +1661,22 @@ ModelAPI.getList = async (args) => {
       allowedOrigins: [],
     });
     return { data: [key], count: 1, skip: 0, limit: args.limit };
+  }
+
+  // The fixes OneUptime AI's changes on a Changes page name, read once.
+  if (args.modelType === AutoRemediationSuggestion) {
+    const ids = plainValues(args.query?._id);
+    state.listRequests.push({
+      model: "AutoRemediationSuggestion",
+      ids: ids,
+      select: Object.keys(args.select || {}).sort(),
+    });
+    const data = AI_FIXES.filter((row) => {
+      return ids.includes(row._id);
+    }).map((row) => {
+      return Object.assign(new AutoRemediationSuggestion(), row);
+    });
+    return { data: data, count: data.length, skip: 0, limit: args.limit };
   }
 
   // The commands OneUptime AI ran on an account through its agent.
@@ -1754,6 +1943,50 @@ API.post = async (options) => {
   if (url.endsWith("/read-now")) {
     state.readNows.push(new URL(url).pathname);
     return new HTTPResponse(200, { queued: true }, {});
+  }
+
+  /*
+   * A new stream key for an AWS connection, shown this once; the key it
+   * replaces works for a day more. Stop streaming: no key of it works.
+   */
+  if (url.endsWith("/stream-key") || url.endsWith("/stop-streaming")) {
+    const pathname = new URL(url).pathname;
+    const id = pathname.split("/").slice(-2)[0];
+    const found = connections.find((item) => {
+      return item.id.toString() === id;
+    });
+
+    if (url.endsWith("/stop-streaming")) {
+      state.streamStops.push(id);
+      if (found) {
+        found.streamKeyCreatedAt = undefined;
+      }
+      return new HTTPResponse(200, { stopped: true }, {});
+    }
+
+    const now = new Date();
+    const hadKey = Boolean(found && found.streamKeyCreatedAt);
+    const secret = (state.streamKeys.length + 10)
+      .toString(16)
+      .padStart(2, "0")
+      .repeat(32);
+    const streamKey = `oucs_${id}_${secret}`;
+    state.streamKeys.push(id);
+    if (found) {
+      found.streamKeyCreatedAt = now;
+      found.streamSummary = found.streamSummary || {};
+    }
+    return new HTTPResponse(
+      200,
+      {
+        streamKey: streamKey,
+        createdAt: now.toISOString(),
+        previousKeyWorksUntil: hadKey
+          ? new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
+          : null,
+      },
+      {},
+    );
   }
 
   /*

@@ -9,24 +9,30 @@ import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/
  * security case rule only posts (SecurityCaseNotificationRule): a case is the
  * investigation trail of a possible breach, so it is posted to the channels
  * and, in Microsoft Teams, the chats its rule names, and the server never
- * opens a channel for one or invites anybody.
+ * opens a channel for one or invites anybody. A hunt's rule only posts too
+ * (SecurityHuntNotificationRule): what a hunt finds is security data, posted
+ * where the team chose to read it.
  *
- * So a security case rule's Destination step asks only where to post, and
- * what it says it does never mentions a channel of its own, whatever a rule
- * saved through the API holds. React-free, so the rule's copy and App's
- * tests can read it.
+ * So a security case or hunt rule's Destination step asks only where to
+ * post, and what it says it does never mentions a channel of its own,
+ * whatever a rule saved through the API holds. React-free, so the rule's
+ * copy and App's tests can read it.
  */
 
 // The kinds of record a rule can create a channel for.
 export type ChannelRecordEventType = Exclude<
   NotificationRuleEventType,
-  NotificationRuleEventType.SecurityCase
+  | NotificationRuleEventType.SecurityCase
+  | NotificationRuleEventType.SecurityHunt
 >;
 
 export function canRuleCreateChannel(
   eventType: NotificationRuleEventType,
 ): eventType is ChannelRecordEventType {
-  return eventType !== NotificationRuleEventType.SecurityCase;
+  return (
+    eventType !== NotificationRuleEventType.SecurityCase &&
+    eventType !== NotificationRuleEventType.SecurityHunt
+  );
 }
 
 // Every kind of record a rule can create a channel for, in the enum's order.

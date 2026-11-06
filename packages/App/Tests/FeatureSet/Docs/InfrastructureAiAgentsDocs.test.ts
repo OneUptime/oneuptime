@@ -30,10 +30,12 @@ import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import {
   CloudAiAgentEnvironmentVariable,
   CloudAiAgentSetupOptions,
+  GCP_CLOUD_AI_AGENT_MACHINE_TYPE,
   getAwsCloudAiAgentTemplate,
   getCloudAiAgentEnvironment,
   getCloudAiAgentRolePermissions,
   getCloudAiAgentSetupCommand,
+  getGcpCloudAiAgentStartupScript,
 } from "Common/Types/CloudConnection/CloudAiAgentSetupCommands";
 import { PermissionHelper } from "Common/Types/Permission";
 import AiResourceType, {
@@ -42,6 +44,7 @@ import AiResourceType, {
   AiResourceTypeInfo,
   CLOUD_AI_RESOURCE_TYPES,
   isCloudAiResourceType,
+  isReadOnlyAiResourceType,
   parseAiResourceType,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
 import {
@@ -51,6 +54,9 @@ import {
   AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_APP_NAME,
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
+  GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
+  GCP_CLOUD_AI_AGENT_INSTANCE_NAME,
+  GCP_CLOUD_AI_AGENT_NETWORK_NAME,
   GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID,
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
   getCloudAiAgentOwnTargets,
@@ -230,6 +236,11 @@ const RESOURCE_SECTIONS: ReadonlyArray<ResourceSection> = [
     types: [AiResourceType.CephCluster],
   },
   {
+    title: "OpenStack clouds",
+    fixesHeading: "### Fixes on OpenStack clouds",
+    types: [AiResourceType.OpenStackCloud],
+  },
+  {
     title: "Database servers",
     fixesHeading: "### Fixes on database servers",
     types: [AiResourceType.DatabaseServer],
@@ -281,6 +292,7 @@ const TELEMETRY_PAGES: Readonly<Record<AiResourceType, string>> = {
   [AiResourceType.AwsAccount]: "telemetry/cloud-accounts",
   [AiResourceType.AzureSubscription]: "telemetry/cloud-accounts",
   [AiResourceType.GoogleCloudProject]: "telemetry/cloud-accounts",
+  [AiResourceType.OpenStackCloud]: "telemetry/openstack",
 };
 
 const CLOUD_ACCOUNTS_PAGE: string = TELEMETRY_PAGES[AiResourceType.AwsAccount];
@@ -304,6 +316,7 @@ const COMPOSE_FILES: Readonly<Record<AiResourceType, string | null>> = {
   [AiResourceType.AwsAccount]: null,
   [AiResourceType.AzureSubscription]: null,
   [AiResourceType.GoogleCloudProject]: null,
+  [AiResourceType.OpenStackCloud]: "agents/OpenStackAgent/docker-compose.yml",
 };
 
 // The types whose agent a compose file runs: all but the cloud accounts.
@@ -1569,12 +1582,28 @@ describe("Infrastructure AI Agents docs", (): void => {
         }).toEqual({ cloud: cloud.catalog, named: true });
       }
 
-      // The account's AI agent page shows the same command.
+      // Google Cloud's on its VM (the default) and, in brackets, on Cloud Run.
+      const vmLogs: string = getCloudAiAgentLogsCommand(CloudProvider.GCP);
+      const runLogs: string = getCloudAiAgentLogsCommand(
+        CloudProvider.GCP,
+        "cloud-run",
+      );
+      expect(vmLogs).toContain("gcloud logging read ");
+      expect(runLogs).toContain("gcloud run services logs read ");
+      expect(oneLine(logs)).toContain(
+        `\`${vmLogs}\` (on Cloud Run, \`${runLogs}\`)`,
+      );
+
+      // The account's AI agent page shows the same command, for where the agent said it runs.
       expect(
-        readRepoFile(
-          "packages/App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentPage.tsx",
+        oneLine(
+          readRepoFile(
+            "packages/App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentPage.tsx",
+          ),
         ),
-      ).toContain("getCloudAiAgentLogsCommand(cloudProvider)");
+      ).toContain(
+        'getCloudAiAgentLogsCommand( cloudProvider, getCloudAiAgentReportedChoices({ provider: cloudProvider, accountId: props.cloudAccount?.accountId || "", posture: agent?.posture, }).gcpHost,',
+      );
       expect(oneLine(logs)).toContain(
         "and its status on the account's **AI agent** page, which shows the same command.",
       );
@@ -1615,6 +1644,15 @@ describe("Infrastructure AI Agents docs", (): void => {
             type,
             root: true,
           });
+        } else if (type === AiResourceType.OpenStackCloud) {
+          // It reads clouds.yaml, which only its owner can, as the exporter does.
+          expect({
+            type,
+            owner: service.includes(
+              'user: "${OPENSTACK_EXPORTER_USER:-65532:65532}"',
+            ),
+            noCapabilities: DROPS_ALL_CAPABILITIES.test(service),
+          }).toEqual({ type, owner: true, noCapabilities: true });
         } else {
           expect({
             type,
@@ -1632,7 +1670,7 @@ describe("Infrastructure AI Agents docs", (): void => {
       }
 
       expect(page.replace(/\s+/g, " ")).toContain(
-        "The Proxmox, VMware, Ceph and Database AI agents run as UID 1000 with no capabilities.",
+        "The Proxmox, VMware, Ceph and Database AI agents run as UID 1000 with no capabilities. The OpenStack AI agent runs as the owner of `clouds.yaml` (`OPENSTACK_EXPORTER_USER`), with none either.",
       );
     });
 
@@ -1802,19 +1840,50 @@ describe("Infrastructure AI Agents docs", (): void => {
           cloudSetupOptions(CloudProvider.Azure, "azure"),
         ),
       ).toContain("ONEUPTIME_TELEMETRY_INGESTION_KEY=secretref:ingestion-key");
+      /*
+       * Google Cloud, by default: a VM of its own in a network with no
+       * firewall rule, which reads the key as it starts (the startup script
+       * holds none), and the Cloud Run service with CPU always allocated
+       * when More fields says so.
+       */
+      const gcpVm: string = getCloudAiAgentSetupCommand(
+        cloudSetupOptions(CloudProvider.GCP, "gcp"),
+      );
+      const gcpRun: string = getCloudAiAgentSetupCommand(
+        cloudSetupOptions(CloudProvider.GCP, "gcp", { gcpHost: "cloud-run" }),
+      );
+      const gcpRow: string = oneLine(rows["gcp"]![2] as string);
+
+      expect(GCP_CLOUD_AI_AGENT_DEFAULT_HOST).toBe("compute-engine");
+      expect(gcpVm).toContain(
+        `gcloud compute instances create ${GCP_CLOUD_AI_AGENT_INSTANCE_NAME} `,
+      );
+      expect(gcpVm).toContain(
+        `--machine-type ${GCP_CLOUD_AI_AGENT_MACHINE_TYPE} `,
+      );
+      expect(gcpVm).toContain(
+        `gcloud compute networks create ${GCP_CLOUD_AI_AGENT_NETWORK_NAME} `,
+      );
+      expect(gcpVm).not.toContain("firewall-rules create");
       expect(
-        getCloudAiAgentSetupCommand(
+        getGcpCloudAiAgentStartupScript(
           cloudSetupOptions(CloudProvider.GCP, "gcp"),
         ),
-      ).toContain(
+      ).not.toContain("ingestion-key");
+      expect(gcpRow).toContain(
+        `A Compute Engine VM, \`${GCP_CLOUD_AI_AGENT_INSTANCE_NAME}\`, of type \`${GCP_CLOUD_AI_AGENT_MACHINE_TYPE}\` on Container-Optimized OS, in a network of its own with no firewall rule, so nothing can connect to it,`,
+      );
+      expect(gcpRow).toContain(
+        "The VM reads it each time it starts, and never keeps it on its disk or in its metadata.",
+      );
+      expect(gcpRow).toContain(
+        "Under **More fields**, **Where the agent runs** can choose a Cloud Run service with CPU always allocated instead, for a project that lets no VM have an external IP address.",
+      );
+      expect(gcpRun).toContain(
         "--set-secrets ONEUPTIME_TELEMETRY_INGESTION_KEY=oneuptime-ai-agent-key:latest",
       );
-      // Google Cloud: CPU always allocated.
-      expect(
-        getCloudAiAgentSetupCommand(
-          cloudSetupOptions(CloudProvider.GCP, "gcp"),
-        ),
-      ).toContain("--no-cpu-throttling");
+      // Google Cloud on Cloud Run: CPU always allocated.
+      expect(gcpRun).toContain("--no-cpu-throttling");
 
       // Only in the account it was written for.
       expect(
@@ -2396,7 +2465,26 @@ describe("Infrastructure AI Agents docs", (): void => {
   describe("what a fix may run, against the command policy", (): void => {
     const fixes: string = section(page, "## How fixes work");
 
-    for (const resource of COMMAND_SECTIONS) {
+    it("says fixes on an OpenStack cloud need a second opt-in and a credential of their own", (): void => {
+      const openStack: string = oneLine(
+        section(fixes, "### Fixes on OpenStack clouds"),
+      );
+
+      expect(openStack).toContain("`ONEUPTIME_AI_ALLOW_WRITES=true` alone");
+      expect(openStack).toContain("the credential for changes");
+      expect(openStack).toContain("`openstack dry-run <change>`");
+      expect(openStack).toContain("with who approved it");
+      // The guide the model reads says the same.
+      expect(
+        evaluate(AiResourceType.OpenStackCloud, "openstack server stop x").tier,
+      ).toBe(ResourceCommandTier.Denied);
+    });
+
+    for (const resource of COMMAND_SECTIONS.filter(
+      (candidate: ResourceSection): boolean => {
+        return !candidate.types.some(isReadOnlyAiResourceType);
+      },
+    )) {
       const heading: string = resource.fixesHeading;
 
       it(`tiers every command in "${heading.replace("### ", "")}" as its row says`, (): void => {
@@ -2502,11 +2590,16 @@ describe("Infrastructure AI Agents docs", (): void => {
 
     it("picks the resource a fix round changes in the order the types are declared", (): void => {
       expect(oneLine(fixes)).toContain(
-        `gets the round, in this order: ${ALL_AI_RESOURCE_TYPES.map(
-          (type: AiResourceType): string => {
-            return infoOf(type).displayName;
+        `gets the round, in this order: ${ALL_AI_RESOURCE_TYPES.filter(
+          (type: AiResourceType): boolean => {
+            // A resource AI only reads never has fixes on, so never gets one.
+            return !isReadOnlyAiResourceType(type);
           },
-        ).join(", ")}. The round only changes that resource.`,
+        )
+          .map((type: AiResourceType): string => {
+            return infoOf(type).displayName;
+          })
+          .join(", ")}. The round only changes that resource.`,
       );
     });
   });
@@ -2762,8 +2855,12 @@ describe("Infrastructure AI Agents docs", (): void => {
   describe("the command allowlist", (): void => {
     const allowlist: string = section(page, "### The command allowlist");
 
-    it("shows a valid entry for every resource type, the one the AI agent page suggests", (): void => {
-      for (const type of ALL_AI_RESOURCE_TYPES) {
+    it("shows a valid entry for every resource type with fixes, the one the AI agent page suggests", (): void => {
+      for (const type of ALL_AI_RESOURCE_TYPES.filter(
+        (candidate: AiResourceType): boolean => {
+          return !isReadOnlyAiResourceType(candidate);
+        },
+      )) {
         const example: string = RESOURCE_AI_ALLOWLIST_EXAMPLES[type];
 
         expect({ type, shown: allowlist.includes(`\`${example}\``) }).toEqual({
@@ -3204,10 +3301,11 @@ describe("Infrastructure AI Agents docs", (): void => {
       ]);
       expect(own.gcp).toEqual([
         `//run.googleapis.com/projects/my-project/locations/*/services/${GCP_CLOUD_AI_AGENT_SERVICE_NAME}`,
+        `//compute.googleapis.com/projects/my-project/zones/*/instances/${GCP_CLOUD_AI_AGENT_INSTANCE_NAME}`,
         `//iam.googleapis.com/projects/my-project/serviceAccounts/${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID}@*`,
       ]);
       expect(oneLine(bullet)).toContain(
-        "on AWS the `oneuptime-ai-agent` stack, its ECS cluster and service, and the roles `OneUptimeAiAgentTask` and `OneUptimeAiAgentWrite`; on Azure the `oneuptime-ai-agent` resource group; on Google Cloud the `oneuptime-ai-agent` Cloud Run service and service account.",
+        "on AWS the `oneuptime-ai-agent` stack, its ECS cluster and service, and the roles `OneUptimeAiAgentTask` and `OneUptimeAiAgentWrite`; on Azure the `oneuptime-ai-agent` resource group; on Google Cloud the `oneuptime-ai-agent` VM or Cloud Run service, and its service account.",
       );
     });
 

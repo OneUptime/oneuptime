@@ -69,6 +69,9 @@ export const DATA_SECURITY_ISSUE_VIEW_SELECT: Select<DataSecurityIssue> = {
     sensitivity: true,
     exposure: true,
     dataTypeIds: true,
+    // A telemetry store's service, or its RUM application by its key.
+    serviceId: true,
+    storeKey: true,
   },
 };
 

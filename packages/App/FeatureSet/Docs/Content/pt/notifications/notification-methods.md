@@ -1,6 +1,6 @@
 # Métodos de notificação
 
-Um método de notificação é um endereço em que o OneUptime pode encontrar você em um projeto: um endereço de e-mail, um número de telefone para SMS ou chamadas, um número do WhatsApp, uma conta do Telegram, a sua conta do Slack ou do Microsoft Teams, um telefone ou navegador para notificações push, ou um webhook. Você os adiciona em **Configurações do usuário → Métodos de notificação**, verifica, e o OneUptime começa a usá-los nos seus acionamentos na hora.
+Um método de notificação é um endereço em que o OneUptime pode encontrar você em um projeto: um endereço de e-mail, um número de telefone para SMS ou chamadas, um número do WhatsApp, uma conta do Telegram, a sua conta do Slack, do Microsoft Teams ou do Mattermost, um telefone ou navegador para notificações push, ou um webhook. Você os adiciona em **Configurações do usuário → Métodos de notificação**, verifica, e o OneUptime começa a usá-los nos seus acionamentos na hora.
 
 :::cards
 - [Escolha um método](#escolha-um-método): O que cada método precisa, e como ele é verificado.
@@ -20,7 +20,7 @@ flowchart TB
     rules --> used["Acionamentos e<br/>novidades podem<br/>chegar a ele"]
 ```
 
-Um método que você não verificou nunca é usado. Dispositivos push, Slack, Microsoft Teams e webhooks dispensam o código: registrar um dispositivo ou vincular a sua conta prova que é seu, e um webhook não precisa de prova. Verificar um método adiciona na hora as suas [regras padrão](/docs/notifications/on-call-rules#as-regras-com-que-você-começa) para ele, então um número de telefone novo aciona você em todas as gravidades até você mudar as regras dele.
+Um método que você não verificou nunca é usado. Dispositivos push, Slack, Microsoft Teams, Mattermost e webhooks dispensam o código: registrar um dispositivo ou vincular a sua conta prova que é seu, e um webhook não precisa de prova. Verificar um método adiciona na hora as suas [regras padrão](/docs/notifications/on-call-rules#as-regras-com-que-você-começa) para ele, então um número de telefone novo aciona você em todas as gravidades até você mudar as regras dele.
 
 ## Escolha um método
 
@@ -28,17 +28,18 @@ Cada aba de **Métodos de notificação** tem um ou mais cartões, um por tipo d
 
 | Cartão | Aba | O que você adiciona | Como é verificado |
 | --- | --- | --- | --- |
-| **E-mails para notificações** | **Direct Contact** | Um endereço de e-mail | Um código por e-mail |
-| **Números de telefone para notificações SMS** | **Direct Contact** | Um número de telefone | Um código por SMS |
-| **Números de telefone para notificações por chamada** | **Direct Contact** | Um número de telefone | Um código lido em uma chamada, ou nenhum para um número verificado para SMS |
-| **Números do WhatsApp para notificações** | **Direct Contact** | Um número do WhatsApp | Um código pelo WhatsApp |
-| **Contas do Telegram para Notificações** | **Direct Contact** | A sua conta do Telegram | Uma mensagem para o bot do OneUptime |
-| **Slack Account for Notifications** | **Workspace Apps** | A sua conta do Slack | Vincular a sua conta ao espaço de trabalho do projeto |
-| **Microsoft Teams Account for Notifications** | **Workspace Apps** | A sua conta do Microsoft Teams | Vincular a sua conta ao espaço de trabalho do projeto |
-| **Dispositivos de Notificação Push** | **Push Notifications** | Um telefone com o app OneUptime On-Call, ou um navegador | Registrar o dispositivo |
+| **E-mails para notificações** | **Contato direto** | Um endereço de e-mail | Um código por e-mail |
+| **Números de telefone para notificações SMS** | **Contato direto** | Um número de telefone | Um código por SMS |
+| **Números de telefone para notificações por chamada** | **Contato direto** | Um número de telefone | Um código lido em uma chamada, ou nenhum para um número verificado para SMS |
+| **Números do WhatsApp para notificações** | **Contato direto** | Um número do WhatsApp | Um código pelo WhatsApp |
+| **Contas do Telegram para Notificações** | **Contato direto** | A sua conta do Telegram | Uma mensagem para o bot do OneUptime |
+| **Slack Account for Notifications** | **Aplicativos do espaço de trabalho** | A sua conta do Slack | Vincular a sua conta ao espaço de trabalho do projeto |
+| **Microsoft Teams Account for Notifications** | **Aplicativos do espaço de trabalho** | A sua conta do Microsoft Teams | Vincular a sua conta ao espaço de trabalho do projeto |
+| **Conta do Mattermost para notificações** | **Aplicativos do espaço de trabalho** | A sua conta do Mattermost | Vincular a sua conta ao espaço de trabalho do projeto |
+| **Dispositivos de Notificação Push** | **Notificações push** | Um telefone com o app OneUptime On-Call, ou um navegador | Registrar o dispositivo |
 | **Webhooks para notificações** | **Webhooks** | Um endpoint HTTPS seu | Nenhum |
 
-**Workspace Apps** só aparece quando o projeto conectou o Slack ou o Microsoft Teams, e só mostra os que ele conectou. SMS, chamadas, WhatsApp e Telegram podem estar desativados para o projeto inteiro; veja [Ative um canal para o seu projeto](#ative-um-canal-para-o-seu-projeto).
+**Aplicativos do espaço de trabalho** só aparece quando o projeto conectou o Slack, o Microsoft Teams ou o Mattermost, e só mostra os que ele conectou. SMS, chamadas, WhatsApp e Telegram podem estar desativados para o projeto inteiro; veja [Ative um canal para o seu projeto](#ative-um-canal-para-o-seu-projeto).
 
 ## Adicione e verifique um método
 
@@ -47,7 +48,7 @@ Endereços de e-mail, números para SMS, números para chamadas e números do Wh
 :::steps
 ### Abra os seus métodos
 
-Vá até **Configurações do usuário → Métodos de notificação**. **Direct Contact** é a primeira aba.
+Vá até **Configurações do usuário → Métodos de notificação**. **Contato direto** é a primeira aba.
 
 ### Adicione o endereço
 
@@ -85,15 +86,15 @@ De volta ao OneUptime, clique em **I've sent the message — check**. Assim que 
 
 **Rotacionar código** gera um novo código para uma conta que ainda não está verificada. O código QR e o link que você abriu antes param de funcionar. Em um OneUptime auto-hospedado, o administrador do servidor conecta um bot do Telegram antes que alguém possa vincular uma conta.
 
-## Slack e Microsoft Teams
+## Slack, Microsoft Teams e Mattermost
 
-1. Vincule a sua própria conta ao espaço de trabalho do projeto: **Configurações do usuário → Espaço de trabalho → Slack**, ou **Microsoft Teams**. Veja [Slack](/docs/workspace-connections/slack) e [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
-2. Na aba **Workspace Apps**, clique em **Add Slack Account** ou **Add Microsoft Teams Account**. A conta fica verificada ao ser adicionada.
-3. Clique em **Send Test Message** na linha dela. Os acionamentos chegam como mensagens diretas do app do OneUptime.
+1. Vincule a sua própria conta ao espaço de trabalho do projeto: **Configurações do usuário → Espaço de trabalho → Slack**, **Microsoft Teams** ou **Mattermost**. Veja [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) e [Mattermost](/docs/workspace-connections/mattermost).
+2. Na aba **Aplicativos do espaço de trabalho**, clique em **Add Slack Account**, **Add Microsoft Teams Account** ou **Adicionar conta do Mattermost**. A conta fica verificada ao ser adicionada.
+3. Clique em **Send Test Message** na linha dela. Os acionamentos chegam como mensagens diretas do app do OneUptime ou, no Mattermost, do bot do projeto.
 
 ## Notificações push
 
-A aba **Push Notifications** lista os seus **Dispositivos de Notificação Push**.
+A aba **Notificações push** lista os seus **Dispositivos de Notificação Push**.
 
 - **Um telefone.** Instale o app OneUptime On-Call, conecte-o ao seu OneUptime, faça login e permita as notificações: o telefone se adiciona sozinho a esta lista. Veja [Visão geral dos aplicativos](/docs/mobile-desktop-apps/index).
 - **Este navegador.** Clique em **Registrar Dispositivo**, preencha **Nome do dispositivo** e permita as notificações quando o navegador pedir.
@@ -167,7 +168,7 @@ Um webhook não precisa de verificação, então adicioná-lo adiciona as regras
 
 ## Ative um canal para o seu projeto
 
-**SMS**, **Chamadas telefônicas**, **WhatsApp** e **Telegram** começam desativados em todo projeto novo, porque cada mensagem custa dinheiro: no OneUptime Cloud ela é paga com o saldo do projeto, e SMS e chamadas passam pela conta Twilio do próprio projeto quando a conta padrão os envia. E-mail, push, Slack, Microsoft Teams e webhooks estão sempre ativados.
+**SMS**, **Chamadas telefônicas**, **WhatsApp** e **Telegram** começam desativados em todo projeto novo, porque cada mensagem custa dinheiro: no OneUptime Cloud ela é paga com o saldo do projeto, e SMS e chamadas passam pela conta Twilio do próprio projeto quando a conta padrão os envia. E-mail, push, Slack, Microsoft Teams, Mattermost e webhooks estão sempre ativados.
 
 Enquanto um canal está desativado, ninguém no projeto pode adicionar um método nele: o cartão dele não tem botão de adicionar, e diz quem pode ativá-lo. Um proprietário do projeto, um **Administrador de cobrança** ou alguém com **Manage Billing** o ativa, no cartão **Canais de notificação** em **Configurações do projeto → Notificações → Configurações de notificação**. Um administrador do projeto não pode. Em um OneUptime auto-hospedado, SMS e chamadas também precisam de uma conta Twilio ou de um gateway que você mesmo mantém, e o Telegram de um bot que o administrador do servidor conecta; veja [Integração do Twilio](/docs/self-hosted/twilio-integration) e [Gateway de SMS e chamadas](/docs/self-hosted/sms-and-call-gateway).
 

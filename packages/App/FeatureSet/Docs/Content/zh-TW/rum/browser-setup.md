@@ -350,7 +350,7 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
 });
 ```
 
-使用 [工作階段重播](/docs/telemetry/session-replay) 時，錄製器也會擷取未攔截的錯誤，並在重播的時間軸上標示出來。例外頁面接著會顯示 **Watch what the user saw** 卡片，從錯誤發生前十秒開啟重播。在預設政策下，無論是否發生錯誤，每個工作階段都會被錄製；錯誤只決定卡片從哪裡開啟。
+使用 [工作階段重播](/docs/telemetry/session-replay) 時，錄製器也會擷取未攔截的錯誤，並在重播的時間軸上標示出來。例外頁面接著會顯示 **觀看使用者看到的內容** 卡片，從錯誤發生前十秒開啟重播。在預設政策下，無論是否發生錯誤，每個工作階段都會被錄製；錯誤只決定卡片從哪裡開啟。
 
 ## 加入日誌和指標
 

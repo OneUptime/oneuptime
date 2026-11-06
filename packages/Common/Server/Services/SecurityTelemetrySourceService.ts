@@ -55,7 +55,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!isSecurityTelemetrySourceKind(kind)) {
       throw new BadDataException(
-        "Say which telemetry to read: traces, network-flows, audit-log or rum-sessions.",
+        "Say which telemetry to read: traces, network-flows, audit-log, rum-sessions or cloud-audit.",
       );
     }
 

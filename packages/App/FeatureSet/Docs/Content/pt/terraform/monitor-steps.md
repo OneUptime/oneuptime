@@ -180,7 +180,7 @@ Cada item de `monitor_steps` é uma coisa a verificar:
 
 ### Configurações de cada tipo de monitor
 
-Os tipos de monitor com mais a definir do que um endereço guardam as suas configurações (uma consulta de logs, uma conexão com um banco de dados, um cluster a observar) em um atributo próprio, como JSON bruto escrito com `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` e `probe_status_monitor`.
+Os tipos de monitor com mais a definir do que um endereço guardam as suas configurações (uma consulta de logs, uma conexão com um banco de dados, um cluster a observar) em um atributo próprio, como JSON bruto escrito com `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` e `probe_status_monitor`.
 
 O JSON deles é o mesmo do painel, com as chaves em camelCase. Um ID dentro dele é escrito como a API o escreve: `{ _type = "ObjectID", value = "..." }`. Um monitor Logs que conta os erros de um serviço:
 
@@ -333,6 +333,7 @@ Os valores de `check_on` que cada tipo de monitor mais usa. O editor de critéri
 | Processos do servidor | `Is Executing`, `Is Not Executing` |
 | Scripts | `Evaluates To True` |
 | Anomalias, para métricas, logs e traces | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Previsões, para métricas | `Forecast Above`, `Forecast Below` (o horizonte é `forecast.horizonInHours` em `metric_monitor_options`: uma semana se omitido) |
 
 Um filtro que corresponde quando um certificado SSL expira em 14 dias ou menos:
 

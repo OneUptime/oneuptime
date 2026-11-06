@@ -74,8 +74,8 @@ const AGENT_FILES: Array<AgentFilesPin> = [
     kind: AgentKind.DatabaseAgent,
     directory: "DatabaseAgent",
     files: ["docker-compose.yml", "configs"],
-    version: "0.161.0",
-    digest: "23a1aef320358ef7c4fbfd362204ffdd5949e7617c2f1991989f0ac6dda3089f",
+    version: "0.161.2",
+    digest: "7092bff211afc6146a7b3456dcead9b879d06cc29ac841246a1d209b047aae26",
   },
   {
     kind: AgentKind.ProxmoxAgent,
@@ -83,6 +83,13 @@ const AGENT_FILES: Array<AgentFilesPin> = [
     files: ["docker-compose.yml", "otel-collector-config.yaml"],
     version: "0.161.1",
     digest: "a39519614da2bc1e9da3d965fed377f97edec04bb97d507679ca0538cf915346",
+  },
+  {
+    kind: AgentKind.OpenStackAgent,
+    directory: "OpenStackAgent",
+    files: ["docker-compose.yml", "otel-collector-config.yaml"],
+    version: "0.161.4",
+    digest: "39fba01a441d2c097aaac6e4ca9f0b09fc806d6347a38f2136612c53a1e74d63",
   },
   {
     kind: AgentKind.CephAgent,
@@ -297,7 +304,6 @@ describe("the Docker Swarm agent after #5076's config change, the task labels an
 
   test("the other pinned-collector agents' files did not change: they report their collector's version", () => {
     for (const version of [
-      DATABASE_AGENT_VERSION,
       CEPH_AGENT_VERSION,
       VMWARE_AGENT_VERSION,
       STORAGE_ARRAY_AGENT_VERSION,
@@ -359,6 +365,54 @@ describe("the Proxmox agent after #5428 read every node", () => {
         getAgentVersionState({
           kind: AgentKind.ProxmoxAgent,
           agentVersion: "0.161.1",
+          serverVersion: serverVersion,
+        }).status,
+      ).toBe(AgentVersionStatus.UpToDate);
+    }
+  });
+});
+
+/*
+ * The Database agent's PostgreSQL config gained SQL checks of its own on
+ * the same collector - a restart, transaction ID wraparound, long
+ * transactions and lock waits, which the postgresql receiver does not
+ * report - so an agent still running the old files reads none of them and
+ * must show a sign (0.161.1). Every engine's config stamps the agent's one
+ * version.
+ */
+describe("the Database agent after its readings of Galera", () => {
+  test("its files report 0.161.2 and still run collector 0.161.0", () => {
+    expect(DATABASE_AGENT_VERSION).toBe("0.161.2");
+    expect(AGENT_KINDS[AgentKind.DatabaseAgent].collectorVersion).toBe(
+      "0.161.0",
+    );
+    expect(
+      fs.readFileSync(
+        path.join(REPO_ROOT, "agents", "DatabaseAgent", "docker-compose.yml"),
+        "utf8",
+      ),
+    ).toContain("image: otel/opentelemetry-collector-contrib:0.161.0");
+  });
+
+  test("an agent on the older files - 0.161.1 - is told to upgrade", () => {
+    expect(
+      getAgentVersionState({
+        kind: AgentKind.DatabaseAgent,
+        agentVersion: "0.161.1",
+        serverVersion: "14.0.105",
+      }),
+    ).toEqual({
+      status: AgentVersionStatus.Outdated,
+      latestVersion: "0.161.2",
+    });
+  });
+
+  test("an agent on the new files is up to date, whatever version OneUptime runs", () => {
+    for (const serverVersion of ["14.0.105", "15.0.0", ""]) {
+      expect(
+        getAgentVersionState({
+          kind: AgentKind.DatabaseAgent,
+          agentVersion: "0.161.2",
           serverVersion: serverVersion,
         }).status,
       ).toBe(AgentVersionStatus.UpToDate);

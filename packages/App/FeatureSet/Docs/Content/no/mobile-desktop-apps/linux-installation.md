@@ -54,7 +54,7 @@ Appen viser varsler gjennom nettleseren sin, når du har registrert nettleseren 
 
 :::steps
 ### Åpne push-enhetene dine
-Åpne **Brukerinnstillinger → Varselmetoder** og fanen **Push Notifications** i appen.
+Åpne **Brukerinnstillinger → Varselmetoder** og fanen **Push-varsler** i appen.
 
 ### Registrer denne nettleseren
 Klikk på **Registrer enhet**, behold det foreslåtte **Enhetsnavn**, for eksempel `Chrome on Linux`, eller endre det, og klikk på **Registrer enhet** igjen. Når nettleseren spør om OneUptime kan vise varsler, velger du **Tillat**.
@@ -80,7 +80,7 @@ Det er ingenting å oppdatere. Appen henter dashbordet fra ditt OneUptime hver g
 Åpne `edge://apps` i Edge, velg **Detaljer** for OneUptime, og deretter **Avinstaller**.
 :::
 
-Å avinstallere appen avregistrerer ikke nettleseren: den får fortsatt varsler. For å stoppe dem sletter du nettleseren under **Brukerinnstillinger → Varselmetoder**, på fanen **Push Notifications**, med **Slett**.
+Å avinstallere appen avregistrerer ikke nettleseren: den får fortsatt varsler. For å stoppe dem sletter du nettleseren under **Brukerinnstillinger → Varselmetoder**, på fanen **Push-varsler**, med **Slett**.
 
 ## Feilsøking
 
@@ -89,7 +89,7 @@ Det er ingenting å oppdatere. Appen henter dashbordet fra ditt OneUptime hver g
 :::
 
 :::details Det vises ingen varsler
-- Sjekk under **Brukerinnstillinger → Varselmetoder**, på fanen **Push Notifications**, at denne nettleseren står i listen, og send den et **Testvarsel**.
+- Sjekk under **Brukerinnstillinger → Varselmetoder**, på fanen **Push-varsler**, at denne nettleseren står i listen, og send den et **Testvarsel**.
 - Sjekk at Ikke forstyrr på skrivebordet er av, og at varslingsinnstillingene tillater nettleseren.
 - Blokkerer nettleseren varsler for OneUptime, klikker du på ikonet til venstre i adresselinjen, tillater varsler for nettstedet og registrerer nettleseren på nytt.
 - På et selvdriftet OneUptime sier dialogen **Registrer enhet** fra når serveren ikke har VAPID-nøkler.

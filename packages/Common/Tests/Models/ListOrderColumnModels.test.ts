@@ -65,6 +65,11 @@ const EXPECTED: Record<string, ListOrderSettings> = {
     scopeColumns: ["projectId"],
     sortOrder: SortOrder.Ascending,
   },
+  AlertIncidentRule: {
+    column: "order",
+    scopeColumns: ["projectId"],
+    sortOrder: SortOrder.Ascending,
+  },
   AlertReminderRule: {
     column: "order",
     scopeColumns: ["projectId"],

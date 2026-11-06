@@ -221,12 +221,14 @@ Hvert tilkald kan eskaleres fra der, hvor det nåede dig:
 | --- | --- |
 | E-mail | Knappen **Escalate**, derefter **Escalate** på siden, den åbner |
 | SMS og WhatsApp | Linket i beskeden åbner kvitteringssiden, hvor **Escalate** også står |
-| Telegram, Slack og Microsoft Teams | Linket "Can't take it? Escalate", derefter **Escalate** på siden, det åbner |
+| Telegram, Slack, Microsoft Teams og Mattermost | Linket "Can't take it? Escalate", derefter **Escalate** på siden, det åbner |
 | Opkald | Tryk 2. Opkaldet siger derefter, hvad der skete |
 | Pushnotifikation | Tryk på den: hændelsen, advarslen eller episoden åbner i OneUptime On-Call-appen med **Escalate** under sig |
 | OneUptime | **Eskalér** øverst i hændelsen, advarslen eller episoden, efter dens tilstandsknapper |
 
 Alle veje undtagen opkaldet spørger, før de gør noget, og siger, hvad der vil ske, for eksempel "This will immediately page Platform leads (Level 2 of 3), without waiting."; i et opkald er det at trykke 2 svaret. Kun den, der bliver tilkaldt, kan eskalere sit tilkald: knappen i OneUptime vises kun for vedkommende, og linket i en besked eskalerer kun det tilkald, det blev sendt om, for den person, det blev sendt til, i 7 dage.
+
+Med to eller flere niveauer efter dit spørger OneUptime og de sider, som linkene i en besked åbner, også, hvilket niveau der skal tilkaldes, under **Eskalér til**, med det næste niveau valgt. Lad det stå for at tilkalde det næste niveau som altid, eller vælg et senere niveau for at tilkalde det med det samme i stedet: niveauerne imellem springes over, og politikken fortsætter fra det niveau, du valgte. Et opkald og appen OneUptime On-Call tilkalder det næste niveau.
 
 Hvad der sker bagefter, afhænger af, hvem der ellers bliver tilkaldt:
 
@@ -238,7 +240,7 @@ At eskalere et tilkald kvitterer ikke for det: hændelsen eller advarslen venter
 
 Et tilkald, som et workflow sender direkte til personer, har ingen niveauer: eskalerer du det, bliver du ikke tilkaldt mere, og når alle, det tilkaldte, har eskaleret det, stopper tilkaldet.
 
-Hver gang et tilkald eskaleres, bliver det registreret. Kørslens **Tidslinje for udførelsen** markerer personens linje **Eskaleret**, hændelsens feed siger "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", kørslens besked i Slack og Microsoft Teams siger, at vedkommende eskalerede det, og vedkommendes **Vagtlogs** viser tilkaldet som **Eskaleret**.
+Hver gang et tilkald eskaleres, bliver det registreret. Kørslens **Tidslinje for udførelsen** markerer personens linje **Eskaleret**, hændelsens feed siger "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", kørslens besked i Slack og Microsoft Teams siger, at vedkommende eskalerede det, og vedkommendes **Vagtlogs** viser tilkaldet som **Eskaleret**. Et niveau, der blev sprunget over for et senere, er markeret **Sprunget over** i **Tidslinje for udførelsen**, og feedet siger "On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it."
 
 ## Rediger, omarranger og slet regler
 

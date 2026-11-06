@@ -89,6 +89,7 @@ import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import API from "Common/UI/Utils/API/API";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getChangeTitleForReader } from "Common/Utils/Telemetry/CloudChangeTitle";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -666,7 +667,14 @@ const ConnectedRecord: FunctionComponent<{
                               <span
                                 className={CONNECTED_CHANGE_TITLE_CLASS_NAME}
                               >
-                                <bdi>{change.title || change.eventType}</bdi>
+                                <bdi>
+                                  {getChangeTitleForReader({
+                                    title: change.title,
+                                    eventType: change.eventType,
+                                    facts: change.cloudChange,
+                                    translator,
+                                  })}
+                                </bdi>
                               </span>
                             </li>
                           );

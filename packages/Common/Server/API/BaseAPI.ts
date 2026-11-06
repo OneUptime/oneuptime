@@ -26,6 +26,7 @@ import PartialEntity from "../../Types/Database/PartialEntity";
 import { coerceNumericColumnsInJSON } from "../../Types/Database/NumericColumnValue";
 import { coerceDateColumnsInJSON } from "../../Types/Database/DateColumnValue";
 import { coerceBooleanColumnsInJSON } from "../../Types/Database/BooleanColumnValue";
+import { coerceTextColumnsInJSON } from "../../Types/Database/TextColumnValue";
 import BadDataException from "../../Types/Exception/BadDataException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
@@ -487,13 +488,20 @@ export default class BaseAPI<
      * for every write and refuses a value the database would refuse; this
      * keeps the PUT and the POST alike before the service sees either. See
      * Types/Database/BooleanColumnValue.
+     *
+     * And a name sent as the person's-name object - as the API's schema
+     * asked for thirty-one names before they were text - is the text it
+     * holds, as on a create. See Types/Database/TextColumnValue.
      */
     const entityModel: TBaseModel = new this.entityType();
 
-    const item: PartialEntity<TBaseModel> = coerceBooleanColumnsInJSON(
-      coerceDateColumnsInJSON(
-        coerceNumericColumnsInJSON(
-          JSONFunctions.deserialize(dataInBody as JSONObject),
+    const item: PartialEntity<TBaseModel> = coerceTextColumnsInJSON(
+      coerceBooleanColumnsInJSON(
+        coerceDateColumnsInJSON(
+          coerceNumericColumnsInJSON(
+            JSONFunctions.deserialize(dataInBody as JSONObject),
+            entityModel,
+          ),
           entityModel,
         ),
         entityModel,

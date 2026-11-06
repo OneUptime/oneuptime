@@ -24,6 +24,7 @@ export const INSIGHT_TYPE_LABELS: Record<AIInsightType, string> = {
   [AIInsightType.ErrorLogSpike]: translationKey("Error Log Spike"),
   [AIInsightType.TraceLatencyRegression]: translationKey("Latency Regression"),
   [AIInsightType.MetricDrift]: translationKey("Metric Drift"),
+  [AIInsightType.DataDrift]: translationKey("Data Drift"),
   [AIInsightType.DeployRegression]: translationKey("Deploy Regression"),
   [AIInsightType.ProfileHotspot]: translationKey("Slow Code"),
   [AIInsightType.TraceSlowOperation]: translationKey("Slow Operation"),
@@ -40,6 +41,9 @@ export const INSIGHT_TYPE_LABELS: Record<AIInsightType, string> = {
     "Wrong Histogram Buckets",
   ),
   [AIInsightType.MetricMissingMetrics]: translationKey("Missing Metrics"),
+  [AIInsightType.MetricMissingRequestMetrics]: translationKey(
+    "Missing Request Metrics",
+  ),
 };
 
 // Human labels for the wire-contract status values (e.g. "ActionRequired").
@@ -138,6 +142,7 @@ const INSIGHT_TYPE_ICONS: Record<AIInsightType, IconProp> = {
   [AIInsightType.ErrorLogSpike]: IconProp.Logs,
   [AIInsightType.TraceLatencyRegression]: IconProp.Clock,
   [AIInsightType.MetricDrift]: IconProp.ArrowTrendingUp,
+  [AIInsightType.DataDrift]: IconProp.Database,
   [AIInsightType.DeployRegression]: IconProp.CloudArrowUp,
   [AIInsightType.ProfileHotspot]: IconProp.Gauge,
   [AIInsightType.TraceSlowOperation]: IconProp.Waterfall,
@@ -150,6 +155,7 @@ const INSIGHT_TYPE_ICONS: Record<AIInsightType, IconProp> = {
   [AIInsightType.MetricHighCardinality]: IconProp.Squares,
   [AIInsightType.MetricHistogramBuckets]: IconProp.ChartBar,
   [AIInsightType.MetricMissingMetrics]: IconProp.EyeSlash,
+  [AIInsightType.MetricMissingRequestMetrics]: IconProp.SignalSlash,
 };
 
 export function getInsightTypeLabel(

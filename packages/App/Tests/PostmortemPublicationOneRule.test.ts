@@ -108,10 +108,19 @@ describe("the postmortem's one publication rule", () => {
     expect(source).toContain(
       "IncidentPostmortemPublication.isDueOnceShown(current)",
     );
-    // The two places that decide whether to compare ask one rule.
+    /*
+     * The three places that decide whether to compare ask one rule: what
+     * the read before the write reads (recordStoredValuesBeforeUpdate),
+     * whether the update is applied to the postmortem (onUpdateSuccess),
+     * and whether the incident is read again after the write at all
+     * (hasUpdateFollowOn, fu-bulk-actions: a state written alone is not).
+     */
     expect(
       source.match(/IncidentPostmortemPublication\.isComparedBy\(/g),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
+    expect(source).toMatch(
+      /private hasUpdateFollowOn\([\s\S]*?IncidentPostmortemPublication\.isComparedBy\(data\.written\)/,
+    );
     // Showing the incident is compared in the read every comparison shares.
     expect(source).toMatch(
       /private async recordStoredValuesBeforeUpdate\([\s\S]*?mayShowIncident\([\s\S]*?findIncidentsForUpdateHook\(/,

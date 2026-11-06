@@ -118,6 +118,8 @@ const NAMING_HELPERS: Array<NamingHelper> = [
  * only with a reason as good.
  */
 const KEPT_FOR_THE_PERSON: Record<string, string> = {
+  "ask-ai-panel-width":
+    "how wide this person keeps the Ask AI panel, on every project",
   // Who is signed in: every tab of this browser is signed in as the same person.
   user_id: "who is signed in",
   user_name: "the signed-in person's name, for the header",

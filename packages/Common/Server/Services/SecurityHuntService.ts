@@ -30,7 +30,12 @@ import {
   isSecurityHuntTimeRange,
   readSecurityHuntFilters,
 } from "../../Types/SecurityEvent/SecurityHunt";
-import { getSecurityHuntFiltersProblem } from "../../Utils/SecurityEvent/SecurityHuntSearch";
+import { isSecurityHuntLibraryId } from "../../Types/SecurityEvent/SecurityHuntLibrary";
+import {
+  getSecurityHuntFiltersProblem,
+  getSecurityHuntWatchlistNames,
+} from "../../Utils/SecurityEvent/SecurityHuntSearch";
+import SecurityWatchlists from "../Utils/SecurityEvent/Watchlists/SecurityWatchlists";
 
 /*
  * A project's hunts (Types/SecurityEvent/SecurityHunt): each checked as the
@@ -171,6 +176,25 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * A hunt added from the Hunt Library names one of its starters
+   * (Types/SecurityEvent/SecurityHuntLibrary); a hunt of the team's own
+   * names none.
+   */
+  public static assertLibraryHunt(
+    libraryHuntId: string | undefined | null,
+  ): void {
+    if (
+      libraryHuntId !== undefined &&
+      libraryHuntId !== null &&
+      !isSecurityHuntLibraryId(libraryHuntId)
+    ) {
+      throw new BadDataException(
+        SECURITY_HUNT_MESSAGES.unknownLibraryHunt.message,
+      );
+    }
+  }
+
+  /*
    * Who a schedule set now runs as: the person making the change. OneUptime
    * itself may set one with nobody to run as (a run then has no read access
    * to use, and says so); an API key may not, as no person stands behind it.
@@ -216,6 +240,11 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (data["filters"] !== undefined) {
       data["filters"] = readSecurityHuntFilters(data["filters"]) as JSONObject;
+    }
+
+    // No starter named is none, not a starter called "".
+    if (typeof data["libraryHuntId"] === "string") {
+      data["libraryHuntId"] = data["libraryHuntId"].trim() || null;
     }
   }
 
@@ -268,6 +297,8 @@ export class Service extends ProjectReferencesService<Model> {
       teamCount: countListed(data, "notifyTeams") || 0,
     });
 
+    Service.assertLibraryHunt(createBy.data.libraryHuntId);
+
     this.createScheduleStarts.set(
       createBy,
       isScheduledSecurityHunt(createBy.data.schedule)
@@ -284,6 +315,12 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (projectId) {
       await this.assertProjectHasRoom(projectId);
+
+      // The watchlists its search reads (`user:%vip_users%`) are the project's.
+      await SecurityWatchlists.assertProjectHas({
+        projectId,
+        names: getSecurityHuntWatchlistNames(createBy.data.searchQuery),
+      });
     }
 
     return { createBy, carryForward: null };
@@ -379,6 +416,7 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy,
       {
         _id: true,
+        projectId: true,
         schedule: true,
         searchQuery: true,
         filters: true,
@@ -410,6 +448,14 @@ export class Service extends ProjectReferencesService<Model> {
           : readSecurityHuntFilters(row.filters);
 
       Service.assertSearch({ searchQuery, filters });
+
+      // A search changed to read a watchlist reads one the project has.
+      if (data["searchQuery"] !== undefined && row.projectId) {
+        await SecurityWatchlists.assertProjectHas({
+          projectId: row.projectId,
+          names: getSecurityHuntWatchlistNames(searchQuery),
+        });
+      }
 
       Service.assertRecipients({
         schedule,

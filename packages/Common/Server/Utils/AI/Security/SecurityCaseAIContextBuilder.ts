@@ -1100,6 +1100,7 @@ export const CONNECTION_KIND_NOUNS: Readonly<
   [SecurityConnectionKind.DockerHost]: "Docker host",
   [SecurityConnectionKind.PodmanHost]: "Podman host",
   [SecurityConnectionKind.KubernetesCluster]: "Kubernetes cluster",
+  [SecurityConnectionKind.OpenStackCloud]: "OpenStack cloud",
   [SecurityConnectionKind.NetworkDevice]: "network device",
   [SecurityConnectionKind.CloudResource]: "cloud resource",
   [SecurityConnectionKind.ServerlessFunction]: "serverless function",
@@ -1122,6 +1123,8 @@ export function describeConnectionReason(
       return "only possibly - one name is the other's short form, and another machine may share it";
     case SecurityConnectionReason.UntypedValue:
       return "only possibly - the case does not say the value is a host, so it may be something else of the same name";
+    case SecurityConnectionReason.CloudName:
+      return "it is the OpenStack cloud of this openstack.cloud.name";
     case SecurityConnectionReason.ClusterName:
       return "it is the cluster of this k8s.cluster.name";
     case SecurityConnectionReason.DeviceName:

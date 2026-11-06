@@ -30,7 +30,7 @@ flowchart LR
     Monitors -->|"デフォル<br/>トでオフ"| Private
 ```
 
-Ping、Port、SSL 証明書、DNS、DNSSEC、SNMP / ネットワークデバイス、SQL クエリ、データベースの健全性、Synthetic、Network Path といったネットワークネイティブなモニタータイプは、独自のトランスポートを使います。このページの設定が管理するのは、任意のレスポンス内容をプロジェクトに返す HTTP トランスポート、つまり API、Website、External Status Page、Custom JavaScript Code のモニターです。
+Ping、Port、SSL 証明書、DNS、DNSSEC、SNMP / ネットワークデバイス、SQL クエリ、データベースのヘルス、Synthetic、Network Path といったネットワークネイティブなモニタータイプは、独自のトランスポートを使います。このページの設定が管理するのは、任意のレスポンス内容をプロジェクトに返す HTTP トランスポート、つまり API、Website、External Status Page、Custom JavaScript Code のモニターです。
 
 :::cards
 - [Webhook とワークフロー](#webhook-とワークフロー): Webhook からネットワーク内に送信できるようにします。

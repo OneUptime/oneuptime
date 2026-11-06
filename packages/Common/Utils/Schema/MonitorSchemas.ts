@@ -26,6 +26,7 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
     diskPath: Zod.string().optional(),
   }).optional(),
   metricMonitorOptions: Zod.object({
+    cadenceMetricAlias: Zod.string().optional(),
     metricAlias: Zod.string().optional(),
     metricAggregationType: Zod.string().optional(),
     onNoDataPolicy: Zod.string().optional(),
@@ -37,6 +38,9 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
       minSamples: Zod.number().optional(),
       sigmaCount: Zod.number().optional(),
       minimumCount: Zod.number().optional(),
+    }).optional(),
+    forecast: Zod.object({
+      horizonInHours: Zod.number().optional(),
     }).optional(),
   }).optional(),
   snmpMonitorOptions: Zod.object({
@@ -235,6 +239,7 @@ export function getMonitorStepSchema(): ZodSchema {
       hostMonitor: Zod.any().optional(),
       podmanMonitor: Zod.any().optional(),
       proxmoxMonitor: Zod.any().optional(),
+      openstackMonitor: Zod.any().optional(),
       vmwareMonitor: Zod.any().optional(),
       dockerSwarmMonitor: Zod.any().optional(),
       cephMonitor: Zod.any().optional(),

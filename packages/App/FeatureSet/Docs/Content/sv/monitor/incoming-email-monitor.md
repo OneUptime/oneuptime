@@ -39,7 +39,7 @@ Gå till **Monitorer** och klicka på **Skapa monitor**.
 
 ### Välj Incoming Email
 
-Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Incoming Email** under **Inbound Monitoring**, eller skriver `email` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
+Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Incoming Email** under **Inkommande övervakning**, eller skriver `email` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
 
 ### Gå igenom kriterierna
 

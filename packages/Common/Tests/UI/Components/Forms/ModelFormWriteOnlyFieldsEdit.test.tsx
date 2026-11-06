@@ -258,6 +258,68 @@ describe("an edit form for a member who may change the provider but not read its
   });
 });
 
+describe("a write-only field with nothing stored to keep", () => {
+  /*
+   * An OpenStack cloud moving from its agent to a probe has no credential saved, so a blank
+   * box would keep nothing: the form asks for it, as on a new record.
+   */
+  const NOTHING_STORED: Array<ModelField<LlmProvider>> = FIELDS.map(
+    (field: ModelField<LlmProvider>): ModelField<LlmProvider> => {
+      return { ...field, hasNothingStoredWhenEditing: true };
+    },
+  );
+
+  beforeEach(() => {
+    capturedSelect = null;
+    savedModels = [];
+    permissionsForTest = [Permission.SettingsMember];
+    PermissionGate.clearPermissionPropsCache();
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("still never reads it back", async () => {
+    await renderEditForm(NOTHING_STORED);
+
+    expect(capturedSelect?.["apiKey"]).toBeUndefined();
+  });
+
+  test("says nothing about keeping it, and offers no Unchanged", async () => {
+    await renderEditForm(NOTHING_STORED);
+
+    expect(screen.getByText(KEY_HELP)).toBeInTheDocument();
+    expect(screen.queryByText(`${KEY_HELP} ${KEEP_HINT}`)).toBeNull();
+    expect(screen.queryByPlaceholderText("Unchanged")).toBeNull();
+    expect(screen.getByPlaceholderText("sk-...")).toBeInTheDocument();
+  });
+
+  test("is required: saving without it says so, and sends nothing", async () => {
+    await renderEditForm(NOTHING_STORED);
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    });
+
+    expect(await screen.findByText("API Key is required.")).toBeInTheDocument();
+    expect(savedModels).toEqual([]);
+  });
+
+  test("once typed, it is sent", async () => {
+    await renderEditForm(NOTHING_STORED);
+
+    fireEvent.change(screen.getByPlaceholderText("sk-..."), {
+      target: { value: "sk-new" },
+    });
+
+    await save();
+
+    expect(savedModels[0]?.["apiKey"]).toBe("sk-new");
+  });
+});
+
 describe("a write-only field whose help the page draws itself", () => {
   beforeEach(() => {
     capturedSelect = null;

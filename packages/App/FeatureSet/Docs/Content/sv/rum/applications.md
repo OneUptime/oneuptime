@@ -104,7 +104,7 @@ En applikations telemetri och dess inspelningar lagras olika länge:
 | Data | Lagras | Ställs in på |
 | --- | --- | --- |
 | Loggar, mätvärden, spår och profiler | Projektets lagring, om inte applikationen åsidosätter den | Applikationens sida **Inställningar** |
-| Inspelningar från sessionsuppspelning | 7 dagar som standard, eller 1, 14, 30 eller 90 dagar | **Replay Policy**, med **Redigera policy → Gränser** |
+| Inspelningar från sessionsuppspelning | 7 dagar som standard, eller 1, 14, 30 eller 90 dagar | **Uppspelningspolicy**, med **Redigera policy → Gränser** |
 
 ### Lagring av telemetri
 
@@ -119,7 +119,7 @@ På ett lägre Cloud-abonnemang fortsätter en åsidosättning som finns kvar fr
 
 ### Lagring av sessionsuppspelningar
 
-Inspelningar har sin egen lagring, som ställs in på applikationens sida **Replay Policy** med **Redigera policy → Gränser**: 7 dagar som standard, eller 1, 14, 30 eller 90 dagar. Den är kort med avsikt, eftersom en inspelning är mycket känsligare, och mycket större, än ett span. Kortet **Lagringstid för sessionsuppspelning** under **Fler inställningar** på sidan **Inställningar** visar den (_Session replays are kept for 7 days._), och dess knapp **Redigera i Replay Policy** öppnar policyn.
+Inspelningar har sin egen lagring, som ställs in på applikationens sida **Uppspelningspolicy** med **Redigera policy → Gränser**: 7 dagar som standard, eller 1, 14, 30 eller 90 dagar. Den är kort med avsikt, eftersom en inspelning är mycket känsligare, och mycket större, än ett span. Kortet **Lagringstid för sessionsuppspelning** under **Fler inställningar** på sidan **Inställningar** visar den (_Session replays are kept for 7 days._), och dess knapp **Redigera i Replay Policy** öppnar policyn.
 
 En längre lagring av telemetri behåller inte inspelningar längre. En sessions räkningar, signaler och enhet upphör tillsammans med dess inspelning; bara sessionens loggar, spans och undantag följer telemetrins lagring. Se [Lagring och radering](/docs/telemetry/session-replay#lagring-och-radering).
 

@@ -323,6 +323,25 @@ describeWithDocker("the copies, built with BuildKit", () => {
     };
 
     walk(helmChart);
-    expect(files).toEqual(["Public/kubernetes-agent/troubleshoot.sh"]);
+    /*
+     * Only what an install script under HelmChart/ serves: the Kubernetes
+     * agent's troubleshooting script and, since #5656, the air-gapped image
+     * bundle script (/install/air-gapped).
+     */
+    const served = INSTALL_SCRIPTS.filter((entry) => {
+      return entry.sourceDirectory.startsWith("HelmChart/");
+    })
+      .flatMap((entry) => {
+        return entry.files.map((file) => {
+          return `${entry.sourceDirectory.slice("HelmChart/".length)}/${file}`;
+        });
+      })
+      .sort();
+
+    expect(served).toEqual([
+      "AirGap/install.sh",
+      "Public/kubernetes-agent/troubleshoot.sh",
+    ]);
+    expect(files.sort()).toEqual(served);
   });
 });

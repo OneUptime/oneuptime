@@ -1,0 +1,28 @@
+# HELP openstack_loadbalancer_amphora_status amphora_status
+# TYPE openstack_loadbalancer_amphora_status gauge
+openstack_loadbalancer_amphora_status{cert_expiration="2026-12-05T05:51:53Z",compute_id="0be17642-0c16-43e8-a9c1-c365b1abd47a",ha_ip="10.77.0.124",id="6cd767c2-c555-4e58-8307-07be689ad9a5",lb_network_ip="192.168.0.189",loadbalancer_id="27c8eb38-e43d-4f03-82b9-e6f4e714fa38",role="STANDALONE",status="ALLOCATED"} 1
+openstack_loadbalancer_amphora_status{cert_expiration="2026-12-05T05:52:05Z",compute_id="2b4ead68-c377-4d7a-94d6-24c88f1d716d",ha_ip="10.77.0.147",id="46c373fb-70ec-49d5-a9ab-2ca7b3f7d758",lb_network_ip="192.168.0.180",loadbalancer_id="3ababc03-93f7-4b7f-90be-3aec0b457dc6",role="MASTER",status="ALLOCATED"} 1
+openstack_loadbalancer_amphora_status{cert_expiration="2026-12-05T05:52:05Z",compute_id="9c5165fd-925a-40d8-b808-227db081af65",ha_ip="10.77.0.147",id="4857d190-5867-49f6-9390-1d3bc65eac9f",lb_network_ip="192.168.0.128",loadbalancer_id="3ababc03-93f7-4b7f-90be-3aec0b457dc6",role="MASTER",status="ALLOCATED"} 1
+# HELP openstack_loadbalancer_loadbalancer_status loadbalancer_status
+# TYPE openstack_loadbalancer_loadbalancer_status gauge
+openstack_loadbalancer_loadbalancer_status{id="27c8eb38-e43d-4f03-82b9-e6f4e714fa38",name="ou-lb",operating_status="ONLINE",project_id="1e59c0ba8e5c4bce9ce2fe412624b16a",provider="amphora",provisioning_status="ACTIVE",vip_address="10.77.0.124"} 0
+openstack_loadbalancer_loadbalancer_status{id="3ababc03-93f7-4b7f-90be-3aec0b457dc6",name="ou-lb-ha",operating_status="ONLINE",project_id="1e59c0ba8e5c4bce9ce2fe412624b16a",provider="amphora",provisioning_status="ACTIVE",vip_address="10.77.0.147"} 0
+openstack_loadbalancer_loadbalancer_status{id="c5b33ea0-43bb-4f9e-823e-10a848867f50",name="ou-lb-failed",operating_status="OFFLINE",project_id="1e59c0ba8e5c4bce9ce2fe412624b16a",provider="amphora",provisioning_status="ERROR",vip_address="10.77.0.64"} 2
+openstack_loadbalancer_loadbalancer_status{id="fd511df0-8732-465f-a86c-c5ed171bd45a",name="ou-lb-ovn",operating_status="ONLINE",project_id="1e59c0ba8e5c4bce9ce2fe412624b16a",provider="ovn",provisioning_status="ACTIVE",vip_address="10.77.0.91"} 0
+# HELP openstack_loadbalancer_pool_status pool_status
+# TYPE openstack_loadbalancer_pool_status gauge
+openstack_loadbalancer_pool_status{id="191471d8-1ec1-4158-a922-b009bfdaac33",lb_algorithm="ROUND_ROBIN",loadbalancers="27c8eb38-e43d-4f03-82b9-e6f4e714fa38",name="ou-lb-pool",operating_status="ONLINE",project_id="1e59c0ba8e5c4bce9ce2fe412624b16a",protocol="HTTP",provisioning_status="ACTIVE"} 0
+openstack_loadbalancer_pool_status{id="40b78599-cb3d-4380-b0be-e08061b3ef4f",lb_algorithm="ROUND_ROBIN",loadbalancers="3ababc03-93f7-4b7f-90be-3aec0b457dc6",name="ou-lb-ha-pool",operating_status="ONLINE",project_id="1e59c0ba8e5c4bce9ce2fe412624b16a",protocol="HTTP",provisioning_status="ACTIVE"} 0
+openstack_loadbalancer_pool_status{id="a32f3ed1-80e4-4d98-968e-c9849d1fdc9b",lb_algorithm="SOURCE_IP_PORT",loadbalancers="fd511df0-8732-465f-a86c-c5ed171bd45a",name="ou-lb-ovn-pool",operating_status="ONLINE",project_id="1e59c0ba8e5c4bce9ce2fe412624b16a",protocol="TCP",provisioning_status="ACTIVE"} 0
+# HELP openstack_loadbalancer_total_amphorae total_amphorae
+# TYPE openstack_loadbalancer_total_amphorae gauge
+openstack_loadbalancer_total_amphorae 3
+# HELP openstack_loadbalancer_total_loadbalancers total_loadbalancers
+# TYPE openstack_loadbalancer_total_loadbalancers gauge
+openstack_loadbalancer_total_loadbalancers 4
+# HELP openstack_loadbalancer_total_pools total_pools
+# TYPE openstack_loadbalancer_total_pools gauge
+openstack_loadbalancer_total_pools 3
+# HELP openstack_loadbalancer_up up
+# TYPE openstack_loadbalancer_up gauge
+openstack_loadbalancer_up 1

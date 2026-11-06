@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-Applikasjonens side **Helse**, i delen **Øktavspilling**, og panelet **Test your installation** på **Replay Policy** sjekker nøkkelen, listene over tillatte opprinnelser og retningslinjen fra serversiden og sier hvorfor ingenting kommer inn. Nettleserkonsollen gir deg halvdelen som serveren ikke kan se.
+Applikasjonens side **Helse**, i delen **Øktavspilling**, og panelet **Test your installation** på **Avspillingspolicy** sjekker nøkkelen, listene over tillatte opprinnelser og retningslinjen fra serversiden og sier hvorfor ingenting kommer inn. Nettleserkonsollen gir deg halvdelen som serveren ikke kan se.
 
 Med standardretningslinjen sender en opptaker en chunk omtrent hvert 15. sekund mens brukeren samhandler med siden. En inaktiv fane har ingenting å sende, så klikk eller beveg musen først; hvis det da ikke finnes noen chunk-forespørsel, er noe galt. Hvis appen bare laster opp _On error or frustration_, er stillhet forventet til noe feiler. Kall `OneUptimeReplay.captureSession()` for å tvinge frem en opplasting og teste veien likevel.
 

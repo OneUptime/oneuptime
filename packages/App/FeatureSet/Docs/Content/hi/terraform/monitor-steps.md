@@ -180,7 +180,7 @@ resource "oneuptime_monitor" "website" {
 
 ### हर मॉनिटर प्रकार की सेटिंग्स
 
-जिन मॉनिटर प्रकारों में पते से ज़्यादा सेट करना होता है, वे अपनी सेटिंग्स (लॉग क्वेरी, डेटाबेस कनेक्शन, निगरानी करने का क्लस्टर) अपने ख़ुद के एट्रिब्यूट में रखते हैं, `jsonencode()` से लिखे कच्चे JSON के रूप में: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` और `probe_status_monitor`।
+जिन मॉनिटर प्रकारों में पते से ज़्यादा सेट करना होता है, वे अपनी सेटिंग्स (लॉग क्वेरी, डेटाबेस कनेक्शन, निगरानी करने का क्लस्टर) अपने ख़ुद के एट्रिब्यूट में रखते हैं, `jsonencode()` से लिखे कच्चे JSON के रूप में: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` और `probe_status_monitor`।
 
 इनका JSON डैशबोर्ड वाला ही होता है, कुंजियाँ camelCase में। इसके भीतर ID वैसे ही लिखा जाता है जैसे API लिखता है: `{ _type = "ObjectID", value = "..." }`। एक Logs मॉनिटर जो किसी एक सेवा की त्रुटियाँ गिनता है:
 
@@ -317,7 +317,7 @@ criteria = [
 | डोमेन | `Domain Expires In Days`, `Domain Is Expired`, `Domain Registrar`, `Domain Name Server` |
 | DNSSEC | `DNSSEC Chain Is Valid`, `DNSSEC DS Record Exists At Parent`, `DNSSEC Signature Expires In Days` |
 | SQL क्वेरी | `SQL Is Online`, `SQL Query Row Count`, `SQL Query Scalar Value` |
-| डेटाबेस हेल्थ | `Database Is Online`, `Database Metric` (`database_monitor_options` JSON के साथ जो सीरीज़ का नाम बताता है, जैसे `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`), `Database Collection Error` |
+| डेटाबेस स्वास्थ्य | `Database Is Online`, `Database Metric` (`database_monitor_options` JSON के साथ जो सीरीज़ का नाम बताता है, जैसे `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`), `Database Collection Error` |
 | बाहरी स्थिति पृष्ठ | `External Status Page Is Online`, `External Status Page Active Incidents`, `External Status Page Component Status` |
 | NTP | `NTP Is Online`, `NTP Is Synchronized`, `NTP Stratum`, `NTP Clock Offset (in ms)`, `NTP Response Time (in ms)`, `NTP Root Dispersion (in ms)` (`NTP Is Online` और `NTP Is Synchronized` कोई `value` नहीं लेते) |
 | नेटवर्क डिवाइस (SNMP) | `SNMP Device Is Online` (यह ping या SNMP का जवाब देता है), `SNMP Walk Is Succeeding` (false जब यह जवाब देता है पर walk नहीं किया जा सकता), `SNMP OID Value` (SNMP फ़िल्टर `snmp_monitor_options` JSON ले सकते हैं) |
@@ -333,6 +333,7 @@ criteria = [
 | सर्वर प्रोसेस | `Is Executing`, `Is Not Executing` |
 | स्क्रिप्ट | `Evaluates To True` |
 | विसंगतियाँ, मेट्रिक्स, लॉग और ट्रेस के लिए | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| पूर्वानुमान, मेट्रिक्स के लिए | `Forecast Above`, `Forecast Below` (कितना आगे, यह `forecast.horizonInHours` है, जो `metric_monitor_options` में जाता है: न देने पर एक सप्ताह) |
 
 एक फ़िल्टर जो तब मेल खाता है जब कोई SSL प्रमाणपत्र 14 दिन या उससे कम में समाप्त होने वाला हो:
 

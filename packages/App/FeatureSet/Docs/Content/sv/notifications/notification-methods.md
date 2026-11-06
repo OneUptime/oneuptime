@@ -1,6 +1,6 @@
 # Aviseringsmetoder
 
-En aviseringsmetod är en adress som OneUptime får nå dig på i ett projekt: en e-postadress, ett telefonnummer för SMS eller samtal, ett WhatsApp-nummer, ett Telegram-konto, ditt Slack- eller Microsoft Teams-konto, en telefon eller webbläsare för push-aviseringar, eller en webhook. Du lägger till dem under **Användarinställningar → Aviseringsmetoder**, verifierar dem, och OneUptime börjar genast använda dem för dina larm.
+En aviseringsmetod är en adress som OneUptime får nå dig på i ett projekt: en e-postadress, ett telefonnummer för SMS eller samtal, ett WhatsApp-nummer, ett Telegram-konto, ditt Slack-, Microsoft Teams- eller Mattermost-konto, en telefon eller webbläsare för push-aviseringar, eller en webhook. Du lägger till dem under **Användarinställningar → Aviseringsmetoder**, verifierar dem, och OneUptime börjar genast använda dem för dina larm.
 
 :::cards
 - [Välj en metod](#välj-en-metod): Vad varje metod behöver, och hur den verifieras.
@@ -20,7 +20,7 @@ flowchart TB
     rules --> used["Larm och uppdateringar<br/>kan nå den"]
 ```
 
-En metod som du inte har verifierat används aldrig. Push-enheter, Slack, Microsoft Teams och webhooks klarar sig utan kod: att registrera en enhet eller ansluta ditt konto bevisar att den är din, och en webhook behöver inget bevis. Att verifiera en metod lägger direkt till dina [standardregler](/docs/notifications/on-call-rules#reglerna-du-börjar-med) för den, så ett nytt telefonnummer larmar dig för varje allvarlighetsgrad tills du ändrar dess regler.
+En metod som du inte har verifierat används aldrig. Push-enheter, Slack, Microsoft Teams, Mattermost och webhooks klarar sig utan kod: att registrera en enhet eller ansluta ditt konto bevisar att den är din, och en webhook behöver inget bevis. Att verifiera en metod lägger direkt till dina [standardregler](/docs/notifications/on-call-rules#reglerna-du-börjar-med) för den, så ett nytt telefonnummer larmar dig för varje allvarlighetsgrad tills du ändrar dess regler.
 
 ## Välj en metod
 
@@ -28,17 +28,18 @@ Varje flik i **Aviseringsmetoder** innehåller ett eller flera kort, ett per typ
 
 | Kort | Flik | Vad du lägger till | Hur den verifieras |
 | --- | --- | --- | --- |
-| **E-postmeddelanden för aviseringar** | **Direct Contact** | En e-postadress | En kod via e-post |
-| **Telefonnummer för SMS-aviseringar** | **Direct Contact** | Ett telefonnummer | En kod via SMS |
-| **Telefonnummer för samtalsaviseringar** | **Direct Contact** | Ett telefonnummer | En kod som läses upp i ett samtal, eller ingen för ett nummer som är verifierat för SMS |
-| **WhatsApp-nummer för aviseringar** | **Direct Contact** | Ett WhatsApp-nummer | En kod via WhatsApp |
-| **Telegram-konton för aviseringar** | **Direct Contact** | Ditt Telegram-konto | Ett meddelande till OneUptime-boten |
-| **Slack Account for Notifications** | **Workspace Apps** | Ditt Slack-konto | Att ansluta ditt konto till projektets arbetsyta |
-| **Microsoft Teams Account for Notifications** | **Workspace Apps** | Ditt Microsoft Teams-konto | Att ansluta ditt konto till projektets arbetsyta |
-| **Enheter för push-aviseringar** | **Push Notifications** | En telefon med appen OneUptime On-Call, eller en webbläsare | Att registrera enheten |
+| **E-postmeddelanden för aviseringar** | **Direktkontakt** | En e-postadress | En kod via e-post |
+| **Telefonnummer för SMS-aviseringar** | **Direktkontakt** | Ett telefonnummer | En kod via SMS |
+| **Telefonnummer för samtalsaviseringar** | **Direktkontakt** | Ett telefonnummer | En kod som läses upp i ett samtal, eller ingen för ett nummer som är verifierat för SMS |
+| **WhatsApp-nummer för aviseringar** | **Direktkontakt** | Ett WhatsApp-nummer | En kod via WhatsApp |
+| **Telegram-konton för aviseringar** | **Direktkontakt** | Ditt Telegram-konto | Ett meddelande till OneUptime-boten |
+| **Slack Account for Notifications** | **Arbetsyteappar** | Ditt Slack-konto | Att ansluta ditt konto till projektets arbetsyta |
+| **Microsoft Teams Account for Notifications** | **Arbetsyteappar** | Ditt Microsoft Teams-konto | Att ansluta ditt konto till projektets arbetsyta |
+| **Mattermost-konto för aviseringar** | **Arbetsyteappar** | Ditt Mattermost-konto | Att ansluta ditt konto till projektets arbetsyta |
+| **Enheter för push-aviseringar** | **Push-aviseringar** | En telefon med appen OneUptime On-Call, eller en webbläsare | Att registrera enheten |
 | **Webhooks för aviseringar** | **Webhooks** | En egen HTTPS-slutpunkt | Ingen |
 
-**Workspace Apps** visas bara när projektet har anslutit Slack eller Microsoft Teams, och innehåller bara de anslutna. SMS, samtal, WhatsApp och Telegram kan vara avstängda för hela projektet; se [Slå på en kanal för ditt projekt](#slå-på-en-kanal-för-ditt-projekt).
+**Arbetsyteappar** visas bara när projektet har anslutit Slack, Microsoft Teams eller Mattermost, och innehåller bara de anslutna. SMS, samtal, WhatsApp och Telegram kan vara avstängda för hela projektet; se [Slå på en kanal för ditt projekt](#slå-på-en-kanal-för-ditt-projekt).
 
 ## Lägg till och verifiera en metod
 
@@ -47,7 +48,7 @@ E-postadresser, SMS-nummer, samtalsnummer och WhatsApp-nummer verifieras med en 
 :::steps
 ### Öppna dina metoder
 
-Gå till **Användarinställningar → Aviseringsmetoder**. **Direct Contact** är den första fliken.
+Gå till **Användarinställningar → Aviseringsmetoder**. **Direktkontakt** är den första fliken.
 
 ### Lägg till adressen
 
@@ -85,15 +86,15 @@ Tillbaka i OneUptime klickar du på **I've sent the message — check**. Så sna
 
 **Rotera kod** skapar en ny kod för ett konto som ännu inte är verifierat. QR-koden och länken som du öppnade tidigare slutar då fungera. I en självhostad OneUptime ansluter serverns administratör en Telegram-bot innan någon kan ansluta ett konto.
 
-## Slack och Microsoft Teams
+## Slack, Microsoft Teams och Mattermost
 
-1. Anslut ditt eget konto till projektets arbetsyta: **Användarinställningar → Arbetsyta → Slack**, eller **Microsoft Teams**. Se [Slack](/docs/workspace-connections/slack) och [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
-2. Klicka på **Add Slack Account** eller **Add Microsoft Teams Account** på fliken **Workspace Apps**. Kontot är verifierat så snart det har lagts till.
-3. Klicka på **Send Test Message** på dess rad. Larm kommer som direktmeddelanden från OneUptime-appen.
+1. Anslut ditt eget konto till projektets arbetsyta: **Användarinställningar → Arbetsyta → Slack**, **Microsoft Teams** eller **Mattermost**. Se [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) och [Mattermost](/docs/workspace-connections/mattermost).
+2. Klicka på **Add Slack Account**, **Add Microsoft Teams Account** eller **Lägg till Mattermost-konto** på fliken **Arbetsyteappar**. Kontot är verifierat så snart det har lagts till.
+3. Klicka på **Send Test Message** på dess rad. Larm kommer som direktmeddelanden från OneUptime-appen, eller i Mattermost från projektets bot.
 
 ## Push-aviseringar
 
-Fliken **Push Notifications** listar dina **Enheter för push-aviseringar**.
+Fliken **Push-aviseringar** listar dina **Enheter för push-aviseringar**.
 
 - **En telefon.** Installera appen OneUptime On-Call, anslut den till ditt OneUptime, logga in och tillåt aviseringar: telefonen lägger själv till sig i listan. Se [Appar – Översikt](/docs/mobile-desktop-apps/index).
 - **Den här webbläsaren.** Klicka på **Registrera enhet**, fyll i **Enhetsnamn**, och tillåt aviseringar när webbläsaren frågar.
@@ -167,7 +168,7 @@ En webhook behöver ingen verifiering, så när du lägger till den läggs dess 
 
 ## Slå på en kanal för ditt projekt
 
-**SMS**, **Telefonsamtal**, **WhatsApp** och **Telegram** är avstängda i varje nytt projekt, eftersom varje meddelande kostar pengar: i OneUptime Cloud betalas det från projektets saldo, och SMS och samtal går i stället via projektets eget Twilio-konto när standardkontot skickar dem. E-post, push, Slack, Microsoft Teams och webhooks är alltid påslagna.
+**SMS**, **Telefonsamtal**, **WhatsApp** och **Telegram** är avstängda i varje nytt projekt, eftersom varje meddelande kostar pengar: i OneUptime Cloud betalas det från projektets saldo, och SMS och samtal går i stället via projektets eget Twilio-konto när standardkontot skickar dem. E-post, push, Slack, Microsoft Teams, Mattermost och webhooks är alltid påslagna.
 
 Så länge en kanal är avstängd kan ingen i projektet lägga till en metod på den: dess kort saknar knapp för att lägga till och berättar vem som kan slå på den. En projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på den, i kortet **Aviseringskanaler** under **Projektinställningar → Aviseringar → Aviseringsinställningar**. En projektadministratör kan inte göra det. I en självhostad OneUptime behöver SMS och samtal dessutom ett Twilio-konto eller en gateway som du driver, och Telegram en bot som serverns administratör ansluter; se [Twilio-integration](/docs/self-hosted/twilio-integration) och [SMS- och samtalsgateway](/docs/self-hosted/sms-and-call-gateway).
 

@@ -293,6 +293,7 @@ export function isPreventiveInsightAboutScope(data: {
     case AIInsightType.MetricHighCardinality:
     case AIInsightType.MetricHistogramBuckets:
     case AIInsightType.MetricMissingMetrics:
+    case AIInsightType.MetricMissingRequestMetrics:
       return isMetricInsightFingerprintOfService(fingerprint, scopeId);
     case AIInsightType.NewException:
     case AIInsightType.ExceptionSpike: {
@@ -572,6 +573,7 @@ export default class AiActivityInsightsReader {
             approvedAt: suggestion.approvedAt
               ? new Date(suggestion.approvedAt)
               : undefined,
+            approvedFrom: suggestion.approvedFrom,
             incidentId: suggestion.incidentId?.toString(),
             alertId: suggestion.alertId?.toString(),
           };
@@ -832,6 +834,7 @@ export default class AiActivityInsightsReader {
         verificationStatus: true,
         createdAt: true,
         approvedAt: true,
+        approvedFrom: true,
         incidentId: true,
         alertId: true,
       },

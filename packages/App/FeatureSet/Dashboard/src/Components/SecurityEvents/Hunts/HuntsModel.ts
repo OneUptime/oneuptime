@@ -5,6 +5,12 @@ import {
   SECURITY_EVENTS_RANGE_PARAM,
   SECURITY_EVENTS_START_PARAM,
 } from "../SecurityEventsTimeRange";
+import {
+  SECURITY_EVENT_SOURCE_FACET_KEY,
+  getSecurityEventBaseFacetKey,
+  getSecurityEventFacetChipDisplayKey,
+  getSecurityEventFacetChipDisplayValue,
+} from "../SecurityEventsFacets";
 import Route from "Common/Types/API/Route";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ObjectID from "Common/Types/ObjectID";
@@ -25,6 +31,7 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
+import { ActiveFilter } from "Common/UI/Components/TelemetryViewer/types";
 
 /*
  * The small rules hunts are drawn and saved by in the Dashboard: where a
@@ -68,6 +75,12 @@ export function getHuntViewRoute(
 export function getHuntsRoute(): Route {
   return RouteUtil.populateRouteParams(
     RouteMap[PageMap.SECURITY_EVENTS_HUNTS] as Route,
+  );
+}
+
+export function getHuntLibraryRoute(): Route {
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SECURITY_EVENTS_HUNT_LIBRARY] as Route,
   );
 }
 
@@ -262,6 +275,92 @@ export function getHuntLastFoundWindow(hunt: {
   }
 
   return { startTime, endTime };
+}
+
+/*
+ * A hunt's filters as chips, the way the Events explorer draws them over
+ * its list: each value of each field, the field by its sidebar title (an
+ * attribute by its key), a source by its name once its names are read. A
+ * hunt's Edit draws them, each with its x.
+ */
+export function getHuntFilterChips(
+  filters: unknown,
+  sourceNames?: Record<string, string> | undefined,
+): Array<ActiveFilter> {
+  const chips: Array<ActiveFilter> = [];
+
+  for (const [facetKey, values] of Object.entries(
+    readSecurityHuntFilters(filters),
+  )) {
+    for (const value of values) {
+      chips.push({
+        facetKey,
+        value,
+        displayKey: getSecurityEventFacetChipDisplayKey(facetKey),
+        displayValue: getSecurityEventFacetChipDisplayValue(
+          facetKey,
+          value,
+          sourceNames,
+        ),
+      });
+    }
+  }
+
+  return chips;
+}
+
+// A hunt's filters with one chip's value taken off; a field left with none goes.
+export function removeHuntFilterValue(
+  filters: unknown,
+  facetKey: string,
+  value: string,
+): SecurityHuntFilters {
+  const kept: SecurityHuntFilters = {};
+
+  for (const [key, values] of Object.entries(
+    readSecurityHuntFilters(filters),
+  )) {
+    kept[key] =
+      key === facetKey
+        ? values.filter((item: string): boolean => {
+            return item !== value;
+          })
+        : values;
+  }
+
+  return readSecurityHuntFilters(kept);
+}
+
+/*
+ * Whether a hunt's filters name a source - a value that is a service's id,
+ * drawn by the service's name once the project's are read.
+ */
+export function hasHuntSourceFilter(filters: unknown): boolean {
+  return Object.keys(readSecurityHuntFilters(filters)).some(
+    (facetKey: string): boolean => {
+      return (
+        getSecurityEventBaseFacetKey(facetKey) ===
+        SECURITY_EVENT_SOURCE_FACET_KEY
+      );
+    },
+  );
+}
+
+// How many runs a hunt's Run History shows at a time.
+export const HUNT_RUN_HISTORY_PAGE_SIZE: number = 10;
+
+/*
+ * The events one run searched, to show what it found on the explorer; null
+ * when its window does not read as one.
+ */
+export function getHuntRunWindow(run: {
+  windowStartAt?: Date | string | undefined | null;
+  windowEndAt?: Date | string | undefined | null;
+}): SecurityHuntRunWindow | null {
+  return getHuntLastFoundWindow({
+    lastFoundSinceAt: run.windowStartAt,
+    lastFoundAt: run.windowEndAt,
+  });
 }
 
 // The window as the Events explorer's time picker holds it.

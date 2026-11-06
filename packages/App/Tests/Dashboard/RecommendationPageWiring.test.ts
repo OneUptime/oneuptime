@@ -100,6 +100,7 @@ const PAGE_FOLDER_BY_RESOURCE_TYPE: Record<
   [MonitorRecommendationResourceType.DockerSwarm]: "DockerSwarm",
   [MonitorRecommendationResourceType.Podman]: "Podman",
   [MonitorRecommendationResourceType.Proxmox]: "Proxmox",
+  [MonitorRecommendationResourceType.OpenStack]: "OpenStack",
   [MonitorRecommendationResourceType.VMware]: "VMware",
   [MonitorRecommendationResourceType.Ceph]: "Ceph",
   [MonitorRecommendationResourceType.StorageArray]: "StorageArray",
@@ -107,6 +108,10 @@ const PAGE_FOLDER_BY_RESOURCE_TYPE: Record<
   [MonitorRecommendationResourceType.RumApplication]: "Rum",
   [MonitorRecommendationResourceType.Service]: "Service",
   [MonitorRecommendationResourceType.DatabaseServer]: "Database",
+  // A database's own pages in Data Observability (Pages/DataObservability/View).
+  [MonitorRecommendationResourceType.DataStore]: "DataObservability",
+  // A pipeline's own pages (Pages/DataPipeline/View), under Data Observability's address.
+  [MonitorRecommendationResourceType.DataPipeline]: "DataPipeline",
 };
 
 /*
@@ -147,7 +152,7 @@ describe("the resource-type table this file loops over", () => {
    * ever empty or short, every one of those tests would pass by never running.
    */
   test("covers every member of the enum", () => {
-    expect(ALL_RESOURCE_TYPES.length).toBe(13);
+    expect(ALL_RESOURCE_TYPES.length).toBe(16);
     expect(RESOURCE_CASES.length).toBe(ALL_RESOURCE_TYPES.length);
 
     for (const resourceCase of RESOURCE_CASES) {

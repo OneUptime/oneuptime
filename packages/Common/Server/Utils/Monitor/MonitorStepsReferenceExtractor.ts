@@ -2,6 +2,11 @@ import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import ObjectID from "../../../Types/ObjectID";
 import Typeof from "../../../Types/Typeof";
+import {
+  getSecurityWatchlistNameKey,
+  isSecurityWatchlistName,
+} from "../../../Types/SecurityEvent/SecurityWatchlist";
+import { readSecurityWatchlistFilters } from "../../../Types/SecurityEvent/SecurityWatchlistFilter";
 
 /*
  * `monitorSteps` is a free-form JSON column, so none of the ids it embeds have
@@ -458,6 +463,52 @@ export default class MonitorStepsReferenceExtractor {
     }
 
     return probeIds;
+  }
+
+  /*
+   * The watchlists a Security Events monitor's steps read, by name, each
+   * once in the order the steps name them: what a save checks the project
+   * has, and what keeps a list from being renamed or deleted while the
+   * monitor reads it (SecurityWatchlists.findReaders). A row that names no
+   * list is left out, as its run leaves it out.
+   */
+  public static extractWatchlistNames(
+    monitorSteps: MonitorSteps | JSONObject | undefined | null,
+  ): Array<string> {
+    const root: JSONObject | null = this.toJSONObject(monitorSteps);
+
+    if (!root) {
+      return [];
+    }
+
+    const names: Array<string> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const step of asArray(root["monitorStepsInstanceArray"])) {
+      const stepValue: JSONObject | null = unwrap(step as JSONValue);
+      const securityEventsMonitor: JSONObject | null = stepValue
+        ? unwrap(stepValue["securityEventsMonitor"])
+        : null;
+
+      if (!securityEventsMonitor) {
+        continue;
+      }
+
+      for (const filter of readSecurityWatchlistFilters(
+        securityEventsMonitor["watchlistFilters"],
+      )) {
+        const key: string = getSecurityWatchlistNameKey(filter.watchlist);
+
+        if (!isSecurityWatchlistName(filter.watchlist) || seen.has(key)) {
+          continue;
+        }
+
+        seen.add(key);
+        names.push(filter.watchlist);
+      }
+    }
+
+    return names;
   }
 
   private static toJSONObject(

@@ -4,14 +4,14 @@ En advarsel gør dit team opmærksom på et problem, der skal undersøges, før 
 
 :::cards
 - [Advarsler og hændelser](#advarsler-og-hændelser): Hvilken af dem et problem skal være, og hvordan de to hænger sammen.
-- [Hvor advarsler kommer fra](#hvor-advarsler-kommer-fra): Monitorer, SLO'er, chat, API'et eller i hånden.
+- [Hvor advarsler kommer fra](#hvor-advarsler-kommer-fra): Monitorer, SLO'er, chat, Spørg AI, API'et eller i hånden.
 - [Opret en advarsel i hånden](#opret-en-advarsel-i-hånden): To trin i dashboardet.
 - [Reager på en advarsel](#reager-på-en-advarsel): Bekræft den, løs den eller erklær en hændelse.
 :::
 
 ## Sådan fungerer det
 
-De fleste advarsler udløses af en monitor, hvis kriterier matcher. Nogle kommer fra en SLO, der bruger sit fejlbudget, en sikkerhedsregel, en tilkaldelse sendt fra Slack eller Microsoft Teams eller en person. Uanset hvordan den kommer, er en advarsel den samme post, og de samme regler kører på den.
+De fleste advarsler udløses af en monitor, hvis kriterier matcher. Nogle kommer fra en SLO, der bruger sit fejlbudget, en sikkerhedsregel, en tilkaldelse sendt fra Slack eller Microsoft Teams, Spørg AI eller en person. Uanset hvordan den kommer, er en advarsel den samme post, og de samme regler kører på den.
 
 ```mermaid title="Fra et signal til de mennesker, der håndterer det"
 flowchart TB
@@ -44,6 +44,7 @@ Udløs en advarsel, når dit team bør kigge, før nogen udenfor opdager noget, 
 
 - **En monitors kriterier.** Under et kriteriums **Handlinger** slår du **Når filtre matcher, oprettes en advarsel.** til og udfylder den advarsel, det opretter: **Advarselstitel** og **Alvorlighed**, derefter, hver foldet sammen, **Beskrivelse**, **Ejerskab og etiketter**, **Vagt** og **Flere felter**, som rummer **Løs advarsel automatisk**, **Privat advarsel** og **Afhjælpningsnoter**. Et kriterium holder én åben advarsel ad gangen, én pr. serie på en monitor, der grupperer efter et felt, og **Løs advarsel automatisk** løser den, når kriteriet holder op med at matche. Se [Opret en monitor](/docs/monitor/create-monitor) og [Hændelse- og advarselsskabeloner](/docs/monitor/incident-alert-templating).
 - **I hånden.** Klik på **Opret advarsel** på listen over advarsler eller på fanen **Advarsler** for en monitor, en host, en netværksenhed eller en anden ressource, som vælger den ressource for dig. Se [Opret en advarsel i hånden](#opret-en-advarsel-i-hånden).
+- **Spørg AI.** Bed om en advarsel i [Spørg AI](/docs/ai/ask-ai): den opretter den som dig, knyttet til den ressource, hvis side du spurgte fra, fx en værts. For at registrere et problem, som nogen allerede tager sig af, eller som allerede er overstået, så bed om den bekræftet eller løst: den starter i den tilstand og tilkalder ingen. Se [Oprettet allerede bekræftet eller løst](#oprettet-allerede-bekræftet-eller-løst).
 - **En SLO's forbrugsrate.** En forbrugsrateregel kan oprette en advarsel, når en SLO bruger sit fejlbudget for hurtigt. Se [Forbrugsrateadvarsler og -hændelser](/docs/slo/burn-rate-alerts).
 - **Netværkslokationer og sikkerhedsbegivenheder.** En netværkslokation, der er sat til at advare, når den er usund, åbner en advarsel, når dens samlede tilstand ikke længere er operationel, og dine detektionsregler for sikkerhedsbegivenheder åbner også advarsler. Se [Netværkslokationer (tilstandsoversigt og oppetid)](/docs/monitor/network-sites) og [Sikkerhedsbegivenheder (SIEM)](/docs/telemetry/security-events).
 - **En tilkaldelse.** `/oneuptime page` i Slack eller Microsoft Teams, alle steder undtagen en hændelses eller en advarsels egen kanal, åbner en advarsel med din besked som titel og tilkalder de personer, du nævner. Et workflows tilkaldelsesblokke gør det samme med den titel og besked, du giver dem. Se [Tilkald nogen fra Slack](/docs/workspace-connections/slack#tilkald-nogen-fra-slack) og [Paging](/docs/workflows/components#paging).
@@ -58,8 +59,8 @@ Udløs en advarsel, når dit team bør kigge, før nogen udenfor opdager noget, 
 | **Advarsler**     | **Alle advarsler** og **Aktive advarsler**, hvis røde mærke tæller de advarsler, der endnu ikke er løst.                    |
 | **Episoder** | **Alle episoder** og **Aktive episoder**: relaterede advarsler samlet i ét problem at arbejde på. |
 | **AI**            | **Indsigter**, **Protokoller** og **Indstillinger**: hvad OneUptime AI har lært af dine advarsler, alt, hvad den har gjort, og hvad den må gøre. |
-| **Arbejdsområde** | **Slack** og **Microsoft Teams**, alt efter hvad projektet har forbundet, eller **Forbind Slack eller Teams**, når det har ingen af dem. |
-| **Regler**        | **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **Påmindelsesregler**. |
+| **Arbejdsområde** | **Slack**, **Microsoft Teams** og **Mattermost**, alt efter hvad projektet har forbundet, eller **Forbind et arbejdsområde**, når det har ingen af dem. |
+| **Regler**        | **Grupperingsregler**, **Vagtregler**, **Hændelsesregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **Påmindelsesregler**. |
 | **Indstillinger** | **Advarselsstatus**, **Advarselsalvor**, **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Medlemskab af episoder**, **Nummerering**. |
 
 **Advarsler** og **Episoder** er åbne; **AI**, **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** er foldet sammen fra start, og en sektion åbner af sig selv, når du er på en af dens sider. Konfigurationen af advarsler ligger her, ikke i **Projektindstillinger**.
@@ -94,12 +95,12 @@ Lader du **Indledende tilstand** være tom, starter advarslen, hvor enhver ny ad
 
 I det øjeblik en advarsel oprettes, gennemgår OneUptime disse trin i denne rækkefølge:
 
-1. **Den får et nummer og en tilstand.** Advarselsnummeret kommer fra en tæller pr. projekt og vises med dit præfiks (`ALT-42`). Advarslen starter i din oprettelsestilstand, medmindre formularen, API'et eller et workflow valgte en anden.
+1. **Den får et nummer og en tilstand.** Advarselsnummeret kommer fra en tæller pr. projekt og vises med dit præfiks (`ALT-42`). Advarslen starter i din oprettelsestilstand, medmindre formularen, API'et, et workflow eller Spørg AI valgte en anden.
 2. **Privatlivsregler kører først**, så alt efter dem ved, om advarslen er privat.
 3. **Feedet og dine chatværktøjer hører om den.** En post **Advarsel oprettet** skrives i **Advarsel Feed**, og de kanaler, dine Slack- og Microsoft Teams-regler nævner, får besked; en regel kan oprette en kanal til advarslen.
 4. **Ejere og etiketter tilføjes**: dem, monitorens kriterier eller forespørgslen nævner, derefter dem fra matchende ejer- og etiketregler.
 5. **Vagtregler tilføjer deres politikker**, derefter starter runbook-regler de runbooks, der matcher.
-6. **Vagtpolitikker kører.** Hver politik på advarslen tilkalder sine personer parallelt; at én fejler, stopper ikke de andre.
+6. **Vagtpolitikker kører.** Hver politik på advarslen tilkalder sine personer parallelt; at én fejler, stopper ikke de andre. Derefter erklærer den første matchende hændelsesregel en hændelse ud fra advarslen, med det samme eller når dens ventetid er gået.
 7. **Grupperingsregler lægger den i en episode**, når en af dem matcher. Se [Advarselsepisoder og grupperingsregler](/docs/alerts/episodes).
 8. **Påmindelser planlægges**, når en påmindelsesregel matcher, og **OneUptime AI** undersøger advarslen, når **Undersøg nye advarsler** er slået til under **Advarsler → AI → Indstillinger**, og retter den, når **Ret nye advarsler automatisk** er slået til. Se [AI SRE](/docs/ai/ai-sre).
 
@@ -110,7 +111,7 @@ Et baggrundsjob giver advarslens ejere besked inden for et minut, og workflow-ud
 En advarsel, der starter i en senere tilstand, registrerer et problem, som nogen allerede tager sig af, så den behandles ikke som en ny nødsituation:
 
 - **I eller efter din bekræftede tilstand** kører ingen vagtpolitik. Advarslen beholder sine politikker, og dens feed siger på én linje, hvorfor ingen blev tilkaldt. Den kan slutte sig til en åben episode, men åbner aldrig en, for det ville tilkalde via episodens politikker.
-- **I eller efter din løste tilstand** er advarslen overstået: Den grupperes ikke i en episode, ingen runbook eller automatisk afhjælpning handler på den, OneUptime AI undersøger den ikke, og der oprettes ingen Slack- eller Microsoft Teams-kanal til den.
+- **I eller efter din løste tilstand** er advarslen overstået: Den grupperes ikke i en episode, ingen runbook, automatisk afhjælpning eller hændelsesregel handler på den, OneUptime AI undersøger den ikke, og der oprettes ingen Slack- eller Microsoft Teams-kanal til den.
 
 Dens regler, dens ejere, dens feed og dens første tilstand sker stadig i begge tilfælde. Hændelser følger samme regel: se [Erklæret allerede bekræftet eller løst](/docs/incidents/declaring-incidents#erklæret-allerede-bekræftet-eller-løst).
 

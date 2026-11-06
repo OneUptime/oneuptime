@@ -145,6 +145,7 @@ Templates lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een crit
 - **Tel- en toestandstemplates gebruiken Max**, zodat één verzameling die de toestand toont ze laat afgaan: pakketfouten, ballooning, swapping, rode en gele status, hosts die niet effectief zijn, congestie.
 - **Host Not Responding gebruikt Max en gaat af bij 0:** een draaiende ESXi-host gebruikt altijd geheugen, dus één verzameling die geheugen in gebruik meldt, is een host die antwoordt, en alleen een venster waarin geen enkele dat deed, laat hem afgaan.
 - **Elk template groepeert op het eigen identiteitsattribuut van het object**, dus er gaat één incident af per getroffen object, en het incident noemt het. De uitzondering is **vCenter Stopped Reporting**, dat het hele vCenter in de gaten houdt: als er geen gegevens meer komen, hebben de andere templates niets om te vergelijken en houden ze hun laatste status, dus dit is het template dat het je laat weten.
+- **Datacenter-teltemplates herstellen wanneer hun reeks verdwenen is:** de receiver legt alleen een aantal vast voor toestanden die bestaan, dus wanneer de laatste rode host groen wordt, blijft er geen reeks over, en hun herstelcriteria tellen een ontbrekende reeks als 0. Als geen enkel datacenter nog een reeks heeft, herstellen ze alleen als `vcenter.datacenter.cpu.limit` in hetzelfde venster is binnengekomen, zodat een vCenter dat niet meer rapporteert niets sluit.
 - **Drempels staan vast in hun eenheid** (`%`, `ms`, `us`), zodat ze hun betekenis houden welke eenheid een grafiek ook toont.
 
 ## Verzamelde metrieken
@@ -273,7 +274,7 @@ Een criterium vergelijkt een van de queries of formules van de monitor met een d
 | --- | --- |
 | **Metriek** | De query of formule om te controleren, op haar variabelenaam. |
 | **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen, over het hele venster) of **Any Value** (één is genoeg). |
-| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde. |
+| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde. **Verwacht boven** en **Verwacht onder** komen overeen wanneer de trend van de metriek in het venster aan het eind van **Termijn** voorbij de drempel is. |
 | **Drempel** | De waarde om mee te vergelijken. Er staat een eenhedenlijst naast als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |

@@ -19,8 +19,53 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import {
+  AI_ACTION_CARD_FACTS,
+  AI_ACTION_CARD_KINDS,
+  AI_ACTION_CARD_LINES,
+  AI_ACTION_TITLES,
+  aiActionCardFact,
+  AIActionCardWords,
+  AIActionSentence,
+  aiActionSentence,
+  aiActionTerm,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  getAlertNumberText,
+  getIncidentNumberText,
+  getRecordTitleName,
+  prepareRecordNamesInTitle,
+  RecordNames,
+} from "./RecordNamesForPerson";
 
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
+
+// The cards' titles: the record by its number once read, else by its ID.
+function buildIncidentNoteTitle(
+  args: JSONObject,
+  names: RecordNames,
+): AIActionSentence {
+  const incident: string | undefined = getRecordTitleName(
+    args,
+    names,
+    "incidentId",
+  );
+
+  return incident
+    ? aiActionSentence(AI_ACTION_TITLES.addIncidentNote, { incident })
+    : aiActionSentence(AI_ACTION_TITLES.addIncidentNoteUnnamed);
+}
+
+function buildAlertNoteTitle(
+  args: JSONObject,
+  names: RecordNames,
+): AIActionSentence {
+  const alert: string | undefined = getRecordTitleName(args, names, "alertId");
+
+  return alert
+    ? aiActionSentence(AI_ACTION_TITLES.addAlertNote, { alert })
+    : aiActionSentence(AI_ACTION_TITLES.addAlertNoteUnnamed);
+}
 /*
  * Private (internal) note tools — the team-only counterpart of
  * post_incident_status_update. Internal notes live in the dashboard's private
@@ -63,6 +108,22 @@ function previewOf(note: string): string {
 }
 
 /*
+ * The card a note leaves: the record it is on, that the note is private
+ * to the team, and its start - in the reader's language
+ * (WidgetBuilder.actionCard).
+ */
+function describeNoteCard(data: {
+  kind: string;
+  note: string;
+}): AIActionCardWords {
+  return {
+    kind: aiActionTerm(data.kind),
+    line: [aiActionSentence(AI_ACTION_CARD_LINES.privateNoteAdded)],
+    facts: [aiActionCardFact(AI_ACTION_CARD_FACTS.note, previewOf(data.note))],
+  };
+}
+
+/*
  * ---------------------------------------------------------------------------
  * create_incident_note — private internal note on an incident.
  * ---------------------------------------------------------------------------
@@ -91,9 +152,14 @@ export const CreateIncidentNoteTool: ObservabilityTool = {
     return resolveIncidentNoteCreatePermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Add private internal note to incident ${ToolArgs.getString(args, "incidentId") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildIncidentNoteTitle(args, {});
   },
+  // The incident by its number, as the person knows it.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["incidentId"],
+    buildTitle: buildIncidentNoteTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -123,7 +189,12 @@ export const CreateIncidentNoteTool: ObservabilityTool = {
     // Visibility check under the user's RBAC before writing anything.
     const incident: Incident | null = await IncidentService.findOneById({
       id: incidentId,
-      select: { _id: true, incidentNumber: true, title: true },
+      select: {
+        _id: true,
+        incidentNumber: true,
+        incidentNumberWithPrefix: true,
+        title: true,
+      },
       props: ctx.props,
     });
     if (!incident) {
@@ -170,12 +241,10 @@ export const CreateIncidentNoteTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: false,
-      widget: WidgetBuilder.resourceCard({
+      widget: WidgetBuilder.actionCard({
         title: "Internal note added",
-        resourceType: "Incident",
-        heading: `#${incident.incidentNumber} · ${incident.title}`,
-        subheading: "Private — team members only",
-        fields: [{ label: "Note", value: previewOf(note) }],
+        heading: `${getIncidentNumberText(incident)} · ${incident.title}`,
+        words: describeNoteCard({ kind: AI_ACTION_CARD_KINDS.incident, note }),
         link: {
           type: AIChatCitationTargetType.IncidentView,
           params: { incidentId: incidentIdString },
@@ -214,9 +283,14 @@ export const CreateAlertNoteTool: ObservabilityTool = {
     return resolveAlertNoteCreatePermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Add private internal note to alert ${ToolArgs.getString(args, "alertId") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildAlertNoteTitle(args, {});
   },
+  // The alert by its number, as the person knows it.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["alertId"],
+    buildTitle: buildAlertNoteTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -243,7 +317,12 @@ export const CreateAlertNoteTool: ObservabilityTool = {
     // Visibility check under the user's RBAC before writing anything.
     const alert: Alert | null = await AlertService.findOneById({
       id: alertId,
-      select: { _id: true, alertNumber: true, title: true },
+      select: {
+        _id: true,
+        alertNumber: true,
+        alertNumberWithPrefix: true,
+        title: true,
+      },
       props: ctx.props,
     });
     if (!alert) {
@@ -290,12 +369,10 @@ export const CreateAlertNoteTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: false,
-      widget: WidgetBuilder.resourceCard({
+      widget: WidgetBuilder.actionCard({
         title: "Internal note added",
-        resourceType: "Alert",
-        heading: `#${alert.alertNumber} · ${alert.title}`,
-        subheading: "Private — team members only",
-        fields: [{ label: "Note", value: previewOf(note) }],
+        heading: `${getAlertNumberText(alert)} · ${alert.title}`,
+        words: describeNoteCard({ kind: AI_ACTION_CARD_KINDS.alert, note }),
         link: {
           type: AIChatCitationTargetType.AlertView,
           params: { alertId: alertIdString },

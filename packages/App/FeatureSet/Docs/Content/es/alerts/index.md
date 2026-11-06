@@ -4,14 +4,14 @@ Una alerta avisa a tu equipo de un problema que conviene revisar antes de que tu
 
 :::cards
 - [Alertas e incidentes](#alertas-e-incidentes): Cuál de los dos debería ser un problema y cómo se relacionan.
-- [De dónde vienen las alertas](#de-dónde-vienen-las-alertas): Monitores, SLO, chat, la API o a mano.
+- [De dónde vienen las alertas](#de-dónde-vienen-las-alertas): Monitores, SLO, chat, Preguntar a la IA, la API o a mano.
 - [Crear una alerta a mano](#crear-una-alerta-a-mano): Dos pasos en el panel.
 - [Responder a una alerta](#responder-a-una-alerta): Reconócela, resuélvela o declara un incidente.
 :::
 
 ## Cómo funciona
 
-La mayoría de las alertas las genera un monitor cuyos criterios coinciden. Otras vienen de un SLO que consume su presupuesto de errores, de una regla de seguridad, de un aviso enviado desde Slack o Microsoft Teams, o de una persona. Llegue como llegue, una alerta es siempre el mismo registro y se le aplican las mismas reglas.
+La mayoría de las alertas las genera un monitor cuyos criterios coinciden. Otras vienen de un SLO que consume su presupuesto de errores, de una regla de seguridad, de un aviso enviado desde Slack o Microsoft Teams, de Preguntar a la IA, o de una persona. Llegue como llegue, una alerta es siempre el mismo registro y se le aplican las mismas reglas.
 
 ```mermaid title="De una señal a las personas que la atienden"
 flowchart TB
@@ -44,6 +44,7 @@ Genera una alerta cuando tu equipo deba mirar antes de que nadie de fuera lo not
 
 - **Los criterios de un monitor.** En las **Acciones** de un criterio, activa **Cuando los filtros coinciden, crear una alerta.** y completa la alerta que crea: **Título de la alerta** y **Gravedad**, y después, cada uno plegado, **Descripción**, **Propiedad y etiquetas**, **De guardia** y **Más campos**, que contiene **Resolver alerta automáticamente**, **Alerta privada** y **Notas de remediación**. Un criterio mantiene una sola alerta abierta a la vez, una por serie en un monitor que agrupa por un campo, y **Resolver alerta automáticamente** la resuelve cuando el criterio deja de coincidir. Consulta [Crear un monitor](/docs/monitor/create-monitor) y [Plantillas de incidentes y alertas](/docs/monitor/incident-alert-templating).
 - **A mano.** Haz clic en **Crear alerta** en la lista de alertas, o en la pestaña **Alertas** de un monitor, un host, un dispositivo de red u otro recurso, que elige ese recurso por ti. Consulta [Crear una alerta a mano](#crear-una-alerta-a-mano).
+- **Preguntar a la IA.** En [Preguntar a la IA](/docs/ai/ask-ai), pide una alerta: la crea en tu nombre, vinculada al recurso desde cuya página preguntaste, como la de un host. Para registrar un problema del que alguien ya se ocupa, o que ya ha terminado, pídela reconocida o resuelta: empieza en ese estado y no avisa a nadie. Consulta [Creada ya reconocida o resuelta](#creada-ya-reconocida-o-resuelta).
 - **La tasa de consumo de un SLO.** Una regla de tasa de consumo puede crear una alerta cuando un SLO gasta su presupuesto de errores demasiado rápido. Consulta [Alertas e incidentes de tasa de consumo](/docs/slo/burn-rate-alerts).
 - **Sitios de red y eventos de seguridad.** Un sitio de red configurado para alertar cuando no está sano abre una alerta cuando su resumen deja de estar operativo, y tus reglas de detección de eventos de seguridad también abren alertas. Consulta [Sitios de red (resumen de salud y tiempo de actividad)](/docs/monitor/network-sites) y [Eventos de seguridad (SIEM)](/docs/telemetry/security-events).
 - **Un aviso.** `/oneuptime page` en Slack o Microsoft Teams, en cualquier lugar salvo el canal propio de un incidente o de una alerta, abre una alerta cuyo título es tu mensaje y avisa a las personas que nombres. Los bloques de aviso de un flujo de trabajo hacen lo mismo con el título y el mensaje que les des. Consulta [Avisar a alguien desde Slack](/docs/workspace-connections/slack#avisar-a-alguien-desde-slack) y [Paging](/docs/workflows/components#paging).
@@ -58,8 +59,8 @@ Abre **Alertas** desde el menú **Productos** de la barra superior. La lista de 
 | **Alertas**            | **Todas las alertas** y **Alertas activas**, cuya insignia roja cuenta las alertas que aún no se han resuelto.              |
 | **Episodios** | **Todos los episodios** y **Episodios activos**: alertas relacionadas, agrupadas en un solo problema en el que trabajar. |
 | **IA**                 | **Análisis**, **Registros** y **Ajustes**: lo que OneUptime AI ha aprendido de tus alertas, todo lo que ha hecho y lo que puede hacer. |
-| **Espacio de trabajo** | **Slack** y **Microsoft Teams**, según lo que haya conectado el proyecto, o **Conectar Slack o Teams** si no tiene ninguno. |
-| **Reglas**             | **Reglas de agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de recordatorio**. |
+| **Espacio de trabajo** | **Slack**, **Microsoft Teams** y **Mattermost**, según lo que haya conectado el proyecto, o **Conectar un espacio de trabajo** si no tiene ninguno. |
+| **Reglas**             | **Reglas de agrupación**, **Reglas de guardia**, **Reglas de incidentes**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de recordatorio**. |
 | **Ajustes**            | **Estado de la alerta**, **Gravedad de la alerta**, **Plantillas de notas**, **Campos personalizados**, **Mediciones**, **Pertenencia a episodios**, **Numeración**. |
 
 **Alertas** y **Episodios** están abiertas; **IA**, **Espacio de trabajo**, **Reglas**, **Ajustes** y **Desarrolladores** empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. La configuración de las alertas está aquí, no en **Ajustes del proyecto**.
@@ -94,12 +95,12 @@ Si dejas **Estado inicial** vacío, la alerta empieza donde empieza toda alerta 
 
 En cuanto se crea una alerta, OneUptime recorre estos pasos, en este orden:
 
-1. **Recibe un número y un estado.** El número de alerta sale de un contador por proyecto y se muestra con tu prefijo (`ALT-42`). La alerta empieza en tu estado de creación, salvo que el formulario, la API o un flujo de trabajo hayan elegido otro.
+1. **Recibe un número y un estado.** El número de alerta sale de un contador por proyecto y se muestra con tu prefijo (`ALT-42`). La alerta empieza en tu estado de creación, salvo que el formulario, la API, un flujo de trabajo o Preguntar a la IA hayan elegido otro.
 2. **Las reglas de privacidad se ejecutan primero**, para que todo lo que viene después sepa si la alerta es privada.
 3. **El feed y tus herramientas de chat se enteran.** Se escribe una entrada **Alerta creada** en el **Feed de la alerta**, y se avisa a los canales que nombran tus reglas de Slack y Microsoft Teams; una regla puede crear un canal para la alerta.
 4. **Se añaden propietarios y etiquetas**: los que nombran los criterios del monitor o la solicitud, y después los de las reglas de propietario y de etiquetas que coinciden.
 5. **Las reglas de guardia añaden sus políticas**, y después las reglas de runbook ponen en marcha los runbooks que coinciden.
-6. **Se ejecutan las políticas de guardia.** Cada política de la alerta avisa a sus personas en paralelo; si una falla, no detiene a las demás.
+6. **Se ejecutan las políticas de guardia.** Cada política de la alerta avisa a sus personas en paralelo; si una falla, no detiene a las demás. Después, la primera regla de incidentes que coincide declara un incidente a partir de la alerta, en el acto o cuando termina su espera.
 7. **Las reglas de agrupación la meten en un episodio**, cuando alguna coincide. Consulta [Episodios de alertas y reglas de agrupación](/docs/alerts/episodes).
 8. **Se programan los recordatorios**, cuando coincide una regla de recordatorio, y **OneUptime AI** investiga la alerta cuando **Investigar las alertas nuevas** está activado en **Alertas → IA → Ajustes**, y la corrige cuando **Corregir automáticamente las alertas nuevas** está activado. Consulta [AI SRE](/docs/ai/ai-sre).
 
@@ -110,7 +111,7 @@ Un trabajo en segundo plano avisa a los propietarios de la alerta en menos de un
 Una alerta que empieza en un estado posterior registra un problema del que alguien ya se ocupa, así que no se trata como una nueva emergencia:
 
 - **En tu estado reconocido o después**, no se ejecuta ninguna política de guardia. La alerta conserva sus políticas, y su feed explica en una línea por qué no se avisó a nadie. Puede unirse a un episodio abierto, pero nunca abre uno, porque avisaría a través de las políticas del episodio.
-- **En tu estado resuelto o después**, la alerta ha terminado: no se agrupa en un episodio, ningún runbook ni remediación automática actúa sobre ella, OneUptime AI no la investiga y no se crea ningún canal de Slack ni de Microsoft Teams para ella.
+- **En tu estado resuelto o después**, la alerta ha terminado: no se agrupa en un episodio, ningún runbook, remediación automática ni regla de incidentes actúa sobre ella, OneUptime AI no la investiga y no se crea ningún canal de Slack ni de Microsoft Teams para ella.
 
 Sus reglas, sus propietarios, su feed y su primer estado siguen ocurriendo en ambos casos. Los incidentes siguen la misma regla: consulta [Declarado ya reconocido o resuelto](/docs/incidents/declaring-incidents#declarado-ya-reconocido-o-resuelto).
 

@@ -45,7 +45,7 @@ Solo el primer paso tiene campos obligatorios, más cualquier campo personalizad
 **Desde la página de un recurso.** **Declarar incidente** en la pestaña **Incidentes** de un monitor, un host, un servicio, un clúster o la mayoría de los demás recursos abre el mismo formulario con ese recurso ya elegido en **Recursos afectados**, así que basta con un título y una gravedad, y el incidente aparece en la pestaña desde la que empezaste.
 
 :::details Qué páginas de recurso lo ofrecen y qué eligen
-**Declarar incidente** en la pestaña **Incidentes** de un monitor, un host, un dispositivo de red, un clúster de Kubernetes, Proxmox, Ceph o Docker Swarm, un host de Docker o Podman, un vCenter, una cabina de almacenamiento, una flota IoT, una base de datos o un servicio abre el mismo asistente con ese recurso ya elegido en **Recursos afectados** (un monitor en **Monitores**, cualquier otra cosa en **Otros recursos afectados**), antes de cualquier cosa que añada una plantilla. **Crear desde plantilla** en esa pestaña también conserva el recurso. Las migas de pan vuelven por la pestaña del recurso, y una vez declarado llegas al nuevo incidente, como desde la lista de incidentes.
+**Declarar incidente** en la pestaña **Incidentes** de un monitor, un host, un dispositivo de red, un clúster de Kubernetes, Proxmox, Ceph o Docker Swarm, un host de Docker o Podman, un vCenter, una nube OpenStack, una cabina de almacenamiento, una flota IoT, una base de datos o un servicio abre el mismo asistente con ese recurso ya elegido en **Recursos afectados** (un monitor en **Monitores**, cualquier otra cosa en **Otros recursos afectados**), antes de cualquier cosa que añada una plantilla. **Crear desde plantilla** en esa pestaña también conserva el recurso. Las migas de pan vuelven por la pestaña del recurso, y una vez declarado llegas al nuevo incidente, como desde la lista de incidentes.
 
 La pestaña **Incidentes** de un elemento del inventario elige el host, el servicio o el clúster de Kubernetes al que apunta el elemento, y las migas de pan vuelven por la pestaña de ese recurso. **Crear alerta** en la pestaña **Alertas** de un recurso funciona igual: desde un monitor rellena el **Monitor** de la alerta, desde cualquier otro recurso, **Otros recursos afectados**.
 
@@ -284,7 +284,7 @@ A partir de ahí el incidente está activo: cuenta para la insignia **Incidentes
 
 ### Declarado ya reconocido o resuelto
 
-Elegir un **Estado inicial** posterior —en el formulario, mediante el **Estado inicial del incidente** de una plantilla, o con `currentIncidentStateId` desde la API, Terraform o un flujo de trabajo— registra un incidente del que alguien ya se está ocupando, o que ya ha terminado. No se trata como una nueva emergencia:
+Elegir un **Estado inicial** posterior —en el formulario, mediante el **Estado inicial del incidente** de una plantilla, con `currentIncidentStateId` desde la API, Terraform o un flujo de trabajo, o pidiendo a [Preguntar a la IA](/docs/ai/ask-ai) un incidente ya reconocido o resuelto— registra un incidente del que alguien ya se está ocupando, o que ya ha terminado. No se trata como una nueva emergencia:
 
 ```mermaid title="Lo que desencadena un incidente nuevo, según el estado en el que empieza"
 flowchart TB

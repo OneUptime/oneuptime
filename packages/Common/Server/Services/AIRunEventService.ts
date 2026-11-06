@@ -13,6 +13,7 @@ import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/AIRunEvent";
 import { pinQueryToRequestingUser } from "../Utils/AI/AIChatPrivacyFilter";
 import AIRunTranscript from "../Utils/AI/AIRunTranscript";
+import CodeTaskLive from "../Utils/AI/CodeTask/CodeTaskLive";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 
@@ -81,6 +82,15 @@ export class Service extends DatabaseService<Model> {
       await this.create({
         data: event,
         props: { isRoot: true },
+      });
+
+      /*
+       * The run's open pages - its task's conversation, its Log - read the
+       * new step now, not on their next look (CodeTaskLive).
+       */
+      await CodeTaskLive.announce({
+        projectId: data.projectId,
+        runId: data.aiRunId,
       });
     } catch (error) {
       logger.error(

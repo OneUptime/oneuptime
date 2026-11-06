@@ -1,6 +1,6 @@
 # Microsoft Entra ID
 
-Importieren Sie die Anmeldungen und Verzeichnisänderungen von [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) in die Sicherheitsereignisse von OneUptime und, wenn Sie möchten, die Aktivität in Exchange, SharePoint, OneDrive und Teams aus dem [Microsoft 365-Audit-Protokoll](https://learn.microsoft.com/en-us/purview/audit-log-activities). Dort durchsuchen Sie sie neben Ihren Logs, Traces und Metriken, verknüpfen sie mit jeder anderen Quelle und alarmieren die Bereitschaft für die wichtigen. OneUptime liest sie mit einer App-Registrierung, die Sie anlegen, und ändert nichts in Ihrem Mandanten.
+Importieren Sie die Anmeldungen, Verzeichnisänderungen und Risikoerkennungen von [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) in die Sicherheitsereignisse von OneUptime und, wenn Sie möchten, die Anmeldungen, die Apps im Hintergrund vornehmen, und die Aktivität in Exchange, SharePoint, OneDrive und Teams aus dem [Microsoft 365-Audit-Protokoll](https://learn.microsoft.com/en-us/purview/audit-log-activities). Dort durchsuchen Sie sie neben Ihren Logs, Traces und Metriken, verknüpfen sie mit jeder anderen Quelle und alarmieren die Bereitschaft für die wichtigen. OneUptime liest sie mit einer App-Registrierung, die Sie anlegen, und ändert nichts in Ihrem Mandanten.
 
 :::cards
 - [Die Verbindung einrichten](#die-verbindung-einrichten): Eine App-Registrierung, ihre Berechtigungen und das Formular der Verbindung.
@@ -19,15 +19,15 @@ flowchart TB
     list --> event["Jedes wird als<br/>OCSF-Ereignis seiner<br/>Art gespeichert"]
 ```
 
-Jede Minute fragt OneUptime jede aktivierte Verbindung ab, deren Abfrageintervall abgelaufen ist. Eine Abfrage meldet sich als Ihre App-Registrierung bei Microsoft Entra ID an und liest in dieser Reihenfolge die seit der letzten Abfrage erfassten Verzeichnisänderungen ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) und Anmeldungen ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)), dann, wenn die Option **Microsoft 365-Audit-Protokoll** eingeschaltet ist, die neuen Inhalte des Audit-Protokolls ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)). Jeder Datensatz wird als [OCSF](https://schema.ocsf.io/)-Ereignis gespeichert: eine Anmeldung als Ereignis Authentication, eine zugewiesene Rolle als User Access Management, ein Phishing-Urteil als Detection Finding.
+Jede Minute fragt OneUptime jede aktivierte Verbindung ab, deren Abfrageintervall abgelaufen ist. Eine Abfrage meldet sich als Ihre App-Registrierung bei Microsoft Entra ID an und liest in dieser Reihenfolge die seit der letzten Abfrage erfassten Verzeichnisänderungen ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) und Anmeldungen ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)), dann die Risikoerkennungen von Identity Protection ([List riskDetections](https://learn.microsoft.com/en-us/graph/api/riskdetection-list)), dann, wenn die Option **Hintergrund- und App-Anmeldungen** eingeschaltet ist, die Hintergrund- und App-Anmeldungen und, wenn die Option **Microsoft 365-Audit-Protokoll** eingeschaltet ist, die neuen Inhalte des Audit-Protokolls ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)). Jeder Datensatz wird als [OCSF](https://schema.ocsf.io/)-Ereignis gespeichert: eine Anmeldung als Ereignis Authentication, eine zugewiesene Rolle als User Access Management, eine Risikoerkennung oder ein Phishing-Urteil als Detection Finding.
 
 ## Bevor Sie beginnen
 
 - In OneUptime die Rolle Project Owner, Project Admin oder Security Admin. Security Member und Security Viewer sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
-- Für Anmeldungen Microsoft Entra ID P1 oder P2, das in Microsoft 365 E3, E5 und Business Premium enthalten ist: Microsoft Graph gibt Anmeldungen nur an solche Mandanten heraus. Verzeichnisänderungen werden in jedem Mandanten gelesen.
+- Für Anmeldungen und Risikoerkennungen Microsoft Entra ID P1 oder P2, das in Microsoft 365 E3, E5 und Business Premium enthalten ist: Microsoft Graph gibt sie nur an solche Mandanten heraus, und P2 liefert die Details jeder Risikoerkennung. Verzeichnisänderungen werden in jedem Mandanten gelesen.
 - Eine Entra-Rolle, die Anwendungen registrieren darf, etwa Anwendungsadministrator, und einen globalen Administrator oder Administrator für privilegierte Rollen, um die Administratorzustimmung zu erteilen.
 - Für das Microsoft 365-Audit-Protokoll eingeschaltete Überwachung im Mandanten, was standardmäßig der Fall ist: Im [Microsoft Purview-Portal](https://purview.microsoft.com) darf **Audit** nicht **Start recording user and admin activity** anbieten.
-- Ausgehendes HTTPS von der OneUptime-App und den Workern zu `login.microsoftonline.com`, `graph.microsoft.com` und `manage.office.com`, oder zu `login.microsoftonline.us`, `graph.microsoft.us` und `manage.office365.us` für Azure Government.
+- Ausgehendes HTTPS von der OneUptime-App und den Workern zu `login.microsoftonline.com`, `graph.microsoft.com` und `manage.office.com`, für Microsoft 365 GCC stattdessen mit `manage-gcc.office.com`, oder zu `login.microsoftonline.us`, `graph.microsoft.us` und `manage.office365.us` für GCC High und zu `login.microsoftonline.us`, `dod-graph.microsoft.us` und `manage.protection.apps.mil` für DoD.
 
 ## Die Verbindung einrichten
 
@@ -42,7 +42,7 @@ Die Verbindung meldet sich mit dem [OAuth-2.0-Fluss für Clientanmeldeinformatio
 
 ### Ihr das Lesen der Protokolle erlauben
 
-1. Gehen Sie zu **API permissions → Add a permission → Microsoft Graph → Application permissions**, wählen Sie `AuditLog.Read.All` und wählen Sie **Add permissions**. Microsoft dokumentiert, dass seine Liste der Anmeldungen auch `Directory.Read.All` verlangen kann: Fügen Sie sie hinzu, wenn Anmeldungen nach erteilter Zustimmung mit `403` abgelehnt werden.
+1. Gehen Sie zu **API permissions → Add a permission → Microsoft Graph → Application permissions**, wählen Sie `AuditLog.Read.All` und, für Risikoerkennungen, `IdentityRiskEvent.Read.All`, und wählen Sie **Add permissions**. Microsoft dokumentiert, dass seine Liste der Anmeldungen auch `Directory.Read.All` verlangen kann: Fügen Sie sie hinzu, wenn Anmeldungen nach erteilter Zustimmung mit `403` abgelehnt werden.
 2. Für das Microsoft 365-Audit-Protokoll fügen Sie eine zweite Berechtigung hinzu: **Add a permission → Office 365 Management APIs → Application permissions**, dann `ActivityFeed.Read`.
 3. Damit Playbooks Benutzer deaktivieren, aktivieren und abmelden können (siehe [Eindämmung](/docs/telemetry/security-cases#eindämmung)), fügen Sie auf dieselbe Weise `User.Read.All`, `User.EnableDisableAccount.All` und `User.RevokeSessions.All` hinzu. Das Konto eines Administrators lässt Microsoft nur von einer App ändern, die zusätzlich die Rolle Privileged Authentication Administrator hat.
 4. Wählen Sie **Grant admin consent for** Ihren Mandanten und bestätigen Sie. Der Status jeder Berechtigung muss **Granted** lauten: Ohne Zustimmung wird jedes Lesen mit `403` abgelehnt.
@@ -53,7 +53,7 @@ Gehen Sie zu **Certificates & secrets → Client secrets → New client secret**
 
 ### Die Verbindung in OneUptime hinzufügen
 
-Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen** (`/dashboard/{projectId}/security-events/connections`), klicken Sie auf **Verbindung hinzufügen**, wählen Sie **Microsoft Entra ID** unter **Identität** und klicken Sie auf **Weiter**. Füllen Sie die Einstellungen aus der Tabelle unten aus, klicken Sie auf **Weiter** und fügen Sie den Wert des Geheimnisses in **Client-Secret** ein. Schalten Sie im Schritt **Abfrage** **Microsoft 365-Audit-Protokoll** ein, um auch dieses zu lesen.
+Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen** (`/dashboard/{projectId}/security-events/connections`), klicken Sie auf **Verbindung hinzufügen**, wählen Sie **Microsoft Entra ID** unter **Identität** und klicken Sie auf **Weiter**. Füllen Sie die Einstellungen aus der Tabelle unten aus, klicken Sie auf **Weiter** und fügen Sie den Wert des Geheimnisses in **Client-Secret** ein. Schalten Sie im Schritt **Abfrage** **Hintergrund- und App-Anmeldungen** oder **Microsoft 365-Audit-Protokoll** ein, um auch diese zu lesen. Ein Mandant außerhalb der öffentlichen Azure-Cloud wählt seine **Cloud** unter **Weitere Felder** im Einstellungsschritt.
 
 ### Vor dem Speichern testen
 
@@ -63,8 +63,9 @@ Klicken Sie unter **Vor dem Speichern testen** auf **Diese Einstellungen testen*
 | Einstellung | Wo Sie sie finden |
 | --- | --- |
 | **Verzeichnis-ID (Tenant)** | Die Seite **Overview** der App. Die GUID des Mandanten oder eine verifizierte Domäne wie `contoso.onmicrosoft.com`. Mit eingeschaltetem **Microsoft 365-Audit-Protokoll** die GUID: Die Management API benennt einen Mandanten nur damit. |
-| **Anwendungs-ID (Client)** | Die Seite **Overview** der App. Die GUID der App, die `AuditLog.Read.All` hat. |
-| **Cloud** | **Öffentliche Azure-Cloud** oder **Azure Government (USA)** für GCC High (`login.microsoftonline.us`, `graph.microsoft.us` und `manage.office365.us`). |
+| **Anwendungs-ID (Client)** | Die Seite **Overview** der App. Die GUID der App, die `AuditLog.Read.All` und `IdentityRiskEvent.Read.All` hat. |
+| **Cloud** | Unter **Weitere Felder**. **Öffentliche Azure-Cloud**, sofern Sie keine andere wählen: **Öffentliche Azure-Cloud, Microsoft 365 GCC** für GCC, **Azure Government (USA), GCC High** für GCC High oder **Azure Government (USA), DoD** für DoD. |
+| **Hintergrund- und App-Anmeldungen** | Optional, standardmäßig aus. Eingeschaltet liest jede Abfrage auch die Anmeldungen, die Apps im Hintergrund für Personen vornehmen, und die eigenen Anmeldungen von Dienstprinzipalen aus der Beta-Anmeldeliste von Microsoft Graph und importiert die fehlgeschlagenen. |
 | **Microsoft 365-Audit-Protokoll** | Optional, standardmäßig aus. Eingeschaltet liest jede Abfrage auch das Microsoft 365-Audit-Protokoll. Die App braucht `ActivityFeed.Read`. |
 | **Client-Secret** | Der **Value** des Geheimnisses. Es wird verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie es mit **Anmeldedaten aktualisieren** an der Verbindung. |
 
@@ -80,6 +81,8 @@ Jedes Ereignis hat den Anbieter `Microsoft` und das Produkt `Microsoft Entra ID`
 | Eine Anmeldung, die auf einen zweiten Schritt wartet, etwa MFA (`50074`, `50076`) oder die Aufforderung, das Passwort zu ändern | Authentication (`3002`), Status `Interrupted` | Informational: ein Schritt, kein Fehlschlag |
 | Eine fehlgeschlagene Anmeldung, mit dem Grund und Fehlercode von Entra | Authentication (`3002`), Status `Failure` | Low |
 | Eine Anmeldung, die Identity Protection mit mittlerem oder hohem Risiko bewertet hat | Authentication (`3002`) | Medium oder High |
+| Ein von Identity Protection erkanntes Risiko, etwa eine anonyme IP-Adresse oder geleakte Anmeldedaten | Detection Finding (`2004`) | Seine Risikostufe; Critical für einen als kompromittiert bestätigten Benutzer |
+| Eine fehlgeschlagene Hintergrund- oder App-Anmeldung, mit eingeschalteter Option **Hintergrund- und App-Anmeldungen** | Authentication (`3002`), Status `Failure` | Low |
 | Ein geänderter Benutzer, eine Gruppe oder Rolle, nach ihrer Kategorie | Account Change (`3001`), Group Management (`3006`), User Access Management (`3005`) oder Entity Management (`3004`) für den Rest | Medium für eine privilegierte Rolle wie Global Administrator; Low für eine fehlgeschlagene Änderung |
 
 Mit eingeschaltetem **Microsoft 365-Audit-Protokoll** werden die Datensätze daraus importiert, auf die ein Sicherheitsteam reagiert, und der Rest, etwa eine geöffnete Datei oder eine gelesene E-Mail, nur gezählt:
@@ -96,22 +99,22 @@ Mit eingeschaltetem **Microsoft 365-Audit-Protokoll** werden die Datensätze dar
 
 Die eigene Hausarbeit von Exchange, unter seinem Systemkonto ausgeführt, bleibt außen vor, außer sie leitet E-Mails weiter. Jedes Ereignis behält den ganzen Datensatz, flach gemacht zu Schlüsseln mit Punkten wie `status.errorCode` oder `Parameters.ForwardTo`, sodass eine Regel jedes Feld unter dem Namen liest, den Microsoft ihm gibt. Die Regeln der Regelbibliothek für Entra ID lesen sie so, wie sie hier importiert werden.
 
-Dieselben Anmeldungen und Verzeichnisänderungen können OneUptime stattdessen als Logs erreichen, von einer Azure-Diagnoseeinstellung exportiert und von [Ihre Protokolle](/docs/telemetry/security-events#sicherheitsereignisse-in-ihren-logs-finden) gelesen. Jeder Datensatz bekommt auf beiden Wegen dieselbe Ereignis-ID, aber ein auf beiden Wegen gelesener Datensatz wird zweimal gespeichert: Lesen Sie Entra ID auf einem Weg.
+Dieselben Anmeldungen, Verzeichnisänderungen und Risikoerkennungen können OneUptime auch als Logs erreichen, von einer Azure-Diagnoseeinstellung exportiert und von [Ihre Protokolle](/docs/telemetry/security-events#sicherheitsereignisse-in-ihren-logs-finden) gelesen. Jeder Datensatz bekommt auf beiden Wegen dieselbe Ereignis-ID, und ein auf beiden Wegen gelesener Datensatz wird einmal gespeichert, von dem Weg, der ihn zuerst liest.
 
 ## So funktioniert das Abfragen
 
-- **Datensätze werden danach gelesen, wann Entra ID sie erfasst hat**, `activityDateTime` bei einer Änderung und `createdDateTime` bei einer Anmeldung.
+- **Datensätze werden danach gelesen, wann Entra ID sie erfasst hat**, `activityDateTime` bei einer Änderung, `createdDateTime` bei einer Anmeldung und `detectedDateTime` bei einer Risikoerkennung.
 - **Die erste Abfrage blickt 24 Stunden zurück**, sodass eine neue Verbindung ihre jüngsten Datensätze sofort zeigt.
 - **Jede spätere Abfrage beginnt 30 Minuten vor dem gespeicherten Cursor.** Microsoft dokumentiert, dass beide Protokolle Minuten verspätet ankommen, deshalb liest die Überlappung einen verspäteten Datensatz bei der nächsten Abfrage, und Duplikate werden innerhalb des Projekts nach Datensatz-ID verworfen.
 - **Eine Abfrage liest höchstens 24 Stunden über den Cursor hinaus.** Eine Verbindung, deren Cursor zurückliegt, holt in einer Reihe von 24-Stunden-Fenstern auf.
 - **Ein Mandant ohne Microsoft Entra ID P1 oder P2** importiert seine Verzeichnisänderungen, und die Prüfung **Read sign-ins** jedes Laufs warnt, dass keine Anmeldungen gelesen wurden.
 - **Ein fehlgeschlagener Lauf ändert nichts.** Nach einem Netzwerkfehler oder einem Fehlerstatus von Graph bleiben der Cursor und die Fensterlänge, wie sie waren, und die nächste Abfrage liest dasselbe Zeitfenster erneut. Die einzige Ausnahme ist eine Anfrage, deren Zeit abgelaufen ist: Der Cursor bleibt, aber das nächste Zeitfenster ist halb so lang, denn ein Zeitfenster, das zu schwer ist, um rechtzeitig beantwortet zu werden, würde bei jedem Versuch ablaufen.
 
-Das Microsoft 365-Audit-Protokoll wird danach gelesen, wann Microsoft jeden Inhaltsblob bereitgestellt hat, einen Tag nach dem anderen, und nicht weiter zurück als die 7 Tage, die Microsoft ihn aufbewahrt. Die erste Abfrage abonniert die App für `Audit.Exchange`, `Audit.SharePoint` und `Audit.General`, und Microsoft stellt die ersten Datensätze eines neuen Abonnements innerhalb von 12 Stunden bereit. Das Audit-Protokoll hält die Protokolle von Entra ID nie auf: Eine fehlende Berechtigung ist eine Warnung, und das Zeitfenster rückt weiter, während ein Fehler auf der Seite von Microsoft, etwa `HTTP 503`, den Lauf **Teilweise** macht, damit das Zeitfenster erneut gelesen wird.
+Das Microsoft 365-Audit-Protokoll wird danach gelesen, wann Microsoft jeden Inhaltsblob bereitgestellt hat, einen Tag nach dem anderen, und nicht weiter zurück als die 7 Tage, die Microsoft ihn aufbewahrt. Die erste Abfrage abonniert die App für `Audit.Exchange`, `Audit.SharePoint` und `Audit.General`, und Microsoft stellt die ersten Datensätze eines neuen Abonnements innerhalb von 12 Stunden bereit. Das Audit-Protokoll hält die Protokolle von Entra ID nie auf: Eine fehlende Berechtigung ist eine Warnung, und das Zeitfenster rückt weiter, während ein Fehler auf der Seite von Microsoft, etwa `HTTP 503`, den Lauf **Teilweise** macht, damit das Zeitfenster erneut gelesen wird. Risikoerkennungen sowie Hintergrund- und App-Anmeldungen verhalten sich genauso: Sie halten die Anmeldungen und Verzeichnisänderungen nie auf.
 
 ### Wenn ein Zeitfenster mehr enthält, als eine Abfrage lesen kann
 
-Jedes Protokoll hat ein eigenes Budget: 10 Seiten mit 500 Verzeichnisänderungen, 20 Seiten mit 500 Anmeldungen und, für das Microsoft 365-Audit-Protokoll, 120 Anfragen und 10.000 Datensätze. Eine Abfrage hört nach 4 Minuten auf. Hält ein Budget ein Protokoll vor dem Ende seines Zeitfensters an, ist der Lauf **Teilweise**, und seine Warnung nennt das Protokoll und das Budget. Microsoft Graph listet die neuesten Datensätze zuerst, deshalb verkürzt OneUptime das Zeitfenster, statt den Cursor über Datensätze hinwegzurücken, die es nie erreicht hat:
+Jedes Protokoll hat ein eigenes Budget: 10 Seiten mit 500 Verzeichnisänderungen, 20 Seiten mit 500 Anmeldungen, 4 Seiten mit 500 Risikoerkennungen, 10 Seiten mit 500 von jeder Art von Hintergrundanmeldung und, für das Microsoft 365-Audit-Protokoll, 120 Anfragen und 10.000 Datensätze. Eine Abfrage hört nach 4 Minuten auf. Hält ein Budget ein Protokoll vor dem Ende seines Zeitfensters an, ist der Lauf **Teilweise**, und seine Warnung nennt das Protokoll und das Budget. Microsoft Graph listet die neuesten Datensätze zuerst, deshalb verkürzt OneUptime das Zeitfenster, statt den Cursor über Datensätze hinwegzurücken, die es nie erreicht hat:
 
 1. **Verengen.** Die nächste Abfrage liest ein halb so langes Zeitfenster ab demselben Startpunkt und halbiert erneut, bis ein Zeitfenster vollständig gelesen wird, bis hinunter zu einer Minute. Die Warnung des Laufs sagt es: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Aus dem längeren Zeitfenster bereits importierte Datensätze werden als Duplikate übersprungen.
 2. **Wieder wachsen.** Nachdem ein Zeitfenster vollständig gelesen wurde, rückt der Cursor an sein Ende, und das nächste Zeitfenster ist wieder doppelt so lang, bis zu 24 Stunden.
@@ -138,6 +141,8 @@ Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehe
 | **Authenticate with Microsoft Entra** | Entra ID stellt der App ein Token für Microsoft Graph aus, in der Cloud, die Sie gewählt haben. |
 | **Read sign-ins** | Die Anmeldungen der letzten 24 Stunden lassen sich lesen. Eine Warnung, kein Fehler, in einem Mandanten ohne P1 oder P2. |
 | **Read directory changes** | Die Verzeichnisänderungen der letzten 24 Stunden lassen sich lesen. |
+| **Read risk detections** | Die Risikoerkennungen von Identity Protection der letzten 24 Stunden lassen sich lesen. Eine Warnung, kein Fehler, ohne die Berechtigung oder die Lizenz. |
+| **Read background and app sign-ins** | Nur mit eingeschalteter Option: Die Beta-Anmeldeliste von Microsoft Graph antwortet für beide Arten. |
 | **Read the Microsoft 365 audit log** | Nur mit eingeschalteter Option: Die Management API antwortet, und welche Inhaltstypen die App abonniert hat. |
 | **Records available to import** | Wie viele Anmeldungen und Verzeichnisänderungen die letzten 24 Stunden enthalten, je höchstens 500, `500+` heißt also mehr. Keine ist eine Warnung. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Die Seite von OneUptime selbst: Ein Prozess nimmt die Aufträge der Worker-Warteschlange an, der Abfrageauftrag läuft jede Minute, und der Speicher der Sicherheitsereignisse antwortet. |
@@ -157,6 +162,11 @@ Der **Letzter Fehler** der Verbindung bewahrt die vollständige Fehlermeldung, m
 :::details Letzter Fehler sagt `sign-ins request failed (HTTP 403)` oder `audit logs request failed (HTTP 403)`
 - Fehlercode `Authorization_RequestDenied`: Der App fehlt `AuditLog.Read.All`, oder die Zustimmung wurde nicht erteilt. Erteilen Sie die Administratorzustimmung, warten Sie einige Minuten und testen Sie erneut. Erteilen Sie für Anmeldungen auch `Directory.Read.All`.
 - Fehlercode `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: Der Mandant hat kein Microsoft Entra ID P1 oder P2. Verzeichnisänderungen werden weiterhin importiert.
+:::
+
+:::details Risikoerkennungen werden nicht gelesen
+- `risk detections request failed (HTTP 403)`: Der App fehlt `IdentityRiskEvent.Read.All`, oder die Zustimmung wurde nicht erteilt. Anmeldungen und Verzeichnisänderungen werden weiterhin importiert.
+- Fehlercode `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: Der Mandant hat kein Microsoft Entra ID P1 oder P2.
 :::
 
 :::details Das Microsoft 365-Audit-Protokoll wird nicht gelesen

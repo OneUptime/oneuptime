@@ -172,6 +172,8 @@ export const USER_SECRET_COLUMNS: ReadonlyArray<keyof User> = [
   "passwordSalt",
   "resetPasswordToken",
   "resetPasswordExpires",
+  "magicLinkToken",
+  "magicLinkExpires",
   "webauthnRegistrationChallenge",
   "webauthnRegistrationChallengeExpiresAt",
   "webauthnAuthenticationChallenge",
@@ -196,6 +198,8 @@ export const withSecretColumns: WithSecretColumnsFunction = (
   user.passwordSalt = "stored-password-salt";
   user.resetPasswordToken = "stored-reset-password-token";
   user.resetPasswordExpires = new Date();
+  user.magicLinkToken = "stored-magic-link-token";
+  user.magicLinkExpires = new Date();
   user.webauthnRegistrationChallenge = "stored-registration-challenge";
   user.webauthnRegistrationChallengeExpiresAt = new Date();
   user.webauthnAuthenticationChallenge = "stored-authentication-challenge";
@@ -265,6 +269,7 @@ export const expectNoUserSecrets: ExpectNoUserSecretsFunction = (
   expect(text).not.toContain("stored-password-hash");
   expect(text).not.toContain("stored-password-salt");
   expect(text).not.toContain("stored-reset-password-token");
+  expect(text).not.toContain("stored-magic-link-token");
   expect(text).not.toContain("stored-registration-challenge");
   expect(text).not.toContain("stored-authentication-challenge");
   expect(text).not.toContain("cus_stored");

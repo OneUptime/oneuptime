@@ -6,7 +6,7 @@ Ela responde a quatro perguntas:
 
 :::cards
 - [Onde estão os nossos dados sensíveis?](/docs/data-security/data-types): 143 tipos de dados, de números de cartão e documentos nacionais de identidade a chaves de API, encontrados em buckets, tabelas e telemetria.
-- [Eles estão expostos?](/docs/data-security/checks-and-issues): 33 verificações de cada repositório: acesso público, criptografia, backups, logs, segredos e cópias.
+- [Eles estão expostos?](/docs/data-security/checks-and-issues): 34 verificações de cada repositório: acesso público, criptografia, backups, logs, segredos e cópias.
 - [Quem pode acessá-los, e para onde eles vão?](/docs/data-security/flows-access-residency): Cada identidade que pode acessar cada repositório, a mais arriscada primeiro, quais serviços o usam e quais provedores de IA e hosts os dados dele alcançam.
 - [Eles atendem às nossas regras?](/docs/data-security/compliance): Regras de residência, e nove estruturas de conformidade pontuadas a partir do que as varreduras encontraram.
 :::
@@ -66,10 +66,10 @@ Abra **Segurança de dados**. Os repositórios aparecem em **Repositórios de da
 
 | Onde | Repositórios | Amostras de conteúdo |
 | --- | --- | --- |
-| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System | AWS S3 Bucket |
+| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Bancos de dados que você executa | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch | PostgreSQL, MySQL |
+| Bancos de dados que você executa | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks | PostgreSQL, MySQL |
 | OneUptime | Logs, traces, exceções, replays de sessão, conversas de IA | Logs, traces, exceções, replays de sessão, conversas de IA |
 
 Cada repositório recebe as verificações que se aplicam ao seu tipo. Um repositório cujo conteúdo não pode ser amostrado continua sendo verificado: um bucket público ou um banco de dados sem criptografia é um problema, seja o que for que ele contenha.

@@ -1,0 +1,49 @@
+# OpenStack's services on a cluster that runs them. oslo.log writes a stack trace one line
+# at a time, each with a prefix of its own, and the chart's general recombine takes each
+# for a new record: so those namespaces have one of their own, and their records say which
+# OpenStack cloud they are of. A cluster with no such cloud renders as it always did.
+suite: pod logs of OpenStack's services
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-daemonset.yaml
+tests:
+  - it: leaves pod logs alone until a cloud is named
+    set:
+      clusterName: prod-us
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "openstack"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "id: recombine-multiline\\n\\s*output: move-stream"
+  - it: joins a stack trace and names the cloud, for the default namespace
+    set:
+      clusterName: prod-us
+      logs.openStack.cloudName: production
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "id: recombine-multiline\\n\\s*output: openstack-route"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "output: openstack-recombine\\n\\s*expr: 'attributes.namespace in \\[\"openstack\"\\]'"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "field: resource\\[\"openstack.cloud.name\"\\]"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "field: resource\\[\"openstack.cloud.name\"\\]\\n\\s*value: \"production\""
+  - it: reads the namespaces it is given
+    set:
+      clusterName: prod-us
+      logs.openStack.cloudName: production
+      logs.openStack.namespaces:
+        - osh-control
+        - osh-compute
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "attributes.namespace in \\[\"osh-control\",\"osh-compute\"\\]"

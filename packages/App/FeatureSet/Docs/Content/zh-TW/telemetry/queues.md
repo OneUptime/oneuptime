@@ -256,10 +256,10 @@ service:
 
 | 指標 | 顯示為 | 類型 |
 | --- | --- | --- |
-| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON 串流: `numberofmessagespublished`) | Messages published | 每期計數 |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON 串流: `numberofnotificationsdelivered`) | Notifications delivered | 每期計數 |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON 串流: `numberofnotificationsfailed`) | Notifications failed | 每期計數 |
-| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON 串流: `numberofnotificationsredriventodlq`) | Redriven to dead-letter queue | 每期計數 |
+| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON 串流: `numberofmessagespublished`) | 已發布訊息 | 每期計數 |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON 串流: `numberofnotificationsdelivered`) | 已傳遞通知 | 每期計數 |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON 串流: `numberofnotificationsfailed`) | 失敗的通知 | 每期計數 |
+| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON 串流: `numberofnotificationsredriventodlq`) | 重新導向至無效信件佇列 | 每期計數 |
 
 ### Amazon SQS
 
@@ -303,7 +303,7 @@ service:
 - `delay` 會等待 CloudWatch 發布一個期間（這需要幾分鐘），因此在此設定下，佇列的 broker 指標會延遲 11 到 17 分鐘送達：以它們為基礎的監測器需要更長的時間範圍（請參閱 [警示](#警示) 下的 **延遲送達的指標**）。
 - 一個接收器讀取一個區域和一個命名空間：每個區域新增一個執行個體。
 
-**串流傳送** 會在 CloudWatch 發布指標時推送它們。為 `AWS/SQS`（和 `AWS/SNS`）命名空間建立輸出格式為 **OpenTelemetry 1.0** 的 CloudWatch Metric Stream，傳遞到目的地為 HTTP 端點的 Amazon Data Firehose 串流：也就是你的 Collector，並帶有存取金鑰。Firehose 只傳遞到 443 連接埠上的 `https://`，因此 Collector 需要憑證和公開的 443 連接埠（例如在負載平衡器後方）：
+**串流中** 會在 CloudWatch 發布指標時推送它們。為 `AWS/SQS`（和 `AWS/SNS`）命名空間建立輸出格式為 **OpenTelemetry 1.0** 的 CloudWatch Metric Stream，傳遞到目的地為 HTTP 端點的 Amazon Data Firehose 串流：也就是你的 Collector，並帶有存取金鑰。Firehose 只傳遞到 443 連接埠上的 `https://`，因此 Collector 需要憑證和公開的 443 連接埠（例如在負載平衡器後方）：
 
 ```yaml
 extensions:
@@ -345,12 +345,12 @@ service:
 
 | 指標 | 顯示為 | 類型 |
 | --- | --- | --- |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON 串流: `approximatenumberofmessagesvisible`) | Messages visible | 量測值 |
-| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON 串流: `approximateageofoldestmessage`) | Oldest message age | 量測值 |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON 串流: `approximatenumberofmessagesnotvisible`) | Messages in flight | 量測值 |
-| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON 串流: `numberofmessagessent`) | Messages sent | 每期計數 |
-| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON 串流: `numberofmessagesreceived`) | Messages received | 每期計數 |
-| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON 串流: `numberofmessagesdeleted`) | Messages deleted | 每期計數 |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON 串流: `approximatenumberofmessagesvisible`) | 可見訊息 | 量測值 |
+| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON 串流: `approximateageofoldestmessage`) | 最舊訊息的時長 | 量測值 |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON 串流: `approximatenumberofmessagesnotvisible`) | 傳輸中的訊息 | 量測值 |
+| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON 串流: `numberofmessagessent`) | 已傳送訊息 | 每期計數 |
+| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON 串流: `numberofmessagesreceived`) | 已接收訊息 | 每期計數 |
+| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON 串流: `numberofmessagesdeleted`) | 已刪除訊息 | 每期計數 |
 
 ### Apache ActiveMQ
 
@@ -384,14 +384,14 @@ broker 的指標會併入其 JMS 用戶端的 span 所建立的佇列，從此�
 
 | 指標 | 顯示為 | 類型 |
 | --- | --- | --- |
-| `activemq.message.queue.size` | Queue size | 量測值 |
-| `activemq.message.current` | Queue size (legacy names) | 量測值 |
-| `activemq.message.enqueued` | Enqueued | 計數器，依每秒繪製 |
-| `activemq.message.dequeued` | Dequeued | 計數器，依每秒繪製 |
-| `activemq.message.expired` | Expired | 計數器，依每秒繪製 |
-| `activemq.consumer.count` | Consumers | 量測值 |
-| `activemq.message.enqueue.average_duration` | Average time in queue | 量測值 |
-| `activemq.message.wait_time.avg` | Average time in queue (legacy names) | 量測值 |
+| `activemq.message.queue.size` | 佇列大小 | 量測值 |
+| `activemq.message.current` | 佇列大小 (舊名稱) | 量測值 |
+| `activemq.message.enqueued` | 已加入佇列 | 計數器，依每秒繪製 |
+| `activemq.message.dequeued` | 已移出佇列 | 計數器，依每秒繪製 |
+| `activemq.message.expired` | 已過期 | 計數器，依每秒繪製 |
+| `activemq.consumer.count` | 消費者 | 量測值 |
+| `activemq.message.enqueue.average_duration` | 佇列中的平均時間 | 量測值 |
+| `activemq.message.wait_time.avg` | 佇列中的平均時間 (舊名稱) | 量測值 |
 
 ### Apache Kafka
 
@@ -434,10 +434,10 @@ service:
 
 | 指標 | 顯示為 | 類型 |
 | --- | --- | --- |
-| `kafka.consumer_group.lag_sum` | Consumer lag | 量測值 |
-| `kafka.consumer_group.lag` | Partition lag | 量測值 |
-| `kafka.consumer_group.offset_sum` | Consumed | 計數器，依每秒繪製 |
-| `kafka.partition.current_offset` | Produced | 計數器，依每秒繪製 |
+| `kafka.consumer_group.lag_sum` | 消費者延遲 | 量測值 |
+| `kafka.consumer_group.lag` | 分割區延遲 | 量測值 |
+| `kafka.consumer_group.offset_sum` | 已消費 | 計數器，依每秒繪製 |
+| `kafka.partition.current_offset` | 已生產 | 計數器，依每秒繪製 |
 
 ### Apache Pulsar
 
@@ -486,11 +486,11 @@ service:
 
 | 指標 | 顯示為 | 類型 |
 | --- | --- | --- |
-| `pulsar_msg_backlog` | Backlog | 量測值 |
-| `pulsar_subscription_back_log` | Subscription backlog | 量測值 |
-| `pulsar_storage_backlog_age_seconds` | Backlog age | 量測值 |
-| `pulsar_in_messages_total` | Messages in | 計數器，依每秒繪製 |
-| `pulsar_out_messages_total` | Messages out | 計數器，依每秒繪製 |
+| `pulsar_msg_backlog` | 積壓 | 量測值 |
+| `pulsar_subscription_back_log` | 訂閱積壓 | 量測值 |
+| `pulsar_storage_backlog_age_seconds` | 積壓時長 | 量測值 |
+| `pulsar_in_messages_total` | 流入訊息 | 計數器，依每秒繪製 |
+| `pulsar_out_messages_total` | 流出訊息 | 計數器，依每秒繪製 |
 
 ### Apache RocketMQ
 
@@ -536,10 +536,10 @@ service:
 
 | 指標 | 顯示為 | 類型 |
 | --- | --- | --- |
-| `rocketmq_consumer_lag_messages` | Consumer lag | 量測值 |
-| `rocketmq_consumer_ready_messages` | Ready messages | 量測值 |
-| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | 計數器，依每秒繪製 |
-| `rocketmq_messages_in_total` | Messages in | 計數器，依每秒繪製 |
+| `rocketmq_consumer_lag_messages` | 消費者延遲 | 量測值 |
+| `rocketmq_consumer_ready_messages` | 就緒訊息 | 量測值 |
+| `rocketmq_send_to_dlq_messages_total` | 已傳送至無效信件佇列 | 計數器，依每秒繪製 |
+| `rocketmq_messages_in_total` | 流入訊息 | 計數器，依每秒繪製 |
 
 ### Azure Event Grid
 
@@ -642,12 +642,12 @@ Azure Monitor 沒有 Event Hubs 的消費者落後指標：它的 `ConsumerLag` 
 
 | 指標 | 顯示為 | 類型 |
 | --- | --- | --- |
-| `azure_incomingmessages_total` | Incoming messages | 每期計數 |
-| `azure_outgoingmessages_total` | Outgoing messages | 每期計數 |
-| `azure_servererrors_total` | Server errors | 每期計數 |
-| `azure_usererrors_total` | User errors | 每期計數 |
-| `azure_quotaexceedederrors_total` | Quota exceeded errors | 每期計數 |
-| `azure_throttledrequests_total` | Throttled requests | 每期計數 |
+| `azure_incomingmessages_total` | 傳入訊息 | 每期計數 |
+| `azure_outgoingmessages_total` | 傳出訊息 | 每期計數 |
+| `azure_servererrors_total` | 伺服器錯誤 | 每期計數 |
+| `azure_usererrors_total` | 使用者錯誤 | 每期計數 |
+| `azure_quotaexceedederrors_total` | 超出配額錯誤 | 每期計數 |
+| `azure_throttledrequests_total` | 被節流的要求 | 每期計數 |
 
 ### Azure Service Bus
 
@@ -711,15 +711,15 @@ service:
 
 | 指標 | 顯示為 | 類型 |
 | --- | --- | --- |
-| `azure_activemessages_average` | Active messages | 量測值 |
-| `azure_deadletteredmessages_average` | Dead-lettered messages | 量測值 |
-| `azure_incomingmessages_total` | Incoming messages | 每期計數 |
-| `azure_outgoingmessages_total` | Outgoing messages | 每期計數 |
-| `azure_completemessage_total` | Completed messages | 每期計數 |
-| `azure_abandonmessage_total` | Abandoned messages | 每期計數 |
-| `azure_servererrors_total` | Server errors | 每期計數 |
-| `azure_usererrors_total` | User errors | 每期計數 |
-| `azure_throttledrequests_total` | Throttled requests | 每期計數 |
+| `azure_activemessages_average` | 作用中訊息 | 量測值 |
+| `azure_deadletteredmessages_average` | 無效信件訊息 | 量測值 |
+| `azure_incomingmessages_total` | 傳入訊息 | 每期計數 |
+| `azure_outgoingmessages_total` | 傳出訊息 | 每期計數 |
+| `azure_completemessage_total` | 已完成訊息 | 每期計數 |
+| `azure_abandonmessage_total` | 已放棄的訊息 | 每期計數 |
+| `azure_servererrors_total` | 伺服器錯誤 | 每期計數 |
+| `azure_usererrors_total` | 使用者錯誤 | 每期計數 |
+| `azure_throttledrequests_total` | 被節流的要求 | 每期計數 |
 
 ### BullMQ
 
@@ -837,11 +837,11 @@ service:
 
 | 指標 | 顯示為 | 類型 |
 | --- | --- | --- |
-| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Undelivered messages | 量測值 |
-| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Oldest unacked message age | 量測值 |
-| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Dead-lettered messages | 每期計數 |
-| `pubsub.googleapis.com/subscription/ack_message_count` | Acknowledged messages | 每期計數 |
-| `pubsub.googleapis.com/topic/send_request_count` | Publish requests | 每期計數 |
+| `pubsub.googleapis.com/subscription/num_undelivered_messages` | 未傳遞訊息 | 量測值 |
+| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | 最舊未確認訊息的時長 | 量測值 |
+| `pubsub.googleapis.com/subscription/dead_letter_message_count` | 無效信件訊息 | 每期計數 |
+| `pubsub.googleapis.com/subscription/ack_message_count` | 已確認訊息 | 每期計數 |
+| `pubsub.googleapis.com/topic/send_request_count` | 發布要求 | 每期計數 |
 
 ### JMS
 
@@ -936,12 +936,12 @@ service:
 
 | 指標 | 顯示為 | 類型 |
 | --- | --- | --- |
-| `rabbitmq.message.current` | Queue depth | 量測值 |
-| `rabbitmq.message.published` | Published | 計數器，依每秒繪製 |
-| `rabbitmq.message.delivered` | Delivered | 計數器，依每秒繪製 |
-| `rabbitmq.message.acknowledged` | Acknowledged | 計數器，依每秒繪製 |
-| `rabbitmq.message.dropped` | Dropped | 計數器，依每秒繪製 |
-| `rabbitmq.consumer.count` | Consumers | 量測值 |
+| `rabbitmq.message.current` | 佇列深度 | 量測值 |
+| `rabbitmq.message.published` | 已發布 | 計數器，依每秒繪製 |
+| `rabbitmq.message.delivered` | 已傳遞 | 計數器，依每秒繪製 |
+| `rabbitmq.message.acknowledged` | 已確認 | 計數器，依每秒繪製 |
+| `rabbitmq.message.dropped` | 已捨棄 | 計數器，依每秒繪製 |
+| `rabbitmq.consumer.count` | 消費者 | 量測值 |
 
 ## 警示
 
@@ -994,7 +994,7 @@ service:
 
 `rabbitmq.message.published.delta` 的每個點是自上次抓取以來發布的訊息數，因此基於它、以 `resource.rabbitmq.queue.name` 篩選並在其時間範圍內加總的指標監測器，計算的是該時間範圍內發布的數量：15 分鐘內低於 1，就表示沒有人在發布。每次 Collector 啟動後，處理器都沒有可以從佇列第一個點減去的先前值，預設會把該點原樣傳送：也就是計數器的整個累計總數，彷彿佇列有史以來的每則訊息都在一次抓取中發布。`initial_value: drop` 會保留該點不傳送，因此佇列的複本從回報其計數器的第二次抓取開始。以同樣的方式複製另一個計數器，各自使用一個 `copy_metric` 陳述式和一個 `include` 項目。此時 ActiveMQ 的 JMX Scraper 必須經由這樣的 Collector 傳送，送到取代 `rabbitmq` 的 `otlp` 接收器；RocketMQ 的計數器則在其 `prometheus` 接收器的管線中使用同樣的兩個處理器。
 
-**手動建立時**，請以在該指標中指明佇列的屬性進行篩選；同一系統的每個佇列使用的屬性都相同：
+**By hand** 建立時，請以在該指標中指明佇列的屬性進行篩選；同一系統的每個佇列使用的屬性都相同：
 
 | 何時警示 | 指標 | 篩選條件 | 彙總方式 |
 | --- | --- | --- | --- |

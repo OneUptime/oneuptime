@@ -45,7 +45,7 @@ Só a primeira etapa tem campos obrigatórios, mais qualquer campo personalizado
 **A partir da página de um recurso.** **Declarar incidente** na aba **Incidentes** de um monitor, de um host, de um serviço, de um cluster ou da maioria dos outros recursos abre o mesmo formulário com esse recurso já escolhido em **Recursos afetados**, então um título e uma severidade bastam, e o incidente aparece na aba de onde você partiu.
 
 :::details Quais páginas de recurso oferecem isso e o que elas escolhem
-**Declarar incidente** na aba **Incidentes** de um monitor, de um host, de um dispositivo de rede, de um cluster Kubernetes, Proxmox, Ceph ou Docker Swarm, de um host Docker ou Podman, de um vCenter, de um storage array, de uma frota IoT, de um banco de dados ou de um serviço abre o mesmo assistente com esse recurso já escolhido em **Recursos afetados** (um monitor em **Monitores**, qualquer outra coisa em **Outros recursos afetados**), antes de qualquer coisa que um modelo adicione. **Criar a partir de modelo** nessa aba também mantém o recurso. A trilha de navegação volta pela aba do recurso e, depois de declarado, você cai no novo incidente, como a partir da lista de incidentes.
+**Declarar incidente** na aba **Incidentes** de um monitor, de um host, de um dispositivo de rede, de um cluster Kubernetes, Proxmox, Ceph ou Docker Swarm, de um host Docker ou Podman, de um vCenter, de uma nuvem OpenStack, de um storage array, de uma frota IoT, de um banco de dados ou de um serviço abre o mesmo assistente com esse recurso já escolhido em **Recursos afetados** (um monitor em **Monitores**, qualquer outra coisa em **Outros recursos afetados**), antes de qualquer coisa que um modelo adicione. **Criar a partir de modelo** nessa aba também mantém o recurso. A trilha de navegação volta pela aba do recurso e, depois de declarado, você cai no novo incidente, como a partir da lista de incidentes.
 
 A aba **Incidentes** de um item do inventário escolhe o host, o serviço ou o cluster Kubernetes para o qual o item aponta, e a trilha de navegação volta pela aba desse recurso. **Criar alerta** na aba **Alertas** de um recurso funciona do mesmo jeito: a partir de um monitor, ele preenche o **Monitor** do alerta; a partir de qualquer outro, **Outros recursos afetados**.
 
@@ -284,7 +284,7 @@ A partir daí o incidente está ativo: ele conta para o selo **Incidentes ativos
 
 ### Declarado já confirmado ou resolvido
 
-Escolher um **Estado Inicial** posterior — no formulário, pelo **Estado Inicial do Incidente** de um modelo, ou com `currentIncidentStateId` pela API, pelo Terraform ou por um workflow — registra um incidente de que alguém já está cuidando, ou que já acabou. Ele não é tratado como uma nova emergência:
+Escolher um **Estado Inicial** posterior — no formulário, pelo **Estado Inicial do Incidente** de um modelo, com `currentIncidentStateId` pela API, pelo Terraform ou por um workflow, ou pedindo ao [Pergunte à IA](/docs/ai/ask-ai) um incidente já confirmado ou resolvido — registra um incidente de que alguém já está cuidando, ou que já acabou. Ele não é tratado como uma nova emergência:
 
 ```mermaid title="O que um novo incidente desencadeia, pelo estado em que começa"
 flowchart TB

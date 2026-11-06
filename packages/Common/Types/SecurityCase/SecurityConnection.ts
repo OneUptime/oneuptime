@@ -1,4 +1,5 @@
 import { SecurityEntity } from "./SecurityEntity";
+import type { CloudChangeTitleFacts } from "../../Utils/Telemetry/CloudChangeTitle";
 
 /*
  * SECURITY CONNECTIONS: where the users, hosts and addresses Security Events
@@ -44,6 +45,8 @@ export enum SecurityConnectionKind {
   DockerHost = "DockerHost",
   PodmanHost = "PodmanHost",
   KubernetesCluster = "KubernetesCluster",
+  // An OpenStack cloud: by its openstack.cloud.name, and the audit events read from its logs.
+  OpenStackCloud = "OpenStackCloud",
   NetworkDevice = "NetworkDevice",
   /*
    * A cloud resource a cloud connection lists or telemetry reports: by its
@@ -76,6 +79,7 @@ export const SECURITY_CONNECTION_KINDS: ReadonlyArray<SecurityConnectionKind> =
     SecurityConnectionKind.DockerHost,
     SecurityConnectionKind.PodmanHost,
     SecurityConnectionKind.KubernetesCluster,
+    SecurityConnectionKind.OpenStackCloud,
     SecurityConnectionKind.NetworkDevice,
     SecurityConnectionKind.CloudResource,
     SecurityConnectionKind.ServerlessFunction,
@@ -106,6 +110,8 @@ export enum SecurityConnectionReason {
   UntypedValue = "UntypedValue",
   // The Kubernetes cluster of this k8s.cluster.name.
   ClusterName = "ClusterName",
+  // The OpenStack cloud of this openstack.cloud.name.
+  CloudName = "CloudName",
   // The network device of this name, hostname or DNS name.
   DeviceName = "DeviceName",
   // The only resource holding this public address.
@@ -140,6 +146,7 @@ export const EXACT_SECURITY_CONNECTION_REASONS: ReadonlyArray<SecurityConnection
     SecurityConnectionReason.LogSource,
     SecurityConnectionReason.HostName,
     SecurityConnectionReason.ClusterName,
+    SecurityConnectionReason.CloudName,
     SecurityConnectionReason.DeviceName,
     SecurityConnectionReason.ResourceId,
     SecurityConnectionReason.CloudEndpoint,
@@ -232,6 +239,14 @@ export interface SecurityConnectionChangeJson {
   time: string;
   title: string;
   eventType: string;
+  /*
+   * What an operation a cloud account's activity log recorded is worded
+   * from - its operation, resource and outcome - so a page says its title
+   * in the reader's language (Utils/Telemetry/CloudChangeTitle); `title`
+   * is the English the change was stored with. Left out for any other
+   * change.
+   */
+  cloudChange?: CloudChangeTitleFacts | undefined;
 }
 
 // One on-call schedule a member is on, and whether they are on call for it now.

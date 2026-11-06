@@ -17,6 +17,10 @@ jest.mock("../../../../Models/DatabaseModels/Index", () => {
 
 import { AddFieldsPanelCopy } from "../../../../UI/Components/Workflow/FieldPicker/AddFieldsPanel";
 import { FieldPickerOptionsCopy } from "../../../../UI/Components/Workflow/FieldPicker/FieldPickerOptions";
+import { CustomFieldRowCopy } from "../../../../UI/Components/Workflow/CustomFields/CustomFieldColumns";
+import { RunAgainCopy } from "../../../../UI/Components/Workflow/RunAgain/RunAgainButton";
+import { CUSTOM_FIELDS_GROUP_LABEL } from "../../../../UI/Components/Workflow/ColumnEditor/ColumnPickerOptions";
+import { LinkedRecordCopy } from "../../../../UI/Components/Workflow/LinkedRecord/LinkedRecordInput";
 import { ModelFieldPickerCopy } from "../../../../UI/Components/Workflow/ModelFieldPicker";
 import {
   RUN_WORKFLOW_SUBMIT_TITLE,
@@ -189,6 +193,26 @@ const SCREENS: Array<{ name: string; keys: Array<string> }> = [
   {
     name: "If / Else",
     keys: [...CONDITION_CATALOG_WORDS],
+  },
+  {
+    name: "a setting that lists the project's records",
+    keys: keysOf(LinkedRecordCopy),
+  },
+  {
+    name: "Run again",
+    keys: keysOf(RunAgainCopy),
+  },
+  {
+    name: "a record's custom fields",
+    keys: [
+      ...keysOf(CustomFieldRowCopy),
+      CUSTOM_FIELDS_GROUP_LABEL,
+      "Choice",
+      "Choices",
+      "Any custom field",
+      "Passes on every custom field: {{fields}}",
+      "Custom fields",
+    ],
   },
 ];
 

@@ -29,6 +29,7 @@ import {
   useParams,
 } from "react-router-dom";
 import i18next from "i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import LogsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Logs/Layout";
 import LogsAILayout from "../../../App/FeatureSet/Dashboard/src/Pages/Logs/AI/Layout";
@@ -287,6 +288,8 @@ await i18next.use(initReactI18next).init({
   resources: { en: { translation: {} } },
   interpolation: { escapeValue: false },
 });
+// Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
+followLanguageForDates(i18next);
 
 /*
  * ?lang=de or ?lang=fa: the page in German (long words) or Persian (right

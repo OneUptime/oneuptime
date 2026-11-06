@@ -433,7 +433,7 @@ A network device is pinged on every poll and walked over SNMP only when it has c
 | `collectionIssueSummary` | One line about every unavailable group, ready for a title. Empty when everything was collected. | `string` |
 | `metrics` | The collected values, by series name. | `Object` |
 
-The series names in `metrics` contain dots, such as `oneuptime.monitor.database.connections.used.percent`, and a path reads each dot as a step into an object, so a template cannot pick one value out of `metrics`. Place `{{metrics}}` whole, as JSON, or use `{{collectionIssueSummary}}`. A metric that was not collected is absent from `metrics`, not zero. To act on one value, compare it in the criteria with a [JavaScript expression](/docs/monitor/javascript-expression).
+The series names in `metrics` contain dots, such as `oneuptime.monitor.database.connections.used.percent`, and a template can still pick one out: write the whole name after `metrics.`, as in `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Place `{{metrics}}` whole, as JSON, or use `{{collectionIssueSummary}}`. A metric that was not collected is absent from `metrics`, not zero. To act on one value, compare it in the criteria with a [JavaScript expression](/docs/monitor/javascript-expression).
 
 ### External Status Page Monitors
 
@@ -445,13 +445,14 @@ The series names in `metrics` contain dots, such as `oneuptime.monitor.database.
 | `provider` | The kind of status page: Atlassian Statuspage, incident.io, RSS or Atom. | `string` |
 | `componentGroup` | The component group the monitor watches, if it watches one. | `string` |
 | `componentName` | The components the monitor watches, separated by commas, if any are chosen. | `string` |
+| `componentNames` | The same components as a list, to repeat a line for each of them with `{{#each componentNames}}`. | `Array<string>` |
 | `isOnline` | Whether the status page answered. | `boolean` |
 | `responseTimeInMs` | How long the status page took to answer, in milliseconds. | `number` |
 | `failureCause` | Why the check failed, when it did. | `string` |
 
 ### Metric and Infrastructure Monitors
 
-Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array and IoT Device monitors have one variable of their own:
+Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array and IoT Device monitors have one variable of their own:
 
 | Variable | What it holds | Type |
 | --- | --- | --- |

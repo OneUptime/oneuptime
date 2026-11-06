@@ -163,7 +163,7 @@ describe("Alerts side menu", () => {
 
       expect(linksIn("Workspace")).toEqual([
         {
-          title: "Connect Slack or Teams",
+          title: "Connect a workspace",
           href: routeFor(PageMap.ALERTS_WORKSPACE_CONNECTIONS),
         },
       ]);
@@ -352,6 +352,10 @@ describe("Alerts side menu", () => {
           href: routeFor(PageMap.ALERTS_SETTINGS_ON_CALL_RULES),
         },
         {
+          title: "Incident Rules",
+          href: routeFor(PageMap.ALERTS_SETTINGS_INCIDENT_RULES),
+        },
+        {
           title: "Owner Rules",
           href: routeFor(PageMap.ALERTS_SETTINGS_OWNER_RULES),
         },
@@ -407,7 +411,7 @@ describe("Alerts side menu", () => {
       await renderAlertsMenu();
 
       expect(isExpanded("Rules")).toBe(false);
-      expect(linksIn("Rules")).toHaveLength(7);
+      expect(linksIn("Rules")).toHaveLength(8);
     });
 
     // Rules is collapsed by default, so it must open itself on its pages.

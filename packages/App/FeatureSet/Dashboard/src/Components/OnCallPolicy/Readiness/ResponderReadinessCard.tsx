@@ -1,3 +1,4 @@
+import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "../OnCallLabelClasses";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -647,7 +648,7 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
         ) : (
           <div>
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+              <span className={ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}>
                 {translator.translateText("Needs attention")}
               </span>
               <span className="text-xs font-medium tabular-nums text-gray-500">

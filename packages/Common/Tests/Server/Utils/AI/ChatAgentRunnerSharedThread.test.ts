@@ -41,6 +41,10 @@ import Email from "../../../../Types/Email";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import {
+  AIActionSentence,
+  aiActionSentence,
+} from "../../../../Types/AI/AIActionWords";
 
 /*
  * The chat agent as it runs inside an incident's investigation box: a
@@ -247,8 +251,11 @@ function mutationTool(execute: () => ToolCallOutcome): ChatExtraTool {
       inputSchema: { type: "object", properties: {} },
     },
     isMutation: true,
-    buildActionTitle: (args: JSONObject): string => {
-      return `Restart ${String(args["deployment"] || "")}`;
+    // A sentence no Dashboard words: the card reads its English.
+    buildActionTitle: (args: JSONObject): AIActionSentence => {
+      return aiActionSentence("Restart {{deployment}}", {
+        deployment: String(args["deployment"] || ""),
+      });
     },
     execute: async (): Promise<ToolCallOutcome> => {
       return execute();

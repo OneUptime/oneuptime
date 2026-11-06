@@ -19,6 +19,12 @@ export interface ListenToModelEvent<
   modelType: { new (): Model };
   eventType: ModelEventType;
   tenantId: ObjectID;
+  /*
+   * One record: the page hears every change of that record (created,
+   * changed or deleted) in its own room, and nothing of the model's other
+   * records - for a page that shows one, such as a task's conversation.
+   * Absent: every record of the model in the project, for `eventType`.
+   */
   modelId?: ObjectID | undefined;
 }
 
@@ -161,18 +167,10 @@ export default abstract class Realtime {
       };
     }
 
-    const listenToModelEventJSON: ListenToModelEventJSON = {
-      eventType: listenToModelEvent.eventType,
-      modelType: DatabaseType.Database,
-      modelName: listenToModelEvent.modelType.name,
-      tenantId: listenToModelEvent.tenantId.toString(),
-    };
+    const listenToModelEventJSON: ListenToModelEventJSON =
+      this.getListenRequest(listenToModelEvent, DatabaseType.Database);
 
-    const roomId: string = RealtimeUtil.getRoomId(
-      listenToModelEvent.tenantId,
-      listenToModelEvent.modelType.name,
-      listenToModelEvent.eventType,
-    );
+    const roomId: string = this.getRoomIdOf(listenToModelEvent);
 
     return this.subscribe(
       listenToModelEventJSON,
@@ -194,27 +192,10 @@ export default abstract class Realtime {
       this.init();
     }
 
-    const listenToModelEventJSON: ListenToModelEventJSON = {
-      eventType: listenToModelEvent.eventType,
-      modelType: DatabaseType.AnalyticsDatabase,
-      modelName: listenToModelEvent.modelType.name,
-      tenantId: listenToModelEvent.tenantId.toString(),
-    };
+    const listenToModelEventJSON: ListenToModelEventJSON =
+      this.getListenRequest(listenToModelEvent, DatabaseType.AnalyticsDatabase);
 
-    let roomId: string = RealtimeUtil.getRoomId(
-      listenToModelEvent.tenantId,
-      listenToModelEvent.modelType.name,
-      listenToModelEvent.eventType,
-    );
-
-    if (listenToModelEvent.modelId) {
-      roomId = RealtimeUtil.getRoomId(
-        listenToModelEvent.tenantId,
-        listenToModelEvent.modelType.name,
-        listenToModelEvent.eventType,
-        listenToModelEvent.modelId,
-      );
-    }
+    const roomId: string = this.getRoomIdOf(listenToModelEvent);
 
     return this.subscribe(
       listenToModelEventJSON,
@@ -227,6 +208,48 @@ export default abstract class Realtime {
           ) as Model,
         );
       },
+    );
+  }
+
+  /*
+   * What the server is asked to join: the model's room for the kind of
+   * change - or, for one record, that record's own room (modelId).
+   */
+  private static getListenRequest<Model extends AnalyticsBaseModel | BaseModel>(
+    listenToModelEvent: ListenToModelEvent<Model>,
+    modelType: DatabaseType,
+  ): ListenToModelEventJSON {
+    return {
+      eventType: listenToModelEvent.eventType,
+      modelType: modelType,
+      modelName: listenToModelEvent.modelType.name,
+      tenantId: listenToModelEvent.tenantId.toString(),
+      ...(listenToModelEvent.modelId
+        ? { modelId: listenToModelEvent.modelId.toString() }
+        : {}),
+    };
+  }
+
+  /*
+   * The room the server sends the subscription's events to, named as the
+   * server names it (RealtimeUtil): a record's own room hears every change
+   * of the record, whatever kind was asked for.
+   */
+  private static getRoomIdOf<Model extends AnalyticsBaseModel | BaseModel>(
+    listenToModelEvent: ListenToModelEvent<Model>,
+  ): string {
+    if (listenToModelEvent.modelId) {
+      return RealtimeUtil.getRecordRoomId(
+        listenToModelEvent.tenantId,
+        listenToModelEvent.modelType.name,
+        listenToModelEvent.modelId,
+      );
+    }
+
+    return RealtimeUtil.getRoomId(
+      listenToModelEvent.tenantId,
+      listenToModelEvent.modelType.name,
+      listenToModelEvent.eventType,
     );
   }
 

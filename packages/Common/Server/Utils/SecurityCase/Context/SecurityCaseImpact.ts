@@ -57,6 +57,10 @@ import {
   readRecordAddresses,
 } from "../../../../Utils/SecurityCase/SecurityConnectionMatch";
 import { readChangeEventFields } from "../../../../Utils/Telemetry/ChangeEventFields";
+import {
+  CloudChangeTitleFacts,
+  readCloudChangeTitleFacts,
+} from "../../../../Utils/Telemetry/CloudChangeTitle";
 import ChangeEventService from "../../../Services/ChangeEventService";
 import CloudResourceOwnerTeamService from "../../../Services/CloudResourceOwnerTeamService";
 import CloudResourceOwnerUserService from "../../../Services/CloudResourceOwnerUserService";
@@ -67,6 +71,8 @@ import HostOwnerUserService from "../../../Services/HostOwnerUserService";
 import HostService from "../../../Services/HostService";
 import InventoryItemService from "../../../Services/InventoryItemService";
 import KubernetesClusterOwnerTeamService from "../../../Services/KubernetesClusterOwnerTeamService";
+import OpenStackCloudOwnerTeamService from "../../../Services/OpenStackCloudOwnerTeamService";
+import OpenStackCloudOwnerUserService from "../../../Services/OpenStackCloudOwnerUserService";
 import KubernetesClusterOwnerUserService from "../../../Services/KubernetesClusterOwnerUserService";
 import MonitorOwnerTeamService from "../../../Services/MonitorOwnerTeamService";
 import MonitorOwnerUserService from "../../../Services/MonitorOwnerUserService";
@@ -177,6 +183,11 @@ const OWNER_TABLES: Partial<Record<SecurityConnectionKind, OwnerTables>> = {
     column: "kubernetesClusterId",
     teams: KubernetesClusterOwnerTeamService as unknown as OwnerRowsReader,
     users: KubernetesClusterOwnerUserService as unknown as OwnerRowsReader,
+  },
+  [SecurityConnectionKind.OpenStackCloud]: {
+    column: "openStackCloudId",
+    teams: OpenStackCloudOwnerTeamService as unknown as OwnerRowsReader,
+    users: OpenStackCloudOwnerUserService as unknown as OwnerRowsReader,
   },
   [SecurityConnectionKind.DockerHost]: {
     column: "dockerHostId",
@@ -824,6 +835,11 @@ export default class SecurityCaseImpact {
         (row.attributes as Dictionary<unknown>) || {},
       ) as Dictionary<string | undefined>;
       const keys: Set<string> = new Set();
+      const cloudChange: CloudChangeTitleFacts | null =
+        readCloudChangeTitleFacts({
+          title: row.title,
+          attributes: (row.attributes as Dictionary<unknown>) || {},
+        });
 
       for (const id of [
         row.primaryEntityId?.toString(),
@@ -846,6 +862,8 @@ export default class SecurityCaseImpact {
           title: row.title || "",
           eventType: row.eventType || "change",
           ...(fields["version"] ? { version: fields["version"] } : {}),
+          // A cloud change's title is worded from these on the page.
+          ...(cloudChange ? { cloudChange } : {}),
         });
         changes.set(key, list);
       }

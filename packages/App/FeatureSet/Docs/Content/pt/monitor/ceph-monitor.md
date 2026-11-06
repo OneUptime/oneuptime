@@ -159,6 +159,7 @@ Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um
 - **As séries de PG e de pool são por pool**: não existe uma medida do cluster inteiro, então esses modelos agrupam por `pool_id` e abrem um incidente por pool.
 - **As razões de capacidade** usam a **Soma** dos dois lados. Os dois vêm da mesma coleta do mgr, então o resultado é uma porcentagem real. **Inactive Placement Groups** usa **Máximo** por pool, porque uma soma acumularia coletas numa subtração.
 - **Os modelos de health checks** recuperam quando o check desaparece: seus critérios de recuperação contam uma série ausente como 0.
+- **Daemon Slow Operations** tem uma série por daemon, então, quando nenhum daemon tem mais uma série, não resta nada para ler. Ele só recupera se `ceph_health_status` tiver chegado na mesma janela, então um agente parado não fecha nada.
 
 Alguns alertas não têm modelo. O desequilíbrio de PGs exige estatísticas entre séries que os critérios não conseguem calcular. A previsão de capacidade exige um ajuste de crescimento, que o painel do cluster desenha no lugar. A previsão de falha de disco e o scrubbing atrasado não têm métrica do mgr, e NVMe-oF, o espelhamento RBD e o cephadm precisam de outros exportadores.
 
@@ -227,7 +228,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | --- | --- |
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da variável. |
 | **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todos os valores precisam atender, na janela inteira) ou **Any Value** (um basta). |
-| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo. |
+| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo. **Previsão acima de** e **Previsão abaixo de** correspondem quando a tendência da métrica na janela tiver passado do limite ao fim de **Horizonte**. |
 | **Limite** | O valor de comparação. Uma lista de unidades aparece ao lado quando a métrica tem unidade. Não aparece para condições de anomalia. |
 | **Sensibilidade** | Somente condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |
 | **Janela de linha de base** | Somente condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |

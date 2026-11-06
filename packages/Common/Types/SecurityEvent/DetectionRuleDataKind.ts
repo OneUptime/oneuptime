@@ -46,11 +46,14 @@ export enum DetectionRuleDataKind {
   WindowsEvents = "windows-events",
   // sudo's log lines, which "Your logs" reads.
   SudoLogs = "sudo-logs",
-  // AWS CloudTrail records, which "Your logs" reads.
+  /*
+   * AWS CloudTrail records, which "Your logs" reads, and Cloud audit logs
+   * read from an AWS account connected under Cloud.
+   */
   AwsCloudTrail = "aws-cloudtrail",
-  // Google Cloud's audit logs, which "Your logs" reads.
+  // Google Cloud's audit logs: "Your logs", or a project connected under Cloud.
   GoogleCloudAuditLogs = "google-cloud-audit-logs",
-  // The Azure Activity Log, which "Your logs" reads.
+  // The Azure Activity Log: "Your logs", or a subscription connected under Cloud.
   AzureActivityLog = "azure-activity-log",
   // Connections between hosts: firewalls, flow logs, IDS (OCSF Network Activity).
   NetworkActivity = "network-activity",
@@ -58,6 +61,8 @@ export enum DetectionRuleDataKind {
   WebRequests = "web-requests",
   // Kubernetes audit logs, which "Your logs" reads.
   KubernetesAuditLogs = "kubernetes-audit-logs",
+  // An OpenStack cloud's audit trail, which "Your logs" reads.
+  OpenStackAuditTrail = "openstack-audit-trail",
   /*
    * The rest of "Your OneUptime data" (SecurityTelemetrySource): what the
    * project's traces, network flows, audit log and session replays show.
@@ -90,6 +95,7 @@ export const DETECTION_RULE_DATA_KINDS_IN_ORDER: ReadonlyArray<DetectionRuleData
     DetectionRuleDataKind.NetworkActivity,
     DetectionRuleDataKind.WebRequests,
     DetectionRuleDataKind.KubernetesAuditLogs,
+    DetectionRuleDataKind.OpenStackAuditTrail,
     DetectionRuleDataKind.OneUptimeTraces,
     DetectionRuleDataKind.NetworkFlows,
     DetectionRuleDataKind.OneUptimeAuditLog,
@@ -264,6 +270,12 @@ export const DETECTION_RULE_DATA_KINDS: ReadonlyArray<DetectionRuleDataKindDefin
       classNames: [],
       vendorNames: [],
       productNames: logFormatProduct(SecurityLogFormat.KubernetesAudit),
+    },
+    {
+      kind: DetectionRuleDataKind.OpenStackAuditTrail,
+      classNames: [],
+      vendorNames: [],
+      productNames: logFormatProduct(SecurityLogFormat.OpenStackAudit),
     },
     {
       kind: DetectionRuleDataKind.OneUptimeTraces,

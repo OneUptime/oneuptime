@@ -32,6 +32,7 @@ import {
   GCP_DATA_SECURITY_CONTENT_SERVICES,
   GCP_DATA_SECURITY_RESPONSE_PERMISSIONS,
   GCP_DATA_SECURITY_RESPONSE_ROLE_ID,
+  GCP_COST_ROLES,
   GCP_READ_ONLY_ROLES,
   GCP_SERVICES,
   GCP_SERVICE_ACCOUNT_ID,
@@ -386,11 +387,12 @@ describe("Data security response", () => {
       ).split("\n");
 
       expect(lines).toEqual([
-        ...today.slice(0, 3),
+        // The scope, the app, its id and its cost reader, then the response's role.
+        ...today.slice(0, 4),
         `RESPONSE_ROLE=$(jq -n --arg scope "$SCOPE" '{Name: "OneUptime Data Security Response", IsCustom: true, Description: "OneUptime: turn off public access to storage accounts, and turn on secure transfer and soft delete. Never lists their keys.", Actions: ["Microsoft.Storage/storageAccounts/read", "Microsoft.Storage/storageAccounts/write", "Microsoft.Storage/storageAccounts/blobServices/read", "Microsoft.Storage/storageAccounts/blobServices/write"], NotActions: [], AssignableScopes: [$scope]}')`,
         `az role definition create --role-definition "$RESPONSE_ROLE" > /dev/null 2>&1 || az role definition update --role-definition "$RESPONSE_ROLE" > /dev/null`,
         `az role assignment create --assignee "$APP" --role "OneUptime Data Security Response" --scope "$SCOPE" > /dev/null`,
-        ...today.slice(3),
+        ...today.slice(4),
       ]);
       expect(lines.join("\n")).not.toContain("listKeys");
     }
@@ -851,9 +853,9 @@ describe("Azure and Google Cloud", () => {
       const today: Array<string> = getAzureSetupCommand(scope).split("\n");
 
       expect(getAzureSetupCommand(scope, "content").split("\n")).toEqual([
-        ...today.slice(0, 3),
+        ...today.slice(0, 4),
         `az role assignment create --assignee "$APP" --role "Storage Blob Data Reader" --scope "$SCOPE" > /dev/null`,
-        ...today.slice(3),
+        ...today.slice(4),
       ]);
     }
 
@@ -883,17 +885,25 @@ describe("Azure and Google Cloud", () => {
         return line.includes("add-iam-policy-binding");
       });
 
+      // BigQuery is on for the costs already: each API is turned on once.
       expect(lines).toContain(
-        `gcloud services enable ${[...GCP_SERVICES, "bigquery.googleapis.com"].join(" ")}`,
+        `gcloud services enable ${Array.from(
+          new Set<string>([
+            ...GCP_SERVICES,
+            ...GCP_DATA_SECURITY_CONTENT_SERVICES,
+          ]),
+        ).join(" ")}`,
       );
       expect(bindings).toEqual(
-        [...GCP_READ_ONLY_ROLES, ...GCP_DATA_SECURITY_CONTENT_ROLES].map(
-          (role: string): string => {
-            return scope === CloudConnectionSetupScope.Organization
-              ? `gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:${member}" --role ${role} --condition=None > /dev/null`
-              : `gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${member}" --role ${role} --condition=None > /dev/null`;
-          },
-        ),
+        [
+          ...GCP_READ_ONLY_ROLES,
+          ...GCP_COST_ROLES,
+          ...GCP_DATA_SECURITY_CONTENT_ROLES,
+        ].map((role: string): string => {
+          return scope === CloudConnectionSetupScope.Organization
+            ? `gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:${member}" --role ${role} --condition=None > /dev/null`
+            : `gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${member}" --role ${role} --condition=None > /dev/null`;
+        }),
       );
     }
   });

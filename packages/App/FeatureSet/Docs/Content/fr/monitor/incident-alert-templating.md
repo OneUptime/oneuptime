@@ -433,7 +433,7 @@ Un équipement réseau reçoit un ping à chaque interrogation et n'est parcouru
 | `collectionIssueSummary` | Une ligne sur chaque groupe indisponible, prête pour un titre. Vide lorsque tout a été collecté. | `string` |
 | `metrics` | Les valeurs collectées, par nom de série. | `Object` |
 
-Les noms de séries dans `metrics` contiennent des points, comme `oneuptime.monitor.database.connections.used.percent`, et un chemin lit chaque point comme une étape dans un objet, donc un modèle ne peut pas extraire une seule valeur de `metrics`. Placez `{{metrics}}` en entier, en JSON, ou utilisez `{{collectionIssueSummary}}`. Une métrique qui n'a pas été collectée est absente de `metrics`, et non égale à zéro. Pour agir sur une valeur, comparez-la dans le critère avec une [expression JavaScript](/docs/monitor/javascript-expression).
+Les noms de séries dans `metrics` contiennent des points, comme `oneuptime.monitor.database.connections.used.percent`, et un modèle peut quand même en extraire une : écrivez le nom entier après `metrics.`, comme dans `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Placez `{{metrics}}` en entier, en JSON, ou utilisez `{{collectionIssueSummary}}`. Une métrique qui n'a pas été collectée est absente de `metrics`, et non égale à zéro. Pour agir sur une valeur, comparez-la dans le critère avec une [expression JavaScript](/docs/monitor/javascript-expression).
 
 ### Moniteurs de pages de statut externes
 
@@ -445,13 +445,14 @@ Les noms de séries dans `metrics` contiennent des points, comme `oneuptime.moni
 | `provider` | Le type de page de statut : Atlassian Statuspage, incident.io, RSS ou Atom. | `string` |
 | `componentGroup` | Le groupe de composants que surveille le moniteur, s'il en surveille un. | `string` |
 | `componentName` | Les composants que surveille le moniteur, séparés par des virgules, s'il en a choisi. | `string` |
+| `componentNames` | Les mêmes composants sous forme de liste, pour répéter une ligne pour chacun avec `{{#each componentNames}}`. | `Array<string>` |
 | `isOnline` | Si la page de statut a répondu. | `boolean` |
 | `responseTimeInMs` | Le temps de réponse de la page de statut, en millisecondes. | `number` |
 | `failureCause` | La raison de l'échec de la vérification, le cas échéant. | `string` |
 
 ### Moniteurs de métriques et d'infrastructure
 
-Les moniteurs Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array et IoT Device ont une variable qui leur est propre :
+Les moniteurs Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array et IoT Device ont une variable qui leur est propre :
 
 | Variable | Ce qu'elle contient | Type |
 | --- | --- | --- |

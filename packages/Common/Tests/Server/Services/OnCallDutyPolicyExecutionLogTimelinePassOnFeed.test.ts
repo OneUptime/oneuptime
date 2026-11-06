@@ -8,7 +8,7 @@ import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicySe
 import UserService from "../../../Server/Services/UserService";
 import logger from "../../../Server/Utils/Logger";
 import URL from "../../../Types/API/URL";
-import { Yellow500 } from "../../../Types/BrandColors";
+import { Red500, Yellow500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -16,6 +16,7 @@ import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolic
 import {
   LEGACY_ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE,
   LEGACY_ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
+  ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE,
   ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE,
   ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
 } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
@@ -264,6 +265,60 @@ describe("the line a later rule writes for somebody who escalated it", () => {
     );
 
     expect(incidentEntries).toHaveLength(1);
+  });
+});
+
+/*
+ * Somebody escalating picked a later level than the next: each level between
+ * got a line of its own, naming nobody, saying the page was escalated past
+ * it. The feed reads it as one entry that says so - amber, as the
+ * escalation itself is, never red as a page that went wrong.
+ */
+describe("a level skipped by escalating to a later one", () => {
+  function skippedLevel(): OnCallDutyPolicyExecutionLogTimeline {
+    const row: OnCallDutyPolicyExecutionLogTimeline = lineOf({
+      status: OnCallDutyExecutionLogTimelineStatus.Skipped,
+      statusMessage: ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE,
+      onCallDutyPolicyEscalationRule: {
+        name: "Platform leads",
+        order: 2,
+      } as never,
+    });
+    row.alertSentToUserId = undefined as never;
+
+    return row;
+  }
+
+  beforeEach(() => {
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "countBy")
+      .mockResolvedValue(new PositiveNumber(3));
+  });
+
+  test("is one entry: the level, and that the page was escalated past it", async () => {
+    await feedFor(skippedLevel());
+
+    expect(incidentEntries).toHaveLength(1);
+    expect(incidentEntries[0]!.markdown).toBe(
+      "On-call policy **[Payments](https://oneuptime.test/dashboard/policies/payments)** skipped **Platform leads** (Level 2 of 3): the page was escalated past it.",
+    );
+  });
+
+  test("is amber, as the escalation is: no page went wrong", async () => {
+    await feedFor(skippedLevel());
+
+    expect(incidentEntries[0]!.color).toEqual(Yellow500);
+  });
+
+  test("while a level that paged nobody is still red", async () => {
+    const row: OnCallDutyPolicyExecutionLogTimeline = skippedLevel();
+    row.statusMessage =
+      "This level has no responders, so the policy moved on at once.";
+
+    await feedFor(row);
+
+    expect(incidentEntries[0]!.color).toEqual(Red500);
+    expect(incidentEntries[0]!.markdown).toContain("paged nobody");
   });
 });
 

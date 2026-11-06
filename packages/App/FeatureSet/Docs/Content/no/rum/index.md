@@ -42,7 +42,7 @@ Sidemenyen til en applikasjon grupperer sidene slik; **Innstillinger**, **Utvikl
 | --- | --- |
 | **Grunnleggende** | **Oversikt**, **Anbefalinger**, **Dokumentasjon** |
 | **Observerbarhet** | **Målinger**, **Logger**, **Spor**, **Klienter** |
-| **Øktavspilling** | **Øktavspilling**, **Brukerflyter**, **Brukere i avspillinger**, **Helse**, **Replay Policy**, **Tilgangslogg for avspillinger**, **Dokumentasjon** |
+| **Øktavspilling** | **Øktavspilling**, **Brukerflyter**, **Brukere i avspillinger**, **Helse**, **Avspillingspolicy**, **Tilgangslogg for avspillinger**, **Dokumentasjon** |
 | **Innstillinger** | **Innstillinger** |
 | **Utvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
 | **Avansert** | **Slett applikasjon** |

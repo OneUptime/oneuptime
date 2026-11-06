@@ -54,6 +54,20 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "monitorNamePattern",
     "monitorDescriptionPattern",
   ],
+  /*
+   * Which alerts have an incident declared from them: the first enabled
+   * rule that matches decides (AlertIncidentRuleEngineService).
+   */
+  AlertIncidentRule: [
+    "monitors",
+    "alertSeverities",
+    "alertLabels",
+    "monitorLabels",
+    "alertTitlePattern",
+    "alertDescriptionPattern",
+    "monitorNamePattern",
+    "monitorDescriptionPattern",
+  ],
   AlertLabelRule: [
     "monitors",
     "alertSeverities",
@@ -143,6 +157,19 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "dashboardLabels",
     "dashboardNamePattern",
     "dashboardDescriptionPattern",
+  ],
+  // A table's labels, its name, the database it is in and its schema.
+  DataAssetLabelRule: [
+    "matchLabels",
+    "nameRegexPattern",
+    "databaseRegexPattern",
+    "schemaRegexPattern",
+  ],
+  DataAssetOwnerRule: [
+    "matchLabels",
+    "nameRegexPattern",
+    "databaseRegexPattern",
+    "schemaRegexPattern",
   ],
   // A data store's labels, its name and description, and its cloud tags.
   DataStoreLabelRule: [
@@ -376,10 +403,20 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "proxmoxClusterNamePattern",
     "proxmoxClusterDescriptionPattern",
   ],
+  OpenStackCloudLabelRule: [
+    "openStackCloudLabels",
+    "openStackCloudNamePattern",
+    "openStackCloudDescriptionPattern",
+  ],
   ProxmoxClusterOwnerRule: [
     "proxmoxClusterLabels",
     "proxmoxClusterNamePattern",
     "proxmoxClusterDescriptionPattern",
+  ],
+  OpenStackCloudOwnerRule: [
+    "openStackCloudLabels",
+    "openStackCloudNamePattern",
+    "openStackCloudDescriptionPattern",
   ],
   RumApplicationLabelRule: [
     "matchLabels",

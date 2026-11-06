@@ -39,7 +39,7 @@ sequenceDiagram
 
 ### 选择 Incoming Email
 
-在 **监视器类型** 下点击 **更多监视器类型**，然后在 **Inbound Monitoring** 下选择 **Incoming Email**，或在搜索框中输入 `email`。输入 **名称**，然后点击 **下一步**。
+在 **监视器类型** 下点击 **更多监视器类型**，然后在 **入站监控** 下选择 **Incoming Email**，或在搜索框中输入 `email`。输入 **名称**，然后点击 **下一步**。
 
 ### 检查条件
 

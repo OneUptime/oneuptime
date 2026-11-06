@@ -5,11 +5,12 @@ import path from "path";
  * The shared bulk actions the table audit built, in real Chromium, with no
  * backend: BulkActions/Fixture/server.js bundles the production pages - the
  * Workflows and Monitors lists, a status page's Email Subscribers and the
- * Admin Dashboard's Enterprise Licenses - with the app's esbuild config,
- * Tailwind, theme and font, over in-memory records whose updates and
- * deletes it records (and, on request, refuses). What jsdom cannot show is
- * checked here: the menus opening where they do, the dialogs fitting a
- * phone, the tooltip on a locked action, dark mode.
+ * Admin Dashboard's Enterprise Licenses and Users - with the app's esbuild
+ * config, Tailwind, theme and font, over in-memory records whose updates,
+ * deletes and creates it records (and, on request, refuses or holds). What
+ * jsdom cannot show is checked here: the menus opening where they do, the
+ * dialogs fitting a phone, the tooltip on a locked action, dark mode, and a
+ * bulk run's progress dialog while the run goes on (BulkRuns.spec.ts).
  *
  * The Enterprise Licenses specs need ee/ and are skipped without it.
  */
@@ -17,7 +18,11 @@ const port: string = process.env["BULK_ACTIONS_FIXTURE_PORT"] || "4458";
 
 export default defineConfig({
   testDir: "./BulkActions",
-  testMatch: ["BulkActions.spec.ts", "EnterpriseLicenses.spec.ts"],
+  testMatch: [
+    "BulkActions.spec.ts",
+    "EnterpriseLicenses.spec.ts",
+    "BulkRuns.spec.ts",
+  ],
   fullyParallel: false,
   workers: 1,
   timeout: 90000,

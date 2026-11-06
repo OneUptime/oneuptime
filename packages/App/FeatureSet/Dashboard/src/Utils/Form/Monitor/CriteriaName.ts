@@ -314,6 +314,10 @@ export default class CriteriaNameUtil {
         return `${subject} is anomalously low`;
       case FilterType.Anomalous:
         return `${subject} is anomalous`;
+      case FilterType.ForecastAbove:
+        return `${subject} is forecast above ${valueOrEllipsis}`;
+      case FilterType.ForecastBelow:
+        return `${subject} is forecast below ${valueOrEllipsis}`;
       default:
         return subject;
     }

@@ -202,6 +202,24 @@ export const RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV: string =
   "ONEUPTIME_AI_AWS_WRITE_ROLE_ARN";
 export const RESOURCE_AI_PROTECTED_TARGETS_ENV: string =
   "ONEUPTIME_AI_PROTECTED_TARGETS";
+/*
+ * An OpenStack AI agent's credential for changes: an application credential of
+ * its own, never the one it reads with. Without both, it stays read-only whatever
+ * else is set, because it never makes a change with a credential that can read
+ * everything a monitoring agent reads.
+ */
+export const RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV: string =
+  "ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID";
+export const RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV: string =
+  "ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET";
+/*
+ * Google Cloud only: where the agent runs, as its setup command started it
+ * (GcpCloudAiAgentHost). The VM's startup script sets compute-engine; Cloud
+ * Run says so itself (K_SERVICE). The agent reports it with its posture
+ * (details.gcpHost), so running the command again from Change keeps the
+ * agent where it is.
+ */
+export const RESOURCE_AI_GCP_HOST_ENV: string = "ONEUPTIME_AI_GCP_HOST";
 
 // The tag a team may require on every resource AI changes.
 export const CLOUD_AI_DEFAULT_REQUIRED_TAG: string = "oneuptime-ai=allow";
@@ -220,6 +238,12 @@ export interface ResourceAiAgentPosture {
   allowWrites: boolean;
   // The raw RESOURCE_AI_ALLOW_WRITES_ENV value, for "set X=true" messages.
   allowWritesSetting?: string | null | undefined;
+  /*
+   * Why an agent whose write switch is on still runs no change, in its own words
+   * (a credential for changes it was not given, a target entry that means
+   * nothing), so "set X=true" is never the next step when X is already true.
+   */
+  writesOffReason?: string | null | undefined;
   // RESOURCE_AI_WRITE_TARGETS_ENV as globs; [] means any target (except protected).
   writeTargets: Array<string>;
   /*
@@ -427,6 +451,14 @@ export function parseResourceAiAgentPosture(
     reachError: readDisplayString(raw["reachError"]),
     details: readDetails(raw["details"]),
   };
+
+  const writesOffReason: string | null = readDisplayString(
+    raw["writesOffReason"],
+  );
+
+  if (writesOffReason) {
+    posture.writesOffReason = writesOffReason;
+  }
 
   const reportedAt: unknown = raw["reportedAt"];
 

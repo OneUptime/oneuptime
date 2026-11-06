@@ -53,8 +53,9 @@ flowchart TB
 
 Fem vägar leder till samma objekt:
 
-- **För hand** — klicka på **Deklarera incident** i listan över incidenter. Det öppnar guiden **Deklarera ny incident**, som har tre steg: **Incidentdetaljer**, **Berörda resurser**, **Jour och roller**. Det första steget frågar efter en titel, en allvarlighetsgrad och en beskrivning, och det som de flesta incidenter aldrig behöver är hopfällt under **Fler fält**. Bara det första steget frågar efter något du måste svara på: **Nästa** går igenom resten, och **Deklarera incident** finns på sammanfattningen i slutet.
+- **By hand** — klicka på **Deklarera incident** i listan över incidenter. Det öppnar guiden **Deklarera ny incident**, som har tre steg: **Incidentdetaljer**, **Berörda resurser**, **Jour och roller**. Det första steget frågar efter en titel, en allvarlighetsgrad och en beskrivning, och det som de flesta incidenter aldrig behöver är hopfällt under **Fler fält**. Bara det första steget frågar efter något du måste svara på: **Nästa** går igenom resten, och **Deklarera incident** finns på sammanfattningen i slutet.
   - **Från larm** — **Deklarera incident** på ett urval av larm, eller i ett larms rubrik, öppnar samma guide, förifylld från larmen, länkar dem till den nya incidenten och bekräftar dem, om du inte avmarkerar rutan, så att de slutar eskalera — se [Länkade larm](/docs/incidents/linked-alerts).
+  - **Från Fråga AI** — be om en incident i [Fråga AI](/docs/ai/ask-ai): den deklarerar den som du, kopplad till resursen vars sida du frågade på, till exempel en värds. För att registrera ett problem som någon redan hanterar, eller som redan är över, ber du om den redan bekräftad eller löst: den börjar i det tillståndet och larmar ingen — se [Deklarerad redan bekräftad eller löst](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst).
 - **Från en mall** — klicka på **Skapa från mall** och välj en sparad **Incident Mall**. Mallar förifyller titel, beskrivning, allvarlighetsgrad, starttillstånd, resurser, jourpolicyer, ägare och etiketter.
 - **Från en monitor** — en kriterieregel på en monitor med reglaget "deklarera en incident" påslaget skapar incidenten automatiskt i samma ögonblick som filtren matchar. Titlar och beskrivningar stöder där `{{variable}}`-mallar.
 - **Via API:t** — `POST /api/incident` med en API-nyckel. Servern fyller i `declaredAt`, skapandetillståndet och incidentnumret åt dig.
@@ -66,7 +67,7 @@ Arbetsflöden öppnar också incidenter: arbetsflödet för [Huntress](/docs/int
 
 När incidenten skapas kör OneUptime den automatisering du har konfigurerat: sekretessregler, ägarregler, etikettregler, jourregler och runbook-regler. Alla jourpolicyer som är kopplade till incidenten — för hand, från en mall eller tillagda av en jourregel som matchar — körs parallellt.
 
-Ägarna meddelas via de kanaler som var och en av dem har slagit på under **Användarinställningar → Aviseringsinställningar**: e-post, sms, röstsamtal, push, WhatsApp, Telegram, Slack, Microsoft Teams eller webhook. Har en incident inga ägare alls går aviseringen till projektets ägare i stället för att försvinna.
+Ägarna meddelas via de kanaler som var och en av dem har slagit på under **Användarinställningar → Aviseringsinställningar**: e-post, sms, röstsamtal, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost eller webhook. Har en incident inga ägare alls går aviseringen till projektets ägare i stället för att försvinna.
 
 Är incidenten synlig på en statussida och är aviseringar till prenumeranter påslagna, får prenumeranterna också veta: prenumeranterna på varje statussida som visar någon av dess monitorer, eller bara de på sidorna du har begränsat den till. Se [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience) för att ge varje målgrupp en egen statussida.
 
@@ -159,7 +160,7 @@ Redigera eller lägg till allvarlighetsgrader under **Incidenter → Inställnin
 | **Översikt**  | **Alla incidenter**, **Aktiva incidenter** och **Efteranalyser** — den andra har ett rött märke med antalet incidenter i ett tillstånd ovanför det lösta tillståndet, och den tredje visar efteranalysen för varje incident, att filtrera på ägare, allvarlighetsgrad eller status. |
 | **Episoder**  | Incidentepisoder, en separat grupperingsfunktion med egna sidor.                                                                                                          |
 | **AI**        | **Insikter**, **Loggar**, **Inställningar**: vad OneUptime AI har lärt sig av dina incidenter och allt den har gjort för dem, och vad den får göra på egen hand — med reglerna för vilka incidenter den utreder och åtgärdar. Se [AI SRE](/docs/ai/ai-sre). |
-| **Arbetsyta** | Chattarbetsytorna som projektet har anslutit: **Slack**, **Microsoft Teams** eller båda, var och en med sina aviseringsregler för incidenter. Är ingen av dem ansluten innehåller den **Anslut Slack eller Teams**, en sida som visar båda och hur de ansluts. |
+| **Arbetsyta** | Chattarbetsytorna som projektet har anslutit: **Slack**, **Microsoft Teams** och **Mattermost**, var och en med sina aviseringsregler för incidenter. Är ingen av dem ansluten innehåller den **Anslut en arbetsyta**, en sida som visar alla tre och hur de ansluts. |
 | **Regler**    | Regelmotorerna: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **SLA-regler**, **Påminnelseregler**. |
 | **Inställningar** | **Incidentstatus**, **Incidentallvar**, **Incidentmallar**, **Anteckningsmallar**, **Postmortem-mallar**, **Efteranalysstatusar**, **Anpassade fält**, **Incidentroller**, **Mätningar**, **Länkade larm**, **Medlemskap i episoder**, **Numrering**. |
 

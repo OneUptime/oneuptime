@@ -55,7 +55,7 @@ Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Docker S
 
 ### Escolher o cluster
 
-Em **Docker Swarm Monitor Configuration**, escolha o cluster em **Docker Swarm Cluster**. Todo cluster que enviou dados está na lista. Depois da escolha, uma linha abaixo do campo diz se estão chegando dados. **Adicionar cluster Docker Swarm** abre passos de configuração com as suas chaves já preenchidas, que esperam os primeiros dados.
+Em **Docker Swarm Monitor Configuration**, escolha o cluster em **Cluster do Docker Swarm**. Todo cluster que enviou dados está na lista. Depois da escolha, uma linha abaixo do campo diz se estão chegando dados. **Adicionar cluster Docker Swarm** abre passos de configuração com as suas chaves já preenchidas, que esperam os primeiros dados.
 
 ### Escolher o que monitorar
 
@@ -81,7 +81,7 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 
 | Campo | Aba | O que faz |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | Todas | Obrigatório. Restringe cada consulta a `resource.docker.swarm.cluster.name`. As métricas de uma tarefa trazem `container.runtime=docker`, como as de um host Docker, e o agente nunca aplica `host.name`, então o monitor não filtra por nenhum dos dois. |
+| **Cluster do Docker Swarm** | Todas | Obrigatório. Restringe cada consulta a `resource.docker.swarm.cluster.name`. As métricas de uma tarefa trazem `container.runtime=docker`, como as de um host Docker, e o agente nunca aplica `host.name`, então o monitor não filtra por nenhum dos dois. |
 | **Nome do serviço** | Custom Metric, Avançado | Opcional. Correspondência exata com `resource.docker.swarm.service.name`, o serviço como `docker service ls` o nomeia, por exemplo `web` (`<stack>_web` em um stack). |
 | **Nome do nó** | Custom Metric, Avançado | Opcional. Correspondência exata com `resource.docker.swarm.node.name`, o nome de host do nó como `docker node ls` o mostra, por exemplo `swarm-node-1`. O agente nesse nó o aplica a partir de `DOCKER_SWARM_NODE_NAME`. |
 | **Nome do contêiner** | Custom Metric, Avançado | Opcional. Correspondência exata com `resource.container.name`. O contêiner de uma tarefa se chama `<service>.<slot>.<taskid>`, por exemplo `web.1.abc123`. |
@@ -176,7 +176,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | --- | --- |
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da variável. |
 | **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todos os valores precisam corresponder, na janela inteira) ou **Any Value** (basta um). |
-| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** – ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo. |
+| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** – ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo. **Previsão acima de** e **Previsão abaixo de** correspondem quando a tendência da métrica na janela tiver passado do limite ao fim de **Horizonte**. |
 | **Limite** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece em condições de anomalia. |
 | **Sensibilidade** | Só condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |
 | **Janela de linha de base** | Só condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |

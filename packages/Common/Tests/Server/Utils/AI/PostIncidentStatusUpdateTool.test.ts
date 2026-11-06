@@ -12,6 +12,8 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { actionTitleText } from "../../../Helpers/AIActionText";
+import { actionCardText } from "../../../Helpers/AIActionCardText";
 
 /*
  * post_incident_status_update posts a customer-facing public note. When the
@@ -109,7 +111,21 @@ describe("post_incident_status_update - default subscriber notification", () => 
       "Posted a public status update on incident #42.",
     );
     expect(run.result.dataForLlm).toContain("notifySubscribers=false");
-    expect(widgetSubheading(run.result)).toBe("Subscribers not notified");
+    expect(widgetSubheading(run.result)).toBe(
+      "Status update posted, subscribers not notified",
+    );
+    // The card's words: the update itself is data, named in the reader's words.
+    expect(actionCardText(run.result.widget)).toEqual({
+      heading: expect.stringContaining("#"),
+      kind: "Incident",
+      line: "Status update posted, subscribers not notified",
+      facts: [
+        {
+          label: "Status update",
+          value: expect.any(String),
+        },
+      ],
+    });
   });
 
   test("notifies when notifySubscribers is omitted and the incident notified subscribers when declared", async () => {
@@ -122,7 +138,9 @@ describe("post_incident_status_update - default subscriber notification", () => 
       "Posted a public status update on incident #42 and notified subscribers.",
     );
     expect(run.result.dataForLlm).toContain("notifySubscribers=true");
-    expect(widgetSubheading(run.result)).toBe("Subscribers notified");
+    expect(widgetSubheading(run.result)).toBe(
+      "Status update posted, subscribers notified",
+    );
   });
 
   test("notifies when notifySubscribers is omitted and the incident flag was never set", async () => {
@@ -189,7 +207,9 @@ describe("post_incident_status_update - explicit notifySubscribers wins", () => 
     );
     expect(run.result.dataForLlm).toContain("and notified subscribers");
     expect(run.result.dataForLlm).toContain("notifySubscribers=true");
-    expect(widgetSubheading(run.result)).toBe("Subscribers notified");
+    expect(widgetSubheading(run.result)).toBe(
+      "Status update posted, subscribers notified",
+    );
   });
 
   test("explicit false stays quiet even on an incident that notified subscribers", async () => {
@@ -202,7 +222,9 @@ describe("post_incident_status_update - explicit notifySubscribers wins", () => 
     );
     expect(run.result.dataForLlm).not.toContain("notified subscribers");
     expect(run.result.dataForLlm).toContain("notifySubscribers=false");
-    expect(widgetSubheading(run.result)).toBe("Subscribers not notified");
+    expect(widgetSubheading(run.result)).toBe(
+      "Status update posted, subscribers not notified",
+    );
   });
 
   test("explicit false stays quiet on an incident whose flag was never set", async () => {
@@ -248,6 +270,8 @@ describe("post_incident_status_update - incident lookup", () => {
     expect(findArgs["select"]).toEqual({
       _id: true,
       incidentNumber: true,
+      // The number with the project's prefix, for the card it leaves.
+      incidentNumberWithPrefix: true,
       title: true,
       shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
       isPrivate: true,
@@ -489,9 +513,11 @@ describe("post_incident_status_update - tool metadata", () => {
 
   test("buildActionTitle names the incident from args", () => {
     expect(
-      PostIncidentStatusUpdateTool.buildActionTitle!({
-        incidentId: INCIDENT_ID.toString(),
-      }),
+      actionTitleText(
+        PostIncidentStatusUpdateTool.buildActionTitle!({
+          incidentId: INCIDENT_ID.toString(),
+        }),
+      ),
     ).toBe(`Post public status update on incident ${INCIDENT_ID.toString()}`);
   });
 });

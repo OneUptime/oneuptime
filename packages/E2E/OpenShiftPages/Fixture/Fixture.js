@@ -46,6 +46,7 @@ import {
   useParams,
 } from "react-router-dom";
 import i18next from "i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
@@ -1246,6 +1247,16 @@ async function handleApi(method, options) {
    * KubernetesResourceService answers them (Common/Tests/Helpers/
    * KubernetesPartReads, held to the service's own cases).
    */
+  // Which Magnum cluster a Kubernetes cluster is, as a project with no OpenStack answers.
+  if (
+    method === "POST" &&
+    parsed.pathname.includes(
+      "/openstack-resource/magnum-cluster-of-kubernetes-cluster/",
+    )
+  ) {
+    return ok({ link: null });
+  }
+
   if (
     method === "POST" &&
     parsed.pathname.includes("/kubernetes-resource/needs-attention/")
@@ -1366,6 +1377,8 @@ await i18next.use(initReactI18next).init({
   },
   interpolation: { escapeValue: false },
 });
+// Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
+followLanguageForDates(i18next);
 
 /*
  * ---------------------------------------------------------------------------

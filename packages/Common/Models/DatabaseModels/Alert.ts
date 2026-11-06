@@ -21,6 +21,7 @@ import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Probe from "./Probe";
 import Project from "./Project";
 import ProxmoxCluster from "./ProxmoxCluster";
+import OpenStackCloud from "./OpenStackCloud";
 import VMwareVCenter from "./VMwareVCenter";
 import IoTFleet from "./IoTFleet";
 import DockerSwarmCluster from "./DockerSwarmCluster";
@@ -1089,6 +1090,60 @@ export default class Alert extends BaseModel {
     },
   })
   public proxmoxClusters?: Array<ProxmoxCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: OpenStackCloud,
+    title: "OpenStack Clouds",
+    description: "List of OpenStack clouds affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return OpenStackCloud;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertOpenStackCloud",
+    inverseJoinColumn: {
+      name: "openStackCloudId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public openStackClouds?: Array<OpenStackCloud> = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -2789,4 +2844,41 @@ export default class Alert extends BaseModel {
     nullable: true,
   })
   public reminderNotificationSentCount?: number = undefined;
+
+  /*
+   * When OneUptime checks the project's alert incident rules for this alert
+   * again: set while the rule that matched it waits for the alert to stay
+   * unresolved before declaring an incident from it ("Declare After",
+   * AlertIncidentRule.declareAfterInMinutes), cleared once the check has
+   * run. Workers/Jobs/AlertIncidentRules/DeclareIncidentsWhenWaitIsUp reads
+   * the alerts whose time has come (AlertIncidentRuleEngineService).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Next Incident Rule Check At",
+    description:
+      "When OneUptime next checks whether an incident should be declared from this alert: set while an alert incident rule that matched it waits for the alert to stay unresolved, and empty otherwise. Set by OneUptime; it cannot be written.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public nextIncidentRuleCheckAt?: Date = undefined;
 }

@@ -121,6 +121,17 @@ const WAITED_FOR_BEFORE = {
     "mobile-app-android-build",
     "mobile-app-ios-build",
   ],
+  /*
+   * The images' signatures are published to Docker Hub and GHCR, so signing
+   * waits for what moving the release tags waited for, and for the merges of
+   * the four agents that move their own (sign_docker_images.sh signs every
+   * image release.yml builds).
+   */
+  "sign-images": [
+    ...TAGS_WAITED_FOR,
+    ...buildAndMerge(AGENTS_WITH_THEIR_OWN_RELEASE_TAGS),
+    "push-release-tags",
+  ],
   "publish-terraform-provider": [
     BUILD_NUMBER,
     "read-version",
@@ -198,6 +209,7 @@ describe(`${RELEASE}: build earlier, never publish earlier`, () => {
     "draft-github-release",
     "helm-chart-deploy",
     "finalize-github-release",
+    "sign-images",
   ])("%s starts only after the three e2e jobs have passed", (name) => {
     const waitsFor = ancestorsOf(jobs, name);
 
@@ -795,6 +807,19 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
       files: "release-assets/infrastructure-agent/*",
       required: true,
       alsoKeeps: ["infrastructure-agent-package-manifests"],
+    },
+    /*
+     * Grype's report for each SBOM: a failed scan lets the release go out
+     * without them, as a failed app build does, so a vulnerability database
+     * that cannot be reached never holds a release back.
+     */
+    {
+      job: "scan-sbom-vulnerabilities",
+      artifact: "release-vulnerability-reports",
+      directory: "release-assets/vulnerabilities",
+      attach: "Attach vulnerability reports to release",
+      files: "release-assets/vulnerabilities/*",
+      required: false,
     },
     {
       job: "mobile-app-android-build",

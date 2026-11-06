@@ -40,11 +40,24 @@ export const AZURE_CLOUD_AI_AGENT_ENVIRONMENT_NAME: string = `${CLOUD_AI_AGENT_N
 export const AZURE_CLOUD_AI_AGENT_ROLE_NAME: string = "OneUptime AI Agent";
 
 /*
- * Google Cloud: one Cloud Run service with CPU always allocated, running as
- * a service account of its own with a custom role built from the enabled
- * operations.
+ * Google Cloud: the agent runs as a service account of its own with a
+ * custom role built from the enabled operations, on one of two hosts:
+ *
+ *   - compute-engine (the default): one small Compute Engine VM of
+ *     Container-Optimized OS in a network of its own that lets nothing in;
+ *   - cloud-run: one Cloud Run service with CPU always allocated.
  */
+export type GcpCloudAiAgentHost = "compute-engine" | "cloud-run";
+export const GCP_CLOUD_AI_AGENT_HOSTS: ReadonlyArray<GcpCloudAiAgentHost> = [
+  "compute-engine",
+  "cloud-run",
+];
+export const GCP_CLOUD_AI_AGENT_DEFAULT_HOST: GcpCloudAiAgentHost =
+  "compute-engine";
 export const GCP_CLOUD_AI_AGENT_SERVICE_NAME: string = CLOUD_AI_AGENT_NAME;
+export const GCP_CLOUD_AI_AGENT_INSTANCE_NAME: string = CLOUD_AI_AGENT_NAME;
+// The VM's network and its one subnet.
+export const GCP_CLOUD_AI_AGENT_NETWORK_NAME: string = CLOUD_AI_AGENT_NAME;
 export const GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID: string =
   CLOUD_AI_AGENT_NAME;
 export const GCP_CLOUD_AI_AGENT_ROLE_ID: string = "oneuptimeAiAgent";
@@ -77,6 +90,7 @@ export function getCloudAiAgentOwnTargets(data: {
     case "gcp":
       return [
         `//run.googleapis.com/projects/${account}/locations/*/services/${GCP_CLOUD_AI_AGENT_SERVICE_NAME}`,
+        `//compute.googleapis.com/projects/${account}/zones/*/instances/${GCP_CLOUD_AI_AGENT_INSTANCE_NAME}`,
         `//iam.googleapis.com/projects/${account}/serviceAccounts/${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID}@*`,
       ];
     default:

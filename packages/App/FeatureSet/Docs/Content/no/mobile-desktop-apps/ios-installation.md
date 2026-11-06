@@ -62,7 +62,7 @@ Appen viser ett prosjekt om gangen: trykk på prosjektets navn øverst på en sk
 
 :::steps
 ### Finn enheten i dashbordet
-Åpne **Brukerinnstillinger → Varselmetoder** og fanen **Push Notifications** i dashbordet. iPhone eller iPad står under **Enheter for push-varsler** med modellnavnet sitt. Hvert prosjekt har sin egen liste.
+Åpne **Brukerinnstillinger → Varselmetoder** og fanen **Push-varsler** i dashbordet. iPhone eller iPad står under **Enheter for push-varsler** med modellnavnet sitt. Hvert prosjekt har sin egen liste.
 
 ### Send en test
 Klikk på **Testvarsel** i enhetens rad. Et varsel kommer frem på enheten; trykk på det for å åpne appen.
@@ -130,7 +130,7 @@ Appen nådde ikke `https://<your-oneuptime>/api/status`. Sjekk adressen, inklude
 
 :::details Det kommer ingen varsler
 - Sjekk at **Tillat varslinger** er på under **Innstillinger → Varslinger → OneUptime On-Call**, og at ingen Fokus holder varsler tilbake.
-- Sjekk at enheten står under **Push Notifications** i **Brukerinnstillinger → Varselmetoder**, og send den et **Testvarsel**.
+- Sjekk at enheten står under **Push-varsler** i **Brukerinnstillinger → Varselmetoder**, og send den et **Testvarsel**.
 - Er enheten merket **Mottar ikke varsler**, åpner du appen mens du er logget inn. Den registrerer enheten på nytt; se [Når en telefon må registreres på nytt](/docs/mobile-desktop-apps/faq-troubleshooting#når-en-telefon-må-registreres-på-nytt).
 - Sjekk vaktreglene dine under **Brukerinnstillinger → Vaktregler**.
 - På et selvdriftet OneUptime sjekker du at serveren din når push-reléet sitt: se [Push-varsler](/docs/self-hosted/push-notifications#nettverkstilgang).

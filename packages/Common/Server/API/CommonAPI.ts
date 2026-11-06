@@ -20,6 +20,7 @@ import DatabaseCommonInteractionPropsUtil from "../../Types/BaseDatabase/Databas
 import HeldPermissionsUtil from "../../Types/HeldPermissions";
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import MultiTenantQuery from "../Utils/MultiTenantQuery";
+import RequestOriginUtil from "../Utils/RequestOrigin/RequestOriginUtil";
 
 export default class CommonAPI {
   /*
@@ -460,6 +461,12 @@ export default class CommonAPI {
 
       props.isMultiTenantRequest = true;
     }
+
+    /*
+     * Where the request came from, for the security email a write it makes
+     * may send - "Your password was changed", from this device and address.
+     */
+    props.requestOrigin = RequestOriginUtil.fromRequest(req);
 
     // check for root permissions.
 

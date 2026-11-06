@@ -18,13 +18,13 @@ import React, {
  * The chat's own address: Products -> AI -> Chat, and /ai/chat/<id> for one
  * conversation, as bookmarks and links in incident channels have it.
  *
- * Ask AI used to have a full page here as well as its side panel: two
- * designs of one conversation. It has one now, the dialog (AskAiDialog),
- * and this address opens it - on the conversation the address names, if
- * it names one - over the page the person came from, or over Home when the
- * address was opened on its own. The address itself passes the browser on
- * (Back skips it), so closing the dialog leaves the person where they
- * were, never on an empty page.
+ * Ask AI used to have a full page here as well as its panel: two designs of
+ * one conversation. It has one now, the panel (AskAiPanel), and this address
+ * opens it - on the conversation the address names, if it names one - beside
+ * the page the person came from, or beside Home when the address was opened
+ * on its own. The address itself passes the browser on (Back skips it), so
+ * closing the panel leaves the person where they were, never on an empty
+ * page.
  */
 
 // Whether the browser has a page of this app to go back to.

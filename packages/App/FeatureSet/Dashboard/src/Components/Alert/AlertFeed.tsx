@@ -101,6 +101,14 @@ export const ALERT_FEED_KINDS: Record<AlertFeedEventType, FeedEntryKind> = {
     SHARED_FEED_ENTRY_KINDS.PrivacyRuleExecuted,
   [AlertFeedEventType.OnCallRuleExecuted]:
     SHARED_FEED_ENTRY_KINDS.OnCallRuleExecuted,
+  /*
+   * An incident declared from the alert by an alert incident rule: the
+   * incident's own mark, in red, never folded into the other rules' burst.
+   */
+  [AlertFeedEventType.IncidentRuleExecuted]: {
+    icon: IconProp.Alert,
+    tone: FeedTone.Danger,
+  },
   [AlertFeedEventType.AutoRemediation]: SHARED_FEED_ENTRY_KINDS.AutoRemediation,
   [AlertFeedEventType.VideoCallStarted]:
     SHARED_FEED_ENTRY_KINDS.VideoCallStarted,

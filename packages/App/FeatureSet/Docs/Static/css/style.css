@@ -4323,6 +4323,21 @@ html.dark .docs-theme-toggle .docs-icon-light {
   position: relative;
 }
 
+/*
+ * A translated heading's English anchor (Utils/AnchorAliases.ts): an empty
+ * mark at the heading's top, so an address with the English anchor scrolls
+ * the heading to where its own anchor does.
+ */
+.docs-content .docs-heading__alias {
+  position: absolute;
+  top: 0;
+  inset-inline-start: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  scroll-margin-top: calc(var(--docs-header-h) + 1.5rem);
+}
+
 .docs-content .docs-h1 {
   font-size: 1.875rem;
   font-weight: 700;

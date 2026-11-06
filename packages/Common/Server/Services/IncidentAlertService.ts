@@ -53,6 +53,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import {
+  ALERT_INCIDENT_RULE_KIND,
   INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
@@ -67,6 +68,7 @@ import FeedMarkdown, {
 import FeedApiKeyActorUtil, {
   FeedApiKeyActor,
 } from "../Utils/Feed/FeedApiKeyActor";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 
 /*
  * The project's two linked alert switches: acknowledge linked alerts when the
@@ -323,10 +325,13 @@ function describeLinkedRecord(data: {
 /*
  * The one incident feed entry for an incident declared from alerts, listing
  * the alerts in the order given. Private alerts are listed without their
- * titles.
+ * titles. One an alert incident rule declared is headed with the rule
+ * ("🚨 Alert Incident Rule executed: <name>"), so the incident, its Slack /
+ * Microsoft Teams channels and everyone reading them see why it exists.
  */
 export function getDeclaredFromAlertsMarkdown(
   alerts: Array<LinkedAlertMention>,
+  declaredBy?: { ruleName: string } | undefined,
 ): string {
   const lines: Array<MarkdownText> = alerts.map(
     (alert: LinkedAlertMention): MarkdownText => {
@@ -344,7 +349,17 @@ export function getDeclaredFromAlertsMarkdown(
 
   const noun: string = alerts.length === 1 ? "alert" : "alerts";
 
-  return mdText`🔗 Declared from ${alerts.length} ${noun}:\n\n${FeedMarkdown.bulletList(lines)}`.toString();
+  const declaredFrom: MarkdownText = mdText`🔗 Declared from ${alerts.length} ${noun}:\n\n${FeedMarkdown.bulletList(lines)}`;
+
+  if (!declaredBy?.ruleName.trim()) {
+    return declaredFrom.toString();
+  }
+
+  return mdText`${RuleFeedMarkdown.executedLine({
+    emoji: "🚨",
+    ruleKind: ALERT_INCIDENT_RULE_KIND,
+    ruleNames: [declaredBy.ruleName.trim()],
+  })}\n\n${declaredFrom}`.toString();
 }
 
 /*
@@ -992,10 +1007,13 @@ export class Service extends ProjectReferencesService<Model> {
     actorUserId: ObjectID | undefined;
     // The API key that declared the incident, when no person did.
     apiKeyActor?: FeedApiKeyActor | undefined;
+    // The alert incident rule that declared it, when one did, by name.
+    declaredByRuleName?: string | undefined;
   }): Promise<void> {
     const markdown: string | null = await this.buildDeclaredFromAlertsMarkdown({
       projectId: data.projectId,
       alertIds: data.alertIds,
+      declaredByRuleName: data.declaredByRuleName,
     });
 
     if (!markdown) {
@@ -1027,6 +1045,7 @@ export class Service extends ProjectReferencesService<Model> {
   public async buildDeclaredFromAlertsMarkdown(data: {
     projectId: ObjectID;
     alertIds: Array<ObjectID>;
+    declaredByRuleName?: string | undefined;
   }): Promise<string | null> {
     if (data.alertIds.length === 0) {
       return null;
@@ -1092,7 +1111,12 @@ export class Service extends ProjectReferencesService<Model> {
       return null;
     }
 
-    return getDeclaredFromAlertsMarkdown(mentions);
+    return getDeclaredFromAlertsMarkdown(
+      mentions,
+      data.declaredByRuleName
+        ? { ruleName: data.declaredByRuleName }
+        : undefined,
+    );
   }
 
   /*

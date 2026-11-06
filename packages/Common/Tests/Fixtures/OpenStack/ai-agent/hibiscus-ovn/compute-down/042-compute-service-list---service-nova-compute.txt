@@ -1,0 +1,7 @@
+$ openstack compute service list --service nova-compute
+success: true
+exit code: 0
+
+[stdout]
+id                                    status   binary        disabled_reason  forced_down  host           state  updated_at                  zone
+996eaedd-257d-4e81-adf9-aab7c387b172  enabled  nova-compute                   false        compute-01  down   2026-11-05T05:29:40.000000  nova

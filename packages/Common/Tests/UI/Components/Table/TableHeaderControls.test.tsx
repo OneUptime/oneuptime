@@ -15,6 +15,7 @@ import { CARD_MORE_MENU_TRIGGER_CLASS_NAME } from "../../../../UI/Components/Car
 import MoreMenuItem from "../../../../UI/Components/MoreMenu/MoreMenuItem";
 import MoreMenuSection from "../../../../UI/Components/MoreMenu/MoreMenuSection";
 import {
+  TABLE_HEADER_BUTTONS_BOX_CLASS_NAME,
   TABLE_HEADER_BUTTONS_CLASS_NAME,
   TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
   TABLE_HEADER_FOLDED_BUTTONS_CLASS_NAME,
@@ -531,6 +532,68 @@ describe("TableHeaderToolbar", () => {
     expect(wrapper).toHaveClass(...TABLE_HEADER_BUTTONS_CLASS_NAME.split(" "));
     expect(wrapper).not.toHaveClass("invisible");
     expect(wrapper).toHaveAttribute("aria-hidden", "false");
+  });
+
+  test("with a search and no buttons, its box for them is empty and drawn as nothing", () => {
+    render(
+      <TableHeaderToolbar
+        dataTestId="search-only-toolbar"
+        isSearchOpen={false}
+        keepButtonsWhileSearching={true}
+        search={<div data-testid="search-only-search">search</div>}
+      />,
+    );
+
+    const toolbar: HTMLElement = screen.getByTestId("search-only-toolbar");
+    const box: HTMLElement = toolbar.lastElementChild as HTMLElement;
+
+    /*
+     * An empty box still took the row's gap-3: on a phone the search
+     * stopped 12px short of the filters under it. Empty, it is not drawn.
+     */
+    expect(toolbar.firstElementChild).toBe(
+      screen.getByTestId("search-only-search"),
+    );
+    expect(box).toBeEmptyDOMElement();
+    expect(box).toHaveClass(...TABLE_HEADER_BUTTONS_BOX_CLASS_NAME.split(" "));
+    expect(TABLE_HEADER_BUTTONS_BOX_CLASS_NAME.split(" ")).toContain(
+      "empty:hidden",
+    );
+  });
+
+  test("children that render nothing leave the box empty; a button fills it", () => {
+    const { rerender } = render(
+      <TableHeaderToolbar
+        dataTestId="maybe-buttons-toolbar"
+        search={<div>search</div>}
+      >
+        {null}
+        {false}
+      </TableHeaderToolbar>,
+    );
+
+    const box: () => HTMLElement = (): HTMLElement => {
+      return screen.getByTestId("maybe-buttons-toolbar")
+        .lastElementChild as HTMLElement;
+    };
+
+    // Nothing in it - not even a space - so :empty matches and it is not drawn.
+    expect(box()).toBeEmptyDOMElement();
+    expect(box().childNodes).toHaveLength(0);
+
+    rerender(
+      <TableHeaderToolbar
+        dataTestId="maybe-buttons-toolbar"
+        search={<div>search</div>}
+      >
+        {null}
+        <button type="button">Create</button>
+      </TableHeaderToolbar>,
+    );
+
+    expect(box()).not.toBeEmptyDOMElement();
+    expect(box()).toBe(screen.getByText("Create").parentElement);
+    expect(box()).toHaveClass(...TABLE_HEADER_BUTTONS_CLASS_NAME.split(" "));
   });
 });
 

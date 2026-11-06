@@ -52,7 +52,7 @@ Under **Handling** skal du beholde **Kassér** for at smide hver matchende post 
 Filteret begynder at kassere inden for et minut. For at gemme det uden at kassere noget endnu skal du slå **Aktiveret** fra under **Avanceret**, før du opretter det.
 
 > [!WARNING]
-> En kasseret post kan ikke hentes tilbage. Hold et filters forespørgsel snæver, og hold øje med dets **Dropped**-tæller, efter du har oprettet det.
+> En kasseret post kan ikke hentes tilbage. Hold et filters forespørgsel snæver, og hold øje med dets **Kasseret**-tæller, efter du har oprettet det.
 
 Et filter kan teste disse felter, og enhver attribut med **Custom Attribute...**:
 
@@ -131,7 +131,7 @@ Hash:   Payment failed for [HASHED:8c87b489]
 
 ## Se, hvad et filter kasserede
 
-Listen **Drop-filtre** viser for hvert filter dets **Dropped**-tæller, og hvornår det sidst kasserede noget, **Last Dropped**. **Nothing dropped yet** betyder, at det aldrig har matchet. Et filters egen side viser det samme under **Aktivitet**, opdateret inden for et minut efter en kassering. Dets kort **Filterbetingelser** viser, hvad det vælger, og du kan ændre betingelserne der.
+Listen **Drop-filtre** viser for hvert filter dets **Kasseret**-tæller, og hvornår det sidst kasserede noget, **Last Dropped**. **Nothing dropped yet** betyder, at det aldrig har matchet. Et filters egen side viser det samme under **Aktivitet**, opdateret inden for et minut efter en kassering. Dets kort **Filterbetingelser** viser, hvad det vælger, og du kan ændre betingelserne der.
 
 ## Fejlfinding
 
@@ -140,7 +140,7 @@ Listen **Drop-filtre** viser for hvert filter dets **Dropped**-tæller, og hvorn
 :::
 
 :::details Protokoller, jeg forventede, mangler
-Se på **Dropped**-tælleren og tidspunktet for **Last Dropped** for hvert drop-filter. Slå **Aktiveret** fra på det, du har mistanke til, og de næste protokoller ankommer igen.
+Se på **Kasseret**-tælleren og tidspunktet for **Last Dropped** for hvert drop-filter. Slå **Aktiveret** fra på det, du har mistanke til, og de næste protokoller ankommer igen.
 :::
 
 :::details En brugerdefineret scrub-regel siger Maskerer intet

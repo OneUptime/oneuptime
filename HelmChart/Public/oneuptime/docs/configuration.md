@@ -150,10 +150,11 @@ globalRunner:
 
 | Parameter             | Description                                                                              | Default              |
 |-----------------------|------------------------------------------------------------------------------------------|----------------------|
-| `image.registry`      | Docker image registry.                                                                   | `docker.io`          |
+| `global.imageRegistry` | One registry for every image the chart runs, such as the registry an air-gapped install mirrors into (`registry.example.com`, or with a path). OneUptime's images come from `<imageRegistry>/<image.repository>/<name>` in place of `image.registry`, and the bundled PostgreSQL, ClickHouse, Valkey, PgBouncer, vLLM and kubectl images from `<imageRegistry>/<their repository>`, so mirror them under the same names and tags. A repository that already names a registry, `image.overrides` and `global.azure.images` are used as written; the KEDA, CloudNativePG and Altinity operator subcharts take their registry from their own values. | `""` |
+| `image.registry`      | Docker image registry for OneUptime's own images, when `global.imageRegistry` is empty.   | `docker.io`          |
 | `image.repository`    | Docker image repository.                                                                 | `oneuptime`          |
 | `image.tag`           | Docker image tag. Pin this in production (see [Production checklist](production-checklist.md)). | `release`     |
-| `image.pullPolicy`    | Image pull policy.                                                                        | `IfNotPresent`       |
+| `image.pullPolicy`    | Image pull policy.                                                                        | `Always`             |
 | `image.type`          | `community-edition` (the Apache-2.0 images, SAML and OIDC single sign-on included) or `enterprise-edition` (the Enterprise Edition images: the same tags with an `enterprise-` prefix, adding the enterprise features (SCIM, audit logs, team compliance, instance health dashboards) under the OneUptime Enterprise License). Production use of the Enterprise Edition requires a subscription under that license; an install with no license, or one holding a license whose expiry was never recorded, runs as a 14-day trial, which is for evaluation. After the trial (or 30 days after a license expires), SCIM and audit logging stop and enterprise configuration becomes read-only until a license is activated; single sign-on does not depend on the license, and core monitoring is never affected. | `community-edition`  |
 | `image.restartPolicy` | Image restart policy.                                                                     | `Always`             |
 | `imagePullSecrets`    | Pull secrets (a list of `name:` entries) for every pod the chart defines, the bundled PostgreSQL, ClickHouse and Valkey and the operator-run databases included. Set it for a registry that asks for credentials, such as an air-gapped install's mirror. | `nil` |
@@ -671,6 +672,40 @@ or servers in one. Both are read from the address `trustedProxyHops` picks.
 | Parameter          | Description                                                                                          | Default |
 |--------------------|------------------------------------------------------------------------------------------------------|---------|
 | `trustedProxyHops` | Number of appending reverse proxies you run in front of OneUptime. `0` ignores `X-Forwarded-For` entirely and uses the connecting address. | `1` |
+
+## Locations in security emails
+
+Security emails - a password reset, a changed password, wrong two factor
+codes, a backup code used - tell the account's owner when the request came,
+from which IP address and on which device and browser, so they can tell their
+own request from somebody else's. They can also say roughly where it came from
+("Berlin, Germany"), but only from your CDN or load balancer: OneUptime has no
+IP location database of its own. Name the request headers it writes the
+visitor's country, region and city into, and the emails show them.
+
+Name only headers a proxy in front of OneUptime always writes itself,
+replacing whatever the visitor sent. Any other header is the visitor's own
+writing: whoever asks for someone's password reset could choose the place
+their email shows. With no header named, the emails show no location.
+
+| CDN | `country` | `region` | `city` |
+|-----|-----------|----------|--------|
+| Cloudflare, with *Add visitor location headers* turned on in its Managed Transforms | `cf-ipcountry` | `cf-region` | `cf-ipcity` |
+| Amazon CloudFront, with the headers forwarded to the origin | `cloudfront-viewer-country` | `cloudfront-viewer-country-region-name` | `cloudfront-viewer-city` |
+| Vercel | `x-vercel-ip-country` | `x-vercel-ip-country-region` | `x-vercel-ip-city` |
+
+```yaml
+trustedGeoHeaders:
+  country: cf-ipcountry
+  region: cf-region
+  city: cf-ipcity
+```
+
+| Parameter                   | Description                                                            | Default |
+|-----------------------------|------------------------------------------------------------------------|---------|
+| `trustedGeoHeaders.country` | Request header your CDN writes the visitor's country into, as a two-letter code or a name. | `""` |
+| `trustedGeoHeaders.region`  | Request header your CDN writes the visitor's region or state into.    | `""` |
+| `trustedGeoHeaders.city`    | Request header your CDN writes the visitor's city into.                | `""` |
 
 ## Visitor addresses
 

@@ -21,13 +21,20 @@ import logger from "../../../../Logger";
 import CaptureSpan from "../../../../Telemetry/CaptureSpan";
 import { MarkdownText } from "../../../../../../Utils/Markdown/FeedMarkdown";
 import {
+  METRIC_INSIGHT_MAX_CATALOG_READS,
   METRIC_INSIGHT_MAX_FINDINGS_PER_SERVICE,
   METRIC_INSIGHT_MAX_MISSING_METRICS_SERVICES,
+  METRIC_INSIGHT_MAX_MISSING_REQUEST_METRICS_SERVICES,
   METRIC_INSIGHT_MAX_NAME_PATTERNS,
+  METRIC_INSIGHT_MAX_SERVED_SPAN_READS,
   METRIC_INSIGHT_MIN_ATTRIBUTE_VALUES,
   METRIC_INSIGHT_MIN_DATA_POINTS,
   METRIC_INSIGHT_MIN_NAME_VARIANTS,
   METRIC_INSIGHT_MIN_SERVICE_SPANS,
+  METRIC_INSIGHT_REQUEST_METRIC_PREFIXES,
+  METRIC_INSIGHT_SENT_METRIC_NAMES,
+  METRIC_INSIGHT_SERVED_SPANS,
+  METRIC_INSIGHT_SERVED_SPAN_SAMPLE_SIZE,
   METRIC_INSIGHT_TOP_OPERATIONS,
   METRIC_INSIGHT_TYPE_BY_KIND,
   METRIC_INSIGHT_VALUE_SAMPLE_SIZE,
@@ -37,6 +44,9 @@ import {
   MetricInsightKind,
   MetricInsightWindow,
   MetricNamePatternReading,
+  MetricRequestMetricsCandidate,
+  MetricServedProtocol,
+  MetricServedSpansReading,
   MetricServiceTraffic,
   MetricShapeReading,
   MetricVolumeReading,
@@ -50,8 +60,10 @@ import {
   pickHistogramReading,
   pickMetricsToRead,
   pickServicesMissingMetrics,
+  pickServicesMissingRequestMetrics,
   readHighCardinalityAttributes,
   readHistogramBuckets,
+  readServedProtocols,
 } from "../../../../../../Utils/Metrics/MetricInsight";
 import {
   InsightCandidate,
@@ -62,12 +74,13 @@ import {
 /*
  * The Metrics product's AI section's detector (Types/AI/TelemetryAi):
  * high-cardinality metrics, histograms whose buckets do not fit their
- * values, and busy services that send no metrics (Utils/Metrics/
+ * values, busy services that send no metrics, and busy services that send
+ * metrics but none for the requests they handle (Utils/Metrics/
  * MetricInsight holds every gate). It feeds the lane's AI rules: OneUptime
  * AI looks into each finding and opens a pull request that improves the
  * metric, or adds the missing ones.
  *
- * One look a project an hour, for all three kinds at once, so the same reads
+ * One look a project an hour, for all four kinds at once, so the same reads
  * serve them:
  *
  *   1. every metric of the hour that ended last, from the hourly rollup the
@@ -81,12 +94,23 @@ import {
  *      buckets summed);
  *   3. the services that sent 1,000 or more spans in the hour and no data
  *      point of their own, which the metric catalog (MetricType) is asked
- *      whether they ever sent a metric - with their busiest operations.
+ *      whether they ever sent a metric - with their busiest operations;
+ *   4. the services that sent 1,000 or more spans in the hour and data
+ *      points of their own, none of them a request metric - from the same
+ *      two reads - which the metric catalog is asked whether they ever sent
+ *      one, and a sample of whose entry spans says what they serve (HTTP
+ *      requests, RPC calls, messages) - with their busiest requests. No
+ *      new scan of the hour: a catalog read and a small sample a service,
+ *      for a few services a look.
+ *
+ * The catalog is asked about 20 services a look at most for each of the
+ * two (METRIC_INSIGHT_MAX_CATALOG_READS), the busiest first: a read of the
+ * hour cut at its limit can leave many busy services looking quiet.
  *
  * Each part is read on its own: one that fails finds nothing, says why in
  * the log, and leaves the others to find what they find. Missing metrics
- * are only looked for when the hour's metrics were read: without them,
- * every service would seem to send none.
+ * and missing request metrics are only looked for when the hour's metrics
+ * were read: without them, every service would seem to send none.
  *
  * Deterministic: no LLM anywhere here. Read as root with the project scoped
  * explicitly, as every detector: the services whose telemetry holds a
@@ -94,8 +118,8 @@ import {
  * since an insight is read by people who may not read those.
  *
  * The scanner runs one detector per insight type (InsightDetectors); the
- * three below share the look through the scan context they are handed, so it
- * runs once a tick, not three times.
+ * four below share the look through the scan context they are handed, so it
+ * runs once a tick, not four times.
  */
 
 // The rows the hour's metrics are read in, busiest first.
@@ -127,7 +151,7 @@ function toKey(metric: MetricSeriesKey): string {
 }
 
 export default class MetricProblemDetector {
-  // One look per scan context: the three detectors share it.
+  // One look per scan context: the four detectors share it.
   private static looks: WeakMap<
     InsightScanContext,
     Promise<Array<InsightCandidate>>
@@ -347,6 +371,67 @@ export default class MetricProblemDetector {
   }
 
   /*
+   * A busy service whose metrics hold none for the requests it handles.
+   * Pure. Its busiest metrics are named, and how many it sent only when
+   * the hour's read held every metric of the hour: a read cut at its limit
+   * may have left some of them out.
+   */
+  public static toMissingRequestMetricsEvidence(data: {
+    candidate: MetricRequestMetricsCandidate;
+    window: MetricInsightWindow;
+    protocols: Array<MetricServedProtocol>;
+    operations: Array<TraceAnalyticsTableRow>;
+    isMetricsReadWhole: boolean;
+    sdkLanguage?: string | undefined;
+  }): MetricInsightEvidence {
+    const evidence: MetricInsightEvidence = {
+      serviceId: readId(data.candidate.serviceId),
+      kind: MetricInsightKind.MissingRequestMetrics,
+      windowStartTime: data.window.startTime.toISOString(),
+      windowEndTime: data.window.endTime.toISOString(),
+      spanCount: data.candidate.spanCount,
+      failedSpanCount: data.candidate.failedSpanCount,
+      servedProtocols: [...data.protocols],
+    };
+
+    const sentMetricNames: Array<string> = data.candidate.metricNames.slice(
+      0,
+      METRIC_INSIGHT_SENT_METRIC_NAMES,
+    );
+
+    if (sentMetricNames.length > 0) {
+      evidence.sentMetricNames = sentMetricNames;
+    }
+
+    if (data.isMetricsReadWhole && data.candidate.metricCount > 0) {
+      evidence.sentMetricCount = data.candidate.metricCount;
+    }
+
+    const topOperations: Array<{ name: string; spanCount: number }> =
+      data.operations
+        .map((row: TraceAnalyticsTableRow) => {
+          return {
+            name: row.groupValues["name"] || "",
+            spanCount: row.count,
+          };
+        })
+        .filter((operation: { name: string; spanCount: number }): boolean => {
+          return operation.name.length > 0;
+        })
+        .slice(0, METRIC_INSIGHT_TOP_OPERATIONS);
+
+    if (topOperations.length > 0) {
+      evidence.topOperations = topOperations;
+    }
+
+    if (data.sdkLanguage) {
+      evidence.sdkLanguage = data.sdkLanguage;
+    }
+
+    return evidence;
+  }
+
+  /*
    * A part of the look that may fail on its own: logged, and nothing found
    * by it - the other parts still find what they find. Null says it failed,
    * which the parts that depend on it read as "unknown", never as "none".
@@ -491,20 +576,22 @@ export default class MetricProblemDetector {
 
     // Busy services with no metrics - only once the hour's metrics were read.
     if (volumes && traffic) {
+      const serviceTraffic: Array<MetricServiceTraffic> = traffic.map(
+        (row: ServiceSpanHealthRow): MetricServiceTraffic => {
+          return {
+            serviceId: row.primaryEntityId,
+            spanCount: row.spanCount,
+            failedSpanCount: row.failedSpanCount,
+          };
+        },
+      );
+
       for (const evidence of await MetricProblemDetector.readMissingMetrics({
         context,
         window,
         services,
         traffic: pickServicesMissingMetrics({
-          traffic: traffic.map(
-            (row: ServiceSpanHealthRow): MetricServiceTraffic => {
-              return {
-                serviceId: row.primaryEntityId,
-                spanCount: row.spanCount,
-                failedSpanCount: row.failedSpanCount,
-              };
-            },
-          ),
+          traffic: serviceTraffic,
           serviceIds,
           servicesWithMetrics: new Set<string>([
             ...volumes.map((reading: MetricVolumeReading): string => {
@@ -519,6 +606,24 @@ export default class MetricProblemDetector {
           excludedServiceIds,
         }),
       })) {
+        keep(evidence);
+      }
+
+      // Busy services whose metrics hold none for the requests they handle.
+      for (const evidence of await MetricProblemDetector.readMissingRequestMetrics(
+        {
+          context,
+          window,
+          services,
+          candidates: pickServicesMissingRequestMetrics({
+            traffic: serviceTraffic,
+            serviceIds,
+            readings: volumes,
+            excludedServiceIds,
+          }),
+          isMetricsReadWhole: volumes.length < METRIC_INSIGHT_MAX_VOLUME_ROWS,
+        },
+      )) {
         keep(evidence);
       }
     }
@@ -808,11 +913,17 @@ export default class MetricProblemDetector {
   }): Promise<Array<MetricInsightEvidence>> {
     const projectId: ObjectID = data.context.projectId;
     const found: Array<MetricInsightEvidence> = [];
+    let catalogReads: number = 0;
 
     for (const traffic of data.traffic) {
-      if (found.length >= METRIC_INSIGHT_MAX_MISSING_METRICS_SERVICES) {
+      if (
+        found.length >= METRIC_INSIGHT_MAX_MISSING_METRICS_SERVICES ||
+        catalogReads >= METRIC_INSIGHT_MAX_CATALOG_READS
+      ) {
         break;
       }
+
+      catalogReads++;
 
       // Unknown is not "never": only a catalog that answers "none" files it.
       if (
@@ -856,6 +967,148 @@ export default class MetricProblemDetector {
 
     return found;
   }
+
+  /*
+   * Whether the metric catalog records a request metric from the service
+   * (METRIC_INSIGHT_REQUEST_METRIC_PREFIXES, by name): one that sent them
+   * before and sends none now lost them some other way - not a pull
+   * request's to add. Null when the catalog could not say.
+   */
+  private static async hasEverSentRequestMetric(data: {
+    projectId: ObjectID;
+    serviceId: string;
+  }): Promise<boolean | null> {
+    try {
+      const rows: Array<MetricType> = await MetricTypeService.findBy({
+        query: {
+          projectId: data.projectId,
+          services: new IncludesAnyOfGroups([[data.serviceId]]),
+          name: QueryHelper.startsWithAnyOf([
+            ...METRIC_INSIGHT_REQUEST_METRIC_PREFIXES,
+          ]),
+        } as never,
+        select: { _id: true },
+        limit: 1,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      return rows.length > 0;
+    } catch (error) {
+      logger.error(
+        `MetricProblemDetector: the metric catalog of project ${data.projectId.toString()} could not say whether service ${data.serviceId} sent request metrics; it is not filed as missing them: ${error}`,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * The busy services that send metrics, but never one for the requests
+   * they handle: each asked of the catalog first, then - for the few it
+   * says never sent one - a sample of its entry spans says what it serves,
+   * and its busiest requests are read. A service whose entry spans serve
+   * nothing the semantic conventions name a request metric for is passed
+   * by.
+   */
+  private static async readMissingRequestMetrics(data: {
+    context: InsightScanContext;
+    window: MetricInsightWindow;
+    services: Map<string, MetricServiceFacts>;
+    candidates: Array<MetricRequestMetricsCandidate>;
+    isMetricsReadWhole: boolean;
+  }): Promise<Array<MetricInsightEvidence>> {
+    const projectId: ObjectID = data.context.projectId;
+    const found: Array<MetricInsightEvidence> = [];
+    let catalogReads: number = 0;
+    let spanReads: number = 0;
+
+    for (const candidate of data.candidates) {
+      if (
+        found.length >= METRIC_INSIGHT_MAX_MISSING_REQUEST_METRICS_SERVICES ||
+        spanReads >= METRIC_INSIGHT_MAX_SERVED_SPAN_READS ||
+        catalogReads >= METRIC_INSIGHT_MAX_CATALOG_READS
+      ) {
+        break;
+      }
+
+      catalogReads++;
+
+      // Unknown is not "never": only a catalog that answers "none" files it.
+      if (
+        (await MetricProblemDetector.hasEverSentRequestMetric({
+          projectId,
+          serviceId: candidate.serviceId,
+        })) !== false
+      ) {
+        continue;
+      }
+
+      spanReads++;
+
+      const served: MetricServedSpansReading | null =
+        await MetricProblemDetector.readPart(
+          data.context,
+          `service ${candidate.serviceId}'s entry spans`,
+          () => {
+            return TraceAggregationService.getServedSpanSample({
+              projectId,
+              startTime: data.window.startTime,
+              endTime: data.window.endTime,
+              serviceId: new ObjectID(candidate.serviceId),
+              sampleSize: METRIC_INSIGHT_SERVED_SPAN_SAMPLE_SIZE,
+            });
+          },
+        );
+
+      const protocols: Array<MetricServedProtocol> =
+        readServedProtocols(served);
+
+      if (protocols.length === 0) {
+        continue;
+      }
+
+      // Its busiest requests: the entry spans of the kinds it serves.
+      const operations: Array<TraceAnalyticsTableRow> =
+        (await MetricProblemDetector.readPart(
+          data.context,
+          `service ${candidate.serviceId}'s busiest requests`,
+          () => {
+            return TraceAggregationService.getAnalyticsTable({
+              projectId,
+              startTime: data.window.startTime,
+              endTime: data.window.endTime,
+              bucketSizeInMinutes: 60,
+              chartType: "table",
+              metric: "count",
+              groupBy: ["name"],
+              serviceIds: [new ObjectID(candidate.serviceId)],
+              spanKinds: Array.from(
+                new Set(
+                  protocols.map((protocol: MetricServedProtocol): string => {
+                    return METRIC_INSIGHT_SERVED_SPANS[protocol].kind;
+                  }),
+                ),
+              ),
+              limit: METRIC_INSIGHT_TOP_OPERATIONS,
+              tableSort: { column: "count", direction: "desc" },
+            });
+          },
+        )) || [];
+
+      found.push(
+        MetricProblemDetector.toMissingRequestMetricsEvidence({
+          candidate,
+          window: data.window,
+          protocols,
+          operations,
+          isMetricsReadWhole: data.isMetricsReadWhole,
+          sdkLanguage: data.services.get(candidate.serviceId)?.sdkLanguage,
+        }),
+      );
+    }
+
+    return found;
+  }
 }
 
 /*
@@ -886,4 +1139,8 @@ export class MetricHistogramBucketsDetector extends MetricProblemKindDetector {
 
 export class MetricMissingMetricsDetector extends MetricProblemKindDetector {
   public insightType: AIInsightType = AIInsightType.MetricMissingMetrics;
+}
+
+export class MetricMissingRequestMetricsDetector extends MetricProblemKindDetector {
+  public insightType: AIInsightType = AIInsightType.MetricMissingRequestMetrics;
 }

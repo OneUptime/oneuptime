@@ -21,7 +21,10 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import { SecurityEntityType } from "../../Types/SecurityCase/SecurityEntity";
-import { SecurityWatchlistSource } from "../../Types/SecurityEvent/SecurityWatchlist";
+import {
+  SecurityWatchlistImportSchedule,
+  SecurityWatchlistSource,
+} from "../../Types/SecurityEvent/SecurityWatchlist";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -80,13 +83,33 @@ const editableColumnAccess: {
   update: updatePermissions,
 };
 
+// What OneUptime writes as it reads a list from its address: read by every Security tier, written by none.
+const importColumnAccess: {
+  create: Array<Permission>;
+  read: Array<Permission>;
+  update: Array<Permission>;
+} = {
+  create: [],
+  read: readPermissions,
+  update: [],
+};
+
 @EnableDocumentation()
 /*
  * How many values a list holds is the server's own count, kept as values
- * come and go: a recount alone records nothing.
+ * come and go, and a list read from an address records each read on
+ * itself: neither is a change anyone made, so neither records anything.
  */
 @EnableAuditLog({
-  ignoreColumns: ["valueCount"],
+  ignoreColumns: [
+    "valueCount",
+    "nextImportAt",
+    "lastImportAt",
+    "lastImportSucceededAt",
+    "lastImportError",
+    "lastImportErrorDetail",
+    "lastImportLinesLeftOut",
+  ],
 })
 @TableBillingAccessControl({
   create: PlanType.Free,
@@ -113,6 +136,8 @@ const editableColumnAccess: {
   tableDescription:
     "Lists a team keeps that detection rules match against, such as VIP users, critical hosts, known-bad file hashes and allowed admin addresses.",
 })
+// Every minute the lists read from an address that are due are found by it.
+@Index(["nextImportAt"])
 export default class SecurityWatchlist extends BaseModel {
   @ColumnAccessControl({
     create: createPermissions,
@@ -232,7 +257,7 @@ export default class SecurityWatchlist extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Source",
     description:
-      "Where the values come from: Values (added by hand or imported) or Threat Intel Feed (the feed's active indicators of the list's kind).",
+      "Where the values come from: Values (added by hand or imported), URL (a file at an https address, read again on a schedule) or Threat Intel Feed (the feed's active indicators of the list's kind).",
     defaultValue: SecurityWatchlistSource.Values,
     isDefaultValueColumn: true,
   })
@@ -283,6 +308,122 @@ export default class SecurityWatchlist extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public threatIntelFeedId?: ObjectID = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    title: "Read From",
+    description:
+      "For a list read from an address: the https address of a text or CSV file, one value a line, with an optional note and when the value leaves the list. Read again on the list's schedule; the list is what the file held at its last read.",
+    example: "https://example.com/vip-users.csv",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public importUrl?: string = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityWatchlistImportSchedule),
+    canReadOnRelationQuery: true,
+    title: "Read Every",
+    description:
+      "For a list read from an address: how often it is read - Every Hour (the default), Every 6 Hours or Every Day.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public importSchedule?: SecurityWatchlistImportSchedule = undefined;
+
+  @ColumnAccessControl(importColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Next Read At",
+    description:
+      "For a list read from an address: when it is next read. Empty for any other list.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public nextImportAt?: Date = undefined;
+
+  @ColumnAccessControl(importColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Last Read At",
+    description:
+      "For a list read from an address: when OneUptime last read it, or tried to.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastImportAt?: Date = undefined;
+
+  @ColumnAccessControl(importColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Last Read Without Error At",
+    description:
+      "For a list read from an address: when it was last read without an error. The list holds what the file held then.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastImportSucceededAt?: Date = undefined;
+
+  @ColumnAccessControl(importColumnAccess)
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "Last Read Error",
+    description:
+      "For a list read from an address: why its last read failed. The list keeps the values of the read before. Empty when it worked.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public lastImportError?: string = undefined;
+
+  @ColumnAccessControl(importColumnAccess)
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "Last Read Error Detail",
+    description:
+      "For a list read from an address: what the address or the network said when its last read failed, as it said it.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public lastImportErrorDetail?: string = undefined;
+
+  @ColumnAccessControl(importColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Last Read Lines Left Out",
+    description:
+      "For a list read from an address: how many lines of the file its last read left out - lines that are not values of the list's kind, or whose date to leave the list had passed.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public lastImportLinesLeftOut?: number = undefined;
 
   @ColumnAccessControl({
     create: [],

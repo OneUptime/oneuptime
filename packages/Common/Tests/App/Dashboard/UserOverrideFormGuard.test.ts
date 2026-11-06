@@ -32,7 +32,11 @@ import {
  *   - the form is the User Overrides table's, one page of four rows: Who is
  *     away?, Who covers?, Starts, Ends - and the same form is the one "Skip
  *     until..." on a person in a schedule layer opens (SkipLayerUserModal),
- *     which only ever adds one.
+ *     which only ever adds. For a reader whose permission covers only some
+ *     policies it asks one thing more, below the four, when the server
+ *     allows several of the schedule's policies: "On-call policies", which
+ *     to add the skip on, each ticked - a choice of the form's own, never
+ *     sent as a column.
  *
  * The detector is pinned on inline snippets first, then run over the real
  * tree with checks that it really read it.
@@ -320,18 +324,21 @@ describe("the project's forms", () => {
       expect(source).not.toContain("FormType.Update");
     });
 
+    // The Skip dialog's own question, below the four: see the top of the file.
+    const ownRows: number = file === SKIP_MODAL_FILE ? 1 : 0;
+
     test("is one page of four rows", () => {
       expect(form!.uncountableReasons).toEqual([]);
       expect(form!.hasSteps).toBe(false);
       expect(form!.hasSummaryOnly).toBe(false);
-      expect(countFieldRows(form!.fields)).toBe(4);
-      expect(countFormRows(form!)).toBe(4);
-      expect(form!.visibleFieldCount).toBe(4);
+      expect(countFieldRows(form!.fields)).toBe(4 + ownRows);
+      expect(countFormRows(form!)).toBe(4 + ownRows);
+      expect(form!.visibleFieldCount).toBe(4 + ownRows);
     });
 
     test("asks who is away, who covers, then when it starts and ends", () => {
       expect(
-        form!.fields.map((field: FormFieldFacts): Array<string> => {
+        form!.fields.slice(0, 4).map((field: FormFieldFacts): Array<string> => {
           return [field.key, field.title, field.fieldType];
         }),
       ).toEqual([
@@ -346,6 +353,31 @@ describe("the project's forms", () => {
         expect(field.stepId).toBeUndefined();
       }
     });
+
+    if (file === SKIP_MODAL_FILE) {
+      test("asks, below them, on which of the policies offered to add the skip - a choice of its own", () => {
+        expect(
+          form!.fields.slice(4).map((field: FormFieldFacts): Array<string> => {
+            return [field.key, field.title, field.fieldType, field.file];
+          }),
+        ).toEqual([
+          [
+            "SKIP_POLICIES_FIELD_KEY",
+            "On-call policies",
+            "FormFieldSchemaType.CategoryCheckbox",
+            SKIP_MODAL_FILE,
+          ],
+        ]);
+
+        const source: string = fs.readFileSync(
+          path.join(REPOSITORY_ROOT, file),
+          "utf8",
+        );
+
+        // Never sent as a column: what is saved is one override per policy.
+        expect(source).toContain("formOnly: true");
+      });
+    }
 
     test("starts with the person away and the start filled in, and the end left empty", () => {
       const byKey: Record<string, FormFieldFacts> = {};
@@ -362,7 +394,7 @@ describe("the project's forms", () => {
 
     test("takes its fields from the one helper", () => {
       expect(
-        form!.fields.every((field: FormFieldFacts): boolean => {
+        form!.fields.slice(0, 4).every((field: FormFieldFacts): boolean => {
           return field.file.endsWith(FORM_FILE_SUFFIX);
         }),
       ).toBe(true);

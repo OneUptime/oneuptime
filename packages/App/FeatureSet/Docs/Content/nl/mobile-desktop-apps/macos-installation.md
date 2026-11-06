@@ -61,7 +61,7 @@ De app toont meldingen zodra u hem registreert voor pushmeldingen, in elk projec
 
 :::steps
 ### Uw pushapparaten openen
-Open in de app **Gebruikersinstellingen → Meldingsmethoden** en het tabblad **Push Notifications**.
+Open in de app **Gebruikersinstellingen → Meldingsmethoden** en het tabblad **Pushmeldingen**.
 
 ### Deze app registreren
 Klik op **Apparaat registreren**, houd de voorgestelde **Apparaatnaam**, zoals `Safari on macOS`, of wijzig hem, en klik opnieuw op **Apparaat registreren**. Wanneer macOS of de browser vraagt of OneUptime meldingen mag sturen, kiest u **Sta toe**.
@@ -89,7 +89,7 @@ Open in het venster van de app het menu **⋮**, kies het item dat de app verwij
 Open `edge://apps` in Edge, kies **Details** bij OneUptime en daarna **Verwijderen**.
 :::
 
-Het verwijderen van de app heft zijn registratie niet op: zijn browser krijgt nog steeds meldingen. Om ze te stoppen, verwijdert u hem onder **Gebruikersinstellingen → Meldingsmethoden**, op het tabblad **Push Notifications**, met **Verwijderen**.
+Het verwijderen van de app heft zijn registratie niet op: zijn browser krijgt nog steeds meldingen. Om ze te stoppen, verwijdert u hem onder **Gebruikersinstellingen → Meldingsmethoden**, op het tabblad **Pushmeldingen**, met **Verwijderen**.
 
 ## Probleemoplossing
 
@@ -98,7 +98,7 @@ Safari zet webapps in het Dock vanaf macOS Sonoma 14. Werk macOS bij, of install
 :::
 
 :::details Er verschijnen geen meldingen
-- Controleer in **Gebruikersinstellingen → Meldingsmethoden**, tabblad **Push Notifications**, of de app of zijn browser in de lijst staat, en stuur een **Testmelding**.
+- Controleer in **Gebruikersinstellingen → Meldingsmethoden**, tabblad **Pushmeldingen**, of de app of zijn browser in de lijst staat, en stuur een **Testmelding**.
 - Open op de Mac **Systeeminstellingen → Berichtgeving** en controleer of OneUptime, of de browser waaruit het is geïnstalleerd, meldingen mag sturen, en of geen Focus ze tegenhoudt.
 - Blokkeert de browser meldingen voor OneUptime, sta ze dan in zijn instellingen voor de site toe en registreer opnieuw.
 - Bij een zelf gehost OneUptime zegt het dialoogvenster **Apparaat registreren** wanneer de server geen VAPID-sleutels heeft.

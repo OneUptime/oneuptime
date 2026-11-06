@@ -221,12 +221,14 @@ Varje larm kan eskaleras därifrån det nådde dig:
 | --- | --- |
 | E-post | Knappen **Escalate**, sedan **Escalate** på sidan den öppnar |
 | SMS och WhatsApp | Länken i meddelandet öppnar bekräftelsesidan, som också har **Escalate** |
-| Telegram, Slack och Microsoft Teams | Länken "Can't take it? Escalate", sedan **Escalate** på sidan den öppnar |
+| Telegram, Slack, Microsoft Teams och Mattermost | Länken "Can't take it? Escalate", sedan **Escalate** på sidan den öppnar |
 | Telefonsamtal | Tryck 2. Samtalet säger sedan vad som hände |
 | Pushnotis | Tryck på den: incidenten, larmet eller episoden öppnas i OneUptime On-Call-appen, med **Escalate** under sig |
 | OneUptime | **Eskalera** högst upp i incidenten, larmet eller episoden, efter dess tillståndsknappar |
 
 Alla vägar utom samtalet frågar innan de gör något och säger vad som kommer att hända, till exempel "This will immediately page Platform leads (Level 2 of 3), without waiting."; i ett samtal är det svaret att trycka 2. Bara den som larmas kan eskalera sitt larm: knappen i OneUptime visas bara för hen, och länken i ett meddelande eskalerar bara det larm den skickades om, för den person den skickades till, i 7 dagar.
+
+Med två eller fler nivåer efter din frågar OneUptime och sidorna som länkarna i ett meddelande öppnar också vilken nivå som ska larmas, under **Eskalera till**, med nästa nivå vald. Låt det vara för att larma nästa nivå som alltid, eller välj en senare nivå för att larma den direkt i stället: nivåerna emellan hoppas över, och policyn fortsätter från den nivå du valde. Ett samtal och appen OneUptime On-Call larmar nästa nivå.
 
 Vad som händer sedan beror på vilka andra som larmas:
 
@@ -238,7 +240,7 @@ Att eskalera ett larm bekräftar det inte: incidenten eller larmet väntar fortf
 
 Ett larm som ett arbetsflöde skickar direkt till personer har inga nivåer: eskalerar du det larmas du inte mer, och när alla som det larmade har eskalerat det stoppar larmandet.
 
-Varje gång ett larm eskaleras registreras det. Körningens **Tidslinje för körningen** markerar personens rad **Eskalerad**, incidentens feed säger "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", körningens meddelande i Slack och Microsoft Teams säger att hen eskalerade det, och hens **Jourloggar** visar larmet som **Eskalerad**.
+Varje gång ett larm eskaleras registreras det. Körningens **Tidslinje för körningen** markerar personens rad **Eskalerad**, incidentens feed säger "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", körningens meddelande i Slack och Microsoft Teams säger att hen eskalerade det, och hens **Jourloggar** visar larmet som **Eskalerad**. En nivå som hoppades över för en senare är markerad **Hoppade över** i **Tidslinje för körningen**, och feeden säger "On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it."
 
 ## Redigera, ändra ordning på och ta bort regler
 

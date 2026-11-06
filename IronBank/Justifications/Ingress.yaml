@@ -1,0 +1,41 @@
+# The findings in the Iron Bank image of the Ingress (IronBank/Ingress) that
+# OneUptime justifies, with the text to give for each in VAT (vat.dso.mil).
+#
+# The Iron Bank Preflight workflow scans the image it builds and lists every
+# finding that is neither in Iron Bank's base image nor here as new: it needs a
+# fix in the release, or a justification in VAT and an entry here
+# (Scripts/IronBank/NewFindings.js). A scheduled run fails when a new one is
+# high or critical, and lists the entries here that no longer match anything.
+#
+# An entry names the finding by the ID a scanner gives it (CVE-..., GHSA-...)
+# or one of its aliases, and the package it is in:
+#
+#   - id: CVE-2026-12345
+#     package: undici
+#     justification: >-
+#       The App never uses undici's ProxyAgent, the only code the advisory
+#       concerns; undici is a dependency of ... and is not reachable from ...
+- id: CVE-2026-118764
+  package: minimatch
+  justification: >-
+    Not exploitable here. GHSA-g3hv-75wg-m249 is a denial of service that needs
+    an attacker-supplied glob pattern and optimizationLevel 2 or higher, which
+    runs firstPhasePreProcess. The ingress takes no glob pattern from a user or
+    the network, and OneUptime's code does not import minimatch. The 5.1.9 copy
+    (filelist, used by the command-line tool of ejs, which the server does not
+    run) is flagged by version range only: it contains neither
+    firstPhasePreProcess nor optimizationLevel. The 9.0.9 copy defaults to
+    optimizationLevel 1; glob raises it to 2, and its only caller here is
+    TypeORM's directory loader, which OneUptime does not reach: its data source
+    passes classes, not path strings. The 10.2.6 copy is npm's own, used only to
+    start the server. The first patched release, 11.0.1, is a major-version
+    change for every copy here.
+- id: CVE-2026-118773
+  package: glob
+  justification: >-
+    Not exploitable here. GHSA-3g3m-2fjr-6pw4 affects callers that rely on the
+    signal option (an AbortSignal) to bound a glob walk: after the abort, the
+    walk carries on in the background. The 10.5.0 copy's only caller here is
+    TypeORM's directory loader, which calls glob.sync with no signal, and
+    OneUptime does not reach it: its data source passes classes, not path
+    strings. The 13.0.6 copy is npm's own, used only to start the server.

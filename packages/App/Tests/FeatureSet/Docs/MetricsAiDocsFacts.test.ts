@@ -19,8 +19,27 @@ import {
   METRIC_INSIGHT_MIN_HISTOGRAM_VALUES,
   METRIC_INSIGHT_MIN_NAME_VARIANTS,
   METRIC_INSIGHT_MIN_SERVICE_SPANS,
+  METRIC_INSIGHT_REQUEST_METRIC_BY_PROTOCOL,
+  METRIC_INSIGHT_SERVED_PROTOCOLS,
   METRIC_INSIGHT_WINDOW_MINUTES,
+  MetricInsightKind,
+  MetricServedProtocol,
+  buildMetricFixRequestMessage,
+  isRequestMetricName,
 } from "Common/Utils/Metrics/MetricInsight";
+import {
+  SEND_THROUGH_COLLECTOR_DOCS_PATH,
+  SPAN_METRICS_CALLS_METRIC,
+  SPAN_METRICS_COLLECTOR_STEP,
+  SPAN_METRICS_CONNECTOR,
+  SPAN_METRICS_DOCS_PATH,
+  SPAN_METRICS_DURATION_METRIC,
+} from "Common/Utils/Metrics/SpanMetricsCollectorStep";
+import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
+import {
+  SPAN_METRICS_STEP_COPY,
+  SPAN_METRICS_STEP_INSIGHT_TYPES,
+} from "../../../FeatureSet/Dashboard/src/Components/TelemetryAi/SpanMetricsStepCopy";
 import { InvestigationRuleTiming } from "../../../FeatureSet/Dashboard/src/Components/AISettings/InvestigationRuleTiming";
 import {
   TELEMETRY_AI_LANE_COPY,
@@ -33,10 +52,12 @@ import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
  * The Metrics Explorer page's "Improve metrics and add missing ones with AI"
  * section, held to the code it describes (Common/Types/AI/TelemetryAi,
  * Utils/Metrics/MetricInsight, the metric problem detector and Metrics' AI
- * tab): how often OneUptime looks and at what, the three kinds of finding
+ * tab): how often OneUptime looks and at what, the four kinds of finding
  * and the gates each is filed by, that no attribute value is ever kept, the
  * switch and where it is, the rules' answers, the ways back into the
- * explorers, and how many pull requests OneUptime AI opens on its own.
+ * explorers, how many pull requests OneUptime AI opens on its own, and the
+ * way past a missing metric that changes no code - the collector's span
+ * metrics step (Common/Utils/Metrics/SpanMetricsCollectorStep).
  * TelemetryExplorersDocsFacts holds the page's tab table (the AI tab
  * included); TelemetryExplorersDocsTranslations carries every line into the
  * other sixteen languages.
@@ -130,7 +151,7 @@ describe("the Metrics Explorer page's section on improving metrics and adding mi
     );
   });
 
-  it("names the three kinds of finding as the Dashboard labels them, in the lane's order", () => {
+  it("names the four kinds of finding as the Dashboard labels them, in the lane's order", () => {
     const presentation: string = readSource(
       "App/FeatureSet/Dashboard/src/Components/AIInsights/InsightPresentation.tsx",
     );
@@ -138,6 +159,7 @@ describe("the Metrics Explorer page's section on improving metrics and adding mi
       [AIInsightType.MetricHighCardinality]: "High Cardinality",
       [AIInsightType.MetricHistogramBuckets]: "Wrong Histogram Buckets",
       [AIInsightType.MetricMissingMetrics]: "Missing Metrics",
+      [AIInsightType.MetricMissingRequestMetrics]: "Missing Request Metrics",
     };
 
     expect([
@@ -158,9 +180,10 @@ describe("the Metrics Explorer page's section on improving metrics and adding mi
       );
     }
 
-    expect(Object.keys(findingRows(section)).slice(0, 3)).toEqual(
+    expect(Object.keys(findingRows(section)).slice(0, 4)).toEqual(
       Object.values(labels),
     );
+    expect(section).toContain("and files four kinds of finding:");
   });
 
   it("states how many metrics are read closely, as MetricInsight reads them", () => {
@@ -184,6 +207,25 @@ describe("the Metrics Explorer page's section on improving metrics and adding mi
     expect(rows["Missing Metrics"]).toContain(
       `A service sent ${written(METRIC_INSIGHT_MIN_SERVICE_SPANS)} or more spans in the hour and has never sent a metric.`,
     );
+
+    /*
+     * Missing request metrics: as busy, metrics sent, and none for the three
+     * kinds of request the detector tells apart - the HTTP server's metric
+     * named for all of them.
+     */
+    expect([...METRIC_INSIGHT_SERVED_PROTOCOLS]).toEqual([
+      MetricServedProtocol.Http,
+      MetricServedProtocol.Rpc,
+      MetricServedProtocol.Messaging,
+    ]);
+    expect(rows["Missing Request Metrics"]).toContain(
+      `A service sent ${written(METRIC_INSIGHT_MIN_SERVICE_SPANS)} or more spans in the hour, and metrics, but has never sent a request metric for the HTTP requests, RPC calls or messages it handles, such as \`${METRIC_INSIGHT_REQUEST_METRIC_BY_PROTOCOL[MetricServedProtocol.Http]}\`.`,
+    );
+    expect(
+      isRequestMetricName(
+        METRIC_INSIGHT_REQUEST_METRIC_BY_PROTOCOL[MetricServedProtocol.Http],
+      ),
+    ).toBe(true);
   });
 
   it("says what each pull request does, as the finding's Fix with AI says it", () => {
@@ -207,6 +249,28 @@ describe("the Metrics Explorer page's section on improving metrics and adding mi
     expect(fixCopy).toContain("adds metrics to this service");
     expect(rows["Missing Metrics"]).toContain(
       "| Adds the request count, errors and duration of its busiest operations as metrics. |",
+    );
+
+    // What OneUptime asks the pull request for: the framework's instrumentation.
+    expect(fixCopy).toContain("adds request metrics to this service");
+    expect(
+      buildMetricFixRequestMessage({
+        evidence: {
+          serviceId: "5231dddd-0000-4000-8000-00000000000c",
+          kind: MetricInsightKind.MissingRequestMetrics,
+          windowStartTime: "2026-10-24T08:00:00.000Z",
+          windowEndTime: "2026-10-24T09:00:00.000Z",
+          spanCount: 12400,
+          servedProtocols: [MetricServedProtocol.Http],
+        },
+        serviceName: "search",
+        isStartedByOneUptime: false,
+      }),
+    ).toContain(
+      "Prefer the OpenTelemetry instrumentation package for the framework that handles them",
+    );
+    expect(rows["Missing Request Metrics"]).toContain(
+      "| Adds those request metrics, with the OpenTelemetry instrumentation of its framework. |",
     );
   });
 
@@ -342,15 +406,16 @@ describe("the Metrics Explorer page's section on improving metrics and adding mi
 
     expect(metricLink).toContain("RouteMap[PageMap.METRIC_VIEW] as Route");
     expect(metricLink).toContain('label: "Open in Metrics"');
-    // A service with no metrics opens its spans instead.
+    // A service with no metrics, or none for its requests, opens its spans.
     expect(metricLink).toContain("AIInsightType.MetricMissingMetrics");
+    expect(metricLink).toContain("AIInsightType.MetricMissingRequestMetrics");
     expect(metricLink).toContain("RouteMap[PageMap.TRACES] as Route");
     expect(metricLink).toContain('label: "Open in Traces"');
     expect(section).toContain(
       "**Open in Metrics**, which opens its metric for its service, from the hour it was found in.",
     );
     expect(section).toContain(
-      "A service with no metrics offers **Open in Traces** instead",
+      "A service with no metrics, or none for its requests, offers **Open in Traces** instead",
     );
   });
 
@@ -398,6 +463,102 @@ describe("the Metrics Explorer page's section on improving metrics and adding mi
     expect(section).toContain(
       "With no rule, OneUptime AI looks into every problem it finds in your metrics right away, and opens a pull request for each one it can fix.",
     );
+  });
+
+  describe("recording request metrics without changing code", () => {
+    const HEADING: string = "### Record request metrics without changing code";
+
+    // The section's own part, from its heading to the next heading.
+    function stepSection(): string {
+      const start: number = section.indexOf(HEADING);
+
+      expect(start).toBeGreaterThan(-1);
+
+      const next: number = section.indexOf("\n#", start + HEADING.length);
+
+      return section.slice(start, next === -1 ? section.length : next);
+    }
+
+    it("is the section the finding's dialog links to, by its heading's own anchor", () => {
+      const [docsPage, anchor] = SPAN_METRICS_DOCS_PATH.split("#");
+
+      expect(docsPage).toBe(`/${METRICS_EXPLORER}`);
+      expect(anchor).toBe(slugifyMarkdownHeading(HEADING.slice(4)));
+      // Under See what it did, the last part of the section.
+      expect(section.indexOf(HEADING)).toBeGreaterThan(
+        section.indexOf("### See what it did"),
+      );
+    });
+
+    it("names the panel, its button and the findings it is on as the finding's page draws them", () => {
+      const step: string = stepSection();
+      const labels: Record<string, string> = {
+        [AIInsightType.MetricMissingMetrics]: "Missing Metrics",
+        [AIInsightType.MetricMissingRequestMetrics]: "Missing Request Metrics",
+      };
+
+      expect([...SPAN_METRICS_STEP_INSIGHT_TYPES]).toEqual(Object.keys(labels));
+      expect(step).toContain(
+        `A **${labels[AIInsightType.MetricMissingMetrics]}** or **${labels[AIInsightType.MetricMissingRequestMetrics]}** finding offers **${SPAN_METRICS_STEP_COPY.panelTitle}** beside **Fix with AI**`,
+      );
+      expect(step).toContain(`**${SPAN_METRICS_STEP_COPY.showStep}** gives`);
+    });
+
+    it("gives the lines the dialog gives, exactly", () => {
+      const step: string = stepSection();
+      const open: string = '```yaml title="otel-collector-config.yaml"\n';
+      const start: number = step.indexOf(open);
+
+      expect(start).toBeGreaterThan(-1);
+
+      const body: string = step.slice(
+        start + open.length,
+        step.indexOf("\n```", start + open.length),
+      );
+
+      expect(body).toBe(SPAN_METRICS_COLLECTOR_STEP);
+      expect(step).toContain(
+        `\`${SPAN_METRICS_CONNECTOR}\` as an exporter of the traces pipeline and as a receiver of the metrics pipeline`,
+      );
+    });
+
+    it("names the metrics the connector records, which are request metrics, so the finding ends", () => {
+      const step: string = stepSection();
+
+      for (const metric of [
+        SPAN_METRICS_CALLS_METRIC,
+        SPAN_METRICS_DURATION_METRIC,
+      ]) {
+        expect(step).toContain(`\`${metric}\``);
+        expect(isRequestMetricName(metric)).toBe(true);
+      }
+
+      // As the dialog's last step says it: the finding is resolved by hand.
+      expect(SPAN_METRICS_STEP_COPY.restartDescription).toContain(
+        "Then resolve this finding.",
+      );
+      expect(step).toContain(
+        "OneUptime no longer finds the problem, so resolve the finding.",
+      );
+      expect(step).toContain("Restart the collector.");
+    });
+
+    it("sends a service that sends straight to OneUptime to the OpenTelemetry page's collector section", () => {
+      const step: string = stepSection();
+      const openTelemetry: string = readPage("en", "telemetry/open-telemetry");
+      const [docsPage, anchor] = SEND_THROUGH_COLLECTOR_DOCS_PATH.split("#");
+
+      expect(docsPage).toBe("/telemetry/open-telemetry");
+      expect(openTelemetry).toContain(
+        "\n## Send through an OpenTelemetry Collector\n",
+      );
+      expect(anchor).toBe(
+        slugifyMarkdownHeading("Send through an OpenTelemetry Collector"),
+      );
+      expect(step).toContain(
+        `[Send through an OpenTelemetry Collector](/docs${SEND_THROUGH_COLLECTOR_DOCS_PATH})`,
+      );
+    });
   });
 
   it("says how many pull requests OneUptime AI opens on its own a day", () => {

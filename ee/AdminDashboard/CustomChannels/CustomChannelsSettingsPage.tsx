@@ -23,6 +23,7 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import Banner from "Common/UI/Components/Banner/Banner";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -54,6 +55,13 @@ import { useTranslation } from "react-i18next";
  * the shared row switch (ModelTable's rowSwitch) on the form's On switch -
  * saved at once, with no form to open.
  *
+ * Its words are looked up by their English text in the Admin Dashboard's
+ * locales, as every Admin page's are; the test dialog's title is one
+ * sentence with the channel's name in it ("Send test: {{name}}"). On a
+ * Persian page a webhook URL is cut at its end, not its start
+ * (WebhookUrlCell), and the server's English answer to a test keeps its
+ * full stop at its end (IsolatedText).
+ *
  * Without a license that includes it, the page says so
  * (EnterpriseSettingLicenseNotice) and is read-only: nothing is sent to the
  * channels then, and a channel can only be deleted - as the server enforces
@@ -83,6 +91,26 @@ export const generateSigningSecret: () => string = (): string => {
       return byte.toString(16).padStart(2, "0");
     })
     .join("");
+};
+
+/*
+ * A channel's URL in its column, read and cut short left to right: on a
+ * right-to-left page the cell's own direction cut a long URL at its start
+ * ("…/oneuptime"), the scheme and host out of sight. In a box of its own
+ * direction it keeps its start and ends in an ellipsis, the whole URL
+ * under the pointer.
+ */
+export const WebhookUrlCell: FunctionComponent<{ url: string }> = (props: {
+  url: string;
+}): ReactElement => {
+  return (
+    <IsolatedText
+      text={props.url}
+      title={props.url}
+      className="block truncate"
+      dataTestId="custom-channel-webhook-url"
+    />
+  );
 };
 
 // Where Send test asks the server to try a channel.
@@ -332,6 +360,13 @@ const CustomChannelsSettingsPage: FunctionComponent = (): ReactElement => {
               title: "Webhook URL",
               type: FieldType.Text,
               hideOnMobile: true,
+              getElement: (item: CustomNotificationChannel): ReactElement => {
+                return item.webhookUrl ? (
+                  <WebhookUrlCell url={item.webhookUrl.toString()} />
+                ) : (
+                  <></>
+                );
+              },
             },
             {
               field: {
@@ -354,13 +389,27 @@ const CustomChannelsSettingsPage: FunctionComponent = (): ReactElement => {
 
       {testedChannel ? (
         <ConfirmModal
-          title={`Send test: ${testedChannel.name || "Custom channel"}`}
+          title={t("Send test: {{name}}", {
+            name: testedChannel.name || t("Custom channel"),
+          })}
           error={testError}
           description={
-            isTesting
-              ? "Sending a test request…"
-              : testMessage ||
-                (testError ? "" : "Sending a test request to the channel.")
+            isTesting ? (
+              "Sending a test request…"
+            ) : testMessage ? (
+              /*
+               * The server's answer, in English: on a Persian page its
+               * full stop stays at its end.
+               */
+              <IsolatedText
+                text={testMessage}
+                dataTestId="custom-channel-test-message"
+              />
+            ) : testError ? (
+              ""
+            ) : (
+              "Sending a test request to the channel."
+            )
           }
           submitButtonText={"Close"}
           isLoading={isTesting}

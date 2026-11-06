@@ -66,6 +66,7 @@ La documentazione è organizzata come la barra laterale, in nove sezioni. Scegli
 - [Osservabilità dell'IA](/docs/telemetry/ai-llm-observability): Seguire le conversazioni della tua IA, ed essere avvisati quando risponde male.
 - [Sicurezza](/docs/telemetry/security-events): Raccogliere eventi di sicurezza e threat intelligence.
 - [Sicurezza dei dati](/docs/data-security/index): Trovare i dati sensibili nei tuoi bucket, database e telemetria, e correggere il modo in cui sono conservati.
+- [Osservabilità dei dati](/docs/data-observability/index): Sapere quando i dati dei tuoi database e data warehouse sono in ritardo, errati o danneggiati, e quale esecuzione, deploy o tabella ne è la causa.
 - [Real User Monitoring](/docs/rum/index): Misurare l'esperienza degli utenti reali, con Core Web Vitals e session replay.
 - [Dashboard](/docs/dashboards/index): Creare dashboard dalle tue metriche, dai log e dai monitor.
 - [Inventario](/docs/inventory/overview): Vedere ogni servizio, host e dispositivo che OneUptime conosce.

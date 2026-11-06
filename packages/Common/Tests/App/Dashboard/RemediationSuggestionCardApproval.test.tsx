@@ -53,7 +53,11 @@ import ObjectID from "../../../Types/ObjectID";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
-import { openRemediationFixes } from "./RemediationFixHarness";
+import {
+  findRemediationCommandLines,
+  openRemediationFixes,
+  RemediationCommandLines,
+} from "./RemediationFixHarness";
 
 /*
  * The per-command approval pill on the remediation card. The server stores
@@ -133,25 +137,23 @@ function serve(row: AutoRemediationSuggestion): void {
   );
 }
 
+/*
+ * The card with each step of its fix opened, as a reader does, and the
+ * command's lines: what it is in the plan, how it ran, its undo as it ran
+ * (issue #5598: a fix reads as the steps it went through).
+ */
 async function renderCard(
   row: AutoRemediationSuggestion,
-): Promise<HTMLElement> {
+): Promise<RemediationCommandLines> {
   serve(row);
   render(
     <RemediationStep investigationStage="reported" incidentId={INCIDENT_ID} />,
   );
-  // Folded to its sentence: opened, as a reader does.
   await openRemediationFixes();
-  const command: HTMLElement = await screen.findByText(
+
+  return await findRemediationCommandLines(
     "kubectl rollout restart deployment/web -n web",
   );
-  const commandRow: HTMLElement | null = command.closest("li");
-
-  if (!commandRow) {
-    throw new Error("The command is not rendered inside a command row.");
-  }
-
-  return commandRow;
 }
 
 beforeEach(() => {
@@ -236,7 +238,7 @@ describe("getCommandApprovalPillKind", () => {
 
 describe("RemediationStep approval pill", () => {
   test("a kubectl plan waiting for approval never shows 'auto-approved'", async () => {
-    const row: HTMLElement = await renderCard(
+    const { plan: row } = await renderCard(
       suggestion(AutoRemediationSuggestionStatus.Suggested, [
         kubectlCommand({
           policyVerdict: AiRemediationCommandPolicyVerdict.AutoApproved,
@@ -253,7 +255,7 @@ describe("RemediationStep approval pill", () => {
   });
 
   test("a riskier command in a plan waiting for approval also needs approval", async () => {
-    const row: HTMLElement = await renderCard(
+    const { plan: row } = await renderCard(
       suggestion(AutoRemediationSuggestionStatus.Suggested, [
         kubectlCommand({
           policyVerdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
@@ -265,8 +267,8 @@ describe("RemediationStep approval pill", () => {
     expect(within(row).queryByText("auto-approved")).not.toBeInTheDocument();
   });
 
-  test("a command that ran unattended is labelled auto-approved", async () => {
-    const row: HTMLElement = await renderCard(
+  test("a command that ran unattended is labelled auto-approved, and how it ran is its run's", async () => {
+    const { plan: row, run } = await renderCard(
       suggestion(
         AutoRemediationSuggestionStatus.AutoExecuted,
         [
@@ -284,12 +286,12 @@ describe("RemediationStep approval pill", () => {
 
     expect(within(row).getByText("auto-approved")).toBeInTheDocument();
     expect(within(row).queryByText("needs approval")).not.toBeInTheDocument();
-    expect(within(row).getByText("Succeeded")).toBeInTheDocument();
+    expect(within(run!).getByText("Succeeded")).toBeInTheDocument();
     expect(screen.queryByText("Approve & Run")).not.toBeInTheDocument();
   });
 
   test("a plan a human approved shows the outcome, not a stale verdict", async () => {
-    const row: HTMLElement = await renderCard(
+    const { plan: row, run } = await renderCard(
       suggestion(
         AutoRemediationSuggestionStatus.Approved,
         [
@@ -306,12 +308,12 @@ describe("RemediationStep approval pill", () => {
 
     expect(within(row).queryByText("auto-approved")).not.toBeInTheDocument();
     expect(within(row).queryByText("needs approval")).not.toBeInTheDocument();
-    expect(within(row).getByText("Running…")).toBeInTheDocument();
+    expect(within(run!).getByText("Running…")).toBeInTheDocument();
     expect(screen.getByText("Approved & started")).toBeInTheDocument();
   });
 
   test("a dismissed plan carries no approval pill", async () => {
-    const row: HTMLElement = await renderCard(
+    const { plan: row } = await renderCard(
       suggestion(AutoRemediationSuggestionStatus.Dismissed, [
         kubectlCommand({
           policyVerdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
@@ -405,7 +407,7 @@ describe("RemediationStep Approve & Run", () => {
     });
     expect(screen.getByTestId("remediation-approve-button")).toBeDisabled();
     // Dismiss is locked too while the approval is in flight.
-    expect(screen.getByText("Dismiss").closest("button")).toBeDisabled();
+    expect(screen.getByText("Dismiss fix").closest("button")).toBeDisabled();
 
     await act(async () => {
       answers[0]!(new HTTPResponse<JSONObject>(200, {}, {}));
@@ -457,7 +459,9 @@ describe("RemediationStep Approve & Run", () => {
     await renderWaitingPlan();
 
     act(() => {
-      (screen.getByText("Dismiss").closest("button") as HTMLElement).click();
+      (
+        screen.getByText("Dismiss fix").closest("button") as HTMLElement
+      ).click();
     });
     expect(actionPosts(DISMISS_ROUTE)).toHaveLength(1);
 
@@ -471,7 +475,9 @@ describe("RemediationStep Approve & Run", () => {
       "remediation-action-error",
     );
     expect(alert).toHaveTextContent("You cannot dismiss this.");
-    expect(alert).toHaveTextContent("the suggestion was not dismissed");
+    // A fix, as the button names it - never the model's "suggestion".
+    expect(alert).toHaveTextContent("the fix was not dismissed");
+    expect(alert).not.toHaveTextContent("suggestion");
     expect(alert).not.toHaveTextContent("nothing ran");
   });
 
@@ -480,6 +486,35 @@ describe("RemediationStep Approve & Run", () => {
     expect(getActionErrorTitle("approve")).toMatch(/nothing ran/);
     expect(getActionErrorTitle("dismiss")).toMatch(/not dismissed/);
     expect(getActionErrorTitle(null)).toBe("Could not save your action");
+  });
+
+  /*
+   * The UI review of #5519's follow-ups: a refused Dismiss fix said "the
+   * suggestion was not dismissed" under a button that says Dismiss fix.
+   * Each headline is the key RemediationFollowUpWordsInLocale holds every
+   * language to.
+   */
+  test("every refusal headline names a fix, as the step's buttons do, never a suggestion", () => {
+    expect(getActionErrorTitle("dismiss")).toBe(
+      "Could not save your action: the fix was not dismissed",
+    );
+
+    for (const action of ["approve", "dry-run", "dismiss", null] as const) {
+      for (const status of [
+        undefined,
+        ...Object.values(AutoRemediationSuggestionStatus),
+      ]) {
+        expect({
+          action,
+          status,
+          title: getActionErrorTitle(action, status),
+        }).toEqual({
+          action,
+          status,
+          title: expect.not.stringContaining("suggestion"),
+        });
+      }
+    }
   });
 
   /*
@@ -514,7 +549,9 @@ describe("RemediationStep Approve & Run", () => {
 
     expect(
       getActionErrorTitle("dismiss", AutoRemediationSuggestionStatus.Approved),
-    ).toMatch(/not dismissed — this fix had already started/);
+    ).toBe(
+      "Could not save your action: the fix was not dismissed — it had already started; see its commands below",
+    );
   });
 
   test("an approval refused because a teammate already approved does not say nothing ran", async () => {
@@ -666,8 +703,8 @@ describe("RemediationStep rollback outcomes", () => {
     });
   }
 
-  test("shows each undo's status, exit code, error and output", async () => {
-    const row: HTMLElement = await renderCard(
+  test("shows each undo's status, exit code, error and output, in its rollback step", async () => {
+    const { rollback: outcome } = await renderCard(
       rolledBackPlan({
         status: AiRemediationCommandExecutionStatus.Failed,
         exitCode: 1,
@@ -676,42 +713,36 @@ describe("RemediationStep rollback outcomes", () => {
       }),
     );
 
-    const outcome: HTMLElement = within(row).getByTestId(
-      "remediation-rollback-outcome",
-    );
-    expect(outcome).toHaveTextContent("Rollback result");
-    expect(within(outcome).getByText("Failed")).toBeInTheDocument();
+    // The step it is in says how the rollback as a whole ended.
+    const step: HTMLElement = outcome!.closest(
+      "[data-testid='remediation-fix-step']",
+    ) as HTMLElement;
+    expect(step).toHaveAttribute("data-step", "rollback");
+    expect(
+      within(step).getByTestId("remediation-fix-step-title"),
+    ).toHaveTextContent("Rollback failed");
+    expect(within(outcome!).getByText("Failed")).toBeInTheDocument();
     expect(outcome).toHaveTextContent("Exit code: 1");
     expect(outcome).toHaveTextContent("error: no rollout history found");
-    expect(outcome).not.toHaveTextContent("rollout undo output");
-
-    act(() => {
-      within(outcome).getByText("Show output").click();
-    });
+    // Its output is in sight once its step is open: no press of its own.
     expect(outcome).toHaveTextContent("rollout undo output");
-    // The command's own output toggle is separate.
-    expect(screen.getByText("Rollback status: Failed")).toBeInTheDocument();
+    expect(within(outcome!).queryByText("Show output")).toBeNull();
   });
 
   test("says a skipped undo did not run", async () => {
-    const row: HTMLElement = await renderCard(
+    const { rollback: outcome } = await renderCard(
       rolledBackPlan({ status: AiRemediationCommandExecutionStatus.Skipped }),
     );
 
-    const outcome: HTMLElement = within(row).getByTestId(
-      "remediation-rollback-outcome",
-    );
-    expect(within(outcome).getByText("Skipped")).toBeInTheDocument();
+    expect(within(outcome!).getByText("Skipped")).toBeInTheDocument();
     expect(outcome).toHaveTextContent("The undo did not run");
   });
 
   test("shows nothing for a command whose undo never ran", async () => {
-    const row: HTMLElement = await renderCard(rolledBackPlan(undefined));
+    const { plan: row, rollback } = await renderCard(rolledBackPlan(undefined));
 
-    expect(
-      within(row).queryByTestId("remediation-rollback-outcome"),
-    ).not.toBeInTheDocument();
-    // The rollback command itself is still listed.
+    expect(rollback).toBeNull();
+    // The rollback command itself is still listed, in the plan.
     expect(row).toHaveTextContent("kubectl rollout undo deployment/web -n web");
   });
 });
@@ -766,7 +797,9 @@ describe("RemediationStep with an SSH command from before runbook credentials we
   }
 
   interface PlanRows {
+    // The SSH command in the plan, and as it ran once a run reached it.
     ssh: HTMLElement;
+    sshRun: HTMLElement | null;
     bash: HTMLElement | null;
   }
 
@@ -780,17 +813,13 @@ describe("RemediationStep with an SSH command from before runbook credentials we
       />,
     );
     await openRemediationFixes();
-    const ssh: HTMLElement | null = (
-      await screen.findByText(SSH_COMMAND_TEXT)
-    ).closest("li");
-    const bash: HTMLElement | null =
-      screen.queryByText(BASH_COMMAND_TEXT)?.closest("li") || null;
+    const ssh: RemediationCommandLines =
+      await findRemediationCommandLines(SSH_COMMAND_TEXT);
+    const bash: HTMLElement | null = screen.queryByText(BASH_COMMAND_TEXT)
+      ? (await findRemediationCommandLines(BASH_COMMAND_TEXT)).plan
+      : null;
 
-    if (!ssh) {
-      throw new Error("The SSH command is not rendered inside a command row.");
-    }
-
-    return { ssh, bash };
+    return { ssh: ssh.plan, sshRun: ssh.run, bash };
   }
 
   test("an SSH command that never ran, in a plan waiting for approval, no longer runs", () => {
@@ -895,7 +924,7 @@ describe("RemediationStep with an SSH command from before runbook credentials we
     expect(REMOVED_SSH_PLAN_NOTE).toBe(
       "This plan can't be approved: OneUptime AI no longer runs SSH commands.",
     );
-    expect(screen.getByText("Dismiss").closest("button")).toBeEnabled();
+    expect(screen.getByText("Dismiss fix").closest("button")).toBeEnabled();
     // Nothing is waiting for an approval nobody can give.
     expect(screen.getByText("Can't be approved")).toBeInTheDocument();
     expect(screen.queryByText("Waiting for approval")).not.toBeInTheDocument();
@@ -922,7 +951,7 @@ describe("RemediationStep with an SSH command from before runbook credentials we
     );
 
     act(() => {
-      screen.getByText("Dismiss").closest("button")!.click();
+      screen.getByText("Dismiss fix").closest("button")!.click();
     });
 
     await waitFor(() => {
@@ -965,13 +994,13 @@ describe("RemediationStep with an SSH command from before runbook credentials we
       ),
     );
 
-    expect(within(rows.ssh).getByText("Failed")).toBeInTheDocument();
-    expect(rows.ssh).toHaveTextContent(REMOVED_SSH_COMMAND_MESSAGE);
+    expect(within(rows.sshRun!).getByText("Failed")).toBeInTheDocument();
+    expect(rows.sshRun).toHaveTextContent(REMOVED_SSH_COMMAND_MESSAGE);
     expect(within(rows.ssh).queryByText("no longer runs")).toBeNull();
     expect(
       screen.queryByTestId("remediation-removed-ssh-note"),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Approve & Run")).not.toBeInTheDocument();
-    expect(screen.queryByText("Dismiss")).not.toBeInTheDocument();
+    expect(screen.queryByText("Dismiss fix")).not.toBeInTheDocument();
   });
 });

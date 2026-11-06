@@ -18,6 +18,7 @@ import MetricAggregationService, {
 import MetricTypeService from "../../../../../Server/Services/MetricTypeService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
 import TraceAggregationService, {
+  ServedSpanSampleRequest,
   ServiceSpanHealthRow,
   TraceAnalyticsRequest,
   TraceAnalyticsTableRow,
@@ -28,6 +29,7 @@ import MetricProblemDetector, {
   MetricHighCardinalityDetector,
   MetricHistogramBucketsDetector,
   MetricMissingMetricsDetector,
+  MetricMissingRequestMetricsDetector,
 } from "../../../../../Server/Utils/AI/SRE/Insights/Detectors/MetricProblemDetector";
 import {
   InsightCandidate,
@@ -45,10 +47,14 @@ import IncludesAnyOfGroups from "../../../../../Types/BaseDatabase/IncludesAnyOf
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import {
+  METRIC_INSIGHT_MAX_CATALOG_READS,
+  METRIC_INSIGHT_REQUEST_METRIC_PREFIXES,
   MetricBucketProblem,
   MetricCardinalityShape,
   MetricInsightKind,
   MetricNamePatternReading,
+  MetricServedProtocol,
+  MetricServedSpansReading,
   MetricValueShape,
   MetricVolumeReading,
   OTEL_DEFAULT_HISTOGRAM_BOUNDS,
@@ -59,8 +65,9 @@ import {
  * hour that ended from the hourly rollup, then - for the ten busiest of the
  * project's own services' - how many values each attribute their code sets
  * took and what their data points are, the metric names with ids in them,
- * and the busy services that never sent a metric. One look per scan, shared
- * by the lane's three detectors; each part read on its own.
+ * the busy services that never sent a metric, and the busy services that
+ * send metrics but never one for the requests they handle. One look per
+ * scan, shared by the lane's four detectors; each part read on its own.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -161,6 +168,19 @@ function healthRow(
   };
 }
 
+// A sample of a service's entry spans: how many of each kind of request.
+function servedRow(
+  overrides: Partial<MetricServedSpansReading>,
+): MetricServedSpansReading {
+  return {
+    sampledSpanCount: 1000,
+    httpServerSpanCount: 0,
+    rpcServerSpanCount: 0,
+    messagingConsumerSpanCount: 0,
+    ...overrides,
+  };
+}
+
 function operationRow(name: string, count: number): TraceAnalyticsTableRow {
   return {
     groupValues: { name },
@@ -213,6 +233,12 @@ describe("MetricProblemDetector", () => {
   // The services the metric catalog records a metric from.
   let catalogServices: Set<string>;
   let catalogFails: boolean;
+  // The services the catalog records a request metric from.
+  let requestCatalogServices: Set<string>;
+  let requestCatalogFails: boolean;
+  // What a sample of each service's entry spans holds.
+  let servedSamples: Map<string, MetricServedSpansReading>;
+  let servedFails: boolean;
   let unitsFail: boolean;
   let restricted: Array<string>;
   let readVolumes: SpyInstance<
@@ -229,10 +255,15 @@ describe("MetricProblemDetector", () => {
     typeof TraceAggregationService.getServiceSpanHealth
   >;
   let readTable: SpyInstance<typeof TraceAggregationService.getAnalyticsTable>;
+  let readServed: SpyInstance<
+    typeof TraceAggregationService.getServedSpanSample
+  >;
   let readServiceRows: SpyInstance<typeof ServiceService.findBy>;
   let readCatalog: SpyInstance<typeof MetricTypeService.findBy>;
   // The services the catalog was asked about, in order.
   let catalogAsked: Array<string>;
+  // The services it was asked about for their request metrics, in order.
+  let requestCatalogAsked: Array<string>;
 
   function context(): InsightScanContext {
     return { projectId: PROJECT_ID, now: NOW };
@@ -255,9 +286,14 @@ describe("MetricProblemDetector", () => {
     units = [];
     catalogServices = new Set();
     catalogFails = false;
+    requestCatalogServices = new Set();
+    requestCatalogFails = false;
+    servedSamples = new Map();
+    servedFails = false;
     unitsFail = false;
     restricted = [];
     catalogAsked = [];
+    requestCatalogAsked = [];
 
     jest
       .spyOn(LlmConversationPrivacy, "getRestrictedServiceIds")
@@ -298,6 +334,18 @@ describe("MetricProblemDetector", () => {
           ) || []
         );
       });
+    readServed = jest
+      .spyOn(TraceAggregationService, "getServedSpanSample")
+      .mockImplementation(async (request: ServedSpanSampleRequest) => {
+        if (servedFails) {
+          throw new Error("too slow");
+        }
+
+        return (
+          servedSamples.get(request.serviceId.toString().toLowerCase()) ||
+          servedRow({ sampledSpanCount: 0 })
+        );
+      });
     readServiceRows = jest
       .spyOn(ServiceService, "findBy")
       .mockImplementation(async () => {
@@ -307,6 +355,25 @@ describe("MetricProblemDetector", () => {
       .spyOn(MetricTypeService, "findBy")
       .mockImplementation(async (data: { query: unknown }) => {
         const query: JSONObject = data.query as JSONObject;
+
+        // Asked by name too: has the service ever sent a request metric?
+        if (
+          query["services"] instanceof IncludesAnyOfGroups &&
+          query["name"] !== undefined
+        ) {
+          const serviceId: string = (query["services"] as IncludesAnyOfGroups)
+            .groups[0]![0]!;
+
+          requestCatalogAsked.push(serviceId);
+
+          if (requestCatalogFails) {
+            throw new Error("the catalog is down");
+          }
+
+          return requestCatalogServices.has(serviceId)
+            ? [metricType("http.server.request.duration", "s")]
+            : [];
+        }
 
         if (query["services"] instanceof IncludesAnyOfGroups) {
           const serviceId: string = (query["services"] as IncludesAnyOfGroups)
@@ -631,6 +698,8 @@ describe("MetricProblemDetector", () => {
 
     expect(await MetricProblemDetector.look(context())).toEqual([]);
     expect(catalogAsked).toEqual([]);
+    // payments sent metrics, so it is asked about its request metrics instead.
+    expect(requestCatalogAsked).toEqual([PAYMENTS]);
   });
 
   test("three services missing their metrics at most, the busiest first", async () => {
@@ -826,11 +895,441 @@ describe("MetricProblemDetector", () => {
     await expect(MetricProblemDetector.look(context())).resolves.toEqual([]);
   });
 
-  test("the lane's three detectors share one look per scan, each with its own kind", async () => {
+  // search: a busy service that sends its runtime's metrics, none for requests.
+  function runtimeMetricsOnSearch(): void {
+    volumes = [
+      volume("jvm.memory.used", SEARCH, 960),
+      volume("process.cpu.time", SEARCH, 240),
+      volume("db.client.connections.usage", SEARCH, 480),
+    ];
+    healthRows = [healthRow(SEARCH, 12400, 310)];
+    servedSamples.set(SEARCH, servedRow({ httpServerSpanCount: 940 }));
+    operations.set(SEARCH, [
+      operationRow("GET /search", 4000),
+      operationRow("GET /suggest", 2100),
+    ]);
+    services = services.map((row: Service): Service => {
+      return row.id?.toString() === SEARCH
+        ? service(SEARCH, "search", "java")
+        : row;
+    });
+  }
+
+  test("a busy service that sends metrics but none for its requests: one finding, with what it serves, what it sent and its busiest requests", async () => {
+    runtimeMetricsOnSearch();
+
+    const found: Array<InsightCandidate> =
+      await MetricProblemDetector.look(context());
+
+    expect(found).toHaveLength(1);
+
+    const candidate: InsightCandidate = found[0]!;
+
+    expect(candidate.insightType).toBe(
+      AIInsightType.MetricMissingRequestMetrics,
+    );
+    expect(candidate.fingerprint).toBe(
+      `metric-missing-request-metrics:${SEARCH}`,
+    );
+    expect(candidate.title).toBe(
+      "search sends no metrics for the HTTP requests it handles",
+    );
+    expect(candidate.severity).toBe(AIInsightSeverity.Low);
+    expect(candidate.serviceName).toBe("search");
+    expect(candidate.telemetryServiceId?.toString()).toBe(SEARCH);
+    expect(candidate.metricName).toBeUndefined();
+    expect(candidate.evidence.metric).toEqual({
+      serviceId: SEARCH,
+      kind: MetricInsightKind.MissingRequestMetrics,
+      windowStartTime: WINDOW_START,
+      windowEndTime: WINDOW_END,
+      spanCount: 12400,
+      failedSpanCount: 310,
+      servedProtocols: [MetricServedProtocol.Http],
+      sentMetricNames: [
+        "jvm.memory.used",
+        "db.client.connections.usage",
+        "process.cpu.time",
+      ],
+      sentMetricCount: 3,
+      topOperations: [
+        { name: "GET /search", spanCount: 4000 },
+        { name: "GET /suggest", spanCount: 2100 },
+      ],
+      sdkLanguage: "java",
+    });
+    expect(candidate.detailMarkdown).toContain(
+      "**Missing request metrics in search**",
+    );
+    expect(candidate.detailMarkdown).toContain(
+      "- Request metric it has never sent: `http.server.request.duration`",
+    );
+
+    // The catalog was asked once, by the request metrics' names.
+    expect(requestCatalogAsked).toEqual([SEARCH]);
+    expect(catalogAsked).toEqual([]);
+
+    const catalogRead: JSONObject = readCatalog.mock.calls.find(
+      (call: Array<unknown>): boolean => {
+        return (
+          ((call[0] as JSONObject)["query"] as JSONObject)["name"] !== undefined
+        );
+      },
+    )![0] as unknown as JSONObject;
+
+    expect(catalogRead["limit"]).toBe(1);
+    expect(catalogRead["props"]).toEqual({ isRoot: true });
+    expect(METRIC_INSIGHT_REQUEST_METRIC_PREFIXES).toContain("http.server.");
+
+    // A sample of its entry spans, over the hour.
+    const sample: ServedSpanSampleRequest = readServed.mock.calls[0]![0];
+
+    expect(sample.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(sample.serviceId.toString()).toBe(SEARCH);
+    expect(sample.sampleSize).toBe(1000);
+    expect(sample.startTime.toISOString()).toBe(WINDOW_START);
+    expect(sample.endTime.toISOString()).toBe(WINDOW_END);
+
+    // Its busiest requests: its SERVER spans, by name, over the hour.
+    const request: TraceAnalyticsRequest = readTable.mock.calls[0]![0];
+
+    expect(request.spanKinds).toEqual(["SPAN_KIND_SERVER"]);
+    expect(request.groupBy).toEqual(["name"]);
+    expect(request.limit).toBe(5);
+    expect(request.tableSort).toEqual({ column: "count", direction: "desc" });
+    expect(request.serviceIds?.map(String)).toEqual([SEARCH]);
+    expect(request.startTime.toISOString()).toBe(WINDOW_START);
+    expect(request.endTime.toISOString()).toBe(WINDOW_END);
+  });
+
+  test("a service that handles messages and HTTP requests: both named, and its consumer spans read too", async () => {
+    runtimeMetricsOnSearch();
+    servedSamples.set(
+      SEARCH,
+      servedRow({ httpServerSpanCount: 400, messagingConsumerSpanCount: 600 }),
+    );
+
+    const [candidate] = await MetricProblemDetector.look(context());
+
+    expect(candidate!.evidence.metric?.servedProtocols).toEqual([
+      MetricServedProtocol.Http,
+      MetricServedProtocol.Messaging,
+    ]);
+    expect(candidate!.title).toBe(
+      "search sends no metrics for the HTTP requests and messages it handles",
+    );
+    expect(readTable.mock.calls[0]![0].spanKinds).toEqual([
+      "SPAN_KIND_SERVER",
+      "SPAN_KIND_CONSUMER",
+    ]);
+  });
+
+  test("metric names with an id in them are named by their pattern, and counted as the metrics they are", async () => {
+    runtimeMetricsOnSearch();
+    volumes = [
+      ...Array.from(
+        { length: 40 },
+        (_value: unknown, index: number): MetricVolumeReading => {
+          return volume(`job.${8000 + index}.duration`, SEARCH, 2000 - index);
+        },
+      ),
+      ...volumes,
+    ];
+
+    const [candidate] = await MetricProblemDetector.look(context());
+
+    expect(candidate!.insightType).toBe(
+      AIInsightType.MetricMissingRequestMetrics,
+    );
+    expect(candidate!.evidence.metric?.sentMetricNames).toEqual([
+      "job.{id}.duration",
+      "jvm.memory.used",
+      "db.client.connections.usage",
+    ]);
+    expect(candidate!.evidence.metric?.sentMetricCount).toBe(43);
+    expect(candidate!.detailMarkdown).toContain(
+      "- Metrics it sent in the last hour: 43, such as `job.{id}.duration`",
+    );
+    // No job's id is kept anywhere in the finding.
+    expect(JSON.stringify(candidate)).not.toMatch(/job\.80\d\d/u);
+  });
+
+  test("a service that sent a request metric once is not missing them: that is no pull request's to add", async () => {
+    runtimeMetricsOnSearch();
+    requestCatalogServices.add(SEARCH);
+
+    expect(await MetricProblemDetector.look(context())).toEqual([]);
+    expect(requestCatalogAsked).toEqual([SEARCH]);
+    expect(readServed).not.toHaveBeenCalled();
+    expect(readTable).not.toHaveBeenCalled();
+  });
+
+  test("a catalog that cannot say files nothing as missing request metrics, and the other findings still come", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    runtimeMetricsOnSearch();
+    userIdsOnCheckout();
+    volumes.push(volume("jvm.memory.used", SEARCH, 960));
+    requestCatalogFails = true;
+
+    expect(types(await MetricProblemDetector.look(context()))).toEqual([
+      `${AIInsightType.MetricHighCardinality} checkout`,
+    ]);
+    expect(requestCatalogAsked).toEqual([SEARCH]);
+    expect(readServed).not.toHaveBeenCalled();
+  });
+
+  test("a service whose entry spans serve nothing the semantic conventions name a request metric for is passed by", async () => {
+    runtimeMetricsOnSearch();
+    // A job runner: its work starts in internal spans, a few requests only.
+    servedSamples.set(
+      SEARCH,
+      servedRow({ sampledSpanCount: 140, httpServerSpanCount: 99 }),
+    );
+
+    expect(await MetricProblemDetector.look(context())).toEqual([]);
+    expect(readServed).toHaveBeenCalledTimes(1);
+    expect(readTable).not.toHaveBeenCalled();
+  });
+
+  test("a sample that cannot be read files nothing, and says why in the log", async () => {
+    const logged: SpyInstance<typeof console.error> = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    runtimeMetricsOnSearch();
+    servedFails = true;
+
+    expect(await MetricProblemDetector.look(context())).toEqual([]);
+    expect(readTable).not.toHaveBeenCalled();
+    expect(JSON.stringify(logged.mock.calls)).toContain("entry spans");
+  });
+
+  test("busiest requests that cannot be read leave the finding without them", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    runtimeMetricsOnSearch();
+    readTable.mockRejectedValue(new Error("too slow"));
+
+    const [candidate] = await MetricProblemDetector.look(context());
+
+    expect(candidate!.insightType).toBe(
+      AIInsightType.MetricMissingRequestMetrics,
+    );
+    expect(candidate!.evidence.metric?.topOperations).toBeUndefined();
+  });
+
+  test("a service that sent a request metric in the hour is not asked about", async () => {
+    runtimeMetricsOnSearch();
+    volumes.push(volume("http.server.request.duration", SEARCH, 600));
+
+    expect(await MetricProblemDetector.look(context())).toEqual([]);
+    expect(requestCatalogAsked).toEqual([]);
+    expect(readServed).not.toHaveBeenCalled();
+  });
+
+  test("span metrics from a collector are request metrics too", async () => {
+    runtimeMetricsOnSearch();
+    volumes.push(volume("traces.span.metrics.duration", SEARCH, 60));
+
+    expect(await MetricProblemDetector.look(context())).toEqual([]);
+    expect(requestCatalogAsked).toEqual([]);
+  });
+
+  test("a busy service with no metric in the hour is Missing Metrics' alone", async () => {
+    runtimeMetricsOnSearch();
+    volumes = [volume("jvm.memory.used", CHECKOUT, 960)];
+
+    expect(types(await MetricProblemDetector.look(context()))).toEqual([
+      `${AIInsightType.MetricMissingMetrics} search`,
+    ]);
+    expect(requestCatalogAsked).toEqual([]);
+    expect(readServed).not.toHaveBeenCalled();
+  });
+
+  test("with the hour's metrics or spans unread, no service is said to send none for its requests", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    runtimeMetricsOnSearch();
+    readVolumes.mockRejectedValueOnce(new Error("too slow"));
+
+    expect(await MetricProblemDetector.look(context())).toEqual([]);
+    expect(requestCatalogAsked).toEqual([]);
+
+    readHealth.mockRejectedValueOnce(new Error("too slow"));
+
+    expect(await MetricProblemDetector.look(context())).toEqual([]);
+    expect(requestCatalogAsked).toEqual([]);
+    expect(readServed).not.toHaveBeenCalled();
+  });
+
+  test("a company AI tool's service is never asked about its requests", async () => {
+    runtimeMetricsOnSearch();
+    restricted = [SEARCH];
+
+    expect(await MetricProblemDetector.look(context())).toEqual([]);
+    expect(requestCatalogAsked).toEqual([]);
+    expect(readServed).not.toHaveBeenCalled();
+  });
+
+  test("a read of the hour's metrics cut at its limit names the metrics a service sent, never how many", async () => {
+    runtimeMetricsOnSearch();
+    volumes = [
+      ...volumes,
+      ...Array.from(
+        { length: METRIC_INSIGHT_MAX_VOLUME_ROWS - volumes.length },
+        (_value: unknown, index: number): MetricVolumeReading => {
+          return volume(`system.disk.io.${index}`, HOST, 10);
+        },
+      ),
+    ];
+
+    expect(volumes).toHaveLength(METRIC_INSIGHT_MAX_VOLUME_ROWS);
+
+    const [candidate] = await MetricProblemDetector.look(context());
+
+    expect(candidate!.evidence.metric?.sentMetricNames).toEqual([
+      "jvm.memory.used",
+      "db.client.connections.usage",
+      "process.cpu.time",
+    ]);
+    expect(candidate!.evidence.metric?.sentMetricCount).toBeUndefined();
+  });
+
+  test("three services missing their request metrics at most, the busiest first, from six samples at most", async () => {
+    const ids: Array<string> = Array.from(
+      { length: 8 },
+      (_value: unknown, index: number): string => {
+        return `5231aaaa-0000-4000-8000-0000000001${index.toString().padStart(2, "0")}`;
+      },
+    );
+
+    services = ids.map((id: string, index: number): Service => {
+      return service(id, `service-${index}`);
+    });
+    volumes = ids.map((id: string): MetricVolumeReading => {
+      return volume("runtime.uptime", id, 60);
+    });
+    healthRows = ids.map((id: string, index: number): ServiceSpanHealthRow => {
+      return healthRow(id, 9000 - index * 100);
+    });
+
+    // All of them serve HTTP requests: the three busiest are found.
+    for (const id of ids) {
+      servedSamples.set(id, servedRow({ httpServerSpanCount: 500 }));
+    }
+
+    expect(types(await MetricProblemDetector.look(context()))).toEqual([
+      `${AIInsightType.MetricMissingRequestMetrics} service-0`,
+      `${AIInsightType.MetricMissingRequestMetrics} service-1`,
+      `${AIInsightType.MetricMissingRequestMetrics} service-2`,
+    ]);
+    expect(readServed).toHaveBeenCalledTimes(3);
+
+    // The busiest five serve nothing: the sixth sample is the last read.
+    readServed.mockClear();
+    requestCatalogAsked = [];
+
+    for (const id of ids.slice(0, 5)) {
+      servedSamples.set(id, servedRow({ httpServerSpanCount: 0 }));
+    }
+
+    expect(types(await MetricProblemDetector.look(context()))).toEqual([
+      `${AIInsightType.MetricMissingRequestMetrics} service-5`,
+    ]);
+    expect(readServed).toHaveBeenCalledTimes(6);
+    expect(requestCatalogAsked).toEqual(ids.slice(0, 6));
+  });
+
+  /*
+   * A project whose read of the hour was cut at its limit: busy services
+   * whose metrics fell past it look as if they sent none, and the catalog
+   * says each sent them before. The look asks about the busiest 20 and
+   * stops, for each kind, rather than once for every busy service.
+   */
+  function busyServices(count: number): Array<string> {
+    const ids: Array<string> = Array.from(
+      { length: count },
+      (_value: unknown, index: number): string => {
+        return `5231aaaa-0000-4000-8000-0000000002${index.toString().padStart(2, "0")}`;
+      },
+    );
+
+    services = ids.map((id: string, index: number): Service => {
+      return service(id, `busy-${index}`);
+    });
+    healthRows = ids.map((id: string, index: number): ServiceSpanHealthRow => {
+      return healthRow(id, 90000 - index * 100);
+    });
+
+    return ids;
+  }
+
+  test("the catalog is asked about the 20 busiest services missing their metrics at most a look", async () => {
+    const ids: Array<string> = busyServices(
+      METRIC_INSIGHT_MAX_CATALOG_READS + 5,
+    );
+
+    volumes = [volume("http.server.duration", HOST, 900)];
+
+    for (const id of ids) {
+      catalogServices.add(id);
+    }
+
+    expect(await MetricProblemDetector.look(context())).toEqual([]);
+    expect(METRIC_INSIGHT_MAX_CATALOG_READS).toBe(20);
+    expect(catalogAsked).toEqual(ids.slice(0, 20));
+    expect(readTable).not.toHaveBeenCalled();
+
+    // One that never sent one, past the 20th, is left for another hour.
+    catalogAsked = [];
+    catalogServices.delete(ids[22]!);
+
+    expect(await MetricProblemDetector.look(context())).toEqual([]);
+    expect(catalogAsked).toHaveLength(20);
+
+    // Within them, it is found.
+    catalogAsked = [];
+    catalogServices.delete(ids[19]!);
+
+    expect(types(await MetricProblemDetector.look(context()))).toEqual([
+      `${AIInsightType.MetricMissingMetrics} busy-19`,
+    ]);
+    expect(catalogAsked).toEqual(ids.slice(0, 20));
+  });
+
+  test("the catalog is asked about the 20 busiest services missing their request metrics at most a look", async () => {
+    const ids: Array<string> = busyServices(
+      METRIC_INSIGHT_MAX_CATALOG_READS + 5,
+    );
+
+    volumes = ids.map((id: string): MetricVolumeReading => {
+      return volume("jvm.memory.used", id, 60);
+    });
+
+    for (const id of ids) {
+      requestCatalogServices.add(id);
+      servedSamples.set(id, servedRow({ httpServerSpanCount: 800 }));
+    }
+
+    expect(await MetricProblemDetector.look(context())).toEqual([]);
+    expect(requestCatalogAsked).toEqual(ids.slice(0, 20));
+    expect(readServed).not.toHaveBeenCalled();
+
+    // Within them, one that never sent one is found.
+    requestCatalogAsked = [];
+    requestCatalogServices.delete(ids[19]!);
+
+    expect(types(await MetricProblemDetector.look(context()))).toEqual([
+      `${AIInsightType.MetricMissingRequestMetrics} busy-19`,
+    ]);
+    expect(requestCatalogAsked).toEqual(ids.slice(0, 20));
+    expect(readServed).toHaveBeenCalledTimes(1);
+  });
+
+  test("the lane's four detectors share one look per scan, each with its own kind", async () => {
     userIdsOnCheckout();
     volumes.push(volume("http.server.duration", REPORTING, 2400));
+    volumes.push(volume("jvm.memory.used", SEARCH, 960));
     shapes.push(secondsInMillisecondBuckets("http.server.duration", REPORTING));
-    healthRows = [healthRow(PAYMENTS, 4200)];
+    healthRows = [healthRow(PAYMENTS, 4200), healthRow(SEARCH, 8000)];
+    servedSamples.set(SEARCH, servedRow({ httpServerSpanCount: 990 }));
 
     const scan: InsightScanContext = context();
     const detectors: Array<InsightDetector> =
@@ -844,6 +1343,7 @@ describe("MetricProblemDetector", () => {
       AIInsightType.MetricHighCardinality,
       AIInsightType.MetricHistogramBuckets,
       AIInsightType.MetricMissingMetrics,
+      AIInsightType.MetricMissingRequestMetrics,
     ]);
 
     expect(
@@ -855,9 +1355,13 @@ describe("MetricProblemDetector", () => {
     expect(
       types(await new MetricMissingMetricsDetector().detect(scan)),
     ).toEqual([`${AIInsightType.MetricMissingMetrics} payments`]);
+    expect(
+      types(await new MetricMissingRequestMetricsDetector().detect(scan)),
+    ).toEqual([`${AIInsightType.MetricMissingRequestMetrics} search`]);
 
-    // One look for the three: the rollup was read once.
+    // One look for the four: the rollup and the sample were read once.
     expect(readVolumes).toHaveBeenCalledTimes(1);
+    expect(readServed).toHaveBeenCalledTimes(1);
 
     // A new scan looks again.
     await new MetricHighCardinalityDetector().detect(context());
@@ -940,6 +1444,88 @@ describe("MetricProblemDetector - the evidence it writes", () => {
         operations: [],
       }).topOperations,
     ).toBeUndefined();
+  });
+
+  test("a service missing its request metrics: its five busiest requests, its three busiest metrics, and their count only from a whole read", () => {
+    const candidate: {
+      serviceId: string;
+      spanCount: number;
+      failedSpanCount: number;
+      metricNames: Array<string>;
+      metricCount: number;
+    } = {
+      serviceId: SEARCH.toUpperCase(),
+      spanCount: 9000,
+      failedSpanCount: 12,
+      metricNames: ["a.metric", "b.metric", "c.metric", "job.{id}.duration"],
+      // job.{id}.duration is 60 metrics of its own.
+      metricCount: 63,
+    };
+    const operations: Array<TraceAnalyticsTableRow> = [
+      operationRow("", 9),
+      ...["a", "b", "c", "d", "e", "f"].map(
+        (name: string, index: number): TraceAnalyticsTableRow => {
+          return operationRow(`GET /${name}`, 1000 - index);
+        },
+      ),
+    ];
+
+    const whole: MetricInsightEvidence =
+      MetricProblemDetector.toMissingRequestMetricsEvidence({
+        candidate,
+        window,
+        protocols: [MetricServedProtocol.Rpc],
+        operations,
+        isMetricsReadWhole: true,
+      });
+
+    expect(whole).toEqual({
+      serviceId: SEARCH,
+      kind: MetricInsightKind.MissingRequestMetrics,
+      windowStartTime: WINDOW_START,
+      windowEndTime: WINDOW_END,
+      spanCount: 9000,
+      failedSpanCount: 12,
+      servedProtocols: [MetricServedProtocol.Rpc],
+      sentMetricNames: ["a.metric", "b.metric", "c.metric"],
+      sentMetricCount: 63,
+      topOperations: [
+        { name: "GET /a", spanCount: 1000 },
+        { name: "GET /b", spanCount: 999 },
+        { name: "GET /c", spanCount: 998 },
+        { name: "GET /d", spanCount: 997 },
+        { name: "GET /e", spanCount: 996 },
+      ],
+    });
+
+    const cut: MetricInsightEvidence =
+      MetricProblemDetector.toMissingRequestMetricsEvidence({
+        candidate: { ...candidate, metricNames: [], metricCount: 0 },
+        window,
+        protocols: [MetricServedProtocol.Http],
+        operations: [],
+        isMetricsReadWhole: false,
+        sdkLanguage: "go",
+      });
+
+    expect(cut.sentMetricNames).toBeUndefined();
+    expect(cut.sentMetricCount).toBeUndefined();
+    expect(cut.topOperations).toBeUndefined();
+    expect(cut.sdkLanguage).toBe("go");
+
+    // The protocols are copied: the evidence never shares the caller's list.
+    const protocols: Array<MetricServedProtocol> = [MetricServedProtocol.Http];
+    const copied: MetricInsightEvidence =
+      MetricProblemDetector.toMissingRequestMetricsEvidence({
+        candidate,
+        window,
+        protocols,
+        operations: [],
+        isMetricsReadWhole: true,
+      });
+
+    protocols.push(MetricServedProtocol.Messaging);
+    expect(copied.servedProtocols).toEqual([MetricServedProtocol.Http]);
   });
 
   test("a service's or a metric's text is written into the detail escaped", () => {

@@ -40,7 +40,7 @@ In un criterio, sotto **Azioni**, attiva **Quando i filtri corrispondono, dichia
 
 ### Scrivere il titolo
 
-Scrivi il titolo in **Titolo dell'incidente** o **Titolo dell'avviso**, ad esempio `{{monitorName}} is down`. **Learn about dynamic templates**, lì accanto, apre **Dynamic Template Variables**: ogni variabile del tipo di questo monitor, con ciò che contiene. Fai clic su una variabile per copiarla.
+Scrivi il titolo in **Titolo dell'incidente** o **Titolo dell'avviso**, ad esempio `{{monitorName}} is down`. **Scopri di più sui modelli dinamici**, lì accanto, apre **Variabili dinamiche dei modelli**: ogni variabile del tipo di questo monitor, con ciò che contiene. Fai clic su una variabile per copiarla.
 
 ### Scrivere la descrizione e le note di rimedio
 
@@ -433,7 +433,7 @@ Un dispositivo di rete riceve un ping a ogni interrogazione e viene scansionato 
 | `collectionIssueSummary` | Una riga su ogni gruppo non disponibile, pronta per un titolo. Vuota quando è stato raccolto tutto. | `string` |
 | `metrics` | I valori raccolti, per nome di serie. | `Object` |
 
-I nomi delle serie in `metrics` contengono punti, come `oneuptime.monitor.database.connections.used.percent`, e un percorso legge ogni punto come un passo dentro un oggetto, quindi un modello non può estrarre un singolo valore da `metrics`. Inserisci `{{metrics}}` intero, come JSON, oppure usa `{{collectionIssueSummary}}`. Una metrica che non è stata raccolta manca da `metrics`, non vale zero. Per agire su un valore, confrontalo nel criterio con un'[espressione JavaScript](/docs/monitor/javascript-expression).
+I nomi delle serie in `metrics` contengono punti, come `oneuptime.monitor.database.connections.used.percent`, e un modello può comunque estrarne uno: scrivi il nome intero dopo `metrics.`, come in `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Inserisci `{{metrics}}` intero, come JSON, oppure usa `{{collectionIssueSummary}}`. Una metrica che non è stata raccolta manca da `metrics`, non vale zero. Per agire su un valore, confrontalo nel criterio con un'[espressione JavaScript](/docs/monitor/javascript-expression).
 
 ### Monitor delle pagine di stato esterne
 
@@ -445,13 +445,14 @@ I nomi delle serie in `metrics` contengono punti, come `oneuptime.monitor.databa
 | `provider` | Il tipo di pagina di stato: Atlassian Statuspage, incident.io, RSS o Atom. | `string` |
 | `componentGroup` | Il gruppo di componenti che il monitor osserva, se ne osserva uno. | `string` |
 | `componentName` | I componenti che il monitor osserva, separati da virgole, se ne ha scelti. | `string` |
+| `componentNames` | Gli stessi componenti come elenco, per ripetere una riga per ciascuno con `{{#each componentNames}}`. | `Array<string>` |
 | `isOnline` | Se la pagina di stato ha risposto. | `boolean` |
 | `responseTimeInMs` | Quanto ha impiegato la pagina di stato a rispondere, in millisecondi. | `number` |
 | `failureCause` | Perché il controllo è fallito, quando è fallito. | `string` |
 
 ### Monitor di metriche e infrastruttura
 
-I monitor Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array e IoT Device hanno una variabile propria:
+I monitor Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array e IoT Device hanno una variabile propria:
 
 | Variabile | Cosa contiene | Tipo |
 | --- | --- | --- |
@@ -565,7 +566,7 @@ SNMP walk: {{responseTimeInMs}} ms
 ## Risoluzione dei problemi
 
 :::details Il titolo mostra il segnaposto, parentesi comprese
-Il percorso non porta a un valore in questo controllo. Verifica il nome della variabile e le maiuscole con le tabelle qui sopra, oppure apri **Learn about dynamic templates** nel criterio: elenca le variabili del tipo di questo monitor. Un percorso nel corpo di una risposta o di una richiesta deve corrispondere al corpo così come è stato inviato, e `[*]` e gli indici negativi come `[-1]` non leggono nulla: usa `[0]` o `[last]`.
+Il percorso non porta a un valore in questo controllo. Verifica il nome della variabile e le maiuscole con le tabelle qui sopra, oppure apri **Scopri di più sui modelli dinamici** nel criterio: elenca le variabili del tipo di questo monitor. Un percorso nel corpo di una risposta o di una richiesta deve corrispondere al corpo così come è stato inviato, e `[*]` e gli indici negativi come `[-1]` non leggono nulla: usa `[0]` o `[last]`.
 :::
 
 :::details Un valore appare come JSON

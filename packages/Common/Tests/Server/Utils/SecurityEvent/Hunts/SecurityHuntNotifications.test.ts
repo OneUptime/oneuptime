@@ -18,6 +18,7 @@ import TeamMemberService from "../../../../../Server/Services/TeamMemberService"
 import UserNotificationSettingService, {
   SECURITY_HUNT_NOTIFICATION_EVENT_TYPES,
 } from "../../../../../Server/Services/UserNotificationSettingService";
+import WorkspaceNotificationRuleService from "../../../../../Server/Services/WorkspaceNotificationRuleService";
 import logger from "../../../../../Server/Utils/Logger";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import SecurityHunt from "../../../../../Models/DatabaseModels/SecurityHunt";
@@ -372,6 +373,8 @@ describe("who is told", () => {
   let seed: Spy;
   let propsOf: Spy;
   let findHunt: Spy;
+  // The hunt's channels (SecurityHuntChannelPosts.test.ts).
+  let post: Spy;
 
   beforeEach(() => {
     getJestSpyOn(DatabaseConfig, "getDashboardUrl").mockImplementation(
@@ -427,6 +430,10 @@ describe("who is told", () => {
       UserNotificationSettingService,
       "sendUserNotification",
     ).mockResolvedValue(undefined as never);
+    post = getJestSpyOn(
+      WorkspaceNotificationRuleService,
+      "sendWorkspaceMarkdownNotification",
+    ).mockResolvedValue(undefined as never);
     getJestSpyOn(logger, "error").mockImplementation((() => {
       return undefined;
     }) as never);
@@ -453,6 +460,8 @@ describe("who is told", () => {
     // Somebody who has left the project is no error of OneUptime's to log.
     expect(logger.error).not.toHaveBeenCalled();
     expect(propsOf).toHaveBeenCalledTimes(4);
+    // And the hunt's channels, once.
+    expect(post).toHaveBeenCalledTimes(1);
   });
 
   test("reads the hunt as OneUptime, in its project", async () => {
@@ -531,13 +540,17 @@ describe("who is told", () => {
     );
     expect(await notify()).toEqual([]);
     expect(send).not.toHaveBeenCalled();
+    // Nor its channels: nobody is waiting to hear.
+    expect(post).not.toHaveBeenCalled();
   });
 
-  test("nobody, when no one it names can read it", async () => {
+  test("nobody, when no one it names can read it - but its channels still hear", async () => {
     propsOf.mockResolvedValue(member([Permission.ProjectUser]) as never);
 
     expect(await notify()).toEqual([]);
     expect(send).not.toHaveBeenCalled();
+    // A channel's rule was set up by a Security role, for this hunt's finds.
+    expect(post).toHaveBeenCalledTimes(1);
   });
 });
 

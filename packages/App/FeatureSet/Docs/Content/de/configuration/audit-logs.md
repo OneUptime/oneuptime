@@ -99,6 +99,7 @@ Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen habe
 | Inventareinträge | `Inventory Item` |
 | Collector-Konfigurationen | `Collector Config` |
 | vCenter | `vCenter` |
+| OpenStack-Clouds und die Prüfungen, die gegen sie laufen | `OpenStack Cloud`, `OpenStack Cloud Check` |
 | Paketmitschnitte, und ihre Downloads | `Packet Capture` |
 | Sicherheitsfälle mit ihren Prioritäten und Status, Playbooks und ihre Ausführungen, geschützte Entitäten, die Entitätskritikalität sowie das Risiko einer Entität, wenn es jemand zurücksetzt | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Regelausnahmen | `Rule Exception` |
@@ -107,6 +108,7 @@ Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen habe
 | Bedrohungssuchen | `Hunt` |
 | Aufgaben und Belege von Sicherheitsfällen | `Security Case Task`, `Security Case Evidence` |
 | Datenspeicher und ihre Funde sowie die Probleme, Einstellungen, Prüfungseinstellungen, benutzerdefinierten Datentypen und Residenzregeln der Datensicherheit | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
+| Einstellungen von Data Observability | `Data Observability Setting` |
 | Audit-Protokoll-Exporte | `Audit Log Export` |
 
 Fügt ein Administrator eine Benachrichtigungsmethode oder eine persönliche Bereitschaftsregel zum Konto einer anderen Person hinzu oder entfernt sie, wird das ebenfalls erfasst, ohne die Adresse oder Nummer selbst.

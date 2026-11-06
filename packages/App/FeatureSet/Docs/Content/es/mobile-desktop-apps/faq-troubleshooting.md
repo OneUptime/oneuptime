@@ -85,7 +85,7 @@ flowchart TB
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
-Expo da un teléfono por perdido cuando se quitó la aplicación de él, o cuando su token push ya no es válido. El teléfono no se borra: **Ajustes de usuario → Métodos de notificación**, en la pestaña **Push Notifications**, lo muestra como **No recibe notificaciones**, y la cronología de guardia de un aviso que no le llegó dice por qué. Sus otros teléfonos y métodos de notificación reciben avisos como siempre.
+Expo da un teléfono por perdido cuando se quitó la aplicación de él, o cuando su token push ya no es válido. El teléfono no se borra: **Ajustes de usuario → Métodos de notificación**, en la pestaña **Notificaciones push**, lo muestra como **No recibe notificaciones**, y la cronología de guardia de un aviso que no le llegó dice por qué. Sus otros teléfonos y métodos de notificación reciben avisos como siempre.
 
 La aplicación registra el teléfono cada vez que se inicia, cuando inicia sesión, y cuando vuelve a ella, como mucho una vez cada cinco minutos. Al registrarse vuelve a pedir el token push a Expo, lo que lo renueva, y el teléfono vuelve a recibir avisos con las reglas que tenía.
 
@@ -124,7 +124,7 @@ Las claves de acceso necesitan que la dirección de su OneUptime empiece por `ht
 
 :::details No hay notificaciones en el teléfono
 - Compruebe que el teléfono permite las notificaciones de OneUptime On-Call, y que No molestar o un modo de concentración no las retiene.
-- En **Ajustes de usuario → Métodos de notificación**, pestaña **Push Notifications**, compruebe que el teléfono aparece, y envíele una **Notificación de prueba**.
+- En **Ajustes de usuario → Métodos de notificación**, pestaña **Notificaciones push**, compruebe que el teléfono aparece, y envíele una **Notificación de prueba**.
 - Si está marcado como **No recibe notificaciones**, abra la aplicación con la sesión iniciada: consulte [Cuando un teléfono tiene que volver a registrarse](#cuando-un-teléfono-tiene-que-volver-a-registrarse).
 - Compruebe sus reglas de guardia en **Ajustes de usuario → Reglas de guardia**: deciden qué avisos llegan a qué método.
 - En un OneUptime autoalojado, compruebe que el servidor llega a su relé push: consulte [Notificaciones push](/docs/self-hosted/push-notifications#acceso-de-red).
@@ -145,7 +145,7 @@ Instale desde una página del panel después de iniciar sesión, por `https://`,
 :::
 
 :::details No hay notificaciones de escritorio
-Registre el navegador en **Ajustes de usuario → Métodos de notificación**, pestaña **Push Notifications**, con **Registrar dispositivo**, permita las notificaciones cuando se le pida, y revise los ajustes de notificaciones del propio equipo. Un OneUptime autoalojado necesita sus claves VAPID para las notificaciones del navegador.
+Registre el navegador en **Ajustes de usuario → Métodos de notificación**, pestaña **Notificaciones push**, con **Registrar dispositivo**, permita las notificaciones cuando se le pida, y revise los ajustes de notificaciones del propio equipo. Un OneUptime autoalojado necesita sus claves VAPID para las notificaciones del navegador.
 :::
 
 ## Obtener ayuda

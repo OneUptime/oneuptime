@@ -55,7 +55,7 @@ In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Doc
 
 ### Scegliere il cluster
 
-In **Docker Swarm Monitor Configuration**, scegliete il cluster da **Docker Swarm Cluster**. Ogni cluster che ha inviato dati è nell'elenco. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi cluster Docker Swarm** apre i passi di configurazione con le vostre chiavi già inserite, che attendono i primi dati.
+In **Docker Swarm Monitor Configuration**, scegliete il cluster da **Cluster Docker Swarm**. Ogni cluster che ha inviato dati è nell'elenco. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi cluster Docker Swarm** apre i passi di configurazione con le vostre chiavi già inserite, che attendono i primi dati.
 
 ### Scegliere cosa sorvegliare
 
@@ -81,7 +81,7 @@ Fate clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta 
 
 | Campo | Scheda | Cosa fa |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | Tutte | Obbligatorio. Limita ogni query a `resource.docker.swarm.cluster.name`. Le metriche di un task portano `container.runtime=docker` come quelle di un host Docker, e l'agente non appone mai `host.name`, quindi il monitor non filtra su nessuno dei due. |
+| **Cluster Docker Swarm** | Tutte | Obbligatorio. Limita ogni query a `resource.docker.swarm.cluster.name`. Le metriche di un task portano `container.runtime=docker` come quelle di un host Docker, e l'agente non appone mai `host.name`, quindi il monitor non filtra su nessuno dei due. |
 | **Nome del servizio** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.docker.swarm.service.name`, il servizio come lo chiama `docker service ls`, per esempio `web` (`<stack>_web` in uno stack). |
 | **Nome del nodo** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.docker.swarm.node.name`, l'hostname del nodo come lo mostra `docker node ls`, per esempio `swarm-node-1`. L'agente su quel nodo lo appone a partire da `DOCKER_SWARM_NODE_NAME`. |
 | **Nome del container** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.container.name`. Il container di un task si chiama `<service>.<slot>.<taskid>`, per esempio `web.1.abc123`. |
@@ -176,7 +176,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | --- | --- |
 | **Metrica** | La query o la formula da controllare, tramite il suo nome di variabile. |
 | **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
-| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a**, oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa. |
+| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a**, oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa. **Previsto sopra** e **Previsto sotto** corrispondono quando la tendenza della metrica nella finestra avrà superato la soglia alla fine di **Orizzonte**. |
 | **Soglia** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non viene mostrato per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Bassa** (4σ), **Media** (3σ, il predefinito) o **Alta** (2σ). |
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (il predefinito), 28, 60 o 90 giorni di storico. |

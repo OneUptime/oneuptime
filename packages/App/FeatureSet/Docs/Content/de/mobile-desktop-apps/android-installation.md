@@ -72,7 +72,7 @@ Die App zeigt jeweils ein Projekt: Tippen Sie oben auf einem Bildschirm auf den 
 
 :::steps
 ### Das Telefon im Dashboard finden
-Öffnen Sie im Dashboard **Benutzereinstellungen → Benachrichtigungsmethoden** und den Tab **Push Notifications**. Das Telefon steht unter **Geräte für Push-Benachrichtigungen**, mit seinem Modellnamen. Jedes Projekt führt seine eigene Liste.
+Öffnen Sie im Dashboard **Benutzereinstellungen → Benachrichtigungsmethoden** und den Tab **Push-Benachrichtigungen**. Das Telefon steht unter **Geräte für Push-Benachrichtigungen**, mit seinem Modellnamen. Jedes Projekt führt seine eigene Liste.
 
 ### Einen Test senden
 Klicken Sie in der Zeile des Telefons auf **Testbenachrichtigung**. Auf dem Telefon kommt eine Benachrichtigung an; tippen Sie darauf, um die App zu öffnen.
@@ -137,7 +137,7 @@ Die App konnte `https://<your-oneuptime>/api/status` nicht erreichen. Prüfen Si
 
 :::details Es kommen keine Benachrichtigungen an
 - Prüfen Sie in den Android-Einstellungen, dass Benachrichtigungen für die App an sind, und dass „Bitte nicht stören“ aus ist oder kritische Warnungen an sind.
-- Prüfen Sie, dass das Telefon unter **Push Notifications** in **Benutzereinstellungen → Benachrichtigungsmethoden** steht, und senden Sie ihm eine **Testbenachrichtigung**.
+- Prüfen Sie, dass das Telefon unter **Push-Benachrichtigungen** in **Benutzereinstellungen → Benachrichtigungsmethoden** steht, und senden Sie ihm eine **Testbenachrichtigung**.
 - Ist das Telefon mit **Keine Benachrichtigungen** markiert, öffnen Sie die App, während Sie angemeldet sind. Sie registriert das Telefon erneut; siehe [Wenn sich ein Telefon neu registrieren muss](/docs/mobile-desktop-apps/faq-troubleshooting#wenn-sich-ein-telefon-neu-registrieren-muss).
 - Prüfen Sie Ihre Bereitschaftsregeln unter **Benutzereinstellungen → Bereitschaftsregeln**.
 - Prüfen Sie bei einem selbst gehosteten OneUptime, dass Ihr Server sein Push-Relay erreicht: siehe [Push-Benachrichtigungen](/docs/self-hosted/push-notifications#netzwerkzugriff).

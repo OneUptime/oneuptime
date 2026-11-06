@@ -46,11 +46,6 @@ import { getJestSpyOn } from "../../Spy";
  * are the real ones.
  */
 
-/*
- * A refused request is an async function that throws, not
- * mockRejectedValue: the card's imports load zone.js, whose patched Promise
- * reports a rejected one as unhandled although the card catches it.
- */
 const getItemMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
@@ -882,11 +877,9 @@ describe("flipping a switch", () => {
   });
 
   test("a refused save moves the switch back, and says why under it", async () => {
-    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error(
-        "Please upgrade your plan to Growth to access this feature",
-      );
-    });
+    updateByIdMock.mockRejectedValue(
+      new Error("Please upgrade your plan to Growth to access this feature"),
+    );
 
     await renderCard();
     await loaded();
@@ -1097,11 +1090,9 @@ describe("a list that is off", () => {
   });
 
   test("a refused attempt to hide a list leaves its history and labels where they were", async () => {
-    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error(
-        "Please upgrade your plan to Growth to access this feature",
-      );
-    });
+    updateByIdMock.mockRejectedValue(
+      new Error("Please upgrade your plan to Growth to access this feature"),
+    );
 
     await renderCard();
     await loaded();
@@ -1423,11 +1414,9 @@ describe("how many days", () => {
   });
 
   test("a refused number goes back to the one the page has, with the reason", async () => {
-    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error(
-        "Please upgrade your plan to Growth to access this feature",
-      );
-    });
+    updateByIdMock.mockRejectedValue(
+      new Error("Please upgrade your plan to Growth to access this feature"),
+    );
 
     await renderCard();
     await loaded();
@@ -1678,9 +1667,9 @@ describe("the overall uptime percentage", () => {
   test("a refused pick goes back to the page's precision, with the reason", async () => {
     stored = { ...NEW_PAGE, showOverallUptimePercentOnStatusPage: true };
 
-    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error("You do not have permission to update this Status Page.");
-    });
+    updateByIdMock.mockRejectedValue(
+      new Error("You do not have permission to update this Status Page."),
+    );
 
     await renderCard();
     await loaded();
@@ -1734,11 +1723,9 @@ describe("the overall uptime percentage", () => {
   });
 
   test("a refused attempt to turn it on (it needs the Scale plan) offers no precision", async () => {
-    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error(
-        "Please upgrade your plan to Scale to access this feature",
-      );
-    });
+    updateByIdMock.mockRejectedValue(
+      new Error("Please upgrade your plan to Scale to access this feature"),
+    );
 
     await renderCard();
     await loaded();
@@ -1935,9 +1922,7 @@ describe("what counts as downtime", () => {
   });
 
   test("a refused change puts back the page's statuses, with the reason", async () => {
-    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error("Monitor status not found.");
-    });
+    updateByIdMock.mockRejectedValue(new Error("Monitor status not found."));
 
     await renderCard();
     await loaded();

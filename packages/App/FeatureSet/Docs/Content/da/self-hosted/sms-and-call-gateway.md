@@ -33,7 +33,7 @@ Gatewayen træder i stedet for serverens egen Twilio-konto for alt, der ellers v
 4. Klik på **Send Test**. Din gateway skal svare med en 2xx-status og ikke sende noget.
 :::
 
-For at udskifte hemmeligheden skal du rydde **Signing Secret** under **Flere felter** og gemme: OneUptime laver en ny. For at gå tilbage til Twilio skal du vælge **Twilio** og gemme.
+For at udskifte hemmeligheden skal du rydde **Signeringshemmelighed** under **Flere felter** og gemme: OneUptime laver en ny. For at gå tilbage til Twilio skal du vælge **Twilio** og gemme.
 
 ## Hvad din gateway modtager
 

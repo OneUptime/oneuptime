@@ -248,11 +248,11 @@ const DockerSwarmTaskOverview: FunctionComponent<ComponentProps> = (
           data-testid="docker-swarm-task-tiles"
         >
           <GoldenMetricTile
-            title={tx("CPU")}
+            title="CPU"
             icon={IconProp.CPUChip}
             iconColor="sky"
             value={formatPercent(readings.cpuPercent)}
-            sublabel={tx("of one CPU core")}
+            sublabel="of one CPU core"
             percent={
               readings.cpuPercent === null
                 ? null
@@ -268,7 +268,7 @@ const DockerSwarmTaskOverview: FunctionComponent<ComponentProps> = (
             description={DOCKER_SWARM_METRIC_DESCRIPTIONS.taskCpu}
           />
           <GoldenMetricTile
-            title={tx("Memory")}
+            title="Memory"
             icon={IconProp.SquareStack}
             iconColor="violet"
             value={formatPercent(readings.memoryPercent)}

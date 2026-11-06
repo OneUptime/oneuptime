@@ -18,6 +18,7 @@ export * from "./KubernetesBreadcrumbs";
 export * from "./DockerBreadcrumbs";
 export * from "./PodmanBreadcrumbs";
 export * from "./ProxmoxBreadcrumbs";
+export * from "./OpenStackBreadcrumbs";
 export * from "./VMwareBreadcrumbs";
 export * from "./IoTBreadcrumbs";
 export * from "./DockerSwarmBreadcrumbs";

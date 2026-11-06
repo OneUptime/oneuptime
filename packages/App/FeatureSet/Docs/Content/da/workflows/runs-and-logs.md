@@ -18,6 +18,8 @@ Hver gang et workflow kører, gemmer OneUptime en registrering af, hvad der sket
 
 Starter du en kørsel fra **Bygger**, åbner den samme visning **Arbejdsgangskørsel**, som allerede følger kørslen, så du kan se den ske i stedet for at skulle lede efter den bagefter.
 
+For at prøve en kørsel igen med de samme værdier skal du trykke på Kør igen i dens visning eller i ⋯-menuen på dens række. En ny kørsel starter fra triggeren med det, den kørsel startede med, så en webhooks data ikke skal sendes igen, og den kører workflowet, som det er nu, så du kan ændre et trin og prøve det med det samme. Dens trin køres for alvor, og mens workflowet er slået fra, er det en testkørsel. Panelet til at køre workflowet i Builder tilbyder værdierne fra den seneste kørsel på samme måde. En test af ét trin køres igen fra trinnet. En kørsel, der startede med mere end 1 MB værdier, kan ikke køres igen, og det kan en kørsel fra før OneUptime gemte disse værdier heller ikke. De er krypteret, og ingen kan læse dem via API'et.
+
 ## Status for en kørsel
 
 ```mermaid title="De statusser, en kørsel går igennem"
@@ -126,7 +128,7 @@ En blok, der ikke kører, er som regel et forbindelsesproblem. Åbn **Bygger**, 
 Åbn kørslen, og se på trinnet. En reference, der ikke blev opløst, fremhæves på selve trinnet som en advarsel, og dens indstilling i blokken **Modtaget** er markeret **Did not resolve**.
 
 - Ser du den bogstavelige tekst `{{local.components.…}}`, blev referencen ikke opløst. Som regel er det en slåfejl i komponent-ID'et eller returværdiens ID — husk, at det er blokkens **Identifier**, ikke det navn, der står på den. Tjek også stavningen af selve `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` sendes som bogstavelig tekst, og kørslen melder stadig **Udført**. Var kørslen en test med **Run just this step**, kørte den tidligere blok slet ikke — kør hele workflowet i stedet.
-- Ser du **Empty text**, kørte den tidligere blok, men producerede ikke det felt.
+- Ser du **Empty text**, eller et hul i en besked, kørte den tidligere blok, men har intet i det felt. Enten har posten ingen værdi der, hvilket fanen **Full Log** noterer på en linje for sig, eller også sender blokken ikke feltet videre, hvilket trinnet advarer om.
 
 Den samme advarsel står i fanen **Full Log** som en linje, der begynder med `Warning:`.
 :::

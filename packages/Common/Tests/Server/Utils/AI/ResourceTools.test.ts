@@ -6,6 +6,7 @@ import PodmanHostService from "../../../../Server/Services/PodmanHostService";
 import KubernetesClusterService from "../../../../Server/Services/KubernetesClusterService";
 import DockerSwarmClusterService from "../../../../Server/Services/DockerSwarmClusterService";
 import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterService";
+import OpenStackCloudService from "../../../../Server/Services/OpenStackCloudService";
 import VMwareVCenterService from "../../../../Server/Services/VMwareVCenterService";
 import CephClusterService from "../../../../Server/Services/CephClusterService";
 import StorageArrayService from "../../../../Server/Services/StorageArrayService";
@@ -66,6 +67,7 @@ import {
   keyForKubernetesCluster,
   keyForDockerSwarmCluster,
   keyForProxmoxCluster,
+  keyForOpenStackCloud,
   keyForVMwareVCenter,
   keyForCephCluster,
   keyForStorageArray,
@@ -212,6 +214,14 @@ const cases: Array<ResourceCase> = [
     attribute: "resource.storage.array.name",
     keyFor: keyForStorageArray,
     read: Permission.ReadStorageArray,
+  },
+  {
+    type: AIResourceType.OpenStackCloud,
+    service: OpenStackCloudService,
+    identifier: "name",
+    attribute: "resource.openstack.cloud.name",
+    keyFor: keyForOpenStackCloud,
+    read: Permission.ReadOpenStackCloud,
   },
 ];
 

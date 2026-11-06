@@ -4,6 +4,7 @@ import SecurityWatchlistItem from "../../../../Models/DatabaseModels/SecurityWat
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
 import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
 import { DetectionRuleDefinition } from "../../../../Types/SecurityEvent/SigmaCorrelation";
@@ -25,6 +26,17 @@ import {
   getRulesReadingWatchlists,
 } from "../../../../Utils/SecurityEvent/Sigma/SigmaWatchlists";
 import DetectionRuleService from "../../../Services/DetectionRuleService";
+import MonitorService from "../../../Services/MonitorService";
+import SecurityHuntService from "../../../Services/SecurityHuntService";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import SecurityHunt from "../../../../Models/DatabaseModels/SecurityHunt";
+import MonitorType from "../../../../Types/Monitor/MonitorType";
+import {
+  WatchlistReader,
+  WatchlistReaderKind,
+} from "../../../../Types/SecurityEvent/SecurityWatchlistFilter";
+import { getSecurityHuntWatchlistNames } from "../../../../Utils/SecurityEvent/SecurityHuntSearch";
+import MonitorStepsReferenceExtractor from "../../Monitor/MonitorStepsReferenceExtractor";
 import SecurityWatchlistItemService from "../../../Services/SecurityWatchlistItemService";
 import SecurityWatchlistService from "../../../Services/SecurityWatchlistService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
@@ -47,6 +59,20 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
  * values it reads are the values of the turn: a list changed mid-turn
  * reaches the next turn's runs, a minute later.
  */
+
+/*
+ * A read, a save or a run that names a list the project does not have: the
+ * words a rule's save uses, and a class of its own, so a hunt's run can say
+ * so in its own.
+ */
+export class SecurityWatchlistMissingException extends BadDataException {
+  public readonly names: Array<string>;
+
+  public constructor(names: Array<string>) {
+    super(getMissingSecurityWatchlistsMessage(names));
+    this.names = names;
+  }
+}
 
 export class SecurityWatchlistReader {
   private readonly byKey: Map<string, SigmaWatchlist | null> = new Map();
@@ -116,7 +142,7 @@ export class SecurityWatchlistReader {
     );
 
     if (missing.length > 0) {
-      throw new BadDataException(getMissingSecurityWatchlistsMessage(missing));
+      throw new SecurityWatchlistMissingException(missing);
     }
 
     return bindSigmaWatchlists(definition, watchlists);
@@ -130,6 +156,60 @@ export default class SecurityWatchlists {
   }
 
   /*
+   * Refuse names the project has no list of, naming each: what a monitor's
+   * save and a hunt's save ask of the lists they read, as a rule's save
+   * does. Only the names are read.
+   */
+  public static async assertProjectHas(data: {
+    projectId: ObjectID;
+    names: ReadonlyArray<string>;
+  }): Promise<void> {
+    if (data.names.length === 0) {
+      return;
+    }
+
+    const watchlists: Array<SecurityWatchlist> =
+      await SecurityWatchlistService.findAllBy({
+        query: {
+          projectId: data.projectId,
+          name: QueryHelper.findWithSameTextAnyOf(
+            Array.from(new Set(data.names)),
+          ),
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const found: Set<string> = new Set(
+      watchlists.map((watchlist: SecurityWatchlist): string => {
+        return getSecurityWatchlistNameKey(watchlist.name);
+      }),
+    );
+
+    // Each missing list named once, as it was first written.
+    const missing: Array<string> = [];
+    const named: Set<string> = new Set();
+
+    for (const name of data.names) {
+      const key: string = getSecurityWatchlistNameKey(name);
+
+      if (!found.has(key) && !named.has(key)) {
+        named.add(key);
+        missing.push(name);
+      }
+    }
+
+    if (missing.length > 0) {
+      throw new SecurityWatchlistMissingException(missing);
+    }
+  }
+
+  /*
    * The project's lists of these names (whatever the case), each as a run
    * reads it, by name key: one read of the lists, and one of the values of
    * those kept by hand.
@@ -137,6 +217,8 @@ export default class SecurityWatchlists {
   public static async load(data: {
     projectId: ObjectID;
     names: ReadonlyArray<string>;
+    // When the lists are read: a value whose moment to leave has come is not on its list.
+    now?: Date | undefined;
   }): Promise<Map<string, SigmaWatchlist>> {
     const result: Map<string, SigmaWatchlist> = new Map();
     const names: Array<string> = Array.from(
@@ -174,6 +256,7 @@ export default class SecurityWatchlists {
         },
       });
 
+    // Values kept by hand or read from an address: the list's own rows.
     const keptByHand: Array<SecurityWatchlist> = watchlists.filter(
       (watchlist: SecurityWatchlist): boolean => {
         return watchlist.source !== SecurityWatchlistSource.ThreatIntelFeed;
@@ -191,6 +274,14 @@ export default class SecurityWatchlists {
               keptByHand.map((watchlist: SecurityWatchlist): string => {
                 return watchlist.id!.toString();
               }),
+            ),
+            /*
+             * A value leaves its list the moment it was given: no read
+             * sees it from then on, before OneUptime deletes it
+             * (SecurityWatchlistExpiry).
+             */
+            expiresAt: QueryHelper.greaterThanOrNull(
+              data.now || OneUptimeDate.getCurrentDate(),
             ),
           },
           select: {
@@ -271,6 +362,98 @@ export default class SecurityWatchlists {
     }
 
     return result;
+  }
+
+  /*
+   * Everything in the project that reads each list, by name key: its
+   * detection rules (their YAML's `expand`), its Security Events monitors
+   * (their watchlist filters) and its hunts (their search's
+   * `field:%name%`). What keeps a list from being deleted or renamed while
+   * something still names it.
+   */
+  public static async findReaders(
+    projectId: ObjectID,
+  ): Promise<Map<string, Array<WatchlistReader>>> {
+    const byKey: Map<string, Array<WatchlistReader>> = new Map();
+
+    const add: (name: string, reader: WatchlistReader) => void = (
+      name: string,
+      reader: WatchlistReader,
+    ): void => {
+      const key: string = getSecurityWatchlistNameKey(name);
+      const readers: Array<WatchlistReader> = byKey.get(key) || [];
+      readers.push(reader);
+      byKey.set(key, readers);
+    };
+
+    for (const [key, rules] of await this.findRulesReading(projectId)) {
+      for (const rule of rules) {
+        add(key, {
+          kind: WatchlistReaderKind.DetectionRule,
+          id: rule.id,
+          name: rule.name,
+        });
+      }
+    }
+
+    const monitors: Array<Monitor> = await MonitorService.findAllBy({
+      query: {
+        projectId,
+        monitorType: MonitorType.SecurityEvents,
+      },
+      select: {
+        _id: true,
+        name: true,
+        monitorSteps: true,
+      },
+      sort: {
+        _id: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const monitor of monitors) {
+      for (const name of MonitorStepsReferenceExtractor.extractWatchlistNames(
+        monitor.monitorSteps,
+      )) {
+        add(name, {
+          kind: WatchlistReaderKind.Monitor,
+          id: monitor.id?.toString() || "",
+          name: monitor.name || "",
+        });
+      }
+    }
+
+    const hunts: Array<SecurityHunt> = await SecurityHuntService.findAllBy({
+      query: {
+        projectId,
+      },
+      select: {
+        _id: true,
+        name: true,
+        searchQuery: true,
+      },
+      sort: {
+        _id: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const hunt of hunts) {
+      for (const name of getSecurityHuntWatchlistNames(hunt.searchQuery)) {
+        add(name, {
+          kind: WatchlistReaderKind.Hunt,
+          id: hunt.id?.toString() || "",
+          name: hunt.name || "",
+        });
+      }
+    }
+
+    return byKey;
   }
 
   /*

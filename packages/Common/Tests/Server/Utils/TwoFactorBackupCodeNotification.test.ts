@@ -178,18 +178,83 @@ describe("TwoFactorBackupCodeNotification", () => {
     )[0]!;
 
     /*
-     * Asserted as "the bag holds exactly these four keys" rather than "it does
-     * not hold a `codes` key", because the failure being guarded is somebody
-     * ADDING one -- under any name -- while making the mail more helpful.
+     * Asserted as "the bag holds exactly these keys" rather than "it does not
+     * hold a `codes` key", because the failure being guarded is somebody
+     * ADDING one -- under any name -- while making the mail more helpful. The
+     * four request* keys say where the set-up came from (RequestOriginUtil),
+     * and with no request described they are empty but for the time.
      */
     expect(Object.keys(mail.vars).sort()).toEqual([
       "generatedAt",
       "homeUrl",
       "newCodeCount",
+      "requestDevice",
+      "requestIpAddress",
+      "requestLocation",
+      "requestedAt",
       "twoFactorAuthUrl",
     ]);
 
     expect(mail.vars["newCodeCount"]).toBe("10");
+    expect(mail.vars["requestIpAddress"]).toBe("");
+    expect(mail.vars["requestLocation"]).toBe("");
+    expect(mail.vars["requestDevice"]).toBe("");
+  });
+
+  /*
+   * A stolen session can set a second factor up and walk away with its
+   * recovery codes; where the set-up came from is how the owner tells.
+   */
+  test("says where the set-up came from: the address, the place and the device", async () => {
+    await TwoFactorBackupCodeNotification.sendCodesCreatedEmail({
+      userId: USER_ID,
+      codeCount: 10,
+      origin: {
+        ipAddress: "203.0.113.7",
+        location: "Berlin, Germany",
+        device: "Chrome 130 on macOS",
+      },
+    });
+
+    const mail: { vars: Dictionary<string> } = (
+      sendMailSpy.mock.calls[0] as Array<{ vars: Dictionary<string> }>
+    )[0]!;
+
+    expect(mail.vars["requestIpAddress"]).toBe("203.0.113.7");
+    expect(mail.vars["requestLocation"]).toBe("Berlin, Germany");
+    expect(mail.vars["requestDevice"]).toBe("Chrome 130 on macOS");
+    expect(mail.vars["requestedAt"]!.length).toBeGreaterThan(0);
+  });
+
+  test("reads the owner's time zone off the account with the address", async () => {
+    await TwoFactorBackupCodeNotification.sendCodesCreatedEmail({
+      userId: USER_ID,
+      codeCount: 10,
+    });
+
+    expect(
+      (findOneByIdSpy.mock.calls[0] as Array<{ select: JSONObject }>)[0]!
+        .select,
+    ).toEqual({ email: true, timezone: true });
+  });
+
+  test("notifyCodesCreated hands the request's origin on to the mail", async () => {
+    TwoFactorBackupCodeNotification.notifyCodesCreated({
+      userId: USER_ID,
+      codeCount: 10,
+      origin: { ipAddress: "198.51.100.5", device: "curl" },
+    });
+
+    await new Promise((resolve: (value: void) => void) => {
+      setTimeout(resolve, 0);
+    });
+
+    const mail: { vars: Dictionary<string> } = (
+      sendMailSpy.mock.calls[0] as Array<{ vars: Dictionary<string> }>
+    )[0]!;
+
+    expect(mail.vars["requestIpAddress"]).toBe("198.51.100.5");
+    expect(mail.vars["requestDevice"]).toBe("curl");
   });
 
   test("links to the page where the owner can replace the set", async () => {

@@ -1,6 +1,10 @@
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import { CloudConnectionDefinition } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
+  getStreamedMetricKeys,
+  readCloudStreamSummary,
+} from "../../../Types/CloudConnection/CloudStream";
+import {
   CloudConnectionFailureKind,
   CloudConnectionReadStatus,
   CloudConnectionReadSummary,
@@ -20,10 +24,14 @@ import CloudConnectionResourceSync, {
 } from "./CloudConnectionResourceSync";
 import CloudConnectionLanes, {
   CloudChangesLaneOutcome,
+  CloudCostsLaneOutcome,
   CloudInventoryLaneOutcome,
+  CloudSavingsLaneOutcome,
 } from "./CloudConnectionLanes";
 import CloudConnectionScheduler from "./CloudConnectionScheduler";
 import CloudConnectorRegistry from "./CloudConnectorRegistry";
+import CloudResourceReadingsWriter from "./CloudResourceReadings";
+import { withoutStreamedMetrics } from "./CloudStreamedMetrics";
 import {
   CloudConnectionPullState,
   CloudConnectionSettings,
@@ -48,11 +56,18 @@ import {
  *   4. keeps the resources (CloudConnectionResourceSync) - created and
  *      linked before their metrics land, so they carry the cloud's names -
  *      and hands the metrics to the metrics ingest (the importer the App
- *      gives it), exactly as a collector's cloud receiver would;
+ *      gives it), exactly as a collector's cloud receiver would - but for
+ *      the namespaces the connection's streams deliver lately
+ *      (CloudStreamedMetrics), which the stream writes instead;
  *   5. on their own slower beat, lists every resource of the accounts (the
  *      inventory) and keeps the connection's cloud accounts
  *      (CloudConnectionLanes);
- *   6. records the outcome on the connection: when it read, what it found,
+ *   6. on their own beat again, reads what the accounts cost and the ways
+ *      to spend less (the costs and savings lanes), and checks the
+ *      project's budgets against the costs;
+ *   7. keeps, on each resource, the newest of the metrics that say whether
+ *      it is well, and what its rules find in them (CloudResourceReadings);
+ *   8. records the outcome on the connection: when it read, what it found,
  *      the error (secrets removed), where it got to and when it reads next.
  *
  * A failure never escapes as anything but a recorded outcome, and the
@@ -165,6 +180,8 @@ export default class CloudConnectionPullRunner {
           serviceId: true,
           pullState: true,
           lastPullResult: true,
+          streamKeyCreatedAt: true,
+          streamSummary: true,
         },
         props: { isRoot: true },
       });
@@ -238,10 +255,34 @@ export default class CloudConnectionPullRunner {
           completelyListedAccounts: read.completelyListedAccounts,
         });
 
+      /*
+       * A namespace a stream delivered lately is the stream's to write: the
+       * read leaves its datapoints out of what it writes, and keeps them
+       * for the resources' readings below. Only while the connection has a
+       * stream key: once Stop streaming refuses what its streams deliver,
+       * the read writes everything again at once.
+       */
+      const streamedKeys: Set<string> = connection.streamKeyCreatedAt
+        ? getStreamedMetricKeys({
+            summary: readCloudStreamSummary(connection.streamSummary),
+            now,
+          })
+        : new Set<string>();
+      let pointsLeftToStreams: number = 0;
+
       for (const payload of read.payloads) {
+        const toWrite: { payload: JSONObject | null; leftOut: number } =
+          withoutStreamedMetrics({ payload, streamedKeys });
+
+        pointsLeftToStreams += toWrite.leftOut;
+
+        if (!toWrite.payload) {
+          continue;
+        }
+
         await dependencies.importMetrics({
           projectId: connection.projectId,
-          payload,
+          payload: toWrite.payload,
         });
       }
 
@@ -303,6 +344,57 @@ export default class CloudConnectionPullRunner {
           synced.archivedResources > 0,
       });
 
+      /*
+       * What the accounts cost and how to spend less, on their own slower
+       * beat, once the accounts have their rows: costs every twelve hours
+       * (the project's budgets are checked against them), the ways to spend
+       * less once a day.
+       */
+      const costs: CloudCostsLaneOutcome = await CloudConnectionLanes.runCosts({
+        projectId: connection.projectId,
+        provider: definition.provider,
+        connectionId: connection.id!,
+        connector,
+        settings,
+        state,
+        transport,
+        now,
+        clock,
+        deadlineMs: startedAt + CLOUD_READ_DEADLINE_MS,
+        sleep: dependencies.sleep,
+      });
+
+      warnings.push(...costs.warnings);
+
+      const savings: CloudSavingsLaneOutcome =
+        await CloudConnectionLanes.runSavings({
+          projectId: connection.projectId,
+          provider: definition.provider,
+          connectionId: connection.id!,
+          connector,
+          settings,
+          state,
+          transport,
+          now,
+          clock,
+          deadlineMs: startedAt + CLOUD_READ_DEADLINE_MS,
+          sleep: dependencies.sleep,
+        });
+
+      warnings.push(...savings.warnings);
+
+      /*
+       * What each resource's newest metrics say of it - its readings and
+       * the severity of what its rules find - once every resource of this
+       * read has its row.
+       */
+      await CloudResourceReadingsWriter.writeFromPayloads({
+        projectId: connection.projectId,
+        connectionId: connection.id!,
+        payloads: read.payloads,
+        writtenAt: now,
+      });
+
       // What the connection holds after the last sync of this read.
       const held: CloudConnectionSyncResult = inventory.synced || synced;
 
@@ -322,7 +414,7 @@ export default class CloudConnectionPullRunner {
           synced.newResources + (inventory.synced?.newResources || 0),
         archivedResources:
           synced.archivedResources + (inventory.synced?.archivedResources || 0),
-        pointsWritten: read.pointsWritten,
+        pointsWritten: Math.max(0, read.pointsWritten - pointsLeftToStreams),
         changesRecorded: changes.recorded,
         requestCount: read.requestCount,
         warnings: warnings.slice(0, 10),

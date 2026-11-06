@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   buildOverrideRequest,
   describeOverride,
+  describePolicyScope,
   type BuildOverrideResult,
 } from "./overrideDraft";
 
@@ -470,6 +471,18 @@ describe("describeOverride with a window label", () => {
     );
     expect(describeOverride("cover-me", "Priya Rao", 4, "")).toBe(
       "Your on-call pages go to Priya Rao for the next 4 hours.",
+    );
+  });
+});
+
+describe("describePolicyScope", () => {
+  test("names the policies cover arranged on some policies only applies to", () => {
+    expect(describePolicyScope(["Payments"])).toBe("Only on Payments.");
+    expect(describePolicyScope(["Payments", "Checkout"])).toBe(
+      "Only on Payments and Checkout.",
+    );
+    expect(describePolicyScope(["Payments", "Checkout", "Platform"])).toBe(
+      "Only on Payments, Checkout and Platform.",
     );
   });
 });

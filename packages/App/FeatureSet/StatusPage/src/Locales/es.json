@@ -307,7 +307,8 @@
       "forgotPassword": "¿Olvidó su contraseña?",
       "submit": "Iniciar sesión",
       "or": "o",
-      "logInWithSso": "Iniciar sesión con SSO"
+      "logInWithSso": "Iniciar sesión con SSO",
+      "emailSignInLink": "Enviarme un enlace de inicio de sesión"
     },
     "sso": {
       "title": "Iniciar sesión con SSO",
@@ -330,6 +331,23 @@
       "success": "Su contraseña ha sido actualizada. Inicie sesión.",
       "submit": "Restablecer contraseña",
       "knowPassword": "¿Conoce su contraseña?"
+    },
+    "magicLink": {
+      "title": "Iniciar sesión con un enlace",
+      "description": "Introduzca su correo electrónico y le enviaremos un enlace para iniciar sesión en {{statusPageName}}. No necesita contraseña.",
+      "submit": "Enviarme un enlace de inicio de sesión",
+      "sentTitle": "Revise su correo electrónico",
+      "sent": "Si {{email}} puede iniciar sesión en {{statusPageName}}, le hemos enviado un enlace de inicio de sesión. Funciona una sola vez y caduca en {{minutes}} minutos.",
+      "notReceived": "¿No está en su bandeja de entrada? Revise la carpeta de spam o pida al equipo de la página de estado que le agregue.",
+      "sendAnother": "Enviar otro enlace"
+    },
+    "magicLinkLogin": {
+      "title": "Iniciar sesión en {{statusPageName}}",
+      "description": "Use el botón de abajo para terminar de iniciar sesión.",
+      "submit": "Iniciar sesión",
+      "noLink": "Esta página necesita el enlace de inicio de sesión de su correo. Abra el enlace de nuevo o solicite uno nuevo.",
+      "turnedOff": "Los enlaces de inicio de sesión están desactivados para esta página de estado. Inicie sesión con su correo electrónico y contraseña.",
+      "requestNewLink": "Enviarme un enlace nuevo"
     },
     "masterPassword": {
       "prompt": "Introduzca la contraseña para ver esta página de estado.",

@@ -1243,3 +1243,99 @@ describe("the preview's settings", () => {
     ).toMatchObject({ groupByAttributes: [], resolvedByAttributes: {} });
   });
 });
+
+describe("When to alert, forecasting a metric", () => {
+  test("a forecast condition asks how far ahead, over a week of trend, and drops the measure it ignores", () => {
+    const recorder: Recorder = renderEditor({
+      monitorType: MonitorType.Metrics,
+      initial: metricStep(),
+    });
+
+    pick(comboboxOf("Condition"), "Forecast to rise above");
+
+    // A trend is not measured as an average: every value goes into it.
+    expect(
+      screen.queryByTestId("telemetry-rule-aggregation"),
+    ).not.toBeInTheDocument();
+    // Five minutes hold no trend worth following: a week does.
+    expect(screen.getByTestId("telemetry-rule-window")).toHaveTextContent(
+      "Last 7 days",
+    );
+    expect(
+      screen.getByTestId("telemetry-rule-forecast-horizon"),
+    ).toHaveTextContent("7 days");
+    expect(
+      screen.getByTestId("telemetry-rule-forecast-hint"),
+    ).toHaveTextContent(
+      "Draws a straight line through the metric's values in the time window",
+    );
+    expect(sentence()).toBe(
+      "Alerts when the trend of CPU over the last 7 days is forecast to rise above the value you enter within 7 days.",
+    );
+    expect(recorder.latest!.data!.metricMonitor!.rollingTime).toBe(
+      RollingTime.Past7Days,
+    );
+
+    // The fields still sit two by two: the window and the condition, then the value and how far ahead.
+    const grid: HTMLElement = screen.getByTestId(
+      "telemetry-rule-window",
+    ).parentElement!;
+    expect(
+      Array.from(grid.children).map((child: Element) => {
+        return child.getAttribute("data-testid");
+      }),
+    ).toEqual([
+      "telemetry-rule-window",
+      "telemetry-rule-comparison",
+      "telemetry-rule-value",
+      "telemetry-rule-forecast-horizon",
+    ]);
+  });
+
+  test("the value and the horizon are written to the stored criteria and the sentence", () => {
+    const recorder: Recorder = renderEditor({
+      monitorType: MonitorType.Metrics,
+      initial: metricStep(),
+    });
+
+    pick(comboboxOf("Condition"), "Forecast to fall below");
+    fireEvent.change(thresholdBox(), { target: { value: "10" } });
+    pick(comboboxOf("Within"), "30 days");
+
+    expect(storedFilter(recorder)).toMatchObject({
+      checkOn: CheckOn.MetricValue,
+      filterType: FilterType.ForecastBelow,
+      value: 10,
+      metricMonitorOptions: { forecast: { horizonInHours: 720 } },
+    });
+    expect(sentence()).toBe(
+      "Alerts when the trend of CPU over the last 7 days is forecast to fall below 10 % within 30 days.",
+    );
+    expect(storedRule(recorder, MonitorType.Metrics)).toMatchObject({
+      filterType: FilterType.ForecastBelow,
+      threshold: 10,
+      forecast: { horizonInHours: 720 },
+    });
+  });
+
+  test("going back to a threshold brings the measure back, and keeps the window it was given", () => {
+    const recorder: Recorder = renderEditor({
+      monitorType: MonitorType.Metrics,
+      initial: metricStep(),
+    });
+
+    pick(comboboxOf("Condition"), "Forecast to rise above");
+    pick(comboboxOf("Condition"), "Above");
+
+    expect(
+      screen.getByTestId("telemetry-rule-aggregation"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("telemetry-rule-forecast-horizon"),
+    ).not.toBeInTheDocument();
+    expect(recorder.latest!.data!.metricMonitor!.rollingTime).toBe(
+      RollingTime.Past7Days,
+    );
+    expect(storedFilter(recorder).filterType).toBe(FilterType.GreaterThan);
+  });
+});

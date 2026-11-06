@@ -373,6 +373,30 @@ enum Permission {
   EditDataStoreLabelRule = "EditDataStoreLabelRule",
   ReadDataStoreLabelRule = "ReadDataStoreLabelRule",
 
+  // Table User Owners
+  CreateDataAssetOwnerUser = "CreateDataAssetOwnerUser",
+  DeleteDataAssetOwnerUser = "DeleteDataAssetOwnerUser",
+  EditDataAssetOwnerUser = "EditDataAssetOwnerUser",
+  ReadDataAssetOwnerUser = "ReadDataAssetOwnerUser",
+
+  // Table Team Owners
+  CreateDataAssetOwnerTeam = "CreateDataAssetOwnerTeam",
+  DeleteDataAssetOwnerTeam = "DeleteDataAssetOwnerTeam",
+  EditDataAssetOwnerTeam = "EditDataAssetOwnerTeam",
+  ReadDataAssetOwnerTeam = "ReadDataAssetOwnerTeam",
+
+  // Table Owner Rules: owners assigned to matching stores
+  CreateDataAssetOwnerRule = "CreateDataAssetOwnerRule",
+  DeleteDataAssetOwnerRule = "DeleteDataAssetOwnerRule",
+  EditDataAssetOwnerRule = "EditDataAssetOwnerRule",
+  ReadDataAssetOwnerRule = "ReadDataAssetOwnerRule",
+
+  // Table Label Rules: labels added to matching stores
+  CreateDataAssetLabelRule = "CreateDataAssetLabelRule",
+  DeleteDataAssetLabelRule = "DeleteDataAssetLabelRule",
+  EditDataAssetLabelRule = "EditDataAssetLabelRule",
+  ReadDataAssetLabelRule = "ReadDataAssetLabelRule",
+
   // Data Store Feed: what happened to a store, written by OneUptime
   CreateDataStoreFeed = "CreateDataStoreFeed",
   ReadDataStoreFeed = "ReadDataStoreFeed",
@@ -844,12 +868,16 @@ enum Permission {
    * Docker Swarm Cluster Owner Rule Permissions
    */
   CreateProxmoxClusterOwnerRule = "CreateProxmoxClusterOwnerRule",
+  CreateOpenStackCloudOwnerRule = "CreateOpenStackCloudOwnerRule",
   CreateDockerSwarmClusterOwnerRule = "CreateDockerSwarmClusterOwnerRule",
   DeleteProxmoxClusterOwnerRule = "DeleteProxmoxClusterOwnerRule",
+  DeleteOpenStackCloudOwnerRule = "DeleteOpenStackCloudOwnerRule",
   DeleteDockerSwarmClusterOwnerRule = "DeleteDockerSwarmClusterOwnerRule",
   EditProxmoxClusterOwnerRule = "EditProxmoxClusterOwnerRule",
+  EditOpenStackCloudOwnerRule = "EditOpenStackCloudOwnerRule",
   EditDockerSwarmClusterOwnerRule = "EditDockerSwarmClusterOwnerRule",
   ReadProxmoxClusterOwnerRule = "ReadProxmoxClusterOwnerRule",
+  ReadOpenStackCloudOwnerRule = "ReadOpenStackCloudOwnerRule",
   ReadDockerSwarmClusterOwnerRule = "ReadDockerSwarmClusterOwnerRule",
 
   // IoT Fleet Owner Rule Permissions
@@ -863,12 +891,16 @@ enum Permission {
    * Docker Swarm Cluster Label Rule Permissions
    */
   CreateProxmoxClusterLabelRule = "CreateProxmoxClusterLabelRule",
+  CreateOpenStackCloudLabelRule = "CreateOpenStackCloudLabelRule",
   CreateDockerSwarmClusterLabelRule = "CreateDockerSwarmClusterLabelRule",
   DeleteProxmoxClusterLabelRule = "DeleteProxmoxClusterLabelRule",
+  DeleteOpenStackCloudLabelRule = "DeleteOpenStackCloudLabelRule",
   DeleteDockerSwarmClusterLabelRule = "DeleteDockerSwarmClusterLabelRule",
   EditProxmoxClusterLabelRule = "EditProxmoxClusterLabelRule",
+  EditOpenStackCloudLabelRule = "EditOpenStackCloudLabelRule",
   EditDockerSwarmClusterLabelRule = "EditDockerSwarmClusterLabelRule",
   ReadProxmoxClusterLabelRule = "ReadProxmoxClusterLabelRule",
+  ReadOpenStackCloudLabelRule = "ReadOpenStackCloudLabelRule",
   ReadDockerSwarmClusterLabelRule = "ReadDockerSwarmClusterLabelRule",
 
   // IoT Fleet Label Rule Permissions
@@ -1313,8 +1345,11 @@ enum Permission {
   ReadPodmanHostFeed = "ReadPodmanHostFeed",
 
   CreateProxmoxClusterFeed = "CreateProxmoxClusterFeed",
+  CreateOpenStackCloudFeed = "CreateOpenStackCloudFeed",
   EditProxmoxClusterFeed = "EditProxmoxClusterFeed",
+  EditOpenStackCloudFeed = "EditOpenStackCloudFeed",
   ReadProxmoxClusterFeed = "ReadProxmoxClusterFeed",
+  ReadOpenStackCloudFeed = "ReadOpenStackCloudFeed",
 
   CreateHostFeed = "CreateHostFeed",
   EditHostFeed = "EditHostFeed",
@@ -1740,12 +1775,16 @@ enum Permission {
   ReadPodmanHostOwnerUser = "ReadPodmanHostOwnerUser",
 
   CreateProxmoxCluster = "CreateProxmoxCluster",
+  CreateOpenStackCloud = "CreateOpenStackCloud",
   CreateDockerSwarmCluster = "CreateDockerSwarmCluster",
   DeleteProxmoxCluster = "DeleteProxmoxCluster",
+  DeleteOpenStackCloud = "DeleteOpenStackCloud",
   DeleteDockerSwarmCluster = "DeleteDockerSwarmCluster",
   EditProxmoxCluster = "EditProxmoxCluster",
+  EditOpenStackCloud = "EditOpenStackCloud",
   EditDockerSwarmCluster = "EditDockerSwarmCluster",
   ReadProxmoxCluster = "ReadProxmoxCluster",
+  ReadOpenStackCloud = "ReadOpenStackCloud",
   ReadDockerSwarmCluster = "ReadDockerSwarmCluster",
 
   CreateIoTFleet = "CreateIoTFleet",
@@ -1777,13 +1816,25 @@ enum Permission {
   EditDatabaseServer = "EditDatabaseServer",
   ReadDatabaseServer = "ReadDatabaseServer",
 
+  // Data Observability: the tables of connected data stores and their timelines.
+  CreateDataAsset = "CreateDataAsset",
+  DeleteDataAsset = "DeleteDataAsset",
+  EditDataAsset = "EditDataAsset",
+  ReadDataAsset = "ReadDataAsset",
+  CreateDataAssetFeed = "CreateDataAssetFeed",
+  ReadDataAssetFeed = "ReadDataAssetFeed",
+
   CreateProxmoxClusterOwnerTeam = "CreateProxmoxClusterOwnerTeam",
+  CreateOpenStackCloudOwnerTeam = "CreateOpenStackCloudOwnerTeam",
   CreateDockerSwarmClusterOwnerTeam = "CreateDockerSwarmClusterOwnerTeam",
   DeleteProxmoxClusterOwnerTeam = "DeleteProxmoxClusterOwnerTeam",
+  DeleteOpenStackCloudOwnerTeam = "DeleteOpenStackCloudOwnerTeam",
   DeleteDockerSwarmClusterOwnerTeam = "DeleteDockerSwarmClusterOwnerTeam",
   EditProxmoxClusterOwnerTeam = "EditProxmoxClusterOwnerTeam",
+  EditOpenStackCloudOwnerTeam = "EditOpenStackCloudOwnerTeam",
   EditDockerSwarmClusterOwnerTeam = "EditDockerSwarmClusterOwnerTeam",
   ReadProxmoxClusterOwnerTeam = "ReadProxmoxClusterOwnerTeam",
+  ReadOpenStackCloudOwnerTeam = "ReadOpenStackCloudOwnerTeam",
   ReadDockerSwarmClusterOwnerTeam = "ReadDockerSwarmClusterOwnerTeam",
 
   CreateIoTFleetOwnerTeam = "CreateIoTFleetOwnerTeam",
@@ -1792,12 +1843,16 @@ enum Permission {
   ReadIoTFleetOwnerTeam = "ReadIoTFleetOwnerTeam",
 
   CreateProxmoxClusterOwnerUser = "CreateProxmoxClusterOwnerUser",
+  CreateOpenStackCloudOwnerUser = "CreateOpenStackCloudOwnerUser",
   CreateDockerSwarmClusterOwnerUser = "CreateDockerSwarmClusterOwnerUser",
   DeleteProxmoxClusterOwnerUser = "DeleteProxmoxClusterOwnerUser",
+  DeleteOpenStackCloudOwnerUser = "DeleteOpenStackCloudOwnerUser",
   DeleteDockerSwarmClusterOwnerUser = "DeleteDockerSwarmClusterOwnerUser",
   EditProxmoxClusterOwnerUser = "EditProxmoxClusterOwnerUser",
+  EditOpenStackCloudOwnerUser = "EditOpenStackCloudOwnerUser",
   EditDockerSwarmClusterOwnerUser = "EditDockerSwarmClusterOwnerUser",
   ReadProxmoxClusterOwnerUser = "ReadProxmoxClusterOwnerUser",
+  ReadOpenStackCloudOwnerUser = "ReadOpenStackCloudOwnerUser",
   ReadDockerSwarmClusterOwnerUser = "ReadDockerSwarmClusterOwnerUser",
 
   CreateIoTFleetOwnerUser = "CreateIoTFleetOwnerUser",
@@ -2042,6 +2097,12 @@ enum Permission {
   DeleteAlertOnCallRule = "DeleteAlertOnCallRule",
   EditAlertOnCallRule = "EditAlertOnCallRule",
   ReadAlertOnCallRule = "ReadAlertOnCallRule",
+
+  // Alert Incident Rule Permissions
+  CreateAlertIncidentRule = "CreateAlertIncidentRule",
+  DeleteAlertIncidentRule = "DeleteAlertIncidentRule",
+  EditAlertIncidentRule = "EditAlertIncidentRule",
+  ReadAlertIncidentRule = "ReadAlertIncidentRule",
 
   // Alert Owner Rule Permissions
   CreateAlertOwnerRule = "CreateAlertOwnerRule",
@@ -4202,6 +4263,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateOpenStackCloudFeed,
+        title: "Create OpenStack Cloud Feed",
+        description:
+          "This permission can create the activity feed of a OpenStack cloud in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.EditProxmoxClusterFeed,
         title: "Edit Proxmox Cluster Feed",
         description:
@@ -4212,10 +4283,30 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.EditOpenStackCloudFeed,
+        title: "Edit OpenStack Cloud Feed",
+        description:
+          "This permission can edit the activity feed of a OpenStack cloud in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.ReadProxmoxClusterFeed,
         title: "Read Proxmox Cluster Feed",
         description:
           "This permission can read the activity feed of a Proxmox cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadOpenStackCloudFeed,
+        title: "Read OpenStack Cloud Feed",
+        description:
+          "This permission can read the activity feed of a OpenStack cloud in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6459,8 +6550,20 @@ export class PermissionHelper {
       },
       {
         permission: Permission.CreateProjectOnCallDutyPolicyExecutionLog,
-        title: "Create On-Call Duty Policy Execution Log",
-        description: "This permission can create on-call duty execution log.",
+        /*
+         * The permission a run of an on-call policy is created with: to page
+         * a policy about an incident, an alert or an episode - a record's
+         * Execute On-Call Policy, Page now on a page OneUptime AI holds, a
+         * chat's /oneuptime page, the API. Named after what it allows, as
+         * the lock on those buttons names it ("You need this permission:
+         * Execute On-Call Duty Policy."), not after the row it writes - and
+         * as its siblings name the policy (Create, Edit, Read On-Call Duty
+         * Policy), so it is never the record's button's own words, which a
+         * translated page draws in its language.
+         */
+        title: "Execute On-Call Duty Policy",
+        description:
+          "This permission can execute on-call policies: page their escalation rules about an incident, an alert or an episode.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -9235,6 +9338,174 @@ export class PermissionHelper {
         group: PermissionGroup.Security,
       },
 
+      // Table User Owner Permissions
+      {
+        permission: Permission.CreateDataAssetOwnerUser,
+        title: "Create Table User Owner",
+        description:
+          "This permission can create Table User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDataAssetOwnerUser,
+        title: "Delete Table User Owner",
+        description:
+          "This permission can delete Table User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDataAssetOwnerUser,
+        title: "Edit Table User Owner",
+        description:
+          "This permission can edit Table User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataAssetOwnerUser,
+        title: "Read Table User Owner",
+        description:
+          "This permission can read Table User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Table Team Owner Permissions
+      {
+        permission: Permission.CreateDataAssetOwnerTeam,
+        title: "Create Table Team Owner",
+        description:
+          "This permission can create Table Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDataAssetOwnerTeam,
+        title: "Delete Table Team Owner",
+        description:
+          "This permission can delete Table Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDataAssetOwnerTeam,
+        title: "Edit Table Team Owner",
+        description:
+          "This permission can edit Table Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataAssetOwnerTeam,
+        title: "Read Table Team Owner",
+        description:
+          "This permission can read Table Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Table Owner Rule Permissions
+      {
+        permission: Permission.CreateDataAssetOwnerRule,
+        title: "Create Table Owner Rule",
+        description:
+          "This permission can create Table Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDataAssetOwnerRule,
+        title: "Delete Table Owner Rule",
+        description:
+          "This permission can delete Table Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDataAssetOwnerRule,
+        title: "Edit Table Owner Rule",
+        description:
+          "This permission can edit Table Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataAssetOwnerRule,
+        title: "Read Table Owner Rule",
+        description:
+          "This permission can read Table Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Table Label Rule Permissions
+      {
+        permission: Permission.CreateDataAssetLabelRule,
+        title: "Create Table Label Rule",
+        description:
+          "This permission can create Table Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDataAssetLabelRule,
+        title: "Delete Table Label Rule",
+        description:
+          "This permission can delete Table Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDataAssetLabelRule,
+        title: "Edit Table Label Rule",
+        description:
+          "This permission can edit Table Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataAssetLabelRule,
+        title: "Read Table Label Rule",
+        description:
+          "This permission can read Table Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
       // Data Store Feed Permissions
       {
         permission: Permission.CreateDataStoreFeed,
@@ -10872,6 +11143,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateOpenStackCloud,
+        title: "Create OpenStack Cloud",
+        description:
+          "This permission can create OpenStack Cloud in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.CreateDockerSwarmCluster,
         title: "Create Docker Swarm Cluster",
         description:
@@ -10886,6 +11167,16 @@ export class PermissionHelper {
         title: "Delete Proxmox Cluster",
         description:
           "This permission can delete Proxmox Cluster of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteOpenStackCloud,
+        title: "Delete OpenStack Cloud",
+        description:
+          "This permission can delete OpenStack Cloud of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -10912,6 +11203,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.EditOpenStackCloud,
+        title: "Edit OpenStack Cloud",
+        description:
+          "This permission can edit OpenStack Cloud of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.EditDockerSwarmCluster,
         title: "Edit Docker Swarm Cluster",
         description:
@@ -10926,6 +11227,16 @@ export class PermissionHelper {
         title: "Read Proxmox Cluster",
         description:
           "This permission can read Proxmox Cluster of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadOpenStackCloud,
+        title: "Read OpenStack Cloud",
+        description:
+          "This permission can read OpenStack Cloud of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -11167,6 +11478,67 @@ export class PermissionHelper {
           "This permission can read databases of this project, including their endpoints.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateDataAsset,
+        title: "Create Data Asset",
+        description:
+          "This permission can create data assets (the tables and views of connected data stores) in this project. OneUptime finds them on its own; this is for adding one by hand.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDataAsset,
+        title: "Delete Data Asset",
+        description:
+          "This permission can delete data assets of this project, with their history.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDataAsset,
+        title: "Edit Data Asset",
+        description:
+          "This permission can edit data assets of this project: their descriptions and how they are watched.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataAsset,
+        title: "Read Data Asset",
+        description:
+          "This permission can read data assets of this project: each table's columns, row count, size and when it last changed.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateDataAssetFeed,
+        title: "Create Data Asset Feed",
+        description:
+          "This permission can add entries to the timelines of data assets of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataAssetFeed,
+        title: "Read Data Asset Feed",
+        description:
+          "This permission can read the timelines of data assets of this project: schema changes, tables dropped and restored.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
@@ -11953,6 +12325,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateOpenStackCloudOwnerTeam,
+        title: "Create OpenStack Cloud Team Owner",
+        description:
+          "This permission can create OpenStack Cloud Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.CreateDockerSwarmClusterOwnerTeam,
         title: "Create Docker Swarm Cluster Team Owner",
         description:
@@ -11967,6 +12349,16 @@ export class PermissionHelper {
         title: "Delete Proxmox Cluster Team Owner",
         description:
           "This permission can delete Proxmox Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteOpenStackCloudOwnerTeam,
+        title: "Delete OpenStack Cloud Team Owner",
+        description:
+          "This permission can delete OpenStack Cloud Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -11993,6 +12385,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.EditOpenStackCloudOwnerTeam,
+        title: "Edit OpenStack Cloud Team Owner",
+        description:
+          "This permission can edit OpenStack Cloud Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.EditDockerSwarmClusterOwnerTeam,
         title: "Edit Docker Swarm Cluster Team Owner",
         description:
@@ -12007,6 +12409,16 @@ export class PermissionHelper {
         title: "Read Proxmox Cluster Team Owner",
         description:
           "This permission can read Proxmox Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadOpenStackCloudOwnerTeam,
+        title: "Read OpenStack Cloud Team Owner",
+        description:
+          "This permission can read OpenStack Cloud Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -12075,6 +12487,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateOpenStackCloudOwnerUser,
+        title: "Create OpenStack Cloud User Owner",
+        description:
+          "This permission can create OpenStack Cloud User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.CreateDockerSwarmClusterOwnerUser,
         title: "Create Docker Swarm Cluster User Owner",
         description:
@@ -12089,6 +12511,16 @@ export class PermissionHelper {
         title: "Delete Proxmox Cluster User Owner",
         description:
           "This permission can delete Proxmox Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteOpenStackCloudOwnerUser,
+        title: "Delete OpenStack Cloud User Owner",
+        description:
+          "This permission can delete OpenStack Cloud User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -12115,6 +12547,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.EditOpenStackCloudOwnerUser,
+        title: "Edit OpenStack Cloud User Owner",
+        description:
+          "This permission can edit OpenStack Cloud User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.EditDockerSwarmClusterOwnerUser,
         title: "Edit Docker Swarm Cluster User Owner",
         description:
@@ -12129,6 +12571,16 @@ export class PermissionHelper {
         title: "Read Proxmox Cluster User Owner",
         description:
           "This permission can read Proxmox Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadOpenStackCloudOwnerUser,
+        title: "Read OpenStack Cloud User Owner",
+        description:
+          "This permission can read OpenStack Cloud User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -14909,6 +15361,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateOpenStackCloudOwnerRule,
+        title: "Create OpenStack Cloud Owner Rule",
+        description:
+          "This permission can create OpenStack Cloud Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.CreateDockerSwarmClusterOwnerRule,
         title: "Create Docker Swarm Cluster Owner Rule",
         description:
@@ -14923,6 +15385,16 @@ export class PermissionHelper {
         title: "Delete Proxmox Cluster Owner Rule",
         description:
           "This permission can delete Proxmox Cluster Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteOpenStackCloudOwnerRule,
+        title: "Delete OpenStack Cloud Owner Rule",
+        description:
+          "This permission can delete OpenStack Cloud Owner Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -14949,6 +15421,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.EditOpenStackCloudOwnerRule,
+        title: "Edit OpenStack Cloud Owner Rule",
+        description:
+          "This permission can edit OpenStack Cloud Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.EditDockerSwarmClusterOwnerRule,
         title: "Edit Docker Swarm Cluster Owner Rule",
         description:
@@ -14963,6 +15445,16 @@ export class PermissionHelper {
         title: "Read Proxmox Cluster Owner Rule",
         description:
           "This permission can read Proxmox Cluster Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadOpenStackCloudOwnerRule,
+        title: "Read OpenStack Cloud Owner Rule",
+        description:
+          "This permission can read OpenStack Cloud Owner Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -15036,6 +15528,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateOpenStackCloudLabelRule,
+        title: "Create OpenStack Cloud Label Rule",
+        description:
+          "This permission can create OpenStack Cloud Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.CreateDockerSwarmClusterLabelRule,
         title: "Create Docker Swarm Cluster Label Rule",
         description:
@@ -15050,6 +15552,16 @@ export class PermissionHelper {
         title: "Delete Proxmox Cluster Label Rule",
         description:
           "This permission can delete Proxmox Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteOpenStackCloudLabelRule,
+        title: "Delete OpenStack Cloud Label Rule",
+        description:
+          "This permission can delete OpenStack Cloud Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -15076,6 +15588,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.EditOpenStackCloudLabelRule,
+        title: "Edit OpenStack Cloud Label Rule",
+        description:
+          "This permission can edit OpenStack Cloud Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.EditDockerSwarmClusterLabelRule,
         title: "Edit Docker Swarm Cluster Label Rule",
         description:
@@ -15090,6 +15612,16 @@ export class PermissionHelper {
         title: "Read Proxmox Cluster Label Rule",
         description:
           "This permission can read Proxmox Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadOpenStackCloudLabelRule,
+        title: "Read OpenStack Cloud Label Rule",
+        description:
+          "This permission can read OpenStack Cloud Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16754,6 +17286,48 @@ export class PermissionHelper {
         title: "Read Alert On-Call Rule",
         description:
           "This permission can read Alert On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
+      // Alert Incident Rule Permissions
+      {
+        permission: Permission.CreateAlertIncidentRule,
+        title: "Create Alert Incident Rule",
+        description:
+          "This permission can create Alert Incident Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertIncidentRule,
+        title: "Delete Alert Incident Rule",
+        description:
+          "This permission can delete Alert Incident Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertIncidentRule,
+        title: "Edit Alert Incident Rule",
+        description:
+          "This permission can edit Alert Incident Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertIncidentRule,
+        title: "Read Alert Incident Rule",
+        description:
+          "This permission can read Alert Incident Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

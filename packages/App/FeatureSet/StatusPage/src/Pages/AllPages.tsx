@@ -4,6 +4,8 @@ export { default as Logout } from "./Accounts/Logout";
 export { default as ResetPassword } from "./Accounts/ResetPassword";
 export { default as MasterPassword } from "./Accounts/MasterPassword";
 export { default as Sso } from "./Accounts/SSO";
+export { default as MagicLink } from "./Accounts/MagicLink";
+export { default as MagicLinkLogin } from "./Accounts/MagicLinkLogin";
 export { default as AnnouncementDetail } from "./Announcement/Detail";
 export { default as AnnouncementList } from "./Announcement/List";
 export { default as IncidentDetail } from "./Incidents/Detail";

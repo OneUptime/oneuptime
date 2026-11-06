@@ -1,18 +1,18 @@
-import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import Button, { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "../../../Types/Icon/IconProp";
 import Typeof from "../../../Types/Typeof";
 import React, { ReactElement } from "react";
-import {
-  DragDropContext,
-  Draggable,
+import type {
   DraggableProvided,
   DropResult,
-  Droppable,
   DroppableProvided,
 } from "react-beautiful-dnd";
+import {
+  DragAndDropLibrary,
+  useDragAndDrop,
+} from "../DragAndDrop/DragAndDropLoader";
 
 // Every row of the list: a button, unless it has a Delete button of its own.
 export const MODEL_LIST_ROW_TEST_ID: string = "model-list-row";
@@ -46,6 +46,16 @@ const StaticModelList: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  /*
+   * The drag-and-drop library, loaded for a list that reorders its rows
+   * (DragAndDropLoader); null while it loads and for every other list -
+   * the single sign-on page of a status page among them. Until it is there
+   * the rows are drawn as they will look, and do not drag.
+   */
+  const dragAndDrop: DragAndDropLibrary | null = useDragAndDrop(
+    Boolean(props.enableDragAndDrop),
+  );
+
   type GetRowFunction = (
     model: TBaseModel,
     isSelected: boolean,
@@ -187,7 +197,10 @@ const StaticModelList: <TBaseModel extends BaseModel>(
                 return selectedItem._id?.toString() === model._id?.toString();
               }).length > 0;
 
-            if (props.enableDragAndDrop) {
+            if (dragAndDrop) {
+              const Draggable: DragAndDropLibrary["Draggable"] =
+                dragAndDrop.Draggable;
+
               return (
                 <Draggable
                   draggableId={
@@ -217,19 +230,13 @@ const StaticModelList: <TBaseModel extends BaseModel>(
     );
   };
 
-  const getComponent: GetReactElementFunction = (): ReactElement => {
-    if (props.enableDragAndDrop) {
-      return (
-        <Droppable droppableId={props.dragAndDropScope || ""}>
-          {(provided: DroppableProvided) => {
-            return getBody(provided);
-          }}
-        </Droppable>
-      );
-    }
-
+  if (!dragAndDrop) {
     return getBody();
-  };
+  }
+
+  const DragDropContext: DragAndDropLibrary["DragDropContext"] =
+    dragAndDrop.DragDropContext;
+  const Droppable: DragAndDropLibrary["Droppable"] = dragAndDrop.Droppable;
 
   return (
     <DragDropContext
@@ -250,7 +257,11 @@ const StaticModelList: <TBaseModel extends BaseModel>(
         );
       }}
     >
-      {getComponent()}
+      <Droppable droppableId={props.dragAndDropScope || ""}>
+        {(provided: DroppableProvided) => {
+          return getBody(provided);
+        }}
+      </Droppable>
     </DragDropContext>
   );
 };

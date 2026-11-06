@@ -66,6 +66,12 @@ export interface ShowcaseChart {
   label: string;
   // The line's shape, left to right; any scale.
   values: Array<number>;
+  /*
+   * English translation key: the span the line covers, in the chart's
+   * corner. "Last hour" when unset, as a metric's; a chart of each day's
+   * spend says "Last 30 days".
+   */
+  range?: string | undefined;
 }
 
 // A connected one, as its overview shows it: an example, not the project's.

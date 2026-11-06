@@ -99,8 +99,9 @@ import { buildNotificationSms } from "../../../Utils/Sms/NotificationSms";
  *
  * Three things about a case need a person, and each is sent through the
  * notification settings every other event uses - email, SMS, call, push,
- * WhatsApp, Telegram, Slack and Microsoft Teams messages to the person,
- * webhooks - as the person chose (User Settings > Notification Settings):
+ * WhatsApp, Telegram, Slack, Microsoft Teams and Mattermost messages to the
+ * person, webhooks - as the person chose (User Settings > Notification
+ * Settings):
  *
  *  - A case opens, or rises, at the priority the person chose (High and
  *    above when they chose none): SEND_SECURITY_CASE_OPENED_NOTIFICATION, to
@@ -1975,6 +1976,7 @@ export default class SecurityCaseNotifications {
           alertByTelegram: true,
           alertBySlack: true,
           alertByMicrosoftTeams: true,
+          alertByMattermost: true,
           alertByWebhook: true,
           alertByCustomChannel: true,
         },
@@ -2004,6 +2006,7 @@ export default class SecurityCaseNotifications {
         setting.alertByTelegram ||
         setting.alertBySlack ||
         setting.alertByMicrosoftTeams ||
+        setting.alertByMattermost ||
         setting.alertByWebhook ||
         setting.alertByCustomChannel,
     );

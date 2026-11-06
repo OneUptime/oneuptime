@@ -180,7 +180,7 @@ Each item of `monitor_steps` is one thing to check:
 
 ### Settings of each monitor type
 
-Monitor types with more to set than an address keep their settings (a log query, a database connection, a cluster to watch) in an attribute of their own, as raw JSON written with `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` and `probe_status_monitor`.
+Monitor types with more to set than an address keep their settings (a log query, a database connection, a cluster to watch) in an attribute of their own, as raw JSON written with `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` and `probe_status_monitor`.
 
 Their JSON is the same as the dashboard's, keys in camelCase. An ID in it is written as the API writes one, `{ _type = "ObjectID", value = "..." }`. A Logs monitor that counts errors from one service:
 
@@ -333,6 +333,7 @@ The `check_on` values each monitor type uses most. The dashboard's criteria edit
 | Server processes | `Is Executing`, `Is Not Executing` |
 | Scripts | `Evaluates To True` |
 | Anomalies, for metrics, logs and traces | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Forecasts, for metrics | `Forecast Above`, `Forecast Below` (how far ahead is `forecast.horizonInHours` in `metric_monitor_options`: a week when left out) |
 
 A filter that matches when an SSL certificate expires in 14 days or less:
 

@@ -2251,8 +2251,8 @@ describe("the Databases and Queues pages, against the lists and discovery they d
       repoFile(
         "packages/App/FeatureSet/Dashboard/src/Pages/Database/Databases.tsx",
       ),
-    ).toContain('title: "Discovered from"');
-    lineWith(DATABASES_PAGE, "(the **Discovered from** column)");
+    ).toContain('title: "Discovered From"');
+    lineWith(DATABASES_PAGE, "(the **Discovered From** column)");
   });
 
   it("gets a queue started in the numbers discovery runs on", () => {

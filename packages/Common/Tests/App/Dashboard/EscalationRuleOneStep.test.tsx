@@ -1492,13 +1492,20 @@ describe("a Next in rotation that would page nobody", () => {
       "escalation-summary-no-one-next",
     );
 
-    expect(tag).toHaveTextContent("No one next");
+    /*
+     * In the chip's own sentence case, after the schedule's name, as "no
+     * one on call" is: drawn in capitals until #5412's review, a capital
+     * "No" mid-chip read as a new sentence.
+     */
+    expect(tag.textContent).toBe("no one next");
 
     const responder: HTMLElement = tag.closest(
       '[data-testid="escalation-summary-responder"]',
     ) as HTMLElement;
 
-    expect(responder).toHaveTextContent("Primary rotation next in rotation");
+    expect(responder).toHaveTextContent(
+      "Primary rotation next in rotation no one next",
+    );
     expect(responder.className).toContain("bg-amber-50");
     expect(responder.getAttribute("title")).toBe(NO_ONE_NEXT_TOOLTIP);
   });

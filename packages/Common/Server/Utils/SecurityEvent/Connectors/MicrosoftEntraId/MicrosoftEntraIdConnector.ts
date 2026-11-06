@@ -7,6 +7,7 @@ import {
 } from "../../../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import SecurityEventConnectorProvider from "../../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import {
+  ENTRA_BACKGROUND_SIGN_INS_KEY,
   MICROSOFT_365_AUDIT_KEY,
   SecurityEventConnectorDefinition,
   getSecurityEventConnectorDefinition,
@@ -14,8 +15,11 @@ import {
 import {
   EntraLog,
   isEntraDirectoryAudit,
+  isEntraRiskDetection,
   isEntraSignIn,
+  readEntraBackgroundSignIn,
   readEntraDirectoryAudit,
+  readEntraRisk,
   readEntraSignIn,
 } from "../../../../../Utils/SecurityEvent/Connectors/EntraIdNormalizer";
 import { readMicrosoft365Record } from "../../../../../Utils/SecurityEvent/Connectors/Microsoft365AuditNormalizer";
@@ -62,31 +66,41 @@ import MicrosoftEntraIdClient, {
 } from "./MicrosoftEntraIdClient";
 
 /*
- * Microsoft Entra ID connector: the tenant's sign-ins and directory changes
- * from Microsoft Graph, and - when the connection's Microsoft 365 audit log
- * option is on - the Exchange, SharePoint, OneDrive and Teams records a
- * security team acts on, from the Office 365 Management Activity API.
+ * Microsoft Entra ID connector: the tenant's sign-ins, directory changes
+ * and Identity Protection's risk detections from Microsoft Graph; when the
+ * connection's Background and app sign-ins option is on, the sign-ins apps
+ * make for people in the background and apps' own that failed; and when its
+ * Microsoft 365 audit log option is on, the Exchange, SharePoint, OneDrive
+ * and Teams records a security team acts on, from the Office 365
+ * Management Activity API.
  *
  * A fetch reads its window in passes, each with a budget of its own so a
  * busy one cannot starve the others: directory changes first (few, and the
- * ones that matter most), then sign-ins, then the Microsoft 365 audit log.
+ * ones that matter most), then sign-ins, risk detections, background and
+ * app sign-ins, and last the Microsoft 365 audit log.
  *
- *  - Graph lists both logs newest first and documents no oldest-first
+ *  - Graph lists its logs newest first and documents no oldest-first
  *    order, so a pass a bound stops names no resume point; the poller then
  *    narrows the next window from the same start (see Connectors/Types.ts).
  *  - A tenant without Microsoft Entra ID P1 or P2 cannot read its sign-ins
- *    through Graph. That is a warning on every run, not a failure: its
- *    directory changes are still imported.
+ *    or risk detections through Graph. That is a warning on every run, not
+ *    a failure: its directory changes are still imported.
+ *  - Directory changes and sign-ins are the connection's own: a failure to
+ *    read either fails the run. Every later pass is an addition, and its
+ *    failures never stop the others: a permission or licence problem is a
+ *    warning (re-reading the window would not fix it), a transient one
+ *    leaves the window to be read again. Risk detections need a permission
+ *    of their own (IdentityRiskEvent.Read.All) that connections made before
+ *    it was read may lack; background and app sign-ins come from Graph's
+ *    beta list.
  *  - The Microsoft 365 audit log is listed by when Microsoft made each
  *    content blob available - the time this framework polls by. Its
- *    content types are subscribed to on the first poll. Its failures never
- *    stop the Entra ID passes: a permission or subscription problem is a
- *    warning (re-reading the window would not fix it, and a backfill can
- *    read the last 7 days once it is fixed), a transient one leaves the
- *    window to be read again.
+ *    content types are subscribed to on the first poll; a backfill can read
+ *    the last 7 days once a problem with it is fixed.
  *
  * Settings come from the catalog's keys: config.tenantId, config.clientId,
- * config.cloud, config.includeMicrosoft365Audit and secrets.clientSecret.
+ * config.cloud, config.includeBackgroundSignIns,
+ * config.includeMicrosoft365Audit and secrets.clientSecret.
  */
 
 interface ParsedSettings {
@@ -94,6 +108,7 @@ interface ParsedSettings {
   clientId: string;
   clientSecret: string;
   cloud: MicrosoftEntraIdCloud;
+  includeBackgroundSignIns: boolean;
   includeMicrosoft365: boolean;
 }
 
@@ -111,6 +126,14 @@ const TENANT_REGEX: RegExp = /^[A-Za-z0-9][A-Za-z0-9.-]{0,254}$/;
 export const ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET: number = 10;
 // Pages of sign-ins one fetch reads at most (500 a page).
 export const ENTRA_SIGN_IN_PAGE_BUDGET: number = 20;
+// Pages of risk detections one fetch reads at most (500 a page).
+export const ENTRA_RISK_DETECTION_PAGE_BUDGET: number = 4;
+/*
+ * Pages of each background sign-in kind one fetch reads at most (500 a
+ * page): apps sign in for people far more often than people sign in, and
+ * only the failures are kept.
+ */
+export const ENTRA_BACKGROUND_SIGN_IN_PAGE_BUDGET: number = 10;
 /*
  * Requests the Microsoft 365 pass makes at most: its subscriptions, the
  * content listings and every content blob.
@@ -194,11 +217,67 @@ const GRAPH_LOGS: Record<
     name: "Read sign-ins",
     noun: "sign-ins",
   },
+  riskDetections: {
+    key: "read-risk-detections",
+    name: "Read risk detections",
+    noun: "risk detections",
+  },
+  nonInteractiveSignIns: {
+    key: "read-background-sign-ins",
+    name: "Read background sign-ins",
+    noun: "background sign-ins",
+  },
+  servicePrincipalSignIns: {
+    key: "read-app-sign-ins",
+    name: "Read app sign-ins",
+    noun: "app sign-ins",
+  },
+};
+
+/*
+ * The passes every fetch makes and fails without (the connection's own
+ * records), then the ones it adds to them, which never stop the others.
+ */
+const CORE_LOGS: ReadonlyArray<MicrosoftEntraIdLog> = [
+  "directoryAudits",
+  "signIns",
+];
+
+const BACKGROUND_SIGN_IN_LOGS: ReadonlyArray<MicrosoftEntraIdLog> = [
+  "nonInteractiveSignIns",
+  "servicePrincipalSignIns",
+];
+
+// The passes a fetch reads, by its settings, in order, each with a budget.
+type EntraPass = MicrosoftEntraIdLog | "microsoft365";
+
+// Pages each Graph log is read for at most.
+const GRAPH_PAGE_BUDGETS: Record<MicrosoftEntraIdLog, number> = {
+  directoryAudits: ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET,
+  signIns: ENTRA_SIGN_IN_PAGE_BUDGET,
+  riskDetections: ENTRA_RISK_DETECTION_PAGE_BUDGET,
+  nonInteractiveSignIns: ENTRA_BACKGROUND_SIGN_IN_PAGE_BUDGET,
+  servicePrincipalSignIns: ENTRA_BACKGROUND_SIGN_IN_PAGE_BUDGET,
+};
+
+// What a Graph log's records are created at: the time it is listed by.
+const GRAPH_CREATED_FIELDS: Record<MicrosoftEntraIdLog, string> = {
+  directoryAudits: "activityDateTime",
+  signIns: "createdDateTime",
+  riskDetections: "detectedDateTime",
+  nonInteractiveSignIns: "createdDateTime",
+  servicePrincipalSignIns: "createdDateTime",
 };
 
 const MICROSOFT_365_CHECK: { key: string; name: string } = {
   key: "read-microsoft-365",
   name: "Read the Microsoft 365 audit log",
+};
+
+// A test reads both background kinds under one check.
+const BACKGROUND_SIGN_INS_CHECK: { key: string; name: string } = {
+  key: "read-background-and-app-sign-ins",
+  name: "Read background and app sign-ins",
 };
 
 const AVAILABILITY_CHECK: { key: string; name: string } = {
@@ -219,16 +298,55 @@ export default class MicrosoftEntraIdConnector
    */
   public fetchBudget: ConnectorFetchBudget = {
     maxRequests:
-      ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET +
-      ENTRA_SIGN_IN_PAGE_BUDGET +
-      MICROSOFT_365_REQUEST_BUDGET +
-      4,
-    maxEvents:
-      (ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET + ENTRA_SIGN_IN_PAGE_BUDGET) *
-        MICROSOFT_ENTRA_ID_PAGE_SIZE +
-      MICROSOFT_365_RECORD_BUDGET,
+      MicrosoftEntraIdConnector.plannedRequests(
+        MicrosoftEntraIdConnector.plannedPasses({
+          includeBackgroundSignIns: true,
+          includeMicrosoft365: true,
+        }),
+      ) + 4,
+    maxEvents: MicrosoftEntraIdConnector.plannedRecords(
+      MicrosoftEntraIdConnector.plannedPasses({
+        includeBackgroundSignIns: true,
+        includeMicrosoft365: true,
+      }),
+    ),
     maxDurationMs: MICROSOFT_ENTRA_ID_FETCH_DURATION_MS,
   };
+
+  // Every pass a fetch with these options makes, in the order it makes them.
+  public static plannedPasses(options: {
+    includeBackgroundSignIns: boolean;
+    includeMicrosoft365: boolean;
+  }): Array<EntraPass> {
+    return [
+      ...CORE_LOGS,
+      "riskDetections",
+      ...(options.includeBackgroundSignIns ? BACKGROUND_SIGN_IN_LOGS : []),
+      ...(options.includeMicrosoft365 ? ["microsoft365" as EntraPass] : []),
+    ];
+  }
+
+  private static plannedRequests(passes: Array<EntraPass>): number {
+    return passes.reduce((total: number, pass: EntraPass): number => {
+      return (
+        total +
+        (pass === "microsoft365"
+          ? MICROSOFT_365_REQUEST_BUDGET
+          : GRAPH_PAGE_BUDGETS[pass])
+      );
+    }, 0);
+  }
+
+  private static plannedRecords(passes: Array<EntraPass>): number {
+    return passes.reduce((total: number, pass: EntraPass): number => {
+      return (
+        total +
+        (pass === "microsoft365"
+          ? MICROSOFT_365_RECORD_BUDGET
+          : GRAPH_PAGE_BUDGETS[pass] * MICROSOFT_ENTRA_ID_PAGE_SIZE)
+      );
+    }, 0);
+  }
 
   private transport: ConnectorTransport;
 
@@ -275,6 +393,16 @@ export default class MicrosoftEntraIdConnector
     settings: SecurityConnectorSettings,
   ): boolean {
     return readSettingBoolean(settings.config, MICROSOFT_365_AUDIT_KEY, false);
+  }
+
+  public static readsBackgroundSignIns(
+    settings: SecurityConnectorSettings,
+  ): boolean {
+    return readSettingBoolean(
+      settings.config,
+      ENTRA_BACKGROUND_SIGN_INS_KEY,
+      false,
+    );
   }
 
   private static parseSettings(
@@ -325,7 +453,15 @@ export default class MicrosoftEntraIdConnector
       );
     }
 
-    return { tenantId, clientId, clientSecret, cloud, includeMicrosoft365 };
+    return {
+      tenantId,
+      clientId,
+      clientSecret,
+      cloud,
+      includeBackgroundSignIns:
+        MicrosoftEntraIdConnector.readsBackgroundSignIns(settings),
+      includeMicrosoft365,
+    };
   }
 
   public validateSettings(settings: SecurityConnectorSettings): void {
@@ -367,6 +503,8 @@ export default class MicrosoftEntraIdConnector
     const samples: Array<SecurityConnectorSample> = [];
     const readsMicrosoft365: boolean =
       MicrosoftEntraIdConnector.readsMicrosoft365(settings);
+    const readsBackgroundSignIns: boolean =
+      MicrosoftEntraIdConnector.readsBackgroundSignIns(settings);
     let parsed: ParsedSettings;
     let startedAtMs: number = Date.now();
 
@@ -377,6 +515,8 @@ export default class MicrosoftEntraIdConnector
       const remaining: Array<{ key: string; name: string }> = [
         GRAPH_LOGS.signIns,
         GRAPH_LOGS.directoryAudits,
+        GRAPH_LOGS.riskDetections,
+        ...(readsBackgroundSignIns ? [BACKGROUND_SIGN_INS_CHECK] : []),
         ...(readsMicrosoft365 ? [MICROSOFT_365_CHECK] : []),
         AVAILABILITY_CHECK,
       ].slice(from);
@@ -517,14 +657,42 @@ export default class MicrosoftEntraIdConnector
             status: "fail",
             startedAtMs,
             message: MicrosoftEntraIdConnector.errorMessage(error),
-            remediation: MicrosoftEntraIdConnector.graphRemediation(error, log),
+            remediation: MicrosoftEntraIdConnector.graphRemediation(
+              error,
+              log,
+              parsed.cloud,
+            ),
           }),
         );
       }
     }
 
+    checks.push(
+      await MicrosoftEntraIdConnector.riskDetectionsCheck({
+        client,
+        cloud: parsed.cloud,
+        startTime: dayAgo,
+        endTime: now,
+        probeSize,
+        counts,
+      }),
+    );
+
+    if (readsBackgroundSignIns) {
+      checks.push(
+        await MicrosoftEntraIdConnector.backgroundSignInsCheck({
+          client,
+          cloud: parsed.cloud,
+          startTime: dayAgo,
+          endTime: now,
+        }),
+      );
+    }
+
     if (readsMicrosoft365) {
-      checks.push(await MicrosoftEntraIdConnector.microsoft365Check(client));
+      checks.push(
+        await MicrosoftEntraIdConnector.microsoft365Check(client, parsed.cloud),
+      );
     }
 
     if (!readable) {
@@ -558,7 +726,17 @@ export default class MicrosoftEntraIdConnector
   ): SecurityConnectorCheck {
     const signIns: string = counts.signIns || "0";
     const audits: string = counts.directoryAudits || "0";
+    const risks: string = counts.riskDetections || "0";
     const nothing: boolean = signIns === "0" && audits === "0";
+    const parts: Array<string> = [
+      ...(premiumMissing
+        ? []
+        : [`${signIns} sign-in${signIns === "1" ? "" : "s"}`]),
+      `${audits} directory change${audits === "1" ? "" : "s"}`,
+      ...(risks !== "0"
+        ? [`${risks} risk detection${risks === "1" ? "" : "s"}`]
+        : []),
+    ];
 
     return makeCheck({
       key: AVAILABILITY_CHECK.key,
@@ -567,9 +745,7 @@ export default class MicrosoftEntraIdConnector
       startedAtMs: Date.now(),
       message: nothing
         ? "No sign-ins or directory changes in the last 24 hours. Polling imports new ones as Microsoft Entra ID records them."
-        : premiumMissing
-          ? `${audits} directory change${audits === "1" ? "" : "s"} in the last 24 hours.`
-          : `${signIns} sign-in${signIns === "1" ? "" : "s"} and ${audits} directory change${audits === "1" ? "" : "s"} in the last 24 hours.`,
+        : `${parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : parts[0]} in the last 24 hours.`,
       ...(nothing
         ? {
             remediation:
@@ -579,13 +755,125 @@ export default class MicrosoftEntraIdConnector
       details: {
         signInsLast24h: signIns,
         directoryChangesLast24h: audits,
+        ...(counts.riskDetections !== undefined
+          ? { riskDetectionsLast24h: risks }
+          : {}),
       },
+    });
+  }
+
+  /*
+   * Identity Protection's risk detections over the last day: a warning, not
+   * a failure, when they cannot be read - the sign-ins and directory
+   * changes still are - saying what the app or the tenant lacks.
+   */
+  private static async riskDetectionsCheck(data: {
+    client: MicrosoftEntraIdClient;
+    cloud: MicrosoftEntraIdCloud;
+    startTime: Date;
+    endTime: Date;
+    probeSize: number;
+    counts: Partial<Record<MicrosoftEntraIdLog, string>>;
+  }): Promise<SecurityConnectorCheck> {
+    const check: { key: string; name: string; noun: string } =
+      GRAPH_LOGS.riskDetections;
+    const startedAtMs: number = Date.now();
+
+    try {
+      const page: MicrosoftEntraIdPage = await data.client.listLog({
+        log: "riskDetections",
+        startTime: data.startTime,
+        endTime: data.endTime,
+        pageSize: data.probeSize,
+      });
+
+      data.counts.riskDetections = page.nextLink
+        ? `${page.records.length}+`
+        : String(page.records.length);
+
+      return makeCheck({
+        key: check.key,
+        name: check.name,
+        status: "pass",
+        startedAtMs,
+        message:
+          page.records.length > 0
+            ? `Microsoft Graph returned Identity Protection's risk detections: ${data.counts.riskDetections} in the last 24 hours.`
+            : "Microsoft Graph accepted a read of Identity Protection's risk detections. There were none in the last 24 hours.",
+      });
+    } catch (error) {
+      return makeCheck({
+        key: check.key,
+        name: check.name,
+        status: "warn",
+        startedAtMs,
+        message: `${MicrosoftEntraIdConnector.errorMessage(error)} Sign-ins and directory changes are still imported.`,
+        remediation: MicrosoftEntraIdConnector.graphRemediation(
+          error,
+          "riskDetections",
+          data.cloud,
+        ),
+      });
+    }
+  }
+
+  /*
+   * One read of each background kind over the last day, under one check: a
+   * warning when either cannot be read (Graph's beta list), naming which.
+   */
+  private static async backgroundSignInsCheck(data: {
+    client: MicrosoftEntraIdClient;
+    cloud: MicrosoftEntraIdCloud;
+    startTime: Date;
+    endTime: Date;
+  }): Promise<SecurityConnectorCheck> {
+    const startedAtMs: number = Date.now();
+    const unread: Array<string> = [];
+    let remediation: string = "";
+
+    for (const log of BACKGROUND_SIGN_IN_LOGS) {
+      try {
+        await data.client.listLog({
+          log,
+          startTime: data.startTime,
+          endTime: data.endTime,
+          pageSize: 1,
+        });
+      } catch (error) {
+        unread.push(
+          `${GRAPH_LOGS[log].noun}: ${MicrosoftEntraIdConnector.errorMessage(error)}`,
+        );
+        remediation =
+          remediation ||
+          MicrosoftEntraIdConnector.graphRemediation(error, log, data.cloud);
+      }
+    }
+
+    if (unread.length === 0) {
+      return makeCheck({
+        key: BACKGROUND_SIGN_INS_CHECK.key,
+        name: BACKGROUND_SIGN_INS_CHECK.name,
+        status: "pass",
+        startedAtMs,
+        message:
+          "Microsoft Graph accepted a read of the sign-ins apps make for people in the background and of apps' own. The ones that fail are imported.",
+      });
+    }
+
+    return makeCheck({
+      key: BACKGROUND_SIGN_INS_CHECK.key,
+      name: BACKGROUND_SIGN_INS_CHECK.name,
+      status: "warn",
+      startedAtMs,
+      message: `Not read: ${unread.join("; ")}`,
+      remediation,
     });
   }
 
   // The Microsoft 365 audit log's own check: its token and subscriptions.
   private static async microsoft365Check(
     client: MicrosoftEntraIdClient,
+    cloud: MicrosoftEntraIdCloud,
   ): Promise<SecurityConnectorCheck> {
     const startedAtMs: number = Date.now();
 
@@ -624,16 +912,20 @@ export default class MicrosoftEntraIdConnector
         status: "fail",
         startedAtMs,
         message: MicrosoftEntraIdConnector.errorMessage(error),
-        remediation: MicrosoftEntraIdConnector.microsoft365Remediation(error),
+        remediation: MicrosoftEntraIdConnector.microsoft365Remediation(
+          error,
+          cloud,
+        ),
       });
     }
   }
 
   /*
    * Read every record created in the window, pass by pass, within each
-   * pass's budget. A Graph pass that fails for any reason but a missing
-   * sign-in license throws (with the checks of the passes that ran); the
-   * Microsoft 365 pass never does.
+   * pass's budget. A pass over the connection's own records (directory
+   * changes, sign-ins) that fails for any reason but a missing sign-in
+   * license throws, with the checks of the passes that ran; the passes that
+   * add to them never do.
    */
   public async fetchEvents(
     settings: SecurityConnectorSettings,
@@ -668,23 +960,18 @@ export default class MicrosoftEntraIdConnector
       checks: [],
       details: {},
     };
-    const budgets: Record<
-      "directoryAudits" | "signIns" | "microsoft365",
-      PassBudget
-    > = MicrosoftEntraIdConnector.splitBudget(
-      options,
-      parsed.includeMicrosoft365,
-    );
+    const budgets: Partial<Record<EntraPass, PassBudget>> =
+      MicrosoftEntraIdConnector.splitBudget(options, {
+        includeBackgroundSignIns: parsed.includeBackgroundSignIns,
+        includeMicrosoft365: parsed.includeMicrosoft365,
+      });
 
     let phaseKey: string = GRAPH_LOGS.directoryAudits.key;
     let phaseName: string = GRAPH_LOGS.directoryAudits.name;
     let phaseStartedMs: number = Date.now();
 
     try {
-      for (const log of [
-        "directoryAudits",
-        "signIns",
-      ] as Array<MicrosoftEntraIdLog>) {
+      for (const log of CORE_LOGS) {
         phaseKey = GRAPH_LOGS[log].key;
         phaseName = GRAPH_LOGS[log].name;
         phaseStartedMs = Date.now();
@@ -693,7 +980,7 @@ export default class MicrosoftEntraIdConnector
           run,
           log,
           window,
-          budget: budgets[log],
+          budget: budgets[log]!,
         });
       }
     } catch (error) {
@@ -718,12 +1005,36 @@ export default class MicrosoftEntraIdConnector
       );
     }
 
+    // The passes that add to the connection's own records, which never throw.
+    await MicrosoftEntraIdConnector.additionalGraphPass({
+      client,
+      run,
+      log: "riskDetections",
+      cloud: parsed.cloud,
+      window,
+      budget: budgets.riskDetections!,
+    });
+
+    if (parsed.includeBackgroundSignIns) {
+      for (const log of BACKGROUND_SIGN_IN_LOGS) {
+        await MicrosoftEntraIdConnector.additionalGraphPass({
+          client,
+          run,
+          log,
+          cloud: parsed.cloud,
+          window,
+          budget: budgets[log]!,
+        });
+      }
+    }
+
     if (parsed.includeMicrosoft365) {
       await MicrosoftEntraIdConnector.microsoft365Pass({
         client,
         run,
+        cloud: parsed.cloud,
         window,
-        budget: budgets.microsoft365,
+        budget: budgets.microsoft365!,
       });
     }
 
@@ -742,21 +1053,23 @@ export default class MicrosoftEntraIdConnector
   }
 
   /*
-   * Each pass's share of the fetch's bounds. The fetch budget is the sum of
-   * the passes' own; a smaller bound (a test's) shrinks every pass alike.
+   * Each pass's share of the fetch's bounds, for the passes these options
+   * make. The fetch budget is the sum of the passes' own; a smaller bound (a
+   * test's) shrinks every pass alike.
    */
   public static splitBudget(
     options: ConnectorFetchOptions,
-    includeMicrosoft365: boolean,
-  ): Record<"directoryAudits" | "signIns" | "microsoft365", PassBudget> {
+    flags: {
+      includeBackgroundSignIns: boolean;
+      includeMicrosoft365: boolean;
+    },
+  ): Partial<Record<EntraPass, PassBudget>> {
+    const passes: Array<EntraPass> =
+      MicrosoftEntraIdConnector.plannedPasses(flags);
     const plannedRequests: number =
-      ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET +
-      ENTRA_SIGN_IN_PAGE_BUDGET +
-      (includeMicrosoft365 ? MICROSOFT_365_REQUEST_BUDGET : 0);
+      MicrosoftEntraIdConnector.plannedRequests(passes);
     const plannedRecords: number =
-      (ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET + ENTRA_SIGN_IN_PAGE_BUDGET) *
-        MICROSOFT_ENTRA_ID_PAGE_SIZE +
-      (includeMicrosoft365 ? MICROSOFT_365_RECORD_BUDGET : 0);
+      MicrosoftEntraIdConnector.plannedRecords(passes);
     const requestScale: number = Math.min(
       1,
       Math.max(0, Math.floor(options.maxRequests)) / plannedRequests,
@@ -771,27 +1084,80 @@ export default class MicrosoftEntraIdConnector
     ): number => {
       return Math.max(1, Math.floor(planned * scale));
     };
+    const budgets: Partial<Record<EntraPass, PassBudget>> = {};
 
-    return {
-      directoryAudits: {
-        maxRequests: share(ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET, requestScale),
-        maxRecords: share(
-          ENTRA_DIRECTORY_AUDIT_PAGE_BUDGET * MICROSOFT_ENTRA_ID_PAGE_SIZE,
-          recordScale,
-        ),
-      },
-      signIns: {
-        maxRequests: share(ENTRA_SIGN_IN_PAGE_BUDGET, requestScale),
-        maxRecords: share(
-          ENTRA_SIGN_IN_PAGE_BUDGET * MICROSOFT_ENTRA_ID_PAGE_SIZE,
-          recordScale,
-        ),
-      },
-      microsoft365: {
-        maxRequests: share(MICROSOFT_365_REQUEST_BUDGET, requestScale),
-        maxRecords: share(MICROSOFT_365_RECORD_BUDGET, recordScale),
-      },
-    };
+    for (const pass of passes) {
+      budgets[pass] =
+        pass === "microsoft365"
+          ? {
+              maxRequests: share(MICROSOFT_365_REQUEST_BUDGET, requestScale),
+              maxRecords: share(MICROSOFT_365_RECORD_BUDGET, recordScale),
+            }
+          : {
+              maxRequests: share(GRAPH_PAGE_BUDGETS[pass], requestScale),
+              maxRecords: share(
+                GRAPH_PAGE_BUDGETS[pass] * MICROSOFT_ENTRA_ID_PAGE_SIZE,
+                recordScale,
+              ),
+            };
+    }
+
+    return budgets;
+  }
+
+  /*
+   * A Graph pass that adds to the connection's own records - risk
+   * detections, background and app sign-ins. It never throws: a failure the
+   * same window would answer again (throttling, Graph's own errors, no
+   * answer) leaves the window to be read again; any other (a permission or a
+   * licence the tenant lacks, the beta list refusing a filter) is a warning,
+   * under the pass's own name, with what to change.
+   */
+  private static async additionalGraphPass(data: {
+    client: MicrosoftEntraIdClient;
+    run: FetchRun;
+    log: MicrosoftEntraIdLog;
+    cloud: MicrosoftEntraIdCloud;
+    window: ConnectorFetchWindow;
+    budget: PassBudget;
+  }): Promise<void> {
+    const startedAtMs: number = Date.now();
+    const check: { key: string; name: string; noun: string } =
+      GRAPH_LOGS[data.log];
+
+    try {
+      await MicrosoftEntraIdConnector.graphPass(data);
+    } catch (error) {
+      const transient: boolean = MicrosoftEntraIdConnector.isTransient(error);
+      const message: string = MicrosoftEntraIdConnector.errorMessage(error);
+
+      if (transient) {
+        data.run.complete = false;
+      }
+
+      data.run.details[`${data.log}Unavailable`] = transient
+        ? "transient-failure"
+        : MicrosoftEntraIdConnector.isPremiumRequired(error)
+          ? "premium-license-required"
+          : "refused";
+      data.run.warnings.push(
+        `${check.noun.charAt(0).toUpperCase()}${check.noun.slice(1)} were not read: ${message}${transient ? " The window is read again on the next poll." : " The connection's other records were still read."}`,
+      );
+      data.run.checks.push(
+        makeCheck({
+          key: check.key,
+          name: check.name,
+          status: "warn",
+          startedAtMs,
+          message,
+          remediation: MicrosoftEntraIdConnector.graphRemediation(
+            error,
+            data.log,
+            data.cloud,
+          ),
+        }),
+      );
+    }
   }
 
   // One Graph log over the window, page by page, within its budget.
@@ -911,38 +1277,78 @@ export default class MicrosoftEntraIdConnector
     );
   }
 
+  // Whether a record is one the log lists.
+  public static isGraphRecord(
+    log: MicrosoftEntraIdLog,
+    record: JSONObject,
+  ): boolean {
+    switch (log) {
+      case "directoryAudits":
+        return isEntraDirectoryAudit(record);
+      case "riskDetections":
+        return isEntraRiskDetection(record);
+      default:
+        return isEntraSignIn(record);
+    }
+  }
+
+  /*
+   * A log's record as a reading, or null for one the connection reads but
+   * does not keep: a risk dismissed or remediated already, a background or
+   * an app sign-in that worked.
+   */
+  public static readGraphRecord(
+    log: MicrosoftEntraIdLog,
+    record: JSONObject,
+  ): SecurityRecordReading | null {
+    switch (log) {
+      case "signIns":
+        return readEntraSignIn(record, EntraLog.SignInLogs);
+      case "directoryAudits":
+        return readEntraDirectoryAudit(record);
+      case "riskDetections":
+        return readEntraRisk(record, EntraLog.UserRiskEvents);
+      case "nonInteractiveSignIns":
+        return readEntraBackgroundSignIn(
+          record,
+          EntraLog.NonInteractiveUserSignInLogs,
+        );
+      case "servicePrincipalSignIns":
+        return readEntraBackgroundSignIn(
+          record,
+          EntraLog.ServicePrincipalSignInLogs,
+        );
+    }
+  }
+
   private static collectGraphRecord(
     run: FetchRun,
     log: MicrosoftEntraIdLog,
     record: JSONObject,
   ): void {
-    const recognized: boolean =
-      log === "signIns" ? isEntraSignIn(record) : isEntraDirectoryAudit(record);
-
-    if (!recognized) {
+    if (!MicrosoftEntraIdConnector.isGraphRecord(log, record)) {
       run.fetchedCount++;
       run.rejectedCount++;
       return;
     }
 
-    let reading: SecurityRecordReading;
+    let reading: SecurityRecordReading | null;
 
     try {
-      reading =
-        log === "signIns"
-          ? readEntraSignIn(record, EntraLog.SignInLogs)
-          : readEntraDirectoryAudit(record);
+      reading = MicrosoftEntraIdConnector.readGraphRecord(log, record);
     } catch (error) {
       run.fetchedCount++;
       MicrosoftEntraIdConnector.recordFailure(run, record, error);
       return;
     }
 
+    // Read, and left out on purpose: counted nowhere, as a sign-out is.
+    if (!reading) {
+      return;
+    }
+
     MicrosoftEntraIdConnector.addReading(run, reading, record, {
-      createdTime: String(
-        record[log === "signIns" ? "createdDateTime" : "activityDateTime"] ||
-          "",
-      ),
+      createdTime: String(record[GRAPH_CREATED_FIELDS[log]] || ""),
     });
   }
 
@@ -1014,6 +1420,7 @@ export default class MicrosoftEntraIdConnector
   private static async microsoft365Pass(data: {
     client: MicrosoftEntraIdClient;
     run: FetchRun;
+    cloud: MicrosoftEntraIdCloud;
     window: ConnectorFetchWindow;
     budget: PassBudget;
   }): Promise<void> {
@@ -1209,8 +1616,10 @@ export default class MicrosoftEntraIdConnector
           status: "warn",
           startedAtMs,
           message,
-          remediation:
-            MicrosoftEntraIdConnector.microsoft365Remediation(failure),
+          remediation: MicrosoftEntraIdConnector.microsoft365Remediation(
+            failure,
+            data.cloud,
+          ),
         }),
       );
       return;
@@ -1235,8 +1644,10 @@ export default class MicrosoftEntraIdConnector
         message: `${outcome.recordsImported} of ${outcome.recordsRead} audit records in ${outcome.contentBlobs} content blob${outcome.contentBlobs === 1 ? "" : "s"} are activity a security team acts on.${notes.length > 0 ? ` ${notes.join(" ")}` : ""}`,
         ...(outcome.unreadable.length > 0
           ? {
-              remediation:
-                MicrosoftEntraIdConnector.microsoft365Remediation(null),
+              remediation: MicrosoftEntraIdConnector.microsoft365Remediation(
+                null,
+                data.cloud,
+              ),
             }
           : {}),
       }),
@@ -1363,10 +1774,13 @@ export default class MicrosoftEntraIdConnector
     record: JSONObject,
   ): SecurityConnectorSample | null {
     try {
-      const reading: SecurityRecordReading =
-        log === "signIns"
-          ? readEntraSignIn(record, EntraLog.SignInLogs)
-          : readEntraDirectoryAudit(record);
+      const reading: SecurityRecordReading | null =
+        MicrosoftEntraIdConnector.readGraphRecord(log, record);
+
+      if (!reading) {
+        return null;
+      }
+
       const definition: SecurityEventConnectorDefinition =
         MicrosoftEntraIdConnector.getDefinition();
       const event: NormalizedSecurityEvent = toNormalizedSecurityEvent({
@@ -1397,19 +1811,34 @@ export default class MicrosoftEntraIdConnector
     record: JSONObject,
   ): string {
     try {
-      const reading: SecurityRecordReading =
-        log === "signIns"
-          ? readEntraSignIn(record, EntraLog.SignInLogs)
-          : readEntraDirectoryAudit(record);
+      const reading: SecurityRecordReading | null =
+        MicrosoftEntraIdConnector.readGraphRecord(log, record);
 
-      return redactLogString(reading.message).slice(0, 300);
+      return reading
+        ? redactLogString(reading.message).slice(0, 300)
+        : "a record the connection reads but does not import";
     } catch {
       return "a record the connector could not read";
     }
   }
 
-  private static cloudLabel(cloud: MicrosoftEntraIdCloud): string {
-    return cloud === "usgov" ? "Azure Government" : "Azure public";
+  // The cloud as a test's message names it.
+  public static cloudLabel(cloud: MicrosoftEntraIdCloud): string {
+    switch (cloud) {
+      case "gcc":
+        return "Azure public (Microsoft 365 GCC)";
+      case "usgov":
+        return "Azure Government (GCC High)";
+      case "dod":
+        return "Azure Government (DoD)";
+      default:
+        return "Azure public";
+    }
+  }
+
+  // The host part of an address: "https://graph.microsoft.us" -> "graph.microsoft.us".
+  private static hostOf(address: string): string {
+    return new URL(address).host;
   }
 
   private static skipped(
@@ -1436,17 +1865,36 @@ export default class MicrosoftEntraIdConnector
     return "Check the Directory (tenant) ID, Application (client) ID and Cloud against the app registration's Overview page, and that the Client secret has not expired (Certificates & secrets). Rotate the secret with Update credentials if needed.";
   }
 
-  private static graphRemediation(
+  public static graphRemediation(
     error: unknown,
     log: MicrosoftEntraIdLog,
+    cloud: MicrosoftEntraIdCloud,
   ): string {
     const status: number | null =
       error instanceof MicrosoftEntraIdHttpError ? error.statusCode : null;
 
+    if (MicrosoftEntraIdConnector.isPremiumRequired(error)) {
+      return log === "riskDetections"
+        ? "Identity Protection's risk detections need Microsoft Entra ID P1 or P2 (included in Microsoft 365 E3 and E5, and Business Premium); P2 gives every detection's details. They are imported from the first poll after the tenant has it."
+        : "Sign-ins need Microsoft Entra ID P1 or P2 (included in Microsoft 365 E3 and E5, and Business Premium). They are imported from the first poll after the tenant has it.";
+    }
+
     if (status === 403) {
-      return log === "signIns"
-        ? "In the app registration, add the Microsoft Graph application permission AuditLog.Read.All and select Grant admin consent. If it is granted and sign-ins still answer 403, also grant Directory.Read.All: Microsoft documents that its sign-in list can ask for both. Consent takes a few minutes to apply."
-        : "In the app registration, add the Microsoft Graph application permission AuditLog.Read.All and select Grant admin consent. Consent takes a few minutes to apply.";
+      if (log === "riskDetections") {
+        return "In the app registration, add the Microsoft Graph application permission IdentityRiskEvent.Read.All and select Grant admin consent. Identity Protection's risk detections also need Microsoft Entra ID P1 or P2. Consent takes a few minutes to apply.";
+      }
+
+      return log === "directoryAudits"
+        ? "In the app registration, add the Microsoft Graph application permission AuditLog.Read.All and select Grant admin consent. Consent takes a few minutes to apply."
+        : "In the app registration, add the Microsoft Graph application permission AuditLog.Read.All and select Grant admin consent. If it is granted and sign-ins still answer 403, also grant Directory.Read.All: Microsoft documents that its sign-in list can ask for both. Consent takes a few minutes to apply.";
+    }
+
+    // Graph's beta list refusing what it was asked (a filter it changed).
+    if (
+      status === 400 &&
+      (log === "nonInteractiveSignIns" || log === "servicePrincipalSignIns")
+    ) {
+      return "Microsoft Graph's beta sign-in list refused the request. Turn the Background and app sign-ins option off until it accepts it again; the connection's other records are still read.";
     }
 
     if (status === 401) {
@@ -1461,10 +1909,13 @@ export default class MicrosoftEntraIdConnector
       return "Microsoft Graph failed on its side. Test again in a few minutes; if it persists, check the Microsoft 365 service health page.";
     }
 
-    return "OneUptime could not get an answer from Microsoft Graph. Check that the OneUptime API and worker processes can reach graph.microsoft.com (graph.microsoft.us for Azure Government).";
+    return `OneUptime could not get an answer from Microsoft Graph. Check that the OneUptime API and worker processes can reach ${MicrosoftEntraIdConnector.hostOf(MicrosoftEntraIdClient.hostsFor(cloud).graphHost)}.`;
   }
 
-  private static microsoft365Remediation(error: unknown): string {
+  public static microsoft365Remediation(
+    error: unknown,
+    cloud: MicrosoftEntraIdCloud,
+  ): string {
     const status: number | null =
       error instanceof MicrosoftEntraIdHttpError ? error.statusCode : null;
     const apiCode: string =
@@ -1491,6 +1942,6 @@ export default class MicrosoftEntraIdConnector
       return "The Office 365 Management API failed on its side. Polls read the window again on their own; if it persists, check the Microsoft 365 service health page.";
     }
 
-    return "Check that auditing is on for the tenant (Microsoft Purview portal > Audit: Start recording user and admin activity), that no administrator turned off this app's subscription, and that the OneUptime worker processes can reach manage.office.com (manage.office365.us for Azure Government).";
+    return `Check that auditing is on for the tenant (Microsoft Purview portal > Audit: Start recording user and admin activity), that no administrator turned off this app's subscription, that the Cloud setting is the tenant's Microsoft 365 plan, and that the OneUptime worker processes can reach ${MicrosoftEntraIdConnector.hostOf(MicrosoftEntraIdClient.hostsFor(cloud).manageHost)}.`;
   }
 }

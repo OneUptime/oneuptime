@@ -38,7 +38,7 @@ Le bac à sable n'est pas Node.js : il n'y a ni `require`, ni `process`, ni `fet
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Custom JavaScript Code** sous **Synthetic Monitoring**, ou tapez `script` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Custom JavaScript Code** sous **Surveillance synthétique**, ou tapez `script` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
 
 ### Ajouter le script
 
@@ -167,7 +167,7 @@ Certains noms d'attribut appartiennent à OneUptime, et un script ne peut pas le
 
 - L'identité du moniteur : `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
 - Tout ce qui est dans les espaces de noms `oneuptime.` ou `resource.` — ils portent les identifiants que OneUptime appose à l'ingestion.
-- Les attributs d'identité de ressource : `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` et `docker.swarm.cluster.name`.
+- Les attributs d'identité de ressource : `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` et `docker.swarm.cluster.name`.
 
 Ces noms ne sont pas de simples étiquettes — OneUptime les relit comme l'affirmation de la ressource à laquelle appartient un point de données. Une métrique marquée `service.name: payments-api` apparaîtrait dans l'onglet Métriques de ce service, et si vous construisiez plus tard un moniteur de métriques regroupé par `service.name`, ses alertes seraient liées à ce service, préviendraient les propriétaires de ce service, et se tairaient pendant une fenêtre de maintenance sur celui-ci. Pour associer un moniteur à un service ou à un hôte, utilisez plutôt les propres étiquettes du moniteur.
 

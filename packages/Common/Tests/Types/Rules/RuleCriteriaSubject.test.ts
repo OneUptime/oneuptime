@@ -50,6 +50,8 @@ const PLURAL_NAME: RegExp = /pluralName:\s*"([^"]+)"/;
  * model's plural name, as the rest of the Dashboard does.
  */
 const SHORTER_NAMES: Record<string, string> = {
+  // "Data Assets": Data Observability says tables.
+  DataAsset: "tables",
   // "DockerSwarm Clusters": the product writes the name in two words.
   DockerSwarmCluster: "docker swarm clusters",
   // "On-Call Duty Policies": the Dashboard says on-call policies.
@@ -62,10 +64,12 @@ const SHORTER_NAMES: Record<string, string> = {
 
 /*
  * Rule models whose name does not end in the record they are about: a
- * postmortem rule decides about resolved incidents.
+ * postmortem rule decides about resolved incidents, and an alert incident
+ * rule about alerts - the incident is what it declares from them.
  */
 const RECORD_MODEL_OF_RULE: Record<string, string> = {
   AIPostmortemRule: "Incident",
+  AlertIncidentRule: "Alert",
 };
 
 function recordModelOf(ruleModel: string): string {

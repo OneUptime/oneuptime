@@ -48,7 +48,7 @@ Dans **Journaux à surveiller**, renseignez **Gravité du journal** et **Le mess
 
 ### Affiner (facultatif)
 
-Ouvrez **Plus de champs** pour filtrer par service de télémétrie, entité d'infrastructure ou attribut. Pour obtenir une alerte par tunnel, utilisateur ou interface plutôt qu'une seule pour tout le moniteur, ajoutez l'attribut dans **Group by Attributes** – voir [Alertes par groupe](#alertes-par-groupe-group-by).
+Ouvrez **Plus de champs** pour filtrer par service de télémétrie, entité d'infrastructure ou attribut. Pour obtenir une alerte par tunnel, utilisateur ou interface plutôt qu'une seule pour tout le moniteur, ajoutez l'attribut dans **Regrouper par attributs** – voir [Alertes par groupe](#alertes-par-groupe-group-by).
 
 ### Dire quand alerter
 
@@ -70,8 +70,8 @@ Cliquez sur **Créer un moniteur**. Le moniteur s'ouvre sur sa page **Vue d'ense
 | **Gravité du journal** | Les journaux ayant l'une des gravités choisies. | Vide : toutes les gravités |
 | **Le message contient** | Les journaux dont le corps contient ce texte, sans tenir compte de la casse. | Vide : tous les journaux |
 | **Fenêtre de temps** (dans **Quand alerter**) | Les journaux des 5 dernières secondes jusqu'aux 24 dernières heures. | **Dernières 5 minutes** |
-| **Group by Attributes** | Pas un filtre : compte séparément chaque combinaison de valeurs de ces attributs. | Vide : un seul décompte |
-| **Résolu par attributs** | Pas un filtre : le journal qui résout un groupe. Apparaît dès que **Group by Attributes** a un attribut ; voir [Résolu par un journal](#résolu-par-un-journal). | Vide : un groupe se résout quand ses journaux s'arrêtent |
+| **Regrouper par attributs** | Pas un filtre : compte séparément chaque combinaison de valeurs de ces attributs. | Vide : un seul décompte |
+| **Résolu par attributs** | Pas un filtre : le journal qui résout un groupe. Apparaît dès que **Regrouper par attributs** a un attribut ; voir [Résolu par un journal](#résolu-par-un-journal). | Vide : un groupe se résout quand ses journaux s'arrêtent |
 | **Filtrer par service de télémétrie** (sous **Plus de champs**) | Les journaux de l'un des services choisis. | Vide : tous les services |
 | **Filtrer par entité d'infrastructure** (sous **Plus de champs**) | Les journaux de l'un des hôtes, pods, conteneurs et autres entités choisis. | Vide : toutes les entités |
 | **Filtrer par attributs** (sous **Plus de champs**) | Les journaux dont les attributs remplissent chaque condition. Chaque condition a son propre opérateur, comme « égal à » ou « contient ». | Vide : aucune condition |
@@ -157,7 +157,7 @@ Comme les fenêtres se chevauchent, une seule rafale d'erreurs maintient le déc
 
 ## Alertes par groupe (Group By)
 
-**Group by Attributes** divise le décompte d'un moniteur de journaux en un décompte par combinaison distincte de valeurs d'attributs – un par tunnel IPsec, par utilisateur VPN, par interface de pare-feu – et évalue les critères pour chaque groupe séparément. C'est l'équivalent, pour les journaux, du [Group By](/docs/monitor/metrics-monitor#alertes-par-série-group-by) d'un moniteur de métriques.
+**Regrouper par attributs** divise le décompte d'un moniteur de journaux en un décompte par combinaison distincte de valeurs d'attributs – un par tunnel IPsec, par utilisateur VPN, par interface de pare-feu – et évalue les critères pour chaque groupe séparément. C'est l'équivalent, pour les journaux, du [Group By](/docs/monitor/metrics-monitor#alertes-par-série-group-by) d'un moniteur de métriques.
 
 ### Une alerte par groupe
 
@@ -193,7 +193,7 @@ Un équipement qui signale un tunnel tombé signale en général son retour. **R
 
 Prenez un moniteur qui compte les journaux avec `event.name` = `vpn.tunnel_down`, regroupés par `event.device` et `vpn.tunnel.name`, avec **Résolu par attributs** réglé sur `event.name` = `vpn.tunnel_up`. La chute du tunnel `HQ-Branch1` ouvre son alerte. L'alerte reste ouverte toute la nuit, bien que le pare-feu ne journalise plus rien au sujet du tunnel, et se résout quand le pare-feu signale `HQ-Branch1` rétabli. Si le tunnel tombe de nouveau, une nouvelle alerte s'ouvre.
 
-- Le champ apparaît dès que **Group by Attributes** a un attribut. Il accepte jusqu'à 10 attributs, et un journal de résolution les porte tous.
+- Le champ apparaît dès que **Regrouper par attributs** a un attribut. Il accepte jusqu'à 10 attributs, et un journal de résolution les porte tous.
 - Un journal de résolution appartient à un groupe quand il a les valeurs du groupe pour les attributs de regroupement : les deux sortes de journaux doivent donc porter ces attributs.
 - Les services de télémétrie et la fenêtre de temps du moniteur s'appliquent aussi aux journaux de résolution. Ses filtres de texte et de gravité, non : ils décrivent le problème.
 - Un groupe dont le journal le plus récent est un journal de résolution est fermé. Un groupe qui a de nouveau journalisé le problème après lui reste ouvert.
@@ -213,7 +213,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 1. Créez un moniteur **Journaux** et choisissez **Un message apparaît**.
 2. Réglez **Le message contient** sur `terminated` et la **Fenêtre de temps** sur **Dernières 5 minutes**.
 3. Sous **Plus de champs**, ajoutez le filtre d'attribut `log_component` = `IPSec`.
-4. Dans **Group by Attributes**, ajoutez `con_name`.
+4. Dans **Regrouper par attributs**, ajoutez `con_name`.
 5. Gardez la règle sur **Plus de** `0`, et intitulez l'alerte ou l'incident `IPsec tunnel {{con_name}} terminated`.
 :::
 
@@ -248,7 +248,7 @@ Les critères sont vérifiés de haut en bas et la première correspondance déc
 :::
 
 :::details Un critère d'anomalie ne se déclenche jamais
-Il est encore en apprentissage : les services du moniteur n'ont pas encore deux semaines d'historique. Sur un moniteur avec **Group by Attributes**, les conditions d'anomalie ne correspondent jamais – utilisez-y un seuil.
+Il est encore en apprentissage : les services du moniteur n'ont pas encore deux semaines d'historique. Sur un moniteur avec **Regrouper par attributs**, les conditions d'anomalie ne correspondent jamais – utilisez-y un seuil.
 :::
 
 :::details Les alertes de groupe arrivent sans valeur de groupe

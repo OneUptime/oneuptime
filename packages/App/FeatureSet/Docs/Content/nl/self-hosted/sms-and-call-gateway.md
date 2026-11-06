@@ -33,7 +33,7 @@ De gateway neemt de plaats in van het eigen Twilio-account van de server, voor a
 4. Klik op **Send Test**. Uw gateway hoort te antwoorden met een 2xx-status en niets te versturen.
 :::
 
-Om het geheim te vervangen, maakt u **Signing Secret** onder **Meer velden** leeg en slaat u op: OneUptime maakt een nieuw geheim. Om terug te gaan naar Twilio, kiest u **Twilio** en slaat u op.
+Om het geheim te vervangen, maakt u **Ondertekeningsgeheim** onder **Meer velden** leeg en slaat u op: OneUptime maakt een nieuw geheim. Om terug te gaan naar Twilio, kiest u **Twilio** en slaat u op.
 
 ## Wat uw gateway ontvangt
 
@@ -116,7 +116,7 @@ In het sms- of oproeplogboek, en bij een dienstmelding in het bereikbaarheidslog
 
 ## Testverzoeken
 
-**Send test** verstuurt een verzoek met `event` op `test`, en `to`, `project` en `actions` op `null`. Beantwoord het met een 2xx-status en verstuur niets.
+**Test verzenden** verstuurt een verzoek met `event` op `test`, en `to`, `project` en `actions` op `null`. Beantwoord het met een 2xx-status en verstuur niets.
 
 ## Volgende stappen
 

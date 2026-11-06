@@ -66,7 +66,7 @@ La vérification d'accessibilité est aussi le recours quand un fournisseur choi
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Page de statut externe** sous **Basic Monitoring**, ou tapez `statuspage` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Page de statut externe** sous **Surveillance de base**, ou tapez `statuspage` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
 
 ### Saisir l'URL de la page de statut
 
@@ -131,7 +131,7 @@ Vous pouvez configurer des critères pour décider quand le service externe est 
 | --- | --- | --- |
 | **External Status Page Is Online** | Si la page de statut est accessible et renvoie des données de statut | Vrai ou Faux |
 | **External Status Page Overall Status** | Le statut global indiqué par la page | Égal à, Différent de, Contient, Ne contient pas, Commence par, Se termine par |
-| **External Status Page Component Status** | Le statut de chaque composant du périmètre (les composants choisis, ou ceux du groupe, s'ils sont définis) : Opérationnel, Under Maintenance, Performances dégradées, Partial Outage, Panne majeure ou Panne totale | Égal à, Différent de, Contient, Ne contient pas, Commence par, Se termine par |
+| **External Status Page Component Status** | Le statut de chaque composant du périmètre (les composants choisis, ou ceux du groupe, s'ils sont définis) : Opérationnel, En maintenance, Performances dégradées, Panne partielle, Panne majeure ou Panne totale | Égal à, Différent de, Contient, Ne contient pas, Commence par, Se termine par |
 | **External Status Page Active Incidents** | Le nombre d'incidents actuellement actifs signalés sur la page de statut (seulement ceux qui touchent un composant du périmètre, quand des composants ou un groupe sont choisis) | Égal à, Différent de, et les comparaisons numériques |
 | **External Status Page Response Time (in ms)** | Le temps nécessaire pour récupérer les données de la page de statut | Supérieur à, Inférieur à, Supérieur ou égal à, Inférieur ou égal à |
 
@@ -145,7 +145,7 @@ Par défaut, OneUptime crée des critères fondés sur ce qui compte vraiment po
 
 | Critère | Filtres | Effet |
 | --- | --- | --- |
-| Hors ligne | **Au moins un** parmi : la page n'est pas en ligne ; il y a au moins un incident actif dans le périmètre ; un composant du périmètre signale Performances dégradées, Partial Outage, Panne majeure ou Panne totale | Marque le moniteur hors ligne et déclare un incident, qui se résout de lui-même quand le critère cesse de correspondre |
+| Hors ligne | **Au moins un** parmi : la page n'est pas en ligne ; il y a au moins un incident actif dans le périmètre ; un composant du périmètre signale Performances dégradées, Panne partielle, Panne majeure ou Panne totale | Marque le moniteur hors ligne et déclare un incident, qui se résout de lui-même quand le critère cesse de correspondre |
 | En ligne | **Tous** parmi : la page est en ligne ; il n'y a aucun incident actif dans le périmètre | Marque le moniteur en ligne |
 
 Comme le nombre d'incidents actifs et les statuts des composants respectent les composants et le groupe choisis, ces critères par défaut ne ciblent automatiquement que les composants qui vous intéressent.
@@ -208,6 +208,7 @@ Quand vous créez des incidents ou des alertes à partir de moniteurs de page de
 | `{{provider}}`            | Fournisseur détecté (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom) ; vide après une vérification d'accessibilité |
 | `{{componentGroup}}`      | Groupe de composants auquel le moniteur est limité, le cas échéant |
 | `{{componentName}}`       | Les composants que le moniteur surveille, séparés par des virgules, s'il en a choisi |
+| `{{componentNames}}`      | Les mêmes composants sous forme de liste, pour répéter une ligne pour chacun avec `{{#each componentNames}}` |
 
 ## URL de pages de statut populaires
 

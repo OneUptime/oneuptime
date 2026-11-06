@@ -35,6 +35,7 @@ Disse kræver ikke, at du sender noget. OneUptime registrerer dem ud fra den tel
 | En runbook | En runbook, som OneUptime kørte, fuldføres, mislykkes eller annulleres, efter at den er startet | `runbook` |
 | En cloudændring | En forbundet cloudkontos aktivitetslog registrerer en ændring: AWS CloudTrail, Azures aktivitetslog eller Google Clouds auditlog Admin Activity | `cloud` |
 | En begivenhed fra udbyderen | Cloududbyderen offentliggør en sundhedshændelse om kontoen: AWS Health, Azure Service Health eller Resource Health eller Google Cloud Service Health | `cloud-health` |
+| En OpenStack-ændring | En OpenStack-clouds egne notifikationer siger, hvad der skete med en af dens dele, eller en probes læsning af Nova gør: se [Livscyklushændelser](/docs/telemetry/openstack#livscyklushændelser) | `openstack` |
 
 - **Den første version, en tjeneste rapporterer, er dens udgangspunkt, ikke en udrulning.** En tjeneste, der har kørt i måneder, bliver ikke udrullet i det øjeblik, OneUptime begynder at modtage dens telemetri.
 - **En rollback til en version, der er set inden for de seneste 30 dage, registreres ikke,** fordi den version ikke er ny. En rollback, som OneUptime AI kører, registreres som en rettelse.
@@ -50,7 +51,7 @@ En rollout kræver [Kubernetes-agenten](/docs/telemetry/kubernetes-agent), som s
 
 En app-udrulning kræver, at appen kører på en [administreret app-platform](/docs/telemetry/cloud-environments#apps-og-udrulninger). Den registreres under appens miljø og tegnes i miljøets grafer og i appens egne, og dér registreres også en rollback til en revision, appen kørte før.
 
-En cloudændring eller en begivenhed fra udbyderen kræver en [forbundet cloudkonto](/docs/telemetry/cloud-accounts). Hver af dem knyttes til den cloudressource, den nævner, når OneUptime viser den ressource, og tegnes på ressourcens grafer. Dens type kommer fra handlingen: `deployment`, `scaling` eller `rollback`, når handlingens navn siger det, ellers `config-change`, og `provider-event` for en sundhedshændelse. Grafer, der ikke er filtreret til nogen ressource, udelader en cloudkontos aktivitetslog, så en travl konto ikke fortrænger dine udrulninger; udbyderens sundhedshændelser bliver på dem.
+En cloudændring eller en begivenhed fra udbyderen kræver en [forbundet cloudkonto](/docs/telemetry/cloud-accounts). Hver af dem knyttes til den cloudressource, den nævner, når OneUptime viser den ressource, og tegnes på ressourcens grafer. Dens type kommer fra handlingen: `deployment`, `scaling` eller `rollback`, når handlingens navn siger det, ellers `config-change`, og `provider-event` for en sundhedshændelse. Grafer, der ikke er filtreret til nogen ressource, udelader en cloudkontos aktivitetslog og en OpenStack-clouds ændringer, så en travl konto ikke fortrænger dine udrulninger; udbyderens sundhedshændelser bliver på dem.
 
 ## Registrér en udrulning fra en pipeline
 
@@ -147,7 +148,7 @@ Felterne på øverste niveau gemmes som attributter under OpenTelemetry-navnene:
 
 Attributter, hvis navne begynder med `oneuptime.`, er OneUptimes egne og fjernes fra det, en pipeline sender. Hver ændring, som en pipeline registrerer, angiver det i `oneuptime.change.source`, som er `api`.
 
-En ændring, der er læst fra en cloudkonto, navngiver kontoen og ressourcen under OpenTelemetrys navne, `cloud.provider`, `cloud.account.id`, `cloud.region` og `cloud.resource_id`, og gemmer handlingen i `oneuptime.cloud.operation`, hvem der kørte den i `oneuptime.cloud.actor`, om den mislykkedes i `oneuptime.change.status` og dens cloudkonto i `oneuptime.cloud_account.id`.
+En ændring, der er læst fra en cloudkonto, navngiver kontoen og ressourcen under OpenTelemetrys navne, `cloud.provider`, `cloud.account.id`, `cloud.region` og `cloud.resource_id`, og gemmer handlingen i `oneuptime.cloud.operation`, hvem der kørte den i `oneuptime.cloud.actor`, om den mislykkedes i `oneuptime.change.status`, det navn OneUptime kender ressourcen under i `oneuptime.cloud.resource_name` og dens cloudkonto i `oneuptime.cloud_account.id`. Titlen gemmes på engelsk, sådan som API'et og OneUptime AI læser den, og hver side formulerer den ud fra disse på læserens sprog. En ændring, som OneUptime AI har foretaget via en Cloud-AI-agent, siger det i `oneuptime.change.made_by`, som er `oneuptime-ai`, og angiver agentens job i `oneuptime.runner_job.id`, dens rettelse i `oneuptime.auto_remediation_suggestion.id`, den AI-kørsel, der planlagde den, i `oneuptime.ai_run.id`, om det var rettelsen eller dens tilbagerulning, i `oneuptime.ai.step` (`fix` eller `rollback`), og den hændelse eller advarsel, den rettede, i `oneuptime.incident.id` eller `oneuptime.alert.id`.
 
 ### Grænser
 

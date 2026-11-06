@@ -28,11 +28,16 @@
  * build (DockerfileTemplate.render, both environments), and comments and
  * continuation lines are folded first (instructions()), so a check can never
  * be satisfied by prose.
+ *
+ * It also holds the images to shipping no tests, which ClamAV found in them in
+ * November 2026 (see "the images that ship carry no tests" below).
  */
 
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const yaml = require("js-yaml");
+const { spawnSync } = require("child_process");
 
 const {
   render,
@@ -41,6 +46,7 @@ const {
   instructions,
   findTemplates,
 } = require("./Utils/DockerfileTemplate");
+const { parseCopy } = require("./Utils/DockerfileContext");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
@@ -1103,7 +1109,7 @@ describe("App", () => {
         "--package /usr/src/Common",
         "&& npm prune --omit=dev --offline --no-audit --no-fund",
         "&& node -e \"require('ts-node'); require('typescript')\"",
-        "&& rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/*/node_modules",
+        "&& rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/BrowserRecorder/Tests /usr/src/app/FeatureSet/MCP/Tests /usr/src/app/FeatureSet/MobileRecorder/Tests /usr/src/app/FeatureSet/*/node_modules",
       ].join(" ");
     };
 
@@ -1195,7 +1201,7 @@ describe("App", () => {
       expect(appPackage.dependencies["ts-node"]).toBeDefined();
     });
 
-    test("the build's other files under /usr/src stay: the licence files, the agents and the mermaid build", () => {
+    test("the build's other files under /usr/src stay: the licence files, the agents, the mermaid build and the features whose tests go", () => {
       const removed = byName("community-pruned")
         .instructions[1].split("rm -rf ")[1]
         .split(" ");
@@ -1204,6 +1210,9 @@ describe("App", () => {
         "/usr/src/Common/Tests",
         "/usr/src/app/build",
         "/usr/src/app/Tests",
+        "/usr/src/app/FeatureSet/BrowserRecorder/Tests",
+        "/usr/src/app/FeatureSet/MCP/Tests",
+        "/usr/src/app/FeatureSet/MobileRecorder/Tests",
         "/usr/src/app/FeatureSet/*/node_modules",
       ]);
       for (const kept of [
@@ -1211,6 +1220,9 @@ describe("App", () => {
         "/usr/src/agents",
         "/usr/src/Common/build",
         "/usr/src/app/FeatureSet/Dashboard/public",
+        "/usr/src/app/FeatureSet/BrowserRecorder",
+        "/usr/src/app/FeatureSet/MCP",
+        "/usr/src/app/FeatureSet/MobileRecorder",
       ]) {
         expect(
           removed.some((removedPath) => {
@@ -1318,7 +1330,7 @@ describe("Nginx", () => {
     const PRUNE_COPY =
       "COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js";
     const PRUNE_RUN =
-      "RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --package /usr/src/Common && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build && chmod +x /usr/src/app/run.sh";
+      "RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --package /usr/src/Common && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests && chmod +x /usr/src/app/run.sh";
 
     function indexOf(lines, line) {
       const index = lines.indexOf(line);
@@ -1394,6 +1406,554 @@ describe("Nginx", () => {
   });
 });
 
+/*
+ * No image runs its tests, so no image that ships carries them. They were 185
+ * MB of Common's 297, and one of Common's fixtures, an SVG data URI with a
+ * script in it (Tests/Utils/Markdown/InlineImageDataUri.test.ts), is what ClamAV
+ * calls phishing. Iron Bank's pipeline fails an image on any ClamAV detection,
+ * which is why IronBank/<Project>/Dockerfile cuts them out of a release in a
+ * `shipped` stage.
+ *
+ * Every layer counts. An `rm` in a stage the image is built on only hides what
+ * a layer below it holds: a pull still downloads it and a scan of the layers
+ * still reads it. So tests either never enter the stages an image is made of
+ * (COPY --exclude=Tests: the Probe, Home, the Test Server, and the Kubernetes AI
+ * agent, cost agent and log tailer and the resource AI agent), or enter a stage
+ * that does not ship and leave it before the image copies out of it (the App,
+ * the Runner, Nginx). .dockerignore cannot do it for Common: the E2E image's
+ * fixtures import Common's test helpers.
+ */
+const TEST_FOLDER_NAME = "Tests";
+
+// The images that exist to run tests: the suite's own image, and the E2E image.
+const IMAGES_THAT_RUN_TESTS = [
+  "Tests/Dockerfile.tpl",
+  "packages/E2E/Dockerfile.tpl",
+];
+
+// Every folder git tracks under the name Tests, the topmost one of each path.
+function trackedTestFolders() {
+  const listing = spawnSync("git", ["ls-files"], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    maxBuffer: 256 * 1024 * 1024,
+  });
+
+  if (listing.status !== 0) {
+    throw new Error(`git ls-files failed: ${listing.stderr}`);
+  }
+
+  const folders = new Set();
+
+  for (const file of listing.stdout.split("\n")) {
+    const parts = file.split("/");
+    const at = parts.indexOf(TEST_FOLDER_NAME);
+
+    // The last part is the file's name: a file called Tests is no folder.
+    if (at !== -1 && at < parts.length - 1) {
+      folders.add(parts.slice(0, at + 1).join("/"));
+    }
+  }
+
+  return [...folders];
+}
+
+const TEST_FOLDERS = trackedTestFolders();
+const RECURSIVE_RM = /\brm\s+-[a-zA-Z]*[rR][a-zA-Z]*\s+([^&|;]+)/g;
+
+// Where a COPY out of the build context puts the test folders it brings.
+function testFoldersCopiedFromContext(line, copy, workdir) {
+  const excluded = [...line.matchAll(/\s--exclude=(\S+)/g)].map((match) => {
+    return match[1];
+  });
+  const destination = path.posix.resolve(workdir, copy.destination);
+  const copied = [];
+
+  for (const written of copy.sources) {
+    // As Docker reads a source: rooted at the context, which ".." cannot leave.
+    const source = path.posix
+      .normalize(`/${written}`)
+      .slice(1)
+      .replace(/\/$/, "");
+
+    for (const folder of TEST_FOLDERS) {
+      if (dockerignored(folder)) {
+        continue;
+      }
+
+      if (folder === source || source.startsWith(`${folder}/`)) {
+        // All of what it copies is tests.
+        copied.push(destination);
+      } else if (source === "" || folder.startsWith(`${source}/`)) {
+        const inside = source === "" ? folder : folder.slice(source.length + 1);
+
+        if (!excluded.includes(inside)) {
+          copied.push(`${destination}/${inside}`);
+        }
+      }
+    }
+  }
+
+  return copied;
+}
+
+/*
+ * Follows the test folders through a stage's instructions. `end` is what the
+ * finished stage holds, which is all that a COPY --from of it gets. `layers` is
+ * everything that any layer of it, or of a stage it is built FROM, ever held:
+ * what an image built on it carries, whatever a later `rm` hides.
+ */
+function followTestFolders(stages, stage) {
+  const earlier = stages.slice(0, stage.index);
+  const stageNamed = (reference) => {
+    return /^\d+$/.test(reference)
+      ? earlier[Number(reference)]
+      : earlier.find((candidate) => {
+          return candidate.name === reference.toLowerCase();
+        });
+  };
+  const parent = stageNamed(stage.from);
+  const {
+    end,
+    layers,
+    workdir: startingWorkdir,
+  } = parent
+    ? followTestFolders(stages, parent)
+    : { end: new Set(), layers: new Set(), workdir: "/" };
+  let workdir = startingWorkdir;
+
+  const add = (folder) => {
+    end.add(folder);
+    layers.add(folder);
+  };
+
+  for (const line of stage.instructions) {
+    const workdirLine = /^WORKDIR (\S+)$/.exec(line);
+
+    if (workdirLine) {
+      workdir = path.posix.resolve(workdir, workdirLine[1]);
+      continue;
+    }
+
+    const copy = parseCopy(line);
+
+    if (copy) {
+      if (typeof copy.from !== "string") {
+        testFoldersCopiedFromContext(line, copy, workdir).forEach(add);
+        continue;
+      }
+
+      // A --from that names no stage is an image, whose files are not ours.
+      const donor = stageNamed(copy.from);
+
+      if (donor) {
+        const destination = path.posix.resolve(workdir, copy.destination);
+        const held = followTestFolders(stages, donor).end;
+
+        for (const source of copy.sources) {
+          const from = source.replace(/\/$/, "");
+
+          for (const folder of held) {
+            if (folder === from || folder.startsWith(`${from}/`)) {
+              add(`${destination}${folder.slice(from.length)}`);
+            }
+          }
+        }
+      }
+      continue;
+    }
+
+    for (const removal of line.matchAll(RECURSIVE_RM)) {
+      for (const target of removal[1].trim().split(/\s+/)) {
+        const removed = path.posix.resolve(workdir, target);
+
+        for (const folder of [...end]) {
+          if (folder === removed || folder.startsWith(`${removed}/`)) {
+            end.delete(folder);
+          }
+        }
+      }
+    }
+  }
+
+  return { end, layers, workdir };
+}
+
+function sorted(folders) {
+  return [...folders].sort();
+}
+
+// What each target of a template carries, by the name of its last stage.
+function testFoldersShipped(template) {
+  const stages = stagesOf(template, "production");
+
+  return shippedStages(stages).map((chain) => {
+    return {
+      target: chain[0].name,
+      folders: sorted(followTestFolders(stages, chain[0]).layers),
+    };
+  });
+}
+
+describe("the images that ship carry no tests", () => {
+  const SHIPPED_TEMPLATES = TEMPLATES.filter((template) => {
+    return !IMAGES_THAT_RUN_TESTS.includes(template);
+  });
+  const COMMON_TESTS = "/usr/src/Common/Tests";
+  const OWN_TESTS = "/usr/src/app/Tests";
+  // Deeper in the App than its own, so removing that one leaves them.
+  const APP_FEATURE_TESTS = [
+    "/usr/src/app/FeatureSet/BrowserRecorder/Tests",
+    "/usr/src/app/FeatureSet/MCP/Tests",
+    "/usr/src/app/FeatureSet/MobileRecorder/Tests",
+  ];
+
+  test("the two images that run tests are templates, and every other Node image is checked", () => {
+    expect(TEMPLATES).toEqual(expect.arrayContaining(IMAGES_THAT_RUN_TESTS));
+    expect(
+      nodeTemplates().filter((template) => {
+        return !SHIPPED_TEMPLATES.includes(template);
+      }),
+    ).toEqual(IMAGES_THAT_RUN_TESTS);
+  });
+
+  /*
+   * This covers what the `shipped` stage of each IronBank/<Project>/Dockerfile
+   * cuts out of the release it pins, so a release built from these templates
+   * leaves that stage nothing to do.
+   */
+  test.each(
+    SHIPPED_TEMPLATES.map((template) => {
+      return [template];
+    }),
+  )("%s: no layer holds any tests", (template) => {
+    for (const { target, folders } of testFoldersShipped(template)) {
+      expect({ template, target, folders }).toEqual({
+        template,
+        target,
+        folders: [],
+      });
+    }
+  });
+
+  test.each([
+    ["packages/Runner/Dockerfile.tpl", "build", [COMMON_TESTS, OWN_TESTS]],
+    ["packages/Nginx/Dockerfile.tpl", "build", [COMMON_TESTS, OWN_TESTS]],
+    [
+      "packages/App/Dockerfile.tpl",
+      "community-pruned",
+      [COMMON_TESTS, OWN_TESTS, ...APP_FEATURE_TESTS],
+    ],
+    [
+      "packages/App/Dockerfile.tpl",
+      "enterprise-pruned",
+      [COMMON_TESTS, OWN_TESTS, ...APP_FEATURE_TESTS],
+    ],
+  ])(
+    "%s's %s stage brings tests in, and has removed them all when the image copies out of it",
+    (template, stageName, broughtIn) => {
+      const stages = stagesOf(template, "production");
+      const { end, layers } = followTestFolders(
+        stages,
+        stages.find((stage) => {
+          return stage.name === stageName;
+        }),
+      );
+
+      expect(sorted(layers)).toEqual(expect.arrayContaining(broughtIn));
+      expect(sorted(end)).toEqual([]);
+    },
+  );
+
+  /*
+   * The E2E image is the exception that keeps this per image. If its fixtures
+   * ever stop importing Common's tests, this fails: Common's tests can then go
+   * in .dockerignore, and take the --exclude flags with them.
+   */
+  test("the E2E image needs Common's tests, so the build context keeps them", () => {
+    const importers = spawnSync(
+      "git",
+      ["grep", "-l", 'from "Common/Tests/', "--", "packages/E2E"],
+      { cwd: REPO_ROOT, encoding: "utf8" },
+    )
+      .stdout.split("\n")
+      .filter(Boolean);
+
+    expect(importers.length).toBeGreaterThan(0);
+    expect(dockerignored("packages/Common/Tests")).toBe(false);
+
+    const [{ folders }] = testFoldersShipped("packages/E2E/Dockerfile.tpl");
+
+    expect(folders).toContain(COMMON_TESTS);
+  });
+
+  /*
+   * --exclude reached the stable syntax in Dockerfile frontend 1.19. Under an
+   * older one a build stops on the flag, and that would first show on the
+   * image's own build, so it is held here too.
+   */
+  test("a template that uses COPY --exclude asks for a syntax that has it", () => {
+    const usesExclude = (template) => {
+      return ENVIRONMENTS.some((environment) => {
+        return stagesOf(template, environment).some((stage) => {
+          return stage.instructions.some((line) => {
+            return /^COPY\s.*--exclude=/.test(line);
+          });
+        });
+      });
+    };
+    const using = TEMPLATES.filter(usesExclude);
+
+    expect(using).toEqual(
+      expect.arrayContaining([
+        "agents/KubernetesAIAgent/Dockerfile.tpl",
+        "agents/KubernetesCostAgent/Dockerfile.tpl",
+        "agents/KubernetesLogTailer/Dockerfile.tpl",
+        "agents/ResourceAIAgent/Dockerfile.tpl",
+        "packages/Home/Dockerfile.tpl",
+        "packages/Probe/Dockerfile.tpl",
+        "packages/TestServer/Dockerfile.tpl",
+      ]),
+    );
+    for (const template of using) {
+      const syntax = /^# syntax=docker\/dockerfile:(\d+)\.(\d+)\n/.exec(
+        read(template),
+      );
+
+      expect({ template, syntax: Boolean(syntax) }).toEqual({
+        template,
+        syntax: true,
+      });
+      expect({
+        template,
+        major: Number(syntax[1]),
+        atLeast19: Number(syntax[2]) >= 19,
+      }).toEqual({ template, major: 1, atLeast19: true });
+    }
+  });
+
+  describe("what the check reads in a Dockerfile", () => {
+    const COPY_COMMON = "COPY ./packages/Common /usr/src/Common";
+
+    function layersOf(dockerfile) {
+      const stages = parseStages(dockerfile).map((stage) => {
+        return { ...stage, instructions: instructions(stage.body) };
+      });
+
+      return sorted(
+        followTestFolders(stages, stages[stages.length - 1]).layers,
+      );
+    }
+
+    test.each([
+      ["a plain copy", `FROM x\n${COPY_COMMON}\n`, [COMMON_TESTS]],
+      [
+        "a copy to a path relative to the WORKDIR",
+        "FROM x\nWORKDIR /usr/src\nCOPY packages/Common ./Common\n",
+        [COMMON_TESTS],
+      ],
+      [
+        "an rm in the same stage, which only hides them",
+        `FROM x\n${COPY_COMMON}\nRUN rm -rf ${COMMON_TESTS}\n`,
+        [COMMON_TESTS],
+      ],
+      [
+        "an rm in the stage the image is built FROM",
+        `FROM x AS base\n${COPY_COMMON}\nRUN rm -rf ${COMMON_TESTS}\nFROM base\n`,
+        [COMMON_TESTS],
+      ],
+      [
+        "a copy out of a build stage that kept them",
+        `FROM x AS build\n${COPY_COMMON}\nFROM x\nCOPY --from=build /usr/src /usr/src\n`,
+        [COMMON_TESTS],
+      ],
+      [
+        "a build stage's copy put somewhere else",
+        `FROM x AS build\n${COPY_COMMON}\nFROM x\nCOPY --from=build /usr/src/Common /opt/Common\n`,
+        ["/opt/Common/Tests"],
+      ],
+      [
+        "a copy of a folder inside the tests",
+        "FROM x\nCOPY ./packages/Common/Tests/Helpers /opt/helpers\n",
+        ["/opt/helpers"],
+      ],
+      [
+        "an --exclude of something else",
+        "FROM x\nCOPY --exclude=*.md ./packages/Common /usr/src/Common\n",
+        [COMMON_TESTS],
+      ],
+      [
+        "an --exclude that is not the folder's own path",
+        "FROM x\nCOPY --exclude=Test ./packages/Common /usr/src/Common\n",
+        [COMMON_TESTS],
+      ],
+      [
+        "a package's deeper test folders, when only its topmost is removed",
+        `FROM x AS build\nCOPY ./packages/App /usr/src/app\nRUN rm -rf ${OWN_TESTS}\nFROM x\nCOPY --from=build /usr/src /usr/src\n`,
+        APP_FEATURE_TESTS,
+      ],
+      [
+        "an agent's copy, with other flags and no --exclude",
+        "FROM x\nCOPY --chown=node:node ./agents/KubernetesAIAgent /usr/src/app\n",
+        [OWN_TESTS],
+      ],
+    ])("counts %s", (_name, dockerfile, expected) => {
+      expect(layersOf(dockerfile)).toEqual(expected);
+    });
+
+    test("counts the whole build context, Common's tests with it", () => {
+      expect(layersOf("FROM x\nCOPY . /src\n")).toContain(
+        "/src/packages/Common/Tests",
+      );
+    });
+
+    test.each([
+      [
+        "a copy that excludes them",
+        "FROM x\nCOPY --exclude=Tests ./packages/Common /usr/src/Common\n",
+      ],
+      [
+        "a copy with other flags that excludes them",
+        "FROM x\nCOPY --chown=1000:1000 --exclude=Tests ./packages/Probe /usr/src/app\n",
+      ],
+      [
+        "a copy out of a build stage that removed them",
+        `FROM x AS build\n${COPY_COMMON}\nRUN rm -rf ${COMMON_TESTS}\nFROM x\nCOPY --from=build /usr/src /usr/src\n`,
+      ],
+      [
+        "a build stage's copy of a folder without them",
+        `FROM x AS build\n${COPY_COMMON}\nFROM x\nCOPY --from=build /usr/src/Common/Scripts /opt/Scripts\n`,
+      ],
+      ["a folder .dockerignore leaves out", "FROM x\nCOPY ./ee /usr/src/ee\n"],
+      [
+        "a package's manifests",
+        "FROM x\nCOPY ./packages/Common/package*.json /usr/src/Common/\n",
+      ],
+      [
+        "a build stage that is not copied out of",
+        `FROM x AS build\n${COPY_COMMON}\nFROM x\n`,
+      ],
+    ])("does not count %s", (_name, dockerfile) => {
+      expect(layersOf(dockerfile)).toEqual([]);
+    });
+  });
+});
+
+/*
+ * That --exclude does what the check above reads it to do, with the frontend
+ * the Probe asks for and the real .dockerignore. These are the Probe's own
+ * copies, and it is the fixture ClamAV flags that must not arrive. BuildKit
+ * sends only what they copy, so this needs docker but no image.
+ */
+function hasBuildx() {
+  const plugin = spawnSync("docker", ["buildx", "version"], {
+    encoding: "utf8",
+  });
+  const daemon = spawnSync(
+    "docker",
+    ["version", "--format", "{{.Server.Version}}"],
+    { encoding: "utf8" },
+  );
+
+  return plugin.status === 0 && daemon.status === 0;
+}
+
+(hasBuildx() ? describe : describe.skip)(
+  "the Probe's copies, built with BuildKit",
+  () => {
+    const TEMPLATE = "packages/Probe/Dockerfile.tpl";
+    const FIXTURE = "Tests/Utils/Markdown/InlineImageDataUri.test.ts";
+    let work = "";
+    let output = "";
+    let build = null;
+
+    function foldersNamedTests(directory) {
+      return fs
+        .readdirSync(directory, { withFileTypes: true })
+        .filter((entry) => {
+          return entry.isDirectory();
+        })
+        .flatMap((entry) => {
+          const inside = path.join(directory, entry.name);
+
+          return entry.name === TEST_FOLDER_NAME
+            ? [inside]
+            : foldersNamedTests(inside);
+        });
+    }
+
+    beforeAll(() => {
+      work = fs.mkdtempSync(path.join(os.tmpdir(), "image-without-tests-"));
+      output = path.join(work, "image");
+
+      const copies = stagesOf(TEMPLATE, "production")
+        .flatMap((stage) => {
+          return stage.instructions;
+        })
+        .filter((line) => {
+          return /^COPY\s.*--exclude=Tests\s/.test(line);
+        });
+      const dockerfile = path.join(work, "Dockerfile");
+
+      fs.writeFileSync(
+        dockerfile,
+        [read(TEMPLATE).split("\n")[0], "FROM scratch", ...copies, ""].join(
+          "\n",
+        ),
+      );
+
+      build = spawnSync(
+        "docker",
+        [
+          "buildx",
+          "build",
+          "--no-cache",
+          "--file",
+          dockerfile,
+          "--output",
+          `type=local,dest=${output}`,
+          REPO_ROOT,
+        ],
+        { encoding: "utf8", timeout: 600000 },
+      );
+    }, 620000);
+
+    afterAll(() => {
+      fs.rmSync(work, { recursive: true, force: true });
+    });
+
+    test("builds", () => {
+      expect({
+        status: build.status,
+        stderr: build.status === 0 ? "" : build.stderr,
+      }).toEqual({ status: 0, stderr: "" });
+    });
+
+    test("leaves out the tests, the fixture ClamAV flags among them", () => {
+      expect(
+        fs.existsSync(path.join(REPO_ROOT, "packages/Common", FIXTURE)),
+      ).toBe(true);
+      expect(fs.existsSync(path.join(REPO_ROOT, "packages/Probe/Tests"))).toBe(
+        true,
+      );
+      expect(foldersNamedTests(path.join(output, "usr/src"))).toEqual([]);
+    });
+
+    test("and copies the rest", () => {
+      for (const kept of [
+        "usr/src/Common/package.json",
+        "usr/src/Common/Utils/Markdown/InlineImageDataUri.ts",
+        "usr/src/app/Index.ts",
+        "usr/src/app/package.json",
+      ]) {
+        expect({ kept, there: fs.existsSync(path.join(output, kept)) }).toEqual(
+          { kept, there: true },
+        );
+      }
+    });
+  },
+);
+
 describe("the OpenTelemetry collector pin", () => {
   const COLLECTOR = /otel\/opentelemetry-collector-contrib:(\d+\.\d+\.\d+)/g;
   // The Swarm agent's files version: APP_VERSION's default in its compose file.
@@ -1415,6 +1975,9 @@ describe("the OpenTelemetry collector pin", () => {
     // Pinned since the agents report their version (they ran :latest).
     "agents/ProxmoxAgent/docker-compose.yml",
     "agents/CephAgent/docker-compose.yml",
+    "agents/OpenStackAgent/docker-compose.yml",
+    "agents/OpenStackAgent/docker-compose.traces.yml",
+    "agents/OpenStackAgent/docker-compose.logs.yml",
     // The journald wrapper image the Proxmox README and guide build.
     "agents/ProxmoxAgent/README.md",
     "packages/App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown.ts",
@@ -1505,13 +2068,16 @@ describe("the OpenTelemetry collector pin", () => {
     expect(isFilesVersionOf("0.161", "0.161.0")).toBe(false);
   });
 
-  test("the Swarm, VMware, Database, Proxmox, Ceph and Storage Array compose files run the pinned collector", () => {
+  test("the Swarm, VMware, Database, Proxmox, Ceph, OpenStack and Storage Array compose files run the pinned collector", () => {
     for (const file of [
       "agents/DockerSwarmAgent/docker-compose.yml",
       "agents/VMwareAgent/docker-compose.yml",
       "agents/DatabaseAgent/docker-compose.yml",
       "agents/ProxmoxAgent/docker-compose.yml",
       "agents/CephAgent/docker-compose.yml",
+      "agents/OpenStackAgent/docker-compose.yml",
+      "agents/OpenStackAgent/docker-compose.traces.yml",
+      "agents/OpenStackAgent/docker-compose.logs.yml",
       "agents/StorageArrayAgent/docker-compose.yml",
     ]) {
       const compose = yaml.load(read(file));
@@ -1529,6 +2095,163 @@ describe("the OpenTelemetry collector pin", () => {
   });
 
   /*
+   * The pipelines that can send something to OneUptime without the stamp. What
+   * counts is what leaves the collector. A pipeline that only hands its data to
+   * other pipelines through connectors sends nothing itself, so it is fine exactly
+   * when every pipeline it feeds is. One with any other exporter must stamp for
+   * itself, because that way out skips the pipeline it also feeds, and a connector
+   * nothing reads leaves nothing to vouch for it. The collector refuses a loop of
+   * connectors, so this does too rather than calling one stamped.
+   */
+  function pipelinesThatSendUnstamped(config) {
+    const pipelines = config.service.pipelines;
+    const connectors = Object.keys(config.connectors || {});
+
+    const isStamped = (name, walked) => {
+      const pipeline = pipelines[name];
+      if ((pipeline.processors || []).includes("resource")) {
+        return true;
+      }
+      const exporters = pipeline.exporters || [];
+      if (walked.includes(name) || exporters.length === 0) {
+        return false;
+      }
+      return exporters.every((exporter) => {
+        if (!connectors.includes(exporter)) {
+          return false;
+        }
+        const fed = Object.keys(pipelines).filter((other) => {
+          return (pipelines[other].receivers || []).includes(exporter);
+        });
+        return (
+          fed.length > 0 &&
+          fed.every((other) => {
+            return isStamped(other, [...walked, name]);
+          })
+        );
+      });
+    };
+
+    return Object.keys(pipelines).filter((name) => {
+      return !isStamped(name, []);
+    });
+  }
+
+  test("a pipeline goes without the stamp only if all it sends reaches one that stamps", () => {
+    const stamps = {
+      receivers: ["forward/in"],
+      processors: ["resource"],
+      exporters: ["otlphttp"],
+    };
+    const forwards = {
+      receivers: ["prometheus"],
+      processors: ["memory_limiter"],
+      exporters: ["forward/in"],
+    };
+    const connectors = { "forward/in": {} };
+
+    // The first case is the rule's whole point, and what it has always caught.
+    expect(
+      pipelinesThatSendUnstamped({
+        service: {
+          pipelines: { metrics: { ...stamps, processors: ["batch"] } },
+        },
+      }),
+    ).toEqual(["metrics"]);
+    expect(
+      pipelinesThatSendUnstamped({
+        connectors,
+        service: { pipelines: { metrics: stamps, increases: forwards } },
+      }),
+    ).toEqual([]);
+    // Through two connectors, which is still one way out.
+    expect(
+      pipelinesThatSendUnstamped({
+        connectors: { ...connectors, "forward/first": {} },
+        service: {
+          pipelines: {
+            metrics: stamps,
+            second: {
+              ...forwards,
+              receivers: ["forward/first"],
+            },
+            first: { ...forwards, exporters: ["forward/first"] },
+          },
+        },
+      }),
+    ).toEqual([]);
+    // Forwarding is no excuse when the pipeline it feeds does not stamp either.
+    expect(
+      pipelinesThatSendUnstamped({
+        connectors,
+        service: {
+          pipelines: {
+            metrics: { ...stamps, processors: ["batch"] },
+            increases: forwards,
+          },
+        },
+      }),
+    ).toEqual(["metrics", "increases"]);
+    // One pipeline it feeds stamps and another does not: the second is a way out.
+    expect(
+      pipelinesThatSendUnstamped({
+        connectors,
+        service: {
+          pipelines: {
+            metrics: stamps,
+            other: { ...stamps, processors: ["batch"] },
+            increases: forwards,
+          },
+        },
+      }),
+    ).toEqual(["other", "increases"]);
+    // Forwarding and also sending: what it sends directly never reaches the stamp.
+    expect(
+      pipelinesThatSendUnstamped({
+        connectors,
+        service: {
+          pipelines: {
+            metrics: stamps,
+            increases: { ...forwards, exporters: ["forward/in", "otlphttp"] },
+          },
+        },
+      }),
+    ).toEqual(["increases"]);
+    // A name that looks like a connector and is not declared as one is an exporter.
+    expect(
+      pipelinesThatSendUnstamped({
+        service: { pipelines: { metrics: stamps, increases: forwards } },
+      }),
+    ).toEqual(["increases"]);
+    // A connector nothing reads, an exporter list nothing fills, and a loop.
+    expect(
+      pipelinesThatSendUnstamped({
+        connectors,
+        service: { pipelines: { increases: forwards } },
+      }),
+    ).toEqual(["increases"]);
+    expect(
+      pipelinesThatSendUnstamped({
+        service: { pipelines: { metrics: { processors: ["batch"] } } },
+      }),
+    ).toEqual(["metrics"]);
+    expect(
+      pipelinesThatSendUnstamped({
+        connectors,
+        service: {
+          pipelines: {
+            a: {
+              receivers: ["forward/in"],
+              processors: [],
+              exporters: ["forward/in"],
+            },
+          },
+        },
+      }),
+    ).toEqual(["a"]);
+  });
+
+  /*
    * These agents are the stock collector plus a config, so the config is
    * what tells OneUptime the agent's version: it must stamp exactly the pin
    * the compose file beside it runs, or the version sign on the resource's
@@ -1538,6 +2261,10 @@ describe("the OpenTelemetry collector pin", () => {
   test.each([
     ["ProxmoxAgent", "otel-collector-config.yaml"],
     ["CephAgent", "otel-collector-config.yaml"],
+    ["OpenStackAgent", "otel-collector-config.yaml"],
+    ["OpenStackAgent", "otel-collector-traces.yaml"],
+    ["OpenStackAgent", "otel-collector-logs-files.yaml"],
+    ["OpenStackAgent", "otel-collector-logs-journald.yaml"],
     ["VMwareAgent", "otel-collector-config.yaml"],
     ["StorageArrayAgent", "otel-collector-config.yaml"],
     ["StorageArrayAgent", "otel-collector-config.flasharray-exporter.yaml"],
@@ -1566,10 +2293,8 @@ describe("the OpenTelemetry collector pin", () => {
           pinsIn(`agents/${agent}/docker-compose.yml`)[0],
         ),
       }).toEqual({ file, isOfThePin: true });
-      // Every pipeline runs the processor that stamps it.
-      for (const pipeline of Object.values(config.service.pipelines)) {
-        expect(pipeline.processors).toContain("resource");
-      }
+      // Everything that leaves the collector has passed the processor that stamps it.
+      expect(pipelinesThatSendUnstamped(config)).toEqual([]);
     },
   );
 });

@@ -5,6 +5,7 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
+import { STATUS_PAGE_MAGIC_LINK_EXPIRY_MINUTES } from "Common/Types/StatusPage/StatusPageMagicLink";
 
 /*
  * What the browser keeps about one status page, under these names followed
@@ -23,6 +24,13 @@ export const MASTER_PASSWORD_VALIDATED_STORAGE_KEY: string =
 export const SIGN_IN_REDIRECT_STORAGE_KEY: string =
   "status-page-sign-in-redirect";
 
+/*
+ * Where a sign-in link takes the visitor once it signs them in, kept in this
+ * browser's local storage under this name followed by the page's id.
+ */
+export const MAGIC_LINK_REDIRECT_STORAGE_KEY: string =
+  "status-page-magic-link-redirect";
+
 export default class StatusPageUtil {
   // List of authentication-related paths that should not be used as redirect URLs
   private static readonly AUTH_PATHS: string[] = [
@@ -31,6 +39,8 @@ export default class StatusPageUtil {
     "/master-password",
     "/forgot-password",
     "/reset-password",
+    "/magic-link",
+    "/magic-link-login",
   ];
 
   // Check if a path is an authentication-related page
@@ -222,6 +232,94 @@ export default class StatusPageUtil {
     }
 
     return StatusPageUtil.getSafeRedirectPath(redirectPath);
+  }
+
+  /*
+   * Where a sign-in link takes the visitor once it signs them in: the place
+   * on this page they were sent to sign in from when they asked for it. The
+   * link opens in a new tab, from their email, where this tab's session
+   * storage - single sign-on's (rememberSignInRedirect) - is not, so it is
+   * kept in this browser's local storage, for this page alone, and only for
+   * as long as the link works. Asking again replaces it; asking with no
+   * place to go clears it. A link opened in another browser lands on the
+   * overview.
+   */
+  public static rememberMagicLinkRedirect(redirectPath: string | null): void {
+    const storageKey: string | null = StatusPageUtil.getPageStorageKey(
+      MAGIC_LINK_REDIRECT_STORAGE_KEY,
+    );
+
+    if (!storageKey) {
+      return;
+    }
+
+    const safeRedirectPath: string | null =
+      StatusPageUtil.getSafeRedirectPath(redirectPath);
+
+    try {
+      if (safeRedirectPath) {
+        window.localStorage.setItem(
+          storageKey,
+          JSON.stringify({
+            path: safeRedirectPath,
+            expiresAt:
+              Date.now() + STATUS_PAGE_MAGIC_LINK_EXPIRY_MINUTES * 60 * 1000,
+          }),
+        );
+      } else {
+        window.localStorage.removeItem(storageKey);
+      }
+    } catch {
+      // Storage can be blocked: the link then lands on the overview.
+    }
+  }
+
+  // The place rememberMagicLinkRedirect kept for this page, taken once.
+  public static takeMagicLinkRedirect(): string | null {
+    const storageKey: string | null = StatusPageUtil.getPageStorageKey(
+      MAGIC_LINK_REDIRECT_STORAGE_KEY,
+    );
+
+    if (!storageKey) {
+      return null;
+    }
+
+    let kept: string | null = null;
+
+    try {
+      kept = window.localStorage.getItem(storageKey);
+
+      if (kept !== null) {
+        window.localStorage.removeItem(storageKey);
+      }
+    } catch {
+      return null;
+    }
+
+    if (!kept) {
+      return null;
+    }
+
+    try {
+      const parsed: unknown = JSON.parse(kept);
+
+      if (
+        !parsed ||
+        typeof parsed !== "object" ||
+        typeof (parsed as Record<string, unknown>)["path"] !== "string" ||
+        typeof (parsed as Record<string, unknown>)["expiresAt"] !== "number" ||
+        ((parsed as Record<string, unknown>)["expiresAt"] as number) <
+          Date.now()
+      ) {
+        return null;
+      }
+
+      return StatusPageUtil.getSafeRedirectPath(
+        (parsed as Record<string, unknown>)["path"] as string,
+      );
+    } catch {
+      return null;
+    }
   }
 
   /*

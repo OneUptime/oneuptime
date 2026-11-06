@@ -10,9 +10,12 @@ import {
   readSecurityHuntFilters,
   securityHuntFiltersToMap,
 } from "../../Types/SecurityEvent/SecurityHunt";
+import { getWatchlistNamesInQuery } from "../../Types/SecurityEvent/SecurityWatchlistFilter";
 import {
+  applySecurityEventSearchToQuery,
   buildSecurityEventSearchQuery,
   isSecurityEventChipKey,
+  parseSecurityEventSearch,
 } from "./SecurityEventSearch";
 
 /*
@@ -50,6 +53,27 @@ export function getSecurityHuntFiltersProblem(value: unknown): string | null {
   }
 
   return null;
+}
+
+/*
+ * The watchlists a hunt's search reads (`user:%vip_users%`), by name, each
+ * once: what a save checks the project has, and what keeps a list from
+ * being renamed or deleted while the hunt reads it. A chip names values,
+ * never a list.
+ */
+export function getSecurityHuntWatchlistNames(
+  searchQuery: string | undefined | null,
+): Array<string> {
+  if (!searchQuery || !searchQuery.includes("%")) {
+    return [];
+  }
+
+  return getWatchlistNamesInQuery(
+    applySecurityEventSearchToQuery({
+      query: {},
+      filters: parseSecurityEventSearch(searchQuery),
+    }),
+  );
 }
 
 // The read of a hunt's search over one project and one window.

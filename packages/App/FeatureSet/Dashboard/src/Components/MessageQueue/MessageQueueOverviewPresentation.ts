@@ -22,7 +22,13 @@ import {
   getMessagingBrokerMetricsSource,
   getMessagingSystemDescriptor,
 } from "Common/Types/MessageQueue/MessagingSystem";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  getGlobalTranslator,
+  translatableTerm,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How a queue's Overview and telemetry tabs describe it: whether anything
@@ -350,6 +356,29 @@ export function getMessageQueueBrokerMetricsNoDataDescription(data: {
 // A title's closing qualifier: "Queue size (legacy names)".
 const TITLE_QUALIFIER_PATTERN: RegExp = /^(.*\S)\s*\(([^()]+)\)$/;
 
+/**
+ * A curated broker metric's title on its tile, in the reader's language.
+ * The catalog's titles are keys; a title it makes of another one and the
+ * words in brackets that tell two copies of a metric apart ("Messages
+ * visible (JSON stream)", "Queue size (legacy names)") reads as the two keys
+ * it is made of.
+ */
+export function getMessageQueueBrokerMetricTitle(
+  descriptor: Pick<MessageQueueMetricDescriptor, "title">,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  const qualified: RegExpMatchArray | null = descriptor.title.match(
+    TITLE_QUALIFIER_PATTERN,
+  );
+  if (!qualified) {
+    return translator.translateText(descriptor.title) || descriptor.title;
+  }
+  return translator.translateTemplate("{{title}} ({{qualifier}})", {
+    title: translatableTerm(qualified[1] as string),
+    qualifier: translatableTerm(qualified[2] as string),
+  });
+}
+
 /*
  * A catalog entry's chart title. The axis ticks of a metric counted in a
  * unit word carry the number alone (formatDatabaseMetricAxisValue), so the
@@ -357,15 +386,17 @@ const TITLE_QUALIFIER_PATTERN: RegExp = /^(.*\S)\s*\(([^()]+)\)$/;
  * unless its title already names it — "Queue depth (messages)", but
  * "Active messages" and "Consumers" as they are. A title that already ends
  * in a qualifier takes the unit inside it, "Queue size (legacy names,
- * messages)", rather than a second pair of brackets.
+ * messages)", rather than a second pair of brackets. The title, its
+ * qualifier and its unit word are keys, said in the reader's language and
+ * order ("Warteschlangentiefe (Nachrichten)").
  */
 export function getMessageQueueBrokerMetricChartTitle(
   descriptor: Pick<MessageQueueMetricDescriptor, "title" | "unit" | "kind">,
+  translator: Translator = getGlobalTranslator(),
 ): string {
-  let suffix: string;
-  if (descriptor.kind === "counter") {
-    suffix = "per second";
-  } else {
+  // The unit word in brackets; undefined for a counter's "per second".
+  let unit: string | undefined = undefined;
+  if (descriptor.kind !== "counter") {
     const unitLabel: string = getDatabaseMetricAxisUnitLabel(descriptor.unit);
     const title: string = descriptor.title.toLowerCase();
     if (
@@ -373,17 +404,36 @@ export function getMessageQueueBrokerMetricChartTitle(
       title.includes(unitLabel.toLowerCase()) ||
       title.includes(getDatabaseUnitSingular(unitLabel).toLowerCase())
     ) {
-      return descriptor.title;
+      return getMessageQueueBrokerMetricTitle(descriptor, translator);
     }
-    suffix = unitLabel;
+    unit = unitLabel;
   }
 
   const qualified: RegExpMatchArray | null = descriptor.title.match(
     TITLE_QUALIFIER_PATTERN,
   );
-  return qualified
-    ? `${qualified[1]} (${qualified[2]}, ${suffix})`
-    : `${descriptor.title} (${suffix})`;
+  if (qualified) {
+    const title: string = qualified[1] as string;
+    const qualifier: string = qualified[2] as string;
+    return unit === undefined
+      ? translator.translateTemplate("{{title}} ({{qualifier}}, per second)", {
+          title: translatableTerm(title),
+          qualifier: translatableTerm(qualifier),
+        })
+      : translator.translateTemplate("{{title}} ({{qualifier}}, {{unit}})", {
+          title: translatableTerm(title),
+          qualifier: translatableTerm(qualifier),
+          unit: translatableTerm(unit),
+        });
+  }
+  return unit === undefined
+    ? translator.translateTemplate("{{title}} (per second)", {
+        title: translatableTerm(descriptor.title),
+      })
+    : translator.translateTemplate("{{title}} ({{unit}})", {
+        title: translatableTerm(descriptor.title),
+        unit: translatableTerm(unit),
+      });
 }
 
 /**
@@ -410,7 +460,7 @@ export function getMessageQueueBrokerMetricCaption(
  * list's generic value, the average of every series of the metric.
  */
 export const MESSAGE_QUEUE_METRIC_LIST_DEFAULT_CAPTION: string =
-  "average of series";
+  translationKey("average of series");
 
 /**
  * The caption under a curated metric's row on the Metrics tab: how its

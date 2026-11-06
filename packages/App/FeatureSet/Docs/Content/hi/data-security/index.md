@@ -6,7 +6,7 @@
 
 :::cards
 - [हमारा संवेदनशील डेटा कहां है?](/docs/data-security/data-types): 143 डेटा प्रकार, कार्ड नंबर और राष्ट्रीय ID से लेकर API कुंजियों तक, जो बकेट, टेबल और टेलीमेट्री में मिलते हैं।
-- [क्या यह एक्सपोज़्ड है?](/docs/data-security/checks-and-issues): हर स्टोर की 33 जांचें: सार्वजनिक एक्सेस, एन्क्रिप्शन, बैकअप, लॉगिंग, सीक्रेट और कॉपियां।
+- [क्या यह एक्सपोज़्ड है?](/docs/data-security/checks-and-issues): हर स्टोर की 34 जांचें: सार्वजनिक एक्सेस, एन्क्रिप्शन, बैकअप, लॉगिंग, सीक्रेट और कॉपियां।
 - [कौन इस तक पहुंच सकता है, और यह कहां जाता है?](/docs/data-security/flows-access-residency): हर पहचान जो हर स्टोर तक पहुंच सकती है, सबसे जोखिम वाली पहले, कौन-सी सेवाएं उसका उपयोग करती हैं, और उसका डेटा किन AI प्रदाताओं और होस्ट तक पहुंचता है।
 - [क्या यह हमारे नियमों पर खरा उतरता है?](/docs/data-security/compliance): डेटा रेजिडेंसी नियम, और स्कैन में मिली चीज़ों से स्कोर किए गए नौ फ्रेमवर्क।
 :::
@@ -66,10 +66,10 @@ flowchart TB
 
 | कहां | स्टोर | सामग्री के नमूने |
 | --- | --- | --- |
-| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System | AWS S3 Bucket |
+| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| आपके चलाए डेटाबेस | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch | PostgreSQL, MySQL |
+| आपके चलाए डेटाबेस | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks | PostgreSQL, MySQL |
 | OneUptime | लॉग, ट्रेस, अपवाद, सेशन रीप्ले, AI बातचीत | लॉग, ट्रेस, अपवाद, सेशन रीप्ले, AI बातचीत |
 
 हर स्टोर पर वे जांचें चलती हैं जो उसके प्रकार पर लागू होती हैं। जिस स्टोर की सामग्री का नमूना नहीं लिया जा सकता, उसकी भी जांच होती है: सार्वजनिक बकेट या बिना एन्क्रिप्शन वाला डेटाबेस अपने आप में समस्या है, उसमें चाहे जो रखा हो।

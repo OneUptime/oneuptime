@@ -38,7 +38,7 @@ O sandbox não é Node.js: não há `require`, `process`, `fetch` nem sistema de
 :::steps
 ### Começar um novo monitor
 
-Vá para **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Custom JavaScript Code** em **Synthetic Monitoring**, ou digite `script` na caixa de pesquisa. Digite um **Nome** e clique em **Próximo**.
+Vá para **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Custom JavaScript Code** em **Monitoramento sintético**, ou digite `script` na caixa de pesquisa. Digite um **Nome** e clique em **Próximo**.
 
 ### Adicionar o script
 
@@ -167,7 +167,7 @@ Alguns nomes de atributo pertencem ao OneUptime, e um script não pode escrevê-
 
 - A identidade do monitor: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
 - Qualquer coisa nos namespaces `oneuptime.` ou `resource.`: eles carregam os identificadores que o OneUptime aplica na ingestão.
-- Atributos de identidade de recursos: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` e `docker.swarm.cluster.name`.
+- Atributos de identidade de recursos: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` e `docker.swarm.cluster.name`.
 
 Esses nomes não são só rótulos: o OneUptime os lê como a afirmação de a qual recurso um ponto de dados pertence. Uma métrica marcada com `service.name: payments-api` apareceria na aba Métricas desse serviço, e se você criasse depois um monitor de métricas agrupado por `service.name`, os alertas dele seriam vinculados a esse serviço, acionariam os responsáveis por esse serviço e ficariam em silêncio durante uma janela de manutenção nele. Para associar um monitor a um serviço ou a um host, use os rótulos do próprio monitor.
 

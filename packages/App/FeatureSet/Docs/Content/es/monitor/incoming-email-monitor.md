@@ -39,7 +39,7 @@ Vaya a **Monitores** y haga clic en **Crear monitor**.
 
 ### Elegir Incoming Email
 
-En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Incoming Email** en **Inbound Monitoring**, o escriba `email` en el cuadro de búsqueda. Introduzca un **Nombre** y haga clic en **Siguiente**.
+En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Incoming Email** en **Monitoreo entrante**, o escriba `email` en el cuadro de búsqueda. Introduzca un **Nombre** y haga clic en **Siguiente**.
 
 ### Revisar los criterios
 

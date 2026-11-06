@@ -6,7 +6,7 @@
 - [全局选项](#全局选项): 每条命令都接受的选项。
 - [登录与上下文](#登录与上下文): login 和 context 命令。
 - [资源命令](#资源命令): 每个资源的操作、字段和动作。
-- [其他命令](#其他命令): deploy、whoami、resources、version 和 help。
+- [其他命令](#其他命令): deploy、dbt upload、data-checks apply、whoami、resources、version 和 help。
 :::
 
 ## 命令总览
@@ -19,6 +19,8 @@ flowchart LR
     O --> R["incident、monitor<br/>等每种资源"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
+    O --> D["dbt"]
+    D --> D1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -304,6 +306,35 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 | `--time <time>` | 否 | 变更发生的时间，例如 `2026-10-19T10:00:00Z` | 现在 |
 | `--attribute <key=value...>` | 否 | 更多属性，形式为 `key=value`，一个或多个 | |
 | `--ingestion-key <key>` | 否 | 项目的遥测摄取密钥 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime dbt upload`
+
+在一次构建之后，从 CI 或 dbt Cloud 作业把 dbt 项目的产物发送到数据可观测性。它的模型显示在它们构建的表上，并带有血缘；它的测试显示在 OneUptime 的检查旁边，并且可以触发警报；每次构建都是该项目管道的一次运行。它从 dbt 的目标文件夹读取 `manifest.json` 和 `run_results.json`，只发送数据可观测性会读取的内容，并使用遥测摄取密钥写入，而不是 API 密钥。你的仪表盘中数据可观测性的文档页面展示了如何在 CI 作业中使用它。
+
+```bash
+oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <file>] [--project <name>] [--ingestion-key <key>]
+```
+
+| 选项 | 必需 | 说明 | 默认值 |
+| --- | --- | --- | --- |
+| `--target-path <dir>` | 否 | dbt 写入其产物的文件夹 | `target` |
+| `--manifest <file>` | 否 | 要发送的清单 | 目标文件夹中的 `manifest.json` |
+| `--run-results <file>` | 否 | 要发送的运行结果 | 目标文件夹中的 `run_results.json` |
+| `--project <name>` | 否 | dbt 项目的名称，仅在不发送清单时需要 | 清单中的项目 |
+| `--ingestion-key <key>` | 否 | 项目的遥测摄取密钥 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime data-checks apply`
+
+让项目的数据检查与一个 YAML 文件一致，这样它们就保存在仓库中，并像代码一样接受审查。文件中任何地方出错，都不会应用任何内容，并以错误退出。文件的格式见 [检查与对账](/docs/data-observability/checks)。
+
+```bash
+oneuptime data-checks apply <file> [--dry-run] [--prune]
+```
+
+| 选项 | 必需 | 说明 | 默认值 |
+| --- | --- | --- | --- |
+| `--dry-run` | 否 | 说明将会更改什么，但不做任何更改 | 关闭 |
+| `--prune` | 否 | 删除之前某次应用创建、而文件中不再提到的检查 | 关闭 |
 
 ### `oneuptime whoami`
 

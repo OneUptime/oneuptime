@@ -20,6 +20,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import {
+  ON_CALL_PAGE_PASS_ON_ESCALATE_TO_FIELD,
   ON_CALL_PAGE_PASS_ON_ROUTE,
   OnCallOpenPage,
   OnCallOpenPagesAnswer,
@@ -43,7 +44,11 @@ import User from "../../Models/DatabaseModels/User";
  *   page by anybody else, so it is cheap.
  *
  * POST /on-call-page/pass-on/<record type>/<record id>
- *   Passes them on, and says what came of each: { answers: [...] }.
+ *   Passes them on, and says what came of each: { answers: [...] }. The
+ *   body may pick a later level for a page than its next -
+ *   { escalateTo: { <execution log id>: <escalation rule id> } }, from the
+ *   levels its GET preview offered (levelChoices). A page it does not name
+ *   pages its next level, as a POST with no body does.
  *
  * Only ever the caller's own pages, in the project they are signed in to:
  * there is nothing to send but the record, and nobody can pass on anybody
@@ -106,6 +111,52 @@ const readRecord: (req: ExpressRequest) => {
   }
 
   return { recordType: recordType, recordId: new ObjectID(recordIdText) };
+};
+
+/*
+ * The levels picked in a POST's body, by run: every key and value an id,
+ * or the request is refused before anything is escalated. None, or an
+ * empty object, picks nothing.
+ */
+export const readEscalateTo: (
+  body: unknown,
+) => Record<string, ObjectID> | undefined = (
+  body: unknown,
+): Record<string, ObjectID> | undefined => {
+  const value: unknown =
+    body && typeof body === "object"
+      ? (body as JSONObject)[ON_CALL_PAGE_PASS_ON_ESCALATE_TO_FIELD]
+      : undefined;
+
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new BadDataException(
+      `${ON_CALL_PAGE_PASS_ON_ESCALATE_TO_FIELD} must map each page's execution log id to the escalation rule id of the level to page.`,
+    );
+  }
+
+  const escalateTo: Record<string, ObjectID> = {};
+
+  for (const [executionLogId, escalationRuleId] of Object.entries(
+    value as JSONObject,
+  )) {
+    if (
+      !ObjectID.isValidUUID(executionLogId) ||
+      typeof escalationRuleId !== "string" ||
+      !ObjectID.isValidUUID(escalationRuleId)
+    ) {
+      throw new BadDataException(
+        `${ON_CALL_PAGE_PASS_ON_ESCALATE_TO_FIELD} must map each page's execution log id to the escalation rule id of the level to page.`,
+      );
+    }
+
+    escalateTo[executionLogId] = new ObjectID(escalationRuleId);
+  }
+
+  return Object.keys(escalateTo).length > 0 ? escalateTo : undefined;
 };
 
 // The signed-in person and their project, or a refusal.
@@ -200,12 +251,18 @@ router.post(
         recordId: ObjectID;
       } = readRecord(req);
 
+      // Checked before anything is escalated: a bad pick refuses it all.
+      const escalateTo: Record<string, ObjectID> | undefined = readEscalateTo(
+        req.body,
+      );
+
       const answers: Array<OnCallPassOnAnswer> =
         await OnCallPagePassOn.passOnForRecord({
           userId: caller.userId,
           projectId: caller.projectId,
           recordType: record.recordType,
           recordId: record.recordId,
+          escalateTo: escalateTo,
         });
 
       const timezone: string | undefined =

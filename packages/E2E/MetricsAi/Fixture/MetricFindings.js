@@ -1,7 +1,7 @@
 /*
  * What Metrics' AI tab reads, answered as the server answers it: the
  * problems OneUptime found in the project's metrics (AIInsight rows of the
- * three metric kinds, with their evidence), the metric AI rules
+ * four metric kinds, with their evidence), the metric AI rules
  * (AutoRemediationRule with the Metric trigger), the pull request readiness
  * (POST /telemetry-ai/readiness), the AI logs (POST /telemetry-ai/logs),
  * Fix with AI on a finding (POST /telemetry-ai/fix-suggestion and
@@ -70,6 +70,7 @@ export const SERVICE_IDS = {
   checkout: "52310000-0000-4000-8000-0000000000a1",
   worker: "52310000-0000-4000-8000-0000000000a2",
   payments: "52310000-0000-4000-8000-0000000000a3",
+  search: "52310000-0000-4000-8000-0000000000a4",
 };
 
 export const SERVICE_NAMES = {
@@ -85,6 +86,10 @@ export const SERVICE_NAMES = {
     "payments",
     "storefront-payments-gateway-eu-west-1-production",
   ),
+  [SERVICE_IDS.search]: named(
+    "search",
+    "storefront-catalog-search-api-eu-west-1-production",
+  ),
 };
 
 export const AI_INSIGHT_IDS = {
@@ -92,6 +97,7 @@ export const AI_INSIGHT_IDS = {
   buckets: "52310000-0000-4000-8000-0000000000e2",
   names: "52310000-0000-4000-8000-0000000000e3",
   missing: "52310000-0000-4000-8000-0000000000e4",
+  requests: "52310000-0000-4000-8000-0000000000e5",
 };
 
 export const AI_TASK_IDS = {
@@ -233,6 +239,41 @@ function missingEvidence(now) {
   };
 }
 
+/*
+ * search sends its runtime's metrics, but none for the HTTP requests and
+ * messages it handles.
+ */
+function requestMetricsEvidence(now) {
+  return {
+    serviceId: SERVICE_IDS.search,
+    kind: "MissingRequestMetrics",
+    ...readWindow(now),
+    spanCount: 12400,
+    failedSpanCount: 310,
+    servedProtocols: ["Http", "Messaging"],
+    sentMetricNames: [
+      named(
+        "jvm.memory.used",
+        "com.example.storefront.catalog.search.jvm.memory.used.after.gc",
+      ),
+      "process.cpu.time",
+      "db.client.connections.usage",
+    ],
+    sentMetricCount: 14,
+    topOperations: [
+      {
+        name: named(
+          "GET /search",
+          "GET /api/v2/storefront/catalog/search/{tenantId}/products/suggestions",
+        ),
+        spanCount: 4000,
+      },
+      { name: "GET /suggest", spanCount: 2100 },
+    ],
+    sdkLanguage: "java",
+  };
+}
+
 // A finding as the detector files it: its title, severity and evidence text.
 function finding(data) {
   const serviceName = SERVICE_NAMES[data.evidence.serviceId];
@@ -301,6 +342,15 @@ export function aiInsights(now) {
       evidence: missingEvidence(now),
       occurrenceCount: 8,
       firstSeenAt: new Date(now - 8 * HOUR),
+      lastSeenAt: new Date(now - 4 * MINUTE),
+    }),
+    finding({
+      id: AI_INSIGHT_IDS.requests,
+      insightType: AIInsightType.MetricMissingRequestMetrics,
+      status: AIInsightStatus.Detected,
+      evidence: requestMetricsEvidence(now),
+      occurrenceCount: 6,
+      firstSeenAt: new Date(now - 6 * HOUR),
       lastSeenAt: new Date(now - 4 * MINUTE),
     }),
   ];

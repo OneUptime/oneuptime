@@ -1,0 +1,6 @@
+["KOLLA_CONFIG_STRATEGY=COPY_ALWAYS"
+"OS_COMPUTE_API_VERSION=latest"
+"KOLLA_SERVICE_NAME=prometheus-openstack-exporter"
+"KOLLA_BASE_DISTRO=ubuntu"
+"KOLLA_BASE_ARCH=x86_64"
+"PS1=$(tput bold)($(printenv KOLLA_SERVICE_NAME))$(tput sgr0)[$(id -un)@$(hostname -s) $(pwd)]$ "

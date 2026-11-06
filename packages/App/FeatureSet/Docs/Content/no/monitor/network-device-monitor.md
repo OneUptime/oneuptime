@@ -69,7 +69,7 @@ Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Enheter**,
 | **Topologi** | **Enhetstopologi**, **Endepunkter**, **Latensmatrise**, **Lokasjonslenker**, **Enhetslenker** |
 | **Regler** | **Regler for automatisk import**, **Regler for lokasjonstildeling**, **Eierregler**, **Etikettregler**, **Lenkeregler** |
 | **Innstillinger** | **Varslingsretningslinjer**, **SNMP-påloggingsinformasjon**, **Enhetsroller**, **Lokasjonstyper**, **Adressenavn**, **Maler for OID-innsamling** |
-| **Avansert** | **Arkiverte enheter** |
+| **Avansert** | **SNMP-walk**, **Arkiverte enheter** |
 
 ## Legg til en nettverksenhet
 
@@ -154,7 +154,7 @@ Hver handling er én dialog og én lagring for hele utvalget, og hver enhet går
 
 Når en handling er ferdig, viser den hvor mange enheter som ble endret, hvilke som feilet og hvorfor — en enhet rollen din ikke kan redigere, en liste over grensen — og hvilke den ikke endret og hvorfor: en enhet som allerede var på den lokasjonen eller hadde den rollen, eller en som produsentmalen lar være.
 
-De andre massehandlingene beskrives der de hører hjemme: **Set OID Collection Template** under [OID Collection Templates](#maler-for-oid-innsamling), **Set SNMP Credential Profile**, **Switch to Probe Polling** og **Create Ping Monitors** under [Samlet](#samlet), og **Shorten Names to Hostname** under [Slik får oppdagede enheter navn](#slik-får-oppdagede-enheter-navn).
+De andre massehandlingene beskrives der de hører hjemme: **Set OID Collection Template** under [OID Collection Templates](#maler-for-oid-innsamling), **SNMP-walk** under [Walk av mange enheter samtidig](#walk-av-mange-enheter-samtidig), **Set SNMP Credential Profile**, **Switch to Probe Polling** og **Create Ping Monitors** under [Samlet](#samlet), og **Shorten Names to Hostname** under [Slik får oppdagede enheter navn](#slik-får-oppdagede-enheter-navn).
 
 ## Hva en polling faktisk gjør
 
@@ -397,6 +397,21 @@ Hver rad sier hvor OID-en er kjent: en verdi som en leverandørs helsemal samler
 **Last ned**, ved siden av sammendraget av walken, lagrer det walken leste, som en fil: **snmpwalk-tekst (.txt)**, én OID per linje slik `snmpwalk -On` skriver den, som alle SNMP-verktøy og all leverandørstøtte kan lese, eller **CSV-regneark (.csv)** med navnet, MIB-en, typen og verdien til hver OID. Filen inneholder hver OID walken leste, også fortsatte walker, uansett hva filteret viser, og har navn etter enheten, undertreet og tidspunktet den ble lagret. Alle som kan lese enhetens siste walk, kan laste den ned.
 
 En walk som feiler, sier hvorfor, og hva du bør kontrollere: en enhet som ikke svarer (SNMP slått av, UDP 161 blokkert eller, på v1 og v2c, en feil community-streng, som en agent ignorerer uten et ord), en SNMPv3-bruker, et passord eller en protokoll som enheten avviste, eller en del av treet som SNMP-visningen til påloggingsinformasjonen utelater. En walk som stopper underveis, beholder det den har lest. En walk krever tillatelsen **Create Network Device Diagnostic** og en sonde som er ny nok til SNMP-walk: med en eldre ber siden deg oppdatere den.
+
+### Walk av mange enheter samtidig
+
+Når én verdi betyr noe på tvers av en hel flåte, for eksempel CPU-en på hver ruter eller temperaturen på hver svitsj på en lokasjon, kjører du walk av enhetene samlet i stedet for én enhetsside om gangen. Merk dem i listen **Enheter**, ved å krysse av rader eller merke alle enhetene filtrene treffer, og bruk **SNMP-walk** i **Massehandlinger**. Eller trykk på **Sammenlign med andre enheter** i menyen til en OID på en enhets egen side **SNMP-walk**: siden åpnes med den enheten valgt og den OID-en som startpunkt, og du legger til resten. Siden ligger også under **Nettverk → Avansert → SNMP-walk**, der du velger enheter én og én eller alle enheter med en etikett.
+
+Walken av hver enhet kjøres slik enhetens egen side kjører den: av enhetens egen sonde, med SNMP-påloggingsinformasjonen OneUptime har lagret for den (v1, v2c eller v3, fra enheten, påloggingsprofilen eller lokasjonen), høyst 1 000 OID-er per enhet. Det kjøres walk av opptil 50 enheter om gangen. Start ved én OID for å sjekke den verdien på hver enhet, eller ved et undertre for å sammenligne hva enhetene viser under det. Svaret fra hver enhet vises så snart det kommer, og siden venter opptil fem minutter på den tregeste sonden.
+
+Resultatene viser hver OID en enhet svarte på, én OID per rad:
+
+- **Besvart av** sier hvor mange av enhetene der walken nådde OID-en, som svarer på den, og kan åpnes for å vise hver enhets egen verdi. En enhet der walken stoppet ved grensen før OID-en, telles aldri som en enhet uten den.
+- En verdi som alle enheter leser likt, vises én gang; tall som er ulike, vises som det laveste og det høyeste, og tekst som er ulik, som antallet ulike verdier.
+- **Bare OID-er som noen enheter ikke svarer på**, ved siden av filteret, beholder bare OID-ene som en del av flåten ikke har.
+- **Samle inn på 12 enheter** legger OID-en til hver enhet som svarer på den og ikke samler den inn ennå, slik **Samle inn** gjør på én enhet: én gang per enhet, aldri to ganger, og en enhet som avviser, for eksempel fordi listen er full, nevnes med årsaken mens de andre går videre. Når disse enhetene er koblet til en OID Collection Template, kan radens meny i stedet legge OID-en til malen, for hver enhet som bruker den.
+
+Over resultatene står hver enhet der walken ikke ble fullført, med årsaken og hva som må rettes: ingen sonde, ingen SNMP-påloggingsinformasjon, avvist påloggingsinformasjon, ikke noe svar eller ingen rapport fra sonden. Navnet på en enhet åpner enhetens egen side **SNMP-walk** på denne walken av den, der **Fortsett walk** leser videre og **Opprett varsel** åpner en ny monitor. **Last ned CSV** lagrer hver OID fra hver enhet i én fil, med enhetens navn i første kolonne. Sidens adresse tar vare på enhetene og OID-en, så en ny innlasting eller en delt lenke åpner den samme walken, og walkene lagres i to dager.
 
 ### SNMP-tabeller
 

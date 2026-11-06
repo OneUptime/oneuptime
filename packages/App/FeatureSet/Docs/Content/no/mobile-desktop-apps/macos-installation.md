@@ -61,7 +61,7 @@ Appen viser varsler når du har registrert den for push-varsler, i hvert prosjek
 
 :::steps
 ### Åpne push-enhetene dine
-Åpne **Brukerinnstillinger → Varselmetoder** og fanen **Push Notifications** i appen.
+Åpne **Brukerinnstillinger → Varselmetoder** og fanen **Push-varsler** i appen.
 
 ### Registrer denne appen
 Klikk på **Registrer enhet**, behold det foreslåtte **Enhetsnavn**, for eksempel `Safari on macOS`, eller endre det, og klikk på **Registrer enhet** igjen. Når macOS eller nettleseren spør om OneUptime kan sende varsler, velger du **Tillat**.
@@ -89,7 +89,7 @@ Det er ingenting å oppdatere. Appen henter dashbordet fra ditt OneUptime hver g
 Åpne `edge://apps` i Edge, velg **Detaljer** for OneUptime, og deretter **Avinstaller**.
 :::
 
-Å avinstallere appen avregistrerer den ikke: nettleseren dens får fortsatt varsler. For å stoppe dem sletter du den under **Brukerinnstillinger → Varselmetoder**, på fanen **Push Notifications**, med **Slett**.
+Å avinstallere appen avregistrerer den ikke: nettleseren dens får fortsatt varsler. For å stoppe dem sletter du den under **Brukerinnstillinger → Varselmetoder**, på fanen **Push-varsler**, med **Slett**.
 
 ## Feilsøking
 
@@ -98,7 +98,7 @@ Safari legger nettapper til i Dock fra macOS Sonoma 14. Oppdater macOS, eller in
 :::
 
 :::details Det vises ingen varsler
-- Sjekk under **Brukerinnstillinger → Varselmetoder**, på fanen **Push Notifications**, at appen eller nettleseren dens står i listen, og send et **Testvarsel**.
+- Sjekk under **Brukerinnstillinger → Varselmetoder**, på fanen **Push-varsler**, at appen eller nettleseren dens står i listen, og send et **Testvarsel**.
 - Åpne **Systeminnstillinger → Varslinger** på Macen, og sjekk at OneUptime, eller nettleseren det ble installert fra, kan sende varsler, og at ingen Fokus holder dem tilbake.
 - Blokkerer nettleseren varsler for OneUptime, tillater du dem i innstillingene for nettstedet og registrerer på nytt.
 - På et selvdriftet OneUptime sier dialogen **Registrer enhet** fra når serveren ikke har VAPID-nøkler.

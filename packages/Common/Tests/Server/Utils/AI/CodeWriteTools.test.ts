@@ -37,6 +37,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import GitHubInstallationBinding from "../../../../Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
+import { actionTitleText } from "../../../Helpers/AIActionText";
 
 /*
  * The chat agent reads telemetry an attacker can influence (a log line or an
@@ -753,14 +754,18 @@ describe("permission-mode gating", () => {
 
   test("the approval card names the action concretely", () => {
     expect(
-      OpenCodePullRequestTool.buildActionTitle!({ title: "Fix charge bug" }),
+      actionTitleText(
+        OpenCodePullRequestTool.buildActionTitle!({ title: "Fix charge bug" }),
+      ),
     ).toBe("Open pull request: Fix charge bug");
 
     expect(
-      CommitCodeToBranchTool.buildActionTitle!({
-        branchName: "feature/x",
-        changes: [{ filePath: "a.ts", content: "" }],
-      }),
+      actionTitleText(
+        CommitCodeToBranchTool.buildActionTitle!({
+          branchName: "feature/x",
+          changes: [{ filePath: "a.ts", content: "" }],
+        }),
+      ),
     ).toBe("Commit 1 file to feature/x");
   });
 });

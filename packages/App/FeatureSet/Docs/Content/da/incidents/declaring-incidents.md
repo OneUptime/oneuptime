@@ -45,7 +45,7 @@ Kun det første trin har påkrævede felter, plus ethvert brugerdefineret felt, 
 **Fra en ressources egen side.** **Erklær hændelse** på fanen **Hændelser** for en monitor, en vært, en tjeneste, en klynge eller de fleste andre ressourcer åbner den samme formular med den ressource allerede valgt på **Berørte ressourcer**, så en titel og en alvorsgrad er alt, der skal til, og hændelsen vises på den fane, du startede fra.
 
 :::details Hvilke ressourcesider tilbyder det, og hvad de vælger
-**Erklær hændelse** på fanen **Hændelser** for en monitor, en vært, en netværksenhed, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vært, en vCenter, et lagerarray, en IoT-flåde, en database eller en tjeneste åbner den samme guide med den ressource allerede valgt på **Berørte ressourcer** (en monitor under **Monitorer**, alt andet under **Andre berørte ressourcer**), foran alt, hvad en skabelon tilføjer. **Opret fra skabelon** på den fane beholder også ressourcen. Brødkrummestien fører tilbage via ressourcens fane, og når hændelsen er erklæret, lander du på den nye hændelse, som fra listen over hændelser.
+**Erklær hændelse** på fanen **Hændelser** for en monitor, en vært, en netværksenhed, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vært, en vCenter, en OpenStack-cloud, et lagerarray, en IoT-flåde, en database eller en tjeneste åbner den samme guide med den ressource allerede valgt på **Berørte ressourcer** (en monitor under **Monitorer**, alt andet under **Andre berørte ressourcer**), foran alt, hvad en skabelon tilføjer. **Opret fra skabelon** på den fane beholder også ressourcen. Brødkrummestien fører tilbage via ressourcens fane, og når hændelsen er erklæret, lander du på den nye hændelse, som fra listen over hændelser.
 
 Fanen **Hændelser** for et lagerelement vælger den vært, den tjeneste eller den Kubernetes-klynge, elementet peger på, og brødkrummestien fører tilbage via den ressources fane. **Opret advarsel** på en ressources fane **Advarsler** virker på samme måde: fra en monitor udfylder den advarslens **Overvågning**, fra alt andet **Andre berørte ressourcer**.
 
@@ -284,7 +284,7 @@ Derfra er hændelsen live: den tæller med i mærket **Aktive hændelser** i Hæ
 
 ### Erklæret allerede bekræftet eller løst
 
-At vælge en senere **Indledende tilstand** — på formularen, via en skabelons **Indledende hændelsestilstand** eller med `currentIncidentStateId` fra API'et, Terraform eller et workflow — registrerer en hændelse, som nogen allerede håndterer, eller som allerede er overstået. Den behandles ikke som en ny nødsituation:
+At vælge en senere **Indledende tilstand** — på formularen, via en skabelons **Indledende hændelsestilstand**, med `currentIncidentStateId` fra API'et, Terraform eller et workflow, eller ved at bede [Spørg AI](/docs/ai/ask-ai) om en hændelse, der allerede er bekræftet eller løst — registrerer en hændelse, som nogen allerede håndterer, eller som allerede er overstået. Den behandles ikke som en ny nødsituation:
 
 ```mermaid title="Hvad en ny hændelse sætter i gang, efter den tilstand den starter i"
 flowchart TB

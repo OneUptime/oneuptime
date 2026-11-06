@@ -1,6 +1,6 @@
 # Microsoft Entra ID
 
-Import [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/)'s sign-ins and directory changes into OneUptime's Security Events and, if you choose, the Exchange, SharePoint, OneDrive and Teams activity of the [Microsoft 365 audit log](https://learn.microsoft.com/en-us/purview/audit-log-activities). There you search them beside your logs, traces and metrics, correlate them with every other source, and page on-call for the ones that matter. OneUptime reads them with an app registration you create, and changes nothing in your tenant.
+Import [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/)'s sign-ins, directory changes and risk detections into OneUptime's Security Events and, if you choose, the sign-ins apps make in the background and the Exchange, SharePoint, OneDrive and Teams activity of the [Microsoft 365 audit log](https://learn.microsoft.com/en-us/purview/audit-log-activities). There you search them beside your logs, traces and metrics, correlate them with every other source, and page on-call for the ones that matter. OneUptime reads them with an app registration you create, and changes nothing in your tenant.
 
 :::cards
 - [Set up the connection](#set-up-the-connection): An app registration, its permissions, and the connection's form.
@@ -19,15 +19,15 @@ flowchart TB
     list --> event["Each is stored as<br/>an OCSF event of<br/>its kind"]
 ```
 
-Every minute, OneUptime polls each enabled connection whose poll interval has passed. A poll signs in to Microsoft Entra ID as your app registration and reads, in this order, the directory changes ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) and the sign-ins ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)) recorded since the last poll, then, when the **Microsoft 365 audit log** option is on, the audit log's new content ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)). Each record is stored as an [OCSF](https://schema.ocsf.io/) event: a sign-in as an Authentication event, a role assigned as a User Access Management event, a phishing verdict as a Detection Finding.
+Every minute, OneUptime polls each enabled connection whose poll interval has passed. A poll signs in to Microsoft Entra ID as your app registration and reads, in this order, the directory changes ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) and the sign-ins ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)) recorded since the last poll, then Identity Protection's risk detections ([List riskDetections](https://learn.microsoft.com/en-us/graph/api/riskdetection-list)), then, when the **Background and app sign-ins** option is on, the background and app sign-ins, and, when the **Microsoft 365 audit log** option is on, the audit log's new content ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)). Each record is stored as an [OCSF](https://schema.ocsf.io/) event: a sign-in as an Authentication event, a role assigned as a User Access Management event, a risk detection or a phishing verdict as a Detection Finding.
 
 ## Before you begin
 
 - In OneUptime, the Project Owner, Project Admin or Security Admin role. Security Members and Security Viewers can see connections and their run history, but cannot change them.
-- For sign-ins, Microsoft Entra ID P1 or P2, which Microsoft 365 E3, E5 and Business Premium include: Microsoft Graph gives sign-ins only to such tenants. Directory changes are read in any tenant.
+- For sign-ins and risk detections, Microsoft Entra ID P1 or P2, which Microsoft 365 E3, E5 and Business Premium include: Microsoft Graph gives them only to such tenants, and P2 gives every risk detection's details. Directory changes are read in any tenant.
 - An Entra role that can register applications, such as Application Administrator, and a Global Administrator or Privileged Role Administrator to grant admin consent.
 - For the Microsoft 365 audit log, auditing turned on for the tenant, which it is by default: in the [Microsoft Purview portal](https://purview.microsoft.com), **Audit** must not offer **Start recording user and admin activity**.
-- Outbound HTTPS from the OneUptime app and workers to `login.microsoftonline.com`, `graph.microsoft.com` and `manage.office.com`, or to `login.microsoftonline.us`, `graph.microsoft.us` and `manage.office365.us` for Azure Government.
+- Outbound HTTPS from the OneUptime app and workers to `login.microsoftonline.com`, `graph.microsoft.com` and `manage.office.com`, with `manage-gcc.office.com` instead for Microsoft 365 GCC, or to `login.microsoftonline.us`, `graph.microsoft.us` and `manage.office365.us` for GCC High, and `login.microsoftonline.us`, `dod-graph.microsoft.us` and `manage.protection.apps.mil` for DoD.
 
 ## Set up the connection
 
@@ -42,7 +42,7 @@ The connection signs in with the [OAuth 2.0 client credentials flow](https://lea
 
 ### Let it read the logs
 
-1. Go to **API permissions → Add a permission → Microsoft Graph → Application permissions**, pick `AuditLog.Read.All`, and select **Add permissions**. Microsoft documents that its sign-in list can also ask for `Directory.Read.All`: add it if sign-ins are refused with `403` once consent is granted.
+1. Go to **API permissions → Add a permission → Microsoft Graph → Application permissions**, pick `AuditLog.Read.All` and, for risk detections, `IdentityRiskEvent.Read.All`, and select **Add permissions**. Microsoft documents that its sign-in list can also ask for `Directory.Read.All`: add it if sign-ins are refused with `403` once consent is granted.
 2. For the Microsoft 365 audit log, add a second permission: **Add a permission → Office 365 Management APIs → Application permissions**, then `ActivityFeed.Read`.
 3. To let playbooks disable, enable and sign out users (see [Containment](/docs/telemetry/security-cases#containment)), add `User.Read.All`, `User.EnableDisableAccount.All` and `User.RevokeSessions.All` the same way. Microsoft lets only an app that also holds the Privileged Authentication Administrator role change an administrator's account.
 4. Select **Grant admin consent for** your tenant, and confirm. Each permission's status must read **Granted**: without consent, every read is refused with `403`.
@@ -53,7 +53,7 @@ Go to **Certificates & secrets → Client secrets → New client secret**, choos
 
 ### Add the connection in OneUptime
 
-Open **Products → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), click **Add connection**, choose **Microsoft Entra ID** under **Identity**, and click **Next**. Fill in the settings in the table below, click **Next**, and paste the secret's value into **Client secret**. On the **Polling** step, turn on **Microsoft 365 audit log** to read it too.
+Open **Products → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), click **Add connection**, choose **Microsoft Entra ID** under **Identity**, and click **Next**. Fill in the settings in the table below, click **Next**, and paste the secret's value into **Client secret**. On the **Polling** step, turn on **Background and app sign-ins** or **Microsoft 365 audit log** to read them too. A tenant outside the Azure public cloud picks its **Cloud** under **More fields**, on the settings step.
 
 ### Test it before you save
 
@@ -63,8 +63,9 @@ Click **Test these settings** under **Test before saving**. The test signs in an
 | Setting | Where to find it |
 | --- | --- |
 | **Directory (tenant) ID** | The app's **Overview** page. The tenant's GUID, or a verified domain such as `contoso.onmicrosoft.com`. With **Microsoft 365 audit log** on, the GUID: the Management API names a tenant only by it. |
-| **Application (client) ID** | The app's **Overview** page. The GUID of the app that has `AuditLog.Read.All`. |
-| **Cloud** | **Azure public cloud**, or **Azure Government (US)** for GCC High (`login.microsoftonline.us`, `graph.microsoft.us` and `manage.office365.us`). |
+| **Application (client) ID** | The app's **Overview** page. The GUID of the app that has `AuditLog.Read.All` and `IdentityRiskEvent.Read.All`. |
+| **Cloud** | Under **More fields**, **Azure public cloud** unless you pick another: **Azure public cloud, Microsoft 365 GCC** for GCC, **Azure Government (US), GCC High** for GCC High, or **Azure Government (US), DoD** for DoD. |
+| **Background and app sign-ins** | Optional, off by default. On, each poll also reads the sign-ins apps make for people in the background and service principals' own, from Microsoft Graph's beta sign-in list, and imports the ones that failed. |
 | **Microsoft 365 audit log** | Optional, off by default. On, each poll also reads the Microsoft 365 audit log. The app needs `ActivityFeed.Read`. |
 | **Client secret** | The secret's **Value**. It is encrypted, never returned by the API and never shown again. Replace it with **Update credentials** on the connection. |
 
@@ -80,6 +81,8 @@ Every event has vendor `Microsoft` and product `Microsoft Entra ID`. Its `entra.
 | A sign-in waiting on a second step, such as MFA (`50074`, `50076`) or a password change prompt | Authentication (`3002`), status `Interrupted` | Informational: a step, not a failure |
 | A sign-in that failed, with Entra's reason and error code | Authentication (`3002`), status `Failure` | Low |
 | A sign-in Identity Protection rated medium or high risk | Authentication (`3002`) | Medium or High |
+| A risk Identity Protection detected, such as an anonymous IP address or a leaked credential | Detection Finding (`2004`) | Its risk level; Critical for a user confirmed compromised |
+| A background or app sign-in that failed, with **Background and app sign-ins** on | Authentication (`3002`), status `Failure` | Low |
 | A user, group or role changed, by its category | Account Change (`3001`), Group Management (`3006`), User Access Management (`3005`), or Entity Management (`3004`) for the rest | Medium for a privileged role, such as Global Administrator; Low for a change that failed |
 
 With the **Microsoft 365 audit log** on, the records a security team acts on are imported from it, and the rest, such as a file opened or a mail read, only counted:
@@ -96,22 +99,22 @@ With the **Microsoft 365 audit log** on, the records a security team acts on are
 
 Exchange's own housekeeping, run as its system account, is left out unless it forwards mail. Every event keeps the whole record, flattened to dotted keys such as `status.errorCode` or `Parameters.ForwardTo`, so a rule reads any field by Microsoft's name for it. The rule library's rules for Entra ID read them as imported here.
 
-The same sign-ins and directory changes can reach OneUptime as logs instead, exported by an Azure diagnostic setting and read by [Your logs](/docs/telemetry/security-events#find-security-events-in-your-logs). Each record gets the same event ID either way, but a record read both ways is stored twice: read Entra ID one way.
+The same sign-ins, directory changes and risk detections can reach OneUptime as logs too, exported by an Azure diagnostic setting and read by [Your logs](/docs/telemetry/security-events#find-security-events-in-your-logs). Each record gets the same event ID either way, and a record read both ways is stored once, by whichever reads it first.
 
 ## How polling works
 
-- **Records are read by when Entra ID recorded them**, `activityDateTime` for a change and `createdDateTime` for a sign-in.
+- **Records are read by when Entra ID recorded them**, `activityDateTime` for a change, `createdDateTime` for a sign-in and `detectedDateTime` for a risk detection.
 - **The first poll looks back 24 hours**, so a new connection shows its recent records at once.
 - **Every later poll starts 30 minutes before the saved cursor.** Microsoft documents both logs arriving minutes late, so the overlap reads a late record on the next poll, and duplicates are dropped by record ID within the project.
 - **A poll reads at most 24 hours past the cursor.** A connection whose cursor fell behind catches up in a row of 24 hour windows.
 - **A tenant without Microsoft Entra ID P1 or P2** imports its directory changes, and each run's **Read sign-ins** check warns that sign-ins were not read.
 - **A failed run changes nothing.** After a network error, or an error status from Graph, the cursor and the window length stay as they were, and the next poll reads the same window again. The one exception is a request that timed out: the cursor stays, but the next window is half as long, since a window too heavy to answer in time would time out on every try.
 
-The Microsoft 365 audit log is read by when Microsoft made each content blob available, a day at a time, and no further back than the 7 days Microsoft keeps it. The first poll subscribes the app to `Audit.Exchange`, `Audit.SharePoint` and `Audit.General`, and Microsoft makes the first records of a new subscription available within 12 hours. The Entra ID logs never wait on the audit log: a missing permission is a warning and the window moves on, while a failure on Microsoft's side, such as `HTTP 503`, makes the run **Partial** so the window is read again.
+The Microsoft 365 audit log is read by when Microsoft made each content blob available, a day at a time, and no further back than the 7 days Microsoft keeps it. The first poll subscribes the app to `Audit.Exchange`, `Audit.SharePoint` and `Audit.General`, and Microsoft makes the first records of a new subscription available within 12 hours. The Entra ID logs never wait on the audit log: a missing permission is a warning and the window moves on, while a failure on Microsoft's side, such as `HTTP 503`, makes the run **Partial** so the window is read again. Risk detections and background and app sign-ins behave the same way: they never stop the sign-ins and directory changes.
 
 ### When a window holds more than one poll can read
 
-Each log has a budget of its own: 10 pages of 500 directory changes, 20 pages of 500 sign-ins and, for the Microsoft 365 audit log, 120 requests and 10,000 records. A poll stops after 4 minutes. When a budget stops a log before the end of its window, the run is **Partial**, and its warning names the log and the budget. Microsoft Graph lists records newest first, so OneUptime shortens the window instead of moving the cursor past records it never reached:
+Each log has a budget of its own: 10 pages of 500 directory changes, 20 pages of 500 sign-ins, 4 pages of 500 risk detections, 10 pages of 500 of each kind of background sign-in and, for the Microsoft 365 audit log, 120 requests and 10,000 records. A poll stops after 4 minutes. When a budget stops a log before the end of its window, the run is **Partial**, and its warning names the log and the budget. Microsoft Graph lists records newest first, so OneUptime shortens the window instead of moving the cursor past records it never reached:
 
 1. **Narrow.** The next poll reads a window half as long, from the same starting point, and halves again until a window reads completely, down to one minute. The run's warning says so: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Records already imported from the longer window are skipped as duplicates.
 2. **Grow back.** After a window reads completely, the cursor moves to its end, and the next window is twice as long again, up to 24 hours.
@@ -138,6 +141,8 @@ Click **Diagnostics** on a connection to see its recent runs and to work with it
 | **Authenticate with Microsoft Entra** | Entra ID issues the app a token for Microsoft Graph, in the cloud you picked. |
 | **Read sign-ins** | Sign-ins of the last 24 hours can be read. A warning, not a failure, in a tenant without P1 or P2. |
 | **Read directory changes** | Directory changes of the last 24 hours can be read. |
+| **Read risk detections** | Identity Protection's risk detections of the last 24 hours can be read. A warning, not a failure, without the permission or the licence. |
+| **Read background and app sign-ins** | Only with the option on: Microsoft Graph's beta sign-in list answers for both kinds. |
 | **Read the Microsoft 365 audit log** | Only with the option on: the Management API answers, and which content types the app is subscribed to. |
 | **Records available to import** | How many sign-ins and directory changes the last 24 hours hold, 500 each at most, so `500+` means more. None is a warning. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime's own side: a process takes the Worker queue's jobs, the poll job runs every minute, and the store of security events answers. |
@@ -157,6 +162,11 @@ The connection's **Last Error** keeps the complete error message, with credentia
 :::details Last Error says `sign-ins request failed (HTTP 403)` or `audit logs request failed (HTTP 403)`
 - Error code `Authorization_RequestDenied`: the app lacks `AuditLog.Read.All`, or consent was not granted. Grant admin consent, wait a few minutes, and test again. For sign-ins, also grant `Directory.Read.All`.
 - Error code `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: the tenant has no Microsoft Entra ID P1 or P2. Directory changes are still imported.
+:::
+
+:::details Risk detections are not read
+- `risk detections request failed (HTTP 403)`: the app lacks `IdentityRiskEvent.Read.All`, or consent was not granted. Sign-ins and directory changes are still imported.
+- Error code `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: the tenant has no Microsoft Entra ID P1 or P2.
 :::
 
 :::details The Microsoft 365 audit log is not read

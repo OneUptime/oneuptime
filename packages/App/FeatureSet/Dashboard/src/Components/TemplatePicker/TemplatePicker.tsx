@@ -77,6 +77,8 @@ export interface ComponentProps<
   onStartFromScratch: () => void;
   /** Nothing to start from is the start already chosen, as after Back. */
   isStartFromScratchChosen: boolean;
+  /** Another way to start, drawn between Start from scratch and the templates. */
+  afterStartFromScratch?: ReactElement | undefined;
   /**
    * Under Start from scratch: what an empty start gives. Translated by the
    * wizard, which says it in its own words ("an empty canvas", "an empty
@@ -604,6 +606,8 @@ const TemplatePicker: <T extends TemplatePickerRowTemplate, C extends string>(
           className="h-5 w-5 flex-shrink-0 text-indigo-600 transition-transform duration-150 group-hover:translate-x-0.5"
         />
       </button>
+
+      {props.afterStartFromScratch || <></>}
 
       <div className="mt-7">
         {/*

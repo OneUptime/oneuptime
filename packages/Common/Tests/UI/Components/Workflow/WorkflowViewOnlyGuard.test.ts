@@ -72,6 +72,8 @@ const OUTSIDE_THE_VIEW: Record<string, string> = {
     "The Webhook trigger's URL: Copy, and Reset URL behind the URL key's own reset gate (getWebhookSecretKeyResetGate).",
   "RunModal.tsx":
     "Run Workflow. Running is not changing the workflow: a Workflow Member runs workflows from a view, the run gate decides who may (WorkflowRunGate), and a view leaves its Add Trigger out.",
+  "RunAgain/RunAgainButton.tsx":
+    "Run again: a new run, as Run Workflow starts. Running is not changing the workflow, a Workflow Member runs workflows from a view, and the run gate decides who may (WorkflowRunGate).",
   "RunForm.tsx":
     "Run Workflow's form: the values one run starts with, not the workflow's settings.",
   "StepTraceViewer.tsx":

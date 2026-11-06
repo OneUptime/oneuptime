@@ -1,3 +1,7 @@
+import {
+  ON_CALL_COLUMN_HEADING_CLASS_NAME,
+  ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME,
+} from "../OnCallLabelClasses";
 import { ReadinessCoverageCellWire, getRuleTypeLabel } from "./ReadinessTypes";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -389,7 +393,7 @@ const CoverageSectionView: FunctionComponent<CoverageSectionViewProps> = (
 
   return (
     <div className="mb-5 last:mb-0">
-      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+      <div className={`mb-2 ${ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}`}>
         {translator.translateText(section.title)}
       </div>
 
@@ -403,7 +407,9 @@ const CoverageSectionView: FunctionComponent<CoverageSectionViewProps> = (
         >
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 bg-gray-50 pb-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-gray-400">
+              <th
+                className={`sticky left-0 z-10 bg-gray-50 pb-2 pr-4 text-left ${ON_CALL_COLUMN_HEADING_CLASS_NAME}`}
+              >
                 {translator.translateText("Severity")}
               </th>
               {section.ruleTypes.map(
@@ -411,7 +417,7 @@ const CoverageSectionView: FunctionComponent<CoverageSectionViewProps> = (
                   return (
                     <th
                       key={`head-${section.kind}-${ruleType}`}
-                      className="px-3 pb-2 text-center text-xs font-medium uppercase tracking-wide text-gray-400"
+                      className={`px-3 pb-2 text-center ${ON_CALL_COLUMN_HEADING_CLASS_NAME}`}
                     >
                       {getRuleTypeLabel(ruleType)}
                     </th>
@@ -564,7 +570,7 @@ const CoverageMatrix: FunctionComponent<CoverageMatrixProps> = (
 
       {model.lifecycleCells.length > 0 && (
         <div className="mt-4 border-t border-gray-200 pt-4">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+          <div className={`mb-2 ${ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}`}>
             {translator.translateText("Shift changes")}
           </div>
           <ul className="flex flex-wrap gap-x-6 gap-y-2">

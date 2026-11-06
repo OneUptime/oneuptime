@@ -82,11 +82,18 @@ const RecommendationsSideMenuItem: FunctionComponent<ComponentProps> = (
        * of the same number disagreeing is a far harder bug to spot than a
        * missing badge.
        */
-      const resource: BaseModel | null = await ModelAPI.getItem({
-        modelType: resourceDefinition.modelType,
-        id: props.resourceId,
-        select: RecommendationResourceRegistry.getSelect(props.resourceType),
-      });
+      let resource: BaseModel | null = null;
+
+      // A resource type whose row the person cannot read says how to read it.
+      if (resourceDefinition.loadResource) {
+        resource = await resourceDefinition.loadResource(props.resourceId);
+      } else {
+        resource = await ModelAPI.getItem({
+          modelType: resourceDefinition.modelType,
+          id: props.resourceId,
+          select: RecommendationResourceRegistry.getSelect(props.resourceType),
+        });
+      }
 
       /*
        * Loaded exactly as the page loads it — including the telemetry

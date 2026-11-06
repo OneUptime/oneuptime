@@ -395,6 +395,7 @@ export default class CloudConnectionResourceSync {
             "autoArchivedAt" = $3,
             "archivedByUserId" = NULL,
             "otelCollectorStatus" = 'disconnected',
+            "healthSeverity" = NULL,
             "updatedAt" = CURRENT_TIMESTAMP
           WHERE "projectId" = $1
             AND "_id" = ANY($2::uuid[])
@@ -719,6 +720,7 @@ export default class CloudConnectionResourceSync {
             "autoArchivedAt" = $3,
             "archivedByUserId" = NULL,
             "otelCollectorStatus" = 'disconnected',
+            "healthSeverity" = NULL,
             "updatedAt" = CURRENT_TIMESTAMP
           WHERE "projectId" = $1
             AND "_id" = ANY($2::uuid[])

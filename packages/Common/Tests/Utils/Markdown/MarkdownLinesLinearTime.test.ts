@@ -200,8 +200,9 @@ describe.each([
     /^(`{3,}|~{3,})(.*)$/,
   ],
   [
-    "the docs anchor script's fence",
-    "Scripts/Docs/LocalizeAnchors.ts",
+    // Read by the docs anchor script and the docs site's English anchors.
+    "the docs heading reader's fence",
+    "packages/Common/Server/Types/MarkdownHeadings.ts",
     "FENCE",
     /^ {0,3}(`{3,}|~{3,})(.*)$/,
   ],

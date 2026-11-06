@@ -77,7 +77,10 @@ import {
   LayerPreviewResult,
   getLayerPreviewEvents,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerShiftPreview";
-import { formatShiftInstant } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerSummary";
+import {
+  formatHandOffInstant,
+  formatShiftInstant,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerSummary";
 import LayerUser from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerUser";
 import {
   LayerUserAway,
@@ -820,7 +823,8 @@ describe("the layer's users list", () => {
   });
 });
 
-function renderSummary(overrides: Array<UserOverrideRecord>): void {
+// Draws the layer's turns; answers when they were read, for their times.
+function renderSummary(overrides: Array<UserOverrideRecord>): Date {
   const preview: LayerPreviewResult = getLayerPreviewEvents({
     layer: makeLayer(),
     users: layerUsers(),
@@ -841,6 +845,8 @@ function renderSummary(overrides: Array<UserOverrideRecord>): void {
       overrideUserInfo={COVER_INFO}
     />,
   );
+
+  return preview.now;
 }
 
 // The upcoming turns, each as "<name>|<its time line>".
@@ -889,7 +895,7 @@ describe("the layer's turns, with somebody skipped", () => {
      */
     const back: Date = hoursFromNow(70);
 
-    renderSummary(
+    const now: Date = renderSummary(
       ROTATION.map((somebody: Person) => {
         return away({ who: somebody, from: hoursFromNow(-1), until: back });
       }),
@@ -898,7 +904,8 @@ describe("the layer's turns, with somebody skipped", () => {
     const turns: Array<string> = listedTurns();
 
     expect(turns[0]).toContain(ALICE.name);
-    expect(turns[0]).toContain(formatShiftInstant(back, "UTC"));
+    // A hand-off list says its zone once: each moment, without it.
+    expect(turns[0]).toContain(formatHandOffInstant(back, "UTC", now));
     expect(screen.queryByText("Current turn · off-hours")).toBeNull();
     expect(screen.queryByText("On call now")).toBeNull();
   });
@@ -907,7 +914,9 @@ describe("the layer's turns, with somebody skipped", () => {
     // Only Alice away, back four hours into her next turn.
     const back: Date = hoursFromNow(70);
 
-    renderSummary([away({ who: ALICE, from: hoursFromNow(-1), until: back })]);
+    const now: Date = renderSummary([
+      away({ who: ALICE, from: hoursFromNow(-1), until: back }),
+    ]);
 
     const turns: Array<string> = listedTurns();
     const alicesTurn: string | undefined = turns.find((turn: string) => {
@@ -915,6 +924,6 @@ describe("the layer's turns, with somebody skipped", () => {
     });
 
     expect(alicesTurn).toBeDefined();
-    expect(alicesTurn).toContain(formatShiftInstant(back, "UTC"));
+    expect(alicesTurn).toContain(formatHandOffInstant(back, "UTC", now));
   });
 });

@@ -137,10 +137,16 @@ describe("TelemetryIngestionKeyGuard.getRefusal", () => {
       },
     );
 
-    test("covers all nineteen surfaces in the matrix above", () => {
-      expect(ALL_SURFACES).toHaveLength(19);
+    test("covers all twenty-two surfaces in the matrix above", () => {
+      expect(ALL_SURFACES).toHaveLength(22);
       expect(BROWSER_ALLOWED).toHaveLength(4);
-      expect(BROWSER_FORBIDDEN).toHaveLength(15);
+      expect(BROWSER_FORBIDDEN).toHaveLength(18);
+      // A scheduler's OpenLineage events: a server's, never a page's.
+      expect(BROWSER_FORBIDDEN).toContain(TelemetryIngestSurface.OpenLineage);
+      // A sync tool's webhooks: its servers', never a page's.
+      expect(BROWSER_FORBIDDEN).toContain(TelemetryIngestSurface.SyncWebhooks);
+      // A dbt build's artifacts: a server's, never a page's.
+      expect(BROWSER_FORBIDDEN).toContain(TelemetryIngestSurface.DbtArtifacts);
       // The supervisor on a host OneUptime manages: never a page's.
       expect(BROWSER_FORBIDDEN).toContain(
         TelemetryIngestSurface.HostCollectorManagement,

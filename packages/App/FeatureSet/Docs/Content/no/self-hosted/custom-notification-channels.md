@@ -1,9 +1,9 @@
 # Egendefinerte varslingskanaler
 
-En egendefinert kanal sender vakttilkallinger til en tjeneste du selv drifter: bedriftens egen app, et personsøkersystem eller en gateway som kontrollerer hva som forlater nettverket ditt. Du legger den til én gang, for hele serveren, og alle kan tilkalles gjennom den uten å sette opp noe. I Admin Dashboard heter de **Custom Channels**.
+En egendefinert kanal sender vakttilkallinger til en tjeneste du selv drifter: bedriftens egen app, et personsøkersystem eller en gateway som kontrollerer hva som forlater nettverket ditt. Du legger den til én gang, for hele serveren, og alle kan tilkalles gjennom den uten å sette opp noe. I Admin Dashboard heter de **Egendefinerte kanaler**.
 
 > [!NOTE]
-> Egendefinerte kanaler er en del av [OneUptime Enterprise Edition](/docs/self-hosted/enterprise) og krever en Enterprise-lisens som omfatter dem. Community Edition har ingen side **Custom Channels** og sender ingenting til en kanal. Se [Uten lisens](#uten-lisens).
+> Egendefinerte kanaler er en del av [OneUptime Enterprise Edition](/docs/self-hosted/enterprise) og krever en Enterprise-lisens som omfatter dem. Community Edition har ingen side **Egendefinerte kanaler** og sender ingenting til en kanal. Se [Uten lisens](#uten-lisens).
 
 :::cards
 - [Legg til en kanal](#legg-til-en-kanal): Et navn, en URL og en signeringshemmelighet.
@@ -31,18 +31,18 @@ Når en vaktretningslinje tilkaller noen og vaktregelen deres bruker kanalen, se
 
 ## Legg til en kanal
 
-1. Åpne **Innstillinger** i Admin Dashboard, deretter **Varsler > Custom Channels** i sidemenyen (**Varsler** er slått sammen fra start), og velg **Add**.
+1. Åpne **Innstillinger** i Admin Dashboard, deretter **Varsler > Egendefinerte kanaler** i sidemenyen (**Varsler** er slått sammen fra start), og velg **Add**.
 2. Fyll ut i trinnet **Channel**:
    - **Navn**: det folk ser i varselmetodene og vaktreglene sine, for eksempel `CorpoApp`.
    - **Webhook URL**: hvor OneUptime sender hver tilkalling. Den kan ligge på det private nettverket ditt.
-   - **Signing Secret**: OneUptime lager en for deg. Kopier den inn i tjenesten din, som kontrollerer hver forespørsel med den. Du kan se den igjen ved å redigere kanalen.
+   - **Signeringshemmelighet**: OneUptime lager en for deg. Kopier den inn i tjenesten din, som kontrollerer hver forespørsel med den. Du kan se den igjen ved å redigere kanalen.
 3. Lagre i trinnet **Delivery**, og velg deretter **Send test** for å sende tjenesten din en [testforespørsel](#testforespørsler).
 
 I trinnet **Delivery** er **Page everyone through this channel** slått på. OneUptime legger da kanalen til i alles vaktregler i hvert prosjekt, og i reglene til alle som blir med i et prosjekt senere, og bruker den til å nå en vakthavende som ikke har noen regel for det som utløste tilkallingen. Slå det av for å la folk legge til kanalen i reglene sine selv.
 
-Folk ser kanalen under **Brukerinnstillinger**, deretter **Varselmetoder**, deretter **Custom Channels**, med en knapp **Send test**, og velger den i vaktreglene sine som `Custom Channel: CorpoApp`. De setter ikke opp noe: Tjenesten din får vite hvem hver tilkalling er til.
+Folk ser kanalen under **Brukerinnstillinger**, deretter **Varselmetoder**, deretter **Egendefinerte kanaler**, med en knapp **Send test**, og velger den i vaktreglene sine som `Custom Channel: CorpoApp`. De setter ikke opp noe: Tjenesten din får vite hvem hver tilkalling er til.
 
-For å slutte å sende uten å endre noens regler redigerer du kanalen og slår av **På**. Tilkallinger som ville ha gått til den, registreres i vaktloggen som ikke sendt. Sletter du en kanal, slettes alle vaktregler som bruker den.
+For å slutte å sende uten å endre noens regler velger du **Deaktiver** i kanalens ⋯-meny, eller redigerer kanalen og slår av **På**; **Aktiver** i samme meny slår den på igjen. Tilkallinger som ville ha gått til den, registreres i vaktloggen som ikke sendt. Sletter du en kanal, slettes alle vaktregler som bruker den.
 
 ## Hva tjenesten din mottar
 
@@ -149,7 +149,7 @@ Svaret forteller hva som skjedde, med ord appen din kan vise som de er:
 
 ## Andre varsler
 
-Tilkallinger er ikke de eneste varslene folk får: OneUptime forteller dem også når en hendelse de eier, endrer tilstand, når et notat blir publisert, når vakten deres begynner, og mer. Hver person velger hvor hvert av dem skal, under **Brukerinnstillinger > Varselinnstillinger**, som har en kolonne **Custom Channels** så lenge en kanal er slått på. Den er slått av for alle til de slår den på selv.
+Tilkallinger er ikke de eneste varslene folk får: OneUptime forteller dem også når en hendelse de eier, endrer tilstand, når et notat blir publisert, når vakten deres begynner, og mer. Hver person velger hvor hvert av dem skal, under **Brukerinnstillinger > Varselinnstillinger**, som har en kolonne **Egendefinerte kanaler** så lenge en kanal er slått på. Den er slått av for alle til de slår den på selv.
 
 Et varsel går til hver kanal som er slått på, som én forespørsel per kanal, med `event` satt til `notification`:
 
@@ -194,6 +194,7 @@ Egendefinerte kanaler virker i Enterprise Editions prøveperiode på 14 dager og
 
 - **Ingenting sendes til en egendefinert kanal.** En tilkalling som ville ha gått til en, registreres i personens vaktlogg som ikke sendt, og det samme gjør en test.
 - **Kanaler tilbys ikke lenger.** De forsvinner fra folks varselmetoder, vaktregler og varselinnstillinger, og beredskapen og reserveløsningen slutter å telle dem med.
+- **Teamets samsvar kontrollerer ikke egendefinerte kanaler.** En samsvarsregel for et team som krever en egendefinert kanal, viser **Ikke kontrollert**, og medlemmer kontrolleres ikke for den før en egendefinert kanal igjen kan bære en tilkalling.
 - **Siden er skrivebeskyttet.** Du kan se og slette kanaler, men ikke legge til eller endre dem, og ingen kan peke en regel eller en varselinnstilling mot en kanal.
 - **Ingenting slettes.** Kanalene, og vaktreglene og innstillingene som bruker dem, beholdes.
 

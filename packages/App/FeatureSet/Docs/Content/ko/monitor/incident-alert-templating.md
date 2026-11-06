@@ -40,7 +40,7 @@ flowchart TB
 
 ### 제목 작성
 
-**인시던트 제목** 또는 **경고 제목** 에 제목을 입력합니다. 예를 들면 `{{monitorName}} is down` 입니다. 옆에 있는 **Learn about dynamic templates** 를 열면 **Dynamic Template Variables** 가 표시됩니다. 이 모니터 유형의 모든 변수와 각 변수에 담긴 내용입니다. 변수를 클릭하면 복사됩니다.
+**인시던트 제목** 또는 **경고 제목** 에 제목을 입력합니다. 예를 들면 `{{monitorName}} is down` 입니다. 옆에 있는 **동적 템플릿 알아보기** 를 열면 **동적 템플릿 변수** 가 표시됩니다. 이 모니터 유형의 모든 변수와 각 변수에 담긴 내용입니다. 변수를 클릭하면 복사됩니다.
 
 ### 설명과 해결 노트 작성
 
@@ -433,7 +433,7 @@ Alerts for payments:
 | `collectionIssueSummary` | 사용할 수 없는 모든 그룹에 대한 한 줄로, 제목에 바로 쓸 수 있습니다. 모두 수집되면 비어 있습니다. | `string` |
 | `metrics` | 시리즈 이름별로 수집된 값. | `Object` |
 
-`metrics` 의 시리즈 이름에는 `oneuptime.monitor.database.connections.used.percent` 처럼 점이 들어 있고, 경로는 각 점을 객체 안으로 들어가는 한 단계로 읽으므로, 템플릿은 `metrics` 에서 값 하나를 골라낼 수 없습니다. `{{metrics}}` 를 JSON으로 통째로 넣거나 `{{collectionIssueSummary}}` 를 사용하세요. 수집되지 않은 메트릭은 `metrics` 에 없을 뿐 0이 아닙니다. 값 하나로 판단하려면 기준에서 [JavaScript 표현식](/docs/monitor/javascript-expression)으로 비교하세요.
+`metrics` 의 시리즈 이름에는 `oneuptime.monitor.database.connections.used.percent` 처럼 점이 들어 있지만, 템플릿에서도 값 하나를 골라낼 수 있습니다. `{{metrics.oneuptime.monitor.database.connections.used.percent}}` 처럼 `metrics.` 뒤에 이름 전체를 쓰세요. `{{metrics}}` 를 JSON으로 통째로 넣거나 `{{collectionIssueSummary}}` 를 사용하세요. 수집되지 않은 메트릭은 `metrics` 에 없을 뿐 0이 아닙니다. 값 하나로 판단하려면 기준에서 [JavaScript 표현식](/docs/monitor/javascript-expression)으로 비교하세요.
 
 ### 외부 상태 페이지 모니터
 
@@ -445,13 +445,14 @@ Alerts for payments:
 | `provider` | 상태 페이지의 종류: Atlassian Statuspage, incident.io, RSS 또는 Atom. | `string` |
 | `componentGroup` | 모니터가 지켜보는 구성 요소 그룹(있는 경우). | `string` |
 | `componentName` | 모니터가 지켜보는 구성 요소(고른 경우, 쉼표로 구분). | `string` |
+| `componentNames` | 같은 구성 요소의 목록. `{{#each componentNames}}`로 각각 한 줄씩 반복할 수 있습니다. | `Array<string>` |
 | `isOnline` | 상태 페이지가 응답했는지 여부. | `boolean` |
 | `responseTimeInMs` | 상태 페이지가 응답하는 데 걸린 시간(밀리초). | `number` |
 | `failureCause` | 검사가 실패했을 때 그 이유. | `string` |
 
 ### 메트릭 및 인프라 모니터
 
-Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array, IoT Device 모니터에는 고유한 변수가 하나 있습니다.
+Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array, IoT Device 모니터에는 고유한 변수가 하나 있습니다.
 
 | 변수 | 담긴 내용 | 유형 |
 | --- | --- | --- |
@@ -565,7 +566,7 @@ SNMP walk: {{responseTimeInMs}} ms
 ## 문제 해결
 
 :::details 제목에 자리표시자가 중괄호까지 그대로 표시됨
-이 검사에서는 경로가 값에 닿지 않습니다. 변수의 이름과 대소문자를 위 표와 비교하거나, 기준에서 **Learn about dynamic templates** 를 여세요. 이 모니터 유형의 변수가 나열됩니다. 응답이나 요청 본문 안의 경로는 보낸 그대로의 본문과 일치해야 하며, `[*]` 와 `[-1]` 같은 음수 인덱스는 아무것도 읽지 않습니다. `[0]` 또는 `[last]` 를 사용하세요.
+이 검사에서는 경로가 값에 닿지 않습니다. 변수의 이름과 대소문자를 위 표와 비교하거나, 기준에서 **동적 템플릿 알아보기** 를 여세요. 이 모니터 유형의 변수가 나열됩니다. 응답이나 요청 본문 안의 경로는 보낸 그대로의 본문과 일치해야 하며, `[*]` 와 `[-1]` 같은 음수 인덱스는 아무것도 읽지 않습니다. `[0]` 또는 `[last]` 를 사용하세요.
 :::
 
 :::details 값이 JSON으로 표시됨
