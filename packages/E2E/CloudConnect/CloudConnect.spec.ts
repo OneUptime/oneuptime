@@ -5,6 +5,7 @@ import {
   FIRST_STRONG_ISOLATE,
   POP_DIRECTIONAL_ISOLATE,
 } from "Common/Types/ReadingDirection";
+import { getInlineSeparator } from "Common/Types/Translator";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
@@ -6284,12 +6285,16 @@ test.describe("Cloud's All Resources, by cloud account", () => {
 
       const label: string = wordIn(reader.locale, "Cloud Account");
       expect(label).not.toBe("Cloud Account");
+      // Between the chip's name and its value, the language's own mark (a bullet in Persian).
+      const separator: string = getInlineSeparator(reader.code);
       const bar: Locator = await resourceChips(page);
-      const chip: Locator = bar.getByRole("button", { name: `${label} · ` });
+      const chip: Locator = bar.getByRole("button", {
+        name: `${label}${separator}`,
+      });
       await expect(chip).toBeVisible();
       // "not Production" in the reader's words, the name set apart within them.
       expect(await readText(chip)).toBe(
-        `${label} · ${wordIn(reader.locale, "not {{value}}", { value: "Production" })}`,
+        `${label}${separator}${wordIn(reader.locale, "not {{value}}", { value: "Production" })}`,
       );
       await expectResourcesListed(
         page,
