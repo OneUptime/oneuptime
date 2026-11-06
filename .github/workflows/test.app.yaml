@@ -704,6 +704,8 @@ jobs:
           # Pods, StatefulSets, DaemonSets, Jobs and CronJobs lists, at 1280
           # and 390 pixels, dark, German and Persian) joined it the same day,
           # after Discovery left: about 21.5.
+          # App Platforms' Cloud Account chip by the accounts' names added a
+          # test on 2026-11-06 (Chromium only, about 0.2): the suite 3.6.
           - group: 6
             suites: >-
               test-status-page-theme-ui
@@ -979,10 +981,16 @@ jobs:
           # Collectors (1.2) moved to group 3 and VMware Host Page (1.4) to
           # group 14: 20.7. Azure's write identity added 1 test the same day
           # (a desktop's only, about 0.1): the suite 12.2, the group 20.8.
+          # Cloud's All Resources by cloud account added 6 tests to Cloud
+          # Connect the same day (12 runs on its desktop and phone: the Cloud
+          # Account chip's names and ids, set from a connection's resource
+          # count, 'is not' and the filters' empty state, a reader refused the
+          # names, dark German and Persian; 1.0 minute locally, about 1.3 on a
+          # runner): the suite 13.5, the group 22.1, so Dashboard Widget Sort
+          # (1.1, Chromium only) moved to group 19: 21.0.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
-              test-dashboard-widget-sort-ui
               test-cloud-connect-ui
               test-docker-swarm-pages-ui
               test-container-host-pages-ui
@@ -1533,12 +1541,16 @@ jobs:
           # with the most room: about 12.8.
           # Global Runners (2.2) joined this one from group 4 on 2026-11-06,
           # when Model Tables grew there (#6025): about 15.0 with AI Insights.
+          # Dashboard Widget Sort (1.1, Chromium only) joined it from group 8
+          # the same day, when Cloud's All Resources grew Cloud Connect there:
+          # about 16.2.
           - group: 19
             openstack_pages_shard: 1/2
             suites: >-
               test-openstack-pages-ui
               test-ai-insights-ui
               test-global-runners-ui
+              test-dashboard-widget-sort-ui
           # Dashboard Templates (2.5) from group 10 on 2026-11-06, the group with
           # the most room, when Event Overview's second half grew past that
           # group's budget: about 14.1.

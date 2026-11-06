@@ -403,12 +403,12 @@ describe("a row", () => {
     );
     expect(href.pathname).toBe(RESOURCES_PATH);
     goTo(`${href.pathname}${href.search}`);
-    expect(TableFilterUrlState.read(CLOUD_RESOURCES_TABLE_ID, "facets")).toEqual(
-      {
-        facetSelections: { cloudAccountId: ["123456789012"] },
-        facetOperators: { cloudAccountId: "is" },
-      },
-    );
+    expect(
+      TableFilterUrlState.read(CLOUD_RESOURCES_TABLE_ID, "facets"),
+    ).toEqual({
+      facetSelections: { cloudAccountId: ["123456789012"] },
+      facetOperators: { cloudAccountId: "is" },
+    });
     expect(
       within(cell).getByTestId("cloud-connection-regions"),
     ).toHaveTextContent("us-east-1");
