@@ -4,8 +4,11 @@ import { useLayoutEffect } from "react";
 /*
  * Keeps an open chip popover on the screen (FilterChipPopoverPlacement):
  * moves it left, by its own `left`, where it would cross the screen's
- * right edge. The popover's place is its parent - the chip's `relative` box
- * it hangs from.
+ * right edge - or, on a page read right to left, where it hangs from the
+ * chip's right edge, right by its own `right`, where it would cross the
+ * screen's left edge (a `left` there is ignored beside the `right` its
+ * class sets). The popover's place is its parent - the chip's `relative`
+ * box it hangs from.
  *
  * Placed when it opens, and again whenever its size changes or the window's
  * does. The Dashboard writes its Tailwind CSS in the page as new classes
@@ -41,13 +44,20 @@ const useChipPopoverShift: (
        * scrolled sideways to show a focused field still reads where the
        * chip really is.
        */
+      const box: DOMRect = chip.getBoundingClientRect();
+      const isRightToLeft: boolean =
+        window.getComputedStyle(popover).direction === "rtl";
       const shift: number = getChipPopoverShift({
-        chipLeft: chip.getBoundingClientRect().left + (window.scrollX || 0),
+        chipLeft: box.left + (window.scrollX || 0),
+        chipRight: box.right + (window.scrollX || 0),
         popoverWidth: popover.offsetWidth,
         screenWidth: document.documentElement.clientWidth || window.innerWidth,
+        isRightToLeft,
       });
+      const offset: string = shift > 0 ? `${-shift}px` : "";
 
-      popover.style.left = shift > 0 ? `${-shift}px` : "";
+      popover.style.left = isRightToLeft ? "" : offset;
+      popover.style.right = isRightToLeft ? offset : "";
     };
 
     place();

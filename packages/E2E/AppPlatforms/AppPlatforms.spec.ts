@@ -1973,6 +1973,35 @@ test.describe("All Environments and Archived", () => {
     expect(first!).toBeLessThan(middle!);
     expect(middle!).toBeLessThan(last!);
     await screenshot(page, "app-platforms-environments-account-chip-fa-1280");
+
+    /*
+     * On a phone, read right to left, the chip's popover opens towards the
+     * left from the chip's right edge: All Apps' reached past the screen's
+     * left edge and the page scrolled sideways. It keeps the page's 16px
+     * margin now.
+     */
+    await page.setViewportSize(PHONE);
+    await open(page, `${APP_PLATFORMS}/apps?lang=fa`);
+    await page.getByTestId("facet-filter-bar-toggle").click();
+    await page
+      .getByTestId("facet-filter-bar")
+      .getByRole("button", { name: PERSIAN["Cloud Account"] })
+      .click();
+    const popover: Locator = page.getByRole("dialog");
+    await expect(popover.getByRole("textbox")).toBeVisible();
+    // At rest: a dialog grows in.
+    await expect
+      .poll(async (): Promise<number> => {
+        return await popover.evaluate((element: Element): number => {
+          return element.getAnimations({ subtree: true }).length;
+        });
+      })
+      .toBe(0);
+    const box: Box = await boxOf(popover);
+    expect(box.x).toBeGreaterThanOrEqual(16 - 0.5);
+    expect(box.x + box.width).toBeLessThanOrEqual(PHONE.width - 16 + 0.5);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-apps-account-chip-open-fa-390");
   });
 
   test("Archived lists archived environments, and has none yet", async ({
