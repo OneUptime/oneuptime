@@ -262,7 +262,9 @@ describe("every status page email takes its logo from StatusPageEmailLogo", () =
     ).toBeGreaterThan(-1);
     expect(
       notificationRead.indexOf("...STATUS_PAGE_EMAIL_LOGO_SELECT"),
-    ).toBeLessThan(notificationRead.indexOf("smtpConfig: {"));
+    ).toBeLessThan(
+      notificationRead.indexOf("smtpConfig: PROJECT_SMTP_CONFIG_SEND_SELECT"),
+    );
 
     expect(
       fs.readFileSync(

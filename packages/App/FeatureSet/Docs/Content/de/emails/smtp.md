@@ -6,6 +6,8 @@ Versenden Sie die E-Mails von OneUptime über Ihren eigenen Mailserver. Ein Proj
 - **OAuth 2.0**: für Microsoft 365 und Google Workspace, wo die Standardauthentifizierung oft ausgeschaltet ist.
 - **Keine**: für Relay-Server, die keine Authentifizierung verlangen.
 
+Um statt über einen Mailserver über Amazon SES, SendGrid, Mailgun, Postmark oder Resend zu senden, siehe [E-Mail-Anbieter](/docs/emails/email-providers).
+
 ```mermaid title="Welcher Mailserver was versendet"
 flowchart TB
     SP["E-Mail einer Statusseite"] --> Q{"Benutzerdefinierte SMTP-Konfiguration<br/>für die Seite gewählt?"}
@@ -17,7 +19,7 @@ flowchart TB
 In einer selbst gehosteten Installation ist der eigene Mailserver von OneUptime derjenige, der im Admin Dashboard eingestellt ist. Eine Statusseite wählt ihre SMTP-Konfiguration auf ihrer Seite **Abonnenten-Einstellungen**, in der Karte **Benutzerdefiniertes SMTP**.
 
 :::cards
-- [Einen Mailserver hinzufügen](#einen-smtp-server-hinzufügen): Zwei Schritte, alles andere ist eingeklappt.
+- [Einen Mailserver hinzufügen](#einen-smtp-server-hinzufügen): Ein paar Schritte, alles andere ist eingeklappt.
 - [Microsoft 365](#konfiguration-für-microsoft-365): OAuth mit einer App-Registrierung in Entra.
 - [Google Workspace](#konfiguration-für-google-workspace): OAuth mit einem Dienstkonto.
 - [Fehlerbehebung](#fehlerbehebung): Häufige Fehler und was sie bedeuten.
@@ -25,7 +27,7 @@ In einer selbst gehosteten Installation ist der eigene Mailserver von OneUptime 
 
 ## Einen SMTP-Server hinzufügen
 
-Den Mailserver eines Projekts fügen Sie unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** in der Karte **Benutzerdefinierte SMTP-Konfigurationen** unter **Weitere Einstellungen** hinzu. In einer selbst gehosteten Installation legen Sie den Server, über den OneUptime selbst versendet, unter **Admin Dashboard > Einstellungen > Benachrichtigungen > E-Mails** in der Karte **Benutzerdefinierte E-Mail- und SMTP-Einstellungen** fest. Beide Formulare fragen dasselbe ab, in zwei Schritten.
+Den Mailserver eines Projekts fügen Sie unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** in der Karte **Benutzerdefinierte SMTP-Konfigurationen** unter **Weitere Einstellungen** hinzu. In einer selbst gehosteten Installation legen Sie den Server, über den OneUptime selbst versendet, unter **Admin Dashboard > Einstellungen > Benachrichtigungen > E-Mails** in der Karte **Benutzerdefinierte E-Mail- und SMTP-Einstellungen** fest. Beide Formulare fragen nach dem Server und dem Absender; das Formular eines Projekts fragt zuerst nach seinem **Anbieter**.
 
 :::steps
 ### Das Formular öffnen
@@ -37,13 +39,17 @@ Den Mailserver eines Projekts fügen Sie unter **Projekteinstellungen > Benachri
 Öffnen Sie im Admin Dashboard **Einstellungen** und dann im Seitenmenü **Benachrichtigungen > E-Mails** (**Benachrichtigungen** ist anfangs eingeklappt). Klicken Sie in der Karte **E-Mail-Server-Einstellungen** auf **Server bearbeiten** und setzen Sie **E-Mail-Servertyp** auf `Custom SMTP`. Klicken Sie dann in der Karte **Benutzerdefinierte E-Mail- und SMTP-Einstellungen**, die darunter erscheint, auf **SMTP-Konfiguration bearbeiten**.
 :::
 
+### Den Anbieter wählen
+
+Das Formular eines Projekts öffnet sich im Schritt **Anbieter**: Füllen Sie das Feld **Name** aus und lassen Sie **SMTP-Server** ausgewählt, um über einen Mailserver zu senden. Um stattdessen über Microsoft Graph oder einen [E-Mail-Anbieter](/docs/emails/email-providers) zu senden, wählen Sie diesen hier aus. Die **Beschreibung**, eine Notiz für Ihr Team, ist unter **Weitere Felder** eingeklappt. Das Formular der Instanz hat keinen Schritt **Anbieter**.
+
 ### Den Schritt Server ausfüllen
 
-Geben Sie im Schritt **Server** den **Name** (nur bei Projektkonfigurationen), den **Hostname**, den **Port** (eine neue Projektkonfiguration beginnt mit `587`), den **Benutzername** und das **Passwort** ein.
+Geben Sie im Schritt **Server** den **Hostname**, den **Port** (eine neue Projektkonfiguration beginnt mit `587`), den **Benutzername** und das **Passwort** ein.
 
 ### Weitere Felder prüfen
 
-Alles andere ist am Ende des Schritts **Server** unter **Weitere Felder** eingeklappt. Im eingeklappten Zustand sagt die Überschrift, wie E-Mails versendet werden, zum Beispiel „E-Mails werden über SMTP gesendet, mit Anmeldung per Benutzername und Passwort. TLS ist erforderlich.“ Öffnen Sie den Abschnitt nur, wenn Sie eine der Einstellungen aus der Tabelle unten ändern müssen.
+Die übrigen Einstellungen des Servers sind am Ende des Schritts **Server** unter **Weitere Felder** eingeklappt. Im eingeklappten Zustand sagt die Überschrift, wie E-Mails versendet werden, zum Beispiel „E-Mails werden über SMTP gesendet, mit Anmeldung per Benutzername und Passwort. TLS ist erforderlich.“ Öffnen Sie den Abschnitt nur, wenn Sie eine der Einstellungen aus der Tabelle unten ändern müssen. Im Formular eines Projekts haben die OAuth-Felder einen eigenen Schritt **OAuth**, nach **Server**.
 
 ### Den Schritt Absender ausfüllen
 
@@ -60,13 +66,13 @@ Das sind die Einstellungen unter **Weitere Felder**:
 
 | Feld | Was es bewirkt |
 | --- | --- |
-| **Transport** | `SMTP` (Standard) oder `Microsoft Graph` für einen Microsoft-365-Mandanten, in dem SMTP AUTH ausgeschaltet ist. Mit Microsoft Graph werden Hostname, Port, Benutzername und Passwort ausgeblendet und die OAuth-Felder angezeigt. |
+| **Transport** | `SMTP` (Standard) oder `Microsoft Graph` für einen Microsoft-365-Mandanten, in dem SMTP AUTH ausgeschaltet ist. Mit Microsoft Graph werden Hostname, Port, Benutzername und Passwort ausgeblendet und die OAuth-Felder angezeigt. Nur im Formular der Instanz: Ein Projekt wählt stattdessen seinen **Anbieter**. |
 | **TLS erzwingen** | Bei einer neuen Projektkonfiguration an. E-Mails nur über eine verschlüsselte Verbindung mit gültigem Zertifikat senden. Ist dies aus, wird das Zertifikat nicht geprüft. Port 465 ist immer verschlüsselt. Ist dies aus, werden E-Mails auf anderen Ports nur verschlüsselt, wenn der Server es anbietet. |
 | **Authentifizierungstyp** | `Username and Password` (Standard), `OAuth` oder `None` für ein Relay, das keine Anmeldung braucht. |
-| **OAuth-Felder** | **OAuth-Anbietertyp**, **OAuth-Client-ID**, **OAuth-Client-Secret**, **OAuth-Token-URL** und **OAuth-Scope**; sie erscheinen, sobald OAuth oder Microsoft Graph gewählt ist. |
-| **Beschreibung** | Eine Notiz für Ihr Team (nur bei Projektkonfigurationen). |
+| **OAuth-Felder** | **OAuth-Anbietertyp**, **OAuth-Client-ID**, **OAuth-Client-Secret**, **OAuth-Token-URL** und **OAuth-Scope**; sie erscheinen, sobald OAuth oder Microsoft Graph gewählt ist. Das Formular eines Projekts fragt in seinem Schritt **OAuth** danach. |
+| **Beschreibung** | Eine Notiz für Ihr Team (nur bei Projektkonfigurationen), im Schritt **Anbieter**. |
 
-**Microsoft Graph.** Öffnen Sie **Weitere Felder**, setzen Sie **Transport** auf `Microsoft Graph` und tragen Sie eine Azure-App mit der Anwendungsberechtigung **Mail.Send** ein: ihre Client-ID und ihr Client-Secret, die Token-URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` und den Scope `https://graph.microsoft.com/.default`. E-Mails werden aus dem Postfach der **Absender-E-Mail** gesendet, das ein lizenziertes Postfach in Ihrem Mandanten sein muss.
+**Microsoft Graph.** Wählen Sie im Formular eines Projekts `Microsoft Graph` als **Anbieter**; öffnen Sie im Formular der Instanz **Weitere Felder** und setzen Sie **Transport** auf `Microsoft Graph`. Tragen Sie dann eine Azure-App mit der Anwendungsberechtigung **Mail.Send** ein: ihre Client-ID und ihr Client-Secret, die Token-URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` und den Scope `https://graph.microsoft.com/.default`. E-Mails werden aus dem Postfach der **Absender-E-Mail** gesendet, das ein lizenziertes Postfach in Ihrem Mandanten sein muss.
 
 > [!NOTE]
 > In OneUptime Cloud muss der Mailserver eines Projekts über das Internet erreichbar sein: Ein Host, der zu einer privaten oder internen Adresse aufgelöst wird, wird abgelehnt. In einer selbst gehosteten Installation sind private Adressen erlaubt, sofern `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` nicht `true` ist; Loopback- und Link-Local-Adressen werden immer abgelehnt. Der eigene Mailserver der Instanz wird so nicht geprüft.
@@ -90,7 +96,7 @@ sequenceDiagram
     O->>M: Die E-Mail senden
 ```
 
-**Authentifizierungstyp** und die OAuth-Felder finden Sie im Schritt Server des Formulars unter **Weitere Felder**. Um sich mit OAuth anzumelden, füllen Sie aus:
+**Authentifizierungstyp** finden Sie im Schritt Server des Formulars unter **Weitere Felder**. Im Formular der Instanz stehen dort auch die OAuth-Felder, im Formular eines Projekts im Schritt **OAuth**. Um sich mit OAuth anzumelden, füllen Sie aus:
 
 | Feld | Beschreibung |
 | --- | --- |
@@ -309,6 +315,7 @@ Prüfen Sie die **Absender-E-Mail**: Ihr Server muss das Senden von ihr erlauben
 ## Nächste Schritte
 
 :::cards
+- [E-Mail-Anbieter](/docs/emails/email-providers): Stattdessen über Amazon SES, SendGrid, Mailgun, Postmark oder Resend senden.
 - [Benachrichtigungs-Zusammenfassung](/docs/emails/notification-rollup): Wie OneUptime Schübe von E-Mails an Eigentümer zusammenfasst.
 - [Abonnenten & Ankündigungen](/docs/status-pages/subscribers): Die E-Mails an die Abonnenten einer Statusseite über eine SMTP-Konfiguration des Projekts senden.
 :::

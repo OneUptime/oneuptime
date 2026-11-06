@@ -6,6 +6,8 @@ Verstuur de e-mail van OneUptime via uw eigen mailserver. Een project voegt SMTP
 - **OAuth 2.0**: voor Microsoft 365 en Google Workspace, waar basisauthenticatie vaak is uitgeschakeld.
 - **Geen**: voor relayservers die geen authenticatie vereisen.
 
+Wilt u via Amazon SES, SendGrid, Mailgun, Postmark of Resend versturen in plaats van via een mailserver, zie dan [E-mailproviders](/docs/emails/email-providers).
+
 ```mermaid title="Welke mailserver wat verstuurt"
 flowchart TB
     SP["E-mail van een statuspagina"] --> Q{"Aangepaste SMTP-configuratie<br/>gekozen voor de pagina?"}
@@ -17,7 +19,7 @@ flowchart TB
 Bij een zelf gehoste installatie is de eigen mailserver van OneUptime de server die in het Admin Dashboard is ingesteld. Een statuspagina kiest haar SMTP-configuratie op haar pagina **Abonneeinstellingen**, in de kaart **Aangepaste SMTP**.
 
 :::cards
-- [Een mailserver toevoegen](#een-smtp-server-toevoegen): Twee stappen, met al het andere ingeklapt.
+- [Een mailserver toevoegen](#een-smtp-server-toevoegen): Een paar stappen, met al het andere ingeklapt.
 - [Microsoft 365](#configuratie-voor-microsoft-365): OAuth met een app-registratie in Entra.
 - [Google Workspace](#configuratie-voor-google-workspace): OAuth met een serviceaccount.
 - [Problemen oplossen](#problemen-oplossen): Veelvoorkomende fouten en wat ze betekenen.
@@ -25,7 +27,7 @@ Bij een zelf gehoste installatie is de eigen mailserver van OneUptime de server 
 
 ## Een SMTP-server toevoegen
 
-Voeg de mailserver van een project toe via **Projectinstellingen > Meldingen > Meldingsinstellingen**, in de kaart **Aangepaste SMTP-configuraties**, onder **Meer instellingen**. Bij een zelf gehoste installatie stelt u de server via welke OneUptime zelf verstuurt in via **Admin Dashboard > Instellingen > Meldingen > E-mails**, in de kaart **Aangepaste e-mail- en SMTP-instellingen**. Beide formulieren vragen hetzelfde, in twee stappen.
+Voeg de mailserver van een project toe via **Projectinstellingen > Meldingen > Meldingsinstellingen**, in de kaart **Aangepaste SMTP-configuraties**, onder **Meer instellingen**. Bij een zelf gehoste installatie stelt u de server via welke OneUptime zelf verstuurt in via **Admin Dashboard > Instellingen > Meldingen > E-mails**, in de kaart **Aangepaste e-mail- en SMTP-instellingen**. Beide formulieren vragen om de server en de afzender; het formulier van een project vraagt eerst om de **Provider**.
 
 :::steps
 ### Het formulier openen
@@ -37,13 +39,17 @@ Open via **Projectinstellingen > Meldingen > Meldingsinstellingen** het onderdee
 Open in het Admin Dashboard **Instellingen** en daarna **Meldingen > E-mails** in het zijmenu (**Meldingen** is eerst ingeklapt). Klik in de kaart **E-mailserverinstellingen** op **Server bewerken** en zet **Type e-mailserver** op `Custom SMTP`. Klik daarna op **SMTP-config bewerken** in de kaart **Aangepaste e-mail- en SMTP-instellingen**, die eronder verschijnt.
 :::
 
+### De provider kiezen
+
+Het formulier van een project opent op de stap **Provider**: vul de **Naam** in en laat **SMTP-server** gekozen om via een mailserver te versturen. Wilt u in plaats daarvan via Microsoft Graph of een [e-mailprovider](/docs/emails/email-providers) versturen, kies die dan hier. De **Beschrijving**, een notitie voor uw team, is ingeklapt onder **Meer velden**. Het formulier van de instantie heeft geen stap **Provider**.
+
 ### De stap Server invullen
 
-Vul in de stap **Server** de **Naam** in (alleen bij projectconfiguraties), de **Hostnaam**, de **Poort** (een nieuwe projectconfiguratie begint op `587`), de **Gebruikersnaam** en het **Wachtwoord**.
+Vul in de stap **Server** de **Hostnaam**, de **Poort** (een nieuwe projectconfiguratie begint op `587`), de **Gebruikersnaam** en het **Wachtwoord** in.
 
 ### Meer velden controleren
 
-Al het andere is ingeklapt onder **Meer velden**, aan het eind van de stap **Server**. Zolang die sectie is ingeklapt, zegt de kop hoe e-mail wordt verzonden, bijvoorbeeld "E-mail wordt via SMTP verzonden, met aanmelden met de gebruikersnaam en het wachtwoord. TLS is vereist." Open de sectie alleen als u een van de instellingen in de tabel hieronder moet wijzigen.
+De overige instellingen van de server zijn ingeklapt onder **Meer velden**, aan het eind van de stap **Server**. Zolang die sectie is ingeklapt, zegt de kop hoe e-mail wordt verzonden, bijvoorbeeld "E-mail wordt via SMTP verzonden, met aanmelden met de gebruikersnaam en het wachtwoord. TLS is vereist." Open de sectie alleen als u een van de instellingen in de tabel hieronder moet wijzigen. In het formulier van een project hebben de OAuth-velden een eigen stap **OAuth**, na **Server**.
 
 ### De stap Afzender invullen
 
@@ -60,13 +66,13 @@ Dit zijn de instellingen onder **Meer velden**:
 
 | Veld | Wat het doet |
 | --- | --- |
-| **Transport** | `SMTP` (de standaard), of `Microsoft Graph` voor een Microsoft 365-tenant waarin SMTP AUTH is uitgeschakeld. Met Microsoft Graph worden hostnaam, poort, gebruikersnaam en wachtwoord verborgen en de OAuth-velden getoond. |
+| **Transport** | `SMTP` (de standaard), of `Microsoft Graph` voor een Microsoft 365-tenant waarin SMTP AUTH is uitgeschakeld. Met Microsoft Graph worden hostnaam, poort, gebruikersnaam en wachtwoord verborgen en de OAuth-velden getoond. Alleen in het formulier van de instantie: een project kiest in plaats daarvan zijn **Provider**. |
 | **TLS vereisen** | Aan bij een nieuwe projectconfiguratie. Mail alleen verzenden via een versleutelde verbinding met een geldig certificaat. Als dit uit staat, wordt het certificaat niet gecontroleerd. Poort 465 is altijd versleuteld. Als dit uit staat, wordt e-mail op andere poorten alleen versleuteld als de server dat aanbiedt. |
 | **Authenticatietype** | `Username and Password` (de standaard), `OAuth`, of `None` voor een relay die geen aanmelding vraagt. |
-| **OAuth-velden** | **OAuth-providertype**, **OAuth Client ID**, **OAuth Client Secret**, **OAuth-token-URL** en **OAuth-scope**, getoond zodra OAuth of Microsoft Graph is gekozen. |
-| **Beschrijving** | Een notitie voor uw team (alleen bij projectconfiguraties). |
+| **OAuth-velden** | **OAuth-providertype**, **OAuth Client ID**, **OAuth Client Secret**, **OAuth-token-URL** en **OAuth-scope**, getoond zodra OAuth of Microsoft Graph is gekozen. Het formulier van een project vraagt erom in zijn stap **OAuth**. |
+| **Beschrijving** | Een notitie voor uw team (alleen bij projectconfiguraties), in de stap **Provider**. |
 
-**Microsoft Graph.** Open **Meer velden**, zet **Transport** op `Microsoft Graph` en vul een Azure-app in die de toepassingsmachtiging **Mail.Send** heeft: de client-ID en het clientgeheim ervan, de token-URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` en de scope `https://graph.microsoft.com/.default`. E-mail wordt verzonden vanuit de mailbox van **E-mail van**, die een mailbox met licentie in uw tenant moet zijn.
+**Microsoft Graph.** Kies in het formulier van een project `Microsoft Graph` als **Provider**; open in het formulier van de instantie **Meer velden** en zet **Transport** op `Microsoft Graph`. Vul daarna een Azure-app in die de toepassingsmachtiging **Mail.Send** heeft: de client-ID en het clientgeheim ervan, de token-URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` en de scope `https://graph.microsoft.com/.default`. E-mail wordt verzonden vanuit de mailbox van **E-mail van**, die een mailbox met licentie in uw tenant moet zijn.
 
 > [!NOTE]
 > Op OneUptime Cloud moet de mailserver van een project via internet bereikbaar zijn: een host die naar een privé- of intern adres verwijst, wordt geweigerd. Bij een zelf gehoste installatie zijn privéadressen toegestaan, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` `true` is; loopback- en link-local-adressen worden altijd geweigerd. De eigen mailserver van de instantie wordt niet op deze manier gecontroleerd.
@@ -90,7 +96,7 @@ sequenceDiagram
     O->>M: Verstuurt de e-mail
 ```
 
-**Authenticatietype** en de OAuth-velden staan onder **Meer velden** in de stap Server van het formulier. Vul voor aanmelden met OAuth het volgende in:
+**Authenticatietype** staat onder **Meer velden** in de stap Server van het formulier. In het formulier van de instantie staan de OAuth-velden daar ook, in dat van een project in de stap **OAuth**. Vul voor aanmelden met OAuth het volgende in:
 
 | Veld | Beschrijving |
 | --- | --- |
@@ -309,6 +315,7 @@ Controleer **E-mail van**: uw server moet verzenden vanaf dat adres toestaan. Ki
 ## Volgende stappen
 
 :::cards
+- [E-mailproviders](/docs/emails/email-providers): In plaats daarvan versturen via Amazon SES, SendGrid, Mailgun, Postmark of Resend.
 - [Meldingsoverzicht](/docs/emails/notification-rollup): Hoe OneUptime golven van e-mails aan eigenaren bundelt.
 - [Abonnees en aankondigingen](/docs/status-pages/subscribers): De e-mail aan de abonnees van een statuspagina versturen via een SMTP-configuratie van het project.
 :::
