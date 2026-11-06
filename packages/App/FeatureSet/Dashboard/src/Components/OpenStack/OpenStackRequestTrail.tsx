@@ -37,6 +37,7 @@ import React, {
 import DashboardLogsViewer from "../Logs/LogsViewer";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * One request, followed across a cloud's services: every line holding its ID or its global
@@ -240,7 +241,7 @@ const OpenStackRequestTrail: FunctionComponent<ComponentProps> = (
                           <></>
                         )}
                         <span className="text-gray-500">
-                          {" · "}
+                          <InlineSeparator />
                           {translator.translatePlural(
                             {
                               one: "{{count}} line",

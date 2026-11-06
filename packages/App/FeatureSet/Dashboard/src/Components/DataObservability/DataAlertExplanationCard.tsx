@@ -20,6 +20,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * Why a data alert most likely happened, what it reaches, and what the person
@@ -154,7 +155,7 @@ const DataAlertExplanationCard: FunctionComponent<ComponentProps> = (
                     {cause.at ? (
                       <span className="text-gray-500">
                         {" "}
-                        ·{" "}
+                        <InlineSeparator markOnly />{" "}
                         {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                           OneUptimeDate.fromString(cause.at),
                         )}

@@ -42,6 +42,7 @@ import {
   TOTAL_EXPLAINED,
 } from "./ProfileCopy";
 import { ProfileSourceLink } from "./ProfilesApi";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * THE FUNCTIONS, RANKED, IN PLAIN WORDS.
@@ -622,7 +623,7 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
                             {position === 0 ? (
                               <>
                                 {" "}
-                                ·{" "}
+                                <InlineSeparator markOnly />{" "}
                                 {formatProfileValue(
                                   isTotalView ? row.totalValue : row.selfValue,
                                   props.unit,

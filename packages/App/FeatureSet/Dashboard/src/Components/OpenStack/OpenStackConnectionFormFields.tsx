@@ -44,6 +44,7 @@ import {
   validateOpenStackOptions,
   validateOpenStackRegions,
 } from "./OpenStackProbeCollectionView";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * The fields of a cloud a probe collects: connecting a new one (Connect Cloud, on the clouds
@@ -516,7 +517,7 @@ function getAdvancedFields(
           return (options.translator.translateText(title) as string) || title;
         });
 
-        return on.length > 0 ? on.join(", ") : null;
+        return on.length > 0 ? joinList(on) : null;
       },
       collapsibleSection: advancedSection,
     },

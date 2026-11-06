@@ -69,6 +69,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * IS SENSITIVE DATA LEAKING INTO YOUR TELEMETRY?
@@ -502,7 +503,9 @@ const DataSecurityTelemetryPage: FunctionComponent<
                       <></>
                     )}
                     {finding.locationKind ? (
-                      <span aria-hidden="true">{" · "}</span>
+                      <span aria-hidden="true">
+                        <InlineSeparator />
+                      </span>
                     ) : (
                       <></>
                     )}

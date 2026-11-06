@@ -16,6 +16,7 @@ import {
   SpanStatusPresentation,
   getSpanStatusPresentation,
 } from "../../Utils/SpanStatusPresentation";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface TraceRowProps {
   span: Span;
@@ -288,7 +289,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
         {startTimeDate && (
           <>
             <span aria-hidden="true" className="text-gray-300">
-              ·
+              <InlineSeparator markOnly />
             </span>
             <span className="tabular-nums">
               {formatAbsoluteTime(startTimeDate)}
@@ -299,7 +300,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
         {isError && statusMessage && (
           <>
             <span aria-hidden="true" className="text-gray-300">
-              ·
+              <InlineSeparator markOnly />
             </span>
             <span
               className="min-w-0 truncate text-red-500"

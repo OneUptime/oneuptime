@@ -70,6 +70,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The AI Logs page of the Incidents and Alerts menus (AI → Logs): the
@@ -216,7 +217,7 @@ function EntryRow(props: {
                 name: entry.runbookName,
               })
             : ""}
-          {entry.runbookName && entry.ruleName ? " · " : ""}
+          {entry.runbookName && entry.ruleName ? <InlineSeparator /> : null}
           {entry.ruleName
             ? translator.translateTemplate("Rule: {{name}}", {
                 name: entry.ruleName,

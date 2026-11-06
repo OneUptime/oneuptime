@@ -20,6 +20,7 @@ import {
   formatDurationMs,
   formatPercent,
 } from "../TelemetryResource/telemetryFormat";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The cells an App Platforms app shows in a list - All Apps, an
@@ -313,7 +314,7 @@ export const CloudAppSignalsSummaryCell: FunctionComponent<
             requests: formatCompact(signals.requests),
           })}
         </span>
-        {" · "}
+        <InlineSeparator />
         <span data-testid="cloud-app-p95">
           {translator.translateTemplate(APP_P95_SUMMARY, {
             latency: formatDurationMs(signals.p95Ms),

@@ -107,6 +107,36 @@ const isolate: (text: string) => string = (text: string): string => {
     : text;
 };
 
+// The first line of a text: up to its first line break, or all of it.
+const FIRST_LINE_REGEX: RegExp = /^[^\r\n]*/;
+
+/*
+ * A value OneUptime places after its own words for a reader of `language`
+ * - a chat message's value after its label, "**Severity:** API (EU)" - as a
+ * sentence's values are placed (see above): isolated in a language read
+ * from the right, so "API (EU)" keeps its closing bracket at its end, and
+ * as it is in every other language. Markdown of several lines - a
+ * description, a note - has its first line isolated, the one that follows
+ * the label: an isolate never runs from one paragraph into the next, and
+ * the lines after it start with their own Markdown (a list, a quote).
+ */
+export const isolateValueForReader: (
+  language: string | null | undefined,
+  value: string,
+) => string = (language: string | null | undefined, value: string): string => {
+  if (!isRightToLeftLanguage(toReaderLanguage(language))) {
+    return value;
+  }
+
+  const firstLine: string = FIRST_LINE_REGEX.exec(value)?.[0] || "";
+
+  if (!firstLine.trim()) {
+    return value;
+  }
+
+  return `${isolate(firstLine)}${value.slice(firstLine.length)}`;
+};
+
 const isolatedValue: (value: TemplateValue) => TemplateValue = (
   value: TemplateValue,
 ): TemplateValue => {

@@ -82,6 +82,7 @@ import StatusPageAccessCopy, {
   STATUS_PAGE_ACCESS_SIGN_IN_METHODS_TEST_ID,
 } from "./StatusPageAccessCopy";
 import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * "Who can see this status page", on Security -> Access: anyone with the
@@ -495,7 +496,13 @@ const StatusPageAccessCard: FunctionComponent<ComponentProps> = (
           ): ReactElement => {
             return (
               <Fragment key={item.key}>
-                {index > 0 ? <span aria-hidden="true">·</span> : <></>}
+                {index > 0 ? (
+                  <span aria-hidden="true">
+                    <InlineSeparator markOnly />
+                  </span>
+                ) : (
+                  <></>
+                )}
                 <Link
                   to={item.to}
                   className="text-gray-500 underline decoration-gray-300 underline-offset-2 hover:text-gray-900"

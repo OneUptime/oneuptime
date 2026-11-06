@@ -9,6 +9,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * What a correlation rule looks for, in one sentence: the Detection Rules
@@ -345,7 +346,7 @@ const DetectionRuleSummary: FunctionComponent<{
         <span className="font-semibold">
           {translator.translateText(props.shape.typeTitle)}
         </span>
-        {" · "}
+        <InlineSeparator />
         {/*
          * The rules it reads by their titles, set apart from the sentence's
          * own words, and each field as the column name it is.
