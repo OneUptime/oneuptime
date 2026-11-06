@@ -90,6 +90,7 @@ function mail(overrides: Partial<EmailMessage> = {}): EmailMessage {
     toEmail: new Email("oncall@example.test"),
     subject: "Incident #12 created",
     body: `<p>Checkout is down.</p><img src="cid:${LOGO.contentId}" alt="OneUptime">`,
+    vars: {},
     ...overrides,
   };
 }

@@ -1,4 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import http from "http";
 import net from "net";
 import HttpMailApi, {
@@ -133,11 +134,11 @@ describe("the wait before a retry", () => {
 
 describe("sendWithRetry", () => {
   test("a send that goes is tried once", async () => {
-    const attempt: jest.Mock<(timeoutMs: number) => Promise<void>> = jest.fn(
-      async (): Promise<void> => {
-        return;
-      },
-    );
+    const attempt: Mock<(timeoutMs: number) => Promise<void>> = jest.fn<
+      (timeoutMs: number) => Promise<void>
+    >(async (): Promise<void> => {
+      return;
+    });
 
     await HttpMailApi.sendWithRetry({
       providerName: "Resend",
@@ -231,7 +232,8 @@ describe("sendWithRetry", () => {
 
   test("a retry that would end past the deadline is not tried: the failure is reported now", async () => {
     let calls: number = 0;
-    const sleep: jest.Mock<(ms: number) => Promise<void>> = jest.fn(noWait);
+    const sleep: Mock<(ms: number) => Promise<void>> =
+      jest.fn<(ms: number) => Promise<void>>(noWait);
 
     await expect(
       HttpMailApi.sendWithRetry({
@@ -430,7 +432,7 @@ describe("post", () => {
   test("an answer is read whole: status, headers and body", async () => {
     const server: { url: string; close: () => Promise<void> } =
       await startServer(
-        (request: http.IncomingMessage, response: http.ServerResponse) => {
+        (_request: http.IncomingMessage, response: http.ServerResponse) => {
           response.writeHead(429, {
             "Retry-After": "7",
             "Content-Type": "application/json",
