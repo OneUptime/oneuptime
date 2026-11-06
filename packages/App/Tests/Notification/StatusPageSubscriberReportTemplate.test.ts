@@ -1137,3 +1137,127 @@ describe("the uptime report in its reader's language", () => {
     });
   });
 });
+
+/*
+ * WHAT A SUBSCRIBER SEES BEFORE THEY OPEN THE REPORT, AND ON A PHONE.
+ *
+ * The inbox shows a line of the email beside its subject: the hidden
+ * preview at its top. A page with no resources has no uptime to sum up -
+ * its report's "average" is a 0% - so its preview says what the email
+ * says, never "0% average uptime", which reads as an outage.
+ *
+ * On a phone each figure column has about 60 pixels, narrower than a
+ * heading such as "Verfügbarkeit" or "Доступность": a heading breaks where
+ * the email's language hyphenates it ("Verfüg-barkeit"; Start.hbs puts the
+ * language on <html lang>), not anywhere inside the word, and the columns
+ * keep their widths.
+ */
+describe("the uptime report's inbox preview, and its headings on a phone", () => {
+  const PREVIEW_START: string =
+    '<div style="display: none; max-height: 0; overflow: hidden; opacity: 0; mso-hide: all;">';
+
+  // The report's one hidden preview line, as an inbox shows it.
+  const previewOf: (html: string) => string = (html: string): string => {
+    const at: number = html.indexOf(PREVIEW_START);
+
+    expect(at).toBeGreaterThan(-1);
+    expect(html.indexOf(PREVIEW_START, at + 1)).toBe(-1);
+
+    const start: number = at + PREVIEW_START.length;
+
+    return html.slice(start, html.indexOf("</div>", start));
+  };
+
+  const renderEmpty: (language: string) => string = (
+    language: string,
+  ): string => {
+    return renderReportTemplate({
+      statusPageName: "WBHQ Status Page",
+      hasResources: "false",
+      report: {
+        ...buildReport({ entries: [], statusPageGroups: [] }),
+        // What StatusPageService builds for a page with no resources.
+        averageUptimePercent: "0%",
+        totalResources: 0,
+      },
+      ...getEmailLanguageVariables(language),
+    });
+  };
+
+  const renderWithResources: (language: string) => string = (
+    language: string,
+  ): string => {
+    return renderReportTemplate({
+      statusPageName: "WBHQ Status Page",
+      hasResources: "true",
+      statusPageUrl: "https://status.example.com",
+      detailsUrl: "https://status.example.com",
+      report: buildReport({
+        entries: nestedEntries(),
+        statusPageGroups: nestedGroups(),
+        groupMetricsByGroupId: nestedMetrics(),
+      }),
+      ...getEmailLanguageVariables(language),
+    });
+  };
+
+  test("a page with resources previews its average uptime for the period", () => {
+    expect(previewOf(renderWithResources("en"))).toBe(
+      "WBHQ Status Page uptime report — 97.85% average uptime for July 2026.",
+    );
+  });
+
+  test("a page without resources previews that there is nothing to report, never a 0% uptime", () => {
+    const preview: string = previewOf(renderEmpty("en"));
+
+    expect(preview).toBe(
+      "No resources have been added to this status page yet, so there is nothing to report this period.",
+    );
+    expect(preview).not.toContain("0%");
+    expect(preview).not.toContain("average uptime");
+  });
+
+  test("and says so in the reader's language", () => {
+    const preview: string = previewOf(renderEmpty("de"));
+
+    expect(preview).toBe(
+      "Dieser Statusseite wurden noch keine Ressourcen hinzugefügt, daher gibt es für diesen Zeitraum nichts zu berichten.",
+    );
+    expect(preview).not.toContain("0 %");
+  });
+
+  test.each(["en", "de", "ru", "nl", "pt", "fa"])(
+    "%s: on a phone, a heading breaks where the email's language hyphenates it",
+    (language: string) => {
+      const html: string = renderWithResources(language);
+      const heading: Map<string, string> | undefined = phoneRules(html).get(
+        "body[override] .st-ReportTable th",
+      );
+
+      expect(heading?.get("hyphens")).toBe("auto !important");
+      expect(heading?.get("-webkit-hyphens")).toBe("auto !important");
+      // In the email's language, which the hyphenation follows.
+      expect(html).toContain(`lang="${language}"`);
+    },
+  );
+
+  test("on a phone the columns keep their widths, so the names keep theirs", () => {
+    const html: string = renderWithResources("de");
+
+    for (const [selector, declarations] of phoneRules(html)) {
+      if (!selector.includes("st-ReportTable")) {
+        continue;
+      }
+
+      expect(`${selector} ${declarations.get("table-layout")}`).toBe(
+        `${selector} undefined`,
+      );
+      expect(`${selector} ${declarations.get("width")}`).toBe(
+        `${selector} undefined`,
+      );
+    }
+
+    expect(html).toContain('<th scope="col" align="left" width="34%"');
+    expect(html).toContain('<th scope="col" align="right" width="22%"');
+  });
+});

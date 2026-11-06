@@ -39,7 +39,15 @@
     body[override] .st-Transition-arrow { padding: 4px 0 !important; }
     body[override] .st-ReportIndent { margin-{{#if @root.isEmailRightToLeft}}right{{else}}left{{/if}}: 0 !important; }
     body[override] .st-ReportTable th, body[override] .st-ReportTable td { padding: 10px 6px !important; font-size: 12px !important; line-height: 18px !important; }
-    body[override] .st-ReportTable th { padding: 10px 4px !important; font-size: 11px !important; line-height: 16px !important; }
+    {{!--
+      The uptime report's column headings on a phone. A long one in the
+      reader's language ("Verfügbarkeit", "Доступность", "Beschikbaarheid")
+      is wider than its column there: it breaks where the language
+      hyphenates it ("Verfüg-barkeit", from the email's lang), in the
+      clients that can, rather than anywhere inside the word. The columns
+      keep their widths, so the names keep theirs.
+    --}}
+    body[override] .st-ReportTable th { padding: 10px 4px !important; font-size: 11px !important; line-height: 16px !important; -webkit-hyphens: auto !important; hyphens: auto !important; }
     {{!--
       The uptime report's stat strip: three tiles side by side on a wide
       screen, three rows on a phone - each label on the left, its value on

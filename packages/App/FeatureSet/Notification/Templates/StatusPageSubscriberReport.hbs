@@ -21,9 +21,11 @@
 
   The inbox preview line, hidden as Partials/Start.hbs hides every other
   email's: never by a text colour close to its background, which spam
-  filters score as hidden text (SpamAssassin's HTML_FONT_LOW_CONTRAST).
+  filters score as hidden text (SpamAssassin's HTML_FONT_LOW_CONTRAST). A
+  page with no resources has no uptime to sum up - its "average" is a 0% -
+  so its preview says what the email says instead.
 --}}
-<div style="display: none; max-height: 0; overflow: hidden; opacity: 0; mso-hide: all;">{{tt "{{statusPageName}} uptime report — {{uptime}} average uptime for {{period}}." statusPageName=statusPageName uptime=report.averageUptimePercent period=report.reportPeriodName}}</div>
+<div style="display: none; max-height: 0; overflow: hidden; opacity: 0; mso-hide: all;">{{#ifCond hasResources "true"}}{{tt "{{statusPageName}} uptime report — {{uptime}} average uptime for {{period}}." statusPageName=statusPageName uptime=report.averageUptimePercent period=report.reportPeriodName}}{{else}}{{t "No resources have been added to this status page yet, so there is nothing to report this period."}}{{/ifCond}}</div>
 
 {{> CustomLogo this}}
 
