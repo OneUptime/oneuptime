@@ -69,6 +69,8 @@ const CONTAIN_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8
 const KNOWN_BAD_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8000-000000000002`;
 // Contain Risky Sign-ins (the fixture's ?branching=1): an if and an else on threat intel.
 const BRANCHING_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8000-000000000005`;
+// Stop When Nothing Is Known (the fixture's ?stopping=1): a Stop step on two lookups.
+const STOPPING_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8000-000000000006`;
 // The runs held for an approval keep the runs page's old address.
 const RUNS_PATH: string = `${PRODUCT}/playbook-runs`;
 const ALL_RUNS_PATH: string = `${PRODUCT}/playbook-runs/all`;
@@ -93,8 +95,9 @@ const SPRAY_TRIAGE_RUN_ID: string = "29000000-0000-4000-8000-000000000142";
 // The fixture's two correlation rules, beside its six library rules.
 const SEQUENCE_RULE: string = "Spray, then a success";
 const FIRST_SEEN_RULE: string = "Admin console from a new address";
-// The team's rule that runs in real time (the fixture's ?realtime=1).
+// The team's rules that run in real time (the fixture's ?realtime=1): one fires on each event, one counts.
 const REAL_TIME_RULE: string = "Break-glass account signed in";
+const COUNTING_REAL_TIME_RULE: string = "Failed sign-ins from one address";
 
 // What a single rule counts by, which a correlation says in its YAML instead.
 const COUNTING_FIELDS: ReadonlyArray<RegExp> = [
@@ -109,6 +112,16 @@ detection:
   selection:
     className: Authentication
     statusName: Failure
+  condition: selection
+`;
+
+// A rule with a regular expression: the one kind that cannot run in real time.
+const REGEX_RULE_YAML: string = `title: Numbered admin signed in
+level: high
+detection:
+  selection:
+    className: Authentication
+    principalUser|re: '^adm[0-9]+$'
   condition: selection
 `;
 
@@ -209,6 +222,8 @@ interface OpenOptions {
   realtime?: boolean;
   // A playbook that branches, and its two runs on CASE-139 (the fixture's ?branching=1).
   branching?: boolean;
+  // A playbook with a Stop step, and its run that stopped (the fixture's ?stopping=1).
+  stopping?: boolean;
   // Case numbers, comma separated, whose every change the server refuses.
   refuse?: string;
   // ATT&CK Coverage's address: the view, and the tactic it opens on.
@@ -358,6 +373,9 @@ async function open(
   }
   if (options.branching) {
     params.set("branching", "1");
+  }
+  if (options.stopping) {
+    params.set("stopping", "1");
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -5118,10 +5136,11 @@ test.describe("playbooks", () => {
   /*
    * Run This Step is the one picker a branch is set with: under More fields
    * (most steps always run), each result of each step before it a choice,
-   * worded as the step's card words it. Picking Always lets the step run
-   * whatever came before it, and the card's line goes.
+   * worded as the step's card words it. Several can be picked; with none
+   * picked it reads Always, the step runs whatever came before it, and the
+   * card's line goes.
    */
-  test("Run This Step waits under More fields, offers each result of the steps before it, and Always lets a step run whatever came before", async ({
+  test("Run This Step waits under More fields, offers each result of the steps before it, and with none picked a step runs whatever came before", async ({
     page,
   }: {
     page: Page;
@@ -5145,13 +5164,11 @@ test.describe("playbooks", () => {
       name: /^Run This Step/,
     });
     await expect(runIf).toBeVisible();
-    await expect(
-      dialog
-        .locator(".ou-select__single-value")
-        .filter({ hasText: "Only if step 1" }),
-    ).toHaveText(
+    await expect(dialog.locator(".ou-select__multi-value__label")).toHaveText([
       "Only if step 1 (Check entities against threat intel) found a known-bad entity",
-    );
+    ]);
+    // One result: nothing more to ask.
+    await expect(dialog.getByText("Run When")).toHaveCount(0);
     await expect(
       dialog.getByText("Carry On If It Fails").first(),
     ).toBeVisible();
@@ -5159,18 +5176,23 @@ test.describe("playbooks", () => {
       fullPage: false,
     });
 
-    // Always, then each result of each step before it: two, for a lookup.
+    // Each other result of each step before it: two, for a lookup.
     await runIf.click();
     await expect(page.locator(".ou-select__option")).toHaveText([
-      "Always",
-      "Only if step 1 (Check entities against threat intel) found a known-bad entity",
       "Only if step 1 (Check entities against threat intel) found nothing known-bad",
       "Only if step 2 (Set the priority) succeeded",
     ]);
-    await page
-      .locator(".ou-select__option", { hasText: "Always" })
-      .first()
+    await page.keyboard.press("Escape");
+
+    // Its result removed, it reads Always.
+    await dialog
+      .getByRole("button", {
+        name: "Remove Only if step 1 (Check entities against threat intel) found a known-bad entity",
+      })
       .click();
+    await expect(dialog.locator(".ou-select__placeholder")).toHaveText(
+      "Always",
+    );
     await expect(dialog.getByTestId("modal-footer-submit-button")).toHaveText(
       "Save Step",
     );
@@ -5212,6 +5234,220 @@ test.describe("playbooks", () => {
     }>;
     expect(steps[2]!.runIf).toBeUndefined();
     expect(steps[1]!.runIf).toBeDefined();
+  });
+
+  /*
+   * Run This Step takes several results: with two picked, Run When asks
+   * whether the step waits for all of them or runs on any one. Saved as any
+   * one, the step's card says both results with "or", and the playbook saves
+   * them as a group.
+   */
+  test("two results picked ask Run When, and a step saved to run on any one says both on its card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, KNOWN_BAD_PLAYBOOK_PATH);
+    await expect(page.getByTestId("security-playbook-step-2")).toBeVisible({
+      timeout: 30000,
+    });
+    await page.getByRole("button", { name: "Step 3 actions" }).click();
+    await page.getByRole("menuitem", { name: "Edit Step" }).click();
+
+    const dialog: Locator = page.getByRole("dialog").first();
+    await dialog.getByRole("button", { name: /More fields/ }).click();
+    await dialog.getByRole("combobox", { name: /^Run This Step/ }).click();
+    await page
+      .locator(".ou-select__option", {
+        hasText: "Only if step 2 (Set the priority) succeeded",
+      })
+      .click();
+
+    const all: Locator = dialog.getByRole("radio", {
+      name: "When all of them happened",
+    });
+    const any: Locator = dialog.getByRole("radio", {
+      name: "When any one of them happened",
+    });
+    await expect(dialog.getByText("Run When")).toBeVisible();
+    await expect(all).toBeChecked();
+    await any.check();
+    await screenshot(page, "playbook-run-when-desktop", { fullPage: false });
+
+    await dialog.getByTestId("modal-footer-submit-button").click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(
+      page.getByTestId("security-playbook-step-2-run-if"),
+    ).toHaveText("Only if step 1 found a known-bad entity or step 2 succeeded");
+
+    const saved: Array<{ data: Record<string, unknown> }> = await page.evaluate(
+      (): Array<{ data: Record<string, unknown> }> => {
+        return JSON.parse(
+          JSON.stringify(
+            (
+              window as unknown as {
+                __securityOperationsFixture: {
+                  updates: Array<{
+                    modelName: string;
+                    data: Record<string, unknown>;
+                  }>;
+                };
+              }
+            ).__securityOperationsFixture.updates.filter(
+              (update: { modelName: string }): boolean => {
+                return update.modelName === "SecurityPlaybook";
+              },
+            ),
+          ),
+        );
+      },
+    );
+    expect(saved).toHaveLength(1);
+    const steps: Array<{ id: string; runIf?: Record<string, unknown> }> =
+      saved[0]!.data["steps"] as Array<{
+        id: string;
+        runIf?: Record<string, unknown>;
+      }>;
+    expect(steps[2]!.runIf).toEqual({
+      match: "Any",
+      conditions: [
+        { stepId: steps[0]!.id, outcome: "Found" },
+        { stepId: steps[1]!.id, outcome: "Succeeded" },
+      ],
+    });
+  });
+
+  /*
+   * A Stop step is picked like any other, under Flow control, the picker's
+   * last group. Its dialog asks why it stops - and neither Needs Approval
+   * nor Carry On If It Fails, which it cannot use - and its card says why.
+   */
+  test("Stop the run is picked under Flow control, asks why it stops and nothing it cannot use, and its card says why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, KNOWN_BAD_PLAYBOOK_PATH);
+    await expect(page.getByTestId("security-playbook-step-2")).toBeVisible({
+      timeout: 30000,
+    });
+    await page.getByRole("button", { name: "Add Step" }).click();
+
+    const dialog: Locator = page.getByRole("dialog").first();
+    await expect(dialog.getByText("Flow control")).toBeVisible();
+    await dialog.getByText("Stop the run", { exact: true }).click();
+    await dialog.getByRole("button", { name: "Next", exact: true }).click();
+
+    const why: Locator = dialog.getByRole("textbox", { name: /Why It Stops/ });
+    await expect(why).toBeVisible();
+    await expect(dialog.getByText("Needs Approval")).toHaveCount(0);
+    const moreFields: Locator = dialog.getByRole("button", {
+      name: /More fields/,
+    });
+    await expect(moreFields).toContainText("Run This Step");
+    await expect(moreFields).not.toContainText("Carry On If It Fails");
+
+    await why.fill("Nothing known-bad: nothing to contain");
+    await moreFields.click();
+    await dialog.getByRole("combobox", { name: /^Run This Step/ }).click();
+    await page
+      .locator(".ou-select__option", {
+        hasText:
+          "Only if step 1 (Check entities against threat intel) found nothing known-bad",
+      })
+      .click();
+    await screenshot(page, "playbook-stop-step-desktop", { fullPage: false });
+    await dialog.getByTestId("modal-footer-submit-button").click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    const card: Locator = page.getByTestId("security-playbook-step-3");
+    await expect(card).toContainText("Stop the run");
+    await expect(card).toContainText("Nothing known-bad: nothing to contain");
+    await expect(
+      page.getByTestId("security-playbook-step-3-run-if"),
+    ).toHaveText("Only if step 1 found nothing known-bad");
+    await expect(card).not.toContainText("Needs approval");
+  });
+
+  /*
+   * A playbook with a Stop step (the fixture's ?stopping=1): Stop When
+   * Nothing Is Known stops when neither lookup found anything - all of two
+   * results - and notes when either found something - any one. Each card
+   * says it, and its run that stopped says where: the steps after the Stop
+   * step each say the run stopped there, in the reader's language, and the
+   * run's folded line says it ended there, as the playbook says.
+   */
+  test("a playbook with a Stop step says what each step waits on, and its run says where it stopped", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, STOPPING_PLAYBOOK_PATH, { stopping: true });
+    await expect(page.getByTestId("security-playbook-step-4")).toBeVisible({
+      timeout: 30000,
+    });
+
+    await expect(
+      page.getByTestId("security-playbook-step-2-run-if"),
+    ).toHaveText(
+      "Only if step 1 found nothing known-bad and step 2 found no activity",
+    );
+    await expect(page.getByTestId("security-playbook-step-2")).toContainText(
+      "Nothing known-bad and no activity: nothing to contain",
+    );
+    await expect(
+      page.getByTestId("security-playbook-step-4-run-if"),
+    ).toHaveText(
+      "Only if step 1 found a known-bad entity or step 2 found activity",
+    );
+
+    const run: Locator = page.getByTestId("security-playbook-run-card").first();
+    await expect(run.getByTestId("security-playbook-run-summary")).toHaveText(
+      "Ended at step 3 of 5, as the playbook says",
+    );
+    await run.getByTestId("security-playbook-run-steps-toggle").click();
+    for (const index of [3, 4]) {
+      await expect(
+        run.getByTestId(`security-playbook-run-step-${index}-stopped`),
+      ).toHaveText("The run stopped at step 3");
+      await expect(
+        run.getByTestId(`security-playbook-run-step-${index}-run-if`),
+      ).toHaveCount(0);
+    }
+    await expect(page.getByText(/Skipped: the run stopped/)).toHaveCount(0);
+    await screenshot(page, "playbook-stopped-run-desktop");
+
+    // In German, as the German Dashboard words it.
+    await open(page, STOPPING_PLAYBOOK_PATH, { stopping: true, lang: "de" });
+    await expect(
+      page.getByTestId("security-playbook-step-2-run-if"),
+    ).toHaveText(
+      "Nur wenn Schritt 1 nichts bekannt Bösartiges gefunden hat und Schritt 2 keine Aktivität gefunden hat",
+      { timeout: 30000 },
+    );
+    const germanRun: Locator = page
+      .getByTestId("security-playbook-run-card")
+      .first();
+    await expect(
+      germanRun.getByTestId("security-playbook-run-summary"),
+    ).toHaveText("Bei Schritt 3 von 5 beendet, wie das Playbook es vorsieht");
+    await germanRun.getByTestId("security-playbook-run-steps-toggle").click();
+    await expect(
+      germanRun.getByTestId("security-playbook-run-step-3-stopped"),
+    ).toHaveText("Die Ausführung wurde bei Schritt 3 gestoppt");
+
+    // On a phone, nothing runs off the side.
+    await open(page, STOPPING_PLAYBOOK_PATH, { stopping: true, width: 390 });
+    await expect(page.getByTestId("security-playbook-step-4")).toBeVisible({
+      timeout: 30000,
+    });
+    await page
+      .getByTestId("security-playbook-run-card")
+      .first()
+      .getByTestId("security-playbook-run-steps-toggle")
+      .click();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "playbook-stopped-run-phone");
   });
 
   /*
@@ -7176,12 +7412,14 @@ test.describe("detection rules and threat intel", () => {
   });
 
   /*
-   * A rule that fires on one event can check each event as it arrives: Run
-   * in Real Time, under More fields on On Match, off on a new rule. A
-   * real-time rule runs on no interval - the form's interval goes, and the
-   * list says Real time where a scheduled rule's Status and Interval read.
+   * Any rule but one with a regular expression can check events as they
+   * arrive: Run in Real Time, under More fields on On Match, off on a new
+   * rule. A real-time rule that fires on each event runs on no interval -
+   * the form's interval goes - while one that counts keeps it as the
+   * window it counts in; the list says Real time where a scheduled rule's
+   * Status reads.
    */
-  test("a rule that runs in real time says Real time in its Status and Interval, and the form offers it under More fields", async ({
+  test("a rule that runs in real time says Real time in its Status, and the form offers it under More fields - a rule that counts too", async ({
     page,
   }: {
     page: Page;
@@ -7194,8 +7432,14 @@ test.describe("detection rules and threat intel", () => {
     await expect(realTime.getByTestId("detection-rule-type")).toHaveText(
       "Single event",
     );
+    // A rule that counts runs in real time too.
+    await expect(rowNamed(page, COUNTING_REAL_TIME_RULE)).toContainText(
+      "Real time",
+    );
     // A scheduled rule's Status says otherwise.
-    await expect(rowNamed(page, SEQUENCE_RULE)).not.toContainText("Real time");
+    await expect(rowNamed(page, FIRST_SEEN_RULE)).not.toContainText(
+      "Real time",
+    );
     await screenshot(page, "detection-rules-real-time-desktop", {
       fullPage: false,
     });
@@ -7224,7 +7468,7 @@ test.describe("detection rules and threat intel", () => {
     ).toBeVisible();
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-checked", "true");
-    // A real-time rule runs on no interval.
+    // A real-time rule that fires on each event runs on no interval.
     await expect(
       dialog(page).getByText(/^Evaluation Interval \(Minutes\)/),
     ).toHaveCount(0);
@@ -7233,17 +7477,86 @@ test.describe("detection rules and threat intel", () => {
     });
 
     /*
-     * A threshold above 1 waits for a count of matches: the switch says so,
-     * and what to change, before anything is saved.
+     * A threshold above 1 counts in windows of the interval, in real time
+     * as on its schedule: the interval comes back as the window it counts
+     * in, and the switch has nothing to say against it.
      */
     const threshold: Locator = dialog(page).getByRole("spinbutton", {
       name: /^Match Count Threshold/,
     });
-    const why: Locator = dialog(page).getByText(
-      "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.",
-    );
     await threshold.fill("5");
     await threshold.blur();
+    await expect(
+      dialog(page)
+        .getByText(/^Evaluation Interval \(Minutes\)/)
+        .first(),
+    ).toBeVisible();
+    await expect(
+      dialog(page).getByText(
+        "How often the rule runs, in minutes. In real time, a rule that counts reads windows this long and fires at most once in each.",
+      ),
+    ).toBeVisible();
+    await expect(
+      dialog(page).getByText(/regular expression \(\|re\), which only runs/),
+    ).toHaveCount(0);
+    await screenshot(page, "detection-rule-real-time-counting-desktop", {
+      fullPage: false,
+    });
+
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    const created: Array<{ data: Record<string, unknown> }> = (
+      await fixture(page)
+    ).creates.filter((create: { modelName: string }): boolean => {
+      return create.modelName === "DetectionRule";
+    });
+    expect(created).toHaveLength(1);
+    expect(created[0]!.data).toMatchObject({
+      name: "Failed sign-in burst",
+      isRealTime: true,
+      matchCountThreshold: 5,
+    });
+  });
+
+  /*
+   * A rule with a regular expression is the one kind that cannot run in
+   * real time: turned on for one, the switch says why, and what to change,
+   * before anything is saved.
+   */
+  test("a rule with a regular expression cannot run in real time: the switch says why before it is saved", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DETECTION_RULES_PATH, { realtime: true });
+    await expect(rowNamed(page, REAL_TIME_RULE)).toBeVisible({
+      timeout: 30000,
+    });
+
+    await page
+      .getByRole("button", { name: "Create Detection Rule", exact: true })
+      .click();
+    await dialog(page)
+      .getByRole("textbox", { name: /^Sigma Rule \(YAML\)/ })
+      .fill(REGEX_RULE_YAML);
+    await dialog(page)
+      .getByRole("button", { name: "Next", exact: true })
+      .click();
+    await dialog(page)
+      .getByRole("button", { name: /More fields/ })
+      .click();
+
+    const toggle: Locator = dialog(page).getByRole("switch", {
+      name: /^Run in Real Time/,
+    });
+    const why: Locator = dialog(page).getByText(
+      "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.",
+    );
+
+    await expect(why).toHaveCount(0);
+    await toggle.click();
+    // Said once the reader moves on from the switch, as every field's check is.
+    await toggle.blur();
     await expect(why).toBeVisible();
     await dialog(page).getByTestId("modal-footer-submit-button").click();
     await expect(why).toBeVisible();
@@ -7257,22 +7570,19 @@ test.describe("detection rules and threat intel", () => {
     await screenshot(page, "detection-rule-real-time-refused-desktop", {
       fullPage: false,
     });
-    await threshold.fill("1");
-    await threshold.blur();
-    await expect(why).toHaveCount(0);
 
+    // Back on its schedule, it saves.
+    await toggle.click();
+    await expect(why).toHaveCount(0);
     await dialog(page).getByTestId("modal-footer-submit-button").click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    const created: Array<{ data: Record<string, unknown> }> = (
-      await fixture(page)
-    ).creates.filter((create: { modelName: string }): boolean => {
-      return create.modelName === "DetectionRule";
-    });
-    expect(created).toHaveLength(1);
-    expect(created[0]!.data).toMatchObject({
-      name: "Failed sign-in burst",
-      isRealTime: true,
-    });
+    expect(
+      (await fixture(page)).creates.filter(
+        (create: { modelName: string }): boolean => {
+          return create.modelName === "DetectionRule";
+        },
+      )[0]!.data,
+    ).toMatchObject({ name: "Numbered admin signed in", isRealTime: false });
   });
 
   test("Detection Rules fits a laptop's width: no row scrolls sideways, and Last Match says how long ago", async ({

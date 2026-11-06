@@ -68,6 +68,30 @@ export interface DetectionMatchGroup {
   groupFields?: Array<{ field: string; value: string }> | undefined;
 }
 
+/*
+ * The events one write handed a rule that counts in real time
+ * (Types/SecurityEvent/RealTimeDetection), and where they came in. A read
+ * of a window with them takes the window as it stood when the write
+ * arrived - its events with an id no later than the write's last: ids are
+ * time-ordered (UUIDv7, made as each row is built), so a later id came in
+ * later - and keeps a group only when the write is what brought it to the
+ * threshold: one of its events is among the group's matches, and with only
+ * what came in before its first id the group had not reached it. A burst
+ * written an event at a time fires once, on the event that makes the
+ * count; a late event that makes it fires too; and a group past it stays
+ * quiet until the next window.
+ */
+export interface DetectionArrivalRead {
+  // The write's events, by id.
+  candidateIds: Array<string>;
+  // The lowest and the highest of them.
+  firstId: string;
+  lastId: string;
+  // When they happened, at most: the groups they name are read there.
+  candidateStartTime: Date;
+  candidateEndTime: Date;
+}
+
 export interface FindDetectionMatchesData {
   projectId: ObjectID;
   startTime: Date;
@@ -77,6 +101,8 @@ export interface FindDetectionMatchesData {
   distinctCountExpression: Statement | null;
   minMatchCount: number;
   maxGroups: number;
+  // A window of a rule that counts in real time, as one write found it.
+  arrival?: DetectionArrivalRead | undefined;
 }
 
 /*
@@ -403,8 +429,42 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       statement.append("0");
     }
 
+    statement.append(" AS distinctCount");
+
+    const arrival: DetectionArrivalRead | undefined = data.arrival;
+
+    if (arrival) {
+      // What had come in before the write, and the write's own matches.
+      statement.append(
+        SQL`, countIf(_id < ${{
+          type: TableColumnType.Text,
+          value: arrival.firstId,
+        }}) AS matchCountBefore, `,
+      );
+
+      if (data.distinctCountExpression) {
+        statement.append("uniqExactIf(nullIf(");
+        statement.append(data.distinctCountExpression);
+        statement.append(
+          SQL`, ''), _id < ${{
+            type: TableColumnType.Text,
+            value: arrival.firstId,
+          }})`,
+        );
+      } else {
+        statement.append("0");
+      }
+
+      statement.append(
+        SQL` AS distinctCountBefore, countIf(has(${{
+          type: TableColumnType.ArrayText,
+          value: arrival.candidateIds,
+        }}, _id)) AS candidateMatches`,
+      );
+    }
+
     statement.append(
-      ` AS distinctCount, any(message) AS sampleMessage, arrayDistinct(arrayFlatten(groupArray(20)(observables))) AS sampleObservables FROM ${databaseName}.${this.model.tableName} WHERE `,
+      `, any(message) AS sampleMessage, arrayDistinct(arrayFlatten(groupArray(20)(observables))) AS sampleObservables FROM ${databaseName}.${this.model.tableName} WHERE `,
     );
 
     statement.append(
@@ -421,7 +481,45 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     );
 
     statement.append(data.whereFragment);
-    statement.append(") GROUP BY groupValue");
+    statement.append(")");
+
+    if (arrival) {
+      // The window as it stood when the write came in.
+      statement.append(
+        SQL` AND _id <= ${{
+          type: TableColumnType.Text,
+          value: arrival.lastId,
+        }}`,
+      );
+
+      // Only the groups the write's events name: read where they happened.
+      if (data.groupByExpression) {
+        statement.append(" AND ");
+        statement.append(data.groupByExpression);
+        statement.append(" IN (SELECT ");
+        statement.append(data.groupByExpression);
+        statement.append(
+          ` FROM ${databaseName}.${this.model.tableName} WHERE `,
+        );
+        statement.append(
+          SQL`projectId = ${{
+            type: TableColumnType.ObjectID,
+            value: data.projectId,
+          }} AND time >= ${{
+            type: TableColumnType.DateTime64,
+            value: arrival.candidateStartTime,
+          }} AND time < ${{
+            type: TableColumnType.DateTime64,
+            value: arrival.candidateEndTime,
+          }} AND has(${{
+            type: TableColumnType.ArrayText,
+            value: arrival.candidateIds,
+          }}, _id))`,
+        );
+      }
+    }
+
+    statement.append(" GROUP BY groupValue");
 
     /*
      * The effective count — what the rule's threshold means — is the
@@ -435,7 +533,28 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       : "matchCount";
     const minMatchCount: number = Math.max(1, data.minMatchCount);
 
-    if (data.distinctCountExpression || minMatchCount > 1) {
+    if (arrival) {
+      /*
+       * A group the write brought to the threshold: one of its events
+       * matched, and what came in before it had not reached the count.
+       */
+      statement.append(
+        ` HAVING candidateMatches > 0 AND ${effectiveCountColumn} >= `,
+      );
+      statement.append(
+        SQL`${{
+          type: TableColumnType.Number,
+          value: minMatchCount,
+        }}`,
+      );
+      statement.append(` AND ${effectiveCountColumn}Before < `);
+      statement.append(
+        SQL`${{
+          type: TableColumnType.Number,
+          value: minMatchCount,
+        }}`,
+      );
+    } else if (data.distinctCountExpression || minMatchCount > 1) {
       statement.append(` HAVING ${effectiveCountColumn} >= `);
       statement.append(
         SQL`${{

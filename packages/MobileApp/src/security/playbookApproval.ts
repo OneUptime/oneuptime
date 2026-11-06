@@ -97,6 +97,7 @@ export const SECURITY_PLAYBOOK_ACTION_TITLES: Readonly<Record<string, string>> =
     "Run Workflow": "Run a workflow",
     "Run Runbook": "Run a runbook",
     "Fix With AI": "Fix the code with AI",
+    "Stop Run": "Stop the run",
   };
 
 export function getPlaybookActionTitle(action: unknown): string {

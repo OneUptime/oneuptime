@@ -198,6 +198,9 @@ const FILLED: Record<SecurityPlaybookActionType, JSONObject> = {
     notifySubscribers: true,
   },
   [SecurityPlaybookActionType.FixWithAi]: {},
+  [SecurityPlaybookActionType.StopRun]: {
+    reason: "Nothing known-bad: nothing to contain",
+  },
 };
 
 describe("the step dialog's values", () => {
@@ -218,7 +221,10 @@ describe("the step dialog's values", () => {
       });
 
       expect(step.action).toBe(action);
-      expect(step.requiresApproval).toBe(true);
+      // A Stop step has nothing to approve: its switch is never offered.
+      expect(step.requiresApproval).toBe(
+        action !== SecurityPlaybookActionType.StopRun,
+      );
       expect(step.onlyIfThreatIntelMatched).toBe(true);
       expect(ObjectID.isValidUUID(step.id)).toBe(true);
 

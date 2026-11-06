@@ -2,11 +2,19 @@ import DetectionRule from "../../../../Models/DatabaseModels/DetectionRule";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import { DETECTION_REAL_TIME_RULES_MAX } from "../../../../Types/SecurityEvent/RealTimeDetection";
-import { DetectionRuleDefinition } from "../../../../Types/SecurityEvent/SigmaCorrelation";
+import {
+  DETECTION_REAL_TIME_RULES_MAX,
+  doesRealTimeRuleCountInWindows,
+  getDetectionDefinitionRules,
+} from "../../../../Types/SecurityEvent/RealTimeDetection";
+import {
+  DetectionRuleDefinition,
+  SigmaRuleReferenceResolver,
+} from "../../../../Types/SecurityEvent/SigmaCorrelation";
 import SigmaRule from "../../../../Types/SecurityEvent/SigmaRule";
 import SigmaRuleSetParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import DetectionRuleService from "../../../Services/DetectionRuleService";
+import ProjectSigmaRules from "../Correlation/ProjectSigmaRules";
 import EventLoop from "../../EventLoop";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -31,18 +39,21 @@ export type { RealTimeCandidate, RealTimeJobData } from "./RealTimeJobs";
 
 /*
  * REAL-TIME DETECTION RULES (Types/SecurityEvent/RealTimeDetection): a rule
- * that fires on one event checks each event as it reaches OneUptime.
+ * checks events as they reach OneUptime.
  *
  * Every path that writes security events from a source - the ingest API,
  * the connections, Your logs, Your OneUptime data, Data Security's changes -
  * hands the rows it just wrote to `screen`. It reads the project's real-time
  * rules (kept for REAL_TIME_RULES_CACHE_TTL_MS, so a rule turned on or off
  * takes effect within half a minute) and screens every row against each in
- * memory (RealTimeEventScreen), never throwing into the write. A rule with
- * candidates gets a job, a few seconds later (RealTimeDetectionJob), that
- * confirms them with the rule's own query restricted to those events by
- * id, and does what a scheduled run does with what matches: an alert, an
- * incident if asked for, a finding, a case, risk.
+ * memory (RealTimeEventScreen), never throwing into the write: a single
+ * rule against its own detection, a correlation against each rule it reads.
+ * A rule with candidates gets a job, a few seconds later
+ * (RealTimeDetectionJob), that confirms them with the rule's own query, and
+ * does what a scheduled run does with what matches: an alert, an incident
+ * if asked for, a finding, a case, risk. A rule that fires on one event
+ * reads just those events, by id; one that counts, and a correlation, read
+ * the window of its interval they fall in, as it stood when they arrived.
  *
  * The engine's own findings are written past this - a finding is not an
  * event a source sent - and so is the setup test's attack, which runs every
@@ -67,7 +78,10 @@ const ROWS_PER_TURN: number = 500;
 
 export interface RealTimeRule {
   id: string;
-  rule: SigmaRule;
+  // What a row is screened against: the rule, or every rule a correlation reads.
+  rules: Array<SigmaRule>;
+  // A correlation, or a rule that waits for a count: it reads a window around its events.
+  countsInWindows: boolean;
 }
 
 interface CachedProject {
@@ -154,7 +168,10 @@ export default class RealTimeDetections {
       },
       select: {
         _id: true,
+        projectId: true,
         sigmaRuleYaml: true,
+        matchCountThreshold: true,
+        distinctCountField: true,
       },
       skip: 0,
       limit: DETECTION_REAL_TIME_RULES_MAX,
@@ -167,13 +184,20 @@ export default class RealTimeDetections {
 
     for (const rule of rules) {
       try {
-        const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(
-          rule.sigmaRuleYaml || "",
-        );
+        // A correlation naming a rule the project no longer has does not read: it is left out.
+        const definition: DetectionRuleDefinition =
+          await this.readDefinition(rule);
 
-        // Only a rule that fires on one event saves as real time; anything else is the schedule's.
-        if (definition.kind === "single" && rule.id) {
-          parsed.push({ id: rule.id.toString(), rule: definition.rule });
+        if (rule.id) {
+          parsed.push({
+            id: rule.id.toString(),
+            rules: getDetectionDefinitionRules(definition),
+            countsInWindows: doesRealTimeRuleCountInWindows({
+              definition,
+              matchCountThreshold: rule.matchCountThreshold,
+              distinctCountField: rule.distinctCountField,
+            }),
+          });
         }
       } catch (error) {
         logger.error(
@@ -184,6 +208,35 @@ export default class RealTimeDetections {
     }
 
     return parsed;
+  }
+
+  /*
+   * A rule's YAML, parsed: a correlation that names rules its file does not
+   * hold reads them from the project's other rules, as its runs do.
+   */
+  private static async readDefinition(
+    rule: DetectionRule,
+  ): Promise<DetectionRuleDefinition> {
+    const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(
+      rule.sigmaRuleYaml || "",
+    );
+
+    if (
+      definition.kind === "single" ||
+      definition.unresolvedReferences.length === 0 ||
+      !rule.projectId
+    ) {
+      return definition;
+    }
+
+    const resolveReference: SigmaRuleReferenceResolver =
+      await ProjectSigmaRules.load(rule.projectId, {
+        excludeRuleId: rule.id || undefined,
+      });
+
+    return SigmaRuleSetParser.parse(rule.sigmaRuleYaml || "", {
+      resolveReference,
+    });
   }
 
   /*
@@ -223,7 +276,13 @@ export default class RealTimeDetections {
             break;
           }
 
-          if (screenSecurityEventRow(rule.rule, row) === "no") {
+          const mayMatch: boolean = rule.rules.some(
+            (screenedRule: SigmaRule): boolean => {
+              return screenSecurityEventRow(screenedRule, row) !== "no";
+            },
+          );
+
+          if (!mayMatch) {
             continue;
           }
 
@@ -245,6 +304,7 @@ export default class RealTimeDetections {
             ruleId: rule.id,
             events: candidates.slice(offset, offset + REAL_TIME_EVENTS_PER_JOB),
             attempt: 1,
+            ...(rule.countsInWindows ? { countsInWindows: true } : {}),
           });
           jobs++;
         }

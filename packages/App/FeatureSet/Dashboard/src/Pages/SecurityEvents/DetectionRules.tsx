@@ -65,6 +65,7 @@ import {
 } from "../../Components/SecurityEvents/DetectionRuleShape";
 import {
   RealTimeFormValues,
+  countsInWindows as countsInWindowsValues,
   getRealTimeFormProblem,
   runsInRealTime as runsInRealTimeValues,
 } from "../../Components/SecurityEvents/DetectionRuleRealTime";
@@ -134,9 +135,23 @@ export const DETECTION_RULE_YAML_TOOLS_TEST_ID: string =
 const advancedSection: FormFieldCollapsibleSection<DetectionRule> =
   getAdvancedFormSection<DetectionRule>();
 
-// Whether the form's rule checks each event as it arrives (a switch Postgres may hand back as "true").
+// Whether the form's rule checks events as they arrive (a switch Postgres may hand back as "true").
 export function runsInRealTime(values: FormValues<DetectionRule>): boolean {
   return runsInRealTimeValues(values as unknown as RealTimeFormValues);
+}
+
+/*
+ * Whether the rule's interval matters: on its schedule it always does, and
+ * in real time for a rule that counts - a threshold above 1, a distinct
+ * count, a correlation - which fires at most once in each window this long.
+ */
+export function usesEvaluationInterval(
+  values: FormValues<DetectionRule>,
+): boolean {
+  return (
+    !runsInRealTime(values) ||
+    countsInWindowsValues(values as unknown as RealTimeFormValues)
+  );
 }
 
 /*
@@ -500,24 +515,20 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           ),
           {
             /*
-             * A rule that fires on one event can check each event as it
-             * arrives (Types/SecurityEvent/RealTimeDetection). Turned on
-             * for a rule that cannot, the switch says why and what to
-             * change, before the rule is saved - as the server would
-             * refuse it. A correlation reads events together, so it is not
-             * offered - unless the rule runs in real time already, so the
-             * switch that has to go off can.
+             * Any rule but one with a regular expression can check events
+             * as they arrive (Types/SecurityEvent/RealTimeDetection): one
+             * that fires on one event, one that counts and a correlation
+             * alike. Turned on for a rule that cannot, the switch says why
+             * and what to change, before the rule is saved - as the server
+             * would refuse it.
              */
             field: {
               isRealTime: true,
             },
-            showIf: (values: FormValues<DetectionRule>): boolean => {
-              return countsByFormFields(values) || runsInRealTime(values);
-            },
             title: "Run in Real Time",
             stepId: "on-match",
             description:
-              "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.",
+              "Check events as they arrive, within seconds, instead of every interval. Not for a rule with a regular expression (|re).",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             collapsibleSection: advancedSection,
@@ -534,13 +545,16 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             field: {
               evaluationIntervalInMinutes: true,
             },
-            // A real-time rule runs on no interval.
-            showIf: (values: FormValues<DetectionRule>): boolean => {
-              return !runsInRealTime(values);
-            },
+            /*
+             * A real-time rule that fires on each event runs on no
+             * interval; one that counts fires at most once in each window
+             * of it.
+             */
+            showIf: usesEvaluationInterval,
             title: "Evaluation Interval (Minutes)",
             stepId: "on-match",
-            description: "How often this rule is evaluated, in minutes.",
+            description:
+              "How often the rule runs, in minutes. In real time, a rule that counts reads windows this long and fires at most once in each.",
             fieldType: FormFieldSchemaType.Number,
             required: true,
             placeholder: "e.g. 5",
@@ -747,6 +761,9 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           isEnabled: true,
           // A real-time rule's Status and Interval say so.
           isRealTime: true,
+          // ...and whether a real-time rule counts in windows of its interval.
+          matchCountThreshold: true,
+          distinctCountField: true,
         }}
         columns={[
           /*
@@ -881,24 +898,39 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             title: "Interval (Minutes)",
             type: FieldType.Element,
             isHiddenByDefault: true,
-            // A real-time rule runs on no interval: it says so instead.
+            /*
+             * A real-time rule that fires on each event runs on no
+             * interval: it says so instead. One that counts says both: the
+             * windows it counts in are its interval.
+             */
             getElement: (item: DetectionRule): ReactElement => {
+              const interval: string =
+                item.evaluationIntervalInMinutes !== undefined &&
+                item.evaluationIntervalInMinutes !== null
+                  ? translator.formatNumber(item.evaluationIntervalInMinutes)
+                  : "-";
+
               if (item.isRealTime) {
+                const countsInWindows: boolean = countsInWindowsValues(
+                  item as unknown as RealTimeFormValues,
+                );
+
                 return (
                   <span className="text-gray-700">
+                    {countsInWindows ? (
+                      <span data-testid="detection-rule-interval">
+                        {interval}
+                        {" · "}
+                      </span>
+                    ) : (
+                      <></>
+                    )}
                     {translator.translateText("Real time")}
                   </span>
                 );
               }
 
-              return (
-                <span>
-                  {item.evaluationIntervalInMinutes !== undefined &&
-                  item.evaluationIntervalInMinutes !== null
-                    ? translator.formatNumber(item.evaluationIntervalInMinutes)
-                    : "-"}
-                </span>
-              );
+              return <span>{interval}</span>;
             },
           },
           {
