@@ -753,7 +753,7 @@ describe("BaseModelTable bulk Select All", () => {
   });
 
   test("it stops at the selection ceiling and says so", async () => {
-    const { container, getByText } = renderTable({
+    const { container, getByText, queryByText } = renderTable({
       rows: makeRows(LIMIT_PER_PROJECT + 250),
     });
 
@@ -765,10 +765,18 @@ describe("BaseModelTable bulk Select All", () => {
 
     fireEvent.click(getByText("Select All Monitors"));
 
+    /*
+     * The count names the real numbers rather than inferring truncation:
+     * how many of how many ("10,000 of 10,250 selected"), as the band over
+     * a phone's cards says it - where a note under the bar said it in three
+     * sentences.
+     */
     await waitFor(() => {
       expect(
         getByText(
-          `${LIMIT_PER_PROJECT.toLocaleString("en")} Monitors Selected`,
+          `${LIMIT_PER_PROJECT.toLocaleString()} of ${(
+            LIMIT_PER_PROJECT + 250
+          ).toLocaleString()} selected`,
         ),
       ).toBeTruthy();
     });
@@ -777,16 +785,10 @@ describe("BaseModelTable bulk Select All", () => {
       LIMIT_PER_PROJECT / BULK_SELECT_ALL_PAGE_SIZE,
     );
 
-    // The warning names the real numbers rather than inferring truncation.
-    expect(
-      getByText(
-        new RegExp(
-          `Selected ${LIMIT_PER_PROJECT.toLocaleString()} of ${(
-            LIMIT_PER_PROJECT + 250
-          ).toLocaleString()} matching Monitors`,
-        ),
-      ),
-    ).toBeTruthy();
+    expect(queryByText(/matching Monitors/)).toBeNull();
+    expect(queryByText(/You can only select/)).toBeNull();
+    // Nothing more to offer: the same first 10,000 would be read again.
+    expect(queryByText("Select All Monitors")).toBeNull();
   });
 
   test("it does not warn about truncation when everything was selected", async () => {

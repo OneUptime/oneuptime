@@ -6,6 +6,8 @@
 - **OAuth 2.0**：适用于通常已关闭基本认证的 Microsoft 365 和 Google Workspace。
 - **无**：适用于不需要认证的中继服务器。
 
+要通过 Amazon SES、SendGrid、Mailgun、Postmark 或 Resend 而不是邮件服务器发送，请参阅 [电子邮件提供商](/docs/emails/email-providers)。
+
 ```mermaid title="哪个邮件服务器发送什么"
 flowchart TB
     SP["状态页面的邮件"] --> Q{"页面是否选择了<br/>自定义 SMTP 配置？"}
@@ -17,7 +19,7 @@ flowchart TB
 在自托管安装中，OneUptime 自己的邮件服务器就是您在 Admin Dashboard 中设置的服务器。状态页面在其 **订阅者设置** 页面的 **自定义 SMTP** 卡片中选择 SMTP 配置。
 
 :::cards
-- [添加邮件服务器](#添加-smtp-服务器): 两个步骤，其余内容都已折叠。
+- [添加邮件服务器](#添加-smtp-服务器): 几个步骤，其余内容都已折叠。
 - [Microsoft 365](#microsoft-365-配置): 使用 Entra 应用注册的 OAuth。
 - [Google Workspace](#google-workspace-配置): 使用服务账号的 OAuth。
 - [故障排查](#故障排查): 常见错误及其含义。
@@ -25,7 +27,7 @@ flowchart TB
 
 ## 添加 SMTP 服务器
 
-在 **项目设置 > 通知 > 通知设置** 页面 **更多设置** 中的 **自定义 SMTP 配置** 卡片里添加项目的邮件服务器。在自托管安装中，OneUptime 自身用于发信的服务器在 **Admin Dashboard > 设置 > 通知 > 电子邮件** 的 **自定义电子邮件和 SMTP 设置** 卡片中设置。两个表单分两步询问相同的内容。
+在 **项目设置 > 通知 > 通知设置** 页面 **更多设置** 中的 **自定义 SMTP 配置** 卡片里添加项目的邮件服务器。在自托管安装中，OneUptime 自身用于发信的服务器在 **Admin Dashboard > 设置 > 通知 > 电子邮件** 的 **自定义电子邮件和 SMTP 设置** 卡片中设置。两个表单都会询问服务器和发件人；项目的表单会先询问其 **提供商**。
 
 :::steps
 ### 打开表单
@@ -37,13 +39,17 @@ flowchart TB
 在 Admin Dashboard 中打开 **设置**，然后打开侧边菜单中的 **通知 > 电子邮件**（**通知** 默认折叠）。在 **电子邮件服务器设置** 卡片中点击 **编辑服务器**，并将 **邮件服务器类型** 设置为 `Custom SMTP`。然后在其下方出现的 **自定义电子邮件和 SMTP 设置** 卡片中点击 **编辑 SMTP 配置**。
 :::
 
+### 选择提供商
+
+项目的表单从 **提供商** 步骤开始：输入 **名称**，如果要通过邮件服务器发送，请保持选中 **SMTP 服务器**。要改为通过 Microsoft Graph 或 [电子邮件提供商](/docs/emails/email-providers) 发送，请在此处选择。**描述**（给团队的备注）折叠在 **更多字段** 中。实例的表单没有 **提供商** 步骤。
+
 ### 填写服务器步骤
 
-在 **服务器** 步骤中，输入 **名称**（仅项目配置）、**主机名**、**端口**（新项目配置从 `587` 开始）、**用户名** 和 **密码**。
+在 **服务器** 步骤中，输入 **主机名**、**端口**（新项目配置从 `587` 开始）、**用户名** 和 **密码**。
 
 ### 检查更多字段
 
-其余所有选项都折叠在 **服务器** 步骤末尾的 **更多字段** 中。折叠时，其标题会说明邮件的发送方式，例如：“通过 SMTP 发送邮件，使用用户名和密码登录。需要 TLS。”只有在需要更改下表中的某项设置时才展开它。
+服务器的其他设置都折叠在 **服务器** 步骤末尾的 **更多字段** 中。折叠时，其标题会说明邮件的发送方式，例如：“通过 SMTP 发送邮件，使用用户名和密码登录。需要 TLS。”只有在需要更改下表中的某项设置时才展开它。在项目的表单中，OAuth 字段位于 **服务器** 之后单独的 **OAuth** 步骤中。
 
 ### 填写发件人步骤
 
@@ -60,13 +66,13 @@ flowchart TB
 
 | 字段 | 作用 |
 | --- | --- |
-| **传输** | `SMTP`（默认），或用于已关闭 SMTP AUTH 的 Microsoft 365 租户的 `Microsoft Graph`。选择 Microsoft Graph 会隐藏主机名、端口、用户名和密码，并显示 OAuth 字段。 |
+| **传输** | `SMTP`（默认），或用于已关闭 SMTP AUTH 的 Microsoft 365 租户的 `Microsoft Graph`。选择 Microsoft Graph 会隐藏主机名、端口、用户名和密码，并显示 OAuth 字段。仅在实例的表单中提供：项目改为选择其 **提供商**。 |
 | **要求 TLS** | 在新项目配置中默认开启。仅通过带有效证书的加密连接发送邮件。关闭后不检查证书。465 端口始终加密。关闭后，其他端口仅在服务器支持时才加密邮件。 |
 | **认证类型** | `Username and Password`（默认）、`OAuth`，或用于无需登录的中继的 `None`。 |
-| **OAuth 字段** | **OAuth 提供商类型**、**OAuth 客户端 ID**、**OAuth 客户端密钥**、**OAuth 令牌 URL** 和 **OAuth 范围**，在选择 OAuth 或 Microsoft Graph 后显示。 |
-| **描述** | 给团队的备注（仅项目配置）。 |
+| **OAuth 字段** | **OAuth 提供商类型**、**OAuth 客户端 ID**、**OAuth 客户端密钥**、**OAuth 令牌 URL** 和 **OAuth 范围**，在选择 OAuth 或 Microsoft Graph 后显示。项目的表单在其 **OAuth** 步骤中询问这些字段。 |
+| **描述** | 给团队的备注（仅项目配置），位于 **提供商** 步骤中。 |
 
-**Microsoft Graph.** 打开 **更多字段**，将 **传输** 设置为 `Microsoft Graph`，然后填写具有 **Mail.Send** 应用程序权限的 Azure 应用的信息：其客户端 ID 和客户端密钥、令牌 URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` 以及范围 `https://graph.microsoft.com/.default`。邮件从 **发件人邮箱** 对应的邮箱发送，该邮箱必须是您租户中已获得许可的邮箱。
+**Microsoft Graph.** 在项目的表单中，选择 `Microsoft Graph` 作为 **提供商**；在实例的表单中，打开 **更多字段**，将 **传输** 设置为 `Microsoft Graph`。然后填写具有 **Mail.Send** 应用程序权限的 Azure 应用的信息：其客户端 ID 和客户端密钥、令牌 URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` 以及范围 `https://graph.microsoft.com/.default`。邮件从 **发件人邮箱** 对应的邮箱发送，该邮箱必须是您租户中已获得许可的邮箱。
 
 > [!NOTE]
 > 在 OneUptime Cloud 上，项目的邮件服务器必须能够通过互联网访问：解析为私有地址或内部地址的主机会被拒绝。在自托管安装中，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 为 `true`，否则允许私有地址，但环回地址和链路本地地址始终会被拒绝。实例自己的邮件服务器不会经过这种检查。
@@ -90,7 +96,7 @@ sequenceDiagram
     O->>M: 发送电子邮件
 ```
 
-**认证类型** 和 OAuth 字段位于表单服务器步骤的 **更多字段** 中。要通过 OAuth 登录，请填写：
+**认证类型** 位于表单服务器步骤的 **更多字段** 中。在实例的表单中，OAuth 字段也在那里；在项目的表单中，它们位于 **OAuth** 步骤。要通过 OAuth 登录，请填写：
 
 | 字段 | 描述 |
 | --- | --- |
@@ -309,6 +315,7 @@ OneUptime 拒绝连接项目的邮件服务器。在 OneUptime Cloud 上，无�
 ## 后续步骤
 
 :::cards
+- [电子邮件提供商](/docs/emails/email-providers): 改为通过 Amazon SES、SendGrid、Mailgun、Postmark 或 Resend 发送。
 - [通知汇总](/docs/emails/notification-rollup): OneUptime 如何合并一连串发给所有者的邮件。
 - [订阅者与公告](/docs/status-pages/subscribers): 使用项目的 SMTP 配置向状态页面订阅者发送邮件。
 :::

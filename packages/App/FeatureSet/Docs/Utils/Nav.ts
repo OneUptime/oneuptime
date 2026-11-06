@@ -1594,6 +1594,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/emails/smtp",
       },
       {
+        title: "Email Providers",
+        url: "/docs/emails/email-providers",
+      },
+      {
         title: "Notification Rollup",
         url: "/docs/emails/notification-rollup",
       },

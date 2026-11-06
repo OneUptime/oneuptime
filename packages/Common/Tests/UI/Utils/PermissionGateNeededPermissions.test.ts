@@ -353,6 +353,58 @@ describe("a gate of the caller's own (getRefusalReason)", () => {
 });
 
 /*
+ * A refusal with a title of its own - a no-access state's lock and "You
+ * don't have access to this list" - says only what would allow it: no
+ * first sentence before it, and no space where one would have been.
+ */
+describe("what would allow a refusal that has its own title (getAllowingSentence)", () => {
+  test("the permission to ask for, and no role beside it", () => {
+    expect(
+      PermissionGate.getAllowingSentence({
+        permissions: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.RunbookAdmin,
+          Permission.RunbookMember,
+          Permission.RunbookViewer,
+          Permission.ReadRunbookExecution,
+        ],
+        options: {
+          held: {
+            allowed: [],
+            allowedProjectWide: [],
+            blocked: [],
+            blockedForSomeLabels: [],
+          },
+        },
+      }),
+    ).toBe("You need this permission: Read Runbook Execution.");
+  });
+
+  test("a team's block, where one is what refuses", () => {
+    expect(
+      PermissionGate.getAllowingSentence({
+        permissions: [Permission.ProjectOwner, Permission.ReadRunbookExecution],
+        options: {
+          held: {
+            allowed: [Permission.ReadRunbookExecution],
+            allowedProjectWide: [Permission.ReadRunbookExecution],
+            blocked: [Permission.ReadRunbookExecution],
+            blockedForSomeLabels: [],
+          },
+        },
+      }),
+    ).toBe("A team you are on blocks Read Runbook Execution.");
+  });
+
+  test("nothing at all with nothing to name", () => {
+    expect(PermissionGate.getAllowingSentence({ permissions: [] })).toBe("");
+  });
+});
+
+/*
  * The rule held across the product: every database model's create, read,
  * update and delete list. A lock never names a built-in role beside a
  * permission of the list's own, and names every role only when the list

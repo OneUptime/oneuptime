@@ -25,26 +25,35 @@ import {
  * Adding a mail server walked six steps on a project (Settings >
  * Notification Settings > Custom SMTP Configs: Basic, Transport, SMTP
  * Server, Authentication, OAuth Settings, Email) and five on the Admin
- * Dashboard's instance server (Settings > Email > Host Settings). The
- * Transport step held one dropdown, already on SMTP; "Use SSL / TLS" was
- * asked although the mail service decides TLS on port 465 by itself. Now
- * one builder makes both forms (Common/UI/Components/SmtpConfig/
- * SmtpConfigFormFields), in two steps:
+ * Dashboard's instance server (Settings > Email > Host Settings). One
+ * builder makes both forms now (Common/UI/Components/SmtpConfig/
+ * SmtpConfigFormFields).
  *
- *   Server   Name (a project's config), Hostname, Port, Username,
- *            Password, and one folded Advanced section - Transport,
- *            Require TLS, Authentication Type, the OAuth fields and the
- *            Description;
+ * The instance's server walks two steps:
+ *
+ *   Server   Hostname, Port, Username, Password, and one folded Advanced
+ *            section - Transport, Require TLS, Authentication Type and the
+ *            OAuth fields;
  *   Sender   From Email, From Name.
+ *
+ * A project's config can also send through a provider's HTTP API (Amazon
+ * SES, SendGrid, Mailgun, Postmark, Resend), so it asks for its provider
+ * first and shows only that provider's step:
+ *
+ *   Provider     Name, the provider, the Description folded;
+ *   Server       SMTP only: Hostname, Port, Username, Password, with
+ *                Require TLS and the Authentication Type folded;
+ *   OAuth        Microsoft Graph, or SMTP with OAuth: the grant and the app;
+ *   Amazon SES, SendGrid, Mailgun, Postmark, Resend   the provider's key;
+ *   Sender       From Email, From Name.
  *
  * This guard reads both forms the way the form guards read every form
  * (Tests/Helpers/FormStepsScan) and pins that shape, so an option that
  * drifts back open, a step that comes back, or a page that writes its own
- * SMTP fields again is caught here. The builder writes each field's column
- * from the surface's column map, so the scan reads the keys as written
- * there ("columns.hostname"), and it reads the project-only Description as
- * present on both forms; what each form really gets, column by column, is
- * pinned by the builder's own tests
+ * SMTP fields again is caught here. The builder writes the instance's
+ * fields from its column map, so the scan reads those keys as written
+ * there ("columns.hostname"); what each form really gets, column by
+ * column, is pinned by the builder's own tests
  * (Tests/UI/Components/SmtpConfig/SmtpConfigFormFields.test.ts).
  */
 
@@ -62,6 +71,14 @@ const REPOSITORY_ROOT: string = path.resolve(
 const BUILDER_FILE: string =
   "packages/Common/UI/Components/SmtpConfig/SmtpConfigFormFields.ts";
 
+interface SmtpFormStep {
+  id: string;
+  title: string;
+  // What the step shows open, then what it folds under one header.
+  open: Array<string>;
+  folded: Array<string>;
+}
+
 interface SmtpForm {
   name: string;
   file: string;
@@ -69,10 +86,12 @@ interface SmtpForm {
   host: string;
   // The page's calls, whitespace collapsed.
   calls: Array<string>;
-  // What the Server step shows open.
-  serverOpen: Array<string>;
-  // The rows the Server step takes: its open fields and the folded header.
-  serverRows: number;
+  steps: Array<SmtpFormStep>;
+}
+
+// The rows a step takes: its open fields, and one for its folded header.
+function rowsOf(step: SmtpFormStep): number {
+  return step.open.length + (step.folded.length > 0 ? 1 : 0);
 }
 
 const PROJECT_FORM: SmtpForm = {
@@ -81,22 +100,69 @@ const PROJECT_FORM: SmtpForm = {
   label: "ModelTable: Settings > Custom SMTP Config",
   host: "ModelTable",
   calls: [
-    "const SMTP_CONFIG_FORM_STEPS: Array<FormStep<ProjectSmtpConfig>> = getSmtpConfigFormSteps<ProjectSmtpConfig>();",
+    "const SMTP_CONFIG_FORM_STEPS: Array<FormStep<ProjectSmtpConfig>> = getProjectSmtpConfigFormSteps();",
     "const SMTP_CONFIG_FORM_FIELDS: Array<ModelField<ProjectSmtpConfig>> = getProjectSmtpConfigFormFields();",
     "formSteps={SMTP_CONFIG_FORM_STEPS}",
     "formFields={SMTP_CONFIG_FORM_FIELDS}",
     "createInitialValues={PROJECT_SMTP_CONFIG_CREATE_INITIAL_VALUES}",
-    "return withoutValuesGraphIgnores<ProjectSmtpConfig>( item, PROJECT_SMTP_CONFIG_FORM_COLUMNS, );",
+    "return withoutValuesTransportIgnores<ProjectSmtpConfig>( item, PROJECT_SMTP_CONFIG_FORM_COLUMNS, );",
   ],
-  serverOpen: [
-    "name",
-    "columns.hostname",
-    "columns.port",
-    "columns.username",
-    "columns.password",
+  steps: [
+    {
+      id: "provider",
+      title: "Provider",
+      open: ["name", "transportType"],
+      folded: ["description"],
+    },
+    {
+      id: "server",
+      title: "Server",
+      open: ["hostname", "port", "username", "password"],
+      folded: ["secure", "authType"],
+    },
+    {
+      id: "oauth",
+      title: "OAuth",
+      open: [
+        "oauthProviderType",
+        "clientId",
+        "clientSecret",
+        "tokenUrl",
+        "scope",
+      ],
+      folded: [],
+    },
+    {
+      id: "amazon-ses",
+      title: "Amazon SES",
+      open: [
+        "amazonSesAccessKeyId",
+        "amazonSesSecretAccessKey",
+        "amazonSesRegion",
+      ],
+      folded: [],
+    },
+    { id: "sendgrid", title: "SendGrid", open: ["sendgridApiKey"], folded: [] },
+    {
+      id: "mailgun",
+      title: "Mailgun",
+      open: ["mailgunApiKey", "mailgunDomain", "mailgunRegion"],
+      folded: [],
+    },
+    {
+      id: "postmark",
+      title: "Postmark",
+      open: ["postmarkServerToken"],
+      folded: [],
+    },
+    { id: "resend", title: "Resend", open: ["resendApiKey"], folded: [] },
+    {
+      id: "sender",
+      title: "Sender",
+      open: ["columns.fromEmail", "columns.fromName"],
+      folded: [],
+    },
   ],
-  // Listed in OverloadedFormStepsGuard's LONG_STEPS_ALLOWED, with the reason.
-  serverRows: 6,
 };
 
 const INSTANCE_FORM: SmtpForm = {
@@ -110,39 +176,46 @@ const INSTANCE_FORM: SmtpForm = {
     "formSteps={SMTP_HOST_FORM_STEPS}",
     "formFields={SMTP_HOST_FORM_FIELDS}",
   ],
-  serverOpen: [
-    "columns.hostname",
-    "columns.port",
-    "columns.username",
-    "columns.password",
+  steps: [
+    {
+      id: "server",
+      title: "Server",
+      open: [
+        "columns.hostname",
+        "columns.port",
+        "columns.username",
+        "columns.password",
+      ],
+      // Everything folded on Server, as the scan reads the builder.
+      folded: [
+        "columns.transportType",
+        "columns.secure",
+        "columns.authType",
+        "columns.oauthProviderType",
+        "columns.clientId",
+        "columns.clientSecret",
+        "columns.tokenUrl",
+        "columns.scope",
+        "descriptionColumn",
+      ],
+    },
+    {
+      id: "sender",
+      title: "Sender",
+      open: ["columns.fromEmail", "columns.fromName"],
+      folded: [],
+    },
   ],
-  serverRows: 5,
 };
 
 const SMTP_FORMS: Array<SmtpForm> = [PROJECT_FORM, INSTANCE_FORM];
 
-const STEPS: Array<{ id: string | null; title: string }> = [
-  { id: "server", title: "Server" },
-  { id: "sender", title: "Sender" },
+// How the builder writes a folded section on its fields.
+const FOLDED_SECTIONS: Array<string> = [
+  "advancedSection",
+  "providerSection",
+  "serverSection",
 ];
-
-// How the builder writes the Advanced section on its folded fields.
-const ADVANCED_SECTION: string = "advancedSection";
-
-// Everything folded on Server, as the scan reads the builder.
-const SERVER_FOLDED: Array<string> = [
-  "columns.transportType",
-  "columns.secure",
-  "columns.authType",
-  "columns.oauthProviderType",
-  "columns.clientId",
-  "columns.clientSecret",
-  "columns.tokenUrl",
-  "columns.scope",
-  "descriptionColumn",
-];
-
-const SENDER_OPEN: Array<string> = ["columns.fromEmail", "columns.fromName"];
 
 /*
  * The SMTP columns each model keeps, which only the builder may write: a
@@ -162,6 +235,15 @@ const PROJECT_SMTP_COLUMNS: Array<string> = [
   "clientSecret",
   "tokenUrl",
   "scope",
+  "amazonSesAccessKeyId",
+  "amazonSesSecretAccessKey",
+  "amazonSesRegion",
+  "sendgridApiKey",
+  "mailgunApiKey",
+  "mailgunDomain",
+  "mailgunRegion",
+  "postmarkServerToken",
+  "resendApiKey",
   "fromEmail",
   "fromName",
 ];
@@ -182,6 +264,30 @@ const INSTANCE_SMTP_COLUMNS: Array<string> = [
   "smtpFromEmail",
   "smtpFromName",
 ];
+
+// The instance's provider columns, each provider's card on Settings > Email.
+const INSTANCE_PROVIDER_COLUMNS: Array<string> = [
+  "amazonSesAccessKeyId",
+  "amazonSesSecretAccessKey",
+  "amazonSesRegion",
+  "amazonSesFromEmail",
+  "amazonSesFromName",
+  "mailgunApiKey",
+  "mailgunDomain",
+  "mailgunRegion",
+  "mailgunFromEmail",
+  "mailgunFromName",
+  "postmarkServerToken",
+  "postmarkFromEmail",
+  "postmarkFromName",
+  "resendApiKey",
+  "resendFromEmail",
+  "resendFromName",
+];
+
+// The one card that writes each provider's settings, from the builder.
+const PROVIDER_CARD_FORM: string =
+  "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/Email/EmailProviderSettingsCard.tsx :: CardModelDetail #1";
 
 const SCANNED: Array<FormFacts> = scanFormFiles({
   repositoryRoot: REPOSITORY_ROOT,
@@ -230,7 +336,7 @@ function dense(relativePath: string): string {
     .replace(/\s+/g, " ");
 }
 
-describe("the mail server forms ask for the server, the sign-in and the sender", () => {
+describe("the mail server forms ask for the provider, its settings and the sender", () => {
   test.each(SMTP_FORMS)(
     "the scan reads $name in full, through the shared builder",
     (smtpForm: SmtpForm) => {
@@ -249,69 +355,54 @@ describe("the mail server forms ask for the server, the sign-in and the sender",
     },
   );
 
-  test.each(SMTP_FORMS)(
-    "$name walks Server, then Sender",
-    (smtpForm: SmtpForm) => {
-      expect(
-        (formFor(smtpForm).steps || []).map(
-          (step: FormStepFacts): { id: string | null; title: string } => {
-            return { id: step.id, title: step.title };
-          },
-        ),
-      ).toEqual(STEPS);
-    },
-  );
+  test.each(SMTP_FORMS)("$name walks its steps", (smtpForm: SmtpForm) => {
+    expect(
+      (formFor(smtpForm).steps || []).map(
+        (step: FormStepFacts): { id: string | null; title: string } => {
+          return { id: step.id, title: step.title };
+        },
+      ),
+    ).toEqual(
+      smtpForm.steps.map(
+        (step: SmtpFormStep): { id: string | null; title: string } => {
+          return { id: step.id, title: step.title };
+        },
+      ),
+    );
+  });
 
   test.each(SMTP_FORMS)(
-    "$name opens on the server and its sign-in",
+    "$name shows on each step what it should, open and folded",
     (smtpForm: SmtpForm) => {
-      const server: Array<FormFieldFacts> = shownOn(
-        formFor(smtpForm),
-        "server",
-      );
-
-      expect(keysOf(open(server))).toEqual(smtpForm.serverOpen);
-    },
-  );
-
-  test.each(SMTP_FORMS)(
-    "$name folds the transport, TLS, sign-in type, OAuth and description into one Advanced section, last on Server",
-    (smtpForm: SmtpForm) => {
-      const server: Array<FormFieldFacts> = shownOn(
-        formFor(smtpForm),
-        "server",
-      );
-
-      expect(keysOf(folded(server))).toEqual(SERVER_FOLDED);
-
-      // One section, the step's last fields, built once and shared.
-      expect(
-        keysOf(server.slice(server.length - SERVER_FOLDED.length)),
-      ).toEqual(SERVER_FOLDED);
-
-      for (const field of folded(server)) {
-        expect(`${field.key}: ${field.collapsibleSection}`).toBe(
-          `${field.key}: ${ADVANCED_SECTION}`,
+      for (const step of smtpForm.steps) {
+        const shown: Array<FormFieldFacts> = shownOn(
+          formFor(smtpForm),
+          step.id,
         );
+
+        expect({ step: step.id, open: keysOf(open(shown)) }).toEqual({
+          step: step.id,
+          open: step.open,
+        });
+        expect({ step: step.id, folded: keysOf(folded(shown)) }).toEqual({
+          step: step.id,
+          folded: step.folded,
+        });
+
+        // One folded section a step, its last fields.
+        expect(keysOf(shown.slice(shown.length - step.folded.length))).toEqual(
+          step.folded,
+        );
+
+        for (const field of folded(shown)) {
+          expect(FOLDED_SECTIONS).toContain(field.collapsibleSection);
+        }
       }
     },
   );
 
   test.each(SMTP_FORMS)(
-    "$name asks on Sender who the mail comes from, and nothing else",
-    (smtpForm: SmtpForm) => {
-      const sender: Array<FormFieldFacts> = shownOn(
-        formFor(smtpForm),
-        "sender",
-      );
-
-      expect(keysOf(sender)).toEqual(SENDER_OPEN);
-      expect(folded(sender)).toEqual([]);
-    },
-  );
-
-  test.each(SMTP_FORMS)(
-    "$name takes the rows it should on each step",
+    "$name takes the rows it should on each step, never more than the limit",
     (smtpForm: SmtpForm) => {
       const counts: Record<string, number> = {};
 
@@ -319,14 +410,21 @@ describe("the mail server forms ask for the server, the sign-in and the sender",
         counts[count.step.id || ""] = count.count;
       }
 
-      expect(counts).toEqual({ server: smtpForm.serverRows, sender: 2 });
+      const expected: Record<string, number> = {};
+
+      for (const step of smtpForm.steps) {
+        expected[step.id] = rowsOf(step);
+        expect(rowsOf(step)).toBeLessThanOrEqual(STEP_FIELD_LIMIT);
+      }
+
+      expect(counts).toEqual(expected);
       expect(
         countFieldRows(shownOn(formFor(smtpForm), "sender")),
       ).toBeLessThanOrEqual(STEP_FIELD_LIMIT);
     },
   );
 
-  test("only the project's Server step is over the step limit, by its name", () => {
+  test("no step of either form is over the step limit", () => {
     const over: Array<string> = SMTP_FORMS.flatMap(
       (smtpForm: SmtpForm): Array<string> => {
         return countStepFields(formFor(smtpForm))
@@ -339,9 +437,7 @@ describe("the mail server forms ask for the server, the sign-in and the sender",
       },
     );
 
-    expect(over).toEqual([`${PROJECT_FORM.label} :: server`]);
-    expect(PROJECT_FORM.serverRows - INSTANCE_FORM.serverRows).toBe(1);
-    expect(PROJECT_FORM.serverOpen[0]).toBe("name");
+    expect(over).toEqual([]);
   });
 
   test.each(SMTP_FORMS)(
@@ -420,7 +516,7 @@ describe("no other form writes a mail server's fields", () => {
       `${PROJECT_FORM.file} :: ${PROJECT_FORM.label}`,
     ]);
 
-    const handWritten: Array<string> = forms
+    const projectFields: Array<FormFieldFacts> = forms
       .filter((form: FormFacts): boolean => {
         return form.modelType?.name === "ProjectSmtpConfig";
       })
@@ -429,12 +525,88 @@ describe("no other form writes a mail server's fields", () => {
       })
       .filter((field: FormFieldFacts): boolean => {
         return PROJECT_SMTP_COLUMNS.includes(field.key);
+      });
+
+    // The builder writes a project's columns by name; no page does.
+    expect(
+      projectFields
+        .filter((field: FormFieldFacts): boolean => {
+          return field.file !== BUILDER_FILE;
+        })
+        .map((field: FormFieldFacts): string => {
+          return `${field.file}:${field.line} ${field.key}`;
+        }),
+    ).toEqual([]);
+
+    // ...every one but the sender's, which it writes from its column map.
+    expect(
+      [
+        ...new Set(
+          projectFields.map((field: FormFieldFacts): string => {
+            return field.key;
+          }),
+        ),
+      ].sort(),
+    ).toEqual(
+      PROJECT_SMTP_COLUMNS.filter((column: string): boolean => {
+        return column !== "fromEmail" && column !== "fromName";
+      }).sort(),
+    );
+  });
+
+  test("the instance's provider columns are written by the builder alone", () => {
+    // No page writes a provider's column itself, on any form.
+    const handWritten: Array<string> = forms
+      .flatMap((form: FormFacts): Array<FormFieldFacts> => {
+        return form.fields;
+      })
+      .filter((field: FormFieldFacts): boolean => {
+        return (
+          INSTANCE_PROVIDER_COLUMNS.includes(field.key) &&
+          field.file !== BUILDER_FILE
+        );
       })
       .map((field: FormFieldFacts): string => {
         return `${field.file}:${field.line} ${field.key}`;
       });
 
     expect(handWritten).toEqual([]);
+
+    // Read for real: the scan reads each provider's key where the builder writes it...
+    const builderKeys: Array<string> = forms
+      .flatMap((form: FormFacts): Array<FormFieldFacts> => {
+        return form.fields;
+      })
+      .filter((field: FormFieldFacts): boolean => {
+        return field.file === BUILDER_FILE;
+      })
+      .map((field: FormFieldFacts): string => {
+        return field.key;
+      });
+
+    for (const key of [
+      "amazonSesAccessKeyId",
+      "mailgunApiKey",
+      "postmarkServerToken",
+      "resendApiKey",
+    ]) {
+      expect({ key, read: builderKeys.includes(key) }).toEqual({
+        key,
+        read: true,
+      });
+    }
+
+    // ...and the instance's provider card is one of the builder's forms.
+    const card: Array<FormFacts> = forms.filter((form: FormFacts): boolean => {
+      return `${form.file} :: ${form.label}` === PROVIDER_CARD_FORM;
+    });
+
+    expect(card).toHaveLength(1);
+    expect(
+      card[0]!.fields.some((field: FormFieldFacts): boolean => {
+        return field.file === BUILDER_FILE;
+      }),
+    ).toBe(true);
   });
 
   test("the instance's SMTP columns are written by the builder alone", () => {
@@ -462,9 +634,12 @@ describe("no other form writes a mail server's fields", () => {
       });
 
     expect(instanceSmtpForms.sort()).toEqual(
-      SMTP_FORMS.map((smtpForm: SmtpForm): string => {
-        return `${smtpForm.file} :: ${smtpForm.label}`;
-      }).sort(),
+      [
+        ...SMTP_FORMS.map((smtpForm: SmtpForm): string => {
+          return `${smtpForm.file} :: ${smtpForm.label}`;
+        }),
+        PROVIDER_CARD_FORM,
+      ].sort(),
     );
   });
 });

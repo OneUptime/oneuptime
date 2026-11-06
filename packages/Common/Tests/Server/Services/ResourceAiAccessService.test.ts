@@ -1392,7 +1392,12 @@ describe("ResourceAiAccessService.recordCommandOutcome", () => {
       update.mock.calls[0]![0] as { data: Record<string, unknown> }
     ).data;
 
-    expect((data["aiAccessLastError"] as string).length).toBe(2000);
+    /*
+     * Capped at what the column takes (LongText, 500). It was cut at 2000,
+     * which the service's own length check refused whole above 500 - so a
+     * long error was never recorded, and the page kept the one before it.
+     */
+    expect((data["aiAccessLastError"] as string).length).toBe(500);
     expect(data["aiAccessLastVerifiedAt"]).toBeUndefined();
   });
 

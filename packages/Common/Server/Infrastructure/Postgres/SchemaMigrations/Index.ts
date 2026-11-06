@@ -909,6 +909,8 @@ import { AddOpenStackProjectNotices1808994120000 } from "./1808994120000-AddOpen
 import { AddWorkflowLogRunAgain1808994200000 } from "./1808994200000-AddWorkflowLogRunAgain";
 import { AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000 } from "./1808994300000-AddCloudRightSizingEvidenceAndBudgetUnusualDays";
 import { AddCloudAccountAiAgentKeys1808994400000 } from "./1808994400000-AddCloudAccountAiAgentKeys";
+import { AddProjectDefaultTableColumns1808994500000 } from "./1808994500000-AddProjectDefaultTableColumns";
+import { AddEmailProviderSettings1808994600000 } from "./1808994600000-AddEmailProviderSettings";
 import { AddCloudConnectionStreamState1808995100000 } from "./1808995100000-AddCloudConnectionStreamState";
 
 export default [
@@ -1823,5 +1825,7 @@ export default [
   AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000,
   AddCloudAccountAiAgentKeys1808994400000,
   AddScheduledMaintenanceCloudResources1808994417000,
+  AddProjectDefaultTableColumns1808994500000,
+  AddEmailProviderSettings1808994600000,
   AddCloudConnectionStreamState1808995100000,
 ];

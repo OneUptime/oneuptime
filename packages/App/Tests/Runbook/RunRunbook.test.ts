@@ -317,6 +317,42 @@ describe("RunRunbook state machine", () => {
     expect(last.failureReason).toContain("HTTP 503");
   });
 
+  /*
+   * A step's error is what something else said - a Runner's report of a
+   * script's or a Kubernetes API's error, an LLM provider's - and is often
+   * longer than failureReason's varchar(500). Unheld, the write that closes
+   * the run was refused, the run stayed Running until the stuck-execution
+   * sweep failed it as interrupted, and why it failed was lost (the same
+   * failure as issue #6144's code-fix runs).
+   */
+  test("a step's error longer than the reason's column still closes the run, with its beginning", async () => {
+    const longError: string = `Kubernetes API 403: ${'admission webhook "validate.kyverno.svc" denied the request: resource Deployment/checkout/checkout-api was blocked due to the following policies. '.repeat(8)}`;
+
+    runHttpStepMock.mockResolvedValue({
+      success: false,
+      output: "",
+      errorMessage: longError,
+    });
+
+    const failing: RunbookStepExecutionState = pending(
+      makeStep(RunbookStepType.HttpRequest, { title: "Scale up the API" }),
+    );
+
+    const updateSpy: jest.SpyInstance = await run(makeExecution([failing]));
+
+    // The step's own record keeps the whole error.
+    expect(failing.errorMessage).toBe(longError);
+
+    const last: UpdateCall = lastStatusUpdate(updateSpy);
+    expect(last.status).toBe(RunbookExecutionStatus.Failed);
+    expect(last.failureReason!.length).toBe(500);
+    expect(
+      `Step "Scale up the API" failed: ${longError}`.startsWith(
+        last.failureReason!,
+      ),
+    ).toBe(true);
+  });
+
   test("continueOnFailure lets the run finish despite a failed step", async () => {
     runHttpStepMock.mockResolvedValue({
       success: false,

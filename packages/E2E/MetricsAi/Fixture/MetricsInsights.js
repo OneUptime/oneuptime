@@ -14,7 +14,8 @@
  *                     with the names OpenTelemetry's instrumentation sends
  *              long:  the names a large estate has: services named
  *                     storefront-checkout-service-eu-west-1-production, and
- *                     metric names of 60 characters with no space in them
+ *                     metric names of 60 characters with no space in them -
+ *                     one a Prometheus name, all underscores and no dot
  *              one:   one service, three metrics
  *              empty: no points in the range, eleven metric types
  *   ?fail=     metrics - the points cannot be read
@@ -69,6 +70,10 @@ const COLORS = {
  */
 const LONG_NAME_PREFIX = "com.acme.storefront.checkout.payment_authorization.";
 
+// A metric a Prometheus exporter names: underscores, and no dot to break at.
+const LONG_PROMETHEUS_NAME =
+  "storefront_payments_gateway_authorization_latency_seconds_bucket";
+
 function metricNames(service) {
   const long = mode === "long";
   const names = {
@@ -105,7 +110,7 @@ function metricNames(service) {
     payments: [
       "http.server.request.duration",
       "http.client.request.duration",
-      "payments.authorizations.declined",
+      long ? LONG_PROMETHEUS_NAME : "payments.authorizations.declined",
       "payments.authorizations.approved",
       "process.cpu.time",
       long

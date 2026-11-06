@@ -33,17 +33,21 @@ import { getJestSpyOn } from "../../Spy";
  * and BasicForm - only the network, the table around the dialog and the
  * dropdown are stand-ins.
  *
- *   Server   Name, Hostname, Port (587 to start with), Username, Password,
- *            and one folded Advanced header that says how mail is sent:
- *            Transport, Require TLS (on), Authentication Type, the OAuth
- *            fields and the Description wait inside it;
- *   Sender   From Email, From Name.
+ *   Provider     Name, a card a provider (SMTP Server picked), and the
+ *                Description folded under More fields;
+ *   Server       an SMTP server's Hostname, Port (587 to start with),
+ *                Username and Password, with Require TLS (on) and the
+ *                Authentication Type folded under a header that says how
+ *                mail is sent;
+ *   OAuth        Microsoft Graph's app, or an SMTP server's with OAuth;
+ *   Amazon SES, SendGrid, Mailgun, Postmark, Resend   that provider's key;
+ *   Sender       From Email, From Name.
  *
- * Picking Microsoft Graph under Advanced takes the hostname, port, username
- * and password away and shows the OAuth fields it needs. An existing config
- * opens as it is, and saving it untouched sends what it holds - its own
- * port, its own TLS setting. Send Test Email stays the row's own button,
- * with the signed-in person's address to start from.
+ * Each provider shows only its own step, and a config is saved with
+ * nothing the form hid once its provider was picked. An existing config
+ * opens as it is, and saving it untouched sends what it holds. Send Test
+ * Email stays the row's own button, with the signed-in person's address to
+ * start from.
  */
 
 jest.setTimeout(60000);
@@ -237,6 +241,7 @@ jest.mock("../../../UI/Components/Dropdown/Dropdown", () => {
 
 import CustomSMTPTable from "../../../../App/FeatureSet/Dashboard/src/Components/CustomSMTP/CustomSMTPTable";
 import ProjectSmtpConfig from "../../../Models/DatabaseModels/ProjectSmtpConfig";
+import MailgunRegion from "../../../Types/Email/MailgunRegion";
 import MailTransportType from "../../../Types/Email/MailTransportType";
 import OAuthProviderType from "../../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../../Types/Email/SMTPAuthenticationType";
@@ -248,6 +253,7 @@ import { setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries
 
 const PLACEHOLDER: Record<string, string> = {
   name: "Company SMTP Server",
+  description: "Company SMTP server hosted on AWS",
   hostname: "smtp.server.com",
   port: "587",
   username: "emailuser@company.com",
@@ -258,14 +264,36 @@ const PLACEHOLDER: Record<string, string> = {
   clientSecret: "Client secret value",
   tokenUrl: "https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token",
   scope: "https://graph.microsoft.com/.default",
+  amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
+  amazonSesSecretAccessKey: "Secret access key",
+  amazonSesRegion: "us-east-1",
+  sendgridApiKey: "SG.xxxxxxxxxxxxxxxx",
+  mailgunApiKey: "Mailgun API key",
+  mailgunDomain: "mg.example.com",
+  postmarkServerToken: "00000000-0000-0000-0000-000000000000",
+  resendApiKey: "re_xxxxxxxxxxxxxxxx",
 };
 
 const OPEN_ON_SERVER: Array<string> = [
-  "name",
   "hostname",
   "port",
   "username",
   "password",
+];
+
+// Every provider's key, and the server's fields: what one provider never keeps of another.
+const SERVER_KEYS: Array<string> = ["hostname", "port", "username", "password"];
+
+const PROVIDER_KEYS: Array<string> = [
+  "amazonSesAccessKeyId",
+  "amazonSesSecretAccessKey",
+  "amazonSesRegion",
+  "sendgridApiKey",
+  "mailgunApiKey",
+  "mailgunDomain",
+  "mailgunRegion",
+  "postmarkServerToken",
+  "resendApiKey",
 ];
 
 const SMTP_SUMMARY: string =
@@ -351,7 +379,33 @@ async function type(key: string, value: string): Promise<void> {
   });
 }
 
-// Transport, Authentication Type and OAuth Provider Type are plain answers.
+// A provider: its card on the Provider step.
+async function pickProvider(transport: MailTransportType): Promise<void> {
+  await act(async (): Promise<void> => {
+    fireEvent.click(
+      within(dialog()).getByTestId(`card-select-option-${transport}`),
+    );
+  });
+  await settle();
+}
+
+function providerCard(transport: MailTransportType): HTMLElement {
+  return within(dialog()).getByTestId(`card-select-option-${transport}`);
+}
+
+// A step the list lets the reader open: one walked through, or any on an edit form.
+async function openStep(title: string): Promise<void> {
+  await act(async (): Promise<void> => {
+    fireEvent.click(
+      within(
+        within(dialog()).getByRole("navigation", { name: "Progress" }),
+      ).getByText(title),
+    );
+  });
+  await settle();
+}
+
+// Authentication Type, OAuth Provider Type and Mailgun's region are plain answers.
 async function pick(option: string): Promise<void> {
   await act(async (): Promise<void> => {
     fireEvent.click(within(dialog()).getByRole("radio", { name: option }));
@@ -430,26 +484,45 @@ afterEach(() => {
 });
 
 describe("creating a project's mail server", () => {
-  test("walks two steps, Server then Sender, with no Transport step", async () => {
+  test("opens on Provider: its name, and a card a provider with SMTP Server picked", async () => {
     await renderPage();
 
-    expect(stepTitles()).toEqual(["Server", "Sender"]);
-    expect(activeStep()).toContain("Server");
+    expect(stepTitles()).toEqual(["Provider", "Server", "Sender"]);
+    expect(activeStep()).toContain("Provider");
     expect(within(dialog()).getByText("Create New SMTP Config")).toBeVisible();
-  });
 
-  test("opens on the name, the server and its sign-in, starting on port 587", async () => {
-    await renderPage();
-
-    for (const key of OPEN_ON_SERVER) {
-      expect(input(key)).toBeVisible();
-    }
-
-    expect(input("port").value).toBe("587");
+    expect(input("name")).toBeVisible();
     expect(input("name").value).toBe("");
 
-    // Sender's fields wait for their own step.
-    expect(queryInput("fromEmail")).toBeNull();
+    expect(
+      within(dialog())
+        .getAllByRole("radio")
+        .map((card: HTMLElement): string | null => {
+          return card.getAttribute("data-card-select-value");
+        }),
+    ).toEqual([
+      MailTransportType.SMTP,
+      MailTransportType.AmazonSES,
+      MailTransportType.SendGrid,
+      MailTransportType.Mailgun,
+      MailTransportType.Postmark,
+      MailTransportType.Resend,
+      MailTransportType.MicrosoftGraph,
+    ]);
+    expect(providerCard(MailTransportType.SMTP)).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(providerCard(MailTransportType.AmazonSES)).toHaveTextContent(
+      "Amazon SES",
+    );
+    expect(providerCard(MailTransportType.AmazonSES)).toHaveTextContent(
+      "Send through Amazon Simple Email Service with an IAM access key.",
+    );
+
+    // The server's fields wait for their own step; the description is folded.
+    expect(queryInput("hostname")).toBeNull();
+    expect(input("description")).not.toBeVisible();
 
     // Create is on Sender, the last step, only: a plain Next here.
     expect(
@@ -460,8 +533,36 @@ describe("creating a project's mail server", () => {
     ).toHaveTextContent("Next");
   });
 
-  test("folds the rest under Advanced, whose header says how mail is sent", async () => {
+  test("asks for a name before walking on", async () => {
     await renderPage();
+
+    await clickWayOn();
+
+    expect(activeStep()).toContain("Provider");
+    expect(capturedModels).toEqual([]);
+  });
+
+  test("a mail server: Server opens on its hostname, port 587, username and password", async () => {
+    await renderPage();
+
+    await type("name", "Company SMTP");
+    await clickWayOn();
+
+    expect(activeStep()).toContain("Server");
+
+    for (const key of OPEN_ON_SERVER) {
+      expect(input(key)).toBeVisible();
+    }
+
+    expect(input("port").value).toBe("587");
+    expect(queryInput("fromEmail")).toBeNull();
+  });
+
+  test("folds TLS and the sign-in type on Server, under a header that says how mail is sent", async () => {
+    await renderPage();
+
+    await type("name", "Company SMTP");
+    await clickWayOn();
 
     const header: HTMLElement = advancedHeader();
 
@@ -479,12 +580,6 @@ describe("creating a project's mail server", () => {
         hidden: true,
       }),
     ).not.toBeVisible();
-    expect(
-      within(dialog()).getByRole("radio", {
-        name: "Microsoft Graph",
-        hidden: true,
-      }),
-    ).not.toBeVisible();
 
     await openAdvanced();
 
@@ -495,11 +590,6 @@ describe("creating a project's mail server", () => {
     expect(requireTls).toBeVisible();
     // On: what the column starts a new config with.
     expect(requireTls).toHaveAttribute("aria-checked", "true");
-    // Each answer with its line; a new config starts on the first of each.
-    expect(within(dialog()).getByRole("radio", { name: "SMTP" })).toBeChecked();
-    expect(
-      within(dialog()).getByRole("radio", { name: "Microsoft Graph" }),
-    ).toBeVisible();
     expect(
       within(dialog()).getByRole("radio", { name: "Username and Password" }),
     ).toBeChecked();
@@ -509,20 +599,23 @@ describe("creating a project's mail server", () => {
     expect(
       within(dialog()).getByText("For a relay that needs no sign-in."),
     ).toBeVisible();
-    expect(
-      within(dialog()).getByPlaceholderText(
-        "Company SMTP server hosted on AWS",
-      ),
-    ).toBeVisible();
 
-    // No OAuth fields until OAuth or Microsoft Graph is picked.
+    // The transport is the Provider's cards now: not asked again here.
+    expect(
+      within(dialog()).queryByRole("radio", {
+        name: "Microsoft Graph",
+        hidden: true,
+      }),
+    ).toBeNull();
+    // No OAuth fields until OAuth is picked.
     expect(queryInput("clientId")).toBeNull();
   });
 
-  test("saves a complete config from the two steps, port 587 and TLS required", async () => {
+  test("saves a complete SMTP config, port 587 and TLS required, and no provider's key", async () => {
     await renderPage();
 
     await type("name", "Company SMTP");
+    await clickWayOn();
     await type("hostname", "smtp.sendgrid.net");
     await type("username", "apikey");
     await type("password", "SG.secret-key");
@@ -566,11 +659,17 @@ describe("creating a project's mail server", () => {
       authType: SMTPAuthenticationType.UsernamePassword,
       secure: true,
     });
+
+    for (const key of PROVIDER_KEYS) {
+      expect({ key, saved: model[key] ?? null }).toEqual({ key, saved: null });
+    }
   });
 
   test("asks for the server before walking on", async () => {
     await renderPage();
 
+    await type("name", "Company SMTP");
+    await clickWayOn();
     await clickWayOn();
 
     expect(activeStep()).toContain("Server");
@@ -580,6 +679,8 @@ describe("creating a project's mail server", () => {
   test("a relay that needs no sign-in drops the username and password", async () => {
     await renderPage();
 
+    await type("name", "Relay");
+    await clickWayOn();
     await openAdvanced();
     await pick("None");
 
@@ -589,33 +690,51 @@ describe("creating a project's mail server", () => {
     expect(input("port")).toBeVisible();
   });
 
-  test("Microsoft Graph takes the server and sign-in away, asks for the OAuth app, and saves none of what it hid", async () => {
+  test("SMTP with OAuth: the mailbox to sign in as on Server, then an OAuth step with the grant and the app", async () => {
     await renderPage();
 
-    await type("name", "Microsoft 365");
-    // Typed before Graph was picked: hidden by it, and not saved with it.
-    await type("hostname", "smtp.office365.com");
-    await type("username", "alerts@example.com");
-    await type("password", "an-old-password");
+    await type("name", "Google Workspace");
+    await clickWayOn();
     await openAdvanced();
-    await pick("Microsoft Graph");
+    await pick("OAuth");
 
-    for (const key of ["hostname", "port", "username", "password"]) {
-      expect({ key, shown: queryInput(key) }).toEqual({ key, shown: null });
-    }
+    expect(stepTitles()).toEqual(["Provider", "Server", "OAuth", "Sender"]);
+    expect(input("username")).toBeVisible();
+    expect(queryInput("password")).toBeNull();
 
+    await type("hostname", "smtp.gmail.com");
+    await type("username", "alerts@example.com");
+    await clickWayOn();
+
+    expect(activeStep()).toContain("OAuth");
+    // The grant, Client Credentials to start with.
     expect(
-      within(dialog()).queryByRole("switch", { name: "Require TLS" }),
-    ).toBeNull();
-    expect(within(dialog()).queryByRole("radio", { name: "OAuth" })).toBeNull();
-    // Graph always uses Client Credentials: not asked.
+      within(dialog()).getByRole("radio", { name: "Client Credentials" }),
+    ).toBeChecked();
     expect(
-      within(dialog()).queryByRole("radio", { name: "JWT Bearer" }),
-    ).toBeNull();
+      within(dialog()).getByRole("radio", { name: "JWT Bearer" }),
+    ).toBeVisible();
 
     for (const key of ["clientId", "clientSecret", "tokenUrl", "scope"]) {
       expect(input(key)).toBeVisible();
     }
+  });
+
+  test("Microsoft Graph: its OAuth app in the Server's place, and none of a server saved", async () => {
+    await renderPage();
+
+    await type("name", "Microsoft 365");
+    await pickProvider(MailTransportType.MicrosoftGraph);
+
+    expect(stepTitles()).toEqual(["Provider", "OAuth", "Sender"]);
+
+    await clickWayOn();
+    expect(activeStep()).toContain("OAuth");
+
+    // Graph always uses Client Credentials: not asked.
+    expect(
+      within(dialog()).queryByRole("radio", { name: "JWT Bearer" }),
+    ).toBeNull();
 
     await type("clientId", "0f0e0d0c-0b0a-4000-8000-000000000001");
     await type("clientSecret", "graph-client-secret");
@@ -652,20 +771,60 @@ describe("creating a project's mail server", () => {
       fromEmail: "alerts@example.com",
     });
 
-    // Not the port the form started on, nor what was typed before Graph.
-    for (const key of ["hostname", "port", "username", "password"]) {
+    // Not the port the form started on.
+    for (const key of SERVER_KEYS) {
       expect({ key, saved: model[key] ?? null }).toEqual({ key, saved: null });
     }
   });
 
-  test("an SMTP config keeps everything it was given", async () => {
+  test("asks Microsoft Graph's OAuth app before walking on", async () => {
     await renderPage();
 
-    await type("name", "Relay");
-    await type("hostname", "smtp.example.com");
-    await type("username", "relay-user");
-    await type("password", "relay-password");
+    await type("name", "Microsoft 365");
+    await pickProvider(MailTransportType.MicrosoftGraph);
     await clickWayOn();
+    await clickWayOn();
+
+    expect(activeStep()).toContain("OAuth");
+    expect(input("clientId")).toBeVisible();
+    expect(capturedModels).toEqual([]);
+  });
+
+  test("Amazon SES: its access key, secret and Region on a step of its own, and nothing of a server saved", async () => {
+    await renderPage();
+
+    await type("name", "Amazon SES");
+    await pickProvider(MailTransportType.AmazonSES);
+
+    expect(stepTitles()).toEqual(["Provider", "Amazon SES", "Sender"]);
+
+    await clickWayOn();
+    expect(activeStep()).toContain("Amazon SES");
+
+    for (const key of OPEN_ON_SERVER) {
+      expect({ key, shown: queryInput(key) }).toEqual({ key, shown: null });
+    }
+
+    await type("amazonSesAccessKeyId", "AKIAIOSFODNN7EXAMPLE");
+    await type(
+      "amazonSesSecretAccessKey",
+      "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+    );
+    await type("amazonSesRegion", "email.us-east-1.amazonaws.com");
+
+    // A Region is a Region code: the step does not walk on with a host.
+    await clickWayOn();
+    expect(activeStep()).toContain("Amazon SES");
+    expect(
+      within(dialog()).getByText(
+        "Enter an AWS Region code, such as us-east-1.",
+      ),
+    ).toBeVisible();
+
+    await type("amazonSesRegion", "eu-west-1");
+    await clickWayOn();
+    expect(activeStep()).toContain("Sender");
+
     await type("fromEmail", "alerts@example.com");
     await type("fromName", "Example Alerts");
     await clickWayOn();
@@ -673,64 +832,147 @@ describe("creating a project's mail server", () => {
     const model: Record<string, unknown> = await saved();
 
     expect({
-      hostname: text(model["hostname"]),
-      port: text(model["port"]),
-      username: model["username"],
-      password: model["password"],
+      transportType: model["transportType"],
+      amazonSesAccessKeyId: model["amazonSesAccessKeyId"],
+      amazonSesSecretAccessKey: model["amazonSesSecretAccessKey"],
+      amazonSesRegion: model["amazonSesRegion"],
+      fromEmail: text(model["fromEmail"]),
     }).toEqual({
-      hostname: "smtp.example.com",
-      port: "587",
-      username: "relay-user",
-      password: "relay-password",
+      transportType: MailTransportType.AmazonSES,
+      amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
+      amazonSesSecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+      amazonSesRegion: "eu-west-1",
+      fromEmail: "alerts@example.com",
     });
+
+    for (const key of [...SERVER_KEYS, "clientId", "clientSecret"]) {
+      expect({ key, saved: model[key] ?? null }).toEqual({ key, saved: null });
+    }
   });
 
-  test("opens Advanced by itself when Microsoft Graph's OAuth fields are missing", async () => {
+  test("Mailgun: its key, domain and region, US to start", async () => {
     await renderPage();
 
-    await type("name", "Microsoft 365");
-    await openAdvanced();
-    await pick("Microsoft Graph");
-
-    // Folded again, with the required OAuth fields empty inside.
-    await act(async (): Promise<void> => {
-      fireEvent.click(advancedHeader());
-    });
-    expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
-
+    await type("name", "Mailgun EU");
+    await pickProvider(MailTransportType.Mailgun);
     await clickWayOn();
 
-    expect(activeStep()).toContain("Server");
-    expect(advancedHeader()).toHaveAttribute("aria-expanded", "true");
-    expect(input("clientId")).toBeVisible();
-    expect(capturedModels).toEqual([]);
+    expect(activeStep()).toContain("Mailgun");
+    expect(within(dialog()).getByRole("radio", { name: "US" })).toBeChecked();
+
+    await type("mailgunApiKey", "key-0123456789abcdef");
+    await type("mailgunDomain", "mg.example.com");
+    await pick("EU");
+    await clickWayOn();
+
+    await type("fromEmail", "alerts@mg.example.com");
+    await type("fromName", "Example Alerts");
+    await clickWayOn();
+
+    const model: Record<string, unknown> = await saved();
+
+    expect({
+      transportType: model["transportType"],
+      mailgunApiKey: model["mailgunApiKey"],
+      mailgunDomain: model["mailgunDomain"],
+      mailgunRegion: model["mailgunRegion"],
+    }).toEqual({
+      transportType: MailTransportType.Mailgun,
+      mailgunApiKey: "key-0123456789abcdef",
+      mailgunDomain: "mg.example.com",
+      mailgunRegion: MailgunRegion.EU,
+    });
   });
 
-  test("SMTP with OAuth keeps the mailbox to sign in as, drops the password, and asks for the grant", async () => {
+  test.each([
+    [
+      MailTransportType.SendGrid,
+      "SendGrid",
+      "sendgridApiKey",
+      "SG.project-key",
+    ],
+    [
+      MailTransportType.Postmark,
+      "Postmark",
+      "postmarkServerToken",
+      "11111111-2222-4333-8444-555555555555",
+    ],
+    [MailTransportType.Resend, "Resend", "resendApiKey", "re_project_key"],
+  ])(
+    "%s: one key on a step of its own, saved alone",
+    async (
+      transport: MailTransportType,
+      stepTitle: string,
+      key: string,
+      value: string,
+    ) => {
+      await renderPage();
+
+      await type("name", stepTitle);
+      await pickProvider(transport);
+
+      expect(stepTitles()).toEqual(["Provider", stepTitle, "Sender"]);
+
+      await clickWayOn();
+      expect(activeStep()).toContain(stepTitle);
+
+      // The key first: the step does not walk on without it.
+      await clickWayOn();
+      expect(activeStep()).toContain(stepTitle);
+
+      await type(key, value);
+      await clickWayOn();
+      await type("fromEmail", "alerts@example.com");
+      await type("fromName", "Example Alerts");
+      await clickWayOn();
+
+      const model: Record<string, unknown> = await saved();
+
+      expect(model["transportType"]).toBe(transport);
+      expect(model[key]).toBe(value);
+
+      for (const other of [...SERVER_KEYS, ...PROVIDER_KEYS]) {
+        if (other === key) {
+          continue;
+        }
+
+        expect({ key: other, saved: model[other] ?? null }).toEqual({
+          key: other,
+          saved: null,
+        });
+      }
+    },
+  );
+
+  test("a key typed for one provider is never saved on a config of another", async () => {
     await renderPage();
 
-    await openAdvanced();
-    await pick("OAuth");
+    await type("name", "Switched");
+    await pickProvider(MailTransportType.SendGrid);
+    await clickWayOn();
+    await type("sendgridApiKey", "SG.typed-then-left");
 
-    expect(input("username")).toBeVisible();
-    expect(queryInput("password")).toBeNull();
-    // The grant, Client Credentials to start with.
-    expect(
-      within(dialog()).getByRole("radio", { name: "Client Credentials" }),
-    ).toBeChecked();
-    expect(
-      within(dialog()).getByRole("radio", { name: "JWT Bearer" }),
-    ).toBeVisible();
+    await openStep("Provider");
+    await pickProvider(MailTransportType.Resend);
+    await clickWayOn();
+    await type("resendApiKey", "re_kept");
+    await clickWayOn();
+    await type("fromEmail", "alerts@example.com");
+    await type("fromName", "Example Alerts");
+    await clickWayOn();
 
-    for (const key of ["clientId", "clientSecret", "tokenUrl", "scope"]) {
-      expect(input(key)).toBeVisible();
-    }
+    const model: Record<string, unknown> = await saved();
+
+    expect(model["transportType"]).toBe(MailTransportType.Resend);
+    expect(model["resendApiKey"]).toBe("re_kept");
+    expect(model["sendgridApiKey"] ?? null).toBeNull();
   });
 
   test("turning Require TLS off is saved, and the header says TLS is optional once folded", async () => {
     await renderPage();
 
     await type("name", "Internal relay");
+    await clickWayOn();
     await type("hostname", "relay.internal.example.com");
     await type("port", "25");
     await openAdvanced();
@@ -797,6 +1039,15 @@ describe("editing a project's mail server", () => {
     await renderPage();
 
     expect(within(dialog()).getByText("Edit SMTP Config")).toBeVisible();
+    expect(stepTitles()).toEqual(["Provider", "Server", "Sender"]);
+    expect(input("name").value).toBe("Company SMTP");
+    expect(providerCard(MailTransportType.SMTP)).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+
+    await openStep("Server");
+
     expect(input("hostname").value).toBe("smtp.example.com");
     // Its own port, never the 587 a new config starts on.
     expect(input("port").value).toBe("2525");
@@ -841,7 +1092,7 @@ describe("editing a project's mail server", () => {
     });
   });
 
-  test("opens a Microsoft Graph config folded, its header naming Graph, and saves it without a port", async () => {
+  test("opens a Microsoft Graph config on its OAuth step, and saves it without a port", async () => {
     mode = "edit";
     stored = {
       name: "Microsoft 365",
@@ -863,11 +1114,16 @@ describe("editing a project's mail server", () => {
 
     await renderPage();
 
-    expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
-    expect(
-      within(dialog()).getByTestId("collapsible-section-summary"),
-    ).toHaveTextContent(
-      "Mail is sent through Microsoft Graph, signing in with OAuth.",
+    expect(stepTitles()).toEqual(["Provider", "OAuth", "Sender"]);
+    expect(providerCard(MailTransportType.MicrosoftGraph)).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+
+    await openStep("OAuth");
+
+    expect(input("clientId").value).toBe(
+      "0f0e0d0c-0b0a-4000-8000-000000000001",
     );
     expect(queryInput("hostname")).toBeNull();
     expect(queryInput("port")).toBeNull();
@@ -890,6 +1146,46 @@ describe("editing a project's mail server", () => {
       clientId: "0f0e0d0c-0b0a-4000-8000-000000000001",
       clientSecret: "graph-client-secret",
       scope: "https://graph.microsoft.com/.default",
+    });
+  });
+
+  test("opens an Amazon SES config with its key, and saves it untouched", async () => {
+    mode = "edit";
+    stored = {
+      name: "Amazon SES",
+      transportType: MailTransportType.AmazonSES,
+      secure: true,
+      authType: SMTPAuthenticationType.UsernamePassword,
+      amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
+      amazonSesSecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+      amazonSesRegion: "eu-west-1",
+      fromEmail: "alerts@example.com",
+      fromName: "Example Alerts",
+    };
+
+    await renderPage();
+
+    expect(stepTitles()).toEqual(["Provider", "Amazon SES", "Sender"]);
+
+    await openStep("Amazon SES");
+
+    expect(input("amazonSesAccessKeyId").value).toBe("AKIAIOSFODNN7EXAMPLE");
+    expect(input("amazonSesRegion").value).toBe("eu-west-1");
+
+    await saveFromTheLastStep();
+
+    const model: Record<string, unknown> = await saved();
+
+    expect({
+      transportType: model["transportType"],
+      amazonSesAccessKeyId: model["amazonSesAccessKeyId"],
+      amazonSesSecretAccessKey: model["amazonSesSecretAccessKey"],
+      amazonSesRegion: model["amazonSesRegion"],
+    }).toEqual({
+      transportType: MailTransportType.AmazonSES,
+      amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
+      amazonSesSecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+      amazonSesRegion: "eu-west-1",
     });
   });
 });
