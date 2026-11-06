@@ -1920,7 +1920,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 {translator.translateText("Labels")}
                 {selectedLabelIds.length > 0 && (
                   <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-700">
-                    {selectedLabelIds.length}
+                    {translator.formatNumber(selectedLabelIds.length)}
                   </span>
                 )}
               </button>
@@ -2235,7 +2235,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                           </button>
                           {preview !== undefined && (
                             <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
-                              {preview.length}
+                              {translator.formatNumber(preview.length)}
                               {preview.length >= LABEL_PREVIEW_LIMIT ? "+" : ""}
                             </span>
                           )}

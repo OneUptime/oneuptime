@@ -30,7 +30,9 @@ import useTranslateValue from "../../Utils/Translation";
 import {
   TemplateAround,
   translateTemplateAround,
+  Translator,
 } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
@@ -83,6 +85,7 @@ const TemplateVariablesList: FunctionComponent<TemplateVariablesListProps> = (
   props: TemplateVariablesListProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const headingIdPrefix: string = `template-variables-${useId()}`;
 
   const tx: (text: string) => string = (text: string): string => {
@@ -192,7 +195,7 @@ const TemplateVariablesList: FunctionComponent<TemplateVariablesListProps> = (
               data-testid="template-variables-count"
               className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
             >
-              {count}
+              {translator.formatNumber(count)}
             </span>
           ) : null}
         </span>

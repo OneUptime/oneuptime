@@ -921,7 +921,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                 <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-gray-400">
                   {translator.translateText("Attributes")}
                   <span className="rounded-full bg-gray-100 px-1.5 py-px text-[10px] font-medium normal-case tracking-normal tabular-nums text-gray-500">
-                    {attributeEntries.length}
+                    {translator.formatNumber(attributeEntries.length)}
                   </span>
                 </span>
                 <div className="flex items-center gap-1.5">

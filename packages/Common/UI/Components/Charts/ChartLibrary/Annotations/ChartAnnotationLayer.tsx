@@ -576,7 +576,7 @@ const ChartAnnotationLayer: React.FunctionComponent<
                       fill="#ffffff"
                       style={{ pointerEvents: "none" }}
                     >
-                      {count}
+                      {translator.formatNumber(count)}
                     </text>
                   ) : (
                     /*

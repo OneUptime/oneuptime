@@ -117,7 +117,7 @@ const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
           </span>
           {appliedCount > 0 && (
             <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-600">
-              {appliedCount}
+              {translator.formatNumber(appliedCount)}
             </span>
           )}
         </div>

@@ -159,7 +159,7 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
       >
         <span>{translator.translateText("Columns")}</span>
         <span className="text-xs text-gray-400">
-          {selectedColumnIds.length}
+          {translator.formatNumber(selectedColumnIds.length)}
         </span>
       </button>
 

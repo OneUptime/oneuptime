@@ -204,7 +204,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
               data-testid="uptime-tooltip-incidents-count"
               {...getUptimeDayToneProps(INCIDENT_MARK_COLOR, COUNT_STYLE)}
             >
-              {props.incidents.length}
+              {translator.formatNumber(props.incidents.length)}
             </span>
           </div>
 
@@ -387,7 +387,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
               data-testid="uptime-tooltip-maintenance-count"
               {...getUptimeDayToneProps(MAINTENANCE_MARK_COLOR, COUNT_STYLE)}
             >
-              {maintenanceEvents.length}
+              {translator.formatNumber(maintenanceEvents.length)}
             </span>
           </div>
 
