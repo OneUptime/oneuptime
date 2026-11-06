@@ -583,9 +583,13 @@ describe("log groups of an App Platforms platform", () => {
 
     expect(ecs.appAttributes[0]).toBe(ECS_TASK_FAMILY_ATTRIBUTE);
     expect(ecs.appGroupAttributes).toEqual([ECS_CLUSTER_ARN_ATTRIBUTE]);
-    expect(AWS_LOG_GROUP_ENVIRONMENT_RULES.map((rule) => rule.prefix)).toEqual([
-      "/ecs/",
-    ]);
+    expect(
+      AWS_LOG_GROUP_ENVIRONMENT_RULES.map(
+        (rule: (typeof AWS_LOG_GROUP_ENVIRONMENT_RULES)[number]): string => {
+          return rule.prefix;
+        },
+      ),
+    ).toEqual(["/ecs/"]);
   });
 
   test("a function, a database or a state machine is no App Platforms resource: no platform of App Platforms", () => {

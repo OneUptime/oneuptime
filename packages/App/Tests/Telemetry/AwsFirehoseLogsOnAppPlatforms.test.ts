@@ -285,9 +285,15 @@ beforeEach(() => {
         const row: CloudResource = new CloudResource();
         row._id = ObjectID.generate().toString();
         row.resourceIdentifier = data.resourceIdentifier;
-        row.cloudPlatform = data.cloudPlatform;
-        row.cloudAccountId = data.cloudAccountId;
-        row.cloudRegion = data.cloudRegion;
+        if (data.cloudPlatform !== undefined) {
+          row.cloudPlatform = data.cloudPlatform;
+        }
+        if (data.cloudAccountId !== undefined) {
+          row.cloudAccountId = data.cloudAccountId;
+        }
+        if (data.cloudRegion !== undefined) {
+          row.cloudRegion = data.cloudRegion;
+        }
         environments.set(data.resourceIdentifier, row);
         return row;
       },
