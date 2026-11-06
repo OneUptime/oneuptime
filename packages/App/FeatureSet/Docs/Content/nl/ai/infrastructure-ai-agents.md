@@ -334,6 +334,8 @@ Een incident of waarschuwing krijgt één AI-fixbaan. Is het gekoppeld aan een K
 
 Sommige riskantere wijzigingen **hebben altijd een mens nodig** in elke modus, Goedkeuring overslaan inbegrepen, en geen enkele vermelding op de lijst met toegestane opdrachten verandert dat; ze zijn als zodanig gemarkeerd in de tabellen hieronder.
 
+Een project kan ook vragen dat twee mensen een fix goedkeuren die een riskantere wijziging bevat: zie [Twee mensen keuren een riskantere fix goed](/docs/ai/ai-sre#twee-mensen-keuren-een-riskantere-fix-goed).
+
 ### Fixes op Docker- en Podman-hosts
 
 | | Opdrachten |

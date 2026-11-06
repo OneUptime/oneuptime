@@ -334,6 +334,8 @@ En hændelse eller advarsel får ét AI-rettelsesspor. Når den er knyttet til e
 
 Nogle mere risikable ændringer **kræver altid et menneske** i alle tilstande, også Spring godkendelse over, og ingen post på listen over tilladte kommandoer ændrer det; de er markeret som sådan i tabellerne nedenfor.
 
+Et projekt kan også bede om, at to personer godkender en rettelse, der indeholder en mere risikabel ændring: se [To personer godkender en mere risikabel rettelse](/docs/ai/ai-sre#to-personer-godkender-en-mere-risikabel-rettelse).
+
 ### Rettelser på Docker- og Podman-værter
 
 | | Kommandoer |

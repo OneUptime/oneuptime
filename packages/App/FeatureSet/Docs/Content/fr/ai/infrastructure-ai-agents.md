@@ -334,6 +334,8 @@ Un incident ou une alerte reçoit une seule voie de correctif IA. Lorsqu'il est 
 
 Certaines modifications plus risquées **nécessitent toujours une personne** dans tous les modes, Contourner l'approbation compris, et aucune entrée de la liste d'autorisation n'y change rien — elles sont signalées comme telles dans les tableaux ci-dessous.
 
+Un projet peut aussi demander que deux personnes approuvent un correctif comportant une modification plus risquée : voir [Deux personnes approuvent un correctif plus risqué](/docs/ai/ai-sre#deux-personnes-approuvent-un-correctif-plus-risqué).
+
 ### Correctifs sur les hôtes Docker et Podman
 
 | | Commandes |

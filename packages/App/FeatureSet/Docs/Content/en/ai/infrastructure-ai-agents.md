@@ -334,6 +334,8 @@ One incident or alert gets one AI fix lane. When it is linked to a Kubernetes cl
 
 Some riskier changes **always need a person** in every mode, Bypass approval included, and no allowlist entry changes that — they are marked as such in the tables below.
 
+A project can also ask two people to approve a fix that holds a riskier change: see [Two people approve a riskier fix](/docs/ai/ai-sre#two-people-approve-a-riskier-fix).
+
 ### Fixes on Docker and Podman hosts
 
 |                     | Commands                                                                                                                                                                                                                                                                                              |
