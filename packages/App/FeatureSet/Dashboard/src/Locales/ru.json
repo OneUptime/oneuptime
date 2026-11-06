@@ -24225,7 +24225,6 @@
   "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.": "Когда вас приглашают в проект или команду, приглашение ждёт здесь, пока вы не примете или не отклоните его.",
   "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.": "Прежде чем использовать эту функцию, необходимо добавить конфигурацию Twilio. Перейдите в Настройки проекта → Уведомления → Настройки уведомлений, чтобы добавить Twilio Account SID и Auth Token.",
   "Your apps and collectors send this key with their telemetry, so it lands in this project.": "Ваши приложения и коллекторы отправляют этот ключ вместе со своей телеметрией, чтобы она попадала в этот проект.",
-  "Your name and email as your team sees them, and the time zone OneUptime shows times in.": "Ваши имя и адрес электронной почты, как их видит ваша команда, и часовой пояс, в котором OneUptime показывает время.",
   "Your probe connects to OneUptime with this ID and key. Keep the key secret.": "Ваш зонд подключается к OneUptime с этим ID и ключом. Храните ключ в секрете.",
   "Your team's measurements, worked out for this alert.": "Измерения вашей команды для этого оповещения.",
   "Your team's measurements, worked out for this incident.": "Измерения вашей команды для этого инцидента.",
@@ -45910,5 +45909,8 @@
   "Run one command, and Amazon Data Firehose delivers every account's CloudWatch metrics and logs to OneUptime within minutes, between reads.": "Выполните одну команду, и Amazon Data Firehose будет доставлять метрики и журналы CloudWatch каждого аккаунта в OneUptime в течение нескольких минут, между чтениями.",
   "Run one command in {{shell}} to let OneUptime AI fix problems in every account of the organization. Each account's agent connects on its own.": "Выполните одну команду в {{shell}}, чтобы OneUptime AI мог исправлять проблемы в каждом аккаунте организации. Агент каждого аккаунта подключается сам.",
   "The live change was dismissed: once the pull request is merged, the next apply makes the change.": "Изменение на живом ресурсе отклонено: после слияния pull request изменение сделает следующий apply.",
-  "The pull request makes the code say what the fix sets, so the next apply keeps it.": "Pull request приведёт код к значению, которое задаёт исправление, и следующий apply его сохранит."
+  "The pull request makes the code say what the fix sets, so the next apply keeps it.": "Pull request приведёт код к значению, которое задаёт исправление, и следующий apply его сохранит.",
+  "Not set (English)": "Не выбран (английский)",
+  "The Dashboard and your on-call pages are in this language, on every browser. Not set: English pages, and the Dashboard follows your browser.": "Панель и ваши вызовы дежурства на этом языке в любом браузере. Не выбран: вызовы на английском, а панель следует языку браузера.",
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "Ваши имя и адрес электронной почты, как их видит ваша команда, и часовой пояс и язык, которые OneUptime использует для вас."
 }

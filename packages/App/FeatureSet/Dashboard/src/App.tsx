@@ -3,6 +3,7 @@ import DashboardCommandPalette from "./Components/CommandPalette/DashboardComman
 import DashboardKeyboardShortcuts from "./Components/KeyboardShortcuts/DashboardKeyboardShortcuts";
 import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
+import UserLanguageInit from "./Components/UserLanguage/UserLanguageInit";
 import EventName from "./Utils/EventName";
 import { resumePendingMcpAuthorization } from "./Utils/McpAuthorizationResume";
 import { resumePendingMarketplacePurchase } from "./Utils/MarketplacePurchaseResume";
@@ -641,6 +642,7 @@ const App: () => JSX.Element = () => {
       }}
     >
       <UseTimezoneInitElement />
+      <UserLanguageInit />
       <AskAiPanel />
       <DashboardCommandPalette />
       <DashboardKeyboardShortcuts />

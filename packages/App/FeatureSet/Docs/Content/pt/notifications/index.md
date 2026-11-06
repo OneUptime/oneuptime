@@ -7,6 +7,7 @@ O OneUptime chega até você de duas formas. Ele aciona você quando um incident
 - [Onde encontrá-los](#onde-encontrá-los): As páginas das configurações do usuário, seção por seção.
 - [Com o que você começa](#com-o-que-você-começa): Os métodos, regras e configurações que um novo membro recebe.
 - [Quando nenhuma regra corresponde](#quando-nenhuma-regra-corresponde): Como um acionamento chega até você mesmo assim, e quem fica sabendo.
+- [O idioma dos seus acionamentos](#o-idioma-dos-seus-acionamentos): Acionamentos no idioma que você escolheu, e o que fica em inglês.
 :::
 
 ## Como funciona
@@ -96,6 +97,18 @@ Um acionamento pode chegar até você para um tipo e uma gravidade para os quais
 
 Você recebe um e-mail avisando, e também os proprietários da política de plantão, ou os do projeto se a política não tiver. Se não houver nada verificado, o acionamento não pode ser entregue, e o e-mail diz isso. Esses e-mails ficam retidos enquanto os acionamentos continuam chegando, para que uma tempestade de acionamentos não vire uma tempestade de e-mails. Para adicionar a regra que falta, veja [Regras de Plantão pessoais](/docs/notifications/on-call-rules#quando-uma-gravidade-não-tem-regra).
 
+## O idioma dos seus acionamentos
+
+Seus acionamentos são escritos no seu idioma: o que você escolhe no menu de idiomas no rodapé de qualquer página, ou em **Idioma** em **Perfil do usuário**. Até você escolher um, eles ficam em inglês.
+
+| Canal | Idioma |
+| --- | --- |
+| E-mail, SMS, notificações push e Telegram | Seu idioma |
+| Suas próprias mensagens no Slack, Microsoft Teams e Mattermost | Seu idioma |
+| Ligações telefônicas e WhatsApp | Inglês |
+
+O que muda são as palavras do OneUptime: assuntos, títulos, botões e frases, e os nomes com que todo projeto novo começa, como Identificado e Incidente crítico. O que a sua equipe escreveu fica como foi escrito: títulos, descrições, causas raiz e os nomes de projetos, equipes e estados que o seu projeto nomeou. Um SMS em um idioma com escrita própria, como russo, japonês ou persa, ocupa mais partes do que um em inglês.
+
 ## Solução de problemas
 
 :::details Eu estava de plantão, mas nada chegou até mim
@@ -104,6 +117,10 @@ Abra **Configurações do usuário → Registros de plantão**. Nenhuma linha pa
 
 :::details Recebo e-mails sobre registros que nunca pedi
 Você é proprietário do registro, diretamente ou por meio de uma equipe, ou o registro não tem proprietários e você é proprietário do projeto. Desative o evento em **Configurações do usuário → Configurações de notificação**, ou reduza o volume em **Configurações do usuário → Preferências de e-mail**.
+:::
+
+:::details Meus acionamentos estão em inglês, mas o painel não
+O painel segue o seu navegador até você escolher um idioma. Escolha-o no menu de idiomas no rodapé de qualquer página, ou em **Idioma** em **Perfil do usuário**. Ligações telefônicas e mensagens do WhatsApp ficam em inglês.
 :::
 
 :::details Adicionei um número de telefone, mas ele não está nas minhas regras

@@ -24225,7 +24225,6 @@
   "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.": "Cuando alguien te invita a un proyecto o a un equipo, la invitación espera aquí hasta que la aceptes o la rechaces.",
   "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.": "Debes añadir una configuración de Twilio antes de poder usar esta función. Ve a Ajustes del proyecto → Notificaciones → Ajustes de notificaciones para añadir tu Account SID y tu Auth Token de Twilio.",
   "Your apps and collectors send this key with their telemetry, so it lands in this project.": "Tus aplicaciones y colectores envían esta clave con su telemetría, para que llegue a este proyecto.",
-  "Your name and email as your team sees them, and the time zone OneUptime shows times in.": "Tu nombre y tu correo electrónico tal como los ve tu equipo, y la zona horaria en la que OneUptime muestra las horas.",
   "Your probe connects to OneUptime with this ID and key. Keep the key secret.": "Tu sonda se conecta a OneUptime con este ID y esta clave. Mantén la clave en secreto.",
   "Your team's measurements, worked out for this alert.": "Las mediciones de tu equipo, calculadas para esta alerta.",
   "Your team's measurements, worked out for this incident.": "Las mediciones de tu equipo, calculadas para este incidente.",
@@ -45910,5 +45909,8 @@
   "Run one command, and Amazon Data Firehose delivers every account's CloudWatch metrics and logs to OneUptime within minutes, between reads.": "Ejecuta un comando, y Amazon Data Firehose entrega las métricas y los registros de CloudWatch de cada cuenta a OneUptime en minutos, entre lecturas.",
   "Run one command in {{shell}} to let OneUptime AI fix problems in every account of the organization. Each account's agent connects on its own.": "Ejecuta un solo comando en {{shell}} para que OneUptime AI corrija problemas en cada cuenta de la organización. El agente de cada cuenta se conecta por sí solo.",
   "The live change was dismissed: once the pull request is merged, the next apply makes the change.": "El cambio en vivo se descartó: cuando se fusione la pull request, el próximo apply hará el cambio.",
-  "The pull request makes the code say what the fix sets, so the next apply keeps it.": "La pull request hace que el código diga lo que fija la corrección, para que el próximo apply lo conserve."
+  "The pull request makes the code say what the fix sets, so the next apply keeps it.": "La pull request hace que el código diga lo que fija la corrección, para que el próximo apply lo conserve.",
+  "Not set (English)": "Sin definir (inglés)",
+  "The Dashboard and your on-call pages are in this language, on every browser. Not set: English pages, and the Dashboard follows your browser.": "El panel y tus avisos de guardia están en este idioma, en cada navegador. Sin definir: avisos en inglés, y el panel sigue a tu navegador.",
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "Tu nombre y tu correo electrónico tal como los ve tu equipo, y la zona horaria y el idioma que OneUptime usa contigo."
 }

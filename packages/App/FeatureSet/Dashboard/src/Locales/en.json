@@ -24225,7 +24225,6 @@
   "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.": "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.",
   "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.": "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.",
   "Your apps and collectors send this key with their telemetry, so it lands in this project.": "Your apps and collectors send this key with their telemetry, so it lands in this project.",
-  "Your name and email as your team sees them, and the time zone OneUptime shows times in.": "Your name and email as your team sees them, and the time zone OneUptime shows times in.",
   "Your probe connects to OneUptime with this ID and key. Keep the key secret.": "Your probe connects to OneUptime with this ID and key. Keep the key secret.",
   "Your team's measurements, worked out for this alert.": "Your team's measurements, worked out for this alert.",
   "Your team's measurements, worked out for this incident.": "Your team's measurements, worked out for this incident.",
@@ -45910,5 +45909,8 @@
   "Run one command, and Amazon Data Firehose delivers every account's CloudWatch metrics and logs to OneUptime within minutes, between reads.": "Run one command, and Amazon Data Firehose delivers every account's CloudWatch metrics and logs to OneUptime within minutes, between reads.",
   "Run one command in {{shell}} to let OneUptime AI fix problems in every account of the organization. Each account's agent connects on its own.": "Run one command in {{shell}} to let OneUptime AI fix problems in every account of the organization. Each account's agent connects on its own.",
   "The live change was dismissed: once the pull request is merged, the next apply makes the change.": "The live change was dismissed: once the pull request is merged, the next apply makes the change.",
-  "The pull request makes the code say what the fix sets, so the next apply keeps it.": "The pull request makes the code say what the fix sets, so the next apply keeps it."
+  "The pull request makes the code say what the fix sets, so the next apply keeps it.": "The pull request makes the code say what the fix sets, so the next apply keeps it.",
+  "Not set (English)": "Not set (English)",
+  "The Dashboard and your on-call pages are in this language, on every browser. Not set: English pages, and the Dashboard follows your browser.": "The Dashboard and your on-call pages are in this language, on every browser. Not set: English pages, and the Dashboard follows your browser.",
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "Your name and email as your team sees them, and the time zone and language OneUptime uses with you."
 }
