@@ -1502,6 +1502,88 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The incidents a grouping rule opens an episode with once enough of them
+   * are ongoing (Common/Utils/Episode/EpisodeOpeningThreshold): the ones
+   * that waited, oldest first, then the one that arrived last. Each is the
+   * same member row a rule adds on its own - added by the rule, naming it as
+   * the rule it matched - and the episode was born with all of them, so the
+   * episode's created notification covers them all: none is announced again
+   * as added. The episode's side is written once: its count, one feed entry
+   * naming them, and its severity raised to the most severe of them, as a
+   * rule raises it for each incident that joins. An incident that cannot be
+   * added - in the episode already, or put in another one meanwhile in a
+   * project that allows an incident in only one - is skipped. Written as
+   * OneUptime. Hands back the ids added.
+   */
+  @CaptureSpan()
+  public async addIncidentsGroupedByRule(data: {
+    projectId: ObjectID;
+    incidentEpisodeId: ObjectID;
+    incidentIds: Array<ObjectID>;
+    matchedRuleId: ObjectID;
+  }): Promise<Array<ObjectID>> {
+    const addedIncidentIds: Array<ObjectID> = [];
+
+    for (const incidentId of data.incidentIds) {
+      const member: Model = new Model();
+      member.projectId = data.projectId;
+      member.incidentEpisodeId = data.incidentEpisodeId;
+      member.incidentId = incidentId;
+      member.addedBy = IncidentEpisodeMemberAddedBy.Rule;
+      member.matchedRuleId = data.matchedRuleId;
+      member.addedAt = OneUptimeDate.getCurrentDate();
+      member.isOwnerNotifiedOfIncidentAdded = true;
+
+      try {
+        await this.create({
+          data: member,
+          props: {
+            isRoot: true,
+          },
+          miscDataProps: EpisodeMembersBatch.getMiscDataProps(),
+        });
+
+        addedIncidentIds.push(incidentId);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === INCIDENT_ALREADY_IN_EPISODE_MESSAGE
+        ) {
+          continue;
+        }
+
+        if (error instanceof RecordInAnotherEpisodeException) {
+          logger.debug(
+            `Incident ${incidentId.toString()} is in another episode, and its project allows an incident in only one episode: not added to episode ${data.incidentEpisodeId.toString()}`,
+            { projectId: data.projectId.toString() } as LogAttributes,
+          );
+          continue;
+        }
+
+        logger.error(
+          `IncidentEpisodeMemberService could not add incident ${incidentId.toString()} to the episode its grouping rule opened: ${error}`,
+          {
+            projectId: data.projectId.toString(),
+            incidentEpisodeId: data.incidentEpisodeId.toString(),
+            incidentId: incidentId.toString(),
+          } as LogAttributes,
+        );
+      }
+    }
+
+    await this.updateEpisodeAfterAddingTogether({
+      projectId: data.projectId,
+      incidentEpisodeId: data.incidentEpisodeId,
+      addedIncidentIds: addedIncidentIds,
+      addedByUserId: undefined,
+      raiseSeverity: true,
+      writeFeedItem: true,
+    });
+
+    return addedIncidentIds;
+  }
+
+  /*
    * The episode's one feed entry - and its one Slack / Microsoft Teams post
    * - for incidents added together: "**3 incidents** added to episode:",
    * then each by its number, and its title unless it is private

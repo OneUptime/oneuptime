@@ -39,6 +39,8 @@ import {
   getInactivityTimeoutFormField,
   getLegacyDefaultAssigneeColumnFormFields,
   getLegacyDefaultAssigneeFormField,
+  getMinimumCountColumnFormFields,
+  getMinimumCountFormField,
   getReopenWindowFormField,
   getResolveDelayFormField,
   getTimeWindowFormField,
@@ -60,10 +62,15 @@ flowchart TD
     B -->|Rule Matches| C{Find Existing Episode}
     B -->|No Match| D[Alert Stays Ungrouped]
     C -->|Episode Found| E[Add Alert to Episode]
-    C -->|No Episode| F[Create New Episode]
+    C -->|No Episode| W{Enough Alerts Ongoing?}
+    W -->|Yes| F[Create New Episode]
+    W -->|Not Yet| X[Alert Waits on Its Own]
+    X -.->|More Alerts Arrive| F
     E --> G[Update Episode Count]
     F --> H[Execute On-Call Policy]
 \`\`\`
+
+A rule waits for nothing unless **Wait for more alerts** is on, under **More fields**: then a new episode opens only once that many matching alerts are ongoing, and it opens with all of them.
 
 ---
 
@@ -164,6 +171,15 @@ flowchart TD
 - Group By: Monitor ✓, Severity ✓, Alert Title ✓
 
 **Result:** Very specific episodes - one per unique combination of monitor + severity + title.
+
+#### Example 4: One episode only for a broader outage
+
+**Configuration:**
+- Match Criteria: (none - matches all alerts)
+- Group By: (none enabled) - **Everything Together**
+- More fields: **Wait for more alerts**, 3
+
+**Result:** A lone alert stays on its own. Once 3 matching alerts are ongoing - arriving within the time window of each other while it is on - one episode opens with all 3, and the alerts after them join it.
 `;
 
 const KIND: GroupingRuleKind = GroupingRuleKind.Alert;
@@ -388,6 +404,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             description: "Enable or disable this grouping rule.",
           },
           ...getGroupingRuleColumnFormFields<AlertGroupingRule>(),
+          ...getMinimumCountColumnFormFields<AlertGroupingRule>(KIND),
           ...getLegacyDefaultAssigneeColumnFormFields<AlertGroupingRule>(),
           /*
            * More fields, the end of the Grouping step: everything else a
@@ -435,11 +452,18 @@ const AlertGroupingRulesPage: FunctionComponent<
           getLegacyDefaultAssigneeFormField<AlertGroupingRule>({
             collapsibleSection: MORE_FIELDS,
           }),
-          // Episode lifecycle - reopen, wait to resolve, resolve when quiet
-          getReopenWindowFormField<AlertGroupingRule>({
+          /*
+           * Episode lifecycle - wait for more alerts before opening one,
+           * reopen, wait to resolve, resolve when quiet
+           */
+          getMinimumCountFormField<AlertGroupingRule>({
             kind: KIND,
             collapsibleSection: MORE_FIELDS,
             sectionTitle: "Episode Lifecycle",
+          }),
+          getReopenWindowFormField<AlertGroupingRule>({
+            kind: KIND,
+            collapsibleSection: MORE_FIELDS,
           }),
           getResolveDelayFormField<AlertGroupingRule>({
             kind: KIND,
