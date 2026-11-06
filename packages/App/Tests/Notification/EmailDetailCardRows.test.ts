@@ -262,16 +262,17 @@ describe("a row with nothing to show is left out, label and all", () => {
     );
     const tree: EmailMarkupTree = readEmailMarkup(html);
 
+    // Labels read as on every other card, with no colon (fu-i18n-larger).
     expect(detailCards(tree).map(shapeOf)).toEqual([
       [
-        "Alert Title:",
-        "|Current State:",
-        "|Resources Affected:",
-        "|Severity:",
-        "|Root Cause:",
+        "Alert Title",
+        "|Current State",
+        "|Resources Affected",
+        "|Severity",
+        "|Root Cause",
       ],
     ]);
-    expect(html).not.toContain("Description:");
+    expect(html).not.toContain(">Description</p>");
     expect(misplacedDividers(tree)).toEqual([]);
   });
 

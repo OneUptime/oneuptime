@@ -819,7 +819,8 @@ describe("the uptime report, in every language", () => {
                 totalIncidentCount: 1,
                 uptimePercent: 99.5,
                 uptimePercentAsString: "99.5%",
-                downtimeInHoursAndMinutes: "Zorbex minutes",
+                // No word of OneUptime's own ("minutes" is one: a page's durations).
+                downtimeInHoursAndMinutes: "Zorbex span",
               },
             };
           },
@@ -838,7 +839,7 @@ describe("the uptime report, in every language", () => {
       totalResources: 2,
       totalIncidents: 2,
       averageUptimePercent: "99.5%",
-      totalDowntimeInHoursAndMinutes: "Zorbex minutes",
+      totalDowntimeInHoursAndMinutes: "Zorbex span",
       resources: structure.resources,
       groups: structure.groups,
       ungroupedResources: structure.resourcesWithoutGroup,
@@ -920,7 +921,7 @@ describe("the uptime report, in every language", () => {
         "Zorbex period",
         "Zorbex start",
         "Zorbex end",
-        "Zorbex minutes",
+        "Zorbex span",
         "99.5%",
       ]) {
         expect([language, value, text.includes(value)]).toEqual([

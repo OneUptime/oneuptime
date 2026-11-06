@@ -422,7 +422,12 @@ describe("DetailBoxField escaping", () => {
     ]) {
       const source: string = templateSource(templateName);
 
-      expect(source).toContain("InfoBlock plainInfo=(concat");
+      // Worded in the person's language, its value escaped (tt).
+      expect(source).toContain(
+        "InfoBlock plainInfo=(tt \"A new ",
+      );
+      expect(source).toContain("projectName=projectName)");
+      expect(source).not.toContain("InfoBlock info=(tt \"A new ");
       expect(source).not.toContain("InfoBlock info=(concat");
     }
 
