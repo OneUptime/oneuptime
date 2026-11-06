@@ -3230,6 +3230,25 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
 
     const [rollback, fix] = await waitForAiLines(page);
 
+    /*
+     * A rollback is titled as the recorder titles any change - the same
+     * operation on the same resource as its fix - and only its line says it
+     * undid the fix: no word is added to its title.
+     */
+    if (isDesktop()) {
+      const aiRows: Locator = page
+        .getByRole("row")
+        .filter({ has: page.getByTestId("cloud-change-ai") });
+
+      await expect(aiRows).toHaveCount(2);
+
+      for (const index of [0, 1]) {
+        await expect(
+          aiRows.nth(index).getByTestId("cloud-change-title-value"),
+        ).toHaveText(["UpdateService", "checkout"]);
+      }
+    }
+
     await expect(
       fix.getByRole("link", { name: "Fix for incident #18" }),
     ).toHaveAttribute(

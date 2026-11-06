@@ -1037,9 +1037,14 @@ function aiChange(minutesAgo, step, title) {
 }
 
 if (dataState === "connected" && params.get("changes") === "ai") {
+  /*
+   * A rollback is the same operation on the same resource, and the recorder
+   * titles it the same way: its step (oneuptime.ai.step) is what says it
+   * undid the fix.
+   */
   CHANGES.push(
     aiChange(39, "fix", "UpdateService on checkout"),
-    aiChange(30, "rollback", "UpdateService on checkout (rolled back)"),
+    aiChange(30, "rollback", "UpdateService on checkout"),
   );
   // Newest first, as the list reads them.
   CHANGES.sort((left, right) => {
