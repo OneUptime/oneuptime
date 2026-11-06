@@ -548,7 +548,7 @@ describe("Azure: Test connection and the posture name the write identity", () =>
 
     assert.strictEqual(
       lines[3],
-      `Write identity: oneuptime-ai-agent-write (${AZURE_WRITE_IDENTITY.toLowerCase()}), which the agent signs in as for each change (the agent can sign in as it, as object id ${AZURE_WRITE_PRINCIPAL_ID})`,
+      `Write identity: oneuptime-ai-agent-write (resource group oneuptime-ai-agent), which the agent signs in as for each change (the agent can sign in as it, as object id ${AZURE_WRITE_PRINCIPAL_ID})`,
     );
     // Its one call reads the subscription, as the agent's own identity.
     assert.deepStrictEqual(h.arm.paths(), [`GET /subscriptions/${SUB}`]);
@@ -567,8 +567,36 @@ describe("Azure: Test connection and the posture name the write identity", () =>
 
     assert.match(
       lines[3] || "",
-      /^Write identity: oneuptime-ai-agent-write \(\/subscriptions\/[0-9a-f-]+\/resourcegroups\/oneuptime-ai-agent\/providers\/microsoft\.managedidentity\/userassignedidentities\/oneuptime-ai-agent-write\), which the agent signs in as for each change \(the agent can NOT sign in as it, so every change fails: the managed identity endpoint answered HTTP 400 and no token of the write identity oneuptime-ai-agent-write \(Unable to load the proper Managed Identity\.\)\. Attach that identity where the agent runs/,
+      /^Write identity: oneuptime-ai-agent-write \(resource group oneuptime-ai-agent\), which the agent signs in as for each change \(the agent can NOT sign in as it, so every change fails: the managed identity endpoint answered HTTP 400 and no token of the write identity oneuptime-ai-agent-write \(Unable to load the proper Managed Identity\.\)\. Attach that identity where the agent runs/,
     );
+  });
+
+  test("Test connection: the identity by its name and resource group - a team's own, kept elsewhere, as well - never its whole resource ID, which would push the verdict out of sight", async () => {
+    const own: string = `/subscriptions/${SUB}/resourceGroups/Shared-Identities/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ou-writer`;
+    const h: CloudHarness = writeHarness({
+      ONEUPTIME_AI_AZURE_WRITE_IDENTITY: own,
+    });
+
+    h.arm.attachedIdentities = [own];
+
+    const line: string =
+      outputLines(
+        await runCloud(h, "azure", "cloud whoami", {
+          origin: "AiInvestigation",
+        }),
+      )[3] || "";
+
+    assert.match(
+      line,
+      /^Write identity: ou-writer \(resource group shared-identities\), which the agent signs in as for each change \(the agent can sign in as it/,
+    );
+    // The subscription is the line above's; the provider path is noise.
+    assert.doesNotMatch(
+      line,
+      /\/subscriptions\/|providers|userassignedidentities/i,
+    );
+    // The line stays short enough to read whole: the verdict well inside it.
+    assert.ok(line.indexOf("the agent can sign in as it") < 120, line);
   });
 
   test("Test connection: none, one it cannot read, and one of another subscription - never signing in as either", async () => {

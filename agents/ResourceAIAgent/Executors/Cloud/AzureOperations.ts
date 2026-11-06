@@ -487,7 +487,16 @@ export default class AzureCloud {
       return `Write identity: ${elsewhere}`;
     }
 
-    const shown: string = `${identity.name} (${showCloudId("azure", identity.resourceId)})`;
+    /*
+     * By its name and resource group: the subscription is the line above's
+     * (another one's is refused just above), so the rest of its resource ID
+     * - some 170 characters - would only push the verdict out of sight.
+     * Lowercased as Azure reads it, which the output's redactor leaves be.
+     */
+    const shown: string = `${identity.name} (resource group ${showCloudId(
+      "azure",
+      identity.resourceGroup,
+    )})`;
     let check: string;
 
     try {
