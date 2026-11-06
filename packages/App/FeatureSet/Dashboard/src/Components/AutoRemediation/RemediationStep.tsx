@@ -564,6 +564,15 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
   const tryAgainButtonId: string = useId();
   // What each folded fix's Review and approve opens is named after this.
   const fixDetailsIdPrefix: string = useId();
+  /*
+   * Whether the reader may approve a fix that waits, as the server asks
+   * (RemediationFixActGate): someone it certainly refuses reads that a
+   * fix needs approval - never their approval - on the pill and on the
+   * fix. Until the permission snapshot lands, theirs: the buttons stay.
+   */
+  const mayApproveFixes: boolean = !getRemediationFixWhoMayAct(
+    getRemediationFixActGate("approveOrDismiss"),
+  );
   const stepHeadingRef: React.RefObject<HTMLHeadingElement> =
     useRef<HTMLHeadingElement>(null);
   // The fix in the code the investigation recommends, once read.
@@ -1353,6 +1362,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     const steps: Array<RemediationFixStep> = getRemediationFixSteps({
       suggestion,
       translator,
+      mayApprove: mayApproveFixes,
     });
     const stepsIdPrefix: string = `${fixDetailsIdPrefix}-${suggestionId}`;
     const getStepKey: (kind: RemediationFixStepKind) => string = (
@@ -1699,7 +1709,12 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Lock}
                 className="mt-0.5 h-3.5 w-3.5 flex-none text-gray-400"
               />
-              <span className="min-w-0">{whoMayAct}</span>
+              <span
+                data-testid="remediation-fix-who-may-act-words"
+                className="min-w-0"
+              >
+                {whoMayAct}
+              </span>
             </div>
           ) : (
             <></>
@@ -1854,6 +1869,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     investigationStage: props.investigationStage,
     codeFix,
     isOffByChoice: foldState.kind === "off",
+    mayApprove: mayApproveFixes,
   });
   const updateGate: PermissionGateResult = PermissionGate.check(
     incidentIdString ? new Incident() : new Alert(),

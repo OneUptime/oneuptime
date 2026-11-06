@@ -399,6 +399,93 @@ describe("a runbook fix that waits for approval", () => {
   });
 });
 
+/*
+ * Needs your approval asks the reader to act: only someone who may. To
+ * someone the snapshot certainly refuses, a fix that waits needs
+ * approval - on the step's pill and on the fix's approval step - never
+ * theirs; to someone it cannot tell about yet, theirs, as the buttons
+ * stay.
+ */
+describe("whose approval a waiting fix needs", () => {
+  function pillWords(): string {
+    return (
+      within(screen.getByTestId("ai-card-step-remediation-pill")).getByTestId(
+        "status-badge-words",
+      ).textContent || ""
+    );
+  }
+
+  function approvalTitle(fix: HTMLElement): string {
+    const approval: HTMLElement | undefined = within(fix)
+      .getAllByTestId("remediation-fix-step")
+      .find((step: HTMLElement): boolean => {
+        return step.getAttribute("data-step") === "approval";
+      });
+
+    return (
+      within(approval!).getByTestId("remediation-fix-step-title").textContent ||
+      ""
+    );
+  }
+
+  test("someone who may approve it reads that it needs their approval, on the pill and on the fix", async () => {
+    holding(Permission.ProjectMember);
+    const fix: HTMLElement = await renderStep([runbookFix()]);
+
+    await waitFor(() => {
+      expect(pillWords()).toBe("Needs your approval");
+    });
+    expect(approvalTitle(fix)).toBe("Needs your approval");
+  });
+
+  test.each([
+    ["a Viewer", [row(Permission.Viewer)]],
+    ["Edit Runbook Execution alone", [row(Permission.EditRunbookExecution)]],
+    [
+      "a team's block of the permission",
+      [
+        row(Permission.ProjectMember),
+        row(Permission.CreateRunbookExecution, true),
+      ],
+    ],
+  ])(
+    "%s: it needs approval - never theirs - on the pill and on the fix, beside the line saying who may",
+    async (_name: string, rows: Array<UserPermission>) => {
+      asReader(rows);
+      const fix: HTMLElement = await renderStep([runbookFix()]);
+
+      await waitFor(() => {
+        expect(pillWords()).toBe("Needs approval");
+      });
+      expect(approvalTitle(fix)).toBe("Needs approval");
+      expect(fix).not.toHaveTextContent("Needs your approval");
+      expect(whoMayActLine(fix)).not.toBeNull();
+    },
+  );
+
+  test("before the permission snapshot lands: their approval, as the buttons stay", async () => {
+    jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
+    jest.spyOn(PermissionUtil, "getAllPermissions").mockReturnValue([]);
+    const fix: HTMLElement = await renderStep([runbookFix()]);
+
+    await waitFor(() => {
+      expect(pillWords()).toBe("Needs your approval");
+    });
+    expect(approvalTitle(fix)).toBe("Needs your approval");
+  });
+
+  test("a master admin with no permission of their own: their approval", async () => {
+    jest.spyOn(User, "isMasterAdmin").mockReturnValue(true);
+    holding(Permission.Viewer);
+    const fix: HTMLElement = await renderStep([runbookFix()]);
+
+    await waitFor(() => {
+      expect(pillWords()).toBe("Needs your approval");
+    });
+    expect(approvalTitle(fix)).toBe("Needs your approval");
+  });
+});
+
 describe("a cloud fix that waits for approval", () => {
   test("someone who may act opens it with Review and approve, to Approve & Run, Dry run and Dismiss fix", async () => {
     holding(Permission.RunbookMember);

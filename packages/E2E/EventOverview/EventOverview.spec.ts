@@ -22969,6 +22969,74 @@ test.describe("a runbook's record, where a fix was approved, and Dismiss fix (?f
     await expect(record).toHaveCount(0);
   });
 
+  test("a Viewer on a phone: no Review and approve, Approve & Run, Dry run or Dismiss fix - a quiet line in their place says who may, and each fix needs approval, never theirs (?role=viewer)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openRunbookFixes(
+      page,
+      "fixes=runbook&cloudfix=would-run&role=viewer",
+    );
+
+    // No button the server would refuse them: none of the four, anywhere.
+    const step: Locator = remediationStep(page);
+    for (const testId of [
+      "remediation-fix-details-toggle",
+      "remediation-approve-button",
+      "remediation-dry-run-button",
+      "remediation-dismiss-button",
+    ]) {
+      await expect(step.getByTestId(testId)).toHaveCount(0);
+    }
+
+    /*
+     * In their place, under each fix that waits - the cloud fix and the
+     * runbook - who may act, and what would let them.
+     */
+    const whoMayAct: string =
+      "Only someone who may start runbook executions can approve or dismiss this fix. You need this permission: Create Runbook Execution.";
+    const lines: Locator = step.getByTestId("remediation-fix-who-may-act");
+    await expect(lines).toHaveText([whoMayAct, whoMayAct]);
+    // Approved in Slack: nothing to decide, nothing said.
+    await expect(
+      slackApprovedFix(page).getByTestId("remediation-fix-who-may-act"),
+    ).toHaveCount(0);
+
+    // A fix needs approval - never theirs - on the pill and on each fix.
+    await expect(stepPillWords(step, "remediation")).toHaveText(
+      "Needs approval",
+    );
+    await expect(approvalTitle(runbookFix(page))).toHaveText("Needs approval");
+    await expect(step).not.toContainText("Needs your approval");
+
+    // The runbook's record still reads; its plan still opens on its own line.
+    const runbook: Locator = runbookFix(page);
+    await expect(
+      runbook.getByTestId("remediation-runbook-track-record"),
+    ).toBeVisible();
+
+    // The lock beside the line's first line, the words wrapping inside the card.
+    const line: Locator = runbook.getByTestId("remediation-fix-who-may-act");
+    const [stepBox, mark, words]: Array<Box> = await documentBoxes(page, [
+      step,
+      line.locator("svg").first(),
+      line.getByTestId("remediation-fix-who-may-act-words"),
+    ]);
+    expect(mark!.x + mark!.width).toBeLessThanOrEqual(words!.x);
+    // text-xs on leading-5: its first line is 20px high.
+    expect(Math.abs(centreOf(mark!) - (words!.y + 10))).toBeLessThanOrEqual(2);
+    expect(words!.height).toBeGreaterThan(20);
+    expect(words!.x + words!.width).toBeLessThanOrEqual(
+      stepBox!.x + stepBox!.width + 1,
+    );
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotElement(runbook, "remediation-fix-who-may-act-390");
+  });
+
   test("on a German phone in dark: the record, where the fix was approved and Dismiss fix in German - never its Hide - a refusal of it in German, and a dry run's time", async ({
     page,
   }: {
