@@ -784,9 +784,14 @@ export const RemediationCommandPlanList: FunctionComponent<{
                   <TranslatedSentence
                     template="Rollback: {{command}}"
                     slots={{
-                      // Code, which reads left to right in every language (Theme.css).
+                      /*
+                       * Code, which reads left to right in every language
+                       * (Theme.css), and breaks inside a long address as the
+                       * command above it does: on a phone in Persian its
+                       * account id ran off the column's edge.
+                       */
                       command: (
-                        <code className="font-mono text-gray-700">
+                        <code className="font-mono text-gray-700 [overflow-wrap:anywhere]">
                           {command.rollbackCommand}
                         </code>
                       ),

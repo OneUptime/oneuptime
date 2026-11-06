@@ -70,7 +70,10 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  *  - a restart of a declared resource sets nothing the code declares: its
  *    note says the next apply does not undo it, quietly, and nothing is
  *    offered or read;
- *  - a resource no code declares has no note at all.
+ *  - a resource no code declares has no note at all;
+ *  - the undo under the step breaks inside a long address, as the command
+ *    above it does: on a phone in Persian its account id ran off the
+ *    column's edge.
  */
 
 const INCIDENT_ID: ObjectID = new ObjectID(
@@ -234,6 +237,23 @@ describe("a declared resource's step, on the AI card", () => {
       note.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(screen.getAllByTestId("declared-code-change")).toHaveLength(1);
+  });
+
+  test("the undo under the step breaks inside a long address, as the command above it does", async () => {
+    const undo: string = `cloud scale-in ${ECS} --count 2`;
+
+    await renderCard(fix([cloudCommand({ rollbackCommand: undo })]));
+
+    const plan: HTMLElement = (await findRemediationCommandLines(SCALE)).plan;
+    const line: HTMLElement = within(plan).getByTestId(
+      "remediation-command-undo",
+    );
+
+    expect(line).toHaveTextContent(undo);
+    // Its code: a phone in Persian ran the account id off the column's edge.
+    expect(within(line).getByText(undo)).toHaveClass(
+      "[overflow-wrap:anywhere]",
+    );
   });
 
   test("once it ran: the pull request is under the step as it ran, and only there", async () => {
