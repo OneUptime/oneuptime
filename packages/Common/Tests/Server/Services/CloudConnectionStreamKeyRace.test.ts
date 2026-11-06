@@ -401,7 +401,7 @@ describe("the write", () => {
     expect(made.previousKeyWorksUntil).toBeNull();
   });
 
-  test("a connection removed, or not an AWS one, between two tries is refused", async () => {
+  test("a connection removed, or one that no longer streams with a key (now an Azure one), between two tries is refused", async () => {
     let tries: number = 0;
     jest
       .spyOn(CloudConnectionService, "compareAndSetColumnsByIdWithoutHooks")
@@ -412,7 +412,7 @@ describe("the write", () => {
       }) as never);
 
     await expect(makeKey()).rejects.toThrow(
-      "Only AWS connections stream metrics and logs through Amazon Data Firehose.",
+      "Only AWS and Google Cloud connections stream with a stream key.",
     );
     expect(tries).toBe(1);
 
