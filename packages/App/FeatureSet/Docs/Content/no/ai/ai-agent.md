@@ -227,6 +227,14 @@ Kommandoer fra kommentarer trenger GitHub App, så foreløpig fungerer de bare i
 
 For GitLab, Forgejo eller Gitea skriver du inn serverens adresse (GitLab.com og Codeberg er fylt inn) og tokenet, og velger repositoriene som skal kobles til: listen viser bare dem tokenet kan pushe til, og senere kan flere kobles til med det samme tokenet. OneUptime sjekker hvert token hos serveren før det lagrer det, lagrer det kryptert og viser det aldri igjen. Repositoriets **Innstillinger** viser serveren, kontoen og tokenets siste tegn, med **Erstatt tilgangstoken**. Når serveren avviser et utløpt eller tilbakekalt token, viser repositoriene **Token avvist**, og AI slutter å jobbe i dem, helt til en erstatning av tokenet kobler til hvert repositorium som bruker det, igjen. På et GitLab-repositorium sier innstillingene merge requests, slik GitLab gjør: **Merge requests**, **AI-rettings-merge requests** og **Maks. åpne rettings-merge requests**.
 
+### Logg på en Git-server
+
+OneUptime logger på et repositorium på en hvilken som helst Git-server med brukernavnet og passordet eller tilgangstokenet som repositoriet er koblet til med. Med mindre bare dine egne Runnere når serveren, sjekker OneUptime dem før det kobler til repositoriet, ved å be serveren om grenene til repositoriet: forespørselen hver kloning starter med. En Runner sender dem på samme måte, med Gits første forespørsel til serveren, som HTTP Basic, så en server som først tilbyr Windows-pålogging, som Azure DevOps Server, også tar imot et personlig tilgangstoken. Git får dem gjennom miljøet sitt, bare for den ene serveren: aldri på kommandolinjen sin, og aldri i klonens `.git/config`, der kodeagenten jobber.
+
+### Hva AI leser i et Git-repositorium
+
+En Git-server har ikke noe API som filene i et repositorium kan leses gjennom, så OneUptime leser bare grenene til et repositorium på en slik server, for grenvelgeren. [Spør AI](/docs/ai/ask-ai) og [AI-undersøkelser](/docs/ai/ai-sre) leser koden i GitHub-, GitLab-, Forgejo- og Gitea-repositorier; spurt om koden i et Git-repositorium sier de at de ikke kan åpne den. En oppgave i Kode virker likevel i et Git-repositorium: Runneren kloner det, AI leser og endrer koden i klonen og pusher endringen til en ny gren.
+
 ### En Git-server på et privat nettverk
 
 OneUptime Cloud når bare Git-servere på internett, aldri en privat, loopback- eller link-local-adresse. Koble til en server som bare nettverket ditt når, som **Hvilken som helst Git-server**: Kode sier at den ikke når den, og **Koble til likevel** kobler den til for en av dine egne Runnere på det nettverket. Velg den Runneren på repositoriets **Runner**-kort (se [Velg repositoriets Runner](#velg-repositoriets-runner)). En global Runner jobber aldri i det, og OneUptime leser ingenting fra det på serveren, så grenvelgeren viser bare hovedgrenen. En selvhostet OneUptime og dens globale Runner når Git-serverne på sitt eget nettverk.
@@ -329,6 +337,10 @@ En kjøring der heartbeat har vært stille i mer enn 12 minutter, avsluttes med 
 
 :::details Ingen Runner plukker opp oppgaven
 En oppgave som venter i mer enn 30 minutter mens Runneren som skal ta den, ikke er tilkoblet - den repositoriet velger, prosjektets standard-Runner for et repositorium som ikke velger noen, eller en global Runner - feiler med en melding som sier hvilken, slik at den aldri vises som pågående for alltid. En Runner som ikke tar koderettinger, regnes som ikke tilkoblet: en som er startet med `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, eller en global Runner som er eldre enn 14.0.94. Kode sier det før du ber om en oppgave. Når en Runner er tilkoblet, men opptatt, venter oppgaver i kø på tur. En Runner som er eldre enn Kode, får aldri en forespørsel fra Kode: oppdater en Runner du kjører selv, sammen med serveren.
+:::
+
+:::details Serveren avviser påloggingsopplysningene
+Oppgaven feiler og sier hvilken server som avviste påloggingsopplysningene OneUptime logget på med, og hvilket repositorium den ikke kunne klone eller pushe grenen sin til. Den prøves ikke på nytt på repositoriets standardgren: på en server der folk logger på med Windows-kontoer, som Azure DevOps Server, kan enda en avvist pålogging telle mot at kontoen låses. På GitHub sjekker du at OneUptime GitHub App fortsatt er installert med tilgang til repositoriet. Andre steder sjekker du at brukernavnet og passordet eller tokenet fortsatt kan lese repositoriet og pushe til det, og gir det nye med **Erstatt tilgangstoken** på repositoriets side **Innstillinger**. Prøv deretter oppgaven på nytt.
 :::
 
 ## Personvern

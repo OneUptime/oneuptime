@@ -227,6 +227,14 @@ I comandi dai commenti richiedono la GitHub App, quindi per ora funzionano solo 
 
 Per GitLab, Forgejo o Gitea, inserisci l'indirizzo del server (GitLab.com e Codeberg sono già compilati) e il token, poi scegli i repository da collegare: l'elenco offre solo quelli in cui il token può inviare modifiche, e collegarne altri in seguito può riutilizzare il token. OneUptime verifica ogni token con il suo server prima di conservarlo, lo conserva cifrato e non lo mostra mai più. Le **Impostazioni** del repository mostrano il server, l'account e gli ultimi caratteri del token, con **Sostituisci il token di accesso**. Quando il server rifiuta un token scaduto o revocato, i suoi repository mostrano **Token rifiutato** e l'IA smette di lavorarci, finché sostituire il token non ricollega ogni repository che lo usa. In un repository GitLab le impostazioni parlano di merge request, come GitLab: **Merge request**, **Merge request di correzione IA** e **Max merge request di correzione aperte**.
 
+### Accesso a un server Git
+
+OneUptime accede a un repository su qualsiasi server Git con il nome utente e la password o il token di accesso con cui è collegato. A meno che il server non sia raggiungibile solo dai tuoi Runner, OneUptime li verifica prima di collegare il repository, chiedendo al server i branch del repository: la richiesta con cui inizia ogni clone. Un Runner li invia allo stesso modo, con la prima richiesta di Git al server, come HTTP Basic, quindi un server che offre prima l'accesso Windows, come Azure DevOps Server, accetta anche un token di accesso personale. Git li riceve attraverso il proprio ambiente, solo per quel server: mai sulla sua riga di comando e mai nel `.git/config` del clone, dove lavora l'agente di codice.
+
+### Cosa legge l'IA in un repository Git
+
+Un server Git non ha un'API con cui leggere i file di un repository, quindi OneUptime legge solo i branch di un repository su un server del genere, per la scelta del branch. [Chiedi all'IA](/docs/ai/ask-ai) e le [indagini IA](/docs/ai/ai-sre) leggono il codice dei repository GitHub, GitLab, Forgejo e Gitea; se chiedi loro del codice di un repository Git, dicono che non possono aprirlo. Un'attività in Codice funziona comunque in un repository Git: il Runner lo clona, l'IA legge e modifica il codice nel clone e invia la modifica su un nuovo branch.
+
 ### Un server Git su una rete privata
 
 OneUptime Cloud raggiunge solo server Git su Internet, mai un indirizzo privato, di loopback o link-local. Collega un server che raggiunge solo la tua rete come **Qualsiasi server Git**: Codice dice che non riesce a raggiungerlo, e **Connetti comunque** lo collega per uno dei tuoi Runner su quella rete. Scegli quel Runner sulla scheda **Runner** del repository (vedi [Scegli il Runner del repository](#scegli-il-runner-del-repository)). Un Runner globale non ci lavora mai, e OneUptime non ne legge nulla sul server, quindi la scelta del branch offre solo il suo branch principale. Un OneUptime self-hosted, e il suo Runner globale, raggiungono i server Git della propria rete.
@@ -329,6 +337,10 @@ Un'esecuzione il cui heartbeat tace da più di 12 minuti viene chiusa con un err
 
 :::details Nessun Runner prende l'attività
 Un'attività che aspetta più di 30 minuti mentre il Runner che deve prenderla non è collegato - quello scelto dal suo repository, il Runner predefinito del progetto per un repository che non ne sceglie nessuno, o un Runner globale - fallisce, con un messaggio che dice quale, così non risulta mai in corso per sempre. Un Runner che non prende correzioni di codice conta come non collegato: uno avviato con `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, o un Runner globale precedente a 14.0.94. Codice lo dice prima che tu chieda un'attività. Quando un Runner è online ma occupato, le attività in coda aspettano il loro turno. Un Runner precedente a Codice non riceve mai una richiesta da Codice: aggiorna un Runner che esegui tu insieme al server.
+:::
+
+:::details Il server rifiuta le credenziali
+L'attività fallisce e dice quale server ha rifiutato le credenziali con cui OneUptime ha effettuato l'accesso, e quale repository non è riuscita a clonare o su quale non è riuscita a inviare il suo branch. Non viene ritentata sul branch predefinito del repository: su un server dove le persone accedono con account Windows, come Azure DevOps Server, un secondo accesso rifiutato può contare per il blocco dell'account. Su GitHub, controlla che la GitHub App di OneUptime sia ancora installata con accesso al repository. Altrove, controlla che il nome utente e la password o il token possano ancora leggere il repository e inviarvi modifiche, e dagliene di nuovi con **Sostituisci il token di accesso** nella pagina **Impostazioni** del repository. Poi riprova l'attività.
 :::
 
 ## Privacy
