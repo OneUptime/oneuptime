@@ -55,6 +55,9 @@ import {
   MarkdownEventReferenceElement,
   MarkdownInlineReferenceContext,
   MarkdownInlineReferenceRenderers,
+  MarkdownReferenceGroupElement,
+  REFERENCE_GROUP_NODE_TYPE,
+  REFERENCE_GROUP_TAG_NAME,
   applyInlineReferences,
   remarkInlineReferences,
 } from "../../../UI/Components/Markdown.tsx/InlineReferences";
@@ -258,6 +261,22 @@ function eventRef(
   };
 }
 
+/*
+ * A reference - or a run of citations written one right after another -
+ * and the punctuation written right after it, kept on one line
+ * (REFERENCE_GROUP_NODE_TYPE).
+ */
+function group(references: Node | Array<Node>, punctuation: string = ""): Node {
+  return {
+    type: REFERENCE_GROUP_NODE_TYPE,
+    data: { hName: REFERENCE_GROUP_TAG_NAME },
+    children: [
+      ...(Array.isArray(references) ? references : [references]),
+      ...(punctuation ? [text(punctuation)] : []),
+    ],
+  };
+}
+
 function linkReference(
   identifier: string,
   children: Array<Node>,
@@ -422,23 +441,20 @@ describe("applyInlineReferences — citation markers", () => {
   test("splits several citations in one text run in order", () => {
     expect(transformText("A [C1], B [C22] and C [C333].")).toEqual([
       text("A "),
-      citation("C1"),
-      text(", B "),
+      group(citation("C1"), ","),
+      text(" B "),
       citation("C22"),
       text(" and C "),
-      citation("C333"),
-      text("."),
+      group(citation("C333"), "."),
     ]);
   });
 
-  test("adjacent markers [C4][C5] become two back-to-back nodes with no empty text", () => {
+  test("adjacent markers [C4][C5] become two back-to-back nodes in one group, with no empty text", () => {
     const children: Array<Node> = transformText("dry [C4][C5].");
 
     expect(children).toEqual([
       text("dry "),
-      citation("C4"),
-      citation("C5"),
-      text("."),
+      group([citation("C4"), citation("C5")], "."),
     ]);
     expect(
       children.some((child: Node): boolean => {
@@ -568,12 +584,11 @@ describe("applyInlineReferences — incident and alert numbers", () => {
   test("a plural qualifier carries across a comma / and separated list", () => {
     expect(transformText("prior: incidents #1, #2 and #3.")).toEqual([
       text("prior: incidents "),
-      eventRef("incident", 1),
-      text(", "),
+      group(eventRef("incident", 1), ","),
+      text(" "),
       eventRef("incident", 2),
       text(" and "),
-      eventRef("incident", 3),
-      text("."),
+      group(eventRef("incident", 3), "."),
     ]);
   });
 
@@ -582,14 +597,13 @@ describe("applyInlineReferences — incident and alert numbers", () => {
       transformText("Pool dry [C4]; same as incident #1234 and #77 [C5]."),
     ).toEqual([
       text("Pool dry "),
-      citation("C4"),
-      text("; same as incident "),
+      group(citation("C4"), ";"),
+      text(" same as incident "),
       eventRef("incident", 1234),
       text(" and "),
       eventRef("incident", 77),
       text(" "),
-      citation("C5"),
-      text("."),
+      group(citation("C5"), "."),
     ]);
   });
 
@@ -615,8 +629,7 @@ describe("applyInlineReferences — incident and alert numbers", () => {
   test("a bracketed [#12] (never a link without a definition) keeps its brackets as text", () => {
     expect(transformText("see [#12]")).toEqual([
       text("see ["),
-      eventRef("", 12),
-      text("]"),
+      group(eventRef("", 12), "]"),
     ]);
   });
 
@@ -627,14 +640,13 @@ describe("applyInlineReferences — incident and alert numbers", () => {
   test("a qualifier followed by a colon or parenthesis still sets the kind of the whole list", () => {
     expect(transformText("Related alerts: #100, #101")).toEqual([
       text("Related alerts: "),
-      eventRef("alert", 100),
-      text(", "),
+      group(eventRef("alert", 100), ","),
+      text(" "),
       eventRef("alert", 101),
     ]);
     expect(transformText("a similar incident (#12)")).toEqual([
       text("a similar incident ("),
-      eventRef("incident", 12),
-      text(")"),
+      group(eventRef("incident", 12), ")"),
     ]);
   });
 
@@ -875,7 +887,7 @@ describe("applyInlineReferences — a citation can never become a link", () => {
   test("reverts a collapsed [C12][] reference", () => {
     expect(
       transformParagraph([linkReference("c12", [text("C12")], "collapsed")]),
-    ).toEqual([citation("C12"), text("[]")]);
+    ).toEqual([group(citation("C12"), "[]")]);
   });
 
   test("reverts a full [evidence][C3] reference", () => {
@@ -970,12 +982,14 @@ describe("applyInlineReferences — a citation can never become a link", () => {
     applyInlineReferences(tree, { citations: true, eventReferences: false });
 
     expect(countType(tree, "linkReference")).toBe(0);
-    // "[C4][C4]" is how a full [C4][C4] reference reads once reverted.
+    /*
+     * "[C4][C4]" is how a full [C4][C4] reference reads once reverted: two
+     * chips written one right after the other, kept on one line.
+     */
     expect(tree.children?.[0]?.children).toEqual([
       text("a ["),
       { type: "break" },
-      citation("C4"),
-      citation("C4"),
+      group([citation("C4"), citation("C4")]),
       text(" b]"),
       citation("C18"),
     ]);
@@ -1669,11 +1683,15 @@ describe("MarkdownEventReferenceElement", () => {
 });
 
 describe("inline reference components map", () => {
-  test("maps exactly the two custom tag names to the module-scope elements", () => {
+  test("maps exactly the three custom tag names to the module-scope elements", () => {
     expect(Object.keys(MARKDOWN_INLINE_REFERENCE_COMPONENTS).sort()).toEqual([
       "oneuptime-citation-ref",
       "oneuptime-event-ref",
+      "oneuptime-ref-group",
     ]);
+    expect(MARKDOWN_INLINE_REFERENCE_COMPONENTS[REFERENCE_GROUP_TAG_NAME]).toBe(
+      MarkdownReferenceGroupElement,
+    );
     expect(
       MARKDOWN_INLINE_REFERENCE_COMPONENTS[CITATION_REFERENCE_TAG_NAME],
     ).toBe(MarkdownCitationReferenceElement);
@@ -1811,7 +1829,7 @@ describe("MarkdownViewer inlineReferences wiring", () => {
     );
   });
 
-  test("with inlineReferences: adds the plugin with both passes and registers the two elements", () => {
+  test("with inlineReferences: adds the plugin with both passes and registers the three elements", () => {
     render(
       <MarkdownViewer
         text="x"
@@ -1835,6 +1853,7 @@ describe("MarkdownViewer inlineReferences wiring", () => {
         ...EXISTING_COMPONENT_KEYS,
         CITATION_REFERENCE_TAG_NAME,
         EVENT_REFERENCE_TAG_NAME,
+        REFERENCE_GROUP_TAG_NAME,
       ].sort(),
     );
     expect(components[CITATION_REFERENCE_TAG_NAME]).toBe(
@@ -1842,6 +1861,9 @@ describe("MarkdownViewer inlineReferences wiring", () => {
     );
     expect(components[EVENT_REFERENCE_TAG_NAME]).toBe(
       MarkdownEventReferenceElement,
+    );
+    expect(components[REFERENCE_GROUP_TAG_NAME]).toBe(
+      MarkdownReferenceGroupElement,
     );
   });
 

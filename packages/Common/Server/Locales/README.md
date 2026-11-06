@@ -9,11 +9,13 @@ a language of their own:
   notes and states, and announcements - by email, text message, Slack and
   Microsoft Teams;
 - the messages about a subscription: the link to confirm it, the welcome,
-  and the link to manage it.
+  and the link to manage it;
+- the status page's uptime report (`StatusPageService.sendEmailReport`),
+  its figures written in the language too (`Common/Utils/StatusPage/
+  ReportText.ts`).
 
 Everything else the server writes - the emails, texts, calls and pushes to a
-project's own team, every API answer, feed items, the status page's uptime
-report - is still English.
+project's own team, every API answer, feed items - is still English.
 
 ## Which language a message is written in
 
@@ -32,7 +34,12 @@ What changes is OneUptime's own words: subjects, headings, labels, buttons,
 sentences, OneUptime's default names of states and severities (`Identified`,
 `Resolved`, `Major Incident`, `Ongoing`...) and dates. What the team wrote -
 titles, descriptions, notes, names of their own states, a custom template -
-reads exactly as written.
+reads exactly as written. A custom template is one text for every
+subscriber: the values OneUptime fills it with that are its own words - a
+default state's name, `None`, `Yes` / `No`, a date, the report's figures -
+are written in the page's default language
+(`Common/Server/Utils/StatusPage/SubscriberTemplateValues.ts`), and so is a
+test report.
 
 ## How it works
 

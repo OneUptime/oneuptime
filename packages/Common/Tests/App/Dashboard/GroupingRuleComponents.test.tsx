@@ -92,6 +92,9 @@ import GroupingModeField from "../../../../App/FeatureSet/Dashboard/src/Componen
 import MinutesSettingField, {
   MinutesSettingValue,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GroupingRule/MinutesSettingField";
+import MinimumCountSettingField, {
+  MinimumCountSettingValue,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/GroupingRule/MinimumCountSettingField";
 import GroupingRuleTemplates from "../../../../App/FeatureSet/Dashboard/src/Components/GroupingRule/GroupingRuleTemplates";
 import {
   GROUPING_RULE_COPY,
@@ -454,6 +457,165 @@ describe("MinutesSettingField", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
+
+/*
+ * Wait for more incidents before opening an episode (issue #5374): a switch,
+ * and while it is on the count inside its sentence - drawn as the minutes
+ * settings are, by NumberSettingField.
+ */
+describe.each([GroupingRuleKind.Incident, GroupingRuleKind.Alert])(
+  "MinimumCountSettingField (%s)",
+  (kind: GroupingRuleKind) => {
+    const noun: string =
+      kind === GroupingRuleKind.Incident ? "incidents" : "alerts";
+
+    function renderSetting(data: {
+      enabled: boolean;
+      count: unknown;
+      error?: string;
+      onChange?: (value: MinimumCountSettingValue) => void;
+      onBlur?: () => void;
+    }): void {
+      render(
+        <MinimumCountSettingField
+          title={GROUPING_RULE_COPY.minimumCountTitle[kind]}
+          description={GROUPING_RULE_COPY.minimumCountDescription[kind]}
+          sentence={GROUPING_RULE_COPY.minimumCountSentence[kind]}
+          countLabel={GROUPING_RULE_COPY.minimumCountLabel[kind]}
+          enabled={data.enabled}
+          count={data.count}
+          error={data.error}
+          dataTestId="minimum-count-setting"
+          onBlur={data.onBlur}
+          onChange={
+            data.onChange ||
+            ((): void => {
+              // Not asserted on.
+            })
+          }
+        />,
+      );
+    }
+
+    test("is a labelled switch, with its help, and no count while it is off", () => {
+      renderSetting({ enabled: false, count: 3 });
+
+      const toggle: HTMLElement = screen.getByRole("switch", {
+        name: `Wait for more ${noun}`,
+      });
+
+      expect(toggle).toHaveAttribute("aria-checked", "false");
+      expect(toggle).toHaveAccessibleDescription(
+        GROUPING_RULE_COPY.minimumCountDescription[kind],
+      );
+      expect(
+        screen.queryByTestId("minimum-count-setting-count-row"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("when on, draws the count inside its sentence, named for the setting", () => {
+      renderSetting({ enabled: true, count: 3 });
+
+      const row: HTMLElement = screen.getByTestId(
+        "minimum-count-setting-count-row",
+      );
+      const input: HTMLElement = within(row).getByRole("spinbutton", {
+        name: GROUPING_RULE_COPY.minimumCountLabel[kind],
+      });
+
+      expect(input).toHaveValue(3);
+      expect(row.children).toHaveLength(3);
+      expect(row.children[1]).toContainElement(input);
+      expect(row.firstElementChild).toHaveTextContent(/^Open an episode once$/);
+      expect(row.lastElementChild).toHaveTextContent(
+        `matching ${noun} are ongoing`,
+      );
+    });
+
+    test("turning it on starts at 3 when no count is set, or one that waits for nothing", () => {
+      for (const count of [undefined, 1]) {
+        const onChange: MockFunction = getJestMockFunction();
+        renderSetting({ enabled: false, count: count, onChange });
+
+        fireEvent.click(screen.getByRole("switch"));
+
+        expect(onChange).toHaveBeenCalledWith({ enabled: true, count: 3 });
+        cleanup();
+      }
+    });
+
+    test("turning it on keeps a count that was set before", () => {
+      const onChange: MockFunction = getJestMockFunction();
+      renderSetting({ enabled: false, count: 8, onChange });
+
+      fireEvent.click(screen.getByRole("switch"));
+
+      expect(onChange).toHaveBeenCalledWith({ enabled: true, count: 8 });
+    });
+
+    test("turning it off never leaves a cleared box behind", () => {
+      const onChange: MockFunction = getJestMockFunction();
+      renderSetting({ enabled: true, count: "", onChange });
+
+      fireEvent.click(screen.getByRole("switch"));
+
+      expect(onChange).toHaveBeenCalledWith({ enabled: false, count: 3 });
+    });
+
+    test("typing hands over a count the box takes as a number, and anything else as typed", () => {
+      const onChange: MockFunction = getJestMockFunction();
+      renderSetting({ enabled: true, count: 3, onChange });
+
+      const input: HTMLElement = screen.getByRole("spinbutton");
+
+      fireEvent.change(input, { target: { value: "5" } });
+      expect(onChange).toHaveBeenLastCalledWith({ enabled: true, count: 5 });
+
+      // 1 waits for nothing, and 101 is more than an episode opens with.
+      fireEvent.change(input, { target: { value: "1" } });
+      expect(onChange).toHaveBeenLastCalledWith({ enabled: true, count: "1" });
+
+      fireEvent.change(input, { target: { value: "101" } });
+      expect(onChange).toHaveBeenLastCalledWith({
+        enabled: true,
+        count: "101",
+      });
+
+      fireEvent.change(input, { target: { value: "" } });
+      expect(onChange).toHaveBeenLastCalledWith({ enabled: true, count: "" });
+    });
+
+    test("leaving the box tells the form it was touched", () => {
+      const onBlur: MockFunction = getJestMockFunction();
+      renderSetting({ enabled: true, count: 3, onBlur });
+
+      fireEvent.blur(screen.getByRole("spinbutton"));
+
+      expect(onBlur).toHaveBeenCalled();
+    });
+
+    test("an error is announced and tied to the box", () => {
+      renderSetting({
+        enabled: true,
+        count: "1",
+        error: "Enter a whole number between 2 and 100.",
+      });
+
+      const error: HTMLElement = screen.getByRole("alert");
+      const input: HTMLElement = screen.getByRole("spinbutton");
+
+      expect(error).toHaveTextContent("Enter a whole number between 2 and 100.");
+      expect(input).toHaveAttribute("aria-invalid", "true");
+      expect(input).toHaveAttribute("aria-describedby", error.id);
+    });
+
+    test("an error on a switched-off setting is not shown - it is not checked", () => {
+      renderSetting({ enabled: false, count: "", error: "Not shown." });
+
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+  },
+);
 
 describe("GroupingRuleTemplates", () => {
   beforeEach(() => {

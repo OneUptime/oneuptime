@@ -74,6 +74,7 @@ import FeedMarkdown, {
 } from "Common/Utils/Markdown/FeedMarkdown";
 import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
 import SubscriberMessageText from "Common/Server/Utils/StatusPage/SubscriberMessageText";
+import SubscriberTemplateValues from "Common/Server/Utils/StatusPage/SubscriberTemplateValues";
 import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessage";
 import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
 import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
@@ -390,8 +391,14 @@ RunCron(
               markdownVariables: {
                 incidentDescription: incident.description,
               },
+              /*
+               * The state's default name in each page's language, for its
+               * custom templates (SubscriberTemplateValues).
+               */
               textVariables: {
-                incidentState: incidentStateTimeline.incidentState.name,
+                incidentState: SubscriberTemplateValues.stateName(
+                  incidentStateTimeline.incidentState.name,
+                ),
               },
             });
 

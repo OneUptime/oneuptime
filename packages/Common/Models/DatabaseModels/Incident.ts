@@ -145,6 +145,15 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 @Index(["aiInvestigationWaitUntil"], {
   where: '"aiInvestigationWaitUntil" IS NOT NULL AND "deletedAt" IS NULL',
 })
+/*
+ * The incidents a grouping rule holds back until enough matching incidents
+ * are ongoing to open an episode (issue #5374), newest first by group: what
+ * the grouping engine reads when the next incident of the group arrives.
+ * Only incidents that waited are in it.
+ */
+@Index(["groupingWaitKey", "createdAt"], {
+  where: '"groupingWaitKey" IS NOT NULL AND "deletedAt" IS NULL',
+})
 export default class Incident extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -2480,6 +2489,28 @@ export default class Incident extends BaseModel {
   })
   @Column({ type: ColumnType.Date, nullable: true })
   public aiInvestigationWaitUntil?: Date = undefined;
+
+  /*
+   * While a grouping rule holds this incident back until enough matching
+   * incidents are ongoing to open an episode (issue #5374): the rule and the
+   * group it waits in, as one keyed hash (GroupingRuleEpisodeWait), so no
+   * title is kept in it. Cleared when the rule opens the episode with it.
+   * Null for every other incident. Read through the partial index above.
+   */
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Grouping Wait Key",
+    description:
+      "Internal: while a grouping rule waits for more matching incidents before it opens an episode, the rule and group this incident waits in.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public groupingWaitKey?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

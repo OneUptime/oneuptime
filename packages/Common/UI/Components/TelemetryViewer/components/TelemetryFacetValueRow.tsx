@@ -11,6 +11,7 @@ import {
   formatFacetCount,
   isFacetCountShortened,
 } from "../FacetCount";
+import { FACET_SIDEBAR_NAME_ATTRIBUTE } from "../FacetSidebarMeasure";
 
 // Every row, so a page or a test can find one and read its state.
 export const FACET_VALUE_ROW_TEST_ID: string = "facet-value-row";
@@ -287,6 +288,8 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
                   : "text-gray-700"
         }`}
         text={displayLabel}
+        // The filters sidebar fits itself to these (a double-click on its edge).
+        dataAttributes={{ [FACET_SIDEBAR_NAME_ATTRIBUTE]: "true" }}
       />
       {isExcluded && (
         <span className="sr-only">{translator.translateText("Excluded")}</span>

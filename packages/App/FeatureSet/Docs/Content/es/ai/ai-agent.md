@@ -227,6 +227,14 @@ Los comandos desde comentarios necesitan la GitHub App, así que por ahora solo 
 
 Para GitLab, Forgejo o Gitea, introduce la dirección del servidor (GitLab.com y Codeberg vienen rellenados) y el token, y elige los repositorios que conectar: la lista ofrece solo aquellos a los que el token puede subir cambios, y conectar más después puede reutilizar el token. OneUptime comprueba cada token con su servidor antes de guardarlo, lo guarda cifrado y no vuelve a mostrarlo. Los **Ajustes** del repositorio muestran su servidor, la cuenta y los últimos caracteres del token, con **Reemplazar el token de acceso**. Cuando el servidor rechaza un token caducado o revocado, sus repositorios muestran **Token rechazado** y la IA deja de trabajar en ellos, hasta que reemplazar el token vuelve a conectar todos los repositorios que lo usan. En un repositorio de GitLab, los ajustes hablan de merge requests, como GitLab: **Merge requests**, **Merge requests de corrección con IA** y **Máximo de merge requests de corrección abiertos**.
 
+### Iniciar sesión en un servidor Git
+
+OneUptime inicia sesión en un repositorio de cualquier servidor Git con el nombre de usuario y la contraseña o el token de acceso con los que está conectado. Salvo que solo tus propios Runners lleguen al servidor, OneUptime los comprueba antes de conectar el repositorio, pidiendo al servidor las ramas del repositorio: la petición con la que empieza todo clonado. Un Runner los envía del mismo modo, con la primera petición de Git al servidor, como HTTP Basic, así que un servidor que ofrece primero el inicio de sesión de Windows, como Azure DevOps Server, también acepta un token de acceso personal. Git los recibe a través de su entorno, solo para ese servidor: nunca en su línea de comandos y nunca en el `.git/config` del clon, donde trabaja el agente de código.
+
+### Qué lee la IA en un repositorio Git
+
+Un servidor Git no tiene una API con la que leer los archivos de un repositorio, así que OneUptime solo lee las ramas de un repositorio alojado en uno, para el selector de ramas. [Preguntar a la IA](/docs/ai/ask-ai) y las [investigaciones de IA](/docs/ai/ai-sre) leen el código de los repositorios de GitHub, GitLab, Forgejo y Gitea; si les preguntas por el código de un repositorio Git, dicen que no pueden abrirlo. Una tarea en Código sigue funcionando en un repositorio Git: el Runner lo clona, la IA lee y cambia el código en el clon, y sube el cambio a una rama nueva.
+
 ### Un servidor Git en una red privada
 
 OneUptime Cloud solo llega a servidores Git en Internet, nunca a una dirección privada, de bucle invertido o de enlace local. Conecta un servidor al que solo llega tu red como **Cualquier servidor Git**: Código dice que no puede llegar a él, y **Conectar de todos modos** lo conecta para uno de tus propios Runners en esa red. Elige ese Runner en la tarjeta **Runner** del repositorio (consulta [Elige el Runner del repositorio](#elige-el-runner-del-repositorio)). Un Runner global nunca trabaja en él, y OneUptime no lee nada de él en el servidor, así que el selector de ramas solo ofrece su rama principal. Un OneUptime autoalojado, y su Runner global, llegan a los servidores Git de su propia red.
@@ -329,6 +337,10 @@ Una ejecución cuyo heartbeat lleva más de 12 minutos en silencio se marca como
 
 :::details Ningún Runner toma la tarea
 Una tarea que espera más de 30 minutos mientras el Runner que debe tomarla no está conectado - el que elige su repositorio, el Runner predeterminado del proyecto para un repositorio que no elige ninguno, o un Runner global - falla, con un mensaje que dice cuál, así que nunca aparece en curso para siempre. Un Runner que no toma correcciones de código cuenta como no conectado: uno iniciado con `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, o un Runner global anterior a 14.0.94. Código lo dice antes de que pidas una tarea. Cuando un Runner está en línea pero ocupado, las tareas en cola esperan su turno. Un Runner anterior a Código nunca recibe una petición de Código: actualiza un Runner que ejecutes tú mismo junto con el servidor.
+:::
+
+:::details El servidor rechaza las credenciales
+La tarea falla y dice qué servidor rechazó las credenciales con las que OneUptime inició sesión, y qué repositorio no pudo clonar o a cuál no pudo subir su rama. No se vuelve a intentar en la rama predeterminada del repositorio: en un servidor en el que las personas inician sesión con cuentas de Windows, como Azure DevOps Server, un segundo inicio de sesión rechazado puede contar para bloquear la cuenta. En GitHub, comprueba que la GitHub App de OneUptime sigue instalada con acceso al repositorio. En los demás, comprueba que el nombre de usuario y la contraseña o el token aún pueden leer el repositorio y subir cambios a él, y dale otros nuevos con **Reemplazar el token de acceso** en la página **Ajustes** del repositorio. Después vuelve a intentar la tarea.
 :::
 
 ## Privacidad

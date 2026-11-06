@@ -50,7 +50,7 @@ Preguntar a la IA lee tu proyecto con tus propios permisos, así que ve lo que t
 | Respuesta a incidentes | Incidentes y alertas, con filtros de estado ("¿qué está activo ahora mismo?"), sus cronologías de actividad (cambios de estado, notas internas y públicas, el feed) y propietarios, y una búsqueda en incidentes anteriores para reutilizar cómo se resolvieron. |
 | Guardia | Quién está de guardia ahora, las políticas y cadenas de escalado, y si los avisos recientes se entregaron y se reconocieron. |
 | El trabajo de la propia IA | Los resultados de las investigaciones de AI SRE y de AI Insights, de modo que "¿qué encontró la IA?" se responde con el análisis publicado en lugar de volver a deducirlo. |
-| Plataforma | Monitores (con filtros de estado), mantenimiento programado, páginas de estado y sus anuncios, SLO, runbooks, ejecuciones de flujos de trabajo, salud de las sondas, equipos y el código de los repositorios conectados. |
+| Plataforma | Monitores (con filtros de estado), mantenimiento programado, páginas de estado y sus anuncios, SLO, runbooks, ejecuciones de flujos de trabajo, salud de las sondas, equipos y el código de los repositorios conectados en GitHub, GitLab, Forgejo y Gitea (consulta [Qué lee la IA en un repositorio Git](/docs/ai/ai-agent#qué-lee-la-ia-en-un-repositorio-git)). |
 
 ## Contexto de la página
 

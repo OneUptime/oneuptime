@@ -1,4 +1,4 @@
-import { CODE_PAGE } from "./AiDocsPages";
+import { ASK_AI, CODE_PAGE } from "./AiDocsPages";
 import {
   bold,
   englishPage,
@@ -300,5 +300,149 @@ describe("Code: Connect a repository", () => {
   it("no longer says GitLab is on the roadmap", () => {
     expect(englishPage(CODE_PAGE)).not.toContain("## On the roadmap");
     expect(englishPage(CODE_PAGE)).not.toContain("GitLab support.");
+  });
+});
+
+/*
+ * How OneUptime signs in to a repository on any Git server, what OneUptime
+ * AI reads in one, and what a task says when the server refuses the
+ * credentials (issue #6144: an Azure DevOps Server repository connected as
+ * Git, whose clones failed although the connection said it worked, and
+ * whose code Ask AI said was not connected at all).
+ */
+describe("Code: signing in to a Git server, and what AI reads in one", () => {
+  function signIn(): string {
+    return flat(englishSection(CODE_PAGE, "### Sign in to a Git server"));
+  }
+
+  function reads(): string {
+    return flat(
+      englishSection(CODE_PAGE, "### What AI reads in a Git repository"),
+    );
+  }
+
+  it("checks the credentials with the request every clone starts with, before the repository connects", () => {
+    const smartHttp: string = readRepoFile(
+      "Common/Server/Utils/CodeRepository/CodeHost/GitSmartHttp.ts",
+    );
+    const connector: string = readRepoFile(
+      "Common/Server/Utils/CodeRepository/CodeHost/CodeRepositoryConnector.ts",
+    );
+
+    // One request for the branches, with the credentials sent up front.
+    expect(smartHttp).toContain("/info/refs?service=git-upload-pack");
+    expect(smartHttp).toContain("Authorization: `Basic ${");
+    expect(connector).toContain("}).getRefs();");
+
+    expect(signIn()).toContain(
+      "Unless only your own Runners reach the server, OneUptime checks them before it connects the repository, by asking the server for its branches: the request every clone starts with.",
+    );
+  });
+
+  it("says a Runner sends the credentials with Git's first request, as HTTP Basic, for that server alone, and nowhere the code agent reads", () => {
+    const credentials: string = flat(
+      readRepoFile("Runner/Utils/GitCredentials.ts"),
+    );
+    const manager: string = flat(
+      readRepoFile("Runner/Utils/RepositoryManager.ts"),
+    );
+
+    /*
+     * An http.<origin>/.extraHeader that git reads from its environment,
+     * scoped to the remote's own server, carrying HTTP Basic.
+     */
+    expect(credentials).toContain("GIT_CONFIG_VALUE_");
+    expect(credentials).toContain("/.extraHeader`");
+    expect(credentials).toContain("`Authorization: ${GitCredentials.getBasicAuthorization(");
+    expect(credentials).toContain("return `Basic ${Buffer.from(");
+    // The clone and the push both sign in so.
+    expect(
+      manager.split(
+        "GitCredentials.create( config.token, { username: RepositoryManager.getUsername(config), remoteUrl, }, );",
+      ).length - 1,
+    ).toBe(2);
+
+    expect(signIn()).toContain(
+      "A Runner sends them the same way, with Git's first request to the server, as HTTP Basic, so a server that offers Windows sign-in first, such as Azure DevOps Server, takes a personal access token too.",
+    );
+    expect(signIn()).toContain(
+      "Git is given them through its environment, for that one server: never on its command line, and never in the clone's `.git/config`, where the code agent works.",
+    );
+  });
+
+  it("says OneUptime reads a Git repository's branches and not its files, as the hosts' capabilities and the code tools have it", () => {
+    const tools: string = flat(
+      readRepoFile("Common/Server/Utils/AI/Toolbox/CodeTools.ts"),
+    );
+
+    expect(
+      CodeHost.can(CodeRepositoryType.Git, CodeHostCapability.Branches),
+    ).toBe(true);
+    expect(
+      CodeHost.can(CodeRepositoryType.Git, CodeHostCapability.ReadCode),
+    ).toBe(false);
+
+    for (const type of [
+      CodeRepositoryType.GitHub,
+      CodeRepositoryType.GitLab,
+      CodeRepositoryType.Forgejo,
+    ]) {
+      expect(CodeHost.can(type, CodeHostCapability.ReadCode)).toBe(true);
+    }
+
+    // What the code tools tell the model, for it to pass on.
+    expect(tools).toContain(
+      "files, so search_code and read_code_file cannot open",
+    );
+    expect(tools).toContain("A task in Code still works in");
+    expect(tools).toContain("GitHub, GitLab, Forgejo and Gitea repositories are read.");
+
+    expect(reads()).toContain(
+      "A Git server has no API to read a repository's files through, so OneUptime reads only the branches of a repository on one, for the branch picker.",
+    );
+    expect(reads()).toContain(
+      "read the code of GitHub, GitLab, Forgejo and Gitea repositories; asked about a Git repository's code, they say they cannot open it.",
+    );
+    expect(reads()).toContain(
+      "A task in Code still works in a Git repository: the Runner clones it",
+    );
+
+    // Ask AI's own page names the same hosts, and links here.
+    expect(flat(englishSection(ASK_AI, "## What it can see"))).toContain(
+      "the code of connected repositories on GitHub, GitLab, Forgejo and Gitea (see [What AI reads in a Git repository](/docs/ai/ai-agent#what-ai-reads-in-a-git-repository)).",
+    );
+  });
+
+  it("says a refused sign-in fails the task without a second try on the default branch, and where to give new credentials", () => {
+    const manager: string = flat(
+      readRepoFile("Runner/Utils/RepositoryManager.ts"),
+    );
+    const fails: string = flat(
+      englishSection(CODE_PAGE, "## When a fix fails"),
+    );
+
+    expect(manager).toContain(
+      "refused the credentials OneUptime signed in with, so",
+    );
+    // A refused sign-in is not taken for a missing branch, so not tried again.
+    expect(manager).toContain(
+      "return !( error.isSignInRefusal() || error.isServerUnreachable() || error.isTimeout );",
+    );
+    expect(manager).toContain(
+      "Check that the OneUptime GitHub App is still installed with access to the repository.",
+    );
+    expect(CODE_REPOSITORY_CONNECTION_COPY.replaceButton).toBe(
+      "Replace access token",
+    );
+
+    expect(fails).toContain(
+      ":::details The server refuses the credentials The task fails and says which server refused the credentials OneUptime signed in with, and which repository it could not clone or push its branch to. It is not tried again on the repository's default branch",
+    );
+    expect(fails).toContain(
+      "On GitHub, check that the OneUptime GitHub App is still installed with access to the repository.",
+    );
+    expect(fails).toContain(
+      `give it new ones with ${bold("Replace access token")} on the repository's ${bold("Settings")} page.`,
+    );
   });
 });
