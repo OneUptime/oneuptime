@@ -240,7 +240,9 @@ describe("StatusPageCarriedLogo.read", () => {
   });
 
   test("the logo is made for the status page header's box, once for every email of a notification", async () => {
-    const svg: Buffer = svgLogo('<rect width="120" height="40" fill="#4f46e5"/>');
+    const svg: Buffer = svgLogo(
+      '<rect width="120" height="40" fill="#4f46e5"/>',
+    );
     findOneBy.mockResolvedValue(pageWithLogo({ bytes: svg }) as never);
 
     const making: ReturnType<typeof jest.spyOn> = jest.spyOn(

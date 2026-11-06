@@ -261,23 +261,28 @@ export const imageFacts: (image: Buffer) => Promise<ImageFacts> = async (
 };
 
 // The pixel at (x, y) of an image file, as a mail client draws it.
-export const pixelAt: (image: Buffer, x: number, y: number) => Promise<Rgba> =
-  async (image: Buffer, x: number, y: number): Promise<Rgba> => {
-    const decoded: { data: Buffer; info: OutputInfo } = await sharp(
-      image,
-    )
-      .ensureAlpha()
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-    const offset: number = (y * decoded.info.width + x) * 4;
+export const pixelAt: (
+  image: Buffer,
+  x: number,
+  y: number,
+) => Promise<Rgba> = async (
+  image: Buffer,
+  x: number,
+  y: number,
+): Promise<Rgba> => {
+  const decoded: { data: Buffer; info: OutputInfo } = await sharp(image)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const offset: number = (y * decoded.info.width + x) * 4;
 
-    return {
-      r: decoded.data[offset]!,
-      g: decoded.data[offset + 1]!,
-      b: decoded.data[offset + 2]!,
-      alpha: decoded.data[offset + 3]! / 255,
-    };
+  return {
+    r: decoded.data[offset]!,
+    g: decoded.data[offset + 1]!,
+    b: decoded.data[offset + 2]!,
+    alpha: decoded.data[offset + 3]! / 255,
   };
+};
 
 // Whether two colours are the same to the eye: each channel within `tolerance`.
 export const isAbout: (

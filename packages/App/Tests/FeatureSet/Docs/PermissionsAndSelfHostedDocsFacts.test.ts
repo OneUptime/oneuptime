@@ -2534,11 +2534,13 @@ describe("Architecture, against the compose file and the chart", () => {
 
     // The installation's own logo goes only when it is one of those types.
     expect(readSource("emailBranding")).toContain(
-      'if (branding?.logoUrl && branding.isLogoEmailSafe === true) {',
+      "if (branding?.logoUrl && branding.isLogoEmailSafe === true) {",
     );
 
     // A status page's logo is made from exactly the five types the page names.
-    const logoImage: string = readSource("emailLogoImage").split(WHITESPACE).join("");
+    const logoImage: string = readSource("emailLogoImage")
+      .split(WHITESPACE)
+      .join("");
 
     expect(logoImage).toContain(
       'exportenumEmailLogoSourceType{Png="png",Jpeg="jpeg",Gif="gif",Webp="webp",Svg="svg",}',

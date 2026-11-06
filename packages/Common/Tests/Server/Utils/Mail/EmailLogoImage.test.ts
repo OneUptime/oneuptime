@@ -147,25 +147,26 @@ interface HeldMaking {
 const heldMakings: Array<HeldMaking> = [];
 
 // Every logo is held in the making until the test finishes it.
-const holdEveryMaking: () => ReturnType<typeof jest.spyOn> =
-  (): ReturnType<typeof jest.spyOn> => {
-    return jest
-      .spyOn(makeOf(), "make")
-      .mockImplementation((): Promise<EmailLogoResult> => {
-        let finish: (result: EmailLogoResult) => void = (): void => {
-          return undefined;
-        };
-        const promise: Promise<EmailLogoResult> = new Promise<EmailLogoResult>(
-          (resolve: (result: EmailLogoResult) => void) => {
-            finish = resolve;
-          },
-        );
+const holdEveryMaking: () => ReturnType<typeof jest.spyOn> = (): ReturnType<
+  typeof jest.spyOn
+> => {
+  return jest
+    .spyOn(makeOf(), "make")
+    .mockImplementation((): Promise<EmailLogoResult> => {
+      let finish: (result: EmailLogoResult) => void = (): void => {
+        return undefined;
+      };
+      const promise: Promise<EmailLogoResult> = new Promise<EmailLogoResult>(
+        (resolve: (result: EmailLogoResult) => void) => {
+          finish = resolve;
+        },
+      );
 
-        heldMakings.push({ promise: promise, finish: finish });
+      heldMakings.push({ promise: promise, finish: finish });
 
-        return promise;
-      });
-  };
+      return promise;
+    });
+};
 
 // Lets every promise that can settle settle.
 const settle: () => Promise<void> = async (): Promise<void> => {
@@ -447,9 +448,7 @@ describe("svgDensityFor", () => {
   });
 
   test("an SVG that claims an enormous size is drawn at the least density the library takes", () => {
-    expect(
-      svgDensityFor({ width: 100000, height: 100000 }, PIXEL_BOX),
-    ).toBe(1);
+    expect(svgDensityFor({ width: 100000, height: 100000 }, PIXEL_BOX)).toBe(1);
   });
 });
 
@@ -622,13 +621,12 @@ describe("a logo made into an image an email can carry", () => {
       300,
       80,
     ]);
-    expect(isAbout(await colourAt(smallMade, smallFacts, 0.25, 0.5), INDIGO)).toBe(
-      true,
-    );
-    expect((await colourAt(smallMade, smallFacts, 0.75, 0.5)).alpha).toBeCloseTo(
-      0.5,
-      1,
-    );
+    expect(
+      isAbout(await colourAt(smallMade, smallFacts, 0.25, 0.5), INDIGO),
+    ).toBe(true);
+    expect(
+      (await colourAt(smallMade, smallFacts, 0.75, 0.5)).alpha,
+    ).toBeCloseTo(0.5, 1);
 
     const wide: EmailLogoResult = await carry(WIDE_WEBP);
     const wideFacts: ImageFacts = await imageFacts(carriedBytes(wide));
@@ -925,9 +923,7 @@ describe("a logo that keeps its address, as before", () => {
     const laughs: Array<string> = ['<!ENTITY a0 "laugh">'];
 
     for (let level: number = 1; level <= 9; level++) {
-      laughs.push(
-        `<!ENTITY a${level} "${`&a${level - 1};`.repeat(10)}">`,
-      );
+      laughs.push(`<!ENTITY a${level} "${`&a${level - 1};`.repeat(10)}">`);
     }
 
     const billionLaughs: Buffer = Buffer.from(

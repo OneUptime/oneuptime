@@ -117,9 +117,7 @@ describe("the boxes a carried logo is made for are the templates' own", () => {
   });
 
   test("reads a style's pixels as a mail client does", () => {
-    expect(pixelsOf("display: block; max-height: 48px", "max-height")).toBe(
-      48,
-    );
+    expect(pixelsOf("display: block; max-height: 48px", "max-height")).toBe(48);
     expect(pixelsOf("height: auto; max-height: 48px", "height")).toBeNull();
     expect(pixelsOf("border: 0;", "max-width")).toBeNull();
   });
