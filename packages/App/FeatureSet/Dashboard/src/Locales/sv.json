@@ -46002,5 +46002,8 @@
   "Published by the cloud provider for account {{account}}.": "Publicerad av molnleverantören för kontot {{account}}.",
   "Published by {{provider}} for account {{account}}.": "Publicerad av {{provider}} för kontot {{account}}.",
   "Someone with access caused it.": "Någon med åtkomst orsakade det.",
-  "Tracking ID: {{trackingId}}.": "Spårnings-ID: {{trackingId}}."
+  "Tracking ID: {{trackingId}}.": "Spårnings-ID: {{trackingId}}.",
+  "Clear the {{count}} hosts shown_one": "Avmarkera den visade värden",
+  "Select the {{count}} hosts shown_one": "Markera den visade värden",
+  "essential steps done": "viktiga steg klara"
 }

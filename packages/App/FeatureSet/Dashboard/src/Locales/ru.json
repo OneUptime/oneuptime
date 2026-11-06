@@ -46002,5 +46002,8 @@
   "Published by the cloud provider for account {{account}}.": "Опубликовано облачным провайдером для аккаунта {{account}}.",
   "Published by {{provider}} for account {{account}}.": "Опубликовано {{provider}} для аккаунта {{account}}.",
   "Someone with access caused it.": "Причина — кто-то с доступом.",
-  "Tracking ID: {{trackingId}}.": "Идентификатор отслеживания: {{trackingId}}."
+  "Tracking ID: {{trackingId}}.": "Идентификатор отслеживания: {{trackingId}}.",
+  "Clear the {{count}} hosts shown_one": "Снять выбор с показанного хоста",
+  "Select the {{count}} hosts shown_one": "Выбрать показанный хост",
+  "essential steps done": "основных шагов выполнено"
 }

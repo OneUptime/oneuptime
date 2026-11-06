@@ -6242,7 +6242,7 @@
   "Welcome to OneUptime 👋": "Willkommen bei OneUptime 👋",
   "A few quick steps and your project will be up and running. Pick up where you left off anytime.": "Ein paar schnelle Schritte, und Ihr Projekt ist startklar. Sie können jederzeit dort weitermachen, wo Sie aufgehört haben.",
   "Dismiss": "Ausblenden",
-  "steps completed": "Schritte erledigt",
+  "steps completed": "Schritten erledigt",
   "Create your first monitor": "Ersten Monitor erstellen",
   "Monitor websites, APIs, servers and more — get notified the moment something goes down.": "Überwachen Sie Websites, APIs, Server und mehr — und werden Sie benachrichtigt, sobald etwas ausfällt.",
   "Publish a status page": "Statusseite veröffentlichen",
@@ -38338,8 +38338,8 @@
   "of {{count}} findings in your telemetry": "von {{count}} Funden in Ihrer Telemetrie",
   "of {{count}} findings in your telemetry_one": "von {{count}} Fund in Ihrer Telemetrie",
   "orders-db": "orders-db",
-  "stores checked": "geprüfte Datenspeicher",
-  "stores with their content scanned": "Datenspeicher mit gescanntem Inhalt",
+  "stores checked": "Datenspeichern geprüft",
+  "stores with their content scanned": "Datenspeichern mit gescanntem Inhalt",
   "support@example.com": "support@example.com",
   "{{bytes}} bytes ({{size}})": "{{bytes}} Bytes ({{size}})",
   "{{count}} calls": "{{count}} Aufrufe",
@@ -46002,5 +46002,8 @@
   "Published by the cloud provider for account {{account}}.": "Vom Cloud-Anbieter für das Konto {{account}} veröffentlicht.",
   "Published by {{provider}} for account {{account}}.": "Von {{provider}} für das Konto {{account}} veröffentlicht.",
   "Someone with access caused it.": "Jemand mit Zugriff hat es verursacht.",
-  "Tracking ID: {{trackingId}}.": "Tracking-ID: {{trackingId}}."
+  "Tracking ID: {{trackingId}}.": "Tracking-ID: {{trackingId}}.",
+  "Clear the {{count}} hosts shown_one": "Den angezeigten Host abwählen",
+  "Select the {{count}} hosts shown_one": "Den angezeigten Host auswählen",
+  "essential steps done": "wichtigen Schritten erledigt"
 }

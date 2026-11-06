@@ -6242,7 +6242,7 @@
   "Welcome to OneUptime 👋": "欢迎使用 OneUptime 👋",
   "A few quick steps and your project will be up and running. Pick up where you left off anytime.": "只需几个简单步骤，您的项目就能运行起来。随时可以从上次中断的地方继续。",
   "Dismiss": "隐藏",
-  "steps completed": "个步骤已完成",
+  "steps completed": "已完成的步骤",
   "Create your first monitor": "创建您的第一个监视器",
   "Monitor websites, APIs, servers and more — get notified the moment something goes down.": "监控网站、API、服务器等——一旦出现故障立即收到通知。",
   "Publish a status page": "发布状态页面",
@@ -22450,7 +22450,7 @@
   "Scoped to {{scope}}": "范围：{{scope}}",
   "Search for {{botUsername}}": "Search for {{botUsername}}",
   "Search {{label}}...": "搜索{{label}}...",
-  "Select all {{count}}": "选择全部 {{count}} 台",
+  "Select all {{count}}": "选择全部 {{count}} 项",
   "Select timezone": "选择时区",
   "Send {{command}}": "Send {{command}}",
   "Session Replay recordings that started in the selected range and match the Sessions and Device filters; one whose pages are all hidden drops out. At most the newest 5,000 recordings are read, so on a busy range the line below says how many there were in total.": "Session Replay recordings that started in the selected range and match the Sessions and Device filters; one whose pages are all hidden drops out. At most the newest 5,000 recordings are read, so on a busy range the line below says how many there were in total.",
@@ -38338,8 +38338,8 @@
   "of {{count}} findings in your telemetry": "您遥测中共 {{count}} 个发现",
   "of {{count}} findings in your telemetry_one": "您遥测中共 {{count}} 个发现",
   "orders-db": "orders-db",
-  "stores checked": "个数据存储已检查",
-  "stores with their content scanned": "个数据存储已扫描内容",
+  "stores checked": "已检查的数据存储",
+  "stores with their content scanned": "已扫描内容的数据存储",
   "support@example.com": "support@example.com",
   "{{bytes}} bytes ({{size}})": "{{bytes}} 字节（{{size}}）",
   "{{count}} calls": "{{count}} 次调用",
@@ -46002,5 +46002,8 @@
   "Published by the cloud provider for account {{account}}.": "由云提供商为账户 {{account}} 发布。",
   "Published by {{provider}} for account {{account}}.": "由 {{provider}} 为账户 {{account}} 发布。",
   "Someone with access caused it.": "由有访问权限的人引起。",
-  "Tracking ID: {{trackingId}}.": "跟踪 ID：{{trackingId}}。"
+  "Tracking ID: {{trackingId}}.": "跟踪 ID：{{trackingId}}。",
+  "Clear the {{count}} hosts shown_one": "取消选择显示的主机",
+  "Select the {{count}} hosts shown_one": "选择显示的主机",
+  "essential steps done": "已完成的必要步骤"
 }

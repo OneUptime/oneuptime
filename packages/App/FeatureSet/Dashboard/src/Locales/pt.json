@@ -46002,5 +46002,8 @@
   "Published by the cloud provider for account {{account}}.": "Publicado pelo provedor de nuvem para a conta {{account}}.",
   "Published by {{provider}} for account {{account}}.": "Publicado por {{provider}} para a conta {{account}}.",
   "Someone with access caused it.": "Alguém com acesso causou isso.",
-  "Tracking ID: {{trackingId}}.": "ID de rastreamento: {{trackingId}}."
+  "Tracking ID: {{trackingId}}.": "ID de rastreamento: {{trackingId}}.",
+  "Clear the {{count}} hosts shown_one": "Desmarcar o host exibido",
+  "Select the {{count}} hosts shown_one": "Selecionar o host exibido",
+  "essential steps done": "passos essenciais concluídos"
 }

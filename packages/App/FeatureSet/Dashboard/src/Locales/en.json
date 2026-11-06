@@ -46002,5 +46002,8 @@
   "Published by the cloud provider for account {{account}}.": "Published by the cloud provider for account {{account}}.",
   "Published by {{provider}} for account {{account}}.": "Published by {{provider}} for account {{account}}.",
   "Someone with access caused it.": "Someone with access caused it.",
-  "Tracking ID: {{trackingId}}.": "Tracking ID: {{trackingId}}."
+  "Tracking ID: {{trackingId}}.": "Tracking ID: {{trackingId}}.",
+  "Clear the {{count}} hosts shown_one": "Clear the host shown",
+  "Select the {{count}} hosts shown_one": "Select the host shown",
+  "essential steps done": "essential steps done"
 }

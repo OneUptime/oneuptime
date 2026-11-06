@@ -26,6 +26,7 @@ import {
 } from "Common/Utils/NetworkDiscovery/DiscoveredHostNamingDiagnosis";
 import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDnsNameUtil";
 import {
+  PluralTemplate,
   translatableTerm,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -86,6 +87,24 @@ import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparato
  */
 
 export const DISCOVERED_HOSTS_PER_PAGE: number = 50;
+
+/*
+ * How many hosts the view shows before the selection line offers "Select
+ * all N" beside its box: with one host shown, the box and the host's own
+ * box are the same choice already, and "Select all 1" read as a slip.
+ */
+export const SELECT_ALL_SHOWN_MINIMUM: number = 2;
+
+// The selection line's box, named for the hosts it ticks or clears.
+export const SELECT_SHOWN_HOSTS: PluralTemplate = {
+  one: "Select the host shown",
+  other: "Select the {{count}} hosts shown",
+};
+
+export const CLEAR_SHOWN_HOSTS: PluralTemplate = {
+  one: "Clear the host shown",
+  other: "Clear the {{count}} hosts shown",
+};
 
 // The row's columns from md up: the box, the host, the vendor, the badges.
 const HOST_GRID_WITH_VENDOR: string =
@@ -339,17 +358,10 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
           <CheckboxElement
             dataTestId="discovered-device-select-all"
-            ariaLabel={
-              areAllShownSelected
-                ? translator.translateTemplate(
-                    "Clear the {{count}} hosts shown",
-                    { count: translator.formatNumber(selectableShownCount) },
-                  )
-                : translator.translateTemplate(
-                    "Select the {{count}} hosts shown",
-                    { count: translator.formatNumber(selectableShownCount) },
-                  )
-            }
+            ariaLabel={translator.translatePlural(
+              areAllShownSelected ? CLEAR_SHOWN_HOSTS : SELECT_SHOWN_HOSTS,
+              selectableShownCount,
+            )}
             initialValue={areAllShownSelected}
             value={areAllShownSelected}
             isIndeterminate={!areAllShownSelected && shownSelectedCount > 0}
@@ -378,19 +390,20 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
            * link, "Select all 511" and "Clear selection" read as disabled
            * text beside the bold count.
            */}
-          {selectableShownCount > 0 && !areAllShownSelected && (
-            <Button
-              title={translator.translateTemplate("Select all {{count}}", {
-                count: translator.formatNumber(selectableShownCount),
-              })}
-              dataTestId="discovered-host-select-shown"
-              buttonStyle={ButtonStyleType.LINK}
-              buttonSize={ButtonSize.ExtraSmall}
-              className="text-sm font-medium"
-              disabled={props.isDisabled}
-              onClick={toggleShown}
-            />
-          )}
+          {selectableShownCount >= SELECT_ALL_SHOWN_MINIMUM &&
+            !areAllShownSelected && (
+              <Button
+                title={translator.translateTemplate("Select all {{count}}", {
+                  count: translator.formatNumber(selectableShownCount),
+                })}
+                dataTestId="discovered-host-select-shown"
+                buttonStyle={ButtonStyleType.LINK}
+                buttonSize={ButtonSize.ExtraSmall}
+                className="text-sm font-medium"
+                disabled={props.isDisabled}
+                onClick={toggleShown}
+              />
+            )}
           {selection.selected > 0 && (
             <Button
               title="Clear selection"

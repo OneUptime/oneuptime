@@ -14690,7 +14690,7 @@
   "Profile samples": "プロファイルのサンプル",
   "Progress": "進捗",
   "Progress refreshes every 10 seconds. You can review results while a scan runs.": "進捗は 10 秒ごとに更新されます。スキャンの実行中でも結果を確認できます。",
-  "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)": "進捗: {{suffix}} {{total}} 件中 {{count}} 件 ({{percent}}%)",
+  "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)": "進捗（{{suffix}}）: {{total}} 件中 {{count}} 件 ({{percent}}%)",
   "Project Call/SMS Config": "プロジェクトの通話/SMS 設定",
   "Project Call/SMS Config ID": "プロジェクトの通話/SMS 設定 ID",
   "Project Created At": "プロジェクトの作成日時",
@@ -46002,5 +46002,8 @@
   "Published by the cloud provider for account {{account}}.": "クラウドプロバイダーがアカウント {{account}} 向けに公開しました。",
   "Published by {{provider}} for account {{account}}.": "{{provider}} がアカウント {{account}} 向けに公開しました。",
   "Someone with access caused it.": "アクセス権を持つユーザーが原因です。",
-  "Tracking ID: {{trackingId}}.": "追跡 ID: {{trackingId}}。"
+  "Tracking ID: {{trackingId}}.": "追跡 ID: {{trackingId}}。",
+  "Clear the {{count}} hosts shown_one": "表示中のホストの選択を解除",
+  "Select the {{count}} hosts shown_one": "表示中のホストを選択",
+  "essential steps done": "完了した必須ステップ"
 }

@@ -2,7 +2,10 @@ import "@testing-library/jest-dom";
 import { beforeEach, describe, expect, test } from "@jest/globals";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import * as React from "react";
-import RecommendationsList from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationsList";
+import RecommendationsList, {
+  RECOMMENDATION_CATEGORY_TEST_ID_PREFIX,
+  SELECT_ALL_MINIMUM,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationsList";
 import {
   RecommendationCategoryGroup,
   RecommendationStatus,
@@ -128,6 +131,20 @@ const JOB_FAILED: RecommendationViewModel = {
   dismissalReason: "We run these jobs by hand.",
 };
 
+/*
+ * A second Workload recommendation left to set up: with it the Workload
+ * section has two, and its heading offers Select all too.
+ */
+const POD_OOM_KILLED: RecommendationViewModel = {
+  recommendation: buildRecommendation({
+    templateId: "k8s-pod-oom-killed",
+    name: "Pod OOM Killed",
+    category: "Workload",
+    severity: "Warning",
+  }),
+  status: RecommendationStatus.Available,
+};
+
 const VOLUME_ALMOST_FULL: RecommendationViewModel = {
   recommendation: buildRecommendation({
     templateId: "k8s-pv-almost-full",
@@ -157,6 +174,16 @@ const GROUPS: Array<RecommendationCategoryGroup> = [
     category: "Storage",
     recommendations: [VOLUME_ALMOST_FULL],
   },
+];
+
+// The same page with two Workload recommendations left to set up.
+const GROUPS_WITH_TWO_WORKLOADS: Array<RecommendationCategoryGroup> = [
+  GROUPS[0]!,
+  {
+    category: "Workload",
+    recommendations: [POD_CRASH_LOOPING, POD_OOM_KILLED, JOB_FAILED],
+  },
+  GROUPS[2]!,
 ];
 
 type RecommendationIdFunction = (viewModel: RecommendationViewModel) => string;
@@ -307,8 +334,10 @@ describe("RecommendationsList", () => {
           groups: [
             {
               category: category,
+              // Two, so the heading offers Select all.
               recommendations: [
                 viewModelOf({ resourceType, templateId: "t-1", category }),
+                viewModelOf({ resourceType, templateId: "t-2", category }),
               ],
             },
           ],
@@ -321,9 +350,14 @@ describe("RecommendationsList", () => {
           screen.queryByRole("heading", { level: 4, name: category }),
         ).not.toBeInTheDocument();
 
-        // Select all still carries the catalog's own value.
+        // The section and its Select all still carry the catalog's own value.
         expect(
           screen.getByTestId(`recommendation-group-select-all-${category}`),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByTestId(
+            `${RECOMMENDATION_CATEGORY_TEST_ID_PREFIX}${category}`,
+          ),
         ).toBeInTheDocument();
       },
     );
@@ -475,7 +509,7 @@ describe("RecommendationsList", () => {
 
   describe("select all", () => {
     test("the control names how many it will select", () => {
-      renderList();
+      renderList({ groups: GROUPS_WITH_TWO_WORKLOADS });
 
       expect(
         within(groupHeading("Control Plane")).getByRole("button", {
@@ -484,7 +518,7 @@ describe("RecommendationsList", () => {
       ).toBeInTheDocument();
       expect(
         within(groupHeading("Workload")).getByRole("button", {
-          name: "Select all 1",
+          name: "Select all 2",
         }),
       ).toBeInTheDocument();
     });
@@ -508,13 +542,19 @@ describe("RecommendationsList", () => {
     });
 
     test("it does not touch a category the user has not pressed", () => {
-      renderList();
+      renderList({ groups: GROUPS_WITH_TWO_WORKLOADS });
 
-      fireEvent.click(screen.getByRole("button", { name: "Select all 1" }));
+      fireEvent.click(
+        within(groupHeading("Workload")).getByRole("button", {
+          name: "Select all 2",
+        }),
+      );
 
       expect(latestSelection()).toEqual(
-        new Set<string>([idOf(POD_CRASH_LOOPING)]),
+        new Set<string>([idOf(POD_CRASH_LOOPING), idOf(POD_OOM_KILLED)]),
       );
+      expect(latestSelection().has(idOf(API_SERVER_DOWN))).toBe(false);
+      expect(latestSelection().has(idOf(ETCD_NO_LEADER))).toBe(false);
     });
 
     /*
@@ -528,7 +568,11 @@ describe("RecommendationsList", () => {
         selectedRecommendationIds: new Set<string>([idOf(POD_CRASH_LOOPING)]),
       });
 
-      fireEvent.click(screen.getByRole("button", { name: "Select all 2" }));
+      fireEvent.click(
+        within(groupHeading("Control Plane")).getByRole("button", {
+          name: "Select all 2",
+        }),
+      );
 
       expect(latestSelection()).toEqual(
         new Set<string>([
@@ -575,19 +619,27 @@ describe("RecommendationsList", () => {
 
     test("clearing removes exactly that category and leaves the rest selected", () => {
       renderList({
+        groups: GROUPS_WITH_TWO_WORKLOADS,
         selectedRecommendationIds: new Set<string>([
           idOf(API_SERVER_DOWN),
           idOf(ETCD_NO_LEADER),
           idOf(POD_CRASH_LOOPING),
+          idOf(POD_OOM_KILLED),
         ]),
       });
 
       /*
-       * Scoped to the category on purpose: with Workload's only available
-       * recommendation selected too, both headings read "Clear all" at the
+       * Scoped to the category on purpose: with both Workload
+       * recommendations selected too, both headings read "Clear all" at the
        * same time, and the point of the assertion is that pressing one of them
        * leaves the other category's selection alone.
        */
+      expect(
+        within(groupHeading("Workload")).getByRole("button", {
+          name: "Clear all",
+        }),
+      ).toBeInTheDocument();
+
       fireEvent.click(
         within(groupHeading("Control Plane")).getByRole("button", {
           name: "Clear all",
@@ -595,8 +647,83 @@ describe("RecommendationsList", () => {
       );
 
       expect(latestSelection()).toEqual(
+        new Set<string>([idOf(POD_CRASH_LOOPING), idOf(POD_OOM_KILLED)]),
+      );
+    });
+
+    /*
+     * A section with one recommendation left to set up has no Select all:
+     * its card's own checkbox is the same choice one line below, and
+     * "Select all 1" ("Alle 1 auswählen" in German) read as a slip. The
+     * count beside the heading still says there is one to set up.
+     */
+    test("a section with one left to set up offers no select-all; its card's checkbox does the selecting", () => {
+      renderList();
+
+      const workload: HTMLElement = groupHeading("Workload");
+
+      expect(within(workload).getByText("1 to set up")).toBeInTheDocument();
+      expect(within(workload).queryByRole("button")).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Select all 1" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("recommendation-group-select-all-Workload"),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Select Pod Crash Looping" }),
+      );
+
+      expect(latestSelection()).toEqual(
         new Set<string>([idOf(POD_CRASH_LOOPING)]),
       );
+    });
+
+    test("selected, a section of one offers no Clear all either", () => {
+      renderList({
+        selectedRecommendationIds: new Set<string>([idOf(POD_CRASH_LOOPING)]),
+      });
+
+      expect(
+        within(groupHeading("Workload")).queryByRole("button"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryAllByRole("button", { name: "Clear all" }),
+      ).toHaveLength(0);
+    });
+
+    test("a section that holds one available among handled ones still counts only the one", () => {
+      renderList({
+        groups: [
+          {
+            category: "Control Plane",
+            recommendations: [API_SERVER_DOWN, NODE_NOT_READY],
+          },
+        ],
+      });
+
+      const controlPlane: HTMLElement = groupHeading("Control Plane");
+
+      expect(within(controlPlane).getByText("1 to set up")).toBeInTheDocument();
+      expect(within(controlPlane).getByText("1 handled")).toBeInTheDocument();
+      expect(
+        within(controlPlane).queryByRole("button"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("every section carries its own test id, offering Select all or not", () => {
+      renderList();
+
+      for (const category of ["Control Plane", "Workload", "Storage"]) {
+        expect(
+          screen.getByTestId(
+            `${RECOMMENDATION_CATEGORY_TEST_ID_PREFIX}${category}`,
+          ),
+        ).toBeInTheDocument();
+      }
+
+      expect(SELECT_ALL_MINIMUM).toBe(2);
     });
 
     /*

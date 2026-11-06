@@ -14690,7 +14690,7 @@
   "Profile samples": "프로파일 샘플",
   "Progress": "진행 상황",
   "Progress refreshes every 10 seconds. You can review results while a scan runs.": "진행 상황은 10초마다 새로고침됩니다. 스캔이 진행되는 동안 결과를 검토할 수 있습니다.",
-  "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)": "진행률: {{suffix}} {{total}}개 중 {{count}}개 ({{percent}}%)",
+  "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)": "진행률({{suffix}}): {{total}}개 중 {{count}}개 ({{percent}}%)",
   "Project Call/SMS Config": "Project Call/SMS Config",
   "Project Call/SMS Config ID": "Project Call/SMS Config ID",
   "Project Created At": "Project Created At",
@@ -19426,7 +19426,7 @@
   "{\"version\": \"...\", \"records\": [...]}": "{\"version\": \"...\", \"records\": [...]}",
   "{{count}} matches": "{{count}}개 일치",
   "{{count}} matches_one": "{{count}}개 일치",
-  "{{count}} of {{total}} {{suffix}}": "{{suffix}} {{total}}개 중 {{count}}개",
+  "{{count}} of {{total}} {{suffix}}": "{{suffix}}: {{total}}개 중 {{count}}개",
   "{{count}} results": "결과 {{count}}개",
   "{{count}} results on this page": "이 페이지의 결과 {{count}}개",
   "{{count}} results on this page_one": "이 페이지의 결과 {{count}}개",
@@ -46002,5 +46002,8 @@
   "Published by the cloud provider for account {{account}}.": "클라우드 공급자가 계정 {{account}}에 대해 게시했습니다.",
   "Published by {{provider}} for account {{account}}.": "{{provider}}에서 계정 {{account}}에 대해 게시했습니다.",
   "Someone with access caused it.": "액세스 권한이 있는 사용자가 원인입니다.",
-  "Tracking ID: {{trackingId}}.": "추적 ID: {{trackingId}}."
+  "Tracking ID: {{trackingId}}.": "추적 ID: {{trackingId}}.",
+  "Clear the {{count}} hosts shown_one": "표시된 호스트 선택 해제",
+  "Select the {{count}} hosts shown_one": "표시된 호스트 선택",
+  "essential steps done": "완료된 필수 단계"
 }

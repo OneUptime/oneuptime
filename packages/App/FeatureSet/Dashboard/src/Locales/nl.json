@@ -46002,5 +46002,8 @@
   "Published by the cloud provider for account {{account}}.": "Gepubliceerd door de cloudprovider voor account {{account}}.",
   "Published by {{provider}} for account {{account}}.": "Gepubliceerd door {{provider}} voor account {{account}}.",
   "Someone with access caused it.": "Iemand met toegang heeft het veroorzaakt.",
-  "Tracking ID: {{trackingId}}.": "Tracking-ID: {{trackingId}}."
+  "Tracking ID: {{trackingId}}.": "Tracking-ID: {{trackingId}}.",
+  "Clear the {{count}} hosts shown_one": "De getoonde host deselecteren",
+  "Select the {{count}} hosts shown_one": "De getoonde host selecteren",
+  "essential steps done": "essentiële stappen voltooid"
 }

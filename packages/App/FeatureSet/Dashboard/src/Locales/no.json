@@ -46002,5 +46002,8 @@
   "Published by the cloud provider for account {{account}}.": "Publisert av skyleverandøren for kontoen {{account}}.",
   "Published by {{provider}} for account {{account}}.": "Publisert av {{provider}} for kontoen {{account}}.",
   "Someone with access caused it.": "Noen med tilgang forårsaket det.",
-  "Tracking ID: {{trackingId}}.": "Sporings-ID: {{trackingId}}."
+  "Tracking ID: {{trackingId}}.": "Sporings-ID: {{trackingId}}.",
+  "Clear the {{count}} hosts shown_one": "Fjern merkingen av den viste verten",
+  "Select the {{count}} hosts shown_one": "Velg den viste verten",
+  "essential steps done": "viktige steg fullført"
 }

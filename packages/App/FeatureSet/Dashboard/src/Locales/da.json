@@ -38338,7 +38338,7 @@
   "of {{count}} findings in your telemetry": "af {{count}} fund i din telemetri",
   "of {{count}} findings in your telemetry_one": "af {{count}} fund i din telemetri",
   "orders-db": "orders-db",
-  "stores checked": "kontrollerede datalagre",
+  "stores checked": "datalagre kontrolleret",
   "stores with their content scanned": "datalagre med scannet indhold",
   "support@example.com": "support@example.com",
   "{{bytes}} bytes ({{size}})": "{{bytes}} byte ({{size}})",
@@ -46002,5 +46002,8 @@
   "Published by the cloud provider for account {{account}}.": "Udgivet af cloududbyderen for kontoen {{account}}.",
   "Published by {{provider}} for account {{account}}.": "Udgivet af {{provider}} for kontoen {{account}}.",
   "Someone with access caused it.": "En person med adgang forårsagede det.",
-  "Tracking ID: {{trackingId}}.": "Sporings-id: {{trackingId}}."
+  "Tracking ID: {{trackingId}}.": "Sporings-id: {{trackingId}}.",
+  "Clear the {{count}} hosts shown_one": "Fravælg den viste vært",
+  "Select the {{count}} hosts shown_one": "Vælg den viste vært",
+  "essential steps done": "vigtige trin fuldført"
 }

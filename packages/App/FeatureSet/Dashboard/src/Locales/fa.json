@@ -46002,5 +46002,8 @@
   "Published by the cloud provider for account {{account}}.": "منتشرشده توسط ارائه‌دهنده ابر برای حساب {{account}}.",
   "Published by {{provider}} for account {{account}}.": "منتشرشده توسط {{provider}} برای حساب {{account}}.",
   "Someone with access caused it.": "علت آن کسی با دسترسی بود.",
-  "Tracking ID: {{trackingId}}.": "شناسه پیگیری: {{trackingId}}."
+  "Tracking ID: {{trackingId}}.": "شناسه پیگیری: {{trackingId}}.",
+  "Clear the {{count}} hosts shown_one": "لغو انتخاب میزبان نمایش‌داده‌شده",
+  "Select the {{count}} hosts shown_one": "انتخاب میزبان نمایش‌داده‌شده",
+  "essential steps done": "مرحلهٔ ضروری انجام شد"
 }
