@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  GROUPING_RULE_COPY,
   GROUPING_RULE_TEMPLATES,
   GroupingRuleKind,
   getGroupingRuleUiStrings,
@@ -75,6 +76,9 @@ const SHARED_STRINGS: Array<string> = [
   "{{count}} days",
   // The old default assignee line's second button.
   "Remove",
+  // What Wait for more incidents says, folded ("Wait for more incidents: 3 incidents").
+  "{{count}} incidents",
+  "{{count}} alerts",
 ];
 
 const PLACEHOLDER: RegExp = /\{\{[^}]+\}\}/g;
@@ -219,11 +223,12 @@ describe("the grouping rule pages draw their copy from the shared constants", ()
     );
   });
 
-  test("a minutes setting translates its sentence whole, around the number box", () => {
+  test("a minutes or count setting translates its sentence whole, around the number box", () => {
+    // Both are drawn by NumberSettingField, each naming its sentence's slot.
     const source: string = readSource(
       "Components",
       "GroupingRule",
-      "MinutesSettingField.tsx",
+      "NumberSettingField.tsx",
     );
 
     /*
@@ -231,11 +236,58 @@ describe("the grouping rule pages draw their copy from the shared constants", ()
      * apart from them in an isolate (TemplateAroundOptions).
      */
     expect(source).toContain(
-      'translateTemplateAround( props.sentence, "minutes", {}, { setsSlotApart: false }, )',
+      "translateTemplateAround( props.sentence, props.slot, {}, { setsSlotApart: false }, )",
     );
     expect(source).toContain("title={translate(props.title)}");
     expect(source).toContain("description={translate(props.description)}");
-    expect(source).toContain("ariaLabel={translate(props.minutesLabel)}");
+    expect(source).toContain("ariaLabel={translate(props.valueLabel)}");
+
+    const minutes: string = readSource(
+      "Components",
+      "GroupingRule",
+      "MinutesSettingField.tsx",
+    );
+    const count: string = readSource(
+      "Components",
+      "GroupingRule",
+      "MinimumCountSettingField.tsx",
+    );
+
+    expect(minutes).toContain('slot="minutes"');
+    expect(minutes).toContain("valueLabel={props.minutesLabel}");
+    expect(count).toContain('slot="count"');
+    expect(count).toContain("valueLabel={props.countLabel}");
+
+    // Each sentence holds its slot, in English and so in every locale.
+    for (const kind of [GroupingRuleKind.Incident, GroupingRuleKind.Alert]) {
+      expect(GROUPING_RULE_COPY.timeWindowSentence[kind]).toContain(
+        "{{minutes}}",
+      );
+      expect(GROUPING_RULE_COPY.minimumCountSentence[kind]).toContain(
+        "{{count}}",
+      );
+    }
+  });
+
+  test("Wait for more incidents draws the copy of its own kind, as the shared constants hold it", () => {
+    const source: string = readSource(
+      "Components",
+      "GroupingRule",
+      "GroupingRuleFormFields.tsx",
+    );
+
+    for (const key of [
+      "minimumCountTitle",
+      "minimumCountDescription",
+      "minimumCountSentence",
+      "minimumCountLabel",
+    ]) {
+      expect(source).toContain(`GROUPING_RULE_COPY.${key}[options.kind]`);
+    }
+
+    // Its folded value is said in the reader's language.
+    expect(source).toContain("getMinimumCountFoldedValue({");
+    expect(source).toContain("translate: translateGroupingRuleText,");
   });
 
   test("the list's summary is built with the reader's language", () => {

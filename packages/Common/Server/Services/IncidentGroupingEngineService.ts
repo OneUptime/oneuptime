@@ -810,6 +810,16 @@ class IncidentGroupingEngineServiceClass {
         return { grouped: true, episodeId: newEpisode.id, isNewEpisode: true };
       }
 
+      /*
+       * The episode could not be opened. For a rule that waits, this
+       * incident waits with the others, so the next one of the group counts
+       * it and opens the episode with it.
+       */
+      if (incidentsToOpenEpisode > 1) {
+        await this.waitForEpisode(incident, groupingWaitKey);
+        return { grouped: false, isWaitingForMore: true };
+      }
+
       return { grouped: false };
     } finally {
       // Release mutex

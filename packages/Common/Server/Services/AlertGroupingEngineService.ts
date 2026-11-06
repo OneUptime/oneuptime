@@ -733,6 +733,16 @@ class AlertGroupingEngineServiceClass {
         return { grouped: true, episodeId: newEpisode.id, isNewEpisode: true };
       }
 
+      /*
+       * The episode could not be opened. For a rule that waits, this alert
+       * waits with the others, so the next one of the group counts it and
+       * opens the episode with it.
+       */
+      if (alertsToOpenEpisode > 1) {
+        await this.waitForEpisode(alert, groupingWaitKey);
+        return { grouped: false, isWaitingForMore: true };
+      }
+
       return { grouped: false };
     } finally {
       // Release mutex

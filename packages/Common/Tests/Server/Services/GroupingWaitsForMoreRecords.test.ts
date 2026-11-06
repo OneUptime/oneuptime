@@ -913,6 +913,36 @@ describe.each(KINDS)("the $name grouping engine", (kind: Kind) => {
     });
   });
 
+  test("an episode that could not be opened leaves the record waiting with the others, so the next one counts it", async () => {
+    stub(kind, {
+      rule: { count: 2 },
+      waiting: [kind.newRecord(waitingId(1), 1)],
+    });
+
+    jest
+      .spyOn(kind.engine, "createNewEpisode")
+      .mockResolvedValue(null as never);
+
+    const result: GroupingResult = await kind.group(kind.newRecord());
+
+    expect(result).toEqual({ grouped: false, isWaitingForMore: true });
+    expect(seen.marks).toEqual([
+      { id: RECORD_ID.toString(), groupingWaitKey: WAIT_KEY },
+    ]);
+    expect(seen.batches).toEqual([]);
+  });
+
+  test("an episode that could not be opened by a rule that does not wait leaves nothing marked, as before", async () => {
+    stub(kind, { rule: { enabled: false } });
+
+    jest
+      .spyOn(kind.engine, "createNewEpisode")
+      .mockResolvedValue(null as never);
+
+    expect(await kind.group(kind.newRecord())).toEqual({ grouped: false });
+    expect(seen.marks).toEqual([]);
+  });
+
   test("a failed mark leaves the record ungrouped rather than failing its create", async () => {
     stub(kind, { rule: { count: 3 }, waiting: [] });
 

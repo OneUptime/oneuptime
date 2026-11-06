@@ -536,7 +536,7 @@ export const getMinimumCountFormField: <TModel extends BaseModel>(
   return {
     overrideField: {
       [names.count]: true,
-    } as SelectFormFields<TModel>,
+    },
     overrideFieldKey: MINIMUM_COUNT_SETTING_FIELD_KEY,
     formOnly: true,
     title: GROUPING_RULE_COPY.minimumCountTitle[options.kind],
