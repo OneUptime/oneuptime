@@ -1,4 +1,5 @@
 import ProjectReferencesService from "./ProjectReferencesService";
+import { truncateLongText } from "../Utils/Database/TruncateColumnValue";
 import Model, {
   RumSessionErasureRequestStatus,
   RumSessionErasureRequestType,
@@ -199,7 +200,8 @@ export class Service extends ProjectReferencesService<Model> {
       data: {
         status: RumSessionErasureRequestStatus.Failed,
         completedAt: OneUptimeDate.getCurrentDate(),
-        failureReason: data.failureReason,
+        // Held to the column: a longer reason refused the whole write.
+        failureReason: truncateLongText(data.failureReason),
       },
       props: { isRoot: true },
     });

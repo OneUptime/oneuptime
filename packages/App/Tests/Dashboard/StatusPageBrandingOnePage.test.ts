@@ -509,6 +509,22 @@ describe("one place for each branding setting", () => {
     ],
   };
 
+  /*
+   * Files that read a branding column to say what it is, never to set it:
+   * each subscriber list names the page's default language, which every
+   * subscriber without a language of their own is written in ("Page
+   * default (Deutsch)", SubscriberLanguageColumn). Each is checked to read
+   * the column and to give it no form field.
+   */
+  const READ_TO_NAME_IT: Record<string, Array<string>> = {
+    defaultLanguage: [
+      "Pages/StatusPages/View/EmailSubscribers.tsx",
+      "Pages/StatusPages/View/MicrosoftTeamsSubscribers.tsx",
+      "Pages/StatusPages/View/SMSSubscribers.tsx",
+      "Pages/StatusPages/View/SlackSubscribers.tsx",
+    ],
+  };
+
   const statusPageSources: Array<string> = [
     ...listSources(path.join(DASHBOARD_SRC, "Pages", "StatusPages")),
     ...listSources(path.join(DASHBOARD_SRC, "Components", "StatusPage")),
@@ -519,6 +535,7 @@ describe("one place for each branding setting", () => {
     (column: string) => {
       const pattern: RegExp = new RegExp(`\\b${column}\\b`);
       const inWords: Array<string> = SAID_IN_WORDS[column] || [];
+      const readers: Array<string> = READ_TO_NAME_IT[column] || [];
 
       const naming: Array<string> = statusPageSources
         .filter((file: string): boolean => {
@@ -526,11 +543,25 @@ describe("one place for each branding setting", () => {
         })
         .map(relative)
         .filter((file: string): boolean => {
-          return !inWords.includes(file);
+          return !inWords.includes(file) && !readers.includes(file);
         })
         .sort();
 
       expect(naming).toEqual(OWNERS[column]);
+
+      for (const file of readers) {
+        const source: string = readSource(path.join(DASHBOARD_SRC, file));
+
+        // Read with the page, and given no field of a form.
+        expect([file, source.includes(`${column}: true`)]).toEqual([
+          file,
+          true,
+        ]);
+        expect([
+          file,
+          new RegExp(`field:\\s*\\{\\s*${column}\\s*:`).test(source),
+        ]).toEqual([file, false]);
+      }
 
       for (const file of inWords) {
         const source: string = readSource(path.join(DASHBOARD_SRC, file));

@@ -85,6 +85,7 @@ export const SERVER_TEXT_SOURCES: ReadonlyArray<string> = [
   "packages/Common/Server/API/StatusPageAPI.ts",
   "packages/Common/Types/StatusPage/StateChangeNoteMessage.ts",
   "packages/Common/Types/StatusPage/DefaultStatusNames.ts",
+  "packages/Common/Utils/StatusPage/ReportText.ts",
   "packages/App/FeatureSet/Workers/Jobs",
   "packages/App/FeatureSet/Notification/Templates",
 ];

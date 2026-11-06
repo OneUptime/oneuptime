@@ -99,10 +99,24 @@ export class Service extends DatabaseService<Model> {
     expectedLastHeartbeatAt?: Date | undefined;
     set: AIRunTransitionSet;
   }): Promise<number> {
+    /*
+     * Held to what each column takes, as every raw write path must
+     * (truncateStringColumnsToMaxLength): this UPDATE skips the checks a
+     * service write makes. errorMessage is varchar(500), and its callers
+     * pass on what others said - a Runner's report of a git failure
+     * (update-task-status), an LLM provider's error - which is often
+     * longer. Unclamped, Postgres refused the whole UPDATE, the run was
+     * never closed, and it sat Running until the stale-run sweeper failed
+     * it without saying why (issue #6144).
+     */
+    const set: AIRunTransitionSet = this.truncateStringColumnsToMaxLength({
+      ...data.set,
+    } as Record<string, unknown>) as unknown as AIRunTransitionSet;
+
     const queryBuilder: UpdateQueryBuilder<Model> = this.getRepository()
       .createQueryBuilder()
       .update(Model)
-      .set(data.set as QueryDeepPartialEntity<Model>)
+      .set(set as QueryDeepPartialEntity<Model>)
       .where('"_id" = :id', { id: data.aiRunId.toString() })
       .andWhere('"status" = :fromStatus', { fromStatus: data.fromStatus })
       .andWhere('"deletedAt" IS NULL');

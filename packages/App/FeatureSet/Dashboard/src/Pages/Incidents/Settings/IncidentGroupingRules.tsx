@@ -45,6 +45,8 @@ import {
   getInactivityTimeoutFormField,
   getLegacyDefaultAssigneeColumnFormFields,
   getLegacyDefaultAssigneeFormField,
+  getMinimumCountColumnFormFields,
+  getMinimumCountFormField,
   getReopenWindowFormField,
   getResolveDelayFormField,
   getTimeWindowFormField,
@@ -66,10 +68,15 @@ flowchart TD
     B -->|Rule Matches| C{Find Existing Episode}
     B -->|No Match| D[Incident Stays Ungrouped]
     C -->|Episode Found| E[Add Incident to Episode]
-    C -->|No Episode| F[Create New Episode]
+    C -->|No Episode| W{Enough Incidents Ongoing?}
+    W -->|Yes| F[Create New Episode]
+    W -->|Not Yet| X[Incident Waits on Its Own]
+    X -.->|More Incidents Arrive| F
     E --> G[Update Episode Count]
     F --> H[Execute On-Call Policy]
 \`\`\`
+
+A rule waits for nothing unless **Wait for more incidents** is on, under **More fields**: then a new episode opens only once that many matching incidents are ongoing, and it opens with all of them.
 
 ---
 
@@ -170,6 +177,15 @@ flowchart TD
 - Group By: Monitor, Severity, Incident Title
 
 **Result:** Very specific episodes - one per unique combination of monitor + severity + title.
+
+#### Example 4: One episode only for a broader outage
+
+**Configuration:**
+- Match Criteria: (none - matches all incidents)
+- Group By: (none enabled) - **Everything Together**
+- More fields: **Wait for more incidents**, 3
+
+**Result:** A lone incident stays on its own. Once 3 matching incidents are ongoing - arriving within the time window of each other while it is on - one episode opens with all 3, and the incidents after them join it.
 `;
 
 const KIND: GroupingRuleKind = GroupingRuleKind.Incident;
@@ -396,6 +412,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
             description: "Enable or disable this grouping rule.",
           },
           ...getGroupingRuleColumnFormFields<IncidentGroupingRule>(),
+          ...getMinimumCountColumnFormFields<IncidentGroupingRule>(KIND),
           ...getLegacyDefaultAssigneeColumnFormFields<IncidentGroupingRule>(),
           /*
            * More fields, the end of the Grouping step: everything else a
@@ -477,11 +494,18 @@ const IncidentGroupingRulesPage: FunctionComponent<
               );
             },
           },
-          // Episode lifecycle - reopen, wait to resolve, resolve when quiet
-          getReopenWindowFormField<IncidentGroupingRule>({
+          /*
+           * Episode lifecycle - wait for more incidents before opening one,
+           * reopen, wait to resolve, resolve when quiet
+           */
+          getMinimumCountFormField<IncidentGroupingRule>({
             kind: KIND,
             collapsibleSection: MORE_FIELDS,
             sectionTitle: "Episode Lifecycle",
+          }),
+          getReopenWindowFormField<IncidentGroupingRule>({
+            kind: KIND,
+            collapsibleSection: MORE_FIELDS,
           }),
           getResolveDelayFormField<IncidentGroupingRule>({
             kind: KIND,

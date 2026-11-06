@@ -110,6 +110,7 @@ import ProjectAiDailyLimits, {
 } from "../../Types/AI/ProjectAiDailyLimits";
 import { AiContextOwner, getAiContextProblem } from "../../Types/AI/AiContext";
 import { NetworkTopologyLayoutUtil } from "../../Types/NetworkDevice/NetworkTopologyLayout";
+import { DefaultTableColumnsUtil } from "../../Types/Table/DefaultTableColumns";
 import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
 import { getRiskCaseThresholdError } from "../../Utils/SecurityCase/SecurityEntityRiskScore";
 import NumberPrefixUtil, {
@@ -708,6 +709,35 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
   }
 
+  /*
+   * The columns the project's lists show everyone who has not chosen their
+   * own (Project.defaultTableColumns): lists' keys to layouts of column ids,
+   * within DefaultTableColumnsUtil's limits, stored tidied (each id once, no
+   * empty layout) - or nothing, null or an object with no layout, stored as
+   * null, which hands every list back its own columns. Anything else is
+   * refused with what is wrong, never stored for the lists to ignore later.
+   * A write that leaves it out is not judged on it.
+   */
+  public applyDefaultTableColumnsRules(data: {
+    defaultTableColumns?: unknown;
+  }): void {
+    if (data.defaultTableColumns === undefined) {
+      return;
+    }
+
+    const problem: string | null = DefaultTableColumnsUtil.getProblem(
+      data.defaultTableColumns,
+    );
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+
+    data.defaultTableColumns = DefaultTableColumnsUtil.toJSON(
+      DefaultTableColumnsUtil.parse(data.defaultTableColumns),
+    );
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
@@ -728,6 +758,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applyDefaultNetworkTopologyLayoutRules(
       data.data as { defaultNetworkTopologyLayout?: unknown },
+    );
+    this.applyDefaultTableColumnsRules(
+      data.data as { defaultTableColumns?: unknown },
     );
 
     if (data.props.userId) {
@@ -1398,6 +1431,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applyDefaultNetworkTopologyLayoutRules(
       updateBy.data as { defaultNetworkTopologyLayout?: unknown },
+    );
+    this.applyDefaultTableColumnsRules(
+      updateBy.data as { defaultTableColumns?: unknown },
     );
 
     await this.assertAuditLogSettingsChangeIsLicensed({
