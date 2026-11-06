@@ -184,7 +184,7 @@ const AxisValuesInput: FunctionComponent<ComponentProps> = (
       {props.error ? (
         <FieldError
           message={props.error}
-          className="text-sm text-red-600"
+          className="text-sm"
           announce="none"
           dataTestId="axis-values-input-error"
         />

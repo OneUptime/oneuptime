@@ -33,16 +33,14 @@ const FILES: Array<string> = [
 ];
 
 /*
- * Right in both themes on purpose:
- * - the path box's Insert button, white on solid indigo, and its hover - a
- *   solid primary button, like Button's own;
- * - the error under a field, the light red every form field's error is
- *   (Input, TextArea), which is if anything easier to read on dark.
+ * Right in both themes on purpose: the path box's Insert button, white on
+ * solid indigo, and its hover - a solid primary button, like Button's own.
+ * The error under a field is FieldError's, in its own red, which these
+ * files only place (FieldErrorColorGuard).
  */
 const SAME_IN_BOTH_THEMES: Array<string> = [
   "text-white",
   "hover:bg-indigo-700",
-  "text-red-400",
 ];
 
 // Block comments only: prose in Theme.css must not count as a rule.

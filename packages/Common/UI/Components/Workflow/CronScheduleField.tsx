@@ -496,11 +496,7 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
       )}
 
       {props.error && (
-        <FieldError
-          message={props.error}
-          className="text-xs text-red-600"
-          announce="none"
-        />
+        <FieldError message={props.error} className="text-xs" announce="none" />
       )}
     </div>
   );

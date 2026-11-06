@@ -117,6 +117,15 @@ export interface EntityDropdownProps {
   // What describes the field besides its error, read first: its help.
   ariaDescribedby?: string | undefined;
   disabled?: boolean | undefined;
+  /*
+   * Whether a single pick can be taken back to nothing: its Clear button,
+   * and Backspace or Delete on the value. A required pick passes false -
+   * one is always picked, and Clear only emptied what the form then said
+   * was required - as FormField's plain Dropdown has since #5482
+   * (isClearable={!required}). A multi-select is not affected: each chip
+   * keeps its own Remove. Unset, true.
+   */
+  isClearable?: boolean | undefined;
 
   /*
    * Entity backing. When set, the popover fetches options server-side and
@@ -1423,12 +1432,19 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   }, [showSingleSelectedText]);
 
   /*
+   * Whether the single pick can be cleared from the field: not while it is
+   * locked, and not when it is required (isClearable={false}) - one is
+   * always picked, and another is picked from the list in its place.
+   */
+  const canClearPick: boolean = !props.disabled && props.isClearable !== false;
+
+  /*
    * Clears what a closed single-select shows: its Clear button, or Backspace
    * or Delete on the value button, as in a text field. Focus then goes to the
    * search input that takes the two buttons' place (focusInputAfterClearRef).
    */
   const clearShownValue: () => void = (): void => {
-    if (props.disabled) {
+    if (!canClearPick) {
       return;
     }
 
@@ -1609,7 +1625,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 props.onFocus?.();
               }}
               onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>) => {
-                if (event.key !== "Backspace" && event.key !== "Delete") {
+                if (
+                  (event.key !== "Backspace" && event.key !== "Delete") ||
+                  !canClearPick
+                ) {
                   return;
                 }
                 event.preventDefault();
@@ -1643,7 +1662,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 )}
               </span>
               <div className="flex items-center gap-1 text-gray-400">
-                {!props.disabled && (
+                {canClearPick && (
                   <span
                     aria-hidden="true"
                     data-testid="entity-dropdown-clear-place"
@@ -1653,7 +1672,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 <Icon icon={IconProp.ChevronDown} className="h-4 w-4" />
               </div>
             </button>
-            {!props.disabled && (
+            {canClearPick && (
               <button
                 type="button"
                 aria-label={translator.translateText("Clear selection")}
@@ -1811,7 +1830,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
               }}
               className="block w-full rounded-lg bg-transparent px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none disabled:cursor-not-allowed disabled:text-gray-500"
             />
-            {!isMulti && selectedKeys.length > 0 && !props.disabled && (
+            {!isMulti && selectedKeys.length > 0 && canClearPick && (
               <button
                 type="button"
                 aria-label={translator.translateText("Clear selection")}

@@ -18,18 +18,54 @@ import React, { FunctionComponent, ReactElement } from "react";
  * (IsolatedText), so it keeps its full stop at its end and the line still
  * starts at the right, under the field. One in the page's own words is
  * drawn as it always was.
+ *
+ * Its red is its own. Every field's error was drawn in a light red
+ * (text-red-400), 2.8:1 on a white card - under the 4.5:1 that text needs
+ * to be read - and the fields that placed their error line their own way
+ * coloured it too, in four different reds. A field places the line
+ * (className: its gap, its indent, its size); the colour is always
+ * FIELD_ERROR_COLOR_CLASS_NAME (FieldErrorColorGuard).
  */
 
 export const FIELD_ERROR_TEST_ID: string = "error-message";
 
-export const FIELD_ERROR_CLASS_NAME: string = "mt-1 text-sm text-red-400";
+/*
+ * The product's danger text (Theme.css's --ou-danger-text): 6.5:1 on a
+ * white card, 5.9:1 on the grey (gray-100) a field can sit on. The dark
+ * theme draws it #fca5a5 (Theme.css), 8.6:1 on a dark card.
+ */
+export const FIELD_ERROR_COLOR_CLASS_NAME: string = "text-red-700";
+
+// Where the line sits and how big its words are: under the field, small.
+export const FIELD_ERROR_PLACE_CLASS_NAME: string = "mt-1 text-sm";
+
+export const FIELD_ERROR_CLASS_NAME: string = `${FIELD_ERROR_PLACE_CLASS_NAME} ${FIELD_ERROR_COLOR_CLASS_NAME}`;
+
+/*
+ * The line's classes: where the field places it - or under the field,
+ * small - and always the error's own red.
+ */
+export const getFieldErrorClassName: (placeClassName?: string) => string = (
+  placeClassName?: string,
+): string => {
+  return [
+    placeClassName ?? FIELD_ERROR_PLACE_CLASS_NAME,
+    FIELD_ERROR_COLOR_CLASS_NAME,
+  ]
+    .filter(Boolean)
+    .join(" ");
+};
 
 export interface ComponentProps {
   // What is wrong, in the reader's language where the product has words for it.
   message: string;
   // The id a field's aria-describedby names.
   id?: string | undefined;
-  // The line's own classes, where a field spaces or colours it its own way.
+  /*
+   * Where the line sits and how big its words are, where a field places it
+   * its own way: "mt-2", "pl-14 mt-1 text-sm", "text-xs". Never a colour:
+   * the red is FieldError's (FIELD_ERROR_COLOR_CLASS_NAME).
+   */
   className?: string | undefined;
   /*
    * How a screen reader is told: at once (role="alert", the default),
@@ -57,7 +93,7 @@ const FieldError: FunctionComponent<ComponentProps> = (
     <p
       id={props.id}
       data-testid={props.dataTestId || FIELD_ERROR_TEST_ID}
-      className={props.className ?? FIELD_ERROR_CLASS_NAME}
+      className={getFieldErrorClassName(props.className)}
       role={announce === "alert" ? "alert" : undefined}
       aria-live={announce === "polite" ? "polite" : undefined}
     >
