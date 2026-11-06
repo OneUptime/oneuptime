@@ -73,10 +73,11 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  * FIX BUTTONS FOR PEOPLE WHO MAY ACT (#5715's follow-up).
  *
  * The AI card's Remediation step showed Approve & Run, Dry run and Dismiss
- * fix to everyone who could read a fix, and the server then refused a
- * Viewer's press: all three ask permission to start runbook executions
- * (RunbookExecution's create list), on the card as in Slack and Microsoft
- * Teams. Now the step asks the reader's permission snapshot first, the way
+ * fix to everyone who could read a fix, and the server then refused the
+ * press of anyone who may not start runbook executions - a Project Member
+ * whose team blocks Create Runbook Execution, say: all three ask that
+ * permission (RunbookExecution's create list), on the card as in Slack and
+ * Microsoft Teams. Now the step asks the reader's permission snapshot first, the way
  * Try again is offered only to someone who may change the record: a reader
  * it certainly refuses sees none of them - nor Review and approve, which
  * leads to them - and a quiet line in their place saying who may act and
