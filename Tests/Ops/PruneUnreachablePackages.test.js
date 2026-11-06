@@ -867,6 +867,111 @@ describe("the walk, with require.resolve()", () => {
   });
 });
 
+/*
+ * sharp loads its native binary with require(`../src/build/Release/sharp-${
+ * platform}-${version}.node`), from a folder its prebuilt packages leave
+ * empty. esbuild makes such a template a file pattern, and a pattern that
+ * matches no file failed the whole walk, the App image's build with it. The
+ * walk now reads that package file's such require()s as computed loads - npm
+ * keeps the package's own dependencies (its prebuilt binaries) - and goes on
+ * through the rest of the file. The program's own computed loads still stop
+ * it.
+ */
+describe("the walk, with a package's computed file loads", () => {
+  function programWithNativePackage(extraFiles = {}) {
+    const root = temporaryDirectory("prune-native-");
+    writeTree(root, {
+      "app/Index.ts":
+        'import native from "native-lib";\nexport default native;\n',
+      "node_modules/native-lib/package.json": packageJson("native-lib", {
+        main: "dist/index.cjs",
+      }),
+      "node_modules/native-lib/dist/index.cjs": [
+        "const platform = process.platform;",
+        "let binding = null;",
+        "try {",
+        "  binding = require(`../build/Release/native-${platform}.node`);",
+        "} catch (error) {",
+        "  binding = null;",
+        "}",
+        'const helper = require("helper-dep");',
+        "module.exports = { binding, helper };",
+        "",
+      ].join("\n"),
+      "node_modules/helper-dep/package.json": packageJson("helper-dep"),
+      "node_modules/helper-dep/index.js": "module.exports = 1;\n",
+      ...extraFiles,
+    });
+    return root;
+  }
+
+  test("a package's template require() that matches no file is read as a computed load, and the walk goes on through that file", async () => {
+    const root = programWithNativePackage();
+    const walk = await walkImports({
+      entry: path.join(root, "app", "Index.ts"),
+      esbuild,
+    });
+
+    expect(relativeTo(root, walk.reached)).toEqual([
+      "node_modules/helper-dep",
+      "node_modules/native-lib",
+    ]);
+    expect(
+      walk.packageComputedLoads.map((file) => {
+        return path.relative(root, file);
+      }),
+    ).toEqual(["node_modules/native-lib/dist/index.cjs"]);
+    // The file on disk is read, never changed.
+    expect(
+      fs.readFileSync(
+        path.join(root, "node_modules", "native-lib", "dist", "index.cjs"),
+        "utf8",
+      ),
+    ).toContain("require(`../build/Release/native-${platform}.node`)");
+  });
+
+  test("a package's template require() that matches files is walked into them, as before", async () => {
+    const root = programWithNativePackage({
+      "app/Index.ts": 'import parts from "parts-lib";\nexport default parts;\n',
+      "node_modules/parts-lib/package.json": packageJson("parts-lib"),
+      "node_modules/parts-lib/index.js": [
+        'const name = process.env.PART || "a";',
+        "module.exports = require(`./parts/part-${name}.js`);",
+        "",
+      ].join("\n"),
+      "node_modules/parts-lib/parts/part-a.js":
+        'module.exports = require("other-dep");\n',
+      "node_modules/other-dep/package.json": packageJson("other-dep"),
+      "node_modules/other-dep/index.js": "module.exports = 2;\n",
+    });
+    const walk = await walkImports({
+      entry: path.join(root, "app", "Index.ts"),
+      esbuild,
+    });
+
+    expect(relativeTo(root, walk.reached)).toEqual([
+      "node_modules/other-dep",
+      "node_modules/parts-lib",
+    ]);
+    expect(walk.packageComputedLoads).toEqual([]);
+  });
+
+  test("the program's own template require() that matches no file still stops the walk", async () => {
+    // JavaScript, as the walk would read a package file: only where it is decides.
+    const root = programWithNativePackage({
+      "app/Index.js": [
+        "const name = process.platform;",
+        "module.exports = require(`./plugins/${name}.js`);",
+        "",
+      ].join("\n"),
+    });
+
+    await expect(
+      walkImports({ entry: path.join(root, "app", "Index.js"), esbuild }),
+    ).rejects.toThrow("Could not resolve");
+  });
+});
+
 describe("computed imports", () => {
   function computed(source, file = "Own.ts") {
     return computedImportsIn({ file, source, typescript });
@@ -2161,6 +2266,23 @@ const OPTIONAL_MISSING = new Set([
   "utf-8-validate",
 ]);
 
+/*
+ * sharp, which makes a status page's logo into one an email can carry, tries
+ * its prebuilt binary for each platform in turn (@img/sharp-<platform>), and
+ * its libvips headers for a build from source (@img/sharp-libvips-dev):
+ * npm installs only the binary of the platform it installs on.
+ */
+const OPTIONAL_MISSING_PREFIXES = ["@img/sharp-"];
+
+function isOptionalMissing(specifier) {
+  return (
+    OPTIONAL_MISSING.has(specifier) ||
+    OPTIONAL_MISSING_PREFIXES.some((prefix) => {
+      return specifier.startsWith(prefix);
+    })
+  );
+}
+
 (SIDECAR_INSTALLED || REAL_SIDECAR_REQUIRED ? describe : describe.skip)(
   "the real certificate sidecar",
   () => {
@@ -2241,7 +2363,7 @@ const OPTIONAL_MISSING = new Set([
           }),
         ),
       ].filter((specifier) => {
-        return !OPTIONAL_MISSING.has(specifier);
+        return !isOptionalMissing(specifier);
       });
       expect(missing).toEqual([]);
     });
@@ -2280,7 +2402,7 @@ function missingBeyondTheOptional(walk) {
       }),
     ),
   ].filter((specifier) => {
-    return !OPTIONAL_MISSING.has(specifier);
+    return !isOptionalMissing(specifier);
   });
 }
 
