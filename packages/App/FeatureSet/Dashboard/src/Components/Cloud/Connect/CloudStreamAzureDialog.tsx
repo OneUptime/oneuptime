@@ -37,8 +37,11 @@ import {
   getDefaultAzureStreamChoices,
 } from "./CloudStreamAzureSetup";
 import {
+  CLOUD_STREAM_COMMAND_MAX_HEIGHT,
   CLOUD_STREAM_DIALOG_TEST_ID,
+  CLOUD_STREAM_FIELD_BOX_CLASS_NAME,
   CLOUD_STREAM_INPUT_CLASS_NAME,
+  CLOUD_STREAM_STEP_BUTTON_CLASS_NAME,
   CloudStreamCopyRow,
   CloudStreamLiveStep,
   CloudStreamNotice,
@@ -76,8 +79,10 @@ import {
  * Azure Monitor sends only to an event hub, a storage account or a Log
  * Analytics workspace: an event hub OneUptime reads is the way that needs
  * nothing of yours to run. The subscriptions, and the names for setting it
- * up another way, are folded under More fields. Stopping is the
- * connections list's own action.
+ * up another way, are folded under More fields - unless the connection has
+ * read no subscription yet: then nothing can be turned on or run without
+ * them, and the dialog asks for them under its question instead. Stopping
+ * is the connections list's own action.
  */
 
 export interface ComponentProps {
@@ -125,6 +130,16 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
       }),
     );
   });
+  /*
+   * A connection that has read no subscription yet - just connected, or
+   * its reads fail - gives the dialog none to start on, and nothing can be
+   * turned on or run without one: the field is asked for under the
+   * question, not folded away under More fields. Decided as the dialog
+   * opens, so the field stays where it is while it is typed in.
+   */
+  const [isSubscriptionsAsked] = useState<boolean>(() => {
+    return choices.subscriptionsText.trim() === "";
+  });
   const [isStarting, setIsStarting] = useState<boolean>(false);
   const [startError, setStartError] = useState<string>("");
   // While the dialog is open, what arrived is asked for every few seconds.
@@ -146,8 +161,19 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
   });
   const isOn: boolean = Boolean(status.streamKeyCreatedAt);
   const readHost: string = isOn ? status.hostSubscriptionId || "" : "";
+  /*
+   * Reading is on where the command makes the event hubs - or the listed
+   * subscriptions name no first one yet (one that is no ID, say), and there
+   * is nowhere else to read them: the step says where it reads.
+   */
   const isReadingHere: boolean =
-    Boolean(readHost) && readHost === setup.hostSubscriptionId;
+    Boolean(readHost) &&
+    (!setup.hostSubscriptionId || readHost === setup.hostSubscriptionId);
+  // Why reading cannot be turned on, in the reader's language: the command's problem.
+  const startLockedReason: string | undefined =
+    !setup.hostSubscriptionId && setup.problem
+      ? translator.translateTemplate(setup.problem.text, setup.problem.values)
+      : undefined;
 
   const startReading: () => Promise<void> = async (): Promise<void> => {
     if (!props.connection.id || !setup.hostSubscriptionId) {
@@ -231,12 +257,12 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
                 "OneUptime reads the event hubs in subscription {{current}}, and this command makes them in {{next}}, the first listed. Read them there before you run it.",
                 {
                   current: readHost,
-                  next: setup.hostSubscriptionId || "?",
+                  next: setup.hostSubscriptionId,
                 },
               )
             : say(
                 translationKey(
-                  "OneUptime reads the event hubs the command makes every minute, signed in as the connection's app. Turn reading on first: until the event hubs are there, it waits for them.",
+                  "Every minute, OneUptime reads the event hubs the command makes, signed in as the connection's app. Turn reading on first: until they are there, it waits for them.",
                 ),
               )}
         </p>
@@ -244,8 +270,10 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
           title={readHost ? "Read them there" : "Turn on reading"}
           icon={IconProp.Play}
           buttonStyle={ButtonStyleType.PRIMARY}
+          className={CLOUD_STREAM_STEP_BUTTON_CLASS_NAME}
           isLoading={isStarting}
           disabled={!setup.hostSubscriptionId}
+          tooltip={startLockedReason}
           dataTestId={cloudStreamPart("start-reading")}
           onClick={() => {
             startReading().catch(() => {
@@ -301,7 +329,7 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
                 code={setup.command}
                 language="bash"
                 wrapLongLines={true}
-                maxHeight="240px"
+                maxHeight={CLOUD_STREAM_COMMAND_MAX_HEIGHT}
               />
             </div>
           )}
@@ -337,13 +365,56 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
     },
   ];
 
+  // The subscriptions: under the question when asked for there, else folded.
+  const subscriptionsField: ReactElement = (
+    <div className="space-y-1">
+      <label
+        className="block text-sm font-medium text-gray-900"
+        htmlFor={`${fieldId}-subscriptions`}
+      >
+        {say(translationKey("Subscriptions"))}
+      </label>
+      <input
+        id={`${fieldId}-subscriptions`}
+        type="text"
+        dir="ltr"
+        spellCheck={false}
+        className={CLOUD_STREAM_INPUT_CLASS_NAME}
+        placeholder="00000000-0000-0000-0000-000000000000"
+        aria-describedby={`${fieldId}-subscriptions-help`}
+        value={choices.subscriptionsText}
+        data-testid={cloudStreamPart("subscriptions")}
+        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+          update({ subscriptionsText: event.target.value });
+        }}
+      />
+      <p id={`${fieldId}-subscriptions-help`} className="text-xs text-gray-500">
+        {isSubscriptionsAsked
+          ? say(
+              translationKey(
+                "Subscription IDs, separated by commas: this connection has read none yet. The first holds the event hubs, and OneUptime reads them there.",
+              ),
+            )
+          : say(
+              translationKey(
+                "Subscription IDs, separated by commas: at first, the ones this connection reads. The first holds the event hubs, and OneUptime reads them there.",
+              ),
+            )}
+      </p>
+    </div>
+  );
+
   const moreFieldsItems: Array<FoldedSectionItem> = [
-    {
-      key: "subscriptions",
-      title: "Subscriptions",
-      isSet: setup.subscriptions.length > 0,
-      value: translator.formatNumber(setup.subscriptions.length),
-    },
+    ...(isSubscriptionsAsked
+      ? []
+      : [
+          {
+            key: "subscriptions",
+            title: "Subscriptions",
+            isSet: setup.subscriptions.length > 0,
+            value: translator.formatNumber(setup.subscriptions.length),
+          },
+        ]),
     {
       key: "elsewhere",
       title: "Set it up another way",
@@ -400,6 +471,17 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
           />
         </div>
 
+        {isSubscriptionsAsked ? (
+          <div
+            className={CLOUD_STREAM_FIELD_BOX_CLASS_NAME}
+            data-testid={cloudStreamPart("subscriptions-asked")}
+          >
+            {subscriptionsField}
+          </div>
+        ) : (
+          <></>
+        )}
+
         <SetupGuideSteps steps={steps} />
 
         <FoldedSection
@@ -408,38 +490,7 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
           dataTestId={cloudStreamPart("more-fields")}
         >
           <div className="space-y-5">
-            <div className="space-y-1">
-              <label
-                className="block text-sm font-medium text-gray-900"
-                htmlFor={`${fieldId}-subscriptions`}
-              >
-                {say(translationKey("Subscriptions"))}
-              </label>
-              <input
-                id={`${fieldId}-subscriptions`}
-                type="text"
-                dir="ltr"
-                spellCheck={false}
-                className={CLOUD_STREAM_INPUT_CLASS_NAME}
-                placeholder="00000000-0000-0000-0000-000000000000"
-                aria-describedby={`${fieldId}-subscriptions-help`}
-                value={choices.subscriptionsText}
-                data-testid={cloudStreamPart("subscriptions")}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                  update({ subscriptionsText: event.target.value });
-                }}
-              />
-              <p
-                id={`${fieldId}-subscriptions-help`}
-                className="text-xs text-gray-500"
-              >
-                {say(
-                  translationKey(
-                    "Subscription IDs, separated by commas: at first, the ones this connection reads. The first holds the event hubs, and OneUptime reads them there.",
-                  ),
-                )}
-              </p>
-            </div>
+            {isSubscriptionsAsked ? <></> : subscriptionsField}
 
             <div
               className="space-y-3"

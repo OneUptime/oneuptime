@@ -45670,7 +45670,7 @@
   "Nothing is lost: Pub/Sub pushes those messages again shortly. A narrower filter sends fewer.": "不会丢失任何数据：Pub/Sub 很快会再次推送这些消息。过滤器越窄，发送越少。",
   "OneUptime could not reach the event hubs.": "OneUptime 无法访问事件中心。",
   "OneUptime reads the event hubs in subscription {{current}}, and this command makes them in {{next}}, the first listed. Read them there before you run it.": "OneUptime 正在读取订阅 {{current}} 中的事件中心，而此命令会在列表中第一个订阅 {{next}} 中创建它们。运行前请改为在那里读取。",
-  "OneUptime reads the event hubs the command makes every minute, signed in as the connection's app. Turn reading on first: until the event hubs are there, it waits for them.": "OneUptime 以连接的应用身份登录，每分钟读取命令创建的事件中心。请先开启读取：在事件中心建好之前，它会一直等待。",
+  "Every minute, OneUptime reads the event hubs the command makes, signed in as the connection's app. Turn reading on first: until they are there, it waits for them.": "OneUptime 以连接的应用身份登录，每分钟读取命令创建的事件中心。请先开启读取：在事件中心建好之前，它会一直等待。",
   "OneUptime stops reading the event hubs of {{name}} at once, and the connection reads all its metrics on its schedule again. What was read stays.": "OneUptime 会立即停止读取 {{name}} 的事件中心，连接会重新按计划读取其所有指标。已读取的内容会保留。",
   "Project IDs, separated by commas: at first, the ones this connection reads. The topic is made in the project of the connection's service account.": "项目 ID，用逗号分隔：起初为此连接读取的项目。主题会创建在连接的服务账号所在的项目中。",
   "Pub/Sub pushes to https:// addresses only, and this OneUptime is not served over HTTPS. Serve it over HTTPS, with a certificate Google trusts, to stream.": "Pub/Sub 只推送到 https:// 地址，而此 OneUptime 未通过 HTTPS 提供服务。如需流式传输，请使用 Google 信任的证书通过 HTTPS 提供服务。",
@@ -45720,5 +45720,6 @@
   "With Terraform or the console: give a Pub/Sub topic a push subscription with these values, its payload wrapped, and let the Pub/Sub service agent make tokens for the push service account; then route each project's logs to the topic with a log sink.": "使用 Terraform 或控制台：为 Pub/Sub 主题添加使用这些值、载荷封装的推送订阅，并允许 Pub/Sub 服务代理为推送服务账号创建令牌；然后用日志接收器把每个项目的日志转发到该主题。",
   "With Terraform or the portal: in a resource group of the first subscription, make an Event Hubs namespace in each region, named after the prefix and the region, each with the event hub below; give the connection's app {{role}} on the group; and give each resource a diagnostic setting of this name that sends to its region's event hub. Then turn reading on.": "使用 Terraform 或门户：在第一个订阅的资源组中，于每个区域创建一个以前缀加区域命名的 Event Hubs 命名空间，每个都包含下面的事件中心；为连接的应用授予该组上的 {{role}}；并为每个资源添加使用此名称、发送到其所在区域事件中心的诊断设置。然后开启读取。",
   "Write the filter, in the Cloud Logging query language.": "请使用 Cloud Logging 查询语言编写过滤器。",
-  "resource.type=\"cloud_run_revision\" AND severity>=ERROR": "resource.type=\"cloud_run_revision\" AND severity>=ERROR"
+  "resource.type=\"cloud_run_revision\" AND severity>=ERROR": "resource.type=\"cloud_run_revision\" AND severity>=ERROR",
+  "Subscription IDs, separated by commas: this connection has read none yet. The first holds the event hubs, and OneUptime reads them there.": "订阅 ID，用逗号分隔：此连接尚未读取任何订阅。第一个订阅中存放事件中心，OneUptime 会在那里读取它们。"
 }

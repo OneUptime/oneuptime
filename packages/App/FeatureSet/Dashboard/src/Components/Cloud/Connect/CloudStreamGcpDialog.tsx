@@ -41,8 +41,11 @@ import {
   getGcpStreamSetup,
 } from "./CloudStreamGcpSetup";
 import {
+  CLOUD_STREAM_COMMAND_MAX_HEIGHT,
   CLOUD_STREAM_DIALOG_TEST_ID,
+  CLOUD_STREAM_FIELD_BOX_CLASS_NAME,
   CLOUD_STREAM_INPUT_CLASS_NAME,
+  CLOUD_STREAM_STEP_BUTTON_CLASS_NAME,
   CloudStreamCopyRow,
   CloudStreamLiveStep,
   CloudStreamNotice,
@@ -249,6 +252,7 @@ const CloudStreamGcpDialog: FunctionComponent<ComponentProps> = (
           }
           icon={IconProp.Key}
           buttonStyle={ButtonStyleType.PRIMARY}
+          className={CLOUD_STREAM_STEP_BUTTON_CLASS_NAME}
           isLoading={isMakingKey}
           dataTestId={cloudStreamPart("make-key")}
           onClick={() => {
@@ -305,7 +309,7 @@ const CloudStreamGcpDialog: FunctionComponent<ComponentProps> = (
                 code={command}
                 language="bash"
                 wrapLongLines={true}
-                maxHeight="240px"
+                maxHeight={CLOUD_STREAM_COMMAND_MAX_HEIGHT}
               />
             </div>
           )}
@@ -325,15 +329,24 @@ const CloudStreamGcpDialog: FunctionComponent<ComponentProps> = (
           <div className="flex flex-col gap-x-4 gap-y-2 sm:flex-row sm:flex-wrap sm:items-center">
             <CloudStreamShellLink shell={shell} />
           </div>
-          <CloudStreamWhatItMakes
-            text={translator.translateTemplate(
-              "In {{project}} it makes a service account that holds no role, for Pub/Sub to sign its pushes as, and a Pub/Sub topic with its push subscription, {{topic}}; in each project, a log sink whose writer may publish to that topic alone. Nothing it makes can read your projects. Google bills Pub/Sub for the logs it delivers.",
-              {
-                project: setup.hostProjectId || "?",
-                topic: setup.names.topic,
-              },
-            )}
-          />
+          {/*
+           * What it makes is said in the project it makes it in: a
+           * connection that does not say its project has no command, and
+           * nothing to say here.
+           */}
+          {setup.hostProjectId ? (
+            <CloudStreamWhatItMakes
+              text={translator.translateTemplate(
+                "In {{project}} it makes a service account that holds no role, for Pub/Sub to sign its pushes as, and a Pub/Sub topic with its push subscription, {{topic}}; in each project, a log sink whose writer may publish to that topic alone. Nothing it makes can read your projects. Google bills Pub/Sub for the logs it delivers.",
+                {
+                  project: setup.hostProjectId,
+                  topic: setup.names.topic,
+                },
+              )}
+            />
+          ) : (
+            <></>
+          )}
         </div>
       ),
     },
@@ -419,7 +432,7 @@ const CloudStreamGcpDialog: FunctionComponent<ComponentProps> = (
 
         {choices.logs === GcpCloudStreamLogs.Custom ? (
           <div
-            className="space-y-1 rounded-lg border border-gray-200 px-4 py-3"
+            className={CLOUD_STREAM_FIELD_BOX_CLASS_NAME}
             data-testid={cloudStreamPart("filter-field")}
           >
             <label

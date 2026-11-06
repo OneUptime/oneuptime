@@ -60,6 +60,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 });
 
 import CloudConnectionsTable from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionsTable";
+import { CLOUD_STREAM_COMMAND_MAX_HEIGHT } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamParts";
 import {
   READ_NOW_GIVE_UP_MS,
   READ_NOW_POLL_MS,
@@ -1353,6 +1354,29 @@ describe("streaming an Azure subscription and a Google Cloud project", () => {
     expect(stop.code).toContain(
       "gcloud pubsub topics delete oneuptime-stream-20000000 --project 'acme-prod' --quiet",
     );
+  });
+
+  test("Stop streaming's command is drawn as tall as the streaming dialogs' at most, whichever cloud it deletes in", () => {
+    renderTable();
+
+    for (const item of [
+      connection({ streamKeyCreatedAt: STARTED_AT }),
+      azure({
+        streamKeyCreatedAt: STARTED_AT,
+        streamState: { hostSubscriptionId: SUB_A, offsets: {} },
+      }),
+      gcp({ streamKeyCreatedAt: STARTED_AT }),
+    ]) {
+      const { container } = render(
+        action("Stop streaming").getConfirmation!(item)!.details!,
+      );
+      // The box that scrolls: Azure's runs to twenty lines, and the question stays in view.
+      const box: HTMLElement | null | undefined =
+        container.querySelector("pre")?.parentElement;
+
+      expect(box?.style.maxHeight).toBe(CLOUD_STREAM_COMMAND_MAX_HEIGHT);
+      cleanup();
+    }
   });
 
   test("Stop streaming stops either the same way, and the list reads again", async () => {

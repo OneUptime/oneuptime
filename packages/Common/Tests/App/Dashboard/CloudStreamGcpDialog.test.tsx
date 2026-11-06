@@ -58,7 +58,10 @@ jest.mock("../../../UI/Config", () => {
 
 import * as UIConfig from "../../../UI/Config";
 import CloudStreamGcpDialog from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamGcpDialog";
-import { CLOUD_STREAM_DIALOG_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamParts";
+import {
+  CLOUD_STREAM_DIALOG_TEST_ID,
+  CLOUD_STREAM_STEP_BUTTON_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamParts";
 import {
   CLOUD_STREAM_POLL_MS,
   readCloudStreamKeyMade,
@@ -501,6 +504,8 @@ describe("the dialog", () => {
     );
     expect(part("live")).toHaveAttribute("data-state", "no-key");
     expect(postSpy).not.toHaveBeenCalled();
+    // The step's own button starts where its words start, not a footer's margin in.
+    expect(part("make-key")).toHaveClass(CLOUD_STREAM_STEP_BUTTON_CLASS_NAME);
   });
 
   test("making a key puts it in the command as the token's audience, shows it this once, and tells the list", async () => {
@@ -577,6 +582,9 @@ describe("the dialog", () => {
       "This connection does not say which project its service account is from.",
     );
     expect(queryPart("command")).not.toBeInTheDocument();
+    // Nothing is said of what it makes, in a project it cannot name.
+    expect(queryPart("what-it-makes")).not.toBeInTheDocument();
+    expect(screen.getByTestId("setup-guide-step-2")).not.toHaveTextContent("?");
   });
 
   test("More fields holds the projects, and the values to set it up another way", async () => {

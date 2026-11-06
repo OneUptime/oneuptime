@@ -61,6 +61,7 @@ import CloudConnectionTestDialog from "./CloudConnectionTestDialog";
 import { getAzureStreamStopCommand } from "./CloudStreamAzureSetup";
 import CloudStreamAzureDialog from "./CloudStreamAzureDialog";
 import CloudStreamDialog from "./CloudStreamDialog";
+import { CLOUD_STREAM_COMMAND_MAX_HEIGHT } from "./CloudStreamParts";
 import { getGcpStreamStopCommand } from "./CloudStreamGcpSetup";
 import CloudStreamGcpDialog from "./CloudStreamGcpDialog";
 import {
@@ -459,7 +460,17 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
           data-testid="cloud-connection-stop-streaming"
         >
           <p className="text-sm text-gray-700">{stays}</p>
-          <CodeBlock code={command} language="bash" wrapLongLines={true} />
+          {/*
+           * As tall as the streaming dialog's command at most: Azure's runs
+           * to twenty lines, and the question and its buttons stay in view
+           * with it. Its copy button takes it all.
+           */}
+          <CodeBlock
+            code={command}
+            language="bash"
+            wrapLongLines={true}
+            maxHeight={CLOUD_STREAM_COMMAND_MAX_HEIGHT}
+          />
         </div>
       ),
     };

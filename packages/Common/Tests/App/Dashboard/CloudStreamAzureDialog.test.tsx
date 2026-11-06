@@ -39,7 +39,12 @@ import * as React from "react";
  *     waiting, what came from where, or why the event hubs could not be
  *     read;
  *   - the subscriptions and the names for setting it up another way are
- *     under More fields.
+ *     under More fields - unless the connection has read no subscription
+ *     yet, when the dialog asks for them under its question;
+ *   - while reading is on, a listed subscription that is no ID never turns
+ *     the first step into a question mark: it keeps saying where it reads;
+ *   - Turn on reading starts where the step's words start, and a locked one
+ *     says why.
  *
  * And the words and choices behind it, which are React-free.
  */
@@ -58,7 +63,11 @@ jest.mock("../../../UI/Config", () => {
 });
 
 import CloudStreamAzureDialog from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamAzureDialog";
-import { CLOUD_STREAM_DIALOG_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamParts";
+import {
+  CLOUD_STREAM_COMMAND_MAX_HEIGHT,
+  CLOUD_STREAM_DIALOG_TEST_ID,
+  CLOUD_STREAM_STEP_BUTTON_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamParts";
 import { CLOUD_STREAM_POLL_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectApi";
 import {
   AZURE_STREAM_DOCS_PATH,
@@ -541,6 +550,19 @@ describe("the dialog", () => {
     expect(part("start-reading")).toBeEnabled();
     // Nothing asked of the server until reading is turned on.
     expect(postSpy).not.toHaveBeenCalled();
+
+    // The step's own button starts where its words start, not a footer's margin in.
+    expect(part("start-reading")).toHaveClass(
+      CLOUD_STREAM_STEP_BUTTON_CLASS_NAME,
+    );
+    expect(steps[0]).toHaveTextContent(
+      "Every minute, OneUptime reads the event hubs the command makes, signed in as the connection's app. Turn reading on first: until they are there, it waits for them.",
+    );
+    // As tall as every streaming command at most, before it scrolls.
+    expect(
+      (part("command").querySelector("pre")?.parentElement as HTMLElement).style
+        .maxHeight,
+    ).toBe(CLOUD_STREAM_COMMAND_MAX_HEIGHT);
   });
 
   test("metrics and logs send both, as Azure allows each resource; logs alone send logs only", async () => {
@@ -670,6 +692,11 @@ describe("the dialog", () => {
     );
     expect(queryPart("command")).not.toBeInTheDocument();
     expect(part("start-reading")).toBeDisabled();
+    // Locked, it says why where a pointer, a tap or the keyboard reaches it.
+    expect(part("start-reading-disabled-wrapper")).toHaveAttribute(
+      "tabindex",
+      "0",
+    );
 
     cleanup();
     openDialog(
@@ -680,6 +707,109 @@ describe("the dialog", () => {
       "List at least one subscription to stream from.",
     );
     expect(part("start-reading")).toBeDisabled();
+    expect(part("start-reading-disabled-wrapper")).toBeInTheDocument();
+  });
+
+  test("a connection that has read no subscription yet asks for them under the question, where they stay while typed in", async () => {
+    openDialog(
+      connection({ lastPullResult: { status: "success", accounts: [] } }),
+    );
+
+    // Asked for in a box of its own, between the question and the steps.
+    const asked: HTMLElement = part("subscriptions-asked");
+
+    expect(asked).toHaveTextContent(
+      "Subscription IDs, separated by commas: this connection has read none yet. The first holds the event hubs, and OneUptime reads them there.",
+    );
+    expect(within(asked).getByLabelText("Subscriptions")).toBe(
+      part("subscriptions"),
+    );
+    expect(part("subscriptions")).toHaveValue("");
+    expect(
+      part("question").compareDocumentPosition(asked) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      asked.compareDocumentPosition(screen.getByTestId("setup-guide-steps")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // So More fields no longer holds it, nor names it.
+    expect(part("more-fields")).not.toHaveTextContent("Subscriptions");
+    expect(part("more-fields")).toHaveTextContent("Set it up another way");
+
+    await act(async () => {
+      fireEvent.change(part("subscriptions"), {
+        target: { value: `${SUB_B}, ${SUB_A}` },
+      });
+    });
+
+    // Typed in: the command, and reading, in the first.
+    expect(queryPart("problem")).not.toBeInTheDocument();
+    expect(command()).toContain(`local HOST='${SUB_B}'`);
+    expect(part("start-reading")).toBeEnabled();
+    // Still where it was typed in, and the only such field once More fields opens.
+    expect(
+      within(part("subscriptions-asked")).getByLabelText("Subscriptions"),
+    ).toHaveValue(`${SUB_B}, ${SUB_A}`);
+
+    await openMoreFields();
+
+    expect(
+      screen.getAllByTestId(`${CLOUD_STREAM_DIALOG_TEST_ID}-subscriptions`),
+    ).toHaveLength(1);
+    expect(part("resource-group")).toHaveTextContent(GROUP);
+
+    await startReading();
+
+    expect(postSpy.mock.calls[0]![0].data).toEqual({
+      hostSubscriptionId: SUB_B,
+    });
+  });
+
+  test("a connection that knows its subscriptions keeps them folded under More fields", () => {
+    openDialog();
+
+    expect(queryPart("subscriptions-asked")).not.toBeInTheDocument();
+    expect(part("more-fields")).toContainElement(part("subscriptions"));
+    expect(part("more-fields")).toHaveTextContent("Subscriptions: 2");
+  });
+
+  test("while reading is on, a listed subscription that is no ID keeps saying where it reads - never a question mark", async () => {
+    const startedAt: Date = new Date("2026-11-05T08:00:00.000Z");
+    openDialog(
+      connection({
+        streamKeyCreatedAt: startedAt,
+        streamState: { hostSubscriptionId: SUB_B, offsets: {} },
+      }),
+    );
+
+    await openMoreFields();
+    await act(async () => {
+      fireEvent.change(part("subscriptions"), {
+        target: { value: "prod-subscription" },
+      });
+    });
+
+    expect(part("problem")).toHaveTextContent(
+      "List subscriptions by their IDs, such as 00000000-0000-0000-0000-000000000000.",
+    );
+    expect(part("reading")).toHaveTextContent(
+      `OneUptime reads the event hubs in subscription ${SUB_B} every minute.`,
+    );
+    expect(queryPart("start")).not.toBeInTheDocument();
+    expect(queryPart("start-reading")).not.toBeInTheDocument();
+    expect(screen.getByTestId("setup-guide-step-1")).not.toHaveTextContent("?");
+
+    // A first one that is an ID again: it offers to read them there.
+    await act(async () => {
+      fireEvent.change(part("subscriptions"), {
+        target: { value: SUB_A },
+      });
+    });
+
+    expect(part("start")).toHaveTextContent(
+      `OneUptime reads the event hubs in subscription ${SUB_B}, and this command makes them in ${SUB_A}, the first listed.`,
+    );
   });
 
   test("More fields holds the subscriptions, and the names to set it up another way", async () => {

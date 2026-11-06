@@ -58,6 +58,7 @@ import * as UIConfig from "../../../UI/Config";
 import CloudStreamDialog, {
   CLOUD_STREAM_DIALOG_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamDialog";
+import { CLOUD_STREAM_STEP_BUTTON_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamParts";
 import {
   CLOUD_STREAM_POLL_MS,
   readCloudStreamKeyMade,
@@ -665,6 +666,8 @@ describe("the dialog", () => {
     expect(part("live")).toHaveAttribute("data-state", "no-key");
     // Nothing asked of the server until a key is wanted.
     expect(postSpy).not.toHaveBeenCalled();
+    // The step's own button starts where its words start, not a footer's margin in.
+    expect(part("make-key")).toHaveClass(CLOUD_STREAM_STEP_BUTTON_CLASS_NAME);
   });
 
   test("making a key puts it in the command, shows it this once, and tells the list", async () => {

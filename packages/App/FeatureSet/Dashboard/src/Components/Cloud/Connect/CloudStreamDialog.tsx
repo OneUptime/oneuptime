@@ -50,8 +50,10 @@ import {
   streamsMetrics,
 } from "./CloudStreamSetup";
 import {
+  CLOUD_STREAM_COMMAND_MAX_HEIGHT,
   CLOUD_STREAM_DIALOG_TEST_ID,
   CLOUD_STREAM_INPUT_CLASS_NAME,
+  CLOUD_STREAM_STEP_BUTTON_CLASS_NAME,
   CloudStreamCheckRow,
   CloudStreamCopyRow,
   CloudStreamLiveStep,
@@ -279,6 +281,7 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
           }
           icon={IconProp.Key}
           buttonStyle={ButtonStyleType.PRIMARY}
+          className={CLOUD_STREAM_STEP_BUTTON_CLASS_NAME}
           isLoading={isMakingKey}
           dataTestId={`${CLOUD_STREAM_DIALOG_TEST_ID}-make-key`}
           onClick={() => {
@@ -349,7 +352,7 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
                 code={command}
                 language="bash"
                 wrapLongLines={true}
-                maxHeight="240px"
+                maxHeight={CLOUD_STREAM_COMMAND_MAX_HEIGHT}
               />
             </div>
           )}
