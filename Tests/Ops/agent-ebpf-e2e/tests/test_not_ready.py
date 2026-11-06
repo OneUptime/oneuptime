@@ -90,11 +90,18 @@ FAKE_SH_TOOLS = {
     # A KinD node is a container: here, a shell that says which node it is.
     'docker': '#!/bin/sh\necho "docker $*" | head -c 60 >>"$FAKE_CALLS"; echo >>"$FAKE_CALLS"\n'
               '[ "$1" = exec ] || exit 2\nshift\nNODE="$1"; shift\nexport NODE\nexec "$@"\n',
+    # As ubuntu-26.04 logs: a denial when a container starts, then two change_onexec AUDIT
+    # lines for every probe after it, far more of them than any tail keeps.
     'dmesg': '#!/bin/sh\n[ -n "$FAKE_ALL_FAIL" ] && exit 1\n'
              'echo "[ 1.0] Linux version 7.0.0-1019-azure"\n'
-             'echo "[ 90.1] audit: type=1400 apparmor=\\"DENIED\\" operation=\\"ptrace\\" '
-             'profile=\\"cri-containerd.apparmor.d\\" comm=\\"runc:[2:INIT]\\""\n'
-             'echo "[ 91.0] eth0: link up"\n',
+             'echo "[ 90.1] audit: type=1400 apparmor=\\"DENIED\\" operation=\\"signal\\" '
+             'profile=\\"cri-containerd.apparmor.d\\" comm=\\"gosu\\" requested_mask=\\"receive\\""\n'
+             'echo "[ 91.0] eth0: link up"\n'
+             'i=0\nwhile [ $i -lt 400 ]; do\n'
+             '  echo "[ 9$i.5] audit: type=1400 apparmor=\\"AUDIT\\" operation=\\"change_onexec\\" '
+             'info=\\"change_profile unprivileged unconfined converted to stacking\\" '
+             'name=\\"/usr/local/bin/pg_isready\\""\n'
+             '  i=$((i + 1))\ndone\n',
     'journalctl': '#!/bin/sh\n[ -n "$FAKE_ALL_FAIL" ] && exit 1\n'
                   'echo "journal of ${NODE:-the runner}: $*"\n',
 }
@@ -187,13 +194,19 @@ class NotReady(unittest.TestCase):
             '=== its readiness probe, by hand: pg_isready -U postgres -h 127.0.0.1', 'exit 126',
             "=== runnervmwuk1x: the runtime's containers in namespace data",
             '--- container c1postgres', 'postgres CONTAINER_RUNNING exit=0 reason= pid=%d' % self.container.pid,
-            'Name:\tsleep', 'State:', 'wchan:', '--- its last lines',
+            'Name:\tsleep', 'State:', 'wchan:',
+            'apparmor:', 'Max open files', 'syscall:',
+            'thread %d: State: S (sleeping)' % self.container.pid, 'SigBlk:', 'SigCgt:',
+            '--- its last lines',
             '--- container c2redis', 'Ready to accept connections tcp',
-            '=== kernel messages (AppArmor, seccomp, audit, oops)', 'apparmor="DENIED"',
+            '=== kernel messages (AppArmor, seccomp, audit, oops)', 'change_onexec lines: 400',
+            'apparmor="DENIED" operation="signal"',
             "=== k3s's journal", 'journal of the runner: -u k3s --no-pager -n 300',
         ])
-        # Only what can explain a stuck container comes from the kernel's ring.
+        # Only what can explain a stuck container comes from the kernel's ring: not the
+        # probes' change_onexec lines, which buried the start's lines under a tail.
         self.assertNotIn('eth0: link up', text)
+        self.assertNotIn('operation="change_onexec"', text)
         self.assertNotIn('containerd\'s journal', text)
 
     def test_the_probe_runs_by_hand_with_exactly_its_own_arguments(self):
