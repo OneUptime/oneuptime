@@ -128,12 +128,13 @@ describe("each kind's pages are in its own product", () => {
     );
   });
 
-  test("a resource has its recommended monitors and the maintenance that holds it; an environment neither", () => {
+  test("a resource and an environment each have their recommended monitors and the maintenance that holds them", () => {
     /*
      * A resource's Recommendations read the metrics its connection reads
      * (CloudAlertTemplates), and the maintenance that holds it silences
-     * them. An environment's apps have recommendations of their own, on
-     * each app's page.
+     * them. An environment's offer its apps' monitors for every app at once
+     * (CloudAppAlertTemplates), and the maintenance that holds it holds
+     * those apps' monitors - each in its own product.
      */
     expect(RESOURCE_VIEW_PAGES[CloudResourceViewTab.Recommendations]).toBe(
       PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS,
@@ -141,12 +142,17 @@ describe("each kind's pages are in its own product", () => {
     expect(RESOURCE_VIEW_PAGES[CloudResourceViewTab.ScheduledMaintenance]).toBe(
       PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE,
     );
+    expect(ENVIRONMENT_VIEW_PAGES[CloudResourceViewTab.Recommendations]).toBe(
+      PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_RECOMMENDATIONS,
+    );
+    expect(
+      ENVIRONMENT_VIEW_PAGES[CloudResourceViewTab.ScheduledMaintenance],
+    ).toBe(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SCHEDULED_MAINTENANCE);
 
     for (const tab of [
       CloudResourceViewTab.Recommendations,
       CloudResourceViewTab.ScheduledMaintenance,
     ]) {
-      expect(ENVIRONMENT_VIEW_PAGES[tab]).toBeUndefined();
       expect(
         getCloudResourceViewRoute({
           cloudResourceKind: CloudResourceKind.Resource,
@@ -154,10 +160,19 @@ describe("each kind's pages are in its own product", () => {
           tab,
         }).toString(),
       ).toBe(`${CLOUD}/${ROW_ID}/${CLOUD_RESOURCE_VIEW_TAB_PATHS[tab]}`);
-      // An environment's address of the tab opens its Overview instead.
+      // An environment's address of the tab opens the same tab in App Platforms.
       expect(
         getCloudResourceViewPageKey(CloudResourceKind.Environment, tab),
-      ).toBe(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW);
+      ).toBe(ENVIRONMENT_VIEW_PAGES[tab]);
+      expect(
+        getCloudResourceViewRoute({
+          cloudResourceKind: CloudResourceKind.Environment,
+          modelId: ROW_ID,
+          tab,
+        }).toString(),
+      ).toBe(
+        `${APP_PLATFORMS}/${ROW_ID}/${CLOUD_RESOURCE_VIEW_TAB_PATHS[tab]}`,
+      );
     }
 
     expect(

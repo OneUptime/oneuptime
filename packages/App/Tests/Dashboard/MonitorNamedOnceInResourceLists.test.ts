@@ -184,6 +184,22 @@ function fieldsOf(expression: ts.Expression | null): Array<string> {
   return fields;
 }
 
+/*
+ * The list a `columns` attribute is given: the array itself, or the array a
+ * call is handed last - a list that leaves a column out on one page passes
+ * its columns through a function (`columns={columnsOfThisList([...])}`,
+ * ScheduledMaintenanceTable on a resource's own tab).
+ */
+function columnListOf(
+  expression: ts.Expression | undefined,
+): ts.Expression | undefined {
+  if (expression && ts.isCallExpression(expression)) {
+    return expression.arguments[expression.arguments.length - 1];
+  }
+
+  return expression;
+}
+
 function lineOf(source: ts.SourceFile, node: ts.Node): number {
   return source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 }
@@ -257,7 +273,7 @@ function tablesIn(fileName: string, text: string): Array<DeclaredTable> {
       node.initializer &&
       ts.isJsxExpression(node.initializer)
     ) {
-      consider(node, node.initializer.expression);
+      consider(node, columnListOf(node.initializer.expression));
     } else if (
       ts.isPropertyAssignment(node) &&
       propertyName(node.name) === "columns"

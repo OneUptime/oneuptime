@@ -233,11 +233,15 @@ const RECORD_TABS: Array<RecordTabShape> = [
     CreateFromRecordKind.CloudResource,
     INCIDENTS_ALERTS_AND_MAINTENANCE,
   ),
-  // A cloud environment is a cloud resource row, with App Platforms' tabs.
-  ...kindTabs("AppPlatforms", CreateFromRecordKind.CloudEnvironment, [
-    CreatedRecordKind.Incident,
-    CreatedRecordKind.Alert,
-  ]),
+  /*
+   * A cloud environment is a cloud resource row, with App Platforms' tabs:
+   * an event that holds it holds the monitors of its apps.
+   */
+  ...kindTabs(
+    "AppPlatforms",
+    CreateFromRecordKind.CloudEnvironment,
+    INCIDENTS_ALERTS_AND_MAINTENANCE,
+  ),
   ...kindTabs("NetworkSite", CreateFromRecordKind.NetworkSite, [
     CreatedRecordKind.ScheduledMaintenance,
   ]),

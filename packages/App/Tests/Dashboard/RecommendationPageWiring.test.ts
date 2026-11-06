@@ -207,11 +207,28 @@ describe("an App Platforms app's Recommendations are a tab of its page", () => {
     );
     expect(APP_PAGE).toContain(
       squash(
-        "{ name: CloudAppTabName.Recommendations, children: ( <RecommendationsPage resourceType={MonitorRecommendationResourceType.CloudApp} resourceId={appId} /> ), }",
+        "{ name: CloudAppTabName.Recommendations, countBadge: recommendationsToSetUp || undefined, children: ( <RecommendationsPage resourceType={MonitorRecommendationResourceType.CloudApp} resourceId={appId} /> ), }",
       ),
     );
     expect(APP_PAGE).toContain(
       "const appId: ObjectID = Navigation.getLastParamAsObjectID(0);",
+    );
+  });
+
+  /*
+   * The tab says how many of the app's recommended monitors are still to set
+   * up, as a resource's menu entry does - counted by the same hook, so the
+   * two never disagree - and asks nothing for an app whose telemetry cannot
+   * be told apart: it is offered none.
+   */
+  test("the tab counts what is still to set up, through the menu entry's hook", () => {
+    expect(APP_PAGE).toContain(
+      'import { useRecommendationsToSetUpCount } from "../../../Components/Recommendations/RecommendationsCount";',
+    );
+    expect(APP_PAGE).toContain(
+      squash(
+        "const recommendationsToSetUp: number | undefined = useRecommendationsToSetUpCount({ resourceType: MonitorRecommendationResourceType.CloudApp, resourceId: appId, isEnabled: Boolean(loaded && isCloudAppScoped(loaded.app)), });",
+      ),
     );
   });
 
@@ -521,6 +538,12 @@ describe("every resource type badges its Recommendations side-menu entry", () =>
  * to Overview, Metrics, Logs and the rest. An unhandled throw from here does
  * not degrade the badge, it unmounts the whole navigation and strands the user
  * on a page with no way out. Losing the count is the only acceptable failure.
+ *
+ * The count is worked out in one place (RecommendationsCount): the loader
+ * makes the calls and lets a failure through, and the hook the side menu's
+ * entry and an App Platforms app's Recommendations tab both read it with
+ * catches it. So the loader is held to the order of its calls, and the hook
+ * to its try.
  */
 describe("the Recommendations side-menu badge cannot break the menu", () => {
   const BADGE_CODE: string = readCode(
@@ -528,13 +551,41 @@ describe("the Recommendations side-menu badge cannot break the menu", () => {
     "Recommendations",
     "RecommendationsSideMenuItem.tsx",
   );
+  const COUNT_CODE: string = readCode(
+    "Components",
+    "Recommendations",
+    "RecommendationsCount.ts",
+  );
+  const LOADER_CODE: string = COUNT_CODE.split(
+    "export async function loadRecommendationsToSetUpCount(",
+  )[1]!.split("export function useRecommendationsToSetUpCount(")[0]!;
+  const HOOK_CODE: string = COUNT_CODE.split(
+    "export function useRecommendationsToSetUpCount(",
+  )[1]!;
 
-  test("every network call that computes the count is inside the try", () => {
-    const tryBody: string = BADGE_CODE.split("try {")[1]!.split("} catch")[0]!;
+  test("the menu entry counts through the shared hook, scoped to its resource", () => {
+    expect(BADGE_CODE).toContain(
+      'import { useRecommendationsToSetUpCount } from "./RecommendationsCount";',
+    );
+    expect(BADGE_CODE).toContain(
+      squash(
+        "useRecommendationsToSetUpCount({ resourceType: props.resourceType, resourceId: props.resourceId, });",
+      ),
+    );
+  });
 
-    expect(tryBody).toContain("await ModelAPI.getItem({");
-    expect(tryBody).toContain("await Promise.all([");
-    expect(tryBody).toContain("RecommendationDismissalUtil.getDismissals({");
+  test("every network call that computes the count is made by the loader, which the hook's try covers", () => {
+    expect(LOADER_CODE).toContain("await ModelAPI.getItem({");
+    expect(LOADER_CODE).toContain("await Promise.all([");
+    expect(LOADER_CODE).toContain(
+      "RecommendationDismissalUtil.getDismissals({",
+    );
+    // The loader lets a failure through to the hook: it catches nothing.
+    expect(LOADER_CODE).not.toContain("catch");
+
+    const tryBody: string = HOOK_CODE.split("try {")[1]!.split("} catch")[0]!;
+
+    expect(tryBody).toContain("await loadRecommendationsToSetUpCount(");
     // Including the write: a throw from the state setter is still a throw.
     expect(tryBody).toContain("setCount(");
   });
@@ -544,12 +595,12 @@ describe("the Recommendations side-menu badge cannot break the menu", () => {
    * the fetched row, so consulting the catalog first would badge every service
    * with the language-agnostic count while the page listed the full set.
    */
-  test("the badge fetches the resource before it asks the catalog", () => {
-    const fetchIndex: number = BADGE_CODE.indexOf("await ModelAPI.getItem({");
-    const contextIndex: number = BADGE_CODE.indexOf(
+  test("the loader fetches the resource before it asks the catalog", () => {
+    const fetchIndex: number = LOADER_CODE.indexOf("await ModelAPI.getItem({");
+    const contextIndex: number = LOADER_CODE.indexOf(
       "await RecommendationResourceRegistry.loadContext({",
     );
-    const catalogIndex: number = BADGE_CODE.indexOf(
+    const catalogIndex: number = LOADER_CODE.indexOf(
       "MonitorRecommendationCatalog.getRecommendations(",
     );
 
@@ -558,43 +609,42 @@ describe("the Recommendations side-menu badge cannot break the menu", () => {
     expect(catalogIndex).toBeGreaterThan(contextIndex);
   });
 
-  test("the badge narrows its catalog call by the context it just read", () => {
-    expect(BADGE_CODE).toContain(
+  test("the loader narrows its catalog call by the context it just read", () => {
+    expect(LOADER_CODE).toContain(
       squash(
-        "MonitorRecommendationCatalog.getRecommendations( props.resourceType, resourceContext, )",
+        "MonitorRecommendationCatalog.getRecommendations( data.resourceType, resourceContext, )",
       ),
     );
   });
 
-  test("the catch swallows rather than re-raising or surfacing an error", () => {
-    /*
-     * The handler runs no statements at all — matched with an optional binding
-     * so naming the error is still allowed. Asserted positively because the
-     * three negatives below would all pass against an extraction that had
-     * silently stopped finding the handler.
-     */
-    expect(BADGE_CODE).toMatch(/\} catch (\(\w+\) )?\{ \}/);
-
-    const catchBody: string = BADGE_CODE.split("} catch")[1]!.split("}, [")[0]!;
+  test("the catch swallows rather than re-raising or surfacing an error, and writes no number", () => {
+    const catchBody: string = HOOK_CODE.split("} catch")[1]!.split("}, [")[0]!;
 
     expect(catchBody).not.toContain("throw");
     expect(catchBody).not.toContain("setError");
     /*
      * Not even a fallback count. Writing a number here would badge whatever
-     * the failed computation happened to leave behind.
+     * the failed computation happened to leave behind: a failed read clears
+     * the count, and only once the component is still mounted.
      */
-    expect(catchBody).not.toContain("setCount");
+    expect(catchBody).toContain("setCount(undefined)");
+    expect(catchBody.split("setCount(").length - 1).toBe(
+      catchBody.split("setCount(undefined)").length - 1,
+    );
+    expect(catchBody).toContain("isMounted()");
   });
 
-  test("the component has no error state to render at all", () => {
+  test("neither has an error state to render at all", () => {
     /*
      * A red error where a number should be is barely better than a crash —
      * the page behind the entry works either way, so there is nothing to
      * report and nowhere sensible to report it.
      */
-    expect(BADGE_CODE).not.toContain("setError");
-    expect(BADGE_CODE).not.toContain("ErrorMessage");
-    expect(BADGE_CODE).not.toContain("throw ");
+    for (const code of [BADGE_CODE, COUNT_CODE]) {
+      expect(code).not.toContain("setError");
+      expect(code).not.toContain("ErrorMessage");
+      expect(code).not.toContain("throw ");
+    }
   });
 
   /*
@@ -604,10 +654,21 @@ describe("the Recommendations side-menu badge cannot break the menu", () => {
    * cleared list has to render as no pill at all.
    */
   test("a zero count renders no badge", () => {
-    expect(BADGE_CODE).toContain("useState<number | undefined>(undefined)");
+    expect(COUNT_CODE).toContain("useState<number | undefined>(undefined)");
     expect(BADGE_CODE).toContain(squash("badge={count ? count : undefined}"));
     // Passing the count straight through is the defect: 0 is a rendered badge.
     expect(BADGE_CODE).not.toContain("badge={count}");
+  });
+
+  test("the count is read again when a page beside it sets some up", () => {
+    expect(HOOK_CODE).toContain(
+      "const changes: number = useRecommendationsChangedCount();",
+    );
+    expect(HOOK_CODE).toContain(
+      squash(
+        "[data.resourceType, data.resourceId.toString(), changes, isEnabled]",
+      ),
+    );
   });
 });
 
