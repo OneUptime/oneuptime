@@ -45990,7 +45990,7 @@
   "{{tab}} signals": "Signalen: {{tab}}",
   "Open the metrics explorer with this time window": "De metriekverkenner openen met dit tijdvenster",
   "Open the traces explorer with this scope": "De traceverkenner openen met dit bereik",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "Een oplossing met een riskantere wijziging, zoals iets stoppen of naar nul schalen, wordt pas uitgevoerd als twee verschillende mensen hem goedkeuren, hier, in Slack of in Microsoft Teams.",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "Een oplossing met een riskantere wijziging, zoals iets stoppen of naar nul schalen, wordt pas uitgevoerd als twee verschillende mensen hem goedkeuren.",
   "Two people approve riskier fixes": "Twee mensen keuren riskantere oplossingen goed",
   "First Approved At": "Eerst goedgekeurd op",
   "First Approved From": "Eerst goedgekeurd via",
@@ -46007,6 +46007,6 @@
   "Waiting for a second approval": "Wacht op een tweede goedkeuring",
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "Je hebt deze oplossing al goedgekeurd. Hij bevat een riskantere wijziging en dit project vraagt twee mensen om zo'n oplossing goed te keuren, dus hij wordt uitgevoerd zodra iemand anders hem ook goedkeurt.",
   "You approved it first. It runs once someone else approves it too.": "Je hebt hem als eerste goedgekeurd. Hij wordt uitgevoerd zodra iemand anders hem ook goedkeurt.",
-  "Your approval is recorded, and nothing runs until someone else approves it too.": "Je goedkeuring wordt vastgelegd, en er wordt niets uitgevoerd tot iemand anders hem ook goedkeurt.",
-  "Your approval was already recorded: this fix runs once someone else approves it too": "Je goedkeuring was al vastgelegd: deze oplossing wordt uitgevoerd zodra iemand anders hem ook goedkeurt"
+  "Your approval alone runs nothing: the fix runs once someone else approves it too.": "Je goedkeuring alleen voert niets uit: de oplossing wordt uitgevoerd zodra iemand anders hem ook goedkeurt.",
+  "You already approved this fix": "Je hebt deze oplossing al goedgekeurd"
 }

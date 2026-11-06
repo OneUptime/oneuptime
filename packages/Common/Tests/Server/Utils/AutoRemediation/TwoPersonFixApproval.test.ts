@@ -484,12 +484,13 @@ describe("a riskier fix where the project asks two people to approve one", () =>
       } else {
         // Told where they pressed: it waits for someone else's approval.
         expect(result).toEqual(
-          WorkspaceRemediationActions.getFirstOfTwoApprovedAnswer(
-            fixAsReadNow(),
-          ),
+          WorkspaceRemediationActions.getFirstOfTwoApprovedAnswer(),
         );
         expect((result as WorkspaceAnswer).markdown).toBe(
-          "✅ You approved this fix. It holds a riskier change, so it runs once someone else approves it too, and the incident in OneUptime shows when it does.",
+          "✅ You approved this fix first. It holds a riskier change, so it runs once someone else approves it too.",
+        );
+        expect((result as WorkspaceAnswer).text).toBe(
+          "You approved this fix first. It runs once someone else approves it too",
         );
       }
 

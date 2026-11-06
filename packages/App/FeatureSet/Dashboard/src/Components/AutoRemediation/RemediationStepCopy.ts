@@ -299,9 +299,16 @@ export const REMEDIATION_TWO_APPROVALS_COPY: {
   youApprovedFirst: string;
   // ... to a reader who may not approve it.
   twoPeopleMustApprove: string;
-  // Over the press of a first approval, which runs nothing.
+  /*
+   * Over the press of a first approval, which runs nothing: what pressing
+   * it does, read before the press (the UI review: "Your approval is
+   * recorded" said it had happened already).
+   */
   firstApprovalNote: string;
-  // The headline of a first approver's press the server refused.
+  /*
+   * The one line a first approver's press the server refused reads: their
+   * approval stands, so it is no failure - the steps above say the rest.
+   */
   alreadyApprovedTitle: string;
 } = {
   needsSecondApproval: translationKey("Needs a second approval"),
@@ -319,18 +326,17 @@ export const REMEDIATION_TWO_APPROVALS_COPY: {
     "Two people must approve this riskier fix.",
   ),
   firstApprovalNote: translationKey(
-    "Your approval is recorded, and nothing runs until someone else approves it too.",
+    "Your approval alone runs nothing: the fix runs once someone else approves it too.",
   ),
-  alreadyApprovedTitle: translationKey(
-    "Your approval was already recorded: this fix runs once someone else approves it too",
-  ),
+  alreadyApprovedTitle: translationKey("You already approved this fix"),
 };
 
 /*
  * The server's refusal of the first approver's second press, word for word
  * (Common/Types/AutoRemediation/RemediationApprovals'
- * ALREADY_APPROVED_FIRST_MESSAGE), so it reads in the reader's language
- * under the buttons, as REMEDIATION_FIX_DISMISS_REFUSED does.
+ * ALREADY_APPROVED_FIRST_MESSAGE): how the card tells that refusal from
+ * every other one, and what it says, in the reader's language, on the rare
+ * card that cannot show the reader's first approval itself.
  */
 export const REMEDIATION_ALREADY_APPROVED_FIRST_REFUSED: string =
   translationKey(

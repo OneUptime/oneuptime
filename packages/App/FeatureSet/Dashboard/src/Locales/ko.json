@@ -45990,7 +45990,7 @@
   "{{tab}} signals": "{{tab}} 신호",
   "Open the metrics explorer with this time window": "이 시간 범위로 메트릭 탐색기 열기",
   "Open the traces explorer with this scope": "이 범위로 트레이스 탐색기 열기",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "중지나 0으로 스케일링처럼 위험이 큰 변경이 포함된 수정은 여기, Slack 또는 Microsoft Teams에서 서로 다른 두 사람이 승인해야만 실행됩니다.",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "중지나 0으로 스케일링처럼 위험이 큰 변경이 포함된 수정은 서로 다른 두 사람이 승인해야만 실행됩니다.",
   "Two people approve riskier fixes": "위험이 큰 수정은 두 사람이 승인",
   "First Approved At": "첫 승인 일시",
   "First Approved From": "첫 승인 위치",
@@ -46007,6 +46007,6 @@
   "Waiting for a second approval": "두 번째 승인 대기 중",
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "이미 이 수정을 승인했습니다. 위험이 큰 변경이 포함되어 있고 이 프로젝트는 이런 수정에 두 사람의 승인을 요구하므로, 다른 사람도 승인하면 실행됩니다.",
   "You approved it first. It runs once someone else approves it too.": "먼저 승인했습니다. 다른 사람도 승인하면 실행됩니다.",
-  "Your approval is recorded, and nothing runs until someone else approves it too.": "승인이 기록되며, 다른 사람도 승인할 때까지 아무것도 실행되지 않습니다.",
-  "Your approval was already recorded: this fix runs once someone else approves it too": "승인이 이미 기록되었습니다. 이 수정은 다른 사람도 승인하면 실행됩니다"
+  "Your approval alone runs nothing: the fix runs once someone else approves it too.": "승인만으로는 아무것도 실행되지 않습니다. 다른 사람도 승인하면 수정이 실행됩니다.",
+  "You already approved this fix": "이미 이 수정을 승인했습니다"
 }

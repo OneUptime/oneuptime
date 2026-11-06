@@ -238,14 +238,25 @@ describe("a riskier fix nobody approved yet, where two people must approve it", 
       expect(approveButton()).not.toHaveTextContent("Run");
     });
     expect(approveButton()).toHaveTextContent("Approve");
+    /*
+     * What the press will do, read before it (UI review: "Your approval is
+     * recorded" said it had happened already).
+     */
     expect(screen.getByTestId("remediation-approval-note")).toHaveTextContent(
-      REMEDIATION_TWO_APPROVALS_COPY.firstApprovalNote,
+      "Your approval alone runs nothing: the fix runs once someone else approves it too.",
+    );
+    expect(REMEDIATION_TWO_APPROVALS_COPY.firstApprovalNote).toBe(
+      "Your approval alone runs nothing: the fix runs once someone else approves it too.",
     );
     expect(
       within(approvalStep()).getByTestId("remediation-fix-step-summary"),
     ).toHaveTextContent(
       "Two people must approve this riskier fix. Yours is the first.",
     );
+    // Nothing is announced before anyone pressed anything.
+    expect(
+      screen.getByTestId("remediation-fix-announcement"),
+    ).toBeEmptyDOMElement();
     expect(ruleReads()).toBe(1);
   });
 
@@ -304,6 +315,73 @@ describe("a riskier fix nobody approved yet, where two people must approve it", 
     ).toHaveTextContent("Needs a second approval");
     // No refusal: the press did what it says.
     expect(screen.queryByTestId("remediation-action-error")).toBeNull();
+    expect(screen.queryByTestId("remediation-already-approved")).toBeNull();
+    /*
+     * The button the reader pressed is gone and nothing ran: a screen
+     * reader is told so, in a polite status line, as the steps show it.
+     */
+    const announcement: HTMLElement = screen.getByTestId(
+      "remediation-fix-announcement",
+    );
+    expect(announcement).toHaveAttribute("role", "status");
+    expect(announcement).toHaveAttribute("aria-live", "polite");
+    expect(announcement).toHaveClass("sr-only");
+    expect(announcement).toHaveTextContent(
+      "You approved it first. It runs once someone else approves it too.",
+    );
+    // The press was an Approve: the rule is read again with the fixes.
+    expect(ruleReads()).toBe(2);
+  });
+
+  test("a rule turned on elsewhere after the page opened: the press that turns out to be the first of two reads as one at once", async () => {
+    // This page read the rule while it was off: its button runs the fix.
+    isRuleOn = false;
+    postSpy.mockImplementation((async (request: PostRequest) => {
+      if (request.url.toString().includes("/auto-remediation/approve")) {
+        // Someone turned the rule on meanwhile: the server held the fix.
+        isRuleOn = true;
+        served = [waitingFix(firstApprovedBy(MAYA, "Maya Chen"))];
+        return new HTTPResponse<JSONObject>(
+          200,
+          {
+            suggestionId: SUGGESTION_ID,
+            status: AutoRemediationSuggestionStatus.Suggested,
+            isWaitingForSecondApproval: true,
+          },
+          {},
+        );
+      }
+
+      throw new Error(`unexpected ${request.url.toString()}`);
+    }) as never);
+
+    renderStep();
+    await openRemediationFixes();
+    await waitFor(() => {
+      expect(approveButton()).toHaveTextContent("Approve & Run");
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(approveButton()!);
+    });
+
+    /*
+     * The card reads the rule again with the fixes, so its first approver
+     * is not offered an Approve & Run the server would refuse.
+     */
+    await waitFor(() => {
+      expect(approveButton()).toBeNull();
+    });
+    expect(ruleReads()).toBe(2);
+    expect(stepKinds()).toContain("firstApproval");
+    expect(
+      within(approvalStep()).getByTestId("remediation-fix-step-summary"),
+    ).toHaveTextContent(
+      "You approved it first. It runs once someone else approves it too.",
+    );
+    expect(screen.getByTestId("remediation-fix-status")).toHaveTextContent(
+      "Waiting for a second approval",
+    );
   });
 });
 
@@ -396,17 +474,15 @@ describe("as it always was", () => {
 });
 
 describe("a first approver's press the server refused", () => {
-  test("says their approval was already recorded, and why", async () => {
+  // Maya approved from Slack meanwhile: the card's press comes second.
+  function refuseAsAlreadyApproved(message: string): void {
     postSpy.mockImplementation((async () => {
-      // Approved from Slack meanwhile: the card's press comes second.
       served = [waitingFix(firstApprovedBy(MAYA, "Maya Chen"))];
-      return new HTTPErrorResponse(
-        400,
-        { message: ALREADY_APPROVED_FIRST_MESSAGE },
-        {},
-      );
+      return new HTTPErrorResponse(400, { message }, {});
     }) as never);
+  }
 
+  async function pressApprove(): Promise<void> {
     renderStep();
     await openRemediationFixes();
     await waitFor(() => {
@@ -416,13 +492,80 @@ describe("a first approver's press the server refused", () => {
     await act(async (): Promise<void> => {
       fireEvent.click(approveButton()!);
     });
+  }
+
+  test("says in one calm line that they already approved it: no failure, and nothing the steps above already say", async () => {
+    refuseAsAlreadyApproved(ALREADY_APPROVED_FIRST_MESSAGE);
+
+    await pressApprove();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "remediation-already-approved",
+    );
+    // Their approval stands: told politely, never as an alert.
+    expect(notice).toHaveAttribute("role", "status");
+    expect(withoutIsolateMarks(notice.textContent || "")).toBe(
+      "You already approved this fix",
+    );
+    expect(screen.queryByTestId("remediation-action-error")).toBeNull();
+    // The steps say the rest, once.
+    expect(
+      within(approvalStep()).getByTestId("remediation-fix-step-summary"),
+    ).toHaveTextContent(
+      "You approved it first. It runs once someone else approves it too.",
+    );
+    expect(document.body.textContent).not.toContain(
+      ALREADY_APPROVED_FIRST_MESSAGE,
+    );
+    expect(approveButton()).toBeNull();
+
+    // It can be put away, as every notice about a press can.
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(notice).getByRole("button", { name: "Dismiss" }));
+    });
+    expect(screen.queryByTestId("remediation-already-approved")).toBeNull();
+  });
+
+  test("over the step, when the fix is no longer in it to say the rest, it adds the server's why", async () => {
+    postSpy.mockImplementation((async () => {
+      // Read again, the fix is gone from the step (dismissed meanwhile).
+      served = [];
+      return new HTTPErrorResponse(
+        400,
+        { message: ALREADY_APPROVED_FIRST_MESSAGE },
+        {},
+      );
+    }) as never);
+
+    await pressApprove();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "remediation-already-approved",
+    );
+    expect(notice).toHaveAttribute("role", "status");
+    expect(notice).toHaveTextContent("You already approved this fix");
+    expect(notice).toHaveTextContent(ALREADY_APPROVED_FIRST_MESSAGE);
+    expect(screen.queryByTestId("remediation-action-error")).toBeNull();
+  });
+
+  test("a refusal for any other reason is a refusal still, with its reason (negative control)", async () => {
+    // The cluster's remediation was turned off meanwhile.
+    refuseAsAlreadyApproved(
+      "AI remediation is off for this cluster, so nothing was run.",
+    );
+
+    await pressApprove();
 
     const error: HTMLElement = await screen.findByTestId(
       "remediation-action-error",
     );
+    expect(error).toHaveAttribute("role", "alert");
     expect(error).toHaveTextContent(
-      REMEDIATION_TWO_APPROVALS_COPY.alreadyApprovedTitle,
+      "Could not save your action: the fix was not approved and nothing ran",
     );
-    expect(error).toHaveTextContent(ALREADY_APPROVED_FIRST_MESSAGE);
+    expect(error).toHaveTextContent(
+      "AI remediation is off for this cluster, so nothing was run.",
+    );
+    expect(screen.queryByTestId("remediation-already-approved")).toBeNull();
   });
 });

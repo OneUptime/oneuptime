@@ -61,6 +61,7 @@ import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
 import { useAiSwitchState } from "../../Utils/UseAiOffered";
 import AiCardStep from "../AI/AiCardStep";
 import InvestigationNotice, {
+  noticeDoneIcon,
   noticeFailedIcon,
 } from "../AI/InvestigationNotice";
 import { InvestigationStatusIndicator } from "../AI/InvestigationStatusBadge";
@@ -117,6 +118,7 @@ import {
   REMEDIATION_TRY_AGAIN_BUTTON,
   REMEDIATION_TRY_AGAIN_FAILED,
   REMEDIATION_TRY_AGAIN_HINT,
+  REMEDIATION_ALREADY_APPROVED_FIRST_REFUSED,
   REMEDIATION_TWO_APPROVALS_COPY,
 } from "./RemediationStepCopy";
 import {
@@ -481,20 +483,9 @@ function isAlreadyStarted(
 export function getActionErrorTitle(
   action: RemediationSuggestionAction | null,
   statusAfterReload?: AutoRemediationSuggestionStatus | undefined,
-  /*
-   * The reloaded fix is a riskier one two people must approve, and the
-   * reader gave its first approval: their press was refused for that.
-   */
-  isFirstApprovedByReader?: boolean | undefined,
 ): string {
   // English keys: the alert that shows the headline translates it.
   if (action === "approve") {
-    if (
-      isFirstApprovedByReader &&
-      statusAfterReload === AutoRemediationSuggestionStatus.Suggested
-    ) {
-      return REMEDIATION_TWO_APPROVALS_COPY.alreadyApprovedTitle;
-    }
     if (statusAfterReload === AutoRemediationSuggestionStatus.Approved) {
       return translationKey(
         "Your approval was not recorded: this fix had already been approved, and it has started — see its commands below",
@@ -527,6 +518,27 @@ export function getActionErrorTitle(
     );
   }
   return translationKey("Could not save your action");
+}
+
+/*
+ * Whether a refused Approve is the person who gave a riskier fix its first
+ * approval pressing again (two people must approve it, and RemediationApproval
+ * refuses the same person's second press with ALREADY_APPROVED_FIRST_MESSAGE)
+ * - from a tab opened before their approval, or after they approved in a
+ * chat. Their approval stands and nothing went wrong, so the card says so
+ * in one calm line instead of a refusal (#6148's follow-up, UI review: the
+ * red headline and the server's sentence repeated the step above twice).
+ * Told apart by the server's own words, so a refusal for any other reason -
+ * the cluster's remediation turned off meanwhile - still reads as one.
+ */
+export function isAlreadyApprovedFirstRefusal(
+  action: RemediationSuggestionAction | null,
+  refusal: string,
+): boolean {
+  return (
+    action === "approve" &&
+    refusal.trim() === REMEDIATION_ALREADY_APPROVED_FIRST_REFUSED
+  );
 }
 
 // How each step status's tone is marked: with the investigation's marks.
@@ -634,11 +646,26 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
    * approver's press says "Approve" rather than "Approve & Run".
    */
   const readerUserId: string = readReaderUserId();
+  /*
+   * Moved after every Approve, so the rule is read again with the fixes
+   * (useTwoApprovalsRule): the server read it as it is now.
+   */
+  const [twoApprovalsRuleReadCount, setTwoApprovalsRuleReadCount] =
+    useState<number>(0);
   const isTwoApprovalsRuleOn: boolean | undefined = useTwoApprovalsRule(
     suggestions.some((suggestion: AutoRemediationSuggestion): boolean => {
       return isRiskierFixWaiting(suggestion);
     }),
+    twoApprovalsRuleReadCount,
   );
+  /*
+   * The fix whose Approve this reader just pressed turned out to be the
+   * first of two approvals: its button is gone and nothing ran, so a screen
+   * reader is told what happened (each fix's status line, below), as the
+   * steps show it on screen.
+   */
+  const [firstApprovalPressedId, setFirstApprovalPressedId] =
+    useState<string>("");
   const stepHeadingRef: React.RefObject<HTMLHeadingElement> =
     useRef<HTMLHeadingElement>(null);
   // The fix in the code the investigation recommends, once read.
@@ -1048,6 +1075,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     setActionError("");
     setFailedAction(null);
     setFailedSuggestionId("");
+    setFirstApprovalPressedId("");
     setBusySuggestionId(suggestionId);
     setBusyAction(action);
 
@@ -1067,17 +1095,25 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         throw response;
       }
 
-      /*
-       * Approved: the fix's run step opens as it appears, so the reader who
-       * pressed Approve & Run watches its commands run and their output
-       * come in, without a second press.
-       */
       if (action === "approve") {
-        setExpandedIds((previous: Set<string>): Set<string> => {
-          const next: Set<string> = new Set<string>(previous);
-          next.add(getRemediationFixStepKey(suggestionId, "run"));
-          return next;
-        });
+        if (response.data?.["isWaitingForSecondApproval"] === true) {
+          /*
+           * The first of two approvals: recorded, and nothing runs until
+           * someone else approves it too (RemediationApproval).
+           */
+          setFirstApprovalPressedId(suggestionId);
+        } else {
+          /*
+           * Approved: the fix's run step opens as it appears, so the reader
+           * who pressed Approve & Run watches its commands run and their
+           * output come in, without a second press.
+           */
+          setExpandedIds((previous: Set<string>): Set<string> => {
+            const next: Set<string> = new Set<string>(previous);
+            next.add(getRemediationFixStepKey(suggestionId, "run"));
+            return next;
+          });
+        }
       }
     } catch (err) {
       /*
@@ -1105,6 +1141,16 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         setActionError(refusal);
         setFailedAction(action);
         setFailedSuggestionId(suggestionId);
+      }
+      /*
+       * The server read the project's two-approvals rule as it is now: the
+       * card reads it again too, so a rule flipped on another screen since
+       * this page opened shows the fix as the server counts its approvals.
+       */
+      if (action === "approve") {
+        setTwoApprovalsRuleReadCount((count: number): number => {
+          return count + 1;
+        });
       }
       setBusySuggestionId("");
       setBusyAction(null);
@@ -1289,16 +1335,37 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     statusAfterReload: AutoRemediationSuggestionStatus | undefined,
     isFirstApprovedByReader?: boolean | undefined,
   ): ReactElement => {
+    /*
+     * The first approver pressing again: their approval stands, so one calm
+     * line says so (isAlreadyApprovedFirstRefusal). The steps above say the
+     * rest - "You approved it first. It runs once someone else approves it
+     * too." - so the server's sentence is added only where they cannot
+     * (the fix is gone from the step, or not read as the reader's yet).
+     */
+    if (isAlreadyApprovedFirstRefusal(failedAction, actionError)) {
+      return (
+        <InvestigationNotice
+          role="status"
+          testId="remediation-already-approved"
+          indicator={noticeDoneIcon}
+          title={REMEDIATION_TWO_APPROVALS_COPY.alreadyApprovedTitle}
+          onDismiss={() => {
+            setActionError("");
+          }}
+        >
+          {isFirstApprovedByReader
+            ? undefined
+            : translator.translateText(actionError)}
+        </InvestigationNotice>
+      );
+    }
+
     return (
       <InvestigationNotice
         role="alert"
         testId="remediation-action-error"
         indicator={noticeFailedIcon}
-        title={getActionErrorTitle(
-          failedAction,
-          statusAfterReload,
-          isFirstApprovedByReader,
-        )}
+        title={getActionErrorTitle(failedAction, statusAfterReload)}
         onDismiss={() => {
           setActionError("");
         }}
@@ -1951,6 +2018,27 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
           renderDetails={renderStepDetails}
           renderActions={renderStepActions}
         />
+
+        {/*
+          Said to a screen reader when this reader's Approve was the first
+          of two: the button it pressed is gone and nothing ran, while the
+          steps above say so on screen. Always in the page, so what it
+          says is announced the moment it changes; empty once the fix moves
+          on (approved a second time, or dismissed).
+        */}
+        <div
+          className="sr-only"
+          role="status"
+          aria-live="polite"
+          data-testid="remediation-fix-announcement"
+        >
+          {firstApprovalPressedId === suggestionId &&
+          approvals.isFirstApprovedByReader
+            ? translator.translateText(
+                REMEDIATION_TWO_APPROVALS_COPY.youApprovedFirst,
+              )
+            : ""}
+        </div>
       </div>
     );
   };

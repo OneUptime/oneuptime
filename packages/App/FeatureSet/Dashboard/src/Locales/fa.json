@@ -45990,7 +45990,7 @@
   "{{tab}} signals": "سیگنال‌های {{tab}}",
   "Open the metrics explorer with this time window": "باز کردن کاوشگر متریک با این بازهٔ زمانی",
   "Open the traces explorer with this scope": "باز کردن کاوشگر ترِیس با این محدوده",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "اصلاحی که تغییری پرخطرتر دارد، مثل متوقف کردن چیزی یا مقیاس دادن آن به صفر، فقط وقتی اجرا می‌شود که دو نفر مختلف آن را تأیید کنند، اینجا یا در Slack یا Microsoft Teams.",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "اصلاحی که تغییری پرخطرتر دارد، مثل متوقف کردن چیزی یا مقیاس دادن آن به صفر، فقط وقتی اجرا می‌شود که دو نفر مختلف آن را تأیید کنند.",
   "Two people approve riskier fixes": "تأیید اصلاح‌های پرخطرتر توسط دو نفر",
   "First Approved At": "زمان نخستین تأیید",
   "First Approved From": "محل نخستین تأیید",
@@ -46007,6 +46007,6 @@
   "Waiting for a second approval": "در انتظار تأیید دوم",
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "شما این اصلاح را پیش‌تر تأیید کرده‌اید. این اصلاح تغییری پرخطرتر دارد و این پروژه برای چنین اصلاحی تأیید دو نفر را می‌خواهد، پس وقتی کس دیگری هم آن را تأیید کند اجرا می‌شود.",
   "You approved it first. It runs once someone else approves it too.": "شما نخستین تأییدکننده بودید. وقتی کس دیگری هم آن را تأیید کند اجرا می‌شود.",
-  "Your approval is recorded, and nothing runs until someone else approves it too.": "تأیید شما ثبت می‌شود و تا کس دیگری هم آن را تأیید نکند، چیزی اجرا نمی‌شود.",
-  "Your approval was already recorded: this fix runs once someone else approves it too": "تأیید شما پیش‌تر ثبت شده بود: این اصلاح وقتی کس دیگری هم آن را تأیید کند اجرا می‌شود"
+  "Your approval alone runs nothing: the fix runs once someone else approves it too.": "تأیید شما به‌تنهایی چیزی را اجرا نمی‌کند: این اصلاح وقتی کس دیگری هم آن را تأیید کند اجرا می‌شود.",
+  "You already approved this fix": "شما این اصلاح را پیش‌تر تأیید کرده‌اید"
 }

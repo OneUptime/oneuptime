@@ -45990,7 +45990,7 @@
   "{{tab}} signals": "{{tab}}のシグナル",
   "Open the metrics explorer with this time window": "この時間枠でメトリクスエクスプローラーを開く",
   "Open the traces explorer with this scope": "この範囲でトレースエクスプローラーを開く",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "停止やゼロへのスケールなど、リスクの高い変更を含む修正は、ここ、Slack、または Microsoft Teams で 2 人の異なるユーザーが承認するまで実行されません。",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "停止やゼロへのスケールなど、リスクの高い変更を含む修正は、2 人の異なるユーザーが承認するまで実行されません。",
   "Two people approve riskier fixes": "リスクの高い修正は 2 人が承認",
   "First Approved At": "最初の承認日時",
   "First Approved From": "最初に承認した場所",
@@ -46007,6 +46007,6 @@
   "Waiting for a second approval": "2 人目の承認待ち",
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "この修正はすでに承認済みです。リスクの高い変更を含み、このプロジェクトではそのような修正に 2 人の承認が必要なため、ほかの誰かも承認すると実行されます。",
   "You approved it first. It runs once someone else approves it too.": "あなたが最初に承認しました。ほかの誰かも承認すると実行されます。",
-  "Your approval is recorded, and nothing runs until someone else approves it too.": "あなたの承認は記録されますが、ほかの誰かも承認するまで何も実行されません。",
-  "Your approval was already recorded: this fix runs once someone else approves it too": "あなたの承認はすでに記録されています。この修正は、ほかの誰かも承認すると実行されます"
+  "Your approval alone runs nothing: the fix runs once someone else approves it too.": "あなたの承認だけでは何も実行されません。ほかの誰かも承認すると、修正が実行されます。",
+  "You already approved this fix": "この修正はすでに承認済みです"
 }

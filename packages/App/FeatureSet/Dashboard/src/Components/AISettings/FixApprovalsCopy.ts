@@ -58,8 +58,14 @@ export const FixApprovalsCopy: {
     "How many people approve a fix OneUptime AI proposes before it runs.",
   ),
   switchTitle: translationKey("Two people approve riskier fixes"),
+  /*
+   * What the switch changes, and nothing of where approvals are made: on
+   * Project Settings "here" read as this page (UI review), and a fix is
+   * approved on its incident or alert, or from its Slack or Microsoft Teams
+   * message, with or without the switch.
+   */
   switchDescription: translationKey(
-    "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.",
+    "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.",
   ),
   foldedValue: translationKey("Two people"),
 };

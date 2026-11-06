@@ -45990,7 +45990,7 @@
   "{{tab}} signals": "Segnali: {{tab}}",
   "Open the metrics explorer with this time window": "Apri l'esploratore delle metriche con questa finestra temporale",
   "Open the traces explorer with this scope": "Apri l'esploratore delle tracce con questo ambito",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "Una correzione con una modifica più rischiosa, come arrestare qualcosa o scalarlo a zero, viene eseguita solo dopo che due persone diverse l'hanno approvata, qui, in Slack o in Microsoft Teams.",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "Una correzione con una modifica più rischiosa, come arrestare qualcosa o scalarlo a zero, viene eseguita solo dopo che due persone diverse l'hanno approvata.",
   "Two people approve riskier fixes": "Due persone approvano le correzioni più rischiose",
   "First Approved At": "Prima approvazione il",
   "First Approved From": "Prima approvazione da",
@@ -46007,6 +46007,6 @@
   "Waiting for a second approval": "In attesa di una seconda approvazione",
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "Hai già approvato questa correzione. Contiene una modifica più rischiosa e questo progetto chiede che due persone approvino una correzione simile, quindi verrà eseguita quando anche un'altra persona la approverà.",
   "You approved it first. It runs once someone else approves it too.": "L'hai approvata per primo. Verrà eseguita quando anche un'altra persona la approverà.",
-  "Your approval is recorded, and nothing runs until someone else approves it too.": "La tua approvazione viene registrata, e nulla viene eseguito finché anche un'altra persona non la approva.",
-  "Your approval was already recorded: this fix runs once someone else approves it too": "La tua approvazione era già registrata: questa correzione verrà eseguita quando anche un'altra persona la approverà"
+  "Your approval alone runs nothing: the fix runs once someone else approves it too.": "La tua approvazione da sola non esegue nulla: la correzione verrà eseguita quando anche un'altra persona la approverà.",
+  "You already approved this fix": "Hai già approvato questa correzione"
 }

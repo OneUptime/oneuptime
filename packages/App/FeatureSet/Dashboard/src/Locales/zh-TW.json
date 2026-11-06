@@ -45990,7 +45990,7 @@
   "{{tab}} signals": "{{tab}}訊號",
   "Open the metrics explorer with this time window": "以此時間範圍開啟指標瀏覽器",
   "Open the traces explorer with this scope": "以此範圍開啟追蹤瀏覽器",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "包含風險較高變更（例如停止某個對象或將其縮放到零）的修正，只有在兩個不同的人核准後才會執行，可在此處、Slack 或 Microsoft Teams 中核准。",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "包含風險較高變更（例如停止某個對象或將其縮放到零）的修正，只有在兩個不同的人核准後才會執行。",
   "Two people approve riskier fixes": "風險較高的修正由兩人核准",
   "First Approved At": "首次核准時間",
   "First Approved From": "首次核准來源",
@@ -46007,6 +46007,6 @@
   "Waiting for a second approval": "等待第二次核准",
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "你已核准此修正。它包含風險較高的變更，而此專案要求兩人核准此類修正，因此在其他人也核准後它才會執行。",
   "You approved it first. It runs once someone else approves it too.": "你已率先核准。在其他人也核准後它才會執行。",
-  "Your approval is recorded, and nothing runs until someone else approves it too.": "你的核准會被記錄，在其他人也核准之前不會執行任何內容。",
-  "Your approval was already recorded: this fix runs once someone else approves it too": "你的核准已被記錄：此修正將在其他人也核准後執行"
+  "Your approval alone runs nothing: the fix runs once someone else approves it too.": "僅憑你的核准不會執行任何內容：在其他人也核准後，修正才會執行。",
+  "You already approved this fix": "你已核准此修正"
 }

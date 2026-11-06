@@ -20,7 +20,10 @@ import {
   REMEDIATION_STEP_STATUS_TEXT,
   RemediationFixFacts,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepStatus";
-import { getActionErrorTitle } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
+import {
+  getActionErrorTitle,
+  isAlreadyApprovedFirstRefusal,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import { AiRemediationCommandPolicyVerdict } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import AutoRemediationApprovalSource from "../../../Types/AutoRemediation/AutoRemediationApprovalSource";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
@@ -529,21 +532,41 @@ describe("the pill and the fact beside the fix", () => {
 });
 
 describe("a refused press of the first approver", () => {
-  test("is headed by what happened: their approval was already recorded", () => {
+  test("is told apart by the server's own words: their approval stands, so it is no failure", () => {
     expect(
-      getActionErrorTitle(
-        "approve",
-        AutoRemediationSuggestionStatus.Suggested,
-        true,
-      ),
-    ).toBe(REMEDIATION_TWO_APPROVALS_COPY.alreadyApprovedTitle);
-    // Anyone else's refusal reads as before.
+      isAlreadyApprovedFirstRefusal("approve", ALREADY_APPROVED_FIRST_MESSAGE),
+    ).toBe(true);
+    // The words as an error body may carry them, with a line break after.
     expect(
-      getActionErrorTitle(
+      isAlreadyApprovedFirstRefusal(
         "approve",
-        AutoRemediationSuggestionStatus.Suggested,
-        false,
+        ALREADY_APPROVED_FIRST_MESSAGE + "\n",
       ),
+    ).toBe(true);
+    // One calm line, never the old headline that repeated the step above.
+    expect(REMEDIATION_TWO_APPROVALS_COPY.alreadyApprovedTitle).toBe(
+      "You already approved this fix",
+    );
+  });
+
+  test("any other refusal, or the same words on another press, is a refusal as before", () => {
+    // The cluster's remediation turned off meanwhile: still a refusal.
+    expect(
+      isAlreadyApprovedFirstRefusal(
+        "approve",
+        "AI remediation is off for this cluster, so nothing was run.",
+      ),
+    ).toBe(false);
+    expect(
+      isAlreadyApprovedFirstRefusal("dismiss", ALREADY_APPROVED_FIRST_MESSAGE),
+    ).toBe(false);
+    expect(
+      isAlreadyApprovedFirstRefusal("dry-run", ALREADY_APPROVED_FIRST_MESSAGE),
+    ).toBe(false);
+    expect(isAlreadyApprovedFirstRefusal(null, "")).toBe(false);
+    // ...and headed as it always was.
+    expect(
+      getActionErrorTitle("approve", AutoRemediationSuggestionStatus.Suggested),
     ).toBe(
       "Could not save your action: the fix was not approved and nothing ran",
     );

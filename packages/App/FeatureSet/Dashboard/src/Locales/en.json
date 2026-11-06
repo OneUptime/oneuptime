@@ -45990,7 +45990,7 @@
   "{{tab}} signals": "{{tab}} signals",
   "Open the metrics explorer with this time window": "Open the metrics explorer with this time window",
   "Open the traces explorer with this scope": "Open the traces explorer with this scope",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.",
   "Two people approve riskier fixes": "Two people approve riskier fixes",
   "First Approved At": "First Approved At",
   "First Approved From": "First Approved From",
@@ -46007,6 +46007,6 @@
   "Waiting for a second approval": "Waiting for a second approval",
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.",
   "You approved it first. It runs once someone else approves it too.": "You approved it first. It runs once someone else approves it too.",
-  "Your approval is recorded, and nothing runs until someone else approves it too.": "Your approval is recorded, and nothing runs until someone else approves it too.",
-  "Your approval was already recorded: this fix runs once someone else approves it too": "Your approval was already recorded: this fix runs once someone else approves it too"
+  "Your approval alone runs nothing: the fix runs once someone else approves it too.": "Your approval alone runs nothing: the fix runs once someone else approves it too.",
+  "You already approved this fix": "You already approved this fix"
 }

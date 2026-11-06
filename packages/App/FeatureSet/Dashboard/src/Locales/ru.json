@@ -45990,7 +45990,7 @@
   "{{tab}} signals": "Сигналы: {{tab}}",
   "Open the metrics explorer with this time window": "Открыть обозреватель метрик с этим временным окном",
   "Open the traces explorer with this scope": "Открыть обозреватель трассировок с этой областью",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "Исправление с более рискованным изменением, например остановкой чего-либо или масштабированием до нуля, выполняется только после одобрения двумя разными людьми — здесь, в Slack или в Microsoft Teams.",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "Исправление с более рискованным изменением, например остановкой чего-либо или масштабированием до нуля, выполняется только после одобрения двумя разными людьми.",
   "Two people approve riskier fixes": "Два человека одобряют более рискованные исправления",
   "First Approved At": "Время первого одобрения",
   "First Approved From": "Где дано первое одобрение",
@@ -46007,6 +46007,6 @@
   "Waiting for a second approval": "Ожидает второго подтверждения",
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "Вы уже одобрили это исправление. Оно содержит более рискованное изменение, а этот проект требует одобрения двух человек для таких исправлений, поэтому оно будет выполнено, когда его одобрит кто-то ещё.",
   "You approved it first. It runs once someone else approves it too.": "Вы одобрили его первым. Оно будет выполнено, когда его одобрит кто-то ещё.",
-  "Your approval is recorded, and nothing runs until someone else approves it too.": "Ваше одобрение будет записано, и ничего не будет выполнено, пока исправление не одобрит кто-то ещё.",
-  "Your approval was already recorded: this fix runs once someone else approves it too": "Ваше одобрение уже было записано: это исправление будет выполнено, когда его одобрит кто-то ещё"
+  "Your approval alone runs nothing: the fix runs once someone else approves it too.": "Одно ваше одобрение ничего не запускает: исправление будет выполнено, когда его одобрит кто-то ещё.",
+  "You already approved this fix": "Вы уже одобрили это исправление"
 }

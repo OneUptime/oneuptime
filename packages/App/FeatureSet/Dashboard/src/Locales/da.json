@@ -45990,7 +45990,7 @@
   "{{tab}} signals": "Signaler: {{tab}}",
   "Open the metrics explorer with this time window": "Åbn metrikudforskeren med dette tidsvindue",
   "Open the traces explorer with this scope": "Åbn sporudforskeren med dette omfang",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "En rettelse med en mere risikabel ændring, f.eks. at stoppe noget eller skalere det til nul, kører først, når to forskellige personer har godkendt den, her eller i Slack eller Microsoft Teams.",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "En rettelse med en mere risikabel ændring, f.eks. at stoppe noget eller skalere det til nul, kører først, når to forskellige personer har godkendt den.",
   "Two people approve riskier fixes": "To personer godkender mere risikable rettelser",
   "First Approved At": "Først godkendt",
   "First Approved From": "Først godkendt fra",
@@ -46007,6 +46007,6 @@
   "Waiting for a second approval": "Venter på en anden godkendelse",
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "Du har allerede godkendt denne rettelse. Den indeholder en mere risikabel ændring, og dette projekt kræver, at to personer godkender sådan en, så den kører, når en anden også godkender den.",
   "You approved it first. It runs once someone else approves it too.": "Du godkendte den først. Den kører, når en anden også godkender den.",
-  "Your approval is recorded, and nothing runs until someone else approves it too.": "Din godkendelse registreres, og intet kører, før en anden også godkender den.",
-  "Your approval was already recorded: this fix runs once someone else approves it too": "Din godkendelse var allerede registreret: denne rettelse kører, når en anden også godkender den"
+  "Your approval alone runs nothing: the fix runs once someone else approves it too.": "Din godkendelse alene kører intet: rettelsen kører, når en anden også godkender den.",
+  "You already approved this fix": "Du har allerede godkendt denne rettelse"
 }

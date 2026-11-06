@@ -45990,7 +45990,7 @@
   "{{tab}} signals": "Signaler: {{tab}}",
   "Open the metrics explorer with this time window": "Öppna mätvärdesutforskaren med det här tidsfönstret",
   "Open the traces explorer with this scope": "Öppna spårutforskaren med det här omfånget",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "En åtgärd med en riskablare ändring, till exempel att stoppa något eller skala det till noll, körs först när två olika personer har godkänt den, här eller i Slack eller Microsoft Teams.",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "En åtgärd med en riskablare ändring, till exempel att stoppa något eller skala det till noll, körs först när två olika personer har godkänt den.",
   "Two people approve riskier fixes": "Två personer godkänner riskablare åtgärder",
   "First Approved At": "Först godkänd",
   "First Approved From": "Först godkänd från",
@@ -46007,6 +46007,6 @@
   "Waiting for a second approval": "Väntar på ett andra godkännande",
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "Du har redan godkänt den här åtgärden. Den innehåller en riskablare ändring, och det här projektet kräver att två personer godkänner en sådan, så den körs när någon annan också godkänner den.",
   "You approved it first. It runs once someone else approves it too.": "Du godkände den först. Den körs när någon annan också godkänner den.",
-  "Your approval is recorded, and nothing runs until someone else approves it too.": "Ditt godkännande registreras, och inget körs förrän någon annan också godkänner den.",
-  "Your approval was already recorded: this fix runs once someone else approves it too": "Ditt godkännande var redan registrerat: den här åtgärden körs när någon annan också godkänner den"
+  "Your approval alone runs nothing: the fix runs once someone else approves it too.": "Ditt godkännande ensamt kör inget: åtgärden körs när någon annan också godkänner den.",
+  "You already approved this fix": "Du har redan godkänt den här åtgärden"
 }

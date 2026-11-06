@@ -45990,7 +45990,7 @@
   "{{tab}} signals": "{{tab}} सिग्नल",
   "Open the metrics explorer with this time window": "इस समय-सीमा के साथ मेट्रिक्स एक्सप्लोरर खोलें",
   "Open the traces explorer with this scope": "इस दायरे के साथ ट्रेस एक्सप्लोरर खोलें",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "ज़्यादा जोखिम वाले बदलाव वाला सुधार, जैसे किसी चीज़ को रोकना या उसे शून्य तक स्केल करना, तभी चलता है जब दो अलग-अलग लोग उसे स्वीकृत करें, यहाँ या Slack या Microsoft Teams में।",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "ज़्यादा जोखिम वाले बदलाव वाला सुधार, जैसे किसी चीज़ को रोकना या उसे शून्य तक स्केल करना, तभी चलता है जब दो अलग-अलग लोग उसे स्वीकृत करें।",
   "Two people approve riskier fixes": "ज़्यादा जोखिम वाले सुधार दो लोग स्वीकृत करें",
   "First Approved At": "पहली स्वीकृति का समय",
   "First Approved From": "पहली स्वीकृति कहाँ से",
@@ -46007,6 +46007,6 @@
   "Waiting for a second approval": "दूसरे अनुमोदन की प्रतीक्षा में",
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "आप इस सुधार को पहले ही स्वीकृत कर चुके हैं। इसमें ज़्यादा जोखिम वाला बदलाव है, और यह प्रोजेक्ट ऐसे सुधार के लिए दो लोगों की स्वीकृति माँगता है, इसलिए यह तभी चलेगा जब कोई और भी इसे स्वीकृत करे।",
   "You approved it first. It runs once someone else approves it too.": "आपने इसे सबसे पहले स्वीकृत किया। यह तभी चलेगा जब कोई और भी इसे स्वीकृत करे।",
-  "Your approval is recorded, and nothing runs until someone else approves it too.": "आपकी स्वीकृति दर्ज हो जाती है, और जब तक कोई और भी इसे स्वीकृत न करे, कुछ नहीं चलता।",
-  "Your approval was already recorded: this fix runs once someone else approves it too": "आपकी स्वीकृति पहले ही दर्ज थी: यह सुधार तभी चलेगा जब कोई और भी इसे स्वीकृत करे"
+  "Your approval alone runs nothing: the fix runs once someone else approves it too.": "केवल आपकी स्वीकृति से कुछ नहीं चलता: यह सुधार तभी चलेगा जब कोई और भी इसे स्वीकृत करे।",
+  "You already approved this fix": "आप इस सुधार को पहले ही स्वीकृत कर चुके हैं"
 }

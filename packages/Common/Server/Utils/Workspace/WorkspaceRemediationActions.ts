@@ -431,9 +431,7 @@ export default class WorkspaceRemediationActions {
 
     // The first of two approvals: recorded, and nothing runs yet.
     if (result["isWaitingForSecondApproval"] === true) {
-      return WorkspaceRemediationActions.getFirstOfTwoApprovedAnswer(
-        data.suggestion,
-      );
+      return WorkspaceRemediationActions.getFirstOfTwoApprovedAnswer();
     }
 
     return WorkspaceRemediationActions.getApprovedAnswer(data.suggestion);
@@ -441,19 +439,16 @@ export default class WorkspaceRemediationActions {
 
   /*
    * What the person who gave a riskier fix its first approval is told where
-   * they pressed: it is recorded, and the fix runs once someone else
-   * approves it too - which the record's feed tells its channels.
+   * they pressed: theirs is the first, and the fix runs once someone else
+   * approves it too - which the record's feed tells its channels when it
+   * does. Two short sentences, as the approved answer reads (UI review: a
+   * third clause on where to follow it made one long one).
    */
-  public static getFirstOfTwoApprovedAnswer(
-    suggestion?: Pick<AutoRemediationSuggestion, "incidentId" | "alertId">,
-  ): WorkspaceAnswer {
-    const product: string = ProductBrandingText.getProductName();
-    const subject: string = getFixSubjectWords(suggestion || {});
-
+  public static getFirstOfTwoApprovedAnswer(): WorkspaceAnswer {
     return {
       markdown:
-        mdText`✅ You approved this fix. It holds a riskier change, so it runs once someone else approves it too, and ${subject} in ${product} shows when it does.`.toString(),
-      text: "You approved this fix. It runs once someone else approves it too",
+        mdText`✅ You approved this fix first. It holds a riskier change, so it runs once someone else approves it too.`.toString(),
+      text: "You approved this fix first. It runs once someone else approves it too",
     };
   }
 

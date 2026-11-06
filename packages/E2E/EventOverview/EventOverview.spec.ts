@@ -22071,10 +22071,11 @@ const TWO_APPROVALS_WORDS: {
     "Two people must approve this riskier fix. Your approval runs it.",
   youApprovedFirst:
     "You approved it first. It runs once someone else approves it too.",
+  // What the press will do, read before it.
   firstApprovalNote:
-    "Your approval is recorded, and nothing runs until someone else approves it too.",
-  alreadyApprovedTitle:
-    "Your approval was already recorded: this fix runs once someone else approves it too",
+    "Your approval alone runs nothing: the fix runs once someone else approves it too.",
+  // A first approver's press refused: their approval stands, one calm line.
+  alreadyApprovedTitle: "You already approved this fix",
   alreadyApprovedMessage:
     "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.",
 };
@@ -22161,6 +22162,18 @@ test.describe("two people approve a riskier fix (?approvals=)", () => {
     await expect(
       remediationStep(page).getByTestId("remediation-action-error"),
     ).toHaveCount(0);
+    await expect(
+      remediationStep(page).getByTestId("remediation-already-approved"),
+    ).toHaveCount(0);
+    /*
+     * The button pressed is gone and nothing ran: a screen reader is told
+     * so, politely, while the steps show it on screen.
+     */
+    const announcement: Locator = kubectl.getByTestId(
+      "remediation-fix-announcement",
+    );
+    await expect(announcement).toHaveAttribute("role", "status");
+    await expect(announcement).toHaveText(TWO_APPROVALS_WORDS.youApprovedFirst);
     await expectNoErrorStates(page);
     await page.mouse.move(0, 0);
     await screenshotElement(kubectl, "ai-card-two-approvals-mine-1280");
@@ -22250,7 +22263,7 @@ test.describe("two people approve a riskier fix (?approvals=)", () => {
     await screenshotElement(kubectl, "ai-card-two-approvals-mine-390-dark");
   });
 
-  test("on, approved meanwhile from another tab: the card's press is refused with why, and the fix then waits for someone else", async ({
+  test("on, approved meanwhile from another tab: the card's press says in one calm line that it was already approved, and the fix then waits for someone else", async ({
     page,
   }: {
     page: Page;
@@ -22272,14 +22285,21 @@ test.describe("two people approve a riskier fix (?approvals=)", () => {
 
     await approve.click();
 
-    const refusal: Locator = kubectl.getByTestId("remediation-action-error");
-    await expect(refusal).toContainText(
-      TWO_APPROVALS_WORDS.alreadyApprovedTitle,
-    );
-    await expect(refusal).toContainText(
+    /*
+     * The server refused the press (RemediationApproval: the same person
+     * cannot approve twice), but the reader's approval stands: one calm
+     * line, a status rather than an alert, and the steps above say the
+     * rest - never the server's sentence a third time.
+     */
+    const notice: Locator = kubectl.getByTestId("remediation-already-approved");
+    await expect(notice).toHaveText(TWO_APPROVALS_WORDS.alreadyApprovedTitle);
+    await expect(notice).toHaveAttribute("role", "status");
+    await expect(kubectl).not.toContainText(
       TWO_APPROVALS_WORDS.alreadyApprovedMessage,
     );
-    await expect(refusal).toHaveAttribute("role", "alert");
+    await expect(kubectl.getByTestId("remediation-action-error")).toHaveCount(
+      0,
+    );
     await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
       "Waiting for a second approval",
     );

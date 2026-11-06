@@ -45990,7 +45990,7 @@
   "{{tab}} signals": "{{tab}}信号",
   "Open the metrics explorer with this time window": "用此时间窗口打开指标浏览器",
   "Open the traces explorer with this scope": "用此范围打开追踪浏览器",
-  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "包含风险较高变更（例如停止某个对象或将其缩放到零）的修复，只有在两个不同的人批准后才会运行，可在此处、Slack 或 Microsoft Teams 中批准。",
+  "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.": "包含风险较高变更（例如停止某个对象或将其缩放到零）的修复，只有在两个不同的人批准后才会运行。",
   "Two people approve riskier fixes": "风险较高的修复由两人批准",
   "First Approved At": "首次批准时间",
   "First Approved From": "首次批准来源",
@@ -46007,6 +46007,6 @@
   "Waiting for a second approval": "等待第二次批准",
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "你已批准此修复。它包含风险较高的变更，而此项目要求两人批准此类修复，因此在其他人也批准后它才会运行。",
   "You approved it first. It runs once someone else approves it too.": "你已率先批准。在其他人也批准后它才会运行。",
-  "Your approval is recorded, and nothing runs until someone else approves it too.": "你的批准会被记录，在其他人也批准之前不会运行任何内容。",
-  "Your approval was already recorded: this fix runs once someone else approves it too": "你的批准已被记录：此修复将在其他人也批准后运行"
+  "Your approval alone runs nothing: the fix runs once someone else approves it too.": "仅凭你的批准不会运行任何内容：在其他人也批准后，修复才会运行。",
+  "You already approved this fix": "你已批准此修复"
 }
