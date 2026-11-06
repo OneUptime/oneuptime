@@ -1587,7 +1587,9 @@ test.describe("Costs", () => {
     expect(breakdown!.y).toBeGreaterThan(card!.y + card!.height - 0.5);
     await screenshot(page, "cloud-costs-1280-unusual-days");
 
-    // Over every account, the mark opens its account's Costs.
+    // Over every account, the mark is a button that opens its account's Costs.
+    await expect(chip).toHaveAttribute("role", "button");
+    await expect(chip).toHaveCSS("cursor", "pointer");
     await chip.click();
     await expect(page).toHaveURL(`${CLOUD}/accounts/${DATA_LAKE_ID}/costs`);
 
@@ -1602,6 +1604,20 @@ test.describe("Costs", () => {
       "data-marks",
       "1",
     );
+    /*
+     * A mark to hover or focus, not a button: the page is the day's
+     * account's already, so it offers no pointer and no click.
+     */
+    const ownChip: Locator = page
+      .getByTestId("cloud-daily-spend-chart")
+      .getByTestId("chart-annotation-chip");
+    await expect(ownChip).toHaveAttribute("role", "img");
+    await expect(ownChip).toHaveCSS("cursor", "default");
+    await ownChip.focus();
+    await expect(page.getByTestId("chart-annotation-hover-card")).toContainText(
+      "Amazon Athena cost $",
+    );
+    await expect(page).toHaveURL(`${CLOUD}/accounts/${DATA_LAKE_ID}/costs`);
 
     // web-prod had none: no card.
     await open(page, WEB_PROD_COSTS);
