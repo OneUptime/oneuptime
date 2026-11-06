@@ -35,21 +35,23 @@ jobs:
             echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
 
-      # The audit fixes take half an hour, and master moves meanwhile. A branch
-      # built on the master the run started from carries that master's copy of
-      # every workflow file, and GitHub refuses this token a branch whose
-      # workflow files differ from master's ("refusing to allow a GitHub App to
-      # create or update workflow ... without `workflows` permission"), as on
-      # 2026-10-29 when #5393 changed test.app.yaml mid-run. So the fixes move
-      # onto the newest master just before the pull request is made. A lockfile
-      # master changed in the same lines stops the run here, and the next
-      # night's run starts from that master.
-      - name: Put the fixes on the newest master
+      # The audit fixes take half an hour, and the default branch moves meanwhile.
+      # A branch built on the commit the run started from carries that commit's
+      # copy of every workflow file, and GitHub refuses this token a branch whose
+      # workflow files differ from the default branch's ("refusing to allow a
+      # GitHub App to create or update workflow ... without `workflows`
+      # permission"), as on 2026-10-29 when #5393 changed test.app.yaml mid-run.
+      # So the fixes move onto the branch's newest commit just before the pull
+      # request is made. A lockfile the branch changed in the same lines stops the
+      # run here, and the next night's run starts from that commit.
+      # GITHUB_REF_NAME is the branch this run checked out: on a scheduled run,
+      # the default branch, whatever it is called.
+      - name: Put the fixes on the newest commit
         if: steps.changes.outputs.has_changes == 'true'
         run: |
           git stash push --include-untracked
-          git fetch --no-tags origin master
-          git reset --hard origin/master
+          git fetch --no-tags origin "$GITHUB_REF_NAME"
+          git reset --hard "origin/$GITHUB_REF_NAME"
           git stash pop
 
       - name: Create pull request

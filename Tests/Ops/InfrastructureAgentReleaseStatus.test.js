@@ -1334,7 +1334,7 @@ describe(WORKFLOW, () => {
     expect(workflow.on.workflow_dispatch.inputs.version.type).toBe("string");
 
     // Not a release's gate pull request into `release`.
-    expect(workflow.on.pull_request.branches).toEqual(["master"]);
+    expect(workflow.on.pull_request.branches).toEqual(["master", "main"]);
     const paths = workflow.on.pull_request.paths;
     expect(paths).toContain(WORKFLOW);
     for (const job of Object.values(jobs)) {
