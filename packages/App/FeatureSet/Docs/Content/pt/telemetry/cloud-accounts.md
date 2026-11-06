@@ -9,6 +9,8 @@ Conecte uma conta da AWS, uma assinatura do Azure ou um projeto do Google Cloud 
 - [O que o OneUptime lê](#o-que-o-oneuptime-lê): Recursos, métricas, alterações, eventos de integridade e custos, com que frequência e quanto custa lê-los.
 - [Custos e economias da nuvem](/docs/telemetry/cloud-costs): Quanto custa cada conta, as formas de gastar menos e orçamentos que alertam.
 - [Transmitir métricas e logs do CloudWatch](/docs/telemetry/cloud-streaming): Cada métrica em minutos, e o CloudWatch Logs, pelo Amazon Data Firehose.
+- [Transmitir métricas e logs do Azure Monitor](/docs/telemetry/cloud-streaming-azure): As métricas principais em minutos, e os logs de recursos, lidos de hubs de eventos da sua assinatura.
+- [Transmitir logs do Google Cloud](/docs/telemetry/cloud-streaming-google-cloud): Cada log assim que é gravado, enviado pelo Pub/Sub.
 - [Segurança de dados](#segurança-de-dados): O que a conexão permite que a Segurança de dados leia, e o que cada nível acrescenta ao comando.
 - [Permitir que a IA corrija problemas](#permitir-que-a-ia-corrija-problemas): Mais um comando, e o OneUptime AI pode corrigir o que encontra.
 :::

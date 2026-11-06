@@ -9,6 +9,8 @@ Forbind en AWS-konto, et Azure-abonnement eller et Google Cloud-projekt fra dash
 - [Hvad OneUptime læser](#hvad-oneuptime-læser): Ressourcer, metrikker, ændringer, sundhedshændelser og omkostninger, hvor ofte, og hvad det koster at læse dem.
 - [Cloudomkostninger og besparelser](/docs/telemetry/cloud-costs): Hvad hver konto koster, måderne at bruge mindre på og budgetter, der advarer.
 - [Stream CloudWatch-metrikker og -logge](/docs/telemetry/cloud-streaming): Hver metrik inden for minutter, og CloudWatch Logs, via Amazon Data Firehose.
+- [Stream Azure Monitor-metrikker og -logge](/docs/telemetry/cloud-streaming-azure): Nøglemetrikker inden for minutter og ressourcelogge, læst fra hændelseshubs i dit abonnement.
+- [Stream Google Cloud-logge](/docs/telemetry/cloud-streaming-google-cloud): Hver log, så snart den skrives, pushet via Pub/Sub.
 - [Datasikkerhed](#datasikkerhed): Hvad forbindelsen lader Datasikkerhed læse, og hvad hvert niveau tilføjer til kommandoen.
 - [Lad AI rette problemer](#lad-ai-rette-problemer): Én kommando mere, så kan OneUptime AI rette det, den finder.
 :::

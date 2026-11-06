@@ -9,6 +9,8 @@
 - [OneUptime 讀取什麼](#oneuptime-讀取什麼): 資源、指標、變更、健康事件和成本，多久讀取一次，以及讀取它們的費用是多少。
 - [雲端成本與節省](/docs/telemetry/cloud-costs): 每個帳戶的成本、減少支出的方法，以及會發出警示的預算。
 - [串流 CloudWatch 指標和日誌](/docs/telemetry/cloud-streaming): 透過 Amazon Data Firehose，在幾分鐘內取得每個指標以及 CloudWatch Logs。
+- [串流 Azure Monitor 指標和日誌](/docs/telemetry/cloud-streaming-azure): 幾分鐘內取得關鍵指標和資源日誌，從你訂用帳戶中的事件中樞讀取。
+- [串流 Google Cloud 日誌](/docs/telemetry/cloud-streaming-google-cloud): 每筆日誌一寫入就透過 Pub/Sub 推送。
 - [資料安全](#資料安全): 這個連線讓資料安全讀取什麼，以及每個層級會在指令中新增什麼。
 - [讓 AI 修正問題](#讓-ai-修正問題): 再執行一個指令，OneUptime AI 就能修正它發現的問題。
 :::

@@ -2827,3 +2827,65 @@ describe.each(TRIGGERS)(
     });
   },
 );
+
+/*
+ * A CUSTOM TEMPLATE'S VALUES, IN ITS PAGE'S LANGUAGE: OneUptime's default
+ * severity names are in the page's default language
+ * (SubscriberTemplateValues), a project's own as written, English for a
+ * page with no default language.
+ */
+describe("IncidentEpisodePublicNote custom templates, in the page's language", () => {
+  const pageIn: (language: string) => StatusPage = (
+    language: string,
+  ): StatusPage => {
+    const page: StatusPage = statusPage({ withCustomSmtpAndSms: true });
+    page.defaultLanguage = language;
+    return page;
+  };
+
+  test("a default severity name is the page's language's, on every channel", async () => {
+    createdNotes = [publicNote()];
+    storedEpisode!.incidentSeverity!.name = "Critical Incident";
+    useCustomTemplatesOnEveryChannel(
+      StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteCreated,
+      [pageIn("it")],
+    );
+
+    await runJob(CREATED_JOB);
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) {
+      expect(call.variables["episodeSeverity"]).toBe("Incidente critico");
+      expect(call.variables["episodeTitle"]).toBe(EPISODE_TITLE);
+    }
+  });
+
+  test("a project's own severity name reads as written", async () => {
+    createdNotes = [publicNote()];
+    useCustomTemplatesOnEveryChannel(
+      StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteCreated,
+      [pageIn("it")],
+    );
+
+    await runJob(CREATED_JOB);
+
+    for (const call of compileCalls()) {
+      expect(call.variables["episodeSeverity"]).toBe("Major");
+    }
+  });
+
+  test("a page without a default language fills it in English", async () => {
+    createdNotes = [publicNote()];
+    storedEpisode!.incidentSeverity!.name = "Critical Incident";
+    useCustomTemplatesOnEveryChannel(
+      StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteCreated,
+    );
+
+    await runJob(CREATED_JOB);
+
+    for (const call of compileCalls()) {
+      expect(call.variables["episodeSeverity"]).toBe("Critical Incident");
+    }
+  });
+});

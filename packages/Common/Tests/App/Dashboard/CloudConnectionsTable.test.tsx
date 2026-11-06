@@ -32,12 +32,13 @@ import { MemoryRouter } from "react-router-dom";
  *     and how many resources its last read found, as the way to them, with
  *     the first two regions and how many more;
  *   - its actions: View error only while it is not working, Read now and
- *     Turn off while it is on, Turn on while it is off, Test, Edit, and on
- *     an AWS connection Stream metrics and logs - and Stop streaming once
- *     it has a key, asked first, with the command that deletes the stacks -
+ *     Turn off while it is on, Turn on while it is off, Test, Edit, Stream
+ *     metrics and logs on an AWS or Azure connection, Stream logs on a
+ *     Google Cloud one - and Stop streaming once it streams, asked first,
+ *     in its cloud's words, with the command that deletes what streams -
  *     each greyed, with why, without the right to change connections;
- *   - an AWS connection with a stream key says how streaming is doing under
- *     how it is read;
+ *   - a connection that streams says how streaming is doing under how it
+ *     is read, in its cloud's words;
  *   - Read now queues a read, and the row says it is reading - Read now
  *     put away - until the connection's last read time moves, asked of the
  *     one connection now and then, when the list loads again by itself; it
@@ -59,6 +60,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 });
 
 import CloudConnectionsTable from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionsTable";
+import { CLOUD_STREAM_COMMAND_MAX_HEIGHT } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamParts";
 import {
   READ_NOW_GIVE_UP_MS,
   READ_NOW_POLL_MS,
@@ -261,8 +263,12 @@ describe("what the list reads", () => {
         "lastPulledAt",
         "lastSuccessfulPullAt",
         "provider",
-        // When its stream key was made, and what its streams delivered.
+        /*
+         * When its stream key was made, what its streams delivered, and
+         * for Azure whose event hubs are read.
+         */
         "streamKeyCreatedAt",
+        "streamState",
         "streamSummary",
       ],
     );
@@ -933,7 +939,7 @@ describe("streaming an AWS connection's metrics and logs", () => {
     return new Date(Date.now() - minutes * 60 * 1000).toISOString();
   }
 
-  test("only an AWS connection streams; Stop streaming only once it has a key", () => {
+  test("AWS and Azure stream metrics and logs, Google Cloud its logs; Stop streaming only once it streams", () => {
     renderTable();
 
     const aws: CloudConnection = connection();
@@ -942,20 +948,29 @@ describe("streaming an AWS connection's metrics and logs", () => {
     });
     const azure: CloudConnection = connection({
       provider: CloudProvider.Azure,
-      streamKeyCreatedAt: STREAM_KEY_MADE_AT,
     });
+    const gcp: CloudConnection = connection({ provider: CloudProvider.GCP });
 
     expect(action("Stream metrics and logs").isVisible!(aws)).toBe(true);
     expect(action("Stream metrics and logs").isVisible!(streaming)).toBe(true);
-    expect(action("Stream metrics and logs").isVisible!(azure)).toBe(false);
-    expect(
-      action("Stream metrics and logs").isVisible!(
-        connection({ provider: CloudProvider.GCP }),
-      ),
-    ).toBe(false);
+    expect(action("Stream metrics and logs").isVisible!(azure)).toBe(true);
+    // Cloud Monitoring has no export that pushes metrics.
+    expect(action("Stream metrics and logs").isVisible!(gcp)).toBe(false);
+    expect(action("Stream logs").isVisible!(gcp)).toBe(true);
+    expect(action("Stream logs").isVisible!(aws)).toBe(false);
+    expect(action("Stream logs").isVisible!(azure)).toBe(false);
     expect(action("Stop streaming").isVisible!(aws)).toBe(false);
-    expect(action("Stop streaming").isVisible!(streaming)).toBe(true);
     expect(action("Stop streaming").isVisible!(azure)).toBe(false);
+    expect(action("Stop streaming").isVisible!(gcp)).toBe(false);
+    expect(action("Stop streaming").isVisible!(streaming)).toBe(true);
+
+    for (const provider of [CloudProvider.Azure, CloudProvider.GCP]) {
+      expect(
+        action("Stop streaming").isVisible!(
+          connection({ provider, streamKeyCreatedAt: STREAM_KEY_MADE_AT }),
+        ),
+      ).toBe(true);
+    }
     // Neither is the row's button: Read now stays it.
     expect(
       splitActionButtons<CloudConnection>({
@@ -1210,14 +1225,15 @@ describe("streaming an AWS connection's metrics and logs", () => {
         "cloud-connection-stream",
       ),
     ).not.toBeInTheDocument();
-    // Not AWS: never a stream line, whatever is stored.
+    // A cloud no stream is written for: never a stream line, whatever is stored.
     expect(
       within(
         drawCell(
           "Status",
           connection({
             ...read,
-            provider: CloudProvider.Azure,
+            // Not a cloud OneUptime knows, as a row could still hold it.
+            provider: "oracle" as unknown as CloudProvider,
             streamKeyCreatedAt: STREAM_KEY_MADE_AT,
           }),
         ),
@@ -1286,5 +1302,248 @@ describe("streaming an AWS connection's metrics and logs", () => {
     expect(refused.getAttribute("title")).toContain(
       "This connection is turned off.",
     );
+  });
+});
+
+describe("streaming an Azure subscription and a Google Cloud project", () => {
+  const STARTED_AT: Date = new Date("2026-11-01T09:00:00.000Z");
+  const SUB_A: string = "11111111-aaaa-4aaa-8aaa-111111111111";
+  const SUB_B: string = "22222222-bbbb-4bbb-8bbb-222222222222";
+
+  function azure(fields: Partial<CloudConnection> = {}): CloudConnection {
+    return connection({
+      name: "Contoso production",
+      provider: CloudProvider.Azure,
+      config: {
+        authMethod: "azure-client-secret",
+        clientId: "00001111-aaaa-2222-bbbb-3333cccc4444",
+        readIntervalInMinutes: "5",
+      },
+      lastPullResult: readResult({ accounts: [SUB_A] }),
+      ...fields,
+    });
+  }
+
+  function gcp(fields: Partial<CloudConnection> = {}): CloudConnection {
+    return connection({
+      name: "Google Cloud acme-prod",
+      provider: CloudProvider.GCP,
+      config: {
+        authMethod: "gcp-service-account-key",
+        keyProjectId: "acme-prod",
+        readIntervalInMinutes: "5",
+      },
+      lastPullResult: readResult({ accounts: ["acme-prod", "acme-data"] }),
+      ...fields,
+    });
+  }
+
+  function minutesAgo(minutes: number): string {
+    return new Date(Date.now() - minutes * 60 * 1000).toISOString();
+  }
+
+  function stopDetails(item: CloudConnection): {
+    description: string;
+    text: string;
+    code: string;
+  } {
+    const confirmation: ReturnType<
+      NonNullable<CapturedAction["getConfirmation"]>
+    > = action("Stop streaming").getConfirmation!(item)!;
+
+    expect(confirmation.title).toBe("Stop streaming");
+    expect(confirmation.submitButtonType).toBe(ButtonStyleType.DANGER);
+
+    const { container } = render(confirmation.details!);
+
+    return {
+      description: confirmation.description as string,
+      text: container.textContent || "",
+      code: container.querySelector("pre code")?.textContent || "",
+    };
+  }
+
+  test("Stream metrics and logs opens Azure's dialog, Stream logs Google Cloud's", async () => {
+    renderTable();
+
+    await act(async () => {
+      await action("Stream metrics and logs").onClick(
+        azure(),
+        getJestMockFunction(),
+      );
+    });
+
+    expect(screen.getByTestId("cloud-stream")).toHaveAttribute(
+      "data-provider",
+      "azure",
+    );
+    expect(screen.getByRole("dialog")).toHaveTextContent("Turn on reading");
+
+    cleanup();
+    mockCapturedTableProps.length = 0;
+    renderTable();
+
+    await act(async () => {
+      await action("Stream logs").onClick(gcp(), getJestMockFunction());
+    });
+
+    expect(screen.getByTestId("cloud-stream")).toHaveAttribute(
+      "data-provider",
+      "gcp",
+    );
+    expect(screen.getByRole("dialog")).toHaveTextContent("Stream logs");
+  });
+
+  test("Stop streaming on Azure says reading stops, and deletes the event hubs where they are read", () => {
+    renderTable();
+
+    const stop: { description: string; text: string; code: string } =
+      stopDetails(
+        azure({
+          streamKeyCreatedAt: STARTED_AT,
+          streamState: { hostSubscriptionId: SUB_B, offsets: {} },
+        }),
+      );
+
+    expect(stop.description).toBe(
+      "OneUptime stops reading the event hubs of Contoso production at once, and the connection reads all its metrics on its schedule again. What was read stays.",
+    );
+    expect(stop.text).toContain(
+      "The event hubs and the diagnostic settings stay in Azure, and Azure bills them, until they are deleted. To delete them, run this in Azure Cloud Shell:",
+    );
+    // The subscription the event hubs are read in, first, then the one the connection reads.
+    expect(stop.code).toContain(`for SUB in '${SUB_B}' '${SUB_A}'; do`);
+    expect(stop.code).toContain("az group delete");
+    expect(stop.code).not.toContain("cloudformation");
+  });
+
+  test("Stop streaming on Google Cloud says pushes are refused, and deletes the sinks and the topic", () => {
+    renderTable();
+
+    const stop: { description: string; text: string; code: string } =
+      stopDetails(gcp({ streamKeyCreatedAt: STARTED_AT }));
+
+    expect(stop.description).toBe(
+      "Every stream key of Google Cloud acme-prod stops working at once, and what Pub/Sub pushes is refused from now on. What was delivered stays.",
+    );
+    expect(stop.text).toContain("run this in Google Cloud Shell:");
+    expect(stop.code).toContain("for SOURCE in 'acme-prod' 'acme-data'; do");
+    expect(stop.code).toContain(
+      "gcloud logging sinks delete oneuptime-stream-20000000",
+    );
+    expect(stop.code).toContain(
+      "gcloud pubsub topics delete oneuptime-stream-20000000 --project 'acme-prod' --quiet",
+    );
+  });
+
+  test("Stop streaming's command is drawn as tall as the streaming dialogs' at most, whichever cloud it deletes in", () => {
+    renderTable();
+
+    for (const item of [
+      connection({ streamKeyCreatedAt: STARTED_AT }),
+      azure({
+        streamKeyCreatedAt: STARTED_AT,
+        streamState: { hostSubscriptionId: SUB_A, offsets: {} },
+      }),
+      gcp({ streamKeyCreatedAt: STARTED_AT }),
+    ]) {
+      const { container } = render(
+        action("Stop streaming").getConfirmation!(item)!.details!,
+      );
+      // The box that scrolls: Azure's runs to twenty lines, and the question stays in view.
+      const box: HTMLElement | null | undefined =
+        container.querySelector("pre")?.parentElement;
+
+      expect(box?.style.maxHeight).toBe(CLOUD_STREAM_COMMAND_MAX_HEIGHT);
+      cleanup();
+    }
+  });
+
+  test("Stop streaming stops either the same way, and the list reads again", async () => {
+    renderTable();
+
+    for (const item of [
+      azure({ streamKeyCreatedAt: STARTED_AT }),
+      gcp({ streamKeyCreatedAt: STARTED_AT }),
+    ]) {
+      postSpy.mockClear();
+      const toggleBefore: unknown = tableProps()["refreshToggle"];
+
+      await act(async () => {
+        await action("Stop streaming").onClick(
+          item,
+          getJestMockFunction(),
+          getJestMockFunction(),
+        );
+      });
+
+      expect(postSpy.mock.calls[0]![0].url.toString()).toMatch(
+        new RegExp(`/cloud-connection/${CONNECTION_ID}/stop-streaming$`),
+      );
+      expect(tableProps()["refreshToggle"]).not.toBe(toggleBefore);
+    }
+  });
+
+  test("its status says how streaming is doing in its cloud's words: Azure's failing read, Google Cloud's refused push", () => {
+    renderTable();
+
+    const read: Partial<CloudConnection> = {
+      lastPulledAt: READ_AT,
+      lastSuccessfulPullAt: READ_AT,
+    };
+    const failing: HTMLElement = within(
+      drawCell(
+        "Status",
+        azure({
+          ...read,
+          streamKeyCreatedAt: STARTED_AT,
+          streamSummary: {
+            lastRefusal: {
+              reason: CloudStreamRefusalReason.NoAccess,
+              at: minutesAgo(1),
+            },
+          },
+        }),
+      ),
+    ).getByTestId("cloud-connection-stream");
+
+    expect(failing).toHaveAttribute("data-state", "refused");
+    expect(failing).toHaveTextContent("Stream failing");
+    expect(failing.getAttribute("title")).toContain(
+      "The connection's app may not read the event hubs.",
+    );
+
+    const refused: HTMLElement = within(
+      drawCell(
+        "Status",
+        gcp({
+          ...read,
+          streamKeyCreatedAt: STARTED_AT,
+          streamSummary: {
+            lastRefusal: {
+              reason: CloudStreamRefusalReason.WrongToken,
+              at: minutesAgo(1),
+            },
+          },
+        }),
+      ),
+    ).getByTestId("cloud-connection-stream");
+
+    expect(refused).toHaveTextContent("Stream refused");
+    expect(refused.getAttribute("title")).toContain(
+      "A push was not signed by Google for this connection's push service account.",
+    );
+
+    // Waiting for the first events, before reading was ever turned on: nothing.
+    expect(
+      within(drawCell("Status", azure(read))).queryByTestId(
+        "cloud-connection-stream",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(
+        drawCell("Status", azure({ ...read, streamKeyCreatedAt: STARTED_AT })),
+      ).getByTestId("cloud-connection-stream"),
+    ).toHaveTextContent("Stream waiting");
   });
 });

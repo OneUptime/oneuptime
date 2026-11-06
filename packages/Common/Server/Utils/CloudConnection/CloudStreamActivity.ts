@@ -185,6 +185,32 @@ export default class CloudStreamActivity {
     }
   }
 
+  /*
+   * Azure: a read of the connection's event hubs that went well, events or
+   * none - after one that failed, the stream is no longer refused.
+   */
+  public static noteRead(data: { connectionId: ObjectID; now: Date }): void {
+    try {
+      const tracked: TrackedConnection = CloudStreamActivity.track(
+        data.connectionId,
+      );
+
+      tracked.seen = mergeCloudStreamSummary({
+        stored: tracked.seen,
+        seen: {
+          lastReadAt: data.now.toISOString(),
+          metricSources: [],
+          logSources: [],
+        },
+        now: data.now,
+      });
+
+      CloudStreamActivity.writeWhenDue(data.connectionId, tracked, data.now);
+    } catch (error) {
+      CloudStreamActivity.logFailure(data.connectionId, error);
+    }
+  }
+
   // A delivery refused, for a key that names this connection.
   public static noteRefusal(data: {
     connectionId: ObjectID;

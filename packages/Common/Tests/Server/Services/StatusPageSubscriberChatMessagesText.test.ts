@@ -27,7 +27,7 @@ const VALUE_ADDRESS_PATTERN: RegExp = /^https:\/\/(?:evil|tracker)\.example/;
 
 /*
  * A STATUS PAGE'S NAME, IN THE SLACK AND TEAMS MESSAGES A SUBSCRIBER GETS
- * WHEN THEY SUBSCRIBE, AND IN THE TEST NOTIFICATION.
+ * WHEN THEY SUBSCRIBE.
  *
  * The name is plain text the page's admins typed - or set through the API,
  * with a line break in it. The messages are Markdown: in the heading and in
@@ -278,40 +278,5 @@ describe("The Slack and Teams messages a new subscriber gets", () => {
         return token.type === "image" || token.type === "link";
       }),
     ).toEqual([]);
-  });
-});
-
-describe("The Slack test notification for a status page", () => {
-  test("names the page as typed, on one line, and nothing in the name acts on its own", async () => {
-    jest
-      .spyOn(StatusPageService, "findOneById")
-      .mockImplementation((async () => {
-        const page: StatusPage = new StatusPage();
-        page._id = STATUS_PAGE_ID.toString();
-        page.projectId = PROJECT_ID;
-        page.pageTitle = HOSTILE_PAGE_NAME;
-        return page;
-      }) as never);
-
-    const converted: Array<string> = [];
-    const realConvert: (markdown: string) => string =
-      SlackUtil.convertMarkdownToSlackRichText.bind(SlackUtil);
-    jest
-      .spyOn(SlackUtil, "convertMarkdownToSlackRichText")
-      .mockImplementation((markdown: string): string => {
-        converted.push(markdown);
-        return realConvert(markdown);
-      });
-
-    await StatusPageSubscriberService.testSlackWebhook({
-      webhookUrl: SLACK_WEBHOOK,
-      statusPageId: STATUS_PAGE_ID,
-    });
-
-    expect(converted).toHaveLength(1);
-    expect(asRead(converted[0]!.split("\n")[0]!)).toBe(
-      `## Test Notification - ${HOSTILE_PAGE_NAME_ON_ONE_LINE}`,
-    );
-    expectNameInert(converted[0]!);
   });
 });

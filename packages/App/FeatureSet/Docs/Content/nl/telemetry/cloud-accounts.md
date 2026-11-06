@@ -9,6 +9,8 @@ Koppel een AWS-account, een Azure-abonnement of een Google Cloud-project vanuit 
 - [Wat OneUptime leest](#wat-oneuptime-leest): Resources, metrieken, wijzigingen, statusgebeurtenissen en kosten, hoe vaak, en wat het lezen ervan kost.
 - [Cloudkosten en besparingen](/docs/telemetry/cloud-costs): Wat elk account kost, de manieren om minder uit te geven en budgetten die waarschuwen.
 - [CloudWatch-metrieken en -logboeken streamen](/docs/telemetry/cloud-streaming): Elke metriek binnen enkele minuten, en CloudWatch Logs, via Amazon Data Firehose.
+- [Azure Monitor-metrieken en -logboeken streamen](/docs/telemetry/cloud-streaming-azure): Belangrijke metrieken binnen enkele minuten, en resourcelogboeken, gelezen uit Event Hubs in uw abonnement.
+- [Google Cloud-logboeken streamen](/docs/telemetry/cloud-streaming-google-cloud): Elk logboek zodra het wordt geschreven, gepusht via Pub/Sub.
 - [Gegevensbeveiliging](#gegevensbeveiliging): Wat de koppeling Gegevensbeveiliging laat lezen, en wat elk niveau aan de opdracht toevoegt.
 - [AI problemen laten oplossen](#ai-problemen-laten-oplossen): Nog één opdracht, en OneUptime AI kan oplossen wat het vindt.
 :::

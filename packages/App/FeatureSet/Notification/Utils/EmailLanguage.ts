@@ -46,6 +46,10 @@ import { TemplateValues, Translator } from "Common/Types/Translator";
  *   {{tp "{{count}} resource" "{{count}} resources" count}}
  *                                             a sentence that depends on a
  *                                             count, in the language's forms
+ *   {{tNumber report.totalIncidents}}         a count on its own, written the
+ *                                             language's way: "1234" as
+ *                                             always in English, "1.234" in
+ *                                             German, "۱٬۲۳۴" in Persian
  *   align="{{emailStart}}"                    "left", or "right" in an email
  *   align="{{emailEnd}}"                      read from the right ("right" /
  *                                             "left"): a table's own sides
@@ -332,6 +336,31 @@ export const getEmailHtmlValue: (html: unknown) => string = (
     : `<span dir="${direction}">${value}</span>`;
 };
 
+/*
+ * A count as an email in `language` writes it: exactly as it always was
+ * in English ("1234"), the language's way otherwise ("1.234", "۱٬۲۳۴").
+ * Nothing is written for a missing value, and anything that is not a
+ * number is written as it is.
+ */
+export const writeEmailNumber: (value: unknown, language: string) => string = (
+  value: unknown,
+  language: string,
+): string => {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    toReaderLanguage(language) === DEFAULT_READER_LANGUAGE
+  ) {
+    return String(value);
+  }
+
+  return getServerTranslator(language).formatNumber(value);
+};
+
 export const registerEmailLanguageHelpers: (
   handlebars: HandlebarsEngine,
 ) => void = (handlebars: HandlebarsEngine): void => {
@@ -385,6 +414,13 @@ export const registerEmailLanguageHelpers: (
         Number.isFinite(value) ? value : 0,
         toTemplateValues(options),
       );
+    },
+  );
+
+  handlebars.registerHelper(
+    "tNumber",
+    (value: unknown, options: unknown): string => {
+      return writeEmailNumber(value, getEmailLanguageFromRoot(options));
     },
   );
 

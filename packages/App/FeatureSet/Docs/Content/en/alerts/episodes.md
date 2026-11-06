@@ -20,12 +20,15 @@ flowchart TB
     open -->|Yes| join["Joins it"]
     open -->|No| reopen(["One resolved within<br/>the reopen window?"])
     reopen -->|Yes| reopened["Reopens it"]
-    reopen -->|No| created["Opens a<br/>new episode"]
+    reopen -->|No| enough(["Enough matching<br/>alerts ongoing?"])
+    enough -->|Yes| created["Opens a new episode<br/>with all of them"]
+    enough -->|Not yet| waits["Waits on its own"]
 ```
 
 - **The rule's conditions** decide which alerts it applies to. A rule with none applies to every new alert.
 - **The grouping key** decides which alerts share an episode: those with the same monitor, the same severity, the same title, or whatever mix the rule groups by. A rule that groups by nothing puts every alert it matches into one episode.
 - **The time window** decides how long an episode keeps taking alerts. With it on, an alert joins only if it arrives within the window of the episode's last alert. With it off, matching alerts keep joining until the episode is resolved.
+- **Wait for more alerts** decides when a new episode opens. Off, as a new rule starts, the first matching alert opens one. On, an alert waits on its own until the number of matching alerts of its group you set are ongoing, and then one episode opens with all of them. See [Open an episode only for several alerts](#open-an-episode-only-for-several-alerts).
 
 Grouping happens when an alert is created. A rule you add today groups the alerts created after it; it does not regroup the ones already there.
 
@@ -72,10 +75,21 @@ Everything else a rule can do is folded under **More fields** at the end of the 
 | Group                     | Settings                                                                                                   |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **On-Call & Ownership**   | **On-Call Duty Policies** to run when the rule opens an episode, and **Episode Owners**.                   |
-| **Episode Lifecycle**     | **Reopen recently resolved episodes**, **Wait before resolving an episode** and **Resolve quiet episodes**, each a switch with its minutes. |
+| **Episode Lifecycle**     | **Wait for more alerts**, a switch with a count, then **Reopen recently resolved episodes**, **Wait before resolving an episode** and **Resolve quiet episodes**, each a switch with its minutes. |
 | **Details**               | The rule's **Description**, the **Episode Title Template**, the **Episode Description Template** and **Episode Labels**. |
 
 Rules are checked from the top of the list down, and the first match wins: drag a rule to change its place. Put specific rules above broad ones. The list's **Grouping** column says what each rule does in a sentence, such as "One episode per monitor".
+
+### Open an episode only for several alerts
+
+**Wait for more alerts**, under **Episode Lifecycle**, keeps a lone alert out of an episode. Turn it on and say how many: **Open an episode once 3 matching alerts are ongoing**, from 2 to 100.
+
+- **Until then, each alert waits on its own.** An alert that finds no open episode of its group to join, and no resolved one to reopen, opens nothing and pages only its own on-call policies, as an alert no rule matches does.
+- **Then one episode opens with all of them.** The alert that makes the count opens the episode with every alert that waited. It takes its title, monitor and severity from the first of them and rises to the most severe, and the alerts after them join it as usual.
+- **Only ongoing alerts count.** One resolved meanwhile is over, so a monitor that keeps failing and recovering never opens an episode by itself. While **Only group alerts that arrive close together** is on, the alerts must also have arrived within its window of each other.
+- **It counts per group.** With **Everything Together**, any matching alerts count, so an episode opens only for an outage that trips several monitors at once. With **Monitor**, a monitor's episode opens once that monitor has several alerts ongoing.
+
+The list's **Grouping** column says "Opens an episode once 3 matching alerts are ongoing". Through the API and Terraform it is `enableMinimumAlertCount` and `minimumAlertCount`.
 
 ## Episode titles
 
@@ -117,6 +131,7 @@ flowchart TB
 
 - **A new episode** runs the rule's **On-Call Duty Policies**, plus those of any matching rule on the **Episode Rules** tab of **Alerts → Rules → On-Call Rules**.
 - **An alert joining an open episode** runs only its own policies. The episode's do not run again.
+- **An alert waiting for more alerts** runs only its own policies too. When **Wait for more alerts** is on and the rule's policies are the only ones that page, a lone alert pages nobody until enough of them are ongoing.
 - **Answering an episode's page** acknowledges the episode, and with it every alert in it.
 
 > [!TIP]
