@@ -45565,5 +45565,7 @@
   "`200` with `\"valid\": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.": "`\"valid\": true` के साथ `200` का मतलब है कि टोकन इस प्रोजेक्ट का है; `401` का मतलब है कि वह अज्ञात है, रद्द किया गया है या गलत लिखा गया है। हो सके तो इसे वर्कलोड के अंदर से चलाएँ, ताकि यह साबित हो कि जहाँ एक्सपोर्टर चलता है वहाँ से egress काम करता है।",
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` Node.js में {{detector}} रिसोर्स डिटेक्टर चालू करता है। दूसरी भाषाएँ इसे इनसे चालू करती हैं: {{others}}।",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, प्रोजेक्ट में साइन इन किया हुआ, Secret Manager API सक्षम के साथ (`gcloud services enable secretmanager.googleapis.com`)",
-  "OTLP Endpoint": "OTLP एंडपॉइंट"
+  "OTLP Endpoint": "OTLP एंडपॉइंट",
+  "Only someone who may start runbook executions can approve or dismiss this fix.": "यह सुधार केवल वही व्यक्ति स्वीकृत या खारिज कर सकता है जिसे Runbook निष्पादन शुरू करने की अनुमति हो।",
+  "Only someone who may start runbook executions can dismiss this fix.": "यह सुधार केवल वही व्यक्ति खारिज कर सकता है जिसे Runbook निष्पादन शुरू करने की अनुमति हो।"
 }

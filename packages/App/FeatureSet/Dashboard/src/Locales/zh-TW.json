@@ -45565,5 +45565,7 @@
   "`200` with `\"valid\": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.": "`200` 且帶有 `\"valid\": true` 表示權杖屬於此專案；`401` 表示權杖不明、已撤銷或輸入錯誤。盡可能在工作負載內部執行，這樣可以證明匯出器所在位置的傳出流量是通的。",
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` 會在 Node.js 中開啟 {{detector}} 資源偵測器。其他語言的開啟方式：{{others}}。",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "已登入該專案並已啟用 Secret Manager API（`gcloud services enable secretmanager.googleapis.com`）的 `gcloud`",
-  "OTLP Endpoint": "OTLP 端點"
+  "OTLP Endpoint": "OTLP 端點",
+  "Only someone who may start runbook executions can approve or dismiss this fix.": "只有可以啟動操作手冊執行的人才能核准或忽略此修正。",
+  "Only someone who may start runbook executions can dismiss this fix.": "只有可以啟動操作手冊執行的人才能忽略此修正。"
 }

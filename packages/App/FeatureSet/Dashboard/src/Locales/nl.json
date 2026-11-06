@@ -45565,5 +45565,7 @@
   "`200` with `\"valid\": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.": "`200` met `\"valid\": true` betekent dat het token bij dit project hoort; `401` betekent dat het onbekend, ingetrokken of verkeerd getypt is. Voer het waar mogelijk uit vanuit de workload, zodat het uitgaand verkeer bewijst vanaf de plek waar de exporter draait.",
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` schakelt in Node.js de resourcedetector {{detector}} in. Andere talen schakelen hem in met: {{others}}.",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, aangemeld bij het project, met de Secret Manager API ingeschakeld (`gcloud services enable secretmanager.googleapis.com`)",
-  "OTLP Endpoint": "OTLP-endpoint"
+  "OTLP Endpoint": "OTLP-endpoint",
+  "Only someone who may start runbook executions can approve or dismiss this fix.": "Alleen wie runbook-uitvoeringen mag starten, kan deze oplossing goedkeuren of negeren.",
+  "Only someone who may start runbook executions can dismiss this fix.": "Alleen wie runbook-uitvoeringen mag starten, kan deze oplossing negeren."
 }
