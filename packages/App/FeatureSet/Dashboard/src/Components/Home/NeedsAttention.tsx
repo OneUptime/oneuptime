@@ -29,6 +29,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * What is wrong in the project right now, by name: the open incidents, the
@@ -457,7 +458,9 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
                     <></>
                   )}
                   {row.subtitle && row.time ? (
-                    <span aria-hidden="true">·</span>
+                    <span aria-hidden="true">
+                      <InlineSeparator markOnly />
+                    </span>
                   ) : (
                     <></>
                   )}

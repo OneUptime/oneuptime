@@ -103,7 +103,6 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Your chat tools.",
   ],
   [ALERT_STATES]: [
-    "severity",
     "Backwards moves are refused",
     "Moving to the state it is already in is refused",
     "Pickers offer only the states after the current one",

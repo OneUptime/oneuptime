@@ -29,12 +29,12 @@ Branding var tidligere delt over separate skærme for **Grundlæggende branding*
 
 ### Logo og forsidebillede
 
-Det første kort, **Logo og forsidebillede**, har knappen **Edit Images**, der åbner to trin:
+Det første kort, **Logo og forsidebillede**, har knappen **Rediger billeder**, der åbner to trin:
 
 | Trin | Felter |
 | ---- | ------ |
-| **Logo** | Upload af logoet (pladsholder `Upload logo`), **Logo til mørkt tema** (pladsholder `Upload logo for the dark theme`), et valgfrit logo lavet til en mørk baggrund, og **Logo Alt Text** (pladsholder `Logo of My Company`). Lad alt-teksten stå tom, så bruges statussidens titel i stedet. |
-| **Forsidebillede** | **Forside**, en upload (pladsholder `Upload cover image`) til det brede banner bag headeren, og **Cover Image Alt Text**. Lad alt-teksten stå tom, hvis forsiden er ren dekoration. |
+| **Logo** | Upload af logoet (pladsholder `Upload logo`), **Logo til mørkt tema** (pladsholder `Upload logo for the dark theme`), et valgfrit logo lavet til en mørk baggrund, og **Alternativ tekst til logo** (pladsholder `Logo of My Company`). Lad alt-teksten stå tom, så bruges statussidens titel i stedet. |
+| **Forsidebillede** | **Forside**, en upload (pladsholder `Upload cover image`) til det brede banner bag headeren, og **Alternativ tekst til forsidebillede**. Lad alt-teksten stå tom, hvis forsiden er ren dekoration. |
 
 Logoet, logoet til mørkt tema, forsidebilledet og faviconet er filer, der er uploadet i statussidens eget projekt, og det tjekkes, hver gang et af dem gemmes, fra dashboardet, API'et, Terraform eller et workflow. En fil, der er uploadet i et andet projekt, afvises med de ord, en fil, der ikke længere findes, får: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." eller "The favicon's file could not be found. Upload the favicon again." At uploade billedet igen fra siden løser det.
 
@@ -77,7 +77,7 @@ Tabellen **Header-links** indeholder linkene i statussidens header, såsom dit w
 
 ### Sidefod
 
-- **Copyright-information**: **Edit Copyright** åbner ét felt, **Copyright-information**, med pladsholderen `Acme, Inc.`.
+- **Copyright-information**: **Rediger ophavsret** åbner ét felt, **Copyright-information**, med pladsholderen `Acme, Inc.`.
 - **Sidefodslinks**: det samme par **Titel** og **Link** som header-linkene, sorteret ved at trække og tilføjet med **Tilføj Sidefodslink**.
 
 Header-links er til navigation; sidefodslinks er til det med småt, såsom juridiske oplysninger, privatliv og vilkår.
@@ -88,7 +88,7 @@ Sidens sidste sektion ligger sammenfoldet under **Yderligere indstillinger**, fo
 
 **Historikdiagrammets farver.** Ud over **Tema** er det de eneste indbyggede farveindstillinger på en statusside. Hver bjælke i oppetidshistorikken er en dag.
 
-- **Standardbjælkefarve**: **Edit Default Bar Color** åbner vælgeren **Standardbjælkefarve**. Det er farven på en dag, som ingen bjælkefarveregel matcher. Alle nye statussider starter med grøn.
+- **Standardbjælkefarve**: **Rediger standardfarve for bjælker** åbner vælgeren **Standardbjælkefarve**. Det er farven på en dag, som ingen bjælkefarveregel matcher. Alle nye statussider starter med grøn.
 - **Regler for bjælkefarver**: en ordnet tabel med regler, som du sorterer ved at trække. Hver regel har **Når oppetid % er større end eller lig med** og **Brug så denne søjlefarve**; tabellens kolonner hedder `When Uptime Percent >=` og `Then, Bar Color is`. Reglerne tjekkes fra toppen, og den første, en dags oppetid når, bestemmer dens farve, så hold højere procenter over lavere: en regel under en med samme eller lavere procent farver aldrig en dag. En ny regels farve er allerede valgt, en som de andre regler endnu ikke bruger; vælg i stedet den, du vil have.
 - **Forhåndsvisning af bjælkefarver**: hver farve, en dag kan få, som de fleste ser den (**Fuldt farvesyn**), og som personer med rød-grøn farveblindhed ser den (**Deuteranopi (rød-grøn)**, **Protanopi (rød-grøn)**). Den advarer, når to farver ser ens ud for dem, og når en regel aldrig farver en dag.
 
@@ -155,7 +155,7 @@ På OneUptime Cloud kræver det planen **Growth** at tilføje eller ændre nogen
 
 Som standard kan en statusside nås på forhåndsvisnings-URL'en på dens skærm **Oversigt**. For at lægge den på dit eget værtsnavn går du til **Statussider → din side → Branding → Brugerdefinerede domæner** (`{id}/domains`).
 
-Kortet **Brugerdefinerede domæner** siger, hvad du skal gøre: peg hvert domænes CNAME-post mod din installations CNAME-post til statussider, så udsteder OneUptime domænets SSL-certifikat og fornyer det for dig. Uden noget sat op siger tabellen **Ingen tilpassede domæner fundet** med **Opret Statusside Domæne** nedenunder. Tabellen har to kolonner, **Domæne** og **Status**, og filtre for **Domæne**, **CNAME gyldig** og **SSL provisioneret**.
+Kortet **Brugerdefinerede domæner** siger, hvad du skal gøre: peg hvert domænes CNAME-post mod din installations CNAME-post til statussider, så udsteder OneUptime domænets SSL-certifikat og fornyer det for dig. Uden noget sat op siger tabellen **Ingen tilpassede domæner fundet** med **Opret Statussidedomæne** nedenunder. Tabellen har to kolonner, **Domæne** og **Status**, og filtre for **Domæne**, **CNAME gyldig** og **SSL provisioneret**.
 
 At lægge siden på dit domæne tager tre trin, og kun de to første er dine:
 
@@ -197,7 +197,7 @@ statusPage:
 :::steps
 #### Åbn Opret Statusside Domæne
 
-Klik på **Opret Statusside Domæne** under **Brugerdefinerede domæner**. Dialogen består af én side.
+Klik på **Opret Statussidedomæne** under **Brugerdefinerede domæner**. Dialogen består af én side.
 
 #### Angiv underdomænet
 
@@ -213,7 +213,7 @@ I **Domæne** (pladsholder `Select domain`) vælger du et af dine bekræftede do
 
 #### Opret domænet
 
-Klik på **Opret Statusside Domæne**. Dialogen lukker, og det nye domænes **DNS-opsætning** åbner med den post, der skal tilføjes.
+Klik på **Opret Statussidedomæne**. Dialogen lukker, og det nye domænes **DNS-opsætning** åbner med den post, der skal tilføjes.
 :::
 
 Et domænes fulde navn ligger fast, når du tilføjer det, så **Rediger** ændrer kun dets certifikat. For at bruge et andet underdomæne tilføjer du det domæne og sletter det gamle. Et navn, som et dashboard eller en formular allerede bruger, i et hvilket som helst projekt, afvises: ét domæne viser én statusside, ét dashboard eller én formular.

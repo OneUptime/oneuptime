@@ -21,6 +21,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The facet bar's chip for a value the user types.
@@ -209,7 +210,9 @@ const FilterChipValueInput: FunctionComponent<ComponentProps> = (
               <span className="text-indigo-500/80">
                 {translator.translateText(props.label)}
               </span>
-              <span className="mx-1 text-indigo-300">·</span>
+              <span className="mx-1 text-indigo-300">
+                <InlineSeparator markOnly />
+              </span>
               <span className="font-semibold">{summary}</span>
             </span>
           </>

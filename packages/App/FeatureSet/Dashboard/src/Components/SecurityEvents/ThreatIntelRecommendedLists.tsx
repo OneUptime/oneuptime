@@ -34,6 +34,7 @@ import {
   ThreatIntelSourceText,
   getRecommendedThreatIntelListText,
 } from "./ThreatIntelSourcesCopy";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export const THREAT_INTEL_RECOMMENDED_LISTS_ID: string =
   "threat-intel-recommended-lists";
@@ -269,9 +270,9 @@ const ThreatIntelRecommendedLists: FunctionComponent<ComponentProps> = (
                       >
                         {/* A publisher's name is a name, never translated. */}
                         {list.provider}
-                        {" · "}
+                        <InlineSeparator />
                         {everyHour(list.pollIntervalInMinutes)}
-                        {" · "}
+                        <InlineSeparator />
                         <Link
                           to={URL.fromString(list.termsUrl)}
                           openInNewTab={true}

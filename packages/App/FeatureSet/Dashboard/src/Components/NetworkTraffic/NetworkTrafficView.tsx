@@ -133,6 +133,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * THE TRAFFIC PAGE - a device's, a site's, or the whole network's.
@@ -868,7 +869,9 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
         ) : exporterLabel.name ? (
           <Fragment>
             <TrafficAddressText address={row.exporterIp} />
-            <span aria-hidden="true"> · </span>
+            <span aria-hidden="true">
+              <InlineSeparator />
+            </span>
             {translator.translateText("Not a device yet")}
           </Fragment>
         ) : (

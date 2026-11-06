@@ -744,7 +744,7 @@ URL 永远不会包含引用。它包含 `userKey`（存储此人所用的假名
 
 日志和追踪选项卡，以及错误选项卡的服务器端那一半，都以与日志、追踪和异常页面相同的权限读取；没有这些权限的角色会看到一个写明所需权限的锁定选项卡。服务器标记过的行，会通过锚定到录制本身观察到的追踪，放到录制的时钟上；面板会说明锚定是否成功（“server times anchored via 6 traces”），或者某一行的时间是近似的。
 
-面板的搜索框（ `/` ）接受自由文本和令牌： `status:500` 、 `status:>=400` 、 `status:5xx` 、 `status:failed` 、 `level:error` 、 `kind:network` 、 `trace:<id>` 、 `method:post` 、 `url:/api/orders` 、 `service:payment` 。范围选择器可以把任何选项卡缩小到播放头前后 ±30 秒。面板会跟随播放头，直到你滚动它；一个 **Resume following** 标签（或 `M` ）会重新开启跟随。
+面板的搜索框（ `/` ）接受自由文本和令牌： `status:500` 、 `status:>=400` 、 `status:5xx` 、 `status:failed` 、 `level:error` 、 `kind:network` 、 `trace:<id>` 、 `method:post` 、 `url:/api/orders` 、 `service:payment` 。范围选择器可以把任何选项卡缩小到播放头前后 ±30 秒。面板会跟随播放头，直到你滚动它；一个 **继续跟随** 标签（或 `M` ）会重新开启跟随。
 
 ### 键盘快捷键
 

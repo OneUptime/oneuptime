@@ -34,7 +34,7 @@ O formulário **Declarar novo incidente** pede um incidente em três etapas — 
 1. Abra **Incidentes → Todos os incidentes** e clique em **Declarar incidente** no canto superior direito da lista **Incidentes**. O formulário abre em **Detalhes do incidente**.
 2. Informe um **Título** e escolha uma **Severidade do incidente**. O resto do formulário é opcional.
 3. Clique em **Próximo** para percorrer as etapas restantes, preenchendo o que você já sabe: monitores e outros recursos, políticas de plantão, funções.
-4. Leia o resumo e clique em **Declarar incidente**. Você cai no novo incidente, e o **Incidente Feed** dele começa a registrar.
+4. Leia o resumo e clique em **Declarar incidente**. Você cai no novo incidente, e o **Feed do incidente** dele começa a registrar.
 :::
 
 Só a primeira etapa tem campos obrigatórios, mais qualquer campo personalizado que seus administradores marcaram como **Obrigatório na criação**, que a etapa **Detalhes** pede. Cada etapa antes do resumo tem um simples **Próximo**, e **Declarar incidente** fica no resumo, a última etapa. Com pressa, preencha **Detalhes do incidente** e pressione **Próximo** nas outras etapas sem preenchê-las: anexar recursos, adicionar políticas de plantão e atribuir funções também podem esperar pelas páginas do próprio incidente. Pressionar **Enter** em um campo também avança; isso nunca declara antes do resumo.
@@ -142,7 +142,7 @@ Se você vive declarando o mesmo tipo de incidente — o mesmo padrão de títul
 3. Altere o que for diferente desta vez, e então percorra as etapas e declare como de costume.
 :::
 
-Se seu projeto ainda não tem modelos, você recebe em vez disso uma caixa de diálogo **No Incident Templates**, com um botão **Create Template** que leva você a **Incidentes → Configurações → Modelos de incidentes**.
+Se seu projeto ainda não tem modelos, você recebe em vez disso uma caixa de diálogo **Nenhum modelo de incidente**, com um botão **Create Template** que leva você a **Incidentes → Configurações → Modelos de incidentes**.
 
 Os modelos são criados com seu próprio assistente de quatro etapas — **Informações do modelo**, **Detalhes do incidente**, **Recursos afetados**, **Plantão** — mais as etapas **Campos personalizados** e **Campos personalizados na criação** depois de **Recursos afetados** quando seu projeto tem campos personalizados de incidente. O **Estado Inicial do Incidente**, os **Proprietários** e os **Rótulos** do modelo ficam em **Mais campos** no fim de **Detalhes do incidente**. **Recursos afetados** pergunta como o formulário de declaração — **Monitores**, depois **Alterar status do monitor para**, depois **Outros recursos afetados**, com **Limitar a estas páginas de status** em **Mais campos** — exceto que um modelo sempre pergunta o status do monitor: ele também se aplica aos monitores escolhidos quando um incidente é declarado a partir do modelo. Estes são os campos:
 
@@ -178,7 +178,7 @@ Algumas regras rápidas:
 A maioria dos incidentes não deveria precisar de uma pessoa para digitá-los. Os critérios de um monitor podem declarar um no momento em que um filtro corresponde:
 
 :::steps
-1. Abra o monitor, escolha **Critérios** no menu lateral dele e clique em **Edit Monitoring Criteria**. (Um monitor novo pede os mesmos critérios enquanto você o cria.)
+1. Abra o monitor, escolha **Critérios** no menu lateral dele e clique em **Editar critérios de monitoramento**. (Um monitor novo pede os mesmos critérios enquanto você o cria.)
 2. No filtro de critérios que deve declarar, ative **Quando os filtros corresponderem, declarar um incidente.** Aparece uma seção **Criar incidente** com um botão **Adicionar incidente** — um filtro de critérios pode declarar mais de um incidente.
 3. Preencha os campos do incidente (abaixo) e salve. Na próxima vez que o filtro corresponder, o incidente é declarado e aciona suas políticas de plantão.
 :::

@@ -84,8 +84,8 @@ Uma regra de notificação diz quais eventos são publicados no Microsoft Teams,
 
 | Produto | Abas da sua página **Microsoft Teams** |
 | --- | --- |
-| **Incidentes** | **Incidentes**, **Incidente Episódios**, **Resumo** |
-| **Alertas** | **Alertas**, **Alerta Episódios**, **Resumo** |
+| **Incidentes** | **Incidentes**, **Episódios de incidentes**, **Resumo** |
+| **Alertas** | **Alertas**, **Episódios de alertas**, **Resumo** |
 | **Manutenção programada** | Uma lista de regras |
 | **Monitores** | Uma lista de regras |
 | **Plantão** | Uma lista de regras |

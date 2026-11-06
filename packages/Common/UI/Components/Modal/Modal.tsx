@@ -1,3 +1,6 @@
+import readAsWritten from "../IsolatedText/ReadAsWritten";
+import useTranslator from "../../Utils/UseTranslator";
+import { Translator } from "../../Utils/TranslateTemplate";
 import { ButtonStyleType } from "../Button/Button";
 import ButtonType from "../Button/ButtonTypes";
 import Icon from "../Icon/Icon";
@@ -161,6 +164,7 @@ const Modal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString, translateValue } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const translatedTitle: string = translateString(props.title) || props.title;
   const translatedDescription: string | ReactElement | undefined =
     translateValue(props.description);
@@ -713,7 +717,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                     data-testid="modal-description"
                     className="mt-0.5 text-pretty text-sm leading-5 text-gray-500 [overflow-wrap:anywhere]"
                   >
-                    {translatedDescription}
+                    {readAsWritten(translatedDescription, translator.language)}
                   </p>
                 )}
               </div>

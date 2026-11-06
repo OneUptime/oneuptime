@@ -16,9 +16,12 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import fs from "fs";
+import path from "path";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * Security Events, connected to the rest of OneUptime, as a reader sees it.
@@ -46,12 +49,25 @@ const getResourceSecurityMock: MockFunction = getJestMockFunction();
 const getIncidentSecurityMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
 
+/*
+ * The reader's language and its words: English, as written, unless a test
+ * reads the cards in another language.
+ */
+const mockReader: { language: string; words: Record<string, string> } = {
+  language: "en",
+  words: {},
+};
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
       return {
         t: (value: string): string => {
-          return value;
+          return mockReader.words[value] ?? value;
+        },
+        i18n: {
+          language: mockReader.language,
+          resolvedLanguage: mockReader.language,
         },
       };
     },
@@ -292,6 +308,94 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
+  mockReader.language = "en";
+  mockReader.words = {};
+});
+
+/*
+ * A record's reason is a sentence drawn and nothing else, so its values
+ * are set apart (setsValuesApart): in Persian, what the case named and what
+ * the record holds - a host, an address, a URL - are each an isolate, read
+ * left to right in one piece, where the sentence reads from the right.
+ */
+describe("a record's reason, read from the right", () => {
+  const PERSIAN: Record<string, string> = JSON.parse(
+    fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json",
+      ),
+      "utf-8",
+    ),
+  ) as Record<string, string>;
+
+  test("in Persian the host the case named is an isolate in its sentence", async () => {
+    mockReader.language = "fa";
+    mockReader.words = PERSIAN;
+    getConnectionsMock.mockResolvedValue(answer() as never);
+
+    await drawConnectedSignals();
+
+    const record: HTMLElement = await screen.findByTestId(IDS.record);
+    const reason: string =
+      within(record).getByTestId(IDS.recordReason).textContent || "";
+
+    expect(reason).toBe(
+      (PERSIAN["Named {{value}}, the name it reports."] as string).replace(
+        "{{value}}",
+        isolated("web-1"),
+      ),
+    );
+  });
+
+  test("a URL the case named, beside the address the monitor checks, is two isolates", async () => {
+    mockReader.language = "fa";
+    mockReader.words = PERSIAN;
+    getConnectionsMock.mockResolvedValue(
+      answer({
+        resources: [
+          host({
+            kind: SecurityConnectionKind.Monitor,
+            id: MONITOR_ID,
+            name: "Checkout login",
+            matches: [
+              {
+                entityType: SecurityEntityType.Url,
+                entityValue: "https://login.acme-retail.example/sign-in?next=/",
+                certainty: SecurityConnectionCertainty.Exact,
+                reason: SecurityConnectionReason.MonitorTarget,
+                matchedValue: "https://login.acme-retail.example",
+              },
+            ],
+          }),
+        ],
+      }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    const record: HTMLElement = await screen.findByTestId(IDS.record);
+    const reason: string =
+      within(record).getByTestId(IDS.recordReason).textContent || "";
+
+    expect(reason).toContain(
+      isolated("https://login.acme-retail.example/sign-in?next=/"),
+    );
+    expect(reason).toContain(isolated("https://login.acme-retail.example"));
+  });
+
+  test("in English the reason carries no mark", async () => {
+    getConnectionsMock.mockResolvedValue(answer() as never);
+
+    await drawConnectedSignals();
+
+    const record: HTMLElement = await screen.findByTestId(IDS.record);
+    const reason: string =
+      within(record).getByTestId(IDS.recordReason).textContent || "";
+
+    expect(reason).toBe("Named web-1, the name it reports.");
+    expect(reason).toBe(withoutIsolateMarks(reason));
+  });
 });
 
 describe("Connected Signals", () => {

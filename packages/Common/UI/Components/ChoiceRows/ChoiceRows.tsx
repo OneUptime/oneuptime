@@ -1,3 +1,4 @@
+import readAsWritten from "../IsolatedText/ReadAsWritten";
 import { BUTTON_DISABLED_CURSOR_CLASS_NAME } from "../Button/ButtonStates";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { Yellow } from "../../../Types/BrandColors";
@@ -247,7 +248,10 @@ const ChoiceRows: <TValue extends string>(
               </label>
               {option.description ? (
                 <p id={descriptionId} className="text-sm text-gray-500">
-                  {translator.translateText(option.description)}
+                  {readAsWritten(
+                    translator.translateText(option.description),
+                    translator.language,
+                  )}
                 </p>
               ) : (
                 <></>

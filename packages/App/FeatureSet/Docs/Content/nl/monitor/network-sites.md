@@ -78,7 +78,7 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 
 - `name` en `siteType` zijn verplicht. `siteType` moet een van de locatietypen van het project zijn.
 - `parentName` noemt de bovenliggende locatie, die in hetzelfde bestand mag staan: rijen zonder ouder, of met een ouder die al bestaat, gaan eerst, daarna hun kinderen. Laat het leeg voor een locatie op het hoogste niveau.
-- Een rij waarvan de ouder niet gevonden wordt, wordt overgeslagen, en de resultaten noemen haar. **Preview Import** laat zien wat het bestand gaat maken voordat er iets wordt weggeschreven.
+- Een rij waarvan de ouder niet gevonden wordt, wordt overgeslagen, en de resultaten noemen haar. **Voorbeeld van import** laat zien wat het bestand gaat maken voordat er iets wordt weggeschreven.
 
 ## De kaart
 

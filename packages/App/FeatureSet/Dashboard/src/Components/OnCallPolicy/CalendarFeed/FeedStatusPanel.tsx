@@ -35,6 +35,7 @@ import { BILLING_ENABLED, DOCS_URL } from "Common/UI/Config";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * Is the link working? The answer a reader comes back to the page for,
@@ -390,7 +391,12 @@ const FeedStatusPanel: FunctionComponent<ComponentProps> = (
                   {index > 0 ? " " : ""}
                   <span className="whitespace-nowrap">
                     {detail}
-                    {index < details.length - 1 ? " ·" : ""}
+                    {index < details.length - 1 ? (
+                      <>
+                        {" "}
+                        <InlineSeparator markOnly />
+                      </>
+                    ) : null}
                   </span>
                 </React.Fragment>
               );

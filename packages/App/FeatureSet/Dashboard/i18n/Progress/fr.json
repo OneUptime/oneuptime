@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45581,
-    "untranslated": 6552
+    "keys": 45951,
+    "untranslated": 6277
   },
   "sameAsEnglish": [
     " incidents",
@@ -424,6 +424,7 @@
     "Portugal (+351)",
     "Position",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Powered by OneUptime",
     "Principal",
     "Production",
     "Prompt",
@@ -698,6 +699,8 @@
     "{{count}} minutes",
     "{{count}} mon",
     "{{count}} mons",
+    "{{count}} note",
+    "{{count}} notes",
     "{{count}} option",
     "{{count}} options",
     "{{count}} placement group",

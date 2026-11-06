@@ -104,10 +104,12 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
       lastSeenAt: insight.lastSeenAt,
     });
 
+  // Where the link goes, and what it leaves out, in the reader's language.
   const investigationTitle: string = investigationLink
     ? [
-        investigationLink.label,
-        formatDroppedScopeHint(investigationLink.dropped),
+        translator.translateText(investigationLink.label) ||
+          investigationLink.label,
+        formatDroppedScopeHint(investigationLink.dropped, translator),
       ]
         .filter((sentence: string) => {
           return sentence.length > 0;

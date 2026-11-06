@@ -25,6 +25,7 @@ import {
   formatOpenStackSpendMoney,
   formatOpenStackUsageNumber,
 } from "../../Pages/OpenStack/Utils/OpenStackSpendView";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * WHAT COULD BE RECLAIMED, AS RECOMMENDATIONS.
@@ -104,7 +105,7 @@ export function getOpenStackWasteFreesText(data: {
     );
   }
 
-  return parts.join(", ");
+  return joinList(parts);
 }
 
 const OpenStackWasteRule: FunctionComponent<{

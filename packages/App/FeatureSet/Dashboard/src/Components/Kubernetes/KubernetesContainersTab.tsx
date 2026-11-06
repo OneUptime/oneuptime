@@ -19,6 +19,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import OneUptimeDate from "Common/Types/Date";
 import { KUBERNETES_FAILING_WAIT_REASONS } from "Common/Types/Kubernetes/KubernetesHealth";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * A container's state as kubectl shows it: the reason when Kubernetes
@@ -309,7 +310,7 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
                   <span
                     className={isCritical ? "text-red-800" : "text-amber-800"}
                   >
-                    {" · "}
+                    <InlineSeparator />
                     {translator.translateTemplate("Ended {{time}}", {
                       time: OneUptimeDate.fromNow(
                         new Date(props.status.lastTerminatedAt),

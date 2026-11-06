@@ -33,9 +33,9 @@ Beide workflows roepen de [Opsgenie Alert API](https://docs.opsgenie.com/docs/al
 ## De API-sleutel opslaan
 
 :::steps
-1. Ga naar **Workflows → Globale variabelen** en klik op **Workflow Variabele aanmaken**.
+1. Ga naar **Workflows → Globale variabelen** en klik op **Workflowvariabele aanmaken**.
 2. Noem hem `OPSGENIE_KEY` en klik op **Volgende**.
-3. Plak de API-sleutel in **Inhoud**, zet **Geheim** aan en klik op **Workflow Variabele aanmaken**.
+3. Plak de API-sleutel in **Inhoud**, zet **Geheim** aan en klik op **Workflowvariabele aanmaken**.
 :::
 
 Een geheime variabele wordt in de uitvoeringslogboeken vervangen door `[REDACTED]`, dus de sleutel verschijnt nooit in een uitvoering.

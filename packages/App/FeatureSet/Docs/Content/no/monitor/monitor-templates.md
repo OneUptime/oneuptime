@@ -35,7 +35,7 @@ flowchart TB
 :::steps
 ### Åpne Maler
 
-Gå til **Monitorer → Innstillinger → Maler**, og klikk på **Opprett Monitor Mal**.
+Gå til **Monitorer → Innstillinger → Maler**, og klikk på **Opprett Monitormal**.
 
 ### Gi malen et navn
 
@@ -47,17 +47,17 @@ Under **Standardverdier for overvåking** velger du **Monitortype** med den samm
 
 ### Angi kriteriene og intervallet
 
-Under **Kriterier** fyller du ut hva som skal sjekkes, og kriteriene, som i [Opprett monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Template sync settings** øverst kan du beskytte felt mot synkroniseringer (se [Behold verdier for hver monitor](#behold-verdier-for-hver-monitor)). For en monitortype som sonder sjekker, ber det siste trinnet, **Intervall**, om **Overvåkingsintervall**. Klikk på **Opprett Monitor Mal** på det siste trinnet.
+Under **Kriterier** fyller du ut hva som skal sjekkes, og kriteriene, som i [Opprett monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Template sync settings** øverst kan du beskytte felt mot synkroniseringer (se [Behold verdier for hver monitor](#behold-verdier-for-hver-monitor)). For en monitortype som sonder sjekker, ber det siste trinnet, **Intervall**, om **Overvåkingsintervall**. Klikk på **Opprett Monitormal** på det siste trinnet.
 :::
 
-Malen legges til i listen. Åpne den for å se siden, med et kort for hver del: **Malinformasjon**, **Standardverdier for overvåking**, **Overvåkingskriterier**, **Overvåkingsintervall** (med **Minimum sondeenighet**), **Etiketter**, **Custom Field Defaults** (når prosjektet har egendefinerte monitorfelt) og **Tilkoblede overvåkere**. Du endrer hver del på sitt eget kort, for eksempel med **Rediger Kriterier** eller **Rediger Intervall**.
+Malen legges til i listen. Åpne den for å se siden, med et kort for hver del: **Malinformasjon**, **Standardverdier for overvåking**, **Overvåkingskriterier**, **Overvåkingsintervall** (med **Minimum sondeenighet**), **Etiketter**, **Standardverdier for egendefinerte felt** (når prosjektet har egendefinerte monitorfelt) og **Tilkoblede overvåkere**. Du endrer hver del på sitt eget kort, for eksempel med **Rediger kriterier** eller **Rediger intervall**.
 
 ## Opprett monitorer fra en mal
 
 - **Ny monitor.** Klikk på **Opprett monitor** i malens rad i listen, eller på **Opprett overvåking fra mal** på siden dens. **Opprett monitor** åpner med malens type og innstillinger fylt ut; endre det du trenger, og opprett den. Den nye monitoren er koblet til malen.
 - **Monitorer du allerede har.** Under **Tilkoblede overvåkere** klikker du på **Koble til eksisterende overvåkere** og velger dem. De beholder innstillingene sine til du synkroniserer.
 
-Verdier som er satt under **Custom Field Defaults**, skrives til hver monitor som opprettes fra malen, også monitorer som regler for automatisk import og varslingspolicyer oppretter fra den.
+Verdier som er satt under **Standardverdier for egendefinerte felt**, skrives til hver monitor som opprettes fra malen, også monitorer som regler for automatisk import og varslingspolicyer oppretter fra den.
 
 ## Synkroniser endringer til tilkoblede monitorer
 
@@ -68,7 +68,7 @@ Verdier som er satt under **Custom Field Defaults**, skrives til hver monitor so
 | **Synkroniser kriterier til koblede overvåkere** | Kriteriene og trinninnstillingene, som mål og forespørselsalternativer, unntatt beskyttede felt | Overvåkingsintervallet, minimum sondeenighet, navnet, beskrivelsen, etikettene og verdiene i egendefinerte felt |
 | **Synkroniseringsintervall til koblede overvåkere** | Overvåkingsintervallet og minimum sondeenighet | Kriteriene, navnet, beskrivelsen, etikettene og verdiene i egendefinerte felt |
 | **Synkroniser etiketter til koblede overvåkere** | Etikettene, og ingenting annet | Alt annet |
-| **Sync Custom Fields to Linked Monitors** | De egendefinerte feltene malen har en standardverdi for, i stedet for det hver monitor hadde | Egendefinerte felt som malen lar stå tomme, og alt annet |
+| **Synkroniser egendefinerte felt til tilknyttede monitorer** | De egendefinerte feltene malen har en standardverdi for, i stedet for det hver monitor hadde | Egendefinerte felt som malen lar stå tomme, og alt annet |
 
 For å synkronisere én monitor klikker du på **Synkroniser fra mal** i raden dens under **Tilkoblede overvåkere**. Det kopierer kriteriene og trinninnstillingene (unntatt beskyttede felt), overvåkingsintervallet, minimum sondeenighet og etikettene, og lar monitorens navn, beskrivelse og verdier i egendefinerte felt være. **Koble fra mal** kobler fra en monitor; den beholder innstillingene sine.
 
@@ -85,7 +85,7 @@ Gå til **Monitorer → Innstillinger → Maler**, og åpne malen.
 
 ### Rediger kriteriene
 
-Klikk på **Rediger Kriterier** på kortet **Overvåkingskriterier**.
+Klikk på **Rediger kriterier** på kortet **Overvåkingskriterier**.
 
 ### Beskytt feltene
 
@@ -116,7 +116,7 @@ Hvilke alternativer som finnes, avhenger av monitortypen. De omfatter mål og po
 For maler med flere trinn matches beskyttede verdier via trinn-ID-ene. Selvstendig opprettede monitorer med ett trinn kan også motta en mal med ett trinn. Kan et beskyttet trinn ikke matches, avvises synkroniseringen før noen monitor oppdateres, slik at et nytt eller omordnet trinn ikke ved et uhell kan kopiere et annet trinns mål eller påloggingsdata.
 
 > [!IMPORTANT]
-> Før du endrer monitortypen for en lagret mal (med **Rediger Standardverdier for overvåking**), fjerner du under **Rediger Kriterier** unntakene som ikke gjelder for den nye typen. Alle unntakene i en mal må finnes for monitortypen dens.
+> Før du endrer monitortypen for en lagret mal (med **Rediger monitorens standarder**), fjerner du under **Rediger kriterier** unntakene som ikke gjelder for den nye typen. Alle unntakene i en mal må finnes for monitortypen dens.
 
 ## Konfigurasjon via API
 

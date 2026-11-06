@@ -1,3 +1,4 @@
+import readAsWritten from "../../IsolatedText/ReadAsWritten";
 import FieldError from "./FieldError";
 import Dictionary from "../../../../Types/Dictionary";
 import { GetReactElementFunction } from "../../../Types/FunctionTypes";
@@ -481,9 +482,9 @@ const FormField: <T extends GenericObject>(
        */
       fieldDescription = (
         <>
-          {translatedDescription}
+          {readAsWritten(translatedDescription, translator.language)}
           {translatedDescription ? " " : null}
-          {timezoneSentence}
+          {readAsWritten(timezoneSentence, translator.language)}
         </>
       );
     }

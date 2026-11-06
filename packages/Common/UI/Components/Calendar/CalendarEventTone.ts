@@ -1,4 +1,9 @@
 import Color, { RGB } from "../../../Types/Color";
+import {
+  LEFT_TO_RIGHT,
+  ReadingDirection,
+  RIGHT_TO_LEFT,
+} from "../../../Types/ReadingDirection";
 import { composite, parseColor } from "../../../Utils/ColorContrast";
 import { DARK_THEME_CARD } from "../../../Utils/StatusPage/StatusColorsOnDark";
 import { getPillColors, PillColors } from "../Pill/PillColors";
@@ -52,7 +57,7 @@ export const SOFT_EVENT_DARK_TEXT_PROPERTY: SoftEventDarkTextProperty =
 export const SOFT_EVENT_DARK_SHADOW_PROPERTY: SoftEventDarkShadowProperty =
   "--ou-calendar-event-dark-shadow";
 
-// The stripe down a soft block's left edge, in px.
+// The stripe down a soft block's leading edge, in px.
 export const SOFT_EVENT_STRIPE_WIDTH_PX: number = 3;
 
 // An overlay block's dark tone, as custom properties as a soft block's is.
@@ -110,8 +115,22 @@ export function getOpaqueWash(wash: string, surface: RGB): string {
     .toLowerCase();
 }
 
-function getShadow(stripe: string, ring: string): string {
-  return `inset ${SOFT_EVENT_STRIPE_WIDTH_PX}px 0 0 ${stripe}, inset 0 0 0 1px ${ring}`;
+/*
+ * The stripe, an inset shadow, on the block's leading edge: its left one on
+ * a page read left to right, its right one on a page read right to left
+ * (a shadow has no start side of its own, so the offset is turned).
+ */
+function getShadow(
+  stripe: string,
+  ring: string,
+  direction: ReadingDirection,
+): string {
+  const offset: number =
+    direction === RIGHT_TO_LEFT
+      ? -SOFT_EVENT_STRIPE_WIDTH_PX
+      : SOFT_EVENT_STRIPE_WIDTH_PX;
+
+  return `inset ${offset}px 0 0 ${stripe}, inset 0 0 0 1px ${ring}`;
 }
 
 // Diagonal stripes of `stripe` on `surface`.
@@ -161,13 +180,19 @@ export function getOverlayEventStyle(
  */
 export function getSoftEventStyle(
   color: Color | string | null | undefined,
+  // Which way the page reads: the stripe is on the block's leading edge.
+  direction: ReadingDirection = LEFT_TO_RIGHT,
 ): SoftEventStyle {
   const colors: PillColors = getPillColors(color);
 
   return {
     backgroundColor: getOpaqueWash(colors.light.backgroundColor, LIGHT_SURFACE),
     color: colors.light.textColor,
-    boxShadow: getShadow(colors.light.dotColor, colors.light.ringColor),
+    boxShadow: getShadow(
+      colors.light.dotColor,
+      colors.light.ringColor,
+      direction,
+    ),
     [SOFT_EVENT_DARK_BACKGROUND_PROPERTY]: getOpaqueWash(
       colors.dark.backgroundColor,
       DARK_THEME_CARD,
@@ -176,6 +201,7 @@ export function getSoftEventStyle(
     [SOFT_EVENT_DARK_SHADOW_PROPERTY]: getShadow(
       colors.dark.dotColor,
       colors.dark.ringColor,
+      direction,
     ),
   };
 }

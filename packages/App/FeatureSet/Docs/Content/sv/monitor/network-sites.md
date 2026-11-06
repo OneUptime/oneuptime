@@ -78,7 +78,7 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 
 - `name` och `siteType` är obligatoriska. `siteType` måste vara en av projektets platstyper.
 - `parentName` namnger den överordnade platsen, som kan finnas i samma fil: rader utan förälder, eller med en förälder som redan finns, går först, sedan deras barn. Lämna det tomt för en plats på översta nivån.
-- En rad vars förälder inte kan hittas hoppas över, och resultaten listar den. **Preview Import** visar vad filen kommer att skapa innan något skrivs.
+- En rad vars förälder inte kan hittas hoppas över, och resultaten listar den. **Förhandsgranska import** visar vad filen kommer att skapa innan något skrivs.
 
 ## Kartan
 

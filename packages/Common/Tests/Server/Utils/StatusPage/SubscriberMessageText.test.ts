@@ -365,6 +365,174 @@ ${SubscriberMessageText.asMarkdown("We rolled back.")}
   });
 });
 
+/*
+ * SLACK AND TEAMS, READ FROM THE RIGHT.
+ *
+ * A Persian subscriber's chat message lays each line out from the right. A
+ * value after its label - a resource the team named "API (EU)", an English
+ * description - had its closing bracket or full stop drawn at its start.
+ * Each value is now isolated (FSI ... PDI), as a server sentence's values
+ * are; in every other language the line is the one it always was.
+ */
+describe("a chat line's value, for a reader of a language read from the right", () => {
+  const FSI: string = "\u{2068}";
+  const PDI: string = "\u{2069}";
+
+  test("in Persian a value is isolated after its label", () => {
+    expect(
+      SubscriberMessageText.chatLine(
+        PERSIAN,
+        SubscriberChatText.resourcesAffected,
+        "API (EU)",
+      ).toString(),
+    ).toBe(`**منابع تحت تأثیر:** ${FSI}API (EU)${PDI}`);
+    expect(
+      SubscriberMessageText.chatLine(
+        PERSIAN,
+        SubscriberChatText.severity,
+        SubscriberMessageText.nameInLanguage(PERSIAN, "Major Incident"),
+      ).toString(),
+    ).toBe(
+      `**شدت:** ${FSI}${SubscriberMessageText.nameInLanguage(PERSIAN, "Major Incident")}${PDI}`,
+    );
+  });
+
+  test("a value is still escaped as a value, its marks outside the escapes", () => {
+    const line: string = SubscriberMessageText.chatLine(
+      PERSIAN,
+      SubscriberChatText.resourcesAffected,
+      "[Click](https://evil.example) # x",
+    ).toString();
+
+    expect(line).toBe(
+      mdText`**منابع تحت تأثیر:** ${`${FSI}[Click](https://evil.example) # x${PDI}`}`.toString(),
+    );
+    expect(line.startsWith("**منابع تحت تأثیر:** \u{2068}")).toBe(true);
+    expect(line.endsWith(PDI)).toBe(true);
+  });
+
+  test("of Markdown of several lines, only the first line - the one beside the label - is isolated", () => {
+    const description: string =
+      "Payments fail (EU).\n\n- Card payments\n- Refunds";
+
+    expect(
+      SubscriberMessageText.chatLine(
+        PERSIAN,
+        SubscriberChatText.description,
+        SubscriberMessageText.asMarkdown(description),
+      ).toString(),
+    ).toBe(
+      `**توضیحات:** ${FSI}Payments fail (EU).${PDI}\n\n- Card payments\n- Refunds`,
+    );
+  });
+
+  test("a value that starts on the next line is left as written", () => {
+    expect(
+      SubscriberMessageText.chatValue(
+        PERSIAN,
+        SubscriberMessageText.asMarkdown("\n- Card payments"),
+      ).toString(),
+    ).toBe("\n- Card payments");
+    expect(SubscriberMessageText.chatValue(PERSIAN, "")).toBe("");
+  });
+
+  test("a link goes in as it is, one word a chat can still make a link of", () => {
+    expect(
+      SubscriberMessageText.chatValue(PERSIAN, "https://status.acme.example"),
+    ).toBe("https://status.acme.example");
+  });
+
+  test.each(
+    READER_LANGUAGE_CODES.filter((language: string): boolean => {
+      return language !== "fa";
+    }),
+  )("in %s a value is placed as it always was", (language: string) => {
+    const translator: Translator = getServerTranslator(language);
+
+    expect(
+      SubscriberMessageText.chatLine(
+        translator,
+        SubscriberChatText.resourcesAffected,
+        "API (EU)",
+      ).toString(),
+    ).toBe(
+      mdText`**${SubscriberMessageText.text(translator, SubscriberChatText.resourcesAffected)}** ${"API (EU)"}`.toString(),
+    );
+    expect(
+      SubscriberMessageText.chatValue(
+        translator,
+        SubscriberMessageText.asMarkdown("Payments fail (EU)."),
+      ).toString(),
+    ).toBe("Payments fail (EU).");
+  });
+
+  test("a Persian state change's message isolates every value of its lines", () => {
+    const message: string =
+      SubscriberMessageText.incidentStateChangeChatMessage(PERSIAN, {
+        title: "Checkout is down (EU)",
+        resourcesAffected: "Checkout API (EU)",
+        severityName: "Major Incident",
+        stateName: "Resolved",
+        statusPageUrl: STATUS_PAGE_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+      });
+
+    // The heading's title, as the translator isolates a sentence's values.
+    expect(message).toContain(`${FSI}Checkout is down (EU)${PDI}`);
+    expect(message).toContain(
+      `**منابع تحت تأثیر:** ${FSI}Checkout API (EU)${PDI}`,
+    );
+    expect(message).toContain(
+      `**شدت:** ${FSI}${SubscriberMessageText.nameInLanguage(PERSIAN, "Major Incident")}${PDI}`,
+    );
+    expect(message).toContain(
+      `**وضعیت:** ${FSI}${SubscriberMessageText.nameInLanguage(PERSIAN, "Resolved")}${PDI}`,
+    );
+  });
+
+  test("a Persian note's message isolates its values and the first line of its note", () => {
+    const message: string = SubscriberMessageText.incidentNoteChatMessage(
+      PERSIAN,
+      {
+        title: "Checkout is down",
+        sentence: SubscriberChatText.newIncidentNote,
+        resourcesAffected: "Checkout API (EU)",
+        severityName: undefined,
+        stateChangeName: "Resolved",
+        note: "We rolled back (v4.2).",
+        statusPageUrl: STATUS_PAGE_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+      },
+    );
+
+    expect(message).toContain(
+      `**منابع تحت تأثیر:** ${FSI}Checkout API (EU)${PDI}`,
+    );
+    // No severity: its dash, set apart as any value is.
+    expect(message).toContain(`**شدت:** ${FSI} - ${PDI}`);
+    expect(message).toContain(
+      `**وضعیت:** ${FSI}${SubscriberMessageText.nameInLanguage(PERSIAN, "Resolved")}${PDI}`,
+    );
+    // The note under its label is its own paragraph: as written.
+    expect(message).toContain("\nWe rolled back (v4.2).\n");
+  });
+
+  test("the Persian welcome sets the page's name apart in its link", () => {
+    const message: string = SubscriberMessageText.subscribedChatMessage(
+      PERSIAN,
+      {
+        statusPageName: "Acme Status (EU)",
+        statusPageUrl: STATUS_PAGE_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+      },
+    );
+
+    expect(message).toContain(
+      mdText`[${`${FSI}Acme Status (EU)${PDI}`}](${STATUS_PAGE_URL})`.toString(),
+    );
+  });
+});
+
 describe("the email's words the senders put in", () => {
   test("a state change email's heading, with and without resources", () => {
     expect(

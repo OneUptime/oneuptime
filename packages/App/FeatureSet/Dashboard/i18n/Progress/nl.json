@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45581,
-    "untranslated": 11590
+    "keys": 45951,
+    "untranslated": 11052
   },
   "sameAsEnglish": [
     " is",
@@ -121,6 +121,7 @@
     "Datastore",
     "Datastore in datacenter {{datacenter}}",
     "Datastores",
+    "Deadline: {{date}}",
     "Deadlocks",
     "DeploymentConfigs",
     "Desktop",
@@ -138,9 +139,11 @@
     "Endpoint",
     "Endpoints",
     "Engine",
+    "Episode",
     "Export",
     "Fahrenheit",
     "Failover",
+    "Favicon",
     "Feed",
     "Filter",
     "Filter:",
@@ -314,6 +317,7 @@
     "Portugal (+351)",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Postmortem",
+    "Powered by OneUptime",
     "Principal",
     "Privacy",
     "Processors",
@@ -438,6 +442,7 @@
     "Uplink {{uplink}}",
     "Uplinks",
     "Uploads",
+    "Uptime %",
     "VIP",
     "VLAN",
     "VM",
@@ -503,6 +508,7 @@
     "deadlocks",
     "debug",
     "deployment",
+    "episode",
     "f3a1c0d2e4b64f7c8a9d0e1f2a3b4c5d",
     "failed password",
     "filter",
