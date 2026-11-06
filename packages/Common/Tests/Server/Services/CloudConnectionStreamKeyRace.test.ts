@@ -67,7 +67,7 @@ function canonical(value: JSONValue | undefined): string {
 }
 
 interface StoredRow {
-  provider: string;
+  provider: CloudProvider;
   streamKeyHashes: JSONObject | null;
   streamKeyCreatedAt: Date | null;
 }
