@@ -1199,6 +1199,352 @@ test.describe("a narrow month's events", () => {
   });
 });
 
+/*
+ * A calendar on a Persian page. Persian has no short names for its days, so
+ * a narrow month cut its full names to "چها…": a narrow column now shows a
+ * day's one-letter name ("چ"), a wide one its full name. The current-time
+ * line's dot, the lines between the days and a block's stripe sit on the
+ * start side - the right - where the dot sat at the far end of today's
+ * column, the lines one day off and the stripes on the blocks' trailing
+ * edges. An English calendar is drawn as it always was.
+ */
+test.describe("a calendar read right to left", () => {
+  interface DayName {
+    // The name a reader sees above the column.
+    shown: string;
+    isCutShort: boolean;
+  }
+
+  const dayNamesOf: (
+    page: Page,
+    section: string,
+  ) => Promise<Array<DayName>> = async (
+    page: Page,
+    section: string,
+  ): Promise<Array<DayName>> => {
+    const headers: Locator = page
+      .getByTestId(section)
+      .locator(
+        ".rbc-month-header .rbc-header, .rbc-time-header-content .rbc-header",
+      );
+
+    await expect(headers.first()).toBeVisible();
+
+    return headers.evaluateAll((elements: Array<Element>): Array<DayName> => {
+      return elements.map((header: Element): DayName => {
+        const forms: Array<Element> = Array.from(
+          header.querySelectorAll(
+            ".oneuptime-calendar-day-name__full, .oneuptime-calendar-day-name__narrow",
+          ),
+        );
+        const shown: Element | undefined = forms.find(
+          (form: Element): boolean => {
+            return window.getComputedStyle(form).display !== "none";
+          },
+        );
+
+        return {
+          shown: ((shown || header).textContent || "").trim(),
+          isCutShort: header.scrollWidth > header.clientWidth,
+        };
+      });
+    });
+  };
+
+  const shownNames: (names: Array<DayName>) => Array<string> = (
+    names: Array<DayName>,
+  ): Array<string> => {
+    return names.map((name: DayName): string => {
+      return name.shown;
+    });
+  };
+
+  const cutNames: (names: Array<DayName>) => Array<string> = (
+    names: Array<DayName>,
+  ): Array<string> => {
+    return names
+      .filter((name: DayName): boolean => {
+        return name.isCutShort;
+      })
+      .map((name: DayName): string => {
+        return name.shown;
+      });
+  };
+
+  test("fa: a narrow month names each day in one letter, none cut short", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const names: Array<DayName> = await dayNamesOf(page, "section-calendar");
+
+    expect(shownNames(names)).toEqual(["ی", "د", "س", "چ", "پ", "ج", "ش"]);
+    expect(cutNames(names)).toEqual([]);
+    // A screen reader still reads the whole name.
+    await expect(
+      page
+        .getByTestId("section-calendar")
+        .locator(".rbc-month-header .sr-only")
+        .nth(3),
+    ).toHaveText("چهارشنبه");
+  });
+
+  test("fa: a wide month names each day in full, none cut short", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const names: Array<DayName> = await dayNamesOf(
+      page,
+      "section-calendar-wide",
+    );
+
+    expect(shownNames(names)).toEqual([
+      "یکشنبه",
+      "دوشنبه",
+      "سه‌شنبه",
+      "چهارشنبه",
+      "پنجشنبه",
+      "جمعه",
+      "شنبه",
+    ]);
+    expect(cutNames(names)).toEqual([]);
+  });
+
+  test("fa: a phone's week names each day in one letter with its date", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * A phone's week: its columns about 45px wide, its day names with a
+     * phone's narrow padding. A table that narrow is drawn as cards.
+     */
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, "lang=fa&width=390", false);
+
+    const names: Array<DayName> = await dayNamesOf(
+      page,
+      "section-calendar-week",
+    );
+
+    expect(shownNames(names)).toEqual([
+      "ی ۲۵",
+      "د ۲۶",
+      "س ۲۷",
+      "چ ۲۸",
+      "پ ۲۹",
+      "ج ۳۰",
+      "ش ۳۱",
+    ]);
+    expect(cutNames(names)).toEqual([]);
+  });
+
+  test("en: a narrow month's day names are the ones it always drew", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=en");
+
+    const names: Array<DayName> = await dayNamesOf(page, "section-calendar");
+
+    expect(shownNames(names)).toEqual([
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+    ]);
+    await expect(
+      page
+        .getByTestId("section-calendar")
+        .locator(".oneuptime-calendar-day-name"),
+    ).toHaveCount(0);
+  });
+
+  /*
+   * A positioned box's left and right are read as the places they come to
+   * (CSSOM's resolved values), so each side is a length: the start side's
+   * is the one the stylesheet set.
+   */
+  interface WeekSides {
+    // The current-time dot's inset from the line's left and right ends.
+    dotLeft: string;
+    dotRight: string;
+    // Whether the hours' column is on today's right.
+    hoursOnTheRight: boolean;
+    // The width of each day column's left and right lines, past the hours.
+    dayLines: Array<string>;
+    // The same, of each day's name above it but the first.
+    headerLines: Array<string>;
+    // The gap a day's blocks leave, left and right.
+    blocksGap: string;
+    // A soft block's inline shadow, its stripe first.
+    softStripe: string;
+    // Where an override block's stripe is placed, from its left and right.
+    overrideLeft: string;
+    overrideRight: string;
+  }
+
+  const weekSidesOf: (page: Page) => Promise<WeekSides> = async (
+    page: Page,
+  ): Promise<WeekSides> => {
+    const week: Locator = page.getByTestId("section-calendar-week");
+
+    await expect(week.locator(".rbc-current-time-indicator")).toBeVisible();
+
+    return week.evaluate((section: Element): WeekSides => {
+      const style: (
+        element: Element,
+        pseudo?: string,
+      ) => CSSStyleDeclaration = (
+        element: Element,
+        pseudo?: string,
+      ): CSSStyleDeclaration => {
+        return window.getComputedStyle(element, pseudo || null);
+      };
+      const indicator: Element = section.querySelector(
+        ".rbc-current-time-indicator",
+      )!;
+      const today: Element = indicator.closest(".rbc-day-slot")!;
+      const gutter: Element = section.querySelector(
+        ".rbc-time-content > .rbc-time-gutter",
+      )!;
+      const soft: Element = section.querySelector(
+        ".rbc-event.oneuptime-calendar-event--soft",
+      )!;
+      const override: Element = section.querySelector(
+        ".rbc-event.oneuptime-calendar-event--override",
+      )!;
+      const events: Element = section.querySelector(
+        ".rbc-day-slot .rbc-events-container",
+      )!;
+
+      return {
+        dotLeft: style(indicator, "::before").left,
+        dotRight: style(indicator, "::before").right,
+        hoursOnTheRight:
+          gutter.getBoundingClientRect().left >=
+          today.getBoundingClientRect().right - 1,
+        dayLines: Array.from(
+          section.querySelectorAll(
+            ".rbc-time-content > .rbc-day-slot > .rbc-timeslot-group:first-child",
+          ),
+        ).map((group: Element): string => {
+          return `${style(group).borderLeftWidth} ${style(group).borderRightWidth}`;
+        }),
+        headerLines: Array.from(
+          section.querySelectorAll(
+            ".rbc-time-header-content .rbc-header + .rbc-header",
+          ),
+        ).map((header: Element): string => {
+          return `${style(header).borderLeftWidth} ${style(header).borderRightWidth}`;
+        }),
+        blocksGap: `${style(events).marginLeft} ${style(events).marginRight}`,
+        softStripe: style(soft).boxShadow,
+        overrideLeft: style(override, "::before").left,
+        overrideRight: style(override, "::before").right,
+      };
+    });
+  };
+
+  test("fa: a week's dot, its lines and its stripes are on the start side, the right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const sides: WeekSides = await weekSidesOf(page);
+
+    // The dot at the line's start, beside the hours on today's right.
+    expect(sides.hoursOnTheRight).toBe(true);
+    expect(sides.dotRight).toBe("-5px");
+    expect(sides.dotLeft).not.toBe("-5px");
+    // Every day's line on its right side, where the day before it ends.
+    expect(sides.dayLines).toHaveLength(7);
+    expect(new Set(sides.dayLines)).toEqual(new Set(["0px 1px"]));
+    expect(new Set(sides.headerLines)).toEqual(new Set(["0px 1px"]));
+    // The blocks' gap at the day's end, the left.
+    expect(sides.blocksGap).toBe("10px 0px");
+    // The stripes down the blocks' right edges.
+    expect(sides.softStripe).toContain("-3px 0px 0px 0px inset");
+    expect(sides.overrideRight).toBe("0px");
+    expect(sides.overrideLeft).not.toBe("0px");
+  });
+
+  test("en: a week's dot, its lines and its stripes are where they always were, on the left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=en");
+
+    const sides: WeekSides = await weekSidesOf(page);
+
+    expect(sides.hoursOnTheRight).toBe(false);
+    expect(sides.dotLeft).toBe("-5px");
+    expect(sides.dotRight).not.toBe("-5px");
+    expect(new Set(sides.dayLines)).toEqual(new Set(["1px 0px"]));
+    expect(new Set(sides.headerLines)).toEqual(new Set(["1px 0px"]));
+    expect(sides.blocksGap).toBe("0px 10px");
+    expect(sides.softStripe).toContain(" 3px 0px 0px 0px inset");
+    expect(sides.overrideLeft).toBe("0px");
+    expect(sides.overrideRight).not.toBe("0px");
+  });
+
+  test("fa: each line between two days of a month lies on a day's edge, one per edge", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const edges: { lines: Array<number>; days: Array<number> } = await page
+      .getByTestId("section-calendar-wide")
+      .evaluate((section: Element) => {
+        const row: Element = section.querySelector(".rbc-month-row")!;
+        const days: Array<Element> = Array.from(
+          row.querySelectorAll(".rbc-day-bg"),
+        );
+
+        return {
+          // Where each drawn line is: the side of its day it is on.
+          lines: days
+            .filter((day: Element): boolean => {
+              return window.getComputedStyle(day).borderRightWidth === "1px";
+            })
+            .map((day: Element): number => {
+              return Math.round(day.getBoundingClientRect().right);
+            })
+            .sort((a: number, b: number): number => {
+              return a - b;
+            }),
+          // Where one day meets the next.
+          days: days
+            .slice(0, -1)
+            .map((day: Element): number => {
+              return Math.round(day.getBoundingClientRect().left);
+            })
+            .sort((a: number, b: number): number => {
+              return a - b;
+            }),
+        };
+      });
+
+    // Six lines, one where each day meets the next: none at the month's far edge.
+    expect(edges.lines).toHaveLength(6);
+    expect(edges.lines).toEqual(edges.days);
+  });
+});
+
 test.describe("lists and sentences in the reader's way", () => {
   test("fa: a folded products category lists its products with the Persian comma, its chevron pointing left", async ({
     page,
@@ -1432,6 +1778,44 @@ test.describe("a canvas", () => {
 
     expect(await styleOf(panel, "direction")).toBe("rtl");
   });
+
+  /*
+   * The zoom buttons sit where a line starts: at the canvas's bottom left
+   * on a page read left to right, and - mirrored with every panel - at its
+   * bottom right on a Persian page, where they stayed at the far end.
+   */
+  for (const language of LANGUAGES) {
+    test(`${language.lang}: the zoom buttons sit at the canvas's bottom ${language.dir === "rtl" ? "right" : "left"}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `lang=${language.lang}`);
+
+      const canvas: Locator = page.getByTestId("canvas");
+      const controls: Locator = canvas.locator(".react-flow__controls");
+
+      await expect(controls).toBeVisible();
+
+      const canvasBox: Box = await boxOf(canvas);
+      const controlsBox: Box = await boxOf(controls);
+
+      // At the bottom, its margin below it.
+      expect(canvasBox.bottom - controlsBox.bottom).toBeLessThan(20);
+
+      if (language.dir === "rtl") {
+        expect(canvasBox.right - controlsBox.right).toBeLessThan(20);
+        expect(controlsBox.left).toBeGreaterThan(
+          canvasBox.left + canvasBox.width / 2,
+        );
+      } else {
+        expect(controlsBox.left - canvasBox.left).toBeLessThan(20);
+        expect(controlsBox.right).toBeLessThan(
+          canvasBox.left + canvasBox.width / 2,
+        );
+      }
+    });
+  }
 });
 
 test.describe("chevrons and arrows point the way the line reads", () => {

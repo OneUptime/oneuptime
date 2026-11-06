@@ -262,6 +262,37 @@ const CALENDAR_EVENTS = [
   },
 ];
 
+/*
+ * A week's blocks around "now" (WRITTEN_AT, a Monday afternoon): a block
+ * drawn soft - a pale wash with a stripe down its leading edge, as a
+ * maintenance state is - and an on-call shift someone else covers, its
+ * stripe in the covered person's colour.
+ */
+const WEEK_EVENTS = [
+  {
+    id: 11,
+    title: "Scheduled maintenance",
+    start: new Date("2026-10-27T09:00:00.000Z"),
+    end: new Date("2026-10-27T13:00:00.000Z"),
+    color: "#d97706",
+    appearance: "soft",
+  },
+  {
+    id: 12,
+    title: "Kai Morgan",
+    start: new Date("2026-10-28T08:00:00.000Z"),
+    end: new Date("2026-10-28T12:00:00.000Z"),
+    color: "#6366f1",
+    accentColor: "#059669",
+    className: "oneuptime-calendar-event--override",
+  },
+];
+
+// "Now" on the week's grid: its line is drawn across Monday.
+const getWeekNow = () => {
+  return WRITTEN_AT;
+};
+
 // A time after a name in Latin letters, in the page's own words.
 const READ_FROM_TIME = {
   en: "4 minutes ago",
@@ -600,6 +631,42 @@ function Page() {
             defaultDate={WRITTEN_AT}
             defaultCalendarView="month"
             views={["month"]}
+            onRangeChange={() => {}}
+          />
+        </div>
+      </Section>
+
+      {/*
+        A wide month, where each day's name fits whole, and a week with
+        "now" on it: the current-time line, its dot, the lines between the
+        days and the blocks' stripes.
+      */}
+      <Section name="calendar-wide">
+        <div
+          className="bg-white"
+          style={{ width: `${Math.min(800, tableWidth)}px` }}
+        >
+          <Calendar
+            events={CALENDAR_EVENTS}
+            defaultDate={WRITTEN_AT}
+            defaultCalendarView="month"
+            views={["month"]}
+            onRangeChange={() => {}}
+          />
+        </div>
+      </Section>
+
+      <Section name="calendar-week">
+        <div
+          className="bg-white"
+          style={{ width: `${Math.min(800, tableWidth)}px` }}
+        >
+          <Calendar
+            events={WEEK_EVENTS}
+            defaultDate={WRITTEN_AT}
+            getNow={getWeekNow}
+            defaultCalendarView="week"
+            views={["week"]}
             onRangeChange={() => {}}
           />
         </div>

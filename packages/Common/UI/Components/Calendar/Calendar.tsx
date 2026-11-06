@@ -3,7 +3,10 @@ import CalendarEvent from "../../../Types/Calendar/CalendarEvent";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import StartAndEndTime from "../../../Types/Time/StartAndEndTime";
-import { ReadingDirection } from "../../../Types/ReadingDirection";
+import {
+  getReadingDirection,
+  ReadingDirection,
+} from "../../../Types/ReadingDirection";
 import { getLineDirection } from "../../Utils/LineDirection";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -33,6 +36,7 @@ import {
   EventPropGetter,
   EventWrapperProps,
   Formats,
+  HeaderProps,
   Messages,
   momentLocalizer,
   View,
@@ -315,6 +319,155 @@ export const getCalendarFormats: (language: string | undefined) => Formats = (
   };
 };
 
+/*
+ * A DAY'S NAME IN A NARROW COLUMN.
+ *
+ * A calendar names the days above its columns in their short form: "Mon",
+ * "Mo", "月". Persian has no short form - Intl's short names are its full
+ * ones ("چهارشنبه") - so a narrow month (a phone's, a calendar beside the
+ * side menu) cut them to "چها…", where Persian's one-letter names ("چ"),
+ * as its printed calendars write them, fit. In a language whose short
+ * names are its full names, each name above a column carries both: the
+ * full name, and the one-letter name a column too narrow for the full one
+ * shows instead (Calendar.css, a container query on the column). A screen
+ * reader reads the full name either way. Every other language names its
+ * days as before.
+ */
+const shortWeekdayNamesCache: Map<string, boolean> = new Map<string, boolean>();
+
+// Sunday 4 January 1970, then the six days after it: a week of names.
+const A_WEEK: Array<Date> = [0, 1, 2, 3, 4, 5, 6].map((day: number): Date => {
+  return new Date(Date.UTC(1970, 0, 4 + day));
+});
+
+// Whether `language` writes a day of the week shorter than its full name.
+export const hasShortWeekdayNames: (language: string | undefined) => boolean = (
+  language: string | undefined,
+): boolean => {
+  const code: string = (language || ENGLISH_LANGUAGE).trim();
+
+  // English names its days with moment's "Mon".
+  if (
+    !code ||
+    code === ENGLISH_LANGUAGE ||
+    code.startsWith(`${ENGLISH_LANGUAGE}-`)
+  ) {
+    return true;
+  }
+
+  const cached: boolean | undefined = shortWeekdayNamesCache.get(code);
+
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  let hasShortNames: boolean = true;
+
+  try {
+    const short: Intl.DateTimeFormat = new Intl.DateTimeFormat(code, {
+      calendar: "gregory",
+      weekday: "short",
+      timeZone: "UTC",
+    } as Intl.DateTimeFormatOptions);
+    const long: Intl.DateTimeFormat = new Intl.DateTimeFormat(code, {
+      calendar: "gregory",
+      weekday: "long",
+      timeZone: "UTC",
+    } as Intl.DateTimeFormatOptions);
+
+    hasShortNames = A_WEEK.some((day: Date): boolean => {
+      return short.format(day) !== long.format(day);
+    });
+  } catch {
+    // A language Intl does not know: English's names, as the grid's are.
+    hasShortNames = true;
+  }
+
+  shortWeekdayNamesCache.set(code, hasShortNames);
+
+  return hasShortNames;
+};
+
+export interface NarrowDayNameFormats {
+  // A month's column: "ش".
+  weekday: (date: Date) => string;
+  // A week's column, with its day of the month: "د ۲۶".
+  weekdayAndDay: (date: Date) => string;
+}
+
+// The one-letter names a narrow column shows, in `language`.
+export const getNarrowDayNameFormats: (
+  language: string | undefined,
+) => NarrowDayNameFormats = (
+  language: string | undefined,
+): NarrowDayNameFormats => {
+  const formatter: (
+    options: Intl.DateTimeFormatOptions,
+  ) => (date: Date) => string = (
+    options: Intl.DateTimeFormatOptions,
+  ): ((date: Date) => string) => {
+    let format: Intl.DateTimeFormat;
+
+    try {
+      format = new Intl.DateTimeFormat(language || ENGLISH_LANGUAGE, {
+        calendar: "gregory",
+        ...options,
+      } as Intl.DateTimeFormatOptions);
+    } catch {
+      format = new Intl.DateTimeFormat(ENGLISH_LANGUAGE, options);
+    }
+
+    return (date: Date): string => {
+      return format.format(date);
+    };
+  };
+
+  return {
+    weekday: formatter({ weekday: "narrow" }),
+    weekdayAndDay: formatter({ weekday: "narrow", day: "numeric" }),
+  };
+};
+
+/*
+ * The class on a calendar whose language has no short names for its days:
+ * its columns measure themselves, so a narrow one shows a day's one-letter
+ * name (Calendar.css).
+ */
+export const LONG_DAY_NAMES_CLASS_NAME: string =
+  "oneuptime-calendar--long-day-names";
+
+export interface CalendarDayNameProps {
+  // The day's name as the calendar writes it: "چهارشنبه", "چهارشنبه ۲۸".
+  label: string;
+  // Its name in a column too narrow for it: "چ", "چ ۲۸".
+  narrowLabel: string;
+}
+
+/*
+ * The name above a day's column, in a language whose short names are its
+ * full names: the full name, and the one-letter name a narrow column shows
+ * in its place (Calendar.css). Read out whole.
+ */
+export const CalendarDayName: FunctionComponent<CalendarDayNameProps> = (
+  props: CalendarDayNameProps,
+): ReactElement => {
+  return (
+    <span
+      role="columnheader"
+      aria-sort="none"
+      className="oneuptime-calendar-day-name"
+    >
+      <span className="oneuptime-calendar-day-name__full" aria-hidden="true">
+        {props.label}
+      </span>
+      <span className="oneuptime-calendar-day-name__narrow" aria-hidden="true">
+        {props.narrowLabel}
+      </span>
+      <span className="sr-only">{props.label}</span>
+    </span>
+  );
+};
+
 const dayLayoutAlgorithm: DayLayoutFunction<CalendarEvent> = (
   args: Parameters<DayLayoutFunction<CalendarEvent>>[0],
 ): Array<{ event: CalendarEvent; style: React.CSSProperties }> => {
@@ -515,6 +668,11 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
     return getCalendarFormats(translator.language);
   }, [translator.language]);
 
+  // Persian: no short names for its days (CalendarDayName).
+  const hasShortDayNames: boolean = useMemo(() => {
+    return hasShortWeekdayNames(translator.language);
+  }, [translator.language]);
+
   /*
    * The pieces a caller replaces: an event's content, and the header of a
    * month view's day. Rebuilt only when the caller's renderers change, so
@@ -546,8 +704,42 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
     const renderDayAction: ((date: Date) => ReactElement | null) | undefined =
       props.renderDayAction;
 
+    /*
+     * A language with no short names for its days names each column with
+     * its full name and its one-letter one, which a narrow column shows
+     * (CalendarDayName): a month's columns by the day of the week, a week's
+     * with its day of the month.
+     */
+    if (!hasShortDayNames) {
+      const narrow: NarrowDayNameFormats = getNarrowDayNameFormats(
+        translator.language,
+      );
+
+      replaced.month = {
+        header: (headerProps: HeaderProps) => {
+          return (
+            <CalendarDayName
+              label={headerProps.label}
+              narrowLabel={narrow.weekday(headerProps.date)}
+            />
+          );
+        },
+      };
+      replaced.week = {
+        header: (headerProps: HeaderProps) => {
+          return (
+            <CalendarDayName
+              label={headerProps.label}
+              narrowLabel={narrow.weekdayAndDay(headerProps.date)}
+            />
+          );
+        },
+      };
+    }
+
     if (renderDayAction) {
       replaced.month = {
+        ...(replaced.month || {}),
         dateHeader: (headerProps: DateHeaderProps) => {
           const action: ReactElement | null = headerProps.isOffRange
             ? null
@@ -579,7 +771,12 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
     }
 
     return replaced;
-  }, [props.renderEventContent, props.renderDayAction]);
+  }, [
+    props.renderEventContent,
+    props.renderDayAction,
+    hasShortDayNames,
+    translator.language,
+  ]);
 
   const views: Array<View> = useMemo(() => {
     return props.views && props.views.length > 0
@@ -665,7 +862,11 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
 
     if (appearance === CalendarEventAppearance.Soft) {
       const softStyle: React.CSSProperties = {
-        ...getSoftEventStyle(backgroundColor),
+        // Its stripe on the leading edge of a block on this page.
+        ...getSoftEventStyle(
+          backgroundColor,
+          getReadingDirection(translator.language),
+        ),
         borderRadius: "0.375rem",
         border: "0px",
         display: "block",
@@ -723,7 +924,7 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
       id={props.id}
       className={`oneuptime-calendar mt-5 h-[46rem] rounded-xl bg-white${
         hasAllDayEvents ? "" : " oneuptime-calendar--no-all-day"
-      }`}
+      }${hasShortDayNames ? "" : ` ${LONG_DAY_NAMES_CLASS_NAME}`}`}
     >
       <CalendarToolbarStatusContext.Provider value={props.toolbarStatus}>
         <Calendar
