@@ -37,10 +37,155 @@ import FindBy from "../Types/Database/FindBy";
 import CountBy from "../Types/Database/CountBy";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
+import { DatabaseTriggerType } from "../Types/Database/Hooks";
+import { JSONObject } from "../../Types/JSON";
+import Color from "../../Types/Color";
+import { FeedApiKeyActor } from "../Utils/Feed/FeedApiKeyActor";
+import { PublicNoteApprovalEventType } from "../../Types/StatusPage/PublicNoteApproval";
+import PublicNoteApprovalEngine, {
+  PublicNoteApprovalHost,
+  PublicNoteApprovalRecordInfo,
+  PublicNoteApprovalUpdate,
+  PublicNoteKind,
+} from "../Utils/Notes/PublicNoteApprovalEngine";
+import PublicNoteApprovalFeed from "../Utils/Notes/PublicNoteApprovalFeed";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * What public note approval needs from this kind of note
+   * (PublicNoteApprovalEngine): the incident a note is on, by name and
+   * link, its feed, and the entries a published note has always had.
+   */
+  public getApprovalHost(): PublicNoteApprovalHost<Model> {
+    return {
+      kind: PublicNoteKind.Incident,
+      eventType: PublicNoteApprovalEventType.Incident,
+      modelType: Model,
+      service: this,
+      parentIdColumn: "incidentId",
+      recordNoun: "incident",
+      getRecord: async (data: {
+        projectId: ObjectID;
+        parentId: ObjectID;
+      }): Promise<PublicNoteApprovalRecordInfo | null> => {
+        const incident: Incident | null = await IncidentService.findOneById({
+          id: data.parentId,
+          select: {
+            title: true,
+            incidentNumber: true,
+            incidentNumberWithPrefix: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (!incident) {
+          return null;
+        }
+
+        const url: string = (
+          await IncidentService.getIncidentLinkInDashboard(
+            data.projectId,
+            data.parentId,
+          )
+        ).toString();
+
+        return {
+          label: `Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}`,
+          title: incident.title || "",
+          url: url,
+          notesUrl: `${url}/public-notes`,
+        };
+      },
+      addFeedItem: async (data: {
+        projectId: ObjectID;
+        parentId: ObjectID;
+        markdown: MarkdownText;
+        userId?: ObjectID | undefined;
+        color: Color;
+      }): Promise<void> => {
+        await IncidentFeedService.createIncidentFeedItem({
+          incidentId: data.parentId,
+          projectId: data.projectId,
+          incidentFeedEventType: IncidentFeedEventType.PublicNoteApproval,
+          displayColor: data.color,
+          userId: data.userId,
+          feedInfoInMarkdown: data.markdown.toString(),
+          workspaceNotification: {
+            sendWorkspaceNotification: false,
+          },
+        });
+      },
+      announcePublished: async (data: {
+        noteId: ObjectID;
+        approvedByNames: Array<string>;
+      }): Promise<void> => {
+        const note: Model | null = await this.findOneById({
+          id: data.noteId,
+          select: {
+            _id: true,
+            incidentId: true,
+            projectId: true,
+            note: true,
+            createdByUserId: true,
+            postedFromSlackMessageId: true,
+            savedFromChatMessage: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (note) {
+          await this.announceNote({
+            note,
+            approvedByNames: data.approvedByNames,
+          });
+        }
+      },
+      announceEditPublished: async (data: {
+        noteId: ObjectID;
+        editorUserId?: ObjectID | undefined;
+        approvedByNames: Array<string>;
+      }): Promise<void> => {
+        await this.announceEdits({
+          query: { _id: data.noteId.toString() },
+          userId: data.editorUserId,
+          approvedByNames: data.approvedByNames,
+        });
+      },
+      getMessageIds: (parentId: ObjectID) => {
+        return { incidentId: parentId };
+      },
+    };
+  }
+
+  /*
+   * A public note that is not published starts no workflow: not when it is
+   * created, nor when it is edited or decided on while it waits for
+   * approval. Its On Create workflows start when it is published
+   * (PublicNoteApprovalEngine).
+   */
+  @CaptureSpan()
+  public override async onTriggerWorkflow(
+    id: ObjectID,
+    projectId: ObjectID,
+    triggerType: DatabaseTriggerType,
+    miscData?: JSONObject | undefined,
+  ): Promise<void> {
+    if (
+      triggerType !== "on-delete" &&
+      !(await PublicNoteApprovalEngine.isPublishedNow({ service: this, id }))
+    ) {
+      return;
+    }
+
+    return await super.onTriggerWorkflow(id, projectId, triggerType, miscData);
   }
 
   /*
@@ -83,7 +228,10 @@ export class Service extends ProjectReferencesService<Model> {
    * creator.
    *
    * A message saved as a note keeps who wrote it, in which chat and when
-   * (savedFromChatMessage, SavedChatMessageNote). It is published now, as any public note is.
+   * (savedFromChatMessage, SavedChatMessageNote). It is published now, as
+   * any public note is - or, when the project asks for public notes to be
+   * approved, once it is approved, and posted then (it names no time of
+   * its own, so onBeforeCreate's "now" is the time it is published at).
    */
   @CaptureSpan()
   public async addNote(data: {
@@ -98,7 +246,6 @@ export class Service extends ProjectReferencesService<Model> {
     publicNote.incidentId = data.incidentId;
     publicNote.projectId = data.projectId;
     publicNote.note = data.note;
-    publicNote.postedAt = OneUptimeDate.getCurrentDate();
 
     if (data.postedFromSlackMessageId) {
       publicNote.postedFromSlackMessageId = data.postedFromSlackMessageId;
@@ -182,6 +329,9 @@ export class Service extends ProjectReferencesService<Model> {
       StateChangePublicNote.getStatePostedWith(createBy.data),
     );
 
+    // A time chosen as it was written stays when it is published after approval.
+    const isPostedAtChosen: boolean = Boolean(createBy.data.postedAt);
+
     if (!createBy.data.postedAt) {
       createBy.data.postedAt = OneUptimeDate.getCurrentDate();
     }
@@ -219,6 +369,17 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data.subscriberNotificationStatusOnNoteCreated =
         StatusPageSubscriberNotificationStatus.Pending;
     }
+
+    /*
+     * Held for approval when the project asks for it: not published, and
+     * none of what follows a published note - its notification stays
+     * queued until it is (PublicNoteApprovalEngine).
+     */
+    await PublicNoteApprovalEngine.holdOnCreate({
+      host: this.getApprovalHost(),
+      createBy: createBy,
+      keepPostedAt: isPostedAtChosen,
+    });
 
     return {
       createBy: createBy,
@@ -281,13 +442,28 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
 
+    /*
+     * Public note approval first (PublicNoteApprovalEngine): an edit of a
+     * note that is not published, or of a published one while public notes
+     * need approval, waits for approval - and tells subscribers nothing
+     * until the note, or its edit, is published.
+     */
+    const approvalUpdate: PublicNoteApprovalUpdate =
+      await PublicNoteApprovalEngine.beforeUpdate({
+        host: this.getApprovalHost(),
+        updateBy: updateBy,
+      });
+
     await SubscriberNotificationResendAccess.assertPublicNoteResendAllowed({
       modelType: Model,
       service: this,
       updateBy: updateBy,
     });
 
-    if (SubscriberUpdateNotification.isRequested(updateBy.miscDataProps)) {
+    if (
+      SubscriberUpdateNotification.isRequested(updateBy.miscDataProps) &&
+      !approvalUpdate.isUpdateNotificationHeld
+    ) {
       updateBy.data.subscriberNotificationStatusOnNoteUpdated =
         StatusPageSubscriberNotificationStatus.Pending;
       updateBy.data.subscriberNotificationStatusMessageOnNoteUpdated =
@@ -310,15 +486,50 @@ export class Service extends ProjectReferencesService<Model> {
 
     return {
       updateBy: updateBy,
-      carryForward: null,
+      carryForward: {
+        publicNoteApproval: approvalUpdate,
+      },
     };
   }
 
   @CaptureSpan()
   public override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    /*
+     * Held for approval: the incident's feed says it waits and its
+     * approvers are asked; nothing of it is posted until it is published.
+     */
+    if (
+      await PublicNoteApprovalEngine.afterCreate({
+        host: this.getApprovalHost(),
+        note: createdItem,
+      })
+    ) {
+      return createdItem;
+    }
+
+    await this.announceNote({
+      note: createdItem,
+      apiKeyActor: FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
+      approvedByNames: [],
+    });
+
+    return createdItem;
+  }
+
+  /*
+   * The entry a published public note gets, on its incident's feed and in
+   * its Slack and Microsoft Teams channels: as it is created, or - when the
+   * project asks for approval - once it is approved, naming who approved it.
+   */
+  private async announceNote(data: {
+    note: Model;
+    apiKeyActor?: FeedApiKeyActor | undefined;
+    approvedByNames: Array<string>;
+  }): Promise<void> {
+    const createdItem: Model = data.note;
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
@@ -343,6 +554,10 @@ export class Service extends ProjectReferencesService<Model> {
       await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)
     ).toString();
 
+    const approvedBy: MarkdownText = PublicNoteApprovalFeed.approvedByLine(
+      data.approvedByNames,
+    );
+
     /*
      * A message saved as a public note: its entry names who wrote it and
      * who saved it, and is not posted back into the channel the message is
@@ -357,10 +572,10 @@ export class Service extends ProjectReferencesService<Model> {
       incidentFeedEventType: IncidentFeedEventType.PublicNote,
       displayColor: Indigo500,
       userId: userId || undefined,
-      apiKeyActor: FeedApiKeyActorUtil.fromProps(_onCreate.createBy.props),
+      apiKeyActor: data.apiKeyActor,
       ...(saved ? { savedFromChatMessage: saved } : {}),
       feedInfoInMarkdown: saved
-        ? SavedChatMessageNote.getFeedMarkdown({
+        ? mdText`${SavedChatMessageNote.getFeedMarkdown({
             saved: saved,
             noteKind: SavedChatMessageNoteKind.Public,
             record: mdText`[Incident ${incidentNumberDisplay}](${incidentLink})`,
@@ -372,10 +587,10 @@ export class Service extends ProjectReferencesService<Model> {
               note: createdItem.note,
               attachments: attachmentsMarkdown,
             }),
-          }).toString()
+          })}${approvedBy}`.toString()
         : mdText`📄 posted **public note** for this [Incident ${incidentNumberDisplay}](${incidentLink}) on status page:
 
-${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
+${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}${approvedBy}
           `.toString(),
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -387,8 +602,6 @@ ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
         }),
       },
     });
-
-    return createdItem;
   }
 
   @CaptureSpan()
@@ -396,64 +609,109 @@ ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * An edit that now waits for approval - or a waiting edit dropped -
+     * says so on the incident's feed alone: an edit is posted to the chat
+     * channels once it is published.
+     */
+    if (
+      await PublicNoteApprovalEngine.afterUpdate({
+        host: this.getApprovalHost(),
+        update: (
+          onUpdate.carryForward as {
+            publicNoteApproval?: PublicNoteApprovalUpdate;
+          } | null
+        )?.publicNoteApproval,
+        props: onUpdate.updateBy.props,
+      })
+    ) {
+      return onUpdate;
+    }
+
     if (onUpdate.updateBy.data.note) {
-      const updatedItems: Array<Model> = await this.findBy({
+      await this.announceEdits({
         query: onUpdate.updateBy.query,
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          incidentId: true,
+        userId: onUpdate.updateBy.props.userId,
+        apiKeyActor: FeedApiKeyActorUtil.fromProps(onUpdate.updateBy.props),
+        approvedByNames: [],
+      });
+    }
+
+    return onUpdate;
+  }
+
+  /*
+   * The entry an edit of a published public note gets, on its incident's
+   * feed and in its chat channels: as it is made, or once it is approved.
+   * A note that is not published gets none - nothing of it goes out.
+   */
+  private async announceEdits(data: {
+    query: Query<Model>;
+    userId?: ObjectID | null | undefined;
+    apiKeyActor?: FeedApiKeyActor | undefined;
+    approvedByNames: Array<string>;
+  }): Promise<void> {
+    const updatedItems: Array<Model> = await this.findBy({
+      query: data.query,
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+      select: {
+        incidentId: true,
+        projectId: true,
+        incident: {
+          _id: true,
+          incidentNumber: true,
           projectId: true,
-          incident: {
-            _id: true,
-            incidentNumber: true,
-            projectId: true,
-          },
-          note: true,
-          createdByUserId: true,
-          createdByUser: {
-            _id: true,
-          },
+        },
+        note: true,
+        isPublished: true,
+        createdByUserId: true,
+        createdByUser: {
+          _id: true,
+        },
+      },
+    });
+
+    const approvedBy: MarkdownText = PublicNoteApprovalFeed.approvedByLine(
+      data.approvedByNames,
+    );
+
+    for (const updatedItem of updatedItems) {
+      if (updatedItem.isPublished === false) {
+        continue;
+      }
+
+      const incident: Incident = updatedItem.incident!;
+
+      const attachmentsMarkdown: MarkdownText =
+        await this.getAttachmentsMarkdown(
+          updatedItem.id!,
+          "/incident-public-note/attachment",
+        );
+
+      await IncidentFeedService.createIncidentFeedItem({
+        incidentId: updatedItem.incidentId!,
+        projectId: updatedItem.projectId!,
+        // An edit to a public note is a public note event, not a private one.
+        incidentFeedEventType: IncidentFeedEventType.PublicNote,
+        displayColor: Blue500,
+        userId: data.userId || undefined,
+        apiKeyActor: data.apiKeyActor,
+
+        feedInfoInMarkdown:
+          mdText`📄 updated **Public Note** for this [Incident ${incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})
+        
+${FeedMarkdown.asMarkdown(updatedItem.note)}${attachmentsMarkdown}${approvedBy}
+                  `.toString(),
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+          leadWithAuthor: true,
         },
       });
-
-      const userId: ObjectID | null | undefined =
-        onUpdate.updateBy.props.userId;
-
-      for (const updatedItem of updatedItems) {
-        const incident: Incident = updatedItem.incident!;
-
-        const attachmentsMarkdown: MarkdownText =
-          await this.getAttachmentsMarkdown(
-            updatedItem.id!,
-            "/incident-public-note/attachment",
-          );
-
-        await IncidentFeedService.createIncidentFeedItem({
-          incidentId: updatedItem.incidentId!,
-          projectId: updatedItem.projectId!,
-          // An edit to a public note is a public note event, not a private one.
-          incidentFeedEventType: IncidentFeedEventType.PublicNote,
-          displayColor: Blue500,
-          userId: userId || undefined,
-          apiKeyActor: FeedApiKeyActorUtil.fromProps(onUpdate.updateBy.props),
-
-          feedInfoInMarkdown:
-            mdText`📄 updated **Public Note** for this [Incident ${incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})
-        
-${FeedMarkdown.asMarkdown(updatedItem.note)}${attachmentsMarkdown}
-                  `.toString(),
-          workspaceNotification: {
-            sendWorkspaceNotification: true,
-            leadWithAuthor: true,
-          },
-        });
-      }
     }
-    return onUpdate;
   }
 
   private async getAttachmentsMarkdown(

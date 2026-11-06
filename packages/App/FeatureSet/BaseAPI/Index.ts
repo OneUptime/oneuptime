@@ -571,6 +571,9 @@ import SloHistoryService, {
 import IncidentReminderRuleService, {
   Service as IncidentReminderRuleServiceType,
 } from "Common/Server/Services/IncidentReminderRuleService";
+import PublicNoteApprovalStepService, {
+  Service as PublicNoteApprovalStepServiceType,
+} from "Common/Server/Services/PublicNoteApprovalStepService";
 
 import AlertReminderRuleService, {
   Service as AlertReminderRuleServiceType,
@@ -1608,6 +1611,7 @@ import ServiceLevelObjectiveOwnerRule from "Common/Models/DatabaseModels/Service
 import ServiceLevelObjectiveLabelRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
+import PublicNoteApprovalStep from "Common/Models/DatabaseModels/PublicNoteApprovalStep";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
 import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 
@@ -3780,6 +3784,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<IncidentReminderRule, IncidentReminderRuleServiceType>(
         IncidentReminderRule,
         IncidentReminderRuleService,
+      ).getRouter(),
+    );
+
+    // PublicNoteApprovalStep: who approves public notes before they are published.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PublicNoteApprovalStep, PublicNoteApprovalStepServiceType>(
+        PublicNoteApprovalStep,
+        PublicNoteApprovalStepService,
       ).getRouter(),
     );
 

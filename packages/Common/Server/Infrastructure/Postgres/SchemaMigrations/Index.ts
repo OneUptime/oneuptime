@@ -913,6 +913,7 @@ import { AddProjectDefaultTableColumns1808994500000 } from "./1808994500000-AddP
 import { AddEmailProviderSettings1808994600000 } from "./1808994600000-AddEmailProviderSettings";
 import { AddGroupingRuleMinimumCount1808994700000 } from "./1808994700000-AddGroupingRuleMinimumCount";
 import { AddGroupingWaitKeyIndexes1808994710000 } from "./1808994710000-AddGroupingWaitKeyIndexes";
+import { AddPublicNoteApproval1808995720000 } from "./1808995720000-AddPublicNoteApproval";
 
 export default [
   InitialMigration,
@@ -1830,4 +1831,5 @@ export default [
   AddEmailProviderSettings1808994600000,
   AddGroupingRuleMinimumCount1808994700000,
   AddGroupingWaitKeyIndexes1808994710000,
+  AddPublicNoteApproval1808995720000,
 ];
