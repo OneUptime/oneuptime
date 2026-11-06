@@ -907,6 +907,8 @@ function getCloudResourceRecommendations(
     resourceType: context?.cloudResourceType,
     telemetryAttributes: context?.cloudTelemetryAttributes,
     allocatedStorageGiB: context?.cloudAllocatedStorageGiB,
+    readings: context?.cloudReadings,
+    isReadByConnection: context?.cloudReadByConnection === true,
   }).map((template: CloudAlertTemplate) => {
     return normalizeCloudTemplate(template, context);
   });

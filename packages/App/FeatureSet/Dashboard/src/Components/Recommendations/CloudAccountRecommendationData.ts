@@ -71,6 +71,7 @@ export async function loadCloudAccountRecommendationResources(data: {
         telemetryAttributes: true,
         cloudReadings: true,
         cloudProperties: true,
+        cloudConnectionId: true,
       },
       sort: { name: SortOrder.Ascending },
     },

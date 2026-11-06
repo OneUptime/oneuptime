@@ -216,6 +216,12 @@ export interface MonitorRecommendationContext {
    */
   cloudReadings?: CloudResourceReadings | null | undefined;
   /*
+   * Whether a cloud connection reads it (CloudResource.cloudConnectionId):
+   * its Azure templates then wait for readings that name their metrics
+   * (getCloudAlertTemplatesFor).
+   */
+  cloudReadByConnection?: boolean | null | undefined;
+  /*
    * An RDS instance's allocated storage in GiB, from its inventory
    * (cloudProperties.AllocatedStorage): its free-storage template is a
    * share of it, and waits for it.

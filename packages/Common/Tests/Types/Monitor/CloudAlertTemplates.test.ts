@@ -53,6 +53,7 @@ import {
   getCloudAlertMetricReadingKey,
   getCloudAlertStoredMetricName,
   getCloudAlertTemplate,
+  getCloudAlertTemplateReadingKeys,
   getCloudAlertTemplatesFor,
   getCloudAlertTemplatesForType,
   getCloudMonitoringServiceName,
@@ -726,6 +727,8 @@ describe("getCloudAlertTemplatesFor", () => {
       "cloud-azure-sql-high-cpu",
       "cloud-azure-sql-sessions-high",
       "cloud-azure-sql-failed-connections",
+      // DTU Usage High waits for a reading: only a DTU database sends it.
+      "cloud-azure-sql-deadlocks",
     ]);
     expect(
       idsOf(
@@ -1592,3 +1595,417 @@ describe("a resource's own threshold (Low Free Storage)", () => {
     ).toEqual({ breached: false, healthy: true });
   });
 });
+
+// ---------------------------------------------------------------------------
+// An Azure resource a connection reads: the names its metrics are stored under
+// ---------------------------------------------------------------------------
+
+/*
+ * A connection stores each Azure metric under the aggregation its definition
+ * calls primary ("azure_storage_percent_maximum"), which only the read
+ * knows. A resource it reads is offered an Azure template once its readings
+ * name each metric the template reads; a collector's resource, whose
+ * receiver writes every aggregation, is read under the documented one.
+ */
+describe("an Azure resource a connection reads", () => {
+  const time: string = "2026-11-02T12:20:00.000Z";
+
+  const SQL_AGGREGATIONS: Record<string, string> = {
+    storage_percent: "maximum",
+    cpu_percent: "average",
+    sessions_percent: "average",
+    connection_failed: "total",
+    deadlock: "total",
+    dtu_consumption_percent: "average",
+  };
+
+  function sqlReadings(
+    withNames: boolean,
+    keys: Array<string> = [
+      "storage_percent",
+      "cpu_percent",
+      "sessions_percent",
+      "connection_failed",
+      "deadlock",
+    ],
+  ): CloudResourceReadings {
+    const readings: CloudResourceReadings = {};
+
+    for (const key of keys) {
+      readings[key] = withNames
+        ? {
+            value: 1,
+            time,
+            metric: `azure_${key}_${SQL_AGGREGATIONS[key] || "average"}`,
+          }
+        : { value: 1, time };
+    }
+
+    return readings;
+  }
+
+  test("before its readings name its metrics, a resource its connection reads is offered nothing", () => {
+    for (const readings of [undefined, null, {}, sqlReadings(false)]) {
+      expect(
+        getCloudAlertTemplatesFor({
+          provider: "azure",
+          resourceType: "Microsoft.Sql/servers/databases",
+          telemetryAttributes: AZURE_SQL_ATTRIBUTES,
+          readings: readings as CloudResourceReadings | null | undefined,
+          isReadByConnection: true,
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("once they do, it is offered each template whose metrics it reports", () => {
+    expect(
+      idsOf(
+        getCloudAlertTemplatesFor({
+          provider: "azure",
+          resourceType: "Microsoft.Sql/servers/databases",
+          telemetryAttributes: AZURE_SQL_ATTRIBUTES,
+          readings: sqlReadings(true),
+          isReadByConnection: true,
+        }),
+      ),
+    ).toEqual([
+      "cloud-azure-sql-storage-full",
+      "cloud-azure-sql-high-cpu",
+      "cloud-azure-sql-sessions-high",
+      "cloud-azure-sql-failed-connections",
+      "cloud-azure-sql-deadlocks",
+    ]);
+  });
+
+  test("a template whose metric it has no reading of waits for one", () => {
+    expect(
+      idsOf(
+        getCloudAlertTemplatesFor({
+          provider: "azure",
+          resourceType: "Microsoft.Sql/servers/databases",
+          telemetryAttributes: AZURE_SQL_ATTRIBUTES,
+          readings: sqlReadings(true, ["storage_percent", "cpu_percent"]),
+          isReadByConnection: true,
+        }),
+      ),
+    ).toEqual(["cloud-azure-sql-storage-full", "cloud-azure-sql-high-cpu"]);
+  });
+
+  test("its monitor reads each metric under the name its reading keeps", () => {
+    const readings: CloudResourceReadings = sqlReadings(true);
+    const step: MonitorStep = template(
+      "cloud-azure-sql-storage-full",
+    ).getMonitorStep(argsFor(AZURE_SQL_ATTRIBUTES, { readings }));
+
+    expect(
+      viewConfigOf(step).queryConfigs[0]!.metricQueryData.filterData
+        .metricName,
+    ).toBe("azure_storage_percent_maximum");
+  });
+
+  test("a collector's resource is read under the aggregation Azure documents", () => {
+    expect(
+      idsOf(
+        getCloudAlertTemplatesFor({
+          provider: "azure",
+          resourceType: "Microsoft.Sql/servers/databases",
+          telemetryAttributes: AZURE_SQL_ATTRIBUTES,
+          isReadByConnection: false,
+        }),
+      ),
+    ).toContain("cloud-azure-sql-storage-full");
+  });
+
+  test("AWS and Google Cloud never wait: their stored names are fixed", () => {
+    expect(
+      idsOf(
+        getCloudAlertTemplatesFor({
+          provider: "aws",
+          resourceType: "AWS::EC2::Instance",
+          telemetryAttributes: EC2_ATTRIBUTES,
+          readings: {},
+          isReadByConnection: true,
+        }),
+      ),
+    ).toEqual(["cloud-aws-ec2-status-check-failed", "cloud-aws-ec2-high-cpu"]);
+    expect(
+      idsOf(
+        getCloudAlertTemplatesFor({
+          provider: "gcp",
+          resourceType: "pubsub_subscription",
+          telemetryAttributes: PUBSUB_ATTRIBUTES,
+          readings: {},
+          isReadByConnection: true,
+        }),
+      ),
+    ).toEqual(["cloud-gcp-pubsub-oldest-message"]);
+  });
+
+  /*
+   * DTUs are a metric of the DTU purchasing model: a vCore database never
+   * sends one, so its monitor would watch nothing. Offered on a reading,
+   * whoever reads the database.
+   */
+  test("DTU Usage High is offered only to a database that reports DTUs", () => {
+    const withDtu: CloudResourceReadings = sqlReadings(true, [
+      "storage_percent",
+      "cpu_percent",
+      "sessions_percent",
+      "connection_failed",
+      "deadlock",
+      "dtu_consumption_percent",
+    ]);
+
+    expect(
+      idsOf(
+        getCloudAlertTemplatesFor({
+          provider: "azure",
+          resourceType: "Microsoft.Sql/servers/databases",
+          telemetryAttributes: AZURE_SQL_ATTRIBUTES,
+          readings: withDtu,
+          isReadByConnection: true,
+        }),
+      ),
+    ).toContain("cloud-azure-sql-dtu-high");
+
+    for (const isReadByConnection of [true, false]) {
+      expect(
+        idsOf(
+          getCloudAlertTemplatesFor({
+            provider: "azure",
+            resourceType: "Microsoft.Sql/servers/databases",
+            telemetryAttributes: AZURE_SQL_ATTRIBUTES,
+            readings: sqlReadings(true),
+            isReadByConnection: isReadByConnection,
+          }),
+        ),
+      ).not.toContain("cloud-azure-sql-dtu-high");
+    }
+
+    expect(template("cloud-azure-sql-dtu-high").requiresReading).toBe(true);
+  });
+});
+
+describe("getCloudAlertTemplateReadingKeys", () => {
+  test("an Azure type keeps a reading of every metric its templates read", () => {
+    const keys: ReadonlySet<string> = getCloudAlertTemplateReadingKeys({
+      provider: "azure",
+      resourceType: "Microsoft.Sql/servers/databases",
+    });
+
+    for (const cloudTemplate of getCloudAlertTemplatesForType({
+      provider: "azure",
+      resourceType: "Microsoft.Sql/servers/databases",
+    })) {
+      for (const query of cloudTemplate.queries) {
+        expect(keys.has(getCloudAlertMetricReadingKey(query.metric)!)).toBe(
+          true,
+        );
+      }
+    }
+
+    expect(keys.has("dtu_consumption_percent")).toBe(true);
+    expect(keys.has("deadlock")).toBe(true);
+  });
+
+  test("every Azure template's metrics are kept, for each of its types", () => {
+    for (const cloudTemplate of ALL.filter((candidate: CloudAlertTemplate) => {
+      return candidate.provider === CloudProvider.Azure;
+    })) {
+      for (const type of cloudTemplate.resourceTypes) {
+        const keys: ReadonlySet<string> = getCloudAlertTemplateReadingKeys({
+          provider: "AZURE",
+          resourceType: type.toUpperCase(),
+        });
+
+        for (const query of cloudTemplate.queries) {
+          const key: string = getCloudAlertMetricReadingKey(query.metric)!;
+
+          expect(`${cloudTemplate.id} ${type} ${key}: ${keys.has(key)}`).toBe(
+            `${cloudTemplate.id} ${type} ${key}: true`,
+          );
+        }
+      }
+    }
+  });
+
+  test("an AWS or Google Cloud type keeps none: their names are fixed", () => {
+    expect(
+      getCloudAlertTemplateReadingKeys({
+        provider: "aws",
+        resourceType: "AWS::EC2::Instance",
+      }).size,
+    ).toBe(0);
+    expect(
+      getCloudAlertTemplateReadingKeys({
+        provider: "gcp",
+        resourceType: "gce_instance",
+      }).size,
+    ).toBe(0);
+    expect(
+      getCloudAlertTemplateReadingKeys({ provider: "", resourceType: "" }).size,
+    ).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Every Sum template, read-only and streamed
+// ---------------------------------------------------------------------------
+
+/*
+ * A streamed AWS connection writes a Sum metric once a minute, a read-only
+ * one once per five-minute CloudWatch period: the same failures are five
+ * times smaller points on one than on the other, and CloudWatch writes no
+ * point for a period without a failure. Every AWS template that reads a Sum
+ * metric totals it over its window (aggregatesWholeWindow), so each reads
+ * the same decision from both: a breach, a quiet window, and an empty one.
+ */
+const AWS_SUM_TEMPLATES: Array<CloudAlertTemplate> = ALL.filter(
+  (cloudTemplate: CloudAlertTemplate): boolean => {
+    return (
+      cloudTemplate.provider === CloudProvider.AWS &&
+      cloudTemplate.queries.some((query: CloudAlertQuery): boolean => {
+        return query.metric.aggregationType === AggregationType.Sum;
+      })
+    );
+  },
+);
+
+type Shape = "read-only" | "streamed";
+
+const SHAPES: Array<Shape> = ["read-only", "streamed"];
+
+/*
+ * The same counts, as each connection writes them: `failed` failures and
+ * `requests` requests in the window - a read-only account's in its three
+ * five-minute periods (12:05, 12:10, 12:15), the failures in one of them; a
+ * streamed account's a minute at a time, the failures spread over minutes.
+ */
+function countsAs(data: {
+  shape: Shape;
+  failed: number;
+  requests: number;
+}): { failed: Array<Point>; requests: Array<Point> } {
+  if (data.shape === "read-only") {
+    const third: number = data.requests / 3;
+
+    return {
+      failed: data.failed > 0 ? [{ minute: 10, value: data.failed }] : [],
+      requests: data.requests > 0 ? readOnly([third, third, third]) : [],
+    };
+  }
+
+  const failed: Array<Point> = [];
+
+  for (let index: number = 0; index < data.failed; index++) {
+    failed.push({ minute: 2 + (index % 25), value: 1 });
+  }
+
+  return {
+    failed: failed,
+    requests:
+      data.requests > 0
+        ? everyMinute({ from: 1, to: 25, value: data.requests / 25 })
+        : [],
+  };
+}
+
+function pointsFor(data: {
+  cloudTemplate: CloudAlertTemplate;
+  shape: Shape;
+  failed: number;
+  requests: number;
+}): Record<string, Array<Point>> {
+  const counts: { failed: Array<Point>; requests: Array<Point> } = countsAs({
+    shape: data.shape,
+    failed: data.failed,
+    requests: data.requests,
+  });
+  const points: Record<string, Array<Point>> = {};
+
+  for (const query of data.cloudTemplate.queries) {
+    if (query.alias === "requests") {
+      points[query.alias] = counts.requests;
+    } else if (query.alias === "failed") {
+      points[query.alias] = counts.failed;
+    } else {
+      // A second count (an ALB's own 5xx, a table's write throttles): none.
+      points[query.alias] = [];
+    }
+  }
+
+  return points;
+}
+
+describe.each(
+  AWS_SUM_TEMPLATES.map((cloudTemplate: CloudAlertTemplate) => {
+    return [cloudTemplate.id, cloudTemplate];
+  }),
+)(
+  "%s, read-only and streamed",
+  (_id: string, cloudTemplate: CloudAlertTemplate) => {
+    async function outcomeOf(data: {
+      shape: Shape;
+      failed: number;
+      requests: number;
+    }): Promise<Outcome> {
+      return await evaluate({
+        id: cloudTemplate.id,
+        pointsByAlias: pointsFor({ cloudTemplate, ...data }),
+      });
+    }
+
+    test("is read whole", () => {
+      expect(
+        MonitorStepMetricMonitorUtil.aggregatesWholeWindow(
+          stepOf(cloudTemplate).data!.metricMonitor,
+        ),
+      ).toBe(true);
+    });
+
+    test("a window that fails breaches on both, and is not healthy", async () => {
+      // 12 failures of 200 requests: 6%, past 5% and over the 20-request floor.
+      for (const shape of SHAPES) {
+        expect({
+          shape,
+          ...(await outcomeOf({ shape, failed: 12, requests: 200 })),
+        }).toEqual({ shape, breached: true, healthy: false });
+      }
+    });
+
+    test("a quiet window is healthy on both", async () => {
+      for (const shape of SHAPES) {
+        const failed: number = cloudTemplate.measure === "share" ? 2 : 0;
+
+        expect({
+          shape,
+          ...(await outcomeOf({ shape, failed, requests: 1000 })),
+        }).toEqual({ shape, breached: false, healthy: true });
+      }
+    });
+
+    test("an empty window fires on neither", async () => {
+      for (const shape of SHAPES) {
+        expect(
+          (await outcomeOf({ shape, failed: 0, requests: 0 })).breached,
+        ).toBe(false);
+      }
+    });
+
+    test("both read the same decision, whatever the counts", async () => {
+      for (const [failed, requests] of [
+        [1, 25],
+        [3, 40],
+        [5, 100],
+        [6, 120],
+        [25, 500],
+        [0, 60],
+      ] as Array<[number, number]>) {
+        expect(await outcomeOf({ shape: "read-only", failed, requests })).toEqual(
+          await outcomeOf({ shape: "streamed", failed, requests }),
+        );
+      }
+    });
+  },
+);

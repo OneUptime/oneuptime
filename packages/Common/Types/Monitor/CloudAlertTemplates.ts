@@ -71,9 +71,13 @@ import {
  * An Azure metric is stored with the aggregation its definition calls
  * primary, which only the read knows: the template reads the name the
  * resource's own reading of it was stored under
- * (CloudResourceReading.metric), and falls back to the aggregation Azure
- * documents for it - which a collector's azure_monitor receiver writes
- * among every other - when the resource has no reading of it yet.
+ * (CloudResourceReading.metric; a read keeps a reading of every metric a
+ * template reads, getCloudAlertTemplateReadingKeys). So a resource a
+ * connection reads is offered an Azure template once its readings name
+ * each metric the template reads - a monitor made before would read a
+ * name nothing is stored under, and never fire. A resource a collector
+ * reports instead (its azure_monitor receiver writes every aggregation) is
+ * read under the aggregation Azure documents for the metric.
  *
  * WINDOWS, AND READ-ONLY OR STREAMED ACCOUNTS
  *
@@ -273,6 +277,14 @@ export interface CloudAlertTemplateContext {
   resourceType?: string | null | undefined;
   telemetryAttributes?: Dictionary<string> | null | undefined;
   allocatedStorageGiB?: number | null | undefined;
+  // Its readings: the names its Azure metrics are stored under.
+  readings?: CloudResourceReadings | null | undefined;
+  /*
+   * Whether a cloud connection reads it (CloudResource.cloudConnectionId):
+   * then its Azure metrics are stored under the aggregation the read
+   * picked, which only its readings say (see the header).
+   */
+  isReadByConnection?: boolean | null | undefined;
 }
 
 export interface CloudAlertTemplate {
@@ -314,6 +326,13 @@ export interface CloudAlertTemplate {
     | undefined;
   // What it needs to know of the resource besides its attributes.
   requiresAllocatedStorage?: boolean | undefined;
+  /*
+   * Offered only to a resource that reports its metric, whoever reads it:
+   * a metric of one tier of a service, which the others never send (an
+   * Azure SQL database's DTUs, on the DTU purchasing model only). Without
+   * it a monitor on a vCore database would watch a metric nobody sends.
+   */
+  requiresReading?: boolean | undefined;
   incidentDescription: string;
   getMonitorStep: (args: CloudAlertTemplateArgs) => MonitorStep;
 }
@@ -1712,6 +1731,38 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
     incidentDescription:
       "Connections to the database failed with a system error. Its Resource Health in the Azure portal says whether Azure saw a problem; transient failures during a failover clear by themselves.",
   }),
+  define({
+    id: "cloud-azure-sql-dtu-high",
+    name: "DTU Usage High",
+    summary: "DTU use stays at 95% or more for 15 minutes.",
+    description: `Fires when every reading of dtu_consumption_percent in the past 15 minutes is at or above 95% of the database's DTUs: its queries wait for CPU, data or log I/O. Offered to a database on the DTU purchasing model, which is the one that reports it. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
+    category: "Utilization",
+    severity: "Warning",
+    provider: AZURE,
+    resourceTypes: ["Microsoft.Sql/servers/databases"],
+    measure: "sustained",
+    queries: [{ alias: VALUE, metric: azurePercent("dtu_consumption_percent") }],
+    comparedAlias: VALUE,
+    filterType: FilterType.GreaterThanOrEqualTo,
+    threshold: 95,
+    thresholdLabel: "at or above 95%",
+    requiresReading: true,
+    incidentDescription:
+      "The database used 95% or more of its DTUs for 15 minutes, so its queries wait. Query Performance Insight names the queries that use them; tune them, or move the database to a larger service objective.",
+  }),
+  anyInWindow({
+    id: "cloud-azure-sql-deadlocks",
+    name: "Deadlocks",
+    summary: "Queries of the database deadlock.",
+    description: `Fires when deadlock, totalled over the past 15 minutes, is 1 or more: two transactions held what the other needed, and Azure SQL ended one of them. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
+    category: "Errors",
+    provider: AZURE,
+    resourceTypes: ["Microsoft.Sql/servers/databases"],
+    metrics: [azureCount("deadlock")],
+    thresholdLabel: "1 deadlock or more",
+    incidentDescription:
+      "Transactions of the database deadlocked, and Azure SQL rolled one of each pair back. The deadlock graphs in Extended Events name the queries and the locks; access tables in the same order, keep transactions short, or add the index the queries scan for.",
+  }),
   sustainedAtOrAbove({
     id: "cloud-azure-sqlmi-high-cpu",
     name: "High CPU",
@@ -1755,6 +1806,19 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
     thresholdLabel: "1 failed connection or more",
     incidentDescription:
       "Connections to the PostgreSQL server failed. A client with a wrong password or one the firewall does not let in fails every time: the server's logs name it. Failures during a restart or a failover clear by themselves.",
+  }),
+  anyInWindow({
+    id: "cloud-azure-mysql-aborted-connections",
+    name: "Connections Aborted",
+    summary: "Attempts to connect to the server fail.",
+    description: `Fires when aborted_connections, totalled over the past 15 minutes, is 1 or more: a client could not connect, for a wrong password, a database it may not use or a handshake that timed out. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
+    category: "Errors",
+    provider: AZURE,
+    resourceTypes: ["Microsoft.DBforMySQL/flexibleServers"],
+    metrics: [azureCount("aborted_connections")],
+    thresholdLabel: "1 aborted connection or more",
+    incidentDescription:
+      "Attempts to connect to the MySQL server were aborted. A client with a wrong password, or one connecting to a database it may not use, fails every time: the server's error log names it. Attempts that time out point at the network or at a server that is too busy.",
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-cosmos-request-units",
@@ -2319,11 +2383,108 @@ export function getCloudAlertTemplatesFor(
 
     if (template.requiresAllocatedStorage) {
       const allocated: number = Number(context.allocatedStorageGiB);
-      return Number.isFinite(allocated) && allocated > 0;
+
+      if (!(Number.isFinite(allocated) && allocated > 0)) {
+        return false;
+      }
+    }
+
+    if (
+      template.provider === CloudProvider.Azure &&
+      (context.isReadByConnection || template.requiresReading) &&
+      !template.queries.every((query: CloudAlertQuery): boolean => {
+        return hasStoredNameReading({
+          metric: query.metric,
+          readings: context.readings,
+          needsName: context.isReadByConnection === true,
+        });
+      })
+    ) {
+      return false;
     }
 
     return true;
   });
+}
+
+/*
+ * Whether a resource's readings hold one of the metric: with the name it is
+ * stored under, when the read decides that name (an Azure metric read by a
+ * connection). A reading written before readings kept their names has
+ * none: the template waits for the next read.
+ */
+function hasStoredNameReading(data: {
+  metric: CloudAlertMetric;
+  readings?: CloudResourceReadings | null | undefined;
+  needsName: boolean;
+}): boolean {
+  const key: string | null = getCloudAlertMetricReadingKey(data.metric);
+  const reading: CloudResourceReadings[string] | undefined = key
+    ? data.readings?.[key]
+    : undefined;
+
+  if (!reading) {
+    return false;
+  }
+
+  return !data.needsName || Boolean(reading.metric && reading.metric.trim());
+}
+
+/*
+ * The readings a read keeps of a resource of this type so its templates
+ * read the right names: every metric an Azure template of the type reads
+ * (an AWS or Google Cloud metric's name is fixed, and needs none). Keys as
+ * getCloudReadingKey makes them.
+ */
+export function getCloudAlertTemplateReadingKeys(data: {
+  provider: string | null | undefined;
+  resourceType: string | null | undefined;
+}): ReadonlySet<string> {
+  return (
+    getReadingKeysByType().get(
+      `${(data.provider || "").trim().toLowerCase()}|${(data.resourceType || "")
+        .trim()
+        .toLowerCase()}`,
+    ) || NO_READING_KEYS
+  );
+}
+
+const NO_READING_KEYS: ReadonlySet<string> = new Set<string>();
+
+let readingKeysByType: Map<string, Set<string>> | null = null;
+
+// Built once: a read asks it for every datapoint it writes.
+function getReadingKeysByType(): Map<string, Set<string>> {
+  if (readingKeysByType) {
+    return readingKeysByType;
+  }
+
+  const byType: Map<string, Set<string>> = new Map<string, Set<string>>();
+
+  for (const template of CLOUD_ALERT_TEMPLATES) {
+    if (template.provider !== CloudProvider.Azure) {
+      continue;
+    }
+
+    for (const type of template.resourceTypes) {
+      const typeKey: string = `${template.provider}|${type.toLowerCase()}`;
+      const keys: Set<string> = byType.get(typeKey) || new Set<string>();
+
+      for (const query of template.queries) {
+        const key: string | null = getCloudAlertMetricReadingKey(query.metric);
+
+        if (key) {
+          keys.add(key);
+        }
+      }
+
+      byType.set(typeKey, keys);
+    }
+  }
+
+  readingKeysByType = byType;
+
+  return byType;
 }
 
 // The resource types some template is for, of one cloud or every cloud.

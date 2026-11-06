@@ -184,6 +184,7 @@ export function readCloudResourceRecommendationContext(
 ): MonitorRecommendationContext {
   const provider: unknown = record["cloudProvider"];
   const resourceType: unknown = record["cloudResourceType"];
+  const connectionId: unknown = record["cloudConnectionId"];
 
   return {
     cloudProvider: typeof provider === "string" ? provider : null,
@@ -194,6 +195,10 @@ export function readCloudResourceRecommendationContext(
     cloudReadings: readCloudResourceReadings(record["cloudReadings"]),
     cloudAllocatedStorageGiB: readAllocatedStorageGiB(
       record["cloudProperties"],
+    ),
+    // An ObjectID on a read row, a string in a plain record.
+    cloudReadByConnection: Boolean(
+      connectionId && String(connectionId).trim(),
     ),
   };
 }
@@ -237,7 +242,24 @@ export function describeCloudResourceRecommendationContext(
     resourceType: context.cloudResourceType,
     telemetryAttributes: attributes,
     allocatedStorageGiB: context.cloudAllocatedStorageGiB,
+    readings: context.cloudReadings,
+    isReadByConnection: context.cloudReadByConnection === true,
   });
+
+  /*
+   * An Azure resource its connection read before readings kept the names
+   * its metrics are stored under: its templates wait for the next read
+   * (getCloudAlertTemplatesFor), a few minutes away.
+   */
+  if (
+    (context.cloudProvider || "").toLowerCase() === CloudProvider.Azure &&
+    context.cloudReadByConnection === true &&
+    offered.length === 0
+  ) {
+    return translateTemplate(
+      "Its recommended monitors are offered once its connection reads its metrics again, within a few minutes.",
+    );
+  }
 
   if (
     (context.cloudProvider || "").toLowerCase() === CloudProvider.AWS &&
@@ -892,6 +914,7 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       "telemetryAttributes",
       "cloudReadings",
       "cloudProperties",
+      "cloudConnectionId",
     ],
     readContext: (model: BaseModel): MonitorRecommendationContext => {
       return readCloudResourceRecommendationContext(
