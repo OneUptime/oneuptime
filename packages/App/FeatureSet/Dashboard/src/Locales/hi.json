@@ -42246,7 +42246,7 @@
   "List Regions by their codes, such as us-east-1 or eu-central-1.": "क्षेत्रों को उनके कोड से लिखें, जैसे us-east-1 या eu-central-1।",
   "List at most {{count}} Regions.": "अधिकतम {{count}} क्षेत्र लिखें।",
   "Log groups": "लॉग समूह",
-  "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.": "इसके खाते का कनेक्शन CloudWatch Logs स्ट्रीम करने लगे, तो लॉग यहाँ दिखते हैं: Cloud > कनेक्ट करें में कनेक्शन पर मेट्रिक्स और लॉग स्ट्रीम करें चुनें, इस संसाधन के लॉग समूह के साथ।",
+  "Logs appear here once this resource's AWS account streams its log group: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "इस संसाधन का AWS खाता इसका लॉग समूह स्ट्रीम करने लगे, तो लॉग यहाँ दिखते हैं: क्लाउड > कनेक्ट करें में खाते की पंक्ति में मेट्रिक्स और लॉग स्ट्रीम करें चुनें।",
   "Logs endpoint": "लॉग एंडपॉइंट",
   "Logs of {{count}} log groups from {{region}}": "{{region}} से {{count}} लॉग समूहों के लॉग",
   "Logs of {{count}} log groups from {{region}}_one": "{{region}} से {{count}} लॉग समूह के लॉग",
@@ -45626,5 +45626,7 @@
   "`200` with `\"valid\": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.": "`\"valid\": true` के साथ `200` का मतलब है कि टोकन इस प्रोजेक्ट का है; `401` का मतलब है कि वह अज्ञात है, रद्द किया गया है या गलत लिखा गया है। हो सके तो इसे वर्कलोड के अंदर से चलाएँ, ताकि यह साबित हो कि जहाँ एक्सपोर्टर चलता है वहाँ से egress काम करता है।",
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` Node.js में {{detector}} रिसोर्स डिटेक्टर चालू करता है। दूसरी भाषाएँ इसे इनसे चालू करती हैं: {{others}}।",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, प्रोजेक्ट में साइन इन किया हुआ, Secret Manager API सक्षम के साथ (`gcloud services enable secretmanager.googleapis.com`)",
-  "OTLP Endpoint": "OTLP एंडपॉइंट"
+  "OTLP Endpoint": "OTLP एंडपॉइंट",
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "जिन लॉग में इस परिवेश की cloud.platform, cloud.account.id और cloud.region संसाधन विशेषताएँ होती हैं, वे यहाँ दिखते हैं; इसका AWS खाता CloudWatch Logs स्ट्रीम करने लगे, तो वे लॉग भी यहाँ दिखते हैं: क्लाउड > कनेक्ट करें में खाते की पंक्ति में मेट्रिक्स और लॉग स्ट्रीम करें चुनें।",
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "इस समय सीमा में इस संसाधन के लॉग समूह से कुछ नहीं आया। लंबी समय सीमा चुनें, या जाँचें कि इसका खाता यह लॉग समूह स्ट्रीम करता है: क्लाउड > कनेक्ट करें में खाते की पंक्ति में मेट्रिक्स और लॉग स्ट्रीम करें खोलें।"
 }

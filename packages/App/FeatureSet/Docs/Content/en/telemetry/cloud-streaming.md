@@ -79,6 +79,7 @@ The dialog asks every few seconds what arrived. Firehose delivers within a few m
 | Metrics | On the cloud resources they measure, with the names and attributes the connection's reads give them |
 | Logs | In the Logs explorer, under the connection's telemetry service, with the account, Region and log group as attributes |
 | Logs of a log group AWS names after a resource | On that resource too: its page in Cloud gains a **Logs** tab |
+| Logs of an App Runner service, an Elastic Beanstalk environment or an ECS task or cluster | On its environment in App Platforms too: its **Logs** tab |
 
 A log group is filed under a resource when AWS named it after one:
 
@@ -97,7 +98,9 @@ A log group is filed under a resource when AWS named it after one:
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Each log carries the resource's ID as `cloud.resource_id`, and a Lambda function's logs carry `faas.name` too, so they also appear on the function in Serverless. A log group of any other name streams all the same, under its account and Region. A log's severity is the one its message states, the way Lambda writes it.
+Each log carries the resource's ID as `cloud.resource_id`, and a Lambda function's logs carry `faas.name` too, so they also appear on the function in Serverless. A log group of any other name streams all the same, under its account and Region. A log's severity is the one its message states, the way Lambda, PostgreSQL or MySQL writes it.
+
+An App Runner service's, an Elastic Beanstalk environment's and an ECS cluster's logs also carry `cloud.platform`, and so do an ECS task's, from the log group the ECS console names `/ecs/<task-definition-family>`, with `aws.ecs.task.family`. With the account and Region, that puts them on their environment in App Platforms, which appears with them if no app has reported to it yet. They make no app: an app is named by its own telemetry, as [Cloud Environments](/docs/telemetry/cloud-environments) says.
 
 ## What the stack creates
 

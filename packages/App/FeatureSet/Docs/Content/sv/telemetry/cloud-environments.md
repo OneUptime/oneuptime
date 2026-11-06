@@ -32,6 +32,7 @@ flowchart TB
 - **Miljön samlar allt.** Varje arbetsbelastning med samma plattform, konto och region hamnar i en och samma miljö. Tjänsterna behåller sina egna rader under **Tjänster**.
 - **Varje uppgift som körs är en instans.** Miljöns flik **Instanser** listar uppgifterna, instanserna eller replikerna som körs, med CPU och minne i realtid där plattformen kan leverera dem.
 - **Varje tjänst är en app.** En ECS-tjänst, en Cloud Run-tjänst eller en Container App är en app i sin miljö, och OneUptime sparar de revisioner den kör: se [Appar och distributioner](#appar-och-distributioner).
+- **Strömmade CloudWatch-loggar räknas också.** Ett AWS-konto som [strömmar sina CloudWatch-loggar](/docs/telemetry/cloud-streaming) lägger loggarna från sina App Runner-tjänster, Elastic Beanstalk-miljöer samt ECS-uppgifter och -kluster på fliken **Loggar** i deras miljö, och miljön dyker upp med dem om ingen app har rapporterat till den ännu. De skapar ingen app: en app namnges efter sin egen telemetri.
 
 ## Innan du börjar
 
