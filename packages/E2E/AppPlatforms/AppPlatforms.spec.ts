@@ -1341,7 +1341,12 @@ test.describe("apps and their deploys", () => {
       await expect(panel.getByText(name, { exact: true })).toBeVisible();
     }
 
-    // Its own row and its environment's, read with the person's rights.
+    /*
+     * Its own row, read with the person's rights: by its page, by its
+     * Recommendations tab, and for the count beside the tab's name, which
+     * says all five are still to set up.
+     */
+    await expect(recommendationsTab).toHaveText("Recommendations5");
     const items: Array<{ modelName: string; id: string }> = (
       await recorded(page)
     ).itemRequests;
@@ -1349,7 +1354,7 @@ test.describe("apps and their deploys", () => {
       items.filter((item: { modelName: string; id: string }): boolean => {
         return item.modelName === "CloudApp";
       }).length,
-    ).toBe(2);
+    ).toBe(3);
     await screenshot(page, "app-platforms-app-recommendations-1280");
 
     await page.setViewportSize(PHONE);
@@ -1574,9 +1579,10 @@ test.describe("apps and their deploys", () => {
       "color",
       "rgb(180, 83, 9)",
     );
-    await expect(
-      page.getByRole("button", { name: ROLLBACK_MARKER }),
-    ).toHaveCount(2);
+    // A mark that opens nothing is drawn as an image, not a button.
+    await expect(page.getByRole("img", { name: ROLLBACK_MARKER })).toHaveCount(
+      2,
+    );
     await screenshot(page, "app-platforms-app-rolled-back-1280");
 
     await open(page, `${REPORTS_APP}?tab=Revisions`);
@@ -2562,7 +2568,6 @@ test.describe("in the reader's language", () => {
 test.describe("an environment's recommended monitors and scheduled maintenance", () => {
   const RECOMMENDATIONS: string = `${CHECKOUT}/recommendations`;
   const SCHEDULED_MAINTENANCE: string = `${CHECKOUT}/scheduled-maintenance`;
-  const INVENTORY_ID: string = "75000000-0000-4000-8000-000000000002";
   const TOO_LONG_APP_ID: string = "75000000-0000-4000-8000-000000000007";
   const HELD_EVENT: string = "Move the production cluster to Graviton";
 
@@ -2852,9 +2857,9 @@ test.describe("an environment's recommended monitors and scheduled maintenance",
     await expect(
       page.getByRole("term").filter({ hasText: "Affected Resources" }),
     ).toHaveCount(0);
-    await expect(page.getByRole("term").filter({ hasText: "Title" })).toHaveCount(
-      2,
-    );
+    await expect(
+      page.getByRole("term").filter({ hasText: "Title" }),
+    ).toHaveCount(2);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "app-platforms-environment-maintenance-768");
 
@@ -2935,7 +2940,10 @@ test.describe("an environment's recommended monitors and scheduled maintenance",
     await expect(notice(page)).toContainText(
       "Until then, the monitors of its apps open no incidents or alerts.",
     );
-    await screenshot(page, "app-platforms-environment-overview-maintenance-1280");
+    await screenshot(
+      page,
+      "app-platforms-environment-overview-maintenance-1280",
+    );
 
     // Another environment's pages, and checkout's with nothing held, say nothing.
     await open(page, `${REPORTS_APP}?maintenance=held`);
@@ -2966,9 +2974,9 @@ test.describe("an environment's recommended monitors and scheduled maintenance",
     await page.setViewportSize(PHONE);
     await open(page, `${CHECKOUT_APP}?maintenance=held&lang=fa`);
     await expect(notice(page)).toContainText(PERSIAN["Under maintenance"]!);
-    await expect(notice(page).locator("bdi", { hasText: HELD_EVENT })).toHaveCount(
-      1,
-    );
+    await expect(
+      notice(page).locator("bdi", { hasText: HELD_EVENT }),
+    ).toHaveCount(1);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "app-platforms-app-maintenance-390-fa");
   });

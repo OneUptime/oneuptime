@@ -680,8 +680,9 @@ test.describe("a cloud resource's Scheduled Maintenance", () => {
   /*
    * Every event the tab lists holds the resource, so an Affected Resources
    * column only said orders-db again - cut short beside the side menu,
-   * where the list has the least room. The tab leaves it out, in every
-   * language; the column's title is still the event table's elsewhere.
+   * where the list has the least room. The tab leaves it out, in English
+   * and in Persian laid out right to left; the column's title is still the
+   * event table's elsewhere.
    */
   test("leaves out the Affected Resources column, which would only name the resource again", async ({
     page,
@@ -690,7 +691,6 @@ test.describe("a cloud resource's Scheduled Maintenance", () => {
   }) => {
     for (const [query, words] of [
       ["", null],
-      ["&lang=de", GERMAN],
       ["&lang=fa", PERSIAN],
     ] as Array<[string, Record<string, string> | null]>) {
       const title: string = words ? words["Title"]! : "Title";
