@@ -67,6 +67,7 @@ import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import TableEmptyState, {
   TableEmptyStateKind,
@@ -280,11 +281,25 @@ const StoryItemFacts: FunctionComponent<{
       )
     : null;
 
+  /*
+   * "413 events like this · until 11:51": the separator the reader's
+   * language sets facts apart with - a bullet on a Persian page, where a
+   * middle dot beside Persian digits reads as a zero (InlineSeparator).
+   */
+  const untilPart: ReactElement = until ? (
+    <>
+      <InlineSeparator />
+      {until}
+    </>
+  ) : (
+    <></>
+  );
+
   if (item.kind === SecurityCaseStoryItemKind.Events && (item.count || 0) > 1) {
     facts.push(
       <span key="count">
         {translator.translatePlural(STORY_EVENTS_IN_RUN, item.count || 0)}
-        {until ? ` · ${until}` : ""}
+        {untilPart}
       </span>,
     );
   }
@@ -293,7 +308,7 @@ const StoryItemFacts: FunctionComponent<{
     facts.push(
       <span key="fired">
         {translator.translatePlural(STORY_FIRED, item.count || 1)}
-        {until ? ` · ${until}` : ""}
+        {untilPart}
       </span>,
     );
   }

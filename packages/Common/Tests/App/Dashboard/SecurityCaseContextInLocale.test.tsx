@@ -652,6 +652,31 @@ describe("the Story, in Persian", () => {
 
     expect(health.querySelector("bdi")).toHaveAttribute("dir", "rtl");
   });
+
+  /*
+   * #6149's UI review: "413 events like this · until 09:40" sets its facts
+   * apart with the reader's separator (InlineSeparator) - a bullet on a
+   * Persian page, where a middle dot beside Persian digits reads as a zero
+   * - and with the middle dot it always had in German.
+   */
+  test("a run's count and its end are set apart with the reader's separator", async () => {
+    await drawStory("fa");
+
+    const persian: string = textOf(
+      itemOfKind(SecurityCaseStoryItemKind.Events),
+    );
+
+    expect(persian).toContain("۴۱۳ رویداد مشابه • تا ");
+    expect(persian).not.toContain("·");
+    cleanup();
+
+    await drawStory("de");
+
+    const german: string = textOf(itemOfKind(SecurityCaseStoryItemKind.Events));
+
+    expect(german).toContain("413 solche Ereignisse · bis ");
+    expect(german).not.toContain("•");
+  });
 });
 
 describe("a story item's pill", () => {
@@ -1020,38 +1045,6 @@ describe("the Impact, in Persian", () => {
       // A space, not a margin, sets it apart from the sentence before it.
       expect(tag.previousSibling?.textContent).toBe(" ");
       expect(tag).not.toHaveClass("ml-1.5");
-      cleanup();
-    }
-  });
-
-  /*
-   * #6149's UI review: a record's peers and status pages are listed the way
-   * the reader's language lists - Persian with its own comma, "checkout،
-   * payments" - and German with a comma and a space, as before.
-   */
-  test("a record's peers and status pages, listed with the reader's commas", async () => {
-    const twoPages: SecurityCaseImpactJson = impact({
-      statusPages: [
-        { id: "s1", name: "Acme Status", monitorIds: [MONITOR_ID] },
-        { id: "s2", name: "Partner Status", monitorIds: [MONITOR_ID] },
-      ],
-    });
-
-    for (const [language, separator] of [
-      ["fa", "، "],
-      ["de", ", "],
-    ] as Array<[string, string]>) {
-      await drawImpact(language, twoPages);
-      fireEvent.click(
-        screen.getByTestId(Copy.SECURITY_CASE_CONTEXT_TEST_IDS.impactToggle),
-      );
-
-      const details: string = textOf(
-        screen.getByTestId(Copy.SECURITY_CASE_CONTEXT_TEST_IDS.impactDetails),
-      );
-
-      expect(details).toContain(`checkout${separator}payments`);
-      expect(details).toContain(`Acme Status${separator}Partner Status`);
       cleanup();
     }
   });

@@ -3533,6 +3533,20 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
         published.getByTestId("cloud-change-detail-written"),
       ).toHaveCount(0);
       await expect(published).toHaveCSS("direction", readerDirection);
+      /*
+       * #6149's UI review: Azure's tracking id is kept whole on its line,
+       * never broken at its hyphen ("7NQ8-" over "TX0." in German).
+       */
+      const identifier: Locator = published.getByTestId(
+        "cloud-change-detail-identifier",
+      );
+      await expect(identifier).toHaveText("7NQ8-TX0");
+      await expect(identifier).toHaveCSS("white-space", "nowrap");
+      expect(
+        await identifier.evaluate((element: Element): number => {
+          return element.getClientRects().length;
+        }),
+      ).toBe(1);
 
       // The resource's: Azure's title as written, then what caused it.
       const caused: Locator = details.nth(1);

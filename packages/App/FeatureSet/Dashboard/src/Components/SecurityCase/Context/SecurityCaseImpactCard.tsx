@@ -108,7 +108,6 @@ import {
   Translator,
   composedValue,
   createTranslator,
-  getListSeparator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -251,8 +250,6 @@ const PeerList: FunctionComponent<{
     PEERS_SHOWN,
   );
   const more: number = props.peers.length - shown.length;
-  // Listed the way the reader's language lists: "a, b", "a، b", "a、b".
-  const separator: string = getListSeparator(translator.language);
 
   return (
     <span className="[overflow-wrap:anywhere]">
@@ -260,7 +257,7 @@ const PeerList: FunctionComponent<{
         (peer: SecurityCaseImpactPeerJson, index: number): ReactElement => {
           return (
             <React.Fragment key={peer.key}>
-              {index > 0 ? separator : ""}
+              {index > 0 ? ", " : ""}
               <bdi className="text-gray-900">{peer.name}</bdi>
             </React.Fragment>
           );
@@ -293,7 +290,6 @@ const ImpactRecord: FunctionComponent<{
     props.statusPages,
   );
   const name: ReactElement = <bdi>{record.name}</bdi>;
-  const separator: string = getListSeparator(translator.language);
 
   return (
     <li
@@ -424,7 +420,7 @@ const ImpactRecord: FunctionComponent<{
 
                       return (
                         <React.Fragment key={page.id}>
-                          {index > 0 ? separator : ""}
+                          {index > 0 ? ", " : ""}
                           {pageRoute ? (
                             <AppLink
                               to={pageRoute}

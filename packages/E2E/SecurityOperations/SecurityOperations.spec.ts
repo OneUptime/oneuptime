@@ -463,6 +463,37 @@ async function fixture(page: Page): Promise<FixtureState> {
   });
 }
 
+/*
+ * #6149's UI review: the last change's version tag is one piece on its line -
+ * never "Version" at a line's end with the version under it - its words in
+ * the page's font and only the version in monospace.
+ */
+async function expectVersionTagWhole(lastChange: Locator): Promise<void> {
+  const shape: { lines: number; wordsFont: string; versionFont: string } =
+    await lastChange
+      .getByTestId("security-case-impact-last-change-version")
+      .evaluate(
+        (
+          tag: Element,
+        ): { lines: number; wordsFont: string; versionFont: string } => {
+          const version: Element | null = tag.querySelector("bdi");
+
+          return {
+            lines: Math.round(
+              tag.getBoundingClientRect().height /
+                parseFloat(getComputedStyle(tag).lineHeight),
+            ),
+            wordsFont: getComputedStyle(tag).fontFamily,
+            versionFont: version ? getComputedStyle(version).fontFamily : "",
+          };
+        },
+      );
+
+  expect(shape.lines).toBe(1);
+  expect(shape.wordsFont).not.toMatch(/mono/i);
+  expect(shape.versionFont).toMatch(/mono/i);
+}
+
 async function screenshot(
   page: Page,
   name: string,
@@ -4533,6 +4564,11 @@ test.describe("a case", () => {
       /Deployed runner image 2026\.10\.2 auf build-runner-07, .+: vor der ersten Erkennung/,
     );
     await expect(lastChange).toContainText("Version 2026.10.2");
+    await expectVersionTagWhole(lastChange);
+    // At 1280 the German sentence fills its line: the tag moves under it whole.
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await expectVersionTagWhole(lastChange);
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await impact
       .getByRole("button", {
         name: "Gefährdete Datensätze anzeigen",
@@ -4580,6 +4616,7 @@ test.describe("a case", () => {
       lastChange.getByTestId("security-case-impact-last-change-title"),
     ).toHaveCSS("direction", "ltr");
     await expect(impact).toHaveCSS("direction", "rtl");
+    await expectVersionTagWhole(lastChange);
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "case-impact-fa");
 
@@ -4603,6 +4640,7 @@ test.describe("a case", () => {
     await expect(lastChange).toContainText("Letzte Änderung", {
       timeout: 30000,
     });
+    await expectVersionTagWhole(lastChange);
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "case-impact-de-390-dark");
   });
