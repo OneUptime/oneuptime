@@ -2232,12 +2232,15 @@ describe("the create form", () => {
     );
 
     expect(prefill).toContain(
-      'export const SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS: Array<AffectedResourcesPayloadKey> =\n  [\n    ...MONITOR_LINKED_RESOURCE_KEYS.filter(\n      (key: MonitorLinkedResourceKey): boolean => {\n        return key !== "cloudResources";\n      },\n    ),\n    "networkSites",\n  ];',
+      'export const SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS: Array<AffectedResourcesPayloadKey> =\n  [...MONITOR_LINKED_RESOURCE_KEYS, "networkSites"];',
     );
-    // A maintenance event holds no cloud resources, and the page says so.
+    /*
+     * A maintenance event holds cloud resources too, and silences their
+     * monitors while it is in progress: the page says so.
+     */
     expect(prefill).toContain('"cloudResources",\n  "services",\n];');
     expect(creating).toContain(
-      "Remove any you do not want. Cloud resources are not added: a maintenance event does not hold them.",
+      "Remove any you do not want. Cloud resources are added too: while the event is in progress, their monitors open no incident or alert.",
     );
     expect(suggestions).toContain(
       'export const ADD_ALL_SUGGESTED_STATUS_PAGES: string = translationKey("Add all");',
@@ -2291,6 +2294,7 @@ describe("starting from a resource or a template", () => {
         CreateFromRecordKind.StorageArray,
         CreateFromRecordKind.IoTFleet,
         CreateFromRecordKind.DatabaseServer,
+        CreateFromRecordKind.CloudResource,
         CreateFromRecordKind.Service,
         CreateFromRecordKind.NetworkSite,
       ].sort(),
@@ -2306,7 +2310,7 @@ describe("starting from a resource or a template", () => {
     }
 
     expect(start).toContain(
-      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
+      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
     );
   });
 

@@ -2148,10 +2148,21 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
       {isConfirmingReset ? (
         <ConfirmModal
           title="Reset the AI agent?"
-          description={translator.translateTemplate(
-            "This revokes the {{agentName}}'s key. The agent registers again on its own within a few minutes. Use it if the agent moved or its key may have leaked.",
-            { agentName: translatableTerm(descriptor.agentName) },
-          )}
+          description={
+            /*
+             * A Cloud AI agent comes back only with a new key of its
+             * account's, which its setup command carries: say so before.
+             */
+            descriptor.isCloudAccount
+              ? translator.translateTemplate(
+                  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.",
+                  { agentName: translatableTerm(descriptor.agentName) },
+                )
+              : translator.translateTemplate(
+                  "This revokes the {{agentName}}'s key. The agent registers again on its own within a few minutes. Use it if the agent moved or its key may have leaked.",
+                  { agentName: translatableTerm(descriptor.agentName) },
+                )
+          }
           submitButtonText="Reset agent"
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isActing}
@@ -2168,10 +2179,15 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                   resourceId: modelId,
                 });
               },
-              notice: translator.translateTemplate(
-                "The {{agent}} was reset. It reconnects on its own within a few minutes.",
-                { agent: translatableTerm(descriptor.agentName) },
-              ),
+              notice: descriptor.isCloudAccount
+                ? translator.translateTemplate(
+                    "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.",
+                    { agent: translatableTerm(descriptor.agentName) },
+                  )
+                : translator.translateTemplate(
+                    "The {{agent}} was reset. It reconnects on its own within a few minutes.",
+                    { agent: translatableTerm(descriptor.agentName) },
+                  ),
               isConfirmed: true,
             }).catch(() => {
               // handled inside runPageAction

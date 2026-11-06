@@ -98,6 +98,16 @@ import {
   DataPipelineAlertTemplate,
   getAllDataPipelineAlertTemplates,
 } from "../DataPipelineAlertTemplates";
+import {
+  CloudAlertTemplate,
+  getAllCloudAlertTemplates,
+  getCloudAlertTemplatesFor,
+} from "../CloudAlertTemplates";
+import {
+  CloudAppAlertTemplate,
+  getAllCloudAppAlertTemplates,
+  getCloudAppAlertTemplatesFor,
+} from "../CloudAppAlertTemplates";
 
 /*
  * A resource type's entry in the registry.
@@ -129,7 +139,9 @@ export interface MonitorRecommendationResourceTypeDefinition {
     | "serviceId"
     | "databaseServerId"
     | "dataStoreId"
-    | "dataPipelineId";
+    | "dataPipelineId"
+    | "cloudResourceId"
+    | "cloudAppId";
   icon: IconProp;
   /*
    * What to recommend for ONE resource of this type.
@@ -180,6 +192,8 @@ interface StructuralAlertTemplate {
   description: string;
   category: string;
   severity: MonitorRecommendationSeverity;
+  // How often its monitor is evaluated, on the catalogs that say.
+  monitoringInterval?: string | undefined;
 }
 
 type MonitorStepBuilder = (args: MonitorRecommendationArgs) => MonitorStep;
@@ -205,6 +219,9 @@ function normalize(data: {
     category: data.template.category,
     severity: data.template.severity,
     getMonitorStep: data.getMonitorStep,
+    ...(data.template.monitoringInterval
+      ? { monitoringInterval: data.template.monitoringInterval }
+      : {}),
   };
 }
 
@@ -852,6 +869,109 @@ function getDataPipelineRecommendations(): Array<MonitorRecommendation> {
   );
 }
 
+/*
+ * The cloud resource adapter - two functions for the same reason as
+ * Service's. `getCloudResourceRecommendations` answers "what should THIS
+ * resource be offered": its cloud's and its type's templates, once its
+ * metrics' attributes are recorded (getCloudAlertTemplatesFor); each one's
+ * monitor is built on those attributes, its readings (an Azure metric's
+ * stored name) and its allocated storage, which is why the context is
+ * captured here rather than passed per monitor. With no context, a
+ * resource is offered nothing: there is no cloud-agnostic template.
+ * `getAllCloudResourceRecommendations` answers "what can a cloud resource
+ * ever be offered", for resolving an id and the registry-wide checks.
+ */
+function normalizeCloudTemplate(
+  template: CloudAlertTemplate,
+  context?: MonitorRecommendationContext | undefined,
+): MonitorRecommendation {
+  return normalize({
+    resourceType: MonitorRecommendationResourceType.CloudResource,
+    monitorType: template.monitorType,
+    template: template,
+    getMonitorStep: (args: MonitorRecommendationArgs) => {
+      return template.getMonitorStep({
+        cloudResourceId: args.resourceIdentifier,
+        telemetryAttributes: context?.cloudTelemetryAttributes || {},
+        readings: context?.cloudReadings,
+        allocatedStorageGiB: context?.cloudAllocatedStorageGiB,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+      });
+    },
+  });
+}
+
+function getCloudResourceRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  return getCloudAlertTemplatesFor({
+    provider: context?.cloudProvider,
+    resourceType: context?.cloudResourceType,
+    telemetryAttributes: context?.cloudTelemetryAttributes,
+    allocatedStorageGiB: context?.cloudAllocatedStorageGiB,
+    readings: context?.cloudReadings,
+    isReadByConnection: context?.cloudReadByConnection === true,
+  }).map((template: CloudAlertTemplate) => {
+    return normalizeCloudTemplate(template, context);
+  });
+}
+
+function getAllCloudResourceRecommendations(): Array<MonitorRecommendation> {
+  return getAllCloudAlertTemplates().map((template: CloudAlertTemplate) => {
+    return normalizeCloudTemplate(template);
+  });
+}
+
+/*
+ * The App Platforms app adapter, for the same reason as the cloud
+ * resource's: each monitor is scoped by the app's own telemetry filter,
+ * captured from the context, and an app whose telemetry cannot be told
+ * apart from its environment's is offered nothing.
+ */
+function normalizeCloudAppTemplate(
+  template: CloudAppAlertTemplate,
+  context?: MonitorRecommendationContext | undefined,
+): MonitorRecommendation {
+  return normalize({
+    resourceType: MonitorRecommendationResourceType.CloudApp,
+    monitorType: template.monitorType,
+    template: template,
+    getMonitorStep: (args: MonitorRecommendationArgs) => {
+      return template.getMonitorStep({
+        cloudAppId: args.resourceIdentifier,
+        telemetryFilters: context?.cloudAppTelemetryFilters || {},
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+      });
+    },
+  });
+}
+
+function getCloudAppRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  return getCloudAppAlertTemplatesFor({
+    telemetryFilters: context?.cloudAppTelemetryFilters,
+  }).map((template: CloudAppAlertTemplate) => {
+    return normalizeCloudAppTemplate(template, context);
+  });
+}
+
+function getAllCloudAppRecommendations(): Array<MonitorRecommendation> {
+  return getAllCloudAppAlertTemplates().map(
+    (template: CloudAppAlertTemplate) => {
+      return normalizeCloudAppTemplate(template);
+    },
+  );
+}
+
 const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefinition> =
   [
     {
@@ -998,6 +1118,24 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       identifierFieldName: "dataPipelineId",
       icon: IconProp.Workflow,
       getRecommendations: getDataPipelineRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.CloudResource,
+      monitorTypes: [MonitorType.Metrics],
+      resourceLabel: "Cloud Resource",
+      identifierFieldName: "cloudResourceId",
+      icon: IconProp.Cloud,
+      getRecommendations: getCloudResourceRecommendations,
+      getAllPossibleRecommendations: getAllCloudResourceRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.CloudApp,
+      monitorTypes: [MonitorType.Traces, MonitorType.Metrics],
+      resourceLabel: "App",
+      identifierFieldName: "cloudAppId",
+      icon: IconProp.Cube,
+      getRecommendations: getCloudAppRecommendations,
+      getAllPossibleRecommendations: getAllCloudAppRecommendations,
     },
   ];
 

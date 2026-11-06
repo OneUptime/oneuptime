@@ -671,7 +671,7 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
     return (
       <div className="space-y-3">
         {error ? (
-          <p className="text-sm text-red-500">
+          <p className="text-sm text-red-700">
             {translator.translateTemplate(
               "Could not refresh insights: {{error}}",
               { error: error },
@@ -743,7 +743,7 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
         </div>
 
         {loadMoreError ? (
-          <p className="text-center text-sm text-red-500">
+          <p className="text-center text-sm text-red-700">
             {translator.translateTemplate(
               "Could not load more insights: {{error}}",
               { error: loadMoreError },

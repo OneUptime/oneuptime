@@ -21,7 +21,7 @@ import {
 } from "node:test";
 import AgentStatus from "../AgentStatus";
 import { AgentConfig } from "../Config";
-import IngestClient from "../IngestClient";
+import IngestClient, { IngestResponse } from "../IngestClient";
 import JobLoop, {
   ClaimedJob,
   DEFAULT_JOB_TIMINGS,
@@ -29,12 +29,14 @@ import JobLoop, {
   JobTimings,
   NOT_RUN_LEASE_LOST_MESSAGE,
   NOT_RUN_SHUTTING_DOWN_MESSAGE,
+  NOT_RUN_STOPPED_MESSAGE,
   PAYLOAD_CREDENTIAL_FIELDS,
   RESOURCE_COMMAND_STEP_TYPE,
   getJobRefusal,
   getResultRetryDelayMs,
   normalizeJobTimeout,
   parseClaimedJob,
+  readStopReason,
 } from "../JobLoop";
 import { AgentPosture } from "../Posture";
 import { AgentIdentity, AgentSession } from "../Registration";
@@ -202,6 +204,69 @@ describe("claimed jobs, before anything runs", () => {
     assert.match(
       getJobRefusal(job(), AiResourceType.PodmanHost)!,
       /^Refused by the Podman AI agent: this command is for a Docker host resource, and this agent serves a Podman host\.$/,
+    );
+  });
+
+  test("a job heartbeat says to stop with stop: true alone, and why", () => {
+    const answer: (body: Record<string, unknown> | null) => IngestResponse = (
+      body: Record<string, unknown> | null,
+    ): IngestResponse => {
+      return {
+        kind: "ok",
+        status: 200,
+        body,
+        message: "",
+        retryAfterSeconds: null,
+      };
+    };
+
+    assert.strictEqual(
+      readStopReason(
+        answer({
+          status: "ok",
+          stop: true,
+          reason:
+            " OneUptime AI was turned off for this project (Enable AI) while its agent held this command. ",
+        }),
+      ),
+      "OneUptime AI was turned off for this project (Enable AI) while its agent held this command.",
+    );
+    // No reason given: still a stop.
+    assert.strictEqual(
+      readStopReason(answer({ status: "ok", stop: true })),
+      "OneUptime said to stop this command.",
+    );
+    assert.strictEqual(
+      readStopReason(
+        answer({ status: "ok", stop: true, reason: "x".repeat(900) }),
+      )!.length,
+      500,
+    );
+
+    for (const body of [
+      { status: "ok" },
+      { status: "ok", stop: "true" },
+      { status: "ok", stop: 1 },
+      { status: "ok", stop: false, reason: "no" },
+      null,
+    ]) {
+      assert.strictEqual(
+        readStopReason(answer(body)),
+        null,
+        JSON.stringify(body),
+      );
+    }
+
+    // Only an answer that renewed the lease can say it.
+    assert.strictEqual(
+      readStopReason({
+        kind: "other",
+        status: 404,
+        body: { stop: true, reason: "gone" },
+        message: "HTTP 404",
+        retryAfterSeconds: null,
+      }),
+      null,
     );
   });
 
@@ -447,6 +512,80 @@ describe("the job loop", () => {
     assert.deepStrictEqual(resultBodies(), [
       { success: false, output: "", errorMessage: NOT_RUN_LEASE_LOST_MESSAGE },
     ]);
+  });
+
+  /*
+   * Enable AI turned off after the claim: the job's heartbeat says to stop.
+   * Right before the command starts, it does not start; while it runs, the
+   * command is told (RunControl) - a cloud change not yet sent is never sent.
+   */
+  test("told to stop right before running: nothing runs, and the result says why", async () => {
+    server.script("/claim-next-job", jobReply({}));
+    server.script("/job/:id/heartbeat", {
+      json: {
+        status: "ok",
+        stop: true,
+        reason:
+          "OneUptime AI was turned off for this project (Enable AI) while its agent held this command.",
+      },
+    });
+
+    const fake: FakeExecutor = executor();
+
+    await loop({ executor: fake }).tick();
+
+    assert.strictEqual(docker.getInvocations().length, 0);
+    assert.strictEqual(fake.ran.length, 0);
+    assert.deepStrictEqual(resultBodies(), [
+      {
+        success: false,
+        output: "",
+        errorMessage: `${NOT_RUN_STOPPED_MESSAGE}: OneUptime AI was turned off for this project (Enable AI) while its agent held this command.`,
+      },
+    ]);
+    assert.strictEqual(
+      NOT_RUN_STOPPED_MESSAGE,
+      "The AI agent did not run this command: when it was about to start, OneUptime said to stop",
+    );
+  });
+
+  test("told to stop while running: the command is told, and its result is still reported", async () => {
+    server.script("/claim-next-job", jobReply({}));
+    // The pre-spawn heartbeat lets it start; every later one says to stop.
+    server.script("/job/:id/heartbeat", { json: { status: "ok" } });
+    server.setDefault("/job/:id/heartbeat", {
+      json: { status: "ok", stop: true, reason: "Enable AI is off." },
+    });
+
+    docker.setBehaviour({ stdout: "slow\n", sleepMs: 600 });
+
+    const fake: FakeExecutor = executor();
+
+    await loop({
+      executor: fake,
+      timings: { jobHeartbeatIntervalMs: 100 },
+    }).tick();
+
+    assert.strictEqual(docker.getInvocations().length, 1);
+    assert.strictEqual(fake.controls.length, 1);
+    assert.strictEqual(fake.controls[0]!.stopReason(), "Enable AI is off.");
+    assert.strictEqual(resultBodies().length, 1);
+  });
+
+  test("a command that is never told to stop sees no reason", async () => {
+    server.script("/claim-next-job", jobReply({}));
+
+    docker.setBehaviour({ stdout: "slow\n", sleepMs: 300 });
+
+    const fake: FakeExecutor = executor();
+
+    await loop({
+      executor: fake,
+      timings: { jobHeartbeatIntervalMs: 100 },
+    }).tick();
+
+    assert.ok(server.requestsTo("/job/:id/heartbeat").length >= 2);
+    assert.strictEqual(fake.controls[0]!.stopReason(), null);
   });
 
   test("a pre-spawn heartbeat with no usable answer does not stop the command", async () => {

@@ -11,7 +11,8 @@
  * A choice is always made: while nothing is stored, the first choice is the
  * one in force, and is drawn as chosen. A stored value that is none of the
  * choices - a workflow written by hand - leaves every row unchosen, and the
- * note under them says what the setting holds.
+ * note under them says what the setting holds, drawn as every field's
+ * error is (FieldError).
  */
 
 import {
@@ -22,6 +23,7 @@ import {
 import { translationKey, Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import ChoiceRows, { ChoiceRowOption } from "../../ChoiceRows/ChoiceRows";
+import FieldError from "../../Forms/Fields/FieldError";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export const UNKNOWN_CHOICE_NOTE: string = translationKey(
@@ -82,18 +84,15 @@ const ChoiceSettingField: FunctionComponent<ChoiceSettingFieldProps> = (
         />
       </div>
       {unknownValue !== null && (
-        <p
-          role="alert"
-          data-testid={`${dataTestId}-unknown`}
-          className="mt-1 text-sm text-red-400"
-        >
-          {translator.translateTemplate(UNKNOWN_CHOICE_NOTE, {
+        <FieldError
+          dataTestId={`${dataTestId}-unknown`}
+          message={translator.translateTemplate(UNKNOWN_CHOICE_NOTE, {
             value:
               unknownValue.length > 60
                 ? `${unknownValue.slice(0, 60)}…`
                 : unknownValue,
           })}
-        </p>
+        />
       )}
     </div>
   );

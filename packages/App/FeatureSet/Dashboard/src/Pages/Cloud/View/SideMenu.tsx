@@ -2,6 +2,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import IncidentStateUtil from "../../../Utils/IncidentState";
 import AlertStateUtil from "../../../Utils/AlertState";
+import ScheduledMaintenanceStateUtil from "../../../Utils/ScheduledMaintenanceState";
 import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -17,6 +18,8 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -26,6 +29,8 @@ import React, {
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
+import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -35,14 +40,21 @@ export interface ComponentProps {
    * Logs, after Metrics.
    */
   hasStreamedLogs?: boolean | undefined;
+  /*
+   * A type OneUptime recommends monitors for (CloudAlertTemplates): its
+   * menu has Recommendations, after its Overview. A VPC's, a bucket's or a
+   * role's would only ever say there are none.
+   */
+  hasRecommendations?: boolean | undefined;
 }
 
 /*
  * A cloud resource's menu in Cloud. Its metrics are what its provider's
  * monitoring publishes about it, so it has no traces or instances of its
- * own; it has the Changes its account's activity log records, and - for a
- * kind of resource a CloudWatch Logs group names - the logs a stream
- * delivers. An environment's menu is App Platforms'
+ * own; it has the monitors OneUptime recommends from those metrics, the
+ * Changes its account's activity log records, the maintenance events that
+ * hold it, and - for a kind of resource a CloudWatch Logs group names - the
+ * logs a stream delivers. An environment's menu is App Platforms'
  * (Pages/AppPlatforms/View/SideMenu).
  */
 const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
@@ -56,6 +68,10 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
   const [unresolvedAlertStates, setUnresolvedAlertStates] = useState<
     Array<AlertState>
   >([]);
+  const [
+    activeScheduledMaintenanceStates,
+    setActiveScheduledMaintenanceStates,
+  ] = useState<Array<ScheduledMaintenanceState>>([]);
 
   const fetchStates: PromiseVoidFunction = async (): Promise<void> => {
     if (!projectId) {
@@ -73,6 +89,16 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
     try {
       setUnresolvedAlertStates(
         await AlertStateUtil.getUnresolvedAlertStates(projectId),
+      );
+    } catch {
+      // ignore — the badge simply shows no count
+    }
+
+    try {
+      setActiveScheduledMaintenanceStates(
+        await ScheduledMaintenanceStateUtil.getActiveScheduledMaintenanceStates(
+          projectId,
+        ),
       );
     } catch {
       // ignore — the badge simply shows no count
@@ -98,6 +124,28 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
+        {/*
+         * The monitors OneUptime recommends for this resource, from the
+         * metrics its connection reads, for a type it recommends some for.
+         * The badge counts what is still to set up for its type (see
+         * RecommendationsSideMenuItem); what they open lands on its
+         * Incidents and Alerts, as each is linked to it.
+         */}
+        {props.hasRecommendations ? (
+          <RecommendationsSideMenuItem
+            link={{
+              title: "Recommendations",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            resourceType={MonitorRecommendationResourceType.CloudResource}
+            resourceId={props.modelId}
+          />
+        ) : (
+          <></>
+        )}
         <SideMenuItem
           link={{
             title: "Documentation",
@@ -149,8 +197,9 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
 
       {/*
        * The incidents and alerts linked to this resource - by a person, by
-       * the monitor that watches it, or by OneUptime AI - and what its
-       * account's activity log recorded about it.
+       * the monitor that watches it, or by OneUptime AI - the maintenance
+       * events that hold it, and what its account's activity log recorded
+       * about it.
        */}
       <SideMenuSection title="Activity">
         <CountModelSideMenuItem<Incident>
@@ -192,6 +241,36 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
               unresolvedAlertStates.map((state: AlertState) => {
                 return state.id!;
               }),
+            ),
+          }}
+        />
+        {/*
+         * The maintenance events that hold it: while one is in progress the
+         * monitors that read its metrics open nothing. The badge counts the
+         * ones in progress.
+         */}
+        <CountModelSideMenuItem<ScheduledMaintenance>
+          link={{
+            title: "Scheduled Maintenance",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Clock}
+          badgeType={BadgeType.WARNING}
+          modelType={ScheduledMaintenance}
+          countQuery={{
+            projectId: projectId!,
+            cloudResources: new Includes([props.modelId]),
+            currentScheduledMaintenanceStateId: new Includes(
+              activeScheduledMaintenanceStates.map(
+                (state: ScheduledMaintenanceState) => {
+                  return state.id!;
+                },
+              ),
             ),
           }}
         />

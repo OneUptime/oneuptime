@@ -75,8 +75,10 @@ import {
 import {
   CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME,
   CloudChangeTitle,
+  getCloudChangeTitleDirection,
   getCloudChangeTitleText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudChangesTable";
+import { SECURITY_CASE_CONTEXT_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Context/SecurityCaseContextCopy";
 import {
   CHANGE_EVENT_MARKER_SUBTITLE,
   getChangeEventMarkerTitle,
@@ -102,6 +104,10 @@ import {
 } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { JSONObject } from "../../../Types/JSON";
+import {
+  CloudHealthSource,
+  CloudHealthTitleFacts,
+} from "../../../Utils/Telemetry/CloudChangeTitle";
 
 /*
  * A cloud change's title, in the reader's language, wherever a change is
@@ -110,8 +116,20 @@ import { JSONObject } from "../../../Types/JSON";
  * case and on a resource's page, and a security case's story. Each words
  * it from the facts the change keeps - its operation, resource and outcome
  * - and a row written before the resource's name was kept from its English
- * title; a health event, a deploy or any other change keeps its own title.
+ * title; a cloud's health event with its frame, its state and AWS's kind of
+ * event in the reader's words; a deploy or any other change keeps its own
+ * title.
  */
+
+// A health event's facts, as the server reads them off its title (CloudChangeTitle).
+const HEALTH_FACTS: CloudHealthTitleFacts = {
+  source: CloudHealthSource.Aws,
+  event: "EC2 operational issue",
+  status: "open",
+  awsEventTypeCode: "AWS_EC2_OPERATIONAL_ISSUE",
+};
+
+const GERMAN_HEALTH_TITLE: string = "AWS Health: EC2-Betriebsstörung (offen)";
 
 const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6c";
 const CASE_ID: string = "20000000-0000-4000-8000-000000000177";
@@ -250,9 +268,12 @@ describe("a cloud resource's and an account's Changes", () => {
     }
   });
 
-  test("a health event and a deploy keep their own titles", () => {
+  test("a health event's frame, state and AWS's kind of event read in the reader's language; a deploy keeps its title", () => {
     expect(getCloudChangeTitleText(HEALTH_ROW, dashboardTranslator("de"))).toBe(
-      "AWS Health: EC2 operational issue (open)",
+      GERMAN_HEALTH_TITLE,
+    );
+    expect(getCloudChangeTitleText(HEALTH_ROW, dashboardTranslator("en"))).toBe(
+      HEALTH_ROW.title,
     );
     expect(getCloudChangeTitleText(DEPLOY_ROW, dashboardTranslator("de"))).toBe(
       "Deploy checkout 2.3.1",
@@ -373,10 +394,54 @@ describe("a change's title as the Changes list draws it", () => {
     expect(values(title)[0]!.textContent).toBe("CreateBucket");
   });
 
+  /*
+   * The UI review of #6149: a Persian health title starts with "AWS
+   * Health:", and its line, read by its first letter (dir="auto"), was laid
+   * out left to right - its event and its state in the wrong order for
+   * someone reading from the right. A title worded in the reader's language
+   * reads their way; a title as written reads its own.
+   */
+  test("its line reads the reader's way when it is worded in their language, its own way otherwise", () => {
+    const operationAlone: ChangeEvent = changeRow({
+      title: "CreateBucket",
+      attributes: {
+        [ChangeEventAttribute.Source]: ChangeEventSource.Cloud,
+        [ChangeEventAttribute.CloudOperation]: "CreateBucket",
+        [ChangeEventAttribute.Status]: ChangeEventStatus.Succeeded,
+      },
+    });
+
+    for (const [language, way] of [
+      ["en", "ltr"],
+      ["de", "ltr"],
+      ["fa", "rtl"],
+    ] as Array<[string, string]>) {
+      const reader: ReturnType<typeof dashboardTranslator> =
+        dashboardTranslator(language);
+
+      expect({
+        language,
+        health: getCloudChangeTitleDirection(HEALTH_ROW, reader),
+        change: getCloudChangeTitleDirection(NEW_ROW, reader),
+        oldRow: getCloudChangeTitleDirection(OLD_ROW, reader),
+        deploy: getCloudChangeTitleDirection(DEPLOY_ROW, reader),
+        operationAlone: getCloudChangeTitleDirection(operationAlone, reader),
+      }).toEqual({
+        language,
+        health: way,
+        change: way,
+        oldRow: way,
+        // A pipeline's title, and an operation's name alone: as written.
+        deploy: "auto",
+        operationAlone: "auto",
+      });
+    }
+  });
+
   test("a health event, a deploy or a change with no title draws no boxes", async () => {
     let title: HTMLElement = await drawTitle("de", HEALTH_ROW);
     expect(values(title)).toHaveLength(0);
-    expect(title.textContent).toBe("AWS Health: EC2 operational issue (open)");
+    expect(title.textContent).toBe(GERMAN_HEALTH_TITLE);
     cleanup();
 
     title = await drawTitle("de", DEPLOY_ROW);
@@ -404,6 +469,27 @@ describe("the markers on a chart", () => {
         dashboardTranslator("de"),
       ),
     ).toBe("Fehlgeschlagen: DeleteLoadBalancer für web-alb");
+  });
+
+  test("a health event's marker has its frame and state in the reader's language", () => {
+    expect(
+      getChangeEventMarkerTitle(
+        {
+          title: HEALTH_ROW.title,
+          attributes: HEALTH_ROW.attributes as JSONObject,
+        },
+        dashboardTranslator("de"),
+      ),
+    ).toBe(GERMAN_HEALTH_TITLE);
+    expect(
+      getChangeEventMarkerTitle(
+        {
+          title: "Azure Resource Health: Available → Unavailable",
+          attributes: HEALTH_ROW.attributes as JSONObject,
+        },
+        dashboardTranslator("fr"),
+      ),
+    ).toBe("Azure Resource Health : Disponible → Indisponible");
   });
 
   test("any other change's marker keeps its title", () => {
@@ -473,6 +559,14 @@ function cloudResource(
         time: "2026-10-25T09:40:00.000Z",
         title: "AWS Health: EC2 operational issue (open)",
         eventType: ChangeEventType.ProviderEvent,
+        cloudHealth: HEALTH_FACTS,
+      },
+      {
+        // A change an older server sent without facts: drawn as stored.
+        id: "change-3",
+        time: "2026-10-25T09:35:00.000Z",
+        title: "Azure Service Health: Outage (Active)",
+        eventType: ChangeEventType.ProviderEvent,
       },
     ],
     ...overrides,
@@ -514,8 +608,34 @@ describe("the Security Connections card", () => {
         time: "2026-10-25T09:40:00.000Z",
         title: "AWS Health: EC2 operational issue (open)",
         eventType: ChangeEventType.ProviderEvent,
+        cloudHealth: HEALTH_FACTS,
+      },
+      {
+        id: "change-3",
+        time: "2026-10-25T09:35:00.000Z",
+        title: "Azure Service Health: Outage (Active)",
+        eventType: ChangeEventType.ProviderEvent,
       },
     ]);
+  });
+
+  test("drops health facts of another shape, keeping the change and its title", () => {
+    const json: JSONObject = JSON.parse(
+      JSON.stringify(connections()),
+    ) as JSONObject;
+    const resource: JSONObject = (json["resources"] as Array<JSONObject>)[0]!;
+    const change: JSONObject = (
+      resource["recentChanges"] as Array<JSONObject>
+    )[1]!;
+
+    change["cloudHealth"] = { source: "aws", event: 5, status: "open" };
+
+    const parsed: SecurityConnectionsJson = parseSecurityConnections(json);
+    const second: JSONObject = parsed.resources[0]!
+      .recentChanges![1] as unknown as JSONObject;
+
+    expect(second["cloudHealth"]).toBeUndefined();
+    expect(second["title"]).toBe("AWS Health: EC2 operational issue (open)");
   });
 
   test("drops facts of another shape, keeping the change and its title", () => {
@@ -565,12 +685,13 @@ describe("the Security Connections card", () => {
       });
   }
 
-  test("a cloud change reads in German, a health event as its provider wrote it", async () => {
+  test("a cloud change and a health event read in German; a change sent without facts as stored", async () => {
     await drawIn("de");
 
     expect(changeTitles()).toEqual([
       "Fehlgeschlagen: DeleteLoadBalancer für web-alb",
-      "AWS Health: EC2 operational issue (open)",
+      GERMAN_HEALTH_TITLE,
+      "Azure Service Health: Outage (Active)",
     ]);
   });
 
@@ -584,6 +705,40 @@ describe("the Security Connections card", () => {
     await drawIn("en");
 
     expect(changeTitles()[0]).toBe("Failed: DeleteLoadBalancer on web-alb");
+    expect(changeTitles()[1]).toBe("AWS Health: EC2 operational issue (open)");
+  });
+
+  // Each title set apart, and laid out the way it is read.
+  function titleDirections(): Array<string | null> {
+    return within(screen.getByTestId(SECURITY_CONNECTIONS_TEST_IDS.changes))
+      .getAllByTestId(SECURITY_CONNECTIONS_TEST_IDS.factItem)
+      .map((item: HTMLElement): string | null => {
+        return item.querySelector("bdi")?.getAttribute("dir") ?? null;
+      });
+  }
+
+  test("each title reads its own way: one worded in the reader's language theirs, one sent without facts as written", async () => {
+    await drawIn("fa");
+
+    // The health event too, though its first words are "AWS Health:".
+    expect(titleDirections()).toEqual(["rtl", "rtl", "auto"]);
+    expect(changeTitles()[1]).toBe(
+      withoutIsolateMarks(
+        dashboardTranslator("fa").translateTemplate(
+          "AWS Health: {{event}} (open)",
+          {
+            event: dashboardTranslator("fa").translateTemplate(
+              "{{service}} operational issue",
+              { service: "EC2" },
+            ),
+          },
+        ),
+      ),
+    );
+    cleanup();
+
+    await drawIn("de");
+    expect(titleDirections()).toEqual(["ltr", "ltr", "auto"]);
   });
 });
 
@@ -611,6 +766,21 @@ function story(): SecurityCaseStoryJson {
           },
         },
       },
+      {
+        key: "change:2",
+        kind: SecurityCaseStoryItemKind.Change,
+        time: "2026-10-25T09:40:00.000Z",
+        title: "AWS Health: EC2 operational issue (open)",
+        stateName: ChangeEventType.ProviderEvent,
+        cloudHealth: HEALTH_FACTS,
+        links: {
+          resource: {
+            kind: SecurityConnectionKind.CloudResource,
+            id: RESOURCE_ID,
+            name: "web-alb",
+          },
+        },
+      },
     ],
     truncatedSources: [],
     unreadableSources: [],
@@ -629,6 +799,8 @@ describe("a security case's story", () => {
       resource: "web-alb",
       failed: true,
     });
+    expect(parsed.items[1]!.cloudHealth).toEqual(HEALTH_FACTS);
+    expect(parsed.items[1]!.cloudChange).toBeUndefined();
   });
 
   test("a change without facts keeps only its title", () => {
@@ -660,6 +832,48 @@ describe("a security case's story", () => {
     expect(
       screen.queryByText("Failed: DeleteLoadBalancer on web-alb"),
     ).not.toBeInTheDocument();
+    // A health event, its frame, state and kind of event in German.
+    expect(await screen.findByText(GERMAN_HEALTH_TITLE)).toBeInTheDocument();
+    expect(
+      screen.queryByText("AWS Health: EC2 operational issue (open)"),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * The UI review of #6149: a Persian health title starts with "AWS
+   * Health:", which a title read by its first letter laid out left to
+   * right. A change worded in the reader's language reads their way; the
+   * case's own steps, its own way.
+   */
+  test("a change worded in the reader's language reads their way, in Persian right to left", async () => {
+    getStoryMock.mockResolvedValue(story() as never);
+
+    await act(async () => {
+      render(
+        <I18nextProvider i18n={instances["fa"]!}>
+          <MemoryRouter>
+            <SecurityCaseStory caseId={new ObjectID(CASE_ID)} />
+          </MemoryRouter>
+        </I18nextProvider>,
+      );
+    });
+
+    const items: Array<HTMLElement> = await screen.findAllByTestId(
+      SECURITY_CASE_CONTEXT_TEST_IDS.storyItem,
+    );
+    const changes: Array<HTMLElement> = items.filter(
+      (item: HTMLElement): boolean => {
+        return (
+          item.getAttribute("data-kind") === SecurityCaseStoryItemKind.Change
+        );
+      },
+    );
+
+    expect(changes).toHaveLength(2);
+
+    for (const item of changes) {
+      expect(item.querySelector("bdi")).toHaveAttribute("dir", "rtl");
+    }
   });
 });
 
@@ -698,6 +912,44 @@ describe("a security case's impact", () => {
         resource: "web-alb",
         failed: true,
       },
+      isBeforeFirstDetection: true,
+    });
+  });
+
+  test("keeps a health event's facts as the server sent them, and drops facts of another shape", () => {
+    const read: (cloudHealth: unknown) => SecurityCaseImpactJson = (
+      cloudHealth: unknown,
+    ): SecurityCaseImpactJson => {
+      return parseSecurityCaseImpact({
+        records: [
+          {
+            kind: SecurityConnectionKind.CloudResource,
+            id: RESOURCE_ID,
+            name: "web-alb",
+            certainty: SecurityConnectionCertainty.Exact,
+            lastChange: {
+              id: "change-2",
+              time: "2026-10-25T09:40:00.000Z",
+              title: "AWS Health: EC2 operational issue (open)",
+              eventType: ChangeEventType.ProviderEvent,
+              cloudHealth,
+              isBeforeFirstDetection: true,
+            },
+          },
+        ],
+      } as unknown as JSONObject);
+    };
+
+    expect(read(HEALTH_FACTS).records[0]!.lastChange?.cloudHealth).toEqual(
+      HEALTH_FACTS,
+    );
+    expect(
+      read({ source: "aws", event: "", status: "open" }).records[0]!.lastChange,
+    ).toEqual({
+      id: "change-2",
+      time: "2026-10-25T09:40:00.000Z",
+      title: "AWS Health: EC2 operational issue (open)",
+      eventType: ChangeEventType.ProviderEvent,
       isBeforeFirstDetection: true,
     });
   });

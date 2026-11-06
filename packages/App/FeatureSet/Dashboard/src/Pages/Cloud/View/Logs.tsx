@@ -36,34 +36,83 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * the cloud.resource_id resource attribute (CloudLogGroups), and this tab
  * filters on it. The side menu shows the tab only for a kind of resource
  * that has logs of its own.
+ *
+ * Its empty list says what is true of the resource's account, in its
+ * cloud's words: before its connection streams, how to start; once it
+ * does, that nothing came from the resource in the time range - which can
+ * be older, as a function that stopped running shows - and what to check.
  */
 
 export const CLOUD_RESOURCE_LOGS_NOT_FOUND: string =
   "Cloud resource not found.";
 
-// What the tab says while no log has come, in its cloud's words.
-export const CLOUD_RESOURCE_NO_LOGS_MESSAGES: Record<CloudProvider, string> = {
-  [CloudProvider.AWS]: translationKey(
-    "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.",
-  ),
-  [CloudProvider.Azure]: translationKey(
-    "Logs appear here once its subscription's connection streams resource logs: choose Stream metrics and logs on the connection in Cloud > Connect, with logs.",
-  ),
-  [CloudProvider.GCP]: translationKey(
-    "Logs appear here once its project's connection streams Cloud Logging: choose Stream logs on the connection in Cloud > Connect.",
-  ),
+export const CLOUD_RESOURCE_NO_STREAMED_LOGS: string = translationKey(
+  "Logs appear here once this resource's AWS account streams its log group: in Cloud > Connect, choose Stream metrics and logs in the account's row.",
+);
+export const CLOUD_RESOURCE_NO_LOGS_IN_RANGE: string = translationKey(
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.",
+);
+
+// An Azure resource's: its subscription streams resource logs, or metrics alone.
+export const AZURE_RESOURCE_NO_STREAMED_LOGS: string = translationKey(
+  "Logs appear here once this resource's Azure subscription streams its resource logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.",
+);
+export const AZURE_RESOURCE_NO_LOGS_IN_RANGE: string = translationKey(
+  "Nothing arrived from this resource in this time range. Choose a longer range, or check that its subscription streams logs, not metrics alone: in Cloud > Connect, open Stream metrics and logs in the account's row.",
+);
+
+// A Google Cloud resource's: its project's logs come through the stream's filter.
+export const GCP_RESOURCE_NO_STREAMED_LOGS: string = translationKey(
+  "Logs appear here once this resource's Google Cloud project streams its logs: in Cloud > Connect, choose Stream logs in the account's row.",
+);
+export const GCP_RESOURCE_NO_LOGS_IN_RANGE: string = translationKey(
+  "Nothing arrived from this resource in this time range. Choose a longer range, or check that the stream's filter takes its logs: in Cloud > Connect, open Stream logs in the account's row.",
+);
+
+export interface CloudResourceNoLogsMessages {
+  // Before the account's connection streams: how to start.
+  notStreaming: string;
+  // Once it streams: nothing came in the time range, and what to check.
+  inRange: string;
+}
+
+export const CLOUD_RESOURCE_NO_LOGS_MESSAGES: Record<
+  CloudProvider,
+  CloudResourceNoLogsMessages
+> = {
+  [CloudProvider.AWS]: {
+    notStreaming: CLOUD_RESOURCE_NO_STREAMED_LOGS,
+    inRange: CLOUD_RESOURCE_NO_LOGS_IN_RANGE,
+  },
+  [CloudProvider.Azure]: {
+    notStreaming: AZURE_RESOURCE_NO_STREAMED_LOGS,
+    inRange: AZURE_RESOURCE_NO_LOGS_IN_RANGE,
+  },
+  [CloudProvider.GCP]: {
+    notStreaming: GCP_RESOURCE_NO_STREAMED_LOGS,
+    inRange: GCP_RESOURCE_NO_LOGS_IN_RANGE,
+  },
 };
 
+/*
+ * What the empty list says, in the resource's cloud's words (AWS's when it
+ * names none): whether its account's connection streams yet.
+ */
 export function getCloudResourceNoLogsMessage(
-  provider: string | null | undefined,
+  resource:
+    | Pick<CloudResource, "cloudConnection" | "cloudProvider">
+    | null
+    | undefined,
 ): string {
-  const value: string = (provider || "").toLowerCase();
+  const provider: string = (resource?.cloudProvider || "").toLowerCase();
+  const messages: CloudResourceNoLogsMessages =
+    provider === CloudProvider.Azure || provider === CloudProvider.GCP
+      ? CLOUD_RESOURCE_NO_LOGS_MESSAGES[provider]
+      : CLOUD_RESOURCE_NO_LOGS_MESSAGES[CloudProvider.AWS];
 
-  if (value === CloudProvider.Azure || value === CloudProvider.GCP) {
-    return CLOUD_RESOURCE_NO_LOGS_MESSAGES[value];
-  }
-
-  return CLOUD_RESOURCE_NO_LOGS_MESSAGES[CloudProvider.AWS];
+  return resource?.cloudConnection?.streamKeyCreatedAt
+    ? messages.inRange
+    : messages.notStreaming;
 }
 
 export function getCloudResourceLogsViewerId(modelId: ObjectID): string {
@@ -109,7 +158,11 @@ const CloudResourceLogs: FunctionComponent<
         select: {
           name: true,
           providerResourceId: true,
+          // Its cloud, and whether its account's connection streams: what the empty list says.
           cloudProvider: true,
+          cloudConnection: {
+            streamKeyCreatedAt: true,
+          },
         },
       });
 
@@ -173,9 +226,7 @@ const CloudResourceLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage={getCloudResourceNoLogsMessage(
-          cloudResource.cloudProvider,
-        )}
+        noLogsMessage={getCloudResourceNoLogsMessage(cloudResource)}
       />
     </Fragment>
   );

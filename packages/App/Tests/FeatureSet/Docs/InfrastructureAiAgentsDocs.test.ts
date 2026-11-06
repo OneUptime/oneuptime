@@ -59,8 +59,10 @@ import {
   GCP_CLOUD_AI_AGENT_NETWORK_NAME,
   GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID,
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
+  GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
   getCloudAiAgentOwnTargets,
 } from "Common/Types/ResourceAiAgent/CloudAiAgentNames";
+import { buildCloudAiAgentKey } from "Common/Types/CloudConnection/CloudAiAgentKey";
 import {
   DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS,
   MAX_POSTURE_LIST_ENTRIES,
@@ -82,6 +84,7 @@ import {
   RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
+  RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV,
   RESOURCE_AI_WRITE_TARGETS_ENV,
   CLOUD_AI_DEFAULT_REQUIRED_TAG,
   ResourceCommandTier,
@@ -617,6 +620,12 @@ function oneLine(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
+// The key made for the account's Cloud AI agent, which its setup command holds.
+const CLOUD_AI_AGENT_KEY: string = buildCloudAiAgentKey({
+  cloudAccountId: "11111111-1111-1111-1111-111111111111",
+  secret: "a".repeat(64),
+});
+
 // The options a cloud's setup command is written from, for one account.
 function cloudSetupOptions(
   provider: CloudProvider,
@@ -626,7 +635,7 @@ function cloudSetupOptions(
   return {
     provider,
     oneuptimeUrl: "https://oneuptime.com",
-    ingestionKey: "ingestion-key",
+    agentKey: CLOUD_AI_AGENT_KEY,
     cloudAccountId: "11111111-1111-1111-1111-111111111111",
     accountId: CLOUD_ACCOUNT_IDS[catalog],
     fixesMode: "RequireApproval",
@@ -1055,6 +1064,7 @@ describe("Infrastructure AI Agents docs", (): void => {
         RESOURCE_AI_CLOUD_OPERATIONS_ENV,
         RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
         RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV,
+        RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV,
       ]) {
         expect({ name, named: page.includes(`\`${name}\``) }).toEqual({
           name,
@@ -1782,6 +1792,7 @@ describe("Infrastructure AI Agents docs", (): void => {
         gcp: [
           GCP_CLOUD_AI_AGENT_SERVICE_NAME,
           GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID,
+          GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
         ],
       };
 
@@ -1828,18 +1839,28 @@ describe("Infrastructure AI Agents docs", (): void => {
         "The key it connects with is a Container Apps secret.",
       );
       expect(rows["gcp"]![2]).toContain(
-        "The key it connects with is kept in Secret Manager, which only that service account may read.",
+        "The key it connects with is kept in Secret Manager, which only the agent's own service account may read, and running the command again destroys the key's older versions.",
+      );
+      /*
+       * Google Cloud: the agent's own account reads, and each change runs
+       * as the write account with a token for it alone, as the setup
+       * command grants it.
+       */
+      expect(rows["gcp"]![2]).toContain(
+        `running as the service account \`${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID}\`, which may only read. Each change runs as a second service account, \`${GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID}\`, which holds a custom role on the project with the permissions of the changes turned on, with a token the agent asks for that one change and that lasts 15 minutes.`,
       );
       expect(template).toContain('"Type":"AWS::SecretsManager::Secret"');
+      // The key made for this agent alone, never the project's ingestion key.
       expect(template).toContain(
-        '"Secrets":[{"Name":"ONEUPTIME_TELEMETRY_INGESTION_KEY","ValueFrom":{"Ref":"IngestionKeySecret"}}]',
+        '"Secrets":[{"Name":"ONEUPTIME_AI_AGENT_KEY","ValueFrom":{"Ref":"AgentKeySecret"}}]',
       );
+      expect(template).not.toContain("ONEUPTIME_TELEMETRY_INGESTION_KEY");
       expect(template).toContain('"Action":"secretsmanager:GetSecretValue"');
       expect(
         getCloudAiAgentSetupCommand(
           cloudSetupOptions(CloudProvider.Azure, "azure"),
         ),
-      ).toContain("ONEUPTIME_TELEMETRY_INGESTION_KEY=secretref:ingestion-key");
+      ).toContain("ONEUPTIME_AI_AGENT_KEY=secretref:agent-key");
       /*
        * Google Cloud, by default: a VM of its own in a network with no
        * firewall rule, which reads the key as it starts (the startup script
@@ -1869,7 +1890,7 @@ describe("Infrastructure AI Agents docs", (): void => {
         getGcpCloudAiAgentStartupScript(
           cloudSetupOptions(CloudProvider.GCP, "gcp"),
         ),
-      ).not.toContain("ingestion-key");
+      ).not.toContain(CLOUD_AI_AGENT_KEY);
       expect(gcpRow).toContain(
         `A Compute Engine VM, \`${GCP_CLOUD_AI_AGENT_INSTANCE_NAME}\`, of type \`${GCP_CLOUD_AI_AGENT_MACHINE_TYPE}\` on Container-Optimized OS, in a network of its own with no firewall rule, so nothing can connect to it,`,
       );
@@ -1880,7 +1901,7 @@ describe("Infrastructure AI Agents docs", (): void => {
         "Under **More fields**, **Where the agent runs** can choose a Cloud Run service with CPU always allocated instead, for a project that lets no VM have an external IP address.",
       );
       expect(gcpRun).toContain(
-        "--set-secrets ONEUPTIME_TELEMETRY_INGESTION_KEY=oneuptime-ai-agent-key:latest",
+        "--set-secrets ONEUPTIME_AI_AGENT_KEY=oneuptime-ai-agent-key:latest",
       );
       // Google Cloud on Cloud Run: CPU always allocated.
       expect(gcpRun).toContain("--no-cpu-throttling");
@@ -1957,7 +1978,7 @@ describe("Infrastructure AI Agents docs", (): void => {
       expect(registration).toContain("and a Cloud AI agent never adds one.");
       expect(registration).toContain(", but its command was written for ");
       expect(registration).toContain(
-        "await this.recordCloudAccountRegistrationError({",
+        "await this.recordRefusedCloudRegistration({",
       );
       expect(card).toContain("status?.aiAccessLastError");
       expect(words).toContain(
@@ -3303,9 +3324,10 @@ describe("Infrastructure AI Agents docs", (): void => {
         `//run.googleapis.com/projects/my-project/locations/*/services/${GCP_CLOUD_AI_AGENT_SERVICE_NAME}`,
         `//compute.googleapis.com/projects/my-project/zones/*/instances/${GCP_CLOUD_AI_AGENT_INSTANCE_NAME}`,
         `//iam.googleapis.com/projects/my-project/serviceAccounts/${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID}@*`,
+        `//iam.googleapis.com/projects/my-project/serviceAccounts/${GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID}@*`,
       ]);
       expect(oneLine(bullet)).toContain(
-        "on AWS the `oneuptime-ai-agent` stack, its ECS cluster and service, and the roles `OneUptimeAiAgentTask` and `OneUptimeAiAgentWrite`; on Azure the `oneuptime-ai-agent` resource group; on Google Cloud the `oneuptime-ai-agent` VM or Cloud Run service, and its service account.",
+        "on AWS the `oneuptime-ai-agent` stack, its ECS cluster and service, and the roles `OneUptimeAiAgentTask` and `OneUptimeAiAgentWrite`; on Azure the `oneuptime-ai-agent` resource group; on Google Cloud the `oneuptime-ai-agent` VM or Cloud Run service, and its service accounts `oneuptime-ai-agent` and `oneuptime-ai-agent-write`.",
       );
     });
 

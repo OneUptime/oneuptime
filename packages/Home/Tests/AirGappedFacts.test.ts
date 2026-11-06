@@ -1268,7 +1268,11 @@ describe("the evidence a security review gets", () => {
 
   test("every image is signed with cosign, keyless, by the release workflow the verify command names", () => {
     expectFileToSay(RELEASE_WORKFLOW, "  sign-images:\n");
-    expectFileToSay(RELEASE_WORKFLOW, "uses: sigstore/cosign-installer@v4");
+    /*
+     * Pinned by commit: Tests/Ops/WorkflowActionRefs holds the pin to its
+     * release (sigstore publishes no major tag, so `@v4` never resolved).
+     */
+    expectFileToSay(RELEASE_WORKFLOW, "uses: sigstore/cosign-installer@");
     expectFileToSay(RELEASE_WORKFLOW, "id-token: write");
     expectFileToSay(
       "Scripts/GHA/sign_docker_images.sh",

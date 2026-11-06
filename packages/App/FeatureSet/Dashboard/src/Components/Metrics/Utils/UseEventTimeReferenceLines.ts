@@ -41,8 +41,11 @@ import {
 } from "Common/Utils/Telemetry/ChangeEventFields";
 import {
   CloudChangeTitleFacts,
+  CloudHealthTitleFacts,
   getCloudChangeTitle,
+  getCloudHealthTitle,
   readCloudChangeTitleFacts,
+  readCloudHealthTitleFacts,
 } from "Common/Utils/Telemetry/CloudChangeTitle";
 import { JSONObject } from "Common/Types/JSON";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -119,7 +122,8 @@ export function getChangeEventTypeLabel(eventType: string | undefined): string {
  * What a change's marker calls it: an operation a cloud account's activity
  * log recorded in the reader's language, worded from its operation,
  * resource and outcome (CloudChangeTitle), as the cloud Changes lists say
- * it; any other change by its own title.
+ * it; a cloud's health event with its frame and state in the reader's
+ * language; any other change by its own title.
  */
 export function getChangeEventMarkerTitle(
   change: {
@@ -133,8 +137,17 @@ export function getChangeEventMarkerTitle(
     attributes: change.attributes,
   });
 
-  return facts
-    ? getCloudChangeTitle(facts, translator, { setsValuesApart: true })
+  if (facts) {
+    return getCloudChangeTitle(facts, translator, { setsValuesApart: true });
+  }
+
+  const health: CloudHealthTitleFacts | null = readCloudHealthTitleFacts({
+    title: change.title,
+    attributes: change.attributes,
+  });
+
+  return health
+    ? getCloudHealthTitle(health, translator, { setsValuesApart: true })
     : change.title || "";
 }
 

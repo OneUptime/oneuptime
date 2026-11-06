@@ -1,6 +1,7 @@
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
   RESOURCE_AI_ACCESS_INSIGHTS_PATH,
   RESOURCE_AI_ACCESS_LOGS_PATH,
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
@@ -77,6 +78,9 @@ export const RESOURCE_AI_ACCESS_LOGS_ROUTE: string =
   RESOURCE_AI_ACCESS_LOGS_PATH;
 export const RESOURCE_AI_ACCESS_INSIGHTS_ROUTE: string =
   RESOURCE_AI_ACCESS_INSIGHTS_PATH;
+// A cloud account's: the key its Cloud AI agent's setup command carries.
+export const RESOURCE_AI_ACCESS_AGENT_KEY_ROUTE: string =
+  RESOURCE_AI_ACCESS_AGENT_KEY_PATH;
 
 export function getResourceAiAccessRequestBody(
   descriptor: ResourceAiAgentDescriptor,

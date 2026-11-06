@@ -1,5 +1,9 @@
 import { isAwsRegion } from "./AwsRegionCode";
-import { CloudProvider, FaasCloudPlatform } from "./CloudPlatform";
+import {
+  CloudProvider,
+  FaasCloudPlatform,
+  ManagedCloudPlatform,
+} from "./CloudPlatform";
 import {
   AZURE_RESOURCE_TYPES,
   CloudResourceTypeDescriptor,
@@ -33,9 +37,18 @@ import {
  * filters on. A function's logs also carry cloud.platform and faas.name,
  * so they are the function's in Serverless too.
  *
- * A group no rule reads - one a team named itself, an API Gateway's
- * execution log, which names its API by an id no metric carries, or an ECS
- * task's /ecs/<task definition family>, which names no service - is
+ * The logs of an App Platforms platform's resource - an App Runner
+ * service, an Elastic Beanstalk environment, an ECS cluster - carry its
+ * cloud.platform too, and so do an ECS task's, from the group the ECS
+ * console names /ecs/<task definition family>, which names no resource of
+ * the catalog but the family (AWS_LOG_GROUP_ENVIRONMENT_RULES). With the
+ * account and Region every streamed log carries, that is the platform's
+ * environment in App Platforms (CloudPlatform: buildCloudEnvironmentKey),
+ * whose Logs tab filters on exactly those three. They name no app there:
+ * an app is named by its own telemetry (CloudAppIdentity says why).
+ *
+ * A group no rule reads - one a team named itself, or an API Gateway's
+ * execution log, which names its API by an id no metric carries - is
  * streamed all the same, under its account and Region, unfiled.
  *
  * Every rule reads the name part by part: no regular expression ever reads
@@ -48,6 +61,15 @@ export const STORED_CLOUD_RESOURCE_ID_ATTRIBUTE: string = `resource.${CLOUD_RESO
 
 // A log group's name: 1 to 512 characters (CloudWatch Logs' own limit).
 export const AWS_LOG_GROUP_NAME_MAX_LENGTH: number = 512;
+
+/*
+ * The resource attributes, as the OpenTelemetry semantic conventions spell
+ * them, that put a log on an App Platforms environment and name its part
+ * of it: the platform, an ECS task definition's family, an ECS cluster.
+ */
+export const CLOUD_PLATFORM_ATTRIBUTE: string = "cloud.platform";
+export const ECS_TASK_FAMILY_ATTRIBUTE: string = "aws.ecs.task.family";
+export const ECS_CLUSTER_ARN_ATTRIBUTE: string = "aws.ecs.cluster.arn";
 
 // The longest identity a rule reads out of a name.
 const MAX_IDENTITY_LENGTH: number = 255;
@@ -75,8 +97,17 @@ interface AwsLogGroupRule {
   ) => { dimensions: Record<string, string>; region?: string } | null;
   // Resource attributes the logs carry for it, beside cloud.resource_id.
   attributes?:
-    | ((dimensions: Record<string, string>) => Record<string, string>)
+    | ((
+        dimensions: Record<string, string>,
+        resource: CloudMonitoredResource,
+      ) => Record<string, string>)
     | undefined;
+  /*
+   * The App Platforms platform the resource runs apps on, when it is one:
+   * its logs then carry cloud.platform, so they are on the platform's
+   * environment of the group's account and Region too.
+   */
+  platform?: ManagedCloudPlatform | undefined;
 }
 
 function isIdentity(value: string | undefined): value is string {
@@ -135,9 +166,25 @@ function readLambdaFunction(
 // What the Step Functions console ends a state machine's log group with.
 export const STATE_MACHINE_LOG_GROUP_SUFFIX: string = "-Logs";
 
+// The longest name AWS gives a state machine, and a task definition family.
+export const STATE_MACHINE_NAME_MAX_LENGTH: number = 80;
+export const TASK_DEFINITION_FAMILY_MAX_LENGTH: number = 255;
+
 // A state machine's name: 1 to 80 of letters, digits, "-" and "_".
 function isStateMachineName(value: string): boolean {
-  if (value.length === 0 || value.length > 80) {
+  return isNameOfLettersDigitsDashes(value, STATE_MACHINE_NAME_MAX_LENGTH);
+}
+
+// A task definition's family: 1 to 255 of letters, digits, "-" and "_".
+function isTaskDefinitionFamily(value: string): boolean {
+  return isNameOfLettersDigitsDashes(value, TASK_DEFINITION_FAMILY_MAX_LENGTH);
+}
+
+function isNameOfLettersDigitsDashes(
+  value: string,
+  maxLength: number,
+): boolean {
+  if (value.length === 0 || value.length > maxLength) {
     return false;
   }
 
@@ -267,6 +314,7 @@ export const AWS_LOG_GROUP_RULES: ReadonlyArray<AwsLogGroupRule> = [
 
       return { dimensions: { ServiceName: parts[0], ServiceID: parts[1] } };
     },
+    platform: ManagedCloudPlatform.AwsAppRunner,
   },
   {
     // /aws/elasticbeanstalk/<environment>/var/log/...
@@ -274,13 +322,25 @@ export const AWS_LOG_GROUP_RULES: ReadonlyArray<AwsLogGroupRule> = [
     namespace: "AWS/ElasticBeanstalk",
     type: "AWS::ElasticBeanstalk::Environment",
     read: firstPart("EnvironmentName", 2),
+    platform: ManagedCloudPlatform.AwsElasticBeanstalk,
   },
   {
-    // Container Insights' performance events of a cluster.
+    /*
+     * Container Insights' performance events of a cluster: they carry the
+     * cluster's ARN as the ECS resource detector writes it, which is what
+     * an ECS environment's telemetry is narrowed to a cluster by.
+     */
     prefix: "/aws/ecs/containerinsights/",
     namespace: "AWS/ECS",
     type: "AWS::ECS::Cluster",
     read: firstPart("ClusterName", 2),
+    attributes: (
+      _dimensions: Record<string, string>,
+      resource: CloudMonitoredResource,
+    ): Record<string, string> => {
+      return { [ECS_CLUSTER_ARN_ATTRIBUTE]: resource.providerResourceId };
+    },
+    platform: ManagedCloudPlatform.AwsEcs,
   },
   {
     // The log group the Step Functions console makes for a state machine.
@@ -290,6 +350,70 @@ export const AWS_LOG_GROUP_RULES: ReadonlyArray<AwsLogGroupRule> = [
     read: readStateMachine,
   },
 ];
+
+/*
+ * A log group that names no resource of the catalog, but the part of an
+ * App Platforms environment its logs are of.
+ */
+interface AwsLogGroupEnvironmentRule {
+  // The start of the group's name, as AWS writes it.
+  prefix: string;
+  // The platform whose environment of the group's account and Region it is.
+  platform: ManagedCloudPlatform;
+  /*
+   * The attributes, beside cloud.platform, the logs carry for it, from the
+   * name's parts after the prefix - or null when they name nothing.
+   */
+  read: (parts: Array<string>) => Record<string, string> | null;
+}
+
+export const AWS_LOG_GROUP_ENVIRONMENT_RULES: ReadonlyArray<AwsLogGroupEnvironmentRule> =
+  [
+    {
+      /*
+       * /ecs/<task definition family>: the group the ECS console makes for
+       * a task definition's containers. The family is the attribute an ECS
+       * app is named by (CloudPlatform), so the environment's Logs tab can
+       * be narrowed to it; the cluster that keeps two apps of one family
+       * apart is not in the name.
+       */
+      prefix: "/ecs/",
+      platform: ManagedCloudPlatform.AwsEcs,
+      read: (parts: Array<string>): Record<string, string> | null => {
+        const family: string | undefined = parts[0];
+
+        return parts.length === 1 && family && isTaskDefinitionFamily(family)
+          ? { [ECS_TASK_FAMILY_ATTRIBUTE]: family }
+          : null;
+      },
+    },
+  ];
+
+/*
+ * The App Platforms platforms a stream's logs reach an environment of, in
+ * the order the rules name them.
+ */
+export const AWS_LOG_GROUP_PLATFORMS: ReadonlyArray<ManagedCloudPlatform> =
+  Array.from(
+    new Set<ManagedCloudPlatform>([
+      ...AWS_LOG_GROUP_RULES.map(
+        (rule: AwsLogGroupRule): ManagedCloudPlatform | undefined => {
+          return rule.platform;
+        },
+      ).filter(
+        (
+          platform: ManagedCloudPlatform | undefined,
+        ): platform is ManagedCloudPlatform => {
+          return Boolean(platform);
+        },
+      ),
+      ...AWS_LOG_GROUP_ENVIRONMENT_RULES.map(
+        (rule: AwsLogGroupEnvironmentRule): ManagedCloudPlatform => {
+          return rule.platform;
+        },
+      ),
+    ]),
+  );
 
 // The resource types a stream can deliver logs of.
 export const AWS_LOG_GROUP_RESOURCE_TYPES: ReadonlySet<string> =
@@ -383,6 +507,21 @@ export interface CloudLogGroupResource {
 }
 
 /*
+ * cloud.platform for a log group of an App Platforms platform - only in an
+ * AWS Region: an environment is the platform in one account and Region, and
+ * a log of no Region would make one with a part of its key missing, beside
+ * the one its apps report to.
+ */
+function getEnvironmentPlatformAttribute(data: {
+  platform: ManagedCloudPlatform | undefined;
+  region: string;
+}): Record<string, string> {
+  return data.platform && isAwsRegion(data.region)
+    ? { [CLOUD_PLATFORM_ATTRIBUTE]: data.platform }
+    : {};
+}
+
+/*
  * The resource a log group of one account and Region is the log of, or
  * null when its name says no resource OneUptime knows. Never throws.
  */
@@ -445,10 +584,84 @@ export function getAwsLogGroupResource(data: {
       resource,
       attributes: {
         [CLOUD_RESOURCE_ID_ATTRIBUTE]: resource.providerResourceId,
-        ...(rule.attributes ? rule.attributes(identity.dimensions) : {}),
+        ...(rule.attributes
+          ? rule.attributes(identity.dimensions, resource)
+          : {}),
+        ...getEnvironmentPlatformAttribute({
+          platform: rule.platform,
+          region: data.region,
+        }),
       },
     };
   }
 
   return null;
+}
+
+/*
+ * What a log group that names no resource of the catalog says of the App
+ * Platforms environment its logs are of (AWS_LOG_GROUP_ENVIRONMENT_RULES):
+ * cloud.platform and the attributes that name its part of it - or null.
+ * Like a resource's, only for a group of an account, and only in an AWS
+ * Region. Never throws.
+ */
+export function getAwsLogGroupEnvironmentAttributes(data: {
+  logGroup: string;
+  accountId: string;
+  region: string;
+}): Record<string, string> | null {
+  const logGroup: string =
+    typeof data.logGroup === "string" ? data.logGroup : "";
+
+  if (
+    logGroup.length === 0 ||
+    logGroup.length > AWS_LOG_GROUP_NAME_MAX_LENGTH ||
+    !data.accountId ||
+    !isAwsRegion(data.region)
+  ) {
+    return null;
+  }
+
+  for (const rule of AWS_LOG_GROUP_ENVIRONMENT_RULES) {
+    if (!logGroup.startsWith(rule.prefix)) {
+      continue;
+    }
+
+    const named: Record<string, string> | null = rule.read(
+      logGroup.slice(rule.prefix.length).split("/"),
+    );
+
+    return named
+      ? {
+          ...named,
+          ...getEnvironmentPlatformAttribute({
+            platform: rule.platform,
+            region: data.region,
+          }),
+        }
+      : null;
+  }
+
+  return null;
+}
+
+/*
+ * Every resource attribute a log group's logs carry beside the
+ * connection's own (service.name, its id, the account and the Region): the
+ * resource's, when the group's name says one (getAwsLogGroupResource), or
+ * else the environment's part it names (getAwsLogGroupEnvironmentAttributes).
+ * Empty for a group no rule reads. Never throws.
+ */
+export function getAwsLogGroupAttributes(data: {
+  logGroup: string;
+  accountId: string;
+  region: string;
+}): Record<string, string> {
+  const filed: CloudLogGroupResource | null = getAwsLogGroupResource(data);
+
+  if (filed) {
+    return filed.attributes;
+  }
+
+  return getAwsLogGroupEnvironmentAttributes(data) || {};
 }

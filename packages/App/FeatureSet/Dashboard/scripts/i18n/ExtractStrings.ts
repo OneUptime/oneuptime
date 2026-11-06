@@ -324,6 +324,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The managed platforms an app runs on (App Platforms): the line the
+   * environment guide's picker shows under each, in the reader's language.
+   * Only the words the file marks are read: a platform's label and product
+   * name are its own, and name environments as ingest mints them.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudPlatform.ts",
+    kind: "keys",
+  },
+  /*
    * A cloud resource's status and what needs attention on it, by one set
    * of rules from its key metrics: the Cloud Overview's Needs attention,
    * the lists, a resource's hero and tiles say them in the reader's

@@ -492,18 +492,29 @@ describe("with accounts connected", () => {
     expect(screen.getByTestId("cloud-app-platforms-apps")).toHaveTextContent(
       "3 apps",
     );
-    expect(
-      screen.getByTestId("cloud-app-platforms-environments"),
-    ).toHaveAttribute("href", expect.stringContaining("/app-platforms"));
     /*
-     * App Platforms' lists hold every environment: the one in an account
-     * no connection here reads is said, so the list it opens adds up.
+     * App Platforms' lists hold every environment, the one in an account no
+     * connection here reads too: each count opens its list narrowed to the
+     * accounts it counted, so the list it opens adds up, and nothing more
+     * needs saying.
      */
-    expect(
-      screen.getByTestId("cloud-app-platforms-other-environments"),
-    ).toHaveTextContent(
-      "App Platforms also lists 1 environment, with its apps, from an account not connected to Cloud.",
+    const link: URL = new URL(
+      screen
+        .getByTestId("cloud-app-platforms-environments")
+        .getAttribute("href") || "",
+      "https://x.test",
     );
+    expect(link.pathname).toBe(
+      `/dashboard/${PROJECT_ID}/app-platforms/environments`,
+    );
+    expect(
+      JSON.parse(link.searchParams.get("cloud-resources-table-facets") || "{}")[
+        "facetSelections"
+      ],
+    ).toEqual({ cloudAccountId: ["123456789012"] });
+    expect(
+      screen.queryByTestId("cloud-app-platforms-other-environments"),
+    ).toBeNull();
 
     const request: { modelType: unknown; query: Record<string, unknown> } =
       countSpy.mock.calls[0]![0];
