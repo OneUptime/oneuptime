@@ -111,9 +111,9 @@ describe("an instance class's memory", () => {
       "r6g.large",
       "",
     ]) {
-      expect(`${instanceClass}: ${getRdsInstanceClassMemoryGiB(instanceClass)}`).toBe(
-        `${instanceClass}: null`,
-      );
+      expect(
+        `${instanceClass}: ${getRdsInstanceClassMemoryGiB(instanceClass)}`,
+      ).toBe(`${instanceClass}: null`);
     }
 
     expect(getRdsInstanceClassMemoryGiB(undefined)).toBeNull();
@@ -236,7 +236,7 @@ describe("an engine's default limit", () => {
     }
   });
 
-  test("Aurora MySQL 1 (the engine \"aurora\") reads as Aurora MySQL", () => {
+  test('Aurora MySQL 1 (the engine "aurora") reads as Aurora MySQL', () => {
     expect(
       getRdsDefaultConnectionLimit({
         instanceClass: "db.r5.large",
@@ -272,7 +272,7 @@ describe("an engine's default limit", () => {
      * for itself is taken off.
      */
     expect(Math.floor((8 * GIB) / MYSQL_BYTES_PER_CONNECTION)).toBe(682);
-    expect(Math.floor((1 * GIB) / MYSQL_BYTES_PER_CONNECTION)).toBe(85);
+    expect(Math.floor(GIB / MYSQL_BYTES_PER_CONNECTION)).toBe(85);
   });
 
   test("PostgreSQL's estimate falls within Aurora Serverless v2's published defaults - and is never above them", () => {
@@ -499,8 +499,10 @@ describe("what an instance's row says", () => {
 
     // Not named by the inventory: nothing known of it, and not called its own.
     expect(
-      readRdsConnectionLimit({ DBInstanceClass: "db.t3.micro", Engine: "mysql" })
-        .limit,
+      readRdsConnectionLimit({
+        DBInstanceClass: "db.t3.micro",
+        Engine: "mysql",
+      }).limit,
     ).toEqual({
       limit: 60,
       instanceClass: "db.t3.micro",

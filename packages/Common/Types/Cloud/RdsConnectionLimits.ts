@@ -103,7 +103,8 @@ export const RDS_CONNECTION_ENGINE_NAMES: Readonly<
  */
 
 // db.<family letter><generation><attributes>.<size>: db.r6gd.2xlarge.
-const INSTANCE_CLASS_PATTERN: RegExp = /^db\.([a-z])(\d+)([a-z]*)\.([a-z0-9-]+)$/;
+const INSTANCE_CLASS_PATTERN: RegExp =
+  /^db\.([a-z])(\d+)([a-z]*)\.([a-z0-9-]+)$/;
 // 2xlarge, 48xlarge: four vCPUs for each "x".
 const XLARGE_SIZE_PATTERN: RegExp = /^(\d+)xlarge$/;
 // metal-48xl: the bare-metal host of the 48xlarge size.
@@ -295,7 +296,9 @@ export function estimateRdsInstanceClassMemoryBytes(memoryGiB: number): number {
 
   return Math.max(
     0,
-    total - RDS_RESERVED_MEMORY_BASE_MIB * MIB - total * RDS_RESERVED_MEMORY_SHARE,
+    total -
+      RDS_RESERVED_MEMORY_BASE_MIB * MIB -
+      total * RDS_RESERVED_MEMORY_SHARE,
   );
 }
 

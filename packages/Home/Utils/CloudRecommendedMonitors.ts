@@ -100,7 +100,9 @@ function getTemplate(id: string): CloudAlertTemplate {
   const template: CloudAlertTemplate | undefined = getCloudAlertTemplate(id);
 
   if (!template) {
-    throw new Error(`The Cloud page pictures a monitor the catalog has not: ${id}`);
+    throw new Error(
+      `The Cloud page pictures a monitor the catalog has not: ${id}`,
+    );
   }
 
   return template;

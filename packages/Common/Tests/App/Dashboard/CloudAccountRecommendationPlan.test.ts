@@ -715,7 +715,11 @@ describe("Connections Near the Limit and Certificate Expiring on an account's Re
   const LEDGER: CloudAccountRecommendationResource = rdsInstance(
     23,
     "ledger-db",
-    { DBInstanceClass: "db.m5.large", Engine: "sqlserver-se", AllocatedStorage: 100 },
+    {
+      DBInstanceClass: "db.m5.large",
+      Engine: "sqlserver-se",
+      AllocatedStorage: 100,
+    },
   );
   const FRESH: CloudAccountRecommendationResource = rdsInstance(
     24,
@@ -866,11 +870,12 @@ describe("Connections Near the Limit and Certificate Expiring on an account's Re
       dismissed: 1,
     });
     expect(
-      rowOf(groupOf(after, "aws|aws::rds::dbinstance"), CONNECTIONS).targets.map(
-        (target: CloudAccountRecommendationTarget): string => {
-          return `${target.resource.resourceName}: ${target.status}`;
-        },
-      ),
+      rowOf(
+        groupOf(after, "aws|aws::rds::dbinstance"),
+        CONNECTIONS,
+      ).targets.map((target: CloudAccountRecommendationTarget): string => {
+        return `${target.resource.resourceName}: ${target.status}`;
+      }),
     ).toEqual([
       `orders-db: ${RecommendationStatus.Created}`,
       `sessions-db: ${RecommendationStatus.Available}`,

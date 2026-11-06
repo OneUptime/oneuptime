@@ -2063,7 +2063,9 @@ describe("RecommendationResourceRegistry", () => {
         "resource.cloud.region": "eu-west-1",
       };
 
-      function rds(properties: Record<string, unknown>): MonitorRecommendationContext {
+      function rds(
+        properties: Record<string, unknown>,
+      ): MonitorRecommendationContext {
         return readCloudContext({
           cloudProvider: "aws",
           cloudResourceType: "AWS::RDS::DBInstance",
@@ -2135,9 +2137,7 @@ describe("RecommendationResourceRegistry", () => {
           templateIdsFor(rds({ ...LISTED, Engine: "sqlserver-se" })),
         ).not.toContain("cloud-aws-rds-connections-near-limit");
         expect(
-          templateIdsFor(
-            rds({ ...LISTED, DBInstanceClass: "db.serverless" }),
-          ),
+          templateIdsFor(rds({ ...LISTED, DBInstanceClass: "db.serverless" })),
         ).not.toContain("cloud-aws-rds-connections-near-limit");
 
         // The monitor it makes alerts at 90% of the instance's own limit.
@@ -2234,15 +2234,10 @@ describe("RecommendationResourceRegistry", () => {
         expect(joinCloudRecommendationNotes(["One.", "Two."])).toBe(
           "One. Two.",
         );
-        expect(
-          joinCloudRecommendationNotes([
-            "あります。",
-            "ない。",
-          ]),
-        ).toBe("あります。ない。");
-        expect(
-          joinCloudRecommendationNotes(["是？", "对。"]),
-        ).toBe("是？对。");
+        expect(joinCloudRecommendationNotes(["あります。", "ない。"])).toBe(
+          "あります。ない。",
+        );
+        expect(joinCloudRecommendationNotes(["是？", "对。"])).toBe("是？对。");
       });
     });
 

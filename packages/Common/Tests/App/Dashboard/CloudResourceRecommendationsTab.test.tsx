@@ -519,9 +519,7 @@ describe("a cloud resource's Recommendations tab", () => {
 
     renderTab();
 
-    expect(
-      await screen.findByText("Certificate Expiring"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Certificate Expiring")).toBeInTheDocument();
     expect(
       screen.getByText("The certificate expires in 30 days or fewer."),
     ).toBeInTheDocument();
@@ -550,8 +548,8 @@ describe("a cloud resource's Recommendations tab", () => {
     // Its reading comes twice a day: checked once an hour, not every five minutes.
     expect(made.monitoringInterval).toBe(CLOUD_SLOW_METRIC_MONITORING_INTERVAL);
     expect(
-      made.monitorSteps!.data!.monitorStepsInstanceArray[0]!.data!
-        .metricMonitor?.rollingTime,
+      made.monitorSteps!.data!.monitorStepsInstanceArray[0]!.data!.metricMonitor
+        ?.rollingTime,
     ).toBe(CLOUD_SLOW_METRIC_WINDOW);
   });
 

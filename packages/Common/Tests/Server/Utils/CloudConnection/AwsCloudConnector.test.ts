@@ -1106,9 +1106,7 @@ describe("read", () => {
       )[0]!["MetricStat"] as JSONObject;
 
       expect(stat["Stat"]).toBe("Minimum");
-      expect((stat["Metric"] as JSONObject)["MetricName"]).toBe(
-        "DaysToExpiry",
-      );
+      expect((stat["Metric"] as JSONObject)["MetricName"]).toBe("DaysToExpiry");
       expect((stat["Metric"] as JSONObject)["Dimensions"]).toEqual([
         { Name: "CertificateArn", Value: CERTIFICATE_ARN },
       ]);
@@ -1120,15 +1118,17 @@ describe("read", () => {
       });
 
       // This morning's reading is written, on the certificate.
-      const written: Array<{ metricName: string; resource: CloudMonitoredResource }> =
-        resolvedFromPayloads(first).filter(
-          (entry: { metricName: string }): boolean => {
-            return (
-              entry.metricName ===
-              "amazonaws.com/AWS/CertificateManager/DaysToExpiry"
-            );
-          },
-        );
+      const written: Array<{
+        metricName: string;
+        resource: CloudMonitoredResource;
+      }> = resolvedFromPayloads(first).filter(
+        (entry: { metricName: string }): boolean => {
+          return (
+            entry.metricName ===
+            "amazonaws.com/AWS/CertificateManager/DaysToExpiry"
+          );
+        },
+      );
 
       expect(written).toHaveLength(1);
       expect(written[0]!.resource.resourceType).toBe(

@@ -555,7 +555,9 @@ describe("the cloud alert template library", () => {
         `${cloudTemplate.id}: ${fires.metricMonitorOptions?.onNoDataPolicy}`,
       ).toBe(
         `${cloudTemplate.id}: ${
-          cloudTemplate.measure === "countdown" ? NoDataPolicy.Trigger : undefined
+          cloudTemplate.measure === "countdown"
+            ? NoDataPolicy.Trigger
+            : undefined
         }`,
       );
       expect(fires.metricMonitorOptions?.metricAlias).toBe(
@@ -1747,9 +1749,11 @@ describe("Connections Near the Limit", () => {
   test("reads DatabaseConnections, an average held for the window, and is offered only with a limit", () => {
     const cloudTemplate: CloudAlertTemplate = template(id);
 
-    expect(cloudTemplate.queries.map((query: CloudAlertQuery) => {
-      return [query.metric.namespace, query.metric.metricName];
-    })).toEqual([["AWS/RDS", "DatabaseConnections"]]);
+    expect(
+      cloudTemplate.queries.map((query: CloudAlertQuery) => {
+        return [query.metric.namespace, query.metric.metricName];
+      }),
+    ).toEqual([["AWS/RDS", "DatabaseConnections"]]);
     expect(cloudTemplate.measure).toBe("sustained");
     expect(cloudTemplate.requiresConnectionLimit).toBe(true);
     expect(cloudTemplate.resourceTypes).toEqual(["AWS::RDS::DBInstance"]);
@@ -1979,13 +1983,15 @@ describe("Certificate Expiring", () => {
   test("reads DaysToExpiry over 2 days, once an hour, at 30 days or fewer", () => {
     const cloudTemplate: CloudAlertTemplate = template(id);
 
-    expect(cloudTemplate.queries.map((query: CloudAlertQuery) => {
-      return [
-        query.metric.namespace,
-        query.metric.metricName,
-        query.metric.aggregationType,
-      ];
-    })).toEqual([
+    expect(
+      cloudTemplate.queries.map((query: CloudAlertQuery) => {
+        return [
+          query.metric.namespace,
+          query.metric.metricName,
+          query.metric.aggregationType,
+        ];
+      }),
+    ).toEqual([
       ["AWS/CertificateManager", "DaysToExpiry", AggregationType.Min],
     ]);
     expect(cloudTemplate.resourceTypes).toEqual([
