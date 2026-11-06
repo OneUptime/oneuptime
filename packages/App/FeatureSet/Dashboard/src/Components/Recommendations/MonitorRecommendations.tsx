@@ -67,6 +67,7 @@ import {
   MonitorRecommendationProjectSetup,
 } from "./MonitorRecommendationProjectSetup";
 import MonitorRecommendationCreateSideOver from "./MonitorRecommendationCreateSideOver";
+import { notifyRecommendationsChanged } from "./RecommendationsChanged";
 import MonitorRecommendationCreateProgressPanel from "./MonitorRecommendationCreateProgress";
 import {
   MONITOR_CONSENT_ERROR,
@@ -601,6 +602,9 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
+
+    // The side menu's badge counts what is left again.
+    notifyRecommendationsChanged();
   };
 
   type DismissFunction = () => Promise<void>;
@@ -633,6 +637,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       setSelectedRecommendationIds(selected);
 
       await loadDismissals();
+      notifyRecommendationsChanged();
       setDismissTarget(null);
       setDismissalReason("");
     } catch (err) {
@@ -656,6 +661,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
     try {
       await RecommendationDismissalUtil.restore(viewModel.dismissalId);
       await loadDismissals();
+      notifyRecommendationsChanged();
     } catch (err) {
       setActionError(API.getFriendlyMessage(err));
     }

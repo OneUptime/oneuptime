@@ -15,6 +15,7 @@ import {
   loadCloudAccountRecommendationCoverage,
   loadCloudAccountRecommendationResources,
 } from "./CloudAccountRecommendationData";
+import { useRecommendationsChangedCount } from "./RecommendationsChanged";
 
 export interface ComponentProps {
   link: Link;
@@ -38,6 +39,8 @@ const CloudAccountRecommendationsMenuItem: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
   const [count, setCount] = useState<number | undefined>(undefined);
+  // Counted again when the page beside it sets some up.
+  const changes: number = useRecommendationsChangedCount();
 
   useAsyncEffect(async () => {
     try {
@@ -83,7 +86,7 @@ const CloudAccountRecommendationsMenuItem: FunctionComponent<
     } catch {
       // Badge simply won't show a count. The page behind it still works.
     }
-  }, [props.accountId.toString()]);
+  }, [props.accountId.toString(), changes]);
 
   return (
     <SideMenuItem

@@ -1,7 +1,11 @@
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
 import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
-import { getCloudAlertTemplatesForType } from "Common/Types/Monitor/CloudAlertTemplates";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
+import {
+  getCloudAlertTemplatesForType,
+  readCloudTelemetryAttributes,
+} from "Common/Types/Monitor/CloudAlertTemplates";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
 import MonitorRecommendationUtil from "Common/Types/Monitor/Recommendation/MonitorRecommendationUtil";
@@ -103,14 +107,34 @@ export interface CloudAccountRecommendationGroup {
 }
 
 /*
- * Why the account's other resources are offered nothing: their type has no
- * recommended monitors, or their metrics have not arrived.
+ * Why one of the account's resources is offered nothing:
+ *   - NoMetrics: none of its metrics has arrived, and every recommended
+ *     monitor reads them;
+ *   - NextRead: its connection read it before a read kept the names its
+ *     Azure metrics are stored under - its next read, minutes away, does;
+ *   - Unsupported: OneUptime has no recommended monitor for its type, or for
+ *     the metrics it reports (a network load balancer's namespace).
  */
+export enum CloudAccountRecommendationGapReason {
+  NoMetrics = "NoMetrics",
+  NextRead = "NextRead",
+  Unsupported = "Unsupported",
+}
+
+export interface CloudAccountRecommendationGap {
+  resource: CloudAccountRecommendationResource;
+  reason: CloudAccountRecommendationGapReason;
+  // Its type, as the product names it: "VPC", "S3 Bucket".
+  typeLabel: string;
+}
+
+// The account's resources offered nothing, by reason, each by name.
 export interface CloudAccountRecommendationGaps {
-  // Resources of a type OneUptime has no recommended monitors for.
-  unsupportedCount: number;
-  // Resources of a supported type that are offered nothing yet.
-  waitingCount: number;
+  gaps: Array<CloudAccountRecommendationGap>;
+  byReason: Record<
+    CloudAccountRecommendationGapReason,
+    Array<CloudAccountRecommendationGap>
+  >;
 }
 
 // One monitor to create, for one resource (runBulkAction's item).
@@ -422,9 +446,9 @@ export default class CloudAccountRecommendationPlan {
   }
 
   /*
-   * The account's resources offered nothing, and why: a type OneUptime has
-   * no recommended monitors for, or a supported type whose metrics have not
-   * arrived (or, on AWS, arrive from a namespace no template reads).
+   * The account's resources offered nothing, each with why
+   * (CloudAccountRecommendationGapReason), in the order the page lists the
+   * account's resources: by name.
    */
   public static getGaps(data: {
     resources: Array<CloudAccountRecommendationResource>;
@@ -438,29 +462,81 @@ export default class CloudAccountRecommendationPlan {
       }
     }
 
-    const gaps: CloudAccountRecommendationGaps = {
-      unsupportedCount: 0,
-      waitingCount: 0,
+    const result: CloudAccountRecommendationGaps = {
+      gaps: [],
+      byReason: {
+        [CloudAccountRecommendationGapReason.NoMetrics]: [],
+        [CloudAccountRecommendationGapReason.NextRead]: [],
+        [CloudAccountRecommendationGapReason.Unsupported]: [],
+      },
     };
 
-    for (const resource of data.resources) {
+    const sorted: Array<CloudAccountRecommendationResource> = [
+      ...data.resources,
+    ].sort(
+      (
+        a: CloudAccountRecommendationResource,
+        b: CloudAccountRecommendationResource,
+      ): number => {
+        return (
+          compareText(a.resourceName, b.resourceName) ||
+          compareText(a.resourceId, b.resourceId)
+        );
+      },
+    );
+
+    for (const resource of sorted) {
       if (offered.has(resource.resourceId)) {
         continue;
       }
 
-      const forType: number = getCloudAlertTemplatesForType({
-        provider: resource.context.cloudProvider,
-        resourceType: resource.context.cloudResourceType,
-      }).length;
+      const gap: CloudAccountRecommendationGap = {
+        resource: resource,
+        reason: this.getGapReason(resource.context),
+        typeLabel: getCloudResourceTypeDisplayName(
+          resource.context.cloudProvider,
+          resource.context.cloudResourceType,
+        ),
+      };
 
-      if (forType === 0) {
-        gaps.unsupportedCount++;
-      } else {
-        gaps.waitingCount++;
-      }
+      result.gaps.push(gap);
+      result.byReason[gap.reason].push(gap);
     }
 
-    return gaps;
+    return result;
+  }
+
+  // Why a resource that is offered nothing is offered nothing.
+  public static getGapReason(
+    context: MonitorRecommendationContext,
+  ): CloudAccountRecommendationGapReason {
+    const forType: number = getCloudAlertTemplatesForType({
+      provider: context.cloudProvider,
+      resourceType: context.cloudResourceType,
+    }).length;
+
+    if (forType === 0) {
+      return CloudAccountRecommendationGapReason.Unsupported;
+    }
+
+    if (
+      Object.keys(readCloudTelemetryAttributes(context.cloudTelemetryAttributes))
+        .length === 0
+    ) {
+      return CloudAccountRecommendationGapReason.NoMetrics;
+    }
+
+    // An Azure resource its connection reads waits for its next read.
+    if (
+      (context.cloudProvider || "").trim().toLowerCase() ===
+        CloudProvider.Azure &&
+      context.cloudReadByConnection === true
+    ) {
+      return CloudAccountRecommendationGapReason.NextRead;
+    }
+
+    // Metrics no template reads: a namespace, or a stream shape, of its own.
+    return CloudAccountRecommendationGapReason.Unsupported;
   }
 
   // What is still to set up of a row, or of every row of a group.

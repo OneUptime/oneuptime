@@ -44,7 +44,7 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   MONITOR_CONSENT_ERROR,
@@ -56,6 +56,8 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import CloudAccountRecommendationPlan, {
   CLOUD_ACCOUNT_CREATE_RESULT_LABELS,
+  CloudAccountRecommendationGap,
+  CloudAccountRecommendationGapReason,
   CloudAccountRecommendationGaps,
   CloudAccountRecommendationGroup,
   CloudAccountRecommendationPlanItem,
@@ -75,6 +77,8 @@ import {
   MonitorRecommendationProjectSetup,
 } from "./MonitorRecommendationProjectSetup";
 import RecommendationToolbar from "./RecommendationToolbar";
+import { notifyRecommendationsChanged } from "./RecommendationsChanged";
+import Icon from "Common/UI/Components/Icon/Icon";
 import {
   RecommendationCounts,
   RecommendationFilterState,
@@ -108,6 +112,32 @@ const WIDE_RESOURCE_ROW: string =
 // A Button keeps a dialog footer's md:ml-3: cleared where it sits in a row.
 const BUTTON_IN_ROW: string =
   "[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+
+// How many of the resources a reason names are listed by name.
+export const NOT_LISTED_NAMES_SHOWN: number = 8;
+
+// What each reason says, above the resources it names.
+const NOT_LISTED_REASON_TEXT: Readonly<
+  Record<CloudAccountRecommendationGapReason, string>
+> = {
+  [CloudAccountRecommendationGapReason.NoMetrics]: translationKey(
+    "Waiting for their first metrics",
+  ),
+  [CloudAccountRecommendationGapReason.NextRead]: translationKey(
+    "Offered after their next read, within a few minutes",
+  ),
+  [CloudAccountRecommendationGapReason.Unsupported]: translationKey(
+    "No recommended monitors for them yet. You can still create one from a resource's Metrics tab.",
+  ),
+};
+
+// The reasons, in the order the section says them.
+const NOT_LISTED_REASONS: ReadonlyArray<CloudAccountRecommendationGapReason> =
+  [
+    CloudAccountRecommendationGapReason.NoMetrics,
+    CloudAccountRecommendationGapReason.NextRead,
+    CloudAccountRecommendationGapReason.Unsupported,
+  ];
 
 /*
  * A CLOUD ACCOUNT'S RECOMMENDED MONITORS: the monitors OneUptime recommends
@@ -382,6 +412,9 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
       } catch (err) {
         setActionError(API.getFriendlyMessage(err));
       }
+
+      // The side menu's badge counts what is left again.
+      notifyRecommendationsChanged();
     }
   };
 
@@ -705,6 +738,15 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
       }) || group;
     const available: Array<CloudAccountRecommendationTarget> =
       CloudAccountRecommendationPlan.getAvailableTargets(whole);
+    /*
+     * Add all only where it adds more than one row's Add: with a single
+     * row still to set up, the row's own button is that one action.
+     */
+    const rowsToSetUp: number = whole.rows.filter(
+      (row: CloudAccountRecommendationRow): boolean => {
+        return row.counts.available > 0;
+      },
+    ).length;
 
     return (
       <section
@@ -729,7 +771,7 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
               )}
             </p>
           </div>
-          {available.length > 0 ? (
+          {rowsToSetUp > 1 ? (
             renderAddButton({
               targets: available,
               title: translator.translatePlural(
@@ -764,51 +806,98 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
     );
   };
 
-  type GetGapsNoteFunction = () => string | undefined;
+  type RenderNotListedFunction = () => ReactElement;
 
-  // The resources offered nothing, and why, in one sentence.
-  const getGapsNote: GetGapsNoteFunction = (): string | undefined => {
-    const parts: Array<string> = [];
-
-    if (gaps.waitingCount > 0) {
-      parts.push(
-        translator.translatePlural(
-          {
-            one: "{{count}} resource is not listed yet: its metrics have not arrived, or arrive in a form these monitors do not read. Its own Recommendations tab says which.",
-            other:
-              "{{count}} resources are not listed yet: their metrics have not arrived, or arrive in a form these monitors do not read. Each one's Recommendations tab says which.",
-          },
-          gaps.waitingCount,
-        ),
+  /*
+   * The account's resources this list leaves out, by why, each by name and
+   * a click from its own Recommendations tab, which says the rest: at the
+   * end, after what there is to do.
+   */
+  const renderNotListed: RenderNotListedFunction = (): ReactElement => {
+    const reasons: Array<CloudAccountRecommendationGapReason> =
+      NOT_LISTED_REASONS.filter(
+        (reason: CloudAccountRecommendationGapReason): boolean => {
+          return gaps.byReason[reason].length > 0;
+        },
       );
+    const isCut: boolean = resourceTotal > resources.length;
+
+    if (reasons.length === 0 && !isCut) {
+      return <></>;
     }
 
-    if (gaps.unsupportedCount > 0) {
-      parts.push(
-        translator.translatePlural(
-          {
-            one: "{{count}} resource is of a type OneUptime has no recommended monitors for yet. You can still create a monitor from its Metrics tab.",
-            other:
-              "{{count}} resources are of types OneUptime has no recommended monitors for yet. You can still create a monitor from any of their Metrics tabs.",
-          },
-          gaps.unsupportedCount,
-        ),
-      );
-    }
+    return (
+      <section
+        className="rounded-lg border border-dashed border-gray-300 px-4 py-3"
+        data-testid="cloud-account-recommendations-not-listed"
+      >
+        <h3 className="text-sm font-medium text-gray-900">
+          {translator.translateText("Not in this list")}
+        </h3>
+        <ul className="mt-2 space-y-3">
+          {reasons.map((reason: CloudAccountRecommendationGapReason) => {
+            const listed: Array<CloudAccountRecommendationGap> =
+              gaps.byReason[reason];
+            const shown: Array<CloudAccountRecommendationGap> = listed.slice(
+              0,
+              NOT_LISTED_NAMES_SHOWN,
+            );
 
-    if (resourceTotal > resources.length) {
-      parts.push(
-        translator.translateTemplate(
-          "Only the first {{shown}} of the account's {{total}} resources are read here.",
-          {
-            shown: translator.formatNumber(resources.length),
-            total: translator.formatNumber(resourceTotal),
-          },
-        ),
-      );
-    }
-
-    return parts.length > 0 ? parts.join(" ") : undefined;
+            return (
+              <li
+                key={reason}
+                data-testid={`cloud-account-recommendations-not-listed-${reason}`}
+              >
+                <p className="text-xs text-gray-600">
+                  {translator.translateText(NOT_LISTED_REASON_TEXT[reason])}
+                </p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {shown.map((gap: CloudAccountRecommendationGap) => {
+                    return (
+                      <UILink
+                        key={gap.resource.resourceId}
+                        to={getResourceRoute(gap.resource.resourceId)}
+                        className="inline-flex max-w-full flex-wrap items-baseline gap-x-1.5 rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-200 hover:text-gray-900"
+                      >
+                        <bdi className="min-w-0 break-words font-medium">
+                          {gap.resource.resourceName}
+                        </bdi>
+                        <span className="min-w-0 text-gray-500">
+                          {gap.typeLabel}
+                        </span>
+                      </UILink>
+                    );
+                  })}
+                  {listed.length > shown.length ? (
+                    <span className="px-1 py-0.5 text-xs text-gray-500">
+                      {translator.translatePlural(
+                        { one: "and {{count}} more", other: "and {{count}} more" },
+                        listed.length - shown.length,
+                      )}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+          {isCut ? (
+            <li className="text-xs text-gray-600">
+              {translator.translateTemplate(
+                "Only the first {{shown}} of the account's {{total}} resources are read here.",
+                {
+                  shown: translator.formatNumber(resources.length),
+                  total: translator.formatNumber(resourceTotal),
+                },
+              )}
+            </li>
+          ) : (
+            <></>
+          )}
+        </ul>
+      </section>
+    );
   };
 
   type GetEmptyStateFunction = () => ReactElement;
@@ -832,7 +921,7 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
           id="cloud-account-recommendations-none"
           icon={IconProp.Sparkles}
           title="No recommendations for this account's resources yet"
-          description="The note above says why. You can still create monitors by hand."
+          description="The list below says why for each resource. You can still create monitors by hand."
           paddingClassName="py-12"
         />
       );
@@ -873,8 +962,6 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const gapsNote: string | undefined = getGapsNote();
-
   const pendingRecommendations: Array<MonitorRecommendation> = (
     pendingCreate?.targets || []
   ).map((target: CloudAccountRecommendationTarget): MonitorRecommendation => {
@@ -900,7 +987,7 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
       <Card
         title="Recommended Monitors"
         description={translator.translateTemplate(
-          "Monitors OneUptime recommends for this account's resources, from the metrics {{source}} reports about them. Add one to a resource, or to every resource of its type at once. Each monitor is linked to its resource.",
+          "Monitors OneUptime recommends for this account's resources, from the metrics {{source}} reports. Add one to a resource, or to every resource of its type at once.",
           { source: source },
         )}
       >
@@ -910,12 +997,20 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
         >
           {actionError ? <ErrorMessage message={actionError} /> : <></>}
 
-          {gapsNote ? (
+          {/*
+           * A member whose role may not create monitors is told once, at
+           * the top, rather than only on each Add's hover: a phone has none.
+           */}
+          {createLockReason && counts.available > 0 ? (
             <div
-              className="rounded-md bg-gray-50 px-4 py-3 text-sm text-gray-600"
-              data-testid="cloud-account-recommendations-note"
+              className="flex items-start gap-2 text-sm text-gray-600"
+              data-testid="cloud-account-recommendations-locked"
             >
-              {gapsNote}
+              <Icon
+                icon={IconProp.Lock}
+                className="mt-0.5 h-4 w-4 flex-none text-gray-400"
+              />
+              <span>{createLockReason}</span>
             </div>
           ) : (
             <></>
@@ -941,6 +1036,8 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
               })}
             </div>
           )}
+
+          {renderNotListed()}
         </div>
       </Card>
 
@@ -958,9 +1055,9 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
           resourceLabel="Cloud Resource"
           description={translator.translatePlural(
             {
-              one: "These monitors will be created on {{count}} resource of this account, each linked to it. Everything below applies to every monitor in this batch.",
+              one: "These monitors will be created on {{count}} resource of this account. Everything below applies to all of them.",
               other:
-                "These monitors will be created on {{count}} resources of this account, each linked to its resource. Everything below applies to every monitor in this batch.",
+                "These monitors will be created on {{count}} resources of this account. Everything below applies to all of them.",
             },
             pendingResourceCount,
           )}
