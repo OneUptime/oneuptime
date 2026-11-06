@@ -93,6 +93,7 @@ Eine Protokollgruppe wird unter einer Ressource abgelegt, wenn AWS sie nach eine
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 Jedes Protokoll trägt die ID der Ressource als `cloud.resource_id`, und die Protokolle einer Lambda-Funktion tragen zusätzlich `faas.name`, sodass sie auch an der Funktion unter Serverless erscheinen. Eine Protokollgruppe mit einem anderen Namen wird trotzdem gestreamt, unter ihrem Konto und ihrer Region. Der Schweregrad eines Protokolls ist der, den seine Nachricht nennt, so wie Lambda ihn schreibt.
 

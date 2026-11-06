@@ -93,6 +93,7 @@ AWS가 리소스 이름을 따서 이름을 붙인 로그 그룹은 그 리소�
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 각 로그는 리소스의 ID를 `cloud.resource_id`로 지니며, Lambda 함수의 로그는 `faas.name`도 지니므로 Serverless의 함수에도 표시됩니다. 다른 이름의 로그 그룹도 그 계정과 리전 아래에서 그대로 스트리밍됩니다. 로그의 심각도는 Lambda가 쓰는 방식대로 메시지에 적힌 심각도입니다.
 

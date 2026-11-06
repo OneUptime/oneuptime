@@ -93,6 +93,7 @@ A log group is filed under a resource when AWS named it after one:
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 Each log carries the resource's ID as `cloud.resource_id`, and a Lambda function's logs carry `faas.name` too, so they also appear on the function in Serverless. A log group of any other name streams all the same, under its account and Region. A log's severity is the one its message states, the way Lambda writes it.
 

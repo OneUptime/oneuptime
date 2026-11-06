@@ -93,6 +93,7 @@ flowchart TB
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 هر لاگ شناسهٔ منبع را به‌عنوان `cloud.resource_id` دارد، و لاگ‌های یک تابع Lambda همچنین `faas.name` دارند، پس روی آن تابع در Serverless هم نمایش داده می‌شوند. گروه لاگی با هر نام دیگری هم جریان داده می‌شود، زیر حساب و منطقهٔ خودش. شدت یک لاگ همانی است که پیامش می‌گوید، به همان شیوه‌ای که Lambda آن را می‌نویسد.
 

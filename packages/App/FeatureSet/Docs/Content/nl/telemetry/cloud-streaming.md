@@ -93,6 +93,7 @@ Een loggroep wordt onder een resource opgeslagen als AWS hem naar een resource n
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 Elk logboek draagt de ID van de resource als `cloud.resource_id`, en de logboeken van een Lambda-functie dragen ook `faas.name`, zodat ze ook bij de functie onder Serverless verschijnen. Een loggroep met een andere naam wordt toch gestreamd, onder zijn account en regio. De ernst van een logboek is die welke het bericht noemt, zoals Lambda die schrijft.
 

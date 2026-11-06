@@ -93,6 +93,7 @@ flowchart TB
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 हर लॉग संसाधन की ID को `cloud.resource_id` के रूप में रखता है, और Lambda फ़ंक्शन के लॉग `faas.name` भी रखते हैं, इसलिए वे Serverless में फ़ंक्शन पर भी दिखते हैं। किसी और नाम वाला लॉग समूह भी स्ट्रीम होता है, अपने खाते और क्षेत्र के तहत। किसी लॉग की गंभीरता वही होती है जो उसका संदेश बताता है, उसी तरह जैसे Lambda उसे लिखता है।
 

@@ -93,6 +93,7 @@ Un grupo de registros se archiva bajo un recurso cuando AWS le dio el nombre de 
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 Cada registro lleva el ID del recurso como `cloud.resource_id`, y los registros de una función Lambda llevan además `faas.name`, así que también aparecen en la función en Serverless. Un grupo de registros con otro nombre se transmite igualmente, bajo su cuenta y su región. La gravedad de un registro es la que indica su mensaje, tal como la escribe Lambda.
 

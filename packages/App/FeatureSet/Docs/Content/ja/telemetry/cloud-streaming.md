@@ -93,6 +93,7 @@ AWS がリソースにちなんで名前を付けたロググループは、そ�
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 各ログはリソースの ID を `cloud.resource_id` として持ち、Lambda 関数のログは `faas.name` も持つため、Serverless の関数にも表示されます。ほかの名前のロググループもそのアカウントとリージョンの下でストリーミングされます。ログの重大度は、Lambda の書き方に沿ってメッセージに示されたものです。
 

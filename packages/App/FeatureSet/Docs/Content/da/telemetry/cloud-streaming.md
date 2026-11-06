@@ -93,6 +93,7 @@ En loggruppe arkiveres under en ressource, når AWS har navngivet den efter en:
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 Hver log bærer ressourcens ID som `cloud.resource_id`, og en Lambda-funktions logge bærer også `faas.name`, så de også vises på funktionen under Serverless. En loggruppe med et andet navn streames alligevel, under sin konto og region. En logs alvorsgrad er den, dens besked angiver, sådan som Lambda skriver den.
 

@@ -93,6 +93,7 @@ Un gruppo di log viene archiviato sotto una risorsa quando AWS gli ha dato il no
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 Ogni log porta l'ID della risorsa come `cloud.resource_id`, e i log di una funzione Lambda portano anche `faas.name`, così compaiono anche sulla funzione in Serverless. Un gruppo di log con un altro nome viene trasmesso lo stesso, sotto il suo account e la sua regione. La gravità di un log è quella che indica il suo messaggio, come la scrive Lambda.
 

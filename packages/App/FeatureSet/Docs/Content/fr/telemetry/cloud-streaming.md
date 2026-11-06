@@ -93,6 +93,7 @@ Un groupe de journaux est classé sous une ressource quand AWS l'a nommé d'apr�
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 Chaque journal porte l'ID de la ressource dans `cloud.resource_id`, et les journaux d'une fonction Lambda portent aussi `faas.name`, ils apparaissent donc également sur la fonction dans Serverless. Un groupe de journaux d'un autre nom est diffusé quand même, sous son compte et sa région. La gravité d'un journal est celle qu'indique son message, à la manière de Lambda.
 

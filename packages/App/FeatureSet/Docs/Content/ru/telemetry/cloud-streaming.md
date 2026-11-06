@@ -93,6 +93,7 @@ flowchart TB
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 Каждый журнал несёт ID ресурса в `cloud.resource_id`, а журналы функции Lambda несут ещё и `faas.name`, поэтому они появляются и на функции в разделе Serverless. Группа журналов с любым другим именем всё равно передаётся, под своим аккаунтом и регионом. Важность журнала — та, что указана в его сообщении, так, как её пишет Lambda.
 

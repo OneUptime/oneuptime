@@ -93,6 +93,7 @@ flowchart TB
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 每条日志都以 `cloud.resource_id` 携带资源的 ID，Lambda 函数的日志还携带 `faas.name`，因此它们也会显示在 Serverless 中的该函数上。其他名称的日志组同样会被流式传输，归于其账户和区域之下。日志的严重性就是其消息中按 Lambda 的写法注明的严重性。
 
