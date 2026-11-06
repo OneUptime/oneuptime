@@ -312,6 +312,7 @@ integration("the cost writer and the cost reads against ClickHouse", () => {
             region: "us-east-1",
             resourceId: "",
             currency: "USD",
+            tags: {},
             amount: 100,
           },
         ],
@@ -436,5 +437,195 @@ integration("the cost writer and the cost reads against ClickHouse", () => {
         return [row["service"], Math.round(Number(row["cost"]) * 100) / 100];
       }),
     ).toEqual(expect.arrayContaining([["Amazon EC2", 296.5]]));
+  });
+
+  /*
+   * Each cost's tags, and AWS's costs per resource, against the real table:
+   * a resource's day split into its resources and the rest, a later read of
+   * that day as a whole-service figure that keeps the split, a resource
+   * tagged anew, and the Costs page's breakdown by a tag's value.
+   */
+  const WEB_1: string = "arn:aws:ec2:us-east-1:123456789012:instance/i-0web1";
+  const WEB_2: string = "arn:aws:ec2:us-east-1:123456789012:instance/i-0web2";
+
+  async function seriesOf(
+    day: string,
+  ): Promise<Array<[string, string, number]>> {
+    const rows: Array<JSONObject> = await run(
+      CloudCostWriter.buildStoredSumsStatement({
+        projectId: PROJECT,
+        cloudAccountIds: [ACCOUNT_ROW.toString()],
+        window: WINDOW,
+      }),
+    );
+
+    return rows
+      .filter((row: JSONObject): boolean => {
+        return row["dayText"] === day && row["serviceName"] === "AWS Lambda";
+      })
+      .map((row: JSONObject): [string, string, number] => {
+        return [
+          String(row["resourceKey"]),
+          JSON.stringify(row["tagMap"]),
+          Math.round(Number(row["total"]) * 10000) / 10000,
+        ];
+      })
+      .sort((a: [string, string, number], b: [string, string, number]) => {
+        return (a[0] + a[1]).localeCompare(b[0] + b[1]);
+      });
+  }
+
+  test("a day split into its resources, with their tags, and the rest", async () => {
+    await write([
+      record({ day: "2026-11-18", amount: 100 }),
+      record({ day: "2026-11-19", amount: 112.5 }),
+      record({ day: "2026-11-20", amount: 75 }),
+      record({
+        day: "2026-11-19",
+        service: "AWS Lambda",
+        resourceId: WEB_1,
+        amount: 60,
+        tags: { team: "web", env: "prod" },
+      }),
+      record({
+        day: "2026-11-19",
+        service: "AWS Lambda",
+        resourceId: WEB_2,
+        amount: 30,
+      }),
+      record({ day: "2026-11-19", service: "AWS Lambda", amount: 10 }),
+    ]);
+
+    expect(await seriesOf("2026-11-19")).toEqual([
+      ["", "{}", 10],
+      [WEB_1, JSON.stringify({ env: "prod", team: "web" }), 60],
+      [WEB_2, "{}", 30],
+    ]);
+  });
+
+  test("the day read again as a whole-service figure keeps its resources: only the rest moves", async () => {
+    await write([
+      record({ day: "2026-11-18", amount: 100 }),
+      record({ day: "2026-11-19", amount: 112.5 }),
+      record({ day: "2026-11-20", amount: 75 }),
+      record({
+        day: "2026-11-19",
+        service: "AWS Lambda",
+        amount: 104,
+        isServiceTotal: true,
+      }),
+    ]);
+
+    expect(await seriesOf("2026-11-19")).toEqual([
+      ["", "{}", 14],
+      [WEB_1, JSON.stringify({ env: "prod", team: "web" }), 60],
+      [WEB_2, "{}", 30],
+    ]);
+  });
+
+  test("a resource tagged anew: its day moves to its new tags", async () => {
+    await write([
+      record({ day: "2026-11-18", amount: 100 }),
+      record({ day: "2026-11-19", amount: 112.5 }),
+      record({ day: "2026-11-20", amount: 75 }),
+      record({
+        day: "2026-11-19",
+        service: "AWS Lambda",
+        resourceId: WEB_1,
+        amount: 60,
+        tags: { team: "data", env: "prod" },
+      }),
+      record({
+        day: "2026-11-19",
+        service: "AWS Lambda",
+        resourceId: WEB_2,
+        amount: 30,
+      }),
+      record({ day: "2026-11-19", service: "AWS Lambda", amount: 14 }),
+    ]);
+
+    expect(await seriesOf("2026-11-19")).toEqual([
+      ["", "{}", 14],
+      [WEB_1, JSON.stringify({ env: "prod", team: "data" }), 60],
+      [WEB_1, JSON.stringify({ env: "prod", team: "web" }), 0],
+      [WEB_2, "{}", 30],
+    ]);
+  });
+
+  test("the Costs page's breakdown by a tag's value: \"\" for the costs without it", async () => {
+    const service: CloudCostServiceClass = new CloudCostServiceClass();
+    service.database = testDatabase;
+
+    const aggregateBy: AggregateBy<CloudCost> = {
+      query: {
+        projectId: PROJECT,
+        currency: "USD",
+        day: new InBetween<Date>(WINDOW.start, NOW),
+      } as AggregateBy<CloudCost>["query"],
+      aggregationType: AggregationType.Sum,
+      aggregateColumnName: "cost",
+      aggregationTimestampColumnName: "day",
+      aggregationInterval: AggregationInterval.Total,
+      startTimestamp: WINDOW.start,
+      endTimestamp: NOW,
+      limit: 1000,
+      skip: 0,
+      sort: { day: SortOrder.Ascending },
+      groupByAttributeKeys: ["team"],
+      props: { isRoot: true },
+    } as AggregateBy<CloudCost>;
+
+    const byTeam: Record<string, number> = {};
+
+    for (const row of await run(
+      service.toAggregateStatement(aggregateBy).statement,
+    )) {
+      const value: string = String(
+        (row["attributes"] as JSONObject)["team"] ?? "",
+      );
+      byTeam[value] =
+        (byTeam[value] || 0) + Math.round(Number(row["cost"]) * 100) / 100;
+    }
+
+    /*
+     * The one tagged Lambda, and everything else the window holds - and
+     * its old tag, taken back to nothing, which a breakdown leaves out
+     * (sortCloudCostShares).
+     */
+    expect(byTeam).toEqual({ data: 60, web: 0, "": 296.5 + 44 });
+
+    // By account and Region too, as a breakdown by environment reads it.
+    const byPlace: Array<JSONObject> = await run(
+      service.toAggregateStatement({
+        ...aggregateBy,
+        groupBy: { accountId: true, region: true },
+      } as AggregateBy<CloudCost>).statement,
+    );
+
+    expect(
+      byPlace
+        .filter((row: JSONObject): boolean => {
+          return (row["attributes"] as JSONObject)["team"] === "data";
+        })
+        .map((row: JSONObject) => {
+          return [row["accountId"], row["region"], Number(row["cost"])];
+        }),
+    ).toEqual([["123456789012", "us-east-1", 60]]);
+
+    // The older analyzer reads the same.
+    const legacy: Statement =
+      service.toAggregateStatement(aggregateBy).statement;
+    const legacyRows: Array<JSONObject> = (
+      (await (
+        await client.query({
+          query: legacy.query,
+          query_params: legacy.query_params,
+          format: "JSON",
+          clickhouse_settings: { enable_analyzer: 0 },
+        })
+      ).json()) as { data: Array<JSONObject> }
+    ).data;
+
+    expect(legacyRows).toHaveLength(3);
   });
 });

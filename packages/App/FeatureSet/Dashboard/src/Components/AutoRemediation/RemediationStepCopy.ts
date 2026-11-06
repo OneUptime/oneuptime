@@ -300,6 +300,8 @@ export const REMEDIATION_FIX_STEP_COPY: {
   noRunbook: string;
   // approval: the reader's, a person's, or not needed.
   waitingForApproval: string;
+  // The same, to a reader who may not approve it (RemediationFixActGate).
+  waitingForSomeonesApproval: string;
   cannotBeApproved: string;
   approved: string;
   approvedBy: string;
@@ -352,6 +354,7 @@ export const REMEDIATION_FIX_STEP_COPY: {
   noSafeFix: translationKey("Found no safe fix"),
   noRunbook: translationKey("Found no runbook that applies"),
   waitingForApproval: translationKey("Needs your approval"),
+  waitingForSomeonesApproval: translationKey("Needs approval"),
   cannotBeApproved: translationKey("Approval blocked"),
   approved: translationKey("Approved"),
   approvedBy: translationKey("Approved by {{name}}"),

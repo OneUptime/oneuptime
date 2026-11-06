@@ -40,6 +40,7 @@ import {
 } from "./Cloud/CloudChange";
 import {
   CloudAgentSettings,
+  describeAzureWriteIdentityElsewhere,
   formatRequiredTag,
   getServiceAccountProject,
   parseCloudAgentSettings,
@@ -79,6 +80,7 @@ import {
 } from "../Common/Utils/AiRemediation/Resource/CloudOperationCatalog";
 import {
   ResourceCommandPolicyResult,
+  globMatchesTarget,
   renderResourceDisplayCommand,
 } from "../Common/Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 
@@ -104,9 +106,12 @@ import {
  *     plus its own service as it finds it), then refuses: an operation that
  *     runs on OneUptime (the reads), a change ONEUPTIME_AI_CLOUD_OPERATIONS
  *     does not enable, a resource outside the agent's own account
- *     (subscription, project), and settings it cannot read
- *     (ONEUPTIME_AI_CLOUD_REQUIRED_TAG, ONEUPTIME_AI_AWS_WRITE_ROLE_ARN).
- *     Nothing is sent before run().
+ *     (subscription, project), settings it cannot read
+ *     (ONEUPTIME_AI_CLOUD_REQUIRED_TAG, ONEUPTIME_AI_AWS_WRITE_ROLE_ARN,
+ *     ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT,
+ *     ONEUPTIME_AI_AZURE_WRITE_IDENTITY), and a write role, account or
+ *     identity of another account than its own: a change never falls back
+ *     to the agent's own credentials. Nothing is sent before run().
  *   - run() reads what the change replaces, checks its bounds and the
  *     required tag, makes the ONE call, and reports. A change's output
  *     starts with formatCloudReplacedValue(...) — the line the server
@@ -386,12 +391,37 @@ export default class CloudExecutor implements ResourceExecutor {
       .trim()
       .toLowerCase();
     const subscription: string = this.accountId();
+    const targets: Array<string> =
+      this.azure && subscription && CONTAINER_APP_NAME_PATTERN.test(app)
+        ? [
+            `/subscriptions/${subscription}/resourcegroups/*/providers/microsoft.app/containerapps/${app}`,
+          ]
+        : [];
+    /*
+     * Its write identity, where a team that runs it its own way keeps it
+     * outside the agent's own resource group (which covers the one its
+     * setup command makes).
+     */
+    const settings: CloudAgentSettings | null = this.azure
+      ? this.settings()
+      : null;
+    const writeIdentity: string = settings?.azureWriteIdentity
+      ? settings.azureWriteIdentity.resourceId.toLowerCase()
+      : "";
 
-    return this.azure && subscription && CONTAINER_APP_NAME_PATTERN.test(app)
-      ? [
-          `/subscriptions/${subscription}/resourcegroups/*/providers/microsoft.app/containerapps/${app}`,
-        ]
-      : [];
+    if (
+      writeIdentity &&
+      !getCloudAiAgentOwnTargets({
+        provider: "azure",
+        accountId: subscription,
+      }).some((pattern: string): boolean => {
+        return globMatchesTarget(pattern, writeIdentity);
+      })
+    ) {
+      targets.push(writeIdentity);
+    }
+
+    return targets;
   }
 
   // ---- prepare ---------------------------------------------------------------------------
@@ -515,6 +545,10 @@ export default class CloudExecutor implements ResourceExecutor {
       return settings.gcpWriteServiceAccountProblem;
     }
 
+    if (settings.azureWriteIdentityProblem) {
+      return settings.azureWriteIdentityProblem;
+    }
+
     const resource: ParsedCloudCommand["resource"] = command.resource;
 
     if (!resource) {
@@ -542,6 +576,18 @@ export default class CloudExecutor implements ResourceExecutor {
     }
 
     if (command.provider === "azure") {
+      // The write identity is the served subscription's own, as its setup command makes it.
+      const elsewhere: string | null = settings.azureWriteIdentity
+        ? describeAzureWriteIdentityElsewhere({
+            identity: settings.azureWriteIdentity,
+            subscriptionId: accountId,
+          })
+        : null;
+
+      if (elsewhere) {
+        return `${elsewhere}.`;
+      }
+
       if (resource.accountId.toLowerCase() !== accountId.toLowerCase()) {
         return `${showCloudId("azure", resource.id)} is in subscription ${resource.accountId}, and this agent acts in subscription ${accountId || "(unknown)"} only.`;
       }
@@ -1222,6 +1268,17 @@ export default class CloudExecutor implements ResourceExecutor {
       details["azureIdentity"] = this.azure.describeIdentity();
       // The Activity Log's caller of the agent's changes (CloudAiChangeAttribution).
       details["azurePrincipalId"] = this.azure.principalId();
+
+      /*
+       * The identity its changes run as, and its object id once the agent
+       * was given a token of it (a change, or Test connection): the caller
+       * of those changes. The posture never asks for one itself.
+       */
+      if (settings.azureWriteIdentity) {
+        details["azureWriteIdentity"] = settings.azureWriteIdentity.resourceId;
+        details["azureWritePrincipalId"] = this.azure.writePrincipalId();
+      }
+
       reachable = probe.reachable;
       reachError = probe.reachError;
     } else if (this.gcp) {
@@ -1241,10 +1298,19 @@ export default class CloudExecutor implements ResourceExecutor {
       reachError = probe.reachError;
     }
 
+    const azureWriteIdentityElsewhere: string | null =
+      provider === "azure" && settings.azureWriteIdentity
+        ? describeAzureWriteIdentityElsewhere({
+            identity: settings.azureWriteIdentity,
+            subscriptionId: accountId,
+          })
+        : null;
     const problem: string | null =
       settings.requiredTagProblem ||
       settings.awsWriteRoleProblem ||
-      settings.gcpWriteServiceAccountProblem;
+      settings.gcpWriteServiceAccountProblem ||
+      settings.azureWriteIdentityProblem ||
+      (azureWriteIdentityElsewhere ? `${azureWriteIdentityElsewhere}.` : null);
 
     if (reachable && problem) {
       details["settingsProblem"] = problem.slice(0, MAX_POSTURE_STRING_LENGTH);

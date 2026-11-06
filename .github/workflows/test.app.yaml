@@ -977,11 +977,12 @@ jobs:
           # streaming for each, the Logs tabs, dark German and Persian; about
           # 1.9 minutes on a runner): the suite 12.1, the group 23.3, so Host
           # Collectors (1.2) moved to group 3 and VMware Host Page (1.4) to
-          # group 14: 20.7.
+          # group 14: 20.7. Azure's write identity added 1 test the same day
+          # (a desktop's only, about 0.1): the suite 12.2, the group 20.8.
           # What Azure published about its health, in German and in Persian,
-          # added 1 test to Cloud Connect on 2026-11-06 (4 runs on its desktop
+          # added 1 test to Cloud Connect the same day (4 runs on its desktop
           # and phone, about 4 seconds each locally; about 0.3 minutes on a
-          # runner): the suite 12.4, the group 21.0.
+          # runner): the suite 12.5, the group 21.1.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
@@ -1129,11 +1130,17 @@ jobs:
           # suites and tests each time: its half of Event Overview took 13.3,
           # 17.4 and 21.3 minutes, on runners slower than the runs before. Data
           # Security moved on to group 13: about 15 to 24.5.
+          # Dashboard Templates (2.5) moved on to group 20 on 2026-11-06, when
+          # #5715's follow-ups grew this half of Event Overview by about 0.3
+          # minutes (the impact's short numbers on the folded investigation,
+          # the marks after citation chips and record pills on phones in
+          # English, German and Persian, and the fixes of a member who may not
+          # act on them, with no buttons):
+          # 22.2 here, past the budget, to 19.7.
           - group: 10
             event_overview_shard: 2/2
             suites: >-
               test-event-overview-ui
-              test-dashboard-templates-ui
           # Security Operations on its own, Chromium only, from 2026-10-25. In
           # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
           # 03:08 that day, and the group took 26.1 and 26.7 minutes on the
@@ -1523,19 +1530,32 @@ jobs:
           # 390 pixels, dark, German and Persian. Two groups of their own, because
           # the product's pages are still joining it and it outgrew one on
           # 2026-11-05: no group had the room for it.
+          # AI Insights (1.1 minutes locally with its bundle, Chromium only:
+          # the incidents' and the alerts' AI Insights pages - the Fixes
+          # section's bar, its verification line and where fixes were approved
+          # - at 1280 and 390 pixels, light and dark, German and Persian, with
+          # nothing investigated, fixes hidden, Enable AI off and a read that
+          # fails) joined the first OpenStack half on 2026-11-06, the group
+          # with the most room: about 12.8.
           # Global Runners (2.2) joined this one from group 4 on 2026-11-06,
-          # when Model Tables grew there (#6025): about 13.8.
+          # when Model Tables grew there (#6025): about 15.0 with AI Insights.
           - group: 19
             openstack_pages_shard: 1/2
             suites: >-
               test-openstack-pages-ui
+              test-ai-insights-ui
               test-global-runners-ui
+          # Dashboard Templates (2.5) from group 10 on 2026-11-06, the group with
+          # the most room, when Event Overview's second half grew past that
+          # group's budget: about 14.1.
           # Host Pages (1.6) joined this one from group 15 the same day, when
-          # Model Tables' second half and Metrics AI grew there: about 13.2.
+          # Model Tables' second half and Metrics AI grew there: about 15.7
+          # with Dashboard Templates.
           - group: 20
             openstack_pages_shard: 2/2
             suites: >-
               test-openstack-pages-ui
+              test-dashboard-templates-ui
               test-host-pages-ui
     steps:
       - uses: actions/checkout@v4
@@ -1771,6 +1791,8 @@ jobs:
             output/playwright/cloud-recommendations-ui/test-results
             output/playwright/cloud-spend-ui/*.png
             output/playwright/cloud-spend-ui/test-results
+            output/playwright/ai-insights-ui/*.png
+            output/playwright/ai-insights-ui/test-results
             output/playwright/host-collectors-ui/*.png
             output/playwright/host-collectors-ui/test-results
             output/playwright/resource-onboarding-ui/*.png

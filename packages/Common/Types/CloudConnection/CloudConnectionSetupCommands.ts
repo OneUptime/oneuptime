@@ -162,12 +162,22 @@ export const AWS_READ_ONLY_ACTION_GROUPS: Array<AwsReadOnlyActionGroup> = [
   },
   /*
    * What the account costs and how to spend less: Cost Explorer's daily
-   * costs ($0.01 a request, a few requests twice a day) and Cost
-   * Optimization Hub's recommendations (free).
+   * costs ($0.01 a request, a few requests twice a day) - each resource's
+   * too, for a connection that turns Costs per resource on - and how much
+   * of them its Savings Plans and Reserved Instances cover and how much of
+   * those is used (four requests a day), and Cost Optimization Hub's
+   * recommendations (free).
    */
   {
     purpose: "Read what the account costs, from Cost Explorer",
-    actions: ["ce:GetCostAndUsage"],
+    actions: [
+      "ce:GetCostAndUsage",
+      "ce:GetCostAndUsageWithResources",
+      "ce:GetSavingsPlansCoverage",
+      "ce:GetSavingsPlansUtilization",
+      "ce:GetReservationCoverage",
+      "ce:GetReservationUtilization",
+    ],
   },
   {
     purpose: "Read the ways to spend less, from Cost Optimization Hub",

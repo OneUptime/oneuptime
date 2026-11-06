@@ -323,7 +323,8 @@ describe("the words of a case's Story and Impact", () => {
     expect(tally("en")).toBe("X: 4");
     expect(tally("de")).toBe("X: 4");
     expect(tally("fr")).toBe("X : 4");
-    expect(tally("ja")).toBe("X：4");
+    // Japanese writes it as the resource hero's identifier line does.
+    expect(tally("ja")).toBe("X: 4");
     expect(tally("zh-CN")).toBe("X：4");
   });
 });
