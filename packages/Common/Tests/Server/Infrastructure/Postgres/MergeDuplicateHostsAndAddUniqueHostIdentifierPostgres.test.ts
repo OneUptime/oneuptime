@@ -1807,3 +1807,838 @@ describePostgres("DuplicateRowMerge against Postgres, rule by rule", () => {
     },
   );
 });
+
+/*
+ * AN EXCEPTION BOTH COPIES OF A HOST HAD (ExceptionTwinMerge), on Postgres:
+ * the host merge itself (MergeDuplicateHostsAndAddUniqueHostIdentifier) on
+ * copies of the host tables and of the exception tables, two ways - as the
+ * schema is today, and as it was when the migration ran in production
+ * (1806700000000: no exception merges, no Regressed time, no release to
+ * wait for, no AI explanation, no activity yet). An exception both copies
+ * of a host had stays one exception that counts both copies' occurrences:
+ * the kept one takes in the dropped twin's count, first and last seen with
+ * their releases and unhandled flag, its triage, assignee, text, AI
+ * explanation and error class - and where exceptions were merged into
+ * others, the counts still add up.
+ */
+const EXCEPTION_SCHEMAS: Array<[string, boolean]> = [
+  ["as the schema is today", true],
+  ["as the schema was when the migration ran in production", false],
+];
+
+// What the exception table had when 1806700000000 ran.
+const EXCEPTION_COLUMNS_ADDED_SINCE: Array<string> = [
+  "regressedAt",
+  "resolvedInReleaseAfter",
+  "aiExplanation",
+  "aiExplanationGeneratedAt",
+  "mergedIntoTelemetryExceptionId",
+  "mergedAt",
+  "mergedByUserId",
+];
+
+interface SeededException {
+  _id: string;
+  primaryEntityType: string;
+  occuranceCount: number;
+  firstSeenAt: string | null;
+  lastSeenAt: string | null;
+  firstSeenInRelease: string | null;
+  lastSeenInRelease: string | null;
+  unhandled: boolean;
+  isResolved: boolean;
+  markedAsResolvedAt: string | null;
+  markedAsResolvedByUserId: string | null;
+  isArchived: boolean;
+  markedAsArchivedAt: string | null;
+  markedAsArchivedByUserId: string | null;
+  assignToUserId: string | null;
+  assignToTeamId: string | null;
+  message: string | null;
+  errorClass: string;
+  errorClassSource: string;
+  regressedAt?: string | null;
+  resolvedInReleaseAfter?: string | null;
+  aiExplanation?: string | null;
+  aiExplanationGeneratedAt?: string | null;
+  mergedIntoTelemetryExceptionId?: string | null;
+}
+
+// An exception row as the suite reads it back, times as ISO text.
+type ReadException = Record<string, unknown>;
+
+describe.each(EXCEPTION_SCHEMAS)(
+  "Exceptions both copies of a host had, %s",
+  (_label: string, isToday: boolean) => {
+    describePostgres("against Postgres", () => {
+      const schema: string = `merge_dup_exceptions_${
+        isToday ? "today" : "then"
+      }_${ObjectID.generate().toString().replace(DASHES, "")}`;
+      let database: DataSource;
+
+      const projectId: string = ObjectID.generate().toString();
+      const alice: string = ObjectID.generate().toString();
+      const bob: string = ObjectID.generate().toString();
+      const team: string = ObjectID.generate().toString();
+
+      // The seeded rows, by name.
+      const ids: Record<string, string> = {};
+      let hostNumber: number = 0;
+      let before: Array<ReadException> = [];
+
+      function quoted(table: string): string {
+        return `"${schema}"."${table}"`;
+      }
+
+      function at(day: string): string {
+        return `2026-02-${day}T00:00:00.000Z`;
+      }
+
+      /*
+       * A host and its copies, each created a day after the one before and
+       * spelled in another case: the copies go.
+       */
+      async function hostPair(
+        table: string,
+        copies: number = 1,
+      ): Promise<{ keptId: string; duplicateIds: Array<string> }> {
+        hostNumber++;
+        const name: string = `exceptions-${hostNumber}`;
+        const spellings: Array<string> = [
+          name,
+          name.toUpperCase(),
+          `${name.slice(0, 1).toUpperCase()}${name.slice(1)}`,
+        ];
+        const rows: Array<string> = [];
+
+        for (let index: number = 0; index <= copies; index++) {
+          const id: string = ObjectID.generate().toString();
+
+          await database.query(
+            `INSERT INTO ${quoted(table)} ("_id", "projectId", "name", "slug", "hostIdentifier", "version", "createdAt", "lastSeenAt")
+             VALUES ($1, $2, $3, $4, $3, 0, $5, $6)`,
+            [
+              id,
+              projectId,
+              spellings[index],
+              `${name}-${index}`,
+              `2026-01-0${index + 1}T00:00:00.000Z`,
+              at(`0${index + 1}`),
+            ],
+          );
+          rows.push(id);
+        }
+
+        return { keptId: rows[0]!, duplicateIds: rows.slice(1) };
+      }
+
+      // An exception of a host, as ingest leaves it: open, counted.
+      async function exception(
+        name: string,
+        values: Partial<SeededException> & {
+          primaryEntityId: string;
+          fingerprint: string;
+        },
+      ): Promise<string> {
+        const row: Record<string, unknown> = {
+          _id: ObjectID.generate().toString(),
+          projectId: projectId,
+          primaryEntityType: "Host",
+          version: 0,
+          occuranceCount: 1,
+          firstSeenAt: at("01"),
+          lastSeenAt: at("10"),
+          firstSeenInRelease: "1.0.0",
+          lastSeenInRelease: "1.1.0",
+          unhandled: false,
+          isResolved: false,
+          isArchived: false,
+          message: "Cannot read properties of undefined (reading 'id')",
+          stackTrace: "TypeError: x\n    at checkout (cart.js:10:5)",
+          exceptionType: "TypeError",
+          ...values,
+        };
+
+        const names: Array<string> = Object.keys(row);
+
+        await database.query(
+          `INSERT INTO ${quoted("TelemetryException")} (${names
+            .map((column: string): string => {
+              return `"${column}"`;
+            })
+            .join(", ")}) VALUES (${names
+            .map((_column: string, index: number): string => {
+              return `$${index + 1}`;
+            })
+            .join(", ")})`,
+          names.map((column: string): unknown => {
+            return row[column];
+          }),
+        );
+
+        ids[name] = row["_id"] as string;
+
+        return row["_id"] as string;
+      }
+
+      async function read(name: string): Promise<ReadException | null> {
+        const rows: Array<ReadException> = await database.query(
+          `SELECT * FROM ${quoted("TelemetryException")} WHERE "_id" = $1`,
+          [ids[name]],
+        );
+
+        const row: ReadException | undefined = rows[0];
+
+        if (!row) {
+          return null;
+        }
+
+        const result: ReadException = {};
+
+        for (const [column, value] of Object.entries(row)) {
+          result[column] = value instanceof Date ? value.toISOString() : value;
+        }
+
+        return result;
+      }
+
+      async function readAll(): Promise<Array<ReadException>> {
+        const rows: Array<ReadException> = await database.query(
+          `SELECT "_id", "primaryEntityId", "fingerprint", "occuranceCount", "firstSeenAt", "lastSeenAt",
+                  "isResolved", "isArchived", "markedAsResolvedAt", "markedAsResolvedByUserId",
+                  "assignToUserId", "assignToTeamId", "errorClass", "errorClassSource"
+             FROM ${quoted("TelemetryException")} ORDER BY "_id"`,
+        );
+
+        return rows.map((row: ReadException): ReadException => {
+          const copy: ReadException = {};
+          for (const [column, value] of Object.entries(row)) {
+            copy[column] = value instanceof Date ? value.toISOString() : value;
+          }
+          return copy;
+        });
+      }
+
+      async function runMigration(): Promise<void> {
+        const queryRunner: QueryRunner = database.createQueryRunner();
+        try {
+          await queryRunner.query(`SET search_path TO "${schema}"`);
+          await new MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000().up(
+            queryRunner,
+          );
+        } finally {
+          await queryRunner.query(`SET search_path TO DEFAULT`);
+          await queryRunner.release();
+        }
+      }
+
+      beforeAll(async () => {
+        database = new DataSource({
+          type: "postgres",
+          host:
+            process.env["MERGE_DUPLICATE_HOSTS_TEST_DATABASE_HOST"] ||
+            "localhost",
+          port: Number(
+            process.env["MERGE_DUPLICATE_HOSTS_TEST_DATABASE_PORT"] || "5400",
+          ),
+          username: process.env["DATABASE_USERNAME"] || "postgres",
+          password: process.env["DATABASE_PASSWORD"] || "password",
+          database:
+            process.env["MERGE_DUPLICATE_HOSTS_TEST_DATABASE_NAME"] ||
+            process.env["DATABASE_NAME"] ||
+            "oneuptimedb",
+          schema: schema,
+          synchronize: false,
+          extra: { options: `-c search_path=${schema},public` },
+        });
+        await database.initialize();
+        await database.query(`CREATE SCHEMA "${schema}"`);
+
+        const tables: Array<string> = [
+          "DockerHost",
+          "PodmanHost",
+          "Host",
+          "TelemetryException",
+          ...(isToday ? ["TelemetryExceptionActivity"] : []),
+        ];
+
+        for (const table of tables) {
+          await database.query(
+            `CREATE TABLE ${quoted(table)} (LIKE public."${table}" INCLUDING ALL)`,
+          );
+        }
+
+        // Built by the migration under test: start without them.
+        const builtAlready: Array<{ name: string }> = await database.query(
+          `SELECT indexname AS "name" FROM pg_indexes
+            WHERE schemaname = $1 AND indexdef ILIKE '%lower(("hostIdentifier")%'`,
+          [schema],
+        );
+        for (const index of builtAlready) {
+          await database.query(`DROP INDEX "${schema}"."${index.name}"`);
+        }
+
+        // The foreign keys among these tables, as public has them.
+        const foreignKeys: Array<{
+          child: string;
+          name: string;
+          definition: string;
+        }> = await database.query(
+          `SELECT child.relname AS "child", c.conname AS "name",
+                  pg_get_constraintdef(c.oid) AS "definition"
+             FROM pg_constraint c
+             JOIN pg_class child ON child.oid = c.conrelid
+             JOIN pg_class parent ON parent.oid = c.confrelid
+             JOIN pg_namespace cn ON cn.oid = child.relnamespace
+             JOIN pg_namespace pn ON pn.oid = parent.relnamespace
+            WHERE c.contype = 'f' AND cn.nspname = 'public' AND pn.nspname = 'public'
+              AND child.relname = ANY($1) AND parent.relname = ANY($1)`,
+          [tables],
+        );
+
+        for (const foreignKey of foreignKeys) {
+          await database.query(
+            `ALTER TABLE ${quoted(foreignKey.child)} ADD CONSTRAINT "${foreignKey.name}" ${foreignKey.definition
+              .split("REFERENCES public.")
+              .join(`REFERENCES "${schema}".`)}`,
+          );
+        }
+
+        if (!isToday) {
+          for (const column of EXCEPTION_COLUMNS_ADDED_SINCE) {
+            await database.query(
+              `ALTER TABLE ${quoted("TelemetryException")} DROP COLUMN "${column}" CASCADE`,
+            );
+          }
+        }
+
+        /*
+         * Counts, seen times, releases and unhandled add up, as a merge adds
+         * them; the text is the kept one's. An exception only the copy had
+         * moves, its count as it was.
+         */
+        const counts: { keptId: string; duplicateIds: Array<string> } =
+          await hostPair("Host");
+        await exception("countsKept", {
+          primaryEntityId: counts.keptId,
+          fingerprint: "fp-counts",
+          occuranceCount: 10,
+          firstSeenAt: at("05"),
+          firstSeenInRelease: "1.0.0",
+          lastSeenAt: at("20"),
+          lastSeenInRelease: "1.2.0",
+          message: "the kept copy's message",
+        });
+        await exception("countsTwin", {
+          primaryEntityId: counts.duplicateIds[0]!,
+          fingerprint: "fp-counts",
+          occuranceCount: 7,
+          firstSeenAt: at("01"),
+          firstSeenInRelease: "0.9.0",
+          lastSeenAt: at("25"),
+          lastSeenInRelease: "1.3.0",
+          unhandled: true,
+          message: "the twin's message",
+        });
+        await exception("onlyOnTheCopy", {
+          primaryEntityId: counts.duplicateIds[0]!,
+          fingerprint: "fp-only-on-the-copy",
+          occuranceCount: 5,
+        });
+
+        // Three copies of the host, three of the exception: one, counting all.
+        const three: { keptId: string; duplicateIds: Array<string> } =
+          await hostPair("Host", 2);
+        await exception("threeKept", {
+          primaryEntityId: three.keptId,
+          fingerprint: "fp-three",
+          occuranceCount: 1,
+          firstSeenAt: at("04"),
+        });
+        await exception("threeFirstTwin", {
+          primaryEntityId: three.duplicateIds[0]!,
+          fingerprint: "fp-three",
+          occuranceCount: 2,
+          firstSeenAt: at("02"),
+        });
+        await exception("threeSecondTwin", {
+          primaryEntityId: three.duplicateIds[1]!,
+          fingerprint: "fp-three",
+          occuranceCount: 4,
+          firstSeenAt: at("03"),
+        });
+
+        // Resolved, and the twin seen after: open again.
+        const reopened: { keptId: string; duplicateIds: Array<string> } =
+          await hostPair("Host");
+        await exception("reopenedKept", {
+          primaryEntityId: reopened.keptId,
+          fingerprint: "fp-reopened",
+          isResolved: true,
+          markedAsResolvedAt: at("12"),
+          markedAsResolvedByUserId: alice,
+          lastSeenAt: at("10"),
+        });
+        await exception("reopenedTwin", {
+          primaryEntityId: reopened.duplicateIds[0]!,
+          fingerprint: "fp-reopened",
+          lastSeenAt: at("15"),
+        });
+
+        // Resolved after the twin was last seen: it stays resolved.
+        const stays: { keptId: string; duplicateIds: Array<string> } =
+          await hostPair("Host");
+        await exception("staysKept", {
+          primaryEntityId: stays.keptId,
+          fingerprint: "fp-stays",
+          isResolved: true,
+          markedAsResolvedAt: at("12"),
+          markedAsResolvedByUserId: alice,
+          lastSeenAt: at("10"),
+        });
+        await exception("staysTwin", {
+          primaryEntityId: stays.duplicateIds[0]!,
+          fingerprint: "fp-stays",
+          lastSeenAt: at("11"),
+        });
+
+        // The twin resolved after the kept copy was last seen: resolved.
+        const twinResolved: { keptId: string; duplicateIds: Array<string> } =
+          await hostPair("Host");
+        await exception("twinResolvedKept", {
+          primaryEntityId: twinResolved.keptId,
+          fingerprint: "fp-twin-resolved",
+          lastSeenAt: at("10"),
+        });
+        await exception("twinResolvedTwin", {
+          primaryEntityId: twinResolved.duplicateIds[0]!,
+          fingerprint: "fp-twin-resolved",
+          isResolved: true,
+          markedAsResolvedAt: at("12"),
+          markedAsResolvedByUserId: bob,
+          lastSeenAt: at("09"),
+        });
+
+        // Archived only if both were.
+        const archived: { keptId: string; duplicateIds: Array<string> } =
+          await hostPair("Host");
+        await exception("oneArchivedKept", {
+          primaryEntityId: archived.keptId,
+          fingerprint: "fp-one-archived",
+          isArchived: true,
+          markedAsArchivedAt: at("03"),
+          markedAsArchivedByUserId: alice,
+        });
+        await exception("oneArchivedTwin", {
+          primaryEntityId: archived.duplicateIds[0]!,
+          fingerprint: "fp-one-archived",
+        });
+        await exception("bothArchivedKept", {
+          primaryEntityId: archived.keptId,
+          fingerprint: "fp-both-archived",
+          isArchived: true,
+          markedAsArchivedAt: at("03"),
+          markedAsArchivedByUserId: alice,
+        });
+        await exception("bothArchivedTwin", {
+          primaryEntityId: archived.duplicateIds[0]!,
+          fingerprint: "fp-both-archived",
+          isArchived: true,
+          markedAsArchivedAt: at("04"),
+          markedAsArchivedByUserId: bob,
+        });
+
+        // The assignee: the kept copy's, else the twin's - one, a person or a team.
+        const assigned: { keptId: string; duplicateIds: Array<string> } =
+          await hostPair("Host");
+        await exception("unassignedKept", {
+          primaryEntityId: assigned.keptId,
+          fingerprint: "fp-unassigned",
+        });
+        await exception("unassignedTwin", {
+          primaryEntityId: assigned.duplicateIds[0]!,
+          fingerprint: "fp-unassigned",
+          assignToTeamId: team,
+        });
+        await exception("assignedKept", {
+          primaryEntityId: assigned.keptId,
+          fingerprint: "fp-assigned",
+          assignToUserId: alice,
+        });
+        await exception("assignedTwin", {
+          primaryEntityId: assigned.duplicateIds[0]!,
+          fingerprint: "fp-assigned",
+          assignToTeamId: team,
+        });
+
+        // The error class from the stronger source.
+        const classified: { keptId: string; duplicateIds: Array<string> } =
+          await hostPair("Host");
+        await exception("classifiedKept", {
+          primaryEntityId: classified.keptId,
+          fingerprint: "fp-classified",
+          errorClass: "code-fault",
+          errorClassSource: "ai",
+        });
+        await exception("classifiedTwin", {
+          primaryEntityId: classified.duplicateIds[0]!,
+          fingerprint: "fp-classified",
+          errorClass: "user-error",
+          errorClassSource: "manual",
+        });
+
+        // The issue's own case: a Docker host made twice.
+        const docker: { keptId: string; duplicateIds: Array<string> } =
+          await hostPair("DockerHost");
+        await exception("dockerKept", {
+          primaryEntityId: docker.keptId,
+          primaryEntityType: "DockerHost",
+          fingerprint: "fp-docker",
+          occuranceCount: 3,
+        });
+        await exception("dockerTwin", {
+          primaryEntityId: docker.duplicateIds[0]!,
+          primaryEntityType: "DockerHost",
+          fingerprint: "fp-docker",
+          occuranceCount: 9,
+        });
+
+        if (isToday) {
+          // Resolved in the next release: the release waited out does not reopen it.
+          const nextRelease: {
+            keptId: string;
+            duplicateIds: Array<string>;
+          } = await hostPair("Host");
+          await exception("nextReleaseKept", {
+            primaryEntityId: nextRelease.keptId,
+            fingerprint: "fp-next-release",
+            isResolved: true,
+            markedAsResolvedAt: at("12"),
+            markedAsResolvedByUserId: alice,
+            resolvedInReleaseAfter: "2.0.0",
+            lastSeenAt: at("10"),
+          });
+          await exception("nextReleaseTwin", {
+            primaryEntityId: nextRelease.duplicateIds[0]!,
+            fingerprint: "fp-next-release",
+            lastSeenAt: at("15"),
+            lastSeenInRelease: "2.0.0",
+          });
+
+          // OneUptime AI's explanation: the kept copy has none, the twin one.
+          await exception("explainedKept", {
+            primaryEntityId: classified.keptId,
+            fingerprint: "fp-explained",
+          });
+          await exception("explainedTwin", {
+            primaryEntityId: classified.duplicateIds[0]!,
+            fingerprint: "fp-explained",
+            aiExplanation: JSON.stringify({ summary: "A missing cart." }),
+            aiExplanationGeneratedAt: at("20"),
+          });
+
+          /*
+           * Exceptions merged into the twin follow it: its own 4 and its
+           * member's 3.
+           */
+          const members: { keptId: string; duplicateIds: Array<string> } =
+            await hostPair("Host");
+          await exception("membersKept", {
+            primaryEntityId: members.keptId,
+            fingerprint: "fp-members",
+            occuranceCount: 10,
+          });
+          await exception("membersTwin", {
+            primaryEntityId: members.duplicateIds[0]!,
+            fingerprint: "fp-members",
+            occuranceCount: 7,
+          });
+          await exception("membersMember", {
+            primaryEntityId: members.duplicateIds[0]!,
+            fingerprint: "fp-members-member",
+            occuranceCount: 3,
+            mergedIntoTelemetryExceptionId: ids["membersTwin"]!,
+          });
+
+          /*
+           * The kept copy merged into another: it counts the twin's own 4,
+           * the one it was merged into all of the twin's 6 - and the
+           * exception merged into the twin goes there too, as nothing is
+           * merged into a merged one.
+           */
+          const keptMerged: { keptId: string; duplicateIds: Array<string> } =
+            await hostPair("Host");
+          await exception("keptMergedSurvivor", {
+            primaryEntityId: keptMerged.keptId,
+            fingerprint: "fp-kept-merged-survivor",
+            occuranceCount: 30,
+          });
+          await exception("keptMergedKept", {
+            primaryEntityId: keptMerged.keptId,
+            fingerprint: "fp-kept-merged",
+            occuranceCount: 10,
+            mergedIntoTelemetryExceptionId: ids["keptMergedSurvivor"]!,
+          });
+          await exception("keptMergedTwin", {
+            primaryEntityId: keptMerged.duplicateIds[0]!,
+            fingerprint: "fp-kept-merged",
+            occuranceCount: 6,
+          });
+          await exception("keptMergedTwinMember", {
+            primaryEntityId: keptMerged.duplicateIds[0]!,
+            fingerprint: "fp-kept-merged-twin-member",
+            occuranceCount: 2,
+            mergedIntoTelemetryExceptionId: ids["keptMergedTwin"]!,
+          });
+
+          /*
+           * The twin merged into another of the copy's: taken back off it,
+           * which moves to the kept host with its own count.
+           */
+          const twinMerged: { keptId: string; duplicateIds: Array<string> } =
+            await hostPair("Host");
+          await exception("twinMergedSurvivor", {
+            primaryEntityId: twinMerged.duplicateIds[0]!,
+            fingerprint: "fp-twin-merged-survivor",
+            occuranceCount: 25,
+          });
+          await exception("twinMergedTwin", {
+            primaryEntityId: twinMerged.duplicateIds[0]!,
+            fingerprint: "fp-twin-merged",
+            occuranceCount: 5,
+            mergedIntoTelemetryExceptionId: ids["twinMergedSurvivor"]!,
+          });
+          await exception("twinMergedKept", {
+            primaryEntityId: twinMerged.keptId,
+            fingerprint: "fp-twin-merged",
+            occuranceCount: 10,
+          });
+
+          // The twin's activity goes with what it counted.
+          await database.query(
+            `INSERT INTO ${quoted("TelemetryExceptionActivity")} ("_id", "projectId", "telemetryExceptionId", "activityType", "version")
+             VALUES ($1, $2, $3, 'resolved', 0)`,
+            [ObjectID.generate().toString(), projectId, ids["countsTwin"]],
+          );
+        }
+
+        before = await readAll();
+
+        await runMigration();
+      }, 600_000);
+
+      afterAll(async () => {
+        if (database?.isInitialized) {
+          await database.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+          await database.destroy();
+        }
+      });
+
+      test("the kept exception counts both copies' occurrences, from the first seen to the last, with their releases; the twin is gone", async () => {
+        expect(await read("countsKept")).toMatchObject({
+          occuranceCount: 17,
+          firstSeenAt: at("01"),
+          firstSeenInRelease: "0.9.0",
+          lastSeenAt: at("25"),
+          lastSeenInRelease: "1.3.0",
+          unhandled: true,
+          // What it says is the kept copy's own.
+          message: "the kept copy's message",
+        });
+        expect(await read("countsTwin")).toBeNull();
+      });
+
+      test("an exception only the copy had moves to the kept host, its count as it was", async () => {
+        const row: ReadException | null = await read("onlyOnTheCopy");
+
+        expect(row).toMatchObject({ occuranceCount: 5 });
+        expect(row!["primaryEntityId"]).toBe(
+          (await read("countsKept"))!["primaryEntityId"],
+        );
+      });
+
+      test("three copies of the host: one exception, counting all three", async () => {
+        expect(await read("threeKept")).toMatchObject({
+          occuranceCount: 7,
+          firstSeenAt: at("02"),
+        });
+        expect(await read("threeFirstTwin")).toBeNull();
+        expect(await read("threeSecondTwin")).toBeNull();
+      });
+
+      test("resolved before the twin was last seen: open again, its resolution cleared - and Regressed then, where the schema has it", async () => {
+        const row: ReadException | null = await read("reopenedKept");
+
+        expect(row).toMatchObject({
+          isResolved: false,
+          markedAsResolvedAt: null,
+          markedAsResolvedByUserId: null,
+          lastSeenAt: at("15"),
+        });
+
+        if (isToday) {
+          expect(row).toMatchObject({
+            regressedAt: at("15"),
+            resolvedInReleaseAfter: null,
+          });
+        } else {
+          expect(Object.keys(row!)).not.toContain("regressedAt");
+        }
+      });
+
+      test("resolved after the twin was last seen: it stays resolved, by whom and when it was", async () => {
+        expect(await read("staysKept")).toMatchObject({
+          isResolved: true,
+          markedAsResolvedAt: at("12"),
+          markedAsResolvedByUserId: alice,
+        });
+      });
+
+      test("the twin resolved after the kept copy was last seen: resolved, by whoever resolved the twin", async () => {
+        expect(await read("twinResolvedKept")).toMatchObject({
+          isResolved: true,
+          markedAsResolvedAt: at("12"),
+          markedAsResolvedByUserId: bob,
+        });
+      });
+
+      test("archived only if both copies were: one left on the list keeps it there", async () => {
+        expect(await read("oneArchivedKept")).toMatchObject({
+          isArchived: false,
+          markedAsArchivedAt: null,
+          markedAsArchivedByUserId: null,
+        });
+        expect(await read("bothArchivedKept")).toMatchObject({
+          isArchived: true,
+          markedAsArchivedAt: at("03"),
+          markedAsArchivedByUserId: alice,
+        });
+      });
+
+      test("the assignee: the kept copy's own, else the twin's - one, a person or a team", async () => {
+        expect(await read("unassignedKept")).toMatchObject({
+          assignToUserId: null,
+          assignToTeamId: team,
+        });
+        expect(await read("assignedKept")).toMatchObject({
+          assignToUserId: alice,
+          assignToTeamId: null,
+        });
+      });
+
+      test("the error class from the stronger source: a person's over OneUptime AI's", async () => {
+        expect(await read("classifiedKept")).toMatchObject({
+          errorClass: "user-error",
+          errorClassSource: "manual",
+        });
+      });
+
+      test("a Docker host made twice: its exception counts both copies'", async () => {
+        expect(await read("dockerKept")).toMatchObject({ occuranceCount: 12 });
+        expect(await read("dockerTwin")).toBeNull();
+      });
+
+      if (isToday) {
+        test("resolved in the next release: the twin seen since, in the release it waits out, does not reopen it", async () => {
+          expect(await read("nextReleaseKept")).toMatchObject({
+            isResolved: true,
+            resolvedInReleaseAfter: "2.0.0",
+            regressedAt: null,
+          });
+        });
+
+        test("OneUptime AI's explanation of the twin, where the kept copy had none, with when it was written", async () => {
+          expect(await read("explainedKept")).toMatchObject({
+            aiExplanation: { summary: "A missing cart." },
+            aiExplanationGeneratedAt: at("20"),
+          });
+        });
+
+        test("the exceptions merged into the twin follow it to the kept one, which counts them with the twin's own", async () => {
+          expect(await read("membersKept")).toMatchObject({
+            occuranceCount: 17,
+          });
+
+          const member: ReadException | null = await read("membersMember");
+          expect(member).toMatchObject({
+            occuranceCount: 3,
+            mergedIntoTelemetryExceptionId: ids["membersKept"],
+          });
+          // Moved to the kept host with the rest of the copy's.
+          expect(member!["primaryEntityId"]).toBe(
+            (await read("membersKept"))!["primaryEntityId"],
+          );
+        });
+
+        test("the kept copy merged into another: it counts the twin's own, the one it was merged into all of it, members and all", async () => {
+          expect(await read("keptMergedKept")).toMatchObject({
+            occuranceCount: 14,
+            mergedIntoTelemetryExceptionId: ids["keptMergedSurvivor"],
+          });
+          expect(await read("keptMergedSurvivor")).toMatchObject({
+            occuranceCount: 36,
+            mergedIntoTelemetryExceptionId: null,
+          });
+          // Not into the merged kept copy: into the exception it was merged into.
+          expect(await read("keptMergedTwinMember")).toMatchObject({
+            occuranceCount: 2,
+            mergedIntoTelemetryExceptionId: ids["keptMergedSurvivor"],
+          });
+        });
+
+        test("the twin merged into another of the copy's: taken back off it, which moves to the kept host", async () => {
+          expect(await read("twinMergedKept")).toMatchObject({
+            occuranceCount: 15,
+          });
+
+          const survivor: ReadException | null =
+            await read("twinMergedSurvivor");
+          expect(survivor).toMatchObject({ occuranceCount: 20 });
+          expect(survivor!["primaryEntityId"]).toBe(
+            (await read("twinMergedKept"))!["primaryEntityId"],
+          );
+        });
+
+        test("nothing is merged into a merged exception, and every survivor counts its own and its members'", async () => {
+          const rows: Array<{
+            id: string;
+            mergedInto: string | null;
+            survivorMergedInto: string | null;
+          }> = await database.query(
+            `SELECT e."_id"::text AS "id",
+                    e."mergedIntoTelemetryExceptionId"::text AS "mergedInto",
+                    s."mergedIntoTelemetryExceptionId"::text AS "survivorMergedInto"
+               FROM ${quoted("TelemetryException")} e
+               LEFT JOIN ${quoted("TelemetryException")} s ON s."_id" = e."mergedIntoTelemetryExceptionId"
+              WHERE e."mergedIntoTelemetryExceptionId" IS NOT NULL`,
+          );
+
+          expect(rows.length).toBeGreaterThan(0);
+
+          for (const row of rows) {
+            // Its survivor is there, and is not merged itself.
+            expect([row.id, row.survivorMergedInto]).toEqual([row.id, null]);
+          }
+        });
+
+        test("the twin's activity is the kept exception's now", async () => {
+          const rows: Array<{ id: string }> = await database.query(
+            `SELECT "telemetryExceptionId"::text AS "id" FROM ${quoted("TelemetryExceptionActivity")}`,
+          );
+
+          expect(rows).toEqual([{ id: ids["countsKept"] }]);
+        });
+      }
+
+      test("run again, it changes nothing", async () => {
+        const merged: Array<ReadException> = await readAll();
+
+        await runMigration();
+
+        expect(await readAll()).toEqual(merged);
+        // And it did change what it had to, the first time.
+        expect(merged).not.toEqual(before);
+      });
+    });
+  },
+);
