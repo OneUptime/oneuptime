@@ -508,7 +508,7 @@ const getDroppedFieldLabel: (
         name: baseField.substring(ATTRIBUTE_FACET_PREFIX.length),
       })
     : wordedLabel
-      ? translator.translateText(wordedLabel)
+      ? translator.translateText(wordedLabel) || wordedLabel
       : baseField;
 
   return isExcludeFacetKey(field)

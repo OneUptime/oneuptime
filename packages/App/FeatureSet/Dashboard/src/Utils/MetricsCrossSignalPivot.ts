@@ -679,7 +679,7 @@ const wordScopeNote: (note: string, sentence: Translator) => string = (
   sentence: Translator,
 ): string => {
   if (WORDED_SCOPE_NOTES.has(note)) {
-    return sentence.translateText(note);
+    return sentence.translateText(note) || note;
   }
 
   if (

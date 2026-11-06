@@ -884,7 +884,8 @@ const AIInsightViewPage: FunctionComponent<
                   tooltip={[
                     translator.translateText(
                       "Opens the telemetry slice this insight was detected on.",
-                    ),
+                    ) ||
+                      "Opens the telemetry slice this insight was detected on.",
                     formatDroppedScopeHint(
                       investigationLink.dropped,
                       translator,

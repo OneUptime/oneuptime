@@ -429,7 +429,8 @@ export function describeClockAlignment(
       ? translator.translateTemplate(CLOCK_SKEW_NOTE, {
           skew: formatSecondsForCopy(alignment.uncertaintyMs),
         })
-      : translator.translateText(CLOCK_UNANCHORED_NOTE);
+      : translator.translateText(CLOCK_UNANCHORED_NOTE) ||
+          CLOCK_UNANCHORED_NOTE;
   }
 
   if (alignment.status === "anchored") {

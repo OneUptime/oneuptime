@@ -107,7 +107,8 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
   // Where the link goes, and what it leaves out, in the reader's language.
   const investigationTitle: string = investigationLink
     ? [
-        translator.translateText(investigationLink.label),
+        translator.translateText(investigationLink.label) ||
+          investigationLink.label,
         formatDroppedScopeHint(investigationLink.dropped, translator),
       ]
         .filter((sentence: string) => {

@@ -290,13 +290,14 @@ export const describeCompanion: (data: {
   window: CompanionWindow;
   translator: Translator;
 }): { description: string; emptyMessage: string } => {
+  const description: string =
+    COMPANION_DESCRIPTIONS[data.signal][data.eventNoun][data.window];
+  const emptyMessage: string =
+    COMPANION_EMPTY_MESSAGES[data.signal][data.window];
+
   return {
-    description: data.translator.translateText(
-      COMPANION_DESCRIPTIONS[data.signal][data.eventNoun][data.window],
-    ),
-    emptyMessage: data.translator.translateText(
-      COMPANION_EMPTY_MESSAGES[data.signal][data.window],
-    ),
+    description: data.translator.translateText(description) || description,
+    emptyMessage: data.translator.translateText(emptyMessage) || emptyMessage,
   };
 };
 
@@ -399,7 +400,15 @@ const CompanionLogsTab: FunctionComponent<CompanionLogsTabProps> = (
           serviceIds={serviceIds.length > 0 ? serviceIds : undefined}
           logQuery={props.spec.logQuery}
           limit={10}
-          noLogsMessage={words.emptyMessage}
+          /*
+           * The English key, which the logs table looks up as it draws
+           * it (LogsEmptyHintsGuard reads these lines as written).
+           */
+          noLogsMessage={
+            props.window === "zoomed"
+              ? "Nothing was logged in the zoomed part of the snapshot window."
+              : "Nothing was logged in the snapshot window."
+          }
         />
       </Card>
     </div>
