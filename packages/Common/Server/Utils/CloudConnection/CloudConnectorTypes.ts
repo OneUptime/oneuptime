@@ -379,6 +379,16 @@ export interface CloudChange {
    */
   resources: Array<{ id: string; type?: string | undefined }>;
   failed: boolean;
+  /*
+   * AWS only: a call that changed nothing but how many run - an ECS
+   * UpdateService whose request set the desired count and nothing that
+   * starts a deployment (Application Auto Scaling, `aws ecs update-service
+   * --desired-count`, the Cloud AI agent's scale-out or scale-in). It is
+   * scaling, though its operation is the one a deploy is made with
+   * (classifyCloudChange). Read from the names of the request's parameters
+   * (isAwsScaleOnlyUpdate); their values are never kept.
+   */
+  isScalingOnly?: boolean | undefined;
   // A health event's own title and description, as the provider wrote them.
   title?: string | undefined;
   description?: string | undefined;

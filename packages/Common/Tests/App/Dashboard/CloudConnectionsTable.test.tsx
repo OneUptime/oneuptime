@@ -60,6 +60,9 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 });
 
 import CloudConnectionsTable from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionsTable";
+import { getCloudResourcesRoute } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudResourcesListRoute";
+import { CLOUD_RESOURCES_TABLE_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/AppPlatforms/AppPlatformsAccountFacet";
+import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import { CLOUD_STREAM_COMMAND_MAX_HEIGHT } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamParts";
 import {
   READ_NOW_GIVE_UP_MS,
@@ -71,7 +74,6 @@ import splitActionButtons, {
   SplitActionButtonsResult,
   getActionButtonLock,
 } from "../../../UI/Components/ActionButton/SplitActionButtons";
-import Route from "../../../Types/API/Route";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionFailureKind } from "../../../Types/CloudConnection/CloudConnectionTest";
 import OneUptimeDate from "../../../Types/Date";
@@ -115,9 +117,7 @@ interface CapturedColumn {
 }
 
 const CONNECTION_ID: string = "20000000-0000-4000-8000-000000000001";
-const RESOURCES_ROUTE: Route = new Route(
-  `/dashboard/${PROJECT_ID}/cloud/resources`,
-);
+const RESOURCES_PATH: string = `/dashboard/${PROJECT_ID}/cloud/resources`;
 
 let postSpy: jest.SpyInstance<any, any>;
 let updateSpy: jest.SpyInstance<any, any>;
@@ -204,7 +204,7 @@ function renderTable(
       <CloudConnectionsTable
         refreshToggle="0"
         updateGate={updateGate}
-        resourcesRoute={RESOURCES_ROUTE}
+        getResourcesRoute={getCloudResourcesRoute}
         onEdit={onEdit}
         onConnectionsLoaded={getJestMockFunction()}
       />
@@ -385,9 +385,30 @@ describe("a row", () => {
     expect(
       within(cell).getByTestId("cloud-connection-resource-count"),
     ).toHaveTextContent("14 resources");
-    expect(
-      within(cell).getByTestId("cloud-connection-resource-count").closest("a"),
-    ).toHaveAttribute("href", RESOURCES_ROUTE.toString());
+    /*
+     * The count opens All Resources with its Cloud Account chip set to the
+     * accounts the connection read (#6149's follow-up): the list it lands
+     * on holds what it counted.
+     */
+    const link: Element | null = within(cell)
+      .getByTestId("cloud-connection-resource-count")
+      .closest("a");
+    expect(link).toHaveAttribute(
+      "href",
+      getCloudResourcesRoute(["123456789012"]).toString(),
+    );
+    const href: URL = new URL(
+      link?.getAttribute("href") || "",
+      "https://oneuptime.test",
+    );
+    expect(href.pathname).toBe(RESOURCES_PATH);
+    goTo(`${href.pathname}${href.search}`);
+    expect(TableFilterUrlState.read(CLOUD_RESOURCES_TABLE_ID, "facets")).toEqual(
+      {
+        facetSelections: { cloudAccountId: ["123456789012"] },
+        facetOperators: { cloudAccountId: "is" },
+      },
+    );
     expect(
       within(cell).getByTestId("cloud-connection-regions"),
     ).toHaveTextContent("us-east-1");

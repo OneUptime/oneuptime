@@ -1,6 +1,4 @@
 import PageComponentProps from "../PageComponentProps";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   cloudConnectionDocsUrl,
   getCloudConnectionAwsRoleSetup,
@@ -8,8 +6,8 @@ import {
 import CloudConnectionFormModal from "../../Components/Cloud/Connect/CloudConnectionFormModal";
 import CloudConnectionTiles from "../../Components/Cloud/Connect/CloudConnectionTiles";
 import CloudConnectionsTable from "../../Components/Cloud/Connect/CloudConnectionsTable";
+import { getCloudResourcesRoute } from "../../Components/Cloud/CloudResourcesListRoute";
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
-import Route from "Common/Types/API/Route";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import { isCloudConnectionProvider } from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import { CloudConnectionAwsRoleSetup } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
@@ -196,10 +194,6 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
    */
   const showsList: boolean = (known || []).length > 0 || listHasRows;
 
-  const resourcesRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.CLOUD_MONITORED_RESOURCES] as Route,
-  );
-
   const closeForm: () => void = (): void => {
     setFormState(undefined);
 
@@ -301,7 +295,7 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
           <CloudConnectionsTable
             refreshToggle={String(refreshCounter)}
             updateGate={updateGate}
-            resourcesRoute={resourcesRoute}
+            getResourcesRoute={getCloudResourcesRoute}
             onEdit={(connection: CloudConnection) => {
               if (connection.provider) {
                 setNotice(undefined);

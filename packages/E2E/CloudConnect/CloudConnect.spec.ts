@@ -1609,8 +1609,11 @@ test.describe("an account's pages", () => {
       `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/changes?state=connected`,
     );
 
+    // Titled as the recorder titles it: CloudTrail's service and event name.
     await expect(
-      page.getByText("AuthorizeSecurityGroupIngress on sg-0f1e2d3c4b5a69788"),
+      page.getByText(
+        "ec2:AuthorizeSecurityGroupIngress on sg-0f1e2d3c4b5a69788",
+      ),
     ).toBeVisible();
 
     // Read by the account's own row.
@@ -1631,7 +1634,7 @@ test.describe("an account's pages", () => {
       "We are investigating increased API error rates",
     );
     await expect(
-      page.getByText("ran AuthorizeSecurityGroupIngress"),
+      page.getByText("ran ec2:AuthorizeSecurityGroupIngress"),
     ).toHaveCount(0);
 
     if (!isDesktop()) {
@@ -1697,10 +1700,14 @@ test.describe("an account's pages", () => {
 
     await expect(page.locator("tbody tr")).toHaveCount(2);
     await expect(
-      page.getByText("Failed: DeleteLoadBalancer on web-alb"),
+      page.getByText(
+        "Failed: elasticloadbalancing:DeleteLoadBalancer on web-alb",
+      ),
     ).toBeVisible();
     await expect(
-      page.getByText("ModifyLoadBalancerAttributes on web-alb"),
+      page.getByText(
+        "elasticloadbalancing:ModifyLoadBalancerAttributes on web-alb",
+      ),
     ).toBeVisible();
     // One place: no Region column.
     expect(await headerTexts(page)).not.toContain("Region");
@@ -3216,17 +3223,19 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
       const titles: Array<string> = await changeTitles(page);
       expect(titles).toContain(
         wordIn(reader.locale, "Failed: {{operation}} on {{resource}}", {
-          operation: "DeleteLoadBalancer",
+          operation: "elasticloadbalancing:DeleteLoadBalancer",
           resource: "web-alb",
         }),
       );
       expect(titles).toContain(
         wordIn(reader.locale, "{{operation}} on {{resource}}", {
-          operation: "AuthorizeSecurityGroupIngress",
+          operation: "ec2:AuthorizeSecurityGroupIngress",
           resource: "sg-0f1e2d3c4b5a69788",
         }),
       );
-      expect(titles).not.toContain("Failed: DeleteLoadBalancer on web-alb");
+      expect(titles).not.toContain(
+        "Failed: elasticloadbalancing:DeleteLoadBalancer on web-alb",
+      );
       /*
        * What AWS Health published: its frame, its state and its kind of
        * event in the reader's words, the service as AWS names it - from the
@@ -3367,11 +3376,11 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
 
       expect(await changeTitles(page)).toEqual([
         wordIn(reader.locale, "Failed: {{operation}} on {{resource}}", {
-          operation: "DeleteLoadBalancer",
+          operation: "elasticloadbalancing:DeleteLoadBalancer",
           resource: "web-alb",
         }),
         wordIn(reader.locale, "{{operation}} on {{resource}}", {
-          operation: "ModifyLoadBalancerAttributes",
+          operation: "elasticloadbalancing:ModifyLoadBalancerAttributes",
           resource: "web-alb",
         }),
       ]);
@@ -3459,7 +3468,9 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
      * undid the fix: no word is added to its title. Both rows are as the
      * recorder writes them: CloudTrail's operation with its service, the
      * resource by the name the inventory holds, and the kind of change
-     * classifyCloudChange gives an ECS UpdateService - a deploy.
+     * classifyCloudChange gives an ECS UpdateService that set only the
+     * desired count - scaling, though UpdateService is how ECS deploys too
+     * (isAwsScaleOnlyUpdate).
      */
     if (isDesktop()) {
       const aiRows: Locator = page
@@ -3478,7 +3489,8 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
         await expect(row.getByTestId("cloud-change-title")).toHaveText(
           "ecs:UpdateService on checkout",
         );
-        await expect(row.getByText("Deploy", { exact: true })).toBeVisible();
+        await expect(row.getByText("Scaling", { exact: true })).toBeVisible();
+        await expect(row.getByText("Deploy", { exact: true })).toHaveCount(0);
         await expect(row).not.toContainText("rolled back");
       }
     }
