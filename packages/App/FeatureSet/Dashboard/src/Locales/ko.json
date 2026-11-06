@@ -45656,7 +45656,14 @@
   "OTLP Endpoint": "OTLP 엔드포인트",
   "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "이 환경의 cloud.platform, cloud.account.id, cloud.region 리소스 속성이 있는 로그가 여기에 표시됩니다. AWS 계정이 CloudWatch Logs를 스트리밍하면 그 로그도 표시됩니다. 클라우드 > 연결에서 계정 행의 메트릭 및 로그 스트리밍을 선택하세요.",
   "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "이 기간에는 이 리소스의 로그 그룹에서 아무것도 도착하지 않았습니다. 더 긴 기간을 선택하거나, 계정이 이 로그 그룹을 스트리밍하는지 확인하세요. 클라우드 > 연결에서 계정 행의 메트릭 및 로그 스트리밍을 열면 확인할 수 있습니다.",
-  "Deploy the image {{image}} your own way in Azure, with these variables. Give it a managed identity of its own that only reads, and attach the write identity {{writeIdentity}}, which holds the enabled changes' permissions, as the setup command makes them.": "{{image}} 이미지를 Azure에서 원하는 방식으로 배포하고 이 변수들을 설정하세요. 에이전트에 읽기만 하는 자체 관리 ID를 부여하고, 활성화한 변경에 필요한 권한을 가진 쓰기 ID({{writeIdentity}})를 연결하세요. 모두 설정 명령이 만드는 그대로입니다.",
-  "Deploy the image {{image}} your own way in Google Cloud, with these variables. Run it as a service account that only reads, with Service Account Token Creator on the write account {{writeAccount}}, which holds the enabled changes' permissions, as the setup command makes them.": "{{image}} 이미지를 Google Cloud에서 원하는 방식으로 배포하고 이 변수들을 설정하세요. 에이전트는 읽기만 하는 서비스 계정으로 실행하고, 활성화한 변경에 필요한 권한을 가진 쓰기 계정({{writeAccount}})에 대한 Service Account Token Creator 역할을 부여하세요. 모두 설정 명령이 만드는 그대로입니다.",
-  "Deploy the image {{image}} your own way, with these variables. The role it runs as needs only to assume the write role {{writeRole}}, which trusts it and holds the enabled changes' permissions, as the setup command makes them.": "{{image}} 이미지를 원하는 방식으로 배포하고 이 변수들을 설정하세요. 에이전트를 실행하는 역할에는 쓰기 역할({{writeRole}})을 맡을 권한만 있으면 됩니다. 쓰기 역할은 그 역할을 신뢰하고 활성화한 변경에 필요한 권한을 가집니다. 모두 설정 명령이 만드는 그대로입니다."
+  "A managed identity of its own that only reads.": "읽기만 하는 자체 관리 ID.",
+  "A role of its own that may only assume the write role.": "쓰기 역할을 맡는 것만 할 수 있는 자체 역할.",
+  "A service account of its own that only reads, with Service Account Token Creator on the write account.": "읽기만 하고, 쓰기 계정에 대한 Service Account Token Creator 역할을 가진 자체 서비스 계정.",
+  "Deploy the image {{image}} your own way in Azure, with these variables:": "{{image}} 이미지를 Azure에서 원하는 방식으로 배포하고 다음 변수를 설정하세요:",
+  "Deploy the image {{image}} your own way in Google Cloud, with these variables:": "{{image}} 이미지를 Google Cloud에서 원하는 방식으로 배포하고 다음 변수를 설정하세요:",
+  "Deploy the image {{image}} your own way, with these variables:": "{{image}} 이미지를 원하는 방식으로 배포하고 다음 변수를 설정하세요:",
+  "Give it two identities, as the setup command does:": "설정 명령과 같이 두 개의 ID를 부여하세요:",
+  "The write account {{writeAccount}}, which holds the permissions of the changes AI may make.": "쓰기 계정 {{writeAccount}}. AI가 할 수 있는 변경의 권한을 가집니다.",
+  "The write identity {{writeIdentity}}, attached where the agent runs, which holds the permissions of the changes AI may make.": "쓰기 ID {{writeIdentity}}. 에이전트가 실행되는 곳에 연결하며, AI가 할 수 있는 변경의 권한을 가집니다.",
+  "The write role {{writeRole}}, which trusts the agent's role and holds the permissions of the changes AI may make.": "쓰기 역할 {{writeRole}}. 에이전트의 역할을 신뢰하고 AI가 할 수 있는 변경의 권한을 가집니다."
 }

@@ -20,7 +20,9 @@ import * as React from "react";
 import { I18nextProvider } from "react-i18next";
 import CloudAiAgentSetupModal from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudAiAgentSetupModal";
 import {
+  CLOUD_AI_AGENT_ELSEWHERE_IDENTITIES_TEXT,
   CLOUD_AI_AGENT_ELSEWHERE_TEXTS,
+  CloudAiAgentElsewhereTexts,
   getCloudAiAgentElsewhereValues,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudAiAgentSetup";
 import { getResourceAiAgentDescriptor } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentDescriptors";
@@ -59,19 +61,21 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
 /*
  * "Run the agent somewhere else", under More fields of Let AI fix problems
  * on a cloud account: what a team that deploys the agent its own way gives
- * it besides the variables, said for each cloud as its setup command makes
- * it - the agent's own identity changes nothing, and each change runs as
- * the write role, identity or account:
+ * it, as each cloud's setup command makes it. First the image, with the
+ * variables under that line (in Azure or Google Cloud, where its
+ * identities come from); then "Give it two identities", a list of two:
  *
- *   - AWS: a role that may only assume OneUptimeAiAgentWrite, which trusts
- *     it and holds the changes' permissions;
+ *   - AWS: a role of its own that may only assume the write role, and the
+ *     write role OneUptimeAiAgentWrite, which trusts it and holds the
+ *     changes' permissions;
  *   - Azure: a managed identity of its own that only reads, and the write
- *     identity oneuptime-ai-agent-write attached;
- *   - Google Cloud: a service account that only reads, with Service Account
- *     Token Creator on the write account oneuptime-ai-agent-write.
+ *     identity oneuptime-ai-agent-write attached where the agent runs;
+ *   - Google Cloud: a service account of its own that only reads, with
+ *     Service Account Token Creator on the write account, and the write
+ *     account oneuptime-ai-agent-write.
  *
  * Drawn for real in English, German and Persian, from the locale files, and
- * held in every other language to its names and placeholders.
+ * held in every other language to its names, placeholders and colons.
  */
 
 jest.mock("../../../UI/Config", () => {
@@ -87,6 +91,12 @@ const AZURE_SUBSCRIPTION: string = "7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b";
 const GCP_PROJECT: string = "shop-prod-1234";
 const KEY_ROUTE: string = "/resource-ai-access/agent-key";
 const STATUS_ROUTE: string = "/resource-ai-access/status";
+const IMAGE: string = "docker.io/oneuptime/resource-ai-agent:release";
+const CLOUDS: ReadonlyArray<CloudProvider> = [
+  CloudProvider.AWS,
+  CloudProvider.Azure,
+  CloudProvider.GCP,
+];
 
 const instances: Record<string, i18n> = {};
 
@@ -182,11 +192,31 @@ const ACCOUNT_IDS: Readonly<Record<CloudProvider, string>> = {
   [CloudProvider.GCP]: GCP_PROJECT,
 };
 
-// The dialog, in a language, with More fields open; the sentence it draws.
-async function elsewhereSentence(
+// Each cloud's write role, identity or account, as its last line names it.
+const WRITE_NAMES: Readonly<Record<CloudProvider, string>> = {
+  [CloudProvider.AWS]: AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
+  [CloudProvider.Azure]: AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
+  [CloudProvider.GCP]: GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
+};
+
+interface ElsewhereSection {
+  // The line with the image, over the variables.
+  deploy: HTMLElement;
+  // The list of the two identities.
+  identities: HTMLElement;
+  // Its two lines.
+  items: Array<HTMLElement>;
+  // The line over the list.
+  identitiesLead: HTMLElement;
+  // The variables, as their code block draws them.
+  variables: HTMLElement | null;
+}
+
+// The dialog, in a language, with More fields open: the section's parts.
+async function openElsewhere(
   provider: CloudProvider,
   language: string,
-): Promise<HTMLElement> {
+): Promise<ElsewhereSection> {
   await act(async () => {
     render(
       <I18nextProvider i18n={instances[language]!}>
@@ -214,179 +244,338 @@ async function elsewhereSentence(
 
   fireEvent.click(moreFields.querySelector("button") as HTMLElement);
 
-  return screen.getByTestId("cloud-ai-agent-setup-elsewhere");
+  const deploy: HTMLElement = screen.getByTestId(
+    "cloud-ai-agent-setup-elsewhere",
+  );
+  const identities: HTMLElement = screen.getByTestId(
+    "cloud-ai-agent-setup-elsewhere-identities",
+  );
+  const section: HTMLElement = deploy.parentElement as HTMLElement;
+
+  return {
+    deploy,
+    identities,
+    items: Array.from(identities.querySelectorAll("li")),
+    identitiesLead: identities.previousElementSibling as HTMLElement,
+    variables: section.querySelector("pre"),
+  };
+}
+
+// What a line says, without the isolates a Persian line sets its names in.
+function said(element: Element): string {
+  return withoutIsolateMarks(element.textContent || "");
+}
+
+// A line in a language, its names filled in.
+function lineIn(
+  language: string,
+  template: string,
+  provider: CloudProvider,
+): string {
+  return withoutIsolateMarks(
+    dashboardTranslator(language).translateTemplate(
+      template,
+      getCloudAiAgentElsewhereValues(provider),
+    ),
+  );
+}
+
+// Whether `first` comes before `second` in the page.
+function comesBefore(first: Element, second: Element): boolean {
+  return Boolean(
+    first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING,
+  );
 }
 
 describe("Run the agent somewhere else, in English", () => {
-  test("AWS: the role it runs as may only assume the write role, which trusts it and holds the changes", async () => {
-    const sentence: HTMLElement = await elsewhereSentence(
+  test("AWS: the image with its variables, then a role of its own that may only assume the write role, which trusts it and holds the changes", async () => {
+    const section: ElsewhereSection = await openElsewhere(
       CloudProvider.AWS,
       "en",
     );
 
-    expect(sentence).toHaveTextContent(
-      `Deploy the image docker.io/oneuptime/resource-ai-agent:release your own way, with these variables. The role it runs as needs only to assume the write role ${AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME}, which trusts it and holds the enabled changes' permissions, as the setup command makes them.`,
+    expect(section.deploy).toHaveTextContent(
+      `Deploy the image ${IMAGE} your own way, with these variables:`,
     );
+    expect(section.identitiesLead).toHaveTextContent(
+      "Give it two identities, as the setup command does:",
+    );
+    expect(
+      section.items.map((item: HTMLElement): string => {
+        return item.textContent || "";
+      }),
+    ).toEqual([
+      "A role of its own that may only assume the write role.",
+      `The write role ${AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME}, which trusts the agent's role and holds the permissions of the changes AI may make.`,
+    ]);
     // The variables name that write role.
-    expect(screen.getByTestId("cloud-ai-agent-setup")).toHaveTextContent(
+    expect(section.variables).toHaveTextContent(
       `${RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV}=arn:aws:iam::123456789012:role/OneUptimeAiAgentWrite`,
     );
   });
 
-  test("Azure: an identity of its own that only reads, and the write identity attached", async () => {
-    const sentence: HTMLElement = await elsewhereSentence(
+  test("Azure: the image in Azure, then a managed identity of its own that only reads, and the write identity attached where the agent runs", async () => {
+    const section: ElsewhereSection = await openElsewhere(
       CloudProvider.Azure,
       "en",
     );
 
-    expect(sentence).toHaveTextContent(
-      `Deploy the image docker.io/oneuptime/resource-ai-agent:release your own way in Azure, with these variables. Give it a managed identity of its own that only reads, and attach the write identity ${AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME}, which holds the enabled changes' permissions, as the setup command makes them.`,
+    expect(section.deploy).toHaveTextContent(
+      `Deploy the image ${IMAGE} your own way in Azure, with these variables:`,
     );
+    expect(
+      section.items.map((item: HTMLElement): string => {
+        return item.textContent || "";
+      }),
+    ).toEqual([
+      "A managed identity of its own that only reads.",
+      `The write identity ${AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME}, attached where the agent runs, which holds the permissions of the changes AI may make.`,
+    ]);
     // The variables name that identity, by the resource ID the agent asks for its token with.
-    expect(screen.getByTestId("cloud-ai-agent-setup")).toHaveTextContent(
+    expect(section.variables).toHaveTextContent(
       `${RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV}=${getAzureCloudAiAgentWriteIdentityId(AZURE_SUBSCRIPTION)}`,
     );
   });
 
-  test("Google Cloud: a service account that only reads, with Service Account Token Creator on the write account", async () => {
-    const sentence: HTMLElement = await elsewhereSentence(
+  test("Google Cloud: the image in Google Cloud, then a service account that only reads, with Token Creator on the write account, and the write account", async () => {
+    const section: ElsewhereSection = await openElsewhere(
       CloudProvider.GCP,
       "en",
     );
 
-    expect(sentence).toHaveTextContent(
-      `Deploy the image docker.io/oneuptime/resource-ai-agent:release your own way in Google Cloud, with these variables. Run it as a service account that only reads, with Service Account Token Creator on the write account ${GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID}, which holds the enabled changes' permissions, as the setup command makes them.`,
+    expect(section.deploy).toHaveTextContent(
+      `Deploy the image ${IMAGE} your own way in Google Cloud, with these variables:`,
     );
+    expect(
+      section.items.map((item: HTMLElement): string => {
+        return item.textContent || "";
+      }),
+    ).toEqual([
+      "A service account of its own that only reads, with Service Account Token Creator on the write account.",
+      `The write account ${GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID}, which holds the permissions of the changes AI may make.`,
+    ]);
     expect(GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID).toBe(
       "oneuptime-ai-agent-write",
     );
     // The variables name that account, in this project.
-    expect(screen.getByTestId("cloud-ai-agent-setup")).toHaveTextContent(
+    expect(section.variables).toHaveTextContent(
       `${RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV}=oneuptime-ai-agent-write@${GCP_PROJECT}.iam.gserviceaccount.com`,
     );
   });
 
+  test.each(CLOUDS as Array<CloudProvider>)(
+    "%s: the image's line, then its variables, then the two identities - in that order, and two lines only",
+    async (provider: CloudProvider) => {
+      const section: ElsewhereSection = await openElsewhere(provider, "en");
+
+      expect(section.variables).not.toBeNull();
+      expect(comesBefore(section.deploy, section.variables as Element)).toBe(
+        true,
+      );
+      expect(
+        comesBefore(section.variables as Element, section.identitiesLead),
+      ).toBe(true);
+      expect(comesBefore(section.identitiesLead, section.identities)).toBe(
+        true,
+      );
+      expect(section.identities.tagName).toBe("UL");
+      expect(section.items).toHaveLength(2);
+    },
+  );
+
   test("each cloud names its own write role, identity or account, and no other cloud's", () => {
     expect(getCloudAiAgentElsewhereValues(CloudProvider.AWS)).toEqual({
-      image: "docker.io/oneuptime/resource-ai-agent:release",
+      image: IMAGE,
       writeRole: "OneUptimeAiAgentWrite",
     });
     expect(getCloudAiAgentElsewhereValues(CloudProvider.Azure)).toEqual({
-      image: "docker.io/oneuptime/resource-ai-agent:release",
+      image: IMAGE,
       writeIdentity: "oneuptime-ai-agent-write",
     });
     expect(getCloudAiAgentElsewhereValues(CloudProvider.GCP)).toEqual({
-      image: "docker.io/oneuptime/resource-ai-agent:release",
+      image: IMAGE,
       writeAccount: "oneuptime-ai-agent-write",
     });
 
-    // The one sentence for every cloud that said only "a role" is gone.
-    expect(
-      Object.prototype.hasOwnProperty.call(
-        englishLocale,
-        "Deploy the image {{image}} your own way, with these variables and a role that holds the enabled changes' permissions.",
+    for (const provider of CLOUDS) {
+      const texts: CloudAiAgentElsewhereTexts =
+        CLOUD_AI_AGENT_ELSEWHERE_TEXTS[provider];
+      const writePlaceholders: Array<string> = Object.keys(
+        getCloudAiAgentElsewhereValues(provider),
+      ).filter((name: string): boolean => {
+        return name !== "image";
+      });
+
+      // The image is in the first line only, the write name in the last only.
+      expect(texts.deploy).toContain("{{image}}");
+      expect(texts.ownIdentity).not.toContain("{{");
+      expect(writePlaceholders).toHaveLength(1);
+      expect(texts.writeIdentity).toContain(`{{${writePlaceholders[0]}}}`);
+      expect(texts.writeIdentity).not.toContain("{{image}}");
+    }
+  });
+
+  test("the sentences these lines replace are gone from the locale files", () => {
+    for (const gone of [
+      // The one sentence for every cloud that said only "a role".
+      "Deploy the image {{image}} your own way, with these variables and a role that holds the enabled changes' permissions.",
+      // One run-on sentence per cloud, before this section had a list.
+      "Deploy the image {{image}} your own way, with these variables. The role it runs as needs only to assume the write role {{writeRole}}, which trusts it and holds the enabled changes' permissions, as the setup command makes them.",
+      "Deploy the image {{image}} your own way in Azure, with these variables. Give it a managed identity of its own that only reads, and attach the write identity {{writeIdentity}}, which holds the enabled changes' permissions, as the setup command makes them.",
+      "Deploy the image {{image}} your own way in Google Cloud, with these variables. Run it as a service account that only reads, with Service Account Token Creator on the write account {{writeAccount}}, which holds the enabled changes' permissions, as the setup command makes them.",
+    ]) {
+      expect(Object.prototype.hasOwnProperty.call(englishLocale, gone)).toBe(
+        false,
+      );
+    }
+  });
+
+  test("the names are code, kept whole on a line when they fit one: never broken at a hyphen", async () => {
+    const section: ElsewhereSection = await openElsewhere(
+      CloudProvider.Azure,
+      "en",
+    );
+    const names: Array<Element> = Array.from(
+      section.deploy.parentElement!.querySelectorAll(
+        '[data-testid="cloud-ai-agent-setup-elsewhere-name"]',
       ),
-    ).toBe(false);
+    );
+
+    expect(
+      names.map((name: Element): string => {
+        return name.textContent || "";
+      }),
+    ).toEqual([IMAGE, AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME]);
+
+    for (const name of names) {
+      expect(name.tagName).toBe("CODE");
+      /*
+       * A box of its own, as wide as the name or the line: it moves to the
+       * next line whole, and only a name longer than the line breaks, at
+       * its end - never at "oneuptime-ai-agent-" / "write".
+       */
+      expect(name).toHaveClass("inline-block", "max-w-full", "break-all");
+    }
+
+    // The first line holds the image, the list's last line the write identity.
+    expect(section.deploy).toContainElement(names[0] as HTMLElement);
+    expect(section.items[1]).toContainElement(names[1] as HTMLElement);
+    expect(section.items[0]!.querySelector("code")).toBeNull();
   });
 });
 
 describe("Run the agent somewhere else, in German and Persian", () => {
   for (const language of ["de", "fa"]) {
-    test.each([CloudProvider.AWS, CloudProvider.Azure, CloudProvider.GCP])(
-      `${language}: %s's sentence in the reader's language, with its names as they are`,
+    test.each(CLOUDS as Array<CloudProvider>)(
+      `${language}: %s's lines in the reader's language, with its names as they are`,
       async (provider: CloudProvider) => {
-        const sentence: HTMLElement = await elsewhereSentence(
+        const section: ElsewhereSection = await openElsewhere(
           provider,
           language,
         );
-        const expected: string = dashboardTranslator(
-          language,
-        ).translateTemplate(
-          CLOUD_AI_AGENT_ELSEWHERE_TEXTS[provider],
-          getCloudAiAgentElsewhereValues(provider),
+        const texts: CloudAiAgentElsewhereTexts =
+          CLOUD_AI_AGENT_ELSEWHERE_TEXTS[provider];
+
+        expect(said(section.deploy)).toBe(
+          lineIn(language, texts.deploy, provider),
         );
-        const drawn: string = withoutIsolateMarks(sentence.textContent || "");
+        expect(said(section.identitiesLead)).toBe(
+          lineIn(language, CLOUD_AI_AGENT_ELSEWHERE_IDENTITIES_TEXT, provider),
+        );
+        expect(said(section.items[0]!)).toBe(
+          lineIn(language, texts.ownIdentity, provider),
+        );
+        expect(said(section.items[1]!)).toBe(
+          lineIn(language, texts.writeIdentity, provider),
+        );
 
-        expect(drawn).toBe(withoutIsolateMarks(expected));
-        // Translated: never the English sentence.
-        expect(drawn).not.toContain("Deploy the image");
-        expect(drawn).not.toContain("your own way");
+        // Translated: never the English lines.
+        const all: string = said(section.deploy.parentElement as HTMLElement);
 
-        for (const name of Object.values(
-          getCloudAiAgentElsewhereValues(provider),
-        )) {
-          expect(drawn).toContain(name);
-        }
+        expect(all).not.toContain("Deploy the image");
+        expect(all).not.toContain("your own way");
+        expect(all).not.toContain("Give it two identities");
+        expect(all).not.toContain("of its own");
+        expect(all).not.toContain("which holds the permissions");
+
+        // The names as they are.
+        expect(said(section.deploy)).toContain(IMAGE);
+        expect(said(section.items[1]!)).toContain(WRITE_NAMES[provider]);
 
         if (provider === CloudProvider.GCP) {
-          expect(drawn).toContain("Service Account Token Creator");
+          expect(said(section.items[0]!)).toContain(
+            "Service Account Token Creator",
+          );
         }
       },
     );
   }
 
   test("German words: the Dashboard's own terms for the agent's identities", async () => {
-    const azure: string = (await elsewhereSentence(CloudProvider.Azure, "de"))
-      .textContent as string;
+    const azure: ElsewhereSection = await openElsewhere(
+      CloudProvider.Azure,
+      "de",
+    );
 
-    expect(azure).toContain("verwaltete Identität");
-    expect(azure).toContain("Einrichtungsbefehl");
+    expect(said(azure.items[0]!)).toContain("verwaltete Identität");
+    expect(said(azure.items[1]!)).toContain("Schreibidentität");
+    expect(said(azure.identitiesLead)).toContain("Einrichtungsbefehl");
     cleanup();
 
-    const gcp: string = (await elsewhereSentence(CloudProvider.GCP, "de"))
-      .textContent as string;
+    const gcp: ElsewhereSection = await openElsewhere(CloudProvider.GCP, "de");
 
-    expect(gcp).toContain("Dienstkonto");
+    expect(said(gcp.items[0]!)).toContain("Dienstkonto");
+    expect(said(gcp.items[1]!)).toContain("Schreibkonto");
+    cleanup();
+
+    const aws: ElsewhereSection = await openElsewhere(CloudProvider.AWS, "de");
+
+    expect(said(aws.items[1]!)).toContain("Schreibrolle");
   });
 
   test("Persian words: the Dashboard's own terms, read right to left around Latin names", async () => {
-    const azureSentence: HTMLElement = await elsewhereSentence(
+    const azure: ElsewhereSection = await openElsewhere(
       CloudProvider.Azure,
       "fa",
     );
-    const azure: string = withoutIsolateMarks(
-      azureSentence.textContent as string,
-    );
 
-    expect(azure).toContain("هویت مدیریت‌شده");
-    expect(azure).toContain("فرمان راه‌اندازی");
+    expect(said(azure.items[0]!)).toContain("هویت مدیریت‌شده");
+    expect(said(azure.identitiesLead)).toContain("فرمان راه‌اندازی");
     // Each Latin name is set apart, so it never moves the Persian words around it.
-    expect(azureSentence.textContent).toContain(
+    expect(azure.items[1]!.textContent).toContain(
       isolated(AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME),
     );
+    expect(azure.deploy.textContent).toContain(isolated(IMAGE));
     cleanup();
 
-    const gcp: string = withoutIsolateMarks(
-      (await elsewhereSentence(CloudProvider.GCP, "fa")).textContent as string,
-    );
+    const gcp: ElsewhereSection = await openElsewhere(CloudProvider.GCP, "fa");
 
-    expect(gcp).toContain("حساب سرویس");
+    expect(said(gcp.items[0]!)).toContain("حساب سرویس");
   });
 
-  test("the names are code, as the changes' names above them, in every language - and never set apart where the sentence reads left to right", async () => {
+  test("the names are code in every language - and set apart only where the lines read right to left", async () => {
     for (const language of ["en", "de", "fa"]) {
-      const sentence: HTMLElement = await elsewhereSentence(
+      const section: ElsewhereSection = await openElsewhere(
         CloudProvider.GCP,
         language,
       );
       const names: Array<string> = Array.from(
-        sentence.querySelectorAll("code"),
+        section.deploy.parentElement!.querySelectorAll("p code, li code"),
       ).map((code: Element): string => {
         return code.textContent || "";
       });
 
       expect({ language, names }).toEqual({
         language,
-        names: [
-          "docker.io/oneuptime/resource-ai-agent:release",
-          GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
-        ],
+        names: [IMAGE, GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID],
       });
 
-      if (language !== "fa") {
-        expect(sentence.textContent).toBe(
-          withoutIsolateMarks(sentence.textContent || ""),
-        );
+      for (const line of [section.deploy, section.items[1]!]) {
+        if (language === "fa") {
+          expect(line.textContent).not.toBe(said(line));
+        } else {
+          expect(line.textContent).toBe(said(line));
+        }
       }
 
       cleanup();
@@ -396,36 +585,62 @@ describe("Run the agent somewhere else, in German and Persian", () => {
 
 describe("Run the agent somewhere else, in every language", () => {
   const PLACEHOLDER: RegExp = /\{\{[a-zA-Z]+\}\}/g;
+  // A line a list or a code block follows ends with its language's colon.
+  const ENDS_WITH_COLON: RegExp = /[:：]$/;
 
   function placeholdersOf(text: string): Array<string> {
     return (text.match(PLACEHOLDER) || []).slice().sort();
   }
 
+  // Every line the section can show, on every cloud.
+  const LINES: Array<string> = [
+    CLOUD_AI_AGENT_ELSEWHERE_IDENTITIES_TEXT,
+    ...CLOUDS.flatMap((provider: CloudProvider): Array<string> => {
+      const texts: CloudAiAgentElsewhereTexts =
+        CLOUD_AI_AGENT_ELSEWHERE_TEXTS[provider];
+
+      return [texts.deploy, texts.ownIdentity, texts.writeIdentity];
+    }),
+  ];
+
+  test("ten lines in all: three a cloud, and the one over the list", () => {
+    expect(new Set(LINES).size).toBe(10);
+
+    for (const line of LINES) {
+      expect((englishLocale as Record<string, string>)[line]).toBe(line);
+    }
+  });
+
   test.each(DASHBOARD_LANGUAGES as Array<string>)(
-    "%s: each cloud's sentence is translated, with the English placeholders and the Google Cloud role's name",
+    "%s: every line is translated, with the English placeholders, the colons before the variables and the list, and the Google Cloud role's name",
     (language: string) => {
       const words: Record<string, string> = readDashboardLocale(language);
 
-      for (const provider of [
-        CloudProvider.AWS,
-        CloudProvider.Azure,
-        CloudProvider.GCP,
-      ]) {
-        const english: string = CLOUD_AI_AGENT_ELSEWHERE_TEXTS[provider];
+      for (const english of LINES) {
         const translated: string | undefined = words[english];
 
-        expect({ language, provider, translated: Boolean(translated) }).toEqual(
-          { language, provider, translated: true },
-        );
+        expect({ language, english, translated: Boolean(translated) }).toEqual({
+          language,
+          english,
+          translated: true,
+        });
         expect(translated).not.toBe(english);
         expect(placeholdersOf(translated as string)).toEqual(
           placeholdersOf(english),
         );
 
-        if (provider === CloudProvider.GCP) {
-          expect(translated).toContain("Service Account Token Creator");
+        if (ENDS_WITH_COLON.test(english)) {
+          expect({ language, english, translated }).toEqual({
+            language,
+            english,
+            translated: expect.stringMatching(ENDS_WITH_COLON),
+          });
         }
       }
+
+      expect(
+        words[CLOUD_AI_AGENT_ELSEWHERE_TEXTS[CloudProvider.GCP].ownIdentity],
+      ).toContain("Service Account Token Creator");
     },
   );
 });

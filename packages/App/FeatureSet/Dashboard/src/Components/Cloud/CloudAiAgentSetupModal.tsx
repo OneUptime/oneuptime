@@ -2,12 +2,14 @@ import {
   CLOUD_AI_AGENT_ASK_FIRST_DESCRIPTION,
   CLOUD_AI_AGENT_ASK_FIRST_TITLE,
   CLOUD_AI_AGENT_CONNECT_POLL_INTERVAL_MS,
+  CLOUD_AI_AGENT_ELSEWHERE_IDENTITIES_TEXT,
   CLOUD_AI_AGENT_ELSEWHERE_TEXTS,
   CLOUD_AI_AGENT_FIX_SAFE_DESCRIPTION,
   CLOUD_AI_AGENT_FIX_SAFE_TITLE,
   CLOUD_AI_AGENT_KEY_NOTE,
   CLOUD_AI_AGENT_MAKING_KEY_TEXT,
   CLOUD_SHELL_NAMES,
+  CloudAiAgentElsewhereTexts,
   CloudAiAgentProtectedTargetsProblem,
   CloudAiAgentSetupChoices,
   GCP_HOST_DESCRIPTIONS,
@@ -197,6 +199,30 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
         <></>
       )}
     </div>
+  );
+};
+
+/*
+ * A name "Run the agent somewhere else" says to use as written - the
+ * image, the write role, identity or account: code, as the changes' names
+ * above it are, and whole on its line when it fits one, never broken at a
+ * hyphen ("oneuptime-ai-agent-" / "write" on a phone). Only a name longer
+ * than the whole line breaks, at the line's end.
+ */
+interface ElsewhereNameProps {
+  name: string;
+}
+
+const ElsewhereName: FunctionComponent<ElsewhereNameProps> = (
+  props: ElsewhereNameProps,
+): ReactElement => {
+  return (
+    <code
+      className="inline-block max-w-full break-all font-mono"
+      data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-elsewhere-name`}
+    >
+      {props.name}
+    </code>
   );
 };
 
@@ -426,13 +452,19 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
     ? getCloudAiAgentEnvironment(options)
     : [];
 
-  // What "Run the agent somewhere else" names: the image, and the write role, identity or account.
-  const elsewhereNames: Record<string, ReactElement> = {};
+  /*
+   * What "Run the agent somewhere else" says on this cloud, and the names
+   * it fills in: the image in its first line, the write role, identity or
+   * account in its last.
+   */
+  const elsewhereTexts: CloudAiAgentElsewhereTexts =
+    CLOUD_AI_AGENT_ELSEWHERE_TEXTS[props.provider];
+  const { image: elsewhereImage, ...elsewhereWriteNames } =
+    getCloudAiAgentElsewhereValues(props.provider);
+  const elsewhereWriteSlots: Record<string, ReactElement> = {};
 
-  for (const [name, value] of Object.entries(
-    getCloudAiAgentElsewhereValues(props.provider),
-  )) {
-    elsewhereNames[name] = <code className="font-mono">{value}</code>;
+  for (const [placeholder, name] of Object.entries(elsewhereWriteNames)) {
+    elsewhereWriteSlots[placeholder] = <ElsewhereName name={name} />;
   }
 
   /*
@@ -936,21 +968,16 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                 )}
               </p>
               {/*
-               * What it needs besides the variables, on this cloud: an
-               * identity of its own that changes nothing, and the write
-               * role, identity or account its changes run as.
+               * The image, with the variables under this line - and the
+               * cloud it must run in, where its identities come from.
                */}
               <p
                 className="text-xs text-gray-600"
                 data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-elsewhere`}
               >
-                {/*
-                 * The names as code, as the changes above are, and set
-                 * apart in a sentence read right to left.
-                 */}
                 <TranslatedSentence
-                  template={CLOUD_AI_AGENT_ELSEWHERE_TEXTS[props.provider]}
-                  slots={elsewhereNames}
+                  template={elsewhereTexts.deploy}
+                  slots={{ image: <ElsewhereName name={elsewhereImage} /> }}
                 />
               </p>
               {environment.length > 0 ? (
@@ -967,6 +994,28 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
               ) : (
                 <></>
               )}
+              {/*
+               * Its two identities, one a line, as the setup command makes
+               * them: its own, which changes nothing, and the write role,
+               * identity or account each change runs as.
+               */}
+              <p className="text-xs text-gray-600">
+                {translator.translateText(
+                  CLOUD_AI_AGENT_ELSEWHERE_IDENTITIES_TEXT,
+                )}
+              </p>
+              <ul
+                className="list-disc space-y-1 ps-5 text-xs leading-5 text-gray-600"
+                data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-elsewhere-identities`}
+              >
+                <li>{translator.translateText(elsewhereTexts.ownIdentity)}</li>
+                <li>
+                  <TranslatedSentence
+                    template={elsewhereTexts.writeIdentity}
+                    slots={elsewhereWriteSlots}
+                  />
+                </li>
+              </ul>
             </div>
           </div>
         </FoldedSection>

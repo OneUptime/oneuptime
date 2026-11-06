@@ -2011,9 +2011,45 @@ const PERSIAN: Record<string, string> = readLocale("fa");
 // The Cloud AI agent's image, as Run the agent somewhere else names it.
 const AGENT_IMAGE: string = "docker.io/oneuptime/resource-ai-agent:release";
 
-// Google Cloud's sentence for running the agent somewhere else.
+/*
+ * Run the agent somewhere else on Google Cloud: the image's line over the
+ * variables, the line over the list, and the list's two identities.
+ */
 const GCP_ELSEWHERE: string =
-  "Deploy the image {{image}} your own way in Google Cloud, with these variables. Run it as a service account that only reads, with Service Account Token Creator on the write account {{writeAccount}}, which holds the enabled changes' permissions, as the setup command makes them.";
+  "Deploy the image {{image}} your own way in Google Cloud, with these variables:";
+const ELSEWHERE_IDENTITIES: string =
+  "Give it two identities, as the setup command does:";
+const GCP_ELSEWHERE_OWN: string =
+  "A service account of its own that only reads, with Service Account Token Creator on the write account.";
+const GCP_ELSEWHERE_WRITE: string =
+  "The write account {{writeAccount}}, which holds the permissions of the changes AI may make.";
+
+/*
+ * The names Run the agent somewhere else draws as code, and the lines each
+ * takes: one, at desktop and phone width - a name is never broken at a
+ * hyphen ("oneuptime-ai-agent-" / "write").
+ */
+async function elsewhereNameLines(
+  page: Page,
+): Promise<Array<{ name: string; lines: number }>> {
+  return await page.evaluate(() => {
+    return Array.from(
+      document.querySelectorAll(
+        '[data-testid="cloud-ai-agent-setup-elsewhere-name"]',
+      ),
+    ).map((element: Element): { name: string; lines: number } => {
+      const name: HTMLElement = element as HTMLElement;
+      const lineHeight: number = parseFloat(
+        window.getComputedStyle(name).lineHeight,
+      );
+
+      return {
+        name: name.textContent || "",
+        lines: Math.round(name.offsetHeight / lineHeight),
+      };
+    });
+  });
+}
 
 /*
  * A name drawn in a sentence of the language: set apart from the words
@@ -2232,18 +2268,36 @@ test.describe("OneUptime AI on a cloud account", () => {
     await expect(setupDialog(page)).toContainText(
       "ONEUPTIME_AI_FIXES=automatic",
     );
-    // And what it needs besides them on AWS: a role that may only assume the write role.
+    // The image's line over them.
     await expect(
       setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere"),
     ).toHaveText(
-      `Deploy the image ${AGENT_IMAGE} your own way, with these variables. The role it runs as needs only to assume the write role OneUptimeAiAgentWrite, which trusts it and holds the enabled changes' permissions, as the setup command makes them.`,
+      `Deploy the image ${AGENT_IMAGE} your own way, with these variables:`,
     );
+    // And its two identities on AWS: a role of its own that may only assume the write role.
+    await expect(
+      setupDialog(page)
+        .getByTestId("cloud-ai-agent-setup-elsewhere-identities")
+        .locator("li"),
+    ).toHaveText([
+      "A role of its own that may only assume the write role.",
+      "The write role OneUptimeAiAgentWrite, which trusts the agent's role and holds the permissions of the changes AI may make.",
+    ]);
+    // Each name whole on its line, a phone's included.
+    await expect
+      .poll(async () => {
+        return await elsewhereNameLines(page);
+      })
+      .toEqual([
+        { name: AGENT_IMAGE, lines: 1 },
+        { name: "OneUptimeAiAgentWrite", lines: 1 },
+      ]);
 
     // A phone: the dialog fits its width, long lines scroll in their box.
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup");
     await setupDialog(page)
-      .getByTestId("cloud-ai-agent-setup-elsewhere")
+      .getByTestId("cloud-ai-agent-setup-elsewhere-identities")
       .scrollIntoViewIfNeeded();
     await shoot(page, "account-ai-setup-elsewhere");
   });
@@ -3816,18 +3870,32 @@ test.describe("where Google Cloud's agent runs", () => {
     await expect(hostChoice(page)).toContainText(
       "A Cloud Run service with CPU always allocated: about $45 a month. For a project that allows no VM an external IP address.",
     );
-    // Running it somewhere else: the write account, and Token Creator on it, as the command makes them.
+    // Running it somewhere else: the image in Google Cloud, with its variables...
     await expect(
       setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere"),
-    ).toHaveText(
-      wordIn({}, GCP_ELSEWHERE, {
-        image: AGENT_IMAGE,
+    ).toHaveText(wordIn({}, GCP_ELSEWHERE, { image: AGENT_IMAGE }));
+    // ...and its two identities: Token Creator on the write account, as the command makes them.
+    await expect(
+      setupDialog(page)
+        .getByTestId("cloud-ai-agent-setup-elsewhere-identities")
+        .locator("li"),
+    ).toHaveText([
+      GCP_ELSEWHERE_OWN,
+      wordIn({}, GCP_ELSEWHERE_WRITE, {
         writeAccount: "oneuptime-ai-agent-write",
       }),
-    );
+    ]);
+    await expect
+      .poll(async () => {
+        return await elsewhereNameLines(page);
+      })
+      .toEqual([
+        { name: AGENT_IMAGE, lines: 1 },
+        { name: "oneuptime-ai-agent-write", lines: 1 },
+      ]);
     await shoot(page, "account-ai-setup-gcp-host");
     await setupDialog(page)
-      .getByTestId("cloud-ai-agent-setup-elsewhere")
+      .getByTestId("cloud-ai-agent-setup-elsewhere-identities")
       .scrollIntoViewIfNeeded();
     await shoot(page, "account-ai-setup-gcp-elsewhere");
 
@@ -3893,16 +3961,41 @@ test.describe("where Google Cloud's agent runs", () => {
       ).toHaveText(
         wordIn(locale, GCP_ELSEWHERE, {
           image: nameIn(locale, AGENT_IMAGE),
-          writeAccount: nameIn(locale, "oneuptime-ai-agent-write"),
         }),
       );
-      // The names are code, as the changes' names above them are.
+      const identities: Locator = setupDialog(page).getByTestId(
+        "cloud-ai-agent-setup-elsewhere-identities",
+      );
       await expect(
-        setupDialog(page)
-          .getByTestId("cloud-ai-agent-setup-elsewhere")
-          .locator("code"),
+        identities.locator("xpath=preceding-sibling::p[1]"),
+      ).toHaveText(wordIn(locale, ELSEWHERE_IDENTITIES));
+      await expect(identities.locator("li")).toHaveText([
+        wordIn(locale, GCP_ELSEWHERE_OWN),
+        wordIn(locale, GCP_ELSEWHERE_WRITE, {
+          writeAccount: nameIn(locale, "oneuptime-ai-agent-write"),
+        }),
+      ]);
+      // The names are code, as the changes' names above them are, and each whole on its line.
+      await expect(
+        setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere-name"),
       ).toHaveText([AGENT_IMAGE, "oneuptime-ai-agent-write"]);
-      expect(wordIn(locale, GCP_ELSEWHERE)).not.toBe(GCP_ELSEWHERE);
+      await expect
+        .poll(async () => {
+          return await elsewhereNameLines(page);
+        })
+        .toEqual([
+          { name: AGENT_IMAGE, lines: 1 },
+          { name: "oneuptime-ai-agent-write", lines: 1 },
+        ]);
+
+      for (const english of [
+        GCP_ELSEWHERE,
+        ELSEWHERE_IDENTITIES,
+        GCP_ELSEWHERE_OWN,
+        GCP_ELSEWHERE_WRITE,
+      ]) {
+        expect(wordIn(locale, english)).not.toBe(english);
+      }
       await expect(hostChoice(page)).toContainText(
         wordIn(
           locale,
@@ -3912,9 +4005,7 @@ test.describe("where Google Cloud's agent runs", () => {
       );
       await expectNoSidewaysScroll(page, { tolerance: 1 });
       await shoot(page, `account-ai-setup-gcp-${language}`);
-      await setupDialog(page)
-        .getByTestId("cloud-ai-agent-setup-elsewhere")
-        .scrollIntoViewIfNeeded();
+      await identities.scrollIntoViewIfNeeded();
       await shoot(page, `account-ai-setup-gcp-elsewhere-${language}`);
     });
   }
@@ -3960,18 +4051,28 @@ test.describe("Azure's agent: an identity that reads, and one for changes", () =
     await expect(setupDialog(page)).toContainText(
       "ONEUPTIME_AI_AZURE_WRITE_IDENTITY=/subscriptions/7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b/resourceGroups/oneuptime-ai-agent/providers/Microsoft.ManagedIdentity/userAssignedIdentities/oneuptime-ai-agent-write",
     );
-    const elsewhere: Locator = setupDialog(page).getByTestId(
-      "cloud-ai-agent-setup-elsewhere",
+    // Running it somewhere else: the image in Azure, over those variables...
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere"),
+    ).toHaveText(
+      `Deploy the image ${AGENT_IMAGE} your own way in Azure, with these variables:`,
     );
-    await expect(elsewhere).toHaveText(
-      `Deploy the image ${AGENT_IMAGE} your own way in Azure, with these variables. Give it a managed identity of its own that only reads, and attach the write identity oneuptime-ai-agent-write, which holds the enabled changes' permissions, as the setup command makes them.`,
+    // ...and its two identities: one of its own that only reads, and the write identity attached.
+    const identities: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-elsewhere-identities",
     );
-    await expect(elsewhere.locator("code")).toHaveText([
-      AGENT_IMAGE,
-      "oneuptime-ai-agent-write",
+    await expect(
+      identities.locator("xpath=preceding-sibling::p[1]"),
+    ).toHaveText(ELSEWHERE_IDENTITIES);
+    await expect(identities.locator("li")).toHaveText([
+      "A managed identity of its own that only reads.",
+      "The write identity oneuptime-ai-agent-write, attached where the agent runs, which holds the permissions of the changes AI may make.",
     ]);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere-name"),
+    ).toHaveText([AGENT_IMAGE, "oneuptime-ai-agent-write"]);
 
-    await elsewhere.scrollIntoViewIfNeeded();
+    await identities.scrollIntoViewIfNeeded();
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup-azure-elsewhere");
   });
