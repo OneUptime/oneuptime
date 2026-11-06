@@ -921,6 +921,23 @@ export const AWS_CLOUDWATCH_RESOURCE_RULES: ReadonlyArray<AwsCloudWatchResourceR
       namespace: "AWS/ElasticBeanstalk",
       type: "AWS::ElasticBeanstalk::Environment",
       identityDimensions: ["EnvironmentName"],
+      getArn: (context: AwsArnContext): string | null => {
+        /*
+         * The ARN carries the environment's application, which its metrics
+         * never report: only the inventory, which reads it, names it.
+         */
+        const application: string = dimension(
+          context.dimensions,
+          "ApplicationName",
+        );
+        return application
+          ? arn(
+              context,
+              "elasticbeanstalk",
+              `environment/${application}/${dimension(context.dimensions, "EnvironmentName")}`,
+            )
+          : null;
+      },
     },
     {
       namespace: "AWS/Lambda",
