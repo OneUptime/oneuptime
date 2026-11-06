@@ -36114,7 +36114,6 @@
   "Connected. Running the command again with other choices updates the agent.": "已連線。以其他選項再次執行該指令即可更新代理程式。",
   "Declared as code by {{owner}}: the next apply may put the old value back, so change the code too.": "由 {{owner}} 以程式碼方式宣告：下次套用設定時可能會改回舊值，因此也請一併修改程式碼。",
   "Delete conversation: {{title}}": "刪除對話：{{title}}",
-  "Deploy the image {{image}} your own way, with these variables and a role that holds the enabled changes' permissions.": "以您自己的方式部署映像檔 {{image}}，使用這些變數，並為其指派一個具備已啟用變更所需權限的角色。",
   "Fix safe problems on its own": "自行修正低風險問題",
   "Google Cloud Shell": "Google Cloud Shell",
   "Google Cloud project": "Google Cloud 專案",
@@ -45621,5 +45620,8 @@
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "已登入該專案並已啟用 Secret Manager API（`gcloud services enable secretmanager.googleapis.com`）的 `gcloud`",
   "OTLP Endpoint": "OTLP 端點",
   "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "帶有此環境的 cloud.platform、cloud.account.id 和 cloud.region 資源屬性的日誌會顯示在這裡；其 AWS 帳戶串流 CloudWatch Logs 後，這些日誌也會顯示在這裡：請在 雲端 > 連線 中，在該帳戶所在列選擇「串流指標和日誌」。",
-  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "在此時間範圍內，此資源的日誌群組沒有傳來任何內容。請選擇更長的時間範圍，或檢查其帳戶是否串流此日誌群組：請在 雲端 > 連線 中，在該帳戶所在列開啟「串流指標和日誌」。"
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "在此時間範圍內，此資源的日誌群組沒有傳來任何內容。請選擇更長的時間範圍，或檢查其帳戶是否串流此日誌群組：請在 雲端 > 連線 中，在該帳戶所在列開啟「串流指標和日誌」。",
+  "Deploy the image {{image}} your own way in Azure, with these variables. Give it a managed identity of its own that only reads, and attach the write identity {{writeIdentity}}, which holds the enabled changes' permissions, as the setup command makes them.": "在 Azure 中以您自己的方式部署映像檔 {{image}}，並使用這些變數。為代理程式指派一個只讀的專屬受控識別，並附加寫入識別 {{writeIdentity}}，它具備已啟用變更所需的權限，與安裝指令建立的一致。",
+  "Deploy the image {{image}} your own way in Google Cloud, with these variables. Run it as a service account that only reads, with Service Account Token Creator on the write account {{writeAccount}}, which holds the enabled changes' permissions, as the setup command makes them.": "在 Google Cloud 中以您自己的方式部署映像檔 {{image}}，並使用這些變數。以只讀的服務帳戶執行代理程式，並授予它對寫入帳戶 {{writeAccount}} 的 Service Account Token Creator 角色，該寫入帳戶具備已啟用變更所需的權限，與安裝指令建立的一致。",
+  "Deploy the image {{image}} your own way, with these variables. The role it runs as needs only to assume the write role {{writeRole}}, which trusts it and holds the enabled changes' permissions, as the setup command makes them.": "以您自己的方式部署映像檔 {{image}}，並使用這些變數。執行代理程式的角色只需能夠擔任寫入角色 {{writeRole}}；寫入角色信任該角色，並具備已啟用變更所需的權限，與安裝指令建立的一致。"
 }

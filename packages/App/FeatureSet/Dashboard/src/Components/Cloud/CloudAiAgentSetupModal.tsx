@@ -2,6 +2,7 @@ import {
   CLOUD_AI_AGENT_ASK_FIRST_DESCRIPTION,
   CLOUD_AI_AGENT_ASK_FIRST_TITLE,
   CLOUD_AI_AGENT_CONNECT_POLL_INTERVAL_MS,
+  CLOUD_AI_AGENT_ELSEWHERE_TEXTS,
   CLOUD_AI_AGENT_FIX_SAFE_DESCRIPTION,
   CLOUD_AI_AGENT_FIX_SAFE_TITLE,
   CLOUD_AI_AGENT_KEY_NOTE,
@@ -11,6 +12,7 @@ import {
   CloudAiAgentSetupChoices,
   GCP_HOST_DESCRIPTIONS,
   GCP_HOST_TITLES,
+  getCloudAiAgentElsewhereValues,
   getCloudAiAgentLogsCommand,
   getCloudAiAgentSetupOptions,
   getDefaultCloudAiAgentSetupChoices,
@@ -52,7 +54,6 @@ import {
   describeCloudAiAgentSetupProblem,
   getCloudAiAgentChangeOperations,
   getCloudAiAgentEnvironment,
-  getCloudAiAgentImage,
   getCloudAiAgentSetupCommand,
 } from "Common/Types/CloudConnection/CloudAiAgentSetupCommands";
 import {
@@ -924,10 +925,18 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                   translationKey("Run the agent somewhere else"),
                 )}
               </p>
-              <p className="text-xs text-gray-600">
+              {/*
+               * What it needs besides the variables, on this cloud: an
+               * identity of its own that changes nothing, and the write
+               * role, identity or account its changes run as.
+               */}
+              <p
+                className="text-xs text-gray-600"
+                data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-elsewhere`}
+              >
                 {translator.translateTemplate(
-                  "Deploy the image {{image}} your own way, with these variables and a role that holds the enabled changes' permissions.",
-                  { image: getCloudAiAgentImage() },
+                  CLOUD_AI_AGENT_ELSEWHERE_TEXTS[props.provider],
+                  getCloudAiAgentElsewhereValues(props.provider),
                 )}
               </p>
               {environment.length > 0 ? (

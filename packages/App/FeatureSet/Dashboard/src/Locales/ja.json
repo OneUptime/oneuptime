@@ -36114,7 +36114,6 @@
   "Connected. Running the command again with other choices updates the agent.": "接続しました。別の選択内容でコマンドをもう一度実行すると、エージェントが更新されます。",
   "Declared as code by {{owner}}: the next apply may put the old value back, so change the code too.": "{{owner}} でコードとして宣言されています。次回の apply で元の値に戻る可能性があるため、コードも変更してください。",
   "Delete conversation: {{title}}": "会話を削除: {{title}}",
-  "Deploy the image {{image}} your own way, with these variables and a role that holds the enabled changes' permissions.": "イメージ {{image}} を独自の方法でデプロイしてください。これらの変数と、有効にした変更に必要な権限を持つロールを使用します。",
   "Fix safe problems on its own": "安全な修正は自動で適用する",
   "Google Cloud Shell": "Google Cloud Shell",
   "Google Cloud project": "Google Cloud プロジェクト",
@@ -45621,5 +45620,8 @@
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "プロジェクトにサインインし、Secret Manager API を有効にした `gcloud`（`gcloud services enable secretmanager.googleapis.com`）",
   "OTLP Endpoint": "OTLP エンドポイント",
   "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "この環境の cloud.platform、cloud.account.id、cloud.region リソース属性が付いたログが、ここに表示されます。AWS アカウントが CloudWatch Logs をストリーミングすると、そのログも表示されます。クラウド > 接続 で、アカウントの行の「メトリクスとログをストリーミング」を選択してください。",
-  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "この期間に、このリソースのロググループからは何も届いていません。より長い期間を選択するか、アカウントがこのロググループをストリーミングしているか確認してください。クラウド > 接続 で、アカウントの行の「メトリクスとログをストリーミング」を開くと確認できます。"
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "この期間に、このリソースのロググループからは何も届いていません。より長い期間を選択するか、アカウントがこのロググループをストリーミングしているか確認してください。クラウド > 接続 で、アカウントの行の「メトリクスとログをストリーミング」を開くと確認できます。",
+  "Deploy the image {{image}} your own way in Azure, with these variables. Give it a managed identity of its own that only reads, and attach the write identity {{writeIdentity}}, which holds the enabled changes' permissions, as the setup command makes them.": "イメージ {{image}} を独自の方法で Azure にデプロイし、これらの変数を設定してください。エージェントには読み取りだけを行う独自のマネージド ID を与え、有効にした変更に必要な権限を持つ書き込み ID {{writeIdentity}} を割り当ててください。どちらもセットアップコマンドが作成するとおりです。",
+  "Deploy the image {{image}} your own way in Google Cloud, with these variables. Run it as a service account that only reads, with Service Account Token Creator on the write account {{writeAccount}}, which holds the enabled changes' permissions, as the setup command makes them.": "イメージ {{image}} を独自の方法で Google Cloud にデプロイし、これらの変数を設定してください。エージェントは読み取りだけを行うサービスアカウントとして実行し、有効にした変更に必要な権限を持つ書き込みアカウント {{writeAccount}} に対する Service Account Token Creator ロールを付与してください。どちらもセットアップコマンドが作成するとおりです。",
+  "Deploy the image {{image}} your own way, with these variables. The role it runs as needs only to assume the write role {{writeRole}}, which trusts it and holds the enabled changes' permissions, as the setup command makes them.": "イメージ {{image}} を独自の方法でデプロイし、これらの変数を設定してください。エージェントを実行するロールには、書き込みロール {{writeRole}} を引き受ける権限だけが必要です。書き込みロールはそのロールを信頼し、有効にした変更に必要な権限を持ちます。どちらもセットアップコマンドが作成するとおりです。"
 }

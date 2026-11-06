@@ -4,6 +4,7 @@ import {
   CloudAiAgentFixesMode,
   CloudAiAgentSetupOptions,
   getCloudAiAgentChangeOperations,
+  getCloudAiAgentImage,
   getCloudAiAgentMaxProtectedTargets,
   isReadableCloudAiAgentProtectedTarget,
 } from "Common/Types/CloudConnection/CloudAiAgentSetupCommands";
@@ -16,12 +17,14 @@ import {
   AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_APP_NAME,
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
+  AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
   CLOUD_AI_AGENT_NAME,
   CloudAiAgentProvider,
   GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
   GCP_CLOUD_AI_AGENT_HOSTS,
   GCP_CLOUD_AI_AGENT_INSTANCE_NAME,
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
+  GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
   GcpCloudAiAgentHost,
   getCloudAiAgentOwnTargets,
 } from "Common/Types/ResourceAiAgent/CloudAiAgentNames";
@@ -476,6 +479,48 @@ export function isCloudAiAgentKeyFailureRetryable(statusCode: number): boolean {
   }
 
   return !(statusCode >= 400 && statusCode < 500);
+}
+
+/*
+ * "Run the agent somewhere else", under More fields: what a team that
+ * deploys the agent its own way gives it besides the variables, as the
+ * setup command makes it on each cloud - an identity that changes nothing
+ * on its own, and the write role, identity or account each change runs as.
+ */
+export const CLOUD_AI_AGENT_ELSEWHERE_TEXTS: Readonly<
+  Record<CloudProvider, string>
+> = {
+  [CloudProvider.AWS]: translationKey(
+    "Deploy the image {{image}} your own way, with these variables. The role it runs as needs only to assume the write role {{writeRole}}, which trusts it and holds the enabled changes' permissions, as the setup command makes them.",
+  ),
+  [CloudProvider.Azure]: translationKey(
+    "Deploy the image {{image}} your own way in Azure, with these variables. Give it a managed identity of its own that only reads, and attach the write identity {{writeIdentity}}, which holds the enabled changes' permissions, as the setup command makes them.",
+  ),
+  [CloudProvider.GCP]: translationKey(
+    "Deploy the image {{image}} your own way in Google Cloud, with these variables. Run it as a service account that only reads, with Service Account Token Creator on the write account {{writeAccount}}, which holds the enabled changes' permissions, as the setup command makes them.",
+  ),
+};
+
+// The names the sentence of each cloud fills in: its own write role, identity or account.
+export function getCloudAiAgentElsewhereValues(
+  provider: CloudProvider,
+): Record<string, string> {
+  const image: string = getCloudAiAgentImage();
+
+  switch (provider) {
+    case CloudProvider.AWS:
+      return { image, writeRole: AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME };
+    case CloudProvider.Azure:
+      return {
+        image,
+        writeIdentity: AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
+      };
+    default:
+      return {
+        image,
+        writeAccount: GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
+      };
+  }
 }
 
 // The line under the command, about the key it holds.
