@@ -389,6 +389,7 @@ export const CODE_REPOSITORY_CONNECTION_COPY: {
   tokenRefusedHelp: string;
   connectionGone: string;
   notReachableFromServer: string;
+  readsCodeOnAzureDevOps: string;
   replaceButton: string;
   replaceTitle: string;
   replaceDescription: string;
@@ -413,6 +414,14 @@ export const CODE_REPOSITORY_CONNECTION_COPY: {
   ),
   notReachableFromServer: translationKey(
     "Only one of your own Runners on its network can reach this Git server.",
+  ),
+  /*
+   * A Git repository on Azure DevOps that OneUptime's server reaches: its
+   * code is read too, through Azure DevOps' file API, as a GitLab
+   * repository's is (CodeHost.canReadRepositoryCode).
+   */
+  readsCodeOnAzureDevOps: translationKey(
+    "OneUptime reads this repository's code through Azure DevOps, so stack traces and profiles link to its lines and OneUptime AI reads its files.",
   ),
   replaceButton: translationKey("Replace access token"),
   replaceTitle: translationKey("Replace access token"),

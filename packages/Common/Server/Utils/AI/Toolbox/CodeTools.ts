@@ -222,9 +222,8 @@ export function describePlainGitRepositories(
  * one imported then uninstalled, a GitLab one whose token was refused) or on
  * a host whose files OneUptime does not read (a plain Git repository: a Git
  * server that is not Azure DevOps), and those must never look readable to
- * the model. A run held to some
- * repositories (ctx.codeRepositoryAllowance - the ones the rules that matched
- * its incident name) reads only those.
+ * the model. A run held to some repositories (ctx.codeRepositoryAllowance -
+ * the ones the rules that matched its incident name) reads only those.
  */
 export async function findReadableRepositories(
   ctx: ToolContext,

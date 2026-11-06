@@ -26,8 +26,8 @@ import { describe, expect, it } from "@jest/globals";
  * (CodeHostChoices), what each connects with (the dialog's own help), what
  * AI does in each (CodeHost's capabilities - commands are GitHub's alone,
  * production reviews every host's with pull requests, a Git server pushes
- * a branch), and the words of the repository's settings and of a refused
- * token.
+ * a branch, and on Azure DevOps has its code read too), and the words of
+ * the repository's settings and of a refused token.
  */
 
 const SECTION: string = "## Connect a repository";
@@ -193,6 +193,48 @@ describe("Code: Connect a repository", () => {
     ).toBeNull();
     expect(git![2]).toContain(
       "On Bitbucket and Azure DevOps it links to where you open it.",
+    );
+
+    /*
+     * On Azure DevOps - Services, or a Server of its own - a Git
+     * repository's code is read, with the credentials Git signs in with, in
+     * api-version 5.0: Azure DevOps Server 2019's, which every later one
+     * takes. Anywhere else, a Git repository's code is not read.
+     */
+    for (const repositoryUrl of [
+      "https://dev.azure.com/acme/project/_git/app",
+      "https://acme.visualstudio.com/project/_git/app",
+      "https://tfs.example.com/tfs/DefaultCollection/project/_git/app",
+      "https://tfs.example.com/DefaultCollection/project/_git/app",
+    ]) {
+      expect(
+        CodeHost.canReadRepositoryCode({
+          type: CodeRepositoryType.Git,
+          repositoryUrl,
+        }),
+      ).toBe(true);
+    }
+
+    expect(
+      CodeHost.canReadRepositoryCode({
+        type: CodeRepositoryType.Git,
+        repositoryUrl: "https://git.example.com/acme/app.git",
+      }),
+    ).toBe(false);
+    expect(
+      CodeHost.can(CodeRepositoryType.Git, CodeHostCapability.ReadCode),
+    ).toBe(false);
+    expect(
+      readRepoFile(
+        "Common/Server/Utils/CodeRepository/CodeHost/AzureDevOpsApi.ts",
+      ),
+    ).toContain('export const AZURE_DEVOPS_API_VERSION: string = "5.0";');
+    expect(git![2]).toContain(
+      "On Azure DevOps (Services, or Server 2019 and later), OneUptime also reads the code, with the same credentials: the code a stack trace or a profile runs through, and the files OneUptime AI reads.",
+    );
+    // The same words as the GitLab row's, for the same reads.
+    expect(gitLab![2]).toContain(
+      "the code a stack trace or a profile runs through",
     );
   });
 
