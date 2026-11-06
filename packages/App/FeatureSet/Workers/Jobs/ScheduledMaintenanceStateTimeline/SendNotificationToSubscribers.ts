@@ -56,6 +56,7 @@ import ScheduledMaintenancePublication, {
   ScheduledMaintenancePublicationState,
 } from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
 import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
+import SubscriberTemplateValues from "Common/Server/Utils/StatusPage/SubscriberTemplateValues";
 import SubscriberMessageText, {
   SubscriberChatText,
 } from "Common/Server/Utils/StatusPage/SubscriberMessageText";
@@ -418,15 +419,18 @@ RunCron(
            * moved to. {{scheduledAt}} is not advertised but has always been
            * passed, so templates that use it keep working.
            */
-          const templateVariables: Record<string, string> = {
-            statusPageName: statusPageName,
-            statusPageUrl: statusPageURL,
-            detailsUrl: scheduledEventDetailsUrl,
-            scheduledMaintenanceTitle: event.title || "",
-            scheduledMaintenanceState:
-              scheduledEventStateTimeline.scheduledMaintenanceState?.name || "",
-            scheduledAt: scheduledAtString,
-          };
+          const templateVariables: Record<string, string> =
+            SubscriberTemplateValues.inPageLanguage(statuspage, {
+              statusPageName: statusPageName,
+              statusPageUrl: statusPageURL,
+              detailsUrl: scheduledEventDetailsUrl,
+              scheduledMaintenanceTitle: event.title || "",
+              // A default state name, and the date, in the page's language.
+              scheduledMaintenanceState: SubscriberTemplateValues.stateName(
+                scheduledEventStateTimeline.scheduledMaintenanceState?.name,
+              ),
+              scheduledAt: SubscriberTemplateValues.date(event.startsAt),
+            });
 
           /*
            * Custom templates get each value in the format their channel

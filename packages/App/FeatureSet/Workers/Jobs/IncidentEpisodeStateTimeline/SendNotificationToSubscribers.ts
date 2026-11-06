@@ -68,7 +68,10 @@ import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailL
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
-import SubscriberMessageText from "Common/Server/Utils/StatusPage/SubscriberMessageText";
+import SubscriberTemplateValues from "Common/Server/Utils/StatusPage/SubscriberTemplateValues";
+import SubscriberMessageText, {
+  SubscriberEmailText,
+} from "Common/Server/Utils/StatusPage/SubscriberMessageText";
 import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessage";
 import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
 import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
@@ -571,14 +574,27 @@ RunCron(
                * the resource list is added per format below and unsubscribeUrl per
                * subscriber.
                */
-              const templateVariables: Record<string, string> = {
-                statusPageName: statusPageName,
-                statusPageUrl: statusPageURL,
-                detailsUrl: episodeDetailsUrl,
-                episodeSeverity: episode.incidentSeverity?.name || " - ",
-                episodeTitle: episode.title || "",
-                episodeState: episodeStateName,
-              };
+              const templateVariables: Record<string, string> =
+                SubscriberTemplateValues.inPageLanguage(statuspage, {
+                  statusPageName: statusPageName,
+                  statusPageUrl: statusPageURL,
+                  detailsUrl: episodeDetailsUrl,
+                  // Default severity and state names in the page's language.
+                  episodeSeverity: SubscriberTemplateValues.stateName(
+                    episode.incidentSeverity?.name,
+                    " - ",
+                  ),
+                  episodeTitle: episode.title || "",
+                  episodeState:
+                    SubscriberTemplateValues.stateName(episodeStateName),
+                });
+
+              // A resource list that lists none, in the page's language.
+              const noResourcesText: string =
+                SubscriberTemplateValues.textInPageLanguage(
+                  statuspage,
+                  SubscriberEmailText.none,
+                );
 
               /*
                * The custom email body is HTML: it is wrapped only by
@@ -589,7 +605,7 @@ RunCron(
                 {
                   ...templateVariables,
                   resourcesAffected: SafeHtml.fromTrustedHtml(
-                    resourcesAffectedHtml || "None",
+                    resourcesAffectedHtml || SafeHtml.escape(noResourcesText),
                   ),
                 };
 
@@ -600,7 +616,8 @@ RunCron(
                */
               const plainTextTemplateVariables: Record<string, string> = {
                 ...templateVariables,
-                resourcesAffected: resourcesAffectedPlainText || "None",
+                resourcesAffected:
+                  resourcesAffectedPlainText || noResourcesText,
               };
 
               /*
