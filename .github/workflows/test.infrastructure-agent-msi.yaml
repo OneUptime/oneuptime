@@ -23,7 +23,7 @@ on:
       - ".github/workflows/test.infrastructure-agent-msi.yaml"
   push:
     branches:
-      - master
+      - main
     paths:
       - "agents/InfrastructureAgent/**"
       - ".github/workflows/test.infrastructure-agent-msi.yaml"

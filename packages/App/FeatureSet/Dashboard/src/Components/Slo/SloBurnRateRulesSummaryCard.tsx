@@ -108,11 +108,7 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
   const getBody: GetBodyFunction = (): ReactElement => {
     if (props.error) {
       return (
-        <FieldError
-          message={props.error}
-          className="text-sm text-red-700"
-          announce="none"
-        />
+        <FieldError message={props.error} className="text-sm" announce="none" />
       );
     }
 

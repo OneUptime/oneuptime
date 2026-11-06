@@ -40,6 +40,8 @@ Logoen, logoen for mørkt tema, forsidebildet og faviconet er filer som er laste
 
 Statussiden din viser bare bilder fra sitt eget prosjekt; et bilde den ikke kan vise, utelates, som om siden ikke hadde noe. Dashbordet, API-et og Terraform leser sidens bilder på samme måte: et bilde fra et annet prosjekt kommer tilbake som ikke noe bilde i det hele tatt. E-postene siden sender (til abonnenter, og til private brukere om påloggingen deres), viser logoen på samme måte: en logo siden ikke kan vise, utelates også fra dem i stedet for å vises som et ødelagt bilde.
 
+Disse e-postene har logoen inne i seg, så den vises selv der et e-postprogram ikke laster bilder fra internett eller ikke når OneUptime: en PNG-, JPEG-, GIF-, WebP- eller SVG-logo kommer med som et bilde i størrelse med e-postens topptekst. En SVG-logo der ordene er tekst og ikke former, vises i stedet fra adressen sin, fordi serveren ikke har noen skrift å tegne ordene med: gjør teksten om til konturer i designverktøyet ditt, eller last opp en PNG.
+
 ### Tema
 
 Kortet **Tema**, rett under logoen, bestemmer hvordan siden ser ut for de besøkende. Velg ett av de tre valgene, så lagres det med en gang; det finnes ingen knapp **Rediger**.

@@ -19,7 +19,7 @@ import {
   decodeJsonMetricRecord,
   readJsonMetricUpdate,
   readStatisticValue,
-  shapeStreamedKeyMetrics,
+  shapeStreamedMetrics,
   stampConnection,
 } from "../../FeatureSet/Telemetry/Utils/AwsFirehose/CloudWatchMetricStream";
 import {
@@ -743,7 +743,7 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
     memory: StreamedSeriesMemory = new StreamedSeriesMemory(),
     data: { now?: Date; connectionId?: string } = {},
   ): Promise<Array<JSONObject>> {
-    return await shapeStreamedKeyMetrics({
+    return await shapeStreamedMetrics({
       resources,
       connectionId: data.connectionId || CONNECTION_ID,
       now: data.now || NOW,
@@ -1220,5 +1220,244 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
     // The Average the read reads - 300 ms - once, not the 1,500 ms sum twice.
     expect(gaugeValues(shaped)).toEqual([300]);
     expect(metricsOf(shaped)[0]!["unit"]).toBe("Milliseconds");
+  });
+
+  /*
+   * Every metric (More fields): what is not a key metric stays the stream's
+   * summary, and each resource's own aggregate is kept once - its splits
+   * left out, as the key metrics' are - so a chart of the resource without
+   * a group-by never counts a datapoint twice.
+   */
+  function concurrency(
+    dimensions: Record<string, string>,
+    sum: number,
+  ): JSONObject {
+    return summaryPoint({
+      namespace: "AWS/Lambda",
+      metricName: "ConcurrentExecutions",
+      dimensions,
+      count: 1,
+      sum,
+      quantiles: [
+        { quantile: 0, value: sum },
+        { quantile: 1, value: sum },
+      ],
+    });
+  }
+
+  // Each summary datapoint's sum and its dimensions, in the order written.
+  function summaries(
+    resources: Array<JSONObject>,
+  ): Array<{ sum: number; dimensions: number }> {
+    return metricsOf(resources).flatMap((metric: JSONObject) => {
+      return (
+        ((metric["summary"] as JSONObject)?.["dataPoints"] as
+          | Array<JSONObject>
+          | undefined) || []
+      ).map((point: JSONObject) => {
+        return {
+          sum: point["sum"] as number,
+          dimensions: countDimensions(point["attributes"] as JSONArray),
+        };
+      });
+    });
+  }
+
+  test("every metric: one that is not a key one keeps its resource's own aggregate, as the stream's summary, its splits left out", async () => {
+    const shaped: Array<JSONObject> = await shape([
+      resourceOf([
+        summaryMetric("amazonaws.com/AWS/Lambda/ConcurrentExecutions", [
+          concurrency(
+            { FunctionName: "checkout", Resource: "checkout:live" },
+            6,
+          ),
+          concurrency({ FunctionName: "checkout" }, 8),
+          concurrency(
+            {
+              FunctionName: "checkout",
+              Resource: "checkout:live",
+              ExecutedVersion: "7",
+            },
+            6,
+          ),
+          concurrency({ FunctionName: "refunds" }, 1),
+        ]),
+      ]),
+    ]);
+    const metric: JSONObject = metricsOf(shaped)[0]!;
+
+    expect(summaries(shaped)).toEqual([
+      { sum: 8, dimensions: 1 },
+      { sum: 1, dimensions: 1 },
+    ]);
+    // Still the stream's summary: no read writes it, so nothing to match.
+    expect(metric["gauge"]).toBeUndefined();
+    expect(metric["unit"]).toBe("1");
+    const kept: JSONObject = (
+      (metric["summary"] as JSONObject)["dataPoints"] as Array<JSONObject>
+    )[0]!;
+    expect(kept["count"]).toBe(1);
+    expect(kept["quantileValues"]).toEqual([
+      { quantile: 0, value: 8 },
+      { quantile: 1, value: 8 },
+    ]);
+  });
+
+  test("every metric: its series of no resource - an account's own, a namespace of the account's own - are kept", async () => {
+    const custom: JSONObject = summaryPoint({
+      namespace: "Checkout/Orders",
+      metricName: "Placed",
+      dimensions: { Stage: "prod" },
+      count: 3,
+      sum: 42,
+    });
+    const customAll: JSONObject = summaryPoint({
+      namespace: "Checkout/Orders",
+      metricName: "Placed",
+      dimensions: {},
+      count: 3,
+      sum: 42,
+    });
+    const shaped: Array<JSONObject> = await shape([
+      resourceOf([
+        summaryMetric("amazonaws.com/AWS/Lambda/ConcurrentExecutions", [
+          concurrency({}, 9),
+          concurrency({ FunctionName: "checkout" }, 8),
+        ]),
+        summaryMetric("amazonaws.com/Checkout/Orders/Placed", [
+          custom,
+          customAll,
+        ]),
+      ]),
+    ]);
+
+    expect(summaries(shaped)).toEqual([
+      { sum: 9, dimensions: 0 },
+      { sum: 8, dimensions: 1 },
+      { sum: 42, dimensions: 1 },
+      { sum: 42, dimensions: 0 },
+    ]);
+  });
+
+  test("every metric: a resource no series is the own of keeps every series with its fewest dimensions - a table's operations", async () => {
+    const latency: (operation: string, sum: number) => JSONObject = (
+      operation: string,
+      sum: number,
+    ): JSONObject => {
+      return summaryPoint({
+        namespace: "AWS/DynamoDB",
+        metricName: "SuccessfulRequestLatency",
+        dimensions: { TableName: "orders", Operation: operation },
+        count: 2,
+        sum,
+      });
+    };
+
+    expect(
+      summaries(
+        await shape([
+          resourceOf([
+            summaryMetric(
+              "amazonaws.com/AWS/DynamoDB/SuccessfulRequestLatency",
+              [latency("GetItem", 8), latency("PutItem", 14)],
+            ),
+          ]),
+        ]),
+      ),
+    ).toEqual([
+      { sum: 8, dimensions: 2 },
+      { sum: 14, dimensions: 2 },
+    ]);
+  });
+
+  test("every metric: a split that comes a delivery after its resource's aggregate is left out too, and the metric with it", async () => {
+    const memory: StreamedSeriesMemory = new StreamedSeriesMemory();
+
+    await shape(
+      [
+        resourceOf([
+          summaryMetric("amazonaws.com/AWS/Lambda/ConcurrentExecutions", [
+            concurrency({ FunctionName: "checkout" }, 8),
+          ]),
+        ]),
+      ],
+      memory,
+    );
+
+    const later: Array<JSONObject> = await shape(
+      [
+        resourceOf([
+          summaryMetric("amazonaws.com/AWS/Lambda/ConcurrentExecutions", [
+            concurrency(
+              { FunctionName: "checkout", Resource: "checkout:live" },
+              6,
+            ),
+          ]),
+          summaryMetric("amazonaws.com/AWS/Lambda/ClaimedAccountConcurrency", [
+            summaryPoint({
+              namespace: "AWS/Lambda",
+              metricName: "ClaimedAccountConcurrency",
+              dimensions: {},
+              count: 1,
+              sum: 20,
+            }),
+          ]),
+        ]),
+      ],
+      memory,
+    );
+
+    // The split is left out, and its metric with it; the account's own stays.
+    expect(
+      metricsOf(later).map((metric: JSONObject) => {
+        return metric["name"];
+      }),
+    ).toEqual(["amazonaws.com/AWS/Lambda/ClaimedAccountConcurrency"]);
+  });
+
+  test("every metric: a load balancer's per-target-group series of a metric it has no series of its own for are kept, its zones' left out", async () => {
+    const healthy: (dimensions: Record<string, string>) => JSONObject = (
+      dimensions: Record<string, string>,
+    ): JSONObject => {
+      return summaryPoint({
+        namespace: "AWS/ApplicationELB",
+        metricName: "HealthyHostCount",
+        dimensions: { LoadBalancer: "app/web/50dc6c495c0c9188", ...dimensions },
+        count: 1,
+        sum: 2,
+      });
+    };
+
+    expect(
+      summaries(
+        await shape([
+          resourceOf([
+            summaryMetric("amazonaws.com/AWS/ApplicationELB/HealthyHostCount", [
+              healthy({ TargetGroup: "targetgroup/web/0123456789abcdef" }),
+              healthy({ TargetGroup: "targetgroup/api/fedcba9876543210" }),
+              healthy({
+                TargetGroup: "targetgroup/web/0123456789abcdef",
+                AvailabilityZone: "us-east-1a",
+              }),
+            ]),
+          ]),
+        ]),
+      ),
+    ).toEqual([
+      { sum: 2, dimensions: 2 },
+      { sum: 2, dimensions: 2 },
+    ]);
+  });
+
+  test("every metric: a resource whose metrics have no splits is handed back as it was, the very object", async () => {
+    const resource: JSONObject = resourceOf([
+      summaryMetric("amazonaws.com/AWS/Lambda/ConcurrentExecutions", [
+        concurrency({ FunctionName: "checkout" }, 8),
+        concurrency({ FunctionName: "refunds" }, 1),
+      ]),
+    ]);
+    const shaped: Array<JSONObject> = await shape([resource]);
+
+    expect(shaped[0]).toBe(resource);
   });
 });

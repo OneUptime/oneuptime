@@ -28,7 +28,7 @@
  */
 
 const GITHUB_AGENTS_URL =
-  "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents";
+  "https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents";
 
 const WRITE_OUT_FORMAT = "%{http_code} %{content_type}";
 

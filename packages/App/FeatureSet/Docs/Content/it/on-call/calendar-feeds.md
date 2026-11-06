@@ -261,7 +261,7 @@ Così un token non finisce mai in un file di log accanto all'indirizzo di un cli
 
 ## Configurazione self-hosted
 
-Non c'è nulla da attivare: i feed funzionano su ogni installazione. Quattro variabili d'ambiente li controllano, impostate in `config.env` per Docker Compose o in `onCallCalendarFeed` nei valori Helm (vedi il [riferimento di configurazione](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) del chart):
+Non c'è nulla da attivare: i feed funzionano su ogni installazione. Quattro variabili d'ambiente li controllano, impostate in `config.env` per Docker Compose o in `onCallCalendarFeed` nei valori Helm (vedi il [riferimento di configurazione](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) del chart):
 
 | Variabile | Valore Helm | Predefinito | Effetto |
 | --- | --- | --- | --- |
@@ -273,7 +273,7 @@ Non c'è nulla da attivare: i feed funzionano su ogni installazione. Quattro var
 Conta anche:
 
 - **`HOST` e `HTTP_PROTOCOL`** costruiscono i link. Se `HOST` è vuoto o è `localhost`, o se `HTTP_PROTOCOL` è `http`, la pagina del feed mostra un avviso e i link non funzioneranno dall'esterno. Se `HOST` è un indirizzo privato (`10.x`, `172.16–31.x`, `192.168.x`, un nome senza punto come quello di un container, o un nome sotto `.internal`, `.local`, `.lan` e simili), la pagina dice che Google Calendar e Outlook sul web non possono raggiungere il link; le app su un computer della stessa rete invece sì.
-- **`TRUSTED_PROXY_HOPS`** decide quale indirizzo conta per il limite per indirizzo. Il valore predefinito `1` è giusto per le configurazioni standard di Docker Compose e Helm; aggiungine uno per ogni tuo proxy (CDN, WAF o load balancer) che aggiunge a `X-Forwarded-For`, altrimenti ogni client di calendario sembra lo stesso indirizzo e tutti condividono un unico budget. Vedi [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) nella documentazione del chart.
+- **`TRUSTED_PROXY_HOPS`** decide quale indirizzo conta per il limite per indirizzo. Il valore predefinito `1` è giusto per le configurazioni standard di Docker Compose e Helm; aggiungine uno per ogni tuo proxy (CDN, WAF o load balancer) che aggiunge a `X-Forwarded-For`, altrimenti ogni client di calendario sembra lo stesso indirizzo e tutti condividono un unico budget. Vedi [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) nella documentazione del chart.
 - **Redis** sostiene le cache e il limite di frequenza. Entrambi degradano con grazia: senza Redis i feed vengono comunque generati, solo più lentamente, e il limite lascia passare le richieste.
 - Nella modalità divisa del chart Helm (`worker.enabled: true`) i feed vengono generati sul livello API, quindi dimensiona quel livello per un'ondata di client di calendario che interrogano allo scoccare dell'ora.
 - L'esenzione dal log di accesso di Nginx mostrata sopra fa parte del `packages/Nginx/default.conf.template` fornito; mantienila se personalizzi il modello.

@@ -261,7 +261,7 @@ location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance
 
 ## Настройка собственной установки
 
-Ничего включать не нужно: ленты работают в любой установке. Ими управляют четыре переменные окружения, которые задаются в `config.env` для Docker Compose или в `onCallCalendarFeed` в значениях Helm (см. [справочник по конфигурации](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) чарта):
+Ничего включать не нужно: ленты работают в любой установке. Ими управляют четыре переменные окружения, которые задаются в `config.env` для Docker Compose или в `onCallCalendarFeed` в значениях Helm (см. [справочник по конфигурации](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) чарта):
 
 | Переменная | Значение Helm | По умолчанию | Действие |
 | --- | --- | --- | --- |
@@ -273,7 +273,7 @@ location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance
 Также важно:
 
 - **`HOST` и `HTTP_PROTOCOL`** формируют ссылки. Если `HOST` пуст или равен `localhost` либо `HTTP_PROTOCOL` равен `http`, страница ленты показывает предупреждение, и ссылки не работают извне. Если `HOST` — частный адрес (`10.x`, `172.16–31.x`, `192.168.x`, имя без точки, например имя контейнера, или имя в зоне `.internal`, `.local`, `.lan` и подобных), страница сообщает, что Google Календарь и Outlook в Интернете не могут получить ссылку; приложения на компьютере в той же сети по-прежнему могут.
-- **`TRUSTED_PROXY_HOPS`** определяет, какой адрес учитывает ограничение по адресу. Значение по умолчанию `1` подходит для стандартных конфигураций Docker Compose и Helm; добавляйте по единице за каждый свой прокси — CDN, WAF или балансировщик нагрузки, — который дописывает `X-Forwarded-For`, иначе все клиенты-календари выглядят как один адрес и делят один лимит. См. [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) в документации чарта.
+- **`TRUSTED_PROXY_HOPS`** определяет, какой адрес учитывает ограничение по адресу. Значение по умолчанию `1` подходит для стандартных конфигураций Docker Compose и Helm; добавляйте по единице за каждый свой прокси — CDN, WAF или балансировщик нагрузки, — который дописывает `X-Forwarded-For`, иначе все клиенты-календари выглядят как один адрес и делят один лимит. См. [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) в документации чарта.
 - **Redis** обслуживает кеши и ограничитель частоты. Оба корректно деградируют: без Redis ленты всё равно формируются, только медленнее, а ограничитель пропускает запросы.
 - В раздельном режиме чарта Helm (`worker.enabled: true`) ленты формируются на уровне API, поэтому рассчитывайте этот уровень на всплеск запросов от клиентов-календарей в начале каждого часа.
 - Исключение для журнала доступа Nginx, показанное выше, входит в поставляемый `packages/Nginx/default.conf.template`; сохраните его, если изменяете шаблон.

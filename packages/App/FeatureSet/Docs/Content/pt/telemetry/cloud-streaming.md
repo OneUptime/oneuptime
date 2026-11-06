@@ -47,6 +47,8 @@ Vá em **Nuvem → Conectar** e, na linha da conta da AWS, escolha **Transmitir 
 
 Para os logs, informe os **Grupos de logs** um por linha, pelo nome na **Região** ao lado ou pelo ARN na região deles, ou escolha **Todos os grupos de logs da conta, inclusive os novos**. Um comando assina no máximo 50 grupos de logs pelo nome, em no máximo 10 regiões.
 
+A AWS permite uma única assinatura de logs para toda a conta por região e dois filtros de assinatura por grupo de logs. Antes de implantar qualquer coisa, o comando verifica as duas coisas: se outra ferramenta, como um SIEM, já ocupa a assinatura de toda a conta de uma região, ou se um grupo de logs que você informou não existe ou já tem dois filtros de assinatura, ele diz qual e não configura nada.
+
 ### Criar uma chave de fluxo
 
 Escolha **Criar uma chave de fluxo**. A chave só é mostrada desta vez, no comando: o OneUptime guarda só o SHA-256 dela.
@@ -93,6 +95,7 @@ Um grupo de logs é arquivado sob um recurso quando a AWS lhe deu o nome de um:
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 Cada log leva o ID do recurso como `cloud.resource_id`, e os logs de uma função Lambda levam também `faas.name`, por isso aparecem também na função em Serverless. Um grupo de logs com outro nome é transmitido mesmo assim, sob a conta e a região dele. A gravidade de um log é a que a mensagem dele informa, do jeito que o Lambda a escreve.
 
@@ -166,6 +169,10 @@ Verifique se o comando terminou em cada região sem erros: `aws cloudformation d
 
 :::details A conexão diz Fluxo recusado
 A caixa e a dica da linha dizem por quê. Uma chave errada significa que as pilhas rodam com uma chave que não funciona mais: crie uma nova chave e execute o comando de novo. O Firehose continua enviando o que guarda, e isso é aceito assim que a chave estiver certa.
+:::
+
+:::details O comando diz `Nothing was set up`
+As linhas acima dizem por quê, cada uma com a sua região ou o seu grupo de logs. Se outra ferramenta ocupa a assinatura de logs de toda a conta de uma região, informe em vez disso os grupos de logs a transmitir, ou remova a política dessa ferramenta. Se um grupo de logs já tem dois filtros de assinatura, remova um deles ou deixe o grupo de fora. Se o grupo de logs não existe, verifique o nome e a região dele, ou informe o ARN dele. Depois, execute o comando de novo.
 :::
 
 :::details Os logs de uma função Lambda não aparecem na página dela

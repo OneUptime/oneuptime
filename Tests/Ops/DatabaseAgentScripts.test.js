@@ -147,7 +147,7 @@ const BASE = {
 describe("install.sh, where its files come from", () => {
   const SERVED = "https://oneuptime.example.com/install/database-agent";
   const GITHUB =
-    "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent";
+    "https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents/DatabaseAgent";
   const POSTGRES = {
     ...BASE,
     DATABASE_SYSTEM: "postgresql",

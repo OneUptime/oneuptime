@@ -273,7 +273,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 
 बिलिंग चालू होने पर, या `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (Helm वैल्यू में `outboundConnections.blockPrivateNetwork: true`) के साथ, किसी प्रोजेक्ट का अपना प्रदाता क्लस्टर के अंदर के इस पते तक नहीं पहुंच सकता, जो एक निजी क्लस्टर IP में रिज़ॉल्व होता है। इसके बजाय प्रदाता को Admin Dashboard में **सेटिंग्स → वैश्विक LLM प्रदाता** के तहत उन्हीं फ़ील्ड के साथ बनाएं: वैश्विक LLM प्रदाता उस पते तक पहुंच सकता है।
 
-GPU शेड्यूलिंग, प्रतिबंधित मॉडल और ट्यूनिंग विकल्पों के लिए [Helm चार्ट की vLLM गाइड](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) देखें।
+GPU शेड्यूलिंग, प्रतिबंधित मॉडल और ट्यूनिंग विकल्पों के लिए [Helm चार्ट की vLLM गाइड](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/ai-vllm.md) देखें।
 
 ## अच्छे तरीके
 

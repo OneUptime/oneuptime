@@ -19,8 +19,8 @@ description: >-
 # on PATH, and rides out a burst with exponential backoff when it does have to
 # download. configure.sh then sees gomplate on PATH and skips its download.
 #
-# Caches written by master runs are visible to pull requests and to the
-# `release` branch, so a release restores the copy master already verified.
+# Caches written by main runs are visible to pull requests and to the
+# `release` branch, so a release restores the copy main already verified.
 
 runs:
   using: composite

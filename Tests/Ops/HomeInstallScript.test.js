@@ -622,7 +622,7 @@ describe("the script", () => {
     expect(result.status).toBe(0);
   });
 
-  test("fetches the release, never master, and leaves the secrets to npm start", () => {
+  test("fetches the release, never main, and leaves the secrets to npm start", () => {
     expect(source).toContain('BRANCH="${ONEUPTIME_BRANCH:-release}"');
     expect(source).toContain(
       'git clone --depth 1 --single-branch --branch "$BRANCH" "$REPOSITORY" "$INSTALL_DIR"',

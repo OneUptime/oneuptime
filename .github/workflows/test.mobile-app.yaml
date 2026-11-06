@@ -9,7 +9,7 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - main
 
 # Read-only: these jobs check out and test the code, nothing more.
 permissions:

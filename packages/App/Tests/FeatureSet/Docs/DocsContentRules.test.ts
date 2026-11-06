@@ -678,7 +678,7 @@ describe("the rules, on pages written here", () => {
                 "# One",
                 "[a](./authentication.md) [b](../cli/index) [c](monitor/website-monitor.md)",
                 "[d](/docs/monitor/website-monitor.md#x) [e](/docs/monitor/website-monitor)",
-                "[f](https://github.com/OneUptime/oneuptime/blob/master/README.md)",
+                "[f](https://github.com/OneUptime/oneuptime/blob/main/README.md)",
               ),
             },
           },

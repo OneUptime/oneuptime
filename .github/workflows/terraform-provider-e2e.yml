@@ -13,7 +13,7 @@ name: Terraform Provider E2E Tests
 # number>", the group cancel-closed-pr-runs.yml joins to stop it.
 #
 # The nightly run has a group of its own too. github.event.schedule, the cron
-# line that started it, is set on scheduled runs only, so a push to master that
+# line that started it, is set on scheduled runs only, so a push to main that
 # lands while the nightly run is going neither cancels it nor is cancelled by it.
 # Tests/Ops/ReleaseE2ePipeline.test.js holds the release and nightly groups, and
 # CancelClosedPrRuns.test.js the pull request's.
@@ -30,10 +30,10 @@ on:
   push:
     branches:
       - main
-      - master
+      - main
       - develop
-  # Nightly, on master. HashiCorp asks the providers it lists as Partner for
-  # tests that run nightly as a GitHub Action, and it gives master a run on
+  # Nightly, on main. HashiCorp asks the providers it lists as Partner for
+  # tests that run nightly as a GitHub Action, and it gives main a run on
   # the days nothing merges.
   schedule:
     - cron: "43 2 * * *"
@@ -235,9 +235,9 @@ jobs:
       #     run-tests.sh points both engines at (TF_E2E_PROVIDER_MIRROR), so
       #     `init` for hashicorp/random does not reach a registry either.
       #
-      # Caches written by master runs are visible to pull requests and to the
+      # Caches written by main runs are visible to pull requests and to the
       # `release` branch, so a release -- which calls this workflow as a gate
-      # -- restores the copies master already verified.
+      # -- restores the copies main already verified.
       - name: Restore pinned Terraform, OpenTofu and providers from the Actions cache
         id: pinned-tools-cache
         uses: actions/cache/restore@v4

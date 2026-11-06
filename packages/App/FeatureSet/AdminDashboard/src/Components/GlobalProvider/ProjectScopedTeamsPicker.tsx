@@ -8,6 +8,7 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import API from "Common/UI/Utils/API/API";
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import { InviteTeam } from "Common/UI/Utils/DefaultInviteTeam";
 import { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Team from "Common/Models/DatabaseModels/Team";
@@ -274,8 +275,9 @@ const ProjectScopedTeamsPicker: FunctionComponent<ComponentProps> = (
     return <p className="text-sm text-gray-500">Loading teams...</p>;
   }
 
+  // In the field's place, drawn as every field's error is (FieldError).
   if (error) {
-    return <p className="text-sm text-red-500">{error}</p>;
+    return <FieldError message={error} className="text-sm" />;
   }
 
   if (options.length === 0) {

@@ -845,9 +845,7 @@ const RolePicker: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
-    return (
-      <FieldError message={props.error} className="mt-2 text-sm text-red-600" />
-    );
+    return <FieldError message={props.error} className="mt-2 text-sm" />;
   };
 
   const renderBody: () => ReactElement = (): ReactElement => {

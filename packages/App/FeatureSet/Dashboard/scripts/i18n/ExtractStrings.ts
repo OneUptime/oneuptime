@@ -324,6 +324,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The managed platforms an app runs on (App Platforms): the line the
+   * environment guide's picker shows under each, in the reader's language.
+   * Only the words the file marks are read: a platform's label and product
+   * name are its own, and name environments as ingest mints them.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudPlatform.ts",
+    kind: "keys",
+  },
+  /*
    * A cloud resource's status and what needs attention on it, by one set
    * of rules from its key metrics: the Cloud Overview's Needs attention,
    * the lists, a resource's hero and tiles say them in the reader's
@@ -341,6 +351,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Cloud/CloudCost.ts",
+    kind: "keys",
+  },
+  /*
+   * A resource's right-sizing from OneUptime's own readings: its verdict,
+   * what to change and why, on its Overview. Only the words the file marks
+   * are read: a size is its cloud's own name, drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudRightSizing.ts",
     kind: "keys",
   },
   /*

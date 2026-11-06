@@ -50,6 +50,8 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Project from "Common/Models/DatabaseModels/Project";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import { getCloudAiAgentKeyEditRefusal } from "Common/Types/AI/ResourceAiAccessPermissions";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Color from "Common/Types/Color";
@@ -104,8 +106,9 @@ import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
  * Overview, Let AI fix problems (its one question, the command for the
  * cloud's own shell and More fields), and the account's AI pages
  * (/dashboard/<project>/cloud/accounts/<account>/ai/agent|logs), answered
- * from POST /resource-ai-access/status, /test, /reset-agent and /logs as
- * the server answers them:
+ * from POST /resource-ai-access/status, /test, /reset-agent, /logs and
+ * /agent-key (the key the setup command carries, made for the account's
+ * Cloud AI agent alone as the dialog opens) as the server answers them:
  *
  *   ?ai=        none (default: OneUptime AI reads the account, no Cloud AI
  *               agent connected)
@@ -113,6 +116,10 @@ import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
  *               for approval)
  *               | offline (it connected once and stopped reporting)
  *               | fail (every status read fails)
+ *   ?agentkey=refused  the key is refused, as for someone who may not set
+ *               the agent up: every time, so the dialog offers no Try again
+ *               | fail  the first ask fails (the server is unavailable for a
+ *               moment), and Try again asks again: it is made then
  *   ?agentsettings=custom  the connected agent reports three changes, the
  *               tag it requires and two protected resources (Change opens
  *               the dialog on them)
@@ -157,6 +164,9 @@ const aiState = ["connected", "offline", "fail"].includes(params.get("ai"))
  * dialog say so while one is off.
  */
 const fixingState = params.get("fixing") === "on" ? "on" : "off";
+const agentKeyState = ["refused", "fail"].includes(params.get("agentkey"))
+  ? params.get("agentkey")
+  : "made";
 /*
  * What the connected agent reports it runs with (?agentsettings=custom):
  * three changes of the AWS catalog, the tag it requires, and two resources
@@ -1012,34 +1022,67 @@ const CHANGES =
 const AI_FIX_ID = "80000000-0000-4000-8000-000000000001";
 const AI_FIX_INCIDENT_ID = "70000000-0000-4000-8000-000000000001";
 const AI_SESSION = "oneuptime-ai-scale-out-9f2c61d0";
+// The ECS service the fix scaled out, as the account's inventory holds it.
+const CHECKOUT_SERVICE_ARN =
+  "arn:aws:ecs:us-east-1:123456789012:service/prod/checkout";
+const CHECKOUT_SERVICE_ID = "40000000-0000-4000-8000-0000000000c1";
 
-function aiChange(minutesAgo, step, title) {
+/*
+ * One change the agent made, exactly as the recorder writes it
+ * (buildCloudChangeEntry): CloudTrail's operation is the service and the
+ * event name ("ecs:UpdateService"), which classifyCloudChange calls a
+ * deploy; the title names the resource by the name the inventory holds,
+ * which is kept beside it with the resource's row; the description says
+ * who ran it on the cloud's id. The fix and its rollback are two jobs of
+ * the agent's, each its own CloudTrail event.
+ */
+function aiChange(minutesAgo, step, jobId, eventId) {
   return cloudChange(
     minutesAgo,
     {
-      eventType: "scaling",
-      title: title,
-      description: `${AI_SESSION} ran UpdateService in account 123456789012 (us-east-1), on checkout.`,
+      eventType: "deployment",
+      title: "ecs:UpdateService on checkout",
+      description: `${AI_SESSION} ran ecs:UpdateService in account 123456789012 (us-east-1), on ${CHECKOUT_SERVICE_ARN}.`,
     },
     {
+      "oneuptime.cloud.operation": "ecs:UpdateService",
+      "oneuptime.cloud.event_id": eventId,
       "oneuptime.change.status": "succeeded",
       "cloud.region": "us-east-1",
       "oneuptime.cloud.actor": AI_SESSION,
-      "oneuptime.cloud.operation": "UpdateService",
+      "cloud.resource_id": CHECKOUT_SERVICE_ARN,
+      "oneuptime.resource.type": "CloudResource",
+      "oneuptime.resource.id": CHECKOUT_SERVICE_ID,
+      "oneuptime.cloud.resource_name": "checkout",
       "oneuptime.change.made_by": "oneuptime-ai",
-      "oneuptime.runner_job.id": "90000000-0000-4000-8000-000000000001",
+      "oneuptime.runner_job.id": jobId,
+      "oneuptime.ai.step": step,
       "oneuptime.auto_remediation_suggestion.id": AI_FIX_ID,
       "oneuptime.ai_run.id": "60000000-0000-4000-8000-000000000001",
-      "oneuptime.ai.step": step,
       "oneuptime.incident.id": AI_FIX_INCIDENT_ID,
     },
   );
 }
 
 if (dataState === "connected" && params.get("changes") === "ai") {
+  /*
+   * A rollback is the same operation on the same resource, and the recorder
+   * titles it the same way: its step (oneuptime.ai.step) is what says it
+   * undid the fix.
+   */
   CHANGES.push(
-    aiChange(39, "fix", "UpdateService on checkout"),
-    aiChange(30, "rollback", "UpdateService on checkout (rolled back)"),
+    aiChange(
+      39,
+      "fix",
+      "90000000-0000-4000-8000-000000000001",
+      "4c3b2a19-0e8d-4f7c-9b6a-5d4e3f2a1b01",
+    ),
+    aiChange(
+      30,
+      "rollback",
+      "90000000-0000-4000-8000-000000000002",
+      "4c3b2a19-0e8d-4f7c-9b6a-5d4e3f2a1b02",
+    ),
   );
   // Newest first, as the list reads them.
   CHANGES.sort((left, right) => {
@@ -1301,6 +1344,20 @@ const AWS_OPERATIONS = [
 
 state.ai = aiState;
 state.aiPosts = [];
+state.agentKey = agentKeyState;
+// The keys made so far, one per opening of the setup dialog.
+state.agentKeys = [];
+
+// What the server answers an admin who may not edit the account.
+const AGENT_KEY_REFUSAL = getCloudAiAgentKeyEditRefusal("AwsAccount");
+
+/*
+ * A key of the account's own, as the server makes it: ouca_, the account's
+ * id, then 64 hex digits - a new one each time.
+ */
+function agentKeyOf(resourceId, count) {
+  return `ouca_${String(resourceId)}_${String(count).padStart(64, "0")}`;
+}
 
 function accountOf(resourceId) {
   return accounts.find((item) => {
@@ -1480,8 +1537,13 @@ function aiLogs(resourceId) {
 // The commands AI ran on the account through its agent, newest first.
 /*
  * The account's feed (Activity -> Feed), newest last here: how it came to
- * OneUptime, its Cloud AI agent connecting, a person letting AI read its
- * logs, and the agent being reset - as the server writes them.
+ * OneUptime, its Cloud AI agent connecting with the project's ingestion key,
+ * a person letting AI read its logs, the agent connecting with a key of its
+ * own (with the ingestion key it no longer uses under Show details), the
+ * old agent knocking with the ingestion key and being refused, and the
+ * agent being reset - as the server writes them
+ * (ResourceAiAgentService.writeNewKeyFeedItem,
+ * recordRefusedCloudRegistration and resetAgent).
  */
 const ACCOUNT_LINK = `[AWS account Production](/dashboard/${PROJECT_ID}/cloud/accounts/${AWS_ACCOUNT_ID})`;
 const ACCOUNT_FEED = [
@@ -1516,11 +1578,33 @@ const ACCOUNT_FEED = [
     postedAt: new Date(NOW - 2 * 24 * 60 * MINUTE),
   },
   {
+    _id: "91000000-0000-4000-8000-000000000005",
+    cloudAccountId: AWS_ACCOUNT_ID,
+    cloudAccountFeedEventType: "CloudAccountUpdated",
+    feedInfoInMarkdown:
+      "🔑 The Cloud AI agent now connects with a key of its own, made by **Maya Chen**, which connects this agent and nothing else. The project's telemetry ingestion key no longer connects it.",
+    moreInformationInMarkdown:
+      "**Ingestion key it connected with before**: Cloud AI agent key\n\nThat key still sends telemetry for the whole project. If nothing else uses it, delete it under Project Settings → Telemetry & APM → Ingestion Keys.",
+    displayColor: new Color("#3b82f6"),
+    postedAt: new Date(NOW - 24 * 60 * MINUTE),
+  },
+  {
+    _id: "91000000-0000-4000-8000-000000000006",
+    cloudAccountId: AWS_ACCOUNT_ID,
+    cloudAccountFeedEventType: "CloudAccountUpdated",
+    feedInfoInMarkdown:
+      "⚠️ OneUptime refused a Cloud AI agent that tried to connect as this account's agent: This cloud account's Cloud AI agent connects with a key of its own, so the project's telemetry ingestion key no longer connects it. Run the agent's setup command again: Change on the account's AI agent page in OneUptime shows it, with its key.",
+    moreInformationInMarkdown:
+      "**Where it says it runs**: AWS account 123456789012\n\n**Connected with**: the project's telemetry ingestion key\n\n**Agent version**: 14.0.90",
+    displayColor: new Color("#f59e0b"),
+    postedAt: new Date(NOW - 2 * 60 * MINUTE),
+  },
+  {
     _id: "91000000-0000-4000-8000-000000000004",
     cloudAccountId: AWS_ACCOUNT_ID,
     cloudAccountFeedEventType: "CloudAccountUpdated",
     feedInfoInMarkdown:
-      "🔄 The Cloud AI agent was reset by **Maya Chen**. It reconnects on its own within a few minutes.",
+      "🔄 The Cloud AI agent was reset by **Maya Chen**. Its key no longer works, and it stays disconnected until its setup command runs again: Change on the AWS account's AI agent page shows it, with a new key.",
     displayColor: new Color("#3b82f6"),
     user: { name: "Maya Chen", email: "maya@acme.example" },
     postedAt: new Date(NOW - 30 * MINUTE),
@@ -1650,7 +1734,7 @@ ModelAPI.getList = async (args) => {
     return { data: data, count: data.length, skip: 0, limit: args.limit };
   }
 
-  // The project's Server key, which the Cloud AI agent connects with.
+  // The project's Server key (the Cloud AI agent connects with its own).
   if (args.modelType === TelemetryIngestionKey) {
     state.listRequests.push({ model: "TelemetryIngestionKey" });
     const key = Object.assign(new TelemetryIngestionKey(), {
@@ -1901,6 +1985,31 @@ API.post = async (options) => {
     }
     if (route === "/resource-ai-access/logs") {
       return new HTTPResponse(200, aiLogs(body.resourceId), {});
+    }
+    if (route === "/resource-ai-access/agent-key") {
+      // Who may set the agent up does not change by asking again.
+      if (state.agentKey === "refused") {
+        return new HTTPErrorResponse(403, { message: AGENT_KEY_REFUSAL }, {});
+      }
+      // Unavailable for a moment: asked again (Try again), it is made.
+      if (state.agentKey === "fail") {
+        state.agentKey = "made";
+        return new HTTPErrorResponse(
+          503,
+          { message: "OneUptime could not make the key just now." },
+          {},
+        );
+      }
+      const key = agentKeyOf(body.resourceId, state.agentKeys.length + 1);
+      state.agentKeys.push(key);
+      return new HTTPResponse(
+        200,
+        {
+          agentKey: key,
+          worksUntilConnectedBy: new Date(NOW + 24 * 60 * MINUTE).toISOString(),
+        },
+        {},
+      );
     }
     if (route === "/resource-ai-access/test") {
       const found = accountOf(body.resourceId) || accounts[0];

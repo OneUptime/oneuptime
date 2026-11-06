@@ -5,11 +5,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# Pull requests only. Every push to master builds these same images again in
+# Pull requests only. Every push to main builds these same images again in
 # test-release.yaml - from the same Dockerfiles, for both architectures and
 # both editions, with the release's own build script - and its e2e jobs check
 # the App's editions on the pushed images. Building them here as well on each
-# push to master cost ~40 runner-minutes (the home image alone ~20) and showed
+# push to main cost ~40 runner-minutes (the home image alone ~20) and showed
 # nothing those jobs do not. The Kubernetes cost agent and log tailer are the
 # exceptions: test-release.yaml does not build them (see their jobs below).
 on:
@@ -301,7 +301,7 @@ jobs:
   # so a broken kubectl download or digest, or an agent that does not compile
   # inside the image, fails here rather than in the release. This builds the
   # runner's architecture (amd64) only; test-release.yaml builds both on every
-  # push to master.
+  # push to main.
   docker-build-kubernetes-ai-agent:
     runs-on: ubuntu-latest
     env:
@@ -347,7 +347,7 @@ jobs:
   # util-linux-misc), or an agent that does not compile inside the image,
   # fails here rather than in the release. This builds the runner's
   # architecture (amd64) only; test-release.yaml builds both on every push to
-  # master.
+  # main.
   docker-build-resource-ai-agent:
     runs-on: ubuntu-latest
     env:

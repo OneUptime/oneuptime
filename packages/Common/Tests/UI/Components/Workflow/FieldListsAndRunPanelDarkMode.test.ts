@@ -77,9 +77,12 @@ describe("a record step's field lists in the dark theme", () => {
         // What empty means, the group headings and the list's foot.
         "text-gray-500",
         "border-gray-100",
-        // A required list left empty.
+        /*
+         * A required list left empty: its frame. Its message is drawn by
+         * FieldError, in the red every field's error shares, which these
+         * files only place (FieldErrorColorGuard).
+         */
         "border-red-300",
-        "text-red-600",
       ]),
     );
     expect(scan.unmapped).toEqual([]);

@@ -1,5 +1,6 @@
 import { isAwsRegion } from "./AwsRegionCode";
 import { CloudProvider, FaasCloudPlatform } from "./CloudPlatform";
+import { getAwsPartitionForRegion } from "./CloudResourceCatalog";
 import {
   AWS_CLOUDWATCH_DIMENSION_PREFIX,
   AWS_CLOUDWATCH_METRIC_NAME_PREFIX,
@@ -28,7 +29,8 @@ import {
  * so they are the function's in Serverless too.
  *
  * A group no rule reads - one a team named itself, an API Gateway's
- * execution log, which names its API by an id no metric carries - is
+ * execution log, which names its API by an id no metric carries, or an ECS
+ * task's /ecs/<task definition family>, which names no service - is
  * streamed all the same, under its account and Region, unfiled.
  *
  * Every rule reads the name part by part: no regular expression ever reads
@@ -45,6 +47,12 @@ export const AWS_LOG_GROUP_NAME_MAX_LENGTH: number = 512;
 // The longest identity a rule reads out of a name.
 const MAX_IDENTITY_LENGTH: number = 255;
 
+// The account and Region a log group is in, for a rule whose identity needs them.
+interface AwsLogGroupPlace {
+  accountId: string;
+  region: string;
+}
+
 interface AwsLogGroupRule {
   // The start of the group's name, as AWS writes it.
   prefix: string;
@@ -58,6 +66,7 @@ interface AwsLogGroupRule {
    */
   read: (
     parts: Array<string>,
+    place: AwsLogGroupPlace,
   ) => { dimensions: Record<string, string>; region?: string } | null;
   // Resource attributes the logs carry for it, beside cloud.resource_id.
   attributes?:
@@ -116,6 +125,67 @@ function readLambdaFunction(
   }
 
   return { dimensions: { FunctionName: name } };
+}
+
+// What the Step Functions console ends a state machine's log group with.
+export const STATE_MACHINE_LOG_GROUP_SUFFIX: string = "-Logs";
+
+// A state machine's name: 1 to 80 of letters, digits, "-" and "_".
+function isStateMachineName(value: string): boolean {
+  if (value.length === 0 || value.length > 80) {
+    return false;
+  }
+
+  for (const character of value) {
+    const isAllowed: boolean =
+      (character >= "a" && character <= "z") ||
+      (character >= "A" && character <= "Z") ||
+      (character >= "0" && character <= "9") ||
+      character === "-" ||
+      character === "_";
+
+    if (!isAllowed) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/*
+ * The state machine a Step Functions log group is of: the console names it
+ * /aws/vendedlogs/states/<state machine>-Logs. The state machine's metrics
+ * name it by its ARN, which the group's account and Region complete.
+ */
+function readStateMachine(
+  parts: Array<string>,
+  place: AwsLogGroupPlace,
+): { dimensions: Record<string, string> } | null {
+  const part: string | undefined = parts[0];
+
+  if (
+    parts.length !== 1 ||
+    !part ||
+    !part.endsWith(STATE_MACHINE_LOG_GROUP_SUFFIX) ||
+    !place.accountId ||
+    !isAwsRegion(place.region)
+  ) {
+    return null;
+  }
+
+  const name: string = part.slice(0, -STATE_MACHINE_LOG_GROUP_SUFFIX.length);
+
+  if (!isStateMachineName(name)) {
+    return null;
+  }
+
+  const region: string = place.region.toLowerCase();
+
+  return {
+    dimensions: {
+      StateMachineArn: `arn:${getAwsPartitionForRegion(region)}:states:${region}:${place.accountId}:stateMachine:${name}`,
+    },
+  };
 }
 
 export const AWS_LOG_GROUP_RULES: ReadonlyArray<AwsLogGroupRule> = [
@@ -207,6 +277,13 @@ export const AWS_LOG_GROUP_RULES: ReadonlyArray<AwsLogGroupRule> = [
     type: "AWS::ECS::Cluster",
     read: firstPart("ClusterName", 2),
   },
+  {
+    // The log group the Step Functions console makes for a state machine.
+    prefix: "/aws/vendedlogs/states/",
+    namespace: "AWS/States",
+    type: "AWS::StepFunctions::StateMachine",
+    read: readStateMachine,
+  },
 ];
 
 // The resource types a stream can deliver logs of.
@@ -263,7 +340,10 @@ export function getAwsLogGroupResource(data: {
     const identity: {
       dimensions: Record<string, string>;
       region?: string;
-    } | null = rule.read(parts);
+    } | null = rule.read(parts, {
+      accountId: data.accountId,
+      region: data.region,
+    });
 
     if (!identity) {
       return null;

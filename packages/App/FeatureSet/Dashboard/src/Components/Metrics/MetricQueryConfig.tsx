@@ -812,7 +812,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
         {props.error && (
           <FieldError
             message={props.error}
-            className="mt-3 text-sm text-red-400"
+            className="mt-3 text-sm"
             announce="none"
           />
         )}

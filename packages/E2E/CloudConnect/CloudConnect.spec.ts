@@ -1976,6 +1976,8 @@ async function feedEntries(page: Page): Promise<Array<string>> {
     "OneUptime found",
     "The Cloud AI agent connected",
     "changed what OneUptime AI may do on",
+    "now connects with a key of its own",
+    "OneUptime refused a Cloud AI agent",
     "The Cloud AI agent was reset",
   ]) {
     const box: Box = await boxOf(page.getByText(words).first());
@@ -2024,6 +2026,24 @@ interface AiPost {
   body: { resourceType?: string; resourceId?: string };
 }
 
+// The keys the fixture made for the account's agent, one per opening.
+async function agentKeys(page: Page): Promise<Array<string>> {
+  return await page.evaluate(() => {
+    return JSON.parse(
+      JSON.stringify(
+        (
+          window as unknown as {
+            __cloudConnectFixture: { state: { agentKeys: unknown } };
+          }
+        ).__cloudConnectFixture.state.agentKeys,
+      ),
+    );
+  });
+}
+
+const AGENT_KEY_NOTE: string =
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.";
+
 async function aiPosts(page: Page): Promise<Array<AiPost>> {
   return await page.evaluate(() => {
     return JSON.parse(
@@ -2050,7 +2070,10 @@ function setupDialog(page: Page): Locator {
   return dialog(page).getByTestId("cloud-ai-agent-setup");
 }
 
-// The dialog, at rest: its command written (a Server key is picked first).
+/*
+ * The dialog, at rest: its command written, with the key made for the
+ * account's agent as it opened.
+ */
 async function openSetup(page: Page): Promise<void> {
   await setUpButton(page).click();
   await expect(setupDialog(page)).toBeVisible();
@@ -2620,9 +2643,9 @@ test.describe("OneUptime AI on a cloud account", () => {
     );
     const title: Box = await boxOf(firstStep.getByRole("heading"));
     expect(number.x).toBeGreaterThan(title.x + title.width - 1);
-    await expect(firstStep).toContainText(
-      wordIn(PERSIAN, "Choose an ingestion key"),
-    );
+    // The command's key, said in Persian.
+    await expect(firstStep).toContainText(wordIn(PERSIAN, AGENT_KEY_NOTE));
+    expect(wordIn(PERSIAN, AGENT_KEY_NOTE)).not.toBe(AGENT_KEY_NOTE);
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup-fa");
   });
@@ -2649,10 +2672,57 @@ test.describe("OneUptime AI on a cloud account", () => {
     // Newest first: the reset half an hour ago, the account found nine days ago.
     expect(await feedEntries(page)).toEqual([
       "The Cloud AI agent was reset",
+      "OneUptime refused a Cloud AI agent",
+      "now connects with a key of its own",
       "changed what OneUptime AI may do on",
       "The Cloud AI agent connected",
       "OneUptime found",
     ]);
+
+    // A Cloud AI agent's reset says how it comes back: its setup command, run again.
+    await expect(
+      page.getByText(
+        "Its key no longer works, and it stays disconnected until its setup command runs again",
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByText("It reconnects on its own within a few minutes"),
+    ).toHaveCount(0);
+
+    /*
+     * The agent's own key: under Show details, the ingestion key it no
+     * longer uses, by its name, and what to do with it.
+     */
+    const ownKeyEntry: Locator = page
+      .getByRole("listitem")
+      .filter({ hasText: "now connects with a key of its own" });
+    await ownKeyEntry.getByRole("button", { name: "Show details" }).click();
+    await expect(
+      ownKeyEntry.getByText("Ingestion key it connected with before"),
+    ).toBeVisible();
+    await expect(ownKeyEntry).toContainText("Cloud AI agent key");
+    await expect(ownKeyEntry).toContainText(
+      "If nothing else uses it, delete it under Project Settings",
+    );
+
+    /*
+     * A refused agent: what it was refused for, and under Show details where
+     * it says it runs, what it came with and its version - never a key.
+     */
+    const refusedEntry: Locator = page
+      .getByRole("listitem")
+      .filter({ hasText: "OneUptime refused a Cloud AI agent" });
+    await expect(refusedEntry).toContainText(
+      "the project's telemetry ingestion key no longer connects it",
+    );
+    await refusedEntry.getByRole("button", { name: "Show details" }).click();
+    await expect(refusedEntry.getByText("Where it says it runs")).toBeVisible();
+    await expect(refusedEntry).toContainText("AWS account 123456789012");
+    await expect(refusedEntry).toContainText(
+      "the project's telemetry ingestion key",
+    );
+    await expect(refusedEntry).toContainText("14.0.90");
+    expect(await page.locator("body").innerText()).not.toContain("ouca_");
 
     // Read for this account, and nothing else's.
     const reads: Array<ListRequest> = (await listRequests(page)).filter(
@@ -2721,7 +2791,7 @@ test.describe("OneUptime AI on a cloud account", () => {
     await shoot(page, "account-feed-fa");
   });
 
-  test("Let AI fix problems reads as a guide: the question, then three numbered steps - the key, the command, the wait", async ({
+  test("Let AI fix problems reads as a guide: the question, then two numbered steps - the command with its key, the wait", async ({
     page,
   }: {
     page: Page;
@@ -2738,51 +2808,177 @@ test.describe("OneUptime AI on a cloud account", () => {
     const steps: Locator = setupDialog(page)
       .getByTestId("setup-guide-steps")
       .locator(":scope > li");
-    await expect(steps).toHaveCount(3);
+    await expect(steps).toHaveCount(2);
     await expect(steps.nth(0).getByRole("heading")).toHaveText(
-      "Step 1: Choose an ingestion key",
+      "Step 1: Run this in AWS CloudShell",
     );
     await expect(steps.nth(1).getByRole("heading")).toHaveText(
-      "Step 2: Run this in AWS CloudShell",
-    );
-    await expect(steps.nth(2).getByRole("heading")).toHaveText(
-      "Step 3: Wait for it to connect",
+      "Step 2: Wait for it to connect",
     );
 
-    // 1: the key, said what it is for, and picked.
+    // 1: the command, with the key made for this agent, who may run it, and what it costs.
     await expect(steps.nth(0)).toContainText(
-      "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.",
-    );
-    await expect(
-      steps.nth(0).getByTestId("cloud-ai-agent-setup-key"),
-    ).toContainText("Cloud AI agent key");
-    // 2: the command, who may run it, and what it costs.
-    await expect(steps.nth(1)).toContainText(
       "Run it as someone who may create roles in this account.",
     );
+    const command: Locator = steps
+      .nth(0)
+      .getByTestId("cloud-ai-agent-setup-command");
+    await expect(command).toContainText("aws cloudformation deploy");
+    const [key] = await agentKeys(page);
+    expect(key).toMatch(
+      /^ouca_30000000-0000-4000-8000-000000000001_[0-9]{64}$/,
+    );
+    await expect(command).toContainText(key!);
     await expect(
-      steps.nth(1).getByTestId("cloud-ai-agent-setup-command"),
-    ).toContainText("aws cloudformation deploy");
+      steps.nth(0).getByTestId("cloud-ai-agent-setup-key-note"),
+    ).toHaveText(AGENT_KEY_NOTE);
     await expect(
-      steps.nth(1).getByTestId("cloud-ai-agent-setup-cost"),
+      steps.nth(0).getByTestId("cloud-ai-agent-setup-cost"),
     ).toContainText("a month at list prices");
-    // 3: the wait, live, and its logs.
+    // No ingestion key to choose: the agent connects with its own.
+    await expect(setupDialog(page)).not.toContainText("ingestion key");
+    // 2: the wait, live, and its logs.
     await expect(
-      steps.nth(2).getByTestId("cloud-ai-agent-setup-connection"),
+      steps.nth(1).getByTestId("cloud-ai-agent-setup-connection"),
     ).toHaveAttribute("data-state", "waiting");
     await expect(
-      steps.nth(2).getByTestId("cloud-ai-agent-setup-logs-command"),
+      steps.nth(1).getByTestId("cloud-ai-agent-setup-logs-command"),
     ).toBeVisible();
 
     // The rest under More fields, after the steps.
     const more: Box = await boxOf(
       setupDialog(page).getByRole("button", { name: "More fields" }),
     );
-    const lastStep: Box = await boxOf(steps.nth(2));
+    const lastStep: Box = await boxOf(steps.nth(1));
     expect(more.y).toBeGreaterThan(lastStep.y + lastStep.height - 1);
 
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup-steps");
+  });
+
+  test("the key is made for this account as the dialog opens, once each time: a dialog opened again holds a new one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "What is asked: a desktop's.");
+
+    await openAccounts(page, `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected`);
+    await openSetup(page);
+
+    const keyAsks: () => Promise<Array<AiPost>> = async (): Promise<
+      Array<AiPost>
+    > => {
+      return (await aiPosts(page)).filter((post: AiPost): boolean => {
+        return post.route === "/resource-ai-access/agent-key";
+      });
+    };
+
+    expect(await keyAsks()).toEqual([
+      {
+        route: "/resource-ai-access/agent-key",
+        body: { resourceType: "AwsAccount", resourceId: AWS_ACCOUNT },
+      },
+    ]);
+
+    const command: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-command",
+    );
+    const [first] = await agentKeys(page);
+    await expect(command).toContainText(first!);
+
+    // The other answer writes another command, with the same key.
+    await setupDialog(page)
+      .getByRole("radiogroup", { name: "How far may AI go?" })
+      .getByRole("radio", { name: /Fix safe problems on its own/ })
+      .click();
+    await expect(command).toContainText("automatic");
+    await expect(command).toContainText(first!);
+    expect(await keyAsks()).toHaveLength(1);
+
+    // Closed and opened again: a new key, and the command holds it.
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(dialog(page)).toHaveCount(0);
+    await openSetup(page);
+
+    const keys: Array<string> = await agentKeys(page);
+    expect(keys).toHaveLength(2);
+    expect(keys[1]).not.toBe(first);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toContainText(keys[1]!);
+    expect(await keyAsks()).toHaveLength(2);
+  });
+
+  test("someone who may not set the agent up is told why where the command would be, with no Try again: asking again never changes that", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected&agentkey=refused`,
+    );
+    await setUpButton(page).click();
+    await expect(setupDialog(page)).toBeVisible();
+
+    const problem: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-problem",
+    );
+    await expect(problem).toHaveText(
+      "You need permission to edit this AWS account to set up its Cloud AI agent.",
+    );
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toHaveCount(0);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-key-try-again"),
+    ).toHaveCount(0);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-key-note"),
+    ).toHaveCount(0);
+    expect(await agentKeys(page)).toEqual([]);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-ai-setup-key-refused");
+  });
+
+  test("a key OneUptime could not make just then is said where the command would be, and Try again asks again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected&agentkey=fail`,
+    );
+    await setUpButton(page).click();
+    await expect(setupDialog(page)).toBeVisible();
+
+    const problem: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-problem",
+    );
+    await expect(problem).not.toBeEmpty();
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toHaveCount(0);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-ai-setup-key-failed");
+
+    // Asked again, the key is made, and the command holds it.
+    await setupDialog(page)
+      .getByTestId("cloud-ai-agent-setup-key-try-again")
+      .click();
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toBeVisible();
+    const [key] = await agentKeys(page);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toContainText(key!);
+    await expect(problem).toHaveCount(0);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-key-try-again"),
+    ).toHaveCount(0);
   });
 
   test("Change on a connected agent opens on what it runs with: its changes, its tag and the resources a person protected", async ({
@@ -3029,10 +3225,27 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
         }),
       );
       expect(titles).not.toContain("Failed: DeleteLoadBalancer on web-alb");
+      /*
+       * What AWS Health published: its frame, its state and its kind of
+       * event in the reader's words, the service as AWS names it - from the
+       * title and the type the row keeps, as every health event was kept.
+       */
+      expect(titles).toContain(
+        wordIn(reader.locale, "AWS Health: {{event}} (open)", {
+          event: wordIn(reader.locale, "{{service}} operational issue", {
+            service: "EC2",
+          }),
+        }),
+      );
+      expect(titles).not.toContain("AWS Health: EC2 operational issue (open)");
       await expectTitleValuesWhole(page);
       /*
-       * Each line in its own direction: a change worded in Persian reads
-       * right to left, the health event's English left to right.
+       * Each line the way its words read: every title here is worded in
+       * the reader's language, so in Persian every one reads right to left
+       * - the health event's too, though its first words are "AWS
+       * Health:", which read by its first letter put its event and its
+       * state in the wrong order (the UI review of #6149). The provider's
+       * own English words under it read left to right.
        */
       const directions: Array<string> = await page
         .getByTestId("cloud-change-title")
@@ -3041,10 +3254,18 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
             return getComputedStyle(element).direction;
           });
         });
-      expect(directions).toContain("ltr");
-      if (reader.code === "fa") {
-        expect(directions).toContain("rtl");
-      }
+      expect(directions.length).toBeGreaterThan(1);
+      expect(new Set(directions)).toEqual(
+        new Set([reader.code === "fa" ? "rtl" : "ltr"]),
+      );
+      const healthLine: Locator = page
+        .getByTestId("cloud-change-title")
+        .filter({ hasText: "AWS Health" });
+      await expect(healthLine).toHaveCount(1);
+      await expect(healthLine).toHaveCSS(
+        "direction",
+        reader.code === "fa" ? "rtl" : "ltr",
+      );
       await expect(page.getByTestId("cloud-change-detail")).toHaveCSS(
         "direction",
         "ltr",
@@ -3229,6 +3450,36 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
     await openAccounts(page, AI_CHANGES_PATH);
 
     const [rollback, fix] = await waitForAiLines(page);
+
+    /*
+     * A rollback is titled as the recorder titles any change - the same
+     * operation on the same resource as its fix - and only its line says it
+     * undid the fix: no word is added to its title. Both rows are as the
+     * recorder writes them: CloudTrail's operation with its service, the
+     * resource by the name the inventory holds, and the kind of change
+     * classifyCloudChange gives an ECS UpdateService - a deploy.
+     */
+    if (isDesktop()) {
+      const aiRows: Locator = page
+        .getByRole("row")
+        .filter({ has: page.getByTestId("cloud-change-ai") });
+
+      await expect(aiRows).toHaveCount(2);
+
+      for (const index of [0, 1]) {
+        const row: Locator = aiRows.nth(index);
+
+        await expect(row.getByTestId("cloud-change-title-value")).toHaveText([
+          "ecs:UpdateService",
+          "checkout",
+        ]);
+        await expect(row.getByTestId("cloud-change-title")).toHaveText(
+          "ecs:UpdateService on checkout",
+        );
+        await expect(row.getByText("Deploy", { exact: true })).toBeVisible();
+        await expect(row).not.toContainText("rolled back");
+      }
+    }
 
     await expect(
       fix.getByRole("link", { name: "Fix for incident #18" }),
@@ -3420,9 +3671,61 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
       }
 
       await expectNoSidewaysScroll(page, { tolerance: 1 });
+
+      /*
+       * The table fits its card: in German at 1280, beside a 12-hour time
+       * and "Konfigurationsänderung", the By column's 10rem floor held it
+       * 16 pixels past its card, and the Region scrolled (#5704's review).
+       */
+      if (isDesktop()) {
+        expect(
+          await page
+            .getByTestId("table-scroll")
+            .evaluate((element: HTMLElement): number => {
+              return element.scrollWidth - element.clientWidth;
+            }),
+        ).toBeLessThanOrEqual(1);
+      }
+
       await shoot(page, `account-changes-ai-${language}`);
     });
   }
+});
+
+/*
+ * #5704's review: a browser set to US English reads times on a 12-hour
+ * clock, each time wider by its AM or PM. In German at 1280, beside
+ * "Konfigurationsänderung", the By column's 10rem floor then held the table
+ * 16 pixels past its card, and the Region scrolled. Its 7rem floor lets it
+ * fit (CloudChangesTable's CLOUD_CHANGE_BY_CONTENT_CLASS_NAME).
+ */
+test.describe("an account's Changes in German, on a 12-hour clock", () => {
+  test.use({ locale: "en-US" });
+
+  test("the table fits its card at 1280: no column scrolls past it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "A phone draws each change as a card.");
+
+    await openAccounts(page, `${AI_CHANGES_PATH}&lang=de`);
+    await waitForAiLines(page);
+
+    // The times are on a 12-hour clock.
+    await expect(
+      page.locator("tbody tr").first().locator("td").nth(1),
+    ).toHaveText(/\b(AM|PM)$/);
+    expect(
+      await page
+        .getByTestId("table-scroll")
+        .evaluate((element: HTMLElement): number => {
+          return element.scrollWidth - element.clientWidth;
+        }),
+    ).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-changes-ai-de-12-hour");
+  });
 });
 
 /*

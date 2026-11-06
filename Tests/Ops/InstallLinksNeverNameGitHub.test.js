@@ -8,7 +8,7 @@
  * download at /install/<agent> (packages/Common/Types/InstallScripts lists
  * them; packages/App/FeatureSet/Install serves them), so an install command
  * names the reader's own OneUptime and gets the files of the release it
- * runs. GitHub's master branch is newer than most OneUptimes, and its
+ * runs. GitHub's main branch is newer than most OneUptimes, and its
  * address names neither a self-hosted install's host nor its version.
  *
  * This reads every text file git tracks, or would add, for an address that
@@ -172,7 +172,7 @@ describe("downloads from GitHub's copy of the repository", () => {
     expect(files.length).toBeGreaterThan(1000);
     expect(
       timesNamed(
-        "curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh",
+        "curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents/ProxmoxAgent/install.sh",
       ),
     ).toBe(1);
     expect(
@@ -181,12 +181,12 @@ describe("downloads from GitHub's copy of the repository", () => {
       ),
     ).toBe(1);
     expect(
-      timesNamed("https://github.com/OneUptime/oneuptime/raw/master/x.sh"),
+      timesNamed("https://github.com/OneUptime/oneuptime/raw/main/x.sh"),
     ).toBe(1);
     // Reading the source on GitHub, another repository, or OneUptime itself are not downloads.
     expect(
       timesNamed(
-        "https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent",
+        "https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent",
       ),
     ).toBe(0);
     expect(

@@ -100,7 +100,7 @@ Além dos armazenamentos de dados, dimensione as cargas de trabalho sem estado. 
 | Gateway de entrada | `nginx` | O volume de requisições |
 | Telemetry writer, quando ativado | `telemetryWriter` | Não com a carga: ele agrupa cada inserção de telemetria no ClickHouse, então é dimensionado pelo que o ClickHouse aguenta |
 
-O chart inclui o **KEDA**, para que o app, os workers, os probes e o Runner global escalem conforme a fila acumulada. Ative `keda.enabled` junto com o `keda.enabled` de cada serviço (por exemplo, `app.keda.enabled`). Num cluster que ainda não tem KEDA, a primeira instalação precisa de uma passagem extra: veja o [guia do KEDA](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md) do chart. Serviços que o KEDA não gerencia podem usar em vez disso um autoscaler por CPU ou memória (`autoscaling`).
+O chart inclui o **KEDA**, para que o app, os workers, os probes e o Runner global escalem conforme a fila acumulada. Ative `keda.enabled` junto com o `keda.enabled` de cada serviço (por exemplo, `app.keda.enabled`). Num cluster que ainda não tem KEDA, a primeira instalação precisa de uma passagem extra: veja o [guia do KEDA](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) do chart. Serviços que o KEDA não gerencia podem usar em vez disso um autoscaler por CPU ou memória (`autoscaling`).
 
 ## Camadas iniciais
 
@@ -130,7 +130,7 @@ Os armazenamentos de dados embutidos no chart rodam por padrão como **instânci
 | **Valkey** | O chart não o replica. Aponte o OneUptime para um Redis ou Valkey externo gerenciado com failover automático (`externalValkey`). O OneUptime se conecta a um único host e porta, então use o endpoint primário do serviço, não um em modo cluster. |
 
 > [!WARNING]
-> Ativar qualquer um dos operadores numa instalação existente inicia um banco de dados novo e vazio: nenhum deles copia os dados do banco de instância única que substitui. Migre os seus dados como descrevem os guias do chart – para o [PostgreSQL](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) e para o [ClickHouse](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md).
+> Ativar qualquer um dos operadores numa instalação existente inicia um banco de dados novo e vazio: nenhum deles copia os dados do banco de instância única que substitui. Migre os seus dados como descrevem os guias do chart – para o [PostgreSQL](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) e para o [ClickHouse](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md).
 
 ## A retenção e como ela afeta o armazenamento
 

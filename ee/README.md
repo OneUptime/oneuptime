@@ -318,7 +318,7 @@ license and never build an image. Three CI jobs boot a whole stack from
 `docker-compose.yml` with published images instead, and only one of them is the
 self-hosted Enterprise Edition:
 
-| job (`test-release.yaml` on master, `release.yml` on a release) | App tag | billing | what it is |
+| job (`test-release.yaml` on main, `release.yml` on a release) | App tag | billing | what it is |
 | --- | --- | --- | --- |
 | `test-e2e-{test,release}-saas` | `enterprise-<version>` | on | OneUptime Cloud. `EnterpriseEdition` answers "cloud" to every check, so the license decides nothing. |
 | `test-e2e-{test,release}-self-hosted` | `<version>` | off | Community Edition. No `ee/` in the image at all, so every enterprise route (SCIM included) 404s, while the single sign-on routes, which are core, answer as on every other stack. |

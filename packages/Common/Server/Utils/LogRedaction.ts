@@ -479,6 +479,18 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
   },
   {
     /*
+     * A Cloud AI agent's own key (Types/CloudConnection/CloudAiAgentKey):
+     * ouca_, its cloud account's id, then 64 hex digits - the secret. The
+     * account's id stays, which says whose agent it was. A run of fixed
+     * length from each ouca_, so read in time in line with the text.
+     */
+    name: "cloud-ai-agent-key",
+    regex:
+      /\b(ouca_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_)[0-9a-f]{64}\b/gi,
+    replacement: `$1${REDACTED}`,
+  },
+  {
+    /*
      * Telegram puts the bot credential in the request path rather than a
      * header. Network clients commonly copy that URL into exception messages,
      * so structural key redaction cannot see it.
@@ -540,6 +552,7 @@ const SENSITIVE_TEXT_HINT_REGEX: RegExp = new RegExp(
     "github_pat_",
     "AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASCA",
     "AIza",
+    "ouca_",
     "/bot[0-9]{5,}:",
     "-----BEGIN",
     "://",

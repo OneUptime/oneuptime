@@ -97,7 +97,7 @@ Commit `.terraform.lock.hcl`, og kør fremover konfigurationen med `tofu`, også
 
 ## Et genbrugeligt modul
 
-[`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/master/Examples/opentofu) i OneUptime-repositoriet indeholder konfigurationer, der kan køres med det samme, og et modul, der sætter én tjeneste op: en overvågning af websitet for hver adresse, du giver det, en etiket på alt, det opretter, en vagtpolitik med én eskaleringsregel, og en statusside, der viser overvågningerne. Det er almindelig HCL, så det virker også under Terraform.
+[`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/main/Examples/opentofu) i OneUptime-repositoriet indeholder konfigurationer, der kan køres med det samme, og et modul, der sætter én tjeneste op: en overvågning af websitet for hver adresse, du giver det, en etiket på alt, det opretter, en vagtpolitik med én eskaleringsregel, og en statusside, der viser overvågningerne. Det er almindelig HCL, så det virker også under Terraform.
 
 ```hcl title="main.tf"
 module "storefront" {

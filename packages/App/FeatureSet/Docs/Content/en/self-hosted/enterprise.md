@@ -3,7 +3,7 @@
 OneUptime is built from one repository and ships in two editions:
 
 - **Community Edition**: the whole monitoring, incident and observability platform, including SAML and OpenID Connect single sign-on, open source under the Apache License 2.0 and free to self-host at any scale.
-- **Enterprise Edition**: the Community Edition plus the enterprise modules in the repository's [`ee/`](https://github.com/OneUptime/oneuptime/tree/master/ee) directory. Those modules add SCIM provisioning, governance and instance-administration features. They are licensed under the [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE), and production use needs an Enterprise license for your number of users.
+- **Enterprise Edition**: the Community Edition plus the enterprise modules in the repository's [`ee/`](https://github.com/OneUptime/oneuptime/tree/main/ee) directory. Those modules add SCIM provisioning, governance and instance-administration features. They are licensed under the [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE), and production use needs an Enterprise license for your number of users.
 
 The two editions are separate container images. The Community image contains no code from `ee/`. OneUptime Cloud runs the Enterprise Edition, and on the cloud your plan decides which of these features you get.
 
@@ -113,7 +113,7 @@ Setting `IS_ENTERPRISE_EDITION=true` on the Community image does **not** enable 
 
 ## Licensing
 
-The repository's root [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE) file sets out which license covers what: everything in the `ee/` directory is under the [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE), third-party components keep the licenses their owners provide them under, and everything else is under the Apache License 2.0.
+The repository's root [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/main/LICENSE) file sets out which license covers what: everything in the `ee/` directory is under the [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE), third-party components keep the licenses their owners provide them under, and everything else is under the Apache License 2.0.
 
 A new Enterprise Edition install runs as a **14-day trial**, counted from the first time the install starts the Enterprise Edition. The trial is for evaluation: production use of the Enterprise Edition needs a subscription under the OneUptime Enterprise License. Activate a license before the trial ends: after it, SCIM, audit logging and retention overrides stop and enterprise configuration becomes read-only (see [When a license expires or is missing](#when-a-license-expires-or-is-missing)). To get a license, contact [sales@oneuptime.com](mailto:sales@oneuptime.com).
 

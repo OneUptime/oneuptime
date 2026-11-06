@@ -23,6 +23,7 @@ import AIRunType from "../../Types/AI/AIRunType";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { AiActivityInsights } from "../../Types/AI/AiActivityInsights";
 import {
+  RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
   RESOURCE_AI_ACCESS_INSIGHTS_PATH,
   RESOURCE_AI_ACCESS_LOGS_PATH,
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
@@ -38,6 +39,8 @@ import {
 } from "../../Types/AI/ResourceAiAccessApi";
 import {
   RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS,
+  getCloudAiAgentKeyEditRefusal,
+  getCloudAiAgentKeyRefusal,
   getResourceAgentName,
   getResourceAiAgentResetEditRefusal,
   getResourceAiAgentResetRefusal,
@@ -45,8 +48,10 @@ import {
 } from "../../Types/AI/ResourceAiAccessPermissions";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
+  isCloudAiResourceType,
   parseAiResourceType,
 } from "../../Types/ResourceAiAgent/AiResourceType";
+import { CloudAiAgentKeyResponse } from "../../Types/CloudConnection/CloudAiAgentKey";
 import {
   DEFAULT_RESOURCE_COMMAND_TIMEOUT_MS,
   ResourceAiAccessGap,
@@ -149,9 +154,20 @@ const router: ExpressRouter = Express.getRouter();
  *   POST /resource-ai-access/reset-agent  { resourceType, resourceId }
  *     Forgets the key of the resource's AI agent, so whatever holds it is
  *     locked out and the real agent registers afresh within a few minutes.
+ *     A cloud account's Cloud AI agent also loses every key of its
+ *     account's, and the project's ingestion key no longer connects it: it
+ *     stays out until its setup command runs again, with a new key.
  *     For the people who may loosen AI access
  *     (RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS) and may edit THIS resource
  *     (decided for its row, as the test's edit access is).
+ *
+ *   POST /resource-ai-access/agent-key    { resourceType, resourceId }
+ *     A cloud account only: a new key for its Cloud AI agent, which its
+ *     setup command carries (Types/CloudConnection/CloudAiAgentKey). Shown
+ *     this once and kept only as a hash; it connects that account's agent
+ *     and nothing else, and the agent's key so far keeps working until it
+ *     connects. For the people who may reset the agent, by the same two
+ *     checks.
  *
  *   POST /resource-ai-access/logs         { resourceType, resourceId }
  *     Everything AI did on the resource, newest first, as summaries: the AI
@@ -464,6 +480,49 @@ async function assertCanChangeResourceToResetAgent(data: {
     if (error instanceof NotAuthorizedException) {
       throw new NotAuthorizedException(
         getResourceAiAgentResetEditRefusal(data.resource.resourceType),
+      );
+    }
+
+    throw error;
+  }
+}
+
+/*
+ * Who may make a key for a cloud account's Cloud AI agent: the people who
+ * may reset it - one of RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS (a labelled
+ * block refuses, as for a reset) and an edit of this very account. The key
+ * sets the agent up, with the fixes its command writes.
+ */
+async function assertCanMakeCloudAiAgentKey(data: {
+  props: DatabaseCommonInteractionProps;
+  projectId: ObjectID;
+  resource: AccessibleResource;
+}): Promise<void> {
+  if (
+    !data.props.isRoot &&
+    !data.props.isMasterAdmin &&
+    !CallerPermission.holdsAnyOf(
+      data.props,
+      RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS,
+      { projectId: data.projectId, labelledBlocksRefuse: true },
+    )
+  ) {
+    throw new NotAuthorizedException(
+      getCloudAiAgentKeyRefusal(data.resource.resourceType),
+    );
+  }
+
+  try {
+    await ResourceAiAccessService.assertCallerMayChangeResource({
+      props: data.props,
+      projectId: data.projectId,
+      resourceType: data.resource.resourceType,
+      resourceId: data.resource.id,
+    });
+  } catch (error) {
+    if (error instanceof NotAuthorizedException) {
+      throw new NotAuthorizedException(
+        getCloudAiAgentKeyEditRefusal(data.resource.resourceType),
       );
     }
 
@@ -1164,9 +1223,76 @@ router.post(
 
       Response.sendJsonObjectResponse(req, res, {
         ok: true,
-        message: `The ${agentName} was reset. It reconnects on its own within a few minutes.`,
+        message: getResetAgentMessage({
+          resourceType: resource.resourceType,
+          agentName,
+        }),
         ...(status ? { status: status as unknown as JSONObject } : {}),
       });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * What Reset agent answers: a Cloud AI agent stays out until its setup
+ * command runs again, with a new key of its account's; any other agent
+ * registers again on its own.
+ */
+export function getResetAgentMessage(data: {
+  resourceType: AiResourceType;
+  agentName: string;
+}): string {
+  if (isCloudAiResourceType(data.resourceType)) {
+    return `The ${data.agentName} was reset, and its key no longer works. Run its setup command again to connect it: Change on this page shows it, with a new key.`;
+  }
+
+  return `The ${data.agentName} was reset. It reconnects on its own within a few minutes.`;
+}
+
+router.post(
+  RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+
+      const resource: AccessibleResource = await findAccessibleResource({
+        req,
+        props,
+        tenantId,
+      });
+
+      if (!isCloudAiResourceType(resource.resourceType)) {
+        throw new BadDataException(
+          `Only a cloud account's Cloud AI agent connects with a key of its own. The ${getResourceAgentName(
+            resource.resourceType,
+          )} connects with the telemetry ingestion key its collector uses.`,
+        );
+      }
+
+      await assertCanMakeCloudAiAgentKey({
+        props,
+        projectId: tenantId,
+        resource,
+      });
+
+      const key: CloudAiAgentKeyResponse =
+        await CloudAccountService.makeAiAgentKey({
+          cloudAccountId: resource.id,
+          userId: props.userId,
+          now: OneUptimeDate.getCurrentDate(),
+        });
+
+      Response.sendJsonObjectResponse(req, res, key as unknown as JSONObject);
       return;
     } catch (err) {
       next(err);

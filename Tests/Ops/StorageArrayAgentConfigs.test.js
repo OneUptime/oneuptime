@@ -482,7 +482,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     // From the OneUptime the agent reports to, or this folder on GitHub for an older one.
     expect(script).toContain('AGENT_FILES_PATH="install/storage-array-agent"');
     expect(script).toContain(
-      'AGENT_FILES_ON_GITHUB="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent"',
+      'AGENT_FILES_ON_GITHUB="https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents/StorageArrayAgent"',
     );
     const files = script.match(/^AGENT_FILES="([^"]+)"$/m);
     expect(files).not.toBeNull();

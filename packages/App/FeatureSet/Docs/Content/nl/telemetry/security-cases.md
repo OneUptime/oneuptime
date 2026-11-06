@@ -306,11 +306,12 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 | Automatiseren | Run a workflow | Start een OneUptime-workflow met de zaak als invoer |
 | Automatiseren | Run a runbook | Start een van uw OneUptime-runbooks met de zaak als invoer |
 | Automatiseren | Fix the code with AI | Vraagt OneUptime AI om een pull request die de exceptions oplost die de verzoeken van de zaak veroorzaakten |
+| Verloopbesturing | De uitvoering stoppen | Beëindigt de uitvoering daar als voltooid: de stappen erna worden niet uitgevoerd |
 
 Een playbook heeft hoogstens 25 stappen. Ze draaien op volgorde, elk zodra de vorige klaar is. Elke stap kan ook:
 
 - **Goedkeuring nodig**: de uitvoering vóór de stap stilzetten totdat iemand hem op de zaak goedkeurt. De acht stappen die iemand de toegang ontnemen, zetten de uitvoering altijd stil, tenzij een Security Admin dit uitzet. **Run a runbook**, **Post a status page announcement** en de twee stappen voor gegevensopslagen beginnen met goedkeuring aan, omdat ze opdrachten op uw systemen uitvoeren, uw klanten toespreken of de instellingen van een cloud wijzigen; wie de stap toevoegt, kan het uitzetten.
-- **Deze stap uitvoeren**: **Altijd**, of alleen na een resultaat van een stap ervoor, zoals **Entiteiten controleren in dreigingsinformatie** die een bekende kwaadaardige entiteit vindt; zie [Vertakken op het resultaat van een stap](#vertakken-op-het-resultaat-van-een-stap).
+- **Deze stap uitvoeren**: **Altijd**, of alleen na resultaten van stappen ervoor, zoals **Entiteiten controleren in dreigingsinformatie** die een bekende kwaadaardige entiteit vindt; zie [Vertakken op het resultaat van een stap](#vertakken-op-het-resultaat-van-een-stap).
 - **Doorgaan bij fout**: de volgende stap uitvoeren, ook als deze mislukt. Staat dit uit, dan stopt een mislukte stap de uitvoering. Dit staat onder **Meer velden**, samen met **Deze stap uitvoeren**.
 
 ### Vertakken op het resultaat van een stap
@@ -324,6 +325,12 @@ Een playbook heeft hoogstens 25 stappen. Ze draaien op volgorde, elk zodra de vo
 | Elke andere stap | Geslaagd, en mislukt als **Doorgaan bij fout** erbij aan staat |
 
 Twee stappen die op tegengestelde resultaten van dezelfde stap wachten, zijn een als en een anders: een gebruiker alleen opschorten als dreigingsinformatie hem kent, en anders een taak toevoegen om de aanmelding met hem te bevestigen. Als de stap waarop gewacht wordt anders eindigt, wordt de wachtende stap overgeslagen, en de uitvoering zegt eronder waarom; hetzelfde geldt voor een stap die wacht op een overgeslagen stap. De kaart van een stap zegt waarop hij wacht, en een stap waarop een andere wacht, kan niet onder die andere worden gezet of verwijderd totdat die andere anders wordt uitgevoerd. De sjabloon **Bekende kwaadaardige indicatoren escaleren** verhoogt de prioriteit en status van een zaak alleen bij een treffer in dreigingsinformatie, en een stap die met de oude schakelaar voor dreigingsinformatie is opgeslagen, houdt die als **Alleen als een eerdere controle in dreigingsinformatie een bekende kwaadaardige entiteit vond**.
+
+Een stap kan op maximaal vijf resultaten wachten: kies elk in **Deze stap uitvoeren**, en **Uitvoeren wanneer** vraagt hoe ze gelezen worden, **Als ze allemaal zijn gebeurd** of **Als er minstens één is gebeurd**. Schort een gebruiker alleen op als dreigingsinformatie hem kent en zijn activiteit is gevonden, of roep de dienstdoende op als een van beide opzoekingen iets vond. Een stap die op al zijn resultaten wacht, kan niet op twee resultaten van dezelfde stap wachten, zoals gevonden en niets gevonden, omdat geen uitvoering beide heeft.
+
+### De uitvoering stoppen
+
+**De uitvoering stoppen**, onder **Verloopbesturing**, beëindigt de uitvoering waar die is, als voltooid: de stappen erna worden overgeslagen en zeggen elk waar de uitvoering stopte, en de uitvoering slaagt. Met **Deze stap uitvoeren** stopt hij alleen na een resultaat: stoppen als dreigingsinformatie niets bekend kwaadaardigs vond, en anders de inperkingsstappen eronder laten draaien. Wat je bij **Reden van de stop** schrijft, wordt op de tijdlijn van de zaak vermeld als de uitvoering daar stopt. Hij heeft niets om goed te keuren en mislukt nooit, dus hij heeft geen **Goedkeuring nodig** en geen **Doorgaan bij fout**, en geen stap kan op hem wachten. Een die altijd draait, beëindigt elke uitvoering en kan dus alleen de laatste stap zijn.
 
 ### Reageren via OneUptime
 
@@ -394,7 +401,7 @@ Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten 
 | Queued | Wacht op een worker |
 | Actief | Voert haar stappen uit |
 | Waiting for Approval | Stilgezet vóór een stap die goedkeuring nodig heeft |
-| Geslaagd | Elke stap is uitgevoerd of overgeslagen |
+| Geslaagd | Elke stap is uitgevoerd of overgeslagen, of een stap **De uitvoering stoppen** heeft haar beëindigd |
 | Mislukt | Een stap mislukte en de uitvoering stopte |
 | Geannuleerd | Iemand heeft haar geannuleerd, of een stap afgewezen |
 
@@ -454,6 +461,10 @@ De zaak gaat over geen enkele gebruiker of host, bijvoorbeeld alleen over een ad
 
 :::details Een stap die pas na een andere draait, werd overgeslagen
 De stap waarop hij wacht, eindigde anders of werd zelf overgeslagen: hij vond bijvoorbeeld niets bekend kwaadaardigs, terwijl de stap op een bekende kwaadaardige entiteit wacht. Open de uitvoering op de zaak: de overgeslagen stap zegt op welke stap hij wachtte, en op welk resultaat. Om dat te veranderen, bewerk je de stap en open je **Meer velden**.
+:::
+
+:::details Een uitvoering eindigde voor haar laatste stappen
+Een stap **De uitvoering stoppen** draaide: het resultaat waarop hij wacht, kwam, of hij draait altijd. Open de uitvoering op de zaak: de stappen erna zeggen waar de uitvoering stopte, en de stopstap zegt waarom als je hem een reden gaf. Om te veranderen wanneer hij stopt, bewerk je de stap en open je **Meer velden**.
 :::
 
 :::details Een status of prioriteit kan niet worden verwijderd of gearchiveerd

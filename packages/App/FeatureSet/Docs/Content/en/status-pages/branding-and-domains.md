@@ -40,6 +40,8 @@ The logo, the dark theme logo, the cover image and the favicon are files uploade
 
 Your status page shows only images of its own project; an image it cannot show is left out, as if the page had none. The dashboard, the API and Terraform read the page's images the same way: an image of another project comes back as no image at all. The emails the page sends — to subscribers, and to private users about their sign-in — show its logo the same way: a logo the page cannot show is left out of them too, rather than shown as a broken image.
 
+Those emails carry the logo inside them, so it shows even where a mail client loads no images from the internet or cannot reach OneUptime: a PNG, JPEG, GIF, WebP or SVG logo goes in as an image sized for the email's header. An SVG logo whose words are text, rather than shapes, is shown from its address instead, because the server has no font to draw the words with: turn the text into outlines in your design tool, or upload a PNG.
+
 ### Theme
 
 The **Theme** card, right under the logo, sets how the page looks to its visitors. Pick one of its three choices and it is saved at once; there is no **Edit** button.

@@ -147,10 +147,11 @@ describe("SecurityPlaybookLauncher.launchForCase", () => {
 });
 
 describe("doStepsStayInsideOneUptime", () => {
-  test("the inside categories are the case and investigate ones", () => {
+  test("the inside categories are the case and investigate ones, and the run's own flow control", () => {
     expect([...SECURITY_PLAYBOOK_INSIDE_CATEGORIES]).toEqual([
       SecurityPlaybookActionCategory.Case,
       SecurityPlaybookActionCategory.Investigate,
+      SecurityPlaybookActionCategory.FlowControl,
     ]);
   });
 
@@ -160,7 +161,8 @@ describe("doStepsStayInsideOneUptime", () => {
         return [
           action.type,
           action.category === SecurityPlaybookActionCategory.Case ||
-            action.category === SecurityPlaybookActionCategory.Investigate,
+            action.category === SecurityPlaybookActionCategory.Investigate ||
+            action.category === SecurityPlaybookActionCategory.FlowControl,
         ];
       },
     ),
@@ -194,5 +196,21 @@ describe("doStepsStayInsideOneUptime", () => {
 
   test("a playbook of no steps is inside", () => {
     expect(doStepsStayInsideOneUptime([])).toBe(true);
+  });
+
+  test("a Stop step changes nothing outside: a playbook that checks, notes and stops stays inside", () => {
+    expect(
+      doStepsStayInsideOneUptime([
+        { action: SecurityPlaybookActionType.CheckThreatIntel },
+        { action: SecurityPlaybookActionType.StopRun, config: {} },
+        { action: SecurityPlaybookActionType.AddCaseNote },
+      ]),
+    ).toBe(true);
+    expect(
+      doStepsStayInsideOneUptime([
+        { action: SecurityPlaybookActionType.StopRun },
+        { action: SecurityPlaybookActionType.SuspendOktaUser },
+      ]),
+    ).toBe(false);
   });
 });

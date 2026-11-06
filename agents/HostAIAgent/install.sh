@@ -64,7 +64,7 @@ if ! command -v docker &> /dev/null; then
     if command -v podman &> /dev/null; then
         echo "Error: Docker is not installed, but Podman is. This installer uses Docker;"
         echo "to run the agent with Podman, follow the Podman section of the README:"
-        echo "https://github.com/OneUptime/oneuptime/tree/master/agents/HostAIAgent#podman"
+        echo "https://github.com/OneUptime/oneuptime/tree/main/agents/HostAIAgent#podman"
     else
         echo "Error: Docker is not installed. Please install Docker first."
     fi
@@ -187,7 +187,7 @@ mkdir -p "$INSTALL_DIR/systemd"
 # stops the install, and every file must arrive as plain text, wherever it
 # comes from. Every agent's install.sh has this same block.
 AGENT_FILES_PATH="install/host-ai-agent"
-AGENT_FILES_ON_GITHUB="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent"
+AGENT_FILES_ON_GITHUB="https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents/HostAIAgent"
 AGENT_FILES_URL=""
 AGENT_FILE_ANSWER=""
 

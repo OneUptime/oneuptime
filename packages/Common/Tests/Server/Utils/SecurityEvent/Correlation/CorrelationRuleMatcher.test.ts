@@ -6,6 +6,7 @@ import CorrelationQueries, {
 } from "../../../../../Server/Utils/SecurityEvent/Correlation/CorrelationQueries";
 import CorrelationRuleMatcher, {
   CorrelationMatchResult,
+  CorrelationRuleMatchInput,
   describeGap,
 } from "../../../../../Server/Utils/SecurityEvent/Correlation/CorrelationRuleMatcher";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -326,6 +327,128 @@ detection:
     );
   });
 
+  /*
+   * IN REAL TIME a run is a window as one write found it: a sequence the
+   * run had found already with what came in before the write was reported
+   * by the write that completed it.
+   */
+  test("in real time, a sequence is reported by the write that completes it, and only by it", async () => {
+    const arrival: CorrelationRuleMatchInput["arrival"] = {
+      candidateIds: ["019a4f00-0009-7000-8000-000000000009"],
+      firstId: "019a4f00-0009-7000-8000-000000000009",
+      lastId: "019a4f00-0009-7000-8000-000000000009",
+      candidateStartTime: new Date(at(4) - 1000),
+      candidateEndTime: new Date(at(4) + 1000),
+    };
+    const read: SpyInstance<typeof CorrelationQueries.findTemporalGroups> = jest
+      .spyOn(CorrelationQueries, "findTemporalGroups")
+      .mockResolvedValue([
+        // carol: the write brought her success - the chain completes now.
+        {
+          ...temporalRow(["carol"], [[at(0), at(1), at(2)], [at(4)]]),
+          stepTimesBefore: [[at(0), at(1), at(2)], []],
+        },
+        // dave: his chain was complete before the write - reported then.
+        {
+          ...temporalRow(
+            ["dave"],
+            [
+              [at(0), at(1), at(2)],
+              [at(3), at(4)],
+            ],
+          ),
+          stepTimesBefore: [[at(0), at(1), at(2)], [at(3)]],
+        },
+        // erin: the write brought the third failure, after her success - no chain.
+        {
+          ...temporalRow(["erin"], [[at(0), at(1), at(5)], [at(4)]]),
+          stepTimesBefore: [[at(0), at(1)], [at(4)]],
+        },
+      ]);
+
+    const result: CorrelationMatchResult =
+      await CorrelationRuleMatcher.findMatches({
+        projectId: PROJECT_ID,
+        correlation: correlation(SEQUENCE).correlation,
+        steps: correlation(SEQUENCE).steps,
+        startTime: START,
+        endTime: END,
+        maxGroups: 100,
+        arrival,
+      });
+
+    expect(read.mock.calls[0]![0].window.arrival).toEqual(arrival);
+    expect(
+      result.groups.map((group: { groupValue: string }): string => {
+        return group.groupValue;
+      }),
+    ).toEqual(["carol"]);
+  });
+
+  test("in real time, events together the write brought fire; ones already together do not", async () => {
+    const definition: Extract<
+      DetectionRuleDefinition,
+      { kind: "correlation" }
+    > = correlation(`title: Both
+correlation:
+  type: temporal
+  rules: [failed_sign_in, successful_sign_in]
+  group-by: [principalHost]
+  timespan: 5m
+---
+${FAILED}
+---
+${SUCCEEDED}`);
+
+    jest.spyOn(CorrelationQueries, "findTemporalGroups").mockResolvedValue([
+      {
+        ...temporalRow(["web-1"], [[at(1)], [at(3)]]),
+        stepTimesBefore: [[at(1)], []],
+      },
+      {
+        ...temporalRow(["web-2"], [[at(1), at(3)], [at(2)]]),
+        stepTimesBefore: [[at(1)], [at(2)]],
+      },
+    ]);
+
+    const result: CorrelationMatchResult =
+      await CorrelationRuleMatcher.findMatches({
+        projectId: PROJECT_ID,
+        correlation: definition.correlation,
+        steps: definition.steps,
+        startTime: START,
+        endTime: END,
+        maxGroups: 100,
+        arrival: {
+          candidateIds: ["a"],
+          firstId: "a",
+          lastId: "a",
+          candidateStartTime: START,
+          candidateEndTime: END,
+        },
+      });
+
+    expect(
+      result.groups.map((group: { groupValue: string }): string => {
+        return group.groupValue;
+      }),
+    ).toEqual(["web-1"]);
+  });
+
+  test("on a schedule, the times before a write are never asked for", async () => {
+    jest.spyOn(CorrelationQueries, "findTemporalGroups").mockResolvedValue([
+      // A row of a real-time read, read without real time: the times before do not count.
+      {
+        ...temporalRow(["carol"], [[at(0), at(1), at(2)], [at(4)]]),
+        stepTimesBefore: [[at(0), at(1), at(2)], [at(4)]],
+      },
+    ]);
+
+    const result: CorrelationMatchResult = await match(correlation(SEQUENCE));
+
+    expect(result.groups).toHaveLength(1);
+  });
+
   test("stops at the groups a run records, and says when it read its candidate limit", async () => {
     const rows: Array<CorrelationTemporalRow> = [];
 
@@ -350,6 +473,67 @@ detection:
 
     expect(result.groups).toHaveLength(5);
     expect(result.candidatesCapped).toBe(true);
+  });
+});
+
+describe("CorrelationRuleMatcher: every read takes a real-time window as the write found it", () => {
+  const ARRIVAL: NonNullable<CorrelationRuleMatchInput["arrival"]> = {
+    candidateIds: ["019a4f00-0009-7000-8000-000000000009"],
+    firstId: "019a4f00-0009-7000-8000-000000000009",
+    lastId: "019a4f00-0009-7000-8000-000000000009",
+    candidateStartTime: START,
+    candidateEndTime: END,
+  };
+
+  async function matchInRealTime(yaml: string): Promise<void> {
+    const definition: Extract<
+      DetectionRuleDefinition,
+      { kind: "correlation" }
+    > = correlation(yaml);
+
+    await CorrelationRuleMatcher.findMatches({
+      projectId: PROJECT_ID,
+      correlation: definition.correlation,
+      steps: definition.steps,
+      startTime: START,
+      endTime: END,
+      maxGroups: 100,
+      arrival: ARRIVAL,
+    });
+  }
+
+  test("counts, sequences and first seen alike", async () => {
+    const counts: SpyInstance<typeof CorrelationQueries.findCountGroups> = jest
+      .spyOn(CorrelationQueries, "findCountGroups")
+      .mockResolvedValue([]);
+    const newValues: SpyInstance<typeof CorrelationQueries.findNewValueGroups> =
+      jest
+        .spyOn(CorrelationQueries, "findNewValueGroups")
+        .mockResolvedValue([]);
+
+    await matchInRealTime(`title: Brute force
+correlation:
+  type: event_count
+  rules: [failed_sign_in]
+  group-by: [principalIp]
+  timespan: 10m
+  condition:
+    gte: 10
+---
+${FAILED}`);
+    await matchInRealTime(`title: New address
+correlation:
+  type: new_value
+  rules: [successful_sign_in]
+  group-by: [principalUser]
+  timespan: 14d
+  condition:
+    field: principalIp
+---
+${SUCCEEDED}`);
+
+    expect(counts.mock.calls[0]![0].window.arrival).toEqual(ARRIVAL);
+    expect(newValues.mock.calls[0]![0].window.arrival).toEqual(ARRIVAL);
   });
 });
 

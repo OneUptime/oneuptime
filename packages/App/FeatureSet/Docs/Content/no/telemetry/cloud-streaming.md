@@ -47,6 +47,8 @@ Gå til **Sky → Koble til**, og velg **Strøm målinger og logger** i raden ti
 
 For logger oppgir du **Logggrupper**, én per linje, med navn i **Region** ved siden av eller med ARN i sin egen region, eller du velger **Alle kontoens logggrupper, også nye**. Én kommando abonnerer på høyst 50 logggrupper med navn, i høyst 10 regioner.
 
+AWS tillater ett kontoomfattende loggabonnement per region og to abonnementsfiltre per logggruppe. Før kommandoen ruller ut noe, sjekker den begge deler: hvis et annet verktøy, for eksempel en SIEM, allerede har en regions kontoomfattende abonnement, eller en logggruppe du har oppgitt, ikke finnes eller allerede har to abonnementsfiltre, sier den hvilken og setter ikke opp noe.
+
 ### Lag en strømnøkkel
 
 Velg **Lag en strømnøkkel**. Nøkkelen vises bare denne ene gangen, i kommandoen: OneUptime lagrer bare SHA-256-en dens.
@@ -93,6 +95,7 @@ En logggruppe arkiveres under en ressurs når AWS har navngitt den etter en:
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 Hver logg bærer ressursens ID som `cloud.resource_id`, og loggene til en Lambda-funksjon bærer også `faas.name`, så de vises også på funksjonen under Serverless. En logggruppe med et annet navn strømmes likevel, under sin konto og region. Alvorlighetsgraden til en logg er den meldingen oppgir, slik Lambda skriver den.
 
@@ -166,6 +169,10 @@ Sjekk at kommandoen ble ferdig i hver region uten feil: `aws cloudformation desc
 
 :::details Tilkoblingen sier Strøm avvist
 Dialogen og radens verktøytips sier hvorfor. En feil nøkkel betyr at stakkene kjører med en nøkkel som ikke virker lenger: lag en ny nøkkel og kjør kommandoen igjen. Firehose fortsetter å sende det den holder på, og det tas imot så snart nøkkelen er riktig.
+:::
+
+:::details Kommandoen sier `Nothing was set up`
+Linjene over sier hvorfor, hver med sin region eller logggruppe. Når et annet verktøy har en regions kontoomfattende loggabonnement, oppgir du i stedet logggruppene som skal strømmes, eller fjerner verktøyets policy. Når en logggruppe allerede har to abonnementsfiltre, fjerner du ett av dem eller utelater gruppen. Når logggruppen ikke finnes, sjekker du navnet og regionen, eller oppgir ARN-en. Kjør deretter kommandoen på nytt.
 :::
 
 :::details Loggene til en Lambda-funksjon vises ikke på siden dens

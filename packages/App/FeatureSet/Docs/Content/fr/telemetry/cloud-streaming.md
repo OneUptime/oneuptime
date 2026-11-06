@@ -47,6 +47,8 @@ Allez dans **Cloud → Connecter**, et sur la ligne du compte AWS choisissez **D
 
 Pour les journaux, indiquez les **Groupes de journaux** un par ligne, par nom dans la **Région** à côté ou par ARN dans leur propre région, ou choisissez **Tous les groupes de journaux du compte, y compris les nouveaux**. Une commande abonne au plus 50 groupes de journaux par nom, dans au plus 10 régions.
 
+AWS n'autorise qu'un abonnement aux journaux à l'échelle du compte par région et deux filtres d'abonnement par groupe de journaux. Avant de déployer quoi que ce soit, la commande vérifie les deux : si un autre outil, comme un SIEM, occupe déjà l'abonnement à l'échelle du compte d'une région, ou si un groupe de journaux que vous avez nommé n'existe pas ou a déjà deux filtres d'abonnement, elle dit lequel et ne met rien en place.
+
 ### Créer une clé de flux
 
 Choisissez **Créer une clé de flux**. La clé n'est affichée que cette fois, dans la commande : OneUptime n'en conserve que le SHA-256.
@@ -93,6 +95,7 @@ Un groupe de journaux est classé sous une ressource quand AWS l'a nommé d'apr�
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 Chaque journal porte l'ID de la ressource dans `cloud.resource_id`, et les journaux d'une fonction Lambda portent aussi `faas.name`, ils apparaissent donc également sur la fonction dans Serverless. Un groupe de journaux d'un autre nom est diffusé quand même, sous son compte et sa région. La gravité d'un journal est celle qu'indique son message, à la manière de Lambda.
 
@@ -166,6 +169,10 @@ Vérifiez que la commande s'est terminée dans chaque région, sans erreur : `aw
 
 :::details La connexion indique Flux refusé
 La fenêtre et l'infobulle de la ligne disent pourquoi. Une mauvaise clé signifie que les piles tournent avec une clé qui ne fonctionne plus : créez une nouvelle clé et exécutez de nouveau la commande. Firehose continue d'envoyer ce qu'il conserve, et c'est accepté dès que la clé est la bonne.
+:::
+
+:::details La commande indique `Nothing was set up`
+Les lignes au-dessus disent pourquoi, chacune avec sa région ou son groupe de journaux. Si un autre outil occupe l'abonnement aux journaux à l'échelle du compte d'une région, nommez plutôt les groupes de journaux à diffuser, ou supprimez la stratégie de cet outil. Si un groupe de journaux a déjà deux filtres d'abonnement, supprimez-en un ou laissez le groupe de côté. Si le groupe de journaux n'existe pas, vérifiez son nom et sa région, ou donnez son ARN. Exécutez ensuite la commande à nouveau.
 :::
 
 :::details Les journaux d'une fonction Lambda n'apparaissent pas sur sa page

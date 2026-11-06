@@ -19,7 +19,7 @@ See [Installation & Upgrades](installation.md#upgrading) for the upgrade command
   (`image.type: enterprise-edition`, the `enterprise-` tags) add the enterprise
   modules from `ee/`: SCIM, team compliance, audit logs and the Admin Dashboard
   Health dashboards, licensed under the
-  [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE).
+  [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE).
   No migration runs and your configuration is never deleted, whichever edition
   you run. Check which case below is yours before upgrading.
 

@@ -1,8 +1,10 @@
 import {
   CONNECTION_FIELD_BY_PROVIDER,
-  RUN_ALWAYS,
   RUN_ALWAYS_LABEL,
   RUN_IF_KEY,
+  RUN_IF_MATCH_KEY,
+  RUN_WHEN_ALL_LABEL,
+  RUN_WHEN_ANY_LABEL,
   STEP_ACTION_KEY,
   describeRunIfFormValue,
   formValuesToStep,
@@ -10,8 +12,11 @@ import {
   getRunIfOptions,
   getStepDialogWords,
   isApprovalSwitchOffered,
+  readRunIfFormValues,
   stepToFormValues,
+  waitsOnSeveralResults,
 } from "./SecurityPlaybookStepForm";
+import { SecurityPlaybookConditionMatch } from "Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IconProp from "Common/Types/Icon/IconProp";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -45,6 +50,7 @@ import {
   DefenderIsolationType,
   ENTITY_ACTIVITY_LOOKBACK_MAX_HOURS,
   ENTITY_ACTIVITY_LOOKBACK_MIN_HOURS,
+  SECURITY_PLAYBOOK_STOP_REASON_MAX_LENGTH,
   SecurityPlaybookStep,
   TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
@@ -96,12 +102,29 @@ export interface ComponentProps {
   onSubmit: (step: SecurityPlaybookStep) => Promise<void>;
 }
 
+/*
+ * Each category's heading in the picker, which the picker translates: the
+ * categories are Common's own words, so each is a key here, and a category
+ * added later must say its heading too.
+ */
+export const ACTION_CATEGORY_HEADINGS: Readonly<
+  Record<SecurityPlaybookActionCategory, string>
+> = {
+  [SecurityPlaybookActionCategory.Case]: translationKey("Case"),
+  [SecurityPlaybookActionCategory.Investigate]: translationKey("Investigate"),
+  [SecurityPlaybookActionCategory.Notify]: translationKey("Notify"),
+  [SecurityPlaybookActionCategory.Escalate]: translationKey("Escalate"),
+  [SecurityPlaybookActionCategory.Contain]: translationKey("Contain"),
+  [SecurityPlaybookActionCategory.Automate]: translationKey("Automate"),
+  [SecurityPlaybookActionCategory.FlowControl]: translationKey("Flow control"),
+};
+
 // Every action as a card, grouped the way a response goes.
 export function getActionCardGroups(): Array<CardSelectOptionGroup> {
   return SECURITY_PLAYBOOK_ACTION_CATEGORIES.map(
     (category: SecurityPlaybookActionCategory): CardSelectOptionGroup => {
       return {
-        label: category,
+        label: ACTION_CATEGORY_HEADINGS[category],
         options: SECURITY_PLAYBOOK_ACTIONS.filter(
           (action: SecurityPlaybookActionDefinition): boolean => {
             return action.category === category;
@@ -837,6 +860,25 @@ export function getStepSettingsFields(
       },
     },
     {
+      /*
+       * Stop the run: why, in the playbook's own words, said on the case's
+       * timeline when the run stops here. Nothing else to set.
+       */
+      field: { reason: true },
+      title: "Why It Stops",
+      description: "Said on the case's timeline when the run stops here.",
+      fieldType: FormFieldSchemaType.Text,
+      stepId: "settings",
+      required: false,
+      placeholder: "e.g. Threat intel knows nothing of the user",
+      validation: {
+        maxLength: SECURITY_PLAYBOOK_STOP_REASON_MAX_LENGTH,
+      },
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return isAction(values, SecurityPlaybookActionType.StopRun);
+      },
+    },
+    {
       field: { requiresApproval: true },
       title: "Needs Approval",
       description:
@@ -845,10 +887,14 @@ export function getStepSettingsFields(
       stepId: "settings",
       required: false,
       showHorizontalRuleAbove: true,
+      // A step that stops the run does nothing to approve.
       showIf: (values: FormValues<JSONObject>): boolean => {
-        return isApprovalSwitchOffered(
-          values[STEP_ACTION_KEY],
-          options.mayTurnOffContainmentApproval,
+        return (
+          !isAction(values, SecurityPlaybookActionType.StopRun) &&
+          isApprovalSwitchOffered(
+            values[STEP_ACTION_KEY],
+            options.mayTurnOffContainmentApproval,
+          )
         );
       },
     },
@@ -878,8 +924,8 @@ export function getStepSettingsFields(
       field: { [RUN_IF_KEY]: true },
       title: "Run This Step",
       description:
-        "Always, or only after an earlier step's result: contain only what threat intel knows is bad, and do something else when it finds nothing.",
-      fieldType: FormFieldSchemaType.Dropdown,
+        "Always, or only after earlier steps' results: contain only what threat intel knows is bad, and do something else when it finds nothing.",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
       stepId: "settings",
       dropdownOptions: translator
         ? getRunIfOptions({
@@ -888,11 +934,10 @@ export function getStepSettingsFields(
             translator,
           })
         : [],
-      defaultValue: RUN_ALWAYS,
       /*
-       * It always says when the step runs: Always, unless a branch is
-       * picked. So it carries no "(Optional)", and cleared with its × it
-       * reads Always - which is what a step with nothing picked does.
+       * It always says when the step runs: Always, unless results are
+       * picked. So it carries no "(Optional)", and cleared it reads Always
+       * - which is what a step with nothing picked does.
        */
       required: false,
       hideOptionalLabel: true,
@@ -904,6 +949,7 @@ export function getStepSettingsFields(
             getFoldedValue: (values: FormValues<JSONObject>): string | null => {
               return describeRunIfFormValue({
                 value: values[RUN_IF_KEY],
+                match: values[RUN_IF_MATCH_KEY],
                 earlierSteps,
                 translator,
               });
@@ -914,8 +960,35 @@ export function getStepSettingsFields(
       showIf: (values: FormValues<JSONObject>): boolean => {
         return (
           earlierSteps.length > 0 ||
-          Boolean(values[RUN_IF_KEY] && values[RUN_IF_KEY] !== RUN_ALWAYS)
+          readRunIfFormValues(values[RUN_IF_KEY]).length > 0
         );
+      },
+    },
+    {
+      /*
+       * Two results or more: whether the step waits for all of them, or
+       * runs on any one. Asked only then.
+       */
+      field: { [RUN_IF_MATCH_KEY]: true },
+      title: "Run When",
+      fieldType: FormFieldSchemaType.RadioButton,
+      stepId: "settings",
+      radioButtonOptions: [
+        {
+          value: SecurityPlaybookConditionMatch.All,
+          title: RUN_WHEN_ALL_LABEL,
+        },
+        {
+          value: SecurityPlaybookConditionMatch.Any,
+          title: RUN_WHEN_ANY_LABEL,
+        },
+      ],
+      defaultValue: SecurityPlaybookConditionMatch.All,
+      required: false,
+      hideOptionalLabel: true,
+      collapsibleSection: howItRuns,
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return waitsOnSeveralResults(values as JSONObject);
       },
     },
     {
@@ -927,6 +1000,10 @@ export function getStepSettingsFields(
       stepId: "settings",
       required: false,
       collapsibleSection: howItRuns,
+      // A step that stops the run never fails.
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return !isAction(values, SecurityPlaybookActionType.StopRun);
+      },
     },
   ];
 }
@@ -984,7 +1061,8 @@ const SecurityPlaybookStepDialog: FunctionComponent<ComponentProps> = (
           : {
               requiresApproval: false,
               continueOnFailure: false,
-              [RUN_IF_KEY]: RUN_ALWAYS,
+              [RUN_IF_KEY]: [],
+              [RUN_IF_MATCH_KEY]: SecurityPlaybookConditionMatch.All,
             },
         onChange: (
           values: FormValues<JSONObject>,

@@ -273,7 +273,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 
 課金が有効な場合、または `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`(Helm の values では `outboundConnections.blockPrivateNetwork: true`)の場合、プロジェクト独自のプロバイダーはこのクラスター内アドレスに到達できません。このアドレスはクラスターのプライベート IP に解決されるからです。代わりに、Admin Dashboard の **設定 → グローバルLLMプロバイダー** で同じ項目を使ってプロバイダーを作成します。グローバルの LLM プロバイダーならこのアドレスに到達できます。
 
-GPU のスケジューリング、アクセス制限のあるモデル、チューニングのオプションについては、[Helm チャートの vLLM ガイド](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) を参照してください。
+GPU のスケジューリング、アクセス制限のあるモデル、チューニングのオプションについては、[Helm チャートの vLLM ガイド](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/ai-vllm.md) を参照してください。
 
 ## よい運用
 
