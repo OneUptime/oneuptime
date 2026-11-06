@@ -11,6 +11,7 @@ import RumSessionErasureRequest, {
   RumSessionErasureRequestType,
 } from "Common/Models/DatabaseModels/RumSessionErasureRequest";
 import RumSessionErasureRequestService from "Common/Server/Services/RumSessionErasureRequestService";
+import { truncateLongText } from "Common/Server/Utils/Database/TruncateColumnValue";
 import RumSessionPinService from "Common/Server/Services/RumSessionPinService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -1452,11 +1453,20 @@ export async function processErasureRequest(data: {
       `${JOB_NAME}: erased ${sessionIds.length} session(s) and ${chunksDeleted} chunk row(s) for request ${requestId.toString()}`,
     );
   } catch (error) {
-    const failureReason: string = getErrorMessage(error);
+    /*
+     * Held to what the column takes (varchar(500)): the error is
+     * ClickHouse's or Postgres's own words, often longer. Unheld, the write
+     * below was refused inside this catch, the request stayed InProgress
+     * with its attempt never counted, and the stale reclaim ran it again as
+     * a first attempt - for ever, never Failed, no owner told. The log line
+     * keeps the whole error.
+     */
+    const errorText: string = getErrorMessage(error);
+    const failureReason: string = truncateLongText(errorText);
     const attempts: number = (request.attempts || 0) + 1;
 
     logger.error(
-      `${JOB_NAME}: erasure request ${requestId.toString()} failed (attempt ${attempts} of ${MAX_ERASURE_ATTEMPTS}): ${failureReason}`,
+      `${JOB_NAME}: erasure request ${requestId.toString()} failed (attempt ${attempts} of ${MAX_ERASURE_ATTEMPTS}): ${errorText}`,
     );
 
     /*
