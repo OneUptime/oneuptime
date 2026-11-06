@@ -250,7 +250,8 @@ function cloudKeyStep(
     description: `${context.tx(
       "Pick a Server key, or create one — the commands below update to use it.",
     )} ${secretNote}`,
-    endpointLabel: "OTLP Endpoint",
+    // A key: the key picker words its label in the reader's language.
+    endpointLabel: translationKey("OTLP Endpoint"),
     endpointValue: otlpEndpoint(context),
   };
 }

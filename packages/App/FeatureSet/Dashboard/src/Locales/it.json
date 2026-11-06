@@ -8862,7 +8862,7 @@
   "Cloud Resource User Owners": "Utenti proprietari delle risorse cloud",
   "Cloud Resources": "Risorse cloud",
   "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.": "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.",
-  "Cloud environment not found.": "Cloud environment not found.",
+  "Cloud environment not found.": "Ambiente cloud non trovato.",
   "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.": "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.",
   "Cloud provider": "Provider cloud",
   "Cloud troubleshooting": "Risoluzione dei problemi del cloud",
@@ -18449,7 +18449,7 @@
   "Where it happens": "Where it happens",
   "Where it sits": "Dove si trova",
   "Where items come from": "Where items come from",
-  "Where the OpenTelemetry settings go on this platform — console steps, the collector or SDK configuration, the IAM and networking that has to be in place, and how to verify.": "Where the OpenTelemetry settings go on this platform — console steps, the collector or SDK configuration, the IAM and networking that has to be in place, and how to verify.",
+  "Where the OpenTelemetry settings go on this platform — console steps, the collector or SDK configuration, the IAM and networking that has to be in place, and how to verify.": "Dove vanno le impostazioni di OpenTelemetry su questa piattaforma: i passaggi nella console, la configurazione del collector o dell'SDK, l'IAM e la rete che devono essere pronti, e come verificare.",
   "Where the notification goes when the conditions are met.": "Where the notification goes when the conditions are met.",
   "Where the time is going": "Where the time is going",
   "Where they came from (whole range)": "Where they came from (whole range)",
@@ -45558,5 +45558,6 @@
   "Your application's container image, instrumented with an OpenTelemetry SDK that exports OTLP": "L'immagine del container della tua applicazione, strumentata con un SDK OpenTelemetry che esporta OTLP",
   "`200` with `\"valid\": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.": "`200` con `\"valid\": true` significa che il token appartiene a questo progetto; `401` significa che è sconosciuto, revocato o scritto male. Quando puoi, eseguilo dall'interno del workload, così dimostra il traffico in uscita da dove gira l'exporter.",
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` attiva il rilevatore di risorse {{detector}} in Node.js. Gli altri linguaggi lo attivano con: {{others}}.",
-  "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, con accesso al progetto e l'API Secret Manager attivata (`gcloud services enable secretmanager.googleapis.com`)"
+  "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, con accesso al progetto e l'API Secret Manager attivata (`gcloud services enable secretmanager.googleapis.com`)",
+  "OTLP Endpoint": "Endpoint OTLP"
 }

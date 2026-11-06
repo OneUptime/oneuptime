@@ -187,6 +187,20 @@ async function recorded(page: Page): Promise<Recorded> {
 }
 
 /*
+ * A list's address with its Cloud Account chip set, as Cloud's Overview
+ * links it (AppPlatformsListRoutes): the list's facet state under the URL
+ * parameter its facet bar reads.
+ */
+function accountChipQuery(tableId: string, accountIds: Array<string>): string {
+  return `${tableId}-facets=${encodeURIComponent(
+    JSON.stringify({
+      facetSelections: { cloudAccountId: accountIds },
+      facetOperators: { cloudAccountId: "is" },
+    }),
+  )}`;
+}
+
+/*
  * A page of the fixture, once its heading is drawn in the Dashboard's font
  * and its side menu is at rest.
  */
@@ -876,6 +890,49 @@ test.describe("an environment's pages", () => {
         `${CHECKOUT}/${tab.path}`,
       );
     }
+  });
+
+  /*
+   * Its Documentation is the platform's setup guide in the reader's
+   * language (#6060): the picker's lines, the steps and their tabs are the
+   * reader's words, and the commands and configurations stay as typed.
+   */
+  test("its Documentation guide reads in German, and in Persian right to left on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const sentences: Array<string> = [
+      "Tasks on Amazon Elastic Container Service, on Fargate or EC2 launch types.",
+      "An ECS cluster, and a task definition you can revise",
+      "Pick a Server key, or create one — the commands below update to use it.",
+    ];
+
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CHECKOUT}/documentation?lang=de`);
+    const guide: Locator = page.getByTestId("setup-guide");
+    for (const english of sentences) {
+      await expect(guide).toContainText(GERMAN[english]!);
+      await expect(guide).not.toContainText(english);
+    }
+    await expect(guide.getByRole("tab")).toContainText([
+      GERMAN["Sidecar collector"]!,
+      "SDK direct",
+    ]);
+    // A command stays as it is typed.
+    await expect(guide).toContainText("aws secretsmanager create-secret");
+    await screenshot(page, "app-platforms-environment-documentation-de-1280");
+
+    await page.setViewportSize(PHONE);
+    await open(page, `${CHECKOUT}/documentation?lang=fa`);
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    for (const english of sentences) {
+      await expect(page.getByTestId("setup-guide")).toContainText(
+        PERSIAN[english]!,
+      );
+    }
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-environment-documentation-fa-390");
   });
 
   test("its Logs and Traces are scoped to its platform, account and region", async ({
@@ -1677,6 +1734,102 @@ test.describe("All Environments and Archived", () => {
     await page.setViewportSize(PHONE);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "app-platforms-environments-390");
+  });
+
+  /*
+   * Cloud's Overview counts the environments and apps in the accounts it
+   * reads, and each count opens its list with the Cloud Account chip set
+   * to those accounts (#6060): the list arrives holding just them, the chip
+   * drawn set, and clearing it lists everything again.
+   */
+  test("a list opened with the Cloud Account chip set holds that account's environments, and All Apps their apps", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(
+      page,
+      `${APP_PLATFORMS}/environments?${accountChipQuery("cloud-resources-table", ["4109-2277-8841"])}`,
+    );
+
+    await expect(
+      page.getByText("Showing 1-2 of 2 cloud environments"),
+    ).toBeVisible();
+    for (const name of ENVIRONMENT_NAMES.slice(0, 2)) {
+      await expect(
+        page.getByRole("link", { name: name }).first(),
+      ).toBeVisible();
+    }
+    for (const name of ENVIRONMENT_NAMES.slice(2)) {
+      await expect(page.getByRole("link", { name: name })).toHaveCount(0);
+    }
+    const chip: Locator = page
+      .getByTestId("facet-filter-bar")
+      .getByRole("button", { name: /^Cloud Account · / });
+    await expect(chip).toContainText("4109-2277-8841");
+    const environmentReads: Array<ListRequest> = (
+      await recorded(page)
+    ).listRequests.filter((request: ListRequest): boolean => {
+      return (
+        request.modelName === "CloudResource" &&
+        request.query["cloudAccountId"] !== undefined
+      );
+    });
+    expect(environmentReads.length).toBeGreaterThan(0);
+    expect(
+      JSON.stringify(
+        environmentReads[environmentReads.length - 1]!.query["cloudAccountId"],
+      ),
+    ).toContain("4109-2277-8841");
+    await screenshot(page, "app-platforms-environments-account-chip-1280");
+
+    // Clear the chip: every environment again.
+    await page
+      .getByTestId("facet-filter-bar")
+      .getByRole("button", { name: /^Clear Cloud Account/ })
+      .click();
+    await expect(
+      page.getByText("Showing 1-6 of 6 cloud environments"),
+    ).toBeVisible();
+
+    // The chip offers each account the environments are in, once, under its cloud.
+    await page
+      .getByTestId("facet-filter-bar")
+      .getByRole("button", { name: /^Cloud Account$/ })
+      .click();
+    const offered: Locator = page.getByRole("listbox").getByRole("option");
+    await expect(offered).toHaveText([
+      /4109-2277-8841/,
+      /core-prod-sub/,
+      /acme-prod/,
+    ]);
+    await expect(page.getByRole("listbox")).toContainText("AWS");
+    await expect(page.getByRole("listbox")).toContainText("Azure");
+    await expect(page.getByRole("listbox")).toContainText("Google Cloud");
+    await screenshot(page, "app-platforms-environments-account-chip-open-1280");
+    await page.mouse.click(5, 5);
+
+    // All Apps, as Cloud's count of apps opens it: the apps of those two environments.
+    await open(
+      page,
+      `${APP_PLATFORMS}/apps?${accountChipQuery("app-platforms-apps-table", ["4109-2277-8841"])}`,
+    );
+    const rows: Locator = page.locator("table tbody tr");
+    await expect(rows).toHaveCount(3);
+    for (const [index, name] of [
+      "billing-api",
+      "checkout-api",
+      "inventory",
+    ].entries()) {
+      await expect(rows.nth(index)).toContainText(name);
+    }
+    await expect(
+      page
+        .getByTestId("facet-filter-bar")
+        .getByRole("button", { name: /^Cloud Account · / }),
+    ).toContainText("4109-2277-8841");
+    await screenshot(page, "app-platforms-apps-account-chip-1280");
   });
 
   test("Archived lists archived environments, and has none yet", async ({

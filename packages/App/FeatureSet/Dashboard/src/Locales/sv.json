@@ -8862,7 +8862,7 @@
   "Cloud Resource User Owners": "Användarägare till molnresurser",
   "Cloud Resources": "Molnresurser",
   "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.": "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.",
-  "Cloud environment not found.": "Cloud environment not found.",
+  "Cloud environment not found.": "Molnmiljö hittades inte.",
   "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.": "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.",
   "Cloud provider": "Molnleverantör",
   "Cloud troubleshooting": "Felsökning i molnet",
@@ -18449,7 +18449,7 @@
   "Where it happens": "Where it happens",
   "Where it sits": "Var det sitter",
   "Where items come from": "Where items come from",
-  "Where the OpenTelemetry settings go on this platform — console steps, the collector or SDK configuration, the IAM and networking that has to be in place, and how to verify.": "Where the OpenTelemetry settings go on this platform — console steps, the collector or SDK configuration, the IAM and networking that has to be in place, and how to verify.",
+  "Where the OpenTelemetry settings go on this platform — console steps, the collector or SDK configuration, the IAM and networking that has to be in place, and how to verify.": "Var OpenTelemetry-inställningarna hör hemma på den här plattformen — stegen i konsolen, collector- eller SDK-konfigurationen, den IAM och det nätverk som måste finnas på plats, och hur du kontrollerar det.",
   "Where the notification goes when the conditions are met.": "Where the notification goes when the conditions are met.",
   "Where the time is going": "Where the time is going",
   "Where they came from (whole range)": "Where they came from (whole range)",
@@ -45482,7 +45482,7 @@
   "Or deploy it from the CLI:": "Eller distribuera den från CLI:t:",
   "Or the task cannot reach Secrets Manager: **Fargate tasks in private subnets** need a NAT gateway on the route table, or `assignPublicIp=ENABLED` in a public subnet.": "Eller så når uppgiften inte Secrets Manager: **Fargate-uppgifter i privata undernät** behöver en NAT-gateway i routningstabellen, eller `assignPublicIp=ENABLED` i ett offentligt undernät.",
   "Outbound is **open by default** — a replica reaches `{{host}}` without configuration. Only an environment on a custom VNet with a user-defined route or NSG needs TCP 443 to that host allowed on the firewall.": "Utgående trafik är **öppen som standard** — en replik når `{{host}}` utan konfiguration. Bara en miljö i ett anpassat VNet med en användardefinierad route eller NSG behöver tillåta TCP 443 till den värden i brandväggen.",
-  "Pick an ingestion key in step 1 to fill in `{{placeholder}}`.": "Välj en inmatningsnyckel i steg 1 för att fylla i `{{placeholder}}`.",
+  "Pick an ingestion key in step 1 to fill in `{{placeholder}}`.": "Välj en ingestion-nyckel i steg 1 för att fylla i `{{placeholder}}`.",
   "Put the service's **runtime service account** (not your user) in `--member` — without `roles/secretmanager.secretAccessor` the revision fails with `Permission denied on secret`.": "Ange tjänstens **runtime service account** (inte din användare) i `--member` — utan `roles/secretmanager.secretAccessor` misslyckas revisionen med `Permission denied on secret`.",
   "Python `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=aws_ecs` (package `opentelemetry-sdk-extension-aws`)": "Python `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=aws_ecs` (paketet `opentelemetry-sdk-extension-aws`)",
   "Python `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=gcp_resource_detector` (package `opentelemetry-resourcedetector-gcp`)": "Python `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=gcp_resource_detector` (paketet `opentelemetry-resourcedetector-gcp`)",
@@ -45558,5 +45558,6 @@
   "Your application's container image, instrumented with an OpenTelemetry SDK that exports OTLP": "Din applikations containerimage, instrumenterad med ett OpenTelemetry-SDK som exporterar OTLP",
   "`200` with `\"valid\": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.": "`200` med `\"valid\": true` betyder att token hör till det här projektet; `401` betyder att den är okänd, återkallad eller felstavad. Kör den inifrån arbetsbelastningen när du kan, så att den bevisar utgående trafik därifrån exporteraren körs.",
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` aktiverar resursdetektorn {{detector}} i Node.js. Andra språk aktiverar den med: {{others}}.",
-  "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, inloggad på projektet, med Secret Manager API aktiverat (`gcloud services enable secretmanager.googleapis.com`)"
+  "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, inloggad på projektet, med Secret Manager API aktiverat (`gcloud services enable secretmanager.googleapis.com`)",
+  "OTLP Endpoint": "OTLP-endpoint"
 }

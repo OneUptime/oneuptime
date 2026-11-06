@@ -44,6 +44,20 @@ const CLOUD_ROOTS: Array<SourceRoot> = [
     directory: "packages/App/FeatureSet/Dashboard/src/Pages/Cloud",
     kind: "ui",
   },
+  /*
+   * The line the environment guide's picker shows under each managed
+   * platform (#6060): only the words the registry marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudPlatform.ts",
+    kind: "keys",
+  },
+  // An environment's Documentation, which draws the guide under its own title.
+  {
+    directory:
+      "packages/App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Documentation.tsx",
+    kind: "ui",
+  },
 ];
 
 // Languages whose plurals have no "one" form: their "_one" key is never read.
@@ -159,6 +173,10 @@ describe("Cloud's words in every language", () => {
       "Waiting for telemetry",
       "No activity has been recorded for this cloud resource yet.",
       "Case-insensitive regex matched against the resource name and description.",
+      // The environment guide's sentences and the platforms' lines (#6060).
+      "Then send one request: the environment appears at **App Platforms → All Environments** within a minute of the first span, log or metric.",
+      "Sidecar collector",
+      "Web apps on Azure App Service.",
     ]) {
       expect(keys.has(key)).toBe(true);
     }

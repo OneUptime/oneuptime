@@ -18449,7 +18449,7 @@
   "Where it happens": "Where it happens",
   "Where it sits": "Où il se trouve",
   "Where items come from": "Where items come from",
-  "Where the OpenTelemetry settings go on this platform — console steps, the collector or SDK configuration, the IAM and networking that has to be in place, and how to verify.": "Where the OpenTelemetry settings go on this platform — console steps, the collector or SDK configuration, the IAM and networking that has to be in place, and how to verify.",
+  "Where the OpenTelemetry settings go on this platform — console steps, the collector or SDK configuration, the IAM and networking that has to be in place, and how to verify.": "Où placer les réglages OpenTelemetry sur cette plateforme — les étapes dans la console, la configuration du collecteur ou du SDK, l'IAM et le réseau à mettre en place, et comment vérifier.",
   "Where the notification goes when the conditions are met.": "Where the notification goes when the conditions are met.",
   "Where the time is going": "Where the time is going",
   "Where they came from (whole range)": "Where they came from (whole range)",
@@ -45558,5 +45558,6 @@
   "Your application's container image, instrumented with an OpenTelemetry SDK that exports OTLP": "L'image de conteneur de votre application, instrumentée avec un SDK OpenTelemetry qui exporte en OTLP",
   "`200` with `\"valid\": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.": "`200` avec `\"valid\": true` signifie que le jeton appartient à ce projet ; `401` signifie qu'il est inconnu, révoqué ou mal saisi. Exécutez-la depuis la charge de travail quand vous le pouvez, afin qu'elle prouve le trafic sortant depuis l'endroit où tourne l'exportateur.",
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` active le détecteur de ressources {{detector}} dans Node.js. Les autres langages l'activent avec : {{others}}.",
-  "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, connecté au projet, avec l'API Secret Manager activée (`gcloud services enable secretmanager.googleapis.com`)"
+  "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, connecté au projet, avec l'API Secret Manager activée (`gcloud services enable secretmanager.googleapis.com`)",
+  "OTLP Endpoint": "Point de terminaison OTLP"
 }
