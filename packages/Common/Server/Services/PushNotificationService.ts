@@ -89,6 +89,7 @@ const ALLOWED_WEB_PUSH_HOSTS: Array<string> = [
   "push.services.mozilla.com",
   "fcm.googleapis.com",
   "android.googleapis.com",
+  "jmt17.google.com",
   "notify.windows.com",
   "push.apple.com",
 ];
