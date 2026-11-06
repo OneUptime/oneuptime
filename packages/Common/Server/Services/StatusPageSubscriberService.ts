@@ -1,3 +1,4 @@
+import { PROJECT_SMTP_CONFIG_SEND_SELECT } from "../Utils/Mail/ProjectSmtpConfigSelect";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import DatabaseConfig from "../DatabaseConfig";
 import {
@@ -4511,23 +4512,7 @@ export class Service extends ProjectReferencesService<Model> {
         subscriberEmailNotificationFooterText: true,
         enableCustomSubscriberEmailNotificationFooterText: true,
         allowSubscribersToChooseEventTypes: true,
-        smtpConfig: {
-          _id: true,
-          transportType: true,
-          hostname: true,
-          port: true,
-          username: true,
-          password: true,
-          fromEmail: true,
-          fromName: true,
-          secure: true,
-          authType: true,
-          clientId: true,
-          clientSecret: true,
-          tokenUrl: true,
-          scope: true,
-          oauthProviderType: true,
-        },
+        smtpConfig: PROJECT_SMTP_CONFIG_SEND_SELECT,
         /*
          * The page's Twilio config, with every number it sends from - its SMS
          * numbers included, which subscriber SMS go out from when it has them.

@@ -77,16 +77,10 @@ export function canChangeProjectAiSettingsForResource(): boolean {
  * The command history is RunnerJob rows. Roles that may open a resource's
  * AI pages may not read them (RunnerJob's runbook rows carry scripts and
  * their output), so such users get an explanation instead of a table that
- * can only fail.
+ * can only fail (CommandJobsPermissionNote).
  */
 export function canReadResourceCommandJobs(): boolean {
   return PermissionGate.check(new RunnerJob(), ModelAction.Read).isAllowed;
-}
-
-export function getResourceCommandJobsPermissionTitles(): Array<string> {
-  return PermissionGate.getPermissionTitles(
-    new RunnerJob().getReadPermissions(),
-  );
 }
 
 // The resource's own edit gate: the settings' Change button and one-click fixes.

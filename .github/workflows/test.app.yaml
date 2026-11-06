@@ -526,13 +526,20 @@ jobs:
           # its Runners that take no AI code fixes the same day) joined it from
           # group 13 on 2026-11-03, when those runs took this group's step 14.1
           # to 20.4 minutes, about 19: about 21.5.
+          # Model Tables grew to 196 tests on 2026-11-06 (#6025: a first
+          # visit's frames, cards' placeholders in a narrow card, German
+          # headers hyphenated, the 8rem window of a wide card, default
+          # columns per project, no frame past the card after Reset or
+          # Delete, and a laptop's Select All keeping the keyboard's place):
+          # each half 98 tests, about 5.6 minutes locally with CI=1, about
+          # 7.0 on a runner by its 88 tests' 6.3 - this group 22.7. Global
+          # Runners (2.2) moved to group 19: about 20.5.
           - group: 4
             workflow_builder_shard: 1/2
             model_tables_shard: 1/2
             suites: >-
               test-workflow-builder-ui
               test-model-tables-ui
-              test-global-runners-ui
           # The Chromium-only suites that ran after Event Overview in group 1.
           # Topology is one of them (about 2.5 minutes) since the Workflow
           # Builder suite grew again with its UI review: group 2 had reached
@@ -1178,6 +1185,9 @@ jobs:
           # 2026-11-03, when the last two runs (master's of 2026-11-02 23:47
           # and 14.0.102's first gate run) took this group 23.2 and 23.0:
           # about 21.5.
+          # Security Operations gained two tests on 2026-11-06 (#6025: the
+          # Russian case queue's titles and assignees whole at a 1280 and a
+          # 1216 laptop, about 6 seconds locally): 21.0.
           - group: 11
             suites: >-
               test-security-operations-ui
@@ -1380,6 +1390,10 @@ jobs:
           # Status Timeline (2.3 minutes on both of the last two runs) moved to
           # the new group 17 on 2026-11-03, when they took this group 24.0 and
           # 24.1: about 21.5.
+          # Model Tables' second half grew to 98 tests on 2026-11-06 (#6025,
+          # see group 4: about 6.7 on a runner) and Metrics AI to 3.5 (a
+          # Prometheus metric's long name breaking after its underscores):
+          # this group 22.5. Host Pages (1.6) moved to group 20: about 20.9.
           - group: 15
             model_tables_shard: 2/2
             suites: >-
@@ -1389,7 +1403,6 @@ jobs:
               test-topology-ui
               test-runbook-triggers-ui
               test-kubernetes-events-ui
-              test-host-pages-ui
           # Added on 2026-11-01, when 14.0.100's second gate run, on runners up
           # to 1.45 times slower, took groups 2, 3 and 14 past their run step's
           # 28 minutes and groups 6, 7, 9, 12 and 13 to 24 to 26: Monitor
@@ -1491,14 +1504,20 @@ jobs:
           # 390 pixels, dark, German and Persian. Two groups of their own, because
           # the product's pages are still joining it and it outgrew one on
           # 2026-11-05: no group had the room for it.
+          # Global Runners (2.2) joined this one from group 4 on 2026-11-06,
+          # when Model Tables grew there (#6025): about 13.8.
           - group: 19
             openstack_pages_shard: 1/2
             suites: >-
               test-openstack-pages-ui
+              test-global-runners-ui
+          # Host Pages (1.6) joined this one from group 15 the same day, when
+          # Model Tables' second half and Metrics AI grew there: about 13.2.
           - group: 20
             openstack_pages_shard: 2/2
             suites: >-
               test-openstack-pages-ui
+              test-host-pages-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

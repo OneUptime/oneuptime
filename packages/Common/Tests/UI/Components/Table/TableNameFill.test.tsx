@@ -361,6 +361,7 @@ describe("useTableScrollState sets a row's name free while the table fits", () =
     expect(result.states[result.states.length - 1]).toEqual({
       isOverflowing: false,
       canStickHeader: true,
+      isSettling: false,
     });
   });
 
@@ -377,6 +378,7 @@ describe("useTableScrollState sets a row's name free while the table fits", () =
     expect(result.states[result.states.length - 1]).toEqual({
       isOverflowing: false,
       canStickHeader: true,
+      isSettling: false,
     });
   });
 
@@ -392,6 +394,7 @@ describe("useTableScrollState sets a row's name free while the table fits", () =
     expect(result.states[result.states.length - 1]).toEqual({
       isOverflowing: true,
       canStickHeader: false,
+      isSettling: false,
     });
   });
 
@@ -406,6 +409,7 @@ describe("useTableScrollState sets a row's name free while the table fits", () =
     expect(result.states[result.states.length - 1]).toEqual({
       isOverflowing: false,
       canStickHeader: true,
+      isSettling: false,
     });
   });
 
@@ -449,7 +453,11 @@ describe("useTableScrollState sets a row's name free while the table fits", () =
 
     // And the state the measurements give is the same each time.
     for (const state of result.states.slice(drawn - 1)) {
-      expect(state).toEqual({ isOverflowing: true, canStickHeader: false });
+      expect(state).toEqual({
+        isOverflowing: true,
+        canStickHeader: false,
+        isSettling: false,
+      });
     }
   });
 
@@ -504,6 +512,7 @@ describe("useTableScrollState sets a row's name free while the table fits", () =
     expect(result.states[result.states.length - 1]).toEqual({
       isOverflowing: false,
       canStickHeader: true,
+      isSettling: false,
     });
   });
 
@@ -516,6 +525,7 @@ describe("useTableScrollState sets a row's name free while the table fits", () =
     expect(result.states[result.states.length - 1]).toEqual({
       isOverflowing: true,
       canStickHeader: false,
+      isSettling: false,
     });
   });
 });
