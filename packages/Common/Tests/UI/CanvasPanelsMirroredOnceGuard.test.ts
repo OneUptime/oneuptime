@@ -202,4 +202,23 @@ describe("a canvas's panels are mirrored once, by the page", () => {
       ".react-flow__panel.right:dir(rtl) { right: auto; left: 0; }",
     );
   });
+
+  /*
+   * An overlay a canvas draws itself sits on the canvas's start side too:
+   * the service map's "The map is out of view" notice, at its left - or at
+   * its right on a Persian page, clear of the drawer that opens at the
+   * page's end. A physical left put it under that drawer.
+   */
+  test("the service map's out-of-view notice sits on the canvas's start side", () => {
+    const source: string = fs.readFileSync(
+      path.join(
+        REPOSITORY_ROOT,
+        "packages/App/FeatureSet/Dashboard/src/Components/Topology/ServiceMapGraph.tsx",
+      ),
+      "utf-8",
+    );
+
+    expect(source).toContain("insetInlineStart: OUT_OF_VIEW_NOTICE_INSET_PX,");
+    expect(source).not.toContain("left: OUT_OF_VIEW_NOTICE_INSET_PX");
+  });
 });
