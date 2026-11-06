@@ -189,6 +189,8 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Message",
     "Incident ID",
     "Alert ID",
+    // Page As's choice that is a Dashboard label too: the Builder names it in English.
+    "Responders",
     "Severity",
     "Summary",
     // The record steps.
@@ -349,6 +351,11 @@ function stepDefinedNames(): Set<string> {
 
     for (const argument of component.arguments as Array<Argument>) {
       names.add(argument.name);
+
+      // A Choice setting's choices are the step's too: Page As's Responders.
+      for (const choice of argument.choices || []) {
+        names.add(choice.label);
+      }
     }
 
     for (const argument of (component.runWorkflowManuallyArguments ||

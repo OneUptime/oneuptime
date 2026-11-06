@@ -5,6 +5,7 @@ import WorkspacePageTextReader, {
   WorkspacePageToken,
 } from "../../../../Server/Utils/Workspace/WorkspacePageText";
 import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
+import OnCallPageAs from "../../../../Types/OnCallDutyPolicy/OnCallPageAs";
 
 /*
  * WHAT FOLLOWS "page": WHO, THEN THE MESSAGE (customer feedback #4: "How can
@@ -520,5 +521,81 @@ describe("text as long as a chat sends, and longer: read in time that grows with
     });
 
     expect(timed.inMs).toBeLessThan(2000);
+  });
+});
+
+/*
+ * "as observers" RIGHT AFTER WHO TO PAGE pages them as observers
+ * (OnCallObserverPage): "/oneuptime page @oversight as observers: the mesh
+ * network is down". It is not part of the message; anything else reads as
+ * it always did.
+ */
+describe("as observers: kept informed, not asked to respond", () => {
+  test.each([
+    ["as observers: the mesh is down", "the mesh is down"],
+    ["as observers - the mesh is down", "the mesh is down"],
+    ["as observers the mesh is down", "the mesh is down"],
+    ["as observers, the mesh is down", "the mesh is down"],
+    ["As Observers: the mesh is down", "the mesh is down"],
+    ["as an observer: the mesh is down", "the mesh is down"],
+    ["as observer the mesh is down", "the mesh is down"],
+    ["as observers", ""],
+  ])("/oneuptime page @nawaz %s", (typed: string, message: string) => {
+    const read_: WorkspacePageText = read(person(NAWAZ), text(` ${typed}`));
+
+    expect(read_.people).toEqual([NAWAZ]);
+    expect(read_.pageAs).toBe(OnCallPageAs.Observers);
+    expect(read_.message).toBe(message);
+  });
+
+  test.each([
+    ["as soon as you can, please", "as soon as you can, please"],
+    [
+      "as observed earlier, the DB is slow",
+      "as observed earlier, the DB is slow",
+    ],
+    ["asobservers are wrong", "asobservers are wrong"],
+    ["the observers asked for this", "the observers asked for this"],
+  ])(
+    "%s: a message like any other, paged to responders",
+    (typed: string, message: string) => {
+      const read_: WorkspacePageText = read(person(NAWAZ), text(` ${typed}`));
+
+      expect(read_.pageAs).toBeUndefined();
+      expect(read_.message).toBe(message);
+    },
+  );
+
+  test("after a group too: /oneuptime page @oversight as observers", () => {
+    const read_: WorkspacePageText = read(
+      group("oversight", "S0OVERSIGHT"),
+      text(" as observers: Team Y is on it"),
+    );
+
+    expect(read_.groups.length).toBe(1);
+    expect(read_.pageAs).toBe(OnCallPageAs.Observers);
+    expect(read_.message).toBe("Team Y is on it");
+  });
+
+  test("a message with no one named first is a message, whatever it says", () => {
+    const read_: WorkspacePageText = read(text("as observers: the DB is down"));
+
+    expect(read_.people).toEqual([]);
+    // Read as said, and left to the page to refuse: there is nobody to page.
+    expect(read_.pageAs).toBe(OnCallPageAs.Observers);
+  });
+
+  test("readPageAs reads only the start, in time that does not grow with the text", () => {
+    const long: string = `as observers: ${"x".repeat(200_000)}`;
+    const timed: FastestRun<{ pageAs: OnCallPageAs; message: string }> =
+      fastestRun({
+        run: () => {
+          return WorkspacePageTextReader.readPageAs(long);
+        },
+        limitInMs: 2000,
+      });
+
+    expect(timed.result.pageAs).toBe(OnCallPageAs.Observers);
+    expect(timed.result.message.length).toBe(200_000);
   });
 });

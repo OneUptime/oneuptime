@@ -1,4 +1,6 @@
 import Alert from "../../../Models/DatabaseModels/Alert";
+import OnCallPageAs from "../../../Types/OnCallDutyPolicy/OnCallPageAs";
+import { ON_CALL_OBSERVERS_NEED_A_RECORD_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import { AiAffectedResourceKind } from "../../../Types/AI/AiAffectedResources";
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
 import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
@@ -2716,6 +2718,90 @@ describe("OnCallPageService.page", () => {
 
       expect(feedReads()).toBe(0);
       expect(sleep).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * A PAGE AS OBSERVERS (OnCallObserverPage): kept informed about an
+   * incident or an alert somebody else responds to. Every run the page
+   * starts pages its people as observers - a policy's, and the direct page
+   * of the people, teams and schedules it names. Observers need a record to
+   * be told about: a page about something new must page responders.
+   */
+  describe("a page as observers", () => {
+    async function pageAs(data: {
+      targets: OnCallPageTargets;
+      about?: OnCallPageAbout | undefined;
+      pageAs?: OnCallPageAs | undefined;
+    }): Promise<OnCallPageResult> {
+      return await OnCallPageService.page({
+        projectId: PROJECT_ID,
+        targets: data.targets,
+        about: data.about || { incidentId: INCIDENT },
+        props: member([Permission.ProjectMember]),
+        ...(data.pageAs ? { pageAs: data.pageAs } : {}),
+      });
+    }
+
+    test("starts each policy's run paging as observers, and says so", async () => {
+      const result: OnCallPageResult = await pageAs({
+        targets: { onCallDutyPolicyIds: [POLICY_CRITICAL] },
+        pageAs: OnCallPageAs.Observers,
+      });
+
+      const run: OnCallDutyPolicyExecutionLog =
+        policyStart.mock.calls[0]![0].data;
+
+      expect(run.isObserverPage).toBe(true);
+      expect(result.isObserverPage).toBe(true);
+      expect(result.summary).toBe(
+        "Started on-call policy Critical as observers for Incident INC-8.",
+      );
+    });
+
+    test("pages the people, teams and schedules it names as observers too", async () => {
+      const result: OnCallPageResult = await pageAs({
+        targets: { userIds: [JANE] },
+        about: { alertId: ALERT },
+        pageAs: OnCallPageAs.Observers,
+      });
+
+      expect(directPageAsked().isObserverPage).toBe(true);
+      expect(result.isObserverPage).toBe(true);
+    });
+
+    test("a page about something new is refused before anything is started: somebody has to respond to it", async () => {
+      const error: Error = await refusalOf(
+        pageAs({
+          targets: { userIds: [JANE] },
+          about: { newAlert: { title: "Payments are failing" } },
+          pageAs: OnCallPageAs.Observers,
+        }),
+      );
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error.message).toBe(ON_CALL_OBSERVERS_NEED_A_RECORD_MESSAGE);
+      nothingWasStarted();
+    });
+
+    test("responders, as every page was, when nothing is said - or Responders is", async () => {
+      for (const asked of [undefined, OnCallPageAs.Responders]) {
+        policyStart.mockClear();
+        directPage.mockClear();
+
+        const result: OnCallPageResult = await pageAs({
+          targets: {
+            userIds: [JANE],
+            onCallDutyPolicyIds: [POLICY_CRITICAL],
+          },
+          pageAs: asked,
+        });
+
+        expect(policyStart.mock.calls[0]![0].data.isObserverPage).toBeFalsy();
+        expect(directPageAsked().isObserverPage).toBeUndefined();
+        expect(result.isObserverPage).toBe(false);
+        expect(result.summary).not.toContain("as observers");
+      }
     });
   });
 });
