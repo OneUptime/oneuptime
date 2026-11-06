@@ -786,12 +786,21 @@ jobs:
           # group's suites sum to 22.2 minutes on a runner of median speed.
           # Dashboard Table Thresholds (2.2) moved to the new group 18: about
           # 20.
+          # Cloud Recommendations (11 tests, 46 seconds locally with its bundle,
+          # Chromium only: a cloud account's recommended monitors grouped by
+          # type of resource, adding one to every resource of a type, what was
+          # made and dismissed, a viewer, a refused create, a resource's own
+          # Recommendations tab and the Scheduled Maintenance tab of a resource
+          # an event holds, at 1280 and 390 pixels, dark, German and Persian)
+          # joined it on 2026-11-06, the lightest group with no suite still
+          # growing: about 21.5.
           - group: 7
             suites: >-
               test-profiles-ui
               test-auto-remediation-rules-ui
               test-custom-roles-ui
               test-public-dashboard-theme-ui
+              test-cloud-recommendations-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -1720,6 +1729,8 @@ jobs:
             output/playwright/cloud-connect-ui/test-results
             output/playwright/app-platforms-ui/*.png
             output/playwright/app-platforms-ui/test-results
+            output/playwright/cloud-recommendations-ui/*.png
+            output/playwright/cloud-recommendations-ui/test-results
             output/playwright/cloud-spend-ui/*.png
             output/playwright/cloud-spend-ui/test-results
             output/playwright/host-collectors-ui/*.png

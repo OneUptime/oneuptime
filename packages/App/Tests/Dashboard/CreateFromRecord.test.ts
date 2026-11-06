@@ -169,8 +169,11 @@ describe("the records a create page can be opened from", () => {
     expect(kinds).toContain(CreateFromRecordKind.NetworkSite);
     expect(kinds).not.toContain(CreateFromRecordKind.Monitor);
     expect(kinds).not.toContain(CreateFromRecordKind.StatusPage);
-    // A maintenance event holds no cloud resources.
-    expect(kinds).not.toContain(CreateFromRecordKind.CloudResource);
+    /*
+     * A maintenance event holds cloud resources: one that holds a resource
+     * silences the monitors reading its metrics while it is in progress.
+     */
+    expect(kinds).toContain(CreateFromRecordKind.CloudResource);
     expect(kinds).toEqual([
       CreateFromRecordKind.Host,
       CreateFromRecordKind.KubernetesCluster,
@@ -184,6 +187,7 @@ describe("the records a create page can be opened from", () => {
       CreateFromRecordKind.DockerSwarmCluster,
       CreateFromRecordKind.IoTFleet,
       CreateFromRecordKind.DatabaseServer,
+      CreateFromRecordKind.CloudResource,
       CreateFromRecordKind.NetworkSite,
       CreateFromRecordKind.Service,
     ]);

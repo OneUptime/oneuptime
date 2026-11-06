@@ -18,6 +18,8 @@ import CloudResourceDelete from "../Pages/Cloud/View/Delete";
 import CloudResourceIncidents from "../Pages/Cloud/View/Incidents";
 import CloudResourceAlerts from "../Pages/Cloud/View/Alerts";
 import CloudResourceChanges from "../Pages/Cloud/View/Changes";
+import CloudResourceRecommendations from "../Pages/Cloud/View/Recommendations";
+import CloudResourceScheduledMaintenance from "../Pages/Cloud/View/ScheduledMaintenance";
 import CloudLabelRules from "../Pages/Cloud/Settings/LabelRules";
 import CloudOwnerRules from "../Pages/Cloud/Settings/OwnerRules";
 import CloudArchived from "../Pages/Cloud/Archived";
@@ -35,6 +37,7 @@ import CloudAccountAiAgent from "../Pages/Cloud/Accounts/View/AI/Agent";
 import CloudAccountAiLogs from "../Pages/Cloud/Accounts/View/AI/Logs";
 import CloudAccountFeed from "../Pages/Cloud/Accounts/View/Feed";
 import CloudAccountCosts from "../Pages/Cloud/Accounts/View/Costs";
+import CloudAccountRecommendations from "../Pages/Cloud/Accounts/View/Recommendations";
 import CloudOverview from "../Pages/Cloud/Overview";
 import CloudCosts from "../Pages/Cloud/Costs";
 import CloudSavings from "../Pages/Cloud/Savings";
@@ -302,6 +305,19 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_ACCOUNT_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <CloudAccountRecommendations
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_RECOMMENDATIONS] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
             PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS,
           )}
           element={
@@ -434,6 +450,36 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudResourceChanges
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW_CHANGES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE,
+          )}
+          element={
+            <CloudResourceScheduledMaintenance
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <CloudResourceRecommendations
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS] as Route
+              }
             />
           }
         />

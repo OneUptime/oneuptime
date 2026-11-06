@@ -1996,8 +1996,16 @@ describe("the Metrics monitor", () => {
       }).toEqual({ rollingTime: rollingTime, width: widths[interval] });
     }
 
-    // The worker never pins a bucket: the window decides it.
-    expect(TELEMETRY_JOB).not.toContain("aggregationInterval");
+    /*
+     * The worker pins no bucket: the window decides it - except for a
+     * monitor that reads its whole window as one value (a recommended cloud
+     * monitor's count, MonitorStepMetricMonitor.aggregatesWholeWindow),
+     * which no form sets.
+     */
+    expect(TELEMETRY_JOB.split("aggregationInterval").length - 1).toBe(1);
+    expect(TELEMETRY_JOB).toContain(
+      "...(aggregatesWholeWindow ? { aggregationInterval: AggregationInterval.Total } : {}),",
+    );
   });
 
   it("aggregates each bucket the ways Aggregate by lists, by Avg unless told otherwise", () => {

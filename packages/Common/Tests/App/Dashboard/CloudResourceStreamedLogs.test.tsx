@@ -130,12 +130,16 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (props: { hasStreamedLogs?: boolean }) => {
+      default: (props: {
+        hasStreamedLogs?: boolean;
+        hasRecommendations?: boolean;
+      }) => {
         sideMenuMock(props);
         return (
           <nav
             data-testid="side-menu"
             data-has-logs={String(Boolean(props.hasStreamedLogs))}
+            data-has-recommendations={String(Boolean(props.hasRecommendations))}
           />
         );
       },
@@ -534,5 +538,97 @@ describe("the resource's menu has Logs for a kind a log group names", () => {
     });
 
     expect(menuHasLogs()).toBe("false");
+  });
+});
+
+/*
+ * Recommendations is in the menu of a type OneUptime recommends monitors
+ * for (CloudAlertTemplates) - an instance, a function, a database, a VM -
+ * and not in a VPC's, a bucket's or a role's, whose tab could only ever
+ * say there are none. Read from the row the view already reads.
+ */
+describe("the resource's menu has Recommendations for a type some monitor is recommended for", () => {
+  async function openView(item: Record<string, unknown> | null): Promise<void> {
+    getItemMock.mockResolvedValue(item);
+
+    await act(async () => {
+      render(
+        <MemoryRouter
+          initialEntries={[`/dashboard/${PROJECT_ID}/cloud/${MODEL_ID}`]}
+        >
+          <Routes>
+            <RouterRoute
+              path="/dashboard/:projectId/cloud/:id"
+              element={<CloudResourceViewLayout {...PAGE_PROPS} />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+    });
+  }
+
+  function menuHasRecommendations(): string | null {
+    return screen
+      .getByTestId("side-menu")
+      .getAttribute("data-has-recommendations");
+  }
+
+  test.each([
+    ["an EC2 instance", "aws", "AWS::EC2::Instance"],
+    ["a Lambda function", "aws", "AWS::Lambda::Function"],
+    ["an RDS database", "aws", "AWS::RDS::DBInstance"],
+    ["an Azure VM", "azure", "Microsoft.Compute/virtualMachines"],
+    ["a Compute Engine VM", "gcp", "gce_instance"],
+  ])(
+    "%s has Recommendations",
+    async (_kind: string, provider: string, type: string) => {
+      await openView({
+        cloudResourceKind: "resource",
+        cloudProvider: provider,
+        cloudResourceType: type,
+      });
+
+      expect(menuHasRecommendations()).toBe("true");
+    },
+  );
+
+  test.each([
+    ["a VPC", "aws", "AWS::EC2::VPC"],
+    ["an S3 bucket", "aws", "AWS::S3::Bucket"],
+    ["an IAM role", "aws", "AWS::IAM::Role"],
+    ["an AWS type under another cloud", "azure", "AWS::EC2::Instance"],
+    ["a resource of no type", "aws", undefined],
+  ])(
+    "%s has none",
+    async (_kind: string, provider: string, type: string | undefined) => {
+      await openView({
+        cloudResourceKind: "resource",
+        cloudProvider: provider,
+        cloudResourceType: type,
+      });
+
+      expect(menuHasRecommendations()).toBe("false");
+    },
+  );
+
+  test("a row that cannot be read draws the menu without Recommendations", async () => {
+    getItemMock.mockRejectedValue(new Error("You cannot read this resource."));
+
+    await act(async () => {
+      render(
+        <MemoryRouter
+          initialEntries={[`/dashboard/${PROJECT_ID}/cloud/${MODEL_ID}`]}
+        >
+          <Routes>
+            <RouterRoute
+              path="/dashboard/:projectId/cloud/:id"
+              element={<CloudResourceViewLayout {...PAGE_PROPS} />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+    });
+
+    expect(menuHasRecommendations()).toBe("false");
   });
 });

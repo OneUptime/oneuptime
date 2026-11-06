@@ -212,9 +212,8 @@ const RESOURCE_ORDER: Array<AffectedResourceType> = [
   "iotFleet",
   "databaseServer",
   /*
-   * Only Incident and Alert carry a cloudResources relation (a maintenance
-   * window silences monitors, not cloud resources), so this is opt-in (see
-   * includeCloudResource).
+   * Only Incident, Alert and ScheduledMaintenance carry a cloudResources
+   * relation, so this is opt-in (see includeCloudResource).
    */
   "cloudResource",
   /*
@@ -454,8 +453,9 @@ export interface AffectedResourcesFacetOptions<T extends BaseModel> {
    */
   includeServiceLevelObjective?: boolean | undefined;
   /**
-   * Offer the Cloud Resource type. Off by default because Incident and
-   * Alert are the only parent models with a `cloudResources` relation.
+   * Offer the Cloud Resource type. Off by default because Incident, Alert
+   * and ScheduledMaintenance are the only parent models with a
+   * `cloudResources` relation.
    */
   includeCloudResource?: boolean | undefined;
   /**

@@ -458,8 +458,9 @@ export const CREATE_FROM_RECORD_KINDS: ReadonlyArray<CreateFromRecordKindDefinit
       },
     },
     /*
-     * Only incidents and alerts are attached to a cloud resource: a
-     * maintenance window silences monitors, not cloud resources.
+     * A cloud resource's incidents, alerts and maintenance events: an event
+     * that holds it silences the monitors that read its metrics while it
+     * is in progress (MonitorMaintenanceSuppression).
      */
     {
       kind: CreateFromRecordKind.CloudResource,
@@ -478,6 +479,10 @@ export const CREATE_FROM_RECORD_KINDS: ReadonlyArray<CreateFromRecordKindDefinit
         [CreatedRecordKind.Alert]: {
           page: PageMap.CLOUD_RESOURCE_VIEW_ALERTS,
           title: ALERTS_TAB_TITLE,
+        },
+        [CreatedRecordKind.ScheduledMaintenance]: {
+          page: PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE,
+          title: SCHEDULED_MAINTENANCE_TAB_TITLE,
         },
       },
     },

@@ -23,6 +23,7 @@
     "test-ceph-pages-ui": 2.0,
     "test-chart-time-zoom-ui": 13.1,
     "test-cloud-connect-ui": 10.2,
+    "test-cloud-recommendations-ui": 1.5,
     "test-cloud-spend-ui": 5.0,
     "test-code-editor-ui": 2.6,
     "test-code-ui": 15.0,
