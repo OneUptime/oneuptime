@@ -1727,6 +1727,8 @@ describePostgres("DuplicateRowMerge against Postgres, rule by rule", () => {
       referencesMoved: 3,
       // The duplicate's live eth0 part and its NULL tag.
       twinsDropped: 2,
+      // Parts and tags count nothing: no TwinMerge takes them in.
+      twinsTakenIn: 0,
     });
 
     expect(await parentRow("Box", ids["partsDuplicate"]!)).toBeNull();

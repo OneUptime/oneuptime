@@ -1,4 +1,5 @@
 import logger from "../../Utils/Logger";
+import { EXCEPTION_TWIN_MERGE } from "./ExceptionTwinMerge";
 import { QueryRunner } from "typeorm";
 
 /*
@@ -35,7 +36,9 @@ import { QueryRunner } from "typeorm";
  *     that incident), the kept row's twin stays, and what refers to the moved
  *     row's twin is handed to it first, the same way (an incident's link to
  *     a container that both hosts listed is kept, on the kept host's
- *     container);
+ *     container). Where the twins count something - an exception both hosts
+ *     had, with its occurrences - the kept twin takes the dropped one in
+ *     first (TWIN_MERGES: ExceptionTwinMerge), so nothing it counted is lost;
  *   - is deleted, now that nothing refers to it.
  *
  * The kept row then takes what the group knew: what the agent reports
@@ -120,7 +123,53 @@ export interface DuplicateRowMergeResult {
   referencesMoved: number;
   // Rows of other tables dropped because the kept row already had their twin.
   twinsDropped: number;
+  // Of those, the ones their kept twin took in first (TWIN_MERGES).
+  twinsTakenIn: number;
 }
+
+/*
+ * A twin about to be dropped, and the kept twin that takes it in: two rows
+ * of a referring table that a unique index says are one.
+ */
+export interface TwinToTakeIn {
+  // The referring table, as SQL, quoted: "TelemetryException".
+  table: string;
+  twinId: string;
+  keptId: string;
+  // The columns the table has, without quotes.
+  columns: ReadonlySet<string>;
+}
+
+/*
+ * How the kept row of a referring table takes in its twin before the twin
+ * is dropped - for a table whose rows count something (an exception group
+ * counts its occurrences), where dropping a twin would drop what it
+ * counted.
+ */
+export interface TwinMerge {
+  // The referring table, without quotes: "TelemetryException".
+  table: string;
+  /*
+   * What the kept twin takes from the twin by the rules the kept row of a
+   * group takes by (DuplicateRowMergeOptions): its own where it has one,
+   * else the twin's; and columns taken together from one of them. A column
+   * the table does not have is left out, and so is a group of columns taken
+   * together that names one.
+   */
+  keptOrFirstOf: ReadonlyArray<string>;
+  takenTogether: ReadonlyArray<ColumnsTakenTogether>;
+  latestBy: string;
+  // The rest - its counts, and whatever else is the table's own.
+  takeIn: (queryRunner: QueryRunner, twin: TwinToTakeIn) => Promise<void>;
+}
+
+/*
+ * The referring tables whose twins are taken in before they are dropped,
+ * whichever table's duplicates are being merged: an exception both copies
+ * of a host had becomes one, with both copies' occurrences, triage and
+ * merges (ExceptionTwinMerge).
+ */
+export const TWIN_MERGES: ReadonlyArray<TwinMerge> = [EXCEPTION_TWIN_MERGE];
 
 // A table that refers to another, by one column.
 interface Referrer {
@@ -145,6 +194,7 @@ interface ReferrerUniqueIndex {
 interface Counts {
   referencesMoved: number;
   twinsDropped: number;
+  twinsTakenIn: number;
 }
 
 // How deep twins are followed: a host, its containers, their incident links.
@@ -167,6 +217,7 @@ export default class DuplicateRowMerge {
       rowsMerged: 0,
       referencesMoved: 0,
       twinsDropped: 0,
+      twinsTakenIn: 0,
     };
 
     const groups: Map<string, Array<string>> = await this.findDuplicates(
@@ -196,6 +247,7 @@ export default class DuplicateRowMerge {
         result.rowsMerged += duplicateIds.length;
         result.referencesMoved += counts.referencesMoved;
         result.twinsDropped += counts.twinsDropped;
+        result.twinsTakenIn += counts.twinsTakenIn;
       } catch (error) {
         await queryRunner.rollbackTransaction();
         throw error;
@@ -203,7 +255,7 @@ export default class DuplicateRowMerge {
     }
 
     logger.info(
-      `Merged ${result.rowsMerged} duplicate ${options.table} row(s) into ${result.groupsMerged} kept row(s): ${result.referencesMoved} referring row(s) moved, ${result.twinsDropped} dropped as twins of the kept row's.`,
+      `Merged ${result.rowsMerged} duplicate ${options.table} row(s) into ${result.groupsMerged} kept row(s): ${result.referencesMoved} referring row(s) moved, ${result.twinsDropped} dropped as twins of the kept row's (${result.twinsTakenIn} taken in by their kept twin first).`,
     );
 
     return result;
@@ -259,6 +311,19 @@ export default class DuplicateRowMerge {
 
   private idColumnTables: Map<string, boolean> = new Map<string, boolean>();
 
+  private columnsOfTables: Map<string, ReadonlySet<string>> = new Map<
+    string,
+    ReadonlySet<string>
+  >();
+
+  private twinMergeOfTables: Map<string, TwinMerge | null> = new Map<
+    string,
+    TwinMerge | null
+  >();
+
+  // The twins taken in so far, by table and id: each is taken in once.
+  private twinsTakenIn: Set<string> = new Set<string>();
+
   private constructor(queryRunner: QueryRunner) {
     this.queryRunner = queryRunner;
   }
@@ -268,7 +333,11 @@ export default class DuplicateRowMerge {
     keptId: string;
     duplicateIds: Array<string>;
   }): Promise<Counts> {
-    const counts: Counts = { referencesMoved: 0, twinsDropped: 0 };
+    const counts: Counts = {
+      referencesMoved: 0,
+      twinsDropped: 0,
+      twinsTakenIn: 0,
+    };
     const table: string = `"${data.options.table}"`;
 
     const referrers: Array<Referrer> = [
@@ -351,8 +420,9 @@ export default class DuplicateRowMerge {
   /*
    * The rows referring to `fromId` that would break `index` once they
    * referred to `toId`: the row referring to `toId` with the same values
-   * stays, and theirs go - after their own referrers are handed to it, when
-   * other tables refer to them.
+   * stays, and theirs go - after the kept one takes each in, where its table
+   * counts something (TWIN_MERGES), and after their own referrers are handed
+   * to it, when other tables refer to them.
    */
   private async dropTwins(data: {
     referrer: Referrer;
@@ -380,13 +450,18 @@ export default class DuplicateRowMerge {
       ...conditions,
     ].join(" AND ");
 
+    const hasIdColumn: boolean = await this.hasIdColumn(data.referrer.table);
+
     const twinReferrers: Array<Referrer> =
-      data.depth + 1 < MAX_DEPTH &&
-      (await this.hasIdColumn(data.referrer.table))
+      data.depth + 1 < MAX_DEPTH && hasIdColumn
         ? await this.getReferrers(data.referrer.table)
         : [];
 
-    if (twinReferrers.length > 0) {
+    const twinMerge: TwinMerge | null = hasIdColumn
+      ? await this.getTwinMerge(data.referrer.table)
+      : null;
+
+    if (twinReferrers.length > 0 || twinMerge) {
       const pairs: Array<{ twinId: string; keptId: string }> =
         await this.queryRunner.query(
           `SELECT twin."_id"::text AS "twinId", kept."_id"::text AS "keptId"
@@ -396,13 +471,26 @@ export default class DuplicateRowMerge {
         );
 
       for (const pair of pairs) {
-        await this.moveReferences({
-          referrers: twinReferrers,
-          fromId: pair.twinId,
-          toId: pair.keptId,
-          depth: data.depth + 1,
-          counts: data.counts,
-        });
+        // First what it counted, while what refers to it still does.
+        if (twinMerge) {
+          await this.takeInTwin({
+            twinMerge: twinMerge,
+            table: data.referrer.table,
+            twinId: pair.twinId,
+            keptId: pair.keptId,
+            counts: data.counts,
+          });
+        }
+
+        if (twinReferrers.length > 0) {
+          await this.moveReferences({
+            referrers: twinReferrers,
+            fromId: pair.twinId,
+            toId: pair.keptId,
+            depth: data.depth + 1,
+            counts: data.counts,
+          });
+        }
       }
     }
 
@@ -420,6 +508,58 @@ export default class DuplicateRowMerge {
     );
 
     data.counts.twinsDropped += dropped;
+  }
+
+  /*
+   * The kept twin takes the twin in (a TwinMerge of its table): what a
+   * person set, by the rules the kept row of a group takes by, among the
+   * columns the table has - then the rest, the table's own. Once per twin,
+   * whichever unique index paired them.
+   */
+  private async takeInTwin(data: {
+    twinMerge: TwinMerge;
+    table: string;
+    twinId: string;
+    keptId: string;
+    counts: Counts;
+  }): Promise<void> {
+    const key: string = `${data.table}:${data.twinId.toLowerCase()}`;
+
+    if (this.twinsTakenIn.has(key)) {
+      return;
+    }
+
+    this.twinsTakenIn.add(key);
+
+    const columns: ReadonlySet<string> = await this.getColumns(data.table);
+    const has: (column: string) => boolean = (column: string): boolean => {
+      return columns.has(column);
+    };
+
+    if (has(data.twinMerge.latestBy) && has("createdAt")) {
+      await this.takeOver({
+        table: data.table,
+        keptId: data.keptId,
+        memberIds: [data.keptId, data.twinId],
+        latestOf: [],
+        keptOrFirstOf: data.twinMerge.keptOrFirstOf.filter(has),
+        takenTogether: data.twinMerge.takenTogether.filter(
+          (together: ColumnsTakenTogether): boolean => {
+            return together.columns.every(has);
+          },
+        ),
+        latestBy: data.twinMerge.latestBy,
+      });
+    }
+
+    await data.twinMerge.takeIn(this.queryRunner, {
+      table: data.table,
+      twinId: data.twinId,
+      keptId: data.keptId,
+      columns: columns,
+    });
+
+    data.counts.twinsTakenIn++;
   }
 
   /*
@@ -631,6 +771,63 @@ export default class DuplicateRowMerge {
     this.uniqueIndexes.set(key, indexes);
 
     return indexes;
+  }
+
+  // The columns a table has, without quotes.
+  private async getColumns(table: string): Promise<ReadonlySet<string>> {
+    const known: ReadonlySet<string> | undefined =
+      this.columnsOfTables.get(table);
+
+    if (known) {
+      return known;
+    }
+
+    const rows: Array<{ name: string }> = await this.queryRunner.query(
+      `SELECT a.attname::text AS "name"
+         FROM pg_attribute a
+        WHERE a.attrelid = to_regclass($1)
+          AND a.attnum > 0
+          AND NOT a.attisdropped`,
+      [table],
+    );
+
+    const columns: ReadonlySet<string> = new Set<string>(
+      (Array.isArray(rows) ? rows : []).map((row: { name: string }): string => {
+        return row.name;
+      }),
+    );
+
+    this.columnsOfTables.set(table, columns);
+
+    return columns;
+  }
+
+  // The TwinMerge of a referring table, by its name; null when it has none.
+  private async getTwinMerge(table: string): Promise<TwinMerge | null> {
+    const known: TwinMerge | null | undefined =
+      this.twinMergeOfTables.get(table);
+
+    if (known !== undefined) {
+      return known;
+    }
+
+    const rows: Array<{ name: string | null }> = await this.queryRunner.query(
+      `SELECT c.relname::text AS "name" FROM pg_class c WHERE c.oid = to_regclass($1)`,
+      [table],
+    );
+
+    const name: string | null = Array.isArray(rows)
+      ? rows[0]?.name || null
+      : null;
+
+    const twinMerge: TwinMerge | null =
+      TWIN_MERGES.find((candidate: TwinMerge): boolean => {
+        return candidate.table === name;
+      }) || null;
+
+    this.twinMergeOfTables.set(table, twinMerge);
+
+    return twinMerge;
   }
 
   // Whether a table's rows have an "_id" others can refer to.
