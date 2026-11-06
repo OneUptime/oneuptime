@@ -86,6 +86,10 @@ export const SERVER_TEXT_SOURCES: ReadonlyArray<string> = [
   "packages/Common/Types/StatusPage/StateChangeNoteMessage.ts",
   "packages/Common/Types/StatusPage/DefaultStatusNames.ts",
   "packages/Common/Utils/StatusPage/ReportText.ts",
+  // A person's on-call page, in their own language (Types/UserLanguage).
+  "packages/Common/Types/OnCallDutyPolicy/OnCallPageWords.ts",
+  "packages/Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout.ts",
+  "packages/Common/Types/OnCallDutyPolicy/OnCallPersonPage.ts",
   "packages/App/FeatureSet/Workers/Jobs",
   "packages/App/FeatureSet/Notification/Templates",
 ];

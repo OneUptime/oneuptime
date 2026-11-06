@@ -2,27 +2,27 @@
 
 
 {{> Logo this}}
-{{> EmailTitle title=(concat "Incident Episode " episodeNumber ": " incidentEpisodeTitle) }}
+{{> EmailTitle title=(tt "Incident Episode {{number}}: {{title}}" number=episodeNumber title=incidentEpisodeTitle) }}
 
 {{#if pageAgainInfo}}
 {{> InfoBlock plainInfo=pageAgainInfo}}
 {{else}}
-{{> InfoBlock plainInfo=(concat "A new incident episode has been created in the project - " projectName)}}
+{{> InfoBlock plainInfo=(tt "A new incident episode has been created in the project - {{projectName}}" projectName=projectName)}}
 {{/if}}
 
-{{> InfoBlock info="Here are the details: "}}
+{{> InfoBlock info=(tHtml "Here are the details:")}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Incident Episode Title:" plainText=incidentEpisodeTitle }}
-{{> DetailBoxField title="Current State: " plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
-{{> DetailBoxField title="Resources Affected: " plainText=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " plainText=incidentEpisodeSeverity color=incidentEpisodeSeverityColor textColor=incidentEpisodeSeverityTextColor }}
-{{> DetailBoxField title="Root Cause: " blockText=rootCause  }}
-{{> DetailBoxField title="Description: " blockText=incidentEpisodeDescription  }}
+{{> DetailBoxField title=(t "Incident Episode Title") plainText=incidentEpisodeTitle }}
+{{> DetailBoxField title=(t "Current State") plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
+{{> DetailBoxField title=(t "Resources Affected") plainText=resourcesAffected  }}
+{{> DetailBoxField title=(t "Severity") plainText=incidentEpisodeSeverity color=incidentEpisodeSeverityColor textColor=incidentEpisodeSeverityTextColor }}
+{{> DetailBoxField title=(t "Root Cause") blockText=rootCause  }}
+{{> DetailBoxField title=(t "Description") blockText=incidentEpisodeDescription  }}
 {{> DetailBoxEnd this }}
 
 {{#if incidentsList}}
-{{> TitleBlock title=(concat "Incidents in this Episode (" incidentsCount ")") }}
+{{> TitleBlock title=(ttHtml "Incidents in this Episode ({{count}})" count=incidentsCount) }}
 <!-- Incidents List Container -->
 <table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0"
   width="100%" style="width: 100%; max-width: 100%; table-layout: fixed;">
@@ -53,22 +53,22 @@
 <!-- /Incidents List Container -->
 {{/if}}
 
-{{> InfoBlock info="ACTION REQUIRED: Please acknowledge this incident episode by clicking on the button below - "}}
+{{> InfoBlock info=(tHtml "ACTION REQUIRED: Please acknowledge this incident episode by clicking on the button below.")}}
 
-{{> ButtonBlock buttonUrl=acknowledgeIncidentEpisodeLink buttonText="Acknowledge Incident Episode"}}
+{{> ButtonBlock buttonUrl=acknowledgeIncidentEpisodeLink buttonText=(t "Acknowledge Incident Episode")}}
 
-{{> LinkBlock linkUrl=acknowledgeIncidentEpisodeLink linkLabel="You can also copy and paste this link:"}}
+{{> LinkBlock linkUrl=acknowledgeIncidentEpisodeLink linkLabel=(t "You can also copy and paste this link:")}}
 
 {{#if passOnLink}}
-{{> InfoBlock info="Can't take it? Escalate it, and you will not be paged again for this incident episode."}}
+{{> InfoBlock info=(tHtml "Can't take it? Escalate it, and you will not be paged again for this incident episode.")}}
 
-{{> ButtonBlock buttonUrl=passOnLink buttonText="Escalate" secondary=true}}
+{{> ButtonBlock buttonUrl=passOnLink buttonText=(t "Escalate") secondary=true}}
 {{/if}}
 
-{{> InfoBlock info="You will be notified when the status of this incident episode changes."}}
+{{> InfoBlock info=(tHtml "You will be notified when the status of this incident episode changes.")}}
 
-{{> TitleBlock title="Why am I receiving this email?"}}
-{{> InfoBlock info="You are receiving this email because you are a member of the team that is responsible for this incident episode or you are currently on-call."}}
+{{> TitleBlock title=(tHtml "Why am I receiving this email?")}}
+{{> InfoBlock info=(tHtml "You are receiving this email because you are a member of the team that is responsible for this incident episode or you are currently on-call.")}}
 
 {{> Footer this }}
 
