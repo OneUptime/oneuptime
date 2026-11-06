@@ -45292,5 +45292,5 @@
   "OpenStack's own tracing, with nothing signed. A trace follows a request over RPC and stops at an HTTP call to another service, so what Neutron, Glance or Keystone did for this request is not in it.": "OpenStack 自带的追踪，无需签名。追踪通过 RPC 跟随请求，到对其他服务的 HTTP 调用处就停止了，因此 Neutron、Glance 或 Keystone 为该请求所做的工作不在其中。",
   "OpenStack's own tracing, with nothing signed. This trace goes on across HTTP calls, because this cloud has the guide's line in keystoneauth.": "OpenStack 自带的追踪，无需签名。这条追踪会继续跨越 HTTP 调用，因为这朵云在 keystoneauth 中加了指南里的那一行。",
   "This trace's spans name their requests, so nothing here is a guess.": "此追踪的跨度写明了各自所属的请求，因此这里没有任何猜测。",
-  "What your widest traces crossed: which service called which, how often and how long it took. A service no traced request reached is not on it, and that says nothing about its health.": "你最宽的追踪所经过的路径：哪个服务调用了哪个服务、调用频率以及耗时。没有任何已追踪请求到达的服务不会出现在其中，这并不说明它的运行状况。"
+  "What your widest traces crossed: which service called which, how often and how long it took. A service no traced request reached is not on it, and that says nothing about its health.": "你最宽的追踪所经过的路径：哪个服务调用了哪个服务、调用频率以及耗时。没有任何已追踪请求到达的服务不会出现在其中，这并不说明它的健康状况。"
 }
