@@ -13,7 +13,7 @@ import {
   CloudCommitmentKindFigures,
   CloudCommitmentSummary,
 } from "../../../../Types/Cloud/CloudCommitments";
-import { JSONObject } from "../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import {
   FakeProviderApi,
   FakeResponse,
@@ -89,8 +89,8 @@ const CHARGE_COLUMNS: Array<JSONObject> = [
 
 // Cost Management, the usage query and the charges query each with their rows.
 function costManagement(data: {
-  usage: Array<Array<unknown>>;
-  charges: Array<Array<unknown>>;
+  usage: Array<Array<JSONValue>>;
+  charges: Array<Array<JSONValue>>;
   error?: FakeResponse | undefined;
 }): FakeProviderApi {
   return createFakeProviderApi([

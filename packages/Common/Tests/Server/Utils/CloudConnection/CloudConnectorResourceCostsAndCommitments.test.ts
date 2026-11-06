@@ -474,8 +474,8 @@ describe("AWS: commitments, read with the ways to spend less", () => {
       regions: {},
       commitmentAnswers: COMMITMENTS,
       organizationAccounts: [
-        { id: "123456789012", name: "management" },
-        { id: "210987654321", name: "web-prod" },
+        { Id: "123456789012", Name: "management" },
+        { Id: "210987654321", Name: "web-prod" },
       ],
     });
 
