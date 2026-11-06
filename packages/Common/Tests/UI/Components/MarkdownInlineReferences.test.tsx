@@ -262,14 +262,18 @@ function eventRef(
 }
 
 /*
- * A reference and the punctuation written right after it, kept on one line
+ * A reference - or a run of citations written one right after another -
+ * and the punctuation written right after it, kept on one line
  * (REFERENCE_GROUP_NODE_TYPE).
  */
-function group(reference: Node, punctuation: string): Node {
+function group(references: Node | Array<Node>, punctuation: string = ""): Node {
   return {
     type: REFERENCE_GROUP_NODE_TYPE,
     data: { hName: REFERENCE_GROUP_TAG_NAME },
-    children: [reference, text(punctuation)],
+    children: [
+      ...(Array.isArray(references) ? references : [references]),
+      ...(punctuation ? [text(punctuation)] : []),
+    ],
   };
 }
 
@@ -445,13 +449,12 @@ describe("applyInlineReferences — citation markers", () => {
     ]);
   });
 
-  test("adjacent markers [C4][C5] become two back-to-back nodes with no empty text", () => {
+  test("adjacent markers [C4][C5] become two back-to-back nodes in one group, with no empty text", () => {
     const children: Array<Node> = transformText("dry [C4][C5].");
 
     expect(children).toEqual([
       text("dry "),
-      citation("C4"),
-      group(citation("C5"), "."),
+      group([citation("C4"), citation("C5")], "."),
     ]);
     expect(
       children.some((child: Node): boolean => {
@@ -979,12 +982,14 @@ describe("applyInlineReferences — a citation can never become a link", () => {
     applyInlineReferences(tree, { citations: true, eventReferences: false });
 
     expect(countType(tree, "linkReference")).toBe(0);
-    // "[C4][C4]" is how a full [C4][C4] reference reads once reverted.
+    /*
+     * "[C4][C4]" is how a full [C4][C4] reference reads once reverted: two
+     * chips written one right after the other, kept on one line.
+     */
     expect(tree.children?.[0]?.children).toEqual([
       text("a ["),
       { type: "break" },
-      citation("C4"),
-      citation("C4"),
+      group([citation("C4"), citation("C4")]),
       text(" b]"),
       citation("C18"),
     ]);

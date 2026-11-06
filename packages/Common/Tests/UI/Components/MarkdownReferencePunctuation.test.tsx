@@ -26,6 +26,7 @@ import {
   EVENT_REFERENCE_TAG_NAME,
   InlineReferenceMarkdownNode,
   MARKDOWN_INLINE_REFERENCE_COMPONENTS,
+  MAX_CITATIONS_KEPT_TOGETHER,
   MAX_PUNCTUATION_KEPT_WITH_REFERENCE,
   MarkdownReferenceGroupElement,
   REFERENCE_GROUP_NODE_TYPE,
@@ -68,11 +69,15 @@ function eventRef(
   };
 }
 
-function group(reference: Node, punctuation: string): Node {
+// A reference, or a run of citations, and the marks right after it.
+function group(references: Node | Array<Node>, punctuation: string = ""): Node {
   return {
     type: REFERENCE_GROUP_NODE_TYPE,
     data: { hName: REFERENCE_GROUP_TAG_NAME },
-    children: [reference, text(punctuation)],
+    children: [
+      ...(Array.isArray(references) ? references : [references]),
+      ...(punctuation ? [text(punctuation)] : []),
+    ],
   };
 }
 
@@ -233,11 +238,10 @@ describe("a reference keeps the punctuation written right after it", () => {
     },
   );
 
-  test("a reference right after another keeps the marks for itself alone", () => {
+  test("marks after a run of citations stay with the whole run", () => {
     expect(transform("dry [C4][C5].")).toEqual([
       text("dry "),
-      citation("C4"),
-      group(citation("C5"), "."),
+      group([citation("C4"), citation("C5")], "."),
     ]);
   });
 
@@ -311,6 +315,138 @@ describe("a reference keeps the punctuation written right after it", () => {
   });
 });
 
+/*
+ * A browser breaks a line between two chips as readily as after one: a
+ * report's "requests queued for a connection [C2][C3][C6]." read "C2" at
+ * the end of a line and "C3 C6." at the start of the next, at 1280 pixels
+ * and on phones alike. Citations written one right after another stay on
+ * one line together, with the marks after the last.
+ */
+describe("citations written one right after another stay together", () => {
+  test("a run of three and the full stop after it are one group", () => {
+    expect(
+      transform("so requests queued for a connection [C2][C3][C6]. Then"),
+    ).toEqual([
+      text("so requests queued for a connection "),
+      group([citation("C2"), citation("C3"), citation("C6")], "."),
+      text(" Then"),
+    ]);
+  });
+
+  test("a run with no mark after it is a group too", () => {
+    expect(transform("checked [C6][C9] and moved on")).toEqual([
+      text("checked "),
+      group([citation("C6"), citation("C9")]),
+      text(" and moved on"),
+    ]);
+  });
+
+  test("a run at the very start of the text, closing it", () => {
+    expect(transform("[C1][C2]")).toEqual([
+      group([citation("C1"), citation("C2")]),
+    ]);
+  });
+
+  test.each([
+    [
+      "a space",
+      "dry [C1] [C2].",
+      [text("dry "), citation("C1"), text(" "), group(citation("C2"), ".")],
+    ],
+    [
+      "a mark",
+      "dry [C1],[C2].",
+      [text("dry "), group(citation("C1"), ","), group(citation("C2"), ".")],
+    ],
+    [
+      "a word",
+      "dry [C1]and[C2]",
+      [text("dry "), citation("C1"), text("and"), citation("C2")],
+    ],
+  ])(
+    "%s between two citations ends the run",
+    (_what: string, value: string, expected: Array<Node>) => {
+      expect(transform(value)).toEqual(expected);
+    },
+  );
+
+  test(`a longer run is kept together ${MAX_CITATIONS_KEPT_TOGETHER} at a time, the marks with the last`, () => {
+    const ids: Array<string> = ["C1", "C2", "C3", "C4", "C5", "C6", "C7"];
+    const children: Array<Node> = transform(
+      `see ${ids
+        .map((id: string): string => {
+          return `[${id}]`;
+        })
+        .join("")}.`,
+    );
+
+    expect(MAX_CITATIONS_KEPT_TOGETHER).toBe(5);
+    expect(children).toEqual([
+      text("see "),
+      group(ids.slice(0, MAX_CITATIONS_KEPT_TOGETHER).map(citation)),
+      group(ids.slice(MAX_CITATIONS_KEPT_TOGETHER).map(citation), "."),
+    ]);
+  });
+
+  test("a record's pill never joins a run: each keeps its own marks", () => {
+    expect(transform("as incident #12[C1].")).toEqual([
+      text("as incident "),
+      eventRef("incident", 12),
+      group(citation("C1"), "."),
+    ]);
+    expect(transform("dry [C1]#12.")).toEqual([
+      text("dry "),
+      citation("C1"),
+      group(eventRef("", 12), "."),
+    ]);
+  });
+
+  test("with citations off, a run is text", () => {
+    expect(
+      transform("dry [C1][C2].", { citations: false, eventReferences: true }),
+    ).toEqual([text("dry [C1][C2].")]);
+  });
+
+  test("nothing a reader sees is added, lost or reordered", () => {
+    const value: string =
+      "Pool [C2][C3][C6]. Cache [C1][C4], disk [C5][C7][C8][C9][C10][C11]\u{3002} done [C12][C13]";
+
+    expect(visibleText(transform(value))).toBe(value);
+  });
+
+  test("a second pass changes nothing: a run is never split again", () => {
+    const tree: Node = {
+      type: "root",
+      children: [
+        {
+          type: "paragraph",
+          children: [text("dry [C1][C2][C3]. then [C4][C5]")],
+        },
+      ],
+    };
+
+    applyInlineReferences(tree, BOTH);
+    const once: string = JSON.stringify(tree);
+    applyInlineReferences(tree, BOTH);
+
+    expect(JSON.stringify(tree)).toBe(once);
+  });
+
+  // Model text: a run as long as the text takes time in line with it.
+  test("400,000 characters of one run of citations: linear in the text", () => {
+    const value: string = `${"[C1]".repeat(100000)}.`;
+    const run: FastestRun<number> = fastestRun({
+      run: (): number => {
+        return transform(value).length;
+      },
+      limitInMs: 2000,
+    });
+
+    expect(run.inMs).toBeLessThan(2000);
+    expect(run.result).toBe(100000 / MAX_CITATIONS_KEPT_TOGETHER);
+  });
+});
+
 describe("the group's element", () => {
   test("is registered for its tag, beside the two references", () => {
     expect(MARKDOWN_INLINE_REFERENCE_COMPONENTS[REFERENCE_GROUP_TAG_NAME]).toBe(
@@ -334,6 +470,33 @@ describe("the group's element", () => {
     expect(span).toHaveClass("whitespace-nowrap");
     expect(span.textContent).toBe("C7.");
     expect(span.querySelector("button")).toHaveTextContent("C7");
+
+    cleanup();
+  });
+
+  test("draws a run of chips and their full stop in one span that never wraps", () => {
+    render(
+      <p>
+        requests queued for a connection{" "}
+        <MarkdownReferenceGroupElement>
+          <button type="button">C2</button>
+          <button type="button">C3</button>
+          <button type="button">C6</button>.
+        </MarkdownReferenceGroupElement>
+      </p>,
+    );
+
+    const span: HTMLElement = screen.getByTestId("markdown-reference-group");
+
+    expect(span).toHaveClass("whitespace-nowrap");
+    expect(span.textContent).toBe("C2C3C6.");
+    expect(
+      Array.from(span.querySelectorAll("button")).map(
+        (button: HTMLButtonElement): string => {
+          return button.textContent || "";
+        },
+      ),
+    ).toEqual(["C2", "C3", "C6"]);
 
     cleanup();
   });

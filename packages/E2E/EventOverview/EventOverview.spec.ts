@@ -22397,15 +22397,18 @@ function markShapesOf(elements: Array<Element>): Array<string> {
 }
 
 /*
- * A citation chip or a record's pill and the marks right after it, as
- * InlineReferences groups them (markdown-reference-group): its words -
- * "C7." or "#1017," - and where the marks are drawn against it.
+ * A citation chip or a record's pill - or a run of chips written one right
+ * after another - and the marks right after it, as InlineReferences groups
+ * them (markdown-reference-group): its words - "C7.", "#1017," or
+ * "C2+C3+C6." - and where its parts are drawn against each other.
  */
 interface ReferenceGroupReading {
   words: string;
-  // The marks' middle within the line the reference ends on.
+  // Every chip of a run on one line.
+  isRunOnOneLine: boolean;
+  // The marks' middle within the line the last reference ends on.
   isOnItsLine: boolean;
-  // The marks after the reference, in its line's reading direction.
+  // The marks after the last reference, in its line's reading direction.
   isAfterIt: boolean;
 }
 
@@ -22413,19 +22416,40 @@ function readReferenceGroups(
   groups: Array<Element>,
 ): Array<ReferenceGroupReading> {
   return groups.map((group: Element): ReferenceGroupReading => {
-    const reference: Element = group.firstElementChild!;
-    const marks: ChildNode = group.lastChild!;
+    const references: Array<Element> = Array.from(group.children);
+    const last: Element = references[references.length - 1]!;
+    const marks: ChildNode | null =
+      group.lastChild && group.lastChild.nodeType === Node.TEXT_NODE
+        ? group.lastChild
+        : null;
+    const firstTop: number = references[0]!.getClientRects()[0]!.top;
+    const isRunOnOneLine: boolean = references.every(
+      (reference: Element): boolean => {
+        return Math.abs(reference.getClientRects()[0]!.top - firstTop) < 4;
+      },
+    );
+    const words: string = `${references
+      .map((reference: Element): string => {
+        return (reference.textContent || "").trim();
+      })
+      .join("+")}${marks ? marks.textContent || "" : ""}`;
+
+    if (!marks) {
+      return { words, isRunOnOneLine, isOnItsLine: true, isAfterIt: true };
+    }
+
     const range: Range = document.createRange();
     range.selectNodeContents(marks);
     const markBox: DOMRect = range.getBoundingClientRect();
-    const referenceLines: DOMRectList = reference.getClientRects();
+    const referenceLines: DOMRectList = last.getClientRects();
     const referenceBox: DOMRect = referenceLines[referenceLines.length - 1]!;
     const middle: number = markBox.top + markBox.height / 2;
     const isRightToLeft: boolean =
       window.getComputedStyle(group).direction === "rtl";
 
     return {
-      words: `${(reference.textContent || "").trim()}${marks.textContent || ""}`,
+      words,
+      isRunOnOneLine,
       isOnItsLine: middle > referenceBox.top && middle < referenceBox.bottom,
       isAfterIt: isRightToLeft
         ? markBox.right <= referenceBox.left + 1
@@ -22437,14 +22461,15 @@ function readReferenceGroups(
 /*
  * The chips and pills with a mark right after them in Incident #1042's
  * opened report (?impact=on), in order: its Summary's, its Impact
- * section's, its root cause's and its next steps'.
+ * section's, its root cause's and its next steps'. Chips written one right
+ * after another are one group: "[C2][C3][C6]." and "[C6][C9].".
  */
 const REPORT_REFERENCE_GROUPS: ReadonlyArray<string> = [
-  "C6.",
+  "C2+C3+C6.",
   "#1017,",
   "C1.",
   "C7.",
-  "C9.",
+  "C6+C9.",
   "C2.",
   "C3.",
   "C6,",
@@ -22474,11 +22499,12 @@ function referenceGroupBlock(page: Page, index: number): Locator {
 
 /*
  * Every citation chip and record pill in the opened report keeps the mark
- * right after it on its line, after it - at 390px and at the phone widths
- * around it. And the control: with the groups' nowrap taken off, a mark
- * at one of those widths starts a line of its own, so they are widths
- * where the group matters. Returns the groups the control found apart at
- * 390px, the page left at 390px.
+ * right after it on its line, after it, and every run of chips stays on one
+ * line - at 390px and at the phone widths around it. And the control: with
+ * the groups' nowrap taken off, a mark or a run's next chip at one of those
+ * widths starts a line of its own, so they are widths where the group
+ * matters. Returns the groups the control found apart at 390px, the page
+ * left at 390px.
  */
 async function expectMarksBesideTheirReferences(
   page: Page,
@@ -22498,6 +22524,10 @@ async function expectMarksBesideTheirReferences(
       }),
     ).toEqual(REPORT_REFERENCE_GROUPS);
     for (const group of built) {
+      expect(
+        group.isRunOnOneLine,
+        `${group.words} at ${width}px: its chips on one line`,
+      ).toBe(true);
       expect(
         group.isOnItsLine,
         `${group.words} at ${width}px: its mark on its line`,
@@ -22520,7 +22550,7 @@ async function expectMarksBesideTheirReferences(
     });
     const apart: Array<number> = [];
     unbound.forEach((group: ReferenceGroupReading, index: number): void => {
-      if (!group.isOnItsLine) {
+      if (!group.isOnItsLine || !group.isRunOnOneLine) {
         apart.push(index);
       }
     });
@@ -22533,7 +22563,7 @@ async function expectMarksBesideTheirReferences(
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
     apartAnywhere,
-    "without the group, a mark at one of these widths starts a line of its own",
+    "without the group, a mark or a run's chip at one of these widths starts a line of its own",
   ).toBeGreaterThan(0);
   return apartAt390;
 }
@@ -22620,7 +22650,7 @@ test.describe("what an investigation says it hurts, first (?impact=on)", () => {
     await screenshotElement(section, "investigation-impact-1280");
   });
 
-  test("folded, at 1280px: under the summary, the short numbers its run recorded - 1,240 requests, 2 services, 1 of 2 SLOs affected - each with the full report's mark for it; opened, the report's Impact section says it in full instead", async ({
+  test("folded, at 1280px: under the summary, the short numbers its run recorded - 1,240 requests, 2 services, 1 of 2 SLOs affected - each with the full report's mark for it; opened, the report's Impact section says it in full instead, and every run of citations stays on one line", async ({
     page,
   }: {
     page: Page;
@@ -22719,6 +22749,28 @@ test.describe("what an investigation says it hurts, first (?impact=on)", () => {
         .getByTestId("investigation-impact-line")
         .evaluateAll(markShapesOf),
     ).toEqual(foldedMarks);
+
+    /*
+     * At 1280px too, every run of chips stays on one line with the mark
+     * after it: the Summary's "[C2][C3][C6]." read "C2" at the end of a line
+     * and "C3 C6." at the start of the next.
+     */
+    await expect(referenceGroups(page)).toHaveCount(
+      REPORT_REFERENCE_GROUPS.length,
+    );
+    const groups: Array<ReferenceGroupReading> =
+      await referenceGroups(page).evaluateAll(readReferenceGroups);
+    expect(
+      groups.map((group: ReferenceGroupReading): string => {
+        return group.words;
+      }),
+    ).toEqual(REPORT_REFERENCE_GROUPS);
+    for (const group of groups) {
+      expect(group.isRunOnOneLine, `${group.words}: one line`).toBe(true);
+      expect(group.isOnItsLine, `${group.words}: its mark beside it`).toBe(
+        true,
+      );
+    }
   });
 
   test("at 390px, in English and in German: every citation chip and record pill in the opened report keeps the mark right after it on its line - at the phone widths around it too", async ({

@@ -28,10 +28,11 @@ import {
  *   - It only ever captures regex-validated tokens (`C\d{1,3}`, `\d{1,9}`) and
  *     never creates `link` or `image` nodes. The custom tag names are ours;
  *     remark-parse never sets `hName` and raw HTML renders as text, so model
- *     text cannot author one of these elements. A reference and the
- *     punctuation right after it go into a group of our own that only keeps
- *     them on one line (REFERENCE_GROUP_NODE_TYPE): it holds that reference
- *     and those marks, nothing else.
+ *     text cannot author one of these elements. A reference - or a run of
+ *     citations written one right after another - and the punctuation
+ *     right after it go into a group of our own that only keeps them on
+ *     one line (REFERENCE_GROUP_NODE_TYPE): it holds those references and
+ *     those marks, nothing else.
  *   - It never splits text inside links, link references, code or HTML, so no
  *     interactive element ever nests inside a neutralized link.
  *   - A model can turn "[C12]" into a link reference by also writing a
@@ -46,8 +47,8 @@ import {
 export const CITATION_REFERENCE_TAG_NAME: string = "oneuptime-citation-ref";
 export const EVENT_REFERENCE_TAG_NAME: string = "oneuptime-event-ref";
 /*
- * A reference and the punctuation written right after it, kept on one line
- * (REFERENCE_GROUP_NODE_TYPE).
+ * A reference - or a run of citations - and the punctuation written right
+ * after it, kept on one line (REFERENCE_GROUP_NODE_TYPE).
  */
 export const REFERENCE_GROUP_TAG_NAME: string = "oneuptime-ref-group";
 
@@ -62,8 +63,12 @@ export const EVENT_REFERENCE_NODE_TYPE: string = "oneuptimeEventReference";
  * and "#305," its comma. So a reference and the punctuation that follows it
  * with no space between - "[C7].", "#305,", "[C2]).", "[C4]،" - go into one
  * node that is drawn as a span that never wraps inside
- * (MarkdownReferenceGroupElement). A reference followed by a space, a
- * letter or nothing stays as it was.
+ * (MarkdownReferenceGroupElement). A browser breaks a line between two
+ * chips as readily, so citations written one right after another -
+ * "[C2][C3][C6]." - go into one group too, with the marks after the last:
+ * on a phone the run read "C2" at the end of one line and "C3 C6." at the
+ * start of the next. A reference followed by a space, a letter or nothing,
+ * on its own, stays as it was.
  */
 export const REFERENCE_GROUP_NODE_TYPE: string = "oneuptimeReferenceGroup";
 
@@ -74,6 +79,15 @@ export const REFERENCE_GROUP_NODE_TYPE: string = "oneuptimeReferenceGroup";
  * cannot wrap.
  */
 export const MAX_PUNCTUATION_KEPT_WITH_REFERENCE: number = 4;
+
+/*
+ * How many citations written one right after another stay on one line
+ * together: more than the runs an answer writes ("[C2][C3][C6]"), few
+ * enough that a run of chips is never wider than a phone's line. A longer
+ * run is kept together this many at a time. Record pills are written apart
+ * ("#1017, #1029") and are wider: each keeps only its own marks.
+ */
+export const MAX_CITATIONS_KEPT_TOGETHER: number = 5;
 
 export type MarkdownEventReferenceKind = "incident" | "alert";
 
@@ -207,12 +221,12 @@ function createEventReferenceNode(
 }
 
 /*
- * A reference and the punctuation right after it, drawn on one line
- * (REFERENCE_GROUP_NODE_TYPE). It holds nothing but the reference node and
- * the marks' text.
+ * A reference - or a run of citations - and the punctuation right after
+ * it, drawn on one line (REFERENCE_GROUP_NODE_TYPE). It holds nothing but
+ * the reference nodes and the marks' text, when there are marks.
  */
 function createReferenceGroupNode(
-  reference: InlineReferenceMarkdownNode,
+  references: Array<InlineReferenceMarkdownNode>,
   punctuation: string,
 ): InlineReferenceMarkdownNode {
   return {
@@ -220,8 +234,42 @@ function createReferenceGroupNode(
     data: {
       hName: REFERENCE_GROUP_TAG_NAME,
     },
-    children: [reference, createTextNode(punctuation)],
+    children: punctuation
+      ? [...references, createTextNode(punctuation)]
+      : [...references],
   };
+}
+
+function isCitationMatch(match: InlineReferenceMatch | undefined): boolean {
+  return match?.node.type === CITATION_REFERENCE_NODE_TYPE;
+}
+
+/*
+ * The citations from `kept[index]` on that are written one right after
+ * another - nothing between them - up to MAX_CITATIONS_KEPT_TOGETHER: the
+ * run that stays on one line. A record's pill is a run of its own.
+ */
+function readCitationRun(
+  kept: Array<InlineReferenceMatch>,
+  index: number,
+): Array<InlineReferenceMatch> {
+  const run: Array<InlineReferenceMatch> = [kept[index]!];
+
+  if (!isCitationMatch(kept[index])) {
+    return run;
+  }
+
+  while (run.length < MAX_CITATIONS_KEPT_TOGETHER) {
+    const next: InlineReferenceMatch | undefined = kept[index + run.length];
+
+    if (!isCitationMatch(next) || next!.start !== run[run.length - 1]!.end) {
+      break;
+    }
+
+    run.push(next!);
+  }
+
+  return run;
 }
 
 /*
@@ -484,27 +532,43 @@ function splitTextNode(
 
   const result: Array<InlineReferenceMarkdownNode> = [];
   let cursor: number = 0;
+  let index: number = 0;
 
-  for (let index: number = 0; index < kept.length; index++) {
+  while (index < kept.length) {
     const match: InlineReferenceMatch = kept[index]!;
 
     if (match.start > cursor) {
       result.push(createTextNode(value.slice(cursor, match.start)));
     }
 
+    // The citations written right after it stay with it ("[C2][C3][C6]").
+    const run: Array<InlineReferenceMatch> = readCitationRun(kept, index);
+    const last: InlineReferenceMatch = run[run.length - 1]!;
+
+    index += run.length;
+
     /*
-     * The punctuation written right after it goes with it, up to the next
-     * reference ("[C4][C5]." keeps the "." with C5 alone).
+     * The punctuation written right after the run goes with it, up to the
+     * next reference ("[C4].[C5]" keeps the "." with C4 alone).
      */
     const punctuation: string = readPunctuationAfterReference(
       value,
-      match.end,
-      kept[index + 1]?.start ?? value.length,
+      last.end,
+      kept[index]?.start ?? value.length,
     );
 
-    if (punctuation) {
-      result.push(createReferenceGroupNode(match.node, punctuation));
-      cursor = match.end + punctuation.length;
+    if (run.length > 1 || punctuation) {
+      result.push(
+        createReferenceGroupNode(
+          run.map(
+            (reference: InlineReferenceMatch): InlineReferenceMarkdownNode => {
+              return reference.node;
+            },
+          ),
+          punctuation,
+        ),
+      );
+      cursor = last.end + punctuation.length;
       continue;
     }
 
@@ -722,11 +786,13 @@ export const MarkdownEventReferenceElement: FunctionComponent<
 };
 
 /*
- * A reference and the punctuation right after it, on one line: the browser
- * may break the line after a chip's or a pill's box, and a full stop then
- * started the next line alone. Nothing inside it wraps, and it holds a few
- * characters only (MAX_PUNCTUATION_KEPT_WITH_REFERENCE marks and one
- * reference), so it never makes a line too long to fit.
+ * A reference - or a run of citations - and the punctuation right after it,
+ * on one line: the browser may break the line after a chip's or a pill's
+ * box, and a full stop then started the next line alone, or a run of
+ * sources was split between two lines. Nothing inside it wraps, and it
+ * holds a few characters only (MAX_PUNCTUATION_KEPT_WITH_REFERENCE marks
+ * and one pill, or at most MAX_CITATIONS_KEPT_TOGETHER citation chips), so
+ * it never makes a line too long to fit.
  */
 export interface MarkdownReferenceGroupElementProps {
   children?: ReactNode | undefined;
