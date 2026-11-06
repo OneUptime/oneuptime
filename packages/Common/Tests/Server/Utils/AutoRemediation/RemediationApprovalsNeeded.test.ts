@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import Project from "../../../../Models/DatabaseModels/Project";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import {
@@ -252,7 +253,7 @@ describe("getFixApprovalsNeeded", () => {
 
 describe("readTwoApprovalsRule", () => {
   test("reads the project's rule as OneUptime, the column alone", async () => {
-    const find: jest.SpiedFunction<typeof ProjectService.findOneById> = jest
+    const find: SpyInstance<typeof ProjectService.findOneById> = jest
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue({
         requireTwoApprovalsForRiskierFixes: true,

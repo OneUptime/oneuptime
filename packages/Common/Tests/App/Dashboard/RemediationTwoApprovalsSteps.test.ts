@@ -85,9 +85,14 @@ function command(tier: KubectlCommandTier): JSONObject {
   };
 }
 
-function fix(
-  data: Partial<RemediationFixStepSuggestion> & JSONObject = {},
-): RemediationFixStepSuggestion {
+// The fields a test sets on a fix: undefined takes one away.
+type FixFields = {
+  [Key in keyof RemediationFixStepSuggestion]?:
+    | RemediationFixStepSuggestion[Key]
+    | undefined;
+} & JSONObject;
+
+function fix(data: FixFields = {}): RemediationFixStepSuggestion {
   return {
     status: AutoRemediationSuggestionStatus.Suggested,
     suggestionType: AutoRemediationSuggestionType.CommandPlan,
@@ -99,7 +104,7 @@ function fix(
 
 // Maya approved it first, from Slack.
 function approvedFirstByMaya(
-  data: Partial<RemediationFixStepSuggestion> & JSONObject = {},
+  data: FixFields = {},
 ): RemediationFixStepSuggestion {
   return fix({
     firstApprovedByUserId: new ObjectID(MAYA),
