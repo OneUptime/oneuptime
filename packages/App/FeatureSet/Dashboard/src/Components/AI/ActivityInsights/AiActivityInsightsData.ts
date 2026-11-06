@@ -29,7 +29,9 @@ import { Gray500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  DOT_ZERO_INLINE_SEPARATOR,
   getGlobalTranslator,
+  INLINE_SEPARATOR,
   PluralTemplate,
   TemplateValues,
   translatableTerm,
@@ -39,7 +41,6 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import { ARABIC_LIST_SEPARATOR } from "Common/UI/Utils/ListSeparator";
 
 /*
  * The pure half of an AI Insights page (AiActivityInsightsPage): how the
@@ -114,16 +115,18 @@ function translatePlural(
 }
 
 /*
- * FACTS JOINED LIKE A LIST - "3 fixes proposed · 2 applied" - with a middle
- * dot between them, and with the Persian comma on a Persian page: Persian
- * writes zero as a dot ("۰"), so a middle dot beside a count read as one
- * more digit of it, "۴ applied · ۲ verified" as "۴۰" and "۲۰". Read from
- * the facts themselves, as ListSeparator reads a list, so a line a locale
- * has not translated yet keeps its English dots.
+ * FACTS ON ONE LINE - "3 fixes proposed · 2 applied" - with a middle dot
+ * between them, and with a bullet on a Persian line, as every line of facts
+ * in the product sets them apart there (Types/Translator's
+ * getInlineSeparator, InlineSeparator): Persian writes zero as a dot
+ * ("۰"), so a middle dot beside a count read as one more digit of it, "۴
+ * applied · ۲ verified" as "۴۰" and "۲۰". Read from the facts themselves,
+ * as ListSeparator reads a list, so a line a locale has not translated yet
+ * keeps its English dots.
  */
-export const AI_INSIGHTS_FACT_SEPARATOR: string = " · ";
+export const AI_INSIGHTS_FACT_SEPARATOR: string = INLINE_SEPARATOR;
 
-// Persian (and Arabic and Urdu) facts are joined with the Persian comma.
+// Persian (and Arabic and Urdu) facts are set apart with a bullet.
 const ARABIC_SCRIPT_REGEX: RegExp = /\p{Script=Arabic}/u;
 
 export function joinFacts(facts: ReadonlyArray<string>): string {
@@ -132,7 +135,7 @@ export function joinFacts(facts: ReadonlyArray<string>): string {
   });
 
   return facts.join(
-    isArabicScript ? ARABIC_LIST_SEPARATOR : AI_INSIGHTS_FACT_SEPARATOR,
+    isArabicScript ? DOT_ZERO_INLINE_SEPARATOR : AI_INSIGHTS_FACT_SEPARATOR,
   );
 }
 

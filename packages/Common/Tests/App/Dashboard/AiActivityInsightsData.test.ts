@@ -70,6 +70,7 @@ import {
   AiActivityTrendDay,
 } from "../../../Types/AI/AiActivityInsights";
 import AIInsightSeverity from "../../../Types/AI/AIInsightSeverity";
+import { getInlineSeparator } from "../../../Types/Translator";
 import { Gray500, Red500, Yellow500 } from "../../../Types/BrandColors";
 import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -1668,9 +1669,10 @@ describe("when a problem tends to happen, in the reader's own time", () => {
 
 /*
  * A line of facts - "3 fixes proposed · 2 applied" - is joined with a
- * middle dot, and in Persian with the Persian comma: Persian writes zero as
- * a dot ("۰"), and a middle dot beside a count read as one more digit of
- * it ("۴ · ۲" as "۴۰ ۲").
+ * middle dot, and in Persian with a bullet, as every line of facts in the
+ * product is there (getInlineSeparator): Persian writes zero as a dot
+ * ("۰"), and a middle dot beside a count read as one more digit of it
+ * ("۴ · ۲" as "۴۰ ۲").
  */
 describe("facts joined like a list", () => {
   test("English, German, Japanese and Chinese: a middle dot between them", () => {
@@ -1686,7 +1688,7 @@ describe("facts joined like a list", () => {
     ).toBe("\u{4FEE}\u{6B63} 3 \u{4EF6} · \u{9069}\u{7528} 2 \u{4EF6}");
   });
 
-  test("Persian: the Persian comma, never a dot beside a Persian digit", () => {
+  test("Persian: a bullet, never a middle dot beside a Persian digit", () => {
     const persian: Array<string> = [
       "\u{6F6} \u{627}\u{635}\u{644}\u{627}\u{62D} \u{67E}\u{6CC}\u{634}\u{646}\u{647}\u{627}\u{62F} \u{634}\u{62F}",
       "\u{6F4} \u{627}\u{639}\u{645}\u{627}\u{644}\u{200C}\u{634}\u{62F}\u{647}",
@@ -1694,14 +1696,16 @@ describe("facts joined like a list", () => {
     ];
     const line: string = joinFacts(persian);
 
-    expect(line).toBe(persian.join("\u{60C} "));
+    expect(line).toBe(persian.join(" \u{2022} "));
     expect(line).not.toContain("\u{B7}");
+    // The separator every other line of Persian facts takes.
+    expect(line).toBe(persian.join(getInlineSeparator("fa")));
   });
 
   test("a line one of whose facts is Persian is a Persian line", () => {
     expect(
       joinFacts(["Checkout API", "\u{6F2} \u{645}\u{634}\u{6A9}\u{644}"]),
-    ).toBe("Checkout API\u{60C} \u{6F2} \u{645}\u{634}\u{6A9}\u{644}");
+    ).toBe("Checkout API \u{2022} \u{6F2} \u{645}\u{634}\u{6A9}\u{644}");
   });
 
   test("one fact, or none, is joined with nothing", () => {
