@@ -45990,7 +45990,6 @@
   "{{tab}} signals": "{{tab}} 신호",
   "Open the metrics explorer with this time window": "이 시간 범위로 메트릭 탐색기 열기",
   "Open the traces explorer with this scope": "이 범위로 트레이스 탐색기 열기",
-  "What this host is and runs, as its collector reports it.": "컬렉터가 보고한 대로, 이 호스트가 무엇이며 무엇을 실행하는지 보여 줍니다.",
   "Events from any source that name one of these. A private address is left out: another network can use it too.": "Events from any source that name one of these. A private address is left out: another network can use it too.",
   "Every security event read from the syslog this device sends the probe, whatever it names.": "Every security event read from the syslog this device sends the probe, whatever it names.",
   "Its own logs": "Its own logs",

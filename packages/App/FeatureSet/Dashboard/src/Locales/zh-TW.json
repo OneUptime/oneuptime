@@ -45990,7 +45990,6 @@
   "{{tab}} signals": "{{tab}}訊號",
   "Open the metrics explorer with this time window": "以此時間範圍開啟指標瀏覽器",
   "Open the traces explorer with this scope": "以此範圍開啟追蹤瀏覽器",
-  "What this host is and runs, as its collector reports it.": "此主機是什麼、執行著什麼，依其收集器的回報顯示。",
   "Events from any source that name one of these. A private address is left out: another network can use it too.": "Events from any source that name one of these. A private address is left out: another network can use it too.",
   "Every security event read from the syslog this device sends the probe, whatever it names.": "Every security event read from the syslog this device sends the probe, whatever it names.",
   "Its own logs": "Its own logs",

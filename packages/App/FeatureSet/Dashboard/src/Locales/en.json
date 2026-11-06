@@ -45990,7 +45990,6 @@
   "{{tab}} signals": "{{tab}} signals",
   "Open the metrics explorer with this time window": "Open the metrics explorer with this time window",
   "Open the traces explorer with this scope": "Open the traces explorer with this scope",
-  "What this host is and runs, as its collector reports it.": "What this host is and runs, as its collector reports it.",
   "Events from any source that name one of these. A private address is left out: another network can use it too.": "Events from any source that name one of these. A private address is left out: another network can use it too.",
   "Every security event read from the syslog this device sends the probe, whatever it names.": "Every security event read from the syslog this device sends the probe, whatever it names.",
   "Its own logs": "Its own logs",

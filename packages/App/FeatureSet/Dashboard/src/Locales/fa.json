@@ -45990,7 +45990,6 @@
   "{{tab}} signals": "سیگنال‌های {{tab}}",
   "Open the metrics explorer with this time window": "باز کردن کاوشگر متریک با این بازهٔ زمانی",
   "Open the traces explorer with this scope": "باز کردن کاوشگر ترِیس با این محدوده",
-  "What this host is and runs, as its collector reports it.": "این میزبان چیست و چه اجرا می‌کند، همان‌طور که کالکتورش گزارش می‌دهد.",
   "Events from any source that name one of these. A private address is left out: another network can use it too.": "Events from any source that name one of these. A private address is left out: another network can use it too.",
   "Every security event read from the syslog this device sends the probe, whatever it names.": "Every security event read from the syslog this device sends the probe, whatever it names.",
   "Its own logs": "Its own logs",
