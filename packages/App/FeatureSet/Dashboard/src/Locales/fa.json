@@ -45352,6 +45352,12 @@
   "Only if {{first}} or {{second}}": "فقط اگر {{first}} یا {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "فقط اگر {{first}}، {{second}} و {{third}}",
   "Only if {{first}}, {{second}} or {{third}}": "فقط اگر {{first}}، {{second}} یا {{third}}",
+  "AI Agent Keys": "کلیدهای عامل هوش مصنوعی",
+  "Making a key for this agent…": "در حال ساختن کلید برای این عامل…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime کلیدی برای این عامل نفرستاد. دوباره تلاش کنید.",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "این فرمان کلیدی دارد که فقط برای این عامل ساخته شده است. آن را ظرف یک روز اجرا کنید، یا برای کلید تازه این پنجره را دوباره باز کنید.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} بازنشانی شد و کلیدش دیگر کار نمی‌کند. برای وصل کردنش فرمان راه‌اندازی‌اش را دوباره اجرا کنید: «تغییر» آن را نشان می‌دهد.",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "این کار کلید {{agentName}} را بی‌درنگ باطل می‌کند. تا وقتی فرمان راه‌اندازی‌اش را دوباره اجرا نکنید قطع می‌ماند: «تغییر» آن را با کلیدی تازه نشان می‌دهد.",
   "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "لاگ‌هایی که ویژگی‌های منبع cloud.platform، cloud.account.id و cloud.region این محیط را دارند، اینجا نمایش داده می‌شوند؛ وقتی حساب AWS آن CloudWatch Logs را جریان دهد، آن لاگ‌ها هم اینجا نمایش داده می‌شوند: در Cloud > اتصال، روی اتصال حساب «جریان‌دادن متریک‌ها و لاگ‌ها» را انتخاب کنید.",
   "Nothing came from this resource's log group in this time range. Choose a longer range, or check that the stream includes its log group: Stream metrics and logs, on its account's connection in Cloud > Connect.": "در این بازهٔ زمانی چیزی از گروه لاگ این منبع نرسیده است. بازهٔ طولانی‌تری انتخاب کنید، یا بررسی کنید که جریان، گروه لاگ آن را شامل شود: «جریان‌دادن متریک‌ها و لاگ‌ها»، روی اتصال حساب آن در Cloud > اتصال."
 }

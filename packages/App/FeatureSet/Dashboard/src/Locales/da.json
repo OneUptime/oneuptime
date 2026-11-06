@@ -45352,6 +45352,12 @@
   "Only if {{first}} or {{second}}": "Kun hvis {{first}} eller {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Kun hvis {{first}}, {{second}} og {{third}}",
   "Only if {{first}}, {{second}} or {{third}}": "Kun hvis {{first}}, {{second}} eller {{third}}",
+  "AI Agent Keys": "AI-agentnøgler",
+  "Making a key for this agent…": "Opretter en nøgle til denne agent…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime sendte ingen nøgle til denne agent. Prøv igen.",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "Kommandoen indeholder en nøgle, der kun er lavet til denne agent. Kør den inden for en dag, eller åbn denne dialog igen for at få en ny.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} blev nulstillet, og dens nøgle virker ikke længere. Kør dens opsætningskommando igen for at forbinde den: Skift viser den.",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Dette tilbagekalder straks nøglen til {{agentName}}. Agenten forbliver afbrudt, indtil du kører dens opsætningskommando igen: Skift viser den med en ny nøgle.",
   "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "Logs vises her, når de har dette miljøs ressourceattributter cloud.platform, cloud.account.id og cloud.region, eller når dets AWS-konto streamer CloudWatch Logs: vælg Stream metrikker og logge på kontoens forbindelse under Cloud > Forbind.",
   "Nothing came from this resource's log group in this time range. Choose a longer range, or check that the stream includes its log group: Stream metrics and logs, on its account's connection in Cloud > Connect.": "Intet kom fra denne ressources loggruppe i dette tidsrum. Vælg et længere tidsrum, eller tjek, at streamen omfatter dens loggruppe: Stream metrikker og logge på kontoens forbindelse under Cloud > Forbind."
 }

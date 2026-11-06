@@ -45352,6 +45352,12 @@
   "Only if {{first}} or {{second}}": "Bara om {{first}} eller {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Bara om {{first}}, {{second}} och {{third}}",
   "Only if {{first}}, {{second}} or {{third}}": "Bara om {{first}}, {{second}} eller {{third}}",
+  "AI Agent Keys": "AI-agentnycklar",
+  "Making a key for this agent…": "Skapar en nyckel för den här agenten…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime skickade ingen nyckel för den här agenten. Försök igen.",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "Kommandot innehåller en nyckel som bara har skapats för den här agenten. Kör det inom ett dygn, eller öppna den här dialogrutan igen för att få en ny.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} återställdes, och dess nyckel fungerar inte längre. Kör dess konfigurationskommando igen för att ansluta den: Ändra visar det.",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Detta återkallar nyckeln för {{agentName}} direkt. Agenten förblir frånkopplad tills du kör dess konfigurationskommando igen: Ändra visar det, med en ny nyckel.",
   "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "Loggar visas här när de har den här miljöns resursattribut cloud.platform, cloud.account.id och cloud.region, eller när dess AWS-konto strömmar CloudWatch Logs: välj Strömma mätvärden och loggar på kontots anslutning under Cloud > Anslut.",
   "Nothing came from this resource's log group in this time range. Choose a longer range, or check that the stream includes its log group: Stream metrics and logs, on its account's connection in Cloud > Connect.": "Inget kom från den här resursens logggrupp under den här tiden. Välj en längre tid, eller kontrollera att strömmen tar med dess logggrupp: Strömma mätvärden och loggar på kontots anslutning under Cloud > Anslut."
 }

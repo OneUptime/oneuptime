@@ -45352,6 +45352,12 @@
   "Only if {{first}} or {{second}}": "सिर्फ़ तब, जब {{first}} या {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "सिर्फ़ तब, जब {{first}}, {{second}} और {{third}}",
   "Only if {{first}}, {{second}} or {{third}}": "सिर्फ़ तब, जब {{first}}, {{second}} या {{third}}",
+  "AI Agent Keys": "AI एजेंट कुंजियाँ",
+  "Making a key for this agent…": "इस एजेंट के लिए कुंजी बनाई जा रही है…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime ने इस एजेंट के लिए कोई कुंजी नहीं भेजी। फिर से प्रयास करें।",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "इस कमांड में केवल इसी एजेंट के लिए बनाई गई कुंजी है। इसे एक दिन के भीतर चलाएँ, या नई कुंजी के लिए यह डायलॉग फिर से खोलें।",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} को रीसेट कर दिया गया, और उसकी कुंजी अब काम नहीं करती। इसे कनेक्ट करने के लिए इसकी सेटअप कमांड फिर से चलाएँ: बदलें इसे दिखाता है।",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "इससे {{agentName}} की कुंजी तुरंत रद्द हो जाती है। जब तक आप इसकी सेटअप कमांड फिर से नहीं चलाते, यह डिस्कनेक्ट रहता है: बदलें इसे नई कुंजी के साथ दिखाता है।",
   "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "जिन लॉग में इस परिवेश की cloud.platform, cloud.account.id और cloud.region संसाधन विशेषताएँ होती हैं, वे यहाँ दिखते हैं; इसका AWS खाता CloudWatch Logs स्ट्रीम करने लगे, तो वे लॉग भी यहाँ दिखते हैं: Cloud > कनेक्ट करें में खाते के कनेक्शन पर मेट्रिक्स और लॉग स्ट्रीम करें चुनें।",
   "Nothing came from this resource's log group in this time range. Choose a longer range, or check that the stream includes its log group: Stream metrics and logs, on its account's connection in Cloud > Connect.": "इस समय सीमा में इस संसाधन के लॉग समूह से कुछ नहीं आया। लंबी समय सीमा चुनें, या जाँचें कि स्ट्रीम में इसका लॉग समूह शामिल है: Cloud > कनेक्ट करें में इसके खाते के कनेक्शन पर मेट्रिक्स और लॉग स्ट्रीम करें।"
 }

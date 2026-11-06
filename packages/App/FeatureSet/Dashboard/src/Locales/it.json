@@ -45352,6 +45352,12 @@
   "Only if {{first}} or {{second}}": "Solo se {{first}} o {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Solo se {{first}}, {{second}} e {{third}}",
   "Only if {{first}}, {{second}} or {{third}}": "Solo se {{first}}, {{second}} o {{third}}",
+  "AI Agent Keys": "Chiavi dell'agente IA",
+  "Making a key for this agent…": "Creazione di una chiave per questo agente…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime non ha inviato una chiave per questo agente. Riprova.",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "Il comando contiene una chiave creata solo per questo agente. Eseguilo entro un giorno, oppure riapri questa finestra per averne una nuova.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "L'{{agent}} è stato reimpostato e la sua chiave non funziona più. Esegui di nuovo il suo comando di configurazione per connetterlo: «Cambia» lo mostra.",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Revoca subito la chiave dell'{{agentName}}. Resta disconnesso finché non esegui di nuovo il suo comando di configurazione: «Cambia» lo mostra, con una nuova chiave.",
   "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "I log compaiono qui quando portano gli attributi di risorsa cloud.platform, cloud.account.id e cloud.region di questo ambiente, o quando il suo account AWS trasmette CloudWatch Logs: scegli Trasmetti metriche e log sulla connessione dell'account in Cloud > Collega.",
   "Nothing came from this resource's log group in this time range. Choose a longer range, or check that the stream includes its log group: Stream metrics and logs, on its account's connection in Cloud > Connect.": "In questo intervallo di tempo non è arrivato nulla dal gruppo di log di questa risorsa. Scegli un intervallo più lungo, oppure controlla che la trasmissione includa il suo gruppo di log: Trasmetti metriche e log, sulla connessione del suo account in Cloud > Collega."
 }

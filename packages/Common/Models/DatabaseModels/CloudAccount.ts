@@ -728,4 +728,24 @@ export default class CloudAccount extends BaseModel {
     nullable: true,
   })
   public aiAccessConfiguredAt?: Date = undefined;
+
+  /*
+   * The SHA-256 of the keys this account's Cloud AI agent may connect with
+   * (Types/CloudConnection/CloudAiAgentKey): the agent's own, the ones made
+   * for a setup command that has not connected yet, and whether the
+   * project's ingestion key may still connect it. The keys themselves are
+   * never stored, and even their hashes are nobody's to read: the key route
+   * and Reset agent write this column, registration reads it. Empty for an
+   * account whose agent was set up before agents had keys of their own.
+   */
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "AI Agent Keys",
+    description:
+      "SHA-256 of the keys the account's Cloud AI agent connects with, and of the ones made for a setup command. Server only; never readable.",
+  })
+  @Column({ type: ColumnType.JSON, nullable: true })
+  public aiAgentKeys?: JSONObject = undefined;
 }
