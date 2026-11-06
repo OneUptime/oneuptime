@@ -171,6 +171,37 @@ export interface TwinMerge {
  */
 export const TWIN_MERGES: ReadonlyArray<TwinMerge> = [EXCEPTION_TWIN_MERGE];
 
+// "no referring rows", "1 kept row", "14 referring rows".
+function rowsOf(count: number, kind: string): string {
+  return `${count === 0 ? "no" : count} ${kind} ${count === 1 ? "row" : "rows"}`;
+}
+
+/*
+ * What a merge did, as the upgrade's log tells the operator, in plain words:
+ * the duplicates merged into the rows kept, the rows of other tables moved
+ * to a kept row, and those dropped because a kept row already had them -
+ * with, when there are any, the ones merged into the kept row's copy first
+ * so their counts stay (TWIN_MERGES: an exception both copies of a host
+ * had). Only what happened is said. Pure.
+ */
+export function describeDuplicateRowMerge(
+  table: string,
+  result: DuplicateRowMergeResult,
+): string {
+  const merged: string = `Merged ${rowsOf(result.rowsMerged, `duplicate ${table}`)} into ${rowsOf(result.groupsMerged, "kept")}: ${rowsOf(result.referencesMoved, "referring")} moved`;
+
+  if (result.twinsDropped === 0) {
+    return `${merged}.`;
+  }
+
+  const takenIn: string =
+    result.twinsTakenIn > 0
+      ? ` (${result.twinsTakenIn} of them merged into the kept row's copy first, with their counts)`
+      : "";
+
+  return `${merged}, ${result.twinsDropped} dropped because a kept row already had them${takenIn}.`;
+}
+
 // A table that refers to another, by one column.
 interface Referrer {
   // The referring table, as SQL: "DockerResource" (regclass text, quoted).
@@ -254,9 +285,7 @@ export default class DuplicateRowMerge {
       }
     }
 
-    logger.info(
-      `Merged ${result.rowsMerged} duplicate ${options.table} row(s) into ${result.groupsMerged} kept row(s): ${result.referencesMoved} referring row(s) moved, ${result.twinsDropped} dropped as twins of the kept row's (${result.twinsTakenIn} taken in by their kept twin first).`,
-    );
+    logger.info(describeDuplicateRowMerge(options.table, result));
 
     return result;
   }

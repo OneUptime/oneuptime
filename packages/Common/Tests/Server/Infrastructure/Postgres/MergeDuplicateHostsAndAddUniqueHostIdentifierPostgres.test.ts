@@ -10,6 +10,7 @@ import DuplicateRowMerge, {
   DuplicateRowMergeResult,
 } from "../../../../Server/Infrastructure/Postgres/DuplicateRowMerge";
 import ObjectID from "../../../../Types/ObjectID";
+import logger from "../../../../Server/Utils/Logger";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import { DataSource, QueryRunner } from "typeorm";
 
@@ -50,6 +51,10 @@ const describePostgres: typeof describe.skip =
     : describe.skip;
 
 const DASHES: RegExp = /-/g;
+
+// What the upgrade's log says of the copies a kept row merged in first.
+const MERGED_INTO_THE_KEPT_COPY_FIRST: RegExp =
+  /\((\d+) of them merged into the kept row's copy first, with their counts\)/;
 
 const HOST_TABLES: Array<string> = ["DockerHost", "PodmanHost", "Host"];
 
@@ -1885,6 +1890,8 @@ describe.each(EXCEPTION_SCHEMAS)(
       const ids: Record<string, string> = {};
       let hostNumber: number = 0;
       let before: Array<ReadException> = [];
+      // What the upgrade's log told the operator, line by line.
+      const logged: Array<string> = [];
 
       function quoted(table: string): string {
         return `"${schema}"."${table}"`;
@@ -2424,7 +2431,17 @@ describe.each(EXCEPTION_SCHEMAS)(
 
         before = await readAll();
 
-        await runMigration();
+        const info: jest.SpyInstance = jest
+          .spyOn(logger, "info")
+          .mockImplementation((message: unknown): void => {
+            logged.push(String(message));
+          });
+
+        try {
+          await runMigration();
+        } finally {
+          info.mockRestore();
+        }
       }, 600_000);
 
       afterAll(async () => {
@@ -2629,6 +2646,44 @@ describe.each(EXCEPTION_SCHEMAS)(
           expect(rows).toEqual([{ id: ids["countsKept"] }]);
         });
       }
+
+      /*
+       * The operator reads in the upgrade's log, per host table that had
+       * copies, how many exceptions both copies had were merged into the
+       * kept copy first: every one it dropped, none lost.
+       */
+      test("the upgrade's log says how many exceptions were merged into the kept copy first: every one it dropped", async () => {
+        const left: Set<string> = new Set<string>(
+          (await readAll()).map((row: ReadException): string => {
+            return String(row["_id"]);
+          }),
+        );
+        const dropped: number = before.filter((row: ReadException): boolean => {
+          return !left.has(String(row["_id"]));
+        }).length;
+
+        const merges: Array<string> = logged.filter((line: string): boolean => {
+          return line.startsWith("Merged ");
+        });
+        const mergedFirst: number = merges.reduce(
+          (total: number, line: string): number => {
+            const match: RegExpMatchArray | null = line.match(
+              MERGED_INTO_THE_KEPT_COPY_FIRST,
+            );
+            return total + (match ? Number(match[1]) : 0);
+          },
+          0,
+        );
+
+        expect(dropped).toBeGreaterThan(0);
+        expect(mergedFirst).toBe(dropped);
+        // One line per host table that had copies, in the order they merge.
+        expect(
+          merges.map((line: string): string => {
+            return line.split(" ")[3]!;
+          }),
+        ).toEqual(["DockerHost", "Host"]);
+      });
 
       test("run again, it changes nothing", async () => {
         const merged: Array<ReadException> = await readAll();
