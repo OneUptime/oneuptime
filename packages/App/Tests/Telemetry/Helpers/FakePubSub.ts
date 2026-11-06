@@ -203,16 +203,12 @@ export function pushEnvelope(data: {
 export interface FakeGoogleKey {
   kid: string;
   privateKey: crypto.KeyObject;
-  jwk: crypto.JsonWebKey;
+  jwk: crypto.webcrypto.JsonWebKey;
 }
 
 export function makeGoogleKey(kid: string): FakeGoogleKey {
-  const pair: crypto.KeyPairKeyObjectResult = crypto.generateKeyPairSync(
-    "rsa",
-    {
-      modulusLength: 2048,
-    },
-  );
+  const pair: { publicKey: crypto.KeyObject; privateKey: crypto.KeyObject } =
+    crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
 
   return {
     kid,

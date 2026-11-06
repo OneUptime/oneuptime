@@ -291,10 +291,10 @@ describe("how streaming is said to be doing", () => {
     expect(refused.color).toBe(Red);
     expect(refused.sentence.template).toBe(STREAM_REFUSED_SENTENCE);
     expect(JSON.stringify(refused.sentence.values)).toContain(
-      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.WrongKey].reason,
+      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.WrongKey]!.reason,
     );
     expect(JSON.stringify(refused.sentence.values)).toContain(
-      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.WrongKey].advice,
+      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.WrongKey]!.advice,
     );
 
     // A delivery taken after it: receiving again.
@@ -995,10 +995,10 @@ describe("the dialog", () => {
 
     expect(part("live")).toHaveAttribute("data-state", "refused");
     expect(part("live")).toHaveTextContent(
-      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.TooLarge].reason,
+      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.TooLarge]!.reason,
     );
     expect(part("live")).toHaveTextContent(
-      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.TooLarge].advice,
+      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.TooLarge]!.advice,
     );
     // Not done yet: the footer still says Close.
     expect(

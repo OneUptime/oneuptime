@@ -1151,7 +1151,8 @@ describe("streaming an AWS connection's metrics and logs", () => {
           "Status",
           connection({
             ...read,
-            provider: "oracle",
+            // Not a cloud OneUptime knows, as a row could still hold it.
+            provider: "oracle" as unknown as CloudProvider,
             streamKeyCreatedAt: STREAM_KEY_MADE_AT,
           }),
         ),
