@@ -8,6 +8,7 @@ import RemediationFixFact, {
 } from "./RemediationFixFact";
 import RemediationTrackRecordLine from "./RemediationTrackRecordLine";
 import CloudDryRunNote from "./CloudDryRunNote";
+import DeclaredCodeChangeLine from "./DeclaredCodeChangeLine";
 import OpenStackReachNote from "./OpenStackReachNote";
 import {
   AiRemediationCommand,
@@ -463,6 +464,8 @@ function CloudChangeWordsLine(props: {
  */
 function CloudCommandNote(props: {
   command: AiRemediationCommand;
+  // The fix the step is of: a change to declared code is asked for from it.
+  suggestionId?: string | undefined;
 }): ReactElement {
   const translator: Translator = useTranslator();
   const { command } = props;
@@ -492,6 +495,14 @@ function CloudCommandNote(props: {
             { owner: command.managedAsCode },
           )}
         </div>
+      ) : (
+        <></>
+      )}
+      {command.managedAsCode && props.suggestionId ? (
+        <DeclaredCodeChangeLine
+          suggestionId={props.suggestionId}
+          command={command}
+        />
       ) : (
         <></>
       )}
@@ -638,10 +649,13 @@ export const RemediationCommandPlanList: FunctionComponent<{
   suggestionStatus: AutoRemediationSuggestionStatus;
   // A plan that can no longer be approved: nothing in it waits for approval.
   isUnapprovable: boolean;
+  // The fix: a step on a resource declared as code offers its pull request.
+  suggestionId?: string | undefined;
 }> = (props: {
   plan: AiRemediationCommandPlan;
   suggestionStatus: AutoRemediationSuggestionStatus;
   isUnapprovable: boolean;
+  suggestionId?: string | undefined;
 }): ReactElement => {
   return (
     <ol data-testid="remediation-plan-commands" className="flex flex-col gap-4">
@@ -722,7 +736,10 @@ export const RemediationCommandPlanList: FunctionComponent<{
 
               <CommandGitOpsNote command={command} />
 
-              <CloudCommandNote command={command} />
+              <CloudCommandNote
+                command={command}
+                suggestionId={props.suggestionId}
+              />
 
               {command.rollbackCommand ? (
                 <div
@@ -759,7 +776,12 @@ export const RemediationCommandPlanList: FunctionComponent<{
  */
 export const RemediationCommandRunList: FunctionComponent<{
   plan: AiRemediationCommandPlan;
-}> = (props: { plan: AiRemediationCommandPlan }): ReactElement => {
+  // The fix: a change to a resource declared as code keeps its pull request in sight.
+  suggestionId?: string | undefined;
+}> = (props: {
+  plan: AiRemediationCommandPlan;
+  suggestionId?: string | undefined;
+}): ReactElement => {
   const translator: Translator = useTranslator();
 
   return (
@@ -806,6 +828,15 @@ export const RemediationCommandRunList: FunctionComponent<{
               />
 
               <CommandPutBackNote command={command} />
+
+              {command.managedAsCode && props.suggestionId ? (
+                <DeclaredCodeChangeLine
+                  suggestionId={props.suggestionId}
+                  command={command}
+                />
+              ) : (
+                <></>
+              )}
             </li>
           );
         },

@@ -43,6 +43,7 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import { getLastingCloudChange } from "../../../Utils/AiRemediation/DeclaredCodeChange";
 import {
   OpenStackChangeReach,
   OpenStackReachInstance,
@@ -548,6 +549,22 @@ export default class RemediationChatMessage {
     // What it touches: the numbers always, for whoever is about to press Approve.
     if (command.reach) {
       lines.push(RemediationChatMessage.describeReach(command.reach));
+    }
+
+    /*
+     * A resource declared as code: the next apply puts the old value back,
+     * and a change the code declares can be a pull request to that code too,
+     * asked for from the fix in OneUptime (DeclaredCodeChanges).
+     */
+    if (command.managedAsCode) {
+      lines.push(
+        getLastingCloudChange({
+          resourceType: command.resourceType,
+          command: command.command,
+        })
+          ? mdText`Declared as code by ${command.managedAsCode}: the next apply may put the old value back. Open the fix in ${ProductBrandingText.getProductName()} to ask for a pull request to that code with the same change.`
+          : mdText`Declared as code by ${command.managedAsCode}: the next apply may put the old value back.`,
+      );
     }
 
     const record: RemediationTrackRecord | undefined = command.trackRecord;

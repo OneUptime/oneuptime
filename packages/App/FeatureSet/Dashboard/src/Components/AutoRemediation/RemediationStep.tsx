@@ -1454,6 +1454,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                 plan={plan}
                 suggestionStatus={status}
                 isUnapprovable={isUnapprovablePlan}
+                suggestionId={suggestionId}
               />
             ) : (
               <></>
@@ -1469,7 +1470,12 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
 
       if (kind === "run") {
         if (plan) {
-          return <RemediationCommandRunList plan={plan} />;
+          return (
+            <RemediationCommandRunList
+              plan={plan}
+              suggestionId={suggestionId}
+            />
+          );
         }
 
         if (mcpPlan) {

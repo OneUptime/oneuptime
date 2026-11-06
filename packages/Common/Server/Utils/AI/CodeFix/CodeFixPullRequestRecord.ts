@@ -6,6 +6,7 @@ import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import DeclaredCodeChanges from "../../AutoRemediation/DeclaredCodeChanges";
 import { CodeFixAgentIdentity, CodeFixAgentSource } from "./CodeFixAgentAuth";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
@@ -294,6 +295,18 @@ export default class CodeFixPullRequestRecord {
       resultSummary: {
         message: `Opened pull request: ${fields.title} — ${fields.pullRequestUrl}`,
       },
+    });
+
+    /*
+     * A task asked from a fix of OneUptime AI's, for the code that declares
+     * the resource it changes: the fix's incident or alert, and its
+     * channels, get the pull request (never throws).
+     */
+    await DeclaredCodeChanges.onPullRequestOpened({
+      projectId: data.projectId,
+      aiRunId: data.aiRunId,
+      pullRequestUrl: fields.pullRequestUrl,
+      title: fields.title,
     });
 
     return {
