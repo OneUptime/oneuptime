@@ -45566,5 +45566,7 @@
   "`200` with `\"valid\": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.": "`200` with `\"valid\": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.",
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)",
-  "OTLP Endpoint": "OTLP Endpoint"
+  "OTLP Endpoint": "OTLP Endpoint",
+  "Page default ({{language}})": "Page default ({{language}})",
+  "The language their notifications are written in.": "The language their notifications are written in."
 }

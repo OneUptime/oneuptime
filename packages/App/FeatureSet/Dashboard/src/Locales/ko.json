@@ -45566,5 +45566,7 @@
   "`200` with `\"valid\": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.": "`\"valid\": true`가 포함된 `200`은 토큰이 이 프로젝트의 것이라는 뜻이고, `401`은 토큰을 알 수 없거나, 취소되었거나, 잘못 입력되었다는 뜻입니다. 가능하면 워크로드 안에서 실행해, 익스포터가 실행되는 곳에서 아웃바운드가 되는지 확인하세요.",
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS`는 Node.js에서 {{detector}} 리소스 감지기를 켭니다. 다른 언어에서는 다음으로 켭니다: {{others}}.",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "프로젝트에 로그인하고 Secret Manager API를 사용 설정한 `gcloud`(`gcloud services enable secretmanager.googleapis.com`)",
-  "OTLP Endpoint": "OTLP 엔드포인트"
+  "OTLP Endpoint": "OTLP 엔드포인트",
+  "Page default ({{language}})": "페이지 기본값 ({{language}})",
+  "The language their notifications are written in.": "알림이 작성되는 언어입니다."
 }

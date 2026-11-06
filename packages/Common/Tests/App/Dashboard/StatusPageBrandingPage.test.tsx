@@ -1038,10 +1038,12 @@ describe("the cards under Advanced", () => {
     );
     expect(german).toHaveTextContent("Deutsch (German)");
 
+    // English's own name is its English one: said once.
     const { container: none } = render(
       defaultLanguage!.getElement!(pageWith({})),
     );
-    expect(none).toHaveTextContent("English (English)");
+    expect(none).toHaveTextContent("English");
+    expect(none).not.toHaveTextContent("English (English)");
 
     const { container: some } = render(
       enabledLanguages!.getElement!(

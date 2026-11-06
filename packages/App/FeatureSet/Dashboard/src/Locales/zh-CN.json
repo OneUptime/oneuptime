@@ -45566,5 +45566,7 @@
   "`200` with `\"valid\": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.": "`200` 且带有 `\"valid\": true` 表示令牌属于此项目；`401` 表示令牌未知、已吊销或输入有误。尽可能在工作负载内部运行它，这样可以证明导出器所在位置的出站是通的。",
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` 在 Node.js 中开启 {{detector}} 资源检测器。其他语言的开启方式：{{others}}。",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "已登录到该项目并已启用 Secret Manager API（`gcloud services enable secretmanager.googleapis.com`）的 `gcloud`",
-  "OTLP Endpoint": "OTLP 端点"
+  "OTLP Endpoint": "OTLP 端点",
+  "Page default ({{language}})": "页面默认 ({{language}})",
+  "The language their notifications are written in.": "通知所用的语言。"
 }

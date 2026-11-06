@@ -95,6 +95,14 @@ export const SubscriberFormCopy: {
   welcomeDescription: string;
   internalNoteDescription: string;
   /*
+   * The language a subscriber's notifications are written in: its field and
+   * its column, and what an empty one reads as - the status page's default
+   * language, named ("Page default (Deutsch)").
+   */
+  languageTitle: string;
+  languageDescription: string;
+  pageDefaultLanguage: string;
+  /*
    * Every channel's list names its rows Subscriber(s) and adds one with
    * "Add" (the table's singularName / createVerb): these are the phrases
    * the table looks up whole - its button, its dialog's title - and the
@@ -138,6 +146,11 @@ export const SubscriberFormCopy: {
     "Tells them they are subscribed, with a link to unsubscribe.",
   ),
   internalNoteDescription: translationKey("Only your team sees it."),
+  languageTitle: translationKey("Language"),
+  languageDescription: translationKey(
+    "The language their notifications are written in.",
+  ),
+  pageDefaultLanguage: translationKey("Page default ({{language}})"),
   subscriberName: translationKey("Subscriber"),
   addButton: translationKey("Add Subscriber"),
   addDialogTitle: translationKey("Add New Subscriber"),

@@ -61,8 +61,13 @@ import { getColumnChoiceRadioButtons } from "../../../Utils/Form/ColumnChoice";
 import {
   getEmailSubscriberAddChoiceFields,
   getSubscriberInternalNoteField,
+  getSubscriberLanguageField,
   getSubscriberStatusFields,
 } from "../../../Components/StatusPage/SubscriberFormFields";
+import {
+  getSubscriberLanguageColumn,
+  getSubscriberPageDefaultLanguageText,
+} from "../../../Components/StatusPage/SubscriberLanguageColumn";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -97,6 +102,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
    * is on - not first as off, for a frame, on a page where it is on.
    */
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  /*
+   * The status page's default language: what a subscriber without one of
+   * their own is written to in, and what the Language field and column
+   * name for them (SubscriberLanguageColumn).
+   */
+  const [pageLanguage, setPageLanguage] = React.useState<string | undefined>(
+    undefined,
+  );
   const [error, setError] = React.useState<string>("");
   const [
     categoryCheckboxOptionsAndCategories,
@@ -125,8 +138,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           allowSubscribersToChooseResources: true,
           allowSubscribersToChooseEventTypes: true,
           enableEmailSubscribers: true,
+          defaultLanguage: true,
         },
       });
+
+      setPageLanguage(statusPage?.defaultLanguage || undefined);
 
       if (statusPage && statusPage.allowSubscribersToChooseResources) {
         setAllowSubscribersToChooseResources(
@@ -363,6 +379,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       });
     }
 
+    formFields.push(
+      getSubscriberLanguageField({
+        moreFields: moreFields,
+        placeholder: getSubscriberPageDefaultLanguageText(
+          translator,
+          pageLanguage,
+        ),
+      }),
+    );
     formFields.push(getSubscriberInternalNoteField(moreFields));
 
     setFormFields(formFields);
@@ -541,6 +566,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                   );
                 },
               },
+              getSubscriberLanguageColumn({
+                translator: translator,
+                pageLanguage: pageLanguage,
+              }),
               {
                 field: {
                   createdAt: true,
