@@ -225,7 +225,7 @@
  *            (not found): a comma list of maya, sam, jordan, alex. Alex by
  *            default.
  *   ?role=   owner (default) | alert-member | member | owner-people | viewer
- *            | loading
+ *            | loading | runbook-blocked
  *            Who is signed in. "owner" is a master admin who is also the
  *            Project Owner, so every permission gate is open. "alert-member"
  *            is not a master admin and holds only Alert Member: it may
@@ -241,7 +241,11 @@
  *            (?hold=1) is said to it with Page now locked, saying why.
  *            "loading" is the moment before the permission snapshot arrives
  *            (no permissions yet), when gated actions are hidden rather
- *            than refused.
+ *            than refused. "runbook-blocked" is Maya as a Project Member
+ *            (through Incident Response) whose team Checkout SRE blocks
+ *            Create Runbook Execution: she reads fixes and may not approve
+ *            or dismiss them - the reader the AI card's fix buttons are
+ *            hidden from, with a line saying who may act.
  *   ?ai=     ... also off-switch | off-project | off-rules | off-severity:
  *            OneUptime AI did not investigate Incident #1042 or Alert #311
  *            because something was off for them, as the server records it
@@ -654,6 +658,7 @@ const roleMode = [
   "loading",
   "view-only-owner",
   "editor-owner",
+  "runbook-blocked",
 ].includes(params.get("role"))
   ? params.get("role")
   : "owner";
@@ -6221,7 +6226,11 @@ UserUtil.getEmail = () => people.maya.email;
  * ?private=1 incident #1042 is private, and only Checkout SRE's permissions
  * reach it: its page locks what Checkout SRE may not do, saying why.
  */
-const SNAPSHOT_ROLE_MODES = ["view-only-owner", "editor-owner"];
+const SNAPSHOT_ROLE_MODES = [
+  "view-only-owner",
+  "editor-owner",
+  "runbook-blocked",
+];
 const isSnapshotRoleMode = SNAPSHOT_ROLE_MODES.includes(roleMode);
 const INCIDENT_RESPONSE_TEAM_ID = ID.team(5);
 const GLOBAL_PERMISSIONS = [
@@ -6244,7 +6253,14 @@ const snapshotRows = isSnapshotRoleMode
       permissionRow(Permission.UnAuthorizedSsoUser),
       permissionRow(Permission.ProjectUser),
       permissionRow(Permission.ProjectMember, INCIDENT_RESPONSE_TEAM_ID),
-      permissionRow(Permission.Viewer, ID.team(1)),
+      ...(roleMode === "runbook-blocked"
+        ? [
+            {
+              ...permissionRow(Permission.CreateRunbookExecution, ID.team(1)),
+              isBlockPermission: true,
+            },
+          ]
+        : [permissionRow(Permission.Viewer, ID.team(1))]),
       ...(roleMode === "editor-owner"
         ? [permissionRow(Permission.IncidentMember, ID.team(1))]
         : []),

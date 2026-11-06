@@ -23021,7 +23021,13 @@ test.describe("a runbook's record, where a fix was approved, and Dismiss fix (?f
     await expect(record).toHaveCount(0);
   });
 
-  test("a Viewer on a phone: no Review and approve, Approve & Run, Dry run or Dismiss fix - a quiet line in their place says who may, and each fix needs approval, never theirs (?role=viewer)", async ({
+  /*
+   * The reader who reads fixes and may not act on them: a Project Member
+   * whose team blocks Create Runbook Execution (a Viewer reads no fixes at
+   * all - AutoRemediationSuggestion is read by Project Owners, Admins and
+   * Members).
+   */
+  test("a member whose team blocks runbook runs, on a phone: no Review and approve, Approve & Run, Dry run or Dismiss fix - a quiet line in their place says who may and names the block, and each fix needs approval, never theirs (?role=runbook-blocked)", async ({
     page,
   }: {
     page: Page;
@@ -23029,7 +23035,7 @@ test.describe("a runbook's record, where a fix was approved, and Dismiss fix (?f
     await page.setViewportSize({ width: 390, height: 844 });
     await openRunbookFixes(
       page,
-      "fixes=runbook&cloudfix=would-run&role=viewer",
+      "fixes=runbook&cloudfix=would-run&role=runbook-blocked",
     );
 
     // No button the server would refuse them: none of the four, anywhere.
@@ -23048,7 +23054,7 @@ test.describe("a runbook's record, where a fix was approved, and Dismiss fix (?f
      * runbook - who may act, and what would let them.
      */
     const whoMayAct: string =
-      "Only someone who may start runbook executions can approve or dismiss this fix. You need this permission: Create Runbook Execution.";
+      "Only someone who may start runbook executions can approve or dismiss this fix. A team you are on blocks Create Runbook Execution.";
     const lines: Locator = step.getByTestId("remediation-fix-who-may-act");
     await expect(lines).toHaveText([whoMayAct, whoMayAct]);
     // Approved in Slack: nothing to decide, nothing said.
