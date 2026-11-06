@@ -72,6 +72,10 @@ describe("the periods", () => {
       ["Regions", "region"],
       ["Accounts", "cloudAccountId"],
       ["Resources", "resourceId"],
+      // App Platforms' environments and apps, and a tag's values.
+      ["Environments", "environment"],
+      ["Apps", "app"],
+      ["Tags", "tag"],
     ]);
   });
 });

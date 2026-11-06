@@ -77,6 +77,7 @@ function point(overrides: Partial<CloudCostSeriesPoint>): CloudCostSeriesPoint {
     region: "us-east-1",
     resourceId: "",
     currency: "USD",
+    tags: {},
     amount: 10,
     ...overrides,
   };
@@ -92,6 +93,7 @@ function storedRow(entry: CloudCostSeriesPoint): JSONObject {
     regionName: entry.region,
     resourceKey: entry.resourceId,
     currencyCode: entry.currency,
+    tagMap: entry.tags,
     total: String(entry.amount),
   };
 }

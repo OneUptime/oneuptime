@@ -4,6 +4,7 @@ import {
   CloudAiAgentFixesMode,
   CloudAiAgentSetupOptions,
   getCloudAiAgentChangeOperations,
+  getCloudAiAgentImage,
   getCloudAiAgentMaxProtectedTargets,
   isReadableCloudAiAgentProtectedTarget,
 } from "Common/Types/CloudConnection/CloudAiAgentSetupCommands";
@@ -16,12 +17,14 @@ import {
   AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_APP_NAME,
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
+  AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
   CLOUD_AI_AGENT_NAME,
   CloudAiAgentProvider,
   GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
   GCP_CLOUD_AI_AGENT_HOSTS,
   GCP_CLOUD_AI_AGENT_INSTANCE_NAME,
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
+  GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
   GcpCloudAiAgentHost,
   getCloudAiAgentOwnTargets,
 } from "Common/Types/ResourceAiAgent/CloudAiAgentNames";
@@ -476,6 +479,91 @@ export function isCloudAiAgentKeyFailureRetryable(statusCode: number): boolean {
   }
 
   return !(statusCode >= 400 && statusCode < 500);
+}
+
+/*
+ * "Run the agent somewhere else", under More fields: what a team that
+ * deploys the agent its own way gives it, as the setup command makes it on
+ * each cloud. First the image, with the variables shown under that line
+ * (in Azure or Google Cloud, where its identities come from); then, as a
+ * list of two, its two identities - one of its own that changes nothing,
+ * and the write role, identity or account each change runs as.
+ */
+export interface CloudAiAgentElsewhereTexts {
+  // The image, the variables under it, and the cloud it must run in.
+  deploy: string;
+  // The agent's own identity, which changes nothing.
+  ownIdentity: string;
+  // The write role, identity or account its changes run as.
+  writeIdentity: string;
+}
+
+export const CLOUD_AI_AGENT_ELSEWHERE_TEXTS: Readonly<
+  Record<CloudProvider, CloudAiAgentElsewhereTexts>
+> = {
+  [CloudProvider.AWS]: {
+    deploy: translationKey(
+      "Deploy the image {{image}} your own way, with these variables:",
+    ),
+    ownIdentity: translationKey(
+      "A role of its own that may only assume the write role.",
+    ),
+    writeIdentity: translationKey(
+      "The write role {{writeRole}}, which trusts the agent's role and holds the permissions of the changes AI may make.",
+    ),
+  },
+  [CloudProvider.Azure]: {
+    deploy: translationKey(
+      "Deploy the image {{image}} your own way in Azure, with these variables:",
+    ),
+    ownIdentity: translationKey(
+      "A managed identity of its own that only reads.",
+    ),
+    writeIdentity: translationKey(
+      "The write identity {{writeIdentity}}, attached where the agent runs, which holds the permissions of the changes AI may make.",
+    ),
+  },
+  [CloudProvider.GCP]: {
+    deploy: translationKey(
+      "Deploy the image {{image}} your own way in Google Cloud, with these variables:",
+    ),
+    ownIdentity: translationKey(
+      "A service account of its own that only reads, with Service Account Token Creator on the write account.",
+    ),
+    writeIdentity: translationKey(
+      "The write account {{writeAccount}}, which holds the permissions of the changes AI may make.",
+    ),
+  },
+};
+
+// The line over the two identities, the same on every cloud.
+export const CLOUD_AI_AGENT_ELSEWHERE_IDENTITIES_TEXT: string = translationKey(
+  "Give it two identities, as the setup command does:",
+);
+
+/*
+ * The names each cloud's lines fill in: the image, and its own write role,
+ * identity or account, by the placeholder its line names it with.
+ */
+export function getCloudAiAgentElsewhereValues(
+  provider: CloudProvider,
+): Record<string, string> {
+  const image: string = getCloudAiAgentImage();
+
+  switch (provider) {
+    case CloudProvider.AWS:
+      return { image, writeRole: AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME };
+    case CloudProvider.Azure:
+      return {
+        image,
+        writeIdentity: AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
+      };
+    default:
+      return {
+        image,
+        writeAccount: GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
+      };
+  }
 }
 
 // The line under the command, about the key it holds.

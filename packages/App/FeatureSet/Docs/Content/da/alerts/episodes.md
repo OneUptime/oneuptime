@@ -20,12 +20,15 @@ flowchart TB
     open -->|Ja| join["Slutter sig til den"]
     open -->|Nej| reopen(["En løst inden for<br/>genåbningsvinduet?"])
     reopen -->|Ja| reopened["Genåbner den"]
-    reopen -->|Nej| created["Åbner en<br/>ny episode"]
+    reopen -->|Nej| enough(["Nok matchende<br/>advarsler i gang?"])
+    enough -->|Ja| created["Åbner en ny episode<br/>med dem alle"]
+    enough -->|Endnu ikke| waits["Venter alene"]
 ```
 
 - **Reglens betingelser** afgør, hvilke advarsler den gælder for. En regel uden betingelser gælder for hver ny advarsel.
 - **Grupperingsnøglen** afgør, hvilke advarsler der deler en episode: dem med samme monitor, samme alvorsgrad, samme titel eller den kombination, reglen grupperer efter. En regel, der ikke grupperer efter noget, lægger hver advarsel, den matcher, i én episode.
 - **Tidsvinduet** afgør, hvor længe en episode bliver ved med at tage imod advarsler. Når det er slået til, slutter en advarsel sig kun til, hvis den kommer inden for vinduet efter episodens seneste advarsel. Når det er slået fra, bliver matchende advarsler ved med at slutte sig til, indtil episoden er løst.
+- **Vent på flere advarsler** afgør, hvornår en ny episode åbnes. Når det er slået fra, som en ny regel starter med, åbner den første matchende advarsel en. Når det er slået til, venter en advarsel alene, indtil det antal matchende advarsler fra dens gruppe, som du har sat, er i gang, og så åbnes én episode med dem alle. Se [Åbn en episode kun for flere advarsler](#åbn-en-episode-kun-for-flere-advarsler).
 
 Gruppering sker, når en advarsel oprettes. En regel, du tilføjer i dag, grupperer de advarsler, der oprettes efter den; den omgrupperer ikke dem, der allerede findes.
 
@@ -72,10 +75,21 @@ Alt andet, en regel kan gøre, er foldet sammen under **Flere felter** sidst på
 | Gruppe                    | Indstillinger                                                                                              |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **Vagt og ejerskab**      | **Vagtpolitikker**, der skal køre, når reglen åbner en episode, og **Episodeejere**.                       |
-| **Episodens livscyklus**  | **Genåbn nyligt løste episoder**, **Vent, før en episode løses** og **Løs stille episoder**, hver en kontakt med sine minutter. |
+| **Episodens livscyklus**  | **Vent på flere advarsler**, en kontakt med et antal, derefter **Genåbn nyligt løste episoder**, **Vent, før en episode løses** og **Løs stille episoder**, hver en kontakt med sine minutter. |
 | **Detaljer**              | Reglens **Beskrivelse**, **Skabelon for episodetitel**, **Skabelon for episodebeskrivelse** og **Episodeetiketter**. |
 
 Regler kontrolleres oppefra og ned i listen, og det første match vinder: Træk en regel for at ændre dens plads. Sæt specifikke regler over brede. Listens kolonne **Gruppering** siger med én sætning, hvad hver regel gør, for eksempel "Én episode pr. overvågning".
+
+### Åbn en episode kun for flere advarsler
+
+**Vent på flere advarsler**, under **Episodens livscyklus**, holder en enkelt advarsel ude af en episode. Slå det til, og angiv hvor mange: **Åbn en episode, når 3 matchende advarsler er i gang**, fra 2 til 100.
+
+- **Indtil da venter hver advarsel alene.** En advarsel, der ikke finder nogen åben episode fra sin gruppe at slutte sig til og ingen løst episode at genåbne, åbner intet og kører kun sine egne vagtpolitikker, ligesom en advarsel, som ingen regel matcher.
+- **Så åbnes én episode med dem alle.** Den advarsel, der fuldender antallet, åbner episoden med hver advarsel, der ventede. Episoden tager sin titel, monitor og alvorsgrad fra den første af dem og stiger til den mest alvorlige, og advarslerne efter dem slutter sig til den som normalt.
+- **Kun advarsler i gang tæller.** En advarsel, der er løst i mellemtiden, er overstået, så en monitor, der bliver ved med at fejle og komme sig, åbner aldrig en episode af sig selv. Mens **Gruppér kun advarsler, der kommer tæt efter hinanden** er slået til, skal advarslerne også være kommet inden for dets vindue fra hinanden.
+- **Det tæller pr. gruppe.** Med **Alt samlet** tæller alle matchende advarsler, så en episode åbnes kun ved et nedbrud, der udløser flere monitorer på én gang. Med **Overvågning** åbnes en monitors episode, når den monitor har flere advarsler i gang.
+
+Listens kolonne **Gruppering** siger "Åbner en episode, når 3 matchende advarsler er i gang". Via API'et og Terraform hedder det `enableMinimumAlertCount` og `minimumAlertCount`.
 
 ## Episodetitler
 
@@ -117,6 +131,7 @@ flowchart TB
 
 - **En ny episode** kører reglens **Vagtpolitikker** plus dem fra enhver matchende regel på fanen **Episode Rules** under **Advarsler → Regler → Vagtregler**.
 - **En advarsel, der slutter sig til en åben episode**, kører kun sine egne politikker. Episodens kører ikke igen.
+- **En advarsel, der venter på flere advarsler**, kører også kun sine egne politikker. Når **Vent på flere advarsler** er slået til, og reglens politikker er de eneste, der tilkalder, tilkalder en enkelt advarsel ingen, indtil nok af dem er i gang.
 - **Svarer man på en episodes tilkaldelse**, bekræftes episoden og dermed hver advarsel i den.
 
 > [!TIP]

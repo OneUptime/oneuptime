@@ -60,6 +60,10 @@ import {
   ResourceAiLogs,
 } from "../../../Types/AI/ResourceAiAccessApi";
 import {
+  RESOURCE_AI_ACCESS_ORGANIZATION_KEYS_PATH,
+  RESOURCE_AI_ACCESS_ORGANIZATION_PATH,
+} from "../../../Types/CloudConnection/CloudOrganizationAgents";
+import {
   getCloudAiAgentKeyEditRefusal,
   getCloudAiAgentKeyRefusal,
   getResourceAiAgentResetEditRefusal,
@@ -764,34 +768,39 @@ describe("ResourceAiAccessAPI", () => {
     jest.restoreAllMocks();
   });
 
-  test("registers the six routes, each behind the user middleware", () => {
-    for (const path of [
+  test("registers the eight routes, each behind the user middleware", () => {
+    const paths: Array<string> = [
       RESOURCE_AI_ACCESS_STATUS_PATH,
       RESOURCE_AI_ACCESS_TEST_PATH,
       RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
       RESOURCE_AI_ACCESS_LOGS_PATH,
       RESOURCE_AI_ACCESS_INSIGHTS_PATH,
       RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
-    ]) {
+      // An AWS Organization's agents (ResourceAiAccessOrganizationAPI.test).
+      RESOURCE_AI_ACCESS_ORGANIZATION_PATH,
+      RESOURCE_AI_ACCESS_ORGANIZATION_KEYS_PATH,
+    ];
+
+    for (const path of paths) {
       const route: MockRoute = matchRoute(path);
       expect(route.middleware).toBeDefined();
     }
 
-    expect([
-      RESOURCE_AI_ACCESS_STATUS_PATH,
-      RESOURCE_AI_ACCESS_TEST_PATH,
-      RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
-      RESOURCE_AI_ACCESS_LOGS_PATH,
-      RESOURCE_AI_ACCESS_INSIGHTS_PATH,
-      RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
-    ]).toEqual([
+    expect(paths).toEqual([
       "/resource-ai-access/status",
       "/resource-ai-access/test",
       "/resource-ai-access/reset-agent",
       "/resource-ai-access/logs",
       "/resource-ai-access/insights",
       "/resource-ai-access/agent-key",
+      "/resource-ai-access/organization",
+      "/resource-ai-access/organization-agent-keys",
     ]);
+    expect(
+      mockRoutes.filter((route: MockRoute): boolean => {
+        return route.uri.startsWith("/resource-ai-access/");
+      }),
+    ).toHaveLength(paths.length);
     expect(
       mockRoutes.filter((route: MockRoute): boolean => {
         return route.uri === RESOURCE_AI_ACCESS_INSIGHTS_PATH;

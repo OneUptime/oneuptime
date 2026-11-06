@@ -707,6 +707,33 @@ function resolveGcpMonitoredResource(
 }
 
 /*
+ * Whether an id is the provider's own for a resource - an ARN, an Azure
+ * resource ID, a Google Cloud full resource name - rather than the
+ * readable stand-in a datapoint that does not name its resource completely
+ * gets ("AWS/AppRunner ServiceName=checkout"). A change of the cloud
+ * catalog names a resource by its own id only.
+ */
+export function isCloudProviderOwnResourceId(
+  provider: CloudProvider | string,
+  id: string,
+): boolean {
+  if (typeof id !== "string" || !id || id.includes(" ")) {
+    return false;
+  }
+
+  switch (provider) {
+    case CloudProvider.AWS:
+      return id.startsWith("arn:");
+    case CloudProvider.Azure:
+      return id.toLowerCase().startsWith("/subscriptions/");
+    case CloudProvider.GCP:
+      return id.startsWith("//");
+    default:
+      return false;
+  }
+}
+
+/*
  * ---- Row identity and naming ---------------------------------------------
  */
 

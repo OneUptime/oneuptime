@@ -340,6 +340,66 @@ describe.each(
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  test("a lone marker that opens nothing is a mark to hover or focus, not a button: no pointer", () => {
+    // The day a page is already about: an unusual day on an account's own Costs.
+    const { container } = render(
+      chart.render({
+        timeReferenceLines: [
+          {
+            date: minutesIn(90),
+            label: "Amazon Athena cost $54.33",
+            kind: ChartEventKind.Alert,
+          },
+        ],
+      }),
+    );
+
+    const chip: HTMLElement = chips(container)[0]!;
+    expect(chip.getAttribute("role")).toBe("img");
+    expect(chip).toHaveStyle({ cursor: "default" });
+    // Still reachable, and still says what it is.
+    expect(chip.getAttribute("tabindex")).toBe("0");
+    expect(chip.getAttribute("aria-label")).toContain(
+      "Amazon Athena cost $54.33",
+    );
+    fireEvent.focus(chip);
+    expect(
+      screen.getByTestId("chart-annotation-hover-card"),
+    ).toBeInTheDocument();
+    // A click or Enter does nothing, and throws nothing.
+    fireEvent.click(chip);
+    fireEvent.keyDown(chip, { key: "Enter" });
+    expect(chips(container)).toHaveLength(1);
+  });
+
+  test("a marker that opens a record, or a cluster that opens its card, is a button with the pointer", () => {
+    const onClick: () => void = jest.fn() as unknown as () => void;
+    const { container, unmount } = render(
+      chart.render({
+        timeReferenceLines: [
+          { date: minutesIn(90), label: "Incident: API is down", onClick },
+        ],
+      }),
+    );
+
+    expect(chips(container)[0]!.getAttribute("role")).toBe("button");
+    expect(chips(container)[0]!).toHaveStyle({ cursor: "pointer" });
+    unmount();
+
+    // Two that open nothing of their own still open their card.
+    const clustered: { container: HTMLElement } = render(
+      chart.render({
+        timeReferenceLines: [
+          { date: minutesIn(120), label: "Amazon Athena cost $54.33" },
+          { date: minutesIn(121), label: "AWS Glue cost $40.10" },
+        ],
+      }),
+    );
+    const chip: HTMLElement = chips(clustered.container)[0]!;
+    expect(chip.getAttribute("role")).toBe("button");
+    expect(chip).toHaveStyle({ cursor: "pointer" });
+  });
+
   test("a press on a chip never reaches the chart's drag-to-select", () => {
     /*
      * The chart starts a range selection on mousedown. Without this guard
@@ -446,6 +506,37 @@ describe.each(
         expect(Number(y)).toBeGreaterThanOrEqual(0);
       }
     }
+  });
+
+  /*
+   * The legend's wrapper is HTML laid over the chart, padded down over the
+   * rail to buy its strip: in a browser it took every press and hover meant
+   * for a chip under it (Costs' daily spend, whose legend names the days
+   * still being reported, could not open an unusual day's mark). It lets
+   * the pointer through; the legend's own items take it back.
+   */
+  test("the legend's wrapper lets the pointer through to the rail; its items take it", () => {
+    const { container } = render(
+      chart.render({
+        timeReferenceLines: [{ date: minutesIn(90), label: "Deploy" }],
+        showLegend: true,
+      }),
+    );
+
+    expect(chips(container)).toHaveLength(1);
+
+    const wrapper: HTMLElement | null = container.querySelector(
+      ".recharts-legend-wrapper",
+    );
+    expect(wrapper).not.toBeNull();
+    expect(wrapper!.style.pointerEvents).toBe("none");
+    // Still where recharts puts it: laid over the chart's top.
+    expect(wrapper!.style.position).toBe("absolute");
+
+    const items: HTMLElement = wrapper!.firstElementChild as HTMLElement;
+    expect(items).not.toBeNull();
+    expect(items.style.pointerEvents).toBe("auto");
+    expect(items).toHaveTextContent("latency");
   });
 });
 
