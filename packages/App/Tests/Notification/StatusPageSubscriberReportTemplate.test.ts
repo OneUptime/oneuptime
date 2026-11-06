@@ -14,7 +14,10 @@
  */
 
 import Handlebars from "handlebars";
-import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
+import {
+  getEmailLanguageVariables,
+  registerEmailLanguageHelpers,
+} from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
 import StatusPageReportTreeUtil, {
@@ -874,4 +877,263 @@ describe("on a phone, the uptime report's three stats are rows", () => {
       );
     },
   );
+});
+
+/*
+ * THE REPORT IN ITS READER'S LANGUAGE.
+ *
+ * StatusPageService.sendEmailReport puts each subscriber's language on the
+ * email (MailService.render gives the template emailLanguage, and for
+ * Persian emailDirection and isEmailRightToLeft), and hands it the report
+ * written in that language (Common/Utils/StatusPage/ReportText). The
+ * template words its own text in it, writes its counts the language's way
+ * (tNumber), and in an email read from the right lays its table and stat
+ * strip out from the right. An English email reads exactly as it did.
+ */
+describe("the uptime report in its reader's language", () => {
+  // The fixture's report, rendered as an email in `language`.
+  const renderIn: (
+    language: string,
+    report?: StatusPageReport | undefined,
+  ) => string = (
+    language: string,
+    report?: StatusPageReport | undefined,
+  ): string => {
+    return renderReportTemplate({
+      statusPageName: "WBHQ Status Page",
+      hasResources: "true",
+      statusPageUrl: "https://status.example.com",
+      detailsUrl: "https://status.example.com",
+      report:
+        report ||
+        buildReport({
+          entries: nestedEntries(),
+          statusPageGroups: nestedGroups(),
+          groupMetricsByGroupId: nestedMetrics(),
+        }),
+      ...getEmailLanguageVariables(language),
+    });
+  };
+
+  // The English words a report email used to be written in.
+  const ENGLISH_WORDS: Array<string> = [
+    "Uptime Report:",
+    "Here is your status summary for",
+    ">Average Uptime<",
+    ">Downtime<",
+    ">Resources<",
+    "Breakdown by group",
+    ">Group / Resource<",
+    ">Uptime<",
+    " resources<",
+    "View Full Status Page",
+    'aria-label="Uptime by resource"',
+    "uptime report",
+  ];
+
+  test("German: every word of the email is German", () => {
+    const html: string = renderIn("de");
+
+    for (const words of [
+      "Verfügbarkeitsbericht: WBHQ Status Page",
+      "Hier ist Ihre Statusübersicht für July 2026.",
+      ">Durchschnittliche Verfügbarkeit</p>",
+      ">Ausfallzeit</p>",
+      ">Vorfälle</p>",
+      ">Ressourcen</p>",
+      "Aufschlüsselung nach Gruppe",
+      ">Gruppe / Ressource</th>",
+      ">Verfügbarkeit</th>",
+      ">Ausfallzeit</th>",
+      ">Vorfälle</th>",
+      " &middot; 2 Ressourcen</span>",
+      'aria-label="Verfügbarkeit nach Ressource"',
+      "Vollständige Statusseite ansehen",
+      "WBHQ Status Page: Verfügbarkeitsbericht",
+    ]) {
+      expect([words, html.includes(words)]).toEqual([words, true]);
+    }
+
+    for (const words of ENGLISH_WORDS) {
+      expect([words, html.includes(words)]).toEqual([words, false]);
+    }
+  });
+
+  test("German: a page without groups says so in German", () => {
+    const html: string = renderIn(
+      "de",
+      buildReport({
+        entries: [makeEntry({ resourceName: "Router" })],
+        statusPageGroups: [],
+      }),
+    );
+
+    expect(html).toContain("Aufschlüsselung nach Ressource");
+    expect(html).toContain(">Ressource</th>");
+    expect(html).not.toContain("Per-resource breakdown");
+  });
+
+  test("German: a page without resources says so in German", () => {
+    const html: string = renderReportTemplate({
+      statusPageName: "WBHQ Status Page",
+      hasResources: "false",
+      report: buildReport({ entries: [], statusPageGroups: [] }),
+      ...getEmailLanguageVariables("de"),
+    });
+
+    expect(html).toContain(
+      "Dieser Statusseite wurden noch keine Ressourcen hinzugefügt",
+    );
+    expect(html).not.toContain("No resources have been added");
+  });
+
+  test.each([
+    "de",
+    "fr",
+    "es",
+    "it",
+    "pt",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ja",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+  ])("%s words the title, the summary and the button", (language: string) => {
+    const html: string = renderIn(language);
+
+    for (const words of [
+      "Uptime Report:",
+      "Here is your status summary for",
+      "View Full Status Page",
+      "Breakdown by group",
+    ]) {
+      expect([language, words, html.includes(words)]).toEqual([
+        language,
+        words,
+        false,
+      ]);
+    }
+
+    expect(html).toContain(`lang="${language}"`);
+  });
+
+  test("English: one resource is one resource", () => {
+    const html: string = renderIn(
+      "en",
+      buildReport({
+        entries: [makeEntry({ resourceName: "Router", groupId: CORPORATE })],
+        statusPageGroups: [makeGroup({ id: CORPORATE, name: "Corporate" })],
+      }),
+    );
+
+    expect(html).toContain(" &middot; 1 resource</span>");
+    expect(html).not.toContain("1 resources");
+    // And two are two, as they always were.
+    expect(renderIn("en")).toContain(" &middot; 2 resources</span>");
+  });
+
+  test("English: the email has no direction and its counts are as written", () => {
+    const html: string = renderIn("en");
+
+    expect(html).not.toContain('dir="rtl"');
+    expect(html).not.toContain("<span dir=");
+    expect(html).toContain('<th scope="col" align="left" width="34%"');
+    expect(html).toContain(">3</div>");
+  });
+
+  describe("in Persian, read from the right", () => {
+    let html: string = "";
+
+    beforeAll(() => {
+      html = renderIn("fa");
+    });
+
+    test("is laid out from the right", () => {
+      expect(html).toContain('lang="fa" dir="rtl"');
+    });
+
+    test("puts the name column at the right and the figures at the left", () => {
+      expect(html).toContain(
+        '<th scope="col" align="right" width="34%" bgcolor="#f8fafc" style="background-color:#f8fafc;color:#64748b;padding:14px 10px;font-size:12px;line-height:18px;font-weight:600;text-align:right;">',
+      );
+      expect(html).toContain(
+        '<th scope="col" align="left" width="22%" bgcolor="#f8fafc" style="background-color:#f8fafc;color:#64748b;padding:14px 10px;font-size:12px;line-height:18px;font-weight:600;text-align:left;">',
+      );
+      expect(html).not.toContain('align="left" width="34%"');
+    });
+
+    test("indents each level from the right", () => {
+      expect(html).toContain('style="margin-right:16px;">');
+      expect(html).toContain('style="margin-right:64px;">');
+      expect(html).not.toContain("margin-left:16px");
+    });
+
+    test("an English name reads left to right, set apart in its line", () => {
+      expect(html).toContain('<span dir="ltr">Region 001</span>');
+      expect(html).toContain('<span dir="ltr">Router</span>');
+    });
+
+    test("a Persian name reads right to left", () => {
+      const persian: string = renderIn(
+        "fa",
+        buildReport({
+          entries: [makeEntry({ resourceName: "درگاه پرداخت" })],
+          statusPageGroups: [],
+        }),
+      );
+
+      expect(persian).toContain('<span dir="rtl">درگاه پرداخت</span>');
+    });
+
+    test("its counts are in Persian digits", () => {
+      // The page's three incidents, and a group's two resources.
+      expect(html).toContain(">۳</div>");
+      expect(html).toContain("۲ منبع");
+    });
+
+    test("the report's time zone reads left to right in its brackets", () => {
+      expect(html).toContain('(<span dir="ltr">UTC</span>)');
+    });
+
+    test("the middle tile draws both of the strip's dividers, the outer ones none", () => {
+      const tiles: Array<string> = statTiles(html);
+
+      expect(tiles).toHaveLength(3);
+
+      const style: (tile: string) => string = (tile: string): string => {
+        const at: number = tile.indexOf('style="');
+        return tile.slice(at, tile.indexOf('"', at + 'style="'.length));
+      };
+
+      expect(style(tiles[0]!)).not.toContain("border");
+      expect(style(tiles[1]!)).toContain("border-left:1px solid #e2e8f0;");
+      expect(style(tiles[1]!)).toContain("border-right:1px solid #e2e8f0;");
+      expect(style(tiles[2]!)).not.toContain("border");
+    });
+
+    test("on a phone, each stat's label is on the right and its value on the left", () => {
+      const rules: Map<string, Map<string, string>> = phoneRules(html);
+      const cell: Map<string, string> | undefined = rules.get(
+        "body[override] td.st-Stat",
+      );
+      const label: Map<string, string> | undefined = rules.get(
+        "body[override] .st-Stat .st-Stat-label",
+      );
+
+      expect(cell?.get("text-align")).toBe("left !important");
+      expect(cell?.get("border-left")).toBe("0 !important");
+      expect(cell?.get("border-right")).toBe("0 !important");
+      expect(label?.get("float")).toBe("right !important");
+      expect(label?.get("margin")).toBe("0 0 0 16px !important");
+      expect(
+        rules.get("body[override] .st-ReportIndent")?.get("margin-right"),
+      ).toBe("0 !important");
+    });
+  });
 });

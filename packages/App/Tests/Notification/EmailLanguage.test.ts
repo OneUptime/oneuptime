@@ -26,8 +26,17 @@ import {
   getEmailLanguageVariables,
   getEmailValueDirection,
   registerEmailLanguageHelpers,
+  writeEmailNumber,
 } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import "../../FeatureSet/Notification/Utils/Handlebars";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import { StatusPageReport } from "Common/Types/StatusPage/StatusPageReport";
+import StatusPageReportTreeUtil, {
+  StatusPageReportStructure,
+} from "Common/Utils/StatusPage/Report";
 
 /*
  * AN EMAIL'S OWN WORDS, IN ITS READER'S LANGUAGE.
@@ -147,6 +156,7 @@ const SUBSCRIBER_TEMPLATES: Array<EmailTemplateType> = [
   EmailTemplateType.ConfirmStatusPageSubscription,
   EmailTemplateType.SubscribedToStatusPage,
   EmailTemplateType.ManageExistingStatusPageSubscriberSubscription,
+  EmailTemplateType.StatusPageSubscriberReport,
 ];
 
 /*
@@ -428,6 +438,54 @@ describe("the email language helpers", () => {
         isEmailRightToLeft: "true",
       }),
     ).toBe("right|left");
+  });
+
+  test("tNumber: a count as the email's language writes it, as it always was in English", () => {
+    expect(render("{{tNumber n}}", { n: 1234 })).toBe("1234");
+    expect(render("{{tNumber n}}", { n: 3, emailLanguage: "de" })).toBe("3");
+    expect(render("{{tNumber n}}", { n: 1234, emailLanguage: "de" })).toBe(
+      "1.234",
+    );
+    expect(render("{{tNumber n}}", { n: 1234, emailLanguage: "fa" })).toBe(
+      "۱٬۲۳۴",
+    );
+    expect(render("{{tNumber n}}", { n: 0, emailLanguage: "fa" })).toBe("۰");
+  });
+
+  test("tNumber: nothing for a missing count, and anything else as it is", () => {
+    expect(render("[{{tNumber n}}]", {})).toBe("[]");
+    expect(render("[{{tNumber n}}]", { n: null, emailLanguage: "fa" })).toBe(
+      "[]",
+    );
+    expect(render("{{tNumber n}}", { n: "12", emailLanguage: "fa" })).toBe(
+      "12",
+    );
+    expect(render("{{tNumber n}}", { n: "<b>", emailLanguage: "de" })).toBe(
+      "&lt;b&gt;",
+    );
+  });
+});
+
+describe("writeEmailNumber", () => {
+  test("English writes a count exactly as Handlebars always did", () => {
+    for (const value of [0, 7, 1234, 1000000, 2.5]) {
+      expect(writeEmailNumber(value, "en")).toBe(String(value));
+    }
+  });
+
+  test("every other language writes it its own way", () => {
+    expect(writeEmailNumber(1234, "fr")).not.toBe("1234");
+    expect(writeEmailNumber(1234, "ja")).toBe("1,234");
+    expect(writeEmailNumber(12, "fa")).toBe("۱۲");
+  });
+
+  test("a language OneUptime does not write in is English", () => {
+    expect(writeEmailNumber(1234, "tlh")).toBe("1234");
+  });
+
+  test("a value that is not a finite number is written as it is", () => {
+    expect(writeEmailNumber(Number.NaN, "de")).toBe("NaN");
+    expect(writeEmailNumber(undefined, "de")).toBe("");
   });
 });
 
@@ -721,4 +779,155 @@ describe("every subscriber email, in every language", () => {
       }
     },
   );
+});
+
+/*
+ * The uptime report, with a report in it: its stat strip, its table and a
+ * group's count of resources - none of them in English in another
+ * language, every name in it kept.
+ */
+describe("the uptime report, in every language", () => {
+  // Between two words of a text.
+  const WHITESPACE_REGEX: RegExp = /\s+/;
+
+  const ZONE_GROUP: ObjectID = new ObjectID(
+    "61000000-0000-4000-8000-000000000001",
+  );
+
+  const report: () => StatusPageReport = (): StatusPageReport => {
+    const group: StatusPageGroup = new StatusPageGroup();
+    group._id = ZONE_GROUP.toString();
+    group.name = "Zorbex zone";
+    group.order = 1;
+
+    const resource: StatusPageResource = new StatusPageResource();
+    resource.displayName = "Zorbex gateway";
+    resource.statusPageGroupId = ZONE_GROUP;
+
+    const otherResource: StatusPageResource = new StatusPageResource();
+    otherResource.displayName = "Zorbex ledger";
+    otherResource.statusPageGroupId = ZONE_GROUP;
+
+    const structure: StatusPageReportStructure =
+      StatusPageReportTreeUtil.build({
+        entries: [resource, otherResource].map(
+          (statusPageResource: StatusPageResource) => {
+            return {
+              statusPageResource: statusPageResource,
+              reportItem: {
+                resourceName: statusPageResource.displayName || "",
+                totalIncidentCount: 1,
+                uptimePercent: 99.5,
+                uptimePercentAsString: "99.5%",
+                downtimeInHoursAndMinutes: "Zorbex minutes",
+              },
+            };
+          },
+        ),
+        statusPageGroups: [group],
+        groupMetricsByGroupId: {},
+      });
+
+    return {
+      reportDates: "Zorbex dates",
+      reportPeriodName: "Zorbex period",
+      reportStartDate: "Zorbex start",
+      reportEndDate: "Zorbex end",
+      reportTimezone: "UTC",
+      totalResources: 2,
+      totalIncidents: 2,
+      averageUptimePercent: "99.5%",
+      totalDowntimeInHoursAndMinutes: "Zorbex minutes",
+      resources: structure.resources,
+      groups: structure.groups,
+      ungroupedResources: structure.resourcesWithoutGroup,
+      rows: structure.rows,
+      hasGroups: true,
+    };
+  };
+
+  const reportEmail: (language: string | undefined) => EmailMessage = (
+    language: string | undefined,
+  ): EmailMessage => {
+    return {
+      toEmail: new Email("alice@example.test"),
+      subject: "A subject",
+      isSubjectLiteral: true,
+      templateType: EmailTemplateType.StatusPageSubscriberReport,
+      vars: {
+        ...SUBSCRIBER_VARIABLES,
+        hasResources: "true",
+        report: report() as unknown as JSONObject,
+      },
+      ...(language ? { language: language } : {}),
+    };
+  };
+
+  test("reads none of OneUptime's English words in another language", async () => {
+    const english: string = visibleText(
+      (await MailService.render(reportEmail(undefined))).body,
+    );
+    const problems: Array<string> = [];
+
+    // The table and the strip are there in English, to be worded.
+    expect(english).toContain("Breakdown by group");
+    expect(english).toContain("Zorbex zone &middot; 2 resources");
+
+    for (const language of TRANSLATED_LANGUAGES) {
+      const text: string = visibleText(
+        (await MailService.render(reportEmail(language))).body,
+      );
+
+      for (const sentence of wordedApart(language)) {
+        for (const words of wordsOf(sentence.english)) {
+          if (!english.includes(words)) {
+            continue;
+          }
+
+          if (text.includes(words) && !sentence.worded.includes(words)) {
+            problems.push(`${language}: "${words}"`);
+          }
+        }
+      }
+
+      // Its labels, one word each, are its own too: none is a word of it.
+      const textWords: Array<string> = text.split(WHITESPACE_REGEX);
+
+      for (const label of ["Downtime", "Uptime", "Resources"]) {
+        const worded: string | undefined = SERVER_LOCALES[language]![label];
+
+        if (worded !== label && textWords.includes(label)) {
+          problems.push(`${language}: "${label}"`);
+        }
+      }
+    }
+
+    expect(problems).toEqual([]);
+  });
+
+  test("keeps every name and figure it is given, in every language", async () => {
+    for (const language of [undefined, ...TRANSLATED_LANGUAGES]) {
+      const text: string = visibleText(
+        (await MailService.render(reportEmail(language))).body,
+      );
+
+      for (const value of [
+        "Zorbex Status",
+        "Zorbex zone",
+        "Zorbex gateway",
+        "Zorbex ledger",
+        "Zorbex period",
+        "Zorbex start",
+        "Zorbex end",
+        "Zorbex minutes",
+        "99.5%",
+      ]) {
+        expect([language, value, text.includes(value)]).toEqual([
+          language,
+          value,
+          true,
+        ]);
+      }
+    }
+  });
 });
