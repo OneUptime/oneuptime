@@ -3,7 +3,7 @@
 ‏OneUptime از یک مخزن ساخته می‌شود و در دو نسخه عرضه می‌شود:
 
 - **Community Edition**: کل سکوی پایش، حادثه و مشاهده‌پذیری، از جمله ورود یکپارچهٔ SAML و OpenID Connect، که متن‌باز و تحت Apache License 2.0 است و میزبانی آن روی سرور خودتان در هر مقیاسی رایگان است.
-- **Enterprise Edition**: همان Community Edition به‌علاوهٔ ماژول‌های سازمانی پوشهٔ [`ee/`](https://github.com/OneUptime/oneuptime/tree/master/ee) مخزن. این ماژول‌ها تأمین SCIM و قابلیت‌های حاکمیت و مدیریت نمونه را اضافه می‌کنند. آن‌ها تحت [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE) هستند، و استفادهٔ تولیدی از آن‌ها به پروانهٔ Enterprise برای تعداد کاربرانتان نیاز دارد.
+- **Enterprise Edition**: همان Community Edition به‌علاوهٔ ماژول‌های سازمانی پوشهٔ [`ee/`](https://github.com/OneUptime/oneuptime/tree/main/ee) مخزن. این ماژول‌ها تأمین SCIM و قابلیت‌های حاکمیت و مدیریت نمونه را اضافه می‌کنند. آن‌ها تحت [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE) هستند، و استفادهٔ تولیدی از آن‌ها به پروانهٔ Enterprise برای تعداد کاربرانتان نیاز دارد.
 
 این دو نسخه ایمیج‌های کانتینری جداگانه‌اند. ایمیج Community هیچ کدی از `ee/` ندارد. ‏OneUptime Cloud نسخهٔ Enterprise Edition را اجرا می‌کند، و در ابر طرح شما تعیین می‌کند کدام‌یک از این قابلیت‌ها را دارید.
 
@@ -113,7 +113,7 @@ npm run update
 
 ## پروانه
 
-پروندهٔ [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE) در ریشهٔ مخزن مشخص می‌کند کدام پروانه چه چیزی را پوشش می‌دهد: هر چیزی در پوشهٔ `ee/` تحت [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE) است، مؤلفه‌های شخص ثالث پروانه‌هایی را که مالکانشان با آن‌ها عرضه‌شان می‌کنند حفظ می‌کنند، و همهٔ چیزهای دیگر تحت Apache License 2.0 هستند.
+پروندهٔ [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/main/LICENSE) در ریشهٔ مخزن مشخص می‌کند کدام پروانه چه چیزی را پوشش می‌دهد: هر چیزی در پوشهٔ `ee/` تحت [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE) است، مؤلفه‌های شخص ثالث پروانه‌هایی را که مالکانشان با آن‌ها عرضه‌شان می‌کنند حفظ می‌کنند، و همهٔ چیزهای دیگر تحت Apache License 2.0 هستند.
 
 نصب تازهٔ Enterprise Edition به‌صورت یک **دورهٔ آزمایشی 14 روزه** اجرا می‌شود که از نخستین باری که نصب Enterprise Edition را شروع می‌کند شمرده می‌شود. دورهٔ آزمایشی برای ارزیابی است: استفادهٔ تولیدی از Enterprise Edition به اشتراکی تحت OneUptime Enterprise License نیاز دارد. پیش از پایان دورهٔ آزمایشی یک پروانه فعال کنید: پس از آن، SCIM، ثبت ممیزی و بازنویسی‌های نگهداری متوقف می‌شوند و پیکربندی سازمانی فقط‌خواندنی می‌شود ([وقتی پروانه منقضی شده یا وجود ندارد](#وقتی-پروانه-منقضی-شده-یا-وجود-ندارد) را ببینید). برای گرفتن پروانه با [sales@oneuptime.com](mailto:sales@oneuptime.com) تماس بگیرید.
 

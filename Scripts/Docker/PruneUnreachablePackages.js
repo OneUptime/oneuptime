@@ -103,6 +103,19 @@ const NOT_A_PACKAGE = /^(\.|\/|[a-z][a-z0-9+.-]*:)/i;
 // answer itself.
 const RESOLVING = "prune-unreachable-packages:resolving";
 
+/*
+ * What esbuild says of a require() of a relative template literal it turned
+ * into a file pattern that matches no file: require(`../build/x-${p}.node`)
+ * becomes "../build/x-*.node". sharp loads its native binary so, from a
+ * build folder its prebuilt packages leave empty. esbuild gives plugins no
+ * say in such a pattern, and fails the walk on it even inside a try.
+ */
+const UNMATCHED_PATTERN =
+  /^Could not resolve require\("(\.{1,2}\/[^"]*\*[^"]*)"\)$/;
+
+// A relative template literal a package requires: the pattern esbuild makes.
+const RELATIVE_TEMPLATE_REQUIRE = /\brequire\(\s*`(?=\.{1,2}\/)/g;
+
 /**
  * @param {Array<string>} argv
  * @returns {{
@@ -261,6 +274,73 @@ function walkPlugin(missing, resolvedFiles) {
 }
 
 /**
+ * The esbuild plugin that reads a package's file whose relative template
+ * literal require()s esbuild could not match as a computed load: each such
+ * require() is read with a tagged template, which esbuild leaves as a
+ * require() of a name it cannot know instead of a file pattern. The file is
+ * not changed on disk. What such a require() loads is the package's own, and
+ * npm keeps the package's dependencies with it (step 3 above).
+ *
+ * @param {Set<string>} files the real paths of the files to read so
+ */
+function computedLoadsPlugin(files) {
+  return {
+    name: "prune-unreachable-packages:computed-loads",
+    setup(build) {
+      build.onLoad({ filter: /\.(c?js|mjs)$/ }, (args) => {
+        if (!files.has(args.path)) {
+          return undefined;
+        }
+        return {
+          contents: fs
+            .readFileSync(args.path, "utf8")
+            .replace(RELATIVE_TEMPLATE_REQUIRE, "require(String.raw`"),
+          loader: "js",
+        };
+      });
+    },
+  };
+}
+
+/**
+ * The files inside installed packages that a failed walk could not read
+ * because a relative template literal require() in them matches no file, or
+ * null when the walk failed for any other reason too (that fails the image
+ * build as before).
+ *
+ * @param {object} failure what esbuild.build() threw
+ * @param {string} workingDirectory the walk's absWorkingDir
+ * @returns {Array<string>|null} real paths
+ */
+function unmatchedPatternFiles(failure, workingDirectory) {
+  const errors = failure && Array.isArray(failure.errors) ? failure.errors : [];
+  if (errors.length === 0) {
+    return null;
+  }
+  const files = [];
+  for (const error of errors) {
+    const file =
+      error.location && error.location.file
+        ? path.resolve(workingDirectory, error.location.file)
+        : null;
+    if (
+      !UNMATCHED_PATTERN.test(error.text || "") ||
+      !file ||
+      !fs.existsSync(file)
+    ) {
+      return null;
+    }
+    const realFile = fs.realpathSync(file);
+    if (!packageDirectoryOf(realFile)) {
+      // The program's own file: its computed loads stop the walk (step 2).
+      return null;
+    }
+    files.push(realFile);
+  }
+  return files;
+}
+
+/**
  * Follows every import from the entry points, and from every file a
  * require.resolve() finds, until no file found is left unread.
  *
@@ -270,9 +350,12 @@ function walkPlugin(missing, resolvedFiles) {
  * @returns {Promise<{
  *   reached: Set<string>,
  *   ownFiles: Array<string>,
- *   missing: Array<{specifier: string, importer: string}>
+ *   missing: Array<{specifier: string, importer: string}>,
+ *   packageComputedLoads: Array<string>
  * }>} reached: the directory of every installed package the walk reached
- *   (real paths); ownFiles: the program's own files it read (real paths)
+ *   (real paths); ownFiles: the program's own files it read (real paths);
+ *   packageComputedLoads: the package files whose relative template
+ *   require()s match no file, read as computed loads (real paths)
  */
 async function walkImports(options) {
   const entries =
@@ -287,6 +370,8 @@ async function walkImports(options) {
   // Every file read, or waiting to be (real paths): each is walked once.
   const seen = new Set();
   const pending = [...entries];
+  // Package files read with their relative template require()s as computed.
+  const packageComputedLoads = new Set();
 
   /*
    * Each entry is walked, and each file a require.resolve() finds once
@@ -295,19 +380,46 @@ async function walkImports(options) {
    */
   while (pending.length > 0) {
     const next = pending.shift();
-    const found = [];
-    const resolvedFiles = [];
-    const result = await options.esbuild.build({
-      entryPoints: [next],
-      absWorkingDir: workingDirectory,
-      bundle: true,
-      write: false,
-      platform: "node",
-      format: "cjs",
-      metafile: true,
-      logLevel: "silent",
-      plugins: [walkPlugin(found, resolvedFiles)],
-    });
+    let found = [];
+    let resolvedFiles = [];
+    let result = null;
+    /*
+     * A package file whose relative template literal require() matches no
+     * file fails the build; the walk then reads that file's such require()s
+     * as computed loads (computedLoadsPlugin) and builds again. Each failing
+     * file is added once, so this ends.
+     */
+    while (result === null) {
+      found = [];
+      resolvedFiles = [];
+      try {
+        result = await options.esbuild.build({
+          entryPoints: [next],
+          absWorkingDir: workingDirectory,
+          bundle: true,
+          write: false,
+          platform: "node",
+          format: "cjs",
+          metafile: true,
+          logLevel: "silent",
+          plugins: [
+            walkPlugin(found, resolvedFiles),
+            computedLoadsPlugin(packageComputedLoads),
+          ],
+        });
+      } catch (failure) {
+        const files = unmatchedPatternFiles(failure, workingDirectory);
+        const added = (files || []).filter((file) => {
+          return !packageComputedLoads.has(file);
+        });
+        if (added.length === 0) {
+          throw failure;
+        }
+        for (const file of added) {
+          packageComputedLoads.add(file);
+        }
+      }
+    }
 
     // A later walk may read files an earlier one read: note each once.
     for (const item of found) {
@@ -354,7 +466,12 @@ async function walkImports(options) {
     }
   }
 
-  return { reached, ownFiles: [...ownFiles].sort(), missing };
+  return {
+    reached,
+    ownFiles: [...ownFiles].sort(),
+    missing,
+    packageComputedLoads: [...packageComputedLoads].sort(),
+  };
 }
 
 // The modules whose calls start code beside the program.

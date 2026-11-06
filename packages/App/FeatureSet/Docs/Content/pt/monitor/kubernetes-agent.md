@@ -385,7 +385,7 @@ O profiling precisa do **Linux 5.10** ou posterior, e de um pod privilegiado com
 | `kubeStateMetrics.enabled` | `false` | O estado do cluster a partir do kube-state-metrics. |
 | `aiAgent.enabled` | `true` | O agente de IA do Kubernetes. Veja [Agente de IA do Kubernetes](/docs/telemetry/kubernetes-agent#agente-de-ia-do-kubernetes) para o que ele pode fazer. |
 
-O [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) do chart lista e explica cada opção, e [Agente Kubernetes](/docs/telemetry/kubernetes-agent) trata de filtragem, amostragem e de como manter baixo o volume de dados.
+O [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/kubernetes-agent/values.yaml) do chart lista e explica cada opção, e [Agente Kubernetes](/docs/telemetry/kubernetes-agent) trata de filtragem, amostragem e de como manter baixo o volume de dados.
 
 ## Atualização
 

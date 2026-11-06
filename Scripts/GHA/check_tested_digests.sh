@@ -9,7 +9,7 @@
 # boot the -amd64 tags each build's amd64 leg pushes (app:<version>-amd64,
 # app:enterprise-<version>-amd64), so they start as soon as the builds are
 # done rather than after every merge job has queued for a runner and run -
-# as master's e2e jobs do (test-release.yaml). The merge jobs run beside them
+# as main's e2e jobs do (test-release.yaml). The merge jobs run beside them
 # and join each image's -amd64 and -arm64 tags into the multi-arch tags
 # (<version>, enterprise-<version>), and push-release-tags moves `release`
 # and `enterprise-release` to those. An amd64 pull of a merged tag gets that

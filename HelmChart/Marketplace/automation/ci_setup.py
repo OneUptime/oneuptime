@@ -24,7 +24,7 @@ again: it creates what is missing and leaves what is there.
         account that can write to it, and Workload Identity Federation for the workflow's
         environments.
     ci_setup.py github --reviewer <login> [--reviewer <login>] [--set NAME=VALUE]... [--enable] [--apply]
-        The two environments (marketplace-push: master only; marketplace-publish: master only,
+        The two environments (marketplace-push: main only; marketplace-publish: main only,
         and every job waits for a reviewer), the repository variables the scripts above print,
         and with --enable, MARKETPLACE_RELEASES=enabled so the workflow ships weekly.
 """
@@ -417,7 +417,7 @@ def github_script(
         f"gh variable set MARKETPLACE_RELEASES --repo {repo} --body enabled" if enable else ""
     )
     branch_policies: str = "\n".join(
-        f"""gh api --method POST "repos/${{REPO}}/environments/{environment}/deployment-branch-policies" -f name=master -f type=branch >/dev/null 2>&1 || true"""
+        f"""gh api --method POST "repos/${{REPO}}/environments/{environment}/deployment-branch-policies" -f name=main -f type=branch >/dev/null 2>&1 || true"""
         for environment in ENVIRONMENTS
     )
     return f"""set -euo pipefail

@@ -100,7 +100,7 @@ Dimensioneer naast de gegevensopslagen ook de stateless workloads. Elk draait **
 | Ingress-gateway | `nginx` | Het aantal verzoeken |
 | Telemetry writer, wanneer aangezet | `telemetryWriter` | Niet met de belasting: hij bundelt elke telemetrie-insert in ClickHouse, dus hij wordt gedimensioneerd op wat ClickHouse aankan |
 
-De chart levert **KEDA** mee, zodat de app, workers, probes en de globale Runner kunnen schalen op hun wachtrijachterstand. Zet `keda.enabled` aan samen met de eigen `keda.enabled` van elke dienst (bijvoorbeeld `app.keda.enabled`). Op een cluster zonder KEDA heeft de eerste installatie een extra ronde nodig: zie de [KEDA-handleiding](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md) van de chart. Diensten die KEDA niet beheert, kunnen in plaats daarvan een autoscaler op CPU of geheugen gebruiken (`autoscaling`).
+De chart levert **KEDA** mee, zodat de app, workers, probes en de globale Runner kunnen schalen op hun wachtrijachterstand. Zet `keda.enabled` aan samen met de eigen `keda.enabled` van elke dienst (bijvoorbeeld `app.keda.enabled`). Op een cluster zonder KEDA heeft de eerste installatie een extra ronde nodig: zie de [KEDA-handleiding](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) van de chart. Diensten die KEDA niet beheert, kunnen in plaats daarvan een autoscaler op CPU of geheugen gebruiken (`autoscaling`).
 
 ## Startniveaus
 
@@ -130,7 +130,7 @@ De ingebouwde gegevensopslagen van de chart draaien standaard als **enkele insta
 | **Valkey** | De chart repliceert het niet. Laat OneUptime naar een externe beheerde Redis of Valkey met automatische failover wijzen (`externalValkey`). OneUptime verbindt met één host en poort, dus gebruik het primaire endpoint van de dienst, geen endpoint in clustermodus. |
 
 > [!WARNING]
-> Als u een van beide operators aanzet voor een bestaande installatie, start er een nieuwe, lege database: geen van beide kopieert de gegevens van de database met één instantie die hij vervangt. Migreer uw gegevens zoals de handleidingen van de chart beschrijven – voor [PostgreSQL](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) en voor [ClickHouse](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md).
+> Als u een van beide operators aanzet voor een bestaande installatie, start er een nieuwe, lege database: geen van beide kopieert de gegevens van de database met één instantie die hij vervangt. Migreer uw gegevens zoals de handleidingen van de chart beschrijven – voor [PostgreSQL](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) en voor [ClickHouse](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md).
 
 ## De bewaartermijn en het effect op opslag
 

@@ -1208,7 +1208,7 @@ The suite pins all of that, that the chart's default image, the server's
 the same, that build.yml builds the image on every pull request (and that each
 of its image jobs warms the base images of exactly the Dockerfiles it builds,
 after rendering them and before building them), and that test-release.yaml
-builds both architectures on every push to master with the `test` tags. Every
+builds both architectures on every push to main with the `test` tags. Every
 job of any workflow that builds from `Scripts/Dev/docker-compose.dev.yml` is
 held to the same warm-up rule, with the Dockerfiles it builds read from the
 compose file, what its services `depends_on` included. A build is read from a
@@ -1394,7 +1394,7 @@ job then succeeds and cancels nothing. So the suite pins both sides:
 - its matrix is exactly the names of the workflows that run on `pull_request`,
   and those names are unique;
 - for a `pull_request` event, each of those workflows' groups evaluates to the
-  canceller's group for it, a push to master lands in a different group (a
+  canceller's group for it, a push to main lands in a different group (a
   merge's own push runs are never cancelled), and none of them runs on
   `closed`.
 
@@ -1405,7 +1405,7 @@ and throws on anything else.
 ### `ReleaseE2ePipeline.test.js`
 
 How the release workflows run the e2e suite. test-release.yaml runs on every
-push to master, and a run that has started now finishes (the next push waits
+push to main, and a run that has started now finishes (the next push waits
 as the one pending run), so the suite pins what that makes load-bearing: one
 concurrency group without `cancel-in-progress`; a timeout on every job; every
 checkout at the triggering commit, never `ref: ${{ github.ref }}` (a branch
@@ -1447,14 +1447,14 @@ release.yml now passes its run id as the `release_run_id` input, which the
 group reads first. The suite checks that the call passes only inputs the
 workflow declares (GitHub refuses to start a run that passes any other), and
 works the group out, with `Utils/WorkflowExpression.js`, for two release runs
-(different groups), two pushes to master and two pushes to one pull request
+(different groups), two pushes to main and two pushes to one pull request
 (one group each, so the newest still supersedes).
 
 terraform-provider-e2e.yml also runs every night: HashiCorp asks the providers
 it lists as Partner for tests that run nightly as a GitHub Action. The suite
 checks that it is scheduled once a day, every day, and that a nightly run's
 group, read from `github.event.schedule` (which GitHub sets on scheduled runs
-only), is not the one master's pushes share, so a merge that lands during the
+only), is not the one main's pushes share, so a merge that lands during the
 nightly run neither cancels it nor is cancelled by it.
 
 The same workflow runs the provider's acceptance tests, written with
@@ -1540,7 +1540,7 @@ The suite runs the script against a fake GitHub (nothing here reaches the
 network) and pins the range: from the newest published release older than this
 one, as numbers, drafts and prereleases left out, to the commit the run built.
 Then the changes: every pull request once, every commit pushed straight to
-master (GitHub answers those with the release gate, which is no answer), and
+main (GitHub answers those with the release gate, which is no answer), and
 neither the gate nor the version bump. Then the sorting of real titles, in both
 forms the repository writes them, with a label over a title and what mends the
 repository under Maintenance; a title staying text, so that `/install/<agent>`
@@ -1708,7 +1708,7 @@ they import, with Common's own compiler options (the generator's
 `tsconfig.json` extends `packages/Common/tsconfig.json`). No workflow ran it,
 and it failed with about 10,700 errors before anyone looked. The suite pins
 that `.github/workflows/terraform-provider-generation.yml` runs it in one step,
-on every pull request and every push to master, after installing Common,
+on every pull request and every push to main, after installing Common,
 `Scripts` and the generator in the same job (what its imports resolve from),
 before the provider is generated, with nothing that lets it fail quietly, and
 with the generator's unit tests still running when it fails.
@@ -1766,7 +1766,7 @@ at any depth, `"<rootDir>/build/"` for one directory of the package.
 ### `OssScannerImage.test.js`
 
 `.oss-scanner/` is OneUptime's enrolment in Anthropic's OSS Scanner, which
-builds `.oss-scanner/Dockerfile` from master and studies the image with no
+builds `.oss-scanner/Dockerfile` from main and studies the image with no
 network (`.oss-scanner/README.md`). Nothing else runs those files, so the
 suite holds them to the repository:
 

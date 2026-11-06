@@ -9,7 +9,6 @@ on:
   pull_request:
   push:
     branches:
-      - master
       - main
 
 # Read-only: the job checks out the code, generates from it and uploads the

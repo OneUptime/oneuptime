@@ -1836,7 +1836,7 @@ jobs:
   # ─── The release's e2e jobs ──────────────────────────────────────────
   #
   # They boot the -amd64 tags the builds' amd64 legs push (the runners are
-  # amd64), as master's e2e jobs do (test-release.yaml), and so wait for the
+  # amd64), as main's e2e jobs do (test-release.yaml), and so wait for the
   # builds of the images they wait for, not for their merges: a merge is a few
   # seconds of work behind a queue for a runner of its own, and the merges of
   # a release run queued 8 to 21 minutes between the last build and the e2e
@@ -1952,7 +1952,7 @@ jobs:
       - name: Expose notification-channel verification codes to the e2e suite
         run: |
           set -euo pipefail
-          # TEST-ONLY, and the same step the master SaaS e2e job runs
+          # TEST-ONLY, and the same step the SaaS e2e job on main runs
           # (.github/workflows/test-release.yaml). The e2e stack has no mailbox,
           # so the API is told to hand back the notification-channel
           # verification code on the create response
@@ -2201,7 +2201,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  # The self-hosted ENTERPRISE stack, on the release pipeline. The master job
+  # The self-hosted ENTERPRISE stack, on the release pipeline. The job on main
   # test-e2e-test-enterprise (.github/workflows/test-release.yaml) is the same
   # job against the -test tags; this one gates the release tags, so keep the two
   # in step. The published enterprise- App image is booted from
@@ -3210,14 +3210,14 @@ jobs:
 
                 // Not transient, so not retried. GITHUB_TOKEN may not create
                 // a ref at a commit whose .github/workflows differ from
-                // master's: test-release's build-number tag was refused this
-                // way (run 37040970616) moments after master changed a
+                // main's: test-release's build-number tag was refused this
+                // way (run 37040970616) moments after main changed a
                 // workflow. Creating the tag at context.sha can be refused
-                // the same way once master changes a workflow while a release
+                // the same way once main changes a workflow while a release
                 // is running. A person is not held to that, and the draft
                 // already targets this commit.
                 if (error.status === 403 && /Resource not accessible by integration/.test(message)) {
-                  throw new Error(`GitHub refused to create tag ${tag} at ${context.sha} (${message}). The likely cause is that master's .github/workflows have changed since this commit, and the workflow token may not create a ref at a commit whose workflows differ from master's. Re-running this job will not help. Publish the draft for ${tag} from the Releases page: it targets ${context.sha}, so the tag is created there.`);
+                  throw new Error(`GitHub refused to create tag ${tag} at ${context.sha} (${message}). The likely cause is that main's .github/workflows have changed since this commit, and the workflow token may not create a ref at a commit whose workflows differ from main's. Re-running this job will not help. Publish the draft for ${tag} from the Releases page: it targets ${context.sha}, so the tag is created there.`);
                 }
 
                 if (attempt >= maxAttempts) {

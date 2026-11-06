@@ -102,7 +102,7 @@ vapid:
 | OneUptime → 浏览器推送服务 | 浏览器推送订阅中保存的 HTTPS 端点 | HTTPS / 通常为 TCP 443 | Web Push。 |
 | 移动应用或浏览器 → OneUptime | 你的 OneUptime 主机名 | HTTPS / TCP 443 | 登录、注册设备并打开通知链接。 |
 
-如果你更改了 `PUSH_NOTIFICATION_RELAY_URL`，请允许其目标主机名和配置的端口。自定义中继必须实现 OneUptime 的中继 API。这些默认值以及中继与直接投递之间的切换，定义在 [OneUptime 的配置](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) 和 [推送服务](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts) 中。直接发给 Expo 的请求使用 [Expo 发送指南](https://docs.expo.dev/push-notifications/sending-notifications/) 中记录的端点。OneUptime 在同一地址把 `/send` 换成 `/receipts`，从中继读取投递回执。没有该路由的中继仍会投递推送；但这时，应用已被删除的设备只有在之后发往它的推送被拒绝时才会被发现。
+如果你更改了 `PUSH_NOTIFICATION_RELAY_URL`，请允许其目标主机名和配置的端口。自定义中继必须实现 OneUptime 的中继 API。这些默认值以及中继与直接投递之间的切换，定义在 [OneUptime 的配置](https://github.com/OneUptime/oneuptime/blob/main/config.example.env) 和 [推送服务](https://github.com/OneUptime/oneuptime/blob/main/packages/Common/Server/Services/PushNotificationService.ts) 中。直接发给 Expo 的请求使用 [Expo 发送指南](https://docs.expo.dev/push-notifications/sending-notifications/) 中记录的端点。OneUptime 在同一地址把 `/send` 换成 `/receipts`，从中继读取投递回执。没有该路由的中继仍会投递推送；但这时，应用已被删除的设备只有在之后发往它的推送被拒绝时才会被发现。
 
 自托管的 OneUptime 服务器只有设置了 `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` 并拥有自己的 `EXPO_ACCESS_TOKEN`，才会为其他服务器中继推送；没有这项设置时，它在该地址返回 404。只在您其他 OneUptime 服务器发送时经过的那台服务器上开启，并只让那些服务器访问该地址。
 

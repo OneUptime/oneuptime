@@ -424,8 +424,8 @@ script is safe to run again, and prints the repository variables to set.
      --set MARKETPLACE_RELEASE_AWS_ROLE_ARN=... --set MARKETPLACE_RELEASE_AZURE_CLIENT_ID=... (each variable printed above)
    ```
 
-   It creates the `marketplace-push` environment (master only) and the
-   `marketplace-publish` environment (master only, and every job waits for a
+   It creates the `marketplace-push` environment (main only) and the
+   `marketplace-publish` environment (main only, and every job waits for a
    reviewer), and sets the variables. Add `--enable` to set
    `MARKETPLACE_RELEASES=enabled` once a dry run has passed: the workflow
    then ships the newest release every Monday.

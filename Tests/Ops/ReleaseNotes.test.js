@@ -17,7 +17,7 @@
  *  - The range: from the newest published release older than this one to the
  *    commit the run built, whatever tags exist.
  *  - The changes: every pull request once, every commit pushed straight to
- *    master (GitHub answers those with the release gate, which is no answer),
+ *    main (GitHub answers those with the release gate, which is no answer),
  *    and neither the gate nor the version bump.
  *  - The sorting: both ways the repository writes a title, with a label over
  *    a title, and what mends the repository rather than the product folded
@@ -86,7 +86,7 @@ function pullRequest(number, title, options = {}) {
     number,
     title,
     merged: options.merged !== false,
-    baseRefName: options.base || "master",
+    baseRefName: options.base || "main",
     author:
       options.author === undefined
         ? { __typename: "User", login: "simlarsen" }
@@ -523,7 +523,7 @@ describe("the changes of a release", () => {
     ).toEqual([5402, 5406]);
   });
 
-  test("a commit pushed to master stays, though GitHub answers it with the gate", () => {
+  test("a commit pushed to main stays, though GitHub answers it with the gate", () => {
     // What GitHub answered for 14.0.98's fixes on master, all of them lost
     // from the old notes.
     const fix = commitNamed(1, "docs(audit-logs): the page lists hunts");
@@ -564,7 +564,7 @@ describe("the changes of a release", () => {
     ).toEqual([hotfix]);
   });
 
-  test("a title about releases into master is not the gate", () => {
+  test("a title about releases into main is not the gate", () => {
     const notes = pullRequest(100, "Release notes: sorted");
 
     expect(
@@ -598,7 +598,7 @@ describe("the changes of a release", () => {
     expect(directCommits).toEqual([]);
   });
 
-  test("a commit GitHub says nothing about is a commit pushed to master", () => {
+  test("a commit GitHub says nothing about is a commit pushed to main", () => {
     const fix = commitNamed(1, "fix(ui): a crumb gives way");
 
     expect(sort([fix], {}).directCommits).toEqual([fix]);
@@ -1159,7 +1159,7 @@ describe("a run of the script", () => {
     expect(notes).toContain("(#5463)");
   });
 
-  test("a pull request GitHub holds back is a failure, not a commit pushed to master", async () => {
+  test("a pull request GitHub holds back is a failure, not a commit pushed to main", async () => {
     // Without pull-requests: read, GraphQL answers with data, every commit's
     // pull requests null in it, and an error beside them. Read as an answer,
     // that would list every commit of every branch.
@@ -1362,7 +1362,7 @@ describe("the command line", () => {
           "--from",
           "14.0.97",
           "--to",
-          "master",
+          "main",
           "--repo",
           "someone/fork",
           "--output",
@@ -1374,7 +1374,7 @@ describe("the command line", () => {
     ).toEqual({
       version: "14.0.99",
       from: "14.0.97",
-      to: "master",
+      to: "main",
       repository: "someone/fork",
       output: "notes.md",
       fallbackOnError: true,

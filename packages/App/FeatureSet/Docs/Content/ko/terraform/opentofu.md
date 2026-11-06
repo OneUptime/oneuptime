@@ -97,7 +97,7 @@ OpenTofu를 설치하세요. 프로바이더에는 1.6이면 충분하고, 1.12 
 
 ## 재사용할 수 있는 모듈
 
-OneUptime 저장소의 [`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/master/Examples/opentofu)에는 바로 실행할 수 있는 구성과, 서비스 하나를 설정하는 모듈이 있습니다. 이 모듈은 전달한 주소마다 웹사이트 모니터, 만드는 모든 것에 붙이는 레이블, 에스컬레이션 규칙이 하나인 온콜 정책, 모니터를 나열하는 상태 페이지를 만듭니다. 일반 HCL이므로 Terraform에서도 작동합니다.
+OneUptime 저장소의 [`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/main/Examples/opentofu)에는 바로 실행할 수 있는 구성과, 서비스 하나를 설정하는 모듈이 있습니다. 이 모듈은 전달한 주소마다 웹사이트 모니터, 만드는 모든 것에 붙이는 레이블, 에스컬레이션 규칙이 하나인 온콜 정책, 모니터를 나열하는 상태 페이지를 만듭니다. 일반 HCL이므로 Terraform에서도 작동합니다.
 
 ```hcl title="main.tf"
 module "storefront" {

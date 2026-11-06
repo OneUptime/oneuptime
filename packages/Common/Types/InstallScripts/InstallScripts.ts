@@ -11,7 +11,7 @@
  * (packages/App/Dockerfile.tpl copies it to /usr/src/<sourceDirectory>), and
  * the App serves the files from there (FeatureSet/Install), so a script and
  * every file it downloads are always those of the release the reader runs,
- * never GitHub's master branch. The script downloads its files from
+ * never GitHub's main branch. The script downloads its files from
  * <ONEUPTIME_URL>/install/<name>/<file>: the OneUptime it reports to.
  *
  *   /install/<name>          the entry's install script

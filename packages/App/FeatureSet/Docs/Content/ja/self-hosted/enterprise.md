@@ -3,7 +3,7 @@
 OneUptime は一つのリポジトリからビルドされ、二つのエディションで提供されます。
 
 - **Community Edition**: 監視、インシデント、オブザーバビリティのプラットフォーム全体で、SAML と OpenID Connect のシングルサインオンを含みます。Apache 2.0 ライセンスのオープンソースで、どんな規模でも無料でセルフホストできます。
-- **Enterprise Edition**: Community Edition に、リポジトリの [`ee/`](https://github.com/OneUptime/oneuptime/tree/master/ee) ディレクトリにあるエンタープライズモジュールを加えたものです。これらのモジュールは、SCIM プロビジョニングと、ガバナンスおよびインスタンス管理の機能を追加します。モジュールは [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE) の下で提供され、本番環境で使うにはユーザー数に応じた Enterprise ライセンスが必要です。
+- **Enterprise Edition**: Community Edition に、リポジトリの [`ee/`](https://github.com/OneUptime/oneuptime/tree/main/ee) ディレクトリにあるエンタープライズモジュールを加えたものです。これらのモジュールは、SCIM プロビジョニングと、ガバナンスおよびインスタンス管理の機能を追加します。モジュールは [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE) の下で提供され、本番環境で使うにはユーザー数に応じた Enterprise ライセンスが必要です。
 
 二つのエディションは別々のコンテナイメージです。Community のイメージには `ee/` のコードが含まれません。OneUptime Cloud は Enterprise Edition で動作しており、クラウドではこれらの機能のうちどれを使えるかをプランが決めます。
 
@@ -113,7 +113,7 @@ Community のイメージで `IS_ENTERPRISE_EDITION=true` を設定しても、�
 
 ## ライセンス
 
-リポジトリのルートにある [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE) ファイルが、どのライセンスが何に適用されるかを定めています。`ee/` ディレクトリ内のものはすべて [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE) の下にあり、サードパーティのコンポーネントは所有者が提供するライセンスのままで、それ以外はすべて Apache 2.0 ライセンスの下にあります。
+リポジトリのルートにある [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/main/LICENSE) ファイルが、どのライセンスが何に適用されるかを定めています。`ee/` ディレクトリ内のものはすべて [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE) の下にあり、サードパーティのコンポーネントは所有者が提供するライセンスのままで、それ以外はすべて Apache 2.0 ライセンスの下にあります。
 
 新しい Enterprise Edition のインストールは、そのインストールが初めて Enterprise Edition を起動したときから数えて **14 日間の試用期間** として動作します。試用期間は評価用です。Enterprise Edition を本番環境で使うには、OneUptime Enterprise License の下でのサブスクリプションが必要です。試用期間が終わる前にライセンスを有効化してください。終わった後は、SCIM、監査ログの記録、保持期間の上書きが止まり、エンタープライズの設定は読み取り専用になります ([ライセンスの期限切れまたは未設定のとき](#ライセンスの期限切れまたは未設定のとき) を参照)。ライセンスを入手するには、[sales@oneuptime.com](mailto:sales@oneuptime.com) にお問い合わせください。
 

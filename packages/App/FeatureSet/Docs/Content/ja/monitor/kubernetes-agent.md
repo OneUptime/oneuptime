@@ -385,7 +385,7 @@ eBPF インストルメンテーションもオンにしていると (デフォ�
 | `kubeStateMetrics.enabled` | `false` | kube-state-metrics からのクラスターの状態。 |
 | `aiAgent.enabled` | `true` | Kubernetes AI エージェント。何ができるかは [Kubernetes AI エージェント](/docs/telemetry/kubernetes-agent#kubernetes-ai-エージェント) を参照してください。 |
 
-チャートの [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) はすべてのオプションを一覧で説明しています。[Kubernetes エージェント](/docs/telemetry/kubernetes-agent) では、フィルタリング、サンプリング、データ量を抑える方法を説明しています。
+チャートの [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/kubernetes-agent/values.yaml) はすべてのオプションを一覧で説明しています。[Kubernetes エージェント](/docs/telemetry/kubernetes-agent) では、フィルタリング、サンプリング、データ量を抑える方法を説明しています。
 
 ## アップグレード
 

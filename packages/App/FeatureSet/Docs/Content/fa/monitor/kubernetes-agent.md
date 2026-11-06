@@ -385,7 +385,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `kubeStateMetrics.enabled` | `false` | وضعیت خوشه از kube-state-metrics. |
 | `aiAgent.enabled` | `true` | عامل AI در Kubernetes. برای اینکه چه کارهایی می‌تواند بکند، [عامل هوش مصنوعی Kubernetes](/docs/telemetry/kubernetes-agent#عامل-هوش-مصنوعی-kubernetes) را ببینید. |
 
-[`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) در چارت هر گزینه را فهرست و توضیح می‌دهد، و [عامل Kubernetes](/docs/telemetry/kubernetes-agent) پالایش، نمونه‌برداری و پایین نگه داشتن حجم داده را پوشش می‌دهد.
+[`values.yaml`](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/kubernetes-agent/values.yaml) در چارت هر گزینه را فهرست و توضیح می‌دهد، و [عامل Kubernetes](/docs/telemetry/kubernetes-agent) پالایش، نمونه‌برداری و پایین نگه داشتن حجم داده را پوشش می‌دهد.
 
 ## ارتقا
 

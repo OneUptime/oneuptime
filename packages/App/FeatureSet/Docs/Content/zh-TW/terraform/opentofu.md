@@ -97,7 +97,7 @@ flowchart TB
 
 ## 可重複使用的模組
 
-OneUptime 存放庫中的 [`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/master/Examples/opentofu) 包含可以直接執行的設定，以及一個為一個服務完成設定的模組：為你提供的每個位址建立一個網站監測器，為它建立的所有內容加上一個標籤，建立一個帶有一條上報規則的待命策略，以及一個列出這些監測器的狀態頁。它是一般的 HCL，所以在 Terraform 下也能使用。
+OneUptime 存放庫中的 [`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/main/Examples/opentofu) 包含可以直接執行的設定，以及一個為一個服務完成設定的模組：為你提供的每個位址建立一個網站監測器，為它建立的所有內容加上一個標籤，建立一個帶有一條上報規則的待命策略，以及一個列出這些監測器的狀態頁。它是一般的 HCL，所以在 Terraform 下也能使用。
 
 ```hcl title="main.tf"
 module "storefront" {

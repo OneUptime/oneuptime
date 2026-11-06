@@ -3,7 +3,7 @@
 OneUptime bygges fra ett repository og leveres i to utgaver:
 
 - **Community Edition**: hele plattformen for overvåking, hendelser og observerbarhet, inkludert enkel pålogging med SAML og OpenID Connect, åpen kildekode under Apache 2.0-lisensen og gratis å drifte selv i enhver skala.
-- **Enterprise Edition**: Community Edition pluss enterprise-modulene i repositoriets mappe [`ee/`](https://github.com/OneUptime/oneuptime/tree/master/ee). Modulene legger til SCIM-klargjøring og funksjoner for styring og administrasjon av instansen. De er lisensiert under [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE), og bruk i produksjon krever en Enterprise-lisens for antallet brukere du har.
+- **Enterprise Edition**: Community Edition pluss enterprise-modulene i repositoriets mappe [`ee/`](https://github.com/OneUptime/oneuptime/tree/main/ee). Modulene legger til SCIM-klargjøring og funksjoner for styring og administrasjon av instansen. De er lisensiert under [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE), og bruk i produksjon krever en Enterprise-lisens for antallet brukere du har.
 
 De to utgavene er separate container-images. Community-imaget inneholder ingen kode fra `ee/`. OneUptime Cloud kjører Enterprise Edition, og i skyen avgjør abonnementet ditt hvilke av disse funksjonene du får.
 
@@ -113,7 +113,7 @@ Imaget du kjører, avgjør utgaven. `IS_ENTERPRISE_EDITION` slår ikke lenger p�
 
 ## Lisensiering
 
-Filen [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE) i roten av repositoriet fastsetter hvilken lisens som dekker hva: alt i mappen `ee/` er under [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE), tredjepartskomponenter beholder lisensene eierne deres leverer dem under, og alt annet er under Apache 2.0-lisensen.
+Filen [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/main/LICENSE) i roten av repositoriet fastsetter hvilken lisens som dekker hva: alt i mappen `ee/` er under [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE), tredjepartskomponenter beholder lisensene eierne deres leverer dem under, og alt annet er under Apache 2.0-lisensen.
 
 En ny installasjon av Enterprise Edition kjører som en **prøveperiode på 14 dager**, regnet fra første gang installasjonen starter Enterprise Edition. Prøveperioden er for evaluering: bruk av Enterprise Edition i produksjon krever et abonnement under OneUptime Enterprise License. Aktiver en lisens før prøveperioden slutter: etter den stopper SCIM, revisjonslogging og overstyringer av oppbevaring, og enterprise-konfigurasjonen blir skrivebeskyttet (se [Når en lisens utløper eller mangler](#når-en-lisens-utløper-eller-mangler)). Kontakt [sales@oneuptime.com](mailto:sales@oneuptime.com) for å få en lisens.
 

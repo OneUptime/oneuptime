@@ -1099,5 +1099,5 @@ keys in [`values.yaml`](values.yaml) for all options.
 
 ## Source
 
-- Chart: [`HelmChart/Public/kubernetes-agent/`](https://github.com/OneUptime/oneuptime/tree/master/HelmChart/Public/kubernetes-agent)
-- Log-tailer image: [`agents/KubernetesLogTailer/`](https://github.com/OneUptime/oneuptime/tree/master/agents/KubernetesLogTailer)
+- Chart: [`HelmChart/Public/kubernetes-agent/`](https://github.com/OneUptime/oneuptime/tree/main/HelmChart/Public/kubernetes-agent)
+- Log-tailer image: [`agents/KubernetesLogTailer/`](https://github.com/OneUptime/oneuptime/tree/main/agents/KubernetesLogTailer)

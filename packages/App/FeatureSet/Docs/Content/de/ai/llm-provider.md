@@ -273,7 +273,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 
 Mit eingeschalteter Abrechnung oder mit `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (`outboundConnections.blockPrivateNetwork: true` in den Helm-Werten) kann der eigene Anbieter eines Projekts diese clusterinterne Adresse nicht erreichen, die in eine private Cluster-IP aufgelöst wird. Legen Sie den Anbieter stattdessen im Admin Dashboard unter **Einstellungen → Globale LLM-Anbieter** an, mit denselben Feldern: Ein globaler LLM-Anbieter kann diese Adresse erreichen.
 
-Siehe die [vLLM-Anleitung des Helm-Charts](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) zu GPU-Scheduling, zugangsbeschränkten Modellen und Tuning-Optionen.
+Siehe die [vLLM-Anleitung des Helm-Charts](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/ai-vllm.md) zu GPU-Scheduling, zugangsbeschränkten Modellen und Tuning-Optionen.
 
 ## Bewährte Praxis
 

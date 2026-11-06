@@ -273,7 +273,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 
 Avec la facturation activée, ou avec `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (`outboundConnections.blockPrivateNetwork: true` dans les valeurs Helm), le fournisseur propre d'un projet ne peut pas joindre cette adresse interne au cluster, qui se résout en une IP privée du cluster. Créez plutôt le fournisseur dans l'Admin Dashboard sous **Paramètres → Fournisseurs LLM globaux**, avec les mêmes champs : un fournisseur LLM global peut joindre cette adresse.
 
-Voir le [guide vLLM du chart Helm](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) pour la planification des GPU, les modèles à accès restreint et les options de réglage.
+Voir le [guide vLLM du chart Helm](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/ai-vllm.md) pour la planification des GPU, les modèles à accès restreint et les options de réglage.
 
 ## Bonnes pratiques
 

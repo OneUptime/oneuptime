@@ -211,7 +211,7 @@ OneUptime Database Agent **PostgreSQL**, **MySQL / MariaDB**, **SQL Server**, **
 
 **एक एजेंट एक डेटाबेस सर्वर की निगरानी करता है।** एजेंट जो कुछ भी भेजता है उस पर पहचान लगी होती है, इसलिए हर सर्वर के लिए एक एजेंट (एक इंस्टॉल डायरेक्टरी) चलाएँ, और अगर आप रेप्लिका को उनके अपने पेज पर देखना चाहते हैं तो हर रेप्लिका के लिए एक।
 
-एजेंट [DatabaseAgent डायरेक्टरी](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) में है: `docker-compose.yml`, हर रिसीवर के लिए एक कलेक्टर कॉन्फ़िग (`configs/postgresql.yaml`, `configs/mysql.yaml`, `configs/sqlserver.yaml`, `configs/oracledb.yaml`, `configs/redis.yaml`, `configs/mongodb.yaml`, `configs/elasticsearch.yaml`, `configs/memcached.yaml`), `install.sh`, `troubleshoot.sh` और एक systemd यूनिट। कोई फ़ोर्क या संगत विकल्प अपनी फ़ैमिली की कॉन्फ़िग चलाता है और अपना नाम बताता है: `DATABASE_SYSTEM=mariadb` `configs/mysql.yaml` चलाता है, और डेटाबेस MariaDB के रूप में दिखता है।
+एजेंट [DatabaseAgent डायरेक्टरी](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent) में है: `docker-compose.yml`, हर रिसीवर के लिए एक कलेक्टर कॉन्फ़िग (`configs/postgresql.yaml`, `configs/mysql.yaml`, `configs/sqlserver.yaml`, `configs/oracledb.yaml`, `configs/redis.yaml`, `configs/mongodb.yaml`, `configs/elasticsearch.yaml`, `configs/memcached.yaml`), `install.sh`, `troubleshoot.sh` और एक systemd यूनिट। कोई फ़ोर्क या संगत विकल्प अपनी फ़ैमिली की कॉन्फ़िग चलाता है और अपना नाम बताता है: `DATABASE_SYSTEM=mariadb` `configs/mysql.yaml` चलाता है, और डेटाबेस MariaDB के रूप में दिखता है।
 
 ### शुरू करने से पहले
 

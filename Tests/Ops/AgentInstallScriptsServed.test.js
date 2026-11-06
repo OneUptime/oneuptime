@@ -2,7 +2,7 @@
 
 /**
  * The agents' install scripts download their files from the OneUptime they
- * report to, never from GitHub's master branch.
+ * report to, never from GitHub's main branch.
  *
  * Every OneUptime serves each agent's install.sh, and the files it
  * downloads, from its own image at /install/<agent>
