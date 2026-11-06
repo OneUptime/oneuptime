@@ -1053,6 +1053,9 @@ describe("what a cloud's spans say about its tracing", () => {
       lastSpanAt: null,
       services: [],
       traceIds: [],
+      widestTraceIds: [],
+      sources: [],
+      carriedOverHttp: false,
     });
   });
 
@@ -1089,6 +1092,13 @@ describe("what a cloud's spans say about its tracing", () => {
         { attributes: { "openstack.service": 12 } as JSONObject },
       ]);
 
-    expect(read).toEqual({ lastSpanAt: null, services: [], traceIds: [] });
+    expect(read).toEqual({
+      lastSpanAt: null,
+      services: [],
+      traceIds: [],
+      widestTraceIds: [],
+      sources: [],
+      carriedOverHttp: false,
+    });
   });
 });
