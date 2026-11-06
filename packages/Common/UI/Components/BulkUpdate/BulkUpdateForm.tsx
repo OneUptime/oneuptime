@@ -19,7 +19,6 @@ import {
   getSelectAllMatchingWords,
 } from "./BulkSelectAll";
 import { Gray500, Green, Red } from "../../../Types/BrandColors";
-import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
@@ -196,7 +195,9 @@ export const BULK_ALL_SELECTED_SHORT_COUNT: PluralTemplate = {
  * ...or, where more rows match than one selection holds, how many of them
  * it holds: "10,000 of 12,345 selected" - what the offer said it would take
  * ("Select the first 10,000 of 12,345 exceptions"), and what Bulk Actions
- * acts on. The count is the selection's, the total the match's.
+ * acts on. The count is the selection's, the total the match's. The Card's
+ * count says it so too, where a note under its bar said it in three
+ * sentences.
  */
 export const BULK_SELECTED_OF_MATCHING_SHORT_COUNT: PluralTemplate = {
   one: "{{count}} of {{total}} selected",
@@ -211,6 +212,16 @@ export const BULK_ROW_ACTIONS_TEST_ID: string = "bulk-update-actions";
 export const BULK_ROW_SELECT_ALL_TEST_ID: string =
   "bulk-update-select-all-matching";
 export const BULK_ROW_ERROR_TEST_ID: string = "bulk-update-select-all-error";
+
+// The Card's count badge and its Select All, for the tests that read them.
+export const BULK_CARD_COUNT_TEST_ID: string = "bulk-update-card-count";
+export const BULK_CARD_SELECT_ALL_TEST_ID: string = "bulk-update-select-all";
+
+/*
+ * Bulk Actions' trigger in either bar: the Row's own button, or the Card's
+ * MoreMenu trigger, a button-like wrapper around its words.
+ */
+export const BULK_ACTIONS_TRIGGER_SELECTOR: string = 'button, [role="button"]';
 
 /*
  * The Row's offer to select every row that matches: a link-like button in
@@ -244,12 +255,6 @@ export const BULK_ROW_COUNT_CHIP_CLASS_NAME: string =
 // The Row's Bulk Actions: a telemetry toolbar's button (its Refresh).
 export const BULK_ROW_ACTIONS_BUTTON_CLASS_NAME: string =
   "inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
-
-export const BULK_SELECTION_LIMIT: PluralTemplate = {
-  one: "Selected {{selected}} of {{count}} matching {{itemName}}. You can only select {{limit}} {{itemsName}} at a time, for performance reasons, so bulk actions will apply to the selected {{selected}} only.",
-  other:
-    "Selected {{selected}} of {{count}} matching {{itemsName}}. You can only select {{limit}} {{itemsName}} at a time, for performance reasons, so bulk actions will apply to the selected {{selected}} only.",
-};
 
 export interface BulkActionFailed<T extends GenericObject> {
   failedMessage: string | ReactElement;
@@ -1197,14 +1202,17 @@ const BulkUpdateForm: <T extends GenericObject>(
   });
 
   /*
-   * The Row's offer of every match, pressed from the keyboard. It keeps the
-   * focus while it reads - busy, not disabled, since a disabled button
-   * drops the focus to the page - and once it has done its work and is
-   * gone, the focus moves on to Bulk Actions, the next thing to do, not
-   * back to the top of the page.
+   * The offer of every match - the Row's, and the Card's Select All -
+   * pressed from the keyboard. It keeps the focus while it reads - busy,
+   * not disabled, since a disabled button drops the focus to the page - and
+   * once it has done its work and is gone, the focus moves on to Bulk
+   * Actions, the next thing to do, not back to the top of the page (to
+   * Clear Selection, where there are no Bulk Actions).
    */
-  const rowActionsRef: React.MutableRefObject<HTMLDivElement | null> =
+  const bulkActionsRef: React.MutableRefObject<HTMLDivElement | null> =
     React.useRef<HTMLDivElement | null>(null);
+  const clearSelectionRef: React.MutableRefObject<HTMLButtonElement | null> =
+    React.useRef<HTMLButtonElement | null>(null);
   const offerElementRef: React.MutableRefObject<HTMLButtonElement | null> =
     React.useRef<HTMLButtonElement | null>(null);
 
@@ -1226,9 +1234,16 @@ const BulkUpdateForm: <T extends GenericObject>(
           return;
         }
 
-        rowActionsRef.current
-          ?.querySelector<HTMLButtonElement>("button")
-          ?.focus();
+        /*
+         * Bulk Actions' trigger: the Row's own button, or the Card's menu
+         * trigger (MoreMenu's button-like wrapper).
+         */
+        const next: HTMLElement | null =
+          bulkActionsRef.current?.querySelector<HTMLElement>(
+            BULK_ACTIONS_TRIGGER_SELECTOR,
+          ) || clearSelectionRef.current;
+
+        next?.focus();
       }, 0);
     }, []);
 
@@ -1353,16 +1368,30 @@ const BulkUpdateForm: <T extends GenericObject>(
     menuChildren.push(renderMenuItem(button, safeButtons.length + index));
   });
 
-  /*
-   * Driven by what the fetch actually reported rather than by
-   * `selectedItems.length === LIMIT_PER_PROJECT`, which both cried wolf on a
-   * project holding exactly the ceiling and stayed silent whenever a partial
-   * selection came back one row short of it.
-   */
-  const showLimitWarning: boolean = Boolean(props.isSelectionTruncated);
-
   const totalMatchingItemsCount: number =
     props.totalMatchingItemsCount || props.selectedItems.length;
+
+  /*
+   * A select-all that stopped at the most one selection holds: it took the
+   * first of the rows that match, as its offer said it would. Driven by what
+   * the read reported rather than by `selectedItems.length ===
+   * LIMIT_PER_PROJECT`, which both cried wolf on a project holding exactly
+   * the ceiling and stayed silent whenever a partial selection came back one
+   * row short of it. Either bar's count says so: "10,000 of 12,345
+   * selected" (BULK_SELECTED_OF_MATCHING_SHORT_COUNT).
+   */
+  const isStoppedAtCeiling: boolean = Boolean(
+    props.isAllItemsSelected && props.isSelectionTruncated,
+  );
+
+  const ceilingCountWords: string = translator.translatePlural(
+    BULK_SELECTED_OF_MATCHING_SHORT_COUNT,
+    props.selectedItems.length,
+    {
+      count: translator.formatNumber(props.selectedItems.length),
+      total: translator.formatNumber(totalMatchingItemsCount),
+    },
+  );
 
   /*
    * The confirmation, the progress and the result: the same dialogs
@@ -1405,14 +1434,6 @@ const BulkUpdateForm: <T extends GenericObject>(
     const selectedCount: number = props.selectedItems.length;
 
     /*
-     * A select-all that stopped at the most one selection holds: it took
-     * the first of the rows that match, as its offer said it would.
-     */
-    const isStoppedAtCeiling: boolean = Boolean(
-      props.isAllItemsSelected && props.isSelectionTruncated,
-    );
-
-    /*
      * Every row that matches is selected - or, past the most one selection
      * holds, as many as it holds: what a select-all read, still whole. A
      * row unticked since leaves a selection of some of them. Either way
@@ -1453,14 +1474,7 @@ const BulkUpdateForm: <T extends GenericObject>(
      * three sentences.
      */
     const countWords: string = isStoppedAtCeiling
-      ? translator.translatePlural(
-          BULK_SELECTED_OF_MATCHING_SHORT_COUNT,
-          selectedCount,
-          {
-            count: translator.formatNumber(selectedCount),
-            total: translator.formatNumber(totalMatchingItemsCount),
-          },
-        )
+      ? ceilingCountWords
       : translator.translatePlural(
           isEveryMatchSelected
             ? BULK_ALL_SELECTED_SHORT_COUNT
@@ -1482,6 +1496,7 @@ const BulkUpdateForm: <T extends GenericObject>(
         >
           <span aria-live="polite">{countWords}</span>
           <button
+            ref={clearSelectionRef}
             type="button"
             className="inline-flex h-5 w-5 items-center justify-center rounded text-indigo-400 transition-colors hover:bg-indigo-100 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             aria-label={clearSelectionWords}
@@ -1547,7 +1562,7 @@ const BulkUpdateForm: <T extends GenericObject>(
          */}
         {menuChildren.length > 0 ? (
           <div
-            ref={rowActionsRef}
+            ref={bulkActionsRef}
             className="ml-auto flex flex-none items-center"
             data-testid={BULK_ROW_ACTIONS_TEST_ID}
           >
@@ -1656,34 +1671,47 @@ const BulkUpdateForm: <T extends GenericObject>(
                   icon={IconProp.CheckCircle}
                   className="h-4 w-4 text-indigo-600"
                 />
-                <span>
+                <span data-testid={BULK_CARD_COUNT_TEST_ID}>
                   {/*
                    * The singular when there is one of them. The badge is the
                    * one sentence in this bar that is always on screen, and
-                   * "1 resources Selected" reads as a bug in the count.
+                   * "1 resources Selected" reads as a bug in the count. A
+                   * select-all stopped at the ceiling: how many of how many
+                   * ("10,000 of 12,345 selected"), what Bulk Actions acts on.
                    */}
-                  {translator.translatePlural(
-                    BULK_SELECTED_COUNT,
-                    props.selectedItems.length,
-                    {
-                      count: translator.formatNumber(
+                  {isStoppedAtCeiling
+                    ? ceilingCountWords
+                    : translator.translatePlural(
+                        BULK_SELECTED_COUNT,
                         props.selectedItems.length,
-                      ),
-                      itemName: itemTerm,
-                      itemsName: itemsTerm,
-                    },
-                  )}
+                        {
+                          count: translator.formatNumber(
+                            props.selectedItems.length,
+                          ),
+                          itemName: itemTerm,
+                          itemsName: itemsTerm,
+                        },
+                      )}
                 </span>
               </div>
 
               {/** Divider */}
               <div className="h-6 w-px bg-gray-300 mx-1" />
 
-              {/** Select All Button */}
+              {/*
+               * Select All. Busy while it reads every page - its spinner,
+               * and words that say so - but not disabled, so a keyboard
+               * keeps its place on it: a disabled button drops the focus to
+               * the page. Once every match is selected it is gone, and the
+               * focus moves on to Bulk Actions (onOfferElement).
+               */}
               {!props.isAllItemsSelected && (
                 <button
+                  ref={onOfferElement}
                   type="button"
-                  disabled={props.isSelectingAllItems}
+                  data-testid={BULK_CARD_SELECT_ALL_TEST_ID}
+                  aria-disabled={props.isSelectingAllItems ? "true" : undefined}
+                  aria-busy={props.isSelectingAllItems ? "true" : undefined}
                   onClick={() => {
                     if (props.isSelectingAllItems) {
                       // the fetch is paged, so it must not be re-entrant.
@@ -1698,7 +1726,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                       // Busy, with its spinner, while it reads every page.
                       isBusy: props.isSelectingAllItems,
                     },
-                  )}`}
+                  )}${props.isSelectingAllItems ? " cursor-default" : ""}`}
                 >
                   <Icon
                     icon={
@@ -1721,6 +1749,7 @@ const BulkUpdateForm: <T extends GenericObject>(
 
               {/** Clear Selection Button */}
               <button
+                ref={clearSelectionRef}
                 type="button"
                 onClick={() => {
                   props.onClearSelectionClick();
@@ -1737,7 +1766,7 @@ const BulkUpdateForm: <T extends GenericObject>(
              * menu opens leftwards from this button's right edge, and from a
              * button at the left it ran off the screen.
              */}
-            <div className="ml-auto flex items-center">
+            <div ref={bulkActionsRef} className="ml-auto flex items-center">
               {menuChildren.length > 0 && (
                 <MoreMenu
                   elementToBeShownInsteadOfButton={
@@ -1759,21 +1788,6 @@ const BulkUpdateForm: <T extends GenericObject>(
               )}
             </div>
           </div>
-
-          {showLimitWarning && (
-            <div className="mt-2 text-xs text-gray-500">
-              {translator.translatePlural(
-                BULK_SELECTION_LIMIT,
-                totalMatchingItemsCount,
-                {
-                  selected: translator.formatNumber(props.selectedItems.length),
-                  limit: translator.formatNumber(LIMIT_PER_PROJECT),
-                  itemName: itemTerm,
-                  itemsName: itemsTerm,
-                },
-              )}
-            </div>
-          )}
 
           {props.errorMessage && (
             <div

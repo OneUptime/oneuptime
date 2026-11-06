@@ -368,3 +368,78 @@ test("on a laptop a table's rows keep their bar over them", async ({
   await expect(page.getByTestId("table-cards-header")).toHaveCount(0);
   await expect(page.getByTestId("bulk-update-row")).toHaveCount(0);
 });
+
+/*
+ * #5587's follow-up: the rows' bar disabled its Select All while it read
+ * every match, and a disabled button drops the focus to the page - pressed
+ * from the keyboard, Select All left the reader at the top of the page. It
+ * is busy now, not disabled, as the band's offer is: the focus stays on it
+ * while it reads, and moves on to Bulk Actions once every monitor is
+ * selected. Each read takes 1.2 seconds here (?delay=1200), so the reading
+ * is there to be seen.
+ */
+test("on a laptop, Select All pressed from the keyboard keeps its place while it reads, then hands the focus to Bulk Actions", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, "&delay=1200", 1280);
+
+  await page
+    .locator("#Monitors-table-body > tr")
+    .first()
+    .locator("input[type=checkbox]")
+    .check();
+
+  const selectAll: Locator = page.getByTestId("bulk-update-select-all");
+  await expect(selectAll).toHaveText("Select All Monitors");
+
+  await selectAll.focus();
+  await page.keyboard.press("Enter");
+
+  // Reading: busy, saying so, and still where the keyboard is.
+  await expect(selectAll).toHaveText("Selecting All Monitors...");
+  await expect(selectAll).toHaveAttribute("aria-busy", "true");
+  await expect(selectAll).toHaveAttribute("aria-disabled", "true");
+  await expect(selectAll).not.toHaveAttribute("disabled", /.*/);
+  await expect(selectAll).toBeFocused();
+
+  // A second press while it reads starts no second read.
+  const readsBefore: number = (await fixture(page)).listRequests.filter(
+    (read: FixtureRecord["listRequests"][number]): boolean => {
+      return read.tableName === "Monitor" && read.limit === 1000;
+    },
+  ).length;
+  await page.keyboard.press("Enter");
+
+  // Every monitor selected: Select All is gone, and Bulk Actions is next.
+  await expect(page.getByTestId("bulk-update-card-count")).toHaveText(
+    `${MATCHING} Monitors Selected`,
+  );
+  await expect(selectAll).toHaveCount(0);
+
+  await expect
+    .poll(async (): Promise<string> => {
+      return await page.evaluate((): string => {
+        const active: Element | null = document.activeElement;
+
+        return active && active !== document.body
+          ? `${active.getAttribute("role") || active.tagName}: ${(
+              active.textContent || ""
+            ).trim()}`
+          : "the page";
+      });
+    })
+    .toBe("button: Bulk Actions");
+
+  const selectAllReads: number = (await fixture(page)).listRequests.filter(
+    (read: FixtureRecord["listRequests"][number]): boolean => {
+      return read.tableName === "Monitor" && read.limit === 1000;
+    },
+  ).length;
+  expect(selectAllReads).toBe(Math.max(readsBefore, 1));
+
+  // Enter there opens the actions, from where the keyboard was.
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menu")).toBeVisible();
+});
