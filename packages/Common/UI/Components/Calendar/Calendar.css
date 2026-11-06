@@ -93,8 +93,11 @@
   }
 }
 
+/* react-big-calendar's line over the scrollbar of a week that scrolls, on
+   its end side: the right, or the left on a page read right to left, where
+   the scrollbar is (Calendar.tsx tells it the page's way, rtl). */
 .oneuptime-calendar .rbc-time-header.rbc-overflowing {
-  border-right: none;
+  border-inline-end: none;
 }
 
 .oneuptime-calendar .rbc-time-header-content {

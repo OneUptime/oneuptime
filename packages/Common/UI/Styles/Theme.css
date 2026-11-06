@@ -2275,6 +2275,19 @@ pre:dir(rtl) {
 }
 
 /*
+ * A time axis's label is a phrase of the page's own language, though: a
+ * Persian "۳۱ اکتبر، ۲۳:۰۰" laid out left to right put the day at the far
+ * end of the hour ("۳۱ ۲۳:۰۰ اکتبر،"), so it read "October, 23:00 31". Each
+ * label along the time axis reads the way its own words do (plaintext, as
+ * a canvas node's lines do), centred on its tick as before; an English or
+ * German label reads left to right as it always has. The value axis keeps
+ * its labels' end anchors, which a label read right to left would turn.
+ */
+.recharts-surface:dir(rtl) .recharts-xAxis-tick-labels .recharts-cartesian-axis-tick-value {
+  unicode-bidi: plaintext;
+}
+
+/*
  * A React Flow canvas - a workflow, the service map, the topology, Correlate
  * - is laid out left to right in every language (React Flow's own
  * .react-flow { direction: ltr }): a node's place is its x and y, and its

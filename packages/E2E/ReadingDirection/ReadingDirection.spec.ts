@@ -1543,6 +1543,166 @@ test.describe("a calendar read right to left", () => {
     expect(edges.lines).toHaveLength(6);
     expect(edges.lines).toEqual(edges.days);
   });
+
+  /*
+   * Two blocks at once on a day: the first, earlier one lies on the day's
+   * start side and the second beside it - from the day's right edge on a
+   * Persian page, where react-big-calendar, placing each block by its own
+   * left edge, put the first at the day's far end and the gap beside it.
+   */
+  interface TwoBlocks {
+    dayLeft: number;
+    dayRight: number;
+    first: Box;
+    second: Box;
+  }
+
+  const twoBlocksOf: (page: Page) => Promise<TwoBlocks> = async (
+    page: Page,
+  ): Promise<TwoBlocks> => {
+    const week: Locator = page.getByTestId("section-calendar-week");
+
+    await expect(
+      week.locator(".rbc-event", { hasText: "Cache flush" }),
+    ).toBeVisible();
+
+    // Every box in one frame.
+    return week.evaluate((section: Element): TwoBlocks => {
+      const blocks: Array<Element> = Array.from(
+        section.querySelectorAll(".rbc-event"),
+      );
+      const blockOf: (title: string) => Element = (title: string): Element => {
+        return blocks.find((block: Element): boolean => {
+          return (block.textContent || "").includes(title);
+        })!;
+      };
+      const boxIn: (element: Element) => Box = (element: Element): Box => {
+        const rect: DOMRect = element.getBoundingClientRect();
+
+        return {
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        };
+      };
+      const first: Element = blockOf("Database upgrade");
+      const day: DOMRect = first
+        .closest(".rbc-day-slot")!
+        .getBoundingClientRect();
+
+      return {
+        dayLeft: day.left,
+        dayRight: day.right,
+        first: boxIn(first),
+        second: boxIn(blockOf("Cache flush")),
+      };
+    });
+  };
+
+  test("fa: two blocks at once lie from the day's right edge, the first at its start", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const blocks: TwoBlocks = await twoBlocksOf(page);
+
+    // The first block at the day's start side, the right.
+    expect(Math.abs(blocks.dayRight - blocks.first.right)).toBeLessThan(2);
+    // The second beside it, towards the day's end, the left.
+    expect(blocks.second.right).toBeLessThanOrEqual(blocks.first.left + 1);
+    // The day's gap at its end: the left, clear of the first block.
+    expect(blocks.second.left - blocks.dayLeft).toBeGreaterThan(5);
+  });
+
+  test("en: two blocks at once lie from the day's left edge, as they always did", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=en");
+
+    const blocks: TwoBlocks = await twoBlocksOf(page);
+
+    expect(Math.abs(blocks.first.left - blocks.dayLeft)).toBeLessThan(2);
+    expect(blocks.second.left).toBeGreaterThanOrEqual(blocks.first.right - 1);
+    expect(blocks.dayRight - blocks.second.right).toBeGreaterThan(5);
+  });
+});
+
+/*
+ * A chart's time axis reads left to right in every language: time runs that
+ * way along it. But each label along it is a phrase of the page's language
+ * - "۱ نوامبر، ۰۶:۰۰" - and reads the way its own words do (Theme.css): laid
+ * out left to right, a Persian label put its day at the far end of its hour
+ * ("۱ ۰۶:۰۰ نوامبر،").
+ */
+test.describe("a chart's time axis", () => {
+  interface AxisLabel {
+    words: string;
+    // Where the label's day and its hour are drawn, along the axis.
+    dayX: number;
+    hourX: number;
+    // Its middle against its tick's, which the label is centred on.
+    offCentre: number;
+  }
+
+  const firstAxisLabelOf: (page: Page) => Promise<AxisLabel> = async (
+    page: Page,
+  ): Promise<AxisLabel> => {
+    const label: Locator = page
+      .getByTestId("chart")
+      .locator(
+        ".recharts-xAxis-tick-labels .recharts-cartesian-axis-tick-value",
+      )
+      .first();
+
+    await expect(label).toBeVisible();
+
+    return label.evaluate((element: Element): AxisLabel => {
+      const text: SVGTextElement = element as SVGTextElement;
+      const words: string = text.textContent || "";
+      // The hour's first digit, two before its colon: "06:00".
+      const hourAt: number = words.indexOf(":") - 2;
+      const box: DOMRect = text.getBoundingClientRect();
+      const anchor: number = Number(text.getAttribute("x") || "0");
+      const surface: DOMRect = text.closest("svg")!.getBoundingClientRect();
+
+      return {
+        words,
+        dayX: text.getStartPositionOfChar(0).x,
+        hourX: text.getStartPositionOfChar(hourAt).x,
+        offCentre: Math.abs(box.left + box.width / 2 - (surface.left + anchor)),
+      };
+    });
+  };
+
+  for (const language of LANGUAGES) {
+    test(`${language.lang}: a label reads ${language.dir === "rtl" ? "from the right" : "from the left"}, its day before its hour, centred on its tick`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `lang=${language.lang}`);
+
+      const label: AxisLabel = await firstAxisLabelOf(page);
+
+      expect(label.words).toContain(":");
+
+      if (language.dir === "rtl") {
+        // The day on the right, the hour at the label's left end.
+        expect(label.dayX).toBeGreaterThan(label.hourX + 20);
+      } else {
+        expect(label.dayX).toBeLessThan(label.hourX - 20);
+      }
+
+      expect(label.offCentre).toBeLessThan(2);
+    });
+  }
 });
 
 test.describe("lists and sentences in the reader's way", () => {

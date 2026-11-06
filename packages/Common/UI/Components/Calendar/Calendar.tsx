@@ -6,6 +6,7 @@ import StartAndEndTime from "../../../Types/Time/StartAndEndTime";
 import {
   getReadingDirection,
   ReadingDirection,
+  RIGHT_TO_LEFT,
 } from "../../../Types/ReadingDirection";
 import { getLineDirection } from "../../Utils/LineDirection";
 import { Translator } from "../../Utils/TranslateTemplate";
@@ -674,6 +675,17 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
   }, [translator.language]);
 
   /*
+   * A page read right to left lays a day's blocks out from its right edge:
+   * where two blocks overlap, the first sits on the day's start side, as
+   * it does on the left of a page read left to right. react-big-calendar
+   * places each block by its own left edge unless it is told the page reads
+   * the other way (rtl), so the first block sat on the far side of a
+   * Persian day and the next one on its start side.
+   */
+  const isRightToLeft: boolean =
+    getReadingDirection(translator.language) === RIGHT_TO_LEFT;
+
+  /*
    * The pieces a caller replaces: an event's content, and the header of a
    * month view's day. Rebuilt only when the caller's renderers change, so
    * react-big-calendar does not remount every cell on each render.
@@ -933,6 +945,7 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
           backgroundEvents={props.backgroundEvents || []}
           localizer={localizer}
           formats={formats}
+          rtl={isRightToLeft}
           dayLayoutAlgorithm={dayLayoutAlgorithm}
           {...(props.getNow ? { getNow: props.getNow } : {})}
           {...(props.onEventClick

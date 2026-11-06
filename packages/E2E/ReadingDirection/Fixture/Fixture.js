@@ -31,7 +31,9 @@
  * (ColorPicker); a React Flow canvas with a node and a line; and a note
  * whose diagrams have labels in English and in Persian. A note's editor
  * with an English error, and a narrow month whose English and Persian
- * events are cut short to their blocks (Calendar).
+ * events are cut short to their blocks (Calendar). A week with two blocks
+ * at once on a day, and a chart whose time axis names the hours with their
+ * day (LineChart).
  */
 import "Common/UI/Styles/Theme.css";
 import React, { useState } from "react";
@@ -67,6 +69,13 @@ import KeyboardShortcut, {
 } from "Common/UI/Components/KeyboardShortcut/KeyboardShortcut";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import Calendar from "Common/UI/Components/Calendar/Calendar";
+import LineChart from "Common/UI/Components/Charts/Line/LineChart";
+import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
+import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecision";
+import { XAxisAggregateType } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
+import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
+import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
+import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import Modal from "Common/UI/Components/Modal/Modal";
 import NavBar from "Common/UI/Components/Navbar/NavBar";
@@ -286,7 +295,38 @@ const WEEK_EVENTS = [
     accentColor: "#059669",
     className: "oneuptime-calendar-event--override",
   },
+  /*
+   * Two blocks at once on Thursday: the first, earlier one takes the day's
+   * first lane - its start side - and the second the lane beside it.
+   */
+  {
+    id: 13,
+    title: "Database upgrade",
+    start: new Date("2026-10-29T10:00:00.000Z"),
+    end: new Date("2026-10-29T14:00:00.000Z"),
+    color: "#059669",
+  },
+  {
+    id: 14,
+    title: "Cache flush",
+    start: new Date("2026-10-29T11:00:00.000Z"),
+    end: new Date("2026-10-29T13:00:00.000Z"),
+    color: "#e11d48",
+  },
 ];
+
+/*
+ * A day of requests, an hour apart: the time axis names each hour with its
+ * day ("02 Nov, 06:00"; in Persian "۲ نوامبر، ۰۶:۰۰").
+ */
+const CHART_START = new Date("2026-11-01T00:00:00.000Z").getTime();
+
+const CHART_POINTS = Array.from({ length: 24 }, (_unused, hour) => {
+  return {
+    x: new Date(CHART_START + hour * 60 * 60 * 1000),
+    y: 120 + ((hour * 37) % 60),
+  };
+});
 
 // "Now" on the week's grid: its line is drawn across Monday.
 const getWeekNow = () => {
@@ -617,6 +657,47 @@ function Page() {
           >
             <Controls showInteractive={false} />
           </ReactFlow>
+        </div>
+      </Section>
+
+      {/*
+        A chart's time axis: each label is a phrase of the page's language,
+        its day before its hour.
+      */}
+      <Section name="chart">
+        <div
+          className="bg-white"
+          data-testid="chart"
+          style={{ width: `${Math.min(600, tableWidth)}px` }}
+        >
+          <LineChart
+            data={[{ seriesName: "Requests", data: CHART_POINTS }]}
+            xAxis={{
+              legend: "Time",
+              options: {
+                type: XAxisType.Time,
+                min: CHART_POINTS[0].x,
+                max: CHART_POINTS[CHART_POINTS.length - 1].x,
+                aggregateType: XAxisAggregateType.Average,
+                precision: XAxisPrecision.EVERY_HOUR,
+              },
+            }}
+            yAxis={{
+              legend: "Requests",
+              options: {
+                type: YAxisType.Number,
+                min: 0,
+                max: "auto",
+                formatter: (value) => {
+                  return `${value}`;
+                },
+                precision: YAxisPrecision.NoDecimals,
+              },
+            }}
+            curve={ChartCurve.MONOTONE}
+            sync={false}
+            heightInPx={200}
+          />
         </div>
       </Section>
 

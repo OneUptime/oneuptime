@@ -36,6 +36,9 @@ import CalendarEvent from "../../../../Types/Calendar/CalendarEvent";
  *   stripe sit on the start side - the right one on a Persian page: the dot
  *   sat at the far end of today's column, the lines one day off, and a
  *   block's stripe on its trailing edge.
+ * - Two blocks at once in one day lie from its start side: the first at the
+ *   day's right edge on a Persian page, where react-big-calendar, not told
+ *   the page reads right to left, put it at the far, left one.
  *
  * jsdom applies no styles: the markup and the stylesheet's rules are read
  * here; Chromium's half is the ReadingDirection browser suite ("a calendar
@@ -132,6 +135,56 @@ function draw(language: string, view: DefaultCalendarView): HTMLElement {
       />
     </I18nextProvider>,
   ).container;
+}
+
+/*
+ * Two blocks at once on Monday: the first starts earlier and takes the
+ * day's first lane, the second the lane beside it.
+ */
+const OVERLAPPING: Array<CalendarEvent> = [
+  {
+    id: 21,
+    title: "Database upgrade",
+    start: october(26, 10),
+    end: october(26, 14),
+    color: "#059669",
+  },
+  {
+    id: 22,
+    title: "Cache flush",
+    start: october(26, 11),
+    end: october(26, 13),
+    color: "#e11d48",
+  },
+];
+
+function drawWeekOf(
+  language: string,
+  events: Array<CalendarEvent>,
+): HTMLElement {
+  return render(
+    <I18nextProvider i18n={instances[language]!}>
+      <CalendarElement
+        events={events}
+        defaultDate={october(26, 15)}
+        getNow={() => {
+          return october(26, 15);
+        }}
+        defaultCalendarView={DefaultCalendarView.Week}
+        views={[DefaultCalendarView.Week]}
+        onRangeChange={() => {}}
+      />
+    </I18nextProvider>,
+  ).container;
+}
+
+// A block of the week by the title it shows.
+function blockOf(container: HTMLElement, title: string): HTMLElement {
+  return Array.from(container.querySelectorAll<HTMLElement>(".rbc-event")).find(
+    (block: HTMLElement): boolean => {
+      return Boolean(block.textContent?.includes(title));
+    },
+  )!;
 }
 
 function headersOf(container: HTMLElement): Array<HTMLElement> {
@@ -337,6 +390,12 @@ describe("Calendar.css: the start side, whichever way the page reads", () => {
     },
   );
 
+  test("react-big-calendar's line over a scrolling week's scrollbar is cleared on its end side", () => {
+    expect(CALENDAR_CSS).toContain(
+      ".oneuptime-calendar .rbc-time-header.rbc-overflowing { border-inline-end: none; }",
+    );
+  });
+
   test("a day's blocks keep their gap at the day's end", () => {
     expect(CALENDAR_CSS).toContain(
       ".oneuptime-calendar .rbc-day-slot .rbc-events-container { margin-right: 0; margin-inline-end: 10px; }",
@@ -369,8 +428,6 @@ describe("Calendar.css: the start side, whichever way the page reads", () => {
         "border-left: none;",
         "border-left: none;",
         "margin-right: 0;",
-        // react-big-calendar's own line on an overflowing header, cleared.
-        "border-right: none;",
       ].sort(),
     );
   });
@@ -388,5 +445,52 @@ describe("Calendar.css: the start side, whichever way the page reads", () => {
     expect(CALENDAR_CSS).toContain(
       "@container (max-width: 5.25rem) { .oneuptime-calendar .rbc-time-header-content .oneuptime-calendar-day-name__full { display: none; } .oneuptime-calendar .rbc-time-header-content .oneuptime-calendar-day-name__narrow { display: inline; } }",
     );
+  });
+});
+
+describe("two blocks at once lie from the day's start side", () => {
+  test("Persian: react-big-calendar is told the page reads right to left", () => {
+    const container: HTMLElement = drawWeekOf("fa", OVERLAPPING);
+
+    expect(container.querySelector(".rbc-calendar")).toHaveClass("rbc-rtl");
+  });
+
+  test("Persian: the first block sits at the day's right edge, the next one beside it", () => {
+    const container: HTMLElement = drawWeekOf("fa", OVERLAPPING);
+    const first: HTMLElement = blockOf(container, "Database upgrade");
+    const second: HTMLElement = blockOf(container, "Cache flush");
+
+    // Placed by their right edges: the first lane is the day's start side.
+    expect(first.style.right).toBe("0%");
+    expect(first.style.left).toBe("");
+    expect(parseFloat(second.style.right)).toBeGreaterThan(0);
+    expect(second.style.left).toBe("");
+  });
+
+  test.each(["en", "de"])(
+    "%s: the first block at the day's left edge, as it always was",
+    (language: string) => {
+      const container: HTMLElement = drawWeekOf(language, OVERLAPPING);
+      const first: HTMLElement = blockOf(container, "Database upgrade");
+      const second: HTMLElement = blockOf(container, "Cache flush");
+
+      expect(container.querySelector(".rbc-calendar")).not.toHaveClass(
+        "rbc-rtl",
+      );
+      expect(first.style.left).toBe("0%");
+      expect(first.style.right).toBe("");
+      expect(parseFloat(second.style.left)).toBeGreaterThan(0);
+    },
+  );
+
+  test("the two languages lay the same lanes out, mirrored", () => {
+    const persian: HTMLElement = drawWeekOf("fa", OVERLAPPING);
+    const persianSecond: string = blockOf(persian, "Cache flush").style.right;
+
+    cleanup();
+
+    const english: HTMLElement = drawWeekOf("en", OVERLAPPING);
+
+    expect(persianSecond).toBe(blockOf(english, "Cache flush").style.left);
   });
 });
