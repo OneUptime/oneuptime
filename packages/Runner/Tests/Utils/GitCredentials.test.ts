@@ -2,6 +2,7 @@ import GitCredentials, {
   GITHUB_TOKEN_USERNAME,
   GitCredentialHandle,
 } from "../../Utils/GitCredentials";
+import SecretRedactor from "../../Utils/SecretRedactor";
 import fs from "fs/promises";
 import path from "path";
 import { afterEach, describe, expect, test } from "@jest/globals";
@@ -414,6 +415,28 @@ describe("GitCredentials - signing in with the first request, as Basic", () => {
         return name.startsWith("GIT_CONFIG_KEY_");
       }),
     ).toEqual([]);
+  });
+
+  test("the header's encoded credentials are a secret the redactor knows, and forgets with the run", async () => {
+    const handle: GitCredentialHandle = await GitCredentials.create(TOKEN, {
+      username: "deploy",
+      remoteUrl: REMOTE,
+    });
+
+    handles.push(handle);
+
+    const encoded: string = Buffer.from(`deploy:${TOKEN}`).toString("base64");
+
+    try {
+      expect(SecretRedactor.isRegistered(encoded)).toBe(true);
+      expect(
+        SecretRedactor.redact(`> Authorization: Basic ${encoded}`),
+      ).not.toContain(encoded);
+    } finally {
+      SecretRedactor.clearRegistered();
+    }
+
+    expect(SecretRedactor.isRegistered(encoded)).toBe(false);
   });
 
   test("GitHub's installation tokens sign in as x-access-token", () => {

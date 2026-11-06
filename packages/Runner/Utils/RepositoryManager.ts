@@ -63,6 +63,12 @@ const DEFAULT_GIT_TIMEOUT_MS: number = 60 * 1000;
 const GIT_MAX_BUFFER_BYTES: number = 32 * 1024 * 1024;
 
 /*
+ * Hooks looked for in a directory that cannot hold any: no hook runs. For a
+ * command that carries the credentials (the push).
+ */
+export const NO_HOOKS_OPTION: string = "core.hooksPath=/dev/null";
+
+/*
  * How much of a commit's diff a request from Code reports: the server keeps
  * the same caps (CodeTaskOutcomeReader).
  */
@@ -656,9 +662,26 @@ export default class RepositoryManager {
         { env: credentials.env },
       );
 
+      /*
+       * No hook of the repository's runs in the push: a setup command
+       * (`npm ci` installing husky) points core.hooksPath at the
+       * repository's committed hooks, and a pre-push hook would run with
+       * this command's environment - the credentials in it - and could fail
+       * or stall the push, losing the change after the whole run. The
+       * commit skips them for the same reason (--no-verify); the hooks are
+       * the repository's CI's to run.
+       */
       await this.runGitCommand(
         repoPath,
-        [...hostOptions, "push", "-u", "origin", branchName],
+        [
+          ...hostOptions,
+          "-c",
+          NO_HOOKS_OPTION,
+          "push",
+          "-u",
+          "origin",
+          branchName,
+        ],
         {
           timeoutInMS: PUSH_TIMEOUT_MS,
           env: credentials.env,

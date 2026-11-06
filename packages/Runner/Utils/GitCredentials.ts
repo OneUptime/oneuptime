@@ -1,6 +1,7 @@
 import LocalFile from "Common/Server/Utils/LocalFile";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
+import SecretRedactor from "./SecretRedactor";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
@@ -160,6 +161,20 @@ export default class GitCredentials {
           inheritedEnv: process.env,
         })
       : {};
+
+    /*
+     * The header's encoded credentials are a secret of their own: the
+     * redactor knows the token, not its base64, so it is told this too -
+     * and forgets it with the token when the run ends.
+     */
+    if (signIn) {
+      SecretRedactor.register(
+        GitCredentials.getBasicAuthorization(signIn.username, token).substring(
+          "Basic ".length,
+        ),
+        "repository-token",
+      );
+    }
 
     return {
       env: {

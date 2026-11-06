@@ -207,6 +207,55 @@ describeWithGit(
       expect(gitDirectory).not.toContain(header.substring("Basic ".length));
     });
 
+    /*
+     * A setup command (`npm ci` installing husky) points core.hooksPath at
+     * the repository's committed hooks. A pre-push hook there would run
+     * inside the push, with the credentials in its environment, and could
+     * fail it - after the whole run.
+     */
+    test("a pre-push hook of the repository never runs in the push: it neither sees the credentials nor stops the push", async () => {
+      const manager: RepositoryManager = new RepositoryManager();
+      const clone: CloneResult = await manager.cloneRepository(
+        config(),
+        makeTempDir("oneuptime-azdo-hooks-"),
+      );
+      const witness: string = path.join(
+        makeTempDir("oneuptime-azdo-hook-witness-"),
+        "pre-push-env.txt",
+      );
+      const hooks: string = path.join(clone.repositoryPath, ".husky");
+
+      fs.mkdirSync(hooks, { recursive: true });
+      fs.writeFileSync(
+        path.join(hooks, "pre-push"),
+        `#!/bin/sh\nenv > '${witness}'\necho 'refusing every push' >&2\nexit 1\n`,
+        { mode: 0o755 },
+      );
+      fs.writeFileSync(path.join(clone.repositoryPath, "HOOKED.md"), "x\n");
+
+      await manager.createBranch(clone.repositoryPath, "oneuptime/hooked");
+      await manager.addAllChanges(clone.repositoryPath);
+      await manager.commitChanges(clone.repositoryPath, "Add a file");
+
+      // What husky does during `npm ci`.
+      await Execute.executeCommandFile({
+        command: "git",
+        args: ["config", "core.hooksPath", ".husky"],
+        cwd: clone.repositoryPath,
+      });
+
+      await manager.pushBranch(
+        clone.repositoryPath,
+        "oneuptime/hooked",
+        config(),
+      );
+
+      expect(fs.existsSync(witness)).toBe(false);
+      expect(server.readRefs()["refs/heads/oneuptime/hooked"]).toBe(
+        await manager.getCurrentCommitHash(clone.repositoryPath),
+      );
+    });
+
     test("the credentials go in git's environment, not its arguments, and the remote names only the username", async () => {
       const execute: jest.SpyInstance = jest.spyOn(
         Execute,
