@@ -20,6 +20,7 @@ import CloudAiAgentSetupModal from "../../../../App/FeatureSet/Dashboard/src/Com
 import {
   CLOUD_AI_AGENT_KEY_NOTE,
   CLOUD_AI_AGENT_MAKING_KEY_TEXT,
+  isCloudAiAgentKeyFailureRetryable,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudAiAgentSetup";
 import { getResourceAiAgentDescriptor } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -45,9 +46,10 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
  *     until it is there;
  *   - the command (and the variables to run the agent elsewhere) hold it,
  *     with a line saying it is the agent's alone and works for a day;
- *   - a refusal (someone who may not set the agent up) or an answer that
- *     is not this account's key is said where the command would be, with
- *     Try again;
+ *   - a refusal (someone who may not set the agent up) is said where the
+ *     command would be, alone: asking again never changes who may set the
+ *     agent up. A failure that may pass (no answer, a server error) or an
+ *     answer that is not this account's key is said there with Try again;
  *   - no ingestion key is asked for, picked or shown.
  *
  * The OneUptime address is an HTTPS one, as a real install's, so the
@@ -286,33 +288,91 @@ describe("the key the setup command holds", () => {
     expect(screen.queryByTestId("cloud-ai-agent-setup-making-key")).toBeNull();
   });
 
-  test("a refusal is said where the command would be, and Try again asks once more", async () => {
-    keyAnswers = [
-      async (): Promise<HTTPErrorResponse> => {
-        return new HTTPErrorResponse(
-          403,
-          {
-            message:
-              "Only a project owner or admin who may edit this AWS account may set up its Cloud AI agent.",
-          },
-          {},
-        );
-      },
-      answerKey(keyOf(CLOUD_ACCOUNT_ID, "c")),
-    ];
-    openDialog();
+  test.each([400, 401, 403, 404, 422])(
+    "a refusal (%s) is said where the command would be, alone: asking again never changes who may set the agent up",
+    async (status: number) => {
+      keyAnswers = [
+        async (): Promise<HTTPErrorResponse> => {
+          return new HTTPErrorResponse(
+            status,
+            {
+              message:
+                "You need permission to edit this AWS account to set up its Cloud AI agent.",
+            },
+            {},
+          );
+        },
+        answerKey(keyOf(CLOUD_ACCOUNT_ID, "c")),
+      ];
+      openDialog();
 
-    expect(
-      await screen.findByTestId("cloud-ai-agent-setup-problem"),
-    ).toHaveTextContent(
-      "Only a project owner or admin who may edit this AWS account may set up its Cloud AI agent.",
-    );
-    expect(screen.queryByTestId("cloud-ai-agent-setup-command")).toBeNull();
+      expect(
+        await screen.findByTestId("cloud-ai-agent-setup-problem"),
+      ).toHaveTextContent(
+        "You need permission to edit this AWS account to set up its Cloud AI agent.",
+      );
+      expect(screen.queryByTestId("cloud-ai-agent-setup-command")).toBeNull();
+      expect(
+        screen.queryByTestId("cloud-ai-agent-setup-key-try-again"),
+      ).toBeNull();
+      expect(screen.queryByTestId("cloud-ai-agent-setup-key-note")).toBeNull();
+      expect(keyPosts()).toHaveLength(1);
+    },
+  );
 
-    fireEvent.click(screen.getByTestId("cloud-ai-agent-setup-key-try-again"));
+  test.each([500, 502, 503, 504, 408, 429])(
+    "a failure that may pass (%s) is said where the command would be, and Try again asks once more",
+    async (status: number) => {
+      const failure: HTTPErrorResponse = new HTTPErrorResponse(
+        status,
+        { message: "OneUptime could not make the key just now." },
+        {},
+      );
 
-    expect(await commandText()).toContain(keyOf(CLOUD_ACCOUNT_ID, "c"));
-    expect(keyPosts()).toHaveLength(2);
+      keyAnswers = [
+        async (): Promise<HTTPErrorResponse> => {
+          return failure;
+        },
+        answerKey(keyOf(CLOUD_ACCOUNT_ID, "c")),
+      ];
+      openDialog();
+
+      // Said as every failed request is (a gateway's in words of its own).
+      expect(
+        await screen.findByTestId("cloud-ai-agent-setup-problem"),
+      ).toHaveTextContent(API.getFriendlyMessage(failure));
+      expect(screen.queryByTestId("cloud-ai-agent-setup-command")).toBeNull();
+
+      fireEvent.click(screen.getByTestId("cloud-ai-agent-setup-key-try-again"));
+
+      expect(await commandText()).toContain(keyOf(CLOUD_ACCOUNT_ID, "c"));
+      expect(keyPosts()).toHaveLength(2);
+      // Made, the problem and its Try again are gone.
+      expect(screen.queryByTestId("cloud-ai-agent-setup-problem")).toBeNull();
+      expect(
+        screen.queryByTestId("cloud-ai-agent-setup-key-try-again"),
+      ).toBeNull();
+    },
+  );
+
+  test("which failures Try again is offered for: everything but a refusal", () => {
+    // No answer at all: a network failure.
+    expect(isCloudAiAgentKeyFailureRetryable(-1)).toBe(true);
+    expect(isCloudAiAgentKeyFailureRetryable(0)).toBe(true);
+    // A timeout, too many requests, a server or a gateway that failed.
+    for (const status of [408, 429, 500, 502, 503, 504]) {
+      expect({
+        status,
+        retry: isCloudAiAgentKeyFailureRetryable(status),
+      }).toEqual({ status, retry: true });
+    }
+    // A refusal says the same every time.
+    for (const status of [400, 401, 403, 404, 405, 409, 410, 422]) {
+      expect({
+        status,
+        retry: isCloudAiAgentKeyFailureRetryable(status),
+      }).toEqual({ status, retry: false });
+    }
   });
 
   test("an answer that is not this account's key writes no command", async () => {

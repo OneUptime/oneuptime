@@ -17,6 +17,7 @@ import OpenStackCloudFeedService from "./OpenStackCloudFeedService";
 import OpenStackCloudService from "./OpenStackCloudService";
 import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
+import TelemetryIngestionKeyService from "./TelemetryIngestionKeyService";
 import UserService from "./UserService";
 import VMwareVCenterFeedService from "./VMwareVCenterFeedService";
 import VMwareVCenterService from "./VMwareVCenterService";
@@ -32,6 +33,7 @@ import { PodmanHostFeedEventType } from "../../Models/DatabaseModels/PodmanHostF
 import { OpenStackCloudFeedEventType } from "../../Models/DatabaseModels/OpenStackCloudFeed";
 import { ProxmoxClusterFeedEventType } from "../../Models/DatabaseModels/ProxmoxClusterFeed";
 import Model from "../../Models/DatabaseModels/ResourceAiAgent";
+import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestionKey";
 import { VMwareVCenterFeedEventType } from "../../Models/DatabaseModels/VMwareVCenterFeed";
 import CloudAccountFeedService from "./CloudAccountFeedService";
 import { CloudAccountFeedEventType } from "../../Models/DatabaseModels/CloudAccountFeed";
@@ -1267,6 +1269,9 @@ export class Service extends DatabaseService<Model> {
     let agentId: ObjectID;
     let admission: ResourceAiAgentRegistrationAdmission;
     let keyTaken: CloudAiAgentKeyTaken | null = null;
+    // The ingestion key the agent connected with so far, read before it is re-keyed.
+    const previousIngestionKeyId: ObjectID | null =
+      (existing && existing.registeredWithIngestionKeyId) || null;
 
     if (existing && existing.id) {
       admission = await this.admitReRegistration({
@@ -1391,9 +1396,7 @@ export class Service extends DatabaseService<Model> {
       await this.writeNewKeyFeedItem({
         resource,
         keyTaken,
-        wasConnectedWithIngestionKey: Boolean(
-          existing && existing.registeredWithIngestionKeyId,
-        ),
+        previousIngestionKeyId,
         isFirstConnection: admission === "created",
       });
     }
@@ -3439,17 +3442,23 @@ export class Service extends DatabaseService<Model> {
    * its setup command ran again: the key it replaced, or the project's
    * ingestion key, no longer connects it. Nothing for an account's first
    * agent, whose connected item says it connected.
+   *
+   * An agent moving over from the ingestion key leaves that key behind,
+   * and it still sends telemetry for the whole project: Show details names
+   * it (never its secret), so whoever made it for the agent alone knows
+   * which one to delete.
    */
   private async writeNewKeyFeedItem(data: {
     resource: ResourceAiAgentResource;
     keyTaken: CloudAiAgentKeyTaken;
-    wasConnectedWithIngestionKey: boolean;
+    // The ingestion key the agent connected with before, when it did.
+    previousIngestionKeyId: ObjectID | null;
     isFirstConnection: boolean;
   }): Promise<void> {
     if (
       data.isFirstConnection &&
       !data.keyTaken.replacedAgentKey &&
-      !data.wasConnectedWithIngestionKey
+      !data.previousIngestionKeyId
     ) {
       return;
     }
@@ -3466,6 +3475,11 @@ export class Service extends DatabaseService<Model> {
       ? mdText`, made by **${madeBy}**`
       : FeedMarkdown.empty();
 
+    const leftBehind: string | undefined =
+      !data.keyTaken.replacedAgentKey && data.previousIngestionKeyId
+        ? await this.describeIngestionKeyLeftBehind(data.previousIngestionKeyId)
+        : undefined;
+
     await Service.getResourceBinding(data.resource.resourceType).writeFeedItem({
       resourceId: data.resource.id,
       projectId: data.resource.projectId,
@@ -3473,7 +3487,45 @@ export class Service extends DatabaseService<Model> {
       feedInfoInMarkdown: data.keyTaken.replacedAgentKey
         ? mdText`🔑 The ${info.agentDisplayName} connected with a new key${made}. The key it connected with before no longer works.`.toString()
         : mdText`🔑 The ${info.agentDisplayName} now connects with a key of its own${made}, which connects this agent and nothing else. The project's telemetry ingestion key no longer connects it.`.toString(),
+      ...(leftBehind ? { moreInformationInMarkdown: leftBehind } : {}),
     });
+  }
+
+  /*
+   * The ingestion key a Cloud AI agent no longer connects with, by its name
+   * (never its secret), with what to do about it: it still sends telemetry
+   * for the whole project. Undefined when it is gone or cannot be read - the
+   * agent connected all the same.
+   */
+  private async describeIngestionKeyLeftBehind(
+    ingestionKeyId: ObjectID,
+  ): Promise<string | undefined> {
+    try {
+      const key: TelemetryIngestionKey | null =
+        await TelemetryIngestionKeyService.findOneById({
+          id: ingestionKeyId,
+          select: { _id: true, name: true },
+          props: { isRoot: true },
+        });
+      const name: string = (key?.name || "").trim();
+
+      if (!name) {
+        return undefined;
+      }
+
+      return FeedMarkdown.join(
+        [
+          mdText`**Ingestion key it connected with before**: ${name}`,
+          mdText`That key still sends telemetry for the whole project. If nothing else uses it, delete it under Project Settings → Telemetry & APM → Ingestion Keys.`,
+        ],
+        "\n\n",
+      ).toString();
+    } catch (error) {
+      logger.error(
+        `ResourceAiAgent: could not read the ingestion key ${ingestionKeyId.toString()} a Cloud AI agent connected with before: ${error}`,
+      );
+      return undefined;
+    }
   }
 
   // The first successful registration of a resource's agent. Best-effort.

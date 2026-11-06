@@ -126,6 +126,8 @@ import AiCommandKillSwitch, {
   AI_COMMANDS_OFF_STOP_MESSAGE,
 } from "Common/Server/Utils/AI/AiCommandKillSwitch";
 import CloudAiAgentKeyAuthenticator from "Common/Server/Utils/CloudConnection/CloudAiAgentKeyAuthentication";
+import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
+import ProjectBlockedException from "Common/Types/Exception/ProjectBlockedException";
 import {
   CLOUD_AI_AGENT_KEY_REFUSED_MESSAGE,
   buildCloudAiAgentKey,
@@ -773,6 +775,27 @@ describe("POST /register: the key it came with", () => {
     expect((wire.thrownToNext as Error).message).toBe("database is down");
     expect(registerSpy).not.toHaveBeenCalled();
   });
+
+  test.each([
+    ["a project a master admin blocked (403)", new ProjectBlockedException()],
+    [
+      "a project that may not use pay-as-you-go (402)",
+      new PaymentRequiredException("Add a payment method."),
+    ],
+  ])(
+    "%s: answered by the error handler as for the ingestion key, and nothing registered",
+    async (_what: string, refusal: Error) => {
+      authenticateKey.mockRejectedValue(refusal);
+
+      const wire: WireResponse = await registerWith({
+        "x-oneuptime-token": OWN_KEY,
+      });
+
+      expect(wire.thrownToNext).toBe(refusal);
+      expect(registerSpy).not.toHaveBeenCalled();
+      expect(forSurface).not.toHaveBeenCalled();
+    },
+  );
 
   test.each([
     ["a telemetry ingestion key", "0b5f2c1e-1111-4111-8111-222233334444"],

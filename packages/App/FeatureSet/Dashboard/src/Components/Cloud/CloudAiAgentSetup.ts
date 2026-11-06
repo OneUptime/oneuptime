@@ -462,6 +462,22 @@ export function readCloudAiAgentKeyAnswer(data: {
     : null;
 }
 
+/*
+ * Whether asking the key route again may get a key, by the status of the
+ * answer that did not hold one: a refusal (someone who may not set the
+ * agent up, an account that is gone) says the same thing every time, so
+ * the dialog says it with no Try again; no answer at all (a network
+ * failure, -1 or 0), a server or gateway error, a timeout or too many
+ * requests may pass, and Try again asks once more.
+ */
+export function isCloudAiAgentKeyFailureRetryable(statusCode: number): boolean {
+  if (statusCode === 408 || statusCode === 429) {
+    return true;
+  }
+
+  return !(statusCode >= 400 && statusCode < 500);
+}
+
 // The line under the command, about the key it holds.
 export const CLOUD_AI_AGENT_KEY_NOTE: string = translationKey(
   "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.",

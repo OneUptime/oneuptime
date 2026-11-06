@@ -1976,6 +1976,8 @@ async function feedEntries(page: Page): Promise<Array<string>> {
     "OneUptime found",
     "The Cloud AI agent connected",
     "changed what OneUptime AI may do on",
+    "now connects with a key of its own",
+    "OneUptime refused a Cloud AI agent",
     "The Cloud AI agent was reset",
   ]) {
     const box: Box = await boxOf(page.getByText(words).first());
@@ -2670,10 +2672,57 @@ test.describe("OneUptime AI on a cloud account", () => {
     // Newest first: the reset half an hour ago, the account found nine days ago.
     expect(await feedEntries(page)).toEqual([
       "The Cloud AI agent was reset",
+      "OneUptime refused a Cloud AI agent",
+      "now connects with a key of its own",
       "changed what OneUptime AI may do on",
       "The Cloud AI agent connected",
       "OneUptime found",
     ]);
+
+    // A Cloud AI agent's reset says how it comes back: its setup command, run again.
+    await expect(
+      page.getByText(
+        "Its key no longer works, and it stays disconnected until its setup command runs again",
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByText("It reconnects on its own within a few minutes"),
+    ).toHaveCount(0);
+
+    /*
+     * The agent's own key: under Show details, the ingestion key it no
+     * longer uses, by its name, and what to do with it.
+     */
+    const ownKeyEntry: Locator = page
+      .getByRole("listitem")
+      .filter({ hasText: "now connects with a key of its own" });
+    await ownKeyEntry.getByRole("button", { name: "Show details" }).click();
+    await expect(
+      ownKeyEntry.getByText("Ingestion key it connected with before"),
+    ).toBeVisible();
+    await expect(ownKeyEntry).toContainText("Cloud AI agent key");
+    await expect(ownKeyEntry).toContainText(
+      "If nothing else uses it, delete it under Project Settings",
+    );
+
+    /*
+     * A refused agent: what it was refused for, and under Show details where
+     * it says it runs, what it came with and its version - never a key.
+     */
+    const refusedEntry: Locator = page
+      .getByRole("listitem")
+      .filter({ hasText: "OneUptime refused a Cloud AI agent" });
+    await expect(refusedEntry).toContainText(
+      "the project's telemetry ingestion key no longer connects it",
+    );
+    await refusedEntry.getByRole("button", { name: "Show details" }).click();
+    await expect(refusedEntry.getByText("Where it says it runs")).toBeVisible();
+    await expect(refusedEntry).toContainText("AWS account 123456789012");
+    await expect(refusedEntry).toContainText(
+      "the project's telemetry ingestion key",
+    );
+    await expect(refusedEntry).toContainText("14.0.90");
+    expect(await page.locator("body").innerText()).not.toContain("ouca_");
 
     // Read for this account, and nothing else's.
     const reads: Array<ListRequest> = (await listRequests(page)).filter(
@@ -2861,7 +2910,7 @@ test.describe("OneUptime AI on a cloud account", () => {
     expect(await keyAsks()).toHaveLength(2);
   });
 
-  test("someone who may not set the agent up is told why where the command would be, and Try again asks again", async ({
+  test("someone who may not set the agent up is told why where the command would be, with no Try again: asking again never changes that", async ({
     page,
   }: {
     page: Page;
@@ -2882,18 +2931,54 @@ test.describe("OneUptime AI on a cloud account", () => {
     await expect(
       setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
     ).toHaveCount(0);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-key-try-again"),
+    ).toHaveCount(0);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-key-note"),
+    ).toHaveCount(0);
+    expect(await agentKeys(page)).toEqual([]);
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup-key-refused");
+  });
+
+  test("a key OneUptime could not make just then is said where the command would be, and Try again asks again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected&agentkey=fail`,
+    );
+    await setUpButton(page).click();
+    await expect(setupDialog(page)).toBeVisible();
+
+    const problem: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-problem",
+    );
+    await expect(problem).not.toBeEmpty();
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toHaveCount(0);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-ai-setup-key-failed");
 
     // Asked again, the key is made, and the command holds it.
     await setupDialog(page)
       .getByTestId("cloud-ai-agent-setup-key-try-again")
       .click();
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toBeVisible();
     const [key] = await agentKeys(page);
     await expect(
       setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
     ).toContainText(key!);
     await expect(problem).toHaveCount(0);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-key-try-again"),
+    ).toHaveCount(0);
   });
 
   test("Change on a connected agent opens on what it runs with: its changes, its tag and the resources a person protected", async ({

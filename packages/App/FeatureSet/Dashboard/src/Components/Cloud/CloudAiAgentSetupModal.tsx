@@ -15,6 +15,7 @@ import {
   getCloudAiAgentSetupOptions,
   getDefaultCloudAiAgentSetupChoices,
   getProtectedTargetsProblem,
+  isCloudAiAgentKeyFailureRetryable,
   parseProtectedTargets,
   readCloudAiAgentKeyAnswer,
 } from "./CloudAiAgentSetup";
@@ -209,9 +210,13 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
       accountId: props.accountId,
     });
   });
-  // The key made for this agent as the dialog opened, and why there is none.
+  /*
+   * The key made for this agent as the dialog opened, why there is none,
+   * and whether asking again may get one (a refusal never does).
+   */
   const [agentKey, setAgentKey] = useState<string>("");
   const [keyError, setKeyError] = useState<string>("");
+  const [canRetryKey, setCanRetryKey] = useState<boolean>(false);
   const [isMakingKey, setIsMakingKey] = useState<boolean>(true);
   const [keyRequest, setKeyRequest] = useState<number>(0);
   const [isAiLogReadEnabled, setIsAiLogReadEnabled] = useState<boolean>(
@@ -230,6 +235,7 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
 
     setIsMakingKey(true);
     setKeyError("");
+    setCanRetryKey(false);
 
     const makeKey: () => Promise<void> = async (): Promise<void> => {
       try {
@@ -251,6 +257,9 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
 
         if (response instanceof HTTPErrorResponse) {
           setKeyError(API.getFriendlyMessage(response));
+          setCanRetryKey(
+            isCloudAiAgentKeyFailureRetryable(response.statusCode),
+          );
           return;
         }
 
@@ -260,6 +269,7 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
         });
 
         if (!key) {
+          setCanRetryKey(true);
           setKeyError(
             translator.translateText(
               translationKey(
@@ -273,7 +283,9 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
         setAgentKey(key);
       } catch (error) {
         if (isCurrent) {
+          // No answer at all: the network, which may pass.
           setKeyError(API.getFriendlyMessage(error));
+          setCanRetryKey(true);
         }
       } finally {
         if (isCurrent) {
@@ -509,10 +521,12 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                 {problem}
               </p>
               {/*
-               * A key that could not be made (a network error, a refusal):
-               * asked for again. A refusal says who may set the agent up.
+               * A key that could not be made for a reason that may pass (no
+               * answer, a server error): asked for again. A refusal says who
+               * may set the agent up, which asking again never changes, so
+               * it stands alone.
                */}
-              {keyError ? (
+              {keyError && canRetryKey ? (
                 <Button
                   title="Try again"
                   icon={IconProp.Refresh}

@@ -8,8 +8,11 @@ import {
   parseCloudAiAgentKey,
 } from "../../../Types/CloudConnection/CloudAiAgentKey";
 import ObjectID from "../../../Types/ObjectID";
+import ProjectBlockedException from "../../../Types/Exception/ProjectBlockedException";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import CloudAccountService from "../../Services/CloudAccountService";
+import PayAsYouGoBillingService from "../../Services/PayAsYouGoBillingService";
+import ProjectService from "../../Services/ProjectService";
 import logger from "../Logger";
 import CloudAiAgentKeyHashing from "./CloudAiAgentKeyHashing";
 
@@ -32,6 +35,14 @@ import CloudAiAgentKeyHashing from "./CloudAiAgentKeyHashing";
  * is held to CLOUD_AI_AGENT_REGISTRATIONS_PER_MINUTE registrations a minute
  * for its account, counted only once it is right: a stranger who knows an
  * account's id cannot use up its agent's registrations.
+ *
+ * A right key is admitted to its project as the project's telemetry
+ * ingestion key was before it (TelemetryIngestionKeyService
+ * .getPolicyFromSecretKey): a project a master admin blocked registers no
+ * agent (ProjectBlockedException, a 403), and where billing is on, nor
+ * does one that may not use pay-as-you-go (PaymentRequiredException, a
+ * 402). Both are read only once the key is right, so a wrong key reads
+ * neither.
  */
 
 // What an agent registers with, about a minute's restarts at most.
@@ -97,6 +108,11 @@ export default class CloudAiAgentKeyAuthenticator {
       return CloudAiAgentKeyAuthenticator.refused();
     }
 
+    // Admitted to its project as the ingestion key was: these throw.
+    await CloudAiAgentKeyAuthenticator.assertProjectAdmitsAgents(
+      found.account.projectId,
+    );
+
     if (
       !(await CloudAiAgentKeyAuthenticator.takeRegistration({
         cloudAccountId,
@@ -123,6 +139,27 @@ export default class CloudAiAgentKeyAuthenticator {
       keyHash: match.hash,
       match: match.match,
     };
+  }
+
+  /*
+   * What the project's telemetry ingestion key was held to before an agent
+   * registered with it (TelemetryIngestionKeyService
+   * .requireBillingForPolicy): a project a master admin blocked registers
+   * nothing until it is unblocked, and where billing is on, a project that
+   * may not use pay-as-you-go registers nothing either. Each answer has its
+   * own cache. Throws ProjectBlockedException (403) or
+   * PaymentRequiredException (402), which the route answers with.
+   */
+  public static async assertProjectAdmitsAgents(
+    projectId: ObjectID,
+  ): Promise<void> {
+    if (await ProjectService.isProjectBlocked(projectId)) {
+      throw new ProjectBlockedException();
+    }
+
+    await PayAsYouGoBillingService.requirePayAsYouGo(projectId, {
+      allowStaleDenial: true,
+    });
   }
 
   /*

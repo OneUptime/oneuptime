@@ -3,6 +3,10 @@ import ResourceAiAgent from "../../../Models/DatabaseModels/ResourceAiAgent";
 import AutoRemediationRuleEngineService from "../../../Server/Services/AutoRemediationRuleEngineService";
 import CloudAccountFeedService from "../../../Server/Services/CloudAccountFeedService";
 import CloudAccountService from "../../../Server/Services/CloudAccountService";
+import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import TelemetryIngestionKeyService from "../../../Server/Services/TelemetryIngestionKeyService";
+import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import ResourceAiAgentService, {
   ResourceAiAgentRegistrationKey,
   ResourceAiAgentRegistrationRefusedException,
@@ -244,6 +248,28 @@ beforeEach(() => {
     .spyOn(AutoRemediationRuleEngineService, "onAgentConnected")
     .mockResolvedValue(undefined as never);
   jest.spyOn(GlobalCache, "incrementIfBelow").mockResolvedValue(1 as never);
+  // The project admits agents, as its ingestion key would.
+  jest
+    .spyOn(ProjectService, "isProjectBlocked")
+    .mockResolvedValue(false as never);
+  jest
+    .spyOn(PayAsYouGoBillingService, "requirePayAsYouGo")
+    .mockResolvedValue(undefined as never);
+  // The ingestion key an agent set up before connected with, by its name.
+  jest
+    .spyOn(TelemetryIngestionKeyService, "findOneById")
+    .mockImplementation(
+      async (data: { id: ObjectID }): Promise<TelemetryIngestionKey | null> => {
+        if (data.id.toString() !== INGESTION_KEY_ID.toString()) {
+          return null;
+        }
+
+        const key: TelemetryIngestionKey = new TelemetryIngestionKey();
+        key.id = INGESTION_KEY_ID;
+        key.name = "Cloud AI agent key";
+        return key;
+      },
+    );
 
   // ---- The account's agent row -----------------------------------------------
   jest
@@ -490,17 +516,88 @@ describe("a new key becomes the agent's key once it connects", () => {
     await register({ key: await keyOf(await makeKey()) });
 
     expect(agentRow?.registeredWithIngestionKeyId).toBeNull();
-    expect(
-      feedItems
-        .map((item: Record<string, unknown>): string => {
-          return String(item["feedInfoInMarkdown"]);
-        })
-        .find((text: string): boolean => {
-          return text.startsWith("🔑");
-        }),
-    ).toBe(
+
+    const keyItem: Record<string, unknown> | undefined = feedItems.find(
+      (item: Record<string, unknown>): boolean => {
+        return String(item["feedInfoInMarkdown"]).startsWith("🔑");
+      },
+    );
+
+    expect(keyItem?.["feedInfoInMarkdown"]).toBe(
       "🔑 The Cloud AI agent now connects with a key of its own, made by **[Maya Chen](/users/maya)**, which connects this agent and nothing else. The project's telemetry ingestion key no longer connects it.",
     );
+    /*
+     * Under Show details: the ingestion key it no longer uses, by its name,
+     * which still sends telemetry for the whole project - the last step of
+     * moving over is deleting it, when nothing else uses it.
+     */
+    expect(keyItem?.["moreInformationInMarkdown"]).toBe(
+      "**Ingestion key it connected with before**: Cloud AI agent key\n\nThat key still sends telemetry for the whole project. If nothing else uses it, delete it under Project Settings → Telemetry & APM → Ingestion Keys.",
+    );
+    // Its name, never its secret.
+    expect(String(keyItem?.["moreInformationInMarkdown"])).not.toContain(
+      INGESTION_KEY_ID.toString(),
+    );
+  });
+
+  test("an ingestion key that is gone since: the move is said without naming it", async () => {
+    await register({});
+    signOff();
+    jest
+      .spyOn(TelemetryIngestionKeyService, "findOneById")
+      .mockResolvedValue(null as never);
+
+    await register({ key: await keyOf(await makeKey()) });
+
+    const keyItem: Record<string, unknown> | undefined = feedItems.find(
+      (item: Record<string, unknown>): boolean => {
+        return String(item["feedInfoInMarkdown"]).startsWith("🔑");
+      },
+    );
+
+    expect(String(keyItem?.["feedInfoInMarkdown"])).toContain(
+      "The project's telemetry ingestion key no longer connects it.",
+    );
+    expect(keyItem?.["moreInformationInMarkdown"]).toBeUndefined();
+  });
+
+  test("an ingestion key that cannot be read: the agent still connects, and the move is still said", async () => {
+    await register({});
+    signOff();
+    jest
+      .spyOn(TelemetryIngestionKeyService, "findOneById")
+      .mockRejectedValue(new Error("database is down") as never);
+
+    const result: ResourceAiAgentRegistrationResult = await register({
+      key: await keyOf(await makeKey()),
+    });
+
+    expect(result.admission).toBe("signed_off");
+    expect(
+      feedItems.some((item: Record<string, unknown>): boolean => {
+        return String(item["feedInfoInMarkdown"]).startsWith(
+          "🔑 The Cloud AI agent now connects with a key of its own",
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("a key replacing the agent's own key names no ingestion key", async () => {
+    await register({ key: await keyOf(await makeKey()) });
+    signOff();
+
+    await register({ key: await keyOf(await makeKey()) });
+
+    const keyItem: Record<string, unknown> | undefined = feedItems.find(
+      (item: Record<string, unknown>): boolean => {
+        return String(item["feedInfoInMarkdown"]).startsWith("🔑");
+      },
+    );
+
+    expect(String(keyItem?.["feedInfoInMarkdown"])).toContain(
+      "connected with a new key",
+    );
+    expect(keyItem?.["moreInformationInMarkdown"]).toBeUndefined();
   });
 
   test("an account's first agent says it connected once, with no second item about its key", async () => {

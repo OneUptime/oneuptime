@@ -3,6 +3,8 @@ import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import CloudAccountService, {
   CLOUD_AI_AGENT_KEY_WRITE_ATTEMPTS,
 } from "../../../../Server/Services/CloudAccountService";
+import PayAsYouGoBillingService from "../../../../Server/Services/PayAsYouGoBillingService";
+import ProjectService from "../../../../Server/Services/ProjectService";
 import CloudAiAgentKeyAuthenticator, {
   CLOUD_AI_AGENT_REGISTRATIONS_PER_MINUTE,
   CLOUD_AI_AGENT_REGISTRATIONS_THROTTLED_MESSAGE,
@@ -19,6 +21,8 @@ import {
   readCloudAiAgentKeys,
 } from "../../../../Types/CloudConnection/CloudAiAgentKey";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
+import ProjectBlockedException from "../../../../Types/Exception/ProjectBlockedException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -38,8 +42,10 @@ import crypto from "crypto";
  * is lost and none is used after it was revoked (CloudAccountService); and
  * checked when the agent registers - the account's key or a pending one
  * that still works, held to its account's registrations a minute
- * (CloudAiAgentKeyAuthenticator). Postgres is replaced by one row in
- * memory, written only through the compare-and-set the service makes.
+ * (CloudAiAgentKeyAuthenticator), and admitted to its project as the
+ * project's ingestion key was (not blocked, pay-as-you-go where billing is
+ * on). Postgres is replaced by one row in memory, written only through the
+ * compare-and-set the service makes.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -61,6 +67,8 @@ let writes: Array<JSONObject | null>;
 // Writes that find the row changed first: the next n compare-and-sets lose.
 let losingWrites: number;
 let incrementIfBelow: ReturnType<typeof jest.spyOn>;
+let isProjectBlocked: ReturnType<typeof jest.spyOn>;
+let requirePayAsYouGo: ReturnType<typeof jest.spyOn>;
 
 function storedKeys(): CloudAiAgentKeys | null {
   return readCloudAiAgentKeys(stored.aiAgentKeys);
@@ -130,6 +138,13 @@ beforeEach(() => {
   incrementIfBelow = jest
     .spyOn(GlobalCache, "incrementIfBelow")
     .mockResolvedValue(1 as never);
+  // The project: not blocked, and allowed pay-as-you-go.
+  isProjectBlocked = jest
+    .spyOn(ProjectService, "isProjectBlocked")
+    .mockResolvedValue(false as never);
+  requirePayAsYouGo = jest
+    .spyOn(PayAsYouGoBillingService, "requirePayAsYouGo")
+    .mockResolvedValue(undefined as never);
 });
 
 afterEach(() => {
@@ -497,5 +512,56 @@ describe("who a registration with a key is from", () => {
     );
 
     expect((await authenticate(made.agentKey)).isAuthorized).toBe(true);
+  });
+});
+
+describe("a right key is admitted to its project as the ingestion key was", () => {
+  test("the key's own project is asked, once the key is right", async () => {
+    const made: CloudAiAgentKeyResponse = await makeKey();
+
+    expect((await authenticate(made.agentKey)).isAuthorized).toBe(true);
+    expect(isProjectBlocked).toHaveBeenCalledWith(PROJECT_ID);
+    expect(requirePayAsYouGo).toHaveBeenCalledWith(PROJECT_ID, {
+      allowStaleDenial: true,
+    });
+  });
+
+  test("a project a master admin blocked registers no agent: refused as its ingestion key is, and nothing is counted", async () => {
+    const made: CloudAiAgentKeyResponse = await makeKey();
+
+    isProjectBlocked.mockResolvedValue(true as never);
+
+    await expect(authenticate(made.agentKey)).rejects.toBeInstanceOf(
+      ProjectBlockedException,
+    );
+    expect(incrementIfBelow).not.toHaveBeenCalled();
+  });
+
+  test("where billing is on, a project that may not use pay-as-you-go registers no agent either", async () => {
+    const made: CloudAiAgentKeyResponse = await makeKey();
+
+    requirePayAsYouGo.mockRejectedValue(
+      new PaymentRequiredException("Add a payment method.") as never,
+    );
+
+    await expect(authenticate(made.agentKey)).rejects.toBeInstanceOf(
+      PaymentRequiredException,
+    );
+    expect(incrementIfBelow).not.toHaveBeenCalled();
+  });
+
+  test("a wrong key reads neither: it is refused on its own", async () => {
+    await makeKey();
+    isProjectBlocked.mockResolvedValue(true as never);
+
+    const wrong: string = CloudAiAgentKeyHashing.generate(ACCOUNT_ID).key;
+
+    expect(await authenticate(wrong)).toEqual({
+      isAuthorized: false,
+      status: 401,
+      message: CLOUD_AI_AGENT_KEY_REFUSED_MESSAGE,
+    });
+    expect(isProjectBlocked).not.toHaveBeenCalled();
+    expect(requirePayAsYouGo).not.toHaveBeenCalled();
   });
 });
