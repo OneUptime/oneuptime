@@ -346,6 +346,33 @@ describe("execute_remediation_command on a cloud account", () => {
     expect(keptCommands[0]!.command.managedAsCode).toBe(
       'CloudFormation stack "web-prod"',
     );
+    // A scale sets a value the code declares: the model is told a pull request can follow.
+    expect(outcome.textForLlm).toContain(
+      "From the fix's card a person can also ask for a pull request to that code with the same change, so the next apply keeps it: say so in your summary.",
+    );
+  });
+
+  it("tells the model of no pull request for a change the code does not declare (a restart)", async () => {
+    inventory.mockResolvedValue({
+      refusal: null,
+      target: {
+        cloudResourceId: ObjectID.generate(),
+        name: "web",
+        providerResourceId: ECS,
+        cloudTags: { "aws:cloudformation:stack-name": "web-prod" },
+        managedAsCode: 'CloudFormation stack "web-prod"',
+      },
+    });
+    const toolkit: RemediationCommandToolkit = buildToolkit();
+
+    const outcome: ToolCallOutcome = await tool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(cloudArgs({ command: `cloud restart-service ${ECS}` }));
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toContain("It was NOT executed.");
+    expect(outcome.textForLlm).not.toContain("pull request");
   });
 
   it("never checks the inventory for a change of another resource's round", async () => {

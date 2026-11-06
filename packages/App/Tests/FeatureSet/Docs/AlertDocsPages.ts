@@ -128,12 +128,24 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "The rule's conditions",
     "The grouping key",
     "The time window",
+    /*
+     * Wait for more alerts' sentence with its number box at 3: the
+     * Dashboard fills "Open an episode once {{count}} matching alerts are
+     * ongoing", so no label is the sentence with the number in it. A
+     * translation writes its locale's sentence, with the 3.
+     */
+    "Open an episode once 3 matching alerts are ongoing",
+    "Until then, each alert waits on its own.",
+    "Then one episode opens with all of them.",
+    "Only ongoing alerts count.",
+    "It counts per group.",
     "Its severity rises with its alerts.",
     "Its state moves its alerts.",
     "It resolves itself",
     "It can reopen.",
     "A new episode",
     "An alert joining an open episode",
+    "An alert waiting for more alerts",
     "Answering an episode's page",
   ],
   [ALERT_SETTINGS]: ["A rule can inherit.", "A new rule has to add something"],

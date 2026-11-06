@@ -71,9 +71,12 @@ export const CLOUD_KIND_WORDS: Readonly<Record<string, string>> = {
   "aws:sqs-queue": translationKey("SQS queue"),
   "aws:elb-target-group": translationKey("target group"),
   "aws:elb-load-balancer": translationKey("load balancer"),
+  "aws:apprunner-service": translationKey("App Runner service"),
+  "aws:beanstalk-environment": translationKey("Elastic Beanstalk environment"),
   "azure:app-service": translationKey("App Service or Function App"),
   "azure:app-service-plan": translationKey("App Service plan"),
   "azure:container-app": translationKey("Container App"),
+  "azure:container-group": translationKey("container group"),
   "azure:virtual-machine": translationKey("Azure virtual machine"),
   "azure:vm-scale-set": translationKey("VM scale set"),
   "azure:postgresql-flexible-server": translationKey(
@@ -85,6 +88,7 @@ export const CLOUD_KIND_WORDS: Readonly<Record<string, string>> = {
   "gcp:cloud-run-service": translationKey("Cloud Run service"),
   "gcp:managed-instance-group": translationKey("managed instance group"),
   "gcp:cloud-sql-instance": translationKey("Cloud SQL instance"),
+  "gcp:app-engine-service": translationKey("App Engine service"),
 };
 
 // What a scale counts, by kind: tasks, instances, or the instances kept warm.
@@ -97,6 +101,8 @@ const SCALE_UNITS: Readonly<Record<string, ScaleUnit>> = {
   "azure:vm-scale-set": "instances",
   "gcp:cloud-run-service": "minimumInstances",
   "gcp:managed-instance-group": "instances",
+  // The instances of the version that serves it, scaled by hand.
+  "gcp:app-engine-service": "instances",
 };
 
 export const CLOUD_CHANGE_SENTENCES: {

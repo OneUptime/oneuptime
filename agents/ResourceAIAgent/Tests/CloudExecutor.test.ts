@@ -1502,7 +1502,7 @@ describe("AWS: RDS", () => {
     assert.strictEqual(lines[1], "RDS instance orders: stopped → starting.");
     assert.match(
       lines[lines.length - 1] || "",
-      /^Nothing to undo: cloud stop-instance does not work on a RDS instance/,
+      /^Nothing to undo: cloud stop-instance does not work on an RDS instance/,
     );
     assert.deepStrictEqual(h.aws.callsTo("rds:StartDBInstance")[0]?.form, {
       Action: "StartDBInstance",
@@ -2508,6 +2508,8 @@ describe("the posture", () => {
         "arn:aws*:iam::123456789012:role/OneUptimeAiAgentTask",
         "arn:aws*:iam::123456789012:role/OneUptimeAiAgentWrite",
         "arn:aws*:cloudformation:*:123456789012:stack/oneuptime-ai-agent/*",
+        // In a member account of an organization, the stack its StackSet made.
+        "arn:aws*:cloudformation:*:123456789012:stack/StackSet-oneuptime-ai-agent-*",
         "arn:aws:ecs:us-east-1:123456789012:service/ops-tools/ai-agent",
       ],
     });

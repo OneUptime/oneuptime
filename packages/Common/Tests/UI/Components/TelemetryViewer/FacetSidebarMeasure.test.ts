@@ -26,11 +26,19 @@ interface Box {
 const layOut: (
   element: HTMLElement,
   box: Box,
-  extra?: { scrollWidth?: number; clientWidth?: number; isDrawn?: boolean },
+  extra?: {
+    scrollWidth?: number;
+    clientWidth?: number;
+    isDrawn?: boolean | undefined;
+  },
 ) => void = (
   element: HTMLElement,
   box: Box,
-  extra: { scrollWidth?: number; clientWidth?: number; isDrawn?: boolean } = {},
+  extra: {
+    scrollWidth?: number;
+    clientWidth?: number;
+    isDrawn?: boolean | undefined;
+  } = {},
 ): void => {
   const rect: DOMRect = {
     x: box.left,
