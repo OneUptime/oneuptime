@@ -379,9 +379,7 @@ describe("a scheduled event's notifications, in the subscriber's language", () =
     });
 
     expect(sentMail()["subject"]).toBe(`Wartung ab ${germanScheduledAt}`);
-    expect(String((sentMail()["vars"] as JSONObject)["body"])).toContain(
-      "Ab ",
-    );
+    expect(String((sentMail()["vars"] as JSONObject)["body"])).toContain("Ab ");
     expect(String((sentMail()["vars"] as JSONObject)["body"])).not.toContain(
       OneUptimeDate.getDateAsFormattedArrayInMultipleTimezones({
         date: STARTS_AT,

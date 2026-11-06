@@ -12,7 +12,10 @@ import React from "react";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
-import { listedNames, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import {
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 /*
  * A STATUS PAGE SUBSCRIBER'S LANGUAGE, ON THE DASHBOARD.
@@ -106,6 +109,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubscriber";
 import {
+  StatusPageLanguage,
   SUPPORTED_STATUS_PAGE_LANGUAGE_CODES,
   SUPPORTED_STATUS_PAGE_LANGUAGES,
 } from "../../../Types/StatusPage/StatusPageLanguage";
@@ -216,9 +220,11 @@ describe("the languages, as the Dashboard names them", () => {
         return option.label;
       }),
     ).toEqual(
-      SUPPORTED_STATUS_PAGE_LANGUAGES.map((language) => {
-        return getStatusPageLanguageLabel(language);
-      }),
+      SUPPORTED_STATUS_PAGE_LANGUAGES.map(
+        (language: StatusPageLanguage): string => {
+          return getStatusPageLanguageLabel(language);
+        },
+      ),
     );
   });
 });

@@ -226,7 +226,9 @@ beforeEach(() => {
   jest
     .spyOn(StatusPageServiceClass, "getReportPeriodForStatusPage")
     .mockReturnValue(period);
-  jest.spyOn(StatusPageService, "getReportByStatusPage").mockResolvedValue(report);
+  jest
+    .spyOn(StatusPageService, "getReportByStatusPage")
+    .mockResolvedValue(report);
   jest
     .spyOn(ProjectSmtpConfigService, "toEmailServer")
     .mockReturnValue(undefined);
@@ -248,7 +250,9 @@ describe("StatusPageService.sendEmailReport, in each subscriber's language", () 
 
     const mail: EmailEnvelope = sentTo(1);
 
-    expect(mail.templateType).toBe(EmailTemplateType.StatusPageSubscriberReport);
+    expect(mail.templateType).toBe(
+      EmailTemplateType.StatusPageSubscriberReport,
+    );
     expect(mail.language).toBe("de");
     expect(mail.subject).toBe("[Bericht] Acme Status");
     expect(mail.isSubjectLiteral).toBe(true);
@@ -394,7 +398,9 @@ describe("Send Test Report", () => {
 });
 
 describe("a page's custom report template", () => {
-  function template(subject?: string): StatusPageSubscriberNotificationTemplate {
+  function template(
+    subject?: string,
+  ): StatusPageSubscriberNotificationTemplate {
     const value: StatusPageSubscriberNotificationTemplate =
       new StatusPageSubscriberNotificationTemplate();
     value.templateBody =

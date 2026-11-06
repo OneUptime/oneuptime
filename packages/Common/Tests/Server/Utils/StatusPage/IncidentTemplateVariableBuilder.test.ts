@@ -2141,9 +2141,7 @@ describe("IncidentTemplateVariableBuilder in the page's language", () => {
     });
 
     expect(germanStarted).not.toBe("Sep 27 2026, 02:05 PM UTC");
-    expect(site.plainText["incident.customFields.started"]).toBe(
-      germanStarted,
-    );
+    expect(site.plainText["incident.customFields.started"]).toBe(germanStarted);
     // The default email's row reads as it always has.
     expect(site.customFieldRows).toEqual([
       { title: "Started", renderedHtml: "Sep 27 2026, 02:05 PM UTC" },

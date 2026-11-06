@@ -48,8 +48,7 @@ export const findStatusPageLanguage: (
 export const getStatusPageLanguageLabelOfCode: (code: string) => string = (
   code: string,
 ): string => {
-  const language: StatusPageLanguage | undefined =
-    findStatusPageLanguage(code);
+  const language: StatusPageLanguage | undefined = findStatusPageLanguage(code);
 
   return language ? getStatusPageLanguageLabel(language) : code;
 };

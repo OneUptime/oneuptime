@@ -808,8 +808,8 @@ describe("the uptime report, in every language", () => {
     otherResource.displayName = "Zorbex ledger";
     otherResource.statusPageGroupId = ZONE_GROUP;
 
-    const structure: StatusPageReportStructure =
-      StatusPageReportTreeUtil.build({
+    const structure: StatusPageReportStructure = StatusPageReportTreeUtil.build(
+      {
         entries: [resource, otherResource].map(
           (statusPageResource: StatusPageResource) => {
             return {
@@ -826,7 +826,8 @@ describe("the uptime report, in every language", () => {
         ),
         statusPageGroups: [group],
         groupMetricsByGroupId: {},
-      });
+      },
+    );
 
     return {
       reportDates: "Zorbex dates",

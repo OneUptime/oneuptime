@@ -1,7 +1,9 @@
 import OneUptimeDate from "../../../Types/Date";
 import { translationKey, Translator } from "../../../Types/Translator";
 import { writeInLanguage } from "../ServerTranslation";
-import SubscriberLanguage, { StatusPageWithLanguage } from "./SubscriberLanguage";
+import SubscriberLanguage, {
+  StatusPageWithLanguage,
+} from "./SubscriberLanguage";
 import SubscriberMessageText from "./SubscriberMessageText";
 
 /*
@@ -34,7 +36,10 @@ export type SubscriberTemplateValue =
   | string
   | ((translator: Translator) => string);
 
-export type SubscriberTemplateValueMap = Record<string, SubscriberTemplateValue>;
+export type SubscriberTemplateValueMap = Record<
+  string,
+  SubscriberTemplateValue
+>;
 
 // The words a Yes / No custom field reads as.
 export const SubscriberTemplateValueText: {
@@ -75,7 +80,9 @@ export default class SubscriberTemplateValues {
    */
   public static date(date: Date | null | undefined): SubscriberTemplateValue {
     return (): string => {
-      return date ? OneUptimeDate.getDateAsUserFriendlyFormattedString(date) : "";
+      return date
+        ? OneUptimeDate.getDateAsUserFriendlyFormattedString(date)
+        : "";
     };
   }
 

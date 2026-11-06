@@ -221,9 +221,12 @@ describe("SubscriberTemplateValues.inPageLanguage", () => {
 
   test("a page read from the right sets each value apart from the words around it", () => {
     const written: Record<string, string> =
-      SubscriberTemplateValues.inPageLanguage({ defaultLanguage: "fa" }, {
-        state: SubscriberTemplateValues.stateName("Resolved"),
-      });
+      SubscriberTemplateValues.inPageLanguage(
+        { defaultLanguage: "fa" },
+        {
+          state: SubscriberTemplateValues.stateName("Resolved"),
+        },
+      );
 
     expect(withoutIsolateMarks(written["state"]!)).toBe(
       getServerTranslator("fa").translateText("Resolved"),

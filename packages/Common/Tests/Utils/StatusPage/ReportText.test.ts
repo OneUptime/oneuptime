@@ -96,9 +96,7 @@ function withoutSpaces(text: string): string {
 }
 
 const EUROPE: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
-const PAYMENTS: ObjectID = new ObjectID(
-  "22222222-2222-4222-8222-222222222222",
-);
+const PAYMENTS: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 
 function group(id: ObjectID, name: string, parent?: ObjectID): StatusPageGroup {
   const value: StatusPageGroup = new StatusPageGroup();
@@ -253,17 +251,14 @@ describe("StatusPageReportText.writePercent", () => {
         language,
       );
 
-      expect([language, withoutSpaces(written)]).toEqual([
-        language,
-        "99,95%",
-      ]);
+      expect([language, withoutSpaces(written)]).toEqual([language, "99,95%"]);
       // The sign has a space - a no-break one - before it.
       expect([language, written.length]).toEqual([language, 7]);
     }
 
-    expect(
-      withoutSpaces(StatusPageReportText.writePercent("100%", "de")),
-    ).toBe("100%");
+    expect(withoutSpaces(StatusPageReportText.writePercent("100%", "de"))).toBe(
+      "100%",
+    );
   });
 
   test("Italian, Portuguese and Dutch write a decimal comma and the sign right after", () => {
@@ -285,9 +280,7 @@ describe("StatusPageReportText.writePercent", () => {
   });
 
   test("Persian writes its own digits, decimal mark and percent sign", () => {
-    expect(StatusPageReportText.writePercent("99.95%", "fa")).toBe(
-      "۹۹٫۹۵٪",
-    );
+    expect(StatusPageReportText.writePercent("99.95%", "fa")).toBe("۹۹٫۹۵٪");
     expect(StatusPageReportText.writePercent("100%", "fa")).toBe("۱۰۰٪");
   });
 
@@ -332,9 +325,9 @@ describe("StatusPageReportText.getPeriodTexts in English", () => {
       periodName: "the last 30 days",
       reportDates: "30 days (Jul 2, 2026 - Aug 1, 2026)",
     });
-    expect(
-      StatusPageReportText.getPeriodTexts(rolling(1)).periodName,
-    ).toBe("the last day");
+    expect(StatusPageReportText.getPeriodTexts(rolling(1)).periodName).toBe(
+      "the last day",
+    );
   });
 
   test("one day is one day, not '1 days'", () => {
@@ -441,7 +434,9 @@ describe("StatusPageReportText.getPeriodTexts in a reader's language", () => {
       LATIN_DIGIT_REGEX,
     );
     expect(
-      withoutIsolateMarks(textsIn("fa", calendar(EventInterval.Year)).periodName),
+      withoutIsolateMarks(
+        textsIn("fa", calendar(EventInterval.Year)).periodName,
+      ),
     ).toBe("۲۰۲۵");
   });
 
@@ -537,9 +532,7 @@ describe("StatusPageReportText.writeReportInLanguage", () => {
       expect(withoutSpaces(europe.uptimePercentAsString)).toBe("92,85%");
       expect(europe.downtimeInHoursAndMinutes).toBe("4 Stunden, 39 Minuten");
       expect(payments.groupPath).toBe("Europe / Payments");
-      expect(payments.downtimeInHoursAndMinutes).toBe(
-        "4 Stunden, 39 Minuten",
-      );
+      expect(payments.downtimeInHoursAndMinutes).toBe("4 Stunden, 39 Minuten");
       expect(
         payments.resources.map((item: StatusPageReportItem): string => {
           return item.downtimeInHoursAndMinutes;

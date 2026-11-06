@@ -224,7 +224,9 @@ export default class StatusPageReportText {
       { startDate: startDate, endDate: endDate },
     );
 
-    if (period.periodType !== StatusPageReportPeriodType.PreviousCalendarPeriod) {
+    if (
+      period.periodType !== StatusPageReportPeriodType.PreviousCalendarPeriod
+    ) {
       const count: string = this.writeCount(period.numberOfDays, language);
 
       /*
@@ -340,7 +342,10 @@ export default class StatusPageReportText {
     const duration: (
       minutes: number | undefined,
       englishText: string,
-    ) => string = (minutes: number | undefined, englishText: string): string => {
+    ) => string = (
+      minutes: number | undefined,
+      englishText: string,
+    ): string => {
       return typeof minutes === "number" && Number.isFinite(minutes)
         ? OneUptimeDate.convertMinutesToDaysHoursAndMinutes(minutes)
         : englishText;
@@ -414,7 +419,10 @@ export default class StatusPageReportText {
       ...report,
       reportDates: periodTexts.reportDates,
       reportPeriodName: periodTexts.periodName,
-      reportStartDate: this.writeDay(data.period.startDate, data.period.timezone),
+      reportStartDate: this.writeDay(
+        data.period.startDate,
+        data.period.timezone,
+      ),
       reportEndDate: this.writeDay(data.period.endDate, data.period.timezone),
       averageUptimePercent: this.writePercent(
         report.averageUptimePercent,

@@ -75,9 +75,9 @@ describe("Subscribers & Announcements: the language subscribers are written in",
     expect(report).toContain('(tt "Uptime Report: {{statusPageName}}"');
     expect(report).not.toContain('"Uptime Report: "');
     // Each subscriber's language, else the page's (sendEmailReport).
-    expect(
-      readSource("Common/Server/Services/StatusPageService.ts"),
-    ).toContain("SubscriberLanguage.getLanguage({");
+    expect(readSource("Common/Server/Services/StatusPageService.ts")).toContain(
+      "SubscriberLanguage.getLanguage({",
+    );
   });
 
   test("the team sets a subscriber's language under More fields, and each list shows it", () => {
@@ -119,9 +119,10 @@ describe("Subscribers & Announcements: the language subscribers are written in",
         page,
         true,
       ]);
-      expect([page, source.includes("getSubscriberLanguageColumn(")]).toEqual(
-        [page, true],
-      );
+      expect([page, source.includes("getSubscriberLanguageColumn(")]).toEqual([
+        page,
+        true,
+      ]);
     }
 
     expect(
@@ -229,9 +230,9 @@ describe("Subscribers & Announcements: the language subscribers are written in",
     ).toEqual({ state: "Behoben", title: "Checkout failing" });
 
     // A test report is the page's default language (sendEmailReport).
-    expect(
-      readSource("Common/Server/Services/StatusPageService.ts"),
-    ).toContain("await sendEmail(data.email, null, pageLanguage);");
+    expect(readSource("Common/Server/Services/StatusPageService.ts")).toContain(
+      "await sendEmail(data.email, null, pageLanguage);",
+    );
   });
 
   test("an email in Persian reads right to left; a webhook's payload does not change", () => {
