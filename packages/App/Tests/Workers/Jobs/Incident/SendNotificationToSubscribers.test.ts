@@ -3527,3 +3527,53 @@ describe("Incident:SendNotificationToSubscribers, in the subscriber's language",
     );
   });
 });
+
+/*
+ * A CUSTOM TEMPLATE'S VALUES, IN ITS PAGE'S LANGUAGE: OneUptime's default
+ * severity names are in the page's default language
+ * (IncidentTemplateVariableBuilder, through SubscriberTemplateValues),
+ * whoever reads the message; a project's own as written.
+ */
+describe("Incident:SendNotificationToSubscribers custom templates, in the page's language", () => {
+  // useCustomTemplatesOnEveryChannel's page, its default language German.
+  const useGermanPageWithCustomTemplates: () => void = (): void => {
+    useCustomTemplatesOnEveryChannel();
+
+    const page: StatusPage = statusPage();
+    (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
+    (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
+    page.defaultLanguage = "de";
+
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+  };
+
+  test("a default severity name is the page's language's, on every channel", async () => {
+    const majorIncident: Incident = incident();
+    majorIncident.incidentSeverity!.name = "Major Incident";
+    pendingIncidents = [majorIncident];
+    useGermanPageWithCustomTemplates();
+
+    await runJob();
+
+    const calls: Array<RecordedCompile> = compileCalls();
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) {
+      expect(call.variables["incidentSeverity"]).toBe(
+        "Schwerwiegender Vorfall",
+      );
+      expect(call.variables["incidentTitle"]).toBe(INCIDENT_TITLE);
+    }
+  });
+
+  test("a project's own severity name reads as written", async () => {
+    useGermanPageWithCustomTemplates();
+
+    await runJob();
+
+    for (const call of compileCalls()) {
+      expect(call.variables["incidentSeverity"]).toBe("Critical");
+    }
+  });
+});

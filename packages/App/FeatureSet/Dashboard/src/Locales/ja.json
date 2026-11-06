@@ -45684,6 +45684,7 @@
   "Mailgun From Email": "Mailgun From Email",
   "Mailgun From Name": "Mailgun From Name",
   "Mailgun Region": "Mailgun Region",
+  "Page default ({{language}})": "ページのデフォルト ({{language}})",
   "Postmark": "Postmark",
   "Postmark From Email": "Postmark From Email",
   "Postmark From Name": "Postmark From Name",
@@ -45692,5 +45693,7 @@
   "Resend From Email": "Resend From Email",
   "Resend From Name": "Resend From Name",
   "SendGrid": "SendGrid",
-  "SendGrid API Key": "SendGrid API Key"
+  "SendGrid API Key": "SendGrid API Key",
+  "The language their notifications are written in.": "通知に使う言語です。",
+  "{{language}} (default)": "{{language}} (デフォルト)"
 }

@@ -214,5 +214,53 @@ describe("StatusPageReportPeriodUtil.getReportPeriod", () => {
         );
       }
     });
+
+    test("one day is one day in the dates custom templates read", () => {
+      const period: StatusPageReportPeriod =
+        StatusPageReportPeriodUtil.getReportPeriod({
+          periodType: StatusPageReportPeriodType.Rolling,
+          reportDataInDays: 1,
+          timezone: Timezone.UTC,
+          sentAt: OneUptimeDate.fromString("2026-07-30T09:00:00.000Z"),
+        });
+
+      expect(period.periodName).toBe("the last day");
+      expect(period.reportDates).toBe("1 day (Jul 29, 2026 - Jul 30, 2026)");
+    });
+  });
+
+  /*
+   * How the window was cut, kept on the period, so its two texts can be
+   * written again in a subscriber's language (Utils/StatusPage/ReportText).
+   */
+  describe("says how it was cut", () => {
+    test("a rolling window", () => {
+      const period: StatusPageReportPeriod =
+        StatusPageReportPeriodUtil.getReportPeriod({
+          periodType: StatusPageReportPeriodType.Rolling,
+          reportDataInDays: 30,
+          sentAt: OneUptimeDate.fromString("2026-07-30T09:00:00.000Z"),
+        });
+
+      expect(period.periodType).toBe(StatusPageReportPeriodType.Rolling);
+      expect(period.intervalType).toBeUndefined();
+      expect(period.intervalCount).toBeUndefined();
+    });
+
+    test("a calendar period, with its unit and how many", () => {
+      const period: StatusPageReportPeriod =
+        StatusPageReportPeriodUtil.getReportPeriod({
+          periodType: StatusPageReportPeriodType.PreviousCalendarPeriod,
+          reportRecurringInterval: every(EventInterval.Month, 3),
+          timezone: Timezone.UTC,
+          sentAt: OneUptimeDate.fromString("2026-08-01T09:00:00.000Z"),
+        });
+
+      expect(period.periodType).toBe(
+        StatusPageReportPeriodType.PreviousCalendarPeriod,
+      );
+      expect(period.intervalType).toBe(EventInterval.Month);
+      expect(period.intervalCount).toBe(3);
+    });
   });
 });

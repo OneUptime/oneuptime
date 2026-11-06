@@ -34,6 +34,7 @@ import SubscriberLanguage from "./SubscriberLanguage";
 import SubscriberMessageText, {
   SubscriberEmailText,
 } from "./SubscriberMessageText";
+import SubscriberTemplateValues from "./SubscriberTemplateValues";
 import { writeInLanguage } from "../ServerTranslation";
 import {
   DEFAULT_READER_LANGUAGE,
@@ -223,10 +224,16 @@ export default class SubscriberIncidentEmailBuilder {
       markdownVariables: {
         note: data.note?.text,
       },
+      /*
+       * OneUptime's words, written in each page's language for its custom
+       * templates (SubscriberTemplateValues): the state's default name and
+       * the date.
+       */
       textVariables: {
-        incidentState:
+        incidentState: SubscriberTemplateValues.stateName(
           stateChange?.name || data.incident.currentIncidentState?.name || "",
-        postedAt: OneUptimeDate.getDateAsUserFriendlyFormattedString(
+        ),
+        postedAt: SubscriberTemplateValues.date(
           data.note?.postedAt || OneUptimeDate.getCurrentDate(),
         ),
       },
