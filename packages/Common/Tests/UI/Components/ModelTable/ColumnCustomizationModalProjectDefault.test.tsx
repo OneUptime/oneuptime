@@ -1,6 +1,7 @@
 import ColumnCustomizationModal, {
   COLUMN_CUSTOMIZATION_EVERYONE_TEST_ID,
   COLUMN_CUSTOMIZATION_PROJECT_DEFAULT_NOTE_TEST_ID,
+  COLUMN_CUSTOMIZATION_PROJECT_DEFAULT_PANEL_CLASS_NAME,
   COLUMN_CUSTOMIZATION_REMOVE_DEFAULT_TEST_ID,
   ColumnCustomizationProjectDefault,
 } from "../../../../UI/Components/ModelTable/ColumnCustomizationModal";
@@ -236,6 +237,52 @@ describe("what anyone else is told", () => {
     expect(
       screen.queryByTestId(COLUMN_CUSTOMIZATION_EVERYONE_TEST_ID),
     ).toBeNull();
+  });
+
+  /*
+   * In the panel an Owner's box is drawn in, with the project's people for
+   * its mark: under the list's hint on how to arrange it ("Drag a row..."),
+   * a line of the same small grey read as one more hint, where it is a word
+   * about everyone's columns.
+   */
+  test("in the panel an Owner's box is drawn in, set apart from the hint on arranging the list", () => {
+    draw({ projectDefault: { hasDefault: true, isFollowed: true } });
+
+    const note: HTMLElement = screen.getByTestId(
+      COLUMN_CUSTOMIZATION_PROJECT_DEFAULT_NOTE_TEST_ID,
+    );
+
+    for (const name of COLUMN_CUSTOMIZATION_PROJECT_DEFAULT_PANEL_CLASS_NAME.split(
+      " ",
+    )) {
+      expect(note.className.split(" ")).toContain(name);
+    }
+    expect(note.querySelector("svg")).not.toBeNull();
+    expect(note.querySelector("p")).toHaveClass("text-sm");
+
+    cleanup();
+    draw({ projectDefault: { hasDefault: true, canChange: true } });
+
+    // The Owner's box sits in a panel of the same classes.
+    const isPanel: (element: Element) => boolean = (
+      element: Element,
+    ): boolean => {
+      return COLUMN_CUSTOMIZATION_PROJECT_DEFAULT_PANEL_CLASS_NAME.split(
+        " ",
+      ).every((name: string): boolean => {
+        return element.classList.contains(name);
+      });
+    };
+
+    let element: Element | null = screen.getByTestId(
+      COLUMN_CUSTOMIZATION_EVERYONE_TEST_ID,
+    );
+
+    while (element && !isPanel(element)) {
+      element = element.parentElement;
+    }
+
+    expect(element).not.toBeNull();
   });
 
   test("seeing their own columns, or with no default for the list: nothing", () => {

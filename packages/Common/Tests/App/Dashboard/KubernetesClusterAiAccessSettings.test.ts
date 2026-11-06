@@ -84,7 +84,8 @@ import {
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import { isKubernetesAgentRunnerRow } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAgentRunner";
-import { getCommandJobsPermissionNote } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/CommandJobsPermissionNote";
+import { getCommandJobsNoAccessState } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/CommandJobsNoAccess";
+import { TableEmptyStateKind } from "../../../UI/Components/Table/TableEmptyState";
 import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
 import { AgentAiFixesMode } from "../../../Types/AI/AgentAiSettings";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
@@ -1977,20 +1978,30 @@ describe("command history permission", () => {
   });
 
   /*
-   * The note names the one permission to ask for, as every lock does -
-   * not the eight roles and permissions that read Runner jobs.
+   * The commands card says so as every list the reader may not read says
+   * it: its lock, "You don't have access to this list", and the one
+   * permission to ask for - not the eight roles and permissions that read
+   * Runner jobs, nor the model's own name for its rows.
    */
-  test("names the permission that would unlock it", () => {
+  test("names the permission that would unlock it, as every list's lock does", () => {
     grant([...BASE_PERMISSIONS, Permission.SettingsAdmin]);
 
-    const note: string = getCommandJobsPermissionNote(getGlobalTranslator());
+    const state: ReturnType<typeof getCommandJobsNoAccessState> =
+      getCommandJobsNoAccessState(getGlobalTranslator());
 
-    expect(note).toBe(
-      "Seeing the commands needs permission to read Runner jobs. You need this permission: Read Runbook Execution. Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.",
-    );
+    expect(state).toEqual({
+      kind: TableEmptyStateKind.NoAccess,
+      title: "You don't have access to this list",
+      description:
+        "You need this permission: Read Runbook Execution. Ask a project admin for access.",
+    });
+
+    const words: string = `${String(state.title)} ${String(state.description)}`;
+
     for (const role of ["Project Owner", "Viewer", "Runbook Viewer"]) {
-      expect(note).not.toContain(role);
+      expect(words).not.toContain(role);
     }
+    expect(words).not.toContain("Runner job");
   });
 
   test("or the team that blocks it", () => {
@@ -1999,9 +2010,12 @@ describe("command history permission", () => {
       [Permission.ReadRunbookExecution],
     );
 
-    expect(getCommandJobsPermissionNote(getGlobalTranslator())).toBe(
-      "Seeing the commands needs permission to read Runner jobs. A team you are on blocks Read Runbook Execution. Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.",
-    );
+    expect(getCommandJobsNoAccessState(getGlobalTranslator())).toEqual({
+      kind: TableEmptyStateKind.NoAccess,
+      title: "You don't have access to this list",
+      description:
+        "A team you are on blocks Read Runbook Execution. Ask a project admin for access.",
+    });
   });
 });
 

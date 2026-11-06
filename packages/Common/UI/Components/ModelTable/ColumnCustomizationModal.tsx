@@ -90,6 +90,16 @@ export const COLUMN_CUSTOMIZATION_REMOVE_DEFAULT_TEST_ID: string =
 export const COLUMN_CUSTOMIZATION_PROJECT_DEFAULT_NOTE_TEST_ID: string =
   "column-customization-project-default-note";
 
+/*
+ * Where the picker says what the project's default columns mean for the
+ * reader - an Owner's or Admin's box to show the columns to everyone, or
+ * anyone else's note that what they save is theirs alone - in one panel of
+ * one look, under the list, so either reads as a word about everyone's
+ * columns rather than another hint on how to arrange one's own.
+ */
+export const COLUMN_CUSTOMIZATION_PROJECT_DEFAULT_PANEL_CLASS_NAME: string =
+  "rounded-md border border-gray-200 bg-gray-50 px-3 py-2.5";
+
 export interface ComponentProps<
   TBaseModel extends BaseModel | AnalyticsBaseModel,
 > {
@@ -886,19 +896,27 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
       }
 
       return (
-        <p
-          className="text-xs text-gray-500"
+        <div
+          className={`${COLUMN_CUSTOMIZATION_PROJECT_DEFAULT_PANEL_CLASS_NAME} flex items-start gap-2.5`}
           data-testid={COLUMN_CUSTOMIZATION_PROJECT_DEFAULT_NOTE_TEST_ID}
         >
-          {translator.translateText(
-            "These are this project's default columns for this list. Changes you save are only for you.",
-          )}
-        </p>
+          <Icon
+            icon={IconProp.UserGroup}
+            className="mt-0.5 h-4 w-4 flex-none text-gray-400"
+          />
+          <p className="text-sm text-gray-600">
+            {translator.translateText(
+              "These are this project's default columns for this list. Changes you save are only for you.",
+            )}
+          </p>
+        </div>
       );
     }
 
     return (
-      <div className="space-y-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2.5">
+      <div
+        className={`${COLUMN_CUSTOMIZATION_PROJECT_DEFAULT_PANEL_CLASS_NAME} space-y-2`}
+      >
         <CheckboxElement
           title="Show these columns to everyone in this project"
           description={

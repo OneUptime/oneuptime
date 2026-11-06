@@ -45415,8 +45415,6 @@
   "These monitors will be created on {{count}} resources of this account. Everything below applies to all of them._one": "Disse monitorene opprettes på {{count}} ressurs i denne kontoen. Alt nedenfor gjelder for alle.",
   "This app's name is too long to filter its telemetry by, so no monitor can watch it alone. Its environment's telemetry is in the environment's tabs.": "Navnet på denne appen er for langt til å filtrere telemetrien etter, så ingen monitor kan overvåke den alene. Telemetrien til miljøet finnes i miljøets faner.",
   "This list has default columns for everyone in this project.": "Denne listen har standardkolonner for alle i dette prosjektet.",
-  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Kommandoer AI kjørte under undersøkelse eller retting av en hendelse eller et varsel, vises også på den hendelsen eller det varselet.",
-  "Seeing the commands needs permission to read Runner jobs.": "For å se kommandoene trenger du tillatelse til å lese Runner-jobber.",
   "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Dette tilbakekaller nøkkelen til {{agentName}} med en gang. Agenten forblir frakoblet til du kjører oppsettkommandoen på nytt: Endre viser den, med en ny nøkkel.",
   "Throttling": "Struping",
   "Waiting for their first metrics": "Venter på de første målingene",

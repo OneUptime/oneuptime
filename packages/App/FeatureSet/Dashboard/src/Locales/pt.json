@@ -45415,8 +45415,6 @@
   "These monitors will be created on {{count}} resources of this account. Everything below applies to all of them._one": "Estes monitores serão criados em {{count}} recurso desta conta. Tudo abaixo se aplica a todos eles.",
   "This app's name is too long to filter its telemetry by, so no monitor can watch it alone. Its environment's telemetry is in the environment's tabs.": "O nome deste app é longo demais para filtrar a telemetria dele, então nenhum monitor pode observá-lo sozinho. A telemetria do ambiente dele está nas abas do ambiente.",
   "This list has default columns for everyone in this project.": "Esta lista tem colunas padrão para todos neste projeto.",
-  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Os comandos que a IA executou ao investigar ou corrigir um incidente ou alerta também aparecem nesse incidente ou alerta.",
-  "Seeing the commands needs permission to read Runner jobs.": "Ver os comandos requer permissão para ler os jobs dos Runners.",
   "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Isso revoga na hora a chave do {{agentName}}. Ele fica desconectado até você executar de novo o comando de configuração dele: Alterar o mostra, com uma chave nova.",
   "Throttling": "Limitação",
   "Waiting for their first metrics": "Aguardando as primeiras métricas",

@@ -1114,11 +1114,17 @@ describe("the commands table", () => {
       const note: HTMLElement = await findTestId(
         "resource-command-jobs-permission-note",
       );
-      // The permission to ask for, as every lock names it - not eight roles.
+      /*
+       * Said as every list the reader may not read says it: its lock, and
+       * the permission to ask for - not eight roles.
+       */
+      expect(note).toHaveAttribute("data-empty-state-kind", "no-access");
       expect(note).toHaveTextContent(
-        "Seeing the commands needs permission to read Runner jobs. You need this permission: Read Runbook Execution.",
+        "You don't have access to this list" +
+          "You need this permission: Read Runbook Execution. Ask a project admin for access.",
       );
       expect(note).not.toHaveTextContent("Runbook Viewer");
+      expect(note).not.toHaveTextContent("Runner job");
       expect(jobListRequest()).toBeUndefined();
       // The summaries still show: they come from the resource's own read gate.
       expect(await findText("Investigations")).toBeInTheDocument();

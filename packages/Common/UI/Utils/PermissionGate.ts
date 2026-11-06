@@ -948,6 +948,26 @@ export default class PermissionGate {
   }
 
   /*
+   * What would let the reader see or do what is refused, where the refusal
+   * has a title of its own instead of a first sentence - a no-access
+   * state's lock and "You don't have access to this list": the team block
+   * that refuses it ("A team you are on blocks Read Runbook Execution."),
+   * or else what would allow it ("You need this permission: Read Runbook
+   * Execution.", getNeededPermissionsSentence). Empty when there is nothing
+   * to name.
+   */
+  public static getAllowingSentence(data: {
+    permissions: ReadonlyArray<Permission>;
+    options?: PermissionGateOptions | undefined;
+  }): string {
+    return this.appendPermissionsToSentence({
+      sentence: "",
+      permissions: [...data.permissions],
+      held: this.getHeldPermissions(data.options),
+    }).trim();
+  }
+
+  /*
    * A refusal's first sentence, already in the reader's language, then -
    * when a team's block is what refuses - "A team you are on blocks ...";
    * otherwise, when there are permissions to name, what would allow it

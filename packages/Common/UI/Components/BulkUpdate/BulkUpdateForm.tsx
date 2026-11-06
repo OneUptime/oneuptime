@@ -256,6 +256,16 @@ export const BULK_ROW_COUNT_CHIP_CLASS_NAME: string =
 export const BULK_ROW_ACTIONS_BUTTON_CLASS_NAME: string =
   "inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
+/*
+ * The Card's Bulk Actions: a button as tall as the bar's Select All and
+ * Clear Selection beside it, with their indigo ring - drawn for a keyboard
+ * only (focus-visible): Select All hands the focus on to it once it is done
+ * (onOfferElement), and a mouse that pressed Select All is not shown a ring
+ * jump to the other end of the bar.
+ */
+export const BULK_CARD_ACTIONS_BUTTON_CLASS_NAME: string =
+  "inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 transition-all duration-150 cursor-pointer select-none";
+
 export interface BulkActionFailed<T extends GenericObject> {
   failedMessage: string | ReactElement;
   item: T;
@@ -1769,8 +1779,22 @@ const BulkUpdateForm: <T extends GenericObject>(
             <div ref={bulkActionsRef} className="ml-auto flex items-center">
               {menuChildren.length > 0 && (
                 <MoreMenu
+                  /*
+                   * A button of its own, as the Row's is: it takes the focus
+                   * Select All hands on (onOfferElement) with the ring the
+                   * bar's other buttons draw, where the menu's wrapper drew
+                   * the browser's own black outline round it.
+                   */
                   elementToBeShownInsteadOfButton={
-                    <div className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none">
+                    <button
+                      type="button"
+                      className={BULK_CARD_ACTIONS_BUTTON_CLASS_NAME}
+                      /*
+                       * Named by its words: MoreMenu calls a trigger with no
+                       * name of its own "More options".
+                       */
+                      aria-label={tx("Bulk Actions")}
+                    >
                       <Icon
                         icon={IconProp.Bolt}
                         className="h-4 w-4 text-gray-500"
@@ -1780,7 +1804,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                         icon={IconProp.ChevronDown}
                         className="h-3.5 w-3.5 text-gray-400 ml-0.5"
                       />
-                    </div>
+                    </button>
                   }
                 >
                   {menuChildren}

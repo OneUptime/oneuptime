@@ -45415,8 +45415,6 @@
   "These monitors will be created on {{count}} resources of this account. Everything below applies to all of them._one": "이 모니터들은 이 계정의 리소스 {{count}}개에 생성됩니다. 아래 설정은 모두에 적용됩니다.",
   "This app's name is too long to filter its telemetry by, so no monitor can watch it alone. Its environment's telemetry is in the environment's tabs.": "이 앱의 이름이 너무 길어 텔레메트리를 필터링할 수 없으므로, 이 앱만 감시하는 모니터는 만들 수 없습니다. 환경의 텔레메트리는 환경의 탭에 있습니다.",
   "This list has default columns for everyone in this project.": "이 목록에는 이 프로젝트의 모든 사용자를 위한 기본 열이 있습니다.",
-  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "인시던트나 경고를 조사하거나 수정하는 동안 AI가 실행한 명령은 해당 인시던트나 경고에도 표시됩니다.",
-  "Seeing the commands needs permission to read Runner jobs.": "명령을 보려면 Runner 작업을 읽을 권한이 필요합니다.",
   "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "{{agentName}}의 키를 즉시 무효화합니다. 설정 명령을 다시 실행할 때까지 에이전트는 연결이 끊긴 상태로 남습니다. 변경을 누르면 새 키가 담긴 명령이 표시됩니다.",
   "Throttling": "스로틀링",
   "Waiting for their first metrics": "첫 메트릭을 기다리는 중",

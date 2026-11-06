@@ -13,6 +13,7 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import BulkUpdateForm, {
   BULK_ACTIONS_TRIGGER_SELECTOR,
+  BULK_CARD_ACTIONS_BUTTON_CLASS_NAME,
   BULK_CARD_COUNT_TEST_ID,
   BULK_CARD_SELECT_ALL_TEST_ID,
   BULK_ROW_ACTIONS_TEST_ID,
@@ -291,14 +292,56 @@ describe("a desktop table's Select All keeps the keyboard's place", () => {
     );
   });
 
-  test("Bulk Actions' trigger in the Card is the menu's button-like wrapper, which the hand-off finds", () => {
+  /*
+   * A button of its own, as the Row's is: the menu's button-like wrapper
+   * drew the browser's black outline round the words when the focus was
+   * handed to it, where the bar's other buttons draw an indigo ring.
+   */
+  test("Bulk Actions' trigger in the Card is a button of its own, which the hand-off finds", () => {
     render(<BulkUpdateForm<Row> {...baseProps()} />);
 
     const trigger: HTMLElement = bulkActions();
 
+    expect(trigger.tagName).toBe("BUTTON");
+    expect(trigger).toHaveAttribute("type", "button");
+    expect(trigger).toHaveAccessibleName("Bulk Actions");
+    expect(trigger).toHaveTextContent(/^Bulk Actions$/);
+    expect(trigger).toHaveAttribute("aria-haspopup", "menu");
     expect(trigger.matches(BULK_ACTIONS_TRIGGER_SELECTOR)).toBe(true);
-    // Reachable from the keyboard.
+    expect(trigger.className).toBe(BULK_CARD_ACTIONS_BUTTON_CLASS_NAME);
+    // Reachable from the keyboard, and never inside another button.
     expect(trigger.tabIndex).toBe(0);
+    expect(trigger.parentElement?.closest("button, [role=button]")).toBeNull();
+  });
+
+  test("its ring is drawn for a keyboard only: a mouse that pressed Select All sees no ring jump to it", () => {
+    const classes: Array<string> =
+      BULK_CARD_ACTIONS_BUTTON_CLASS_NAME.split(" ");
+
+    expect(classes).toEqual(
+      expect.arrayContaining([
+        "focus:outline-none",
+        "focus-visible:ring-2",
+        "focus-visible:ring-indigo-500",
+        "focus-visible:ring-offset-2",
+      ]),
+    );
+    expect(
+      classes.filter((name: string): boolean => {
+        return name.startsWith("focus:ring");
+      }),
+    ).toEqual([]);
+  });
+
+  test("pressed, it opens the bulk actions", async () => {
+    render(<BulkUpdateForm<Row> {...baseProps()} />);
+
+    fireEvent.click(bulkActions());
+
+    expect(
+      await screen.findByRole("menuitem", { name: /Disable/ }),
+    ).toBeInTheDocument();
+    expect(bulkActions()).toHaveAttribute("aria-expanded", "true");
   });
 });
 

@@ -45415,8 +45415,6 @@
   "These monitors will be created on {{count}} resources of this account. Everything below applies to all of them._one": "這些監測器將在此帳戶的 {{count}} 個資源上建立。以下設定適用於所有監測器。",
   "This app's name is too long to filter its telemetry by, so no monitor can watch it alone. Its environment's telemetry is in the environment's tabs.": "此應用程式的名稱太長，無法用來篩選其遙測資料，因此沒有監測器能單獨監測它。其環境的遙測資料位於環境的分頁中。",
   "This list has default columns for everyone in this project.": "此清單為此專案中的所有人設定了預設欄位。",
-  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "AI 在調查或修正事件或警示時執行的指令也會顯示在該事件或警示上。",
-  "Seeing the commands needs permission to read Runner jobs.": "檢視這些指令需要讀取 Runner 工作的權限。",
   "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "這會立即撤銷 {{agentName}} 的金鑰。在你再次執行其設定指令之前，代理程式會保持中斷：點擊「變更」可查看含有新金鑰的指令。",
   "Throttling": "節流",
   "Waiting for their first metrics": "正在等待首批指標",

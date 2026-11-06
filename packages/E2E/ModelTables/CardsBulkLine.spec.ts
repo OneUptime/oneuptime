@@ -420,17 +420,15 @@ test("on a laptop, Select All pressed from the keyboard keeps its place while it
 
   await expect
     .poll(async (): Promise<string> => {
-      return await page.evaluate((): string => {
-        const active: Element | null = document.activeElement;
-
-        return active && active !== document.body
-          ? `${active.getAttribute("role") || active.tagName}: ${(
-              active.textContent || ""
-            ).trim()}`
-          : "the page";
-      });
+      return await focusedControl(page);
     })
     .toBe("button: Bulk Actions");
+
+  // A keyboard's focus there is drawn: the indigo ring of the bar's buttons.
+  expect(await focusRing(page)).toEqual({
+    isFocusVisible: true,
+    isIndigoRing: true,
+  });
 
   const selectAllReads: number = (await fixture(page)).listRequests.filter(
     (read: FixtureRecord["listRequests"][number]): boolean => {
@@ -443,3 +441,71 @@ test("on a laptop, Select All pressed from the keyboard keeps its place while it
   await page.keyboard.press("Enter");
   await expect(page.getByRole("menu")).toBeVisible();
 });
+
+/*
+ * Pressed with a mouse, Select All hands the focus on all the same - a
+ * keyboard may be next - but no ring is drawn round Bulk Actions at the
+ * other end of the bar: the ring is a keyboard's (focus-visible).
+ */
+test("on a laptop, Select All pressed with a mouse draws no ring round Bulk Actions as it hands the focus on", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, "&delay=400", 1280);
+
+  await page
+    .locator("#Monitors-table-body > tr")
+    .first()
+    .locator("input[type=checkbox]")
+    .check();
+
+  await page.getByTestId("bulk-update-select-all").click();
+
+  await expect(page.getByTestId("bulk-update-card-count")).toHaveText(
+    `${MATCHING} Monitors Selected`,
+  );
+  await expect
+    .poll(async (): Promise<string> => {
+      return await focusedControl(page);
+    })
+    .toBe("button: Bulk Actions");
+  expect(await focusRing(page)).toEqual({
+    isFocusVisible: false,
+    isIndigoRing: false,
+  });
+});
+
+// What has the focus: its role and its words ("button: Bulk Actions").
+async function focusedControl(page: Page): Promise<string> {
+  return await page.evaluate((): string => {
+    const active: Element | null = document.activeElement;
+
+    return active && active !== document.body
+      ? `${active.getAttribute("role") || active.tagName.toLowerCase()}: ${(
+          active.textContent || ""
+        ).trim()}`
+      : "the page";
+  });
+}
+
+// Whether the focused control draws its focus: indigo-500's ring.
+async function focusRing(
+  page: Page,
+): Promise<{ isFocusVisible: boolean; isIndigoRing: boolean }> {
+  return await page.evaluate(
+    (): {
+      isFocusVisible: boolean;
+      isIndigoRing: boolean;
+    } => {
+      const active: HTMLElement = document.activeElement as HTMLElement;
+
+      return {
+        isFocusVisible: active.matches(":focus-visible"),
+        isIndigoRing: window
+          .getComputedStyle(active)
+          .boxShadow.includes("rgb(99, 102, 241)"),
+      };
+    },
+  );
+}

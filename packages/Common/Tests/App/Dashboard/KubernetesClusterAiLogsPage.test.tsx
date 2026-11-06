@@ -1558,11 +1558,17 @@ describe("AI Logs page", () => {
         const note: HTMLElement = await findTestId(
           "kubectl-jobs-permission-note",
         );
-        // The permission to ask for, as every lock names it - not eight roles.
+        /*
+         * Said as every list the reader may not read says it: its lock, and
+         * the permission to ask for - not eight roles.
+         */
+        expect(note).toHaveAttribute("data-empty-state-kind", "no-access");
         expect(note).toHaveTextContent(
-          "Seeing the commands needs permission to read Runner jobs. You need this permission: Read Runbook Execution. Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.",
+          "You don't have access to this list" +
+            "You need this permission: Read Runbook Execution. Ask a project admin for access.",
         );
         expect(note).not.toHaveTextContent("Runbook Viewer");
+        expect(note).not.toHaveTextContent("Runner job");
         expect(
           screen.getByText(KUBECTL_COMMANDS_CARD_TITLE),
         ).toBeInTheDocument();

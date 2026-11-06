@@ -45415,8 +45415,6 @@
   "These monitors will be created on {{count}} resources of this account. Everything below applies to all of them._one": "این مانیتورها روی {{count}} منبع از این حساب ساخته می‌شوند. همه موارد زیر برای همه آن‌ها اعمال می‌شود.",
   "This app's name is too long to filter its telemetry by, so no monitor can watch it alone. Its environment's telemetry is in the environment's tabs.": "نام این برنامه برای فیلتر کردن تله‌متری آن بیش از حد طولانی است، پس هیچ مانیتوری نمی‌تواند فقط آن را پایش کند. تله‌متری محیط آن در زبانه‌های محیط قرار دارد.",
   "This list has default columns for everyone in this project.": "این فهرست برای همه در این پروژه ستون‌های پیش‌فرض دارد.",
-  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "فرمان‌هایی که هوش مصنوعی هنگام بررسی یا اصلاح یک حادثه یا هشدار اجرا کرد، روی همان حادثه یا هشدار هم نمایش داده می‌شوند.",
-  "Seeing the commands needs permission to read Runner jobs.": "دیدن فرمان‌ها به مجوز خواندن کارهای Runner نیاز دارد.",
   "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "این کار کلید {{agentName}} را بی‌درنگ باطل می‌کند. تا وقتی فرمان راه‌اندازی‌اش را دوباره اجرا نکنید قطع می‌ماند: «تغییر» آن را با کلیدی تازه نشان می‌دهد.",
   "Throttling": "محدودسازی",
   "Waiting for their first metrics": "در انتظار نخستین متریک‌ها",

@@ -45415,8 +45415,6 @@
   "These monitors will be created on {{count}} resources of this account. Everything below applies to all of them._one": "Deze monitors worden aangemaakt op {{count}} resource van dit account. Alles hieronder geldt voor allemaal.",
   "This app's name is too long to filter its telemetry by, so no monitor can watch it alone. Its environment's telemetry is in the environment's tabs.": "De naam van deze app is te lang om de telemetrie op te filteren, dus geen enkele monitor kan hem afzonderlijk bewaken. De telemetrie van de omgeving staat in de tabbladen van de omgeving.",
   "This list has default columns for everyone in this project.": "Deze lijst heeft standaardkolommen voor iedereen in dit project.",
-  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Opdrachten die AI uitvoerde bij het onderzoeken of oplossen van een incident of waarschuwing staan ook bij dat incident of die waarschuwing.",
-  "Seeing the commands needs permission to read Runner jobs.": "Om de opdrachten te zien, hebt u toestemming nodig om Runner-taken te lezen.",
   "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Hiermee wordt de sleutel van de {{agentName}} direct ingetrokken. De agent blijft losgekoppeld totdat u zijn installatieopdracht opnieuw uitvoert: Wijzigen toont hem, met een nieuwe sleutel.",
   "Throttling": "Beperking",
   "Waiting for their first metrics": "Wachten op hun eerste metrieken",
