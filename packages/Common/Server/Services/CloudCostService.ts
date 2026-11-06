@@ -113,12 +113,11 @@ export class CloudCostService extends AnalyticsDatabaseService<CloudCost> {
     }
 
     const columnKeys: Array<string> = Object.keys(aggregateBy.groupBy || {});
-
-    for (const key of columnKeys) {
-      if (!this.model.getTableColumn(key)) {
-        throw new BadDataException(`Unknown column: ${key}`);
-      }
-    }
+    // The columns asked beside the tag, as the generic aggregate names them.
+    const columns: Statement | null =
+      columnKeys.length > 0
+        ? this.statementGenerator.toGroupByStatement(aggregateBy.groupBy!)
+        : null;
 
     const statement: Statement = SQL`SELECT `;
 
@@ -135,8 +134,8 @@ export class CloudCostService extends AnalyticsDatabaseService<CloudCost> {
       }}]) AS attributes`,
     );
 
-    for (const key of columnKeys) {
-      statement.append(`, ${key}`);
+    if (columns) {
+      statement.append(SQL`, `).append(columns);
     }
 
     statement.append(SQL` FROM ${databaseName}.${this.model.tableName}`);
@@ -150,12 +149,14 @@ export class CloudCostService extends AnalyticsDatabaseService<CloudCost> {
       .append(this.getRetentionReadFilter());
 
     statement.append(
-      ` GROUP BY ${[
-        ...(bucketByTime ? [timestampColumn] : []),
-        "attributes",
-        ...columnKeys,
-      ].join(", ")}`,
+      bucketByTime
+        ? ` GROUP BY ${timestampColumn}, attributes`
+        : " GROUP BY attributes",
     );
+
+    if (columns) {
+      statement.append(SQL`, `).append(columns);
+    }
     statement
       .append(SQL` ORDER BY `)
       .append(

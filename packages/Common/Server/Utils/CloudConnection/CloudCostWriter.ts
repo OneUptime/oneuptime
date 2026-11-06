@@ -429,7 +429,6 @@ export default class CloudCostWriter {
         cost: delta.amount,
         currency: delta.currency,
         tags,
-        tagKeys: Object.keys(tags),
         readAt,
       };
     });

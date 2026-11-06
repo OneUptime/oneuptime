@@ -31,10 +31,12 @@ import Permission from "../../Types/Permission";
  * of every daily partition of the metrics alive for as long (SloHistory
  * says why). Monthly partitions, kept CLOUD_COST_HISTORY_DAYS.
  *
- * Each cost keeps its tags (tags, with their keys in tagKeys for the skip
- * index): a Google Cloud billing export's labels, else the tags OneUptime
- * holds for the resource it is billed to - so the spend breaks down by any
- * of them (CloudCostService reads a tag's values, groupByAttributeKeys).
+ * Each cost keeps its tags (tags): a Google Cloud billing export's labels,
+ * else the tags OneUptime holds for the resource it is billed to - so the
+ * spend breaks down by any of them (CloudCostService sums by a tag's value,
+ * groupByAttributeKeys). Nothing filters by a tag, so no index is kept on
+ * them: a breakdown reads an account's window, as every read of the table
+ * does.
  *
  * Read through the account the cost belongs to: a caller whose grants are
  * limited to labels reads the costs of the accounts those reach.
@@ -211,27 +213,6 @@ export default class CloudCost extends AnalyticsBaseModel {
           required: true,
           defaultValue: {},
           type: TableColumnType.MapStringString,
-          mapKeysColumn: "tagKeys",
-          accessControl: {
-            read: readPermissions,
-            create: createPermissions,
-            update: [],
-          },
-        }),
-        new AnalyticsTableColumn({
-          key: "tagKeys",
-          codec: { codec: "ZSTD", level: 3 },
-          title: "Tag Keys",
-          description: "The keys of the cost's tags.",
-          required: true,
-          defaultValue: [],
-          type: TableColumnType.ArrayText,
-          skipIndex: {
-            name: "idx_tag_keys",
-            type: SkipIndexType.BloomFilter,
-            params: [0.01],
-            granularity: 1,
-          },
           accessControl: {
             read: readPermissions,
             create: createPermissions,
@@ -359,13 +340,5 @@ export default class CloudCost extends AnalyticsBaseModel {
 
   public set tags(v: Record<string, string> | undefined) {
     this.setColumnValue("tags", v);
-  }
-
-  public get tagKeys(): Array<string> | undefined {
-    return this.getColumnValue("tagKeys") as Array<string> | undefined;
-  }
-
-  public set tagKeys(v: Array<string> | undefined) {
-    this.setColumnValue("tagKeys", v);
   }
 }
