@@ -71,6 +71,7 @@ export const REMEDIATION_STEP_STATUS_TEXT: {
   checking: string;
   waiting: string;
   needsApproval: string;
+  needsSomeonesApproval: string;
   fixing: string;
   fixed: string;
   fixApplied: string;
@@ -88,6 +89,8 @@ export const REMEDIATION_STEP_STATUS_TEXT: {
   checking: translationKey("Checking…"),
   waiting: translationKey("Waiting"),
   needsApproval: translationKey("Needs your approval"),
+  // The same, to a reader who may not approve it (RemediationFixActGate).
+  needsSomeonesApproval: translationKey("Needs approval"),
   fixing: translationKey("Fixing…"),
   fixed: translationKey("Fixed"),
   fixApplied: translationKey("Fix applied"),
@@ -213,6 +216,12 @@ export interface RemediationStepStatusInput {
    * the switch, AI rules that do not fix it): AiOffSummaryData's fold state.
    */
   isOffByChoice: boolean;
+  /*
+   * Whether the reader may approve a fix that waits (RemediationFixActGate):
+   * false when their permissions certainly do not let them, and the pill
+   * then says a fix needs approval - not theirs. Left out, theirs.
+   */
+  mayApprove?: boolean | undefined;
 }
 
 /*
@@ -254,7 +263,10 @@ export function getRemediationStepStatus(
     return status("checking", TEXT.checking);
   }
 
-  // What needs the reader comes first: a fix waits for their approval.
+  /*
+   * What needs the reader comes first: a fix waits for their approval -
+   * or, to someone who may not give it, for someone's.
+   */
   if (
     input.fixes.some((fix: RemediationFixFacts): boolean => {
       return (
@@ -263,7 +275,12 @@ export function getRemediationStepStatus(
       );
     })
   ) {
-    return status("attention", TEXT.needsApproval);
+    return status(
+      "attention",
+      input.mayApprove === false
+        ? TEXT.needsSomeonesApproval
+        : TEXT.needsApproval,
+    );
   }
 
   if (
