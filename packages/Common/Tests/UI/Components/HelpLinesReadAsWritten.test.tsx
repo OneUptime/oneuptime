@@ -30,6 +30,7 @@ import Detail from "../../../UI/Components/Detail/Detail";
 import BasicForm from "../../../UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
+import Fields from "../../../UI/Components/Forms/Types/Fields";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import IconProp from "../../../Types/Icon/IconProp";
 
@@ -154,6 +155,14 @@ interface HelpLineCase {
 interface NamedRow {
   name?: string | undefined;
 }
+
+const NAME_FIELD: Fields<FormValues<NamedRow>> = [
+  {
+    field: { name: true },
+    title: "Name",
+    fieldType: FormFieldSchemaType.Text,
+  },
+];
 
 const HELP_LINE_CASES: Array<HelpLineCase> = [
   {
@@ -364,17 +373,11 @@ const HELP_LINE_CASES: Array<HelpLineCase> = [
     component: "BasicForm (the form's line under its title)",
     draw: (line: string): ReactElement => {
       return (
-        <BasicForm<FormValues<NamedRow>>
+        <BasicForm
           id="paging-form"
           title="Paging"
           description={line}
-          fields={[
-            {
-              field: { name: true },
-              title: "Name",
-              fieldType: FormFieldSchemaType.Text,
-            },
-          ]}
+          fields={NAME_FIELD}
           onSubmit={doNothing}
         />
       );
