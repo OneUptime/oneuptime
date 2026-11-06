@@ -1354,6 +1354,122 @@ interface ChangeListRequest {
   attributes?: Record<string, string>;
 }
 
+/*
+ * The clock an account's Changes are read by, so its times read the same on
+ * every run: the fixture stamps each change so many minutes before its own
+ * clock, and how wide the times read - "Nov 6, 09:05" or "Nov 26, 23:46" -
+ * decided whether the list kept its rows beside the side menu (it did not,
+ * and a check of row cells alone found none, on main on 2026-11-06). A day
+ * of two digits and an hour of two: the widest a time reads.
+ */
+const CHANGES_CLOCK: Date = new Date("2026-11-26T23:58:00Z");
+
+// Its changes' times as the list draws them (en-GB, UTC), newest first.
+const CHANGES_CLOCK_TIMES: Array<string> = [
+  "Nov 26, 23:46",
+  "Nov 26, 23:33",
+  "Nov 26, 23:18",
+  "Nov 26, 23:03",
+  "Nov 26, 22:43",
+  "Nov 26, 22:23",
+];
+
+interface DrawnChangeTime {
+  text: string;
+  // Its text runs past its box: the time is cut short.
+  isCut: boolean;
+}
+
+interface DrawnChangeTimes {
+  layout: "rows" | "cards";
+  times: Array<DrawnChangeTime>;
+}
+
+/*
+ * An account's Changes list's times as it draws them once it has settled
+ * at the window's width - as rows (each row's second cell) or as cards (the
+ * value under a card's Time). The list fits its columns to its box a frame
+ * or more after the window changes (useTableBoxWidth), hides its rows while
+ * it measures them (Table's data-settling) and beside the side menu turns
+ * into cards a frame later (TableFit): so it is read in one frame and again
+ * two frames later, until both agree with each other and with the read
+ * before - a list that has stopped changing - and none of it is hidden.
+ */
+async function settledChangeTimes(page: Page): Promise<DrawnChangeTimes> {
+  let previous: string = "";
+  let settled: DrawnChangeTimes | null = null;
+
+  await expect
+    .poll(
+      async (): Promise<boolean> => {
+        const drawn: string = await page.evaluate(async (): Promise<string> => {
+          const read: () => string = (): string => {
+            const rowTimes: Array<Element> = Array.from(
+              document.querySelectorAll("tbody tr td:nth-child(2) > div"),
+            );
+            const cardTimes: Array<Element> = Array.from(
+              document.querySelectorAll("dl > div"),
+            )
+              .filter((field: Element): boolean => {
+                const name: Element | null = field.querySelector(":scope > dt");
+                return (name?.textContent || "").trim() === "Time";
+              })
+              .map((field: Element): Element => {
+                return field.querySelector(":scope > dd") as Element;
+              });
+            const times: Array<Element> =
+              rowTimes.length > 0 ? rowTimes : cardTimes;
+
+            return JSON.stringify({
+              layout: rowTimes.length > 0 ? "rows" : "cards",
+              isSettling:
+                document.querySelector('[data-settling="true"]') !== null,
+              times: times.map(
+                (time: Element): { text: string; isCut: boolean } => {
+                  return {
+                    text: (time.textContent || "").trim(),
+                    isCut: time.scrollWidth > time.clientWidth + 1,
+                  };
+                },
+              ),
+            });
+          };
+
+          const first: string = read();
+          await new Promise<void>((resolve: () => void): void => {
+            window.requestAnimationFrame((): void => {
+              window.requestAnimationFrame((): void => {
+                resolve();
+              });
+            });
+          });
+          const second: string = read();
+
+          return first === second ? second : "";
+        });
+
+        const isAtRest: boolean =
+          drawn !== "" &&
+          drawn === previous &&
+          !(JSON.parse(drawn) as { isSettling: boolean }).isSettling;
+        previous = drawn;
+
+        if (isAtRest) {
+          const at: DrawnChangeTimes & { isSettling?: boolean } = JSON.parse(
+            drawn,
+          ) as DrawnChangeTimes & { isSettling?: boolean };
+          settled = { layout: at.layout, times: at.times };
+        }
+
+        return isAtRest && settled !== null && settled.times.length > 0;
+      },
+      { message: "the changes list settled at the window's width" },
+    )
+    .toBe(true);
+
+  return settled as unknown as DrawnChangeTimes;
+}
+
 // The map's count of Regions: its number, then its word.
 const TWO_REGIONS: RegExp = /^\s*2\s*Regions\s*$/;
 
@@ -1604,6 +1720,7 @@ test.describe("an account's pages", () => {
   }: {
     page: Page;
   }) => {
+    await page.clock.setFixedTime(CHANGES_CLOCK);
     await openAccounts(
       page,
       `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/changes?state=connected`,
@@ -1659,35 +1776,30 @@ test.describe("an account's pages", () => {
     ).toBeVisible();
 
     /*
-     * The time is never cut short, at 1280 or beside the side menu at 1024 -
-     * read again until the table has fitted its columns to the new width,
-     * which it does a frame after the window changes (useTableBoxWidth): one
-     * read right after the resize found the old frame, or no cells at all,
-     * one run in 97 under load (2026-11-02). Beside the side menu the box is
-     * narrower than 48rem, so whether the rows fit there turns on how wide
-     * the times are, and the fixture's times are its clock's: when they did
-     * not fit, the list was drawn as cards and a read of row cells alone
-     * found none (main, 2026-11-06). The time is read wherever it is drawn:
-     * a row's second cell, or the value under a card's Time.
+     * The time is never cut short, at 1280 or beside the side menu at 1024,
+     * read once the list has settled at the new width (settledChangeTimes):
+     * a read right after the resize found the old frame, or no cells at all,
+     * one run in 97 under load (2026-11-02), and a read that passed on the
+     * frame before the table fitted itself checked nothing of the new
+     * width. Beside the side menu the box is narrower than 48rem, so the
+     * list keeps its rows there only while they fit, and is otherwise drawn
+     * as cards (TableFit): the time is read wherever it is drawn, a row's
+     * second cell or the value under a card's Time. The times read the same
+     * on every run (CHANGES_CLOCK).
      */
     for (const width of [1280, 1024]) {
       await page.setViewportSize({ width, height: 900 });
-      await expect
-        .poll(
-          (): Promise<Array<boolean>> => {
-            return page
-              .locator(
-                'tbody tr td:nth-child(2) > div, dl > div:has(> dt:text-is("Time")) > dd',
-              )
-              .evaluateAll((cells: Array<Element>): Array<boolean> => {
-                return cells.map((cell: Element): boolean => {
-                  return cell.scrollWidth > cell.clientWidth + 1;
-                });
-              });
-          },
-          { message: `the change times cut short at ${width} pixels` },
-        )
-        .toEqual([false, false, false, false, false, false]);
+      const drawn: DrawnChangeTimes = await settledChangeTimes(page);
+
+      expect(
+        { width, times: drawn.times },
+        `the change times at ${width} pixels, drawn as ${drawn.layout}`,
+      ).toEqual({
+        width,
+        times: CHANGES_CLOCK_TIMES.map((text: string): DrawnChangeTime => {
+          return { text, isCut: false };
+        }),
+      });
     }
 
     await shoot(page, "account-changes");
