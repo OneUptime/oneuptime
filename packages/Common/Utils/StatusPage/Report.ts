@@ -215,6 +215,7 @@ export default class StatusPageReportTreeUtil {
       uptimePercent: 0,
       uptimePercentAsString: "0%",
       downtimeInHoursAndMinutes: "0",
+      downtimeInMinutes: 0,
       totalIncidentCount: 0,
     };
 
@@ -235,6 +236,7 @@ export default class StatusPageReportTreeUtil {
       uptimePercent: metrics.uptimePercent,
       uptimePercentAsString: metrics.uptimePercentAsString,
       downtimeInHoursAndMinutes: metrics.downtimeInHoursAndMinutes,
+      downtimeInMinutes: metrics.downtimeInMinutes,
       totalIncidentCount: metrics.totalIncidentCount,
     };
   }

@@ -132,6 +132,12 @@ import {
 import StatusPageReportPeriodUtil, {
   StatusPageReportPeriod,
 } from "../../Utils/StatusPage/ReportPeriod";
+import StatusPageReportText from "../../Utils/StatusPage/ReportText";
+import SubscriberLanguage from "../Utils/StatusPage/SubscriberLanguage";
+import { SubscriberEmailText } from "../Utils/StatusPage/SubscriberMessageText";
+import { writeInLanguage } from "../Utils/ServerTranslation";
+import { DEFAULT_READER_LANGUAGE } from "../../Types/ReaderLanguage";
+import { Translator } from "../../Types/Translator";
 import StatusPageReportScheduleUtil, {
   StatusPageReportScheduleColumns,
   StatusPageReportScheduleWrite,
@@ -1972,10 +1978,56 @@ export class Service extends ProjectReferencesService<StatusPage> {
     const statusPageName: string =
       statuspage.pageTitle || statuspage.name || "Status Page";
 
+    const reportPeriod: StatusPageReportPeriod =
+      Service.getReportPeriodForStatusPage(statuspage);
+
     const report: StatusPageReport = await this.getReportByStatusPage({
       statusPageId: statuspage.id!,
-      reportPeriod: Service.getReportPeriodForStatusPage(statuspage),
+      reportPeriod: reportPeriod,
     });
+
+    /*
+     * The report in each language it goes out in, each written once: its
+     * period, dates, percentages and durations (StatusPageReportText), in
+     * the same language as the email's own words. English is the report as
+     * it was built.
+     */
+    const reportsByLanguage: Map<string, StatusPageReport> = new Map<
+      string,
+      StatusPageReport
+    >();
+
+    const getReportInLanguage: (language: string) => StatusPageReport = (
+      language: string,
+    ): StatusPageReport => {
+      let written: StatusPageReport | undefined =
+        reportsByLanguage.get(language);
+
+      if (!written) {
+        written = writeInLanguage(
+          language,
+          (translator: Translator): StatusPageReport => {
+            return StatusPageReportText.writeReportInLanguage({
+              report: report,
+              period: reportPeriod,
+              translator: translator,
+            });
+          },
+        );
+
+        reportsByLanguage.set(language, written);
+      }
+
+      return written;
+    };
+
+    /*
+     * The language every subscriber without one of their own reads
+     * (SubscriberLanguage): a test report and a custom template's values
+     * are written in it.
+     */
+    const pageLanguage: string =
+      SubscriberLanguage.getStatusPageLanguage(statuspage);
 
     /*
      * Look up a custom report email template for this status page (if any).
@@ -1999,13 +2051,28 @@ export class Service extends ProjectReferencesService<StatusPage> {
     type SendEmailFunction = (
       email: Email,
       unsubscribeUrl: URL | null,
+      language: string,
     ) => Promise<void>;
 
+    /*
+     * One report email, in `language`: the built-in email's words and the
+     * report's figures (the email's language, EmailLanguage.ts), and
+     * OneUptime's subject.
+     */
     const sendEmail: SendEmailFunction = async (
       email: Email,
       unsubscribeUrl: URL | null,
+      language: string,
     ): Promise<void> => {
-      // send email here.
+      /*
+       * Use the custom template only when a custom SMTP is configured for the
+       * status page, matching the gating used by the other subscriber
+       * notifications (e.g. Incident). Custom-authored HTML is then sent from
+       * the customer's own mail server rather than the shared servers.
+       */
+      const useCustomTemplate: boolean = Boolean(
+        customReportEmailTemplate?.templateBody && statuspage.smtpConfig,
+      );
 
       const vars: Dictionary<string | JSONObject> = {
         statusPageName: statusPageName,
@@ -2014,7 +2081,15 @@ export class Service extends ProjectReferencesService<StatusPage> {
         statusPageUrl: statusPageURL,
         detailsUrl: statusPageURL,
         hasResources: report.totalResources > 0 ? "true" : "false",
-        report: report as any,
+        /*
+         * A custom template is the team's own words, written once: the
+         * report it is filled with reads in the page's default language,
+         * as every custom template's values do. The built-in email is the
+         * reader's.
+         */
+        report: getReportInLanguage(
+          useCustomTemplate ? pageLanguage : language,
+        ) as any,
         logoUrl: StatusPageEmailLogo.getLogoUrl({
           statusPage: statuspage,
           host: host,
@@ -2025,14 +2100,15 @@ export class Service extends ProjectReferencesService<StatusPage> {
         unsubscribeUrl: unsubscribeUrl?.toString() || "",
       };
 
-      /*
-       * Use the custom template only when a custom SMTP is configured for the
-       * status page, matching the gating used by the other subscriber
-       * notifications (e.g. Incident). Custom-authored HTML is then sent from
-       * the customer's own mail server rather than the shared servers.
-       */
-      const useCustomTemplate: boolean = Boolean(
-        customReportEmailTemplate?.templateBody && statuspage.smtpConfig,
+      // OneUptime's subject, in the reader's language: "[Report] <page>".
+      const subject: string = writeInLanguage(
+        language,
+        (translator: Translator): string => {
+          return translator.translateTemplate(
+            SubscriberEmailText.reportSubject,
+            { statusPageName: statusPageName },
+          );
+        },
       );
 
       MailService.sendMail(
@@ -2045,15 +2121,19 @@ export class Service extends ProjectReferencesService<StatusPage> {
               // A custom subject is a Handlebars template, like the body.
               subject: customReportEmailTemplate!.emailSubject
                 ? customReportEmailTemplate!.emailSubject
-                : "[Report] " + statusPageName,
+                : subject,
               isSubjectLiteral: !customReportEmailTemplate!.emailSubject,
             }
           : {
               toEmail: email,
               templateType: EmailTemplateType.StatusPageSubscriberReport,
               vars: vars,
-              subject: "[Report] " + statusPageName,
+              subject: subject,
               isSubjectLiteral: true,
+              // The template's own words, in the reader's language.
+              ...(language !== DEFAULT_READER_LANGUAGE
+                ? { language: language }
+                : {}),
             },
         {
           mailServer: ProjectSMTPConfigService.toEmailServer(
@@ -2071,8 +2151,12 @@ export class Service extends ProjectReferencesService<StatusPage> {
     };
 
     if (data.email) {
-      // force send to this email instead of sending to all subscribers.
-      await sendEmail(data.email, null);
+      /*
+       * Send Test Report: to this address alone, as the page's subscribers
+       * without a language of their own get it - in the page's default
+       * language.
+       */
+      await sendEmail(data.email, null, pageLanguage);
       return; // don't notify subscribers when explicitly sending a test email.
     }
 
@@ -2117,9 +2201,14 @@ export class Service extends ProjectReferencesService<StatusPage> {
           ).toString();
 
         if (subscriber.subscriberEmail) {
+          // In their language: their own, else the page's (SubscriberLanguage).
           await sendEmail(
             subscriber.subscriberEmail,
             URL.fromString(unsubscribeUrl),
+            SubscriberLanguage.getLanguage({
+              subscriber: subscriber,
+              statusPage: statuspage,
+            }),
           );
         }
 
@@ -2212,6 +2301,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
         totalIncidents: 0,
         averageUptimePercent: "0%",
         totalDowntimeInHoursAndMinutes: "0",
+        totalDowntimeInMinutes: 0,
         resources: [],
         groups: [],
         ungroupedResources: [],
@@ -2392,6 +2482,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
           uptimePercentAsString: `${uptimePercent}%`,
           downtimeInHoursAndMinutes:
             this.getDowntimeInHoursAndMinutes(downtimeInSeconds),
+          downtimeInMinutes: this.getDowntimeInMinutes(downtimeInSeconds),
         },
       });
 
@@ -2464,6 +2555,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
       totalDowntimeInHoursAndMinutes: this.getDowntimeInHoursAndMinutes(
         pageDowntimeInSeconds,
       ),
+      totalDowntimeInMinutes: this.getDowntimeInMinutes(pageDowntimeInSeconds),
     };
   }
 
@@ -2527,11 +2619,19 @@ export class Service extends ProjectReferencesService<StatusPage> {
    * hours rather than two hours and a minute.
    */
   private getDowntimeInHoursAndMinutes(downtimeInSeconds: number): string {
+    return OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
+      this.getDowntimeInMinutes(downtimeInSeconds),
+    );
+  }
+
+  /*
+   * The minutes getDowntimeInHoursAndMinutes writes, which a report in a
+   * subscriber's language writes its own duration from.
+   */
+  private getDowntimeInMinutes(downtimeInSeconds: number): number {
     const downtimeInMilliseconds: number = Math.round(downtimeInSeconds * 1000);
 
-    return OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-      Math.ceil(downtimeInMilliseconds / 60000),
-    );
+    return Math.ceil(downtimeInMilliseconds / 60000);
   }
 
   /*
@@ -2652,15 +2752,19 @@ export class Service extends ProjectReferencesService<StatusPage> {
         incidentCountByMonitorSet[monitorSetKey] = totalIncidentCount;
       }
 
+      const rolledUpDowntimeInSeconds: number =
+        this.getRolledUpDowntimeInSeconds({
+          mergedDowntimeInSeconds: downtime.downtimeSeconds,
+          resourceDowntimesInSeconds: downtimesInSecondsInSubtree,
+        });
+
       groupMetricsByGroupId[groupId] = {
         uptimePercent: uptimePercent,
         uptimePercentAsString: `${uptimePercent}%`,
         downtimeInHoursAndMinutes: this.getDowntimeInHoursAndMinutes(
-          this.getRolledUpDowntimeInSeconds({
-            mergedDowntimeInSeconds: downtime.downtimeSeconds,
-            resourceDowntimesInSeconds: downtimesInSecondsInSubtree,
-          }),
+          rolledUpDowntimeInSeconds,
         ),
+        downtimeInMinutes: this.getDowntimeInMinutes(rolledUpDowntimeInSeconds),
         totalIncidentCount: totalIncidentCount,
       };
     }

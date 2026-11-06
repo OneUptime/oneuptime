@@ -4,6 +4,7 @@
     "Description",
     "Incident",
     "Incident - {{title}}",
+    "Incidents",
     "Note",
     "[Incident] {{title}}"
   ],

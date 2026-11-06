@@ -37,7 +37,7 @@
     body[override] .st-DetailCard-content { padding: 4px 16px !important; }
     body[override] .st-Transition-cell { display: block !important; width: auto !important; text-align: {{#if @root.isEmailRightToLeft}}right{{else}}left{{/if}} !important; }
     body[override] .st-Transition-arrow { padding: 4px 0 !important; }
-    body[override] .st-ReportIndent { margin-left: 0 !important; }
+    body[override] .st-ReportIndent { margin-{{#if @root.isEmailRightToLeft}}right{{else}}left{{/if}}: 0 !important; }
     body[override] .st-ReportTable th, body[override] .st-ReportTable td { padding: 10px 6px !important; font-size: 12px !important; line-height: 18px !important; }
     body[override] .st-ReportTable th { padding: 10px 4px !important; font-size: 11px !important; line-height: 16px !important; }
     {{!--
@@ -45,10 +45,17 @@
       screen, three rows on a phone - each label on the left, its value on
       the right - so a long value has the width of the strip, not a third.
       Stacked, a tile's inline divider would run down the strip's own right
-      edge, so it goes; the rows draw none (see above).
+      edge, so it goes; the rows draw none (see above). In an email read
+      from the right all of it mirrors - the label on the right, its value
+      on the left - and the middle tile's two dividers go.
     --}}
+    {{#if @root.isEmailRightToLeft}}
+    body[override] td.st-Stat { display: block !important; width: auto !important; padding: 10px 16px !important; border-left: 0 !important; border-right: 0 !important; text-align: left !important; }
+    body[override] .st-Stat .st-Stat-label { float: right !important; margin: 0 0 0 16px !important; line-height: 26px !important; }
+    {{else}}
     body[override] td.st-Stat { display: block !important; width: auto !important; padding: 10px 16px !important; border-right: 0 !important; text-align: right !important; }
     body[override] .st-Stat .st-Stat-label { float: left !important; margin: 0 16px 0 0 !important; line-height: 26px !important; }
+    {{/if}}
     body[override] .st-Stat .st-Stat-value { font-size: 18px !important; line-height: 26px !important; }
     body[override] .st-Button-link { padding-left: 12px !important; padding-right: 12px !important; }
   }
