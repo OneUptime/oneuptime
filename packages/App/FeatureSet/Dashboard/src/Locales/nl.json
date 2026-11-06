@@ -45351,5 +45351,11 @@
   "Only if {{first}} and {{second}}": "Alleen als {{first}} en {{second}}",
   "Only if {{first}} or {{second}}": "Alleen als {{first}} of {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Alleen als {{first}}, {{second}} en {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Alleen als {{first}}, {{second}} of {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Alleen als {{first}}, {{second}} of {{third}}",
+  "AI Agent Keys": "AI-agentsleutels",
+  "Making a key for this agent…": "Sleutel voor deze agent wordt gemaakt…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime heeft geen sleutel voor deze agent gestuurd. Probeer het opnieuw.",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "De opdracht bevat een sleutel die alleen voor deze agent is gemaakt. Voer hem binnen een dag uit, of open dit venster opnieuw voor een nieuwe.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "De {{agent}} is gereset en zijn sleutel werkt niet meer. Voer zijn installatieopdracht opnieuw uit om hem te verbinden: Wijzigen toont hem.",
+  "This revokes the {{agentName}}'s key at once, and it stays disconnected until you run its setup command again: Change shows it, with a new key. Use it if the key may have leaked.": "Hiermee wordt de sleutel van de {{agentName}} direct ingetrokken, en blijft de agent losgekoppeld totdat u zijn installatieopdracht opnieuw uitvoert: Wijzigen toont hem, met een nieuwe sleutel. Gebruik dit als de sleutel mogelijk is uitgelekt."
 }

@@ -2024,6 +2024,24 @@ interface AiPost {
   body: { resourceType?: string; resourceId?: string };
 }
 
+// The keys the fixture made for the account's agent, one per opening.
+async function agentKeys(page: Page): Promise<Array<string>> {
+  return await page.evaluate(() => {
+    return JSON.parse(
+      JSON.stringify(
+        (
+          window as unknown as {
+            __cloudConnectFixture: { state: { agentKeys: unknown } };
+          }
+        ).__cloudConnectFixture.state.agentKeys,
+      ),
+    );
+  });
+}
+
+const AGENT_KEY_NOTE: string =
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.";
+
 async function aiPosts(page: Page): Promise<Array<AiPost>> {
   return await page.evaluate(() => {
     return JSON.parse(
@@ -2050,7 +2068,10 @@ function setupDialog(page: Page): Locator {
   return dialog(page).getByTestId("cloud-ai-agent-setup");
 }
 
-// The dialog, at rest: its command written (a Server key is picked first).
+/*
+ * The dialog, at rest: its command written, with the key made for the
+ * account's agent as it opened.
+ */
 async function openSetup(page: Page): Promise<void> {
   await setUpButton(page).click();
   await expect(setupDialog(page)).toBeVisible();
@@ -2620,9 +2641,9 @@ test.describe("OneUptime AI on a cloud account", () => {
     );
     const title: Box = await boxOf(firstStep.getByRole("heading"));
     expect(number.x).toBeGreaterThan(title.x + title.width - 1);
-    await expect(firstStep).toContainText(
-      wordIn(PERSIAN, "Choose an ingestion key"),
-    );
+    // The command's key, said in Persian.
+    await expect(firstStep).toContainText(wordIn(PERSIAN, AGENT_KEY_NOTE));
+    expect(wordIn(PERSIAN, AGENT_KEY_NOTE)).not.toBe(AGENT_KEY_NOTE);
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup-fa");
   });
@@ -2721,7 +2742,7 @@ test.describe("OneUptime AI on a cloud account", () => {
     await shoot(page, "account-feed-fa");
   });
 
-  test("Let AI fix problems reads as a guide: the question, then three numbered steps - the key, the command, the wait", async ({
+  test("Let AI fix problems reads as a guide: the question, then two numbered steps - the command with its key, the wait", async ({
     page,
   }: {
     page: Page;
@@ -2738,51 +2759,139 @@ test.describe("OneUptime AI on a cloud account", () => {
     const steps: Locator = setupDialog(page)
       .getByTestId("setup-guide-steps")
       .locator(":scope > li");
-    await expect(steps).toHaveCount(3);
+    await expect(steps).toHaveCount(2);
     await expect(steps.nth(0).getByRole("heading")).toHaveText(
-      "Step 1: Choose an ingestion key",
+      "Step 1: Run this in AWS CloudShell",
     );
     await expect(steps.nth(1).getByRole("heading")).toHaveText(
-      "Step 2: Run this in AWS CloudShell",
-    );
-    await expect(steps.nth(2).getByRole("heading")).toHaveText(
-      "Step 3: Wait for it to connect",
+      "Step 2: Wait for it to connect",
     );
 
-    // 1: the key, said what it is for, and picked.
+    // 1: the command, with the key made for this agent, who may run it, and what it costs.
     await expect(steps.nth(0)).toContainText(
-      "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.",
-    );
-    await expect(
-      steps.nth(0).getByTestId("cloud-ai-agent-setup-key"),
-    ).toContainText("Cloud AI agent key");
-    // 2: the command, who may run it, and what it costs.
-    await expect(steps.nth(1)).toContainText(
       "Run it as someone who may create roles in this account.",
     );
+    const command: Locator = steps
+      .nth(0)
+      .getByTestId("cloud-ai-agent-setup-command");
+    await expect(command).toContainText("aws cloudformation deploy");
+    const [key] = await agentKeys(page);
+    expect(key).toMatch(/^ouca_30000000-0000-4000-8000-000000000001_[0-9]{64}$/);
+    await expect(command).toContainText(key!);
     await expect(
-      steps.nth(1).getByTestId("cloud-ai-agent-setup-command"),
-    ).toContainText("aws cloudformation deploy");
+      steps.nth(0).getByTestId("cloud-ai-agent-setup-key-note"),
+    ).toHaveText(AGENT_KEY_NOTE);
     await expect(
-      steps.nth(1).getByTestId("cloud-ai-agent-setup-cost"),
+      steps.nth(0).getByTestId("cloud-ai-agent-setup-cost"),
     ).toContainText("a month at list prices");
-    // 3: the wait, live, and its logs.
+    // No ingestion key to choose: the agent connects with its own.
+    await expect(setupDialog(page)).not.toContainText("ingestion key");
+    // 2: the wait, live, and its logs.
     await expect(
-      steps.nth(2).getByTestId("cloud-ai-agent-setup-connection"),
+      steps.nth(1).getByTestId("cloud-ai-agent-setup-connection"),
     ).toHaveAttribute("data-state", "waiting");
     await expect(
-      steps.nth(2).getByTestId("cloud-ai-agent-setup-logs-command"),
+      steps.nth(1).getByTestId("cloud-ai-agent-setup-logs-command"),
     ).toBeVisible();
 
     // The rest under More fields, after the steps.
     const more: Box = await boxOf(
       setupDialog(page).getByRole("button", { name: "More fields" }),
     );
-    const lastStep: Box = await boxOf(steps.nth(2));
+    const lastStep: Box = await boxOf(steps.nth(1));
     expect(more.y).toBeGreaterThan(lastStep.y + lastStep.height - 1);
 
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup-steps");
+  });
+
+  test("the key is made for this account as the dialog opens, once each time: a dialog opened again holds a new one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "What is asked: a desktop's.");
+
+    await openAccounts(page, `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected`);
+    await openSetup(page);
+
+    const keyAsks: () => Promise<Array<AiPost>> = async (): Promise<
+      Array<AiPost>
+    > => {
+      return (await aiPosts(page)).filter((post: AiPost): boolean => {
+        return post.route === "/resource-ai-access/agent-key";
+      });
+    };
+
+    expect(await keyAsks()).toEqual([
+      {
+        route: "/resource-ai-access/agent-key",
+        body: { resourceType: "AwsAccount", resourceId: AWS_ACCOUNT },
+      },
+    ]);
+
+    const command: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-command",
+    );
+    const [first] = await agentKeys(page);
+    await expect(command).toContainText(first!);
+
+    // The other answer writes another command, with the same key.
+    await setupDialog(page)
+      .getByRole("radiogroup", { name: "How far may AI go?" })
+      .getByRole("radio", { name: /Fix safe problems on its own/ })
+      .click();
+    await expect(command).toContainText("automatic");
+    await expect(command).toContainText(first!);
+    expect(await keyAsks()).toHaveLength(1);
+
+    // Closed and opened again: a new key, and the command holds it.
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(dialog(page)).toHaveCount(0);
+    await openSetup(page);
+
+    const keys: Array<string> = await agentKeys(page);
+    expect(keys).toHaveLength(2);
+    expect(keys[1]).not.toBe(first);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toContainText(keys[1]!);
+    expect(await keyAsks()).toHaveLength(2);
+  });
+
+  test("someone who may not set the agent up is told why where the command would be, and Try again asks again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected&agentkey=refused`,
+    );
+    await setUpButton(page).click();
+    await expect(setupDialog(page)).toBeVisible();
+
+    const problem: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-problem",
+    );
+    await expect(problem).toHaveText(
+      "You need permission to edit this AWS account to set up its Cloud AI agent.",
+    );
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toHaveCount(0);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-ai-setup-key-refused");
+
+    // Asked again, the key is made, and the command holds it.
+    await setupDialog(page)
+      .getByTestId("cloud-ai-agent-setup-key-try-again")
+      .click();
+    const [key] = await agentKeys(page);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toContainText(key!);
+    await expect(problem).toHaveCount(0);
   });
 
   test("Change on a connected agent opens on what it runs with: its changes, its tag and the resources a person protected", async ({

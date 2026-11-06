@@ -50,6 +50,8 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Project from "Common/Models/DatabaseModels/Project";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import { getCloudAiAgentKeyEditRefusal } from "Common/Types/AI/ResourceAiAccessPermissions";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Color from "Common/Types/Color";
@@ -104,8 +106,9 @@ import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
  * Overview, Let AI fix problems (its one question, the command for the
  * cloud's own shell and More fields), and the account's AI pages
  * (/dashboard/<project>/cloud/accounts/<account>/ai/agent|logs), answered
- * from POST /resource-ai-access/status, /test, /reset-agent and /logs as
- * the server answers them:
+ * from POST /resource-ai-access/status, /test, /reset-agent, /logs and
+ * /agent-key (the key the setup command carries, made for the account's
+ * Cloud AI agent alone as the dialog opens) as the server answers them:
  *
  *   ?ai=        none (default: OneUptime AI reads the account, no Cloud AI
  *               agent connected)
@@ -113,6 +116,8 @@ import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
  *               for approval)
  *               | offline (it connected once and stopped reporting)
  *               | fail (every status read fails)
+ *   ?agentkey=refused  the key is refused, as for someone who may not set
+ *               the agent up (Try again asks again: it is made then)
  *   ?agentsettings=custom  the connected agent reports three changes, the
  *               tag it requires and two protected resources (Change opens
  *               the dialog on them)
@@ -157,6 +162,7 @@ const aiState = ["connected", "offline", "fail"].includes(params.get("ai"))
  * dialog say so while one is off.
  */
 const fixingState = params.get("fixing") === "on" ? "on" : "off";
+const agentKeyState = params.get("agentkey") === "refused" ? "refused" : "made";
 /*
  * What the connected agent reports it runs with (?agentsettings=custom):
  * three changes of the AWS catalog, the tag it requires, and two resources
@@ -1301,6 +1307,20 @@ const AWS_OPERATIONS = [
 
 state.ai = aiState;
 state.aiPosts = [];
+state.agentKey = agentKeyState;
+// The keys made so far, one per opening of the setup dialog.
+state.agentKeys = [];
+
+// What the server answers an admin who may not edit the account.
+const AGENT_KEY_REFUSAL = getCloudAiAgentKeyEditRefusal("AwsAccount");
+
+/*
+ * A key of the account's own, as the server makes it: ouca_, the account's
+ * id, then 64 hex digits - a new one each time.
+ */
+function agentKeyOf(resourceId, count) {
+  return `ouca_${String(resourceId)}_${String(count).padStart(64, "0")}`;
+}
 
 function accountOf(resourceId) {
   return accounts.find((item) => {
@@ -1650,7 +1670,7 @@ ModelAPI.getList = async (args) => {
     return { data: data, count: data.length, skip: 0, limit: args.limit };
   }
 
-  // The project's Server key, which the Cloud AI agent connects with.
+  // The project's Server key (the Cloud AI agent connects with its own).
   if (args.modelType === TelemetryIngestionKey) {
     state.listRequests.push({ model: "TelemetryIngestionKey" });
     const key = Object.assign(new TelemetryIngestionKey(), {
@@ -1901,6 +1921,25 @@ API.post = async (options) => {
     }
     if (route === "/resource-ai-access/logs") {
       return new HTTPResponse(200, aiLogs(body.resourceId), {});
+    }
+    if (route === "/resource-ai-access/agent-key") {
+      if (state.agentKey === "refused") {
+        // Asked again (Try again), it is made.
+        state.agentKey = "made";
+        return new HTTPErrorResponse(403, { message: AGENT_KEY_REFUSAL }, {});
+      }
+      const key = agentKeyOf(body.resourceId, state.agentKeys.length + 1);
+      state.agentKeys.push(key);
+      return new HTTPResponse(
+        200,
+        {
+          agentKey: key,
+          worksUntilConnectedBy: new Date(
+            NOW + 24 * 60 * MINUTE,
+          ).toISOString(),
+        },
+        {},
+      );
     }
     if (route === "/resource-ai-access/test") {
       const found = accountOf(body.resourceId) || accounts[0];

@@ -45351,5 +45351,11 @@
   "Only if {{first}} and {{second}}": "Nur wenn {{first}} und {{second}}",
   "Only if {{first}} or {{second}}": "Nur wenn {{first}} oder {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Nur wenn {{first}}, {{second}} und {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Nur wenn {{first}}, {{second}} oder {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Nur wenn {{first}}, {{second}} oder {{third}}",
+  "AI Agent Keys": "KI-Agent-Schlüssel",
+  "Making a key for this agent…": "Schlüssel für diesen Agenten wird erstellt…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime hat keinen Schlüssel für diesen Agenten gesendet. Versuchen Sie es erneut.",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "Der Befehl enthält einen Schlüssel, der nur für diesen Agenten erstellt wurde. Führen Sie ihn innerhalb eines Tages aus, oder öffnen Sie diesen Dialog erneut, um einen neuen zu erhalten.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "Der {{agent}} wurde zurückgesetzt, und sein Schlüssel funktioniert nicht mehr. Führen Sie seinen Einrichtungsbefehl erneut aus, um ihn zu verbinden: Ändern zeigt ihn an.",
+  "This revokes the {{agentName}}'s key at once, and it stays disconnected until you run its setup command again: Change shows it, with a new key. Use it if the key may have leaked.": "Dadurch wird der Schlüssel, den der {{agentName}} verwendet, sofort widerrufen, und der Agent bleibt getrennt, bis Sie seinen Einrichtungsbefehl erneut ausführen: Ändern zeigt ihn mit einem neuen Schlüssel an. Verwenden Sie dies, wenn der Schlüssel möglicherweise kompromittiert wurde."
 }

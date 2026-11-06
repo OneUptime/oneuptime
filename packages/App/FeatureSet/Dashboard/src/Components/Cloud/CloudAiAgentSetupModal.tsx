@@ -350,7 +350,7 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
 
   if (!agentKey) {
     // Said where the command goes: making it, or why there is no key.
-    problem = keyError || "";
+    problem = keyError || null;
   } else if (protectedProblem?.kind === "unreadable") {
     problem = translator.translateTemplate(
       "{{pattern}} is not a pattern the agent can read: write a resource's id, with * for any run of characters, and no spaces or quotes.",
@@ -364,7 +364,9 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
   } else {
     problem = describeCloudAiAgentSetupProblem(options);
   }
-  const command: string = problem ? "" : getCloudAiAgentSetupCommand(options);
+  // Written only from a key, and only when nothing is wrong with the choices.
+  const command: string =
+    agentKey && !problem ? getCloudAiAgentSetupCommand(options) : "";
   const cost: CloudAiAgentCostEstimate = estimateCloudAiAgentMonthlyCost(
     props.provider,
     choices.gcpHost,
@@ -406,9 +408,9 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
     setIsSavingLogs(false);
   };
 
-  const environment: Array<CloudAiAgentEnvironmentVariable> = problem
-    ? []
-    : getCloudAiAgentEnvironment(options);
+  const environment: Array<CloudAiAgentEnvironmentVariable> = command
+    ? getCloudAiAgentEnvironment(options)
+    : [];
 
   /*
    * What More fields holds, as its folded line lists it - and what of it is

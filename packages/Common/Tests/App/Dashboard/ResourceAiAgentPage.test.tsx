@@ -143,6 +143,7 @@ const DOCKER: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
 const STATUS_ROUTE: string = "/resource-ai-access/status";
 const TEST_ROUTE: string = "/resource-ai-access/test";
 const RESET_ROUTE: string = "/resource-ai-access/reset-agent";
+const AGENT_KEY_ROUTE: string = "/resource-ai-access/agent-key";
 
 const SETTINGS_CARD_TITLE: string = "What AI may do";
 const GAPS_CARD_TITLE: string = "Needs attention";
@@ -284,6 +285,14 @@ function serve(
         return handlers.reset
           ? await handlers.reset()
           : new HTTPResponse<JSONObject>(200, { ok: true }, {});
+      }
+      // A cloud account's setup command: a key made for its agent alone.
+      if (url.endsWith(AGENT_KEY_ROUTE)) {
+        return new HTTPResponse<JSONObject>(
+          200,
+          { agentKey: `ouca_${RESOURCE_ID}_${"a".repeat(64)}` },
+          {},
+        );
       }
       return statusResponse(status);
     },
@@ -3529,6 +3538,14 @@ describe("every resource type", () => {
       fireEvent.click(screen.getByTestId("ai-agent-cloud-set-up"));
 
       expect(await findTestId("cloud-ai-agent-setup")).toBeInTheDocument();
+      // Its setup command's key is made for this account as it opens.
+      await waitFor(() => {
+        expect(postsTo(AGENT_KEY_ROUTE)).toHaveLength(1);
+      });
+      expect(postsTo(AGENT_KEY_ROUTE)[0]!["data"]).toEqual({
+        resourceType: type,
+        resourceId: RESOURCE_ID,
+      });
     },
   );
 
@@ -3875,15 +3892,23 @@ describe("every resource type", () => {
       const confirm: HTMLElement = await findDialogTitled(
         "Reset the AI agent?",
       );
+      /*
+       * A cloud account's agent comes back only with a new key, which its
+       * setup command carries: the dialog says so before, the notice after.
+       */
       expect(confirm).toHaveTextContent(
-        `This revokes the ${descriptor.agentName}'s key.`,
+        descriptor.isCloudAccount
+          ? `This revokes the ${descriptor.agentName}'s key at once, and it stays disconnected until you run its setup command again: Change shows it, with a new key. Use it if the key may have leaked.`
+          : `This revokes the ${descriptor.agentName}'s key. The agent registers again on its own within a few minutes. Use it if the agent moved or its key may have leaked.`,
       );
       expect(postsTo(RESET_ROUTE)).toHaveLength(0);
 
       fireEvent.click(within(confirm).getByText("Reset agent"));
 
       expect(await findTestId("ai-agent-action-notice")).toHaveTextContent(
-        `The ${descriptor.agentName} was reset.`,
+        descriptor.isCloudAccount
+          ? `The ${descriptor.agentName} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.`
+          : `The ${descriptor.agentName} was reset. It reconnects on its own within a few minutes.`,
       );
       expect(postsTo(RESET_ROUTE)).toHaveLength(1);
       expect(postsTo(RESET_ROUTE)[0]!["data"]).toEqual({

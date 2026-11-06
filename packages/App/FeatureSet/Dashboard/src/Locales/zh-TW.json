@@ -45351,5 +45351,11 @@
   "Only if {{first}} and {{second}}": "僅當{{first}}且{{second}}時",
   "Only if {{first}} or {{second}}": "僅當{{first}}或{{second}}時",
   "Only if {{first}}, {{second}} and {{third}}": "僅當{{first}}、{{second}}且{{third}}時",
-  "Only if {{first}}, {{second}} or {{third}}": "僅當{{first}}、{{second}}或{{third}}時"
+  "Only if {{first}}, {{second}} or {{third}}": "僅當{{first}}、{{second}}或{{third}}時",
+  "AI Agent Keys": "AI 代理程式金鑰",
+  "Making a key for this agent…": "正在為此代理程式建立金鑰…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime 沒有傳送此代理程式的金鑰。請再試一次。",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "此指令包含僅為此代理程式建立的金鑰。請在一天內執行，或重新開啟此對話方塊取得新金鑰。",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} 已重設，其金鑰已失效。請再次執行其設定指令以連線：點擊「變更」即可查看。",
+  "This revokes the {{agentName}}'s key at once, and it stays disconnected until you run its setup command again: Change shows it, with a new key. Use it if the key may have leaked.": "這會立即撤銷 {{agentName}} 的金鑰，在你再次執行其設定指令之前，代理程式會保持中斷：點擊「變更」可查看含有新金鑰的指令。如果金鑰可能已外洩，請使用此功能。"
 }
