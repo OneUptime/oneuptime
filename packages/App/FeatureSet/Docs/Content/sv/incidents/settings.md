@@ -40,12 +40,12 @@ En incidentmall är ett sparat skelett av en incident. I stället för att skriv
 
 :::steps
 1. Gå till **Incidenter → Inställningar → Incidentmallar** (`/dashboard/{projectId}/incidents/settings/templates`). Kortet heter **Incidentmallar**.
-2. Klicka på **Skapa Incident Mall**. Namnge mallen på **Mallinformation** och fyll sedan i incidenten som den deklarerar på **Incidentdetaljer**: en **Titel**, en **Incidentallvar** och en **Beskrivning**.
+2. Klicka på **Skapa Incidentmall**. Namnge mallen på **Mallinformation** och fyll sedan i incidenten som den deklarerar på **Incidentdetaljer**: en **Titel**, en **Incidentallvar** och en **Beskrivning**.
 3. Tryck **Nästa** genom de valfria stegen — resurserna som den påverkar, dess anpassade fält och dess jourpolicyer — och fyll i det som varje incident av den sorten har gemensamt.
-4. Klicka på **Skapa Incident Mall** på det sista steget. Från och med nu erbjuds mallen av **Skapa från mall** i listan över incidenter.
+4. Klicka på **Skapa Incidentmall** på det sista steget. Från och med nu erbjuds mallen av **Skapa från mall** i listan över incidenter.
 :::
 
-Skapandet leder dig genom en guide i fyra steg, med två steg till när ditt projekt har anpassade incidentfält. Bara de två första frågar efter något som du måste svara på: **Nästa** går igenom de valfria stegen efter dem, och **Skapa Incident Mall** finns på det sista steget.
+Skapandet leder dig genom en guide i fyra steg, med två steg till när ditt projekt har anpassade incidentfält. Bara de två första frågar efter något som du måste svara på: **Nästa** går igenom de valfria stegen efter dem, och **Skapa Incidentmall** finns på det sista steget.
 
 - **Mallinformation** — **Mallnamn** och **Mallbeskrivning**. De namnger själva mallen; de visas aldrig på incidenten.
 - **Incidentdetaljer** — **Titel**, **Beskrivning** (Markdown) och **Incidentallvar**. Under **Fler fält**, vars hopfällda rubrik nämner de tre och visar var och en som är satt:
@@ -62,8 +62,8 @@ Några snabba regler:
 - Listan över mallar visar bara **Namn** och **Beskrivning**. Rader kan inte redigeras eller tas bort från listan — öppna en mall (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) för att ändra den.
 - Alla som kan redigera en mall kan ändra dess detaljer och dess berörda resurser, **Inledande incidenttillstånd** och **Ändra övervakningsstatus till** inräknade: Project Owners, Project Admins och Project Members, Incident Admins och Incident Members, och en roll med **Edit Incident Template**.
 - Mallar stöder import och export i JSON, så att du kan flytta en mellan projekt.
-- Utan mallar säger listan **Inga incidentmallar hittades** med **Skapa Incident Mall** direkt under.
-- Utan mallar öppnar också **Skapa från mall** i listan över incidenter en dialog **No Incident Templates** som säger var mallar skapas, och dess knapp **Create Template** öppnar **Incidenter → Inställningar → Incidentmallar**.
+- Utan mallar säger listan **Inga incidentmallar hittades** med **Skapa Incidentmall** direkt under.
+- Utan mallar öppnar också **Skapa från mall** i listan över incidenter en dialog **Inga incidentmallar** som säger var mallar skapas, och dess knapp **Create Template** öppnar **Incidenter → Inställningar → Incidentmallar**.
 
 ### Så tillämpas en mall
 
@@ -80,7 +80,7 @@ flowchart TB
 ```
 
 - **I instrumentpanelen** — knappen **Skapa från mall** i listan över incidenter öppnar en väljare **Välj incidentmall**, och deklarationssidan läser mallen från frågeparametern `incidentTemplateId` och förifyller sedan formuläret med mallen plus dess ägarteam och ägaranvändare. Dess steg **Detaljer** följer mallens [anpassade fält vid skapande](#anpassade-fält-vid-skapande). Ägarna blir incidentens ägare utan att meddelas, när incidentens Slack- och Microsoft Teams-kanaler finns, så att en aviseringsregel som bjuder in incidentens ägare till en ny kanal också bjuder in dem.
-- **På servern** — ett [formulär](/docs/forms/on-submit#incidentmallen) som har en **Incident Mall**, och ett arbetsflödes steg **Create One Incident** med en vald **Incident Template**, deklarerar incidenten från mallen på servern. Steget läser mallen som Project Admin för arbetsflödets projekt, så en mall från ett annat projekt, eller en som har tagits bort, avvisas, och på ett abonnemang som inte omfattar incidentmallar avvisas steget med det abonnemang som det kräver. Mallens ägare blir incidentens ägare, som i instrumentpanelen. Se [Arbetsflödeskomponenter](/docs/workflows/components).
+- **På servern** — ett [formulär](/docs/forms/on-submit#incidentmallen) som har en **Incidentmall**, och ett arbetsflödes steg **Create One Incident** med en vald **Incident Template**, deklarerar incidenten från mallen på servern. Steget läser mallen som Project Admin för arbetsflödets projekt, så en mall från ett annat projekt, eller en som har tagits bort, avvisas, och på ett abonnemang som inte omfattar incidentmallar avvisas steget med det abonnemang som det kräver. Mallens ägare blir incidentens ägare, som i instrumentpanelen. Se [Arbetsflödeskomponenter](/docs/workflows/components).
 
 En incident som deklareras på servern registrerar mallen i `createdIncidentTemplateId`. Bara OneUptime sätter den kolumnen, för ett formulär eller ett arbetsflödessteg som nämner en mall: en API-nyckel eller en inloggad användare kan inte det, och en begäran som skickar `createdIncidentTemplateId` avvisas. För att deklarera från en mall via API:t läser du den från `/api/incident-templates` och skickar dess värden i begäran.
 
@@ -129,7 +129,7 @@ Anteckningsmallar ger de som ingriper färdig text till uppdateringar om inciden
 
 :::steps
 1. Gå till **Incidenter → Inställningar → Anteckningsmallar** (`/dashboard/{projectId}/incidents/settings/note-templates`). Kortet heter **Mallar för offentliga eller privata anteckningar för incidenter** — ett enda bibliotek tjänar båda sorternas anteckningar.
-2. Klicka på **Skapa Incident Anteckning Mall** och fyll i dess enda sida: **Mallnamn** och **Mallbeskrivning**, båda obligatoriska, och sedan själva **Anteckning**, i Markdown, obligatorisk: texten som en anteckning börjar med när mallen väljs.
+2. Klicka på **Skapa Anteckningsmall för incidenter** och fyll i dess enda sida: **Mallnamn** och **Mallbeskrivning**, båda obligatoriska, och sedan själva **Anteckning**, i Markdown, obligatorisk: texten som en anteckning börjar med när mallen väljs.
 3. Spara den. Mallen erbjuds av **Mallar** på båda anteckningssidorna, och av **Välj anteckningsmall** i dialogerna **Bekräfta incident** och **Lös incident**.
 :::
 
@@ -169,7 +169,7 @@ En mall för efteranalys är skelettet till rapporten som du tar fram efter en i
 
 :::steps
 1. Gå till **Incidenter → Inställningar → Postmortem-mallar** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet heter **Postmortem-mallar**.
-2. Klicka på **Skapa Incident Postmortem Mall** och fyll i dess enda sida: **Mallnamn** och **Mallbeskrivning**, båda obligatoriska, och sedan **Mall för efteranalys**, själva texten, i Markdown, obligatorisk.
+2. Klicka på **Skapa Mall för efteranalys av incidenter** och fyll i dess enda sida: **Mallnamn** och **Mallbeskrivning**, båda obligatoriska, och sedan **Mall för efteranalys**, själva texten, i Markdown, obligatorisk.
 3. Spara den. Varje incidents sida **Efteranalys** erbjuder nu **Tillämpa mall**. Så länge inget är skrivet heter knappen **Börja från mall**; när efteranalysen är skriven finns **Tillämpa mall** i kortets meny **⋯**.
 :::
 
@@ -187,12 +187,12 @@ Med anpassade fält bär du dina egna metadata på varje incident — namnet på
 
 :::steps
 1. Gå till **Incidenter → Inställningar → Anpassade fält** (`/dashboard/{projectId}/incidents/settings/custom-fields`). Sidan heter **Anpassade incidentfält** och listar fälten i deras **Ordning**, vart och ett bara med sitt **Fältnamn** och sin **Fälttyp**.
-2. Klicka på **Skapa Incident Anpassad Fält** och fyll i dess **Fältnamn**, **Fältbeskrivning** och **Fälttyp** — och, för en rullgardinsmenytyp, dess alternativ, direkt under typen.
+2. Klicka på **Skapa Anpassat fält för incidenter** och fyll i dess **Fältnamn**, **Fältbeskrivning** och **Fälttyp** — och, för en rullgardinsmenytyp, dess alternativ, direkt under typen.
 3. För att fråga efter fältet varje gång en incident deklareras öppnar du **Fler fält** och slår på **Visa vid skapande**, och **Obligatoriskt vid skapande** om det måste besvaras.
 4. Spara det och dra sedan raden i dess grepp dit där fältet ska stå. **Redigera** på ett fälts rad öppnar resten av dess inställningar.
 :::
 
-Att skapa ett fält frågar efter dess **Fältnamn**, **Fältbeskrivning** och **Fälttyp** på en sida — och, för en rullgardinsmenytyp, dess alternativ, direkt under typen. Ett nytt fälts värden skrivs in. Allt annat finns under **Fler fält**, som börjar hopfällt oavsett om du skapar eller redigerar ett fält; hopfällt nämner rubriken vad som finns i det och visar vad som är satt. För att skapa ett fält som kopierar sitt värde från ett anpassat monitorfält i stället öppnar du menyn **Mer** (**⋯**) bredvid **Skapa Incident Anpassad Fält** och väljer **Skapa mappat anpassat fält** — se [Fält som kopieras från en monitor](#fält-som-kopieras-från-en-monitor).
+Att skapa ett fält frågar efter dess **Fältnamn**, **Fältbeskrivning** och **Fälttyp** på en sida — och, för en rullgardinsmenytyp, dess alternativ, direkt under typen. Ett nytt fälts värden skrivs in. Allt annat finns under **Fler fält**, som börjar hopfällt oavsett om du skapar eller redigerar ett fält; hopfällt nämner rubriken vad som finns i det och visar vad som är satt. För att skapa ett fält som kopierar sitt värde från ett anpassat monitorfält i stället öppnar du menyn **Mer** (**⋯**) bredvid **Skapa Anpassat fält för incidenter** och väljer **Skapa mappat anpassat fält** — se [Fält som kopieras från en monitor](#fält-som-kopieras-från-en-monitor).
 
 Varje definition har:
 
@@ -255,7 +255,7 @@ En malls [anpassade fält vid skapande](#anpassade-fält-vid-skapande) är likad
 
 ### Fält som kopieras från en monitor
 
-Ett anpassat fält kan ta sitt värde från ett anpassat fält på incidentens monitorer i stället för att få det inskrivet — en region eller en kundnivå som dina monitorer redan registrerar, till exempel. För att skapa ett öppnar du menyn **Mer** (**⋯**) bredvid **Skapa Incident Anpassad Fält** och väljer **Skapa mappat anpassat fält**. Det frågar efter tre saker:
+Ett anpassat fält kan ta sitt värde från ett anpassat fält på incidentens monitorer i stället för att få det inskrivet — en region eller en kundnivå som dina monitorer redan registrerar, till exempel. För att skapa ett öppnar du menyn **Mer** (**⋯**) bredvid **Skapa Anpassat fält för incidenter** och väljer **Skapa mappat anpassat fält**. Det frågar efter tre saker:
 
 - **Monitorfält** — det anpassade monitorfältet som ska kopieras. Vartenda ett erbjuds, vart och ett med sin typ under sitt namn. Det nya fältet får den typen, och en rullgardinsmenys alternativ, så att de två alltid stämmer överens.
 - **Fältnamn** — börjar som monitorfältets namn, tills du skriver ett annat.
@@ -501,7 +501,7 @@ Incidentroller är de namngivna uppgifterna som du tilldelar personer under en i
 
 Ett nytt projekt börjar med en roll, **Incidentansvarig**, personen som leder insatsen. OneUptime fyller i den åt dig: deklarerar du en incident från instrumentpanelen utan att välja någon till rollen blir du dess Incidentansvarig, och en incident som fortfarande saknar en får den första personen som ändrar dess tillstånd, om inte den personen redan har en annan roll på den. Incidentansvarig kan byta namn men inte tas bort, och innehas alltid av en person. Dess **Ta bort** är låst och säger varför.
 
-Lägg till de andra rollerna som ditt team använder, som Responder, Communications Lead eller Scribe, med **Skapa Incident Roll**. Formuläret är en sida: ett namn och en beskrivning, och sedan **Fler fält**, hopfällt, med **Tillåt flera användare**, rollens ikon och dess färg. En ny rolls färg är redan vald, en som rollerna i listan inte använder än, och ikonen är valfri, så du öppnar bara **Fler fält** för att ändra dem. En roll innehas av en person per incident om du inte slår på **Tillåt flera användare**. Projekt som skapades av tidigare versioner av OneUptime började också med Responder, Communications Lead och Observer. De behåller dem tills du tar bort dem.
+Lägg till de andra rollerna som ditt team använder, som Responder, Communications Lead eller Scribe, med **Skapa Incidentroll**. Formuläret är en sida: ett namn och en beskrivning, och sedan **Fler fält**, hopfällt, med **Tillåt flera användare**, rollens ikon och dess färg. En ny rolls färg är redan vald, en som rollerna i listan inte använder än, och ikonen är valfri, så du öppnar bara **Fler fält** för att ändra dem. En roll innehas av en person per incident om du inte slår på **Tillåt flera användare**. Projekt som skapades av tidigare versioner av OneUptime började också med Responder, Communications Lead och Observer. De behåller dem tills du tar bort dem.
 
 Roller är bara definitioner. Du tilldelar personer till dem per incident — deklarationsguiden frågar i sitt steg **Jour och roller**, med ett fält **Tilldela incidentroller**, och varje incident har en sida **Roller** i sin sidomeny. En monitors kriterier och en grupperingsregel för incidenter kan välja personer till dem i förväg. Vart och ett av de formulären frågar med samma kort, ett per roll: en roll med märket **Primär** är Incidentansvarig eller en annan primär roll, och en roll för en person tar bort sin väljare när den har en. På en incidents kort **Roller** erbjuder en roll för flera personer **Add More**.
 
@@ -513,7 +513,7 @@ Arkivera en roll som ditt team inte längre använder från radens meny **⋯**,
 
 Varje incident får ett nummer från en räknare per projekt. Utan prefix visas det som `#42`; med ett visas det som `INC-42`. Säger ditt team "INC-42" högt, låt produkten säga samma sak. Nya projekt börjar med `INC-` för incidenter och `IE-` för incidentepisoder.
 
-Gå till **Incidenter → Inställningar → Numrering** (`/dashboard/{projectId}/incidents/settings/numbering`). Kortet **Nummerprefix** har en rad för **Incidenter** och en för **Incident Episoder**. Var och en visar sitt prefix och ett exempel på numret som det bildar: `INC-`, och sedan **Exempel:** `INC-42`. Ett projekt utan prefix visar **Inget prefix** och `#42`.
+Gå till **Incidenter → Inställningar → Numrering** (`/dashboard/{projectId}/incidents/settings/numbering`). Kortet **Nummerprefix** har en rad för **Incidenter** och en för **Incidentepisoder**. Var och en visar sitt prefix och ett exempel på numret som det bildar: `INC-`, och sedan **Exempel:** `INC-42`. Ett projekt utan prefix visar **Inget prefix** och `#42`.
 
 :::steps
 1. Klicka på **Uppdatera**. Dialogen **Redigera nummerprefix** öppnas, med två fält: **Prefix för incidentnummer** (platshållare `INC-`) och **Nummerprefix för incidentepisoder** (platshållare `IE-`).
@@ -539,7 +539,7 @@ Larm och schemalagda underhållshändelser har samma sida: **Larm → Inställni
 
 Varje ny incident får numret efter det högsta som använts hittills, och varje ny episod också: `INC-1`, `INC-2`, `INC-3` från ett projekts första. Byter du från ett annat verktyg? Låt numren i OneUptime börja efter verktygets sista, så att ett nummer aldrig betyder två olika incidenter: ett team vars sista incident i det gamla verktyget var `INC-2345` sätter nästa nummer till `2346`, eller till `10000` för att direkt skilja sina incidenter i OneUptime från de gamla.
 
-Kortet **Nästa nummer**, under **Nummerprefix** på samma sida, har en rad för **Incidenter** och en för **Incident Episoder**. Varje rad visar numret som nästa får, med prefix, och sedan **Högsta hittills:** och det högsta använda numret, eller **Inget använt ännu**.
+Kortet **Nästa nummer**, under **Nummerprefix** på samma sida, har en rad för **Incidenter** och en för **Incidentepisoder**. Varje rad visar numret som nästa får, med prefix, och sedan **Högsta hittills:** och det högsta använda numret, eller **Inget använt ännu**.
 
 :::steps
 1. Klicka på **Uppdatera** på kortet **Nästa nummer**. Dialogen **Redigera nästa nummer** öppnas med **Nästa incidentnummer** och **Nästa nummer för incidentepisod**, vart och ett ifyllt med numret som kommer härnäst och med vad det måste vara högre än.
@@ -603,7 +603,7 @@ Grupperings-, SLA-, påminnelse- och AI-regler verkar också på den nya inciden
 > [!IMPORTANT]
 > **Ordningens betydelse är inte enhetlig.** Grupperingsregler, SLA-regler och Reminder Rules utvärderas i ordning, och deras listor ordnas genom att dra: en ny regel läggs till sist. Jourregler gör inte det — varje matchande regel utlöses. Anta inte att en modell gäller för alla nio.
 
-Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har flikar — en flik **Incidentregler** och en flik **Episode Rules**, var och en med sin egen tabell. Konfigurera fliken **Incidentregler** om du inte specifikt menar episoder. **Grupperingsregler**, **Runbook-regler**, **AI-regler**, **SLA-regler** och **Påminnelseregler** är enkla tabeller.
+Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har flikar — en flik **Incidentregler** och en flik **Episodregler**, var och en med sin egen tabell. Konfigurera fliken **Incidentregler** om du inte specifikt menar episoder. **Grupperingsregler**, **Runbook-regler**, **AI-regler**, **SLA-regler** och **Påminnelseregler** är enkla tabeller.
 
 Ägar-, etikett- och sekretessregler verkar bara på incidenter och episoder som skapas efter att regeln finns. För att tillämpa en av dem på incidenter som redan finns använder du **Kör nu** på regelns rad, på dess egen sida eller från tabellens massåtgärder — se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now). Jour-, runbook-, AI-, grupperings-, SLA- och påminnelseregler kan inte köras mot befintliga incidenter.
 
@@ -615,7 +615,7 @@ Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler
 
 **Incidenter → Regler → Etikettregler** sätter etiketter på nya incidenter som matchar, och **Ägarregler** lägger till användare och team som ägare till dem. **Larm → Regler** och **Schemalagt underhåll → Regler** har samma två sidor och fungerar på samma sätt. Att skapa en regel tar två steg: **Matcha**, villkoren som en incident måste uppfylla, och sedan **Etiketter** (eller **Ägare**), det som regeln lägger till. Dess **Namn** fylls i utifrån det du väljer tills du skriver ett eget namn, och den valfria **Beskrivning** (och en ägarregels **Avisera ägare**) väntar under **Fler fält**.
 
-**En regel kan ärva.** Under **Etiketter att lägga till** (eller **Ägare**) innehåller det hopfällda avsnittet **Ärv etiketter** (eller **Ärv ägare**) sex reglage som också för vidare etiketterna (eller ägarna) från incidentens monitorer, värdar, Kubernetes-kluster, Docker-värdar, Podman-värdar och tjänster. En regel som ärver kan lämna **Etiketter att lägga till** tomt, och får då namn efter det som den ärver från (_Inherit labels from monitors, hosts_); en ny regel som varken nämner eller ärver något kan inte sparas — varken från formuläret, API:t eller Terraform. Episodregler, på fliken **Episode Rules**, har inga reglage för att ärva. På en ägarregel för incidenter eller larm slutar **Ärv ägare** med **Skaparens team**: av teamen som står där blir varje team som den som deklarerar incidenten eller skapar larmet är med i också ägare.
+**En regel kan ärva.** Under **Etiketter att lägga till** (eller **Ägare**) innehåller det hopfällda avsnittet **Ärv etiketter** (eller **Ärv ägare**) sex reglage som också för vidare etiketterna (eller ägarna) från incidentens monitorer, värdar, Kubernetes-kluster, Docker-värdar, Podman-värdar och tjänster. En regel som ärver kan lämna **Etiketter att lägga till** tomt, och får då namn efter det som den ärver från (_Inherit labels from monitors, hosts_); en ny regel som varken nämner eller ärver något kan inte sparas — varken från formuläret, API:t eller Terraform. Episodregler, på fliken **Episodregler**, har inga reglage för att ärva. På en ägarregel för incidenter eller larm slutar **Ärv ägare** med **Skaparens team**: av teamen som står där blir varje team som den som deklarerar incidenten eller skapar larmet är med i också ägare.
 
 **Äldre regler som inte lägger till något** — sparade innan OneUptime frågade vad de lägger till — kan fortfarande byta namn, stängas av eller tas bort, och listan markerar var och en med **Lägger inte till något**. [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules) går igenom formuläret steg för steg.
 
@@ -654,12 +654,12 @@ Regler som sparades innan formuläret frågade efter ägare kan fortfarande ha e
 
 ## Jourregler för incidenter
 
-**Incidenter → Regler → Jourregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) är där du gör larmning automatisk. Kortet, **Incidentjourregler**, säger vad de gör: larmar automatiskt via jourpolicyer för nya incidenter som matchar. Sidan har två flikar: **Incidentregler** och **Episode Rules**.
+**Incidenter → Regler → Jourregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) är där du gör larmning automatisk. Kortet, **Incidentjourregler**, säger vad de gör: larmar automatiskt via jourpolicyer för nya incidenter som matchar. Sidan har två flikar: **Incidentregler** och **Episodregler**.
 
 Skapandeformuläret har två steg:
 
 :::steps
-1. **Matcha** — **Alla incidenter**, som en ny regel börjar på, eller **Endast incidenter som uppfyller villkoren**, som öppnar regelns villkor. Varje villkor väljer ett kriterium — **Monitorer**, **Incident Allvarligheter**, **Incidentetiketter**, **Övervakningsetiketter**, **Incidenttitel**, **Incidentbeskrivning**, **Övervakningsnamn** eller **Övervakningsbeskrivning** — en operator och ett värde, och läses som en mening: "Om **Incidenttitel** innehåller `database`", "Och **Övervakningsetiketter** har någon av _Production_".
+1. **Matcha** — **Alla incidenter**, som en ny regel börjar på, eller **Endast incidenter som uppfyller villkoren**, som öppnar regelns villkor. Varje villkor väljer ett kriterium — **Monitorer**, **Allvarlighetsgrader för incidenter**, **Incidentetiketter**, **Övervakningsetiketter**, **Incidenttitel**, **Incidentbeskrivning**, **Övervakningsnamn** eller **Övervakningsbeskrivning** — en operator och ett värde, och läses som en mening: "Om **Incidenttitel** innehåller `database`", "Och **Övervakningsetiketter** har någon av _Production_".
 2. **Jourpolicyer** — policyerna som den här regeln larmar, och regelns **Namn**, ifyllt utifrån dem ("Larma Platform on-call") tills du skriver ett eget; dess **Beskrivning** väntar under **Fler fält**. Regeln börjar aktiverad; dess redigeringsformulär lägger till reglaget **Aktiverad**, och listan visar ett grönt märke **Aktiverad** eller ett rött märke **Inaktiverad** per regel.
 :::
 
@@ -670,7 +670,7 @@ En regel larmar så snart en incident matchar den. För att låta den vänta på
 Reglerna som sidan själv har med är värda att göra till dina egna:
 
 - Med två eller fler villkor väljer du **Matcha alla** (varje villkor måste vara sant) eller **Matcha något** (ett räcker). En regel utan villkor matchar varje incident.
-- Ett listkriterium — **Monitorer**, **Incident Allvarligheter**, **Incidentetiketter**, **Övervakningsetiketter** — använder **Har någon av**, **Har alla** eller **Har ingen av** värdena som du väljer.
+- Ett listkriterium — **Monitorer**, **Allvarlighetsgrader för incidenter**, **Incidentetiketter**, **Övervakningsetiketter** — använder **Har någon av**, **Har alla** eller **Har ingen av** värdena som du väljer.
 - Ett textkriterium — incidentens titel och beskrivning, dess monitorers namn och beskrivningar — använder **Innehåller**, **Innehåller inte**, **Lika med**, **Inte lika med**, **Börjar med** eller **Slutar med**, utan hänsyn till versaler och gemener, eller **Matchar mönster** / **Matchar inte mönster** för ett reguljärt uttryck utan skillnad på versaler och gemener eller ett jokertecken `*`. Ett nytt textvillkor börjar på **Innehåller**.
 - **Alla matchande regler utlöses.** Det finns ingen prioritet och ingen kortslutning.
 - Uppsättningen policyer som faktiskt körs är unionen av varje matchande regels policyer plus alla policyer som har kopplats till incidenten för hand eller av en mall, utan dubbletter, så att varje policy körs högst en gång. När två matchande regler larmar samma policy larmar den så snart någon av dem tillåter det: direkt vinner över arbetstid.

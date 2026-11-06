@@ -41,6 +41,7 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The cells of Security Events > Detections > Watchlists: a list's name (as
@@ -297,7 +298,7 @@ export const WatchlistNameCell: FunctionComponent<{
             {getWatchlistHoldsLabel(translator, props.entityType)}
           </span>{" "}
           <span aria-hidden="true" className="text-gray-300">
-            ·
+            <InlineSeparator markOnly />
           </span>{" "}
           <WatchlistValuesText {...props.values} />
         </span>

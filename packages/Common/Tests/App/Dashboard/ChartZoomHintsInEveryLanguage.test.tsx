@@ -15,6 +15,7 @@ import path from "path";
 import * as React from "react";
 import { I18nextProvider } from "react-i18next";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { getInlineSeparator } from "../../../Types/Translator";
 
 /*
  * ---------------------------------------------------------------------------
@@ -187,6 +188,20 @@ const drawn: (language: string, english: string) => string = (
   const value: unknown = (LOCALES[language] as Locale)[english];
 
   return typeof value === "string" && value.trim() ? value : english;
+};
+
+/*
+ * And what the reader sees of a whole line: the locale's words, its halves
+ * set apart the reader's way - a bullet where the language writes its zero
+ * as a dot (Persian), so OneUptime's middle dot is not read as a digit.
+ */
+const shown: (language: string, english: string) => string = (
+  language: string,
+  english: string,
+): string => {
+  return drawn(language, english)
+    .split(" \u{00B7} ")
+    .join(getInlineSeparator(language));
 };
 
 const DRAG: string = "Drag to zoom";
@@ -470,7 +485,7 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
     ).toBe(drawn(language, DRAG));
     expect(
       widgetHint({ onTimeRangeSelect: noop, onTimeRangeReset: noop }, true),
-    ).toBe(drawn(language, DRAG_AND_RESET));
+    ).toBe(shown(language, DRAG_AND_RESET));
     expect(
       widgetHint({ onTimeRangeSelect: noop, onTimeRangeReset: noop }, false),
     ).toBe(drawn(language, RESET));
@@ -518,7 +533,7 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
 
     expect(
       screen.getByTestId(TRACES_ANALYTICS_ZOOM_HINT_TEST_ID).textContent,
-    ).toBe(drawn(language, CLICK_OR_DRAG_AND_RESET));
+    ).toBe(shown(language, CLICK_OR_DRAG_AND_RESET));
   });
 
   test("Traces > Analytics says there is no data in the language's words", async () => {

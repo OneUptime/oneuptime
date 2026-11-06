@@ -106,11 +106,11 @@ Een status die je toevoegt, is een stap die je team doorloopt en die de vier sta
 :::steps
 ### De statuslijst openen
 
-Ga naar **Geplande onderhoud → Instellingen → Status gebeurtenis**. De kaart **Gepland Onderhoud Statussen** toont je statussen in hun volgorde. Elke rij toont haar kleur en naam, wat een gebeurtenis erin telt als (kolom **Telt als**) en haar beschrijving.
+Ga naar **Geplande onderhoud → Instellingen → Status gebeurtenis**. De kaart **Statussen van gepland onderhoud** toont je statussen in hun volgorde. Elke rij toont haar kleur en naam, wat een gebeurtenis erin telt als (kolom **Telt als**) en haar beschrijving.
 
 ### De status aanmaken
 
-Klik op **Gepland Onderhoud Status aanmaken** en vul de **Naam**, de **Beschrijving** en de **Kleur** in. De nieuwe status wordt net boven de voltooide status toegevoegd.
+Klik op **Status van gepland onderhoud aanmaken** en vul de **Naam**, de **Beschrijving** en de **Kleur** in. De nieuwe status wordt net boven de voltooide status toegevoegd.
 
 ### Hem op zijn plaats slepen
 

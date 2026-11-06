@@ -30,7 +30,7 @@ Valori validi per tutto il progetto che salvi una volta e riusi in ogni workflow
 :::steps
 ### Apri le variabili globali
 
-Vai in **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Flusso di lavoro Variabile**.
+Vai in **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Variabile del flusso di lavoro**.
 
 ### Dai un nome alla variabile
 
@@ -48,7 +48,7 @@ Nel passaggio **Valore**, compila:
 - **Contenuto** — il valore vero e proprio. È un campo di testo lungo, quindi i valori su più righe funzionano.
 - **Segreto** — quando è attivo, il valore viene eliminato dai registri delle esecuzioni e dalle tracce dei passaggi.
 
-Fai clic su **Crea: Flusso di lavoro Variabile**. Per cambiare il nome o la descrizione prima di farlo, fai clic su **Variabile** nell'elenco dei passaggi accanto al modulo (visibile sugli schermi larghi); ciò che hai scritto in entrambi i passaggi viene conservato.
+Fai clic su **Crea: Variabile del flusso di lavoro**. Per cambiare il nome o la descrizione prima di farlo, fai clic su **Variabile** nell'elenco dei passaggi accanto al modulo (visibile sugli schermi larghi); ciò che hai scritto in entrambi i passaggi viene conservato.
 :::
 
 Usa una variabile globale in qualsiasi workflow con:
@@ -66,15 +66,15 @@ L'elenco mostra il nome e la descrizione di ogni variabile. Fai clic su **Visual
 | **Modifica: Variabile**                        | Cambia il nome, la descrizione e — per una variabile statica non ancora segreta — il contrassegno di segreto. Una volta segreta, una variabile resta segreta. |
 | **Update Content**                             | Sostituisce un valore statico. Il contenuto salvato non può essere riletto, quindi scrivi il nuovo valore per intero.                           |
 | **Use in Workflows**                           | Mostra il riferimento esatto da incollare nei tuoi blocchi, con un pulsante per copiarlo.                                                        |
-| **Elimina: Flusso di lavoro Variabile**        | La elimina, dopo averti chiesto conferma. La conferma nomina la variabile, così puoi verificare che sia quella giusta.                           |
+| **Elimina: Variabile del flusso di lavoro**        | La elimina, dopo averti chiesto conferma. La conferma nomina la variabile, così puoi verificare che sia quella giusta.                           |
 
-Per creare invece una variabile **token di accesso OAuth 2.0**, apri il menu **Altro** (**⋯**) accanto a **Crea: Flusso di lavoro Variabile** e scegli **Create OAuth 2.0 Variable**. Le variabili OAuth 2.0 hanno [una sezione tutta loro](#variabili-oauth-20-token-che-si-rinnovano-da-soli) più sotto. Il tipo di una variabile non può essere cambiato dopo il salvataggio.
+Per creare invece una variabile **token di accesso OAuth 2.0**, apri il menu **Altro** (**⋯**) accanto a **Crea: Variabile del flusso di lavoro** e scegli **Create OAuth 2.0 Variable**. Le variabili OAuth 2.0 hanno [una sezione tutta loro](#variabili-oauth-20-token-che-si-rinnovano-da-soli) più sotto. Il tipo di una variabile non può essere cambiato dopo il salvataggio.
 
 Puoi anche aggiornare una variabile tramite l'API, come spiegato [alla fine di questa pagina](#aggiornare-una-variabile-da-un-workflow). Le variabili globali e del workflow sono una funzione del piano Growth.
 
 ## Variabili locali del workflow
 
-Variabili limitate a un solo workflow, gestite in **Variabili del flusso** nel menu di quel workflow. Funzionano come le variabili globali: **Crea: Flusso di lavoro Variabile** crea una variabile statica, il menu **Altro** (**⋯**) crea una variabile OAuth 2.0 e **Visualizza** apre la pagina di una variabile. Fai riferimento a esse con:
+Variabili limitate a un solo workflow, gestite in **Variabili del flusso** nel menu di quel workflow. Funzionano come le variabili globali: **Crea: Variabile del flusso di lavoro** crea una variabile statica, il menu **Altro** (**⋯**) crea una variabile OAuth 2.0 e **Visualizza** apre la pagina di una variabile. Fai riferimento a esse con:
 
 ```text
 {{local.variables.NAME}}

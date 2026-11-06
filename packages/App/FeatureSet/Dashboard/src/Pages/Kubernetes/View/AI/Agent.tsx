@@ -203,6 +203,7 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The cluster's AI agent page (AI → Agent): whether OneUptime AI can reach
@@ -1438,7 +1439,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
               ].map((part: ReactElement, index: number): ReactElement => {
                 return (
                   <Fragment key={`meta-${index}`}>
-                    {index > 0 ? " · " : ""}
+                    {index > 0 ? <InlineSeparator /> : null}
                     {part}
                   </Fragment>
                 );

@@ -12,6 +12,7 @@ import {
 } from "Common/Utils/NetworkDevice/DeviceHealthStateUtil";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * Shared card body for one network site: name, site-type label, health
@@ -327,7 +328,7 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
                     { one: "{{count}} site", other: "{{count}} sites" },
                     site.childSiteCount,
                   )}{" "}
-                  &middot;{" "}
+                  <InlineSeparator markOnly />{" "}
                 </span>
               ) : (
                 <></>

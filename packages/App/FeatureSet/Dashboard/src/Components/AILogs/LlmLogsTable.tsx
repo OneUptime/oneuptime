@@ -26,6 +26,7 @@ import AiTokenCount, {
   AiTokenCountBreakdown,
 } from "Common/Types/AI/AiTokenCount";
 import { getLlmLogCacheFacts } from "./LlmLogTokens";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface LlmLogsTableProps {
   query?: Query<LlmLog>;
@@ -133,7 +134,7 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
                             aria-hidden="true"
                             className="absolute -left-2 text-gray-300"
                           >
-                            ·
+                            <InlineSeparator markOnly />
                           </span>
                         ) : (
                           <></>

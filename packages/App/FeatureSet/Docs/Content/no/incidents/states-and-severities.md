@@ -37,7 +37,7 @@ flowchart TB
 
 Modellen `IncidentState` har `name`, `description`, `color` og `order`, pluss tre booleans: `isCreatedState`, `isAcknowledgedState` og `isResolvedState`. Alt produktet gjør med tilstander, tar utgangspunkt i de booleans og i `order` — aldri i tilstandens navn. Derfor kan du gi **Løst** navnet "Closed" uten at noe går i stykker: flagget følger med raden.
 
-Modellen `IncidentSeverity` har `name`, `description`, `color` og `order` og ingenting annet. Det finnes ingen flagg. Ingenting i OneUptime behandler av seg selv **Critical Incident** annerledes enn **Minor Incident** — alvorlighetsgraden betyr bare noe der du peker noe på den, som treffkriteriet **Hendelse Alvorligheter** i en vaktregel.
+Modellen `IncidentSeverity` har `name`, `description`, `color` og `order` og ingenting annet. Det finnes ingen flagg. Ingenting i OneUptime behandler av seg selv **Critical Incident** annerledes enn **Minor Incident** — alvorlighetsgraden betyr bare noe der du peker noe på den, som treffkriteriet **Alvorlighetsgrader for hendelser** i en vaktregel.
 
 Noen raske regler:
 
@@ -83,7 +83,7 @@ En tilstand du legger til, er et trinn i responsen din som de tre forhåndsoppre
 :::steps
 ### Åpne listen over tilstander
 
-Gå til **Hendelser → Innstillinger → Hendelsesstatus**. Kortet **Hendelse Tilstander** viser tilstandene dine i rekkefølge, én rad hver: et grep å dra den i, fargen og navnet, hva en hendelse i den **Teller som**, og beskrivelsen. Setningen under tittelen sier det rett ut: hendelser beveger seg bare nedover i denne listen.
+Gå til **Hendelser → Innstillinger → Hendelsesstatus**. Kortet **Hendelsesstatuser** viser tilstandene dine i rekkefølge, én rad hver: et grep å dra den i, fargen og navnet, hva en hendelse i den **Teller som**, og beskrivelsen. Setningen under tittelen sier det rett ut: hendelser beveger seg bare nedover i denne listen.
 
 ### Opprett tilstanden
 
@@ -149,7 +149,7 @@ To forskjeller fra tilstander:
 - **Det finnes ingen beskyttelse mot sletting.** Enhver alvorlighetsgrad kan slettes, også de tre forhåndsopprettede.
 - **Det finnes ingen flagg å arve og ingen "Teller som".** En ny alvorlighetsgrad oppfører seg nøyaktig som de forhåndsopprettede — den er en etikett med en farge og en rang.
 
-Der alvorlighetsgraden gjør mer enn å beskrive: under **Hendelser → Regler → Vaktregler** er feltet **Hendelse Alvorligheter** i en regel et treffkriterium. Å oppgi **Critical Incident** der er hvordan "tilkall databaseteamet ved alt kritisk" uttrykkes — vaktpolicyen sitter på regelen, ikke på alvorlighetsgraden.
+Der alvorlighetsgraden gjør mer enn å beskrive: under **Hendelser → Regler → Vaktregler** er feltet **Alvorlighetsgrader for hendelser** i en regel et treffkriterium. Å oppgi **Critical Incident** der er hvordan "tilkall databaseteamet ved alt kritisk" uttrykkes — vaktpolicyen sitter på regelen, ikke på alvorlighetsgraden.
 
 **Å endre alvorlighetsgraden til en hendelse** — under **Rediger** på hendelsens kort **Hendelsesdetaljer**, via API-et eller Terraform (`incidentSeverityId`), med en arbeidsflyt eller med KI-verktøyene — gjør de samme fire tingene uansett hvordan det sendes: hendelsens feed får en oppføring **Incident updated** som nevner den nye alvorlighetsgraden, hendelsens SLA-frister regnes ut på nytt, påminnelsesregelen samsvares på nytt, og hendelsesmetrikkene teller én endring av alvorlighetsgrad. Å lagre alvorlighetsgraden hendelsen allerede har, gjør ingen av dem, så redigerer du bare tittelen på en hendelse, blir SLA-fristene, påminnelsene og antallet endringer av alvorlighetsgrad som de var. Alvorlighetsgraden til et varsel fungerer på samme måte for feedoppføringen og påminnelsene.
 

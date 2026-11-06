@@ -57,6 +57,7 @@ import {
 } from "../AI/AiContextActivityView";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The AI tools that reach a Kubernetes cluster rather than the project's
@@ -1348,7 +1349,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
                   <>
                     {" "}
                     <span className="inline-block text-gray-400">
-                      ·{" "}
+                      <InlineSeparator markOnly />{" "}
                       <AiContextViewButton
                         describedById={lineId}
                         onClick={() => {

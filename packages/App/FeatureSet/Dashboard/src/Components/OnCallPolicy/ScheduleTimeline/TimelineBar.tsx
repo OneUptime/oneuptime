@@ -15,6 +15,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * The three kinds of block a timeline row draws: a shift (who is on call),
@@ -86,21 +87,22 @@ export const ShiftBar: FunctionComponent<ShiftBarProps> = (
   // Too narrow for text: no padding either, or a sliver renders 16px wide.
   const hasText: boolean = fits(props.widthPx, BAR_TEXT_MIN_WIDTH_PX);
 
-  const ariaLabel: string = [
-    translator.translateTemplate("{{name}} on call for {{schedule}}", {
-      name: shift.userName,
-      schedule: props.scheduleName,
-    }),
-    interval,
-    shift.override
-      ? translator.translateTemplate("covering for {{name}}", {
-          name: shift.override.originalUserName,
-        })
-      : "",
-    isActive ? translator.translateTemplate("on call now") : "",
-  ]
-    .filter(Boolean)
-    .join(", ");
+  // Its phrases joined as their words are written: "، " in Persian.
+  const ariaLabel: string = joinList(
+    [
+      translator.translateTemplate("{{name}} on call for {{schedule}}", {
+        name: shift.userName,
+        schedule: props.scheduleName,
+      }),
+      interval,
+      shift.override
+        ? translator.translateTemplate("covering for {{name}}", {
+            name: shift.override.originalUserName,
+          })
+        : "",
+      isActive ? translator.translateTemplate("on call now") : "",
+    ].filter(Boolean),
+  );
 
   let opacity: number = 1;
 

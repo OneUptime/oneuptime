@@ -28,6 +28,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * THE DATA A CASE PUTS AT RISK, on its Impact card.
@@ -116,7 +117,7 @@ const StoreAtRisk: FunctionComponent<{
           )}
           <div className="text-sm text-gray-500 [overflow-wrap:anywhere]">
             {how}
-            {" · "}
+            <InlineSeparator />
             {translator.translatePlural(IMPACT_DATA_WHO, store.identityCount)}
             {store.externalIdentityCount > 0 ? (
               <>

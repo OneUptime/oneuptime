@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45581,
-    "untranslated": 3507
+    "keys": 45951,
+    "untranslated": 3352
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -465,6 +465,7 @@
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
     "Postmortem",
+    "Powered by OneUptime",
     "Problem",
     "Profiler",
     "Prompt",
@@ -567,7 +568,6 @@
     "Tabs",
     "Tag",
     "Tags",
-    "Task",
     "Task · 31% CPU · 380 MB",
     "Task · 44% CPU · 610 MB",
     "Task · 52% CPU · 512 MB",

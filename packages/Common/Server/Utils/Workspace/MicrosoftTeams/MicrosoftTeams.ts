@@ -143,10 +143,13 @@ import {
   FULL_WIDTH_COLON,
   MessageCardFact,
   MessageCardLink,
+  MessageCardPart,
+  MessageCardSection,
   findFact,
   findMessageCardLinks,
   isOnlyLinks,
   toLabelKey,
+  toMessageCardSections,
   withLinksAsText,
 } from "./MicrosoftTeamsMessageCardText";
 import { getEveryWordingOf } from "../../ServerTranslation";
@@ -934,9 +937,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       });
 
     let title: string = "";
-    const facts: Array<JSONObject> = [];
     const actions: Array<JSONObject> = [];
-    const bodyTextParts: Array<string> = [];
+    // The card's text and facts, in the order the message wrote them.
+    const cardParts: Array<MessageCardPart> = [];
 
     /*
      * Extract title from the first non-empty line and strip markdown heading
@@ -998,7 +1001,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           openFenceRun = null;
         }
 
-        bodyTextParts.push(escapeMessageCardCode(line));
+        cardParts.push({ text: escapeMessageCardCode(line) });
         continue;
       }
 
@@ -1006,7 +1009,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       if (opening !== null) {
         openFenceRun = opening;
-        bodyTextParts.push(escapeMessageCardCode(line));
+        cardParts.push({ text: escapeMessageCardCode(line) });
         continue;
       }
 
@@ -1068,14 +1071,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             : ":";
 
           // Both parts come out of the Markdown line: they stay Markdown.
-          bodyTextParts.push(
-            mdText`**${FeedMarkdown.asMarkdown(name)}${FeedMarkdown.asMarkdown(colon)}** ${FeedMarkdown.asMarkdown(value)}`.toString(),
-          );
+          cardParts.push({
+            text: mdText`**${FeedMarkdown.asMarkdown(name)}${FeedMarkdown.asMarkdown(colon)}** ${FeedMarkdown.asMarkdown(value)}`.toString(),
+          });
         } else {
-          facts.push({ name: name, value: value });
+          cardParts.push({ fact: { name: name, value: value } });
         }
       } else if (lineWithoutLinks) {
-        bodyTextParts.push(sanitizeMarkdownText(lineWithoutLinks));
+        cardParts.push({ text: sanitizeMarkdownText(lineWithoutLinks) });
       }
     }
 
@@ -1091,16 +1094,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       summary: title.replace(MARKDOWN_BACKSLASH_ESCAPE_PATTERN, "$1"),
     };
 
-    // Build a single section so we can enable markdown explicitly
-    const section: JSONObject = { markdown: true } as any;
-    if (bodyTextParts.length > 0) {
-      section["text"] = bodyTextParts.join("\n\n");
-    }
-    if (facts.length > 0) {
-      section["facts"] = facts;
-    }
-    if (section["text"] || section["facts"]) {
-      payload["sections"] = [section];
+    /*
+     * Its text and facts in the order the message wrote them, each section
+     * read as Markdown (toMessageCardSections): Teams draws a section's text
+     * above its facts, so one section put a description written under the
+     * severity above it.
+     */
+    const sections: Array<MessageCardSection> =
+      toMessageCardSections(cardParts);
+
+    if (sections.length > 0) {
+      payload["sections"] = sections as unknown as Array<JSONObject>;
     }
 
     if (actions.length > 0) {

@@ -665,7 +665,12 @@ describe("CloudFleetSummary in the reader's language", () => {
       });
 
     expect(sublabels[0]).toContain("۱");
-    expect(sublabels[1]).toBe("۲ AWS · ۲ Azure · ۲ Google Cloud");
+    /*
+     * The providers are set apart with a bullet, not a middle dot: Persian
+     * writes its zero as a dot, and "AWS · ۲" read as "AWS ۰ ۲"
+     * (InlineSeparator).
+     */
+    expect(sublabels[1]).toBe("۲ AWS \u{2022} ۲ Azure \u{2022} ۲ Google Cloud");
     expect(sublabels[2]).toContain("۲۴");
     expect(sublabels[3]).toContain("۱۵");
     // No Latin digit is left in any of them.

@@ -7,6 +7,10 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import {
+  FIRST_STRONG_ISOLATE,
+  POP_DIRECTIONAL_ISOLATE,
+} from "Common/Types/ReadingDirection";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -1185,9 +1189,12 @@ test.describe("a case's Connected Signals", () => {
       await expect(connected(page)).toContainText("سیگنال‌های مرتبط");
 
       const runner: Locator = record(page, "build-runner-07");
+      // The host the case named, set apart from the sentence read from the right.
       await expect(
         runner.getByTestId("security-connected-record-reason"),
-      ).toHaveText("با نام build-runner-07 شناسایی شد؛ نامی که گزارش می‌کند.");
+      ).toHaveText(
+        `با نام ${FIRST_STRONG_ISOLATE}build-runner-07${POP_DIRECTIONAL_ISOLATE} شناسایی شد؛ نامی که گزارش می‌کند.`,
+      );
 
       // The record's icon starts the line on the right, its name to its left.
       const card: { left: number; right: number } = await connected(

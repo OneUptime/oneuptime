@@ -67,7 +67,7 @@ Fate clic su **Inizia da un modello**, oppure su **Applica modello** nel menu **
 
 ### Generarlo con l'IA
 
-Fate clic su **Generate with AI**. Il dialogo **Generate Postmortem with AI** propone una traccia in **Seleziona modello**: **Standard Postmortem**, **Detailed Technical Postmortem** o **Brief Postmortem**, poi i vostri modelli di post-mortem. **Template Preview** mostra la traccia, e potete modificarla prima di generare.
+Fate clic su **Generate with AI**. Il dialogo **Genera post-mortem con l'AI** propone una traccia in **Seleziona modello**: **Standard Postmortem**, **Detailed Technical Postmortem** o **Brief Postmortem**, poi i vostri modelli di post-mortem. **Template Preview** mostra la traccia, e potete modificarla prima di generare.
 
 Fate clic su **Generate with AI** in fondo al dialogo. OneUptime AI legge l'incidente (la sua descrizione, la causa principale e la correzione, la cronologia degli stati, le note pubbliche e private, i messaggi del suo canale Slack o Microsoft Teams, e ciò che si è detto nelle [sue chiamate](/docs/workspace-connections/video-calls#trascrizioni-delle-chiamate)) e scrive il post-mortem secondo la vostra traccia. Poi l'editor si apre con il risultato.
 

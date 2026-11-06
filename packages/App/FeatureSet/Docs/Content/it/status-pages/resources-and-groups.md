@@ -41,12 +41,12 @@ La schermata è divisa in due:
 
 | Parte | Cosa contiene |
 | ---- | ------------- |
-| **Navigatore dei gruppi** (a sinistra) | Tutti i gruppi della pagina, ad albero, con una casella **Search groups...** sopra e un conteggio sotto, come `3 groups · 12 resources`. Un elenco lungo termina con un pulsante **Show N more of M**. |
+| **Navigatore dei gruppi** (a sinistra) | Tutti i gruppi della pagina, ad albero, con una casella **Cerca gruppi...** sopra e un conteggio sotto, come `3 groups · 12 resources`. Un elenco lungo termina con un pulsante **Show N more of M**. |
 | **Inizio della pagina** | La prima riga del navigatore: le risorse senza gruppo, che i visitatori vedono per prime, sopra ogni gruppo. Su una pagina senza gruppi, il riquadro di destra si intitola invece **Tutte le risorse**. |
-| **Riquadro delle risorse** (a destra) | Le risorse del gruppo selezionato. La sua intestazione contiene **Edit Group**, il pulsante principale **Aggiungi monitor** e un menu **Altre azioni**. |
-| Intestazione della scheda | **New Group** e un menu a tre puntini con **Import groups from CSV** e **Aggiorna**. |
+| **Riquadro delle risorse** (a destra) | Le risorse del gruppo selezionato. La sua intestazione contiene **Modifica gruppo**, il pulsante principale **Aggiungi monitor** e un menu **Altre azioni**. |
+| Intestazione della scheda | **Nuovo gruppo** e un menu a tre puntini con **Importa gruppi da CSV** e **Aggiorna**. |
 
-**Gli stati vuoti vi dicono cosa fare.** Un gruppo vuoto mostra **No monitors here yet** con **Aggiungi monitor**, **Add Multiple** e, solo finché la pagina non ha alcun gruppo, **Create a Group**. Una ricerca senza risultati mostra **Nessuna risorsa corrisponde alla ricerca**.
+**Gli stati vuoti vi dicono cosa fare.** Un gruppo vuoto mostra **Ancora nessun monitor qui** con **Aggiungi monitor**, **Aggiungi più elementi** e, solo finché la pagina non ha alcun gruppo, **Crea un gruppo**. Una ricerca senza risultati mostra **Nessuna risorsa corrisponde alla ricerca**.
 
 ## Aggiungere un monitor
 
@@ -75,11 +75,11 @@ Fate clic su **Aggiungi monitor**. La riga compare nel gruppo e sulla pagina di 
 In un gruppo a griglia, la finestra di dialogo chiede anche la riga e la colonna in cui va il monitor, sopra **Altri campi**; vedete [Layout a elenco o a griglia](#layout-a-elenco-o-a-griglia).
 
 > [!TIP]
-> Per mostrare più controlli come un'unica riga, aggiungete un [gruppo di monitor](/docs/monitor/monitor-groups). Con l'interruttore **Gruppi di monitor** attivo (**Impostazioni del progetto** > **Avanzato** > **Flag delle funzionalità**, che si salva non appena lo spostate), un link sotto l'elenco a discesa dice **Add a Monitor Group instead.** Fateci clic e **Monitor** diventa **Monitor Gruppo** (**Seleziona gruppo di monitor**); **Add a Monitor instead.** torna indietro.
+> Per mostrare più controlli come un'unica riga, aggiungete un [gruppo di monitor](/docs/monitor/monitor-groups). Con l'interruttore **Gruppi di monitor** attivo (**Impostazioni del progetto** > **Avanzato** > **Flag delle funzionalità**, che si salva non appena lo spostate), un link sotto l'elenco a discesa dice **Aggiungi invece un gruppo di monitor.** Fateci clic e **Monitor** diventa **Gruppo di monitor** (**Seleziona gruppo di monitor**); **Aggiungi invece un monitor.** torna indietro.
 
 ### Aggiungerne diversi insieme
 
-**Add Multiple** (anche **Add multiple monitors** nel menu **Altre azioni**) apre **Add Multiple Monitors**. Anche questa è una sola pagina: una selezione multipla **Monitor**, poi gli stessi **Altri campi** chiusi, le cui opzioni di visualizzazione si applicano a ogni monitor che scegliete. Ogni risorsa prende nome visualizzato e descrizione dal proprio monitor, e **Aggiungi monitor** li aggiunge tutti. È il modo più veloce per popolare una nuova pagina.
+**Aggiungi più elementi** (anche **Aggiungi più monitor** nel menu **Altre azioni**) apre **Aggiungi più monitor**. Anche questa è una sola pagina: una selezione multipla **Monitor**, poi gli stessi **Altri campi** chiusi, le cui opzioni di visualizzazione si applicano a ogni monitor che scegliete. Ogni risorsa prende nome visualizzato e descrizione dal proprio monitor, e **Aggiungi monitor** li aggiunge tutti. È il modo più veloce per popolare una nuova pagina.
 
 La selezione multipla ha una scheda **Etichette**: fate clic su un'etichetta e ogni monitor che la porta viene selezionato in una volta.
 
@@ -124,7 +124,7 @@ Alla maggior parte dei gruppi serve solo un nome.
 :::steps
 ### Fare clic su New Group
 
-Si apre **Create New Status Page Group**: due campi, poi due sezioni chiuse.
+Si apre **Crea un nuovo gruppo della pagina di stato**: due campi, poi due sezioni chiuse.
 
 ### Dare un nome al gruppo
 
@@ -132,14 +132,14 @@ Digitate il **Nome gruppo**: l'intestazione di sezione che vedono i visitatori.
 
 ### Annidarlo, se appartiene a un altro gruppo
 
-Scegliete un **Parent Group**, oppure lasciate **No parent group (top level)**. **Add a sub group** nei menu di un gruppo lo compila per voi.
+Scegliete un **Gruppo padre**, oppure lasciate **Nessun gruppo padre (livello principale)**. **Aggiungi un sottogruppo** nei menu di un gruppo lo compila per voi.
 
 ### Creare il gruppo
 
-Fate clic su **Create Status Page Group**. Il gruppo compare nel navigatore, pronto per i monitor.
+Fate clic su **Crea gruppo della pagina di stato**. Il gruppo compare nel navigatore, pronto per i monitor.
 :::
 
-I due campi sono **Nome gruppo** (`name`) e **Parent Group** (`parentStatusPageGroupId`). Le due sezioni chiuse contengono tutto il resto:
+I due campi sono **Nome gruppo** (`name`) e **Gruppo padre** (`parentStatusPageGroupId`). Le due sezioni chiuse contengono tutto il resto:
 
 - **Layout**: la sua intestazione chiusa dice **Elenco** o **Griglia**. Contiene **Modalità di visualizzazione** e gli assi di una griglia (vedete [Layout a elenco o a griglia](#layout-a-elenco-o-a-griglia)), e si apre da sola su un gruppo a griglia.
 - **Altri campi**: le copie, a livello di gruppo, delle opzioni delle risorse:
@@ -148,22 +148,22 @@ I due campi sono **Nome gruppo** (`name`) e **Parent Group** (`parentStatusPageG
   - **Mostra stato attuale del gruppo** (`showCurrentStatus`): attivo per impostazione predefinita. Mostra uno stato accanto all'intestazione del gruppo.
   - **Mostra % di uptime** (`showUptimePercent`): disattivo per impostazione predefinita, con **Seleziona precisione del tempo di attività** quando è attivo.
 
-Per modificare un gruppo, usate **Edit Group** nell'intestazione del riquadro, oppure **Edit group** nel menu della riga del navigatore: si apre **Edit Status Page Group**, con un pulsante **Salva modifiche**. L'intestazione del riquadro mostra dei chip per le impostazioni attive (**Griglia**, **Collapsed by default**, **Uptime %**), così vedete come è configurato un gruppo senza aprire il modulo.
+Per modificare un gruppo, usate **Modifica gruppo** nell'intestazione del riquadro, oppure **Edit group** nel menu della riga del navigatore: si apre **Modifica gruppo della pagina di stato**, con un pulsante **Salva modifiche**. L'intestazione del riquadro mostra dei chip per le impostazioni attive (**Griglia**, **Compresso per impostazione predefinita**, **Uptime %**), così vedete come è configurato un gruppo senza aprire il modulo.
 
 ### Gestire un gruppo
 
 | Dove | Azioni |
 | ----- | ------- |
 | Il menu della riga del navigatore | **Edit group**, **Sposta su**, **Sposta giù**, **Mostra ID**, **Delete group** |
-| Il menu **Altre azioni** del riquadro | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Aggiorna**, **Delete this group** |
+| Il menu **Altre azioni** del riquadro | **Modifica questo gruppo**, **Aggiungi un sottogruppo**, **Sposta il gruppo in alto**, **Sposta il gruppo in basso**, **Mostra l'ID del gruppo**, **Aggiorna**, **Elimina questo gruppo** |
 
-Un gruppo salvato senza nome compare come **Untitled group**, buon segno che volevate scrivere qualcosa.
+Un gruppo salvato senza nome compare come **Gruppo senza titolo**, buon segno che volevate scrivere qualcosa.
 
 ## Annidare i gruppi
 
-I gruppi si annidano: impostate **Parent Group** sul gruppo figlio, oppure usate **Add a sub group inside this group** nel navigatore. Il testo di aiuto del modulo descrive la forma per cui è pensato (qualcosa come Unità aziendali › Regione › Mercato), e ogni livello mostra lo stato e il tempo di attività complessivi di tutto ciò che sta sotto.
+I gruppi si annidano: impostate **Gruppo padre** sul gruppo figlio, oppure usate **Add a sub group inside this group** nel navigatore. Il testo di aiuto del modulo descrive la forma per cui è pensato (qualcosa come Unità aziendali › Regione › Mercato), e ogni livello mostra lo stato e il tempo di attività complessivi di tutto ciò che sta sotto.
 
-Quando un gruppo ha figli, il riquadro delle risorse mostra una riga di chip **Sub groups** che porta direttamente a ciascuno, così percorrete la gerarchia senza tornare al navigatore.
+Quando un gruppo ha figli, il riquadro delle risorse mostra una riga di chip **Sottogruppi** che porta direttamente a ciascuno, così percorrete la gerarchia senza tornare al navigatore.
 
 L'annidamento ripaga sulle pagine grandi: un provider di hosting con regioni dentro i prodotti, o un rivenditore con mercati dentro le unità di business. Su una pagina con dodici monitor, un solo livello piatto è più semplice.
 
@@ -188,7 +188,7 @@ Scegliete **Griglia** e compaiono altri quattro campi:
 Ogni monitor di un gruppo a griglia occupa una cella, quindi **Aggiungi monitor** e la finestra di dialogo multipla chiedono riga e colonna insieme al monitor, con le vostre etichette degli assi.
 
 > [!IMPORTANT]
-> Impostate gli assi prima di aggiungere i monitor. Un gruppo a griglia senza righe né colonne mostra un avviso che non c'è ancora dove mettere un monitor, con un pulsante **Set up the grid** che apre il modulo del gruppo sulla sua sezione **Layout**, e il suo pulsante **Aggiungi monitor** sparisce finché non lo fate.
+> Impostate gli assi prima di aggiungere i monitor. Un gruppo a griglia senza righe né colonne mostra un avviso che non c'è ancora dove mettere un monitor, con un pulsante **Configura la griglia** che apre il modulo del gruppo sulla sua sezione **Layout**, e il suo pulsante **Aggiungi monitor** sparisce finché non lo fate.
 
 ## Ordinare ciò che vedono i visitatori
 
@@ -196,8 +196,8 @@ L'ordine lo decidete voi, non l'alfabeto:
 
 | Cosa | Come riordinarlo |
 | ---- | ------------------ |
-| Le risorse dentro un gruppo | Trascinate una riga. Il riquadro lo dice: **Drag a row to change the order visitors see**. |
-| I gruppi tra loro | **Sposta su** / **Sposta giù** nel menu della riga del navigatore, oppure **Move group up** / **Move group down** in **Altre azioni**. |
+| Le risorse dentro un gruppo | Trascinate una riga. Il riquadro lo dice: **Trascina una riga per cambiare l'ordine che vedono i visitatori**. |
+| I gruppi tra loro | **Sposta su** / **Sposta giù** nel menu della riga del navigatore, oppure **Sposta il gruppo in alto** / **Sposta il gruppo in basso** in **Altre azioni**. |
 | Le risorse senza gruppo | Stanno in **Inizio della pagina** e compaiono sempre sopra ogni gruppo, quindi mettete lì la cosa che tutti controllano per prima. |
 
 **Due casi in cui il trascinamento è disattivato.** Una ricerca nella casella **Search in {group}...** disattiva il riordino (il riquadro dice `N of M shown · drag to reorder is off while filtering`), quindi svuotate prima la ricerca. E i gruppi a griglia non si riordinano mai trascinando, perché il posto di un monitor deriva dalla sua riga e dalla sua colonna.
@@ -230,12 +230,12 @@ Dopo di che, una regola viene eseguita di nuovo per un monitor ogni volta che ne
 
 ## Importare gruppi da CSV
 
-Costruire a mano una gerarchia profonda è noioso. **Import groups from CSV**, nel menu a tre puntini dell'intestazione della scheda, apre la finestra di dialogo **Import Groups from CSV**.
+Costruire a mano una gerarchia profonda è noioso. **Importa gruppi da CSV**, nel menu a tre puntini dell'intestazione della scheda, apre la finestra di dialogo **Importa gruppi da CSV**.
 
 :::steps
 ### Scaricare il modello
 
-Fate clic su **Download CSV Template** per ottenere `status-page-groups-template.csv`.
+Fate clic su **Scarica il modello CSV** per ottenere `status-page-groups-template.csv`.
 
 ### Compilarlo
 
@@ -243,11 +243,11 @@ Una riga per gruppo. Solo `name` è obbligatorio; le colonne sono elencate sotto
 
 ### Caricare e vedere l'anteprima
 
-Fate clic su **Choose CSV File**, scegliete il vostro file, poi **Preview Import** per controllare cosa verrà creato prima che venga scritto qualcosa.
+Fate clic su **Scegli file CSV**, scegliete il vostro file, poi **Anteprima dell'importazione** per controllare cosa verrà creato prima che venga scritto qualcosa.
 
 ### Importare
 
-Avviate l'importazione. Una tabella **Import results** elenca ogni riga come **Creato**, **Non riuscito** o **Saltato**, con il motivo, così una riga sbagliata non sparisce mai in silenzio.
+Avviate l'importazione. Una tabella **Risultati dell'importazione** elenca ogni riga come **Creato**, **Non riuscito** o **Saltato**, con il motivo, così una riga sbagliata non sparisce mai in silenzio.
 :::
 
 | Colonna | Cosa imposta |
@@ -265,7 +265,7 @@ Avviate l'importazione. Una tabella **Import results** elenca ogni riga come **C
 | `columnAxisLabel` | Il nome della dimensione delle colonne, per un gruppo a griglia. |
 | `columnAxisValues` | I valori delle colonne, per un gruppo a griglia. |
 
-L'importazione crea gruppi, non risorse: aggiungete poi i monitor con **Aggiungi monitor**, **Add Multiple** o una regola dei monitor.
+L'importazione crea gruppi, non risorse: aggiungete poi i monitor con **Aggiungi monitor**, **Aggiungi più elementi** o una regola dei monitor.
 
 ## Risoluzione dei problemi
 
@@ -278,7 +278,7 @@ Controllate se il monitor è archiviato: la riga di un monitor archiviato viene 
 :::
 
 :::details In un gruppo a griglia non c'è il pulsante Aggiungi monitor
-La griglia non ha ancora righe né colonne. Fate clic su **Set up the grid**, aggiungete i valori degli assi nella sezione **Layout** e **Aggiungi monitor** ritorna.
+La griglia non ha ancora righe né colonne. Fate clic su **Configura la griglia**, aggiungete i valori degli assi nella sezione **Layout** e **Aggiungi monitor** ritorna.
 :::
 
 :::details Non riesco a trascinare le righe

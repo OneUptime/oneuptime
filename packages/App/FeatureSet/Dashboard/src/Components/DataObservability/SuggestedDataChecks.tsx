@@ -35,6 +35,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   dataAssetId: ObjectID;
@@ -317,7 +318,7 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
                   <span className="block text-xs text-gray-500">
                     {translator.translateText(suggestion.checkType) ||
                       suggestion.checkType}
-                    {" · "}
+                    <InlineSeparator />
                     {translator.translateText(suggestion.alertCondition) ||
                       suggestion.alertCondition}
                     {suggestion.alertThreshold !== undefined

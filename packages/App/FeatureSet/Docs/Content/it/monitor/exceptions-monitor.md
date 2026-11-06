@@ -193,7 +193,7 @@ L'**Exception Count** è 3, quindi **Più di** `0` corrisponde: il monitor va of
 ## Risoluzione dei problemi
 
 :::details Le eccezioni compaiono nell'esploratore, ma il monitor conta 0
-Confrontate il valore di **Ambienti** con il filtro `env:` dell'esploratore: la corrispondenza è esatta e distingue tra maiuscole e minuscole, e le eccezioni senza ambiente vengono escluse quando il filtro è impostato. Controllate poi se quelle eccezioni sono risolte o archiviate. Aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Edit Monitoring Criteria**: **Eccezioni corrispondenti** mostra a cosa corrispondono i filtri.
+Confrontate il valore di **Ambienti** con il filtro `env:` dell'esploratore: la corrispondenza è esatta e distingue tra maiuscole e minuscole, e le eccezioni senza ambiente vengono escluse quando il filtro è impostato. Controllate poi se quelle eccezioni sono risolte o archiviate. Aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Modifica criteri di monitoraggio**: **Eccezioni corrispondenti** mostra a cosa corrispondono i filtri.
 :::
 
 :::details L'incidente si è risolto quando ho risolto l'eccezione

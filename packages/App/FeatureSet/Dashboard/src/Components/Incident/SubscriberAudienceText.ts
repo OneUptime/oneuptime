@@ -9,6 +9,7 @@ import IncidentSubscriberAudience, {
 import IncidentStatusPageScopeCopy, {
   formatScopeText,
 } from "./IncidentStatusPageScopeCopy";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * What the "Will notify" summary says for an audience, worked out apart from
@@ -160,7 +161,7 @@ export const describeNotifiedStatusPage: (
     translate(IncidentStatusPageScopeCopy.audiencePageWithCounts),
     {
       name: statusPage.name,
-      counts: channels.join(", "),
+      counts: joinList(channels),
     },
   );
 };

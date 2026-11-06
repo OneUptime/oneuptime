@@ -65,9 +65,9 @@ Un cambiamento iniziato prima si registra invece nella cronologia di stato del m
 
 :::steps
 1. Aprite il monitor e fate clic su **Cronologia di stato** nel suo menu laterale.
-2. Fate clic su **Crea: Monitor Stato Evento**.
+2. Fate clic su **Crea: Evento di stato del monitor**.
 3. Scegliete lo **Stato del monitor**. **Inizia il** è adesso; impostate un orario precedente se il cambiamento è avvenuto prima.
-4. Fate clic su **Crea: Monitor Stato Evento**. Il nuovo stato compare subito sul monitor, e su ogni pagina di stato che lo elenca.
+4. Fate clic su **Crea: Evento di stato del monitor**. Il nuovo stato compare subito sul monitor, e su ogni pagina di stato che lo elenca.
 :::
 
 ### Tramite l'API

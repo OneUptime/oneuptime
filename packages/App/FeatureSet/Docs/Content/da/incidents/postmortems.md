@@ -67,7 +67,7 @@ Klik på **Start fra skabelon**, eller på **Anvend skabelon** i menuen **⋯**,
 
 ### Generér den med AI
 
-Klik på **Generate with AI**. Dialogen **Generate Postmortem with AI** tilbyder en disposition under **Vælg skabelon**: **Standard Postmortem**, **Detailed Technical Postmortem** eller **Brief Postmortem**, og derefter dine egne postmortem-skabeloner. **Template Preview** viser dispositionen, og du kan ændre den, før du genererer.
+Klik på **Generate with AI**. Dialogen **Lav postmortem med AI** tilbyder en disposition under **Vælg skabelon**: **Standard Postmortem**, **Detailed Technical Postmortem** eller **Brief Postmortem**, og derefter dine egne postmortem-skabeloner. **Template Preview** viser dispositionen, og du kan ændre den, før du genererer.
 
 Klik på **Generate with AI** nederst i dialogen. OneUptime AI læser hændelsen (dens beskrivelse, grundårsag og afhjælpning, dens statustidslinje, dens offentlige og private noter, beskederne i dens Slack- eller Microsoft Teams-kanal og det, der blev sagt i [dens opkald](/docs/workspace-connections/video-calls#transskriptioner-af-opkald)) og skriver postmortem efter din disposition. Derefter åbner editoren med resultatet.
 

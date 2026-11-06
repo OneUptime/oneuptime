@@ -35,7 +35,7 @@ De meeste berichten kunnen de oproep bevestigen: e-mails, sms'jes en berichten v
 | **Incidenten** | Incidenten | Ernstniveaus van incidenten |
 | **Incidentepisodes** | Episodes die incidenten bundelen | Ernstniveaus van incidenten |
 | **Waarschuwingen** | Waarschuwingen | Ernstniveaus van waarschuwingen |
-| **Waarschuwing Episodes** | Episodes die waarschuwingen bundelen | Ernstniveaus van waarschuwingen |
+| **Waarschuwingsepisodes** | Episodes die waarschuwingen bundelen | Ernstniveaus van waarschuwingen |
 
 Een episode roept je op via zijn eigen bereikbaarheidsbeleid, los van de incidenten of waarschuwingen erin, daarom staan zijn regels op een eigen tabblad. Het adres van de pagina noemt het geopende tabblad, bijvoorbeeld `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; de andere waarden zijn `incident-episodes` en `alert-episodes`, en zonder `type` opent de pagina op **Incidenten**.
 
@@ -64,7 +64,7 @@ Ga naar **Gebruikersinstellingen → Bereikbaarheidsregels**, open het tabblad v
 
 ### De methode kiezen
 
-Klik op **Melding Regel toevoegen**. Kies bij **Meldingsmethode** een van je geverifieerde methoden; een methode die je niet hebt geverifieerd, wordt niet aangeboden.
+Klik op **Meldingsregel toevoegen**. Kies bij **Meldingsmethode** een van je geverifieerde methoden; een methode die je niet hebt geverifieerd, wordt niet aangeboden.
 
 ### Kiezen hoe een push klinkt
 
@@ -72,7 +72,7 @@ Kies voor een telefoon bij **Pushmelding** **Kritieke waarschuwing** of **Normaa
 
 ### De wachttijd instellen
 
-Kies **Stel mij op de hoogte na**: **Onmiddellijk**, **5 minuten**, **10 minuten**, **15 minuten**, **30 minuten** of **1 uur**. Klik dan in het venster op **Melding Regel toevoegen**.
+Kies **Stel mij op de hoogte na**: **Onmiddellijk**, **5 minuten**, **10 minuten**, **15 minuten**, **30 minuten** of **1 uur**. Klik dan in het venster op **Meldingsregel toevoegen**.
 :::
 
 De kaart toont haar regels in volgorde van wachttijd, met **Meldingsmethode** en **Op de hoogte stellen na** voor elke regel.

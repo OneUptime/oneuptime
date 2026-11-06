@@ -34,7 +34,7 @@ De pagina toont de monitoren die u erop zet als resources, en incidenten komen v
 ## In het kort
 
 - **Aangemaakt met een naam.** Een nieuwe statuspagina vraagt alleen om haar **Naam**; **Beschrijving** en **Labels** wachten onder **Meer velden**. Resources, huisstijl en domeinen stelt u daarna in.
-- **Resources zijn wat bezoekers zien.** Elke rij op de pagina is een **Statuspagina Bron**: een monitor (of monitorgroep) met een eigen weergavenaam, tooltip en uptime-opties. Groepen verdelen een lange pagina in secties en kunnen worden genest.
+- **Resources zijn wat bezoekers zien.** Elke rij op de pagina is een **Resource van statuspagina**: een monitor (of monitorgroep) met een eigen weergavenaam, tooltip en uptime-opties. Groepen verdelen een lange pagina in secties en kunnen worden genest.
 - **Vanaf dag één een voorbeeld-URL.** Elke statuspagina krijgt een voorbeeldlink, zodat u haar kunt bekijken voordat er een aangepast domein is.
 - **Routes voor bezoekers hangen af van instellingen.** Incidenten, episoden, aankondigingen en geplande gebeurtenissen verschijnen alleen zolang hun schakelaar in **Wat uw statuspagina toont** (onder **Geavanceerde instellingen**) aan staat, en de abonneerpagina alleen zolang **Abonneepagina weergeven** aan staat.
 - **Wie haar mag zien is één keuze.** Iedereen met de link, alleen mensen die inloggen (privégebruikers, SSO via SAML of OIDC) of iedereen met het wachtwoord, op het scherm **Toegang** van de pagina, met een optionele IP-toelatingslijst onder **Meer instellingen**.

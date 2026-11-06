@@ -553,6 +553,74 @@ export interface Translator {
   formatNumber: (value: number) => string;
 }
 
+/*
+ * WHAT STANDS BETWEEN TWO FACTS ON ONE LINE.
+ *
+ * A middle dot with a space either side: "12 incidents · 3 alerts", "Uptime
+ * · 24 hours". Persian writes its zero as a dot ("۰"), about the size of a
+ * middle dot and at its height, so beside Persian digits the separator read
+ * as a digit: "۱۲ حادثه · ۳ هشدار" looked like "۳ ۰", and "زمان کارکرد ·
+ * ۲۴ ساعت" like "۰۲۴". A language whose zero is a dot takes a bullet there,
+ * " • ", larger than any digit and read as the separator it is.
+ */
+export const INLINE_SEPARATOR: string = " \u{00B7} ";
+
+export const DOT_ZERO_INLINE_SEPARATOR: string = " \u{2022} ";
+
+// The zeros written as a dot: Persian's ("۰") and Arabic-Indic's ("٠").
+const DOT_ZEROS: ReadonlyArray<string> = ["\u{06F0}", "\u{0660}"];
+
+const dotZeroCache: Map<string, boolean> = new Map<string, boolean>();
+
+// Whether `language` writes its zero as a dot, as Persian does ("۰").
+export const writesZeroAsADot: (language: string | undefined) => boolean = (
+  language: string | undefined,
+): boolean => {
+  const code: string = language || DEFAULT_LANGUAGE;
+  const cached: boolean | undefined = dotZeroCache.get(code);
+
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  let isDot: boolean = false;
+
+  try {
+    isDot = DOT_ZEROS.includes((0).toLocaleString(code));
+  } catch {
+    isDot = false;
+  }
+
+  dotZeroCache.set(code, isDot);
+
+  return isDot;
+};
+
+// What a line in `language` puts between two facts: " · ", or " • " in Persian.
+export const getInlineSeparator: (language: string | undefined) => string = (
+  language: string | undefined,
+): string => {
+  return writesZeroAsADot(language)
+    ? DOT_ZERO_INLINE_SEPARATOR
+    : INLINE_SEPARATOR;
+};
+
+/*
+ * OneUptime's own words as `language` punctuates a line: each " · " the
+ * words hold is a bullet in a language whose zero is a dot. Never a value's:
+ * a monitor named "API · EU" is named as written.
+ */
+const punctuateInLanguage: (words: string, language: string) => string = (
+  words: string,
+  language: string,
+): string => {
+  if (!writesZeroAsADot(language) || !words.includes(INLINE_SEPARATOR)) {
+    return words;
+  }
+
+  return words.split(INLINE_SEPARATOR).join(DOT_ZERO_INLINE_SEPARATOR);
+};
+
 export const createTranslator: (
   lookup: TextLookup | undefined,
   language?: string | undefined,
@@ -561,6 +629,11 @@ export const createTranslator: (
   language?: string | undefined,
 ): Translator => {
   const activeLanguage: string = language || DEFAULT_LANGUAGE;
+
+  // OneUptime's words, punctuated as the reader's language punctuates a line.
+  const punctuate: (words: string) => string = (words: string): string => {
+    return punctuateInLanguage(words, activeLanguage);
+  };
 
   // The stored wording for `key`, or undefined when nothing has one.
   const find: (key: string) => string | undefined = (
@@ -588,7 +661,10 @@ export const createTranslator: (
       return text;
     }
 
-    return find(text) ?? text;
+    // A text with no wording of its own may be a value: as it is.
+    const stored: string | undefined = find(text);
+
+    return stored === undefined ? text : punctuate(stored);
   };
 
   const hasTranslation: (text: string) => boolean = (text: string): boolean => {
@@ -669,21 +745,26 @@ export const createTranslator: (
     const setsSlotsApart: boolean = Boolean(options?.setsSlotsApart);
 
     if (stored === undefined || stored === english) {
+      /*
+       * An English sentence on a Persian page holds Persian digits too (its
+       * counts are written the reader's way): its separators are punctuated
+       * the reader's way, its values never.
+       */
       if (hasWords(english)) {
         return setsValuesApart
           ? fillTemplate(
-              english,
+              punctuate(english),
               setApartValues(
                 englishTextValues(values),
                 LEFT_TO_RIGHT,
                 setsSlotsApart,
               ),
             )
-          : fillTemplate(english, englishDateValues(values));
+          : fillTemplate(punctuate(english), englishDateValues(values));
       }
 
       return fillTemplate(
-        english,
+        punctuate(english),
         setsValuesApart
           ? setApartValues(
               translatedValues(values),
@@ -695,7 +776,7 @@ export const createTranslator: (
     }
 
     return fillTemplate(
-      stored,
+      punctuate(stored),
       setsValuesApart
         ? setApartValues(
             translatedValues(values),
@@ -860,6 +941,20 @@ export const formatList: (
   translator: Translator,
 ): string => {
   return names.join(getListSeparator(translator.language));
+};
+
+/*
+ * Facts on one line, each set off from the next as the reader's language
+ * does (getInlineSeparator): "12 incidents · 3 alerts", "۱۲ حادثه • ۳ هشدار".
+ */
+export const formatInline: (
+  parts: ReadonlyArray<string>,
+  translator: Translator,
+) => string = (
+  parts: ReadonlyArray<string>,
+  translator: Translator,
+): string => {
+  return parts.join(getInlineSeparator(translator.language));
 };
 
 /*

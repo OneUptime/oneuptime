@@ -13,6 +13,7 @@ import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { ReactElement } from "react";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * What a data product is made of, asked the same way when it is made (Data
@@ -174,5 +175,5 @@ export function describeDataProductSla(
     );
   }
 
-  return parts.length > 0 ? parts.join(", ") : "-";
+  return parts.length > 0 ? joinList(parts) : "-";
 }

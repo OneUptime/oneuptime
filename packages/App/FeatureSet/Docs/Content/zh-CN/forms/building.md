@@ -57,7 +57,7 @@ flowchart LR
 | 字段 | 说明 |
 | --- | --- |
 | **徽标** | 显示在表单页面顶部、名称上方，替代 OneUptime 徽标。不超过 512 KB 的 PNG、JPEG、GIF、WebP 或 SVG 图像。移除后恢复为 OneUptime 徽标。 |
-| **Logo Alt Text** | 屏幕阅读器朗读的徽标内容：通常是您组织的名称。有徽标时会询问。留空时屏幕阅读器会跳过徽标——反正表单名称会紧随其后。移除徽标也会清空它。 |
+| **徽标替代文本** | 屏幕阅读器朗读的徽标内容：通常是您组织的名称。有徽标时会询问。留空时屏幕阅读器会跳过徽标——反正表单名称会紧随其后。移除徽标也会清空它。 |
 | **网站图标** | 表单打开期间浏览器标签页中的图标，替代 OneUptime 网站图标。不超过 128 KB 的 PNG、JPEG、GIF、WebP、SVG 或 ICO 图像；正方形的 PNG、SVG 或 ICO 效果最好。移除后恢复为 OneUptime 网站图标。 |
 
 徽标会保持其所替代的 OneUptime 徽标的高度，较宽的徽标会适应页面的宽度。每张图像都会在保存时检查（无论来自仪表板、API、Terraform 还是工作流）：它必须是在表单自己的项目中上传的，属于上述类型之一，并且不超过其限制。不属于这些图像的徽标会被以 "The logo must be a PNG, JPEG, GIF, WebP or SVG image." 拒绝，过大的徽标会被以 "The logo must be 512 KB or smaller." 拒绝，上传已不存在（或在其他项目中上传）的徽标会被以 "The logo's file could not be found. Upload the logo again." 拒绝。网站图标也会以同样的方式被拒绝： "The favicon must be a PNG, JPEG, GIF, WebP, SVG or ICO image."、 "The favicon must be 128 KB or smaller." 和 "The favicon's file could not be found. Upload the favicon again."。

@@ -6,6 +6,7 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * The data types found in a store, by the names the catalog gives them
@@ -89,11 +90,11 @@ const StoreDataTypeList: FunctionComponent<ComponentProps> = (
       {hidden.length > 0 ? (
         <span
           className="text-xs font-medium text-gray-500"
-          title={hidden
-            .map((name: string): string => {
+          title={joinList(
+            hidden.map((name: string): string => {
               return translator.translateText(name) || name;
-            })
-            .join(", ")}
+            }),
+          )}
         >
           {translator.translateTemplate("+{{count}}", {
             count: translator.formatNumber(hidden.length),
