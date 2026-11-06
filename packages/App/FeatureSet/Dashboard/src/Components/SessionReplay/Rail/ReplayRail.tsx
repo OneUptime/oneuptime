@@ -12,6 +12,13 @@ import React, {
 } from "react";
 import Route from "Common/Types/API/Route";
 import Icon from "Common/UI/Components/Icon/Icon";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  PluralTemplate,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import IconProp from "Common/Types/Icon/IconProp";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -233,6 +240,33 @@ const FALLBACK_LIST_HEIGHT_PX: number = 600;
 
 const SKELETON_ROW_COUNT: number = 8;
 
+/*
+ * The rail's own sentences, each looked up whole in the reader's language
+ * (the tabs, the chips and the buttons are looked up as they are drawn).
+ */
+const RAIL_SUBTITLE: string = translationKey(
+  "Explore activity at each moment.",
+);
+const RAIL_KIND_CAP_NOTICE: string = translationKey(
+  "Recording rows on this tab stop at the per-kind cap: the footage held more than the rail keeps, and the earliest rows were kept.",
+);
+const RAIL_TRACE_SET_CAPPED_NOTICE: string = translationKey(
+  "This session has more traces than one fetch names, so the rows of some of its traces were not fetched; the scope defaults to ±30s around the playhead so nothing here reads as the whole session.",
+);
+const RAIL_FIRST_ROWS_NOTICE: PluralTemplate = {
+  one: "Only the first {{count}} row was fetched; the scope defaults to ±30s around the playhead so nothing here reads as the whole session.",
+  other:
+    "Only the first {{count}} rows were fetched; the scope defaults to ±30s around the playhead so nothing here reads as the whole session.",
+};
+const RAIL_ERRORS_LOCKED_NOTICE: string = translationKey(
+  'Server exceptions are locked: your role lacks "{{permission}}". Client errors from the recording are shown.',
+);
+// The divider at the playhead: "now 0:12".
+const RAIL_NOW_DIVIDER: string = translationKey("now {{time}}");
+// The list's name for a screen reader: "Console signals".
+const RAIL_LIST_NAME: string = translationKey("{{tab}} signals");
+const RAIL_SELECTED_ROW: string = translationKey("Selected {{title}} at {{time}}");
+
 const EMPTY_SNAPSHOT: ReplayBackendSignalsSnapshot = {
   slots: makeIdleBackendSignalsState(),
   rows: { log: [], span: [], exception: [] },
@@ -367,6 +401,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
   props: ReplayRailProps,
   ref: ForwardedRef<ReplayRailHandle>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [activeTab, setActiveTab] = useControllable<ReplayRailTabId>(
     props.activeTab,
     "all",
@@ -1204,11 +1239,12 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
   /* ---- Derived copy. ---- */
 
-  const alignmentNote: string = describeClockAlignment(alignment);
+  const alignmentNote: string = describeClockAlignment(alignment, translator);
   const uncertaintyLabel: string = formatAlignmentUncertainty(alignment);
   const coverageNote: string | null = describeRailCoverage({
     loadedChunkCount: props.loadedChunkCount,
     totalChunkCount: props.totalChunkCount,
+    translator: translator,
   });
 
   const emptyCopy: ReplayRailEmptyCopy | null =
@@ -1283,7 +1319,10 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
       );
     } else if (tab.status === "loading") {
       badge = (
-        <span className="ml-1 text-[10px] text-gray-400" aria-label="loading">
+        <span
+          className="ml-1 text-[10px] text-gray-400"
+          aria-label={translator.translateText("Loading")}
+        >
           …
         </span>
       );
@@ -1314,7 +1353,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
           setActiveTab(tab.id);
         }}
       >
-        {tab.label}
+        {translator.translateText(tab.label)}
         {badge}
       </button>
     );
@@ -1326,8 +1365,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
     if (truncatedTabs.has(activeTab)) {
       notices.push(
         <div key="truncated" className="text-[11px] text-amber-700">
-          Recording rows on this tab stop at the per-kind cap: the footage held
-          more than the rail keeps, and the earliest rows were kept.
+          {translator.translateText(RAIL_KIND_CAP_NOTICE)}
         </div>,
       );
     }
@@ -1340,10 +1378,11 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
           data-testid="rail-slot-truncated"
         >
           {activeSlot.isTraceIdSetCapped
-            ? "This session has more traces than one fetch names, so the rows of some of its traces were not fetched"
-            : `Only the first ${activeSlot.rowCount ?? 0} rows were fetched`}
-          ; the scope defaults to ±30s around the playhead so nothing here reads
-          as the whole session.
+            ? translator.translateText(RAIL_TRACE_SET_CAPPED_NOTICE)
+            : translator.translatePlural(
+                RAIL_FIRST_ROWS_NOTICE,
+                activeSlot.rowCount ?? 0,
+              )}
         </div>,
       );
     }
@@ -1355,9 +1394,9 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
     ) {
       notices.push(
         <div key="errors-locked" className="text-[11px] text-gray-500">
-          Server exceptions are locked: your role lacks &quot;
-          {activeSlot.lockedPermission}&quot;. Client errors from the recording
-          are shown.
+          {translator.translateTemplate(RAIL_ERRORS_LOCKED_NOTICE, {
+            permission: activeSlot.lockedPermission || "",
+          })}
         </div>,
       );
     }
@@ -1381,7 +1420,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
               loadBackend(activeBackendKind, true);
             }}
           >
-            Retry
+            {translator.translateText("Retry")}
           </button>
         </div>,
       );
@@ -1459,7 +1498,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
               loadBackend(activeBackendKind, true);
             }}
           >
-            Retry
+            {translator.translateText("Retry")}
           </button>
         )}
         {isFiltering && unfilteredTabCount > 0 && (
@@ -1472,7 +1511,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
               setScope("session");
             }}
           >
-            Clear filters
+            {translator.translateText("Clear filters")}
           </button>
         )}
       </div>
@@ -1489,10 +1528,11 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
       <div className="h-px flex-1 bg-indigo-200" />
       <span className="rounded-full bg-indigo-50 px-1.5 py-px font-mono text-[10px] font-semibold tabular-nums text-indigo-600">
         {/* Tenths only while paused: at 1x the decimal would flicker ten times a second. */}
-        now{" "}
-        {props.isPlaying
-          ? formatReplayOffset(props.currentTimeMs)
-          : formatReplayOffsetPrecise(props.currentTimeMs)}
+        {translator.translateTemplate(RAIL_NOW_DIVIDER, {
+          time: props.isPlaying
+            ? formatReplayOffset(props.currentTimeMs)
+            : formatReplayOffsetPrecise(props.currentTimeMs),
+        })}
       </span>
       <div className="h-px flex-1 bg-indigo-200" />
     </div>
@@ -1640,11 +1680,11 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         <div className="flex min-w-0 items-center gap-2">
           <h3
             className="shrink-0 text-sm font-semibold text-gray-900"
-            title="Explore activity at each moment."
+            title={translator.translateText(RAIL_SUBTITLE)}
           >
-            Events
+            {translator.translateText("Events")}
           </h3>
-          <p className="sr-only">Explore activity at each moment.</p>
+          <p className="sr-only">{translator.translateText(RAIL_SUBTITLE)}</p>
           {alignmentNote && (
             <span
               className="min-w-0 truncate text-[11px] text-gray-400"
@@ -1672,12 +1712,14 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
               type="button"
               data-testid="rail-resume-follow"
               className="rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-indigo-700"
-              title="Keep the now divider in view as playback moves (m)"
+              title={translator.translateText(
+                "Keep the now divider in view as playback moves (m)",
+              )}
               onClick={(): void => {
                 setFollow(true);
               }}
             >
-              Resume following
+              {translator.translateText("Resume following")}
             </button>
           )}
           {!follow && isDividerOffscreen && (
@@ -1685,18 +1727,22 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
               type="button"
               data-testid="rail-jump-to-now"
               className="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-medium text-indigo-700 ring-1 ring-inset ring-indigo-100 transition-colors hover:bg-indigo-100"
-              title="Scroll to the playhead once, without following"
+              title={translator.translateText(
+                "Scroll to the playhead once, without following",
+              )}
               onClick={scrollDividerIntoPlace}
             >
-              Jump to now
+              {translator.translateText("Jump to now")}
             </button>
           )}
           {follow && (
             <span
               className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400"
-              title="The list follows the playhead; scroll to pause it"
+              title={translator.translateText(
+                "The list follows the playhead; scroll to pause it",
+              )}
             >
-              Following
+              {translator.translateText("Following")}
             </span>
           )}
         </div>
@@ -1713,7 +1759,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
       <div
         role="tablist"
-        aria-label="Signal tabs"
+        aria-label={translator.translateText("Signal tabs")}
         data-testid="rail-tablist"
         className="mx-3 mt-2 flex flex-wrap items-center gap-1 border-b border-gray-100 pb-2"
         onKeyDown={handleTabsKeyDown}
@@ -1741,9 +1787,11 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
             type="text"
             value={query}
             data-testid="rail-search-input"
-            placeholder="Search events"
-            title="Search text, status:>=400, level:error, or trace: followed by an ID"
-            aria-label="Filter signals"
+            placeholder={translator.translateText("Search events")}
+            title={translator.translateText(
+              "Search text, status:>=400, level:error, or trace: followed by an ID",
+            )}
+            aria-label={translator.translateText("Filter signals")}
             className="h-8 w-full rounded-md border border-gray-300 bg-white pl-8 pr-9 text-sm text-gray-800 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
               setQuery(event.target.value);
@@ -1764,7 +1812,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
             <button
               type="button"
               data-testid="rail-search-clear"
-              aria-label="Clear event search"
+              aria-label={translator.translateText("Clear event search")}
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded text-gray-400 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               onClick={(): void => {
                 setQuery("");
@@ -1776,7 +1824,9 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
           )}
         </div>
 
-        <span className="sr-only">Show events</span>
+        <span className="sr-only">
+          {translator.translateText("Show events")}
+        </span>
         <ReplayButtonGroup ariaLabel="Scope" dataTestId="rail-scope-toggle">
           <ReplayToolButton
             label="Whole session"
@@ -1805,7 +1855,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         <div
           className="flex flex-wrap gap-1.5 px-3 pb-2"
           role="group"
-          aria-label="Quick filters"
+          aria-label={translator.translateText("Quick filters")}
         >
           {tabChips.map((chip: ReplayRailChip): ReactElement => {
             const isOn: boolean = chipsOnTab.includes(chip.id);
@@ -1831,7 +1881,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
                   );
                 }}
               >
-                {chip.label}
+                {translator.translateText(chip.label)}
               </button>
             );
           })}
@@ -1850,13 +1900,17 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         ref={listRef}
         id={`${railId}-list`}
         role="list"
-        aria-label={`${
-          (
-            REPLAY_RAIL_TABS.find((tab: ReplayRailTabDefinition): boolean => {
-              return tab.id === activeTab;
-            }) as ReplayRailTabDefinition
-          ).label
-        } signals`}
+        aria-label={translator.translateTemplate(RAIL_LIST_NAME, {
+          tab: translatableTerm(
+            (
+              REPLAY_RAIL_TABS.find(
+                (tab: ReplayRailTabDefinition): boolean => {
+                  return tab.id === activeTab;
+                },
+              ) as ReplayRailTabDefinition
+            ).label,
+          ),
+        })}
         tabIndex={0}
         data-testid="rail-list"
         className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-300"
@@ -1870,8 +1924,10 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
       {selectedRow && (
         <div className="sr-only" aria-live="polite">
-          Selected {selectedRow.signal.title} at{" "}
-          {formatReplayOffsetPrecise(selectedRow.signal.offsetMs)}
+          {translator.translateTemplate(RAIL_SELECTED_ROW, {
+            title: selectedRow.signal.title,
+            time: formatReplayOffsetPrecise(selectedRow.signal.offsetMs),
+          })}
         </div>
       )}
     </div>

@@ -28,6 +28,12 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import RouteMap, { RouteUtil } from "./RouteMap";
 import PageMap from "./PageMap";
+import {
+  composedValue,
+  formatList,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
 import { RESOURCE_FACET_KEYS } from "../Components/Logs/LogsHistogramRequest";
 import {
   EXCLUDED_RESOURCE_FILTERS_FIELD,
@@ -423,34 +429,34 @@ export const mergeDroppedScopeFields: MergeDroppedScopeFieldsFunction = (
 };
 
 const DROPPED_FIELD_LABELS: Record<string, string> = {
-  serviceIds: "services",
-  traceIds: "traces",
-  spanIds: "spans",
-  severityTexts: "severity",
-  sessionIds: "sessions",
-  startTime: "window start",
-  endTime: "window end",
+  serviceIds: translationKey("services"),
+  traceIds: translationKey("traces"),
+  spanIds: translationKey("spans"),
+  severityTexts: translationKey("severity"),
+  sessionIds: translationKey("sessions"),
+  startTime: translationKey("window start"),
+  endTime: translationKey("window end"),
   /*
    * Resource facet keys, as reported dropped by the metrics serializer —
    * one per resource facet catalog entry (a test holds the two in step).
    * Read mid-sentence ("Not carried over: services, Proxmox clusters"), so
    * generic nouns are lower case and product names / acronyms keep theirs.
    */
-  hostId: "hosts",
-  dockerHostId: "Docker hosts",
-  podmanHostId: "Podman hosts",
-  kubernetesClusterId: "Kubernetes clusters",
-  dockerSwarmClusterId: "Docker Swarm clusters",
-  proxmoxClusterId: "Proxmox clusters",
-  openStackCloudId: "OpenStack clouds",
-  vmwareVCenterId: "vCenters",
-  cephClusterId: "Ceph clusters",
-  storageArrayId: "storage arrays",
-  serverlessFunctionId: "serverless functions",
-  cloudResourceId: "cloud resources",
-  rumApplicationId: "RUM applications",
-  iotFleetId: "IoT fleets",
-  databaseServerId: "databases",
+  hostId: translationKey("hosts"),
+  dockerHostId: translationKey("Docker hosts"),
+  podmanHostId: translationKey("Podman hosts"),
+  kubernetesClusterId: translationKey("Kubernetes clusters"),
+  dockerSwarmClusterId: translationKey("Docker Swarm clusters"),
+  proxmoxClusterId: translationKey("Proxmox clusters"),
+  openStackCloudId: translationKey("OpenStack clouds"),
+  vmwareVCenterId: translationKey("vCenters"),
+  cephClusterId: translationKey("Ceph clusters"),
+  storageArrayId: translationKey("storage arrays"),
+  serverlessFunctionId: translationKey("serverless functions"),
+  cloudResourceId: translationKey("cloud resources"),
+  rumApplicationId: translationKey("RUM applications"),
+  iotFleetId: translationKey("IoT fleets"),
+  databaseServerId: translationKey("databases"),
 };
 
 /*
@@ -458,13 +464,20 @@ const DROPPED_FIELD_LABELS: Record<string, string> = {
  * facet, or one that leaves its value out), named as the hint reads them.
  */
 const DROPPED_CHIP_LABELS: Record<string, string> = {
-  severityText: "severity",
-  primaryEntityId: "services",
-  serviceId: "services",
-  traceId: "traces",
-  spanId: "spans",
-  body: "message text",
+  severityText: translationKey("severity"),
+  primaryEntityId: translationKey("services"),
+  serviceId: translationKey("services"),
+  traceId: translationKey("traces"),
+  spanId: translationKey("spans"),
+  body: translationKey("message text"),
 };
+
+// How an attribute's key and a field a chip leaves out read in the hint.
+const ATTRIBUTE_FIELD_TEMPLATE: string = translationKey("attribute {{name}}");
+const EXCLUDED_FIELD_TEMPLATE: string = translationKey("excluded {{field}}");
+const NOT_CARRIED_OVER_TEMPLATE: string = translationKey(
+  "Not carried over: {{fields}}",
+);
 
 /*
  * How one dropped field reads mid-sentence. A chip that leaves values out
@@ -472,31 +485,56 @@ const DROPPED_CHIP_LABELS: Record<string, string> = {
  * field for "is not" yet - and reads as what it leaves out: "excluded
  * severity", "excluded hosts".
  */
-const getDroppedFieldLabel: (field: string) => string = (
+const getDroppedFieldLabel: (
   field: string,
-): string => {
+  translator?: Translator | undefined,
+) => string = (field: string, translator?: Translator | undefined): string => {
   const baseField: string = getBaseFacetKey(field);
+  const isAttribute: boolean = baseField.startsWith(ATTRIBUTE_FACET_PREFIX);
+  const wordedLabel: string | undefined =
+    DROPPED_FIELD_LABELS[baseField] || DROPPED_CHIP_LABELS[baseField];
 
-  const label: string = baseField.startsWith(ATTRIBUTE_FACET_PREFIX)
-    ? `attribute ${baseField.substring(ATTRIBUTE_FACET_PREFIX.length)}`
-    : DROPPED_FIELD_LABELS[baseField] ||
-      DROPPED_CHIP_LABELS[baseField] ||
-      baseField;
+  if (!translator) {
+    const label: string = isAttribute
+      ? `attribute ${baseField.substring(ATTRIBUTE_FACET_PREFIX.length)}`
+      : wordedLabel || baseField;
 
-  return isExcludeFacetKey(field) ? `excluded ${label}` : label;
+    return isExcludeFacetKey(field) ? `excluded ${label}` : label;
+  }
+
+  // An attribute's key, and a field the product has no words for, as written.
+  const label: string = isAttribute
+    ? translator.translateTemplate(ATTRIBUTE_FIELD_TEMPLATE, {
+        name: baseField.substring(ATTRIBUTE_FACET_PREFIX.length),
+      })
+    : wordedLabel
+      ? translator.translateText(wordedLabel)
+      : baseField;
+
+  return isExcludeFacetKey(field)
+    ? translator.translateTemplate(EXCLUDED_FIELD_TEMPLATE, { field: label })
+    : label;
 };
 
-type FormatDroppedScopeHintFunction = (dropped: Array<string>) => string;
+type FormatDroppedScopeHintFunction = (
+  dropped: Array<string>,
+  translator?: Translator | undefined,
+) => string;
 
 /**
  * Human-readable hint for the pivot button tooltips. Empty string when the
  * whole scope carries over; otherwise e.g.
- * "Not carried over: services, severity".
+ * "Not carried over: services, severity". Handed the reader's translator,
+ * it is in their language, whole: the sentence and each field, listed with
+ * the language's own separator ("Nicht übernommen: Dienste, Schweregrad").
+ * Without one it is the English it always was.
  */
 export const formatDroppedScopeHint: FormatDroppedScopeHintFunction = (
   dropped: Array<string>,
+  translator?: Translator | undefined,
 ): string => {
-  const labels: Array<string> = [];
+  // One field for each thing the hint names, in the order they were dropped.
+  const fields: Array<string> = [];
   const seen: Set<string> = new Set<string>();
 
   for (const field of dropped) {
@@ -507,14 +545,31 @@ export const formatDroppedScopeHint: FormatDroppedScopeHintFunction = (
     }
 
     seen.add(label);
-    labels.push(label);
+    fields.push(field);
   }
 
-  if (labels.length === 0) {
+  if (fields.length === 0) {
     return "";
   }
 
-  return `Not carried over: ${labels.join(", ")}`;
+  if (!translator) {
+    return `Not carried over: ${fields
+      .map((field: string): string => {
+        return getDroppedFieldLabel(field);
+      })
+      .join(", ")}`;
+  }
+
+  return translator.translateTemplate(NOT_CARRIED_OVER_TEMPLATE, {
+    fields: composedValue((sentence: Translator): string => {
+      return formatList(
+        fields.map((field: string): string => {
+          return getDroppedFieldLabel(field, sentence);
+        }),
+        sentence,
+      );
+    }),
+  });
 };
 
 type ApplyLogsSessionScopeToQueryFunction = (

@@ -27,6 +27,12 @@ import {
 } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  composedValue,
+  formatList,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
 
 // Re-exported so consumers type against the pivot util's own surface.
 export type { CrossSignalQueryParams, TelemetryCrossSignalScope };
@@ -598,22 +604,112 @@ export const getExemplarTraceQueryParams: GetExemplarTraceQueryParamsFunction =
  * user-facing and pass through verbatim.
  */
 const DROPPED_FIELD_LABELS: Dictionary<string> = {
-  serviceIds: "service",
-  traceIds: "trace ID",
-  spanIds: "span ID",
-  severityTexts: "severity",
-  startTime: "time window",
-  endTime: "time window",
+  serviceIds: translationKey("service"),
+  traceIds: translationKey("trace ID"),
+  spanIds: translationKey("span ID"),
+  severityTexts: translationKey("severity"),
+  startTime: translationKey("time window"),
+  endTime: translationKey("time window"),
 };
 
-type FormatDroppedScopeHintFunction = (dropped: Array<string>) => string;
+/*
+ * What the incident and alert snapshot's companion tabs could not carry
+ * over from the monitor's own query (TelemetryCompanionSignals), named as
+ * the hint reads them, mid-sentence.
+ */
+export const COMPANION_SCOPE_NOTES: {
+  serviceFilter: string;
+  entityKeyFilter: string;
+  severityFilter: string;
+  attributeFilters: string;
+  logBodySearch: string;
+  spanNameSearch: string;
+  spanStatusFilter: string;
+  exceptionTypeFilter: string;
+  exceptionMessageSearch: string;
+  chartNotNarrowedToService: string;
+  entityKeysNarrowTheListOnly: string;
+} = {
+  serviceFilter: translationKey("service filter"),
+  entityKeyFilter: translationKey("entity-key filter"),
+  severityFilter: translationKey("severity filter"),
+  attributeFilters: translationKey("attribute filters"),
+  logBodySearch: translationKey("log body search"),
+  spanNameSearch: translationKey("span name search"),
+  spanStatusFilter: translationKey("span status filter"),
+  exceptionTypeFilter: translationKey("exception type filter"),
+  exceptionMessageSearch: translationKey("exception message search"),
+  chartNotNarrowedToService: translationKey(
+    "chart values are not narrowed to the service (service name could not be resolved)",
+  ),
+  entityKeysNarrowTheListOnly: translationKey(
+    "the entity-key scope narrows the metric list, not the chart values",
+  ),
+};
+
+// An attribute whose filter was not one value, named with its key.
+const ATTRIBUTE_SCOPE_NOTE_TEMPLATE: string = translationKey(
+  'attribute "{{name}}"',
+);
+const ATTRIBUTE_SCOPE_NOTE_START: string = 'attribute "';
+
+// The note for an attribute whose filter could not be carried over.
+export const getAttributeScopeNote: (attributeKey: string) => string = (
+  attributeKey: string,
+): string => {
+  return `${ATTRIBUTE_SCOPE_NOTE_START}${attributeKey}"`;
+};
+
+// The notes and field names the hint words; any other is a key, as written.
+const WORDED_SCOPE_NOTES: ReadonlySet<string> = new Set<string>([
+  ...Object.values(DROPPED_FIELD_LABELS),
+  ...Object.values(COMPANION_SCOPE_NOTES),
+]);
+
+const NOT_CARRIED_OVER_SENTENCE: string = translationKey(
+  "Not carried over: {{fields}}.",
+);
+
+/*
+ * One note in the sentence's language: a field or a note the product
+ * words, in words; an attribute's key, and any other key, as written.
+ */
+const wordScopeNote: (note: string, sentence: Translator) => string = (
+  note: string,
+  sentence: Translator,
+): string => {
+  if (WORDED_SCOPE_NOTES.has(note)) {
+    return sentence.translateText(note);
+  }
+
+  if (
+    note.startsWith(ATTRIBUTE_SCOPE_NOTE_START) &&
+    note.endsWith('"') &&
+    note.length > ATTRIBUTE_SCOPE_NOTE_START.length + 1
+  ) {
+    return sentence.translateTemplate(ATTRIBUTE_SCOPE_NOTE_TEMPLATE, {
+      name: note.slice(ATTRIBUTE_SCOPE_NOTE_START.length, -1),
+    });
+  }
+
+  return note;
+};
+
+type FormatDroppedScopeHintFunction = (
+  dropped: Array<string>,
+  translator?: Translator | undefined,
+) => string;
 
 /**
  * One short sentence naming what a pivot could not carry over — empty
  * string when nothing was dropped (callers then show no hint at all).
+ * Handed the reader's translator, it is in their language, whole: the
+ * sentence and every worded note, the notes listed with the language's
+ * own separator. Without one it is the English it always was.
  */
 export const formatDroppedScopeHint: FormatDroppedScopeHintFunction = (
   dropped: Array<string>,
+  translator?: Translator | undefined,
 ): string => {
   const labels: Array<string> = [];
 
@@ -631,5 +727,18 @@ export const formatDroppedScopeHint: FormatDroppedScopeHintFunction = (
     return "";
   }
 
-  return `Not carried over: ${labels.join(", ")}.`;
+  if (!translator) {
+    return `Not carried over: ${labels.join(", ")}.`;
+  }
+
+  return translator.translateTemplate(NOT_CARRIED_OVER_SENTENCE, {
+    fields: composedValue((sentence: Translator): string => {
+      return formatList(
+        labels.map((label: string): string => {
+          return wordScopeNote(label, sentence);
+        }),
+        sentence,
+      );
+    }),
+  });
 };

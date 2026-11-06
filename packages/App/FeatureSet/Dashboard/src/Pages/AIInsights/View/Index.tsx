@@ -882,8 +882,13 @@ const AIInsightViewPage: FunctionComponent<
                   buttonStyle={ButtonStyleType.PRIMARY}
                   buttonSize={ButtonSize.Small}
                   tooltip={[
-                    "Opens the telemetry slice this insight was detected on.",
-                    formatDroppedScopeHint(investigationLink.dropped),
+                    translator.translateText(
+                      "Opens the telemetry slice this insight was detected on.",
+                    ),
+                    formatDroppedScopeHint(
+                      investigationLink.dropped,
+                      translator,
+                    ),
                   ]
                     .filter((sentence: string) => {
                       return sentence.length > 0;

@@ -1,3 +1,4 @@
+import readAsWritten from "../IsolatedText/ReadAsWritten";
 import IconProp from "../../../Types/Icon/IconProp";
 import bringIntoView from "../../Utils/BringIntoView";
 import { getListSeparator } from "../../Utils/ListSeparator";
@@ -498,7 +499,10 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
                   data-testid="folded-section-description"
                 >
                   {typeof props.description === "string"
-                    ? translate(props.description)
+                    ? readAsWritten(
+                        translate(props.description),
+                        translator.language,
+                      )
                     : props.description}
                 </span>
               ) : (
@@ -610,7 +614,10 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
               data-testid="folded-section-description"
             >
               {typeof props.description === "string"
-                ? translate(props.description)
+                ? readAsWritten(
+                    translate(props.description),
+                    translator.language,
+                  )
                 : props.description}
             </span>
           ) : (
