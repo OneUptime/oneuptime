@@ -45669,5 +45669,7 @@
   "{{count}} services affected": "{{count}} 個服務受影響",
   "{{count}} services affected_one": "{{count}} 個服務受影響",
   "{{affected}} of {{count}} SLOs affected": "{{count}} 個 SLO 中有 {{affected}} 個受影響",
-  "{{affected}} of {{count}} SLOs affected_one": "{{count}} 個 SLO 中有 {{affected}} 個受影響"
+  "{{affected}} of {{count}} SLOs affected_one": "{{count}} 個 SLO 中有 {{affected}} 個受影響",
+  "{{count}} fixes are waiting for approval": "{{count}} 個修正正在等待核准",
+  "{{count}} fixes are waiting for approval_one": "A fix is waiting for approval"
 }

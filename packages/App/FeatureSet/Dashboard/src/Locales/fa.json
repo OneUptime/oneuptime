@@ -45669,5 +45669,7 @@
   "{{count}} services affected": "{{count}} سرویس تحت تأثیر",
   "{{count}} services affected_one": "{{count}} سرویس تحت تأثیر",
   "{{affected}} of {{count}} SLOs affected": "{{affected}} از {{count}} SLO تحت تأثیر",
-  "{{affected}} of {{count}} SLOs affected_one": "{{affected}} از {{count}} SLO تحت تأثیر"
+  "{{affected}} of {{count}} SLOs affected_one": "{{affected}} از {{count}} SLO تحت تأثیر",
+  "{{count}} fixes are waiting for approval": "{{count}} اصلاح منتظر تأیید است",
+  "{{count}} fixes are waiting for approval_one": "یک اصلاح منتظر تأیید است"
 }

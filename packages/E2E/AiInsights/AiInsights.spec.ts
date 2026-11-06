@@ -99,6 +99,12 @@ function filled(sentence: string, values: Record<string, string>): string {
 
 const LATIN_DIGIT: RegExp = /[0-9]/;
 const PERSIAN_DIGIT: RegExp = /[\u06F0-\u06F9]/;
+/*
+ * A middle dot beside a Persian digit: Persian writes zero as a dot, so
+ * "۴ · ۲" reads "۴۰ ۲". Facts are joined with the Persian comma instead.
+ */
+const DOT_BESIDE_PERSIAN_DIGIT: RegExp =
+  /[\u06F0-\u06F9]\s*\u00B7|\u00B7\s*[\u06F0-\u06F9]/;
 // Two words of Latin letters in a row: English, on a Persian page.
 const LATIN_WORDS: RegExp = /[A-Za-z]{2,}[\s'’-]+[A-Za-z]{2,}/;
 // Words every language here borrows from English as they are.
@@ -502,6 +508,36 @@ test.describe("the Fixes section", () => {
       { place: persian("In Microsoft Teams"), count: "۱" },
     ]);
 
+    /*
+     * Each line of facts - a problem's fixes, what people said of its
+     * findings, how often it came up, a monitor's and a service's - joined
+     * with the Persian comma: no middle dot beside a count, where it read
+     * as a zero.
+     */
+    const factLines: Array<string> = await textsOf(
+      page.locator(
+        [
+          "ai-insights-insight-fixes",
+          "ai-insights-insight-verdicts",
+          "ai-insights-problem-count",
+          "ai-insights-monitors-item",
+          "ai-insights-services-item",
+        ]
+          .map((testId: string): string => {
+            return `[data-testid='${testId}']`;
+          })
+          .join(", "),
+      ),
+    );
+    expect(factLines.length).toBeGreaterThan(3);
+    for (const line of factLines) {
+      expect({ line, dot: DOT_BESIDE_PERSIAN_DIGIT.test(line) }).toEqual({
+        line,
+        dot: false,
+      });
+    }
+    expect(factLines.join(" ")).toContain("\u060C ");
+
     // The numbers at a glance and the trend: no Latin digit left.
     for (const testId of [
       "ai-insights-stat-investigations",
@@ -608,6 +644,34 @@ test.describe("the Fixes section", () => {
     ]);
     await expect(page.getByTestId("ai-insights-stat-coverage")).toContainText(
       "Alerts investigated",
+    );
+  });
+
+  /*
+   * The AI card says a waiting fix "Needs approval" - never "Needs your
+   * approval" - to someone the server would refuse (RemediationFixActGate),
+   * and so does AI Insights: a Project Member whose team blocks runbook
+   * runs reads fixes and may not approve them.
+   */
+  test("a member whose team blocks runbook runs reads that a fix is waiting for approval, never theirs (?role=runbook-blocked)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENTS_INSIGHTS, "role=runbook-blocked");
+
+    const waiting: Locator = page.locator(
+      "[data-testid='ai-insights-insight'][data-kind='FixesAwaitingApproval']",
+    );
+    await expect(
+      waiting.getByTestId("ai-insights-insight-headline"),
+    ).toHaveText("A fix is waiting for approval");
+    await expect(page.getByTestId("ai-insights-insights")).not.toContainText(
+      "your approval",
+    );
+    // Its way to the fix is the same: the fix can still be looked at.
+    await expect(waiting.getByTestId("ai-insights-next-step-link")).toHaveText(
+      "Review the fix",
     );
   });
 

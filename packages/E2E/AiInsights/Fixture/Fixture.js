@@ -23,7 +23,10 @@
  *   ?fail=    insights (the first read of the insights fails; Try again
  *             answers)
  *   ?ai=      off (Enable AI is off for the project)
- *   ?role=    member (a Project Member, who may not turn Enable AI on)
+ *   ?role=    member (a Project Member, who may not turn Enable AI on) |
+ *             runbook-blocked (a Project Member whose team blocks Create
+ *             Runbook Execution: the fixes that wait, wait for approval -
+ *             never theirs)
  *   ?lang=    de | fa (Persian, laid out right to left, as production does)
  *   ?theme=   dark adds html.dark (handled by server.js)
  *
@@ -80,7 +83,9 @@ const params = new URLSearchParams(window.location.search);
 const EMPTY = params.get("state") === "empty";
 const FIXES_HIDDEN = params.get("fixes") === "hidden";
 const AI_OFF = params.get("ai") === "off";
-const ROLE = params.get("role") === "member" ? "member" : "owner";
+const ROLE = ["member", "runbook-blocked"].includes(params.get("role"))
+  ? params.get("role")
+  : "owner";
 // The reads that fail once, then answer when tried again.
 const FAILING = new Set(
   (params.get("fail") || "").split(",").filter((kind) => {
@@ -152,7 +157,10 @@ UserUtil.isLoggedIn = () => {
 };
 
 const GRANTED =
-  ROLE === "member" ? [Permission.ProjectMember] : [Permission.ProjectOwner];
+  ROLE === "owner" ? [Permission.ProjectOwner] : [Permission.ProjectMember];
+// ?role=runbook-blocked: a team of theirs blocks starting runbook runs.
+const BLOCKED =
+  ROLE === "runbook-blocked" ? [Permission.CreateRunbookExecution] : [];
 
 PermissionUtil.getAllPermissions = () => {
   return GRANTED;
@@ -161,14 +169,24 @@ PermissionUtil.getProjectPermissions = () => {
   return {
     _type: "UserTenantAccessPermission",
     projectId: new ObjectID(PROJECT_ID),
-    permissions: GRANTED.map((permission) => {
-      return {
-        _type: "UserPermission",
-        permission: permission,
-        labelIds: [],
-        isBlockPermission: false,
-      };
-    }),
+    permissions: [
+      ...GRANTED.map((permission) => {
+        return {
+          _type: "UserPermission",
+          permission: permission,
+          labelIds: [],
+          isBlockPermission: false,
+        };
+      }),
+      ...BLOCKED.map((permission) => {
+        return {
+          _type: "UserPermission",
+          permission: permission,
+          labelIds: [],
+          isBlockPermission: true,
+        };
+      }),
+    ],
   };
 };
 PermissionUtil.getGlobalPermissions = () => {

@@ -45669,5 +45669,7 @@
   "{{count}} services affected": "{{count}} services getroffen",
   "{{count}} services affected_one": "{{count}} service getroffen",
   "{{affected}} of {{count}} SLOs affected": "{{affected}} van {{count}} SLO's getroffen",
-  "{{affected}} of {{count}} SLOs affected_one": "{{affected}} van {{count}} SLO getroffen"
+  "{{affected}} of {{count}} SLOs affected_one": "{{affected}} van {{count}} SLO getroffen",
+  "{{count}} fixes are waiting for approval": "{{count}} oplossingen wachten op goedkeuring",
+  "{{count}} fixes are waiting for approval_one": "Een oplossing wacht op goedkeuring"
 }

@@ -316,6 +316,38 @@ describe("a Persian page writes every count in Persian digits", () => {
     ).toContain("۳۰");
   });
 
+  /*
+   * Persian writes zero as a dot: "۴ اعمال‌شده · ۲ ..." read "۴۰" and
+   * "۲۰" when its facts were joined with a middle dot. They are joined
+   * with the Persian comma, as Persian lists them.
+   */
+  test("the facts lines are joined with the Persian comma: no middle dot beside a Persian digit", async () => {
+    await inLanguage("fa");
+    renderView(incidentInsights(), "incident");
+
+    const lines: Array<string> = textsOf([
+      ...screen.getAllByTestId("ai-insights-insight-fixes"),
+      ...screen.getAllByTestId("ai-insights-insight-verdicts"),
+      ...screen.getAllByTestId("ai-insights-problem-count"),
+      ...screen.getAllByTestId("ai-insights-monitors-item"),
+      ...screen.getAllByTestId("ai-insights-services-item"),
+    ]);
+    const DOT_BESIDE_DIGIT: RegExp =
+      /[\u{6F0}-\u{6F9}]\s*\u{B7}|\u{B7}\s*[\u{6F0}-\u{6F9}]/u;
+
+    expect(lines.length).toBeGreaterThan(3);
+    for (const line of lines) {
+      expect({ line, dotBesideDigit: DOT_BESIDE_DIGIT.test(line) }).toEqual({
+        line,
+        dotBesideDigit: false,
+      });
+    }
+    // The problem's fixes: several facts, joined as Persian lists them.
+    expect(
+      textsOf(screen.getAllByTestId("ai-insights-insight-fixes")).join(" "),
+    ).toContain("\u{60C} ");
+  });
+
   test("each bar of the trend says its day and its counts the reader's way", async () => {
     await inLanguage("fa");
     renderView(incidentInsights(), "incident");

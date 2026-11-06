@@ -45669,5 +45669,7 @@
   "{{count}} services affected": "{{count}} tjenester berørt",
   "{{count}} services affected_one": "{{count}} tjeneste berørt",
   "{{affected}} of {{count}} SLOs affected": "{{affected}} av {{count}} SLO-er berørt",
-  "{{affected}} of {{count}} SLOs affected_one": "{{affected}} av {{count}} SLO berørt"
+  "{{affected}} of {{count}} SLOs affected_one": "{{affected}} av {{count}} SLO berørt",
+  "{{count}} fixes are waiting for approval": "{{count}} rettinger venter på godkjenning",
+  "{{count}} fixes are waiting for approval_one": "En retting venter på godkjenning"
 }

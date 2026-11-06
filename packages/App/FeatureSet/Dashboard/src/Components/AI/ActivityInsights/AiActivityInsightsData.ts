@@ -39,6 +39,7 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { ARABIC_LIST_SEPARATOR } from "Common/UI/Utils/ListSeparator";
 
 /*
  * The pure half of an AI Insights page (AiActivityInsightsPage): how the
@@ -110,6 +111,29 @@ function translatePlural(
   values?: TemplateValues,
 ): string {
   return translatePluralAsGiven(template, count, countsInReaderDigits(values));
+}
+
+/*
+ * FACTS JOINED LIKE A LIST - "3 fixes proposed · 2 applied" - with a middle
+ * dot between them, and with the Persian comma on a Persian page: Persian
+ * writes zero as a dot ("۰"), so a middle dot beside a count read as one
+ * more digit of it, "۴ applied · ۲ verified" as "۴۰" and "۲۰". Read from
+ * the facts themselves, as ListSeparator reads a list, so a line a locale
+ * has not translated yet keeps its English dots.
+ */
+export const AI_INSIGHTS_FACT_SEPARATOR: string = " · ";
+
+// Persian (and Arabic and Urdu) facts are joined with the Persian comma.
+const ARABIC_SCRIPT_REGEX: RegExp = /\p{Script=Arabic}/u;
+
+export function joinFacts(facts: ReadonlyArray<string>): string {
+  const isArabicScript: boolean = facts.some((fact: string): boolean => {
+    return ARABIC_SCRIPT_REGEX.test(fact);
+  });
+
+  return facts.join(
+    isArabicScript ? ARABIC_LIST_SEPARATOR : AI_INSIGHTS_FACT_SEPARATOR,
+  );
 }
 
 export const AI_INSIGHTS_EMPTY_TITLE: string = translationKey(
@@ -918,6 +942,13 @@ export interface AiInsightWordingContext {
   noun: string;
   // When the insights were made: what "this week" and "new" are measured from.
   generatedAt?: string | undefined;
+  /*
+   * Whether the reader may approve the fixes that wait, as the server asks
+   * (RemediationFixActGate): false when their permissions certainly do not
+   * let them, and a fix then waits for approval - not theirs, as the AI
+   * card's Remediation step says it to them. Left out, theirs.
+   */
+  mayApproveFixes?: boolean | undefined;
 }
 
 // A short badge beside an insight's or a problem's heading.
@@ -1126,13 +1157,21 @@ export function describeInsightHeadline(
       );
 
     case AiActivityInsightKind.FixesAwaitingApproval:
-      return translatePlural(
-        {
-          one: "A fix is waiting for your approval",
-          other: "{{count}} fixes are waiting for your approval",
-        },
-        insight.count,
-      );
+      return context.mayApproveFixes === false
+        ? translatePlural(
+            {
+              one: "A fix is waiting for approval",
+              other: "{{count}} fixes are waiting for approval",
+            },
+            insight.count,
+          )
+        : translatePlural(
+            {
+              one: "A fix is waiting for your approval",
+              other: "{{count}} fixes are waiting for your approval",
+            },
+            insight.count,
+          );
 
     case AiActivityInsightKind.ReadyForAutomaticFixes:
       return translateTemplate(
@@ -1649,7 +1688,7 @@ export function describeProblemCount(problem: AiActivityProblem): string {
     parts.push(lastSeen);
   }
 
-  return parts.join(" · ");
+  return joinFacts(parts);
 }
 
 // A preventive insight's line: how often it was seen, and when last.
@@ -1673,7 +1712,7 @@ export function describePreventiveInsight(
     parts.push(lastSeen);
   }
 
-  return parts.join(" · ");
+  return joinFacts(parts);
 }
 
 /*
@@ -1722,7 +1761,7 @@ export function describeProblemFixes(
     );
   }
 
-  return parts.join(" · ");
+  return joinFacts(parts);
 }
 
 /*
@@ -1784,7 +1823,7 @@ export function describeProblemVerdicts(
     );
   }
 
-  return parts.length > 0 ? parts.join(" · ") : null;
+  return parts.length > 0 ? joinFacts(parts) : null;
 }
 
 /*
@@ -1808,7 +1847,7 @@ export function describeHotspot(hotspot: AiActivityHotspot): string {
     parts.push(lastSeen);
   }
 
-  return parts.join(" · ");
+  return joinFacts(parts);
 }
 
 /*
@@ -1840,7 +1879,7 @@ export function describeResourceHotspot(
     parts.push(lastSeen);
   }
 
-  return parts.join(" · ");
+  return joinFacts(parts);
 }
 
 /*

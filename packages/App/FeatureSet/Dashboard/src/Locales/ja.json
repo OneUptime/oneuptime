@@ -45669,5 +45669,7 @@
   "{{count}} services affected": "{{count}} 件のサービスに影響",
   "{{count}} services affected_one": "{{count}} 件のサービスに影響",
   "{{affected}} of {{count}} SLOs affected": "{{count}} 件中 {{affected}} 件の SLO に影響",
-  "{{affected}} of {{count}} SLOs affected_one": "{{count}} 件中 {{affected}} 件の SLO に影響"
+  "{{affected}} of {{count}} SLOs affected_one": "{{count}} 件中 {{affected}} 件の SLO に影響",
+  "{{count}} fixes are waiting for approval": "{{count}} 件の修正が承認待ちです",
+  "{{count}} fixes are waiting for approval_one": "A fix is waiting for approval"
 }

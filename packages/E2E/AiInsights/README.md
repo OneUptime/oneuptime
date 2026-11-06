@@ -43,16 +43,17 @@ The alerts' page reads the same month as alerts.
 
 ## Scenarios
 
-| Query                  | What it shows                                           |
-| ---------------------- | ------------------------------------------------------- |
-| (none)                 | The busy month above                                    |
-| `?state=empty`         | Nothing investigated: the empty state and why           |
-| `?fixes=hidden`        | A reader who may not read fixes: no fix numbers         |
-| `?fail=insights`       | The first read of the insights fails; Try again answers |
-| `?ai=off`              | Enable AI off for the project                           |
-| `?role=member`         | A Project Member, who may not turn Enable AI on         |
-| `?lang=de`, `?lang=fa` | German, Persian (right to left)                         |
-| `?theme=dark`          | Dark                                                    |
+| Query                   | What it shows                                                                          |
+| ----------------------- | -------------------------------------------------------------------------------------- |
+| (none)                  | The busy month above                                                                   |
+| `?state=empty`          | Nothing investigated: the empty state and why                                          |
+| `?fixes=hidden`         | A reader who may not read fixes: no fix numbers                                        |
+| `?fail=insights`        | The first read of the insights fails; Try again answers                                |
+| `?ai=off`               | Enable AI off for the project                                                          |
+| `?role=member`          | A Project Member, who may not turn Enable AI on                                        |
+| `?role=runbook-blocked` | A Project Member whose team blocks runbook runs: fixes wait for approval, never theirs |
+| `?lang=de`, `?lang=fa`  | German, Persian (right to left)                                                        |
+| `?theme=dark`           | Dark                                                                                   |
 
 The month is made up from the page's own clock; the suite pins it to
 2026-11-06 12:00 UTC, so the days its chart names are the same on every run.

@@ -45669,5 +45669,7 @@
   "{{count}} services affected": "{{count}} सेवाएं प्रभावित",
   "{{count}} services affected_one": "{{count}} सेवा प्रभावित",
   "{{affected}} of {{count}} SLOs affected": "{{count}} में से {{affected}} SLO प्रभावित",
-  "{{affected}} of {{count}} SLOs affected_one": "{{count}} में से {{affected}} SLO प्रभावित"
+  "{{affected}} of {{count}} SLOs affected_one": "{{count}} में से {{affected}} SLO प्रभावित",
+  "{{count}} fixes are waiting for approval": "{{count}} सुधार मंज़ूरी का इंतज़ार कर रहे हैं",
+  "{{count}} fixes are waiting for approval_one": "एक सुधार मंज़ूरी का इंतज़ार कर रहा है"
 }

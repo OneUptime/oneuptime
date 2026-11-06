@@ -10,7 +10,7 @@
   ],
   "minutes": {
     "test-accounts-theme-ui": 2.1,
-    "test-ai-insights-ui": 1.2,
+    "test-ai-insights-ui": 1.3,
     "test-acknowledgement-timeout-ui": 0.4,
     "test-ai-context-ui": 1.7,
     "test-alerts-ui": 0.8,

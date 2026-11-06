@@ -2,6 +2,10 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { SettingsAction, getSettingsAction } from "../InvestigationNotStarted";
 import {
+  getRemediationFixActGate,
+  getRemediationFixWhoMayAct,
+} from "../../AutoRemediation/RemediationFixActGate";
+import {
   AI_INSIGHTS_FINDING_LABEL,
   AI_INSIGHTS_FIX_APPROVAL_PLACES_TITLE,
   AI_INSIGHTS_FIXES_HIDDEN_NOTE,
@@ -1759,6 +1763,15 @@ const AiActivityInsightsView: FunctionComponent<ComponentProps> = (
     subjectKind,
     noun: props.noun,
     generatedAt: props.insights.generatedAt || undefined,
+    /*
+     * Whom the fixes that wait are waiting for: someone the server would
+     * refuse reads they wait for approval, never theirs - as the AI card's
+     * Remediation step says it (RemediationFixActGate). Until the
+     * permission snapshot lands, theirs.
+     */
+    mayApproveFixes: !getRemediationFixWhoMayAct(
+      getRemediationFixActGate("approveOrDismiss"),
+    ),
   };
 
   const routes: AiInsightsRoutes = {

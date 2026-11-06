@@ -45669,5 +45669,7 @@
   "{{count}} services affected": "Затронуто служб: {{count}}",
   "{{count}} services affected_one": "{{count}} служба затронута",
   "{{affected}} of {{count}} SLOs affected": "Затронуто SLO: {{affected}} из {{count}}",
-  "{{affected}} of {{count}} SLOs affected_one": "Затронуто SLO: {{affected}} из {{count}}"
+  "{{affected}} of {{count}} SLOs affected_one": "Затронуто SLO: {{affected}} из {{count}}",
+  "{{count}} fixes are waiting for approval": "Исправления ждут одобрения: {{count}}",
+  "{{count}} fixes are waiting for approval_one": "Исправление ждёт одобрения"
 }

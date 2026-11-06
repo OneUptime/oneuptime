@@ -45669,5 +45669,7 @@
   "{{count}} services affected": "{{count}} serviços afetados",
   "{{count}} services affected_one": "{{count}} serviço afetado",
   "{{affected}} of {{count}} SLOs affected": "SLOs afetados: {{affected}} de {{count}}",
-  "{{affected}} of {{count}} SLOs affected_one": "SLO afetado: {{affected}} de {{count}}"
+  "{{affected}} of {{count}} SLOs affected_one": "SLO afetado: {{affected}} de {{count}}",
+  "{{count}} fixes are waiting for approval": "{{count}} correções aguardam aprovação",
+  "{{count}} fixes are waiting for approval_one": "Uma correção aguarda aprovação"
 }
