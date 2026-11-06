@@ -627,6 +627,8 @@ Installationer i egen drift kan ändra detta med miljövariabler på appen:
 
 ## Larm på en resurs
 
+En resurs i ett [anslutet konto](/docs/telemetry/cloud-accounts) erbjuds på sin flik **Rekommendationer** de monitorer som OneUptime rekommenderar för dess typ, var och en skapad i ett steg. Så här larmar du om något annat mätvärde den rapporterar:
+
 :::steps
 1. Öppna resursen och dess flik **Mätvärden**, som listar varje mätvärde som leverantören rapporterar om den.
 2. Öppna ett mätvärde för att visa det i ett diagram i mätvärdesutforskaren, redan filtrerat på resursen.

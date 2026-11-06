@@ -1,4 +1,5 @@
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -112,6 +113,15 @@ export default class MonitorRecommendationCreateUtil {
     monitor.monitorType = data.recommendation.monitorType;
 
     /*
+     * A template that says how often its monitor need run - a cloud
+     * resource's, every five minutes, as often as its points can change -
+     * sets it; every other monitor keeps the default, every minute.
+     */
+    if (data.recommendation.monitoringInterval) {
+      monitor.monitoringInterval = data.recommendation.monitoringInterval;
+    }
+
+    /*
      * The template interpolates `monitorName` into its incident and alert
      * titles, and every one of those titles already restates the template's
      * own name — so it must be the bare RESOURCE name, not `monitorName`,
@@ -155,6 +165,22 @@ export default class MonitorRecommendationCreateUtil {
   }
 
   /*
+   * A monitor created for a cloud resource holds the resource in its Linked
+   * Resources (Monitor.cloudResources): the monitor's page names it, the
+   * incidents and alerts it opens are linked to it, and the resource's own
+   * Incidents and Alerts list them - from its Recommendations tab or its
+   * account's alike.
+   */
+  public static linkToCloudResource(data: {
+    monitor: Monitor;
+    cloudResourceId: ObjectID;
+  }): void {
+    const resource: CloudResource = new CloudResource();
+    resource.id = data.cloudResourceId;
+    data.monitor.cloudResources = [resource];
+  }
+
+  /*
    * Turn the user's selection into an ordered list of monitors to POST.
    *
    * Recommendation ids that do not resolve are skipped rather than throwing:
@@ -168,6 +194,13 @@ export default class MonitorRecommendationCreateUtil {
     resourceDisplayName: string;
     defaultMonitorStatusId: ObjectID;
     notificationSettings: MonitorRecommendationNotificationSettings;
+    /*
+     * What each monitor is linked to beside its scope, for the resource
+     * types that link it (RecommendationResourceDefinition
+     * .linkCreatedMonitor): a cloud resource's monitors carry it in their
+     * Linked Resources.
+     */
+    linkMonitor?: ((monitor: Monitor) => void) | undefined;
   }): Array<MonitorRecommendationCreatePlanItem> {
     const miscDataProps: JSONObject = this.buildMiscDataProps(
       data.notificationSettings,
@@ -185,15 +218,19 @@ export default class MonitorRecommendationCreateUtil {
         continue;
       }
 
+      const monitor: Monitor = this.buildMonitor({
+        recommendation: recommendation,
+        args: data.args,
+        resourceDisplayName: data.resourceDisplayName,
+        defaultMonitorStatusId: data.defaultMonitorStatusId,
+        notificationSettings: data.notificationSettings,
+      });
+
+      data.linkMonitor?.(monitor);
+
       plan.push({
         recommendation: recommendation,
-        monitor: this.buildMonitor({
-          recommendation: recommendation,
-          args: data.args,
-          resourceDisplayName: data.resourceDisplayName,
-          defaultMonitorStatusId: data.defaultMonitorStatusId,
-          notificationSettings: data.notificationSettings,
-        }),
+        monitor: monitor,
         miscDataProps: miscDataProps,
       });
     }

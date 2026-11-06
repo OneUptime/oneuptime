@@ -28,6 +28,7 @@ function emptyMaintained(): MaintainedResourceKeys {
     iotFleets: { ids: new Set<string>(), names: new Set<string>() },
     services: { ids: new Set<string>(), names: new Set<string>() },
     databaseServers: { ids: new Set<string>(), names: new Set<string>() },
+    cloudResources: { ids: new Set<string>(), names: new Set<string>() },
   };
 }
 

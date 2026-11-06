@@ -7,7 +7,7 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
-import Card from "Common/UI/Components/Card/Card";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -26,17 +26,15 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
-import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
-import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
-import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
-import Label from "Common/Models/DatabaseModels/Label";
 
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType, {
@@ -62,7 +60,14 @@ import RecommendationFilterUtil, {
   RECOMMENDATION_SELECTION_QUERY_PARAM,
 } from "./RecommendationFilterUtil";
 import RecommendationDismissalUtil from "./RecommendationDismissalUtil";
+import {
+  CREATE_MONITORS_LOCKED_SENTENCE,
+  loadMonitorRecommendationProjectSetup,
+  MonitorRecommendationProjectDefaults,
+  MonitorRecommendationProjectSetup,
+} from "./MonitorRecommendationProjectSetup";
 import MonitorRecommendationCreateSideOver from "./MonitorRecommendationCreateSideOver";
+import { notifyRecommendationsChanged } from "./RecommendationsChanged";
 import MonitorRecommendationCreateProgressPanel from "./MonitorRecommendationCreateProgress";
 import {
   MONITOR_CONSENT_ERROR,
@@ -126,15 +131,29 @@ export interface ComponentProps {
    * nothing to explain there.
    */
   resourceContextNote?: string | undefined;
+  /*
+   * What the card says the recommendations are drawn from, when it is not
+   * what an agent sends (RecommendationResourceDefinition
+   * .getCardDescription): a cloud resource's come from what its cloud's
+   * monitoring reports about it. Already in the reader's language.
+   */
+  cardDescription?: string | undefined;
+  /*
+   * What each created monitor is linked to beside its scope
+   * (RecommendationResourceDefinition.linkCreatedMonitor): a cloud
+   * resource's carry it in their Linked Resources.
+   */
+  linkCreatedMonitor?: ((monitor: Monitor) => void) | undefined;
 }
 
-interface ProjectDefaults {
-  onlineMonitorStatusId: ObjectID;
-  offlineMonitorStatusId: ObjectID;
-  defaultMonitorStatusId: ObjectID;
-  defaultIncidentSeverityId: ObjectID;
-  defaultAlertSeverityId: ObjectID;
-}
+type ProjectDefaults = MonitorRecommendationProjectDefaults;
+
+/*
+ * An empty list's padding inside the card, as a cloud account's
+ * Recommendations has it: EmptyState's own 13rem is a whole page's, and
+ * under a note or the tiles it pushed its words off a laptop's screen.
+ */
+export const EMPTY_LIST_PADDING_CLASS_NAME: string = "py-12";
 
 const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -310,154 +329,21 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
     setError("");
 
     try {
-      const monitorStatusList: ListResult<MonitorStatus> =
-        await ModelAPI.getList({
-          modelType: MonitorStatus,
-          // A new monitor is set up with values that can be picked.
-          query: { isArchived: false },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            name: true,
-            isOperationalState: true,
-            isOfflineState: true,
-            priority: true,
-          },
-          sort: {
-            priority: SortOrder.Ascending,
-          },
-        });
-
-      const onlineStatus: MonitorStatus | undefined =
-        monitorStatusList.data.find((item: MonitorStatus) => {
-          return item.isOperationalState;
-        });
-      const offlineStatus: MonitorStatus | undefined =
-        monitorStatusList.data.find((item: MonitorStatus) => {
-          return item.isOfflineState;
-        });
-
-      const incidentSeverityList: ListResult<IncidentSeverity> =
-        await ModelAPI.getList({
-          modelType: IncidentSeverity,
-          // A new monitor is set up with values that can be picked.
-          query: { isArchived: false },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: { name: true, order: true, color: true },
-          sort: { order: SortOrder.Ascending },
-        });
-
-      const alertSeverityList: ListResult<AlertSeverity> =
-        await ModelAPI.getList({
-          modelType: AlertSeverity,
-          // A new monitor is set up with values that can be picked.
-          query: { isArchived: false },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: { name: true, order: true, color: true },
-          sort: { order: SortOrder.Ascending },
-        });
-
       /*
-       * Every one of these is required to build a valid monitor step. A
-       * project missing any of them cannot create monitors at all, so fail
-       * with a specific message rather than letting a non-null assertion throw
-       * an opaque one (which is what the monitor create form does today).
+       * The statuses and severities every recommended monitor is built
+       * with, and what the create panel offers - read as a cloud account's
+       * Recommendations reads them (MonitorRecommendationProjectSetup).
        */
-      if (!onlineStatus?._id) {
-        throw new Error(
-          translator.translateTemplate(
-            "This project has no operational monitor status. Add one under Monitors → Settings → Monitor Status.",
-          ),
-        );
-      }
-      if (!offlineStatus?._id) {
-        throw new Error(
-          translator.translateTemplate(
-            "This project has no offline monitor status. Add one under Monitors → Settings → Monitor Status.",
-          ),
-        );
-      }
-      if (!incidentSeverityList.data[0]?._id) {
-        throw new Error(
-          translator.translateTemplate(
-            "This project has no incident severity. Add one under Incidents → Settings → Incident Severity.",
-          ),
-        );
-      }
-      if (!alertSeverityList.data[0]?._id) {
-        throw new Error(
-          translator.translateTemplate(
-            "This project has no alert severity. Add one under Alerts → Settings → Alert Severity.",
-          ),
-        );
-      }
+      const setup: MonitorRecommendationProjectSetup =
+        await loadMonitorRecommendationProjectSetup(translator);
 
-      const defaults: ProjectDefaults = {
-        onlineMonitorStatusId: new ObjectID(onlineStatus._id),
-        offlineMonitorStatusId: new ObjectID(offlineStatus._id),
-        defaultMonitorStatusId: new ObjectID(onlineStatus._id),
-        defaultIncidentSeverityId: new ObjectID(
-          incidentSeverityList.data[0]._id,
-        ),
-        defaultAlertSeverityId: new ObjectID(alertSeverityList.data[0]._id),
-      };
+      const defaults: ProjectDefaults = setup.defaults;
 
       setProjectDefaults(defaults);
-
-      setIncidentSeverityOptions(
-        incidentSeverityList.data.map((item: IncidentSeverity) => {
-          return {
-            id: new ObjectID(item._id!),
-            name: item.name!,
-            order: item.order,
-            color: DropdownUtil.toOptionColor(item.color),
-          };
-        }),
-      );
-      setAlertSeverityOptions(
-        alertSeverityList.data.map((item: AlertSeverity) => {
-          return {
-            id: new ObjectID(item._id!),
-            name: item.name!,
-            order: item.order,
-            color: DropdownUtil.toOptionColor(item.color),
-          };
-        }),
-      );
-
-      const onCallPolicyList: ListResult<OnCallDutyPolicy> =
-        await ModelAPI.getList({
-          modelType: OnCallDutyPolicy,
-          query: {},
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: { name: true },
-          sort: { name: SortOrder.Ascending },
-        });
-
-      setOnCallPolicyDropdownOptions(
-        onCallPolicyList.data.map((item: OnCallDutyPolicy) => {
-          return { value: item._id!, label: item.name! };
-        }),
-      );
-
-      const labelList: ListResult<Label> = await ModelAPI.getList({
-        modelType: Label,
-        // A new monitor is set up with values that can be picked.
-        query: { isArchived: false },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: { name: true },
-        sort: { name: SortOrder.Ascending },
-      });
-
-      setLabelDropdownOptions(
-        labelList.data.map((item: Label) => {
-          return { value: item._id!, label: item.name! };
-        }),
-      );
+      setIncidentSeverityOptions(setup.incidentSeverityOptions);
+      setAlertSeverityOptions(setup.alertSeverityOptions);
+      setOnCallPolicyDropdownOptions(setup.onCallPolicyDropdownOptions);
+      setLabelDropdownOptions(setup.labelDropdownOptions);
 
       await Promise.all([loadCoverage(defaults), loadDismissals()]);
     } catch (err) {
@@ -600,6 +486,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
         resourceDisplayName: props.resourceDisplayName,
         defaultMonitorStatusId: projectDefaults.defaultMonitorStatusId,
         notificationSettings: notificationSettings,
+        linkMonitor: props.linkCreatedMonitor,
       });
 
     /*
@@ -722,6 +609,9 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
+
+    // The side menu's badge counts what is left again.
+    notifyRecommendationsChanged();
   };
 
   type DismissFunction = () => Promise<void>;
@@ -754,6 +644,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       setSelectedRecommendationIds(selected);
 
       await loadDismissals();
+      notifyRecommendationsChanged();
       setDismissTarget(null);
       setDismissalReason("");
     } catch (err) {
@@ -777,6 +668,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
     try {
       await RecommendationDismissalUtil.restore(viewModel.dismissalId);
       await loadDismissals();
+      notifyRecommendationsChanged();
     } catch (err) {
       setActionError(API.getFriendlyMessage(err));
     }
@@ -934,6 +826,69 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   const selectedWarningCount: number =
     selectedRecommendations.length - selectedCriticalCount;
 
+  /*
+   * Whether the person may create monitors at all. A member whose role may
+   * not still sees what is recommended and what is set up, and every Create
+   * says why it is locked, as every Create of a monitor does
+   * (PermissionGate); nothing is sent that the server would refuse. While
+   * the permission snapshot is still loading there is nothing honest to
+   * say, so the buttons stay as they are. Said of monitors, as the buttons
+   * it locks make them, not "this Monitor".
+   */
+  const monitorCreateGate: PermissionGateResult = PermissionGate.check(
+    new Monitor(),
+    ModelAction.Create,
+    { sentence: CREATE_MONITORS_LOCKED_SENTENCE },
+  );
+  const createLockReason: string | undefined =
+    !monitorCreateGate.isAllowed && monitorCreateGate.disabledReason
+      ? monitorCreateGate.disabledReason
+      : undefined;
+
+  const createButton: CardButtonSchema = {
+    /*
+     * "Create 0 Selected" was the label the page wore most of the
+     * time, since nothing is selected when it loads. A disabled
+     * button counting to zero reads as broken rather than as waiting.
+     */
+    title:
+      selectedRecommendations.length > 0
+        ? translator.translateTemplate("Create {{count}} Selected", {
+            count: translator.formatNumber(selectedRecommendations.length),
+          })
+        : "Create Monitors",
+    icon: IconProp.Add,
+    /*
+     * Plain. Once anything is selected the bar pinned under the list
+     * carries the same action as the page's one primary button, and
+     * two filled "Create" buttons on one screen read as two different
+     * things to do. With nothing selected the next step is to pick,
+     * not to press.
+     */
+    buttonStyle: ButtonStyleType.NORMAL,
+    disabled: selectedRecommendations.length === 0,
+    tooltip:
+      selectedRecommendations.length === 0
+        ? "Pick at least one recommendation below first."
+        : undefined,
+    onClick: openCreatePanel,
+  };
+
+  /*
+   * No Create at all while nothing is recommended: a button that can never
+   * be pressed beside a list that says why it is empty is one more thing
+   * to read.
+   */
+  const gatedCreateButton: CardButtonSchema | null =
+    counts.total > 0
+      ? PermissionGate.gateCardButton(
+          createButton,
+          new Monitor(),
+          ModelAction.Create,
+          { sentence: CREATE_MONITORS_LOCKED_SENTENCE },
+        )
+      : null;
+
   type GetMonitorRouteFunction = (monitorId: ObjectID) => Route;
 
   const getMonitorRoute: GetMonitorRouteFunction = (
@@ -965,6 +920,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
               { resourceName: resourceName },
             )}
             description="The note above explains why. You can still create monitors by hand."
+            paddingClassName={EMPTY_LIST_PADDING_CLASS_NAME}
           />
         );
       }
@@ -975,6 +931,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           icon={IconProp.Sparkles}
           title="No recommendations for this resource type yet"
           description="OneUptime does not ship a recommended monitor library for this resource type. You can still create monitors by hand."
+          paddingClassName={EMPTY_LIST_PADDING_CLASS_NAME}
         />
       );
     }
@@ -999,6 +956,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             counts.total,
             { resourceName: resourceName },
           )}
+          paddingClassName={EMPTY_LIST_PADDING_CLASS_NAME}
         />
       );
     }
@@ -1009,6 +967,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
         icon={IconProp.Search}
         title="No recommendations match these filters"
         description="Try a different search term, or switch the severity and status filters back to show everything."
+        paddingClassName={EMPTY_LIST_PADDING_CLASS_NAME}
       />
     );
   };
@@ -1024,42 +983,14 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       <MonitorPayAsYouGoCard />
       <Card
         title="Recommended Monitors"
-        description={translator.translateTemplate(
-          "Monitors OneUptime recommends for this {{resourceName}}, based on the telemetry the agent already sends. Pick the ones you want, choose who gets paged, and create them in one step.",
-          { resourceName: resourceName },
-        )}
-        buttons={[
-          {
-            /*
-             * "Create 0 Selected" was the label the page wore most of the
-             * time, since nothing is selected when it loads. A disabled
-             * button counting to zero reads as broken rather than as waiting.
-             */
-            title:
-              selectedRecommendations.length > 0
-                ? translator.translateTemplate("Create {{count}} Selected", {
-                    count: translator.formatNumber(
-                      selectedRecommendations.length,
-                    ),
-                  })
-                : "Create Monitors",
-            icon: IconProp.Add,
-            /*
-             * Plain. Once anything is selected the bar pinned under the list
-             * carries the same action as the page's one primary button, and
-             * two filled "Create" buttons on one screen read as two different
-             * things to do. With nothing selected the next step is to pick,
-             * not to press.
-             */
-            buttonStyle: ButtonStyleType.NORMAL,
-            disabled: selectedRecommendations.length === 0,
-            tooltip:
-              selectedRecommendations.length === 0
-                ? "Pick at least one recommendation below first."
-                : undefined,
-            onClick: openCreatePanel,
-          },
-        ]}
+        description={
+          props.cardDescription ||
+          translator.translateTemplate(
+            "Monitors OneUptime recommends for this {{resourceName}}, based on the telemetry the agent already sends. Pick the ones you want, choose who gets paged, and create them in one step.",
+            { resourceName: resourceName },
+          )
+        }
+        buttons={gatedCreateButton ? [gatedCreateButton] : []}
       >
         <div className="space-y-6">
           {actionError ? <ErrorMessage message={actionError} /> : <></>}
@@ -1092,12 +1023,21 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          <RecommendationToolbar
-            counts={counts}
-            filterState={filterState}
-            isDisabled={isCreating}
-            onFilterStateChange={setFilterState}
-          />
+          {/*
+           * Tiles, search and filters only once there is something to count
+           * and narrow: four zeros and a search box above "No
+           * recommendations ... yet" said the same thing five more times.
+           */}
+          {counts.total > 0 ? (
+            <RecommendationToolbar
+              counts={counts}
+              filterState={filterState}
+              isDisabled={isCreating}
+              onFilterStateChange={setFilterState}
+            />
+          ) : (
+            <></>
+          )}
 
           {groups.length === 0 ? (
             getEmptyState()
@@ -1195,6 +1135,8 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
               )}
               icon={IconProp.Add}
               buttonStyle={ButtonStyleType.PRIMARY}
+              disabled={Boolean(createLockReason)}
+              tooltip={createLockReason}
               onClick={openCreatePanel}
             />
           </div>

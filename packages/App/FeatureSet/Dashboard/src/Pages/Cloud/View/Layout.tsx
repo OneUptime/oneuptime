@@ -14,6 +14,7 @@ import {
   isCloudResourceKindResource,
 } from "Common/Types/Cloud/CloudResourceKind";
 import { canCloudResourceHaveStreamedLogs } from "Common/Types/Cloud/CloudLogGroups";
+import { getCloudAlertTemplatesForType } from "Common/Types/Monitor/CloudAlertTemplates";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -50,11 +51,18 @@ const CloudResourceViewLayout: FunctionComponent<
     useState<CloudResourceKind | null>(null);
   // Whether its menu has Logs: a kind of resource a log group names.
   const [hasStreamedLogs, setHasStreamedLogs] = useState<boolean>(false);
+  /*
+   * Whether its menu has Recommendations: a type OneUptime recommends
+   * monitors for (CloudAlertTemplates). A VPC's or a bucket's would only
+   * ever say there are none.
+   */
+  const [hasRecommendations, setHasRecommendations] = useState<boolean>(false);
 
   useEffect(() => {
     let ignore: boolean = false;
     setCloudResourceKind(null);
     setHasStreamedLogs(false);
+    setHasRecommendations(false);
 
     ModelAPI.getItem({
       modelType: CloudResource,
@@ -72,6 +80,12 @@ const CloudResourceViewLayout: FunctionComponent<
               provider: item?.cloudProvider,
               type: item?.cloudResourceType,
             }),
+          );
+          setHasRecommendations(
+            getCloudAlertTemplatesForType({
+              provider: item?.cloudProvider,
+              resourceType: item?.cloudResourceType,
+            }).length > 0,
           );
           /*
            * A row that is not there is drawn as a resource, so its tabs say
@@ -118,7 +132,11 @@ const CloudResourceViewLayout: FunctionComponent<
       modelNameField="name"
       breadcrumbLinks={getCloudBreadcrumbs(path)}
       sideMenu={
-        <SideMenu modelId={modelId} hasStreamedLogs={hasStreamedLogs} />
+        <SideMenu
+          modelId={modelId}
+          hasStreamedLogs={hasStreamedLogs}
+          hasRecommendations={hasRecommendations}
+        />
       }
     >
       {cloudResourceKind ? <Outlet /> : <PageLoader isVisible={true} />}

@@ -16,8 +16,10 @@ import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
  * Read the way a person reads them: the Overview's fleet strip, its recent
  * deploys and its environments grouped by platform; All Apps, an
  * environment's Apps and one app's page - its revisions and deploys, its
- * instances, logs and traces; an environment's page and every tab of it,
- * under App Platforms' trail and side menu; All Environments, Archived
+ * instances, logs and traces, and the monitors recommended for it, which
+ * Set up alerts opens and makes in one step; an environment's page and
+ * every tab of it, under App Platforms' trail and side menu; All
+ * Environments, Archived
  * and the rules, which list environments and never a cloud resource, and
  * show a rule made before the split with a pill that says why; the old Cloud
  * addresses of an environment, which open it here, and the App Platforms
@@ -107,12 +109,25 @@ interface AnalyticsRequest {
   entryOnly: boolean;
 }
 
+// A monitor an app's Recommendations tab made, as the fixture kept it.
+interface CreatedMonitor {
+  modelName: string;
+  name: string;
+  monitorType: string;
+  scope: Record<string, string> | null;
+  metricName: string | null;
+  spanStatuses: Array<number> | null;
+  serviceIds: Array<string>;
+  cloudResourceIds: Array<string>;
+}
+
 interface Recorded {
   listRequests: Array<ListRequest>;
   analyticsRequests: Array<AnalyticsRequest>;
   countRequests: Array<ListRequest>;
   itemRequests: Array<{ modelName: string; id: string }>;
   apiRequests: Array<{ method: string; url: string }>;
+  creates: Array<CreatedMonitor>;
   unhandled: Array<Record<string, unknown>>;
 }
 
@@ -1216,13 +1231,17 @@ test.describe("apps and their deploys", () => {
     await expect(page.getByTestId("cloud-app-header-revision")).toHaveText(
       "Revision 43 · Deployed 25 minutes ago · Replaced 42",
     );
-    // Alerts that work out of the box: its service's recommended monitors.
+    /*
+     * Alerts that work out of the box: its own recommended monitors, on its
+     * Recommendations tab - a button of the page, not a link to its
+     * service's, which another app of the image can share.
+     */
+    await expect(
+      header.getByRole("button", { name: "Set up alerts" }),
+    ).toBeVisible();
     await expect(
       header.getByRole("link", { name: "Set up alerts" }),
-    ).toHaveAttribute(
-      "href",
-      `${DASHBOARD}/service/${CHECKOUT_SERVICE_ID}/recommendations`,
-    );
+    ).toHaveCount(0);
     await expect(
       header.getByRole("link", { name: "checkout-api" }),
     ).toHaveAttribute("href", `${DASHBOARD}/service/${CHECKOUT_SERVICE_ID}`);
@@ -1233,6 +1252,7 @@ test.describe("apps and their deploys", () => {
       "Instances",
       "Logs",
       "Traces",
+      "Recommendations",
     ]);
 
     // Its numbers, its live tasks, and the revisions they run right now.
@@ -1278,6 +1298,128 @@ test.describe("apps and their deploys", () => {
     await page.setViewportSize(PHONE);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "app-platforms-app-overview-390");
+  });
+
+  /*
+   * Set up alerts opens the app's own recommended monitors - its requests
+   * failing, bursting, stopping and slowing - and each one it makes reads
+   * the app's spans or request durations by the filter its Traces tab
+   * reads them by, never by a service, and is linked to its environment.
+   */
+  test("Set up alerts opens its Recommendations, and makes its five monitors for it in one step", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, CHECKOUT_APP);
+
+    await page
+      .getByTestId("cloud-app-header")
+      .getByRole("button", { name: "Set up alerts" })
+      .click();
+
+    const recommendationsTab: Locator = page.getByRole("tab", {
+      name: "Recommendations",
+    });
+    await expect(recommendationsTab).toHaveAttribute("aria-selected", "true");
+    await expect(recommendationsTab).toBeFocused();
+
+    const panel: Locator = page.getByRole("tabpanel");
+    await expect(panel).toContainText(
+      "Monitors OneUptime recommends for this app, from the requests its OpenTelemetry reports.",
+    );
+    await expect(panel).toContainText("0 of 5 recommended monitors created");
+    for (const name of [
+      "Failed Operations",
+      "Error Burst",
+      "Traffic Stopped",
+      "High Request Latency (p95)",
+      "Severe Request Latency (p99)",
+    ]) {
+      await expect(panel.getByText(name, { exact: true })).toBeVisible();
+    }
+
+    // Its own row and its environment's, read with the person's rights.
+    const items: Array<{ modelName: string; id: string }> = (
+      await recorded(page)
+    ).itemRequests;
+    expect(
+      items.filter((item: { modelName: string; id: string }): boolean => {
+        return item.modelName === "CloudApp";
+      }).length,
+    ).toBe(2);
+    await screenshot(page, "app-platforms-app-recommendations-1280");
+
+    await page.setViewportSize(PHONE);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-app-recommendations-390");
+
+    /*
+     * Beside the side menu at a tablet's width the six tabs wrap rather
+     * than run past the page: the row scrolled it sideways from 768px.
+     */
+    await page.setViewportSize(TABLET);
+    await expectNoSidewaysScroll(page);
+    await expect(recommendationsTab).toBeVisible();
+    await screenshot(page, "app-platforms-app-recommendations-768");
+    await page.setViewportSize(LAPTOP);
+
+    // Every section's Select all - errors, throughput, latency - then one Create.
+    const selectAll: Locator = panel.getByRole("button", {
+      name: /^Select all \d+$/,
+    });
+    await expect(selectAll).toHaveCount(3);
+    for (let section: number = 0; section < 3; section++) {
+      await selectAll.first().click();
+    }
+    await expect(selectAll).toHaveCount(0);
+    await panel
+      .getByRole("button", { name: "Create 5 Selected Monitors" })
+      .first()
+      .click();
+    await page.getByRole("button", { name: "Create Monitors" }).last().click();
+
+    // A clean run closes its panel, and the tab reads what covers each again.
+    await expect(panel).toContainText("5 of 5 recommended monitors created");
+
+    const filter: Record<string, string> = {
+      "resource.cloud.platform": "aws_ecs",
+      "resource.cloud.account.id": "4109-2277-8841",
+      "resource.cloud.region": "us-east-1",
+      "resource.aws.ecs.cluster.arn":
+        "arn:aws:ecs:us-east-1:4109-2277-8841:cluster/production",
+      "resource.aws.ecs.task.family": "checkout-api",
+    };
+    const creates: Array<CreatedMonitor> = (await recorded(page)).creates;
+    expect(
+      creates
+        .map((created: CreatedMonitor): string => {
+          return `${created.name} (${created.monitorType})`;
+        })
+        .sort(),
+    ).toEqual([
+      "checkout-api - Error Burst (Traces)",
+      "checkout-api - Failed Operations (Traces)",
+      "checkout-api - High Request Latency (p95) (Metrics)",
+      "checkout-api - Severe Request Latency (p99) (Metrics)",
+      "checkout-api - Traffic Stopped (Traces)",
+    ]);
+    for (const created of creates) {
+      expect(created.scope, created.name).toEqual(filter);
+      expect(created.serviceIds, created.name).toEqual([]);
+      expect(created.cloudResourceIds, created.name).toEqual([CHECKOUT_ID]);
+    }
+    expect(
+      creates
+        .filter((created: CreatedMonitor): boolean => {
+          return created.monitorType === "Metrics";
+        })
+        .map((created: CreatedMonitor): string | null => {
+          return created.metricName;
+        }),
+    ).toEqual(["http.server.request.duration", "http.server.request.duration"]);
+    await screenshot(page, "app-platforms-app-recommendations-created-1280");
   });
 
   test("Revisions lists every revision newest first: the one it runs, the one still draining, the one retired", async ({

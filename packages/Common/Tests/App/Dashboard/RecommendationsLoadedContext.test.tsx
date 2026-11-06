@@ -104,6 +104,8 @@ import Route from "../../../Types/API/Route";
 import { getDatabaseAlertTemplates } from "../../../Types/Monitor/DatabaseAlertTemplates";
 import { MonitorRecommendationResourceType } from "../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import PermissionUtil from "../../../UI/Utils/Permission";
 
 // A filled button - what a primary button looks like, whatever its colour.
 const FILLED_BUTTON_CLASS: RegExp = /\bbg-(indigo|red|green|yellow)-600\b/;
@@ -196,6 +198,15 @@ beforeEach(() => {
       projectList((args as { modelType: unknown }).modelType),
     );
   });
+
+  /*
+   * The project's owner, whose permission snapshot has landed: the tab's
+   * Create buttons are shown to whoever may create a monitor
+   * (PermissionGate), and hidden until the snapshot says who that is.
+   */
+  jest
+    .spyOn(PermissionUtil, "getAllPermissions")
+    .mockReturnValue([Permission.ProjectOwner]);
 });
 
 afterEach(() => {

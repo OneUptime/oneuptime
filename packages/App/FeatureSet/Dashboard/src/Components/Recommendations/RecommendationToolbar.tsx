@@ -12,7 +12,7 @@ import {
   RecommendationSeverityFilter,
   RecommendationStatusFilter,
 } from "./RecommendationViewModel";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -21,6 +21,22 @@ export interface ComponentProps {
   onFilterStateChange: (filterState: RecommendationFilterState) => void;
   isDisabled?: boolean | undefined;
 }
+
+// The coverage bar's words after its "3 of 8".
+export const RECOMMENDATION_COVERAGE_SUFFIX: string = translationKey(
+  "recommended monitors created",
+);
+
+/*
+ * The search box and the severity filter share a row from 42rem of the
+ * toolbar's own width - a 320px box beside German's three filter buttons -
+ * and stack below that.
+ */
+export const SEARCH_BESIDE_FILTERS_CLASS_NAME: string =
+  "[@container(min-width:42rem)]:flex-row [@container(min-width:42rem)]:items-center [@container(min-width:42rem)]:justify-between";
+
+export const SEARCH_BOX_BESIDE_FILTERS_CLASS_NAME: string =
+  "[@container(min-width:42rem)]:max-w-xs [@container(min-width:42rem)]:flex-1";
 
 interface StatTileDefinition {
   label: string;
@@ -146,7 +162,7 @@ const RecommendationToolbar: FunctionComponent<ComponentProps> = (
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 [container-type:inline-size]">
       {/*
        * How much of the recommended set is actually watched, on one line.
        *
@@ -163,7 +179,11 @@ const RecommendationToolbar: FunctionComponent<ComponentProps> = (
           <ProgressBar
             count={props.counts.created}
             totalCount={props.counts.total}
-            suffix="recommended monitors created"
+            /*
+             * A key of its own, looked up by the bar: a bare string here
+             * was never extracted, so every language read it in English.
+             */
+            suffix={RECOMMENDATION_COVERAGE_SUFFIX}
             size={ProgressBarSize.Small}
           />
         </div>
@@ -209,15 +229,28 @@ const RecommendationToolbar: FunctionComponent<ComponentProps> = (
                   isSelected ? "text-indigo-700" : "text-gray-900"
                 }`}
               >
-                {tile.count}
+                {/*
+                 * In the reader's digits, as the coverage bar above writes
+                 * its "3 of 8": a Persian card read "۰ از ۱۶" over tiles
+                 * of 16 and 0.
+                 */}
+                {translator.formatNumber(tile.count)}
               </p>
             </button>
           );
         })}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="sm:max-w-xs sm:flex-1">
+      {/*
+       * Search and the severity filter side by side once the card has room
+       * for both, read from the toolbar's own width: a record page's card
+       * is 430px wide at a 768px window (the side menu takes the rest), and
+       * from the window's sm the search box was squeezed to "Search recom".
+       */}
+      <div
+        className={`flex flex-col gap-3 ${SEARCH_BESIDE_FILTERS_CLASS_NAME}`}
+      >
+        <div className={SEARCH_BOX_BESIDE_FILTERS_CLASS_NAME}>
           <Input
             isSearchOrFilter={true}
             value={props.filterState.searchText}
