@@ -3,7 +3,9 @@ import {
   ListCodeRepositoriesTool,
   ReadCodeFileTool,
   SearchCodeTool,
+  describePlainGitRepositories,
 } from "../../../../Server/Utils/AI/Toolbox/CodeTools";
+import CodeHostAccess from "../../../../Server/Utils/CodeRepository/CodeHost/CodeHostAccess";
 import {
   ToolContext,
   ToolExecutionResult,
@@ -179,8 +181,8 @@ describe("list_code_repositories", () => {
     );
 
     expect(result.rowCount).toBe(0);
-    expect(result.dataForLlm).toContain(
-      "no GitHub-connected code repositories",
+    expect(result.dataForLlm).toBe(
+      "(no code repository in this project whose source OneUptime can read — GitHub, GitLab, Forgejo and Gitea repositories are read)",
     );
   });
 });
@@ -761,8 +763,8 @@ describe("a run held to the code repositories its rules name", () => {
     );
 
     expect(result.rowCount).toBe(0);
-    expect(result.dataForLlm).toContain(
-      "no GitHub-connected code repositories",
+    expect(result.dataForLlm).toBe(
+      "(no code repository in this project whose source OneUptime can read — GitHub, GitLab, Forgejo and Gitea repositories are read)",
     );
   });
 
@@ -855,5 +857,231 @@ describe("a run held to the code repositories its rules name", () => {
     // A repository outside them is never disclosed, whatever resolved.
     expect(result.dataForLlm).toContain("resolvedRepository: none");
     expect(result.dataForLlm).not.toContain(BILLING_ID.toString());
+  });
+});
+
+/*
+ * A plain Git repository - Azure DevOps Server, Bitbucket, any Git server
+ * connected with a username and a password or token - is connected for
+ * Code's tasks, which a Runner clones; a Git server has no API for its files,
+ * so OneUptime reads only its branches (issue #6144). The code tools used to
+ * leave it out as though nothing were connected - list_code_repositories said
+ * there were "no GitHub-connected code repositories", and a repositoryId of
+ * one was "No readable repository" - so the model could not tell the person
+ * why. It is now named as a repository whose code cannot be opened, with
+ * what still works in it - and never as readable.
+ */
+describe("a plain Git repository", () => {
+  const AZURE_DEVOPS_ID: ObjectID = new ObjectID(
+    "a3333333-3333-4333-8333-333333333333",
+  );
+  const BITBUCKET_ID: ObjectID = new ObjectID(
+    "a4444444-4444-4444-8444-444444444444",
+  );
+
+  function plainGitRepository(
+    id: ObjectID = AZURE_DEVOPS_ID,
+    name: string = "instant-access-reporter",
+  ): CodeRepositoryModel {
+    const repository: CodeRepositoryModel = buildRepository({
+      id,
+      name,
+      hostedAt: CodeRepositoryType.Git,
+      installationId: "",
+    });
+    repository.organizationName =
+      id === AZURE_DEVOPS_ID ? "DefaultCollection/ScriptVault/_git" : "team";
+    repository.repositoryName =
+      id === AZURE_DEVOPS_ID ? "InstantAccessReporter" : name;
+    return repository;
+  }
+
+  // The repositories as the database reads them, by id when one is named.
+  function mockStoredRepositories(
+    repositories: Array<CodeRepositoryModel>,
+  ): void {
+    jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockImplementation((async (args: {
+        query: { _id?: unknown };
+      }): Promise<Array<CodeRepositoryModel>> => {
+        const id: string | undefined =
+          typeof args.query._id === "string" ? args.query._id : undefined;
+
+        return repositories.filter(
+          (repository: CodeRepositoryModel): boolean => {
+            return !id || repository.id?.toString() === id;
+          },
+        );
+      }) as never);
+  }
+
+  const AZURE_DEVOPS_SENTENCE: string =
+    "instant-access-reporter (DefaultCollection/ScriptVault/_git/InstantAccessReporter) is a plain Git repository: OneUptime reads its branches, not its files, so search_code and read_code_file cannot open it. A task in Code still works in it - a Runner clones it - and AI pushes its change on a branch.";
+
+  test("list_code_repositories names it as one whose code cannot be opened, after the readable ones", async () => {
+    const summaries: jest.SpyInstance = jest.spyOn(
+      CodeHostAccess,
+      "getConnectionSummaries",
+    );
+
+    mockRepositories([
+      buildRepository({ name: "checkout" }),
+      plainGitRepository(),
+    ]);
+
+    const result: ToolExecutionResult = await ListCodeRepositoriesTool.execute(
+      {},
+      ctx,
+    );
+
+    // Only the readable repository is a row the model can pass on.
+    expect(result.rowCount).toBe(1);
+    expect(result.dataForLlm).toContain(REPO_ID.toString());
+    expect(result.dataForLlm).not.toContain(AZURE_DEVOPS_ID.toString());
+    expect(result.dataForLlm).toContain(`\n\n${AZURE_DEVOPS_SENTENCE}`);
+    expect(
+      result.dataForLlm.indexOf("checkout") <
+        result.dataForLlm.indexOf("instant-access-reporter"),
+    ).toBe(true);
+
+    // A plain Git repository's connection is not even asked about.
+    expect(summaries).not.toHaveBeenCalled();
+  });
+
+  test("with only plain Git repositories, the list says none is read, and why", async () => {
+    mockRepositories([plainGitRepository()]);
+
+    const result: ToolExecutionResult = await ListCodeRepositoriesTool.execute(
+      {},
+      ctx,
+    );
+
+    expect(result.rowCount).toBe(0);
+    expect(result.dataForLlm).toBe(
+      `(no code repository in this project whose source OneUptime can read — GitHub, GitLab, Forgejo and Gitea repositories are read)\n\n${AZURE_DEVOPS_SENTENCE}`,
+    );
+    expect(result.dataForLlm).not.toContain("GitHub-connected");
+  });
+
+  test("several are named together", async () => {
+    mockRepositories([
+      plainGitRepository(),
+      plainGitRepository(BITBUCKET_ID, "billing"),
+    ]);
+
+    const result: ToolExecutionResult = await ListCodeRepositoriesTool.execute(
+      {},
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain(
+      "instant-access-reporter (DefaultCollection/ScriptVault/_git/InstantAccessReporter), billing (team/billing) are plain Git repositories: OneUptime reads their branches, not their files, so search_code and read_code_file cannot open them. A task in Code still works in them - a Runner clones them - and AI pushes its change on a branch.",
+    );
+  });
+
+  test("search_code with no readable repository says why the plain Git one cannot be searched", async () => {
+    mockStoredRepositories([plainGitRepository()]);
+    const tree: jest.SpyInstance = jest.spyOn(
+      GitHubUtil,
+      "getRepositoryTreePaths",
+    );
+
+    await expect(
+      SearchCodeTool.execute({ query: "reporter" }, ctx),
+    ).rejects.toThrow(
+      `This project has no connected code repository whose source OneUptime can read: GitHub, GitLab, Forgejo and Gitea repositories are read. ${AZURE_DEVOPS_SENTENCE}`,
+    );
+    expect(tree).not.toHaveBeenCalled();
+  });
+
+  test("read_code_file on one, by its id, says why - not that there is no such repository", async () => {
+    mockStoredRepositories([
+      buildRepository({ name: "checkout" }),
+      plainGitRepository(),
+    ]);
+    const file: jest.SpyInstance = jest.spyOn(GitHubUtil, "getFileContent");
+
+    let caught: Error | null = null;
+
+    try {
+      await ReadCodeFileTool.execute(
+        {
+          filePath: "src/Reporter.cs",
+          repositoryId: AZURE_DEVOPS_ID.toString(),
+        },
+        ctx,
+      );
+    } catch (error) {
+      caught = error as Error;
+    }
+
+    expect(caught?.message).toBe(
+      `OneUptime cannot read the code of this repository. ${AZURE_DEVOPS_SENTENCE}`,
+    );
+    expect(caught?.message).not.toContain("No readable repository");
+    expect(file).not.toHaveBeenCalled();
+  });
+
+  test("with a readable repository beside it, a tool without repositoryId reads the readable one", async () => {
+    mockStoredRepositories([
+      buildRepository({ name: "checkout" }),
+      plainGitRepository(),
+    ]);
+    mockFileContent("export const charge = 1;");
+
+    const result: ToolExecutionResult = await ReadCodeFileTool.execute(
+      { filePath: "src/billing/charge.ts" },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain("export const charge = 1;");
+  });
+
+  test("one outside the repositories a run is held to is never named", async () => {
+    mockRepositories([
+      buildRepository({ name: "checkout" }),
+      plainGitRepository(),
+    ]);
+
+    const result: ToolExecutionResult = await ListCodeRepositoriesTool.execute(
+      {},
+      {
+        ...ctx,
+        codeRepositoryAllowance: {
+          isEveryRepository: false,
+          repositoryIds: [REPO_ID.toString()],
+        },
+      },
+    );
+
+    expect(result.rowCount).toBe(1);
+    expect(result.dataForLlm).not.toContain("instant-access-reporter");
+    expect(result.dataForLlm).not.toContain("plain Git");
+  });
+
+  test("a GitHub repository OneUptime cannot read is still not named - only a plain Git one is", async () => {
+    mockRepositories([
+      buildRepository({
+        id: ObjectID.generate(),
+        name: "uninstalled",
+        installationId: "",
+      }),
+      plainGitRepository(),
+    ]);
+
+    const result: ToolExecutionResult = await ListCodeRepositoriesTool.execute(
+      {},
+      ctx,
+    );
+
+    expect(result.dataForLlm).not.toContain("uninstalled");
+    expect(result.dataForLlm).toContain(AZURE_DEVOPS_SENTENCE);
+  });
+
+  test("describePlainGitRepositories is what the tools say", () => {
+    expect(describePlainGitRepositories([plainGitRepository()])).toBe(
+      AZURE_DEVOPS_SENTENCE,
+    );
   });
 });

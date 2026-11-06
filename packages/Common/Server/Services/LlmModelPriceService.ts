@@ -12,9 +12,39 @@ const MODEL_PREFIX_ERROR_MESSAGE: string =
 const PRICE_ERROR_MESSAGE: string =
   "must be a number greater than or equal to 0.";
 
+// The prices a free model's are 0 of.
+const PRICE_COLUMNS: Array<string> = [
+  "inputPricePerMillionTokensInUSD",
+  "outputPricePerMillionTokensInUSD",
+];
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * 0 is a price: free input or output tokens, as the columns and the
+   * dashboard's form say ("Use 0 for models that bill input only (e.g.
+   * embeddings)"), and as onBeforeCreate's own check lets through. The
+   * required-column check read 0 as missing, so such a price was refused as
+   * "outputPricePerMillionTokensInUSD is required". Any number is a value
+   * of them (onBeforeCreate refuses one below 0); anything else is still
+   * read as the check reads it.
+   */
+  protected override isRequiredColumnValueGiven(
+    column: string,
+    value: unknown,
+  ): boolean {
+    if (
+      PRICE_COLUMNS.includes(column) &&
+      typeof value === "number" &&
+      Number.isFinite(value)
+    ) {
+      return true;
+    }
+
+    return super.isRequiredColumnValueGiven(column, value);
   }
 
   @CaptureSpan()
