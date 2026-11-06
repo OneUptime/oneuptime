@@ -119,6 +119,8 @@ beforeAll(async () => {
       PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.DataPipeline]:
       PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS,
+    [MonitorRecommendationResourceType.CloudResource]:
+      PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS,
   };
 });
 

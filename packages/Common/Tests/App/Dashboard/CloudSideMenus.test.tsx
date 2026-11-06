@@ -20,8 +20,10 @@ import {
 /*
  * The Cloud menus: the product's (its Overview, the accounts, every
  * resource in them, then Connect; what they cost, the ways to spend less
- * and the budgets under Spend), a cloud resource's - its incidents, alerts
- * and changes, under Activity - and a cloud account's. The environments
+ * and the budgets under Spend), a cloud resource's - the monitors OneUptime
+ * recommends for it after its Overview; its incidents, alerts, the
+ * maintenance events that hold it and its changes, under Activity - and a
+ * cloud account's, whose Recommendations follow its map. The environments
  * that managed platforms run are App Platforms' (AppPlatformsSideMenus.test.tsx).
  */
 
@@ -86,7 +88,7 @@ describe("the Cloud product menu", () => {
 });
 
 describe("a cloud resource's menu", () => {
-  test("a resource a connection lists: its incidents, alerts and changes under Activity", async () => {
+  test("a resource a connection lists: its recommended monitors after its Overview; its incidents, alerts, maintenance and changes under Activity", async () => {
     goTo(RESOURCE_PATH);
     await renderMenu(
       <CloudResourceViewSideMenu modelId={new ObjectID(RESOURCE_ID)} />,
@@ -105,13 +107,26 @@ describe("a cloud resource's menu", () => {
       { title: "Metrics", href: `${RESOURCE_PATH}/metrics` },
       { title: "Feed", href: `${RESOURCE_PATH}/feed` },
     ]);
+    /*
+     * The maintenance events that hold it, beside its incidents and alerts:
+     * while one is in progress its monitors open nothing.
+     */
     expect(linksIn("Activity")).toEqual([
       { title: "Incidents", href: `${RESOURCE_PATH}/incidents` },
       { title: "Alerts", href: `${RESOURCE_PATH}/alerts` },
+      {
+        title: "Scheduled Maintenance",
+        href: `${RESOURCE_PATH}/scheduled-maintenance`,
+      },
       { title: "Changes", href: `${RESOURCE_PATH}/changes` },
     ]);
+    // Its recommended monitors right after its Overview, as a host's.
     expect(linksIn("Basic")).toEqual([
       { title: "Overview", href: RESOURCE_PATH },
+      {
+        title: "Recommendations",
+        href: `${RESOURCE_PATH}/recommendations`,
+      },
       { title: "Documentation", href: `${RESOURCE_PATH}/documentation` },
     ]);
     expect(linksIn("Settings")).toEqual([
@@ -154,7 +169,7 @@ describe("a cloud resource's menu", () => {
 });
 
 describe("a cloud account's menu", () => {
-  test("its overview, resources, map and costs; its AI agent; its changes and its feed; its settings, Developer pages and delete", async () => {
+  test("its overview, resources, map, recommended monitors and costs; its AI agent; its changes and its feed; its settings, Developer pages and delete", async () => {
     goTo(ACCOUNT_PATH);
     await renderMenu(
       <CloudAccountSideMenu modelId={new ObjectID(ACCOUNT_ID)} />,
@@ -172,6 +187,11 @@ describe("a cloud account's menu", () => {
       { title: "Overview", href: ACCOUNT_PATH },
       { title: "Resources", href: `${ACCOUNT_PATH}/resources` },
       { title: "Topology", href: `${ACCOUNT_PATH}/topology` },
+      // The monitors recommended for every resource it holds.
+      {
+        title: "Recommendations",
+        href: `${ACCOUNT_PATH}/recommendations`,
+      },
       { title: "Costs", href: `${ACCOUNT_PATH}/costs` },
     ]);
     // What AI did first, its agent last, as every resource's AI section.
