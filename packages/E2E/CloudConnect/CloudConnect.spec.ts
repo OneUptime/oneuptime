@@ -3246,25 +3246,59 @@ async function expectIdentifierInMonospace(page: Page): Promise<void> {
 }
 
 /*
- * Each value of a change's title - its operation, its resource - is one
- * line: it moves to the next line whole, never breaking at its hyphen
- * ("nightly-" / "export", "sg-" / "0f1e2d3c..." on a phone).
+ * Each value of a change's title - its operation, its resource - moves to
+ * the next line whole, never breaking at its hyphen ("nightly-" / "export",
+ * "sg-" / "0f1e2d3c..." on a phone). An operation the cloud writes as one
+ * long word breaks only between its pieces - after its service's colon
+ * ("elasticloadbalancing:" / "ModifyLoadBalancerAttributes"), a slash or a
+ * dot - and each piece is one line: read from each piece's own letters, in
+ * one frame.
  */
 async function expectTitleValuesWhole(page: Page): Promise<void> {
-  const values: Array<Locator> = await page
+  const pieces: Array<{ text: string; lines: number }> = await page
     .getByTestId("cloud-change-title-value")
-    .all();
-  expect(values.length).toBeGreaterThan(0);
+    .evaluateAll(
+      (values: Array<Element>): Array<{ text: string; lines: number }> => {
+        const found: Array<{ text: string; lines: number }> = [];
 
-  const lineHeight: number = await page
-    .getByTestId("cloud-change-title")
-    .first()
-    .evaluate((title: Element): number => {
-      return parseFloat(getComputedStyle(title).lineHeight);
-    });
+        for (const value of values) {
+          for (const node of Array.from(value.childNodes)) {
+            const text: string = node.textContent || "";
 
-  for (const box of await boxesInOneFrame(values)) {
-    expect(box.height).toBeLessThanOrEqual(lineHeight + 1);
+            if (node.nodeType !== Node.TEXT_NODE || !text.trim()) {
+              continue;
+            }
+
+            const range: Range = document.createRange();
+            range.selectNodeContents(node);
+            // Where each line its letters are on starts, top to bottom.
+            const tops: Array<number> = Array.from(range.getClientRects())
+              .filter((rect: DOMRect): boolean => {
+                return rect.width > 0;
+              })
+              .map((rect: DOMRect): number => {
+                return rect.top;
+              })
+              .sort((first: number, second: number): number => {
+                return first - second;
+              });
+            const lines: number = tops.filter(
+              (top: number, index: number): boolean => {
+                return index === 0 || top - tops[index - 1]! > 4;
+              },
+            ).length;
+
+            found.push({ text, lines });
+          }
+        }
+
+        return found;
+      },
+    );
+
+  expect(pieces.length).toBeGreaterThan(0);
+  for (const piece of pieces) {
+    expect(piece).toEqual({ text: piece.text, lines: 1 });
   }
 }
 
@@ -5758,4 +5792,409 @@ test.describe("a cloud resource's streamed Logs", () => {
     );
     await shoot(page, "resource-logs-empty-fa");
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Cloud > All Resources, by cloud account (#6149's follow-up). The list has
+ * the Cloud Account chip App Platforms' lists have, in place of its typed
+ * Account filter: each account its resources are in, by the name Cloud >
+ * Accounts gives it with its id under it, under its cloud; the Google Cloud
+ * project no connection names (acme-prod) by its id, and every account by
+ * its id for a reader who may not read Cloud Accounts. A connection's
+ * resource count on Cloud > Connect opens the list with the chip set to the
+ * accounts it reads. Turned to "is not", set to an account that holds none
+ * of the list (the filters' empty state), and in German (dark) and Persian,
+ * at a desktop's width and a phone's.
+ * ---------------------------------------------------------------------------
+ */
+
+const ALL_RESOURCES_PATH: string = `/dashboard/${PROJECT_ID}/cloud/resources`;
+const ALL_RESOURCES_TABLE: string = "cloud-monitored-resources-table";
+const AWS_ACCOUNT_ID: string = "123456789012";
+const AZURE_SUBSCRIPTION_ID: string = "7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b";
+
+// The AWS account's resources, and the Azure subscription's and Google Cloud project's.
+const AWS_RESOURCE_NAMES: Array<string> = [
+  "web-alb",
+  "orders-db",
+  "nightly-export",
+  "web-1",
+  "web-2",
+  "prod-vpc",
+  "orders-queue",
+  "orders-dlq",
+];
+const OTHER_RESOURCE_NAMES: Array<string> = [
+  "checkout-web",
+  "build-agent-1",
+  "orders-worker-1",
+  "orders-workers",
+];
+
+interface ResourceListRequest {
+  model: string;
+  cloudResourceKind?: string;
+  isArchived?: boolean;
+  accountFilter?: {
+    includes?: Array<string>;
+    includesNone?: Array<string>;
+    is?: string;
+  };
+  select?: Array<string>;
+  limit?: number;
+}
+
+/*
+ * All Resources' address with its Cloud Account chip set, as a link sets
+ * it: the list's facet state under the URL parameter its chip bar reads.
+ */
+function allResourcesPath(
+  accountIds: Array<string>,
+  operator: "is" | "is_not" = "is",
+  query: string = "state=connected",
+): string {
+  return `${ALL_RESOURCES_PATH}?${query}&${ALL_RESOURCES_TABLE}-facets=${encodeURIComponent(
+    JSON.stringify({
+      facetSelections: { cloudAccountId: accountIds },
+      facetOperators: { cloudAccountId: operator },
+    }),
+  )}`;
+}
+
+async function openAllResources(page: Page, address: string): Promise<void> {
+  await page.goto(address);
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+}
+
+/*
+ * The list's chips: a phone folds them behind Filter (FacetFilterBar), and
+ * one press on it draws them.
+ */
+async function resourceChips(page: Page): Promise<Locator> {
+  const bar: Locator = page.getByTestId("facet-filter-bar");
+
+  if (!isDesktop()) {
+    const filter: Locator = bar.getByTestId("facet-filter-bar-toggle");
+
+    if ((await filter.getAttribute("aria-expanded")) !== "true") {
+      await filter.click();
+    }
+
+    await expect(filter).toHaveAttribute("aria-expanded", "true");
+  }
+
+  return bar;
+}
+
+// A resource's name in the list, as the link to its page.
+function resourceLink(page: Page, name: string): Locator {
+  return page.getByRole("link", { name: name, exact: true });
+}
+
+async function expectResourcesListed(
+  page: Page,
+  listed: Array<string>,
+  leftOut: Array<string>,
+): Promise<void> {
+  for (const name of listed) {
+    await expect(resourceLink(page, name).first()).toBeVisible();
+  }
+  for (const name of leftOut) {
+    await expect(resourceLink(page, name)).toHaveCount(0);
+  }
+}
+
+// The list's own reads of its rows - not its chip's, which ask for two fields.
+async function resourceListReads(
+  page: Page,
+): Promise<Array<ResourceListRequest>> {
+  return ((await listRequests(page)) as Array<ResourceListRequest>).filter(
+    (request: ResourceListRequest): boolean => {
+      return (
+        request.model === "CloudResource" &&
+        request.cloudResourceKind === "resource" &&
+        (request.select || []).length > 2
+      );
+    },
+  );
+}
+
+// The chip's own reads: the accounts the list's resources are in.
+async function resourceAccountReads(
+  page: Page,
+): Promise<Array<ResourceListRequest>> {
+  return ((await listRequests(page)) as Array<ResourceListRequest>).filter(
+    (request: ResourceListRequest): boolean => {
+      return (
+        request.model === "CloudResource" &&
+        request.cloudResourceKind === "resource" &&
+        (request.select || []).join(",") === "cloudAccountId,cloudProvider"
+      );
+    },
+  );
+}
+
+/*
+ * The chip's popover once it is at rest: a dialog grows in, and Tailwind's
+ * runtime writes its rules a moment after it mounts.
+ */
+async function openChipPopover(chip: Locator): Promise<Locator> {
+  await chip.click();
+  const popover: Locator = chip.page().getByRole("dialog");
+  await expect(popover.getByRole("textbox")).toBeVisible();
+  await expect
+    .poll(async (): Promise<number> => {
+      return await popover.evaluate((element: Element): number => {
+        return element.getAnimations({ subtree: true }).length;
+      });
+    })
+    .toBe(0);
+  return popover;
+}
+
+test.describe("Cloud's All Resources, by cloud account", () => {
+  test("the Cloud Account chip: each account its resources are in, by its name in Cloud > Accounts with its id under it; one no connection names, by its id", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAllResources(page, `${ALL_RESOURCES_PATH}?state=connected`);
+    await expect(resourceLink(page, "web-alb").first()).toBeVisible();
+
+    // Found from the list's own resources: archived ones left out.
+    const accountReads: Array<ResourceListRequest> =
+      await resourceAccountReads(page);
+    expect(accountReads.length).toBeGreaterThan(0);
+    expect(accountReads[0]).toMatchObject({
+      isArchived: false,
+      accountFilter: { includesNone: [""] },
+    });
+
+    const bar: Locator = await resourceChips(page);
+    const popover: Locator = await openChipPopover(
+      bar.getByRole("button", { name: /^Cloud Account$/ }),
+    );
+
+    // Each account once, under its cloud: the name first, its id under it.
+    const offered: Locator = popover.getByRole("listbox").getByRole("option");
+    await expect(offered).toHaveText([
+      /^Production\s*123456789012$/,
+      /^Contoso production\s*7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b$/,
+      /^acme-prod$/,
+    ]);
+    await expect(popover.getByTestId("filter-chip-group-heading")).toHaveText([
+      "AWS",
+      "Azure",
+      "Google Cloud",
+    ]);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "all-resources-account-chip-open");
+
+    // Its id finds an account too.
+    await popover.getByRole("textbox").fill("7c4a1f2e");
+    await expect(offered).toHaveText([/^Contoso production/]);
+    await popover.getByRole("textbox").fill("");
+
+    // Picked: the chip says the account's name, and the list holds its resources.
+    await offered.nth(0).click();
+    await page.keyboard.press("Escape");
+    await expect(
+      bar.getByRole("button", { name: "Cloud Account · Production" }),
+    ).toBeVisible();
+    await expectResourcesListed(page, AWS_RESOURCE_NAMES, OTHER_RESOURCE_NAMES);
+    const reads: Array<ResourceListRequest> = await resourceListReads(page);
+    expect(reads[reads.length - 1]!.accountFilter).toEqual({
+      includes: [AWS_ACCOUNT_ID],
+    });
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "all-resources-account-chip");
+  });
+
+  test("set from a link: a connection's resource count on Cloud > Connect opens the list with the chip set to the accounts it reads", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected");
+    await page.getByRole("link", { name: "46 resources" }).click();
+
+    await expect(page).toHaveURL((url: URL): boolean => {
+      return (
+        url.pathname === ALL_RESOURCES_PATH &&
+        url.searchParams.has(`${ALL_RESOURCES_TABLE}-facets`)
+      );
+    });
+    const bar: Locator = await resourceChips(page);
+    await expect(
+      bar.getByRole("button", { name: "Cloud Account · Production" }),
+    ).toBeVisible();
+    await expectResourcesListed(page, AWS_RESOURCE_NAMES, OTHER_RESOURCE_NAMES);
+
+    // Its first read is already of the account's resources: none without the chip.
+    const reads: Array<ResourceListRequest> = await resourceListReads(page);
+    expect(reads.length).toBeGreaterThan(0);
+    for (const read of reads) {
+      expect(read.accountFilter).toEqual({ includes: [AWS_ACCOUNT_ID] });
+    }
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "all-resources-from-connection-count");
+
+    // Cleared: every account's resources again.
+    await bar.getByRole("button", { name: /^Clear Cloud Account/ }).click();
+    await expectResourcesListed(page, ["web-alb", "checkout-web"], []);
+  });
+
+  test("turned to 'is not', every other account's; set to an account that holds none of them, the filters' empty state and the way back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAllResources(page, allResourcesPath([AWS_ACCOUNT_ID], "is_not"));
+
+    const bar: Locator = await resourceChips(page);
+    await expect(
+      bar.getByRole("button", { name: "Cloud Account · not Production" }),
+    ).toBeVisible();
+    await expectResourcesListed(page, OTHER_RESOURCE_NAMES, AWS_RESOURCE_NAMES);
+    const reads: Array<ResourceListRequest> = await resourceListReads(page);
+    expect(reads[reads.length - 1]!.accountFilter).toEqual({
+      includesNone: [AWS_ACCOUNT_ID],
+    });
+    await shoot(page, "all-resources-account-chip-not");
+
+    /*
+     * The Azure subscription's id in another case is the same account: the
+     * list asks for it written both ways.
+     */
+    await openAllResources(
+      page,
+      allResourcesPath([AZURE_SUBSCRIPTION_ID.toUpperCase()]),
+    );
+    await expectResourcesListed(
+      page,
+      ["checkout-web", "build-agent-1"],
+      ["web-alb", "orders-worker-1"],
+    );
+    const azureReads: Array<ResourceListRequest> =
+      await resourceListReads(page);
+    expect(azureReads[azureReads.length - 1]!.accountFilter).toEqual({
+      includes: [AZURE_SUBSCRIPTION_ID.toUpperCase(), AZURE_SUBSCRIPTION_ID],
+    });
+
+    // A Google Cloud project that holds none of the list's resources.
+    await openAllResources(page, allResourcesPath(["acme-legacy"]));
+    const clear: Locator = page.getByTestId("empty-table-clear-filters-button");
+    await expect(clear).toBeVisible();
+    await expect(
+      bar.getByRole("button", { name: "Cloud Account · acme-legacy" }),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "all-resources-account-chip-empty");
+    await clear.click();
+    await expectResourcesListed(page, ["web-alb", "checkout-web"], []);
+  });
+
+  test("a reader who may not read Cloud Accounts: each account by its id, as before, and the chip filters all the same", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAllResources(
+      page,
+      allResourcesPath(
+        [AWS_ACCOUNT_ID],
+        "is",
+        "state=connected&accounts=refused",
+      ),
+    );
+
+    const bar: Locator = await resourceChips(page);
+    await expect(
+      bar.getByRole("button", { name: `Cloud Account · ${AWS_ACCOUNT_ID}` }),
+    ).toBeVisible();
+    await expectResourcesListed(page, AWS_RESOURCE_NAMES, OTHER_RESOURCE_NAMES);
+
+    const popover: Locator = await openChipPopover(
+      bar.getByRole("button", { name: /^Cloud Account · / }),
+    );
+    await expect(popover.getByRole("listbox").getByRole("option")).toHaveText([
+      /^123456789012$/,
+      /^7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b$/,
+      /^acme-prod$/,
+    ]);
+    // The names were asked for, and refused.
+    expect(
+      (await listRequests(page)).some((request: ListRequest): boolean => {
+        return request.model === "CloudAccount";
+      }),
+    ).toBe(true);
+    await shoot(page, "all-resources-account-chip-ids");
+  });
+
+  for (const reader of [
+    { code: "de", locale: GERMAN, theme: "dark" },
+    { code: "fa", locale: PERSIAN, theme: "light" },
+  ]) {
+    test(`${reader.code}: the chip in the reader's words, its account's name set apart, its popover on the screen`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openAllResources(
+        page,
+        allResourcesPath(
+          [AWS_ACCOUNT_ID],
+          "is_not",
+          `state=connected&lang=${reader.code}&theme=${reader.theme}`,
+        ),
+      );
+
+      const label: string = wordIn(reader.locale, "Cloud Account");
+      expect(label).not.toBe("Cloud Account");
+      const bar: Locator = await resourceChips(page);
+      const chip: Locator = bar.getByRole("button", { name: `${label} · ` });
+      await expect(chip).toBeVisible();
+      // "not Production" in the reader's words, the name set apart within them.
+      expect(await readText(chip)).toBe(
+        `${label} · ${wordIn(reader.locale, "not {{value}}", { value: "Production" })}`,
+      );
+      await expectResourcesListed(
+        page,
+        OTHER_RESOURCE_NAMES,
+        AWS_RESOURCE_NAMES,
+      );
+
+      if (reader.code === "fa") {
+        await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+      } else {
+        await expect(page.locator("html")).toHaveClass(/dark/);
+      }
+
+      const popover: Locator = await openChipPopover(chip);
+      // Its search box names the chip in the reader's words.
+      expect(
+        await popover.getByRole("textbox").getAttribute("placeholder"),
+      ).toContain(label);
+      if (reader.code === "de") {
+        await expect(popover.getByRole("textbox")).toHaveAttribute(
+          "placeholder",
+          `${label} suchen...`,
+        );
+      }
+      await expect(
+        popover.getByRole("listbox").getByRole("option").first(),
+      ).toContainText("Production");
+
+      // The popover keeps the page's 16px margin, and nothing scrolls sideways.
+      const [box] = await boxesInOneFrame([popover]);
+      const width: number = page.viewportSize()!.width;
+      expect(box!.x).toBeGreaterThanOrEqual(16 - 0.5);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(width - 16 + 0.5);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await shoot(page, `all-resources-account-chip-${reader.code}`);
+    });
+  }
 });

@@ -26,6 +26,7 @@ import CloudAccountAiAgentPage from "../../App/FeatureSet/Dashboard/src/Pages/Cl
 import CloudAccountAiLogsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/AI/Logs";
 import CloudAccountFeedPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Feed";
 import CloudResourceViewLayout from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Layout";
+import CloudMonitoredResourcesPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/MonitoredResources";
 import CloudResourceOverviewPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/MonitoredResourceOverview";
 import CloudResourceIncidentsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Incidents";
 import CloudResourceAlertsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Alerts";
@@ -58,6 +59,7 @@ import { getCloudAiAgentKeyEditRefusal } from "Common/Types/AI/ResourceAiAccessP
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
@@ -149,6 +151,16 @@ import {
  *   ?changes=ai the AWS account's Changes also hold two changes OneUptime
  *               AI made through its Cloud AI agent, as the recorder marks
  *               them: the approved fix of incident #18 and its rollback
+ *   ?accounts=refused  the reader may not read Cloud Accounts: every read
+ *               of them is refused, as the server refuses it (a 422)
+ *
+ * Cloud > All Resources (/dashboard/<project>/cloud/resources) lists every
+ * resource of every account - the AWS account's, the Azure subscription's
+ * and the Google Cloud project's - and its Cloud Account chip offers their
+ * accounts, by the names Cloud > Accounts gives them: its list, its count
+ * and the chip's reads are answered as the server answers them (by kind,
+ * whether archived, and an account Includes or IncludesNone, whose NOT IN
+ * never matches a resource that names no account).
  *
  * window.__cloudConnectFixture.connectAgent() makes the agent connect, as
  * it does a few minutes after the setup command finished.
@@ -1988,6 +2000,86 @@ function copy(item) {
   return Object.assign(new CloudConnection(), item);
 }
 
+// ?accounts=refused: the reader may not read Cloud Accounts.
+const refusesAccounts = params.get("accounts") === "refused";
+const ACCOUNTS_REFUSAL =
+  "You do not have permissions to read Cloud Account. You need one of these permissions: Read Cloud Resource";
+
+// Every resource the project holds, as Cloud > All Resources lists them.
+const ALL_RESOURCES =
+  dataState === "connected" ? [...AWS_RESOURCES, ...OTHER_CLOUD_RESOURCES] : [];
+
+/*
+ * Whether a resource is in the accounts a query names: one of an Includes'
+ * ids, none of an IncludesNone's - and, as the server's NOT IN answers, never
+ * a resource that names no account - or the one id given.
+ */
+function isInAccounts(resource, wanted) {
+  const accountId = resource.cloudAccountId;
+  if (wanted === undefined || wanted === null) {
+    return true;
+  }
+  if (wanted instanceof IncludesNone) {
+    return (
+      accountId !== undefined &&
+      accountId !== null &&
+      !wanted.values.map(String).includes(String(accountId))
+    );
+  }
+  if (wanted instanceof Includes) {
+    return wanted.values.map(String).includes(String(accountId ?? ""));
+  }
+  return String(accountId ?? "") === String(wanted);
+}
+
+function allResourcesMatching(query) {
+  return ALL_RESOURCES.filter((resource) => {
+    return (
+      resource.cloudResourceKind === query.cloudResourceKind &&
+      (query.isArchived === undefined ||
+        Boolean(resource.isArchived) === query.isArchived) &&
+      (query.cloudProvider === undefined ||
+        resource.cloudProvider === query.cloudProvider) &&
+      isInAccounts(resource, query.cloudAccountId)
+    );
+  });
+}
+
+// The account filter a read sent, as a spec reads it.
+function accountFilterOf(wanted) {
+  if (wanted instanceof IncludesNone) {
+    return { includesNone: wanted.values.map(String) };
+  }
+  if (wanted instanceof Includes) {
+    return { includes: wanted.values.map(String) };
+  }
+  return wanted === undefined ? undefined : { is: String(wanted) };
+}
+
+// Cloud > All Resources' list and its chip's reads, a page at a time.
+function listAllResources(args) {
+  const query = args.query || {};
+  state.listRequests.push({
+    model: "CloudResource",
+    cloudResourceKind: query.cloudResourceKind,
+    isArchived: query.isArchived,
+    accountFilter: accountFilterOf(query.cloudAccountId),
+    select: Object.keys(args.select || {}).sort(),
+    limit: args.limit,
+  });
+  const rows = allResourcesMatching(query);
+  const skip = Number(args.skip || 0);
+  const limit = Number(args.limit || 10);
+  return {
+    data: rows.slice(skip, skip + limit).map((item) => {
+      return Object.assign(new CloudResource(), item);
+    }),
+    count: rows.length,
+    skip: skip,
+    limit: limit,
+  };
+}
+
 ModelAPI.getList = async (args) => {
   if (args.modelType === CloudConnection) {
     const data = connections.map(copy);
@@ -1996,6 +2088,9 @@ ModelAPI.getList = async (args) => {
 
   if (args.modelType === CloudAccount) {
     state.listRequests.push({ model: "CloudAccount" });
+    if (refusesAccounts) {
+      throw new HTTPErrorResponse(422, { message: ACCOUNTS_REFUSAL }, {});
+    }
     const data = accounts.map((item) => {
       return Object.assign(new CloudAccount(), item);
     });
@@ -2004,6 +2099,10 @@ ModelAPI.getList = async (args) => {
 
   if (args.modelType === CloudResource) {
     const query = args.query || {};
+    // Cloud > All Resources and its Cloud Account chip: the list by kind.
+    if (query.cloudResourceKind !== undefined) {
+      return listAllResources(args);
+    }
     const provider = String(query.cloudProvider || "");
     const accountIds = plainValues(query.cloudAccountId);
     state.listRequests.push({
@@ -2178,6 +2277,14 @@ ModelAPI.getItem = async (args) => {
 ModelAPI.count = async (args) => {
   if (args.modelType === CloudConnection) {
     return connections.length;
+  }
+  // Whether All Resources has anything yet: its resources, by kind.
+  if (
+    args.modelType === CloudResource &&
+    args.query &&
+    args.query.cloudResourceKind !== undefined
+  ) {
+    return allResourcesMatching(args.query).length;
   }
   if (args.modelType === CloudAccount) {
     return accounts.length;
@@ -2649,6 +2756,11 @@ function withNavigation(Component, pageRoute) {
 
 const FixtureAccountsLayout = withNavigation(CloudLayout, ACCOUNTS_ROUTE);
 const FixtureAccounts = withNavigation(CloudAccountsPage, ACCOUNTS_ROUTE);
+const ALL_RESOURCES_ROUTE = RouteMap[PageMap.CLOUD_MONITORED_RESOURCES];
+const FixtureAllResources = withNavigation(
+  CloudMonitoredResourcesPage,
+  ALL_RESOURCES_ROUTE,
+);
 const FixtureAccountLayout = withNavigation(
   CloudAccountViewLayout,
   ACCOUNT_ROUTE,
@@ -2765,6 +2877,10 @@ function FixtureApp() {
           <Route
             path={ACCOUNTS_ROUTE.toString()}
             element={<FixtureAccounts />}
+          />
+          <Route
+            path={ALL_RESOURCES_ROUTE.toString()}
+            element={<FixtureAllResources />}
           />
         </Route>
         <Route element={<FixtureAccountLayout />}>

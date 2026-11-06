@@ -2146,6 +2146,80 @@ test.describe("All Environments and Archived", () => {
     await screenshot(page, "app-platforms-apps-account-chip-open-fa-390");
   });
 
+  /*
+   * #6149's follow-up: the chip offered each account by its raw id. It names
+   * each as Cloud > Accounts does - its id under it - where the reader may
+   * read the accounts (?accounts=named), by its id where no connection names
+   * it (the Google Cloud project), and every one by its id, as before, for a
+   * reader who may not read the accounts (?accounts=refused): on All
+   * Environments and on All Apps.
+   */
+  test("the Cloud Account chip names each account as Cloud > Accounts does, its id under it; a reader who may not read the accounts sees ids", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${APP_PLATFORMS}/environments?accounts=named`);
+
+    const bar: Locator = page.getByTestId("facet-filter-bar");
+    await bar.getByRole("button", { name: /^Cloud Account$/ }).click();
+    const offered: Locator = page.getByRole("listbox").getByRole("option");
+    await expect(offered).toHaveText([
+      /^Checkout production\s*4109-2277-8841$/,
+      /^Core production\s*core-prod-sub$/,
+      /^acme-prod$/,
+    ]);
+    // An account is found by its id too.
+    await page.getByRole("dialog").getByRole("textbox").fill("core-prod");
+    await expect(offered).toHaveText([/^Core production/]);
+    await page.getByRole("dialog").getByRole("textbox").fill("");
+    await screenshot(page, "app-platforms-environments-account-names-1280");
+
+    // Picked by its name: the chip says it, and the list keeps its environments.
+    await offered.nth(0).click();
+    await page.keyboard.press("Escape");
+    await expect(
+      bar.getByRole("button", { name: "Cloud Account · Checkout production" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Showing 1-2 of 2 cloud environments"),
+    ).toBeVisible();
+
+    // All Apps, opened as Cloud's Overview links it: the chip says the name.
+    await open(
+      page,
+      `${APP_PLATFORMS}/apps?accounts=named&${accountChipQuery("app-platforms-apps-table", ["4109-2277-8841"])}`,
+    );
+    await expect(
+      page
+        .getByTestId("facet-filter-bar")
+        .getByRole("button", { name: "Cloud Account · Checkout production" }),
+    ).toBeVisible();
+    await expect(page.locator("table tbody tr")).toHaveCount(3);
+    await screenshot(page, "app-platforms-apps-account-names-1280");
+
+    // A reader who may not read Cloud Accounts: the ids, as before.
+    await open(page, `${APP_PLATFORMS}/environments?accounts=refused`);
+    await page
+      .getByTestId("facet-filter-bar")
+      .getByRole("button", { name: /^Cloud Account$/ })
+      .click();
+    await expect(page.getByRole("listbox").getByRole("option")).toHaveText([
+      /^4109-2277-8841$/,
+      /^core-prod-sub$/,
+      /^acme-prod$/,
+    ]);
+    // The names were asked for, as the reader, and refused.
+    expect(
+      (await recorded(page)).listRequests.filter(
+        (request: ListRequest): boolean => {
+          return request.modelName === "CloudAccount";
+        },
+      ).length,
+    ).toBeGreaterThan(0);
+  });
+
   test("Archived lists archived environments, and has none yet", async ({
     page,
   }: {
