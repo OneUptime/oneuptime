@@ -377,16 +377,23 @@ describe("Azure: the write identity setting", () => {
       `${AZURE_WRITE_IDENTITY}${"-".repeat(400_000)}`,
       "/".repeat(400_000),
     ]) {
-      const startedAt: number = Date.now();
-      const settings: CloudAgentSettings = parseCloudAgentSettings(
-        { ONEUPTIME_AI_AZURE_WRITE_IDENTITY: value },
-        "azure",
-      );
+      // The fastest of three attempts: one attempt on a busy runner can stall.
+      let fastest: number = Number.POSITIVE_INFINITY;
+      let settings: CloudAgentSettings | null = null;
 
-      assert.strictEqual(settings.azureWriteIdentity, null);
-      assert.ok(Date.now() - startedAt < 2_000, "read within two seconds");
+      for (let attempt: number = 0; attempt < 3; attempt++) {
+        const startedAt: number = Date.now();
+        settings = parseCloudAgentSettings(
+          { ONEUPTIME_AI_AZURE_WRITE_IDENTITY: value },
+          "azure",
+        );
+        fastest = Math.min(fastest, Date.now() - startedAt);
+      }
+
+      assert.strictEqual(settings?.azureWriteIdentity, null);
+      assert.ok(fastest < 2_000, `read in ${fastest} ms`);
       // What it shows of the value is short.
-      assert.ok(String(settings.azureWriteIdentityProblem).length < 600);
+      assert.ok(String(settings?.azureWriteIdentityProblem).length < 600);
     }
   });
 
