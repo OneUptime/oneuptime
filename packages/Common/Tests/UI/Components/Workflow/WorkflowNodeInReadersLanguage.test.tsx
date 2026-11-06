@@ -97,7 +97,7 @@ beforeAll(async () => {
       lng: language,
       fallbackLng: "en",
       resources: {
-        [language]: { translation: resources[language] as object },
+        [language]: { translation: resources[language] || {} },
       },
       interpolation: { escapeValue: false },
       keySeparator: false,
