@@ -32,6 +32,7 @@ flowchart TB
 - **The environment is the roll-up.** Every workload with the same platform, account and region lands in one environment. The services keep their own rows under **Services**.
 - **Each running task is an instance.** The environment's **Instances** tab lists its running tasks, instances or replicas, with live CPU and memory where the platform can supply them.
 - **Each service is an app.** An ECS service, a Cloud Run service or a Container App is an app of its environment, and OneUptime keeps the revisions it runs: see [Apps and deploys](#apps-and-deploys).
+- **A stream's CloudWatch Logs count too.** An AWS account that [streams its CloudWatch Logs](/docs/telemetry/cloud-streaming) puts the logs of its App Runner services, Elastic Beanstalk environments, and ECS tasks and clusters on their environment's **Logs** tab, and the environment appears with them if no app has reported to it yet. They make no app: an app is named by its own telemetry.
 
 ## Before you begin
 
@@ -118,7 +119,7 @@ The first attribute the telemetry carries names the app, so an app on a platform
 - **Both are changes.** Each is a dashed line on the app's and the environment's charts, a line in the environment's **Feed**, and a [change event](/docs/telemetry/change-events) that OneUptime AI reads when it investigates an incident on the environment. **Recent deploys** on **App Platforms → Overview** lists the newest.
 - **At most 12 new revisions of an app are recorded in an hour.** A `service.version` that changes with every build would otherwise be a deploy a minute.
 
-An app's page has an **Overview** with its requests, errors, latency, instances and the revisions running now, a **Revisions** tab with each revision's numbers, and **Instances**, **Logs** and **Traces** tabs filtered to the app. **Set up alerts** opens the recommended monitors of the app's service under **Services**.
+An app's page has an **Overview** with its requests, errors, latency, instances and the revisions running now, a **Revisions** tab with each revision's numbers, **Instances**, **Logs** and **Traces** tabs filtered to the app, and a **Recommendations** tab with the monitors OneUptime recommends for it: failed operations, error bursts, traffic that stops and slow requests, read from the app's own spans and its `http.server.request.duration`, each linked to the app's environment. **Set up alerts** opens it; for an app whose name is too long to filter its telemetry by, it opens the recommended monitors of the app's service under **Services** instead.
 
 An app that sends nothing for 30 days is removed with its revisions, and so is a revision no instance reports for 30 days, unless the app still runs it. On a self-hosted OneUptime, `CLOUD_APP_RETENTION_DAYS` sets the 30.
 

@@ -85,15 +85,40 @@ const ALL_RESOURCE_TYPES: Array<MonitorRecommendationResourceType> =
   Object.values(MonitorRecommendationResourceType);
 
 /*
+ * The resource types whose Recommendations are a TAB of the record's own
+ * page, with no route or side menu of their own: an App Platforms app's page
+ * is one route with tabs, and its header's Set up alerts opens the tab. See
+ * "an App Platforms app's Recommendations are a tab of its page" below.
+ */
+type TabHostedResourceType = MonitorRecommendationResourceType.CloudApp;
+
+const TAB_HOSTED_RESOURCE_TYPES: Array<TabHostedResourceType> = [
+  MonitorRecommendationResourceType.CloudApp,
+];
+
+type RoutedResourceType = Exclude<
+  MonitorRecommendationResourceType,
+  TabHostedResourceType
+>;
+
+const ROUTED_RESOURCE_TYPES: Array<RoutedResourceType> =
+  ALL_RESOURCE_TYPES.filter(
+    (
+      resourceType: MonitorRecommendationResourceType,
+    ): resourceType is RoutedResourceType => {
+      return !(TAB_HOSTED_RESOURCE_TYPES as Array<string>).includes(
+        resourceType,
+      );
+    },
+  );
+
+/*
  * Resource type -> the folder its pages live in. This is the one thing that
  * cannot be derived: seven folders are named for the enum member and the
  * eighth is not (IoTDevice lives in Pages/IoT). Typing it as a Record over the
  * enum means a new member fails to compile here until it is added.
  */
-const PAGE_FOLDER_BY_RESOURCE_TYPE: Record<
-  MonitorRecommendationResourceType,
-  string
-> = {
+const PAGE_FOLDER_BY_RESOURCE_TYPE: Record<RoutedResourceType, string> = {
   [MonitorRecommendationResourceType.Kubernetes]: "Kubernetes",
   [MonitorRecommendationResourceType.Host]: "Host",
   [MonitorRecommendationResourceType.Docker]: "Docker",
@@ -112,6 +137,8 @@ const PAGE_FOLDER_BY_RESOURCE_TYPE: Record<
   [MonitorRecommendationResourceType.DataStore]: "DataObservability",
   // A pipeline's own pages (Pages/DataPipeline/View), under Data Observability's address.
   [MonitorRecommendationResourceType.DataPipeline]: "DataPipeline",
+  // A cloud resource's own pages in Cloud (Pages/Cloud/View).
+  [MonitorRecommendationResourceType.CloudResource]: "Cloud",
 };
 
 /*
@@ -136,8 +163,8 @@ function memberNameOf(resourceType: MonitorRecommendationResourceType): string {
 
 type ResourceCase = [MonitorRecommendationResourceType, string, string];
 
-const RESOURCE_CASES: Array<ResourceCase> = ALL_RESOURCE_TYPES.map(
-  (resourceType: MonitorRecommendationResourceType): ResourceCase => {
+const RESOURCE_CASES: Array<ResourceCase> = ROUTED_RESOURCE_TYPES.map(
+  (resourceType: RoutedResourceType): ResourceCase => {
     return [
       resourceType,
       memberNameOf(resourceType),
@@ -152,13 +179,78 @@ describe("the resource-type table this file loops over", () => {
    * ever empty or short, every one of those tests would pass by never running.
    */
   test("covers every member of the enum", () => {
-    expect(ALL_RESOURCE_TYPES.length).toBe(16);
-    expect(RESOURCE_CASES.length).toBe(ALL_RESOURCE_TYPES.length);
+    expect(ALL_RESOURCE_TYPES.length).toBe(18);
+    expect(RESOURCE_CASES.length + TAB_HOSTED_RESOURCE_TYPES.length).toBe(
+      ALL_RESOURCE_TYPES.length,
+    );
 
     for (const resourceCase of RESOURCE_CASES) {
       expect(
         fs.existsSync(path.join(DASHBOARD_SRC, "Pages", resourceCase[2])),
       ).toBe(true);
+    }
+  });
+});
+
+/*
+ * An App Platforms app's Recommendations: a tab of its page, not a route.
+ * The tab hands the shared shell the app the page shows - the shell would
+ * otherwise read a route param that is not the app's - and Set up alerts in
+ * the header opens it, for an app whose telemetry can be told apart.
+ */
+describe("an App Platforms app's Recommendations are a tab of its page", () => {
+  const APP_PAGE: string = readCode("Pages", "AppPlatforms", "View", "App.tsx");
+
+  test("the app page renders the shared shell for the app, as a tab", () => {
+    expect(APP_PAGE).toContain(
+      'import RecommendationsPage from "../../../Components/Recommendations/RecommendationsPage";',
+    );
+    expect(APP_PAGE).toContain(
+      squash(
+        "{ name: CloudAppTabName.Recommendations, children: ( <RecommendationsPage resourceType={MonitorRecommendationResourceType.CloudApp} resourceId={appId} /> ), }",
+      ),
+    );
+    expect(APP_PAGE).toContain(
+      "const appId: ObjectID = Navigation.getLastParamAsObjectID(0);",
+    );
+  });
+
+  test("the shell reads the resource it is handed before the route's", () => {
+    expect(
+      readCode("Components", "Recommendations", "RecommendationsPage.tsx"),
+    ).toContain(
+      squash(
+        "const modelId: ObjectID = props.resourceId || Navigation.getLastParamAsObjectID(1);",
+      ),
+    );
+  });
+
+  test("Set up alerts opens the tab for a scoped app, and the service's page otherwise", () => {
+    expect(APP_PAGE).toContain(
+      squash(
+        "onSetUpAlerts={ isScoped ? (): void => { setTabRequest({ name: CloudAppTabName.Recommendations, count: (tabRequest?.count || 0) + 1, }); } : undefined }",
+      ),
+    );
+    expect(APP_PAGE).toContain(
+      squash(
+        "const alertsRoute: Route | undefined = !isScoped && loaded.serviceId",
+      ),
+    );
+    // The tabs are drawn again on each request, on the tab asked for.
+    expect(APP_PAGE).toContain(
+      squash("initialTabName={tabRequest?.name || requestedTab || undefined}"),
+    );
+  });
+
+  test("no side menu badges a tab-hosted type", () => {
+    for (const resourceType of TAB_HOSTED_RESOURCE_TYPES) {
+      const member: string = memberNameOf(resourceType);
+
+      for (const file of SIDE_MENU_FILES) {
+        expect(readCodeAt(file)).not.toContain(
+          `resourceType={MonitorRecommendationResourceType.${member}}`,
+        );
+      }
     }
   });
 });
@@ -408,8 +500,11 @@ describe("every resource type badges its Recommendations side-menu entry", () =>
       },
     );
 
-    // One per resource type: no more (a stray wiring), no fewer (a missed one).
-    expect(badgedMenus.length).toBe(ALL_RESOURCE_TYPES.length);
+    /*
+     * One per resource type with a page of its own: no more (a stray
+     * wiring), no fewer (a missed one). A tab-hosted type has no menu.
+     */
+    expect(badgedMenus.length).toBe(ROUTED_RESOURCE_TYPES.length);
 
     for (const file of badgedMenus) {
       expect(readCodeAt(file)).toContain(

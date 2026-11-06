@@ -80,8 +80,10 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
         /*
          * The heading the monitor form's template picker gives this
          * category ("Control Plane", not the catalog's "ControlPlane"), in
-         * the reader's language; a category it names no heading for shows
-         * as it is.
+         * the reader's language; a category it names no heading for (a
+         * host's, a service's) is looked up as it is, so a word the
+         * product translates elsewhere ("Memory", "Errors") is not left in
+         * English.
          */
         const categoryLabel: string | undefined = group.recommendations[0]
           ? getAlertTemplateCategoryLabel(
@@ -103,9 +105,8 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
             <div className="mb-3 flex items-center justify-between gap-3 border-b border-gray-100 pb-2">
               <div className="flex min-w-0 items-center gap-2.5">
                 <h4 className="truncate text-sm font-semibold text-gray-900">
-                  {categoryLabel
-                    ? translator.translateText(categoryLabel)
-                    : group.category}
+                  {translator.translateText(categoryLabel || group.category) ||
+                    group.category}
                 </h4>
                 {availableInGroup.length > 0 ? (
                   <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200/80">

@@ -35,6 +35,14 @@ import useTranslator from "../../Utils/UseTranslator";
 import { useDropzone, type FileRejection } from "react-dropzone";
 import type { AxiosProgressEvent } from "axios";
 
+/*
+ * Why the picker refused a file it was given - too large, of a kind it does
+ * not take, one too many - drawn as every field's error is (FieldError):
+ * the error's own red, said at once. It was a lighter red of its own, 3.8:1
+ * on the white zone.
+ */
+export const FILE_PICKER_ERROR_TEST_ID: string = "file-picker-error";
+
 export interface ComponentProps {
   initialValue?: undefined | Array<FileModel> | FileModel;
   onClick?: undefined | (() => void);
@@ -720,7 +728,11 @@ const FilePicker: FunctionComponent<ComponentProps> = (
               </p>
               {/* A file dropped on it anyway, of a kind it does not take. */}
               {error && (
-                <p className="text-xs text-red-500 font-medium">{error}</p>
+                <FieldError
+                  message={error}
+                  className="text-xs font-medium"
+                  dataTestId={FILE_PICKER_ERROR_TEST_ID}
+                />
               )}
             </>
           )}
@@ -760,7 +772,11 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                   <p className="text-gray-500">{promptWords.instruction}</p>
                   <p className="text-xs text-gray-500">{promptWords.hint}</p>
                   {error && (
-                    <p className="text-xs text-red-500 font-medium">{error}</p>
+                    <FieldError
+                      message={error}
+                      className="text-xs font-medium"
+                      dataTestId={FILE_PICKER_ERROR_TEST_ID}
+                    />
                   )}
                 </div>
               </div>
@@ -855,20 +871,14 @@ const FilePicker: FunctionComponent<ComponentProps> = (
        * chosen with Replace was refused: it says so here, under the file.
        */}
       {isCollapsed && error && (
-        <p
-          className="text-xs text-red-500 font-medium text-left"
-          role="alert"
-          data-testid="file-picker-error"
-        >
-          {error}
-        </p>
+        <FieldError
+          message={error}
+          className="text-xs font-medium text-left"
+          dataTestId={FILE_PICKER_ERROR_TEST_ID}
+        />
       )}
       {props.error && (
-        <FieldError
-          message={props.error}
-          className="text-sm text-red-400"
-          announce="none"
-        />
+        <FieldError message={props.error} className="text-sm" announce="none" />
       )}
     </div>
   );

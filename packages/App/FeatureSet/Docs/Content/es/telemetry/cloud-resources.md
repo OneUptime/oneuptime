@@ -627,6 +627,8 @@ Las instalaciones autoalojadas pueden cambiar estos valores con variables de ent
 
 ## Alertar sobre un recurso
 
+A un recurso de una [cuenta conectada](/docs/telemetry/cloud-accounts) se le ofrecen, en su pestaña **Recomendaciones**, los monitores que OneUptime recomienda para su tipo, cada uno creado en un paso. Para alertar sobre cualquier otra métrica que informe:
+
 :::steps
 1. Abra el recurso y su pestaña **Métricas**, que lista cada métrica que su proveedor informa sobre él.
 2. Abra una métrica para representarla en el explorador de métricas, ya filtrada al recurso.

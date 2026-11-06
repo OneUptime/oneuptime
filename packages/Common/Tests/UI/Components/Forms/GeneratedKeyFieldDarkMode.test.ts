@@ -61,12 +61,6 @@ const COLOR_TOKEN: RegExp =
 const SAME_IN_BOTH_THEMES: RegExp =
   /^(?:bg|text|border|ring)-(?!gray|slate|zinc|neutral|stone)[a-z]+-(?:500|600)$/;
 
-/*
- * The shared Input's own error colour, which the line repeats so an error
- * reads the same open or closed: a light red that is legible on both.
- */
-const SHARED_ERROR_COLOR: string = "text-red-400";
-
 const IDENTIFIER_CHAR: RegExp = /[\w-]/;
 
 // A colour class put together at run time, which no scan can check.
@@ -84,7 +78,7 @@ const SUBSTRING_VARIANTS: Array<string> = Array.from(
 function isRemapped(token: string): boolean {
   const utility: string = token.slice(token.lastIndexOf(":") + 1);
 
-  if (SAME_IN_BOTH_THEMES.test(utility) || token === SHARED_ERROR_COLOR) {
+  if (SAME_IN_BOTH_THEMES.test(utility)) {
     return true;
   }
 

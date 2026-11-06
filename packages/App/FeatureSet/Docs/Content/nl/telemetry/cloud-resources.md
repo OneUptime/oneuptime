@@ -627,6 +627,8 @@ Zelf gehoste installaties kunnen dit wijzigen met omgevingsvariabelen op de app:
 
 ## Alerts op een resource
 
+Een resource van een [gekoppeld account](/docs/telemetry/cloud-accounts) krijgt op zijn tabblad **Aanbevelingen** de monitors aangeboden die OneUptime voor zijn type aanbeveelt, elk in één stap aan te maken. Om te alarmeren op een andere metriek die hij rapporteert:
+
 :::steps
 1. Open de resource en zijn tabblad **Metrieken**, dat elke metriek toont die de provider erover meldt.
 2. Open een metriek om die in de metriekverkenner in een grafiek te zien, al gefilterd op de resource.

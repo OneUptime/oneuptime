@@ -619,4 +619,57 @@ describe("streamed logs, through the real logs ingest", () => {
 
     expect(identity?.functionIdentifier).toBe("checkout");
   });
+
+  test("a PostgreSQL database's rows carry the severity each line's level says, and its DETAIL lines none", async () => {
+    const client: string =
+      "2026-11-04 09:59:01 UTC:10.0.1.23(52344):orders_app@orders:[23817]";
+
+    await ingest(
+      await decode([
+        cloudWatchLogsRecord(
+          cloudWatchLogsDocument({
+            logGroup: "/aws/rds/instance/orders-db/postgresql",
+            logStream: "orders-db.0",
+            events: [
+              {
+                id: "1",
+                timestamp: MINUTE_START_MS + 1000,
+                message: `${client}:LOG:  connection authorized: user=orders_app`,
+              },
+              {
+                id: "2",
+                timestamp: MINUTE_START_MS + 2000,
+                message: `${client}:ERROR:  deadlock detected`,
+              },
+              {
+                id: "3",
+                timestamp: MINUTE_START_MS + 2000,
+                message: `${client}:DETAIL:  Process 23817 waits for ShareLock on transaction 9123411.`,
+              },
+              {
+                id: "4",
+                timestamp: MINUTE_START_MS + 3000,
+                message:
+                  "2026-11-04 09:59:03 UTC::@:[6045]:WARNING:  could not write to log file",
+              },
+            ],
+          }),
+        ),
+      ]),
+    );
+
+    const rows: Array<JSONObject> = rowsFor(LogService);
+
+    expect(
+      rows.map((row: JSONObject) => {
+        return row["severityText"];
+      }),
+    ).toEqual(["Information", "Error", "Unspecified", "Warning"]);
+    // On the database's Logs page: its id, as the rules give it.
+    for (const row of rows) {
+      expect(
+        (row["attributes"] as JSONObject)["resource.cloud.resource_id"],
+      ).toBe(`arn:aws:rds:${REGION}:${ACCOUNT_ID}:db:orders-db`);
+    }
+  });
 });

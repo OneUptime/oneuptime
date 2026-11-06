@@ -627,6 +627,8 @@ Selvhostede installationer kan ændre dette med miljøvariabler på appen:
 
 ## Alarmer på en ressource
 
+En ressource i en [forbundet konto](/docs/telemetry/cloud-accounts) får på sin fane **Anbefalinger** tilbudt de monitorer, OneUptime anbefaler til dens type, hver oprettet i ét trin. Sådan advarer du om en anden metrik, den rapporterer:
+
 :::steps
 1. Åbn ressourcen og dens fane **Metrikker**, som viser hver metrik, udbyderen rapporterer om den.
 2. Åbn en metrik for at vise den som graf i metrikudforskeren, allerede filtreret til ressourcen.

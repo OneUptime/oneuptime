@@ -786,12 +786,21 @@ jobs:
           # group's suites sum to 22.2 minutes on a runner of median speed.
           # Dashboard Table Thresholds (2.2) moved to the new group 18: about
           # 20.
+          # Cloud Recommendations (11 tests, 46 seconds locally with its bundle,
+          # Chromium only: a cloud account's recommended monitors grouped by
+          # type of resource, adding one to every resource of a type, what was
+          # made and dismissed, a viewer, a refused create, a resource's own
+          # Recommendations tab and the Scheduled Maintenance tab of a resource
+          # an event holds, at 1280 and 390 pixels, dark, German and Persian)
+          # joined it on 2026-11-06, the lightest group with no suite still
+          # growing: about 21.5.
           - group: 7
             suites: >-
               test-profiles-ui
               test-auto-remediation-rules-ui
               test-custom-roles-ui
               test-public-dashboard-theme-ui
+              test-cloud-recommendations-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -943,6 +952,14 @@ jobs:
           # tests to Cloud Connect the same day (about 0.7 minutes: the suite
           # 9.3, the group 22.3), so Resource Onboarding (0.6) moved to group
           # 16: 21.7.
+          # A cloud resource's Logs page with a stream's rows added 8 tests to
+          # Cloud Connect on 2026-11-06 (14 runs on its desktop and phone: a
+          # database's and a stopped function's Logs, a row's attributes, the
+          # empty list before and while the account streams, 1024 and 768
+          # beside the side menu, dark German and Persian; about 0.6 minutes
+          # on a runner), and the Cloud AI agent's own key 3 more the same day
+          # (5 runs, about 0.3): the suite 10.2, the group 22.6, so Public
+          # Addresses (1.2, Chromium only) moved to group 12: 21.4.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
@@ -950,7 +967,6 @@ jobs:
               test-cloud-connect-ui
               test-host-collectors-ui
               test-vmware-host-page-ui
-              test-public-addresses-ui
               test-docker-swarm-pages-ui
               test-container-host-pages-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
@@ -1220,7 +1236,9 @@ jobs:
           # 18: about 19.5. Permissions Per Tab (0.5, Chromium only) moved here
           # from group 8 on 2026-11-04, when Cloud Connect's German and Persian
           # tests and the Cloud agent follow-ups' together took that group
-          # past 22: 19.8.
+          # past 22: 19.8. Public Addresses (1.2, Chromium only) moved here
+          # from group 8 on 2026-11-06, when Cloud Connect's streamed resource
+          # Logs took that group past 22: 21.0.
           - group: 12
             suites: >-
               test-code-ui
@@ -1228,6 +1246,7 @@ jobs:
               test-acknowledgement-timeout-ui
               test-new-version-ui
               test-permissions-per-tab-ui
+              test-public-addresses-ui
           # Added on 2026-10-27, when 14.0.93's gate run took groups 10, 11, 1, 6
           # and 2 20.9 to 24.4 minutes and the Workflow Builder suite's halves
           # filled groups 4 and 9: Navigation Search (3.6) and Bulk Actions (1.2)
@@ -1727,6 +1746,8 @@ jobs:
             output/playwright/cloud-connect-ui/test-results
             output/playwright/app-platforms-ui/*.png
             output/playwright/app-platforms-ui/test-results
+            output/playwright/cloud-recommendations-ui/*.png
+            output/playwright/cloud-recommendations-ui/test-results
             output/playwright/cloud-spend-ui/*.png
             output/playwright/cloud-spend-ui/test-results
             output/playwright/ai-insights-ui/*.png

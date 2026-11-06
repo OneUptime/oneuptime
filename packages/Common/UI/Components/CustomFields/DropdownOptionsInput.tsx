@@ -756,7 +756,7 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
       {props.error ? (
         <FieldError
           message={props.error}
-          className="mt-2 text-sm text-red-500"
+          className="mt-2 text-sm"
           announce="none"
         />
       ) : null}

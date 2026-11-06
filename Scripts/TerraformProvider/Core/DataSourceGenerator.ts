@@ -654,6 +654,13 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName)}`;
         } else {
             ${fieldName} = types.StringNull()
         }
+    } else if arr, ok := ${responseValue}.([]interface{}); ok {
+        // A JSON array column, such as a runbook's steps: the array, as JSON
+        if jsonBytes, err := json.Marshal(arr); err == nil {
+            ${fieldName} = types.StringValue(string(jsonBytes))
+        } else {
+            ${fieldName} = types.StringNull()
+        }
     } else if val, ok := ${responseValue}.(string); ok {
         ${fieldName} = types.StringValue(val)
     } else {

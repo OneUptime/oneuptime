@@ -627,6 +627,8 @@ Selbst gehostete Installationen können diese Werte mit Umgebungsvariablen an de
 
 ## Auf eine Ressource alarmieren
 
+Einer Ressource eines [verbundenen Kontos](/docs/telemetry/cloud-accounts) werden auf ihrem Tab **Empfehlungen** die Monitore angeboten, die OneUptime für ihren Typ empfiehlt, jeder in einem Schritt erstellt. Um auf eine andere Metrik zu alarmieren, die sie meldet:
+
 :::steps
 1. Öffnen Sie die Ressource und ihren Tab **Metriken**, der jede Metrik auflistet, die ihr Anbieter über sie meldet.
 2. Öffnen Sie eine Metrik, um sie im Metrik-Explorer darzustellen, bereits auf die Ressource gefiltert.

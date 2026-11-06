@@ -250,7 +250,7 @@ const StatusPageDaysSetting: FunctionComponent<ComponentProps> = (
           <FieldError
             id={errorId}
             message={error}
-            className="mt-1 text-sm text-red-600"
+            className="mt-1 text-sm"
             dataTestId={`${props.dataTestId}-error`}
           />
         ) : (
