@@ -418,8 +418,12 @@ export default class GcpCloud {
       : "The agent's service account";
 
     if (writeAccount) {
+      /*
+       * "to sign in as": the output redactor reads "a token of ...: x" as a
+       * secret, and would hide the reason.
+       */
       const write: GcpWriteToken = await run.read(
-        `for a token of the write service account ${writeAccount} for this change (IAM Credentials generateAccessToken, ${
+        `to sign in as the write service account ${writeAccount} for this change (${
           GCP_WRITE_TOKEN_LIFETIME_SECONDS / 60
         } minutes)`,
         (): Promise<GcpWriteToken> => {

@@ -111,15 +111,13 @@ export async function generateGcpWriteToken(data: {
     });
   } catch (err: unknown) {
     throw new Error(
-      `IAM Credentials did not answer (${
-        err instanceof Error ? err.message : String(err)
-      })`,
+      `IAM did not answer (${err instanceof Error ? err.message : String(err)})`,
     );
   }
 
   if (response.status === 403) {
     throw new Error(
-      `Google Cloud refused the agent's own service account a token of ${data.serviceAccount} (HTTP 403: ${describeGoogleError(
+      `Google Cloud refused to let the agent's own service account act as ${data.serviceAccount} (HTTP 403: ${describeGoogleError(
         response,
       )}): the setup command grants it Service Account Token Creator (roles/iam.serviceAccountTokenCreator) on that account alone. Run the setup command again.`,
     );
@@ -133,7 +131,7 @@ export async function generateGcpWriteToken(data: {
 
   if (response.status !== 200) {
     throw new Error(
-      `IAM Credentials answered HTTP ${response.status}: ${describeGoogleError(response)}`,
+      `IAM answered HTTP ${response.status}: ${describeGoogleError(response)}`,
     );
   }
 
@@ -144,9 +142,7 @@ export async function generateGcpWriteToken(data: {
   const token: string | null = readString(object, "accessToken");
 
   if (!token || !isHeaderSafe(token)) {
-    throw new Error(
-      `IAM Credentials answered without a token of ${data.serviceAccount}`,
-    );
+    throw new Error(`IAM answered without a token of ${data.serviceAccount}`);
   }
 
   const expireTime: string | null = readString(object, "expireTime");

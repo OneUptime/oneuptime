@@ -192,6 +192,14 @@ function sentence(text: string): string {
   return SENTENCE_END_PATTERN.test(trimmed) ? trimmed : `${trimmed}.`;
 }
 
+// Why a Google Cloud write account of another project changes nothing (no full stop).
+function describeGcpWriteAccountElsewhere(data: {
+  writeProject: string;
+  accountId: string;
+}): string {
+  return `${RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV} names a service account of project ${data.writeProject}, but the agent serves project ${data.accountId || "(unknown)"}, so it changes nothing. Set it to a service account of project ${data.accountId || "the agent serves"}`;
+}
+
 /*
  * The undo line: the catalog's inverse with the value the change replaced,
  * or why there is none.
@@ -553,17 +561,25 @@ export default class CloudExecutor implements ResourceExecutor {
       ? this.gcp.metadata.getKnownProjectNumber()
       : null;
 
-    // The write account is the served project's own, as its setup command makes it.
+    /*
+     * The write account is the served project's own, as its setup command
+     * makes it. A project served by its number before the metadata server
+     * was read is checked by run() (verifyGcpProject), as a resource is.
+     */
     if (settings.gcpWriteServiceAccount) {
       const writeProject: string = getServiceAccountProject(
         settings.gcpWriteServiceAccount,
       );
+      const isNumberNotYetKnown: boolean =
+        PROJECT_NUMBER_PATTERN.test(accountId) &&
+        (metadataId === null || metadataNumber === null);
 
       if (
         writeProject !== accountId &&
-        !(metadataId === writeProject && metadataNumber === accountId)
+        !(metadataId === writeProject && metadataNumber === accountId) &&
+        !isNumberNotYetKnown
       ) {
-        return `${RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV} names a service account of project ${writeProject}, but the agent serves project ${accountId || "(unknown)"}, so it changes nothing. Set it to a service account of project ${accountId || "the agent serves"}.`;
+        return `${describeGcpWriteAccountElsewhere({ writeProject, accountId })}.`;
       }
     }
 
@@ -810,8 +826,21 @@ export default class CloudExecutor implements ResourceExecutor {
     call: CloudCall,
   ): Promise<void> {
     const resource: ParsedCloudCommand["resource"] = call.command.resource;
+    const writeAccount: string | null = call.settings.gcpWriteServiceAccount;
+    const writeProject: string | null = writeAccount
+      ? getServiceAccountProject(writeAccount)
+      : null;
+    const isResourceNamedOtherwise: boolean = Boolean(
+      resource && resource.accountId !== call.accountId,
+    );
+    const isWriteProjectNamedOtherwise: boolean =
+      writeProject !== null && writeProject !== call.accountId;
 
-    if (!this.gcp || !resource || resource.accountId === call.accountId) {
+    if (
+      !this.gcp ||
+      !resource ||
+      (!isResourceNamedOtherwise && !isWriteProjectNamedOtherwise)
+    ) {
       return;
     }
 
@@ -829,9 +858,23 @@ export default class CloudExecutor implements ResourceExecutor {
       (known.id === call.accountId || known.number === call.accountId) &&
       (known.id === resource.accountId || known.number === resource.accountId);
 
-    if (!sameProject) {
+    if (isResourceNamedOtherwise && !sameProject) {
       run.refuse(
         `${resource.id} is in Google Cloud project ${resource.accountId}, and this agent acts in project ${call.accountId} only`,
+      );
+    }
+
+    // The project it serves by its number is the write account's, by its id.
+    if (
+      writeProject !== null &&
+      isWriteProjectNamedOtherwise &&
+      !(known.id === writeProject && known.number === call.accountId)
+    ) {
+      run.refuse(
+        describeGcpWriteAccountElsewhere({
+          writeProject,
+          accountId: call.accountId,
+        }),
       );
     }
   }

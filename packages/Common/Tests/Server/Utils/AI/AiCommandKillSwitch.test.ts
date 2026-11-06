@@ -1,6 +1,7 @@
 import AiCommandKillSwitch, {
   AI_COMMANDS_OFF_CLAIM_MESSAGE,
   AI_COMMANDS_OFF_ENQUEUE_MESSAGE,
+  AI_COMMANDS_OFF_STOP_MESSAGE,
 } from "../../../../Server/Utils/AI/AiCommandKillSwitch";
 import RunnerJobService, {
   ResourceCommandEnqueueRefusedException,
@@ -50,6 +51,8 @@ import path from "path";
  *  - a job an agent claims after the switch went off is refused at the
  *    claim (getClaimRefusal), unless it is an access test or a runbook's
  *    own step;
+ *  - a job an agent already holds when the switch goes off is stopped on
+ *    its next heartbeat (getStopReason), with the same two exceptions;
  *  - and a source guard: every enqueueAi* chokepoint of RunnerJobService
  *    reads the switch, so a new lane cannot forget it.
  */
@@ -374,6 +377,103 @@ describe("AiCommandKillSwitch", () => {
     });
   });
 
+  describe("getStopReason (a job an agent already holds)", () => {
+    it("stops an AI fix's command once Enable AI is off", async () => {
+      projectLookup.mockResolvedValue(project(false));
+
+      expect(
+        await AiCommandKillSwitch.getStopReason({
+          job: {
+            origin: RunnerJobOrigin.AiRemediation,
+            autoRemediationSuggestionId: SUGGESTION_ID,
+          },
+          projectId: PROJECT_ID,
+        }),
+      ).toBe(AI_COMMANDS_OFF_STOP_MESSAGE);
+    });
+
+    it("stops an investigation's read once Enable AI is off", async () => {
+      projectLookup.mockResolvedValue(project(false));
+
+      expect(
+        await AiCommandKillSwitch.getStopReason({
+          job: { origin: RunnerJobOrigin.AiInvestigation, aiRunId: RUN_ID },
+          projectId: PROJECT_ID,
+        }),
+      ).toBe(AI_COMMANDS_OFF_STOP_MESSAGE);
+    });
+
+    it("stops a job of a project that is gone", async () => {
+      projectLookup.mockResolvedValue(null);
+
+      expect(
+        await AiCommandKillSwitch.getStopReason({
+          job: { origin: RunnerJobOrigin.AiInvestigation, aiRunId: RUN_ID },
+          projectId: PROJECT_ID,
+        }),
+      ).toBe(AI_COMMANDS_OFF_STOP_MESSAGE);
+    });
+
+    it("lets the job go on while Enable AI is on", async () => {
+      projectLookup.mockResolvedValue(project(true));
+
+      expect(
+        await AiCommandKillSwitch.getStopReason({
+          job: {
+            origin: RunnerJobOrigin.AiRemediation,
+            autoRemediationSuggestionId: SUGGESTION_ID,
+          },
+          projectId: PROJECT_ID,
+        }),
+      ).toBeNull();
+    });
+
+    it("never stops a runbook's own step, nor an access test, and reads no project for them", async () => {
+      projectLookup.mockResolvedValue(project(false));
+
+      for (const job of [
+        { origin: RunnerJobOrigin.Runbook },
+        {},
+        { origin: RunnerJobOrigin.AiInvestigation },
+      ]) {
+        expect(
+          await AiCommandKillSwitch.getStopReason({
+            job,
+            projectId: PROJECT_ID,
+          }),
+        ).toBeNull();
+      }
+
+      expect(projectLookup).not.toHaveBeenCalled();
+    });
+
+    it("reads the holding agent's project, and lets a failed read throw", async () => {
+      projectLookup.mockResolvedValue(project(true));
+
+      await AiCommandKillSwitch.getStopReason({
+        job: { origin: RunnerJobOrigin.AiInvestigation, aiRunId: RUN_ID },
+        projectId: PROJECT_ID,
+      });
+
+      expect(
+        (
+          (projectLookup.mock.calls[0]![0] as Record<string, unknown>)[
+            "id"
+          ] as ObjectID
+        ).toString(),
+      ).toBe(PROJECT_ID.toString());
+
+      projectLookup.mockRejectedValue(new Error("database is down"));
+
+      await expect(
+        AiCommandKillSwitch.getStopReason({
+          job: { origin: RunnerJobOrigin.AiInvestigation, aiRunId: RUN_ID },
+          projectId: PROJECT_ID,
+        }),
+      ).rejects.toThrow("database is down");
+    });
+  });
+
   it("says what was stopped and where the switch is", () => {
     expect(AI_COMMANDS_OFF_ENQUEUE_MESSAGE).toContain("Enable AI");
     expect(AI_COMMANDS_OFF_ENQUEUE_MESSAGE).toContain(
@@ -382,6 +482,9 @@ describe("AiCommandKillSwitch", () => {
     expect(AI_COMMANDS_OFF_ENQUEUE_MESSAGE).toContain("not sent");
     expect(AI_COMMANDS_OFF_CLAIM_MESSAGE).toContain("Enable AI");
     expect(AI_COMMANDS_OFF_CLAIM_MESSAGE).toContain("did not run it");
+    expect(AI_COMMANDS_OFF_STOP_MESSAGE).toBe(
+      "OneUptime AI was turned off for this project (Enable AI) while its agent held this command.",
+    );
   });
 });
 

@@ -50,6 +50,7 @@ import AiActivityInsightsReader, {
 } from "../../../Server/Utils/AI/ActivityInsights/AiActivityInsightsReader";
 import AIInsightService from "../../../Server/Services/AIInsightService";
 import {
+  RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
   RESOURCE_AI_ACCESS_INSIGHTS_PATH,
   RESOURCE_AI_ACCESS_LOGS_PATH,
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
@@ -59,6 +60,8 @@ import {
   ResourceAiLogs,
 } from "../../../Types/AI/ResourceAiAccessApi";
 import {
+  getCloudAiAgentKeyEditRefusal,
+  getCloudAiAgentKeyRefusal,
   getResourceAiAgentResetEditRefusal,
   getResourceAiAgentResetRefusal,
 } from "../../../Types/AI/ResourceAiAccessPermissions";
@@ -761,13 +764,14 @@ describe("ResourceAiAccessAPI", () => {
     jest.restoreAllMocks();
   });
 
-  test("registers the five routes, each behind the user middleware", () => {
+  test("registers the six routes, each behind the user middleware", () => {
     for (const path of [
       RESOURCE_AI_ACCESS_STATUS_PATH,
       RESOURCE_AI_ACCESS_TEST_PATH,
       RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
       RESOURCE_AI_ACCESS_LOGS_PATH,
       RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+      RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
     ]) {
       const route: MockRoute = matchRoute(path);
       expect(route.middleware).toBeDefined();
@@ -779,12 +783,14 @@ describe("ResourceAiAccessAPI", () => {
       RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
       RESOURCE_AI_ACCESS_LOGS_PATH,
       RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+      RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
     ]).toEqual([
       "/resource-ai-access/status",
       "/resource-ai-access/test",
       "/resource-ai-access/reset-agent",
       "/resource-ai-access/logs",
       "/resource-ai-access/insights",
+      "/resource-ai-access/agent-key",
     ]);
     expect(
       mockRoutes.filter((route: MockRoute): boolean => {
@@ -1816,6 +1822,219 @@ describe("ResourceAiAccessAPI", () => {
 
         expect(lockReleaseSpy).toHaveBeenCalledTimes(1);
         expect(heldLocks.size).toBe(0);
+      });
+    },
+  );
+
+  /*
+   * A cloud account's Cloud AI agent connects with a key of its account's
+   * own, which its "Let AI fix problems" makes: as setting the agent up,
+   * it takes what resetting it takes - the admin set (a labelled block
+   * refuses) and an edit of this very account. Only cloud accounts have one.
+   */
+  describe.each(
+    KINDS.filter((kind: Kind): boolean => {
+      return Boolean(getCloudCatalogProvider(kind.resourceType));
+    }),
+  )("$resourceType: POST /agent-key", (kind: Kind) => {
+    let makeKeySpy: jest.SpyInstance;
+    let changeSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      makeKeySpy = jest
+        .spyOn(CloudAccountService, "makeAiAgentKey")
+        .mockResolvedValue({
+          agentKey: `ouca_${RESOURCE_ID.toString()}_${"a".repeat(64)}`,
+          worksUntilConnectedBy: "2026-11-07T12:00:00.000Z",
+        });
+      changeSpy = jest
+        .spyOn(ResourceAiAccessService, "assertCallerMayChangeResource")
+        .mockResolvedValue(undefined);
+    });
+
+    test.each([
+      [Permission.ProjectOwner],
+      [Permission.ProjectAdmin],
+      [
+        Permission.EditAutoRemediationRule,
+        kind.readPermission,
+        kind.editPermission,
+      ],
+    ])(
+      "makes a key for this account's agent for %s, and answers it once",
+      async (...roles: Array<Permission>) => {
+        propsSpy.mockResolvedValue(userProps({ permissions: roles }));
+
+        const result: RouteCallResult = await callRoute(
+          RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
+          body(kind.resourceType),
+        );
+
+        expect(result.thrownToNext).toBeUndefined();
+        expect(makeKeySpy).toHaveBeenCalledTimes(1);
+        const call: Record<string, unknown> = makeKeySpy.mock
+          .calls[0]![0] as Record<string, unknown>;
+        expect(String(call["cloudAccountId"])).toBe(RESOURCE_ID.toString());
+        expect(String(call["userId"])).toBe(USER_ID.toString());
+        expect(call["now"]).toBeInstanceOf(Date);
+        // Decided for this very account, under the caller's own props.
+        expect(changeSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            projectId: PROJECT_ID,
+            resourceType: kind.resourceType,
+            resourceId: RESOURCE_ID,
+          }),
+        );
+        expect(lastResponse()).toEqual({
+          agentKey: `ouca_${RESOURCE_ID.toString()}_${"a".repeat(64)}`,
+          worksUntilConnectedBy: "2026-11-07T12:00:00.000Z",
+        });
+      },
+    );
+
+    test.each([
+      [Permission.ProjectMember],
+      [kind.editPermission],
+      [kind.readPermission],
+      [Permission.SettingsAdmin],
+    ])(
+      "refuses %s: editing the account is not enough to set its agent up",
+      async (role: Permission) => {
+        propsSpy.mockResolvedValue(userProps({ permissions: [role] }));
+
+        const result: RouteCallResult = await callRoute(
+          RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
+          body(kind.resourceType),
+        );
+
+        expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+        expect((result.thrownToNext as Error).message).toBe(
+          getCloudAiAgentKeyRefusal(kind.resourceType),
+        );
+        expect((result.thrownToNext as Error).message).toContain(
+          `this ${kind.sentenceName}'s Cloud AI agent`,
+        );
+        expect(makeKeySpy).not.toHaveBeenCalled();
+      },
+    );
+
+    test("refuses an admin who may not edit this account, and makes no key", async () => {
+      propsSpy.mockResolvedValue(
+        userProps({ permissions: [Permission.ProjectAdmin] }),
+      );
+      changeSpy.mockRejectedValue(new NotAuthorizedException("not yours"));
+
+      const result: RouteCallResult = await callRoute(
+        RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
+        body(kind.resourceType),
+      );
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as Error).message).toBe(
+        getCloudAiAgentKeyEditRefusal(kind.resourceType),
+      );
+      expect(makeKeySpy).not.toHaveBeenCalled();
+    });
+
+    test("does not read a block row as a grant", async () => {
+      propsSpy.mockResolvedValue(
+        userProps({
+          permissions: [Permission.ProjectAdmin],
+          blocked: [Permission.ProjectAdmin],
+        }),
+      );
+
+      const result: RouteCallResult = await callRoute(
+        RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
+        body(kind.resourceType),
+      );
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(makeKeySpy).not.toHaveBeenCalled();
+    });
+
+    test("an account the caller may not read is answered as missing, and gets no key", async () => {
+      propsSpy.mockResolvedValue(
+        userProps({ permissions: [Permission.ProjectAdmin] }),
+      );
+      findSpies.get(kind.resourceType)!.mockResolvedValue(null);
+
+      const result: RouteCallResult = await callRoute(
+        RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
+        body(kind.resourceType),
+      );
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(makeKeySpy).not.toHaveBeenCalled();
+    });
+
+    test("a master admin may", async () => {
+      propsSpy.mockResolvedValue(
+        userProps({ permissions: [], isMasterAdmin: true }),
+      );
+
+      await callRoute(RESOURCE_AI_ACCESS_AGENT_KEY_PATH, body(kind.resourceType));
+
+      expect(makeKeySpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("Reset agent says the agent stays out until its setup command runs again", async () => {
+      const { getResetAgentMessage } = await import(
+        "../../../Server/API/ResourceAiAccessAPI"
+      );
+
+      expect(
+        getResetAgentMessage({
+          resourceType: kind.resourceType,
+          agentName: AI_RESOURCE_TYPE_INFO[kind.resourceType].agentDisplayName,
+        }),
+      ).toBe(
+        "The Cloud AI agent was reset, and its key no longer works. Run its setup command again to connect it: Change on this page shows it, with a new key.",
+      );
+    });
+  });
+
+  describe.each(COVERED)(
+    "$resourceType: POST /agent-key is a cloud account's alone",
+    (kind: Kind) => {
+      test("an agent beside a collector connects with its ingestion key: no key is made", async () => {
+        const makeKeySpy: jest.SpyInstance = jest.spyOn(
+          CloudAccountService,
+          "makeAiAgentKey",
+        );
+        propsSpy.mockResolvedValue(
+          userProps({ permissions: [Permission.ProjectOwner] }),
+        );
+
+        const result: RouteCallResult = await callRoute(
+          RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
+          body(kind.resourceType),
+        );
+
+        expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+        expect((result.thrownToNext as Error).message).toBe(
+          `Only a cloud account's Cloud AI agent connects with a key of its own. The ${
+            AI_RESOURCE_TYPE_INFO[kind.resourceType].agentDisplayName
+          } connects with the telemetry ingestion key its collector uses.`,
+        );
+        expect(makeKeySpy).not.toHaveBeenCalled();
+      });
+
+      test("and its Reset agent still says it reconnects on its own", async () => {
+        const { getResetAgentMessage } = await import(
+          "../../../Server/API/ResourceAiAccessAPI"
+        );
+
+        expect(
+          getResetAgentMessage({
+            resourceType: kind.resourceType,
+            agentName: AI_RESOURCE_TYPE_INFO[kind.resourceType].agentDisplayName,
+          }),
+        ).toBe(
+          `The ${
+            AI_RESOURCE_TYPE_INFO[kind.resourceType].agentDisplayName
+          } was reset. It reconnects on its own within a few minutes.`,
+        );
       });
     },
   );

@@ -49,10 +49,11 @@ import {
  * built against exactly these shapes (Types/ResourceAiAgent/ResourceAiAccess):
  *
  *   /register              ingestion key (TelemetryIngest, surface
- *                          resource-ai-agent) → 200 { agentId, agentKey,
- *                          resourceId, resourceName } | 403 { message,
- *                          reason, retryAfterSeconds? } + Retry-After when
- *                          transient
+ *                          resource-ai-agent), or a Cloud AI agent's own
+ *                          key (CloudAiAgentKeyAuthenticator) → 200 {
+ *                          agentId, agentKey, resourceId, resourceName } |
+ *                          403 { message, reason, retryAfterSeconds? } +
+ *                          Retry-After when transient
  *   every other route      { agentId, agentKey } (body or x-agent-* headers)
  *                          → 401 { message } when not valid
  *   /heartbeat             200 { status: "ok" }
@@ -61,7 +62,9 @@ import {
  *                          payload: ResourceCommandJobPayload } } — a job
  *                          carrying a credential, for another resource, or
  *                          without a runnable command is failed, never served
- *   /job/:jobId/heartbeat  200 { status: "ok" } | 404 { message }
+ *   /job/:jobId/heartbeat  200 { status: "ok" } | 200 { status: "ok", stop:
+ *                          true, reason } once Enable AI is off | 404 {
+ *                          message }
  *   /job/:jobId/result     200 { accepted }
  *   /disconnect            200 { status: "ok" }
  *
@@ -117,9 +120,17 @@ jest.mock("Common/Server/Utils/Express", () => {
 // Import AFTER the jest.mock calls above (they are hoisted by jest).
 import ResourceAiAgentIngressAPI from "../../FeatureSet/Runbook/API/ResourceAiAgentIngress";
 import ResourceAiAgentAuthorization from "../../FeatureSet/Runbook/Middleware/ResourceAiAgentAuthorization";
+import ResourceAiAgentRegistrationAuthorization from "../../FeatureSet/Runbook/Middleware/ResourceAiAgentRegistrationAuthorization";
 import AiCommandKillSwitch, {
   AI_COMMANDS_OFF_CLAIM_MESSAGE,
+  AI_COMMANDS_OFF_STOP_MESSAGE,
 } from "Common/Server/Utils/AI/AiCommandKillSwitch";
+import CloudAiAgentKeyAuthenticator from "Common/Server/Utils/CloudConnection/CloudAiAgentKeyAuthentication";
+import {
+  CLOUD_AI_AGENT_KEY_REFUSED_MESSAGE,
+  buildCloudAiAgentKey,
+} from "Common/Types/CloudConnection/CloudAiAgentKey";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 
 /*
  * Enable AI is on throughout: what turning it off does to these paths is
@@ -231,6 +242,12 @@ async function call(
     wire.headers[String(name)] = String(value);
     return res;
   });
+  res["setHeader"] = jest
+    .fn()
+    .mockImplementation((name: unknown, value: unknown) => {
+      wire.headers[String(name)] = String(value);
+      return res;
+    });
 
   for (const handler of handlers) {
     let proceeded: boolean = false;
@@ -360,30 +377,13 @@ describe("the routes", () => {
     );
   });
 
-  test("/register is guarded by the ingestion key, on the resource AI agent surface", () => {
-    const forSurface: jest.SpyInstance = jest.spyOn(
-      TelemetryIngest,
-      "forSurface",
-    );
-    const routesBefore: number = mockRoutes.length;
-
-    new ResourceAiAgentIngressAPI();
-
-    expect(forSurface).toHaveBeenCalledTimes(1);
-    expect(forSurface).toHaveBeenCalledWith(
-      TelemetryIngestSurface.ResourceAiAgent,
-    );
-
-    const register: MockRoute = mockRoutes
-      .slice(routesBefore)
-      .find((route: MockRoute) => {
-        return route.uri === "/register";
-      })!;
+  test("/register is guarded by its key: a Cloud AI agent's own, or the ingestion key on the resource AI agent surface", () => {
+    const register: MockRoute = findRoute("/register");
 
     expect(register.handlers).toHaveLength(2);
-    expect(register.handlers[0]).toBe(forSurface.mock.results[0]!.value);
-
-    mockRoutes.splice(routesBefore);
+    expect(register.handlers[0]).toBe(
+      ResourceAiAgentRegistrationAuthorization.authorize,
+    );
   });
 
   test.each(AUTHENTICATED_ROUTES)(
@@ -614,6 +614,197 @@ describe("POST /register", () => {
  * The real service behind the route, with only its database reads stubbed:
  * the reason the service decides is the reason the agent reads.
  */
+/*
+ * Who may register (ResourceAiAgentRegistrationAuthorization): a Cloud AI
+ * agent's own key is checked against its account's keys, and the request
+ * then registers that account's agent with the key's project; any other key
+ * goes through the ingestion key's guard, on the resource AI agent surface.
+ */
+describe("POST /register: the key it came with", () => {
+  const CLOUD_ACCOUNT_ID: ObjectID = new ObjectID(
+    "88888888-8888-4888-8888-888888888888",
+  );
+  const OWN_KEY: string = buildCloudAiAgentKey({
+    cloudAccountId: CLOUD_ACCOUNT_ID.toString(),
+    secret: "0123456789abcdef".repeat(4),
+  });
+  let forSurface: jest.SpyInstance;
+  let ingestGuard: jest.Mock;
+  let authenticateKey: jest.SpyInstance;
+  let registerSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    ingestGuard = jest
+      .fn()
+      .mockImplementation(
+        async (req: unknown, _res: unknown, next: unknown): Promise<void> => {
+          // What the ingestion key's guard puts on an admitted request.
+          (req as Record<string, unknown>)["projectId"] = PROJECT_ID;
+          (req as Record<string, unknown>)["ingestionKeyPolicy"] = {
+            ingestionKeyId: INGESTION_KEY_ID,
+          };
+          (next as () => void)();
+        },
+      );
+    forSurface = jest
+      .spyOn(TelemetryIngest, "forSurface")
+      .mockReturnValue(ingestGuard as never);
+    authenticateKey = jest
+      .spyOn(CloudAiAgentKeyAuthenticator, "authenticate")
+      .mockResolvedValue({
+        isAuthorized: true,
+        projectId: PROJECT_ID,
+        cloudAccountId: CLOUD_ACCOUNT_ID,
+        provider: CloudProvider.AWS,
+        accountId: "111111111111",
+        keyHash: "c".repeat(64),
+        match: "pending",
+      });
+    registerSpy = jest
+      .spyOn(ResourceAiAgentService, "register")
+      .mockResolvedValue({
+        agentId: AGENT_ID,
+        agentKey: AGENT_KEY,
+        resourceType: AiResourceType.AwsAccount,
+        resourceId: CLOUD_ACCOUNT_ID,
+        resourceName: "prod",
+        admission: "created",
+      });
+  });
+
+  function registerWith(
+    headers: Dictionary<string>,
+    body: JSONObject = {
+      resourceType: "aws",
+      resourceIdentifier: "111111111111",
+    },
+  ): Promise<WireResponse> {
+    return call("/register", { headers, body });
+  }
+
+  test("a Cloud AI agent's own key: checked against its account's keys, never as an ingestion key", async () => {
+    const wire: WireResponse = await registerWith({
+      "x-oneuptime-token": OWN_KEY,
+    });
+
+    expect(wire.statusCode).toBe(200);
+    expect(authenticateKey).toHaveBeenCalledTimes(1);
+    expect(
+      (authenticateKey.mock.calls[0]![0] as Record<string, unknown>)["key"],
+    ).toBe(OWN_KEY);
+    expect(forSurface).not.toHaveBeenCalled();
+    expect(ingestGuard).not.toHaveBeenCalled();
+  });
+
+  test("the service registers the key's account's agent, in the key's project, and is told no ingestion key", async () => {
+    await registerWith(
+      { "x-oneuptime-token": OWN_KEY },
+      {
+        resourceType: "aws",
+        resourceIdentifier: "111111111111",
+        resourceId: "99999999-9999-4999-8999-999999999999",
+      },
+    );
+
+    const passed: Record<string, unknown> = registerSpy.mock
+      .calls[0]![0] as Record<string, unknown>;
+
+    expect(passed["projectId"]).toEqual(PROJECT_ID);
+    expect(passed["cloudAiAgentKey"]).toEqual({
+      cloudAccountId: CLOUD_ACCOUNT_ID,
+      keyHash: "c".repeat(64),
+      match: "pending",
+    });
+    expect(passed["ingestionKeyId"]).toBeUndefined();
+  });
+
+  test.each(["x-oneuptime-service-token", "x-oneuptime-ingestion-key"])(
+    "the key is read from %s too, as an ingestion key is",
+    async (header: string) => {
+      await registerWith({ [header]: OWN_KEY });
+
+      expect(authenticateKey).toHaveBeenCalledTimes(1);
+      expect(forSurface).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a key that is not the account's: 401 with the way out, and nothing registered", async () => {
+    authenticateKey.mockResolvedValue({
+      isAuthorized: false,
+      status: 401,
+      message: CLOUD_AI_AGENT_KEY_REFUSED_MESSAGE,
+    });
+
+    const wire: WireResponse = await registerWith({
+      "x-oneuptime-token": OWN_KEY,
+    });
+
+    expect(wire.statusCode).toBe(401);
+    expect(JSON.stringify(wire.body)).toContain(
+      "This Cloud AI agent key is not the cloud account's",
+    );
+    expect(registerSpy).not.toHaveBeenCalled();
+  });
+
+  test("too many registrations for the account: 429 with Retry-After, and nothing registered", async () => {
+    authenticateKey.mockResolvedValue({
+      isAuthorized: false,
+      status: 429,
+      message: "slow down",
+      retryAfterSeconds: 17,
+    });
+
+    const wire: WireResponse = await registerWith({
+      "x-oneuptime-token": OWN_KEY,
+    });
+
+    expect(wire.statusCode).toBe(429);
+    expect(wire.headers["Retry-After"]).toBe("17");
+    expect(registerSpy).not.toHaveBeenCalled();
+  });
+
+  test("a failing account read goes to the error handler, never a registration", async () => {
+    authenticateKey.mockRejectedValue(new Error("database is down"));
+
+    const wire: WireResponse = await registerWith({
+      "x-oneuptime-token": OWN_KEY,
+    });
+
+    expect((wire.thrownToNext as Error).message).toBe("database is down");
+    expect(registerSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["a telemetry ingestion key", "0b5f2c1e-1111-4111-8111-222233334444"],
+    ["no key", undefined],
+    ["a key that only looks like an agent's", "ouca_nope"],
+  ])(
+    "%s goes through the ingestion key's guard, on the resource AI agent surface",
+    async (_what: string, key: string | undefined) => {
+      const wire: WireResponse = await registerWith(
+        key ? { "x-oneuptime-token": key } : {},
+      );
+
+      expect(forSurface).toHaveBeenCalledWith(
+        TelemetryIngestSurface.ResourceAiAgent,
+      );
+      expect(ingestGuard).toHaveBeenCalledTimes(1);
+      expect(authenticateKey).not.toHaveBeenCalled();
+      expect(wire.statusCode).toBe(200);
+      expect(
+        (registerSpy.mock.calls[0]![0] as Record<string, unknown>)[
+          "ingestionKeyId"
+        ],
+      ).toEqual(INGESTION_KEY_ID);
+      expect(
+        (registerSpy.mock.calls[0]![0] as Record<string, unknown>)[
+          "cloudAiAgentKey"
+        ],
+      ).toBeUndefined();
+    },
+  );
+});
+
 describe("POST /register end to end through the service", () => {
   test("an unknown resource type: 403 resource_type_invalid, no retry hint", async () => {
     const wire: WireResponse = await call("/register", {
@@ -1513,11 +1704,20 @@ describe("POST /claim-next-job", () => {
 
 describe("POST /job/:jobId/heartbeat", () => {
   let heartbeatJob: jest.SpyInstance;
+  let jobLookup: jest.SpyInstance;
 
   beforeEach(() => {
     heartbeatJob = jest
       .spyOn(RunnerJobService, "heartbeatJob")
       .mockResolvedValue(true);
+    jobLookup = jest
+      .spyOn(RunnerJobService, "findOneBy")
+      .mockResolvedValue(
+        makeJob({
+          origin: RunnerJobOrigin.AiRemediation,
+          aiRunId: new ObjectID("12121212-1212-4212-8212-121212121212"),
+        }),
+      );
   });
 
   test('the lease is still the agent\'s: 200 { status: "ok" }', async () => {
@@ -1554,6 +1754,115 @@ describe("POST /job/:jobId/heartbeat", () => {
 
     expect(wire.thrownToNext).toBeInstanceOf(BadDataException);
     expect(heartbeatJob).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Enable AI turned off after the agent claimed the job: the agent is told
+   * to stop - the heartbeat sent right before a command starts keeps it from
+   * starting, and a cloud change not yet sent is never sent. The lease is
+   * still renewed, so the agent reports what it did.
+   */
+  describe("with Enable AI turned off since the claim", () => {
+    beforeEach(() => {
+      (AiCommandKillSwitch.isAiOff as unknown as jest.Mock).mockResolvedValue(
+        true,
+      );
+    });
+
+    test("an AI command is told to stop, with the reason, and its lease still renewed", async () => {
+      const wire: WireResponse = await call(
+        "/job/:jobId/heartbeat",
+        authenticated({ params: { jobId: JOB_ID.toString() } }),
+      );
+
+      expect(wire.statusCode).toBe(200);
+      expect(wire.body).toEqual({
+        status: "ok",
+        stop: true,
+        reason: AI_COMMANDS_OFF_STOP_MESSAGE,
+      });
+      expect(heartbeatJob).toHaveBeenCalledTimes(1);
+      // The job this agent holds, by id, as root.
+      expect(jobLookup).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { _id: JOB_ID.toString(), assignedAgentId: AGENT_ID },
+          props: { isRoot: true },
+        }),
+      );
+      expect(AiCommandKillSwitch.isAiOff).toHaveBeenCalledWith(PROJECT_ID);
+    });
+
+    test("an investigation's read is told to stop too", async () => {
+      jobLookup.mockResolvedValue(
+        makeJob({
+          origin: RunnerJobOrigin.AiInvestigation,
+          aiRunId: new ObjectID("12121212-1212-4212-8212-121212121212"),
+        }),
+      );
+
+      const wire: WireResponse = await call(
+        "/job/:jobId/heartbeat",
+        authenticated({ params: { jobId: JOB_ID.toString() } }),
+      );
+
+      expect(wire.body).toMatchObject({ stop: true });
+    });
+
+    test("Test connection is not: a person checks the agent with it, and no AI composed it", async () => {
+      jobLookup.mockResolvedValue(
+        makeJob({ origin: RunnerJobOrigin.AiInvestigation }),
+      );
+
+      const wire: WireResponse = await call(
+        "/job/:jobId/heartbeat",
+        authenticated({ params: { jobId: JOB_ID.toString() } }),
+      );
+
+      expect(wire.body).toEqual({ status: "ok" });
+    });
+
+    test("a runbook's step is not: Enable AI does not hold runbooks people wrote", async () => {
+      jobLookup.mockResolvedValue(makeJob({ origin: RunnerJobOrigin.Runbook }));
+
+      const wire: WireResponse = await call(
+        "/job/:jobId/heartbeat",
+        authenticated({ params: { jobId: JOB_ID.toString() } }),
+      );
+
+      expect(wire.body).toEqual({ status: "ok" });
+    });
+
+    test("a job the agent no longer holds says nothing more than the lease does", async () => {
+      jobLookup.mockResolvedValue(null);
+
+      const wire: WireResponse = await call(
+        "/job/:jobId/heartbeat",
+        authenticated({ params: { jobId: JOB_ID.toString() } }),
+      );
+
+      expect(wire.body).toEqual({ status: "ok" });
+    });
+
+    test("a lease that moved on is still a 404, stop or not", async () => {
+      heartbeatJob.mockResolvedValue(false);
+
+      const wire: WireResponse = await call(
+        "/job/:jobId/heartbeat",
+        authenticated({ params: { jobId: JOB_ID.toString() } }),
+      );
+
+      expect(wire.thrownToNext).toBeInstanceOf(NotFoundException);
+      expect(jobLookup).not.toHaveBeenCalled();
+    });
+  });
+
+  test("with Enable AI on, the job goes on: no stop", async () => {
+    const wire: WireResponse = await call(
+      "/job/:jobId/heartbeat",
+      authenticated({ params: { jobId: JOB_ID.toString() } }),
+    );
+
+    expect(wire.body).toEqual({ status: "ok" });
   });
 });
 
