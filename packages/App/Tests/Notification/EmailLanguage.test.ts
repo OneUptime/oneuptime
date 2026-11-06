@@ -782,6 +782,224 @@ describe("every subscriber email, in every language", () => {
 });
 
 /*
+ * The email that pages a person on call (fu-i18n-larger), in the language
+ * they picked: every word of OneUptime's own - the title, what happened,
+ * the labels, the buttons, why they get it - and every value as written.
+ * UserNotificationRuleService words its values (a default state, "No root
+ * cause identified") and puts the language on the envelope.
+ */
+const ON_CALL_PAGE_TEMPLATES: Array<EmailTemplateType> = [
+  EmailTemplateType.AcknowledgeIncident,
+  EmailTemplateType.AcknowledgeAlert,
+  EmailTemplateType.AcknowledgeIncidentEpisode,
+  EmailTemplateType.AcknowledgeAlertEpisode,
+];
+
+// The values of all four, no word of any language.
+const ON_CALL_PAGE_VARIABLES: Record<string, string> = {
+  logoUrl: "",
+  year: "2026",
+  projectName: "Zorbex project",
+  currentState: "Zorbex state",
+  resourcesAffected: "Zorbex API",
+  rootCause: "<p>Zorbex cause</p>",
+  passOnLink: "https://zorbex.example.test/pass-on/1",
+  incidentTitle: "Zorbex checkout",
+  incidentNumber: "ZRB-1",
+  incidentSeverity: "Zorbex severity",
+  incidentDescription: "<p>Zorbex description</p>",
+  acknowledgeIncidentLink: "https://zorbex.example.test/acknowledge/1",
+  alertTitle: "Zorbex alert",
+  alertNumber: "ZRB-2",
+  alertSeverity: "Zorbex severity",
+  alertDescription: "<p>Zorbex description</p>",
+  acknowledgeAlertLink: "https://zorbex.example.test/acknowledge/2",
+  episodeNumber: "ZRB-3",
+  incidentEpisodeTitle: "Zorbex incident episode",
+  incidentEpisodeSeverity: "Zorbex severity",
+  incidentEpisodeDescription: "<p>Zorbex description</p>",
+  acknowledgeIncidentEpisodeLink: "https://zorbex.example.test/acknowledge/3",
+  incidentsList: "<p>Zorbex member</p>",
+  incidentsCount: "2",
+  alertEpisodeTitle: "Zorbex alert episode",
+  alertEpisodeSeverity: "Zorbex severity",
+  alertEpisodeDescription: "<p>Zorbex description</p>",
+  acknowledgeAlertEpisodeLink: "https://zorbex.example.test/acknowledge/4",
+  alertsList: "<p>Zorbex member</p>",
+  alertsCount: "2",
+};
+
+describe("every on-call page email, in every language", () => {
+  const LETTER: RegExp = /\p{L}/u;
+
+  /*
+   * Whether a text holds these words as words of their own - "Incident",
+   * but not inside Spanish's "Incidente".
+   */
+  const holdsWords: (text: string, words: string) => boolean = (
+    text: string,
+    words: string,
+  ): boolean => {
+    let at: number = text.indexOf(words);
+
+    while (at !== -1) {
+      if (
+        !LETTER.test(text.charAt(at - 1)) &&
+        !LETTER.test(text.charAt(at + words.length))
+      ) {
+        return true;
+      }
+
+      at = text.indexOf(words, at + 1);
+    }
+
+    return false;
+  };
+
+  const renderPage: (
+    templateType: EmailTemplateType,
+    language: string | undefined,
+  ) => Promise<RenderedEmail> = (
+    templateType: EmailTemplateType,
+    language: string | undefined,
+  ): Promise<RenderedEmail> => {
+    return MailService.render(
+      email(templateType, language, ON_CALL_PAGE_VARIABLES),
+    );
+  };
+
+  test.each(ON_CALL_PAGE_TEMPLATES)(
+    "%s reads none of OneUptime's English words in another language",
+    async (templateType: EmailTemplateType) => {
+      const english: string = visibleText(
+        (await renderPage(templateType, undefined)).body,
+      );
+      const problems: Array<string> = [];
+
+      for (const language of TRANSLATED_LANGUAGES) {
+        const text: string = visibleText(
+          (await renderPage(templateType, language)).body,
+        );
+
+        for (const sentence of wordedApart(language)) {
+          for (const words of wordsOf(sentence.english)) {
+            if (!english.includes(words)) {
+              continue;
+            }
+
+            if (holdsWords(text, words) && !sentence.worded.includes(words)) {
+              problems.push(`${language}: "${words}"`);
+            }
+          }
+        }
+      }
+
+      expect(problems).toEqual([]);
+    },
+  );
+
+  test.each(ON_CALL_PAGE_TEMPLATES)(
+    "%s keeps every value it is given, in every language",
+    async (templateType: EmailTemplateType) => {
+      const english: string = visibleText(
+        (await renderPage(templateType, undefined)).body,
+      );
+      const values: Array<string> = Object.values(
+        ON_CALL_PAGE_VARIABLES,
+      ).filter((value: string): boolean => {
+        return (
+          (value.startsWith("Zorbex") || value.startsWith("ZRB-")) &&
+          english.includes(value)
+        );
+      });
+
+      // Its title, number, project, state, resources and severity at least.
+      expect(values.length).toBeGreaterThanOrEqual(6);
+
+      for (const language of TRANSLATED_LANGUAGES) {
+        const text: string = visibleText(
+          (await renderPage(templateType, language)).body,
+        );
+
+        for (const value of values) {
+          expect([language, value, text.includes(value)]).toEqual([
+            language,
+            value,
+            true,
+          ]);
+        }
+      }
+    },
+  );
+
+  test("German: what happened, the details, the buttons and why you get it", async () => {
+    const text: string = visibleText(
+      (await renderPage(EmailTemplateType.AcknowledgeIncident, "de")).body,
+    );
+
+    expect(text).toContain("Vorfall ZRB-1: Zorbex checkout");
+    expect(text).toContain(
+      "Im Projekt Zorbex project wurde ein neuer Vorfall erstellt.",
+    );
+    expect(text).toContain("Vorfallstitel");
+    expect(text).toContain("Aktueller Status");
+    expect(text).toContain(
+      "HANDLUNG ERFORDERLICH: Bitte bestätigen Sie diesen Vorfall mit der Schaltfläche unten.",
+    );
+    expect(text).toContain("Vorfall bestätigen");
+    expect(text).toContain(
+      "Keine Zeit? Eskalieren Sie, und Sie werden für diesen Vorfall nicht erneut alarmiert.",
+    );
+    expect(text).toContain("Eskalieren");
+    expect(text).toContain("Warum erhalte ich diese E-Mail?");
+    expect(text).not.toContain("Acknowledge Incident");
+    expect(text).not.toContain("ACTION REQUIRED");
+  });
+
+  test("an episode's list is headed in the language, its count as the language writes it", async () => {
+    const text: string = visibleText(
+      (await renderPage(EmailTemplateType.AcknowledgeIncidentEpisode, "de"))
+        .body,
+    );
+
+    expect(text).toContain("Vorfälle in dieser Episode (2)");
+    expect(text).toContain("Zorbex member");
+  });
+
+  test.each(ON_CALL_PAGE_TEMPLATES)(
+    "%s in Persian reads from the right",
+    async (templateType: EmailTemplateType) => {
+      const rendered: RenderedEmail = await renderPage(templateType, "fa");
+
+      expect(attributeOf(startTagOf(rendered.body, "<html"), "lang")).toBe(
+        "fa",
+      );
+      expect(attributeOf(startTagOf(rendered.body, "<html"), "dir")).toBe(
+        "rtl",
+      );
+    },
+  );
+
+  test.each(ON_CALL_PAGE_TEMPLATES)(
+    "%s without a language reads in English, laid out from the left",
+    async (templateType: EmailTemplateType) => {
+      const rendered: RenderedEmail = await renderPage(templateType, undefined);
+      const text: string = visibleText(rendered.body);
+
+      expect(attributeOf(startTagOf(rendered.body, "<html"), "lang")).toBe(
+        "en",
+      );
+      expect(attributeOf(startTagOf(rendered.body, "<html"), "dir")).toBe(
+        undefined,
+      );
+      expect(text).toContain("ACTION REQUIRED: Please acknowledge this");
+      expect(text).toContain("You can also copy and paste this link:");
+      expect(text).toContain("Why am I receiving this email?");
+    },
+  );
+});
+
+/*
  * The uptime report, with a report in it: its stat strip, its table and a
  * group's count of resources - none of them in English in another
  * language, every name in it kept.

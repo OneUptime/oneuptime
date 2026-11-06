@@ -2275,7 +2275,9 @@ describe("the language of your pages", () => {
     expect(ruleService).toContain(
       "await UserLanguage.getLanguage(notificationRuleItem.userId),",
     );
-    expect(ruleService).toContain("const translator: Translator = getServerTranslator(");
+    expect(ruleService).toContain(
+      "const translator: Translator = getServerTranslator(",
+    );
     expect(languageSection).toContain(
       "Until you pick one, they are in English.",
     );
@@ -2330,9 +2332,7 @@ describe("the language of your pages", () => {
     expect(languageSection).toContain(
       "such as Identified and Critical Incident",
     );
-    expect(languageSection).toContain(
-      "What your team wrote reads as written",
-    );
+    expect(languageSection).toContain("What your team wrote reads as written");
   });
 
   it("points a reader whose pages are English to where the language is picked", () => {
