@@ -97,6 +97,7 @@ import {
   CloudAiAgentEnvironmentVariable,
   getCloudAiAgentEnvironment,
 } from "Common/Types/CloudConnection/CloudAiAgentSetupCommands";
+import { buildCloudAiAgentKey } from "Common/Types/CloudConnection/CloudAiAgentKey";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -2401,7 +2402,10 @@ describe("where the Ceph and VMware agents' fix mode is set", () => {
           getCloudAiAgentEnvironment({
             provider: CloudProvider.AWS,
             oneuptimeUrl: "https://oneuptime.com",
-            ingestionKey: "ingestion-key",
+            agentKey: buildCloudAiAgentKey({
+              cloudAccountId: "11111111-1111-1111-1111-111111111111",
+              secret: "a".repeat(64),
+            }),
             cloudAccountId: "11111111-1111-1111-1111-111111111111",
             accountId: "123456789012",
             fixesMode,

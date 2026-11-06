@@ -61,7 +61,11 @@ describe("required settings", () => {
     assert.match(parsed.problems[0]!, /ONEUPTIME_URL is not set/);
     assert.match(
       parsed.problems[1]!,
-      /None of ONEUPTIME_API_KEY, ONEUPTIME_TELEMETRY_INGESTION_KEY, ONEUPTIME_SERVICE_TOKEN is set/,
+      /None of ONEUPTIME_AI_AGENT_KEY, ONEUPTIME_API_KEY, ONEUPTIME_TELEMETRY_INGESTION_KEY, ONEUPTIME_SERVICE_TOKEN is set/,
+    );
+    assert.match(
+      parsed.problems[1]!,
+      /\(a Cloud AI agent's setup command sets ONEUPTIME_AI_AGENT_KEY to its account's own key\)\.$/,
     );
     assert.match(
       parsed.problems[2]!,
@@ -69,6 +73,26 @@ describe("required settings", () => {
     );
     assert.strictEqual(parsed.config.resourceType, null);
     assert.strictEqual(parsed.config.resourceIdentifier, null);
+  });
+
+  test("a Cloud AI agent's own key comes first, and says where it came from", () => {
+    const own: ParsedConfig = parse({
+      ONEUPTIME_AI_AGENT_KEY: ` ouca_${"1".repeat(8)} `,
+      ONEUPTIME_API_KEY: "api-key",
+      ONEUPTIME_TELEMETRY_INGESTION_KEY: "telemetry-key",
+    });
+
+    assert.strictEqual(own.config.apiKey, `ouca_${"1".repeat(8)}`);
+    assert.strictEqual(own.config.apiKeySource, "ONEUPTIME_AI_AGENT_KEY");
+
+    // Empty, the ingestion key the agent had before still connects it.
+    const before: ParsedConfig = parse({
+      ONEUPTIME_AI_AGENT_KEY: " ",
+      ONEUPTIME_API_KEY: "api-key",
+    });
+
+    assert.strictEqual(before.config.apiKey, "api-key");
+    assert.strictEqual(before.config.apiKeySource, "ONEUPTIME_API_KEY");
   });
 
   test("the API key: the first non-empty of the three variables", () => {
@@ -857,6 +881,28 @@ describe("a cloud account's identity and settings", () => {
       'ONEUPTIME_AI_CLOUD_OPERATIONS names "redrive-queue", which Azure does not have, so the agent ignores it.',
       "ONEUPTIME_AI_CLOUD_OPERATIONS names no cloud change this agent knows, so it makes no change at all. List the changes it may make (restart-service, start-instance, scale-out, scale-in, reboot-instance, roll-back-service, fail-over-database, stop-instance), or leave it empty for all of them.",
       "ONEUPTIME_AI_AWS_WRITE_ROLE_ARN is set, but this agent serves Azure, so it is ignored.",
+    ]);
+  });
+
+  test("the Google Cloud write account: a service account, Google Cloud only", () => {
+    const wrong: ParsedConfig = cloud("gcp", {
+      GOOGLE_CLOUD_PROJECT: "shop-prod-1234",
+      ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT: "oneuptime-ai-agent-write",
+    });
+
+    assert.deepStrictEqual(wrong.problems, []);
+    assert.deepStrictEqual(wrong.warnings, [
+      'ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT="oneuptime-ai-agent-write" is not a service account (oneuptime-ai-agent-write@my-project.iam.gserviceaccount.com), so the agent changes nothing until it is fixed.',
+    ]);
+
+    const elsewhere: ParsedConfig = cloud("aws", {
+      AWS_ACCOUNT_ID: "123456789012",
+      ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT:
+        "oneuptime-ai-agent-write@shop-prod-1234.iam.gserviceaccount.com",
+    });
+
+    assert.deepStrictEqual(elsewhere.warnings, [
+      "ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT is set, but this agent serves AWS, so it is ignored.",
     ]);
   });
 

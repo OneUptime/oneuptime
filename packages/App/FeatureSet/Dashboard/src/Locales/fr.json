@@ -45351,5 +45351,11 @@
   "Only if {{first}} and {{second}}": "Seulement si {{first}} et {{second}}",
   "Only if {{first}} or {{second}}": "Seulement si {{first}} ou {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Seulement si {{first}}, {{second}} et {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Seulement si {{first}}, {{second}} ou {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Seulement si {{first}}, {{second}} ou {{third}}",
+  "AI Agent Keys": "Clés de l'agent IA",
+  "Making a key for this agent…": "Création d'une clé pour cet agent…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime n'a envoyé aucune clé pour cet agent. Réessayez.",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "La commande contient une clé créée pour cet agent seul. Exécutez-la dans la journée, ou rouvrez cette boîte de dialogue pour en obtenir une nouvelle.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} a été réinitialisé, et sa clé ne fonctionne plus. Relancez sa commande de configuration pour le connecter : Modifier l'affiche.",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Cette action révoque immédiatement la clé de l'agent ({{agentName}}). Il reste déconnecté jusqu'à ce que vous relanciez sa commande de configuration : Modifier l'affiche, avec une nouvelle clé."
 }

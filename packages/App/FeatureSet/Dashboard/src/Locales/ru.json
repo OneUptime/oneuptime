@@ -45351,5 +45351,11 @@
   "Only if {{first}} and {{second}}": "Только если {{first}} и {{second}}",
   "Only if {{first}} or {{second}}": "Только если {{first}} или {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Только если {{first}}, {{second}} и {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Только если {{first}}, {{second}} или {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Только если {{first}}, {{second}} или {{third}}",
+  "AI Agent Keys": "Ключи ИИ-агента",
+  "Making a key for this agent…": "Создаётся ключ для этого агента…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime не прислал ключ для этого агента. Повторите попытку.",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "Команда содержит ключ, созданный только для этого агента. Выполните её в течение суток или откройте это окно снова, чтобы получить новый.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} сброшен, и его ключ больше не работает. Выполните его команду настройки ещё раз, чтобы подключить его: её показывает «Изменить».",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Ключ, который использует {{agentName}}, будет сразу отозван. Агент останется отключённым, пока вы снова не выполните его команду настройки: её показывает «Изменить», с новым ключом."
 }

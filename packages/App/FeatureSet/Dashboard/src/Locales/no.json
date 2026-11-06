@@ -45351,5 +45351,11 @@
   "Only if {{first}} and {{second}}": "Bare hvis {{first}} og {{second}}",
   "Only if {{first}} or {{second}}": "Bare hvis {{first}} eller {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Bare hvis {{first}}, {{second}} og {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Bare hvis {{first}}, {{second}} eller {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Bare hvis {{first}}, {{second}} eller {{third}}",
+  "AI Agent Keys": "AI-agentnøkler",
+  "Making a key for this agent…": "Lager en nøkkel for denne agenten…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime sendte ingen nøkkel for denne agenten. Prøv igjen.",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "Kommandoen inneholder en nøkkel som bare er laget for denne agenten. Kjør den innen en dag, eller åpne denne dialogen på nytt for å få en ny.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} ble tilbakestilt, og nøkkelen virker ikke lenger. Kjør oppsettkommandoen på nytt for å koble den til: Endre viser den.",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Dette tilbakekaller nøkkelen til {{agentName}} med en gang. Agenten forblir frakoblet til du kjører oppsettkommandoen på nytt: Endre viser den, med en ny nøkkel."
 }

@@ -1,5 +1,9 @@
 import ResourceAiAgentAuthorization from "../Middleware/ResourceAiAgentAuthorization";
-import { ResourceAiAgentExpressRequest } from "../Types/Request";
+import ResourceAiAgentRegistrationAuthorization from "../Middleware/ResourceAiAgentRegistrationAuthorization";
+import {
+  ResourceAiAgentExpressRequest,
+  ResourceAiAgentRegistrationRequest,
+} from "../Types/Request";
 import ResourceAiAgentService, {
   ResourceAiAgentRegistrationRefusedException,
   ResourceAiAgentRegistrationResult,
@@ -7,10 +11,6 @@ import ResourceAiAgentService, {
 import ResourceAiAgentJobService from "Common/Server/Services/ResourceAiAgentJobService";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import AiCommandKillSwitch from "Common/Server/Utils/AI/AiCommandKillSwitch";
-import TelemetryIngest, {
-  TelemetryRequest,
-} from "Common/Server/Middleware/TelemetryIngest";
-import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import ResourceAiAgent from "Common/Models/DatabaseModels/ResourceAiAgent";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import StatusCode from "Common/Types/API/StatusCode";
@@ -40,11 +40,13 @@ import Response from "Common/Server/Utils/Response";
  * or Podman host's, a Docker Swarm, Proxmox or Ceph cluster's, a vCenter's,
  * a database server's or a host's telemetry collector) registers with the
  * project's telemetry ingestion key, its resource type and the resource's
- * identity, gets its own id and key, and then heartbeats, claims the
+ * identity - a Cloud AI agent with its cloud account's own key instead
+ * (Types/CloudConnection/CloudAiAgentKey), which registers that account's
+ * agent alone - gets its own id and key, and then heartbeats, claims the
  * resource commands targeted at it and reports their results — with that id
- * and key, never the ingestion key. It is not a Runner: its identity is a
- * ResourceAiAgent row, and it is only ever served AI resource commands of
- * its own resource, never a credential.
+ * and key, never the key it registered with. It is not a Runner: its
+ * identity is a ResourceAiAgent row, and it is only ever served AI resource
+ * commands of its own resource, never a credential.
  *
  * Every route is a POST with a JSON body and a JSON answer; the wire shapes
  * are the contract with agents/ResourceAIAgent (see ResourceAiAccess.ts)
@@ -56,7 +58,9 @@ import Response from "Common/Server/Utils/Response";
  *   /claim-next-job        { job: null } | { job: { jobId, origin, stepId,
  *                          stepType, timeoutInMs, leaseExpiresAt, payload:
  *                          ResourceCommandJobPayload } }
- *   /job/:jobId/heartbeat  { status: "ok" } | 404 { message }
+ *   /job/:jobId/heartbeat  { status: "ok" } | { status: "ok", stop: true,
+ *                          reason } (Enable AI was turned off since the
+ *                          claim: stop the command) | 404 { message }
  *   /job/:jobId/result     { accepted }
  *   /disconnect            { status: "ok" }
  *
@@ -124,13 +128,16 @@ export default class ResourceAiAgentIngressAPI {
     this.router = Express.getRouter();
 
     /*
-     * The only route the ingestion key reaches. The surface's guard refuses
-     * browser keys and keys pinned to one service, and rate-limits
-     * registrations by default (TelemetryIngest).
+     * The only route the ingestion key reaches, and the only one a Cloud AI
+     * agent's own key does (ResourceAiAgentRegistrationAuthorization). For
+     * the ingestion key, the surface's guard refuses browser keys and keys
+     * pinned to one service, and rate-limits registrations by default
+     * (TelemetryIngest); an account's own key is held to its account's
+     * registrations a minute (CloudAiAgentKeyAuthenticator).
      */
     this.router.post(
       `/register`,
-      TelemetryIngest.forSurface(TelemetryIngestSurface.ResourceAiAgent),
+      ResourceAiAgentRegistrationAuthorization.authorize,
       this.register,
     );
 
@@ -176,8 +183,9 @@ export default class ResourceAiAgentIngressAPI {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const telemetryRequest: TelemetryRequest = req as TelemetryRequest;
-      const projectId: ObjectID | undefined = telemetryRequest.projectId;
+      const registration: ResourceAiAgentRegistrationRequest =
+        req as ResourceAiAgentRegistrationRequest;
+      const projectId: ObjectID | undefined = registration.projectId;
 
       if (!projectId) {
         throw new BadDataException("Project could not be resolved.");
@@ -198,7 +206,11 @@ export default class ResourceAiAgentIngressAPI {
             body["previousAgentKey"],
           ),
           posture: body["posture"],
-          ingestionKeyId: telemetryRequest.ingestionKeyPolicy?.ingestionKeyId,
+          ...(registration.cloudAiAgentKey
+            ? { cloudAiAgentKey: registration.cloudAiAgentKey }
+            : {
+                ingestionKeyId: registration.ingestionKeyPolicy?.ingestionKeyId,
+              }),
         });
 
       return Response.sendJsonObjectResponse(req, res, {
@@ -366,7 +378,21 @@ export default class ResourceAiAgentIngressAPI {
         );
       }
 
-      return Response.sendJsonObjectResponse(req, res, { status: "ok" });
+      /*
+       * Enable AI, read again while the agent holds the job: turned off
+       * since the claim, the agent is told to stop - the heartbeat sent
+       * right before a command starts keeps it from starting, and a cloud
+       * change not yet sent is never sent. The lease is still renewed, so
+       * the agent reports what it did.
+       */
+      const stop: string | null =
+        await ResourceAiAgentIngressAPI.getStopReasonOf({ jobId, agent });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        stop ? { status: "ok", stop: true, reason: stop } : { status: "ok" },
+      );
     } catch (err) {
       next(err);
     }
@@ -436,6 +462,42 @@ export default class ResourceAiAgentIngressAPI {
     } catch (err) {
       next(err);
     }
+  }
+
+  /*
+   * Why the agent must stop the job it holds (AiCommandKillSwitch
+   * .getStopReason), or null. A job it no longer holds says nothing here:
+   * the heartbeat above already refused it.
+   */
+  public static async getStopReasonOf(data: {
+    jobId: ObjectID;
+    agent: ResourceAiAgent;
+  }): Promise<string | null> {
+    if (!data.agent.projectId) {
+      return null;
+    }
+
+    const job: RunnerJob | null = await RunnerJobService.findOneBy({
+      query: {
+        _id: data.jobId.toString(),
+        assignedAgentId: data.agent.id!,
+      },
+      select: {
+        origin: true,
+        aiRunId: true,
+        autoRemediationSuggestionId: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!job) {
+      return null;
+    }
+
+    return await AiCommandKillSwitch.getStopReason({
+      job,
+      projectId: data.agent.projectId,
+    });
   }
 
   /*

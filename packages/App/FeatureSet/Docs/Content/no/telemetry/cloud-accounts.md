@@ -295,6 +295,8 @@ OneUptime AI leser alle tilkoblede kontoer mens den undersøker, med den skriveb
 
 Dialogen stiller ett spørsmål, **Hvor langt kan AI gå?**: **Spør meg først**, standarden, der OneUptime AI foreslår hver rettelse og en person godkjenner den med ett klikk, eller **Rett trygge problemer på egen hånd**, der trygge endringer kjører automatisk og mer risikable fortsatt venter på godkjenning. Alt annet har en trygg standard under **Flere felt**. Deretter viser den én kommando, skrevet for denne kontoen: kjør den i AWS CloudShell, Azure Cloud Shell eller Google Cloud Shell, logget på som noen som kan opprette roller i kontoen. Kommandoen oppretter en rolle som bare kan gjøre endringene som er slått på, og starter Sky-AI-agenten med den i kontoen din. Agenten kobler til av seg selv innen noen få minutter, og dialogen sier ifra: det er ingenting å lime inn tilbake.
 
+Kommandoen inneholder en nøkkel som bare er laget for agenten til denne kontoen, og som virker i en dag til agenten kobler til med den: Åpne dialogen på nytt for en ny. Bare den som kan tilbakestille agenten og redigere kontoen, får en.
+
 Agenten kjører hele måneden i kontoen din, fakturert av skyen din til listeprisene. I Google Cloud kjører den på sin egen lille VM, i et nettverk som ikke slipper noe inn; for et prosjekt der organisasjonen ikke gir noen VM en ekstern IP-adresse, velger du **Cloud Run** under **Hvor agenten kjører** i **Flere felt**:
 
 | Sky | Hva som kjører | Omtrent |
