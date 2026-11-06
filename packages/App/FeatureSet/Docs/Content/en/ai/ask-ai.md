@@ -50,7 +50,7 @@ Ask AI reads your project with your own permissions, so it sees what you may see
 | Incident response | Incidents and alerts, with state filters ("what is active right now?"), their activity timelines (state changes, internal and public notes, the feed) and owners, and a search over past incidents to reuse how they were resolved. |
 | On-call | Who is on call now, policies and escalation chains, and whether recent pages were delivered and acknowledged. |
 | The AI's own work | The results of AI SRE investigations and AI Insights, so "what did the AI find?" is answered from the posted analysis instead of being worked out again. |
-| Platform | Monitors (with status filters), scheduled maintenance, status pages and their announcements, SLOs, runbooks, workflow runs, probe health, teams, and the code of connected repositories. |
+| Platform | Monitors (with status filters), scheduled maintenance, status pages and their announcements, SLOs, runbooks, workflow runs, probe health, teams, and the code of connected repositories on GitHub, GitLab, Forgejo and Gitea (see [What AI reads in a Git repository](/docs/ai/ai-agent#what-ai-reads-in-a-git-repository)). |
 
 ## Page context
 
