@@ -34,6 +34,9 @@ import {
 } from "Common/Types/SecurityEvent/SecurityWatchlistFilter";
 import { formatDictionaryValueForDisplay } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import MonitorStepMetricQueries, {
+  MonitorStepMetricReads,
+} from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import { PROBE_DEFAULT_RETRY_COUNT_LABEL } from "./MonitorRetryHelpText";
 
 /*
@@ -282,6 +285,33 @@ export default class MonitorStepViewModel {
     monitorStep: MonitorStep | undefined,
   ): MetricsViewConfig {
     return safeMetricsViewConfig(MonitorStep.getMetricsViewConfig(monitorStep));
+  }
+
+  /**
+   * The step's queries as its monitor reads them, for the chart preview:
+   * an infrastructure monitor's queries narrowed to what it watches (its
+   * cluster, host, array or fleet) and its resource filters, the way the
+   * worker reads them and the overview's Metrics card charts them
+   * (MonitorStepMetricQueries). The step's own queries name only the
+   * metric, so charting them as they are shows that metric across every
+   * resource in the project. A step that is not metric-backed falls back
+   * to its own config.
+   */
+  public static getEvaluatedMetricsViewConfig(input: {
+    monitorType: MonitorType;
+    monitorStep: MonitorStep | undefined;
+  }): MetricsViewConfig {
+    const reads: MonitorStepMetricReads | null =
+      MonitorStepMetricQueries.getReads(input);
+
+    if (!reads) {
+      return MonitorStepViewModel.getMetricsViewConfig(input.monitorStep);
+    }
+
+    return {
+      queryConfigs: reads.queryConfigs,
+      formulaConfigs: reads.formulaConfigs,
+    };
   }
 
   /**
