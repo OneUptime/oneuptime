@@ -75,45 +75,20 @@ flowchart TB
 
 ## 记录哪些内容
 
-| 资源 | 日志中的**资源类型** |
+人们在项目中创建、更改或删除的一切都会被记录：监视器、事件、告警、状态页、工作流及其步骤、队列、仪表板、值班策略、团队及其成员、API 密钥以及每一项设置。**资源类型** 说明条目所涉及的内容，例如 `Monitor`、`Workflow` 或 `Queue`。
+
+| 不记录的内容 | 原因 |
 | --- | --- |
-| 监视器 | `Monitor` |
-| 事件 | `Incident` |
-| 警报 | `Alert` |
-| 状态页面 | `Status Page` |
-| 计划维护事件 | `Scheduled Maintenance Event` |
-| 值班策略 | `On-Call Policy` |
-| 服务级别目标（SLO） | `Service Level Objective` |
-| SLO 的规则和所有者 | `SLO Burn Rate Rule`、`SLO Monitor Rule`、`Service Level Objective User Owner`、`Service Level Objective Team Owner` |
-| 团队 | `Team` |
-| 自定义角色，以及获得角色的团队和 API 密钥 | `Custom Role`、`Team Custom Role`、`API Key Custom Role` |
-| 标签 | `Label` |
-| 事件状态和严重性 | `Incident State`、`Incident Severity` |
-| 警报状态和严重性 | `Alert State`、`Alert Severity` |
-| 监视器状态 | `Monitor Status` |
-| 计划维护状态 | `Scheduled Maintenance State` |
-| 事件角色 | `Incident Role` |
-| 事后分析状态 | `Postmortem Status` |
-| API 密钥 | `API Key` |
-| 人们连接的 MCP 客户端 | `MCP Client Authorization` |
-| 资产清单项 | `Inventory Item` |
-| 收集器配置 | `Collector Config` |
-| vCenter 服务器 | `vCenter` |
-| OpenStack 云，以及针对它们运行的检查 | `OpenStack Cloud`、`OpenStack Cloud Check` |
-| 抓包及其下载 | `Packet Capture` |
-| 安全案例及其优先级和状态、剧本及其运行、受保护的实体、实体重要性，以及被重置的实体风险 | `Security Case`、`Security Case Priority`、`Security Case Status`、`Security Playbook`、`Security Playbook Run`、`Protected Entity`、`Entity Criticality`、`Entity Risk` |
-| 规则例外 | `Rule Exception` |
-| 监视列表 | `Watchlist` |
-| 监视列表值 | `Watchlist Value` |
-| 狩猎 | `Hunt` |
-| 安全案例的任务和证据 | `Security Case Task`、`Security Case Evidence` |
-| 数据存储及其发现，以及数据安全的问题、设置、检查设置、自定义数据类型和数据驻留规则 | `Data Store`、`Data Store Finding`、`Data Security Issue`、`Data Security Setting`、`Check Setting`、`Custom Data Type`、`Residency Rule` |
-| 数据可观测性设置 | `Data Observability Setting` |
-| 审计日志导出 | `Audit Log Export` |
+| 消息日志 | 每一条本身就是 OneUptime 发送或接收的电子邮件、短信、电话、推送通知或聊天消息的记录。 |
+| 运行记录 | 每一条本身就是一次工作流运行、值班升级、扫描、导入或 AI 运行的记录。 |
+| 代理和遥测上报的内容 | 发现的资源、读数和用量随每次上报而变化，并不是因为有人更改了它们。 |
+| 活动动态 | 动态显示的是审计日志已经记录的更改。 |
+| OneUptime 的工作状态 | 会话、排队的作业以及 OneUptime 在工作时保留的其他状态。 |
+| 个人自己的通知设置 | 每个人的地址、号码和个人值班规则只属于其本人。 |
 
 当管理员在他人的账户上添加或移除通知方式或个人值班规则时，也会记录，但不包含地址或号码本身。
 
-其他数据不在审计日志中，例如谁在某个团队中，或单独添加给团队的权限。任何人都无权读取的字段会从所有条目中省略，密钥、令牌和密码记录为 `[REDACTED]`：条目只显示它们已更改，绝不显示其值。
+只有 OneUptime 写入的字段（例如主机最后一次被看到的时间）会从所有条目中省略，任何人都无权读取的字段也是如此。密钥、令牌和密码记录为 `[REDACTED]`：条目只显示它们已更改，绝不显示其值。工作流的步骤会按照所发生的更改来记录，写出步骤设置的名称，但绝不记录其中输入的内容，在画布上移动步骤不会被记录。
 
 ## 条目保留多久
 

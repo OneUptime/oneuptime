@@ -13,8 +13,7 @@ const IncomingCallPolicyAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Incoming Call Policy Audit Logs"
       description="All changes made to this incoming call policy."
-      resourceType="Incoming Call Policy"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

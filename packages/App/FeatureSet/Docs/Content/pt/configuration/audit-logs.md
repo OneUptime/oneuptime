@@ -75,45 +75,20 @@ Monitores, incidentes, alertas, páginas de status, SLOs e muitos outros recurso
 
 ## O que é registrado
 
-| Recurso | **Tipo de recurso** no registro |
+Tudo o que as pessoas criam, alteram ou excluem em um projeto é registrado: monitores, incidentes, alertas, páginas de status, fluxos de trabalho e seus passos, filas, painéis, políticas de plantão, equipes e quem está nelas, chaves de API e cada configuração. **Tipo de recurso** diz do que trata uma entrada, por exemplo `Monitor`, `Workflow` ou `Queue`.
+
+| Não registrado | Por quê |
 | --- | --- |
-| Monitores | `Monitor` |
-| Incidentes | `Incident` |
-| Alertas | `Alert` |
-| Páginas de status | `Status Page` |
-| Eventos de manutenção programada | `Scheduled Maintenance Event` |
-| Políticas de plantão | `On-Call Policy` |
-| SLOs | `Service Level Objective` |
-| As regras e os proprietários de um SLO | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
-| Equipes | `Team` |
-| Funções personalizadas, e as equipes e chaves de API que recebem uma | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
-| Rótulos | `Label` |
-| Estados e severidades de incidente | `Incident State`, `Incident Severity` |
-| Estados e severidades de alerta | `Alert State`, `Alert Severity` |
-| Status de monitor | `Monitor Status` |
-| Estados de manutenção programada | `Scheduled Maintenance State` |
-| Funções de incidente | `Incident Role` |
-| Status de post-mortem | `Postmortem Status` |
-| Chaves de API | `API Key` |
-| Clientes MCP que as pessoas conectam | `MCP Client Authorization` |
-| Itens do inventário | `Inventory Item` |
-| Configurações do coletor | `Collector Config` |
-| vCenters | `vCenter` |
-| Nuvens OpenStack, e as verificações executadas nelas | `OpenStack Cloud`, `OpenStack Cloud Check` |
-| Capturas de pacotes, e os downloads delas | `Packet Capture` |
-| Casos de segurança e as suas prioridades e status, playbooks e as suas execuções, entidades protegidas, criticidade de entidades, e o risco de uma entidade quando alguém o redefine | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
-| Exceções de regra | `Rule Exception` |
-| Listas de observação | `Watchlist` |
-| Valores da lista de observação | `Watchlist Value` |
-| Caçadas | `Hunt` |
-| Tarefas e evidências dos casos de segurança | `Security Case Task`, `Security Case Evidence` |
-| Repositórios de dados e as suas descobertas, e os problemas, as configurações, as configurações das verificações, os tipos de dados personalizados e as regras de residência da Segurança de dados | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
-| Configurações de Observabilidade de dados | `Data Observability Setting` |
-| Exportações do registro de auditoria | `Audit Log Export` |
+| Registros de mensagens | Cada um já é o registro de um e-mail, SMS, chamada, notificação push ou mensagem de chat que o OneUptime enviou ou recebeu. |
+| Registros de execuções | Cada um já é o registro de uma execução de fluxo de trabalho, um escalonamento de plantão, uma verificação, uma importação ou uma execução de IA. |
+| O que os agentes e a telemetria informam | Recursos descobertos, leituras e uso mudam a cada informe, não porque alguém os alterou. |
+| Feeds de atividade | Um feed mostra alterações que o registro de auditoria já registra. |
+| O estado de trabalho do OneUptime | Sessões, tarefas na fila e outros estados que o OneUptime mantém enquanto trabalha. |
+| A configuração de notificações própria de uma pessoa | Os endereços, números e regras de plantão pessoais de cada pessoa são só dela. |
 
 Também fica registrado quando um administrador adiciona ou remove um método de notificação ou uma regra de plantão pessoal na conta de outra pessoa, sem o endereço ou o número em si.
 
-Outros dados não estão no registro de auditoria, como quem está em uma equipe ou uma permissão adicionada sozinha a uma equipe. Os campos que ninguém pode ler ficam de fora de toda entrada, e chaves, tokens e senhas são registrados como `[REDACTED]`: a entrada mostra que mudaram, nunca o seu valor.
+Os campos que só o OneUptime escreve, como quando um host foi visto pela última vez, ficam de fora de toda entrada, assim como os campos que ninguém pode ler. Chaves, tokens e senhas são registrados como `[REDACTED]`: a entrada mostra que mudaram, nunca o seu valor. Os passos de um fluxo de trabalho são registrados como o que mudou, com os nomes das configurações de um passo, mas nunca o que foi digitado nelas, e mover um passo na tela de edição não é registrado.
 
 ## Por quanto tempo as entradas ficam
 

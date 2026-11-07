@@ -75,45 +75,20 @@ flowchart TB
 
 ## 기록되는 내용
 
-| 리소스 | 로그의 **리소스 유형** |
+프로젝트에서 사람들이 만들고, 변경하고, 삭제하는 모든 것이 기록됩니다. 모니터, 인시던트, 알림, 상태 페이지, 워크플로와 그 단계, 큐, 대시보드, 온콜 정책, 팀과 팀원, API 키, 그리고 모든 설정입니다. **리소스 유형**은 `Monitor`, `Workflow`, `Queue`처럼 항목이 무엇에 관한 것인지 알려 줍니다.
+
+| 기록되지 않는 것 | 이유 |
 | --- | --- |
-| 모니터 | `Monitor` |
-| 인시던트 | `Incident` |
-| 경고 | `Alert` |
-| 상태 페이지 | `Status Page` |
-| 예정된 유지 관리 이벤트 | `Scheduled Maintenance Event` |
-| 온콜 정책 | `On-Call Policy` |
-| 서비스 수준 목표(SLO) | `Service Level Objective` |
-| SLO의 규칙과 소유자 | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
-| 팀 | `Team` |
-| 사용자 정의 역할과 그 역할을 받은 팀 및 API 키 | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
-| 레이블 | `Label` |
-| 인시던트 상태 및 심각도 | `Incident State`, `Incident Severity` |
-| 알림 상태 및 심각도 | `Alert State`, `Alert Severity` |
-| 모니터 상태 | `Monitor Status` |
-| 예정된 유지 관리 상태 | `Scheduled Maintenance State` |
-| 인시던트 역할 | `Incident Role` |
-| 포스트모템 상태 | `Postmortem Status` |
-| API 키 | `API Key` |
-| 사람들이 연결하는 MCP 클라이언트 | `MCP Client Authorization` |
-| 인벤토리 항목 | `Inventory Item` |
-| 컬렉터 구성 | `Collector Config` |
-| vCenter 서버 | `vCenter` |
-| OpenStack 클라우드와 그에 대해 실행되는 점검 | `OpenStack Cloud`, `OpenStack Cloud Check` |
-| 패킷 캡처와 그 다운로드 | `Packet Capture` |
-| 보안 케이스와 그 우선순위·상태, 플레이북과 그 실행, 보호 대상 엔터티, 엔터티 중요도, 누군가 초기화한 엔터티 위험 | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
-| 규칙 예외 | `Rule Exception` |
-| 관심 목록 | `Watchlist` |
-| 관심 목록 값 | `Watchlist Value` |
-| 헌트 | `Hunt` |
-| 보안 케이스의 작업과 증거 | `Security Case Task`, `Security Case Evidence` |
-| 데이터 저장소와 그 발견 사항, 그리고 데이터 보안의 이슈, 설정, 검사 설정, 사용자 지정 데이터 유형, 데이터 상주 규칙 | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
-| 데이터 옵저버빌리티 설정 | `Data Observability Setting` |
-| 감사 로그 내보내기 | `Audit Log Export` |
+| 메시지 로그 | 각각이 이미 OneUptime이 보내거나 받은 이메일, SMS, 전화, 푸시 알림, 채팅 메시지의 기록입니다. |
+| 실행 기록 | 각각이 이미 워크플로 실행, 온콜 에스컬레이션, 스캔, 가져오기, AI 실행의 기록입니다. |
+| 에이전트와 텔레메트리가 보고하는 내용 | 발견된 리소스, 측정값, 사용량은 누군가 바꿔서가 아니라 보고할 때마다 바뀝니다. |
+| 활동 피드 | 피드에는 감사 로그가 이미 기록하는 변경 사항이 나옵니다. |
+| OneUptime의 작업 상태 | 세션, 대기 중인 작업, 그리고 OneUptime이 작업하는 동안 유지하는 그 밖의 상태입니다. |
+| 개인의 알림 설정 | 각 사람의 주소, 번호, 개인 온콜 규칙은 그 사람만의 것입니다. |
 
 관리자가 다른 사람의 계정에서 알림 방법이나 개인 온콜 규칙을 추가하거나 제거한 경우에도 기록되며, 주소나 번호 자체는 기록되지 않습니다.
 
-팀에 누가 속해 있는지나 팀에 따로 추가된 권한 같은 그 밖의 데이터는 감사 로그에 없습니다. 누구도 읽을 수 없는 필드는 모든 항목에서 빠지며, 키, 토큰, 비밀번호는 `[REDACTED]`로 기록됩니다. 항목에는 변경되었다는 사실만 나오고 값은 나오지 않습니다.
+호스트가 마지막으로 확인된 시각처럼 OneUptime만 쓰는 필드는 누구도 읽을 수 없는 필드와 마찬가지로 모든 항목에서 빠집니다. 키, 토큰, 비밀번호는 `[REDACTED]`로 기록됩니다. 항목에는 변경되었다는 사실만 나오고 값은 나오지 않습니다. 워크플로의 단계는 무엇이 바뀌었는지로 기록되며, 단계 설정의 이름은 나오지만 거기에 입력한 내용은 절대 나오지 않고, 캔버스에서 단계를 옮기는 것은 기록되지 않습니다.
 
 ## 항목 보관 기간
 

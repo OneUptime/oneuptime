@@ -75,45 +75,20 @@ flowchart TB
 
 ## 記録される内容
 
-| リソース | ログでの **リソースタイプ** |
+プロジェクトで人が作成、変更、削除したものはすべて記録されます。モニター、インシデント、アラート、ステータスページ、ワークフローとそのステップ、キュー、ダッシュボード、オンコールポリシー、チームとそのメンバー、API キー、そしてすべての設定です。**リソースタイプ** は、`Monitor`、`Workflow`、`Queue` のように、エントリが何についてのものかを示します。
+
+| 記録されないもの | 理由 |
 | --- | --- |
-| モニター | `Monitor` |
-| インシデント | `Incident` |
-| アラート | `Alert` |
-| ステータスページ | `Status Page` |
-| 定期メンテナンスイベント | `Scheduled Maintenance Event` |
-| オンコールポリシー | `On-Call Policy` |
-| サービスレベル目標 (SLO) | `Service Level Objective` |
-| SLO のルールとオーナー | `SLO Burn Rate Rule`、`SLO Monitor Rule`、`Service Level Objective User Owner`、`Service Level Objective Team Owner` |
-| チーム | `Team` |
-| カスタムロールと、それを付与されたチームや API キー | `Custom Role`、`Team Custom Role`、`API Key Custom Role` |
-| ラベル | `Label` |
-| インシデントの状態と重大度 | `Incident State`、`Incident Severity` |
-| アラートの状態と重大度 | `Alert State`、`Alert Severity` |
-| モニターステータス | `Monitor Status` |
-| 定期メンテナンスの状態 | `Scheduled Maintenance State` |
-| インシデントロール | `Incident Role` |
-| ポストモーテムのステータス | `Postmortem Status` |
-| API キー | `API Key` |
-| ユーザーが接続する MCP クライアント | `MCP Client Authorization` |
-| インベントリ項目 | `Inventory Item` |
-| コレクター設定 | `Collector Config` |
-| vCenter サーバー | `vCenter` |
-| OpenStack クラウドと、それに対して実行されるチェック | `OpenStack Cloud`、`OpenStack Cloud Check` |
-| パケットキャプチャとそのダウンロード | `Packet Capture` |
-| セキュリティケースとその優先度・ステータス、プレイブックとその実行、保護対象のエンティティ、エンティティの重要度、リセットされたエンティティのリスク | `Security Case`、`Security Case Priority`、`Security Case Status`、`Security Playbook`、`Security Playbook Run`、`Protected Entity`、`Entity Criticality`、`Entity Risk` |
-| ルールの例外 | `Rule Exception` |
-| ウォッチリスト | `Watchlist` |
-| ウォッチリストの値 | `Watchlist Value` |
-| ハント | `Hunt` |
-| セキュリティケースのタスクと証拠 | `Security Case Task`、`Security Case Evidence` |
-| データストアとその検出結果、データセキュリティの問題、設定、チェックの設定、カスタムデータタイプ、データ所在地ルール | `Data Store`、`Data Store Finding`、`Data Security Issue`、`Data Security Setting`、`Check Setting`、`Custom Data Type`、`Residency Rule` |
-| データオブザーバビリティの設定 | `Data Observability Setting` |
-| 監査ログのエクスポート | `Audit Log Export` |
+| メッセージのログ | それぞれが、OneUptime が送信または受信したメール、SMS、電話、プッシュ通知、チャットメッセージの記録そのものです。 |
+| 実行の記録 | それぞれが、ワークフローの実行、オンコールのエスカレーション、スキャン、インポート、AI の実行の記録そのものです。 |
+| エージェントとテレメトリが報告する内容 | 検出されたリソース、計測値、使用量は、誰かが変更したからではなく、報告のたびに変わります。 |
+| アクティビティフィード | フィードには、監査ログがすでに記録している変更が表示されます。 |
+| OneUptime の作業状態 | セッション、キューにあるジョブなど、OneUptime が作業中に保持する状態です。 |
+| 個人の通知設定 | 各個人のアドレス、番号、個人のオンコールルールは、その人だけのものです。 |
 
 管理者が他の人のアカウントで通知方法や個人のオンコールルールを追加または削除したときも記録されます。アドレスや番号そのものは記録されません。
 
-それ以外のデータ、たとえばチームの所属メンバーや、チームに個別に追加された権限は、監査ログに含まれません。誰も読めないフィールドはどのエントリにも含まれず、キー、トークン、パスワードは `[REDACTED]` として記録されます。エントリには変更されたことだけが示され、値は示されません。
+ホストが最後に確認された時刻のように OneUptime だけが書き込むフィールドは、誰も読めないフィールドと同じく、どのエントリにも含まれません。キー、トークン、パスワードは `[REDACTED]` として記録されます。エントリには変更されたことだけが示され、値は示されません。ワークフローのステップは、変更された内容として記録されます。ステップの設定の名前は記録されますが、そこに入力された内容は記録されず、キャンバス上でステップを動かしても記録されません。
 
 ## エントリの保持期間
 

@@ -75,45 +75,20 @@ Monitorer, incidenter, larm, statussidor, SLO:er och många andra resurser har o
 
 ## Vad som registreras
 
-| Resurs | **Resurstyp** i loggen |
+Allt som personer skapar, ändrar eller tar bort i ett projekt registreras: övervakare, incidenter, larm, statussidor, arbetsflöden och deras steg, köer, instrumentpaneler, jourpolicyer, team och vilka som är med i dem, API-nycklar och varje inställning. **Resurstyp** säger vad en post gäller, till exempel `Monitor`, `Workflow` eller `Queue`.
+
+| Registreras inte | Varför |
 | --- | --- |
-| Monitorer | `Monitor` |
-| Incidenter | `Incident` |
-| Larm | `Alert` |
-| Statussidor | `Status Page` |
-| Schemalagda underhållshändelser | `Scheduled Maintenance Event` |
-| Jourpolicyer | `On-Call Policy` |
-| SLO:er | `Service Level Objective` |
-| Ett SLO:s regler och ägare | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
-| Team | `Team` |
-| Anpassade roller, och de team och API-nycklar som får en | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
-| Etiketter | `Label` |
-| Incidentstatusar och allvarlighetsgrader | `Incident State`, `Incident Severity` |
-| Larmstatusar och allvarlighetsgrader | `Alert State`, `Alert Severity` |
-| Monitorstatusar | `Monitor Status` |
-| Statusar för schemalagt underhåll | `Scheduled Maintenance State` |
-| Incidentroller | `Incident Role` |
-| Efteranalysstatusar | `Postmortem Status` |
-| API-nycklar | `API Key` |
-| MCP-klienter som personer ansluter | `MCP Client Authorization` |
-| Inventarieobjekt | `Inventory Item` |
-| Insamlarkonfigurationer | `Collector Config` |
-| vCenter-servrar | `vCenter` |
-| OpenStack-moln och kontrollerna som körs mot dem | `OpenStack Cloud`, `OpenStack Cloud Check` |
-| Paketinspelningar och nedladdningarna av dem | `Packet Capture` |
-| Säkerhetsärenden och deras prioriteter och statusar, playbooks och deras körningar, skyddade entiteter, entitetskritikalitet samt en entitets risk när någon återställer den | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
-| Regelundantag | `Rule Exception` |
-| Bevakningslistor | `Watchlist` |
-| Bevakningslistvärden | `Watchlist Value` |
-| Hunts | `Hunt` |
-| Uppgifter och bevis i säkerhetsärenden | `Security Case Task`, `Security Case Evidence` |
-| Datalager och deras fynd, samt Datasäkerhets problem, inställningar, kontrollinställningar, anpassade datatyper och hemvistregler | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
-| Inställningar för Dataobserverbarhet | `Data Observability Setting` |
-| Exporter av granskningsloggen | `Audit Log Export` |
+| Loggar över meddelanden | Var och en är redan registreringen av ett e-postmeddelande, sms, samtal, en pushavisering eller ett chattmeddelande som OneUptime har skickat eller tagit emot. |
+| Registreringar av körningar | Var och en är redan registreringen av en körning av ett arbetsflöde, en joureskalering, en skanning, en import eller en AI-körning. |
+| Det som agenter och telemetri rapporterar | Upptäckta resurser, mätvärden och användning ändras med varje rapport, inte för att någon har ändrat dem. |
+| Aktivitetsflöden | Ett flöde visar ändringar som granskningsloggen redan registrerar. |
+| OneUptimes arbetstillstånd | Sessioner, köade jobb och annat tillstånd som OneUptime håller medan det arbetar. |
+| En persons egen aviseringskonfiguration | Varje persons adresser, nummer och personliga jourregler tillhör bara dem. |
 
 Det registreras också när en administratör lägger till eller tar bort en aviseringsmetod eller en personlig jourregel på någon annans konto, utan själva adressen eller numret.
 
-Andra data finns inte i granskningsloggen, som vem som är med i ett team, eller en behörighet som har lagts till ett team för sig. Fält som ingen får läsa utelämnas från alla poster, och nycklar, tokens och lösenord registreras som `[REDACTED]`: posten visar att de har ändrats, aldrig deras värde.
+Fält som bara OneUptime skriver, till exempel när en värd senast sågs, utelämnas från alla poster, och det gör även fält som ingen får läsa. Nycklar, tokens och lösenord registreras som `[REDACTED]`: posten visar att de har ändrats, aldrig deras värde. Ett arbetsflödes steg registreras som det som ändrades, med namnen på ett stegs inställningar men aldrig det som skrevs i dem, och att flytta ett steg på arbetsytan registreras inte.
 
 ## Hur länge poster behålls
 

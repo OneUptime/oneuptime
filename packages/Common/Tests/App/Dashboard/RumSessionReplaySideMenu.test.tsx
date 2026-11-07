@@ -112,6 +112,7 @@ describe("RUM application Session Replay navigation", () => {
       }),
     ).toEqual(["Metrics", "Logs", "Traces", "Clients"]);
     expect(linksIn("Advanced")).toEqual([
+      { title: "Audit Logs", href: `${APPLICATION_PATH}/audit-logs` },
       { title: "Delete Application", href: `${APPLICATION_PATH}/delete` },
     ]);
     expect(

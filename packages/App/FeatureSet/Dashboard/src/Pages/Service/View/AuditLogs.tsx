@@ -13,8 +13,7 @@ const ServiceAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Service Audit Logs"
       description="All changes made to this service."
-      resourceType="Service"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };
