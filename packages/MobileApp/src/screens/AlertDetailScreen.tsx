@@ -226,11 +226,9 @@ export default function AlertDetailScreen({
     clear: () => {
       navigation?.setParams?.({ pushAction: undefined });
     },
-    ready:
-      Boolean(alert) &&
-      Boolean(states) &&
-      passOn.pagesSettled &&
-      observer.pagesSettled,
+    ready: Boolean(alert) && Boolean(states) && passOn.pagesSettled,
+    // Only I've seen it waits for these: Acknowledge and Escalate never do.
+    observerPagesSettled: observer.pagesSettled,
     state: {
       recordType: "alert",
       isResolved,

@@ -78,6 +78,8 @@ interface Props {
   request: unknown;
   ready: boolean;
   state: PushPageRecordState;
+  // Read unless a test says otherwise.
+  observerPagesSettled?: boolean;
 }
 
 async function renderAction(
@@ -86,7 +88,11 @@ async function renderAction(
 ): Promise<{ rerender: (props: Props) => Promise<void> | void }> {
   return renderHook(
     (props: Props): void => {
-      const options: PushPageActionOptions = { ...given, ...props };
+      const options: PushPageActionOptions = {
+        ...given,
+        ...props,
+        observerPagesSettled: props.observerPagesSettled ?? true,
+      };
       usePushPageAction(options);
     },
     { initialProps: initial },
@@ -292,6 +298,51 @@ describe("what each answer does", () => {
     });
 
     expect(given.markSeen).toHaveBeenCalledTimes(1);
+  });
+
+  test("I've seen it waits for the reader's observer pages, even once everything else is read", async () => {
+    const given: Handlers = handlers();
+    const rendered: { rerender: (props: Props) => Promise<void> | void } =
+      await renderAction(given, {
+        request: { kind: "seen", id: "n-11:MARK_PAGE_SEEN" },
+        ready: true,
+        state: OBSERVER,
+        observerPagesSettled: false,
+      });
+
+    expect(given.markSeen).not.toHaveBeenCalled();
+    expect(given.clear).not.toHaveBeenCalled();
+
+    await rendered.rerender({
+      request: { kind: "seen", id: "n-11:MARK_PAGE_SEEN" },
+      ready: true,
+      state: OBSERVER,
+      observerPagesSettled: true,
+    });
+
+    expect(given.markSeen).toHaveBeenCalledTimes(1);
+    expect(given.clear).toHaveBeenCalledTimes(1);
+  });
+
+  test("a responder's Acknowledge and Escalate never wait on the observer pages: they run as they always did", async () => {
+    const given: Handlers = handlers();
+
+    await renderAction(given, {
+      request: { kind: "acknowledge", id: "n-12:ACKNOWLEDGE_PAGE" },
+      ready: true,
+      state: OPEN,
+      observerPagesSettled: false,
+    });
+    await renderAction(given, {
+      request: { kind: "escalate", id: "n-13:ESCALATE_PAGE" },
+      ready: true,
+      state: OPEN,
+      observerPagesSettled: false,
+    });
+
+    expect(given.acknowledge).toHaveBeenCalledTimes(1);
+    expect(given.askToEscalate).toHaveBeenCalledTimes(1);
+    expect(given.markSeen).not.toHaveBeenCalled();
   });
 
   test("a page again's Acknowledge acknowledges it again, through the hook", async () => {

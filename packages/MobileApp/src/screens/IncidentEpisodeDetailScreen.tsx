@@ -253,11 +253,9 @@ export default function IncidentEpisodeDetailScreen({
     clear: () => {
       navigation?.setParams?.({ pushAction: undefined });
     },
-    ready:
-      Boolean(episode) &&
-      Boolean(states) &&
-      passOn.pagesSettled &&
-      observer.pagesSettled,
+    ready: Boolean(episode) && Boolean(states) && passOn.pagesSettled,
+    // Only I've seen it waits for these: Acknowledge and Escalate never do.
+    observerPagesSettled: observer.pagesSettled,
     state: {
       recordType: "incident-episode",
       isResolved,

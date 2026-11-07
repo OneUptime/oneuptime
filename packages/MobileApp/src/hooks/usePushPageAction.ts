@@ -26,6 +26,12 @@ export interface PushPageActionOptions {
   clear: () => void;
   // The record, its states and the reader's open pages have all been read.
   ready: boolean;
+  /*
+   * The reader's pages as an observer have been read too - what only "I've
+   * seen it" waits for: a responder's Acknowledge and Escalate never wait on
+   * it, and run as they always did.
+   */
+  observerPagesSettled: boolean;
   state: PushPageRecordState;
   // The record's own Acknowledge.
   acknowledge: () => Promise<void> | void;
@@ -70,7 +76,7 @@ export function usePushPageAction(options: PushPageActionOptions): void {
     useRef<PushPageActionOptions>(options);
   latest.current = options;
 
-  const { request, ready } = options;
+  const { request, ready, observerPagesSettled } = options;
 
   useEffect((): void => {
     if (!ready || !isPushPageActionRequest(request)) {
@@ -78,6 +84,10 @@ export function usePushPageAction(options: PushPageActionOptions): void {
     }
 
     const pushRequest: PushPageActionRequest = request;
+
+    if (pushRequest.kind === "seen" && !observerPagesSettled) {
+      return;
+    }
 
     if (handled.current.has(pushRequest.id)) {
       return;
@@ -89,5 +99,5 @@ export function usePushPageAction(options: PushPageActionOptions): void {
       getPushPageAnswer(pushRequest.kind, latest.current.state),
       latest.current,
     );
-  }, [request, ready]);
+  }, [request, ready, observerPagesSettled]);
 }
