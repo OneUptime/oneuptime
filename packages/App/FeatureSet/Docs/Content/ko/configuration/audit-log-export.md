@@ -121,7 +121,7 @@ OneUptime은 각 배치를 **URL**로 POST합니다. 형식은 **본문 형식**
 각 항목은 **호스트**와 **포트**로 보내는 RFC 5424 메시지 하나입니다. **프로토콜**에서 TCP를 고르지 않으면 포트 `6514`에서 TLS를 쓰며, facility는 13(log audit), severity는 6(informational)입니다:
 
 ```text
-<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":1,"id":"..."}
+<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
 메시지는 옥텟 카운팅(RFC 5425)으로 구분합니다. **프레이밍**에서 줄마다 메시지 하나를 고르면 그 방식을 씁니다. 사설 CA가 서명한 인증서를 쓰는 수신자에게는 **CA 인증서**에 그 CA의 인증서가 필요합니다. 둘 다 **추가 필드** 안에 있습니다.
@@ -132,7 +132,7 @@ OneUptime은 각 배치를 **URL**로 POST합니다. 형식은 **본문 형식**
 
 | 키 | 담긴 내용 |
 | --- | --- |
-| `schemaVersion` | `1`. 스키마가 바뀌면 새 버전이 됩니다. |
+| `schemaVersion` | 새 내보내기는 `2`, 버전 2 이전에 저장된 내보내기는 `1`입니다. 버전은 키를 추가하기만 합니다. |
 | `id` | 항목의 ID입니다. 같은 항목을 두 번 보내도 ID는 같습니다. |
 | `createdAt` | 변경이 기록된 시각(UTC)입니다. |
 | `projectId` | 변경이 일어난 프로젝트입니다. |
@@ -143,11 +143,20 @@ OneUptime은 각 배치를 **URL**로 POST합니다. 형식은 **본문 형식**
 | `apiKeyId`, `apiKeyName` | 변경에 쓰인 API 키입니다(있는 경우). |
 | `mcpOAuthGrantId`, `mcpClientName` | 변경을 거친 MCP 클라이언트입니다(있는 경우). |
 | `workflowId`, `workflowName` | 변경한 워크플로입니다(있는 경우). |
-| `changes` | 변경된 각 필드입니다. `field`와 `oldValue`, `newValue`가 들어 있습니다. |
+| `changes` | 변경된 각 필드입니다. `field`와 `oldValue`, `newValue`가 들어 있고, 버전 2에서는 `summary`도 들어 있습니다. |
 
 파일은 줄마다 항목 하나를 담아 gzip으로 압축하며, 첫 항목의 시각을 기준으로 시간별로 정리됩니다: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
 키, 토큰, 비밀번호는 절대 밖으로 나가지 않습니다. 이들은 `[REDACTED]`로 기록되고, 아무도 읽을 수 없는 필드는 모든 항목에서 빠집니다.
+
+## 레코드 버전
+
+| 버전 | 보내는 내용 |
+| --- | --- |
+| `2` | 각 변경에 `summary`도 들어 있습니다. 감사 로그에 표시되는 줄로 무엇이 바뀌었는지 보여 줍니다. 예를 들어 워크플로 단계는 `Added "Send Email" (send-email-1)`, JSON은 바뀐 경로이며, 없으면 `null`입니다. 이 줄은 설정과 경로를 말할 뿐 값은 말하지 않습니다. |
+| `1` | 처음 보내던 그대로의 항목으로, `summary`가 없습니다. 워크플로 단계는 전후의 크기로 나갑니다. 예를 들어 `3 steps and 2 connections`입니다. |
+
+새 내보내기는 버전 2를 보냅니다. 버전 2 이전에 저장된 내보내기는 계속 버전 1을 보내므로, 그것을 읽는 쪽은 아무것도 바꿀 필요가 없습니다. `summary`를 받을 준비가 되면 내보내기의 **편집**을 클릭하고 **추가 필드** 아래 **레코드 버전**에서 버전 2를 고르세요. 버전은 그때부터 보내는 항목에 적용되며, 각 항목은 `schemaVersion`에 자기 버전을 적습니다.
 
 ## 항목을 보내는 시점
 
