@@ -46389,5 +46389,8 @@
   "What they changed:": "對方變更的內容：",
   "What to check if people are using it": "如果有人正在使用，需要檢查什麼",
   "No session matches these filters": "No session matches these filters",
-  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above."
+  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above.",
+  "Ask AI, for {{person}}": "Ask AI（代表 {{person}}）",
+  "Saved Through": "儲存途徑",
+  "Saved by Ask AI": "由 Ask AI 儲存"
 }

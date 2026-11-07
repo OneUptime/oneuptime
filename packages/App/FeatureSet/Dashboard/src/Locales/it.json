@@ -46389,5 +46389,8 @@
   "What they changed:": "Cosa hanno modificato:",
   "What to check if people are using it": "Cosa controllare se qualcuno la sta usando",
   "No session matches these filters": "No session matches these filters",
-  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above."
+  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above.",
+  "Ask AI, for {{person}}": "Ask AI, per {{person}}",
+  "Saved Through": "Salvato tramite",
+  "Saved by Ask AI": "Salvato da Ask AI"
 }

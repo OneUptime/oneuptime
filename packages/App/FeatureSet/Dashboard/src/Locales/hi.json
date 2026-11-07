@@ -46389,5 +46389,8 @@
   "What they changed:": "उन्होंने क्या बदला:",
   "What to check if people are using it": "अगर लोग इसे इस्तेमाल कर रहे हैं तो क्या जाँचें",
   "No session matches these filters": "No session matches these filters",
-  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above."
+  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above.",
+  "Ask AI, for {{person}}": "Ask AI, {{person}} के लिए",
+  "Saved Through": "किसके ज़रिए सहेजा गया",
+  "Saved by Ask AI": "Ask AI द्वारा सहेजा गया"
 }

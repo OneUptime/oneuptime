@@ -46389,5 +46389,8 @@
   "What they changed:": "Dette har de endret:",
   "What to check if people are using it": "Hva du bør sjekke hvis folk bruker den",
   "No session matches these filters": "No session matches these filters",
-  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above."
+  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above.",
+  "Ask AI, for {{person}}": "Ask AI på vegne av {{person}}",
+  "Saved Through": "Lagret via",
+  "Saved by Ask AI": "Lagret av Ask AI"
 }

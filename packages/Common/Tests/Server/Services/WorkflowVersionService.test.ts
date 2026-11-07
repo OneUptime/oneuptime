@@ -11,6 +11,7 @@ import {
   WorkflowVersionType,
 } from "../../../Types/Workflow/WorkflowVersion";
 import { toSavedWorkflowGraph } from "../../../Utils/Workflow/WorkflowGraphSnapshot";
+import WriteSource from "../../../Types/BaseDatabase/WriteSource";
 import {
   EMAIL,
   LOG,
@@ -63,12 +64,14 @@ const stored: (data: {
   type: WorkflowVersionType;
   graph: JSONObject;
   savedBy?: ObjectID | undefined;
+  savedThrough?: WriteSource | undefined;
   createdAt?: Date | undefined;
 }) => WorkflowVersion = (data: {
   number: number;
   type: WorkflowVersionType;
   graph: JSONObject;
   savedBy?: ObjectID | undefined;
+  savedThrough?: WriteSource | undefined;
   createdAt?: Date | undefined;
 }): WorkflowVersion => {
   const version: WorkflowVersion = new WorkflowVersion();
@@ -83,6 +86,9 @@ const stored: (data: {
   version.createdAt = data.createdAt || new Date(NOW.getTime() - 60 * 1000);
   if (data.savedBy) {
     version.createdByUserId = data.savedBy;
+  }
+  if (data.savedThrough) {
+    version.savedThrough = data.savedThrough;
   }
   return version;
 };
@@ -579,5 +585,165 @@ describe("a save of the graph", () => {
       versionType: WorkflowVersionType.Changed,
     });
     expect(deleted).toHaveLength(1);
+  });
+});
+
+/*
+ * Ask AI saves a workflow as the person who asked (issue #6258), and says so
+ * (writeSource): its change is a version of its own, by that person, saying
+ * Ask AI made it - never folded into the person's own version, nor the
+ * person's next edit into it.
+ */
+describe("Ask AI's changes", () => {
+  const saveByAskAi: (graph: JSONObject, userId?: ObjectID) => Promise<void> =
+    async (graph: JSONObject, userId: ObjectID = ALICE): Promise<void> => {
+      await WorkflowVersionService.recordGraphSave({
+        workflowId: WORKFLOW_ID,
+        projectId: PROJECT_ID,
+        graph,
+        userId,
+        savedThrough: WriteSource.AskAi,
+        now: NOW,
+      });
+    };
+
+  test("a workflow Ask AI created is version 1, by the person who asked, saying Ask AI made it", async () => {
+    await WorkflowVersionService.recordCreated({
+      workflowId: WORKFLOW_ID,
+      projectId: PROJECT_ID,
+      graph: GRAPH_1,
+      userId: ALICE,
+      savedThrough: WriteSource.AskAi,
+    });
+
+    expect(created[0]).toMatchObject({
+      versionNumber: 1,
+      versionType: WorkflowVersionType.Created,
+      savedThrough: WriteSource.AskAi,
+    });
+    expect(created[0]?.createdByUserId?.toString()).toBe(ALICE.toString());
+  });
+
+  test("a change in the middle of the person's own burst is a version of its own, by them, saying Ask AI made it", async () => {
+    history = [
+      stored({
+        number: 1,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_1,
+        savedBy: ALICE,
+        createdAt: new Date(NOW.getTime() - 60 * 1000),
+      }),
+    ];
+
+    await saveByAskAi(GRAPH_2);
+
+    // The person's version is left as it was.
+    expect(updated).toHaveLength(0);
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({
+      versionNumber: 2,
+      versionType: WorkflowVersionType.Changed,
+      savedThrough: WriteSource.AskAi,
+      changes: ['Added "Send Email" (send-email-1)'],
+    });
+    expect(created[0]?.createdByUserId?.toString()).toBe(ALICE.toString());
+    // Its graph is Ask AI's change; version 1 is the workflow just before it.
+    expect(created[0]?.graphFingerprint).toBe(fingerprint(GRAPH_2));
+  });
+
+  test("the person's next edit is a version of its own too, saying nothing of Ask AI", async () => {
+    history = [
+      stored({
+        number: 1,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_1,
+        savedBy: ALICE,
+      }),
+      stored({
+        number: 2,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_2,
+        savedBy: ALICE,
+        savedThrough: WriteSource.AskAi,
+        createdAt: new Date(NOW.getTime() - 1000),
+      }),
+    ];
+
+    await save(GRAPH_3, ALICE);
+
+    expect(updated).toHaveLength(0);
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({
+      versionNumber: 3,
+      versionType: WorkflowVersionType.Changed,
+    });
+    expect(created[0]?.savedThrough).toBeUndefined();
+  });
+
+  test("Ask AI's next change is a version of its own: each can be undone alone", async () => {
+    history = [
+      stored({
+        number: 1,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_1,
+        savedBy: ALICE,
+        savedThrough: WriteSource.AskAi,
+        createdAt: new Date(NOW.getTime() - 1000),
+      }),
+    ];
+
+    await saveByAskAi(GRAPH_2);
+
+    expect(updated).toHaveLength(0);
+    expect(created[0]).toMatchObject({
+      versionNumber: 2,
+      savedThrough: WriteSource.AskAi,
+    });
+  });
+
+  test("Ask AI putting back an earlier graph is a Restored version saying Ask AI made it", async () => {
+    history = [
+      stored({ number: 1, type: WorkflowVersionType.Changed, graph: GRAPH_1, savedBy: ALICE }),
+      stored({ number: 2, type: WorkflowVersionType.Changed, graph: GRAPH_2, savedBy: BOB }),
+    ];
+
+    await saveByAskAi(GRAPH_1);
+
+    expect(created[0]).toMatchObject({
+      versionNumber: 3,
+      versionType: WorkflowVersionType.Restored,
+      restoredFromVersionNumber: 1,
+      savedThrough: WriteSource.AskAi,
+    });
+  });
+
+  test("the person's own saves in a burst are still one version, as before", async () => {
+    history = [
+      stored({
+        number: 1,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_1,
+        savedBy: ALICE,
+      }),
+    ];
+
+    await save(GRAPH_2, ALICE);
+
+    expect(created).toHaveLength(0);
+    expect(updated).toHaveLength(1);
+    expect(updated[0]?.data["savedThrough"]).toBeUndefined();
+  });
+
+  test("a source that is not one is not written", async () => {
+    await WorkflowVersionService.recordGraphSave({
+      workflowId: WORKFLOW_ID,
+      projectId: PROJECT_ID,
+      graph: GRAPH_1,
+      userId: ALICE,
+      savedThrough: "Someone" as never,
+      now: NOW,
+    });
+
+    expect(created[0]?.savedThrough).toBeUndefined();
   });
 });

@@ -46389,5 +46389,8 @@
   "What they changed:": "相手が変更した内容:",
   "What to check if people are using it": "利用されている場合に確認すること",
   "No session matches these filters": "No session matches these filters",
-  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above."
+  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above.",
+  "Ask AI, for {{person}}": "Ask AI（{{person}} の依頼）",
+  "Saved Through": "保存経路",
+  "Saved by Ask AI": "Ask AI が保存"
 }

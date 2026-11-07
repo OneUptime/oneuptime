@@ -46389,5 +46389,8 @@
   "What they changed:": "상대가 변경한 내용:",
   "What to check if people are using it": "사람들이 사용 중일 때 확인할 사항",
   "No session matches these filters": "No session matches these filters",
-  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above."
+  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above.",
+  "Ask AI, for {{person}}": "Ask AI({{person}} 님의 요청)",
+  "Saved Through": "저장 경로",
+  "Saved by Ask AI": "Ask AI가 저장함"
 }

@@ -46389,5 +46389,8 @@
   "What they changed:": "تغییرهایی که داده‌اند:",
   "What to check if people are using it": "اگر کسی از آن استفاده می‌کند، چه چیزی را بررسی کنید",
   "No session matches these filters": "No session matches these filters",
-  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above."
+  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above.",
+  "Ask AI, for {{person}}": "Ask AI، برای {{person}}",
+  "Saved Through": "ذخیره‌شده از طریق",
+  "Saved by Ask AI": "ذخیره‌شده توسط Ask AI"
 }

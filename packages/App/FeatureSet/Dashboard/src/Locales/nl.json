@@ -46389,5 +46389,8 @@
   "What they changed:": "Wat er is gewijzigd:",
   "What to check if people are using it": "Wat u controleert als mensen de app gebruiken",
   "No session matches these filters": "No session matches these filters",
-  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above."
+  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above.",
+  "Ask AI, for {{person}}": "Ask AI, voor {{person}}",
+  "Saved Through": "Opgeslagen via",
+  "Saved by Ask AI": "Opgeslagen door Ask AI"
 }
