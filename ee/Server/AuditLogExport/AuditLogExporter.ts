@@ -28,7 +28,9 @@ import {
 } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import {
   AuditLogExportRecord,
+  AuditLogExportSchemaVersion,
   buildAuditLogExportTestRecord,
+  readAuditLogExportSchemaVersion,
   serializeAuditLogExportRecord,
   toAuditLogExportRecord,
 } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
@@ -59,7 +61,9 @@ import {
  *
  * WHAT. Every entry recorded from the export's Export From on: its
  * project's entries, or every project's for an instance export. One JSON
- * object per entry (AuditLogExportRecord, schemaVersion 1).
+ * object per entry (AuditLogExportRecord), in the schema version the
+ * export sends (its schemaVersion: 2 for a new export, 1 for one saved
+ * before version 2 existed, unless it was changed).
  *
  * HOW OFTEN. A stream (webhook, syslog) is sent each batch as soon as it is
  * read, so entries arrive about a minute after they are recorded. A file
@@ -244,6 +248,7 @@ const EXPORT_SELECT: Record<string, boolean> = {
   secrets: true,
   isEnabled: true,
   startsAt: true,
+  schemaVersion: true,
   createdAt: true,
   cursorCreatedAt: true,
   cursorEntryId: true,
@@ -493,6 +498,8 @@ export default class AuditLogExporter {
     const startsAt: Date = new Date(
       item.startsAt || item.createdAt || this.now(),
     );
+    const schemaVersion: AuditLogExportSchemaVersion =
+      readAuditLogExportSchemaVersion(item.schemaVersion);
 
     let cursor: { createdAt: Date; id: ObjectID } | null =
       item.cursorCreatedAt && item.cursorEntryId
@@ -532,6 +539,7 @@ export default class AuditLogExporter {
       const records: Array<AuditLogExportRecord> = AuditLogExporter.toBatch({
         rows,
         maxBytes: definition.maxBytesPerBatch,
+        schemaVersion,
       });
 
       const first: AuditLogExportRecord | undefined = records[0];
@@ -637,20 +645,25 @@ export default class AuditLogExporter {
   }
 
   /*
-   * The batch from what was read: every valid entry, in order, its secrets
-   * redacted again on the way out (AuditLogExportRedaction), up to the
-   * destination's byte limit - always at least one, so an entry larger
+   * The batch from what was read: every valid entry, in order, in the
+   * schema version the export sends (the first when none is named), its
+   * secrets redacted again on the way out (AuditLogExportRedaction), up to
+   * the destination's byte limit - always at least one, so an entry larger
    * than the limit on its own still goes, alone.
    */
   public static toBatch(data: {
     rows: Array<JSONObject>;
     maxBytes: number;
+    schemaVersion?: AuditLogExportSchemaVersion | undefined;
   }): Array<AuditLogExportRecord> {
     const records: Array<AuditLogExportRecord> = [];
     let bytes: number = 0;
 
     for (const row of data.rows) {
-      const read: AuditLogExportRecord | null = toAuditLogExportRecord(row);
+      const read: AuditLogExportRecord | null = toAuditLogExportRecord(
+        row,
+        data.schemaVersion,
+      );
 
       if (!read) {
         continue;
@@ -875,12 +888,14 @@ export default class AuditLogExporter {
    * a person setting a destination up sees it arrive in its real shape
    * before anything real is sent. A file destination writes it to one fixed
    * name in the folder (overwritten by every test). Tried once: the person
-   * is waiting for the answer.
+   * is waiting for the answer. It arrives in the schema version the export
+   * sends (or will), so a reader is tested against the shape it will get.
    */
   public static async sendTest(data: {
     settings: AuditLogExportSettings;
     isInstanceExport: boolean;
     projectId: ObjectID | null;
+    schemaVersion?: AuditLogExportSchemaVersion | undefined;
     destination?: AuditLogExportDestination | undefined;
     now?: Date | undefined;
   }): Promise<AuditLogExportDeliveryReceipt> {
@@ -894,6 +909,7 @@ export default class AuditLogExporter {
       now,
       id: ObjectID.generate().toString(),
       projectId: data.projectId ? data.projectId.toString() : null,
+      schemaVersion: data.schemaVersion,
     });
 
     return destination.deliver({
