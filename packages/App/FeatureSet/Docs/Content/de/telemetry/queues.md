@@ -2,6 +2,8 @@
 
 **Warteschlangen** gibt jeder Nachrichtenwarteschlange, jedem Topic und jedem Abonnement, das Ihre Anwendungen nutzen, eine eigene Seite: welche Services darin veröffentlichen und welche daraus konsumieren, wie viele Nachrichten durchlaufen, wie viele fehlschlagen und wie lange die Verarbeitung dauert, ihre Traces und Metriken – und, sobald die eigenen Metriken des Brokers OneUptime erreichen, ihren Rückstand, den Consumer-Lag, Dead Letters und die Drosselung. Warteschlangen haben Labels, Eigentümer, Label- und Eigentümerregeln und Archivierung wie jede andere Ressource. Sie öffnen sie unter **Produkte → Ressourcen → Warteschlangen**.
 
+**Warteschlangen → Topologie** zeigt, wie Nachrichten zwischen Ihren Services fließen: jede Warteschlange zwischen den Services, die in ihr veröffentlichen, und denen, die aus ihr konsumieren. Jede Linie zeigt ihre Nachrichtenrate, ihre Fehlerrate und ihre p95-Zeit, gezählt wie auf den Karten **Producer** und **Consumer** der Warteschlange, und sobald die Metriken eines Brokers OneUptime erreichen, zeigen seine Warteschlangen ihren Consumer-Lag oder Rückstand und ihre Dead Letters. Durchsuchen Sie die Darstellung, filtern Sie sie nach Broker oder behalten Sie nur, was Aufmerksamkeit braucht. Der eigene Tab **Topologie** einer Warteschlange zeigt, woher ihre Nachrichten kommen und wohin sie gehen.
+
 :::cards
 - [Anwendungen instrumentieren](#anwendungen-instrumentieren): Die Messaging-Spans, die Ihre OpenTelemetry-Instrumentierung bereits sendet.
 - [Zustandsmetriken des Brokers](#zustandsmetriken-des-brokers): Rückstand, Lag und Dead Letters aus Ihrem Broker, System für System.

@@ -2,6 +2,8 @@
 
 **Køer** giver hver beskedkø, hvert topic og hvert abonnement, som dine applikationer bruger, sin egen side: hvilke tjenester der publicerer til den, og hvilke der forbruger fra den, hvor mange beskeder der går igennem, hvor mange der fejler, og hvor lang tid behandlingen tager, dens traces og metrikker og, så snart brokerens egne metrikker når OneUptime, dens efterslæb, consumer-lag, dead letters og begrænsning. Køer har labels, ejere, label- og ejerregler og arkivering, ligesom alle andre ressourcer. Åbn dem under **Produkter → Ressourcer → Køer**.
 
+**Køer → Topologi** viser, hvordan beskeder flyder mellem dine tjenester: hver kø mellem de tjenester, der publicerer til den, og dem, der forbruger fra den. Hver linje viser sin beskedrate, sin fejlrate og sin p95-tid, talt som køens kort **Producenter** og **Forbrugere** tæller dem, og så snart en brokers metrikker når OneUptime, viser dens køer deres consumer-lag eller efterslæb og deres dead letters. Søg i visningen, filtrer den efter broker, eller behold kun det, der kræver opmærksomhed. En køs egen fane **Topologi** viser, hvor dens beskeder kommer fra, og hvor de går hen.
+
 :::cards
 - [Instrumentering af applikationer](#instrumentering-af-applikationer): De messaging-spans, som din OpenTelemetry-instrumentering allerede sender.
 - [Brokerens sundhedsmetrikker](#brokerens-sundhedsmetrikker): Efterslæb, lag og dead letters fra din broker, system for system.

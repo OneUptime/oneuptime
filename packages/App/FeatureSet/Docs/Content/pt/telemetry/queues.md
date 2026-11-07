@@ -2,6 +2,8 @@
 
 **Filas** dá a cada fila de mensagens, tópico e assinatura que seus aplicativos usam uma página própria: quais serviços publicam nela e quais consomem dela, quantas mensagens passam, quantas falham e quanto tempo leva o processamento, seus traces e métricas e, assim que as métricas do próprio broker chegam ao OneUptime, seu acúmulo, o atraso dos consumidores, as mensagens mortas e a limitação. As filas têm rótulos, proprietários, regras de rótulos e de proprietários e arquivamento, como qualquer outro recurso. Abra-as em **Produtos → Recursos → Filas**.
 
+**Filas → Topologia** mostra como as mensagens fluem entre seus serviços: cada fila entre os serviços que publicam nela e os que consomem dela. Cada linha mostra sua taxa de mensagens, sua taxa de erros e seu tempo p95, contados como os contam os cartões **Produtores** e **Consumidores** da fila, e assim que as métricas de um broker chegam ao OneUptime, suas filas mostram o atraso dos consumidores ou o acúmulo, e as mensagens mortas. Pesquise no mapa, filtre-o por broker ou mantenha só o que precisa de atenção. A aba **Topologia** de cada fila mostra de onde vêm suas mensagens e para onde vão.
+
 :::cards
 - [Instrumentar aplicativos](#instrumentar-aplicativos): Os spans de mensageria que sua instrumentação OpenTelemetry já envia.
 - [Métricas de saúde do broker](#métricas-de-saúde-do-broker): Acúmulo, atraso e mensagens mortas do seu broker, sistema por sistema.

@@ -2,6 +2,8 @@
 
 **Wachtrijen** geeft elke berichtenwachtrij, elk topic en elk abonnement dat je applicaties gebruiken een eigen pagina: welke services erin publiceren en welke eruit consumeren, hoeveel berichten erdoorheen gaan, hoeveel er mislukken en hoe lang de verwerking duurt, de traces en metrics ervan en, zodra de eigen metrics van de broker OneUptime bereiken, de achterstand, de consumer-lag, dead letters en throttling. Wachtrijen hebben labels, eigenaren, label- en eigenaarregels en archivering, net als elke andere resource. Open ze via **Producten → Bronnen → Wachtrijen**.
 
+**Wachtrijen → Topologie** laat zien hoe berichten tussen je services stromen: elke wachtrij tussen de services die erin publiceren en de services die eruit consumeren. Elke lijn toont het berichtentempo, het foutpercentage en de p95-tijd, geteld zoals de kaarten **Producenten** en **Consumenten** van de wachtrij ze tellen, en zodra de metrics van een broker OneUptime bereiken, tonen de wachtrijen ervan hun consumer-lag of achterstand en hun dead letters. Doorzoek de weergave, filter die op broker of houd alleen over wat aandacht nodig heeft. Het eigen tabblad **Topologie** van een wachtrij laat zien waar de berichten vandaan komen en waar ze heen gaan.
+
 :::cards
 - [Applicaties instrumenteren](#applicaties-instrumenteren): De messaging-spans die je OpenTelemetry-instrumentatie al verstuurt.
 - [Gezondheidsmetrics van de broker](#gezondheidsmetrics-van-de-broker): Achterstand, lag en dead letters uit je broker, systeem voor systeem.
