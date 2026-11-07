@@ -15,6 +15,7 @@ import PublicNoteApprovalPolicy, {
   PublicNoteApprovalPolicyMessages,
 } from "../../../../Server/Utils/Notes/PublicNoteApprovalPolicy";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   PublicNoteApprovalEventType,
@@ -415,20 +416,40 @@ describe("PublicNoteApprovalStepService: every step names somebody", () => {
     }
   });
 
+  /*
+   * The steps an update writes, read as it writes them
+   * (findRowsAndHoldUpdateToThem): handed the update itself, so it is held
+   * to the steps checked - never a read of its query of its own.
+   */
+  function stepsOfUpdate(steps: Array<PublicNoteApprovalStep>): {
+    held: jest.SpyInstance;
+    find: jest.SpyInstance;
+  } {
+    return {
+      held: getJestSpyOn(
+        PublicNoteApprovalStepService,
+        "findRowsAndHoldUpdateToThem",
+      ).mockResolvedValue(steps as never),
+      find: getJestSpyOn(PublicNoteApprovalStepService, "findBy"),
+    };
+  }
+
+  function stepUpdate(data: JSONObject): UpdateBy<PublicNoteApprovalStep> {
+    return {
+      query: { _id: "s1" },
+      data: data as never,
+      props: { isRoot: true },
+      limit: 1,
+      skip: 0,
+    } as UpdateBy<PublicNoteApprovalStep>;
+  }
+
   test("an update that takes everybody off a step is refused", async () => {
     passReferences();
-    getJestSpyOn(PublicNoteApprovalStepService, "findBy").mockResolvedValue([
-      storedStep({ id: "s1", users: [ALICE] }),
-    ] as never);
+    stepsOfUpdate([storedStep({ id: "s1", users: [ALICE] })]);
 
     const refusal: Error = await refusalOf(() => {
-      return hooks.onBeforeUpdate({
-        query: { _id: "s1" },
-        data: { approverUsers: [] } as never,
-        props: { isRoot: true },
-        limit: 1,
-        skip: 0,
-      } as UpdateBy<PublicNoteApprovalStep>);
+      return hooks.onBeforeUpdate(stepUpdate({ approverUsers: [] }));
     });
 
     expect(refusal.message).toBe(
@@ -438,37 +459,59 @@ describe("PublicNoteApprovalStepService: every step names somebody", () => {
 
   test("an update that takes the people off a step its team still approves is fine", async () => {
     passReferences();
-    getJestSpyOn(PublicNoteApprovalStepService, "findBy").mockResolvedValue([
-      storedStep({ id: "s1", users: [ALICE], teams: [TEAM] }),
-    ] as never);
+    stepsOfUpdate([storedStep({ id: "s1", users: [ALICE], teams: [TEAM] })]);
 
     await expect(
-      hooks.onBeforeUpdate({
-        query: { _id: "s1" },
-        data: { approverUsers: [] } as never,
-        props: { isRoot: true },
-        limit: 1,
-        skip: 0,
-      } as UpdateBy<PublicNoteApprovalStep>),
+      hooks.onBeforeUpdate(stepUpdate({ approverUsers: [] })),
     ).resolves.toBeTruthy();
+  });
+
+  test("the steps checked are the steps the update writes, and it is held to them", async () => {
+    passReferences();
+    const reads: { held: jest.SpyInstance; find: jest.SpyInstance } =
+      stepsOfUpdate([storedStep({ id: "s1", users: [ALICE], teams: [TEAM] })]);
+    const updateBy: UpdateBy<PublicNoteApprovalStep> = stepUpdate({
+      approverTeams: [],
+    });
+
+    await hooks.onBeforeUpdate(updateBy);
+
+    expect(reads.held).toHaveBeenCalledTimes(1);
+    expect(reads.held.mock.calls[0]![0]).toBe(updateBy);
+    expect(reads.held.mock.calls[0]![1]).toEqual({
+      _id: true,
+      approverUsers: { _id: true },
+      approverTeams: { _id: true },
+    });
+    expect(reads.find).not.toHaveBeenCalled();
+  });
+
+  test("every step an update writes names somebody once it is written, or none is written", async () => {
+    passReferences();
+    stepsOfUpdate([
+      storedStep({ id: "s1", users: [ALICE], teams: [TEAM] }),
+      storedStep({ id: "s2", users: [ALICE] }),
+    ]);
+
+    // Taking the people off leaves s1 its team, but leaves s2 nobody.
+    const refusal: Error = await refusalOf(() => {
+      return hooks.onBeforeUpdate(stepUpdate({ approverUsers: [] }));
+    });
+
+    expect(refusal.message).toBe(
+      PublicNoteApprovalPolicyMessages.stepNeedsApprover,
+    );
   });
 
   test("an update of anything else reads nothing", async () => {
     passReferences();
-    const find: jest.SpyInstance = getJestSpyOn(
-      PublicNoteApprovalStepService,
-      "findBy",
-    ).mockResolvedValue([] as never);
+    const reads: { held: jest.SpyInstance; find: jest.SpyInstance } =
+      stepsOfUpdate([]);
 
-    await hooks.onBeforeUpdate({
-      query: { _id: "s1" },
-      data: { name: "Legal" } as never,
-      props: { isRoot: true },
-      limit: 1,
-      skip: 0,
-    } as UpdateBy<PublicNoteApprovalStep>);
+    await hooks.onBeforeUpdate(stepUpdate({ name: "Legal" }));
 
-    expect(find).not.toHaveBeenCalled();
+    expect(reads.held).not.toHaveBeenCalled();
+    expect(reads.find).not.toHaveBeenCalled();
   });
 
   function deleting(eventType: PublicNoteApprovalEventType): void {
@@ -537,5 +580,113 @@ describe("PublicNoteApprovalStepService: every step names somebody", () => {
       deleteBy,
     });
     expect(getSteps).not.toHaveBeenCalled();
+  });
+});
+
+describe("ProjectService: turning public note approval on", () => {
+  interface TurnOnCheck {
+    assertPublicNoteApprovalCanTurnOn: (
+      updateBy: UpdateBy<Project>,
+    ) => Promise<void>;
+  }
+
+  const check: TurnOnCheck = ProjectService as unknown as TurnOnCheck;
+
+  function projectUpdate(data: JSONObject): UpdateBy<Project> {
+    return {
+      query: { _id: PROJECT_ID.toString() },
+      data: data as never,
+      props: { isRoot: true },
+      limit: 1,
+      skip: 0,
+    } as UpdateBy<Project>;
+  }
+
+  function projectsOfUpdate(ids: Array<ObjectID>): {
+    held: jest.SpyInstance;
+    find: jest.SpyInstance;
+  } {
+    return {
+      held: getJestSpyOn(
+        ProjectService,
+        "findRowsAndHoldUpdateToThem",
+      ).mockResolvedValue(
+        ids.map((id: ObjectID): Project => {
+          const project: Project = new Project();
+          project._id = id.toString();
+          return project;
+        }) as never,
+      ),
+      find: getJestSpyOn(ProjectService, "findBy"),
+    };
+  }
+
+  test("checks the projects the update writes, with the update held to them", async () => {
+    const reads: { held: jest.SpyInstance; find: jest.SpyInstance } =
+      projectsOfUpdate([PROJECT_ID]);
+    const assertCanTurnOn: jest.SpyInstance = getJestSpyOn(
+      PublicNoteApprovalPolicy,
+      "assertCanTurnOn",
+    ).mockResolvedValue(undefined);
+    const updateBy: UpdateBy<Project> = projectUpdate({
+      requireApprovalForIncidentPublicNotes: true,
+    });
+
+    await check.assertPublicNoteApprovalCanTurnOn(updateBy);
+
+    expect(reads.held).toHaveBeenCalledTimes(1);
+    expect(reads.held.mock.calls[0]![0]).toBe(updateBy);
+    expect(reads.held.mock.calls[0]![1]).toEqual({ _id: true });
+    expect(reads.find).not.toHaveBeenCalled();
+    expect(assertCanTurnOn).toHaveBeenCalledWith({
+      projectIds: [PROJECT_ID],
+      written: {
+        requireApprovalForIncidentPublicNotes: true,
+        requireApprovalForScheduledMaintenancePublicNotes: undefined,
+      },
+    });
+  });
+
+  test("a project with nobody to approve is not turned on", async () => {
+    projectsOfUpdate([PROJECT_ID]);
+    getJestSpyOn(PublicNoteApprovalPolicy, "getSteps").mockResolvedValue([
+      rule({ id: "s1" }),
+    ]);
+
+    const refusal: Error = await refusalOf(() => {
+      return check.assertPublicNoteApprovalCanTurnOn(
+        projectUpdate({
+          requireApprovalForScheduledMaintenancePublicNotes: true,
+        }),
+      );
+    });
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect(refusal.message).toBe(
+      PublicNoteApprovalPolicyMessages.noApproverToTurnOn(
+        PublicNoteApprovalEventType.ScheduledMaintenance,
+      ),
+    );
+  });
+
+  test("a write that turns no switch on reads nothing", async () => {
+    const reads: { held: jest.SpyInstance; find: jest.SpyInstance } =
+      projectsOfUpdate([PROJECT_ID]);
+    const assertCanTurnOn: jest.SpyInstance = getJestSpyOn(
+      PublicNoteApprovalPolicy,
+      "assertCanTurnOn",
+    );
+
+    for (const data of [
+      { name: "Renamed" },
+      { requireApprovalForIncidentPublicNotes: false },
+      { requireApprovalForScheduledMaintenancePublicNotes: false },
+    ]) {
+      await check.assertPublicNoteApprovalCanTurnOn(projectUpdate(data));
+    }
+
+    expect(reads.held).not.toHaveBeenCalled();
+    expect(reads.find).not.toHaveBeenCalled();
+    expect(assertCanTurnOn).not.toHaveBeenCalled();
   });
 });

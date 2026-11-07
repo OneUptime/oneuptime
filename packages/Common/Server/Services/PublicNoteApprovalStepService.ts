@@ -1,7 +1,6 @@
 import Model from "../../Models/DatabaseModels/PublicNoteApprovalStep";
 import Team from "../../Models/DatabaseModels/Team";
 import User from "../../Models/DatabaseModels/User";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { PublicNoteApprovalEventType } from "../../Types/StatusPage/PublicNoteApproval";
@@ -59,7 +58,9 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * An update that writes a step's people or teams leaves somebody on it:
-   * what it writes, and for the list it leaves alone, what the step has.
+   * what it writes, and for the list it leaves alone, what the step has -
+   * read for the steps the update writes, the ones its caller may write,
+   * with the update held to them, so every step written is a step checked.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -74,9 +75,9 @@ export class Service extends ProjectReferencesService<Model> {
       return { updateBy, carryForward: null };
     }
 
-    const steps: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const steps: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         approverUsers: {
           _id: true,
@@ -85,12 +86,7 @@ export class Service extends ProjectReferencesService<Model> {
           _id: true,
         },
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const step of steps) {
       const users: number = writesUsers
