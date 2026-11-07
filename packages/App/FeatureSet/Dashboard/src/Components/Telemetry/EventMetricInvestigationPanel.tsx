@@ -1,12 +1,15 @@
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import IconProp from "Common/Types/Icon/IconProp";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import ChartReferenceRegionProps from "Common/UI/Components/Charts/Types/ReferenceRegionProps";
 import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
+import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import MetricTelemetrySnapshot from "Common/Utils/Monitor/MetricTelemetrySnapshot";
 import MetricInvestigation from "../Metrics/Investigation/MetricInvestigation";
 import MetricInvestigationTime, {
   MetricInvestigationTimePreset,
@@ -33,11 +36,12 @@ import {
   getEventMoments,
 } from "../../Utils/EventMetricInvestigation";
 import TelemetryCompanionSignalTabs from "./TelemetryCompanionSignalTabs";
-import { MetricInvestigationThreshold } from "../Metrics/Investigation/MetricInvestigationThresholds";
-import useEventMetricThresholds from "./useEventMetricThresholds";
+import useEventMetricRule, { EventMetricRule } from "./useEventMetricRule";
 
 // Where an event page keeps its metric investigation in its URL.
 export const EVENT_METRIC_INVESTIGATION_URL_PREFIX: string = "metrics";
+
+export const EVENT_METRIC_SCOPE_NOTE_TEST_ID: string = "event-metric-scope-note";
 
 export interface ComponentProps {
   /*
@@ -103,11 +107,24 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
   const evaluationWindow: InBetween<Date> | null =
     MetricInvestigationTime.toUsableWindow(props.evaluationWindow);
 
-  const investigation: MetricInvestigationState = useMetricInvestigation({
-    defaultQueries: {
+  /*
+   * The value the monitor compared the metric with when it opened the event
+   * (issue #6250), and the metrics the card starts from: the snapshot's, or
+   * for one stored before it kept its monitor's scope, narrowed to what the
+   * monitor watches now (issue #6265).
+   */
+  const rule: EventMetricRule = useEventMetricRule({
+    eventNoun: words.telemetryNoun,
+    eventId: props.ruleEventId || props.eventId,
+    snapshotQueries: {
       queryConfigs: queryConfigs,
       formulaConfigs: formulaConfigs,
     },
+    isScopeKept: MetricTelemetrySnapshot.isAsRead(props.telemetryQuery),
+  });
+
+  const investigation: MetricInvestigationState = useMetricInvestigation({
+    defaultQueries: rule.scope.queries,
     getPresets: (now: Date): Array<MetricInvestigationTimePreset> => {
       return getEventMetricTimePresets(
         {
@@ -121,17 +138,6 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
     defaultSelection: EVENT_METRIC_DEFAULT_SELECTION,
     urlParamPrefix: EVENT_METRIC_INVESTIGATION_URL_PREFIX,
   });
-
-  // The value the monitor compared the metric with when it opened the event.
-  const thresholds: Array<MetricInvestigationThreshold> =
-    useEventMetricThresholds({
-      eventNoun: words.telemetryNoun,
-      eventId: props.ruleEventId || props.eventId,
-      snapshotQueries: {
-        queryConfigs: queryConfigs,
-        formulaConfigs: formulaConfigs,
-      },
-    });
 
   const moments: Array<EventMoment> = getEventMoments({
     startedAt: props.startedAt,
@@ -217,6 +223,29 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
         "Metrics related to this incident.";
 
   /*
+   * Said while the charts show a snapshot narrowed now (see above): the
+   * monitor may have watched another resource when it opened the event.
+   * Gone once the reader picks metrics of their own.
+   */
+  const scopeNote: ReactElement | undefined =
+    rule.scope.isFromMonitorNow && !investigation.isQueriesChanged ? (
+      <p
+        className="flex items-center gap-1.5 text-xs text-gray-500"
+        data-testid={EVENT_METRIC_SCOPE_NOTE_TEST_ID}
+      >
+        <Icon icon={IconProp.Info} className="h-3.5 w-3.5 text-gray-400" />
+        {rule.scope.resourceName
+          ? translator.translateTemplate(
+              "Charted for {{resource}}, which this monitor checks now.",
+              { resource: rule.scope.resourceName },
+            )
+          : translator.translateText(
+              "Charted for what this monitor checks now.",
+            )}
+      </p>
+    ) : undefined;
+
+  /*
    * The same picker on every tab of the card, all picking the one time
    * range, so a reader on the Logs tab can move it there too.
    */
@@ -250,7 +279,8 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
           relativeRanges={EVENT_METRIC_RELATIVE_RANGES}
           moments={momentLines}
           regions={regions}
-          thresholds={thresholds}
+          thresholds={rule.thresholds}
+          beforeToolbar={scopeNote}
           excludedIncidentIds={
             props.eventId && props.subject === EventMetricSubject.Incident
               ? [props.eventId]
