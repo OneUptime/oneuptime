@@ -180,7 +180,7 @@ Elke wijziging die je op het canvas maakt, kun je terugdraaien, ook al is die me
 - Het toetsenbord werkt ook: ⌘Z op een Mac, of Ctrl+Z, maakt ongedaan, en ⇧⌘Z, Ctrl+Shift+Z of Ctrl+Y doet het opnieuw. Terwijl je in een veld of een code-editor typt, maken dezelfde toetsen in plaats daarvan je typwerk ongedaan.
 - Ook ongedaan maken wordt opgeslagen, net als elke andere wijziging. Ongedaan maken gaat alleen terug tot het moment waarop je de Bouwer opende; de versiegeschiedenis gaat verder terug.
 
-**Versiegeschiedenis**, in de werkbalk, toont elke opgeslagen versie van de workflow, de nieuwste eerst: wie die opsloeg, wanneer en wat er veranderde, zoals `Added "Send Email" (send-email-1)`. Wijzigingen die je binnen 10 minuten na elkaar opslaat, vormen één versie, dus een versie is een stuk werk en niet elke klik. Wijzigingen die Ask AI maakt, en wijzigingen via de API, zijn ook versies.
+**Versiegeschiedenis**, in de werkbalk, toont elke opgeslagen versie van de workflow, de nieuwste eerst: wie die opsloeg, wanneer en wat er veranderde, zoals `Added "Send Email" (send-email-1)`. Wijzigingen die je binnen 10 minuten na elkaar opslaat, vormen één versie, dus een versie is een stuk werk en niet elke klik. Wijzigingen via de API zijn ook versies, en elke wijziging die Ask AI maakt is een eigen versie, die zegt dat Ask AI die voor jou maakte. Als je de versie daarvoor herstelt, draai je precies terug wat Ask AI deed.
 
 Om terug te gaan naar een eerdere versie:
 

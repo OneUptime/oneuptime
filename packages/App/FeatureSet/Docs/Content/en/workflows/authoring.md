@@ -180,7 +180,7 @@ Every change you make on the canvas can be taken back, even though it was saved 
 - The keyboard works too: ⌘Z on a Mac, or Ctrl+Z, undoes, and ⇧⌘Z, Ctrl+Shift+Z or Ctrl+Y redoes. While you type in a field or a code editor, the same keys undo your typing instead.
 - An undo is saved like any other change. Undo goes back over what you did since you opened the Builder; the version history goes back further.
 
-**Version history**, in the toolbar, lists every saved version of the workflow, newest first: who saved it, when, and what it changed, such as `Added "Send Email" (send-email-1)`. The changes you save within 10 minutes of each other are one version, so a version is a piece of work rather than every click. Changes Ask AI makes, and changes made through the API, are versions too.
+**Version history**, in the toolbar, lists every saved version of the workflow, newest first: who saved it, when, and what it changed, such as `Added "Send Email" (send-email-1)`. The changes you save within 10 minutes of each other are one version, so a version is a piece of work rather than every click. Changes made through the API are versions too, and each change Ask AI makes is a version of its own, saying Ask AI made it for you. Restoring the version before it takes back exactly what Ask AI did.
 
 To go back to an earlier version:
 

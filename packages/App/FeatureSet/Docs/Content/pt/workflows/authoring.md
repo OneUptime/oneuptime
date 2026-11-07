@@ -180,7 +180,7 @@ Toda alteração que você faz no canvas pode ser desfeita, mesmo que já tenha 
 - O teclado também funciona: ⌘Z no Mac, ou Ctrl+Z, desfaz, e ⇧⌘Z, Ctrl+Shift+Z ou Ctrl+Y refaz. Enquanto você digita em um campo ou em um editor de código, as mesmas teclas desfazem o que você digitou.
 - O que você desfaz é salvo como qualquer outra alteração. Desfazer só volta até o momento em que você abriu o Construtor; o histórico de versões vai mais longe.
 
-**Histórico de versões**, na barra de ferramentas, lista cada versão salva do workflow, da mais recente para a mais antiga: quem a salvou, quando e o que ela alterou, como `Added "Send Email" (send-email-1)`. As alterações que você salva com menos de 10 minutos de intervalo entre elas formam uma única versão, então uma versão é um trecho de trabalho, e não cada clique. As alterações que o Ask AI faz e as feitas pela API também são versões.
+**Histórico de versões**, na barra de ferramentas, lista cada versão salva do workflow, da mais recente para a mais antiga: quem a salvou, quando e o que ela alterou, como `Added "Send Email" (send-email-1)`. As alterações que você salva com menos de 10 minutos de intervalo entre elas formam uma única versão, então uma versão é um trecho de trabalho, e não cada clique. As alterações feitas pela API também são versões, e cada alteração que o Ask AI faz é uma versão própria, que diz que o Ask AI a fez por você. Restaurar a versão anterior desfaz exatamente o que o Ask AI fez.
 
 Para voltar a uma versão anterior:
 

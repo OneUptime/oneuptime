@@ -180,7 +180,7 @@ Chaque modification que vous faites sur le canevas peut être reprise, même si 
 - Le clavier fonctionne aussi : ⌘Z sur un Mac, ou Ctrl+Z, annule, et ⇧⌘Z, Ctrl+Shift+Z ou Ctrl+Y rétablit. Pendant que vous tapez dans un champ ou un éditeur de code, les mêmes touches annulent plutôt votre saisie.
 - Une annulation est enregistrée comme n'importe quelle autre modification. L'annulation porte sur ce que vous avez fait depuis l'ouverture du Constructeur ; l'historique des versions remonte plus loin.
 
-**Historique des versions**, dans la barre d'outils, liste chaque version enregistrée du workflow, de la plus récente à la plus ancienne : qui l'a enregistrée, quand, et ce qu'elle a modifié, par exemple `Added "Send Email" (send-email-1)`. Les modifications que vous enregistrez à moins de 10 minutes d'intervalle forment une seule version : une version est donc un morceau de travail plutôt que chaque clic. Les modifications faites par Ask AI, et celles faites via l'API, sont aussi des versions.
+**Historique des versions**, dans la barre d'outils, liste chaque version enregistrée du workflow, de la plus récente à la plus ancienne : qui l'a enregistrée, quand, et ce qu'elle a modifié, par exemple `Added "Send Email" (send-email-1)`. Les modifications que vous enregistrez à moins de 10 minutes d'intervalle forment une seule version : une version est donc un morceau de travail plutôt que chaque clic. Les modifications faites via l'API sont aussi des versions, et chaque modification faite par Ask AI est une version à part, qui indique qu'Ask AI l'a faite pour vous. Restaurer la version précédente annule exactement ce qu'a fait Ask AI.
 
 Pour revenir à une version antérieure :
 

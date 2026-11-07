@@ -19,6 +19,9 @@ import {
 } from "Common/UI/Components/Workflow/WorkflowStatusBar";
 import { WorkflowVersionCopy } from "Common/UI/Components/Workflow/WorkflowVersionPresentation";
 import { getWorkflowGraphChanges } from "Common/Utils/Workflow/WorkflowGraphChanges";
+import WriteSource from "Common/Types/BaseDatabase/WriteSource";
+import { WorkflowVersionType } from "Common/Types/Workflow/WorkflowVersion";
+import { doesNewestVersionTakeInSave } from "Common/Server/Utils/Workflow/WorkflowVersionPolicy";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -110,6 +113,46 @@ describe("the authoring page on undo, redo and version history", () => {
     expect(WorkflowVersionCopy.panelDescription).toContain(
       `the newest ${WORKFLOW_VERSIONS_KEPT} versions are kept`,
     );
+  });
+
+  it("says each change Ask AI makes is a version of its own, as the version history keeps it (issue #6258)", () => {
+    expect(HISTORY).toContain(
+      "each change Ask AI makes is a version of its own, saying Ask AI made it for you",
+    );
+    expect(HISTORY).toContain(
+      "Restoring the version before it takes back exactly what Ask AI did.",
+    );
+
+    const now: Date = new Date("2026-11-07T12:00:00.000Z");
+    const newest: Parameters<typeof doesNewestVersionTakeInSave>[0]["newest"] =
+      {
+        versionNumber: 2,
+        versionType: WorkflowVersionType.Changed,
+        graphFingerprint: "a",
+        savedByUserId: "ada",
+        createdAt: new Date(now.getTime() - 60 * 1000),
+      };
+
+    // Never folded into the person's version, nor the person's next edit into it.
+    expect(
+      doesNewestVersionTakeInSave({
+        newest,
+        savedByUserId: "ada",
+        savedThrough: WriteSource.AskAi,
+        now,
+      }),
+    ).toBe(false);
+    expect(
+      doesNewestVersionTakeInSave({
+        newest: { ...newest, savedThrough: WriteSource.AskAi },
+        savedByUserId: "ada",
+        now,
+      }),
+    ).toBe(false);
+    // The person's own saves in the window are still one version.
+    expect(
+      doesNewestVersionTakeInSave({ newest, savedByUserId: "ada", now }),
+    ).toBe(true);
   });
 
   it("quotes a change line as a version shows it", () => {

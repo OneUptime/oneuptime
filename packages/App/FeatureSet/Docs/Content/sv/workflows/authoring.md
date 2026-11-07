@@ -180,7 +180,7 @@ Varje ändring du gör på arbetsytan kan tas tillbaka, trots att den sparades d
 - Tangentbordet fungerar också: ⌘Z på en Mac, eller Ctrl+Z, ångrar, och ⇧⌘Z, Ctrl+Shift+Z eller Ctrl+Y gör om. Medan du skriver i ett fält eller en kodredigerare ångrar samma tangenter i stället det du har skrivit.
 - En ångring sparas som vilken annan ändring som helst. Ångra går tillbaka genom det du har gjort sedan du öppnade Byggare; versionshistoriken går längre tillbaka.
 
-**Versionshistorik**, i verktygsfältet, visar varje sparad version av arbetsflödet, nyaste först: vem som sparade den, när och vad den ändrade, till exempel `Added "Send Email" (send-email-1)`. Ändringar som du sparar inom 10 minuter från varandra blir en version, så en version är ett arbetsmoment snarare än varje klick. Ändringar som Ask AI gör, och ändringar som görs via API:t, är också versioner.
+**Versionshistorik**, i verktygsfältet, visar varje sparad version av arbetsflödet, nyaste först: vem som sparade den, när och vad den ändrade, till exempel `Added "Send Email" (send-email-1)`. Ändringar som du sparar inom 10 minuter från varandra blir en version, så en version är ett arbetsmoment snarare än varje klick. Ändringar som görs via API:t är också versioner, och varje ändring som Ask AI gör är en egen version, som säger att Ask AI gjorde den åt dig. Om du återställer versionen före den tar du tillbaka exakt det som Ask AI gjorde.
 
 För att gå tillbaka till en tidigare version:
 

@@ -180,7 +180,7 @@ Ogni modifica che fai sulla tela si può annullare, anche se è stata salvata su
 - Funziona anche la tastiera: ⌘Z su un Mac, o Ctrl+Z, annulla, e ⇧⌘Z, Ctrl+Shift+Z o Ctrl+Y ripete. Mentre scrivi in un campo o in un editor di codice, gli stessi tasti annullano invece ciò che hai scritto.
 - Un annullamento viene salvato come qualsiasi altra modifica. L'annullamento copre ciò che hai fatto da quando hai aperto il Costruttore; la cronologia delle versioni va più indietro.
 
-**Cronologia versioni**, nella barra degli strumenti, elenca ogni versione salvata del workflow, dalla più recente: chi l'ha salvata, quando e cosa ha cambiato, ad esempio `Added "Send Email" (send-email-1)`. Le modifiche che salvi a meno di 10 minuti l'una dall'altra formano un'unica versione, così una versione è un pezzo di lavoro e non ogni singolo clic. Anche le modifiche fatte da Ask AI, e quelle fatte tramite l'API, sono versioni.
+**Cronologia versioni**, nella barra degli strumenti, elenca ogni versione salvata del workflow, dalla più recente: chi l'ha salvata, quando e cosa ha cambiato, ad esempio `Added "Send Email" (send-email-1)`. Le modifiche che salvi a meno di 10 minuti l'una dall'altra formano un'unica versione, così una versione è un pezzo di lavoro e non ogni singolo clic. Anche le modifiche fatte tramite l'API sono versioni, e ogni modifica fatta da Ask AI è una versione a sé, che dice che Ask AI l'ha fatta per te. Ripristinare la versione precedente annulla esattamente ciò che ha fatto Ask AI.
 
 Per tornare a una versione precedente:
 

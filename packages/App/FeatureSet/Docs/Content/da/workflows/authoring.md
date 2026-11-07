@@ -180,7 +180,7 @@ Hver ændring, du laver på lærredet, kan tages tilbage, selvom den blev gemt m
 - Tastaturet virker også: ⌘Z på en Mac, eller Ctrl+Z, fortryder, og ⇧⌘Z, Ctrl+Shift+Z eller Ctrl+Y gentager. Mens du skriver i et felt eller en kodeeditor, fortryder de samme taster i stedet det, du har skrevet.
 - Det, du fortryder, gemmes som enhver anden ændring. Fortryd rækker kun tilbage til det, du har gjort, siden du åbnede Bygger; versionshistorikken går længere tilbage.
 
-**Versionshistorik**, i værktøjslinjen, viser hver gemt version af workflowet, med den nyeste først: hvem der gemte den, hvornår, og hvad den ændrede, som `Added "Send Email" (send-email-1)`. De ændringer, du gemmer inden for 10 minutter af hinanden, udgør én version, så en version er et stykke arbejde frem for hvert eneste klik. Ændringer, som Ask AI laver, og ændringer via API'et er også versioner.
+**Versionshistorik**, i værktøjslinjen, viser hver gemt version af workflowet, med den nyeste først: hvem der gemte den, hvornår, og hvad den ændrede, som `Added "Send Email" (send-email-1)`. De ændringer, du gemmer inden for 10 minutter af hinanden, udgør én version, så en version er et stykke arbejde frem for hvert eneste klik. Ændringer via API'et er også versioner, og hver ændring, som Ask AI laver, er en version for sig, der siger, at Ask AI lavede den for dig. Gendanner du versionen før den, tager du præcis det tilbage, som Ask AI gjorde.
 
 For at gå tilbage til en tidligere version:
 
