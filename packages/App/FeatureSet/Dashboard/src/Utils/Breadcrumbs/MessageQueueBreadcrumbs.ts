@@ -28,6 +28,11 @@ export function getMessageQueueBreadcrumbs(
       "Queues",
       "Documentation",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MESSAGE_QUEUES_TOPOLOGY, [
+      "Project",
+      "Queues",
+      "Topology",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES,
       ["Project", "Queues", "Label Rules"],
@@ -48,6 +53,12 @@ export function getMessageQueueBreadcrumbs(
       "Project",
       "Queues",
       "View Queue",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY, [
+      "Project",
+      "Queues",
+      "View Queue",
+      "Topology",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MESSAGE_QUEUE_VIEW_TRACES, [
       "Project",

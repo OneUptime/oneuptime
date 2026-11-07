@@ -79,7 +79,11 @@ export interface MessageQueueTopologyService {
 
 /*
  * One service on one side of one queue: its row in the queue's Producers
- * ("publish") or Consumers ("consume") card.
+ * ("publish") or Consumers ("consume") card, number for number. A sender
+ * whose producer spans are markers made before its sends (the Azure SDKs)
+ * has its messages counted from the markers and its failures from the
+ * sends, so its errors can exceed its messages; its error rate is its
+ * failed sends' share of its sends, as on the card.
  */
 export interface MessageQueueTopologyFlow {
   queueId: string;
@@ -87,6 +91,7 @@ export interface MessageQueueTopologyFlow {
   direction: MessageQueueFlowDirection;
   messages: number;
   errors: number;
+  // 0 to 100, or null when nothing was attempted.
   errorRatePercent: number | null;
   // p95 publish time ("publish") or processing time ("consume"), in ms.
   p95DurationMs: number | null;
@@ -222,14 +227,13 @@ function readFlow(value: unknown): MessageQueueTopologyFlow | null {
   if (messages <= 0) {
     return null;
   }
-  const errors: number = Math.min(countOf(value["errors"]), messages);
   const rate: number | null = measureOf(value["errorRatePercent"]);
   return {
     queueId: queueId,
     serviceId: serviceId,
     direction: direction,
     messages: messages,
-    errors: errors,
+    errors: countOf(value["errors"]),
     errorRatePercent: rate === null ? null : Math.min(rate, 100),
     p95DurationMs: measureOf(value["p95DurationMs"]),
   };
@@ -238,10 +242,11 @@ function readFlow(value: unknown): MessageQueueTopologyFlow | null {
 /**
  * The topology an answer holds, read defensively: a queue, service or flow
  * that is not one is left out, a count that is not a number of at least 0
- * reads 0, the failed messages of a flow never exceed its messages, and a
- * flow whose queue or service the answer does not hold is left out (a
- * service it names without listing is added, unnamed). A queue or service
- * listed twice is kept once (the first), and so is a flow. Never throws.
+ * reads 0, a queue's failed spans never exceed its spans, an error rate is
+ * held to 0-100, and a flow whose queue the answer does not hold is left
+ * out (a service it names without listing is added, unnamed). A queue or
+ * service listed twice is kept once (the first), and so is a flow. Never
+ * throws.
  */
 export function readMessageQueueTopologyResponse(
   value: unknown,

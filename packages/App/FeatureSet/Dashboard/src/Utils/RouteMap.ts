@@ -752,6 +752,7 @@ export const DatabaseRoutePath: Dictionary<string> = {
  */
 export const MessageQueueRoutePath: Dictionary<string> = {
   [PageMap.MESSAGE_QUEUE_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY]: `${RouteParams.ModelID}/topology`,
   [PageMap.MESSAGE_QUEUE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.MESSAGE_QUEUE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.MESSAGE_QUEUE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -761,6 +762,7 @@ export const MessageQueueRoutePath: Dictionary<string> = {
   [PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.MESSAGE_QUEUES_ARCHIVED]: `archived`,
   [PageMap.MESSAGE_QUEUES_DOCUMENTATION]: `documentation`,
+  [PageMap.MESSAGE_QUEUES_TOPOLOGY]: `topology`,
   [PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.MESSAGE_QUEUES_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
@@ -6900,6 +6902,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY]
+    }`,
+  ),
+
   [PageMap.MESSAGE_QUEUE_VIEW_TRACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/queues/${
       MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_TRACES]
@@ -6945,6 +6953,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MESSAGE_QUEUES_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/queues/${
       MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_TOPOLOGY]
     }`,
   ),
 
