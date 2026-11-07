@@ -29,6 +29,7 @@ import {
   prettyLlmJson,
   truncateLlmText,
 } from "./LlmConversationFormat";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * One moment of a conversation, drawn the way a chat reads:
@@ -282,7 +283,7 @@ const AnswerMeta: FunctionComponent<{
             <React.Fragment key={index}>
               {index > 0 ? (
                 <span className="text-gray-300" aria-hidden="true">
-                  ·
+                  <InlineSeparator markOnly />
                 </span>
               ) : (
                 <></>

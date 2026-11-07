@@ -20,6 +20,7 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -297,7 +298,7 @@ export const getOpenNowTileContent: (data: {
     value: (
       <span data-testid="monitor-open-now-value">
         {incidentsPart}
-        {" · "}
+        <InlineSeparator />
         {alertsPart}
       </span>
     ),

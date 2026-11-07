@@ -865,7 +865,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
       /*
        * Custom reference tags first, so nothing in that map could ever
        * shadow the safe a/img/code renderers below (it only holds the
-       * two oneuptime-* tag names).
+       * oneuptime-* tag names: the two references and their group).
        */
       ...(hasInlineReferences
         ? (MARKDOWN_INLINE_REFERENCE_COMPONENTS as Components)

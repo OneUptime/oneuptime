@@ -78,7 +78,7 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 
 - `name` og `siteType` er påkrevd. `siteType` må være en av prosjektets lokasjonstyper.
 - `parentName` navngir den overordnede lokasjonen, som kan ligge i den samme filen: rader uten forelder, eller med en forelder som allerede finnes, går først, deretter barna deres. La det stå tomt for en lokasjon på øverste nivå.
-- En rad der forelderen ikke finnes, hoppes over, og resultatene viser den. **Preview Import** viser hva filen vil opprette før noe skrives.
+- En rad der forelderen ikke finnes, hoppes over, og resultatene viser den. **Forhåndsvis import** viser hva filen vil opprette før noe skrives.
 
 ## Kartet
 

@@ -84,6 +84,7 @@ import {
 import useDiscoveryImportPolling, {
   DiscoveryImportPolling,
 } from "./useDiscoveryImportPolling";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * IMPORTING A DISCOVERY SCAN'S HOSTS (Network > Discovery > Review Results).
@@ -182,7 +183,7 @@ const StepIndicator: FunctionComponent<{
           {translator.translateText(steps[currentIndex]?.title || "")}
         </span>
         <span className="text-gray-500">
-          {" · "}
+          <InlineSeparator />
           {translator.translateTemplate("Step {{step}} of {{count}}", {
             step: currentIndex + 1,
             count: steps.length,

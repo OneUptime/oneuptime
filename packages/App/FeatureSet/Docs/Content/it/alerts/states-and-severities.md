@@ -65,7 +65,7 @@ Uno stato che aggiungete è un passaggio che il vostro team attraversa e che i t
 :::steps
 ### Aprire l'elenco degli stati
 
-Andate in **Avvisi → Impostazioni → Stato avviso**. La scheda **Avviso Stati** elenca i vostri stati nel loro ordine. Ogni riga mostra il suo colore e il suo nome, come **Conta come** un avviso che vi si trova, e la sua descrizione.
+Andate in **Avvisi → Impostazioni → Stato avviso**. La scheda **Stati avviso** elenca i vostri stati nel loro ordine. Ogni riga mostra il suo colore e il suo nome, come **Conta come** un avviso che vi si trova, e la sua descrizione.
 
 ### Creare lo stato
 
@@ -106,11 +106,11 @@ Gli incidenti partono con tre gravità e gli avvisi con due. Quando il modello d
 
 ## Modificare le gravità
 
-Andate in **Avvisi → Impostazioni → Gravità avviso**. La scheda **Avviso Gravità** le elenca dalla più grave; trascinate una riga per cambiarne il grado. **Crea: Gravità avviso** ne aggiunge una in fondo all'elenco, la meno grave, con gli stessi **Nome**, **Descrizione** e **Colore** di uno stato.
+Andate in **Avvisi → Impostazioni → Gravità avviso**. La scheda **Gravità degli avvisi** le elenca dalla più grave; trascinate una riga per cambiarne il grado. **Crea: Gravità avviso** ne aggiunge una in fondo all'elenco, la meno grave, con gli stessi **Nome**, **Descrizione** e **Colore** di uno stato.
 
 Il grado decide quale gravità prevale dove OneUptime le confronta: la gravità di un episodio sale fino a quella dell'avviso più grave che vi entra. Le gravità non hanno flag né blocco di eliminazione: qualsiasi gravità può essere eliminata, comprese le due predefinite.
 
-Una gravità da sola non chiama nessuno. Per chiamare in base alla gravità, aggiungete una regola di reperibilità le cui **Avviso Gravità** vi corrispondano: vedere [Regole e impostazioni degli avvisi](/docs/alerts/settings). Cambiare la gravità di un avviso scrive una voce nel suo feed e ricalcola la sua regola di promemoria.
+Una gravità da sola non chiama nessuno. Per chiamare in base alla gravità, aggiungete una regola di reperibilità le cui **Gravità degli avvisi** vi corrispondano: vedere [Regole e impostazioni degli avvisi](/docs/alerts/settings). Cambiare la gravità di un avviso scrive una voce nel suo feed e ricalcola la sua regola di promemoria.
 
 ## Archiviare uno stato o una gravità
 

@@ -34,13 +34,18 @@ import {
 } from "./DocsDashboardMenus";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import {
+  DEFAULT_MINIMUM_COUNT,
   GROUPING_MODE_OPTIONS,
   GROUPING_RULE_COPY,
   GROUPING_RULE_TEMPLATES,
+  GROUPING_SUMMARY_COPY,
   GroupingRuleKind,
   DEFAULT_TIME_WINDOW_MINUTES,
   GroupingModeOption,
   GroupingRuleTemplate,
+  MAX_MINIMUM_COUNT,
+  MINIMUM_COUNT_FIELD_NAMES,
+  MIN_MINIMUM_COUNT,
 } from "../../../FeatureSet/Dashboard/src/Utils/GroupingRule/GroupingRuleSetup";
 import { STATE_SETTINGS_COPY } from "../../../FeatureSet/Dashboard/src/Components/StateSettings/StateSettingsCopy";
 import {
@@ -2067,6 +2072,7 @@ describe("alert episodes and grouping rules", () => {
       GROUPING_RULE_COPY.episodeOwnersTitle,
     ]);
     expect(boldNames(table[1]?.[1] || "")).toEqual([
+      GROUPING_RULE_COPY.minimumCountTitle[KIND],
       GROUPING_RULE_COPY.reopenWindowTitle,
       GROUPING_RULE_COPY.resolveDelayTitle,
       GROUPING_RULE_COPY.inactivityTimeoutTitle,
@@ -2147,6 +2153,81 @@ describe("alert episodes and grouping rules", () => {
         ]),
       ),
     ).toBe(true);
+  });
+
+  it("waits for more alerts only while the rule says so, asking how many as the form does", () => {
+    const waiting: string = section(
+      page,
+      "### Open an episode only for several alerts",
+    );
+    const model: string = readCommonSource(
+      "Models/DatabaseModels/AlertGroupingRule.ts",
+    );
+    const fields: { enabled: string; count: string } =
+      MINIMUM_COUNT_FIELD_NAMES[KIND];
+
+    expect(DEFAULT_MINIMUM_COUNT).toBe(3);
+    expect(MIN_MINIMUM_COUNT).toBe(2);
+    expect(MAX_MINIMUM_COUNT).toBe(100);
+    expect(waiting).toContain(
+      `**${GROUPING_RULE_COPY.minimumCountTitle[KIND]}**, under **Episode Lifecycle**, keeps a lone alert out of an episode. Turn it on and say how many: **${GROUPING_RULE_COPY.minimumCountSentence[
+        KIND
+      ].replace(
+        "{{count}}",
+        String(DEFAULT_MINIMUM_COUNT),
+      )}**, from ${MIN_MINIMUM_COUNT} to ${MAX_MINIMUM_COUNT}.`,
+    );
+    expect(waiting).toContain(
+      `The list's **Grouping** column says "${GROUPING_SUMMARY_COPY.opensOnceOngoing[
+        KIND
+      ].replace("{{count}}", String(DEFAULT_MINIMUM_COUNT))}".`,
+    );
+    expect(waiting).toContain(
+      `Through the API and Terraform it is \`${fields.enabled}\` and \`${fields.count}\`.`,
+    );
+    expect(model).toContain(`public ${fields.enabled}?: boolean`);
+    expect(model).toContain(`public ${fields.count}?: number`);
+    // Off on every rule until someone turns it on.
+    expect(model).toContain(
+      "default: false,\n  })\n  public enableMinimumAlertCount?: boolean",
+    );
+    expect(section(page, "## How grouping works")).toContain(
+      "- **Wait for more alerts** decides when a new episode opens. Off, as a new rule starts, the first matching alert opens one.",
+    );
+  });
+
+  it("counts only alerts still ongoing, and opens the episode with all of them after the reopen check", () => {
+    const waiting: string = section(
+      page,
+      "### Open an episode only for several alerts",
+    );
+
+    expect(engine).toContain(
+      "await AlertStateService.getUnresolvedAlertStateIds(projectId);",
+    );
+    expect(engine).toContain(
+      "currentAlertStateId: QueryHelper.any(unresolvedStateIds),",
+    );
+    expect(engine).toContain("alertEpisodeId: QueryHelper.isNull(),");
+    expect(
+      inOrder(
+        positionsIn(engine, [
+          "if (rule.enableReopenWindow) {",
+          "alertsWaiting = await this.findAlertsWaitingForEpisode({",
+          "const newEpisode: AlertEpisode | null = await this.createNewEpisode(",
+          "await this.addWaitingAlertsToNewEpisode({",
+        ]),
+      ),
+    ).toBe(true);
+    expect(waiting).toContain(
+      "**Only ongoing alerts count.** One resolved meanwhile is over, so a monitor that keeps failing and recovering never opens an episode by itself.",
+    );
+    expect(waiting).toContain(
+      `While **${GROUPING_RULE_COPY.timeWindowTitle[KIND]}** is on, the alerts must also have arrived within its window of each other.`,
+    );
+    expect(page).toContain(
+      "- **An alert waiting for more alerts** runs only its own policies too.",
+    );
   });
 
   it("groups each alert once, right after its own on-call policies run", () => {

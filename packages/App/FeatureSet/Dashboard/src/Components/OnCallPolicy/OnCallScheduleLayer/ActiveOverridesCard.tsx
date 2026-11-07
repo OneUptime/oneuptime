@@ -12,6 +12,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The substitutions in force on this schedule, stated in full above the grid
@@ -179,7 +180,9 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
             end={row.endsAt}
             timezone={props.timezone}
           />
-          <span className="text-gray-300">&middot;</span>
+          <span className="text-gray-300">
+            <InlineSeparator markOnly />
+          </span>
           {/*
            * The scope pill is the answer to "will this cover the page I care
            * about". A global override is the wide, reassuring case and is drawn

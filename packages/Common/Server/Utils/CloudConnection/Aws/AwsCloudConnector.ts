@@ -9,8 +9,10 @@ import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredRe
 import {
   CloudConnectionAuthMethod,
   CloudConnectionDefinition,
+  RESOURCE_COSTS_FIELD_KEY,
   getCloudConnectionAuthMethod,
   getCloudConnectionDefinition,
+  isCloudConnectionResourceCostsOn,
   splitCloudConnectionList,
 } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
 import { isAwsRoleArn } from "../../../../Types/CloudConnection/CloudConnectionPaste";
@@ -76,7 +78,27 @@ import {
   readAwsCostAndUsage,
   readAwsCostOptimizationHub,
 } from "./AwsCosts";
-import { CloudCostState } from "../../../../Types/Cloud/CloudCost";
+import {
+  CLOUD_COST_DEFAULT_CURRENCY,
+  CloudCostState,
+} from "../../../../Types/Cloud/CloudCost";
+import {
+  CLOUD_COMMITMENT_WINDOW_DAYS,
+  CloudCommitmentSummary,
+} from "../../../../Types/Cloud/CloudCommitments";
+import { readAwsCommitments } from "./AwsCommitments";
+import {
+  AwsResourceCost,
+  AwsResourcePlaces,
+  describeAwsResourceCostFailure,
+  getAwsResourceCostServices,
+  getAwsResourceCostWindow,
+  getCloudCostDays,
+  getEarlierCostDay,
+  isAwsResourceCostsDue,
+  readAwsResourceCosts,
+  splitAwsCostsByResource,
+} from "./AwsResourceCosts";
 import {
   AwsListedMetric,
   AwsMetricQuery,
@@ -133,11 +155,19 @@ import {
  *      the fewest dimensions - the resource's own aggregate, not its
  *      per-target or per-zone splits.
  *   3. Reads those series' values since the last read (GetMetricData, one
- *      statistic each, 500 a call) and builds the export the CloudWatch
+ *      statistic each, 500 a call), each period from its own cursor - five
+ *      minutes for most, an hour for a metric published a few times a day,
+ *      a day for S3's storage - and builds the export the CloudWatch
  *      receivers send (Namespace and Dimensions on each datapoint, the
  *      account and Region on the resource).
  *   4. Names resources CloudWatch knows by an id (an EC2 instance, a
  *      volume) by their Name tag, every hour.
+ *
+ * A namespace whose metrics are published a few times a day (ACM's
+ * DaysToExpiry, twice) is swept and listed whatever its last point's age
+ * (isListedWhenQuiet): the last three hours' listing would hold a
+ * certificate for a few hours after each point and lose it the rest of
+ * the day.
  *
  * A resource is found once it reports a key metric: AWS has no free call
  * that lists everything an account holds.
@@ -423,6 +453,7 @@ export default class AwsCloudConnector implements CloudConnector {
         namespace: data.namespace.namespace,
         metricName: data.namespace.metrics[0]!.metricName,
         firstPageOnly: true,
+        includeQuiet: data.namespace.isListedWhenQuiet,
       },
     );
 
@@ -582,6 +613,7 @@ export default class AwsCloudConnector implements CloudConnector {
         {
           namespace: data.pair.namespace.namespace,
           metricName: keyMetric.metricName,
+          includeQuiet: data.pair.namespace.isListedWhenQuiet,
         },
       );
 
@@ -710,6 +742,7 @@ export default class AwsCloudConnector implements CloudConnector {
                 namespace: pair.namespace.namespace,
                 metricName: pair.namespace.metrics[0]!.metricName,
                 firstPageOnly: true,
+                includeQuiet: pair.namespace.isListedWhenQuiet,
               },
             );
           },
@@ -2022,6 +2055,28 @@ export default class AwsCloudConnector implements CloudConnector {
       settings,
       options,
     );
+    const now: Date = options.now ? options.now() : new Date();
+    const resourceCostsOn: boolean = this.isResourceCostsOn(settings);
+    // Costs per resource, when due: the days they are read for.
+    const resourceWindow: { start: Date; end: Date } | null =
+      resourceCostsOn &&
+      isAwsResourceCostsDue({
+        now,
+        lastReadAt: options.state.resourceCostsReadAt,
+      })
+        ? getAwsResourceCostWindow({
+            now,
+            lastReadAt: options.state.resourceCostsReadAt,
+          })
+        : null;
+    /*
+     * The account's own figures cover every day the resources are read
+     * for: they are split into the resources' costs and the rest. A first
+     * read of the resources goes back further than a read of the costs.
+     */
+    const start: Date = resourceWindow
+      ? getEarlierCostDay(options.start, resourceWindow.start)
+      : options.start;
 
     try {
       const read: {
@@ -2032,7 +2087,7 @@ export default class AwsCloudConnector implements CloudConnector {
         region,
         accountId: accounts[0] || "",
         groupByAccount: isOrganization,
-        start: options.start,
+        start,
         end: options.end,
         options,
         budget: options.budget,
@@ -2059,7 +2114,7 @@ export default class AwsCloudConnector implements CloudConnector {
         seen.add(record.accountId);
       }
 
-      return {
+      const result: CloudCostsResult = {
         records: read.records,
         accounts: AwsCloudConnector.outcomesOf(
           Array.from(seen),
@@ -2067,7 +2122,25 @@ export default class AwsCloudConnector implements CloudConnector {
         ),
         warnings: [],
         complete: true,
+        ...(start.getTime() < options.start.getTime()
+          ? { window: { start, end: options.end } }
+          : {}),
       };
+
+      if (resourceCostsOn) {
+        await this.addResourceCosts({
+          result,
+          credentials,
+          region,
+          accounts: Array.from(seen),
+          isOrganization,
+          window: resourceWindow,
+          options,
+          now,
+        });
+      }
+
+      return result;
     } catch (error) {
       if (
         error instanceof LlmProviderError &&
@@ -2098,10 +2171,131 @@ export default class AwsCloudConnector implements CloudConnector {
     }
   }
 
+  // Whether the connection reads what each resource costs (its Costs per resource setting).
+  public isResourceCostsOn(settings: CloudConnectionSettings): boolean {
+    return isCloudConnectionResourceCostsOn(
+      readCloudSetting(settings.config, RESOURCE_COSTS_FIELD_KEY),
+    );
+  }
+
+  /*
+   * The organization's management account - the one the connection's role
+   * is in - whose Cost Explorer reads every account's commitments at once.
+   */
+  public getManagementAccountId(settings: CloudConnectionSettings): string {
+    const roleArn: string = readCloudSetting(settings.config, "roleArn");
+    const parts: Array<string> = roleArn.split(":");
+
+    return parts.length >= 6 && parts[0] === "arn" ? parts[4] || "" : "";
+  }
+
+  /*
+   * The resources' costs, laid over the account's own figures: read when
+   * due (once a day) - the days read are split into each resource's cost
+   * and the rest - and, on every other read, each day keeping what it was
+   * split into before (splitAwsCostsByResource). Whether they could be read
+   * goes on each account's summary; a refused credential fails the read.
+   */
+  private async addResourceCosts(data: {
+    result: CloudCostsResult;
+    credentials: AwsCredentials;
+    region: string;
+    accounts: Array<string>;
+    isOrganization: boolean;
+    window: { start: Date; end: Date } | null;
+    options: CloudCostsOptions;
+    now: Date;
+  }): Promise<void> {
+    const places: AwsResourcePlaces = new AwsResourcePlaces({
+      knownResources: data.options.knownResources || [],
+      onlyAccountId: data.isOrganization ? "" : data.accounts[0] || "",
+    });
+    const keepSplits: () => void = (): void => {
+      data.result.records = splitAwsCostsByResource({
+        records: data.result.records,
+        resourceCosts: [],
+        coveredDays: new Set<string>(),
+        places,
+      });
+    };
+
+    // Not due: every day keeps the resources it was split into.
+    if (!data.window) {
+      keepSplits();
+      return;
+    }
+
+    try {
+      const read: { costs: Array<AwsResourceCost>; complete: boolean } =
+        await readAwsResourceCosts({
+          credentials: data.credentials,
+          region: data.region,
+          services: getAwsResourceCostServices({
+            records: data.result.records,
+            start: data.window.start,
+            end: data.window.end,
+          }),
+          start: data.window.start,
+          end: data.window.end,
+          options: data.options,
+          budget: data.options.budget,
+        });
+
+      if (!read.complete) {
+        const message: string =
+          "The costs per resource had more pages than one read takes: the next read takes the last three days only.";
+
+        keepSplits();
+        data.result.warnings.push(message);
+        data.result.resourceCosts = AwsCloudConnector.outcomesOf(
+          data.accounts,
+          CloudCostState.Failed,
+          message,
+        );
+        // Read again tomorrow, over the last days only: it fits then.
+        data.result.resourceCostsReadAt = data.now.toISOString();
+        return;
+      }
+
+      data.result.records = splitAwsCostsByResource({
+        records: data.result.records,
+        resourceCosts: read.costs,
+        coveredDays: getCloudCostDays(data.window),
+        places,
+      });
+      data.result.resourceCosts = AwsCloudConnector.outcomesOf(
+        data.accounts,
+        CloudCostState.Reading,
+      );
+      data.result.resourceCostsReadAt = data.now.toISOString();
+    } catch (error) {
+      if (
+        error instanceof LlmProviderError &&
+        error.kind === CloudConnectionFailureKind.Authentication
+      ) {
+        throw error;
+      }
+
+      const failure: { state: CloudCostState; message: string } =
+        describeAwsResourceCostFailure(error);
+
+      keepSplits();
+      data.result.warnings.push(failure.message);
+      data.result.resourceCosts = AwsCloudConnector.outcomesOf(
+        data.accounts,
+        failure.state,
+        failure.message,
+      );
+    }
+  }
+
   /*
    * The ways to spend less in the connection's accounts, from Cost
-   * Optimization Hub: an organization's every account from its management
-   * account, else the one account's.
+   * Optimization Hub - an organization's every account from its management
+   * account, else the one account's - and how much of the spend their
+   * Savings Plans and Reserved Instances cover and how much of those is
+   * used (AwsCommitments): an organization's at once, on its management
+   * account.
    */
   public async readSavings(
     settings: CloudConnectionSettings,
@@ -2110,15 +2304,34 @@ export default class AwsCloudConnector implements CloudConnector {
     const region: string | null = getAwsCostRegion(this.getStsRegion(settings));
 
     if (!region) {
+      const accounts: Array<string> = this.getCostAccounts(
+        settings,
+        options.state,
+      );
+
       return {
         recommendations: [],
         accounts: AwsCloudConnector.outcomesOf(
-          this.getCostAccounts(settings, options.state),
+          accounts,
           CloudCostState.NotSetUp,
           "A GovCloud account's recommendations are read from the standard AWS account it is billed through.",
         ),
         warnings: [],
         complete: true,
+        commitments: accounts.slice(0, 1).map((accountId: string) => {
+          return {
+            accountId,
+            summary: {
+              state: CloudCostState.NotSetUp,
+              message:
+                "A GovCloud account's commitments are read from the standard AWS account it is billed through.",
+              currency: CLOUD_COST_DEFAULT_CURRENCY,
+              days: CLOUD_COMMITMENT_WINDOW_DAYS,
+              kinds: [],
+              readAt: (options.now ? options.now() : new Date()).toISOString(),
+            },
+          };
+        }),
       };
     }
 
@@ -2126,6 +2339,51 @@ export default class AwsCloudConnector implements CloudConnector {
       settings,
       options,
     );
+    const result: CloudSavingsResult = await this.readRecommendations({
+      settings,
+      options,
+      credentials,
+      region,
+      accounts,
+    });
+    const isOrganization: boolean = this.isOrganization(settings);
+    const commitments: CloudCommitmentSummary = await readAwsCommitments({
+      credentials,
+      region,
+      options,
+      budget: options.budget,
+      now: options.now ? options.now() : new Date(),
+      isOrganization,
+    });
+    const accountId: string =
+      (isOrganization ? this.getManagementAccountId(settings) : "") ||
+      accounts[0] ||
+      "";
+
+    if (accountId) {
+      result.commitments = [{ accountId, summary: commitments }];
+    }
+
+    if (commitments.state !== CloudCostState.Reading && commitments.message) {
+      result.warnings.push(commitments.message);
+    }
+
+    return result;
+  }
+
+  // Cost Optimization Hub's recommendations for the accounts read.
+  private async readRecommendations(data: {
+    settings: CloudConnectionSettings;
+    options: CloudSavingsOptions;
+    credentials: AwsCredentials;
+    region: string;
+    accounts: Array<string>;
+  }): Promise<CloudSavingsResult> {
+    const settings: CloudConnectionSettings = data.settings;
+    const options: CloudSavingsOptions = data.options;
+    const credentials: AwsCredentials = data.credentials;
+    const region: string = data.region;
+    const accounts: Array<string> = data.accounts;
 
     try {
       const read: {

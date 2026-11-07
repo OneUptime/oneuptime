@@ -108,6 +108,7 @@ import {
 import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 export interface ComponentProps {
   onCallDutyPolicyId: ObjectID;
@@ -402,7 +403,7 @@ const describeResponderCounts: (
   }
 
   return translateTemplate("{{items}} and {{last}}", {
-    items: parts.slice(0, -1).join(", "),
+    items: joinList(parts.slice(0, -1)),
     last: parts[parts.length - 1]!,
   });
 };

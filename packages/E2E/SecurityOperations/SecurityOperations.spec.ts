@@ -463,6 +463,37 @@ async function fixture(page: Page): Promise<FixtureState> {
   });
 }
 
+/*
+ * #6149's UI review: the last change's version tag is one piece on its line -
+ * never "Version" at a line's end with the version under it - its words in
+ * the page's font and only the version in monospace.
+ */
+async function expectVersionTagWhole(lastChange: Locator): Promise<void> {
+  const shape: { lines: number; wordsFont: string; versionFont: string } =
+    await lastChange
+      .getByTestId("security-case-impact-last-change-version")
+      .evaluate(
+        (
+          tag: Element,
+        ): { lines: number; wordsFont: string; versionFont: string } => {
+          const version: Element | null = tag.querySelector("bdi");
+
+          return {
+            lines: Math.round(
+              tag.getBoundingClientRect().height /
+                parseFloat(getComputedStyle(tag).lineHeight),
+            ),
+            wordsFont: getComputedStyle(tag).fontFamily,
+            versionFont: version ? getComputedStyle(version).fontFamily : "",
+          };
+        },
+      );
+
+  expect(shape.lines).toBe(1);
+  expect(shape.wordsFont).not.toMatch(/mono/i);
+  expect(shape.versionFont).toMatch(/mono/i);
+}
+
 async function screenshot(
   page: Page,
   name: string,
@@ -2432,6 +2463,201 @@ test.describe("the case queue", () => {
     await screenshot(page, "cases-long-team-1280-de", { fullPage: false });
   });
 
+  /*
+   * #5485's follow-up: "Russian Security case names still cut at 1280". At
+   * a 1280 laptop the Case column sat near its 14rem floor in Russian (and
+   * German), and its two lines cut the longer titles - "Defender XDR:
+   * suspicious PowerShell on web..." and "Impossible travel for
+   * k.morgan@acme-commerce...": a title has three lines now. At a smaller
+   * laptop the person a case was assigned to was squeezed under the sticky
+   * Просмотр and ⋯ ("Maya C" of "Maya Chen"): where the queue does not fit,
+   * a case's status is drawn under its priority, as an incident's severity
+   * is under its state. At both, every title and whoever has the case are
+   * whole, clear of the row's buttons. The fixture is 64px narrower than
+   * production: 1344 here is a 1280 laptop, 1280 a 1216 one.
+   */
+  for (const laptop of [
+    { name: "a 1280 laptop", width: 1344, isStatusUnderPriority: false },
+    { name: "a 1216 laptop", width: 1280, isStatusUnderPriority: true },
+  ]) {
+    test(`in Russian at ${laptop.name}, every case's title and whoever has it are whole, clear of the row's buttons${
+      laptop.isStatusUnderPriority
+        ? ", the status drawn under the priority"
+        : ""
+    }`, async ({ page }: { page: Page }) => {
+      await open(page, CASES_PATH, { width: laptop.width, lang: "ru" });
+      await expect(page.locator("table tbody tr").first()).toBeVisible({
+        timeout: 30000,
+      });
+      await pageAtRest(page);
+
+      await expect(
+        page.getByRole("columnheader", { name: "Приоритет", exact: true }),
+      ).toHaveCount(1);
+
+      if (laptop.isStatusUnderPriority) {
+        // Folded: no column of its own.
+        await expect(
+          page.getByRole("columnheader", { name: "Статус", exact: true }),
+        ).toHaveCount(0);
+      }
+
+      await expectCaseQueueNamesWhole(page, laptop);
+    });
+  }
+
+  interface CaseQueueLaptop {
+    name: string;
+    isStatusUnderPriority: boolean;
+  }
+
+  async function expectCaseQueueNamesWhole(
+    page: Page,
+    laptop: CaseQueueLaptop,
+  ): Promise<void> {
+    interface CaseRowReading {
+      caseNumber: string;
+      // The case's title, and whether its three lines cut it.
+      title: string;
+      isTitleCut: boolean;
+      priority: string;
+      assignee: string;
+      isAssigneeCut: boolean;
+      assigneeEnd: number;
+      buttonsStart: number;
+    }
+
+    // Every row, read in one frame.
+    const rows: Array<CaseRowReading> = await page.evaluate(
+      (): Array<CaseRowReading> => {
+        const headers: Array<string> = Array.from(
+          document.querySelectorAll("table thead th"),
+        ).map((cell: Element): string => {
+          return (cell.textContent || "").trim();
+        });
+        const priorityIndex: number = headers.indexOf("Приоритет");
+        const assigneeIndex: number = headers.indexOf("Исполнитель");
+
+        return Array.from(document.querySelectorAll("table tbody tr")).map(
+          (row: Element): CaseRowReading => {
+            const cells: Array<HTMLElement> = Array.from(
+              row.children,
+            ) as Array<HTMLElement>;
+            const assigneeCell: HTMLElement = cells[assigneeIndex]!;
+            // The name's own box: the deepest element holding its words.
+            const nameElements: Array<HTMLElement> = Array.from(
+              assigneeCell.querySelectorAll<HTMLElement>("*"),
+            ).filter((element: HTMLElement): boolean => {
+              return (
+                element.children.length === 0 &&
+                (element.textContent || "").trim().length > 2
+              );
+            });
+            const name: HTMLElement =
+              nameElements[nameElements.length - 1] || assigneeCell;
+            const view: HTMLElement | null = Array.from(
+              row.querySelectorAll<HTMLElement>("button"),
+            ).find((button: HTMLElement): boolean => {
+              return (button.textContent || "").trim() === "Просмотр";
+            }) as HTMLElement | null;
+            const title: HTMLElement | null = row.querySelector<HTMLElement>(
+              "[data-testid=security-case-row-title]",
+            );
+
+            return {
+              caseNumber:
+                ((row.textContent || "").match(/CASE-\d+/) || [""])[0] || "",
+              // The title as written (IsolatedText's bdi), after its number.
+              title: (
+                title?.querySelector("bdi")?.textContent ||
+                title?.textContent ||
+                ""
+              ).trim(),
+              isTitleCut: title
+                ? title.scrollHeight > title.clientHeight + 1
+                : true,
+              priority: (cells[priorityIndex]?.innerText || "")
+                .replace(/\s+/g, " ")
+                .trim(),
+              assignee: (name.textContent || "").trim(),
+              isAssigneeCut: name.scrollWidth > name.clientWidth + 1,
+              assigneeEnd: name.getBoundingClientRect().right,
+              buttonsStart: view ? view.getBoundingClientRect().left : 0,
+            };
+          },
+        );
+      },
+    );
+
+    expect(rows.length).toBeGreaterThan(3);
+
+    // Every case's title, whole: none cut short to "...".
+    expect(
+      rows
+        .filter((row: CaseRowReading): boolean => {
+          return row.isTitleCut;
+        })
+        .map((row: CaseRowReading): string => {
+          return row.title;
+        }),
+      laptop.name,
+    ).toEqual([]);
+    expect(
+      rows.find((row: CaseRowReading): boolean => {
+        return row.caseNumber === "CASE-139";
+      })?.title,
+    ).toBe("Impossible travel for k.morgan@acme-commerce.example");
+
+    /*
+     * Folded, each priority carries its case's status beneath it, named
+     * Статус for a screen reader (the folded column's own name).
+     */
+    if (laptop.isStatusUnderPriority) {
+      expect(
+        rows.find((row: CaseRowReading): boolean => {
+          return row.caseNumber === "CASE-142";
+        })?.priority,
+      ).toBe("Критический Статус Расследование");
+      expect(
+        rows.find((row: CaseRowReading): boolean => {
+          return row.caseNumber === "CASE-141";
+        })?.priority,
+      ).toBe("Высокий Статус Новое");
+    }
+
+    // Whoever has the case: whole, and ending before the row's buttons start.
+    for (const person of ["Maya Chen", "Priya Nair", "Diego Alvarez"]) {
+      const row: CaseRowReading | undefined = rows.find(
+        (reading: CaseRowReading): boolean => {
+          return reading.assignee === person;
+        },
+      );
+
+      expect(row, `${laptop.name}: ${person}`).toBeDefined();
+      expect(row!.isAssigneeCut, `${laptop.name}: ${person}`).toBe(false);
+      expect(row!.buttonsStart, `${laptop.name}: ${person}`).toBeGreaterThan(0);
+      expect(row!.assigneeEnd, `${laptop.name}: ${person}`).toBeLessThanOrEqual(
+        row!.buttonsStart + 0.5,
+      );
+    }
+
+    // And the queue fits its card: nothing scrolls sideways.
+    const scroller: Locator = page
+      .locator("table")
+      .locator("xpath=ancestor::div[@data-testid='table-scroll'][1]");
+    expect(await overflowOf(scroller), laptop.name).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, {
+      tolerance: 1,
+      message: `ru open, ${laptop.name}`,
+    });
+
+    await screenshot(
+      page,
+      `cases-ru-${laptop.isStatusUnderPriority ? "1216" : "1280"}`,
+      { fullPage: false },
+    );
+  }
+
   test("Closed Cases says in each case's line when it closed", async ({
     page,
   }: {
@@ -4300,6 +4526,123 @@ test.describe("a case", () => {
       })
       .toBe(`${SPRAY_CASE_PATH}/detections`);
     await expect(page.getByText("31 times")).toBeVisible({ timeout: 30000 });
+  });
+
+  /*
+   * #6149's follow-up: a case's Story and Impact read in the reader's
+   * language - every sentence of both cards, the last change's sentence
+   * among them, which used to put a German change title inside English
+   * words - and in Persian right to left, a Latin name, address or time set
+   * apart in its line.
+   */
+  test("the Story and the Impact read in German, and in Persian right to left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const impact: Locator = page.getByTestId("security-case-impact");
+    const summary: Locator = impact.getByTestId("security-case-impact-summary");
+    const lastChange: Locator = impact.getByTestId(
+      "security-case-impact-last-change",
+    );
+
+    await open(page, DOMAIN_CASE_PATH, { lang: "de" });
+    await expect(summary).toBeVisible({ timeout: 30000 });
+    await expect(summary.getByRole("listitem")).toHaveText([
+      "Aus dem Internet erreichbar",
+      "Nennt 1 Datensatz",
+      "Ruft 2 andere auf",
+      "Aufgerufen von 1",
+      "1 Monitor",
+      "1 Statusseite",
+    ]);
+    await expect(impact).toContainText(
+      "build-runner-07 hat eine öffentliche Adresse, 198.51.100.23.",
+    );
+    await expect(lastChange).toContainText("Letzte Änderung");
+    await expect(lastChange).toContainText(
+      /Deployed runner image 2026\.10\.2 auf build-runner-07, .+: vor der ersten Erkennung/,
+    );
+    await expect(lastChange).toContainText("Version 2026.10.2");
+    await expectVersionTagWhole(lastChange);
+    // At 1280 the German sentence fills its line: the tag moves under it whole.
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await expectVersionTagWhole(lastChange);
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await impact
+      .getByRole("button", {
+        name: "Gefährdete Datensätze anzeigen",
+        exact: true,
+      })
+      .click();
+    await expect(
+      impact.getByTestId("security-case-impact-details"),
+    ).toContainText("Überwacht von");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "case-impact-de");
+
+    // The story in German: its filters, its items' words, its window.
+    await open(page, `${SPRAY_CASE_PATH}/story`, { lang: "de" });
+    const story: Locator = page.getByTestId("security-case-story");
+    const items: Locator = story.getByTestId("security-case-story-item");
+
+    await expect(items.first()).toBeVisible({ timeout: 30000 });
+    await expect(
+      story.getByTestId("security-case-story-filter-Attack"),
+    ).toContainText("Angriff");
+    await expect(
+      story.getByTestId("security-case-story-filter-Response"),
+    ).toContainText("Reaktion");
+    await expect(items.nth(0)).toContainText("413 solche Ereignisse");
+    await expect(items.nth(1)).toContainText("31-mal ausgelöst");
+    await expect(items.nth(2)).toContainText("Fall eröffnet");
+    await expect(items.nth(5)).toContainText("Fall bestätigt");
+    await expect(items.nth(8)).toContainText("Geschrieben von Maya Chen");
+    await expect(story).toContainText("Rund um die Erkennungen des Falls:");
+    await expect(story).not.toContainText("events like this");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "case-story-de");
+
+    /*
+     * In Persian the cards read right to left; the deploy's own title reads
+     * its own way inside the Persian sentence, and the record's name is set
+     * apart in it.
+     */
+    await open(page, DOMAIN_CASE_PATH, { lang: "fa" });
+    await expect(summary).toBeVisible({ timeout: 30000 });
+    await expect(lastChange).toContainText("آخرین تغییر");
+    await expect(lastChange).toContainText("پیش از نخستین تشخیص");
+    await expect(
+      lastChange.getByTestId("security-case-impact-last-change-title"),
+    ).toHaveCSS("direction", "ltr");
+    await expect(impact).toHaveCSS("direction", "rtl");
+    await expectVersionTagWhole(lastChange);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "case-impact-fa");
+
+    await open(page, `${SPRAY_CASE_PATH}/story`, { lang: "fa" });
+    await expect(items.first()).toBeVisible({ timeout: 30000 });
+    await expect(
+      story.getByTestId("security-case-story-filter-Attack"),
+    ).toContainText("حمله");
+    await expect(items.nth(5)).toContainText("پرونده تأیید شد");
+    await expect(items.nth(8)).toContainText("Maya Chen");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "case-story-fa");
+
+    // On a phone, in German and in the dark.
+    await open(page, DOMAIN_CASE_PATH, {
+      lang: "de",
+      width: 390,
+      height: 844,
+      theme: "dark",
+    });
+    await expect(lastChange).toContainText("Letzte Änderung", {
+      timeout: 30000,
+    });
+    await expectVersionTagWhole(lastChange);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "case-impact-de-390-dark");
   });
 
   test("the Private Notes page: what the team wrote, and the composer for more", async ({

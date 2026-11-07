@@ -51,6 +51,12 @@ export const IngestRoutePrefixesToSkip: Array<string> = [
    */
   "/aws-firehose",
   /*
+   * The Pub/Sub push endpoint a Google Cloud connection's log sinks deliver
+   * to (/gcp-pubsub/v1/logs), mounted on "/telemetry" and "/" alike.
+   * POST-only; reserved for the same reason as /fluentd.
+   */
+  "/gcp-pubsub",
+  /*
    * Queue-depth and shed-rate endpoints polled by the KEDA metrics-api
    * scaler (HelmChart/.../keda-scaledobjects.yaml). The worker and api tiers
    * only kept working because App/Index.ts mounts AppMetricsAPI on "/"

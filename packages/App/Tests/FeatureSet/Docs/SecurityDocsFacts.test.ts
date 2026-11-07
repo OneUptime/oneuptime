@@ -1727,7 +1727,8 @@ describe("the Security Events page", () => {
     expect(realTime).toContain(
       `a real-time rule's **Status** says **${DETECTION_RULE_REAL_TIME.text}**, and so does its interval column, after the interval of a rule that counts.`,
     );
-    expect(rules).toContain('{" · "}');
+    // The interval and Real time, set apart the reader's way (InlineSeparator).
+    expect(rules).toContain("<InlineSeparator />");
     expect(rules).toContain('translator.translateText("Real time")');
 
     // On: a handover from the last run; off: back on the interval two minutes behind.

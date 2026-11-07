@@ -29,12 +29,12 @@ Varumärket var tidigare uppdelat på separata skärmar för **Grundläggande va
 
 ### Logotyp och omslagsbild
 
-Det första kortet, **Logotyp och omslagsbild**, har knappen **Edit Images**, som öppnar två steg:
+Det första kortet, **Logotyp och omslagsbild**, har knappen **Redigera bilder**, som öppnar två steg:
 
 | Steg | Fält |
 | ---- | ------ |
-| **Logotyp** | Uppladdningen av logotypen (platshållare `Upload logo`), **Logotyp för mörkt tema** (platshållare `Upload logo for the dark theme`), en valfri logotyp gjord för en mörk bakgrund, och **Logo Alt Text** (platshållare `Logo of My Company`). Lämna alt-texten tom så används statussidans titel i stället. |
-| **Omslagsbild** | **Omslag**, en uppladdning (platshållare `Upload cover image`) för den breda bannern bakom sidhuvudet, och **Cover Image Alt Text**. Lämna alt-texten tom om omslaget bara är dekoration. |
+| **Logotyp** | Uppladdningen av logotypen (platshållare `Upload logo`), **Logotyp för mörkt tema** (platshållare `Upload logo for the dark theme`), en valfri logotyp gjord för en mörk bakgrund, och **Alternativ text för logotyp** (platshållare `Logo of My Company`). Lämna alt-texten tom så används statussidans titel i stället. |
+| **Omslagsbild** | **Omslag**, en uppladdning (platshållare `Upload cover image`) för den breda bannern bakom sidhuvudet, och **Alternativ text för omslagsbild**. Lämna alt-texten tom om omslaget bara är dekoration. |
 
 Logotypen, logotypen för mörkt tema, omslagsbilden och faviconen är filer som har laddats upp i statussidans eget projekt, och det kontrolleras varje gång någon av dem sparas, från instrumentpanelen, API:et, Terraform eller ett arbetsflöde. En fil som har laddats upp i ett annat projekt avvisas med samma ord som en fil som inte längre finns får: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." eller "The favicon's file could not be found. Upload the favicon again." Att ladda upp bilden igen från sidan löser det.
 
@@ -77,7 +77,7 @@ Tabellen **Sidhuvudslänkar** innehåller länkarna i statussidans sidhuvud, som
 
 ### Sidfot
 
-- **Upphovsrättsinformation**: **Edit Copyright** öppnar ett fält, **Upphovsrättsinformation**, med platshållaren `Acme, Inc.`.
+- **Upphovsrättsinformation**: **Redigera upphovsrätt** öppnar ett fält, **Upphovsrättsinformation**, med platshållaren `Acme, Inc.`.
 - **Sidfotslänkar**: samma par **Titel** och **Länk** som sidhuvudslänkarna, ordnade genom att dra och tillagda med **Lägg till Sidfotslänk**.
 
 Sidhuvudslänkar är för navigering; sidfotslänkar är för det finstilta, som juridisk information, integritet och villkor.
@@ -88,7 +88,7 @@ Sidans sista sektion ligger hopfälld under **Fler inställningar**, eftersom f�
 
 **Historikdiagrammets färger.** Utöver **Tema** är det här de enda inbyggda färginställningarna på en statussida. Varje stapel i upptidshistoriken är en dag.
 
-- **Standardfärg för stapel**: **Edit Default Bar Color** öppnar väljaren **Standardfärg för stapel**. Det är färgen på en dag som ingen stapelfärgsregel matchar. Alla nya statussidor börjar med grönt.
+- **Standardfärg för stapel**: **Redigera standardfärg för staplar** öppnar väljaren **Standardfärg för stapel**. Det är färgen på en dag som ingen stapelfärgsregel matchar. Alla nya statussidor börjar med grönt.
 - **Regler för stapelfärger**: en ordnad tabell med regler som du sorterar genom att dra. Varje regel har **När drifttid % är större än eller lika med** och **Använd sedan denna stapelfärg**; tabellens kolumner heter `When Uptime Percent >=` och `Then, Bar Color is`. Reglerna kontrolleras uppifrån, och den första som en dags upptid når bestämmer dess färg, så håll högre procentsatser ovanför lägre: en regel under en med samma eller lägre procentsats färgar aldrig en dag. En ny regels färg är redan vald, en som de andra reglerna inte använder ännu; välj i stället den som du vill ha.
 - **Förhandsvisning av stapelfärger**: varje färg en dag kan få, som de flesta ser den (**Fullt färgseende**) och som personer med röd-grön färgblindhet ser den (**Deuteranopi (röd-grön)**, **Protanopi (röd-grön)**). Den varnar när två färger ser likadana ut för dem och när en regel aldrig färgar en dag.
 
@@ -155,7 +155,7 @@ På OneUptime Cloud kräver det planen **Growth** att lägga till eller ändra n
 
 Som standard nås en statussida på förhandsgransknings-URL:en på dess skärm **Översikt**. För att lägga den på ditt eget värdnamn går du till **Statussidor → din sida → Varumärke → Anpassade domäner** (`{id}/domains`).
 
-Kortet **Anpassade domäner** säger vad du ska göra: peka varje domäns CNAME-post mot din installations CNAME-post för statussidor, så utfärdar OneUptime domänens SSL-certifikat och förnyar det åt dig. Utan något konfigurerat säger tabellen **Inga anpassade domäner hittades**, med **Skapa Statussida Domän** nedanför. Tabellen har två kolumner, **Domän** och **Status**, och filter för **Domän**, **CNAME giltig** och **SSL provisionerat**.
+Kortet **Anpassade domäner** säger vad du ska göra: peka varje domäns CNAME-post mot din installations CNAME-post för statussidor, så utfärdar OneUptime domänens SSL-certifikat och förnyar det åt dig. Utan något konfigurerat säger tabellen **Inga anpassade domäner hittades**, med **Skapa Statussidedomän** nedanför. Tabellen har två kolumner, **Domän** och **Status**, och filter för **Domän**, **CNAME giltig** och **SSL provisionerat**.
 
 Att lägga sidan på din domän tar tre steg, och bara de två första är dina:
 
@@ -197,7 +197,7 @@ statusPage:
 :::steps
 #### Öppna Skapa Statussida Domän
 
-Klicka på **Skapa Statussida Domän** under **Anpassade domäner**. Dialogrutan består av en sida.
+Klicka på **Skapa Statussidedomän** under **Anpassade domäner**. Dialogrutan består av en sida.
 
 #### Ange underdomänen
 
@@ -213,7 +213,7 @@ I **Domän** (platshållare `Select domain`) väljer du en av dina verifierade d
 
 #### Skapa domänen
 
-Klicka på **Skapa Statussida Domän**. Dialogrutan stängs och den nya domänens **DNS-inställning** öppnas, med posten som ska läggas till.
+Klicka på **Skapa Statussidedomän**. Dialogrutan stängs och den nya domänens **DNS-inställning** öppnas, med posten som ska läggas till.
 :::
 
 En domäns fullständiga namn ligger fast när du lägger till den, så **Redigera** ändrar bara dess certifikat. För att använda en annan underdomän lägger du till den domänen och tar bort den gamla. Ett namn som en instrumentpanel eller ett formulär redan använder, i vilket projekt som helst, avvisas: en domän visar en statussida, en instrumentpanel eller ett formulär.

@@ -56,6 +56,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export function getPlaybookViewRoute(id: ObjectID): Route {
   return RouteUtil.populateRouteParams(
@@ -296,7 +297,7 @@ const SecurityPlaybookTemplatePicker: FunctionComponent<ComponentProps> = (
                     <p className="text-xs text-gray-500">
                       {translator.translateText(template.trigger) ||
                         template.trigger}
-                      {" · "}
+                      <InlineSeparator />
                       {translator.translatePlural(
                         { one: "{{count}} step", other: "{{count}} steps" },
                         stepCount,

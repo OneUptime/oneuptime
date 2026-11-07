@@ -85,16 +85,11 @@ export function canChangeProjectAiSettings(): boolean {
  * cluster's AI pages — Settings*, ReadKubernetesCluster,
  * EditKubernetesCluster — may not read them, and RunnerJob stays that way:
  * its runbook rows carry scripts and their output. Such users get an
- * explanation instead of a table that can only fail.
+ * explanation instead of a table that can only fail
+ * (CommandJobsPermissionNote).
  */
 export function canReadKubectlJobs(): boolean {
   return PermissionGate.check(new RunnerJob(), ModelAction.Read).isAllowed;
-}
-
-export function getKubectlJobsPermissionTitles(): Array<string> {
-  return PermissionGate.getPermissionTitles(
-    new RunnerJob().getReadPermissions(),
-  );
 }
 
 /*

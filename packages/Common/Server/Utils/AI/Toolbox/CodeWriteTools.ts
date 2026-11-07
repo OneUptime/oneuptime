@@ -19,6 +19,10 @@ import {
   CodeHostFileWrite,
   CodeHostOpenedPullRequest,
 } from "../../CodeRepository/CodeHost/CodeHostTypes";
+import {
+  truncateLongText,
+  truncateShortText,
+} from "../../Database/TruncateColumnValue";
 import OpenPullRequestCap, {
   OpenPullRequestCapDecision,
 } from "../CodeFix/OpenPullRequestCap";
@@ -609,8 +613,18 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
     const record: AIAgentTaskPullRequest = new AIAgentTaskPullRequest();
     record.projectId = ctx.projectId;
     record.codeRepositoryId = repository.id!;
-    record.title = title;
-    record.description = description;
+
+    /*
+     * The row keeps a copy of the title and description, cut to fit their
+     * columns as CodeFixPullRequestRecord cuts a worker's: the title is
+     * ShortText (100 characters), the description LongText (500), and
+     * DatabaseService refuses anything longer. The model writes both, and a
+     * description that explains the change and cites its evidence often runs
+     * past 500. Copied whole, it got the row refused after the pull request
+     * was already open. The pull request itself keeps both whole.
+     */
+    record.title = truncateShortText(title);
+    record.description = truncateLongText(description);
     record.pullRequestId = pullRequest.id;
     record.pullRequestNumber = pullRequest.number;
     record.pullRequestState = pullRequest.state;

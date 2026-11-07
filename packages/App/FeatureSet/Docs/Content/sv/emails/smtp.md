@@ -6,6 +6,8 @@ Skicka OneUptimes e-post via din egen e-postserver. Ett projekt lägger till SMT
 - **OAuth 2.0**: för Microsoft 365 och Google Workspace, där grundläggande autentisering ofta är avstängd.
 - **Ingen**: för relä-servrar som inte kräver autentisering.
 
+För att skicka via Amazon SES, SendGrid, Mailgun, Postmark eller Resend i stället för via en e-postserver, se [E-postleverantörer](/docs/emails/email-providers).
+
 ```mermaid title="Vilken e-postserver som skickar vad"
 flowchart TB
     SP["E-post från en statussida"] --> Q{"Anpassad SMTP-konfiguration<br/>vald för sidan?"}
@@ -17,7 +19,7 @@ flowchart TB
 I en egenvärdad installation är OneUptimes egen e-postserver den som anges i Admin Dashboard. En statussida väljer sin SMTP-konfiguration på sin sida **Prenumerantinställningar**, i kortet **Anpassad SMTP**.
 
 :::cards
-- [Lägg till en e-postserver](#lägg-till-en-smtp-server): Två steg, allt annat hopfällt.
+- [Lägg till en e-postserver](#lägg-till-en-smtp-server): Några steg, allt annat hopfällt.
 - [Microsoft 365](#konfiguration-för-microsoft-365): OAuth med en appregistrering i Entra.
 - [Google Workspace](#konfiguration-för-google-workspace): OAuth med ett tjänstkonto.
 - [Felsökning](#felsökning): Vanliga fel och vad de betyder.
@@ -25,25 +27,29 @@ I en egenvärdad installation är OneUptimes egen e-postserver den som anges i A
 
 ## Lägg till en SMTP-server
 
-Lägg till ett projekts e-postserver under **Projektinställningar > Aviseringar > Aviseringsinställningar**, i kortet **Anpassade SMTP-konfigurationer** under **Fler inställningar**. I en egenvärdad installation anges servern som OneUptime själv skickar från under **Admin Dashboard > Inställningar > Notifieringar > E-post**, i kortet **Anpassade e-post- och SMTP-inställningar**. Båda formulären frågar efter samma saker, i två steg.
+Lägg till ett projekts e-postserver under **Projektinställningar > Aviseringar > Aviseringsinställningar**, i kortet **Anpassade SMTP-konfigurationer** under **Fler inställningar**. I en egenvärdad installation anges servern som OneUptime själv skickar från under **Admin Dashboard > Inställningar > Notifieringar > E-post**, i kortet **Anpassade e-post- och SMTP-inställningar**. Båda formulären frågar efter servern och avsändaren; ett projekts formulär frågar först efter **Leverantör**.
 
 :::steps
 ### Öppna formuläret
 
 :::tabs
 @tab Projekt
-Öppna **Fler inställningar** under **Projektinställningar > Aviseringar > Aviseringsinställningar** och klicka på **Skapa SMTP Konfiguration** i kortet **Anpassade SMTP-konfigurationer**.
+Öppna **Fler inställningar** under **Projektinställningar > Aviseringar > Aviseringsinställningar** och klicka på **Skapa SMTP-konfiguration** i kortet **Anpassade SMTP-konfigurationer**.
 @tab Egenvärdad instans
 Öppna **Inställningar** i Admin Dashboard och sedan **Notifieringar > E-post** i sidomenyn (**Notifieringar** är hopfällt från början). Klicka i kortet **E-post-serverinställningar** på **Redigera server** och sätt **Typ av e-postserver** till `Custom SMTP`. Klicka sedan på **Redigera SMTP-konfig** i kortet **Anpassade e-post- och SMTP-inställningar**, som visas nedanför.
 :::
 
+### Välj leverantör
+
+Ett projekts formulär öppnas på steget **Leverantör**: ange **Namn** och låt **SMTP-server** vara vald för att skicka via en e-postserver. För att i stället skicka via Microsoft Graph eller en [e-postleverantör](/docs/emails/email-providers) väljer du den här. **Beskrivning**, en anteckning för ditt team, är hopfälld under **Fler fält**. Instansens formulär har inget steg **Leverantör**.
+
 ### Fyll i steget Server
 
-I steget **Server** anger du **Namn** (bara projektkonfigurationer), **Värdnamn**, **Port** (en ny projektkonfiguration börjar på `587`), **Användarnamn** och **Lösenord**.
+I steget **Server** anger du **Värdnamn**, **Port** (en ny projektkonfiguration börjar på `587`), **Användarnamn** och **Lösenord**.
 
 ### Kontrollera Fler fält
 
-Allt annat är hopfällt under **Fler fält** i slutet av steget **Server**. Medan det är hopfällt berättar rubriken hur e-post skickas, till exempel ”E-post skickas via SMTP, med inloggning med användarnamn och lösenord. TLS krävs.” Öppna det bara om du behöver ändra någon av inställningarna i tabellen nedan.
+Serverns övriga inställningar är hopfällda under **Fler fält** i slutet av steget **Server**. Medan det är hopfällt berättar rubriken hur e-post skickas, till exempel ”E-post skickas via SMTP, med inloggning med användarnamn och lösenord. TLS krävs.” Öppna det bara om du behöver ändra någon av inställningarna i tabellen nedan. I ett projekts formulär har OAuth-fälten ett eget steg, **OAuth**, efter **Server**.
 
 ### Fyll i steget Avsändare
 
@@ -60,13 +66,13 @@ Det här är inställningarna under **Fler fält**:
 
 | Fält | Vad det gör |
 | --- | --- |
-| **Transport** | `SMTP` (standard), eller `Microsoft Graph` för en Microsoft 365-klientorganisation där SMTP AUTH är avstängt. När du väljer Microsoft Graph döljs värdnamn, port, användarnamn och lösenord, och OAuth-fälten visas. |
+| **Transport** | `SMTP` (standard), eller `Microsoft Graph` för en Microsoft 365-klientorganisation där SMTP AUTH är avstängt. När du väljer Microsoft Graph döljs värdnamn, port, användarnamn och lösenord, och OAuth-fälten visas. Bara i instansens formulär: ett projekt väljer i stället sin **Leverantör**. |
 | **Kräv TLS** | På för en ny projektkonfiguration. Skicka e-post endast över en krypterad anslutning med ett giltigt certifikat. När detta är av kontrolleras inte certifikatet. Port 465 är alltid krypterad. När detta är av krypteras e-post på andra portar bara om servern erbjuder det. |
 | **Autentiseringstyp** | `Username and Password` (standard), `OAuth`, eller `None` för ett relä som inte kräver inloggning. |
-| **OAuth-fält** | **OAuth-leverantörstyp**, **OAuth Client ID**, **OAuth Client Secret**, **OAuth-token-URL** och **OAuth-omfattning**, som visas när OAuth eller Microsoft Graph är valt. |
-| **Beskrivning** | En anteckning för ditt team (bara projektkonfigurationer). |
+| **OAuth-fält** | **OAuth-leverantörstyp**, **OAuth Client ID**, **OAuth Client Secret**, **OAuth-token-URL** och **OAuth-omfattning**, som visas när OAuth eller Microsoft Graph är valt. Ett projekts formulär frågar efter dem i steget **OAuth**. |
+| **Beskrivning** | En anteckning för ditt team (bara projektkonfigurationer), i steget **Leverantör**. |
 
-**Microsoft Graph.** Öppna **Fler fält**, sätt **Transport** till `Microsoft Graph` och fyll i en Azure-app som har programbehörigheten **Mail.Send**: dess klient-ID och klienthemlighet, token-URL:en `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` och omfattningen `https://graph.microsoft.com/.default`. E-post skickas från brevlådan för **E-post från**, som måste vara en licensierad brevlåda i din klientorganisation.
+**Microsoft Graph.** I ett projekts formulär väljer du `Microsoft Graph` som **Leverantör**; i instansens formulär öppnar du **Fler fält** och sätter **Transport** till `Microsoft Graph`. Fyll sedan i en Azure-app som har programbehörigheten **Mail.Send**: dess klient-ID och klienthemlighet, token-URL:en `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` och omfattningen `https://graph.microsoft.com/.default`. E-post skickas från brevlådan för **E-post från**, som måste vara en licensierad brevlåda i din klientorganisation.
 
 > [!NOTE]
 > På OneUptime Cloud måste ett projekts e-postserver kunna nås via internet: en värd som slås upp till en privat eller intern adress avvisas. I en egenvärdad installation är privata adresser tillåtna, såvida inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är `true`; loopback- och link-local-adresser avvisas alltid. Instansens egen e-postserver kontrolleras inte på det här sättet.
@@ -90,7 +96,7 @@ sequenceDiagram
     O->>M: Skickar e-postmeddelandet
 ```
 
-**Autentiseringstyp** och OAuth-fälten finns under **Fler fält** i formulärets steg Server. För att logga in med OAuth fyller du i:
+**Autentiseringstyp** finns under **Fler fält** i formulärets steg Server. OAuth-fälten finns också där i instansens formulär, och i steget **OAuth** i ett projekts formulär. För att logga in med OAuth fyller du i:
 
 | Fält | Beskrivning |
 | --- | --- |
@@ -309,6 +315,7 @@ Kontrollera **E-post från**: din server måste tillåta att e-post skickas frå
 ## Nästa steg
 
 :::cards
+- [E-postleverantörer](/docs/emails/email-providers): Skicka i stället via Amazon SES, SendGrid, Mailgun, Postmark eller Resend.
 - [Aviseringssammanfattning](/docs/emails/notification-rollup): Hur OneUptime samlar vågor av e-post till ägare.
 - [Prenumeranter och meddelanden](/docs/status-pages/subscribers): Skicka e-post till en statussidas prenumeranter via en SMTP-konfiguration i projektet.
 :::

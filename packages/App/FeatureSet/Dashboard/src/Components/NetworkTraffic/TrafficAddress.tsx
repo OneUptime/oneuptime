@@ -11,6 +11,7 @@ import React, {
   ReactElement,
   ReactNode,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * An address on a Traffic page, drawn (issue #5340): its name first, the
@@ -113,7 +114,13 @@ export function getTrafficAddressSecondary(
       {parts.map((part: ReactElement, index: number): ReactElement => {
         return (
           <Fragment key={index}>
-            {index > 0 ? <span aria-hidden="true"> · </span> : <></>}
+            {index > 0 ? (
+              <span aria-hidden="true">
+                <InlineSeparator />
+              </span>
+            ) : (
+              <></>
+            )}
             {part}
           </Fragment>
         );

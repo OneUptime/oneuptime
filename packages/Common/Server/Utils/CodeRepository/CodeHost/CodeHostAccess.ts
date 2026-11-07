@@ -26,6 +26,7 @@ import CodeHostHttp, {
   CodeHostHttpError,
   CodeHostTransport,
 } from "./CodeHostHttp";
+import AzureDevOpsApi from "./AzureDevOpsApi";
 import ForgejoApi from "./ForgejoApi";
 import GitLabApi from "./GitLabApi";
 import GitSmartHttp from "./GitSmartHttp";
@@ -46,7 +47,9 @@ import * as crypto from "crypto";
  * through, a profile's or a trace's link to a line, OneUptime AI reading
  * the code, and - for the hosts with pull requests - whether a fix's pull
  * request merged. Each host does what it can (Types/CodeRepository/
- * CodeHost) and a reader says what it cannot.
+ * CodeHost) and a reader says what it cannot. A Git repository's files
+ * are read on Azure DevOps alone (AzureDevOpsApi), through the file API
+ * that takes the credentials Git signs in with.
  *
  * A repository is reachable - AI can work in it, and OneUptime can read
  * it - when:
@@ -798,7 +801,9 @@ export default class CodeHostAccess {
    * The reader of a GitLab, Forgejo or Git repository, through its
    * connection. A refusal of the token marks the connection refused (its
    * repositories show as not connected, with Replace access token), and an
-   * answer after one clears it.
+   * answer after one clears it. A Git repository on Azure DevOps has its
+   * files read through Azure DevOps' file API, whose refusal marks nothing
+   * (readFiles, below).
    */
   public static createConnectionReader(data: {
     repository: CodeRepository;
@@ -857,6 +862,21 @@ export default class CodeHostAccess {
           })
         : null;
 
+    /*
+     * A Git repository on Azure DevOps (Services, or a Server of the
+     * project's own): its files, through the file API beside it, with the
+     * credentials Git signs in with. Null for any other Git server.
+     */
+    const azureDevOps: AzureDevOpsApi | null =
+      type === CodeRepositoryType.Git
+        ? AzureDevOpsApi.forCloneUrl({
+            cloneUrl: repositoryUrl,
+            username: credentials.username,
+            password: credentials.token,
+            transport: data.transport,
+          })
+        : null;
+
     // Every call to the host: a refused token is noted, a later answer too.
     const call: <T>(work: () => Promise<T>) => Promise<T> = async <T>(
       work: () => Promise<T>,
@@ -868,6 +888,25 @@ export default class CodeHostAccess {
       }
 
       return await CodeHostAccess.callThroughConnection(connection, work);
+    };
+
+    /*
+     * A read of a Git repository's files on Azure DevOps. Its file API takes
+     * the credentials Git signs in with, but it is not Git: whether the
+     * server refuses them is for Git's own reads to say - the branch
+     * picker's, a Runner's clone - so a file read it refuses fails on its
+     * own, marks nothing, and AI keeps working in the repository.
+     */
+    const readFiles: <T>(work: () => Promise<T>) => Promise<T> = async <T>(
+      work: () => Promise<T>,
+    ): Promise<T> => {
+      if (!isReachableFromServer) {
+        throw new CodeHostUnavailableError(
+          "OneUptime does not reach this repository's server: only a Runner of the project's own on its network works in it.",
+        );
+      }
+
+      return await work();
     };
 
     const tokenKey: string = crypto
@@ -894,8 +933,9 @@ export default class CodeHostAccess {
         Boolean(forgejo || gitLab || git),
       canReadCode:
         isReachableFromServer &&
-        CodeHost.can(type, CodeHostCapability.ReadCode) &&
-        Boolean(forgejo || gitLab),
+        ((CodeHost.can(type, CodeHostCapability.ReadCode) &&
+          Boolean(forgejo || gitLab)) ||
+          Boolean(azureDevOps)),
       canTrackPullRequests:
         isReachableFromServer &&
         CodeHost.can(type, CodeHostCapability.PullRequestTracking) &&
@@ -1013,7 +1053,7 @@ export default class CodeHostAccess {
         return await unsupported("read the default branch");
       },
       getTreePaths: async (branchName: string): Promise<Array<string>> => {
-        if (!forgejo && !gitLab) {
+        if (!forgejo && !gitLab && !azureDevOps) {
           return await unsupported("read the files");
         }
 
@@ -1033,11 +1073,18 @@ export default class CodeHostAccess {
           logger.debug(error);
         }
 
-        const paths: Array<string> = await call(() => {
-          return forgejo
-            ? forgejo.getTreePaths({ owner, name, ref: branchName })
-            : gitLab!.getTreePaths({ project: gitLabProject, ref: branchName });
-        });
+        const paths: Array<string> = azureDevOps
+          ? await readFiles(() => {
+              return azureDevOps.getTreePaths({ ref: branchName });
+            })
+          : await call(() => {
+              return forgejo
+                ? forgejo.getTreePaths({ owner, name, ref: branchName })
+                : gitLab!.getTreePaths({
+                    project: gitLabProject,
+                    ref: branchName,
+                  });
+            });
 
         try {
           await GlobalCache.setStringArray(
@@ -1072,6 +1119,15 @@ export default class CodeHostAccess {
             return gitLab.getFileContent({
               project: gitLabProject,
               webUrl: webUrl || "",
+              ref: args.branchName,
+              filePath: args.filePath,
+            });
+          });
+        }
+
+        if (azureDevOps) {
+          return await readFiles(() => {
+            return azureDevOps.getFileContent({
               ref: args.branchName,
               filePath: args.filePath,
             });

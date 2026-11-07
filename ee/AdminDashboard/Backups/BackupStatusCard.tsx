@@ -25,6 +25,7 @@ import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The top of the Backups page: how backups are doing, in one look. What
@@ -259,7 +260,7 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
                   })}
               {!isQueued && written !== undefined && written > 0 ? (
                 <span className="text-gray-500">
-                  {" · "}
+                  <InlineSeparator />
                   {isRestore && progress.step?.progress?.totalBytes
                     ? translator.translateTemplate(BackupsCopy.stepsRead, {
                         done: formatBackupSize(written, translator.language),
@@ -356,7 +357,7 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
               className="text-gray-500"
               data-testid="backups-status-last-good"
             >
-              {" · "}
+              <InlineSeparator />
               {goodBackup?.startedAt
                 ? translator.translateTemplate(BackupsCopy.lastGoodBackup, {
                     time: formatBackupTimeAgo(
@@ -368,7 +369,7 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
             </span>
           ) : duration !== null ? (
             <span className="text-gray-500">
-              {" · "}
+              <InlineSeparator />
               {translator.translateTemplate(BackupsCopy.lastBackupSize, {
                 size: formatBackupSize(
                   getBackupRunTotalSize(last),

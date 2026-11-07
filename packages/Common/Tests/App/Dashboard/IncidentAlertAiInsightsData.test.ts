@@ -761,11 +761,12 @@ describe("the monitors, services, coverage and fix pull requests", () => {
       fixes: 0,
     };
 
+    // The day as the reader's dates write it (describeTrendDate), not its key.
     expect(describeTrendDay(day)).toBe(
-      "2026-10-04: 3 investigations, 1 failed, 0 fixes",
+      "04 Oct: 3 investigations, 1 failed, 0 fixes",
     );
     expect(describeTrendDay(day, { fixesHidden: true })).toBe(
-      "2026-10-04: 3 investigations, 1 failed",
+      "04 Oct: 3 investigations, 1 failed",
     );
   });
 

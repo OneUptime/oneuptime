@@ -19,6 +19,7 @@ import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import MailTransportType from "Common/Types/Email/MailTransportType";
+import MailgunRegion from "Common/Types/Email/MailgunRegion";
 import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import MailStatus from "Common/Types/Mail/MailStatus";
@@ -34,6 +35,7 @@ import {
 } from "Common/Server/Utils/Mail/EmailLogo";
 import {
   getEmailServerType,
+  getGlobalEmailProviderServer,
   getGlobalSMTPConfig,
   getSendgridConfig,
 } from "../../FeatureSet/Notification/Config";
@@ -42,17 +44,36 @@ import SMTPOAuthService from "../../FeatureSet/Notification/Services/SMTPOAuthSe
 import { EMAIL_SENT_STATUS_MESSAGE } from "../../FeatureSet/Notification/Utils/EmailStatusMessage";
 import "../../FeatureSet/Notification/Utils/Handlebars";
 import {
+  AmazonSesSendEmailJson,
+  FakeAmazonSes,
+  FakeMailgun,
   FakeMicrosoftGraph,
+  FakePostmark,
+  FakeResend,
   FakeSendGrid,
   FakeSmtpServer,
   GraphSendMailJson,
+  PostmarkEmailJson,
   RecordedHttpRequest,
+  ResendEmailJson,
   SendGridMailSendJson,
   contentIdsInHtml,
+  mailgunMimeOf,
+  sendAmazonSesTo,
   sendGridContentIdRequired,
+  sendMailgunTo,
   sendMicrosoftGraphTo,
+  sendPostmarkTo,
+  sendResendTo,
   sendSendGridTo,
+  checkAmazonSesSendEmail,
+  checkPostmarkEmail,
+  checkResendEmail,
+  startFakeAmazonSes,
+  startFakeMailgun,
   startFakeMicrosoftGraph,
+  startFakePostmark,
+  startFakeResend,
   startFakeSendGrid,
   startFakeSmtpServer,
 } from "./Fixtures/FakeMailServices";
@@ -83,9 +104,16 @@ import {
  * service does, and read what arrived as the service and a mail client
  * read it:
  *
- *   - SendGrid: @sendgrid/mail, its requests sent to a fake api.sendgrid.com.
+ *   - SendGrid: @sendgrid/mail, its requests sent to a fake api.sendgrid.com
+ *     - the server's shared client and a project config's own alike.
  *   - Microsoft Graph: MicrosoftGraphMailProvider, its fetch to
  *     graph.microsoft.com sent to a fake Graph.
+ *   - Amazon SES: AmazonSesMailProvider, its signed SendEmail sent to a fake
+ *     email.us-east-1.amazonaws.com that checks the signature.
+ *   - Mailgun: MailgunMailProvider, its messages.mime sent to a fake
+ *     api.mailgun.net, the MIME read as SMTP's is.
+ *   - Postmark and Resend: their providers, sent to a fake
+ *     api.postmarkapp.com and api.resend.com.
  *   - SMTP: nodemailer, to an SMTP server on a local port, the message read
  *     as MIME (Fixtures/MimeMessage).
  *
@@ -99,6 +127,7 @@ import {
 jest.mock("../../FeatureSet/Notification/Config", () => {
   return {
     getEmailServerType: jest.fn(),
+    getGlobalEmailProviderServer: jest.fn(),
     getGlobalSMTPConfig: jest.fn(),
     getSendgridConfig: jest.fn(),
   };
@@ -222,6 +251,25 @@ interface ArrivedEmail {
 let sendGrid: FakeSendGrid;
 let graph: FakeMicrosoftGraph;
 let smtp: FakeSmtpServer;
+let ses: FakeAmazonSes;
+let mailgun: FakeMailgun;
+let postmark: FakePostmark;
+let resend: FakeResend;
+
+const SES_CREDENTIALS: {
+  accessKeyId: string;
+  secretAccessKey: string;
+  region: string;
+} = {
+  accessKeyId: "AKIAIOSFODNN7EXAMPLE",
+  secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+  region: "us-east-1",
+};
+
+const MAILGUN_KEY: string = "key-0123456789abcdef";
+const MAILGUN_DOMAIN: string = "mg.example.test";
+const POSTMARK_TOKEN: string = "11111111-2222-4333-8444-555555555555";
+const RESEND_KEY: string = "re_test_0123456789";
 
 const SMTP_HOST_NAME: string = "smtp.inline-images.invalid";
 
@@ -255,6 +303,51 @@ const GRAPH_SERVER: EmailServer = {
   scope: "https://graph.microsoft.com/.default",
   oauthProviderType: OAuthProviderType.ClientCredentials,
 };
+
+/*
+ * A project's config of a provider with an HTTP API of its own, as
+ * ProjectSmtpConfigService.toEmailServer makes it: its key alone, and the
+ * sender. Without an id, it is the server's own settings for it, as
+ * getGlobalEmailProviderServer makes them.
+ */
+function apiProviderServer(
+  transportType: MailTransportType,
+  options: { isProjectConfig: boolean },
+): EmailServer {
+  const base: EmailServer = {
+    ...(options.isProjectConfig ? { id: ObjectID.generate() } : {}),
+    transportType: transportType,
+    username: undefined,
+    password: undefined,
+    fromEmail: SENDER,
+    fromName: "OneUptime Alerts",
+  };
+
+  switch (transportType) {
+    case MailTransportType.AmazonSES:
+      return {
+        ...base,
+        awsAccessKeyId: SES_CREDENTIALS.accessKeyId,
+        awsSecretAccessKey: SES_CREDENTIALS.secretAccessKey,
+        awsRegion: SES_CREDENTIALS.region,
+      };
+    case MailTransportType.Mailgun:
+      return {
+        ...base,
+        apiKey: MAILGUN_KEY,
+        mailgunDomain: MAILGUN_DOMAIN,
+        mailgunRegion: MailgunRegion.US,
+      };
+    case MailTransportType.Postmark:
+      return { ...base, apiKey: POSTMARK_TOKEN };
+    case MailTransportType.Resend:
+      return { ...base, apiKey: RESEND_KEY };
+    case MailTransportType.SendGrid:
+      return { ...base, apiKey: "SG.project-key" };
+    default:
+      throw new Error(`${transportType} has no HTTP API of its own`);
+  }
+}
 
 function lastRequest(fake: {
   requests: Array<RecordedHttpRequest>;
@@ -307,12 +400,73 @@ function arrivedOverMicrosoftGraph(): ArrivedEmail {
   };
 }
 
-function arrivedOverSmtp(): ArrivedEmail {
-  expect(smtp.messages.length).toBeGreaterThan(0);
+function arrivedOverAmazonSes(): ArrivedEmail {
+  const json: AmazonSesSendEmailJson = lastRequest(ses)
+    .json as AmazonSesSendEmailJson;
 
-  const message: MimeEntity = readMimeEntity(
-    smtp.messages[smtp.messages.length - 1]!.data,
-  );
+  return {
+    html: json.Content.Simple.Body.Html?.Data || "",
+    inlineImages: (json.Content.Simple.Attachments || []).map(
+      (attachment: Record<string, unknown>): ArrivedImage => {
+        return {
+          contentId: String(attachment["ContentId"]),
+          fileName: String(attachment["FileName"]),
+          mimeType: String(attachment["ContentType"]),
+          bytes: Buffer.from(String(attachment["RawContent"]), "base64"),
+          isInline: attachment["ContentDisposition"] === "INLINE",
+        };
+      },
+    ),
+  };
+}
+
+function arrivedOverPostmark(): ArrivedEmail {
+  const json: PostmarkEmailJson = lastRequest(postmark)
+    .json as PostmarkEmailJson;
+
+  return {
+    html: json.HtmlBody,
+    inlineImages: (json.Attachments || []).map(
+      (attachment: Record<string, unknown>): ArrivedImage => {
+        const contentId: string = String(attachment["ContentID"] || "");
+
+        return {
+          // Postmark's ContentID is written "cid:" and the id.
+          contentId: contentId.startsWith("cid:")
+            ? contentId.slice("cid:".length)
+            : contentId,
+          fileName: String(attachment["Name"]),
+          mimeType: String(attachment["ContentType"]),
+          bytes: Buffer.from(String(attachment["Content"]), "base64"),
+          isInline: contentId.length > 0,
+        };
+      },
+    ),
+  };
+}
+
+function arrivedOverResend(): ArrivedEmail {
+  const json: ResendEmailJson = lastRequest(resend).json as ResendEmailJson;
+
+  return {
+    html: json.html || "",
+    inlineImages: (json.attachments || []).map(
+      (attachment: Record<string, unknown>): ArrivedImage => {
+        return {
+          contentId: String(attachment["content_id"]),
+          fileName: String(attachment["filename"]),
+          mimeType: String(attachment["content_type"]),
+          bytes: Buffer.from(String(attachment["content"]), "base64"),
+          isInline: typeof attachment["content_id"] === "string",
+        };
+      },
+    ),
+  };
+}
+
+// A MIME message as a mail client reads it: the HTML, and its inline images.
+function arrivedAsMime(data: string): ArrivedEmail {
+  const message: MimeEntity = readMimeEntity(data);
   const html: MimeEntity | undefined = mimeEntitiesOfType(
     message,
     "text/html",
@@ -338,6 +492,16 @@ function arrivedOverSmtp(): ArrivedEmail {
   };
 }
 
+function arrivedOverSmtp(): ArrivedEmail {
+  expect(smtp.messages.length).toBeGreaterThan(0);
+
+  return arrivedAsMime(smtp.messages[smtp.messages.length - 1]!.data);
+}
+
+function arrivedOverMailgun(): ArrivedEmail {
+  return arrivedAsMime(mailgunMimeOf(lastRequest(mailgun)));
+}
+
 /*
  * Each way the installation sends email: how it is set up, and what the
  * service received. Keyed by what an operator or a project picks - the
@@ -348,8 +512,73 @@ interface TransportCase {
   send: (mail: EmailMessage) => Promise<ArrivedEmail>;
 }
 
+/*
+ * What a case is keyed by: the Email Server Type an operator picks for the
+ * server's own email, or the Transport a project's config (or the server's
+ * Custom SMTP settings) sends through. Amazon SES is both, by one name.
+ */
+const serverTypeCase: (serverType: EmailServerType) => string = (
+  serverType: EmailServerType,
+): string => {
+  return `Email Server Type: ${serverType}`;
+};
+
+const transportCase: (transport: MailTransportType) => string = (
+  transport: MailTransportType,
+): string => {
+  return `Transport: ${transport}`;
+};
+
+// The server's own settings for a provider with an HTTP API of its own.
+const globalProviderCase: (
+  serverType: EmailServerType,
+  transport: MailTransportType,
+  arrived: () => ArrivedEmail,
+) => TransportCase = (
+  serverType: EmailServerType,
+  transport: MailTransportType,
+  arrived: () => ArrivedEmail,
+): TransportCase => {
+  return {
+    name: `${transport}'s API (Email Server Type: ${serverType})`,
+    send: async (mail: EmailMessage): Promise<ArrivedEmail> => {
+      jest.mocked(getEmailServerType).mockResolvedValue(serverType);
+      jest
+        .mocked(getGlobalEmailProviderServer)
+        .mockResolvedValue(
+          apiProviderServer(transport, { isProjectConfig: false }),
+        );
+
+      await MailService.send(mail);
+
+      return arrived();
+    },
+  };
+};
+
+// A project's config of a provider with an HTTP API of its own.
+const projectProviderCase: (
+  transport: MailTransportType,
+  arrived: () => ArrivedEmail,
+) => TransportCase = (
+  transport: MailTransportType,
+  arrived: () => ArrivedEmail,
+): TransportCase => {
+  return {
+    name: `${transport}'s API (Transport: ${transport})`,
+    send: async (mail: EmailMessage): Promise<ArrivedEmail> => {
+      await MailService.send(mail, {
+        emailServer: apiProviderServer(transport, { isProjectConfig: true }),
+        projectId: ObjectID.generate(),
+      });
+
+      return arrived();
+    },
+  };
+};
+
 const TRANSPORT_CASES: Record<string, TransportCase> = {
-  [EmailServerType.Sendgrid]: {
+  [serverTypeCase(EmailServerType.Sendgrid)]: {
     name: "SendGrid's API (Email Server Type: SendGrid)",
     send: async (mail: EmailMessage): Promise<ArrivedEmail> => {
       jest
@@ -366,7 +595,7 @@ const TRANSPORT_CASES: Record<string, TransportCase> = {
       return arrivedOverSendGrid();
     },
   },
-  [MailTransportType.SMTP]: {
+  [transportCase(MailTransportType.SMTP)]: {
     name: "an SMTP server (Transport: SMTP)",
     send: async (mail: EmailMessage): Promise<ArrivedEmail> => {
       jest
@@ -379,7 +608,7 @@ const TRANSPORT_CASES: Record<string, TransportCase> = {
       return arrivedOverSmtp();
     },
   },
-  [MailTransportType.MicrosoftGraph]: {
+  [transportCase(MailTransportType.MicrosoftGraph)]: {
     name: "Microsoft Graph (Transport: Microsoft Graph)",
     send: async (mail: EmailMessage): Promise<ArrivedEmail> => {
       await MailService.send(mail, {
@@ -390,6 +619,46 @@ const TRANSPORT_CASES: Record<string, TransportCase> = {
       return arrivedOverMicrosoftGraph();
     },
   },
+  [serverTypeCase(EmailServerType.AmazonSES)]: globalProviderCase(
+    EmailServerType.AmazonSES,
+    MailTransportType.AmazonSES,
+    arrivedOverAmazonSes,
+  ),
+  [serverTypeCase(EmailServerType.Mailgun)]: globalProviderCase(
+    EmailServerType.Mailgun,
+    MailTransportType.Mailgun,
+    arrivedOverMailgun,
+  ),
+  [serverTypeCase(EmailServerType.Postmark)]: globalProviderCase(
+    EmailServerType.Postmark,
+    MailTransportType.Postmark,
+    arrivedOverPostmark,
+  ),
+  [serverTypeCase(EmailServerType.Resend)]: globalProviderCase(
+    EmailServerType.Resend,
+    MailTransportType.Resend,
+    arrivedOverResend,
+  ),
+  [transportCase(MailTransportType.AmazonSES)]: projectProviderCase(
+    MailTransportType.AmazonSES,
+    arrivedOverAmazonSes,
+  ),
+  [transportCase(MailTransportType.SendGrid)]: projectProviderCase(
+    MailTransportType.SendGrid,
+    arrivedOverSendGrid,
+  ),
+  [transportCase(MailTransportType.Mailgun)]: projectProviderCase(
+    MailTransportType.Mailgun,
+    arrivedOverMailgun,
+  ),
+  [transportCase(MailTransportType.Postmark)]: projectProviderCase(
+    MailTransportType.Postmark,
+    arrivedOverPostmark,
+  ),
+  [transportCase(MailTransportType.Resend)]: projectProviderCase(
+    MailTransportType.Resend,
+    arrivedOverResend,
+  ),
 };
 
 beforeAll(async () => {
@@ -426,12 +695,23 @@ beforeAll(async () => {
   sendGrid = await startFakeSendGrid();
   graph = await startFakeMicrosoftGraph();
   smtp = await startFakeSmtpServer();
+  ses = await startFakeAmazonSes(SES_CREDENTIALS);
+  mailgun = await startFakeMailgun({
+    apiKey: MAILGUN_KEY,
+    domains: [MAILGUN_DOMAIN],
+  });
+  postmark = await startFakePostmark(POSTMARK_TOKEN);
+  resend = await startFakeResend(RESEND_KEY);
 });
 
 afterAll(async () => {
   await sendGrid.close();
   await graph.close();
   await smtp.close();
+  await ses.close();
+  await mailgun.close();
+  await postmark.close();
+  await resend.close();
 });
 
 beforeEach(() => {
@@ -440,8 +720,16 @@ beforeEach(() => {
   graph.requests.length = 0;
   smtp.messages.length = 0;
   smtp.commands.length = 0;
+  ses.requests.length = 0;
+  mailgun.requests.length = 0;
+  postmark.requests.length = 0;
+  resend.requests.length = 0;
   sendSendGridTo(sendGrid);
   sendMicrosoftGraphTo(graph);
+  sendAmazonSesTo(ses);
+  sendMailgunTo(mailgun);
+  sendPostmarkTo(postmark);
+  sendResendTo(resend);
   jest.mocked(SMTPOAuthService.getAccessToken).mockResolvedValue("token-123");
 });
 
@@ -514,7 +802,9 @@ describe.each(Object.values(TRANSPORT_CASES))(
 
 describe("SendGrid: what reaches api.sendgrid.com", () => {
   test("the Mail Send SendGrid takes: content_id beside filename, type and an inline disposition - and no contentId", async () => {
-    await TRANSPORT_CASES[EmailServerType.Sendgrid]!.send(passwordReset());
+    await TRANSPORT_CASES[serverTypeCase(EmailServerType.Sendgrid)]!.send(
+      passwordReset(),
+    );
 
     expect(sendGrid.requests).toHaveLength(1);
 
@@ -538,7 +828,9 @@ describe("SendGrid: what reaches api.sendgrid.com", () => {
   });
 
   test("the message itself: to, from with its name, the subject, then the text before the HTML", async () => {
-    await TRANSPORT_CASES[EmailServerType.Sendgrid]!.send(passwordReset());
+    await TRANSPORT_CASES[serverTypeCase(EmailServerType.Sendgrid)]!.send(
+      passwordReset(),
+    );
 
     const json: SendGridMailSendJson = lastRequest(sendGrid)
       .json as SendGridMailSendJson;
@@ -659,9 +951,9 @@ describe("SendGrid: what reaches api.sendgrid.com", () => {
 
 describe("Microsoft Graph: what reaches graph.microsoft.com", () => {
   test("a sendMail as the sender, the logo a fileAttachment Graph defines: contentId and isInline", async () => {
-    await TRANSPORT_CASES[MailTransportType.MicrosoftGraph]!.send(
-      passwordReset(),
-    );
+    await TRANSPORT_CASES[
+      transportCase(MailTransportType.MicrosoftGraph)
+    ]!.send(passwordReset());
 
     expect(graph.requests).toHaveLength(1);
 
@@ -703,7 +995,9 @@ describe("Microsoft Graph: what reaches graph.microsoft.com", () => {
 
 describe("SMTP: the message nodemailer writes", () => {
   test("multipart/alternative: the text, then the HTML related to its logo, an inline part named by Content-ID", async () => {
-    await TRANSPORT_CASES[MailTransportType.SMTP]!.send(passwordReset());
+    await TRANSPORT_CASES[transportCase(MailTransportType.SMTP)]!.send(
+      passwordReset(),
+    );
 
     expect(smtp.messages).toHaveLength(1);
     expect(smtp.messages[0]!.recipients).toEqual(["<alice@example.test>"]);
@@ -865,6 +1159,249 @@ describe("the stand-ins refuse what their services refuse", () => {
   });
 });
 
+describe("Amazon SES: what reaches email.us-east-1.amazonaws.com", () => {
+  test("a SendEmail signed for ses in its Region, the logo an INLINE attachment by its ContentId", async () => {
+    await TRANSPORT_CASES[transportCase(MailTransportType.AmazonSES)]!.send(
+      passwordReset(),
+    );
+
+    expect(ses.requests).toHaveLength(1);
+
+    const request: RecordedHttpRequest = ses.requests[0]!;
+    const json: AmazonSesSendEmailJson = request.json as AmazonSesSendEmailJson;
+    const html: string = json.Content.Simple.Body.Html!.Data;
+
+    expect(request.method).toBe("POST");
+    expect(request.path).toBe("/v2/email/outbound-emails");
+    // The stand-in took the signature, so it is SES's for this body and host.
+    expect(String(request.headers.authorization)).toMatch(
+      /^AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE\/\d{8}\/us-east-1\/ses\/aws4_request, SignedHeaders=content-type;host;x-amz-date, Signature=[0-9a-f]{64}$/,
+    );
+    expect(json.FromEmailAddress).toBe(
+      "OneUptime Alerts <notifications@example.test>",
+    );
+    expect(json.Destination).toEqual({ ToAddresses: ["alice@example.test"] });
+    expect(json.Content.Simple.Subject).toEqual({
+      Data: "Password Reset Request for OneUptime",
+      Charset: "UTF-8",
+    });
+    expect(json.Content.Simple.Body.Html!.Charset).toBe("UTF-8");
+    expect(json.Content.Simple.Body.Text!.Data).toContain("Password");
+    expect(json.Content.Simple.Attachments).toEqual([
+      {
+        FileName: EMAIL_LOGO_FILE_NAME,
+        RawContent: LOGO.toString("base64"),
+        ContentDisposition: "INLINE",
+        ContentId: contentIdsInHtml(html)[0],
+        ContentTransferEncoding: "BASE64",
+        ContentType: "image/png",
+      },
+    ]);
+  });
+
+  test("the server's own Amazon SES settings send the same way, from their own sender", async () => {
+    await TRANSPORT_CASES[serverTypeCase(EmailServerType.AmazonSES)]!.send(
+      passwordReset(),
+    );
+
+    expect(arrivedOverAmazonSes().inlineImages).toHaveLength(1);
+    expect(smtp.messages).toHaveLength(0);
+    expect(sendGrid.requests).toHaveLength(0);
+    expect(getGlobalEmailProviderServer).toHaveBeenCalledWith(
+      MailTransportType.AmazonSES,
+    );
+  });
+});
+
+describe("Mailgun: what reaches api.mailgun.net", () => {
+  test("a messages.mime for the domain, signed in as api, carrying the MIME SMTP sends", async () => {
+    await TRANSPORT_CASES[transportCase(MailTransportType.Mailgun)]!.send(
+      passwordReset(),
+    );
+
+    const request: RecordedHttpRequest = lastRequest(mailgun);
+
+    expect(request.method).toBe("POST");
+    expect(request.path).toBe("/v3/mg.example.test/messages.mime");
+    expect(request.headers.authorization).toBe(
+      `Basic ${Buffer.from(`api:${MAILGUN_KEY}`).toString("base64")}`,
+    );
+    expect(request.form?.get("to")).toBe("alice@example.test");
+
+    const message: MimeEntity = readMimeEntity(mailgunMimeOf(request));
+
+    expect(message.headers.get("from")).toBe(
+      "OneUptime Alerts <notifications@example.test>",
+    );
+    expect(message.headers.get("to")).toBe("alice@example.test");
+    expect(message.type).toBe("multipart/alternative");
+    expect(mimeEntitiesOfType(message, "text/plain")).toHaveLength(1);
+    expect(mimeEntitiesOfType(message, "multipart/related")).toHaveLength(1);
+  });
+
+  test("a domain the account does not have is refused with Mailgun's 404, read as the region to check", async () => {
+    await expect(
+      MailService.send(passwordReset(), {
+        emailServer: {
+          ...apiProviderServer(MailTransportType.Mailgun, {
+            isProjectConfig: true,
+          }),
+          mailgunDomain: "mg.unknown.test",
+        },
+        projectId: ObjectID.generate(),
+      }),
+    ).rejects.toThrow(
+      "Mailgun has no domain mg.unknown.test in its US region (HTTP 404). Check the Mailgun Domain, and set the Mailgun Region to EU if the domain was made there. Mailgun said: Domain not found",
+    );
+  });
+});
+
+describe("Postmark: what reaches api.postmarkapp.com", () => {
+  test("the server token and JSON headers Postmark asks for; the logo an attachment whose ContentID is cid: and its id", async () => {
+    await TRANSPORT_CASES[transportCase(MailTransportType.Postmark)]!.send(
+      passwordReset(),
+    );
+
+    const request: RecordedHttpRequest = lastRequest(postmark);
+    const json: PostmarkEmailJson = request.json as PostmarkEmailJson;
+
+    expect(request.path).toBe("/email");
+    expect(request.headers["x-postmark-server-token"]).toBe(POSTMARK_TOKEN);
+    expect(request.headers.accept).toBe("application/json");
+    expect(json.From).toBe("OneUptime Alerts <notifications@example.test>");
+    expect(json.To).toBe("alice@example.test");
+    expect(json.Subject).toBe("Password Reset Request for OneUptime");
+    expect(json.TextBody).toContain("Password");
+    expect(json.Attachments).toEqual([
+      {
+        Name: EMAIL_LOGO_FILE_NAME,
+        Content: LOGO.toString("base64"),
+        ContentType: "image/png",
+        ContentID: `cid:${contentIdsInHtml(json.HtmlBody)[0]}`,
+      },
+    ]);
+  });
+});
+
+describe("Resend: what reaches api.resend.com", () => {
+  test("the key as a bearer token, a User-Agent and one Idempotency-Key; the logo an attachment by its content_id", async () => {
+    await TRANSPORT_CASES[transportCase(MailTransportType.Resend)]!.send(
+      passwordReset(),
+    );
+
+    const request: RecordedHttpRequest = lastRequest(resend);
+    const json: ResendEmailJson = request.json as ResendEmailJson;
+
+    expect(request.path).toBe("/emails");
+    expect(request.headers.authorization).toBe(`Bearer ${RESEND_KEY}`);
+    expect(request.headers["user-agent"]).toBe("OneUptime Mail");
+    expect(String(request.headers["idempotency-key"])).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
+    expect(json.from).toBe("OneUptime Alerts <notifications@example.test>");
+    expect(json.to).toEqual(["alice@example.test"]);
+    expect(json.text).toContain("Password");
+    expect(json.attachments).toEqual([
+      {
+        content: LOGO.toString("base64"),
+        filename: EMAIL_LOGO_FILE_NAME,
+        content_type: "image/png",
+        content_id: contentIdsInHtml(json.html || "")[0],
+      },
+    ]);
+  });
+});
+
+describe("a project's SendGrid config: its own client", () => {
+  test("sends with its own key to api.sendgrid.com, not the server's", async () => {
+    await TRANSPORT_CASES[transportCase(MailTransportType.SendGrid)]!.send(
+      passwordReset(),
+    );
+
+    const request: RecordedHttpRequest = lastRequest(sendGrid);
+
+    expect(request.headers.authorization).toBe("Bearer SG.project-key");
+    expect(getSendgridConfig).not.toHaveBeenCalled();
+  });
+});
+
+describe("the stand-ins refuse what their HTTP APIs refuse", () => {
+  test("Amazon SES: a request signed with a secret that is not the key's", async () => {
+    await expect(
+      MailService.send(passwordReset(), {
+        emailServer: {
+          ...apiProviderServer(MailTransportType.AmazonSES, {
+            isProjectConfig: true,
+          }),
+          awsSecretAccessKey: "not-the-secret-of-this-access-key",
+        },
+        projectId: ObjectID.generate(),
+      }),
+    ).rejects.toThrow(
+      "Amazon SES did not accept the request's signature (HTTP 403 SignatureDoesNotMatch).",
+    );
+  });
+
+  test("Amazon SES: an inline attachment's ContentId over 78 characters", () => {
+    expect(
+      checkAmazonSesSendEmail({
+        FromEmailAddress: "a@example.test",
+        Destination: { ToAddresses: ["b@example.test"] },
+        Content: {
+          Simple: {
+            Subject: { Data: "Hi" },
+            Body: { Html: { Data: "<p>Hi</p>" } },
+            Attachments: [
+              {
+                FileName: "a.png",
+                RawContent: SCREENSHOT,
+                ContentDisposition: "INLINE",
+                ContentId: "x".repeat(79),
+              },
+            ],
+          },
+        },
+      })?.status,
+    ).toBe(400);
+  });
+
+  test("Postmark: an inline image's ContentID without cid:", () => {
+    expect(
+      checkPostmarkEmail({
+        From: "a@example.test",
+        To: "b@example.test",
+        HtmlBody: "<p>Hi</p>",
+        Attachments: [
+          {
+            Name: "a.png",
+            Content: SCREENSHOT,
+            ContentType: "image/png",
+            ContentID: "logo@oneuptime",
+          },
+        ],
+      })?.status,
+    ).toBe(422);
+  });
+
+  test("Resend: a content_id of 128 characters or more", () => {
+    expect(
+      checkResendEmail({
+        from: "a@example.test",
+        to: ["b@example.test"],
+        subject: "Hi",
+        html: "<p>Hi</p>",
+        attachments: [
+          {
+            content: SCREENSHOT,
+            filename: "a.png",
+            content_id: "x".repeat(128),
+          },
+        ],
+      })?.status,
+    ).toBe(422);
+  });
+});
+
 describe("every way the installation sends email has a case here", () => {
   /*
    * What an operator or a project can pick: every Email Server Type but
@@ -875,10 +1412,12 @@ describe("every way the installation sends email has a case here", () => {
    */
   test("each Email Server Type and each Transport", () => {
     const transports: Array<string> = [
-      ...Object.values(EmailServerType).filter((type: string): boolean => {
-        return type !== EmailServerType.CustomSMTP;
-      }),
-      ...Object.values(MailTransportType),
+      ...Object.values(EmailServerType)
+        .filter((type: EmailServerType): boolean => {
+          return type !== EmailServerType.CustomSMTP;
+        })
+        .map(serverTypeCase),
+      ...Object.values(MailTransportType).map(transportCase),
     ];
 
     expect(Object.keys(TRANSPORT_CASES).sort()).toEqual([...transports].sort());

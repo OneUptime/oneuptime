@@ -790,12 +790,12 @@ Enhetens sider **Hendelser** og **Varsler**, under **Aktivitet** i menyen, viser
 
 ### Standardverdier for egendefinerte felt
 
-Hvis prosjektet ditt definerer egendefinerte monitorfelt — produsent, konfigurasjonselement, ansvarlig tjeneste, hva enn CMDB-en din trenger — kan en monitormal fylle dem ut. Åpne malen fra **Monitorer → Innstillinger → Maler** og angi **Custom Field Defaults**.
+Hvis prosjektet ditt definerer egendefinerte monitorfelt — produsent, konfigurasjonselement, ansvarlig tjeneste, hva enn CMDB-en din trenger — kan en monitormal fylle dem ut. Åpne malen fra **Monitorer → Innstillinger → Maler** og angi **Standardverdier for egendefinerte felt**.
 
 Hver monitor som deretter lages fra den malen, får de verdiene med seg: de du oppretter med **Opprett overvåking fra mal**, og de en automatisk importregel eller en varslingspolicy oppretter når en [discovery-skanning](#finn-enheter-med-en-nettverksskanning) henter inn tusen enheter på én gang.
 
 - Et felt som står tomt i malen, er ikke en standardverdi: hver monitor fortsetter å fylle det ut selv, så en mal kan sette produsenten for en hel svitsjflåte mens konfigurasjonselementet forblir per enhet.
-- Standardverdier gjelder når en monitor opprettes, ikke for monitorer som allerede finnes. **Sync Custom Fields to Linked Monitors**, på det samme kortet, skyver dem ut til de eksisterende monitorene. Den overskriver feltene malen setter, inkludert verdier som er skrevet inn for hånd, og bekreftelsen navngir de feltene først; felt malen lar stå tomme, røres aldri.
+- Standardverdier gjelder når en monitor opprettes, ikke for monitorer som allerede finnes. **Synkroniser egendefinerte felt til tilknyttede monitorer**, på det samme kortet, skyver dem ut til de eksisterende monitorene. Den overskriver feltene malen setter, inkludert verdier som er skrevet inn for hånd, og bekreftelsen navngir de feltene først; felt malen lar stå tomme, røres aldri.
 
 En vanlig **Synkroniser fra mal** lar egendefinerte felt være: å skyve ut kriterier eller et intervall skriver aldri om verdiene på monitorene dine.
 

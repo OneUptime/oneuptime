@@ -31,6 +31,7 @@ import {
   ComposedValue,
   Translator,
   composedValue,
+  formatList,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 
@@ -529,9 +530,10 @@ export function describeRunIf(data: {
     const clauseAt: (positions: Array<number>) => ComposedValue = (
       positions: Array<number>,
     ): ComposedValue => {
+      // Joined with the comma of the language the sentence is read in.
       return composedValue((sentenceTranslator: Translator): string => {
-        return positions
-          .map((position: number): string => {
+        return formatList(
+          positions.map((position: number): string => {
             return sentenceTranslator.translateTemplate(
               RUN_IF_CLAUSE_TEMPLATES[outcomeOf(position)] ||
                 RUN_IF_CLAUSE_TEMPLATES["succeeded"]!,
@@ -541,8 +543,9 @@ export function describeRunIf(data: {
                 ),
               },
             );
-          })
-          .join(", ");
+          }),
+          sentenceTranslator,
+        );
       });
     };
     const templates: Readonly<Record<2 | 3, string>> =

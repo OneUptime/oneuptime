@@ -537,8 +537,8 @@ export class Service extends ProjectReferencesService<Model> {
    * tree, so an unbound or foreign row here would have the server read
    * another tenant's private repository on its own initiative
    * (GHSA-xx95-gmcf-7q86). A repository whose files OneUptime does not read
-   * (a Git server) is still a candidate: its name, or being the only one,
-   * can still pick it.
+   * (a Git server other than Azure DevOps) is still a candidate: its name,
+   * or being the only one, can still pick it.
    */
   @CaptureSpan()
   public async getResolvableRepositories(

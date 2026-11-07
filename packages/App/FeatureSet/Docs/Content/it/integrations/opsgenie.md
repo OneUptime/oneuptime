@@ -33,9 +33,9 @@ Entrambi i workflow chiamano la [Alert API di Opsgenie](https://docs.opsgenie.co
 ## Salvare la chiave API
 
 :::steps
-1. Vai su **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Flusso di lavoro Variabile**.
+1. Vai su **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Variabile del flusso di lavoro**.
 2. Chiamala `OPSGENIE_KEY` e fai clic su **Avanti**.
-3. Incolla la chiave API in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Flusso di lavoro Variabile**.
+3. Incolla la chiave API in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Variabile del flusso di lavoro**.
 :::
 
 Una variabile segreta viene sostituita da `[REDACTED]` nei log delle esecuzioni, quindi la chiave non compare mai in un'esecuzione.

@@ -32,9 +32,9 @@ Den sonde, der udfører kontrollen, modtager værdien, så en monitor, der bruge
 ### Tilføj en hemmelighed
 
 :::steps
-1. Gå til **Monitorer → Indstillinger → Hemmeligheder**, og klik på **Opret Monitor Hemmelighed**.
+1. Gå til **Monitorer → Indstillinger → Hemmeligheder**, og klik på **Opret Monitorhemmelighed**.
 2. Indtast et **Navn** og **Værdi af hemmelighed**. Navnet er det, du henviser til, for eksempel `ApiKey`. Det må kun indeholde bogstaver, tal, bindestreger (`-`) og understregninger (`_`), og to hemmeligheder i et projekt kan ikke have det samme.
-3. Vælg i trinnet **Adgang**, hvilke monitorer der må bruge den (se næste afsnit), og klik derefter på **Opret Monitor Hemmelighed**.
+3. Vælg i trinnet **Adgang**, hvilke monitorer der må bruge den (se næste afsnit), og klik derefter på **Opret Monitorhemmelighed**.
 :::
 
 > [!IMPORTANT]

@@ -20,12 +20,15 @@ flowchart TB
     open -->|Ja| join["Ansluter till den"]
     open -->|Nej| reopen(["En som löstes inom<br/>återöppningsfönstret?"])
     reopen -->|Ja| reopened["Öppnar den igen"]
-    reopen -->|Nej| created["Öppnar en<br/>ny episod"]
+    reopen -->|Nej| enough(["Pågår tillräckligt<br/>många matchande larm?"])
+    enough -->|Ja| created["Öppnar en ny episod<br/>med alla larmen"]
+    enough -->|Inte än| waits["Väntar ensamt"]
 ```
 
 - **Regelns villkor** avgör vilka larm den gäller för. En regel utan villkor gäller för varje nytt larm.
 - **Grupperingsnyckeln** avgör vilka larm som delar en episod: de med samma monitor, samma allvarlighetsgrad, samma titel, eller den kombination som regeln grupperar efter. En regel som inte grupperar efter något lägger varje larm som den matchar i en enda episod.
 - **Tidsfönstret** avgör hur länge en episod fortsätter att ta emot larm. När det är påslaget ansluter ett larm bara om det kommer inom fönstret efter episodens senaste larm. När det är avslaget fortsätter matchande larm att ansluta tills episoden är löst.
+- **Vänta på fler larm** avgör när en ny episod öppnas. När det är avslaget, som en ny regel börjar på, öppnar det första matchande larmet en. När det är påslaget väntar ett larm ensamt tills så många matchande larm i dess grupp som du har angett pågår, och då öppnas en enda episod med alla larmen. Se [Öppna en episod bara för flera larm](#öppna-en-episod-bara-för-flera-larm).
 
 Gruppering sker när ett larm skapas. En regel som du lägger till i dag grupperar larmen som skapas efter den; den grupperar inte om de som redan finns.
 
@@ -72,10 +75,21 @@ Allt annat som en regel kan göra är hopfällt under **Fler fält** i slutet av
 | Grupp                     | Inställningar                                                                                              |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **Jour och ägarskap**     | **Jourpolicyer** som ska köras när regeln öppnar en episod, och **Episodägare**.                           |
-| **Episodens livscykel**   | **Återöppna nyligen lösta episoder**, **Vänta innan en episod löses** och **Lös tysta episoder**, vart och ett ett reglage med sina minuter. |
+| **Episodens livscykel**   | **Vänta på fler larm**, ett reglage med ett antal, sedan **Återöppna nyligen lösta episoder**, **Vänta innan en episod löses** och **Lös tysta episoder**, vart och ett ett reglage med sina minuter. |
 | **Detaljer**              | Regelns **Beskrivning**, **Mall för episodtitel**, **Mall för episodbeskrivning** och **Episodetiketter**. |
 
 Regler kontrolleras uppifrån och ned i listan, och den första matchningen vinner: Dra en regel för att ändra dess plats. Placera specifika regler ovanför breda. Listans kolumn **Gruppering** säger i en mening vad varje regel gör, till exempel "En episod per övervakare".
+
+### Öppna en episod bara för flera larm
+
+**Vänta på fler larm**, under **Episodens livscykel**, håller ett ensamt larm utanför en episod. Slå på det och ange hur många: **Öppna en episod när 3 matchande larm pågår**, från 2 till 100.
+
+- **Till dess väntar varje larm ensamt.** Ett larm som inte hittar någon öppen episod i sin grupp att ansluta till, och ingen löst episod att öppna igen, öppnar ingenting och kör bara sina egna jourpolicyer, precis som ett larm som ingen regel matchar.
+- **Sedan öppnas en enda episod med alla larmen.** Larmet som fyller antalet öppnar episoden med varje larm som väntade. Episoden tar sin titel, monitor och allvarlighetsgrad från det första av dem och stiger till den allvarligaste, och larmen efter dem ansluter till den som vanligt.
+- **Bara pågående larm räknas.** Ett larm som har lösts under tiden är över, så en monitor som hela tiden fallerar och återhämtar sig öppnar aldrig en episod på egen hand. Medan **Gruppera bara larm som kommer tätt efter varandra** är påslaget måste larmen också ha kommit inom dess fönster från varandra.
+- **Det räknas per grupp.** Med **Allt tillsammans** räknas alla matchande larm, så en episod öppnas bara vid ett avbrott som utlöser flera monitorer på en gång. Med **Övervakning** öppnas en monitors episod när den monitorn har flera pågående larm.
+
+Listans kolumn **Gruppering** säger "Öppnar en episod när 3 matchande larm pågår". Via API:et och Terraform heter det `enableMinimumAlertCount` och `minimumAlertCount`.
 
 ## Episodtitlar
 
@@ -115,8 +129,9 @@ flowchart TB
     grouped -->|"Ansluter till en episod"| none["Inget mer körs"]
 ```
 
-- **En ny episod** kör regelns **Jourpolicyer**, plus de från varje matchande regel på fliken **Episode Rules** under **Larm → Regler → Jourregler**.
+- **En ny episod** kör regelns **Jourpolicyer**, plus de från varje matchande regel på fliken **Episodregler** under **Larm → Regler → Jourregler**.
 - **Ett larm som ansluter till en öppen episod** kör bara sina egna policyer. Episodens körs inte igen.
+- **Ett larm som väntar på fler larm** kör också bara sina egna policyer. När **Vänta på fler larm** är påslaget och regelns policyer är de enda som larmar, larmar ett ensamt larm ingen förrän tillräckligt många av dem pågår.
 - **Att svara på en episods larmanrop** bekräftar episoden, och därmed varje larm i den.
 
 > [!TIP]
@@ -160,7 +175,7 @@ En episod som du skapar har ingen grupperingsregel, så listan visar dess **Grup
 | **Utvecklare** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
 | **Avancerad** | **Granskningsloggar**, **Ta bort episod** |
 
-**Utvecklare** och **Avancerad** börjar hopfällda. På **Översikt** nämner sidhuvudet episodens **Ägare**, team först, och den första rutan, **Skapad**, säger när episoden skapades — **Automatiskt**, när en grupperingsregel öppnade den. Kortet **Vad som hände** står överst på sidan — episodens beskrivning och dess **Rotorsak** — sedan **Alerts in this episode** och **Episodflöde**, bredvid kortet **Episoddetaljer**: dess nummer, tillstånd, allvarlighetsgrad, antal larm, grupperingsregel och jourpolicyer. Dess sidhuvud har **Bekräfta** och **Lös**, och **Flytta episoden till** i menyn **⋯**.
+**Utvecklare** och **Avancerad** börjar hopfällda. På **Översikt** nämner sidhuvudet episodens **Ägare**, team först, och den första rutan, **Skapad**, säger när episoden skapades — **Automatiskt**, när en grupperingsregel öppnade den. Kortet **Vad som hände** står överst på sidan — episodens beskrivning och dess **Rotorsak** — sedan **Larm i den här episoden** och **Episodflöde**, bredvid kortet **Episoddetaljer**: dess nummer, tillstånd, allvarlighetsgrad, antal larm, grupperingsregel och jourpolicyer. Dess sidhuvud har **Bekräfta** och **Lös**, och **Flytta episoden till** i menyn **⋯**.
 
 **Larm → Aktiva episoder** listar de episoder som inte är lösta ännu, och märket bredvid räknar dem.
 

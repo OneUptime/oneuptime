@@ -43,6 +43,7 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import { getLastingCloudChange } from "../../../Utils/AiRemediation/DeclaredCodeChange";
 import {
   OpenStackChangeReach,
   OpenStackReachInstance,
@@ -62,6 +63,10 @@ import {
   REMEDIATION_CHAT_WORDS,
 } from "./RemediationChatWords";
 import ProductBrandingText from "../ProductBrandingText";
+import {
+  getFixApprovalsNeeded,
+  readTwoApprovalsRule,
+} from "./RemediationApprovalsNeeded";
 
 /*
  * A FIX THAT WAITS FOR APPROVAL, WHERE THE TEAM IS.
@@ -106,6 +111,23 @@ export interface RemediationChatFix {
    */
   runbookTrackRecord?: RemediationTrackRecord | undefined;
   verificationWindowMinutes?: number | undefined;
+  /*
+   * How many people must approve it, as known when the message is made:
+   * two for a riskier fix where the project asks two people to approve one
+   * (Project.requireTwoApprovalsForRiskierFixes), else one. Left out, one.
+   */
+  approvalsNeeded?: number | undefined;
+}
+
+/*
+ * Where a fix stands with the approvals it needs, for its approval dialog:
+ * how many it needs and, for one that needs two, whether someone approved
+ * it first, and who - their name, when it could be read.
+ */
+export interface RemediationChatApprovals {
+  needed: number;
+  hasFirstApproval: boolean;
+  firstApproverName?: string | undefined;
 }
 
 /*
@@ -550,6 +572,26 @@ export default class RemediationChatMessage {
       lines.push(RemediationChatMessage.describeReach(command.reach));
     }
 
+    /*
+     * A change the code declares - a scale, a concurrency, a roll back - is
+     * put back by the next apply, and can be a pull request to that code
+     * too, asked for from the fix in OneUptime (DeclaredCodeChanges). A
+     * restart, a reboot, a start or a fail over sets nothing the code
+     * declares, so the next apply undoes none of them: the message says
+     * nothing of the code there.
+     */
+    if (
+      command.managedAsCode &&
+      getLastingCloudChange({
+        resourceType: command.resourceType,
+        command: command.command,
+      })
+    ) {
+      lines.push(
+        mdText`Declared as code by ${command.managedAsCode}: the next apply may put the old value back. Open the fix in ${ProductBrandingText.getProductName()} to ask for a pull request to that code with the same change.`,
+      );
+    }
+
     const record: RemediationTrackRecord | undefined = command.trackRecord;
 
     if (record) {
@@ -650,6 +692,8 @@ export default class RemediationChatMessage {
     workspaceType?: WorkspaceType | undefined;
     // The pages a track record's names link to (getTrackRecordRunLinks).
     runLinks?: TrackRecordRunLinks | undefined;
+    // The approvals it needs, and the first one (a riskier fix's second).
+    approvals?: RemediationChatApprovals | undefined;
   }): Array<MarkdownText> {
     const window: number = data.fix.verificationWindowMinutes || 15;
     const product: string = ProductBrandingText.getProductName();
@@ -669,8 +713,36 @@ export default class RemediationChatMessage {
         workspaceType: data.workspaceType,
         runLinks: data.runLinks,
       }),
-      mdText`Approving runs exactly what is shown, under your name. ${watched}`,
+      RemediationChatMessage.describeWhatApprovingDoes({
+        approvals: data.approvals,
+        watched,
+      }),
     ];
+  }
+
+  /*
+   * The dialog's last part: what pressing its button does. Approving runs
+   * the fix, under the person's name, watched - unless it is the first of
+   * the two approvals a riskier fix needs, which runs nothing; the second
+   * names whose approval came first.
+   */
+  public static describeWhatApprovingDoes(data: {
+    approvals?: RemediationChatApprovals | undefined;
+    watched: MarkdownText;
+  }): MarkdownText {
+    const approvals: RemediationChatApprovals | undefined = data.approvals;
+
+    if (!approvals || approvals.needed < 2) {
+      return mdText`Approving runs exactly what is shown, under your name. ${data.watched}`;
+    }
+
+    if (!approvals.hasFirstApproval) {
+      return mdText`This fix holds a riskier change, so two people must approve it, and yours is the first. It runs once someone else approves it too.`;
+    }
+
+    return approvals.firstApproverName
+      ? mdText`**${capped(approvals.firstApproverName, 120)}** approved this fix first. Approving it too runs exactly what is shown, under your name. ${data.watched}`
+      : mdText`Someone else approved this fix first. Approving it too runs exactly what is shown, under your name. ${data.watched}`;
   }
 
   // The approval dialog as one Slack Markdown text: a part a paragraph.
@@ -680,6 +752,7 @@ export default class RemediationChatMessage {
     subjectName: string;
     subjectTitle?: string | undefined;
     runLinks?: TrackRecordRunLinks | undefined;
+    approvals?: RemediationChatApprovals | undefined;
   }): MarkdownText {
     return FeedMarkdown.join(
       RemediationChatMessage.describeApprovalParts({
@@ -794,9 +867,10 @@ export default class RemediationChatMessage {
         buttons,
       };
 
+      // Nothing runs until two people approve a fix that needs two.
       const note: WorkspacePayloadContext = {
         _type: "WorkspacePayloadContext",
-        text: getApprovalMessageNote(),
+        text: getApprovalMessageNote(fix.approvalsNeeded || 1),
       };
 
       return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams].map(
@@ -846,6 +920,24 @@ export default class RemediationChatMessage {
         ? AutoRemediationSuggestionType.McpToolCalls
         : AutoRemediationSuggestionType.Runbook;
 
+    /*
+     * Whether two people must approve it: a riskier command plan, in a
+     * project that asks for two (read now; unknown, the message says what
+     * it says of one approval, and the approval itself decides).
+     */
+    const approvalsNeeded: number =
+      suggestionType === AutoRemediationSuggestionType.CommandPlan
+        ? getFixApprovalsNeeded({
+            project: {
+              requireTwoApprovalsForRiskierFixes:
+                (await readTwoApprovalsRule(data.suggestion.projectId)) ===
+                true,
+            },
+            suggestionType,
+            plan: data.commandPlan,
+          })
+        : 1;
+
     return await RemediationChatMessage.getApprovalBlocks({
       suggestionId: data.suggestion.id,
       projectId: data.suggestion.projectId,
@@ -858,6 +950,7 @@ export default class RemediationChatMessage {
       runbookName: data.runbook?.name,
       runbookTrackRecord: data.runbookTrackRecord,
       verificationWindowMinutes: data.suggestion.verificationWindowMinutes,
+      approvalsNeeded,
     });
   }
 

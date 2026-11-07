@@ -35,6 +35,9 @@ import {
  * (issue #5184), a tool for setting a device up rather than a page of every
  * visit, folds there with them, beside the SNMP tables it helps fill.
  *
+ * The security events about the device (issue #5769) sit beside its logs:
+ * read from the syslog it sends the probe, or naming it from anywhere else.
+ *
  * Incidents and alerts can be linked to a device (issue #5341), so its
  * menu lists them under Activity, open, as a host's and a cloud resource's
  * do (the counts are NetworkDeviceViewSideMenuCounts).
@@ -136,11 +139,22 @@ describe("a network device's own menu", () => {
         href: deviceRoute(PageMap.NETWORK_DEVICE_VIEW_EVENTS),
       },
       { title: "Logs", href: deviceRoute(PageMap.NETWORK_DEVICE_VIEW_LOGS) },
+      // The security events about it, beside the logs they are read from (#5769).
+      {
+        title: "Security Events",
+        href: deviceRoute(PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS),
+      },
       {
         title: "Monitors",
         href: deviceRoute(PageMap.NETWORK_DEVICE_VIEW_MONITORS),
       },
     ]);
+  });
+
+  test("the security events live at the device's security-events address", () => {
+    expect(deviceRoute(PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS)).toBe(
+      `/dashboard/${PROJECT_ID}/network-devices/${DEVICE_ID.toString()}/security-events`,
+    );
   });
 
   test("folds the vendor tables and the SNMP walk under More", async () => {
@@ -201,6 +215,7 @@ describe("a network device's own menu", () => {
     [PageMap.NETWORK_DEVICE_VIEW, "Overview"],
     [PageMap.NETWORK_DEVICE_VIEW_INTERFACES, "Interfaces"],
     [PageMap.NETWORK_DEVICE_VIEW_EVENTS, "Events"],
+    [PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS, "Security Events"],
     [PageMap.NETWORK_DEVICE_VIEW_MONITORS, "Monitors"],
     [PageMap.NETWORK_DEVICE_VIEW_INCIDENTS, "Incidents"],
     [PageMap.NETWORK_DEVICE_VIEW_ALERTS, "Alerts"],

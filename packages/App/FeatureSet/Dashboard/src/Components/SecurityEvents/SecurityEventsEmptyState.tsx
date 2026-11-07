@@ -27,6 +27,7 @@ import {
   getYourLogsStatusLines,
   readProjectSecurityLogSource,
 } from "./SecurityLogsSourceCard";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export const SECURITY_EVENTS_EMPTY_STATE_ID: string =
   "security-events-empty-state";
@@ -263,7 +264,12 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
                 <span className="whitespace-nowrap">
                   {/* As its card on Connections names it, in the reader's language. */}
                   {translateString(title) || title}
-                  {isLast ? "" : " ·"}
+                  {isLast ? null : (
+                    <>
+                      {" "}
+                      <InlineSeparator markOnly />
+                    </>
+                  )}
                 </span>
                 {isLast ? "" : " "}
               </React.Fragment>

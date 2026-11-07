@@ -51,6 +51,7 @@ import React, {
   useState,
 } from "react";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 export interface ComponentProps {
   item: BaseModel;
@@ -562,7 +563,7 @@ const joinWithAnd: (items: Array<string>) => string = (
   }
 
   return translateTemplate("{{items}} and {{last}}", {
-    items: items.slice(0, -1).join(", "),
+    items: joinList(items.slice(0, -1)),
     last: items[items.length - 1]!,
   });
 };

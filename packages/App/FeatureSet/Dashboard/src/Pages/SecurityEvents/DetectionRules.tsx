@@ -109,6 +109,7 @@ import Link from "Common/UI/Components/Link/Link";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * How often a new rule runs, as the form starts it: the
@@ -920,7 +921,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
                     {countsInWindows ? (
                       <span data-testid="detection-rule-interval">
                         {interval}
-                        {" · "}
+                        <InlineSeparator />
                       </span>
                     ) : (
                       <></>

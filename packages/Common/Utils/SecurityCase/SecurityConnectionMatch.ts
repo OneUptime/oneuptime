@@ -4,7 +4,9 @@ import {
 } from "../../Types/Cloud/CloudInventory";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
+import { NETWORK_DEVICE_ID_ATTRIBUTE } from "../../Types/NetworkDevice/NetworkDeviceTelemetryAttribute";
 import ObjectID from "../../Types/ObjectID";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 import {
   SECURITY_CONNECTION_EVENT_PADDING_IN_MINUTES,
   SECURITY_CONNECTION_KINDS,
@@ -1464,6 +1466,50 @@ export function readSecurityLogResource(
   }
 
   return { type: type.trim(), id: id.trim() };
+}
+
+/*
+ * The records the log line an event was read from belongs to: the record it
+ * was sent under, and - a line from one of the project's network devices -
+ * the device itself, whose id ingest writes on every line it matched to a
+ * device (`networkDevice.id`) and the log scan carries onto the event
+ * (issue #5769). A device's syslog is sent under a service named after it,
+ * so without the device the event would be connected to that service alone
+ * and never to the firewall it came from. Each is connected exactly.
+ */
+export function readSecurityEventLogResources(
+  attributes: JSONObject | undefined | null,
+): Array<SecurityLogResource> {
+  const resources: Array<SecurityLogResource> = [];
+  const resource: SecurityLogResource | null =
+    readSecurityLogResource(attributes);
+
+  if (resource) {
+    resources.push(resource);
+  }
+
+  const deviceId: unknown =
+    attributes && typeof attributes === "object"
+      ? attributes[NETWORK_DEVICE_ID_ATTRIBUTE]
+      : undefined;
+
+  if (typeof deviceId === "string" && ObjectID.isValidUUID(deviceId.trim())) {
+    const id: string = deviceId.trim();
+    const isListed: boolean = resources.some(
+      (listed: SecurityLogResource): boolean => {
+        return (
+          listed.type === ServiceType.NetworkDevice &&
+          listed.id.toLowerCase() === id.toLowerCase()
+        );
+      },
+    );
+
+    if (!isListed) {
+      resources.push({ type: ServiceType.NetworkDevice, id });
+    }
+  }
+
+  return resources;
 }
 
 // ---------- The way back: what a record is searched for by ----------

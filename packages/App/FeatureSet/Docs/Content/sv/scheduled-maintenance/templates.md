@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Öppna mallarna
 
-Gå till **Schemalagt underhåll → Inställningar → Händelsemallar**. **Inställningar** börjar hopfällt i sidomenyn: fäll ut det först. Klicka på **Skapa Schemalagd Underhåll Mall**.
+Gå till **Schemalagt underhåll → Inställningar → Händelsemallar**. **Inställningar** börjar hopfällt i sidomenyn: fäll ut det först. Klicka på **Skapa Mall för schemalagt underhåll**.
 
 ### Namnge mallen
 

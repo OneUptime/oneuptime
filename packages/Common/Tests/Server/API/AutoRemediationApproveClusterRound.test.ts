@@ -526,7 +526,7 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
   }
 
   describe("the project switch, for every lane", () => {
-    test("the project is read as root, by the suggestion's project, for Enable AI alone", async () => {
+    test("the project is read as root, by the suggestion's project, for Enable AI and the two-approvals rule alone", async () => {
       await callApprove();
 
       expect(projectFindSpy).toHaveBeenCalledTimes(1);
@@ -540,8 +540,16 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
         props: { isRoot?: boolean };
       };
       expect(args.id.toString()).toBe(PROJECT_ID.toString());
-      // Exactly: the retired switches are never asked for.
-      expect(args.select).toEqual({ _id: true, enableAi: true });
+      /*
+       * Exactly: Enable AI, and whether two people approve a riskier fix
+       * (RemediationApproval reads the rule as the fix is approved). The
+       * retired switches are never asked for.
+       */
+      expect(args.select).toEqual({
+        _id: true,
+        enableAi: true,
+        requireTwoApprovalsForRiskierFixes: true,
+      });
       expect(args.props.isRoot).toBe(true);
     });
 

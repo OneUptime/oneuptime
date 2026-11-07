@@ -45,9 +45,16 @@ import TeamAddedSubscribersUnsubscribedNotice from "../../../Components/StatusPa
 import { SubscriberFormCopy } from "../../../Components/StatusPage/SubscriberFormChoices";
 import {
   getSubscriberInternalNoteField,
+  getSubscriberLanguageField,
   getSubscriberStatusFields,
   getSubscriberWelcomeField,
 } from "../../../Components/StatusPage/SubscriberFormFields";
+import {
+  getSubscriberLanguageColumn,
+  getSubscriberPageDefaultLanguageText,
+} from "../../../Components/StatusPage/SubscriberLanguageColumn";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -64,6 +71,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
   PageComponentProps
 > = (props: PageComponentProps): ReactElement => {
+  const translator: Translator = useTranslator();
   // Unsubscribe in Bulk Actions (Components/StatusPage/useSubscriberBulkActions).
   const subscriberBulkActions: ReturnType<typeof useSubscriberBulkActions> =
     useSubscriberBulkActions();
@@ -91,6 +99,14 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
    * is on - not first as off, for a frame, on a page where it is on.
    */
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  /*
+   * The status page's default language: what a subscriber without one of
+   * their own is written to in, and what the Language field and column
+   * name for them (SubscriberLanguageColumn).
+   */
+  const [pageLanguage, setPageLanguage] = React.useState<string | undefined>(
+    undefined,
+  );
   const [error, setError] = React.useState<string>("");
   const [
     categoryCheckboxOptionsAndCategories,
@@ -119,8 +135,11 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
           allowSubscribersToChooseResources: true,
           allowSubscribersToChooseEventTypes: true,
           enableMicrosoftTeamsSubscribers: true,
+          defaultLanguage: true,
         },
       });
+
+      setPageLanguage(statusPage?.defaultLanguage || undefined);
 
       if (statusPage && statusPage.allowSubscribersToChooseResources) {
         setAllowSubscribersToChooseResources(
@@ -248,7 +267,8 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
 
     /*
      * The channel's own fields, its Status on Edit, and under More fields
-     * the welcome message and the internal note (SubscriberFormFields.tsx).
+     * the welcome message, the language and the internal note
+     * (SubscriberFormFields.tsx).
      */
     const moreFields: FormFieldCollapsibleSection<StatusPageSubscriber> =
       getAdvancedFormSection<StatusPageSubscriber>();
@@ -341,6 +361,15 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
     }
 
     formFields.push(getSubscriberWelcomeField(moreFields));
+    formFields.push(
+      getSubscriberLanguageField({
+        moreFields: moreFields,
+        placeholder: getSubscriberPageDefaultLanguageText(
+          translator,
+          pageLanguage,
+        ),
+      }),
+    );
     formFields.push(getSubscriberInternalNoteField(moreFields));
 
     setFormFields(formFields);
@@ -518,6 +547,10 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
                   return <Pill color={Green} text={"Subscribed"} />;
                 },
               },
+              getSubscriberLanguageColumn({
+                translator: translator,
+                pageLanguage: pageLanguage,
+              }),
               {
                 field: {
                   createdAt: true,

@@ -46,6 +46,19 @@ checks, `orders-db` 92% full at 97% CPU, `sessions-cache` at 99% CPU), four
 budgets (one past 80%, one on course to pass, one within, one paused) and two
 App Platforms environments with four apps in the accounts.
 
+Each cost line keeps the tags it was read with (`team`, `env`; CloudFront's
+and a bucket's carry none), and each account's summary the tag keys its last
+30 days' costs carry (`summarizeCloudCostTagKeys`), so Costs breaks the spend
+down by tag; `/aggregate`'s `groupByAttributeKeys` is answered by the tag's
+value. `web-prod`'s two Amazon ECS lines are its two App Platforms
+environments' (ECS bills tasks, never an app), so the breakdown by
+environment names both and the one by app says no app is billed on its own.
+`data-lake` reads costs per resource with resource-level data not turned on
+(its summary's `resources`). The commitments on the savings summaries:
+`web-prod`'s Savings Plans and Reserved Instances, `analytics`' committed use
+discount, `eu-shop` with none, and `data-lake`'s role not allowed to read
+them.
+
 ## Scenarios
 
 | Query                  | What it shows                                            |

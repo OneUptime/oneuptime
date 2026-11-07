@@ -36,6 +36,7 @@ import {
   formatPercent,
 } from "../../../Pages/Proxmox/Utils/ProxmoxResourceUtils";
 import { ProxmoxPartRoutes } from "./ProxmoxPartRoutes";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * A Proxmox storage's Overview: whether it needs attention, how full it is
@@ -138,7 +139,7 @@ const ProxmoxStorageOverview: FunctionComponent<ComponentProps> = (
     detailRows.push({
       key: "content",
       label: "Content",
-      value: content.map(tx).join(", "),
+      value: joinList(content.map(tx)),
     });
   }
   if (row.isShared !== null && row.isShared !== undefined) {

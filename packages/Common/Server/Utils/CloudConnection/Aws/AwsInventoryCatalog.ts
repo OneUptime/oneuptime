@@ -22,7 +22,12 @@ import { getAwsPartitionForRegion } from "../../../../Types/Cloud/CloudResourceC
 import { JSONObject } from "../../../../Types/JSON";
 import { withoutTrailingRun } from "../../../../Utils/TrailingRuns";
 import { CloudInventoryItem } from "../CloudConnectorTypes";
-import { AwsListedResource } from "./AwsCloudControl";
+import {
+  AwsCloudControlListing,
+  AwsCloudControlOptions,
+  AwsListedResource,
+} from "./AwsCloudControl";
+import { listBeanstalkEnvironments } from "./AwsBeanstalkEnvironments";
 
 /*
  * WHAT AN AWS ACCOUNT'S INVENTORY LISTS, AND HOW EACH RESOURCE BECOMES ONE
@@ -111,7 +116,24 @@ export interface AwsInventoryType {
    * its own: a target group joins a load balancer to what it sends to.
    */
   isPlumbing?: boolean | undefined;
+  /*
+   * Listed by the service's own API rather than Cloud Control, for a type
+   * Cloud Control lists without what names it (an Elastic Beanstalk
+   * environment's ARN).
+   */
+  lister?:
+    | ((options: AwsCloudControlOptions) => Promise<AwsCloudControlListing>)
+    | undefined;
+  /*
+   * A refusal to list it is no warning: a role set up before the type was
+   * listed may not read it, and its connection reads everything else as it
+   * did. The type is not listed in full then, so nothing of it is archived.
+   */
+  quietWhenRefused?: boolean | undefined;
 }
+
+// An App Runner service's id: the last part of its ARN.
+const APP_RUNNER_SERVICE_ID_PATTERN: RegExp = /^[0-9a-f]{32}$/;
 
 // Text at a dotted path, "" when it is not text.
 export function textAt(source: JSONObject, path: string): string {
@@ -539,11 +561,16 @@ export const AWS_INVENTORY_TYPES: ReadonlyArray<AwsInventoryType> = [
         return { DBInstanceIdentifier: listed.identifier };
       },
     },
-    // Never MasterUserPassword or a connection string.
+    /*
+     * Never MasterUserPassword or a connection string. Its class, engine
+     * and parameter group's name say its connection limit
+     * (RdsConnectionLimits): the group's name only, never its values.
+     */
     properties: [
       "DBInstanceClass",
       "Engine",
       "EngineVersion",
+      "DBParameterGroupName",
       "MultiAZ",
       "AllocatedStorage",
       "StorageType",
@@ -908,9 +935,25 @@ export const AWS_INVENTORY_TYPES: ReadonlyArray<AwsInventoryType> = [
       namespace: () => {
         return "AWS/AppRunner";
       },
+      /*
+       * Its name, and the id its ARN carries (ServiceID, as its metrics
+       * call it): with both, the resource is named by its ARN, as a change
+       * of the cloud catalog names it.
+       */
       dimensions: (listed: AwsListedResource) => {
         const name: string = textAt(listed.properties, "ServiceName");
-        return name ? { ServiceName: name } : null;
+        const serviceId: string =
+          getAppRunnerServiceId(
+            textAt(listed.properties, "ServiceArn") || listed.identifier,
+          ) || getAppRunnerServiceId(textAt(listed.properties, "ServiceId"));
+
+        if (!name) {
+          return null;
+        }
+
+        return serviceId
+          ? { ServiceName: name, ServiceID: serviceId }
+          : { ServiceName: name };
       },
     },
     name: (listed: AwsListedResource) => {
@@ -921,7 +964,62 @@ export const AWS_INVENTORY_TYPES: ReadonlyArray<AwsInventoryType> = [
       return [listed.properties["ServiceUrl"]];
     },
   },
+  /*
+   * Listed by Elastic Beanstalk itself (AwsBeanstalkEnvironments): Cloud
+   * Control knows an environment by its name alone, and its ARN holds its
+   * application's. A connection whose role may not read them yet lists
+   * everything else as before (quietWhenRefused).
+   */
+  {
+    type: "AWS::ElasticBeanstalk::Environment",
+    lister: listBeanstalkEnvironments,
+    quietWhenRefused: true,
+    metrics: {
+      namespace: () => {
+        return "AWS/ElasticBeanstalk";
+      },
+      dimensions: (listed: AwsListedResource) => {
+        const name: string = textAt(listed.properties, "EnvironmentName");
+        const application: string = textAt(
+          listed.properties,
+          "ApplicationName",
+        );
+
+        if (!name) {
+          return null;
+        }
+
+        return application
+          ? { EnvironmentName: name, ApplicationName: application }
+          : { EnvironmentName: name };
+      },
+    },
+    name: (listed: AwsListedResource) => {
+      return textAt(listed.properties, "EnvironmentName");
+    },
+    properties: [
+      "ApplicationName",
+      "EnvironmentId",
+      "VersionLabel",
+      "Status",
+      "Health",
+      "HealthStatus",
+      "Tier.Name",
+      "SolutionStackName",
+      "PlatformArn",
+    ],
+    endpoints: (listed: AwsListedResource) => {
+      return [listed.properties["CNAME"], listed.properties["EndpointURL"]];
+    },
+  },
 ];
+
+// The 32 hex digits an App Runner service's ARN ends in, or "".
+export function getAppRunnerServiceId(value: string): string {
+  const id: string = value.slice(value.lastIndexOf("/") + 1).trim();
+
+  return APP_RUNNER_SERVICE_ID_PATTERN.test(id) ? id : "";
+}
 
 export function getAwsInventoryType(type: string): AwsInventoryType | null {
   return (

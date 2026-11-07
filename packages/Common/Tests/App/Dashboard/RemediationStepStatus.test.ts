@@ -219,6 +219,8 @@ describe("getRemediationFixFacts: one fix as the pill reads it", () => {
       hasRun: false,
       hasFailed: false,
       isVerified: false,
+      // A runbook needs one approval: nobody's first of two (#6148's follow-up).
+      isFirstApprovedByReader: false,
     });
   });
 
@@ -398,6 +400,51 @@ describe("getRemediationStepStatus: where fixing stands, in a few words", () => 
         decision: WAITING,
       }),
     ).toEqual({ tone: "attention", text: TEXT.needsApproval });
+  });
+
+  test("to a reader who may not approve it, a waiting fix needs approval - never theirs - and still comes first", () => {
+    const input: Partial<RemediationStepStatusInput> = {
+      fixes: [
+        facts({ status: AutoRemediationSuggestionStatus.Planning }),
+        facts({ status: AutoRemediationSuggestionStatus.Suggested }),
+      ],
+      lines: [line("attention")],
+      decision: WAITING,
+    };
+
+    expect(statusOf({ ...input, mayApprove: false })).toEqual({
+      tone: "attention",
+      text: TEXT.needsSomeonesApproval,
+    });
+    expect(TEXT.needsSomeonesApproval).toBe("Needs approval");
+    // Left out, or true: the reader's own, as before.
+    expect(statusOf({ ...input, mayApprove: true }).text).toBe(
+      TEXT.needsApproval,
+    );
+    expect(statusOf(input).text).toBe(TEXT.needsApproval);
+  });
+
+  test("whose approval only words a fix that waits: everything else reads the same to everyone", () => {
+    const inputs: Array<Partial<RemediationStepStatusInput>> = [
+      { isLoaded: false },
+      { fixes: [facts({ status: AutoRemediationSuggestionStatus.Planning })] },
+      { fixes: [facts({ status: AutoRemediationSuggestionStatus.Dismissed })] },
+      {
+        fixes: [
+          facts({
+            status: AutoRemediationSuggestionStatus.Suggested,
+            commands: [sshCommand()],
+          }),
+        ],
+      },
+      { decision: WAITING },
+    ];
+
+    for (const input of inputs) {
+      expect(statusOf({ ...input, mayApprove: false })).toEqual(
+        statusOf(input),
+      );
+    }
   });
 
   test("a plan nobody can approve asks for no approval", () => {

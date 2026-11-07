@@ -221,11 +221,19 @@ Open **Repositories** in Code's side menu and click **Connect repositories**: Co
 | **GitHub** | The OneUptime GitHub App, installed on the repositories it picks. | Everything on this page, with commands from GitHub (see [GitHub App](/docs/ai/github-app)) and a check on each [production review](#production-review-of-pull-requests). |
 | **GitLab**, on GitLab.com or your own | An access token: a personal, group or project token with the `api` and `write_repository` scopes, and at least the Developer role. | Tasks and fixes, each change in a merge request; [production reviews](#production-review-of-pull-requests); the branch picker; the code a stack trace or a profile runs through; a deploy's commits; whether a fix merged, and what production showed once it shipped. |
 | **Forgejo or Gitea**, on Codeberg or your own | An access token with read and write access to repositories and issues, and read access to the user. | The same as on GitLab, each change in a pull request. |
-| **Any Git server**, over HTTPS | The address you clone the repository with, a username, and a password or access token that can read the repository and push to it. | AI clones the repository and pushes each change to a new branch, and its reply says which: you open the pull request. On Bitbucket and Azure DevOps it links to where you open it. |
+| **Any Git server**, over HTTPS | The address you clone the repository with, a username, and a password or access token that can read the repository and push to it. | AI clones the repository and pushes each change to a new branch, and its reply says which: you open the pull request. On Bitbucket and Azure DevOps it links to where you open it. On Azure DevOps (Services, or Server 2019 and later), OneUptime also reads the code, with the same credentials: the code a stack trace or a profile runs through, and the files OneUptime AI reads. |
 
 Commands from comments need the GitHub App, so they work in GitHub repositories only, for now, and the repository's **Settings** say so. A Git server has no pull requests, so it has no production review either.
 
 For GitLab, Forgejo or Gitea, enter the server's address (GitLab.com and Codeberg are filled in) and the token, then pick the repositories to connect: the list offers only those the token can push to, and connecting more later can reuse the token. OneUptime checks every token with its server before it keeps it, keeps it encrypted and never shows it again. The repository's **Settings** show its server, the account and the token's last characters, with **Replace access token**. When the server refuses a token that expired or was revoked, its repositories show **Token refused** and AI stops working in them, until replacing the token connects every repository that uses it again. On a GitLab repository the settings say merge requests, as GitLab does: **Merge Requests**, **AI Fix Merge Requests** and **Max Open Fix Merge Requests**.
+
+### Sign in to a Git server
+
+OneUptime signs in to a repository on any Git server with the username and the password or access token it is connected with. Unless only your own Runners reach the server, OneUptime checks them before it connects the repository, by asking the server for its branches: the request every clone starts with. A Runner sends them the same way, with Git's first request to the server, as HTTP Basic, so a server that offers Windows sign-in first, such as Azure DevOps Server, takes a personal access token too. Git is given them through its environment, for that one server: never on its command line, and never in the clone's `.git/config`, where the code agent works.
+
+### What AI reads in a Git repository
+
+A Git server has no API to read a repository's files through, so OneUptime reads only the branches of a repository on one, for the branch picker. Azure DevOps is the exception: on Azure DevOps Services, and on Azure DevOps Server 2019 and later, OneUptime reads a repository's code too, through Azure DevOps' own API and with the same credentials. [Ask AI](/docs/ai/ask-ai) and [AI investigations](/docs/ai/ai-sre) read the code of GitHub, GitLab, Forgejo, Gitea and Azure DevOps repositories; asked about another Git repository's code, they say they cannot open it. A task in Code still works in a Git repository: the Runner clones it, AI reads and changes the code in the clone, and pushes the change to a new branch.
 
 ### A Git server on a private network
 
@@ -329,6 +337,10 @@ A run whose heartbeat has been silent for more than 12 minutes is failed with an
 
 :::details No Runner picks the task up
 A task that waits more than 30 minutes while the Runner that should take it is not connected - the one its repository picks, the project's default Runner for a repository that picks none, or a global Runner - fails, with a message that says which, so it never shows as in progress forever. A Runner that takes no code fixes counts as not connected: one started with `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, or a global Runner older than 14.0.94. Code says so before you ask for a task. When a Runner is online but busy, queued tasks wait their turn. A Runner older than Code is never handed a request from Code: update a Runner you run yourself along with the server.
+:::
+
+:::details The server refuses the credentials
+The task fails and says which server refused the credentials OneUptime signed in with, and which repository it could not clone or push its branch to. It is not tried again on the repository's default branch: on a server that signs people in with Windows accounts, such as Azure DevOps Server, a second refused sign-in can count toward locking the account. On GitHub, check that the OneUptime GitHub App is still installed with access to the repository. Elsewhere, check that the username and the password or token can still read the repository and push to it, and give it new ones with **Replace access token** on the repository's **Settings** page. Then try the task again.
 :::
 
 ## Privacy

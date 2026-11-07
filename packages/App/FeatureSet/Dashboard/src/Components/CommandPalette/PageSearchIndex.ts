@@ -617,7 +617,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.SETTINGS_AI_FEATURES,
             title: "AI Features",
             icon: IconProp.Sparkles,
-            keywords: ["enable ai", "turn on ai", "artificial intelligence"],
+            keywords: [
+              "enable ai",
+              "turn on ai",
+              "artificial intelligence",
+              "two-person approval",
+              "second approval",
+            ],
             settings: [
               "Enable AI",
               "AI context",
@@ -628,6 +634,15 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               { name: "Daily limits", anchor: "DailyLimits" },
               { name: "Daily AI Token Limit", anchor: "DailyLimits" },
               { name: "Daily AI Spend Limit (USD)", anchor: "DailyLimits" },
+              /*
+               * Two people approve a riskier fix: the card under the same
+               * More settings (FIX_APPROVALS_CARD_KEY), and its switch.
+               */
+              { name: "Fix approvals", anchor: "FixApprovals" },
+              {
+                name: "Two people approve riskier fixes",
+                anchor: "FixApprovals",
+              },
             ],
           },
           {

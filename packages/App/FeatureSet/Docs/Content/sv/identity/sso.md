@@ -36,8 +36,8 @@ OneUptime läser bara några få saker från den assertion som din IdP skickar:
 | --- | --- |
 | Signatur | Kontrollerar den mot leverantörens **Offentligt certifikat**. Svaret måste vara signerat och får inte vara krypterat. |
 | Issuer | Måste exakt matcha leverantörens **Utfärdare**. |
-| Audience | Måste vara leverantörens **Identifier (Entity ID)**. Ett svar som din IdP skapade för ett annat program avvisas. |
-| Recipient och Destination | Måste vara leverantörens **Reply URL**, adressen som svaret skickades till. |
+| Audience | Måste vara leverantörens **Identifierare (Entity ID)**. Ett svar som din IdP skapade för ett annat program avvisas. |
+| Recipient och Destination | Måste vara leverantörens **Svars-URL**, adressen som svaret skickades till. |
 | `NotBefore` och `NotOnOrAfter` | Svaret tas bara emot så länge de tillåter det, och senast 10 minuter efter att det utfärdades, med 3 minuters marginal för klockor som går olika. |
 | Name ID | Personens e-postadress. Den måste vara en giltig e-postadress. |
 | Namnattribut | Personens namn, som används när OneUptime skapar kontot: ett visningsnamn (`displayName` eller `http://schemas.microsoft.com/identity/claims/displayname`), eller ett för- och efternamn (`firstName` och `lastName`, eller anspråken `givenname` och `surname` som Microsoft Entra ID skickar som standard). Valfritt. |
@@ -73,9 +73,9 @@ Du behöver behörighet att lägga till SSO-leverantörer — **Projektägare**,
    - Resten är redan ifyllt under **Fler fält**: **Signaturmetod** (`RSA-SHA256`), **Digest-metod** (`SHA256`) och en beskrivning ("Sign in with" och namnet). Ändra dem bara om din identitetsleverantör kräver det
 
 3. **Hämta OneUptimes SSO-metadata**
-   - När du sparar öppnas dialogen **SSO Configuration**. Du kan öppna den igen med knappen **Visa SSO-konfiguration**
-   - Kopiera **Identifier (Entity ID)**, till exempel `https://oneuptime.com/<project-id>/<provider-id>` — den behövs i din IdP-konfiguration
-   - Kopiera **Reply URL (Assertion Consumer Service URL)**, till exempel `https://oneuptime.com/identity/idp-login/<project-id>/<provider-id>` — den behövs i din IdP-konfiguration
+   - När du sparar öppnas dialogen **SSO-konfiguration**. Du kan öppna den igen med knappen **Visa SSO-konfiguration**
+   - Kopiera **Identifierare (Entity ID)**, till exempel `https://oneuptime.com/<project-id>/<provider-id>` — den behövs i din IdP-konfiguration
+   - Kopiera **Svars-URL (Assertion Consumer Service-URL)**, till exempel `https://oneuptime.com/identity/idp-login/<project-id>/<provider-id>` — den behövs i din IdP-konfiguration
    - En ny leverantör börjar avstängd. När din IdP har dessa två värden redigerar du leverantören och slår på **Aktiverad**
 
 4. **Testa leverantören**
@@ -85,7 +85,7 @@ Du behöver behörighet att lägga till SSO-leverantörer — **Projektägare**,
 
 ## Guider för identitetsleverantörer
 
-Välj din identitetsleverantör. Varje guide hämtar IdP:ns värden, skapar leverantören i OneUptime och ger sedan IdP:n OneUptimes **Identifier (Entity ID)** och **Reply URL**.
+Välj din identitetsleverantör. Varje guide hämtar IdP:ns värden, skapar leverantören i OneUptime och ger sedan IdP:n OneUptimes **Identifierare (Entity ID)** och **Svars-URL**.
 
 :::tabs
 @tab Keycloak
@@ -114,15 +114,15 @@ Keycloak är en populär lösning med öppen källkod för identitets- och åtko
    - **Offentligt certifikat**: certifikatet, mellan sina egna rader `BEGIN CERTIFICATE` och `END CERTIFICATE`
    - **Signaturmetod** och **Digest-metod**: redan angivna under **Fler fält** (`RSA-SHA256` och `SHA256`)
 
-   Spara och kopiera **Identifier (Entity ID)** och **Reply URL (Assertion Consumer Service URL)** från dialogen som öppnas.
+   Spara och kopiera **Identifierare (Entity ID)** och **Svars-URL (Assertion Consumer Service-URL)** från dialogen som öppnas.
 
 3. **Skapa Keycloak-klienten**
 
    Öppna **Clients** i din realm i Keycloak och skapa en klient, eller redigera en befintlig:
    - **Client Protocol** (klienttyp): `saml`
-   - **Client ID**: **Identifier (Entity ID)** från OneUptime
+   - **Client ID**: **Identifierare (Entity ID)** från OneUptime
    - **Root URL** och **Valid Redirect URIs**: din OneUptime-URL
-   - **Assertion Consumer Service POST Binding URL**: **Reply URL (Assertion Consumer Service URL)** från OneUptime
+   - **Assertion Consumer Service POST Binding URL**: **Svars-URL (Assertion Consumer Service-URL)** från OneUptime
 
 4. **Justera klientinställningarna**
 
@@ -159,13 +159,13 @@ Microsoft Entra ID (tidigare Azure AD / Active Directory) är Microsofts molnbas
    - **Offentligt certifikat**: Base64-certifikatet, inklusive raderna `BEGIN CERTIFICATE` och `END CERTIFICATE`
    - **Signaturmetod** och **Digest-metod**: redan angivna under **Fler fält** (`RSA-SHA256` och `SHA256`)
 
-   Spara och kopiera **Identifier (Entity ID)** och **Reply URL (Assertion Consumer Service URL)** från dialogen som öppnas.
+   Spara och kopiera **Identifierare (Entity ID)** och **Svars-URL (Assertion Consumer Service-URL)** från dialogen som öppnas.
 
 4. **Ge Entra ID OneUptimes URL:er**
 
    Klicka på **Edit** under **Basic SAML Configuration** och ange:
-   - **Identifier (Entity ID)**: **Identifier (Entity ID)** från OneUptime
-   - **Reply URL (Assertion Consumer Service URL)**: **Reply URL** från OneUptime
+   - **Identifier (Entity ID)**: **Identifierare (Entity ID)** från OneUptime
+   - **Reply URL (Assertion Consumer Service URL)**: **Svars-URL** från OneUptime
 
    Klicka på **Save**.
 
@@ -211,18 +211,18 @@ Okta är en vanlig identitetsplattform med SAML-SSO. Du behöver en Okta-organis
    - **Offentligt certifikat**: certifikatet, inklusive raderna `BEGIN CERTIFICATE` och `END CERTIFICATE`
    - **Signaturmetod** och **Digest-metod**: redan angivna under **Fler fält** (`RSA-SHA256` och `SHA256`)
 
-   Spara och kopiera **Identifier (Entity ID)** och **Reply URL (Assertion Consumer Service URL)** från dialogen som öppnas.
+   Spara och kopiera **Identifierare (Entity ID)** och **Svars-URL (Assertion Consumer Service-URL)** från dialogen som öppnas.
 
 4. **Ge Okta OneUptimes URL:er**
 
    För programmet från Okta Integration Network klickar du på **Edit** under **App Settings** på fliken **General** och anger:
-   - **OneUptime Project ID** och **OneUptime SSO Provider ID**: de två ID:na i **Identifier (Entity ID)** från OneUptime, `https://oneuptime.com/<project-id>/<provider-id>`
+   - **OneUptime Project ID** och **OneUptime SSO Provider ID**: de två ID:na i **Identifierare (Entity ID)** från OneUptime, `https://oneuptime.com/<project-id>/<provider-id>`
 
    Klicka på **Save** och kontrollera att **Application username format** är `Email` på fliken **Sign On**.
 
    För ditt eget program klickar du på **Edit** under **SAML Settings** på fliken **General** och sedan på **Next**, och anger:
-   - **Single sign-on URL**: **Reply URL (Assertion Consumer Service URL)** från OneUptime
-   - **Audience URI (SP Entity ID)**: **Identifier (Entity ID)** från OneUptime
+   - **Single sign-on URL**: **Svars-URL (Assertion Consumer Service-URL)** från OneUptime
+   - **Audience URI (SP Entity ID)**: **Identifierare (Entity ID)** från OneUptime
 
    Lägg eventuellt till attribute statements `firstName`, med värdet `user.firstName`, och `lastName`, med värdet `user.lastName`, så att nya konton får personens namn. Klicka på **Next** och sedan på **Finish**.
 
@@ -239,7 +239,7 @@ OneUptimes SSO använder SAML 2.0 och fungerar med alla kompatibla identitetslev
 
 :::steps
 1. Hämta din identitetsleverantörs **Inloggnings-URL** (dess SSO-slutpunkt), **Utfärdare** (dess entitets-ID) och **Offentligt certifikat** (dess X.509-signeringscertifikat). Visar din IdP dem först när det finns ett program skapar du programmet med din OneUptime-adress som tillfälliga URL:er.
-2. Skapa leverantören i OneUptime med dessa värden och kopiera **Identifier (Entity ID)** och **Reply URL (Assertion Consumer Service URL)** från dialogen **SSO Configuration** (eller via **Visa SSO-konfiguration**).
+2. Skapa leverantören i OneUptime med dessa värden och kopiera **Identifierare (Entity ID)** och **Svars-URL (Assertion Consumer Service-URL)** från dialogen **SSO-konfiguration** (eller via **Visa SSO-konfiguration**).
 3. Ställ i SAML-programmet hos din identitetsleverantör in **Assertion Consumer Service URL / Reply URL** och **Entity ID / Audience URI** på OneUptimes värden, och **Name ID Format** på e-postadress.
 4. **Signaturmetod** (`RSA-SHA256`) och **Digest-metod** (`SHA256`) är redan angivna under **Fler fält**; ändra dem bara om din identitetsleverantör signerar på ett annat sätt
 5. Slå på **Aktiverad** för leverantören och testa den med länken i kortet **Test Single Sign On (SSO)**.
@@ -255,7 +255,7 @@ Ett projekt kan också logga in via en OpenID Connect-leverantör, till exempel 
 2. Gå till **Projektinställningar** > **Säkerhet** > **SSO** i OneUptime. Klicka på **Lägg till OIDC-leverantör** under SAML-leverantörerna.
 3. Ange ett **Namn** (det som personer ser på inloggningssidan), **Utfärdar-URL**, **Klient-ID** och **Klienthemlighet**. Du kan också klistra in leverantörens discovery-URL i **Utfärdar-URL** i stället.
 4. I steget **Inloggning** börjar **Team** med projektets medlemsteam: personer som loggar in för första gången går med i dessa team. Resten är redan ifyllt under **Fler fält**: **Discovery-URL** (utfärdaren följd av `/.well-known/openid-configuration`), **Omfattningar** (`openid email profile`), anspråksnamnen `email` och `name` och en beskrivning ("Sign in with" och namnet). Ändra dem bara om din leverantör kräver det. Endast team som du själv kan bjuda in någon till godtas: ett team som ger mer åtkomst än du har nämns under **Team**.
-5. Spara. Dialogen **OIDC Configuration** öppnas med **Redirect URI**: lägg till den bland appens tillåtna omdirigerings-URI:er. En ny leverantör börjar avstängd, så redigera den sedan och slå på **Aktiverad**.
+5. Spara. Dialogen **OIDC-konfiguration** öppnas med **Redirect URI**: lägg till den bland appens tillåtna omdirigerings-URI:er. En ny leverantör börjar avstängd, så redigera den sedan och slå på **Aktiverad**.
 6. Öppna länken i kortet **Test Single Sign On (SSO)** och välj leverantören för att logga in via den innan du kräver SSO för projektet.
 :::
 
@@ -342,11 +342,11 @@ Utfärdaren i din IdP:s assertion är inte leverantörens **Utfärdare**. Kopier
 :::
 
 :::details "SAML Audience does not match"
-Svarets audience är inte den här leverantörens **Identifier (Entity ID)**: din IdP skapade svaret för ett annat program. Ställ in programmets entity ID i din IdP till **Identifier (Entity ID)** från **Visa SSO-konfiguration** – **Client ID** i Keycloak, **Identifier (Entity ID)** i Entra ID, **Audience URI (SP Entity ID)** i Okta. En IdP som är inställd med bara OneUptimes adress som entity ID, till exempel `https://oneuptime.com`, fungerar fortfarande.
+Svarets audience är inte den här leverantörens **Identifierare (Entity ID)**: din IdP skapade svaret för ett annat program. Ställ in programmets entity ID i din IdP till **Identifierare (Entity ID)** från **Visa SSO-konfiguration** – **Client ID** i Keycloak, **Identifier (Entity ID)** i Entra ID, **Audience URI (SP Entity ID)** i Okta. En IdP som är inställd med bara OneUptimes adress som entity ID, till exempel `https://oneuptime.com`, fungerar fortfarande.
 :::
 
 :::details "SAML Recipient does not match"
-Svarets recipient är inte den här leverantörens **Reply URL**: svaret skickades till en annan adress. Ställ in programmets reply URL i din IdP till **Reply URL (Assertion Consumer Service URL)** från **Visa SSO-konfiguration** – **Assertion Consumer Service POST Binding URL** i Keycloak, **Reply URL (Assertion Consumer Service URL)** i Entra ID, **Single sign-on URL** i Okta. "SAML Destination does not match" har samma orsak och samma lösning.
+Svarets recipient är inte den här leverantörens **Svars-URL**: svaret skickades till en annan adress. Ställ in programmets reply URL i din IdP till **Svars-URL (Assertion Consumer Service-URL)** från **Visa SSO-konfiguration** – **Assertion Consumer Service POST Binding URL** i Keycloak, **Reply URL (Assertion Consumer Service URL)** i Entra ID, **Single sign-on URL** i Okta. "SAML Destination does not match" har samma orsak och samma lösning.
 :::
 
 :::details "SAML response has expired"
@@ -378,7 +378,7 @@ OneUptime läser e-postadressen från Name ID. Ställ in Name ID på användaren
 :::
 
 :::details Okta: 404, eller en audience som inte matchar
-**Single sign-on URL** i Okta måste vara exakt OneUptimes **Reply URL**, och **Audience URI** exakt OneUptimes **Identifier (Entity ID)**. Kontrollera att båda har ersatt de tillfälliga värdena.
+**Single sign-on URL** i Okta måste vara exakt OneUptimes **Svars-URL**, och **Audience URI** exakt OneUptimes **Identifierare (Entity ID)**. Kontrollera att båda har ersatt de tillfälliga värdena.
 :::
 
 :::details Användaren är inte tilldelad programmet

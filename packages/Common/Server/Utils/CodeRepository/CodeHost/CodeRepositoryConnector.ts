@@ -356,9 +356,12 @@ export default class CodeRepositoryConnector {
                 id,
               );
 
+        /*
+         * Its owner, however deeply nested its group, is kept whole
+         * (CodeRepository.organizationName); its own name has to fit.
+         */
         if (
           !repository.canPush ||
-          repository.ownerPath.length > ColumnLength.ShortText ||
           repository.name.length > ColumnLength.ShortText
         ) {
           skipped++;
@@ -462,12 +465,10 @@ export default class CodeRepositoryConnector {
       address.username ||
       "";
 
-    if (
-      address.organizationName.length > ColumnLength.ShortText ||
-      address.repositoryName.length > ColumnLength.ShortText
-    ) {
+    // The path before its name is kept whole, as long as the address is.
+    if (address.repositoryName.length > ColumnLength.ShortText) {
       throw new BadDataException(
-        "That repository's path is longer than OneUptime keeps.",
+        "That repository's name is longer than OneUptime keeps.",
       );
     }
 

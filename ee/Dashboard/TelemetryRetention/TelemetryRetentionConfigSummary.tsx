@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import LogSeverity from "Common/Types/Log/LogSeverity";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   config?: TelemetryRetentionConfig | null | undefined;
@@ -120,7 +121,7 @@ const PillarCard: FunctionComponent<{ pillar: PillarRender }> = (props: {
                     aria-hidden="true"
                     className="text-indigo-300 dark:text-indigo-700"
                   >
-                    ·
+                    <InlineSeparator markOnly />
                   </span>
                   <span className="font-normal">{formatDays(o.days)}</span>
                 </span>

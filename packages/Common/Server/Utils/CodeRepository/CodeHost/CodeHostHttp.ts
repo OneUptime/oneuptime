@@ -72,6 +72,13 @@ export enum CodeHostHttpErrorKind {
   Unavailable = "Unavailable",
   // Too many requests: the server asked OneUptime to slow down.
   RateLimited = "RateLimited",
+  /*
+   * The answer was more than OneUptime reads at once
+   * (CODE_HOST_MAX_RESPONSE_BYTES). Asking again gets the same answer, so
+   * it is not tried again; a client that can ask for less does - a large
+   * tree on Azure DevOps is read a folder at a time (AzureDevOpsApi).
+   */
+  TooLarge = "TooLarge",
   // The server refused the request for another reason (4xx).
   Rejected = "Rejected",
   // The answer was not what the server's API documents.
@@ -284,7 +291,9 @@ export default class CodeHostHttp {
       });
     } catch (error) {
       throw new CodeHostHttpError({
-        kind: CodeHostHttpErrorKind.Unavailable,
+        kind: CodeHostHttp.isAnswerTooLarge(error)
+          ? CodeHostHttpErrorKind.TooLarge
+          : CodeHostHttpErrorKind.Unavailable,
         message: CodeHostHttp.describeTransportError(error, data.url),
       });
     }
@@ -317,6 +326,25 @@ export default class CodeHostHttp {
     };
   }
 
+  /*
+   * Whether a request failed because its answer was more than the
+   * transport reads at once (axios' maxContentLength), rather than for
+   * want of an answer.
+   */
+  public static isAnswerTooLarge(error: unknown): boolean {
+    const code: string =
+      axios.isAxiosError(error) && error.code
+        ? error.code
+        : (error as NodeJS.ErrnoException | undefined)?.code ?? "";
+    const message: string =
+      error instanceof Error ? (error.message || "").toLowerCase() : "";
+
+    return (
+      code === "ERR_FR_MAX_BODY_LENGTH_EXCEEDED" ||
+      message.includes("maxcontentlength")
+    );
+  }
+
   // Why no answer came back, in words that quote nothing but the host.
   public static describeTransportError(error: unknown, url: URL): string {
     const code: string =
@@ -334,10 +362,7 @@ export default class CodeHostHttp {
       return `${url.host} did not answer in time. Try again in a moment.`;
     }
 
-    if (
-      code === "ERR_FR_MAX_BODY_LENGTH_EXCEEDED" ||
-      message.includes("maxcontentlength")
-    ) {
+    if (CodeHostHttp.isAnswerTooLarge(error)) {
       return `${url.host} answered with more than OneUptime reads at once.`;
     }
 

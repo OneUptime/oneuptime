@@ -1,3 +1,6 @@
+import readAsWritten from "../IsolatedText/ReadAsWritten";
+import useTranslator from "../../Utils/UseTranslator";
+import { Translator } from "../../Utils/TranslateTemplate";
 import Link from "../Link/Link";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
@@ -17,6 +20,7 @@ const Banner: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const translatedTitle: string = translateString(props.title) || props.title;
   const translatedDescription: string =
     translateString(props.description) || props.description;
@@ -31,7 +35,7 @@ const Banner: FunctionComponent<ComponentProps> = (
         >
           <circle cx="1" cy="1" r="1" />
         </svg>
-        {translatedDescription}&nbsp;
+        {readAsWritten(translatedDescription, translator.language)}&nbsp;
         <span aria-hidden="true">&rarr;</span>
       </>
     );
