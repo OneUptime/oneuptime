@@ -40,6 +40,16 @@ export const MESSAGE_QUEUE_CLIENT_SPAN_KIND: SpanKind = SpanKind.Client;
 // How many services each of the Producers / Consumers cards lists.
 export const MESSAGE_QUEUE_SERVICE_LIMIT: number = 10;
 
+/*
+ * What a span duration (durationUnixNano) is multiplied by to read it in
+ * milliseconds. Every p95 of a queue's spans is scaled by it - the cards',
+ * the tiles' and the topology's - and always multiplied by it, never divided
+ * by a million: the two differ in the last bit for about a third of the
+ * values ClickHouse's interpolated quantile gives, and a line on the map
+ * says what its row on the card says to the last bit.
+ */
+export const MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND: number = 1 / 1_000_000;
+
 // ---- which spans are which ---------------------------------------------------
 
 /*

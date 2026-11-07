@@ -38,6 +38,7 @@ import {
   MESSAGE_QUEUE_CLIENT_SPAN_KIND,
   MESSAGE_QUEUE_CONSUME_SPAN_KIND,
   MESSAGE_QUEUE_LEGACY_OPERATION_ATTRIBUTE,
+  MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
   MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE,
   MESSAGE_QUEUE_POLLED_RECEIVE_SYSTEMS,
   MESSAGE_QUEUE_PUBLISH_SPAN_KIND,
@@ -159,6 +160,7 @@ export {
   MESSAGE_QUEUE_CLIENT_SPAN_KIND,
   MESSAGE_QUEUE_CONSUME_SPAN_KIND,
   MESSAGE_QUEUE_LEGACY_OPERATION_ATTRIBUTE,
+  MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
   MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE,
   MESSAGE_QUEUE_POLLED_RECEIVE_SYSTEMS,
   MESSAGE_QUEUE_PUBLISH_SPAN_KIND,
@@ -250,8 +252,6 @@ export interface MessageQueueSpanOverview {
   producers: MessageQueueServices;
   consumers: MessageQueueServices;
 }
-
-const NANOSECONDS_PER_MILLISECOND: number = 1_000_000;
 
 function projectIdOf(
   projectId: ObjectID | string | null | undefined,
@@ -478,7 +478,10 @@ export function toMessageQueueServiceSpanFigures(data: {
   return {
     counts: valuesByService(data.countResult),
     errors: valuesByService(data.errorResult),
-    p95Ms: valuesByService(data.p95Result, 1 / NANOSECONDS_PER_MILLISECOND),
+    p95Ms: valuesByService(
+      data.p95Result,
+      MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
+    ),
   };
 }
 
@@ -661,11 +664,11 @@ export async function fetchMessageQueueSpanOverview(
               handledCount: sumOf(handledSeries),
               p95ProcessingSeries: aggregatedResultToTimePoints(
                 p95Result,
-                1 / NANOSECONDS_PER_MILLISECOND,
+                MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
               ),
               windowP95Ms: firstFiniteValue(
                 windowP95Result,
-                1 / NANOSECONDS_PER_MILLISECOND,
+                MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
               ),
             };
           },

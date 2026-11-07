@@ -22,6 +22,7 @@ import {
   parseMessageQueueIdentifier,
 } from "../../../Types/MessageQueue/MessageQueueIdentity";
 import {
+  MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
   MessageQueueProducerServices,
   MessageQueueServiceFigures,
   MessageQueueServiceFiguresList,
@@ -82,8 +83,6 @@ const SPAN_TABLE: string = AnalyticsTableName.Span;
  * them out (AnalyticsDatabaseService.getRetentionReadFilter).
  */
 const RETENTION_FILTER: string = " AND retentionDate >= now()";
-
-const NANOSECONDS_PER_MILLISECOND: number = 1_000_000;
 
 // The range when the request names none: the last hour.
 export const MESSAGE_QUEUE_TOPOLOGY_DEFAULT_RANGE_MS: number = 60 * 60 * 1000;
@@ -457,14 +456,18 @@ function countFrom(value: unknown): number {
   return Number.isFinite(number) && number > 0 ? Math.floor(number) : 0;
 }
 
-// A p95 from a row, in milliseconds: null for none (ClickHouse's nan).
+/*
+ * A p95 from a row, in milliseconds: null for none (ClickHouse's nan).
+ * Scaled exactly as the cards scale theirs, so the line and the row carry
+ * the same number to the last bit.
+ */
 function p95From(value: unknown): number | null {
   if (value === null || value === undefined || value === "") {
     return null;
   }
   const number: number = typeof value === "number" ? value : Number(value);
   return Number.isFinite(number) && number >= 0
-    ? number / NANOSECONDS_PER_MILLISECOND
+    ? number * MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND
     : null;
 }
 

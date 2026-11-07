@@ -83,6 +83,27 @@ const METRICS: string = readSquashed("Pages/MessageQueue/View/Metrics.tsx");
 const QUERIES: string = readSquashed(
   "Components/MessageQueue/MessageQueueTelemetryQueries.ts",
 );
+/*
+ * The span groups' definitions, shared by the Overview and the topology
+ * (issue #6189): Common/Types/MessageQueue/MessageQueueSpanPopulation.ts.
+ */
+const POPULATIONS: string = fs
+  .readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "Common",
+      "Types",
+      "MessageQueue",
+      "MessageQueueSpanPopulation.ts",
+    ),
+    "utf8",
+  )
+  .replace(BLOCK_COMMENT, " ")
+  .replace(LINE_COMMENT, "$1")
+  .replace(WHITESPACE, " ");
 const LINK: string = readSquashed(
   "Components/MessageQueue/MessageQueueMetricMonitorLink.ts",
 );
@@ -192,12 +213,18 @@ describe("the queue Overview's data loading", () => {
       "}),",
     );
     expect(read).toContain("messagingSystem: item.messagingSystem,");
-    expect(QUERIES).toContain(
+    expect(POPULATIONS).toContain(
       "export const MESSAGE_QUEUE_PUBLISH_SPAN_KIND: SpanKind = SpanKind.Producer;",
     );
-    expect(QUERIES).toContain(
+    expect(POPULATIONS).toContain(
       "export const MESSAGE_QUEUE_CONSUME_SPAN_KIND: SpanKind = SpanKind.Consumer;",
     );
+    // The Overview's module takes them from there, never a copy of its own.
+    expect(QUERIES).toContain(
+      '} from "Common/Types/MessageQueue/MessageQueueSpanPopulation";',
+    );
+    expect(QUERIES).not.toContain("export const MESSAGE_QUEUE_PUBLISH_SPAN_KIND");
+    expect(QUERIES).not.toContain("export const MESSAGE_QUEUE_CONSUME_SPAN_KIND");
     // An empty card says whether the queue had any span at all.
     expect(countOf(OVERVIEW, "queueHasSpans={hasSpans}")).toBe(2);
     expect(OVERVIEW).toContain("const hasSpans: boolean = m.total > 0;");

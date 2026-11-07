@@ -9,6 +9,7 @@ import { TelemetryServiceFilter } from "../../../../Server/Utils/Telemetry/Telem
 import { SpanStatus } from "../../../../Models/AnalyticsModels/Span";
 import ObjectID from "../../../../Types/ObjectID";
 import {
+  MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
   getMessageQueueSpanPopulationFilter,
   isMessageQueueSpanPopulationRead,
 } from "../../../../Types/MessageQueue/MessageQueueSpanPopulation";
@@ -33,14 +34,22 @@ import {
  * and the real-ClickHouse suite holds the statement to it
  * (App/Tests/Dashboard/MessageQueueTopologyClickhouse).
  *
- * A p95 is the nearest-rank percentile of the durations in whole
- * nanoseconds (durationUnixNano), read back in milliseconds, as the span
- * store answers the Overview's P95 requests.
+ * A p95 is taken over the durations in whole nanoseconds (durationUnixNano)
+ * and read back in milliseconds. By default it is the nearest-rank
+ * percentile, as the span store answers the Overview's P95 requests; the
+ * real-ClickHouse suite passes ClickHouse's own rule instead (quantile's
+ * linear interpolation between the two nearest ranks), so it can hold the
+ * statement's p95s to the twin's as well as its counts.
  *
  * Not a test file itself (no .test. in the name), so jest does not run it.
  */
 
-function p95Of(values: ReadonlyArray<number>): number {
+// A percentile of durations in nanoseconds, in nanoseconds.
+export type MessageQueueTopologyTwinPercentile = (
+  durationsNs: ReadonlyArray<number>,
+) => number;
+
+export function nearestRankP95(values: ReadonlyArray<number>): number {
   const sorted: Array<number> = [...values].sort((a: number, b: number) => {
     return a - b;
   });
@@ -83,7 +92,10 @@ export function readMessageQueueTopologyTwin(data: {
   keys: MessageQueueTopologyKeys;
   window: MessageQueueTopologyWindow;
   serviceFilter?: TelemetryServiceFilter | undefined;
+  p95Of?: MessageQueueTopologyTwinPercentile | undefined;
 }): Array<MessageQueueTopologyPairRow> {
+  const p95Of: MessageQueueTopologyTwinPercentile =
+    data.p95Of || nearestRankP95;
   const keySet: Set<string> = new Set<string>(data.keys.keys);
   const pairs: Map<string, PairState> = new Map<string, PairState>();
 
@@ -159,7 +171,9 @@ export function readMessageQueueTopologyTwin(data: {
           ? {
               count: group.count,
               errors: group.errors,
-              p95Ms: p95Of(group.durations) / 1_000_000,
+              p95Ms:
+                p95Of(group.durations) *
+                MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
             }
           : { count: 0, errors: 0, p95Ms: null };
       }

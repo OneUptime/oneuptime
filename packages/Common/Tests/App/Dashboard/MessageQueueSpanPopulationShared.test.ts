@@ -35,6 +35,7 @@ describe("the Overview and the topology read one definition", () => {
     "MESSAGE_QUEUE_CLIENT_SPAN_KIND",
     "MESSAGE_QUEUE_CONSUME_SPAN_KIND",
     "MESSAGE_QUEUE_LEGACY_OPERATION_ATTRIBUTE",
+    "MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND",
     "MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE",
     "MESSAGE_QUEUE_POLLED_RECEIVE_SYSTEMS",
     "MESSAGE_QUEUE_PUBLISH_SPAN_KIND",
@@ -103,5 +104,46 @@ describe("the Overview and the topology read one definition", () => {
     // No filter of its own: every condition is compiled by the query builder.
     expect(read).not.toMatch(/SPAN_KIND_(PRODUCER|CONSUMER|CLIENT)/);
     expect(read).not.toContain("messaging.batch.message_count");
+  });
+
+  test("both scale a p95 to milliseconds with the one factor, never by dividing", () => {
+    const overview: string = source(
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Components",
+      "MessageQueue",
+      "MessageQueueTelemetryQueries.ts",
+    );
+    const read: string = source(
+      "Common",
+      "Server",
+      "Utils",
+      "Telemetry",
+      "MessageQueueTopology.ts",
+    );
+    // The cards' p95s, the processing chart's and the tile's.
+    for (const use of [
+      /valuesByService\(\s*data\.p95Result,\s*MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,?\s*\)/,
+      /aggregatedResultToTimePoints\(\s*p95Result,\s*MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,?\s*\)/,
+      /firstFiniteValue\(\s*windowP95Result,\s*MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,?\s*\)/,
+    ]) {
+      expect(overview).toMatch(use);
+    }
+    expect(read).toContain("number * MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND");
+    for (const [name, text] of [
+      ["the Overview", overview],
+      ["the topology", read],
+    ] as Array<[string, string]>) {
+      expect({ name, divides: /\/\s*(1_000_000|1000000|1e6|NANOSECONDS)/.test(text) }).toEqual({
+        name,
+        divides: false,
+      });
+    }
+    // The two differ in the last bit for values an interpolated p95 takes.
+    expect(22807691318 * Shared.MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND).not.toBe(
+      22807691318 / 1_000_000,
+    );
   });
 });

@@ -24,6 +24,7 @@ import {
   MessageQueueTopologyResponse,
 } from "../../../../Types/MessageQueue/MessageQueueTopology";
 import {
+  MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
   combineMessageQueueConsumerServices,
   combineMessageQueueProducerServices,
 } from "../../../../Types/MessageQueue/MessageQueueSpanPopulation";
@@ -565,6 +566,35 @@ describe("the rows", () => {
       errors: 0,
       p95Ms: null,
     });
+  });
+
+  test("a p95 is scaled as the cards scale theirs, to the last bit (ClickHouse's interpolated quantiles)", () => {
+    /*
+     * ClickHouse's quantile interpolates between ranks, so a p95 in
+     * nanoseconds is seldom whole milliseconds; for these, dividing by a
+     * million and multiplying by its reciprocal - as the cards do - give
+     * two different doubles, and a line would not be its row.
+     */
+    const p95s: Array<number> = [22807691318, 13577981454.5, 9549999.999999999];
+    const rows: Array<MessageQueueTopologyPairRow> =
+      readMessageQueueTopologyRows(
+        p95s.map((p95: number, index: number): JSONObject => {
+          return {
+            queueKey: `k${index}`,
+            serviceId: SERVICE_A,
+            spanCount: "1",
+            publishCount: "1",
+            publishP95: p95,
+          } as JSONObject;
+        }),
+      );
+    rows.forEach((row: MessageQueueTopologyPairRow, index: number) => {
+      expect(row.groups["publish"]!.p95Ms).toBe(
+        p95s[index]! * MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
+      );
+    });
+    expect(rows[0]!.groups["publish"]!.p95Ms).not.toBe(22807691318 / 1_000_000);
+    expect(MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND).toBe(1 / 1_000_000);
   });
 
   test("failed spans never exceed the spans; a p95 that is not a number reads as none", () => {
