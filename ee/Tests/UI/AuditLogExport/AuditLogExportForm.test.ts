@@ -14,8 +14,12 @@ import {
   formatAuditLogExportDuration,
   getAuditLogExportHealth,
   getAuditLogExportInitialValues,
+  getAuditLogExportSchemaVersionOptions,
   readAuditLogExportForm,
 } from "../../../Dashboard/AuditLogExport/AuditLogExportForm";
+import { AUDIT_LOG_EXPORT_SCHEMA_VERSIONS } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
+import fs from "fs";
+import path from "path";
 import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
 import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLogExportDestinationType";
 import {
@@ -98,6 +102,8 @@ describe("readAuditLogExportForm", () => {
       },
       secrets: { secretAccessKey: "wJalrXUtnFEMI/K7MDENG" },
       startsAt: null,
+      // None picked: on create the newest, on edit the saved one.
+      schemaVersion: null,
     });
   });
 
@@ -412,6 +418,144 @@ describe("the form's values for a saved export", () => {
     expect(getAuditLogExportInitialValues(undefined, undefined)).toEqual({
       name: "",
     });
+  });
+});
+
+/*
+ * Issue #6247: which version of the record an export sends, under More
+ * fields. A new export starts on the newest (the field's default); an
+ * export saved before there was a choice opens on version 1, the one it
+ * sends, and an edit writes the version only when someone changed it -
+ * never the field's default over a version the form could not read.
+ */
+describe("the record version", () => {
+  function update(values: JSONObject, saved: AuditLogExport): JSONObject {
+    return auditLogExportUpdatePayload({
+      submission: readAuditLogExportForm(values, S3),
+      auditLogExport: saved,
+    });
+  }
+
+  test("the form offers every version by its name, the newest first", () => {
+    expect(getAuditLogExportSchemaVersionOptions()).toEqual([
+      { label: AuditLogExportCopy.schemaVersionNewestOption, value: "2" },
+      { label: AuditLogExportCopy.schemaVersionFirstOption, value: "1" },
+    ]);
+    expect(
+      getAuditLogExportSchemaVersionOptions()
+        .map((option: { value: string }): number => {
+          return Number(option.value);
+        })
+        .sort(),
+    ).toEqual([...AUDIT_LOG_EXPORT_SCHEMA_VERSIONS]);
+  });
+
+  test("reads the version picked, as text or as a dropdown's option; anything else is none", () => {
+    expect(
+      readAuditLogExportForm(s3Values({ schemaVersion: "1" }), S3)
+        .schemaVersion,
+    ).toBe(1);
+    expect(
+      readAuditLogExportForm(
+        s3Values({
+          schemaVersion: { label: "Version 2 (newest)", value: "2" },
+        }),
+        S3,
+      ).schemaVersion,
+    ).toBe(2);
+
+    for (const schemaVersion of [undefined, null, "", "3", "two", "0"]) {
+      expect([
+        schemaVersion,
+        readAuditLogExportForm(
+          s3Values(
+            schemaVersion === undefined ? {} : { schemaVersion },
+          ) as JSONObject,
+          S3,
+        ).schemaVersion,
+      ]).toEqual([schemaVersion, null]);
+    }
+  });
+
+  test("a test is sent in the version picked; with none, the server goes by the saved export", () => {
+    expect(
+      auditLogExportTestBody({ values: s3Values({ schemaVersion: "1" }) })[
+        "schemaVersion"
+      ],
+    ).toBe(1);
+    expect(
+      auditLogExportTestBody({
+        values: s3Values({ schemaVersion: "2" }),
+        auditLogExport: savedExport({ destinationType: S3, schemaVersion: 1 }),
+      })["schemaVersion"],
+    ).toBe(2);
+    expect(auditLogExportTestBody({ values: s3Values() })).not.toHaveProperty(
+      "schemaVersion",
+    );
+  });
+
+  test("an edit sends the version only when it changed", () => {
+    const saved: AuditLogExport = savedExport({
+      destinationType: S3,
+      schemaVersion: 1,
+    });
+
+    expect(update(s3Values({ schemaVersion: "1" }), saved)).not.toHaveProperty(
+      "schemaVersion",
+    );
+    expect(update(s3Values({ schemaVersion: "2" }), saved)["schemaVersion"]).toBe(
+      2,
+    );
+    expect(update(s3Values(), saved)).not.toHaveProperty("schemaVersion");
+  });
+
+  test("an edit never writes the field's default over a version the form could not read", () => {
+    // The row was read without its version: the form showed the default.
+    expect(
+      update(
+        s3Values({ schemaVersion: "2" }),
+        savedExport({ destinationType: S3 }),
+      ),
+    ).not.toHaveProperty("schemaVersion");
+  });
+
+  test("a saved export opens on the version it sends; a new one on the field's default", () => {
+    for (const schemaVersion of AUDIT_LOG_EXPORT_SCHEMA_VERSIONS) {
+      expect(
+        getAuditLogExportInitialValues(
+          savedExport({ destinationType: S3, schemaVersion }),
+          S3,
+        )["schemaVersion"],
+      ).toBe(String(schemaVersion));
+    }
+
+    expect(
+      getAuditLogExportInitialValues(savedExport({ destinationType: S3 }), S3),
+    ).not.toHaveProperty("schemaVersion");
+    expect(getAuditLogExportInitialValues(undefined, undefined)).not.toHaveProperty(
+      "schemaVersion",
+    );
+  });
+
+  test("the table reads each export's version, so the edit form shows and keeps it", () => {
+    const table: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "Dashboard",
+        "AuditLogExport",
+        "AuditLogExportTable.tsx",
+      ),
+      "utf8",
+    );
+    const select: string = table.slice(
+      table.indexOf("selectMoreFields={{"),
+      table.indexOf("}}", table.indexOf("selectMoreFields={{")),
+    );
+
+    expect(select).toContain("schemaVersion: true");
   });
 });
 

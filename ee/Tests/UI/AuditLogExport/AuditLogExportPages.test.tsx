@@ -937,6 +937,8 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
         accessKeyId: "AKIAIOSFODNN7EXAMPLE",
       },
       secrets: { secretAccessKey: SECRET },
+      // Tested in the record version it will send: the newest (issue #6247).
+      schemaVersion: 2,
     });
     expect(posts()[0]!["headers"]).toEqual({
       tenantid: PROJECT_ID.toString(),
@@ -974,6 +976,8 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
     expect(saved.isEnabled).toBe(true);
     // From now on: no Export From picked.
     expect(saved.startsAt).toBeUndefined();
+    // The newest record version, the More fields default.
+    expect(saved.schemaVersion).toBe(2);
   });
 
   test("a destination that refuses the test says what to fix", async () => {
@@ -1072,6 +1076,62 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
         accessKeyId: "AKIAIOSFODNN7EXAMPLE",
       },
     });
+  });
+
+  /*
+   * Issue #6247: an export saved before version 2 sends version 1. Its edit
+   * form shows that under More fields, tests in it, and a save that does not
+   * change it writes no version - so editing an export never switches what
+   * a reader receives.
+   */
+  test("editing an export saved before version 2 shows version 1, tests in it, and keeps it", async () => {
+    await renderProjectPage();
+
+    await act(async () => {
+      action("Edit").onClick(savedExport({ schemaVersion: 1 }), () => {});
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("audit-log-export-send-test"));
+    });
+
+    expect(posts()[0]!["data"]).toEqual({
+      exportId: EXPORT_ID,
+      config: {
+        bucket: "acme-audit-logs",
+        region: "eu-west-1",
+        accessKeyId: "AKIAIOSFODNN7EXAMPLE",
+      },
+      secrets: {},
+      schemaVersion: 1,
+    });
+
+    await next();
+
+    // Folded under More fields, named with the value that is not the default.
+    const folded: HTMLElement | undefined = within(dialog())
+      .getAllByTestId("folded-section-item")
+      .find((item: HTMLElement): boolean => {
+        return item.getAttribute("data-item-key") === "schemaVersion";
+      });
+
+    expect(folded).toHaveAttribute("data-item-set", "true");
+    expect(folded).toHaveTextContent("Record version: Version 1 (original)");
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog()).getByRole("button", { name: "Save changes" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(ModelAPI.updateById).toHaveBeenCalledTimes(1);
+    });
+
+    const update: { data: JSONObject } = jest.mocked(ModelAPI.updateById).mock
+      .calls[0]![0] as unknown as { data: JSONObject };
+
+    expect(update.data).not.toHaveProperty("schemaVersion");
   });
 
   test("the edit form has no on/off switch: its last step is the name and Export From", async () => {

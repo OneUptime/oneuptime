@@ -285,9 +285,18 @@ export function auditLogExportTestBody(data: {
     data.auditLogExport?.destinationType,
   );
 
-  // The test arrives in the version picked, else the saved export's.
+  /*
+   * The test arrives in the version picked, else the saved export's - and
+   * an edit whose saved version the form could not read leaves it to the
+   * server, rather than test in the field's default.
+   */
+  const isSavedVersionUnread: boolean = Boolean(
+    data.auditLogExport?.id &&
+      (data.auditLogExport.schemaVersion === undefined ||
+        data.auditLogExport.schemaVersion === null),
+  );
   const version: JSONObject =
-    submission.schemaVersion !== null
+    submission.schemaVersion !== null && !isSavedVersionUnread
       ? { schemaVersion: submission.schemaVersion }
       : {};
 
