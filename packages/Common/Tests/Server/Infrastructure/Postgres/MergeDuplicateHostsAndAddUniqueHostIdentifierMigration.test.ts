@@ -53,6 +53,7 @@ const NOTHING_MERGED: DuplicateRowMergeResult = {
   rowsMerged: 0,
   referencesMoved: 0,
   twinsDropped: 0,
+  twinsTakenIn: 0,
 };
 
 const UNIQUE_VIOLATION: Error = Object.assign(
