@@ -146,6 +146,7 @@ import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
 import NetworkSummaryAPI from "./API/NetworkSummary";
 import InventoryOverviewAPI from "./API/InventoryOverview";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
+import MessageQueueTopologyAPI from "./API/MessageQueueTopology";
 import ReceivingGapsAPI from "./API/ReceivingGaps";
 import ServiceOperationalStatusAPI from "./API/ServiceOperationalStatus";
 import TopologyAPI from "./API/Topology";
@@ -7462,6 +7463,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ServiceDependencyTimeseriesAPI().getRouter(),
+    );
+    /*
+     * The Queues topology: how messages flow between services and queues,
+     * read from spans (POST /telemetry/message-queues/topology, which no
+     * CRUD router claims).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new MessageQueueTopologyAPI().getRouter(),
     );
     /*
      * When OneUptime itself was not receiving data, for the availability
