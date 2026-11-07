@@ -14,6 +14,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
+import { VoidFunction } from "Common/Types/FunctionTypes";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import FilterQueryBuilder from "../../../Components/FilterQueryBuilder/FilterQueryBuilder";
@@ -138,6 +139,9 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [showProcessorForm, setShowProcessorForm] = useState<boolean>(false);
+  const [editingProcessor, setEditingProcessor] = useState<
+    LogPipelineProcessor | undefined
+  >(undefined);
   const [refreshProcessorToggle, setRefreshProcessorToggle] =
     useState<string>("initial");
 
@@ -259,6 +263,7 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
               phoneTitle: "Add",
               buttonStyle: ButtonStyleType.NORMAL,
               onClick: () => {
+                setEditingProcessor(undefined);
                 setShowProcessorForm(true);
               },
               icon: IconProp.Add,
@@ -273,6 +278,21 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
         }}
         showRefreshButton={true}
         refreshToggle={refreshProcessorToggle}
+        actionButtons={[
+          {
+            title: "Edit",
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            icon: IconProp.Edit,
+            onClick: async (
+              item: LogPipelineProcessor,
+              onCompleteAction: VoidFunction,
+            ) => {
+              setEditingProcessor(item);
+              setShowProcessorForm(true);
+              onCompleteAction();
+            },
+          },
+        ]}
         filters={[
           {
             field: {
@@ -317,12 +337,15 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
       {showProcessorForm && (
         <ProcessorForm
           pipelineId={modelId}
-          onProcessorCreated={() => {
+          existingProcessor={editingProcessor}
+          onProcessorSaved={() => {
             setShowProcessorForm(false);
+            setEditingProcessor(undefined);
             setRefreshProcessorToggle(Date.now().toString());
           }}
           onCancel={() => {
             setShowProcessorForm(false);
+            setEditingProcessor(undefined);
           }}
         />
       )}
