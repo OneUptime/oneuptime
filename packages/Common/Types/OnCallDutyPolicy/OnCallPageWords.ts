@@ -297,6 +297,31 @@ export const getOnCallPageRecordLabel: (
   });
 };
 
+// The marks a language read from the right sets a value apart with.
+const BIDI_MARKS_REGEX: RegExp = /[‎‏⁦-⁩]/g;
+const WHITESPACE_REGEX: RegExp = /\s+/g;
+const NUMBER_STAND_IN: string = "~#~";
+
+/*
+ * The words a record's label names its kind with, without the number:
+ * "Vorfall" of "Vorfall INC-42", "Episodio de incidente" of "Episodio de
+ * incidente EP-7" - the kind as the page's own sentences word it.
+ */
+export const getOnCallPageKindWords: (
+  translator: Translator,
+  kind: OnCallPageKind,
+) => string = (translator: Translator, kind: OnCallPageKind): string => {
+  return translator
+    .translateTemplate(KIND_WORDS[kind].labelWithNumber, {
+      number: NUMBER_STAND_IN,
+    })
+    .split(NUMBER_STAND_IN)
+    .join(" ")
+    .replace(BIDI_MARKS_REGEX, "")
+    .replace(WHITESPACE_REGEX, " ")
+    .trim();
+};
+
 /*
  * The subject of a page's email: "ACTION REQUIRED: Incident INC-42 created
  * - <title>", or "... still not resolved - <title>" for a page again. The
@@ -551,7 +576,10 @@ export const getOnCallPageCantTakeItEscalate: (
  * the title and the link - and fitted by the same rule.
  */
 export interface OnCallPageSmsWords {
-  // The record: its kind, number and severity - "Vorfall INC-42 (Hoch)".
+  /*
+   * The record: its kind, number and severity - "Warnung ALR-7 (Hoch)",
+   * or "Kritischer Vorfall INC-42" when the severity names the kind.
+   */
   record: (data: {
     kind: OnCallPageKind;
     number: string;
@@ -582,10 +610,36 @@ export const getOnCallPageSmsWords: (
         data.kind,
         data.number,
       );
+      const severityName: string = data.severityName.trim();
 
-      return data.severityName
-        ? `${withNumber} (${data.severityName})`
-        : withNumber;
+      if (!severityName) {
+        return withNumber;
+      }
+
+      /*
+       * A severity that names the kind already - OneUptime's default
+       * "Kritischer Vorfall" - leads, as an English text's "Critical
+       * Incident INC-42" does, so the kind is not said twice. The kind is
+       * read off the record's own label ("Vorfall" of "Vorfall INC-42"),
+       * so it is the word this text uses.
+       */
+      const kindWords: string = getOnCallPageKindWords(
+        translator,
+        data.kind,
+      ).toLocaleLowerCase(translator.language);
+
+      if (
+        kindWords &&
+        severityName.toLocaleLowerCase(translator.language).includes(kindWords)
+      ) {
+        return [severityName, data.number.trim()]
+          .filter((part: string): boolean => {
+            return part.length > 0;
+          })
+          .join(" ");
+      }
+
+      return `${withNumber} (${severityName})`;
     },
     head: (data: {
       record: string;

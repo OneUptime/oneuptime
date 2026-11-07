@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import {
   FIRST_STRONG_ISOLATE,
   getServerTranslator,
@@ -13,6 +15,7 @@ import {
   getOnCallPageChatHeadline,
   getOnCallPageEmailSubject,
   getOnCallPageKindLabel,
+  getOnCallPageKindWords,
   getOnCallPageMemberMonitor,
   getOnCallPageMemberView,
   getOnCallPageNoResources,
@@ -323,13 +326,51 @@ describe("in German, the same page in German", () => {
   test("a text message's words around its values", () => {
     const words: OnCallPageSmsWords = getOnCallPageSmsWords(GERMAN);
 
+    // A severity that names the kind leads, as English's "Critical Incident INC-42".
     expect(
       words.record({
         kind: OnCallPageKind.Incident,
         number: "INC-42",
         severityName: "Kritischer Vorfall",
       }),
-    ).toBe("Vorfall INC-42 (Kritischer Vorfall)");
+    ).toBe("Kritischer Vorfall INC-42");
+    expect(
+      words.record({
+        kind: OnCallPageKind.Incident,
+        number: "",
+        severityName: " Kritischer Vorfall ",
+      }),
+    ).toBe("Kritischer Vorfall");
+    // Any other severity follows the record, in brackets.
+    expect(
+      words.record({
+        kind: OnCallPageKind.Alert,
+        number: "ALR-7",
+        severityName: "Hoch",
+      }),
+    ).toBe("Warnung ALR-7 (Hoch)");
+    expect(
+      words.record({
+        kind: OnCallPageKind.Incident,
+        number: "INC-42",
+        severityName: "SEV1",
+      }),
+    ).toBe("Vorfall INC-42 (SEV1)");
+    // An episode is not the incident its severity names.
+    expect(
+      words.record({
+        kind: OnCallPageKind.IncidentEpisode,
+        number: "EP-7",
+        severityName: "Kritischer Vorfall",
+      }),
+    ).toBe("Vorfallsepisode EP-7 (Kritischer Vorfall)");
+    expect(
+      getOnCallPageSmsWords(getServerTranslator("es")).record({
+        kind: OnCallPageKind.IncidentEpisode,
+        number: "EP-7",
+        severityName: "Incidente crítico",
+      }),
+    ).toBe("Episodio de incidente EP-7 (Incidente crítico)");
     expect(
       words.record({
         kind: OnCallPageKind.AlertEpisode,
@@ -363,14 +404,45 @@ describe("in German, the same page in German", () => {
     ).toBe("Alice Kim hat Sie alarmiert, wegen Vorfall INC-42 in Acme");
     expect(words.action).toBe("Bestätigen oder eskalieren:");
   });
+
+  test("the words a record's label names its kind with, without its number", () => {
+    expect(getOnCallPageKindWords(GERMAN, OnCallPageKind.Incident)).toBe(
+      "Vorfall",
+    );
+    expect(
+      getOnCallPageKindWords(
+        getServerTranslator("es"),
+        OnCallPageKind.Incident,
+      ),
+    ).toBe("Incidente");
+    expect(
+      getOnCallPageKindWords(
+        getServerTranslator("es"),
+        OnCallPageKind.IncidentEpisode,
+      ),
+    ).toBe("Episodio de incidente");
+    // Without the marks that set the number apart from the right.
+    expect(
+      getOnCallPageKindWords(PERSIAN, OnCallPageKind.Incident),
+    ).not.toMatch(/[\u2066-\u2069]/u);
+    expect(getOnCallPageKindWords(ENGLISH, OnCallPageKind.AlertEpisode)).toBe(
+      "Alert Episode",
+    );
+  });
 });
+
+const OTHER_LANGUAGES: Array<string> = READER_LANGUAGE_CODES.filter(
+  (code: string): boolean => {
+    return code !== "en";
+  },
+);
 
 describe("in every language", () => {
   test("the record's own default alert severities are among the page's words", () => {
     expect(DEFAULT_ALERT_SEVERITY_NAMES).toEqual(["High", "Low"]);
   });
 
-  test.each(READER_LANGUAGE_CODES.filter((code: string) => code !== "en"))(
+  test.each(OTHER_LANGUAGES)(
     "%s words every kind's headline, subject, push and link apart from the English, and keeps the product's name",
     (language: string) => {
       const translator: Translator = getServerTranslator(language);
@@ -414,6 +486,34 @@ describe("in every language", () => {
       expect(getOnCallPageSmsWords(translator).action).not.toBe(
         "Ack or escalate:",
       );
+
+      // A default incident severity names the kind: the text says it once.
+      const kindLabel: string = getOnCallPageKindWords(
+        translator,
+        OnCallPageKind.Incident,
+      ).toLocaleLowerCase(language);
+
+      expect(kindLabel.length).toBeGreaterThan(0);
+
+      for (const severity of [
+        "Critical Incident",
+        "Major Incident",
+        "Minor Incident",
+      ]) {
+        const record: string = getOnCallPageSmsWords(translator)
+          .record({
+            kind: OnCallPageKind.Incident,
+            number: "INC-42",
+            severityName: getOnCallPageStateName(translator, severity),
+          })
+          .toLocaleLowerCase(language);
+
+        expect([severity, record.split(kindLabel).length - 1]).toEqual([
+          severity,
+          1,
+        ]);
+        expect(record).toContain("inc-42");
+      }
     },
   );
 
@@ -453,5 +553,67 @@ describe("in every language", () => {
 
     expect(subject).not.toContain(FIRST_STRONG_ISOLATE);
     expect(subject).toContain("インシデント");
+  });
+
+  /*
+   * A page shows its record's state and severity by OneUptime's default
+   * names in the person's language, from the server's words - the words a
+   * public status page shows (Server/Locales, pinned to the status page's
+   * own in ServerLocales.test.ts). They read as the Dashboard reads them,
+   * so a page and the record's own page agree - but for these, where a
+   * status page's public word is not the Dashboard's: Japanese writes
+   * Identified as 確認済み on a status page, the Dashboard's word for
+   * Acknowledged. Aligning them changes what public status pages say, so
+   * it is left to its own change; this list only shrinks.
+   */
+  const STATUS_PAGE_WORDS_NOT_THE_DASHBOARDS: ReadonlyArray<string> = [
+    "ja: Identified is 確認済み on a page, 原因特定 on the Dashboard",
+    "ja: Acknowledged is 承認済み on a page, 確認済み on the Dashboard",
+    "ko: Identified is 확인됨 on a page, 식별됨 on the Dashboard",
+  ];
+
+  test("a page's state and severity names read as the Dashboard reads them", () => {
+    const dashboardLocales: string = path.resolve(
+      __dirname,
+      "../../../../App/FeatureSet/Dashboard/src/Locales",
+    );
+    const names: Array<string> = [
+      "Identified",
+      "Acknowledged",
+      "Resolved",
+      "Critical Incident",
+      "Major Incident",
+      "Minor Incident",
+      ...DEFAULT_ALERT_SEVERITY_NAMES,
+    ];
+    const problems: Array<string> = [];
+
+    for (const language of OTHER_LANGUAGES) {
+      const dashboard: Record<string, unknown> = JSON.parse(
+        fs.readFileSync(
+          path.join(dashboardLocales, `${language}.json`),
+          "utf8",
+        ),
+      ) as Record<string, unknown>;
+      const translator: Translator = getServerTranslator(language);
+
+      for (const name of names) {
+        const dashboardWord: unknown = dashboard[name];
+
+        if (typeof dashboardWord !== "string") {
+          continue;
+        }
+
+        const pageWord: string = getOnCallPageStateName(translator, name);
+
+        if (pageWord !== dashboardWord) {
+          problems.push(
+            `${language}: ${name} is ${pageWord} on a page, ${dashboardWord} on the Dashboard`,
+          );
+        }
+      }
+    }
+
+    expect(problems).toEqual([...STATUS_PAGE_WORDS_NOT_THE_DASHBOARDS]);
   });
 });

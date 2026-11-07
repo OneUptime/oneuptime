@@ -97,7 +97,7 @@ describe("in German", () => {
     });
 
     expect(sms.text).toBe(
-      `OneUptime: Vorfall INC-42 (Kritischer Vorfall) im Projekt Acme Prod: Checkout API is down. Bestätigen oder eskalieren: ${LINK}`,
+      `OneUptime: Kritischer Vorfall INC-42 im Projekt Acme Prod: Checkout API is down. Bestätigen oder eskalieren: ${LINK}`,
     );
     expect(sms.sent.encoding).toBe("GSM-7");
     expect(sms.sent.segments).toBe(1);
