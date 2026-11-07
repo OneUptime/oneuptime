@@ -908,8 +908,11 @@ export default class MonitorStepMetricQueries {
     });
   }
 
-  // A copy of the query that reads with these attributes, and only these.
-  private static withAttributes(
+  /*
+   * A copy of the query that reads with these attributes, and only these:
+   * none at all when there are none. Read by MetricTelemetrySnapshot too.
+   */
+  public static withAttributes(
     queryConfig: MetricQueryConfigData,
     attributes: Dictionary<unknown> | undefined,
   ): MetricQueryConfigData {
