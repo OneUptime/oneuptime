@@ -19,7 +19,7 @@ Abre **Incidentes** desde el menú **Productos** de la barra superior y desplieg
 | **Gravedad del incidente**         | Añadir, renombrar, recolorear y reordenar los niveles de gravedad.                                 |
 | **Plantillas de incidente**        | Rellenar de antemano un incidente entero: título, descripción, recursos, políticas de guardia, propietarios, etiquetas. |
 | **Plantillas de notas**            | Texto reutilizable para notas públicas y privadas.                                                 |
-| **Public Note Approval** | Haz que las notas públicas se aprueben antes de publicarse y elige quién las aprueba. |
+| **Aprobación de notas públicas** | Haz que las notas públicas se aprueben antes de publicarse y elige quién las aprueba. |
 | **Plantillas de post mortem**      | Estructuras de post mortem reutilizables.                                                          |
 | **Estados de post mortem** | Los estados por los que pasa un post mortem, de No iniciado a Completado. |
 | **Campos personalizados**          | Definir campos adicionales que aparecen en cada incidente.                                         |

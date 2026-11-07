@@ -66,6 +66,8 @@ describe("WorkspaceNoteForm: the words of the form", () => {
       noteTypeLabel: "Note Type",
       noteTypePlaceholder: "Select Note Type",
       publicOption: "Public Note (Will be posted on Status Page)",
+      publicOptionWithApproval:
+        "Public Note (Posted on Status Page once approved)",
       privateOption: "Private Note (Only visible to team members)",
       noteLabel: "Note",
       notePlaceholder: "Note",
@@ -186,6 +188,70 @@ describe("WorkspaceNoteForm.getSlackForm", () => {
     // Required, as Slack's inputs are unless said otherwise.
     expect(noteType.optional).toBeUndefined();
     expect(form.blocks[1]!._type).toBe("WorkspaceTextAreaBlock");
+  });
+
+  /*
+   * While the project asks for public notes to be approved (#6254), the
+   * public option says the note is posted once it is approved - not that it
+   * will be posted - so nobody sends one expecting it on the status page at
+   * once. Its value is the same: what is written is decided as before.
+   */
+  test("while public notes need approval, the public option says it is posted once approved", () => {
+    const form: { title: string; blocks: Array<WorkspaceMessageBlock> } =
+      WorkspaceNoteForm.getSlackForm({
+        kind: PrivateRecordKind.IncidentEpisode,
+        isPrivateRecord: false,
+        isPublicNoteApprovalRequired: true,
+      });
+
+    expect((form.blocks[0] as WorkspaceDropdownBlock).options).toEqual([
+      {
+        label: "Public Note (Posted on Status Page once approved)",
+        value: "public",
+      },
+      {
+        label: "Private Note (Only visible to team members)",
+        value: "private",
+      },
+    ]);
+  });
+
+  test("approval off, or not said, the public option reads as it always has", () => {
+    for (const isPublicNoteApprovalRequired of [false, undefined]) {
+      const form: { title: string; blocks: Array<WorkspaceMessageBlock> } =
+        WorkspaceNoteForm.getSlackForm({
+          kind: PrivateRecordKind.Incident,
+          isPrivateRecord: false,
+          isPublicNoteApprovalRequired: isPublicNoteApprovalRequired,
+        });
+
+      expect((form.blocks[0] as WorkspaceDropdownBlock).options[0]!.label).toBe(
+        "Public Note (Will be posted on Status Page)",
+      );
+    }
+  });
+
+  test("a private record's form offers no public note, approval or not", () => {
+    const form: { title: string; blocks: Array<WorkspaceMessageBlock> } =
+      WorkspaceNoteForm.getSlackForm({
+        kind: PrivateRecordKind.Incident,
+        isPrivateRecord: true,
+        isPublicNoteApprovalRequired: true,
+      });
+
+    expect(form.title).toBe("Add Private Note");
+    expect(JSON.stringify(form)).not.toContain("Public Note");
+  });
+});
+
+describe("WorkspaceNoteForm.getPublicOption", () => {
+  test("posted on the status page, or posted once approved while approval is on", () => {
+    expect(WorkspaceNoteForm.getPublicOption(false)).toBe(
+      "Public Note (Will be posted on Status Page)",
+    );
+    expect(WorkspaceNoteForm.getPublicOption(true)).toBe(
+      "Public Note (Posted on Status Page once approved)",
+    );
   });
 });
 

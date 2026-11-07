@@ -19,7 +19,7 @@ Konfigurasjonen av hendelser ligger under **Hendelser**, ikke under **Prosjektin
 | **Hendelsesalvor**           | Legge til, gi nytt navn, gi ny farge og endre rekkefølgen på alvorlighetsgradene.            |
 | **Hendelsesmaler**           | Forhåndsutfylle en hel hendelse — tittel, beskrivelse, ressurser, vaktpolicyer, eiere, etiketter. |
 | **Notatmaler**               | Gjenbrukbar tekst for offentlige og private notater.                                         |
-| **Public Note Approval** | La offentlige notater godkjennes før de publiseres, og velg hvem som godkjenner dem. |
+| **Godkjenning av offentlige notater** | La offentlige notater godkjennes før de publiseres, og velg hvem som godkjenner dem. |
 | **Postmortem-maler**         | Gjenbrukbare strukturer for etteranalyser.                                                   |
 | **Statuser for etteranalyse** | Statusene en etteranalyse går gjennom, fra Ikke startet til Fullført. |
 | **Egendefinerte felt**       | Definere ekstra felt som vises på hver hendelse.                                             |

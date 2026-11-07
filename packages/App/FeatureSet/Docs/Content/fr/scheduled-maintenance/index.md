@@ -58,7 +58,7 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 | **Calendrier** | **Calendrier de maintenance** : chaque événement sur un mois, une semaine ou un jour, à côté des calendriers extérieurs au projet que vous ajoutez. |
 | **Espace de travail** | **Slack**, **Microsoft Teams** et **Mattermost**, selon ce que le projet a connecté, ou **Connecter un espace de travail** s'il n'en a aucun. |
 | **Règles**    | **Règles de propriétaire**, **Règles de runbook**, **Règles d'étiquettes**, **Règles de rappel**.                              |
-| **Paramètres** | **État de l'événement**, **Modèles d'événement**, **Modèles de notes**, **Public Note Approval**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier**, **Numérotation**. |
+| **Paramètres** | **État de l'événement**, **Modèles d'événement**, **Modèles de notes**, **Approbation des notes publiques**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier**, **Numérotation**. |
 
 **Vue d'ensemble** et **Calendrier** sont ouvertes ; **Espace de travail**, **Règles**, **Paramètres** et **Développeurs** sont repliées au départ, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Développeurs** contient **Terraform**, **API**, **CLI** et **Assistants IA**, pour gérer la maintenance par le code. Tout ce qui concerne la maintenance se trouve ici, pas dans les **Paramètres du projet**.
 

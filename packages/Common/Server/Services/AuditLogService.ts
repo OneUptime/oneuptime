@@ -115,12 +115,29 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
     }
   }
 
+  /*
+   * A change to one record, by the caller in `props`: DatabaseService's
+   * update path calls this, and so does a write that goes round it.
+   *
+   * A write OneUptime makes FOR A PERSON round DatabaseService's hooks - a
+   * merge of exceptions, written with raw SQL because it moves counts under
+   * row locks; a webhook URL reset - calls this itself once it has
+   * committed, with the person's props, and names in `includeColumns` the
+   * columns that say what they did. Those are recorded even where the
+   * model's audit configuration leaves them out because only OneUptime
+   * writes them (AuditLogCoverage): the exception an exception was merged
+   * into is OneUptime's to write, but a person asked for it. Nothing else
+   * about the model changes - every other write of those columns stays out
+   * - and a column nobody may read, or one holding a secret, is still only
+   * recorded as changed, never with its value.
+   */
   public async recordUpdate<TModel extends BaseModel>(data: {
     model: TModel;
     before: TModel;
     updatedFields: JSONObject;
     itemId: ObjectID;
     props: DatabaseCommonInteractionProps;
+    includeColumns?: Array<string> | undefined;
   }): Promise<void> {
     const recorder: AuditLogRecorder | null = this.getRecorder();
 

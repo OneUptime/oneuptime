@@ -1940,6 +1940,32 @@ describe("Audit Logs", () => {
     );
   });
 
+  /*
+   * Issue #6276: what OneUptime writes because someone asked it to - a
+   * merge of exceptions, a webhook URL reset - is written round
+   * DatabaseService's hooks, and records its entry itself, as that person's,
+   * naming the columns the defaults otherwise leave out.
+   */
+  it("says a field OneUptime writes because someone asked it to is recorded as their change", () => {
+    expect(section(page, "## What is recorded")).toContain(
+      "When OneUptime writes one because someone asked it to, such as merging an exception into another or resetting a webhook URL, the entry records it as their change.",
+    );
+
+    for (const [source, column] of [
+      [
+        readCommonSource("Server/Utils/Telemetry/TelemetryExceptionMerge.ts"),
+        "mergedIntoTelemetryExceptionId",
+      ],
+      [
+        readPackageFile("App/FeatureSet/Runbook/API/RunbookWebhook.ts"),
+        "webhookSecretKey",
+      ],
+    ] as Array<[string, string]>) {
+      expect(source).toContain("AuditLogService.recordUpdate({");
+      expect(source).toContain(`includeColumns: ["${column}"]`);
+    }
+  });
+
   it("names the actions an entry can record, a download included", () => {
     expect(Object.values(AuditLogAction).sort()).toEqual(
       ["Create", "Update", "Delete", "Download"].sort(),

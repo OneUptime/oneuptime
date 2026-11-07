@@ -1,9 +1,11 @@
 import DatabaseService from "./DatabaseService";
+import AuditLogService from "./AuditLogService";
 import ServiceService from "./ServiceService";
 import { Service as SecurityEventConnectionServiceClass } from "./SecurityEventConnectionService";
 import Model from "../../Models/DatabaseModels/CloudConnection";
 import TelemetryService from "../../Models/DatabaseModels/Service";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
 import {
   CloudConnectionAuthMethod,
@@ -617,10 +619,14 @@ export class Service extends DatabaseService<Model> {
    * first becomes the replaced key that works a day more, and neither is
    * lost. At most CLOUD_STREAM_KEY_WRITE_ATTEMPTS tries, which only a run
    * of keys made at the very same instant can use up.
+   *
+   * `props`: the person who made it, whose change the audit log records
+   * (recordStreamChange) - the write goes round DatabaseService's hooks.
    */
   public async createStreamKey(data: {
     connectionId: ObjectID;
     now: Date;
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<{
     streamKey: string;
     createdAt: Date;
@@ -640,8 +646,11 @@ export class Service extends DatabaseService<Model> {
         id: data.connectionId,
         select: {
           _id: true,
+          projectId: true,
+          name: true,
           provider: true,
           streamKeyHashes: true,
+          streamKeyCreatedAt: true,
           config: true,
         },
         props: { isRoot: true },
@@ -698,6 +707,15 @@ export class Service extends DatabaseService<Model> {
       CloudStreamAuthenticator.forget(data.connectionId);
       CloudStreamKeyedConnections.keyMade(data.connectionId);
 
+      await this.recordStreamChange({
+        before: connection,
+        written: {
+          streamKeyHashes: hashes as unknown as JSONObject,
+          streamKeyCreatedAt: data.now,
+        },
+        props: data.props,
+      });
+
       return {
         streamKey: generated.key,
         createdAt: data.now,
@@ -742,6 +760,8 @@ export class Service extends DatabaseService<Model> {
     connectionId: ObjectID;
     hostSubscriptionId: string;
     now: Date;
+    // The person who turned it on, for the audit log (recordStreamChange).
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<{ startedAt: Date }> {
     const hostSubscriptionId: string = data.hostSubscriptionId
       .trim()
@@ -757,6 +777,8 @@ export class Service extends DatabaseService<Model> {
       id: data.connectionId,
       select: {
         _id: true,
+        projectId: true,
+        name: true,
         provider: true,
         streamKeyCreatedAt: true,
         streamState: true,
@@ -780,20 +802,27 @@ export class Service extends DatabaseService<Model> {
     const startedAt: Date = connection.streamKeyCreatedAt
       ? new Date(connection.streamKeyCreatedAt)
       : data.now;
+    const streamState: JSONObject = {
+      hostSubscriptionId,
+      offsets:
+        kept && kept.hostSubscriptionId === hostSubscriptionId
+          ? kept.offsets
+          : {},
+    } as unknown as JSONObject;
 
     await this.updateColumnsByIdWithoutHooks({
       id: data.connectionId,
       // JSON columns make the typed partial too deep for TypeScript.
       data: {
         streamKeyCreatedAt: startedAt,
-        streamState: {
-          hostSubscriptionId,
-          offsets:
-            kept && kept.hostSubscriptionId === hostSubscriptionId
-              ? kept.offsets
-              : {},
-        } as unknown as JSONObject,
+        streamState,
       } as never,
+    });
+
+    await this.recordStreamChange({
+      before: connection,
+      written: { streamKeyCreatedAt: startedAt, streamState },
+      props: data.props,
     });
 
     return { startedAt };
@@ -806,8 +835,29 @@ export class Service extends DatabaseService<Model> {
    * of a read already running. What the streams delivered stays, and so
    * does what they last said - and where an Azure connection's event hubs
    * were read to, so streaming them again never reads an event twice.
+   *
+   * `props`: the person who stopped it, for the audit log
+   * (recordStreamChange).
    */
-  public async stopStreaming(connectionId: ObjectID): Promise<void> {
+  public async stopStreaming(
+    connectionId: ObjectID,
+    props?: DatabaseCommonInteractionProps | undefined,
+  ): Promise<void> {
+    // What the entry says was stopped: read only when there is one to write.
+    const before: Model | null = props
+      ? await this.findOneById({
+          id: connectionId,
+          select: {
+            _id: true,
+            projectId: true,
+            name: true,
+            streamKeyHashes: true,
+            streamKeyCreatedAt: true,
+          },
+          props: { isRoot: true },
+        })
+      : null;
+
     await this.updateColumnsByIdWithoutHooks({
       id: connectionId,
       data: {
@@ -818,6 +868,42 @@ export class Service extends DatabaseService<Model> {
 
     CloudStreamAuthenticator.forget(connectionId);
     CloudStreamKeyedConnections.keysStopped(connectionId);
+
+    if (before) {
+      await this.recordStreamChange({
+        before,
+        written: { streamKeyHashes: null, streamKeyCreatedAt: null },
+        props,
+      });
+    }
+  }
+
+  /*
+   * A change to a connection's streaming in the project's audit log: who
+   * made or replaced a stream key, turned reading of event hubs on, or
+   * stopped streaming, and when. Those columns are OneUptime's to write -
+   * the routes above write them round DatabaseService's hooks, which never
+   * record them - so they are named here as what the person did. The key
+   * hashes are nobody's to read: the entry says they changed, never what
+   * they are. Without a person (props) there is nothing to record.
+   */
+  private async recordStreamChange(data: {
+    before: Model;
+    written: JSONObject;
+    props: DatabaseCommonInteractionProps | undefined;
+  }): Promise<void> {
+    if (!data.props || !data.before.id) {
+      return;
+    }
+
+    await AuditLogService.recordUpdate({
+      model: new Model(),
+      before: data.before,
+      updatedFields: data.written,
+      itemId: data.before.id,
+      props: data.props,
+      includeColumns: Object.keys(data.written),
+    });
   }
 
   /*

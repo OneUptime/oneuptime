@@ -91,6 +91,8 @@ export default class PacketCaptureAPI extends BaseAPI<
           await PacketCaptureService.requestStop({
             packetCaptureId: PacketCaptureAPI.readCaptureId(req),
             projectId: projectId,
+            // Who stopped it, for the project's audit log.
+            props: props,
           });
 
           return Response.sendJsonObjectResponse(req, res, { result: "ok" });

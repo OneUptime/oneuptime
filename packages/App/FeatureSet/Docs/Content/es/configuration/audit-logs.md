@@ -88,7 +88,7 @@ Se registra todo lo que las personas crean, cambian o eliminan en un proyecto: m
 
 También se registra que un administrador añada o quite un método de notificación o una regla de guardia personal en la cuenta de otra persona, sin la dirección ni el número en sí.
 
-Los campos que solo escribe OneUptime, como cuándo se vio un host por última vez, se omiten en cada entrada, igual que los campos que nadie puede leer. Las claves, los tokens y las contraseñas se registran como `[REDACTED]`: la entrada muestra que cambiaron, nunca su valor. Los pasos de un flujo de trabajo se registran como lo que cambió, con los nombres de los ajustes de un paso, pero nunca lo que se escribió en ellos, y mover un paso en el lienzo no se registra.
+Los campos que solo escribe OneUptime, como cuándo se vio un host por última vez, se omiten en cada entrada, igual que los campos que nadie puede leer. Cuando OneUptime escribe uno porque alguien se lo pidió, como al fusionar una excepción con otra o restablecer una URL de webhook, la entrada lo registra como un cambio de esa persona. Las claves, los tokens y las contraseñas se registran como `[REDACTED]`: la entrada muestra que cambiaron, nunca su valor. Los pasos de un flujo de trabajo se registran como lo que cambió, con los nombres de los ajustes de un paso, pero nunca lo que se escribió en ellos, y mover un paso en el lienzo no se registra.
 
 ## Cuánto tiempo se conservan las entradas
 

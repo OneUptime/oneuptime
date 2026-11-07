@@ -180,6 +180,7 @@ export const PublicNoteApprovalMessages: {
   approvedEarlierStep: string;
   reasonRequired: string;
   decidedMeanwhile: string;
+  changedMeanwhile: string;
   notRejected: string;
   stillWaiting: string;
   noEditWaiting: string;
@@ -203,6 +204,8 @@ export const PublicNoteApprovalMessages: {
     "Say why the public note is rejected: its author sees the reason.",
   decidedMeanwhile:
     "Somebody decided on this public note a moment ago. Refresh to see what they chose.",
+  changedMeanwhile:
+    "This public note changed a moment ago, so your edit was not saved. Refresh to see it as it is now, then make your edit again.",
   notRejected:
     "Only a rejected public note can be sent for approval again. Edit a note that is waiting to send it again.",
   stillWaiting: "This public note is already waiting for approval.",

@@ -88,7 +88,7 @@ Tout ce que les personnes créent, modifient ou suppriment dans un projet est en
 
 Un administrateur qui ajoute ou retire une méthode de notification ou une règle d'astreinte personnelle sur le compte de quelqu'un d'autre est aussi enregistré, sans l'adresse ni le numéro lui-même.
 
-Les champs que seul OneUptime écrit, comme le moment où un hôte a été vu pour la dernière fois, sont omis de chaque entrée, tout comme les champs que personne ne peut lire. Les clés, jetons et mots de passe sont enregistrés comme `[REDACTED]` : l'entrée montre qu'ils ont changé, jamais leur valeur. Les étapes d'un workflow sont enregistrées comme ce qui a changé, en nommant les réglages d'une étape mais jamais ce qui y a été saisi, et le déplacement d'une étape sur le canevas n'est pas enregistré.
+Les champs que seul OneUptime écrit, comme le moment où un hôte a été vu pour la dernière fois, sont omis de chaque entrée, tout comme les champs que personne ne peut lire. Quand OneUptime en écrit un parce que quelqu'un le lui a demandé, comme fusionner une exception avec une autre ou réinitialiser l'URL d'un webhook, l'entrée l'enregistre comme une modification de cette personne. Les clés, jetons et mots de passe sont enregistrés comme `[REDACTED]` : l'entrée montre qu'ils ont changé, jamais leur valeur. Les étapes d'un workflow sont enregistrées comme ce qui a changé, en nommant les réglages d'une étape mais jamais ce qui y a été saisi, et le déplacement d'une étape sur le canevas n'est pas enregistré.
 
 ## Combien de temps les entrées sont conservées
 

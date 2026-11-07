@@ -36,6 +36,7 @@ import MicrosoftTeamsCardChoices, {
 } from "../MicrosoftTeamsCardChoices";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
 import MicrosoftTeamsActionAnswer from "../MicrosoftTeamsActionAnswer";
+import WorkspaceHeldPublicNote from "../../WorkspaceHeldPublicNote";
 import {
   WorkspaceAnswer,
   WorkspaceLatePress,
@@ -317,6 +318,11 @@ export default class MicrosoftTeamsIncidentActions {
               projectId: projectId,
             })
           : false,
+        isPublicNoteApprovalRequired:
+          await WorkspaceHeldPublicNote.isApprovalRequired({
+            type: WorkspaceEventType.Incident,
+            projectId: projectId,
+          }),
       });
       await turnContext.sendActivity({
         attachments: [
@@ -388,8 +394,10 @@ export default class MicrosoftTeamsIncidentActions {
         });
 
         // Posted by the member, as the dashboard posts it for them.
+        let publicNote: IncidentPublicNote | null = null;
+
         if (isPublic) {
-          await IncidentPublicNoteService.addNote({
+          publicNote = await IncidentPublicNoteService.addNote({
             incidentId: incidentId,
             note: note.toString(),
             projectId: projectId,
@@ -404,6 +412,18 @@ export default class MicrosoftTeamsIncidentActions {
           });
         }
 
+        /*
+         * Held for approval: posted to no channel until it is approved, so
+         * its answer says it waits, and for whom (WorkspaceHeldPublicNote),
+         * rather than that it was added.
+         */
+        const heldAnswer: WorkspaceAnswer | null =
+          await WorkspaceHeldPublicNote.getAnswerForAddedNote({
+            event: { type: WorkspaceEventType.Incident, id: incidentId },
+            note: publicNote,
+            props: databaseProps,
+          });
+
         if (submitted.isPublicAskedOnPrivateRecord) {
           // Not the note they chose: what it became, and why.
           await MicrosoftTeamsActionAnswer.reply({
@@ -413,6 +433,11 @@ export default class MicrosoftTeamsIncidentActions {
               recordId: incidentId,
               props: databaseProps,
             }),
+          });
+        } else if (heldAnswer) {
+          await MicrosoftTeamsActionAnswer.reply({
+            turnContext: turnContext,
+            answer: heldAnswer,
           });
         } else {
           await MicrosoftTeamsReplies.sendBestEffort(
@@ -1050,6 +1075,8 @@ export default class MicrosoftTeamsIncidentActions {
   public static buildAddIncidentNoteCard(data: {
     incidentId: string;
     isPrivateRecord: boolean;
+    // The project asks for public notes to be approved (WorkspaceNoteForm.getPublicOption).
+    isPublicNoteApprovalRequired?: boolean | undefined;
   }): JSONObject {
     const noteInput: JSONObject = {
       type: "Input.Text",
@@ -1113,7 +1140,9 @@ export default class MicrosoftTeamsIncidentActions {
           value: WorkspaceNoteFormType.Public,
           choices: [
             {
-              title: WORKSPACE_NOTE_FORM_TEXT.publicOption,
+              title: WorkspaceNoteForm.getPublicOption(
+                Boolean(data.isPublicNoteApprovalRequired),
+              ),
               value: WorkspaceNoteFormType.Public,
             },
             {

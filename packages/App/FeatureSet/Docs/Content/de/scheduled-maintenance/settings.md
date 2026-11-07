@@ -20,7 +20,7 @@ Die Konfiguration der Wartung liegt in **Geplante Wartung**, nicht in den **Proj
 | **Beschriftungsregeln** | Fügt passenden Ereignissen Beschriftungen hinzu.               |
 | **Erinnerungsregeln** | Erinnert Eigentümer in einem Intervall, bis ein Ereignis abgeschlossen ist. |
 
-Der Abschnitt **Einstellungen** enthält **Ereignisstatus**, behandelt unter [Wartungsstatus](/docs/scheduled-maintenance/states), **Ereignis-Vorlagen**, behandelt unter [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates), dann **Notiz-Vorlagen**, **Public Note Approval**, **Benutzerdefinierte Felder**, **Messungen**, **Kalendereinstellungen** und **Nummerierung**. **Kalendereinstellungen** wird unter [Wartungskalender](/docs/scheduled-maintenance/calendar#externe-kalender) behandelt, der Rest unten.
+Der Abschnitt **Einstellungen** enthält **Ereignisstatus**, behandelt unter [Wartungsstatus](/docs/scheduled-maintenance/states), **Ereignis-Vorlagen**, behandelt unter [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates), dann **Notiz-Vorlagen**, **Genehmigung öffentlicher Notizen**, **Benutzerdefinierte Felder**, **Messungen**, **Kalendereinstellungen** und **Nummerierung**. **Kalendereinstellungen** wird unter [Wartungskalender](/docs/scheduled-maintenance/calendar#externe-kalender) behandelt, der Rest unten.
 
 Der Abschnitt **Arbeitsbereich** enthält die Slack- und Microsoft-Teams-Regeln, die Ereignisse in Kanäle posten. Siehe [Slack](/docs/workspace-connections/slack#benachrichtigungsregeln) und [Microsoft Teams](/docs/workspace-connections/microsoft-teams#benachrichtigungsregeln).
 

@@ -88,7 +88,7 @@ Viene registrato tutto ciò che le persone creano, modificano o eliminano in un 
 
 Viene registrato anche quando un amministratore aggiunge o rimuove un metodo di notifica o una regola di reperibilità personale sull'account di un'altra persona, senza l'indirizzo o il numero stesso.
 
-I campi che scrive solo OneUptime, come quando un host è stato visto l'ultima volta, sono esclusi da ogni voce, così come i campi che nessuno può leggere. Chiavi, token e password vengono registrati come `[REDACTED]`: la voce mostra che sono cambiati, mai il loro valore. I passaggi di un workflow vengono registrati come ciò che è cambiato, con i nomi delle impostazioni di un passaggio ma mai ciò che vi è stato scritto, e lo spostamento di un passaggio sull'area di lavoro non viene registrato.
+I campi che scrive solo OneUptime, come quando un host è stato visto l'ultima volta, sono esclusi da ogni voce, così come i campi che nessuno può leggere. Quando OneUptime ne scrive uno perché qualcuno gliel'ha chiesto, come unire un'eccezione a un'altra o reimpostare l'URL di un webhook, la voce lo registra come una modifica di quella persona. Chiavi, token e password vengono registrati come `[REDACTED]`: la voce mostra che sono cambiati, mai il loro valore. I passaggi di un workflow vengono registrati come ciò che è cambiato, con i nomi delle impostazioni di un passaggio ma mai ciò che vi è stato scritto, e lo spostamento di un passaggio sull'area di lavoro non viene registrato.
 
 ## Per quanto tempo restano le voci
 

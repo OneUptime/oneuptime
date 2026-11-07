@@ -1471,7 +1471,10 @@ export class ProjectService extends ProjectReferencesService<Model> {
   /*
    * Turning on a project's public note approval needs an approval step
    * that names somebody (PublicNoteApprovalPolicy.assertCanTurnOn): read
-   * only when the write turns one of its switches on.
+   * only when the write turns one of its switches on, for the projects the
+   * update writes - the ones its caller may write, in its own window - with
+   * the update held to them, so no project is turned on that was not
+   * checked, and none the update does not write is asked about.
    */
   private async assertPublicNoteApprovalCanTurnOn(
     updateBy: UpdateBy<Model>,
@@ -1483,17 +1486,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
       return;
     }
 
-    const projects: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const projects: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     await PublicNoteApprovalPolicy.assertCanTurnOn({
       projectIds: projects
