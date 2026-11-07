@@ -20,6 +20,23 @@ import {
 } from "Common/UI/Components/Workflow/WorkflowStatusBar";
 import { WorkflowVersionCopy } from "Common/UI/Components/Workflow/WorkflowVersionPresentation";
 import { getWorkflowGraphChanges } from "Common/Utils/Workflow/WorkflowGraphChanges";
+import { WorkflowEditCause } from "Common/UI/Components/Workflow/WorkflowEditHistory";
+import {
+  WorkflowSavedElsewhereStep,
+  getStepsSavedElsewhere,
+} from "Common/UI/Components/Workflow/WorkflowSavedElsewhere";
+import { AI_ACTION_CARD_LINES } from "Common/Types/AI/AIActionWords";
+import {
+  WorkflowDraft,
+  buildGraphFromDraft,
+  getDraftFromGraph,
+} from "Common/Types/Workflow/WorkflowDraft";
+import {
+  WorkflowDraftRebaseKind,
+  proposeWorkflowDraft,
+  rebaseWorkflowDraft,
+} from "Common/Types/Workflow/WorkflowDraftRebase";
+import { JSONObject } from "Common/Types/JSON";
 import WriteSource from "Common/Types/BaseDatabase/WriteSource";
 import { doesNewestVersionTakeInSave } from "Common/Server/Utils/Workflow/WorkflowVersionPolicy";
 import { describe, expect, it } from "@jest/globals";
@@ -173,6 +190,130 @@ describe("the authoring page on undo, redo and version history", () => {
     expect(
       doesNewestVersionTakeInSave({ newest, savedByUserId: "ada", now }),
     ).toBe(true);
+  });
+
+  it("says Ask AI's change approved after someone saved keeps their save, and Undo takes back Ask AI's change alone (issue #6274)", () => {
+    const askAiParagraph: string =
+      AUTHORING.split("\n").find((line: string): boolean => {
+        return line.startsWith("You can also describe a workflow to Ask AI");
+      }) || "";
+
+    expect(askAiParagraph).toContain(
+      "If the workflow is saved while Ask AI's change waits for your approval, by you in the Builder or by someone else, approving it keeps what was saved.",
+    );
+    expect(askAiParagraph).toContain(
+      "When the two changes are to different steps, Ask AI makes its change on top of what was saved, and says so.",
+    );
+    expect(askAiParagraph).toContain(
+      "When they touch the same step, nothing is changed: Ask AI says the workflow changed and proposes its change again on the workflow as it is now.",
+    );
+    expect(HISTORY).toContain(
+      "Undo takes back Ask AI's change alone, and the change saved before it is the next step back.",
+    );
+
+    // Held to the code: different steps are made on top, the same step is not made at all.
+    const components: Map<string, ComponentMetadata> = new Map<
+      string,
+      ComponentMetadata
+    >(
+      (Components as Array<ComponentMetadata>).map(
+        (component: ComponentMetadata): [string, ComponentMetadata] => {
+          return [component.id, component];
+        },
+      ),
+    );
+    const getComponent: (id: string) => ComponentMetadata | undefined = (
+      id: string,
+    ): ComponentMetadata | undefined => {
+      return components.get(id);
+    };
+    let id: number = 0;
+    const generateId: () => string = (): string => {
+      id++;
+      return `docs-${id}`;
+    };
+    const digest: (text: string) => string = (text: string): string => {
+      return text;
+    };
+    const base: JSONObject = buildGraphFromDraft({
+      draft: {
+        steps: [
+          { id: "manual-1", componentId: ComponentID.Manual },
+          { id: "log-1", componentId: ComponentID.Log, arguments: { value: "a" } },
+          { id: "log-2", componentId: ComponentID.Log, arguments: { value: "b" } },
+        ],
+        connections: [
+          { from: "manual-1", to: "log-1" },
+          { from: "manual-1", to: "log-2" },
+        ],
+      },
+      getComponent,
+      generateId,
+    });
+    const read: WorkflowDraft = getDraftFromGraph({ graph: base, getComponent });
+    // Ask AI changes Log 1.
+    const askAi: WorkflowDraft = {
+      ...read,
+      steps: read.steps.map((step: WorkflowDraft["steps"][number]) => {
+        return step.id === "log-1"
+          ? { ...step, arguments: { value: "Ask AI's" } }
+          : step;
+      }),
+    };
+    const theirs: (stepId: string) => JSONObject = (
+      stepId: string,
+    ): JSONObject => {
+      const graph: JSONObject = JSON.parse(JSON.stringify(base)) as JSONObject;
+      (
+        (graph["nodes"] as Array<JSONObject>).find((node: JSONObject) => {
+          return (node["data"] as JSONObject)["id"] === stepId;
+        })!["data"] as JSONObject
+      )["arguments"] = { value: "theirs" };
+      return graph;
+    };
+    const outcomeOver: (graph: JSONObject) => WorkflowDraftRebaseKind = (
+      graph: JSONObject,
+    ): WorkflowDraftRebaseKind => {
+      return rebaseWorkflowDraft({
+        draft: askAi,
+        proposedOn: proposeWorkflowDraft({
+          draft: askAi,
+          graph: base,
+          graphRevision: 1,
+          getComponent,
+          generateId,
+          digest,
+        }),
+        graph,
+        getComponent,
+        generateId,
+        digest,
+      }).kind;
+    };
+
+    expect(outcomeOver(theirs("log-2"))).toBe(WorkflowDraftRebaseKind.Rebased);
+    expect(outcomeOver(theirs("log-1"))).toBe(WorkflowDraftRebaseKind.Conflict);
+    // And the card says so when it was made on top.
+    expect(AI_ACTION_CARD_LINES.workflowSavedSinceKept).toBe(
+      "Changes saved after this was proposed were kept",
+    );
+
+    // Undo: their save, then Ask AI's change, two steps - Ask AI's the last, so Undo takes it alone.
+    const steps: Array<WorkflowSavedElsewhereStep> = getStepsSavedElsewhere({
+      known: { nodes: [], edges: [] },
+      server: base,
+      versions: [
+        { versionNumber: 3, graph: base, savedThrough: WriteSource.AskAi },
+        { versionNumber: 2, graph: theirs("log-2") },
+        { versionNumber: 1, graph: { nodes: [], edges: [] } },
+      ],
+    });
+
+    expect(
+      steps.map((step: WorkflowSavedElsewhereStep): WorkflowEditCause => {
+        return step.cause;
+      }),
+    ).toEqual([WorkflowEditCause.TheirChanges, WorkflowEditCause.AskAi]);
   });
 
   it("quotes a change line as a version shows it", () => {
