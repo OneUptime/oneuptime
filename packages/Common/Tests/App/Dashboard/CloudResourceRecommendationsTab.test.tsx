@@ -101,7 +101,11 @@ import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import Route from "../../../Types/API/Route";
-import { CLOUD_ALERT_MONITORING_INTERVAL } from "../../../Types/Monitor/CloudAlertTemplates";
+import {
+  CLOUD_ALERT_MONITORING_INTERVAL,
+  CLOUD_SLOW_METRIC_MONITORING_INTERVAL,
+  CLOUD_SLOW_METRIC_WINDOW,
+} from "../../../Types/Monitor/CloudAlertTemplates";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PermissionUtil from "../../../UI/Utils/Permission";
@@ -366,7 +370,7 @@ describe("a cloud resource's Recommendations tab", () => {
     }
   });
 
-  test("an RDS instance whose storage the inventory has not listed says when Low Free Storage comes", async () => {
+  test("an RDS instance the inventory has not listed says, once, when Low Free Storage and Connections Near the Limit come", async () => {
     resourceRow = cloudRow({
       name: "orders-db",
       cloudResourceType: "AWS::RDS::DBInstance",
@@ -380,9 +384,174 @@ describe("a cloud resource's Recommendations tab", () => {
 
     expect(await screen.findByText("High CPU")).toBeInTheDocument();
     expect(screen.queryByText("Low Free Storage")).toBeNull();
+    expect(screen.queryByText("Connections Near the Limit")).toBeNull();
     expect(
-      screen.getByText(/Low Free Storage is offered once/),
+      screen.getByText(
+        "Low Free Storage and Connections Near the Limit are offered once the account's inventory lists the instance.",
+      ),
     ).toBeInTheDocument();
+  });
+
+  test("an RDS instance whose class and engine are listed is offered Connections Near the Limit, and makes it at 90% of its own limit", async () => {
+    resourceRow = cloudRow({
+      name: "orders-db",
+      cloudResourceType: "AWS::RDS::DBInstance",
+      telemetryAttributes: { ...EC2_ATTRIBUTES, Namespace: "AWS/RDS" },
+      cloudProperties: {
+        DBInstanceClass: "db.r6g.large",
+        Engine: "postgres",
+        AllocatedStorage: 200,
+        DBParameterGroupName: "default.postgres16",
+      },
+    });
+
+    renderTab();
+
+    expect(
+      await screen.findByText("Connections Near the Limit"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Connections stay at 90% or more of the instance's limit for 30 minutes.",
+      ),
+    ).toBeInTheDocument();
+    // An engine's default group: the class's default is the limit, nothing to say.
+    expect(screen.queryByText(/is one of your own/)).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Select Connections Near the Limit",
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Create 1 Selected Monitor" }),
+    );
+    await act(async () => {
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Create Monitors" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const made: Monitor = (
+      createOrUpdateMock.mock.calls[0]![0] as { model: Monitor }
+    ).model;
+
+    expect(made.name).toBe("orders-db - Connections Near the Limit");
+    expect(made.monitoringInterval).toBe(CLOUD_ALERT_MONITORING_INTERVAL);
+    // 90% of a db.r6g.large's 1,691 PostgreSQL connections.
+    expect(
+      Number(
+        made.monitorSteps!.data!.monitorStepsInstanceArray[0]!.data!
+          .monitorCriteria.data!.monitorCriteriaInstanceArray[0]!.data!
+          .filters[0]!.value,
+      ),
+    ).toBe(1521);
+    expect(
+      (made.cloudResources || []).map((resource: CloudResource) => {
+        return resource.id?.toString();
+      }),
+    ).toEqual([RESOURCE_ID]);
+  });
+
+  test("an RDS instance on a parameter group of the team's own says the limit its line assumes, and how to change it", async () => {
+    resourceRow = cloudRow({
+      name: "orders-db",
+      cloudResourceType: "AWS::RDS::DBInstance",
+      telemetryAttributes: { ...EC2_ATTRIBUTES, Namespace: "AWS/RDS" },
+      cloudProperties: {
+        DBInstanceClass: "db.r6g.large",
+        Engine: "postgres",
+        AllocatedStorage: 200,
+        DBParameterGroupName: "prod-postgres16",
+      },
+    });
+
+    renderTab();
+
+    expect(
+      await screen.findByText(
+        "Connections Near the Limit alerts at 1,521 connections: 90% of 1,691, the default limit of a db.r6g.large instance running PostgreSQL. If its parameter group, prod-postgres16, sets max_connections, change the monitor's threshold to 90% of that.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Connections Near the Limit")).toBeInTheDocument();
+  });
+
+  test("an RDS instance running SQL Server is not offered it, and is told why and what to do instead", async () => {
+    resourceRow = cloudRow({
+      name: "reports-db",
+      cloudResourceType: "AWS::RDS::DBInstance",
+      telemetryAttributes: { ...EC2_ATTRIBUTES, Namespace: "AWS/RDS" },
+      cloudProperties: {
+        DBInstanceClass: "db.m5.large",
+        Engine: "sqlserver-se",
+        AllocatedStorage: 100,
+      },
+    });
+
+    renderTab();
+
+    expect(await screen.findByText("High CPU")).toBeInTheDocument();
+    expect(screen.queryByText("Connections Near the Limit")).toBeNull();
+    expect(
+      screen.getByText(
+        "Connections Near the Limit is for MySQL, MariaDB, PostgreSQL and Aurora, whose connection limit follows their class. You can still alert on this instance's connections: open DatabaseConnections on its Metrics tab and create a monitor from the view.",
+      ),
+    ).toBeInTheDocument();
+    // AWS's identifier for the engine reads as code: the note never names it.
+    expect(screen.queryByText(/sqlserver-se/)).toBeNull();
+  });
+
+  test("an ACM certificate is offered Certificate Expiring, made to run once an hour over 2 days", async () => {
+    resourceRow = cloudRow({
+      name: "www.example.com",
+      cloudResourceType: "AWS::CertificateManager::Certificate",
+      telemetryAttributes: {
+        Namespace: "AWS/CertificateManager",
+        "Dimensions.CertificateArn":
+          "arn:aws:acm:us-east-1:123456789012:certificate/0f4a8f3e-6c2b-4e7a-9d1c-2b3a4c5d6e7f",
+        "resource.cloud.account.id": "123456789012",
+        "resource.cloud.region": "us-east-1",
+      },
+    });
+
+    renderTab();
+
+    expect(await screen.findByText("Certificate Expiring")).toBeInTheDocument();
+    expect(
+      screen.getByText("The certificate expires in 30 days or fewer."),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Select Certificate Expiring" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Create 1 Selected Monitor" }),
+    );
+    await act(async () => {
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Create Monitors" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const made: Monitor = (
+      createOrUpdateMock.mock.calls[0]![0] as { model: Monitor }
+    ).model;
+
+    expect(made.name).toBe("www.example.com - Certificate Expiring");
+    // Its reading comes twice a day: checked once an hour, not every five minutes.
+    expect(made.monitoringInterval).toBe(CLOUD_SLOW_METRIC_MONITORING_INTERVAL);
+    expect(
+      made.monitorSteps!.data!.monitorStepsInstanceArray[0]!.data!.metricMonitor
+        ?.rollingTime,
+    ).toBe(CLOUD_SLOW_METRIC_WINDOW);
   });
 
   test("a member who may not create monitors sees them, and every Create is locked", async () => {

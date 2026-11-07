@@ -8,6 +8,7 @@ import TelemetryExceptionActivityService, {
 } from "Common/Server/Services/TelemetryExceptionActivityService";
 import { TelemetryExceptionActivityType } from "Common/Models/DatabaseModels/TelemetryExceptionActivity";
 import logger from "Common/Server/Utils/Logger";
+import { reopensResolution } from "Common/Server/Infrastructure/Postgres/ExceptionTwinMerge";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { DataSource } from "Common/node_modules/typeorm";
@@ -31,6 +32,11 @@ import { DataSource } from "Common/node_modules/typeorm";
  *
  * It used to reopen on every occurrence and record nothing. The unit suites
  * fake `manager.query`, so only a real Postgres runs the CASEs.
+ *
+ * When the two copies of a host a race made twice merge, an exception both
+ * had decides by the same rule whether one copy, seen since, reopens the
+ * other's resolution (ExceptionTwinMerge.reopensResolution): the last test
+ * asks both of every case.
  *
  * Opt in with RUN_POSTGRES_EXCEPTION_REGRESSION_TESTS=true against a
  * Postgres migrated to the current head - the Postgres Schema Drift
@@ -445,4 +451,97 @@ describePostgres("exception regressions against Postgres", () => {
     ]);
     expect(regressions).toEqual([[(await read("fp-rollout"))._id, "1.1"]]);
   });
+
+  /*
+   * The host merge's copy of the rule (ExceptionTwinMerge) and this upsert's
+   * agree on every case: ingest reopens the resolved row exactly when
+   * reopensResolution says a copy last seen then, in that release, reopens
+   * it.
+   */
+  test.each([
+    ["seen before the resolve", 60, null, 90, "2.3.1", false],
+    ["seen after the resolve", 60, null, 1, "2.3.1", true],
+    ["seen after the resolve, naming no release", 60, null, 1, null, true],
+    [
+      "resolved in the next release, seen after in the release it waits out",
+      60,
+      "2.3.1",
+      10,
+      "2.3.1",
+      false,
+    ],
+    [
+      "resolved in the next release, seen after naming no release",
+      60,
+      "2.3.1",
+      10,
+      null,
+      false,
+    ],
+    [
+      "resolved in the next release, seen after in another release",
+      60,
+      "2.3.1",
+      10,
+      "2.3.2",
+      true,
+    ],
+    [
+      "resolved in the next release, seen before in another release",
+      60,
+      "2.3.1",
+      90,
+      "2.3.2",
+      false,
+    ],
+  ])(
+    "the host merge's reopen rule is this upsert's: %s",
+    async (
+      name: string,
+      resolvedMinutesAgo: number,
+      inReleaseAfter: string | null,
+      seenMinutesAgo: number,
+      release: string | null,
+      reopens: boolean,
+    ) => {
+      const fingerprint: string = `fp-rule-${name}`;
+      const resolvedAt: Date = minutesAgo(resolvedMinutesAgo);
+      const seenAt: Date = minutesAgo(seenMinutesAgo);
+
+      await ingest([
+        occurrence(fingerprint, {
+          occurredAt: minutesAgo(120),
+          release: "2.3.1",
+        }),
+      ]);
+      await resolve(fingerprint, {
+        at: resolvedAt,
+        inReleaseAfter: inReleaseAfter ?? undefined,
+      });
+      await ingest([
+        occurrence(fingerprint, {
+          occurredAt: seenAt,
+          ...(release ? { release: release } : {}),
+        }),
+      ]);
+
+      const row: GroupRow = await read(fingerprint);
+
+      expect(!row.isResolved).toBe(reopens);
+      expect(
+        reopensResolution(
+          {
+            isResolved: true,
+            markedAsResolvedAt: resolvedAt,
+            markedAsResolvedByUserId: resolverId.toString(),
+            resolvedInReleaseAfter: inReleaseAfter,
+            regressedAt: null,
+            lastSeenAt: minutesAgo(120),
+            lastSeenInRelease: "2.3.1",
+          },
+          { lastSeenAt: seenAt, lastSeenInRelease: release },
+        ),
+      ).toBe(reopens);
+    },
+  );
 });

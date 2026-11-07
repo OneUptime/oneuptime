@@ -25,6 +25,7 @@ import {
   CloudAlertTemplate,
   getCloudAlertTemplatesFor,
   getCloudAlertTemplatesForType,
+  getCloudConnectionsThreshold,
   getCloudMonitoringServiceName,
   readAllocatedStorageGiB,
   readCloudTelemetryAttributes,
@@ -32,6 +33,13 @@ import {
 import { readCloudResourceReadings } from "Common/Types/Cloud/CloudResourceHealth";
 import { AWS_CLOUDWATCH_NAMESPACE_ATTRIBUTE } from "Common/Types/Cloud/CloudMonitoredResource";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
+import {
+  RDS_CONNECTION_ENGINE_NAMES,
+  RDS_DB_INSTANCE_TYPE,
+  RdsConnectionLimitGap,
+  RdsConnectionLimitReading,
+  readRdsConnectionLimit,
+} from "Common/Types/Cloud/RdsConnectionLimits";
 import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
 import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
 import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/DatabaseSystem";
@@ -51,7 +59,11 @@ import {
   MonitorRecommendationContext,
   MonitorRecommendationResourceType,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  getGlobalTranslator,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 import ObjectID from "Common/Types/ObjectID";
 import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
 import { getOpenStackOptionalServicesOf } from "Common/Types/OpenStack/OpenStackOptionalServices";
@@ -282,11 +294,22 @@ export function describeCloudAppRecommendationContext(
       );
 }
 
+// Whether a cloud resource is an RDS DB instance: the one type with a connection limit.
+function isRdsDbInstance(provider: unknown, resourceType: unknown): boolean {
+  return (
+    typeof provider === "string" &&
+    typeof resourceType === "string" &&
+    provider.trim().toLowerCase() === CloudProvider.AWS &&
+    resourceType.trim().toLowerCase() === RDS_DB_INSTANCE_TYPE.toLowerCase()
+  );
+}
+
 /*
  * What a cloud resource's row says that decides its recommendations
  * (getCloudAlertTemplatesFor): its cloud and type, the attributes its
  * metrics are stored with, its readings (an Azure metric's stored name)
- * and, for an RDS instance, its allocated storage. Shared by a resource's
+ * and, for an RDS instance, its allocated storage and its connection limit
+ * (from its class, engine and parameter group). Shared by a resource's
  * Recommendations tab and its account's, which read every resource the
  * same way.
  */
@@ -307,9 +330,110 @@ export function readCloudResourceRecommendationContext(
     cloudAllocatedStorageGiB: readAllocatedStorageGiB(
       record["cloudProperties"],
     ),
+    // Only an RDS instance's: no other resource's templates read one.
+    ...(isRdsDbInstance(provider, resourceType)
+      ? {
+          cloudConnectionLimit: readRdsConnectionLimit(
+            record["cloudProperties"],
+          ),
+        }
+      : {}),
     // An ObjectID on a read row, a string in a plain record.
     cloudReadByConnection: Boolean(connectionId && String(connectionId).trim()),
   };
+}
+
+/*
+ * What an RDS instance's page says of its Connections Near the Limit: why
+ * it waits or is not offered, or - when its parameter group is one of the
+ * team's own, which may set max_connections - the line it alerts at and the
+ * limit that line is a share of, so they can check it before they add it.
+ * Nothing when the class's default is the limit (an engine's default group)
+ * or nothing is known of the group: the monitor's criteria say its line.
+ *
+ * The line comes first, in connections: it is the number the monitor will
+ * alert at, and the one to compare with the group's max_connections.
+ */
+function describeCloudConnectionLimit(
+  reading: RdsConnectionLimitReading | null | undefined,
+): string | undefined {
+  if (!reading) {
+    return undefined;
+  }
+
+  /*
+   * Its class, engine and group are names as AWS writes them, set apart in
+   * a sentence read right to left, so their dots never move the words.
+   */
+  const translator: Translator = getGlobalTranslator();
+
+  if (reading.limit) {
+    if (!reading.limit.isOwnParameterGroup) {
+      return undefined;
+    }
+
+    return translator.translateTemplate(
+      "Connections Near the Limit alerts at {{threshold}} connections: 90% of {{limit}}, the default limit of a {{instanceClass}} instance running {{engine}}. If its parameter group, {{parameterGroup}}, sets max_connections, change the monitor's threshold to 90% of that.",
+      {
+        threshold: translator.formatNumber(
+          getCloudConnectionsThreshold(reading.limit.limit),
+        ),
+        limit: translator.formatNumber(reading.limit.limit),
+        instanceClass: reading.limit.instanceClass,
+        engine: RDS_CONNECTION_ENGINE_NAMES[reading.limit.engine],
+        parameterGroup: reading.limit.parameterGroup || "",
+      },
+      { setsValuesApart: true },
+    );
+  }
+
+  /*
+   * What to do instead is said as every other recommendation note says it
+   * ("You can still alert on it: open a metric on its Metrics tab ..."). An
+   * engine the class does not limit is not named: the inventory writes it
+   * as AWS's identifier ("sqlserver-se"), which reads as code in a sentence,
+   * and the instance's page names its engine already.
+   */
+  switch (reading.gap) {
+    case RdsConnectionLimitGap.NotListed:
+      return translator.translateTemplate(
+        "Connections Near the Limit is offered once the account's inventory lists the instance's class and engine.",
+      );
+    case RdsConnectionLimitGap.UnknownClass:
+      return translator.translateTemplate(
+        "Connections Near the Limit is not offered: OneUptime does not know the connection limit of a {{instanceClass}} instance yet. You can still alert on its connections: open DatabaseConnections on its Metrics tab and create a monitor from the view.",
+        { instanceClass: reading.instanceClass || "" },
+        { setsValuesApart: true },
+      );
+    case RdsConnectionLimitGap.NoClassLimit:
+      return translator.translateText(
+        "Connections Near the Limit is for MySQL, MariaDB, PostgreSQL and Aurora, whose connection limit follows their class. You can still alert on this instance's connections: open DatabaseConnections on its Metrics tab and create a monitor from the view.",
+      );
+    default:
+      return undefined;
+  }
+}
+
+// A sentence's end in the languages that write no space after one: Chinese and Japanese.
+const FULL_WIDTH_SENTENCE_END: RegExp = /[\u3002\uff01\uff1f]$/u;
+
+// Sentences one after another, the way the reader's language joins them.
+export function joinCloudRecommendationNotes(
+  notes: Array<string>,
+): string | undefined {
+  let text: string = "";
+
+  for (const note of notes) {
+    if (!text) {
+      text = note;
+    } else {
+      text = FULL_WIDTH_SENTENCE_END.test(text)
+        ? `${text}${note}`
+        : `${text} ${note}`;
+    }
+  }
+
+  return text || undefined;
 }
 
 /*
@@ -351,6 +475,7 @@ export function describeCloudResourceRecommendationContext(
     resourceType: context.cloudResourceType,
     telemetryAttributes: attributes,
     allocatedStorageGiB: context.cloudAllocatedStorageGiB,
+    connectionLimit: context.cloudConnectionLimit?.limit?.limit,
     readings: context.cloudReadings,
     isReadByConnection: context.cloudReadByConnection === true,
   });
@@ -387,20 +512,46 @@ export function describeCloudResourceRecommendationContext(
         );
   }
 
-  if (
+  const isStorageWaiting: boolean =
     forType.some((template: CloudAlertTemplate): boolean => {
       return Boolean(template.requiresAllocatedStorage);
     }) &&
     !offered.some((template: CloudAlertTemplate): boolean => {
       return Boolean(template.requiresAllocatedStorage);
-    })
+    });
+  const connectionNote: string | undefined = forType.some(
+    (template: CloudAlertTemplate): boolean => {
+      return Boolean(template.requiresConnectionLimit);
+    },
+  )
+    ? describeCloudConnectionLimit(context.cloudConnectionLimit)
+    : undefined;
+
+  // An instance the inventory has not listed: both wait for it, said once.
+  if (
+    isStorageWaiting &&
+    context.cloudConnectionLimit?.gap === RdsConnectionLimitGap.NotListed
   ) {
     return translateTemplate(
-      "Low Free Storage is offered once the account's inventory lists the instance's allocated storage.",
+      "Low Free Storage and Connections Near the Limit are offered once the account's inventory lists the instance.",
     );
   }
 
-  return undefined;
+  const notes: Array<string> = [];
+
+  if (isStorageWaiting) {
+    notes.push(
+      translateTemplate(
+        "Low Free Storage is offered once the account's inventory lists the instance's allocated storage.",
+      ),
+    );
+  }
+
+  if (connectionNote) {
+    notes.push(connectionNote);
+  }
+
+  return joinCloudRecommendationNotes(notes);
 }
 
 /*

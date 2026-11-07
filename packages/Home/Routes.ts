@@ -75,6 +75,7 @@ import {
   getAirGappedTopicSlugForPath,
 } from "./Utils/AirGappedPages";
 import { getDatabasesPageContent } from "./Utils/Databases";
+import { getCloudRecommendedMonitorsContent } from "./Utils/CloudRecommendedMonitors";
 import { getQueuesPageContent } from "./Utils/Queues";
 import { getAppPlatformsPageContent } from "./Utils/AppPlatforms";
 import { getCliPageContent } from "./Utils/CliPage";
@@ -1337,6 +1338,8 @@ const HomeFeatureSet: FeatureSet = {
       res.render(`${ViewsPath}/cloud`, {
         enableGoogleTagManager: GoogleTagManagerEnabled,
         seo,
+        // The recommended monitors it says the product offers, from the catalog.
+        cloudRecommendedMonitors: getCloudRecommendedMonitorsContent(),
       });
     });
 
