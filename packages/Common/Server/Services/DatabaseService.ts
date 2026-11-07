@@ -125,6 +125,7 @@ import { getRuleCriteriaFieldsForModel } from "../../Types/Rules/RuleCriteriaFie
 import {
   And,
   DataSource,
+  DeepPartial,
   DeleteResult,
   Driver,
   EntityManager,
@@ -550,6 +551,47 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     throw new DatabaseNotConnectedException();
+  }
+
+  /*
+   * A row's save() - the write of an update that sets a many-to-many
+   * column, which a plain UPDATE cannot make - held to the version the
+   * update's query names, as that UPDATE is held (_updateBy's
+   * expectedVersion). In one transaction, the row is locked while it still
+   * holds that version, and saved there: a write that lands meanwhile waits
+   * for the lock, then finds the version moved on (an UPDATE that names the
+   * version then writes nothing); one that landed before leaves no row at
+   * that version to lock, and nothing is saved. Nor is a row deleted since
+   * it was read, which a save() would otherwise insert again. Whether the
+   * row was saved.
+   */
+  private async saveRowAtVersion(data: {
+    row: unknown;
+    rowId: string;
+    version: number;
+  }): Promise<boolean> {
+    return await this.executeTransaction(
+      async (manager: EntityManager): Promise<boolean> => {
+        const repository: Repository<TBaseModel> =
+          manager.getRepository<TBaseModel>(this.modelType.name);
+
+        const lockedRows: Array<ObjectLiteral> = await repository
+          .createQueryBuilder("row")
+          .select("row._id")
+          .where("row._id = :rowId", { rowId: data.rowId })
+          .andWhere("row.version = :version", { version: data.version })
+          .setLock("pessimistic_write")
+          .getRawMany();
+
+        if (lockedRows.length === 0) {
+          return false;
+        }
+
+        await repository.save(data.row as DeepPartial<TBaseModel>);
+
+        return true;
+      },
+    );
   }
 
   public async executeTransaction<TResult>(
@@ -9919,8 +9961,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * a statement of its own, so the UPDATE asks again - a write landing
        * between the two would otherwise be overwritten by values computed
        * from what the row held before it. The workflow Update steps merge
-       * custom fields this way (CustomFieldsArgument). Rows written through
-       * save(), for a many-to-many column, are not guarded.
+       * custom fields this way (CustomFieldsArgument), and public note
+       * approval writes an edit of a note this way (PublicNoteApprovalEngine).
+       * A row written through save(), for a many-to-many column, is held to
+       * the version the same way, in save()'s own transaction
+       * (saveRowAtVersion).
        */
       const expectedVersion: unknown = (
         beforeUpdateBy.query as Dictionary<unknown>
@@ -10012,9 +10057,30 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           }
 
           // The row's write itself, in save()'s own transaction.
-          await progress.write(true, async (): Promise<unknown> => {
-            return await this.getRepository().save(savedItem);
-          });
+          const isSaved: boolean = await progress.write(
+            true,
+            async (): Promise<boolean> => {
+              if (typeof expectedVersion === "number") {
+                return await this.saveRowAtVersion({
+                  row: savedItem,
+                  rowId: item._id!,
+                  version: expectedVersion,
+                });
+              }
+
+              await this.getRepository().save(savedItem);
+              return true;
+            },
+          );
+
+          /*
+           * The row moved past the version the query named before its save
+           * could hold it there (see expectedVersion above): nothing was
+           * saved, so it is not counted, as an UPDATE that wrote no row.
+           */
+          if (!isSaved) {
+            continue;
+          }
 
           if (rowWriteSqlColumns.length > 0) {
             storedByWrite = this.readRowReturnedByWrite(

@@ -605,7 +605,7 @@ ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}${approvedBy}
   @CaptureSpan()
   public override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: Array<ObjectID>,
+    updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     /*
      * An edit that now waits for approval - or a waiting edit dropped -
@@ -620,6 +620,7 @@ ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}${approvedBy}
             publicNoteApproval?: PublicNoteApprovalUpdate;
           } | null
         )?.publicNoteApproval,
+        updatedNoteIds: updatedItemIds,
         props: onUpdate.updateBy.props,
       })
     ) {

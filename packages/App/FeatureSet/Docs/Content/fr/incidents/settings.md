@@ -19,7 +19,7 @@ Ouvrez **Incidents** depuis le menu **Produits** de la barre supérieure, puis d
 | **Gravité de l'incident**     | Ajouter, renommer, recolorer et réordonner les niveaux de gravité.                                 |
 | **Modèles d'incident**        | Préremplir tout un incident — titre, description, ressources, politiques d'astreinte, propriétaires, étiquettes. |
 | **Modèles de notes**          | Du texte réutilisable pour les notes publiques et privées.                                         |
-| **Public Note Approval** | Faites approuver les notes publiques avant leur publication et choisissez qui les approuve. |
+| **Approbation des notes publiques** | Faites approuver les notes publiques avant leur publication et choisissez qui les approuve. |
 | **Modèles de post-mortem**    | Des structures de post-mortem réutilisables.                                                       |
 | **Statuts de post-mortem** | Les statuts par lesquels passe un post-mortem, de Non démarré à Achevé. |
 | **Champs personnalisés**      | Définir des champs supplémentaires qui apparaissent sur chaque incident.                           |

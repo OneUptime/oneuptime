@@ -889,7 +889,10 @@ jobs:
       # maintenance lists and each one opened - runs on clones of the tables
       # it reads, with notes in every approval state, and shows the
       # published ones (an edited one as it was approved) and nothing of
-      # the rest.
+      # the rest. And an edit of a note is written only at the version it
+      # was worked out from: an approval written between the edit's read
+      # and its save - its UPDATE, or the save() of an edit that sends the
+      # note's files - stands, and the edit writes nothing.
       - name: Test public note approval on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -900,7 +903,8 @@ jobs:
           PUBLIC_NOTE_APPROVAL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Server/API/StatusPagePublicNoteApprovalPostgres.test.ts --forceExit
+          Tests/Server/API/StatusPagePublicNoteApprovalPostgres.test.ts
+          Tests/Server/Services/PublicNoteEditHeldToVersionPostgres.test.ts --forceExit
 
       # Clones the migrated Project, StatusPage and
       # StatusPageHistoryChartBarColorRule tables (with the rules' foreign
