@@ -3,7 +3,7 @@ import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createInstance, i18n } from "i18next";
-import React, { ReactElement } from "react";
+import React from "react";
 import { I18nextProvider } from "react-i18next";
 import FilterChipDropdown from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdown";
 import { FilterChipDropdownOption } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdownTypes";

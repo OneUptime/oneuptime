@@ -162,6 +162,12 @@ import {
  * whether archived, and an account Includes or IncludesNone, whose NOT IN
  * never matches a resource that names no account).
  *
+ *   ?accountreads=held  the chip's reads of the accounts (two fields of
+ *               each resource) wait until
+ *               window.__cloudConnectFixture.releaseAccountReads()
+ *   ?accountreads=fail  its first read of them fails, as a busy server's
+ *               may (a 502); every later one works
+ *
  * window.__cloudConnectFixture.connectAgent() makes the agent connect, as
  * it does a few minutes after the setup command finished.
  *
@@ -2014,6 +2020,10 @@ window.__cloudConnectFixture = {
       entry.resolve(answer(name, entry.provider));
     }
   },
+  // ?accountreads=held: All Resources' chip's reads of its accounts go on.
+  releaseAccountReads: () => {
+    releaseAccountReads();
+  },
   // A read the page started (Read now) ends: the connection was read now.
   finishRead: (id) => {
     const found = connections.find((item) => {
@@ -2053,6 +2063,29 @@ function copy(item) {
 
 // ?accounts=refused: the reader may not read Cloud Accounts.
 const refusesAccounts = params.get("accounts") === "refused";
+
+/*
+ * ?accountreads=held|fail: All Resources' Cloud Account chip's reads of its
+ * accounts - each resource's cloud and account, and nothing else - wait to
+ * be let through, or fail once.
+ */
+const accountReadsMode = params.get("accountreads") || "";
+let releaseAccountReads = () => {};
+const accountReadsHeld =
+  accountReadsMode === "held"
+    ? new Promise((resolve) => {
+        releaseAccountReads = resolve;
+      })
+    : null;
+let accountReadFailures = accountReadsMode === "fail" ? 1 : 0;
+
+function isAccountRead(args) {
+  return (
+    Object.keys(args.select || {})
+      .sort()
+      .join(",") === "cloudAccountId,cloudProvider"
+  );
+}
 const ACCOUNTS_REFUSAL =
   "You do not have permissions to read Cloud Account. You need one of these permissions: Read Cloud Resource";
 
@@ -2159,6 +2192,21 @@ ModelAPI.getList = async (args) => {
     const query = args.query || {};
     // Cloud > All Resources and its Cloud Account chip: the list by kind.
     if (query.cloudResourceKind !== undefined) {
+      if (isAccountRead(args)) {
+        if (accountReadsHeld) {
+          await accountReadsHeld;
+        }
+        if (accountReadFailures > 0) {
+          accountReadFailures--;
+          state.listRequests.push({
+            model: "CloudResource",
+            cloudResourceKind: query.cloudResourceKind,
+            select: Object.keys(args.select || {}).sort(),
+            failed: true,
+          });
+          throw new HTTPErrorResponse(502, { message: "Bad Gateway" }, {});
+        }
+      }
       return listAllResources(args);
     }
     const provider = String(query.cloudProvider || "");

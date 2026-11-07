@@ -6307,7 +6307,8 @@ async function resourceAccountReads(
 
 /*
  * The chip's popover once it is at rest: a dialog grows in, and Tailwind's
- * runtime writes its rules a moment after it mounts.
+ * runtime writes its rules a moment after it mounts. A finite animation
+ * only: the spinner of a list still being read turns until it is in.
  */
 async function openChipPopover(chip: Locator): Promise<Locator> {
   await chip.click();
@@ -6316,7 +6317,11 @@ async function openChipPopover(chip: Locator): Promise<Locator> {
   await expect
     .poll(async (): Promise<number> => {
       return await popover.evaluate((element: Element): number => {
-        return element.getAnimations({ subtree: true }).length;
+        return element
+          .getAnimations({ subtree: true })
+          .filter((animation: Animation): boolean => {
+            return animation.effect?.getTiming().iterations !== Infinity;
+          }).length;
       });
     })
     .toBe(0);
@@ -6500,6 +6505,79 @@ test.describe("Cloud's All Resources, by cloud account", () => {
       }),
     ).toBe(true);
     await shoot(page, "all-resources-account-chip-ids");
+  });
+
+  /*
+   * The UI review of #6227: the chip's accounts are read a few rows at a
+   * time, one read after another, so on a big project they take a while.
+   * Opened before they were in, the chip said "Nothing to show - No options
+   * available", and a read that failed left it saying so for good. It says
+   * Loading... while they are read, and that they could not be read - with
+   * Try again, which reads them once more.
+   */
+  test("while its accounts are read the chip says so, and a read that failed says so, with Try again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAllResources(
+      page,
+      `${ALL_RESOURCES_PATH}?state=connected&accountreads=held`,
+    );
+    await expect(resourceLink(page, "web-alb").first()).toBeVisible();
+
+    let bar: Locator = await resourceChips(page);
+    let popover: Locator = await openChipPopover(
+      bar.getByRole("button", { name: /^Cloud Account$/ }),
+    );
+    await expect(popover.getByText("Loading...")).toBeVisible();
+    await expect(popover.getByText("Nothing to show")).toHaveCount(0);
+    await shoot(page, "all-resources-account-chip-loading");
+
+    // Read: the accounts, named.
+    await page.evaluate(() => {
+      (
+        window as unknown as {
+          __cloudConnectFixture: { releaseAccountReads: () => void };
+        }
+      ).__cloudConnectFixture.releaseAccountReads();
+    });
+    await expect(popover.getByRole("listbox").getByRole("option")).toHaveText([
+      /^Production\s*123456789012$/,
+      /^Contoso production\s*7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b$/,
+      /^acme-prod$/,
+    ]);
+    await expect(popover.getByText("Loading...")).toHaveCount(0);
+
+    // A read that failed: the list could not be loaded, and Try again reads it.
+    await openAllResources(
+      page,
+      `${ALL_RESOURCES_PATH}?state=connected&accountreads=fail`,
+    );
+    await expect(resourceLink(page, "web-alb").first()).toBeVisible();
+    bar = await resourceChips(page);
+    popover = await openChipPopover(
+      bar.getByRole("button", { name: /^Cloud Account$/ }),
+    );
+    await expect(popover.getByTestId("filter-chip-load-error")).toBeVisible();
+    await expect(popover.getByText("Couldn't load this list.")).toBeVisible();
+    await expect(popover.getByText("Nothing to show")).toHaveCount(0);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "all-resources-account-chip-load-error");
+
+    await popover.getByRole("button", { name: "Try again" }).click();
+    await expect(popover.getByRole("listbox").getByRole("option")).toHaveCount(
+      3,
+    );
+    await expect(popover.getByTestId("filter-chip-load-error")).toHaveCount(0);
+    // The read that failed, then the one Try again asked for.
+    const accountReads: Array<ResourceListRequest> =
+      await resourceAccountReads(page);
+    expect(accountReads[0]).toMatchObject({ failed: true });
+    expect(accountReads.length).toBeGreaterThan(1);
+    expect(accountReads[accountReads.length - 1]).not.toMatchObject({
+      failed: true,
+    });
   });
 
   for (const reader of [
