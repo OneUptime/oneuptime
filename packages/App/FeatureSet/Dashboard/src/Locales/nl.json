@@ -46367,5 +46367,14 @@
   "{{count}} queues": "{{count}} queues",
   "{{count}} queues_one": "{{count}} queue",
   "{{count}} shown for context": "{{count}} shown for context",
-  "{{rate}} of its spans": "{{rate}} of its spans"
+  "{{rate}} of its spans": "{{rate}} of its spans",
+  "Graph Revision": "Graafrevisie",
+  "It was saved after you opened it, so your latest change is not saved yet.": "Hij is opgeslagen nadat je hem opende, dus je laatste wijziging is nog niet opgeslagen.",
+  "Keep mine": "De mijne houden",
+  "Nothing is lost either way. Show their changes puts their version on the canvas, and Undo brings yours back. Keep mine saves your version, and theirs stays in Version history.": "Er gaat hoe dan ook niets verloren. ‘Hun wijzigingen tonen’ zet hun versie op het canvas, en ‘Ongedaan maken’ haalt de jouwe terug. ‘De mijne houden’ slaat jouw versie op, en die van hen blijft in de versiegeschiedenis.",
+  "Redo showing their changes": "Tonen van hun wijzigingen opnieuw doen",
+  "Show their changes": "Hun wijzigingen tonen",
+  "Someone else changed this workflow": "Iemand anders heeft deze workflow gewijzigd",
+  "Undo showing their changes": "Tonen van hun wijzigingen ongedaan maken",
+  "What they changed:": "Wat er is gewijzigd:"
 }

@@ -46367,5 +46367,14 @@
   "{{count}} queues": "{{count}} queues",
   "{{count}} queues_one": "{{count}} queue",
   "{{count}} shown for context": "{{count}} shown for context",
-  "{{rate}} of its spans": "{{rate}} of its spans"
+  "{{rate}} of its spans": "{{rate}} of its spans",
+  "Graph Revision": "圖形修訂號",
+  "It was saved after you opened it, so your latest change is not saved yet.": "它在你開啟之後被儲存過，因此你最近的變更尚未儲存。",
+  "Keep mine": "保留我的版本",
+  "Nothing is lost either way. Show their changes puts their version on the canvas, and Undo brings yours back. Keep mine saves your version, and theirs stays in Version history.": "無論選擇哪一項，都不會遺失任何內容。「顯示對方的變更」會把對方的版本放到畫布上，「復原」可取回你的版本。「保留我的版本」會儲存你的版本，對方的版本會保留在版本歷史中。",
+  "Redo showing their changes": "重做顯示對方的變更",
+  "Show their changes": "顯示對方的變更",
+  "Someone else changed this workflow": "其他人變更了此工作流程",
+  "Undo showing their changes": "復原顯示對方的變更",
+  "What they changed:": "對方變更的內容："
 }

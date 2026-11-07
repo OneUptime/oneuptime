@@ -46367,5 +46367,14 @@
   "{{count}} queues": "{{count}} queues",
   "{{count}} queues_one": "{{count}} queue",
   "{{count}} shown for context": "{{count}} shown for context",
-  "{{rate}} of its spans": "{{rate}} of its spans"
+  "{{rate}} of its spans": "{{rate}} of its spans",
+  "Graph Revision": "Grafrevisjon",
+  "It was saved after you opened it, so your latest change is not saved yet.": "Den ble lagret etter at du åpnet den, så den siste endringen din er ikke lagret ennå.",
+  "Keep mine": "Behold min",
+  "Nothing is lost either way. Show their changes puts their version on the canvas, and Undo brings yours back. Keep mine saves your version, and theirs stays in Version history.": "Ingenting går tapt, uansett hva du velger. «Vis endringene deres» legger versjonen deres på lerretet, og «Angre» henter din tilbake. «Behold min» lagrer versjonen din, og deres blir værende i versjonshistorikken.",
+  "Redo showing their changes": "Gjør om visning av endringene deres",
+  "Show their changes": "Vis endringene deres",
+  "Someone else changed this workflow": "Noen andre har endret denne arbeidsflyten",
+  "Undo showing their changes": "Angre visning av endringene deres",
+  "What they changed:": "Dette har de endret:"
 }

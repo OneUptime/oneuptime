@@ -46367,5 +46367,14 @@
   "{{count}} queues": "{{count}} queues",
   "{{count}} queues_one": "{{count}} queue",
   "{{count}} shown for context": "{{count}} shown for context",
-  "{{rate}} of its spans": "{{rate}} of its spans"
+  "{{rate}} of its spans": "{{rate}} of its spans",
+  "Graph Revision": "بازبینی گراف",
+  "It was saved after you opened it, so your latest change is not saved yet.": "پس از آنکه آن را باز کردید ذخیره شد، پس آخرین تغییر شما هنوز ذخیره نشده است.",
+  "Keep mine": "نسخهٔ من بماند",
+  "Nothing is lost either way. Show their changes puts their version on the canvas, and Undo brings yours back. Keep mine saves your version, and theirs stays in Version history.": "هر کدام را انتخاب کنید، چیزی از دست نمی‌رود. «نمایش تغییرهای آن‌ها» نسخهٔ آن‌ها را روی بوم می‌گذارد و «واگرد» نسخهٔ شما را برمی‌گرداند. «نسخهٔ من بماند» نسخهٔ شما را ذخیره می‌کند و نسخهٔ آن‌ها در تاریخچه نسخه‌ها می‌ماند.",
+  "Redo showing their changes": "ازنو نمایش تغییرهای آن‌ها",
+  "Show their changes": "نمایش تغییرهای آن‌ها",
+  "Someone else changed this workflow": "کس دیگری این گردش کاری را تغییر داد",
+  "Undo showing their changes": "واگرد نمایش تغییرهای آن‌ها",
+  "What they changed:": "تغییرهایی که داده‌اند:"
 }

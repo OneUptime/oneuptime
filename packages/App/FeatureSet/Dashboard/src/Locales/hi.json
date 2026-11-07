@@ -46367,5 +46367,14 @@
   "{{count}} queues": "{{count}} queues",
   "{{count}} queues_one": "{{count}} queue",
   "{{count}} shown for context": "{{count}} shown for context",
-  "{{rate}} of its spans": "{{rate}} of its spans"
+  "{{rate}} of its spans": "{{rate}} of its spans",
+  "Graph Revision": "ग्राफ़ संशोधन",
+  "It was saved after you opened it, so your latest change is not saved yet.": "आपके खोलने के बाद इसे सहेजा गया, इसलिए आपका नवीनतम बदलाव अभी सहेजा नहीं गया है।",
+  "Keep mine": "मेरा रखें",
+  "Nothing is lost either way. Show their changes puts their version on the canvas, and Undo brings yours back. Keep mine saves your version, and theirs stays in Version history.": "आप जो भी चुनें, कुछ नहीं खोता। “उनके बदलाव दिखाएँ” उनका संस्करण कैनवास पर रखता है, और “पूर्ववत करें” आपका संस्करण वापस लाता है। “मेरा रखें” आपका संस्करण सहेजता है, और उनका संस्करण संस्करण इतिहास में बना रहता है।",
+  "Redo showing their changes": "उनके बदलाव दिखाना फिर से करें",
+  "Show their changes": "उनके बदलाव दिखाएँ",
+  "Someone else changed this workflow": "किसी और ने यह वर्कफ़्लो बदला है",
+  "Undo showing their changes": "उनके बदलाव दिखाना पूर्ववत करें",
+  "What they changed:": "उन्होंने क्या बदला:"
 }

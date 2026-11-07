@@ -46367,5 +46367,14 @@
   "{{count}} queues": "{{count}} queues",
   "{{count}} queues_one": "{{count}} queue",
   "{{count}} shown for context": "{{count}} shown for context",
-  "{{rate}} of its spans": "{{rate}} of its spans"
+  "{{rate}} of its spans": "{{rate}} of its spans",
+  "Graph Revision": "グラフのリビジョン",
+  "It was saved after you opened it, so your latest change is not saved yet.": "開いた後に別のユーザーが保存したため、最新の変更はまだ保存されていません。",
+  "Keep mine": "自分のバージョンを残す",
+  "Nothing is lost either way. Show their changes puts their version on the canvas, and Undo brings yours back. Keep mine saves your version, and theirs stays in Version history.": "どちらを選んでも失われるものはありません。「相手の変更を表示」は相手のバージョンをキャンバスに表示し、「元に戻す」で自分のバージョンに戻せます。「自分のバージョンを残す」は自分のバージョンを保存し、相手のバージョンはバージョン履歴に残ります。",
+  "Redo showing their changes": "相手の変更の表示をやり直す",
+  "Show their changes": "相手の変更を表示",
+  "Someone else changed this workflow": "他のユーザーがこのワークフローを変更しました",
+  "Undo showing their changes": "相手の変更の表示を元に戻す",
+  "What they changed:": "相手が変更した内容:"
 }

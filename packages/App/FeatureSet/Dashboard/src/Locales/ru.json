@@ -46367,5 +46367,14 @@
   "{{count}} queues": "{{count}} queues",
   "{{count}} queues_one": "{{count}} queue",
   "{{count}} shown for context": "{{count}} shown for context",
-  "{{rate}} of its spans": "{{rate}} of its spans"
+  "{{rate}} of its spans": "{{rate}} of its spans",
+  "Graph Revision": "Ревизия графа",
+  "It was saved after you opened it, so your latest change is not saved yet.": "Его сохранили после того, как вы его открыли, поэтому ваше последнее изменение ещё не сохранено.",
+  "Keep mine": "Оставить мою",
+  "Nothing is lost either way. Show their changes puts their version on the canvas, and Undo brings yours back. Keep mine saves your version, and theirs stays in Version history.": "Ничего не теряется, что бы вы ни выбрали. «Показать их изменения» выводит их версию на холст, а «Отменить» возвращает вашу. «Оставить мою» сохраняет вашу версию, а их версия остаётся в истории версий.",
+  "Redo showing their changes": "Повторить показ их изменений",
+  "Show their changes": "Показать их изменения",
+  "Someone else changed this workflow": "Кто-то другой изменил этот рабочий процесс",
+  "Undo showing their changes": "Отменить показ их изменений",
+  "What they changed:": "Что они изменили:"
 }

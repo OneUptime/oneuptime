@@ -46367,5 +46367,14 @@
   "{{count}} queues": "{{count}} queues",
   "{{count}} queues_one": "{{count}} queue",
   "{{count}} shown for context": "{{count}} shown for context",
-  "{{rate}} of its spans": "{{rate}} of its spans"
+  "{{rate}} of its spans": "{{rate}} of its spans",
+  "Graph Revision": "Revisión del grafo",
+  "It was saved after you opened it, so your latest change is not saved yet.": "Se guardó después de que lo abrieras, así que tu último cambio todavía no está guardado.",
+  "Keep mine": "Conservar la mía",
+  "Nothing is lost either way. Show their changes puts their version on the canvas, and Undo brings yours back. Keep mine saves your version, and theirs stays in Version history.": "No se pierde nada, elijas lo que elijas. «Mostrar sus cambios» pone su versión en el lienzo y «Deshacer» recupera la tuya. «Conservar la mía» guarda tu versión, y la suya se queda en el historial de versiones.",
+  "Redo showing their changes": "Rehacer la vista de sus cambios",
+  "Show their changes": "Mostrar sus cambios",
+  "Someone else changed this workflow": "Otra persona cambió este flujo de trabajo",
+  "Undo showing their changes": "Deshacer la vista de sus cambios",
+  "What they changed:": "Lo que cambiaron:"
 }

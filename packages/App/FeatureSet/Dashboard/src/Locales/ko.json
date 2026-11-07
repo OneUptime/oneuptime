@@ -46367,5 +46367,14 @@
   "{{count}} queues": "{{count}} queues",
   "{{count}} queues_one": "{{count}} queue",
   "{{count}} shown for context": "{{count}} shown for context",
-  "{{rate}} of its spans": "{{rate}} of its spans"
+  "{{rate}} of its spans": "{{rate}} of its spans",
+  "Graph Revision": "그래프 리비전",
+  "It was saved after you opened it, so your latest change is not saved yet.": "워크플로를 연 뒤에 저장되었기 때문에 마지막 변경 사항은 아직 저장되지 않았습니다.",
+  "Keep mine": "내 버전 유지",
+  "Nothing is lost either way. Show their changes puts their version on the canvas, and Undo brings yours back. Keep mine saves your version, and theirs stays in Version history.": "어느 쪽을 선택해도 잃는 것은 없습니다. '상대의 변경 사항 보기'는 상대의 버전을 캔버스에 표시하고, '실행 취소'로 내 버전을 되돌릴 수 있습니다. '내 버전 유지'는 내 버전을 저장하며, 상대의 버전은 버전 기록에 남습니다.",
+  "Redo showing their changes": "상대의 변경 사항 보기 다시 실행",
+  "Show their changes": "상대의 변경 사항 보기",
+  "Someone else changed this workflow": "다른 사람이 이 워크플로를 변경했습니다",
+  "Undo showing their changes": "상대의 변경 사항 보기 실행 취소",
+  "What they changed:": "상대가 변경한 내용:"
 }
