@@ -915,6 +915,7 @@ import { AddGroupingRuleMinimumCount1808994700000 } from "./1808994700000-AddGro
 import { AddGroupingWaitKeyIndexes1808994710000 } from "./1808994710000-AddGroupingWaitKeyIndexes";
 import { AddCloudConnectionStreamState1808995100000 } from "./1808995100000-AddCloudConnectionStreamState";
 import { WidenGitBranchNameColumns1808995180000 } from "./1808995180000-WidenGitBranchNameColumns";
+import { WidenCodeRepositoryOwnerColumns1808995240000 } from "./1808995240000-WidenCodeRepositoryOwnerColumns";
 
 export default [
   InitialMigration,
@@ -1834,4 +1835,5 @@ export default [
   AddGroupingWaitKeyIndexes1808994710000,
   AddCloudConnectionStreamState1808995100000,
   WidenGitBranchNameColumns1808995180000,
+  WidenCodeRepositoryOwnerColumns1808995240000,
 ];

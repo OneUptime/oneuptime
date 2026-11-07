@@ -28,6 +28,8 @@ import {
   CodeHostRepositoryListJSON,
   GitRepositoryConnectResultJSON,
 } from "../../../../../Types/CodeRepository/CodeHostConnect";
+import { MAX_CODE_HOST_URL_LENGTH } from "../../../../../Types/CodeRepository/CodeHost";
+import ColumnLength from "../../../../../Types/Database/ColumnLength";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../../Types/ObjectID";
 import { FakeCodeHost, fakeCodeHost } from "./FakeCodeHost";
@@ -258,6 +260,11 @@ beforeEach(() => {
   jest.spyOn(CodeRepositoryService, "create").mockImplementation((async (args: {
     data: CodeRepository;
   }): Promise<CodeRepository> => {
+    /*
+     * The width check DatabaseService.create runs: a value longer than its
+     * column holds fails here as it fails there.
+     */
+    CodeRepositoryService["checkMaxLengthOfFields"](args.data);
     args.data._id = ObjectID.generate().toString();
     repositories.push(args.data);
     return args.data;
@@ -827,6 +834,215 @@ describe("connecting a Git repository", () => {
         connectWithoutCheck: false,
       }),
     ).rejects.toThrow("over HTTPS");
+  });
+
+  /*
+   * The path before the repository's name is its owner, kept whole however
+   * long: a cut one is another group. The longest is in the longest address
+   * OneUptime takes.
+   */
+  test("keeps the path before the repository's name whole, in the longest address OneUptime takes", async () => {
+    // 41 groups, the first one character longer: a 2,000-character address.
+    const groupPath: string = Array.from(
+      { length: 41 },
+      (_: unknown, index: number): string => {
+        return `${index === 0 ? "h" : ""}${"g".repeat(47)}`;
+      },
+    ).join("/");
+    const url: string = `https://git.example.com/${groupPath}/app.git`;
+
+    expect(url).toHaveLength(MAX_CODE_HOST_URL_LENGTH);
+
+    jest
+      .spyOn(CodeRepositoryConnector, "getTransport")
+      .mockReturnValue(async (): Promise<CodeHostHttpResponse> => {
+        return {
+          statusCode: 200,
+          bodyText: advertisement,
+          bodyJson: undefined,
+          headers: {
+            "content-type": "application/x-git-upload-pack-advertisement",
+          },
+        };
+      });
+
+    const result: GitRepositoryConnectResultJSON =
+      await CodeRepositoryConnector.connectGitRepository({
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+        url,
+        username: "deploy",
+        password: "git-password-0000000001",
+        connectWithoutCheck: false,
+      });
+
+    expect(result.repositoryId).toBeTruthy();
+    expect(repositories).toHaveLength(1);
+    expect(repositories[0]!.organizationName).toBe(groupPath);
+    expect(repositories[0]!.repositoryName).toBe("app");
+    expect(repositories[0]!.repositoryUrl?.toString()).toBe(url);
+  });
+
+  test("a repository whose own name is longer than OneUptime keeps is refused, saying so, and nothing is kept", async () => {
+    await expect(
+      CodeRepositoryConnector.connectGitRepository({
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+        url: `https://git.example.com/team/${"n".repeat(ColumnLength.ShortText + 1)}.git`,
+        username: "deploy",
+        password: "git-password-0000000001",
+        connectWithoutCheck: false,
+      }),
+    ).rejects.toThrow("That repository's name is longer than OneUptime keeps.");
+    expect(connections).toHaveLength(0);
+    expect(repositories).toHaveLength(0);
+  });
+});
+
+/*
+ * A GitLab project's owner is its group's full path. GitLab nests a group
+ * under at most 20 others and takes a path of at most 255 characters
+ * (app/models/namespace.rb), so the path runs to 5,375 characters. It was
+ * once skipped past 100, its old column's width.
+ */
+describe("connecting a GitLab project in a deeply nested group", () => {
+  const GITLAB_HOST: string = "https://gitlab.example.com";
+
+  const GITLAB_SOURCE: {
+    provider: CodeRepositoryType;
+    hostUrl: string;
+    token: string;
+  } = {
+    provider: CodeRepositoryType.GitLab,
+    hostUrl: GITLAB_HOST,
+    token: "glpat-000000000000000000001",
+  };
+
+  // 21 groups, each path as long as GitLab takes.
+  const DEEPEST_GROUP_PATH: string = Array.from(
+    { length: 21 },
+    (_: unknown, index: number): string => {
+      return String.fromCharCode(97 + index).repeat(255);
+    },
+  ).join("/");
+
+  // A project as GitLab's API answers for it, which the token can push to.
+  function gitLabProject(
+    id: number,
+    groupPath: string,
+    path: string,
+  ): Record<string, unknown> {
+    return {
+      id,
+      path,
+      path_with_namespace: `${groupPath}/${path}`,
+      namespace: { full_path: groupPath },
+      description: null,
+      default_branch: "main",
+      web_url: `${GITLAB_HOST}/${groupPath}/${path}`,
+      http_url_to_repo: `${GITLAB_HOST}/${groupPath}/${path}.git`,
+      visibility: "private",
+      archived: false,
+      permissions: { project_access: { access_level: 40 }, group_access: null },
+    };
+  }
+
+  function serveGitLab(
+    projects: Record<number, Record<string, unknown>>,
+  ): FakeCodeHost {
+    const gitLab: FakeCodeHost = fakeCodeHost({
+      apiBaseUrl: `${GITLAB_HOST}/api/v4`,
+      routes: [
+        {
+          method: "GET",
+          path: "/user",
+          answer: () => {
+            return { json: { id: 9, username: "alice", name: "Alice" } };
+          },
+        },
+        {
+          method: "GET",
+          path: /^\/projects\/\d+$/,
+          answer: (_request: CodeHostHttpRequest, url: URL) => {
+            const id: number = Number(url.pathname.split("/").pop());
+
+            return projects[id]
+              ? { json: projects[id] }
+              : { status: 404, json: { message: "404 Project Not Found" } };
+          },
+        },
+      ],
+    });
+
+    jest
+      .spyOn(CodeRepositoryConnector, "getTransport")
+      .mockReturnValue(gitLab.transport);
+
+    return gitLab;
+  }
+
+  test("the deepest group path GitLab allows is 5,375 characters", () => {
+    expect(DEEPEST_GROUP_PATH.split("/")).toHaveLength(21);
+    expect(DEEPEST_GROUP_PATH).toHaveLength(5375);
+  });
+
+  test.each([
+    {
+      depth: "just past the old 100-character width",
+      groupPath: `acme/${"platform-".repeat(10)}${"x".repeat(6)}`,
+    },
+    {
+      depth: "as deep and as long as GitLab allows",
+      groupPath: DEEPEST_GROUP_PATH,
+    },
+  ])(
+    "connects a project whose group's path is $depth, keeping the path whole",
+    async ({ groupPath }: { depth: string; groupPath: string }) => {
+      expect(groupPath.length).toBeGreaterThan(ColumnLength.ShortText);
+
+      const gitLab: FakeCodeHost = serveGitLab({
+        77: gitLabProject(77, groupPath, "checkout"),
+      });
+
+      const result: CodeHostConnectResultJSON =
+        await CodeRepositoryConnector.connect({
+          projectId: PROJECT_ID,
+          userId: USER_ID,
+          source: GITLAB_SOURCE,
+          repositoryIds: ["77"],
+        });
+
+      // Read again from the server, by its own id.
+      expect(gitLab.urlsTo("/projects/77")).toHaveLength(1);
+      expect(result.imported).toBe(1);
+      expect(result.skipped).toBe(0);
+      expect(result.repositoryIds).toHaveLength(1);
+      expect(repositories).toHaveLength(1);
+      expect(repositories[0]!.repositoryHostedAt).toBe(
+        CodeRepositoryType.GitLab,
+      );
+      expect(repositories[0]!.organizationName).toBe(groupPath);
+      expect(repositories[0]!.repositoryName).toBe("checkout");
+      expect(repositories[0]!.repositoryUrl?.toString()).toBe(
+        `${GITLAB_HOST}/${groupPath}/checkout`,
+      );
+    },
+  );
+
+  test("a project whose own name is longer than OneUptime keeps is still not connected, and nothing is kept for it", async () => {
+    serveGitLab({
+      78: gitLabProject(78, "acme", "s".repeat(ColumnLength.ShortText + 1)),
+    });
+
+    await expect(
+      CodeRepositoryConnector.connect({
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+        source: GITLAB_SOURCE,
+        repositoryIds: ["78"],
+      }),
+    ).rejects.toThrow(BadDataException);
+    expect(repositories).toHaveLength(0);
   });
 });
 
