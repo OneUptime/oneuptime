@@ -225,9 +225,9 @@ describe("WorkspaceNoteForm.getSlackForm", () => {
           isPublicNoteApprovalRequired: isPublicNoteApprovalRequired,
         });
 
-      expect(
-        (form.blocks[0] as WorkspaceDropdownBlock).options[0]!.label,
-      ).toBe("Public Note (Will be posted on Status Page)");
+      expect((form.blocks[0] as WorkspaceDropdownBlock).options[0]!.label).toBe(
+        "Public Note (Will be posted on Status Page)",
+      );
     }
   });
 

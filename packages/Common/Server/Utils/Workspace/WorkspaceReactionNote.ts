@@ -783,7 +783,9 @@ export default class WorkspaceReactionNote {
     try {
       return await this.readApprovalWaitingFor(data);
     } catch (err) {
-      logger.error("Could not read who a public note saved from chat waits for.");
+      logger.error(
+        "Could not read who a public note saved from chat waits for.",
+      );
       logger.error(err);
       return null;
     }

@@ -320,7 +320,10 @@ describe("WorkspaceHeldPublicNote.getAnswer: the Dashboard's words", () => {
   test.each([
     [WorkspaceEventType.Incident, "the incident"],
     [WorkspaceEventType.IncidentEpisode, "the incident episode"],
-    [WorkspaceEventType.ScheduledMaintenance, "the scheduled maintenance event"],
+    [
+      WorkspaceEventType.ScheduledMaintenance,
+      "the scheduled maintenance event",
+    ],
   ])(
     "a record the member cannot read is named by its kind (%s)",
     (type: WorkspaceEventType, named: string) => {
@@ -445,7 +448,10 @@ describe("WorkspaceHeldPublicNote.getAnswerForAddedNote", () => {
 
     await expect(
       WorkspaceHeldPublicNote.getAnswerForAddedNote({
-        event: { type: WorkspaceEventType.ScheduledMaintenance, id: INCIDENT_ID },
+        event: {
+          type: WorkspaceEventType.ScheduledMaintenance,
+          id: INCIDENT_ID,
+        },
         note: note(false),
         props: PROPS,
       }),

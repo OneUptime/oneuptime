@@ -501,12 +501,10 @@ export default class SlackReactionNoteActions {
 
     let saveResult: WorkspaceNoteSaveResult;
 
-    const sourceMessageKey: string = WorkspaceReactionNote.getSourceMessageKey(
-      {
-        channelId: channelId,
-        messageId: messageTs,
-      },
-    );
+    const sourceMessageKey: string = WorkspaceReactionNote.getSourceMessageKey({
+      channelId: channelId,
+      messageId: messageTs,
+    });
 
     try {
       /*

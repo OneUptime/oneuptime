@@ -204,14 +204,15 @@ function answerTexts(): Array<string> {
   });
 }
 
-function stubNoteWritten(kind: NoteKind, isPublished: boolean): jest.SpyInstance {
+function stubNoteWritten(
+  kind: NoteKind,
+  isPublished: boolean,
+): jest.SpyInstance {
   const note: IncidentPublicNote = kind.makeNote() as IncidentPublicNote;
   note.projectId = PROJECT_ID;
   note.isPublished = isPublished;
 
-  return getJestSpyOn(kind.service, "addNote").mockResolvedValue(
-    note as never,
-  );
+  return getJestSpyOn(kind.service, "addNote").mockResolvedValue(note as never);
 }
 
 beforeEach(() => {
@@ -224,18 +225,15 @@ beforeEach(() => {
   getJestSpyOn(Response, "sendErrorResponse").mockImplementation(
     (() => {}) as never,
   );
-  getJestSpyOn(SlackActionAuthorization, "authorize").mockResolvedValue(
-    PROPS,
-  );
+  getJestSpyOn(SlackActionAuthorization, "authorize").mockResolvedValue(PROPS);
   getJestSpyOn(WorkspaceNoteForm, "getSubmittedNote").mockResolvedValue({
     noteType: WorkspaceNoteType.Public,
     isPublicAskedOnPrivateRecord: false,
   });
   getJestSpyOn(WorkspaceNoteForm, "isPrivateRecord").mockResolvedValue(false);
-  getJestSpyOn(
-    PublicNoteApprovalEngine,
-    "getWaitingForNote",
-  ).mockResolvedValue(WAITING_FOR);
+  getJestSpyOn(PublicNoteApprovalEngine, "getWaitingForNote").mockResolvedValue(
+    WAITING_FOR,
+  );
   getJestSpyOn(WorkspaceMemberActions, "findEventForMember").mockResolvedValue({
     record: {},
     event: {

@@ -193,7 +193,9 @@ export default class WorkspaceHeldPublicNote {
         note: data.note,
       });
     } catch (err) {
-      logger.error("Could not read who a public note sent from chat waits for.");
+      logger.error(
+        "Could not read who a public note sent from chat waits for.",
+      );
       logger.error(err);
     }
 
@@ -202,7 +204,9 @@ export default class WorkspaceHeldPublicNote {
     try {
       record = await this.getRecordName(data);
     } catch (err) {
-      logger.error("Could not name the record of a public note sent from chat.");
+      logger.error(
+        "Could not name the record of a public note sent from chat.",
+      );
       logger.error(err);
     }
 
@@ -221,15 +225,14 @@ export default class WorkspaceHeldPublicNote {
     const found: {
       record: DatabaseBaseModel;
       event: WorkspaceEventRecord;
-    } | null = await WorkspaceMemberActions.findEventForMember<DatabaseBaseModel>(
-      {
+    } | null =
+      await WorkspaceMemberActions.findEventForMember<DatabaseBaseModel>({
         event: data.event,
         props: data.props,
         select: {
           _id: true,
         },
-      },
-    );
+      });
 
     if (!found) {
       return null;

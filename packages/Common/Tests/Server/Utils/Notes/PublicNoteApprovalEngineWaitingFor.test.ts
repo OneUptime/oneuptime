@@ -159,9 +159,8 @@ describe("PublicNoteApprovalEngine.getWaitingForNote", () => {
       "getSteps",
     ).mockResolvedValue([LEGAL]);
 
-    const found: PublicNoteApprovalWaitingFor | null = await waitingFor(
-      waitingNote(),
-    );
+    const found: PublicNoteApprovalWaitingFor | null =
+      await waitingFor(waitingNote());
 
     expect(getSteps).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
@@ -186,9 +185,8 @@ describe("PublicNoteApprovalEngine.getWaitingForNote", () => {
   test("no step names anyone: it waits for nobody who can approve it yet", async () => {
     steps = [];
 
-    const found: PublicNoteApprovalWaitingFor | null = await waitingFor(
-      waitingNote(),
-    );
+    const found: PublicNoteApprovalWaitingFor | null =
+      await waitingFor(waitingNote());
 
     expect(found).toEqual({
       position: expect.objectContaining({ step: null, count: 0 }),

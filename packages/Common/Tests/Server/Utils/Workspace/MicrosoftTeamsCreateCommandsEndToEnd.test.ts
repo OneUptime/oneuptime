@@ -5437,7 +5437,10 @@ describe("Add Note while public notes need approval: the answer says it waits, a
   };
   const RECORD_LINK: string = "https://oneuptime.example/record";
 
-  function submit(value: JSONObject, formId: string): Promise<Array<DeliveryRecord>> {
+  function submit(
+    value: JSONObject,
+    formId: string,
+  ): Promise<Array<DeliveryRecord>> {
     return deliverLikeTeams(
       buildCardSubmitActivity({
         id: nextActivityId("held-note-submit"),

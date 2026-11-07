@@ -1388,11 +1388,7 @@ describe("WorkspaceReactionNote: a public note that waits for approval", () => {
   }
 
   test.each([
-    [
-      "incident",
-      WorkspaceNoteResourceType.Incident,
-      IncidentPublicNoteService,
-    ],
+    ["incident", WorkspaceNoteResourceType.Incident, IncidentPublicNoteService],
     [
       "scheduled maintenance event",
       WorkspaceNoteResourceType.ScheduledMaintenance,
@@ -1403,7 +1399,9 @@ describe("WorkspaceReactionNote: a public note that waits for approval", () => {
     async (
       _noun: string,
       resourceType: WorkspaceNoteResourceType,
-      service: typeof IncidentPublicNoteService | typeof ScheduledMaintenancePublicNoteService,
+      service:
+        | typeof IncidentPublicNoteService
+        | typeof ScheduledMaintenancePublicNoteService,
     ) => {
       jest.spyOn(service, "hasNoteFromSlackMessage").mockResolvedValue(false);
       const addSpy: AnySpy = jest.spyOn(service, "addNote") as AnySpy;
@@ -1471,7 +1469,9 @@ describe("WorkspaceReactionNote: a public note that waits for approval", () => {
     "who the public note saved from a message on a %s waits for is read by the message",
     async (
       resourceType: WorkspaceNoteResourceType,
-      service: typeof IncidentPublicNoteService | typeof ScheduledMaintenancePublicNoteService,
+      service:
+        | typeof IncidentPublicNoteService
+        | typeof ScheduledMaintenancePublicNoteService,
       idKey: string,
       eventType: PublicNoteApprovalEventType,
     ) => {

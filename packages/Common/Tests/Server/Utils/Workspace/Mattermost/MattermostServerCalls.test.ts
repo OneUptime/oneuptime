@@ -1154,9 +1154,7 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
           "⏳ Sent for approval. It waits for @channel and Bob.",
         ),
       );
-      expect((body["post"] as JSONObject)["message"]).not.toContain(
-        "@channel",
-      );
+      expect((body["post"] as JSONObject)["message"]).not.toContain("@channel");
       // Posting twice would show it twice: it is not tried again.
       expect(calls[0]!.args.options.retries).toBe(0);
     });
