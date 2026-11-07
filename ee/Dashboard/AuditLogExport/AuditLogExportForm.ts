@@ -2,6 +2,14 @@ import { AuditLogExportCopy, AuditLogExportHealth } from "./AuditLogExportCopy";
 import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
 import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLogExportDestinationType";
 import {
+  AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION,
+  AUDIT_LOG_EXPORT_SCHEMA_VERSION,
+  AUDIT_LOG_EXPORT_SCHEMA_VERSIONS,
+  AuditLogExportSchemaVersion,
+  isAuditLogExportSchemaVersion,
+  readAuditLogExportSchemaVersion,
+} from "Common/Types/AuditLog/Export/AuditLogExportRecord";
+import {
   AUDIT_LOG_EXPORT_DEFAULT_FOLDER,
   AuditLogExportDestinationDefinition,
   AuditLogExportDestinationField,
@@ -60,6 +68,11 @@ export interface AuditLogExportFormSubmission {
   secrets: JSONObject;
   // Only when one was picked: empty on create means from now on.
   startsAt: Date | null;
+  /*
+   * The record version picked: null when the field holds none, which on
+   * create means the newest and on edit keeps the saved one.
+   */
+  schemaVersion: AuditLogExportSchemaVersion | null;
 }
 
 function readText(value: JSONValue | undefined): string {
@@ -122,6 +135,41 @@ function readStartsAt(value: JSONValue | undefined): Date | null {
     value instanceof Date ? value : new Date(readText(value) || "");
 
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/*
+ * The record versions the form offers, newest first, each by its name:
+ * the newest, which a new export starts on, and the original. A version
+ * with neither name has none to show, and is not offered.
+ */
+export function getAuditLogExportSchemaVersionOptions(): Array<{
+  label: string;
+  value: string;
+}> {
+  const labels: Partial<Record<AuditLogExportSchemaVersion, string>> = {
+    [AUDIT_LOG_EXPORT_SCHEMA_VERSION]:
+      AuditLogExportCopy.schemaVersionNewestOption,
+    [AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION]:
+      AuditLogExportCopy.schemaVersionFirstOption,
+  };
+
+  return [...AUDIT_LOG_EXPORT_SCHEMA_VERSIONS]
+    .reverse()
+    .filter((version: AuditLogExportSchemaVersion): boolean => {
+      return Boolean(labels[version]);
+    })
+    .map((version: AuditLogExportSchemaVersion) => {
+      return { label: labels[version]!, value: String(version) };
+    });
+}
+
+// The record version the form holds (a dropdown's value, or its text), or none.
+function readSchemaVersion(
+  value: JSONValue | undefined,
+): AuditLogExportSchemaVersion | null {
+  const version: number = Number(readText(value) || NaN);
+
+  return isAuditLogExportSchemaVersion(version) ? version : null;
 }
 
 // The destination the form is for: the one an edit keeps, or the one picked.
@@ -217,6 +265,9 @@ export function readAuditLogExportForm(
     config,
     secrets: readSecrets(definition, values, config),
     startsAt: readStartsAt(values["startsAt"] as JSONValue | undefined),
+    schemaVersion: readSchemaVersion(
+      values["schemaVersion"] as JSONValue | undefined,
+    ),
   };
 }
 
@@ -234,11 +285,18 @@ export function auditLogExportTestBody(data: {
     data.auditLogExport?.destinationType,
   );
 
+  // The test arrives in the version picked, else the saved export's.
+  const version: JSONObject =
+    submission.schemaVersion !== null
+      ? { schemaVersion: submission.schemaVersion }
+      : {};
+
   if (data.auditLogExport?.id) {
     return {
       exportId: data.auditLogExport.id.toString(),
       config: submission.config,
       secrets: submission.secrets,
+      ...version,
     };
   }
 
@@ -246,13 +304,16 @@ export function auditLogExportTestBody(data: {
     destinationType: submission.destinationType,
     config: submission.config,
     secrets: submission.secrets,
+    ...version,
   };
 }
 
 /*
  * The edit: a blank credential keeps the stored one, so it is left out, and
  * Export From is sent only when it moved - sending it starts the export
- * again from there.
+ * again from there. The record version is sent only when it changed, and
+ * only for an export whose saved version the form read: one it could not
+ * show is never written over with the field's default.
  */
 export function auditLogExportUpdatePayload(data: {
   submission: AuditLogExportFormSubmission;
@@ -269,6 +330,14 @@ export function auditLogExportUpdatePayload(data: {
     data.submission.startsAt &&
       (!stored || toSecond(stored) !== toSecond(data.submission.startsAt)),
   );
+  const isVersionKnown: boolean =
+    data.auditLogExport.schemaVersion !== undefined &&
+    data.auditLogExport.schemaVersion !== null;
+  const versionChanged: boolean =
+    isVersionKnown &&
+    data.submission.schemaVersion !== null &&
+    data.submission.schemaVersion !==
+      readAuditLogExportSchemaVersion(data.auditLogExport.schemaVersion);
 
   return {
     name: data.submission.name,
@@ -278,6 +347,9 @@ export function auditLogExportUpdatePayload(data: {
       : {}),
     ...(startsAtMoved && data.submission.startsAt
       ? { startsAt: data.submission.startsAt.toISOString() }
+      : {}),
+    ...(versionChanged
+      ? { schemaVersion: data.submission.schemaVersion }
       : {}),
   };
 }
@@ -367,6 +439,20 @@ export function getAuditLogExportInitialValues(
 
   if (auditLogExport?.startsAt) {
     values["startsAt"] = new Date(auditLogExport.startsAt).toISOString();
+  }
+
+  /*
+   * The version the export sends - 1 for one saved before there was a
+   * choice. A new export starts on the field's default, the newest.
+   */
+  if (
+    auditLogExport &&
+    auditLogExport.schemaVersion !== undefined &&
+    auditLogExport.schemaVersion !== null
+  ) {
+    values["schemaVersion"] = String(
+      readAuditLogExportSchemaVersion(auditLogExport.schemaVersion),
+    );
   }
 
   if (auditLogExport && definition) {

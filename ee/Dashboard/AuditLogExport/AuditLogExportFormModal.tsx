@@ -7,6 +7,7 @@ import {
   exportConfigFieldName,
   exportSecretFieldName,
   getAuditLogExportInitialValues,
+  getAuditLogExportSchemaVersionOptions,
   readAuditLogExportForm,
   readExportDestinationType,
 } from "./AuditLogExportForm";
@@ -14,6 +15,7 @@ import { AuditLogExportInlineTest } from "./AuditLogExportTest";
 import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
 import Route from "Common/Types/API/Route";
 import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLogExportDestinationType";
+import { AUDIT_LOG_EXPORT_SCHEMA_VERSION } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
 import {
   AuditLogExportDestinationCatalog,
   AuditLogExportDestinationDefinition,
@@ -395,6 +397,23 @@ const AuditLogExportFormModal: FunctionComponent<ComponentProps> = (
       required: false,
       collapsibleSection: advancedSection,
     },
+    /*
+     * Which version of the record each entry is sent as. A new export
+     * starts on the newest; an export saved before there was a choice
+     * shows the version it sends, 1, set apart in the fold as a value that
+     * is not the default.
+     */
+    {
+      field: { schemaVersion: true },
+      title: AuditLogExportCopy.schemaVersionField,
+      description: AuditLogExportCopy.schemaVersionDescription,
+      stepId: EXPORT_SETTINGS_STEP_ID,
+      fieldType: FormFieldSchemaType.Dropdown,
+      required: false,
+      defaultValue: String(AUDIT_LOG_EXPORT_SCHEMA_VERSION),
+      dropdownOptions: getAuditLogExportSchemaVersionOptions(),
+      collapsibleSection: advancedSection,
+    },
   ];
 
   return (
@@ -461,6 +480,9 @@ const AuditLogExportFormModal: FunctionComponent<ComponentProps> = (
             if (submission.startsAt) {
               model.startsAt = submission.startsAt;
             }
+
+            model.schemaVersion =
+              submission.schemaVersion || AUDIT_LOG_EXPORT_SCHEMA_VERSION;
 
             await props.modelAPI.create<AuditLogExport>({
               model,

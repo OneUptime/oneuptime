@@ -33914,6 +33914,10 @@
   "Export from": "Exportera från",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "Lämna tomt för att skicka det som registreras från och med nu. Ett tidigare datum skickar även de poster som fortfarande sparas sedan dess.",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "Ändra det för att skicka om varje post som sparats sedan det här datumet och sedan fortsätta. Poster som redan levererats kan komma fram två gånger.",
+  "Record version": "Postversion",
+  "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "Version 2 berättar också vad som ändrades i ett arbetsflödes steg och i JSON. Version 1 är den ursprungliga posten, för läsare som är byggda för den.",
+  "Version 2 (newest)": "Version 2 (senaste)",
+  "Version 1 (original)": "Version 1 (ursprunglig)",
   "Write a test file": "Skriv en testfil",
   "Send a test entry": "Skicka en testpost",
   "Writes one file holding one test entry, under the folder. Nothing is saved.": "Skriver en fil med en testpost i mappen. Inget sparas.",
@@ -46423,5 +46427,6 @@
   "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.": "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.",
   "Charted for what this monitor checks now.": "Charted for what this monitor checks now.",
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
-  "Only chart this metric from these services.": "Only chart this metric from these services."
+  "Only chart this metric from these services.": "Only chart this metric from these services.",
+  "Record Version": "Record Version"
 }

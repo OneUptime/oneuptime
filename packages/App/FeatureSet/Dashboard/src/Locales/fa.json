@@ -33914,6 +33914,10 @@
   "Export from": "خروجی گرفتن از",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "برای فرستادن آنچه از این پس ثبت می‌شود خالی بگذارید. تاریخ قدیمی‌تر، مواردی را هم که از آن زمان هنوز نگه داشته شده‌اند می‌فرستد.",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "با تغییر آن، هر موردی که از این تاریخ نگه داشته شده دوباره فرستاده می‌شود و سپس کار ادامه می‌یابد. مواردی که قبلاً تحویل شده‌اند ممکن است دو بار برسند.",
+  "Record version": "نسخهٔ رکورد",
+  "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "نسخهٔ 2 همچنین می‌گوید در گام‌های یک گردش‌کار و در JSON چه چیزی تغییر کرد. نسخهٔ 1 رکورد اصلی است، برای خواننده‌هایی که برای آن ساخته شده‌اند.",
+  "Version 2 (newest)": "نسخهٔ 2 (جدیدترین)",
+  "Version 1 (original)": "نسخهٔ 1 (اصلی)",
   "Write a test file": "نوشتن فایل آزمایشی",
   "Send a test entry": "ارسال مورد آزمایشی",
   "Writes one file holding one test entry, under the folder. Nothing is saved.": "یک فایل با یک مورد آزمایشی در پوشه می‌نویسد. چیزی ذخیره نمی‌شود.",
@@ -46423,5 +46427,6 @@
   "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.": "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.",
   "Charted for what this monitor checks now.": "Charted for what this monitor checks now.",
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
-  "Only chart this metric from these services.": "Only chart this metric from these services."
+  "Only chart this metric from these services.": "Only chart this metric from these services.",
+  "Record Version": "Record Version"
 }

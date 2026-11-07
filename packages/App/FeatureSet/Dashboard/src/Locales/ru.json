@@ -33914,6 +33914,10 @@
   "Export from": "Экспортировать с",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "Оставьте пустым, чтобы отправлять то, что будет записано с этого момента. Более ранняя дата также отправит записи, сохранившиеся с того времени.",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "Измените дату, чтобы заново отправить все записи, сохранившиеся с неё, и продолжить дальше. Уже доставленные записи могут прийти повторно.",
+  "Record version": "Версия записи",
+  "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "Версия 2 также сообщает, что изменилось в шагах рабочего процесса и в JSON. Версия 1 — исходная запись для читателей, рассчитанных на неё.",
+  "Version 2 (newest)": "Версия 2 (новейшая)",
+  "Version 1 (original)": "Версия 1 (исходная)",
   "Write a test file": "Записать тестовый файл",
   "Send a test entry": "Отправить тестовую запись",
   "Writes one file holding one test entry, under the folder. Nothing is saved.": "Записывает в папку один файл с одной тестовой записью. Ничего не сохраняется.",
@@ -46423,5 +46427,6 @@
   "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.": "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.",
   "Charted for what this monitor checks now.": "Charted for what this monitor checks now.",
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
-  "Only chart this metric from these services.": "Only chart this metric from these services."
+  "Only chart this metric from these services.": "Only chart this metric from these services.",
+  "Record Version": "Record Version"
 }

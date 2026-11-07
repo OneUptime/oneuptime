@@ -33914,6 +33914,10 @@
   "Export from": "导出起始时间",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "留空则发送从现在起记录的内容。选择更早的日期还会发送自那时起仍保留的条目。",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "更改后会重新发送自此日期起保留的每个条目，然后继续。已送达的条目可能会重复到达。",
+  "Record version": "记录版本",
+  "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "版本 2 还会说明工作流的步骤和 JSON 中发生了哪些更改。版本 1 是原始记录，供为它构建的读取方使用。",
+  "Version 2 (newest)": "版本 2（最新）",
+  "Version 1 (original)": "版本 1（原始）",
   "Write a test file": "写入测试文件",
   "Send a test entry": "发送测试条目",
   "Writes one file holding one test entry, under the folder. Nothing is saved.": "在文件夹中写入一个包含一条测试条目的文件。不会保存任何设置。",
@@ -46423,5 +46427,6 @@
   "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.": "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.",
   "Charted for what this monitor checks now.": "Charted for what this monitor checks now.",
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
-  "Only chart this metric from these services.": "Only chart this metric from these services."
+  "Only chart this metric from these services.": "Only chart this metric from these services.",
+  "Record Version": "Record Version"
 }
