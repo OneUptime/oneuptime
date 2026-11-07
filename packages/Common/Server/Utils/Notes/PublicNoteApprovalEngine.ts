@@ -93,8 +93,12 @@ export interface PublicNoteApprovalRecordInfo {
   notesUrl: string;
 }
 
-// What each kind of note's service hands the engine.
-export interface PublicNoteApprovalHost<TNote extends BaseModel> {
+/*
+ * A kind of note, as the checks made before a note is written read it
+ * (holdOnCreate, beforeUpdate): what it is and where it is stored -
+ * nothing that writes, so a write refused or failed leaves nothing behind.
+ */
+export interface PublicNoteApprovalKind<TNote extends BaseModel> {
   kind: PublicNoteKind;
   eventType: PublicNoteApprovalEventType;
   modelType: { new (): TNote };
@@ -103,6 +107,14 @@ export interface PublicNoteApprovalHost<TNote extends BaseModel> {
   parentIdColumn: string;
   // "incident", "episode", "scheduled maintenance event"
   recordNoun: string;
+}
+
+/*
+ * What each kind of note's service hands the engine once a note is written,
+ * or decided: its kind, and how its record is named, told and announced.
+ */
+export interface PublicNoteApprovalHost<TNote extends BaseModel>
+  extends PublicNoteApprovalKind<TNote> {
   getRecord: (data: {
     projectId: ObjectID;
     parentId: ObjectID;
@@ -244,7 +256,7 @@ export default class PublicNoteApprovalEngine {
    */
   @CaptureSpan()
   public static async holdOnCreate<TNote extends BaseModel>(data: {
-    host: PublicNoteApprovalHost<TNote>;
+    host: PublicNoteApprovalKind<TNote>;
     createBy: CreateBy<TNote>;
     keepPostedAt: boolean;
   }): Promise<boolean> {
@@ -333,7 +345,7 @@ export default class PublicNoteApprovalEngine {
    */
   @CaptureSpan()
   public static async beforeUpdate<TNote extends BaseModel>(data: {
-    host: PublicNoteApprovalHost<TNote>;
+    host: PublicNoteApprovalKind<TNote>;
     updateBy: UpdateBy<TNote>;
   }): Promise<PublicNoteApprovalUpdate> {
     const result: PublicNoteApprovalUpdate = {
@@ -609,7 +621,7 @@ export default class PublicNoteApprovalEngine {
    */
   @CaptureSpan()
   public static async readNotesOfUpdate<TNote extends BaseModel>(data: {
-    host: PublicNoteApprovalHost<TNote>;
+    host: PublicNoteApprovalKind<TNote>;
     updateBy: UpdateBy<TNote>;
   }): Promise<Array<TNote>> {
     return await data.host.service.findBy({
@@ -1678,7 +1690,7 @@ export default class PublicNoteApprovalEngine {
   }
 
   private static async readNote<TNote extends BaseModel>(
-    host: PublicNoteApprovalHost<TNote>,
+    host: PublicNoteApprovalKind<TNote>,
     noteId: ObjectID,
   ): Promise<NoteFields | null> {
     const note: TNote | null = await host.service.findOneById({
@@ -1691,7 +1703,7 @@ export default class PublicNoteApprovalEngine {
   }
 
   private static noteSelect<TNote extends BaseModel>(
-    host: PublicNoteApprovalHost<TNote>,
+    host: PublicNoteApprovalKind<TNote>,
   ): Select<TNote> {
     return {
       _id: true,
@@ -1740,7 +1752,7 @@ export default class PublicNoteApprovalEngine {
   }
 
   private static async isRequiredFor<TNote extends BaseModel>(
-    host: PublicNoteApprovalHost<TNote>,
+    host: PublicNoteApprovalKind<TNote>,
     note: NoteFields,
   ): Promise<boolean> {
     if (!note.projectId) {
@@ -1862,7 +1874,7 @@ export default class PublicNoteApprovalEngine {
   }
 
   private static parentIdOf<TNote extends BaseModel>(
-    host: PublicNoteApprovalHost<TNote>,
+    host: PublicNoteApprovalKind<TNote>,
     note: NoteFields,
   ): ObjectID | null {
     const value: unknown = (note as Record<string, unknown>)[

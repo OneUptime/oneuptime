@@ -36,6 +36,7 @@ import Color from "../../Types/Color";
 import { PublicNoteApprovalEventType } from "../../Types/StatusPage/PublicNoteApproval";
 import PublicNoteApprovalEngine, {
   PublicNoteApprovalHost,
+  PublicNoteApprovalKind,
   PublicNoteApprovalRecordInfo,
   PublicNoteApprovalUpdate,
   PublicNoteKind,
@@ -52,7 +53,11 @@ export class Service extends ProjectReferencesService<Model> {
    * (PublicNoteApprovalEngine): the event a note is on, by name and link,
    * its feed, and the entries a published note has always had.
    */
-  public getApprovalHost(): PublicNoteApprovalHost<Model> {
+  /*
+   * This kind of note, as the checks before a note is written read it
+   * (onBeforeCreate, onBeforeUpdate): nothing in it writes.
+   */
+  public getApprovalKind(): PublicNoteApprovalKind<Model> {
     return {
       kind: PublicNoteKind.ScheduledMaintenance,
       eventType: PublicNoteApprovalEventType.ScheduledMaintenance,
@@ -60,6 +65,12 @@ export class Service extends ProjectReferencesService<Model> {
       service: this,
       parentIdColumn: "scheduledMaintenanceId",
       recordNoun: "scheduled maintenance event",
+    };
+  }
+
+  public getApprovalHost(): PublicNoteApprovalHost<Model> {
+    return {
+      ...this.getApprovalKind(),
       getRecord: async (data: {
         projectId: ObjectID;
         parentId: ObjectID;
@@ -253,7 +264,7 @@ export class Service extends ProjectReferencesService<Model> {
      * queued until it is (PublicNoteApprovalEngine).
      */
     await PublicNoteApprovalEngine.holdOnCreate({
-      host: this.getApprovalHost(),
+      host: this.getApprovalKind(),
       createBy: createBy,
       keepPostedAt: isPostedAtChosen,
     });
@@ -334,7 +345,7 @@ export class Service extends ProjectReferencesService<Model> {
      */
     const approvalUpdate: PublicNoteApprovalUpdate =
       await PublicNoteApprovalEngine.beforeUpdate({
-        host: this.getApprovalHost(),
+        host: this.getApprovalKind(),
         updateBy: updateBy,
       });
 
