@@ -460,7 +460,10 @@ const useWorkflowEditing: (
   const showSavedGraph: (
     graph: unknown,
     revision?: WorkflowGraphRevision,
-  ) => boolean = (graph: unknown, revision?: WorkflowGraphRevision): boolean => {
+  ) => boolean = (
+    graph: unknown,
+    revision?: WorkflowGraphRevision,
+  ): boolean => {
     return showGraphSavedElsewhere({
       graph,
       revision: revision ?? null,
@@ -469,8 +472,7 @@ const useWorkflowEditing: (
   };
 
   const showTheirChanges: () => boolean = (): boolean => {
-    const conflict: WorkflowSaveConflict | null =
-      autosave.getStatus().conflict;
+    const conflict: WorkflowSaveConflict | null = autosave.getStatus().conflict;
 
     if (!optionsRef.current.isEnabled || !conflict) {
       return false;

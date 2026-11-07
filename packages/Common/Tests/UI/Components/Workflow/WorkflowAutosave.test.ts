@@ -712,8 +712,8 @@ const valueOf: (graph: SavedWorkflowGraph | undefined) => string = (
   graph: SavedWorkflowGraph | undefined,
 ): string => {
   return (
-    (graph?.nodes[1]?.["data"] as { arguments?: { value?: string } })
-      ?.arguments?.value || ""
+    (graph?.nodes[1]?.["data"] as { arguments?: { value?: string } })?.arguments
+      ?.value || ""
   );
 };
 
@@ -876,9 +876,11 @@ describe("a save made to an older graph (issue #6257)", () => {
     await builder.landNext();
 
     // Refused: what the server has now is read.
-    expect(builder.requests.map((request: InFlightRequest) => {
-      return request.kind;
-    })).toEqual(["read"]);
+    expect(
+      builder.requests.map((request: InFlightRequest) => {
+        return request.kind;
+      }),
+    ).toEqual(["read"]);
     expect(builder.autosave.getStatus().state).toBe(WorkflowSaveState.Saving);
 
     await builder.landNext();
@@ -989,10 +991,7 @@ describe("a save made to an older graph (issue #6257)", () => {
     const conflict: WorkflowAutosaveStatus["conflict"] =
       builder.autosave.getStatus().conflict;
 
-    builder.autosave.acceptSavedGraph(
-      conflict!.theirs,
-      conflict!.revision,
-    );
+    builder.autosave.acceptSavedGraph(conflict!.theirs, conflict!.revision);
 
     expect(builder.autosave.getStatus()).toMatchObject({
       state: WorkflowSaveState.Saved,
@@ -1417,7 +1416,11 @@ describe("property: the race between builders on one workflow", () => {
         const isTaken: boolean =
           request.basedOn === null || request.basedOn === server.revision;
 
-        if (isTaken && request.basedOn !== null && request.basedOn !== undefined) {
+        if (
+          isTaken &&
+          request.basedOn !== null &&
+          request.basedOn !== undefined
+        ) {
           // The builder saw the graph its save replaces, at that very revision.
           expect({
             racer: racer.name,
@@ -1528,9 +1531,11 @@ describe("property: the race between builders on one workflow", () => {
       }
 
       for (const each of builders) {
-        expect(each.builder.requests.filter((request: InFlightRequest) => {
-          return request.kind === "save";
-        }).length).toBeLessThanOrEqual(1);
+        expect(
+          each.builder.requests.filter((request: InFlightRequest) => {
+            return request.kind === "save";
+          }).length,
+        ).toBeLessThanOrEqual(1);
       }
     }
 

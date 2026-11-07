@@ -52,6 +52,7 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
+import getJestMockFunction, { MockFunction } from "../../../MockType";
 
 /*
  * When someone else saved the workflow first (issue #6257): how the builder
@@ -65,7 +66,8 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-const COMPONENTS: Array<ComponentMetadata> = Components as Array<ComponentMetadata>;
+const COMPONENTS: Array<ComponentMetadata> =
+  Components as Array<ComponentMetadata>;
 
 const lookup: WorkflowComponentLookup = (
   componentId: string,
@@ -125,7 +127,9 @@ describe("knowing the server's refusal", () => {
   test("ModelAPI.updateById sends the revision a save was made to, and a 409 comes back as one", async () => {
     const fetch: jest.SpyInstance = jest
       .spyOn(DashboardAPI, "fetch")
-      .mockResolvedValue(new HTTPResponse(200, {}, {}) as never) as unknown as jest.SpyInstance;
+      .mockResolvedValue(
+        new HTTPResponse(200, {}, {}) as never,
+      ) as unknown as jest.SpyInstance;
     const id: ObjectID = ObjectID.generate();
 
     await ModelAPI.updateById({
@@ -154,7 +158,10 @@ describe("knowing the server's refusal", () => {
     fetch.mockResolvedValue(
       new HTTPErrorResponse(
         409,
-        { message: "Someone else saved this workflow's graph after you read it." },
+        {
+          message:
+            "Someone else saved this workflow's graph after you read it.",
+        },
         {},
       ) as never,
     );
@@ -178,15 +185,15 @@ describe("knowing the server's refusal", () => {
 
 describe("what they changed", () => {
   test("is the version history's lines, from the graph the change was made to, to theirs", () => {
-    expect(getWorkflowSaveConflictLines({ conflict: CONFLICT, lookup })).toEqual(
-      {
-        lines: [
-          'Added "Send Email" (send-email-1)',
-          'Connected "Log" (log-1) to "Send Email" (send-email-1)',
-        ],
-        moreCount: 0,
-      },
-    );
+    expect(
+      getWorkflowSaveConflictLines({ conflict: CONFLICT, lookup }),
+    ).toEqual({
+      lines: [
+        'Added "Send Email" (send-email-1)',
+        'Connected "Log" (log-1) to "Send Email" (send-email-1)',
+      ],
+      moreCount: 0,
+    });
   });
 
   test("moves are changes too", () => {
@@ -237,11 +244,11 @@ describe("what they changed", () => {
 
 describe("the dialog", () => {
   const renderDialog: () => {
-    onShowTheirChanges: jest.Mock;
-    onKeepMine: jest.Mock;
-  } = (): { onShowTheirChanges: jest.Mock; onKeepMine: jest.Mock } => {
-    const onShowTheirChanges: jest.Mock = jest.fn();
-    const onKeepMine: jest.Mock = jest.fn();
+    onShowTheirChanges: MockFunction;
+    onKeepMine: MockFunction;
+  } = (): { onShowTheirChanges: MockFunction; onKeepMine: MockFunction } => {
+    const onShowTheirChanges: MockFunction = getJestMockFunction();
+    const onKeepMine: MockFunction = getJestMockFunction();
 
     render(
       <WorkflowSaveConflictModal
@@ -263,7 +270,9 @@ describe("the dialog", () => {
     });
 
     expect(dialog).toHaveTextContent(WorkflowSaveConflictCopy.description);
-    expect(dialog).toHaveTextContent(WorkflowSaveConflictCopy.theirChangesTitle);
+    expect(dialog).toHaveTextContent(
+      WorkflowSaveConflictCopy.theirChangesTitle,
+    );
     expect(
       within(dialog).getByTestId("workflow-save-conflict-changes"),
     ).toHaveTextContent('Added "Send Email" (send-email-1)');
@@ -345,7 +354,9 @@ describe("the dialog", () => {
       />,
     );
 
-    expect(screen.getByTestId("workflow-save-conflict-changes")).toHaveTextContent(
+    expect(
+      screen.getByTestId("workflow-save-conflict-changes"),
+    ).toHaveTextContent(
       getGlobalTranslator().translatePlural(WorkflowVersionCopy.moreChanges, 2),
     );
 

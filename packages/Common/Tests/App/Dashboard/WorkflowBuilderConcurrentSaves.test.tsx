@@ -345,7 +345,9 @@ let server: { graph: JSONObject; revision: number } = {
 };
 
 // Someone else - a teammate's builder, Ask AI, the API - saves over whatever is there.
-const saveElsewhere: (graph: JSONObject) => void = (graph: JSONObject): void => {
+const saveElsewhere: (graph: JSONObject) => void = (
+  graph: JSONObject,
+): void => {
   server = { graph: copyOf(graph), revision: server.revision + 1 };
 };
 

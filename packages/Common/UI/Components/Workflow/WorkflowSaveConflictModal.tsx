@@ -57,15 +57,13 @@ const WorkflowSaveConflictModal: FunctionComponent<ComponentProps> = (
     };
   }, [props.components]);
 
-  const theirChanges: { lines: Array<string>; moreCount: number } = useMemo(
-    () => {
+  const theirChanges: { lines: Array<string>; moreCount: number } =
+    useMemo(() => {
       return getWorkflowSaveConflictLines({
         conflict: props.conflict,
         lookup,
       });
-    },
-    [props.conflict, lookup],
-  );
+    }, [props.conflict, lookup]);
 
   return (
     <ConfirmModal

@@ -399,14 +399,22 @@ export default class WorkflowAutosave {
       hasUnsavedChanges: true,
     });
 
-    let outcome: SendOutcome = { kind: SendOutcomeKind.Superseded };
+    /*
+     * What the save came to. Never a rejection: a save asked for while this
+     * one is out waits for it (inFlight), and it must not fail with it.
+     */
+    const sending: Promise<SendOutcome> = this.send(latest, generation).catch(
+      (error: unknown): SendOutcome => {
+        return { kind: SendOutcomeKind.Failed, message: this.describe(error) };
+      },
+    );
 
-    this.inFlight = (async (): Promise<void> => {
-      outcome = await this.send(latest, generation);
-    })();
+    this.inFlight = sending.then((): void => {});
+
+    let outcome: SendOutcome;
 
     try {
-      await this.inFlight;
+      outcome = await sending;
     } finally {
       this.inFlight = null;
     }
@@ -454,7 +462,11 @@ export default class WorkflowAutosave {
       return;
     }
 
-    this.saved = { graph: latest.graph, key: latest.key, revision: outcome.revision };
+    this.saved = {
+      graph: latest.graph,
+      key: latest.key,
+      revision: outcome.revision,
+    };
 
     const savedCount: number = this.status.savedCount + 1;
     const isAnythingLeft: boolean = Boolean(
@@ -515,7 +527,10 @@ export default class WorkflowAutosave {
         !this.options.isConflict ||
         !this.options.isConflict(refusal)
       ) {
-        return { kind: SendOutcomeKind.Failed, message: this.describe(refusal) };
+        return {
+          kind: SendOutcomeKind.Failed,
+          message: this.describe(refusal),
+        };
       }
 
       if (generation !== this.generation) {
@@ -535,7 +550,10 @@ export default class WorkflowAutosave {
       }
 
       if (!read) {
-        return { kind: SendOutcomeKind.Failed, message: this.describe(refusal) };
+        return {
+          kind: SendOutcomeKind.Failed,
+          message: this.describe(refusal),
+        };
       }
 
       const theirs: ServerGraph = serverGraphOf(
@@ -554,10 +572,16 @@ export default class WorkflowAutosave {
 
       // Only the count moved: the server still has the graph the change was made to.
       if (resends >= WORKFLOW_AUTOSAVE_SILENT_RESENDS) {
-        return { kind: SendOutcomeKind.Failed, message: this.describe(refusal) };
+        return {
+          kind: SendOutcomeKind.Failed,
+          message: this.describe(refusal),
+        };
       }
 
-      this.saved = { ...(this.saved as ServerGraph), revision: theirs.revision };
+      this.saved = {
+        ...(this.saved as ServerGraph),
+        revision: theirs.revision,
+      };
       basedOn = theirs.revision;
     }
   }

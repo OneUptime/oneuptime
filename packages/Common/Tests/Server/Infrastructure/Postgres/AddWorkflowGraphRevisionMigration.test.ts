@@ -66,7 +66,9 @@ describe("the workflow graph revision migration", () => {
   test("is registered once, after every earlier migration", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
-    const at: number = registered.indexOf(AddWorkflowGraphRevision1808995900000);
+    const at: number = registered.indexOf(
+      AddWorkflowGraphRevision1808995900000,
+    );
 
     expect(
       registered.filter((candidate: MigrationClass): boolean => {
@@ -143,8 +145,8 @@ describe("the workflow graph revision migration", () => {
       create: [],
       update: [],
     });
-    expect(
-      workflow.getColumnAccessControlFor("graphRevision")?.read,
-    ).toEqual(workflow.getColumnAccessControlFor("graph")?.read);
+    expect(workflow.getColumnAccessControlFor("graphRevision")?.read).toEqual(
+      workflow.getColumnAccessControlFor("graph")?.read,
+    );
   });
 });

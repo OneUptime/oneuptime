@@ -135,16 +135,18 @@ beforeEach(() => {
     .mockImplementation((async (): Promise<Array<Workflow>> => {
       return heldRows;
     }) as never);
-  jest.spyOn(WorkflowService, "findOneById").mockImplementation((async (
-    request: { select: JSONObject },
-  ): Promise<unknown> => {
-    // The workflow as the save found it once its write reached no row.
-    if (request.select["graphRevision"]) {
-      return storedAfterWrite;
-    }
+  jest
+    .spyOn(WorkflowService, "findOneById")
+    .mockImplementation((async (request: {
+      select: JSONObject;
+    }): Promise<unknown> => {
+      // The workflow as the save found it once its write reached no row.
+      if (request.select["graphRevision"]) {
+        return storedAfterWrite;
+      }
 
-    return { graph: GRAPH };
-  }) as never);
+      return { graph: GRAPH };
+    }) as never);
   jest
     .spyOn(WorkflowService, "updateOneById")
     .mockResolvedValue(undefined as never);
@@ -157,6 +159,9 @@ beforeEach(() => {
 afterEach(() => {
   jest.restoreAllMocks();
 });
+
+// Text that is digits from end to end: what a revision may be written as.
+const ONLY_DIGITS: RegExp = /^[0-9]+$/;
 
 const refusalOf: (run: () => unknown) => Promise<unknown> = async (
   run: () => unknown,
@@ -180,7 +185,9 @@ describe("the revision a save names", () => {
       }),
     ).toBeNull();
     expect(
-      WorkflowServiceClass.readBasedOnGraphRevision({ notifySubscribers: true }),
+      WorkflowServiceClass.readBasedOnGraphRevision({
+        notifySubscribers: true,
+      }),
     ).toBeNull();
   });
 
@@ -258,7 +265,7 @@ describe("the revision a save names", () => {
     ])) {
       const trimmed: string = text.trim();
       const isDigits: boolean =
-        trimmed.length > 0 && trimmed.length <= 15 && /^[0-9]+$/.test(trimmed);
+        trimmed.length > 0 && trimmed.length <= 15 && ONLY_DIGITS.test(trimmed);
 
       expect({ text, read: readWorkflowGraphRevision(text) }).toEqual({
         text,
@@ -366,7 +373,10 @@ describe("once the save may be made, before it is written", () => {
     // Not held: the query names no version.
     expect(updateBy.query).toEqual({ _id: WORKFLOW_ID.toString() });
     // Counted by the database in the write itself.
-    expect(Object.keys(updateBy.data).sort()).toEqual(["graph", "graphRevision"]);
+    expect(Object.keys(updateBy.data).sort()).toEqual([
+      "graph",
+      "graphRevision",
+    ]);
     expect(
       hook("getRowWriteSql")(updateBy.data) as Record<string, string>,
     ).toEqual({ graphRevision: `"graphRevision" + 1` });
