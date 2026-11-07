@@ -104,6 +104,10 @@ import {
   SecurityHuntFilters,
   securityHuntFiltersToMap,
 } from "Common/Types/SecurityEvent/SecurityHunt";
+import {
+  SECURITY_EVENT_SCOPE_QUERY_KEY,
+  SecurityEventScope,
+} from "Common/Types/SecurityEvent/SecurityEventScope";
 import { HuntSearchState } from "./Hunts/HuntsModel";
 import { EVENT_PLURAL, EVENT_SINGULAR } from "./Hunts/HuntsCopy";
 import HuntsMenu from "./Hunts/HuntsMenu";
@@ -210,8 +214,45 @@ export interface SecurityEventsViewerHunt {
   timeRange: RangeStartAndEndDateTime;
 }
 
+/*
+ * A record's own page (a network device's Security Events, issue #5769):
+ * what every read on the page is narrowed to, the locked chip that says so,
+ * and what an empty page says when nothing in the scope has ever had an
+ * event - in place of the project's setup guide.
+ */
+export interface SecurityEventsViewerScope {
+  query: SecurityEventScope;
+  chip: ActiveFilter;
+  emptyContent: ReactElement;
+}
+
+/*
+ * A query with the page's scope on it, under its own key: nothing the
+ * search bar or a chip writes can take it off, so a record's page never
+ * widens to every event (Types/SecurityEvent/SecurityEventScope).
+ */
+export function applySecurityEventsViewerScope(
+  query: Query<SecurityEvent>,
+  scope: SecurityEventsViewerScope | undefined,
+): Query<SecurityEvent> {
+  if (!scope) {
+    return query;
+  }
+
+  return {
+    ...query,
+    [SECURITY_EVENT_SCOPE_QUERY_KEY]: scope.query,
+  } as Query<SecurityEvent>;
+}
+
 export interface ComponentProps {
   hunt?: SecurityEventsViewerHunt | undefined;
+  /*
+   * A record's own page: every read narrowed to the record, shown as a
+   * locked chip. Hunts are kept from the Events page itself - a hunt keeps
+   * a search and its chips, and would lose the record.
+   */
+  scope?: SecurityEventsViewerScope | undefined;
   /*
    * Told what the page searches - its submitted search, its chips and its
    * window - each time one changes: a hunt's page compares it with what the
@@ -436,6 +477,12 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
     return parseSecurityEventSearch(submittedSearch);
   }, [submittedSearch]);
 
+  /*
+   * The scope by its content, so a page that hands over an equal scope on
+   * each render does not refetch.
+   */
+  const scopeKey: string = props.scope ? JSON.stringify(props.scope.query) : "";
+
   const listQuery: Query<SecurityEvent> = useMemo(() => {
     const base: Query<SecurityEvent> = {
       projectId: projectId,
@@ -445,16 +492,26 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
     /*
      * Search first, chips second: a chip is an explicit click on a value the
      * user can see and remove, so when both name the same column the chip is
-     * the one they are steering with.
+     * the one they are steering with. The page's scope goes on last, under
+     * a key of its own neither writes.
      */
-    return applySecurityEventFacetFiltersToQuery({
-      query: applySecurityEventSearchToQuery({
-        query: base,
-        filters: searchFilters,
+    return applySecurityEventsViewerScope(
+      applySecurityEventFacetFiltersToQuery({
+        query: applySecurityEventSearchToQuery({
+          query: base,
+          filters: searchFilters,
+        }),
+        filters: facetFilters,
       }),
-      filters: facetFilters,
-    });
-  }, [projectId?.toString(), timeWindow, searchFilters, facetFilters]);
+      props.scope,
+    );
+  }, [
+    projectId?.toString(),
+    timeWindow,
+    searchFilters,
+    facetFilters,
+    scopeKey,
+  ]);
 
   // --- What the page searches, for a hunt's page ---
 
@@ -705,9 +762,16 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
 
     let isCancelled: boolean = false;
 
+    /*
+     * On a record's page, the record's newest event: "the newest was 3 days
+     * ago", or that it has never had one.
+     */
     AnalyticsModelAPI.getList<SecurityEvent>({
       modelType: SecurityEvent,
-      query: { projectId: projectId } as Query<SecurityEvent>,
+      query: applySecurityEventsViewerScope(
+        { projectId: projectId } as Query<SecurityEvent>,
+        props.scope,
+      ),
       limit: 1,
       skip: 0,
       select: { time: true },
@@ -730,7 +794,7 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
     return () => {
       isCancelled = true;
     };
-  }, [isWindowEmpty, projectId?.toString()]);
+  }, [isWindowEmpty, projectId?.toString(), scopeKey]);
 
   // --- Source names ---
 
@@ -1026,7 +1090,10 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
   );
 
   const activeFilters: Array<ActiveFilter> = useMemo(() => {
-    const filters: Array<ActiveFilter> = [];
+    // The page's own scope first, locked: it cannot be taken off here.
+    const filters: Array<ActiveFilter> = props.scope
+      ? [{ ...props.scope.chip, readOnly: true }]
+      : [];
 
     for (const [facetKey, values] of facetFilters.entries()) {
       for (const value of values) {
@@ -1044,7 +1111,7 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
     }
 
     return filters;
-  }, [facetFilters, sourceNames]);
+  }, [facetFilters, sourceNames, props.scope?.chip]);
 
   const facetConfigs: Array<FacetConfig> = useMemo(() => {
     return buildSecurityEventFacetConfigs({ sourceNames: sourceNames });
@@ -1097,12 +1164,19 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
 
   // --- Empty state ---
 
+  // What the reader narrowed it to themselves: the page's locked scope is not theirs.
   const hasNarrowedTheList: boolean =
-    activeFilters.length > 0 || submittedSearch.trim().length > 0;
+    Array.from(facetFilters.values()).some((values: Set<string>): boolean => {
+      return values.size > 0;
+    }) || submittedSearch.trim().length > 0;
 
   const emptyContent: ReactElement =
     latestEventTime === null && !hasNarrowedTheList ? (
-      <SecurityEventsEmptyState />
+      props.scope ? (
+        props.scope.emptyContent
+      ) : (
+        <SecurityEventsEmptyState />
+      )
     ) : (
       <SecurityEventsNoResults
         latestEventTime={latestEventTime || undefined}
@@ -1196,14 +1270,16 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
           onToggle: setIsLive,
         }}
         toolbarLeadingActions={
-          <HuntsMenu
-            state={{
-              search: submittedSearch,
-              filters: facetFilters,
-              timeRange: timeRange,
-            }}
-            currentHuntId={props.hunt?.id.toString()}
-          />
+          props.scope ? undefined : (
+            <HuntsMenu
+              state={{
+                search: submittedSearch,
+                filters: facetFilters,
+                timeRange: timeRange,
+              }}
+              currentHuntId={props.hunt?.id.toString()}
+            />
+          )
         }
         toolbarTrailingActions={
           <SecurityEventAttributeColumnPicker

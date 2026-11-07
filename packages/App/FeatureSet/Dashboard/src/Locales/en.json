@@ -46007,5 +46007,18 @@
   "Published by the cloud provider for account {{account}}.": "Published by the cloud provider for account {{account}}.",
   "Published by {{provider}} for account {{account}}.": "Published by {{provider}} for account {{account}}.",
   "Someone with access caused it.": "Someone with access caused it.",
-  "Tracking ID: {{trackingId}}.": "Tracking ID: {{trackingId}}."
+  "Tracking ID: {{trackingId}}.": "Tracking ID: {{trackingId}}.",
+  "Events from any source that name one of these. A private address is left out: another network can use it too.": "Events from any source that name one of these. A private address is left out: another network can use it too.",
+  "Every security event read from the syslog this device sends the probe, whatever it names.": "Every security event read from the syslog this device sends the probe, whatever it names.",
+  "Its own logs": "Its own logs",
+  "Naming it": "Naming it",
+  "No security events for this device yet": "No security events for this device yet",
+  "Read in a device's syslog: {{formats}}.": "Read in a device's syslog: {{formats}}.",
+  "Send this device's syslog to a probe. Its {{logs}} page says how.": "Send this device's syslog to a probe. Its {{logs}} page says how.",
+  "The Events search cannot spell this as one search: it reads the device's own logs, or what names it.": "The Events search cannot spell this as one search: it reads the device's own logs, or what names it.",
+  "The security events about this device: read from its own logs, or naming it.": "The security events about this device: read from its own logs, or naming it.",
+  "The security events of this device could not be read.": "The security events of this device could not be read.",
+  "They appear here when OneUptime finds them in the syslog this device sends a probe - blocked connections and threats, VPN and administrator sign-ins - or when events from any other source name this device.": "They appear here when OneUptime finds them in the syslog this device sends a probe - blocked connections and threats, VPN and administrator sign-ins - or when events from any other source name this device.",
+  "Turn on Your logs, on the Security Events {{connections}} page.": "Turn on Your logs, on the Security Events {{connections}} page.",
+  "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.": "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page."
 }
