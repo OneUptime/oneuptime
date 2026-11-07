@@ -955,6 +955,11 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   })
   public baseRefName?: string = undefined;
 
+  /*
+   * The repository's owner, copied whole from
+   * CodeRepository.organizationName, in a column as wide as that one (see
+   * there): a GitLab group's full path runs to 5,375 characters.
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -973,15 +978,14 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
     title: "Repository Organization",
     description: "Organization or username that owns the repository.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
   })
   public repoOrganizationName?: string = undefined;
 
