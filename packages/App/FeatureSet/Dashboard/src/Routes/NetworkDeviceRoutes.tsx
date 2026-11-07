@@ -30,6 +30,7 @@ import NetworkDeviceMonitors from "../Pages/NetworkDevice/View/Monitors";
 import NetworkDeviceIncidents from "../Pages/NetworkDevice/View/Incidents";
 import NetworkDeviceAlerts from "../Pages/NetworkDevice/View/Alerts";
 import NetworkDeviceLogs from "../Pages/NetworkDevice/View/Logs";
+import NetworkDeviceSecurityEvents from "../Pages/NetworkDevice/View/SecurityEvents";
 import NetworkDeviceOwners from "../Pages/NetworkDevice/View/Owners";
 import NetworkDeviceSettingsOwnerRules from "../Pages/NetworkDevice/Settings/OwnerRules";
 import NetworkDeviceSettingsLabelRules from "../Pages/NetworkDevice/Settings/LabelRules";
@@ -484,6 +485,20 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             <NetworkDeviceLogs
               {...props}
               pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS,
+          )}
+          element={
+            <NetworkDeviceSecurityEvents
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS] as Route
+              }
             />
           }
         />
