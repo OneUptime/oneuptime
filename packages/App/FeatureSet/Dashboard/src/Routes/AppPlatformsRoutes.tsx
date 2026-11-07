@@ -355,7 +355,9 @@ const AppPlatformsRoutes: FunctionComponent<ComponentProps> = (
             <AppPlatformEnvironmentAuditLogs
               {...props}
               pageRoute={
-                RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_AUDIT_LOGS] as Route
+                RouteMap[
+                  PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_AUDIT_LOGS
+                ] as Route
               }
             />
           }

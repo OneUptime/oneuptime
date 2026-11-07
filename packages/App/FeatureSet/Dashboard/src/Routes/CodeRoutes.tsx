@@ -111,7 +111,9 @@ const CodeRoutes: FunctionComponent<ComponentProps> = (
           element={
             <CodeRepositoryAuditLogs
               {...props}
-              pageRoute={RouteMap[PageMap.CODE_REPOSITORY_VIEW_AUDIT_LOGS] as Route}
+              pageRoute={
+                RouteMap[PageMap.CODE_REPOSITORY_VIEW_AUDIT_LOGS] as Route
+              }
             />
           }
         />

@@ -529,11 +529,15 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.NETWORK_DEVICE_VIEW_AUDIT_LOGS)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.NETWORK_DEVICE_VIEW_AUDIT_LOGS,
+          )}
           element={
             <NetworkDeviceAuditLogs
               {...props}
-              pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW_AUDIT_LOGS] as Route}
+              pageRoute={
+                RouteMap[PageMap.NETWORK_DEVICE_VIEW_AUDIT_LOGS] as Route
+              }
             />
           }
         />

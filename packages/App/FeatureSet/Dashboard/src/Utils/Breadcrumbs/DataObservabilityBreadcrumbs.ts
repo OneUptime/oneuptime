@@ -215,13 +215,7 @@ export function getDataObservabilityBreadcrumbs(
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_AUDIT_LOGS,
-      [
-        "Project",
-        "Data Observability",
-        "Pipelines",
-        "Pipeline",
-        "Audit Logs",
-      ],
+      ["Project", "Data Observability", "Pipelines", "Pipeline", "Audit Logs"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_CHECKS, [
       "Project",

@@ -44,12 +44,10 @@ export function getServerlessBreadcrumbs(
       PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION,
       ["Project", "Serverless Functions", "View Function", "Documentation"],
     ),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_FUNCTION_VIEW_AUDIT_LOGS, [
-      "Project",
-      "Serverless Functions",
-      "View Function",
-      "Audit Logs",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SERVERLESS_FUNCTION_VIEW_AUDIT_LOGS,
+      ["Project", "Serverless Functions", "View Function", "Audit Logs"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_FUNCTION_VIEW_DELETE, [
       "Project",
       "Serverless Functions",

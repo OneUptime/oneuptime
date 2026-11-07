@@ -265,7 +265,9 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Audit Logs",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_AUDIT_LOGS] as Route,
+              RouteMap[
+                PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_AUDIT_LOGS
+              ] as Route,
               { modelId: props.modelId },
             ),
           }}

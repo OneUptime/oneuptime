@@ -330,11 +330,15 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_ACCOUNT_VIEW_AUDIT_LOGS)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_ACCOUNT_VIEW_AUDIT_LOGS,
+          )}
           element={
             <CloudAccountAuditLogs
               {...props}
-              pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AUDIT_LOGS] as Route}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AUDIT_LOGS] as Route
+              }
             />
           }
         />
@@ -533,11 +537,15 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_RESOURCE_VIEW_AUDIT_LOGS)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_RESOURCE_VIEW_AUDIT_LOGS,
+          )}
           element={
             <CloudResourceAuditLogs
               {...props}
-              pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW_AUDIT_LOGS] as Route}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_AUDIT_LOGS] as Route
+              }
             />
           }
         />

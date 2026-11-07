@@ -188,11 +188,15 @@ const NetworkSiteRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.NETWORK_SITE_VIEW_AUDIT_LOGS)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.NETWORK_SITE_VIEW_AUDIT_LOGS,
+          )}
           element={
             <NetworkSiteViewAuditLogs
               {...props}
-              pageRoute={RouteMap[PageMap.NETWORK_SITE_VIEW_AUDIT_LOGS] as Route}
+              pageRoute={
+                RouteMap[PageMap.NETWORK_SITE_VIEW_AUDIT_LOGS] as Route
+              }
             />
           }
         />

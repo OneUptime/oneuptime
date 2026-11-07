@@ -395,7 +395,9 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
             <TableAuditLogsPage
               {...props}
               pageRoute={
-                RouteMap[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_AUDIT_LOGS] as Route
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_TABLE_VIEW_AUDIT_LOGS
+                ] as Route
               }
             />
           }

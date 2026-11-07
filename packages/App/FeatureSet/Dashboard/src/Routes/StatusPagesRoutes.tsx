@@ -353,11 +353,15 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.ANNOUNCEMENT_VIEW_AUDIT_LOGS)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ANNOUNCEMENT_VIEW_AUDIT_LOGS,
+          )}
           element={
             <AnnouncementViewAuditLogs
               {...props}
-              pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW_AUDIT_LOGS] as Route}
+              pageRoute={
+                RouteMap[PageMap.ANNOUNCEMENT_VIEW_AUDIT_LOGS] as Route
+              }
             />
           }
         />

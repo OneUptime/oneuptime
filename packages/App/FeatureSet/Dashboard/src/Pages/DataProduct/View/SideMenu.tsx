@@ -57,7 +57,9 @@ const DataProductViewSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: "Audit Logs",
-            to: routeOf(PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_AUDIT_LOGS),
+            to: routeOf(
+              PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_AUDIT_LOGS,
+            ),
           }}
           icon={IconProp.List}
         />
