@@ -402,6 +402,13 @@ export interface OnCallOpenPage {
    * otherwise.
    */
   isPageAgain?: true | undefined;
+  /*
+   * Present (true) when the page is an observer's (OnCallObserverPage): the
+   * person is kept informed while others respond, and answers it by saying
+   * they have seen it (ON_CALL_OBSERVER_PAGE_SEEN_ROUTE), so the mobile app
+   * offers no Escalate for it. Absent otherwise.
+   */
+  isObserverPage?: true | undefined;
 }
 
 /*

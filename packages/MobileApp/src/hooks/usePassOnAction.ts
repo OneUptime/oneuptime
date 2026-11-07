@@ -47,6 +47,10 @@ import {
  * Anybody the policy is not paging gets no button: the screen is as it was.
  * So does anybody whose server cannot be asked (an older server, no
  * signal) - it is a shortcut, and acknowledging works as it always did.
+ *
+ * A page as an observer (oncall/observerPage.ts) is not one of these: it is
+ * answered with "I've seen it" (useObserverPageAction), and there is
+ * nothing to escalate.
  */
 
 export interface PassOnControls {
@@ -98,7 +102,12 @@ export function usePassOnAction(data: {
     retry: false,
   });
 
-  const pages: OnCallPassOnPage[] = query.data ?? [];
+  // A responder's pages: an observer's is answered with "I've seen it".
+  const pages: OnCallPassOnPage[] = (query.data ?? []).filter(
+    (page: OnCallPassOnPage) => {
+      return page.isObserverPage !== true;
+    },
+  );
   const isPageAgain: boolean = pages.some((page: OnCallPassOnPage) => {
     return page.isPageAgain === true;
   });

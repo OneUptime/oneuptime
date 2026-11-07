@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import type { ResponseAction } from "../components/ResponseDetailLayout";
 import {
   getPagedResponseActions,
+  isObserverOnly,
   isPagedAgain,
   type PagedActionsInput,
 } from "./pagedActions";
@@ -28,6 +29,7 @@ const ACKNOWLEDGE: ResponseAction = action("Acknowledge", true);
 const RESOLVE: ResponseAction = action("Resolve");
 const ESCALATE: ResponseAction = action("Escalate");
 const ACKNOWLEDGE_AGAIN: ResponseAction = action("Acknowledge again", true);
+const SEEN: ResponseAction = action("I've seen it", true);
 
 function input(overrides: Partial<PagedActionsInput>): PagedActionsInput {
   return {
@@ -169,6 +171,96 @@ describe("a page again only where it means something", () => {
         ),
       ),
     ).toEqual(["Acknowledge again*", "Escalate"]);
+  });
+});
+
+/*
+ * Paged about it only as an observer (oncall/observerPage.ts): kept informed
+ * while others respond. "I've seen it" is the answer, first and filled, and
+ * the record's own Acknowledge - which would take the record on - is never
+ * offered for it.
+ */
+describe("the reader is paged about it only as an observer", () => {
+  test("I've seen it, filled, then Resolve - and no Acknowledge on a record nobody has taken", () => {
+    const given: PagedActionsInput = input({ seen: SEEN });
+
+    expect(isObserverOnly(given)).toBe(true);
+    expect(drawn(getPagedResponseActions(given))).toEqual([
+      "I've seen it*",
+      "Resolve",
+    ]);
+  });
+
+  test("on a record the responders acknowledged, the same: I've seen it, then Resolve", () => {
+    expect(
+      drawn(
+        getPagedResponseActions(input({ isAcknowledged: true, seen: SEEN })),
+      ),
+    ).toEqual(["I've seen it*", "Resolve"]);
+  });
+
+  test("I've seen it is filled however the screen handed it over, and Resolve never is", () => {
+    expect(
+      drawn(
+        getPagedResponseActions(
+          input({ seen: action("I've seen it", false), resolve: RESOLVE }),
+        ),
+      ),
+    ).toEqual(["I've seen it*", "Resolve"]);
+  });
+
+  test("a project with no resolved state: I've seen it alone", () => {
+    expect(
+      drawn(getPagedResponseActions(input({ resolve: null, seen: SEEN }))),
+    ).toEqual(["I've seen it*"]);
+  });
+
+  test("a resolved record has no buttons at all: the page is over", () => {
+    const given: PagedActionsInput = input({ isResolved: true, seen: SEEN });
+
+    expect(isObserverOnly(given)).toBe(false);
+    expect(getPagedResponseActions(given)).toEqual([]);
+  });
+
+  test("once they have said they have seen it, the screen is as it is for anybody", () => {
+    const given: PagedActionsInput = input({ seen: null });
+
+    expect(isObserverOnly(given)).toBe(false);
+    expect(drawn(getPagedResponseActions(given))).toEqual([
+      "Acknowledge*",
+      "Resolve",
+    ]);
+  });
+});
+
+describe("the reader is paged about it both as a responder and as an observer", () => {
+  test("their own page as a responder leads, as it always did; I've seen it sits before Escalate, outlined", () => {
+    const given: PagedActionsInput = input({ escalate: ESCALATE, seen: SEEN });
+
+    expect(isObserverOnly(given)).toBe(false);
+    expect(drawn(getPagedResponseActions(given))).toEqual([
+      "Acknowledge*",
+      "Resolve",
+      "I've seen it",
+      "Escalate",
+    ]);
+  });
+
+  test("paged again as a responder: Acknowledge again first, then the rest", () => {
+    const given: PagedActionsInput = input({
+      isAcknowledged: true,
+      acknowledgeAgain: ACKNOWLEDGE_AGAIN,
+      escalate: ESCALATE,
+      seen: SEEN,
+    });
+
+    expect(isObserverOnly(given)).toBe(false);
+    expect(drawn(getPagedResponseActions(given))).toEqual([
+      "Acknowledge again*",
+      "Resolve",
+      "I've seen it",
+      "Escalate",
+    ]);
   });
 });
 
