@@ -683,26 +683,8 @@ const RumApplicationUserFlows: FunctionComponent<
       />
     );
   } else {
-    body = (
-      <div className="space-y-5">
-        {/* What someone narrows to one person for comes first. */}
-        {scope ? (
-          <UserFlowJourneys
-            journeys={analysis.journeys}
-            rumApplicationId={modelId}
-          />
-        ) : (
-          <></>
-        )}
-
-        <UserFlowOverview
-          summary={analysis.summary}
-          insights={analysis.insights}
-          sessionsInWindow={data.sessionsInWindow}
-          isSampled={data.isSampled}
-          onFocusPage={anchorOn}
-        />
-
+    const mapElement: ReactElement = (
+      <Fragment>
         <div className="relative rounded-lg border border-gray-200 bg-gray-50/50 p-4">
           {isLoading ? (
             <div className="absolute right-4 top-4 text-xs text-gray-500">
@@ -762,6 +744,32 @@ const RumApplicationUserFlows: FunctionComponent<
             )}
           </p>
         )}
+      </Fragment>
+    );
+
+    body = (
+      <div className="space-y-5">
+        {/* When filtered by user/session, the flow diagram comes first on top. */}
+        {scope ? mapElement : <></>}
+
+        {scope ? (
+          <UserFlowJourneys
+            journeys={analysis.journeys}
+            rumApplicationId={modelId}
+          />
+        ) : (
+          <></>
+        )}
+
+        <UserFlowOverview
+          summary={analysis.summary}
+          insights={analysis.insights}
+          sessionsInWindow={data.sessionsInWindow}
+          isSampled={data.isSampled}
+          onFocusPage={anchorOn}
+        />
+
+        {!scope ? mapElement : <></>}
 
         <UserFlowTables
           paths={analysis.paths}
