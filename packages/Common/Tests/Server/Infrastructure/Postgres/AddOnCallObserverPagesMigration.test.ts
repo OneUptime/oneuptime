@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddOnCallObserverPages1808995200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808995200000-AddOnCallObserverPages";
+import { AddOnCallObserverPages1808995300000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808995300000-AddOnCallObserverPages";
 import AlertEpisodeOnCallRule from "../../../../Models/DatabaseModels/AlertEpisodeOnCallRule";
 import AlertOnCallRule from "../../../../Models/DatabaseModels/AlertOnCallRule";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -30,7 +30,7 @@ import Permission from "../../../../Types/Permission";
  * generate-postgres-migration.)
  */
 
-const MIGRATION_TIMESTAMP: string = "1808995200000";
+const MIGRATION_TIMESTAMP: string = "1808995300000";
 const MIGRATION_BASE_NAME: string = "AddOnCallObserverPages";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -54,7 +54,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddOnCallObserverPages1808995200000();
+    new AddOnCallObserverPages1808995300000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -65,7 +65,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddOnCallObserverPages1808995200000", () => {
+describe("AddOnCallObserverPages1808995300000", () => {
   test("adds what each on-call rule pages its policies as, starting on Responders", async () => {
     const up: Array<string> = await statementsOf("up");
 
@@ -112,7 +112,7 @@ describe("AddOnCallObserverPages1808995200000", () => {
     });
 
     expect(registered).toContain(MIGRATION_CLASS_NAME);
-    expect(new AddOnCallObserverPages1808995200000().name).toBe(
+    expect(new AddOnCallObserverPages1808995300000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(

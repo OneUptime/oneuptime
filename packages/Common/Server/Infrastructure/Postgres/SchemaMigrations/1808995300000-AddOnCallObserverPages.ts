@@ -16,8 +16,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * is, which all paged responders. A NOT NULL column with a constant default is
  * added without rewriting a row.
  */
-export class AddOnCallObserverPages1808995200000 implements MigrationInterface {
-  public name: string = "AddOnCallObserverPages1808995200000";
+export class AddOnCallObserverPages1808995300000 implements MigrationInterface {
+  public name: string = "AddOnCallObserverPages1808995300000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
