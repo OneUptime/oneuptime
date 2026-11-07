@@ -23,6 +23,8 @@ Chaque workflow a exactement un **déclencheur**, en haut. Tout le reste est un 
 
 Les modifications s'enregistrent automatiquement, un instant après que vous les avez faites. Une pastille dans la barre d'outils le signale : **Enregistrement…** pendant que la modification est en route, puis **Enregistré**. Si une modification n'a pas pu être enregistrée, la pastille affiche **Impossible d'enregistrer**, avec la raison quand vous la survolez, et **Réessayer** à côté. Vos modifications restent sur le canevas en attendant, et la prochaine modification que vous faites relance l'enregistrement. Si vous quittez la page avant qu'une modification soit enregistrée, une confirmation vous est d'abord demandée. Le canevas n'a pas de bouton d'enregistrement ni d'étape de publication séparée. Une erreur est enregistrée elle aussi : le Constructeur garde donc chaque modification, que vous pouvez reprendre. Voir [Annuler, rétablir et historique des versions](#annuler-rétablir-et-historique-des-versions).
 
+Deux personnes peuvent avoir le même flux de travail ouvert. Si quelqu'un d'autre l'enregistre après que vous l'avez ouvert, dans un autre Constructeur ou par l'API, le Constructeur n'enregistre pas votre modification par-dessus la sienne : la pastille affiche **Non enregistré**, et une boîte de dialogue liste ce qui a changé. **Afficher leurs modifications** place leur version sur le canevas, et **Annuler** rétablit la vôtre. **Garder la mienne** enregistre votre version, et la leur reste dans l'historique des versions. Rien n'est perdu, quel que soit votre choix.
+
 ## Ajouter des blocs
 
 | Pour ajouter           | Cliquez sur                                                 | Panneau qui s'ouvre           |

@@ -23,6 +23,8 @@ Hvert workflow har præcis én **trigger** øverst. Alt andet er en **komponent*
 
 Ændringer gemmes automatisk, et øjeblik efter at du har lavet dem. En pille i værktøjslinjen holder øje med det: **Gemmer…**, mens ændringen er på vej, derefter **Gemt**. Hvis en ændring ikke kunne gemmes, står der **Kunne ikke gemme** på pillen, med årsagen, når du holder musen over den, og **Prøv igen** ved siden af. Dine ændringer bliver imens på lærredet, og den næste ændring, du laver, prøver igen. Forlader du siden, før en ændring er gemt, bliver du spurgt først. Lærredet har ingen gem-knap og intet separat udgivelsestrin. En fejl bliver også gemt, og derfor husker Bygger hver ændring, så du kan tage den tilbage: se [Fortryd, gentag og versionshistorik](#fortryd-gentag-og-versionshistorik).
 
+To personer kan have den samme arbejdsgang åben. Hvis en anden gemmer den, efter du åbnede den, i en anden Bygger eller gennem API'et, gemmer Bygger ikke din ændring oven i deres: pillen viser **Ikke gemt**, og en dialog viser, hvad de har ændret. **Vis deres ændringer** sætter deres version på lærredet, og **Fortryd** henter din tilbage. **Behold min** gemmer din version, og deres bliver i versionshistorikken. Intet går tabt, uanset hvad du vælger.
+
 ## Tilføj blokke
 
 | For at tilføje         | Klik på                                                        | Panel, der åbner              |

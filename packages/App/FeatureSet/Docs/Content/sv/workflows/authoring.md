@@ -23,6 +23,8 @@ Varje arbetsflöde har exakt en **utlösare** högst upp. Allt annat är en **ko
 
 Ändringar sparas automatiskt, en liten stund efter att du har gjort dem. En etikett i verktygsfältet håller koll på det: **Sparar…** medan ändringen är på väg, därefter **Sparad**. Om en ändring inte kunde sparas står det **Kunde inte spara** på etiketten, med orsaken när du håller muspekaren över den, och **Försök igen** bredvid. Dina ändringar finns kvar på arbetsytan under tiden, och nästa ändring du gör försöker igen. Om du lämnar sidan innan en ändring har sparats får du en fråga först. Arbetsytan har ingen spara-knapp och inget separat publiceringssteg. Även ett misstag sparas, så Byggare behåller varje ändring som du kan ta tillbaka: se [Ångra, gör om och versionshistorik](#ångra-gör-om-och-versionshistorik).
 
+Två personer kan ha samma arbetsflöde öppet. Om någon annan sparar det efter att du öppnade det, i en annan Byggare eller via API:t, sparar Byggare inte din ändring ovanpå deras: etiketten visar **Inte sparat**, och en dialogruta visar vad de har ändrat. **Visa deras ändringar** lägger deras version på arbetsytan, och **Ångra** tar tillbaka din. **Behåll min** sparar din version, och deras finns kvar i versionshistoriken. Inget går förlorat, vad du än väljer.
+
 ## Lägg till block
 
 | För att lägga till     | Klicka på                                                      | Panel som öppnas              |

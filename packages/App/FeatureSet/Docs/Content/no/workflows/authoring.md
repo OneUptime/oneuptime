@@ -23,6 +23,8 @@ Hver arbeidsflyt har nøyaktig én **trigger** øverst. Alt annet er en **kompon
 
 Endringer lagres automatisk, et øyeblikk etter at du har gjort dem. En pille i verktøylinjen følger med på det: **Lagrer…** mens endringen er på vei, deretter **Lagret**. Hvis en endring ikke kunne lagres, står det **Kunne ikke lagre** på pillen, med årsaken når du holder musen over den, og **Prøv igjen** ved siden av. Endringene dine blir værende på lerretet i mellomtiden, og neste endring du gjør, prøver igjen. Forlater du siden før en endring er lagret, blir du spurt først. Lerretet har ingen lagreknapp og ikke noe eget publiseringstrinn. En feil blir også lagret, og derfor tar Bygger vare på hver endring, så du kan ta den tilbake: se [Angre, gjør om og versjonshistorikk](#angre-gjør-om-og-versjonshistorikk).
 
+To personer kan ha den samme arbeidsflyten åpen. Hvis noen andre lagrer den etter at du åpnet den, i en annen Bygger eller gjennom API-et, lagrer ikke Bygger endringen din over deres: pillen viser **Ikke lagret**, og en dialog viser hva de har endret. **Vis endringene deres** legger versjonen deres på lerretet, og **Angre** henter din tilbake. **Behold min** lagrer versjonen din, og deres blir værende i versjonshistorikken. Ingenting går tapt, uansett hva du velger.
+
 ## Legg til blokker
 
 | For å legge til        | Klikk på                                                       | Panel som åpnes               |
