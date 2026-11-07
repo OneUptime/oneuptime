@@ -59,8 +59,8 @@ import {
   getDraftFromGraph,
   readWorkflowDraft,
 } from "../../../../Types/Workflow/WorkflowDraft";
+import { WORKFLOW_DRAFT_PROPOSED_ON_KEY } from "../../../../Types/Workflow/WorkflowDraftProposedOnKey";
 import {
-  WORKFLOW_DRAFT_PROPOSED_ON_KEY,
   WorkflowDraftDigestFunction,
   WorkflowDraftProposedOn,
   WorkflowDraftRebase,

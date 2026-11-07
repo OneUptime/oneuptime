@@ -57,9 +57,6 @@ import {
  * Pure: no database, no clock.
  */
 
-// Where OneUptime writes what a change was proposed on, in the change's own arguments.
-export const WORKFLOW_DRAFT_PROPOSED_ON_KEY: string = "proposedOn";
-
 // A step a change touches, and its fingerprint when the change was proposed.
 export interface WorkflowDraftProposedStep {
   id: string;

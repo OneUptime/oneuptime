@@ -56,7 +56,7 @@ import {
   AIChatWidgetType,
 } from "../../../Types/AI/AIChatTypes";
 import { JSONObject } from "../../../Types/JSON";
-import { WORKFLOW_DRAFT_PROPOSED_ON_KEY } from "../../../Types/Workflow/WorkflowDraftRebase";
+import { WORKFLOW_DRAFT_PROPOSED_ON_KEY } from "../../../Types/Workflow/WorkflowDraftProposedOnKey";
 import ObjectID from "../../../Types/ObjectID";
 import {
   DASHBOARD_LANGUAGES,

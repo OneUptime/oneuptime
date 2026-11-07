@@ -30,8 +30,8 @@ import {
   buildGraphFromDraft,
   getDraftFromGraph,
 } from "../../../../Types/Workflow/WorkflowDraft";
+import { WORKFLOW_DRAFT_PROPOSED_ON_KEY } from "../../../../Types/Workflow/WorkflowDraftProposedOnKey";
 import {
-  WORKFLOW_DRAFT_PROPOSED_ON_KEY,
   WorkflowDraftProposedOn,
   fingerprintWorkflowSteps,
   getStepsTouchedByDraft,

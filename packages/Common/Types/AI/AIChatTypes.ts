@@ -1,5 +1,5 @@
 import { JSONObject } from "../JSON";
-import { WORKFLOW_DRAFT_PROPOSED_ON_KEY } from "../Workflow/WorkflowDraftRebase";
+import { WORKFLOW_DRAFT_PROPOSED_ON_KEY } from "../Workflow/WorkflowDraftProposedOnKey";
 import { AIActionCardWords, AIActionWords } from "./AIActionWords";
 import { AiContextActivity } from "./AiContext";
 import { LlmProviderActivity } from "./LlmProviderChoice";
