@@ -134,6 +134,11 @@ const AlertEpisodeView: FunctionComponent<
   const [telemetrySnapshot, setTelemetrySnapshot] =
     useState<DerivedTelemetrySnapshot>(EMPTY_TELEMETRY_SNAPSHOT);
 
+  // The member whose telemetry the snapshot shows: its monitor's rule is drawn.
+  const [snapshotMemberId, setSnapshotMemberId] = useState<string | undefined>(
+    undefined,
+  );
+
   const requestIdRef: MutableRefObject<number> = useRef<number>(0);
   const hasLoadedRef: MutableRefObject<boolean> = useRef<boolean>(false);
 
@@ -255,6 +260,7 @@ const AlertEpisodeView: FunctionComponent<
           seriesLabels: firstMember?.seriesLabels as JSONObject | undefined,
         }),
       );
+      setSnapshotMemberId(firstMember?.id?.toString() || undefined);
 
       setEpisode(loaded);
       setAlertStates(stateList.data as AlertState[]);
@@ -575,6 +581,7 @@ const AlertEpisodeView: FunctionComponent<
                 snapshotWindow={telemetrySnapshot.snapshotWindow}
                 seriesSummary={telemetrySnapshot.seriesSummary}
                 eventNoun="alert"
+                metricRuleEventId={snapshotMemberId}
                 // A metric snapshot's investigation is anchored on the episode.
                 metricSubject={EventMetricSubject.AlertEpisode}
                 startedAt={timing.durationStartsAt}

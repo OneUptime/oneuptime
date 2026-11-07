@@ -78,13 +78,14 @@ function resolveMonitorModule(moduleKey: string): string {
 }
 
 /*
- * The walk covers the overview's own modules and the trace preview it
- * embeds. Shared components outside those (Slo, EventView, Common UI) are
- * tested where they live.
+ * The walk covers the overview's own modules, the trace preview it embeds
+ * and a metric monitor's metrics card. Shared components outside those
+ * (Slo, EventView, Metrics, Common UI) are tested where they live.
  */
 function isOverviewModule(moduleKey: string): boolean {
   return (
     moduleKey.startsWith("Overview/") ||
+    moduleKey.startsWith("MetricMonitor/") ||
     moduleKey === "TraceMonitor/TraceMonitorPreview"
   );
 }
@@ -345,9 +346,10 @@ describe("Monitor overview page", () => {
     );
   });
 
-  test("main column: setup, uptime history, response time, summary, telemetry preview, activity", () => {
+  test("main column: setup, metric charts, uptime history, response time, summary, telemetry preview, activity", () => {
     expectInOrder(MAIN_COLUMN_CODE, [
       "<MonitorSetupCard",
+      "<MonitorMetricsCard",
       "<MonitorUptimeHistoryCard",
       "<MonitorResponseTimeCard",
       "<Summary",
@@ -358,6 +360,9 @@ describe("Monitor overview page", () => {
     // Each is shown exactly when the presentation model says so.
     expect(MAIN_COLUMN_CODE).toContain(
       "{sections.setup !== null ? ( <MonitorSetupCard",
+    );
+    expect(MAIN_COLUMN_CODE).toContain(
+      "{sections.showMetricCharts ? ( <MonitorMetricsCard",
     );
     expect(MAIN_COLUMN_CODE).toContain(
       "{sections.showUptime ? ( <MonitorUptimeHistoryCard",
@@ -442,6 +447,8 @@ describe("Monitor overview data flow", () => {
         "Overview/useMonitorOverviewData",
         "Overview/useMonitorOwners",
         "Overview/useMonitorUptimeSummary",
+        "MetricMonitor/MonitorMetricsCard",
+        "MetricMonitor/useMonitorStatusChanges",
         "TraceMonitor/TraceMonitorPreview",
       ]),
     );
@@ -537,7 +544,17 @@ describe("Monitor overview data flow", () => {
           moduleKey,
           capped: !call.includes("LIMIT_PER_PROJECT"),
         }).toEqual({ moduleKey, capped: true });
-        expect(call).toContain("limit: MONITOR_OVERVIEW_STATUS_ROW_LIMIT,");
+
+        /*
+         * The newest few rows, or - for a metric monitor's charts - the
+         * changes inside the charted window, at most fifty of them.
+         */
+        if (moduleKey === "MetricMonitor/useMonitorStatusChanges") {
+          expect(call).toContain("startsAt: window,");
+          expect(call).toContain("limit: MONITOR_STATUS_CHANGES_FETCH_LIMIT,");
+        } else {
+          expect(call).toContain("limit: MONITOR_OVERVIEW_STATUS_ROW_LIMIT,");
+        }
       }
     }
 
@@ -573,6 +590,9 @@ describe("Monitor overview data flow", () => {
     );
     expect(getModuleCode("Overview/MonitorOverviewSelect")).toContain(
       "export const MONITOR_OVERVIEW_STATUS_ROW_LIMIT: number = 5;",
+    );
+    expect(getModuleCode("MetricMonitor/useMonitorStatusChanges")).toContain(
+      "export const MONITOR_STATUS_CHANGES_FETCH_LIMIT: number = 50;",
     );
   });
 

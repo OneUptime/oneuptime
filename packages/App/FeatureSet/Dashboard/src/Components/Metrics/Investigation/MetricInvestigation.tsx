@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useCallback,
   useMemo,
   useState,
@@ -8,6 +9,7 @@ import React, {
 import IconProp from "Common/Types/Icon/IconProp";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import TimeRange from "Common/Types/Time/TimeRange";
+import { getTimeRangeLabel } from "Common/UI/Components/Date/TimeRangePickerDropdown";
 import Card from "Common/UI/Components/Card/Card";
 import ChartReferenceRegionProps from "Common/UI/Components/Charts/Types/ReferenceRegionProps";
 import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
@@ -15,7 +17,10 @@ import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import MetricView from "../MetricView";
 import ExplorerLink from "../Utils/ExplorerLink";
@@ -23,6 +28,13 @@ import useEventTimeReferenceLines, {
   EventTimeReferenceLines,
 } from "../Utils/UseEventTimeReferenceLines";
 import { MetricInvestigationQueries } from "./MetricInvestigationQueries";
+import { MetricResultsState } from "../Utils/MetricResultsState";
+import {
+  DrawnThresholds,
+  MetricInvestigationThreshold,
+  getDrawnThresholds,
+  getRangeShowingHiddenThresholds,
+} from "./MetricInvestigationThresholds";
 import MetricInvestigationTimePicker from "./MetricInvestigationTimePicker";
 import { MetricInvestigationState } from "./UseMetricInvestigation";
 import {
@@ -57,6 +69,25 @@ export interface ComponentProps {
    */
   excludedIncidentIds?: Array<string> | undefined;
   excludedAlertIds?: Array<string> | undefined;
+  /*
+   * Mark this monitor's incidents and alerts, rather than those the
+   * charts' resource filters find (a monitor's own page).
+   */
+  monitorId?: string | undefined;
+  /*
+   * Lines for values the page's own metrics are compared with - a
+   * monitor's thresholds - each drawn while its metric is as the page
+   * started it, at a range whose points hold it (see
+   * MetricInvestigationThresholds).
+   */
+  thresholds?: Array<MetricInvestigationThreshold> | undefined;
+  // Above the card's toolbar: what the page lets the reader pick first.
+  beforeToolbar?: ReactNode | undefined;
+  /*
+   * Said above the charts once they have loaded and found nothing: what to
+   * check. Never while they load, and never when the read failed.
+   */
+  emptyState?: ReactNode | undefined;
 }
 
 const HEADER_ICON_BUTTON_CLASS_NAME: string =
@@ -66,6 +97,10 @@ const TOOLBAR_BUTTON_CLASS_NAME: string =
   "inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
 
 export const METRIC_INVESTIGATION_TEST_ID: string = "metric-investigation";
+export const METRIC_INVESTIGATION_EMPTY_TEST_ID: string =
+  "metric-investigation-empty";
+export const METRIC_INVESTIGATION_THRESHOLD_HINT_TEST_ID: string =
+  "metric-investigation-threshold-hint";
 
 /**
  * Metrics to investigate right where they are shown (issue #5954): the
@@ -98,6 +133,7 @@ const MetricInvestigation: FunctionComponent<ComponentProps> = (
       refreshTick: investigation.refreshNonce,
       excludedIncidentIds: props.excludedIncidentIds,
       excludedAlertIds: props.excludedAlertIds,
+      monitorId: props.monitorId,
     });
 
   const timeReferenceLines: Array<ChartTimeReferenceLineProps> = useMemo(() => {
@@ -113,6 +149,28 @@ const MetricInvestigation: FunctionComponent<ComponentProps> = (
       investigation.window,
     );
   }, [props.regions, investigation.window]);
+
+  const thresholds: DrawnThresholds = useMemo((): DrawnThresholds => {
+    return getDrawnThresholds({
+      thresholds: props.thresholds,
+      defaultQueries: investigation.defaultQueries,
+      queries: investigation.queries,
+      window: investigation.window,
+    });
+  }, [
+    props.thresholds,
+    investigation.defaultQueries,
+    investigation.queries,
+    investigation.window,
+  ]);
+
+  // The range whose points hold the lines this one cannot show.
+  const rangeShowingHiddenThresholds: TimeRange | null =
+    getRangeShowingHiddenThresholds(thresholds.hiddenAtThisRange);
+
+  const [resultsState, setResultsState] = useState<MetricResultsState>(
+    MetricResultsState.Loading,
+  );
 
   const onMetricViewChange: (data: MetricViewData) => void = useCallback(
     (data: MetricViewData): void => {
@@ -177,6 +235,7 @@ const MetricInvestigation: FunctionComponent<ComponentProps> = (
         rightElement={header}
       >
         <div className="space-y-4" data-testid={METRIC_INVESTIGATION_TEST_ID}>
+          {props.beforeToolbar ? props.beforeToolbar : <></>}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <button
               type="button"
@@ -235,6 +294,57 @@ const MetricInvestigation: FunctionComponent<ComponentProps> = (
             )}
           </div>
 
+          {props.emptyState && resultsState === MetricResultsState.Empty ? (
+            <div data-testid={METRIC_INVESTIGATION_EMPTY_TEST_ID}>
+              {props.emptyState}
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {thresholds.hiddenAtThisRange.length > 0 ? (
+            /*
+             * A line on a sum or a count holds only where each point covers
+             * what the monitor reads: say why it is not on these charts,
+             * and offer the range that shows it.
+             */
+            <div
+              className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600"
+              data-testid={METRIC_INVESTIGATION_THRESHOLD_HINT_TEST_ID}
+            >
+              <Icon
+                icon={IconProp.Info}
+                className="h-3.5 w-3.5 text-gray-400"
+              />
+              <span>
+                {translator.translateText(
+                  "Thresholds on counts show only on ranges whose points cover what the monitor reads.",
+                )}
+              </span>
+              {rangeShowingHiddenThresholds ? (
+                <button
+                  type="button"
+                  className="font-medium text-indigo-600 hover:underline focus:outline-none focus-visible:underline"
+                  onClick={() => {
+                    investigation.selectPickerValue({
+                      range: rangeShowingHiddenThresholds,
+                    });
+                  }}
+                >
+                  {translator.translateTemplate("Show {{range}}", {
+                    range: translatableTerm(
+                      getTimeRangeLabel(rangeShowingHiddenThresholds),
+                    ),
+                  })}
+                </button>
+              ) : (
+                <></>
+              )}
+            </div>
+          ) : (
+            <></>
+          )}
+
           <MetricView
             data={investigation.metricViewData}
             hideQueryElements={!isEditing}
@@ -256,6 +366,10 @@ const MetricInvestigation: FunctionComponent<ComponentProps> = (
             onTimeRangeReset={
               investigation.isZoomed ? investigation.zoom.resetZoom : undefined
             }
+            thresholds={
+              thresholds.drawn.length > 0 ? thresholds.drawn : undefined
+            }
+            onResultsStateChange={setResultsState}
             onChange={onMetricViewChange}
           />
         </div>

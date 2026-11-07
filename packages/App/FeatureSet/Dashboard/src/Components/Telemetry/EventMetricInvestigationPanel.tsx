@@ -33,6 +33,8 @@ import {
   getEventMoments,
 } from "../../Utils/EventMetricInvestigation";
 import TelemetryCompanionSignalTabs from "./TelemetryCompanionSignalTabs";
+import { MetricInvestigationThreshold } from "../Metrics/Investigation/MetricInvestigationThresholds";
+import useEventMetricThresholds from "./useEventMetricThresholds";
 
 // Where an event page keeps its metric investigation in its URL.
 export const EVENT_METRIC_INVESTIGATION_URL_PREFIX: string = "metrics";
@@ -57,6 +59,12 @@ export interface ComponentProps {
    * in the window. Left out on an episode's page, whose members are.
    */
   eventId?: string | undefined;
+  /*
+   * The incident or alert whose monitor rule the charts draw (issue
+   * #6250): the event itself (eventId), or on an episode's page the member
+   * whose telemetry it shows.
+   */
+  ruleEventId?: string | undefined;
   // When it was declared or created.
   startedAt?: Date | undefined;
   // When it was resolved, while it still is.
@@ -113,6 +121,17 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
     defaultSelection: EVENT_METRIC_DEFAULT_SELECTION,
     urlParamPrefix: EVENT_METRIC_INVESTIGATION_URL_PREFIX,
   });
+
+  // The value the monitor compared the metric with when it opened the event.
+  const thresholds: Array<MetricInvestigationThreshold> =
+    useEventMetricThresholds({
+      eventNoun: words.telemetryNoun,
+      eventId: props.ruleEventId || props.eventId,
+      snapshotQueries: {
+        queryConfigs: queryConfigs,
+        formulaConfigs: formulaConfigs,
+      },
+    });
 
   const moments: Array<EventMoment> = getEventMoments({
     startedAt: props.startedAt,
@@ -231,6 +250,7 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
           relativeRanges={EVENT_METRIC_RELATIVE_RANGES}
           moments={momentLines}
           regions={regions}
+          thresholds={thresholds}
           excludedIncidentIds={
             props.eventId && props.subject === EventMetricSubject.Incident
               ? [props.eventId]

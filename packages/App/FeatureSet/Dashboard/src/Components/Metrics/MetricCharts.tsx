@@ -98,6 +98,10 @@ import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
 import { PREVIOUS_PERIOD_SERIES_SUFFIX } from "Common/UI/Components/Charts/ChartLibrary/Utils/TooltipEntries";
 import InvestigationDrawer from "../Telemetry/InvestigationDrawer";
 import ExplorerLink from "./Utils/ExplorerLink";
+import {
+  MetricChartThreshold,
+  buildMetricChartThresholdLines,
+} from "./Utils/MetricChartThresholds";
 import TimeRange from "Common/Types/Time/TimeRange";
 import {
   DictionaryEntryValue,
@@ -134,6 +138,12 @@ export interface ComponentProps {
    * red line is the value its rule is being given.
    */
   thresholdLinesExtendAxis?: boolean | undefined;
+  /*
+   * Lines a page draws for values that are not the queries' own: a
+   * monitor's criteria thresholds, each on the chart of the query or
+   * formula it compares (MetricChartThresholds). Drawn only, never saved.
+   */
+  thresholds?: Array<MetricChartThreshold> | undefined;
   /*
    * Keep a minimum plot height under hideCard (see ChartGroup's
    * minPlotHeight). Only for hosts whose panel can grow: a fixed-height
@@ -2711,6 +2721,16 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             formatterOptions: { metricName: member.metricName },
             extendsDomain: props.thresholdLinesExtendAxis,
           }),
+          ...buildMetricChartThresholdLines({
+            thresholds: props.thresholds,
+            metricVariable: member.queryConfig.metricAliasData?.metricVariable,
+            unit: member.unit,
+            formatterOptions: { metricName: member.metricName },
+            drawnValues: [
+              member.queryConfig.warningThreshold,
+              member.queryConfig.criticalThreshold,
+            ],
+          }),
         );
       }
 
@@ -3325,13 +3345,23 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         });
       }
 
-      const formulaReferenceLines: Array<ChartReferenceLineProps> =
-        buildThresholdReferenceLines({
+      const formulaReferenceLines: Array<ChartReferenceLineProps> = [
+        ...buildThresholdReferenceLines({
           warningThreshold: formulaConfig.warningThreshold,
           criticalThreshold: formulaConfig.criticalThreshold,
           unit: formulaUnit,
           extendsDomain: props.thresholdLinesExtendAxis,
-        });
+        }),
+        ...buildMetricChartThresholdLines({
+          thresholds: props.thresholds,
+          metricVariable: formulaConfig.metricAliasData?.metricVariable,
+          unit: formulaUnit,
+          drawnValues: [
+            formulaConfig.warningThreshold,
+            formulaConfig.criticalThreshold,
+          ],
+        }),
+      ];
 
       const formulaMetricInfo: ChartMetricInfo = {
         metricName:

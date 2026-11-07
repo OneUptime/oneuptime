@@ -53,7 +53,7 @@ In **What happens**, pick **Create an alert**, **Declare an incident** or **Both
 
 ### Create the monitor
 
-Click **Create Monitor**. The monitor opens on its **Overview** page, and its first evaluation runs within a minute.
+Click **Create Monitor**. The monitor opens on its **Overview** page, and its first evaluation runs within a minute. The card at the top of the page charts what the monitor checks, as it reads it, over the past three hours: each criteria's value is a line across the query or formula it compares, the side that alerts shaded, and the monitor's status changes and the incidents and alerts it opens are marked on the timeline, so you can see how close the metric is to alerting. Pick another time range, drag across a chart to zoom in, or change and add metrics right there; a value on a sum or a count is drawn on ranges whose points are a minute long, as the monitor counts them.
 :::
 
 ## What it queries

@@ -7,6 +7,7 @@ import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import Hostname from "../../../Types/API/Hostname";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
 import URL from "../../../Types/API/URL";
+import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import DnsRecordType from "../../../Types/Monitor/DnsMonitor/DnsRecordType";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
@@ -85,7 +86,18 @@ jest.mock(
         rollingTime: RollingTime | undefined;
       }) => {
         return (
-          <div data-testid="metric-preview">
+          <div
+            data-testid="metric-preview"
+            data-attributes={JSON.stringify(
+              props.metricsViewConfig.queryConfigs.map(
+                (queryConfig: MetricQueryConfigData) => {
+                  return (
+                    queryConfig.metricQueryData.filterData.attributes || null
+                  );
+                },
+              ),
+            )}
+          >
             {`${props.metricsViewConfig.queryConfigs.length} queries over ${props.rollingTime}`}
           </div>
         );
@@ -157,6 +169,14 @@ function renderStep(monitorType: MonitorType, monitorStep: MonitorStep): void {
   );
 }
 
+// The attributes each query the preview was handed reads with.
+function previewAttributes(): Array<unknown> {
+  return JSON.parse(
+    screen.getByTestId("metric-preview").getAttribute("data-attributes") ||
+      "null",
+  ) as Array<unknown>;
+}
+
 beforeEach(() => {
   getListMock.mockReset();
   getItemMock.mockReset();
@@ -205,6 +225,8 @@ describe("Monitor criteria page — metric monitors", () => {
         "1 queries over Past 30 Minutes",
       );
     });
+    // A Metrics monitor reads each query with its own filters, as written.
+    expect(previewAttributes()).toEqual([null]);
   });
 
   it("shows the host an infrastructure monitor watches", async () => {
@@ -224,6 +246,52 @@ describe("Monitor criteria page — metric monitors", () => {
     });
 
     expect(screen.getByTestId("metric-preview")).toBeInTheDocument();
+  });
+
+  it("charts what an infrastructure monitor evaluates: its queries narrowed to the host it watches (#5759)", async () => {
+    renderStep(
+      MonitorType.Host,
+      buildStep({
+        hostMonitor: {
+          hostIdentifier: " Web-1 ",
+          metricViewConfig: METRIC_VIEW_CONFIG,
+          rollingTime: RollingTime.Past5Minutes,
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("metric-preview")).toBeInTheDocument();
+    });
+
+    // As the worker resolves it: trimmed and lowercased.
+    expect(previewAttributes()).toEqual([{ "resource.host.name": "web-1" }]);
+  });
+
+  it("charts a Kubernetes monitor's queries narrowed to its cluster and namespace", async () => {
+    renderStep(
+      MonitorType.Kubernetes,
+      buildStep({
+        kubernetesMonitor: {
+          clusterIdentifier: "prod-cluster",
+          resourceScope: KubernetesResourceScope.Workload,
+          resourceFilters: { namespace: "payments" },
+          metricViewConfig: METRIC_VIEW_CONFIG,
+          rollingTime: RollingTime.Past5Minutes,
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("metric-preview")).toBeInTheDocument();
+    });
+
+    expect(previewAttributes()).toEqual([
+      {
+        "resource.k8s.cluster.name": "prod-cluster",
+        "resource.k8s.namespace.name": "payments",
+      },
+    ]);
   });
 
   it("shows the Kubernetes cluster and its resource filters", async () => {
