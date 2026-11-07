@@ -14,6 +14,7 @@ import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import PermissionUtil from "./Permission";
 import { getListSeparator } from "./ListSeparator";
 import PrivateRecordHeld from "../../Types/PrivateRecord/PrivateRecordHeld";
+import TeamOwnedRuleHeld from "../../Types/TeamOwnedRule/TeamOwnedRuleHeld";
 import {
   getGlobalTranslator,
   SentenceOptions,
@@ -530,6 +531,79 @@ export default class PermissionGate {
       isOwnedByPerson: data.isOwnedByReader,
       owningTeamIds: data.owningTeamIds,
     });
+  }
+
+  /*
+   * WHAT THE READER HOLDS ON ONE RULE TEAMS OWN (TeamOwnedRuleHeld): null
+   * when it is all they hold - a rule no team owns, a Project Owner or
+   * Project Admin over the whole project, or a master admin - and otherwise
+   * what their blocks and the rows of their teams that own it hold. Read
+   * from the stored snapshot, as every gate reads it.
+   */
+  public static getHeldOnTeamOwnedRule(data: {
+    owningTeamIds: ReadonlyArray<string>;
+  }): HeldPermissions | null {
+    if (User.isMasterAdmin()) {
+      return null;
+    }
+
+    return TeamOwnedRuleHeld.getHeldOnRule({
+      rows: PermissionUtil.getProjectPermissions()?.permissions || [],
+      globalPermissions:
+        PermissionUtil.getGlobalPermissions()?.globalPermissions || [],
+      owningTeamIds: data.owningTeamIds,
+    });
+  }
+
+  /*
+   * A change of one rule teams own (TeamOwnedRuleHeld): allowed when the
+   * reader's own permissions allow it and - on a rule some teams own - the
+   * teams of theirs that own it allow it too, or they change every rule.
+   * Refused by their own permissions, it says what check says. Refused only
+   * by who owns the rule, it says so with `reason` (the teams named) after
+   * the lock's first sentence - also for a reader on none of the teams that
+   * own it, who holds nothing on the rule at all.
+   */
+  public static checkTeamOwnedRule(
+    model: PermissionCheckableModel,
+    action: ModelAction.Update | ModelAction.Delete,
+    data: {
+      owningTeamIds: ReadonlyArray<string>;
+      reason: string;
+      options?: PermissionGateOptions | undefined;
+    },
+  ): PermissionGateResult {
+    const ownResult: PermissionGateResult = this.check(
+      model,
+      action,
+      data.options,
+    );
+
+    if (!ownResult.isAllowed || User.isMasterAdmin()) {
+      return ownResult;
+    }
+
+    const held: HeldPermissions | null = this.getHeldOnTeamOwnedRule({
+      owningTeamIds: data.owningTeamIds,
+    });
+
+    if (
+      !held ||
+      (this.isLoaded(held) &&
+        this.snapshotAllows(model, action, { ...data.options, held: held }))
+    ) {
+      return ownResult;
+    }
+
+    return {
+      isAllowed: false,
+      disabledReason: `${this.buildFirstSentence({
+        singularName:
+          data.options?.singularName || model.singularName || "item",
+        verb: (data.options?.verb?.trim() || action).toLowerCase(),
+        sentence: data.options?.sentence,
+      })} ${data.reason}`,
+    };
   }
 
   /*

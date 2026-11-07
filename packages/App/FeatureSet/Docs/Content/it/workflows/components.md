@@ -235,6 +235,7 @@ Quando crei un workflow, i modelli sotto **Reperibilità** hanno questo già pro
 | **Page About** | Di cosa tratta la chiamata: **A new alert**, **An incident** o **An alert**. Confermare la chiamata conferma anche quello. |
 | **Title** e **Message** | Per un nuovo avviso. OneUptime ne crea un avviso, che resta tra i tuoi avvisi come qualsiasi altro. |
 | **Incident ID** o **Alert ID** | Per un incidente o un avviso che esiste già, di solito quello da cui è partito il workflow: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Page As** | Per un incidente o un avviso che esiste già, sotto **Altri campi**. I **Responders** se ne occupano. Gli **Observers** vengono tenuti informati mentre altri rispondono: confermare la loro chiamata dice solo che l'hanno vista, e l'incidente o l'avviso non viene confermato. |
 | **Severity** | Per un nuovo avviso, sotto **Altri campi**. Decide quali regole di reperibilità di ciascuna persona la chiamano. Lasciata vuota, è la più grave del progetto. |
 
 Un blocco aggiunto a un workflow che parte da un incidente o da un avviso è già impostato per chiamare riguardo a quel record, quindi chiede soltanto chi chiamare.

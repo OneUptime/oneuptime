@@ -19,6 +19,7 @@ Die Vorfallkonfiguration liegt in **Vorfälle**, nicht in den **Projekteinstellu
 | **Vorfallsschweregrad**       | Schweregrade hinzufügen, umbenennen, neu einfärben und neu anordnen.                               |
 | **Vorfall-Vorlagen**          | Einen ganzen Vorfall vorausfüllen – Titel, Beschreibung, Ressourcen, Bereitschaftsrichtlinien, Eigentümer, Beschriftungen. |
 | **Notiz-Vorlagen**            | Wiederverwendbarer Text für öffentliche und private Notizen.                                       |
+| **Public Note Approval** | Öffentliche Notizen vor der Veröffentlichung freigeben lassen und festlegen, wer sie freigibt. |
 | **Postmortem-Vorlagen**       | Wiederverwendbare Postmortem-Strukturen.                                                           |
 | **Postmortem-Status** | Die Status, die ein Postmortem durchläuft, von Nicht gestartet bis Abgeschlossen. |
 | **Benutzerdefinierte Felder** | Zusätzliche Felder definieren, die an jedem Vorfall erscheinen.                                    |
@@ -617,6 +618,8 @@ Eigentümer-, Beschriftungs- und Datenschutzregeln wirken nur auf Vorfälle und 
 
 **Eine Regel kann erben.** Unter **Hinzuzufügende Beschriftungen** (oder **Eigentümer**) enthält der eingeklappte Abschnitt **Beschriftungen erben** (oder **Eigentümer erben**) sechs Schalter, die auch die Beschriftungen (oder Eigentümer) der Monitore, Hosts, Kubernetes-Cluster, Docker-Hosts, Podman-Hosts und Dienste des Vorfalls weitergeben. Eine Regel, die erbt, kann **Hinzuzufügende Beschriftungen** leer lassen und wird dann nach dem benannt, wovon sie erbt (_Inherit labels from monitors, hosts_); eine neue Regel, die weder etwas nennt noch etwas erbt, lässt sich nicht speichern – weder aus dem Formular noch über die API oder Terraform. Episodenregeln, auf dem Tab **Episodenregeln**, haben keine Erbschalter. Bei einer Eigentümerregel für Vorfälle oder Warnungen endet **Eigentümer erben** mit **Team des Erstellers**: Von den dort aufgeführten Teams wird jedes, in dem die Person ist, die den Vorfall meldet oder die Warnung erstellt, ebenfalls Eigentümer.
 
+Auch eine Eigentümerregel für Vorfälle kann Teams gehören: **Zuständige Teams** unter **Weitere Felder** legt fest, wer die Regel bearbeiten oder löschen darf – nur die Mitglieder dieser Teams und Projektadministratoren –, nicht, wen die Regel zu Eigentümern macht. Siehe [Regeln, die Teams gehören](/docs/permissions/index#regeln-die-teams-gehören).
+
 **Ältere Regeln, die nichts hinzufügen** – gespeichert, bevor OneUptime fragte, was sie hinzufügen –, lassen sich weiterhin umbenennen, ausschalten oder löschen, und die Liste markiert jede mit **Fügt nichts hinzu**. [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner-rules) erklärt das Formular Schritt für Schritt.
 
 ## Gruppierungsregeln für Vorfälle
@@ -654,7 +657,7 @@ Regeln, die gespeichert wurden, bevor das Formular nach Eigentümern fragte, kö
 
 ## Bereitschaftsregeln für Vorfälle
 
-**Vorfälle → Regeln → Bereitschaftsregeln** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) ist der Ort, an dem Sie die Alarmierung automatisieren. Die Karte **Vorfalls-Bereitschaftsregeln** sagt, was sie tun: bei neuen passenden Vorfällen automatisch über Bereitschaftsrichtlinien alarmieren. Die Seite hat zwei Tabs: **Vorfallsregeln** und **Episodenregeln**.
+**Vorfälle → Regeln → Bereitschaftsregeln** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) ist der Ort, an dem Sie die Alarmierung automatisieren. Die Karte **Vorfalls-Bereitschaftsregeln** sagt, was sie tun: bei passenden Vorfällen automatisch über Bereitschaftsrichtlinien alarmieren, zum Bearbeiten oder als Beobachter, die auf dem Laufenden bleiben. Die Seite hat zwei Tabs: **Vorfallsregeln** und **Episodenregeln**.
 
 Das Erstellungsformular hat zwei Schritte:
 
@@ -664,6 +667,12 @@ Das Erstellungsformular hat zwei Schritte:
 :::
 
 Eine Regel alarmiert, sobald ein Vorfall zu ihr passt. Damit sie stattdessen auf die Arbeitszeiten wartet, beantworten Sie **Wann soll diese Regel alarmieren?** unter **Weitere Felder** mit **Nur während der Arbeitszeiten**. Die **Arbeitszeiten** beginnen mit Montag bis Freitag, 09:00 bis 17:00, in Ihrer eigenen Zeitzone: Wählen Sie andere Tage, eine andere **Startzeit** oder **Endzeit** oder eine andere **Zeitzone**, und ein Satz unter der Auswahl sagt, was passiert. In der Liste zeigt die Regel ihre Zeiten unter ihrem Namen. Ein Vorfall, der außerhalb dieser Zeiten passt, bekommt einen Lauf, der als **Wartet** wartet und niemanden alarmiert; sobald die Arbeitszeiten beginnen, alarmiert die Richtlinie über ihre erste Eskalationsregel und eskaliert wie gewohnt. Wird der Vorfall vorher bestätigt oder behoben, wird niemand alarmiert. Ändert sich der Vorfall, während er wartet, und passt er nun zu einer Regel, die sofort alarmiert, etwa weil sein Schweregrad erhöht wurde, beginnt der Lauf umgehend zu alarmieren, und der Feed des Vorfalls sagt, warum.
+
+Eine Regel alarmiert die Personen ihrer Richtlinien, damit sie den Vorfall bearbeiten: Wer die Alarmierung bestätigt, bestätigt den Vorfall. Um ein Team auf dem Laufenden zu halten, während ein anderes den Vorfall bearbeitet, etwa ein Aufsichtsteam, das von jedem kritischen Vorfall erfahren soll, beantworten Sie **Die Personen dieser Richtlinien alarmieren als** unter **Weitere Felder** mit **Beobachter**. Ihre Alarmierung sagt, dass sie Beobachter sind, und wer sie bestätigt, sagt damit nur, dass er sie gesehen hat: Der Vorfall wird nicht bestätigt, keine andere Alarmierung endet, und niemand wird sein Vorfall-Kommandant. Ihre Alarmierung läuft weiter, bis einer von ihnen antwortet oder der Vorfall behoben ist, und eine Slack- oder Microsoft-Teams-Regel, die Bereitschaftspersonen in den Kanal des Vorfalls einlädt, lässt sie aus. In der Liste sagt die Regel unter ihrem Namen, dass sie als Beobachter alarmiert. Eine Richtlinie, die eine passende Regel zum Bearbeiten und eine andere als Beobachter alarmiert, alarmiert zum Bearbeiten.
+
+Regeln laufen, wenn ein Vorfall gemeldet wird, und erneut, sobald sich sein Schweregrad oder seine Labels ändern, solange er offen ist. Wird er auf einen Schweregrad hochgestuft, zu dem eine Regel passt, oder bekommt er ein Label, zu dem eine passt, alarmieren die Richtlinien dieser Regel dann, zum Bearbeiten oder als Beobachter, und der Feed des Vorfalls sagt, dass die Regel nun zu ihm passt, und warum. Eine Richtlinie, die zu dem Vorfall bereits alarmiert hat, alarmiert nicht noch einmal, außer sie hat als Beobachter alarmiert und soll ihn nun bearbeiten. Nichts wird rückgängig gemacht, wenn der Vorfall nicht mehr passt, und ein geänderter Titel, eine geänderte Beschreibung oder ein geänderter Monitor lässt die Regeln nicht erneut laufen.
+
+Eine Regel kann Teams gehören. **Zuständige Teams** unter **Weitere Felder** beschränkt sie auf die Teams, die Sie auswählen: Nur deren Mitglieder und Projektadministratoren können sie bearbeiten oder löschen, alle anderen, die Regeln sehen, sehen sie schreibgeschützt. Eine Regel, die keinem Team gehört, können alle ändern, die Bereitschaftsregeln bearbeiten dürfen, und auch Episodenregeln können Teams gehören. Siehe [Regeln, die Teams gehören](/docs/permissions/index#regeln-die-teams-gehören).
 
 ### Wie der Abgleich aufgelöst wird
 

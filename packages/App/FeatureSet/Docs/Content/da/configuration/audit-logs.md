@@ -75,45 +75,20 @@ Monitorer, hændelser, alarmer, statussider, SLO'er og mange andre ressourcer ha
 
 ## Hvad registreres
 
-| Ressource | **Ressourcetype** i loggen |
+Alt, hvad folk opretter, ændrer eller sletter i et projekt, registreres: monitorer, hændelser, alarmer, statussider, workflows og deres trin, køer, dashboards, vagtpolitikker, teams og hvem der er med i dem, API-nøgler og alle indstillinger. **Ressourcetype** siger, hvad en post handler om, for eksempel `Monitor`, `Workflow` eller `Queue`.
+
+| Registreres ikke | Hvorfor |
 | --- | --- |
-| Monitorer | `Monitor` |
-| Hændelser | `Incident` |
-| Alarmer | `Alert` |
-| Statussider | `Status Page` |
-| Planlagte vedligeholdelseshændelser | `Scheduled Maintenance Event` |
-| Vagtpolitikker | `On-Call Policy` |
-| SLO'er | `Service Level Objective` |
-| Et SLO's regler og ejere | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
-| Teams | `Team` |
-| Brugerdefinerede roller, og de teams og API-nøgler, der får en | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
-| Etiketter | `Label` |
-| Hændelsesstatusser og -alvorsgrader | `Incident State`, `Incident Severity` |
-| Advarselsstatusser og -alvorsgrader | `Alert State`, `Alert Severity` |
-| Monitorstatusser | `Monitor Status` |
-| Statusser for planlagt vedligeholdelse | `Scheduled Maintenance State` |
-| Hændelsesroller | `Incident Role` |
-| Postmortem-statusser | `Postmortem Status` |
-| API-nøgler | `API Key` |
-| MCP-klienter, som folk forbinder | `MCP Client Authorization` |
-| Inventarelementer | `Inventory Item` |
-| Collector-konfigurationer | `Collector Config` |
-| vCentre | `vCenter` |
-| OpenStack-clouds og de tjek, der kører mod dem | `OpenStack Cloud`, `OpenStack Cloud Check` |
-| Pakkeopsamlinger og deres downloads | `Packet Capture` |
-| Sikkerhedssager og deres prioriteter og statusser, playbooks og deres kørsler, beskyttede enheder, entitetskritikalitet samt en entitets risiko, når nogen nulstiller den | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
-| Regelundtagelser | `Rule Exception` |
-| Overvågningslister | `Watchlist` |
-| Overvågningslisteværdier | `Watchlist Value` |
-| Hunts | `Hunt` |
-| Sikkerhedssagers opgaver og beviser | `Security Case Task`, `Security Case Evidence` |
-| Datalagre og deres fund samt Datasikkerheds problemer, indstillinger, kontrolindstillinger, brugerdefinerede datatyper og residensregler | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
-| Indstillinger for Dataobservabilitet | `Data Observability Setting` |
-| Eksporter af auditloggen | `Audit Log Export` |
+| Logge over beskeder | Hver af dem er allerede registreringen af en e-mail, sms, et opkald, en pushnotifikation eller en chatbesked, som OneUptime har sendt eller modtaget. |
+| Registreringer af kørsler | Hver af dem er allerede registreringen af en workflowkørsel, en vagteskalering, en scanning, en import eller en AI-kørsel. |
+| Det, agenter og telemetri rapporterer | Fundne ressourcer, målinger og forbrug ændrer sig ved hver rapport, ikke fordi nogen har ændret dem. |
+| Aktivitetsfeeds | Et feed viser ændringer, som auditloggen allerede registrerer. |
+| OneUptimes arbejdstilstand | Sessioner, jobs i kø og anden tilstand, som OneUptime holder, mens det arbejder. |
+| En persons egen notifikationsopsætning | Hver persons adresser, numre og personlige vagtregler er kun deres egne. |
 
 Det registreres også, når en administrator tilføjer eller fjerner en notifikationsmetode eller en personlig vagtregel på en andens konto, uden selve adressen eller nummeret.
 
-Andre data er ikke i auditloggen, som hvem der er med i et team, eller en tilladelse, der er føjet til et team for sig. Felter, som ingen må læse, udelades af alle poster, og nøgler, tokens og adgangskoder registreres som `[REDACTED]`: posten viser, at de er ændret, aldrig deres værdi.
+Felter, som kun OneUptime skriver, for eksempel hvornår en vært sidst blev set, udelades af alle poster, og det samme gør felter, som ingen må læse. Nøgler, tokens og adgangskoder registreres som `[REDACTED]`: posten viser, at de er ændret, aldrig deres værdi. Et workflows trin registreres som det, der ændrede sig, med navnene på et trins indstillinger, men aldrig det, der blev skrevet i dem, og når et trin flyttes på lærredet, registreres det ikke.
 
 ## Hvor længe poster gemmes
 

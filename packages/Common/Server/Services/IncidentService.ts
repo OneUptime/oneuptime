@@ -136,6 +136,14 @@ import IncidentLabelRuleEngineService from "./IncidentLabelRuleEngineService";
 import IncidentOnCallRuleEngineService from "./IncidentOnCallRuleEngineService";
 import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange";
 import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
+import {
+  OnCallRulesPaging,
+  getNoOnCallRulesPaging,
+} from "../Utils/OnCall/OnCallRulePageAs";
+import OnCallObserverPaging from "../Utils/OnCall/OnCallObserverPaging";
+import IncidentRulesOnChange, {
+  IncidentRuleInputChange,
+} from "../Utils/Incident/IncidentRulesOnChange";
 import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
 import IncidentOwnerRuleEngineService from "./IncidentOwnerRuleEngineService";
 import IncidentPrivacyRuleEngineService from "./IncidentPrivacyRuleEngineService";
@@ -3546,15 +3554,13 @@ export class Service extends ProjectReferencesService<Model> {
     let membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
 
     /*
-     * The holds of the policies the incident's on-call rules added that may
-     * not page yet - a rule that pages only during working hours, matched
-     * outside them (OnCallRulePagingHold): set by the on-call rules step,
-     * read by the on-call step after it.
+     * What the incident's on-call rules page (OnCallRulePageAs): the
+     * responder policies they added, the policies they page as observers,
+     * and the holds of those that may not page yet - a rule that pages only
+     * during working hours, matched outside them (OnCallRulePagingHold): set
+     * by the on-call rules step, read by the on-call step after it.
      */
-    let onCallRulePagingHolds: Map<string, OnCallRulePagingHold> = new Map<
-      string,
-      OnCallRulePagingHold
-    >();
+    let onCallRulesPaging: OnCallRulesPaging = getNoOnCallRulesPaging();
 
     /*
      * Apply privacy rules BEFORE workspace operations so the workspace
@@ -3903,10 +3909,10 @@ export class Service extends ProjectReferencesService<Model> {
          * before the fan-out below picks up the merged list.
          */
         try {
-          onCallRulePagingHolds =
+          onCallRulesPaging =
             (await IncidentOnCallRuleEngineService.applyRulesToIncident(
               createdItem,
-            )) || onCallRulePagingHolds;
+            )) || onCallRulesPaging;
         } catch (error) {
           logger.error(
             `Apply incident on-call rules failed in IncidentService.onCreateSuccess: ${error}`,
@@ -3948,17 +3954,16 @@ export class Service extends ProjectReferencesService<Model> {
       })
       .then(async () => {
         try {
-          if (
-            createdItem.onCallDutyPolicies?.length &&
-            createdItem.onCallDutyPolicies?.length > 0
-          ) {
-            return await this.executeOnCallDutyPoliciesAsync(
-              createdItem,
-              startingStage,
-              onCallRulePagingHolds,
-            );
-          }
-          return Promise.resolve();
+          /*
+           * The incident's on-call policies, and those its on-call rules
+           * page as observers (OnCallObserverPage): the fan-out pages them
+           * when the incident starts open, and its feed says otherwise.
+           */
+          return await this.executeOnCallDutyPoliciesAsync(
+            createdItem,
+            startingStage,
+            onCallRulesPaging,
+          );
         } catch (error) {
           logger.error(
             `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
@@ -4668,31 +4673,51 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
    * it or it is over: none of them runs, and its feed says so instead,
    * naming them (OnCallNotRunOnCreate).
    *
-   * A policy one of its on-call rules holds until working hours
-   * (`pagingHolds`, by policy id) runs held: it waits, paging nobody, until
+   * A policy one of its on-call rules holds until working hours (the
+   * paging's holds, by policy id) runs held: it waits, paging nobody, until
    * they begin (OnCallDutyPolicyRunWait). Every other policy pages now.
+   *
+   * The policies its on-call rules page as observers (OnCallObserverPage)
+   * page with them, kept informed, under the same rule: an incident
+   * declared already acknowledged or resolved pages no one, and its feed
+   * names them with the rest.
    */
   @CaptureSpan()
   private async executeOnCallDutyPoliciesAsync(
     createdItem: Model,
     startingStage: StartingStage,
-    pagingHolds?: Map<string, OnCallRulePagingHold> | undefined,
+    paging: OnCallRulesPaging = getNoOnCallRulesPaging(),
   ): Promise<void> {
+    const pagingHolds: Map<string, OnCallRulePagingHold> = paging.holds;
+
     try {
+      const responderPolicies: Array<OnCallDutyPolicy> =
+        createdItem.onCallDutyPolicies || [];
+
+      if (
+        responderPolicies.length === 0 &&
+        paging.observerPolicyIds.length === 0
+      ) {
+        return;
+      }
+
+      if (!StartingStageUtil.pagesOnCall(startingStage)) {
+        await OnCallNotRunOnCreate.createFeedItem({
+          record: { incidentId: createdItem.id! },
+          projectId: createdItem.projectId!,
+          stage: startingStage,
+          policies: [
+            ...responderPolicies,
+            ...OnCallObserverPaging.toPolicies(paging.observerPolicyIds),
+          ],
+        });
+        return;
+      }
+
       if (
         createdItem.onCallDutyPolicies?.length &&
         createdItem.onCallDutyPolicies?.length > 0
       ) {
-        if (!StartingStageUtil.pagesOnCall(startingStage)) {
-          await OnCallNotRunOnCreate.createFeedItem({
-            record: { incidentId: createdItem.id! },
-            projectId: createdItem.projectId!,
-            stage: startingStage,
-            policies: createdItem.onCallDutyPolicies,
-          });
-          return;
-        }
-
         // Execute all on-call policies in parallel
         const policyPromises: Promise<void>[] =
           createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
@@ -4717,6 +4742,17 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
 
         await Promise.allSettled(policyPromises);
       }
+
+      // Then those paged as observers, kept informed. Never throws.
+      await OnCallObserverPaging.pagePolicies({
+        projectId: createdItem.projectId!,
+        policyIds: paging.observerPolicyIds,
+        holds: pagingHolds,
+        record: {
+          triggeredByIncidentId: createdItem.id!,
+          userNotificationEventType: UserNotificationEventType.IncidentCreated,
+        },
+      });
     } catch (error) {
       logger.error(`Error in executeOnCallDutyPoliciesAsync: ${error}`, {
         projectId: createdItem.projectId?.toString(),
@@ -6218,6 +6254,38 @@ ${incidentSeverity.name}
               } as LogAttributes,
             );
           }
+        }
+
+        /*
+         * Raised to Sev 1, or labelled org-wide, the incident may now match
+         * owner and on-call rules it did not: they run again, and what they
+         * newly do is done - their owners added, their policies paged, as
+         * responders or as observers (IncidentRulesOnChange). In the
+         * background, one change of the incident at a time: the edit is not
+         * held up by it, and never fails for it.
+         */
+        const ruleInputChange: IncidentRuleInputChange = {
+          isSeverityChanged: isSeverityChanged,
+          isLabelsChanged: fieldChanges.labels,
+        };
+
+        if (
+          projectId &&
+          IncidentRulesOnChange.isRuleRerunChange(ruleInputChange)
+        ) {
+          IncidentRulesOnChange.onIncidentChanged({
+            incidentId: incidentId,
+            projectId: projectId,
+            change: ruleInputChange,
+          }).catch((rulesError: Error) => {
+            logger.error(
+              `Running rules again failed in IncidentService.onUpdateSuccess: ${rulesError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
+          });
         }
       }
     }

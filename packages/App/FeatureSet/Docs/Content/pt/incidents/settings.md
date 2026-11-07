@@ -19,6 +19,7 @@ Abra **Incidentes** no menu **Produtos** da barra superior e expanda **Configura
 | **Severidade do incidente**     | Adicionar, renomear, recolorir e reordenar os níveis de severidade.                                |
 | **Modelos de incidentes**       | Preencher um incidente inteiro — título, descrição, recursos, políticas de plantão, proprietários, rótulos. |
 | **Modelos de notas**            | Texto reutilizável para notas públicas e privadas.                                                 |
+| **Public Note Approval** | Faça com que as notas públicas sejam aprovadas antes de serem publicadas e escolha quem as aprova. |
 | **Modelos de post-mortem**      | Estruturas de post-mortem reutilizáveis.                                                           |
 | **Status de post-mortem** | Os status pelos quais um post-mortem passa, de Não iniciado a Concluído. |
 | **Campos personalizados**       | Definir campos extras que aparecem em todo incidente.                                              |
@@ -617,6 +618,8 @@ As regras de proprietário, de rótulos e de privacidade só agem sobre os incid
 
 **Uma regra pode herdar.** Em **Rótulos a Adicionar** (ou **Proprietários**), a seção recolhida **Herdar Rótulos** (ou **Herdar Proprietários**) contém seis interruptores que também repassam os rótulos (ou os proprietários) dos monitores, hosts, clusters Kubernetes, hosts Docker, hosts Podman e serviços do incidente. Uma regra que herda pode deixar **Rótulos a Adicionar** vazio, e então recebe o nome daquilo de que herda (_Inherit labels from monitors, hosts_); uma regra nova que nem nomeia nem herda nada não pode ser salva — nem pelo formulário, nem pela API ou pelo Terraform. As regras de episódio, na aba **Regras de episódios**, não têm interruptores de herança. Em uma regra de proprietários de incidentes ou alertas, **Herdar Proprietários** termina com **Equipe do criador**: das equipes listadas ali, cada uma em que está a pessoa que declara o incidente ou cria o alerta também vira proprietária.
 
+Uma regra de proprietários de incidente também pode pertencer a equipes: **Equipes responsáveis**, sob **Mais campos**, diz quem pode editar ou excluir a regra (só os membros dessas equipes e os administradores do projeto), não quem a regra torna proprietário. Veja [Regras que pertencem a equipes](/docs/permissions/index#regras-que-pertencem-a-equipes).
+
 **Regras antigas que não adicionam nada** — salvas antes de o OneUptime perguntar o que elas adicionam — ainda podem ser renomeadas, desativadas ou excluídas, e a lista marca cada uma com **Não adiciona nada**. [Regras de rótulos e proprietários](/docs/configuration/label-and-owner-rules) explica o formulário passo a passo.
 
 ## Regras de agrupamento de incidentes
@@ -654,7 +657,7 @@ As regras salvas antes de o formulário perguntar pelos proprietários ainda pod
 
 ## Regras de plantão de incidente
 
-**Incidentes → Regras → Regras de Plantão** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) é onde você torna o acionamento automático. O cartão, **Regras de plantão de incidente**, diz o que elas fazem: acionar políticas de plantão automaticamente para novos incidentes que corresponderem. A página tem duas abas: **Regras de incidentes** e **Regras de episódios**.
+**Incidentes → Regras → Regras de Plantão** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) é onde você torna o acionamento automático. O cartão, **Regras de plantão de incidente**, diz o que elas fazem: acionar políticas de plantão automaticamente para incidentes que corresponderem, para responder ou como observadores mantidos informados. A página tem duas abas: **Regras de incidentes** e **Regras de episódios**.
 
 O formulário de criação tem duas etapas:
 
@@ -664,6 +667,12 @@ O formulário de criação tem duas etapas:
 :::
 
 Uma regra aciona assim que um incidente corresponde a ela. Para que ela aguarde o horário comercial, responda **Quando esta regra deve acionar?** em **Mais campos** com **Somente em horário comercial**. O **Horário comercial** começa de segunda a sexta, das 09:00 às 17:00, no seu próprio fuso horário: escolha outros dias, outra **Hora de início** ou **Horário de término**, ou outro **Fuso horário**, e uma frase abaixo da opção diz o que vai acontecer. Na lista, a regra mostra o horário abaixo do nome. Um incidente que corresponde fora desse horário recebe uma execução que aguarda, como **Aguardando**, e não aciona ninguém; quando o horário começa, a política aciona sua primeira regra de escalonamento e escala como de costume. Se o incidente for confirmado ou resolvido antes, ninguém é acionado. Se o incidente mudar enquanto aguarda e passar a corresponder a uma regra que aciona imediatamente, por exemplo porque sua gravidade foi elevada, a execução começa a acionar na hora, e o feed do incidente diz por quê.
+
+Uma regra aciona as pessoas das suas políticas para que respondam: confirmar o acionamento confirma o incidente. Para manter uma equipe informada enquanto outra responde, como uma equipe de supervisão avisada de cada incidente crítico, responda **Acionar as pessoas destas políticas como** em **Mais campos** com **Observadores**. O acionamento delas diz que são observadoras, e confirmá-lo só diz que o viram: o incidente não é confirmado, o acionamento de mais ninguém para, e ninguém se torna Comandante do incidente. O acionamento delas continua até que uma delas responda ou o incidente seja resolvido, e uma regra do Slack ou do Microsoft Teams que convida os responsáveis de plantão para o canal do incidente as deixa de fora. Na lista, a regra diz abaixo do nome que aciona como observadores. Uma política que uma regra correspondente aciona para responder e outra como observadores aciona para responder.
+
+As regras são executadas quando um incidente é declarado, e de novo sempre que sua gravidade ou seus rótulos mudam enquanto ele está aberto. Quando sua gravidade é elevada a um nível com que uma regra corresponde, ou ele recebe um rótulo com que uma corresponde, as políticas dessa regra acionam na hora, para responder ou como observadores, e o feed do incidente diz que a regra agora corresponde a ele, e por quê. Uma política que já acionou sobre o incidente não aciona de novo, a menos que tenha acionado como observadores e agora seja chamada a responder. Nada é desfeito quando o incidente deixa de corresponder, e mudar o título, a descrição ou o monitor não executa as regras de novo.
+
+Uma regra pode pertencer a equipes. **Equipes responsáveis**, sob **Mais campos**, reserva a regra às equipes que você escolher: só os membros delas e os administradores do projeto podem editá-la ou excluí-la, e todos os outros que veem as regras a veem como somente leitura. Uma regra que não pertence a nenhuma equipe pode ser alterada por todos que podem editar regras de plantão, e as regras de episódio também podem pertencer a equipes. Veja [Regras que pertencem a equipes](/docs/permissions/index#regras-que-pertencem-a-equipes).
 
 ### Como a correspondência é resolvida
 

@@ -3,7 +3,6 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Query from "Common/Types/BaseDatabase/Query";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Span from "Common/Models/AnalyticsModels/Span";
@@ -11,9 +10,14 @@ import Card from "Common/UI/Components/Card/Card";
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import DashboardLogsViewer from "../Logs/LogsViewer";
 import ExceptionsViewer from "../Exceptions/ExceptionsViewer";
-import MetricView from "../Metrics/MetricView";
 import TracesViewer from "../Traces/TracesViewer";
 import TelemetryCompanionSignalTabs from "./TelemetryCompanionSignalTabs";
+import EventMetricInvestigationPanel from "./EventMetricInvestigationPanel";
+import {
+  EventMetricSubject,
+  EventMomentState,
+  EventMomentTimelineEntry,
+} from "../../Utils/EventMetricInvestigation";
 import useTelemetrySnapshotZoom, {
   TelemetrySnapshotBadge,
   TelemetrySnapshotZoom,
@@ -29,6 +33,17 @@ export interface ComponentProps {
    */
   seriesSummary: string;
   eventNoun: "incident" | "alert";
+  /*
+   * For a metrics monitor's snapshot, which is a metric investigation
+   * anchored on the page's episode (EventMetricInvestigationPanel): which
+   * episode it is, when it started and was resolved, and its state
+   * timeline with the project's states, for the moments its charts mark.
+   */
+  metricSubject?: EventMetricSubject | undefined;
+  startedAt?: Date | undefined;
+  endedAt?: Date | undefined;
+  stateTimeline?: Array<EventMomentTimelineEntry> | undefined;
+  states?: Array<EventMomentState> | undefined;
 }
 
 /**
@@ -39,7 +54,9 @@ export interface ComponentProps {
  *
  * Extracted from Pages/Incidents/View so the EPISODE pages can mount the
  * identical experience for their first member event without copying a
- * hundred lines of branching JSX.
+ * hundred lines of branching JSX. A metrics monitor's snapshot is a metric
+ * investigation instead, as on the incident and alert pages
+ * (EventMetricInvestigationPanel).
  */
 const TelemetrySnapshotPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -47,19 +64,38 @@ const TelemetrySnapshotPanel: FunctionComponent<ComponentProps> = (
   const { telemetryQuery, snapshotWindow, seriesSummary, eventNoun } = props;
 
   /*
-   * A drag on the primary signal's chart (the metric chart, or a logs,
-   * traces or exceptions explorer's histogram) zooms the whole snapshot,
-   * every tab of it; see TelemetrySnapshotZoom. Held here, above the tabs,
-   * so it outlives a switch to another tab and back. The episode page
-   * unmounts this panel while it loads another episode, so the zoom never
-   * follows the reader there.
+   * A drag on the primary signal's chart (a logs, traces or exceptions
+   * explorer's histogram) zooms the whole snapshot, every tab of it; see
+   * TelemetrySnapshotZoom. Held here, above the tabs, so it outlives a
+   * switch to another tab and back. The episode page unmounts this panel
+   * while it loads another episode, so the zoom never follows the reader
+   * there.
    */
   const snapshotZoom: TelemetrySnapshotZoom = useTelemetrySnapshotZoom({
     snapshotWindow: snapshotWindow,
-    metricViewData: telemetryQuery.metricViewData,
     telemetryType: telemetryQuery.telemetryType,
     explorerQuery: telemetryQuery.telemetryQuery,
   });
+
+  if (telemetryQuery.telemetryType === TelemetryType.Metric) {
+    return (
+      <EventMetricInvestigationPanel
+        telemetryQuery={telemetryQuery}
+        evaluationWindow={snapshotWindow}
+        seriesSummary={seriesSummary}
+        subject={
+          props.metricSubject ||
+          (eventNoun === "alert"
+            ? EventMetricSubject.AlertEpisode
+            : EventMetricSubject.IncidentEpisode)
+        }
+        startedAt={props.startedAt}
+        endedAt={props.endedAt}
+        stateTimeline={props.stateTimeline || []}
+        states={props.states || []}
+      />
+    );
+  }
 
   /*
    * Deliberately `undefined`, not an empty fragment — Card lays out
@@ -132,40 +168,6 @@ const TelemetrySnapshotPanel: FunctionComponent<ComponentProps> = (
                   </TimeRangeZoomProvider>
                 </Card>
               </div>
-            )}
-
-          {telemetryQuery.telemetryType === TelemetryType.Metric &&
-            snapshotZoom.metricViewData && (
-              <Card
-                title={"Metrics"}
-                description={
-                  seriesSummary
-                    ? `Metrics related to this ${eventNoun}, scoped to the affected series (${seriesSummary}).`
-                    : `Metrics related to this ${eventNoun}.`
-                }
-                rightElement={snapshotWindowAlert}
-              >
-                <MetricView
-                  data={snapshotZoom.metricViewData}
-                  hideQueryElements={true}
-                  chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-                  hideStartAndEndDate={true}
-                  /*
-                   * A drag zooms the whole snapshot, and a double-click (or
-                   * Reset zoom beside the badge) returns it to the snapshot
-                   * window. The window itself is a record, nobody's to
-                   * change (onChange is a no-op). A snapshot that stored no
-                   * window has nothing to hand the other tabs: its chart
-                   * zooms itself alone.
-                   */
-                  onTimeRangeSelect={snapshotZoom.onTimeRangeSelect}
-                  onTimeRangeReset={snapshotZoom.onTimeRangeReset}
-                  localChartZoom={true}
-                  onChange={(_data: MetricViewData) => {
-                    // do nothing!
-                  }}
-                />
-              </Card>
             )}
 
           {telemetryQuery.telemetryType === TelemetryType.Exception &&

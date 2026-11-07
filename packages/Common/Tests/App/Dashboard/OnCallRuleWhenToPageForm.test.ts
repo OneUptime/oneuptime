@@ -131,10 +131,14 @@ describe("the fields", () => {
 
     expect(keys.slice(keys.indexOf("description"))).toEqual([
       "description",
+      // What the policies' people are paged as (OnCallRulePageAsForm).
+      "pageAs",
       "whenToPage",
       "aiHoldTimeInMinutes",
       "workingHours",
       "workingHoursTimezone",
+      // The teams that own the rule (RuleOwningTeams), last of the fold.
+      "ruleOwningTeams",
     ]);
 
     // One build of the form: the fold is one section object, shared.
@@ -146,6 +150,7 @@ describe("the fields", () => {
       "aiHoldTimeInMinutes",
       "workingHoursTimezone",
       "workingHours",
+      "ruleOwningTeams",
     ]) {
       expect(field(column, built).collapsibleSection).toBe(
         description.collapsibleSection,

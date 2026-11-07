@@ -1119,6 +1119,8 @@ describe("the rules list", () => {
       "Which incidents",
       "Then",
       "Video Call",
+      // On the card of a rule teams own (RuleOwningTeams' showInListIf).
+      "Owning Teams",
     ]);
   });
 });

@@ -10,7 +10,13 @@ import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTi
 import TimeRange from "../../../Types/Time/TimeRange";
 import Timezone from "../../../Types/Timezone";
 import "@testing-library/jest-dom";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import React from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -459,5 +465,213 @@ describe("TimeRangePickerDropdown", () => {
 
       expect(screen.getByTestId("custom-time-range-modal")).toBeInTheDocument();
     });
+  });
+});
+
+/*
+ * Ranges anchored on what the page is about (issue #5954: "Around the
+ * start" of an incident), listed above the presets under a heading of
+ * their own. A page that hands none sees the picker it always saw.
+ */
+describe("ranges anchored on the page", () => {
+  const AROUND_START_WINDOW: InBetween<Date> = new InBetween<Date>(
+    new Date("2026-11-05T05:14:00.000Z"),
+    new Date("2026-11-05T06:14:00.000Z"),
+  );
+
+  interface MomentsHarness extends Harness {
+    selected: Array<string>;
+  }
+
+  function renderWithMoments(input: {
+    value: RangeStartAndEndDateTime;
+    selectedId: string | null;
+    presetOptions?: typeof TIME_RANGE_PRESET_OPTIONS | undefined;
+  }): MomentsHarness {
+    const harness: MomentsHarness = { emitted: [], selected: [] };
+
+    render(
+      <TimeRangePickerDropdown
+        value={input.value}
+        onChange={(next: RangeStartAndEndDateTime) => {
+          harness.emitted.push(next);
+        }}
+        dataTestIdPrefix={PREFIX}
+        dropdownWidthInPx={DROPDOWN_WIDTH_IN_PX}
+        presetOptions={input.presetOptions}
+        moments={{
+          heading: "Around this incident",
+          presetsHeading: "Relative to now",
+          options: [
+            {
+              id: "around-start",
+              label: "Around the start",
+              detail: "Nov 5, 05:14 – Nov 5, 06:14",
+            },
+            { id: "hour-before", label: "The hour before it started" },
+          ],
+          selectedId: input.selectedId,
+          onSelect: (id: string) => {
+            harness.selected.push(id);
+          },
+        }}
+      />,
+    );
+
+    return harness;
+  }
+
+  test("the selected one is named on the button, with the window it covers as the tooltip", () => {
+    renderWithMoments({
+      value: { range: TimeRange.CUSTOM, startAndEndDate: AROUND_START_WINDOW },
+      selectedId: "around-start",
+    });
+
+    const button: HTMLElement = screen.getByTestId(`${PREFIX}-button`);
+
+    expect(button).toHaveTextContent("Around the start");
+    expect(button).toHaveAttribute("title", "Nov 5, 05:14 – Nov 5, 06:14");
+  });
+
+  test("they are listed first, each with what it covers, then the presets relative to now", () => {
+    renderWithMoments({
+      value: { range: TimeRange.CUSTOM, startAndEndDate: AROUND_START_WINDOW },
+      selectedId: "around-start",
+    });
+    openDropdown();
+
+    const text: string =
+      screen.getByTestId(`${PREFIX}-dropdown`).textContent || "";
+
+    expect(text.indexOf("Around this incident")).toBe(0);
+    expect(text.indexOf("Around the start")).toBeLessThan(
+      text.indexOf("Relative to now"),
+    );
+    expect(text).toContain("Nov 5, 05:14 – Nov 5, 06:14");
+    expect(text.indexOf("Relative to now")).toBeLessThan(
+      text.indexOf("Past 5 Minutes"),
+    );
+  });
+
+  test("the selected one is marked, and no preset or Custom Range with it", () => {
+    renderWithMoments({
+      value: { range: TimeRange.CUSTOM, startAndEndDate: AROUND_START_WINDOW },
+      selectedId: "around-start",
+    });
+    openDropdown();
+
+    expect(screen.getByTestId(`${PREFIX}-moment-around-start`)).toHaveClass(
+      "text-indigo-700",
+    );
+    expect(screen.getByTestId(`${PREFIX}-moment-hour-before`)).not.toHaveClass(
+      "text-indigo-700",
+    );
+    expect(screen.getByTestId(`${PREFIX}-custom-option`)).not.toHaveClass(
+      "text-indigo-700",
+    );
+  });
+
+  test("picking one tells the page and closes the list, and changes no range itself", () => {
+    const harness: MomentsHarness = renderWithMoments({
+      value: { range: TimeRange.CUSTOM, startAndEndDate: AROUND_START_WINDOW },
+      selectedId: "around-start",
+    });
+    openDropdown();
+
+    fireEvent.click(screen.getByTestId(`${PREFIX}-moment-hour-before`));
+
+    expect(harness.selected).toEqual(["hour-before"]);
+    expect(harness.emitted).toEqual([]);
+    expect(screen.queryByTestId(`${PREFIX}-dropdown`)).toBeNull();
+  });
+
+  test("with none selected, a preset relative to now is marked and named as usual", () => {
+    renderWithMoments({
+      value: { range: TimeRange.PAST_ONE_DAY },
+      selectedId: null,
+    });
+
+    expect(screen.getByTestId(`${PREFIX}-button`)).toHaveTextContent(
+      "Past 1 Day",
+    );
+
+    openDropdown();
+
+    expect(
+      within(screen.getByTestId(`${PREFIX}-dropdown`)).getByText("Past 1 Day"),
+    ).toHaveClass("text-indigo-700");
+    expect(screen.getByTestId(`${PREFIX}-moment-around-start`)).not.toHaveClass(
+      "text-indigo-700",
+    );
+  });
+
+  test("with none selected, a custom window is named by its dates and Custom Range is marked", () => {
+    renderWithMoments({
+      value: { range: TimeRange.CUSTOM, startAndEndDate: AROUND_START_WINDOW },
+      selectedId: null,
+    });
+
+    expect(screen.getByTestId(`${PREFIX}-button`)).toHaveTextContent(
+      getTimeRangeButtonLabel({
+        range: TimeRange.CUSTOM,
+        startAndEndDate: AROUND_START_WINDOW,
+      }),
+    );
+
+    openDropdown();
+
+    expect(screen.getByTestId(`${PREFIX}-custom-option`)).toHaveClass(
+      "text-indigo-700",
+    );
+  });
+
+  test("only the presets the page offers are listed", () => {
+    renderWithMoments({
+      value: { range: TimeRange.PAST_ONE_HOUR },
+      selectedId: null,
+      presetOptions: TIME_RANGE_PRESET_OPTIONS.filter(
+        (option: (typeof TIME_RANGE_PRESET_OPTIONS)[number]) => {
+          return option.range === TimeRange.PAST_ONE_HOUR;
+        },
+      ),
+    });
+    openDropdown();
+
+    const dropdown: HTMLElement = screen.getByTestId(`${PREFIX}-dropdown`);
+
+    expect(within(dropdown).getByText("Past 1 Hour")).toBeVisible();
+    expect(within(dropdown).queryByText("Past 5 Minutes")).toBeNull();
+    expect(screen.getByTestId(`${PREFIX}-custom-option`)).toBeVisible();
+  });
+
+  test("an empty list of them is no list: the picker is the plain one", () => {
+    render(
+      <TimeRangePickerDropdown
+        value={{ range: TimeRange.PAST_ONE_HOUR }}
+        onChange={() => {
+          return undefined;
+        }}
+        dataTestIdPrefix={PREFIX}
+        dropdownWidthInPx={DROPDOWN_WIDTH_IN_PX}
+        moments={{
+          heading: "Around this incident",
+          presetsHeading: "Relative to now",
+          options: [],
+          selectedId: null,
+          onSelect: () => {
+            return undefined;
+          },
+        }}
+      />,
+    );
+    openDropdown();
+
+    const dropdown: HTMLElement = screen.getByTestId(`${PREFIX}-dropdown`);
+
+    expect(within(dropdown).queryByText("Around this incident")).toBeNull();
+    expect(within(dropdown).queryByText("Relative to now")).toBeNull();
+    expect(within(dropdown).getByText("Past 1 Hour")).toHaveClass(
+      "text-indigo-700",
+    );
   });
 });

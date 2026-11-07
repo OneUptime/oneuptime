@@ -1,3 +1,4 @@
+import OnCallPageAs from "../../../Types/OnCallDutyPolicy/OnCallPageAs";
 import DatabaseBaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -1188,6 +1189,11 @@ export default class WorkspaceIncidentActions {
     props: DatabaseCommonInteractionProps;
     // What the person paging wrote to the people paged: the page's message.
     message?: string | undefined;
+    /*
+     * What they are paged as (OnCallPageAs): responders when left out, or
+     * observers kept informed while somebody else responds.
+     */
+    pageAs?: OnCallPageAs | undefined;
   }): Promise<OnCallPageResult> {
     if (WorkspacePage.countTargets(data.targets) === 0) {
       throw new BadDataException("Pick who to page.");
@@ -1198,6 +1204,7 @@ export default class WorkspaceIncidentActions {
     return await OnCallPageService.page({
       projectId: data.event.projectId,
       targets: data.targets,
+      pageAs: data.pageAs,
       about: {
         incidentId: data.event.id,
         ...(message ? { message: message } : {}),

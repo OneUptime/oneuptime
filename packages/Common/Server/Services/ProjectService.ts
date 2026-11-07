@@ -177,6 +177,7 @@ import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import ActiveMonitorLimitUtil from "../../Types/Monitor/ActiveMonitorLimit";
 import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
+import PublicNoteApprovalPolicy from "../Utils/Notes/PublicNoteApprovalPolicy";
 import { IsNull, Repository, UpdateResult } from "typeorm";
 import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
@@ -1449,6 +1450,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
       },
     });
 
+    // Public note approval turns on only with somebody to approve.
+    await this.assertPublicNoteApprovalCanTurnOn(updateBy);
+
     if (IsBillingEnabled) {
       if (
         updateBy.data.paymentProviderPlanId &&
@@ -1462,6 +1466,50 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
 
     return { updateBy, carryForward: [] };
+  }
+
+  /*
+   * Turning on a project's public note approval needs an approval step
+   * that names somebody (PublicNoteApprovalPolicy.assertCanTurnOn): read
+   * only when the write turns one of its switches on.
+   */
+  private async assertPublicNoteApprovalCanTurnOn(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    if (
+      updateBy.data.requireApprovalForIncidentPublicNotes !== true &&
+      updateBy.data.requireApprovalForScheduledMaintenancePublicNotes !== true
+    ) {
+      return;
+    }
+
+    const projects: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        _id: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    await PublicNoteApprovalPolicy.assertCanTurnOn({
+      projectIds: projects
+        .map((project: Model): ObjectID | undefined => {
+          return project.id || undefined;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        }),
+      written: {
+        requireApprovalForIncidentPublicNotes:
+          updateBy.data.requireApprovalForIncidentPublicNotes,
+        requireApprovalForScheduledMaintenancePublicNotes:
+          updateBy.data.requireApprovalForScheduledMaintenancePublicNotes,
+      },
+    });
   }
 
   /*

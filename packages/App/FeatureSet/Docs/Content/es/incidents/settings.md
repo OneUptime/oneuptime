@@ -19,6 +19,7 @@ Abre **Incidentes** desde el menú **Productos** de la barra superior y desplieg
 | **Gravedad del incidente**         | Añadir, renombrar, recolorear y reordenar los niveles de gravedad.                                 |
 | **Plantillas de incidente**        | Rellenar de antemano un incidente entero: título, descripción, recursos, políticas de guardia, propietarios, etiquetas. |
 | **Plantillas de notas**            | Texto reutilizable para notas públicas y privadas.                                                 |
+| **Public Note Approval** | Haz que las notas públicas se aprueben antes de publicarse y elige quién las aprueba. |
 | **Plantillas de post mortem**      | Estructuras de post mortem reutilizables.                                                          |
 | **Estados de post mortem** | Los estados por los que pasa un post mortem, de No iniciado a Completado. |
 | **Campos personalizados**          | Definir campos adicionales que aparecen en cada incidente.                                         |
@@ -617,6 +618,8 @@ Las reglas de propietario, de etiquetas y de privacidad solo actúan sobre los i
 
 **Una regla puede heredar.** En **Etiquetas a añadir** (o **Propietarios**), la sección plegada **Heredar etiquetas** (o **Heredar propietarios**) contiene seis interruptores que también transmiten las etiquetas (o los propietarios) de los monitores, hosts, clústeres de Kubernetes, hosts de Docker, hosts de Podman y servicios del incidente. Una regla que hereda puede dejar **Etiquetas a añadir** vacío, y entonces recibe el nombre de aquello de lo que hereda (_Inherit labels from monitors, hosts_); una regla nueva que ni nombra ni hereda nada no se puede guardar, ni desde el formulario ni por la API o Terraform. Las reglas de episodios, en la pestaña **Reglas de episodios**, no tienen interruptores de herencia. En una regla de propietarios de incidentes o de alertas, **Heredar propietarios** termina con **Equipo del creador**: de los equipos que figuran ahí, cada uno en el que está la persona que declara el incidente o crea la alerta también pasa a ser propietario.
 
+Una regla de propietarios de incidentes también puede pertenecer a equipos: **Equipos responsables**, en **Más campos**, dice quién puede editar o eliminar la regla (solo los miembros de esos equipos y los administradores del proyecto), no a quién convierte la regla en propietario. Consulte [Reglas que pertenecen a equipos](/docs/permissions/index#reglas-que-pertenecen-a-equipos).
+
 **Las reglas antiguas que no añaden nada** —guardadas antes de que OneUptime preguntara qué añaden— todavía se pueden renombrar, desactivar o eliminar, y la lista marca cada una con **No añade nada**. [Reglas de etiquetas y propietarios](/docs/configuration/label-and-owner-rules) explica el formulario paso a paso.
 
 ## Reglas de agrupación de incidentes
@@ -654,7 +657,7 @@ Las reglas guardadas antes de que el formulario preguntara por propietarios pued
 
 ## Reglas de guardia de incidentes
 
-**Incidentes → Reglas → Reglas de guardia** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) es donde automatizas los avisos. La tarjeta, **Reglas de guardia de incidentes**, dice lo que hacen: activar automáticamente políticas de guardia para los nuevos incidentes que coincidan. La página tiene dos pestañas: **Reglas de incidentes** y **Reglas de episodios**.
+**Incidentes → Reglas → Reglas de guardia** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) es donde automatizas los avisos. La tarjeta, **Reglas de guardia de incidentes**, dice lo que hacen: activar automáticamente políticas de guardia para los incidentes que coincidan, para que respondan o como observadores a los que se mantiene informados. La página tiene dos pestañas: **Reglas de incidentes** y **Reglas de episodios**.
 
 El formulario de creación tiene dos pasos:
 
@@ -664,6 +667,12 @@ El formulario de creación tiene dos pasos:
 :::
 
 Una regla avisa en cuanto un incidente coincide con ella. Para que espere al horario laboral, responde **¿Cuándo debe avisar esta regla?** en **Más campos** con **Solo en horario laboral**. El **Horario laboral** empieza de lunes a viernes, de 09:00 a 17:00, en tu propia zona horaria: elige otros días, otra **Hora de inicio** u **Hora de finalización**, u otra **Zona horaria**, y una frase bajo la opción dice lo que pasará. En la lista, la regla muestra su horario bajo su nombre. Un incidente que coincide fuera de ese horario recibe una ejecución que espera, como **Esperando**, y no avisa a nadie; cuando empieza el horario, la política activa su primera regla de escalado y escala como siempre. Si el incidente se reconoce o se resuelve antes, no se avisa a nadie. Si el incidente cambia mientras espera y ahora coincide con una regla que avisa de inmediato, por ejemplo porque se sube su gravedad, la ejecución empieza a avisar en ese momento, y el feed del incidente dice por qué.
+
+Una regla avisa a las personas de sus políticas para que respondan: reconocer el aviso reconoce el incidente. Para mantener informado a un equipo mientras otro responde, como un equipo de supervisión al que se avisa de cada incidente crítico, responde **Avisar a las personas de estas políticas como** en **Más campos** con **Observadores**. Su aviso dice que son observadores, y reconocerlo solo dice que lo han visto: el incidente no se reconoce, no se detiene el aviso de nadie más y nadie pasa a ser su Comandante de incidente. Su aviso sigue hasta que uno de ellos responde o el incidente se resuelve, y una regla de Slack o Microsoft Teams que invita a los responsables de guardia al canal del incidente los deja fuera. En la lista, la regla dice bajo su nombre que avisa como observadores. Una política que una regla coincidente avisa para responder y otra como observadores avisa para responder.
+
+Las reglas se ejecutan cuando se declara un incidente, y de nuevo cada vez que cambian su gravedad o sus etiquetas mientras está abierto. Cuando se sube a una gravedad con la que coincide una regla, o recibe una etiqueta con la que coincide alguna, las políticas de esa regla avisan en ese momento, para responder o como observadores, y el feed del incidente dice que la regla ahora coincide con él, y por qué. Una política que ya avisó sobre el incidente no vuelve a avisar, salvo que avisara como observadores y ahora se le pida responder. No se deshace nada cuando el incidente deja de coincidir, y cambiar el título, la descripción o el monitor no vuelve a ejecutar las reglas.
+
+Una regla puede pertenecer a equipos. **Equipos responsables**, en **Más campos**, la reserva a los equipos que elija: solo sus miembros y los administradores del proyecto pueden editarla o eliminarla, y todos los demás que ven las reglas la ven en modo de solo lectura. Una regla que no pertenece a ningún equipo la puede cambiar cualquiera que pueda editar reglas de guardia, y las reglas de episodios también pueden pertenecer a equipos. Consulte [Reglas que pertenecen a equipos](/docs/permissions/index#reglas-que-pertenecen-a-equipos).
 
 ### Cómo se resuelve la coincidencia
 

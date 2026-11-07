@@ -13,8 +13,7 @@ const CephClusterAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Ceph Cluster Audit Logs"
       description="All changes made to this Ceph cluster."
-      resourceType="Ceph Cluster"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

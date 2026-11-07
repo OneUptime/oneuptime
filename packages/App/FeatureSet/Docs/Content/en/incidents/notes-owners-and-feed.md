@@ -249,7 +249,7 @@ Some items carry extra detail — an owner notification lists everyone who was m
 The card header also has an **Actions** menu so you can act without leaving the timeline:
 
 - **Execute Runbook** — start a [runbook](/docs/runbooks/index) against this incident.
-- **Execute On-Call Policy** — page a policy on demand. An archived policy pages no one: its execution log on the incident says it was not executed because the policy is archived.
+- **Execute On-Call Policy** — page a policy on demand. An archived policy pages no one: its execution log on the incident says it was not executed because the policy is archived. Turn on **Page them as observers** to keep the policy's people informed instead: their answer only says they have seen the page, and the incident is not acknowledged.
 - **Add Public Note** — the **Public Notes** page's composer, in a dialog: write the note, then **Post update**. Templates, **Draft with AI**, attachments, **Notify status page subscribers** with who it will reach, and **Preview** are all there. The note is posted now; to backdate it, choose **Posted now**.
 - **Add Private Note** — the **Private Notes** page's composer, in a dialog: write the note, then **Add note**.
 
@@ -269,7 +269,7 @@ Everything else is behind the **⋯** button next to it, the same **More options
 Feed items are written by the incident service itself, by both note services, by the state timeline, by owner and member changes, by linking and unlinking alerts, by the rule engines, by on-call execution, by the AI investigation and postmortem runners, and by the notification cron jobs. The event types cover:
 
 - **The incident itself** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. An `IncidentUpdated` entry records what an edit changed: the title, description, root cause, remediation notes, labels, severity, monitors and the status put on them, and the status pages added to or removed from the incident's scope. It has a line for each value that changed and none for a value saved as it was, so saving a card with nothing changed, or an API client or a workflow writing the incident back as it is, adds no entry at all. Text that reads the same is the same (line endings and the spaces around it aside), and labels are the same set in any order; a value that was cleared reads as removed, and taking every label off as "All labels removed.". An alert's **Alert updated** entries work the same way.
-- **Notes and write-ups** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. A `PostmortemNote` item is written when the postmortem's note changes, not every time the postmortem is saved.
+- **Notes and write-ups** — `PublicNote`, `PublicNoteApproval`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. A `PostmortemNote` item is written when the postmortem's note changes, not every time the postmortem is saved.
 - **People** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`, and `ChannelMemberAdded`, shown as **Channel Member Added**, for someone added to the incident's Slack or Mattermost channel from its page. See [Who is in a record's channel](/docs/workspace-connections/slack#who-is-in-a-records-channel).
 - **Linked alerts** — `AlertLinked` and `AlertUnlinked`, shown as **Alert Linked** and **Alert Unlinked**.
 - **Notifications** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
@@ -304,7 +304,7 @@ There are five routes onto the owners list:
 
 - **When declaring** — the person who declares an incident becomes an owner, and **Owners**, under **More fields** on **Declare Incident**, adds more: each team they are a member of is one click away under it. See [Who will own it](/docs/incidents/declaring-incidents#who-will-own-it).
 - **From an incident template** — templates carry an **Owners** field: the people and teams who own the incident and will be notified when it is created or updated, picked from the same list as **Add owner**. Creating an incident from the template prefills them, and they are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. The dashboard, and a workflow's **Create One Incident** step with an **Incident Template** picked, add them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added. See [Declaring an Incident](/docs/incidents/declaring-incidents).
-- **From Incident Owner Rules** — matching rules add owners automatically at creation time.
+- **From Incident Owner Rules** — matching rules add owners automatically at creation time, and again when the incident's severity or labels change.
 - **At creation through the API** — owner users and teams passed with the create call are added the same way, once the channels exist, and without the "you were added" notification.
 - **By hand** — the **Add owner** control on the **Owners** page, at any point during the incident, or **Add** under the owners in the **Overview**'s header while it is open.
 
@@ -324,6 +324,8 @@ A new rule has to add someone: pick at least one owner, turn on an **Inherit Own
 **Notify Owners**, under **More fields**, controls whether people find out. Leave it on for real routing; turn it off to add owners silently — useful when a rule is a bookkeeping convenience rather than a page.
 
 Every rule execution is written to the incident feed, so you can always tell whether a person was added by a rule or by a human.
+
+Rules run when an incident is declared, and again whenever its severity or labels change while it is open. An incident raised to a severity a rule matches, or given a label one matches, gets that rule's owners then, notified as the rule says, and its feed says the rule now matches it, and why: that is how a team takes an incident over once it turns out to be org-wide. Owners are never removed when the incident stops matching.
 
 ## What owners get notified about
 

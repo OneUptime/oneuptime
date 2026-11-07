@@ -2,6 +2,8 @@
 
 **Queues** gives every message queue, topic and subscription your applications use its own page: which services publish to it and which consume from it, how many messages go through, how many fail and how long processing takes, its traces and metrics — and, once the broker's own metrics reach OneUptime, its backlog, consumer lag, dead letters and throttling. Queues have labels, owners, label and owner rules and archiving, like every other resource. Open them under **Products → Resources → Queues**.
 
+**Queues → Topology** draws how messages flow between your services: each queue between the services that publish to it and those that consume from it. Each line shows its message rate, error rate and p95 time, counted as the queue's **Producers** and **Consumers** cards count them, and once a broker's metrics reach OneUptime its queues show their consumer lag or backlog and their dead letters. Search the map, filter it by broker or keep only what needs attention. A queue's own **Topology** tab draws where its messages come from and where they go.
+
 :::cards
 - [Instrumenting applications](#instrumenting-applications): The messaging spans your OpenTelemetry instrumentation already sends.
 - [Broker health metrics](#broker-health-metrics): Backlog, lag and dead letters from your broker, system by system.

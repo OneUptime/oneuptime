@@ -19,6 +19,7 @@ Open **Incidents** from the **Products** menu in the top bar, then expand **Sett
 | **Incident Severity**    | Add, rename, recolor and reorder severity levels.                                            |
 | **Incident Templates**   | Pre-fill a whole incident — title, description, resources, on-call policies, owners, labels. |
 | **Note Templates**       | Reusable text for public and private notes.                                                  |
+| **Public Note Approval** | Have public notes approved before they are published, and choose who approves them. |
 | **Postmortem Templates** | Reusable postmortem structures.                                                              |
 | **Postmortem Statuses** | The statuses a postmortem moves through, from Not Started to Completed. |
 | **Custom Fields**        | Define extra fields that appear on every incident.                                           |
@@ -617,6 +618,8 @@ Owner, Label and Privacy Rules only act on incidents and episodes created after 
 
 **A rule can inherit.** Under **Labels to Add** (or **Owners**), the folded **Inherit Labels** (or **Inherit Owners**) section holds six switches that also hand on the labels (or owners) of the incident's monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts and services. A rule that inherits can leave **Labels to Add** empty, and is then named after what it inherits from (_Inherit labels from monitors, hosts_); a new rule that neither names nor inherits anything cannot be saved — from the form, the API or Terraform. Episode rules, on the **Episode Rules** tab, have no inherit switches. On an incident or alert owner rule, **Inherit Owners** ends with **Creator's Team**: of the teams listed there, each one the person who declares the incident, or creates the alert, is in becomes an owner too.
 
+An incident owner rule can belong to teams too: **Owning Teams**, under **More fields**, says who may edit or delete the rule — only the members of those teams and project admins — not who the rule makes owners. See [Rules owned by teams](/docs/permissions/index#rules-owned-by-teams).
+
 **Older rules that add nothing** — saved before OneUptime asked what they add — can still be renamed, switched off or deleted, and the list marks each one **Adds nothing**. [Label and Owner Rules](/docs/configuration/label-and-owner-rules) covers the form step by step.
 
 ## Incident grouping rules
@@ -656,7 +659,7 @@ Rules saved before the form asked for owners may still have a default team and u
 
 ## Incident on-call rules
 
-**Incidents → Rules → On-Call Rules** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is where you make paging automatic. The card, **Incident On-Call Rules**, says what they do: page on-call policies automatically for new incidents that match. The page has two tabs: **Incident Rules** and **Episode Rules**.
+**Incidents → Rules → On-Call Rules** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is where you make paging automatic. The card, **Incident On-Call Rules**, says what they do: page on-call policies automatically for incidents that match, as responders or as observers kept informed. The page has two tabs: **Incident Rules** and **Episode Rules**.
 
 The create form has two steps:
 
@@ -666,6 +669,12 @@ The create form has two steps:
 :::
 
 A rule pages as soon as an incident matches it. To make it wait for working hours instead, answer **When should this rule page?** under **More fields** with **Only during working hours**. The **Working Hours** start as Monday to Friday, 09:00 to 17:00, in your own time zone: pick other days, another **Start Time** or **End Time**, or another **Timezone**, and a sentence under the choice says what will happen. In the list, the rule shows its hours under its name. An incident that matches outside those hours gets a run that waits, as **Waiting**, and pages nobody; when the hours begin, the policy pages its first escalation rule and escalates as usual. If the incident is acknowledged or resolved first, nobody is paged. If the incident changes while it waits and now matches a rule that pages right away, for example when its severity is raised, the run starts paging at once, and the incident's feed says why.
+
+A rule pages its policies' people to respond: acknowledging the page acknowledges the incident. To keep a team informed while another one responds, such as an oversight team told about every critical incident, answer **Page the people of these policies as** under **More fields** with **Observers**. Their page says they are observers, and acknowledging it only says they have seen it: the incident is not acknowledged, nobody else's page stops, and nobody becomes its Incident Commander. Their page goes on until one of them answers it or the incident is resolved, and a Slack or Microsoft Teams rule that invites on-call responders to the incident's channel leaves them out. In the list, the rule says under its name that it pages as observers. A policy that one matching rule pages as responders and another as observers pages responders.
+
+Rules run when an incident is declared, and again whenever its severity or labels change while it is open. When it is raised to a severity a rule matches, or given a label one matches, that rule's policies page then, as responders or as observers, and the incident's feed says the rule now matches it, and why. A policy that has already paged about the incident does not page again, unless it paged as observers and is now asked to respond. Nothing is undone when the incident stops matching, and a changed title, description or monitor does not run the rules again.
+
+A rule can belong to teams. **Owning Teams**, under **More fields**, keeps it to the teams you pick: only their members and project admins can edit or delete it, and everyone else who can see rules sees it read-only. A rule no team owns can be changed by everyone who can edit on-call rules, and episode rules can belong to teams too. See [Rules owned by teams](/docs/permissions/index#rules-owned-by-teams).
 
 ### How matching resolves
 

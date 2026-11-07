@@ -13,8 +13,7 @@ const IoTFleetAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="IoT Fleet Audit Logs"
       description="All changes made to this IoT fleet."
-      resourceType="IoT Fleet"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

@@ -10,6 +10,8 @@ import {
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import * as passOnApi from "../api/onCallPassOn";
 import type { OnCallPassOnPage } from "../api/onCallPassOn";
+import * as observerApi from "../api/onCallObserverPages";
+import type { OnCallObserverPage } from "../api/onCallObserverPages";
 import type { QueryClient, UseQueryResult } from "@tanstack/react-query";
 import AlertDetailScreen from "./AlertDetailScreen";
 import { lightColors } from "../theme";
@@ -150,6 +152,31 @@ jest.mock("../api/onCallPassOn", () => {
       return [];
     }),
     acknowledgeOnCallPagesAgain: jest.fn(async () => {
+      return 1;
+    }),
+  };
+});
+
+/*
+ * Whether the signed-in person is paged about it as an observer, with a page
+ * they can still say they have seen (hooks/useObserverPageAction.test.tsx
+ * owns how that works). Unless a test says, they are not: the screen is as
+ * it always was. Null is a question the server never answers.
+ */
+const mockObserverPages: { current: OnCallObserverPage[] | null } = {
+  current: [],
+};
+
+jest.mock("../api/onCallObserverPages", () => {
+  return {
+    fetchOnCallObserverPages: jest.fn(() => {
+      return mockObserverPages.current
+        ? Promise.resolve(mockObserverPages.current)
+        : new Promise<never>(() => {
+            // Never answers.
+          });
+    }),
+    markOnCallObserverPagesSeen: jest.fn(async () => {
       return 1;
     }),
   };
@@ -1496,5 +1523,208 @@ describe("Paged again, and answering a page from its push", () => {
         expect.any(Array),
       );
     });
+  });
+});
+
+/*
+ * Paged about it only as an observer (oncall/observerPage.ts): kept informed
+ * while others respond. The screen says FYI (observer), offers "I've seen
+ * it" first and filled, and never offers the record's own Acknowledge for
+ * the page - which would take it on, stop everybody else's page and make the
+ * reader its commander. The push's "I've seen it" marks the page seen, and
+ * never changes the record's state. Once seen, the screen is as for anybody.
+ */
+describe("Paged as an observer", () => {
+  let setParams: jest.Mock;
+  let observerAlertSpy: jest.SpyInstance;
+  const markSeenMock: jest.Mock =
+    observerApi.markOnCallObserverPagesSeen as unknown as jest.Mock;
+  const fetchObserverMock: jest.Mock =
+    observerApi.fetchOnCallObserverPages as unknown as jest.Mock;
+
+  const OBSERVER_PAGE: OnCallObserverPage = {
+    executionLogId: "run-observer",
+    policyName: "Oversight",
+  };
+
+  async function renderObserverScreen(pushAction?: unknown): Promise<void> {
+    const props: AlertDetailProps = {
+      route: {
+        key: "AlertDetail-observer",
+        name: "AlertDetail",
+        params: {
+          alertId: ALERT_ID,
+          projectId: PROJECT_ID,
+          ...(pushAction ? { pushAction } : {}),
+        },
+      },
+      navigation: { setParams },
+    } as unknown as AlertDetailProps;
+
+    await render(<AlertDetailScreen {...props} />, {
+      wrapper: createQueryWrapper(createTestQueryClient()),
+    });
+  }
+
+  function actionLabels(): Array<string> {
+    return within(screen.getByTestId("response-actions"))
+      .getAllByRole("button")
+      .map((button: { props: { accessibilityLabel?: string } }) => {
+        return button.props.accessibilityLabel ?? "";
+      });
+  }
+
+  beforeEach(() => {
+    setParams = jest.fn();
+    observerAlertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {
+      return undefined;
+    });
+    markSeenMock.mockClear();
+    fetchObserverMock.mockClear();
+    changeAlertStateMock.mockReset();
+    changeAlertStateMock.mockResolvedValue(undefined);
+    mockAlertDetail.current = queryState<AlertItem | null>({
+      data: makeLoadedAlert(),
+    });
+    mockAlertStates.current = queryState<AlertState[]>({
+      data: [TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE],
+    });
+    mockAlertTimeline.current = queryState<StateTimelineItem[]>();
+    mockAlertFeed.current = queryState<FeedItem[]>({ data: [] });
+    mockAlertNotes.current = queryState<NoteItem[]>({ data: [] });
+  });
+
+  afterEach(() => {
+    observerAlertSpy.mockRestore();
+    mockObserverPages.current = [];
+    mockPassOnPages.current = null;
+  });
+
+  test("on a alert nobody has taken: FYI (observer), then I've seen it and Resolve - and no Acknowledge or Escalate", async () => {
+    mockObserverPages.current = [OBSERVER_PAGE];
+    // The record's open pages for Escalate say this one is an observer's.
+    mockPassOnPages.current = [
+      {
+        executionLogId: "run-observer",
+        policyName: "Oversight",
+        sentence: "This will page the next level of observers.",
+        isObserverPage: true,
+      },
+    ];
+
+    await renderObserverScreen();
+
+    await screen.findByRole("button", { name: "I've seen this alert" });
+    expect(actionLabels()).toEqual(["I've seen this alert", "Resolve alert"]);
+    expect(screen.getByText("I've seen it")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge alert" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Escalate this alert" }),
+    ).toBeNull();
+    expect(screen.getByText("FYI (observer)")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "You're paged as an observer: the people responding stay on this alert. Saying you've seen it does not acknowledge the alert.",
+      ),
+    ).toBeTruthy();
+    expect(fetchObserverMock).toHaveBeenCalledWith(
+      PROJECT_ID,
+      "alert",
+      ALERT_ID,
+    );
+  });
+
+  test("on a alert the responders acknowledged - the usual case - FYI (observer), then I've seen it and Resolve", async () => {
+    mockObserverPages.current = [OBSERVER_PAGE];
+    mockPassOnPages.current = [];
+    mockAlertDetail.current = queryState<AlertItem | null>({
+      data: makeLoadedAlert({
+        currentAlertState: makeNamedEntityWithColor({
+          _id: ACKNOWLEDGED_STATE._id,
+          name: ACKNOWLEDGED_STATE.name,
+        }),
+      }),
+    });
+
+    await renderObserverScreen();
+
+    await screen.findByRole("button", { name: "I've seen this alert" });
+    expect(actionLabels()).toEqual(["I've seen this alert", "Resolve alert"]);
+    expect(screen.getByText("FYI (observer)")).toBeTruthy();
+  });
+
+  test("I've seen it marks the page seen - no state change - and then the screen is as for anybody", async () => {
+    mockObserverPages.current = [OBSERVER_PAGE];
+    mockPassOnPages.current = [];
+
+    await renderObserverScreen();
+
+    const seen: unknown = await screen.findByRole("button", {
+      name: "I've seen this alert",
+    });
+    mockObserverPages.current = [];
+    await fireEvent.press(seen as Parameters<typeof fireEvent.press>[0]);
+
+    expect(markSeenMock).toHaveBeenCalledWith(PROJECT_ID, "alert", ALERT_ID);
+    expect(changeAlertStateMock).not.toHaveBeenCalled();
+    await waitFor(() => {
+      return expect(
+        screen.queryByRole("button", { name: "I've seen this alert" }),
+      ).toBeNull();
+    });
+    expect(screen.queryByText("FYI (observer)")).toBeNull();
+    // Stepping in is theirs to choose now, as it is anybody's.
+    expect(actionLabels()).toEqual(["Acknowledge alert", "Resolve alert"]);
+  });
+
+  test("the push's I've seen it marks the page seen once everything is read, and leaves the params - never acknowledging the alert", async () => {
+    mockObserverPages.current = [OBSERVER_PAGE];
+    mockPassOnPages.current = [];
+
+    await renderObserverScreen({ kind: "seen", id: "n-1:MARK_PAGE_SEEN" });
+
+    await waitFor(() => {
+      return expect(markSeenMock).toHaveBeenCalledWith(
+        PROJECT_ID,
+        "alert",
+        ALERT_ID,
+      );
+    });
+    expect(markSeenMock).toHaveBeenCalledTimes(1);
+    expect(changeAlertStateMock).not.toHaveBeenCalled();
+    expect(passOnApi.acknowledgeOnCallPagesAgain).not.toHaveBeenCalled();
+    expect(setParams).toHaveBeenCalledWith({ pushAction: undefined });
+    expect(observerAlertSpy).not.toHaveBeenCalled();
+  });
+
+  test("the push's I've seen it waits for the reader's observer pages before it decides", async () => {
+    mockObserverPages.current = null;
+    mockPassOnPages.current = [];
+
+    await renderObserverScreen({ kind: "seen", id: "n-2:MARK_PAGE_SEEN" });
+
+    await waitFor(() => {
+      return expect(fetchObserverMock).toHaveBeenCalled();
+    });
+    expect(markSeenMock).not.toHaveBeenCalled();
+    expect(setParams).not.toHaveBeenCalled();
+  });
+
+  test("the push's I've seen it on a page somebody already answered says so, and marks nothing", async () => {
+    mockObserverPages.current = [];
+    mockPassOnPages.current = [];
+
+    await renderObserverScreen({ kind: "seen", id: "n-3:MARK_PAGE_SEEN" });
+
+    await waitFor(() => {
+      return expect(observerAlertSpy).toHaveBeenCalledWith(
+        "Already marked as seen",
+        "This page has already been marked as seen.",
+      );
+    });
+    expect(markSeenMock).not.toHaveBeenCalled();
+    expect(changeAlertStateMock).not.toHaveBeenCalled();
   });
 });

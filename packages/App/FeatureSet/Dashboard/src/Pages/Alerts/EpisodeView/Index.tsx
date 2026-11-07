@@ -35,6 +35,8 @@ import ChangeEpisodeState from "../../../Components/AlertEpisode/ChangeState";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertEpisodeMember from "Common/Models/DatabaseModels/AlertEpisodeMember";
 import TelemetrySnapshotPanel from "../../../Components/Telemetry/TelemetrySnapshotPanel";
+import { EventMetricSubject } from "../../../Utils/EventMetricInvestigation";
+import { EventStateTimelineDate } from "../../../Utils/EventDuration";
 import {
   DerivedTelemetrySnapshot,
   EMPTY_TELEMETRY_SNAPSHOT,
@@ -361,6 +363,16 @@ const AlertEpisodeView: FunctionComponent<
     );
   }
 
+  const episodeTimelineDates: Array<EventStateTimelineDate> =
+    episodeStateTimeline.map(
+      (timeline: AlertEpisodeStateTimeline): EventStateTimelineDate => {
+        return {
+          stateId: timeline.alertStateId?.toString(),
+          startsAt: timeline.startsAt,
+        };
+      },
+    );
+
   const timing: EpisodeTiming = getEpisodeTiming({
     // Alert episodes have no declaredAt: they start when they are created.
     startedAt: episode?.createdAt || undefined,
@@ -375,14 +387,7 @@ const AlertEpisodeView: FunctionComponent<
         isResolvedState: state.isResolvedState,
       };
     }),
-    timelines: episodeStateTimeline.map(
-      (timeline: AlertEpisodeStateTimeline) => {
-        return {
-          stateId: timeline.alertStateId?.toString(),
-          startsAt: timeline.startsAt,
-        };
-      },
-    ),
+    timelines: episodeTimelineDates,
   });
 
   const alertCount: number | undefined =
@@ -570,6 +575,12 @@ const AlertEpisodeView: FunctionComponent<
                 snapshotWindow={telemetrySnapshot.snapshotWindow}
                 seriesSummary={telemetrySnapshot.seriesSummary}
                 eventNoun="alert"
+                // A metric snapshot's investigation is anchored on the episode.
+                metricSubject={EventMetricSubject.AlertEpisode}
+                startedAt={timing.durationStartsAt}
+                endedAt={timing.durationEndsAt}
+                stateTimeline={episodeTimelineDates}
+                states={alertStates}
               />
             </div>
           )}

@@ -235,6 +235,7 @@ Quand vous créez un workflow, les modèles sous **Astreinte** ont celui-ci tout
 | **Page About** | Ce sur quoi porte l'alerte : **A new alert**, **An incident** ou **An alert**. Accuser réception de l'alerte en accuse réception aussi. |
 | **Title** et **Message** | Pour une nouvelle alerte. OneUptime crée une alerte à partir d'eux, et elle reste parmi vos alertes comme n'importe quelle autre. |
 | **Incident ID** ou **Alert ID** | Pour un incident ou une alerte qui existe déjà, en général celui par lequel le workflow a commencé : `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Page As** | Pour un incident ou une alerte qui existe déjà, sous **Plus de champs**. Les **Responders** le prennent en charge. Les **Observers** sont tenus informés pendant que d'autres répondent : accuser réception de leur appel indique seulement qu'ils l'ont vu, et l'incident ou l'alerte n'est pas acquitté. |
 | **Severity** | Pour une nouvelle alerte, sous **Plus de champs**. Elle décide lesquelles des règles d'astreinte de chaque personne l'alertent. Laissée vide, c'est la plus grave du projet. |
 
 Un bloc ajouté à un workflow qui commence par un incident ou une alerte est déjà réglé pour alerter à propos de cet enregistrement : il ne demande plus que qui alerter.

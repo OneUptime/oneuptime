@@ -1740,8 +1740,9 @@ describe("personal on-call rules", () => {
     expect(getOnCallPageCallPassOnPrompt()).toBe(
       `If you can't take it, press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT} to escalate.`,
     );
+    // Telegram's links, one place for every record a page is about.
     expect(ruleService).toContain(
-      '`⬆️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_ESCALATE}</a>`',
+      '`⬆️ <a href="${this.escapeTelegramHtml(data.passOnUrl.toString())}">${CANT_TAKE_IT_ESCALATE}</a>`',
     );
     expect(ruleService).toContain(
       "mdText`⬆️ [${CANT_TAKE_IT_ESCALATE}](${data.passOnUrl.toString()})`",
@@ -2084,8 +2085,9 @@ describe("notification settings", () => {
     }
 
     /*
-     * The two shift reminders, the five security case events and a hunt's
-     * finds start on by push too, and they alone.
+     * The two shift reminders, the five security case events, a hunt's
+     * finds and a public note waiting for the person's approval start on by
+     * push too, and they alone.
      */
     const byPush: Array<string> = Array.from(push).map(
       (type: string): string => {
@@ -2103,6 +2105,7 @@ describe("notification settings", () => {
         "Security case response target",
         "Security case task assigned to me",
         "Hunt found security events",
+        "Public note waiting for my approval",
       ].sort(),
     );
     expect(settings).toContain(

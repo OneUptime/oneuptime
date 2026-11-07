@@ -36,6 +36,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   evaluation of a grouped monitor opens several events over the same
  *   window: the next event starts unzoomed, and so does coming back.
  *
+ * Issue #5954 made a metrics monitor's snapshot a metric investigation:
+ * its time range is picked on the card (the range around the event's start
+ * first), its picker sits on every tab's card in the badge's place, and the
+ * Logs, Traces and Exceptions tabs follow that range - a zoom included -
+ * as they followed the snapshot's zoom.
+ *
  * A Logs snapshot's companion Metrics tab keeps a zoom of its own, and
  * must keep it, and its way back, across the same refresh.
  *
@@ -433,8 +439,13 @@ const NEXT_START: Date = new Date("2026-09-14T18:30:00.000Z");
 const NEXT_END: Date = new Date("2026-09-14T18:45:00.000Z");
 
 const SNAPSHOT_TEXT: string = `${SNAPSHOT_START.toISOString()}..${SNAPSHOT_END.toISOString()}`;
+/*
+ * What a metric snapshot's investigation shows first: thirty minutes
+ * either side of the event's start (SNAPSHOT_END).
+ */
+const AROUND_START_TEXT: string =
+  "2026-09-14T17:30:00.000Z..2026-09-14T18:30:00.000Z";
 const SLICE_TEXT: string = `${MOCK_DRAG.start.toISOString()}..${MOCK_DRAG.end.toISOString()}`;
-const NEXT_TEXT: string = `${NEXT_START.toISOString()}..${NEXT_END.toISOString()}`;
 
 const PAGE_PROPS: PageComponentProps = {
   pageRoute: new Route("/overview"),
@@ -720,15 +731,17 @@ async function refreshThePage(pageCase: PageCase): Promise<void> {
   });
 }
 
-function badgeTitle(): string {
-  return OneUptimeDate.getInBetweenDatesAsFormattedString(
-    new InBetween<Date>(SNAPSHOT_START, SNAPSHOT_END),
-  );
+// A link to another event: the address changes, the page stays mounted.
+function followLinkTo(eventId: string): void {
+  mockEventId = eventId;
+  window.history.replaceState({}, "", `/dashboard/events/${eventId}`);
 }
 
 beforeEach(() => {
   jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
   jest.setSystemTime(NOW);
+  // The investigation keeps what the reader changed in the page's URL.
+  window.history.replaceState({}, "", `/dashboard/events/${EVENT_ID}`);
   mockLatestCharts = null;
   mockStoredWindow = { start: SNAPSHOT_START, end: SNAPSHOT_END };
   mockStoredType = "Metric";
@@ -765,14 +778,14 @@ describe.each([
   ["incident", INCIDENT_CASE],
   ["alert", ALERT_CASE],
 ])(
-  "the %s overview's snapshot zooms as one",
+  "the %s overview's metric investigation zooms as one",
   (_name: string, pageCase: PageCase) => {
-    test("before any drag, the companion tabs are on the snapshot window", async () => {
+    test("before any drag, the chart and the other tabs are on the range around the start", async () => {
       await renderSettled(pageCase);
 
-      expect(chartWindow()).toBe(SNAPSHOT_TEXT);
+      expect(chartWindow()).toBe(AROUND_START_TEXT);
       await openTab("Logs");
-      expect(logsWindow()).toBe(SNAPSHOT_TEXT);
+      expect(logsWindow()).toBe(AROUND_START_TEXT);
     });
 
     test("a drag on the chart hands the slice to the Logs, Traces and Exceptions tabs", async () => {
@@ -791,34 +804,24 @@ describe.each([
       expect(getItemMock.mock.calls.length).toBe(pageReads);
     });
 
-    test("the companion explorers' empty states name the zoomed part of the snapshot window, until a reset", async () => {
+    test("the other tabs' empty states name the selected time range, zoomed or not", async () => {
       await renderSettled(pageCase);
-      await zoomTheSnapshot();
 
       await openTab("Logs");
       expect(latestProps("LogsViewer")["noLogsMessage"]).toBe(
-        "Nothing was logged in the zoomed part of the snapshot window.",
+        "Nothing was logged in the selected time range.",
       );
+
+      await backOnMetrics();
+      await zoomTheSnapshot();
+
       await openTab("Traces");
       expect(latestProps("TracesViewer")["emptyMessage"]).toBe(
-        "No spans found in the zoomed part of the snapshot window.",
+        "No spans found in the selected time range.",
       );
       await openTab("Exceptions");
       expect(latestProps("ExceptionsViewer")["emptyMessage"]).toBe(
-        "No exceptions found in the zoomed part of the snapshot window.",
-      );
-
-      await act(async () => {
-        fireEvent.click(
-          screen.getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
-        );
-      });
-      expect(latestProps("ExceptionsViewer")["emptyMessage"]).toBe(
-        "No exceptions found in the snapshot window.",
-      );
-      await openTab("Logs");
-      expect(latestProps("LogsViewer")["noLogsMessage"]).toBe(
-        "Nothing was logged in the snapshot window.",
+        "No exceptions found in the selected time range.",
       );
     });
 
@@ -834,21 +837,43 @@ describe.each([
       expect(resetButtons()).toHaveLength(1);
     });
 
-    test("every tab's card names the snapshot window and offers Reset zoom while zoomed", async () => {
+    test("every tab's card carries the time picker, and Reset zoom while zoomed", async () => {
       await renderSettled(pageCase);
       await zoomTheSnapshot();
 
       for (const tabName of ["Metrics", "Logs", "Traces", "Exceptions"]) {
         await openTab(tabName);
         const tabPanel: HTMLElement = screen.getByRole("tabpanel");
-        expect(within(tabPanel).getByText(badgeTitle())).toBeInTheDocument();
+        expect(
+          within(tabPanel).getByTestId("metric-investigation-time-button"),
+        ).toBeVisible();
         expect(
           within(tabPanel).getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
         ).toBeVisible();
       }
     });
 
-    test("Reset zoom on the Logs tab returns every tab to the snapshot window", async () => {
+    test("a range picked on the Logs tab moves every tab", async () => {
+      await renderSettled(pageCase);
+      await openTab("Logs");
+
+      fireEvent.click(screen.getByTestId("metric-investigation-time-button"));
+      await act(async () => {
+        fireEvent.click(screen.getByText("The hour before it started"));
+      });
+
+      expect(logsWindow()).toBe(
+        "2026-09-14T17:00:00.000Z..2026-09-14T18:00:00.000Z",
+      );
+      await backOnMetrics();
+      await waitFor(() => {
+        expect(chartWindow()).toBe(
+          "2026-09-14T17:00:00.000Z..2026-09-14T18:00:00.000Z",
+        );
+      });
+    });
+
+    test("Reset zoom on the Logs tab returns every tab to the range around the start", async () => {
       await renderSettled(pageCase);
       await zoomTheSnapshot();
       await openTab("Logs");
@@ -859,16 +884,18 @@ describe.each([
         );
       });
 
-      expect(logsWindow()).toBe(SNAPSHOT_TEXT);
+      expect(logsWindow()).toBe(AROUND_START_TEXT);
       expect(resetButtons()).toHaveLength(0);
       await backOnMetrics();
-      expect(chartWindow()).toBe(SNAPSHOT_TEXT);
+      await waitFor(() => {
+        expect(chartWindow()).toBe(AROUND_START_TEXT);
+      });
       expect(charts().onTimeRangeReset).toBeUndefined();
       await openTab("Traces");
-      expect(tracesWindow()).toBe(SNAPSHOT_TEXT);
+      expect(tracesWindow()).toBe(AROUND_START_TEXT);
     });
 
-    test("a double-click on the chart after a round trip returns every tab to the snapshot window", async () => {
+    test("a double-click on the chart after a round trip returns every tab to the range around the start", async () => {
       await renderSettled(pageCase);
       await zoomTheSnapshot();
       await openTab("Exceptions");
@@ -878,11 +905,11 @@ describe.each([
       await press("Double-click the snapshot chart");
 
       await waitFor(() => {
-        expect(chartWindow()).toBe(SNAPSHOT_TEXT);
+        expect(chartWindow()).toBe(AROUND_START_TEXT);
       });
       expect(resetButtons()).toHaveLength(0);
       await openTab("Exceptions");
-      expect(exceptionsWindow()).toBe(SNAPSHOT_TEXT);
+      expect(exceptionsWindow()).toBe(AROUND_START_TEXT);
     });
 
     test("the page's background refresh keeps the zoom on every tab", async () => {
@@ -911,45 +938,47 @@ describe.each([
       expect(logsWindow()).toBe(SLICE_TEXT);
     });
 
-    test("a refresh that brings back a different window ends the zoom on every tab", async () => {
+    test("a refresh that brings back another evaluated window keeps the reader's zoom", async () => {
       await renderSettled(pageCase);
       await zoomTheSnapshot();
 
+      /*
+       * The zoom is the reader's pick, not the record's: what the monitor
+       * evaluated is shaded on the charts and offered as a range of its
+       * own, and moving it moves neither.
+       */
       mockStoredWindow = { start: NEXT_START, end: NEXT_END };
       await refreshThePage(pageCase);
 
-      await waitFor(() => {
-        expect(chartWindow()).toBe(NEXT_TEXT);
-      });
-      expect(charts().onTimeRangeReset).toBeUndefined();
-      expect(resetButtons()).toHaveLength(0);
+      expect(chartWindow()).toBe(SLICE_TEXT);
+      expect(resetButtons()).toHaveLength(1);
       await openTab("Logs");
-      expect(logsWindow()).toBe(NEXT_TEXT);
+      expect(logsWindow()).toBe(SLICE_TEXT);
     });
 
-    test("another event from the same evaluation (same window) starts unzoomed, and so does coming back", async () => {
+    test("another event from the same evaluation starts on its own defaults, and so does coming back", async () => {
       const rendered: RenderResult = await renderSettled(pageCase);
       await zoomTheSnapshot();
 
       // The reader follows a link to the sibling event: same route, same page.
-      mockEventId = SIBLING_EVENT_ID;
+      followLinkTo(SIBLING_EVENT_ID);
       fetchResultsMock.mockClear();
       rendered.rerender(pageCase.page());
       await chartSettled();
 
-      expect(chartWindow()).toBe(SNAPSHOT_TEXT);
+      expect(chartWindow()).toBe(AROUND_START_TEXT);
       expect(charts().onTimeRangeReset).toBeUndefined();
       expect(resetButtons()).toHaveLength(0);
       await openTab("Logs");
-      expect(logsWindow()).toBe(SNAPSHOT_TEXT);
+      expect(logsWindow()).toBe(AROUND_START_TEXT);
 
-      // And back to the first one: its zoom stayed behind with it.
-      mockEventId = EVENT_ID;
+      // And back to the first one by a link: its zoom stayed behind with it.
+      followLinkTo(EVENT_ID);
       fetchResultsMock.mockClear();
       rendered.rerender(pageCase.page());
       await chartSettled();
 
-      expect(chartWindow()).toBe(SNAPSHOT_TEXT);
+      expect(chartWindow()).toBe(AROUND_START_TEXT);
       expect(resetButtons()).toHaveLength(0);
     });
   },

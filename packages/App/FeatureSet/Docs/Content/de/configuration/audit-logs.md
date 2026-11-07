@@ -75,45 +75,20 @@ Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen habe
 
 ## Was erfasst wird
 
-| Ressource | **Ressourcentyp** im Protokoll |
+Alles, was Personen in einem Projekt anlegen, ändern oder löschen, wird erfasst: Monitore, Vorfälle, Alarme, Statusseiten, Workflows und ihre Schritte, Warteschlangen, Dashboards, Bereitschaftsrichtlinien, Teams und wer darin ist, API-Schlüssel und jede Einstellung. **Ressourcentyp** sagt, worum es in einem Eintrag geht, zum Beispiel `Monitor`, `Workflow` oder `Queue`.
+
+| Nicht erfasst | Warum |
 | --- | --- |
-| Monitore | `Monitor` |
-| Vorfälle | `Incident` |
-| Alarme | `Alert` |
-| Statusseiten | `Status Page` |
-| Geplante Wartungsereignisse | `Scheduled Maintenance Event` |
-| Bereitschaftsrichtlinien | `On-Call Policy` |
-| SLOs | `Service Level Objective` |
-| Die Regeln und Owners eines SLO | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
-| Teams | `Team` |
-| Benutzerdefinierte Rollen, und die Teams und API-Schlüssel, die eine erhalten | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
-| Beschriftungen | `Label` |
-| Vorfallsstatus und -schweregrade | `Incident State`, `Incident Severity` |
-| Warnungsstatus und -schweregrade | `Alert State`, `Alert Severity` |
-| Monitor-Status | `Monitor Status` |
-| Status geplanter Wartungen | `Scheduled Maintenance State` |
-| Vorfallsrollen | `Incident Role` |
-| Postmortem-Status | `Postmortem Status` |
-| API-Schlüssel | `API Key` |
-| MCP-Clients, die Personen verbinden | `MCP Client Authorization` |
-| Inventareinträge | `Inventory Item` |
-| Collector-Konfigurationen | `Collector Config` |
-| vCenter | `vCenter` |
-| OpenStack-Clouds und die Prüfungen, die gegen sie laufen | `OpenStack Cloud`, `OpenStack Cloud Check` |
-| Paketmitschnitte, und ihre Downloads | `Packet Capture` |
-| Sicherheitsfälle mit ihren Prioritäten und Status, Playbooks und ihre Ausführungen, geschützte Entitäten, die Entitätskritikalität sowie das Risiko einer Entität, wenn es jemand zurücksetzt | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
-| Regelausnahmen | `Rule Exception` |
-| Beobachtungslisten | `Watchlist` |
-| Beobachtungslistenwerte | `Watchlist Value` |
-| Bedrohungssuchen | `Hunt` |
-| Aufgaben und Belege von Sicherheitsfällen | `Security Case Task`, `Security Case Evidence` |
-| Datenspeicher und ihre Funde sowie die Probleme, Einstellungen, Prüfungseinstellungen, benutzerdefinierten Datentypen und Residenzregeln der Datensicherheit | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
-| Einstellungen von Data Observability | `Data Observability Setting` |
-| Audit-Protokoll-Exporte | `Audit Log Export` |
+| Protokolle von Nachrichten | Jedes ist bereits der Nachweis einer E-Mail, SMS, eines Anrufs, einer Push-Benachrichtigung oder Chatnachricht, die OneUptime gesendet oder empfangen hat. |
+| Aufzeichnungen von Ausführungen | Jede ist bereits der Nachweis einer Workflow-Ausführung, einer Bereitschaftseskalation, eines Scans, eines Imports oder eines KI-Laufs. |
+| Was Agenten und Telemetrie melden | Gefundene Ressourcen, Messwerte und Nutzung ändern sich mit jeder Meldung, nicht weil jemand sie geändert hat. |
+| Aktivitätsfeeds | Ein Feed zeigt Änderungen, die das Audit-Protokoll bereits erfasst. |
+| Arbeitszustand von OneUptime | Sitzungen, wartende Jobs und anderer Zustand, den OneUptime während seiner Arbeit hält. |
+| Die eigene Benachrichtigungseinrichtung einer Person | Die Adressen, Nummern und persönlichen Bereitschaftsregeln jeder Person gehören nur ihr. |
 
 Fügt ein Administrator eine Benachrichtigungsmethode oder eine persönliche Bereitschaftsregel zum Konto einer anderen Person hinzu oder entfernt sie, wird das ebenfalls erfasst, ohne die Adresse oder Nummer selbst.
 
-Andere Datensätze stehen nicht im Audit-Protokoll, etwa wer in einem Team ist oder eine Berechtigung, die einem Team einzeln hinzugefügt wurde. Felder, die niemand lesen darf, fehlen in jedem Eintrag, und Schlüssel, Tokens und Passwörter werden als `[REDACTED]` erfasst: Der Eintrag zeigt, dass sie sich geändert haben, nie ihren Wert.
+Felder, die nur OneUptime schreibt, etwa wann ein Host zuletzt gesehen wurde, fehlen in jedem Eintrag, ebenso Felder, die niemand lesen darf. Schlüssel, Tokens und Passwörter werden als `[REDACTED]` erfasst: Der Eintrag zeigt, dass sie sich geändert haben, nie ihren Wert. Die Schritte eines Workflows werden als das erfasst, was sich geändert hat, mit den Namen der Einstellungen eines Schritts, aber nie dem, was in sie eingegeben wurde, und das Verschieben eines Schritts auf der Arbeitsfläche wird nicht erfasst.
 
 ## Wie lange Einträge bleiben
 

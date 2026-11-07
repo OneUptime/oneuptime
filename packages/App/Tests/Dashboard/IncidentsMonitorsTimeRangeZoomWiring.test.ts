@@ -18,6 +18,10 @@ import path from "path";
  *   TelemetrySnapshotPanelTimeRangeZoom.test.tsx  (episodes, companion tabs)
  *   TelemetrySnapshotZoomAcrossTabs.test.tsx      (a snapshot's zoom, every tab)
  *   TelemetrySnapshotZoom.test.tsx                (the hosts' snapshot zoom)
+ *   EventMetricInvestigationPanel.test.tsx        (a metric snapshot, issue
+ *                                                  #5954: its time range,
+ *                                                  zoom and every tab)
+ *   MetricInvestigation.test.tsx                  (the investigation card)
  *   UptimeStripsExcludedFromZoom.test.tsx         (uptime day strips)
  */
 
@@ -192,33 +196,64 @@ describe("monitor step forms zoom their preview only", () => {
 
 describe("the telemetry snapshot zooms as one, every tab of it", () => {
   test.each(SNAPSHOT_HOSTS)(
-    "%s: its metric chart zooms the snapshot the host holds",
+    "%s: a metrics monitor's snapshot is its metric investigation, not a chart of the host's",
     (_name: string, file: string) => {
       const source: string = readSquashed(file);
-      const views: Array<string> = metricViewElements(source);
 
-      expect(views).toHaveLength(1);
-      const view: string = views[0]!;
-      // The chart shows the window the snapshot shows (a zoom included)...
-      expect(view).toContain("data={snapshotZoom.metricViewData}");
-      // ...and a drag or a double-click on it zooms or resets the snapshot.
-      expect(view).toContain(
-        "onTimeRangeSelect={snapshotZoom.onTimeRangeSelect}",
-      );
-      expect(view).toContain(
-        "onTimeRangeReset={snapshotZoom.onTimeRangeReset}",
-      );
       /*
-       * Reached only when the hook hands no drag handler: a snapshot that
-       * stored no window, whose chart still zooms itself alone.
+       * Issue #5954: the metric snapshot is the metric investigation
+       * (EventMetricInvestigationPanel), which holds its own time range and
+       * zoom above the tabs. The host draws no metric chart of its own, and
+       * its snapshot zoom takes no metric data.
        */
-      expect(view).toContain("localChartZoom={true}");
-      expect(view).not.toContain("disableChartZoom");
+      expect(metricViewElements(source)).toHaveLength(0);
+      expect(source).toContain("<EventMetricInvestigationPanel");
+      expect(source).not.toContain("snapshotZoom.metricViewData");
+      expect(source).not.toContain("snapshotZoom.onTimeRangeSelect");
       // The snapshot window is a record, not a range the page owns.
       expect(source).not.toContain("TimeRangeZoomScope");
       expect(source).toContain("useTelemetrySnapshotZoom({");
     },
   );
+
+  test.each(SNAPSHOT_HOSTS.slice(0, 2))(
+    "%s: the investigation is handed the window the monitor evaluated, the event's moments and its id",
+    (_name: string, file: string) => {
+      const source: string = readSquashed(file);
+      const panel: string = sliceBetween(
+        source,
+        "<EventMetricInvestigationPanel",
+        "/>",
+      );
+
+      expect(source).toContain(
+        "const isMetricSnapshot: boolean = telemetryQuery?.telemetryType === TelemetryType.Metric;",
+      );
+      expect(source).toContain("{isMetricSnapshot && telemetryQuery ? (");
+      expect(panel).toContain("telemetryQuery={telemetryQuery}");
+      expect(panel).toContain("evaluationWindow={telemetrySnapshotWindow}");
+      expect(panel).toContain("seriesSummary={seriesSummary}");
+      expect(panel).toContain("eventId={modelIdString}");
+      expect(panel).toContain("startedAt={responseTimes.startedAt}");
+      expect(panel).toContain("endedAt={durationEndDate}");
+      expect(panel).toContain("stateTimeline={timelineDates}");
+      // Every other kind of snapshot keeps the snapshot card as it was.
+      expect(source).toContain(
+        "{telemetryQuery && !isMetricSnapshot && ( <TelemetryCompanionSignalTabs",
+      );
+    },
+  );
+
+  test("the episode panel hands a metric snapshot to the investigation, anchored on the episode", () => {
+    const source: string = readSquashed(SNAPSHOT_HOSTS[2]![1]);
+
+    expect(source).toContain(
+      "if (telemetryQuery.telemetryType === TelemetryType.Metric) { return ( <EventMetricInvestigationPanel",
+    );
+    expect(
+      sliceBetween(source, "<EventMetricInvestigationPanel", "/>"),
+    ).toContain("evaluationWindow={snapshotWindow}");
+  });
 
   test.each(SNAPSHOT_HOSTS)(
     "%s: the other tabs are handed the window the snapshot shows",
@@ -309,7 +344,7 @@ describe("a Logs, Traces or Exceptions snapshot's primary explorer follows the s
     "%s: the snapshot's zoom is handed the stored query to pin",
     (_name: string, file: string) => {
       expect(readSquashed(file)).toMatch(
-        /useTelemetrySnapshotZoom\(\{ snapshotWindow: (telemetrySnapshotWindow|snapshotWindow), metricViewData: telemetryQuery\??\.metricViewData, telemetryType: telemetryQuery\??\.telemetryType, explorerQuery: telemetryQuery\??\.telemetryQuery,/,
+        /useTelemetrySnapshotZoom\(\{ snapshotWindow: (telemetrySnapshotWindow|snapshotWindow), telemetryType: telemetryQuery\??\.telemetryType, explorerQuery: telemetryQuery\??\.telemetryQuery,/,
       );
     },
   );
@@ -341,6 +376,46 @@ describe("the snapshot card's companion tabs keep their own windows", () => {
     expect(source).toContain("range: TimeRange.CUSTOM");
     expect(source).toContain(
       "timeRange={timeRange} onTimeRangeChange={setTimeRange}",
+    );
+  });
+});
+
+describe("a metric snapshot's investigation zooms as one, every tab of it (issue #5954)", () => {
+  const PANEL: string = `${DASHBOARD}/Components/Telemetry/EventMetricInvestigationPanel.tsx`;
+  const CARD: string = `${DASHBOARD}/Components/Metrics/Investigation/MetricInvestigation.tsx`;
+  const PICKER: string = `${DASHBOARD}/Components/Metrics/Investigation/MetricInvestigationTimePicker.tsx`;
+
+  test("the other tabs are handed the investigation's window, and its picker on every card", () => {
+    const tabs: string = sliceBetween(
+      readSquashed(PANEL),
+      "<TelemetryCompanionSignalTabs",
+      "primarySignalElement=",
+    );
+
+    expect(tabs).toContain("snapshotWindow={investigation.window}");
+    expect(tabs).toContain('companionWindow="selected"');
+    expect(tabs).toContain("snapshotWindowAlert={timePicker}");
+  });
+
+  test("the investigation's chart zooms the investigation, and resets only while zoomed", () => {
+    const views: Array<string> = metricViewElements(readSquashed(CARD));
+
+    expect(views).toHaveLength(1);
+    const view: string = views[0]!;
+    expect(view).toContain("data={investigation.metricViewData}");
+    expect(view).toContain(
+      "onTimeRangeSelect={investigation.zoom.zoomToTimeRange}",
+    );
+    expect(view).toContain(
+      "onTimeRangeReset={ investigation.isZoomed ? investigation.zoom.resetZoom : undefined }",
+    );
+    expect(view).not.toContain("localChartZoom");
+    expect(view).not.toContain("disableChartZoom");
+  });
+
+  test("the picker offers the investigation's own Reset zoom, wherever it sits", () => {
+    expect(readSquashed(PICKER)).toContain(
+      "<TimeRangeZoomProvider zoom={investigation.zoom}> <ResetTimeRangeZoomButton /> </TimeRangeZoomProvider>",
     );
   });
 });

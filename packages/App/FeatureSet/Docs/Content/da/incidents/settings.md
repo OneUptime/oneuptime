@@ -19,6 +19,7 @@ Konfigurationen af hændelser ligger under **Hændelser**, ikke under **Projekti
 | **Hændelsesalvor**           | Tilføje, omdøbe, give nye farver og ændre rækkefølgen på alvorsgraderne.                     |
 | **Hændelsesskabeloner**      | Udfylde en hel hændelse på forhånd — titel, beskrivelse, ressourcer, vagtpolitikker, ejere, etiketter. |
 | **Noteskabeloner**           | Genbrugelig tekst til offentlige og private noter.                                           |
+| **Public Note Approval** | Lad offentlige noter blive godkendt, før de offentliggøres, og vælg, hvem der godkender dem. |
 | **Postmortem-skabeloner**    | Genbrugelige strukturer til postmortems.                                                     |
 | **Postmortem-statusser** | De statusser, en postmortem bevæger sig igennem, fra Ikke startet til Fuldført. |
 | **Brugerdefinerede felter**  | Definere ekstra felter, der vises på hver hændelse.                                          |
@@ -617,6 +618,8 @@ Ejer-, etiket- og privatlivsregler virker kun på hændelser og episoder, der op
 
 **En regel kan nedarve.** Under **Etiketter at tilføje** (eller **Ejere**) rummer det sammenfoldede afsnit **Nedarv etiketter** (eller **Nedarv ejere**) seks kontakter, der også giver etiketterne (eller ejerne) videre fra hændelsens monitorer, værter, Kubernetes-klynger, Docker-værter, Podman-værter og tjenester. En regel, der nedarver, kan lade **Etiketter at tilføje** stå tomt og navngives så efter det, den nedarver fra (_Inherit labels from monitors, hosts_); en ny regel, der hverken nævner eller nedarver noget, kan ikke gemmes — hverken fra formularen, API'et eller Terraform. Episoderegler på fanen **Episoderegler** har ingen kontakter til at nedarve. På en ejerregel for hændelser eller advarsler slutter **Nedarv ejere** med **Opretterens team**: af de teams, der står der, bliver hvert team, som personen, der erklærer hændelsen eller opretter advarslen, er med i, også ejer.
 
+En ejerregel for hændelser kan også tilhøre teams: **Ansvarlige teams** under **Flere felter** angiver, hvem der må redigere eller slette reglen – kun medlemmerne af de teams og projektadministratorer – ikke hvem reglen gør til ejere. Se [Regler, der tilhører teams](/docs/permissions/index#regler-der-tilhører-teams).
+
 **Ældre regler, der ikke tilføjer noget** — gemt, før OneUptime spurgte, hvad de tilføjer — kan stadig omdøbes, slås fra eller slettes, og listen markerer hver med **Tilføjer intet**. [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules) gennemgår formularen trin for trin.
 
 ## Grupperingsregler for hændelser
@@ -654,7 +657,7 @@ Regler, der blev gemt, før formularen spurgte om ejere, kan stadig have et stan
 
 ## Vagtregler for hændelser
 
-**Hændelser → Regler → Vagtregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) er dér, du gør tilkaldelse automatisk. Kortet, **Hændelsesvagtregler**, siger, hvad de gør: tilkalder automatisk via vagtpolitikker for nye hændelser, der matcher. Siden har to faner: **Hændelsesregler** og **Episoderegler**.
+**Hændelser → Regler → Vagtregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) er dér, du gør tilkaldelse automatisk. Kortet, **Hændelsesvagtregler**, siger, hvad de gør: tilkalder automatisk via vagtpolitikker for hændelser, der matcher, enten til at håndtere dem eller som observatører, der holdes orienteret. Siden har to faner: **Hændelsesregler** og **Episoderegler**.
 
 Oprettelsesformularen har to trin:
 
@@ -664,6 +667,12 @@ Oprettelsesformularen har to trin:
 :::
 
 En regel tilkalder, så snart en hændelse matcher den. For at lade den vente på arbejdstiden i stedet, svarer du **Kun i arbejdstiden** på **Hvornår skal denne regel tilkalde?** under **Flere felter**. **Arbejdstid** starter som mandag til fredag, 09:00 til 17:00, i din egen tidszone: vælg andre dage, et andet **Starttidspunkt** eller **Sluttidspunkt** eller en anden **Tidszone**, og en sætning under valget fortæller, hvad der sker. På listen viser reglen sin arbejdstid under navnet. En hændelse, der matcher uden for de tider, får en kørsel, der venter, som **Venter**, og ikke tilkalder nogen; når arbejdstiden begynder, tilkalder politikken sin første eskaleringsregel og eskalerer som normalt. Bliver hændelsen bekræftet eller løst først, bliver ingen tilkaldt. Ændrer hændelsen sig, mens den venter, så den nu matcher en regel, der tilkalder med det samme, for eksempel fordi dens alvorlighed hæves, begynder kørslen at tilkalde straks, og hændelsens feed fortæller hvorfor.
+
+En regel tilkalder sine politikkers personer for at håndtere hændelsen: Den, der bekræfter tilkaldelsen, bekræfter hændelsen. For at holde et team orienteret, mens et andet håndterer den, for eksempel et tilsynsteam, der skal høre om hver kritisk hændelse, svarer du **Observatører** på **Tilkald personerne i disse politikker som** under **Flere felter**. Deres tilkaldelse siger, at de er observatører, og bekræfter de den, siger det kun, at de har set den: Hændelsen bliver ikke bekræftet, ingen andres tilkaldelse stopper, og ingen bliver dens Hændelsesleder. Deres tilkaldelse fortsætter, indtil en af dem svarer, eller hændelsen er løst, og en Slack- eller Microsoft Teams-regel, der inviterer vagthavende til hændelsens kanal, udelader dem. På listen siger reglen under sit navn, at den tilkalder som observatører. En politik, som én matchende regel tilkalder til at håndtere hændelsen og en anden som observatører, tilkalder til at håndtere den.
+
+Regler kører, når en hændelse oprettes, og igen, hver gang dens alvorlighed eller etiketter ændres, mens den er åben. Hæves den til en alvorlighed, som en regel matcher, eller får den en etiket, som en regel matcher, tilkalder den regels politikker med det samme, til at håndtere hændelsen eller som observatører, og hændelsens feed fortæller, at reglen nu matcher den, og hvorfor. En politik, der allerede har tilkaldt om hændelsen, tilkalder ikke igen, medmindre den tilkaldte som observatører og nu skal håndtere den. Intet bliver gjort om, når hændelsen ikke længere matcher, og en ændret titel, beskrivelse eller monitor kører ikke reglerne igen.
+
+En regel kan tilhøre teams. **Ansvarlige teams** under **Flere felter** forbeholder den de teams, du vælger: kun deres medlemmer og projektadministratorer kan redigere eller slette den, og alle andre, der kan se regler, ser den skrivebeskyttet. En regel, som intet team ejer, kan ændres af alle, der må redigere vagtregler, og episoderegler kan også tilhøre teams. Se [Regler, der tilhører teams](/docs/permissions/index#regler-der-tilhører-teams).
 
 ### Sådan afgøres matchning
 

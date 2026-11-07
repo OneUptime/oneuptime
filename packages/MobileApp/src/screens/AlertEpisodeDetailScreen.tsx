@@ -57,8 +57,17 @@ import MarkdownContent from "../components/MarkdownContent";
 import RootCauseCard from "../components/RootCauseCard";
 import { useHaptics } from "../hooks/useHaptics";
 import { usePassOnAction, type PassOnControls } from "../hooks/usePassOnAction";
+import {
+  useObserverPageAction,
+  type ObserverPageControls,
+} from "../hooks/useObserverPageAction";
 import { usePushPageAction } from "../hooks/usePushPageAction";
-import { getPagedResponseActions, isPagedAgain } from "../oncall/pagedActions";
+import {
+  getPagedResponseActions,
+  isObserverOnly,
+  isPagedAgain,
+} from "../oncall/pagedActions";
+import { getObserverPageGuidance } from "../oncall/observerPage";
 
 type Props = NativeStackScreenProps<AlertsStackParamList, "AlertEpisodeDetail">;
 
@@ -116,6 +125,21 @@ export default function AlertEpisodeDetailScreen({
     },
   });
 
+  /*
+   * "I've seen it", for the person paged about it as an observer: kept
+   * informed while others respond (oncall/observerPage.ts).
+   */
+  const observer: ObserverPageControls = useObserverPageAction({
+    projectId,
+    recordType: "alert-episode",
+    recordId: episodeId,
+    recordLabel: "alert episode",
+    // Saying so is news on the feed.
+    onSeen: () => {
+      return refetchFeed();
+    },
+  });
+
   const { refreshing, onRefresh } = useRefresh(async () => {
     await Promise.allSettled([
       refetchEpisode(),
@@ -124,6 +148,7 @@ export default function AlertEpisodeDetailScreen({
       refetchFeed(),
       refetchNotes(),
       passOn.refetch(),
+      observer.refetch(),
     ]);
   });
 
@@ -213,13 +238,18 @@ export default function AlertEpisodeDetailScreen({
    */
   const isAcknowledged: boolean = isAcknowledgedById(states, currentStateId);
 
-  // Acknowledge or Escalate tapped under the page's push, done here once.
+  /*
+   * Acknowledge, Escalate or I've seen it tapped under the page's push,
+   * done here once.
+   */
   usePushPageAction({
     request: route.params.pushAction,
     clear: () => {
       navigation?.setParams?.({ pushAction: undefined });
     },
     ready: Boolean(episode) && Boolean(states) && passOn.pagesSettled,
+    // Only I've seen it waits for these: Acknowledge and Escalate never do.
+    observerPagesSettled: observer.pagesSettled,
     state: {
       recordType: "alert-episode",
       isResolved,
@@ -228,6 +258,10 @@ export default function AlertEpisodeDetailScreen({
       hasOpenPages: passOn.hasOpenPages,
       isPageAgain: passOn.isPageAgain,
       pagesKnown: passOn.pagesKnown,
+      observerPages: {
+        hasOpenPages: observer.hasOpenPages,
+        known: observer.pagesKnown,
+      },
     },
     acknowledge: () => {
       return acknowledgeState
@@ -236,6 +270,8 @@ export default function AlertEpisodeDetailScreen({
     },
     acknowledgeAgain: passOn.acknowledgeAgain,
     askToEscalate: passOn.askToPassOn,
+    // Never the record's Acknowledge: only the reader's page is marked seen.
+    markSeen: observer.markSeen,
   });
 
   const handleAddNote: (noteText: string) => Promise<void> = useCallback(
@@ -343,7 +379,9 @@ export default function AlertEpisodeDetailScreen({
   /*
    * Acknowledge again first while the reader is paged again, then the
    * record's own Acknowledge and Resolve, then Escalate for somebody paged
-   * about it who cannot take it (oncall/pagedActions.ts).
+   * about it who cannot take it - and for somebody paged about it only
+   * as an observer, I've seen it in place of Acknowledge
+   * (oncall/pagedActions.ts).
    */
   const pagedActionsInput: Parameters<typeof getPagedResponseActions>[0] = {
     isResolved,
@@ -378,6 +416,7 @@ export default function AlertEpisodeDetailScreen({
       : null,
     escalate: passOn.action,
     acknowledgeAgain: passOn.acknowledgeAgainAction,
+    seen: observer.action,
   };
   const actions: ResponseAction[] = getPagedResponseActions(pagedActionsInput);
 
@@ -385,15 +424,18 @@ export default function AlertEpisodeDetailScreen({
     isResolved,
     isAcknowledged,
     isPagedAgain(pagedActionsInput),
+    isObserverOnly(pagedActionsInput),
   );
   const guidanceMessage: string =
     stage === "resolved"
       ? "This alert episode is resolved. Review the context and team notes below."
       : stage === "pagedAgain"
         ? "This alert episode is still not resolved. Acknowledge again if you're still on it, or escalate it."
-        : stage === "acknowledged"
-          ? "A responder has acknowledged this alert episode. Resolve it once recovery is confirmed."
-          : "Actions on this episode apply to its grouped alerts. Acknowledge to take responsibility, or resolve when recovery is confirmed.";
+        : stage === "observer"
+          ? getObserverPageGuidance("alert-episode")
+          : stage === "acknowledged"
+            ? "A responder has acknowledged this alert episode. Resolve it once recovery is confirmed."
+            : "Actions on this episode apply to its grouped alerts. Acknowledge to take responsibility, or resolve when recovery is confirmed.";
 
   return (
     <ScrollView
@@ -444,7 +486,10 @@ export default function AlertEpisodeDetailScreen({
           <ResponseActions
             actions={actions}
             busy={
-              changingState || passOn.passingOn || passOn.acknowledgingAgain
+              changingState ||
+              passOn.passingOn ||
+              passOn.acknowledgingAgain ||
+              observer.markingSeen
             }
             style={{ marginBottom: 0 }}
           />

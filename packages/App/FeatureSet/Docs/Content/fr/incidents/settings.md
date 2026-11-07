@@ -19,6 +19,7 @@ Ouvrez **Incidents** depuis le menu **Produits** de la barre supérieure, puis d
 | **Gravité de l'incident**     | Ajouter, renommer, recolorer et réordonner les niveaux de gravité.                                 |
 | **Modèles d'incident**        | Préremplir tout un incident — titre, description, ressources, politiques d'astreinte, propriétaires, étiquettes. |
 | **Modèles de notes**          | Du texte réutilisable pour les notes publiques et privées.                                         |
+| **Public Note Approval** | Faites approuver les notes publiques avant leur publication et choisissez qui les approuve. |
 | **Modèles de post-mortem**    | Des structures de post-mortem réutilisables.                                                       |
 | **Statuts de post-mortem** | Les statuts par lesquels passe un post-mortem, de Non démarré à Achevé. |
 | **Champs personnalisés**      | Définir des champs supplémentaires qui apparaissent sur chaque incident.                           |
@@ -617,6 +618,8 @@ Les règles de propriétaire, d'étiquettes et de confidentialité n'agissent qu
 
 **Une règle peut hériter.** Sous **Étiquettes à ajouter** (ou **Propriétaires**), la section repliée **Hériter des étiquettes** (ou **Hériter des propriétaires**) contient six interrupteurs qui transmettent aussi les étiquettes (ou les propriétaires) des moniteurs, hôtes, clusters Kubernetes, hôtes Docker, hôtes Podman et services de l'incident. Une règle qui hérite peut laisser **Étiquettes à ajouter** vide, et est alors nommée d'après ce dont elle hérite (_Inherit labels from monitors, hosts_) ; une nouvelle règle qui ne nomme ni n'hérite de rien ne peut pas être enregistrée — ni depuis le formulaire, ni par l'API ou Terraform. Les règles d'épisode, dans l'onglet **Règles d'épisode**, n'ont pas d'interrupteurs d'héritage. Sur une règle de propriétaires d'incident ou d'alerte, **Hériter des propriétaires** se termine par **Équipe du créateur** : parmi les équipes qui y figurent, chacune dont fait partie la personne qui déclare l'incident ou crée l'alerte devient aussi propriétaire.
 
+Une règle de propriétaires d'incident peut aussi appartenir à des équipes : **Équipes responsables**, sous **Plus de champs**, indique qui peut modifier ou supprimer la règle (seuls les membres de ces équipes et les administrateurs du projet), et non qui la règle désigne comme propriétaires. Voir [Règles appartenant à des équipes](/docs/permissions/index#règles-appartenant-à-des-équipes).
+
 **Les anciennes règles qui n'ajoutent rien** — enregistrées avant que OneUptime ne demande ce qu'elles ajoutent — peuvent toujours être renommées, désactivées ou supprimées, et la liste marque chacune **N'ajoute rien**. [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules) détaille le formulaire étape par étape.
 
 ## Règles de regroupement des incidents
@@ -654,7 +657,7 @@ Les règles enregistrées avant que le formulaire ne demande des propriétaires 
 
 ## Règles d'astreinte des incidents
 
-**Incidents → Règles → Règles d'astreinte** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) est l'endroit où vous automatisez les alertes. La carte, **Règles d'astreinte des incidents**, dit ce qu'elles font : déclencher automatiquement des politiques d'astreinte pour les nouveaux incidents qui correspondent. La page a deux onglets : **Règles d'incident** et **Règles d'épisode**.
+**Incidents → Règles → Règles d'astreinte** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) est l'endroit où vous automatisez les alertes. La carte, **Règles d'astreinte des incidents**, dit ce qu'elles font : déclencher automatiquement des politiques d'astreinte pour les incidents qui correspondent, pour intervenir ou comme observateurs tenus informés. La page a deux onglets : **Règles d'incident** et **Règles d'épisode**.
 
 Le formulaire de création a deux étapes :
 
@@ -664,6 +667,12 @@ Le formulaire de création a deux étapes :
 :::
 
 Une règle alerte dès qu'un incident lui correspond. Pour qu'elle attende plutôt les heures ouvrées, répondez **Uniquement pendant les heures ouvrées** à **Quand cette règle doit-elle alerter ?** sous **Plus de champs**. Les **Heures ouvrées** commencent du lundi au vendredi, de 09:00 à 17:00, dans votre propre fuseau horaire : choisissez d'autres jours, une autre **Heure de début** ou **Heure de fin**, ou un autre **Fuseau horaire**, et une phrase sous le choix indique ce qui se passera. Dans la liste, la règle affiche ses heures sous son nom. Un incident qui correspond en dehors de ces heures reçoit une exécution qui attend, **En attente**, et n'alerte personne ; quand les heures commencent, la politique déclenche sa première règle d'escalade et escalade comme d'habitude. Si l'incident est pris en compte ou résolu avant, personne n'est alerté. Si l'incident change pendant qu'il attend et correspond désormais à une règle qui alerte immédiatement, par exemple parce que sa gravité a été relevée, l'exécution commence aussitôt à alerter, et le fil d'activité de l'incident indique pourquoi.
+
+Une règle alerte les personnes de ses politiques pour qu'elles interviennent : prendre en compte l'alerte prend en compte l'incident. Pour tenir une équipe informée pendant qu'une autre intervient, comme une équipe de supervision prévenue de chaque incident critique, répondez **Observateurs** à **Alerter les personnes de ces politiques en tant que** sous **Plus de champs**. Leur alerte précise qu'elles sont alertées comme observateurs, et la prendre en compte indique seulement qu'elles l'ont vue : l'incident n'est pas pris en compte, l'alerte de personne d'autre ne s'arrête, et personne ne devient son Responsable d'incident. Leur alerte continue jusqu'à ce que l'une d'elles réponde ou que l'incident soit résolu, et une règle Slack ou Microsoft Teams qui invite les personnes d'astreinte dans le canal de l'incident les laisse de côté. Dans la liste, la règle indique sous son nom qu'elle alerte comme observateurs. Une politique qu'une règle correspondante alerte pour intervenir et une autre comme observateurs alerte pour intervenir.
+
+Les règles s'exécutent quand un incident est déclaré, puis de nouveau chaque fois que sa gravité ou ses étiquettes changent tant qu'il est ouvert. Quand sa gravité est relevée à un niveau auquel une règle correspond, ou qu'il reçoit une étiquette à laquelle une règle correspond, les politiques de cette règle alertent alors, pour intervenir ou comme observateurs, et le fil d'activité de l'incident indique que la règle lui correspond désormais, et pourquoi. Une politique qui a déjà alerté pour l'incident n'alerte pas de nouveau, sauf si elle alertait comme observateurs et doit maintenant intervenir. Rien n'est annulé quand l'incident ne correspond plus, et un titre, une description ou un moniteur modifié ne relance pas les règles.
+
+Une règle peut appartenir à des équipes. **Équipes responsables**, sous **Plus de champs**, la réserve aux équipes que vous choisissez : seuls leurs membres et les administrateurs du projet peuvent la modifier ou la supprimer, et tous les autres qui voient les règles la voient en lecture seule. Une règle qui n'appartient à aucune équipe peut être modifiée par tous ceux qui peuvent modifier les règles d'astreinte, et les règles d'épisode peuvent aussi appartenir à des équipes. Voir [Règles appartenant à des équipes](/docs/permissions/index#règles-appartenant-à-des-équipes).
 
 ### Comment se résout la correspondance
 

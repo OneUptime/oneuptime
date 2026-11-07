@@ -219,6 +219,86 @@ export const RESOURCE_META: { [key: string]: ResourceMeta } = {
     bgColor: "bg-slate-50 border-slate-200",
     viewRoute: PageMap.WORKFLOW_VIEW,
   },
+  // The Queues product (MessageQueue).
+  Queue: {
+    icon: IconProp.QueueList,
+    color: "text-amber-700",
+    bgColor: "bg-amber-50 border-amber-100",
+    viewRoute: PageMap.MESSAGE_QUEUE_VIEW,
+  },
+  // The Databases product (DatabaseServer).
+  Database: {
+    icon: IconProp.Database,
+    color: "text-sky-700",
+    bgColor: "bg-sky-50 border-sky-100",
+    viewRoute: PageMap.DATABASE_SERVER_VIEW,
+  },
+  "RUM Application": {
+    icon: IconProp.Globe,
+    color: "text-rose-700",
+    bgColor: "bg-rose-50 border-rose-100",
+    viewRoute: PageMap.RUM_APPLICATION_VIEW,
+  },
+  "Podman Host": {
+    icon: IconProp.Cube,
+    color: "text-violet-700",
+    bgColor: "bg-violet-50 border-violet-100",
+    viewRoute: PageMap.PODMAN_HOST_VIEW,
+  },
+  "DockerSwarm Cluster": {
+    icon: IconProp.Cube,
+    color: "text-cyan-700",
+    bgColor: "bg-cyan-50 border-cyan-100",
+    viewRoute: PageMap.DOCKER_SWARM_CLUSTER_VIEW,
+  },
+  "Proxmox Cluster": {
+    icon: IconProp.Server,
+    color: "text-orange-700",
+    bgColor: "bg-orange-50 border-orange-100",
+    viewRoute: PageMap.PROXMOX_CLUSTER_VIEW,
+  },
+  "Ceph Cluster": {
+    icon: IconProp.Database,
+    color: "text-red-700",
+    bgColor: "bg-red-50 border-red-100",
+    viewRoute: PageMap.CEPH_CLUSTER_VIEW,
+  },
+  "Storage Array": {
+    icon: IconProp.Database,
+    color: "text-slate-700",
+    bgColor: "bg-slate-50 border-slate-200",
+    viewRoute: PageMap.STORAGE_ARRAY_VIEW,
+  },
+  "IoT Fleet": {
+    icon: IconProp.Signal,
+    color: "text-teal-700",
+    bgColor: "bg-teal-50 border-teal-100",
+    viewRoute: PageMap.IOT_FLEET_VIEW,
+  },
+  "OpenStack Cloud": {
+    icon: IconProp.Cloud,
+    color: "text-red-700",
+    bgColor: "bg-red-50 border-red-100",
+    viewRoute: PageMap.OPENSTACK_CLOUD_VIEW,
+  },
+  vCenter: {
+    icon: IconProp.Server,
+    color: "text-emerald-700",
+    bgColor: "bg-emerald-50 border-emerald-100",
+    viewRoute: PageMap.VMWARE_VCENTER_VIEW,
+  },
+  "Inventory Item": {
+    icon: IconProp.Cube,
+    color: "text-gray-700",
+    bgColor: "bg-gray-50 border-gray-200",
+    viewRoute: PageMap.INVENTORY_VIEW,
+  },
+  "Security Case": {
+    icon: IconProp.ShieldCheck,
+    color: "text-red-700",
+    bgColor: "bg-red-50 border-red-100",
+    viewRoute: PageMap.SECURITY_CASE_VIEW,
+  },
 };
 
 export const DEFAULT_RESOURCE_META: ResourceMeta = {
@@ -325,6 +405,12 @@ export interface ResourceLinkInput {
   action: string | undefined;
   resourceId: ObjectID | undefined;
   rootResourceId: ObjectID | undefined;
+  /*
+   * How the resource the entry rolls up to is drawn: a row that has no page
+   * of its own - a queue's owner, a status page's domain, a workflow's
+   * variable - opens its resource's page instead.
+   */
+  rootMeta?: ResourceMeta | undefined;
 }
 
 type GetParentResourceIdFunction = (data: ResourceLinkInput) => ObjectID | null;
@@ -419,9 +505,18 @@ export const getResourceLink: GetResourceLinkFunction = (
 
   const modelId: ObjectID | null = getResourceLinkModelId(data);
 
-  if (!data.meta.viewRoute || !modelId) {
-    return null;
+  if (data.meta.viewRoute && modelId) {
+    return { page: data.meta.viewRoute, modelId };
   }
 
-  return { page: data.meta.viewRoute, modelId };
+  /*
+   * No page of its own, but it belongs to a resource that has one: its
+   * entry opens that resource - which outlives the row, so a deleted
+   * owner's entry still opens the queue it belonged to.
+   */
+  if (!data.meta.viewRoute && parentResourceId && data.rootMeta?.viewRoute) {
+    return { page: data.rootMeta.viewRoute, modelId: parentResourceId };
+  }
+
+  return null;
 };

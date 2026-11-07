@@ -2,6 +2,8 @@
 
 **Files d'attente** donne à chaque file de messages, topic et abonnement qu'utilisent vos applications sa propre page : quels services y publient et lesquels y consomment, combien de messages y passent, combien échouent et combien de temps prend le traitement, ses traces et ses métriques — et, dès que les métriques propres du broker atteignent OneUptime, son arriéré, le retard des consommateurs, les lettres mortes et la limitation. Les files ont des étiquettes, des propriétaires, des règles d'étiquettes et de propriétaires et l'archivage, comme toute autre ressource. Ouvrez-les dans **Produits → Ressources → Files d'attente**.
 
+**Files d'attente → Topologie** montre comment les messages circulent entre vos services : chaque file entre les services qui y publient et ceux qui y consomment. Chaque ligne indique son débit de messages, son taux d'erreurs et son temps p95, comptés comme les comptent les cartes **Producteurs** et **Consommateurs** de la file, et dès que les métriques d'un broker atteignent OneUptime, ses files montrent le retard des consommateurs ou leur arriéré, et leurs lettres mortes. Cherchez dans le schéma, filtrez-le par broker ou ne gardez que ce qui demande de l'attention. L'onglet **Topologie** propre à une file montre d'où viennent ses messages et où ils vont.
+
 :::cards
 - [Instrumenter les applications](#instrumenter-les-applications): Les spans de messagerie que votre instrumentation OpenTelemetry envoie déjà.
 - [Métriques de santé du broker](#métriques-de-santé-du-broker): Arriéré, retard et lettres mortes de votre broker, système par système.

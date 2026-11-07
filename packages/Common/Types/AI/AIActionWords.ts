@@ -358,6 +358,7 @@ export const AI_ACTION_CARD_LINES: {
   noteAdded: string;
   statusUpdatePostedQuietly: string;
   statusUpdatePostedSubscribersNotified: string;
+  statusUpdateWaitsForApproval: string;
   pagedForIncident: string;
   runbookStarted: string;
   runbookStartedForIncident: string;
@@ -388,6 +389,13 @@ export const AI_ACTION_CARD_LINES: {
   ),
   statusUpdatePostedSubscribersNotified: translationKey(
     "Status update posted, subscribers notified",
+  ),
+  /*
+   * The project asks for public notes to be approved: the update waits, on
+   * no status page and told to no subscriber until it is approved.
+   */
+  statusUpdateWaitsForApproval: translationKey(
+    "Status update sent for approval, not published yet",
   ),
   // An on-call policy paged for an incident, named by its number.
   pagedForIncident: translationKey("Paged for incident {{incident}}"),

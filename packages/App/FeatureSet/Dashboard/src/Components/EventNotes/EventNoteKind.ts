@@ -55,6 +55,17 @@ export interface EventNotesSubscriberConfig {
   resend?: EventNotesResendConfig | undefined;
 }
 
+/*
+ * A public note kind whose project can ask for approval before a note is
+ * published (Common/Types/StatusPage/PublicNoteApproval): where its
+ * approval routes are - the note model's API path, "/incident-public-note".
+ * With it the composer says when a note will wait, and each note shows
+ * where it stands, with Approve and Reject for its approvers.
+ */
+export interface EventNotesApprovalConfig {
+  apiPath: string;
+}
+
 export interface EventNotesResendConfig {
   /*
    * Who a note sent again would reach now (SubscriberAudienceSummary for
@@ -126,4 +137,6 @@ export interface EventNoteKind<TNote extends BaseModel> {
    * with the same words (PrivateEventNotesCopy).
    */
   isPrivateEvent?: boolean | undefined;
+  // Public notes only: their approval, when the project asks for it.
+  approval?: EventNotesApprovalConfig | undefined;
 }

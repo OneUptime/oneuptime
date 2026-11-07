@@ -1,3 +1,5 @@
+import OnCallPageAs from "../../../../../Types/OnCallDutyPolicy/OnCallPageAs";
+import MicrosoftTeamsPage from "../MicrosoftTeamsPage";
 import { TurnContext } from "../Botbuilder";
 import IncidentMember from "../../../../../Models/DatabaseModels/IncidentMember";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -98,6 +100,8 @@ export const MICROSOFT_TEAMS_ROLE_PERSON_FIELD: string = "incidentRolePerson";
 export const MICROSOFT_TEAMS_PAGE_FIELD: string = "incidentPageTargets";
 export const MICROSOFT_TEAMS_PAGE_ABOUT_INCIDENT_MESSAGE_FIELD: string =
   "incidentPageMessage";
+// What they are paged as (OnCallPageAs): responders, or observers.
+export const MICROSOFT_TEAMS_PAGE_AS_FIELD: string = "incidentPageAs";
 
 // A Date and time field's two inputs: its day, and its time.
 const DATE_SUFFIX: string = "__date";
@@ -822,6 +826,13 @@ export default class MicrosoftTeamsIncidentMoreActions {
           );
         }
 
+        // Kept informed rather than asked to respond (OnCallObserverPage).
+        body.push(
+          ...MicrosoftTeamsPage.getPageAsElements({
+            id: MICROSOFT_TEAMS_PAGE_AS_FIELD,
+          }),
+        );
+
         body.push(...message);
 
         return MicrosoftTeamsIncidentMoreActions.form({
@@ -852,6 +863,11 @@ export default class MicrosoftTeamsIncidentMoreActions {
             MICROSOFT_TEAMS_PAGE_ABOUT_INCIDENT_MESSAGE_FIELD
           ] as string)
         : "";
+
+    // Responders on cards sent before it was asked.
+    const pageAs: OnCallPageAs = WorkspacePage.readPageAs(
+      data.value[MICROSOFT_TEAMS_PAGE_AS_FIELD],
+    );
 
     const problem: string | null =
       WorkspaceIncidentActions.getPageProblem(picked);
@@ -887,6 +903,8 @@ export default class MicrosoftTeamsIncidentMoreActions {
       event: incident.event,
       targets: WorkspacePage.readTargets(picked),
       props: data.databaseProps,
+      // Observers only when picked: responders, as every page was, otherwise.
+      ...(pageAs === OnCallPageAs.Observers ? { pageAs: pageAs } : {}),
       // The page's own message, when they wrote one.
       ...(message.trim() ? { message: message } : {}),
     });

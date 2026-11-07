@@ -79,6 +79,7 @@ flowchart TB
   "onCallPolicy": { "id": "1d4e…", "name": "Primary" },
   "escalationRule": { "id": "7b2f…", "name": "Level 1" },
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": {
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
@@ -98,6 +99,7 @@ flowchart TB
 | `recordType`, `record` | पेज किस बारे में है: कोई `incident`, `alert`, `incidentEpisode` या `alertEpisode` |
 | `onCallPolicy`, `escalationRule` | वह नीति और स्तर जिसने उन्हें पेज किया |
 | `isPageAgain` | `true` जब रिकॉर्ड कुछ समय पहले स्वीकार किया गया था और अब भी हल नहीं हुआ है |
+| `isObserverPage` | `true` जब व्यक्ति को ऑब्ज़र्वर के रूप में पेज किया जाता है: कोई और जवाब देता है और उसे जानकारी दी जाती है। उसके पेज को स्वीकार करने का मतलब बस इतना है कि उसने उसे देख लिया है |
 | `actions` | वे लिंक जिन्हें आपकी सेवा [पेज पर कार्रवाई करने](#पेज-पर-कार्रवाई-करना) के लिए कॉल करती है |
 
 कई लोगों के लिए एक पेज, हर व्यक्ति के लिए एक अनुरोध होता है, हर एक में उसी व्यक्ति के अपने लिंक होते हैं, ताकि OneUptime जान सके कि किसने जवाब दिया। शीर्षक, संदेश और विवरण मिलाकर 16,384 वर्णों तक सीमित हैं; लंबा विवरण काट दिया जाता है और "… (truncated — see OneUptime for the full text)" पर ख़त्म होता है।
@@ -170,6 +172,7 @@ curl -X POST "https://oneuptime.example.com/api/custom-notification-channel/page
   "onCallPolicy": null,
   "escalationRule": null,
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": null,
   "notificationType": "Send incident state changed notification when I am the owner of the incident",
   "url": "https://oneuptime.example.com/dashboard/8d1f…/incidents/9a3c…"

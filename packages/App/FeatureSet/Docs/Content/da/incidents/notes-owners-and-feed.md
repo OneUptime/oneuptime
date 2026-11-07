@@ -249,7 +249,7 @@ Nogle poster har ekstra detaljer — en notifikation til ejerne viser for eksemp
 Kortets hoved har også en menu **Handlinger**, så du kan handle uden at forlade tidslinjen:
 
 - **Kør runbook** — start et [runbook](/docs/runbooks/index) for denne hændelse.
-- **Udfør vagtpolitik** — tilkald en politik efter behov. En arkiveret politik tilkalder ingen: dens udførelseslog på hændelsen siger, at den ikke blev udført, fordi politikken er arkiveret.
+- **Udfør vagtpolitik** — tilkald en politik efter behov. En arkiveret politik tilkalder ingen: dens udførelseslog på hændelsen siger, at den ikke blev udført, fordi politikken er arkiveret. Slå **Tilkald dem som observatører** til for i stedet at holde politikkens personer orienteret: Deres svar siger kun, at de har set tilkaldet, og hændelsen bliver ikke bekræftet.
 - **Tilføj offentlig note** — siden **Offentlige noter**'s editor, i en dialog: skriv noten, og derefter **Slå opdatering op**. Skabeloner, **Udkast med AI**, vedhæftninger, **Giv abonnenter på statussiden besked** med hvem den når, og **Forhåndsvisning** er der alle. Noten slås op nu; for at tilbagedatere den vælger du **Slået op nu**.
 - **Tilføj privat note** — siden **Private noter**'s editor, i en dialog: skriv noten, og derefter **Tilføj note**.
 
@@ -269,7 +269,7 @@ Alt andet ligger bag knappen **⋯** ved siden af, den samme knap **Flere indsti
 Feedposter skrives af selve hændelsestjenesten, af begge notetjenester, af tilstandstidslinjen, af ændringer af ejere og medlemmer, af tilknytning og frakobling af advarsler, af regelmotorerne, af vagtens udførelse, af kørslerne af AI-undersøgelsen og postmortemmen og af cronjobbene til notifikationer. Begivenhedstyperne dækker:
 
 - **Selve hændelsen** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. En post `IncidentUpdated` registrerer, hvad en redigering ændrede: titlen, beskrivelsen, grundårsagen, afhjælpningsnoterne, etiketterne, alvorsgraden, monitorerne og den status, der blev sat på dem, og de statussider, der blev tilføjet til eller fjernet fra hændelsens omfang. Den har en linje for hver værdi, der ændrede sig, og ingen for en værdi, der blev gemt, som den var, så at gemme et kort uden ændringer, eller en API-klient eller et workflow, der skriver hændelsen tilbage, som den er, tilføjer slet ingen post. Tekst, der lyder ens, er ens (linjeskift og mellemrummene omkring den undtaget), og etiketter er det samme sæt i enhver rækkefølge; en værdi, der blev ryddet, lyder som fjernet, og at fjerne alle etiketter som "All labels removed.". En advarsels poster **Alert updated** virker på samme måde.
-- **Noter og rapporter** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. En post `PostmortemNote` skrives, når postmortemmens note ændres, ikke hver gang postmortemmen gemmes.
+- **Noter og rapporter** — `PublicNote`, `PublicNoteApproval`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. En post `PostmortemNote` skrives, når postmortemmens note ændres, ikke hver gang postmortemmen gemmes.
 - **Personer** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved` og `ChannelMemberAdded`, vist som **Kanalmedlem tilføjet**, for en person, der er tilføjet til hændelsens Slack- eller Mattermost-kanal fra dens side. Se [Hvem der er i en posts kanal](/docs/workspace-connections/slack#hvem-der-er-i-en-posts-kanal).
 - **Tilknyttede advarsler** — `AlertLinked` og `AlertUnlinked`, vist som **Advarsel tilknyttet** og **Advarsel frakoblet**.
 - **Notifikationer** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
@@ -304,7 +304,7 @@ Der er fem veje ind på listen over ejere:
 
 - **Ved erklæring** — den person, der erklærer en hændelse, bliver ejer, og **Ejere** under **Flere felter** på **Erklær hændelse** tilføjer flere: hvert team, personen er medlem af, er ét klik væk under feltet. Se [Hvem der ejer den](/docs/incidents/declaring-incidents#hvem-der-ejer-den).
 - **Fra en hændelsesskabelon** — skabeloner har et felt **Ejere**: de personer og teams, der ejer hændelsen og får besked, når den oprettes eller opdateres, valgt fra den samme liste som **Tilføj ejer**. At oprette en hændelse fra skabelonen udfylder dem på forhånd, og de tilføjes, når hændelsens Slack- og Microsoft Teams-kanaler findes, så en notifikationsregel, der inviterer hændelsens ejere til en ny kanal, også inviterer dem. Dashboardet, og et workflows trin **Create One Incident** med en valgt **Incident Template**, tilføjer dem uden beskeden "du er blevet tilføjet"; en [formular](/docs/forms/on-submit) med en skabelon giver dem besked og holder hændelsens notifikation **Hændelse oprettet** tilbage, indtil de er tilføjet. Se [Opret en hændelse](/docs/incidents/declaring-incidents).
-- **Fra Ejerregler for hændelse** — matchende regler tilføjer ejere automatisk ved oprettelsen.
+- **Fra Ejerregler for hændelse** — matchende regler tilføjer ejere automatisk ved oprettelsen og igen, når hændelsens alvorlighed eller etiketter ændres.
 - **Ved oprettelse via API'et** — brugere og teams, der angives som ejere med oprettelseskaldet, tilføjes på samme måde, når kanalerne findes, og uden beskeden "du er blevet tilføjet".
 - **By hand** — elementet **Tilføj ejer** på siden **Ejere**, når som helst under hændelsen, eller **Tilføj** under ejerne i hovedet på **Oversigt**, så længe den er åben.
 
@@ -324,6 +324,8 @@ En ny regel skal tilføje nogen: vælg mindst én ejer, slå en kontakt under **
 **Underret ejere**, under **Flere felter**, styrer, om folk får det at vide. Lad det være slået til for rigtig routing; slå det fra for at tilføje ejere i stilhed — nyttigt, når en regel er en administrativ bekvemmelighed og ikke en tilkaldelse.
 
 Hver kørsel af en regel skrives i hændelsens feed, så du altid kan se, om en person blev tilføjet af en regel eller af et menneske.
+
+Regler kører, når en hændelse oprettes, og igen, hver gang dens alvorlighed eller etiketter ændres, mens den er åben. En hændelse, der hæves til en alvorlighed, som en regel matcher, eller får en etiket, som en regel matcher, får den regels ejere med det samme, med besked, som reglen siger, og hændelsens feed fortæller, at reglen nu matcher den, og hvorfor: Sådan overtager et team en hændelse, når den viser sig at ramme hele organisationen. Ejere fjernes aldrig, når hændelsen ikke længere matcher.
 
 ## Hvad ejerne får besked om
 

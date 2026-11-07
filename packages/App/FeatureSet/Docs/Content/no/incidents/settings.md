@@ -19,6 +19,7 @@ Konfigurasjonen av hendelser ligger under **Hendelser**, ikke under **Prosjektin
 | **Hendelsesalvor**           | Legge til, gi nytt navn, gi ny farge og endre rekkefølgen på alvorlighetsgradene.            |
 | **Hendelsesmaler**           | Forhåndsutfylle en hel hendelse — tittel, beskrivelse, ressurser, vaktpolicyer, eiere, etiketter. |
 | **Notatmaler**               | Gjenbrukbar tekst for offentlige og private notater.                                         |
+| **Public Note Approval** | La offentlige notater godkjennes før de publiseres, og velg hvem som godkjenner dem. |
 | **Postmortem-maler**         | Gjenbrukbare strukturer for etteranalyser.                                                   |
 | **Statuser for etteranalyse** | Statusene en etteranalyse går gjennom, fra Ikke startet til Fullført. |
 | **Egendefinerte felt**       | Definere ekstra felt som vises på hver hendelse.                                             |
@@ -617,6 +618,8 @@ Eier-, etikett- og personvernregler virker bare på hendelser og episoder som op
 
 **En regel kan arve.** Under **Etiketter å legge til** (eller **Eiere**) inneholder den sammenbrettede seksjonen **Arv etiketter** (eller **Arv eiere**) seks brytere som også gir videre etikettene (eller eierne) til hendelsens monitorer, verter, Kubernetes-klynger, Docker-verter, Podman-verter og tjenester. En regel som arver, kan la **Etiketter å legge til** stå tom og får da navn etter det den arver fra (_Inherit labels from monitors, hosts_); en ny regel som verken nevner eller arver noe, kan ikke lagres — verken fra skjemaet, API-et eller Terraform. Episoderegler, på fanen **Episoderegler**, har ingen brytere for arv. På en eierregel for hendelser eller varsler slutter **Arv eiere** med **Oppretterens team**: av teamene som står der, blir hvert team som personen som erklærer hendelsen eller oppretter varselet, er med i, også eier.
 
+En eierregel for hendelser kan også tilhøre team: **Ansvarlige team** under **Flere felt** sier hvem som kan redigere eller slette regelen – bare medlemmene av de teamene og prosjektadministratorer – ikke hvem regelen gjør til eiere. Se [Regler som tilhører team](/docs/permissions/index#regler-som-tilhører-team).
+
 **Eldre regler som ikke legger til noe** — lagret før OneUptime spurte hva de legger til — kan fortsatt få nytt navn, slås av eller slettes, og listen merker hver av dem med **Legger ikke til noe**. [Etikett- og eierregler](/docs/configuration/label-and-owner-rules) gjennomgår skjemaet trinn for trinn.
 
 ## Grupperingsregler for hendelser
@@ -654,7 +657,7 @@ Regler som ble lagret før skjemaet spurte om eiere, kan fortsatt ha et standard
 
 ## Vaktregler for hendelser
 
-**Hendelser → Regler → Vaktregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) er der du gjør tilkalling automatisk. Kortet, **Hendelsesvaktregler**, sier hva de gjør: tilkaller automatisk via vaktretningslinjer for nye hendelser som samsvarer. Siden har to faner: **Hendelsesregler** og **Episoderegler**.
+**Hendelser → Regler → Vaktregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) er der du gjør tilkalling automatisk. Kortet, **Hendelsesvaktregler**, sier hva de gjør: tilkaller automatisk via vaktretningslinjer for hendelser som samsvarer, enten for å håndtere dem eller som observatører som holdes orientert. Siden har to faner: **Hendelsesregler** og **Episoderegler**.
 
 Opprettelsesskjemaet har to trinn:
 
@@ -664,6 +667,12 @@ Opprettelsesskjemaet har to trinn:
 :::
 
 En regel tilkaller så snart en hendelse samsvarer med den. For å la den vente på arbeidstiden i stedet, svarer du **Bare i arbeidstiden** på **Når skal denne regelen tilkalle?** under **Flere felt**. **Arbeidstid** starter som mandag til fredag, 09:00 til 17:00, i din egen tidssone: velg andre dager, et annet **Starttidspunkt** eller **Sluttidspunkt** eller en annen **Tidssone**, og en setning under valget forteller hva som skjer. I listen viser regelen arbeidstiden under navnet. En hendelse som samsvarer utenfor disse tidene, får en kjøring som venter, som **Venter**, og ikke tilkaller noen; når arbeidstiden begynner, tilkaller policyen sin første eskaleringsregel og eskalerer som vanlig. Blir hendelsen bekreftet eller løst først, blir ingen tilkalt. Endrer hendelsen seg mens den venter, slik at den nå samsvarer med en regel som tilkaller med en gang, for eksempel fordi alvorlighetsgraden heves, begynner kjøringen å tilkalle straks, og feeden til hendelsen forteller hvorfor.
+
+En regel tilkaller personene i policyene sine for å håndtere hendelsen: Den som bekrefter tilkallingen, bekrefter hendelsen. For å holde et team orientert mens et annet håndterer den, for eksempel et tilsynsteam som skal høre om hver kritisk hendelse, svarer du **Observatører** på **Tilkall personene i disse retningslinjene som** under **Flere felt**. Tilkallingen deres sier at de er observatører, og bekrefter de den, sier det bare at de har sett den: Hendelsen blir ikke bekreftet, ingen andres tilkalling stopper, og ingen blir Hendelsesleder for den. Tilkallingen deres fortsetter til en av dem svarer eller hendelsen er løst, og en Slack- eller Microsoft Teams-regel som inviterer vakthavende til hendelsens kanal, utelater dem. I listen sier regelen under navnet at den tilkaller som observatører. En policy som én samsvarende regel tilkaller for å håndtere hendelsen og en annen som observatører, tilkaller for å håndtere den.
+
+Regler kjører når en hendelse opprettes, og igjen hver gang alvorlighetsgraden eller etikettene endres mens den er åpen. Heves den til en alvorlighetsgrad som en regel samsvarer med, eller får den en etikett som en regel samsvarer med, tilkaller policyene til den regelen med en gang, for å håndtere hendelsen eller som observatører, og feeden til hendelsen forteller at regelen nå samsvarer med den, og hvorfor. En policy som allerede har tilkalt om hendelsen, tilkaller ikke igjen, med mindre den tilkalte som observatører og nå skal håndtere den. Ingenting blir gjort om når hendelsen ikke lenger samsvarer, og en endret tittel, beskrivelse eller monitor kjører ikke reglene igjen.
+
+En regel kan tilhøre team. **Ansvarlige team** under **Flere felt** forbeholder den teamene du velger: bare medlemmene deres og prosjektadministratorer kan redigere eller slette den, og alle andre som ser regler, ser den skrivebeskyttet. En regel som ikke tilhører noe team, kan endres av alle som kan redigere vaktregler, og episoderegler kan også tilhøre team. Se [Regler som tilhører team](/docs/permissions/index#regler-som-tilhører-team).
 
 ### Slik avgjøres samsvar
 

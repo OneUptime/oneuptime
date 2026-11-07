@@ -31,6 +31,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * kept showing the whole snapshot, and the zoom was gone as soon as the
  * reader came back to the chart.
  *
+ * Issue #5954 made a metrics monitor's snapshot a metric investigation:
+ * the card charts the range around the event's start (here, the end of the
+ * window the monitor evaluated: an episode panel handed no start), its
+ * time picker stands on every tab's card in the badge's place, and a drag,
+ * a double-click and Reset zoom work as they did, over that range.
+ *
  * TelemetrySnapshotPanel (the incident and alert EPISODE pages' snapshot)
  * is rendered with the real companion tabs, the real MetricView (its
  * MetricCharts stood in for by buttons that call exactly the handlers
@@ -273,7 +279,9 @@ const NOW: Date = new Date("2026-09-14T19:00:00.000Z");
 const SNAPSHOT_START: Date = new Date("2026-09-14T17:45:00.000Z");
 const SNAPSHOT_END: Date = new Date("2026-09-14T18:00:00.000Z");
 
-const SNAPSHOT_TEXT: string = `${SNAPSHOT_START.toISOString()}..${SNAPSHOT_END.toISOString()}`;
+// What the investigation charts first: thirty minutes either side.
+const AROUND_START_TEXT: string =
+  "2026-09-14T17:30:00.000Z..2026-09-14T18:30:00.000Z";
 const SLICE_TEXT: string = `${MOCK_DRAG.start.toISOString()}..${MOCK_DRAG.end.toISOString()}`;
 const NESTED_TEXT: string = `${MOCK_NESTED_DRAG.start.toISOString()}..${MOCK_NESTED_DRAG.end.toISOString()}`;
 
@@ -416,9 +424,10 @@ function resetButtons(): Array<HTMLElement> {
   return screen.queryAllByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID);
 }
 
-function badgeTitle(): string {
-  return OneUptimeDate.getInBetweenDatesAsFormattedString(
-    new InBetween<Date>(SNAPSHOT_START, SNAPSHOT_END),
+// The range the investigation's picker names.
+function pickedRange(): string {
+  return (
+    screen.getByTestId("metric-investigation-time-button").textContent || ""
   );
 }
 
@@ -505,19 +514,19 @@ afterEach(() => {
   window.history.replaceState({}, "", "/");
 });
 
-describe("a drag on the snapshot's metric chart zooms every tab of the snapshot", () => {
-  test("before any drag, every tab is on the snapshot window", async () => {
+describe("a drag on the investigation's metric chart zooms every tab of the card", () => {
+  test("before any drag, every tab is on the range around the start", async () => {
     await renderPanel();
 
-    expect(chartWindow()).toBe(SNAPSHOT_TEXT);
+    expect(chartWindow()).toBe(AROUND_START_TEXT);
     expect(charts().onTimeRangeSelect).toBeInstanceOf(Function);
     expect(charts().onTimeRangeReset).toBeUndefined();
     expect(resetButtons()).toHaveLength(0);
 
     await openTab("Logs");
-    expect(shellWindowOf(logsShellProbe)).toBe(SNAPSHOT_TEXT);
+    expect(shellWindowOf(logsShellProbe)).toBe(AROUND_START_TEXT);
     await waitFor(() => {
-      expect(logListWindow()).toBe(SNAPSHOT_TEXT);
+      expect(logListWindow()).toBe(AROUND_START_TEXT);
     });
   });
 
@@ -578,7 +587,7 @@ describe("a drag on the snapshot's metric chart zooms every tab of the snapshot"
     expect(resetButtons()).toHaveLength(1);
   });
 
-  test("a double-click after coming back returns every tab to the snapshot window", async () => {
+  test("a double-click after coming back returns every tab to the range around the start", async () => {
     await renderPanel();
     await zoomTheSnapshot();
     await openTab("Traces");
@@ -590,19 +599,19 @@ describe("a drag on the snapshot's metric chart zooms every tab of the snapshot"
     await press("Double-click the snapshot chart");
 
     await waitFor(() => {
-      expect(chartWindow()).toBe(SNAPSHOT_TEXT);
+      expect(chartWindow()).toBe(AROUND_START_TEXT);
     });
     expect(charts().onTimeRangeReset).toBeUndefined();
     expect(resetButtons()).toHaveLength(0);
 
     await openTab("Logs");
-    expect(shellWindowOf(logsShellProbe)).toBe(SNAPSHOT_TEXT);
+    expect(shellWindowOf(logsShellProbe)).toBe(AROUND_START_TEXT);
     await waitFor(() => {
-      expect(logListWindow()).toBe(SNAPSHOT_TEXT);
+      expect(logListWindow()).toBe(AROUND_START_TEXT);
     });
   });
 
-  test("Reset zoom beside the badge on the Logs tab returns the whole snapshot", async () => {
+  test("Reset zoom beside the picker on the Logs tab returns every tab", async () => {
     await renderPanel();
     await zoomTheSnapshot();
     await openTab("Logs");
@@ -615,22 +624,24 @@ describe("a drag on the snapshot's metric chart zooms every tab of the snapshot"
     });
 
     // The open tab follows at once, list and chart requests included.
-    expect(shellWindowOf(logsShellProbe)).toBe(SNAPSHOT_TEXT);
+    expect(shellWindowOf(logsShellProbe)).toBe(AROUND_START_TEXT);
     await waitFor(() => {
-      expect(logListWindow()).toBe(SNAPSHOT_TEXT);
+      expect(logListWindow()).toBe(AROUND_START_TEXT);
     });
     await waitFor(() => {
-      expect(histogramWindow("/telemetry/logs/histogram")).toBe(SNAPSHOT_TEXT);
+      expect(histogramWindow("/telemetry/logs/histogram")).toBe(
+        AROUND_START_TEXT,
+      );
     });
     expect(resetButtons()).toHaveLength(0);
 
     await backOnMetrics();
-    expect(chartWindow()).toBe(SNAPSHOT_TEXT);
+    expect(chartWindow()).toBe(AROUND_START_TEXT);
     expect(charts().onTimeRangeReset).toBeUndefined();
   });
 
   test.each([["Logs"], ["Traces"], ["Exceptions"]])(
-    "the %s tab's card names the snapshot window and offers Reset zoom while zoomed",
+    "the %s tab's card carries the time picker, and Reset zoom while zoomed",
     async (tabName: string) => {
       await renderPanel();
       await zoomTheSnapshot();
@@ -638,7 +649,9 @@ describe("a drag on the snapshot's metric chart zooms every tab of the snapshot"
       await openTab(tabName);
 
       const tabPanel: HTMLElement = screen.getByRole("tabpanel");
-      expect(within(tabPanel).getByText(badgeTitle())).toBeInTheDocument();
+      expect(
+        within(tabPanel).getByTestId("metric-investigation-time-button"),
+      ).toBeVisible();
       expect(
         within(tabPanel).getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
       ).toBeVisible();
@@ -650,7 +663,7 @@ describe("a drag on the snapshot's metric chart zooms every tab of the snapshot"
     ["Traces", "Spans"],
     ["Exceptions", "Exceptions"],
   ])(
-    "the %s tab's card says it shows the zoomed part of the snapshot window, until a reset",
+    "the %s tab's card says it shows the selected time range, zoomed or not",
     async (tabName: string, noun: string) => {
       await renderPanel();
       await zoomTheSnapshot();
@@ -659,7 +672,7 @@ describe("a drag on the snapshot's metric chart zooms every tab of the snapshot"
 
       expect(
         screen.getByText(
-          `${noun} in this incident's telemetry scope during the zoomed part of the snapshot window.`,
+          `${noun} in this incident's telemetry scope during the selected time range.`,
         ),
       ).toBeInTheDocument();
 
@@ -671,23 +684,25 @@ describe("a drag on the snapshot's metric chart zooms every tab of the snapshot"
 
       expect(
         screen.getByText(
-          `${noun} in this incident's telemetry scope during the snapshot window.`,
+          `${noun} in this incident's telemetry scope during the selected time range.`,
         ),
       ).toBeInTheDocument();
     },
   );
 
-  test("the Metrics tab's badge keeps naming the snapshot window while the chart shows the slice", async () => {
+  test("the Metrics tab's picker names the slice, with Reset zoom beside it", async () => {
     await renderPanel();
+    expect(pickedRange()).toContain("Around the start");
+
     await zoomTheSnapshot();
 
-    expect(screen.getByText(badgeTitle())).toBeInTheDocument();
+    expect(pickedRange()).not.toContain("Around the start");
     expect(
       screen.getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
     ).toBeVisible();
   });
 
-  test("two drags, then the Logs tab: the second slice; one reset: the snapshot window", async () => {
+  test("two drags, then the Logs tab: the second slice; one reset: the range around the start", async () => {
     await renderPanel();
     await zoomTheSnapshot();
     await press("Drag again across the snapshot chart");
@@ -701,7 +716,7 @@ describe("a drag on the snapshot's metric chart zooms every tab of the snapshot"
     await act(async () => {
       fireEvent.click(screen.getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID));
     });
-    expect(shellWindowOf(logsShellProbe)).toBe(SNAPSHOT_TEXT);
+    expect(shellWindowOf(logsShellProbe)).toBe(AROUND_START_TEXT);
   });
 
   test("a zoom made inside a companion stays its own: the snapshot keeps its slice", async () => {
@@ -772,7 +787,7 @@ describe("the snapshot's zoom across the page's background refresh", () => {
     expect(logListQueries().length).toBe(listFetches);
   });
 
-  test("a reset after it still returns to the snapshot window", async () => {
+  test("a reset after it still returns to the range around the start", async () => {
     const rendered: RenderResult = await renderPanel();
     await zoomTheSnapshot();
     await refresh(rendered);
@@ -780,48 +795,59 @@ describe("the snapshot's zoom across the page's background refresh", () => {
     await press("Double-click the snapshot chart");
 
     await waitFor(() => {
-      expect(chartWindow()).toBe(SNAPSHOT_TEXT);
+      expect(chartWindow()).toBe(AROUND_START_TEXT);
     });
     expect(resetButtons()).toHaveLength(0);
   });
 });
 
-describe("a snapshot of a new window ends the zoom", () => {
+describe("a snapshot of a new window", () => {
   const NEXT_START: Date = new Date("2026-09-14T18:30:00.000Z");
   const NEXT_END: Date = new Date("2026-09-14T18:45:00.000Z");
-  const NEXT_TEXT: string = `${NEXT_START.toISOString()}..${NEXT_END.toISOString()}`;
+  /*
+   * Around its start (the end of what was evaluated), cut at now: a moment
+   * after NOW, as the waits move the fake clock on by a few ticks.
+   */
+  function expectAroundTheNewStart(text: string | undefined): void {
+    const [start, end]: Array<string> = (text || "").split("..");
+    const endMs: number = new Date(end || "").getTime();
 
-  test("the chart and every tab move to the new window, with nothing to reset", async () => {
+    expect(start).toBe("2026-09-14T18:15:00.000Z");
+    expect(endMs).toBeGreaterThanOrEqual(NOW.getTime());
+    expect(endMs - NOW.getTime()).toBeLessThan(60 * 1000);
+  }
+
+  test("moves an untouched card, and every tab, around the new start", async () => {
     const rendered: RenderResult = await renderPanel();
-    await zoomTheSnapshot();
 
     await act(async () => {
       rendered.rerender(panel(NEXT_START, NEXT_END));
     });
 
     await waitFor(() => {
-      expect(chartWindow()).toBe(NEXT_TEXT);
+      expectAroundTheNewStart(chartWindow());
     });
-    expect(charts().onTimeRangeReset).toBeUndefined();
     expect(resetButtons()).toHaveLength(0);
 
     await openTab("Traces");
-    expect(shellWindowOf(shellProbe)).toBe(NEXT_TEXT);
+    expectAroundTheNewStart(shellWindowOf(shellProbe));
   });
 
-  test("an open companion tab follows the new window too", async () => {
+  test("keeps a zoom the reader made: it is the reader's pick, and resets around the new start", async () => {
     const rendered: RenderResult = await renderPanel();
     await zoomTheSnapshot();
-    await openTab("Logs");
 
     await act(async () => {
       rendered.rerender(panel(NEXT_START, NEXT_END));
     });
 
-    expect(shellWindowOf(logsShellProbe)).toBe(NEXT_TEXT);
+    expect(chartWindow()).toBe(SLICE_TEXT);
+    expect(resetButtons()).toHaveLength(1);
+
+    await press("Double-click the snapshot chart");
+
     await waitFor(() => {
-      expect(logListWindow()).toBe(NEXT_TEXT);
+      expectAroundTheNewStart(chartWindow());
     });
-    expect(resetButtons()).toHaveLength(0);
   });
 });

@@ -13,8 +13,7 @@ const ScheduledMaintenanceAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Scheduled Maintenance Audit Logs"
       description="All changes made to this scheduled maintenance event."
-      resourceType="Scheduled Maintenance Event"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

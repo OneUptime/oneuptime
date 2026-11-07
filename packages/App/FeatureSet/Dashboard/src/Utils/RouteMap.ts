@@ -733,6 +733,7 @@ export const DatabaseRoutePath: Dictionary<string> = {
   [PageMap.DATABASE_SERVER_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
   [PageMap.DATABASE_SERVER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.DATABASE_SERVER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.DATABASE_SERVER_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.DATABASE_SERVER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.DATABASE_DOCUMENTATION]: `documentation`,
@@ -751,14 +752,17 @@ export const DatabaseRoutePath: Dictionary<string> = {
  */
 export const MessageQueueRoutePath: Dictionary<string> = {
   [PageMap.MESSAGE_QUEUE_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY]: `${RouteParams.ModelID}/topology`,
   [PageMap.MESSAGE_QUEUE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.MESSAGE_QUEUE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.MESSAGE_QUEUE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.MESSAGE_QUEUE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.MESSAGE_QUEUE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.MESSAGE_QUEUES_ARCHIVED]: `archived`,
   [PageMap.MESSAGE_QUEUES_DOCUMENTATION]: `documentation`,
+  [PageMap.MESSAGE_QUEUES_TOPOLOGY]: `topology`,
   [PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.MESSAGE_QUEUES_SETTINGS_LABEL_RULES_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.MESSAGE_QUEUES_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
@@ -812,6 +816,7 @@ export const RumRoutePath: Dictionary<string> = {
   [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION]: `${RouteParams.ModelID}/session-replay-documentation`,
   [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.RUM_APPLICATION_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.RUM_APPLICATION_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.RUM_APPLICATION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.RUM_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.RUM_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
@@ -1335,6 +1340,8 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
   [PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: "settings/linked-alerts",
+  [PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL]:
+    "settings/public-note-approval",
   [PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP]:
     "settings/episode-membership",
   [PageMap.INCIDENTS_SETTINGS_NUMBERING]: "settings/numbering",
@@ -1484,6 +1491,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING]:
     "settings/numbering",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR]: "settings/calendar",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_PUBLIC_NOTE_APPROVAL]:
+    "settings/public-note-approval",
 
   [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -1561,6 +1570,7 @@ export const TeamsRoutePath: Dictionary<string> = {
   [PageMap.TEAM_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
   [PageMap.TEAM_VIEW_ON_CALL_SCHEDULES]: `${RouteParams.ModelID}/on-call-schedules`,
   [PageMap.TEAM_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
+  [PageMap.TEAM_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.TEAM_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
 
@@ -2782,6 +2792,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL]
+    }`,
+  ),
+
   [PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP]
@@ -3090,6 +3106,15 @@ const RouteMap: Dictionary<Route> = {
       ]
     }`,
   ),
+
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_PUBLIC_NOTE_APPROVAL]:
+    new Route(
+      `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+        ScheduledMaintenanceEventsRoutePath[
+          PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_PUBLIC_NOTE_APPROVAL
+        ]
+      }`,
+    ),
 
   [PageMap.SERVICE_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/*`,
@@ -6827,6 +6852,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DATABASE_SERVER_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/databases/${
       DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION]
@@ -6890,6 +6921,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY]
+    }`,
+  ),
+
   [PageMap.MESSAGE_QUEUE_VIEW_TRACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/queues/${
       MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_TRACES]
@@ -6914,6 +6951,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.MESSAGE_QUEUE_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/queues/${
       MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_DELETE]
@@ -6929,6 +6972,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MESSAGE_QUEUES_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/queues/${
       MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUES_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUES_TOPOLOGY]
     }`,
   ),
 
@@ -7062,6 +7111,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUM_APPLICATION_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_AUDIT_LOGS]
     }`,
   ),
 
@@ -9133,6 +9188,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TEAM_VIEW_CUSTOM_FIELDS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/teams/${
       TeamsRoutePath[PageMap.TEAM_VIEW_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW_AUDIT_LOGS]
     }`,
   ),
 

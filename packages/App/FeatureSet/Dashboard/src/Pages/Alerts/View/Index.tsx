@@ -71,8 +71,8 @@ import {
 } from "Common/UI/Components/Forms/Types/Field";
 import AlertEpisodeElement from "../../../Components/AlertEpisode/AlertEpisode";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import EventMetricInvestigationPanel from "../../../Components/Telemetry/EventMetricInvestigationPanel";
+import { EventMetricSubject } from "../../../Utils/EventMetricInvestigation";
 import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import TelemetryCompanionSignalTabs from "../../../Components/Telemetry/TelemetryCompanionSignalTabs";
@@ -282,15 +282,16 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [telemetrySnapshotWindow, setTelemetrySnapshotWindow] =
     useState<InBetween<Date> | null>(null);
   /*
-   * A drag on the snapshot's primary chart (the metric chart, or a logs,
-   * traces or exceptions explorer's histogram) zooms the whole snapshot,
-   * every tab of it; see TelemetrySnapshotZoom. Held by the page, above the
-   * tabs, so it outlives a switch to another tab and back, and the
-   * background refresh (which re-reads an equal window) keeps it.
+   * A drag on the snapshot's primary chart (a logs, traces or exceptions
+   * explorer's histogram) zooms the whole snapshot, every tab of it; see
+   * TelemetrySnapshotZoom. Held by the page, above the tabs, so it outlives
+   * a switch to another tab and back, and the background refresh (which
+   * re-reads an equal window) keeps it. A metrics monitor's alert has its
+   * metric investigation instead (EventMetricInvestigationPanel), whose
+   * time range its tabs follow.
    */
   const snapshotZoom: TelemetrySnapshotZoom = useTelemetrySnapshotZoom({
     snapshotWindow: telemetrySnapshotWindow,
-    metricViewData: telemetryQuery?.metricViewData,
     telemetryType: telemetryQuery?.telemetryType,
     explorerQuery: telemetryQuery?.telemetryQuery,
     subjectKey: modelIdString,
@@ -981,7 +982,14 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }
 
   /*
-   * Built once and shared by all four preview cards. Resolved to `undefined`
+   * A metrics monitor's alert: its telemetry card is the metric
+   * investigation (EventMetricInvestigationPanel), not the snapshot card.
+   */
+  const isMetricSnapshot: boolean =
+    telemetryQuery?.telemetryType === TelemetryType.Metric;
+
+  /*
+   * Built once and shared by the preview cards. Resolved to `undefined`
    * rather than an element that renders nothing, because Card decides whether
    * to lay out its right-hand column from the PRESENCE of rightElement — an
    * element returning an empty fragment is still truthy, and would leave an
@@ -1177,7 +1185,30 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }}
           />
 
-          {telemetryQuery && (
+          {isMetricSnapshot && telemetryQuery ? (
+            /*
+             * A metrics monitor's alert: the metrics it watched, to
+             * investigate right here - any time range, the ones around the
+             * alert first, any other metric - with its moments marked on
+             * the charts, and the other tabs on the same time range.
+             */
+            <EventMetricInvestigationPanel
+              telemetryQuery={telemetryQuery}
+              evaluationWindow={telemetrySnapshotWindow}
+              seriesSummary={seriesSummary}
+              subject={EventMetricSubject.Alert}
+              eventId={modelIdString}
+              startedAt={responseTimes.startedAt}
+              endedAt={durationEndDate}
+              impactStartedAt={alertImpactStartedAt}
+              stateTimeline={timelineDates}
+              states={alertStates}
+            />
+          ) : (
+            <></>
+          )}
+
+          {telemetryQuery && !isMetricSnapshot && (
             <TelemetryCompanionSignalTabs
               telemetryQuery={telemetryQuery}
               // The companion tabs follow the zoom: they show the slice too.
@@ -1246,44 +1277,6 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           </TimeRangeZoomProvider>
                         </Card>
                       </div>
-                    )}
-
-                  {telemetryQuery.telemetryType === TelemetryType.Metric &&
-                    snapshotZoom.metricViewData && (
-                      <Card
-                        title={"Metrics"}
-                        description={
-                          seriesSummary
-                            ? translator.translateTemplate(
-                                "Metrics for this alert, scoped to the affected series ({{seriesSummary}}).",
-                                { seriesSummary: seriesSummary },
-                              )
-                            : "Metrics for this alert."
-                        }
-                        rightElement={snapshotWindowAlert}
-                      >
-                        <MetricView
-                          data={snapshotZoom.metricViewData}
-                          hideQueryElements={true}
-                          chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-                          hideStartAndEndDate={true}
-                          /*
-                           * A drag zooms the whole snapshot, and a
-                           * double-click (or Reset zoom beside the badge)
-                           * returns it to the snapshot window. The window
-                           * itself is a record, nobody's to change
-                           * (onChange is a no-op). A snapshot that stored
-                           * no window has nothing to hand the other tabs:
-                           * its chart zooms itself alone.
-                           */
-                          onTimeRangeSelect={snapshotZoom.onTimeRangeSelect}
-                          onTimeRangeReset={snapshotZoom.onTimeRangeReset}
-                          localChartZoom={true}
-                          onChange={(_data: MetricViewData) => {
-                            // do nothing!
-                          }}
-                        />
-                      </Card>
                     )}
 
                   {telemetryQuery.telemetryType === TelemetryType.Exception &&

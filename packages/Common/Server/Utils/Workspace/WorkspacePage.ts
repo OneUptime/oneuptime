@@ -1,3 +1,9 @@
+import OnCallPageAs from "../../../Types/OnCallDutyPolicy/OnCallPageAs";
+import {
+  ON_CALL_OBSERVERS_NEED_A_RECORD_MESSAGE,
+  isPageAsObservers,
+  toOnCallPageAs,
+} from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -17,6 +23,7 @@ import WorkspaceLiveMessageKey, {
   WorkspaceLiveMessagePageRecordType,
 } from "../../../Types/Workspace/WorkspaceLiveMessageKey";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import { WorkspaceDropdownBlock } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -209,6 +216,8 @@ export interface WorkspacePageFormPrefill {
   message: string;
   // Said above the form: who was named that it cannot pick.
   notes: Array<string>;
+  // What they are paged as: "as observers" typed after them (OnCallPageAs).
+  pageAs?: OnCallPageAs | undefined;
 }
 
 // What a page came to, for the person who paged.
@@ -269,6 +278,11 @@ export const WORKSPACE_PAGE_FORM_TEXT: {
   pickWho: string;
   pickFewer: string;
   writeMessage: string;
+  // What they are paged as (OnCallPageAs), for a page about a record.
+  pageAsLabel: string;
+  pageAsResponders: string;
+  pageAsObservers: string;
+  pageAsHint: string;
 } = {
   // Slack shows 24 characters of a modal's title.
   title: "Page someone",
@@ -286,6 +300,12 @@ export const WORKSPACE_PAGE_FORM_TEXT: {
   pickWho: "Pick who to page.",
   pickFewer: `Pick ${MAX_ON_CALL_DIRECT_PAGE_TARGETS} at most.`,
   writeMessage: "Write what the page is about.",
+  pageAsLabel: "Page them as",
+  // Slack shows 75 characters of an option.
+  pageAsResponders: "Responders: they take it on",
+  pageAsObservers: "Observers: keep them informed",
+  pageAsHint:
+    "Observers are told while the people responding stay on it. Their answer only says they've seen it: nothing is acknowledged.",
 };
 
 const WHITE_SPACE_RUN: RegExp = /\s+/g;
@@ -667,6 +687,25 @@ export default class WorkspacePage {
     about: WorkspacePageSubject | undefined,
   ): boolean {
     return !about?.record;
+  }
+
+  /*
+   * Why a page typed "as observers" cannot go out, or null when it can.
+   * Observers are kept informed about an incident or an alert that is there
+   * while somebody else responds (OnCallObserverPage). A page about
+   * something new needs somebody to respond to it, so "as observers"
+   * anywhere but a record's own channel is refused at once: before anybody
+   * is said to be paged, and before an alert is made.
+   */
+  public static getObserverPageRefusal(data: {
+    text: WorkspacePageText;
+    about: WorkspacePageSubject;
+  }): string | null {
+    if (data.about.record || !isPageAsObservers(data.text.pageAs)) {
+      return null;
+    }
+
+    return ON_CALL_OBSERVERS_NEED_A_RECORD_MESSAGE;
   }
 
   /*
@@ -1122,6 +1161,7 @@ export default class WorkspacePage {
       values: values,
       message: message,
       notes: notes,
+      ...(data.text.pageAs ? { pageAs: data.text.pageAs } : {}),
     };
   }
 
@@ -1244,12 +1284,18 @@ export default class WorkspacePage {
     // What the page is about: something new when left out.
     about?: WorkspacePageSubject | undefined;
     place?: WorkspacePagePlace | undefined;
+    /*
+     * What they are paged as (OnCallPageAs): responders when left out.
+     * Observers need a record to be told about (OnCallObserverPage).
+     */
+    pageAs?: OnCallPageAs | undefined;
   }): Promise<WorkspacePageOutcome> {
     const record: WorkspacePageRecord | null = data.about?.record || null;
 
     const result: OnCallPageResult = await OnCallPageService.page({
       projectId: data.projectId,
       targets: data.targets,
+      pageAs: data.pageAs,
       about: record
         ? {
             ...WorkspacePageAbout.getRecordAbout(record),
@@ -1332,6 +1378,52 @@ export default class WorkspacePage {
   }
 
   /*
+   * The form's "Page them as" choice (OnCallPageAs), in Slack's modal: for a
+   * page about an incident or an alert that is there - observers are told
+   * about something somebody else responds to. Responders until changed.
+   */
+  public static getPageAsDropdown(data: {
+    blockId: string;
+    initialValue?: OnCallPageAs | undefined;
+  }): WorkspaceDropdownBlock {
+    return {
+      _type: "WorkspaceDropdownBlock",
+      label: WORKSPACE_PAGE_FORM_TEXT.pageAsLabel,
+      blockId: data.blockId,
+      placeholder: WORKSPACE_PAGE_FORM_TEXT.pageAsResponders,
+      options: WorkspacePage.getPageAsChoices(),
+      initialValue: data.initialValue || OnCallPageAs.Responders,
+      description: WORKSPACE_PAGE_FORM_TEXT.pageAsHint,
+    };
+  }
+
+  // The choices of "Page them as", in the order the forms list them.
+  public static getPageAsChoices(): Array<{ label: string; value: string }> {
+    return [
+      {
+        label: WORKSPACE_PAGE_FORM_TEXT.pageAsResponders,
+        value: OnCallPageAs.Responders,
+      },
+      {
+        label: WORKSPACE_PAGE_FORM_TEXT.pageAsObservers,
+        value: OnCallPageAs.Observers,
+      },
+    ];
+  }
+
+  /*
+   * What a submitted "Page them as" holds: the chat sends the picked value,
+   * as a string or a one-item list. Responders for anything else.
+   */
+  public static readPageAs(value: unknown): OnCallPageAs {
+    if (Array.isArray(value)) {
+      return toOnCallPageAs(value[0]);
+    }
+
+    return toOnCallPageAs(value);
+  }
+
+  /*
    * What the person who paged is told, only them, when the place they paged
    * from does not show it all:
    *
@@ -1362,12 +1454,20 @@ export default class WorkspacePage {
     const isPeopleShown: boolean =
       data.isShownAtPlace && result.paged.length > 0;
 
+    // Paged as observers (OnCallObserverPage): kept informed.
+    const asObservers: string = result.isObserverPage ? " as observers" : "";
+    const icon: string = result.isObserverPage ? "👀" : "📟";
+
     if (result.paged.length > 0 && !isPeopleShown) {
       const who: { markdown: MarkdownText; text: string } =
         WorkspacePage.getPagedWho(result.paged);
 
-      lines.push(mdText`📟 Paged ${who.markdown} about ${record}${about}`);
-      textParts.push(`Paged ${who.text} about ${result.record.label}`);
+      lines.push(
+        mdText`${icon} Paged ${who.markdown}${asObservers} about ${record}${about}`,
+      );
+      textParts.push(
+        `Paged ${who.text}${asObservers} about ${result.record.label}`,
+      );
     }
 
     if (result.startedPolicies.length > 0) {
@@ -1383,11 +1483,11 @@ export default class WorkspacePage {
 
       lines.push(
         result.paged.length > 0 && !isPeopleShown
-          ? mdText`Started ${noun} ${WorkspacePage.joinBoldNames(names)} too.`
-          : mdText`📟 Started ${noun} ${WorkspacePage.joinBoldNames(names)} for ${record}${about}`,
+          ? mdText`Started ${noun} ${WorkspacePage.joinBoldNames(names)}${asObservers} too.`
+          : mdText`${icon} Started ${noun} ${WorkspacePage.joinBoldNames(names)}${asObservers} for ${record}${about}`,
       );
       textParts.push(
-        `Started ${noun} ${WorkspacePage.joinNames(names)} for ${result.record.label}`,
+        `Started ${noun} ${WorkspacePage.joinNames(names)}${asObservers} for ${result.record.label}`,
       );
     }
 
