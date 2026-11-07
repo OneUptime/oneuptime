@@ -33914,6 +33914,10 @@
   "Export from": "匯出起始時間",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "留空則傳送從現在起記錄的內容。選擇更早的日期還會傳送自那時起仍保留的條目。",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "變更後會重新傳送自此日期起保留的每個條目，然後繼續。已送達的條目可能會重複到達。",
+  "Record version": "記錄版本",
+  "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "版本 2 還會說明工作流程的步驟和 JSON 中發生了哪些變更。版本 1 是原始記錄，供為它建置的讀取端使用。",
+  "Version 2 (newest)": "版本 2（最新）",
+  "Version 1 (original)": "版本 1（原始）",
   "Write a test file": "寫入測試檔案",
   "Send a test entry": "傳送測試條目",
   "Writes one file holding one test entry, under the folder. Nothing is saved.": "在資料夾中寫入一個包含一條測試條目的檔案。不會儲存任何設定。",
@@ -46423,5 +46427,7 @@
   "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.": "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.",
   "Charted for what this monitor checks now.": "Charted for what this monitor checks now.",
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
-  "Only chart this metric from these services.": "Only chart this metric from these services."
+  "Only chart this metric from these services.": "Only chart this metric from these services.",
+  "Record Version": "Record Version",
+  "Changes saved after this was proposed were kept": "保留了此提議之後儲存的變更"
 }

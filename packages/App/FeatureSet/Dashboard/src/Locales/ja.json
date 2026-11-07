@@ -33914,6 +33914,10 @@
   "Export from": "エクスポート開始日時",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "空欄にすると、今後記録される内容を送信します。過去の日時を指定すると、それ以降に保管されているエントリも送信します。",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "変更すると、この日時以降に保管されているすべてのエントリを再送信してから続行します。配信済みのエントリが重複して届く場合があります。",
+  "Record version": "レコードのバージョン",
+  "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "バージョン 2 では、ワークフローのステップと JSON で何が変わったかも伝えます。バージョン 1 は元のレコードで、それに合わせて作られた読み手向けです。",
+  "Version 2 (newest)": "バージョン 2 (最新)",
+  "Version 1 (original)": "バージョン 1 (元の形式)",
   "Write a test file": "テストファイルを書き込む",
   "Send a test entry": "テストエントリを送信",
   "Writes one file holding one test entry, under the folder. Nothing is saved.": "テストエントリを 1 件含むファイルをフォルダーに 1 つ書き込みます。何も保存されません。",
@@ -46423,5 +46427,7 @@
   "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.": "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.",
   "Charted for what this monitor checks now.": "Charted for what this monitor checks now.",
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
-  "Only chart this metric from these services.": "Only chart this metric from these services."
+  "Only chart this metric from these services.": "Only chart this metric from these services.",
+  "Record Version": "Record Version",
+  "Changes saved after this was proposed were kept": "この提案の後に保存された変更は保持されました"
 }

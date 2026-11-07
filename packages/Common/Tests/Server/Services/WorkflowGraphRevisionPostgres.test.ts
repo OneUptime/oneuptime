@@ -17,6 +17,22 @@ import {
   MANUAL,
   graphOf,
 } from "../../Utils/Workflow/WorkflowGraphFixtures";
+import {
+  UpdateWorkflowTool,
+  getWorkflowComponent,
+} from "../../../Server/Utils/AI/Toolbox/WorkflowBuilderTools";
+import {
+  PreparedMutation,
+  ToolContext,
+} from "../../../Server/Utils/AI/Toolbox/ToolTypes";
+import WriteSource from "../../../Types/BaseDatabase/WriteSource";
+import ComponentID from "../../../Types/Workflow/ComponentID";
+import {
+  WorkflowDraft,
+  WorkflowDraftStep,
+  buildGraphFromDraft,
+  getDraftFromGraph,
+} from "../../../Types/Workflow/WorkflowDraft";
 import { DataSource } from "typeorm";
 
 /*
@@ -558,6 +574,339 @@ describePostgres(
       );
 
       expect(refusal).toBeInstanceOf(ConflictException);
+    });
+
+    /*
+     * ISSUE #6274: Ask AI's change, approved after a teammate saved the
+     * workflow. The real tool, prepared as the chat prepares it and run as
+     * an approval runs it, through WorkflowService and its hooks.
+     */
+    describe("Ask AI's change, approved after someone saved the workflow", () => {
+      const ASK_AI: ToolContext = {
+        projectId: PROJECT_ID,
+        props: { isRoot: true, userId: ALICE, tenantId: PROJECT_ID },
+      };
+
+      // Ask AI's change: an email after the Log, as the model writes it from what it read.
+      const addEmail: (graph: JSONObject) => JSONObject = (
+        graph: JSONObject,
+      ): JSONObject => {
+        const draft: WorkflowDraft = getDraftFromGraph({
+          graph: graph,
+          getComponent: getWorkflowComponent,
+        });
+
+        return {
+          steps: [
+            ...draft.steps,
+            {
+              id: "send-email-2",
+              componentId: ComponentID.SendEmail,
+              arguments: { to: "oncall@example.com", subject: "Ask AI" },
+            },
+          ],
+          connections: [
+            ...draft.connections,
+            { from: "log-1", to: "send-email-2" },
+          ],
+        } as unknown as JSONObject;
+      };
+
+      const propose: (
+        workflowId: ObjectID,
+        args: JSONObject,
+      ) => Promise<PreparedMutation> = async (
+        workflowId: ObjectID,
+        args: JSONObject,
+      ): Promise<PreparedMutation> => {
+        return await UpdateWorkflowTool.prepareMutation!(
+          { workflowId: workflowId.toString(), ...args },
+          ASK_AI,
+        );
+      };
+
+      const approve: (prepared: PreparedMutation) => Promise<unknown> = async (
+        prepared: PreparedMutation,
+      ): Promise<unknown> => {
+        return await UpdateWorkflowTool.execute(prepared.arguments, ASK_AI);
+      };
+
+      const stepIdsOf: (graph: JSONObject) => Array<string> = (
+        graph: JSONObject,
+      ): Array<string> => {
+        return ((graph["nodes"] as Array<JSONObject>) || [])
+          .map((node: JSONObject): string => {
+            return (node["data"] as JSONObject)["id"] as string;
+          })
+          .sort();
+      };
+
+      const build: (
+        draft: WorkflowDraft,
+        existingGraph?: JSONObject | undefined,
+      ) => JSONObject = (
+        draft: WorkflowDraft,
+        existingGraph?: JSONObject | undefined,
+      ): JSONObject => {
+        return buildGraphFromDraft({
+          draft: draft,
+          getComponent: getWorkflowComponent,
+          generateId: (): string => {
+            return ObjectID.generate().toString();
+          },
+          existingGraph: existingGraph,
+        });
+      };
+
+      // The workflow as the Builder saves it: a manual trigger, then a Log.
+      const BASE_DRAFT: WorkflowDraft = {
+        steps: [
+          { id: "manual-1", componentId: ComponentID.Manual },
+          {
+            id: "log-1",
+            componentId: ComponentID.Log,
+            arguments: { value: "a" },
+          },
+        ],
+        connections: [{ from: "manual-1", to: "log-1" }],
+      };
+
+      let ASK_AI_BASE: JSONObject = {};
+      // Bob, in the Builder, adds an If / Else after the trigger: other steps than Ask AI's.
+      let GRAPH_WITH_BOBS_STEP: JSONObject = {};
+      // Bob changes the Log that Ask AI's email leaves from.
+      let GRAPH_WITH_BOBS_VALUE: JSONObject = {};
+
+      beforeAll(() => {
+        ASK_AI_BASE = build(BASE_DRAFT);
+        GRAPH_WITH_BOBS_STEP = build(
+          {
+            steps: [
+              ...BASE_DRAFT.steps,
+              { id: "if-else-1", componentId: ComponentID.IfElse },
+            ],
+            connections: [
+              ...BASE_DRAFT.connections,
+              { from: "manual-1", to: "if-else-1" },
+            ],
+          },
+          ASK_AI_BASE,
+        );
+        GRAPH_WITH_BOBS_VALUE = build(
+          {
+            ...BASE_DRAFT,
+            steps: BASE_DRAFT.steps.map((step: WorkflowDraftStep) => {
+              return step.id === "log-1"
+                ? { ...step, arguments: { value: "Bob's" } }
+                : step;
+            }),
+          },
+          ASK_AI_BASE,
+        );
+      });
+
+      interface StoredVersion {
+        versionNumber: number;
+        createdByUserId: string | null;
+        savedThrough: string | null;
+        changes: Array<string>;
+        graph: JSONObject;
+      }
+
+      const versionsOf: (
+        workflowId: ObjectID,
+      ) => Promise<Array<StoredVersion>> = async (
+        workflowId: ObjectID,
+      ): Promise<Array<StoredVersion>> => {
+        return await database.query(
+          `SELECT "versionNumber", "createdByUserId", "savedThrough", "changes", "graph" FROM "${schema}"."WorkflowVersion" WHERE "workflowId" = $1 ORDER BY "versionNumber"`,
+          [workflowId.toString()],
+        );
+      };
+
+      test("a teammate's step saved in between is kept, Ask AI's change is made on top in one write, and each is a version of its own", async () => {
+        const workflowId: ObjectID = await insertWorkflow(ASK_AI_BASE);
+        const prepared: PreparedMutation = await propose(
+          workflowId,
+          addEmail(ASK_AI_BASE),
+        );
+
+        // Bob saves before Alice approves.
+        await saveGraph({
+          workflowId,
+          graph: GRAPH_WITH_BOBS_STEP,
+          basedOn: 0,
+          userId: BOB,
+        });
+
+        await approve(prepared);
+
+        const after: StoredWorkflow = await stored(workflowId);
+
+        expect(stepIdsOf(after.graph)).toEqual([
+          "if-else-1",
+          "log-1",
+          "manual-1",
+          "send-email-2",
+        ]);
+        // Bob's save, then Ask AI's: one write each.
+        expect(after.graphRevision).toBe(2);
+
+        const versions: Array<StoredVersion> = await versionsOf(workflowId);
+        const askAis: StoredVersion = versions[versions.length - 1]!;
+        const bobs: StoredVersion = versions[versions.length - 2]!;
+
+        expect(askAis.savedThrough).toBe(WriteSource.AskAi);
+        expect(askAis.createdByUserId).toBe(ALICE.toString());
+        expect(bobs.createdByUserId).toBe(BOB.toString());
+        // Ask AI's version says what Ask AI did, and nothing of Bob's.
+        expect(askAis.changes.join("\n")).toContain(
+          'Added "Send Email" (send-email-2)',
+        );
+        expect(askAis.changes.join("\n")).not.toContain("if-else-1");
+        // The version before it - what restoring it brings back - is Bob's, whole.
+        expect(stepIdsOf(bobs.graph)).toEqual([
+          "if-else-1",
+          "log-1",
+          "manual-1",
+        ]);
+      });
+
+      test("a teammate's change to a step Ask AI's change touches: refused, the teammate's graph stays, and no version is added", async () => {
+        const workflowId: ObjectID = await insertWorkflow(ASK_AI_BASE);
+        const prepared: PreparedMutation = await propose(
+          workflowId,
+          addEmail(ASK_AI_BASE),
+        );
+
+        await saveGraph({
+          workflowId,
+          graph: GRAPH_WITH_BOBS_VALUE,
+          basedOn: 0,
+          userId: BOB,
+        });
+
+        const versionsBefore: number = await versionCount(workflowId);
+        const refusal: unknown = await refusalOf(approve(prepared));
+
+        expect(refusal).toBeInstanceOf(ConflictException);
+        expect((refusal as ConflictException).message).toContain(
+          '"Log" (log-1)',
+        );
+
+        const after: StoredWorkflow = await stored(workflowId);
+
+        expect(valueOf(after.graph)).toBe("Bob's");
+        expect(stepIdsOf(after.graph)).toEqual(["log-1", "manual-1"]);
+        expect(after.graphRevision).toBe(1);
+        expect(await versionCount(workflowId)).toBe(versionsBefore);
+      });
+
+      test("nobody saving in between: one write, held to the revision it was proposed on", async () => {
+        const workflowId: ObjectID = await insertWorkflow(ASK_AI_BASE);
+
+        await approve(await propose(workflowId, addEmail(ASK_AI_BASE)));
+
+        const after: StoredWorkflow = await stored(workflowId);
+
+        expect(after.graphRevision).toBe(1);
+        expect(stepIdsOf(after.graph)).toEqual([
+          "log-1",
+          "manual-1",
+          "send-email-2",
+        ]);
+      });
+
+      test("a teammate's save landing between Ask AI's check and its write: the database refuses Ask AI's, which is made again on top, and lands", async () => {
+        const workflowId: ObjectID = await insertWorkflow(ASK_AI_BASE);
+        const prepared: PreparedMutation = await propose(
+          workflowId,
+          addEmail(ASK_AI_BASE),
+        );
+        const record: (data: never) => Promise<void> =
+          WorkflowVersionService.recordEarlierVersionIfNone.bind(
+            WorkflowVersionService,
+          ) as never;
+        let isSavedMeanwhile: boolean = true;
+
+        // Runs once a save is checked, and before it is written.
+        jest
+          .spyOn(WorkflowVersionService, "recordEarlierVersionIfNone")
+          .mockImplementation((async (data: never): Promise<void> => {
+            if (isSavedMeanwhile) {
+              isSavedMeanwhile = false;
+              await saveGraph({
+                workflowId,
+                graph: GRAPH_WITH_BOBS_STEP,
+                userId: BOB,
+              });
+            }
+
+            await record(data);
+          }) as never);
+
+        await approve(prepared);
+
+        const after: StoredWorkflow = await stored(workflowId);
+
+        expect(stepIdsOf(after.graph)).toEqual([
+          "if-else-1",
+          "log-1",
+          "manual-1",
+          "send-email-2",
+        ]);
+        expect(after.graphRevision).toBe(2);
+      });
+
+      test("approvals racing teammates' saves at the same moment: nothing a teammate saved is lost, and Ask AI's change is whole or absent - every time", async () => {
+        for (let round: number = 0; round < 20; round++) {
+          const workflowId: ObjectID = await insertWorkflow(ASK_AI_BASE);
+          const prepared: PreparedMutation = await propose(
+            workflowId,
+            addEmail(ASK_AI_BASE),
+          );
+
+          // Bob saves his step, made to the revision his builder shows, as Alice approves.
+          const [approval, bobs] = await Promise.all([
+            refusalOf(approve(prepared)),
+            refusalOf(
+              saveGraph({
+                workflowId,
+                graph: GRAPH_WITH_BOBS_STEP,
+                basedOn: 0,
+                userId: BOB,
+              }),
+            ),
+          ]);
+
+          const after: StoredWorkflow = await stored(workflowId);
+          const steps: Array<string> = stepIdsOf(after.graph);
+
+          // Ask AI's change touches other steps than Bob's: it is always made.
+          expect({ round, approval }).toEqual({ round, approval: null });
+          expect({ round, askAis: steps.includes("send-email-2") }).toEqual({
+            round,
+            askAis: true,
+          });
+
+          if (bobs === null) {
+            // Bob's landed first: Ask AI's was made on top of it, and kept it.
+            expect({ round, steps }).toEqual({
+              round,
+              steps: ["if-else-1", "log-1", "manual-1", "send-email-2"],
+            });
+            expect(after.graphRevision).toBe(2);
+          } else {
+            // Ask AI's landed first: Bob's, made to the graph before, was refused - his builder asks him.
+            expect(bobs).toBeInstanceOf(ConflictException);
+            expect({ round, steps }).toEqual({
+              round,
+              steps: ["log-1", "manual-1", "send-email-2"],
+            });
+            expect(after.graphRevision).toBe(1);
+          }
+        }
+      });
     });
   },
 );

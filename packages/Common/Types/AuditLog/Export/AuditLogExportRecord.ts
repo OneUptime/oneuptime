@@ -18,9 +18,64 @@ import { JSONArray, JSONObject, JSONValue } from "../../JSON";
  * Nothing secret is in an entry: the recorder leaves out every field
  * nobody may read (passwords, keys, tokens) before it is written, and the
  * export carries the entry as recorded.
+ *
+ * THE VERSIONS. Each export says which version it sends
+ * (AuditLogExport.schemaVersion), and every record says which it is:
+ *
+ *   1  the record as it was first sent. Each change is { field, oldValue?,
+ *      newValue? }; a field the audit log describes rather than copies - a
+ *      workflow's steps - goes out as its short before and after ("3 steps
+ *      and 2 connections").
+ *   2  version 1, and each change also carries `summary`: what changed, in
+ *      plain lines - the steps a workflow save added, changed, removed or
+ *      connected, the paths that changed in JSON ("Changed requestHeaders ›
+ *      Authorization") - or null when the entry has none. The lines name
+ *      settings and paths, never values.
+ *
+ * An export saved before version 2 existed keeps version 1, so nothing that
+ * reads it has to change; a new export sends the newest version.
  */
 
-export const AUDIT_LOG_EXPORT_SCHEMA_VERSION: number = 1;
+export type AuditLogExportSchemaVersion = 1 | 2;
+
+// Every version an export can send, oldest first.
+export const AUDIT_LOG_EXPORT_SCHEMA_VERSIONS: ReadonlyArray<AuditLogExportSchemaVersion> =
+  [1, 2];
+
+// The first version: what an export that never chose one sends.
+export const AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION: AuditLogExportSchemaVersion = 1;
+
+// The newest version: what a new export sends unless it asks for an older one.
+export const AUDIT_LOG_EXPORT_SCHEMA_VERSION: AuditLogExportSchemaVersion = 2;
+
+// The first version whose changes carry their summary lines.
+export const AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION: AuditLogExportSchemaVersion = 2;
+
+export function isAuditLogExportSchemaVersion(
+  value: unknown,
+): value is AuditLogExportSchemaVersion {
+  return AUDIT_LOG_EXPORT_SCHEMA_VERSIONS.includes(
+    value as AuditLogExportSchemaVersion,
+  );
+}
+
+/*
+ * The version an export sends, as its row (or a form) holds it - the
+ * number, or its text: the first version when it holds none, or one this
+ * release does not know, so a reader is never sent a shape nobody chose.
+ */
+export function readAuditLogExportSchemaVersion(
+  value: unknown,
+): AuditLogExportSchemaVersion {
+  const version: unknown =
+    typeof value === "string" && value.trim() !== ""
+      ? Number(value.trim())
+      : value;
+
+  return isAuditLogExportSchemaVersion(version)
+    ? version
+    : AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION;
+}
 
 export interface AuditLogExportChange {
   field: string;
@@ -28,10 +83,15 @@ export interface AuditLogExportChange {
   oldValue?: JSONValue | undefined;
   // Present for a create, an update and a download: the value after.
   newValue?: JSONValue | undefined;
+  /*
+   * From version 2: what changed, in plain lines, or null when the entry
+   * has none. Always present in version 2, never in version 1.
+   */
+  summary?: Array<string> | null | undefined;
 }
 
 export interface AuditLogExportRecord {
-  schemaVersion: number;
+  schemaVersion: AuditLogExportSchemaVersion;
   // The entry's own id: the same entry exported twice has the same id.
   id: string;
   // When the change was recorded, ISO 8601 in UTC.
@@ -148,7 +208,33 @@ export function readAuditLogExportDate(
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function readChange(value: JSONValue): AuditLogExportChange | null {
+/*
+ * What changed, as a change recorded it: its text lines, as written, in
+ * order - anything else (a number, an object, a blank line) is left out,
+ * as the audit log's own table leaves it out. Null when no line is left.
+ */
+export function readAuditLogExportSummary(
+  value: JSONValue | undefined,
+): Array<string> | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const lines: Array<string> = [];
+
+  for (const line of value as Array<JSONValue>) {
+    if (typeof line === "string" && line.trim().length > 0) {
+      lines.push(line);
+    }
+  }
+
+  return lines.length > 0 ? lines : null;
+}
+
+function readChange(
+  value: JSONValue,
+  schemaVersion: AuditLogExportSchemaVersion,
+): AuditLogExportChange | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
@@ -172,6 +258,12 @@ function readChange(value: JSONValue): AuditLogExportChange | null {
       entry["newValue"] === undefined ? null : (entry["newValue"] as JSONValue);
   }
 
+  if (schemaVersion >= AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION) {
+    change.summary = readAuditLogExportSummary(
+      entry["summary"] as JSONValue | undefined,
+    );
+  }
+
   return change;
 }
 
@@ -179,10 +271,13 @@ function readChange(value: JSONValue): AuditLogExportChange | null {
  * The changes as recorded: the column holds a JSON array (as text, the
  * way ClickHouse stores it, or already parsed). Anything that is not an
  * array of { field, oldValue?, newValue? } is left out rather than sent
- * in a shape the schema does not promise.
+ * in a shape the schema does not promise - and in version 1 the recorded
+ * summary lines are not sent either, so a version 1 record is what it
+ * always was.
  */
 export function readAuditLogExportChanges(
   value: JSONValue | undefined,
+  schemaVersion: AuditLogExportSchemaVersion = AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION,
 ): Array<AuditLogExportChange> {
   let parsed: unknown = value;
 
@@ -205,7 +300,7 @@ export function readAuditLogExportChanges(
   const changes: Array<AuditLogExportChange> = [];
 
   for (const item of parsed as JSONArray) {
-    const change: AuditLogExportChange | null = readChange(item);
+    const change: AuditLogExportChange | null = readChange(item, schemaVersion);
 
     if (change) {
       changes.push(change);
@@ -217,11 +312,13 @@ export function readAuditLogExportChanges(
 
 /*
  * One audit log row, as the audit table answers it (JSON), as the record
- * the destinations receive. Null for a row with no id or no time, which
- * the export cannot place.
+ * the destinations receive, in the version the export sends - the first
+ * when none is named. Null for a row with no id or no time, which the
+ * export cannot place.
  */
 export function toAuditLogExportRecord(
   row: JSONObject,
+  schemaVersion: AuditLogExportSchemaVersion = AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION,
 ): AuditLogExportRecord | null {
   const id: string | null = readText(row["_id"]);
   const createdAt: Date | null = readAuditLogExportDate(row["createdAt"]);
@@ -231,7 +328,7 @@ export function toAuditLogExportRecord(
   }
 
   return {
-    schemaVersion: AUDIT_LOG_EXPORT_SCHEMA_VERSION,
+    schemaVersion,
     id,
     createdAt: createdAt.toISOString(),
     projectId: readText(row["projectId"]),
@@ -251,7 +348,7 @@ export function toAuditLogExportRecord(
     mcpClientName: readText(row["mcpClientName"]),
     workflowId: readText(row["workflowId"]),
     workflowName: readText(row["workflowName"]),
-    changes: readAuditLogExportChanges(row["changes"]),
+    changes: readAuditLogExportChanges(row["changes"], schemaVersion),
   };
 }
 
@@ -292,9 +389,11 @@ export function buildAuditLogExportTestRecord(data: {
   now: Date;
   id: string;
   projectId: string | null;
+  // The version the export sends: the test arrives as its entries will.
+  schemaVersion?: AuditLogExportSchemaVersion | undefined;
 }): AuditLogExportRecord {
   return {
-    schemaVersion: AUDIT_LOG_EXPORT_SCHEMA_VERSION,
+    schemaVersion: data.schemaVersion || AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION,
     id: data.id,
     createdAt: data.now.toISOString(),
     projectId: data.projectId,

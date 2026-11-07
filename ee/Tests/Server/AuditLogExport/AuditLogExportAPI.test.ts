@@ -292,6 +292,61 @@ describe("testing an audit log export", () => {
       });
     });
 
+    /*
+     * Issue #6247: the test entry arrives in the record version the export
+     * sends, so a reader is tested against the shape it will get: the one
+     * the form says, else the saved export's, else the newest - what a new
+     * export sends.
+     */
+    test("a test arrives in the record version the form says, else the saved export's, else the newest", async () => {
+      await AuditLogExportTest.testProjectExport({
+        body: WEBHOOK_BODY,
+        props: OWNER,
+      });
+      await AuditLogExportTest.testProjectExport({
+        body: { ...WEBHOOK_BODY, schemaVersion: 1 },
+        props: OWNER,
+      });
+      // Saved before there was a choice: version 1.
+      await AuditLogExportTest.testProjectExport({
+        body: { exportId: PROJECT_EXPORT_ID },
+        props: OWNER,
+      });
+      // The edit form's unsaved choice, as the dropdown holds it.
+      await AuditLogExportTest.testProjectExport({
+        body: { exportId: PROJECT_EXPORT_ID, schemaVersion: "2" },
+        props: OWNER,
+      });
+
+      exports.get(PROJECT_EXPORT_ID)!["schemaVersion"] = 2;
+
+      await AuditLogExportTest.testProjectExport({
+        body: { exportId: PROJECT_EXPORT_ID },
+        props: OWNER,
+      });
+
+      expect(
+        webhook.batches.map(
+          (batch: { records: Array<{ schemaVersion: number }> }): number => {
+            return batch.records[0]!.schemaVersion;
+          },
+        ),
+      ).toEqual([2, 1, 1, 2, 2]);
+    });
+
+    test("a record version this release does not send is refused, and nothing is sent", async () => {
+      for (const schemaVersion of [0, 3, "two", 1.5]) {
+        await expect(
+          AuditLogExportTest.testProjectExport({
+            body: { ...WEBHOOK_BODY, schemaVersion },
+            props: OWNER,
+          }),
+        ).rejects.toThrow("Record Version must be 1 or 2.");
+      }
+
+      expect(webhook.attempts).toBe(0);
+    });
+
     test("another project's export is never found, and nothing is sent", async () => {
       await expect(
         AuditLogExportTest.testProjectExport({

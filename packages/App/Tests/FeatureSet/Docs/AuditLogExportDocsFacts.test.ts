@@ -32,8 +32,11 @@ import {
 } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLogExportDestinationType";
 import {
+  AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION,
   AUDIT_LOG_EXPORT_RECORD_KEYS,
   AUDIT_LOG_EXPORT_SCHEMA_VERSION,
+  AUDIT_LOG_EXPORT_SCHEMA_VERSIONS,
+  AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION,
   AUDIT_LOG_EXPORT_TEST_ACTION,
 } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
 import Permission from "Common/Types/Permission";
@@ -463,11 +466,72 @@ describe("the Audit Log Export page's entries", () => {
         return codeSpans(row[0] as string);
       }),
     ).toEqual([...AUDIT_LOG_EXPORT_RECORD_KEYS]);
-    expect(rows[0]?.[1]).toContain(`\`${AUDIT_LOG_EXPORT_SCHEMA_VERSION}\`.`);
+    expect(rows[0]?.[1]).toContain(
+      `\`${AUDIT_LOG_EXPORT_SCHEMA_VERSION}\` for a new export, \`${AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION}\` for one saved before version ${AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION}.`,
+    );
+    expect(rows[rows.length - 1]?.[1]).toContain(
+      `and in version ${AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION} \`summary\`.`,
+    );
     expect(rows[4]?.[0]).toBe("`action`");
     expect(codeSpans(rows[4]?.[1] as string)).toEqual(
       Object.values(AuditLogAction),
     );
+  });
+
+  /*
+   * Issue #6247: each export sends a version of the entry. The page lists
+   * every version the record has, newest first, says what version 2 adds,
+   * and says what the product does: a new export sends the newest (the
+   * service's default), one saved before keeps 1 (the migration's
+   * default), and the choice is the form's Record version, under More
+   * fields.
+   */
+  it("says which record version each export sends, and what version 2 adds, as the record, the service and the form do", () => {
+    const versions: string = section(english(), "## Record versions");
+    const rows: Array<Array<string>> = bodyRows(versions);
+    const service: string = readCommonSource(
+      "Server/Services/AuditLogExportService.ts",
+    );
+    const migration: string = readCommonSource(
+      "Server/Infrastructure/Postgres/SchemaMigrations/1808996130000-AddAuditLogExportSchemaVersion.ts",
+    );
+    const modal: string = readEe(
+      "Dashboard/AuditLogExport/AuditLogExportFormModal.tsx",
+    );
+    const copy: string = readEe(
+      "Dashboard/AuditLogExport/AuditLogExportCopy.ts",
+    );
+
+    expect(
+      rows.map((row: Array<string>): string => {
+        return codeSpans(row[0] as string)[0] as string;
+      }),
+    ).toEqual([...AUDIT_LOG_EXPORT_SCHEMA_VERSIONS].reverse().map(String));
+    expect(rows[0]?.[1]).toContain("Each change also carries `summary`");
+    expect(rows[0]?.[1]).toContain("never values.");
+    expect(rows[1]?.[1]).toContain("without `summary`");
+
+    expect(versions).toContain(
+      `A new export sends version ${AUDIT_LOG_EXPORT_SCHEMA_VERSION}.`,
+    );
+    expect(service).toContain("? AUDIT_LOG_EXPORT_SCHEMA_VERSION");
+    expect(versions).toContain(
+      `An export saved before version ${AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION} keeps sending version ${AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION}, so whatever reads it needs no change`,
+    );
+    expect(migration).toContain(
+      `ALTER TABLE "AuditLogExport" ADD "schemaVersion" integer NOT NULL DEFAULT '${AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION}'`,
+    );
+
+    expect(versions).toContain(
+      `choose version ${AUDIT_LOG_EXPORT_SCHEMA_VERSION} in **Record version**, under **${MORE_FIELDS_SECTION_TITLE}**.`,
+    );
+    expect(copy).toContain(
+      'schemaVersionField: translationKey("Record version")',
+    );
+    expect(modal).toContain("title: AuditLogExportCopy.schemaVersionField");
+    expect(
+      modal.slice(modal.indexOf("field: { schemaVersion: true }")),
+    ).toContain("collapsibleSection: advancedSection");
   });
 
   it("names the test entry's action and the mark a secret is recorded as", () => {

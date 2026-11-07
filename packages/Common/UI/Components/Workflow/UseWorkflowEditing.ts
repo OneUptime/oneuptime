@@ -10,6 +10,7 @@ import {
   isAnyCardBeingDragged,
   toWorkflowCanvasGraph,
 } from "./WorkflowCanvasGraph";
+import { WorkflowSavedElsewhereStep } from "./WorkflowSavedElsewhere";
 import {
   WorkflowEditCause,
   WorkflowEditHistory,
@@ -105,6 +106,17 @@ export interface UseWorkflowEditingResult {
   restoreVersion: (data: { versionNumber: number; graph: unknown }) => boolean;
   // What Ask AI saved, on the canvas: a step of its own, already saved.
   showSavedGraph: (graph: unknown, revision?: WorkflowGraphRevision) => boolean;
+  /*
+   * What was saved elsewhere, step by step - Ask AI's change, and their
+   * changes around it (WorkflowSavedElsewhere) - each a step Undo takes
+   * back, the last at `revision`, all already saved.
+   */
+  showSavedGraphs: (
+    steps: Array<WorkflowSavedElsewhereStep>,
+    revision?: WorkflowGraphRevision,
+  ) => boolean;
+  // The graph the server has, as far as this builder knows; null before it opened.
+  getKnownSaved: () => WorkflowSavedGraphRead | null;
   /*
    * While someone else's save stands between the canvas and the server
    * (saveStatus.conflict): their graph on the canvas, as a step Undo takes
@@ -418,9 +430,74 @@ const useWorkflowEditing: (
   };
 
   /*
-   * A graph someone else saved, on the canvas where it is: a step of its own
-   * (Ask AI's change, their changes), which the server has already.
+   * Graphs someone else saved, one after another, on the canvas where it
+   * is: each a step of its own (Ask AI's change, their changes), which the
+   * server has already, the last at `revision`. Nothing is drawn when one
+   * of them cannot be.
    */
+  const showGraphsSavedElsewhere: (data: {
+    steps: Array<{ graph: unknown; cause: WorkflowEditCause }>;
+    revision: WorkflowGraphRevision;
+  }) => boolean = (data: {
+    steps: Array<{ graph: unknown; cause: WorkflowEditCause }>;
+    revision: WorkflowGraphRevision;
+  }): boolean => {
+    const drawn: Array<{
+      canvasGraph: WorkflowCanvasGraph;
+      saved: SavedWorkflowGraph;
+      cause: WorkflowEditCause;
+    }> = [];
+
+    for (const step of data.steps) {
+      const canvasGraph: WorkflowCanvasGraph | null = draw(step.graph);
+
+      if (!canvasGraph) {
+        return false;
+      }
+
+      drawn.push({
+        canvasGraph,
+        saved: toSavedWorkflowGraph(canvasGraph),
+        cause: step.cause,
+      });
+    }
+
+    const last:
+      | {
+          canvasGraph: WorkflowCanvasGraph;
+          saved: SavedWorkflowGraph;
+          cause: WorkflowEditCause;
+        }
+      | undefined = drawn[drawn.length - 1];
+
+    if (!last) {
+      return false;
+    }
+
+    const current: WorkflowEditHistory | null = historyRef.current;
+
+    if (current) {
+      let next: WorkflowEditHistory = current;
+
+      for (const step of drawn) {
+        next = recordWorkflowEdit(next, {
+          graph: step.saved,
+          now: Date.now(),
+          cause: step.cause,
+        });
+      }
+
+      if (next !== current) {
+        setHistory(next);
+      }
+    }
+
+    autosave.acceptSavedGraph(last.saved, data.revision);
+    handToCanvas(last.canvasGraph);
+
+    return true;
+  };
+
   const showGraphSavedElsewhere: (data: {
     graph: unknown;
     revision: WorkflowGraphRevision;
@@ -430,31 +507,10 @@ const useWorkflowEditing: (
     revision: WorkflowGraphRevision;
     cause: WorkflowEditCause;
   }): boolean => {
-    const canvasGraph: WorkflowCanvasGraph | null = draw(data.graph);
-
-    if (!canvasGraph) {
-      return false;
-    }
-
-    const saved: SavedWorkflowGraph = toSavedWorkflowGraph(canvasGraph);
-    const current: WorkflowEditHistory | null = historyRef.current;
-
-    if (current) {
-      const next: WorkflowEditHistory = recordWorkflowEdit(current, {
-        graph: saved,
-        now: Date.now(),
-        cause: data.cause,
-      });
-
-      if (next !== current) {
-        setHistory(next);
-      }
-    }
-
-    autosave.acceptSavedGraph(saved, data.revision);
-    handToCanvas(canvasGraph);
-
-    return true;
+    return showGraphsSavedElsewhere({
+      steps: [{ graph: data.graph, cause: data.cause }],
+      revision: data.revision,
+    });
   };
 
   const showSavedGraph: (
@@ -469,6 +525,16 @@ const useWorkflowEditing: (
       revision: revision ?? null,
       cause: WorkflowEditCause.AskAi,
     });
+  };
+
+  const showSavedGraphs: (
+    steps: Array<WorkflowSavedElsewhereStep>,
+    revision?: WorkflowGraphRevision,
+  ) => boolean = (
+    steps: Array<WorkflowSavedElsewhereStep>,
+    revision?: WorkflowGraphRevision,
+  ): boolean => {
+    return showGraphsSavedElsewhere({ steps, revision: revision ?? null });
   };
 
   const showTheirChanges: () => boolean = (): boolean => {
@@ -569,6 +635,10 @@ const useWorkflowEditing: (
     redoStep,
     restoreVersion,
     showSavedGraph,
+    showSavedGraphs,
+    getKnownSaved: (): WorkflowSavedGraphRead | null => {
+      return autosave.getSaved();
+    },
     showTheirChanges,
     keepMine,
     saveStatus,

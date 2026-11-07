@@ -33914,6 +33914,10 @@
   "Export from": "Exportar a partir de",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "Deixe vazio para enviar o que for registrado a partir de agora. Uma data anterior também envia as entradas ainda mantidas desde então.",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "Altere-a para enviar novamente cada entrada mantida desde esta data e depois continuar. Entradas já entregues podem chegar duas vezes.",
+  "Record version": "Versão do registro",
+  "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "A versão 2 também informa o que mudou nos passos de um fluxo de trabalho e no JSON. A versão 1 é o registro original, para leitores feitos para ela.",
+  "Version 2 (newest)": "Versão 2 (a mais recente)",
+  "Version 1 (original)": "Versão 1 (original)",
   "Write a test file": "Gravar um arquivo de teste",
   "Send a test entry": "Enviar uma entrada de teste",
   "Writes one file holding one test entry, under the folder. Nothing is saved.": "Grava um arquivo com uma entrada de teste na pasta. Nada é salvo.",
@@ -46423,5 +46427,7 @@
   "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.": "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.",
   "Charted for what this monitor checks now.": "Charted for what this monitor checks now.",
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
-  "Only chart this metric from these services.": "Only chart this metric from these services."
+  "Only chart this metric from these services.": "Only chart this metric from these services.",
+  "Record Version": "Record Version",
+  "Changes saved after this was proposed were kept": "As alterações salvas depois desta proposta foram mantidas"
 }
