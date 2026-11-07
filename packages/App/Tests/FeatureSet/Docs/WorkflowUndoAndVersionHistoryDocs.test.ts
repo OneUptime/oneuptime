@@ -5,6 +5,7 @@ import ComponentID from "Common/Types/Workflow/ComponentID";
 import {
   WORKFLOW_VERSIONS_KEPT,
   WORKFLOW_VERSION_GROUPING_MINUTES,
+  WorkflowVersionType,
 } from "Common/Types/Workflow/WorkflowVersion";
 import { WorkflowHistoryDirection } from "Common/UI/Components/Workflow/WorkflowEditHistory";
 import {
@@ -20,7 +21,6 @@ import {
 import { WorkflowVersionCopy } from "Common/UI/Components/Workflow/WorkflowVersionPresentation";
 import { getWorkflowGraphChanges } from "Common/Utils/Workflow/WorkflowGraphChanges";
 import WriteSource from "Common/Types/BaseDatabase/WriteSource";
-import { WorkflowVersionType } from "Common/Types/Workflow/WorkflowVersion";
 import { doesNewestVersionTakeInSave } from "Common/Server/Utils/Workflow/WorkflowVersionPolicy";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -71,11 +71,24 @@ describe("the authoring page on undo, redo and version history", () => {
   it("gives the shortcuts the Builder takes, and only those", () => {
     const shortcuts: Array<{
       written: string;
-      event: { key: string; metaKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean };
+      event: {
+        key: string;
+        metaKey?: boolean;
+        ctrlKey?: boolean;
+        shiftKey?: boolean;
+      };
       direction: WorkflowHistoryDirection;
     }> = [
-      { written: "⌘Z", event: { key: "z", metaKey: true }, direction: WorkflowHistoryDirection.Undo },
-      { written: "Ctrl+Z", event: { key: "z", ctrlKey: true }, direction: WorkflowHistoryDirection.Undo },
+      {
+        written: "⌘Z",
+        event: { key: "z", metaKey: true },
+        direction: WorkflowHistoryDirection.Undo,
+      },
+      {
+        written: "Ctrl+Z",
+        event: { key: "z", ctrlKey: true },
+        direction: WorkflowHistoryDirection.Undo,
+      },
       {
         written: "⇧⌘Z",
         event: { key: "Z", metaKey: true, shiftKey: true },
@@ -86,11 +99,18 @@ describe("the authoring page on undo, redo and version history", () => {
         event: { key: "Z", ctrlKey: true, shiftKey: true },
         direction: WorkflowHistoryDirection.Redo,
       },
-      { written: "Ctrl+Y", event: { key: "y", ctrlKey: true }, direction: WorkflowHistoryDirection.Redo },
+      {
+        written: "Ctrl+Y",
+        event: { key: "y", ctrlKey: true },
+        direction: WorkflowHistoryDirection.Redo,
+      },
     ];
 
     for (const shortcut of shortcuts) {
-      expect({ written: shortcut.written, named: HISTORY.includes(shortcut.written) }).toEqual({
+      expect({
+        written: shortcut.written,
+        named: HISTORY.includes(shortcut.written),
+      }).toEqual({
         written: shortcut.written,
         named: true,
       });
@@ -217,7 +237,9 @@ describe("the authoring page on undo, redo and version history", () => {
 
     expect(STATUS_BAR).toContain(`translationKey("${notSaved}")`);
     // The page and the dialog say the same: nothing is lost either way.
-    expect(WorkflowSaveConflictCopy.note.startsWith("Nothing is lost either way.")).toBe(true);
+    expect(
+      WorkflowSaveConflictCopy.note.startsWith("Nothing is lost either way."),
+    ).toBe(true);
     expect(canvas).toContain("Nothing is lost either way.");
   });
 });

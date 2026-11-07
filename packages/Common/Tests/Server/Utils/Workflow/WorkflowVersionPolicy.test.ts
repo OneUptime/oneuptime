@@ -437,8 +437,7 @@ describe("property: Ask AI's changes, and everyone else's grouped exactly as bef
     seen: WorkflowVersionSeen;
     savedBy: string | null;
   }): boolean => {
-    const age: number =
-      NOW.getTime() - (data.seen.createdAt as Date).getTime();
+    const age: number = NOW.getTime() - (data.seen.createdAt as Date).getTime();
 
     return (
       data.seen.versionType === WorkflowVersionType.Changed &&
@@ -504,7 +503,11 @@ describe("property: Ask AI's changes, and everyone else's grouped exactly as bef
       if (isAskAiInvolved) {
         expect(write.kind).not.toBe(WorkflowVersionWriteKind.TakeIntoNewest);
 
-        if (takenInBefore({ seen, savedBy }) && fingerprint !== seen.graphFingerprint && !(earlier !== null && earlier < seen.versionNumber)) {
+        if (
+          takenInBefore({ seen, savedBy }) &&
+          fingerprint !== seen.graphFingerprint &&
+          !(earlier !== null && earlier < seen.versionNumber)
+        ) {
           keptApart++;
         }
 

@@ -110,7 +110,9 @@ describe("the workflow version saved-through migration", () => {
     expect(steps).toEqual([
       `ALTER TABLE "WorkflowVersion" ADD "savedThrough" character varying(100)`,
     ]);
-    expect(steps[0]).not.toMatch(/UPDATE |CREATE INDEX|FOREIGN KEY|NOT NULL|DEFAULT/);
+    expect(steps[0]).not.toMatch(
+      /UPDATE |CREATE INDEX|FOREIGN KEY|NOT NULL|DEFAULT/,
+    );
   });
 
   test("down drops the column", async () => {

@@ -27,7 +27,9 @@ import {
 } from "../../Types/Workflow/Component";
 import ComponentID from "../../Types/Workflow/ComponentID";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import WriteSource, { isWriteSource } from "../../Types/BaseDatabase/WriteSource";
+import WriteSource, {
+  isWriteSource,
+} from "../../Types/BaseDatabase/WriteSource";
 import {
   WORKFLOW_GRAPH_REVISION_KEY,
   readWorkflowGraphRevision,

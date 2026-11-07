@@ -595,17 +595,22 @@ describe("a save of the graph", () => {
  * person's next edit into it.
  */
 describe("Ask AI's changes", () => {
-  const saveByAskAi: (graph: JSONObject, userId?: ObjectID) => Promise<void> =
-    async (graph: JSONObject, userId: ObjectID = ALICE): Promise<void> => {
-      await WorkflowVersionService.recordGraphSave({
-        workflowId: WORKFLOW_ID,
-        projectId: PROJECT_ID,
-        graph,
-        userId,
-        savedThrough: WriteSource.AskAi,
-        now: NOW,
-      });
-    };
+  const saveByAskAi: (
+    graph: JSONObject,
+    userId?: ObjectID,
+  ) => Promise<void> = async (
+    graph: JSONObject,
+    userId: ObjectID = ALICE,
+  ): Promise<void> => {
+    await WorkflowVersionService.recordGraphSave({
+      workflowId: WORKFLOW_ID,
+      projectId: PROJECT_ID,
+      graph,
+      userId,
+      savedThrough: WriteSource.AskAi,
+      now: NOW,
+    });
+  };
 
   test("a workflow Ask AI created is version 1, by the person who asked, saying Ask AI made it", async () => {
     await WorkflowVersionService.recordCreated({
@@ -703,8 +708,18 @@ describe("Ask AI's changes", () => {
 
   test("Ask AI putting back an earlier graph is a Restored version saying Ask AI made it", async () => {
     history = [
-      stored({ number: 1, type: WorkflowVersionType.Changed, graph: GRAPH_1, savedBy: ALICE }),
-      stored({ number: 2, type: WorkflowVersionType.Changed, graph: GRAPH_2, savedBy: BOB }),
+      stored({
+        number: 1,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_1,
+        savedBy: ALICE,
+      }),
+      stored({
+        number: 2,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_2,
+        savedBy: BOB,
+      }),
     ];
 
     await saveByAskAi(GRAPH_1);
