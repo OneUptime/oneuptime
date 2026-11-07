@@ -43,6 +43,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import UserType from "../../../../Types/UserType";
+import WriteSource from "../../../../Types/BaseDatabase/WriteSource";
 import ComponentID from "../../../../Types/Workflow/ComponentID";
 import ComponentMetadata, {
   Argument,
@@ -537,10 +538,17 @@ describe("create_workflow", () => {
     return create.mock.calls[0]![0].data as Workflow;
   };
 
-  test("writes as the person: the props of who asked, never OneUptime's", async () => {
+  test("writes as the person: the props of who asked, never OneUptime's - saying the change is Ask AI's", async () => {
     await run();
 
-    expect(create.mock.calls[0]![0].props).toBe(CTX.props);
+    // Everything of the person's, and only that the write is Ask AI's (issue #6258).
+    expect(create.mock.calls[0]![0].props).toEqual({
+      ...CTX.props,
+      writeSource: WriteSource.AskAi,
+    });
+    expect(create.mock.calls[0]![0].props.isRoot).toBeUndefined();
+    // The context's own props are left as they were.
+    expect(CTX.props.writeSource).toBeUndefined();
   });
 
   test("in the project of the request, whatever the arguments say", async () => {
@@ -722,7 +730,12 @@ describe("update_workflow", () => {
     await run(DRAFT);
 
     expect(read.mock.calls[0]![0].props).toBe(CTX.props);
-    expect(update.mock.calls[0]![0].props).toBe(CTX.props);
+    // The write is the person's, saying it is Ask AI's change (issue #6258).
+    expect(update.mock.calls[0]![0].props).toEqual({
+      ...CTX.props,
+      writeSource: WriteSource.AskAi,
+    });
+    expect(update.mock.calls[0]![0].props.isRoot).toBeUndefined();
     expect(String(update.mock.calls[0]![0].id)).toBe(WORKFLOW_ID.toString());
   });
 

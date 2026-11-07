@@ -4,7 +4,9 @@ import Entities, {
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
 import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessControl";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import WriteSource from "../../../../Types/BaseDatabase/WriteSource";
 import { getCustomFieldRecordKind } from "../../../../Types/CustomField/CustomFieldRecordKinds";
 import {
   CustomFieldDropdownOption,
@@ -166,6 +168,22 @@ export const getWorkflowComponent: (
   componentId: string,
 ): ComponentMetadata | undefined => {
   return getCatalog().get(componentId);
+};
+
+/*
+ * The props a workflow is created or changed with: the person's own, with
+ * every permission of theirs and none more, saying the change is Ask AI's
+ * (DatabaseCommonInteractionProps.writeSource). For attribution only: the
+ * workflow's version history keeps each of Ask AI's changes as a version of
+ * its own (issue #6258), so the one before it is the workflow just as Ask AI
+ * found it.
+ */
+export const getAskAiWriteProps: (
+  ctx: ToolContext,
+) => DatabaseCommonInteractionProps = (
+  ctx: ToolContext,
+): DatabaseCommonInteractionProps => {
+  return { ...ctx.props, writeSource: WriteSource.AskAi };
 };
 
 const MAX_SEARCH_RESULTS: number = 25;
@@ -1016,7 +1034,7 @@ export const CreateWorkflowTool: ObservabilityTool = {
     // As the person: what they may not create in the dashboard, this does not.
     const created: Workflow = await WorkflowService.create({
       data: workflow,
-      props: ctx.props,
+      props: getAskAiWriteProps(ctx),
     });
 
     const id: string = created.id!.toString();
@@ -1284,7 +1302,7 @@ export const UpdateWorkflowTool: ObservabilityTool = {
     await WorkflowService.updateOneById({
       id: workflowId,
       data: data as never,
-      props: ctx.props,
+      props: getAskAiWriteProps(ctx),
     });
 
     const shownName: string = name || workflow.name || "";

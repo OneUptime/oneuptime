@@ -14,7 +14,10 @@
  * is the newest, was started by the same person less than
  * WORKFLOW_VERSION_GROUPING_MINUTES ago, and changed the workflow (rather
  * than created, restored, or recorded it as it was). Anything else starts a
- * new version.
+ * new version - a change Ask AI saves for the person who asked among them:
+ * each of Ask AI's changes is a version of its own, which says it made it
+ * for them (WorkflowVersion.savedThrough, issue #6258), so restoring the
+ * version before it undoes exactly what Ask AI did.
  *
  * A save that puts back the graph of an earlier version - Restore in the
  * Version history, or Undo back past a version - is a version of its own

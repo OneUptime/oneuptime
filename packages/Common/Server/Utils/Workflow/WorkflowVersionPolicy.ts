@@ -1,3 +1,4 @@
+import WriteSource from "../../../Types/BaseDatabase/WriteSource";
 import {
   WORKFLOW_VERSIONS_KEPT,
   WORKFLOW_VERSION_GROUPING_WINDOW_IN_MS,
@@ -18,8 +19,12 @@ import {
  *      never folded into the newest - whoever restores a version, or undoes
  *      back to one, sees that they did.
  *   3. The newest version is one person's changes, begun less than the
- *      grouping window ago, and the same person saves again: it takes the
- *      save in.
+ *      grouping window ago, and the same person saves again by their own
+ *      hand: it takes the save in. A change Ask AI saves for the person is
+ *      never taken into their version, and nothing is taken into one of Ask
+ *      AI's - not the person's next edit, not Ask AI's next change (issue
+ *      #6258): each of its changes is a version of its own, so the version
+ *      before it is the workflow just as Ask AI found it.
  *   4. Anything else is a new Changed version.
  */
 
@@ -30,6 +35,11 @@ export interface WorkflowVersionSeen {
   graphFingerprint: string | undefined;
   // Who saved it, as text (an ObjectID's string), or null for nobody.
   savedByUserId: string | null;
+  /*
+   * What saved it for that person, when it was not their own hand: Ask AI
+   * (WriteSource). Null or absent for their own saves, and the API's.
+   */
+  savedThrough?: WriteSource | string | null | undefined;
   // When its first save was made.
   createdAt: Date | undefined;
 }
@@ -57,18 +67,27 @@ export type WorkflowVersionWrite =
  * Whether the newest version takes in a save by `savedByUserId` at `now`: it
  * holds one person's changes, that person saves again, and it began less
  * than the grouping window ago. A save by nobody - an API key - is always a
- * version of its own: there is no one to say the saves are one burst.
+ * version of its own: there is no one to say the saves are one burst. So is
+ * a save Ask AI makes for the person (`savedThrough`), and the save after a
+ * version of Ask AI's: only the person's own saves are one burst.
  */
 export const doesNewestVersionTakeInSave: (data: {
   newest: WorkflowVersionSeen;
   savedByUserId: string | null;
+  savedThrough?: WriteSource | null | undefined;
   now: Date;
 }) => boolean = (data: {
   newest: WorkflowVersionSeen;
   savedByUserId: string | null;
+  savedThrough?: WriteSource | null | undefined;
   now: Date;
 }): boolean => {
   if (data.newest.versionType !== WorkflowVersionType.Changed) {
+    return false;
+  }
+
+  // Ask AI's change, or the first save after one: a version of its own.
+  if (data.savedThrough || data.newest.savedThrough) {
     return false;
   }
 
@@ -97,12 +116,15 @@ export const decideWorkflowVersionWrite: (data: {
    */
   earlierWithSameGraph: { versionNumber: number } | null;
   savedByUserId: string | null;
+  // What saved it for that person, when it was not their own hand: Ask AI.
+  savedThrough?: WriteSource | null | undefined;
   now: Date;
 }) => WorkflowVersionWrite = (data: {
   newest: WorkflowVersionSeen | null;
   graphFingerprint: string;
   earlierWithSameGraph: { versionNumber: number } | null;
   savedByUserId: string | null;
+  savedThrough?: WriteSource | null | undefined;
   now: Date;
 }): WorkflowVersionWrite => {
   if (!data.newest) {
@@ -136,6 +158,7 @@ export const decideWorkflowVersionWrite: (data: {
     doesNewestVersionTakeInSave({
       newest: data.newest,
       savedByUserId: data.savedByUserId,
+      savedThrough: data.savedThrough,
       now: data.now,
     })
   ) {

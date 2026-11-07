@@ -26,6 +26,8 @@ import {
   NodeType,
 } from "../../Types/Workflow/Component";
 import ComponentID from "../../Types/Workflow/ComponentID";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import WriteSource, { isWriteSource } from "../../Types/BaseDatabase/WriteSource";
 import {
   WORKFLOW_GRAPH_REVISION_KEY,
   readWorkflowGraphRevision,
@@ -136,6 +138,16 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return revision;
+  }
+
+  /*
+   * What made a write for its person when it was not their own hand - Ask
+   * AI - for the version it saves (issue #6258), or undefined.
+   */
+  public static getWriteSource(
+    props: DatabaseCommonInteractionProps,
+  ): WriteSource | undefined {
+    return isWriteSource(props.writeSource) ? props.writeSource : undefined;
   }
 
   // A workflow's revision as read: a whole number, 0 for a row without one.
@@ -576,6 +588,7 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: save.projectId,
           graph: data.graph,
           userId: data.updateBy.props.userId,
+          savedThrough: Service.getWriteSource(data.updateBy.props),
         });
       } catch (error) {
         logger.error(
@@ -657,6 +670,7 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: createdItem.projectId,
           graph: createdItem.graph,
           userId: onCreate.createBy.props.userId,
+          savedThrough: Service.getWriteSource(onCreate.createBy.props),
         });
       } catch (error) {
         logger.error(

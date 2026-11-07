@@ -12,6 +12,7 @@ import {
 } from "../Utils/Workflow/WorkflowVersionPolicy";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import WriteSource, { isWriteSource } from "../../Types/BaseDatabase/WriteSource";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -90,7 +91,8 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * Version 1 of a workflow just created: its graph as it was created, from
-   * scratch (empty), a template, an import or a copy, by whoever created it.
+   * scratch (empty), a template, an import or a copy, by whoever created it
+   * - or by Ask AI, for them (`savedThrough`).
    */
   @CaptureSpan()
   public async recordCreated(data: {
@@ -98,6 +100,7 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     graph: unknown;
     userId: ObjectID | undefined;
+    savedThrough?: WriteSource | undefined;
   }): Promise<void> {
     const graph: SavedWorkflowGraph = toSavedWorkflowGraph(data.graph);
 
@@ -114,6 +117,7 @@ export class Service extends ProjectReferencesService<Model> {
         includeMoves: false,
       }),
       userId: data.userId,
+      savedThrough: data.savedThrough,
     });
   }
 
@@ -158,7 +162,8 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * A save of a workflow's graph, by `userId` (undefined: through the API
-   * without a person): nothing, a new version, or the newest version taking
+   * without a person) - by their own hand, or by Ask AI for them
+   * (`savedThrough`): nothing, a new version, or the newest version taking
    * it in, as WorkflowVersionPolicy decides. Two saves of one workflow at the
    * same moment can both claim the next number; the one refused for it is
    * decided again from the version the other wrote.
@@ -169,6 +174,7 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     graph: unknown;
     userId: ObjectID | undefined;
+    savedThrough?: WriteSource | undefined;
     now?: Date | undefined;
   }): Promise<void> {
     const graph: SavedWorkflowGraph = toSavedWorkflowGraph(data.graph);
@@ -187,6 +193,7 @@ export class Service extends ProjectReferencesService<Model> {
     graph: SavedWorkflowGraph;
     graphFingerprint: string;
     userId: ObjectID | undefined;
+    savedThrough?: WriteSource | undefined;
     now?: Date | undefined;
   }): Promise<void> {
     const newest: Model | null = await this.findOneBy({
@@ -197,6 +204,7 @@ export class Service extends ProjectReferencesService<Model> {
         versionType: true,
         graphFingerprint: true,
         createdByUserId: true,
+        savedThrough: true,
         createdAt: true,
       },
       sort: { versionNumber: SortOrder.Descending },
@@ -210,6 +218,7 @@ export class Service extends ProjectReferencesService<Model> {
             versionType: newest.versionType,
             graphFingerprint: newest.graphFingerprint,
             savedByUserId: newest.createdByUserId?.toString() || null,
+            savedThrough: newest.savedThrough || null,
             createdAt: newest.createdAt
               ? OneUptimeDate.fromString(newest.createdAt)
               : undefined,
@@ -238,6 +247,7 @@ export class Service extends ProjectReferencesService<Model> {
           ? { versionNumber: earlier.versionNumber }
           : null,
       savedByUserId: data.userId?.toString() || null,
+      savedThrough: data.savedThrough || null,
       now: data.now || OneUptimeDate.getCurrentDate(),
     });
 
@@ -306,6 +316,7 @@ export class Service extends ProjectReferencesService<Model> {
         after: data.graph,
       }),
       userId: data.userId,
+      savedThrough: data.savedThrough,
     });
 
     await this.deleteBy({
@@ -330,6 +341,7 @@ export class Service extends ProjectReferencesService<Model> {
     graph: SavedWorkflowGraph;
     changes: WorkflowVersionChanges;
     userId: ObjectID | undefined;
+    savedThrough?: WriteSource | undefined;
   }): Promise<void> {
     const version: Model = new Model();
     version.projectId = data.projectId;
@@ -347,6 +359,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (data.userId) {
       version.createdByUserId = data.userId;
+    }
+
+    if (isWriteSource(data.savedThrough)) {
+      version.savedThrough = data.savedThrough;
     }
 
     await this.create({
