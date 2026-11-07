@@ -223,6 +223,146 @@ describe("SecurityEventService.countEventsNaming", () => {
   });
 });
 
+/*
+ * A network device's Security card (issue #5769): its events are the ones
+ * naming it, or read from the syslog it sends the probe - each of those
+ * carries the attribute ingest writes on the device's lines, whatever the
+ * event names. The attribute is asked of the keys first, so their index
+ * skips every granule no event of the device is in.
+ */
+describe("SecurityEventService.countEventsNaming: a device's own logs", () => {
+  const DEVICE_ID: string = "55555555-5555-4555-8555-555555555555";
+
+  test("the values, or the device's own logs", async () => {
+    const spy: Spy = stubExecuteQuery([{ eventCount: 3 }]);
+
+    await SecurityEventService.countEventsNaming({
+      projectId: PROJECT_ID,
+      values: ["hq firewall", "203.0.113.7"],
+      attribute: { key: "networkDevice.id", value: DEVICE_ID },
+      startTime: START,
+      endTime: END,
+    });
+
+    const statement: Statement = statementOf(spy);
+
+    expect(statement.query).toContain(
+      "AND (hasAny(observables, {p3:Array(String)}) OR (has(attributeKeys, {p4:String}) AND attributes[{p5:String}] = {p6:String}))",
+    );
+    expect(boundValues(statement).slice(3)).toEqual([
+      ["hq firewall", "203.0.113.7"],
+      "networkDevice.id",
+      "networkDevice.id",
+      DEVICE_ID,
+    ]);
+    // Not one value is written into the SQL.
+    expect(statement.query).not.toContain(DEVICE_ID);
+    expect(statement.query).not.toContain("networkDevice.id");
+  });
+
+  test("a device with nothing to name is counted by its own logs alone", async () => {
+    const spy: Spy = stubExecuteQuery([{ eventCount: 3 }]);
+
+    await SecurityEventService.countEventsNaming({
+      projectId: PROJECT_ID,
+      values: [],
+      attribute: { key: "networkDevice.id", value: DEVICE_ID },
+      startTime: START,
+      endTime: END,
+    });
+
+    const statement: Statement = statementOf(spy);
+
+    expect(statement.query).toContain(
+      "AND ((has(attributeKeys, {p3:String}) AND attributes[{p4:String}] = {p5:String}))",
+    );
+    expect(statement.query).not.toContain("hasAny(observables");
+    expect(boundValues(statement).slice(3)).toEqual([
+      "networkDevice.id",
+      "networkDevice.id",
+      DEVICE_ID,
+    ]);
+  });
+
+  test("the values, the log resource and the attribute, each OR the next", async () => {
+    const spy: Spy = stubExecuteQuery([{ eventCount: 1 }]);
+
+    await SecurityEventService.countEventsNaming({
+      projectId: PROJECT_ID,
+      values: ["web-1"],
+      logResourceId: HOST_ID,
+      attribute: { key: "networkDevice.id", value: DEVICE_ID },
+      startTime: START,
+      endTime: END,
+    });
+
+    const query: string = statementOf(spy).query;
+
+    expect(query).toContain(
+      "AND (hasAny(observables, {p3:Array(String)}) OR (has(attributeKeys, {p4:String}) AND attributes[{p5:String}] = {p6:String}) OR (has(attributeKeys, {p7:String}) AND attributes[{p8:String}] = {p9:String}))",
+    );
+  });
+
+  test.each([
+    ["an empty key", { key: "", value: DEVICE_ID }],
+    ["an empty value", { key: "networkDevice.id", value: "" }],
+  ])(
+    "an attribute with %s is nothing to look for",
+    async (_case: string, attribute: { key: string; value: string }) => {
+      const spy: Spy = stubExecuteQuery([]);
+
+      expect(
+        await SecurityEventService.countEventsNaming({
+          projectId: PROJECT_ID,
+          values: [],
+          attribute,
+          startTime: START,
+          endTime: END,
+        }),
+      ).toEqual({
+        eventCount: 0,
+        findingCount: 0,
+        maxSeverityId: 0,
+        lastSeen: null,
+      });
+      expect(spy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("the reader's own sources still narrow it", async () => {
+    const spy: Spy = stubExecuteQuery([{ eventCount: 1 }]);
+    const sourceId: ObjectID = new ObjectID(
+      "66666666-6666-4666-8666-666666666666",
+    );
+
+    await SecurityEventService.countEventsNaming({
+      projectId: PROJECT_ID,
+      values: [],
+      attribute: { key: "networkDevice.id", value: DEVICE_ID },
+      startTime: START,
+      endTime: END,
+      serviceFilter: { serviceIds: [sourceId] },
+    });
+
+    const statement: Statement = statementOf(spy);
+
+    // The scope's OR closes before the sources are ANDed on.
+    expect(statement.query).toMatch(
+      /attributes\[\{p4:String\}\] = \{p5:String\}\)\) AND /,
+    );
+    expect(
+      boundValues(statement)
+        .filter((value: unknown): boolean => {
+          return Array.isArray(value);
+        })
+        .flat()
+        .map((value: unknown): string => {
+          return String(value);
+        }),
+    ).toContain(sourceId.toString());
+  });
+});
+
 describe("SecurityEventService.findLogResourcesNaming", () => {
   test("the records the log lines behind events naming the values were sent under, the most named first", async () => {
     const spy: Spy = stubExecuteQuery([
