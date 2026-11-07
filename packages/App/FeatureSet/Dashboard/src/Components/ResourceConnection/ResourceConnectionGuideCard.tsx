@@ -270,7 +270,11 @@ const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
                 onClick={(): void => {
                   setAreFoldedStepsShown(!areFoldedStepsShown);
                 }}
-                className="mt-2 inline-flex items-center gap-1 rounded text-sm font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                /*
+                 * Left-aligned, its chevron on the first line: on a phone
+                 * the words wrap, and a button centres them by default.
+                 */
+                className="mt-2 inline-flex items-start gap-1 rounded text-left text-sm font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
               >
                 <Icon
                   icon={
@@ -278,7 +282,7 @@ const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
                       ? IconProp.ChevronDown
                       : IconProp.ChevronRight
                   }
-                  className="h-4 w-4 flex-shrink-0"
+                  className="mt-0.5 h-4 w-4 flex-shrink-0"
                 />
                 <span>{copy.foldedStepsLabel}</span>
               </button>
