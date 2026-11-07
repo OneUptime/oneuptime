@@ -214,6 +214,11 @@ const RENDERS_SIDE_MENU: RegExp =
 // A resource's view menu takes the id of the resource it belongs to.
 const TAKES_MODEL_ID: RegExp = /modelId:\s*ObjectID/;
 
+const TYPESCRIPT_SOURCE: RegExp = /\.tsx?$/;
+
+// The pages through which a menu changes or deletes its record.
+const CHANGES_THE_RECORD: RegExp = /\/(settings|owners|delete)$/;
+
 function sourceFilesUnder(dir: string): Array<string> {
   const files: Array<string> = [];
 
@@ -226,7 +231,7 @@ function sourceFilesUnder(dir: string): Array<string> {
 
     if (entry.isDirectory()) {
       files.push(...sourceFilesUnder(entryPath));
-    } else if (/\.tsx?$/.test(entry.name)) {
+    } else if (TYPESCRIPT_SOURCE.test(entry.name)) {
       files.push(entryPath);
     }
   }
@@ -292,7 +297,10 @@ const MENU_PROPS: Record<string, unknown> = {
 
 const PROJECT_HOME: string = `/dashboard/${PROJECT_ID}`;
 
-async function renderMenuAt(menu: ViewMenu, currentPath: string): Promise<void> {
+async function renderMenuAt(
+  menu: ViewMenu,
+  currentPath: string,
+): Promise<void> {
   const MenuComponent: FunctionComponent<Record<string, unknown>> = (
     jest.requireActual(menu.file) as {
       default: FunctionComponent<Record<string, unknown>>;
@@ -406,11 +414,9 @@ describe("every resource's view menu has an Audit Logs page", () => {
       // Before the Delete item, in its section; else last in its section.
       const section: { title: string; links: Array<MenuLink> } =
         sectionOf(href);
-      const at: number = section.links.findIndex(
-        (link: MenuLink): boolean => {
-          return link.href === href;
-        },
-      );
+      const at: number = section.links.findIndex((link: MenuLink): boolean => {
+        return link.href === href;
+      });
       const deleteLink: MenuLink | undefined = allLinks().find(
         (link: MenuLink): boolean => {
           return link.href.endsWith("/delete");
@@ -422,9 +428,7 @@ describe("every resource's view menu has an Audit Logs page", () => {
           menu: menu.name,
           next: deleteLink,
         });
-        expect(deleteLink.href).toBe(
-          href.replace(/\/audit-logs$/, "/delete"),
-        );
+        expect(deleteLink.href).toBe(href.replace(/\/audit-logs$/, "/delete"));
       } else {
         expect({ menu: menu.name, last: at }).toEqual({
           menu: menu.name,
@@ -446,13 +450,13 @@ describe("every resource's view menu has an Audit Logs page", () => {
       const href: string = allLinks().find((link: MenuLink): boolean => {
         return link.title === AUDIT_LOGS_TITLE;
       })!.href;
-      const pages: Array<string> = auditLogsPages().filter(
-        (page: { key: string; href: string }): boolean => {
+      const pages: Array<string> = auditLogsPages()
+        .filter((page: { key: string; href: string }): boolean => {
           return page.href === href;
-        },
-      ).map((page: { key: string; href: string }): string => {
-        return page.key;
-      });
+        })
+        .map((page: { key: string; href: string }): string => {
+          return page.key;
+        });
 
       expect({ menu: menu.name, pages: pages.length }).toEqual({
         menu: menu.name,
@@ -586,7 +590,7 @@ describe("the view menus without one", () => {
       await renderMenuAt(menuNamed(name), PROJECT_HOME);
       expect(
         allLinks().filter((link: MenuLink): boolean => {
-          return /\/(settings|owners|delete)$/.test(link.href);
+          return CHANGES_THE_RECORD.test(link.href);
         }),
       ).toEqual([]);
       cleanup();
@@ -629,9 +633,9 @@ describe("the view menus without one", () => {
   });
 
   test("a second product's view of a resource is that resource's, in both products", () => {
-    expect(
-      ENVIRONMENT_VIEW_PAGES[CloudResourceViewTab.Overview],
-    ).toBe(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW);
+    expect(ENVIRONMENT_VIEW_PAGES[CloudResourceViewTab.Overview]).toBe(
+      PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
+    );
     expect(RESOURCE_META["Cloud Resource"]!.viewRoute).toBe(
       RESOURCE_VIEW_PAGES[CloudResourceViewTab.Overview],
     );

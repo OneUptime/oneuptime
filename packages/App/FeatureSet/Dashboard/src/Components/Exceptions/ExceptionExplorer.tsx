@@ -943,14 +943,14 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       )}
 
       {/*
-       * Who resolved, archived, assigned or merged it, and when: the
-       * exception's audit log entries, under the summary every page of the
-       * exception shows.
+       * Who resolved, archived or assigned it, and when: the exception's
+       * audit log entries, under the summary every page of the exception
+       * shows. A merge is OneUptime's own write, so it is not one of them.
        */}
       {props.section === ExceptionDetailSection.AuditLogs && (
         <AuditLogsTable
           title="Exception Audit Logs"
-          description="Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed."
+          description="Every change made to this exception: who resolved, archived or assigned it, when, and what changed."
           rootResourceId={props.telemetryExceptionId}
         />
       )}

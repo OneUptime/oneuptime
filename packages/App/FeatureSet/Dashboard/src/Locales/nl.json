@@ -46393,7 +46393,6 @@
   "Every change made to this data store, its owners and the verdicts on its findings: who made it, when, and what changed.": "Every change made to this data store, its owners and the verdicts on its findings: who made it, when, and what changed.",
   "Every change made to this device and its owners, and every diagnostic run against it: who made it, when, and what changed.": "Every change made to this device and its owners, and every diagnostic run against it: who made it, when, and what changed.",
   "Every change made to this environment and its owners: who made it, when, and what changed.": "Every change made to this environment and its owners: who made it, when, and what changed.",
-  "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.": "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.",
   "Every change made to this form, its custom domains and its submissions: who made it, when, and what changed.": "Every change made to this form, its custom domains and its submissions: who made it, when, and what changed.",
   "Every change made to this function and its owners: who made it, when, and what changed.": "Every change made to this function and its owners: who made it, when, and what changed.",
   "Every change made to this issue: who accepted, assigned or resolved it, when, and what changed.": "Every change made to this issue: who accepted, assigned or resolved it, when, and what changed.",
@@ -46410,5 +46409,6 @@
   "Repository Audit Logs": "Repository Audit Logs",
   "Resource Audit Logs": "Resource Audit Logs",
   "Site Audit Logs": "Site Audit Logs",
-  "Table Audit Logs": "Table Audit Logs"
+  "Table Audit Logs": "Table Audit Logs",
+  "Every change made to this exception: who resolved, archived or assigned it, when, and what changed.": "Every change made to this exception: who resolved, archived or assigned it, when, and what changed."
 }

@@ -92,6 +92,8 @@ const readDense: ReadCodeFunction = (...segments: Array<string>): string => {
     .replace(/\s+/g, " ");
 };
 
+const TYPESCRIPT_SOURCE: RegExp = /\.tsx?$/;
+
 // Every source file under a directory of Dashboard/src, relative to it.
 function sourceFilesUnder(directory: string): Array<string> {
   const files: Array<string> = [];
@@ -103,7 +105,7 @@ function sourceFilesUnder(directory: string): Array<string> {
 
     if (entry.isDirectory()) {
       files.push(...sourceFilesUnder(relative));
-    } else if (/\.tsx?$/.test(entry.name)) {
+    } else if (TYPESCRIPT_SOURCE.test(entry.name)) {
       files.push(relative);
     }
   }
@@ -487,8 +489,10 @@ describe("the resources that had no Audit Logs page", () => {
       const item: number = menu.indexOf(`PageMap.${data.key}`);
 
       expect(item).toBeGreaterThan(-1);
-      // Its own item, titled as every resource's is, whether the menu is JSX
-      // (title before the route) or data (page before the title).
+      /*
+       * Its own item, titled as every resource's is, whether the menu is JSX
+       * (title before the route) or data (page before the title).
+       */
       const after: number = menu.indexOf("PageMap.", item + 1);
       const itemWindow: string = menu.slice(
         menu.lastIndexOf("PageMap.", item - 1) + 1,
@@ -507,9 +511,7 @@ describe("the resources that had no Audit Logs page", () => {
           `BuildBreadcrumbLinksByTitles\\(\\s?PageMap\\.${data.key},\\s?\\[[^\\]]*"Audit Logs",?\\s?\\]`,
         ),
       );
-      expect(readCode(...data.page)).toContain(
-        `rootResourceId={${data.root}}`,
-      );
+      expect(readCode(...data.page)).toContain(`rootResourceId={${data.root}}`);
     },
   );
 
@@ -518,9 +520,9 @@ describe("the resources that had no Audit Logs page", () => {
     (data: NewPage) => {
       const model: BaseModel = new data.model();
 
-      expect(AUDIT_LOG_ROOT_RESOURCE_TABLES.has(model.tableName as string)).toBe(
-        true,
-      );
+      expect(
+        AUDIT_LOG_ROOT_RESOURCE_TABLES.has(model.tableName as string),
+      ).toBe(true);
       expect(RESOURCE_META[model.singularName as string]).toBeDefined();
     },
   );

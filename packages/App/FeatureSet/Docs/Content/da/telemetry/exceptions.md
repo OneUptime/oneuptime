@@ -82,7 +82,7 @@ Sidens sidemenu samler det, du gør med en undtagelse:
 | **Protokoller** | De protokoller, der blev skrevet omkring den seneste forekomst. |
 | **AI-hjælp** | AI-opgaver, der retter undtagelsen eller tester den. |
 | **Indstillinger** | Løs eller arkivér undtagelsen. Den ligger under **Administrer**, som er foldet sammen fra start. |
-| **Auditlogs** | Hvem der løste, arkiverede, tildelte eller flettede undtagelsen, og hvornår. Den ligger også under **Administrer**. |
+| **Auditlogs** | Hvem der løste, arkiverede eller tildelte undtagelsen, og hvornår. Den ligger også under **Administrer**. |
 
 ## Løs, genåbn og arkivér
 

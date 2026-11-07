@@ -82,7 +82,7 @@ The page's side menu groups what you do with an exception:
 | **Logs** | The logs written around the latest occurrence. |
 | **AI Assistance** | AI tasks that fix the exception or test it. |
 | **Settings** | Resolve or archive the exception. It is under **Manage**, which starts collapsed. |
-| **Audit Logs** | Who resolved, archived, assigned or merged the exception, and when. It is under **Manage** too. |
+| **Audit Logs** | Who resolved, archived or assigned the exception, and when. It is under **Manage** too. |
 
 ## Resolve, reopen and archive
 

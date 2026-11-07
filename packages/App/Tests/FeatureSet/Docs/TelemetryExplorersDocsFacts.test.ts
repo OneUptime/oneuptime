@@ -1995,7 +1995,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       "| **Settings** | Resolve or archive the exception. It is under **Manage**, which starts collapsed. |",
     );
     expect(page).toContain(
-      "| **Audit Logs** | Who resolved, archived, assigned or merged the exception, and when. It is under **Manage** too. |",
+      "| **Audit Logs** | Who resolved, archived or assigned the exception, and when. It is under **Manage** too. |",
     );
   });
 
