@@ -4,7 +4,6 @@ import Entities, {
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
 import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessControl";
-import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import WriteSource from "../../../../Types/BaseDatabase/WriteSource";
 import { getCustomFieldRecordKind } from "../../../../Types/CustomField/CustomFieldRecordKinds";
@@ -168,22 +167,6 @@ export const getWorkflowComponent: (
   componentId: string,
 ): ComponentMetadata | undefined => {
   return getCatalog().get(componentId);
-};
-
-/*
- * The props a workflow is created or changed with: the person's own, with
- * every permission of theirs and none more, saying the change is Ask AI's
- * (DatabaseCommonInteractionProps.writeSource). For attribution only: the
- * workflow's version history keeps each of Ask AI's changes as a version of
- * its own (issue #6258), so the one before it is the workflow just as Ask AI
- * found it.
- */
-export const getAskAiWriteProps: (
-  ctx: ToolContext,
-) => DatabaseCommonInteractionProps = (
-  ctx: ToolContext,
-): DatabaseCommonInteractionProps => {
-  return { ...ctx.props, writeSource: WriteSource.AskAi };
 };
 
 const MAX_SEARCH_RESULTS: number = 25;
@@ -1031,10 +1014,14 @@ export const CreateWorkflowTool: ObservabilityTool = {
       workflow.description = description;
     }
 
-    // As the person: what they may not create in the dashboard, this does not.
+    /*
+     * As the person: what they may not create in the dashboard, this does
+     * not. Saying the workflow is Ask AI's work, for its first version
+     * (writeSource: attribution only, issue #6258).
+     */
     const created: Workflow = await WorkflowService.create({
       data: workflow,
-      props: getAskAiWriteProps(ctx),
+      props: { ...ctx.props, writeSource: WriteSource.AskAi },
     });
 
     const id: string = created.id!.toString();
@@ -1298,11 +1285,16 @@ export const UpdateWorkflowTool: ObservabilityTool = {
       );
     }
 
-    // As the person: what they may not change in the Builder, this does not.
+    /*
+     * As the person: what they may not change in the Builder, this does not.
+     * Saying the change is Ask AI's (writeSource: attribution only), so the
+     * version history keeps it as a version of its own (issue #6258), and
+     * the version before it is the workflow just as Ask AI found it.
+     */
     await WorkflowService.updateOneById({
       id: workflowId,
       data: data as never,
-      props: getAskAiWriteProps(ctx),
+      props: { ...ctx.props, writeSource: WriteSource.AskAi },
     });
 
     const shownName: string = name || workflow.name || "";
