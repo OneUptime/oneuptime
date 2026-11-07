@@ -83,6 +83,7 @@ interface SessionSpec {
 function answer(
   specs: Array<SessionSpec>,
   scope: JSONObject | null,
+  overrides: JSONObject = {},
 ): HTTPResponse<JSONObject> {
   const pages: Array<string> = [];
   const indexOf: (path: string) => number = (path: string): number => {
@@ -120,6 +121,7 @@ function answer(
       startUnixMs: 0,
       endUnixMs: 1,
       scope: scope,
+      ...overrides,
     } as unknown as JSONObject,
     {},
   );
@@ -415,6 +417,25 @@ describe("the numbers say whose they are", () => {
       expect(sessionsHint()).toBe(hint);
     },
   );
+
+  test("a read cut to the newest sessions says how many it read, whatever the filters keep", async () => {
+    answerer = (): Promise<unknown> => {
+      return Promise.resolve(
+        answer(EVERYONE, null, { isSampled: true, sessionsInWindow: 12000 }),
+      );
+    };
+
+    renderPage("?device=mobile");
+    await waitFor(() => {
+      expect(screen.queryByTestId("user-flow-tile-sessions")).not.toBeNull();
+    });
+
+    /* One mobile session analysed, of the newest five read, of 12,000. */
+    expect(
+      screen.getByTestId("user-flow-tile-sessions-value"),
+    ).toHaveTextContent("1");
+    expect(sessionsHint()).toBe("newest 5 of 12,000 recorded");
+  });
 });
 
 describe("one person with very little to show", () => {

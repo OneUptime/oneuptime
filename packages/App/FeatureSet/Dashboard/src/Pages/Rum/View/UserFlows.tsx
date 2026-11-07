@@ -710,6 +710,7 @@ const RumApplicationUserFlows: FunctionComponent<
         <UserFlowOverview
           summary={analysis.summary}
           insights={analysis.insights}
+          sessionsRead={data.sessions.length}
           sessionsInWindow={data.sessionsInWindow}
           isSampled={data.isSampled}
           scopeKind={scope?.kind ?? null}

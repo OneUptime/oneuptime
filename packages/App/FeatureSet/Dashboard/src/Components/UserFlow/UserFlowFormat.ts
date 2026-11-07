@@ -80,10 +80,12 @@ export function pluralizeSessions(count: number): string {
  * The line under "Sessions analysed". It says whose sessions they are, so a
  * person's numbers never read as everyone's, wherever the banner that names
  * them has scrolled to. A read the server cut to the newest sessions says so
- * instead, for anyone.
+ * instead, for anyone: how many it read of how many there were. That is the
+ * read, before the page's filters, which the number above already applies.
  */
 export function formatUserFlowSessionsHint(input: {
-  sessions: number;
+  /* Sessions the read answered with. */
+  sessionsRead: number;
   sessionsInWindow: number;
   isSampled: boolean;
   /* Null or absent for everyone. */
@@ -91,7 +93,7 @@ export function formatUserFlowSessionsHint(input: {
 }): string {
   if (input.isSampled) {
     return `newest ${formatUserFlowCount(
-      input.sessions,
+      input.sessionsRead,
     )} of ${formatUserFlowCount(input.sessionsInWindow)} recorded`;
   }
 

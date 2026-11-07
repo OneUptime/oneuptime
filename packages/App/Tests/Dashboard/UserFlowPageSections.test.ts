@@ -411,10 +411,10 @@ describe("the filters that drop whole sessions", () => {
 
 describe("the line under Sessions analysed says whose sessions they are", () => {
   const counts: {
-    sessions: number;
+    sessionsRead: number;
     sessionsInWindow: number;
     isSampled: boolean;
-  } = { sessions: 3, sessionsInWindow: 3, isSampled: false };
+  } = { sessionsRead: 3, sessionsInWindow: 3, isSampled: false };
 
   test("everyone's, as it always has", () => {
     expect(formatUserFlowSessionsHint(counts)).toBe(
@@ -458,7 +458,7 @@ describe("the line under Sessions analysed says whose sessions they are", () => 
     for (const scope of EVERY_SCOPE_OR_NONE) {
       expect(
         formatUserFlowSessionsHint({
-          sessions: 5000,
+          sessionsRead: 5000,
           sessionsInWindow: 12345,
           isSampled: true,
           scopeKind: scope?.kind ?? null,

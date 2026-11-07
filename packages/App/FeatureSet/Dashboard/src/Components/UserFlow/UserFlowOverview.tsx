@@ -33,6 +33,8 @@ export const USER_FLOW_MAX_VISIBLE_INSIGHTS: number = 4;
 export interface ComponentProps {
   summary: UserFlowSummary;
   insights: Array<UserFlowInsight>;
+  /* Sessions the read answered with, before the page's filters. */
+  sessionsRead: number;
   sessionsInWindow: number;
   isSampled: boolean;
   /* Whose sessions these are; absent or null for everyone. */
@@ -116,7 +118,7 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
           label="Sessions analysed"
           value={formatUserFlowCount(summary.sessions)}
           hint={formatUserFlowSessionsHint({
-            sessions: summary.sessions,
+            sessionsRead: props.sessionsRead,
             sessionsInWindow: props.sessionsInWindow,
             isSampled: props.isSampled,
             scopeKind: props.scopeKind,
