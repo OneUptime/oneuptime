@@ -243,6 +243,7 @@ describe("Stripe rate-limit budget for pay-as-you-go billing", () => {
       GROWTH_PLAN,
     );
     getJestSpyOn(BillingService, "isBillingEnabled").mockReturnValue(true);
+    getJestSpyOn(BillingService, "isTestEnvironment").mockReturnValue(true);
     /*
      * The project's one active monitor, counted and written on the project
      * under the active monitor limit's lock (ActiveMonitorLimit, which reads
