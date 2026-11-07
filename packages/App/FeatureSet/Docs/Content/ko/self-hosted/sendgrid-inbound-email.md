@@ -112,6 +112,26 @@ inboundEmail:
   domain: "inbound.yourdomain.com"
   webhookSecret: "replace-with-a-strong-random-secret"
 ```
+
+:::details 웹훅 시크릿을 Secret에 보관
+`inboundEmail.webhookSecret`는 웹훅 시크릿을 릴리스의 값에 남기며, Helm은 이 값을 리비전마다 저장합니다. 웹훅 시크릿을 값에 남기지 않으려면 OneUptime의 네임스페이스에 있는 Kubernetes Secret에 `webhookSecret` 항목으로 웹훅 시크릿을 넣고, 대신 그 Secret의 이름을 지정하세요:
+
+```bash
+kubectl create secret generic oneuptime-inbound-email \
+  --namespace oneuptime \
+  --from-literal=webhookSecret=replace-with-a-strong-random-secret
+```
+
+```yaml title="values.yaml"
+inboundEmail:
+  provider: "SendGrid"
+  domain: "inbound.yourdomain.com"
+  existingSecret:
+    name: oneuptime-inbound-email
+```
+
+`inboundEmail.webhookSecret`와 `inboundEmail.existingSecret.name` 중 하나만 설정하고 둘 다 설정하지는 마세요. 둘을 함께 설정하면 차트가 거부합니다. Secret에 웹훅 시크릿을 다른 항목 이름으로 넣었다면 그 이름을 `inboundEmail.existingSecret.webhookSecretKey`에 지정하세요.
+:::
 :::
 
 `INBOUND_EMAIL_WEBHOOK_SECRET`은 필수입니다. 비어 있거나 아직 이 페이지의 자리 표시자인 동안 OneUptime은 모든 이메일을 거부합니다. `openssl rand -hex 32`로 긴 무작위 값을 만들 수 있습니다.

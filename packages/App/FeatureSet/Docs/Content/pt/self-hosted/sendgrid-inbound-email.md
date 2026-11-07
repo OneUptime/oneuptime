@@ -112,6 +112,26 @@ inboundEmail:
   domain: "inbound.yourdomain.com"
   webhookSecret: "replace-with-a-strong-random-secret"
 ```
+
+:::details Guarde o segredo do webhook em um Secret
+`inboundEmail.webhookSecret` mantém o segredo do webhook nos valores da release, que o Helm armazena em cada revisão. Para deixá-lo fora deles, coloque-o em um Secret do Kubernetes no namespace do OneUptime, em `webhookSecret`, e indique esse Secret no lugar dele:
+
+```bash
+kubectl create secret generic oneuptime-inbound-email \
+  --namespace oneuptime \
+  --from-literal=webhookSecret=replace-with-a-strong-random-secret
+```
+
+```yaml title="values.yaml"
+inboundEmail:
+  provider: "SendGrid"
+  domain: "inbound.yourdomain.com"
+  existingSecret:
+    name: oneuptime-inbound-email
+```
+
+Defina `inboundEmail.webhookSecret` ou `inboundEmail.existingSecret.name`, não os dois: o chart recusa os dois juntos. Se o seu Secret guarda o segredo do webhook em outra chave, indique essa chave em `inboundEmail.existingSecret.webhookSecretKey`.
+:::
 :::
 
 `INBOUND_EMAIL_WEBHOOK_SECRET` é obrigatória: o OneUptime recusa todo e-mail enquanto ela estiver vazia ou ainda for um marcador desta página. `openssl rand -hex 32` gera um valor aleatório longo.
