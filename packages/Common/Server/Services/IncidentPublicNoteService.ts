@@ -486,9 +486,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     return {
       updateBy: updateBy,
-      carryForward: {
-        publicNoteApproval: approvalUpdate,
-      },
+      carryForward: PublicNoteApprovalEngine.getCarryForward(approvalUpdate),
     };
   }
 

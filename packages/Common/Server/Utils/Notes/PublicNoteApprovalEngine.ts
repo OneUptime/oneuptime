@@ -363,12 +363,9 @@ export default class PublicNoteApprovalEngine {
       return result;
     }
 
-    const notes: Array<NoteFields> = (await data.host.service.findBy({
-      query: data.updateBy.query,
-      select: this.noteSelect(data.host),
-      limit: 2,
-      skip: 0,
-      props: ROOT,
+    const notes: Array<NoteFields> = (await this.readNotesOfUpdate({
+      host: data.host,
+      updateBy: data.updateBy,
     })) as unknown as Array<NoteFields>;
 
     if (notes.length === 0) {
@@ -516,6 +513,24 @@ export default class PublicNoteApprovalEngine {
   }
 
   /*
+   * What onBeforeUpdate hands onUpdateSuccess: the approval's part of the
+   * edit, or nothing when approval left the edit alone.
+   */
+  public static getCarryForward(
+    update: PublicNoteApprovalUpdate,
+  ): { publicNoteApproval: PublicNoteApprovalUpdate } | null {
+    if (
+      update.heldEditNoteIds.length === 0 &&
+      update.resentNoteIds.length === 0 &&
+      update.droppedEditNoteIds.length === 0
+    ) {
+      return null;
+    }
+
+    return { publicNoteApproval: update };
+  }
+
+  /*
    * After an update (onUpdateSuccess): an edit that now waits says so on
    * its record's feed and asks the first step's approvers; a waiting edit
    * dropped says that. True when the update was one of those, so the
@@ -575,6 +590,25 @@ export default class PublicNoteApprovalEngine {
     }
 
     return handled;
+  }
+
+  /*
+   * The notes an update writes, as they are, for beforeUpdate: at most two
+   * (an edit approval governs names one note). Read as OneUptime: the
+   * update's query is already held to the rows its caller may write.
+   */
+  @CaptureSpan()
+  public static async readNotesOfUpdate<TNote extends BaseModel>(data: {
+    host: PublicNoteApprovalHost<TNote>;
+    updateBy: UpdateBy<TNote>;
+  }): Promise<Array<TNote>> {
+    return await data.host.service.findBy({
+      query: data.updateBy.query,
+      select: this.noteSelect(data.host),
+      limit: 2,
+      skip: 0,
+      props: ROOT,
+    });
   }
 
   // ---------- deciding ----------

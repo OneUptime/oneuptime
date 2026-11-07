@@ -103,6 +103,11 @@ const SERVICE_CASES: Array<ServiceCase> = [
   },
 ];
 
+// Public note approval off: every note is published as it is posted.
+beforeEach(() => {
+  stubPublicNoteApproval({});
+});
+
 const ROW_ID: ObjectID = new ObjectID("77777777-7777-4777-8777-777777777777");
 const PROJECT_ID: ObjectID = new ObjectID(
   "88888888-8888-4888-8888-888888888888",

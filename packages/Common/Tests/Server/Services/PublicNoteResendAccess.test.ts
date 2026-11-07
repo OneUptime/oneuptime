@@ -275,6 +275,8 @@ describe.each(SERVICE_CASES)(
         _id: true,
         subscriberNotificationStatusOnNoteCreated: true,
         shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
+        // Whether it is published: a note waiting for approval told nobody yet.
+        isPublished: true,
       });
 
       // The update writes only the notes checked.
@@ -323,6 +325,41 @@ describe.each(SERVICE_CASES)(
           SubscriberNotificationResend.notePostedWithoutNotifyingMessage,
         ),
       );
+    });
+
+    test("a note waiting for approval, or rejected, is refused: it told nobody yet, and is told once it is published", async () => {
+      for (const status of [
+        StatusPageSubscriberNotificationStatus.Pending,
+        StatusPageSubscriberNotificationStatus.Success,
+        StatusPageSubscriberNotificationStatus.Failed,
+      ]) {
+        storedNotes = [
+          storedNote(serviceCase, {
+            subscriberNotificationStatusOnNoteCreated: status,
+            isPublished: false,
+          }),
+        ];
+
+        await expect(
+          runBeforeUpdate(
+            serviceCase,
+            update({ props: makeProps([serviceCase.memberRole]) }),
+          ),
+        ).rejects.toThrow(
+          new BadDataException(SubscriberNotificationResend.notPublishedMessage),
+        );
+      }
+    });
+
+    test("a published note is sent again as before: only isPublished false holds it", async () => {
+      storedNotes = [storedNote(serviceCase, { isPublished: true })];
+
+      await expect(
+        runBeforeUpdate(
+          serviceCase,
+          update({ props: makeProps([serviceCase.memberRole]) }),
+        ),
+      ).resolves.toBeDefined();
     });
 
     test("a notification being sent right now is refused: its send would overwrite the request", async () => {

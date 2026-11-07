@@ -1,4 +1,5 @@
 import { jest } from "@jest/globals";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "../../../Types/ObjectID";
 import { PublicNoteApprovalStepRule } from "../../../Types/StatusPage/PublicNoteApproval";
 import PublicNoteApprovalEngine from "../../../Server/Utils/Notes/PublicNoteApprovalEngine";
@@ -32,6 +33,12 @@ export interface PublicNoteApprovalWorld {
   teamMembers?: Record<string, Array<string>> | undefined;
   // Whether a note's writes start workflows; true when left out.
   isPublishedNow?: boolean | undefined;
+  /*
+   * The notes an edit writes, as approval reads them before the edit
+   * (PublicNoteApprovalEngine.readNotesOfUpdate). None when left out: an
+   * edit then is one approval leaves alone.
+   */
+  notesOfUpdate?: Array<BaseModel> | undefined;
 }
 
 export function stubPublicNoteApproval(world: PublicNoteApprovalWorld): void {
@@ -74,6 +81,12 @@ export function stubPublicNoteApproval(world: PublicNoteApprovalWorld): void {
         return byTeam;
       },
     );
+
+  jest
+    .spyOn(PublicNoteApprovalEngine, "readNotesOfUpdate")
+    .mockImplementation(async (): Promise<Array<BaseModel>> => {
+      return world.notesOfUpdate || [];
+    });
 
   jest
     .spyOn(PublicNoteApprovalEngine, "isPublishedNow")
