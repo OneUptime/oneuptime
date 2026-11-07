@@ -164,6 +164,25 @@ Dezelfde lijst, knop en `{{` komen mee met de andere sjablonen die variabelen he
 
 Notitiesjablonen verschijnen waar je ze echt nodig hebt: de bevestigingsdialoogvensters **Incident bevestigen** en **Incident oplossen** bieden allebei **Selecteer notitiesjabloon** aan boven het veld **Openbare notitie**, ingeklapt onder **Openbare notitie toevoegen**. Zie [Incidentnotities, eigenaren en feed](/docs/incidents/notes-owners-and-feed) voor hoe openbare en privénotities verschillen.
 
+## Goedkeuring van openbare notities
+
+**Goedkeuring van openbare notities** laat openbare notities bij incidenten en incidentepisodes goedkeuren voordat ze worden gepubliceerd, voor de updates die een tweede paar ogen nodig hebben voordat klanten ze lezen. Ze staat in elk project uit tot je haar aanzet.
+
+:::steps
+1. Ga naar **Incidenten → Instellingen → Goedkeuring van openbare notities** (`/dashboard/{projectId}/incidents/settings/public-note-approval`).
+2. Klik onder **Wie keurt goed** op **Goedkeuringsstap toevoegen** en kies de **Goedkeurders** van de stap: mensen, teams of allebei, van wie ieder een notitie voor de stap kan goedkeuren. Een **Naam**, zoals Juridisch, is optioneel: notities die op de stap wachten, tonen hem.
+3. Zet **Goedkeuring vereisen voordat openbare notities worden gepubliceerd** aan. Vanaf dan wacht een nieuwe openbare notitie, net als een bewerking van een gepubliceerde, tot ze is goedgekeurd.
+:::
+
+De meeste projecten hebben één stap nodig. Voeg er nog een toe wanneer een notitie een tweede goedkeuring nodig heeft, bijvoorbeeld van je juridische team na je supportleider. De stappen worden goedgekeurd in de volgorde van de lijst, die je door slepen herschikt, en een notitie wordt gepubliceerd wanneer de laatste haar goedkeurt.
+
+- **Elke stap noemt iemand.** Een stap heeft minstens één persoon of team nodig, en goedkeuring kan pas aan wanneer een stap iemand noemt.
+- **De laatste stap blijft zolang goedkeuring aanstaat.** Om hem te verwijderen, zet je eerst goedkeuring uit of voeg je een andere stap toe.
+- **Wijzigingen tellen meteen.** Wie mag goedkeuren, wordt gelezen wanneer iemand beslist. Wie aan een stap wordt toegevoegd, of aan een team dat een stap noemt, kan beslissen over de notities die al wachten; wie wordt verwijderd, niet meer. Een notitie houdt de goedkeuringen die ze heeft.
+- **Niemand keurt zijn eigen notitie goed, of twee stappen van één notitie.** Wie een notitie ter goedkeuring verstuurde, kan haar niet goedkeuren of afwijzen, en wie een van haar stappen goedkeurde, kan geen andere goedkeuren.
+
+Alleen projecteigenaren en -beheerders kunnen deze instellingen wijzigen, en iedereen die de notities leest, ziet wie ze goedkeurt. **Geplande onderhoud → Instellingen → Goedkeuring van openbare notities** is dezelfde pagina voor geplande onderhoudsevenementen, met een eigen schakelaar en eigen stappen. Wat een notitie doet terwijl ze wacht, en hoe goedkeurders beslissen, staat onder [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities).
+
 ## Postmortem-sjablonen
 
 Een postmortem-sjabloon is het geraamte van het verslag dat je na een incident maakt — je koppen, je aanwijzingen, je vaste vragen — zodat elke evaluatie in het project dezelfde vorm volgt.

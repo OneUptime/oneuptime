@@ -169,7 +169,7 @@ Har du koblet til et arbeidsområde, trenger de som responderer, aldri å forlat
 Tre detaljer det er verdt å kjenne til:
 
 - **Beskyttelse mot duplikater** — hvert notat registrerer Slack-meldingen det kom fra (`postedFromSlackMessageId`, i formatet `channel_id:message_ts`), så flere personer som reagerer på den samme meldingen, gir ett notat, ikke fem.
-- **Notater kommer tilbake** — å publisere begge typer notater sender også en melding inn i den tilkoblede hendelseskanalen, fordi notatets feedoppføring opprettes med varsling til arbeidsområdet slått på.
+- **Notater kommer tilbake** — å publisere begge typer notater sender også en melding inn i den tilkoblede hendelseskanalen, fordi notatets feedoppføring opprettes med varsling til arbeidsområdet slått på. Et offentlig notat som venter på godkjenning, sendes dit når det er publisert: se [Godkjenning av offentlige notater](#godkjenning-av-offentlige-notater).
 - **Publisert som den som spurte** — et notat fra dialogen eller fra en reaksjon publiseres med den personens OneUptime-tillatelser, så det krever vedkommendes tillatelse til å publisere den typen notat på hendelsen. Avvises det, får vedkommende vite hvorfor — i en direktemelding i Slack, og i samtalen i Microsoft Teams (i meldingens tråd, for en reaksjon) — og ingenting publiseres.
 
 ## Når et offentlig notat faktisk når abonnentene
@@ -239,6 +239,32 @@ Bare hendelsens varsel 'opprettet' fortsetter der det stoppet: det holder rede p
 En sendt oppdatering tilbys ikke igjen: rediger notatet med avkrysningsboksen avkrysset for å sende den nyeste teksten, eller send selve notatet på nytt. Er det opprinnelige varselet ikke sendt ennå, går det ingen separat oppdatering ut — det opprinnelige tar med seg redigeringen. Blir det sendt akkurat da, venter oppdateringen til det er ferdig, og går deretter ut. Avkrysningsboksen og oppdateringens **Prøv varsel på nytt** krever de samme tillatelsene som å sende varselet for notatet på nytt; uten dem kan du fortsatt redigere notatet uten å gi noen beskjed. Se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers#varsle-abonnenter-om-en-redigering).
 
 Den faktiske meldingen abonnentene får, bygges med en mal per statusside og per kanal — e-post, SMS, Slack og Microsoft Teams har hver sin mal for hendelsen **Subscriber Incident Note Created**, med variabler for statussidens navn og URL, lenken til detaljene, de berørte ressursene, hendelsens alvorlighetsgrad og tittel, notatets tekst, hendelsens etiketter, berørte statussider og egendefinerte felt, og en avmeldingslenke per abonnent. Standardmeldingene per e-post, i Slack og i Microsoft Teams viser også hendelsens egendefinerte felt som er merket med **Ta med i abonnentvarsler**, med gjeldende verdier. Se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers) for hvordan de malene og kanalene settes opp.
+
+## Godkjenning av offentlige notater
+
+Et prosjekt kan få de offentlige notatene sine godkjent før kundene leser dem, slik at noen sjekker en oppdatering, for eksempel om et sikkerhetsbrudd, før den går ut. Godkjenning er slått av til en prosjekteier eller -administrator slår den på og velger hvem som godkjenner: under **Hendelser → Innstillinger → Godkjenning av offentlige notater** for hendelser og hendelsesepisoder, og under **Planlagt vedlikehold → Innstillinger → Godkjenning av offentlige notater** for planlagte vedlikeholdshendelser. Se [Godkjenning av offentlige notater](/docs/incidents/settings#godkjenning-av-offentlige-notater).
+
+Mens den er slått på, sier redigeringsverktøyet at notatet publiseres når det er godkjent, og nevner hvem som godkjenner det, og **Publiser oppdatering** blir til **Send til godkjenning**. Notatet lagres med merket **Venter på godkjenning** og viser under det hvem som kan godkjenne det, og ved flere trinn hvilket det venter på. Til det er godkjent, gjelder dette for et notat:
+
+- det vises ikke på noen statusside, og ikke i noen av RSS- og Atom-feedene deres;
+- det varsler ingen abonnenter: varselet sendes når det publiseres, hvis **Varsle abonnentene på statussiden** var krysset av. Se [Offentlige notater som venter på godkjenning](/docs/status-pages/subscribers#offentlige-notater-som-venter-på-godkjenning);
+- det publiseres ikke i hendelsens Slack-, Microsoft Teams- eller Mattermost-kanaler, og eierne får først vite om det når det er publisert;
+- det starter ingen arbeidsflyt og holdes utenfor det OneUptime AI leser, så det aldri dukker opp i et utkast til notat;
+- bildene vises bare for prosjektets medlemmer.
+
+Hvert nye offentlige notat venter, uansett hvor det skrives: i dashbordet, gjennom API-et, av en arbeidsflyt eller OneUptime AI, fra Slack, Microsoft Teams eller Mattermost, av en SLA-regels påminnelse eller sammen med et tilstandsskifte.
+
+**Godkjenne og avvise.** Personene som trinnet et notat venter på, nevner, og medlemmene av teamene det nevner, ser **Godkjenn** og **Avvis** på notatet, og får vite at det venter gjennom varslingsinnstillingene de har valgt: se [Godkjenning av offentlige notater](/docs/notifications/notification-settings#godkjenning-av-offentlige-notater). På det siste trinnet heter **Godkjenn** i stedet **Godkjenn og publiser**, og notatet publiseres med en gang, datert til øyeblikket det publiseres, med mindre tidspunktet ble valgt da det ble skrevet. Når det er publisert, har det merket **Godkjent** og en linje som nevner hvem som godkjente det, og oppføringen i feeden og meldingen i hendelsens kanaler slutter med de samme navnene. **Avvis** spør **Hvorfor avviser du det?**, og den som skrev notatet, ser begrunnelsen. Ingen godkjenner eller avviser et notat de selv har sendt, ingen godkjenner to trinn av det samme notatet, og en API-nøkkel godkjenner ingenting: godkjennere er mennesker.
+
+**Send det på nytt.** Et avvist notat holdes unna statussider, merket **Avvist**. Den som kan redigere det, kan endre det eller sende det som det er med **Send til godkjenning på nytt**; i begge tilfeller begynner godkjenningen på nytt fra det første trinnet. Å redigere et notat som fortsatt venter, starter også godkjenningen på nytt: en godkjenning gjelder ordene den fikk lagt fram.
+
+**Rediger et publisert notat.** En redigering venter også. Redigeringsskjemaet sier det, og **Send redigering til godkjenning** lagrer den. Statussider fortsetter å vise notatet slik det ble godkjent, notatet viser redigeringen under **Foreslått redigering**, merket **Redigering venter på godkjenning** eller, når den er avvist, **Redigering avvist**, og **Trekk tilbake redigering** forkaster den. Filene på et publisert notat kan ikke endres mens godkjenning er slått på: publiser heller et nytt notat med filene. En redigering som sendes mens noen tar stilling til notatet, lagres ikke: last inn siden på nytt, og gjør den igjen.
+
+**Slå av godkjenning.** Fra da av publiseres nye notater så snart de legges inn. Et notat som fortsatt ventet eller ble avvist, tilbyr **Publiser nå** til dem som kan redigere det, som publiserer det som det er, uten godkjenning, og feeden sier fra om det.
+
+**Fra Slack, Microsoft Teams og Mattermost.** Skjemaet for å legge til et notat sier at et offentlig notat publiseres på statussiden når det er godkjent. Den som sender et, får vite at det er sendt til godkjenning, og hvem det venter på: i en melding bare vedkommende ser i Slack og Mattermost, og i samtalen i Microsoft Teams. Et notat som lagres fra en 📣- eller 📢-reaksjon, sier det samme i bekreftelsen sin. Kanalen hører om notatet når det publiseres.
+
+Feeden registrerer hvert trinn som en oppføring av typen `PublicNoteApproval`: et notat sendt til godkjenning, godkjent eller avvist, en tilbaketrukket redigering eller et notat publisert uten godkjenning. Disse oppføringene publiseres ikke i chattekanaler; det publiserte notatet gjør det.
 
 ## Hendelsens feed
 

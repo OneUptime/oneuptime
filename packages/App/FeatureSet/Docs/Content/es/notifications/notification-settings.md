@@ -77,6 +77,15 @@ La pestaña **Seguridad** trata de los casos de seguridad que puedes ver:
 
 Consulta [Casos de seguridad](/docs/telemetry/security-cases#notificaciones).
 
+## Aprobación de notas públicas
+
+La tarjeta **Aprobación de notas públicas**, en la pestaña **Páginas de estado**, trata de las notas públicas que esperan aprobación antes de publicarse, en un proyecto que la pide:
+
+- **Nota pública pendiente de mi aprobación** te dice que una nota pública, o una edición de una, espera a un paso que apruebas, por tu nombre o a través de un equipo. No se te pregunta por una nota que enviaste, ni por un paso posterior a uno que aprobaste. Empieza activada por correo y por push, y **Resumen de correos** nunca la retiene: los clientes para quienes se escribe la nota la están esperando.
+- **Mi nota pública aprobada o rechazada** te dice que una nota que enviaste para aprobación se aprobó y publicó, o se rechazó, con el motivo. Empieza activada por correo.
+
+Consulta [Aprobación de notas públicas](/docs/incidents/notes-owners-and-feed#aprobación-de-notas-públicas).
+
 ## Menos correos
 
 Estos interruptores deciden qué novedades te llegan, no cuántos correos suman. **Ajustes de usuario → Preferencias de correo** tiene dos tarjetas para eso, ambas solo para ti, en este proyecto:

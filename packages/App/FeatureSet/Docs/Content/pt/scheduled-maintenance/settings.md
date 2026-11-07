@@ -94,6 +94,10 @@ Esses lembretes são para a sua equipe. Os lembretes que os assinantes das suas 
 
 **Manutenção programada → Configurações → Modelos de notas** guarda textos prontos para atualizações de manutenção. O cartão **Modelos de nota pública ou privada para eventos de manutenção programada** os lista; **Criar: Modelo de nota de manutenção programada** pede um **Nome do modelo**, uma **Descrição do modelo** e a **Nota**. Um modelo é oferecido quando alguém escreve uma nota pública ou privada em um evento e quando muda o estado dele, e o texto pode ser editado antes de ser publicado. Ao contrário dos modelos de nota de incidentes, os modelos de nota de manutenção não preenchem variáveis.
 
+### Aprovação de notas públicas
+
+**Manutenção programada → Configurações → Aprovação de notas públicas** faz com que as notas públicas de eventos de manutenção programada sejam aprovadas antes de serem publicadas. Ela funciona como a página dos incidentes, com interruptor e etapas próprios: ative **Exigir aprovação antes de publicar notas públicas** e escolha quem aprova em **Quem aprova**. Assim, as notas de manutenção podem precisar de aprovação enquanto as de incidentes não, ou ser aprovadas por outras pessoas. Só **Proprietário do projeto** e **Administrador do projeto** podem mudá-la. Veja [Aprovação de notas públicas](/docs/incidents/settings#aprovação-de-notas-públicas) para as etapas, e [Aprovação de notas públicas](/docs/incidents/notes-owners-and-feed#aprovação-de-notas-públicas) para o que uma nota faz enquanto aguarda.
+
 ### Campos personalizados
 
 **Manutenção programada → Configurações → Campos personalizados** adiciona campos próprios a cada evento, como um ticket de mudança ou o nível do cliente. Preencha-os na página **Campos personalizados** de um evento, ou pela API como `customFields`. Um campo pode copiar seu valor de um campo personalizado de um monitor em vez de ser digitado: veja [Campos copiados de um monitor](/docs/incidents/settings#campos-copiados-de-um-monitor), que funciona da mesma forma para eventos.

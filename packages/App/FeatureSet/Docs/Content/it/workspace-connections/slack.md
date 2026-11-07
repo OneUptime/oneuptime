@@ -158,7 +158,7 @@ Reagisci a un messaggio nel canale di un incidente, di un avviso, di un episodio
 | Reazione | Salvato come |
 | --- | --- |
 | 📌 Un'emoji di puntina, o il comando **Pin to channel** di Slack | Una nota privata, visibile solo al tuo team |
-| 📢 Un'emoji di megafono o di altoparlante | Una nota pubblica, mostrata sulla pagina di stato. Solo incidenti ed eventi di manutenzione programmata. Su un incidente privato, una nota privata, e la conferma dice perché. |
+| 📢 Un'emoji di megafono o di altoparlante | Una nota pubblica, mostrata sulla pagina di stato. Solo incidenti ed eventi di manutenzione programmata. Su un incidente privato, una nota privata, e la conferma dice perché. Quando le note pubbliche del progetto richiedono un'approvazione, viene mostrata solo una volta approvata, e la conferma dice chi attende: vedete [Approvazione delle note pubbliche](/docs/incidents/notes-owners-and-feed#approvazione-delle-note-pubbliche). |
 
 La nota riprende il messaggio così come Slack lo mostrava: la formattazione, i link e il codice, le persone e i canali che menziona con il loro nome, e i file e le immagini come link. Una nota pubblica lascia fuori i file e le immagini, perché si aprono solo per il tuo team.
 

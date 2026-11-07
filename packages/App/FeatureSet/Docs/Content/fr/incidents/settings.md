@@ -164,6 +164,25 @@ La même liste, le même bouton et le même `{{` accompagnent les autres modèle
 
 Les modèles de notes apparaissent là où vous en avez réellement besoin : les boîtes de dialogue de confirmation **Prendre en compte l'incident** et **Résoudre l'incident** proposent toutes deux **Sélectionner le modèle de note** au-dessus du champ **Note publique**, replié sous **Ajouter une note publique**. Voir [Notes, propriétaires et fil d'incident](/docs/incidents/notes-owners-and-feed) pour les différences entre notes publiques et privées.
 
+## Approbation des notes publiques
+
+**Approbation des notes publiques** fait approuver les notes publiques des incidents et des épisodes d'incident avant leur publication, pour les mises à jour qui ont besoin d'un second regard avant que les clients les lisent. Elle est désactivée dans chaque projet jusqu'à ce que vous l'activiez.
+
+:::steps
+1. Allez dans **Incidents → Paramètres → Approbation des notes publiques** (`/dashboard/{projectId}/incidents/settings/public-note-approval`).
+2. Sous **Qui approuve**, cliquez sur **Ajouter : Étape d'approbation** et choisissez les **Approbateurs** de l'étape : des personnes, des équipes ou les deux, chacune pouvant approuver une note pour l'étape. Un **Nom**, comme Juridique, est facultatif : les notes qui attendent l'étape l'affichent.
+3. Activez **Exiger une approbation avant la publication des notes publiques**. Dès lors, une nouvelle note publique, comme la modification d'une note publiée, attend d'être approuvée.
+:::
+
+La plupart des projets n'ont besoin que d'une étape. Ajoutez-en une autre quand une note a besoin d'une seconde approbation, par exemple de votre équipe juridique après votre responsable du support. Les étapes sont approuvées dans l'ordre de la liste, que vous réorganisez par glisser-déposer, et une note est publiée quand la dernière l'approuve.
+
+- **Chaque étape nomme quelqu'un.** Une étape a besoin d'au moins une personne ou une équipe, et l'approbation ne peut pas être activée tant qu'aucune étape ne nomme quelqu'un.
+- **La dernière étape reste tant que l'approbation est activée.** Pour la supprimer, désactivez d'abord l'approbation ou ajoutez une autre étape.
+- **Les changements comptent aussitôt.** Qui peut approuver est lu au moment où quelqu'un décide. Ajouter une personne à une étape, ou à une équipe qu'une étape nomme, lui permet de décider des notes qui attendent déjà ; la retirer lui ôte ce droit. Une note garde les approbations qu'elle a reçues.
+- **Personne n'approuve sa propre note, ni deux étapes d'une même note.** Qui a envoyé une note pour approbation ne peut ni l'approuver ni la rejeter, et qui a approuvé l'une de ses étapes ne peut pas en approuver une autre.
+
+Seuls les propriétaires et les administrateurs du projet peuvent modifier ces paramètres, et tous ceux qui lisent les notes voient qui les approuve. **Maintenance planifiée → Paramètres → Approbation des notes publiques** est la même page pour les événements de maintenance planifiée, avec son propre interrupteur et ses propres étapes. Ce que fait une note pendant qu'elle attend, et comment les approbateurs décident, est décrit dans [Approbation des notes publiques](/docs/incidents/notes-owners-and-feed#approbation-des-notes-publiques).
+
 ## Modèles de post-mortem
 
 Un modèle de post-mortem est le squelette du compte rendu que vous produisez après un incident — vos titres, vos questions guides, vos questions récurrentes — pour que chaque revue du projet suive la même forme.

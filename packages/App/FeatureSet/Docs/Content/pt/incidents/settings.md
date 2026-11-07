@@ -164,6 +164,25 @@ A mesma lista, o mesmo botão e o mesmo `{{` vêm com os outros modelos que têm
 
 Os modelos de notas aparecem onde você realmente precisa deles: as caixas de diálogo de confirmação **Confirmar incidente** e **Resolver incidente** oferecem **Selecionar Modelo de Nota** acima do campo **Nota pública**, recolhido em **Adicionar uma nota pública**. Veja [Notas, responsáveis e feed de incidentes](/docs/incidents/notes-owners-and-feed) para a diferença entre notas públicas e privadas.
 
+## Aprovação de notas públicas
+
+**Aprovação de notas públicas** faz com que as notas públicas de incidentes e de episódios de incidente sejam aprovadas antes de serem publicadas, para as atualizações que precisam de um segundo par de olhos antes que os clientes as leiam. Ela fica desativada em todo projeto até você ativá-la.
+
+:::steps
+1. Vá em **Incidentes → Configurações → Aprovação de notas públicas** (`/dashboard/{projectId}/incidents/settings/public-note-approval`).
+2. Em **Quem aprova**, clique em **Adicionar: Etapa de aprovação** e escolha os **Aprovadores** da etapa: pessoas, equipes ou ambos, qualquer um dos quais pode aprovar uma nota para a etapa. Um **Nome**, como Jurídico, é opcional: as notas que aguardam a etapa o mostram.
+3. Ative **Exigir aprovação antes de publicar notas públicas**. A partir daí, uma nota pública nova, assim como a edição de uma publicada, aguarda até ser aprovada.
+:::
+
+A maioria dos projetos precisa de uma etapa. Adicione outra quando uma nota precisar de uma segunda aprovação, por exemplo da sua equipe jurídica depois do seu responsável pelo suporte. As etapas são aprovadas na ordem da lista, que você reordena arrastando, e uma nota é publicada quando a última a aprova.
+
+- **Toda etapa nomeia alguém.** Uma etapa precisa de pelo menos uma pessoa ou equipe, e a aprovação não pode ser ativada até que uma etapa nomeie alguém.
+- **A última etapa fica enquanto a aprovação estiver ativada.** Para excluí-la, desative antes a aprovação ou adicione outra etapa.
+- **As mudanças valem na hora.** Quem pode aprovar é lido quando alguém decide. Adicionar uma pessoa a uma etapa, ou a uma equipe que uma etapa nomeia, permite que ela decida sobre as notas que já aguardam; removê-la tira essa permissão. Uma nota mantém as aprovações que tem.
+- **Ninguém aprova a própria nota, nem duas etapas de uma mesma nota.** Quem enviou uma nota para aprovação não pode aprová-la nem rejeitá-la, e quem aprovou uma das etapas dela não pode aprovar outra.
+
+Só os proprietários e os administradores do projeto podem mudar essas configurações, e todos que leem as notas veem quem as aprova. **Manutenção programada → Configurações → Aprovação de notas públicas** é a mesma página para eventos de manutenção programada, com interruptor e etapas próprios. O que uma nota faz enquanto aguarda, e como quem aprova decide, está em [Aprovação de notas públicas](/docs/incidents/notes-owners-and-feed#aprovação-de-notas-públicas).
+
 ## Modelos de post-mortem
 
 Um modelo de post-mortem é o esqueleto do relatório que você produz depois de um incidente — seus títulos, suas provocações, suas perguntas de sempre — para que toda revisão do projeto siga a mesma forma.

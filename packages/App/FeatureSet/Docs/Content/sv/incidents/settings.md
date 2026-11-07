@@ -164,6 +164,25 @@ Samma lista, knapp och `{{` följer med de andra mallarna som har variabler: en 
 
 Anteckningsmallar dyker upp där du faktiskt behöver dem: bekräftelsedialogerna **Bekräfta incident** och **Lös incident** erbjuder båda **Välj anteckningsmall** ovanför fältet **Offentlig anteckning**, hopfällt under **Lägg till en offentlig anteckning**. Se [Incidentanteckningar, ägare och flöde](/docs/incidents/notes-owners-and-feed) för hur offentliga och privata anteckningar skiljer sig åt.
 
+## Godkännande av offentliga anteckningar
+
+**Godkännande av offentliga anteckningar** låter offentliga anteckningar på incidenter och incidentepisoder godkännas innan de publiceras, för de uppdateringar som behöver ett extra par ögon innan kunderna läser dem. Det är avstängt i varje projekt tills du slår på det.
+
+:::steps
+1. Gå till **Incidenter → Inställningar → Godkännande av offentliga anteckningar** (`/dashboard/{projectId}/incidents/settings/public-note-approval`).
+2. Klicka på **Lägg till Godkännandesteg** under **Vem godkänner** och välj stegets **Godkännare**: personer, team eller båda, där vem som helst av dem kan godkänna en anteckning för steget. Ett **Namn**, som Juridik, är valfritt: anteckningar som väntar på steget visar det.
+3. Slå på **Kräv godkännande innan offentliga anteckningar publiceras**. Från och med då väntar en ny offentlig anteckning, liksom en redigering av en publicerad, tills den har godkänts.
+:::
+
+De flesta projekt behöver ett steg. Lägg till ett till när en anteckning behöver ett andra godkännande, till exempel från ert juridiska team efter er supportansvarige. Stegen godkänns i listans ordning, som du ändrar genom att dra, och en anteckning publiceras när det sista godkänner den.
+
+- **Varje steg nämner någon.** Ett steg behöver minst en person eller ett team, och godkännande kan inte slås på förrän ett steg nämner någon.
+- **Det sista steget stannar kvar medan godkännande är påslaget.** För att ta bort det stänger du först av godkännande eller lägger till ett annat steg.
+- **Ändringar gäller direkt.** Vem som får godkänna läses när någon tar ställning. Den som läggs till i ett steg, eller i ett team som ett steg nämner, kan ta ställning till de anteckningar som redan väntar; den som tas bort kan inte längre det. En anteckning behåller de godkännanden den har.
+- **Ingen godkänner sin egen anteckning, eller två steg av en anteckning.** Den som skickade en anteckning för godkännande kan varken godkänna eller avvisa den, och den som godkände ett av dess steg kan inte godkänna ett annat.
+
+Bara projektägare och -administratörer kan ändra de här inställningarna, och alla som läser anteckningarna kan se vem som godkänner dem. **Schemalagt underhåll → Inställningar → Godkännande av offentliga anteckningar** är samma sida för schemalagda underhållshändelser, med en egen brytare och egna steg. Vad en anteckning gör medan den väntar, och hur godkännare tar ställning, står under [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar).
+
 ## Mallar för efteranalys
 
 En mall för efteranalys är skelettet till rapporten som du tar fram efter en incident — dina rubriker, dina uppmaningar, dina återkommande frågor — så att varje genomgång i projektet följer samma form.

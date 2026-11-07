@@ -164,6 +164,25 @@ Lo stesso elenco, lo stesso pulsante e lo stesso `{{` accompagnano gli altri mod
 
 I modelli di note compaiono dove vi servono davvero: le finestre di conferma **Riconosci incidente** e **Risolvi incidente** offrono entrambe **Seleziona modello di nota** sopra il campo **Nota pubblica**, ripiegato sotto **Aggiungi una nota pubblica**. Vedete [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed) per le differenze tra note pubbliche e private.
 
+## Approvazione delle note pubbliche
+
+**Approvazione delle note pubbliche** fa approvare le note pubbliche degli incidenti e degli episodi di incidente prima che vengano pubblicate, per gli aggiornamenti che hanno bisogno di un secondo paio d'occhi prima che i clienti li leggano. È disattivata in ogni progetto finché non la attivate.
+
+:::steps
+1. Andate in **Incidenti → Impostazioni → Approvazione delle note pubbliche** (`/dashboard/{projectId}/incidents/settings/public-note-approval`).
+2. In **Chi approva**, fate clic su **Aggiungi: Passaggio di approvazione** e scegliete gli **Approvatori** del passaggio: persone, team o entrambi, ognuno dei quali può approvare una nota per quel passaggio. Un **Nome**, come Legale, è facoltativo: le note in attesa del passaggio lo mostrano.
+3. Attivate **Richiedi l'approvazione prima che le note pubbliche vengano pubblicate**. Da quel momento una nuova nota pubblica, come la modifica di una nota pubblicata, attende di essere approvata.
+:::
+
+Alla maggior parte dei progetti basta un passaggio. Aggiungetene un altro quando una nota ha bisogno di una seconda approvazione, per esempio del vostro ufficio legale dopo il vostro responsabile del supporto. I passaggi vengono approvati nell'ordine dell'elenco, che riordinate trascinandoli, e una nota viene pubblicata quando l'ultimo la approva.
+
+- **Ogni passaggio nomina qualcuno.** Un passaggio ha bisogno di almeno una persona o un team, e l'approvazione non si può attivare finché un passaggio non nomina qualcuno.
+- **L'ultimo passaggio resta finché l'approvazione è attiva.** Per eliminarlo, disattivate prima l'approvazione o aggiungete un altro passaggio.
+- **Le modifiche contano subito.** Chi può approvare viene letto quando qualcuno decide. Aggiungere una persona a un passaggio, o a un team che un passaggio nomina, le permette di decidere sulle note già in attesa; toglierla glielo impedisce. Una nota conserva le approvazioni che ha.
+- **Nessuno approva la propria nota, né due passaggi della stessa nota.** Chi ha inviato una nota per l'approvazione non può approvarla né rifiutarla, e chi ha approvato uno dei suoi passaggi non può approvarne un altro.
+
+Solo i proprietari e gli amministratori del progetto possono modificare queste impostazioni, e tutti quelli che leggono le note vedono chi le approva. **Manutenzione programmata → Impostazioni → Approvazione delle note pubbliche** è la stessa pagina per gli eventi di manutenzione programmata, con un proprio interruttore e propri passaggi. Che cosa fa una nota mentre attende, e come decide chi approva, è spiegato in [Approvazione delle note pubbliche](/docs/incidents/notes-owners-and-feed#approvazione-delle-note-pubbliche).
+
 ## Modelli post-mortem
 
 Un modello di post-mortem è lo scheletro del resoconto che producete dopo un incidente — i vostri titoli, i vostri spunti, le vostre domande fisse — così ogni revisione del progetto segue la stessa forma.

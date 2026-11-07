@@ -94,6 +94,10 @@ De här påminnelserna är för ditt team. De påminnelser som dina statussidepr
 
 **Schemalagt underhåll → Inställningar → Anteckningsmallar** rymmer färdigskriven text för uppdateringar om underhåll. Kortet **Mallar för offentliga eller privata anteckningar för schemalagda underhållshändelser** listar dem; **Skapa Anteckningsmall för schemalagt underhåll** frågar efter ett **Mallnamn**, en **Mallbeskrivning** och **Anteckning**. En mall erbjuds när någon skriver en offentlig eller privat anteckning på en händelse, och när de ändrar dess tillstånd, och dess text kan redigeras innan den publiceras. Till skillnad från anteckningsmallar för incidenter fyller anteckningsmallar för underhåll inte i några variabler.
 
+### Godkännande av offentliga anteckningar
+
+**Schemalagt underhåll → Inställningar → Godkännande av offentliga anteckningar** låter de offentliga anteckningarna på schemalagda underhållshändelser godkännas innan de publiceras. Sidan fungerar som incidenternas, med en egen brytare och egna steg: slå på **Kräv godkännande innan offentliga anteckningar publiceras** och välj under **Vem godkänner** vem som godkänner. Så kan underhållsanteckningar kräva godkännande medan incidentanteckningar inte gör det, eller godkännas av andra personer. Bara **Projektägare** och **Projektadministratör** kan ändra den. Se [Godkännande av offentliga anteckningar](/docs/incidents/settings#godkännande-av-offentliga-anteckningar) för stegen, och [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar) för vad en anteckning gör medan den väntar.
+
 ### Anpassade fält
 
 **Schemalagt underhåll → Inställningar → Anpassade fält** lägger till dina egna fält på varje händelse, till exempel ett ändringsärende eller en kundnivå. Fyll i dem på en händelses sida **Anpassade fält**, eller via API:et som `customFields`. Ett fält kan kopiera sitt värde från ett anpassat fält på en monitor i stället för att skrivas in: se [Fält som kopieras från en monitor](/docs/incidents/settings#fält-som-kopieras-från-en-monitor), som fungerar på samma sätt för händelser.

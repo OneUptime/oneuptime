@@ -94,6 +94,10 @@ These reminders are for your team. The reminders your status page subscribers ge
 
 **Scheduled Maintenance → Settings → Note Templates** holds ready-made text for maintenance updates. The **Public or Private Note Templates for Scheduled Maintenance Events** card lists them; **Create Scheduled Maintenance Note Template** asks for a **Template Name**, a **Template Description** and the **Note**. A template is offered when someone writes a public or private note on an event, and when they change its state, and its text can be edited before it is posted. Unlike incident note templates, maintenance note templates fill in no variables.
 
+### Public note approval
+
+**Scheduled Maintenance → Settings → Public Note Approval** has the public notes of scheduled maintenance events approved before they are published. It works as the incidents' page does, with a switch and steps of its own: turn on **Require approval before public notes are published**, and choose who approves under **Who Approves**. So maintenance notes can need approval while incident notes do not, or be approved by other people. Only **Project Owner** and **Project Admin** can change it. See [Public note approval](/docs/incidents/settings#public-note-approval) for the steps, and [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval) for what a note does while it waits.
+
 ### Custom fields
 
 **Scheduled Maintenance → Settings → Custom Fields** adds your own fields to every event, such as a change ticket or a customer tier. Fill them in on an event's **Custom Fields** page, or through the API as `customFields`. A field can copy its value from a monitor custom field instead of being typed in: see [Fields copied from a monitor](/docs/incidents/settings#fields-copied-from-a-monitor), which works the same way for events.
