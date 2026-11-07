@@ -46348,5 +46348,16 @@
   "{{count}} queues": "{{count}} queues",
   "{{count}} queues_one": "{{count}} queue",
   "{{count}} shown for context": "{{count}} shown for context",
-  "{{rate}} of its spans": "{{rate}} of its spans"
+  "{{rate}} of its spans": "{{rate}} of its spans",
+  "Data has arrived from this application in the last 15 minutes.": "过去 15 分钟内收到了此应用的数据。",
+  "No data has arrived from this application yet. Set up the OpenTelemetry browser or mobile SDK — it takes a few minutes.": "尚未收到此应用的数据。请设置适用于浏览器或移动端的 OpenTelemetry SDK，只需几分钟。",
+  "No recent traffic": "近期无流量",
+  "No traffic in the last 15 minutes": "过去 15 分钟内无流量",
+  "Nothing has arrived from this application yet. Add the OpenTelemetry SDK or the Session Replay snippet to your app; its Documentation tab shows how.": "尚未收到此应用的任何数据。请在您的应用中添加 OpenTelemetry SDK 或会话回放代码片段；它的文档标签页会说明如何操作。",
+  "Nothing has arrived in the last 15 minutes. An application sends data only while people use it, so this is normal when nobody is, for example overnight. If people are using it right now, its Overview lists what to check.": "过去 15 分钟内没有收到任何数据。应用只在有人使用时发送数据，因此在没人使用时（例如夜间）这是正常的。如果现在有人正在使用，它的概览会列出需要检查的内容。",
+  "OneUptime last heard from this application {{lastHeard}}. It sends data only while people use it, so this is normal when nobody is, such as overnight.": "OneUptime 最后一次收到此应用的数据是在 {{lastHeard}}。它只在有人使用时发送数据，因此在没人使用时（例如夜间）这是正常的。",
+  "Open your app so it sends its first data, then refresh this page. The application switches to Receiving data.": "打开您的应用，让它发送第一批数据，然后刷新此页面。该应用会切换为“正在接收数据”。",
+  "Receiving data": "正在接收数据",
+  "Status shows \"No recent traffic\" while people use the app": "有人在使用应用时，状态却显示“近期无流量”",
+  "What to check if people are using it": "如果有人正在使用，需要检查什么"
 }

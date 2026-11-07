@@ -46348,5 +46348,16 @@
   "{{count}} queues": "{{count}} queues",
   "{{count}} queues_one": "{{count}} queue",
   "{{count}} shown for context": "{{count}} shown for context",
-  "{{rate}} of its spans": "{{rate}} of its spans"
+  "{{rate}} of its spans": "{{rate}} of its spans",
+  "Data has arrived from this application in the last 15 minutes.": "در ۱۵ دقیقهٔ گذشته داده از این برنامه رسیده است.",
+  "No data has arrived from this application yet. Set up the OpenTelemetry browser or mobile SDK — it takes a few minutes.": "هنوز داده‌ای از این برنامه نرسیده است. OpenTelemetry SDK مرورگر یا موبایل را راه‌اندازی کنید؛ فقط چند دقیقه طول می‌کشد.",
+  "No recent traffic": "بدون ترافیک اخیر",
+  "No traffic in the last 15 minutes": "بدون ترافیک در ۱۵ دقیقهٔ گذشته",
+  "Nothing has arrived from this application yet. Add the OpenTelemetry SDK or the Session Replay snippet to your app; its Documentation tab shows how.": "هنوز چیزی از این برنامه نرسیده است. OpenTelemetry SDK یا قطعه‌کد بازپخش نشست را به برنامهٔ خود اضافه کنید؛ زبانهٔ مستندات آن نشان می‌دهد چگونه.",
+  "Nothing has arrived in the last 15 minutes. An application sends data only while people use it, so this is normal when nobody is, for example overnight. If people are using it right now, its Overview lists what to check.": "در ۱۵ دقیقهٔ گذشته چیزی نرسیده است. برنامه فقط وقتی داده می‌فرستد که کسی از آن استفاده کند، پس وقتی کسی از آن استفاده نمی‌کند، مثلاً شب‌ها، این عادی است. اگر همین حالا کسی از آن استفاده می‌کند، نمای کلی آن نشان می‌دهد چه چیزی را بررسی کنید.",
+  "OneUptime last heard from this application {{lastHeard}}. It sends data only while people use it, so this is normal when nobody is, such as overnight.": "OneUptime آخرین بار {{lastHeard}} از این برنامه داده دریافت کرد. این برنامه فقط وقتی داده می‌فرستد که کسی از آن استفاده کند، پس وقتی کسی از آن استفاده نمی‌کند، مثلاً شب‌ها، این عادی است.",
+  "Open your app so it sends its first data, then refresh this page. The application switches to Receiving data.": "برنامهٔ خود را باز کنید تا نخستین داده‌اش را بفرستد، سپس این صفحه را تازه کنید. وضعیت برنامه به «در حال دریافت داده» تغییر می‌کند.",
+  "Receiving data": "در حال دریافت داده",
+  "Status shows \"No recent traffic\" while people use the app": "با اینکه کسی از برنامه استفاده می‌کند، وضعیت «بدون ترافیک اخیر» را نشان می‌دهد",
+  "What to check if people are using it": "اگر کسی از آن استفاده می‌کند، چه چیزی را بررسی کنید"
 }

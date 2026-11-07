@@ -183,13 +183,10 @@ const getStateCopy: (
     }),
     /*
      * A resource that is idle when unused never shows "Disconnected": its
-     * pill says it is waiting for data, so the sentence does not name it.
+     * pill says it is waiting for data, so its sentence does not name it.
      */
     description: guide.idleCopy
-      ? translator.translateTemplate(
-          "No data has arrived from this {{resourceNoun}} yet. Set up the {{agentName}} — it takes a few minutes.",
-          { resourceNoun: resourceNoun, agentName: agentName },
-        )
+      ? translator.translateText(guide.idleCopy.waitingDescription)
       : translator.translateTemplate(
           "No data has arrived from this {{resourceNoun}} yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
           { resourceNoun: resourceNoun, agentName: agentName },

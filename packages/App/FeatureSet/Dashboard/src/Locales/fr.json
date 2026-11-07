@@ -46348,5 +46348,16 @@
   "{{count}} queues": "{{count}} queues",
   "{{count}} queues_one": "{{count}} queue",
   "{{count}} shown for context": "{{count}} shown for context",
-  "{{rate}} of its spans": "{{rate}} of its spans"
+  "{{rate}} of its spans": "{{rate}} of its spans",
+  "Data has arrived from this application in the last 15 minutes.": "Des données de cette application sont arrivées au cours des 15 dernières minutes.",
+  "No data has arrived from this application yet. Set up the OpenTelemetry browser or mobile SDK — it takes a few minutes.": "Aucune donnée n'est encore arrivée de cette application. Configurez le SDK OpenTelemetry pour navigateur ou mobile — cela ne prend que quelques minutes.",
+  "No recent traffic": "Aucun trafic récent",
+  "No traffic in the last 15 minutes": "Aucun trafic au cours des 15 dernières minutes",
+  "Nothing has arrived from this application yet. Add the OpenTelemetry SDK or the Session Replay snippet to your app; its Documentation tab shows how.": "Rien n'est encore arrivé de cette application. Ajoutez le SDK OpenTelemetry ou l'extrait de Relecture de session à votre application ; son onglet Documentation explique comment.",
+  "Nothing has arrived in the last 15 minutes. An application sends data only while people use it, so this is normal when nobody is, for example overnight. If people are using it right now, its Overview lists what to check.": "Rien n'est arrivé au cours des 15 dernières minutes. Une application n'envoie des données que lorsque des personnes l'utilisent : c'est donc normal quand personne ne l'utilise, la nuit par exemple. Si des personnes l'utilisent en ce moment, sa Vue d'ensemble indique quoi vérifier.",
+  "OneUptime last heard from this application {{lastHeard}}. It sends data only while people use it, so this is normal when nobody is, such as overnight.": "OneUptime a reçu des données de cette application pour la dernière fois {{lastHeard}}. Elle n'envoie des données que lorsque des personnes l'utilisent : c'est donc normal quand personne ne l'utilise, la nuit par exemple.",
+  "Open your app so it sends its first data, then refresh this page. The application switches to Receiving data.": "Ouvrez votre application pour qu'elle envoie ses premières données, puis actualisez cette page. L'application passe à « Reçoit des données ».",
+  "Receiving data": "Reçoit des données",
+  "Status shows \"No recent traffic\" while people use the app": "Le statut affiche « Aucun trafic récent » alors que des personnes utilisent l'application",
+  "What to check if people are using it": "Quoi vérifier si des personnes l'utilisent"
 }

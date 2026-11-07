@@ -82,15 +82,18 @@ export interface ResourceConnectionGuide {
    * "Disconnected" (issue #6191). The card says so too: in grey, with
    * when data last arrived, and with the troubleshooting steps folded
    * behind `checksLabel` for when people are using it. Before its first
-   * data the card asks for the setup without calling it "Disconnected".
-   * English translation keys; {{lastHeard}} in the description is when
-   * data last arrived ("3 hours ago").
+   * data the card asks for the setup with `waitingDescription`, which does
+   * not call it "Disconnected" (its pill says "Waiting for data"). English
+   * translation keys; {{lastHeard}} in the description is when data last
+   * arrived ("3 hours ago"). Whole sentences about the resource, with no
+   * noun put in: a language words "this application" its own way.
    */
   idleCopy?:
     | {
         title: string;
         description: string;
         checksLabel: string;
+        waitingDescription: string;
       }
     | undefined;
   // What the card's link says: "Open the setup guide" when left out.
@@ -883,6 +886,9 @@ export const RUM_APPLICATION_IDLE_COPY: NonNullable<
     "OneUptime last heard from this application {{lastHeard}}. It sends data only while people use it, so this is normal when nobody is, such as overnight.",
   ),
   checksLabel: translationKey("What to check if people are using it"),
+  waitingDescription: translationKey(
+    "No data has arrived from this application yet. Set up the OpenTelemetry browser or mobile SDK — it takes a few minutes.",
+  ),
 };
 
 export const getRumApplicationConnectionGuide: (

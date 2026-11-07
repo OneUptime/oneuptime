@@ -46348,5 +46348,16 @@
   "{{count}} queues": "{{count}} queues",
   "{{count}} queues_one": "{{count}} queue",
   "{{count}} shown for context": "{{count}} shown for context",
-  "{{rate}} of its spans": "{{rate}} of its spans"
+  "{{rate}} of its spans": "{{rate}} of its spans",
+  "Data has arrived from this application in the last 15 minutes.": "지난 15분 동안 이 애플리케이션에서 데이터가 도착했습니다.",
+  "No data has arrived from this application yet. Set up the OpenTelemetry browser or mobile SDK — it takes a few minutes.": "이 애플리케이션에서 아직 데이터가 도착하지 않았습니다. 브라우저 또는 모바일용 OpenTelemetry SDK를 설정하세요. 몇 분이면 됩니다.",
+  "No recent traffic": "최근 트래픽 없음",
+  "No traffic in the last 15 minutes": "지난 15분 동안 트래픽 없음",
+  "Nothing has arrived from this application yet. Add the OpenTelemetry SDK or the Session Replay snippet to your app; its Documentation tab shows how.": "이 애플리케이션에서 아직 아무것도 도착하지 않았습니다. 앱에 OpenTelemetry SDK 또는 세션 리플레이 스니펫을 추가하세요. 방법은 문서 탭에 나와 있습니다.",
+  "Nothing has arrived in the last 15 minutes. An application sends data only while people use it, so this is normal when nobody is, for example overnight. If people are using it right now, its Overview lists what to check.": "지난 15분 동안 아무것도 도착하지 않았습니다. 애플리케이션은 사람들이 사용하는 동안에만 데이터를 보내므로, 밤처럼 아무도 사용하지 않을 때는 정상입니다. 지금 사람들이 사용 중이라면 개요에서 확인할 사항을 볼 수 있습니다.",
+  "OneUptime last heard from this application {{lastHeard}}. It sends data only while people use it, so this is normal when nobody is, such as overnight.": "OneUptime이 이 애플리케이션에서 마지막으로 데이터를 받은 시점은 {{lastHeard}}입니다. 사람들이 사용하는 동안에만 데이터를 보내므로, 밤처럼 아무도 사용하지 않을 때는 정상입니다.",
+  "Open your app so it sends its first data, then refresh this page. The application switches to Receiving data.": "앱을 열어 첫 데이터를 보내게 한 다음 이 페이지를 새로 고치세요. 애플리케이션이 \"데이터 수신 중\"으로 바뀝니다.",
+  "Receiving data": "데이터 수신 중",
+  "Status shows \"No recent traffic\" while people use the app": "사람들이 앱을 사용 중인데 상태가 \"최근 트래픽 없음\"으로 표시됨",
+  "What to check if people are using it": "사람들이 사용 중일 때 확인할 사항"
 }
