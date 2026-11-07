@@ -2,6 +2,7 @@ import CloudConnectionAPI from "../../../Server/API/CloudConnectionAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import CloudConnectionService from "../../../Server/Services/CloudConnectionService";
+import AuditLogService from "../../../Server/Services/AuditLogService";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import Response from "../../../Server/Utils/Response";
 import CloudStreamAuthenticator from "../../../Server/Utils/CloudConnection/CloudStreamAuthentication";
@@ -637,5 +638,174 @@ describe("POST /cloud-connection/:connectionId/stop-streaming", () => {
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
     expect(writes).toHaveLength(0);
+  });
+});
+
+/*
+ * Who made a stream key, turned reading on or stopped streaming, in the
+ * project's audit log (issue #6276). The routes write round
+ * DatabaseService's hooks, so the service records each change itself, with
+ * the caller's props and the connection as it was read: the key hashes,
+ * which nobody may read, and when the key was made or reading started -
+ * columns only OneUptime writes, named as what the person did.
+ */
+describe("the audit log", () => {
+  interface Recorded {
+    model: unknown;
+    before: CloudConnection;
+    updatedFields: JSONObject;
+    itemId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    includeColumns: Array<string>;
+  }
+
+  let recorded: Array<Recorded>;
+
+  beforeEach(() => {
+    recorded = [];
+
+    jest
+      .spyOn(AuditLogService, "recordUpdate")
+      .mockImplementation((async (data: Recorded) => {
+        recorded.push(data);
+      }) as never);
+
+    // A read answers the row as it was then, as Postgres does.
+    jest
+      .spyOn(CloudConnectionService, "findOneById")
+      .mockImplementation((async () => {
+        const copy: CloudConnection = new CloudConnection();
+        Object.assign(copy, stored);
+        return copy;
+      }) as never);
+  });
+
+  test("a new stream key: by the caller, the key's hashes and when it was made", async () => {
+    await streamKeyHandler(
+      request({ connectionId: CONNECTION.toString() }),
+      res,
+      next,
+    );
+
+    expect(next).not.toHaveBeenCalled();
+    expect(recorded).toHaveLength(1);
+
+    const entry: Recorded = recorded[0]!;
+
+    expect(entry.model).toBeInstanceOf(CloudConnection);
+    expect(entry.props).toBe(props);
+    expect(entry.itemId.toString()).toBe(CONNECTION.toString());
+    expect(entry.before.streamKeyHashes ?? null).toBeNull();
+    expect(Object.keys(entry.updatedFields).sort()).toEqual([
+      "streamKeyCreatedAt",
+      "streamKeyHashes",
+    ]);
+    expect(entry.includeColumns.sort()).toEqual([
+      "streamKeyCreatedAt",
+      "streamKeyHashes",
+    ]);
+    // The key itself is answered once and recorded nowhere.
+    expect(JSON.stringify(entry.updatedFields)).not.toContain(
+      sent()["streamKey"] as string,
+    );
+  });
+
+  test("a second key: the hashes it replaced are what the entry had before", async () => {
+    await streamKeyHandler(
+      request({ connectionId: CONNECTION.toString() }),
+      res,
+      next,
+    );
+    const first: JSONObject = stored.streamKeyHashes!;
+    (Response.sendJsonObjectResponse as jest.Mock).mockClear();
+
+    await streamKeyHandler(
+      request({ connectionId: CONNECTION.toString() }),
+      res,
+      next,
+    );
+
+    expect(recorded).toHaveLength(2);
+    expect(recorded[1]!.before.streamKeyHashes).toEqual(first);
+    expect(recorded[1]!.updatedFields["streamKeyHashes"]).toEqual(
+      stored.streamKeyHashes,
+    );
+  });
+
+  test("reading an Azure connection's event hubs turned on: what it reads, and since when", async () => {
+    accessible!.provider = CloudProvider.Azure;
+    stored.provider = CloudProvider.Azure;
+    const subscription: string = "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa";
+
+    await startHandler(
+      request(
+        { connectionId: CONNECTION.toString() },
+        { hostSubscriptionId: subscription },
+      ),
+      res,
+      next,
+    );
+
+    expect(next).not.toHaveBeenCalled();
+    expect(recorded).toHaveLength(1);
+    expect(recorded[0]!.props).toBe(props);
+    expect(recorded[0]!.updatedFields["streamState"]).toEqual({
+      hostSubscriptionId: subscription,
+      offsets: {},
+    });
+    expect(recorded[0]!.includeColumns.sort()).toEqual([
+      "streamKeyCreatedAt",
+      "streamState",
+    ]);
+  });
+
+  test("streaming stopped: the hashes and when they were made, from what they were to none", async () => {
+    stored.streamKeyHashes = { current: { hash: "h" } } as unknown as JSONObject;
+    stored.streamKeyCreatedAt = new Date("2026-11-01T10:00:00.000Z");
+
+    await stopHandler(
+      request({ connectionId: CONNECTION.toString() }),
+      res,
+      next,
+    );
+
+    expect(next).not.toHaveBeenCalled();
+    expect(recorded).toHaveLength(1);
+
+    const entry: Recorded = recorded[0]!;
+
+    expect(entry.props).toBe(props);
+    expect(entry.before.streamKeyHashes).toEqual({ current: { hash: "h" } });
+    expect(entry.before.streamKeyCreatedAt).toEqual(
+      new Date("2026-11-01T10:00:00.000Z"),
+    );
+    expect(entry.updatedFields).toEqual({
+      streamKeyHashes: null,
+      streamKeyCreatedAt: null,
+    });
+    expect(entry.includeColumns.sort()).toEqual([
+      "streamKeyCreatedAt",
+      "streamKeyHashes",
+    ]);
+  });
+
+  test("a refused request records nothing", async () => {
+    setPermission(Permission.ProjectMember);
+
+    for (const handler of [streamKeyHandler, stopHandler]) {
+      await handler(
+        request({ connectionId: CONNECTION.toString() }),
+        res,
+        next,
+      );
+    }
+
+    expect(recorded).toHaveLength(0);
+  });
+
+  test("without a person, as OneUptime stops a connection's streams itself, nothing is recorded", async () => {
+    await CloudConnectionService.stopStreaming(CONNECTION);
+
+    expect(recorded).toHaveLength(0);
   });
 });

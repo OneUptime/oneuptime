@@ -30,6 +30,7 @@ import CommonAPI from "Common/Server/API/CommonAPI";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
 import RunbookService from "Common/Server/Services/RunbookService";
+import AuditLogService from "Common/Server/Services/AuditLogService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import resolveTrustedClientIp, {
   ClientIpRequestLike,
@@ -415,9 +416,33 @@ export default class RunbookWebhookAPI {
         runbookId: ObjectID;
       } = await RunbookWebhookAPI.assertMayManage(req);
 
+      // What the entry names: the runbook, and whether it had a key.
+      const before: Runbook | null = await RunbookService.findOneById({
+        id: target.runbookId,
+        select: { _id: true, projectId: true, name: true, webhookSecretKey: true },
+        props: { isRoot: true },
+      });
+
       const secretKey: string = await RunbookService.resetWebhookSecretKey(
         target.runbookId,
       );
+
+      /*
+       * Who reset the webhook URL, and when: the old URL stops working at
+       * once. The key is written round the hooks, and is OneUptime's to
+       * write and nobody's to read, so the entry says it changed, never
+       * what it is.
+       */
+      if (before) {
+        await AuditLogService.recordUpdate({
+          model: new Runbook(),
+          before,
+          updatedFields: { webhookSecretKey: secretKey },
+          itemId: target.runbookId,
+          props: target.props,
+          includeColumns: ["webhookSecretKey"],
+        });
+      }
 
       logger.info(
         `The webhook URL of runbook ${target.runbookId.toString()} was reset${

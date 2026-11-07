@@ -15,9 +15,13 @@ import TelemetryExceptionActivityService from "Common/Server/Services/TelemetryE
 import ModelPermission from "Common/Server/Types/Database/Permissions/Index";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import DataProduct from "Common/Models/DatabaseModels/DataProduct";
+import DataStore from "Common/Models/DatabaseModels/DataStore";
+import PacketCapture from "Common/Models/DatabaseModels/PacketCapture";
 import Project from "Common/Models/DatabaseModels/Project";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import User from "Common/Models/DatabaseModels/User";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
@@ -684,5 +688,195 @@ describe("merging and unmerging exceptions", () => {
       });
 
     expect(result.merged[0]!.outcome).toBe(ExceptionMergeOutcome.Merged);
+  });
+});
+
+/*
+ * The other actions people take that are written round the hooks, as the
+ * recorder writes what each one hands it (the payloads are pinned at each
+ * site: DataObservabilityAuditLog, CloudConnectionStreamAPI,
+ * PacketCaptureService, RunbookWebhookRoute and
+ * StatusPageSubscriberUnsubscribe).
+ */
+describe("the other actions written round the hooks", () => {
+  const AT: Date = new Date("2026-11-07T10:00:00.000Z");
+
+  test("watching a data store's tables: the setting, off to on, on the store's page", async () => {
+    const before: DataStore = new DataStore(RECORD_ID);
+    before.projectId = PROJECT_ID;
+    before.name = "warehouse";
+    before.isTableHealthEnabled = false;
+
+    await recordUpdate({
+      model: new DataStore(),
+      before,
+      updatedFields: { isTableHealthEnabled: true },
+    });
+
+    const entry: AuditLog = onlyEntry();
+
+    expect(entry.resourceType).toBe("Data Store");
+    expect(entry.resourceName).toBe("warehouse");
+    expect(entry.rootResourceId?.toString()).toBe(RECORD_ID.toString());
+    expect(changesOf(entry)).toEqual([
+      { field: "isTableHealthEnabled", oldValue: false, newValue: true },
+    ]);
+  });
+
+  test("a stream key made: its hashes as changed, never their value, and when it was made", async () => {
+    const before: CloudConnection = new CloudConnection(RECORD_ID);
+    before.projectId = PROJECT_ID;
+    before.name = "Production AWS";
+
+    await recordUpdate({
+      model: new CloudConnection(),
+      before,
+      updatedFields: {
+        streamKeyHashes: { current: { hash: "sha256-abc", createdAt: 1 } },
+        streamKeyCreatedAt: AT,
+      } as never,
+      includeColumns: ["streamKeyHashes", "streamKeyCreatedAt"],
+    });
+
+    const entry: AuditLog = onlyEntry();
+
+    expect(entry.resourceName).toBe("Production AWS");
+    expect(changesOf(entry)).toEqual(
+      expect.arrayContaining([
+        {
+          field: "streamKeyHashes",
+          oldValue: null,
+          newValue: AUDIT_LOG_REDACTED_VALUE,
+        },
+        {
+          field: "streamKeyCreatedAt",
+          oldValue: null,
+          newValue: AT.toISOString(),
+        },
+      ]),
+    );
+    expect(changesOf(entry)).toHaveLength(2);
+    expect(JSON.stringify(entry.changes)).not.toContain("sha256");
+  });
+
+  test("streaming stopped: the keys, from set to none", async () => {
+    const before: CloudConnection = new CloudConnection(RECORD_ID);
+    before.projectId = PROJECT_ID;
+    before.streamKeyHashes = { current: { hash: "sha256-abc" } };
+    before.streamKeyCreatedAt = AT;
+
+    await recordUpdate({
+      model: new CloudConnection(),
+      before,
+      updatedFields: { streamKeyHashes: null, streamKeyCreatedAt: null },
+      includeColumns: ["streamKeyHashes", "streamKeyCreatedAt"],
+    });
+
+    expect(changesOf(onlyEntry())).toEqual(
+      expect.arrayContaining([
+        {
+          field: "streamKeyHashes",
+          oldValue: AUDIT_LOG_REDACTED_VALUE,
+          newValue: null,
+        },
+        {
+          field: "streamKeyCreatedAt",
+          oldValue: AT.toISOString(),
+          newValue: null,
+        },
+      ]),
+    );
+  });
+
+  test("reading event hubs turned on: what it reads, by the path that changed", async () => {
+    const before: CloudConnection = new CloudConnection(RECORD_ID);
+    before.projectId = PROJECT_ID;
+
+    await recordUpdate({
+      model: new CloudConnection(),
+      before,
+      updatedFields: {
+        streamKeyCreatedAt: AT,
+        streamState: {
+          hostSubscriptionId: "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa",
+          offsets: {},
+        },
+      } as never,
+      includeColumns: ["streamKeyCreatedAt", "streamState"],
+    });
+
+    const state: JSONObject | undefined = changesOf(onlyEntry()).find(
+      (change: JSONObject): boolean => {
+        return change["field"] === "streamState";
+      },
+    );
+
+    expect(state?.["newValue"]).toEqual({
+      hostSubscriptionId: "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa",
+      offsets: {},
+    });
+  });
+
+  test("a packet capture stopped: when the stop was asked for, by whom", async () => {
+    const before: PacketCapture = new PacketCapture(RECORD_ID);
+    before.projectId = PROJECT_ID;
+    before.name = "eth0 on edge-1";
+
+    await recordUpdate({
+      model: new PacketCapture(),
+      before,
+      updatedFields: { stopRequestedAt: AT } as never,
+      includeColumns: ["stopRequestedAt"],
+    });
+
+    const entry: AuditLog = onlyEntry();
+
+    expect(entry.resourceType).toBe("Packet Capture");
+    expect(entry.resourceName).toBe("eth0 on edge-1");
+    expect(entry.userName).toBe("Ada Lovelace");
+    expect(changesOf(entry)).toEqual([
+      { field: "stopRequestedAt", oldValue: null, newValue: AT.toISOString() },
+    ]);
+  });
+
+  describe("a subscriber unsubscribing themselves", () => {
+    const STATUS_PAGE_ID: ObjectID = new ObjectID(
+      "66666666-6666-4666-8666-666666666666",
+    );
+
+    async function unsubscribed(): Promise<void> {
+      const before: StatusPageSubscriber = new StatusPageSubscriber(RECORD_ID);
+      before.projectId = PROJECT_ID;
+      before.statusPageId = STATUS_PAGE_ID;
+      before.isUnsubscribed = false;
+
+      await recordUpdate({
+        model: new StatusPageSubscriber(),
+        before,
+        updatedFields: { isUnsubscribed: true },
+        props: { isRoot: true, tenantId: PROJECT_ID },
+      });
+    }
+
+    test("is a system event: not recorded unless the project stores them", async () => {
+      await unsubscribed();
+
+      expect(inserted).toHaveLength(0);
+    });
+
+    test("stored, it is on the status page's Audit Logs, by System", async () => {
+      project.storeSystemEventsInAuditLogs = true;
+
+      await unsubscribed();
+
+      const entry: AuditLog = onlyEntry();
+
+      expect(entry.userType).toBe("System");
+      expect(entry.rootResourceType).toBe("Status Page");
+      expect(entry.rootResourceId?.toString()).toBe(STATUS_PAGE_ID.toString());
+      expect(changesOf(entry)).toEqual([
+        { field: "isUnsubscribed", oldValue: false, newValue: true },
+      ]);
+    });
   });
 });
