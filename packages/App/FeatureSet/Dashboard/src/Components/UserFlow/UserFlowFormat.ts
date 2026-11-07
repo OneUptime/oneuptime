@@ -1,3 +1,5 @@
+import { UserFlowScope } from "./UserFlowScope";
+
 /*
  * Number formatting for the User Flows page. Pure, so the copy the page
  * prints is pinned by node tests.
@@ -72,4 +74,37 @@ export function truncateUserFlowLabel(label: string, maxChars: number): string {
 
 export function pluralizeSessions(count: number): string {
   return `${formatUserFlowCount(count)} session${count === 1 ? "" : "s"}`;
+}
+
+/*
+ * The line under "Sessions analysed". It says whose sessions they are, so a
+ * person's numbers never read as everyone's, wherever the banner that names
+ * them has scrolled to. A read the server cut to the newest sessions says so
+ * instead, for anyone.
+ */
+export function formatUserFlowSessionsHint(input: {
+  sessions: number;
+  sessionsInWindow: number;
+  isSampled: boolean;
+  /* Null or absent for everyone. */
+  scopeKind?: UserFlowScope["kind"] | null | undefined;
+}): string {
+  if (input.isSampled) {
+    return `newest ${formatUserFlowCount(
+      input.sessions,
+    )} of ${formatUserFlowCount(input.sessionsInWindow)} recorded`;
+  }
+
+  if (!input.scopeKind) {
+    return "recorded sessions in range";
+  }
+
+  switch (input.scopeKind) {
+    case "user":
+      return "this user's sessions in range";
+    case "visitor":
+      return "this visitor's sessions in range";
+    case "session":
+      return "this session only";
+  }
 }
