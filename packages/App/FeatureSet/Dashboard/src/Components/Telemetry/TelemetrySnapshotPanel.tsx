@@ -44,6 +44,11 @@ export interface ComponentProps {
   endedAt?: Date | undefined;
   stateTimeline?: Array<EventMomentTimelineEntry> | undefined;
   states?: Array<EventMomentState> | undefined;
+  /*
+   * The member event whose telemetry this is: a metric snapshot's charts
+   * draw the rule its monitor opened it with (issue #6250).
+   */
+  metricRuleEventId?: string | undefined;
 }
 
 /**
@@ -93,6 +98,7 @@ const TelemetrySnapshotPanel: FunctionComponent<ComponentProps> = (
         endedAt={props.endedAt}
         stateTimeline={props.stateTimeline || []}
         states={props.states || []}
+        ruleEventId={props.metricRuleEventId}
       />
     );
   }
