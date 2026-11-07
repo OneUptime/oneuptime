@@ -442,6 +442,7 @@ import UserIncomingCallNumber from "./UserIncomingCallNumber";
 // Workflows.
 import Workflow from "./Workflow";
 import WorkflowLog from "./WorkflowLog";
+import WorkflowVersion from "./WorkflowVersion";
 import WorkflowVariables from "./WorkflowVariable";
 import WorkflowOwnerTeam from "./WorkflowOwnerTeam";
 import WorkflowOwnerUser from "./WorkflowOwnerUser";
@@ -550,6 +551,7 @@ import ServiceLevelObjectiveLabelRule from "./ServiceLevelObjectiveLabelRule";
 import IncidentReminderRule from "./IncidentReminderRule";
 import AlertReminderRule from "./AlertReminderRule";
 import ScheduledMaintenanceReminderRule from "./ScheduledMaintenanceReminderRule";
+import PublicNoteApprovalStep from "./PublicNoteApprovalStep";
 import MonitorOwnerRule from "./MonitorOwnerRule";
 import MonitorLabelRule from "./MonitorLabelRule";
 import StatusPageOwnerRule from "./StatusPageOwnerRule";
@@ -865,6 +867,7 @@ const AllModelTypes: Array<{
   IncidentReminderRule,
   AlertReminderRule,
   ScheduledMaintenanceReminderRule,
+  PublicNoteApprovalStep,
 
   MonitorOwnerRule,
   MonitorLabelRule,
@@ -940,6 +943,7 @@ const AllModelTypes: Array<{
   Workflow,
   WorkflowVariables,
   WorkflowLog,
+  WorkflowVersion,
   WorkflowOwnerTeam,
   WorkflowOwnerUser,
 

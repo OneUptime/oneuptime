@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import type { OnCallPageRecordType } from "../api/onCallPassOn";
 import { PASS_ON_TEXT } from "./passOn";
+import { OBSERVER_PAGE_TEXT } from "./observerPage";
 import {
   PUSH_PAGE_TEXT,
   getPushPageAnswer,
@@ -160,6 +161,106 @@ describe("the record's word in a sentence", () => {
   );
 });
 
+/*
+ * "I've seen it" under an observer's page: the reader is kept informed while
+ * others respond, and their page is marked seen - never the record's own
+ * Acknowledge, whatever state the record is in.
+ */
+describe("I've seen it", () => {
+  const OPEN_OBSERVER: Partial<PushPageRecordState> = {
+    // Paged only as an observer: no responder's page of their own.
+    hasOpenPages: false,
+    observerPages: { hasOpenPages: true, known: true },
+  };
+
+  test("an open observer's page is marked seen", () => {
+    expect(getPushPageAnswer("seen", state(OPEN_OBSERVER))).toEqual({
+      kind: "markSeen",
+    });
+  });
+
+  test("never the record's Acknowledge - on a record nobody has taken, or one acknowledged long ago", () => {
+    for (const overrides of [
+      {},
+      { isAcknowledged: true },
+      { isAcknowledged: true, isPageAgain: true },
+      { canAcknowledge: false },
+      // A responder's page of their own, too: this action answers the observer's.
+      { hasOpenPages: true },
+    ] as Array<Partial<PushPageRecordState>>) {
+      const answer: PushPageAnswer = getPushPageAnswer(
+        "seen",
+        state({ ...OPEN_OBSERVER, ...overrides }),
+      );
+
+      expect(answer).toEqual({ kind: "markSeen" });
+    }
+  });
+
+  test("a page somebody it reached said they had seen - or the reader did already - says so, in the email's words", () => {
+    expect(
+      getPushPageAnswer(
+        "seen",
+        state({ observerPages: { hasOpenPages: false, known: true } }),
+      ),
+    ).toEqual({
+      kind: "explain",
+      title: "Already marked as seen",
+      message: "This page has already been marked as seen.",
+    });
+  });
+
+  test("a resolved record says so first: its observers' pages are over", () => {
+    expect(
+      getPushPageAnswer("seen", state({ ...OPEN_OBSERVER, isResolved: true })),
+    ).toEqual({
+      kind: "explain",
+      title: OBSERVER_PAGE_TEXT.alreadyResolvedTitle,
+      message:
+        "This incident is resolved, so there is nothing to mark as seen.",
+    });
+  });
+
+  test.each([
+    ["alert", "This alert is resolved"],
+    ["incident-episode", "This incident episode is resolved"],
+    ["alert-episode", "This alert episode is resolved"],
+  ] as Array<[OnCallPageRecordType, string]>)(
+    "a resolved %s is named as the server names it",
+    (recordType: OnCallPageRecordType, opening: string) => {
+      const answer: PushPageAnswer = getPushPageAnswer(
+        "seen",
+        state({ ...OPEN_OBSERVER, recordType, isResolved: true }),
+      );
+
+      expect(answer.kind).toBe("explain");
+      expect((answer as { message: string }).message.startsWith(opening)).toBe(
+        true,
+      );
+    },
+  );
+
+  test("when the server could not say - an older one, no signal - it says that, and marks nothing", () => {
+    for (const observerPages of [
+      undefined,
+      { hasOpenPages: false, known: false },
+      { hasOpenPages: true, known: false },
+    ]) {
+      expect(getPushPageAnswer("seen", state({ observerPages }))).toEqual({
+        kind: "explain",
+        title: "Could not mark as seen",
+        message: OBSERVER_PAGE_TEXT.couldNotCheck,
+      });
+    }
+  });
+
+  test("a responder's Acknowledge on the same screen still acknowledges, as it always did", () => {
+    expect(getPushPageAnswer("acknowledge", state(OPEN_OBSERVER))).toEqual({
+      kind: "acknowledge",
+    });
+  });
+});
+
 describe("what a screen's params must hold to be an action", () => {
   test("a kind it knows and the tap's id", () => {
     expect(isPushPageActionRequest({ kind: "acknowledge", id: "n-1:A" })).toBe(
@@ -168,6 +269,7 @@ describe("what a screen's params must hold to be an action", () => {
     expect(isPushPageActionRequest({ kind: "escalate", id: "n-1:E" })).toBe(
       true,
     );
+    expect(isPushPageActionRequest({ kind: "seen", id: "n-1:S" })).toBe(true);
   });
 
   test("anything else is no action", () => {
@@ -180,6 +282,8 @@ describe("what a screen's params must hold to be an action", () => {
       { kind: "acknowledge", id: 7 },
       { kind: "resolve", id: "n-1" },
       { kind: "ACKNOWLEDGE", id: "n-1" },
+      { kind: "SEEN", id: "n-1" },
+      { kind: "seen" },
       [],
     ]) {
       expect(isPushPageActionRequest(value)).toBe(false);

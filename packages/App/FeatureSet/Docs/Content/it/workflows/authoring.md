@@ -21,7 +21,7 @@ Un workflow creato da zero si apre con un unico blocco tratteggiato con la scrit
 
 Ogni workflow ha esattamente un **trigger** in cima. Tutto il resto è un **componente** che fa qualcosa. Per cambiare il trigger, eliminalo: il segnaposto tratteggiato torna al suo posto, e facendo clic su di esso puoi sceglierne un altro. Eliminando un blocco si eliminano anche le sue linee, quindi ricollega il nuovo trigger al primo blocco.
 
-Le modifiche vengono salvate automaticamente. Una pillola nella barra degli strumenti lo segnala: **Salvataggio…** mentre la modifica è in corso, poi **Salvato**, oppure **Impossibile salvare** se non ha funzionato. La tela non ha un pulsante di salvataggio né un passaggio di pubblicazione separato.
+Le modifiche vengono salvate automaticamente, un attimo dopo che le hai fatte. Una pillola nella barra degli strumenti lo segnala: **Salvataggio…** mentre la modifica è in corso, poi **Salvato**. Se una modifica non è stata salvata, la pillola mostra **Impossibile salvare**, con il motivo quando ci passi sopra con il mouse, e **Riprova** accanto. Nel frattempo le tue modifiche restano sulla tela, e la prossima modifica che fai riprova a salvare. Se lasci la pagina prima che una modifica sia salvata, ti viene chiesta prima una conferma. La tela non ha un pulsante di salvataggio né un passaggio di pubblicazione separato. Anche un errore viene salvato, quindi il Costruttore conserva ogni modifica, così puoi annullarla: vedi [Annullare, ripetere e cronologia delle versioni](#annullare-ripetere-e-cronologia-delle-versioni).
 
 ## Aggiungere blocchi
 
@@ -169,6 +169,26 @@ Per mettere in pausa un workflow senza eliminarlo, disattiva **Abilitato**. Il s
 - Per eliminare un blocco, fai clic su di esso e usa **Elimina** in fondo alla sua finestra delle impostazioni. Anche selezionare un blocco o una linea e premere Backspace lo rimuove.
 - Non c'è modo di duplicare un singolo blocco. **Duplica: Flusso di lavoro** nella pagina **Impostazioni** del workflow copia tutto. Il nome della copia è già compilato, numerato oltre i workflow del progetto ("Nightly Sync" viene copiato come "Nightly Sync 2"), e la copia si apre, disabilitata.
 - Impila i blocchi dall'alto verso il basso, così si leggono nella direzione in cui vengono eseguiti: gli ingressi sono sul bordo superiore e le uscite su quello inferiore, quindi il flusso scende in modo naturale.
+
+## Annullare, ripetere e cronologia delle versioni
+
+Ogni modifica che fai sulla tela si può annullare, anche se è stata salvata subito.
+
+- **Annulla** e **Ripeti** si trovano all'inizio della barra degli strumenti. Passa sopra uno dei due per vedere cosa annullerebbe o rifarebbe, e di quale blocco si tratta. Ogni modifica si annulla in un colpo solo: aggiungere, eliminare o spostare un blocco, collegare o scollegare due blocchi e salvare le impostazioni di un blocco. Trascinare un blocco conta come una sola modifica, per quanto lontano lo trascini.
+- Funziona anche la tastiera: ⌘Z su un Mac, o Ctrl+Z, annulla, e ⇧⌘Z, Ctrl+Shift+Z o Ctrl+Y ripete. Mentre scrivi in un campo o in un editor di codice, gli stessi tasti annullano invece ciò che hai scritto.
+- Un annullamento viene salvato come qualsiasi altra modifica. L'annullamento copre ciò che hai fatto da quando hai aperto il Costruttore; la cronologia delle versioni va più indietro.
+
+**Cronologia versioni**, nella barra degli strumenti, elenca ogni versione salvata del workflow, dalla più recente: chi l'ha salvata, quando e cosa ha cambiato, ad esempio `Added "Send Email" (send-email-1)`. Le modifiche che salvi a meno di 10 minuti l'una dall'altra formano un'unica versione, così una versione è un pezzo di lavoro e non ogni singolo clic. Anche le modifiche fatte da Ask AI, e quelle fatte tramite l'API, sono versioni.
+
+Per tornare a una versione precedente:
+
+:::steps
+1. Fai clic su **Cronologia versioni** nella barra degli strumenti.
+2. Fai clic su **Anteprima** sulla versione. L'anteprima elenca cosa cambierebbe ripristinandola, e mostra la versione su una tela tutta sua. Fai clic su un blocco di quella tela per leggerne le impostazioni.
+3. Fai clic su **Ripristina questa versione**. La versione torna sulla tela e viene salvata subito.
+:::
+
+Il ripristino è una modifica come tutte le altre. Viene salvato come una nuova versione che dice quale versione ha ripristinato, così puoi annullarlo, o ripristinare la versione che avevi prima. Chiunque possa aprire il workflow può vederne la cronologia; per ripristinare una versione serve il permesso di modificare il workflow. Vengono conservate le 100 versioni più recenti di ogni workflow.
 
 ## Prossimi passi
 

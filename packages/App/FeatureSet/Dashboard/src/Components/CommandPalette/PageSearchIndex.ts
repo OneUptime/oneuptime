@@ -1128,6 +1128,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Link,
           },
           {
+            page: PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL,
+            title: "Public Note Approval",
+            icon: IconProp.ShieldCheck,
+            keywords: [
+              "approve public notes",
+              "review status page updates",
+              "approval steps",
+              "approvers",
+            ],
+          },
+          {
             page: PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP,
             title: "Episode Membership",
             icon: IconProp.SquareStack3D,
@@ -1566,6 +1577,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS,
             title: "Measurements",
             icon: IconProp.Clock,
+          },
+          {
+            page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_PUBLIC_NOTE_APPROVAL,
+            title: "Public Note Approval",
+            icon: IconProp.ShieldCheck,
+            keywords: [
+              "approve public notes",
+              "review status page updates",
+              "approval steps",
+              "approvers",
+            ],
           },
           {
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR,

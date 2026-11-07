@@ -1,0 +1,36 @@
+{{> Start this}}
+
+{{!--
+  A public note on an incident, an episode or a scheduled maintenance event
+  waiting for the reader's approval (PublicNoteApprovalNotifications). It is
+  on no status page, and no subscriber is told, until somebody approves it.
+  Every value but the note is written with a double stash: titles, names and
+  step names are text people wrote. The note is Markdown made HTML by
+  Markdown.convertToHTML, which DetailBoxField's text slot takes.
+--}}
+{{> Logo this}}
+{{> EmailTitle title=emailTitle }}
+
+{{> InfoBlock plainInfo=leadSentence }}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Record: " plainText=recordLabel }}
+{{> DetailBoxField title="Title: " plainText=recordTitle }}
+{{> DetailBoxField title="Waiting For: " plainText=stepLabel }}
+{{> DetailBoxField title="Sent By: " plainText=sentBy }}
+{{> DetailBoxField title="Public Note: " text=note }}
+{{> DetailBoxField title="Project: " plainText=projectName }}
+{{> DetailBoxEnd this }}
+
+{{> ButtonBlock buttonUrl=notesViewLink buttonText="Approve or Reject"}}
+
+{{> LinkBlock linkUrl=notesViewLink linkLabel="You can also copy and paste this link:"}}
+
+{{> TitleBlock title="Why am I receiving this email?"}}
+{{> InfoBlock plainInfo=reasonSentence }}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

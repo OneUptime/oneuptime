@@ -366,6 +366,7 @@ import WorkflowLabelRuleService from "./WorkflowLabelRuleService";
 // Workflows.
 import WorkflowService from "./WorkflowService";
 import WorkflowVariablesService from "./WorkflowVariableService";
+import WorkflowVersionService from "./WorkflowVersionService";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import TelemetryExceptionService from "./TelemetryExceptionService";
 import TelemetrySourceMapService from "./TelemetrySourceMapService";
@@ -513,6 +514,7 @@ import ServiceLevelObjectiveOwnerRuleService from "./ServiceLevelObjectiveOwnerR
 import ServiceLevelObjectiveLabelRuleService from "./ServiceLevelObjectiveLabelRuleService";
 import SloHistoryService from "./SloHistoryService";
 import IncidentReminderRuleService from "./IncidentReminderRuleService";
+import PublicNoteApprovalStepService from "./PublicNoteApprovalStepService";
 import AlertReminderRuleService from "./AlertReminderRuleService";
 import ScheduledMaintenanceReminderRuleService from "./ScheduledMaintenanceReminderRuleService";
 
@@ -912,6 +914,7 @@ const services: Array<BaseService> = [
   WorkflowLabelRuleService,
   WorkflowService,
   WorkflowVariablesService,
+  WorkflowVersionService,
 
   // Monitor Group Service
   MonitorGroupService,
@@ -1093,6 +1096,7 @@ const services: Array<BaseService> = [
   ServiceLevelObjectiveOwnerRuleService,
   ServiceLevelObjectiveLabelRuleService,
   IncidentReminderRuleService,
+  PublicNoteApprovalStepService,
   AlertReminderRuleService,
   ScheduledMaintenanceReminderRuleService,
 

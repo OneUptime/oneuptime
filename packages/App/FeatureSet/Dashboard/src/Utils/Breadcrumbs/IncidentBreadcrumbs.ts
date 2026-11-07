@@ -357,6 +357,10 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Linked Alerts",
     ]),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL,
+      ["Project", "Incidents", "Settings", "Public Note Approval"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP,
       ["Project", "Incidents", "Settings", "Episode Membership"],
     ),

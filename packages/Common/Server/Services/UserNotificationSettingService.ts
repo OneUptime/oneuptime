@@ -1133,6 +1133,35 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addSecurityCaseNotificationSettings(userId, projectId);
     await this.addSecurityHuntNotificationSettings(userId, projectId);
     await this.addExceptionNotificationSettings(userId, projectId);
+    await this.addPublicNoteApprovalNotificationSettings(userId, projectId);
+  }
+
+  /*
+   * Public note approval (PublicNoteApprovalNotifications): a note waiting
+   * for the person's approval by email and push - it is published only once
+   * somebody approves it, and customers wait for it - and how a note they
+   * sent was decided by email. Every member gets them, as with every other
+   * event; only the approvers of a note, and whoever sent it, are ever told.
+   * Idempotent: the notifications seed these too before sending, for the
+   * members who joined before they existed.
+   */
+  @CaptureSpan()
+  public async addPublicNoteApprovalNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_REQUESTED_NOTIFICATION,
+      { alertByPush: true },
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_DECIDED_NOTIFICATION,
+    );
   }
 
   /*

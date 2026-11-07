@@ -9,8 +9,8 @@ import {
 } from "../oncall/pushPageAction";
 
 /*
- * A push's Acknowledge or Escalate, done on the record's screen
- * (oncall/pushPageAction.ts).
+ * A push's Acknowledge, Escalate or "I've seen it", done on the record's
+ * screen (oncall/pushPageAction.ts).
  *
  * The push opens the screen with the action in its params. The screen waits
  * until it knows enough to answer - the record, its states, and the reader's
@@ -26,6 +26,12 @@ export interface PushPageActionOptions {
   clear: () => void;
   // The record, its states and the reader's open pages have all been read.
   ready: boolean;
+  /*
+   * The reader's pages as an observer have been read too - what only "I've
+   * seen it" waits for: a responder's Acknowledge and Escalate never wait on
+   * it, and run as they always did.
+   */
+  observerPagesSettled: boolean;
   state: PushPageRecordState;
   // The record's own Acknowledge.
   acknowledge: () => Promise<void> | void;
@@ -33,13 +39,15 @@ export interface PushPageActionOptions {
   acknowledgeAgain: () => Promise<void> | void;
   // Escalate's question, as the screen's button asks it.
   askToEscalate: () => void;
+  // "I've seen it", for the reader's page as an observer: never the record's Acknowledge.
+  markSeen: () => Promise<void> | void;
 }
 
 export function runPushPageAnswer(
   answer: PushPageAnswer,
   handlers: Pick<
     PushPageActionOptions,
-    "acknowledge" | "acknowledgeAgain" | "askToEscalate"
+    "acknowledge" | "acknowledgeAgain" | "askToEscalate" | "markSeen"
   >,
 ): void {
   switch (answer.kind) {
@@ -51,6 +59,9 @@ export function runPushPageAnswer(
       return;
     case "askToEscalate":
       handlers.askToEscalate();
+      return;
+    case "markSeen":
+      void handlers.markSeen();
       return;
     case "explain":
       Alert.alert(answer.title, answer.message);
@@ -65,7 +76,7 @@ export function usePushPageAction(options: PushPageActionOptions): void {
     useRef<PushPageActionOptions>(options);
   latest.current = options;
 
-  const { request, ready } = options;
+  const { request, ready, observerPagesSettled } = options;
 
   useEffect((): void => {
     if (!ready || !isPushPageActionRequest(request)) {
@@ -73,6 +84,10 @@ export function usePushPageAction(options: PushPageActionOptions): void {
     }
 
     const pushRequest: PushPageActionRequest = request;
+
+    if (pushRequest.kind === "seen" && !observerPagesSettled) {
+      return;
+    }
 
     if (handled.current.has(pushRequest.id)) {
       return;
@@ -84,5 +99,5 @@ export function usePushPageAction(options: PushPageActionOptions): void {
       getPushPageAnswer(pushRequest.kind, latest.current.state),
       latest.current,
     );
-  }, [request, ready]);
+  }, [request, ready, observerPagesSettled]);
 }

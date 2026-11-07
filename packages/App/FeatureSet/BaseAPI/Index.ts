@@ -572,6 +572,9 @@ import SloHistoryService, {
 import IncidentReminderRuleService, {
   Service as IncidentReminderRuleServiceType,
 } from "Common/Server/Services/IncidentReminderRuleService";
+import PublicNoteApprovalStepService, {
+  Service as PublicNoteApprovalStepServiceType,
+} from "Common/Server/Services/PublicNoteApprovalStepService";
 
 import AlertReminderRuleService, {
   Service as AlertReminderRuleServiceType,
@@ -1411,6 +1414,9 @@ import UserOnCallLogService, {
 import WorkflowLogService, {
   Service as WorkflowLogServiceType,
 } from "Common/Server/Services/WorkflowLogService";
+import WorkflowVersionService, {
+  Service as WorkflowVersionServiceType,
+} from "Common/Server/Services/WorkflowVersionService";
 import WorkflowService, {
   Service as WorkflowServiceType,
 } from "Common/Server/Services/WorkflowService";
@@ -1609,6 +1615,7 @@ import ServiceLevelObjectiveOwnerRule from "Common/Models/DatabaseModels/Service
 import ServiceLevelObjectiveLabelRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
+import PublicNoteApprovalStep from "Common/Models/DatabaseModels/PublicNoteApprovalStep";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
 import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 
@@ -1808,6 +1815,7 @@ import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationR
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
+import WorkflowVersion from "Common/Models/DatabaseModels/WorkflowVersion";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookOwnerTeam from "Common/Models/DatabaseModels/RunbookOwnerTeam";
@@ -3784,6 +3792,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // PublicNoteApprovalStep: who approves public notes before they are published.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PublicNoteApprovalStep, PublicNoteApprovalStepServiceType>(
+        PublicNoteApprovalStep,
+        PublicNoteApprovalStepService,
+      ).getRouter(),
+    );
+
     // AlertReminderRule
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5024,6 +5041,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<WorkflowLog, WorkflowLogServiceType>(
         WorkflowLog,
         WorkflowLogService,
+      ).getRouter(),
+    );
+
+    // A workflow's versions: read only, written by WorkflowService's saves.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<WorkflowVersion, WorkflowVersionServiceType>(
+        WorkflowVersion,
+        WorkflowVersionService,
       ).getRouter(),
     );
 

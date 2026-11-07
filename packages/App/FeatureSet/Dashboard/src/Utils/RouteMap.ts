@@ -1340,6 +1340,8 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
   [PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: "settings/linked-alerts",
+  [PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL]:
+    "settings/public-note-approval",
   [PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP]:
     "settings/episode-membership",
   [PageMap.INCIDENTS_SETTINGS_NUMBERING]: "settings/numbering",
@@ -1489,6 +1491,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING]:
     "settings/numbering",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR]: "settings/calendar",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_PUBLIC_NOTE_APPROVAL]:
+    "settings/public-note-approval",
 
   [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -2788,6 +2792,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL]
+    }`,
+  ),
+
   [PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP]
@@ -3096,6 +3106,15 @@ const RouteMap: Dictionary<Route> = {
       ]
     }`,
   ),
+
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_PUBLIC_NOTE_APPROVAL]:
+    new Route(
+      `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+        ScheduledMaintenanceEventsRoutePath[
+          PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_PUBLIC_NOTE_APPROVAL
+        ]
+      }`,
+    ),
 
   [PageMap.SERVICE_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/*`,

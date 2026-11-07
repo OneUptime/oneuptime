@@ -520,6 +520,7 @@ describe("update", () => {
     stored.projectId = PROJECT_ID;
     stored.incidentId = new ObjectID(INCIDENT_ID);
     stored.note = "Investigating.";
+    stored.isPublished = true;
     const repository: FakeRepository = useRepository(service as never, [
       stored,
     ]);
@@ -532,8 +533,30 @@ describe("update", () => {
     });
 
     expect(visibilityAsked()).toEqual(["eee555:public"]);
-    // The note was read with the incident it is shown under.
+    // The note was read with the incident it is shown under, and whether it is published.
     expect(selectsAsked(repository)[0]).toContain("incidentId");
+    expect(selectsAsked(repository)[0]).toContain("isPublished");
+  });
+
+  // Issue #5720: a note waiting for approval shows nothing, whatever its incident.
+  test("a public note waiting for approval, edited with a new image on a shown incident, makes nothing public", async () => {
+    const service: NoteWrites = new NoteWrites();
+    const stored: IncidentPublicNote = new IncidentPublicNote();
+    stored._id = RECORD_ID;
+    stored.projectId = PROJECT_ID;
+    stored.incidentId = new ObjectID(INCIDENT_ID);
+    stored.note = "Investigating.";
+    stored.isPublished = false;
+    useRepository(service as never, [stored]);
+    incidentsShown([INCIDENT_ID]);
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { note: `Found it: ${image("eee555")}` },
+      props: rootProps(),
+    });
+
+    expect(visibilityAsked()).toEqual(["eee555:private"]);
   });
 
   test("a public note edited with a new image, on a hidden or private incident, makes nothing public", async () => {
@@ -571,7 +594,11 @@ describe("update", () => {
 
   test("a public note posted on a shown incident makes its images public", async () => {
     const service: NoteWrites = new NoteWrites();
-    useRepository(service as never);
+    // Published as the column default stores it, read back after the create.
+    const stored: IncidentPublicNote = new IncidentPublicNote();
+    stored._id = RECORD_ID;
+    stored.isPublished = true;
+    useRepository(service as never, [stored]);
     incidentsShown([INCIDENT_ID]);
 
     const note: IncidentPublicNote = new IncidentPublicNote();
@@ -581,6 +608,21 @@ describe("update", () => {
     await service.create({ data: note, props: rootProps() });
 
     expect(visibilityAsked()).toEqual(["eee555:public"]);
+  });
+
+  test("a public note held for approval on a shown incident leaves its images private", async () => {
+    const service: NoteWrites = new NoteWrites();
+    useRepository(service as never);
+    incidentsShown([INCIDENT_ID]);
+
+    const note: IncidentPublicNote = new IncidentPublicNote();
+    note.note = image("eee555");
+    note.incidentId = new ObjectID(INCIDENT_ID);
+    note.isPublished = false;
+
+    await service.create({ data: note, props: rootProps() });
+
+    expect(visibilityAsked()).toEqual([]);
   });
 });
 

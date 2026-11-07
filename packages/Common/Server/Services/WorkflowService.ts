@@ -7,6 +7,7 @@ import StandardWebhookSignature from "../Utils/Webhook/StandardWebhookSignature"
 import ProjectReferencesService from "./ProjectReferencesService";
 import WorkflowLabelRuleEngineService from "./WorkflowLabelRuleEngineService";
 import WorkflowOwnerRuleEngineService from "./WorkflowOwnerRuleEngineService";
+import WorkflowVersionService from "./WorkflowVersionService";
 import EmptyResponseData from "../../Types/API/EmptyResponse";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Protocol from "../../Types/API/Protocol";
@@ -31,7 +32,23 @@ interface WorkflowUpdateCarryForward {
   signingSecretSaved: boolean;
 }
 
+// A workflow an update saves a graph to, for its version history.
+interface GraphSave {
+  workflowId: ObjectID;
+  projectId: ObjectID;
+}
+
 export class Service extends ProjectReferencesService<Model> {
+  /*
+   * The workflows each update saves a graph to, read once the update may be
+   * made (onUpdatePermitted) and recorded as versions once it is
+   * (onUpdateSuccess). Version history: WorkflowVersionService.
+   */
+  private graphSaves: WeakMap<UpdateBy<Model>, Array<GraphSave>> = new WeakMap<
+    UpdateBy<Model>,
+    Array<GraphSave>
+  >();
+
   public constructor() {
     super(Model);
   }
@@ -199,11 +216,116 @@ export class Service extends ProjectReferencesService<Model> {
     if (data["webhookSigningSecret"]) {
       data["isWebhookSigningSecretSet"] = true;
     }
+
+    if (data["graph"] !== undefined) {
+      await this.noteGraphSaves(updateBy);
+    }
+  }
+
+  /*
+   * Version history, before a graph is saved: which workflows the update
+   * saves it to (the rows it writes, read as every hook that acts on an
+   * update's rows reads them), and, for a workflow saved before OneUptime
+   * kept versions, its graph as it is now, as its first version - so the
+   * change about to be saved can be taken back. Never fails the save.
+   */
+  private async noteGraphSaves(updateBy: UpdateBy<Model>): Promise<void> {
+    const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        projectId: true,
+      },
+    );
+
+    const saves: Array<GraphSave> = [];
+
+    for (const row of rows) {
+      if (!row.id || !row.projectId) {
+        continue;
+      }
+
+      const save: GraphSave = { workflowId: row.id, projectId: row.projectId };
+      saves.push(save);
+
+      try {
+        await WorkflowVersionService.recordEarlierVersionIfNone({
+          workflowId: save.workflowId,
+          projectId: save.projectId,
+          readGraph: async (): Promise<unknown> => {
+            return (
+              await this.findOneById({
+                id: save.workflowId,
+                select: { graph: true },
+                props: { isRoot: true },
+              })
+            )?.graph;
+          },
+        });
+      } catch (error) {
+        logger.error(
+          `Could not record the version history of workflow ${save.workflowId.toString()} began with: ${error}`,
+          {
+            projectId: save.projectId.toString(),
+            workflowId: save.workflowId.toString(),
+          } as LogAttributes,
+        );
+      }
+    }
+
+    this.graphSaves.set(updateBy, saves);
+  }
+
+  // Version history, once a graph is saved. Never fails the save.
+  private async recordGraphSaves(data: {
+    updateBy: UpdateBy<Model>;
+    updatedItemIds: Array<ObjectID>;
+    graph: JSONObject;
+  }): Promise<void> {
+    const saves: Array<GraphSave> | undefined = this.graphSaves.get(
+      data.updateBy,
+    );
+
+    if (!saves) {
+      return;
+    }
+
+    this.graphSaves.delete(data.updateBy);
+
+    const written: Set<string> = new Set<string>(
+      data.updatedItemIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    for (const save of saves) {
+      // A row the write did not reach (deleted meanwhile) saved nothing.
+      if (!written.has(save.workflowId.toString())) {
+        continue;
+      }
+
+      try {
+        await WorkflowVersionService.recordGraphSave({
+          workflowId: save.workflowId,
+          projectId: save.projectId,
+          graph: data.graph,
+          userId: data.updateBy.props.userId,
+        });
+      } catch (error) {
+        logger.error(
+          `Could not record a version of workflow ${save.workflowId.toString()}: ${error}`,
+          {
+            projectId: save.projectId.toString(),
+            workflowId: save.workflowId.toString(),
+          } as LogAttributes,
+        );
+      }
+    }
   }
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     // Auto-generate webhook secret key for new workflows.
@@ -258,6 +380,29 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    /*
+     * Version history: the workflow as it was created is its first version,
+     * by whoever created it. Never fails the create.
+     */
+    if (createdItem.projectId && createdItem.id) {
+      try {
+        await WorkflowVersionService.recordCreated({
+          workflowId: createdItem.id,
+          projectId: createdItem.projectId,
+          graph: createdItem.graph,
+          userId: onCreate.createBy.props.userId,
+        });
+      } catch (error) {
+        logger.error(
+          `Could not record the first version of created workflow: ${error}`,
+          {
+            projectId: createdItem.projectId.toString(),
+            workflowId: createdItem.id.toString(),
+          } as LogAttributes,
+        );
+      }
+    }
+
     if (createdItem.projectId && createdItem.id) {
       /*
        * Run label rule first so rule-added labels are persisted before
@@ -301,6 +446,19 @@ export class Service extends ProjectReferencesService<Model> {
 
     const carryForward: WorkflowUpdateCarryForward | null =
       (onUpdate.carryForward as WorkflowUpdateCarryForward | null) || null;
+
+    /*
+     * Version history: what this save did to each workflow's versions. First,
+     * as the graph is saved already: telling the workflow service below can
+     * fail without the save being any less made.
+     */
+    if (updatedGraph) {
+      await this.recordGraphSaves({
+        updateBy: onUpdate.updateBy,
+        updatedItemIds: updatedItemIds,
+        graph: updatedGraph,
+      });
+    }
 
     // Every workflow the update wrote.
     for (const workflowId of updatedItemIds) {

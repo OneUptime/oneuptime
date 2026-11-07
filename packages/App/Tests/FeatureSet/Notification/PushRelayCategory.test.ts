@@ -16,7 +16,10 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PushDeviceType from "Common/Types/PushNotification/PushDeviceType";
-import { ON_CALL_PAGE_PUSH_CATEGORY } from "Common/Types/PushNotification/PushNotificationCategory";
+import {
+  ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY,
+  ON_CALL_PAGE_PUSH_CATEGORY,
+} from "Common/Types/PushNotification/PushNotificationCategory";
 import API from "Common/Utils/API";
 import {
   afterAll,
@@ -213,6 +216,12 @@ describe("parseRelayCategoryId", () => {
     );
   });
 
+  test("an observer's page's category is one it knows: I've seen it reaches the phone", () => {
+    expect(parseRelayCategoryId(ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY)).toBe(
+      "ON_CALL_OBSERVER_PAGE",
+    );
+  });
+
   test("anything else is left out - never refused, so the page still goes", () => {
     for (const raw of [
       undefined,
@@ -240,6 +249,19 @@ describe("the relay (POST /api/notification/push-relay/send)", () => {
     expect(answer.statusCode).toBe(200);
     expect(expoSends).toHaveLength(1);
     expect(expoSends[0]!["categoryId"]).toBe(ON_CALL_PAGE_PUSH_CATEGORY);
+  });
+
+  test("an observer's page's category reaches Expo too", async () => {
+    const answer: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await postToRelay(
+        relayRequest({ categoryId: ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY }),
+      );
+
+    expect(answer.statusCode).toBe(200);
+    expect(expoSends).toHaveLength(1);
+    expect(expoSends[0]!["categoryId"]).toBe(
+      ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY,
+    );
   });
 
   test.each([

@@ -230,9 +230,16 @@ describe.each(STATE_CHANGES_WITH_NOTES)(
       expect(count(source, APPLY_TO_STATE_CHANGE)).toBe(1);
       expect(count(onBeforeCreate, APPLY_TO_STATE_CHANGE)).toBe(1);
 
-      // The decision takes the note the service read, and nothing else.
+      /*
+       * The decision takes the note the service read, and nothing else -
+       * but a note waiting for approval tells nobody until it is published
+       * (#5720), so the change then tells subscribers itself.
+       */
       expect(onBeforeCreate).toMatch(
-        /applyToStateChange\(\{\s*stateChange:\s*createBy\.data,\s*hasPublicNote:\s*Boolean\(publicNote\),/,
+        /applyToStateChange\(\{\s*stateChange:\s*createBy\.data,\s*hasPublicNote:\s*noteTellsSubscribers,/,
+      );
+      expect(onBeforeCreate).toMatch(
+        /const noteTellsSubscribers: boolean =\s*Boolean\(publicNote\) &&\s*!\(await StateChangeSubscriberNotification\.isPublicNoteHeldForApproval\(/,
       );
     });
 

@@ -21,7 +21,7 @@ Ett arbetsflöde från grunden öppnas med ett enda streckat block med texten **
 
 Varje arbetsflöde har exakt en **utlösare** högst upp. Allt annat är en **komponent** som gör något. För att byta utlösare tar du bort den: den streckade platshållaren kommer tillbaka på dess plats, och ett klick på den låter dig välja en annan. När du tar bort ett block tas dess linjer bort också, så koppla den nya utlösaren till det första blocket igen.
 
-Ändringar sparas automatiskt. En etikett i verktygsfältet håller koll på det: **Sparar…** medan ändringen är på väg, därefter **Sparad**, eller **Kunde inte spara** om det inte lyckades. Arbetsytan har ingen spara-knapp och inget separat publiceringssteg.
+Ändringar sparas automatiskt, en liten stund efter att du har gjort dem. En etikett i verktygsfältet håller koll på det: **Sparar…** medan ändringen är på väg, därefter **Sparad**. Om en ändring inte kunde sparas står det **Kunde inte spara** på etiketten, med orsaken när du håller muspekaren över den, och **Försök igen** bredvid. Dina ändringar finns kvar på arbetsytan under tiden, och nästa ändring du gör försöker igen. Om du lämnar sidan innan en ändring har sparats får du en fråga först. Arbetsytan har ingen spara-knapp och inget separat publiceringssteg. Även ett misstag sparas, så Byggare behåller varje ändring som du kan ta tillbaka: se [Ångra, gör om och versionshistorik](#ångra-gör-om-och-versionshistorik).
 
 ## Lägg till block
 
@@ -169,6 +169,26 @@ För att pausa ett arbetsflöde utan att ta bort det slår du av **Aktiverad**. 
 - För att ta bort ett block klickar du på det och använder **Ta bort** längst ned i dess inställningsdialog. Att markera ett block eller en linje och trycka på Backspace tar också bort det.
 - Det finns inget sätt att duplicera ett enskilt block. **Duplicera Arbetsflöde** på arbetsflödets sida **Inställningar** kopierar allt. Kopians namn är ifyllt, numrerat förbi projektets arbetsflöden (”Nightly Sync” kopieras som ”Nightly Sync 2”), och kopian öppnas, inaktiverad.
 - Placera blocken uppifrån och ned så att de läses i den riktning de körs — ingången är på den övre kanten, utgångarna på den nedre, så flödet går naturligt nedåt.
+
+## Ångra, gör om och versionshistorik
+
+Varje ändring du gör på arbetsytan kan tas tillbaka, trots att den sparades direkt.
+
+- **Ångra** och **Gör om** finns först i verktygsfältet. Håll muspekaren över någon av dem för att se vad den skulle ta tillbaka eller göra igen, och vilket block det gäller. Varje ändring är ett steg: att lägga till, ta bort eller flytta ett block, att koppla ihop två block eller koppla isär dem, och att spara ett blocks inställningar. Att dra ett block är ett steg, hur långt du än drar det.
+- Tangentbordet fungerar också: ⌘Z på en Mac, eller Ctrl+Z, ångrar, och ⇧⌘Z, Ctrl+Shift+Z eller Ctrl+Y gör om. Medan du skriver i ett fält eller en kodredigerare ångrar samma tangenter i stället det du har skrivit.
+- En ångring sparas som vilken annan ändring som helst. Ångra går tillbaka genom det du har gjort sedan du öppnade Byggare; versionshistoriken går längre tillbaka.
+
+**Versionshistorik**, i verktygsfältet, visar varje sparad version av arbetsflödet, nyaste först: vem som sparade den, när och vad den ändrade, till exempel `Added "Send Email" (send-email-1)`. Ändringar som du sparar inom 10 minuter från varandra blir en version, så en version är ett arbetsmoment snarare än varje klick. Ändringar som Ask AI gör, och ändringar som görs via API:t, är också versioner.
+
+För att gå tillbaka till en tidigare version:
+
+:::steps
+1. Klicka på **Versionshistorik** i verktygsfältet.
+2. Klicka på **Förhandsgranskning** vid versionen. Förhandsgranskningen visar vad en återställning skulle ändra och visar versionen på en egen arbetsyta. Klicka på ett block där för att läsa dess inställningar.
+3. Klicka på **Återställ den här versionen**. Versionen hamnar på arbetsytan igen och sparas direkt.
+:::
+
+En återställning är en ändring som vilken annan som helst. Den sparas som en ny version som anger vilken version den återställde, så att du kan ångra den eller återställa versionen du hade innan. Alla som kan öppna arbetsflödet kan se dess historik; för att återställa en version krävs behörighet att redigera arbetsflödet. De 100 nyaste versionerna av varje arbetsflöde sparas.
 
 ## Nästa steg
 

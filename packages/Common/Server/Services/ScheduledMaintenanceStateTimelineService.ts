@@ -52,6 +52,8 @@ import Exception from "../../Types/Exception/Exception";
 import Select from "../Types/Database/Select";
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import PublicNoteApprovalPolicy from "../Utils/Notes/PublicNoteApprovalPolicy";
+import { PublicNoteApprovalEventType } from "../../Types/StatusPage/PublicNoteApproval";
 
 /*
  * Enough of a state to tell which kind it is. A project can add its own
@@ -353,11 +355,28 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       /*
        * The change's own notification, decided once: when it notifies
        * subscribers and a note came with it, the note is the one message
-       * they get (StateChangeSubscriberNotification).
+       * they get (StateChangeSubscriberNotification) - unless the note
+       * waits for approval. A held note tells nobody until it is approved,
+       * and never if it is rejected, so the change tells subscribers
+       * itself, now, and the note follows once it is published
+       * (PublicNoteApproval).
        */
+      const noteTellsSubscribers: boolean =
+        Boolean(publicNote) &&
+        !(await StateChangeSubscriberNotification.isPublicNoteHeldForApproval({
+          projectId: createBy.data.projectId || createBy.props.tenantId,
+          isApprovalRequired: (query: {
+            projectId: ObjectID;
+            eventType: PublicNoteApprovalEventType;
+          }): Promise<boolean> => {
+            return PublicNoteApprovalPolicy.isRequired(query);
+          },
+          eventType: PublicNoteApprovalEventType.ScheduledMaintenance,
+        }));
+
       StateChangeSubscriberNotification.applyToStateChange({
         stateChange: createBy.data,
-        hasPublicNote: Boolean(publicNote),
+        hasPublicNote: noteTellsSubscribers,
         skippedMessage:
           "Notifications skipped as subscribers are not to be notified for this scheduled maintenance state change.",
       });
