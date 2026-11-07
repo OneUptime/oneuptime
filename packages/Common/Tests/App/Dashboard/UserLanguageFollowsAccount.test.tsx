@@ -21,6 +21,7 @@ import i18next, { i18n as I18n } from "i18next";
 import path from "path";
 import React from "react";
 import { initReactI18next } from "react-i18next";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * THE DASHBOARD FOLLOWS THE LANGUAGE A PERSON PICKED, ON EVERY BROWSER
@@ -51,7 +52,9 @@ jest.mock("../../../UI/Utils/UserLanguage", () => {
 
 jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/i18n", () => {
   const languages: { SUPPORTED_DASHBOARD_LANGUAGES: unknown } =
-    jest.requireActual("../../../Types/Dashboard/DashboardLanguage");
+    jest.requireActual("../../../Types/Dashboard/DashboardLanguage") as {
+      SUPPORTED_DASHBOARD_LANGUAGES: unknown;
+    };
 
   return {
     __esModule: true,
@@ -87,11 +90,11 @@ const readLocale: (locale: string) => Record<string, unknown> = (
 };
 
 const account: {
-  readSignedInUserLanguage: jest.Mock<() => Promise<string>>;
-  saveSignedInUserLanguage: jest.Mock<(language: string) => Promise<boolean>>;
+  readSignedInUserLanguage: Mock<() => Promise<string>>;
+  saveSignedInUserLanguage: Mock<(language: string) => Promise<boolean>>;
 } = UserLanguageUtil as unknown as {
-  readSignedInUserLanguage: jest.Mock<() => Promise<string>>;
-  saveSignedInUserLanguage: jest.Mock<(language: string) => Promise<boolean>>;
+  readSignedInUserLanguage: Mock<() => Promise<string>>;
+  saveSignedInUserLanguage: Mock<(language: string) => Promise<boolean>>;
 };
 
 // An i18next stand-in that records what a switch asks of it, in order.
@@ -229,8 +232,10 @@ describe("UserLanguageInit", () => {
   });
 
   test("a person who picked none: the page stays in the language it shows", async () => {
-    const change: jest.SpiedFunction<typeof i18next.changeLanguage> =
-      jest.spyOn(i18next, "changeLanguage");
+    const change: SpyInstance<typeof i18next.changeLanguage> = jest.spyOn(
+      i18next,
+      "changeLanguage",
+    );
 
     render(<UserLanguageInit />);
     await settle();

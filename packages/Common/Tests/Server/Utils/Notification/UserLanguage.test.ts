@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import type { SpiedFunction } from "jest-mock";
+import type { SpyInstance } from "jest-mock";
 import User from "../../../../Models/DatabaseModels/User";
 import UserService from "../../../../Server/Services/UserService";
 import logger from "../../../../Server/Utils/Logger";
@@ -32,7 +32,7 @@ afterEach(() => {
 
 describe("UserLanguage.getLanguage", () => {
   test("reads the person's own language, as OneUptime, and nothing else", async () => {
-    const read: SpiedFunction<typeof UserService.findOneById> = jest
+    const read: SpyInstance<typeof UserService.findOneById> = jest
       .spyOn(UserService, "findOneById")
       .mockResolvedValue(userWith("de"));
 
@@ -77,7 +77,7 @@ describe("UserLanguage.getLanguage", () => {
     jest
       .spyOn(UserService, "findOneById")
       .mockRejectedValue(new Error("Database not connected"));
-    const logged: SpiedFunction<typeof logger.error> = jest
+    const logged: SpyInstance<typeof logger.error> = jest
       .spyOn(logger, "error")
       .mockImplementation((): void => {});
 
@@ -86,7 +86,7 @@ describe("UserLanguage.getLanguage", () => {
   });
 
   test("no person: English, without a read", async () => {
-    const read: SpiedFunction<typeof UserService.findOneById> = jest.spyOn(
+    const read: SpyInstance<typeof UserService.findOneById> = jest.spyOn(
       UserService,
       "findOneById",
     );

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import type { SpiedFunction } from "jest-mock";
+import type { SpyInstance } from "jest-mock";
 import User from "../../../Models/DatabaseModels/User";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import ObjectID from "../../../Types/ObjectID";
@@ -19,6 +19,14 @@ import UserLanguageUtil from "../../../UI/Utils/UserLanguage";
  */
 
 const USER_ID: ObjectID = new ObjectID("7c1d5e20-3b4a-4f6e-8a9b-1c2d3e4f5a01");
+
+// ModelAPI's generic methods, as jest.spyOn types a spy on them.
+type UpdateById = (
+  data: Parameters<typeof ModelAPI.updateById>[0],
+) => ReturnType<typeof ModelAPI.updateById>;
+type GetItem = (
+  data: Parameters<typeof ModelAPI.getItem>[0],
+) => ReturnType<typeof ModelAPI.getItem>;
 
 const signedIn: (isLoggedIn: boolean) => void = (isLoggedIn: boolean): void => {
   jest.spyOn(UserUtil, "isLoggedIn").mockReturnValue(isLoggedIn);
@@ -45,7 +53,7 @@ describe("UserLanguageUtil.saveSignedInUserLanguage", () => {
   test("saves the pick to the person's own account, as one of OneUptime's codes", async () => {
     signedIn(true);
 
-    const update: SpiedFunction<typeof ModelAPI.updateById> = jest
+    const update: SpyInstance<UpdateById> = jest
       .spyOn(ModelAPI, "updateById")
       .mockResolvedValue(undefined as never);
 
@@ -66,10 +74,7 @@ describe("UserLanguageUtil.saveSignedInUserLanguage", () => {
   test("a visitor who is not signed in saves nothing", async () => {
     signedIn(false);
 
-    const update: SpiedFunction<typeof ModelAPI.updateById> = jest.spyOn(
-      ModelAPI,
-      "updateById",
-    );
+    const update: SpyInstance<UpdateById> = jest.spyOn(ModelAPI, "updateById");
 
     await expect(UserLanguageUtil.saveSignedInUserLanguage("fr")).resolves.toBe(
       false,
@@ -80,10 +85,7 @@ describe("UserLanguageUtil.saveSignedInUserLanguage", () => {
   test("a language OneUptime does not write in, or none, is never sent", async () => {
     signedIn(true);
 
-    const update: SpiedFunction<typeof ModelAPI.updateById> = jest.spyOn(
-      ModelAPI,
-      "updateById",
-    );
+    const update: SpyInstance<UpdateById> = jest.spyOn(ModelAPI, "updateById");
 
     for (const language of ["xx", "klingon", "", "   "]) {
       await expect(
@@ -100,7 +102,7 @@ describe("UserLanguageUtil.saveSignedInUserLanguage", () => {
       .spyOn(ModelAPI, "updateById")
       .mockRejectedValue(new Error("Network unreachable"));
 
-    const logged: SpiedFunction<typeof Logger.error> = jest
+    const logged: SpyInstance<typeof Logger.error> = jest
       .spyOn(Logger, "error")
       .mockImplementation((): void => {});
 
@@ -125,7 +127,7 @@ describe("UserLanguageUtil.saveSignedInUserLanguage", () => {
         ),
       );
 
-    const logged: SpiedFunction<typeof Logger.error> = jest
+    const logged: SpyInstance<typeof Logger.error> = jest
       .spyOn(Logger, "error")
       .mockImplementation((): void => {});
 
@@ -142,7 +144,7 @@ describe("UserLanguageUtil.readSignedInUserLanguage", () => {
   test("reads the language of the person's own account, and nothing else", async () => {
     signedIn(true);
 
-    const read: SpiedFunction<typeof ModelAPI.getItem> = jest
+    const read: SpyInstance<GetItem> = jest
       .spyOn(ModelAPI, "getItem")
       .mockResolvedValue(userWith("ko") as never);
 
@@ -181,10 +183,7 @@ describe("UserLanguageUtil.readSignedInUserLanguage", () => {
   test("a visitor who is not signed in reads none, without a read", async () => {
     signedIn(false);
 
-    const read: SpiedFunction<typeof ModelAPI.getItem> = jest.spyOn(
-      ModelAPI,
-      "getItem",
-    );
+    const read: SpyInstance<GetItem> = jest.spyOn(ModelAPI, "getItem");
 
     await expect(UserLanguageUtil.readSignedInUserLanguage()).resolves.toBe("");
     expect(read).not.toHaveBeenCalled();
@@ -196,7 +195,7 @@ describe("UserLanguageUtil.readSignedInUserLanguage", () => {
       .spyOn(ModelAPI, "getItem")
       .mockRejectedValue(new Error("Network unreachable"));
 
-    const logged: SpiedFunction<typeof Logger.error> = jest
+    const logged: SpyInstance<typeof Logger.error> = jest
       .spyOn(Logger, "error")
       .mockImplementation((): void => {});
 
