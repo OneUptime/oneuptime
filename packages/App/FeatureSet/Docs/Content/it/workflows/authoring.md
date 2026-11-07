@@ -23,6 +23,8 @@ Ogni workflow ha esattamente un **trigger** in cima. Tutto il resto è un **comp
 
 Le modifiche vengono salvate automaticamente, un attimo dopo che le hai fatte. Una pillola nella barra degli strumenti lo segnala: **Salvataggio…** mentre la modifica è in corso, poi **Salvato**. Se una modifica non è stata salvata, la pillola mostra **Impossibile salvare**, con il motivo quando ci passi sopra con il mouse, e **Riprova** accanto. Nel frattempo le tue modifiche restano sulla tela, e la prossima modifica che fai riprova a salvare. Se lasci la pagina prima che una modifica sia salvata, ti viene chiesta prima una conferma. La tela non ha un pulsante di salvataggio né un passaggio di pubblicazione separato. Anche un errore viene salvato, quindi il Costruttore conserva ogni modifica, così puoi annullarla: vedi [Annullare, ripetere e cronologia delle versioni](#annullare-ripetere-e-cronologia-delle-versioni).
 
+Due persone possono avere aperto lo stesso flusso di lavoro. Se qualcun altro lo salva dopo che l'hai aperto, in un altro Costruttore o tramite l'API, il Costruttore non salva la tua modifica sopra la sua: la pillola mostra **Non salvata** e una finestra elenca cosa hanno modificato. **Mostra le loro modifiche** mette la loro versione sulla tela e **Annulla** riporta la tua. **Tieni la mia** salva la tua versione, e la loro resta nella cronologia delle versioni. Non si perde nulla, qualunque cosa tu scelga.
+
 ## Aggiungere blocchi
 
 | Per aggiungere         | Fai clic su                                                    | Pannello che si apre          |

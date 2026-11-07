@@ -23,6 +23,8 @@ Elke workflow heeft precies één **trigger** bovenaan. Al het andere is een **c
 
 Wijzigingen worden automatisch opgeslagen, een moment nadat je ze maakt. Een label in de werkbalk houdt het bij: **Opslaan…** terwijl de wijziging onderweg is, daarna **Opgeslagen**. Kon een wijziging niet worden opgeslagen, dan staat op het label **Kon niet opslaan**, met de reden als je de muis erboven houdt, en ernaast **Opnieuw proberen**. Je wijzigingen blijven intussen op het canvas staan, en de volgende wijziging die je maakt, probeert het opnieuw. Verlaat je de pagina voordat een wijziging is opgeslagen, dan word je eerst gevraagd of je dat zeker weet. Het canvas heeft geen opslaan-knop en geen aparte publicatiestap. Ook een vergissing wordt opgeslagen, dus de Bouwer houdt elke wijziging bij, zodat je die kunt terugdraaien: zie [Ongedaan maken, opnieuw doen en versiegeschiedenis](#ongedaan-maken-opnieuw-doen-en-versiegeschiedenis).
 
+Twee mensen kunnen dezelfde workflow open hebben. Slaat iemand anders hem op nadat jij hem opende, in een andere Bouwer of via de API, dan slaat de Bouwer jouw wijziging niet over die van hen heen op: op het label staat **Niet opgeslagen**, en een venster toont wat er is gewijzigd. **Hun wijzigingen tonen** zet hun versie op het canvas, en **Ongedaan maken** haalt de jouwe terug. **De mijne houden** slaat jouw versie op, en die van hen blijft in de versiegeschiedenis. Er gaat hoe dan ook niets verloren.
+
 ## Blokken toevoegen
 
 | Om toe te voegen       | Klik op                                                        | Paneel dat opent              |

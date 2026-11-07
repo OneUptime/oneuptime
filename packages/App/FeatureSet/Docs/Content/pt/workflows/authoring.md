@@ -23,6 +23,8 @@ Todo workflow tem exatamente um **gatilho** no topo. Todo o resto é um **compon
 
 As alterações são salvas automaticamente, um instante depois de você fazê-las. Um selo na barra de ferramentas acompanha isso: **Salvando…** enquanto a alteração está a caminho, depois **Salvo**. Se uma alteração não puder ser salva, o selo mostra **Não foi possível salvar**, com o motivo quando você passa o mouse por cima, e **Tentar novamente** ao lado. Enquanto isso, as suas alterações continuam no canvas, e a próxima alteração que você fizer tenta de novo. Se você sair da página antes de uma alteração ser salva, precisa confirmar antes. O canvas não tem botão de salvar nem uma etapa de publicação separada. Um erro também é salvo, por isso o Construtor guarda cada alteração para que você possa desfazê-la: veja [Desfazer, refazer e histórico de versões](#desfazer-refazer-e-histórico-de-versões).
 
+Duas pessoas podem ter o mesmo fluxo de trabalho aberto. Se outra pessoa o salvar depois que você o abriu, em outro Construtor ou pela API, o Construtor não salva a sua alteração por cima da dela: o selo mostra **Não salva**, e uma caixa de diálogo lista o que foi alterado. **Mostrar as alterações deles** coloca a versão deles no canvas, e **Desfazer** traz a sua de volta. **Manter a minha** salva a sua versão, e a deles continua no histórico de versões. Nada se perde, seja qual for a sua escolha.
+
 ## Adicionar blocos
 
 | Para adicionar         | Clique em                                                      | Painel que se abre            |

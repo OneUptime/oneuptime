@@ -23,6 +23,8 @@ Jeder Workflow hat genau einen **Trigger** oben. Alles andere ist eine **Kompone
 
 Änderungen werden automatisch gespeichert, einen Moment nachdem Sie sie vorgenommen haben. Eine Pille in der Werkzeugleiste zeigt es an: **Wird gespeichert…**, solange die Änderung unterwegs ist, dann **Gespeichert**. Konnte eine Änderung nicht gespeichert werden, zeigt die Pille **Konnte nicht gespeichert werden**, mit dem Grund, wenn Sie mit der Maus darüberfahren, und daneben **Erneut versuchen**. Ihre Änderungen bleiben in der Zwischenzeit auf der Arbeitsfläche, und die nächste Änderung, die Sie vornehmen, versucht es erneut. Wenn Sie die Seite verlassen, bevor eine Änderung gespeichert ist, werden Sie vorher gefragt. Die Arbeitsfläche hat keine Speichern-Schaltfläche und keinen eigenen Veröffentlichungsschritt. Auch ein Fehler wird gespeichert, deshalb merkt sich der Editor jede Änderung, sodass Sie sie zurücknehmen können: siehe [Rückgängig machen, wiederholen und Versionsverlauf](#rückgängig-machen-wiederholen-und-versionsverlauf).
 
+Zwei Personen können denselben Arbeitsablauf geöffnet haben. Speichert ihn jemand anderes, nachdem Sie ihn geöffnet haben – in einem anderen Editor oder über die API –, speichert der Editor Ihre Änderung nicht über dessen Arbeit: Die Pille zeigt **Nicht gespeichert**, und ein Dialog listet auf, was geändert wurde. **Deren Änderungen anzeigen** legt die Version der anderen Person auf die Arbeitsfläche, und **Rückgängig** holt Ihre zurück. **Meine behalten** speichert Ihre Version, und die andere bleibt im Versionsverlauf. So oder so geht nichts verloren.
+
 ## Bausteine hinzufügen
 
 | Was Sie hinzufügen  | Worauf Sie klicken                                       | Der Bereich, der sich öffnet |

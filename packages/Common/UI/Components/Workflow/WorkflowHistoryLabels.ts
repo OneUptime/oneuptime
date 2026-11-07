@@ -41,6 +41,7 @@ interface DirectionWords {
   changesTo: string;
   restoring: string;
   askAi: string;
+  theirChanges: string;
   addingMany: PluralTemplate;
   deletingMany: PluralTemplate;
   movingMany: PluralTemplate;
@@ -58,6 +59,7 @@ export const WorkflowUndoCopy: DirectionWords = {
   changesTo: translationKey("Undo changes to {{step}}"),
   restoring: translationKey("Undo restoring version {{number}}"),
   askAi: translationKey("Undo Ask AI's change"),
+  theirChanges: translationKey("Undo showing their changes"),
   addingMany: {
     one: translationKey("Undo adding {{count}} step"),
     other: translationKey("Undo adding {{count}} steps"),
@@ -87,6 +89,7 @@ export const WorkflowRedoCopy: DirectionWords = {
   changesTo: translationKey("Redo changes to {{step}}"),
   restoring: translationKey("Redo restoring version {{number}}"),
   askAi: translationKey("Redo Ask AI's change"),
+  theirChanges: translationKey("Redo showing their changes"),
   addingMany: {
     one: translationKey("Redo adding {{count}} step"),
     other: translationKey("Redo adding {{count}} steps"),
@@ -253,6 +256,10 @@ export const getWorkflowHistoryActionText: (data: {
 
   if (data.step.cause === WorkflowEditCause.AskAi) {
     return translator.translateText(words.askAi) || words.askAi;
+  }
+
+  if (data.step.cause === WorkflowEditCause.TheirChanges) {
+    return translator.translateText(words.theirChanges) || words.theirChanges;
   }
 
   const changes: Array<WorkflowGraphChange> = data.step.changes;

@@ -922,6 +922,7 @@ import { AddOnCallObserverPages1808995300000 } from "./1808995300000-AddOnCallOb
 import { AddPublicNoteApproval1808995720000 } from "./1808995720000-AddPublicNoteApproval";
 import { AddWorkflowVersions1808995761880 } from "./1808995761880-AddWorkflowVersions";
 import { AddRuleOwningTeams1808995800000 } from "./1808995800000-AddRuleOwningTeams";
+import { AddWorkflowGraphRevision1808995900000 } from "./1808995900000-AddWorkflowGraphRevision";
 
 export default [
   InitialMigration,
@@ -1848,4 +1849,5 @@ export default [
   AddPublicNoteApproval1808995720000,
   AddWorkflowVersions1808995761880,
   AddRuleOwningTeams1808995800000,
+  AddWorkflowGraphRevision1808995900000,
 ];

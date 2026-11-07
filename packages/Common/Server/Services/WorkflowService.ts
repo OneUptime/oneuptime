@@ -2,6 +2,7 @@ import { WorkflowHostname } from "../EnvironmentConfig";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import Query from "../Types/Database/Query";
 import UpdateBy from "../Types/Database/UpdateBy";
 import StandardWebhookSignature from "../Utils/Webhook/StandardWebhookSignature";
 import ProjectReferencesService from "./ProjectReferencesService";
@@ -9,7 +10,10 @@ import WorkflowLabelRuleEngineService from "./WorkflowLabelRuleEngineService";
 import WorkflowOwnerRuleEngineService from "./WorkflowOwnerRuleEngineService";
 import WorkflowVersionService from "./WorkflowVersionService";
 import EmptyResponseData from "../../Types/API/EmptyResponse";
+import PartialEntity from "../../Types/Database/PartialEntity";
+import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ConflictException from "../../Types/Exception/ConflictException";
 import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
@@ -22,6 +26,10 @@ import {
   NodeType,
 } from "../../Types/Workflow/Component";
 import ComponentID from "../../Types/Workflow/ComponentID";
+import {
+  WORKFLOW_GRAPH_REVISION_KEY,
+  readWorkflowGraphRevision,
+} from "../../Types/Workflow/WorkflowGraphRevision";
 import API from "../../Utils/API";
 import Model from "../../Models/DatabaseModels/Workflow";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -38,6 +46,21 @@ interface GraphSave {
   projectId: ObjectID;
 }
 
+/*
+ * A save of a graph held to the revision it was made to: the workflow it
+ * writes, and that revision (see holdGraphSaveToRevision).
+ */
+interface GraphSaveRevisionHold {
+  workflowId: ObjectID;
+  basedOnRevision: number;
+}
+
+/*
+ * What a write of the graph stores for graphRevision until the database
+ * counts the save in the write itself (getRowWriteSql): never stored.
+ */
+const GRAPH_REVISION_COUNTED_BY_DATABASE: number = 0;
+
 export class Service extends ProjectReferencesService<Model> {
   /*
    * The workflows each update saves a graph to, read once the update may be
@@ -48,6 +71,15 @@ export class Service extends ProjectReferencesService<Model> {
     UpdateBy<Model>,
     Array<GraphSave>
   >();
+
+  /*
+   * The saves of a graph made to a revision, once it is checked
+   * (holdGraphSaveToRevision), until the write is done (onUpdateSuccess).
+   */
+  private graphSaveRevisionHolds: WeakMap<
+    UpdateBy<Model>,
+    GraphSaveRevisionHold
+  > = new WeakMap<UpdateBy<Model>, GraphSaveRevisionHold>();
 
   public constructor() {
     super(Model);
@@ -61,6 +93,57 @@ export class Service extends ProjectReferencesService<Model> {
 
   public static readonly SIGNING_SECRET_SAVED_PROBLEM: string =
     "Webhook Signing Secret Saved follows the signing secret. Save a signing secret instead.";
+
+  public static readonly GRAPH_REVISION_WRITTEN_PROBLEM: string =
+    "Graph Revision is counted by OneUptime as the graph is saved. To save a graph only if nobody has saved one since you read the workflow, send the revision you read as miscDataProps.graphRevision with the graph.";
+
+  public static readonly GRAPH_REVISION_NOT_A_NUMBER_PROBLEM: string =
+    "miscDataProps.graphRevision is the Graph Revision you read the workflow at: a whole number, 0 or more.";
+
+  public static readonly GRAPH_REVISION_WITHOUT_GRAPH_PROBLEM: string =
+    "miscDataProps.graphRevision says which graph a save of the graph was made to: send it with the graph.";
+
+  public static readonly GRAPH_REVISION_ONE_WORKFLOW_PROBLEM: string =
+    "A graph saved against a revision is saved to one workflow at a time.";
+
+  public static readonly GRAPH_CHANGED_WHILE_SAVING_PROBLEM: string =
+    "The workflow changed while its graph was being saved, so this save was not made. Save it again.";
+
+  /*
+   * Why a save made to an older graph was refused, for whoever sent it: the
+   * builder says it in its own words, and an API client reads this.
+   */
+  public static getStaleGraphRevisionProblem(data: {
+    basedOnRevision: number;
+    currentRevision: number;
+  }): string {
+    return `Someone else saved this workflow's graph after you read it, so this save was not made: it was made to revision ${data.basedOnRevision}, and the workflow is at revision ${data.currentRevision} now. Read the workflow again and make your change to its graph, or save without miscDataProps.graphRevision to replace what they saved.`;
+  }
+
+  /*
+   * The revision a save of the graph names (miscDataProps.graphRevision), or
+   * null when it names none and is made over whatever the workflow holds.
+   */
+  public static readBasedOnGraphRevision(
+    miscDataProps: JSONObject | undefined,
+  ): number | null {
+    const revision: number | null | undefined = readWorkflowGraphRevision(
+      miscDataProps?.[WORKFLOW_GRAPH_REVISION_KEY],
+    );
+
+    if (revision === undefined) {
+      throw new BadDataException(Service.GRAPH_REVISION_NOT_A_NUMBER_PROBLEM);
+    }
+
+    return revision;
+  }
+
+  // A workflow's revision as read: a whole number, 0 for a row without one.
+  private static readStoredGraphRevision(value: unknown): number {
+    const revision: number = typeof value === "number" ? value : Number(value);
+
+    return Number.isFinite(revision) ? revision : 0;
+  }
 
   /*
    * A pasted webhook signing secret, trimmed, or null for none at all. A
@@ -118,6 +201,9 @@ export class Service extends ProjectReferencesService<Model> {
     // Only the secret decides this, never the request.
     delete data.isWebhookSigningSecretSet;
 
+    // Counted by the server as the graph is saved, never sent.
+    delete data.graphRevision;
+
     return { createBy: createBy, carryForward: null };
   }
 
@@ -167,6 +253,17 @@ export class Service extends ProjectReferencesService<Model> {
     // Only the secret decides this, never the request.
     delete data["isWebhookSigningSecretSet"];
 
+    /*
+     * Counted by the server as the graph is saved, never sent: a client that
+     * writes back the workflow it read, revision and all, saves the rest.
+     */
+    const sentGraphRevision: boolean = Object.prototype.hasOwnProperty.call(
+      data,
+      "graphRevision",
+    );
+
+    delete data["graphRevision"];
+
     let signingSecretSaved: boolean = false;
 
     if (sentSecret) {
@@ -183,12 +280,29 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     // Left with nothing to write: say what was meant, not "no values".
-    if ((sentSecret || sentSecretSaved) && Object.keys(data).length === 0) {
+    if (
+      (sentSecret || sentSecretSaved || sentGraphRevision) &&
+      Object.keys(data).length === 0
+    ) {
       throw new BadDataException(
         sentSecret
           ? Service.EMPTY_SIGNING_SECRET_PROBLEM
-          : Service.SIGNING_SECRET_SAVED_PROBLEM,
+          : sentSecretSaved
+            ? Service.SIGNING_SECRET_SAVED_PROBLEM
+            : Service.GRAPH_REVISION_WRITTEN_PROBLEM,
       );
+    }
+
+    /*
+     * A revision to save against says which graph a save of the graph was
+     * made to (holdGraphSaveToRevision): asked of anything else, it would
+     * guard nothing, and whoever sent it would think it did.
+     */
+    if (
+      Service.readBasedOnGraphRevision(updateBy.miscDataProps) !== null &&
+      data["graph"] === undefined
+    ) {
+      throw new BadDataException(Service.GRAPH_REVISION_WITHOUT_GRAPH_PROBLEM);
     }
 
     const carryForward: WorkflowUpdateCarryForward = {
@@ -219,7 +333,141 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (data["graph"] !== undefined) {
       await this.noteGraphSaves(updateBy);
+
+      /*
+       * One more save of the graph, counted by the database in the write
+       * itself (getRowWriteSql): two saves landing together count two.
+       */
+      data["graphRevision"] = GRAPH_REVISION_COUNTED_BY_DATABASE;
     }
+  }
+
+  /*
+   * A save of the graph is one more on the revision, worked out by the
+   * database in the row's own write - from the revision the row holds then,
+   * under its lock - and never from a read made before it, which a save
+   * landing in between would make stale.
+   */
+  protected override getRowWriteSql(
+    data: PartialEntity<Model>,
+  ): Dictionary<string> {
+    const sql: Dictionary<string> = { ...super.getRowWriteSql(data) };
+    const written: Record<string, unknown> = data as Record<string, unknown>;
+
+    if (
+      written["graph"] !== undefined &&
+      written["graphRevision"] !== undefined
+    ) {
+      sql["graphRevision"] = `"graphRevision" + 1`;
+    }
+
+    return sql;
+  }
+
+  /*
+   * A save made to the graph at `basedOnRevision` (miscDataProps.graphRevision,
+   * issue #6257), held to it. Refused at once when the workflow is at another
+   * revision - someone else saved a newer graph since it was read - so it
+   * never replaces their change unseen. Otherwise the write names the row's
+   * version as it was just read, which the UPDATE asks again
+   * (DatabaseService: "a query that names the row's version is a
+   * compare-and-set"): a save landing between this check and the write makes
+   * the write reach no row, and onUpdateSuccess refuses it then.
+   */
+  private holdGraphSaveToRevision(data: {
+    updateBy: UpdateBy<Model>;
+    rows: Array<Model>;
+    basedOnRevision: number;
+  }): void {
+    if (data.rows.length > 1) {
+      throw new BadDataException(Service.GRAPH_REVISION_ONE_WORKFLOW_PROBLEM);
+    }
+
+    const row: Model | undefined = data.rows[0];
+
+    // The update writes no workflow: there is nothing to hold.
+    if (!row || !row.id) {
+      return;
+    }
+
+    const currentRevision: number = Service.readStoredGraphRevision(
+      row.graphRevision,
+    );
+
+    if (currentRevision !== data.basedOnRevision) {
+      throw new ConflictException(
+        Service.getStaleGraphRevisionProblem({
+          basedOnRevision: data.basedOnRevision,
+          currentRevision: currentRevision,
+        }),
+      );
+    }
+
+    if (typeof row.version === "number") {
+      data.updateBy.query = {
+        ...data.updateBy.query,
+        version: row.version,
+      } as Query<Model>;
+    }
+
+    this.graphSaveRevisionHolds.set(data.updateBy, {
+      workflowId: row.id,
+      basedOnRevision: data.basedOnRevision,
+    });
+  }
+
+  /*
+   * A save held to a revision that reached no row: the workflow was written
+   * between the check and the write - by another save of its graph, or by
+   * anything else, which moves its version too. Refused, so the sender reads
+   * the workflow again and decides; a workflow deleted meanwhile is answered
+   * as a missing one, as any update of a row that is gone.
+   */
+  private async refuseGraphSaveThatMissedItsRow(data: {
+    updateBy: UpdateBy<Model>;
+    updatedItemIds: Array<ObjectID>;
+  }): Promise<void> {
+    const hold: GraphSaveRevisionHold | undefined =
+      this.graphSaveRevisionHolds.get(data.updateBy);
+
+    if (!hold) {
+      return;
+    }
+
+    this.graphSaveRevisionHolds.delete(data.updateBy);
+
+    const isWritten: boolean = data.updatedItemIds.some(
+      (id: ObjectID): boolean => {
+        return id.toString() === hold.workflowId.toString();
+      },
+    );
+
+    if (isWritten) {
+      return;
+    }
+
+    const workflow: Model | null = await this.findOneById({
+      id: hold.workflowId,
+      select: { graphRevision: true },
+      props: { isRoot: true },
+    });
+
+    if (!workflow) {
+      return;
+    }
+
+    const currentRevision: number = Service.readStoredGraphRevision(
+      workflow.graphRevision,
+    );
+
+    throw new ConflictException(
+      currentRevision === hold.basedOnRevision
+        ? Service.GRAPH_CHANGED_WHILE_SAVING_PROBLEM
+        : Service.getStaleGraphRevisionProblem({
+            basedOnRevision: hold.basedOnRevision,
+            currentRevision: currentRevision,
+          }),
+    );
   }
 
   /*
@@ -235,8 +483,26 @@ export class Service extends ProjectReferencesService<Model> {
       {
         _id: true,
         projectId: true,
+        graphRevision: true,
+        version: true,
       },
     );
+
+    /*
+     * A save made to a revision is checked first: refused, it saves nothing,
+     * not even the first version below.
+     */
+    const basedOnRevision: number | null = Service.readBasedOnGraphRevision(
+      updateBy.miscDataProps,
+    );
+
+    if (basedOnRevision !== null) {
+      this.holdGraphSaveToRevision({
+        updateBy: updateBy,
+        rows: rows,
+        basedOnRevision: basedOnRevision,
+      });
+    }
 
     const saves: Array<GraphSave> = [];
 
@@ -446,6 +712,12 @@ export class Service extends ProjectReferencesService<Model> {
 
     const carryForward: WorkflowUpdateCarryForward | null =
       (onUpdate.carryForward as WorkflowUpdateCarryForward | null) || null;
+
+    // A save held to a revision that did not land is refused before anything else.
+    await this.refuseGraphSaveThatMissedItsRow({
+      updateBy: onUpdate.updateBy,
+      updatedItemIds: updatedItemIds,
+    });
 
     /*
      * Version history: what this save did to each workflow's versions. First,
