@@ -9,6 +9,11 @@ import Tabs from "Common/UI/Components/Tabs/Tabs";
 import Navigation from "Common/UI/Utils/Navigation";
 import AlertOnCallRule from "Common/Models/DatabaseModels/AlertOnCallRule";
 import AlertEpisodeOnCallRule from "Common/Models/DatabaseModels/AlertEpisodeOnCallRule";
+import AlertOnCallRuleOwningTeam from "Common/Models/DatabaseModels/AlertOnCallRuleOwningTeam";
+import AlertEpisodeOnCallRuleOwningTeam from "Common/Models/DatabaseModels/AlertEpisodeOnCallRuleOwningTeam";
+import useRuleOwningTeams, {
+  RuleOwningTeamsTable,
+} from "../../../Components/TeamOwnedRule/RuleOwningTeams";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -46,6 +51,10 @@ When a rule matches, each of its on-call policies pages its people for the alert
 ### Several Matching Rules
 
 Every rule that matches runs: there is no order and no first match. Their policies are added to any added by hand, and each policy runs once.
+
+### Rules That Belong to Teams
+
+Under More fields, **Owning Teams** keeps a rule to the teams you pick: only their members, with those teams' permissions, and project admins can edit or delete it. Everyone else who can see rules still sees it, read-only. A rule with no owning teams can be changed by everyone who can edit rules.
 `;
 
 const alertEpisodeOnCallDocumentation: string = `
@@ -63,9 +72,20 @@ When a rule matches, each of its on-call policies pages its people for the episo
 `;
 
 const AlertRulesTable: FunctionComponent = (): ReactElement => {
+  // Who owns each rule: its column, its form field and its row locks.
+  const owningTeams: RuleOwningTeamsTable<AlertOnCallRule> =
+    useRuleOwningTeams<AlertOnCallRule>({
+      ruleModelType: AlertOnCallRule,
+      owningTeamModelType: AlertOnCallRuleOwningTeam,
+    });
+
   return (
     <ModelTable<AlertOnCallRule>
       modelType={AlertOnCallRule}
+      onFetchSuccess={owningTeams.onRulesFetched}
+      getEditDisabledReason={owningTeams.getEditDisabledReason}
+      getDeleteDisabledReason={owningTeams.getDeleteDisabledReason}
+      onEditFormItemFetched={owningTeams.onEditFormItemFetched}
       // Enable or Disable in each row's ⋯ menu: the one that changes the row.
       rowSwitch={{ column: "isEnabled" }}
       id="alert-on-call-rules-table"
@@ -134,6 +154,7 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
             return <Pill color={Red} text="Disabled" />;
           },
         },
+        owningTeams.owningTeamsColumn,
       ]}
       viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={getOnCallRuleFormSteps<AlertOnCallRule>()}
@@ -240,9 +261,20 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
 };
 
 const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
+  // Who owns each rule: its column, its form field and its row locks.
+  const owningTeams: RuleOwningTeamsTable<AlertEpisodeOnCallRule> =
+    useRuleOwningTeams<AlertEpisodeOnCallRule>({
+      ruleModelType: AlertEpisodeOnCallRule,
+      owningTeamModelType: AlertEpisodeOnCallRuleOwningTeam,
+    });
+
   return (
     <ModelTable<AlertEpisodeOnCallRule>
       modelType={AlertEpisodeOnCallRule}
+      onFetchSuccess={owningTeams.onRulesFetched}
+      getEditDisabledReason={owningTeams.getEditDisabledReason}
+      getDeleteDisabledReason={owningTeams.getDeleteDisabledReason}
+      onEditFormItemFetched={owningTeams.onEditFormItemFetched}
       // Enable or Disable in each row's ⋯ menu: the one that changes the row.
       rowSwitch={{ column: "isEnabled" }}
       id="alert-episode-on-call-rules-table"
@@ -308,6 +340,7 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
             );
           },
         },
+        owningTeams.owningTeamsColumn,
       ]}
       viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={getOnCallRuleFormSteps<AlertEpisodeOnCallRule>()}

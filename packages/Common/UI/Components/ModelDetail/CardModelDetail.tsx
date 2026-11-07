@@ -69,6 +69,14 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * out a monitor status when no monitor is left to put in it.
    */
   onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
+  /*
+   * The record the Edit form fetched, before the form opens on it - for a
+   * form with a field that is no column of the record (ModelForm's
+   * onItemFetched): a rule's owning teams.
+   */
+  onEditFormItemFetched?:
+    | ((item: TBaseModel) => Promise<TBaseModel>)
+    | undefined;
   className?: string | undefined;
   name: string;
   modelAPI?: typeof ModelAPI | undefined;
@@ -360,6 +368,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
             ...(props.ruleCriteriaSubject
               ? { ruleCriteriaSubject: props.ruleCriteriaSubject }
               : {}),
+            onItemFetched: props.onEditFormItemFetched,
           }}
           /*
            * Prefer the id the caller already handed us. Deriving it purely

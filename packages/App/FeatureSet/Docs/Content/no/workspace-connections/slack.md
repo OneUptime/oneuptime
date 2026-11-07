@@ -103,6 +103,8 @@ En kanal holder seg lesbar: hver begivenhet publiseres én gang, og postens før
 
 **Prosjektinnstillinger** > **Arbeidsområde** > **Slack** viser kanalene OneUptime kan se, med **Send test** ved siden av hver. OneUptime blir selv med i en offentlig kanal første gang den publiserer der. En privat kanal vises, og kan motta publiseringer, først etter at OneUptime-appen er invitert inn i den i Slack.
 
+En varslingsregel kan tilhøre team. **Ansvarlige team** under **Flere felt** forbeholder den teamene du velger: bare medlemmene deres og prosjektadministratorer kan redigere eller slette den, og alle andre som ser reglene, ser den skrivebeskyttet. Se [Regler som tilhører team](/docs/permissions/index#regler-som-tilhører-team).
+
 ## Hvem som er i kanalen til en post
 
 En hendelse, et varsel, en episode eller en planlagt vedlikeholdshendelse med sin egen Slack-kanal har kortet **Slack-kanal** på siden sin i OneUptime. Kortet viser kanalen, som en lenke som åpner den i Slack, om den er privat, og hvem som er i den, deg først. Fra kortet, uten en Slack-administrator:

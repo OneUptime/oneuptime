@@ -464,11 +464,12 @@ describe.each(ON_CALL_CASES)("$name", (page: OnCallCase) => {
     expect(nameBox()).toBeVisible();
     expect(nameBox()).toHaveValue("");
     /*
-     * The description and when to page wait folded; a new rule starts on.
-     * A rule that pages right away adds nothing to the folded line.
+     * The description, when to page and the teams that alone may change the
+     * rule wait folded; a new rule starts on. A rule that pages right away
+     * adds nothing to the folded line.
      */
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
-    expect(listedNames(moreFields())).toEqual(["Description"]);
+    expect(listedNames(moreFields())).toEqual(["Description", "Owning Teams"]);
     expect(
       within(dialog()).queryByRole("switch", { name: /Enabled/ }),
     ).toBeNull();

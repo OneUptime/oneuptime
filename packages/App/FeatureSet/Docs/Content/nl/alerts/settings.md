@@ -93,6 +93,8 @@ Een regel roept op zodra een waarschuwing erop past. Om de regel in plaats daarv
 
 Een regel roept de mensen van zijn beleid op om te reageren: wie de oproep bevestigt, bevestigt de waarschuwing. Om een team op de hoogte te houden terwijl een ander reageert, beantwoord je **De mensen van dit beleid oproepen als** onder **Meer velden** met **Waarnemers**. Hun oproep zegt dat ze waarnemers zijn, en wie hem bevestigt, zegt daarmee alleen dat hij hem heeft gezien: de waarschuwing wordt niet bevestigd en geen andere oproep stopt. Hun oproep loopt door tot een van hen antwoordt of de waarschuwing is opgelost, en in de lijst zegt de regel onder zijn naam dat hij als waarnemers oproept. Beleid dat de ene passende regel oproept om te reageren en een andere als waarnemers, roept op om te reageren.
 
+Een regel kan bij teams horen. **Verantwoordelijke teams**, onder **Meer velden**, beperkt hem tot de teams die u kiest: alleen hun leden en projectbeheerders kunnen hem bewerken of verwijderen, en alle anderen die regels zien, zien hem alleen-lezen. Een regel die bij geen enkel team hoort, kan worden gewijzigd door iedereen die bereikbaarheidsregels mag bewerken, en ook episoderegels kunnen bij teams horen. Zie [Regels die bij teams horen](/docs/permissions/index#regels-die-bij-teams-horen).
+
 ## Incidentregels
 
 **Waarschuwingen → Regels → Incidentregels** maakt vanzelf incidenten van waarschuwingen. De eerste regel die bij een nieuwe waarschuwing past, van boven naar beneden in de lijst, meldt er een incident uit, zoals **Incident melden** op de pagina van de waarschuwing zou doen, en koppelt de waarschuwing eraan.

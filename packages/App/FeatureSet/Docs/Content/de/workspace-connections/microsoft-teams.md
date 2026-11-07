@@ -115,6 +115,8 @@ Kanäle und Chats bleiben lesbar: Jedes Ereignis wird einmal gepostet, und der e
 
 **Projekteinstellungen** > **Arbeitsbereich** > **Microsoft Teams** listet die Kanäle, die OneUptime in Ihren Teams sieht, und die Chats, denen es hinzugefügt wurde, mit **Test senden** neben jedem. Ein Chat erscheint, sobald die OneUptime-App ihm in Microsoft Teams hinzugefügt wurde; **Chats aktualisieren** holt neue Chats und ihre aktuellen Namen.
 
+Eine Benachrichtigungsregel kann Teams gehören. **Zuständige Teams** unter **Weitere Felder** beschränkt sie auf die Teams, die Sie auswählen: Nur deren Mitglieder und Projektadministratoren können sie bearbeiten oder löschen, alle anderen, die die Regeln sehen, sehen sie schreibgeschützt. Siehe [Regeln, die Teams gehören](/docs/permissions/index#regeln-die-teams-gehören).
+
 ## Eine Regel testen
 
 **Regel testen** in der Zeile einer Regel postet eine Testnachricht für diese Regel in die Kanäle, die sie nennt, damit Sie sie ankommen sehen. Legt die Regel für jedes Ereignis einen Kanal an, legt auch der Test einen an und lädt die Personen der Regel ein.

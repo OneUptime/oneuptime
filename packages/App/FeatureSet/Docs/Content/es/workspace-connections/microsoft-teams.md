@@ -115,6 +115,8 @@ Los canales y chats siguen siendo legibles: cada evento se publica una vez, y el
 
 **Ajustes del proyecto** > **Espacio de trabajo** > **Microsoft Teams** lista los canales que OneUptime ve en tus equipos, y los chats a los que se ha añadido, con **Enviar prueba** junto a cada uno. Un chat aparece en cuanto se añade a él la app de OneUptime en Microsoft Teams; **Actualizar chats** recoge los chats nuevos y sus nombres actuales.
 
+Una regla de notificación puede pertenecer a equipos. **Equipos responsables**, en **Más campos**, la reserva a los equipos que elija: solo sus miembros y los administradores del proyecto pueden editarla o eliminarla, y todos los demás que ven las reglas la ven en modo de solo lectura. Consulte [Reglas que pertenecen a equipos](/docs/permissions/index#reglas-que-pertenecen-a-equipos).
+
 ## Probar una regla
 
 **Probar regla** en la fila de una regla publica un mensaje de prueba de esa regla en los canales que nombra, para que lo veas llegar. Si la regla crea un canal para cada evento, la prueba también crea uno e invita a las personas de la regla.

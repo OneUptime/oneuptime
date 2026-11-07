@@ -223,6 +223,7 @@ const RuleTable: <TBaseModel extends BaseModel>(
         ruleCriteriaSubject={props.ruleCriteriaSubject}
         ruleRunNouns={ruleRunNouns}
         ruleWording={ruleWording}
+        onEditFormItemFetched={props.onEditFormItemFetched}
       />
     );
   }

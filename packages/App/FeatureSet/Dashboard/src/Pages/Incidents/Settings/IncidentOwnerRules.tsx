@@ -5,6 +5,7 @@ import {
   getCreatorTeamOwnerRuleActionFields,
   getOwnerRuleActionFields,
   getOwnerRuleFormSteps,
+  getOwnerRuleOwningTeamsFields,
 } from "../../../Utils/Form/ResourceRuleForm";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -17,6 +18,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
 import IncidentEpisodeOwnerRule from "Common/Models/DatabaseModels/IncidentEpisodeOwnerRule";
+import IncidentOwnerRuleOwningTeam from "Common/Models/DatabaseModels/IncidentOwnerRuleOwningTeam";
+import useRuleOwningTeams, {
+  RuleOwningTeamsTable,
+} from "../../../Components/TeamOwnedRule/RuleOwningTeams";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -53,6 +58,10 @@ Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (def
 ### When the Severity or Labels Change
 
 Rules run when an incident is declared, and again whenever its severity or labels change while it is open. Raised to a severity a rule matches, or labelled org-wide, the incident gets that rule's owners then - how an oversight team takes over an incident that grows. Owners are never removed when it stops matching.
+
+### Rules That Belong to Teams
+
+Under More fields, **Owning Teams** keeps a rule to the teams you pick: only their members, with those teams' permissions, and project admins can edit or delete it. It says who may change the rule, not who it adds to incidents. A rule with no owning teams can be changed by everyone who can edit rules.
 `;
 
 const incidentEpisodeOwnerDocumentation: string = `
@@ -74,9 +83,23 @@ interface RulesTableProps {
 const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
   props: RulesTableProps,
 ): ReactElement => {
+  /*
+   * Who owns each rule - who alone may change it, not the owners it adds to
+   * incidents: its column, its form field and its row locks.
+   */
+  const owningTeams: RuleOwningTeamsTable<IncidentOwnerRule> =
+    useRuleOwningTeams<IncidentOwnerRule>({
+      ruleModelType: IncidentOwnerRule,
+      owningTeamModelType: IncidentOwnerRuleOwningTeam,
+    });
+
   return (
     <RuleTable<IncidentOwnerRule>
       modelType={IncidentOwnerRule}
+      onFetchSuccess={owningTeams.onRulesFetched}
+      getEditDisabledReason={owningTeams.getEditDisabledReason}
+      getDeleteDisabledReason={owningTeams.getDeleteDisabledReason}
+      onEditFormItemFetched={owningTeams.onEditFormItemFetched}
       viewRuleId={props.viewRuleId}
       listRoute={RuleViewPageUtil.getListRoute(
         PageMap.INCIDENTS_SETTINGS_OWNER_RULES,
@@ -137,6 +160,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
             );
           },
         },
+        owningTeams.owningTeamsColumn,
       ]}
       formSteps={getOwnerRuleFormSteps<IncidentOwnerRule>()}
       formFields={[
@@ -234,6 +258,9 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
           placeholder: "production|critical",
         },
         ...getCreatorTeamOwnerRuleActionFields<IncidentOwnerRule>("incident"),
+        ...getOwnerRuleOwningTeamsFields<IncidentOwnerRule>(
+          IncidentOwnerRuleOwningTeam,
+        ),
       ]}
       showRefreshButton={true}
     />
