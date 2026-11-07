@@ -1114,8 +1114,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                     {};
                   const defaultShowAdvancedFilters: boolean =
                     Object.keys(configuredAttributes).length > 0 ||
-                    MetricQueryServices.getServiceIds(queryConfig).length >
-                      0 ||
+                    MetricQueryServices.getServiceIds(queryConfig).length > 0 ||
                     (queryConfig.metricQueryData?.groupByAttributeKeys || [])
                       .length > 0;
 

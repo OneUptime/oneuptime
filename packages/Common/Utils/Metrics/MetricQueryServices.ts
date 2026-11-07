@@ -111,6 +111,40 @@ export default class MetricQueryServices {
   }
 
   /*
+   * The services these queries read for, all together, and the queries
+   * without them: what a Metrics monitor made from them keeps on its step
+   * (MonitorStepMetricMonitor.telemetryServiceIds), since its worker reads
+   * every query for the step's services, never a query's own. Queries that
+   * name other services each are read for all of them: no narrower than any
+   * query asked for.
+   */
+  public static takeServiceIds(queryConfigs: Array<MetricQueryConfigData>): {
+    queryConfigs: Array<MetricQueryConfigData>;
+    serviceIds: Array<string>;
+  } {
+    const serviceIds: Array<string> = [];
+
+    for (const queryConfig of queryConfigs) {
+      for (const serviceId of MetricQueryServices.getServiceIds(queryConfig)) {
+        if (!serviceIds.includes(serviceId)) {
+          serviceIds.push(serviceId);
+        }
+      }
+    }
+
+    return {
+      queryConfigs: queryConfigs.map(
+        (queryConfig: MetricQueryConfigData): MetricQueryConfigData => {
+          return queryConfig && typeof queryConfig === "object"
+            ? MetricQueryServices.withServiceIds(queryConfig, [])
+            : queryConfig;
+        },
+      ),
+      serviceIds: serviceIds,
+    };
+  }
+
+  /*
    * What the metric store reads the query's rows with for its services: the
    * rows' service among them, or nothing when it reads for every service -
    * as the Metrics monitor's worker reads it.
