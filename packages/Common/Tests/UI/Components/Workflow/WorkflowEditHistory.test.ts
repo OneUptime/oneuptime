@@ -188,6 +188,28 @@ describe("recording what the canvas shows", () => {
     expect(canRedoWorkflowEdit(reported)).toBe(true);
   });
 
+  test("a delete the canvas reports in two steps - the card, then its connections - is one step", () => {
+    const connected: SavedWorkflowGraph = saved(
+      [MANUAL, LOG],
+      [{ from: MANUAL.key, to: LOG.key }],
+    );
+    let history: WorkflowEditHistory = startWorkflowEditHistory({
+      graph: connected,
+      now: 0,
+    });
+
+    history = recordWorkflowEdit(history, {
+      graph: { nodes: saved([MANUAL]).nodes, edges: connected.edges },
+      now: 10,
+    });
+    history = recordWorkflowEdit(history, { graph: saved([MANUAL]), now: 11 });
+
+    expect(history.entries).toHaveLength(2);
+    expect(shownKey(undoWorkflowEdit(history))).toBe(
+      getWorkflowGraphKey(connected),
+    );
+  });
+
   test("keeps the last edits, as many as the limit, and drops the oldest", () => {
     let history: WorkflowEditHistory = start();
 

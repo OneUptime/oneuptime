@@ -280,6 +280,23 @@ describe("getWorkflowGraphKey", () => {
     expect(new Set<string>(keys).size).toBe(keys.length);
   });
 
+  test("a connection to a card that is not there is no part of it: a delete reported in two steps is one change", () => {
+    const withLog: { nodes: Array<JSONObject>; edges: Array<JSONObject> } =
+      graphOf([MANUAL, LOG], [{ from: MANUAL.key, to: LOG.key }]);
+    // The card gone, its connection not yet.
+    const cardGone: { nodes: Array<JSONObject>; edges: Array<JSONObject> } = {
+      nodes: graphOf([MANUAL]).nodes,
+      edges: withLog.edges,
+    };
+
+    expect(getWorkflowGraphKey(cardGone)).toEqual(
+      getWorkflowGraphKey(graphOf([MANUAL])),
+    );
+    expect(getWorkflowGraphKey(withLog)).not.toEqual(
+      getWorkflowGraphKey(cardGone),
+    );
+  });
+
   test("ignoring positions, a moved card reads the same", () => {
     const moved: { nodes: Array<JSONObject>; edges: Array<JSONObject> } =
       graphOf([MANUAL, { ...LOG, x: 640, y: 640 }]);

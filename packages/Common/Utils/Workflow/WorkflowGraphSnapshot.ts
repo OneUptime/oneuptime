@@ -232,10 +232,32 @@ const keyedCards: (
     });
 };
 
-const keyedConnections: (graphObject: JSONObject | null) => Array<string> = (
+/*
+ * The connections between cards, by their ends. A connection to a card that
+ * is not there draws nothing and runs nothing (WorkflowGraphChanges says the
+ * same), so it is no part of the key: a delete the canvas reports in two
+ * steps - the card, then its connections - is one change, not two.
+ */
+const keyedConnections: (
   graphObject: JSONObject | null,
+  cards: Array<KeyedCard>,
+) => Array<string> = (
+  graphObject: JSONObject | null,
+  cards: Array<KeyedCard>,
 ): Array<string> => {
+  const cardIds: Set<string> = new Set<string>(
+    cards.map((card: KeyedCard): string => {
+      return card.id;
+    }),
+  );
+
   return listOf(graphObject?.["edges"])
+    .filter((edge: JSONObject): boolean => {
+      return (
+        cardIds.has(asText(edge["source"])) &&
+        cardIds.has(asText(edge["target"]))
+      );
+    })
     .map((edge: JSONObject): string => {
       return stableStringify({
         source: asText(edge["source"]),
@@ -262,10 +284,14 @@ export const getWorkflowGraphKey: (
   options?: { ignorePositions?: boolean | undefined } | undefined,
 ): string => {
   const graphObject: JSONObject | null = readGraphObject(graph);
+  const cards: Array<KeyedCard> = keyedCards(
+    graphObject,
+    !options?.ignorePositions,
+  );
 
   return stableStringify({
-    nodes: keyedCards(graphObject, !options?.ignorePositions),
-    edges: keyedConnections(graphObject),
+    nodes: cards,
+    edges: keyedConnections(graphObject, cards),
   });
 };
 
