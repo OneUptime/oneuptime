@@ -23,6 +23,7 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The "AI agent" card at the bottom of a resource's Overview: three rows —
@@ -184,7 +185,7 @@ const AiAgentStatusSummaryCard: FunctionComponent<ComponentProps> = (
                   (part: ReactElement, index: number): ReactElement => {
                     return (
                       <Fragment key={`connection-detail-${index}`}>
-                        {index > 0 ? " · " : ""}
+                        {index > 0 ? <InlineSeparator /> : null}
                         {part}
                       </Fragment>
                     );

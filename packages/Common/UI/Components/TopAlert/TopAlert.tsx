@@ -1,3 +1,6 @@
+import readAsWritten from "../IsolatedText/ReadAsWritten";
+import useTranslator from "../../Utils/UseTranslator";
+import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -18,6 +21,7 @@ const TopAlert: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString, translateValue } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const translatedTitle: string = translateString(props.title) ?? props.title;
   const translatedDescription: string | ReactElement =
     (translateValue(props.description) as string | ReactElement | undefined) ??
@@ -34,7 +38,8 @@ const TopAlert: FunctionComponent<ComponentProps> = (
         <div className="w-full">
           <strong className="font-semibold">{translatedTitle}</strong>
           &nbsp;-&nbsp;
-          {translatedDescription} &nbsp;&nbsp;
+          {readAsWritten(translatedDescription, translator.language)}{" "}
+          &nbsp;&nbsp;
           {/** Uncomment the follwing line if you need a button on top alert */}
           {/* <a
                         href="#"

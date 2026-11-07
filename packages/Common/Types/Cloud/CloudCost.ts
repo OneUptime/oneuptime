@@ -1,4 +1,8 @@
 import { translationKey } from "../Translator";
+import {
+  CloudCommitmentSummary,
+  readCloudCommitmentSummary,
+} from "./CloudCommitments";
 
 /*
  * WHAT A CLOUD ACCOUNT COSTS, AND HOW TO SPEND LESS.
@@ -89,9 +93,38 @@ export interface CloudAccountCostSummary {
    * a budget alerts on before the month adds it up.
    */
   anomalies?: Array<CloudCostAnomaly> | undefined;
+  /*
+   * The tags its costs carry, by what the costs that carry each one cost
+   * over the last 30 days, the most first (at most
+   * CLOUD_COST_SUMMARY_TAG_KEYS): what Costs offers to break the spend down
+   * by.
+   */
+  tagKeys?: Array<CloudCostTagKey> | undefined;
+  /*
+   * AWS, for a connection that reads costs per resource (its Costs per
+   * resource setting): whether Cost Explorer's resource-level data could be
+   * read, and why not. Absent where the cloud bills every resource by name
+   * anyway, or the setting is off.
+   */
+  resources?: CloudResourceCostsStatus | undefined;
   // When the costs were last read.
   readAt: string;
 }
+
+// A tag the costs carry, and what the costs that carry it cost.
+export interface CloudCostTagKey {
+  key: string;
+  amount: number;
+}
+
+// Whether an account's resource-level costs could be read, and why not.
+export interface CloudResourceCostsStatus {
+  state: CloudCostState;
+  message?: string | undefined;
+}
+
+// At most this many tags are kept on an account's summary.
+export const CLOUD_COST_SUMMARY_TAG_KEYS: number = 25;
 
 /*
  * A day that cost far more than usual: a service's, or - with no service -
@@ -365,6 +398,101 @@ export function summarizeCloudAccountCosts(data: {
 }
 
 /*
+ * ---------------------------------------------------------------------------
+ * Tags
+ * ---------------------------------------------------------------------------
+ *
+ * A cost keeps the tags of what it is for (CloudCost.tags): a Google Cloud
+ * billing export's labels, else the tags OneUptime holds for the resource
+ * it is billed to. Costs breaks the spend down by any of them. A cost's
+ * tags are the ones it had when it was last read: a day read again after a
+ * resource is tagged takes the new tags.
+ */
+
+// The most tags a cost keeps, and how long a key and a value may be.
+export const CLOUD_COST_MAX_TAGS: number = 50;
+export const CLOUD_COST_TAG_KEY_MAX_LENGTH: number = 128;
+export const CLOUD_COST_TAG_VALUE_MAX_LENGTH: number = 256;
+
+/*
+ * A cost's tags as they are kept: keys and values as text, trimmed and cut
+ * to their lengths, empty keys left out, the keys in order (so one set of
+ * tags is always written the same way, and its costs are one series), and
+ * the first CLOUD_COST_MAX_TAGS of them.
+ */
+export function normalizeCloudCostTags(
+  tags: Record<string, unknown> | null | undefined,
+): Record<string, string> {
+  if (!tags || typeof tags !== "object" || Array.isArray(tags)) {
+    return {};
+  }
+
+  const entries: Array<[string, string]> = [];
+
+  for (const [rawKey, rawValue] of Object.entries(tags)) {
+    const key: string = String(rawKey)
+      .trim()
+      .slice(0, CLOUD_COST_TAG_KEY_MAX_LENGTH);
+
+    if (!key) {
+      continue;
+    }
+
+    const value: string =
+      rawValue === null || rawValue === undefined
+        ? ""
+        : String(rawValue).trim().slice(0, CLOUD_COST_TAG_VALUE_MAX_LENGTH);
+
+    entries.push([key, value]);
+  }
+
+  entries.sort((a: [string, string], b: [string, string]): number => {
+    return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;
+  });
+
+  const normalized: Record<string, string> = {};
+
+  for (const [key, value] of entries.slice(0, CLOUD_COST_MAX_TAGS)) {
+    normalized[key] = value;
+  }
+
+  return normalized;
+}
+
+// One set of tags as text, for telling two series apart: the same set is the same text.
+export function getCloudCostTagsKey(tags: Record<string, string>): string {
+  return JSON.stringify(Object.entries(normalizeCloudCostTags(tags)));
+}
+
+/*
+ * The tags the costs of a window carry, by what the costs that carry each
+ * cost, the most first - the first CLOUD_COST_SUMMARY_TAG_KEYS.
+ */
+export function summarizeCloudCostTagKeys(
+  points: Array<{ tags?: Record<string, string> | undefined; amount: number }>,
+): Array<CloudCostTagKey> {
+  const totals: Map<string, number> = new Map();
+
+  for (const point of points) {
+    for (const key of Object.keys(point.tags || {})) {
+      totals.set(key, (totals.get(key) || 0) + point.amount);
+    }
+  }
+
+  return Array.from(totals.entries())
+    .filter(([, amount]: [string, number]): boolean => {
+      return amount > 0;
+    })
+    .sort((a: [string, number], b: [string, number]): number => {
+      return b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+    })
+    .slice(0, CLOUD_COST_SUMMARY_TAG_KEYS)
+    .map(([key, amount]: [string, number]): CloudCostTagKey => {
+      return { key, amount: roundCost(amount) };
+    });
+}
+
+/*
  * How a resource's costs are kept apart, from its id in its cloud: an
  * Azure ARM id in lower case (Cost Management writes ids in lower case and
  * Resource Graph does not - ARM ids are not case sensitive), any other id
@@ -458,7 +586,60 @@ export function readCloudAccountCostSummary(
             return anomaly as CloudCostAnomaly;
           })
       : undefined,
+    tagKeys: readCloudCostTagKeys(record["tagKeys"]),
+    resources: readCloudResourceCostsStatus(record["resources"]),
     readAt: typeof record["readAt"] === "string" ? record["readAt"] : "",
+  };
+}
+
+// A summary's tags, read back: the well-formed ones, as they were kept.
+function readCloudCostTagKeys(
+  value: unknown,
+): Array<CloudCostTagKey> | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const tagKeys: Array<CloudCostTagKey> = [];
+
+  for (const entry of value as Array<unknown>) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      continue;
+    }
+
+    const record: Record<string, unknown> = entry as Record<string, unknown>;
+
+    if (typeof record["key"] !== "string" || !record["key"]) {
+      continue;
+    }
+
+    tagKeys.push({ key: record["key"], amount: readNumber(record["amount"]) });
+  }
+
+  return tagKeys;
+}
+
+function readCloudResourceCostsStatus(
+  value: unknown,
+): CloudResourceCostsStatus | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const record: Record<string, unknown> = value as Record<string, unknown>;
+
+  if (
+    !Object.values(CloudCostState).includes(record["state"] as CloudCostState)
+  ) {
+    return undefined;
+  }
+
+  return {
+    state: record["state"] as CloudCostState,
+    message:
+      typeof record["message"] === "string" && record["message"]
+        ? record["message"]
+        : undefined,
   };
 }
 
@@ -700,6 +881,12 @@ export interface CloudAccountSavingsSummary {
   // The same by what they ask: rightsize, stop or delete, commit...
   byKind: Partial<Record<CloudSavingKind, CloudSavingsKindTotal>>;
   currency: string;
+  /*
+   * How much of the spend its commitments cover and how much of them is
+   * used, over the last 30 full days (CloudCommitments) - read with the
+   * ways to spend less, once a day.
+   */
+  commitments?: CloudCommitmentSummary | undefined;
   // When they were last read.
   readAt: string;
 }
@@ -822,8 +1009,24 @@ export function readCloudAccountSavingsSummary(
       typeof record["currency"] === "string" && record["currency"]
         ? record["currency"]
         : CLOUD_COST_DEFAULT_CURRENCY,
+    commitments: readCommitments(record["commitments"]),
     readAt: typeof record["readAt"] === "string" ? record["readAt"] : "",
   };
+}
+
+// The commitments kept on a savings summary, read back: in one of the states.
+function readCommitments(value: unknown): CloudCommitmentSummary | undefined {
+  const summary: CloudCommitmentSummary | null =
+    readCloudCommitmentSummary(value);
+
+  if (
+    !summary ||
+    !Object.values(CloudCostState).includes(summary.state as CloudCostState)
+  ) {
+    return undefined;
+  }
+
+  return summary;
 }
 
 /*

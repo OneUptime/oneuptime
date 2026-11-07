@@ -54,7 +54,7 @@ flowchart TB
 :::steps
 ### Skapa pipelinen
 
-Gå till **Loggar → Inställningar → Pipelines** och klicka på **Skapa Logg Pipeline**. Ge den ett **Namn**, till exempel *Tolka brandväggsloggar*, och skapa den. Pipelinens sida öppnas.
+Gå till **Loggar → Inställningar → Pipelines** och klicka på **Skapa Loggpipeline**. Ge den ett **Namn**, till exempel *Tolka brandväggsloggar*, och skapa den. Pipelinens sida öppnas.
 
 ### Välj vilka loggar den gäller
 

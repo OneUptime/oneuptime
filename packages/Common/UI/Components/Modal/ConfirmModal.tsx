@@ -1,3 +1,6 @@
+import readAsWritten from "../IsolatedText/ReadAsWritten";
+import useTranslator from "../../Utils/UseTranslator";
+import { Translator } from "../../Utils/TranslateTemplate";
 import { ButtonStyleType } from "../Button/Button";
 import Modal, { ModalSecondaryButton } from "./Modal";
 import useTranslateValue from "../../Utils/Translation";
@@ -57,6 +60,7 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateValue } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const translatedDescription: string | ReactElement | undefined =
     translateValue(props.description);
 
@@ -99,7 +103,7 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
           data-testid="confirm-modal-description"
           className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-600"
         >
-          {translatedDescription}
+          {readAsWritten(translatedDescription, translator.language)}
         </div>
         {props.children ? <div className="mt-4">{props.children}</div> : <></>}
       </div>

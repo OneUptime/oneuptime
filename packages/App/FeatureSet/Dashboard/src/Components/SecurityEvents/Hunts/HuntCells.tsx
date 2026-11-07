@@ -35,6 +35,7 @@ import { getListSeparator } from "Common/UI/Utils/ListSeparator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface HuntCellProps {
   hunt: SecurityHunt;
@@ -173,7 +174,11 @@ export const HuntFoldedFacts: FunctionComponent<HuntCellProps> = (
     hunt.schedule || SecurityHuntSchedule.NotScheduled;
   const label: string = SCHEDULE_LABELS[schedule] || schedule;
   const state: HuntRunState = getHuntRunState(hunt);
-  const separator: ReactElement = <span aria-hidden="true">·</span>;
+  const separator: ReactElement = (
+    <span aria-hidden="true">
+      <InlineSeparator markOnly />
+    </span>
+  );
 
   let found: ReactElement = <></>;
 

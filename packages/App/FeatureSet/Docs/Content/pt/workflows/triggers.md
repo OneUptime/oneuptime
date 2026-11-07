@@ -202,8 +202,8 @@ Para testar um gatilho de evento sem esperar o evento, clique em **Executar flux
 | **Incidente**                             | Reagir quando um incidente é declarado, atualizado (reconhecido, resolvido) ou excluído.  |
 | **Alerta**                                | Os mesmos três eventos, para alertas.                                                     |
 | **Monitor**                               | Reagir quando um monitor é adicionado, editado ou removido.                               |
-| **Agendado Manutenção Evento**            | Anunciar automaticamente uma janela de manutenção quando ela é agendada.                  |
-| **Página de status Assinante**            | Dar as boas-vindas a quem assina uma página de status.                                    |
+| **Evento de manutenção programada**            | Anunciar automaticamente uma janela de manutenção quando ela é agendada.                  |
+| **Assinante da página de status**            | Dar as boas-vindas a quem assina uma página de status.                                    |
 | **Política de plantão**                   | Sincronizar as mudanças da política com outro sistema de escalas.                         |
 
 No painel **Adicionar gatilho**, eles ficam em **Recursos do OneUptime**: clique no recurso e depois no gatilho. **Navegar por todos os recursos** tem todos, e a caixa de busca encontra um gatilho a partir de algumas palavras, como `incident created`.

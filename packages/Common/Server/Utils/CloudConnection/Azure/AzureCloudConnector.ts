@@ -74,10 +74,12 @@ import {
   readAzureAdvisor,
   readAzureCosts,
 } from "./AzureCosts";
+import { readAzureCommitments } from "./AzureCommitments";
 import {
   CloudCostState,
   getCloudCostResourceKey,
 } from "../../../../Types/Cloud/CloudCost";
+import { CloudCommitmentSummary } from "../../../../Types/Cloud/CloudCommitments";
 import AzureArm, {
   AzureMetricDefinition,
   AzureMetricSeries,
@@ -1027,7 +1029,12 @@ export default class AzureCloudConnector implements CloudConnector {
     }
   }
 
-  // The ways to spend less in each subscription, from Azure Advisor (AzureCosts).
+  /*
+   * The ways to spend less in each subscription, from Azure Advisor
+   * (AzureCosts), and how much of its spend its reservations and savings
+   * plans cover and how much of them is used, from Cost Management
+   * (AzureCommitments).
+   */
   public async readSavings(
     settings: CloudConnectionSettings,
     options: CloudSavingsOptions,
@@ -1114,6 +1121,41 @@ export default class AzureCloudConnector implements CloudConnector {
           });
           result.warnings.push(described.message);
           result.complete = false;
+        },
+      );
+
+      // Cost Management is quick to throttle: two subscriptions at a time.
+      const now: Date = options.now ? options.now() : new Date();
+      const commitments: Array<Settled<CloudCommitmentSummary>> =
+        await mapWithConcurrency(
+          subscriptionIds,
+          2,
+          async (subscriptionId: string): Promise<CloudCommitmentSummary> => {
+            return await readAzureCommitments({ arm, subscriptionId, now });
+          },
+        );
+
+      result.commitments = [];
+
+      commitments.forEach(
+        (outcome: Settled<CloudCommitmentSummary>, index: number): void => {
+          if (!outcome.ok) {
+            const failure: unknown = explainExpiredAzureSecret(outcome.error);
+
+            if (
+              failure instanceof LlmProviderError &&
+              failure.kind === CloudConnectionFailureKind.Authentication
+            ) {
+              throw failure;
+            }
+
+            return;
+          }
+
+          result.commitments!.push({
+            accountId: subscriptionIds[index]!,
+            summary: outcome.value,
+          });
         },
       );
 

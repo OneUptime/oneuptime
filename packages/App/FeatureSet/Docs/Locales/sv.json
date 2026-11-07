@@ -407,6 +407,8 @@
     "Cloud Troubleshooting": "Felsökning i molnet",
     "Connect a Cloud Account": "Anslut ett molnkonto",
     "Stream CloudWatch Metrics and Logs": "Strömma CloudWatch-mätvärden och -loggar",
+    "Stream Azure Monitor Metrics and Logs": "Strömma Azure Monitor-mätvärden och -loggar",
+    "Stream Google Cloud Logs": "Strömma Google Cloud-loggar",
     "Cloud Costs and Savings": "Molnkostnader och besparingar",
     "Cloud Resources (IaaS & PaaS)": "Molnresurser (IaaS och PaaS)",
     "AI / LLM Observability": "AI- / LLM-observerbarhet",

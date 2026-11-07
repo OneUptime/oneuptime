@@ -482,6 +482,9 @@ jobs:
           # taken this group to 22.7; group 17, where it was going, took Ceph
           # Pages and Storage Array Pages (19.9) first, so Trace Detail (2.5)
           # moved to group 1 instead: about 20.2.
+          # Host Collectors (1.2) joined it from group 8 on 2026-11-06, when
+          # the Azure and Google Cloud streaming tests grew Cloud Connect:
+          # about 21.4.
           - group: 3
             monitor_overview_shard: 1/2
             suites: >-
@@ -490,6 +493,7 @@ jobs:
               test-label-rule-transfer-ui
               test-meraki-traffic-ui
               test-security-events-empty-states-ui
+              test-host-collectors-ui
           # The Workflow Builder suite on its own: it sat in group 2 near the
           # job's 30 minutes, and its On Create or Update spec would take that
           # group past them. Its two projects, a laptop and a phone, are both
@@ -967,13 +971,23 @@ jobs:
           # on a runner), and the Cloud AI agent's own key 3 more the same day
           # (5 runs, about 0.3): the suite 10.2, the group 22.6, so Public
           # Addresses (1.2, Chromium only) moved to group 12: 21.4.
+          # Streaming an Azure subscription and a Google Cloud project added
+          # 12 tests to Cloud Connect the same day (23 runs on its desktop and
+          # phone: both dialogs, the list with every cloud streaming, Stop
+          # streaming for each, the Logs tabs, dark German and Persian; about
+          # 1.9 minutes on a runner): the suite 12.1, the group 23.3, so Host
+          # Collectors (1.2) moved to group 3 and VMware Host Page (1.4) to
+          # group 14: 20.7. Azure's write identity added 1 test the same day
+          # (a desktop's only, about 0.1): the suite 12.2, the group 20.8.
+          # What Azure published about its health, in German and in Persian,
+          # added 1 test to Cloud Connect the same day (4 runs on its desktop
+          # and phone, about 4 seconds each locally; about 0.3 minutes on a
+          # runner): the suite 12.5, the group 21.1.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
               test-dashboard-widget-sort-ui
               test-cloud-connect-ui
-              test-host-collectors-ui
-              test-vmware-host-page-ui
               test-docker-swarm-pages-ui
               test-container-host-pages-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
@@ -1116,11 +1130,17 @@ jobs:
           # suites and tests each time: its half of Event Overview took 13.3,
           # 17.4 and 21.3 minutes, on runners slower than the runs before. Data
           # Security moved on to group 13: about 15 to 24.5.
+          # Dashboard Templates (2.5) moved on to group 20 on 2026-11-06, when
+          # #5715's follow-ups grew this half of Event Overview by about 0.3
+          # minutes (the impact's short numbers on the folded investigation,
+          # the marks after citation chips and record pills on phones in
+          # English, German and Persian, and the fixes of a member who may not
+          # act on them, with no buttons):
+          # 22.2 here, past the budget, to 19.7.
           - group: 10
             event_overview_shard: 2/2
             suites: >-
               test-event-overview-ui
-              test-dashboard-templates-ui
           # Security Operations on its own, Chromium only, from 2026-10-25. In
           # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
           # 03:08 that day, and the group took 26.1 and 26.7 minutes on the
@@ -1188,6 +1208,8 @@ jobs:
           # Security Operations gained two tests on 2026-11-06 (#6025: the
           # Russian case queue's titles and assignees whole at a 1280 and a
           # 1216 laptop, about 6 seconds locally): 21.0.
+          # And one more the same day (#6158: a case's Story and Impact in
+          # German and in Persian, six pages, about 14 seconds locally): 21.3.
           - group: 11
             suites: >-
               test-security-operations-ui
@@ -1303,7 +1325,6 @@ jobs:
               test-llm-connect-ui
               test-bulk-actions-ui
               test-status-page-search-ui
-              test-reading-direction-ui
               test-accounts-theme-ui
               test-data-security-ui
           # Added on 2026-10-29, when group 3's run step reached its 28 minutes
@@ -1363,6 +1384,9 @@ jobs:
           # LLM Provider Test (2.6 and 2.7 minutes on the last two runs) moved
           # on to the new group 17 the same day: about 19.5 to 21, with room
           # for the resource pages' suites to grow.
+          # VMware Host Page (1.4) joined VMware Pages here from group 8 on
+          # 2026-11-06, when the Azure and Google Cloud streaming tests grew
+          # Cloud Connect: about 21.6.
           - group: 14
             suites: >-
               test-list-delete-ui
@@ -1373,6 +1397,7 @@ jobs:
               test-custom-field-files-ui
               test-proxmox-pages-ui
               test-vmware-pages-ui
+              test-vmware-host-page-ui
           # A group of its own since 2026-11-01, as no group had the room: the
           # second half of Model Tables (88 tests, 6.9 minutes locally) and
           # Metrics AI (3.0 on 14.0.100's first gate run) from group 4, whose
@@ -1504,20 +1529,44 @@ jobs:
           # 390 pixels, dark, German and Persian. Two groups of their own, because
           # the product's pages are still joining it and it outgrew one on
           # 2026-11-05: no group had the room for it.
+          # AI Insights (1.1 minutes locally with its bundle, Chromium only:
+          # the incidents' and the alerts' AI Insights pages - the Fixes
+          # section's bar, its verification line and where fixes were approved
+          # - at 1280 and 390 pixels, light and dark, German and Persian, with
+          # nothing investigated, fixes hidden, Enable AI off and a read that
+          # fails) joined the first OpenStack half on 2026-11-06, the group
+          # with the most room: about 12.8.
           # Global Runners (2.2) joined this one from group 4 on 2026-11-06,
-          # when Model Tables grew there (#6025): about 13.8.
+          # when Model Tables grew there (#6025): about 15.0 with AI Insights.
           - group: 19
             openstack_pages_shard: 1/2
             suites: >-
               test-openstack-pages-ui
+              test-ai-insights-ui
               test-global-runners-ui
+          # Dashboard Templates (2.5) from group 10 on 2026-11-06, the group with
+          # the most room, when Event Overview's second half grew past that
+          # group's budget: about 14.1.
           # Host Pages (1.6) joined this one from group 15 the same day, when
-          # Model Tables' second half and Metrics AI grew there: about 13.2.
+          # Model Tables' second half and Metrics AI grew there: about 15.7
+          # with Dashboard Templates.
+          # Reading Direction joined it from group 13, at the line (22.0), the
+          # same day, when fu-rtl-next gave it 13 tests (a calendar read right
+          # to left - its days' names in a narrow and a wide month and a
+          # phone's week, the current-time dot, the lines between days and the
+          # blocks' stripes - and a canvas's zoom buttons in three languages,
+          # about 40 seconds locally): its 4.4 minutes planned as 5.0, this
+          # group about 20.7 and group 13 about 17.6. Its UI review added 5
+          # more the same day (two blocks at once in a Persian and an English
+          # week, and a chart's time axis in three languages, about 18
+          # seconds locally): planned as 5.3, this group about 21.0.
           - group: 20
             openstack_pages_shard: 2/2
             suites: >-
               test-openstack-pages-ui
+              test-dashboard-templates-ui
               test-host-pages-ui
+              test-reading-direction-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -1752,6 +1801,8 @@ jobs:
             output/playwright/cloud-recommendations-ui/test-results
             output/playwright/cloud-spend-ui/*.png
             output/playwright/cloud-spend-ui/test-results
+            output/playwright/ai-insights-ui/*.png
+            output/playwright/ai-insights-ui/test-results
             output/playwright/host-collectors-ui/*.png
             output/playwright/host-collectors-ui/test-results
             output/playwright/resource-onboarding-ui/*.png

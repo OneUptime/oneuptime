@@ -195,7 +195,17 @@ async function listRegion(data: {
           complete = complete && listing.complete;
         }
       } else {
-        const listing: AwsCloudControlListing = await list(type.type);
+        const listing: AwsCloudControlListing = type.lister
+          ? await type.lister({
+              transport: data.options.transport,
+              credentials: data.credentials,
+              region: data.region,
+              now: data.options.now,
+              timeoutInMs: data.options.requestTimeoutInMs,
+              sleep: data.options.sleep,
+              budget: data.budget,
+            })
+          : await list(type.type);
         listed = listing.resources;
         complete = listing.complete;
       }
@@ -238,7 +248,11 @@ async function listRegion(data: {
       }
 
       if (isRefused(error)) {
-        outcome.refusedTypes.push(type.type);
+        // A role set up before the type was listed: no warning, nothing archived.
+        if (!type.quietWhenRefused) {
+          outcome.refusedTypes.push(type.type);
+        }
+
         continue;
       }
 

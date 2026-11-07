@@ -108,7 +108,7 @@ Trascinate su un grafico per ingrandire un momento, e fate doppio clic per torna
 
 ## Informazioni sulle metriche
 
-La scheda **Informazioni** conta le metriche di un intervallo di tempo: **Metriche attive**, **Servizi di reportistica** e la media per servizio. Raggruppa le metriche in categorie ed elenca i servizi che le riportano.
+La scheda **Informazioni** conta le metriche di un intervallo di tempo: **Metriche attive**, **Servizi che inviano dati** e la media per servizio. Raggruppa le metriche in categorie ed elenca i servizi che le riportano.
 
 ## Migliorare le metriche e aggiungere quelle mancanti con l'IA
 

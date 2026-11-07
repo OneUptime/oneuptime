@@ -24,6 +24,7 @@ import {
   formatLlmDuration,
   truncateLlmText,
 } from "./LlmConversationFormat";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * One conversation in the list: what the person first asked, who asked it,
@@ -164,7 +165,7 @@ const LlmConversationRow: FunctionComponent<ComponentProps> = (
                 <React.Fragment key={fact.key}>
                   {index > 0 ? (
                     <span className="text-gray-300" aria-hidden="true">
-                      ·
+                      <InlineSeparator markOnly />
                     </span>
                   ) : (
                     <></>

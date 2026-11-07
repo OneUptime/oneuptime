@@ -25,6 +25,7 @@ import {
   PROJECT_BALANCE_CARD_DESCRIPTIONS,
   RECHARGE_BALANCE_LOCKED_TEMPLATE,
 } from "./ProjectBalanceCopy";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * Whether the signed-in person may add to one of the project's prepaid
@@ -225,13 +226,13 @@ export const getRechargeBalanceLockedReason: (
   const words: Translator = translator || getGlobalTranslator();
 
   return words.translateTemplate(RECHARGE_BALANCE_LOCKED_TEMPLATE, {
-    permissions: PermissionGate.getPermissionTitles([
-      ...PROJECT_BALANCE_RECHARGE_PERMISSIONS,
-    ])
-      .map((title: string): string => {
+    permissions: joinList(
+      PermissionGate.getPermissionTitles([
+        ...PROJECT_BALANCE_RECHARGE_PERMISSIONS,
+      ]).map((title: string): string => {
         return words.translateText(title) || title;
-      })
-      .join(", "),
+      }),
+    ),
   });
 };
 

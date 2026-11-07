@@ -72,6 +72,7 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * On-Call > Readiness.
@@ -395,7 +396,7 @@ const describeSetupReminderReport: (report: SetupReminderReport) => string = (
     return translateTemplate("No reminders were sent.");
   }
 
-  return `${parts.join(", ")}.`;
+  return `${joinList(parts)}.`;
 };
 
 /*

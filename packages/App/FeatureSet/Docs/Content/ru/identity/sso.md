@@ -36,8 +36,8 @@ OneUptime читает из утверждения, которое присыл�
 | --- | --- |
 | Подпись | Проверяет её по полю **Публичный сертификат** поставщика. Ответ должен быть подписан и не должен быть зашифрован. |
 | Issuer | Должен в точности совпадать с полем **Издатель** поставщика. |
-| Audience | Это должен быть **Identifier (Entity ID)** поставщика. Ответ, который ваш IdP создал для другого приложения, отклоняется. |
-| Recipient и Destination | Это должен быть **Reply URL** поставщика — адрес, на который был отправлен ответ. |
+| Audience | Это должен быть **Идентификатор (Entity ID)** поставщика. Ответ, который ваш IdP создал для другого приложения, отклоняется. |
+| Recipient и Destination | Это должен быть **URL ответа** поставщика — адрес, на который был отправлен ответ. |
 | `NotBefore` и `NotOnOrAfter` | Ответ принимается, только пока они это позволяют, и не позже чем через 10 минут после выдачи, с запасом в 3 минуты для часов, которые расходятся. |
 | Name ID | Адрес электронной почты человека. Это должен быть действительный адрес электронной почты. |
 | Атрибуты имени | Имя человека, которое используется, когда OneUptime создаёт его аккаунт: отображаемое имя (`displayName` или `http://schemas.microsoft.com/identity/claims/displayname`) либо имя и фамилия (`firstName` и `lastName` или утверждения `givenname` и `surname`, которые Microsoft Entra ID отправляет по умолчанию). Необязательно. |
@@ -73,9 +73,9 @@ OneUptime читает из утверждения, которое присыл�
    - Всё остальное уже заполнено в разделе **Дополнительные поля**: **Метод подписи** (`RSA-SHA256`), **Метод дайджеста** (`SHA256`) и описание ("Sign in with" и имя). Меняйте их, только если этого требует ваш поставщик удостоверений
 
 3. **Получите метаданные SSO из OneUptime**
-   - После сохранения открывается диалог **SSO Configuration**. Его можно открыть снова кнопкой **Просмотреть конфигурацию SSO**
-   - Скопируйте **Identifier (Entity ID)**, например `https://oneuptime.com/<project-id>/<provider-id>` — он нужен в конфигурации вашего IdP
-   - Скопируйте **Reply URL (Assertion Consumer Service URL)**, например `https://oneuptime.com/identity/idp-login/<project-id>/<provider-id>` — он нужен в конфигурации вашего IdP
+   - После сохранения открывается диалог **Конфигурация SSO**. Его можно открыть снова кнопкой **Просмотреть конфигурацию SSO**
+   - Скопируйте **Идентификатор (Entity ID)**, например `https://oneuptime.com/<project-id>/<provider-id>` — он нужен в конфигурации вашего IdP
+   - Скопируйте **URL ответа (URL службы получения утверждений)**, например `https://oneuptime.com/identity/idp-login/<project-id>/<provider-id>` — он нужен в конфигурации вашего IdP
    - Новый поставщик создаётся выключенным. Когда эти два значения будут у вашего IdP, отредактируйте поставщика и включите **Включено**
 
 4. **Проверьте поставщика**
@@ -85,7 +85,7 @@ OneUptime читает из утверждения, которое присыл�
 
 ## Руководства для поставщиков удостоверений
 
-Выберите своего поставщика удостоверений. Каждое руководство получает значения IdP, создаёт поставщика в OneUptime, а затем передаёт IdP **Identifier (Entity ID)** и **Reply URL** из OneUptime.
+Выберите своего поставщика удостоверений. Каждое руководство получает значения IdP, создаёт поставщика в OneUptime, а затем передаёт IdP **Идентификатор (Entity ID)** и **URL ответа** из OneUptime.
 
 :::tabs
 @tab Keycloak
@@ -114,15 +114,15 @@ Keycloak — популярное решение с открытым исход�
    - **Публичный сертификат**: сертификат между его собственными строками `BEGIN CERTIFICATE` и `END CERTIFICATE`
    - **Метод подписи** и **Метод дайджеста**: уже заданы в разделе **Дополнительные поля** (`RSA-SHA256` и `SHA256`)
 
-   Сохраните и скопируйте **Identifier (Entity ID)** и **Reply URL (Assertion Consumer Service URL)** из открывшегося диалога.
+   Сохраните и скопируйте **Идентификатор (Entity ID)** и **URL ответа (URL службы получения утверждений)** из открывшегося диалога.
 
 3. **Создайте клиент Keycloak**
 
    В Keycloak откройте **Clients** в своём realm и создайте клиент или отредактируйте существующий:
    - **Client Protocol** (тип клиента): `saml`
-   - **Client ID**: **Identifier (Entity ID)** из OneUptime
+   - **Client ID**: **Идентификатор (Entity ID)** из OneUptime
    - **Root URL** и **Valid Redirect URIs**: ваш URL OneUptime
-   - **Assertion Consumer Service POST Binding URL**: **Reply URL (Assertion Consumer Service URL)** из OneUptime
+   - **Assertion Consumer Service POST Binding URL**: **URL ответа (URL службы получения утверждений)** из OneUptime
 
 4. **Настройте параметры клиента**
 
@@ -159,13 +159,13 @@ Microsoft Entra ID (ранее Azure AD / Active Directory) — облачная
    - **Публичный сертификат**: сертификат Base64 вместе со строками `BEGIN CERTIFICATE` и `END CERTIFICATE`
    - **Метод подписи** и **Метод дайджеста**: уже заданы в разделе **Дополнительные поля** (`RSA-SHA256` и `SHA256`)
 
-   Сохраните и скопируйте **Identifier (Entity ID)** и **Reply URL (Assertion Consumer Service URL)** из открывшегося диалога.
+   Сохраните и скопируйте **Идентификатор (Entity ID)** и **URL ответа (URL службы получения утверждений)** из открывшегося диалога.
 
 4. **Передайте Entra ID URL из OneUptime**
 
    В разделе **Basic SAML Configuration** нажмите **Edit** и задайте:
-   - **Identifier (Entity ID)**: **Identifier (Entity ID)** из OneUptime
-   - **Reply URL (Assertion Consumer Service URL)**: **Reply URL** из OneUptime
+   - **Identifier (Entity ID)**: **Идентификатор (Entity ID)** из OneUptime
+   - **Reply URL (Assertion Consumer Service URL)**: **URL ответа** из OneUptime
 
    Нажмите **Save**.
 
@@ -211,18 +211,18 @@ Okta — широко используемая платформа удостов
    - **Публичный сертификат**: сертификат вместе со строками `BEGIN CERTIFICATE` и `END CERTIFICATE`
    - **Метод подписи** и **Метод дайджеста**: уже заданы в разделе **Дополнительные поля** (`RSA-SHA256` и `SHA256`)
 
-   Сохраните и скопируйте **Identifier (Entity ID)** и **Reply URL (Assertion Consumer Service URL)** из открывшегося диалога.
+   Сохраните и скопируйте **Идентификатор (Entity ID)** и **URL ответа (URL службы получения утверждений)** из открывшегося диалога.
 
 4. **Передайте Okta URL из OneUptime**
 
    Для приложения из Okta Integration Network на вкладке **General** нажмите **Edit** в разделе **App Settings** и задайте:
-   - **OneUptime Project ID** и **OneUptime SSO Provider ID**: два идентификатора, входящие в **Identifier (Entity ID)** из OneUptime, `https://oneuptime.com/<project-id>/<provider-id>`
+   - **OneUptime Project ID** и **OneUptime SSO Provider ID**: два идентификатора, входящие в **Идентификатор (Entity ID)** из OneUptime, `https://oneuptime.com/<project-id>/<provider-id>`
 
    Нажмите **Save** и убедитесь, что на вкладке **Sign On** параметр **Application username format** равен `Email`.
 
    Для собственного приложения на вкладке **General** нажмите **Edit** в разделе **SAML Settings**, затем **Next** и задайте:
-   - **Single sign-on URL**: **Reply URL (Assertion Consumer Service URL)** из OneUptime
-   - **Audience URI (SP Entity ID)**: **Identifier (Entity ID)** из OneUptime
+   - **Single sign-on URL**: **URL ответа (URL службы получения утверждений)** из OneUptime
+   - **Audience URI (SP Entity ID)**: **Идентификатор (Entity ID)** из OneUptime
 
    При желании добавьте attribute statements `firstName` со значением `user.firstName` и `lastName` со значением `user.lastName`, чтобы новые аккаунты получали имя человека. Нажмите **Next**, затем **Finish**.
 
@@ -239,7 +239,7 @@ SSO в OneUptime использует SAML 2.0 и работает с любым
 
 :::steps
 1. Получите у своего поставщика удостоверений **URL входа** (его конечную точку SSO), **Издатель** (его Entity ID) и **Публичный сертификат** (его сертификат подписи X.509). Если ваш IdP показывает их только после создания приложения, создайте приложение, указав адрес своего OneUptime в качестве временных URL.
-2. Создайте в OneUptime поставщика с этими значениями и скопируйте **Identifier (Entity ID)** и **Reply URL (Assertion Consumer Service URL)** из диалога **SSO Configuration** (или через **Просмотреть конфигурацию SSO**).
+2. Создайте в OneUptime поставщика с этими значениями и скопируйте **Идентификатор (Entity ID)** и **URL ответа (URL службы получения утверждений)** из диалога **Конфигурация SSO** (или через **Просмотреть конфигурацию SSO**).
 3. В приложении SAML вашего поставщика удостоверений задайте **Assertion Consumer Service URL / Reply URL** и **Entity ID / Audience URI** равными значениям из OneUptime, а **Name ID Format** — адресу электронной почты.
 4. **Метод подписи** (`RSA-SHA256`) и **Метод дайджеста** (`SHA256`) уже заданы в разделе **Дополнительные поля**; меняйте их, только если ваш поставщик удостоверений подписывает иначе
 5. Включите **Включено** у поставщика и проверьте его по ссылке в карточке **Test Single Sign On (SSO)**.
@@ -255,7 +255,7 @@ SSO в OneUptime использует SAML 2.0 и работает с любым
 2. В OneUptime перейдите в **Настройки проекта** > **Безопасность** > **SSO**. Под поставщиками SAML нажмите **Добавить поставщика OIDC**.
 3. Введите **Имя** (его видят люди на странице входа), **URL издателя**, **Client ID** и **Client Secret**. Вместо этого в **URL издателя** можно вставить URL обнаружения поставщика.
 4. На шаге **Вход** поле **Команды** изначально содержит команду участников вашего проекта: те, кто входит впервые, попадают в эти команды. Всё остальное уже заполнено в разделе **Дополнительные поля**: **URL обнаружения** (издатель, за которым следует `/.well-known/openid-configuration`), **Области** (`openid email profile`), имена утверждений `email` и `name` и описание ("Sign in with" и имя). Меняйте их, только если этого требует ваш поставщик. Принимаются только команды, в которые вы сами могли бы кого-то пригласить: команда, дающая больше доступа, чем есть у вас, указывается под полем **Команды**.
-5. Сохраните. Откроется диалог **OIDC Configuration** с **Redirect URI**: добавьте его в разрешённые URI перенаправления вашего приложения. Новый поставщик создаётся выключенным, поэтому затем отредактируйте его и включите **Включено**.
+5. Сохраните. Откроется диалог **Конфигурация OIDC** с **Redirect URI**: добавьте его в разрешённые URI перенаправления вашего приложения. Новый поставщик создаётся выключенным, поэтому затем отредактируйте его и включите **Включено**.
 6. Прежде чем требовать SSO для проекта, откройте ссылку в карточке **Test Single Sign On (SSO)** и выберите поставщика, чтобы войти через него.
 :::
 
@@ -342,11 +342,11 @@ OneUptime не переносит роли или группы из вашего
 :::
 
 :::details "SAML Audience does not match"
-Audience ответа — не **Identifier (Entity ID)** этого поставщика: ваш IdP создал ответ для другого приложения. В вашем IdP задайте entity ID приложения равным **Identifier (Entity ID)** из **Просмотреть конфигурацию SSO** — **Client ID** в Keycloak, **Identifier (Entity ID)** в Entra ID, **Audience URI (SP Entity ID)** в Okta. IdP, настроенный только с адресом OneUptime в качестве entity ID, например `https://oneuptime.com`, продолжает работать.
+Audience ответа — не **Идентификатор (Entity ID)** этого поставщика: ваш IdP создал ответ для другого приложения. В вашем IdP задайте entity ID приложения равным **Идентификатор (Entity ID)** из **Просмотреть конфигурацию SSO** — **Client ID** в Keycloak, **Identifier (Entity ID)** в Entra ID, **Audience URI (SP Entity ID)** в Okta. IdP, настроенный только с адресом OneUptime в качестве entity ID, например `https://oneuptime.com`, продолжает работать.
 :::
 
 :::details "SAML Recipient does not match"
-Recipient ответа — не **Reply URL** этого поставщика: ответ был отправлен для другого адреса. В вашем IdP задайте reply URL приложения равным **Reply URL (Assertion Consumer Service URL)** из **Просмотреть конфигурацию SSO** — **Assertion Consumer Service POST Binding URL** в Keycloak, **Reply URL (Assertion Consumer Service URL)** в Entra ID, **Single sign-on URL** в Okta. У "SAML Destination does not match" та же причина и то же решение.
+Recipient ответа — не **URL ответа** этого поставщика: ответ был отправлен для другого адреса. В вашем IdP задайте reply URL приложения равным **URL ответа (URL службы получения утверждений)** из **Просмотреть конфигурацию SSO** — **Assertion Consumer Service POST Binding URL** в Keycloak, **Reply URL (Assertion Consumer Service URL)** в Entra ID, **Single sign-on URL** в Okta. У "SAML Destination does not match" та же причина и то же решение.
 :::
 
 :::details "SAML response has expired"
@@ -378,7 +378,7 @@ OneUptime читает адрес электронной почты из Name ID
 :::
 
 :::details Okta: 404 или несовпадение audience
-**Single sign-on URL** в Okta должен в точности совпадать с **Reply URL** из OneUptime, а **Audience URI** — с **Identifier (Entity ID)** из OneUptime. Убедитесь, что оба заменили временные значения.
+**Single sign-on URL** в Okta должен в точности совпадать с **URL ответа** из OneUptime, а **Audience URI** — с **Идентификатор (Entity ID)** из OneUptime. Убедитесь, что оба заменили временные значения.
 :::
 
 :::details Пользователь не назначен приложению

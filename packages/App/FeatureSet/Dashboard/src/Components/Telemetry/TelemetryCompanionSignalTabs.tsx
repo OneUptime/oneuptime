@@ -8,6 +8,12 @@ import React, {
   useState,
 } from "react";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
@@ -77,12 +83,12 @@ export interface ComponentProps {
    */
   isSnapshotZoomed?: boolean | undefined;
   /*
-   * What the tabs' copy calls the window they show, when the host picks it
-   * rather than the monitor: an incident's metric investigation hands the
-   * tabs the time range picked on it ("the selected time range"). Left out,
-   * the snapshot window, or its zoomed part.
+   * What the window the tabs show is, when the host picks it rather than
+   * the monitor: an incident's metric investigation hands the tabs the
+   * time range picked on it ("selected"). Left out, the snapshot window, or
+   * its zoomed part (see getCompanionWindow).
    */
-  windowName?: string | undefined;
+  companionWindow?: CompanionWindow | undefined;
   // Shared with the page's own preview cards (may be undefined — no window).
   snapshotWindowAlert?: ReactElement | undefined;
   /*
@@ -105,15 +111,244 @@ const TAB_LABELS: Dictionary<string> = {
   [TelemetryType.Exception]: "Exceptions",
 };
 
-type GetWindowNameFunction = (isSnapshotZoomed: boolean | undefined) => string;
+/*
+ * The window a companion card shows: the snapshot's whole window, or the
+ * part of it the host zoomed into - "no logs found" must not claim the
+ * whole window was empty - or a time range picked on the card, which is
+ * what an incident's metric investigation hands the tabs (issue #5954).
+ */
+export type CompanionWindow = "snapshot" | "zoomed" | "selected";
 
-// What the companion cards call the window they show.
-const getWindowName: GetWindowNameFunction = (
+export type CompanionEventNoun = "incident" | "alert" | "view";
+
+export type CompanionSignal = "logs" | "spans" | "exceptions" | "metrics";
+
+export const getCompanionWindow: (
   isSnapshotZoomed: boolean | undefined,
-): string => {
-  return isSnapshotZoomed
-    ? "the zoomed part of the snapshot window"
-    : "the snapshot window";
+) => CompanionWindow = (
+  isSnapshotZoomed: boolean | undefined,
+): CompanionWindow => {
+  return isSnapshotZoomed ? "zoomed" : "snapshot";
+};
+
+/*
+ * What each companion card says it shows, one whole sentence for each
+ * signal, each thing the card is about and each window, so a language
+ * words each its own way ("Logs dieses Vorfalls ...") rather than an
+ * English sentence glued around a translated window.
+ */
+export const COMPANION_DESCRIPTIONS: Record<
+  CompanionSignal,
+  Record<CompanionEventNoun, Record<CompanionWindow, string>>
+> = {
+  logs: {
+    incident: {
+      snapshot: translationKey(
+        "Logs in this incident's telemetry scope during the snapshot window.",
+      ),
+      zoomed: translationKey(
+        "Logs in this incident's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Logs in this incident's telemetry scope during the selected time range.",
+      ),
+    },
+    alert: {
+      snapshot: translationKey(
+        "Logs in this alert's telemetry scope during the snapshot window.",
+      ),
+      zoomed: translationKey(
+        "Logs in this alert's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Logs in this alert's telemetry scope during the selected time range.",
+      ),
+    },
+    view: {
+      snapshot: translationKey(
+        "Logs in this view's telemetry scope during the snapshot window.",
+      ),
+      zoomed: translationKey(
+        "Logs in this view's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Logs in this view's telemetry scope during the selected time range.",
+      ),
+    },
+  },
+  spans: {
+    incident: {
+      snapshot: translationKey(
+        "Spans in this incident's telemetry scope during the snapshot window.",
+      ),
+      zoomed: translationKey(
+        "Spans in this incident's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Spans in this incident's telemetry scope during the selected time range.",
+      ),
+    },
+    alert: {
+      snapshot: translationKey(
+        "Spans in this alert's telemetry scope during the snapshot window.",
+      ),
+      zoomed: translationKey(
+        "Spans in this alert's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Spans in this alert's telemetry scope during the selected time range.",
+      ),
+    },
+    view: {
+      snapshot: translationKey(
+        "Spans in this view's telemetry scope during the snapshot window.",
+      ),
+      zoomed: translationKey(
+        "Spans in this view's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Spans in this view's telemetry scope during the selected time range.",
+      ),
+    },
+  },
+  exceptions: {
+    incident: {
+      snapshot: translationKey(
+        "Exceptions in this incident's telemetry scope during the snapshot window.",
+      ),
+      zoomed: translationKey(
+        "Exceptions in this incident's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Exceptions in this incident's telemetry scope during the selected time range.",
+      ),
+    },
+    alert: {
+      snapshot: translationKey(
+        "Exceptions in this alert's telemetry scope during the snapshot window.",
+      ),
+      zoomed: translationKey(
+        "Exceptions in this alert's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Exceptions in this alert's telemetry scope during the selected time range.",
+      ),
+    },
+    view: {
+      snapshot: translationKey(
+        "Exceptions in this view's telemetry scope during the snapshot window.",
+      ),
+      zoomed: translationKey(
+        "Exceptions in this view's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Exceptions in this view's telemetry scope during the selected time range.",
+      ),
+    },
+  },
+  metrics: {
+    incident: {
+      snapshot: translationKey(
+        "Metrics in this incident's telemetry scope during the snapshot window.",
+      ),
+      zoomed: translationKey(
+        "Metrics in this incident's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Metrics in this incident's telemetry scope during the selected time range.",
+      ),
+    },
+    alert: {
+      snapshot: translationKey(
+        "Metrics in this alert's telemetry scope during the snapshot window.",
+      ),
+      zoomed: translationKey(
+        "Metrics in this alert's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Metrics in this alert's telemetry scope during the selected time range.",
+      ),
+    },
+    view: {
+      snapshot: translationKey(
+        "Metrics in this view's telemetry scope during the snapshot window.",
+      ),
+      zoomed: translationKey(
+        "Metrics in this view's telemetry scope during the zoomed part of the snapshot window.",
+      ),
+      selected: translationKey(
+        "Metrics in this view's telemetry scope during the selected time range.",
+      ),
+    },
+  },
+};
+
+// What an empty companion card says, for each signal and window.
+export const COMPANION_EMPTY_MESSAGES: Record<
+  CompanionSignal,
+  Record<CompanionWindow, string>
+> = {
+  logs: {
+    snapshot: translationKey("Nothing was logged in the snapshot window."),
+    zoomed: translationKey(
+      "Nothing was logged in the zoomed part of the snapshot window.",
+    ),
+    selected: translationKey("Nothing was logged in the selected time range."),
+  },
+  spans: {
+    snapshot: translationKey("No spans found in the snapshot window."),
+    zoomed: translationKey(
+      "No spans found in the zoomed part of the snapshot window.",
+    ),
+    selected: translationKey("No spans found in the selected time range."),
+  },
+  exceptions: {
+    snapshot: translationKey("No exceptions found in the snapshot window."),
+    zoomed: translationKey(
+      "No exceptions found in the zoomed part of the snapshot window.",
+    ),
+    selected: translationKey("No exceptions found in the selected time range."),
+  },
+  metrics: {
+    snapshot: translationKey(
+      "No metrics were found in this scope during the snapshot window.",
+    ),
+    zoomed: translationKey(
+      "No metrics were found in this scope during the zoomed part of the snapshot window.",
+    ),
+    selected: translationKey(
+      "No metrics were found in this scope during the selected time range.",
+    ),
+  },
+};
+
+// The metrics card charts only the first few of the names it found.
+export const COMPANION_METRICS_SHOWN: PluralTemplate = {
+  one: "Showing {{shown}} of {{count}} metric.",
+  other: "Showing {{shown}} of {{count}} metrics.",
+};
+
+// The words of a companion card, in the reader's language.
+export const describeCompanion: (data: {
+  signal: CompanionSignal;
+  eventNoun: CompanionEventNoun;
+  window: CompanionWindow;
+  translator: Translator;
+}) => { description: string; emptyMessage: string } = (data: {
+  signal: CompanionSignal;
+  eventNoun: CompanionEventNoun;
+  window: CompanionWindow;
+  translator: Translator;
+}): { description: string; emptyMessage: string } => {
+  const description: string =
+    COMPANION_DESCRIPTIONS[data.signal][data.eventNoun][data.window];
+  const emptyMessage: string =
+    COMPANION_EMPTY_MESSAGES[data.signal][data.window];
+
+  return {
+    description: data.translator.translateText(description) || description,
+    emptyMessage: data.translator.translateText(emptyMessage) || emptyMessage,
+  };
 };
 
 type WithoutPageZoomFunction = (companion: ReactElement) => ReactElement;
@@ -167,7 +402,8 @@ interface CompanionScopeHintProps {
 const CompanionScopeHint: FunctionComponent<CompanionScopeHintProps> = (
   props: CompanionScopeHintProps,
 ): ReactElement => {
-  const hint: string = formatDroppedScopeHint(props.notes);
+  const translator: Translator = useTranslator();
+  const hint: string = formatDroppedScopeHint(props.notes, translator);
 
   if (!hint) {
     return <></>;
@@ -179,14 +415,22 @@ const CompanionScopeHint: FunctionComponent<CompanionScopeHintProps> = (
 interface CompanionLogsTabProps {
   spec: CompanionLogsSpec;
   snapshotWindowAlert?: ReactElement | undefined;
-  eventNoun: string;
-  // What the copy calls the window the tab shows; see getWindowName.
-  windowName: string;
+  eventNoun: CompanionEventNoun;
+  // The window the tab shows; see getCompanionWindow.
+  window: CompanionWindow;
 }
 
 const CompanionLogsTab: FunctionComponent<CompanionLogsTabProps> = (
   props: CompanionLogsTabProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  const words: { description: string; emptyMessage: string } =
+    describeCompanion({
+      signal: "logs",
+      eventNoun: props.eventNoun,
+      window: props.window,
+      translator: translator,
+    });
   const serviceIds: Array<ObjectID> = useMemo(() => {
     return props.spec.serviceIds.map((serviceId: string): ObjectID => {
       return new ObjectID(serviceId);
@@ -198,7 +442,7 @@ const CompanionLogsTab: FunctionComponent<CompanionLogsTabProps> = (
       <CompanionScopeHint notes={props.spec.notCarried} />
       <Card
         title={"Logs"}
-        description={`Logs in this ${props.eventNoun}'s telemetry scope during ${props.windowName}.`}
+        description={words.description}
         rightElement={props.snapshotWindowAlert}
       >
         <DashboardLogsViewer
@@ -206,7 +450,17 @@ const CompanionLogsTab: FunctionComponent<CompanionLogsTabProps> = (
           serviceIds={serviceIds.length > 0 ? serviceIds : undefined}
           logQuery={props.spec.logQuery}
           limit={10}
-          noLogsMessage={`Nothing was logged in ${props.windowName}.`}
+          /*
+           * The English key, which the logs table looks up as it draws
+           * it (LogsEmptyHintsGuard reads these lines as written).
+           */
+          noLogsMessage={
+            props.window === "zoomed"
+              ? "Nothing was logged in the zoomed part of the snapshot window."
+              : props.window === "selected"
+                ? "Nothing was logged in the selected time range."
+                : "Nothing was logged in the snapshot window."
+          }
         />
       </Card>
     </div>
@@ -216,19 +470,28 @@ const CompanionLogsTab: FunctionComponent<CompanionLogsTabProps> = (
 interface CompanionTracesTabProps {
   spec: CompanionTracesSpec;
   snapshotWindowAlert?: ReactElement | undefined;
-  eventNoun: string;
-  windowName: string;
+  eventNoun: CompanionEventNoun;
+  window: CompanionWindow;
 }
 
 const CompanionTracesTab: FunctionComponent<CompanionTracesTabProps> = (
   props: CompanionTracesTabProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  const words: { description: string; emptyMessage: string } =
+    describeCompanion({
+      signal: "spans",
+      eventNoun: props.eventNoun,
+      window: props.window,
+      translator: translator,
+    });
+
   return (
     <div>
       <CompanionScopeHint notes={props.spec.notCarried} />
       <Card
         title={"Spans"}
-        description={`Spans in this ${props.eventNoun}'s telemetry scope during ${props.windowName}.`}
+        description={words.description}
         rightElement={props.snapshotWindowAlert}
       >
         <TracesViewer
@@ -236,7 +499,7 @@ const CompanionTracesTab: FunctionComponent<CompanionTracesTabProps> = (
           limit={10}
           // Pinned to the snapshot; the host page owns the URL.
           disableUrlSync={true}
-          emptyMessage={`No spans found in ${props.windowName}.`}
+          emptyMessage={words.emptyMessage}
         />
       </Card>
     </div>
@@ -246,19 +509,28 @@ const CompanionTracesTab: FunctionComponent<CompanionTracesTabProps> = (
 interface CompanionExceptionsTabProps {
   spec: CompanionExceptionsSpec;
   snapshotWindowAlert?: ReactElement | undefined;
-  eventNoun: string;
-  windowName: string;
+  eventNoun: CompanionEventNoun;
+  window: CompanionWindow;
 }
 
 const CompanionExceptionsTab: FunctionComponent<CompanionExceptionsTabProps> = (
   props: CompanionExceptionsTabProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  const words: { description: string; emptyMessage: string } =
+    describeCompanion({
+      signal: "exceptions",
+      eventNoun: props.eventNoun,
+      window: props.window,
+      translator: translator,
+    });
+
   return (
     <div>
       <CompanionScopeHint notes={props.spec.notCarried} />
       <Card
         title={"Exceptions"}
-        description={`Exceptions in this ${props.eventNoun}'s telemetry scope during ${props.windowName}.`}
+        description={words.description}
         rightElement={props.snapshotWindowAlert}
       >
         <ExceptionsViewer
@@ -272,7 +544,7 @@ const CompanionExceptionsTab: FunctionComponent<CompanionExceptionsTabProps> = (
           limit={10}
           // Pinned to the snapshot; the host page owns the URL.
           disableUrlSync={true}
-          emptyMessage={`No exceptions found in ${props.windowName}.`}
+          emptyMessage={words.emptyMessage}
         />
       </Card>
     </div>
@@ -282,8 +554,8 @@ const CompanionExceptionsTab: FunctionComponent<CompanionExceptionsTabProps> = (
 interface CompanionMetricsTabProps {
   spec: CompanionMetricsSpec;
   snapshotWindowAlert?: ReactElement | undefined;
-  eventNoun: string;
-  windowName: string;
+  eventNoun: CompanionEventNoun;
+  window: CompanionWindow;
 }
 
 /*
@@ -298,6 +570,14 @@ const CompanionMetricsTab: FunctionComponent<CompanionMetricsTabProps> = (
   props: CompanionMetricsTabProps,
 ): ReactElement => {
   const spec: CompanionMetricsSpec = props.spec;
+  const translator: Translator = useTranslator();
+  const words: { description: string; emptyMessage: string } =
+    describeCompanion({
+      signal: "metrics",
+      eventNoun: props.eventNoun,
+      window: props.window,
+      translator: translator,
+    });
 
   const serviceObjectIds: Array<ObjectID> = useMemo(() => {
     return spec.serviceIds.map((serviceId: string): ObjectID => {
@@ -479,21 +759,24 @@ const CompanionMetricsTab: FunctionComponent<CompanionMetricsTabProps> = (
         <CompanionScopeHint notes={spec.notCarried} />
         <Card
           title={"Metrics"}
-          description={`Metrics in this ${props.eventNoun}'s telemetry scope during ${props.windowName}.`}
+          description={words.description}
           rightElement={props.snapshotWindowAlert}
         >
-          <p className="text-sm text-gray-500">
-            {`No metrics were found in this scope during ${props.windowName}.`}
-          </p>
+          <p className="text-sm text-gray-500">{words.emptyMessage}</p>
         </Card>
       </div>
     );
   }
 
+  // Two sentences, each whole in the reader's language.
   const description: string =
     chartPlan.omittedMetricCount > 0
-      ? `Metrics in this ${props.eventNoun}'s telemetry scope during ${props.windowName}. Showing ${chartPlan.queryConfigs.length} of ${metricNames.length} metrics.`
-      : `Metrics in this ${props.eventNoun}'s telemetry scope during ${props.windowName}.`;
+      ? `${words.description} ${translator.translatePlural(
+          COMPANION_METRICS_SHOWN,
+          metricNames.length,
+          { shown: translator.formatNumber(chartPlan.queryConfigs.length) },
+        )}`
+      : words.description;
 
   return (
     <div>
@@ -575,8 +858,8 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
     companions.exceptions,
   );
   const primaryType: TelemetryType | null = companions.primaryType;
-  const windowName: string =
-    props.windowName || getWindowName(props.isSnapshotZoomed);
+  const companionWindow: CompanionWindow =
+    props.companionWindow || getCompanionWindow(props.isSnapshotZoomed);
 
   const handleTabChange: (tab: Tab) => void = useCallback((_tab: Tab): void => {
     // Selection is transient; Tabs owns which panel is mounted.
@@ -608,7 +891,7 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
               spec={logsSpec}
               snapshotWindowAlert={props.snapshotWindowAlert}
               eventNoun={props.eventNoun}
-              windowName={windowName}
+              window={companionWindow}
             />,
           ),
         });
@@ -623,7 +906,7 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
               spec={tracesSpec}
               snapshotWindowAlert={props.snapshotWindowAlert}
               eventNoun={props.eventNoun}
-              windowName={windowName}
+              window={companionWindow}
             />,
           ),
         });
@@ -638,7 +921,7 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
               spec={metricsSpec}
               snapshotWindowAlert={props.snapshotWindowAlert}
               eventNoun={props.eventNoun}
-              windowName={windowName}
+              window={companionWindow}
             />,
           ),
         });
@@ -653,7 +936,7 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
               spec={exceptionsSpec}
               snapshotWindowAlert={props.snapshotWindowAlert}
               eventNoun={props.eventNoun}
-              windowName={windowName}
+              window={companionWindow}
             />,
           ),
         });
@@ -670,7 +953,7 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
     props.primarySignalElement,
     props.snapshotWindowAlert,
     props.eventNoun,
-    windowName,
+    companionWindow,
   ]);
 
   /*

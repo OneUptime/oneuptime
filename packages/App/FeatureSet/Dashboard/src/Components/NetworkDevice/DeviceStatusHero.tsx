@@ -39,6 +39,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -578,7 +579,9 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
                   count: translator.formatNumber(interfacesUp),
                 })}
               </span>
-              <span className="text-gray-400"> · </span>
+              <span className="text-gray-400">
+                <InlineSeparator />
+              </span>
               <span
                 className={
                   interfacesDown > 0

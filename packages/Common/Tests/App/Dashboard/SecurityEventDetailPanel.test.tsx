@@ -564,6 +564,90 @@ describe("what the event names in the rest of OneUptime", () => {
       ),
     ).toHaveTextContent("In 3 log lines");
   });
+
+  /*
+   * A firewall's own event (issue #5769): its syslog is sent under a
+   * service named after it, and every line ingest matched to the device
+   * carries the device's id - so the device is asked about too, and the
+   * event is connected to the firewall itself, with its open incidents and
+   * alerts.
+   */
+  test("an event read from a network device's syslog asks about the device too", async () => {
+    const SERVICE_ID: string = "30000000-0000-4000-8000-000000000002";
+    const DEVICE_ID: string = "40000000-0000-4000-8000-000000000001";
+
+    getConnectionsMock.mockReset();
+    getTelemetryMentionsMock.mockReset();
+    getTelemetryMentionsMock.mockResolvedValue({
+      windowStart: "2026-09-17T09:30:00.000Z",
+      windowEnd: "2026-09-17T10:30:00.000Z",
+      values: [],
+      hasMoreValues: false,
+      unreadableSignals: [],
+      failedSignals: [],
+    } as never);
+    getConnectionsMock.mockResolvedValue({
+      windowStart: "2026-09-17T09:30:00.000Z",
+      windowEnd: "2026-09-17T10:30:00.000Z",
+      resources: [
+        {
+          kind: SecurityConnectionKind.NetworkDevice,
+          id: DEVICE_ID,
+          name: "core-fw-01",
+          certainty: "Exact",
+          matches: [
+            {
+              entityType: "Other",
+              entityValue: "core-fw-01",
+              certainty: "Exact",
+              reason: "LogSource",
+              matchedValue: "core-fw-01",
+            },
+          ],
+          activeIncidents: { count: 0, items: [] },
+          activeAlerts: { count: 0, items: [] },
+          monitors: null,
+          recentChanges: [],
+        },
+      ],
+      hasMoreResources: false,
+      unmatched: [],
+      unreadableKinds: [],
+      failedKinds: [],
+    } as never);
+
+    renderPanel(
+      event({
+        ...FULL_EVENT,
+        attributes: {
+          ...FULL_EVENT.attributes,
+          [SECURITY_LOG_RESOURCE_ID_ATTRIBUTE]: SERVICE_ID,
+          [SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE]: "OpenTelemetry",
+          "networkDevice.id": DEVICE_ID,
+          "networkDevice.name": "core-fw-01",
+        },
+      } as Partial<SecurityEvent>),
+    );
+
+    fireEvent.click(tab("Connected"));
+
+    await waitFor(() => {
+      expect(getConnectionsMock).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      (getConnectionsMock.mock.calls[0]![0] as { logResources: unknown })
+        .logResources,
+    ).toEqual([
+      { type: "OpenTelemetry", id: SERVICE_ID },
+      { type: "NetworkDevice", id: DEVICE_ID },
+    ]);
+
+    const connected: HTMLElement = await screen.findByTestId(
+      SECURITY_CONNECTIONS_TEST_IDS.connectedSignals,
+    );
+
+    expect(await within(connected).findByText("core-fw-01")).toBeTruthy();
+  });
 });
 
 /*

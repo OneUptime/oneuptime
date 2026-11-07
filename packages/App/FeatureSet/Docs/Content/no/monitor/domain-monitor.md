@@ -135,7 +135,7 @@ For å bli varslet tidligere endrer du verdien til filteret **Domain Expires In 
 :::details Legg til varselet på en monitor som ble opprettet før det fantes
 Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke noe kriterium "utløper snart". Slik legger du det til:
 
-1. Åpne **Konfigurasjon → Kriterier** på monitoren, og klikk på **Rediger Overvåkingskriterier**.
+1. Åpne **Konfigurasjon → Kriterier** på monitoren, og klikk på **Rediger overvåkingskriterier**.
 2. Klikk på **Legg til kriterier**. Sett filteret til **Domain Is Expired** / **Usann**, klikk på **Legg til filter**, og sett det andre til **Domain Expires In Days** / **Mindre enn eller lik** / `30`. La **Samsvarsbetingelse** stå på **Alle** (den vises under filtrene så snart det er to).
 3. Slå på **Når filtre samsvarer, opprett et varsel.** under **Handlinger**, og la **Når filtre samsvarer, endre overvåkerstatus.** være slått av, så det oppretter et varsel og ikke endrer monitorens status.
 4. Dra det nye kriteriet over kriteriet som merker monitoren som tilkoblet, og lagre så.

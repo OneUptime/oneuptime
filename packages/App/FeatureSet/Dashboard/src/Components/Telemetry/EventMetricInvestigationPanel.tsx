@@ -26,7 +26,6 @@ import {
   EventMomentLabel,
   EventMomentState,
   EventMomentTimelineEntry,
-  SELECTED_TIME_RANGE_NAME,
   getEventMetricTimePresets,
   getEventMetricWords,
   getEventMomentColor,
@@ -215,7 +214,7 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
       telemetryQuery={props.telemetryQuery}
       // The other tabs show the time range the metrics show, a zoom included.
       snapshotWindow={investigation.window}
-      windowName={SELECTED_TIME_RANGE_NAME}
+      companionWindow="selected"
       snapshotWindowAlert={timePicker}
       eventNoun={words.telemetryNoun}
       primarySignalElement={

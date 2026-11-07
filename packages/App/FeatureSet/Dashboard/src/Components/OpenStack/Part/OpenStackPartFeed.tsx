@@ -35,6 +35,7 @@ import React, {
 } from "react";
 import { getOpenStackPartLogFacts } from "./OpenStackPartLogs";
 import { OpenStackPart } from "./UseOpenStackPart";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * What happened to a part, from what its cloud's notifications said, and who did it, from
@@ -218,7 +219,7 @@ export const OpenStackPartFeed: FunctionComponent<ComponentProps> = (
                       : ""}
                     {who ? (
                       <Fragment>
-                        {" · "}
+                        <InlineSeparator />
                         <bdi className="font-mono">{who}</bdi>
                       </Fragment>
                     ) : (

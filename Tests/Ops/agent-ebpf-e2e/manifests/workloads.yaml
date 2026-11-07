@@ -69,6 +69,18 @@ spec:
         - name: postgres
           image: postgres:17-alpine
           imagePullPolicy: IfNotPresent
+          # As the image's own postgres user (70 in the alpine variants), so its
+          # entrypoint has no privileges to drop and never runs gosu. gosu is Go,
+          # and Go drops them by signalling each of its threads (rtmin+1). On k3s
+          # under ubuntu-26.04, containerd's AppArmor profile denies a signal to
+          # its own stacked label (cri-containerd.apparmor.d//&unconfined), so
+          # gosu spun forever and postgres never started (#6184). That is
+          # containerd#12886, fixed in no k3s release yet.
+          securityContext:
+            runAsUser: 70
+            runAsGroup: 70
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
           env:
             - name: POSTGRES_PASSWORD
               value: e2e-not-a-secret

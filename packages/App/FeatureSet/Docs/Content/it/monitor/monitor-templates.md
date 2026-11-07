@@ -35,7 +35,7 @@ flowchart TB
 :::steps
 ### Aprire i modelli
 
-Andate in **Monitor → Impostazioni → Modelli** e fate clic su **Crea: Monitor Modello**.
+Andate in **Monitor → Impostazioni → Modelli** e fate clic su **Crea: Modello di monitor**.
 
 ### Dare un nome al modello
 
@@ -47,17 +47,17 @@ In **Impostazioni predefinite del monitor**, scegliete il **Tipo di monitor**, c
 
 ### Impostare i criteri e l'intervallo
 
-In **Criteri**, compilate cosa controllare e i criteri, come in [Crea monitor](/docs/monitor/create-monitor#criteri). La scheda **Template sync settings** in alto vi permette di proteggere i campi dalle sincronizzazioni (vedete [Mantenere valori propri di ogni monitor](#mantenere-valori-propri-di-ogni-monitor)). Per un tipo di monitor controllato dalle sonde, l'ultimo passaggio, **Intervallo**, chiede l'**Intervallo di monitoraggio**. Fate clic su **Crea: Monitor Modello** all'ultimo passaggio.
+In **Criteri**, compilate cosa controllare e i criteri, come in [Crea monitor](/docs/monitor/create-monitor#criteri). La scheda **Template sync settings** in alto vi permette di proteggere i campi dalle sincronizzazioni (vedete [Mantenere valori propri di ogni monitor](#mantenere-valori-propri-di-ogni-monitor)). Per un tipo di monitor controllato dalle sonde, l'ultimo passaggio, **Intervallo**, chiede l'**Intervallo di monitoraggio**. Fate clic su **Crea: Modello di monitor** all'ultimo passaggio.
 :::
 
-Il modello viene aggiunto all'elenco. Apritelo per vedere la sua pagina, con una scheda per ogni parte: **Informazioni del modello**, **Impostazioni predefinite del monitor**, **Criteri di monitoraggio**, **Intervallo di monitoraggio** (con **Accordo minimo tra sonde**), **Etichette**, **Custom Field Defaults** (quando il progetto ha campi personalizzati per i monitor) e **Monitor collegati**. Ogni parte si modifica nella propria scheda, per esempio con **Modifica: Criteri** o **Modifica: Intervallo**.
+Il modello viene aggiunto all'elenco. Apritelo per vedere la sua pagina, con una scheda per ogni parte: **Informazioni del modello**, **Impostazioni predefinite del monitor**, **Criteri di monitoraggio**, **Intervallo di monitoraggio** (con **Accordo minimo tra sonde**), **Etichette**, **Valori predefiniti dei campi personalizzati** (quando il progetto ha campi personalizzati per i monitor) e **Monitor collegati**. Ogni parte si modifica nella propria scheda, per esempio con **Modifica criteri** o **Modifica intervallo**.
 
 ## Creare monitor da un modello
 
 - **Nuovo monitor.** Fate clic su **Crea monitor** nella riga del modello nell'elenco, oppure su **Crea Monitor da modello** nella sua pagina. **Crea monitor** si apre con il tipo e le impostazioni del modello già compilati; cambiate ciò che serve, poi createlo. Il nuovo monitor è collegato al modello.
 - **Monitor che avete già.** In **Monitor collegati**, fate clic su **Collega monitor esistenti** e sceglieteli. Mantengono le loro impostazioni finché non sincronizzate.
 
-I valori impostati in **Custom Field Defaults** vengono scritti su ogni monitor creato dal modello, compresi i monitor che le regole di importazione automatica e le politiche di avviso creano da esso.
+I valori impostati in **Valori predefiniti dei campi personalizzati** vengono scritti su ogni monitor creato dal modello, compresi i monitor che le regole di importazione automatica e le politiche di avviso creano da esso.
 
 ## Sincronizzare le modifiche sui monitor collegati
 
@@ -68,7 +68,7 @@ Modificare un modello cambia solo il modello. Per copiare una modifica sui monit
 | **Sincronizza criteri con i monitor collegati** | I criteri e le impostazioni del passaggio, come destinazioni e opzioni della richiesta, tranne i campi protetti | L'intervallo di monitoraggio, l'accordo minimo tra sonde, il nome, la descrizione, le etichette e i valori dei campi personalizzati |
 | **Sincronizza intervallo con i monitor collegati** | L'intervallo di monitoraggio e l'accordo minimo tra sonde | I criteri, il nome, la descrizione, le etichette e i valori dei campi personalizzati |
 | **Sincronizza etichette con i monitor collegati** | Le etichette, e nient'altro | Tutto il resto |
-| **Sync Custom Fields to Linked Monitors** | I campi personalizzati per cui il modello ha un valore predefinito, al posto di quello che ogni monitor aveva | I campi personalizzati che il modello lascia vuoti, e tutto il resto |
+| **Sincronizza i campi personalizzati con i monitor collegati** | I campi personalizzati per cui il modello ha un valore predefinito, al posto di quello che ogni monitor aveva | I campi personalizzati che il modello lascia vuoti, e tutto il resto |
 
 Per sincronizzare un solo monitor, fate clic su **Sincronizza dal modello** nella sua riga in **Monitor collegati**. Questo copia i criteri e le impostazioni del passaggio (tranne i campi protetti), l'intervallo di monitoraggio, l'accordo minimo tra sonde e le etichette, e lascia invariati il nome, la descrizione e i valori dei campi personalizzati del monitor. **Scollega dal modello** disconnette un monitor; mantiene le sue impostazioni.
 
@@ -85,7 +85,7 @@ Andate in **Monitor → Impostazioni → Modelli** e aprite il modello.
 
 ### Modificarne i criteri
 
-Nella scheda **Criteri di monitoraggio**, fate clic su **Modifica: Criteri**.
+Nella scheda **Criteri di monitoraggio**, fate clic su **Modifica criteri**.
 
 ### Proteggere i campi
 
@@ -116,7 +116,7 @@ Le opzioni disponibili dipendono dal tipo di monitor. Comprendono destinazioni e
 Per i modelli con più passaggi, i valori protetti vengono abbinati tramite gli ID dei passaggi. Anche i monitor a passaggio singolo creati in modo indipendente possono ricevere un modello a passaggio singolo. Se un passaggio protetto non si può abbinare, la sincronizzazione viene rifiutata prima di aggiornare qualsiasi monitor, così un passaggio nuovo o riordinato non può copiare per errore la destinazione o le credenziali di un altro passaggio.
 
 > [!IMPORTANT]
-> Prima di cambiare il tipo di monitor di un modello salvato (con **Modifica: Impostazioni predefinite del monitor**), rimuovete in **Modifica: Criteri** le esclusioni che non si applicano al nuovo tipo. Tutte le esclusioni di un modello devono esistere per il suo tipo di monitor.
+> Prima di cambiare il tipo di monitor di un modello salvato (con **Modifica valori predefiniti del monitor**), rimuovete in **Modifica criteri** le esclusioni che non si applicano al nuovo tipo. Tutte le esclusioni di un modello devono esistere per il suo tipo di monitor.
 
 ## Configurazione tramite API
 

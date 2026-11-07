@@ -2710,7 +2710,7 @@ test.describe("in Persian", () => {
     const close: Box = await boxOf(page.getByTestId("ask-ai-close"));
     expect(close.x).toBeLessThan(title.x);
     await expect(page.getByTestId("ai-chat-context")).toHaveText(
-      "این حادثه · #42 Checkout latency above 2s",
+      "این حادثه \u{2022} #42 Checkout latency above 2s",
     );
     await expect(page.getByTestId("ai-chat-suggestion")).toHaveText([
       "خلاصه‌سازی",

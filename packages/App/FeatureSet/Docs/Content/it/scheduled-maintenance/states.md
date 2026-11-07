@@ -106,11 +106,11 @@ Uno stato che aggiungete è un passo che il vostro team attraversa e che i quatt
 :::steps
 ### Aprire l'elenco degli stati
 
-Andate in **Manutenzione programmata → Impostazioni → Stato evento**. La scheda **Pianificato Manutenzione Stati** elenca i vostri stati nel loro ordine. Ogni riga mostra il colore e il nome, come conta un evento che vi si trova (colonna **Conta come**) e la descrizione.
+Andate in **Manutenzione programmata → Impostazioni → Stato evento**. La scheda **Stati della manutenzione programmata** elenca i vostri stati nel loro ordine. Ogni riga mostra il colore e il nome, come conta un evento che vi si trova (colonna **Conta come**) e la descrizione.
 
 ### Creare lo stato
 
-Fate clic su **Crea: Pianificato Manutenzione Stato** e compilate **Nome**, **Descrizione** e **Colore**. Il nuovo stato viene aggiunto subito sopra lo stato completato.
+Fate clic su **Crea: Stato della manutenzione programmata** e compilate **Nome**, **Descrizione** e **Colore**. Il nuovo stato viene aggiunto subito sopra lo stato completato.
 
 ### Trascinarlo al suo posto
 

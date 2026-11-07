@@ -88,6 +88,7 @@ import {
   RecommendationStatus,
   RecommendationStatusFilter,
 } from "./RecommendationViewModel";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   // The account's cloud and its id there: what its resources are read by.
@@ -711,7 +712,7 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
                   : ""}
               </span>
               <span className="text-gray-300" aria-hidden="true">
-                ·
+                <InlineSeparator markOnly />
               </span>
               <button
                 type="button"

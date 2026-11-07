@@ -1,6 +1,7 @@
 import GitHubCommandType, {
   GitHubCommentKind,
 } from "../CodeRepository/GitHubCommand";
+import { DeclaredCodeChangeTaskContext } from "../../Utils/AiRemediation/DeclaredCodeChange";
 import { CodeHost, CodeHostCapability } from "../CodeRepository/CodeHost";
 import CodeRepositoryType from "../CodeRepository/CodeRepositoryType";
 import { CodeTaskBranchName, CodeTaskRequest } from "./CodeTask";
@@ -304,6 +305,13 @@ export interface CodeFixTaskContext {
    * task (codeTaskId).
    */
   request?: CodeTaskRequest | undefined;
+  /*
+   * CodeRequest asked from a fix of OneUptime AI's on a cloud resource
+   * declared as code: the fix and the step whose change the pull request
+   * makes in the code (Utils/AiRemediation/DeclaredCodeChange). Kept on the
+   * task's first turn only.
+   */
+  declaredCodeChange?: DeclaredCodeChangeTaskContext | undefined;
   /*
    * GitHubPullRequestProductionReview: what the pull request's review was
    * asked to do, and what it keeps between reviews. `github` names a

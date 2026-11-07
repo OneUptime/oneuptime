@@ -95,9 +95,6 @@ export function getEventMetricWords(
   }
 }
 
-// What the telemetry card's other tabs call the time range they follow.
-export const SELECTED_TIME_RANGE_NAME: string = "the selected time range";
-
 // The colour the shaded window the monitor evaluated is drawn in.
 export const EVALUATED_REGION_COLOR: string = "#6366f1"; // indigo-500
 

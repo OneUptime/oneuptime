@@ -58,6 +58,7 @@ import * as UIConfig from "../../../UI/Config";
 import CloudStreamDialog, {
   CLOUD_STREAM_DIALOG_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamDialog";
+import { CLOUD_STREAM_STEP_BUTTON_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamParts";
 import {
   CLOUD_STREAM_POLL_MS,
   readCloudStreamKeyMade,
@@ -291,10 +292,10 @@ describe("how streaming is said to be doing", () => {
     expect(refused.color).toBe(Red);
     expect(refused.sentence.template).toBe(STREAM_REFUSED_SENTENCE);
     expect(JSON.stringify(refused.sentence.values)).toContain(
-      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.WrongKey].reason,
+      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.WrongKey]!.reason,
     );
     expect(JSON.stringify(refused.sentence.values)).toContain(
-      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.WrongKey].advice,
+      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.WrongKey]!.advice,
     );
 
     // A delivery taken after it: receiving again.
@@ -313,12 +314,19 @@ describe("how streaming is said to be doing", () => {
     ).toBe("receiving");
   });
 
-  test("every reason a delivery is refused for says what happened and what to do", () => {
-    for (const reason of Object.values(CloudStreamRefusalReason)) {
-      expect(CLOUD_STREAM_REFUSAL_WORDS[reason].reason.length).toBeGreaterThan(
+  test("every reason a Firehose delivery is refused for says what happened and what to do", () => {
+    for (const reason of [
+      CloudStreamRefusalReason.WrongKey,
+      CloudStreamRefusalReason.TurnedOff,
+      CloudStreamRefusalReason.NotAllowed,
+      CloudStreamRefusalReason.TooLarge,
+      CloudStreamRefusalReason.Malformed,
+      CloudStreamRefusalReason.Throttled,
+    ]) {
+      expect(CLOUD_STREAM_REFUSAL_WORDS[reason]!.reason.length).toBeGreaterThan(
         10,
       );
-      expect(CLOUD_STREAM_REFUSAL_WORDS[reason].advice.length).toBeGreaterThan(
+      expect(CLOUD_STREAM_REFUSAL_WORDS[reason]!.advice.length).toBeGreaterThan(
         10,
       );
     }
@@ -576,6 +584,8 @@ describe("the key the server answers", () => {
       streamKey: STREAM_KEY,
       createdAt: NOW,
       previousKeyWorksUntil: new Date("2026-11-05T10:00:00.000Z"),
+      // An AWS key is signed off against no service account.
+      pushServiceAccount: null,
     });
 
     const made: { previousKeyWorksUntil: Date | null } = readCloudStreamKeyMade(
@@ -656,6 +666,8 @@ describe("the dialog", () => {
     expect(part("live")).toHaveAttribute("data-state", "no-key");
     // Nothing asked of the server until a key is wanted.
     expect(postSpy).not.toHaveBeenCalled();
+    // The step's own button starts where its words start, not a footer's margin in.
+    expect(part("make-key")).toHaveClass(CLOUD_STREAM_STEP_BUTTON_CLASS_NAME);
   });
 
   test("making a key puts it in the command, shows it this once, and tells the list", async () => {
@@ -946,7 +958,10 @@ describe("the dialog", () => {
       await Promise.resolve();
     });
 
-    // What is asked: when the key was made and what arrived, nothing else.
+    /*
+     * What is asked: when the key was made, what arrived and - for an Azure
+     * connection - whose event hubs are read; nothing else.
+     */
     expect(getItemSpy).toHaveBeenCalledTimes(1);
     expect(getItemSpy.mock.calls[0]![0]).toMatchObject({
       modelType: CloudConnection,
@@ -954,7 +969,7 @@ describe("the dialog", () => {
     });
     expect(
       Object.keys(getItemSpy.mock.calls[0]![0].select as JSONObject).sort(),
-    ).toEqual(["streamKeyCreatedAt", "streamSummary"]);
+    ).toEqual(["streamKeyCreatedAt", "streamState", "streamSummary"]);
     expect(getItemSpy.mock.calls[0]![0].id.toString()).toBe(CONNECTION_ID);
 
     expect(part("live")).toHaveAttribute("data-state", "receiving");
@@ -983,10 +998,10 @@ describe("the dialog", () => {
 
     expect(part("live")).toHaveAttribute("data-state", "refused");
     expect(part("live")).toHaveTextContent(
-      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.TooLarge].reason,
+      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.TooLarge]!.reason,
     );
     expect(part("live")).toHaveTextContent(
-      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.TooLarge].advice,
+      CLOUD_STREAM_REFUSAL_WORDS[CloudStreamRefusalReason.TooLarge]!.advice,
     );
     // Not done yet: the footer still says Close.
     expect(

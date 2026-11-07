@@ -61,7 +61,7 @@ Ga naar **Monitoren → Monitorgroepen**. De kaart **Monitorgroepen** toont elke
 
 ### De groep maken
 
-Klik op **Monitor Groep aanmaken**, vul een **Naam** en, als u wilt, een **Beschrijving** in, en klik onderaan het formulier op **Monitor Groep aanmaken**. De groep begint zonder monitoren.
+Klik op **Monitorgroep aanmaken**, vul een **Naam** en, als u wilt, een **Beschrijving** in, en klik onderaan het formulier op **Monitorgroep aanmaken**. De groep begint zonder monitoren.
 
 ### Haar monitoren toevoegen
 
@@ -101,7 +101,7 @@ Ga naar **Statuspagina's**, open de pagina en klik in het zijmenu op **Middelen*
 
 ### Het dialoogvenster op een groep zetten
 
-Klik op **Monitor toevoegen**. Klik onder de keuzelijst met monitoren op **Add a Monitor Group instead.** De keuzelijst wordt **Monitor Groep**.
+Klik op **Monitor toevoegen**. Klik onder de keuzelijst met monitoren op **Voeg in plaats daarvan een monitorgroep toe.** De keuzelijst wordt **Monitorgroep**.
 
 ### De groep kiezen en toevoegen
 
@@ -134,7 +134,7 @@ Dat is de regel: de groep toont haar slechtste monitor. Open **Monitoren** in de
 :::
 
 :::details Een statuspagina kan de groep niet toevoegen
-**Add a Monitor Group instead.** verschijnt in het dialoogvenster alleen zolang de schakelaar **Monitorgroepen** voor het project aan staat.
+**Voeg in plaats daarvan een monitorgroep toe.** verschijnt in het dialoogvenster alleen zolang de schakelaar **Monitorgroepen** voor het project aan staat.
 :::
 
 ## Volgende stappen

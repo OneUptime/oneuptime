@@ -795,7 +795,7 @@ Si votre projet définit des champs personnalisés de moniteur — constructeur,
 Chaque moniteur créé ensuite à partir de ce modèle porte ces valeurs : ceux que vous créez avec **Créer un moniteur à partir d'un modèle**, et ceux qu'une règle d'import automatique ou une politique d'alerte crée quand une [analyse de découverte](#découvrir-des-équipements-par-une-analyse-réseau) fait entrer mille équipements d'un coup.
 
 - Un champ laissé vide sur le modèle n'est pas une valeur par défaut : chaque moniteur continue d'y répondre pour lui-même, si bien qu'un modèle peut imposer le constructeur à toute une flotte de commutateurs tandis que l'élément de configuration reste propre à chaque équipement.
-- Les valeurs par défaut s'appliquent à la création d'un moniteur, pas aux moniteurs qui existent déjà. **Sync Custom Fields to Linked Monitors**, sur la même carte, les pousse vers les moniteurs existants. Il écrase les champs que le modèle définit par défaut, y compris les valeurs saisies à la main, et sa confirmation nomme ces champs d'abord ; les champs que le modèle laisse vides ne sont jamais touchés.
+- Les valeurs par défaut s'appliquent à la création d'un moniteur, pas aux moniteurs qui existent déjà. **Synchroniser les champs personnalisés avec les moniteurs liés**, sur la même carte, les pousse vers les moniteurs existants. Il écrase les champs que le modèle définit par défaut, y compris les valeurs saisies à la main, et sa confirmation nomme ces champs d'abord ; les champs que le modèle laisse vides ne sont jamais touchés.
 
 Un simple **Synchroniser depuis le modèle** laisse les champs personnalisés tranquilles : pousser des critères ou un intervalle ne réécrit jamais les valeurs de vos moniteurs.
 

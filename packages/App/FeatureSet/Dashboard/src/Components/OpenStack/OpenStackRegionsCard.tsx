@@ -17,6 +17,7 @@ import ResourcePartRow from "../ResourcePart/ResourcePartRow";
 import { ResourcePartTone } from "../ResourcePart/ResourcePartTypes";
 import { getResourceHealthLabel } from "../TelemetryResource/ResourceHeroStatus";
 import { getOpenStackPercent } from "../../Pages/OpenStack/Utils/OpenStackResourceUtils";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * A multi-region cloud at a glance: each region, whether it is healthy by the same rules
@@ -196,7 +197,7 @@ const OpenStackRegionsCard: FunctionComponent<ComponentProps> = (
                         (fact: string, index: number): ReactElement => {
                           return (
                             <React.Fragment key={fact}>
-                              {index > 0 ? " · " : ""}
+                              {index > 0 ? <InlineSeparator /> : null}
                               <span className="whitespace-nowrap">{fact}</span>
                             </React.Fragment>
                           );

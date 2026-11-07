@@ -46,9 +46,9 @@ Resten av den här sidan bygger arbetsflödet. Det behöver:
 ## Spara token
 
 :::steps
-1. Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflöde Variabel**.
+1. Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflödesvariabel**.
 2. Ge den namnet `GITHUB_TOKEN` och klicka på **Nästa**.
-3. Klistra in token i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflöde Variabel**.
+3. Klistra in token i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflödesvariabel**.
 :::
 
 En hemlig variabel ersätts med `[REDACTED]` i körningsloggar, så token syns aldrig i en körning.

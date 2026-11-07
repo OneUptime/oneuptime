@@ -48,6 +48,9 @@ import {
   getAwsCloudAiAgentSetupCommand,
   getAwsCloudAiAgentTemplate,
   getAwsCloudAiAgentWriteRoleArn,
+  getAzureCloudAiAgentReaderPermissions,
+  getAzureCloudAiAgentReaderRoleDefinition,
+  getAzureCloudAiAgentReaderRoleName,
   getAzureCloudAiAgentRoleDefinition,
   getAzureCloudAiAgentRoleName,
   getAzureCloudAiAgentSetupCommand,
@@ -77,8 +80,10 @@ import {
   AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_APP_NAME,
   AZURE_CLOUD_AI_AGENT_ENVIRONMENT_NAME,
+  AZURE_CLOUD_AI_AGENT_READER_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
   AZURE_CLOUD_AI_AGENT_ROLE_NAME,
+  AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
   CLOUD_AI_AGENT_NAME,
   GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
   GCP_CLOUD_AI_AGENT_HOSTS,
@@ -89,6 +94,7 @@ import {
   GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID,
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
   GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
+  getAzureCloudAiAgentWriteIdentityId,
   getCloudAiAgentOwnTargets,
 } from "../../../Types/ResourceAiAgent/CloudAiAgentNames";
 import {
@@ -102,6 +108,7 @@ import {
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV,
+  RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
   RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
@@ -223,6 +230,13 @@ function catalogPermissions(
     })
   ) {
     permissions.add("run.operations.get");
+  }
+  if (
+    named.some((permission: string): boolean => {
+      return permission.startsWith("appengine.");
+    })
+  ) {
+    permissions.add("appengine.operations.get");
   }
 
   return Array.from(permissions).sort();
@@ -363,12 +377,24 @@ az() {
   case "$1 $2" in
     "role definition")
       if [ "$3" = create ] && [ "$FAKE_EXISTS" = 1 ]; then echo "RoleDefinitionWithSameNameExists" >&2; return 1; fi
-      echo "$FAKE_ROLE_ID" ;;
+      # Each role's id, told apart by its name.
+      case "$(flag_value --role-definition "$@")" in
+        *'"OneUptime AI Agent Reader ('*) echo "$FAKE_READER_ROLE_ID" ;;
+        *) echo "$FAKE_ROLE_ID" ;;
+      esac ;;
     "group show") [ "$FAKE_EXISTS" = 1 ] || return 3 ;;
+    "identity show")
+      [ "$FAKE_EXISTS" = 1 ] || { echo "ResourceNotFound" >&2; return 3; }
+      echo "$FAKE_WRITE_PRINCIPAL" ;;
+    "identity create")
+      [ "$FAKE_IDENTITY_EXIT" = 0 ] || return "$FAKE_IDENTITY_EXIT"
+      echo "$FAKE_WRITE_PRINCIPAL" ;;
     "containerapp env")
       if [ "$3" = show ] && [ "$FAKE_EXISTS" != 1 ]; then return 3; fi ;;
     "containerapp show") echo "$FAKE_PRINCIPAL" ;;
     "containerapp create") return "$FAKE_DEPLOY_EXIT" ;;
+    "role assignment")
+      if [ "$3" = delete ]; then return "$FAKE_ASSIGNMENT_DELETE_EXIT"; fi ;;
   esac
   return 0
 }
@@ -452,6 +478,9 @@ interface Scenario {
   deployRefusals?: number | undefined;
   // The role, group, environment and service account are there already.
   exists?: boolean | undefined;
+  // Azure: how making the write identity ends, and how taking a role away ends.
+  identityExit?: number | undefined;
+  assignmentDeleteExit?: number | undefined;
   // Google Cloud: the APIs on in the project, and what an earlier run left.
   enabledApis?: Array<string> | undefined;
   // The zone of the VM an earlier run made; none when there is no VM.
@@ -487,7 +516,10 @@ interface ShellRun {
 }
 
 const ROLE_ID: string = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+// Azure: the reads' role, and the write identity's object id.
+const READER_ROLE_ID: string = "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff";
 const PRINCIPAL: string = "99999999-8888-4777-8666-555555555555";
+const WRITE_PRINCIPAL: string = "77777777-6666-4555-8444-333333333333";
 
 const SHELL_DIRECTORIES: Array<string> = [];
 
@@ -533,7 +565,11 @@ function run(command: string, scenario: Scenario = {}): ShellRun {
         FAKE_DEPLOY_REFUSALS: String(scenario.deployRefusals ?? 0),
         FAKE_EXISTS: scenario.exists ? "1" : "0",
         FAKE_ROLE_ID: ROLE_ID,
+        FAKE_READER_ROLE_ID: READER_ROLE_ID,
         FAKE_PRINCIPAL: PRINCIPAL,
+        FAKE_WRITE_PRINCIPAL: WRITE_PRINCIPAL,
+        FAKE_IDENTITY_EXIT: String(scenario.identityExit ?? 0),
+        FAKE_ASSIGNMENT_DELETE_EXIT: String(scenario.assignmentDeleteExit ?? 0),
         FAKE_ENABLED_APIS: (scenario.enabledApis || []).join(" "),
         FAKE_VM_ZONE: scenario.vmZone || "",
         FAKE_VM_EXIT: String(scenario.vmExit ?? 0),
@@ -767,9 +803,17 @@ describe("the role's permissions", () => {
   );
 
   test("one change's role holds that change's calls and the read of what it replaces, and nothing else", () => {
+    // ECS, App Runner and Elastic Beanstalk restart; each its own call and read.
     expect(
       getCloudAiAgentRolePermissions(CloudProvider.AWS, ["restart-service"]),
-    ).toEqual(["ecs:DescribeServices", "ecs:UpdateService"]);
+    ).toEqual([
+      "apprunner:DescribeService",
+      "apprunner:StartDeployment",
+      "ecs:DescribeServices",
+      "ecs:UpdateService",
+      "elasticbeanstalk:DescribeEnvironments",
+      "elasticbeanstalk:RestartAppServer",
+    ]);
     expect(
       getCloudAiAgentRolePermissions(CloudProvider.AWS, ["redrive-queue"]),
     ).toEqual([
@@ -786,6 +830,8 @@ describe("the role's permissions", () => {
     ).toEqual([
       "Microsoft.Compute/virtualMachines/read",
       "Microsoft.Compute/virtualMachines/start/action",
+      "Microsoft.ContainerInstance/containerGroups/read",
+      "Microsoft.ContainerInstance/containerGroups/start/action",
       "Microsoft.Resources/subscriptions/read",
     ]);
     // With the read of the operation the start returns, to see how it ended.
@@ -926,7 +972,7 @@ describe("the agent's environment", () => {
     );
   });
 
-  test("Azure: the subscription the agent acts in, as Azure writes it, and no AWS role", () => {
+  test("Azure: the subscription the agent acts in, as Azure writes it, its write identity, and no AWS role", () => {
     const environment: Record<string, string> = environmentOf({
       ...AZURE,
       accountId: AZURE_SUBSCRIPTION.toUpperCase(),
@@ -937,7 +983,14 @@ describe("the agent's environment", () => {
       AI_RESOURCE_TYPE_INFO[AiResourceType.AzureSubscription].identityEnvVars,
     ).toEqual(["AZURE_SUBSCRIPTION_ID"]);
     expect(environment[RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV]).toBe("azure");
+    // The identity each change runs as: this subscription's, by its resource ID.
+    expect(environment[RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV]).toBe(
+      `/subscriptions/${AZURE_SUBSCRIPTION}/resourceGroups/${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME}`,
+    );
     expect(environment[RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV]).toBeUndefined();
+    expect(
+      environment[RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV],
+    ).toBeUndefined();
     expect(environment[CLOUD_AI_AGENT_HEALTH_HOST_ENV]).toBeUndefined();
   });
 
@@ -1729,8 +1782,8 @@ describe("AWS: the command", () => {
 
 // ---- Azure ----------------------------------------------------------------------
 
-describe("Azure: the role", () => {
-  test("is the changes' actions on the one subscription, named for it", () => {
+describe("Azure: the roles", () => {
+  test("the changes' role is the changes' actions on the one subscription, named for it", () => {
     const definition: AzureCloudAiAgentRoleDefinition =
       getAzureCloudAiAgentRoleDefinition({
         ...AZURE,
@@ -1752,16 +1805,102 @@ describe("Azure: the role", () => {
     });
   });
 
-  test("a custom role's name is the whole tenant's, so each subscription's has its own", () => {
+  test("the reads' role is the same changes' reads alone, on the same subscription, named for it", () => {
+    const definition: AzureCloudAiAgentRoleDefinition =
+      getAzureCloudAiAgentReaderRoleDefinition({
+        ...AZURE,
+        enabledOperations: ["restart-service", "scale-out"],
+      });
+
+    expect(definition).toEqual({
+      Name: `OneUptime AI Agent Reader (${AZURE_SUBSCRIPTION})`,
+      IsCustom: true,
+      Description: expect.any(String),
+      Actions: getAzureCloudAiAgentReaderPermissions([
+        "restart-service",
+        "scale-out",
+      ]),
+      NotActions: [],
+      DataActions: [],
+      NotDataActions: [],
+      AssignableScopes: [`/subscriptions/${AZURE_SUBSCRIPTION}`],
+    });
+    expect(definition.Description).toContain("write identity");
+  });
+
+  test("a custom role's name is the whole tenant's, so each subscription's has its own, the reads' role too", () => {
     expect(getAzureCloudAiAgentRoleName(AZURE_SUBSCRIPTION)).toBe(
       `${AZURE_CLOUD_AI_AGENT_ROLE_NAME} (${AZURE_SUBSCRIPTION})`,
     );
+    expect(getAzureCloudAiAgentReaderRoleName(AZURE_SUBSCRIPTION)).toBe(
+      `${AZURE_CLOUD_AI_AGENT_READER_ROLE_NAME} (${AZURE_SUBSCRIPTION})`,
+    );
+
+    for (const name of [
+      getAzureCloudAiAgentRoleName,
+      getAzureCloudAiAgentReaderRoleName,
+    ]) {
+      expect(name(` ${AZURE_SUBSCRIPTION.toUpperCase()} `)).toBe(
+        name(AZURE_SUBSCRIPTION),
+      );
+      expect(name("11111111-2222-4333-8444-555555555555")).not.toBe(
+        name(AZURE_SUBSCRIPTION),
+      );
+    }
+
+    // Two roles, never one name for both.
+    expect(getAzureCloudAiAgentReaderRoleName(AZURE_SUBSCRIPTION)).not.toBe(
+      getAzureCloudAiAgentRoleName(AZURE_SUBSCRIPTION),
+    );
+  });
+
+  test("the agent's own identity reads and nothing else: every action of its role ends in /read, and holds every read of the changes'", () => {
+    for (const operations of [
+      undefined,
+      ["restart-service"],
+      ["roll-back-service"],
+      ["fail-over-database", "scale-out"],
+      ["stop-instance"],
+    ]) {
+      const all: Array<string> = getCloudAiAgentRolePermissions(
+        CloudProvider.Azure,
+        operations,
+      );
+      const reads: Array<string> =
+        getAzureCloudAiAgentReaderPermissions(operations);
+
+      expect(reads.length).toBeGreaterThan(0);
+
+      for (const permission of all) {
+        expect({
+          permission,
+          isRead: reads.includes(permission),
+        }).toEqual({ permission, isRead: permission.endsWith("/read") });
+      }
+
+      expect(
+        reads.every((permission: string): boolean => {
+          return all.includes(permission);
+        }),
+      ).toBe(true);
+      // Test connection's read of the subscription is always the agent's own.
+      expect(reads).toContain("Microsoft.Resources/subscriptions/read");
+      // Neither role touches an identity: the agent can make, attach or take none.
+      for (const permission of [...all, ...reads]) {
+        expect(permission).not.toMatch(/Microsoft\.ManagedIdentity/i);
+      }
+    }
+
+    // A restart is the write identity's alone; the read before it, the agent's own too.
+    expect(getAzureCloudAiAgentReaderPermissions(["restart-service"])).toEqual(
+      expect.arrayContaining(["Microsoft.Web/sites/read"]),
+    );
     expect(
-      getAzureCloudAiAgentRoleName(` ${AZURE_SUBSCRIPTION.toUpperCase()} `),
-    ).toBe(getAzureCloudAiAgentRoleName(AZURE_SUBSCRIPTION));
+      getAzureCloudAiAgentReaderPermissions(["restart-service"]),
+    ).not.toContain("Microsoft.Web/sites/restart/action");
     expect(
-      getAzureCloudAiAgentRoleName("11111111-2222-4333-8444-555555555555"),
-    ).not.toBe(getAzureCloudAiAgentRoleName(AZURE_SUBSCRIPTION));
+      getCloudAiAgentRolePermissions(CloudProvider.Azure, ["restart-service"]),
+    ).toContain("Microsoft.Web/sites/restart/action");
   });
 
   test("has no tag condition: Azure has none for these actions, so the agent checks the tag", () => {
@@ -1777,6 +1916,243 @@ describe("Azure: the role", () => {
         RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV
       ],
     ).toBe(CLOUD_AI_DEFAULT_REQUIRED_TAG);
+  });
+});
+
+/*
+ * The Container App's own (system-assigned) identity only reads, and every
+ * change runs as the write identity: a user-assigned managed identity,
+ * attached to the agent's Container App and to nothing else, holding the
+ * changes' role. Azure hands a managed identity's token only to code that
+ * runs where it is attached, never one narrower or shorter-lived than its
+ * roles, so being attached to that one app is all the agent's own identity
+ * gets of it: no role on the identity (Managed Identity Operator would let
+ * the agent attach it to whatever it may write), no federated credential
+ * (Azure lets a user-assigned identity trust none issued by Entra ID).
+ */
+describe("Azure: the agent's own identity reads, its changes run as the write identity", () => {
+  const WRITE_IDENTITY: string = `/subscriptions/${AZURE_SUBSCRIPTION}/resourceGroups/oneuptime-ai-agent/providers/Microsoft.ManagedIdentity/userAssignedIdentities/oneuptime-ai-agent-write`;
+
+  test("two identities: the Container App's own, and a user-assigned write identity named for what it does", () => {
+    expect(AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME).toBe(
+      "oneuptime-ai-agent-write",
+    );
+    // A user-assigned identity's name: 3 to 128 letters, digits, - and _, from a letter or a digit.
+    expect(AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME).toMatch(
+      /^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/,
+    );
+    expect(getAzureCloudAiAgentWriteIdentityId(AZURE_SUBSCRIPTION)).toBe(
+      WRITE_IDENTITY,
+    );
+    expect(
+      getAzureCloudAiAgentWriteIdentityId(
+        ` ${AZURE_SUBSCRIPTION.toUpperCase()} `,
+      ),
+    ).toBe(WRITE_IDENTITY);
+  });
+
+  test("the reads' role is the app's own identity's, the changes' role the write identity's - both on the subscription, and no other role to anyone", () => {
+    const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE));
+    const definitions: Array<Json> = callsTo(
+      shell,
+      "az",
+      "role",
+      "definition",
+      "create",
+    ).map((call: Array<string>): Json => {
+      return JSON.parse(flag(call, "--role-definition") as string);
+    });
+    const assignments: Array<Array<string>> = callsTo(
+      shell,
+      "az",
+      "role",
+      "assignment",
+      "create",
+    );
+
+    expect(definitions).toEqual([
+      getAzureCloudAiAgentRoleDefinition(AZURE),
+      getAzureCloudAiAgentReaderRoleDefinition(AZURE),
+    ]);
+    expect(
+      assignments.map((call: Array<string>): Array<string | undefined> => {
+        return [
+          flag(call, "--assignee-object-id"),
+          flag(call, "--assignee-principal-type"),
+          flag(call, "--role"),
+          flag(call, "--scope"),
+        ];
+      }),
+    ).toEqual([
+      [
+        PRINCIPAL,
+        "ServicePrincipal",
+        READER_ROLE_ID,
+        `/subscriptions/${AZURE_SUBSCRIPTION}`,
+      ],
+      [
+        WRITE_PRINCIPAL,
+        "ServicePrincipal",
+        ROLE_ID,
+        `/subscriptions/${AZURE_SUBSCRIPTION}`,
+      ],
+    ]);
+    expect(shell.output).toEqual([CLOUD_AI_AGENT_STARTED_MESSAGE]);
+  });
+
+  test("the grant between them: the write identity is attached to the agent's Container App and to nothing else, by its resource ID, and nothing is granted on it", () => {
+    const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE));
+    const app: Array<string> = callsTo(
+      shell,
+      "az",
+      "containerapp",
+      "create",
+    )[0]!;
+    const made: Array<string> = callsTo(shell, "az", "identity", "create")[0]!;
+
+    expect(app).toContain("--system-assigned");
+    expect(flagWords(app, "--user-assigned")).toEqual([WRITE_IDENTITY]);
+    // Made beside the app, in the agent's own resource group.
+    expect(flag(made, "--name")).toBe(AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME);
+    expect(flag(made, "--resource-group")).toBe(
+      AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
+    );
+    expect(flag(made, "--location")).toBe(
+      CLOUD_AI_AGENT_DEFAULT_REGIONS[CloudProvider.Azure],
+    );
+    // Every role it assigns is one of its own two, on the subscription: none on an identity.
+    for (const call of callsTo(shell, "az", "role", "assignment", "create")) {
+      expect([ROLE_ID, READER_ROLE_ID]).toContain(flag(call, "--role"));
+      expect(flag(call, "--scope")).toBe(
+        `/subscriptions/${AZURE_SUBSCRIPTION}`,
+      );
+    }
+    // No federated credential, no other identity, no other attachment.
+    expect(
+      shell.calls.filter((call: Array<string>): boolean => {
+        return call.includes("federated-credential");
+      }),
+    ).toEqual([]);
+    expect(
+      callsTo(shell, "az", "identity").map((call: Array<string>): string => {
+        return call[2] as string;
+      }),
+    ).toEqual(["show", "create"]);
+    expect(callsTo(shell, "az", "containerapp", "identity")).toEqual([]);
+    expect(getAzureCloudAiAgentSetupCommand(AZURE)).not.toContain(
+      "Managed Identity Operator",
+    );
+  });
+
+  test("an agent set up before held the changes' role itself: once the write identity holds it, running the command again takes it away", () => {
+    const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE), {
+      exists: true,
+    });
+    const removed: Array<Array<string>> = callsTo(
+      shell,
+      "az",
+      "role",
+      "assignment",
+      "delete",
+    );
+
+    expect(removed).toHaveLength(1);
+    expect(flag(removed[0]!, "--assignee")).toBe(PRINCIPAL);
+    expect(flag(removed[0]!, "--role")).toBe(ROLE_ID);
+    expect(flag(removed[0]!, "--scope")).toBe(
+      `/subscriptions/${AZURE_SUBSCRIPTION}`,
+    );
+
+    // Only after the write identity holds the changes, so no change has nobody to run as.
+    const order: Array<string> = shell.calls.map(
+      (call: Array<string>): string => {
+        return call.slice(1, 4).join(" ");
+      },
+    );
+
+    expect(order.indexOf("role assignment delete")).toBeGreaterThan(
+      order.lastIndexOf("role assignment create"),
+    );
+    expect(shell.output).toEqual([CLOUD_AI_AGENT_STARTED_MESSAGE]);
+  });
+
+  test("an app's identity that never held it is no failure: a delete that finds nothing still ends with the agent starting", () => {
+    const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE), {
+      assignmentDeleteExit: 1,
+    });
+
+    expect(callsTo(shell, "az", "role", "assignment", "delete")).toHaveLength(
+      1,
+    );
+    expect(shell.output).toEqual([CLOUD_AI_AGENT_STARTED_MESSAGE]);
+  });
+
+  test("the agent is told which identity its changes run as, by its resource ID - in the command, and to run it elsewhere", () => {
+    expect(RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV).toBe(
+      "ONEUPTIME_AI_AZURE_WRITE_IDENTITY",
+    );
+    expect(environmentOf(AZURE)[RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV]).toBe(
+      WRITE_IDENTITY,
+    );
+
+    const app: Array<string> = callsTo(
+      run(getAzureCloudAiAgentSetupCommand(AZURE)),
+      "az",
+      "containerapp",
+      "create",
+    )[0]!;
+
+    expect(flagWords(app, "--env-vars")).toContain(
+      `${RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV}=${WRITE_IDENTITY}`,
+    );
+    // The identity the app is given is the one the agent asks for.
+    expect(flagWords(app, "--user-assigned")).toEqual([
+      environmentOf(AZURE)[RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV],
+    ]);
+
+    // Only Azure's agent has one.
+    for (const options of [AWS, GCP, GCP_RUN]) {
+      expect(
+        environmentOf(options)[RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV],
+      ).toBeUndefined();
+    }
+  });
+
+  test("the write identity is made once: a run that finds it keeps it, and its object id", () => {
+    const again: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE), {
+      exists: true,
+    });
+
+    expect(callsTo(again, "az", "identity", "create")).toEqual([]);
+    expect(callsTo(again, "az", "identity", "show")).toHaveLength(1);
+    expect(
+      flag(
+        callsTo(again, "az", "role", "assignment", "create")[1]!,
+        "--assignee-object-id",
+      ),
+    ).toBe(WRITE_PRINCIPAL);
+  });
+
+  test("an identity that could not be made: no app, no role, and never the line that says the agent is starting", () => {
+    const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE), {
+      identityExit: 1,
+    });
+
+    expect(callsTo(shell, "az", "identity", "create")).toHaveLength(1);
+    expect(callsTo(shell, "az", "containerapp", "create")).toEqual([]);
+    expect(callsTo(shell, "az", "role", "assignment")).toEqual([]);
+    expect(shell.output).toEqual([]);
+  });
+
+  test("the write identity is one of the agent's own, which it never changes", () => {
+    expect(
+      getCloudAiAgentOwnTargets({
+        provider: "azure",
+        accountId: AZURE_SUBSCRIPTION,
+      }).some((pattern: string): boolean => {
+        return globMatchesTarget(pattern, WRITE_IDENTITY.toLowerCase());
+      }),
+    ).toBe(true);
   });
 });
 
@@ -1809,7 +2185,7 @@ describe("Azure: the command", () => {
     }
   });
 
-  test("a first run makes the role, the group, the environment and the app, and gives the app's identity the role", () => {
+  test("a first run makes the roles, the group, the write identity, the environment and the app, and gives each identity its role", () => {
     const shell: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE));
 
     expect(
@@ -1819,38 +2195,22 @@ describe("Azure: the command", () => {
     ).toEqual([
       "az extension add --name",
       "az role definition create",
+      "az role definition create",
+      "az provider register --subscription",
       "az provider register --subscription",
       "az group show --subscription",
       "az group create --subscription",
+      "az identity show --subscription",
+      "az identity create --subscription",
       "az containerapp env show",
       "az containerapp env create",
       "az containerapp create --subscription",
       "az containerapp show --subscription",
       "az role assignment create",
+      "az role assignment create",
+      "az role assignment delete",
     ]);
 
-    const definition: Json = JSON.parse(
-      flag(
-        callsTo(shell, "az", "role", "definition")[0]!,
-        "--role-definition",
-      )!,
-    );
-    const assignment: Array<string> = callsTo(
-      shell,
-      "az",
-      "role",
-      "assignment",
-    )[0]!;
-
-    expect(definition).toEqual(getAzureCloudAiAgentRoleDefinition(AZURE));
-    expect(flag(assignment, "--assignee-object-id")).toBe(PRINCIPAL);
-    expect(flag(assignment, "--assignee-principal-type")).toBe(
-      "ServicePrincipal",
-    );
-    expect(flag(assignment, "--role")).toBe(ROLE_ID);
-    expect(flag(assignment, "--scope")).toBe(
-      `/subscriptions/${AZURE_SUBSCRIPTION}`,
-    );
     expect(flag(callsTo(shell, "az", "group", "create")[0]!, "--name")).toBe(
       AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
     );
@@ -1864,12 +2224,16 @@ describe("Azure: the command", () => {
       ),
     ).toBe("none");
     expect(
-      flag(callsTo(shell, "az", "provider", "register")[0]!, "--namespace"),
-    ).toBe("Microsoft.App");
+      callsTo(shell, "az", "provider", "register").map(
+        (call: Array<string>): string | undefined => {
+          return flag(call, "--namespace");
+        },
+      ),
+    ).toEqual(["Microsoft.App", "Microsoft.ManagedIdentity"]);
     expect(shell.output).toEqual([CLOUD_AI_AGENT_STARTED_MESSAGE]);
   });
 
-  test("the app: one replica of the image, always on, with a system identity, the key as a secret and the agent's variables", () => {
+  test("the app: one replica of the image, always on, with its own identity and the write identity, the key as a secret and the agent's variables", () => {
     const options: CloudAiAgentSetupOptions = {
       ...AZURE,
       fixesMode: "BypassApproval",
@@ -1898,6 +2262,9 @@ describe("Azure: the command", () => {
     expect(flag(app, "--min-replicas")).toBe("1");
     expect(flag(app, "--max-replicas")).toBe("1");
     expect(app).toContain("--system-assigned");
+    expect(flagWords(app, "--user-assigned")).toEqual([
+      getAzureCloudAiAgentWriteIdentityId(AZURE_SUBSCRIPTION),
+    ]);
     // Nothing comes in: the agent asks OneUptime for its work.
     expect(app).not.toContain("--ingress");
     expect(app).not.toContain("--target-port");
@@ -1915,7 +2282,7 @@ describe("Azure: the command", () => {
     );
   });
 
-  test("running it again updates the role, keeps the group and the environment, and writes the app whole again", () => {
+  test("running it again updates both roles, keeps the group, the write identity and the environment, and writes the app whole again", () => {
     const first: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE));
     const again: ShellRun = run(getAzureCloudAiAgentSetupCommand(AZURE), {
       exists: true,
@@ -1929,23 +2296,33 @@ describe("Azure: the command", () => {
       "az extension add --name",
       "az role definition create",
       "az role definition update",
+      "az role definition create",
+      "az role definition update",
+      "az provider register --subscription",
       "az provider register --subscription",
       "az group show --subscription",
+      "az identity show --subscription",
       "az containerapp env show",
       "az containerapp create --subscription",
       "az containerapp show --subscription",
       "az role assignment create",
+      "az role assignment create",
+      "az role assignment delete",
     ]);
-    expect(
-      flag(
-        callsTo(again, "az", "role", "definition", "update")[0]!,
-        "--role-definition",
-      ),
-    ).toBe(
-      flag(
-        callsTo(first, "az", "role", "definition", "create")[0]!,
-        "--role-definition",
-      ),
+
+    const definitionsOf: (shell: ShellRun, verb: string) => Array<string> = (
+      shell: ShellRun,
+      verb: string,
+    ): Array<string> => {
+      return callsTo(shell, "az", "role", "definition", verb).map(
+        (call: Array<string>): string => {
+          return flag(call, "--role-definition") as string;
+        },
+      );
+    };
+
+    expect(definitionsOf(again, "update")).toEqual(
+      definitionsOf(first, "create"),
     );
     expect(callsTo(again, "az", "containerapp", "create")).toEqual(
       callsTo(first, "az", "containerapp", "create"),
@@ -1953,40 +2330,48 @@ describe("Azure: the command", () => {
     expect(again.output).toEqual([CLOUD_AI_AGENT_STARTED_MESSAGE]);
   });
 
-  test("turning a change off and running it again takes its actions out of the role", () => {
-    const definition: (operations: Array<string>) => Json = (
+  test("turning a change off and running it again takes its actions out of both roles", () => {
+    const definitions: (operations: Array<string>) => Array<Json> = (
       operations: Array<string>,
-    ): Json => {
-      return JSON.parse(
-        flag(
-          callsTo(
-            run(
-              getAzureCloudAiAgentSetupCommand({
-                ...AZURE,
-                enabledOperations: operations,
-              }),
-            ),
-            "az",
-            "role",
-            "definition",
-          )[0]!,
-          "--role-definition",
-        )!,
-      );
+    ): Array<Json> => {
+      return callsTo(
+        run(
+          getAzureCloudAiAgentSetupCommand({
+            ...AZURE,
+            enabledOperations: operations,
+          }),
+        ),
+        "az",
+        "role",
+        "definition",
+      ).map((call: Array<string>): Json => {
+        return JSON.parse(flag(call, "--role-definition")!);
+      });
     };
+    const [both, bothReads] = definitions(["restart-service", "stop-instance"]);
+    const [one, oneReads] = definitions(["restart-service"]);
 
-    expect(definition(["restart-service", "stop-instance"]).Actions).toContain(
+    expect(both.Actions).toContain(
       "Microsoft.Compute/virtualMachines/deallocate/action",
     );
-    expect(definition(["restart-service"]).Actions).not.toContain(
+    expect(bothReads.Actions).toContain(
+      "Microsoft.Compute/virtualMachines/read",
+    );
+    expect(one.Actions).not.toContain(
       "Microsoft.Compute/virtualMachines/deallocate/action",
     );
-    expect(definition(["restart-service"]).Actions).toEqual(
+    expect(oneReads.Actions).not.toContain(
+      "Microsoft.Compute/virtualMachines/read",
+    );
+    expect(one.Actions).toEqual(
       getCloudAiAgentRolePermissions(CloudProvider.Azure, ["restart-service"]),
+    );
+    expect(oneReads.Actions).toEqual(
+      getAzureCloudAiAgentReaderPermissions(["restart-service"]),
     );
   });
 
-  test("runs in East US unless a region is given", () => {
+  test("runs in East US unless a region is given: the group, the write identity and the environment", () => {
     expect(CLOUD_AI_AGENT_DEFAULT_REGIONS[CloudProvider.Azure]).toBe("eastus");
 
     for (const [region, expected] of [
@@ -1999,6 +2384,9 @@ describe("Azure: the command", () => {
 
       expect(
         flag(callsTo(shell, "az", "group", "create")[0]!, "--location"),
+      ).toBe(expected);
+      expect(
+        flag(callsTo(shell, "az", "identity", "create")[0]!, "--location"),
       ).toBe(expected);
       expect(
         flag(
@@ -2031,9 +2419,11 @@ describe("Google Cloud: the APIs", () => {
       "iamcredentials.googleapis.com",
       "cloudresourcemanager.googleapis.com",
       "secretmanager.googleapis.com",
+      "appengine.googleapis.com",
       "sqladmin.googleapis.com",
       "compute.googleapis.com",
     ]);
+    // Cloud Run's roll back, and App Engine's, whose Admin API it turns on.
     expect(
       getGcpCloudAiAgentServices(["roll-back-service"], "cloud-run"),
     ).toEqual([
@@ -2042,6 +2432,7 @@ describe("Google Cloud: the APIs", () => {
       "iamcredentials.googleapis.com",
       "cloudresourcemanager.googleapis.com",
       "secretmanager.googleapis.com",
+      "appengine.googleapis.com",
     ]);
     expect(getGcpCloudAiAgentServices(["start-instance"], "cloud-run")).toEqual(
       [
@@ -2073,6 +2464,7 @@ describe("Google Cloud: the APIs", () => {
       "iamcredentials.googleapis.com",
       "cloudresourcemanager.googleapis.com",
       "secretmanager.googleapis.com",
+      "appengine.googleapis.com",
       "sqladmin.googleapis.com",
       "run.googleapis.com",
     ]);
@@ -2084,6 +2476,7 @@ describe("Google Cloud: the APIs", () => {
       "iamcredentials.googleapis.com",
       "cloudresourcemanager.googleapis.com",
       "secretmanager.googleapis.com",
+      "appengine.googleapis.com",
       "run.googleapis.com",
     ]);
     // Compute Engine is the VM's already.
@@ -3597,6 +3990,14 @@ describe("the names", () => {
         `/subscriptions/${AZURE_SUBSCRIPTION}/resourcegroups/${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP}/providers/microsoft.app/containerapps/${AZURE_CLOUD_AI_AGENT_APP_NAME}`,
       ),
     ).toBe(true);
+    // Its write identity, in the same resource group.
+    expect(
+      protects(
+        "azure",
+        AZURE_SUBSCRIPTION,
+        getAzureCloudAiAgentWriteIdentityId(AZURE_SUBSCRIPTION).toLowerCase(),
+      ),
+    ).toBe(true);
     expect(
       protects(
         "gcp",
@@ -3641,6 +4042,12 @@ describe("the names", () => {
       `--resource-group ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP}`,
     );
     expect(azure).toContain(`--name ${AZURE_CLOUD_AI_AGENT_ENVIRONMENT_NAME} `);
+    expect(azure).toContain(
+      `--name ${AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME} --resource-group ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP}`,
+    );
+    expect(AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME).toBe(
+      GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
+    );
     expect(gcp).toContain(
       `gcloud iam roles create ${GCP_CLOUD_AI_AGENT_ROLE_ID} `,
     );

@@ -796,7 +796,7 @@
   "Probes that run monitoring checks for this instance, and whether they are currently reporting in.": "为此实例运行监控检查的探测器，以及它们当前是否正在上报。",
   "Project ID": "项目 ID",
   "Project Name": "项目名称",
-  "Promo Code": "促销 代码",
+  "Promo Code": "促销代码",
   "Promo Code (Optional)": "促销代码（可选）",
   "Provider": "提供商",
   "Queue & worker insight": "队列与工作进程洞察",

@@ -67,7 +67,7 @@ flowchart TB
 
 ### 用 AI 產生
 
-點選 **Generate with AI**。**Generate Postmortem with AI** 對話方塊會在 **選擇範本** 之下提供大綱：**Standard Postmortem**、**Detailed Technical Postmortem** 或 **Brief Postmortem**，然後是您自己的事後分析範本。**Template Preview** 會顯示大綱，您可以在產生之前修改它。
+點選 **Generate with AI**。**用 AI 產生事後分析** 對話方塊會在 **選擇範本** 之下提供大綱：**Standard Postmortem**、**Detailed Technical Postmortem** 或 **Brief Postmortem**，然後是您自己的事後分析範本。**Template Preview** 會顯示大綱，您可以在產生之前修改它。
 
 點選對話方塊底部的 **Generate with AI**。OneUptime AI 會讀取事件（它的描述、根本原因和修復、狀態時間軸、公開和私人備註、其 Slack 或 Microsoft Teams 頻道中的訊息，以及 [其通話](/docs/workspace-connections/video-calls#通話逐字稿) 中說過的內容），並依照您的大綱撰寫事後分析。接著編輯器會開啟並顯示結果。
 

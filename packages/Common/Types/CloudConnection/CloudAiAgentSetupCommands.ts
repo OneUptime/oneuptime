@@ -13,12 +13,15 @@ import {
   AWS_CLOUD_AI_AGENT_LOG_GROUP_NAME,
   AWS_CLOUD_AI_AGENT_SERVICE_NAME,
   AWS_CLOUD_AI_AGENT_STACK_NAME,
+  AWS_CLOUD_AI_AGENT_STACK_SET_NAME,
   AWS_CLOUD_AI_AGENT_TASK_ROLE_NAME,
   AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_APP_NAME,
   AZURE_CLOUD_AI_AGENT_ENVIRONMENT_NAME,
+  AZURE_CLOUD_AI_AGENT_READER_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
   AZURE_CLOUD_AI_AGENT_ROLE_NAME,
+  AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
   CLOUD_AI_AGENT_NAME,
   GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
   GCP_CLOUD_AI_AGENT_HOSTS,
@@ -30,6 +33,7 @@ import {
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
   GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
   GcpCloudAiAgentHost,
+  getAzureCloudAiAgentWriteIdentityId,
   getCloudAiAgentOwnTargets,
   getGcpServiceAccountEmail,
 } from "../ResourceAiAgent/CloudAiAgentNames";
@@ -42,6 +46,7 @@ import {
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV,
+  RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
   RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
@@ -52,6 +57,14 @@ import {
 } from "../ResourceAiAgent/ResourceAiAccess";
 import { shellQuote } from "../Runbook/ShellWord";
 import { parseCloudAiAgentKey } from "./CloudAiAgentKey";
+import {
+  getAwsOrganizationStartLines,
+  getAwsStackSetDeleteLines,
+  getAwsStackSetDeployLine,
+  getAwsStackSetHomeRegionLine,
+  getAwsStackSetInstancesCommand,
+  getAwsStackSetOneAccountLine,
+} from "./AwsStackSets";
 import {
   CLOUD_CHANGE_OPERATION_NAMES,
   CLOUD_OPERATIONS,
@@ -80,9 +93,13 @@ import {
  *     once per job with a session policy for that job's one action on its
  *     one resource. The agent's key is kept in Secrets Manager, read by ECS
  *     when the task starts.
- *   - Azure (Cloud Shell): a custom role from the operations, a Container
- *     App with a system-assigned identity holding that role on the
- *     subscription, and the agent's key as a Container Apps secret.
+ *   - Azure (Cloud Shell): a custom role from the operations, held on the
+ *     subscription by a write identity - a user-assigned managed identity
+ *     attached to the agent's Container App and to nothing else, whose
+ *     token the agent asks the app's identity endpoint for, one change at
+ *     a time; a second role of their reads alone, held by the Container
+ *     App's own (system-assigned) identity, which the agent reads with;
+ *     and the agent's key as a Container Apps secret.
  *   - Google Cloud (Cloud Shell): a custom role from the operations, held
  *     on the project by a write service account; a second role of their
  *     reads alone, held by the agent's own service account, which may ask
@@ -355,6 +372,9 @@ const ROLE_DESCRIPTION: string =
 const READER_ROLE_TITLE: string = "OneUptime AI Agent (reads)";
 const READER_ROLE_DESCRIPTION: string =
   "What the OneUptime Cloud AI agent reads before and without a change; its changes run as its write account";
+// Azure's second role: what the agent's own identity reads.
+const AZURE_READER_ROLE_DESCRIPTION: string =
+  "What the OneUptime Cloud AI agent reads before and without a change; its changes run as its write identity";
 
 // The read every agent runs for Test connection.
 const WHOAMI: string = "whoami";
@@ -923,13 +943,22 @@ function environmentOf(
     );
   }
 
-  // The one subscription the agent acts in, so it never has to guess among several.
+  /*
+   * The one subscription the agent acts in, so it never has to guess among
+   * several, and the identity each change runs as, with a token the agent
+   * asks for that change: by its resource ID, which names the subscription
+   * it belongs to and needs no lookup of an id Azure makes up.
+   */
   if (setup.provider === CloudProvider.Azure) {
     environment.push(
       variable(
         AI_RESOURCE_TYPE_INFO[AiResourceType.AzureSubscription]
           .identityEnvVars[0] as string,
         setup.accountId,
+      ),
+      variable(
+        RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
+        getAzureCloudAiAgentWriteIdentityId(setup.accountId),
       ),
     );
   }
@@ -1026,6 +1055,7 @@ export function getCloudAiAgentRolePermissions(
 const GCP_OPERATION_READS: ReadonlyArray<[string, Array<string>]> = [
   ["compute", ["compute.zoneOperations.get", "compute.regionOperations.get"]],
   ["run", ["run.operations.get"]],
+  ["appengine", ["appengine.operations.get"]],
 ];
 
 // The verbs of a Google Cloud permission (service.resource.verb) that only read.
@@ -1058,6 +1088,8 @@ export function getGcpCloudAiAgentReaderPermissions(
 const AWS_TAG_READ_ACTIONS: Array<string> = [
   "lambda:ListTags",
   "sqs:ListQueueTags",
+  "apprunner:ListTagsForResource",
+  "elasticbeanstalk:ListTagsForResource",
 ];
 
 // ---- AWS ------------------------------------------------------------------------
@@ -1155,12 +1187,95 @@ function getAwsWritePolicy(setup: CloudAiAgentSetup): TemplateValue {
   return { Version: "2012-10-17", Statement: statements };
 }
 
-function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
+/*
+ * Where the agent's task runs: the Region's default VPC, whose ids the
+ * account's command looks up (VpcId and SubnetIds are parameters), or a
+ * small network of the stack's own - one VPC with one public subnet and an
+ * internet gateway, and still nothing that lets anything in - for an
+ * organization's accounts, where the command cannot look anything up and
+ * many accounts have no default VPC.
+ */
+export type AwsCloudAiAgentNetwork = "default-vpc" | "own-vpc";
+
+// The own network: room for the one task, apart from every other range.
+export const AWS_CLOUD_AI_AGENT_VPC_CIDR: string = "10.249.0.0/24";
+export const AWS_CLOUD_AI_AGENT_SUBNET_CIDR: string = "10.249.0.0/28";
+
+// The resources of the own network, by their logical ids.
+function getAwsOwnNetworkResources(): Record<string, TemplateValue> {
+  const tag: (name: string) => Array<TemplateValue> = (
+    name: string,
+  ): Array<TemplateValue> => {
+    return [{ Key: "Name", Value: `${CLOUD_AI_AGENT_NAME}-${name}` }];
+  };
+
+  return {
+    Vpc: {
+      Type: "AWS::EC2::VPC",
+      Properties: {
+        CidrBlock: AWS_CLOUD_AI_AGENT_VPC_CIDR,
+        EnableDnsSupport: true,
+        EnableDnsHostnames: true,
+        Tags: tag("vpc"),
+      },
+    },
+    InternetGateway: {
+      Type: "AWS::EC2::InternetGateway",
+      Properties: { Tags: tag("igw") },
+    },
+    GatewayAttachment: {
+      Type: "AWS::EC2::VPCGatewayAttachment",
+      Properties: {
+        VpcId: { Ref: "Vpc" },
+        InternetGatewayId: { Ref: "InternetGateway" },
+      },
+    },
+    Subnet: {
+      Type: "AWS::EC2::Subnet",
+      Properties: {
+        VpcId: { Ref: "Vpc" },
+        CidrBlock: AWS_CLOUD_AI_AGENT_SUBNET_CIDR,
+        AvailabilityZone: { "Fn::Select": [0, { "Fn::GetAZs": "" }] },
+        MapPublicIpOnLaunch: false,
+        Tags: tag("subnet"),
+      },
+    },
+    RouteTable: {
+      Type: "AWS::EC2::RouteTable",
+      Properties: { VpcId: { Ref: "Vpc" }, Tags: tag("routes") },
+    },
+    // Out to OneUptime, the AWS APIs and the image registry; nothing comes in.
+    InternetRoute: {
+      Type: "AWS::EC2::Route",
+      DependsOn: "GatewayAttachment",
+      Properties: {
+        RouteTableId: { Ref: "RouteTable" },
+        DestinationCidrBlock: "0.0.0.0/0",
+        GatewayId: { Ref: "InternetGateway" },
+      },
+    },
+    SubnetRoutes: {
+      Type: "AWS::EC2::SubnetRouteTableAssociation",
+      Properties: {
+        SubnetId: { Ref: "Subnet" },
+        RouteTableId: { Ref: "RouteTable" },
+      },
+    },
+  };
+}
+
+function getAwsTemplate(
+  setup: CloudAiAgentSetup,
+  network: AwsCloudAiAgentNetwork = "default-vpc",
+): TemplateValue {
+  const isOwnNetwork: boolean = network === "own-vpc";
   /*
    * The key is a parameter, never in the template, and reaches the task
    * from Secrets Manager (Secrets), never as one of its variables: those
    * are shown to anyone who may describe the task definition. The write
-   * role's ARN is the role's own.
+   * role's ARN is the role's own. In an organization's template the
+   * OneUptime cloud account the agent is for is a parameter too: each
+   * account's stack names its own.
    */
   const containerEnvironment: Array<TemplateValue> = environmentOf(setup)
     .filter((variable: CloudAiAgentEnvironmentVariable): boolean => {
@@ -1172,6 +1287,10 @@ function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
           Name: variable.name,
           Value: { "Fn::GetAtt": ["WriteRole", "Arn"] },
         };
+      }
+
+      if (isOwnNetwork && variable.name === RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV) {
+        return { Name: variable.name, Value: { Ref: "CloudAccountId" } };
       }
 
       return { Name: variable.name, Value: variable.value };
@@ -1189,17 +1308,23 @@ function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
 
   return {
     AWSTemplateFormatVersion: "2010-09-09",
-    Description:
-      "OneUptime Cloud AI agent: one ECS Fargate task that makes the changes OneUptime AI asks for in this account, with a role that holds only the operations turned on for it.",
+    Description: isOwnNetwork
+      ? "OneUptime Cloud AI agent, in every account of an AWS Organization: one ECS Fargate task in a small network of its own that makes the changes OneUptime AI asks for in its account, with a role that holds only the operations turned on for it."
+      : "OneUptime Cloud AI agent: one ECS Fargate task that makes the changes OneUptime AI asks for in this account, with a role that holds only the operations turned on for it.",
     Parameters: {
-      VpcId: {
-        Type: "AWS::EC2::VPC::Id",
-        Description: "The VPC the agent runs in: the Region's default VPC.",
-      },
-      SubnetIds: {
-        Type: "List<AWS::EC2::Subnet::Id>",
-        Description: "The default VPC's default subnets.",
-      },
+      ...(isOwnNetwork
+        ? {}
+        : {
+            VpcId: {
+              Type: "AWS::EC2::VPC::Id",
+              Description:
+                "The VPC the agent runs in: the Region's default VPC.",
+            },
+            SubnetIds: {
+              Type: "List<AWS::EC2::Subnet::Id>",
+              Description: "The default VPC's default subnets.",
+            },
+          }),
       AgentKey: {
         Type: "String",
         NoEcho: true,
@@ -1207,8 +1332,19 @@ function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
         Description:
           "The key the agent registers with: this account's own, which connects its agent and nothing else.",
       },
+      ...(isOwnNetwork
+        ? {
+            CloudAccountId: {
+              Type: "String",
+              MinLength: 1,
+              Description:
+                "The OneUptime cloud account this account's agent is for: the one its key names.",
+            },
+          }
+        : {}),
     },
     Resources: {
+      ...(isOwnNetwork ? getAwsOwnNetworkResources() : {}),
       Cluster: {
         Type: "AWS::ECS::Cluster",
         Properties: {
@@ -1346,7 +1482,7 @@ function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
         Type: "AWS::EC2::SecurityGroup",
         Properties: {
           GroupDescription: "OneUptime Cloud AI agent: outbound only",
-          VpcId: { Ref: "VpcId" },
+          VpcId: { Ref: isOwnNetwork ? "Vpc" : "VpcId" },
           SecurityGroupEgress: [
             {
               IpProtocol: "-1",
@@ -1391,6 +1527,10 @@ function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
       },
       Service: {
         Type: "AWS::ECS::Service",
+        // On its own network, once the network reaches out.
+        ...(isOwnNetwork
+          ? { DependsOn: ["InternetRoute", "SubnetRoutes"] }
+          : {}),
         Properties: {
           ServiceName: AWS_CLOUD_AI_AGENT_SERVICE_NAME,
           Cluster: { Ref: "Cluster" },
@@ -1414,7 +1554,9 @@ function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
                * a NAT gateway. The security group still lets nothing in.
                */
               AssignPublicIp: "ENABLED",
-              Subnets: { Ref: "SubnetIds" },
+              Subnets: isOwnNetwork
+                ? [{ Ref: "Subnet" }]
+                : { Ref: "SubnetIds" },
               SecurityGroups: [{ "Fn::GetAtt": ["SecurityGroup", "GroupId"] }],
             },
           },
@@ -1476,6 +1618,371 @@ function writeAwsCommand(setup: CloudAiAgentSetup): string {
   ].join("\n");
 }
 
+// ---- AWS: every account of an organization -----------------------------------------
+
+/*
+ * EVERY ACCOUNT OF AN AWS ORGANIZATION, IN ONE COMMAND.
+ *
+ * An organization read by one cloud connection (its management account's
+ * role, and the same role in each member account) has one OneUptime cloud
+ * account per AWS account. Setting each one's agent up by hand would be one
+ * command per account; this is one command for all of them, run in the
+ * management account's CloudShell:
+ *
+ *   - every agent runs the same template as one account's, with the same
+ *     least-privilege roles - the task role that may only assume the write
+ *     role, the write role holding the changes turned on - in a small
+ *     network of its own (AwsCloudAiAgentNetwork "own-vpc"), since a member
+ *     account's default VPC cannot be looked up from the management account
+ *     and is often gone;
+ *   - each account's agent still registers with a key of its own cloud
+ *     account's, made for it when the dialog asks for the organization's
+ *     keys, exactly as one account's is: a StackSet instance per member
+ *     account carries its key (AgentKey, NoEcho) and the OneUptime cloud
+ *     account it is for (CloudAccountId) as parameter overrides, so an
+ *     agent's key connects that account's agent and nothing else, and the
+ *     registration's checks hold it to that account as before - the key
+ *     names its cloud account, and the agent's own AWS account must be that
+ *     account's;
+ *   - the member accounts' stacks come from one StackSet
+ *     (AWS_CLOUD_AI_AGENT_STACK_SET_NAME, AwsStackSets), deployed one
+ *     account at a time with its own overrides; accounts added to the
+ *     organization later are not set up on their own (their keys do not
+ *     exist yet): run the command again once OneUptime reads them;
+ *   - the management account, which StackSets never deploys to, gets the
+ *     same template as a stack of its own, when it is one of the accounts;
+ *   - every agent runs in one Region, the StackSet's home: the one chosen,
+ *     or US East (N. Virginia) - not CloudShell's, so running the command
+ *     again from anywhere finds the StackSet it made.
+ *
+ * Only the accounts the command is given are set up: the dialog names the
+ * ones it could make keys for, and says why it left any out.
+ */
+
+// The most accounts one command sets up: one StackSet operation each.
+export const CLOUD_AI_AGENT_ORGANIZATION_MAX_ACCOUNTS: number = 500;
+
+// What the organization's command writes in the shell's directory.
+export const AWS_CLOUD_AI_AGENT_ORGANIZATION_TEMPLATE_FILE: string = `${CLOUD_AI_AGENT_NAME}-organization.json`;
+export const AWS_CLOUD_AI_AGENT_ORGANIZATION_ACCOUNTS_FILE: string = `${CLOUD_AI_AGENT_NAME}-accounts.txt`;
+
+// The shell variable the agents' Region is in: the StackSet's home too.
+const AGENT_REGION_VARIABLE: string = "AGENT_REGION";
+const AGENT_REGION: string = `"$${AGENT_REGION_VARIABLE}"`;
+
+// One AWS account the organization's command sets an agent up in.
+export interface CloudAiAgentOrganizationAccount {
+  // The AWS account id.
+  accountId: string;
+  // OneUptime's id of its cloud account.
+  cloudAccountId: string;
+  // That cloud account's own key for its agent.
+  agentKey: string;
+}
+
+/*
+ * The organization's setup: every choice of one account's - how far AI may
+ * go, the changes, the protected resources, the tag, where the agent runs -
+ * the same for every account, then the management account and the
+ * accounts with their keys.
+ */
+export interface CloudAiAgentOrganizationSetupOptions {
+  oneuptimeUrl: string;
+  fixesMode: CloudAiAgentFixesMode;
+  enabledOperations?: Array<string> | undefined;
+  protectedTargets?: Array<string> | undefined;
+  requiredTag?: string | null | undefined;
+  region?: string | undefined;
+  imageTag?: string | undefined;
+  // The organization's management account: where the command runs.
+  managementAccountId: string;
+  accounts: Array<CloudAiAgentOrganizationAccount>;
+}
+
+// The organization's setup, checked: one account's setup per account.
+interface CloudAiAgentOrganizationSetup {
+  managementAccountId: string;
+  // The shared choices, read for the first account.
+  shared: CloudAiAgentSetup;
+  members: Array<CloudAiAgentSetup>;
+  // The management account's own, when it is one of the accounts.
+  management: CloudAiAgentSetup | null;
+}
+
+function readOrganizationSetup(
+  options: CloudAiAgentOrganizationSetupOptions,
+): CloudAiAgentOrganizationSetup | string {
+  if (!options || typeof options !== "object") {
+    return "Say which accounts of the organization the agents are for.";
+  }
+
+  const management: string =
+    typeof options.managementAccountId === "string"
+      ? options.managementAccountId.trim()
+      : "";
+
+  if (!ACCOUNT_ID_PATTERNS[CloudProvider.AWS].test(management)) {
+    return `${JSON.stringify(management.slice(0, 64))} is not the AWS account id (12 digits) of the organization's management account.`;
+  }
+
+  const accounts: Array<CloudAiAgentOrganizationAccount> = Array.isArray(
+    options.accounts,
+  )
+    ? options.accounts
+    : [];
+
+  if (accounts.length === 0) {
+    return "No account of the organization has a key for its agent yet: open Let AI fix problems again, which makes them.";
+  }
+
+  if (accounts.length > CLOUD_AI_AGENT_ORGANIZATION_MAX_ACCOUNTS) {
+    return `${accounts.length} accounts are more than one command sets up: at most ${CLOUD_AI_AGENT_ORGANIZATION_MAX_ACCOUNTS}.`;
+  }
+
+  const setups: Array<CloudAiAgentSetup> = [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const account of accounts) {
+    const setup: CloudAiAgentSetup | string = readSetup({
+      provider: CloudProvider.AWS,
+      oneuptimeUrl: options.oneuptimeUrl,
+      agentKey: account && account.agentKey,
+      cloudAccountId: account && account.cloudAccountId,
+      accountId: account && account.accountId,
+      fixesMode: options.fixesMode,
+      enabledOperations: options.enabledOperations,
+      protectedTargets: options.protectedTargets,
+      requiredTag: options.requiredTag,
+      region: options.region,
+      imageTag: options.imageTag,
+    });
+
+    if (typeof setup === "string") {
+      return setup;
+    }
+
+    if (seen.has(setup.accountId)) {
+      return `AWS account ${setup.accountId} is named twice: each account gets one agent.`;
+    }
+
+    seen.add(setup.accountId);
+    setups.push(setup);
+  }
+
+  return {
+    managementAccountId: management,
+    shared: setups[0] as CloudAiAgentSetup,
+    members: setups.filter((setup: CloudAiAgentSetup): boolean => {
+      return setup.accountId !== management;
+    }),
+    management:
+      setups.find((setup: CloudAiAgentSetup): boolean => {
+        return setup.accountId === management;
+      }) || null,
+  };
+}
+
+/*
+ * What is wrong with the organization's options, in words the dialog can
+ * show, or null when its command can be written.
+ */
+export function describeCloudAiAgentOrganizationSetupProblem(
+  options: CloudAiAgentOrganizationSetupOptions,
+): string | null {
+  const setup: CloudAiAgentOrganizationSetup | string =
+    readOrganizationSetup(options);
+
+  return typeof setup === "string" ? setup : null;
+}
+
+function checkedOrganizationSetup(
+  options: CloudAiAgentOrganizationSetupOptions,
+): CloudAiAgentOrganizationSetup {
+  const setup: CloudAiAgentOrganizationSetup | string =
+    readOrganizationSetup(options);
+
+  if (typeof setup === "string") {
+    throw new BadDataException(setup);
+  }
+
+  return setup;
+}
+
+/*
+ * The template every account of the organization runs, as JSON: one
+ * account's, in a network of its own, with the agent's key and its
+ * OneUptime cloud account as parameters (AgentKey, CloudAccountId). Also
+ * what a team that keeps its StackSets in code deploys itself.
+ */
+export function getAwsOrganizationCloudAiAgentTemplate(
+  options: CloudAiAgentOrganizationSetupOptions,
+): string {
+  return JSON.stringify(
+    getAwsTemplate(checkedOrganizationSetup(options).shared, "own-vpc"),
+  );
+}
+
+// What the command says when it is pasted into another account's shell.
+export function getCloudAiAgentOrganizationWrongAccountMessage(
+  managementAccountId: string,
+): string {
+  return `This command is for your AWS Organization's management account ${managementAccountId}, and this shell is signed in to another one. Open CloudShell in AWS account ${managementAccountId} and run the command there.`;
+}
+
+// What it prints once every account's stack is on its way.
+export function getCloudAiAgentOrganizationStartedMessage(
+  count: number,
+): string {
+  return `The Cloud AI agents are starting in ${count} ${
+    count === 1 ? "account" : "accounts"
+  }. Each connects to OneUptime on its own, so there is nothing to paste back: the dialog shows which have.`;
+}
+
+// What it says of an account StackSets would not take.
+export const CLOUD_AI_AGENT_ORGANIZATION_ACCOUNT_FAILED_MESSAGE: string =
+  "StackSets did not take the agent's stack for this account; the other accounts go on.";
+
+// The line that sets AGENT_REGION: the Region chosen, or the StackSet's default home.
+function getOrganizationRegionLine(region: string | null): string {
+  return getAwsStackSetHomeRegionLine({
+    variable: AGENT_REGION_VARIABLE,
+    region,
+  });
+}
+
+/*
+ * A Region the person chose, as the commands write it, or null: one that
+ * is not an AWS Region is left out.
+ */
+function readOrganizationRegion(
+  region: string | null | undefined,
+): string | null {
+  const text: string = typeof region === "string" ? region.trim() : "";
+
+  return text && REGION_PATTERNS[CloudProvider.AWS].test(text) ? text : null;
+}
+
+/*
+ * AWS, in the management account's CloudShell: the template and the
+ * accounts' keys written to files the shell does not expand, then - in the
+ * management account, and only there - StackSets' access to the
+ * organization, the StackSet, one instance per member account with its own
+ * key, and the management account's own stack when it is one of the
+ * accounts. The accounts' file is removed once read.
+ */
+export function getAwsOrganizationCloudAiAgentSetupCommand(
+  options: CloudAiAgentOrganizationSetupOptions,
+): string {
+  const setup: CloudAiAgentOrganizationSetup =
+    checkedOrganizationSetup(options);
+  const template: string = AWS_CLOUD_AI_AGENT_ORGANIZATION_TEMPLATE_FILE;
+  const accountsFile: string = AWS_CLOUD_AI_AGENT_ORGANIZATION_ACCOUNTS_FILE;
+  const managementStack: string = `--stack-name ${AWS_CLOUD_AI_AGENT_STACK_NAME} --region ${AGENT_REGION}`;
+  const lines: Array<string> = [
+    "ACCOUNT=$(aws sts get-caller-identity --query Account --output text)",
+    `cat > ${template} <<'TEMPLATE'`,
+    JSON.stringify(getAwsTemplate(setup.shared, "own-vpc")),
+    "TEMPLATE",
+    `cat > ${accountsFile} <<'ACCOUNTS'`,
+    ...setup.members.map((member: CloudAiAgentSetup): string => {
+      return `${member.accountId} ${member.cloudAccountId} ${member.agentKey}`;
+    }),
+    "ACCOUNTS",
+    `if [ "$ACCOUNT" != ${setup.managementAccountId} ]; then`,
+    `  echo "${getCloudAiAgentOrganizationWrongAccountMessage(setup.managementAccountId)}"`,
+    "else",
+    `  ${getOrganizationRegionLine(setup.shared.region)}`,
+  ];
+
+  if (setup.members.length > 0) {
+    lines.push(
+      ...getAwsOrganizationStartLines().map((line: string): string => {
+        return `  ${line}`;
+      }),
+      `  ${getAwsStackSetDeployLine({
+        stackSetName: AWS_CLOUD_AI_AGENT_STACK_SET_NAME,
+        homeRegion: AGENT_REGION,
+        templateFile: template,
+        stackSetDescription:
+          "OneUptime Cloud AI agent: the agent of each account of the organization, with its own key.",
+        capabilities: "CAPABILITY_NAMED_IAM",
+        parameters: [
+          { key: "AgentKey", value: null },
+          { key: "CloudAccountId", value: null },
+        ],
+        autoDeployment: false,
+      })}`,
+      // One account a line: its id, its OneUptime cloud account, its key (fd 3, so no call reads them).
+      "  while read -r MEMBER CLOUD_ACCOUNT KEY <&3; do",
+      `    ${getAwsStackSetOneAccountLine({
+        stackSetName: AWS_CLOUD_AI_AGENT_STACK_SET_NAME,
+        homeRegion: AGENT_REGION,
+        accountVariable: "MEMBER",
+        region: AGENT_REGION,
+        overrides: [
+          { key: "AgentKey", shellVariable: "KEY" },
+          { key: "CloudAccountId", shellVariable: "CLOUD_ACCOUNT" },
+        ],
+        failedMessage: CLOUD_AI_AGENT_ORGANIZATION_ACCOUNT_FAILED_MESSAGE,
+      })}`,
+      `  done 3< ${accountsFile}`,
+    );
+  }
+
+  // The management account, which StackSets never deploys to: a stack of its own.
+  if (setup.management) {
+    lines.push(
+      `  [ "$(aws cloudformation describe-stacks ${managementStack} --query "Stacks[0].StackStatus" --output text 2> /dev/null)" = ROLLBACK_COMPLETE ] && aws cloudformation delete-stack ${managementStack} && aws cloudformation wait stack-delete-complete ${managementStack}`,
+      `  aws cloudformation deploy ${managementStack} --template-file ${template} --capabilities CAPABILITY_NAMED_IAM --no-fail-on-empty-changeset --parameter-overrides AgentKey=${shellQuote(setup.management.agentKey)} CloudAccountId=${setup.management.cloudAccountId} > /dev/null || echo "${setup.managementAccountId}: ${CLOUD_AI_AGENT_ORGANIZATION_ACCOUNT_FAILED_MESSAGE}"`,
+    );
+  }
+
+  lines.push(
+    `  echo "${getCloudAiAgentOrganizationStartedMessage(
+      setup.members.length + (setup.management ? 1 : 0),
+    )}"`,
+    "fi",
+    `rm -f ${accountsFile}`,
+  );
+
+  return lines.join("\n");
+}
+
+/*
+ * Where each member account's stack stands - its status and, for one that
+ * failed, why - in the management account's CloudShell.
+ */
+export function getAwsOrganizationCloudAiAgentInstancesCommand(
+  region?: string | null | undefined,
+): string {
+  return [
+    getOrganizationRegionLine(readOrganizationRegion(region)),
+    getAwsStackSetInstancesCommand({
+      stackSetName: AWS_CLOUD_AI_AGENT_STACK_SET_NAME,
+      homeRegion: AGENT_REGION,
+    }),
+  ].join("\n");
+}
+
+/*
+ * Every account's agent removed, in the management account's CloudShell:
+ * each member account's stack and then the StackSet, then the management
+ * account's own stack. Their keys stop working with Reset agent.
+ */
+export function getAwsOrganizationCloudAiAgentRemoveCommand(
+  region?: string | null | undefined,
+): string {
+  return [
+    getOrganizationRegionLine(readOrganizationRegion(region)),
+    ...getAwsStackSetDeleteLines({
+      stackSetName: AWS_CLOUD_AI_AGENT_STACK_SET_NAME,
+      homeRegion: AGENT_REGION,
+      regions: AGENT_REGION,
+    }),
+    `aws cloudformation delete-stack --stack-name ${AWS_CLOUD_AI_AGENT_STACK_NAME} --region ${AGENT_REGION}`,
+  ].join("\n");
+}
+
 // ---- Azure ----------------------------------------------------------------------
 
 /*
@@ -1485,6 +1992,34 @@ function writeAwsCommand(setup: CloudAiAgentSetup): string {
  */
 export function getAzureCloudAiAgentRoleName(subscriptionId: string): string {
   return `${AZURE_CLOUD_AI_AGENT_ROLE_NAME} (${subscriptionId.trim().toLowerCase()})`;
+}
+
+// The agent's own identity's role: the same, for the reads alone.
+export function getAzureCloudAiAgentReaderRoleName(
+  subscriptionId: string,
+): string {
+  return `${AZURE_CLOUD_AI_AGENT_READER_ROLE_NAME} (${subscriptionId.trim().toLowerCase()})`;
+}
+
+// An Azure RBAC action that only reads (Microsoft.Web/sites/read).
+function isAzureReadAction(action: string): boolean {
+  return action.toLowerCase().endsWith("/read");
+}
+
+/*
+ * What the Azure agent's own identity holds: the reads of the changes
+ * turned on (what a dry run reads, and Test connection's read of the
+ * subscription), never a change - each change runs as the write identity
+ * (getCloudAiAgentRolePermissions), signed in for that change. Sorted,
+ * each once.
+ */
+export function getAzureCloudAiAgentReaderPermissions(
+  enabledOperations?: Array<string> | undefined,
+): Array<string> {
+  return getCloudAiAgentRolePermissions(
+    CloudProvider.Azure,
+    enabledOperations,
+  ).filter(isAzureReadAction);
 }
 
 export interface AzureCloudAiAgentRoleDefinition {
@@ -1500,9 +2035,9 @@ export interface AzureCloudAiAgentRoleDefinition {
 
 /*
  * The custom role, as `az role definition create` and `update` take it:
- * the operations' actions on the one subscription. RBAC cannot leave the
- * agent's own resource group out of a subscription's role; the agent
- * protects it (getCloudAiAgentOwnTargets).
+ * the operations' actions on the one subscription - what the write
+ * identity holds. RBAC cannot leave the agent's own resource group out of
+ * a subscription's role; the agent protects it (getCloudAiAgentOwnTargets).
  */
 export function getAzureCloudAiAgentRoleDefinition(
   options: CloudAiAgentSetupOptions,
@@ -1529,15 +2064,61 @@ function azureRoleDefinitionOf(
 }
 
 /*
+ * The second custom role, the agent's own identity's: the reads of the
+ * same operations, on the same subscription, and no change.
+ */
+export function getAzureCloudAiAgentReaderRoleDefinition(
+  options: CloudAiAgentSetupOptions,
+): AzureCloudAiAgentRoleDefinition {
+  return azureReaderRoleDefinitionOf(
+    checkedSetup(options, CloudProvider.Azure),
+  );
+}
+
+function azureReaderRoleDefinitionOf(
+  setup: CloudAiAgentSetup,
+): AzureCloudAiAgentRoleDefinition {
+  return {
+    Name: getAzureCloudAiAgentReaderRoleName(setup.accountId),
+    IsCustom: true,
+    Description: AZURE_READER_ROLE_DESCRIPTION,
+    Actions: getAzureCloudAiAgentReaderPermissions(setup.operations),
+    NotActions: [],
+    DataActions: [],
+    NotDataActions: [],
+    AssignableScopes: [`/subscriptions/${setup.accountId}`],
+  };
+}
+
+/*
  * Azure, in Cloud Shell, in the subscription the command was written for
  * (every call names it, so the shell's default subscription does not
- * matter): the role, created or updated; the resource group and the
- * Container Apps environment, created when they are not there; the app,
- * which `az containerapp create` writes whole each time - its image,
- * secret, variables and size - keeping its identity; and the role on the
- * subscription for that identity (`az role assignment create` is a no-op
- * when the assignment is there). The role is assigned by its id, which
- * needs no lookup of a role made a minute before.
+ * matter):
+ *
+ *   - the two roles, created or updated: the changes', and their reads
+ *     alone;
+ *   - the resource group, the write identity (a user-assigned managed
+ *     identity, made once and the same identity every run after) and the
+ *     Container Apps environment, created when they are not there;
+ *   - the app, which `az containerapp create` writes whole each time - its
+ *     image, secret, variables and size - with its own system-assigned
+ *     identity, and the write identity attached to it and to nothing else:
+ *     Azure gives a managed identity's token only to code running where the
+ *     identity is attached, so this app is the only place a token of the
+ *     write identity can come from;
+ *   - the reads' role for the app's own identity, and the changes' role
+ *     for the write identity, on the subscription (`az role assignment
+ *     create` is a no-op when the assignment is there); and the changes'
+ *     role taken from the app's own identity, which held it in an agent set
+ *     up before.
+ *
+ * The roles are assigned by their ids and the identities by their object
+ * ids, which needs no lookup of a role or an identity made a minute
+ * before. Nothing grants the agent's own identity anything on the write
+ * identity: neither Managed Identity Operator, which would let it attach
+ * the identity to a resource it may write, nor a federated credential,
+ * which Azure lets a user-assigned identity hold only for an issuer outside
+ * Entra ID.
  */
 export function getAzureCloudAiAgentSetupCommand(
   options: CloudAiAgentSetupOptions,
@@ -1550,6 +2131,8 @@ function writeAzureCommand(setup: CloudAiAgentSetup): string {
   const location: string = setup.region as string;
   const subscription: string = '--subscription "$SUBSCRIPTION"';
   const group: string = `--resource-group ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP}`;
+  const scope: string = '--scope "/subscriptions/$SUBSCRIPTION"';
+  const writeIdentity: string = `--name ${AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME} ${group}`;
   const variables: Array<string> = environmentOf(setup).map(
     (variable: CloudAiAgentEnvironmentVariable): string => {
       return variable.isSecret
@@ -1557,26 +2140,43 @@ function writeAzureCommand(setup: CloudAiAgentSetup): string {
         : `${variable.name}=${shellQuote(variable.value)}`;
     },
   );
+  // The same flags whether a role is created or updated.
+  const role: (definition: string) => string = (definition: string): string => {
+    return `${subscription} --role-definition "$${definition}" --query name --output tsv`;
+  };
 
   return [
     `SUBSCRIPTION=${setup.accountId}`,
     `DEFINITION=${shellQuote(JSON.stringify(azureRoleDefinitionOf(setup)))}`,
+    `READER_DEFINITION=${shellQuote(JSON.stringify(azureReaderRoleDefinitionOf(setup)))}`,
     "az extension add --name containerapp --upgrade -y --only-show-errors",
-    `ROLE=$(az role definition create ${subscription} --role-definition "$DEFINITION" --query name --output tsv 2> /dev/null || az role definition update ${subscription} --role-definition "$DEFINITION" --query name --output tsv)`,
+    `ROLE=$(az role definition create ${role("DEFINITION")} 2> /dev/null || az role definition update ${role("DEFINITION")})`,
+    `READER_ROLE=$(az role definition create ${role("READER_DEFINITION")} 2> /dev/null || az role definition update ${role("READER_DEFINITION")})`,
     `az provider register ${subscription} --namespace Microsoft.App --wait`,
+    `az provider register ${subscription} --namespace Microsoft.ManagedIdentity --wait`,
     `az group show ${subscription} --name ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP} > /dev/null 2>&1 || az group create ${subscription} --name ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP} --location ${location} --output none`,
+    // The identity each change runs as: made the first time, the same one every time after.
+    `WRITE_PRINCIPAL=$(az identity show ${subscription} ${writeIdentity} --query principalId --output tsv 2> /dev/null || az identity create ${subscription} ${writeIdentity} --location ${location} --query principalId --output tsv)`,
     `az containerapp env show ${subscription} --name ${AZURE_CLOUD_AI_AGENT_ENVIRONMENT_NAME} ${group} > /dev/null 2>&1 || az containerapp env create ${subscription} --name ${AZURE_CLOUD_AI_AGENT_ENVIRONMENT_NAME} ${group} --location ${location} --logs-destination none --output none`,
-    // The app, its identity's role, and the line that says so: each only when the one before worked.
+    /*
+     * The app with its own identity and the write identity, their roles,
+     * and the line that says so: each only when the one before worked.
+     */
     [
-      `az containerapp create ${subscription} --name ${AZURE_CLOUD_AI_AGENT_APP_NAME} ${group}`,
+      `[ -n "$WRITE_PRINCIPAL" ] && az containerapp create ${subscription} --name ${AZURE_CLOUD_AI_AGENT_APP_NAME} ${group}`,
       `--environment ${AZURE_CLOUD_AI_AGENT_ENVIRONMENT_NAME} --image ${setup.image}`,
-      `--cpu ${size.vcpu} --memory ${size.memoryGiB}Gi --min-replicas 1 --max-replicas 1 --system-assigned`,
+      `--cpu ${size.vcpu} --memory ${size.memoryGiB}Gi --min-replicas 1 --max-replicas 1`,
+      `--system-assigned --user-assigned ${getAzureCloudAiAgentWriteIdentityId(setup.accountId)}`,
       `--secrets ${AZURE_CLOUD_AI_AGENT_SECRET_NAME}=${shellQuote(setup.agentKey)}`,
       `--env-vars ${variables.join(" ")}`,
       "--output none &&",
     ].join(" "),
     `  PRINCIPAL=$(az containerapp show ${subscription} --name ${AZURE_CLOUD_AI_AGENT_APP_NAME} ${group} --query identity.principalId --output tsv) &&`,
-    `  az role assignment create ${subscription} --assignee-object-id "$PRINCIPAL" --assignee-principal-type ServicePrincipal --role "$ROLE" --scope "/subscriptions/$SUBSCRIPTION" --output none &&`,
+    // The agent's own identity reads; the write identity holds the changes.
+    `  az role assignment create ${subscription} --assignee-object-id "$PRINCIPAL" --assignee-principal-type ServicePrincipal --role "$READER_ROLE" ${scope} --output none &&`,
+    `  az role assignment create ${subscription} --assignee-object-id "$WRITE_PRINCIPAL" --assignee-principal-type ServicePrincipal --role "$ROLE" ${scope} --output none &&`,
+    // An agent set up before held the changes' role itself: no longer.
+    `  { az role assignment delete ${subscription} --assignee "$PRINCIPAL" --role "$ROLE" ${scope} --output none 2> /dev/null || true; } &&`,
     `  echo "${CLOUD_AI_AGENT_STARTED_MESSAGE}"`,
   ].join("\n");
 }
@@ -1588,6 +2188,7 @@ const GCP_PERMISSION_APIS: Readonly<Record<string, string>> = {
   run: "run.googleapis.com",
   compute: "compute.googleapis.com",
   cloudsql: "sqladmin.googleapis.com",
+  appengine: "appengine.googleapis.com",
 };
 
 /*

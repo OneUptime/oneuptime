@@ -277,6 +277,73 @@ export const REMEDIATION_FIX_DISMISS_REFUSED: string = translationKey(
 );
 
 /*
+ * TWO PEOPLE APPROVE A RISKIER FIX (#6148's follow-up): where the project
+ * asks two people to approve a fix that holds a riskier change
+ * (Project.requireTwoApprovalsForRiskierFixes), the fix waits after its
+ * first approval for a second from someone else, which runs it
+ * (Common/Types/AutoRemediation/RemediationApprovals). The step says who
+ * approved it first - a step of its own, in the order it happened - and that
+ * a second person is needed; the person who approved first reads why
+ * approving again does nothing, and is offered no Approve.
+ */
+export const REMEDIATION_TWO_APPROVALS_COPY: {
+  // The approval step's title once a first approval is in, and the pill's.
+  needsSecondApproval: string;
+  // Where the fix stands, beside its name.
+  waitingForSecondApproval: string;
+  // Under the approval step, to a reader who may approve: theirs is first.
+  yoursIsTheFirst: string;
+  // ... after someone else approved it first: theirs runs it.
+  yoursRunsIt: string;
+  // ... to the reader who approved it first.
+  youApprovedFirst: string;
+  // ... to a reader who may not approve it.
+  twoPeopleMustApprove: string;
+  /*
+   * Over the press of a first approval, which runs nothing: what pressing
+   * it does, read before the press (the UI review: "Your approval is
+   * recorded" said it had happened already).
+   */
+  firstApprovalNote: string;
+  /*
+   * The one line a first approver's press the server refused reads: their
+   * approval stands, so it is no failure - the steps above say the rest.
+   */
+  alreadyApprovedTitle: string;
+} = {
+  needsSecondApproval: translationKey("Needs a second approval"),
+  waitingForSecondApproval: translationKey("Waiting for a second approval"),
+  yoursIsTheFirst: translationKey(
+    "Two people must approve this riskier fix. Yours is the first.",
+  ),
+  yoursRunsIt: translationKey(
+    "Two people must approve this riskier fix. Your approval runs it.",
+  ),
+  youApprovedFirst: translationKey(
+    "You approved it first. It runs once someone else approves it too.",
+  ),
+  twoPeopleMustApprove: translationKey(
+    "Two people must approve this riskier fix.",
+  ),
+  firstApprovalNote: translationKey(
+    "Your approval alone runs nothing: the fix runs once someone else approves it too.",
+  ),
+  alreadyApprovedTitle: translationKey("You already approved this fix"),
+};
+
+/*
+ * The server's refusal of the first approver's second press, word for word
+ * (Common/Types/AutoRemediation/RemediationApprovals'
+ * ALREADY_APPROVED_FIRST_MESSAGE): how the card tells that refusal from
+ * every other one, and what it says, in the reader's language, on the rare
+ * card that cannot show the reader's first approval itself.
+ */
+export const REMEDIATION_ALREADY_APPROVED_FIRST_REFUSED: string =
+  translationKey(
+    "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.",
+  );
+
+/*
  * A FIX, STEP BY STEP (issue #5598): "Ideally it should be in steps where
  * you have step by step sections on what AI did and why, and when I expand
  * the step - it shows me more context into why, commands ran, outputs."
@@ -300,6 +367,8 @@ export const REMEDIATION_FIX_STEP_COPY: {
   noRunbook: string;
   // approval: the reader's, a person's, or not needed.
   waitingForApproval: string;
+  // The same, to a reader who may not approve it (RemediationFixActGate).
+  waitingForSomeonesApproval: string;
   cannotBeApproved: string;
   approved: string;
   approvedBy: string;
@@ -352,6 +421,7 @@ export const REMEDIATION_FIX_STEP_COPY: {
   noSafeFix: translationKey("Found no safe fix"),
   noRunbook: translationKey("Found no runbook that applies"),
   waitingForApproval: translationKey("Needs your approval"),
+  waitingForSomeonesApproval: translationKey("Needs approval"),
   cannotBeApproved: translationKey("Approval blocked"),
   approved: translationKey("Approved"),
   approvedBy: translationKey("Approved by {{name}}"),

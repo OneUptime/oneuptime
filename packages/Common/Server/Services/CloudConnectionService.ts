@@ -17,9 +17,15 @@ import {
 import {
   CLOUD_STREAM_KEY_WRITE_ATTEMPTS,
   CloudStreamKeyHashes,
+  getCloudStreamPushServiceAccountEmail,
+  isCloudStreamPushed,
   readCloudStreamKeyHashes,
   rotateCloudStreamKeyHashes,
 } from "../../Types/CloudConnection/CloudStream";
+import {
+  AzureCloudStreamState,
+  readAzureCloudStreamState,
+} from "../../Types/CloudConnection/CloudStreamAzure";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -595,11 +601,14 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * A new stream key for an AWS connection (CloudStream): returned this
-   * once and stored only as its SHA-256. The key it replaces keeps working
-   * for CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS, so streams set up with it keep
-   * delivering until their stacks are updated. The caller has checked the
-   * connection is the project's and the person may change it.
+   * A new stream key for a connection of a cloud that pushes - AWS's
+   * Firehose, Google Cloud's Pub/Sub (CloudStream): returned this once and
+   * stored only as its SHA-256. The key it replaces keeps working for
+   * CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS, so streams set up with it keep
+   * delivering until they are updated. A Google Cloud key is kept with the
+   * push service account its pushes must be signed for: the one in the
+   * project of the connection's own service account. The caller has
+   * checked the connection is the project's and the person may change it.
    *
    * Two admins making a key at the same moment both keep theirs: the
    * hashes are read, rotated and written back only if they are still what
@@ -616,6 +625,7 @@ export class Service extends DatabaseService<Model> {
     streamKey: string;
     createdAt: Date;
     previousKeyWorksUntil: Date | null;
+    pushServiceAccount: string | null;
   }> {
     const generated: { key: string; hash: string } = CloudStreamKeys.generate(
       data.connectionId,
@@ -628,7 +638,12 @@ export class Service extends DatabaseService<Model> {
     ) {
       const connection: Model | null = await this.findOneById({
         id: data.connectionId,
-        select: { _id: true, provider: true, streamKeyHashes: true },
+        select: {
+          _id: true,
+          provider: true,
+          streamKeyHashes: true,
+          config: true,
+        },
         props: { isRoot: true },
       });
 
@@ -636,9 +651,20 @@ export class Service extends DatabaseService<Model> {
         throw new BadDataException("The connection no longer exists.");
       }
 
-      if (connection.provider !== CloudProvider.AWS) {
+      if (!isCloudStreamPushed(connection.provider)) {
         throw new BadDataException(
-          "Only AWS connections stream metrics and logs through Amazon Data Firehose.",
+          "Only AWS and Google Cloud connections stream with a stream key.",
+        );
+      }
+
+      const pushServiceAccount: string | null =
+        connection.provider === CloudProvider.GCP
+          ? this.getPushServiceAccount(connection)
+          : null;
+
+      if (connection.provider === CloudProvider.GCP && !pushServiceAccount) {
+        throw new BadDataException(
+          "This connection does not say which project its service account is from. Save the connection again with its key to stream.",
         );
       }
 
@@ -646,6 +672,7 @@ export class Service extends DatabaseService<Model> {
         hashes: readCloudStreamKeyHashes(connection.streamKeyHashes),
         newHash: generated.hash,
         now: data.now,
+        pushServiceAccount: pushServiceAccount || undefined,
       });
 
       const isWritten: boolean =
@@ -678,6 +705,7 @@ export class Service extends DatabaseService<Model> {
         previousKeyWorksUntil: hashes.previous?.[0]
           ? new Date(hashes.previous[0].expiresAt)
           : null,
+        pushServiceAccount,
       };
     }
 
@@ -687,9 +715,97 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The push service account of a Google Cloud connection's stream: the
+   * one in the project its own service account is from, as the save wrote
+   * it (keyProjectId) - or null when the connection says no project.
+   */
+  public getPushServiceAccount(connection: Model): string | null {
+    const project: unknown = connection.config?.["keyProjectId"];
+
+    return typeof project === "string" && connection.id
+      ? getCloudStreamPushServiceAccountEmail({
+          connectionId: connection.id.toString(),
+          projectId: project,
+        })
+      : null;
+  }
+
+  /*
+   * Turns reading on for an Azure connection (CloudStreamAzure): OneUptime
+   * reads, every minute, the event hubs the streaming command makes in the
+   * subscription given. Made again for the same subscription, it keeps
+   * where each event hub was read to; for another, it starts afresh. The
+   * caller has checked the connection is the project's and the person may
+   * change it.
+   */
+  public async startStreaming(data: {
+    connectionId: ObjectID;
+    hostSubscriptionId: string;
+    now: Date;
+  }): Promise<{ startedAt: Date }> {
+    const hostSubscriptionId: string = data.hostSubscriptionId
+      .trim()
+      .toLowerCase();
+
+    if (!ObjectID.isValidUUID(hostSubscriptionId)) {
+      throw new BadDataException(
+        "Give the subscription the event hubs are in, as its ID.",
+      );
+    }
+
+    const connection: Model | null = await this.findOneById({
+      id: data.connectionId,
+      select: {
+        _id: true,
+        provider: true,
+        streamKeyCreatedAt: true,
+        streamState: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!connection) {
+      throw new BadDataException("The connection no longer exists.");
+    }
+
+    if (connection.provider !== CloudProvider.Azure) {
+      throw new BadDataException(
+        "Only Azure connections are read from their event hubs.",
+      );
+    }
+
+    const kept: AzureCloudStreamState | null = readAzureCloudStreamState(
+      connection.streamState,
+    );
+    const startedAt: Date = connection.streamKeyCreatedAt
+      ? new Date(connection.streamKeyCreatedAt)
+      : data.now;
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: data.connectionId,
+      // JSON columns make the typed partial too deep for TypeScript.
+      data: {
+        streamKeyCreatedAt: startedAt,
+        streamState: {
+          hostSubscriptionId,
+          offsets:
+            kept && kept.hostSubscriptionId === hostSubscriptionId
+              ? kept.offsets
+              : {},
+        } as unknown as JSONObject,
+      } as never,
+    });
+
+    return { startedAt };
+  }
+
+  /*
    * Stops every stream of the connection: its keys stop working at once
-   * here and within a minute everywhere (CloudStreamAuthenticator's cache).
-   * What the streams delivered stays, and so does what they last said.
+   * here and within a minute everywhere (CloudStreamAuthenticator's cache),
+   * and an Azure connection's event hubs are read no more - within a minute
+   * of a read already running. What the streams delivered stays, and so
+   * does what they last said - and where an Azure connection's event hubs
+   * were read to, so streaming them again never reads an event twice.
    */
   public async stopStreaming(connectionId: ObjectID): Promise<void> {
     await this.updateColumnsByIdWithoutHooks({

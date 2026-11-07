@@ -393,7 +393,7 @@ describe("a metric snapshot's investigation zooms as one, every tab of it (issue
     );
 
     expect(tabs).toContain("snapshotWindow={investigation.window}");
-    expect(tabs).toContain("windowName={SELECTED_TIME_RANGE_NAME}");
+    expect(tabs).toContain('companionWindow="selected"');
     expect(tabs).toContain("snapshotWindowAlert={timePicker}");
   });
 

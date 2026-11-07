@@ -12,6 +12,7 @@ import {
   GCP_BILLING_EXPORT_TABLE_FIELD_KEY,
   READ_INTERVAL_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
+  RESOURCE_COSTS_FIELD_KEY,
   getCloudConnectionAuthMethod,
   getCloudConnectionAuthMethodDefinition,
   getCloudConnectionDataSecurityLevel,
@@ -21,6 +22,7 @@ import {
   getCloudConnectionTitle,
   isCloudConnectionAuthMethod,
   isCloudConnectionProvider,
+  isCloudConnectionResourceCostsOn,
   splitCloudConnectionList,
 } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import { describe, expect, test } from "@jest/globals";
@@ -179,6 +181,8 @@ describe("the catalog", () => {
     expect(folded(CloudProvider.AWS)).toEqual([
       "regions",
       READ_INTERVAL_FIELD_KEY,
+      // Costs per resource cost Cost Explorer requests: off until asked.
+      RESOURCE_COSTS_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
     ]);
@@ -232,6 +236,46 @@ describe("the catalog", () => {
     expect(getCloudConnectionDataSecurityLevel("Content")).toBe("off");
     expect(getCloudConnectionDataSecurityLevel(true)).toBe("off");
   });
+
+  /*
+   * AWS alone: Azure's and Google Cloud's billing name each resource
+   * already. Off until someone turns it on - each read is one more Cost
+   * Explorer request, at $0.01 - and only "on" reads them.
+   */
+  test("what each resource costs is an AWS setting, folded and off until someone turns it on", () => {
+    const field: CloudConnectionField | undefined = definitionOf(
+      CloudProvider.AWS,
+    ).configFields.find((candidate: CloudConnectionField): boolean => {
+      return candidate.key === RESOURCE_COSTS_FIELD_KEY;
+    });
+
+    expect(field).toBeDefined();
+    expect(field!.title).toBe("Costs per resource");
+    expect(field!.isAdvanced).toBe(true);
+    expect(field!.required).toBe(false);
+    expect(field!.defaultValue).toBe("off");
+    expect(field!.authMethods).toBeUndefined();
+    expect(field!.description).toContain("resource-level data");
+    expect(field!.description).toContain("$0.01");
+    expect(
+      (field!.options || []).map((option: { value: string }): string => {
+        return option.value;
+      }),
+    ).toEqual(["off", "on"]);
+
+    for (const provider of [CloudProvider.Azure, CloudProvider.GCP]) {
+      expect(keysOf(definitionOf(provider).configFields)).not.toContain(
+        RESOURCE_COSTS_FIELD_KEY,
+      );
+    }
+
+    expect(isCloudConnectionResourceCostsOn("on")).toBe(true);
+    // Anything else - absent, off, misspelt, another type - reads none.
+    expect(isCloudConnectionResourceCostsOn("off")).toBe(false);
+    expect(isCloudConnectionResourceCostsOn(undefined)).toBe(false);
+    expect(isCloudConnectionResourceCostsOn("On")).toBe(false);
+    expect(isCloudConnectionResourceCostsOn(true)).toBe(false);
+  });
 });
 
 describe("fields by sign-in method", () => {
@@ -250,6 +294,7 @@ describe("fields by sign-in method", () => {
       READ_SCOPE_FIELD_KEY,
       "regions",
       READ_INTERVAL_FIELD_KEY,
+      RESOURCE_COSTS_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
     ]);
@@ -272,6 +317,7 @@ describe("fields by sign-in method", () => {
       "accessKeyId",
       "regions",
       READ_INTERVAL_FIELD_KEY,
+      RESOURCE_COSTS_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
     ]);

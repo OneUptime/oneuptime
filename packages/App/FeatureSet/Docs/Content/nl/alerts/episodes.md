@@ -20,12 +20,15 @@ flowchart TB
     open -->|Ja| join["Voegt zich erbij"]
     open -->|Nee| reopen(["Een opgeloste binnen<br/>het heropenvenster?"])
     reopen -->|Ja| reopened["Heropent die"]
-    reopen -->|Nee| created["Opent een<br/>nieuwe episode"]
+    reopen -->|Nee| enough(["Genoeg overeenkomende<br/>waarschuwingen lopend?"])
+    enough -->|Ja| created["Opent een nieuwe episode<br/>met ze allemaal"]
+    enough -->|Nog niet| waits["Wacht in haar eentje"]
 ```
 
 - **De voorwaarden van de regel** bepalen op welke waarschuwingen ze van toepassing is. Een regel zonder voorwaarden geldt voor elke nieuwe waarschuwing.
 - **De groeperingssleutel** bepaalt welke waarschuwingen een episode delen: die met dezelfde monitor, dezelfde ernst, dezelfde titel, of welke combinatie de regel ook gebruikt. Een regel die op niets groepeert, plaatst elke waarschuwing waarop ze overeenkomt in één episode.
 - **Het tijdvenster** bepaalt hoe lang een episode waarschuwingen blijft opnemen. Staat het aan, dan voegt een waarschuwing zich alleen bij als ze binnen het venster na de laatste waarschuwing van de episode binnenkomt. Staat het uit, dan blijven overeenkomende waarschuwingen zich aansluiten tot de episode is opgelost.
+- **Wachten op meer waarschuwingen** bepaalt wanneer een nieuwe episode wordt geopend. Staat het uit, waarmee een nieuwe regel begint, dan opent de eerste overeenkomende waarschuwing er een. Staat het aan, dan wacht een waarschuwing in haar eentje tot er zoveel overeenkomende waarschuwingen van haar groep lopen als je hebt ingesteld, en dan opent er één episode met ze allemaal. Zie [Een episode alleen voor meerdere waarschuwingen openen](#een-episode-alleen-voor-meerdere-waarschuwingen-openen).
 
 Groeperen gebeurt wanneer een waarschuwing wordt aangemaakt. Een regel die je vandaag toevoegt, groepeert de waarschuwingen die daarna worden aangemaakt; de bestaande worden niet opnieuw gegroepeerd.
 
@@ -72,10 +75,21 @@ Al het andere wat een regel kan doen, staat ingeklapt onder **Meer velden** aan 
 | Groep                                | Instellingen                                                                                               |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
 | **Bereikbaarheid en eigenaarschap**  | **Bereikbaarheidsbeleid** dat draait wanneer de regel een episode opent, en **Episode-eigenaren**.         |
-| **Episodelevenscyclus**              | **Recent opgeloste episodes heropenen**, **Wachten voordat een episode wordt opgelost** en **Stille episodes oplossen**, elk een schakelaar met zijn minuten. |
+| **Episodelevenscyclus**              | **Wachten op meer waarschuwingen**, een schakelaar met een aantal, dan **Recent opgeloste episodes heropenen**, **Wachten voordat een episode wordt opgelost** en **Stille episodes oplossen**, elk een schakelaar met zijn minuten. |
 | **Details**                          | De **Beschrijving** van de regel, het **Episodetitelsjabloon**, het **Episodebeschrijvingssjabloon** en **Episodelabels**. |
 
 Regels worden van boven naar beneden in de lijst gecontroleerd, en de eerste overeenkomst wint: sleep een regel om haar plek te wijzigen. Zet specifieke regels boven brede. De kolom **Groepering** in de lijst zegt in één zin wat elke regel doet, zoals "Eén episode per monitor".
+
+### Een episode alleen voor meerdere waarschuwingen openen
+
+**Wachten op meer waarschuwingen**, onder **Episodelevenscyclus**, houdt een losse waarschuwing buiten een episode. Zet het aan en geef aan hoeveel: **Een episode openen zodra 3 overeenkomende waarschuwingen lopen**, van 2 tot 100.
+
+- **Tot dan wacht elke waarschuwing in haar eentje.** Een waarschuwing die geen open episode van haar groep vindt om zich bij te voegen, en geen opgeloste om te heropenen, opent niets en voert alleen haar eigen bereikbaarheidsbeleid uit, zoals een waarschuwing waarop geen regel overeenkomt.
+- **Dan opent één episode met ze allemaal.** De waarschuwing waarmee het aantal is bereikt, opent de episode met elke waarschuwing die wachtte. De episode neemt haar titel, monitor en ernst over van de eerste daarvan en stijgt naar de hoogste ernst, en de waarschuwingen daarna voegen zich er zoals gewoonlijk bij.
+- **Alleen lopende waarschuwingen tellen.** Een waarschuwing die intussen is opgelost, is voorbij, dus een monitor die steeds uitvalt en herstelt, opent nooit uit zichzelf een episode. Zolang **Alleen waarschuwingen groeperen die kort na elkaar binnenkomen** aanstaat, moeten de waarschuwingen bovendien binnen het venster daarvan na elkaar zijn binnengekomen.
+- **Het telt per groep.** Met **Alles samen** tellen alle overeenkomende waarschuwingen, dus opent er alleen een episode bij een storing die meerdere monitors tegelijk laat afgaan. Met **Monitor** opent de episode van een monitor zodra die monitor meerdere lopende waarschuwingen heeft.
+
+De kolom **Groepering** in de lijst zegt "Opent een episode zodra 3 overeenkomende waarschuwingen lopen". Via de API en Terraform heet het `enableMinimumAlertCount` en `minimumAlertCount`.
 
 ## Titels van episodes
 
@@ -115,8 +129,9 @@ flowchart TB
     grouped -->|"Sluit aan bij een episode"| none["Verder draait er niets"]
 ```
 
-- **Een nieuwe episode** voert het **Bereikbaarheidsbeleid** van de regel uit, plus dat van elke overeenkomende regel op het tabblad **Episode Rules** van **Waarschuwingen → Regels → Bereikbaarheidsregels**.
+- **Een nieuwe episode** voert het **Bereikbaarheidsbeleid** van de regel uit, plus dat van elke overeenkomende regel op het tabblad **Episoderegels** van **Waarschuwingen → Regels → Bereikbaarheidsregels**.
 - **Een waarschuwing die zich bij een open episode voegt,** voert alleen haar eigen beleid uit. Dat van de episode draait niet opnieuw.
+- **Een waarschuwing die op meer waarschuwingen wacht,** voert ook alleen haar eigen beleid uit. Staat **Wachten op meer waarschuwingen** aan en is het beleid van de regel het enige dat oproept, dan roept een losse waarschuwing niemand op tot er genoeg van lopen.
 - **Wie de oproep van een episode beantwoordt,** bevestigt de episode, en daarmee elke waarschuwing erin.
 
 > [!TIP]
@@ -160,7 +175,7 @@ Een episode die je zelf aanmaakt, heeft geen groeperingsregel, dus toont de lijs
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI**, **AI-assistenten** |
 | **Geavanceerd** | **Auditlogboeken**, **Episode verwijderen** |
 
-**Ontwikkelaars** en **Geavanceerd** beginnen ingeklapt. Op het **Overzicht** noemt de kop de **Eigenaren** van de episode, teams eerst, en de eerste tegel, **Aangemaakt**, zegt wanneer de episode werd aangemaakt — **Automatisch**, als een groeperingsregel haar opende. De kaart **Wat er gebeurde** opent de pagina — de beschrijving van de episode en haar **Hoofdoorzaak** — dan **Alerts in this episode** en de **Episodefeed**, naast de kaart **Episodedetails**: haar nummer, status, ernst, aantal waarschuwingen, groeperingsregel en bereikbaarheidsbeleid. De kop heeft **Bevestigen** en **Oplossen**, en **Episode verplaatsen naar** in het menu **⋯**.
+**Ontwikkelaars** en **Geavanceerd** beginnen ingeklapt. Op het **Overzicht** noemt de kop de **Eigenaren** van de episode, teams eerst, en de eerste tegel, **Aangemaakt**, zegt wanneer de episode werd aangemaakt — **Automatisch**, als een groeperingsregel haar opende. De kaart **Wat er gebeurde** opent de pagina — de beschrijving van de episode en haar **Hoofdoorzaak** — dan **Waarschuwingen in deze episode** en de **Episodefeed**, naast de kaart **Episodedetails**: haar nummer, status, ernst, aantal waarschuwingen, groeperingsregel en bereikbaarheidsbeleid. De kop heeft **Bevestigen** en **Oplossen**, en **Episode verplaatsen naar** in het menu **⋯**.
 
 **Waarschuwingen → Actieve episodes** toont de episodes die nog niet zijn opgelost, en de badge ernaast telt ze.
 

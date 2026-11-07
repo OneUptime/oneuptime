@@ -833,6 +833,114 @@ export default class AutoRemediationSuggestion extends BaseModel {
   })
   public approvedFrom?: AutoRemediationApprovalSource = undefined;
 
+  /*
+   * The first of two approvals (Project.requireTwoApprovalsForRiskierFixes):
+   * a fix that holds a riskier change, in a project that asks two people to
+   * approve one, waits after its first approval - who gave it, when, and
+   * where - for a second from someone else, which runs it and is recorded
+   * as approvedBy*. Empty for every fix one approval runs, and for one
+   * nobody has approved yet (RemediationApproval).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "firstApprovedByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "First Approved by User",
+    description:
+      "Who gave the first of the two approvals a riskier fix needs, where the project asks two people to approve one.",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "firstApprovedByUserId" })
+  public firstApprovedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "First Approved by User ID",
+    description:
+      "ID of the user who gave the first of the two approvals a riskier fix needs.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public firstApprovedByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "First Approved At",
+    description:
+      "When the first of the two approvals a riskier fix needs was given.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public firstApprovedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(AutoRemediationApprovalSource),
+    title: "First Approved From",
+    description:
+      "Where the first of two approvals was given: Dashboard (the AI card), Slack or MicrosoftTeams.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public firstApprovedFrom?: AutoRemediationApprovalSource = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

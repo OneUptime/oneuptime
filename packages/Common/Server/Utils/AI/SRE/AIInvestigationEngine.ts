@@ -46,6 +46,13 @@ import {
   investigationLogStallToJSON,
 } from "../../../../Utils/AI/InvestigationLogStall";
 import InvestigationTldr from "./InvestigationTldr";
+import {
+  describeInvestigationImpactNumbers,
+  InvestigationImpactNumbers,
+  investigationImpactNumbersToJSON,
+  takeInvestigationImpactNumbers,
+  TakenInvestigationImpactNumbers,
+} from "../../../../Utils/AI/InvestigationImpactNumbers";
 import ObservabilityAssistant, {
   ObservabilityAssistantExtraTool,
   ObservabilityAssistantResult,
@@ -199,6 +206,12 @@ Write your final answer as a concise incident-response note with these sections,
 **Ruled out** — the other likely causes you checked and the evidence that rules each one out: one bullet per cause, written "- **The cause:** why it is ruled out", each cited, at most 5, the most plausible first. Leave this section out when you checked no other cause.
 **Suggested next steps** — concrete actions for the on-call engineer.
 
+After the last section, close your answer with the Impact section's numbers, for the incident's or alert's page to show beside the summary: one fenced code block whose language is impact-numbers, holding one JSON object and nothing else, written like this:
+\`\`\`impact-numbers
+{"users": {"count": 1240, "counted": "requests"}, "services": {"count": 2}, "slos": {"affected": 1, "total": 2}}
+\`\`\`
+"counted" says what you counted: "users", "sessions" or "requests". "slos" counts the SLOs it burns ("affected") of the SLOs the context lists under Impact ("total"). Leave out each one you did not measure - never guess a number - and write {} when you measured none. OneUptime takes this block off the note: write nothing after it.
+
 Keep it tight and skimmable. You are read-only: never claim to have changed anything.`;
 
 // Which signal an investigation is about — each has its own per-project opt-in.
@@ -253,6 +266,16 @@ export interface InvestigationRequest {
    * Engine users with no panel (insight triage, remediation) omit it.
    */
   persistAnalysisTldr?: boolean | undefined;
+  /*
+   * Incident and alert RCA runs opt into recording the impact's numbers
+   * their answer closes with (InvestigationImpactNumbers): who and what the
+   * signal hurts, as short numbers - the users, sessions or requests, the
+   * services, the SLOs - which the AI card's folded Investigation step
+   * draws under the summary. Recorded as an InvestigationImpact event right
+   * before the report is posted. Display-only and best-effort, like the
+   * TL;DR. The block is taken off every engine user's answer either way.
+   */
+  recordImpactNumbers?: boolean | undefined;
   /*
    * Incident and alert RCA runs opt into saying when the logs stood in the
    * way (InvestigationLogStallCheck): an investigation that could not tell
@@ -900,7 +923,15 @@ export default class AIInvestigationEngine {
 
       settledAsCompleted = true;
 
-      const analysis: string = (result.contentInMarkdown || "").trim();
+      /*
+       * The impact's numbers the persona asks the answer to close with are
+       * taken off before anything reads it: the TL;DR, the confidence
+       * classification, the posted report and the chats never see the
+       * block. The numbers are recorded below, for the card.
+       */
+      const taken: TakenInvestigationImpactNumbers =
+        takeInvestigationImpactNumbers((result.contentInMarkdown || "").trim());
+      const analysis: string = taken.markdown.trim();
 
       if (!analysis) {
         logger.debug(
@@ -1033,6 +1064,22 @@ export default class AIInvestigationEngine {
        */
       if (analysisTldr) {
         await this.persistAnalysisTldr({ aiRunId, analysisTldr });
+      }
+
+      /*
+       * Who and what it hurts, in numbers, recorded BEFORE the report is
+       * posted, like the TL;DR, so the card reads them beside the report
+       * from its first look. A run whose answer measured nothing, or wrote
+       * no block that reads, records nothing: the card shows the summary
+       * alone, as before.
+       */
+      if (request.recordImpactNumbers === true && taken.numbers) {
+        await this.recordImpactNumbers({
+          projectId,
+          aiRunId,
+          sequence: sequence++,
+          numbers: taken.numbers,
+        });
       }
 
       /*
@@ -1195,6 +1242,35 @@ export default class AIInvestigationEngine {
     } catch (error) {
       logger.error(
         `AI: post-settlement follow-up failed for run ${aiRunId.toString()}: ${error}`,
+      );
+    }
+  }
+
+  /*
+   * Record the impact's numbers on the run as an InvestigationImpact event,
+   * as the log stall is recorded. Display-only: a failed write is logged,
+   * and the report still posts.
+   */
+  private static async recordImpactNumbers(data: {
+    projectId: ObjectID;
+    aiRunId: ObjectID;
+    sequence: number;
+    numbers: InvestigationImpactNumbers;
+  }): Promise<void> {
+    try {
+      await this.emitEvent({
+        projectId: data.projectId,
+        aiRunId: data.aiRunId,
+        sequence: data.sequence,
+        eventType: AIRunEventType.InvestigationImpact,
+        resultSummary: {
+          message: describeInvestigationImpactNumbers(data.numbers),
+          impactNumbers: investigationImpactNumbersToJSON(data.numbers),
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `AI: failed to record the impact's numbers for run ${data.aiRunId.toString()}: ${error}`,
       );
     }
   }
