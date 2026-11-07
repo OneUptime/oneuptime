@@ -991,7 +991,10 @@ jobs:
           # count, 'is not' and the filters' empty state, a reader refused the
           # names, dark German and Persian; 1.0 minute locally, about 1.3 on a
           # runner): the suite 13.8, the group 22.4, so Dashboard Widget Sort
-          # (1.1, Chromium only) moved to group 19: 21.3.
+          # (1.1, Chromium only) moved to group 19: 21.3. Its UI review added 1
+          # test (the chip while its accounts are read, and after a read that
+          # failed; 2 runs, about 8 seconds each locally, about 0.4 minutes on
+          # a runner): the suite 14.2, the group 21.7.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
