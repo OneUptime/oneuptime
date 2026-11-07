@@ -1,21 +1,11 @@
-import InBetween from "Common/Types/BaseDatabase/InBetween";
-import TimeRange from "Common/Types/Time/TimeRange";
 import ChartEventKind from "Common/UI/Components/Charts/Types/ChartEventKind";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import MetricInvestigationTime, {
-  MetricInvestigationTimeKind,
-  MetricInvestigationTimePreset,
-  MetricInvestigationTimeSelection,
-} from "../Components/Metrics/Investigation/MetricInvestigationTime";
 
 /*
  * What a metric investigation on an incident, alert or episode page is
- * anchored on: the time ranges it offers around the event (issue #5954) and
- * the moments of the event it marks on its charts.
- *
- * The time ranges are worked out for a given "now", the moment the
- * investigation last resolved its window, so nothing moves between the
- * reader's picks and refreshes.
+ * anchored on: the moments of the event it marks on its charts, and the
+ * words it speaks of the event with (issue #5954). The time ranges it
+ * offers around the event are every event card's own (EventTimePresets).
  */
 
 // What the investigation is about: the page it is on.
@@ -98,70 +88,6 @@ export function getEventMetricWords(
 // The colour the shaded window the monitor evaluated is drawn in.
 export const EVALUATED_REGION_COLOR: string = "#6366f1"; // indigo-500
 
-export enum EventMetricPresetId {
-  AroundStart = "around-start",
-  HourBefore = "hour-before",
-  DayBefore = "day-before",
-  StartToEnd = "start-to-end",
-  Evaluated = "evaluated",
-}
-
-// The ranges' names, in English; looked up where they are shown.
-export const AROUND_START_LABEL: string = translationKey("Around the start");
-export const HOUR_BEFORE_LABEL: string = translationKey(
-  "The hour before it started",
-);
-export const DAY_BEFORE_LABEL: string = translationKey(
-  "The day before it started",
-);
-export const START_TO_NOW_LABEL: string = translationKey("Start to now");
-export const START_TO_RESOLUTION_LABEL: string = translationKey(
-  "Start to resolution",
-);
-export const EVALUATED_LABEL: string = translationKey("What the monitor saw");
-
-// How far "Around the start" reaches on either side of the start.
-export const AROUND_START_MINUTES: number = 30;
-
-/*
- * How far "Start to now" and "Start to resolution" reach before the start
- * and past the resolution, so the start and the end are not on the charts'
- * very edges.
- */
-export const START_TO_END_MARGIN_MINUTES: number = 15;
-
-const MINUTE_MS: number = 60 * 1000;
-const HOUR_MS: number = 60 * MINUTE_MS;
-const DAY_MS: number = 24 * HOUR_MS;
-
-/*
- * The ranges relative to now an event's investigation offers besides its
- * own: is it still happening, and what has the metric done lately.
- */
-export const EVENT_METRIC_RELATIVE_RANGES: Array<TimeRange> = [
-  TimeRange.PAST_FIFTEEN_MINS,
-  TimeRange.PAST_ONE_HOUR,
-  TimeRange.PAST_THREE_HOURS,
-  TimeRange.PAST_ONE_DAY,
-  TimeRange.PAST_ONE_WEEK,
-];
-
-// What an event's investigation shows before anybody picks anything.
-export const EVENT_METRIC_DEFAULT_SELECTION: MetricInvestigationTimeSelection =
-  {
-    kind: MetricInvestigationTimeKind.Preset,
-    presetId: EventMetricPresetId.AroundStart,
-  };
-
-export interface EventMetricTimeAnchors {
-  // When it was declared (an incident) or created (an alert).
-  startedAt?: Date | null | undefined;
-  // When it was resolved, while it still is; absent while it is open.
-  endedAt?: Date | null | undefined;
-  // The window the monitor evaluated when it opened it, when it kept one.
-  evaluationWindow?: InBetween<Date> | null | undefined;
-}
-
 type ToMsFunction = (value: Date | null | undefined) => number;
 
 const toMs: ToMsFunction = (value: Date | null | undefined): number => {
@@ -171,136 +97,6 @@ const toMs: ToMsFunction = (value: Date | null | undefined): number => {
 
   return value.getTime();
 };
-
-type WindowFunction = (startMs: number, endMs: number) => InBetween<Date>;
-
-const toWindow: WindowFunction = (
-  startMs: number,
-  endMs: number,
-): InBetween<Date> => {
-  return new InBetween<Date>(new Date(startMs), new Date(endMs));
-};
-
-/*
- * The time ranges an event's investigation offers, in the order the picker
- * lists them:
- *
- * - Around the start: 30 minutes on either side of the start, and from the
- *   start of what the monitor evaluated when that began earlier, so the
- *   default always shows everything the monitor looked at. Never past now.
- * - The hour before it started, and the day before it started: how it built
- *   up. Both end at the start.
- * - Start to now (open) or Start to resolution (resolved): the whole event,
- *   15 minutes either side.
- * - What the monitor saw: exactly the window the monitor evaluated, when
- *   the event kept one.
- *
- * Without a start the event has nothing to anchor on but what the monitor
- * evaluated: its end stands in for the start. Without either, there is
- * nothing to offer.
- */
-export function getEventMetricTimePresets(
-  anchors: EventMetricTimeAnchors,
-  now: Date,
-): Array<MetricInvestigationTimePreset> {
-  const nowMs: number = toMs(now);
-  const evaluationWindow: InBetween<Date> | null =
-    MetricInvestigationTime.toUsableWindow(anchors.evaluationWindow);
-
-  let startMs: number = toMs(anchors.startedAt);
-
-  if (!Number.isFinite(startMs) && evaluationWindow) {
-    startMs = evaluationWindow.endValue.getTime();
-  }
-
-  const presets: Array<MetricInvestigationTimePreset> = [];
-
-  if (Number.isFinite(startMs)) {
-    /*
-     * An end at now, except where the reader's clock is behind the event's
-     * (a window that would end before it starts): then the window ends
-     * where it would have.
-     */
-    const endAtNowOr: (windowStartMs: number, endMs: number) => number = (
-      windowStartMs: number,
-      endMs: number,
-    ): number => {
-      if (Number.isFinite(nowMs) && nowMs < endMs && nowMs > windowStartMs) {
-        return nowMs;
-      }
-
-      return endMs;
-    };
-
-    let aroundStartMs: number = startMs - AROUND_START_MINUTES * MINUTE_MS;
-
-    if (evaluationWindow) {
-      aroundStartMs = Math.min(
-        aroundStartMs,
-        evaluationWindow.startValue.getTime(),
-      );
-    }
-
-    presets.push({
-      id: EventMetricPresetId.AroundStart,
-      label: AROUND_START_LABEL,
-      window: toWindow(
-        aroundStartMs,
-        endAtNowOr(aroundStartMs, startMs + AROUND_START_MINUTES * MINUTE_MS),
-      ),
-    });
-
-    presets.push({
-      id: EventMetricPresetId.HourBefore,
-      label: HOUR_BEFORE_LABEL,
-      window: toWindow(startMs - HOUR_MS, startMs),
-    });
-
-    presets.push({
-      id: EventMetricPresetId.DayBefore,
-      label: DAY_BEFORE_LABEL,
-      window: toWindow(startMs - DAY_MS, startMs),
-    });
-
-    const endedMs: number = toMs(anchors.endedAt);
-    const isResolved: boolean = Number.isFinite(endedMs) && endedMs >= startMs;
-    const fromMs: number = startMs - START_TO_END_MARGIN_MINUTES * MINUTE_MS;
-
-    if (isResolved) {
-      presets.push({
-        id: EventMetricPresetId.StartToEnd,
-        label: START_TO_RESOLUTION_LABEL,
-        window: toWindow(
-          fromMs,
-          endAtNowOr(fromMs, endedMs + START_TO_END_MARGIN_MINUTES * MINUTE_MS),
-        ),
-      });
-    } else {
-      presets.push({
-        id: EventMetricPresetId.StartToEnd,
-        label: START_TO_NOW_LABEL,
-        window: toWindow(
-          fromMs,
-          Number.isFinite(nowMs) && nowMs > fromMs
-            ? nowMs
-            : startMs + START_TO_END_MARGIN_MINUTES * MINUTE_MS,
-        ),
-      });
-    }
-  }
-
-  if (evaluationWindow) {
-    presets.push({
-      id: EventMetricPresetId.Evaluated,
-      label: EVALUATED_LABEL,
-      window: evaluationWindow,
-    });
-  }
-
-  return presets.filter((preset: MetricInvestigationTimePreset): boolean => {
-    return MetricInvestigationTime.isUsableWindow(preset.window);
-  });
-}
 
 // What a moment of the event marked on the charts is.
 export enum EventMomentRole {
