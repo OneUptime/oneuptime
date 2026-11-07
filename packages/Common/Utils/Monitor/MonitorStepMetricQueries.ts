@@ -776,6 +776,52 @@ export default class MonitorStepMetricQueries {
   }
 
   /*
+   * The step's queries, each as its monitor reads it, index for index: a
+   * query with the attribute filters the worker reads it with in place of
+   * its own. The queries are the settings' own unless others are given;
+   * what is not a query is handed back as it is, so the list lines up with
+   * the one it was made from.
+   *
+   * A step form's chart reads its queries through this (issue #6264): the
+   * query editor keeps the queries as the step saves them, and the chart
+   * shows what the monitor will read - the cluster, host or fleet it
+   * watches and its resource filters, which the worker adds before each
+   * check and the step never stores.
+   */
+  public static getReadQueryConfigs(input: {
+    monitorType: MonitorType | undefined | null;
+    settings: MetricMonitorStepSettings | undefined | null;
+    queryConfigs?: Array<MetricQueryConfigData> | undefined;
+  }): Array<MetricQueryConfigData> {
+    const queryConfigs: unknown =
+      input.queryConfigs || input.settings?.metricViewConfig?.queryConfigs;
+
+    if (!Array.isArray(queryConfigs)) {
+      return [];
+    }
+
+    const settings: MetricMonitorStepSettings | undefined | null =
+      input.settings;
+
+    return (queryConfigs as Array<MetricQueryConfigData>).map(
+      (queryConfig: MetricQueryConfigData): MetricQueryConfigData => {
+        if (!settings || !queryConfig || typeof queryConfig !== "object") {
+          return queryConfig;
+        }
+
+        return MonitorStepMetricQueries.withAttributes(
+          queryConfig,
+          MonitorStepMetricQueries.getReadAttributes({
+            monitorType: input.monitorType,
+            settings: settings,
+            queryConfig: queryConfig,
+          }),
+        );
+      },
+    );
+  }
+
+  /*
    * The step's queries as its monitor reads them, or null when the step is
    * not a metric-backed one of this monitor type.
    */
@@ -797,20 +843,15 @@ export default class MonitorStepMetricQueries {
       );
 
     const queryConfigs: Array<MetricQueryConfigData> =
-      metricViewConfig.queryConfigs
-        .filter((queryConfig: MetricQueryConfigData): boolean => {
-          return Boolean(queryConfig && typeof queryConfig === "object");
-        })
-        .map((queryConfig: MetricQueryConfigData): MetricQueryConfigData => {
-          return MonitorStepMetricQueries.withAttributes(
-            queryConfig,
-            MonitorStepMetricQueries.getReadAttributes({
-              monitorType: input.monitorType,
-              settings: settings,
-              queryConfig: queryConfig,
-            }),
-          );
-        });
+      MonitorStepMetricQueries.getReadQueryConfigs({
+        monitorType: input.monitorType,
+        settings: settings,
+        queryConfigs: metricViewConfig.queryConfigs.filter(
+          (queryConfig: MetricQueryConfigData): boolean => {
+            return Boolean(queryConfig && typeof queryConfig === "object");
+          },
+        ),
+      });
 
     const metricMonitor: MonitorStepMetricMonitor | undefined =
       input.monitorType === MonitorType.Metrics
@@ -867,8 +908,11 @@ export default class MonitorStepMetricQueries {
     });
   }
 
-  // A copy of the query that reads with these attributes, and only these.
-  private static withAttributes(
+  /*
+   * A copy of the query that reads with these attributes, and only these:
+   * none at all when there are none. Read by MetricTelemetrySnapshot too.
+   */
+  public static withAttributes(
     queryConfig: MetricQueryConfigData,
     attributes: Dictionary<unknown> | undefined,
   ): MetricQueryConfigData {

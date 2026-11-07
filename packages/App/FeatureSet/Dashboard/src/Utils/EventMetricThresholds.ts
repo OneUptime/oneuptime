@@ -47,10 +47,14 @@ export interface EventRuleMonitor {
   monitorSteps?: MonitorSteps | undefined;
 }
 
-// What a query compares: its metric, aggregation, grouping and rate.
-const getQueryIdentity: (queryConfig: MetricQueryConfigData) => string = (
+/*
+ * What a query compares: its metric, aggregation, grouping and rate. Its
+ * filters are left out, so an event's query (with its own series' filter,
+ * and the scope its monitor read it with) matches its monitor's step query.
+ */
+export const getQueryIdentity: (
   queryConfig: MetricQueryConfigData,
-): string => {
+) => string = (queryConfig: MetricQueryConfigData): string => {
   const filterData: Record<string, unknown> =
     (queryConfig.metricQueryData?.filterData as unknown as Record<
       string,
