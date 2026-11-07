@@ -896,9 +896,11 @@ describe("Ask AI's change made on top of a save the builder had not seen", () =>
     });
 
     // Read for the two saves, and the version that held what the builder knew.
-    expect(versionsRead().map((request: { limit: number }) => {
-      return request.limit;
-    })).toEqual([3]);
+    expect(
+      versionsRead().map((request: { limit: number }) => {
+        return request.limit;
+      }),
+    ).toEqual([3]);
     expect(builder.undoButton()).toHaveAttribute(
       "aria-label",
       "Undo Ask AI's change",

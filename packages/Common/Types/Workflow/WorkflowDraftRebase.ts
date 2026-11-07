@@ -89,7 +89,9 @@ const isPlainObject: IsPlainObjectFunction = (
   return value !== null && typeof value === "object" && !Array.isArray(value);
 };
 
-type ReadProposedOnFunction = (value: unknown) => WorkflowDraftProposedOn | null;
+type ReadProposedOnFunction = (
+  value: unknown,
+) => WorkflowDraftProposedOn | null;
 
 /*
  * What a change was proposed on, as its arguments carry it, or null when they
@@ -477,9 +479,7 @@ export const getStepsTouchedByDraft: GetStepsTouchedFunction = (data: {
   const beforeById: Map<string, Array<StoredStep>> = groupStepsById(
     before.steps,
   );
-  const afterById: Map<string, Array<StoredStep>> = groupStepsById(
-    after.steps,
-  );
+  const afterById: Map<string, Array<StoredStep>> = groupStepsById(after.steps);
 
   const touched: Set<string> = new Set<string>();
   // The steps whose own settings the draft writes: the ones it adds or changes.

@@ -725,10 +725,11 @@ describe("update_workflow", () => {
     args: JSONObject = {},
     ctx: ToolContext = CTX,
   ): Promise<ToolExecutionResult> => {
-    const prepared: PreparedMutation = await UpdateWorkflowTool.prepareMutation!(
-      { workflowId: WORKFLOW_ID.toString(), ...args },
-      ctx,
-    );
+    const prepared: PreparedMutation =
+      await UpdateWorkflowTool.prepareMutation!(
+        { workflowId: WORKFLOW_ID.toString(), ...args },
+        ctx,
+      );
 
     return await UpdateWorkflowTool.execute(prepared.arguments, ctx);
   };

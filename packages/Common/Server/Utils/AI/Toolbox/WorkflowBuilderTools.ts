@@ -1211,9 +1211,7 @@ const nameSteps: NameStepsFunction = (data: {
 
   const more: number = data.stepIds.length - named.length;
 
-  return more > 0
-    ? `${named.join(", ")} and ${more} more`
-    : named.join(", ");
+  return more > 0 ? `${named.join(", ")} and ${more} more` : named.join(", ");
 };
 
 type DescribeConflictFunction = (steps: string) => string;
@@ -1278,15 +1276,16 @@ const getIssuesByKey: GetIssuesByKeyFunction = (
   graph: JSONObject | null | undefined,
 ): Map<string, WorkflowLintIssue> | null => {
   try {
-    const nodes: Array<{ data?: NodeDataProp }> = (
-      Array.isArray(graph?.["nodes"]) ? graph?.["nodes"] : []
-    ) as unknown as Array<{ data?: NodeDataProp }>;
+    const nodes: Array<{ data?: NodeDataProp }> = (Array.isArray(
+      graph?.["nodes"],
+    )
+      ? graph?.["nodes"]
+      : []) as unknown as Array<{ data?: NodeDataProp }>;
 
     const issues: Array<WorkflowLintIssue> = getLintIssues({
       nodes: nodes.filter((node: { data?: NodeDataProp }): boolean => {
         return Boolean(
-          node?.data?.metadataId &&
-            getWorkflowComponent(node.data.metadataId),
+          node?.data?.metadataId && getWorkflowComponent(node.data.metadataId),
         );
       }) as unknown as JSONObject,
       edges: (Array.isArray(graph?.["edges"])

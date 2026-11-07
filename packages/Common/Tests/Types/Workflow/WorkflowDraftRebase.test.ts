@@ -418,9 +418,12 @@ describe("readWorkflowDraftProposedOn", () => {
       "more steps than any draft touches",
       {
         graphRevision: 1,
-        steps: Array.from({ length: 1001 }, (_value: unknown, index: number) => {
-          return { id: `step-${index}`, fingerprint: null };
-        }),
+        steps: Array.from(
+          { length: 1001 },
+          (_value: unknown, index: number) => {
+            return { id: `step-${index}`, fingerprint: null };
+          },
+        ),
       },
     ],
   ] as Array<[string, unknown]>)(
@@ -1000,7 +1003,9 @@ describe("rebaseWorkflowDraft", () => {
 
   test("both gave the workflow a trigger, under different ids: the two cannot be one workflow", () => {
     const empty: JSONObject = graphOf({
-      steps: [{ id: "work", componentId: "do-thing", arguments: { text: "w" } }],
+      steps: [
+        { id: "work", componentId: "do-thing", arguments: { text: "w" } },
+      ],
       connections: [],
     });
     const draft: WorkflowDraft = withStep(
@@ -1353,7 +1358,10 @@ const generate: (random: SeededRandom, round: number) => Generated = (
         return edge.source !== node.id && edge.target !== node.id;
       }) as unknown as JSONObject;
     } else if (kind === 4 && node.data.id !== "t") {
-      node.data.arguments = { ...node.data.arguments, token: `rotated-${save}` };
+      node.data.arguments = {
+        ...node.data.arguments,
+        token: `rotated-${save}`,
+      };
     }
   }
 
@@ -1515,7 +1523,11 @@ describe("Ask AI's change and a save in between, at random", () => {
           }
 
           // A card that stays keeps its place as it is now.
-          if (made && theirs && made.data.metadataId === theirs.data.metadataId) {
+          if (
+            made &&
+            theirs &&
+            made.data.metadataId === theirs.data.metadataId
+          ) {
             expect({ round, id, card: [made.id, made.position] }).toEqual({
               round,
               id,

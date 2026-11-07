@@ -7,7 +7,10 @@ import {
   WORKFLOW_VERSION_GROUPING_MINUTES,
   WorkflowVersionType,
 } from "Common/Types/Workflow/WorkflowVersion";
-import { WorkflowHistoryDirection } from "Common/UI/Components/Workflow/WorkflowEditHistory";
+import {
+  WorkflowEditCause,
+  WorkflowHistoryDirection,
+} from "Common/UI/Components/Workflow/WorkflowEditHistory";
 import {
   WorkflowRedoCopy,
   WorkflowUndoCopy,
@@ -20,7 +23,6 @@ import {
 } from "Common/UI/Components/Workflow/WorkflowStatusBar";
 import { WorkflowVersionCopy } from "Common/UI/Components/Workflow/WorkflowVersionPresentation";
 import { getWorkflowGraphChanges } from "Common/Utils/Workflow/WorkflowGraphChanges";
-import { WorkflowEditCause } from "Common/UI/Components/Workflow/WorkflowEditHistory";
 import {
   WorkflowSavedElsewhereStep,
   getStepsSavedElsewhere,
@@ -239,8 +241,16 @@ describe("the authoring page on undo, redo and version history", () => {
       draft: {
         steps: [
           { id: "manual-1", componentId: ComponentID.Manual },
-          { id: "log-1", componentId: ComponentID.Log, arguments: { value: "a" } },
-          { id: "log-2", componentId: ComponentID.Log, arguments: { value: "b" } },
+          {
+            id: "log-1",
+            componentId: ComponentID.Log,
+            arguments: { value: "a" },
+          },
+          {
+            id: "log-2",
+            componentId: ComponentID.Log,
+            arguments: { value: "b" },
+          },
         ],
         connections: [
           { from: "manual-1", to: "log-1" },
@@ -250,7 +260,10 @@ describe("the authoring page on undo, redo and version history", () => {
       getComponent,
       generateId,
     });
-    const read: WorkflowDraft = getDraftFromGraph({ graph: base, getComponent });
+    const read: WorkflowDraft = getDraftFromGraph({
+      graph: base,
+      getComponent,
+    });
     // Ask AI changes Log 1.
     const askAi: WorkflowDraft = {
       ...read,

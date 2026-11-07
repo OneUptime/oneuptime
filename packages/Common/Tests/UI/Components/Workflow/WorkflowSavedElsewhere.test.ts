@@ -301,7 +301,9 @@ describe("the steps of what was saved elsewhere", () => {
 
   test("no versions at all: what the server has is their changes", () => {
     expect(
-      shape(getStepsSavedElsewhere({ known: KNOWN, server: ASK_AI, versions: [] })),
+      shape(
+        getStepsSavedElsewhere({ known: KNOWN, server: ASK_AI, versions: [] }),
+      ),
     ).toEqual([[WorkflowEditCause.TheirChanges, "Ask AI's"]]);
   });
 
@@ -364,14 +366,17 @@ describe("the steps of what was saved elsewhere", () => {
       if (getWorkflowGraphKey(known) === getWorkflowGraphKey(server)) {
         // Back where it started, or never moved: whatever lies between, Undo returns to it.
         if (steps.length > 0) {
-          expect(
-            getWorkflowGraphKey(steps[steps.length - 1]!.graph),
-          ).toBe(getWorkflowGraphKey(server));
+          expect(getWorkflowGraphKey(steps[steps.length - 1]!.graph)).toBe(
+            getWorkflowGraphKey(server),
+          );
         }
         continue;
       }
 
-      expect({ round, last: getWorkflowGraphKey(steps[steps.length - 1]!.graph) }).toEqual({
+      expect({
+        round,
+        last: getWorkflowGraphKey(steps[steps.length - 1]!.graph),
+      }).toEqual({
         round,
         last: getWorkflowGraphKey(server),
       });

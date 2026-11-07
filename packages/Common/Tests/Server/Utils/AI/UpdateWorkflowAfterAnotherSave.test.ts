@@ -96,7 +96,10 @@ const graphOf: (
 const readBack: (graph: JSONObject) => WorkflowDraft = (
   graph: JSONObject,
 ): WorkflowDraft => {
-  return getDraftFromGraph({ graph: graph, getComponent: getWorkflowComponent });
+  return getDraftFromGraph({
+    graph: graph,
+    getComponent: getWorkflowComponent,
+  });
 };
 
 const copyOf: (graph: JSONObject) => JSONObject = (
@@ -282,10 +285,13 @@ const prepare: (args: JSONObject) => Promise<PreparedMutation> = async (
   );
 };
 
-const approve: (prepared: PreparedMutation) => Promise<ToolExecutionResult> =
-  async (prepared: PreparedMutation): Promise<ToolExecutionResult> => {
-    return await UpdateWorkflowTool.execute(prepared.arguments, CTX);
-  };
+const approve: (
+  prepared: PreparedMutation,
+) => Promise<ToolExecutionResult> = async (
+  prepared: PreparedMutation,
+): Promise<ToolExecutionResult> => {
+  return await UpdateWorkflowTool.execute(prepared.arguments, CTX);
+};
 
 const proposedOnOf: (prepared: PreparedMutation) => WorkflowDraftProposedOn = (
   prepared: PreparedMutation,
@@ -685,7 +691,6 @@ interface Server {
   withoutAskAi: JSONObject;
 }
 
-
 type TeammateSaveFunction = (
   graph: JSONObject,
   random: SeededRandom,
@@ -940,9 +945,7 @@ describe("races between Ask AI's approval and teammates' saves, at random", () =
         expect({
           round,
           id,
-          step: actual
-            ? [actual.data.metadataId, actual.data.arguments]
-            : null,
+          step: actual ? [actual.data.metadataId, actual.data.arguments] : null,
         }).toEqual({
           round,
           id,
@@ -954,7 +957,11 @@ describe("races between Ask AI's approval and teammates' saves, at random", () =
         // Whatever the teammates moved stays where they put it.
         const theirCard: GraphNode | undefined = nodeOf(theirs, id);
 
-        if (actual && theirCard && actual.data.metadataId === theirCard.data.metadataId) {
+        if (
+          actual &&
+          theirCard &&
+          actual.data.metadataId === theirCard.data.metadataId
+        ) {
           expect({ round, id, at: actual.position }).toEqual({
             round,
             id,
