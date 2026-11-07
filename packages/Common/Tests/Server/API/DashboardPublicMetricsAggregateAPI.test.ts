@@ -2,6 +2,7 @@ import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import DashboardAPI from "../../../Server/API/DashboardAPI";
 import DashboardService from "../../../Server/Services/DashboardService";
 import MetricService from "../../../Server/Services/MetricService";
+import { PUBLIC_DASHBOARD_SERVICES_REFUSED_MESSAGE } from "../../../Server/Utils/Dashboard/PublicDashboardMetricServices";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -63,6 +64,23 @@ const CHARTED_METRIC_NAME: string = "system.cpu.utilization";
 
 const CHARTED_GROUP_BY_KEY: string = "resource.host.name";
 
+/*
+ * Telemetry service ids (issue #6280), with letters in them so a change of
+ * case is a change of id.
+ */
+const API_SERVICE_ID: string = "0f8fad5b-d9cb-469f-a165-70867728950e";
+const CHECKOUT_SERVICE_ID: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+const UNSAVED_SERVICE_ID: string = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
+
+// A query's services as the client sends them (MetricQueryServices.getServiceQuery).
+type ServicesFilterFunction = (serviceIds: Array<string>) => JSONObject;
+
+const servicesFilter: ServicesFilterFunction = (
+  serviceIds: Array<string>,
+): JSONObject => {
+  return new Includes(serviceIds).toJSON();
+};
+
 describe("DashboardAPI public metrics-aggregate", () => {
   let dashboardId: ObjectID;
   let projectId: ObjectID;
@@ -90,6 +108,12 @@ describe("DashboardAPI public metrics-aggregate", () => {
      * spread into every column's query by resolveQueries().
      */
     attributeFilters?: JSONObject | undefined;
+    /*
+     * `metricQueryData.filterData.telemetryServiceIds` — the services a chart
+     * is read for, saved by Add to dashboard from a view of a Metrics monitor
+     * limited to some services (issue #6266).
+     */
+    telemetryServiceIds?: unknown;
   };
 
   type BuildViewConfigFunction = (
@@ -143,6 +167,9 @@ describe("DashboardAPI public metrics-aggregate", () => {
                       metricName: widget.metricName,
                       ...(widget.attributes
                         ? { attributes: widget.attributes }
+                        : {}),
+                      ...(widget.telemetryServiceIds !== undefined
+                        ? { telemetryServiceIds: widget.telemetryServiceIds }
                         : {}),
                     },
                     ...(widget.groupByAttributeKeys
@@ -698,12 +725,16 @@ describe("DashboardAPI public metrics-aggregate", () => {
       expect(MetricService.aggregateBy).toHaveBeenCalledTimes(1);
     });
 
+    /*
+     * primaryEntityId is no longer among these: it is the service filter a
+     * chart can be saved with (issue #6280), so one the dashboard does not
+     * save is refused rather than dropped ("service filter" below).
+     */
     it("drops every other client-supplied query key", async () => {
       await callWithAggregate({
         query: {
           name: CHARTED_METRIC_NAME,
           serviceId: ObjectID.generate().toString(),
-          primaryEntityId: "smuggled",
           retentionDate: "2020-01-01",
           value: { _type: "GreaterThan", value: 0 },
         },
@@ -757,6 +788,721 @@ describe("DashboardAPI public metrics-aggregate", () => {
         expect(getThrownError()).toBeInstanceOf(BadDataException);
         expectNothingAggregated();
       }
+    });
+  });
+
+  /*
+   * Issue #6280. A chart saved with a service filter (#6266) charts those
+   * services only, and the public page now asks for them: its query carries
+   * `primaryEntityId: Includes(ids)`. The route reads the services from the
+   * saved dashboard - for each metric, the services each of its queries is
+   * saved with - and runs the request for the saved query it names, as
+   * saved. Nothing a request says can widen a chart to more services, narrow
+   * it to one of them, or borrow another metric's.
+   */
+  describe("service filter (issue #6280)", () => {
+    type CallForServicesFunction = (
+      primaryEntityId?: unknown,
+      overrides?: JSONObject,
+    ) => Promise<void>;
+
+    // A request for the charted metric with this service filter, or none.
+    const callForServices: CallForServicesFunction = async (
+      primaryEntityId?: unknown,
+      overrides?: JSONObject,
+    ): Promise<void> => {
+      const query: JSONObject = {
+        name: CHARTED_METRIC_NAME,
+        ...(overrides && overrides["query"]
+          ? (overrides["query"] as JSONObject)
+          : {}),
+      };
+
+      if (primaryEntityId !== undefined) {
+        query["primaryEntityId"] = primaryEntityId as JSONObject;
+      }
+
+      await callWithAggregate({ ...(overrides || {}), query: query });
+    };
+
+    type GetAggregatedServiceIdsFunction = () => Array<string> | undefined;
+
+    // The services the aggregation ran for; undefined for every service.
+    const getAggregatedServiceIds: GetAggregatedServiceIdsFunction = ():
+      | Array<string>
+      | undefined => {
+      expect(nextFunction).not.toHaveBeenCalled();
+
+      const query: JSONObject = getAggregateArgs()["query"] as JSONObject;
+
+      if (!Object.prototype.hasOwnProperty.call(query, "primaryEntityId")) {
+        // Not even inherited: nothing reaches the store that was not checked.
+        for (const key in query) {
+          expect(key).not.toBe("primaryEntityId");
+        }
+
+        return undefined;
+      }
+
+      const filter: unknown = query["primaryEntityId"];
+
+      expect(filter).toBeInstanceOf(Includes);
+
+      return [...((filter as Includes).values as Array<string>)];
+    };
+
+    type ExpectServicesRefusedFunction = () => void;
+
+    const expectServicesRefused: ExpectServicesRefusedFunction = (): void => {
+      const error: unknown = getThrownError();
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect((error as BadDataException).message).toBe(
+        PUBLIC_DASHBOARD_SERVICES_REFUSED_MESSAGE,
+      );
+      expectNothingAggregated();
+      expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+    };
+
+    describe("a chart saved with services", () => {
+      beforeEach(() => {
+        setWidgets([
+          {
+            metricName: CHARTED_METRIC_NAME,
+            telemetryServiceIds: [API_SERVICE_ID, CHECKOUT_SERVICE_ID],
+          },
+        ]);
+      });
+
+      it("charts those services only", async () => {
+        await callForServices(
+          servicesFilter([API_SERVICE_ID, CHECKOUT_SERVICE_ID]),
+        );
+
+        expect(getAggregatedServiceIds()).toEqual([
+          API_SERVICE_ID,
+          CHECKOUT_SERVICE_ID,
+        ]);
+
+        const query: JSONObject = getAggregateArgs()["query"] as JSONObject;
+
+        expect(Object.keys(query).sort()).toEqual([
+          "name",
+          "primaryEntityId",
+          "projectId",
+        ]);
+        expect(query["name"]).toBe(CHARTED_METRIC_NAME);
+        expect(query["projectId"]).toBe(projectId);
+      });
+
+      it("is read for its services as saved, whatever order or repeats the request names them in", async () => {
+        for (const requested of [
+          [CHECKOUT_SERVICE_ID, API_SERVICE_ID],
+          [CHECKOUT_SERVICE_ID, API_SERVICE_ID, CHECKOUT_SERVICE_ID],
+          [API_SERVICE_ID, API_SERVICE_ID, CHECKOUT_SERVICE_ID],
+        ]) {
+          jest.clearAllMocks();
+
+          await callForServices(servicesFilter(requested));
+
+          // The dashboard's ids in the dashboard's order: never the request's.
+          expect(getAggregatedServiceIds()).toEqual([
+            API_SERVICE_ID,
+            CHECKOUT_SERVICE_ID,
+          ]);
+        }
+      });
+
+      it("keeps the rest of the chart's query: its time window, filters and grouping", async () => {
+        setWidgets([
+          {
+            metricName: CHARTED_METRIC_NAME,
+            attributes: { "host.name": "web-1" },
+            groupByAttributeKeys: [CHARTED_GROUP_BY_KEY],
+            telemetryServiceIds: [API_SERVICE_ID],
+          },
+        ]);
+
+        const startDate: Date = new Date("2026-01-01T00:00:00.000Z");
+        const endDate: Date = new Date("2026-01-02T00:00:00.000Z");
+
+        await callRoute({
+          aggregateBy: JSON.parse(
+            JSON.stringify(
+              JSONFunctions.serialize({
+                query: {
+                  projectId: ObjectID.generate(),
+                  name: CHARTED_METRIC_NAME,
+                  time: new InBetween(startDate, endDate),
+                  attributes: { "host.name": "web-1" },
+                  primaryEntityId: new Includes([API_SERVICE_ID]),
+                },
+                aggregationType: "Avg",
+                aggregateColumnName: "value",
+                aggregationTimestampColumnName: "time",
+                startTimestamp: startDate,
+                endTimestamp: endDate,
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                groupByAttributeKeys: [CHARTED_GROUP_BY_KEY],
+                topK: { count: 10, rankBy: "max" },
+              } as unknown as JSONObject),
+            ),
+          ) as JSONObject,
+        });
+
+        expect(getAggregatedServiceIds()).toEqual([API_SERVICE_ID]);
+
+        const args: JSONObject = getAggregateArgs();
+        const query: JSONObject = args["query"] as JSONObject;
+
+        expect(Object.keys(query).sort()).toEqual([
+          "attributes",
+          "name",
+          "primaryEntityId",
+          "projectId",
+          "time",
+        ]);
+        expect(query["time"]).toBeInstanceOf(InBetween);
+        expect((query["attributes"] as JSONObject)["host.name"]).toBe("web-1");
+        expect(args["groupByAttributeKeys"]).toEqual([CHARTED_GROUP_BY_KEY]);
+        expect(args["topK"]).toEqual({ count: 10, rankBy: "max" });
+        // The project is the dashboard's, not the one the request named.
+        expect(query["projectId"]).toBe(projectId);
+      });
+
+      it("refuses to chart every service instead", async () => {
+        await callForServices();
+        expectServicesRefused();
+
+        jest.clearAllMocks();
+
+        // A null filter is no filter: every service, refused alike.
+        await callForServices(null);
+        expectServicesRefused();
+      });
+
+      it("refuses a service it does not chart, alone or among its own", async () => {
+        for (const requested of [
+          [UNSAVED_SERVICE_ID],
+          [API_SERVICE_ID, CHECKOUT_SERVICE_ID, UNSAVED_SERVICE_ID],
+          [API_SERVICE_ID, UNSAVED_SERVICE_ID],
+        ]) {
+          jest.clearAllMocks();
+
+          await callForServices(servicesFilter(requested));
+          expectServicesRefused();
+        }
+      });
+
+      it("refuses one of its services on its own", async () => {
+        for (const requested of [[API_SERVICE_ID], [CHECKOUT_SERVICE_ID]]) {
+          jest.clearAllMocks();
+
+          await callForServices(servicesFilter(requested));
+          expectServicesRefused();
+        }
+      });
+
+      it("refuses its services for a metric the dashboard does not chart", async () => {
+        await callWithAggregate({
+          query: {
+            name: "billing.revenue.total",
+            primaryEntityId: servicesFilter([
+              API_SERVICE_ID,
+              CHECKOUT_SERVICE_ID,
+            ]),
+          },
+        });
+
+        const error: unknown = getThrownError();
+
+        expect(error).toBeInstanceOf(BadDataException);
+        expect((error as BadDataException).message).toBe(
+          "This metric is not part of this dashboard.",
+        );
+        expectNothingAggregated();
+      });
+
+      it("says nothing in its refusal about the services it charts", async () => {
+        await callForServices(servicesFilter([UNSAVED_SERVICE_ID]));
+
+        const message: string = (getThrownError() as Error).message;
+
+        expect(message).toBe(PUBLIC_DASHBOARD_SERVICES_REFUSED_MESSAGE);
+        expect(message).not.toContain(API_SERVICE_ID);
+        expect(message).not.toContain(CHECKOUT_SERVICE_ID);
+        expect(message).not.toContain(UNSAVED_SERVICE_ID);
+      });
+    });
+
+    describe("a dashboard of several charts", () => {
+      it("reads each metric for its own charts' services, never another metric's", async () => {
+        const memoryMetricName: string = "system.memory.usage";
+
+        setWidgets([
+          {
+            metricName: CHARTED_METRIC_NAME,
+            telemetryServiceIds: [API_SERVICE_ID],
+          },
+          {
+            metricName: memoryMetricName,
+            telemetryServiceIds: [CHECKOUT_SERVICE_ID],
+          },
+        ]);
+
+        const cases: Array<{
+          metricName: string;
+          serviceIds: Array<string>;
+          read: boolean;
+        }> = [
+          {
+            metricName: CHARTED_METRIC_NAME,
+            serviceIds: [API_SERVICE_ID],
+            read: true,
+          },
+          {
+            metricName: memoryMetricName,
+            serviceIds: [CHECKOUT_SERVICE_ID],
+            read: true,
+          },
+          {
+            metricName: CHARTED_METRIC_NAME,
+            serviceIds: [CHECKOUT_SERVICE_ID],
+            read: false,
+          },
+          {
+            metricName: memoryMetricName,
+            serviceIds: [API_SERVICE_ID],
+            read: false,
+          },
+          {
+            metricName: CHARTED_METRIC_NAME,
+            serviceIds: [API_SERVICE_ID, CHECKOUT_SERVICE_ID],
+            read: false,
+          },
+          { metricName: CHARTED_METRIC_NAME, serviceIds: [], read: false },
+          { metricName: memoryMetricName, serviceIds: [], read: false },
+        ];
+
+        for (const testCase of cases) {
+          jest.clearAllMocks();
+
+          await callWithAggregate({
+            query: {
+              name: testCase.metricName,
+              ...(testCase.serviceIds.length > 0
+                ? { primaryEntityId: servicesFilter(testCase.serviceIds) }
+                : {}),
+            },
+          });
+
+          if (testCase.read) {
+            expect(getAggregatedServiceIds()).toEqual(testCase.serviceIds);
+          } else {
+            expectServicesRefused();
+          }
+        }
+      });
+
+      it("reads a metric charted both with and without services either way, and for no other services", async () => {
+        setWidgets([
+          {
+            metricName: CHARTED_METRIC_NAME,
+            telemetryServiceIds: [API_SERVICE_ID],
+          },
+          { metricName: CHARTED_METRIC_NAME },
+        ]);
+
+        await callForServices();
+        expect(getAggregatedServiceIds()).toBeUndefined();
+
+        jest.clearAllMocks();
+
+        await callForServices(servicesFilter([API_SERVICE_ID]));
+        expect(getAggregatedServiceIds()).toEqual([API_SERVICE_ID]);
+
+        jest.clearAllMocks();
+
+        await callForServices(servicesFilter([CHECKOUT_SERVICE_ID]));
+        expectServicesRefused();
+      });
+
+      it("reads two charts of one metric each for its own services, and never for both together", async () => {
+        setWidgets([
+          {
+            metricName: CHARTED_METRIC_NAME,
+            telemetryServiceIds: [API_SERVICE_ID],
+          },
+          {
+            metricName: CHARTED_METRIC_NAME,
+            telemetryServiceIds: [CHECKOUT_SERVICE_ID],
+          },
+        ]);
+
+        await callForServices(servicesFilter([API_SERVICE_ID]));
+        expect(getAggregatedServiceIds()).toEqual([API_SERVICE_ID]);
+
+        jest.clearAllMocks();
+
+        await callForServices(servicesFilter([CHECKOUT_SERVICE_ID]));
+        expect(getAggregatedServiceIds()).toEqual([CHECKOUT_SERVICE_ID]);
+
+        for (const requested of [
+          servicesFilter([API_SERVICE_ID, CHECKOUT_SERVICE_ID]),
+          undefined,
+        ]) {
+          jest.clearAllMocks();
+
+          await callForServices(requested);
+          expectServicesRefused();
+        }
+      });
+
+      it("reads a chart's fallback for the fallback's own saved services", async () => {
+        const fallbackMetricName: string = "k8s.container.restarts";
+
+        dashboard.dashboardViewConfig = {
+          _type: "DashboardViewConfig",
+          heightInDashboardUnits: 24,
+          components: [
+            {
+              _type: "DashboardComponent",
+              componentId: ObjectID.generate().toString(),
+              componentType: DashboardComponentType.Chart,
+              topInDashboardUnits: 0,
+              leftInDashboardUnits: 0,
+              widthInDashboardUnits: 12,
+              heightInDashboardUnits: 6,
+              arguments: {
+                metricQueryConfig: {
+                  metricQueryData: {
+                    filterData: {
+                      metricName: CHARTED_METRIC_NAME,
+                      telemetryServiceIds: [API_SERVICE_ID],
+                    },
+                  },
+                  fallback: {
+                    queryConfig: {
+                      metricQueryData: {
+                        filterData: { metricName: fallbackMetricName },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        } as unknown as DashboardViewConfig;
+
+        await callWithAggregate({ query: { name: fallbackMetricName } });
+        expect(getAggregatedServiceIds()).toBeUndefined();
+
+        jest.clearAllMocks();
+
+        // The main query's services are its own, not the fallback's.
+        await callWithAggregate({
+          query: {
+            name: fallbackMetricName,
+            primaryEntityId: servicesFilter([API_SERVICE_ID]),
+          },
+        });
+        expectServicesRefused();
+
+        jest.clearAllMocks();
+
+        await callForServices(servicesFilter([API_SERVICE_ID]));
+        expect(getAggregatedServiceIds()).toEqual([API_SERVICE_ID]);
+      });
+    });
+
+    describe("a dashboard saved before service filters", () => {
+      it("reads every service with exactly the query it read before", async () => {
+        setWidgets(
+          [
+            {
+              metricName: CHARTED_METRIC_NAME,
+              attributes: { "host.name": "web-1" },
+            },
+          ],
+          ["resource.k8s.cluster.name"],
+        );
+
+        await callForServices();
+
+        expect(getAggregatedServiceIds()).toBeUndefined();
+        expect(
+          Object.keys(getAggregateArgs()["query"] as JSONObject).sort(),
+        ).toEqual(["name", "projectId"]);
+
+        jest.clearAllMocks();
+
+        await callWithAggregate({
+          query: {
+            name: CHARTED_METRIC_NAME,
+            time: {
+              _type: "InBetween",
+              value: {
+                startValue: "2026-01-01T00:00:00.000Z",
+                endValue: "2026-01-02T00:00:00.000Z",
+              },
+            },
+            attributes: {
+              "host.name": "web-2",
+              "resource.k8s.cluster.name": "prod-eu",
+            },
+          },
+        });
+
+        expect(getAggregatedServiceIds()).toBeUndefined();
+        expect(
+          Object.keys(getAggregateArgs()["query"] as JSONObject).sort(),
+        ).toEqual(["attributes", "name", "projectId", "time"]);
+      });
+
+      it("refuses a service filter of any shape, rather than dropping it", async () => {
+        for (const requested of [
+          servicesFilter([API_SERVICE_ID]),
+          servicesFilter([UNSAVED_SERVICE_ID]),
+          "smuggled",
+          API_SERVICE_ID,
+        ]) {
+          jest.clearAllMocks();
+
+          await callForServices(requested);
+          expectServicesRefused();
+        }
+      });
+
+      it("reads saved services that name none as every service, as the public page does", async () => {
+        const savedNone: Array<unknown> = [
+          [],
+          null,
+          API_SERVICE_ID,
+          { 0: API_SERVICE_ID },
+          [null, "", "   "],
+          7,
+        ];
+
+        for (const telemetryServiceIds of savedNone) {
+          jest.clearAllMocks();
+          setWidgets([
+            {
+              metricName: CHARTED_METRIC_NAME,
+              telemetryServiceIds: telemetryServiceIds,
+            },
+          ]);
+
+          await callForServices();
+          expect(getAggregatedServiceIds()).toBeUndefined();
+
+          jest.clearAllMocks();
+
+          await callForServices(servicesFilter([API_SERVICE_ID]));
+          expectServicesRefused();
+        }
+      });
+    });
+
+    describe("ids as saved", () => {
+      it("reads saved ids the way the public page does: trimmed, each once, ObjectID JSON as its id", async () => {
+        setWidgets([
+          {
+            metricName: CHARTED_METRIC_NAME,
+            telemetryServiceIds: [
+              ` ${API_SERVICE_ID} `,
+              { _type: "ObjectID", value: CHECKOUT_SERVICE_ID },
+              API_SERVICE_ID,
+            ],
+          },
+        ]);
+
+        await callForServices(
+          servicesFilter([API_SERVICE_ID, CHECKOUT_SERVICE_ID]),
+        );
+
+        expect(getAggregatedServiceIds()).toEqual([
+          API_SERVICE_ID,
+          CHECKOUT_SERVICE_ID,
+        ]);
+      });
+
+      it("matches a requested id exactly", async () => {
+        setWidgets([
+          {
+            metricName: CHARTED_METRIC_NAME,
+            telemetryServiceIds: [API_SERVICE_ID],
+          },
+        ]);
+
+        for (const looseId of [
+          ` ${API_SERVICE_ID}`,
+          `${API_SERVICE_ID} `,
+          `${API_SERVICE_ID}\n`,
+          API_SERVICE_ID.toUpperCase(),
+          API_SERVICE_ID.replace(/-/g, ""),
+        ]) {
+          jest.clearAllMocks();
+
+          await callForServices(servicesFilter([looseId]));
+          expectServicesRefused();
+        }
+      });
+    });
+
+    describe("a tampered service filter", () => {
+      beforeEach(() => {
+        setWidgets([
+          {
+            metricName: CHARTED_METRIC_NAME,
+            telemetryServiceIds: [API_SERVICE_ID],
+          },
+        ]);
+      });
+
+      it("is refused in every other shape a request can give it", async () => {
+        const shapes: Array<[string, unknown]> = [
+          ["one id", API_SERVICE_ID],
+          ["a number", 42],
+          ["true", true],
+          ["an object", {}],
+          ["a plain list of the id", [API_SERVICE_ID]],
+          ["an empty list", []],
+          ["an ObjectID", { _type: "ObjectID", value: API_SERVICE_ID }],
+          ["an empty Includes", { _type: "Includes", value: [] }],
+          ["an Includes of a number", { _type: "Includes", value: [42] }],
+          ["an Includes of null", { _type: "Includes", value: [null] }],
+          ["an Includes of an empty id", { _type: "Includes", value: [""] }],
+          [
+            "an Includes of an ObjectID",
+            {
+              _type: "Includes",
+              value: [{ _type: "ObjectID", value: API_SERVICE_ID }],
+            },
+          ],
+          [
+            "an Includes of a list",
+            { _type: "Includes", value: [[API_SERVICE_ID]] },
+          ],
+          [
+            "an Includes of an object",
+            { _type: "Includes", value: [{ value: API_SERVICE_ID }] },
+          ],
+          [
+            "an Includes of an Includes",
+            {
+              _type: "Includes",
+              value: [{ _type: "Includes", value: [API_SERVICE_ID] }],
+            },
+          ],
+          [
+            "an Includes of the id's letters",
+            { _type: "Includes", value: API_SERVICE_ID },
+          ],
+          [
+            "IncludesNone, which reads every other service",
+            { _type: "IncludesNone", value: [API_SERVICE_ID] },
+          ],
+          [
+            "IncludesAll",
+            { _type: "IncludesAll", value: [API_SERVICE_ID] },
+          ],
+          ["EqualTo", { _type: "EqualTo", value: API_SERVICE_ID }],
+          ["NotEqual", { _type: "NotEqual", value: API_SERVICE_ID }],
+          ["Search", { _type: "Search", value: API_SERVICE_ID }],
+          ["StartsWith", { _type: "StartsWith", value: API_SERVICE_ID }],
+          ["IsNull", { _type: "IsNull", value: null }],
+          ["NotNull", { _type: "NotNull", value: null }],
+          [
+            "a Mongo-style operator",
+            { $in: [API_SERVICE_ID], $ne: UNSAVED_SERVICE_ID },
+          ],
+        ];
+
+        for (const [label, shape] of shapes) {
+          jest.clearAllMocks();
+
+          await callForServices(shape);
+
+          const calls: Array<Array<unknown>> = (nextFunction as jest.Mock).mock
+            .calls as Array<Array<unknown>>;
+
+          if (
+            calls.length !== 1 ||
+            !(calls[0]![0] instanceof BadDataException) ||
+            (calls[0]![0] as BadDataException).message !==
+              PUBLIC_DASHBOARD_SERVICES_REFUSED_MESSAGE
+          ) {
+            throw new Error(
+              `${label} was not refused: ${String(calls[0]?.[0])}`,
+            );
+          }
+
+          expectNothingAggregated();
+        }
+      });
+
+      it("is refused when its filter JSON cannot even be read", async () => {
+        for (const shape of [
+          { _type: "Includes", value: {} },
+          { _type: "Includes", value: 5 },
+        ]) {
+          jest.clearAllMocks();
+
+          await callForServices(shape);
+
+          expect(nextFunction).toHaveBeenCalledTimes(1);
+          expectNothingAggregated();
+          expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+        }
+      });
+
+      it("cannot name ten thousand services to cover the saved one", async () => {
+        const serviceIds: Array<string> = [API_SERVICE_ID];
+
+        for (let index: number = 0; index < 10000; index++) {
+          serviceIds.push(ObjectID.generate().toString());
+        }
+
+        await callForServices(servicesFilter(serviceIds));
+        expectServicesRefused();
+      });
+
+      it("hidden on the query's prototype reaches nothing", async () => {
+        const protoBody: string =
+          `{"aggregateBy":{"query":{"name":"${CHARTED_METRIC_NAME}",` +
+          `"__proto__":{"primaryEntityId":{"_type":"Includes","value":["${UNSAVED_SERVICE_ID}"]}}},` +
+          `"aggregateColumnName":"value","aggregationType":"Avg",` +
+          `"aggregationTimestampColumnName":"time",` +
+          `"startTimestamp":"2026-01-01T00:00:00.000Z",` +
+          `"endTimestamp":"2026-01-02T00:00:00.000Z","limit":100,"skip":0}}`;
+
+        // Read as no filter: every service, which this chart does not chart.
+        await callRoute(JSON.parse(protoBody) as JSONObject);
+        expectServicesRefused();
+
+        jest.clearAllMocks();
+
+        // And on a chart of every service, no filter reaches the store at all.
+        setWidgets([{ metricName: CHARTED_METRIC_NAME }]);
+
+        await callRoute(JSON.parse(protoBody) as JSONObject);
+        expect(getAggregatedServiceIds()).toBeUndefined();
+      });
+
+      it("cannot move the aggregation to another project", async () => {
+        const otherProjectId: ObjectID = ObjectID.generate();
+
+        await callForServices(servicesFilter([API_SERVICE_ID]), {
+          query: { projectId: otherProjectId.toString() },
+        });
+
+        expect(getAggregatedServiceIds()).toEqual([API_SERVICE_ID]);
+
+        const query: JSONObject = getAggregateArgs()["query"] as JSONObject;
+
+        expect(query["projectId"]).toBe(projectId);
+      });
     });
   });
 
@@ -1372,6 +2118,49 @@ describe("DashboardAPI public metrics-aggregate", () => {
           await callWithAggregate({ groupByAttributeKeys: ["enduser.id"] });
           expect(getThrownError()).toBeInstanceOf(BadDataException);
           expectNothingAggregated();
+        });
+
+        it("reads its chart for the services the chart is saved with, and no other", async () => {
+          dashboard.dashboardViewConfig = storeAs(
+            buildViewConfig([
+              {
+                metricName: CHARTED_METRIC_NAME,
+                telemetryServiceIds: [API_SERVICE_ID],
+              },
+            ]),
+          ) as DashboardViewConfig;
+
+          await callWithAggregate({
+            query: {
+              name: CHARTED_METRIC_NAME,
+              primaryEntityId: servicesFilter([API_SERVICE_ID]),
+            },
+          });
+
+          expect(nextFunction).not.toHaveBeenCalled();
+          const query: JSONObject = getAggregateArgs()["query"] as JSONObject;
+          expect((query["primaryEntityId"] as Includes).values).toEqual([
+            API_SERVICE_ID,
+          ]);
+
+          for (const requested of [
+            undefined,
+            servicesFilter([UNSAVED_SERVICE_ID]),
+          ]) {
+            jest.clearAllMocks();
+
+            await callWithAggregate({
+              query: {
+                name: CHARTED_METRIC_NAME,
+                ...(requested ? { primaryEntityId: requested } : {}),
+              },
+            });
+
+            expect((getThrownError() as Error).message).toBe(
+              PUBLIC_DASHBOARD_SERVICES_REFUSED_MESSAGE,
+            );
+            expectNothingAggregated();
+          }
         });
 
         it("forwards a filter on a key only its variable binds to", async () => {
