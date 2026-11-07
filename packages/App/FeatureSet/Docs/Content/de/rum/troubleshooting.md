@@ -1,6 +1,6 @@
 # RUM-Fehlerbehebung
 
-Wenn eine RUM-Anwendung fehlt, leer ist oder **Getrennt** anzeigt, arbeiten Sie diese Seite der Reihe nach ab. Jede Prüfung schließt einen Teil des Wegs von Ihrer App zu OneUptime aus, in der Reihenfolge, in der diese Probleme meist auftreten.
+Wenn eine RUM-Anwendung fehlt oder leer ist oder **Kein aktueller Datenverkehr** anzeigt, obwohl Menschen sie nutzen, arbeiten Sie diese Seite der Reihe nach ab. Jede Prüfung schließt einen Teil des Wegs von Ihrer App zu OneUptime aus, in der Reihenfolge, in der diese Probleme meist auftreten.
 
 :::cards
 - [Den Schlüssel prüfen](#den-schlüssel-prüfen): Die schnellste Prüfung, und alles Weitere hängt von ihr ab.
@@ -120,15 +120,15 @@ Die Seite **Clients** listet `browser.platform` im Web und `device.model.identif
 
 Die Karte füllt sich nur aus Metriken, die Ihre App sendet, Traces allein füllen sie also nie. Prüfen Sie, dass Sie überhaupt Metriken exportieren, dass die Metriknamen solche sind, die OneUptime liest, und dass sie auf der Seite **Metriken** der Anwendung erscheinen. [Die Karte zeigt „Noch keine Web Vitals gemeldet“](/docs/rum/web-vitals#fehlerbehebung) geht jede Prüfung durch, auch Werte, die verloren gehen, wenn ein Besucher den Tab vor dem nächsten Export schließt.
 
-## Der Status zeigt Getrennt, während Menschen die App benutzen
+## Der Status zeigt „Kein aktueller Datenverkehr“, während Menschen die App benutzen
 
-Eine Anwendung wird nach 15 Minuten ohne Telemetrie **Getrennt**. Wenn Menschen die App benutzen:
+Eine Anwendung zeigt nach 15 Minuten ohne Telemetrie **Kein aktueller Datenverkehr**. Wenn Menschen die App benutzen:
 
 - **Ein Sampler verwirft womöglich alles.** Prüfen Sie, dass Sie keinen Always-off-Sampler und keine sehr niedrige Rate eingestellt haben.
 - **Die App sendet Telemetrie womöglich nur bei bestimmten Interaktionen**, und niemand hat sie in dieser Zeit ausgeführt.
 - **Der Schlüssel wurde womöglich widerrufen oder ausgeschaltet**, nachdem Sie ausgeliefert haben: Führen Sie die [Schlüsselprüfung](#den-schlüssel-prüfen) erneut aus.
 
-Eine interne App oder eine mit wenig Verkehr ohne Besucher über Nacht ist tatsächlich getrennt. Das ist kein Fehler.
+Eine interne App oder eine mit wenig Verkehr ohne Besucher über Nacht zeigt ebenfalls **Kein aktueller Datenverkehr**. Das ist normal und kein Fehler.
 
 ## Probleme mit der Sitzungswiedergabe
 
