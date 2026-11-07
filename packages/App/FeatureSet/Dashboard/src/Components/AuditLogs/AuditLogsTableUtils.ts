@@ -299,6 +299,109 @@ export const RESOURCE_META: { [key: string]: ResourceMeta } = {
     bgColor: "bg-red-50 border-red-100",
     viewRoute: PageMap.SECURITY_CASE_VIEW,
   },
+  /*
+   * The resources that gained an Audit Logs page after the Queues (issue
+   * #6246), each drawn with its own model's icon.
+   */
+  "Network Device": {
+    icon: IconProp.Signal,
+    color: "text-cyan-600",
+    bgColor: "bg-cyan-50 border-cyan-100",
+    viewRoute: PageMap.NETWORK_DEVICE_VIEW,
+  },
+  "Network Site": {
+    icon: IconProp.BuildingOffice,
+    color: "text-cyan-800",
+    bgColor: "bg-cyan-50 border-cyan-100",
+    viewRoute: PageMap.NETWORK_SITE_VIEW,
+  },
+  Form: {
+    icon: IconProp.ClipboardDocumentList,
+    color: "text-teal-600",
+    bgColor: "bg-teal-50 border-teal-100",
+    viewRoute: PageMap.FORM_VIEW,
+  },
+  "Cloud Account": {
+    icon: IconProp.Cloud,
+    color: "text-sky-600",
+    bgColor: "bg-sky-50 border-sky-100",
+    viewRoute: PageMap.CLOUD_ACCOUNT_VIEW,
+  },
+  /*
+   * A resource in a cloud account, or an environment in App Platforms: the
+   * same table. An environment's link opens …/cloud/:id, which forwards it
+   * to its page in App Platforms (Utils/CloudResourceViewPages).
+   */
+  "Cloud Resource": {
+    icon: IconProp.Cloud,
+    color: "text-sky-700",
+    bgColor: "bg-sky-50 border-sky-100",
+    viewRoute: PageMap.CLOUD_RESOURCE_VIEW,
+  },
+  "Serverless Function": {
+    icon: IconProp.Bolt,
+    color: "text-yellow-600",
+    bgColor: "bg-yellow-50 border-yellow-100",
+    viewRoute: PageMap.SERVERLESS_FUNCTION_VIEW,
+  },
+  /*
+   * Data Observability's tables (DataAsset), pipelines and data products.
+   */
+  "Data Asset": {
+    icon: IconProp.TableCells,
+    color: "text-violet-700",
+    bgColor: "bg-violet-50 border-violet-100",
+    viewRoute: PageMap.DATA_OBSERVABILITY_TABLE_VIEW,
+  },
+  "Data Pipeline": {
+    icon: IconProp.Workflow,
+    color: "text-violet-600",
+    bgColor: "bg-violet-50 border-violet-100",
+    viewRoute: PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW,
+  },
+  "Data Product": {
+    icon: IconProp.Layers,
+    color: "text-violet-800",
+    bgColor: "bg-violet-50 border-violet-100",
+    viewRoute: PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW,
+  },
+  /*
+   * An exception (TelemetryException): who resolved, archived, assigned or
+   * merged it.
+   */
+  Exception: {
+    icon: IconProp.Error,
+    color: "text-red-600",
+    bgColor: "bg-red-50 border-red-100",
+    viewRoute: PageMap.EXCEPTIONS_VIEW,
+  },
+  /*
+   * Data Security's stores and the issues its checks open.
+   */
+  "Data Store": {
+    icon: IconProp.Database,
+    color: "text-rose-600",
+    bgColor: "bg-rose-50 border-rose-100",
+    viewRoute: PageMap.DATA_SECURITY_STORE_VIEW,
+  },
+  "Data Security Issue": {
+    icon: IconProp.ShieldExclamation,
+    color: "text-rose-700",
+    bgColor: "bg-rose-50 border-rose-100",
+    viewRoute: PageMap.DATA_SECURITY_ISSUE_VIEW,
+  },
+  "Code Repository": {
+    icon: IconProp.Code,
+    color: "text-gray-800",
+    bgColor: "bg-gray-50 border-gray-200",
+    viewRoute: PageMap.CODE_REPOSITORY_VIEW,
+  },
+  "Status Page Announcement": {
+    icon: IconProp.Announcement,
+    color: "text-indigo-600",
+    bgColor: "bg-indigo-50 border-indigo-100",
+    viewRoute: PageMap.ANNOUNCEMENT_VIEW,
+  },
 };
 
 export const DEFAULT_RESOURCE_META: ResourceMeta = {

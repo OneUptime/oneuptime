@@ -18,7 +18,7 @@ export interface ComponentProps {
 
 /*
  * A data security issue's own side menu (IssueViewMenu.ts): its Overview
- * and Timeline, and under Advanced, Delete Issue - each entry lit on its
+ * and Timeline, and under Advanced, Audit Logs and Delete Issue - each entry lit on its
  * own page. Advanced folds by its title, as every record's does, and opens
  * by itself on its own page.
  */

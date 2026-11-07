@@ -52,6 +52,7 @@ import AnnouncementViewLayout from "../Pages/StatusPages/AnnouncementLayout";
 
 import AnnouncementViewNotificationLogs from "../Pages/StatusPages/Announcements/View/NotificationLogs";
 import AnnouncementViewDelete from "../Pages/StatusPages/Announcements/View/Delete";
+import AnnouncementViewAuditLogs from "../Pages/StatusPages/Announcements/View/AuditLogs";
 
 import StatusPageViewNotificationLogs from "../Pages/StatusPages/View/NotificationLogs";
 import StatusPageViewAuditLogs from "../Pages/StatusPages/View/AuditLogs";
@@ -351,6 +352,16 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ANNOUNCEMENT_VIEW_AUDIT_LOGS)}
+          element={
+            <AnnouncementViewAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW_AUDIT_LOGS] as Route}
+            />
+          }
+        />
+
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ANNOUNCEMENT_VIEW_DELETE)}
           element={

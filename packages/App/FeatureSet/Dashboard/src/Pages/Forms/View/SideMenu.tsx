@@ -19,7 +19,8 @@ export interface ComponentProps {
  * A form's menu, in the order a form is set up: build its questions, give
  * it templates to start from, decide what a submission creates, share its
  * link - and put it on your own domain - then watch what comes in.
- * Duplicating and deleting the form are under Advanced.
+ * Duplicating the form, who changed it (Audit Logs) and deleting it are
+ * under Advanced.
  */
 const FormViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -105,6 +106,16 @@ const FormViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Copy}
+        />
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.FORM_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
         />
         <SideMenuItem
           link={{

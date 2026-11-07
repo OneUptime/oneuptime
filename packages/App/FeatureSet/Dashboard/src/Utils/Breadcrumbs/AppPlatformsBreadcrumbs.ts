@@ -105,6 +105,10 @@ export function getAppPlatformsBreadcrumbs(
       ["Project", "App Platforms", "View Environment", "Owners"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_AUDIT_LOGS,
+      ["Project", "App Platforms", "View Environment", "Audit Logs"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DELETE,
       ["Project", "App Platforms", "View Environment", "Delete Environment"],
     ),

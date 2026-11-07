@@ -36,6 +36,7 @@ import DataObservabilityPipelinesPage from "../Pages/DataObservability/Pipelines
 import PipelineViewLayout from "../Pages/DataPipeline/View/Layout";
 import PipelineOverviewPage from "../Pages/DataPipeline/View/Overview";
 import DataPipelineRecommendationsPage from "../Pages/DataPipeline/View/Recommendations";
+import DataPipelineAuditLogsPage from "../Pages/DataPipeline/View/AuditLogs";
 import DataObservabilityDataProductsPage from "../Pages/DataObservability/DataProducts";
 import DataObservabilityReconciliationsPage from "../Pages/DataObservability/Reconciliations";
 import DataObservabilitySettingsPage from "../Pages/DataObservability/Settings";
@@ -51,9 +52,11 @@ import DataProductViewLayout from "../Pages/DataProduct/View/Layout";
 import DataProductOverviewPage from "../Pages/DataProduct/View/Overview";
 import DataProductSettingsPage from "../Pages/DataProduct/View/Settings";
 import DataProductDeletePage from "../Pages/DataProduct/View/Delete";
+import DataProductAuditLogsPage from "../Pages/DataProduct/View/AuditLogs";
 import DataObservabilityChecksPage from "../Pages/DataObservability/Checks";
 import TableSettingsPage from "../Pages/DataObservability/TableView/Settings";
 import TableDeletePage from "../Pages/DataObservability/TableView/Delete";
+import TableAuditLogsPage from "../Pages/DataObservability/TableView/AuditLogs";
 
 /*
  * Every page under the product's side menu renders inside its layout, the
@@ -386,6 +389,20 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_TABLE_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <TableAuditLogsPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_AUDIT_LOGS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
             PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE,
           )}
           element={
@@ -433,6 +450,22 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <DataPipelineAuditLogsPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_AUDIT_LOGS
+                ] as Route
+              }
+            />
+          }
+        />
       </PageRoute>
 
       <PageRoute
@@ -469,6 +502,22 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <DataProductAuditLogsPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_AUDIT_LOGS
+                ] as Route
+              }
+            />
+          }
+        />
+
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_DELETE,

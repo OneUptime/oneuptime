@@ -96,6 +96,13 @@ const TableViewSideMenu: FunctionComponent<ComponentProps> = (
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
+            title: "Audit Logs",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_TABLE_VIEW_AUDIT_LOGS),
+          }}
+          icon={IconProp.List}
+        />
+        <SideMenuItem
+          link={{
             title: "Delete Table",
             to: routeOf(PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE),
           }}

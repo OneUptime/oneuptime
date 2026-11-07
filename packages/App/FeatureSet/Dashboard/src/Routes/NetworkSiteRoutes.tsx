@@ -21,6 +21,7 @@ import NetworkSiteViewStatusTimeline from "../Pages/NetworkSite/View/StatusTimel
 import NetworkSiteViewScheduledMaintenance from "../Pages/NetworkSite/View/ScheduledMaintenance";
 import NetworkSiteViewSettings from "../Pages/NetworkSite/View/Settings";
 import NetworkSiteViewDelete from "../Pages/NetworkSite/View/Delete";
+import NetworkSiteViewAuditLogs from "../Pages/NetworkSite/View/AuditLogs";
 import NetworkSiteModel from "Common/Models/DatabaseModels/NetworkSite";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
@@ -182,6 +183,16 @@ const NetworkSiteRoutes: FunctionComponent<ComponentProps> = (
             <NetworkSiteViewSettings
               {...props}
               pageRoute={RouteMap[PageMap.NETWORK_SITE_VIEW_SETTINGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.NETWORK_SITE_VIEW_AUDIT_LOGS)}
+          element={
+            <NetworkSiteViewAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_SITE_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

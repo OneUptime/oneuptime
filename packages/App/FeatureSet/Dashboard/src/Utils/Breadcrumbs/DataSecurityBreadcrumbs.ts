@@ -102,6 +102,13 @@ export function getDataSecurityBreadcrumbs(
       "View Data Store",
       "Settings",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_STORE_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Data Security",
+      "Data Stores",
+      "View Data Store",
+      "Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_STORE_VIEW_DELETE, [
       "Project",
       "Data Security",
@@ -132,6 +139,13 @@ export function getDataSecurityBreadcrumbs(
       "Issues",
       "View Issue",
       "Timeline",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_ISSUE_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Data Security",
+      "Issues",
+      "View Issue",
+      "Audit Logs",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_ISSUE_VIEW_DELETE, [
       "Project",

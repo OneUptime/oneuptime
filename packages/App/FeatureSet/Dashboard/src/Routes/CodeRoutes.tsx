@@ -18,6 +18,7 @@ import CodeRepositoryTasks from "../Pages/Code/Repository/Tasks";
 import CodeRepositorySettings from "../Pages/Code/Repository/Settings";
 import CodeRepositoryProductionReviews from "../Pages/Code/Repository/ProductionReviews";
 import CodeRepositoryDelete from "../Pages/Code/Repository/Delete";
+import CodeRepositoryAuditLogs from "../Pages/Code/Repository/AuditLogs";
 import CodeTaskConversation from "../Pages/Code/Task/Conversation";
 import CodeTaskLog from "../Pages/Code/Task/Log";
 
@@ -99,6 +100,18 @@ const CodeRoutes: FunctionComponent<ComponentProps> = (
                   PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS
                 ] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CODE_REPOSITORY_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <CodeRepositoryAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.CODE_REPOSITORY_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

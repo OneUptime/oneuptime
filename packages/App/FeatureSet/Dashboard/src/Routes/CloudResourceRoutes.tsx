@@ -15,6 +15,7 @@ import CloudResourceFeed from "../Pages/Cloud/View/Feed";
 import CloudResourceOwners from "../Pages/Cloud/View/Owners";
 import CloudResourceDocumentation from "../Pages/Cloud/View/Documentation";
 import CloudResourceDelete from "../Pages/Cloud/View/Delete";
+import CloudResourceAuditLogs from "../Pages/Cloud/View/AuditLogs";
 import CloudResourceIncidents from "../Pages/Cloud/View/Incidents";
 import CloudResourceAlerts from "../Pages/Cloud/View/Alerts";
 import CloudResourceChanges from "../Pages/Cloud/View/Changes";
@@ -33,6 +34,7 @@ import CloudAccountChanges from "../Pages/Cloud/Accounts/View/Changes";
 import CloudAccountTopology from "../Pages/Cloud/Accounts/View/Topology";
 import CloudAccountSettings from "../Pages/Cloud/Accounts/View/Settings";
 import CloudAccountDelete from "../Pages/Cloud/Accounts/View/Delete";
+import CloudAccountAuditLogs from "../Pages/Cloud/Accounts/View/AuditLogs";
 import CloudAccountAiAgent from "../Pages/Cloud/Accounts/View/AI/Agent";
 import CloudAccountAiLogs from "../Pages/Cloud/Accounts/View/AI/Logs";
 import CloudAccountFeed from "../Pages/Cloud/Accounts/View/Feed";
@@ -328,6 +330,16 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_ACCOUNT_VIEW_AUDIT_LOGS)}
+          element={
+            <CloudAccountAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AUDIT_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.CLOUD_ACCOUNT_VIEW_DELETE)}
           element={
             <CloudAccountDelete
@@ -516,6 +528,16 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_RESOURCE_VIEW_AUDIT_LOGS)}
+          element={
+            <CloudResourceAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />
