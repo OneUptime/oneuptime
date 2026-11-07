@@ -14,6 +14,7 @@ import {
   buildUnhealthyCriteriaInstance,
   getRecoveryFilterType,
 } from "./Recommendation/RecommendationCriteriaBuilder";
+import { translationKey } from "../Translator";
 
 /*
  * THE MONITORS ONEUPTIME RECOMMENDS FOR AN APP PLATFORMS APP - an ECS
@@ -365,8 +366,10 @@ function latencyTemplate(data: {
 const CLOUD_APP_ALERT_TEMPLATES: ReadonlyArray<CloudAppAlertTemplate> = [
   spanCountTemplate({
     id: "cloud-app-failed-operations",
-    name: "Failed Operations",
-    summary: "The app reports a failed operation in ten minutes.",
+    name: translationKey("Failed Operations"),
+    summary: translationKey(
+      "The app reports a failed operation in ten minutes.",
+    ),
     description:
       "Fires when the app reports any error-status span in ten minutes: the earliest sign its requests fail, whatever the cause. Reads the app's own spans.",
     category: "Errors",
@@ -383,8 +386,8 @@ const CLOUD_APP_ALERT_TEMPLATES: ReadonlyArray<CloudAppAlertTemplate> = [
   }),
   spanCountTemplate({
     id: "cloud-app-error-burst",
-    name: "Error Burst",
-    summary: "More than 25 operations fail in five minutes.",
+    name: translationKey("Error Burst"),
+    summary: translationKey("More than 25 operations fail in five minutes."),
     description:
       "Fires when the app reports more than 25 error-status spans in five minutes: a failure rate well past routine noise. Reads the app's own spans.",
     category: "Errors",
@@ -401,8 +404,8 @@ const CLOUD_APP_ALERT_TEMPLATES: ReadonlyArray<CloudAppAlertTemplate> = [
   }),
   spanCountTemplate({
     id: "cloud-app-traffic-stopped",
-    name: "Traffic Stopped",
-    summary: "The app reports no spans for fifteen minutes.",
+    name: translationKey("Traffic Stopped"),
+    summary: translationKey("The app reports no spans for fifteen minutes."),
     description:
       "Fires when the app reports no span at all for fifteen minutes. Best for an always-on app: one with idle hours will fire in them.",
     category: "Throughput",
@@ -419,8 +422,8 @@ const CLOUD_APP_ALERT_TEMPLATES: ReadonlyArray<CloudAppAlertTemplate> = [
   }),
   latencyTemplate({
     id: "cloud-app-latency-p95",
-    name: "High Request Latency (p95)",
-    summary: "One request in twenty takes a second or more.",
+    name: translationKey("High Request Latency (p95)"),
+    summary: translationKey("One request in twenty takes a second or more."),
     description:
       "Fires when the 95th percentile of the app's request duration stays at a second or more for five minutes. Reads http.server.request.duration, which its HTTP instrumentation reports.",
     severity: "Warning",
@@ -433,8 +436,10 @@ const CLOUD_APP_ALERT_TEMPLATES: ReadonlyArray<CloudAppAlertTemplate> = [
   }),
   latencyTemplate({
     id: "cloud-app-latency-p99",
-    name: "Severe Request Latency (p99)",
-    summary: "One request in a hundred takes 2.5 seconds or more.",
+    name: translationKey("Severe Request Latency (p99)"),
+    summary: translationKey(
+      "One request in a hundred takes 2.5 seconds or more.",
+    ),
     description:
       "Fires when the 99th percentile of the app's request duration stays at 2.5 seconds or more for five minutes: the tail users give up on.",
     severity: "Critical",

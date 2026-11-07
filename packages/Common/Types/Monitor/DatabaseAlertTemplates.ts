@@ -19,6 +19,7 @@ import {
   buildUnhealthyCriteriaInstance,
   getRecoveryFilterType,
 } from "./Recommendation/RecommendationCriteriaBuilder";
+import { translationKey } from "../Translator";
 
 /*
  * The curated alert library for ONE database server (a DatabaseServer row),
@@ -174,6 +175,13 @@ export interface DatabaseAlertTemplateArgs {
 export interface DatabaseAlertTemplate {
   id: string;
   name: string;
+  /*
+   * One plain sentence: when the template fires, with its threshold and
+   * window, without metric names. A Recommendations card shows it, in the
+   * reader's language; `description` (how it is computed, and its caveats)
+   * waits behind Show more.
+   */
+  summary: string;
   description: string;
   category: DatabaseAlertTemplateCategory;
   severity: DatabaseAlertTemplateSeverity;
@@ -956,6 +964,7 @@ function buildDatabaseCriteria(data: {
 interface DatabaseTemplateSpec {
   id: string;
   name: string;
+  summary: string;
   description: string;
   category: DatabaseAlertTemplateCategory;
   severity: DatabaseAlertTemplateSeverity;
@@ -981,6 +990,7 @@ function buildDatabaseTemplate(
   return {
     id: spec.id,
     name: spec.name,
+    summary: spec.summary,
     description: spec.description,
     category: spec.category,
     severity: spec.severity,
@@ -1080,6 +1090,7 @@ function getCriteriaSubject(spec: DatabaseTemplateSpec): string {
 function buildPercentOfLimitTemplate(data: {
   id: string;
   name: string;
+  summary: string;
   description: string;
   category: DatabaseAlertTemplateCategory;
   severity: DatabaseAlertTemplateSeverity;
@@ -1094,6 +1105,7 @@ function buildPercentOfLimitTemplate(data: {
   return buildDatabaseTemplate({
     id: data.id,
     name: data.name,
+    summary: data.summary,
     description: data.description,
     category: data.category,
     severity: data.severity,
@@ -1140,7 +1152,8 @@ function buildEngineMetricsStoppedTemplate(data: {
 }): DatabaseAlertTemplate {
   return buildDatabaseTemplate({
     id: data.id,
-    name: "Engine Metrics Stopped",
+    name: translationKey("Engine Metrics Stopped"),
+    summary: translationKey("No engine metrics arrive for 10 minutes."),
     description: `Alert when no ${data.engine.displayName} engine metrics arrive for ten minutes — the server is down or refusing the collector's login, or the Database Agent / collector itself stopped. Reads ${data.metricName}, which the receiver emits on every successful scrape.`,
     category: "Availability",
     severity: "Critical",
@@ -1192,7 +1205,8 @@ function buildRestartTemplate(data: {
       : "";
   return buildDatabaseTemplate({
     id: data.id,
-    name: "Server Restarted",
+    name: translationKey("Server Restarted"),
+    summary: translationKey("The server started less than 10 minutes ago."),
     description: `Alert when the ${data.engine.displayName} server has been up for less than ten minutes — it restarted, crashed and came back, or failed over. Reads ${data.metricName}${readBy}.`,
     category: "Availability",
     severity: "Warning",
@@ -1248,7 +1262,10 @@ const postgresqlTemplates: Array<DatabaseAlertTemplate> = [
    */
   buildDatabaseTemplate({
     id: "database-postgresql-xid-wraparound-near",
-    name: "Transaction ID Wraparound Near",
+    name: translationKey("Transaction ID Wraparound Near"),
+    summary: translationKey(
+      "The oldest transaction ID is 1.5 billion transactions old.",
+    ),
     description:
       "Alert when the oldest transaction ID of any database is 1.5 billion transactions old — about 70% of the way to the 2.1 billion at which PostgreSQL stops accepting writes. Reads postgresql.xid.oldest_age, which the Database Agent reads with SQL (age(datfrozenxid) in pg_database); enable the same sqlquery receiver in a collector of your own.",
     category: "Availability",
@@ -1273,7 +1290,10 @@ const postgresqlTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-postgresql-xid-age-high",
-    name: "Transaction ID Age Above 1 Billion",
+    name: translationKey("Transaction ID Age Above 1 Billion"),
+    summary: translationKey(
+      "The oldest transaction ID is a billion transactions old.",
+    ),
     description:
       "Alert when the oldest transaction ID of any database is a billion transactions old — half way to wraparound: autovacuum's freezing is falling behind. Reads postgresql.xid.oldest_age, which the Database Agent reads with SQL (age(datfrozenxid) in pg_database); enable the same sqlquery receiver in a collector of your own.",
     category: "Availability",
@@ -1298,7 +1318,10 @@ const postgresqlTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildPercentOfLimitTemplate({
     id: "database-postgresql-connections-exhausted",
-    name: "Connections Nearly Exhausted",
+    name: translationKey("Connections Nearly Exhausted"),
+    summary: translationKey(
+      "Connections reach 95% of the server's connection limit.",
+    ),
     description:
       'Alert when backends reach 95% of max_connections. Past 100% PostgreSQL refuses every new connection with "too many clients already".',
     category: "Connections",
@@ -1321,7 +1344,10 @@ const postgresqlTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildPercentOfLimitTemplate({
     id: "database-postgresql-connections-high",
-    name: "Connections Above 80% of max_connections",
+    name: translationKey("Connections Above 80% of max_connections"),
+    summary: translationKey(
+      "Connections stay at 80% of the server's connection limit.",
+    ),
     description:
       "Alert when backends stay at 80% of max_connections — the early warning before the connection limit. Backends include autovacuum and parallel workers.",
     category: "Connections",
@@ -1345,7 +1371,10 @@ const postgresqlTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-postgresql-replica-replay-lag",
-    name: "Replica Replay Lag",
+    name: translationKey("Replica Replay Lag"),
+    summary: translationKey(
+      "A replica stays 30 seconds or more behind in replaying changes.",
+    ),
     description:
       "Alert when the slowest replica stays 30 seconds or more behind this primary in replaying WAL. Reads postgresql.wal.delay (operation = replay), which the primary reports per connected replica and the receiver only emits once it is enabled (the Database Agent enables it).",
     category: "Replication",
@@ -1370,7 +1399,8 @@ const postgresqlTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-postgresql-replication-byte-lag",
-    name: "Replication Falling Behind (bytes)",
+    name: translationKey("Replication Falling Behind (bytes)"),
+    summary: translationKey("A replica stays 1 GB or more of changes behind."),
     description:
       "Alert when the slowest replica stays 1 GB or more of WAL behind this primary. Catches a replica that is streaming but not keeping up, even while the primary is too idle to report a time lag.",
     category: "Replication",
@@ -1395,7 +1425,8 @@ const postgresqlTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-postgresql-long-running-transaction",
-    name: "Long-Running Transaction",
+    name: translationKey("Long-Running Transaction"),
+    summary: translationKey("A transaction stays open for an hour or more."),
     description:
       "Alert when a transaction stays open for an hour or more — it holds back vacuum (dead rows pile up and tables bloat) and keeps every lock it took. Usually a session left idle in transaction; retune to your longest legitimate batch job. Reads postgresql.transaction.longest_duration, which the Database Agent reads with SQL (xact_start in pg_stat_activity); enable the same sqlquery receiver in a collector of your own.",
     category: "Performance",
@@ -1419,7 +1450,10 @@ const postgresqlTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-postgresql-sessions-waiting-on-locks",
-    name: "Sessions Waiting on Locks",
+    name: translationKey("Sessions Waiting on Locks"),
+    summary: translationKey(
+      "Sessions wait on another session's lock for 10 minutes.",
+    ),
     description:
       "Alert when sessions waiting on another session's lock are seen throughout ten minutes — a blocking chain that is not clearing. Reads postgresql.sessions.waiting_on_lock, which the Database Agent reads with SQL (wait_event_type in pg_stat_activity); enable the same sqlquery receiver in a collector of your own.",
     category: "Performance",
@@ -1445,7 +1479,8 @@ const postgresqlTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-postgresql-database-size",
-    name: "Database Size Above Budget",
+    name: translationKey("Database Size Above Budget"),
+    summary: translationKey("The largest database grows past 500 GB."),
     description:
       "Alert when the largest database on the server grows past 500 GB. An absolute budget — retune it to the disk the server actually has.",
     category: "Storage",
@@ -1495,7 +1530,10 @@ const mysqlTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-mysql-connections-high",
-    name: "Connections Near max_connections",
+    name: translationKey("Connections Near max_connections"),
+    summary: translationKey(
+      "Connected threads stay at 136 or more, 90% of the default limit.",
+    ),
     description:
       "Alert when connected threads stay at 136 or more — 90% of the default max_connections of 151. The receiver reports no max_connections value, so retune this to 90% of the server's own setting.",
     category: "Connections",
@@ -1520,7 +1558,8 @@ const mysqlTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-mysql-threads-running-high",
-    name: "Too Many Running Threads",
+    name: translationKey("Too Many Running Threads"),
+    summary: translationKey("Threads running at once stay at 50 or more."),
     description:
       "Alert when threads actively executing stay at 50 or more — CPU saturation or lock contention. Retune to about twice the server's vCPU count.",
     category: "Performance",
@@ -1551,7 +1590,8 @@ const mysqlTemplates: Array<DatabaseAlertTemplate> = [
    */
   buildPercentOfLimitTemplate({
     id: "database-mysql-buffer-pool-dirty",
-    name: "InnoDB Dirty Pages High",
+    name: translationKey("InnoDB Dirty Pages High"),
+    summary: translationKey("Dirty pages stay at 75% of the buffer pool."),
     description:
       "Alert when dirty pages stay at 75% of the InnoDB buffer pool's pages — page flushing is not keeping up with writes, and a checkpoint stall is next. (A FULL buffer pool is normal; a DIRTY one is not.) Reads page counts, which MySQL and MariaDB report alike.",
     category: "Performance",
@@ -1578,7 +1618,10 @@ const mysqlTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-mysql-replica-lag",
-    name: "Replica Lag",
+    name: translationKey("Replica Lag"),
+    summary: translationKey(
+      "This replica stays 30 seconds or more behind its source.",
+    ),
     description:
       "Alert when this replica stays 30 seconds or more behind its source. Reads mysql.replica.time_behind_source, which the receiver only emits once it is enabled (the Database Agent enables it).",
     category: "Replication",
@@ -1607,7 +1650,10 @@ const mysqlTemplates: Array<DatabaseAlertTemplate> = [
    */
   buildDatabaseTemplate({
     id: "database-mysql-galera-node-out-of-sync",
-    name: "Galera Node Out of Sync",
+    name: translationKey("Galera Node Out of Sync"),
+    summary: translationKey(
+      "A Galera node stays out of step with its cluster for 10 minutes.",
+    ),
     description:
       "Alert when a Galera node stays out of step with its cluster for 10 minutes, with nobody having asked it to: a node cut off from the others, one falling behind, or one stuck on a long lock. A node someone took out with wsrep_desync for a backup does not fire this. Reads mysql.wsrep.local_state and mysql.wsrep.desync_count, which the Database Agent's config enables with SQL of its own. Check SHOW GLOBAL STATUS LIKE 'wsrep_%' on it, and what it can reach.",
     category: "Availability",
@@ -1668,7 +1714,8 @@ const redisTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildPercentOfLimitTemplate({
     id: "database-redis-memory-near-maxmemory",
-    name: "Memory Near maxmemory",
+    name: translationKey("Memory Near maxmemory"),
+    summary: translationKey("Used memory stays at 90% of the memory limit."),
     description:
       "Alert when used memory stays at 90% of maxmemory. Reads redis.maxmemory, which the receiver only emits once it is enabled (the Database Agent enables it); a server with no maxmemory set never fires.",
     category: "Memory",
@@ -1692,7 +1739,10 @@ const redisTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-redis-memory-fragmentation",
-    name: "Memory Fragmentation High",
+    name: translationKey("Memory Fragmentation High"),
+    summary: translationKey(
+      "Memory fragmentation stays at 1.5 or more with 256 MB in use.",
+    ),
     description:
       "Alert when the memory fragmentation ratio stays at 1.5 or more while Redis uses at least 256 MB — the process holds far more RAM than its data needs. Small instances are exempt: their ratio is naturally high and meaningless.",
     category: "Memory",
@@ -1737,7 +1787,10 @@ const redisTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-redis-clients-high",
-    name: "Connected Clients Near maxclients",
+    name: translationKey("Connected Clients Near maxclients"),
+    summary: translationKey(
+      "Connected clients stay at 9,000 or more, 90% of the default limit.",
+    ),
     description:
       "Alert when connected clients stay at 9,000 or more — 90% of the default maxclients of 10,000. Retune to 90% of the server's own maxclients setting.",
     category: "Connections",
@@ -1787,7 +1840,10 @@ const mongodbTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-mongodb-connections-exhausted",
-    name: "Connections Nearly Exhausted",
+    name: translationKey("Connections Nearly Exhausted"),
+    summary: translationKey(
+      "Connections reach 90% of what the server can accept.",
+    ),
     description:
       "Alert when current connections reach 90% of the connections the server can accept (current + available). Past 100% mongod refuses new connections.",
     category: "Connections",
@@ -1850,7 +1906,8 @@ const sqlServerTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-sqlserver-buffer-cache-hit-ratio-low",
-    name: "Buffer Cache Hit Ratio Low",
+    name: translationKey("Buffer Cache Hit Ratio Low"),
+    summary: translationKey("The buffer cache hit ratio stays below 90%."),
     description:
       "Alert when the buffer cache hit ratio stays below 90% — pages are being read from disk instead of memory.",
     category: "Performance",
@@ -1875,7 +1932,10 @@ const sqlServerTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-sqlserver-page-life-expectancy-low",
-    name: "Page Life Expectancy Low",
+    name: translationKey("Page Life Expectancy Low"),
+    summary: translationKey(
+      "Pages stay in the buffer pool for less than 300 seconds.",
+    ),
     description:
       "Alert when page life expectancy stays below 300 seconds — the buffer pool is churning under memory pressure.",
     category: "Memory",
@@ -1900,7 +1960,8 @@ const sqlServerTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-sqlserver-sessions-blocked",
-    name: "Sessions Blocked",
+    name: translationKey("Sessions Blocked"),
+    summary: translationKey("Blocked sessions are seen throughout 10 minutes."),
     description:
       "Alert when sessions waiting on another session's lock are seen throughout ten minutes — a blocking chain that is not clearing. Reads sqlserver.processes.blocked, which the receiver only emits once it is enabled (the Database Agent enables it).",
     category: "Performance",
@@ -1926,7 +1987,8 @@ const sqlServerTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-sqlserver-memory-grants-pending",
-    name: "Queries Waiting for Memory",
+    name: translationKey("Queries Waiting for Memory"),
+    summary: translationKey("Queries stay queued for memory for 5 minutes."),
     description:
       "Alert when queries stay queued for a memory grant for five minutes — they cannot start until workspace memory frees up. Reads sqlserver.memory.grants.pending.count, which the receiver only emits once it is enabled (the Database Agent enables it).",
     category: "Memory",
@@ -1973,7 +2035,10 @@ const oracleTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-oracle-tablespace-nearly-full",
-    name: "Tablespace Nearly Full",
+    name: translationKey("Tablespace Nearly Full"),
+    summary: translationKey(
+      "The fullest tablespace stays at 90% or more of its maximum size.",
+    ),
     description:
       "Alert when the fullest tablespace stays at 90% or more of its maximum size. A full tablespace refuses to extend the segments in it (ORA-01653; ORA-01652 for TEMP). Reads oracledb.tablespace.utilization, which the receiver only emits once it is enabled (the Database Agent enables it).",
     category: "Storage",
@@ -2024,7 +2089,10 @@ const elasticsearchTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-elasticsearch-cluster-red",
-    name: "Cluster Health Red",
+    name: translationKey("Cluster Health Red"),
+    summary: translationKey(
+      "Cluster health stays red: a primary shard is unassigned.",
+    ),
     description:
       "Alert when cluster health stays red — at least one primary shard is unassigned, so part of the data cannot be searched or written.",
     category: "Availability",
@@ -2050,7 +2118,8 @@ const elasticsearchTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-elasticsearch-cluster-yellow",
-    name: "Cluster Health Yellow",
+    name: translationKey("Cluster Health Yellow"),
+    summary: translationKey("Cluster health stays yellow for 15 minutes."),
     description:
       "Alert when cluster health stays yellow for fifteen minutes — replica shards are unassigned, so one more node loss can lose data. Short yellow periods during a rolling restart are normal.",
     category: "Availability",
@@ -2077,7 +2146,8 @@ const elasticsearchTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-elasticsearch-pending-tasks",
-    name: "Cluster Tasks Backing Up",
+    name: translationKey("Cluster Tasks Backing Up"),
+    summary: translationKey("Pending cluster tasks stay at 10 or more."),
     description:
       "Alert when ten or more cluster-state tasks stay pending — the master node cannot keep up with mapping, shard and index changes.",
     category: "Performance",
@@ -2102,7 +2172,10 @@ const elasticsearchTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-elasticsearch-jvm-heap-high",
-    name: "JVM Heap Pressure",
+    name: translationKey("JVM Heap Pressure"),
+    summary: translationKey(
+      "A node's JVM heap stays at 85% of its maximum or more.",
+    ),
     description:
       "Alert when a node's JVM heap stays at 85% of its maximum or more. Sustained pressure means long GC pauses and circuit breakers tripping next. Reads jvm.memory.heap.utilization, which the receiver only emits once it is enabled (the Database Agent enables it).",
     category: "Memory",
@@ -2159,7 +2232,10 @@ const memcachedTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-memcached-connections-high",
-    name: "Connections Near Limit",
+    name: translationKey("Connections Near Limit"),
+    summary: translationKey(
+      "Open connections stay at 900 or more, near the default limit.",
+    ),
     description:
       "Alert when open connections stay at 900 or more — close to the default connection limit of 1,024 (-c). Retune to 90% of the server's own limit.",
     category: "Connections",
@@ -2200,7 +2276,8 @@ const couchdbTemplates: Array<DatabaseAlertTemplate> = [
   }),
   buildDatabaseTemplate({
     id: "database-couchdb-request-time-high",
-    name: "Slow Requests",
+    name: translationKey("Slow Requests"),
+    summary: translationKey("Requests take 1 second or more on average."),
     description:
       "Alert when the average request time stays at one second or more.",
     category: "Performance",

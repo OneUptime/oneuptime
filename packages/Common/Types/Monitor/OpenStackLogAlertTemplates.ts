@@ -16,6 +16,7 @@ import {
   OpenStackEventAttribute,
   OpenStackEventFailure,
 } from "../../Utils/OpenStack/OpenStackNotifications";
+import { translationKey } from "../Translator";
 
 /*
  * ALERTS ON WHAT AN OPENSTACK CLOUD'S SERVICES SAY.
@@ -267,9 +268,10 @@ function buildStep(data: {
 
 const noValidHostTemplate: OpenStackLogAlertTemplate = {
   id: OPENSTACK_NO_VALID_HOST_TEMPLATE_ID,
-  name: "No Valid Host",
-  summary:
+  name: translationKey("No Valid Host"),
+  summary: translationKey(
     "A service says no valid host was found for an instance, in the last 15 minutes.",
+  ),
   description:
     "Alert when a service logs Nova's No valid host was found: the scheduler could not place an instance. The cloud is out of room for that flavor, the hosts that could take it are down or disabled, or an aggregate or image property has ruled them all out. It resolves 15 minutes after the last such line. Needs the agent's logs profile on the controllers. It is a Logs monitor over the cloud's service logs.",
   category: "Service Logs",
@@ -300,8 +302,10 @@ const noValidHostTemplate: OpenStackLogAlertTemplate = {
 
 const rabbitMqLostTemplate: OpenStackLogAlertTemplate = {
   id: OPENSTACK_RABBITMQ_CONNECTION_LOST_TEMPLATE_ID,
-  name: "RabbitMQ Connection Lost",
-  summary: `Services log ${OPENSTACK_RABBITMQ_LOST_MIN_LINES} or more lines about losing the message bus in 5 minutes.`,
+  name: translationKey("RabbitMQ Connection Lost"),
+  summary: translationKey(
+    "Services log 5 or more lines about losing the message bus in 5 minutes.",
+  ),
   description:
     "Alert when services say AMQP server is unreachable, or time out waiting for a reply on the bus (MessagingTimeout). A service keeps its own connection to RabbitMQ and says so when it loses it, even while RabbitMQ's own metrics look fine from elsewhere. One alert for the cloud, because when the bus goes every service says so at once. It resolves when they stop saying it. Needs the agent's logs profile. It is a Logs monitor over the cloud's service logs.",
   category: "Service Logs",
@@ -330,8 +334,10 @@ const rabbitMqLostTemplate: OpenStackLogAlertTemplate = {
 
 const databaseLostTemplate: OpenStackLogAlertTemplate = {
   id: OPENSTACK_DATABASE_CONNECTION_LOST_TEMPLATE_ID,
-  name: "Database Connection Lost",
-  summary: `Services log ${OPENSTACK_DATABASE_LOST_MIN_LINES} or more lines about losing the database in 5 minutes.`,
+  name: translationKey("Database Connection Lost"),
+  summary: translationKey(
+    "Services log 5 or more lines about losing the database in 5 minutes.",
+  ),
   description:
     "Alert when services say they lost their database: DBConnectionError, or MySQL's Lost connection and Can't connect. Every API that needs its database answers 500 meanwhile. One alert for the cloud, because when the database goes every service says so at once. It resolves when they stop saying it. Needs the agent's logs profile. It is a Logs monitor over the cloud's service logs.",
   category: "Service Logs",
@@ -360,8 +366,10 @@ const databaseLostTemplate: OpenStackLogAlertTemplate = {
 
 const tooManyErrorsTemplate: OpenStackLogAlertTemplate = {
   id: OPENSTACK_TOO_MANY_ERRORS_TEMPLATE_ID,
-  name: "Too Many Errors from a Service",
-  summary: `One service on one machine logs ${OPENSTACK_TOO_MANY_ERRORS_MIN_LINES} or more errors in 5 minutes.`,
+  name: translationKey("Too Many Errors from a Service"),
+  summary: translationKey(
+    "One service on one machine logs 50 or more errors in 5 minutes.",
+  ),
   description:
     "Alert when one service on one machine writes a burst of ERROR and CRITICAL lines, whatever they say: a failing service often says so here first, while its heartbeat still reads up. One alert per service and machine, which resolves when the rate falls. Needs the agent's logs profile. It is a Logs monitor over the cloud's service logs.",
   category: "Service Logs",
@@ -386,8 +394,10 @@ const tooManyErrorsTemplate: OpenStackLogAlertTemplate = {
 
 const tokenFailingTemplate: OpenStackLogAlertTemplate = {
   id: OPENSTACK_TOKEN_VALIDATION_FAILING_TEMPLATE_ID,
-  name: "Token Validation Failing",
-  summary: `Services log ${OPENSTACK_TOKEN_FAILING_MIN_LINES} or more lines about tokens they cannot validate in 5 minutes.`,
+  name: translationKey("Token Validation Failing"),
+  summary: translationKey(
+    "Services log 10 or more lines about tokens they cannot validate in 5 minutes.",
+  ),
   description:
     "Alert when services or Keystone say they cannot validate tokens: Keystone refusing tokens it gave out is what a controller whose Fernet keys differ from the others looks like, and users get 401 from one request in every few. One expired token is someone's stale session, so this takes several in a few minutes. It resolves when they stop. Needs the agent's logs profile. It is a Logs monitor over the cloud's service logs.",
   category: "Service Logs",
@@ -416,9 +426,10 @@ const tokenFailingTemplate: OpenStackLogAlertTemplate = {
 
 const instanceActionFailedTemplate: OpenStackLogAlertTemplate = {
   id: OPENSTACK_INSTANCE_ACTION_FAILED_TEMPLATE_ID,
-  name: "Instance Action Failed",
-  summary:
+  name: translationKey("Instance Action Failed"),
+  summary: translationKey(
     "Nova says an action on an instance failed, with the reason it gives.",
+  ),
   description:
     "Alert when Nova says an action on an instance failed: compute.exception, or any instance.*.error, with the reason it gives named on the alert. Needs notifications with driver = log, or a probe, which reads the same from Nova's instance actions on a cloud that cannot turn those on. It is a Logs monitor over the cloud's service logs.",
   category: "Events",
@@ -448,9 +459,10 @@ const instanceActionFailedTemplate: OpenStackLogAlertTemplate = {
 
 const schedulingFailedTemplate: OpenStackLogAlertTemplate = {
   id: OPENSTACK_SCHEDULING_FAILED_TEMPLATE_ID,
-  name: "Scheduling Failed",
-  summary:
+  name: translationKey("Scheduling Failed"),
+  summary: translationKey(
     "Nova says it could not schedule an instance, with the reason it gives.",
+  ),
   description:
     "Alert when Nova's notifications, or a probe reading its instance actions, say an instance could not be scheduled, with the reason named on the alert. No Valid Host says the same from the log lines alone, on a cloud without notifications turned on. It is a Logs monitor over the cloud's service logs.",
   category: "Events",

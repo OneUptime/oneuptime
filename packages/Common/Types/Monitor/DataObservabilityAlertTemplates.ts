@@ -23,6 +23,7 @@ import {
   buildUnhealthyCriteriaInstance,
   getRecoveryFilterType,
 } from "./Recommendation/RecommendationCriteriaBuilder";
+import { translationKey } from "../Translator";
 
 /*
  * The curated alert library for ONE data store's tables (a DataStore row
@@ -101,6 +102,13 @@ export interface DataObservabilityAlertTemplateArgs {
 export interface DataObservabilityAlertTemplate {
   id: string;
   name: string;
+  /*
+   * One plain sentence: when the template fires, with its threshold and
+   * window, without metric names. A Recommendations card shows it, in the
+   * reader's language; `description` (how it is computed, and its caveats)
+   * waits behind Show more.
+   */
+  summary: string;
   description: string;
   category: DataObservabilityAlertTemplateCategory;
   severity: DataObservabilityAlertTemplateSeverity;
@@ -119,6 +127,7 @@ const ROW_COUNT_FELL_PERCENT: number = -50;
 interface DataObservabilityTemplateSpec {
   id: string;
   name: string;
+  summary: string;
   description: string;
   category: DataObservabilityAlertTemplateCategory;
   severity: DataObservabilityAlertTemplateSeverity;
@@ -265,6 +274,7 @@ function buildTemplate(
   return {
     id: spec.id,
     name: spec.name,
+    summary: spec.summary,
     description: spec.description,
     category: spec.category,
     severity: spec.severity,
@@ -302,7 +312,10 @@ function buildTemplate(
 
 const tableIsLateTemplate: DataObservabilityAlertTemplate = buildTemplate({
   id: "data-store-table-late",
-  name: "Table Is Late",
+  name: translationKey("Table Is Late"),
+  summary: translationKey(
+    "A table goes longer without a change than its rhythm allows.",
+  ),
   description:
     "Alert when a table has gone longer without a change than its own rhythm allows - twice its usual interval, and at least fifteen minutes past it. Works from a table's first few changes.",
   category: "Freshness",
@@ -326,7 +339,10 @@ const tableIsLateTemplate: DataObservabilityAlertTemplate = buildTemplate({
 const rowCountFellSharplyTemplate: DataObservabilityAlertTemplate =
   buildTemplate({
     id: "data-store-row-count-fell-sharply",
-    name: "Row Count Fell Sharply",
+    name: translationKey("Row Count Fell Sharply"),
+    summary: translationKey(
+      "A table loses half its rows or more between two reads.",
+    ),
     description:
       "Alert when a table loses half its rows or more between two collections: a truncate, a bad delete, a load that replaced the table with less. Tables under 1,000 rows are left out.",
     category: "Volume",
@@ -361,7 +377,10 @@ const rowCountFellSharplyTemplate: DataObservabilityAlertTemplate =
 const rowCountUnusuallyLowTemplate: DataObservabilityAlertTemplate =
   buildTemplate({
     id: "data-store-row-count-unusually-low",
-    name: "Row Count Unusually Low",
+    name: translationKey("Row Count Unusually Low"),
+    summary: translationKey(
+      "A table holds far fewer rows than usual for this hour of the week.",
+    ),
     description:
       "Alert when a table holds far fewer rows than it usually does at this hour of the week. Learns each table over two weeks; catches slow losses one step does not show.",
     category: "Volume",
@@ -386,7 +405,8 @@ const rowCountUnusuallyLowTemplate: DataObservabilityAlertTemplate =
 
 const schemaChangedTemplate: DataObservabilityAlertTemplate = buildTemplate({
   id: "data-store-schema-changed",
-  name: "Schema Changed",
+  name: translationKey("Schema Changed"),
+  summary: translationKey("A table's columns are removed, renamed or retyped."),
   description:
     "Alert when a table's columns are removed, renamed or retyped, so a migration that breaks the reports, jobs and services reading it is seen at once. An added column stays on the table's timeline.",
   category: "Schema",
@@ -410,7 +430,8 @@ const schemaChangedTemplate: DataObservabilityAlertTemplate = buildTemplate({
 
 const stoppedReportingTemplate: DataObservabilityAlertTemplate = buildTemplate({
   id: "data-store-table-health-stopped-reporting",
-  name: "Table Health Stopped Reporting",
+  name: translationKey("Table Health Stopped Reporting"),
+  summary: translationKey("No table of the data store is read for 15 minutes."),
   description:
     "Alert when no table of the data store has been read for fifteen minutes: the database is down or refusing the login, or the probe that reads it stopped.",
   category: "Collection",

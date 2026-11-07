@@ -12,6 +12,7 @@ import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepDockerMonitor from "./MonitorStepDockerMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type DockerAlertTemplateCategory =
   | "Availability"
@@ -387,8 +388,10 @@ export function buildDockerDeltaMonitorConfig(args: {
 
 const hostStoppedReportingTemplate: DockerAlertTemplate = {
   id: "docker-host-stopped-reporting",
-  name: "Host Stopped Reporting",
-  summary: "The Docker host sends no container metrics for 10 minutes.",
+  name: translationKey("Host Stopped Reporting"),
+  summary: translationKey(
+    "The Docker host sends no container metrics for 10 minutes.",
+  ),
   description:
     "Alert when the Docker host sends no container metrics for ten minutes: the host is down, or the Docker agent stopped, lost its route to OneUptime or had its token revoked. A host with no other containers still reports, because the agent runs as a container itself and reports its own.",
   category: "Availability",
@@ -434,8 +437,8 @@ const hostStoppedReportingTemplate: DockerAlertTemplate = {
 
 const highCpuTemplate: DockerAlertTemplate = {
   id: "docker-high-cpu",
-  name: "High Container CPU Usage",
-  summary: "A container uses more than 80% of one CPU core.",
+  name: translationKey("High Container CPU Usage"),
+  summary: translationKey("A container uses more than 80% of one CPU core."),
   description:
     "Alert when a container's CPU usage stays above 80% of ONE CPU core for the whole window. This is the same number `docker stats` prints, so 100% is one full core and a container spread across several cores reads above 100. One alert per container.",
   category: "Resource",
@@ -483,8 +486,10 @@ const highCpuTemplate: DockerAlertTemplate = {
 
 const highMemoryTemplate: DockerAlertTemplate = {
   id: "docker-high-memory",
-  name: "High Container Memory Usage",
-  summary: "A container uses more than 85% of its memory limit.",
+  name: translationKey("High Container Memory Usage"),
+  summary: translationKey(
+    "A container uses more than 85% of its memory limit.",
+  ),
   description:
     "Alert when container memory usage stays above 85% of its memory limit — or of HOST memory, when the container was started without a limit. One alert per container.",
   category: "Resource",
@@ -561,8 +566,10 @@ const highMemoryTemplate: DockerAlertTemplate = {
  */
 const containerRestartLoopTemplate: DockerAlertTemplate = {
   id: "docker-restart-loop",
-  name: "Container Restart Loop",
-  summary: "A container restarts more than 3 times in 15 minutes.",
+  name: translationKey("Container Restart Loop"),
+  summary: translationKey(
+    "A container restarts more than 3 times in 15 minutes.",
+  ),
   description:
     "Alert when a container restarts more than 3 times within fifteen minutes: Docker keeps restarting it under its restart policy, so it is crash-looping rather than recovering from a one-off failure. Reads container.restarts.increase, the restarts since the agent's previous sample of the container, so every restart counts however far apart the samples are; a restart by hand starts a new count and is not one. An older Docker agent does not send it: update the agent first. One alert per container.",
   category: "Container",
@@ -630,9 +637,10 @@ const containerRestartLoopTemplate: DockerAlertTemplate = {
 
 const highCpuThrottlingTemplate: DockerAlertTemplate = {
   id: "docker-cpu-throttling",
-  name: "Container CPU Throttling",
-  summary:
+  name: translationKey("Container CPU Throttling"),
+  summary: translationKey(
     "A container is held back by its CPU limit for over a second in 5 minutes.",
+  ),
   description:
     "Alert when a container accumulates more than a second of CPU throttling in five minutes, meaning it is hitting its CPU limit. One alert per container.",
   category: "Resource",
@@ -704,8 +712,10 @@ const highCpuThrottlingTemplate: DockerAlertTemplate = {
 
 const highProcessCountTemplate: DockerAlertTemplate = {
   id: "docker-high-pids",
-  name: "High Container Process Count",
-  summary: "A container runs more than 2000 processes and threads.",
+  name: translationKey("High Container Process Count"),
+  summary: translationKey(
+    "A container runs more than 2000 processes and threads.",
+  ),
   description:
     "Alert when a container's task count (processes PLUS threads) stays above 2000, which may indicate a fork bomb, a thread leak, or an unbounded worker pool. One alert per container.",
   category: "Container",
@@ -771,9 +781,10 @@ const highProcessCountTemplate: DockerAlertTemplate = {
  */
 const containerUptimeTemplate: DockerAlertTemplate = {
   id: "docker-container-down",
-  name: "Container Restarted (Low Uptime)",
-  summary:
+  name: translationKey("Container Restarted (Low Uptime)"),
+  summary: translationKey(
     "A container restarted, crashed or was redeployed in the last 2 minutes.",
+  ),
   description:
     "Alert when a container's uptime resets, meaning it restarted, crashed and was brought back by its restart policy, or was redeployed in the last two minutes. A container that stops and stays stopped sends no data, so this catches restarts, not a permanent shutdown. One alert per container.",
   category: "Container",

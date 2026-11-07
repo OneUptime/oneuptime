@@ -18,6 +18,7 @@ import {
   buildUnhealthyCriteriaInstance,
   getRecoveryFilterType,
 } from "./Recommendation/RecommendationCriteriaBuilder";
+import { translationKey } from "../Translator";
 
 /*
  * The curated alert library for ONE data pipeline (a DataPipeline row), from
@@ -57,6 +58,13 @@ export interface DataPipelineAlertTemplateArgs {
 export interface DataPipelineAlertTemplate {
   id: string;
   name: string;
+  /*
+   * One plain sentence: when the template fires, with its threshold and
+   * window, without metric names. A Recommendations card shows it, in the
+   * reader's language; `description` (how it is computed, and its caveats)
+   * waits behind Show more.
+   */
+  summary: string;
   description: string;
   category: DataPipelineAlertTemplateCategory;
   severity: DataPipelineAlertTemplateSeverity;
@@ -70,6 +78,7 @@ const METRIC_ALIAS: string = "pipeline";
 interface PipelineTemplateSpec {
   id: string;
   name: string;
+  summary: string;
   description: string;
   category: DataPipelineAlertTemplateCategory;
   severity: DataPipelineAlertTemplateSeverity;
@@ -97,6 +106,7 @@ function buildTemplate(spec: PipelineTemplateSpec): DataPipelineAlertTemplate {
   return {
     id: spec.id,
     name: spec.name,
+    summary: spec.summary,
     description: spec.description,
     category: spec.category,
     severity: spec.severity,
@@ -179,7 +189,8 @@ function buildTemplate(spec: PipelineTemplateSpec): DataPipelineAlertTemplate {
 
 const runFailedTemplate: DataPipelineAlertTemplate = buildTemplate({
   id: "data-pipeline-run-failed",
-  name: "Pipeline Run Failed",
+  name: translationKey("Pipeline Run Failed"),
+  summary: translationKey("A run of the pipeline fails or is aborted."),
   description:
     "Alert when a run of the pipeline fails or is aborted. The run's page shows the error it reported and the tables it should have written.",
   category: "Runs",
@@ -199,7 +210,10 @@ const runFailedTemplate: DataPipelineAlertTemplate = buildTemplate({
 
 const runUnusuallyLongTemplate: DataPipelineAlertTemplate = buildTemplate({
   id: "data-pipeline-run-unusually-long",
-  name: "Pipeline Run Unusually Long",
+  name: translationKey("Pipeline Run Unusually Long"),
+  summary: translationKey(
+    "A run takes twice as long as the pipeline's runs usually do.",
+  ),
   description:
     "Alert when a run takes twice as long as the pipeline's runs usually do - the median of its last 20 completed runs - while it is still running, so a run that hangs is seen before it ends. Learns from five completed runs.",
   category: "Runs",
@@ -219,7 +233,10 @@ const runUnusuallyLongTemplate: DataPipelineAlertTemplate = buildTemplate({
 
 const pipelineIsLateTemplate: DataPipelineAlertTemplate = buildTemplate({
   id: "data-pipeline-late",
-  name: "Pipeline Is Late",
+  name: translationKey("Pipeline Is Late"),
+  summary: translationKey(
+    "No run starts for longer than the pipeline's schedule allows.",
+  ),
   description:
     "Alert when no run of the pipeline has started for longer than its schedule allows - learned from its own runs, with a quarter of its interval and at least fifteen minutes of slack. Learns from five runs.",
   category: "Schedule",

@@ -12,6 +12,7 @@ import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepDockerSwarmMonitor from "./MonitorStepDockerSwarmMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type DockerSwarmAlertTemplateCategory =
   | "Availability"
@@ -269,8 +270,10 @@ export function buildDockerSwarmFormulaMonitorConfig(args: {
 
 const clusterStoppedReportingTemplate: DockerSwarmAlertTemplate = {
   id: "docker-swarm-cluster-stopped-reporting",
-  name: "Cluster Stopped Reporting",
-  summary: "The cluster sends no container metrics for 10 minutes.",
+  name: translationKey("Cluster Stopped Reporting"),
+  summary: translationKey(
+    "The cluster sends no container metrics for 10 minutes.",
+  ),
   description:
     "Alert when no node of the Swarm cluster sends container metrics for ten minutes: the nodes running the agent are down, or the agent stopped, lost its route to OneUptime or had its token revoked. A node with no tasks still reports, because the agent runs as a container itself and reports its own. One incident for the whole cluster.",
   category: "Availability",
@@ -317,8 +320,8 @@ const clusterStoppedReportingTemplate: DockerSwarmAlertTemplate = {
 
 const highCpuTemplate: DockerSwarmAlertTemplate = {
   id: "docker-swarm-high-cpu",
-  name: "High Task CPU Usage",
-  summary: "A task uses more than 80% of one CPU core.",
+  name: translationKey("High Task CPU Usage"),
+  summary: translationKey("A task uses more than 80% of one CPU core."),
   description:
     "Alert when any Swarm task's container uses more than 80% of one CPU core (container.cpu.utilization, where 100% = one full core). One incident per task.",
   category: "Resource",
@@ -375,8 +378,8 @@ const highCpuTemplate: DockerSwarmAlertTemplate = {
 
 const highMemoryTemplate: DockerSwarmAlertTemplate = {
   id: "docker-swarm-high-memory",
-  name: "High Task Memory Usage",
-  summary: "A task uses more than 85% of its memory limit.",
+  name: translationKey("High Task Memory Usage"),
+  summary: translationKey("A task uses more than 85% of its memory limit."),
   description:
     "Alert when any Swarm task's container memory usage exceeds 85% of its memory limit — or of the node's total memory when the service sets no limit (container.memory.percent). One incident per task.",
   category: "Resource",
@@ -430,8 +433,8 @@ const highMemoryTemplate: DockerSwarmAlertTemplate = {
 
 const highProcessCountTemplate: DockerSwarmAlertTemplate = {
   id: "docker-swarm-high-pids",
-  name: "High Task Process Count",
-  summary: "A task runs more than 2000 processes and threads.",
+  name: translationKey("High Task Process Count"),
+  summary: translationKey("A task runs more than 2000 processes and threads."),
   description:
     "Alert when any Swarm task's container holds more than 2000 tasks — processes PLUS threads (container.pids.count > 2000) — which may indicate a fork bomb, a thread leak, or an unbounded worker pool. One incident per task.",
   category: "Container",
@@ -482,8 +485,10 @@ const highProcessCountTemplate: DockerSwarmAlertTemplate = {
 
 const taskDownTemplate: DockerSwarmAlertTemplate = {
   id: "docker-swarm-task-down",
-  name: "Task Down (Low Uptime)",
-  summary: "A task restarted: its container is up for less than 60 seconds.",
+  name: translationKey("Task Down (Low Uptime)"),
+  summary: translationKey(
+    "A task restarted: its container is up for less than 60 seconds.",
+  ),
   description:
     "Alert when any Swarm task's container has been running for less than 60 seconds, indicating the task was just rescheduled, restarted, or crashed and replaced (container.uptime < 60s). One incident per task.",
   category: "Availability",
@@ -575,8 +580,8 @@ const taskDownTemplate: DockerSwarmAlertTemplate = {
  */
 const nodeNotReadyTemplate: DockerSwarmAlertTemplate = {
   id: "docker-swarm-node-not-ready",
-  name: "Node Not Ready",
-  summary: "A node is down or disconnected for 5 minutes.",
+  name: translationKey("Node Not Ready"),
+  summary: translationKey("A node is down or disconnected for 5 minutes."),
   description:
     "Alert when a Swarm node has not been ready for five minutes: the managers have lost its heartbeat, so it is down or disconnected, and Swarm moves its replicated tasks to other nodes while its global ones stop. Read every minute from the managers' own view (docker.swarm.node.ready, from the agent's poller, files 0.161.3 on). One incident per node.",
   category: "Availability",
@@ -624,8 +629,10 @@ const nodeNotReadyTemplate: DockerSwarmAlertTemplate = {
 
 const serviceReplicasMismatchTemplate: DockerSwarmAlertTemplate = {
   id: "docker-swarm-service-replicas-mismatch",
-  name: "Service Replicas Mismatch",
-  summary: "A service runs fewer replicas than it wants for 15 minutes.",
+  name: translationKey("Service Replicas Mismatch"),
+  summary: translationKey(
+    "A service runs fewer replicas than it wants for 15 minutes.",
+  ),
   description:
     "Alert when a replicated or global Swarm service has run fewer tasks than it wants for fifteen minutes - the REPLICAS column of docker service ls reading 2/3. Computed per service as docker.swarm.service.replicas.desired - docker.swarm.service.replicas.running, read every minute from a manager by the agent's poller (files 0.161.3 on). Fifteen minutes, so a rolling update that replaces its tasks a few at a time does not page. One incident per service.",
   category: "Availability",

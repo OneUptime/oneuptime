@@ -16,6 +16,7 @@ import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import StorageSystem, {
   StorageSystemUtil,
 } from "../StorageArray/StorageSystem";
+import { translationKey } from "../Translator";
 
 export type StorageArrayAlertTemplateCategory =
   | "Availability"
@@ -318,8 +319,8 @@ function arrayStoppedReportingTemplate(data: {
 }): StorageArrayAlertTemplate {
   return {
     id: data.id,
-    name: "Array Stopped Reporting",
-    summary: "The array sends no data for 10 minutes.",
+    name: translationKey("Array Stopped Reporting"),
+    summary: translationKey("The array sends no data for 10 minutes."),
     description: `Alert when the ${data.platformName} sends no data for ten minutes: the Storage Array Agent stopped, lost its route to OneUptime or had its token revoked, or the array stopped answering it (down, unreachable, or its read-only API token no longer works). Reads ${data.infoMetricName}, which every endpoint the agent scrapes exports on every scrape.`,
     category: "Availability",
     severity: "Critical",
@@ -382,8 +383,8 @@ const RECOVER_WHEN_ABSENT: SingleQueryTemplateSpec["recover"] = {
 const faCriticalAlertsTemplate: StorageArrayAlertTemplate = singleQueryTemplate(
   {
     id: "purefa-critical-alerts",
-    name: "Critical Array Alert",
-    summary: "The array raises a critical alert of its own.",
+    name: translationKey("Critical Array Alert"),
+    summary: translationKey("The array raises a critical alert of its own."),
     description:
       "Alert when the FlashArray raises a critical alert of its own (purefa_alerts_open with severity critical) — a failed controller or component, a capacity emergency, a replication failure. One incident per alert summary.",
     category: "Array Health",
@@ -408,8 +409,8 @@ const faCriticalAlertsTemplate: StorageArrayAlertTemplate = singleQueryTemplate(
 
 const faWarningAlertsTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
   id: "purefa-warning-alerts",
-  name: "Warning Array Alert",
-  summary: "The array raises a warning alert of its own.",
+  name: translationKey("Warning Array Alert"),
+  summary: translationKey("The array raises a warning alert of its own."),
   description:
     "Alert when the FlashArray raises a warning alert (purefa_alerts_open with severity warning). One incident per alert summary.",
   category: "Array Health",
@@ -433,8 +434,10 @@ const faWarningAlertsTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
 
 const faCapacityHighTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
   id: "purefa-capacity-high",
-  name: "Capacity Above 80%",
-  summary: "More than 80% of the array's usable space is in use.",
+  name: translationKey("Capacity Above 80%"),
+  summary: translationKey(
+    "More than 80% of the array's usable space is in use.",
+  ),
   description:
     "Alert when more than 80% of the FlashArray's usable capacity is in use (purefa_array_space_utilization) — Pure's own first capacity alert threshold.",
   category: "Capacity",
@@ -457,9 +460,10 @@ const faCapacityHighTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
 const faCapacityCriticalTemplate: StorageArrayAlertTemplate =
   singleQueryTemplate({
     id: "purefa-capacity-critical",
-    name: "Capacity Above 90%",
-    summary:
+    name: translationKey("Capacity Above 90%"),
+    summary: translationKey(
       "More than 90% of the usable space is in use. Writes may soon stop.",
+    ),
     description:
       "Alert when more than 90% of the FlashArray's usable capacity is in use (purefa_array_space_utilization) — Pure's second capacity alert threshold, where the array is close to refusing writes.",
     category: "Capacity",
@@ -481,8 +485,8 @@ const faCapacityCriticalTemplate: StorageArrayAlertTemplate =
 
 const faReadLatencyTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
   id: "purefa-read-latency-high",
-  name: "High Read Latency",
-  summary: "Average read latency stays above 5 ms.",
+  name: translationKey("High Read Latency"),
+  summary: translationKey("Average read latency stays above 5 ms."),
   description:
     "Alert when the FlashArray's average read latency stays above 5 ms (purefa_array_performance_latency_usec, dimension usec_per_read_op). FlashArray reads normally complete well under 1 ms.",
   category: "Performance",
@@ -505,8 +509,8 @@ const faReadLatencyTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
 
 const faWriteLatencyTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
   id: "purefa-write-latency-high",
-  name: "High Write Latency",
-  summary: "Average write latency stays above 5 ms.",
+  name: translationKey("High Write Latency"),
+  summary: translationKey("Average write latency stays above 5 ms."),
   description:
     "Alert when the FlashArray's average write latency stays above 5 ms (purefa_array_performance_latency_usec, dimension usec_per_write_op).",
   category: "Performance",
@@ -530,8 +534,8 @@ const faWriteLatencyTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
 const faHardwareCriticalTemplate: StorageArrayAlertTemplate =
   singleQueryTemplate({
     id: "purefa-hardware-critical",
-    name: "Hardware Component Failed",
-    summary: "A hardware component reports critical.",
+    name: translationKey("Hardware Component Failed"),
+    summary: translationKey("A hardware component reports critical."),
     description:
       "Alert when a FlashArray hardware component reports critical (purefa_hw_component_status, component_status critical) — a controller, power supply, fan, drive or NVRAM bay, or port. One incident per component.",
     category: "Hardware",
@@ -556,8 +560,8 @@ const faHardwareCriticalTemplate: StorageArrayAlertTemplate =
 const faHardwareDegradedTemplate: StorageArrayAlertTemplate =
   singleQueryTemplate({
     id: "purefa-hardware-degraded",
-    name: "Hardware Component Degraded",
-    summary: "A hardware component reports degraded.",
+    name: translationKey("Hardware Component Degraded"),
+    summary: translationKey("A hardware component reports degraded."),
     description:
       "Alert when a FlashArray hardware component reports degraded (purefa_hw_component_status, component_status degraded). One incident per component.",
     category: "Hardware",
@@ -581,8 +585,8 @@ const faHardwareDegradedTemplate: StorageArrayAlertTemplate =
 
 const faDriveFailedTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
   id: "purefa-drive-failed",
-  name: "Drive Failed",
-  summary: "A drive reports failed.",
+  name: translationKey("Drive Failed"),
+  summary: translationKey("A drive reports failed."),
   description:
     "Alert when a FlashArray drive reports failed (purefa_drive_capacity_bytes, component_status failed). One incident per drive.",
   category: "Hardware",
@@ -607,8 +611,10 @@ const faDriveFailedTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
 const faHostConnectivityTemplate: StorageArrayAlertTemplate =
   singleQueryTemplate({
     id: "purefa-host-connectivity-critical",
-    name: "Host Lost Redundant Paths",
-    summary: "A host no longer reaches the array through both controllers.",
+    name: translationKey("Host Lost Redundant Paths"),
+    summary: translationKey(
+      "A host no longer reaches the array through both controllers.",
+    ),
     description:
       "Alert when a host's connectivity to the FlashArray turns critical (purefa_host_connectivity_info, status critical) — it no longer reaches the array through both controllers. One incident per host.",
     category: "Hosts",
@@ -632,8 +638,8 @@ const faHostConnectivityTemplate: StorageArrayAlertTemplate =
 
 const faReplicaLagTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
   id: "purefa-replica-link-lag",
-  name: "Replication Lag Above 1 Minute",
-  summary: "A replica link falls more than 60 seconds behind.",
+  name: translationKey("Replication Lag Above 1 Minute"),
+  summary: translationKey("A replica link falls more than 60 seconds behind."),
   description:
     "Alert when a pod replica link (ActiveDR / async replication) falls more than 60 seconds behind (purefa_pod_replica_links_lag_max_msec). One incident per local pod.",
   category: "Replication",
@@ -659,8 +665,8 @@ const faReplicaLagTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
 const fbCriticalAlertsTemplate: StorageArrayAlertTemplate = singleQueryTemplate(
   {
     id: "purefb-critical-alerts",
-    name: "Critical Array Alert",
-    summary: "The array raises a critical alert of its own.",
+    name: translationKey("Critical Array Alert"),
+    summary: translationKey("The array raises a critical alert of its own."),
     description:
       "Alert when the FlashBlade raises a critical alert of its own (purefb_alerts_open with severity critical). One incident per alert summary.",
     category: "Array Health",
@@ -685,8 +691,8 @@ const fbCriticalAlertsTemplate: StorageArrayAlertTemplate = singleQueryTemplate(
 
 const fbWarningAlertsTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
   id: "purefb-warning-alerts",
-  name: "Warning Array Alert",
-  summary: "The array raises a warning alert of its own.",
+  name: translationKey("Warning Array Alert"),
+  summary: translationKey("The array raises a warning alert of its own."),
   description:
     "Alert when the FlashBlade raises a warning alert (purefb_alerts_open with severity warning). One incident per alert summary.",
   category: "Array Health",
@@ -710,8 +716,10 @@ const fbWarningAlertsTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
 
 const fbCapacityHighTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
   id: "purefb-capacity-high",
-  name: "Capacity Above 80%",
-  summary: "More than 80% of the array's usable space is in use.",
+  name: translationKey("Capacity Above 80%"),
+  summary: translationKey(
+    "More than 80% of the array's usable space is in use.",
+  ),
   description:
     "Alert when more than 80% of the FlashBlade's usable capacity is in use (purefb_array_space_utilization, type array).",
   category: "Capacity",
@@ -735,8 +743,10 @@ const fbCapacityHighTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
 const fbCapacityCriticalTemplate: StorageArrayAlertTemplate =
   singleQueryTemplate({
     id: "purefb-capacity-critical",
-    name: "Capacity Above 90%",
-    summary: "More than 90% of the array's usable space is in use.",
+    name: translationKey("Capacity Above 90%"),
+    summary: translationKey(
+      "More than 90% of the array's usable space is in use.",
+    ),
     description:
       "Alert when more than 90% of the FlashBlade's usable capacity is in use (purefb_array_space_utilization, type array).",
     category: "Capacity",
@@ -760,8 +770,10 @@ const fbCapacityCriticalTemplate: StorageArrayAlertTemplate =
 const fbHardwareUnhealthyTemplate: StorageArrayAlertTemplate =
   singleQueryTemplate({
     id: "purefb-hardware-unhealthy",
-    name: "Hardware Component Unhealthy",
-    summary: "A blade, fabric module, power supply or fan is unhealthy.",
+    name: translationKey("Hardware Component Unhealthy"),
+    summary: translationKey(
+      "A blade, fabric module, power supply or fan is unhealthy.",
+    ),
     description:
       "Alert when a FlashBlade hardware component stops reporting healthy (purefb_hardware_health below 1) — a blade, fabric module, power supply or fan. One incident per component.",
     category: "Hardware",
@@ -798,8 +810,8 @@ const fbHardwareUnhealthyTemplate: StorageArrayAlertTemplate =
 
 const fbReadLatencyTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
   id: "purefb-read-latency-high",
-  name: "High Read Latency",
-  summary: "Average read latency stays above 10 ms.",
+  name: translationKey("High Read Latency"),
+  summary: translationKey("Average read latency stays above 10 ms."),
   description:
     "Alert when the FlashBlade's average read latency across all protocols stays above 10 ms (purefb_array_performance_latency_usec, dimension usec_per_read_op, protocol all).",
   category: "Performance",
@@ -823,8 +835,10 @@ const fbReadLatencyTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
 const fbFileSystemNearFullTemplate: StorageArrayAlertTemplate =
   singleQueryTemplate({
     id: "purefb-file-system-near-full",
-    name: "File System Near Full",
-    summary: "A file system has less than 10% of its space left.",
+    name: translationKey("File System Near Full"),
+    summary: translationKey(
+      "A file system has less than 10% of its space left.",
+    ),
     description:
       "Alert when less than 10% of a FlashBlade file system's provisioned size is still available (purefb_file_systems_space_bytes, space available_ratio). One incident per file system.",
     category: "File Systems",

@@ -14,6 +14,7 @@ import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepProxmoxMonitor from "./MonitorStepProxmoxMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type ProxmoxAlertTemplateCategory =
   | "Availability"
@@ -361,8 +362,8 @@ export function buildProxmoxRatioMonitorConfig(args: {
 
 const clusterStoppedReportingTemplate: ProxmoxAlertTemplate = {
   id: "pve-cluster-stopped-reporting",
-  name: "Cluster Stopped Reporting",
-  summary: "The cluster sends no data for 10 minutes.",
+  name: translationKey("Cluster Stopped Reporting"),
+  summary: translationKey("The cluster sends no data for 10 minutes."),
   description:
     "Alert when the Proxmox cluster sends no data for ten minutes: the Proxmox Agent or its pve-exporter stopped, lost its route to OneUptime or had its token revoked, the Proxmox API stopped answering it, or - on the Proxmox VE native OpenTelemetry push - every node went quiet. Reads pve_up, which both ways of reporting send on every scrape or push while they run. One incident for the whole cluster.",
   category: "Availability",
@@ -407,8 +408,8 @@ const clusterStoppedReportingTemplate: ProxmoxAlertTemplate = {
 
 const nodeOfflineTemplate: ProxmoxAlertTemplate = {
   id: "pve-node-offline",
-  name: "Node Offline",
-  summary: "A node goes down.",
+  name: translationKey("Node Offline"),
+  summary: translationKey("A node goes down."),
   description:
     "Alert when any Proxmox node is down (pve_up = 0, scoped to nodes via pve.scope). One incident per node. On the Proxmox VE native OpenTelemetry push, a node that stops reporting is reported down by the nodes still alive, so this fires about 5 minutes after its last report; a standalone host or a whole cluster going silent turns the cluster Disconnected instead.",
   category: "Availability",
@@ -462,8 +463,10 @@ const nodeOfflineTemplate: ProxmoxAlertTemplate = {
 
 const guestDownTemplate: ProxmoxAlertTemplate = {
   id: "pve-guest-down",
-  name: "Guest Down",
-  summary: "A VM or container set to start on boot stops running.",
+  name: translationKey("Guest Down"),
+  summary: translationKey(
+    "A VM or container set to start on boot stops running.",
+  ),
   description:
     "Alert when a VM or container that is configured to start on boot stops running (pve_up = 0 while pve_onboot_status = 1, scoped to guests via pve.scope). One incident per guest. A guest with start on boot disabled never fires; one with it enabled fires even when stopped on purpose, so turn start on boot off first.",
   category: "Availability",
@@ -580,8 +583,8 @@ const guestDownTemplate: ProxmoxAlertTemplate = {
 
 const quorumRiskTemplate: ProxmoxAlertTemplate = {
   id: "pve-quorum-risk",
-  name: "Cluster Quorum at Risk",
-  summary: "50% or fewer of the cluster's nodes are online.",
+  name: translationKey("Cluster Quorum at Risk"),
+  summary: translationKey("50% or fewer of the cluster's nodes are online."),
   description:
     "Alert when 50% or fewer of the cluster's nodes are online. Derived from node visibility (online pve_up nodes ÷ pve_node_info node count): at ≤50% node availability the cluster has lost (or is about to lose) quorum and HA recovery stops. pve-exporter also reports quorum itself, as pve_up for the cluster (id cluster/<name>, 1 while quorate), which a metric monitor of your own can watch. On the Proxmox VE native OpenTelemetry push, a node that stops reporting counts as offline (the nodes still alive report it); a whole cluster going silent turns the cluster Disconnected instead.",
   category: "Availability",
@@ -639,8 +642,8 @@ export const PROXMOX_NODE_RESTARTED_UPTIME_SECONDS: number = 900;
 
 const nodeRestartedTemplate: ProxmoxAlertTemplate = {
   id: "pve-node-restarted",
-  name: "Node Restarted",
-  summary: "A node started less than 15 minutes ago.",
+  name: translationKey("Node Restarted"),
+  summary: translationKey("A node started less than 15 minutes ago."),
   description:
     "Alert when a node that is up has been running for less than 15 minutes (pve_uptime_seconds below 900 while pve_up is 1, scoped to nodes): it rebooted, or crashed and came back. One incident per node, which resolves once the node has been up for 16.5 minutes (15 minutes plus the recovery margin). A node that is down raises Node Offline instead.",
   category: "Node",
@@ -723,8 +726,8 @@ const nodeRestartedTemplate: ProxmoxAlertTemplate = {
 
 const nodeHighCpuTemplate: ProxmoxAlertTemplate = {
   id: "pve-node-high-cpu",
-  name: "High Node CPU Usage",
-  summary: "A node uses more than 90% of its CPU.",
+  name: translationKey("High Node CPU Usage"),
+  summary: translationKey("A node uses more than 90% of its CPU."),
   description:
     "Alert when any node's average CPU usage exceeds 90% of its cores (pve_cpu_usage_ratio > 0.9, scoped to nodes). One incident per node.",
   category: "Node",
@@ -773,8 +776,8 @@ const nodeHighCpuTemplate: ProxmoxAlertTemplate = {
 
 const nodeHighMemoryTemplate: ProxmoxAlertTemplate = {
   id: "pve-node-high-memory",
-  name: "High Node Memory Usage",
-  summary: "A node uses more than 85% of its memory.",
+  name: translationKey("High Node Memory Usage"),
+  summary: translationKey("A node uses more than 85% of its memory."),
   description:
     "Alert when any node's memory usage exceeds 85% of its RAM. Computed per node as pve_memory_usage_bytes ÷ pve_memory_size_bytes × 100 — both are bytes from the same scrape, so this is a true percentage with no per-node threshold tuning.",
   category: "Node",
@@ -821,8 +824,10 @@ const nodeHighMemoryTemplate: ProxmoxAlertTemplate = {
 
 const guestHighCpuTemplate: ProxmoxAlertTemplate = {
   id: "pve-guest-high-cpu",
-  name: "High Guest CPU Usage",
-  summary: "A VM or container stays above 95% of its CPU for 15 minutes.",
+  name: translationKey("High Guest CPU Usage"),
+  summary: translationKey(
+    "A VM or container stays above 95% of its CPU for 15 minutes.",
+  ),
   description:
     "Alert when a VM or container sits above 95% of its allocated vCPUs (pve_cpu_usage_ratio > 0.95, scoped to guests) for a sustained 15 minutes. One incident per guest. Deliberately higher and slower than the node template: a guest is SUPPOSED to use the vCPUs it was given, so only a guest that never comes down is worth a page.",
   category: "Guest",
@@ -891,8 +896,8 @@ const guestHighCpuTemplate: ProxmoxAlertTemplate = {
 
 const storageNearFullTemplate: ProxmoxAlertTemplate = {
   id: "pve-storage-near-full",
-  name: "Storage Near Full",
-  summary: "A storage volume is more than 85% full.",
+  name: translationKey("Storage Near Full"),
+  summary: translationKey("A storage volume is more than 85% full."),
   description:
     "Alert when any storage volume's disk usage exceeds 85% of its capacity. Computed per volume as pve_disk_usage_bytes ÷ pve_disk_size_bytes × 100 — a true percentage with no per-volume threshold tuning.",
   category: "Storage",
@@ -939,8 +944,8 @@ const storageNearFullTemplate: ProxmoxAlertTemplate = {
 
 const storageUnavailableTemplate: ProxmoxAlertTemplate = {
   id: "pve-storage-unavailable",
-  name: "Storage Unavailable",
-  summary: "A storage stops being available on a node.",
+  name: translationKey("Storage Unavailable"),
+  summary: translationKey("A storage stops being available on a node."),
   description:
     "Alert when a storage Proxmox VE lists for a node stops being available (pve_up = 0, scoped to storage via pve.scope): an NFS or SMB share that cannot be mounted, a Proxmox Backup Server that cannot be reached, a pool or volume group that is gone. One incident per storage on each node. Guests with disks on it hang or fail to start, and backups to it fail.",
   category: "Storage",
@@ -992,8 +997,8 @@ const storageUnavailableTemplate: ProxmoxAlertTemplate = {
 
 const lxcDiskNearFullTemplate: ProxmoxAlertTemplate = {
   id: "pve-lxc-disk-near-full",
-  name: "Container Root Disk Near Full",
-  summary: "A container's root disk is more than 90% full.",
+  name: translationKey("Container Root Disk Near Full"),
+  summary: translationKey("A container's root disk is more than 90% full."),
   description:
     "Alert when any LXC container's root disk usage exceeds 90% of its size (pve_disk_usage_bytes ÷ pve_disk_size_bytes × 100, scoped to pve.type=lxc). QEMU VMs are excluded — their in-guest disk usage is only reported when the QEMU guest agent is installed, so it reads 0 otherwise.",
   category: "Storage",
@@ -1040,8 +1045,10 @@ const lxcDiskNearFullTemplate: ProxmoxAlertTemplate = {
 
 const haStateErrorTemplate: ProxmoxAlertTemplate = {
   id: "pve-ha-state-error",
-  name: "HA Resource in Error State",
-  summary: "An HA resource is in the error state and cannot recover.",
+  name: translationKey("HA Resource in Error State"),
+  summary: translationKey(
+    "An HA resource is in the error state and cannot recover.",
+  ),
   description:
     "Alert when any HA-managed resource enters the error state, meaning high availability could not recover it. One incident per HA resource.",
   category: "HA",
@@ -1091,8 +1098,8 @@ const haStateErrorTemplate: ProxmoxAlertTemplate = {
 
 const guestNotBackedUpTemplate: ProxmoxAlertTemplate = {
   id: "pve-guest-not-backed-up",
-  name: "Guest Not Backed Up",
-  summary: "A VM or container is in no backup job.",
+  name: translationKey("Guest Not Backed Up"),
+  summary: translationKey("A VM or container is in no backup job."),
   description:
     "Alert when one or more guests are not covered by ANY backup job (pve_not_backed_up_total > 0, cluster scope). Identify the uncovered guests via pve_not_backed_up_info grouped by id. Honest boundary: this checks backup-JOB coverage only — whether backups ran recently or succeeded is not exposed by pve-exporter.",
   category: "Backup",
@@ -1141,8 +1148,10 @@ const guestNotBackedUpTemplate: ProxmoxAlertTemplate = {
 
 const backupRunningTooLongTemplate: ProxmoxAlertTemplate = {
   id: "pve-backup-running-too-long",
-  name: "Backup Running Too Long",
-  summary: "A VM or container stays locked by a backup for 6 hours.",
+  name: translationKey("Backup Running Too Long"),
+  summary: translationKey(
+    "A VM or container stays locked by a backup for 6 hours.",
+  ),
   description:
     "Alert when a VM or container has been locked by a backup for six hours (pve_lock_state with state backup, in every scrape of the window): a hung vzdump, or a backup target too slow for the guest. While the lock is held the guest cannot be migrated, snapshotted or backed up again. One incident per guest, which resolves when the lock is released.",
   category: "Backup",
@@ -1192,8 +1201,8 @@ const backupRunningTooLongTemplate: ProxmoxAlertTemplate = {
 
 const replicationFailingTemplate: ProxmoxAlertTemplate = {
   id: "pve-replication-failing",
-  name: "Replication Failing",
-  summary: "A replication job fails to sync.",
+  name: translationKey("Replication Failing"),
+  summary: translationKey("A replication job fails to sync."),
   description:
     "Alert when any storage replication job reports failed syncs (pve_replication_failed_syncs > 0). One incident per replication job (grouped by the job id). A failing job means the guest's replica on the target node is going stale — manual failover would lose the data written since the last successful sync.",
   category: "Replication",

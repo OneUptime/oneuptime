@@ -12,6 +12,7 @@ import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepPodmanMonitor from "./MonitorStepPodmanMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type PodmanAlertTemplateCategory =
   | "Availability"
@@ -188,8 +189,10 @@ export function buildPodmanMonitorConfig(args: {
 
 const hostStoppedReportingTemplate: PodmanAlertTemplate = {
   id: "podman-host-stopped-reporting",
-  name: "Host Stopped Reporting",
-  summary: "The Podman host sends no container metrics for 10 minutes.",
+  name: translationKey("Host Stopped Reporting"),
+  summary: translationKey(
+    "The Podman host sends no container metrics for 10 minutes.",
+  ),
   description:
     "Alert when the Podman host sends no container metrics for ten minutes: the host is down, or the Podman agent stopped, lost its route to OneUptime or had its token revoked. A host with no other containers still reports, because the agent runs as a container itself and reports its own.",
   category: "Availability",
@@ -235,8 +238,10 @@ const hostStoppedReportingTemplate: PodmanAlertTemplate = {
 
 const highCpuTemplate: PodmanAlertTemplate = {
   id: "podman-high-cpu",
-  name: "High Container CPU Usage",
-  summary: "A container averages more than 80% of one CPU core for 5 minutes.",
+  name: translationKey("High Container CPU Usage"),
+  summary: translationKey(
+    "A container averages more than 80% of one CPU core for 5 minutes.",
+  ),
   description:
     "Alert when a container averages more than 80% of one CPU core for five minutes. 100% is one full core, so a container spread across several cores reads well above 100. One alert per container.",
   category: "Resource",
@@ -290,8 +295,10 @@ const highCpuTemplate: PodmanAlertTemplate = {
 
 const highMemoryTemplate: PodmanAlertTemplate = {
   id: "podman-high-memory",
-  name: "High Container Memory Usage",
-  summary: "A container averages more than 85% of its memory for 5 minutes.",
+  name: translationKey("High Container Memory Usage"),
+  summary: translationKey(
+    "A container averages more than 85% of its memory for 5 minutes.",
+  ),
   description:
     "Alert when a container averages more than 85% memory usage for five minutes — of its --memory limit where one is set, of host memory where it is not. One alert per container.",
   category: "Resource",
@@ -363,8 +370,10 @@ const highMemoryTemplate: PodmanAlertTemplate = {
  */
 const containerRestartLoopTemplate: PodmanAlertTemplate = {
   id: "podman-restart-loop",
-  name: "Container Restart Loop",
-  summary: "A container restarts more than 3 times in 15 minutes.",
+  name: translationKey("Container Restart Loop"),
+  summary: translationKey(
+    "A container restarts more than 3 times in 15 minutes.",
+  ),
   description:
     "Alert when a container restarts more than 3 times within fifteen minutes: Podman keeps restarting it under its restart policy, so it is crash-looping rather than recovering from a one-off failure. Reads container.restarts.increase, the restarts since the agent's previous sample of the container, so every restart counts however far apart the samples are; a restart by hand starts a new count and is not one. An older Podman agent does not send it: update the agent first. One alert per container.",
   category: "Container",
@@ -448,8 +457,10 @@ const containerRestartLoopTemplate: PodmanAlertTemplate = {
 
 const highProcessCountTemplate: PodmanAlertTemplate = {
   id: "podman-high-pids",
-  name: "High Container Process Count",
-  summary: "A container runs more than 2000 processes and threads.",
+  name: translationKey("High Container Process Count"),
+  summary: translationKey(
+    "A container runs more than 2000 processes and threads.",
+  ),
   description:
     "Alert when a container's task count (processes PLUS threads) stays above 2000, which may indicate a fork bomb, a thread leak, or an unbounded worker pool. One alert per container.",
   category: "Container",
@@ -499,9 +510,10 @@ const highProcessCountTemplate: PodmanAlertTemplate = {
 
 const containerUptimeTemplate: PodmanAlertTemplate = {
   id: "podman-container-down",
-  name: "Container Restarted (Low Uptime)",
-  summary:
+  name: translationKey("Container Restarted (Low Uptime)"),
+  summary: translationKey(
     "A container restarted, crashed or was redeployed in the last 2 minutes.",
+  ),
   description:
     "Alert when a container's uptime resets, meaning it restarted, crashed or was redeployed in the last two minutes. One alert per container.",
   category: "Container",

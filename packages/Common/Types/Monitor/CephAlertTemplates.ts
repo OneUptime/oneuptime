@@ -14,6 +14,7 @@ import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepCephMonitor from "./MonitorStepCephMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type CephAlertTemplateCategory =
   | "Availability"
@@ -423,8 +424,8 @@ export function buildCephMultiQueryMonitorConfig(args: {
 
 const clusterStoppedReportingTemplate: CephAlertTemplate = {
   id: "ceph-cluster-stopped-reporting",
-  name: "Cluster Stopped Reporting",
-  summary: "The cluster sends no data for 10 minutes.",
+  name: translationKey("Cluster Stopped Reporting"),
+  summary: translationKey("The cluster sends no data for 10 minutes."),
   description:
     "Alert when the Ceph cluster sends no data for ten minutes: the Ceph Agent stopped, lost its route to OneUptime or had its token revoked, or no ceph-mgr is serving its prometheus module (every manager is down, or the module was disabled). Reads ceph_health_status, which the active manager exports on every scrape whatever the cluster's health. One incident for the whole cluster.",
   category: "Availability",
@@ -469,8 +470,8 @@ const clusterStoppedReportingTemplate: CephAlertTemplate = {
 
 const healthErrorTemplate: CephAlertTemplate = {
   id: "ceph-health-error",
-  name: "Cluster Health Error",
-  summary: "The cluster reports HEALTH_ERR.",
+  name: translationKey("Cluster Health Error"),
+  summary: translationKey("The cluster reports HEALTH_ERR."),
   description:
     "Alert immediately when the Ceph cluster reports HEALTH_ERR (health status >= 2) — data availability or durability is at risk.",
   category: "Cluster Health",
@@ -512,8 +513,8 @@ const healthErrorTemplate: CephAlertTemplate = {
 
 const healthWarnTemplate: CephAlertTemplate = {
   id: "ceph-health-warn",
-  name: "Cluster Health Warning",
-  summary: "The cluster reports HEALTH_WARN or worse.",
+  name: translationKey("Cluster Health Warning"),
+  summary: translationKey("The cluster reports HEALTH_WARN or worse."),
   description:
     "Alert when the Ceph cluster reports HEALTH_WARN or worse (health status >= 1).",
   category: "Cluster Health",
@@ -555,8 +556,8 @@ const healthWarnTemplate: CephAlertTemplate = {
 
 const osdDownTemplate: CephAlertTemplate = {
   id: "ceph-osd-down",
-  name: "OSD Down",
-  summary: "An OSD goes down.",
+  name: translationKey("OSD Down"),
+  summary: translationKey("An OSD goes down."),
   description:
     "Alert when any OSD daemon reports as down. Down OSDs reduce redundancy and trigger recovery traffic. One incident per OSD.",
   category: "OSD",
@@ -609,8 +610,8 @@ const osdDownTemplate: CephAlertTemplate = {
 
 const osdOutTemplate: CephAlertTemplate = {
   id: "ceph-osd-out",
-  name: "OSD Out",
-  summary: "An OSD is marked out of the cluster.",
+  name: translationKey("OSD Out"),
+  summary: translationKey("An OSD is marked out of the cluster."),
   description:
     "Alert when any OSD is marked out of the cluster. An out OSD no longer stores data and triggers rebalancing. One incident per OSD.",
   category: "OSD",
@@ -663,8 +664,8 @@ const osdOutTemplate: CephAlertTemplate = {
 
 const osdHighLatencyTemplate: CephAlertTemplate = {
   id: "ceph-osd-high-latency",
-  name: "OSD High Latency",
-  summary: "An OSD's average apply latency passes 100 ms.",
+  name: translationKey("OSD High Latency"),
+  summary: translationKey("An OSD's average apply latency passes 100 ms."),
   description:
     "Alert when any OSD's average apply latency exceeds 100 ms. Slow OSDs drag down client I/O across every PG they host. One incident per OSD.",
   category: "OSD",
@@ -711,8 +712,8 @@ const osdHighLatencyTemplate: CephAlertTemplate = {
 
 const monQuorumDegradedTemplate: CephAlertTemplate = {
   id: "ceph-mon-quorum-degraded",
-  name: "Monitor Quorum Degraded",
-  summary: "A monitor falls out of quorum.",
+  name: translationKey("Monitor Quorum Degraded"),
+  summary: translationKey("A monitor falls out of quorum."),
   description:
     "Alert immediately when any Ceph monitor daemon falls out of quorum. Losing quorum entirely halts the cluster. One incident per monitor.",
   category: "Cluster Health",
@@ -765,8 +766,10 @@ const monQuorumDegradedTemplate: CephAlertTemplate = {
 
 const pgDegradedTemplate: CephAlertTemplate = {
   id: "ceph-pg-degraded",
-  name: "Degraded Placement Groups",
-  summary: "Placement groups have fewer copies than configured.",
+  name: translationKey("Degraded Placement Groups"),
+  summary: translationKey(
+    "Placement groups have fewer copies than configured.",
+  ),
   description:
     "Alert when any placement groups are degraded — objects have fewer replicas than configured. One incident per pool (grouped by pool_id — pool data series carry no name label).",
   category: "PG",
@@ -821,8 +824,10 @@ const pgDegradedTemplate: CephAlertTemplate = {
 
 const pgUndersizedTemplate: CephAlertTemplate = {
   id: "ceph-pg-undersized",
-  name: "Undersized Placement Groups",
-  summary: "Placement groups map to fewer OSDs than their replica count.",
+  name: translationKey("Undersized Placement Groups"),
+  summary: translationKey(
+    "Placement groups map to fewer OSDs than their replica count.",
+  ),
   description:
     "Alert when any placement groups are undersized — mapped to fewer OSDs than their replica count. One incident per pool (grouped by pool_id — pool data series carry no name label).",
   category: "PG",
@@ -873,8 +878,10 @@ const pgUndersizedTemplate: CephAlertTemplate = {
 
 const pgInactiveTemplate: CephAlertTemplate = {
   id: "ceph-pg-inactive",
-  name: "Inactive Placement Groups",
-  summary: "Placement groups are inactive and cannot serve I/O.",
+  name: translationKey("Inactive Placement Groups"),
+  summary: translationKey(
+    "Placement groups are inactive and cannot serve I/O.",
+  ),
   description:
     "Alert when any placement groups are not active (ceph_pg_total − ceph_pg_active > 0). Inactive PGs cannot serve I/O — client requests to them hang. One incident per pool (grouped by pool_id — pool data series carry no name label).",
   category: "PG",
@@ -945,8 +952,8 @@ const pgInactiveTemplate: CephAlertTemplate = {
 
 const clusterNearFullTemplate: CephAlertTemplate = {
   id: "ceph-cluster-near-full",
-  name: "Cluster Near Full",
-  summary: "The cluster is more than 85% full.",
+  name: translationKey("Cluster Near Full"),
+  summary: translationKey("The cluster is more than 85% full."),
   description:
     "Alert when raw cluster usage exceeds 85% of total capacity (ceph_cluster_total_used_bytes ÷ ceph_cluster_total_bytes × 100) — Ceph's default nearfull ratio.",
   category: "Capacity",
@@ -991,8 +998,8 @@ const clusterNearFullTemplate: CephAlertTemplate = {
 
 const clusterFullTemplate: CephAlertTemplate = {
   id: "ceph-cluster-full",
-  name: "Cluster Full",
-  summary: "The cluster is more than 95% full, so writes stop.",
+  name: translationKey("Cluster Full"),
+  summary: translationKey("The cluster is more than 95% full, so writes stop."),
   description:
     "Alert when raw cluster usage exceeds 95% of total capacity — Ceph's default full ratio, at which writes stop cluster-wide.",
   category: "Capacity",
@@ -1037,8 +1044,8 @@ const clusterFullTemplate: CephAlertTemplate = {
 
 const poolNearFullTemplate: CephAlertTemplate = {
   id: "ceph-pool-near-full",
-  name: "Pool Near Full",
-  summary: "A pool is more than 85% full.",
+  name: translationKey("Pool Near Full"),
+  summary: translationKey("A pool is more than 85% full."),
   description:
     "Alert when any pool's usage exceeds 85% of its writable capacity. Computed per pool as stored ÷ (stored + max_avail) × 100 from ceph_pool_stored and ceph_pool_max_avail. One incident per pool (grouped by pool_id — pool data series carry no name label).",
   category: "Capacity",
@@ -1092,8 +1099,8 @@ const poolNearFullTemplate: CephAlertTemplate = {
 
 const slowOpsTemplate: CephAlertTemplate = {
   id: "ceph-slow-ops",
-  name: "Slow Operations",
-  summary: "OSD or monitor requests take too long to complete.",
+  name: translationKey("Slow Operations"),
+  summary: translationKey("OSD or monitor requests take too long to complete."),
   description:
     "Alert when the SLOW_OPS health check is active (ceph_healthcheck_slow_ops > 0) — OSD or monitor requests are taking too long to complete.",
   category: "Cluster Health",
@@ -1146,8 +1153,8 @@ const slowOpsTemplate: CephAlertTemplate = {
 
 const pgDamagedTemplate: CephAlertTemplate = {
   id: "ceph-pg-damaged",
-  name: "Damaged Placement Groups",
-  summary: "Scrubbing finds damaged data.",
+  name: translationKey("Damaged Placement Groups"),
+  summary: translationKey("Scrubbing finds damaged data."),
   description:
     "Alert when scrubbing finds data damage — the PG_DAMAGED or OSD_SCRUB_ERRORS health check is active (ceph_health_detail; Quincy and later, absent series = healthy).",
   category: "PG",
@@ -1216,8 +1223,8 @@ const pgDamagedTemplate: CephAlertTemplate = {
 
 const daemonCrashTemplate: CephAlertTemplate = {
   id: "ceph-daemon-crash",
-  name: "Daemon Crash",
-  summary: "A Ceph daemon crashed recently.",
+  name: translationKey("Daemon Crash"),
+  summary: translationKey("A Ceph daemon crashed recently."),
   description:
     "Alert when one or more Ceph daemons have recently crashed (RECENT_CRASH health check). This is the only crash signal the mgr exports — there is no ceph_crash_* metric.",
   category: "Cluster Health",
@@ -1261,8 +1268,8 @@ const daemonCrashTemplate: CephAlertTemplate = {
 
 const osdSlowHeartbeatsTemplate: CephAlertTemplate = {
   id: "ceph-osd-slow-heartbeats",
-  name: "OSD Slow Heartbeats",
-  summary: "OSD heartbeats are slower than Ceph allows.",
+  name: translationKey("OSD Slow Heartbeats"),
+  summary: translationKey("OSD heartbeats are slower than Ceph allows."),
   description:
     "Alert when OSD heartbeat pings on the front (public) or back (cluster) network exceed Ceph's grace threshold (OSD_SLOW_PING_TIME_FRONT/BACK health checks — the mgr exports no ping-time gauge, so these are the only signal).",
   category: "OSD",
@@ -1331,8 +1338,8 @@ const osdSlowHeartbeatsTemplate: CephAlertTemplate = {
 
 const monClockSkewTemplate: CephAlertTemplate = {
   id: "ceph-mon-clock-skew",
-  name: "Monitor Clock Skew",
-  summary: "The monitors' clocks drift too far apart.",
+  name: translationKey("Monitor Clock Skew"),
+  summary: translationKey("The monitors' clocks drift too far apart."),
   description:
     "Alert when clock skew between Ceph monitors exceeds the allowed threshold (MON_CLOCK_SKEW health check). Skewed clocks can drop monitors from quorum.",
   category: "Cluster Health",
@@ -1376,8 +1383,8 @@ const monClockSkewTemplate: CephAlertTemplate = {
 
 const osdNearfullTemplate: CephAlertTemplate = {
   id: "ceph-osd-nearfull",
-  name: "OSD Nearfull",
-  summary: "An OSD is more than 85% full.",
+  name: translationKey("OSD Nearfull"),
+  summary: translationKey("An OSD is more than 85% full."),
   description:
     "Alert when any individual OSD crosses the nearfull threshold (OSD_NEARFULL health check; default 85%). Single OSDs fill up long before the cluster average does.",
   category: "Capacity",
@@ -1421,8 +1428,10 @@ const osdNearfullTemplate: CephAlertTemplate = {
 
 const osdBackfillfullTemplate: CephAlertTemplate = {
   id: "ceph-osd-backfillfull",
-  name: "OSD Backfillfull",
-  summary: "An OSD is more than 90% full, so backfill to it stops.",
+  name: translationKey("OSD Backfillfull"),
+  summary: translationKey(
+    "An OSD is more than 90% full, so backfill to it stops.",
+  ),
   description:
     "Alert when any OSD crosses the backfillfull threshold (OSD_BACKFILLFULL health check; default 90%). Backfill to these OSDs is blocked, stalling recovery and rebalancing.",
   category: "Capacity",
@@ -1466,8 +1475,8 @@ const osdBackfillfullTemplate: CephAlertTemplate = {
 
 const osdFullTemplate: CephAlertTemplate = {
   id: "ceph-osd-full",
-  name: "OSD Full",
-  summary: "An OSD is 95% full, so the cluster refuses writes.",
+  name: translationKey("OSD Full"),
+  summary: translationKey("An OSD is 95% full, so the cluster refuses writes."),
   description:
     "Alert immediately when any OSD reaches the full threshold (OSD_FULL health check; default 95%) — writes to the cluster are refused until space is freed.",
   category: "Capacity",
@@ -1530,8 +1539,8 @@ const monDiskSpaceTemplate: CephAlertTemplate = {
    * need two recommendations.
    */
   id: "ceph-mon-disk-space",
-  name: "Monitor Disk Critically Low",
-  summary: "A monitor's disk has less than 5% free.",
+  name: translationKey("Monitor Disk Critically Low"),
+  summary: translationKey("A monitor's disk has less than 5% free."),
   description:
     "Alert when a Ceph monitor's database disk crosses the MON_DISK_CRIT threshold (default 5% free). A full monitor disk crashes the monitor and risks quorum. Pair with Monitor Disk Space Low for the earlier warning tier.",
   category: "Cluster Health",
@@ -1575,8 +1584,8 @@ const monDiskSpaceTemplate: CephAlertTemplate = {
 
 const monDiskLowTemplate: CephAlertTemplate = {
   id: "ceph-mon-disk-low",
-  name: "Monitor Disk Space Low",
-  summary: "A monitor's disk has less than 30% free.",
+  name: translationKey("Monitor Disk Space Low"),
+  summary: translationKey("A monitor's disk has less than 30% free."),
   description:
     "Alert when a Ceph monitor's database disk crosses the MON_DISK_LOW threshold (default 30% free) — the warning tier before MON_DISK_CRIT.",
   category: "Cluster Health",
@@ -1620,8 +1629,8 @@ const monDiskLowTemplate: CephAlertTemplate = {
 
 const daemonSlowOpsTemplate: CephAlertTemplate = {
   id: "ceph-daemon-slow-ops",
-  name: "Daemon Slow Operations",
-  summary: "One OSD or monitor reports slow requests.",
+  name: translationKey("Daemon Slow Operations"),
+  summary: translationKey("One OSD or monitor reports slow requests."),
   description:
     "Alert when a specific OSD or monitor daemon reports slow operations (ceph_daemon_health_metrics, type SLOW_OPS) — the per-daemon complement to the cluster-level Slow Operations template. One incident per daemon.",
   category: "Cluster Health",

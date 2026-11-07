@@ -38,6 +38,7 @@ import {
   buildUnhealthyCriteriaInstance,
   getRecoveryFilterType,
 } from "./Recommendation/RecommendationCriteriaBuilder";
+import { translationKey } from "../Translator";
 
 /*
  * THE MONITORS ONEUPTIME RECOMMENDS FOR A CLOUD RESOURCE.
@@ -1197,8 +1198,10 @@ function awsShareDescription(metrics: string): string {
 const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   breakage({
     id: "cloud-aws-ec2-status-check-failed",
-    name: "Status Checks Failing",
-    summary: "The instance or the host it runs on fails a status check.",
+    name: translationKey("Status Checks Failing"),
+    summary: translationKey(
+      "The instance or the host it runs on fails a status check.",
+    ),
     description: `Fires on the first reading of StatusCheckFailed (Maximum) at 1: the instance, or the AWS host under it, failed a status check. Clears once 30 minutes pass without a failure. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     provider: AWS,
     resourceTypes: ["AWS::EC2::Instance"],
@@ -1209,8 +1212,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-ec2-high-cpu",
-    name: "High CPU",
-    summary: "CPU stays at 90% or more for 30 minutes.",
+    name: translationKey("High CPU"),
+    summary: translationKey("CPU stays at 90% or more for 30 minutes."),
     description: `Fires when every reading of CPUUtilization (Average) in the past 30 minutes is at or above 90%. A busy instance is often doing its work: this says it has no headroom left. ${READ_FROM_CLOUDWATCH}`,
     category: "Utilization",
     provider: AWS,
@@ -1223,9 +1226,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-elb-unhealthy-hosts",
-    name: "Unhealthy Hosts",
-    summary:
+    name: translationKey("Unhealthy Hosts"),
+    summary: translationKey(
       "A host behind the load balancer fails its health check for 30 minutes.",
+    ),
     description: `Fires when every reading of UnHealthyHostCount (Maximum) in the past 30 minutes is 1 or more: an instance behind the classic load balancer keeps failing its health check, and gets no traffic. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Availability",
     provider: AWS,
@@ -1238,8 +1242,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   failedShare({
     id: "cloud-aws-elb-server-errors",
-    name: "Server Errors",
-    summary: "5% or more of requests fail with a 5xx error in 30 minutes.",
+    name: translationKey("Server Errors"),
+    summary: translationKey(
+      "5% or more of requests fail with a 5xx error in 30 minutes.",
+    ),
     description: awsShareDescription(
       "HTTPCode_Backend_5XX (Sum) over RequestCount (Sum)",
     ),
@@ -1252,8 +1258,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-elb-slow-responses",
-    name: "Slow Responses",
-    summary: "Responses take a second or more on average for 30 minutes.",
+    name: translationKey("Slow Responses"),
+    summary: translationKey(
+      "Responses take a second or more on average for 30 minutes.",
+    ),
     description: `Fires when every reading of Latency (Average) in the past 30 minutes is 1 second or more. ${READ_FROM_CLOUDWATCH}`,
     category: "Latency",
     provider: AWS,
@@ -1266,8 +1274,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   failedShare({
     id: "cloud-aws-alb-server-errors",
-    name: "Server Errors",
-    summary: "5% or more of requests fail with a 5xx error in 30 minutes.",
+    name: translationKey("Server Errors"),
+    summary: translationKey(
+      "5% or more of requests fail with a 5xx error in 30 minutes.",
+    ),
     description: awsShareDescription(
       "HTTPCode_Target_5XX_Count and HTTPCode_ELB_5XX_Count (Sum) over RequestCount (Sum)",
     ),
@@ -1283,8 +1293,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-alb-slow-responses",
-    name: "Slow Responses",
-    summary: "Targets take a second or more on average for 30 minutes.",
+    name: translationKey("Slow Responses"),
+    summary: translationKey(
+      "Targets take a second or more on average for 30 minutes.",
+    ),
     description: `Fires when every reading of TargetResponseTime (Average) in the past 30 minutes is 1 second or more. ${READ_FROM_CLOUDWATCH}`,
     category: "Latency",
     provider: AWS,
@@ -1297,8 +1309,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-aws-natgateway-port-allocation-errors",
-    name: "Out of Ports",
-    summary: "The gateway runs out of ports for new connections.",
+    name: translationKey("Out of Ports"),
+    summary: translationKey(
+      "The gateway runs out of ports for new connections.",
+    ),
     description: `Fires when ErrorPortAllocation (Sum), totalled over the past 30 minutes, is 1 or more: the NAT gateway could not open a connection for lack of source ports. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Errors",
     provider: AWS,
@@ -1310,8 +1324,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   breakage({
     id: "cloud-aws-vpn-tunnels-down",
-    name: "VPN Tunnels Down",
-    summary: "Both tunnels of the VPN connection are down.",
+    name: translationKey("VPN Tunnels Down"),
+    summary: translationKey("Both tunnels of the VPN connection are down."),
     description: `Fires on the first reading of TunnelState (Maximum, of both tunnels) under 1: no tunnel of the Site-to-Site VPN connection is up. Clears once both stay up for 30 minutes. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     provider: AWS,
     resourceTypes: ["AWS::EC2::VPNConnection"],
@@ -1323,8 +1337,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-cloudfront-server-errors",
-    name: "Server Errors",
-    summary: "5% or more of requests fail with a 5xx error for 30 minutes.",
+    name: translationKey("Server Errors"),
+    summary: translationKey(
+      "5% or more of requests fail with a 5xx error for 30 minutes.",
+    ),
     description: `Fires when every reading of 5xxErrorRate (Average, in percent) in the past 30 minutes is at or above 5%. CloudFront publishes the share itself, so it is read a point at a time. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Errors",
     provider: AWS,
@@ -1337,8 +1353,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   breakage({
     id: "cloud-aws-route53-health-check-failing",
-    name: "Health Check Failing",
-    summary: "The health check reports its endpoint unhealthy.",
+    name: translationKey("Health Check Failing"),
+    summary: translationKey("The health check reports its endpoint unhealthy."),
     description: `Fires on the first reading of HealthCheckStatus (Minimum) under 1: Route 53's checkers found the endpoint unhealthy. Clears once it stays healthy for 30 minutes. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     provider: AWS,
     resourceTypes: ["AWS::Route53::HealthCheck"],
@@ -1350,8 +1366,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-efs-io-limit",
-    name: "Near Its I/O Limit",
-    summary: "The file system stays at 95% of its I/O limit for 30 minutes.",
+    name: translationKey("Near Its I/O Limit"),
+    summary: translationKey(
+      "The file system stays at 95% of its I/O limit for 30 minutes.",
+    ),
     description: `Fires when every reading of PercentIOLimit (Average) in the past 30 minutes is at or above 95%. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AWS,
@@ -1364,8 +1382,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-ecs-high-cpu",
-    name: "High CPU",
-    summary: "CPU stays at 90% or more of what it reserves for 30 minutes.",
+    name: translationKey("High CPU"),
+    summary: translationKey(
+      "CPU stays at 90% or more of what it reserves for 30 minutes.",
+    ),
     description: `Fires when every reading of CPUUtilization (Average) in the past 30 minutes is at or above 90% of the CPU its tasks reserve. ${READ_FROM_CLOUDWATCH}`,
     category: "Utilization",
     provider: AWS,
@@ -1378,8 +1398,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-ecs-high-memory",
-    name: "High Memory",
-    summary: "Memory stays at 95% or more of what it reserves for 30 minutes.",
+    name: translationKey("High Memory"),
+    summary: translationKey(
+      "Memory stays at 95% or more of what it reserves for 30 minutes.",
+    ),
     description: `Fires when every reading of MemoryUtilization (Average) in the past 30 minutes is at or above 95% of the memory its tasks reserve: a task that passes its hard limit is stopped. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AWS,
@@ -1392,8 +1414,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   failedShare({
     id: "cloud-aws-lambda-errors",
-    name: "Function Errors",
-    summary: "5% or more of its invocations fail in 30 minutes.",
+    name: translationKey("Function Errors"),
+    summary: translationKey(
+      "5% or more of its invocations fail in 30 minutes.",
+    ),
     description: `Fires when Errors (Sum) is 5% or more of Invocations (Sum), each totalled over the past 30 minutes, however few the invocations: a nightly job or a queue handler is invoked a few times an hour, and fails as surely as a busy function. Totalled, a read-only and a streamed account read the same share. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     provider: AWS,
     resourceTypes: ["AWS::Lambda::Function"],
@@ -1405,8 +1429,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-aws-lambda-throttles",
-    name: "Function Throttled",
-    summary: "Invocations are throttled at the function's concurrency limit.",
+    name: translationKey("Function Throttled"),
+    summary: translationKey(
+      "Invocations are throttled at the function's concurrency limit.",
+    ),
     description: `Fires when Throttles (Sum), totalled over the past 30 minutes, is 1 or more: an invocation was refused because the function, or the account's Region, reached its concurrency limit. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Throttling",
     provider: AWS,
@@ -1418,8 +1444,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-aws-states-executions-failed",
-    name: "Executions Failed",
-    summary: "An execution of the state machine fails.",
+    name: translationKey("Executions Failed"),
+    summary: translationKey("An execution of the state machine fails."),
     description: `Fires when ExecutionsFailed (Sum), totalled over the past 30 minutes, is 1 or more. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Errors",
     provider: AWS,
@@ -1431,8 +1457,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-rds-high-cpu",
-    name: "High CPU",
-    summary: "CPU stays at 95% or more for 30 minutes.",
+    name: translationKey("High CPU"),
+    summary: translationKey("CPU stays at 95% or more for 30 minutes."),
     description: `Fires when every reading of CPUUtilization (Average) in the past 30 minutes is at or above 95%. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AWS,
@@ -1445,9 +1471,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   define({
     id: "cloud-aws-rds-low-storage",
-    name: "Low Free Storage",
-    summary:
+    name: translationKey("Low Free Storage"),
+    summary: translationKey(
       "Free storage stays under 10% of what is allocated for 30 minutes.",
+    ),
     description: `Fires when every reading of FreeStorageSpace (Average) in the past 30 minutes is under 10% of the instance's allocated storage, as its inventory lists it - the health rules' 90% full. Offered once the account's inventory has listed the instance. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Storage",
     severity: "Warning",
@@ -1468,9 +1495,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   define({
     id: "cloud-aws-rds-connections-near-limit",
-    name: "Connections Near the Limit",
-    summary:
+    name: translationKey("Connections Near the Limit"),
+    summary: translationKey(
       "Connections stay at 90% or more of the instance's limit for 30 minutes.",
+    ),
     description: `Fires when every reading of DatabaseConnections (Average) in the past 30 minutes is at or above ${CLOUD_CONNECTIONS_HIGH_PERCENT}% of the instance's connection limit: past the limit, new connections are refused. The limit is the default max_connections of its class and engine, as RDS works it out from the class's memory: about 60 on a db.t3.micro running MySQL, about 1,700 on a db.r6g.large running PostgreSQL. If the instance's parameter group sets max_connections, change the threshold to ${CLOUD_CONNECTIONS_HIGH_PERCENT}% of that. Offered for MySQL, MariaDB, PostgreSQL and Aurora once the account's inventory lists the instance's class and engine. ${READ_FROM_CLOUDWATCH}`,
     category: "Utilization",
     severity: "Warning",
@@ -1491,8 +1519,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-docdb-high-cpu",
-    name: "High CPU",
-    summary: "CPU stays at 95% or more for 30 minutes.",
+    name: translationKey("High CPU"),
+    summary: translationKey("CPU stays at 95% or more for 30 minutes."),
     description: `Fires when every reading of CPUUtilization (Average) in the past 30 minutes is at or above 95%. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AWS,
@@ -1505,8 +1533,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-aws-dynamodb-throttled",
-    name: "Requests Throttled",
-    summary: "Reads or writes of the table are throttled.",
+    name: translationKey("Requests Throttled"),
+    summary: translationKey("Reads or writes of the table are throttled."),
     description: `Fires when ReadThrottleEvents and WriteThrottleEvents (Sum), totalled over the past 30 minutes, add up to 1 or more: requests passed the table's provisioned capacity, or a partition's. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Throttling",
     provider: AWS,
@@ -1521,8 +1549,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-elasticache-high-cpu",
-    name: "High CPU",
-    summary: "CPU stays at 95% or more for 30 minutes.",
+    name: translationKey("High CPU"),
+    summary: translationKey("CPU stays at 95% or more for 30 minutes."),
     description: `Fires when every reading of CPUUtilization (Average) in the past 30 minutes is at or above 95%. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AWS,
@@ -1538,8 +1566,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-elasticache-high-memory",
-    name: "High Memory",
-    summary: "Memory stays at 95% or more for 30 minutes.",
+    name: translationKey("High Memory"),
+    summary: translationKey("Memory stays at 95% or more for 30 minutes."),
     description: `Fires when every reading of DatabaseMemoryUsagePercentage (Average) in the past 30 minutes is at or above 95%: the cache evicts keys, or refuses writes. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AWS,
@@ -1555,8 +1583,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-redshift-disk-full",
-    name: "Disk Nearly Full",
-    summary: "Disk use stays at 90% or more for 30 minutes.",
+    name: translationKey("Disk Nearly Full"),
+    summary: translationKey("Disk use stays at 90% or more for 30 minutes."),
     description: `Fires when every reading of PercentageDiskSpaceUsed (Average) in the past 30 minutes is at or above 90%. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Storage",
     provider: AWS,
@@ -1569,8 +1597,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-redshift-high-cpu",
-    name: "High CPU",
-    summary: "CPU stays at 95% or more for 30 minutes.",
+    name: translationKey("High CPU"),
+    summary: translationKey("CPU stays at 95% or more for 30 minutes."),
     description: `Fires when every reading of CPUUtilization (Average) in the past 30 minutes is at or above 95%. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AWS,
@@ -1583,8 +1611,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   breakage({
     id: "cloud-aws-opensearch-cluster-red",
-    name: "Cluster Status Red",
-    summary: "The search domain's cluster status turns red.",
+    name: translationKey("Cluster Status Red"),
+    summary: translationKey("The search domain's cluster status turns red."),
     description: `Fires on the first reading of ClusterStatus.red (Maximum) at 1: a primary shard of an index is not allocated, so its data cannot be searched or written. Clears once the status stays out of red for 30 minutes. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     provider: AWS,
     resourceTypes: ["AWS::OpenSearchService::Domain"],
@@ -1595,8 +1623,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-opensearch-high-cpu",
-    name: "High CPU",
-    summary: "CPU stays at 95% or more for 30 minutes.",
+    name: translationKey("High CPU"),
+    summary: translationKey("CPU stays at 95% or more for 30 minutes."),
     description: `Fires when every reading of CPUUtilization (Average) in the past 30 minutes is at or above 95%. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AWS,
@@ -1609,8 +1637,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   ageAtOrAbove({
     id: "cloud-aws-sqs-oldest-message",
-    name: "Oldest Message Waiting",
-    summary: "The oldest message in the queue waits an hour or more.",
+    name: translationKey("Oldest Message Waiting"),
+    summary: translationKey(
+      "The oldest message in the queue waits an hour or more.",
+    ),
     description: `Fires on the first reading of ApproximateAgeOfOldestMessage (Maximum) at 3600 seconds or more: nothing has taken a message for an hour, or consumers fall behind. Clears once it is under 3240 seconds again. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     provider: AWS,
     resourceTypes: ["AWS::SQS::Queue"],
@@ -1621,8 +1651,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-aws-sns-notifications-failed",
-    name: "Deliveries Failed",
-    summary: "A notification of the topic cannot be delivered.",
+    name: translationKey("Deliveries Failed"),
+    summary: translationKey("A notification of the topic cannot be delivered."),
     description: `Fires when NumberOfNotificationsFailed (Sum), totalled over the past 30 minutes, is 1 or more. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Errors",
     provider: AWS,
@@ -1634,8 +1664,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   ageAtOrAbove({
     id: "cloud-aws-kinesis-consumers-behind",
-    name: "Consumers Falling Behind",
-    summary: "The stream's consumers fall an hour or more behind.",
+    name: translationKey("Consumers Falling Behind"),
+    summary: translationKey(
+      "The stream's consumers fall an hour or more behind.",
+    ),
     description: `Fires on the first reading of GetRecords.IteratorAgeMilliseconds (Maximum) at 3,600,000 milliseconds or more: the oldest record a consumer read was an hour old. Records past the stream's retention are lost. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     provider: AWS,
     resourceTypes: ["AWS::Kinesis::Stream"],
@@ -1646,8 +1678,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedBelow({
     id: "cloud-aws-firehose-deliveries-failing",
-    name: "Deliveries Failing",
-    summary: "Fewer than 99% of records reach S3 for 30 minutes.",
+    name: translationKey("Deliveries Failing"),
+    summary: translationKey(
+      "Fewer than 99% of records reach S3 for 30 minutes.",
+    ),
     description: `Fires when every reading of DeliveryToS3.Success (Average, the share of records delivered, 0 to 1) in the past 30 minutes is under 0.99. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     provider: AWS,
     resourceTypes: ["AWS::KinesisFirehose::DeliveryStream"],
@@ -1659,8 +1693,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   failedShare({
     id: "cloud-aws-apigateway-server-errors",
-    name: "Server Errors",
-    summary: "5% or more of requests fail with a 5xx error in 30 minutes.",
+    name: translationKey("Server Errors"),
+    summary: translationKey(
+      "5% or more of requests fail with a 5xx error in 30 minutes.",
+    ),
     description: awsShareDescription("5XXError (Sum) over Count (Sum)"),
     provider: AWS,
     resourceTypes: ["AWS::ApiGateway::RestApi"],
@@ -1671,8 +1707,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-apigateway-slow-responses",
-    name: "Slow Responses",
-    summary: "Requests take a second or more on average for 30 minutes.",
+    name: translationKey("Slow Responses"),
+    summary: translationKey(
+      "Requests take a second or more on average for 30 minutes.",
+    ),
     description: `Fires when every reading of Latency (Average) in the past 30 minutes is 1,000 milliseconds or more. ${READ_FROM_CLOUDWATCH}`,
     category: "Latency",
     provider: AWS,
@@ -1685,8 +1723,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-aws-events-failed-invocations",
-    name: "Failed Invocations",
-    summary: "The rule fails to invoke one of its targets.",
+    name: translationKey("Failed Invocations"),
+    summary: translationKey("The rule fails to invoke one of its targets."),
     description: `Fires when FailedInvocations (Sum), totalled over the past 30 minutes, is 1 or more: an event matched the rule, and EventBridge could not deliver it to a target. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Errors",
     provider: AWS,
@@ -1698,8 +1736,10 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-aws-amazonmq-high-cpu",
-    name: "High CPU",
-    summary: "The broker's CPU stays at 95% or more for 30 minutes.",
+    name: translationKey("High CPU"),
+    summary: translationKey(
+      "The broker's CPU stays at 95% or more for 30 minutes.",
+    ),
     description: `Fires when every reading of CpuUtilization (Average) in the past 30 minutes is at or above 95%. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AWS,
@@ -1712,8 +1752,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   breakage({
     id: "cloud-aws-msk-no-active-controller",
-    name: "No Active Controller",
-    summary: "The Kafka cluster has no active controller.",
+    name: translationKey("No Active Controller"),
+    summary: translationKey("The Kafka cluster has no active controller."),
     description: `Fires on the first reading of ActiveControllerCount (Maximum, of every broker) under 1: no broker is the cluster's controller, so partitions cannot change leader. Clears once one stays elected for 30 minutes. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
     provider: AWS,
     resourceTypes: ["AWS::MSK::Cluster"],
@@ -1725,8 +1765,8 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   define({
     id: "cloud-aws-acm-certificate-expiring",
-    name: "Certificate Expiring",
-    summary: `The certificate expires in ${CLOUD_CERTIFICATE_EXPIRY_DAYS} days or fewer.`,
+    name: translationKey("Certificate Expiring"),
+    summary: translationKey("The certificate expires in 30 days or fewer."),
     description: `Fires when every reading of DaysToExpiry (Minimum) in the past 2 days is ${CLOUD_CERTIFICATE_EXPIRY_DAYS} or fewer, or the past 2 days hold none: ACM publishes it twice a day, and stops once the certificate expires. ACM renews the certificates it issued 45 to 60 days before they expire, so one with ${CLOUD_CERTIFICATE_EXPIRY_DAYS} days left is imported, not in use, or failing its validation, with a month to fix it. Clears with the first reading after it is renewed or imported again. ${READ_SLOWLY_FROM_CLOUDWATCH}`,
     category: "Availability",
     severity: "Warning",
@@ -1781,8 +1821,8 @@ function azureShareDescription(metrics: string): string {
 const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   breakage({
     id: "cloud-azure-vm-unavailable",
-    name: "VM Unavailable",
-    summary: "The virtual machine stops being available.",
+    name: translationKey("VM Unavailable"),
+    summary: translationKey("The virtual machine stops being available."),
     description: `Fires on the first reading of VmAvailabilityMetric under 1: Azure found the virtual machine unavailable - stopped, rebooting, or on a host that failed. Clears once it stays available for 15 minutes. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     provider: AZURE,
     resourceTypes: ["Microsoft.Compute/virtualMachines"],
@@ -1798,8 +1838,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-vm-high-cpu",
-    name: "High CPU",
-    summary: "CPU stays at 90% or more for 15 minutes.",
+    name: translationKey("High CPU"),
+    summary: translationKey("CPU stays at 90% or more for 15 minutes."),
     description: `Fires when every reading of Percentage CPU in the past 15 minutes is at or above 90%. A busy VM is often doing its work: this says it has no headroom left. ${READ_FROM_AZURE_MONITOR}`,
     category: "Utilization",
     provider: AZURE,
@@ -1815,8 +1855,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   failedShare({
     id: "cloud-azure-appservice-server-errors",
-    name: "Server Errors",
-    summary: "5% or more of requests fail with a 5xx error in 15 minutes.",
+    name: translationKey("Server Errors"),
+    summary: translationKey(
+      "5% or more of requests fail with a 5xx error in 15 minutes.",
+    ),
     description: azureShareDescription("Http5xx over Requests"),
     provider: AZURE,
     resourceTypes: ["Microsoft.Web/sites"],
@@ -1827,8 +1869,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-appservice-slow-responses",
-    name: "Slow Responses",
-    summary: "Responses take a second or more on average for 15 minutes.",
+    name: translationKey("Slow Responses"),
+    summary: translationKey(
+      "Responses take a second or more on average for 15 minutes.",
+    ),
     description: `Fires when every reading of HttpResponseTime (Average) in the past 15 minutes is 1 second or more. ${READ_FROM_AZURE_MONITOR}`,
     category: "Latency",
     provider: AZURE,
@@ -1846,8 +1890,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-appserviceplan-high-cpu",
-    name: "High CPU",
-    summary: "The plan's CPU stays at 90% or more for 15 minutes.",
+    name: translationKey("High CPU"),
+    summary: translationKey(
+      "The plan's CPU stays at 90% or more for 15 minutes.",
+    ),
     description: `Fires when every reading of CpuPercentage in the past 15 minutes is at or above 90%, across the plan's instances. ${READ_FROM_AZURE_MONITOR}`,
     category: "Utilization",
     provider: AZURE,
@@ -1860,8 +1906,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-appserviceplan-high-memory",
-    name: "High Memory",
-    summary: "The plan's memory stays at 95% or more for 15 minutes.",
+    name: translationKey("High Memory"),
+    summary: translationKey(
+      "The plan's memory stays at 95% or more for 15 minutes.",
+    ),
     description: `Fires when every reading of MemoryPercentage in the past 15 minutes is at or above 95%, across the plan's instances. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AZURE,
@@ -1874,8 +1922,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-sql-storage-full",
-    name: "Storage Nearly Full",
-    summary: "Storage use stays at 90% or more for 15 minutes.",
+    name: translationKey("Storage Nearly Full"),
+    summary: translationKey("Storage use stays at 90% or more for 15 minutes."),
     description: `Fires when every reading of storage_percent in the past 15 minutes is at or above 90% of the database's, the pool's or the server's maximum size. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Storage",
     provider: AZURE,
@@ -1893,8 +1941,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-sql-high-cpu",
-    name: "High CPU",
-    summary: "CPU stays at 95% or more for 15 minutes.",
+    name: translationKey("High CPU"),
+    summary: translationKey("CPU stays at 95% or more for 15 minutes."),
     description: `Fires when every reading of cpu_percent in the past 15 minutes is at or above 95%. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AZURE,
@@ -1912,8 +1960,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-sql-sessions-high",
-    name: "Sessions Near the Limit",
-    summary: "Sessions stay at 90% or more of the limit for 15 minutes.",
+    name: translationKey("Sessions Near the Limit"),
+    summary: translationKey(
+      "Sessions stay at 90% or more of the limit for 15 minutes.",
+    ),
     description: `Fires when every reading of sessions_percent in the past 15 minutes is at or above 90% of the database's limit; past it, new connections are refused. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AZURE,
@@ -1926,8 +1976,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-azure-sql-failed-connections",
-    name: "Failed Connections",
-    summary: "Connections to the database fail with a system error.",
+    name: translationKey("Failed Connections"),
+    summary: translationKey(
+      "Connections to the database fail with a system error.",
+    ),
     description: `Fires when connection_failed, totalled over the past 15 minutes, is 1 or more: Azure SQL refused a connection for a reason of its own, not a wrong password. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Errors",
     provider: AZURE,
@@ -1939,8 +1991,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   define({
     id: "cloud-azure-sql-dtu-high",
-    name: "DTU Usage High",
-    summary: "DTU use stays at 95% or more for 15 minutes.",
+    name: translationKey("DTU Usage High"),
+    summary: translationKey("DTU use stays at 95% or more for 15 minutes."),
     description: `Fires when every reading of dtu_consumption_percent in the past 15 minutes is at or above 95% of the database's DTUs: its queries wait for CPU, data or log I/O. Offered to a database on the DTU purchasing model, which is the one that reports it. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Utilization",
     severity: "Warning",
@@ -1960,8 +2012,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-azure-sql-deadlocks",
-    name: "Deadlocks",
-    summary: "Queries of the database deadlock.",
+    name: translationKey("Deadlocks"),
+    summary: translationKey("Queries of the database deadlock."),
     description: `Fires when deadlock, totalled over the past 15 minutes, is 1 or more: two transactions held what the other needed, and Azure SQL ended one of them. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Errors",
     provider: AZURE,
@@ -1973,8 +2025,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-sqlmi-high-cpu",
-    name: "High CPU",
-    summary: "The managed instance's CPU stays at 95% or more for 15 minutes.",
+    name: translationKey("High CPU"),
+    summary: translationKey(
+      "The managed instance's CPU stays at 95% or more for 15 minutes.",
+    ),
     description: `Fires when every reading of avg_cpu_percent in the past 15 minutes is at or above 95%. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AZURE,
@@ -1987,8 +2041,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-flexible-server-high-memory",
-    name: "High Memory",
-    summary: "Memory stays at 95% or more for 15 minutes.",
+    name: translationKey("High Memory"),
+    summary: translationKey("Memory stays at 95% or more for 15 minutes."),
     description: `Fires when every reading of memory_percent in the past 15 minutes is at or above 95%. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AZURE,
@@ -2004,8 +2058,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-azure-postgresql-failed-connections",
-    name: "Failed Connections",
-    summary: "Connections to the server fail.",
+    name: translationKey("Failed Connections"),
+    summary: translationKey("Connections to the server fail."),
     description: `Fires when connections_failed, totalled over the past 15 minutes, is 1 or more. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Errors",
     provider: AZURE,
@@ -2017,8 +2071,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-azure-mysql-aborted-connections",
-    name: "Connections Aborted",
-    summary: "Attempts to connect to the server fail.",
+    name: translationKey("Connections Aborted"),
+    summary: translationKey("Attempts to connect to the server fail."),
     description: `Fires when aborted_connections, totalled over the past 15 minutes, is 1 or more: a client could not connect, for a wrong password, a database it may not use or a handshake that timed out. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Errors",
     provider: AZURE,
@@ -2030,8 +2084,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-cosmos-request-units",
-    name: "Request Units at the Limit",
-    summary: "Request units stay at their limit for 15 minutes.",
+    name: translationKey("Request Units at the Limit"),
+    summary: translationKey(
+      "Request units stay at their limit for 15 minutes.",
+    ),
     description: `Fires when every reading of NormalizedRUConsumption in the past 15 minutes is at 100%: the account's busiest partition uses all its throughput, so its requests are throttled with 429s. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Throttling",
     provider: AZURE,
@@ -2049,8 +2105,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-redis-server-load",
-    name: "High Server Load",
-    summary: "Server load stays at 90% or more for 15 minutes.",
+    name: translationKey("High Server Load"),
+    summary: translationKey("Server load stays at 90% or more for 15 minutes."),
     description: `Fires when every reading of serverLoad in the past 15 minutes is at or above 90%: the cache's threads are busy and its commands slow down. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AZURE,
@@ -2063,8 +2119,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-redis-high-memory",
-    name: "High Memory",
-    summary: "Memory stays at 95% or more for 15 minutes.",
+    name: translationKey("High Memory"),
+    summary: translationKey("Memory stays at 95% or more for 15 minutes."),
     description: `Fires when every reading of usedmemorypercentage in the past 15 minutes is at or above 95%: the cache evicts keys, or refuses writes. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AZURE,
@@ -2077,8 +2133,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedBelow({
     id: "cloud-azure-availability-low",
-    name: "Availability Low",
-    summary: "Availability stays under 99.9% for 15 minutes.",
+    name: translationKey("Availability Low"),
+    summary: translationKey("Availability stays under 99.9% for 15 minutes."),
     description: `Fires when every reading of Availability in the past 15 minutes is under 99.9%: requests to the account or the vault fail for reasons of Azure's own. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     provider: AZURE,
     resourceTypes: [
@@ -2093,8 +2149,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-azure-messaging-dead-lettered",
-    name: "Messages Dead-Lettered",
-    summary: "A message is moved to a dead-letter queue.",
+    name: translationKey("Messages Dead-Lettered"),
+    summary: translationKey("A message is moved to a dead-letter queue."),
     description: `Fires when DeadletteredMessages (Average) is 1 or more at any reading in the past 15 minutes: a message could not be processed, or expired, and waits in a dead-letter queue until someone looks at it. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Backlog",
     provider: AZURE,
@@ -2112,8 +2168,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-azure-messaging-server-errors",
-    name: "Server Errors",
-    summary: "The namespace answers a request with a server error.",
+    name: translationKey("Server Errors"),
+    summary: translationKey(
+      "The namespace answers a request with a server error.",
+    ),
     description: `Fires when ServerErrors, totalled over the past 15 minutes, is 1 or more. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Errors",
     provider: AZURE,
@@ -2128,8 +2186,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-azure-messaging-throttled",
-    name: "Requests Throttled",
-    summary: "Requests to the namespace are throttled.",
+    name: translationKey("Requests Throttled"),
+    summary: translationKey("Requests to the namespace are throttled."),
     description: `Fires when ThrottledRequests, totalled over the past 15 minutes, is 1 or more: the namespace passed what its tier, units or partitions allow. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Throttling",
     provider: AZURE,
@@ -2144,8 +2202,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-azure-containerapp-restarts",
-    name: "Replicas Restarting",
-    summary: "A replica of the container app restarts.",
+    name: translationKey("Replicas Restarting"),
+    summary: translationKey("A replica of the container app restarts."),
     description: `Fires when RestartCount, totalled over the past 15 minutes, is 1 or more: a replica crashed, or failed its health probes and was restarted. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Availability",
     provider: AZURE,
@@ -2157,8 +2215,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedBelow({
     id: "cloud-azure-loadbalancer-data-path",
-    name: "Data Path Availability Low",
-    summary: "The load balancer's data path stays under 99.9% for 15 minutes.",
+    name: translationKey("Data Path Availability Low"),
+    summary: translationKey(
+      "The load balancer's data path stays under 99.9% for 15 minutes.",
+    ),
     description: `Fires when every reading of VipAvailability in the past 15 minutes is under 99.9%: Azure's probes through the load balancer's frontend fail. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     provider: AZURE,
     resourceTypes: ["Microsoft.Network/loadBalancers"],
@@ -2170,8 +2230,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedBelow({
     id: "cloud-azure-loadbalancer-health-probes",
-    name: "Health Probes Failing",
-    summary: "Backends fail their health probes for 15 minutes.",
+    name: translationKey("Health Probes Failing"),
+    summary: translationKey(
+      "Backends fail their health probes for 15 minutes.",
+    ),
     description: `Fires when every reading of DipAvailability in the past 15 minutes is under 100%: some of the load balancer's backends fail its health probe, and get no traffic. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     provider: AZURE,
     resourceTypes: ["Microsoft.Network/loadBalancers"],
@@ -2183,8 +2245,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-appgateway-unhealthy-hosts",
-    name: "Unhealthy Hosts",
-    summary: "A backend of the gateway is unhealthy for 15 minutes.",
+    name: translationKey("Unhealthy Hosts"),
+    summary: translationKey(
+      "A backend of the gateway is unhealthy for 15 minutes.",
+    ),
     description: `Fires when every reading of UnhealthyHostCount in the past 15 minutes is 1 or more. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Availability",
     provider: AZURE,
@@ -2201,8 +2265,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   failedShare({
     id: "cloud-azure-appgateway-failed-requests",
-    name: "Failed Requests",
-    summary: "5% or more of the gateway's requests fail in 15 minutes.",
+    name: translationKey("Failed Requests"),
+    summary: translationKey(
+      "5% or more of the gateway's requests fail in 15 minutes.",
+    ),
     description: azureShareDescription("FailedRequests over TotalRequests"),
     provider: AZURE,
     resourceTypes: ["Microsoft.Network/applicationGateways"],
@@ -2213,8 +2279,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   breakage({
     id: "cloud-azure-public-ip-ddos",
-    name: "Under DDoS Attack",
-    summary: "Azure reports the public IP address under a DDoS attack.",
+    name: translationKey("Under DDoS Attack"),
+    summary: translationKey(
+      "Azure reports the public IP address under a DDoS attack.",
+    ),
     description: `Fires on the first reading of IfUnderDDoSAttack at 1: Azure DDoS Protection detected an attack on the address and mitigates it. Clears once 15 minutes pass without one. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     provider: AZURE,
     resourceTypes: ["Microsoft.Network/publicIPAddresses"],
@@ -2229,8 +2297,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedBelow({
     id: "cloud-azure-firewall-health",
-    name: "Firewall Health Degraded",
-    summary: "The firewall's health stays under 100% for 15 minutes.",
+    name: translationKey("Firewall Health Degraded"),
+    summary: translationKey(
+      "The firewall's health stays under 100% for 15 minutes.",
+    ),
     description: `Fires when every reading of FirewallHealth in the past 15 minutes is under 100%. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     provider: AZURE,
     resourceTypes: ["Microsoft.Network/azureFirewalls"],
@@ -2242,8 +2312,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-firewall-snat-ports",
-    name: "SNAT Ports Running Out",
-    summary: "SNAT port use stays at 95% or more for 15 minutes.",
+    name: translationKey("SNAT Ports Running Out"),
+    summary: translationKey(
+      "SNAT port use stays at 95% or more for 15 minutes.",
+    ),
     description: `Fires when every reading of SNATPortUtilization in the past 15 minutes is at or above 95%. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AZURE,
@@ -2256,8 +2328,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedBelow({
     id: "cloud-azure-nat-gateway-data-path",
-    name: "Data Path Availability Low",
-    summary: "The NAT gateway's data path stays under 99.9% for 15 minutes.",
+    name: translationKey("Data Path Availability Low"),
+    summary: translationKey(
+      "The NAT gateway's data path stays under 99.9% for 15 minutes.",
+    ),
     description: `Fires when every reading of DatapathAvailability in the past 15 minutes is under 99.9%. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     provider: AZURE,
     resourceTypes: ["Microsoft.Network/natGateways"],
@@ -2269,8 +2343,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-cdn-server-errors",
-    name: "Server Errors",
-    summary: "5% or more of requests fail with a 5xx error for 15 minutes.",
+    name: translationKey("Server Errors"),
+    summary: translationKey(
+      "5% or more of requests fail with a 5xx error for 15 minutes.",
+    ),
     description: `Fires when every reading of Percentage5XX in the past 15 minutes is at or above 5%. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Errors",
     provider: AZURE,
@@ -2283,8 +2359,10 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-azure-apim-capacity",
-    name: "Capacity High",
-    summary: "The gateway's capacity stays at 90% or more for 15 minutes.",
+    name: translationKey("Capacity High"),
+    summary: translationKey(
+      "The gateway's capacity stays at 90% or more for 15 minutes.",
+    ),
     description: `Fires when every reading of Capacity in the past 15 minutes is at or above 90%. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Utilization",
     provider: AZURE,
@@ -2297,8 +2375,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   failedShare({
     id: "cloud-azure-ai-services-errors",
-    name: "Errors",
-    summary: "5% or more of the calls fail in 15 minutes.",
+    name: translationKey("Errors"),
+    summary: translationKey("5% or more of the calls fail in 15 minutes."),
     description: azureShareDescription("TotalErrors over TotalCalls"),
     provider: AZURE,
     resourceTypes: ["Microsoft.CognitiveServices/accounts"],
@@ -2309,8 +2387,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-azure-logic-runs-failed",
-    name: "Runs Failed",
-    summary: "A run of the logic app fails.",
+    name: translationKey("Runs Failed"),
+    summary: translationKey("A run of the logic app fails."),
     description: `Fires when RunsFailed, totalled over the past 15 minutes, is 1 or more. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Errors",
     provider: AZURE,
@@ -2322,8 +2400,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   anyInWindow({
     id: "cloud-azure-data-factory-runs-failed",
-    name: "Pipeline Runs Failed",
-    summary: "A pipeline run of the data factory fails.",
+    name: translationKey("Pipeline Runs Failed"),
+    summary: translationKey("A pipeline run of the data factory fails."),
     description: `Fires when PipelineFailedRuns, totalled over the past 15 minutes, is 1 or more. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
     category: "Errors",
     provider: AZURE,
@@ -2344,8 +2422,8 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
 const GCP_TEMPLATES: Array<CloudAlertTemplate> = [
   gcpPercentAtOrAbove({
     id: "cloud-gcp-compute-high-cpu",
-    name: "High CPU",
-    summary: "CPU stays at 90% or more for 15 minutes.",
+    name: translationKey("High CPU"),
+    summary: translationKey("CPU stays at 90% or more for 15 minutes."),
     description: `Fires when every reading of compute.googleapis.com/instance/cpu/utilization (0 to 1, made a percent) in the past 15 minutes is at or above 90%. A busy VM is often doing its work: this says it has no headroom left. ${READ_FROM_CLOUD_MONITORING}`,
     category: "Utilization",
     resourceTypes: ["gce_instance"],
@@ -2357,8 +2435,8 @@ const GCP_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   gcpPercentAtOrAbove({
     id: "cloud-gcp-cloudsql-disk-full",
-    name: "Disk Nearly Full",
-    summary: "Disk use stays at 90% or more for 15 minutes.",
+    name: translationKey("Disk Nearly Full"),
+    summary: translationKey("Disk use stays at 90% or more for 15 minutes."),
     description: `Fires when every reading of cloudsql.googleapis.com/database/disk/utilization (0 to 1, made a percent) in the past 15 minutes is at or above 90%. ${READ_FROM_CLOUD_MONITORING} ${ON_PAGE_TOO}`,
     category: "Storage",
     resourceTypes: ["cloudsql_database"],
@@ -2370,8 +2448,8 @@ const GCP_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   gcpPercentAtOrAbove({
     id: "cloud-gcp-cloudsql-high-cpu",
-    name: "High CPU",
-    summary: "CPU stays at 95% or more for 15 minutes.",
+    name: translationKey("High CPU"),
+    summary: translationKey("CPU stays at 95% or more for 15 minutes."),
     description: `Fires when every reading of cloudsql.googleapis.com/database/cpu/utilization (0 to 1, made a percent) in the past 15 minutes is at or above 95%. ${READ_FROM_CLOUD_MONITORING} ${ON_PAGE_TOO}`,
     category: "Utilization",
     resourceTypes: ["cloudsql_database"],
@@ -2383,8 +2461,8 @@ const GCP_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   gcpPercentAtOrAbove({
     id: "cloud-gcp-cloudsql-high-memory",
-    name: "High Memory",
-    summary: "Memory stays at 95% or more for 15 minutes.",
+    name: translationKey("High Memory"),
+    summary: translationKey("Memory stays at 95% or more for 15 minutes."),
     description: `Fires when every reading of cloudsql.googleapis.com/database/memory/utilization (0 to 1, made a percent) in the past 15 minutes is at or above 95%. ${READ_FROM_CLOUD_MONITORING} ${ON_PAGE_TOO}`,
     category: "Utilization",
     resourceTypes: ["cloudsql_database"],
@@ -2396,8 +2474,10 @@ const GCP_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   sustainedAtOrAbove({
     id: "cloud-gcp-lb-slow-responses",
-    name: "Slow Responses",
-    summary: "The 95th percentile of responses takes a second or more.",
+    name: translationKey("Slow Responses"),
+    summary: translationKey(
+      "The 95th percentile of responses takes a second or more.",
+    ),
     description: `Fires when every reading of loadbalancing.googleapis.com/https/total_latencies (the 95th percentile, in milliseconds) in the past 15 minutes is 1,000 milliseconds or more. ${READ_FROM_CLOUD_MONITORING}`,
     category: "Latency",
     provider: CloudProvider.GCP,
@@ -2414,8 +2494,10 @@ const GCP_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   ageAtOrAbove({
     id: "cloud-gcp-pubsub-oldest-message",
-    name: "Oldest Message Waiting",
-    summary: "The subscription's oldest message waits an hour or more.",
+    name: translationKey("Oldest Message Waiting"),
+    summary: translationKey(
+      "The subscription's oldest message waits an hour or more.",
+    ),
     description: `Fires on the first reading of pubsub.googleapis.com/subscription/oldest_unacked_message_age at 3600 seconds or more: nothing acknowledged a message for an hour, or subscribers fall behind. ${READ_FROM_CLOUD_MONITORING} ${ON_PAGE_TOO}`,
     provider: CloudProvider.GCP,
     resourceTypes: ["pubsub_subscription"],
@@ -2431,8 +2513,8 @@ const GCP_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   gcpPercentAtOrAbove({
     id: "cloud-gcp-redis-high-memory",
-    name: "High Memory",
-    summary: "Memory stays at 95% or more for 15 minutes.",
+    name: translationKey("High Memory"),
+    summary: translationKey("Memory stays at 95% or more for 15 minutes."),
     description: `Fires when every reading of redis.googleapis.com/stats/memory/usage_ratio (0 to 1, made a percent) in the past 15 minutes is at or above 95%. ${READ_FROM_CLOUD_MONITORING} ${ON_PAGE_TOO}`,
     category: "Utilization",
     resourceTypes: ["redis_instance"],
@@ -2444,8 +2526,8 @@ const GCP_TEMPLATES: Array<CloudAlertTemplate> = [
   }),
   gcpPercentAtOrAbove({
     id: "cloud-gcp-spanner-high-cpu",
-    name: "High CPU",
-    summary: "CPU stays at 90% or more for 15 minutes.",
+    name: translationKey("High CPU"),
+    summary: translationKey("CPU stays at 90% or more for 15 minutes."),
     description: `Fires when every reading of spanner.googleapis.com/instance/cpu/utilization (0 to 1, made a percent) in the past 15 minutes is at or above 90%. ${READ_FROM_CLOUD_MONITORING} ${ON_PAGE_TOO}`,
     category: "Utilization",
     resourceTypes: ["spanner_instance"],

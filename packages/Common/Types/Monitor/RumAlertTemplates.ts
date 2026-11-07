@@ -9,6 +9,7 @@ import MonitorType from "./MonitorType";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import SessionReplayBudgetMetricType from "../Rum/SessionReplayBudgetMetricType";
+import { translationKey } from "../Translator";
 
 export type RumAlertTemplateCategory =
   | "Core Web Vitals"
@@ -62,6 +63,13 @@ export interface RumAlertTemplateArgs {
 export interface RumAlertTemplate {
   id: string;
   name: string;
+  /*
+   * One plain sentence: when the template fires, with its threshold and
+   * window, without metric names. A Recommendations card shows it, in the
+   * reader's language; `description` (how it is computed, and its caveats)
+   * waits behind Show more.
+   */
+  summary: string;
   description: string;
   category: RumAlertTemplateCategory;
   severity: RumAlertTemplateSeverity;
@@ -192,6 +200,7 @@ function buildCriteria(data: CriteriaArgs): MonitorCriteria {
 interface WebVitalTemplateData {
   id: string;
   name: string;
+  summary: string;
   description: string;
   metricName: string;
   metricAlias: string;
@@ -205,6 +214,7 @@ function buildWebVitalTemplate(data: WebVitalTemplateData): RumAlertTemplate {
   return {
     id: data.id,
     name: data.name,
+    summary: data.summary,
     description: data.description,
     category: "Core Web Vitals",
     severity: data.severity,
@@ -286,7 +296,10 @@ function buildWebVitalTemplate(data: WebVitalTemplateData): RumAlertTemplate {
 const webVitalTemplates: Array<RumAlertTemplate> = [
   buildWebVitalTemplate({
     id: "rum-poor-lcp",
-    name: "Poor Largest Contentful Paint",
+    name: translationKey("Poor Largest Contentful Paint"),
+    summary: translationKey(
+      "A page's largest element takes 4 seconds or more to appear, on average.",
+    ),
     description:
       "Alert when average Largest Contentful Paint reaches the poor-performance boundary of 4 seconds. Reads web_vital.lcp; an SDK emitting browser.largest_contentful_paint, largest_contentful_paint or web.vitals.lcp must retarget the created monitor.",
     metricName: "web_vital.lcp",
@@ -298,7 +311,10 @@ const webVitalTemplates: Array<RumAlertTemplate> = [
   }),
   buildWebVitalTemplate({
     id: "rum-poor-inp",
-    name: "Poor Interaction to Next Paint",
+    name: translationKey("Poor Interaction to Next Paint"),
+    summary: translationKey(
+      "Pages take 500 ms or more to respond to a click or a key, on average.",
+    ),
     description:
       "Alert when average Interaction to Next Paint reaches the poor-performance boundary of 500 milliseconds. Reads web_vital.inp; an SDK emitting browser.interaction_to_next_paint, interaction_to_next_paint or web.vitals.inp must retarget the created monitor.",
     metricName: "web_vital.inp",
@@ -310,7 +326,10 @@ const webVitalTemplates: Array<RumAlertTemplate> = [
   }),
   buildWebVitalTemplate({
     id: "rum-poor-cls",
-    name: "Poor Cumulative Layout Shift",
+    name: translationKey("Poor Cumulative Layout Shift"),
+    summary: translationKey(
+      "Page content shifts by 0.25 or more as it loads, on average.",
+    ),
     description:
       "Alert when average Cumulative Layout Shift reaches the poor-experience boundary of 0.25. Reads web_vital.cls; an SDK emitting browser.cumulative_layout_shift, cumulative_layout_shift or web.vitals.cls must retarget the created monitor.",
     metricName: "web_vital.cls",
@@ -322,7 +341,10 @@ const webVitalTemplates: Array<RumAlertTemplate> = [
   }),
   buildWebVitalTemplate({
     id: "rum-slow-fcp",
-    name: "Slow First Contentful Paint",
+    name: translationKey("Slow First Contentful Paint"),
+    summary: translationKey(
+      "Pages take 3 seconds or more to draw their first content, on average.",
+    ),
     description:
       "Alert when average First Contentful Paint reaches the poor-performance boundary of 3 seconds. Reads web_vital.fcp; an SDK emitting browser.first_contentful_paint, first_contentful_paint or web.vitals.fcp must retarget the created monitor.",
     metricName: "web_vital.fcp",
@@ -334,7 +356,10 @@ const webVitalTemplates: Array<RumAlertTemplate> = [
   }),
   buildWebVitalTemplate({
     id: "rum-slow-ttfb",
-    name: "Slow Time to First Byte",
+    name: translationKey("Slow Time to First Byte"),
+    summary: translationKey(
+      "A page's first byte takes 1.8 seconds or more to arrive, on average.",
+    ),
     description:
       "Alert when average Time to First Byte reaches the poor-performance boundary of 1.8 seconds. Reads web_vital.ttfb; an SDK emitting browser.time_to_first_byte, time_to_first_byte or web.vitals.ttfb must retarget the created monitor.",
     metricName: "web_vital.ttfb",
@@ -348,7 +373,8 @@ const webVitalTemplates: Array<RumAlertTemplate> = [
 
 const failedUserOperationsTemplate: RumAlertTemplate = {
   id: "rum-failed-user-operations",
-  name: "Failed User Operations",
+  name: translationKey("Failed User Operations"),
+  summary: translationKey("One or more user operations fail within 5 minutes."),
   description:
     "Alert when the RUM application reports one or more error-status spans in five minutes. The earliest signal that user-facing requests are failing, whatever the cause.",
   category: "Errors",
@@ -418,7 +444,10 @@ const failedUserOperationsTemplate: RumAlertTemplate = {
 
 const unhandledExceptionsTemplate: RumAlertTemplate = {
   id: "rum-unhandled-exceptions",
-  name: "Unhandled Browser Exceptions",
+  name: translationKey("Unhandled Browser Exceptions"),
+  summary: translationKey(
+    "Browsers report an unresolved exception within 5 minutes.",
+  ),
   description:
     "Alert when the RUM application reports one or more unresolved exceptions in five minutes.",
   category: "Errors",
@@ -514,6 +543,7 @@ const unhandledExceptionsTemplate: RumAlertTemplate = {
 interface SessionReplayBudgetTemplateData {
   id: string;
   name: string;
+  summary: string;
   description: string;
   severity: RumAlertTemplateSeverity;
   requirement: RumAlertTemplateRequirement;
@@ -538,6 +568,7 @@ function buildSessionReplayBudgetTemplate(
   return {
     id: data.id,
     name: data.name,
+    summary: data.summary,
     description: data.description,
     category: "Session Replay",
     severity: data.severity,
@@ -619,7 +650,10 @@ function buildSessionReplayBudgetTemplate(
 const sessionReplayBudgetTemplates: Array<RumAlertTemplate> = [
   buildSessionReplayBudgetTemplate({
     id: "rum-session-replay-daily-budget-nearly-spent",
-    name: "Session Replay Daily Budget Nearly Spent",
+    name: translationKey("Session Replay Daily Budget Nearly Spent"),
+    summary: translationKey(
+      "Today's replay uploads reach 80% of the project's daily limit.",
+    ),
     description:
       "Alert when the project's session replay uploads today reach 80% of its daily limit, before recorders are told to stop. The limit is shared by every application in the project and resets at 00:00 UTC, so one of these monitors covers them all.",
     severity: "Warning",
@@ -637,7 +671,10 @@ const sessionReplayBudgetTemplates: Array<RumAlertTemplate> = [
   }),
   buildSessionReplayBudgetTemplate({
     id: "rum-session-replay-daily-budget-spent",
-    name: "Session Replay Daily Budget Spent",
+    name: translationKey("Session Replay Daily Budget Spent"),
+    summary: translationKey(
+      "The project's daily replay limit is spent: recording stops.",
+    ),
     description:
       "Alert when the project's daily session replay limit is spent: every recorder in the project has been told to stop until 00:00 UTC. The limit is shared by every application in the project, so one of these monitors covers them all.",
     severity: "Critical",
@@ -655,7 +692,10 @@ const sessionReplayBudgetTemplates: Array<RumAlertTemplate> = [
   }),
   buildSessionReplayBudgetTemplate({
     id: "rum-session-replay-monthly-budget-nearly-spent",
-    name: "Session Replay Monthly Budget Nearly Spent",
+    name: translationKey("Session Replay Monthly Budget Nearly Spent"),
+    summary: translationKey(
+      "This month's replay uploads reach 80% of the app's monthly budget.",
+    ),
     description:
       "Alert when this application's session replay uploads this month reach 80% of its monthly budget, before its recorders are told to stop for the rest of the month (UTC).",
     severity: "Warning",
@@ -673,7 +713,10 @@ const sessionReplayBudgetTemplates: Array<RumAlertTemplate> = [
   }),
   buildSessionReplayBudgetTemplate({
     id: "rum-session-replay-monthly-budget-spent",
-    name: "Session Replay Monthly Budget Spent",
+    name: translationKey("Session Replay Monthly Budget Spent"),
+    summary: translationKey(
+      "The app's monthly replay budget is spent: its recording stops.",
+    ),
     description:
       "Alert when this application's monthly session replay budget is spent: its recorders have been told to stop until the 1st of next month (UTC) or until the budget is raised.",
     severity: "Critical",

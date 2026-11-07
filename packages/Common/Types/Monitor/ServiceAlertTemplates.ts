@@ -18,6 +18,7 @@ import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../Metrics/MetricFormulaConfigData";
 import { ServiceLanguage } from "../Service/ServiceLanguage";
+import { translationKey } from "../Translator";
 
 /*
  * The curated alert library for an APM telemetry service — a backend process
@@ -98,6 +99,13 @@ export interface ServiceAlertTemplateArgs {
 export interface ServiceAlertTemplate {
   id: string;
   name: string;
+  /*
+   * One plain sentence: when the template fires, with its threshold and
+   * window, without metric names. A Recommendations card shows it, in the
+   * reader's language; `description` (how it is computed, and its caveats)
+   * waits behind Show more.
+   */
+  summary: string;
   description: string;
   category: ServiceAlertTemplateCategory;
   severity: ServiceAlertTemplateSeverity;
@@ -417,6 +425,7 @@ function buildQueryConfig(data: {
 function buildMetricTemplate(data: {
   id: string;
   name: string;
+  summary: string;
   description: string;
   category: ServiceAlertTemplateCategory;
   severity: ServiceAlertTemplateSeverity;
@@ -443,6 +452,7 @@ function buildMetricTemplate(data: {
   return {
     id: data.id,
     name: data.name,
+    summary: data.summary,
     description: data.description,
     category: data.category,
     severity: data.severity,
@@ -515,6 +525,7 @@ function buildMetricTemplate(data: {
 function buildRatioTemplate(data: {
   id: string;
   name: string;
+  summary: string;
   description: string;
   category: ServiceAlertTemplateCategory;
   severity: ServiceAlertTemplateSeverity;
@@ -533,6 +544,7 @@ function buildRatioTemplate(data: {
   return {
     id: data.id,
     name: data.name,
+    summary: data.summary,
     description: data.description,
     category: data.category,
     severity: data.severity,
@@ -637,6 +649,7 @@ function buildRatioTemplate(data: {
 function buildSpanCountTemplate(data: {
   id: string;
   name: string;
+  summary: string;
   description: string;
   category: ServiceAlertTemplateCategory;
   severity: ServiceAlertTemplateSeverity;
@@ -652,6 +665,7 @@ function buildSpanCountTemplate(data: {
   return {
     id: data.id,
     name: data.name,
+    summary: data.summary,
     description: data.description,
     category: data.category,
     severity: data.severity,
@@ -714,7 +728,10 @@ function buildSpanCountTemplate(data: {
  */
 const failedOperationsTemplate: ServiceAlertTemplate = buildSpanCountTemplate({
   id: "service-failed-operations",
-  name: "Failed Operations",
+  name: translationKey("Failed Operations"),
+  summary: translationKey(
+    "The service reports a failed operation within 10 minutes.",
+  ),
   description:
     "Alert when the service reports any error-status span in ten minutes. The earliest signal that requests are failing, whatever the cause.",
   category: "Errors",
@@ -740,7 +757,8 @@ const failedOperationsTemplate: ServiceAlertTemplate = buildSpanCountTemplate({
  */
 const errorBurstTemplate: ServiceAlertTemplate = buildSpanCountTemplate({
   id: "service-error-burst",
-  name: "Error Burst",
+  name: translationKey("Error Burst"),
+  summary: translationKey("More than 25 operations fail within 5 minutes."),
   description:
     "Alert when error-status spans exceed 25 in five minutes — a failure rate well past routine noise.",
   category: "Errors",
@@ -769,7 +787,8 @@ const errorBurstTemplate: ServiceAlertTemplate = buildSpanCountTemplate({
  */
 const trafficStoppedTemplate: ServiceAlertTemplate = buildSpanCountTemplate({
   id: "service-traffic-stopped",
-  name: "Traffic Stopped",
+  name: translationKey("Traffic Stopped"),
+  summary: translationKey("The service sends no spans for 15 minutes."),
   description:
     "Alert when the service produces no spans at all for fifteen minutes. Best on an always-on request path; a service with idle periods will trigger it legitimately.",
   category: "Throughput",
@@ -788,7 +807,10 @@ const trafficStoppedTemplate: ServiceAlertTemplate = buildSpanCountTemplate({
 
 const unhandledExceptionsTemplate: ServiceAlertTemplate = {
   id: "service-unhandled-exceptions",
-  name: "Unhandled Exceptions",
+  name: translationKey("Unhandled Exceptions"),
+  summary: translationKey(
+    "The service reports an unresolved exception within 10 minutes.",
+  ),
   description:
     "Alert when the service reports any unresolved exception in ten minutes. Exceptions already marked resolved or archived are excluded, so acknowledging one closes the alert.",
   category: "Errors",
@@ -845,6 +867,7 @@ const unhandledExceptionsTemplate: ServiceAlertTemplate = {
 const buildExceptionTemplate: (data: {
   id: string;
   name: string;
+  summary: string;
   description: string;
   checkOn:
     | CheckOn.ExceptionCount
@@ -861,6 +884,7 @@ const buildExceptionTemplate: (data: {
 }) => ServiceAlertTemplate = (data: {
   id: string;
   name: string;
+  summary: string;
   description: string;
   checkOn:
     | CheckOn.ExceptionCount
@@ -878,6 +902,7 @@ const buildExceptionTemplate: (data: {
   return {
     id: data.id,
     name: data.name,
+    summary: data.summary,
     description: data.description,
     category: "Errors",
     severity: "Critical",
@@ -928,7 +953,8 @@ const buildExceptionTemplate: (data: {
 
 const newExceptionTemplate: ServiceAlertTemplate = buildExceptionTemplate({
   id: "service-new-exception",
-  name: "New Exception",
+  name: translationKey("New Exception"),
+  summary: translationKey("The service throws an exception never seen before."),
   description:
     "Alert when the service throws an exception nobody has seen before, within ten minutes of its first occurrence.",
   checkOn: CheckOn.NewExceptionCount,
@@ -947,7 +973,8 @@ const newExceptionTemplate: ServiceAlertTemplate = buildExceptionTemplate({
 const regressedExceptionTemplate: ServiceAlertTemplate = buildExceptionTemplate(
   {
     id: "service-regressed-exception",
-    name: "Regressed Exception",
+    name: translationKey("Regressed Exception"),
+    summary: translationKey("An exception you resolved comes back."),
     description:
       "Alert when an exception you resolved comes back, so a fix did not hold.",
     checkOn: CheckOn.RegressedExceptionCount,
@@ -966,7 +993,10 @@ const regressedExceptionTemplate: ServiceAlertTemplate = buildExceptionTemplate(
 
 const exceptionSpikeTemplate: ServiceAlertTemplate = buildExceptionTemplate({
   id: "service-exception-spike",
-  name: "Exception Spike",
+  name: translationKey("Exception Spike"),
+  summary: translationKey(
+    "Exceptions rise well above normal for this hour of the week.",
+  ),
   description:
     "Alert when the service's exceptions rise well above what is normal for this hour of the week, over fifteen minutes.",
   checkOn: CheckOn.ExceptionCount,
@@ -998,7 +1028,8 @@ const exceptionSpikeTemplate: ServiceAlertTemplate = buildExceptionTemplate({
  */
 const latencyP95Template: ServiceAlertTemplate = buildMetricTemplate({
   id: "service-latency-p95",
-  name: "High Request Latency (p95)",
+  name: translationKey("High Request Latency (p95)"),
+  summary: translationKey("The slowest 5% of requests take 1 second or more."),
   description:
     "Alert when the 95th-percentile server request duration stays at or above one second. Reads http.server.request.duration; older SDKs report this as http.server.duration.",
   category: "Latency",
@@ -1023,7 +1054,10 @@ const latencyP95Template: ServiceAlertTemplate = buildMetricTemplate({
 
 const latencyP99Template: ServiceAlertTemplate = buildMetricTemplate({
   id: "service-latency-p99",
-  name: "Severe Request Latency (p99)",
+  name: translationKey("Severe Request Latency (p99)"),
+  summary: translationKey(
+    "The slowest 1% of requests take 2.5 seconds or more.",
+  ),
   description:
     "Alert when the 99th-percentile server request duration stays at or above 2.5 seconds — the tail users abandon.",
   category: "Latency",
@@ -1055,7 +1089,8 @@ const latencyP99Template: ServiceAlertTemplate = buildMetricTemplate({
  */
 const processCpuTemplate: ServiceAlertTemplate = buildMetricTemplate({
   id: "service-process-cpu-saturation",
-  name: "Process CPU Saturation",
+  name: translationKey("Process CPU Saturation"),
+  summary: translationKey("The process uses more than 85% CPU."),
   description:
     "Alert when the process stays above 85% CPU utilization. Needs the host-metrics instrumentation enabled in the service's SDK.",
   category: "Saturation",
@@ -1073,7 +1108,8 @@ const processCpuTemplate: ServiceAlertTemplate = buildMetricTemplate({
 
 const processMemoryTemplate: ServiceAlertTemplate = buildMetricTemplate({
   id: "service-process-memory-high",
-  name: "Process Memory High",
+  name: translationKey("Process Memory High"),
+  summary: translationKey("The process uses more than 1 GB of memory."),
   description:
     "Alert when process resident memory stays above 1 GB. An absolute budget — retune it to your container limit. Needs the host-metrics instrumentation enabled.",
   category: "Saturation",
@@ -1094,7 +1130,8 @@ const processMemoryTemplate: ServiceAlertTemplate = buildMetricTemplate({
 const javaTemplates: Array<ServiceAlertTemplate> = [
   buildRatioTemplate({
     id: "service-java-heap-utilization",
-    name: "JVM Heap Utilization",
+    name: translationKey("JVM Heap Utilization"),
+    summary: translationKey("The JVM heap stays at 90% or more of its limit."),
     description:
       "Alert when live heap stays at or above 90% of the JVM's configured heap limit — the leading indicator of GC thrashing and OutOfMemoryError.",
     category: "JVM Runtime",
@@ -1113,7 +1150,10 @@ const javaTemplates: Array<ServiceAlertTemplate> = [
   }),
   buildMetricTemplate({
     id: "service-java-live-heap-after-gc",
-    name: "Live Heap After GC",
+    name: translationKey("Live Heap After GC"),
+    summary: translationKey(
+      "More than 2 GB stays live after garbage collection.",
+    ),
     description:
       "Alert when the bytes still live after the last collection stay above 2 GB. Unlike heap used, this ignores allocation churn, so a rise here is a genuine leak. Retune to roughly 85% of your -Xmx.",
     category: "JVM Runtime",
@@ -1132,7 +1172,10 @@ const javaTemplates: Array<ServiceAlertTemplate> = [
   }),
   buildMetricTemplate({
     id: "service-java-gc-pause-p99",
-    name: "Long GC Pauses",
+    name: translationKey("Long GC Pauses"),
+    summary: translationKey(
+      "The slowest 1% of GC pauses take 1 second or more.",
+    ),
     description:
       "Alert when the 99th-percentile garbage collection pause stays at or above one second. Reads jvm.gc.duration; older agents report process.runtime.jvm.gc.duration.",
     category: "JVM Runtime",
@@ -1149,7 +1192,8 @@ const javaTemplates: Array<ServiceAlertTemplate> = [
   }),
   buildMetricTemplate({
     id: "service-java-cpu-saturation",
-    name: "JVM CPU Saturation",
+    name: translationKey("JVM CPU Saturation"),
+    summary: translationKey("The JVM uses more than 85% CPU."),
     description:
       "Alert when the JVM's recent CPU utilization stays above 85%. Reads jvm.cpu.recent_utilization; older agents report process.runtime.jvm.cpu.utilization.",
     category: "JVM Runtime",
@@ -1167,7 +1211,8 @@ const javaTemplates: Array<ServiceAlertTemplate> = [
   }),
   buildMetricTemplate({
     id: "service-java-thread-explosion",
-    name: "Thread Count Explosion",
+    name: translationKey("Thread Count Explosion"),
+    summary: translationKey("The JVM runs more than 500 threads."),
     description:
       "Alert when live thread count stays above 500 — an unbounded pool, a leaked executor, or thread-per-request under load. Reads jvm.thread.count; older agents report process.runtime.jvm.threads.count.",
     category: "JVM Runtime",
@@ -1185,7 +1230,8 @@ const javaTemplates: Array<ServiceAlertTemplate> = [
   }),
   buildMetricTemplate({
     id: "service-java-non-heap-growth",
-    name: "Non-Heap Memory Growth",
+    name: translationKey("Non-Heap Memory Growth"),
+    summary: translationKey("Non-heap memory stays above 512 MB."),
     description:
       "Alert when non-heap memory — metaspace, code cache, compressed class space — stays above 512 MB. Usually a classloader leak, dynamic proxy churn, or an agent gone wrong.",
     category: "JVM Runtime",
@@ -1209,7 +1255,8 @@ const javaTemplates: Array<ServiceAlertTemplate> = [
 const dotnetTemplates: Array<ServiceAlertTemplate> = [
   buildMetricTemplate({
     id: "service-dotnet-threadpool-starvation",
-    name: "Thread Pool Starvation",
+    name: translationKey("Thread Pool Starvation"),
+    summary: translationKey("Work items queue behind a saturated thread pool."),
     description:
       "Alert when work items queue behind a saturated thread pool. The classic sync-over-async death spiral, and it presents as latency everywhere at once.",
     category: ".NET Runtime",
@@ -1227,7 +1274,10 @@ const dotnetTemplates: Array<ServiceAlertTemplate> = [
   }),
   buildMetricTemplate({
     id: "service-dotnet-threadpool-growth",
-    name: "Thread Pool Growth",
+    name: translationKey("Thread Pool Growth"),
+    summary: translationKey(
+      "The runtime adds far more pool threads than the machine has cores.",
+    ),
     description:
       "Alert when the runtime has injected far more pool threads than the machine has cores, which it only does when existing threads are blocked.",
     category: ".NET Runtime",
@@ -1245,7 +1295,10 @@ const dotnetTemplates: Array<ServiceAlertTemplate> = [
   }),
   buildMetricTemplate({
     id: "service-dotnet-gen2-heap-growth",
-    name: "Gen 2 Heap Growth",
+    name: translationKey("Gen 2 Heap Growth"),
+    summary: translationKey(
+      "The gen 2 heap stays above 1 GB after a collection.",
+    ),
     description:
       "Alert when the gen 2 heap after the last collection stays above 1 GB. Objects that survive into gen 2 and stay there are the .NET leak signature.",
     category: ".NET Runtime",
@@ -1264,7 +1317,8 @@ const dotnetTemplates: Array<ServiceAlertTemplate> = [
   }),
   buildMetricTemplate({
     id: "service-dotnet-working-set",
-    name: "Working Set High",
+    name: translationKey("Working Set High"),
+    summary: translationKey("The process working set stays above 1.5 GB."),
     description:
       "Alert when the process working set stays above 1.5 GB. An absolute budget — retune it to your container limit.",
     category: ".NET Runtime",
@@ -1287,7 +1341,10 @@ const dotnetTemplates: Array<ServiceAlertTemplate> = [
 const nodejsTemplates: Array<ServiceAlertTemplate> = [
   buildMetricTemplate({
     id: "service-nodejs-event-loop-saturated",
-    name: "Event Loop Saturated",
+    name: translationKey("Event Loop Saturated"),
+    summary: translationKey(
+      "The event loop is busy more than 90% of the time.",
+    ),
     description:
       "Alert when the event loop is busy more than 90% of wall time. The single best saturation signal Node has: past this point every new request just queues.",
     category: "Node.js Runtime",
@@ -1305,7 +1362,10 @@ const nodejsTemplates: Array<ServiceAlertTemplate> = [
   }),
   buildMetricTemplate({
     id: "service-nodejs-event-loop-lag",
-    name: "Event Loop Lag",
+    name: translationKey("Event Loop Lag"),
+    summary: translationKey(
+      "The slowest 1% of event loop delays reach 200 ms or more.",
+    ),
     description:
       "Alert when 99th-percentile event-loop scheduling lag stays at or above 200 ms, meaning callbacks and timers are being starved.",
     category: "Node.js Runtime",
@@ -1336,7 +1396,10 @@ const nodejsTemplates: Array<ServiceAlertTemplate> = [
    */
   buildRatioTemplate({
     id: "service-nodejs-heap-pressure",
-    name: "V8 Heap Pressure",
+    name: translationKey("V8 Heap Pressure"),
+    summary: translationKey(
+      "The V8 heap stays at 90% or more of its hard limit.",
+    ),
     description:
       "Alert when the V8 heap stays at or above 90% of its hard limit — the last warning before a fatal, unrecoverable out-of-memory crash.",
     category: "Node.js Runtime",
@@ -1358,7 +1421,8 @@ const nodejsTemplates: Array<ServiceAlertTemplate> = [
    */
   buildMetricTemplate({
     id: "service-nodejs-gc-pause-p99",
-    name: "Long GC Pauses",
+    name: translationKey("Long GC Pauses"),
+    summary: translationKey("The slowest 1% of GC pauses take 200 ms or more."),
     description:
       "Alert when the 99th-percentile garbage collection pause stays at or above 200 ms. On a single-threaded event loop, a GC pause blocks everything.",
     category: "Node.js Runtime",
@@ -1386,7 +1450,10 @@ const pythonTemplates: Array<ServiceAlertTemplate> = [
    */
   buildMetricTemplate({
     id: "service-python-request-concurrency",
-    name: "Request Concurrency Saturated",
+    name: translationKey("Request Concurrency Saturated"),
+    summary: translationKey(
+      "In-flight requests reach the worker budget, so new ones queue.",
+    ),
     description:
       "Alert when in-flight requests reach the worker budget, meaning new requests are queueing. Retune the threshold to your workers × threads.",
     category: "Python Runtime",
@@ -1402,7 +1469,8 @@ const pythonTemplates: Array<ServiceAlertTemplate> = [
   }),
   buildMetricTemplate({
     id: "service-python-rss-memory",
-    name: "Resident Memory High",
+    name: translationKey("Resident Memory High"),
+    summary: translationKey("A worker's resident memory stays above 1 GB."),
     description:
       "Alert when a worker's resident memory stays above 1 GB — the signal that precedes an OOM kill. Needs the system-metrics instrumentation enabled. Reads process.runtime.cpython.memory with type=rss; newer opentelemetry-python releases report this as process.memory.usage, which the language-agnostic Process Memory High template already covers.",
     category: "Python Runtime",
@@ -1421,7 +1489,8 @@ const pythonTemplates: Array<ServiceAlertTemplate> = [
   }),
   buildMetricTemplate({
     id: "service-python-thread-growth",
-    name: "Thread Count Growth",
+    name: translationKey("Thread Count Growth"),
+    summary: translationKey("The process runs more than 200 threads."),
     description:
       "Alert when thread count stays above 200, which usually means a leaked executor or an unclosed client pool. Needs the system-metrics instrumentation enabled. Reads process.runtime.cpython.thread_count; newer opentelemetry-python releases report this as process.thread.count — retarget the created monitor in one edit if your SDK emits that instead.",
     category: "Python Runtime",
@@ -1444,7 +1513,8 @@ const pythonTemplates: Array<ServiceAlertTemplate> = [
 const goTemplates: Array<ServiceAlertTemplate> = [
   buildMetricTemplate({
     id: "service-go-goroutine-leak",
-    name: "Goroutine Leak",
+    name: translationKey("Goroutine Leak"),
+    summary: translationKey("More than 10,000 goroutines stay live."),
     description:
       "Alert when live goroutines stay above 10,000 — leaked contexts, unbounded fan-out, or sends on a channel nobody reads. Reads go.goroutine.count; older builds report process.runtime.go.goroutines.",
     category: "Go Runtime",
@@ -1462,7 +1532,10 @@ const goTemplates: Array<ServiceAlertTemplate> = [
   }),
   buildMetricTemplate({
     id: "service-go-heap-memory",
-    name: "Runtime Memory High",
+    name: translationKey("Runtime Memory High"),
+    summary: translationKey(
+      "Runtime memory, stacks not counted, stays above 1 GB.",
+    ),
     description:
       "Alert when non-stack runtime memory stays above 1 GB. An absolute budget — retune it to your container limit.",
     category: "Go Runtime",
@@ -1487,7 +1560,8 @@ const goTemplates: Array<ServiceAlertTemplate> = [
   }),
   buildMetricTemplate({
     id: "service-go-stack-memory",
-    name: "Goroutine Stack Memory",
+    name: translationKey("Goroutine Stack Memory"),
+    summary: translationKey("Goroutine stacks use more than 256 MB."),
     description:
       "Alert when total goroutine stack memory stays above 256 MB. An independent read on the same leak goroutine count catches, and it often moves first.",
     category: "Go Runtime",
@@ -1506,7 +1580,10 @@ const goTemplates: Array<ServiceAlertTemplate> = [
   }),
   buildMetricTemplate({
     id: "service-go-scheduler-latency-p99",
-    name: "Scheduler Latency",
+    name: translationKey("Scheduler Latency"),
+    summary: translationKey(
+      "The slowest 1% of goroutines wait 50 ms or more to run.",
+    ),
     description:
       "Alert when the 99th-percentile time a runnable goroutine waits to be scheduled stays at or above 50 ms — P contention or a GOMAXPROCS set below the real CPU budget.",
     category: "Go Runtime",

@@ -46,6 +46,7 @@ import {
   buildHealthyCriteriaInstance,
   getRecoveryThreshold,
 } from "./Recommendation/RecommendationCriteriaBuilder";
+import { translationKey } from "../Translator";
 
 /*
  * THE ALERT TEMPLATES ON WHAT A CLOUD STANDS ON.
@@ -345,8 +346,10 @@ const RABBITMQ_METRIC_FILTER: Record<string, string> = {
 
 const rabbitMqDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-rabbitmq-down",
-  name: "RabbitMQ Down",
-  summary: "No RabbitMQ node in a region answers for 5 minutes.",
+  name: translationKey("RabbitMQ Down"),
+  summary: translationKey(
+    "No RabbitMQ node in a region answers for 5 minutes.",
+  ),
   description:
     "Alert when no node of a region's RabbitMQ answers for 5 minutes (up reads 0 on every one, because the Prometheus plugin is inside RabbitMQ). One incident per region, which names what it takes down. Every worker's own alert on this cloud waits for this one, so a stopped RabbitMQ opens this and not twenty. Check `rabbitmqctl cluster_status` on each node, then start the node that stopped last first: nodes stopped together wait for each other.",
   category: "RabbitMQ",
@@ -379,8 +382,8 @@ const rabbitMqDownTemplate: OpenStackAlertTemplate = {
 
 const rabbitMqNodeDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-rabbitmq-node-down",
-  name: "RabbitMQ Node Down",
-  summary: "A RabbitMQ node does not answer for 10 minutes.",
+  name: translationKey("RabbitMQ Node Down"),
+  summary: translationKey("A RabbitMQ node does not answer for 10 minutes."),
   description:
     "Alert when one RabbitMQ node does not answer for 10 minutes (up reads 0). The cluster carries on without it, with less room and with whatever queues only that node held gone. One incident per node, longer than a rolling restart takes, and it waits for RabbitMQ Down when every node has gone. Check `rabbitmqctl cluster_status`, then RabbitMQ's service and log on that machine.",
   category: "RabbitMQ",
@@ -413,9 +416,10 @@ const rabbitMqNodeDownTemplate: OpenStackAlertTemplate = {
 
 const rabbitMqPartitionTemplate: OpenStackAlertTemplate = {
   id: "openstack-rabbitmq-partition-detected",
-  name: "RabbitMQ Partition Detected",
-  summary:
+  name: translationKey("RabbitMQ Partition Detected"),
+  summary: translationKey(
     "RabbitMQ nodes that all answer cannot reach each other for 5 minutes.",
+  ),
   description: `Alert when RabbitMQ's nodes all answer and a link between two of them is not up for 5 minutes (erlang_vm_dist_node_state below ${OPENSTACK_RABBITMQ_LINK_UP}, recorded reading 1 for a peer cut off by a firewall). One incident per region: a partition is one failure, however many links it cuts. A peer that stopped has no series at all and reads as Node Down instead. With cluster_partition_handling set to pause_minority, the smaller side stops answering and this reads as Node Down too. Check \`rabbitmqctl cluster_status\` on each side, and the network between them. A side has to be restarted to heal: RabbitMQ will not guess which to keep.`,
   category: "RabbitMQ",
   severity: "Critical",
@@ -500,8 +504,10 @@ function buildRabbitMqAlarmTemplate(data: {
 const rabbitMqMemoryAlarmTemplate: OpenStackAlertTemplate =
   buildRabbitMqAlarmTemplate({
     id: "openstack-rabbitmq-memory-alarm",
-    name: "RabbitMQ Memory Alarm",
-    summary: "A RabbitMQ node holds its memory alarm for 5 minutes.",
+    name: translationKey("RabbitMQ Memory Alarm"),
+    summary: translationKey(
+      "A RabbitMQ node holds its memory alarm for 5 minutes.",
+    ),
     metricName: "rabbitmq_alarms_memory_used_watermark",
     alias: "memory_alarm",
     description:
@@ -513,8 +519,10 @@ const rabbitMqMemoryAlarmTemplate: OpenStackAlertTemplate =
 const rabbitMqDiskAlarmTemplate: OpenStackAlertTemplate =
   buildRabbitMqAlarmTemplate({
     id: "openstack-rabbitmq-disk-alarm",
-    name: "RabbitMQ Disk Alarm",
-    summary: "A RabbitMQ node holds its disk alarm for 5 minutes.",
+    name: translationKey("RabbitMQ Disk Alarm"),
+    summary: translationKey(
+      "A RabbitMQ node holds its disk alarm for 5 minutes.",
+    ),
     metricName: "rabbitmq_alarms_free_disk_space_watermark",
     alias: "disk_alarm",
     description:
@@ -525,8 +533,10 @@ const rabbitMqDiskAlarmTemplate: OpenStackAlertTemplate =
 
 const rabbitMqFileDescriptorsHighTemplate: OpenStackAlertTemplate = {
   id: "openstack-rabbitmq-file-descriptors-high",
-  name: "RabbitMQ File Descriptors High",
-  summary: `A RabbitMQ node uses over ${OPENSTACK_RABBITMQ_FILE_DESCRIPTORS_WARNING_PERCENT}% of its file descriptors for 5 minutes.`,
+  name: translationKey("RabbitMQ File Descriptors High"),
+  summary: translationKey(
+    "A RabbitMQ node uses over 90% of its file descriptors for 5 minutes.",
+  ),
   description: `Alert when a RabbitMQ node has used more than ${OPENSTACK_RABBITMQ_FILE_DESCRIPTORS_WARNING_PERCENT}% of its file descriptors for 5 minutes (rabbitmq_process_open_fds over rabbitmq_process_max_fds). Each connection holds one, so a busy cloud reaches this before its alarm, and past the limit the node refuses new connections and services cannot reconnect. Check \`rabbitmqctl list_connections\` for who holds them, then raise the limit with \`ulimit -n\` or RABBITMQ_MAX_OPEN_FILES.`,
   category: "RabbitMQ",
   severity: "Warning",
@@ -579,8 +589,10 @@ const rabbitMqFileDescriptorsHighTemplate: OpenStackAlertTemplate = {
 
 const rabbitMqMessagesUnacknowledgedTemplate: OpenStackAlertTemplate = {
   id: "openstack-rabbitmq-messages-unacknowledged",
-  name: "RabbitMQ Messages Unacknowledged",
-  summary: `A RabbitMQ node holds over ${OPENSTACK_RABBITMQ_UNACKNOWLEDGED_MESSAGES_WARNING} unacknowledged messages for 10 minutes.`,
+  name: translationKey("RabbitMQ Messages Unacknowledged"),
+  summary: translationKey(
+    "A RabbitMQ node holds over 1000 unacknowledged messages for 10 minutes.",
+  ),
   description: `Alert when a RabbitMQ node holds more than ${OPENSTACK_RABBITMQ_UNACKNOWLEDGED_MESSAGES_WARNING} messages delivered and not acknowledged for 10 minutes (rabbitmq_queue_messages_unacked). A consumer has stopped working without letting go of what it took, which RabbitMQ cannot see for itself. One incident per node. Check \`rabbitmqctl list_queues name messages_unacknowledged consumers\` for the queue, then restart the service that consumes it.`,
   category: "RabbitMQ",
   severity: "Warning",
@@ -620,8 +632,10 @@ const rabbitMqMessagesUnacknowledgedTemplate: OpenStackAlertTemplate = {
 
 const rabbitMqQueueWithoutConsumersTemplate: OpenStackAlertTemplate = {
   id: "openstack-rabbitmq-queue-without-consumers",
-  name: "RabbitMQ Queue Without Consumers",
-  summary: "A queue holds messages and nothing consumes them for 10 minutes.",
+  name: translationKey("RabbitMQ Queue Without Consumers"),
+  summary: translationKey(
+    "A queue holds messages and nothing consumes them for 10 minutes.",
+  ),
   description:
     "Alert when a queue has messages ready and no consumer for 10 minutes (rabbitmq_detailed_queue_messages_ready above 0 with rabbitmq_detailed_queue_consumers at 0, one queue at a time from RabbitMQ's detailed endpoint). The service that should read it has stopped, or lost its route to RabbitMQ. One incident per queue, which names it. Reply and fanout queues are left out, because each belongs to one caller or one agent and goes with it. Check `rabbitmqctl list_queues name messages consumers`, then the service the queue is named after.",
   category: "RabbitMQ",
@@ -671,8 +685,10 @@ const rabbitMqQueueWithoutConsumersTemplate: OpenStackAlertTemplate = {
 
 const mariaDbClusterDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-mariadb-cluster-down",
-  name: "MariaDB Cluster Down",
-  summary: "No MariaDB node in a region takes writes for 5 minutes.",
+  name: translationKey("MariaDB Cluster Down"),
+  summary: translationKey(
+    "No MariaDB node in a region takes writes for 5 minutes.",
+  ),
   description:
     "Alert when no node of a region's MariaDB takes writes for 5 minutes: every exporter cannot be read (up 0), every node reads mysql_up 0, or Galera has no Primary component on any node that answers (wsrep_cluster_status 0, only where wsrep_on says Galera is on). One incident per region, which names what it takes down, and every API's and worker's own alert on this cloud waits for it, so a stopped MariaDB opens this and not twenty. Check `SHOW STATUS LIKE 'wsrep%'` on each node. A cluster that lost quorum needs one node told to bootstrap: see `galera_new_cluster`.",
   category: "MariaDB and Galera",
@@ -736,8 +752,10 @@ const mariaDbClusterDownTemplate: OpenStackAlertTemplate = {
 
 const galeraClusterSizeDroppedTemplate: OpenStackAlertTemplate = {
   id: "openstack-galera-cluster-size-dropped",
-  name: "Galera Cluster Size Dropped",
-  summary: "Galera has fewer nodes than the agent reads, for 10 minutes.",
+  name: translationKey("Galera Cluster Size Dropped"),
+  summary: translationKey(
+    "Galera has fewer nodes than the agent reads, for 10 minutes.",
+  ),
   description:
     "Alert when Galera says it has fewer nodes than the agent has exporters to read for 10 minutes (wsrep_cluster_size below the number of targets in OPENSTACK_MARIADB_TARGETS), with every node that answers still ready. One incident per region. It reads against the targets you named, so name them all. A cluster with no quorum is MariaDB Cluster Down, and a node cut off from the rest is Galera Node Not Ready, so neither opens this as well. Check `SHOW STATUS LIKE 'wsrep_cluster_size'` on each node, then the service on whichever is missing. One more failure may cost the cluster its quorum.",
   category: "MariaDB and Galera",
@@ -788,8 +806,10 @@ const galeraClusterSizeDroppedTemplate: OpenStackAlertTemplate = {
 
 const galeraNodeNotReadyTemplate: OpenStackAlertTemplate = {
   id: "openstack-galera-node-not-ready",
-  name: "Galera Node Not Ready",
-  summary: "A Galera node answers and takes no queries for 10 minutes.",
+  name: translationKey("Galera Node Not Ready"),
+  summary: translationKey(
+    "A Galera node answers and takes no queries for 10 minutes.",
+  ),
   description:
     "Alert when a node answers its exporter and says it is not ready for 10 minutes (wsrep_ready reads 0, only where wsrep_on says Galera is on): it refuses every query, usually because it is cut off from the Primary component. HAProxy should have taken it out, and services connected to it directly see errors. One incident per node. Check `SHOW STATUS LIKE 'wsrep_cluster_status'` on it, and the network to the others.",
   category: "MariaDB and Galera",
@@ -828,9 +848,10 @@ const galeraNodeNotReadyTemplate: OpenStackAlertTemplate = {
 
 const galeraNodeOutOfSyncTemplate: OpenStackAlertTemplate = {
   id: "openstack-galera-node-out-of-sync",
-  name: "Galera Node Out of Sync",
-  summary:
+  name: translationKey("Galera Node Out of Sync"),
+  summary: translationKey(
     "A Galera node is out of sync, and nobody asked for it, for 10 minutes.",
+  ),
   description: `Alert when a node that is ready has not been Synced for 10 minutes (wsrep_local_state below ${OPENSTACK_GALERA_STATE_SYNCED}), and nobody asked for that: a node desynced on purpose for a backup, with wsrep_desync on, stays quiet. One incident per node. It serves stale reads meanwhile, and a node catching up can hold the whole cluster back through flow control. Check \`SHOW STATUS LIKE 'wsrep_local_state_comment'\`, then what is holding it: a long-running lock, a dump, or a slow disk.`,
   category: "MariaDB and Galera",
   severity: "Warning",
@@ -880,8 +901,10 @@ const galeraNodeOutOfSyncTemplate: OpenStackAlertTemplate = {
 
 const mariaDbTooManyConnectionsTemplate: OpenStackAlertTemplate = {
   id: "openstack-mariadb-too-many-connections",
-  name: "MariaDB Too Many Connections",
-  summary: `A MariaDB node uses over ${OPENSTACK_MARIADB_CONNECTIONS_WARNING_PERCENT}% of its connections for 5 minutes.`,
+  name: translationKey("MariaDB Too Many Connections"),
+  summary: translationKey(
+    "A MariaDB node uses over 80% of its connections for 5 minutes.",
+  ),
   description: `Alert when a MariaDB node has used more than ${OPENSTACK_MARIADB_CONNECTIONS_WARNING_PERCENT}% of max_connections for 5 minutes (mysql_global_status_threads_connected over mysql_global_variables_max_connections). Past the limit every new connection is refused, and services fail with "Too many connections". One incident per node. Check \`SHOW PROCESSLIST\` for who holds them, then each service's max_pool_size against max_connections.`,
   category: "MariaDB and Galera",
   severity: "Warning",
@@ -932,8 +955,10 @@ const mariaDbTooManyConnectionsTemplate: OpenStackAlertTemplate = {
 
 const mariaDbSlowQueriesTemplate: OpenStackAlertTemplate = {
   id: "openstack-mariadb-slow-queries",
-  name: "MariaDB Slow Queries",
-  summary: `A MariaDB node logs over ${OPENSTACK_MARIADB_SLOW_QUERIES_WARNING_PER_MINUTE} slow queries a minute for 10 minutes.`,
+  name: translationKey("MariaDB Slow Queries"),
+  summary: translationKey(
+    "A MariaDB node logs over 10 slow queries a minute for 10 minutes.",
+  ),
   description: `Alert when a MariaDB node counts more than ${OPENSTACK_MARIADB_SLOW_QUERIES_WARNING_PER_MINUTE} queries a minute over long_query_time, every minute for 10 minutes (mysql_slow_queries_increase, how much the server's own counter grew). What counts as slow is that server's setting. One incident per node. Check the slow query log for what they are, usually a table that has outgrown its index, and \`SHOW PROCESSLIST\`.`,
   category: "MariaDB and Galera",
   severity: "Warning",
@@ -975,8 +1000,8 @@ const mariaDbSlowQueriesTemplate: OpenStackAlertTemplate = {
 
 const memcachedClusterDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-memcached-cluster-down",
-  name: "Memcached Cluster Down",
-  summary: "No Memcached in a region answers for 5 minutes.",
+  name: translationKey("Memcached Cluster Down"),
+  summary: translationKey("No Memcached in a region answers for 5 minutes."),
   description:
     "Alert when no Memcached in a region answers for 5 minutes: memcached_up reads 0 on every one, or no exporter can be read. Nothing stops, because services validate tokens the long way, but every API slows down and Keystone takes the load. One incident per region. One of several gone is not an alert: clients move on. Check `systemctl status memcached`, then `openstack token issue` to feel how slow Keystone has become.",
   category: "Memcached",
@@ -1020,8 +1045,10 @@ const memcachedClusterDownTemplate: OpenStackAlertTemplate = {
 
 const memcachedNoConnectionsTemplate: OpenStackAlertTemplate = {
   id: "openstack-memcached-no-connections",
-  name: "Memcached No Connections",
-  summary: "Nothing connects to or asks Memcached anything for 15 minutes.",
+  name: translationKey("Memcached No Connections"),
+  summary: translationKey(
+    "Nothing connects to or asks Memcached anything for 15 minutes.",
+  ),
   description: `Alert when no client is connected to any Memcached in a region and none of them is asked anything for 15 minutes: fewer than ${OPENSTACK_MEMCACHED_NO_CLIENT_CONNECTIONS} connections everywhere, and no growth in memcached_commands_total. Memcached's connection count never reads 0, because its own listeners and the exporter hold a few, and connected clients that ask nothing are not this. It answers, and nobody is using it: usually memcache_servers points somewhere else after a change, so every API validates its tokens the long way. One incident per region. Check \`[keystone_authtoken] memcached_servers\` in each service's config, then \`openstack token issue\`.`,
   category: "Memcached",
   severity: "Warning",
@@ -1067,8 +1094,10 @@ const memcachedNoConnectionsTemplate: OpenStackAlertTemplate = {
 
 const memcachedEvictionsHighTemplate: OpenStackAlertTemplate = {
   id: "openstack-memcached-evictions-high",
-  name: "Memcached Evictions High",
-  summary: `A Memcached evicts over ${OPENSTACK_MEMCACHED_EVICTIONS_WARNING_PER_MINUTE} items a minute for 10 minutes.`,
+  name: translationKey("Memcached Evictions High"),
+  summary: translationKey(
+    "A Memcached evicts over 100 items a minute for 10 minutes.",
+  ),
   description: `Alert when a Memcached throws out more than ${OPENSTACK_MEMCACHED_EVICTIONS_WARNING_PER_MINUTE} items a minute, every minute for 10 minutes, to make room (memcached_items_evicted_increase, how much its own counter grew). It is too small for what is asked of it, so tokens are validated again and again. One incident per Memcached. Check \`echo stats | nc localhost 11211\` for limit_maxbytes and evictions, then raise its -m setting.`,
   category: "Memcached",
   severity: "Warning",
@@ -1128,8 +1157,8 @@ const HAPROXY_RESPONSE_QUERIES: Array<OpenStackQuery> = [
 
 const haProxyDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-haproxy-down",
-  name: "HAProxy Down",
-  summary: "No HAProxy in a region answers for 5 minutes.",
+  name: translationKey("HAProxy Down"),
+  summary: translationKey("No HAProxy in a region answers for 5 minutes."),
   description:
     "Alert when no HAProxy in a region answers for 5 minutes (up reads 0 on every one, because its Prometheus exporter is inside it). One incident per region, and every API's own alert on this cloud waits for it. Check `systemctl status haproxy` and the virtual IP on each load balancer, then `openstack token issue`.",
   category: "HAProxy",
@@ -1162,8 +1191,10 @@ const haProxyDownTemplate: OpenStackAlertTemplate = {
 
 const haProxyBackendDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-haproxy-backend-down",
-  name: "HAProxy Backend Down",
-  summary: "An HAProxy backend has no server left for 5 minutes.",
+  name: translationKey("HAProxy Backend Down"),
+  summary: translationKey(
+    "An HAProxy backend has no server left for 5 minutes.",
+  ),
   description:
     "Alert when every load balancer in a region calls a backend DOWN for 5 minutes (haproxy_backend_status with state DOWN reads 1 on each). That API cannot be reached, however healthy its service is. One incident per backend, which names it. It reads the backend's own state and never its server count, because a section with no servers reads 0 servers for ever. Check `echo 'show servers state' | socat stdio <admin socket>`, then the service behind it and its health check, and `openstack endpoint list`.",
   category: "HAProxy",
@@ -1199,8 +1230,10 @@ const haProxyBackendDownTemplate: OpenStackAlertTemplate = {
 
 const haProxyServerDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-haproxy-server-down",
-  name: "HAProxy Server Down",
-  summary: "A backend's server fails its health check for 10 minutes.",
+  name: translationKey("HAProxy Server Down"),
+  summary: translationKey(
+    "A backend's server fails its health check for 10 minutes.",
+  ),
   description:
     "Alert when a load balancer calls one of a backend's servers DOWN for 10 minutes while the backend still has others (haproxy_server_status with state DOWN). The API still answers, with less room, and one more failure takes it away. One incident per backend, naming its servers. A backend with no server left is HAProxy Backend Down, so it does not open this as well. Servers in maintenance read as neither. Check that service on the machine named, its health check, and `openstack endpoint list`.",
   category: "HAProxy",
@@ -1302,8 +1335,10 @@ function buildResponseRateTemplate(data: {
 const haProxyApi5xxRateHighTemplate: OpenStackAlertTemplate =
   buildResponseRateTemplate({
     id: "openstack-haproxy-api-5xx-rate-high",
-    name: "API 5xx Rate High",
-    summary: `Over ${OPENSTACK_HAPROXY_ERROR_RESPONSES_WARNING_PERCENT}% of an API's responses through HAProxy are 5xx for 5 minutes.`,
+    name: translationKey("API 5xx Rate High"),
+    summary: translationKey(
+      "Over 5% of an API's responses through HAProxy are 5xx for 5 minutes.",
+    ),
     description: `Alert when more than ${OPENSTACK_HAPROXY_ERROR_RESPONSES_WARNING_PERCENT}% of a backend's responses are 5xx, in every minute for 5 minutes (haproxy_backend_http_responses_increase, how much each class grew). Its servers pass their health checks and fail real requests, which is what an API with no database looks like. One incident per backend. A backend with no server left is HAProxy Backend Down, so it does not open this as well. Check that service's log for the 500s, then the database and RabbitMQ behind it, and \`openstack endpoint list\`.`,
     severity: "Critical",
     responsesAlias: "responses_5xx",
@@ -1317,8 +1352,10 @@ const haProxyApi5xxRateHighTemplate: OpenStackAlertTemplate =
 const haProxyApi4xxRateHighTemplate: OpenStackAlertTemplate =
   buildResponseRateTemplate({
     id: "openstack-haproxy-api-4xx-rate-high",
-    name: "API 4xx Rate High",
-    summary: `Over ${OPENSTACK_HAPROXY_CLIENT_ERROR_RESPONSES_WARNING_PERCENT}% of an API's responses through HAProxy are 4xx for 5 minutes.`,
+    name: translationKey("API 4xx Rate High"),
+    summary: translationKey(
+      "Over 25% of an API's responses through HAProxy are 4xx for 5 minutes.",
+    ),
     description: `Alert when more than ${OPENSTACK_HAPROXY_CLIENT_ERROR_RESPONSES_WARNING_PERCENT}% of a backend's responses are 4xx, in every minute for 5 minutes (haproxy_backend_http_responses_increase). HAProxy counts responses by class and no finer, so this is where a burst of 401s shows: the usual cause of this many is tokens nobody can validate, from Fernet keys that differ between controllers or a Keystone that lost its way. The line is higher than for 5xx because OpenStack's clients ask for what is not there as a matter of course. One incident per backend. Check \`openstack token issue\`, Token Validation Failing, and that service's log.`,
     severity: "Warning",
     responsesAlias: "responses_4xx",
@@ -1335,8 +1372,10 @@ const haProxyApi4xxRateHighTemplate: OpenStackAlertTemplate =
 
 const ovnControllerNotRunningTemplate: OpenStackAlertTemplate = {
   id: "openstack-ovn-controller-not-running",
-  name: "OVN Controller Not Running",
-  summary: "A chassis has no ovn-controller running for 5 minutes.",
+  name: translationKey("OVN Controller Not Running"),
+  summary: translationKey(
+    "A chassis has no ovn-controller running for 5 minutes.",
+  ),
   description:
     "Alert when a machine that is an OVN chassis has had no ovn-controller for 5 minutes. Its Open vSwitch still says it is a chassis (ovnc_encap_ip), and the series only a running ovn-controller has are gone (ovnc_rconn_queued). One incident per machine. Neutron reads ovn-controller and neutron-ovn-agent as down there within a minute, and Network Agent Down waits for this, so a stopped ovn-controller opens this and not three. What it programmed stays in place, so its instances keep their traffic, but new ports and changes do not reach that machine. Check `systemctl status ovn-controller` on it, or its container, and `openstack network agent list`.",
   category: "OVN and Open vSwitch",
@@ -1376,8 +1415,10 @@ const ovnControllerNotRunningTemplate: OpenStackAlertTemplate = {
 
 const ovnDatabaseWithoutLeaderTemplate: OpenStackAlertTemplate = {
   id: "openstack-ovn-database-without-leader",
-  name: "Northbound or Southbound Database Without a Leader",
-  summary: "An OVN database's members read no leader for 5 minutes.",
+  name: translationKey("Northbound or Southbound Database Without a Leader"),
+  summary: translationKey(
+    "An OVN database's members read no leader for 5 minutes.",
+  ),
   description:
     "Alert when no member of an OVN database says it leads for 5 minutes (ovn_raft_cluster_leader). One incident per region and database. Without a leader nothing can change the network, on any machine, though what is programmed keeps carrying traffic. openstack-network-exporter reads Southbound on a machine with both databases' sockets, as Kolla-Ansible's have, so Northbound shows only where a machine has no Southbound to read. Check `ovn-appctl -t /var/run/ovn/ovnsb_db.ctl cluster/status OVN_Southbound` on each member.",
   category: "OVN and Open vSwitch",
@@ -1410,8 +1451,10 @@ const ovnDatabaseWithoutLeaderTemplate: OpenStackAlertTemplate = {
 
 const ovnNorthdNotActiveTemplate: OpenStackAlertTemplate = {
   id: "openstack-ovn-northd-not-active",
-  name: "OVN Northd Not Active",
-  summary: "No ovn-northd in a region is active for 10 minutes.",
+  name: translationKey("OVN Northd Not Active"),
+  summary: translationKey(
+    "No ovn-northd in a region is active for 10 minutes.",
+  ),
   description:
     "Alert when no ovn-northd in a region reads active for 10 minutes (ovn_northd_status: 1 on the active one, 0 on a standby, and 0 everywhere when OVN's databases have all stopped, which leaves ovn_raft_cluster_leader with no series at all). One incident per region. One stopped member is fine, because a standby takes over. Nothing written to Northbound reaches the machines until one is active. Check `ovs-appctl -t ovn-northd status` on each, and that OVN's databases are running. It waits for a database without a leader, which says so first.",
   category: "OVN and Open vSwitch",
@@ -1444,9 +1487,10 @@ const ovnNorthdNotActiveTemplate: OpenStackAlertTemplate = {
 
 const geneveTransmitErrorsTemplate: OpenStackAlertTemplate = {
   id: "openstack-geneve-transmit-errors",
-  name: "Geneve Transmit Errors",
-  summary:
+  name: translationKey("Geneve Transmit Errors"),
+  summary: translationKey(
     "A machine's Geneve tunnels fail to send, in every minute for 10 minutes.",
+  ),
   description:
     "Alert when a machine's Geneve tunnels report transmit errors in every minute for 10 minutes (ovs_interface_tx_errors_increase, for interfaces of type geneve). One incident per machine. Instances on it lose traffic to other machines while those on the same machine are fine, which is what a bad NIC, a wrong MTU or a route gone from the tunnel network looks like. Check `ovs-vsctl list interface` for the tunnel's error, and `ip -s link` on the machine's tunnel network. Only a machine with a peer has a Geneve tunnel.",
   category: "OVN and Open vSwitch",
@@ -1480,8 +1524,10 @@ const geneveTransmitErrorsTemplate: OpenStackAlertTemplate = {
 
 const ovsServiceDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-ovs-service-down",
-  name: "Open vSwitch Service Down",
-  summary: "Open vSwitch stops on a machine it ran on, for 5 minutes.",
+  name: translationKey("Open vSwitch Service Down"),
+  summary: translationKey(
+    "Open vSwitch stops on a machine it ran on, for 5 minutes.",
+  ),
   description:
     "Alert when ovs-vswitchd stops answering on a machine it was running on for 5 minutes, with the exporter still answering (ovs_memory_rules_total is gone). One incident per machine. That machine's instances are off the network. A machine that never ran it never fires, because a host of only OVN's databases reads the same as a stopped one. Neutron reads that machine's Open vSwitch or OVN agents as down within two minutes, and Network Agent Down waits for this. Check `systemctl status openvswitch-switch` on it, or its containers, and `ovs-vsctl show`. Once it is back, restart openstack-network-exporter there too, which does not reconnect to its database on its own.",
   category: "OVN and Open vSwitch",
@@ -1521,9 +1567,10 @@ const ovsServiceDownTemplate: OpenStackAlertTemplate = {
 
 const ovsDatabaseNotReadTemplate: OpenStackAlertTemplate = {
   id: "openstack-ovs-database-not-read",
-  name: "Exporter Lost Open vSwitch's Database",
-  summary:
+  name: translationKey("Exporter Lost Open vSwitch's Database"),
+  summary: translationKey(
     "An exporter stops reading a running Open vSwitch's database for 10 minutes.",
+  ),
   description:
     "Alert when Open vSwitch is running on a machine and openstack-network-exporter has not read its database for 10 minutes (ovs_build_info is gone, and ovs_memory_rules_total is there). Version 0.3.0 connects to that database once, so this follows every restart of Open vSwitch and lasts until the exporter restarts. Nothing is wrong with the network, but until then OVN Controller Not Running and Geneve Transmit Errors cannot see this machine. One incident per machine. Check for a recent restart of Open vSwitch, then restart the exporter on that machine: `docker restart prometheus_openstack_network_exporter` on Kolla-Ansible.",
   category: "OVN and Open vSwitch",
@@ -1564,6 +1611,8 @@ const ovsDatabaseNotReadTemplate: OpenStackAlertTemplate = {
 function buildExporterTargetDownTemplate(data: {
   id: string;
   name: string;
+  // Written out with the exporter's name, so it is a key the reader's language words.
+  summary: string;
   category: OpenStackControlPlaneCategory;
   dependency: OpenStackDependency;
   exporter: string;
@@ -1572,7 +1621,7 @@ function buildExporterTargetDownTemplate(data: {
   return {
     id: data.id,
     name: data.name,
-    summary: `${data.exporter} does not answer on a machine for 10 minutes.`,
+    summary: data.summary,
     description: `Alert when the agent cannot read ${data.exporter} on a machine for 10 minutes (up reads 0). What it reports may be fine: this says it cannot be seen, so ${data.blindTo} on that machine are not being watched. One incident per machine. Check that the exporter is running there and that the agent can reach its port, with \`curl\` from the agent's machine.`,
     category: data.category,
     severity: "Warning",
@@ -1602,7 +1651,10 @@ function buildExporterTargetDownTemplate(data: {
 const networkExporterTargetDownTemplate: OpenStackAlertTemplate =
   buildExporterTargetDownTemplate({
     id: "openstack-network-exporter-target-down",
-    name: "Network Exporter Target Down",
+    name: translationKey("Network Exporter Target Down"),
+    summary: translationKey(
+      "openstack-network-exporter does not answer on a machine for 10 minutes.",
+    ),
     category: "OVN and Open vSwitch",
     dependency: OpenStackDependency.Network,
     exporter: "openstack-network-exporter",
@@ -1615,8 +1667,10 @@ const networkExporterTargetDownTemplate: OpenStackAlertTemplate =
 
 const libvirtServiceDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-libvirt-service-down",
-  name: "libvirt Service Down",
-  summary: "libvirt does not answer on a machine for 5 minutes.",
+  name: translationKey("libvirt Service Down"),
+  summary: translationKey(
+    "libvirt does not answer on a machine for 5 minutes.",
+  ),
   description:
     "Alert when libvirt does not answer on a machine for 5 minutes (libvirt_up reads 0, with the exporter still answering). One incident per machine. Its instances carry on, but none can be started, stopped or moved there. nova-compute disables itself on that machine, so Compute Service Down and Compute Service Disabled stay quiet and this is the one that speaks. It can stay disabled for a while after libvirt is back, which `openstack compute service list` shows. Check `systemctl status libvirtd` on it, or `docker ps` for nova_libvirt on Kolla-Ansible.",
   category: "libvirt",
@@ -1650,7 +1704,10 @@ const libvirtServiceDownTemplate: OpenStackAlertTemplate = {
 const libvirtExporterTargetDownTemplate: OpenStackAlertTemplate =
   buildExporterTargetDownTemplate({
     id: "openstack-libvirt-exporter-target-down",
-    name: "libvirt Exporter Target Down",
+    name: translationKey("libvirt Exporter Target Down"),
+    summary: translationKey(
+      "The libvirt exporter does not answer on a machine for 10 minutes.",
+    ),
     category: "libvirt",
     dependency: OpenStackDependency.Libvirt,
     exporter: "the libvirt exporter",

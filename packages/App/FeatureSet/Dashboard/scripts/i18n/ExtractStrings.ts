@@ -121,6 +121,39 @@ export interface SourceRoot {
 }
 
 /*
+ * The alert template catalogs (Common/Types/Monitor/*AlertTemplates.ts) whose
+ * names and summaries a page draws. MessageQueueAlertTemplates is not here:
+ * nothing lists its templates (a queue's Create monitor reads only their
+ * thresholds), so it has no words on screen. A catalog added later joins
+ * this list, or the App guard AlertTemplateWordsInEveryLanguage fails.
+ */
+export const ALERT_TEMPLATE_CATALOG_FILES: ReadonlyArray<string> = [
+  "CephAlertTemplates.ts",
+  "CloudAlertTemplates.ts",
+  "CloudAppAlertTemplates.ts",
+  "DataObservabilityAlertTemplates.ts",
+  "DataPipelineAlertTemplates.ts",
+  "DatabaseAlertTemplates.ts",
+  "DockerAlertTemplates.ts",
+  "DockerSwarmAlertTemplates.ts",
+  "HostAlertTemplates.ts",
+  "IotAlertTemplates.ts",
+  "KubernetesAlertTemplates.ts",
+  "KubernetesEventAlertTemplates.ts",
+  "OpenShiftAlertTemplates.ts",
+  "OpenStackAlertTemplates.ts",
+  "OpenStackControlPlaneAlertTemplates.ts",
+  "OpenStackLogAlertTemplates.ts",
+  "PodmanAlertTemplates.ts",
+  "ProxmoxAlertTemplates.ts",
+  "ProxmoxNotificationAlertTemplates.ts",
+  "RumAlertTemplates.ts",
+  "ServiceAlertTemplates.ts",
+  "StorageArrayAlertTemplates.ts",
+  "VMwareAlertTemplates.ts",
+];
+
+/*
  * Everything the Dashboard puts on screen comes from these. Stage-2 work
  * that routes strings from elsewhere (Common/Types, say) through translation
  * adds the directory here, so those strings are extracted too.
@@ -459,6 +492,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Monitor/CephMetricCatalog.ts",
     kind: "keys",
   },
+  /*
+   * The alert template catalogs: each recommended monitor's name and the
+   * one line that says when it fires, as a resource's Recommendations,
+   * a cloud account's and Create Monitor's template picker draw them in
+   * the reader's language. Only the names and summaries the files mark are
+   * read: a template's description (the metric it reads, its formula and
+   * caveats), its incident words and the monitor it builds stay as written.
+   */
+  ...ALERT_TEMPLATE_CATALOG_FILES.map((file: string): SourceRoot => {
+    return { directory: `packages/Common/Types/Monitor/${file}`, kind: "keys" };
+  }),
 ];
 
 /*

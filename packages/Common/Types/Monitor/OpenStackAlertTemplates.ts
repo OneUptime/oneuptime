@@ -102,6 +102,7 @@ import {
 } from "../OpenStack/OpenStackResourceKind";
 import { OPENSTACK_DISABLED_REASON_LABEL } from "../OpenStack/OpenStackControlPlane";
 import { isOpenStackOptionalService } from "../OpenStack/OpenStackOptionalServices";
+import { translationKey } from "../Translator";
 
 export type OpenStackAlertTemplateCategory =
   | "Availability"
@@ -794,8 +795,8 @@ function statusAlias(status: string): string {
 
 const cloudStoppedReportingTemplate: OpenStackAlertTemplate = {
   id: "openstack-cloud-stopped-reporting",
-  name: "Cloud Stopped Reporting",
-  summary: "The cloud sends no data for 15 minutes.",
+  name: translationKey("Cloud Stopped Reporting"),
+  summary: translationKey("The cloud sends no data for 15 minutes."),
   description:
     "Alert when the cloud sends no data for 15 minutes: the OpenStack Agent's collector or exporter stopped, it lost its route to OneUptime or had its token revoked, or the exporter can no longer log in to Keystone, which leaves every service's collection empty. Reads openstack_identity_up, which the exporter sends on every identity collection whether or not Keystone's lists answered, so only silence fires it, and a Count of it holds for the whole cloud however many regions it has. One incident for the whole cloud. Check the agent's containers and logs first, then run `openstack token issue` with the agent's credential.",
   category: "Availability",
@@ -960,8 +961,8 @@ function buildApiDownTemplate(data: {
 
 const identityApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
   id: "openstack-identity-api-down",
-  name: "Identity API Down",
-  summary: "Keystone does not answer for 15 minutes.",
+  name: translationKey("Identity API Down"),
+  summary: translationKey("Keystone does not answer for 15 minutes."),
   description:
     "Alert when Keystone does not answer for 15 minutes: every call the exporter made failed (openstack_identity_up reads 0), or it could not log in at all, which leaves its identity collection empty (scrape_samples_scraped reads 0). One incident per region. Nothing else can be read while it is down, so Cloud Stopped Reporting fires beside it. Check keystone's service and the database behind it, then run `openstack token issue`.",
   service: OpenStackServiceType.Identity,
@@ -971,8 +972,8 @@ const identityApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
 
 const computeApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
   id: "openstack-compute-api-down",
-  name: "Compute API Down",
-  summary: "Nova's API does not answer for 10 minutes.",
+  name: translationKey("Compute API Down"),
+  summary: translationKey("Nova's API does not answer for 10 minutes."),
   description:
     "Alert when Nova's API does not answer for 10 minutes: every call the exporter made failed (openstack_nova_up reads 0), or it could not reach the API at all, which leaves its compute collection empty (scrape_samples_scraped reads 0). One incident per region. While it lasts, Nova's own series are gone, so its other templates resolve and come back later if the fault is still there. Check nova-api's service and logs, then run `openstack compute service list`.",
   service: OpenStackServiceType.Compute,
@@ -982,8 +983,8 @@ const computeApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
 
 const networkApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
   id: "openstack-network-api-down",
-  name: "Network API Down",
-  summary: "Neutron's API does not answer for 10 minutes.",
+  name: translationKey("Network API Down"),
+  summary: translationKey("Neutron's API does not answer for 10 minutes."),
   description:
     "Alert when Neutron's API does not answer for 10 minutes: every call the exporter made failed (openstack_neutron_up reads 0), or the exporter did not answer that collection (up reads 0). One incident per region. If every API reads down at once, look at the exporter first. Check neutron-server's service and logs, then run `openstack network agent list`.",
   service: OpenStackServiceType.Network,
@@ -994,8 +995,8 @@ const networkApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
 const blockStorageApiDownTemplate: OpenStackAlertTemplate =
   buildApiDownTemplate({
     id: "openstack-block-storage-api-down",
-    name: "Block Storage API Down",
-    summary: "Cinder's API does not answer for 10 minutes.",
+    name: translationKey("Block Storage API Down"),
+    summary: translationKey("Cinder's API does not answer for 10 minutes."),
     description:
       "Alert when Cinder's API does not answer for 10 minutes: every call the exporter made failed (openstack_cinder_up reads 0), or the exporter did not answer that collection (up reads 0). One incident per region. If every API reads down at once, look at the exporter first. Check cinder-api's service and logs, then run `openstack volume service list`.",
     service: OpenStackServiceType.Volume,
@@ -1005,8 +1006,8 @@ const blockStorageApiDownTemplate: OpenStackAlertTemplate =
 
 const imageApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
   id: "openstack-image-api-down",
-  name: "Image API Down",
-  summary: "Glance's API does not answer for 15 minutes.",
+  name: translationKey("Image API Down"),
+  summary: translationKey("Glance's API does not answer for 15 minutes."),
   description:
     "Alert when Glance's API does not answer for 15 minutes: every call the exporter made failed (openstack_glance_up reads 0), or the exporter did not answer that collection (up reads 0). One incident per region. If every API reads down at once, look at the exporter first. Check glance-api's service and logs, then run `openstack image list --limit 1`.",
   service: OpenStackServiceType.Image,
@@ -1016,8 +1017,8 @@ const imageApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
 
 const placementApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
   id: "openstack-placement-api-down",
-  name: "Placement API Down",
-  summary: "Placement's API does not answer for 10 minutes.",
+  name: translationKey("Placement API Down"),
+  summary: translationKey("Placement's API does not answer for 10 minutes."),
   description:
     "Alert when Placement's API does not answer for 10 minutes: every call the exporter made failed (openstack_placement_up reads 0), or the exporter did not answer that collection (up reads 0). One incident per region. If every API reads down at once, look at the exporter first. Check placement-api's service and logs, then run `openstack endpoint list --service placement`.",
   service: OpenStackServiceType.Placement,
@@ -1028,8 +1029,8 @@ const placementApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
 const orchestrationApiDownTemplate: OpenStackAlertTemplate =
   buildApiDownTemplate({
     id: "openstack-orchestration-api-down",
-    name: "Orchestration API Down",
-    summary: "Heat's API does not answer for 15 minutes.",
+    name: translationKey("Orchestration API Down"),
+    summary: translationKey("Heat's API does not answer for 15 minutes."),
     description:
       "Alert when Heat's API does not answer for 15 minutes: every call the exporter made failed (openstack_heat_up reads 0), or the exporter did not answer that collection (up reads 0). One incident per region. Heat's API asks an engine for its lists, so a stopped heat-engine reads as this too, recorded: each read then waits a minute for an RPC timeout. Check `openstack orchestration service list`, then heat-api's and heat-engine's services and logs.",
     service: OpenStackServiceType.Orchestration,
@@ -1040,8 +1041,8 @@ const orchestrationApiDownTemplate: OpenStackAlertTemplate =
 const ratingApiDownTemplate: OpenStackAlertTemplate = {
   ...buildApiDownTemplate({
     id: "openstack-rating-api-down",
-    name: "Rating API Down",
-    summary: "CloudKitty's API does not answer for 15 minutes.",
+    name: translationKey("Rating API Down"),
+    summary: translationKey("CloudKitty's API does not answer for 15 minutes."),
     description:
       "Alert when CloudKitty's API does not answer for 15 minutes (openstack_cloudkitty_up reads 0, which only a probe sends, because the agent's exporter has no series for it), or that collection did not answer (up reads 0). One incident per region. What a project was rated stops moving until it answers again, and the Spend page says when it was last read. Check `openstack catalog show rating`, then cloudkitty-api's service and logs.",
     service: OpenStackServiceType.Rating,
@@ -1055,8 +1056,8 @@ const ratingApiDownTemplate: OpenStackAlertTemplate = {
 const containerInfraApiDownTemplate: OpenStackAlertTemplate =
   buildApiDownTemplate({
     id: "openstack-container-infra-api-down",
-    name: "Kubernetes Clusters API Down",
-    summary: "Magnum's API does not answer for 15 minutes.",
+    name: translationKey("Kubernetes Clusters API Down"),
+    summary: translationKey("Magnum's API does not answer for 15 minutes."),
     description:
       "Alert when Magnum's API does not answer for 15 minutes: every call the exporter made failed (openstack_container_infra_up reads 0), or the exporter did not answer that collection (up reads 0). One incident per region. Check `openstack coe service list`, then magnum-api's service and logs.",
     service: OpenStackServiceType.ContainerInfra,
@@ -1070,8 +1071,8 @@ const NOVA_AGENT_STATE: string = "openstack_nova_agent_state";
 
 const computeServiceDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-compute-service-down",
-  name: "Compute Service Down",
-  summary: "An enabled nova-compute is down.",
+  name: translationKey("Compute Service Down"),
+  summary: translationKey("An enabled nova-compute is down."),
   description:
     "Alert when an enabled nova-compute is down for 10 minutes (openstack_nova_agent_state below 1, filtered to adminState enabled). One incident per host, and one someone disabled never fires, so planned work is quiet. Its instances may still be running, but Nova cannot manage them. Check `openstack compute service list --host <host>`, then nova-compute's service and logs on that host, and its route to RabbitMQ.",
   category: "Control Plane",
@@ -1112,9 +1113,10 @@ const computeServiceDownTemplate: OpenStackAlertTemplate = {
  */
 const computeServiceDisabledTemplate: OpenStackAlertTemplate = {
   id: "openstack-compute-service-disabled",
-  name: "Compute Service Disabled",
-  summary:
+  name: translationKey("Compute Service Disabled"),
+  summary: translationKey(
     "A nova-compute is disabled with no maintenance event covering its host.",
+  ),
   description:
     "Alert when a nova-compute stays disabled for 10 minutes (openstack_nova_agent_state filtered to adminState disabled, whose rows say it is there whether it is up or down) and no maintenance event in progress covers its host, its availability zone or the whole cloud. One incident per host. During an event on the host a disable is expected and this stays quiet, so `openstack compute service set --disable` as part of planned work says nothing. Outside one, nothing new can be scheduled there and nobody said why. A nova-compute that disabled itself because libvirt went (its reason starts AUTO:) stays quiet while libvirt Service Down is open, and that is the one that speaks. Projects are not told of this incident, because what they already run there carries on. Check `openstack compute service list --long` for the reason.",
   category: "Control Plane",
@@ -1175,8 +1177,10 @@ const schedulerAndConductorQueries: (data: {
 
 const schedulerOrConductorDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-scheduler-or-conductor-down",
-  name: "Scheduler or Conductor Down",
-  summary: "An enabled nova-scheduler or nova-conductor is down.",
+  name: translationKey("Scheduler or Conductor Down"),
+  summary: translationKey(
+    "An enabled nova-scheduler or nova-conductor is down.",
+  ),
   description:
     "Alert when an enabled nova-scheduler or nova-conductor is down for 10 minutes (openstack_nova_agent_state below 1, filtered to adminState enabled). One incident per host and binary, and one someone disabled never fires. The others carry on while any is left, which is why this is a Warning: Every Scheduler or Conductor Down is the outage. Check `openstack compute service list --service nova-scheduler`, then the service's logs on that host.",
   category: "Control Plane",
@@ -1204,9 +1208,10 @@ const schedulerOrConductorDownTemplate: OpenStackAlertTemplate = {
 
 const everySchedulerOrConductorDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-every-scheduler-or-conductor-down",
-  name: "Every Scheduler or Conductor Down",
-  summary:
+  name: translationKey("Every Scheduler or Conductor Down"),
+  summary: translationKey(
     "Every enabled nova-scheduler or nova-conductor in a region is down.",
+  ),
   description:
     "Alert when every enabled nova-scheduler, or every enabled nova-conductor, in a region is down for 10 minutes (the Max of openstack_nova_agent_state across their hosts reads below 1, filtered to adminState enabled). One incident per region and binary. Nothing new can boot. Check `openstack compute service list`, then RabbitMQ and the database they all depend on, before the workers themselves.",
   category: "Control Plane",
@@ -1240,8 +1245,8 @@ const everySchedulerOrConductorDownTemplate: OpenStackAlertTemplate = {
 
 const networkAgentDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-network-agent-down",
-  name: "Network Agent Down",
-  summary: "An enabled Neutron agent is down.",
+  name: translationKey("Network Agent Down"),
+  summary: translationKey("An enabled Neutron agent is down."),
   description:
     "Alert when a Neutron agent set up is not alive for 10 minutes (openstack_neutron_agent_state below 1, filtered to adminState up). One incident per host and binary, and one someone set down never fires, so planned work is quiet. Ports on that host may stop being wired, and on ML2/OVS its routers and DHCP may go with it. Check `openstack network agent list --host <host>`, then the agent's service and logs on that host.",
   category: "Control Plane",
@@ -1272,8 +1277,8 @@ const networkAgentDownTemplate: OpenStackAlertTemplate = {
 
 const blockStorageServiceDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-block-storage-service-down",
-  name: "Block Storage Service Down",
-  summary: "An enabled Cinder service is down.",
+  name: translationKey("Block Storage Service Down"),
+  summary: translationKey("An enabled Cinder service is down."),
   description:
     "Alert when an enabled cinder-volume, cinder-scheduler or cinder-backup is down for 10 minutes (openstack_cinder_agent_state below 1, filtered to adminState enabled). One incident per host and binary, and one someone disabled never fires, so planned work is quiet. Attached volumes usually carry on, but nothing new can be created or attached on that backend. Check `openstack volume service list --host <host>`, then the service's logs on that host and the backend behind it.",
   category: "Control Plane",
@@ -1391,30 +1396,36 @@ function buildAllocationTemplate(data: {
 const vcpuAllocationHighTemplate: OpenStackAlertTemplate =
   buildAllocationTemplate({
     id: "openstack-vcpu-allocation-high",
-    name: "vCPU Allocation High",
+    name: translationKey("vCPU Allocation High"),
     resourceType: "VCPU",
     noun: "vCPUs",
-    summary: `A hypervisor has promised more than ${OPENSTACK_ALLOCATION_WARNING_PERCENT}% of its vCPUs.`,
+    summary: translationKey(
+      "A hypervisor has promised more than 90% of its vCPUs.",
+    ),
     incidentDescription: `Placement has promised nearly all the vCPUs this hypervisor will give, so new instances soon fail to land on it with No valid host. This is allocation, not load: an idle instance holds all of its vCPUs. Check openstack hypervisor show for the hypervisor named above, then move instances away, raise its CPU allocation ratio or add capacity. The incident resolves on its own once it falls back.`,
   });
 
 const memoryAllocationHighTemplate: OpenStackAlertTemplate =
   buildAllocationTemplate({
     id: "openstack-memory-allocation-high",
-    name: "Memory Allocation High",
+    name: translationKey("Memory Allocation High"),
     resourceType: "MEMORY_MB",
     noun: "memory",
-    summary: `A hypervisor has promised more than ${OPENSTACK_ALLOCATION_WARNING_PERCENT}% of its memory.`,
+    summary: translationKey(
+      "A hypervisor has promised more than 90% of its memory.",
+    ),
     incidentDescription: `Placement has promised nearly all the memory this hypervisor will give, so new instances soon fail to land on it with No valid host. This is allocation, not usage: an instance holds its flavor's memory whether it uses it or not. Check openstack hypervisor show for the hypervisor named above, then move instances away, raise its memory allocation ratio or add capacity. The incident resolves on its own once it falls back.`,
   });
 
 const localDiskAllocationHighTemplate: OpenStackAlertTemplate =
   buildAllocationTemplate({
     id: "openstack-local-disk-allocation-high",
-    name: "Local Disk Allocation High",
+    name: translationKey("Local Disk Allocation High"),
     resourceType: "DISK_GB",
     noun: "local disk",
-    summary: `A hypervisor has promised more than ${OPENSTACK_ALLOCATION_WARNING_PERCENT}% of its local disk.`,
+    summary: translationKey(
+      "A hypervisor has promised more than 90% of its local disk.",
+    ),
     incidentDescription: `Placement has promised nearly all the local disk this hypervisor will give, so new instances soon fail to land on it with No valid host. This is allocation, not usage: an instance holds its flavor's disk whether it fills it or not. Check openstack hypervisor show for the hypervisor named above, then move instances away, raise its disk allocation ratio or add capacity. The incident resolves on its own once it falls back.`,
   });
 
@@ -1441,8 +1452,10 @@ const NEEDS_INSTANCE_SOURCE: string =
 
 const hypervisorCpuSaturatedTemplate: OpenStackAlertTemplate = {
   id: "openstack-hypervisor-cpu-saturated",
-  name: "Hypervisor CPU Saturated",
-  summary: `A hypervisor's instances use over ${OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT}% of its CPU for 15 minutes.`,
+  name: translationKey("Hypervisor CPU Saturated"),
+  summary: translationKey(
+    "A hypervisor's instances use over 90% of its CPU for 15 minutes.",
+  ),
   description: `Alert when what a hypervisor's instances really use passes ${OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT}% of its CPU threads for 15 minutes, read from openstack.hypervisor.instances.cpu.utilization. That is worked out at ingest against the threads Placement says it has, before any allocation ratio. This is load, not allocation: instances that hold vCPUs and do nothing add nothing to it. The hypervisor's page names the instances responsible. ${NEEDS_INSTANCE_SOURCE} Check \`openstack server list --all-projects --host <hypervisor>\`, then live-migrate the busiest instance away or lower the CPU allocation ratio.`,
   category: "Compute",
   severity: "Warning",
@@ -1475,8 +1488,10 @@ const hypervisorCpuSaturatedTemplate: OpenStackAlertTemplate = {
 
 const hypervisorMemoryPressureTemplate: OpenStackAlertTemplate = {
   id: "openstack-hypervisor-memory-pressure",
-  name: "Hypervisor Memory Pressure",
-  summary: `A hypervisor's instances hold over ${OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT}% of its memory for 15 minutes.`,
+  name: translationKey("Hypervisor Memory Pressure"),
+  summary: translationKey(
+    "A hypervisor's instances hold over 90% of its memory for 15 minutes.",
+  ),
   description: `Alert when what a hypervisor's instances really hold passes ${OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT}% of its memory for 15 minutes, read from openstack.hypervisor.instances.memory.utilization. That is worked out at ingest against the memory Placement says it has, before any allocation ratio. This is memory in use, not memory promised, which is what Memory Allocation High reads. ${NEEDS_INSTANCE_SOURCE} Check \`openstack server list --all-projects --host <hypervisor>\`, then live-migrate an instance away before the kernel starts killing them.`,
   category: "Compute",
   severity: "Warning",
@@ -1509,8 +1524,10 @@ const hypervisorMemoryPressureTemplate: OpenStackAlertTemplate = {
 
 const instanceCpuSaturatedTemplate: OpenStackAlertTemplate = {
   id: "openstack-instance-cpu-saturated",
-  name: "Instance CPU Saturated",
-  summary: `An instance uses over ${OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT}% of its vCPUs for 15 minutes.`,
+  name: translationKey("Instance CPU Saturated"),
+  summary: translationKey(
+    "An instance uses over 95% of its vCPUs for 15 minutes.",
+  ),
   description: `Alert when an instance uses more than ${OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT}% of its vCPUs for 15 minutes, read from openstack.instance.cpu.utilization. One incident per instance, and it names the project it belongs to, because this is usually the project's to act on. ${NEEDS_INSTANCE_SOURCE} Check \`openstack server show <instance>\` for its flavor, then resize it or look at what is running in it.`,
   category: "Compute",
   severity: "Warning",
@@ -1543,8 +1560,10 @@ const instanceCpuSaturatedTemplate: OpenStackAlertTemplate = {
 
 const instanceDiskLatencyHighTemplate: OpenStackAlertTemplate = {
   id: "openstack-instance-disk-latency-high",
-  name: "Instance Disk Latency High",
-  summary: `An instance's disk takes over ${OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS} ms per request for 15 minutes.`,
+  name: translationKey("Instance Disk Latency High"),
+  summary: translationKey(
+    "An instance's disk takes over 50 ms per request for 15 minutes.",
+  ),
   description: `Alert when reads or writes on one of an instance's disks take more than ${OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS} ms on average for 15 minutes, read from openstack.instance.disk.read.latency and openstack.instance.disk.write.latency. A disk with no requests has no latency, so an idle disk never fires this. ${NEEDS_INSTANCE_SOURCE} Check \`openstack server show <instance>\` for its volumes, then the storage pool and backend behind them.`,
   category: "Compute",
   severity: "Warning",
@@ -1580,8 +1599,8 @@ const instanceDiskLatencyHighTemplate: OpenStackAlertTemplate = {
 
 const instancesInErrorTemplate: OpenStackAlertTemplate = {
   id: "openstack-instances-in-error",
-  name: "Instances in Error",
-  summary: "An instance in a region is in ERROR.",
+  name: translationKey("Instances in Error"),
+  summary: translationKey("An instance in a region is in ERROR."),
   description:
     "Alert when any instance in a region stays in ERROR for 10 minutes (openstack_nova_server_status filtered to the status label ERROR: its value is a code, so a Count of its rows says how many). One incident per region rather than per instance, because a failed boot is often a project's own and one cloud can hold many. Check `openstack server list --all-projects --status ERROR`, then `openstack server show` for the fault Nova recorded on each.",
   category: "Compute",
@@ -1696,9 +1715,9 @@ const INSTANCE_TRANSITIONING_STATUSES: Array<string> = Array.from(
 const instanceStuckBuildingTemplate: OpenStackAlertTemplate =
   buildInstanceStuckTemplate({
     id: "openstack-instance-stuck-building",
-    name: "Instance Stuck Building",
+    name: translationKey("Instance Stuck Building"),
     statuses: INSTANCE_BUILD_STATUSES,
-    summary: `An instance stays in BUILD for ${OPENSTACK_INSTANCE_STUCK_MINUTES} minutes.`,
+    summary: translationKey("An instance stays in BUILD for 60 minutes."),
     description: `Alert when an instance stays in BUILD for ${OPENSTACK_INSTANCE_STUCK_MINUTES} minutes (openstack_nova_server_status filtered to that status label, in every collection of the window). One incident per instance. A build normally takes seconds to minutes, so this one is waiting on something. Check \`openstack server show <instance>\` and \`openstack server event list <instance>\`, then nova-compute's log on its host.`,
     incidentDescription: `This instance has been in BUILD for ${OPENSTACK_INSTANCE_STUCK_MINUTES} minutes, when a build normally takes seconds to minutes. It is usually waiting on an image download, a port Neutron cannot bind, a volume, or a nova-compute that has gone quiet. Check openstack server show and openstack server event list for the instance named above, then nova-compute's log on its host. The incident resolves on its own once it leaves BUILD or is deleted.`,
   });
@@ -1706,9 +1725,11 @@ const instanceStuckBuildingTemplate: OpenStackAlertTemplate =
 const instanceStuckTransitioningTemplate: OpenStackAlertTemplate =
   buildInstanceStuckTemplate({
     id: "openstack-instance-stuck-transitioning",
-    name: "Instance Stuck Transitioning",
+    name: translationKey("Instance Stuck Transitioning"),
     statuses: INSTANCE_TRANSITIONING_STATUSES,
-    summary: `An instance stays resizing, migrating or rebooting for ${OPENSTACK_INSTANCE_STUCK_MINUTES} minutes.`,
+    summary: translationKey(
+      "An instance stays resizing, migrating or rebooting for 60 minutes.",
+    ),
     description: `Alert when an instance stays in one of ${INSTANCE_TRANSITIONING_STATUSES.join(", ")} for ${OPENSTACK_INSTANCE_STUCK_MINUTES} minutes (openstack_nova_server_status filtered to that status label, in every collection of the window). One incident per instance. Check \`openstack server show <instance>\` and \`openstack server event list <instance>\`, then nova-compute's log on its host. A large live migration can honestly take this long: \`openstack server migration list --server <instance>\` says how far it has got.`,
     incidentDescription: `This instance has held one status on the way to another for ${OPENSTACK_INSTANCE_STUCK_MINUTES} minutes. Most of these finish in minutes, though a large live migration can honestly take this long. Check openstack server show and openstack server event list for the instance named above, then nova-compute's log on its host. If nothing is running any more, openstack server set --state active is the usual way out, once you know why it stopped. The incident resolves on its own once it reaches its next status.`,
   });
@@ -1716,9 +1737,11 @@ const instanceStuckTransitioningTemplate: OpenStackAlertTemplate =
 const instanceStuckInVerifyResizeTemplate: OpenStackAlertTemplate =
   buildInstanceStuckTemplate({
     id: "openstack-instance-stuck-in-verify-resize",
-    name: "Instance Stuck in Verify Resize",
+    name: translationKey("Instance Stuck in Verify Resize"),
     statuses: INSTANCE_VERIFY_RESIZE_STATUSES,
-    summary: `A resized instance waits for confirmation for ${OPENSTACK_INSTANCE_STUCK_MINUTES} minutes.`,
+    summary: translationKey(
+      "A resized instance waits for confirmation for 60 minutes.",
+    ),
     description: `Alert when an instance stays in VERIFY_RESIZE for ${OPENSTACK_INSTANCE_STUCK_MINUTES} minutes (openstack_nova_server_status filtered to that status label, in every collection of the window). One incident per instance. Nova is waiting for someone to confirm or revert, and holds the resources of both the old and new size until then. Check with its owner, then run \`openstack server resize confirm <instance>\` or \`openstack server resize revert <instance>\`.`,
     incidentDescription: `This instance has finished resizing and is waiting for someone to confirm or revert it, and has been for ${OPENSTACK_INSTANCE_STUCK_MINUTES} minutes. Nova holds the resources of both its old and its new size until then. Check with its owner, then run openstack server resize confirm or openstack server resize revert for the instance named above. The incident resolves on its own once it is confirmed or reverted.`,
   });
@@ -1727,8 +1750,8 @@ const instanceStuckInVerifyResizeTemplate: OpenStackAlertTemplate =
 
 const routerNotActiveTemplate: OpenStackAlertTemplate = {
   id: "openstack-router-not-active",
-  name: "Router Not Active",
-  summary: "A router's status is not ACTIVE.",
+  name: translationKey("Router Not Active"),
+  summary: translationKey("A router's status is not ACTIVE."),
   description:
     "Alert when a region holds a router whose status is not ACTIVE for 10 minutes (openstack_neutron_routers_not_active above 0). One incident per region, because the exporter only counts them. Check `openstack router list --long`, then `openstack router show` on each one that is not ACTIVE, and the L3 agents or OVN behind it.",
   category: "Network",
@@ -1762,8 +1785,8 @@ const routerNotActiveTemplate: OpenStackAlertTemplate = {
 
 const floatingIpNotActiveTemplate: OpenStackAlertTemplate = {
   id: "openstack-floating-ip-not-active",
-  name: "Floating IP Not Active",
-  summary: "A floating IP in use is not ACTIVE.",
+  name: translationKey("Floating IP Not Active"),
+  summary: translationKey("A floating IP in use is not ACTIVE."),
   description:
     "Alert when a region holds a floating IP that is attached to something and not ACTIVE, for 10 minutes (openstack_neutron_floating_ips_associated_not_active above 0). A spare one is meant to be down, and does not count. One incident per region, because the exporter only counts them. Check `openstack floating ip list --long`, then the router it goes through and the L3 agents or OVN behind that.",
   category: "Network",
@@ -1894,8 +1917,10 @@ function buildExternalPoolStep(data: {
 
 const externalIpPoolNearlyFullTemplate: OpenStackAlertTemplate = {
   id: "openstack-external-ip-pool-nearly-full",
-  name: "External IP Pool Nearly Full",
-  summary: `An external network has used more than ${OPENSTACK_IP_POOL_WARNING_PERCENT}% of its addresses.`,
+  name: translationKey("External IP Pool Nearly Full"),
+  summary: translationKey(
+    "An external network has used more than 90% of its addresses.",
+  ),
   description: `Alert when an external network has used more than ${OPENSTACK_IP_POOL_WARNING_PERCENT}% of its IPv4 addresses for 10 minutes (openstack_neutron_network_ip_availabilities_used / _total, read beside is_external on openstack_neutron_network). One incident per network. Tenant networks never fire: they are theirs to see. Check \`openstack ip availability show <network>\` and \`openstack floating ip list --network <network>\` for spare floating IPs to release, then add a subnet.`,
   category: "Network",
   severity: "Warning",
@@ -1916,8 +1941,8 @@ const externalIpPoolNearlyFullTemplate: OpenStackAlertTemplate = {
 
 const networkOutOfIpsTemplate: OpenStackAlertTemplate = {
   id: "openstack-network-out-of-ips",
-  name: "Network Out of IPs",
-  summary: "An external network has no addresses left.",
+  name: translationKey("Network Out of IPs"),
+  summary: translationKey("An external network has no addresses left."),
   description: `Alert when an external network has given out every IPv4 address it has, for 10 minutes (openstack_neutron_network_ip_availabilities_used / _total at ${OPENSTACK_IP_POOL_EXHAUSTED_PERCENT}%, read beside is_external on openstack_neutron_network). One incident per network. No new floating IP or router gateway can come from it. Tenant networks never fire: they are theirs to see. Check \`openstack ip availability show <network>\` and \`openstack floating ip list --network <network>\` for spare floating IPs to release, then add a subnet.`,
   category: "Network",
   severity: "Critical",
@@ -1941,8 +1966,8 @@ const L3_AGENT_OF_ROUTER: string = "openstack_neutron_l3_agent_of_router";
 
 const routerWithoutActiveAgentTemplate: OpenStackAlertTemplate = {
   id: "openstack-router-without-active-agent",
-  name: "Router Without Active Agent",
-  summary: "No alive L3 agent holds a router.",
+  name: translationKey("Router Without Active Agent"),
+  summary: translationKey("No alive L3 agent holds a router."),
   description:
     "Alert when no L3 agent set up that holds a router is alive, for 10 minutes (the Max of openstack_neutron_l3_agent_of_router by router reads below 1, filtered to agent_admin_up true). One incident per router. Its traffic has no way out. A cloud on OVN has no such agents, so this stays quiet there. Check `openstack network agent list --router <router> --long`, then the L3 agents' services and logs.",
   category: "Network",
@@ -1974,8 +1999,8 @@ const routerWithoutActiveAgentTemplate: OpenStackAlertTemplate = {
 
 const routerWithTwoActiveAgentsTemplate: OpenStackAlertTemplate = {
   id: "openstack-router-with-two-active-agents",
-  name: "Router With Two Active Agents",
-  summary: "Two L3 agents are both active for one router.",
+  name: translationKey("Router With Two Active Agents"),
+  summary: translationKey("Two L3 agents are both active for one router."),
   description:
     "Alert when two alive L3 agents both say they are active for one router, for 10 minutes (a Count of openstack_neutron_l3_agent_of_router filtered to ha_state active, agent_alive true and agent_admin_up true, above 1). One incident per router. A split brain: both answer for its addresses, and its traffic resets and drops. A cloud on OVN has no such agents, so this stays quiet there. Check `openstack network agent list --router <router> --long`, then keepalived and the HA network between those hosts.",
   category: "Network",
@@ -2024,6 +2049,8 @@ const routerWithTwoActiveAgentsTemplate: OpenStackAlertTemplate = {
 function buildStoragePoolTemplate(data: {
   id: string;
   name: string;
+  // Written out with its number, so it is a key the reader's language words.
+  summary: string;
   severity: OpenStackAlertTemplateSeverity;
   value: number;
   incidentDescription: string;
@@ -2033,7 +2060,7 @@ function buildStoragePoolTemplate(data: {
   return {
     id: data.id,
     name: data.name,
-    summary: `A storage pool is more than ${data.value}% full.`,
+    summary: data.summary,
     description: `Alert when a Cinder storage pool is more than ${data.value}% full for 10 minutes. Computed per pool as (total - free) / total from openstack_cinder_pool_capacity_total_gb and _free_gb, as the backend reports them. One incident per pool. Check \`openstack volume backend pool list --long\`, then delete what is no longer used, or add capacity.`,
     category: "Storage",
     severity: data.severity,
@@ -2078,7 +2105,8 @@ function buildStoragePoolTemplate(data: {
 const storagePoolWarningTemplate: OpenStackAlertTemplate =
   buildStoragePoolTemplate({
     id: "openstack-storage-pool-warning",
-    name: "Storage Pool Warning",
+    name: translationKey("Storage Pool Warning"),
+    summary: translationKey("A storage pool is more than 85% full."),
     severity: "Warning",
     value: OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
     incidentDescription: `This Cinder storage pool is filling up. New volumes start failing with No valid backend before it is actually full, because Cinder keeps some back. Check openstack volume backend pool list --long, then delete what is no longer used or add capacity. The incident resolves on its own once it falls back.`,
@@ -2087,7 +2115,8 @@ const storagePoolWarningTemplate: OpenStackAlertTemplate =
 const storagePoolCriticalTemplate: OpenStackAlertTemplate =
   buildStoragePoolTemplate({
     id: "openstack-storage-pool-critical",
-    name: "Storage Pool Critical",
+    name: translationKey("Storage Pool Critical"),
+    summary: translationKey("A storage pool is more than 95% full."),
     severity: "Critical",
     value: OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
     incidentDescription: `This Cinder storage pool is nearly full. New volumes and snapshots are failing or about to, and on a thin-provisioned backend writes to existing volumes can fail too. Check openstack volume backend pool list --long, then delete what is no longer used or add capacity now. The incident resolves on its own once it falls back.`,
@@ -2095,8 +2124,8 @@ const storagePoolCriticalTemplate: OpenStackAlertTemplate =
 
 const volumesInErrorTemplate: OpenStackAlertTemplate = {
   id: "openstack-volumes-in-error",
-  name: "Volumes in Error",
-  summary: "A volume in a region is in an error state.",
+  name: translationKey("Volumes in Error"),
+  summary: translationKey("A volume in a region is in an error state."),
   description: `Alert when a region holds a volume in an error state for 10 minutes (openstack_cinder_volume_status_counter above 0, for each of ${Array.from(OPENSTACK_VOLUME_ERROR_STATUSES).join(", ")}). One incident per region and status word, so one cloud's many volumes make few incidents. Check \`openstack volume list --all-projects --status <status>\`, then \`openstack volume show\` and cinder-volume's log on its backend.`,
   category: "Storage",
   severity: "Warning",
@@ -2140,8 +2169,8 @@ const volumesInErrorTemplate: OpenStackAlertTemplate = {
  */
 const volumeStuckTemplate: OpenStackAlertTemplate = {
   id: "openstack-volume-stuck",
-  name: "Volume Stuck",
-  summary: `A volume stays in a passing state for ${OPENSTACK_VOLUME_STUCK_MINUTES} minutes.`,
+  name: translationKey("Volume Stuck"),
+  summary: translationKey("A volume stays in a passing state for 30 minutes."),
   description: `Alert when a volume stays in one of ${Array.from(OPENSTACK_VOLUME_TRANSITIONAL_STATUSES).join(", ")} for ${OPENSTACK_VOLUME_STUCK_MINUTES} minutes (openstack_cinder_volume_gb filtered to that status label, in every collection of the window). One incident per volume. Check \`openstack volume show <volume>\`, then cinder-volume's log on its backend. A large copy can honestly take this long.`,
   category: "Storage",
   severity: "Warning",
@@ -2186,8 +2215,8 @@ const volumeStuckTemplate: OpenStackAlertTemplate = {
  */
 const imageStuckTemplate: OpenStackAlertTemplate = {
   id: "openstack-image-stuck",
-  name: "Image Stuck",
-  summary: `An image stays in a passing state for ${OPENSTACK_IMAGE_STUCK_MINUTES} minutes.`,
+  name: translationKey("Image Stuck"),
+  summary: translationKey("An image stays in a passing state for 60 minutes."),
   description: `Alert when an image stays in one of ${Array.from(OPENSTACK_IMAGE_TRANSITIONAL_STATUSES).join(", ")} for ${OPENSTACK_IMAGE_STUCK_MINUTES} minutes (openstack_glance_image_created_at filtered to that status label, in every collection of the window). One incident per image. An image left in queued is what a failed upload looks like, and nothing moves it on. Check \`openstack image show <image>\`, then glance-api's log. A very large import can honestly take this long.`,
   category: "Storage",
   severity: "Warning",
@@ -2293,8 +2322,8 @@ function buildLifecycleTemplate(data: {
 
 const stackFailedTemplate: OpenStackAlertTemplate = buildLifecycleTemplate({
   id: "openstack-stack-failed",
-  name: "Stack Failed",
-  summary: "A Heat stack is in a failed state.",
+  name: translationKey("Stack Failed"),
+  summary: translationKey("A Heat stack is in a failed state."),
   description: `Alert when a stack reads one of ${Array.from(OPENSTACK_STACK_FAILED_STATUSES).join(", ")} for 15 minutes (openstack_heat_stack_status filtered to that status label, in every collection of the window). One incident per stack. A failed stack stays failed until someone updates or deletes it. Check \`openstack stack failures list <stack>\`, then \`openstack stack event list <stack>\`. Magnum builds each cluster with a stack, so a failed cluster fires this too, on its stack.`,
   service: OpenStackServiceType.Orchestration,
   metricName: "openstack_heat_stack_status",
@@ -2318,8 +2347,8 @@ const STACK_STUCK_STATUSES: Array<string> = Array.from(
 
 const stackStuckTemplate: OpenStackAlertTemplate = buildLifecycleTemplate({
   id: "openstack-stack-stuck",
-  name: "Stack Stuck In Progress",
-  summary: `A Heat stack stays in progress for ${OPENSTACK_STACK_STUCK_MINUTES} minutes.`,
+  name: translationKey("Stack Stuck In Progress"),
+  summary: translationKey("A Heat stack stays in progress for 120 minutes."),
   description: `Alert when a stack stays in one of ${STACK_STUCK_STATUSES.join(", ")} for ${OPENSTACK_STACK_STUCK_MINUTES} minutes (openstack_heat_stack_status filtered to that status label, in every collection of the window). One incident per stack. Heat fails what passes its own timeout, an hour unless someone chose longer, so this is one with a longer timeout, or one whose engine stopped: on a real cloud, restarting the engine moved neither stack it had been working on. Check \`openstack stack show <stack>\` and \`openstack orchestration service list\`, then heat-engine's log.`,
   service: OpenStackServiceType.Orchestration,
   metricName: "openstack_heat_stack_status",
@@ -2334,8 +2363,8 @@ const stackStuckTemplate: OpenStackAlertTemplate = buildLifecycleTemplate({
 const containerClusterFailedTemplate: OpenStackAlertTemplate =
   buildLifecycleTemplate({
     id: "openstack-container-cluster-failed",
-    name: "Kubernetes Cluster Failed",
-    summary: "A Magnum cluster is in a failed state.",
+    name: translationKey("Kubernetes Cluster Failed"),
+    summary: translationKey("A Magnum cluster is in a failed state."),
     description: `Alert when a Magnum cluster reads one of ${Array.from(OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES).join(", ")} for 15 minutes (openstack_container_infra_cluster_status filtered to that status label, in every collection of the window). One incident per cluster. A cluster that failed to build usually has its reason on its Heat stack, and its project's quota is still in use. Check \`openstack coe cluster show <cluster>\` and \`openstack stack failures list <stack_id>\`.`,
     service: OpenStackServiceType.ContainerInfra,
     metricName: "openstack_container_infra_cluster_status",
@@ -2351,8 +2380,10 @@ const containerClusterFailedTemplate: OpenStackAlertTemplate =
 const containerClusterStuckTemplate: OpenStackAlertTemplate =
   buildLifecycleTemplate({
     id: "openstack-container-cluster-stuck",
-    name: "Kubernetes Cluster Stuck",
-    summary: `A Magnum cluster stays in progress for ${OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES} minutes.`,
+    name: translationKey("Kubernetes Cluster Stuck"),
+    summary: translationKey(
+      "A Magnum cluster stays in progress for 120 minutes.",
+    ),
     description: `Alert when a Magnum cluster stays in one of ${Array.from(OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES).join(", ")} for ${OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES} minutes (openstack_container_infra_cluster_status filtered to that status label, in every collection of the window). One incident per cluster. Magnum fails what passes the timeout it was created with, an hour unless someone chose longer, and only its conductor can notice: a stopped conductor leaves a cluster reading this for good. Check \`openstack coe service list\`, then \`openstack coe cluster show <cluster>\` and its stack.`,
     service: OpenStackServiceType.ContainerInfra,
     metricName: "openstack_container_infra_cluster_status",
@@ -2371,8 +2402,10 @@ const containerClusterStuckTemplate: OpenStackAlertTemplate =
  */
 const orchestrationEngineDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-orchestration-engine-down",
-  name: "Heat Engine Down",
-  summary: "A heat-engine is down, on a cloud a probe collects.",
+  name: translationKey("Heat Engine Down"),
+  summary: translationKey(
+    "A heat-engine is down, on a cloud a probe collects.",
+  ),
   description:
     "Alert when Heat lists a heat-engine as down for 15 minutes (openstack_heat_agent_state below 1, which only a probe sends, because only a read of Heat's own API says so). One incident per host. Heat keeps a record per engine process, and the others carry on while any is left, which is why this is a Warning. With every engine stopped Heat's API can't answer at all, recorded, and Orchestration API Down fires instead. Check `openstack orchestration service list`, then heat-engine's service and logs on that host.",
   category: "Control Plane",
@@ -2404,8 +2437,10 @@ const orchestrationEngineDownTemplate: OpenStackAlertTemplate = {
 
 const containerInfraConductorDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-container-infra-conductor-down",
-  name: "Magnum Conductor Down",
-  summary: "A magnum-conductor is down, on a cloud a probe collects.",
+  name: translationKey("Magnum Conductor Down"),
+  summary: translationKey(
+    "A magnum-conductor is down, on a cloud a probe collects.",
+  ),
   description:
     "Alert when an enabled magnum-conductor is down for 15 minutes (openstack_container_infra_agent_state below 1, filtered to adminState enabled, which only a probe sends, because only a read of Magnum's own API says so). One incident per host, and one someone disabled never fires. Magnum's API carries on answering without one, recorded, so nothing else says this: its clusters just stop moving. Check `openstack coe service list`, then magnum-conductor's service and logs on that host.",
   category: "Control Plane",
@@ -2463,9 +2498,11 @@ function bareMetalStateQueries(data: {
 
 const bareMetalNodeInErrorTemplate: OpenStackAlertTemplate = {
   id: "openstack-bare-metal-node-in-error",
-  name: "Bare Metal Node in Error",
+  name: translationKey("Bare Metal Node in Error"),
   forService: OpenStackServiceType.BareMetal,
-  summary: "A bare metal node stays in a failed provision state.",
+  summary: translationKey(
+    "A bare metal node stays in a failed provision state.",
+  ),
   description: `Alert when a bare metal node stays in one of ${Array.from(OPENSTACK_BARE_METAL_ERROR_STATES).join(", ")} for 15 minutes (openstack_ironic_node filtered to that provision_state label, in every collection of the window). One incident per node, in maintenance or not, because Ironic does not always put a failed node in maintenance, and it stays failed until someone acts. Check the conductor's log as well as \`openstack baremetal node show <node> -c last_error\`: the exporter does not carry why, and Ironic can empty last_error within about a minute of a failure. A probe reads last_error, and keeps the last one it saw.`,
   category: "Bare Metal",
   severity: "Warning",
@@ -2496,9 +2533,11 @@ const bareMetalNodeInErrorTemplate: OpenStackAlertTemplate = {
 
 const bareMetalNodeStuckTemplate: OpenStackAlertTemplate = {
   id: "openstack-bare-metal-node-stuck",
-  name: "Bare Metal Node Stuck Transitioning",
+  name: translationKey("Bare Metal Node Stuck Transitioning"),
   forService: OpenStackServiceType.BareMetal,
-  summary: `A bare metal node stays in a passing state for ${OPENSTACK_BARE_METAL_STUCK_MINUTES / 60} hours.`,
+  summary: translationKey(
+    "A bare metal node stays in a passing state for 2 hours.",
+  ),
   description: `Alert when a bare metal node stays in one of ${Array.from(OPENSTACK_BARE_METAL_TRANSITIONAL_STATES).join(", ")} for ${OPENSTACK_BARE_METAL_STUCK_MINUTES / 60} hours (openstack_ironic_node filtered to that provision_state label and maintenance false, in every collection of the window). One incident per node. Ironic gives up on a node waiting for its agent after 30 minutes by default, and the node then says it failed, so past this something else is holding it. A long disk erase can honestly take this long: the node's page reads Ironic's own time, which an erase's heartbeats keep moving, and an alert only reads the word. A node someone put in maintenance is left out. Check \`openstack baremetal node show <node>\` and the conductor's log.`,
   category: "Bare Metal",
   severity: "Warning",
@@ -2530,9 +2569,9 @@ const bareMetalNodeStuckTemplate: OpenStackAlertTemplate = {
 
 const bareMetalNodeMaintenanceTooLongTemplate: OpenStackAlertTemplate = {
   id: "openstack-bare-metal-node-maintenance-too-long",
-  name: "Bare Metal Node in Maintenance Too Long",
+  name: translationKey("Bare Metal Node in Maintenance Too Long"),
   forService: OpenStackServiceType.BareMetal,
-  summary: `A bare metal node stays in maintenance for ${OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS} days.`,
+  summary: translationKey("A bare metal node stays in maintenance for 7 days."),
   description: `Alert when a bare metal node stays in maintenance for ${OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS} days (openstack_ironic_node filtered to maintenance true, in every collection of the window). A node someone put in maintenance is planned, like a service someone disabled, so nothing fires before that; past it, somebody has probably forgotten a machine the cloud has gone without all this time. One incident per node. This needs your metrics kept for at least that long. Check \`openstack baremetal node show <node> -c maintenance_reason\`, then \`openstack baremetal node maintenance unset <node>\`, or retire it.`,
   category: "Bare Metal",
   severity: "Warning",
@@ -2568,9 +2607,9 @@ const bareMetalNodeMaintenanceTooLongTemplate: OpenStackAlertTemplate = {
 
 const bareMetalPowerStateUnexpectedTemplate: OpenStackAlertTemplate = {
   id: "openstack-bare-metal-power-state-unexpected",
-  name: "Bare Metal Power State Unexpected",
+  name: translationKey("Bare Metal Power State Unexpected"),
   forService: OpenStackServiceType.BareMetal,
-  summary: "A deployed bare metal node has its power off.",
+  summary: translationKey("A deployed bare metal node has its power off."),
   description: `Alert when a deployed bare metal node reads power off for 15 minutes (openstack_ironic_node filtered to provision_state active, power_state power off and maintenance false). One incident per node. Nothing else counts as unexpected: a failed deploy leaves a node on, a node between deploys may be on or off, and an empty power state is not known rather than wrong. An instance its owner stopped does this too, and this alert cannot tell, because it reads one series: the node's page can, and says so. Check \`openstack baremetal node show <node>\`, then \`openstack server show\` for the instance on it, and whether anyone meant it.`,
   category: "Bare Metal",
   severity: "Warning",
@@ -2616,9 +2655,9 @@ const bareMetalPowerStateUnexpectedTemplate: OpenStackAlertTemplate = {
  */
 const bareMetalApiDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-bare-metal-api-down",
-  name: "Bare Metal API Down",
+  name: translationKey("Bare Metal API Down"),
   forService: OpenStackServiceType.BareMetal,
-  summary: "Ironic's API says it is not answering.",
+  summary: translationKey("Ironic's API says it is not answering."),
   description:
     "Alert when Ironic's API reads as not answering for 15 minutes (openstack_ironic_up). One incident per region. This speaks where something can say so: a cloud a probe collects, or exporter 1.7.0. A stopped Ironic gives the exporter the OpenStack Agent runs nothing at all to read, which is what a cloud without Ironic looks like, so on an agent's cloud this stays quiet and the cloud's Bare Metal page says when it last heard from Ironic. Check `openstack baremetal node list` with a credential that may, then the ironic-api service's log.",
   category: "Bare Metal",
@@ -2674,9 +2713,9 @@ function shareStateQueries(
 
 const shareInErrorTemplate: OpenStackAlertTemplate = {
   id: "openstack-share-in-error",
-  name: "Share in Error",
+  name: translationKey("Share in Error"),
   forService: OpenStackServiceType.SharedFileSystems,
-  summary: "A Manila share is in an error state.",
+  summary: translationKey("A Manila share is in an error state."),
   description: `Alert when a share stays in one of ${Array.from(OPENSTACK_SHARE_ERROR_STATUSES).join(", ")} for 15 minutes (openstack_sharev2_share_gb filtered to that status label, in every collection of the window). One incident per share, in a region. Manila retries none of these by itself, so one stays until someone deals with it, and recovers when it is fixed or deleted. Check \`openstack share show <share>\`, then \`openstack share message list --resource-id <share>\`.`,
   category: "Storage",
   severity: "Warning",
@@ -2707,9 +2746,11 @@ const shareInErrorTemplate: OpenStackAlertTemplate = {
 
 const shareStuckTemplate: OpenStackAlertTemplate = {
   id: "openstack-share-stuck",
-  name: "Share Stuck",
+  name: translationKey("Share Stuck"),
   forService: OpenStackServiceType.SharedFileSystems,
-  summary: `A Manila share stays in a passing state for ${OPENSTACK_SHARE_STUCK_MINUTES} minutes.`,
+  summary: translationKey(
+    "A Manila share stays in a passing state for 60 minutes.",
+  ),
   description: `Alert when a share stays in one of ${Array.from(OPENSTACK_SHARE_TRANSITIONAL_STATUSES).join(", ")} for ${OPENSTACK_SHARE_STUCK_MINUTES} minutes (openstack_sharev2_share_gb filtered to that status label, in every collection of the window). One incident per share, in a region. Manila has no timeout of its own for a slow backend, so a backend that hung reads the same as a slow one, and only time tells them apart. A share migrating or being backed up isn't watched: those last as long as its data takes to copy, because someone asked for that. Check \`openstack share service list\`, then manila-share's log on its backend.`,
   category: "Storage",
   severity: "Warning",
@@ -2741,8 +2782,8 @@ const shareStuckTemplate: OpenStackAlertTemplate = {
 const sharedFileSystemsApiDownTemplate: OpenStackAlertTemplate =
   buildApiDownTemplate({
     id: "openstack-shared-file-systems-api-down",
-    name: "Shared File Systems API Down",
-    summary: "Manila's API does not answer for 15 minutes.",
+    name: translationKey("Shared File Systems API Down"),
+    summary: translationKey("Manila's API does not answer for 15 minutes."),
     description:
       "Alert when Manila's API does not answer for 15 minutes: every call the exporter made failed (openstack_sharev2_up reads 0), or the exporter did not answer that collection (up reads 0). One incident per region. Recorded on a stopped API, and every credential that can log in reads 1, so this can't be a credential being refused. Shares already mounted carry on, because their data doesn't go through this API. Check the manila-api service and its log, then `openstack share list`.",
     service: OpenStackServiceType.SharedFileSystems,
@@ -2757,10 +2798,12 @@ const sharedFileSystemsApiDownTemplate: OpenStackAlertTemplate =
  */
 const shareServiceDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-share-service-down",
-  name: "Manila Service Down",
+  name: translationKey("Manila Service Down"),
   forService: OpenStackServiceType.SharedFileSystems,
   requiresProbe: true,
-  summary: "A Manila service stops, on a cloud a probe collects.",
+  summary: translationKey(
+    "A Manila service stops, on a cloud a probe collects.",
+  ),
   description:
     "Alert when an enabled Manila service reads stopped or down for 15 minutes (openstack_sharev2_agent_state below 1, filtered to adminState enabled, which only a probe sends, because only a read of Manila's own API says so). One incident per host and service. Recorded: a service shut down cleanly reads stopped at once, and one that died reads down only once its heartbeat has grown old. Its API carries on answering either way, so nothing else says this, and without its scheduler Manila's pools read 500. Check `openstack share service list`, and the service's log on its host.",
   category: "Control Plane",
@@ -2879,9 +2922,9 @@ function buildOctaviaStateTemplate(data: {
  */
 const loadBalancerApiDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-load-balancer-api-down",
-  name: "Load Balancers API Down",
+  name: translationKey("Load Balancers API Down"),
   forService: OpenStackServiceType.LoadBalancer,
-  summary: "Octavia's API says it is not answering.",
+  summary: translationKey("Octavia's API says it is not answering."),
   description:
     "Alert when Octavia's API reads as not answering for 15 minutes (openstack_loadbalancer_up). One incident per region. This speaks only where something can say 0: a stopped Octavia API gives the exporter the OpenStack Agent runs an empty answer, which is what a cloud without Octavia looks like (recorded), so on an agent's cloud this stays quiet and the cloud's Load Balancers page says when it last heard from Octavia. Traffic through load balancers already built carries on either way. Check `openstack loadbalancer list` with a credential that may, then the octavia-api service and its log.",
   category: "Load Balancers",
@@ -2917,8 +2960,8 @@ const loadBalancerApiDownTemplate: OpenStackAlertTemplate = {
 const loadBalancerInErrorTemplate: OpenStackAlertTemplate =
   buildOctaviaStateTemplate({
     id: "openstack-load-balancer-in-error",
-    name: "Load Balancer in Error",
-    summary: "An Octavia load balancer is in ERROR.",
+    name: translationKey("Load Balancer in Error"),
+    summary: translationKey("An Octavia load balancer is in ERROR."),
     description: `Alert when a load balancer stays in provisioning status ERROR for 15 minutes (openstack_loadbalancer_loadbalancer_status filtered to that provisioning_status label, in every collection of the window). One incident per load balancer, in a region. Octavia retries none of these by itself, so one stays until someone fails it over or deletes it. Recorded: with the project amphorae boot in out of instance quota, Nova refused the amphora and the load balancer went to ERROR on its own, reading operating status OFFLINE. Check \`openstack loadbalancer show <load balancer>\`, then octavia-worker's log for the request.`,
     severity: "Critical",
     metricName: OCTAVIA_LOAD_BALANCER,
@@ -2935,8 +2978,10 @@ const loadBalancerInErrorTemplate: OpenStackAlertTemplate =
 const loadBalancerStuckTemplate: OpenStackAlertTemplate =
   buildOctaviaStateTemplate({
     id: "openstack-load-balancer-stuck-pending",
-    name: "Load Balancer Stuck Pending",
-    summary: `An Octavia load balancer stays in a PENDING state for ${OPENSTACK_LOAD_BALANCER_STUCK_MINUTES} minutes.`,
+    name: translationKey("Load Balancer Stuck Pending"),
+    summary: translationKey(
+      "An Octavia load balancer stays in a PENDING state for 60 minutes.",
+    ),
     description: `Alert when a load balancer stays in one of ${Array.from(OPENSTACK_LOAD_BALANCER_TRANSITIONAL_STATUSES).join(", ")} for ${OPENSTACK_LOAD_BALANCER_STUCK_MINUTES} minutes (openstack_loadbalancer_loadbalancer_status filtered to that provisioning_status label, in every collection of the window), which is Canonical's own rule. One incident per load balancer. Octavia's API accepts a request and its worker does it, so with the worker stopped a change stays PENDING_UPDATE and a new load balancer PENDING_CREATE for as long as it is stopped (recorded), and the API still answers. Check \`openstack loadbalancer show <load balancer>\`, that octavia-worker is running and its route to RabbitMQ, then its log.`,
     severity: "Warning",
     metricName: OCTAVIA_LOAD_BALANCER,
@@ -2952,8 +2997,8 @@ const loadBalancerStuckTemplate: OpenStackAlertTemplate =
 const amphoraInErrorTemplate: OpenStackAlertTemplate =
   buildOctaviaStateTemplate({
     id: "openstack-amphora-in-error",
-    name: "Amphora in Error",
-    summary: "An Octavia amphora is in ERROR.",
+    name: translationKey("Amphora in Error"),
+    summary: translationKey("An Octavia amphora is in ERROR."),
     description: `Alert when an amphora stays in status ERROR for 15 minutes (openstack_loadbalancer_amphora_status filtered to that status label, in every collection of the window). One incident per amphora. Octavia's health manager replaces a failed amphora of an active-standby pair by itself, so one that stays in ERROR is one it could not replace, and the load balancer is running on one amphora or none. Only an admin may list amphorae, so a cloud read with a lower credential never sees this. Check \`openstack loadbalancer amphora list --loadbalancer <id>\`, then octavia-health-manager's log.`,
     severity: "Critical",
     metricName: OCTAVIA_AMPHORA,
@@ -2969,8 +3014,10 @@ const amphoraInErrorTemplate: OpenStackAlertTemplate =
 const poolWithoutHealthyMembersTemplate: OpenStackAlertTemplate =
   buildOctaviaStateTemplate({
     id: "openstack-pool-without-healthy-members",
-    name: "Pool Has No Healthy Members",
-    summary: "Every member of an Octavia pool is failing its health check.",
+    name: translationKey("Pool Has No Healthy Members"),
+    summary: translationKey(
+      "Every member of an Octavia pool is failing its health check.",
+    ),
     description:
       "Alert when a pool's operating status is ERROR for 15 minutes (openstack_loadbalancer_pool_status filtered to that operating_status label, in every collection of the window). One incident per pool. Octavia's operating status is what the health monitors say, and it is a different question from provisioning: recorded, with a security group that stopped the checks, every member went ERROR while the pool and its load balancer stayed ACTIVE in provisioning, so nothing else shows it. A pool with only some members down reads DEGRADED, and nothing pages for that. Check `openstack loadbalancer member list <pool>`, then the members' security group and the health monitor's path.",
     severity: "Critical",
@@ -2992,8 +3039,10 @@ const poolWithoutHealthyMembersTemplate: OpenStackAlertTemplate =
  */
 const loadBalancerWithTwoMastersTemplate: OpenStackAlertTemplate = {
   id: "openstack-load-balancer-with-two-masters",
-  name: "Load Balancer With Two Masters",
-  summary: "Two amphorae are both MASTER for one load balancer.",
+  name: translationKey("Load Balancer With Two Masters"),
+  summary: translationKey(
+    "Two amphorae are both MASTER for one load balancer.",
+  ),
   description:
     "Alert when two allocated amphorae both say MASTER for one load balancer, for 15 minutes (a Count of openstack_loadbalancer_amphora_status filtered to role MASTER and status ALLOCATED, above 1). One incident per load balancer. A split pair: both answer for its address. The pair's keepalived settles which is active over their VRRP, so this is the VRRP traffic between them being cut, or one amphora's record being stale. Only an admin may list amphorae. Check `openstack loadbalancer amphora list --loadbalancer <id>`, then the VRRP traffic on the load balancer's network between the two.",
   category: "Load Balancers",
@@ -3055,9 +3104,9 @@ function databaseInstanceStateQueries(
 
 const databaseInstanceInErrorTemplate: OpenStackAlertTemplate = {
   id: "openstack-database-instance-in-error",
-  name: "Database Instance in Error",
+  name: translationKey("Database Instance in Error"),
   forService: OpenStackServiceType.Database,
-  summary: "A Trove database instance is in an error state.",
+  summary: translationKey("A Trove database instance is in an error state."),
   description: `Alert when a database instance reads one of ${Array.from(OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES).join(", ")} for 15 minutes (openstack_trove_instance_status filtered to that status label, in every collection of the window). One incident per instance, in a region. Trove retries none of these by itself, so one stays until someone deals with it, and recovers when it is fixed or deleted. Check \`openstack database instance show <instance>\`, whose fault says why.`,
   category: "Databases",
   severity: "Warning",
@@ -3089,9 +3138,11 @@ const databaseInstanceInErrorTemplate: OpenStackAlertTemplate = {
 
 const databaseInstanceStuckTemplate: OpenStackAlertTemplate = {
   id: "openstack-database-instance-stuck",
-  name: "Database Instance Stuck",
+  name: translationKey("Database Instance Stuck"),
   forService: OpenStackServiceType.Database,
-  summary: `A Trove database instance stays on its way for ${OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES} minutes.`,
+  summary: translationKey(
+    "A Trove database instance stays on its way for 60 minutes.",
+  ),
   description: `Alert when a database instance stays in one of ${Array.from(OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES).join(", ")} for ${OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES} minutes (openstack_trove_instance_status filtered to that status label, in every collection of the window). One incident per instance, in a region. Trove has no list of its own workers, so a stopped trove-taskmanager shows up nowhere else: its lists keep answering without it, recorded, and what it was working on just stops moving. Check that trove-taskmanager is running, then \`openstack database instance show <instance>\`.`,
   category: "Databases",
   severity: "Warning",
@@ -3127,9 +3178,9 @@ const databaseInstanceStuckTemplate: OpenStackAlertTemplate = {
  */
 const databaseVolumeNearlyFullTemplate: OpenStackAlertTemplate = {
   id: "openstack-database-volume-nearly-full",
-  name: "Database Volume Nearly Full",
+  name: translationKey("Database Volume Nearly Full"),
   forService: OpenStackServiceType.Database,
-  summary: `A Trove database's volume is past ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}% used.`,
+  summary: translationKey("A Trove database's volume is past 85% used."),
   description: `Alert when a database instance has used ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}% of its volume for 15 minutes (openstack_trove_instance_volume_used_gb over openstack_trove_instance_volume_size_gb). One incident per instance, in a region. A database that fills its volume stops taking writes, and resizing it is a change someone has to plan. It recovers when the volume is resized or the database shrinks. Check \`openstack database instance show <instance>\`, then \`openstack database instance resize volume\`.`,
   category: "Databases",
   severity: "Warning",
@@ -3179,8 +3230,10 @@ const databaseVolumeNearlyFullTemplate: OpenStackAlertTemplate = {
  */
 const bareMetalConductorDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-bare-metal-conductor-down",
-  name: "Bare Metal Conductor Down",
-  summary: "An ironic-conductor is down, on a cloud a probe collects.",
+  name: translationKey("Bare Metal Conductor Down"),
+  summary: translationKey(
+    "An ironic-conductor is down, on a cloud a probe collects.",
+  ),
   description:
     "Alert when Ironic lists a conductor as not alive for 15 minutes (openstack_ironic_agent_state below 1, which only a probe sends, and only where the cloud's policy lets its credential read Ironic's conductors: by default it refuses a project's). One incident per host. Ironic's API carries on answering with a conductor stopped, and every node reads as it did, recorded, so nothing else says this. Check `openstack baremetal conductor list`.",
   category: "Bare Metal",
@@ -3213,8 +3266,8 @@ const bareMetalConductorDownTemplate: OpenStackAlertTemplate = {
 
 const databaseApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
   id: "openstack-database-api-down",
-  name: "Databases API Down",
-  summary: "Trove's API does not answer for 15 minutes.",
+  name: translationKey("Databases API Down"),
+  summary: translationKey("Trove's API does not answer for 15 minutes."),
   description:
     "Alert when the exporter's read of Trove fails for 15 minutes (openstack_trove_up reads 0), or the exporter does not answer that collection (up reads 0). One incident per region. The exporter reads Trove's mgmt API, which only an admin may, so a credential it refuses reads the same as a stopped API, recorded. A cloud whose credential has never read Trove isn't offered this. A stopped trove-taskmanager leaves this at 1: Database Instance Stuck is what says that. Check the trove-api service and its log, then `openstack database instance list --all-projects`.",
   service: OpenStackServiceType.Database,
@@ -3226,9 +3279,9 @@ const databaseApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
 
 const dnsZoneInErrorTemplate: OpenStackAlertTemplate = {
   id: "openstack-dns-zone-in-error",
-  name: "DNS Zone in Error",
+  name: translationKey("DNS Zone in Error"),
   forService: OpenStackServiceType.Dns,
-  summary: "A Designate zone is in ERROR.",
+  summary: translationKey("A Designate zone is in ERROR."),
   description: `Alert when a zone reads ${OPENSTACK_DNS_STATUS_ERROR} for 15 minutes (openstack_designate_zone_status filtered to that status label, in every collection of the window). One incident per zone, in a region. Its worker gave up on writing it to a DNS server, recorded with the server stopped, so what the zone says may be out of date there. Check that the DNS servers in its pool are answering, then \`openstack zone show\`. It recovers when the zone reads anything else.`,
   category: "Network",
   severity: "Warning",
@@ -3260,9 +3313,9 @@ const dnsZoneInErrorTemplate: OpenStackAlertTemplate = {
 
 const dnsZoneStuckPendingTemplate: OpenStackAlertTemplate = {
   id: "openstack-dns-zone-stuck-pending",
-  name: "DNS Zone Stuck Pending",
+  name: translationKey("DNS Zone Stuck Pending"),
   forService: OpenStackServiceType.Dns,
-  summary: `A Designate zone stays PENDING for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes.`,
+  summary: translationKey("A Designate zone stays PENDING for 30 minutes."),
   description: `Alert when a zone reads ${OPENSTACK_DNS_STATUS_PENDING} for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes (a count of openstack_designate_zone_status filtered to that status label, in every collection of the window, because PENDING's code is 0). One incident per zone, in a region. Its worker gives up by itself in a few minutes, so what stays PENDING has nothing working on it: a stopped worker reads this way, recorded, and the API goes on taking changes it never carries out. Check that designate-worker is running, then \`openstack dns service list\`.`,
   category: "Network",
   severity: "Warning",
@@ -3299,9 +3352,11 @@ const dnsZoneStuckPendingTemplate: OpenStackAlertTemplate = {
  */
 const dnsRecordsetInErrorTemplate: OpenStackAlertTemplate = {
   id: "openstack-dns-recordset-in-error",
-  name: "DNS Recordset in Error",
+  name: translationKey("DNS Recordset in Error"),
   forService: OpenStackServiceType.Dns,
-  summary: "A Designate recordset someone asked for is in ERROR.",
+  summary: translationKey(
+    "A Designate recordset someone asked for is in ERROR.",
+  ),
   description: `Alert when a recordset of type ${OPENSTACK_DNS_RECORD_TYPES_SOMEONE_ASKED_FOR.join(", ")} reads ${OPENSTACK_DNS_STATUS_ERROR} for 15 minutes (openstack_designate_recordsets_status filtered to that status and type). One incident per zone, however many of its recordsets went wrong together. A zone's own SOA and NS read ERROR when the zone does, recorded, so they are left to DNS Zone in Error. Check \`openstack recordset list\` for the zone, and that the DNS servers in its pool are answering.`,
   category: "Network",
   severity: "Warning",
@@ -3344,10 +3399,12 @@ const dnsRecordsetInErrorTemplate: OpenStackAlertTemplate = {
  */
 const dnsApiDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-dns-api-down",
-  name: "DNS API Down",
+  name: translationKey("DNS API Down"),
   forService: OpenStackServiceType.Dns,
   requiresProbe: true,
-  summary: "Designate's API does not answer, on a cloud a probe collects.",
+  summary: translationKey(
+    "Designate's API does not answer, on a cloud a probe collects.",
+  ),
   description:
     "Alert when Designate's API does not answer for 15 minutes (openstack_designate_up reads 0, which is what a probe says when its catalog names Designate and the API doesn't answer). One incident per region. Only a probe sends this: a stopped Designate gives the agent's exporter an empty answer, the same as a cloud without Designate, recorded, so a cloud the agent collects can only say it went quiet. On Services it does. Check the designate-api service and its log, then `openstack zone list` with a credential that works.",
   category: "Availability",
@@ -3382,8 +3439,8 @@ const dnsApiDownTemplate: OpenStackAlertTemplate = {
 
 const metricApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
   id: "openstack-metric-api-down",
-  name: "Metrics API Down",
-  summary: "Gnocchi's API does not answer for 15 minutes.",
+  name: translationKey("Metrics API Down"),
+  summary: translationKey("Gnocchi's API does not answer for 15 minutes."),
   description:
     "Alert when the exporter's read of Gnocchi fails for 15 minutes (openstack_gnocchi_up reads 0), or the exporter does not answer that collection (up reads 0). One incident per region. The exporter reads Gnocchi's status, which only an admin may, so a credential it refuses reads the same as a stopped API, recorded. A cloud whose credential has never read Gnocchi isn't offered this. Check the gnocchi-api service and its log, then `openstack metric status` with this credential.",
   service: OpenStackServiceType.Metric,
@@ -3393,9 +3450,11 @@ const metricApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
 
 const metricNoProcessorsTemplate: OpenStackAlertTemplate = {
   id: "openstack-metric-no-processors",
-  name: "Gnocchi No Processors",
+  name: translationKey("Gnocchi No Processors"),
   forService: OpenStackServiceType.Metric,
-  summary: "Nothing processes Gnocchi's measures for 15 minutes.",
+  summary: translationKey(
+    "Nothing processes Gnocchi's measures for 15 minutes.",
+  ),
   description:
     "Alert when Gnocchi's status names no metricd processor for 15 minutes (openstack_gnocchi_status_metricd_processors reads 0, recorded with gnocchi-metricd stopped). One incident per region. Gnocchi's API goes on answering and taking measures, so Metrics API Down says nothing of this. Nothing is lost, but nothing newer can be read until metricd is back. Check the gnocchi-metricd service and its log, then `openstack metric status`.",
   category: "Metrics",
@@ -3431,9 +3490,11 @@ const metricNoProcessorsTemplate: OpenStackAlertTemplate = {
  */
 const metricBacklogGrowingTemplate: OpenStackAlertTemplate = {
   id: "openstack-metric-backlog-growing",
-  name: "Gnocchi Backlog Growing",
+  name: translationKey("Gnocchi Backlog Growing"),
   forService: OpenStackServiceType.Metric,
-  summary: `Gnocchi's backlog is heading past ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the hour.`,
+  summary: translationKey(
+    "Gnocchi's backlog is heading past 10000 measures within the hour.",
+  ),
   description: `Alert when a line through the last two hours of Gnocchi's backlog (openstack_gnocchi_status_measures_to_process) passes ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the next hour. One incident per region. One already past that and falling doesn't fire, and that's what recovering looks like. Check how much gnocchi-metricd has been given to do, then \`openstack metric status\` for how many processors it has.`,
   category: "Metrics",
   severity: "Warning",
@@ -3466,8 +3527,8 @@ const metricBacklogGrowingTemplate: OpenStackAlertTemplate = {
 const objectStoreApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate(
   {
     id: "openstack-object-store-api-down",
-    name: "Object Storage API Down",
-    summary: "Swift's API does not answer for 15 minutes.",
+    name: translationKey("Object Storage API Down"),
+    summary: translationKey("Swift's API does not answer for 15 minutes."),
     description:
       "Alert when the exporter's read of Swift fails for 15 minutes (openstack_object_store_up reads 0), or the exporter does not answer that collection (up reads 0). One incident per region. A credential Swift refuses reads the same as a stopped proxy, recorded, so a cloud whose credential has never read Swift isn't offered this. Swift's proxy answers with an object server stopped, so this says nothing of that. Check the swift-proxy-server service and its log, then `openstack object store account show` with this credential.",
     service: OpenStackServiceType.ObjectStore,
@@ -3483,9 +3544,11 @@ const objectStoreApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate(
  */
 const objectContainerGrowthTemplate: OpenStackAlertTemplate = {
   id: "openstack-object-container-growth",
-  name: "Object Container Growth Forecast",
+  name: translationKey("Object Container Growth Forecast"),
   forService: OpenStackServiceType.ObjectStore,
-  summary: "A Swift container is heading past 1 TiB within a week.",
+  summary: translationKey(
+    "A Swift container is heading past 1 TiB within a week.",
+  ),
   description:
     "Alert when a line through the last week of a container's size (openstack_object_store_bytes) passes 1 TiB within the next week. One incident per container. Only the containers of this credential's own project are read, recorded. Change the line to what this cloud should hear about. Check what writes to it, then `openstack object store account show` for how much that project holds.",
   category: "Storage",
@@ -3519,10 +3582,12 @@ const objectContainerGrowthTemplate: OpenStackAlertTemplate = {
 
 const keyManagerApiDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-key-manager-api-down",
-  name: "Key Manager API Down",
+  name: translationKey("Key Manager API Down"),
   forService: OpenStackServiceType.KeyManager,
   requiresProbe: true,
-  summary: "Barbican's API does not answer, on a cloud a probe collects.",
+  summary: translationKey(
+    "Barbican's API does not answer, on a cloud a probe collects.",
+  ),
   description:
     "Alert when Barbican's API does not answer for 15 minutes (openstack_barbican_up reads 0, which only a probe sends: the exporter has no reader for Barbican at all, recorded). One incident per region. A credential Barbican refuses still reads as answering, because it did. Check the barbican-api service and its log, then `openstack secret list` with a credential that works.",
   category: "Availability",
@@ -3557,11 +3622,12 @@ const keyManagerApiDownTemplate: OpenStackAlertTemplate = {
 
 const swiftStorageServerDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-swift-storage-server-down",
-  name: "Swift Storage Server Not Answering",
+  name: translationKey("Swift Storage Server Not Answering"),
   forService: OpenStackServiceType.ObjectStore,
   requiresProbe: true,
-  summary:
+  summary: translationKey(
     "One of Swift's storage servers stops answering, on a cloud a probe collects.",
+  ),
   description:
     "Alert when a storage server named in the cloud's settings doesn't answer /recon for 15 minutes (openstack_object_store_recon_up reads 0, which only a probe sends). One incident per server. Swift's proxy goes on answering without it, recorded, so nothing else says this. Check the swift-object, swift-container and swift-account services on that host, then `openstack object store account show`.",
   category: "Storage",
@@ -3592,10 +3658,12 @@ const swiftStorageServerDownTemplate: OpenStackAlertTemplate = {
 
 const swiftRingsDifferTemplate: OpenStackAlertTemplate = {
   id: "openstack-swift-rings-differ",
-  name: "Swift Rings Differ",
+  name: translationKey("Swift Rings Differ"),
   forService: OpenStackServiceType.ObjectStore,
   requiresProbe: true,
-  summary: "Swift's storage servers don't all have the same ring.",
+  summary: translationKey(
+    "Swift's storage servers don't all have the same ring.",
+  ),
   description:
     "Alert when the storage servers named in the cloud's settings report different checksums for a ring for 15 minutes (openstack_object_store_recon_rings_differ reads 1, which only a probe sends). One incident per ring. Servers on different rings put data in different places. Check that the ring was pushed to every server, then `swift-recon --md5`, and `openstack object store account show` to see that the proxy still answers.",
   category: "Storage",
@@ -3628,10 +3696,12 @@ const swiftRingsDifferTemplate: OpenStackAlertTemplate = {
 
 const swiftReplicationStaleTemplate: OpenStackAlertTemplate = {
   id: "openstack-swift-replication-stale",
-  name: "Swift Replication Stale",
+  name: translationKey("Swift Replication Stale"),
   forService: OpenStackServiceType.ObjectStore,
   requiresProbe: true,
-  summary: `A Swift server hasn't finished replicating in ${OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS / 3600} hours.`,
+  summary: translationKey(
+    "A Swift server hasn't finished replicating in 6 hours.",
+  ),
   description: `Alert when a storage server named in the cloud's settings last finished a pass of replication more than ${OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS / 3600} hours ago (openstack_object_store_recon_replication_age_seconds, which only a probe sends). One incident per server and ring. A pass can take a long time on a large cluster, so this is for one that has stopped rather than one that's slow. Check the swift-*-replicator services on that host, then \`swift-recon --replication\`, and \`openstack object store account show\` to see that the proxy still answers.`,
   category: "Storage",
   severity: "Warning",
@@ -3663,8 +3733,8 @@ const swiftReplicationStaleTemplate: OpenStackAlertTemplate = {
 
 const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
   id: "openstack-project-quota-nearly-reached",
-  name: "Project Quota Nearly Reached",
-  summary: `A project has used ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% or more of a quota.`,
+  name: translationKey("Project Quota Nearly Reached"),
+  summary: translationKey("A project has used 90% or more of a quota."),
   description: `Alert when a project has used ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% or more of its vCPU, memory, instance or volume quota for 3 hours, which is three of the hourly readings these series have (openstack_nova_limits_* and openstack_cinder_limits_volume_*, used / max per project). One incident per project, and a project with no limit never fires. These series are off by default, because they cost API calls per project, so this template stays quiet until you turn them on: run the agent's install.sh again with OPENSTACK_COLLECT_QUOTAS=true, or on a cloud a probe reads, turn on Project limits. Check \`openstack limits show --absolute --project <project>\`, then raise the quota or ask its owner to free some.`,
   category: "Projects",
   severity: "Warning",
@@ -3788,8 +3858,10 @@ const TURN_ON_LIFECYCLE: string =
 
 const tokenIssueFailingTemplate: OpenStackAlertTemplate = {
   id: "openstack-token-issue-failing",
-  name: "Token Issue Failing",
-  summary: "Keystone issues a probe outside the cloud no token for 5 minutes.",
+  name: translationKey("Token Issue Failing"),
+  summary: translationKey(
+    "Keystone issues a probe outside the cloud no token for 5 minutes.",
+  ),
   description: `Alert when Keystone issues no token to the probe checking this cloud from outside, for 5 minutes: it answered with an error, refused the credential, or could not be reached. One incident per region. Nobody can start anything without a token, whatever the services themselves report. ${TURN_ON_API_CHECKS} Check keystone's service and logs, the load balancer in front of it and the database behind it, then run \`openstack token issue\`.`,
   category: "Availability",
   severity: "Critical",
@@ -3821,8 +3893,10 @@ const tokenIssueFailingTemplate: OpenStackAlertTemplate = {
 
 const serviceApiCheckFailingTemplate: OpenStackAlertTemplate = {
   id: "openstack-service-api-check-failing",
-  name: "Service API Check Failing",
-  summary: "A service in the catalog does not answer a probe for 5 minutes.",
+  name: translationKey("Service API Check Failing"),
+  summary: translationKey(
+    "A service in the catalog does not answer a probe for 5 minutes.",
+  ),
   description: `Alert when a service the catalog names does not answer a one-row read from a probe outside the cloud, for 5 minutes: it failed, timed out, could not be reached, or refused a token Keystone just issued. One incident per region and service, for every service in the catalog, with no list to keep. One that refuses this credential is answering, so it does not fire. ${TURN_ON_API_CHECKS} Check that service's API and the load balancer in front of it, then run \`openstack endpoint list --interface public\`.`,
   category: "Availability",
   severity: "Critical",
@@ -3855,16 +3929,19 @@ const serviceApiCheckFailingTemplate: OpenStackAlertTemplate = {
 // Days left only go down, until someone renews it.
 function buildCertificateExpiringTemplate(data: {
   id: string;
+  // Written out with its days, so each is a key the reader's language words.
+  name: string;
+  summary: string;
   days: number;
   severity: OpenStackAlertTemplateSeverity;
   checkNext: string;
 }): OpenStackAlertTemplate {
-  const name: string = `Public Certificate Expiring in ${data.days} Days`;
+  const name: string = data.name;
 
   return {
     id: data.id,
     name: name,
-    summary: `A public endpoint's certificate expires in under ${data.days} days.`,
+    summary: data.summary,
     description: `Alert when the certificate on an endpoint the catalog names expires in under ${data.days} days, as read by a probe outside the cloud off the connection it made. One incident per host and port, and it stays open past the expiry, when every user's connection starts failing. ${TURN_ON_API_CHECKS} Check \`openstack endpoint list --interface public\` for what is on that host, and ${data.checkNext}`,
     category: "Availability",
     severity: data.severity,
@@ -3913,6 +3990,10 @@ function buildCertificateExpiringTemplate(data: {
 const certificateExpiringIn30DaysTemplate: OpenStackAlertTemplate =
   buildCertificateExpiringTemplate({
     id: "openstack-public-certificate-expiring-30-days",
+    name: translationKey("Public Certificate Expiring in 30 Days"),
+    summary: translationKey(
+      "A public endpoint's certificate expires in under 30 days.",
+    ),
     days: OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
     severity: "Warning",
     checkNext: "renew it while there is time to.",
@@ -3921,6 +4002,10 @@ const certificateExpiringIn30DaysTemplate: OpenStackAlertTemplate =
 const certificateExpiringIn7DaysTemplate: OpenStackAlertTemplate =
   buildCertificateExpiringTemplate({
     id: "openstack-public-certificate-expiring-7-days",
+    name: translationKey("Public Certificate Expiring in 7 Days"),
+    summary: translationKey(
+      "A public endpoint's certificate expires in under 7 days.",
+    ),
     days: OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
     severity: "Critical",
     checkNext: "renew it now.",
@@ -3954,8 +4039,10 @@ function buildLifecyclePhaseFloorStep(data: {
 
 const instanceBootFailingTemplate: OpenStackAlertTemplate = {
   id: "openstack-instance-boot-failing",
-  name: "Instance Boot Failing",
-  summary: "The last lifecycle run could not boot an instance in this region.",
+  name: translationKey("Instance Boot Failing"),
+  summary: translationKey(
+    "The last lifecycle run could not boot an instance in this region.",
+  ),
   description: `Alert when the last lifecycle run in a region could not boot an instance: Nova refused it, its server went to ERROR, or it never reached ACTIVE. Opens within minutes of the run and closes within minutes of the next run that boots. One incident per region, and it says the step and the fault Nova gave. Every service can read healthy while this fires, which is what this is for. ${TURN_ON_LIFECYCLE} Check \`openstack compute service list\`, then the scheduler's and conductor's logs, and Placement.`,
   category: "Compute",
   severity: "Critical",
@@ -3979,8 +4066,10 @@ const instanceBootFailingTemplate: OpenStackAlertTemplate = {
 
 const instanceBootSlowTemplate: OpenStackAlertTemplate = {
   id: "openstack-instance-boot-slow",
-  name: "Instance Boot Slow",
-  summary: `The last lifecycle run took over ${OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS / 60} minutes to reach ACTIVE.`,
+  name: translationKey("Instance Boot Slow"),
+  summary: translationKey(
+    "The last lifecycle run took over 5 minutes to reach ACTIVE.",
+  ),
   description: `Alert when the last lifecycle run in a region took over ${OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS} seconds to take a server from Nova accepting it to ACTIVE, which is how long OpenStack's own tests allow (Tempest's build_timeout). It boots the small flavor and image the check was given, so your own will take longer. One incident per region. With an OSProfiler key saved on the Checks page, the run has a trace. ${TURN_ON_LIFECYCLE} Check \`openstack compute service list\`, then what the image and the network are doing on the compute hosts.`,
   category: "Compute",
   severity: "Warning",
@@ -4014,8 +4103,10 @@ const instanceBootSlowTemplate: OpenStackAlertTemplate = {
 
 const volumeAttachFailingTemplate: OpenStackAlertTemplate = {
   id: "openstack-volume-attach-failing",
-  name: "Volume Attach Failing",
-  summary: "The last lifecycle run could not create or attach a volume.",
+  name: translationKey("Volume Attach Failing"),
+  summary: translationKey(
+    "The last lifecycle run could not create or attach a volume.",
+  ),
   description: `Alert when the last lifecycle run in a region could not create a volume or attach it to its server. One incident per region, and it says the step and what Cinder or Nova gave as the reason. ${TURN_ON_LIFECYCLE} It also needs the volume part of the check on. Check \`openstack volume service list\`, then cinder-volume's logs and the storage backend behind it.`,
   category: "Storage",
   severity: "Critical",
@@ -4039,8 +4130,10 @@ const volumeAttachFailingTemplate: OpenStackAlertTemplate = {
 
 const floatingIpUnreachableTemplate: OpenStackAlertTemplate = {
   id: "openstack-floating-ip-unreachable",
-  name: "Floating IP Unreachable",
-  summary: "The last lifecycle run could not reach its server's floating IP.",
+  name: translationKey("Floating IP Unreachable"),
+  summary: translationKey(
+    "The last lifecycle run could not reach its server's floating IP.",
+  ),
   description: `Alert when the last lifecycle run in a region could not give its server a floating IP, or got no ping back from one. One incident per region, and it says the step and what Neutron gave as the reason. A probe with no route to the floating range reads the same, so run it from where your users are. ${TURN_ON_LIFECYCLE} It also needs the floating IP part of the check on. Check \`openstack network agent list\`, then the router and whatever carries the external network.`,
   category: "Network",
   severity: "Critical",
@@ -4083,8 +4176,10 @@ const CAPACITY_GROUP: Array<string> = [
 
 const flavorCannotBePlacedTemplate: OpenStackAlertTemplate = {
   id: "openstack-flavor-cannot-be-placed",
-  name: "Flavor Can No Longer Be Placed",
-  summary: "No host has room for one more of a flavor people can ask for.",
+  name: translationKey("Flavor Can No Longer Be Placed"),
+  summary: translationKey(
+    "No host has room for one more of a flavor people can ask for.",
+  ),
   description: `Alert when no host can take one more of a flavor for 10 minutes: booting one now fails with No valid host. Counted host by host, from openstack_capacity_flavor_fits, which a probe reads from Placement's own allocation candidates, so it respects traits, and which a cloud on the agent works out from inventories. One incident per flavor per region. Only flavors someone can ask for (public ones and private ones in use), and never one too large for every host, which was never going to fit, or one whose only room is on a host someone disabled, which is planned work. This is allocation, not load. On the cloud's Capacity page, the flavor's row says how many would fit if what is free were on one host, which tells a full cloud from a fragmented one. Check \`openstack allocation candidate list --resource VCPU=<vcpus> --resource MEMORY_MB=<ram> --resource DISK_GB=<disk>\`, then move instances to make a whole host's room, or add capacity.`,
   category: "Capacity",
   severity: "Warning",
@@ -4120,8 +4215,10 @@ const flavorCannotBePlacedTemplate: OpenStackAlertTemplate = {
  */
 const capacityForecastUnderDaysTemplate: OpenStackAlertTemplate = {
   id: "openstack-capacity-forecast-under-days",
-  name: `Capacity Forecast Under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} Days`,
-  summary: `Something fills up in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days at its growth this week.`,
+  name: translationKey("Capacity Forecast Under 14 Days"),
+  summary: translationKey(
+    "Something fills up in under 14 days at its growth this week.",
+  ),
   description: `Alert when a zone's vCPUs, memory or disk, an external network's IPv4 addresses or a storage pool will be full in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days, for 10 minutes, at its growth over the last week. Reads openstack_capacity_days_until_full: a straight line through what was allocated, against what there is today. One incident per zone and resource class, network or pool. A new cloud stays quiet until it has a day of history, and something not growing has nothing to project. This is allocation, not load: it is how soon Placement runs out of things to promise. Check the cloud's Capacity page, which lists what fills up soonest first, and \`openstack server list --all-projects --long\` for what is growing, then add capacity or ask its owner.`,
   category: "Capacity",
   severity: "Warning",
@@ -4155,8 +4252,10 @@ const capacityForecastUnderDaysTemplate: OpenStackAlertTemplate = {
  */
 const reservedHeadroomGoneTemplate: OpenStackAlertTemplate = {
   id: "openstack-reserved-headroom-gone",
-  name: "Reserved Headroom Gone",
-  summary: "A zone can't lose its largest host and still fit what runs on it.",
+  name: translationKey("Reserved Headroom Gone"),
+  summary: translationKey(
+    "A zone can't lose its largest host and still fit what runs on it.",
+  ),
   description: `Alert when a zone could not lose its largest host and still fit what runs on it, for 10 minutes: what is allocated, on any host in the zone, against what its other hosts could promise. Reads openstack_capacity_can_lose_a_host, one series per zone and resource class. One incident per zone. A zone with fewer than two hosts has nothing to say, and neither does one with a host someone disabled, because that is planned work and it says so on the Capacity page. It compares amounts rather than where each instance would land, so passing means an evacuation has room, not that every instance finds a host: the Capacity page's flavor table shows what is fragmented. This is allocation, not load. Check \`openstack hypervisor list --long\` for what each host holds, then add capacity, or move instances out of the zone.`,
   category: "Capacity",
   severity: "Warning",

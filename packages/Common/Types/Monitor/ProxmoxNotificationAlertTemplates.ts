@@ -12,6 +12,7 @@ import {
   ProxmoxNotificationSeverity,
   ProxmoxNotificationType,
 } from "../../Utils/Proxmox/ProxmoxNotifications";
+import { translationKey } from "../Translator";
 
 /*
  * ALERTS ON WHAT PROXMOX VE SAYS ITSELF.
@@ -244,9 +245,10 @@ function buildStep(data: {
 
 const backupJobFailedTemplate: ProxmoxNotificationAlertTemplate = {
   id: PROXMOX_BACKUP_JOB_FAILED_TEMPLATE_ID,
-  name: "Backup Job Failed",
-  summary:
+  name: translationKey("Backup Job Failed"),
+  summary: translationKey(
     "A backup job fails: one alert per node and job, until the job succeeds again.",
+  ),
   /*
    * No backticks: the description is drawn as plain text on the
    * recommendation card.
@@ -279,8 +281,8 @@ const backupJobFailedTemplate: ProxmoxNotificationAlertTemplate = {
 
 const nodeFencedTemplate: ProxmoxNotificationAlertTemplate = {
   id: PROXMOX_NODE_FENCED_TEMPLATE_ID,
-  name: "Node Fenced",
-  summary: "The HA manager fences a node: one alert per node.",
+  name: translationKey("Node Fenced"),
+  summary: translationKey("The HA manager fences a node: one alert per node."),
   description:
     "Alert when Proxmox VE reports that its HA manager fenced a node - it stopped answering, so the cluster cut it off and recovered its HA guests on the other nodes. One alert per node, which resolves after 30 minutes without another fencing of it. Needs the cluster's own notifications sent to OneUptime (two commands on its setup guide). It is a Logs monitor over those notifications.",
   category: "Notifications",

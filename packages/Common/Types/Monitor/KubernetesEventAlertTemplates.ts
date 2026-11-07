@@ -11,6 +11,7 @@ import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import MonitorStep from "./MonitorStep";
 import MonitorStepLogMonitor from "./MonitorStepLogMonitor";
 import { KubernetesAlertTemplateArgs } from "./KubernetesAlertTemplates";
+import { translationKey } from "../Translator";
 
 /*
  * THE KUBERNETES WARNING EVENTS ALERT.
@@ -182,9 +183,10 @@ function buildWarningEventsCriteria(
 
 const warningEventsTemplate: KubernetesEventAlertTemplate = {
   id: KUBERNETES_WARNING_EVENTS_TEMPLATE_ID,
-  name: "Warning Events",
-  summary:
+  name: translationKey("Warning Events"),
+  summary: translationKey(
     "Kubernetes reports a warning event: one alert per object and reason.",
+  ),
   /*
    * No backticks: the description is drawn as plain text on the
    * recommendation card.

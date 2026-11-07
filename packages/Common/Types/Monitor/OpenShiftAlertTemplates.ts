@@ -12,6 +12,7 @@ import MonitorStep from "./MonitorStep";
 import MonitorStepLogMonitor from "./MonitorStepLogMonitor";
 import { KubernetesAlertTemplateArgs } from "./KubernetesAlertTemplates";
 import { KUBERNETES_CLUSTER_NAME_LOG_ATTRIBUTE } from "./KubernetesEventAlertTemplates";
+import { translationKey } from "../Translator";
 
 /*
  * THE OPENSHIFT ALERTS.
@@ -261,9 +262,10 @@ function toTemplate(alert: OpenShiftStatusAlert): OpenShiftAlertTemplate {
 const OPENSHIFT_STATUS_ALERTS: Array<OpenShiftStatusAlert> = [
   {
     id: OPENSHIFT_OPERATOR_UNAVAILABLE_TEMPLATE_ID,
-    name: "Cluster Operator Unavailable",
-    summary:
+    name: translationKey("Cluster Operator Unavailable"),
+    summary: translationKey(
       "An OpenShift cluster operator says it is not available: one alert per operator.",
+    ),
     description:
       "Alert when an OpenShift cluster operator reports Available=False: what it runs - the API server, ingress, DNS, the console, authentication - is not serving. Each operator raises its own alert once two snapshots in a row say so, and it resolves when a snapshot says the operator is back. It is a Logs monitor over the snapshots the Kubernetes agent's openshift preset sends.",
     severity: "Critical",
@@ -278,9 +280,10 @@ const OPENSHIFT_STATUS_ALERTS: Array<OpenShiftStatusAlert> = [
   },
   {
     id: OPENSHIFT_OPERATOR_DEGRADED_TEMPLATE_ID,
-    name: "Cluster Operator Degraded",
-    summary:
+    name: translationKey("Cluster Operator Degraded"),
+    summary: translationKey(
       "An OpenShift cluster operator says it is degraded: one alert per operator.",
+    ),
     description:
       "Alert when an OpenShift cluster operator reports Degraded=True: it still runs, but below the level it should. Each operator raises its own alert once two snapshots in a row say so, so one that flips for a moment during an update raises none, and it resolves when a snapshot says the operator has recovered. It is a Logs monitor over the snapshots the Kubernetes agent's openshift preset sends.",
     severity: "Warning",
@@ -295,9 +298,10 @@ const OPENSHIFT_STATUS_ALERTS: Array<OpenShiftStatusAlert> = [
   },
   {
     id: OPENSHIFT_UPDATE_FAILING_TEMPLATE_ID,
-    name: "Cluster Update Failing",
-    summary:
+    name: translationKey("Cluster Update Failing"),
+    summary: translationKey(
       "OpenShift's cluster version operator says an update cannot complete.",
+    ),
     description:
       "Alert when the cluster version operator reports Failing=True: an update has stopped part way, or the cluster cannot keep the version it should run. It alerts once two snapshots in a row say so, and resolves when a snapshot says it no longer fails. It is a Logs monitor over the snapshots the Kubernetes agent's openshift preset sends.",
     severity: "Critical",

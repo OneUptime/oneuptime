@@ -12,6 +12,7 @@ import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepHostMonitor from "./MonitorStepHostMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type HostAlertTemplateCategory = "Availability" | "Resource" | "Host";
 
@@ -316,8 +317,8 @@ export function buildHostFormulaMonitorConfig(args: {
 
 const hostStoppedReportingTemplate: HostAlertTemplate = {
   id: "host-stopped-reporting",
-  name: "Host Stopped Reporting",
-  summary: "The host sends no metrics for 10 minutes.",
+  name: translationKey("Host Stopped Reporting"),
+  summary: translationKey("The host sends no metrics for 10 minutes."),
   description:
     "Alert when the host sends no metrics for ten minutes: the machine is down or unreachable, or its OpenTelemetry Collector stopped, lost its route to OneUptime or had its token revoked. Reads system.memory.usage, which the collector's memory scraper reports on every collection on Linux, macOS and Windows.",
   category: "Availability",
@@ -361,8 +362,8 @@ const hostStoppedReportingTemplate: HostAlertTemplate = {
 
 const highCpuTemplate: HostAlertTemplate = {
   id: "host-high-cpu",
-  name: "High CPU Utilization",
-  summary: "CPU stays more than 80% busy for the whole window.",
+  name: translationKey("High CPU Utilization"),
+  summary: translationKey("CPU stays more than 80% busy for the whole window."),
   description:
     "Alert when host CPU busy time (user + system) exceeds 80% for the whole evaluation window.",
   category: "Resource",
@@ -431,8 +432,8 @@ const highCpuTemplate: HostAlertTemplate = {
 
 const highMemoryTemplate: HostAlertTemplate = {
   id: "host-high-memory",
-  name: "High Memory Utilization",
-  summary: "Memory in use passes 85%, page cache not counted.",
+  name: translationKey("High Memory Utilization"),
+  summary: translationKey("Memory in use passes 85%, page cache not counted."),
   description:
     "Alert when memory in use — excluding buffers and page cache — exceeds 85% of physical memory.",
   category: "Resource",
@@ -493,8 +494,8 @@ const highMemoryTemplate: HostAlertTemplate = {
 
 const highFilesystemUsageTemplate: HostAlertTemplate = {
   id: "host-high-filesystem",
-  name: "High Filesystem Usage",
-  summary: "A filesystem is more than 90% full.",
+  name: translationKey("High Filesystem Usage"),
+  summary: translationKey("A filesystem is more than 90% full."),
   description:
     "Alert when host filesystem utilization exceeds 90%. One alert per mountpoint.",
   category: "Resource",
@@ -577,8 +578,8 @@ const highFilesystemUsageTemplate: HostAlertTemplate = {
 
 const highLoadAverageTemplate: HostAlertTemplate = {
   id: "host-high-load-average",
-  name: "High Load Average (1m)",
-  summary: "The 1-minute load average stays above 4.",
+  name: translationKey("High Load Average (1m)"),
+  summary: translationKey("The 1-minute load average stays above 4."),
   description:
     "Alert when the host's 1-minute load average stays above 4. The threshold is an absolute run-queue length and is NOT normalized by core count.",
   category: "Resource",
@@ -626,9 +627,10 @@ const highLoadAverageTemplate: HostAlertTemplate = {
 
 const highProcessCountTemplate: HostAlertTemplate = {
   id: "host-high-processes",
-  name: "High Process Count",
-  summary:
+  name: translationKey("High Process Count"),
+  summary: translationKey(
     "More than 2000 processes are in one state, such as sleeping. Linux only.",
+  ),
   description:
     "Alert when the host's largest process-state bucket (running, sleeping, idle, ...) exceeds 2000 processes, which may indicate a fork bomb or resource leak. Linux only.",
   category: "Host",
@@ -697,8 +699,8 @@ export const HOST_RESTARTED_UPTIME_SECONDS: number = 600;
 
 const hostRestartedTemplate: HostAlertTemplate = {
   id: "host-restarted",
-  name: "Host Restarted",
-  summary: "The host started less than 10 minutes ago.",
+  name: translationKey("Host Restarted"),
+  summary: translationKey("The host started less than 10 minutes ago."),
   description:
     "Alert when the host has been up for less than ten minutes (system.uptime below 600 seconds): it rebooted, or crashed and came back. Reads system.uptime from the collector's system scraper, which OneUptime's default configs turn on. A host that is down raises Host Stopped Reporting instead.",
   category: "Availability",
@@ -752,8 +754,8 @@ const hostRestartedTemplate: HostAlertTemplate = {
 
 const highSwapTemplate: HostAlertTemplate = {
   id: "host-high-swap",
-  name: "High Swap Usage",
-  summary: "More than 80% of swap space stays in use.",
+  name: translationKey("High Swap Usage"),
+  summary: translationKey("More than 80% of swap space stays in use."),
   description:
     "Alert when more than 80% of the host's swap space is in use for the whole evaluation window: memory has run short and the host is paging. Reads system.paging.usage (used over used plus free, across every swap device). A host without swap reports none and never fires.",
   category: "Resource",
@@ -819,8 +821,8 @@ const highSwapTemplate: HostAlertTemplate = {
 
 const lowInodesTemplate: HostAlertTemplate = {
   id: "host-running-out-of-inodes",
-  name: "Running Out of Inodes",
-  summary: "A filesystem has used more than 90% of its inodes.",
+  name: translationKey("Running Out of Inodes"),
+  summary: translationKey("A filesystem has used more than 90% of its inodes."),
   description:
     "Alert when a filesystem has used more than 90% of its inodes: past 100% nothing can create a file there, however much space is free. Reads system.filesystem.inodes.usage (used over used plus free). One alert per mountpoint.",
   category: "Resource",
@@ -885,8 +887,10 @@ const lowInodesTemplate: HostAlertTemplate = {
 
 const systemdUnitFailedTemplate: HostAlertTemplate = {
   id: "host-systemd-unit-failed",
-  name: "Systemd Unit Failed",
-  summary: "A systemd service is in the failed state. Linux only.",
+  name: translationKey("Systemd Unit Failed"),
+  summary: translationKey(
+    "A systemd service is in the failed state. Linux only.",
+  ),
   description:
     "Alert when a systemd service on the host is in the failed state for the whole evaluation window: it crashed, exited with an error, or could not start. Reads systemd.unit.state for active_state failed, from the collector's systemd receiver (OneUptime's default config on Linux reads it where the host has systemd). One alert per unit; it resolves when the unit runs again or is reset with systemctl reset-failed.",
   category: "Host",
