@@ -18,7 +18,11 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import JSONFunctions from "../../../../Types/JSONFunctions";
 import ObjectID from "../../../../Types/ObjectID";
-import { SeededRandom, seededRandom, shuffled } from "../../../Helpers/SeededRandom";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -275,9 +279,7 @@ describe("a public read of a dashboard's metric", () => {
     expect(readFor(config, LATENCY, servicesFilter([API, CHECKOUT]))).toBe(
       "refused",
     );
-    expect(readFor(config, LATENCY, servicesFilter([BILLING]))).toBe(
-      "refused",
-    );
+    expect(readFor(config, LATENCY, servicesFilter([BILLING]))).toBe("refused");
     expect(
       readFor(config, LATENCY, servicesFilter([API, CHECKOUT, BILLING])),
     ).toBe("refused");
@@ -298,9 +300,7 @@ describe("what a public read cannot do", () => {
   });
 
   test("read a service the dashboard does not chart", () => {
-    expect(readFor(config, LATENCY, servicesFilter([FOREIGN]))).toBe(
-      "refused",
-    );
+    expect(readFor(config, LATENCY, servicesFilter([FOREIGN]))).toBe("refused");
     expect(
       readFor(config, LATENCY, servicesFilter([API, CHECKOUT, FOREIGN])),
     ).toBe("refused");
@@ -314,9 +314,7 @@ describe("what a public read cannot do", () => {
   });
 
   test("borrow another metric's services", () => {
-    expect(readFor(config, LATENCY, servicesFilter([BILLING]))).toBe(
-      "refused",
-    );
+    expect(readFor(config, LATENCY, servicesFilter([BILLING]))).toBe("refused");
     expect(readFor(config, CPU, servicesFilter([API, CHECKOUT]))).toBe(
       "refused",
     );
@@ -382,7 +380,10 @@ describe("what a public read cannot do", () => {
           new Includes([API, CHECKOUT]),
         ] as unknown as Array<string>),
       ],
-      ["IncludesNone, which reads every other service", new IncludesNone([API])],
+      [
+        "IncludesNone, which reads every other service",
+        new IncludesNone([API]),
+      ],
       ["IncludesAll", new IncludesAll([API, CHECKOUT])],
       ["a Wildcard, whose values look the same", new Wildcard([API, CHECKOUT])],
       ["a class built on Includes", new LookalikeIncludes([API, CHECKOUT])],
@@ -448,9 +449,7 @@ describe("the services a dashboard saves for each metric", () => {
         {
           ...savedQuery(LATENCY, [API]),
           fallback: {
-            queryConfig: savedQuery("http.server.request.duration", [
-              CHECKOUT,
-            ]),
+            queryConfig: savedQuery("http.server.request.duration", [CHECKOUT]),
             hint: { text: "Older agents send the other one." },
           },
         },
@@ -708,7 +707,11 @@ describe("property: a public read is only ever one a saved query makes", () => {
         const queries: Array<JSONObject> = [];
         const queryCount: number = 1 + random(3);
 
-        for (let queryIndex: number = 0; queryIndex < queryCount; queryIndex++) {
+        for (
+          let queryIndex: number = 0;
+          queryIndex < queryCount;
+          queryIndex++
+        ) {
           const metricName: string = METRICS[random(METRICS.length)]!;
           const serviceIds: Array<string> =
             random(3) === 0

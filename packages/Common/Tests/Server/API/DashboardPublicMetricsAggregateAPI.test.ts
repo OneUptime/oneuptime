@@ -18,7 +18,7 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import { mockRouter } from "./Helpers";
@@ -169,7 +169,10 @@ describe("DashboardAPI public metrics-aggregate", () => {
                         ? { attributes: widget.attributes }
                         : {}),
                       ...(widget.telemetryServiceIds !== undefined
-                        ? { telemetryServiceIds: widget.telemetryServiceIds }
+                        ? {
+                            telemetryServiceIds:
+                              widget.telemetryServiceIds as JSONValue,
+                          }
                         : {}),
                     },
                     ...(widget.groupByAttributeKeys
@@ -1403,10 +1406,7 @@ describe("DashboardAPI public metrics-aggregate", () => {
             "IncludesNone, which reads every other service",
             { _type: "IncludesNone", value: [API_SERVICE_ID] },
           ],
-          [
-            "IncludesAll",
-            { _type: "IncludesAll", value: [API_SERVICE_ID] },
-          ],
+          ["IncludesAll", { _type: "IncludesAll", value: [API_SERVICE_ID] }],
           ["EqualTo", { _type: "EqualTo", value: API_SERVICE_ID }],
           ["NotEqual", { _type: "NotEqual", value: API_SERVICE_ID }],
           ["Search", { _type: "Search", value: API_SERVICE_ID }],

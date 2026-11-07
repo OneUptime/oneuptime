@@ -152,24 +152,26 @@ export default class PublicDashboardMetricServices {
     >();
     const seenKeys: Map<string, Set<string>> = new Map<string, Set<string>>();
 
-    const addServices: (metricName: string, serviceIds: Array<string>) => void =
-      (metricName: string, serviceIds: Array<string>): void => {
-        const key: string = JSON.stringify([...serviceIds].sort());
-        let keys: Set<string> | undefined = seenKeys.get(metricName);
+    const addServices: (
+      metricName: string,
+      serviceIds: Array<string>,
+    ) => void = (metricName: string, serviceIds: Array<string>): void => {
+      const key: string = JSON.stringify([...serviceIds].sort());
+      let keys: Set<string> | undefined = seenKeys.get(metricName);
 
-        if (!keys) {
-          keys = new Set<string>();
-          seenKeys.set(metricName, keys);
-          savedServices.set(metricName, []);
-        }
+      if (!keys) {
+        keys = new Set<string>();
+        seenKeys.set(metricName, keys);
+        savedServices.set(metricName, []);
+      }
 
-        if (keys.has(key)) {
-          return;
-        }
+      if (keys.has(key)) {
+        return;
+      }
 
-        keys.add(key);
-        savedServices.get(metricName)!.push(serviceIds);
-      };
+      keys.add(key);
+      savedServices.get(metricName)!.push(serviceIds);
+    };
 
     const walk: (node: unknown) => void = (node: unknown): void => {
       if (!node || typeof node !== "object") {
@@ -187,7 +189,10 @@ export default class PublicDashboardMetricServices {
 
       const metricName: unknown = obj["metricName"];
       if (typeof metricName === "string" && metricName.trim().length > 0) {
-        addServices(metricName, readSavedServiceIds(obj["telemetryServiceIds"]));
+        addServices(
+          metricName,
+          readSavedServiceIds(obj["telemetryServiceIds"]),
+        );
       }
 
       for (const key of Object.keys(obj)) {

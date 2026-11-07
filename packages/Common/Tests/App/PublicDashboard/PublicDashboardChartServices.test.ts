@@ -102,10 +102,7 @@ import DashboardAPI from "../../../Server/API/DashboardAPI";
 import DashboardService from "../../../Server/Services/DashboardService";
 import MetricService from "../../../Server/Services/MetricService";
 import PublicDashboardViewConfig from "../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
-import {
-  ExpressRequest,
-  ExpressResponse,
-} from "../../../Server/Utils/Express";
+import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import URL from "../../../Types/API/URL";
@@ -280,10 +277,7 @@ function chartQueries(
     configs.push(...chart.arguments.metricQueryConfigs);
   }
 
-  return DashboardVariableInterpolation.applyToQueryConfigs(
-    configs,
-    variables,
-  );
+  return DashboardVariableInterpolation.applyToQueryConfigs(configs, variables);
 }
 
 /*
@@ -320,20 +314,18 @@ function publicDashboardContext(): PublicDashboardContext {
         ips: [],
       } as unknown as ExpressRequest;
 
-      await mockRouter
-        .match("post", METRICS_AGGREGATE_ROUTE)
-        .handlerFunction(
-          request,
-          {
-            cookie: jest.fn(),
-            send: jest.fn(),
-            json: jest.fn(),
-            status: jest.fn().mockReturnThis(),
-          } as unknown as ExpressResponse,
-          (err?: unknown) => {
-            refusal = err;
-          },
-        );
+      await mockRouter.match("post", METRICS_AGGREGATE_ROUTE).handlerFunction(
+        request,
+        {
+          cookie: jest.fn(),
+          send: jest.fn(),
+          json: jest.fn(),
+          status: jest.fn().mockReturnThis(),
+        } as unknown as ExpressResponse,
+        (err?: unknown) => {
+          refusal = err;
+        },
+      );
 
       if (refusal || !answer) {
         return new HTTPErrorResponse(
@@ -454,9 +446,8 @@ async function readSignedIn(
   return toChartReads(
     mockAnalyticsAggregate.mock.calls.map(
       (call: Array<unknown>): JSONObject => {
-        const aggregateBy: JSONObject = (
-          call[0] as { aggregateBy: JSONObject }
-        ).aggregateBy;
+        const aggregateBy: JSONObject = (call[0] as { aggregateBy: JSONObject })
+          .aggregateBy;
 
         return JSONFunctions.deserialize(
           JSON.parse(JSON.stringify(JSONFunctions.serialize(aggregateBy))),
@@ -643,9 +634,9 @@ describe("a chart added from a view read for some services", () => {
 
     // The viewer's pick, as the signed-in chart reads it.
     expect(
-      (
-        (publicRead["query"] as JSONObject)["attributes"] as JSONObject
-      )["resource.k8s.cluster.name"],
+      ((publicRead["query"] as JSONObject)["attributes"] as JSONObject)[
+        "resource.k8s.cluster.name"
+      ],
     ).toBe("prod-eu");
     expect(publicRead["groupByAttributeKeys"]).toEqual(["host.name"]);
   });
@@ -721,54 +712,51 @@ describe("property: a public dashboard's charts read what the signed-in ones rea
     { "host.name": new Includes(["web-1", "web-2"]) as unknown as JSONValue },
   ];
 
-  test.each([1, 2, 3, 4, 5, 6])(
-    "seed %i",
-    async (seed: number) => {
-      const random: SeededRandom = seededRandom(62800 + seed);
-      let stored: JSONObject | null = null;
-      let queriesWithServices: number = 0;
+  test.each([1, 2, 3, 4, 5, 6])("seed %i", async (seed: number) => {
+    const random: SeededRandom = seededRandom(62800 + seed);
+    let stored: JSONObject | null = null;
+    let queriesWithServices: number = 0;
 
-      const chartCount: number = 2 + random(3);
+    const chartCount: number = 2 + random(3);
 
-      for (let chartIndex: number = 0; chartIndex < chartCount; chartIndex++) {
-        const view: Array<MetricQueryConfigData> = [];
-        const queryCount: number = 1 + random(3);
+    for (let chartIndex: number = 0; chartIndex < chartCount; chartIndex++) {
+      const view: Array<MetricQueryConfigData> = [];
+      const queryCount: number = 1 + random(3);
 
-        for (let queryIndex: number = 0; queryIndex < queryCount; queryIndex++) {
-          const serviceIds: Array<string> | undefined =
-            random(3) === 0
-              ? undefined
-              : shuffled(SERVICES, random).slice(0, 1 + random(3));
+      for (let queryIndex: number = 0; queryIndex < queryCount; queryIndex++) {
+        const serviceIds: Array<string> | undefined =
+          random(3) === 0
+            ? undefined
+            : shuffled(SERVICES, random).slice(0, 1 + random(3));
 
-          if (serviceIds) {
-            queriesWithServices++;
-          }
-
-          view.push(
-            viewQuery({
-              metricName: METRICS[random(METRICS.length)]!,
-              variable: String.fromCharCode(97 + queryIndex),
-              serviceIds,
-              attributes: ATTRIBUTES[random(ATTRIBUTES.length)],
-              groupByAttributeKeys: random(2) === 0 ? ["host.name"] : undefined,
-            }),
-          );
+        if (serviceIds) {
+          queriesWithServices++;
         }
 
-        stored = addToDashboard(stored, view);
+        view.push(
+          viewQuery({
+            metricName: METRICS[random(METRICS.length)]!,
+            variable: String.fromCharCode(97 + queryIndex),
+            serviceIds,
+            attributes: ATTRIBUTES[random(ATTRIBUTES.length)],
+            groupByAttributeKeys: random(2) === 0 ? ["host.name"] : undefined,
+          }),
+        );
       }
 
-      expect(queriesWithServices).toBeGreaterThan(0);
+      stored = addToDashboard(stored, view);
+    }
 
-      const charts: Array<{ signedIn: ChartReads; public: ChartReads }> =
-        await readEveryChart(stored!);
+    expect(queriesWithServices).toBeGreaterThan(0);
 
-      expect(charts.length).toBe(chartCount);
+    const charts: Array<{ signedIn: ChartReads; public: ChartReads }> =
+      await readEveryChart(stored!);
 
-      for (const chart of charts) {
-        expect(chart.public.reads.length).toBeGreaterThan(0);
-        expect(chart.public.reads).toEqual(chart.signedIn.reads);
-      }
-    },
-  );
+    expect(charts.length).toBe(chartCount);
+
+    for (const chart of charts) {
+      expect(chart.public.reads.length).toBeGreaterThan(0);
+      expect(chart.public.reads).toEqual(chart.signedIn.reads);
+    }
+  });
 });
