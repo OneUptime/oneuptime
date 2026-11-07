@@ -979,6 +979,35 @@ describe("rebaseWorkflowDraft", () => {
     },
   );
 
+  test("someone connected another step into the step Ask AI changes: the two meet, so their connection is never dropped", () => {
+    const draft: WorkflowDraft = readBack(BASE);
+    const changed: WorkflowDraft = {
+      ...draft,
+      steps: draft.steps.map((step: WorkflowDraftStep) => {
+        return step.id === "log"
+          ? { ...step, arguments: { text: "Ask AI's" } }
+          : step;
+      }),
+    };
+    // Start now leads to Log too, by a connection of theirs.
+    const current: JSONObject = saveElsewhere((graph: JSONObject) => {
+      edgesOf(graph).push({
+        id: "their-edge",
+        source: nodeOf(graph, "start")!.id,
+        target: nodeOf(graph, "log")!.id,
+        sourceHandle: "success",
+        targetHandle: "in",
+      });
+    });
+
+    const outcome: WorkflowDraftRebase = rebase(changed, current);
+
+    expect(outcome.kind).toBe(WorkflowDraftRebaseKind.Conflict);
+    expect(
+      outcome.kind === WorkflowDraftRebaseKind.Conflict && outcome.stepIds,
+    ).toEqual(["log"]);
+  });
+
   test("someone changed a step Ask AI's new step reads: the two meet", () => {
     const draft: WorkflowDraft = withStep(
       readBack(BASE),
@@ -1324,7 +1353,7 @@ const generate: (random: SeededRandom, round: number) => Generated = (
   const saveCount: number = random(4);
 
   for (let save: number = 0; save < saveCount; save++) {
-    const kind: number = random(5);
+    const kind: number = random(6);
     const nodes: Array<GraphNode> = nodesOf(current);
 
     if (nodes.length === 0) {
@@ -1362,6 +1391,25 @@ const generate: (random: SeededRandom, round: number) => Generated = (
         ...node.data.arguments,
         token: `rotated-${save}`,
       };
+    } else if (kind === 5 && node.data.id !== "t") {
+      // A connection into an existing step, from another.
+      const from: GraphNode = pick(nodes, random);
+
+      if (
+        from !== node &&
+        !edgesOf(current).some((edge: GraphEdge) => {
+          return edge.source === from.id && edge.target === node.id;
+        })
+      ) {
+        edgesOf(current).push({
+          id: `their-edge-${round}-${save}`,
+          source: from.id,
+          target: node.id,
+          sourceHandle:
+            from.data.metadataId === "branch" ? "no" : "success",
+          targetHandle: "in",
+        });
+      }
     }
   }
 
