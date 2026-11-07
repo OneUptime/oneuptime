@@ -91,7 +91,7 @@ flowchart TB
 - **A parent monitor that is down.** On a monitor's **Configuration → Dependencies** page, **Depends On Monitors** names the monitors it relies on. While one of them is in a status listed in **Suppress When Parent Status Is** (any offline status, when that is left empty), the monitor opens no incidents or alerts. Its status still changes, and what is open still resolves.
 - **Scheduled maintenance.** A monitor on a maintenance event that is in progress is not checked, so its criteria do not run. See [Scheduled Maintenance Overview](/docs/scheduled-maintenance/index).
 
-To see how a check was judged, open the monitor's **Overview**: the **Monitor Summary** card shows which criteria matched and what each one did, including an incident it skipped because one was already open.
+To see how a check was judged, open the monitor's **Overview**: the **Monitor Summary** card shows which criteria matched and what each one did, including an incident it skipped because one was already open. On a monitor that checks metrics (a Metrics monitor, or a Host, Kubernetes, Docker, Proxmox or other infrastructure monitor), the card at the top of its overview charts those metrics with each criteria's value drawn as a line, so you can see how close they are to matching.
 
 ## Change a monitor's criteria
 
