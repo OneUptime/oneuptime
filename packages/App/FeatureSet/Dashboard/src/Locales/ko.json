@@ -46073,7 +46073,7 @@
   "No exceptions found in the selected time range.": "No exceptions found in the selected time range.",
   "No metrics were found in this scope during the selected time range.": "No metrics were found in this scope during the selected time range.",
   "No spans found in the selected time range.": "No spans found in the selected time range.",
-  "Nothing was logged in the selected time range.": "Nothing was logged in the selected time range.",
+  "Nothing was logged in the selected time range.": "선택한 시간 범위에는 기록된 로그가 없습니다.",
   "Spans in this alert's telemetry scope during the selected time range.": "Spans in this alert's telemetry scope during the selected time range.",
   "Spans in this incident's telemetry scope during the selected time range.": "Spans in this incident's telemetry scope during the selected time range.",
   "Spans in this view's telemetry scope during the selected time range.": "Spans in this view's telemetry scope during the selected time range."

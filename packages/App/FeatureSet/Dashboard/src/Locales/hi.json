@@ -46073,7 +46073,7 @@
   "No exceptions found in the selected time range.": "No exceptions found in the selected time range.",
   "No metrics were found in this scope during the selected time range.": "No metrics were found in this scope during the selected time range.",
   "No spans found in the selected time range.": "No spans found in the selected time range.",
-  "Nothing was logged in the selected time range.": "Nothing was logged in the selected time range.",
+  "Nothing was logged in the selected time range.": "चयनित समय सीमा में कुछ भी लॉग नहीं हुआ।",
   "Spans in this alert's telemetry scope during the selected time range.": "Spans in this alert's telemetry scope during the selected time range.",
   "Spans in this incident's telemetry scope during the selected time range.": "Spans in this incident's telemetry scope during the selected time range.",
   "Spans in this view's telemetry scope during the selected time range.": "Spans in this view's telemetry scope during the selected time range."
