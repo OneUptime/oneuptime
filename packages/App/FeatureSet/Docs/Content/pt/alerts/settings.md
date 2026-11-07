@@ -93,6 +93,8 @@ Uma regra aciona assim que um alerta corresponde a ela. Para que ela aguarde o h
 
 Uma regra aciona as pessoas das suas políticas para que respondam: confirmar o acionamento confirma o alerta. Para manter uma equipe informada enquanto outra responde, responda **Acionar as pessoas destas políticas como** em **Mais campos** com **Observadores**. O acionamento delas diz que são observadoras, e confirmá-lo só diz que o viram: o alerta não é confirmado e o acionamento de mais ninguém para. O acionamento delas continua até que uma delas responda ou o alerta seja resolvido, e na lista a regra diz abaixo do nome que aciona como observadores. Uma política que uma regra correspondente aciona para responder e outra como observadores aciona para responder.
 
+Uma regra pode pertencer a equipes. **Equipes responsáveis**, sob **Mais campos**, reserva a regra às equipes que você escolher: só os membros delas e os administradores do projeto podem editá-la ou excluí-la, e todos os outros que veem as regras a veem como somente leitura. Uma regra que não pertence a nenhuma equipe pode ser alterada por todos que podem editar regras de plantão, e as regras de episódio também podem pertencer a equipes. Veja [Regras que pertencem a equipes](/docs/permissions/index#regras-que-pertencem-a-equipes).
+
 ## Regras de incidentes
 
 **Alertas → Regras → Regras de incidentes** transforma alertas em incidentes por conta própria. A primeira regra que corresponde a um alerta novo, de cima para baixo na lista, declara um incidente a partir dele, como faria **Declarar incidente** na página do alerta, e vincula o alerta a ele.

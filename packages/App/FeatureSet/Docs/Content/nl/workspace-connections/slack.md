@@ -103,6 +103,8 @@ Een kanaal blijft leesbaar: elke gebeurtenis wordt één keer geplaatst, en de e
 
 **Projectinstellingen** > **Werkruimte** > **Slack** toont de kanalen die OneUptime kan zien, met **Test verzenden** naast elk kanaal. OneUptime treedt zelf toe tot een openbaar kanaal de eerste keer dat het daar plaatst. Een privékanaal wordt pas getoond, en kan pas berichten ontvangen, nadat de app van OneUptime er in Slack voor is uitgenodigd.
 
+Een meldingsregel kan bij teams horen. **Verantwoordelijke teams**, onder **Meer velden**, beperkt hem tot de teams die u kiest: alleen hun leden en projectbeheerders kunnen hem bewerken of verwijderen, en alle anderen die de regels zien, zien hem alleen-lezen. Zie [Regels die bij teams horen](/docs/permissions/index#regels-die-bij-teams-horen).
+
 ## Wie er in het kanaal van een record zit
 
 Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen Slack-kanaal heeft een kaart **Slack-kanaal** op zijn pagina in OneUptime. De kaart toont het kanaal, als link die het in Slack opent, of het privé is en wie erin zit, jij eerst. Vanaf de kaart, zonder Slack-beheerder:

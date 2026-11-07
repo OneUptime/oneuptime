@@ -103,6 +103,8 @@ A channel stays readable: each event is posted once, and a record's first state 
 
 **Project Settings** > **Workspace** > **Slack** lists the channels OneUptime can see, with **Send Test** beside each one. OneUptime joins a public channel on its own the first time it posts there. A private channel is listed, and can be posted to, only after the OneUptime app is invited to it in Slack.
 
+A notification rule can belong to teams. **Owning Teams**, under **More fields**, keeps it to the teams you pick: only their members and project admins can edit or delete it, and everyone else who can see the rules sees it read-only. See [Rules owned by teams](/docs/permissions/index#rules-owned-by-teams).
+
 ## Who is in a record's channel
 
 An incident, alert, episode or scheduled maintenance event with a Slack channel of its own has a **Slack Channel** card on its page in OneUptime. The card shows the channel, as a link that opens it in Slack, whether it is private, and who is in it, you first. From the card, without a Slack admin:

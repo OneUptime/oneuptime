@@ -115,6 +115,8 @@ Channels and chats stay readable: each event is posted once, and a record's firs
 
 **Project Settings** > **Workspace** > **Microsoft Teams** lists the channels OneUptime can see in your teams, and the chats it was added to, with **Send Test** beside each one. A chat appears once the OneUptime app is added to it in Microsoft Teams; **Refresh Chats** picks up new chats and their current names.
 
+A notification rule can belong to teams. **Owning Teams**, under **More fields**, keeps it to the teams you pick: only their members and project admins can edit or delete it, and everyone else who can see the rules sees it read-only. See [Rules owned by teams](/docs/permissions/index#rules-owned-by-teams).
+
 ## Testing a rule
 
 **Test Rule** on a rule's row posts a test message for that rule to the channels it names, so you can see it arrive. If the rule creates a channel for each event, the test creates one too and invites the rule's people to it.

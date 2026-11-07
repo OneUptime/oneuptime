@@ -267,7 +267,9 @@ const groupByRule: (
     )
       ?.toString()
       .toLowerCase();
-    const team: Team | undefined = row.getValue("team") as Team | undefined;
+    const team: Team | undefined = row.getValue("team") as unknown as
+      | Team
+      | undefined;
     const teamId: string | undefined = (
       (row.getValue("teamId") as ObjectID | string | undefined) || team?._id
     )?.toString();

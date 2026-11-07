@@ -93,6 +93,8 @@ Eine Regel alarmiert, sobald eine Warnung zu ihr passt. Damit sie stattdessen au
 
 Eine Regel alarmiert die Personen ihrer Richtlinien, damit sie die Warnung bearbeiten: Wer die Alarmierung bestätigt, bestätigt die Warnung. Um ein Team auf dem Laufenden zu halten, während ein anderes die Warnung bearbeitet, beantworten Sie **Die Personen dieser Richtlinien alarmieren als** unter **Weitere Felder** mit **Beobachter**. Ihre Alarmierung sagt, dass sie Beobachter sind, und wer sie bestätigt, sagt damit nur, dass er sie gesehen hat: Die Warnung wird nicht bestätigt, und keine andere Alarmierung endet. Ihre Alarmierung läuft weiter, bis einer von ihnen antwortet oder die Warnung behoben ist, und in der Liste sagt die Regel unter ihrem Namen, dass sie als Beobachter alarmiert. Eine Richtlinie, die eine passende Regel zum Bearbeiten und eine andere als Beobachter alarmiert, alarmiert zum Bearbeiten.
 
+Eine Regel kann Teams gehören. **Zuständige Teams** unter **Weitere Felder** beschränkt sie auf die Teams, die Sie auswählen: Nur deren Mitglieder und Projektadministratoren können sie bearbeiten oder löschen, alle anderen, die Regeln sehen, sehen sie schreibgeschützt. Eine Regel, die keinem Team gehört, können alle ändern, die Bereitschaftsregeln bearbeiten dürfen, und auch Episodenregeln können Teams gehören. Siehe [Regeln, die Teams gehören](/docs/permissions/index#regeln-die-teams-gehören).
+
 ## Vorfallsregeln
 
 **Warnungen → Regeln → Vorfallsregeln** macht aus Warnungen von selbst Vorfälle. Die erste Regel, von oben nach unten in der Liste, die zu einer neuen Warnung passt, meldet daraus einen Vorfall, wie es **Vorfall melden** auf der Seite der Warnung täte, und verknüpft die Warnung mit ihm.

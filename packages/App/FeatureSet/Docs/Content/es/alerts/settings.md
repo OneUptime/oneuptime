@@ -93,6 +93,8 @@ Una regla avisa en cuanto una alerta coincide con ella. Para que espere al horar
 
 Una regla avisa a las personas de sus políticas para que respondan: reconocer el aviso reconoce la alerta. Para mantener informado a un equipo mientras otro responde, responde **Avisar a las personas de estas políticas como** en **Más campos** con **Observadores**. Su aviso dice que son observadores, y reconocerlo solo dice que lo han visto: la alerta no se reconoce y no se detiene el aviso de nadie más. Su aviso sigue hasta que uno de ellos responde o la alerta se resuelve, y en la lista la regla dice bajo su nombre que avisa como observadores. Una política que una regla coincidente avisa para responder y otra como observadores avisa para responder.
 
+Una regla puede pertenecer a equipos. **Equipos responsables**, en **Más campos**, la reserva a los equipos que elija: solo sus miembros y los administradores del proyecto pueden editarla o eliminarla, y todos los demás que ven las reglas la ven en modo de solo lectura. Una regla que no pertenece a ningún equipo la puede cambiar cualquiera que pueda editar reglas de guardia, y las reglas de episodios también pueden pertenecer a equipos. Consulte [Reglas que pertenecen a equipos](/docs/permissions/index#reglas-que-pertenecen-a-equipos).
+
 ## Reglas de incidentes
 
 **Alertas → Reglas → Reglas de incidentes** convierte las alertas en incidentes por sí solas. La primera regla que coincide con una alerta nueva, de arriba abajo en la lista, declara un incidente a partir de ella, como haría **Declarar incidente** en la página de la alerta, y vincula la alerta con él.

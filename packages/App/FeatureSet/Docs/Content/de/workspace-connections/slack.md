@@ -103,6 +103,8 @@ Ein Kanal bleibt lesbar: Jedes Ereignis wird einmal gepostet, und der erste Stat
 
 **Projekteinstellungen** > **Arbeitsbereich** > **Slack** listet die Kanäle, die OneUptime sieht, mit **Test senden** neben jedem. Einem öffentlichen Kanal tritt OneUptime beim ersten Posten selbst bei. Ein privater Kanal wird erst aufgelistet und kann erst bespielt werden, nachdem die OneUptime-App in Slack in ihn eingeladen wurde.
 
+Eine Benachrichtigungsregel kann Teams gehören. **Zuständige Teams** unter **Weitere Felder** beschränkt sie auf die Teams, die Sie auswählen: Nur deren Mitglieder und Projektadministratoren können sie bearbeiten oder löschen, alle anderen, die die Regeln sehen, sehen sie schreibgeschützt. Siehe [Regeln, die Teams gehören](/docs/permissions/index#regeln-die-teams-gehören).
+
 ## Wer im Kanal eines Datensatzes ist
 
 Ein Vorfall, eine Warnung, eine Episode oder ein geplantes Wartungsereignis mit einem eigenen Slack-Kanal hat auf seiner Seite in OneUptime eine Karte **Slack-Kanal**. Die Karte zeigt den Kanal als Link, der ihn in Slack öffnet, ob er privat ist und wer darin ist, Sie zuerst. Auf der Karte, ohne einen Slack-Admin:
