@@ -45,9 +45,9 @@ export const toWorkflowCanvasGraph: (data: {
     ? (JSON.parse(JSON.stringify(data.graph)) as JSONObject)
     : null;
 
-  const savedNodes: Array<Node> = (
-    Array.isArray(graph?.["nodes"]) ? graph?.["nodes"] : []
-  ) as unknown as Array<Node>;
+  const savedNodes: Array<Node> = (Array.isArray(graph?.["nodes"])
+    ? graph?.["nodes"]
+    : []) as unknown as Array<Node>;
 
   const componentsById: Map<string, ComponentMetadata> = new Map<
     string,
@@ -104,9 +104,9 @@ export const toWorkflowCanvasGraph: (data: {
     nodes = [...nodes, getPlaceholderTriggerNode()];
   }
 
-  const savedEdges: Array<Edge> = (
-    Array.isArray(graph?.["edges"]) ? graph?.["edges"] : []
-  ) as unknown as Array<Edge>;
+  const savedEdges: Array<Edge> = (Array.isArray(graph?.["edges"])
+    ? graph?.["edges"]
+    : []) as unknown as Array<Edge>;
 
   const edges: Array<Edge> = savedEdges
     .filter((edge: Edge): boolean => {

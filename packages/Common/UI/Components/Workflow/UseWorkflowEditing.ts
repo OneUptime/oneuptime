@@ -33,13 +33,7 @@ import {
   getEmptyWorkflowGraph,
   toSavedWorkflowGraph,
 } from "../../../Utils/Workflow/WorkflowGraphSnapshot";
-import {
-  MutableRefObject,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { MutableRefObject, useEffect, useMemo, useRef, useState } from "react";
 import { Edge, Node } from "reactflow";
 
 /*
@@ -132,9 +126,7 @@ const useWorkflowEditing: (
    * read it between renders: two reports in one frame must each see the
    * other.
    */
-  const [history, setHistoryState] = useState<WorkflowEditHistory | null>(
-    null,
-  );
+  const [history, setHistoryState] = useState<WorkflowEditHistory | null>(null);
   const historyRef: MutableRefObject<WorkflowEditHistory | null> =
     useRef<WorkflowEditHistory | null>(null);
 
@@ -182,9 +174,9 @@ const useWorkflowEditing: (
    * nothing is left unsaved, the next failure is said again; so is one that
    * fails for another reason.
    */
-  const toldFailureRef: MutableRefObject<string | null> = useRef<
-    string | null
-  >(null);
+  const toldFailureRef: MutableRefObject<string | null> = useRef<string | null>(
+    null,
+  );
 
   useEffect(() => {
     if (saveStatus.state !== WorkflowSaveState.Error) {
@@ -241,9 +233,7 @@ const useWorkflowEditing: (
       return toWorkflowCanvasGraph({ graph, components });
     } catch (error) {
       optionsRef.current.onError(
-        error instanceof Error && error.message
-          ? error.message
-          : String(error),
+        error instanceof Error && error.message ? error.message : String(error),
       );
       return null;
     }
@@ -337,7 +327,10 @@ const useWorkflowEditing: (
   const restoreVersion: (data: {
     versionNumber: number;
     graph: unknown;
-  }) => boolean = (data: { versionNumber: number; graph: unknown }): boolean => {
+  }) => boolean = (data: {
+    versionNumber: number;
+    graph: unknown;
+  }): boolean => {
     const current: WorkflowEditHistory | null = historyRef.current;
 
     if (!optionsRef.current.isEnabled || !current) {

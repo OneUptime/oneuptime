@@ -88,13 +88,13 @@ describe("the lines a row shows", () => {
     const changes: Array<string> = Array.from(
       { length: 25 },
       (_value: unknown, index: number): string => {
-        return index === 24 ? "and 16 more changes" : `Added "Log" (log-${index})`;
+        return index === 24
+          ? "and 16 more changes"
+          : `Added "Log" (log-${index})`;
       },
     );
 
-    expect(
-      getWorkflowVersionLines(row({ changes, changeCount: 40 })),
-    ).toEqual({
+    expect(getWorkflowVersionLines(row({ changes, changeCount: 40 }))).toEqual({
       lines: changes.slice(0, WORKFLOW_VERSION_LINES_SHOWN),
       moreCount: 40 - WORKFLOW_VERSION_LINES_SHOWN,
     });
@@ -147,7 +147,10 @@ describe("which versions offer a preview", () => {
       canPreviewWorkflowVersion({ versionNumber: 8, newestVersionNumber: 9 }),
     ).toBe(true);
     expect(
-      canPreviewWorkflowVersion({ versionNumber: 1, newestVersionNumber: null }),
+      canPreviewWorkflowVersion({
+        versionNumber: 1,
+        newestVersionNumber: null,
+      }),
     ).toBe(true);
   });
 

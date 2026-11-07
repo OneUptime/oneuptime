@@ -157,9 +157,14 @@ describe("recording what the canvas shows", () => {
     history = recordWorkflowEdit(history, { graph: saved([MANUAL]), now: 20 });
 
     expect(canRedoWorkflowEdit(history)).toBe(false);
-    expect(history.entries.map((entry: { key: string }) => entry.key)).toEqual(
-      [getWorkflowGraphKey(START), getWorkflowGraphKey(saved([MANUAL]))],
-    );
+    expect(
+      history.entries.map((entry: { key: string }) => {
+        return entry.key;
+      }),
+    ).toEqual([
+      getWorkflowGraphKey(START),
+      getWorkflowGraphKey(saved([MANUAL])),
+    ]);
   });
 
   test("the canvas reporting back what Undo gave it is no edit, and keeps Redo", () => {
@@ -186,7 +191,11 @@ describe("recording what the canvas shows", () => {
   test("keeps the last edits, as many as the limit, and drops the oldest", () => {
     let history: WorkflowEditHistory = start();
 
-    for (let index: number = 1; index <= WORKFLOW_EDIT_HISTORY_LIMIT + 25; index++) {
+    for (
+      let index: number = 1;
+      index <= WORKFLOW_EDIT_HISTORY_LIMIT + 25;
+      index++
+    ) {
       history = recordWorkflowEdit(history, {
         graph: saved([MANUAL, { ...LOG, args: { value: `edit ${index}` } }]),
         now: index * 10_000,
@@ -206,9 +215,11 @@ describe("recording what the canvas shows", () => {
 
     expect(undos).toBe(WORKFLOW_EDIT_HISTORY_LIMIT);
     expect(
-      (getShownWorkflowEntry(undoneAll).graph.nodes[1]?.["data"] as {
-        arguments: { value: string };
-      }).arguments.value,
+      (
+        getShownWorkflowEntry(undoneAll).graph.nodes[1]?.["data"] as {
+          arguments: { value: string };
+        }
+      ).arguments.value,
     ).toBe("edit 25");
   });
 });
@@ -358,7 +369,9 @@ describe("a restore, and what Ask AI saved", () => {
       restoredVersionNumber: 4,
     });
 
-    expect(getShownWorkflowEntry(history).restoredVersionNumber).toBeUndefined();
+    expect(
+      getShownWorkflowEntry(history).restoredVersionNumber,
+    ).toBeUndefined();
   });
 
   test("a move right after a restore is a step of its own", () => {

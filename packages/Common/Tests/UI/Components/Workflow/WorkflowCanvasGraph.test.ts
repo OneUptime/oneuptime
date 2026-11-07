@@ -107,21 +107,19 @@ describe("toWorkflowCanvasGraph", () => {
         return node.data.nodeType === NodeType.PlaceholderNode;
       }),
     ).toHaveLength(1);
-    expect(drawn.nodes.find((node: Node) => {
-      return node.data.nodeType === NodeType.PlaceholderNode;
-    })?.data.metadata.title).toBe("Trigger");
+    expect(
+      drawn.nodes.find((node: Node) => {
+        return node.data.nodeType === NodeType.PlaceholderNode;
+      })?.data.metadata.title,
+    ).toBe("Trigger");
   });
 
   test("a step whose component OneUptime no longer has cannot be drawn, and says which", () => {
     expect(() => {
-      draw(
-        graphOf([MANUAL, { ...LOG, componentId: "a-step-that-is-gone" }]),
-      );
+      draw(graphOf([MANUAL, { ...LOG, componentId: "a-step-that-is-gone" }]));
     }).toThrow(BadDataException);
     expect(() => {
-      draw(
-        graphOf([MANUAL, { ...LOG, componentId: "a-step-that-is-gone" }]),
-      );
+      draw(graphOf([MANUAL, { ...LOG, componentId: "a-step-that-is-gone" }]));
     }).toThrow("a-step-that-is-gone");
   });
 

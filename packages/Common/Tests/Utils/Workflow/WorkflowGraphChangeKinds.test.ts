@@ -110,9 +110,7 @@ describe("every line comes with its kind and the steps it is about", () => {
     );
     expect(
       result.changes.every((change: WorkflowGraphChange): boolean => {
-        return (
-          change.steps.length === 1 && change.steps[0]?.key === LOG.key
-        );
+        return change.steps.length === 1 && change.steps[0]?.key === LOG.key;
       }),
     ).toBe(true);
   });
@@ -177,9 +175,11 @@ describe("every line comes with its kind and the steps it is about", () => {
   });
 
   test("nothing changed, nothing listed", () => {
-    expect(changesOf(graphOf([MANUAL, LOG]), graphOf([MANUAL, LOG]))).toEqual(
-      { lines: [], totalChanges: 0, changes: [] },
-    );
+    expect(changesOf(graphOf([MANUAL, LOG]), graphOf([MANUAL, LOG]))).toEqual({
+      lines: [],
+      totalChanges: 0,
+      changes: [],
+    });
   });
 });
 
@@ -242,7 +242,10 @@ describe("cards moved, for a version history (includeMoves)", () => {
         graphOf([{ ...MANUAL, x: 0 }, LOG, EMAIL]),
         true,
       ).lines,
-    ).toEqual(['Added "Send Email" (send-email-1)', 'Moved "Manual" (manual-1)']);
+    ).toEqual([
+      'Added "Send Email" (send-email-1)',
+      'Moved "Manual" (manual-1)',
+    ]);
   });
 
   test("a card added, removed or swapped for another component is not also a move", () => {

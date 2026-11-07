@@ -40,16 +40,16 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
-      Permission.WorkflowViewer,
-      Permission.ReadWorkflow,
-    ],
+  read: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.WorkflowAdmin,
+    Permission.WorkflowMember,
+    Permission.WorkflowViewer,
+    Permission.ReadWorkflow,
+  ],
   delete: [],
   update: [],
 })
@@ -241,6 +241,7 @@ export default class WorkflowVersion extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(WorkflowVersionType),
     title: "Version Type",
     description:
       "What made this version: Created (the workflow as it was created), Changed (changes saved in the builder, by Ask AI or through the API), Restored (an earlier version put back) or Earlier (the workflow as it was when version history began).",

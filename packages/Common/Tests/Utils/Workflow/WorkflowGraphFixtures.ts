@@ -72,7 +72,9 @@ export const card: (spec: CardSpec) => JSONObject = (
   const data: JSONObject = {
     id: spec.stepId,
     nodeType: spec.placeholder ? NodeType.PlaceholderNode : NodeType.Node,
-    componentType: spec.trigger ? ComponentType.Trigger : ComponentType.Component,
+    componentType: spec.trigger
+      ? ComponentType.Trigger
+      : ComponentType.Component,
     metadataId: spec.componentId,
     internalId: `internal-${spec.key}`,
     arguments: spec.args || {},

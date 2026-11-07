@@ -269,10 +269,12 @@ export const getWorkflowGraphKey: (
   });
 };
 
-export const isSameWorkflowGraph: (first: unknown, second: unknown) => boolean =
-  (first: unknown, second: unknown): boolean => {
-    return getWorkflowGraphKey(first) === getWorkflowGraphKey(second);
-  };
+export const isSameWorkflowGraph: (
+  first: unknown,
+  second: unknown,
+) => boolean = (first: unknown, second: unknown): boolean => {
+  return getWorkflowGraphKey(first) === getWorkflowGraphKey(second);
+};
 
 /*
  * The cards that moved from one graph to the other, by id, when moving them

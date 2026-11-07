@@ -17,7 +17,14 @@ import {
   MANUAL,
   graphOf,
 } from "../../Utils/Workflow/WorkflowGraphFixtures";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -39,7 +46,11 @@ const BOB: ObjectID = new ObjectID("0198c8ec-2a1d-7f0c-9e75-000000000b0b");
 const NOW: Date = new Date("2026-11-07T12:00:00.000Z");
 
 const GRAPH_1: JSONObject = graphOf([MANUAL, LOG]) as unknown as JSONObject;
-const GRAPH_2: JSONObject = graphOf([MANUAL, LOG, EMAIL]) as unknown as JSONObject;
+const GRAPH_2: JSONObject = graphOf([
+  MANUAL,
+  LOG,
+  EMAIL,
+]) as unknown as JSONObject;
 const GRAPH_3: JSONObject = graphOf([MANUAL]) as unknown as JSONObject;
 
 const fingerprint: (graph: unknown) => string = (graph: unknown): string => {
@@ -84,11 +95,12 @@ let updated: Array<{ id: ObjectID; data: JSONObject }> = [];
 let deleted: Array<JSONObject> = [];
 let createFailures: number = 0;
 
-const newestFirst: () => Array<WorkflowVersion> = (): Array<WorkflowVersion> => {
-  return [...history].sort((a: WorkflowVersion, b: WorkflowVersion) => {
-    return (b.versionNumber || 0) - (a.versionNumber || 0);
-  });
-};
+const newestFirst: () => Array<WorkflowVersion> =
+  (): Array<WorkflowVersion> => {
+    return [...history].sort((a: WorkflowVersion, b: WorkflowVersion) => {
+      return (b.versionNumber || 0) - (a.versionNumber || 0);
+    });
+  };
 
 beforeEach(() => {
   history = [];
@@ -227,9 +239,9 @@ describe("a graph's fingerprint", () => {
 
   test("differs for a different workflow, and for a card that moved", () => {
     expect(fingerprint(GRAPH_2)).not.toBe(fingerprint(GRAPH_1));
-    expect(
-      fingerprint(graphOf([MANUAL, { ...LOG, x: 640 }])),
-    ).not.toBe(fingerprint(GRAPH_1));
+    expect(fingerprint(graphOf([MANUAL, { ...LOG, x: 640 }]))).not.toBe(
+      fingerprint(GRAPH_1),
+    );
   });
 });
 
@@ -353,7 +365,9 @@ describe("a workflow saved before version history began", () => {
   });
 
   test("a workflow with a version already: nothing is read or written", async () => {
-    history = [stored({ number: 4, type: WorkflowVersionType.Changed, graph: GRAPH_1 })];
+    history = [
+      stored({ number: 4, type: WorkflowVersionType.Changed, graph: GRAPH_1 }),
+    ];
     const readGraph: MockFunction = getJestMockFunction();
     readGraph.mockImplementation(async () => {
       return GRAPH_1;
@@ -372,7 +386,14 @@ describe("a workflow saved before version history began", () => {
 
 describe("a save of the graph", () => {
   test("the newest version's graph again - a card selected - writes nothing", async () => {
-    history = [stored({ number: 3, type: WorkflowVersionType.Changed, graph: GRAPH_1, savedBy: BOB })];
+    history = [
+      stored({
+        number: 3,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_1,
+        savedBy: BOB,
+      }),
+    ];
 
     await save(
       graphOf([
@@ -387,7 +408,14 @@ describe("a save of the graph", () => {
   });
 
   test("someone else's change is a new version, saying what changed since the newest", async () => {
-    history = [stored({ number: 3, type: WorkflowVersionType.Changed, graph: GRAPH_1, savedBy: BOB })];
+    history = [
+      stored({
+        number: 3,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_1,
+        savedBy: BOB,
+      }),
+    ];
 
     await save(GRAPH_2, ALICE);
 
@@ -403,7 +431,14 @@ describe("a save of the graph", () => {
   });
 
   test("a version of cards moved says so", async () => {
-    history = [stored({ number: 3, type: WorkflowVersionType.Changed, graph: GRAPH_1, savedBy: BOB })];
+    history = [
+      stored({
+        number: 3,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_1,
+        savedBy: BOB,
+      }),
+    ];
 
     await save(graphOf([MANUAL, { ...LOG, x: 512 }]) as unknown as JSONObject);
 
@@ -412,13 +447,20 @@ describe("a save of the graph", () => {
 
   test("the same person again within the window: the newest version takes it in, its changes counted from the version before it", async () => {
     history = [
-      stored({ number: 2, type: WorkflowVersionType.Changed, graph: GRAPH_3, savedBy: BOB }),
+      stored({
+        number: 2,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_3,
+        savedBy: BOB,
+      }),
       stored({
         number: 3,
         type: WorkflowVersionType.Changed,
         graph: GRAPH_1,
         savedBy: ALICE,
-        createdAt: new Date(NOW.getTime() - WORKFLOW_VERSION_GROUPING_WINDOW_IN_MS + 1000),
+        createdAt: new Date(
+          NOW.getTime() - WORKFLOW_VERSION_GROUPING_WINDOW_IN_MS + 1000,
+        ),
       }),
     ];
 
@@ -438,8 +480,18 @@ describe("a save of the graph", () => {
 
   test("an earlier version's graph is a Restored version naming it, even by the same person within the window", async () => {
     history = [
-      stored({ number: 2, type: WorkflowVersionType.Changed, graph: GRAPH_2, savedBy: BOB }),
-      stored({ number: 3, type: WorkflowVersionType.Changed, graph: GRAPH_1, savedBy: ALICE }),
+      stored({
+        number: 2,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_2,
+        savedBy: BOB,
+      }),
+      stored({
+        number: 3,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_1,
+        savedBy: ALICE,
+      }),
     ];
 
     await save(GRAPH_2, ALICE);
@@ -454,7 +506,9 @@ describe("a save of the graph", () => {
   });
 
   test("a save through the API, by nobody, is always a version of its own", async () => {
-    history = [stored({ number: 3, type: WorkflowVersionType.Changed, graph: GRAPH_1 })];
+    history = [
+      stored({ number: 3, type: WorkflowVersionType.Changed, graph: GRAPH_1 }),
+    ];
 
     await save(GRAPH_2, null);
 
@@ -463,7 +517,14 @@ describe("a save of the graph", () => {
   });
 
   test("only the newest versions are kept: the ones below the oldest kept go", async () => {
-    history = [stored({ number: 250, type: WorkflowVersionType.Changed, graph: GRAPH_1, savedBy: BOB })];
+    history = [
+      stored({
+        number: 250,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_1,
+        savedBy: BOB,
+      }),
+    ];
 
     await save(GRAPH_2, ALICE);
 
@@ -477,7 +538,14 @@ describe("a save of the graph", () => {
   });
 
   test("two saves claiming the same number: the one refused is decided again from the other's version", async () => {
-    history = [stored({ number: 3, type: WorkflowVersionType.Changed, graph: GRAPH_1, savedBy: BOB })];
+    history = [
+      stored({
+        number: 3,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_1,
+        savedBy: BOB,
+      }),
+    ];
     createFailures = 1;
 
     await save(GRAPH_2, ALICE);
@@ -488,7 +556,14 @@ describe("a save of the graph", () => {
   });
 
   test("a save that cannot be recorded twice over says why, for the caller to log", async () => {
-    history = [stored({ number: 3, type: WorkflowVersionType.Changed, graph: GRAPH_1, savedBy: BOB })];
+    history = [
+      stored({
+        number: 3,
+        type: WorkflowVersionType.Changed,
+        graph: GRAPH_1,
+        savedBy: BOB,
+      }),
+    ];
     createFailures = 2;
 
     await expect(save(GRAPH_2, ALICE)).rejects.toThrow(

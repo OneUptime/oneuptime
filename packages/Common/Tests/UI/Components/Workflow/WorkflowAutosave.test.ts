@@ -58,8 +58,9 @@ class TestClock {
             return a.at - b.at;
           });
 
-      const first: { id: number; at: number; callback: () => void } | undefined =
-        due[0];
+      const first:
+        | { id: number; at: number; callback: () => void }
+        | undefined = due[0];
 
       if (!first) {
         break;
@@ -108,10 +109,8 @@ const lastStatus: () => WorkflowAutosaveStatus = (): WorkflowAutosaveStatus => {
 
 const savedValues: () => Array<string> = (): Array<string> => {
   return saves.map((save: PendingSave): string => {
-    return (
-      (save.graph.nodes[1]?.["data"] as { arguments: { value: string } })
-        .arguments.value
-    );
+    return (save.graph.nodes[1]?.["data"] as { arguments: { value: string } })
+      .arguments.value;
   });
 };
 
@@ -286,81 +285,111 @@ describe("one save at a time, and the latest graph is the one the server ends wi
     const random: SeededRandom = seededRandom(61880);
 
     for (let session: number = 0; session < 40; session++) {
-      clock = new TestClock();
-      saves = [];
-      let outAtOnce: number = 0;
-      let mostOutAtOnce: number = 0;
-      const landed: Array<string> = [];
+      const result: {
+        mostOutAtOnce: number;
+        hasUnsavedChanges: boolean;
+        serverHas: string;
+        shown: string;
+      } = await runSeededSession(random);
 
-      autosave = new WorkflowAutosave({
-        save: (graph: SavedWorkflowGraph): Promise<void> => {
-          outAtOnce++;
-          mostOutAtOnce = Math.max(mostOutAtOnce, outAtOnce);
-
-          return new Promise<void>((resolve: () => void) => {
-            saves.push({
-              graph,
-              resolve: () => {
-                outAtOnce--;
-                landed.push(getWorkflowGraphKey(graph));
-                resolve();
-              },
-              reject: () => {},
-            });
-          });
-        },
-        onStatusChange: (): void => {},
-        setTimer: (callback: () => void, delayInMs: number): unknown => {
-          return clock.set(callback, delayInMs);
-        },
-        clearTimer: (timer: unknown): void => {
-          clock.clear(timer);
-        },
-      });
-      autosave.start(SERVER);
-
-      let shown: SavedWorkflowGraph = SERVER;
-      let answered: number = 0;
-
-      for (let action: number = 0; action < 25; action++) {
-        if (random(3) === 0) {
-          shown = graphWith(`value ${random(4)}`);
-          autosave.change(shown);
-        }
-
-        await clock.advance(random(3 * WORKFLOW_AUTOSAVE_DELAY_IN_MS));
-
-        // The server answers the saves out, sometimes.
-        while (answered < saves.length && random(2) === 0) {
-          saves[answered]?.resolve();
-          answered++;
-          await settle();
-        }
-      }
-
-      // Let everything land.
-      for (let round: number = 0; round < 20; round++) {
-        await clock.advance(10 * WORKFLOW_AUTOSAVE_DELAY_IN_MS);
-
-        while (answered < saves.length) {
-          saves[answered]?.resolve();
-          answered++;
-          await settle();
-        }
-      }
-
-      expect(mostOutAtOnce).toBeLessThanOrEqual(1);
-      expect(autosave.getStatus().hasUnsavedChanges).toBe(false);
-
-      const serverHas: string =
-        landed.length > 0
-          ? (landed[landed.length - 1] as string)
-          : getWorkflowGraphKey(SERVER);
-
-      expect(serverHas).toBe(getWorkflowGraphKey(shown));
+      expect(result.mostOutAtOnce).toBeLessThanOrEqual(1);
+      expect(result.hasUnsavedChanges).toBe(false);
+      expect(result.serverHas).toBe(result.shown);
     }
   });
 });
+
+/*
+ * One session of seeded edits, timers and answers from the server, on an
+ * autosave of its own: how many saves were ever out at once, whether anything
+ * was left unsaved, and the graph the server ended with beside the one shown.
+ */
+const runSeededSession: (random: SeededRandom) => Promise<{
+  mostOutAtOnce: number;
+  hasUnsavedChanges: boolean;
+  serverHas: string;
+  shown: string;
+}> = async (
+  random: SeededRandom,
+): Promise<{
+  mostOutAtOnce: number;
+  hasUnsavedChanges: boolean;
+  serverHas: string;
+  shown: string;
+}> => {
+  const sessionClock: TestClock = new TestClock();
+  const sessionSaves: Array<PendingSave> = [];
+  const landed: Array<string> = [];
+  let outAtOnce: number = 0;
+  let mostOutAtOnce: number = 0;
+
+  const session: WorkflowAutosave = new WorkflowAutosave({
+    save: (graph: SavedWorkflowGraph): Promise<void> => {
+      outAtOnce++;
+      mostOutAtOnce = Math.max(mostOutAtOnce, outAtOnce);
+
+      return new Promise<void>((resolve: () => void) => {
+        sessionSaves.push({
+          graph,
+          resolve: () => {
+            outAtOnce--;
+            landed.push(getWorkflowGraphKey(graph));
+            resolve();
+          },
+          reject: () => {},
+        });
+      });
+    },
+    onStatusChange: (): void => {},
+    setTimer: (callback: () => void, delayInMs: number): unknown => {
+      return sessionClock.set(callback, delayInMs);
+    },
+    clearTimer: (timer: unknown): void => {
+      sessionClock.clear(timer);
+    },
+  });
+  session.start(SERVER);
+
+  let shown: SavedWorkflowGraph = SERVER;
+  let answered: number = 0;
+
+  // The server answers the saves out, sometimes; at the end, all of them.
+  const answer: (all: boolean) => Promise<void> = async (
+    all: boolean,
+  ): Promise<void> => {
+    while (answered < sessionSaves.length && (all || random(2) === 0)) {
+      sessionSaves[answered]?.resolve();
+      answered++;
+      await settle();
+    }
+  };
+
+  for (let action: number = 0; action < 25; action++) {
+    if (random(3) === 0) {
+      shown = graphWith(`value ${random(4)}`);
+      session.change(shown);
+    }
+
+    await sessionClock.advance(random(3 * WORKFLOW_AUTOSAVE_DELAY_IN_MS));
+    await answer(false);
+  }
+
+  // Let everything land.
+  for (let round: number = 0; round < 20; round++) {
+    await sessionClock.advance(10 * WORKFLOW_AUTOSAVE_DELAY_IN_MS);
+    await answer(true);
+  }
+
+  return {
+    mostOutAtOnce,
+    hasUnsavedChanges: session.getStatus().hasUnsavedChanges,
+    serverHas:
+      landed.length > 0
+        ? (landed[landed.length - 1] as string)
+        : getWorkflowGraphKey(SERVER),
+    shown: getWorkflowGraphKey(shown),
+  };
+};
 
 describe("a save that fails", () => {
   test("keeps the change, says why, and is tried again with the next change", async () => {

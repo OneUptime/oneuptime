@@ -5,7 +5,14 @@ import Workflow from "../../../Models/DatabaseModels/Workflow";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../../Utils/API";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * Every save of a workflow's graph is recorded in its version history
@@ -51,11 +58,9 @@ const hook: (name: string) => Hook = (name: string): Hook => {
   ).bind(WorkflowService);
 };
 
-let recordCreated: jest.SpiedFunction<typeof WorkflowVersionService.recordCreated>;
-let recordEarlier: jest.SpiedFunction<
-  typeof WorkflowVersionService.recordEarlierVersionIfNone
->;
-let recordSave: jest.SpiedFunction<typeof WorkflowVersionService.recordGraphSave>;
+let recordCreated: jest.SpyInstance;
+let recordEarlier: jest.SpyInstance;
+let recordSave: jest.SpyInstance;
 let heldRows: Array<Workflow> = [];
 let loggedErrors: Array<string> = [];
 
@@ -65,13 +70,13 @@ beforeEach(() => {
 
   recordCreated = jest
     .spyOn(WorkflowVersionService, "recordCreated")
-    .mockResolvedValue(undefined as never);
+    .mockResolvedValue(undefined as never) as unknown as jest.SpyInstance;
   recordEarlier = jest
     .spyOn(WorkflowVersionService, "recordEarlierVersionIfNone")
-    .mockResolvedValue(undefined as never);
+    .mockResolvedValue(undefined as never) as unknown as jest.SpyInstance;
   recordSave = jest
     .spyOn(WorkflowVersionService, "recordGraphSave")
-    .mockResolvedValue(undefined as never);
+    .mockResolvedValue(undefined as never) as unknown as jest.SpyInstance;
 
   jest
     .spyOn(WorkflowService, "findRowsAndHoldUpdateToThem")
@@ -128,7 +133,10 @@ describe("a workflow created", () => {
     created.projectId = PROJECT_ID;
 
     await hook("onCreateSuccess")(
-      { createBy: { data: created, props: { userId: USER_ID } }, carryForward: null },
+      {
+        createBy: { data: created, props: { userId: USER_ID } },
+        carryForward: null,
+      },
       created,
     );
 
@@ -249,15 +257,19 @@ describe("once a graph is saved", () => {
       anUpdate({ graph: GRAPH });
 
     await hook("onUpdatePermitted")(updateBy);
-    await hook("onUpdateSuccess")({ updateBy, carryForward: null }, [WORKFLOW_ID]);
-    await hook("onUpdateSuccess")({ updateBy, carryForward: null }, [WORKFLOW_ID]);
+    await hook("onUpdateSuccess")({ updateBy, carryForward: null }, [
+      WORKFLOW_ID,
+    ]);
+    await hook("onUpdateSuccess")({ updateBy, carryForward: null }, [
+      WORKFLOW_ID,
+    ]);
 
     expect(recordSave).toHaveBeenCalledTimes(1);
   });
 
   test("is recorded before the workflow service is told: telling it can fail, the save is made either way", async () => {
     heldRows = [row(WORKFLOW_ID)];
-    (API.post as unknown as jest.SpiedFunction<typeof API.post>).mockRejectedValue(
+    (API.post as unknown as jest.SpyInstance).mockRejectedValue(
       new Error("the workflow service is down") as never,
     );
     const updateBy: { query: JSONObject; data: JSONObject; props: JSONObject } =

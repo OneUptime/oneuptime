@@ -160,36 +160,39 @@ describe("Undo, Redo and the Version history in every dashboard language", () =>
     }
   });
 
-  test.each(OTHER_LOCALES)("%s translates every one of them", (locale: string) => {
-    const translations: Record<string, string> = readLocale(locale);
-    const same: Array<string> = [
-      ...GLOBAL_SAME_AS_ENGLISH,
-      ...sameAsEnglish(locale),
-    ];
+  test.each(OTHER_LOCALES)(
+    "%s translates every one of them",
+    (locale: string) => {
+      const translations: Record<string, string> = readLocale(locale);
+      const same: Array<string> = [
+        ...GLOBAL_SAME_AS_ENGLISH,
+        ...sameAsEnglish(locale),
+      ];
 
-    for (const key of KEYS) {
-      const translated: string | undefined = translations[key];
+      for (const key of KEYS) {
+        const translated: string | undefined = translations[key];
 
-      expect({ locale, key, has: typeof translated === "string" }).toEqual({
-        locale,
-        key,
-        has: true,
-      });
+        expect({ locale, key, has: typeof translated === "string" }).toEqual({
+          locale,
+          key,
+          has: true,
+        });
 
-      if (key.endsWith("_one") && NO_ONE_FORM.includes(locale)) {
-        continue;
+        if (key.endsWith("_one") && NO_ONE_FORM.includes(locale)) {
+          continue;
+        }
+
+        const isLeftInEnglish: boolean =
+          translated === ENGLISH[key] && !same.includes(ENGLISH[key]!);
+
+        expect({ locale, key, isLeftInEnglish }).toEqual({
+          locale,
+          key,
+          isLeftInEnglish: false,
+        });
       }
-
-      const isLeftInEnglish: boolean =
-        translated === ENGLISH[key] && !same.includes(ENGLISH[key]!);
-
-      expect({ locale, key, isLeftInEnglish }).toEqual({
-        locale,
-        key,
-        isLeftInEnglish: false,
-      });
-    }
-  });
+    },
+  );
 
   test.each(OTHER_LOCALES)(
     "%s keeps every {{placeholder}} of the English",
@@ -233,7 +236,11 @@ describe("Undo, Redo and the Version history in every dashboard language", () =>
           return;
         }
 
-        expect({ locale, key, apart: translations[key] !== translations[redoKey] }).toEqual({
+        expect({
+          locale,
+          key,
+          apart: translations[key] !== translations[redoKey],
+        }).toEqual({
           locale,
           key,
           apart: true,

@@ -23,10 +23,7 @@ import Pill, { PillSize } from "../Pill/Pill";
 import SideOver from "../SideOver/SideOver";
 import API from "../../Utils/API/API";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
-import {
-  Translator,
-  getInlineSeparator,
-} from "../../Utils/TranslateTemplate";
+import { Translator, getInlineSeparator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import WorkflowVersion from "../../../Models/DatabaseModels/WorkflowVersion";
 import Select from "../../../Types/BaseDatabase/Select";

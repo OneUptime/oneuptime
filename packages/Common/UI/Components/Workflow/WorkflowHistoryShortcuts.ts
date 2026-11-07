@@ -49,6 +49,9 @@ export const getWorkflowHistoryShortcutKeys: (data: {
     : [KeyboardKey.Mod, "Y"];
 };
 
+// A key that types one Latin letter.
+const LATIN_LETTER: RegExp = /^[a-z]$/;
+
 /*
  * Whether the key pressed is `letter` (lower case): by the character it types,
  * or - on a keyboard that types no Latin letter there (Russian, Greek) - by
@@ -64,11 +67,9 @@ const isLetter: (event: WorkflowHistoryKeyEvent, letter: string) => boolean = (
     return true;
   }
 
-  const typesLatinLetter: boolean = /^[a-z]$/.test(key);
+  const typesLatinLetter: boolean = LATIN_LETTER.test(key);
 
-  return (
-    !typesLatinLetter && event.code === `Key${letter.toUpperCase()}`
-  );
+  return !typesLatinLetter && event.code === `Key${letter.toUpperCase()}`;
 };
 
 /*

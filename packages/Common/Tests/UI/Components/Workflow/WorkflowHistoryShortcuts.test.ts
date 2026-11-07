@@ -13,25 +13,59 @@ import {
  * Ctrl+Shift+Z and Ctrl+Y - and never a key taken from someone typing.
  */
 
-const key: (event: Partial<WorkflowHistoryKeyEvent>) => WorkflowHistoryKeyEvent =
-  (event: Partial<WorkflowHistoryKeyEvent>): WorkflowHistoryKeyEvent => {
-    return { key: "z", ...event };
-  };
+const key: (
+  event: Partial<WorkflowHistoryKeyEvent>,
+) => WorkflowHistoryKeyEvent = (
+  event: Partial<WorkflowHistoryKeyEvent>,
+): WorkflowHistoryKeyEvent => {
+  return { key: "z", ...event };
+};
 
 describe("which keys ask for Undo and Redo", () => {
   test.each([
     ["⌘Z", { metaKey: true }, WorkflowHistoryDirection.Undo],
     ["Ctrl+Z", { ctrlKey: true }, WorkflowHistoryDirection.Undo],
-    ["⇧⌘Z", { metaKey: true, shiftKey: true, key: "Z" }, WorkflowHistoryDirection.Redo],
-    ["Ctrl+Shift+Z", { ctrlKey: true, shiftKey: true, key: "Z" }, WorkflowHistoryDirection.Redo],
+    [
+      "⇧⌘Z",
+      { metaKey: true, shiftKey: true, key: "Z" },
+      WorkflowHistoryDirection.Redo,
+    ],
+    [
+      "Ctrl+Shift+Z",
+      { ctrlKey: true, shiftKey: true, key: "Z" },
+      WorkflowHistoryDirection.Redo,
+    ],
     ["Ctrl+Y", { ctrlKey: true, key: "y" }, WorkflowHistoryDirection.Redo],
-    ["Ctrl+Y with Caps Lock", { ctrlKey: true, key: "Y" }, WorkflowHistoryDirection.Redo],
-    ["⌘Z on an AZERTY keyboard, whose Z is elsewhere", { metaKey: true, key: "z", code: "KeyW" }, WorkflowHistoryDirection.Undo],
-    ["Ctrl+Z on a Russian keyboard, which types я there", { ctrlKey: true, key: "я", code: "KeyZ" }, WorkflowHistoryDirection.Undo],
-    ["Ctrl+Y on a Russian keyboard", { ctrlKey: true, key: "н", code: "KeyY" }, WorkflowHistoryDirection.Redo],
-  ])("%s", (_name: string, event: Partial<WorkflowHistoryKeyEvent>, expected: WorkflowHistoryDirection) => {
-    expect(getWorkflowHistoryShortcut(key(event))).toBe(expected);
-  });
+    [
+      "Ctrl+Y with Caps Lock",
+      { ctrlKey: true, key: "Y" },
+      WorkflowHistoryDirection.Redo,
+    ],
+    [
+      "⌘Z on an AZERTY keyboard, whose Z is elsewhere",
+      { metaKey: true, key: "z", code: "KeyW" },
+      WorkflowHistoryDirection.Undo,
+    ],
+    [
+      "Ctrl+Z on a Russian keyboard, which types я there",
+      { ctrlKey: true, key: "я", code: "KeyZ" },
+      WorkflowHistoryDirection.Undo,
+    ],
+    [
+      "Ctrl+Y on a Russian keyboard",
+      { ctrlKey: true, key: "н", code: "KeyY" },
+      WorkflowHistoryDirection.Redo,
+    ],
+  ])(
+    "%s",
+    (
+      _name: string,
+      event: Partial<WorkflowHistoryKeyEvent>,
+      expected: WorkflowHistoryDirection,
+    ) => {
+      expect(getWorkflowHistoryShortcut(key(event))).toBe(expected);
+    },
+  );
 
   test.each([
     ["Z alone", {}],
@@ -40,7 +74,10 @@ describe("which keys ask for Undo and Redo", () => {
     ["⌘Y, the browser's History on a Mac", { metaKey: true, key: "y" }],
     ["Ctrl+Shift+Y", { ctrlKey: true, shiftKey: true, key: "Y" }],
     ["⌘X", { metaKey: true, key: "x" }],
-    ["a Latin letter typed where Z sits is that letter", { metaKey: true, key: "w", code: "KeyZ" }],
+    [
+      "a Latin letter typed where Z sits is that letter",
+      { metaKey: true, key: "w", code: "KeyZ" },
+    ],
     ["no key at all", { ctrlKey: true, key: "" }],
   ])("not %s", (_name: string, event: Partial<WorkflowHistoryKeyEvent>) => {
     expect(getWorkflowHistoryShortcut(key(event))).toBeNull();
@@ -92,7 +129,9 @@ describe("what the tooltips name", () => {
 
         expect(
           getWorkflowHistoryShortcut({
-            key: keys.includes(KeyboardKey.Shift) ? letter.toUpperCase() : letter,
+            key: keys.includes(KeyboardKey.Shift)
+              ? letter.toUpperCase()
+              : letter,
             metaKey: isApplePlatform,
             ctrlKey: !isApplePlatform,
             shiftKey: keys.includes(KeyboardKey.Shift),
@@ -125,7 +164,9 @@ describe("whether the builder takes the shortcut", () => {
     ).toBe(true);
     expect(
       shouldWorkflowHandleHistoryShortcut({
-        event: pressedOn(document.querySelector(".react-flow__node") as Element),
+        event: pressedOn(
+          document.querySelector(".react-flow__node") as Element,
+        ),
         page: document,
       }),
     ).toBe(true);
@@ -135,13 +176,31 @@ describe("whether the builder takes the shortcut", () => {
     ["a text field", `<input id="target" type="text" />`],
     ["a text area", `<textarea id="target"></textarea>`],
     ["a select", `<select id="target"><option>a</option></select>`],
-    ["a rich text editor", `<div contenteditable="true"><p id="target">x</p></div>`],
-    ["the value picker's chip editor", `<div contenteditable=""><span id="target">x</span></div>`],
-    ["a code editor's surface", `<div class="monaco-editor"><div id="target" class="view-lines"></div></div>`],
-    ["a CodeMirror editor", `<div class="cm-editor"><div id="target" class="cm-content"></div></div>`],
-    ["anything that says it is a text box", `<div role="textbox"><span id="target"></span></div>`],
+    [
+      "a rich text editor",
+      `<div contenteditable="true"><p id="target">x</p></div>`,
+    ],
+    [
+      "the value picker's chip editor",
+      `<div contenteditable=""><span id="target">x</span></div>`,
+    ],
+    [
+      "a code editor's surface",
+      `<div class="monaco-editor"><div id="target" class="view-lines"></div></div>`,
+    ],
+    [
+      "a CodeMirror editor",
+      `<div class="cm-editor"><div id="target" class="cm-content"></div></div>`,
+    ],
+    [
+      "anything that says it is a text box",
+      `<div role="textbox"><span id="target"></span></div>`,
+    ],
     ["a dialog", `<div role="dialog"><button id="target">Save</button></div>`],
-    ["a panel beside the canvas", `<div role="dialog" data-testid="side-over"><button id="target">Preview</button></div>`],
+    [
+      "a panel beside the canvas",
+      `<div role="dialog" data-testid="side-over"><button id="target">Preview</button></div>`,
+    ],
   ])("pressed in %s: no, it is theirs", (_name: string, html: string) => {
     document.body.innerHTML = html;
 

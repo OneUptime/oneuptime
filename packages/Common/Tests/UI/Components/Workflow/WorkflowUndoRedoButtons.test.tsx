@@ -32,9 +32,7 @@ const DELETED_EMAIL: WorkflowHistoryStep = {
     {
       kind: WorkflowGraphChangeKind.Removed,
       line: 'Removed "Send Email" (send-email-1)',
-      steps: [
-        { key: "card-email", label: '"Send Email" (send-email-1)' },
-      ],
+      steps: [{ key: "card-email", label: '"Send Email" (send-email-1)' }],
     },
   ],
 };
@@ -186,23 +184,26 @@ describe("a save that failed, in the save pill", () => {
     WorkflowSaveState.Idle,
     WorkflowSaveState.Saving,
     WorkflowSaveState.Saved,
-  ])("is not offered while %s, nor is the pill an alert", (state: WorkflowSaveState) => {
-    render(
-      <WorkflowStatusBar
-        saveState={state}
-        saveError="stale"
-        onRetrySave={() => {}}
-      />,
-    );
+  ])(
+    "is not offered while %s, nor is the pill an alert",
+    (state: WorkflowSaveState) => {
+      render(
+        <WorkflowStatusBar
+          saveState={state}
+          saveError="stale"
+          onRetrySave={() => {}}
+        />,
+      );
 
-    expect(screen.queryByTestId("workflow-save-retry-button")).toBeNull();
-    expect(screen.getByTestId("workflow-save-status")).not.toHaveAttribute(
-      "role",
-    );
-    expect(screen.getByTestId("workflow-save-status")).not.toHaveAttribute(
-      "title",
-    );
-  });
+      expect(screen.queryByTestId("workflow-save-retry-button")).toBeNull();
+      expect(screen.getByTestId("workflow-save-status")).not.toHaveAttribute(
+        "role",
+      );
+      expect(screen.getByTestId("workflow-save-status")).not.toHaveAttribute(
+        "title",
+      );
+    },
+  );
 
   test("is not offered without a way to try again, nor in a view", () => {
     const { unmount } = render(

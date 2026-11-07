@@ -8,7 +8,11 @@ import {
   isSameWorkflowGraph,
   toSavedWorkflowGraph,
 } from "../../../Utils/Workflow/WorkflowGraphSnapshot";
-import { SeededRandom, seededRandom, shuffled } from "../../Helpers/SeededRandom";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "../../Helpers/SeededRandom";
 import {
   EMAIL,
   IF_ELSE,
@@ -95,7 +99,7 @@ describe("toSavedWorkflowGraph", () => {
       "style",
       "markerEnd",
       "animated",
-      "type\":\"smoothstep",
+      'type":"smoothstep',
     ]) {
       expect({ key, kept: text.includes(`"${key}"`) }).toEqual({
         key,
@@ -247,7 +251,13 @@ describe("getWorkflowGraphKey", () => {
         ],
       ),
       graphOf(
-        [MANUAL, IF_ELSE, LOG, EMAIL, { ...LOG, key: "card-log-2", stepId: "log-2" }],
+        [
+          MANUAL,
+          IF_ELSE,
+          LOG,
+          EMAIL,
+          { ...LOG, key: "card-log-2", stepId: "log-2" },
+        ],
         [
           { from: MANUAL.key, to: IF_ELSE.key },
           { from: IF_ELSE.key, to: LOG.key, fromPort: "yes" },

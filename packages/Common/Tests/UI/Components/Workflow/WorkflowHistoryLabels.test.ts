@@ -128,9 +128,9 @@ describe("one change, said for what it is", () => {
   });
 
   test("a card moved", () => {
-    expect(undoText(saved([MANUAL, LOG]), saved([MANUAL, { ...LOG, x: 500 }]))).toBe(
-      'Undo moving "Log" (log-1)',
-    );
+    expect(
+      undoText(saved([MANUAL, LOG]), saved([MANUAL, { ...LOG, x: 500 }])),
+    ).toBe('Undo moving "Log" (log-1)');
   });
 
   test("several cards moved", () => {
@@ -182,16 +182,9 @@ describe("one change, said for what it is", () => {
 
 describe("several changes", () => {
   test("all steps added: counted", () => {
-    expect(
-      undoText(
-        saved([MANUAL]),
-        saved([
-          MANUAL,
-          LOG,
-          EMAIL,
-        ]),
-      ),
-    ).toBe("Undo adding 2 steps");
+    expect(undoText(saved([MANUAL]), saved([MANUAL, LOG, EMAIL]))).toBe(
+      "Undo adding 2 steps",
+    );
   });
 
   test("all steps deleted: counted", () => {
@@ -215,22 +208,16 @@ describe("several changes", () => {
   test("a connection moved from one step to another is a change to the step it leaves", () => {
     expect(
       undoText(
-        saved(
-          [MANUAL, LOG, EMAIL],
-          [{ from: MANUAL.key, to: LOG.key }],
-        ),
-        saved(
-          [MANUAL, LOG, EMAIL],
-          [{ from: MANUAL.key, to: EMAIL.key }],
-        ),
+        saved([MANUAL, LOG, EMAIL], [{ from: MANUAL.key, to: LOG.key }]),
+        saved([MANUAL, LOG, EMAIL], [{ from: MANUAL.key, to: EMAIL.key }]),
       ),
     ).toBe('Undo changes to "Manual" (manual-1)');
   });
 
   test("anything else: how many", () => {
-    expect(
-      undoText(saved([MANUAL, LOG]), saved([MANUAL, EMAIL])),
-    ).toBe("Undo 2 changes");
+    expect(undoText(saved([MANUAL, LOG]), saved([MANUAL, EMAIL]))).toBe(
+      "Undo 2 changes",
+    );
   });
 
   test("a step added and a card moved: how many", () => {
@@ -347,9 +334,7 @@ describe("Redo says the same, as Redo", () => {
       getWorkflowHistoryActionText({
         direction: WorkflowHistoryDirection.Redo,
         step: stepWith({
-          changes: [
-            change(WorkflowGraphChangeKind.Disconnected, '"A"', '"B"'),
-          ],
+          changes: [change(WorkflowGraphChangeKind.Disconnected, '"A"', '"B"')],
         }),
         translator: english,
       }),
@@ -422,14 +407,11 @@ describe("the tooltip", () => {
 
 describe("in the reader's language", () => {
   // A language that words every sentence, so the lookups are seen.
-  const shouting: Translator = createTranslator(
-    (text: string): string => {
-      return text.toUpperCase().replace(/{{(\w+)}}/gi, (match: string) => {
-        return match.toLowerCase();
-      });
-    },
-    "de",
-  );
+  const shouting: Translator = createTranslator((text: string): string => {
+    return text.toUpperCase().replace(/{{(\w+)}}/gi, (match: string) => {
+      return match.toLowerCase();
+    });
+  }, "de");
 
   test("the whole sentence is looked up, and the step's name put in as written", () => {
     expect(undoText(saved([MANUAL, EMAIL]), saved([MANUAL]), shouting)).toBe(
@@ -477,6 +459,8 @@ describe("in the reader's language", () => {
         return key.startsWith("Redo") || key === "Nothing to redo";
       }),
     ).toBe(true);
-    expect(WORKFLOW_HISTORY_SHORTCUT_TEMPLATE).toBe("{{action}} ({{shortcut}})");
+    expect(WORKFLOW_HISTORY_SHORTCUT_TEMPLATE).toBe(
+      "{{action}} ({{shortcut}})",
+    );
   });
 });

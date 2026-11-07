@@ -53,9 +53,10 @@ describePostgres("a workflow's version history, in Postgres", () => {
   const BOB: ObjectID = ObjectID.generate();
   let database: DataSource;
 
-  const GRAPH_BEFORE: JSONObject = graphOf([MANUAL, LOG], [
-    { from: MANUAL.key, to: LOG.key },
-  ]) as unknown as JSONObject;
+  const GRAPH_BEFORE: JSONObject = graphOf(
+    [MANUAL, LOG],
+    [{ from: MANUAL.key, to: LOG.key }],
+  ) as unknown as JSONObject;
   const GRAPH_WITH_EMAIL: JSONObject = graphOf(
     [MANUAL, LOG, EMAIL],
     [
@@ -68,7 +69,9 @@ describePostgres("a workflow's version history, in Postgres", () => {
     database = new DataSource({
       type: "postgres",
       host: process.env["WORKFLOW_VERSION_TEST_DATABASE_HOST"] || "localhost",
-      port: Number(process.env["WORKFLOW_VERSION_TEST_DATABASE_PORT"] || "5400"),
+      port: Number(
+        process.env["WORKFLOW_VERSION_TEST_DATABASE_PORT"] || "5400",
+      ),
       username: process.env["DATABASE_USERNAME"] || "postgres",
       password: process.env["DATABASE_PASSWORD"] || "password",
       database:
@@ -130,14 +133,20 @@ describePostgres("a workflow's version history, in Postgres", () => {
     jest.restoreAllMocks();
   });
 
-  const insertWorkflow: (graph: JSONObject | null) => Promise<ObjectID> = async (
+  const insertWorkflow: (
+    graph: JSONObject | null,
+  ) => Promise<ObjectID> = async (
     graph: JSONObject | null,
   ): Promise<ObjectID> => {
     const id: ObjectID = ObjectID.generate();
     await database.query(
       `INSERT INTO "${schema}"."Workflow" ("_id", "projectId", "name", "slug", "graph", "isEnabled", "isArchived", "version", "createdAt", "updatedAt")
       VALUES ($1, $2, 'Notify on-call', 'notify-on-call', $3, false, false, 1, now(), now())`,
-      [id.toString(), PROJECT_ID.toString(), graph ? JSON.stringify(graph) : null],
+      [
+        id.toString(),
+        PROJECT_ID.toString(),
+        graph ? JSON.stringify(graph) : null,
+      ],
     );
     return id;
   };
@@ -153,14 +162,17 @@ describePostgres("a workflow's version history, in Postgres", () => {
     graph: JSONObject;
   }
 
-  const versionsOf: (workflowId: ObjectID) => Promise<Array<VersionRow>> =
-    async (workflowId: ObjectID): Promise<Array<VersionRow>> => {
-      return await database.query(
-        `SELECT "versionNumber", "versionType", "changes", "changeCount", "restoredFromVersionNumber", "createdByUserId", "graphFingerprint", "graph"
+  const versionsOf: (
+    workflowId: ObjectID,
+  ) => Promise<Array<VersionRow>> = async (
+    workflowId: ObjectID,
+  ): Promise<Array<VersionRow>> => {
+    return await database.query(
+      `SELECT "versionNumber", "versionType", "changes", "changeCount", "restoredFromVersionNumber", "createdByUserId", "graphFingerprint", "graph"
         FROM "${schema}"."WorkflowVersion" WHERE "workflowId" = $1 ORDER BY "versionNumber" ASC`,
-        [workflowId.toString()],
-      );
-    };
+      [workflowId.toString()],
+    );
+  };
 
   // A save of the graph through WorkflowService, by `userId`, as the builder makes it.
   const saveGraph: (data: {
@@ -228,9 +240,10 @@ describePostgres("a workflow's version history, in Postgres", () => {
     await saveGraph({ workflowId, graph: GRAPH_WITH_EMAIL, userId: ALICE });
     await saveGraph({
       workflowId,
-      graph: graphOf([MANUAL, LOG, EMAIL], [
-        { from: MANUAL.key, to: LOG.key },
-      ]) as unknown as JSONObject,
+      graph: graphOf(
+        [MANUAL, LOG, EMAIL],
+        [{ from: MANUAL.key, to: LOG.key }],
+      ) as unknown as JSONObject,
       userId: ALICE,
     });
 

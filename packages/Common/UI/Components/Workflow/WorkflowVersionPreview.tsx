@@ -1,5 +1,8 @@
 import Workflow from "./Workflow";
-import { WorkflowCanvasGraph, toWorkflowCanvasGraph } from "./WorkflowCanvasGraph";
+import {
+  WorkflowCanvasGraph,
+  toWorkflowCanvasGraph,
+} from "./WorkflowCanvasGraph";
 import { WorkflowVersionCopy } from "./WorkflowVersionPresentation";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
@@ -196,7 +199,9 @@ const WorkflowVersionPreview: FunctionComponent<ComponentProps> = (
         {changes && !isSameAsNow ? (
           <div>
             <h3 className="text-sm font-medium text-gray-900">
-              {translator.translateText(WorkflowVersionCopy.previewChangesTitle)}
+              {translator.translateText(
+                WorkflowVersionCopy.previewChangesTitle,
+              )}
             </h3>
             <ul
               className="mt-2 list-disc space-y-1 ps-5 text-sm text-gray-700"

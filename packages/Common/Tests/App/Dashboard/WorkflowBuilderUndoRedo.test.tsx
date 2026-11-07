@@ -56,11 +56,11 @@ jest.mock("reactflow", () => {
         );
       }
 
-      const move: (
+      const move: (node: FlowNode, dragging: boolean, dx: number) => void = (
         node: FlowNode,
         dragging: boolean,
         dx: number,
-      ) => void = (node: FlowNode, dragging: boolean, dx: number): void => {
+      ): void => {
         props.onNodesChange?.([
           {
             id: node.id,
@@ -355,9 +355,7 @@ const stepIdsOf: (graph: JSONObject | undefined) => Array<string> = (
   );
 };
 
-const lastSaved: () => JSONObject | undefined = ():
-  | JSONObject
-  | undefined => {
+const lastSaved: () => JSONObject | undefined = (): JSONObject | undefined => {
   const graphs: Array<JSONObject> = savedGraphs();
   return graphs[graphs.length - 1];
 };
@@ -678,7 +676,10 @@ describe("the shortcuts", () => {
 
     // A step's settings open: their fields undo their own typing.
     fireEvent.click(screen.getByTestId("workflow-node-manual-1"));
-    pressKeys({ key: "z", metaKey: true }, screen.getByTestId("step-setting-input"));
+    pressKeys(
+      { key: "z", metaKey: true },
+      screen.getByTestId("step-setting-input"),
+    );
     pressKeys({ key: "z", metaKey: true });
 
     await wait(300);
@@ -790,13 +791,15 @@ describe("the Version history", () => {
       ).toHaveTextContent('Added "Send Email" (send-email-1)');
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Restore this version" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Restore this version" }),
+    );
 
     await waitFor(() => {
       expect(
-        within(screen.getAllByTestId("workflow-canvas")[0] as HTMLElement).getByTestId(
-          "workflow-node-send-email-1",
-        ),
+        within(
+          screen.getAllByTestId("workflow-canvas")[0] as HTMLElement,
+        ).getByTestId("workflow-node-send-email-1"),
       ).toBeInTheDocument();
     });
 

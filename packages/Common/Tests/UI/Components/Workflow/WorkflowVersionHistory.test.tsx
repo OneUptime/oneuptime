@@ -56,9 +56,11 @@ jest.mock("../../../../UI/Components/Workflow/Workflow", () => {
 
       return (
         <div data-testid="preview-canvas">
-          {props.initialNodes.map((node: { id: string; data: { id?: string } }) => {
-            return <span key={node.id}>{node.data.id || "slot"}</span>;
-          })}
+          {props.initialNodes.map(
+            (node: { id: string; data: { id?: string } }) => {
+              return <span key={node.id}>{node.data.id || "slot"}</span>;
+            },
+          )}
         </div>
       );
     },
@@ -108,7 +110,9 @@ const COMPONENTS: Array<ComponentMetadata> = Array.from(
 );
 
 // On the canvas now: a trigger and a Log step.
-const CURRENT: SavedWorkflowGraph = toSavedWorkflowGraph(graphOf([MANUAL, LOG]));
+const CURRENT: SavedWorkflowGraph = toSavedWorkflowGraph(
+  graphOf([MANUAL, LOG]),
+);
 
 // Version 2 had a Send Email step too.
 const VERSION_2_GRAPH: JSONObject = toSavedWorkflowGraph(
@@ -312,9 +316,11 @@ describe("the list", () => {
     expect(within(row(3)).queryByText("Current")).toBeNull();
     expect(row(3)).toHaveTextContent("Grace Hopper");
     expect(
-      within(row(3)).getAllByRole("listitem").map((item: HTMLElement) => {
-        return item.textContent;
-      }),
+      within(row(3))
+        .getAllByRole("listitem")
+        .map((item: HTMLElement) => {
+          return item.textContent;
+        }),
     ).toEqual([
       'Removed "Send Email" (send-email-1)',
       'Changed "Value" in "Log" (log-1)',
@@ -402,7 +408,9 @@ describe("the list", () => {
 
     expect((mockGetList.mock.calls[1]?.[0] as { skip: number }).skip).toBe(20);
     expect(screen.getAllByTestId(/^workflow-version-\d+$/)).toHaveLength(25);
-    expect(screen.queryByTestId("workflow-version-history-show-more")).toBeNull();
+    expect(
+      screen.queryByTestId("workflow-version-history-show-more"),
+    ).toBeNull();
   });
 
   test("reads again after a save, keeping as many as it shows", async () => {
@@ -468,7 +476,9 @@ describe("the preview", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("workflow-version-preview")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("workflow-version-preview"),
+      ).toBeInTheDocument();
     });
   };
 
@@ -481,13 +491,15 @@ describe("the preview", () => {
       (mockGetItem.mock.calls[0]?.[0] as { id: ObjectID; select: JSONObject })
         .select,
     ).toEqual({ graph: true });
-    expect(screen.getByRole("dialog", { name: /Version 2/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: /Version 2/ }),
+    ).toBeInTheDocument();
     expect(
       screen.getByTestId("workflow-version-preview-changes"),
     ).toHaveTextContent('Added "Send Email" (send-email-1)');
-    expect(screen.getByTestId("workflow-version-preview-note")).toHaveTextContent(
-      WorkflowVersionCopy.restoreNote,
-    );
+    expect(
+      screen.getByTestId("workflow-version-preview-note"),
+    ).toHaveTextContent(WorkflowVersionCopy.restoreNote);
   });
 
   test("draws the version on a canvas of its own where nothing changes", async () => {
@@ -513,7 +525,9 @@ describe("the preview", () => {
     renderPanel({ onRestore });
     await openPreviewOf(2);
 
-    fireEvent.click(screen.getByRole("button", { name: "Restore this version" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Restore this version" }),
+    );
 
     expect(onRestore).toHaveBeenCalledWith({
       versionNumber: 2,
@@ -539,9 +553,9 @@ describe("the preview", () => {
     renderPanel({ onRestore });
     await openPreviewOf(3);
 
-    expect(screen.getByTestId("workflow-version-preview-same")).toHaveTextContent(
-      WorkflowVersionCopy.sameAsNow,
-    );
+    expect(
+      screen.getByTestId("workflow-version-preview-same"),
+    ).toHaveTextContent(WorkflowVersionCopy.sameAsNow);
 
     const restore: HTMLElement = screen.getByRole("button", {
       name: "Restore this version",
@@ -560,9 +574,9 @@ describe("the preview", () => {
     });
     await openPreviewOf(2);
 
-    expect(screen.getByTestId("workflow-version-preview-note")).toHaveTextContent(
-      "Changing this workflow takes permission to edit it.",
-    );
+    expect(
+      screen.getByTestId("workflow-version-preview-note"),
+    ).toHaveTextContent("Changing this workflow takes permission to edit it.");
     expect(
       screen.queryByRole("button", { name: "Restore this version" }),
     ).toBeNull();
@@ -631,7 +645,11 @@ describe("the preview", () => {
       name: /Version 2/,
     });
 
-    fireEvent.click(within(dialog).getAllByRole("button", { name: "Close" }).pop() as HTMLElement);
+    fireEvent.click(
+      within(dialog)
+        .getAllByRole("button", { name: "Close" })
+        .pop() as HTMLElement,
+    );
 
     await waitFor(() => {
       expect(screen.queryByTestId("workflow-version-preview")).toBeNull();

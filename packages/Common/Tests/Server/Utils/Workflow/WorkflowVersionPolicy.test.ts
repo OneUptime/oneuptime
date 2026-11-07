@@ -29,17 +29,20 @@ const ago: (milliseconds: number) => Date = (milliseconds: number): Date => {
   return new Date(NOW.getTime() - milliseconds);
 };
 
-const newest: (overrides?: Partial<WorkflowVersionSeen>) => WorkflowVersionSeen =
-  (overrides: Partial<WorkflowVersionSeen> = {}): WorkflowVersionSeen => {
-    return {
-      versionNumber: 7,
-      versionType: WorkflowVersionType.Changed,
-      graphFingerprint: "fingerprint-7",
-      savedByUserId: ALICE,
-      createdAt: ago(60 * 1000),
-      ...overrides,
-    };
+const newest: (
+  overrides?: Partial<WorkflowVersionSeen>,
+) => WorkflowVersionSeen = (
+  overrides: Partial<WorkflowVersionSeen> = {},
+): WorkflowVersionSeen => {
+  return {
+    versionNumber: 7,
+    versionType: WorkflowVersionType.Changed,
+    graphFingerprint: "fingerprint-7",
+    savedByUserId: ALICE,
+    createdAt: ago(60 * 1000),
+    ...overrides,
   };
+};
 
 const decide: (data: {
   newest?: WorkflowVersionSeen | null | undefined;
@@ -165,9 +168,7 @@ describe("the newest version takes in the next save", () => {
     WorkflowVersionType.Restored,
     WorkflowVersionType.Earlier,
   ])("not into a %s version, which stays as it was", (versionType: string) => {
-    expect(
-      decide({ newest: newest({ versionType: versionType }) }),
-    ).toEqual({
+    expect(decide({ newest: newest({ versionType: versionType }) })).toEqual({
       kind: WorkflowVersionWriteKind.Add,
       versionNumber: 8,
       versionType: WorkflowVersionType.Changed,

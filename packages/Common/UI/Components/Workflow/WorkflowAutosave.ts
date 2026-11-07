@@ -231,9 +231,7 @@ export default class WorkflowAutosave {
           this.savedKey = latest.key;
         }
       } catch (error) {
-        failure = (this.options.describeError || describeErrorByDefault)(
-          error,
-        );
+        failure = (this.options.describeError || describeErrorByDefault)(error);
       }
     })();
 
