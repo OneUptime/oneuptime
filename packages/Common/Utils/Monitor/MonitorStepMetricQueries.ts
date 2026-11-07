@@ -668,43 +668,44 @@ interface MetricBackedMonitorType {
  * each query with what its worker function (monitorHost, monitorDocker,
  * ...) adds to it.
  */
-const METRIC_BACKED_TYPES: Partial<Record<MonitorType, MetricBackedMonitorType>> =
-  {
-    [MonitorType.Metrics]: { stepKey: "metricMonitor", read: readMetrics },
-    [MonitorType.Kubernetes]: {
-      stepKey: "kubernetesMonitor",
-      read: readKubernetes,
+const METRIC_BACKED_TYPES: Partial<
+  Record<MonitorType, MetricBackedMonitorType>
+> = {
+  [MonitorType.Metrics]: { stepKey: "metricMonitor", read: readMetrics },
+  [MonitorType.Kubernetes]: {
+    stepKey: "kubernetesMonitor",
+    read: readKubernetes,
+  },
+  [MonitorType.Docker]: {
+    stepKey: "dockerMonitor",
+    read: (input: ReadAttributesInput): Dictionary<unknown> | undefined => {
+      return readContainers(input, "docker");
     },
-    [MonitorType.Docker]: {
-      stepKey: "dockerMonitor",
-      read: (input: ReadAttributesInput): Dictionary<unknown> | undefined => {
-        return readContainers(input, "docker");
-      },
+  },
+  [MonitorType.Host]: { stepKey: "hostMonitor", read: readHost },
+  [MonitorType.Podman]: {
+    stepKey: "podmanMonitor",
+    read: (input: ReadAttributesInput): Dictionary<unknown> | undefined => {
+      return readContainers(input, "podman");
     },
-    [MonitorType.Host]: { stepKey: "hostMonitor", read: readHost },
-    [MonitorType.Podman]: {
-      stepKey: "podmanMonitor",
-      read: (input: ReadAttributesInput): Dictionary<unknown> | undefined => {
-        return readContainers(input, "podman");
-      },
-    },
-    [MonitorType.DockerSwarm]: {
-      stepKey: "dockerSwarmMonitor",
-      read: readDockerSwarm,
-    },
-    [MonitorType.Proxmox]: { stepKey: "proxmoxMonitor", read: readProxmox },
-    [MonitorType.OpenStack]: {
-      stepKey: "openstackMonitor",
-      read: readOpenStack,
-    },
-    [MonitorType.VMware]: { stepKey: "vmwareMonitor", read: readVMware },
-    [MonitorType.Ceph]: { stepKey: "cephMonitor", read: readCeph },
-    [MonitorType.StorageArray]: {
-      stepKey: "storageArrayMonitor",
-      read: readStorageArray,
-    },
-    [MonitorType.IoTDevice]: { stepKey: "iotMonitor", read: readIoT },
-  };
+  },
+  [MonitorType.DockerSwarm]: {
+    stepKey: "dockerSwarmMonitor",
+    read: readDockerSwarm,
+  },
+  [MonitorType.Proxmox]: { stepKey: "proxmoxMonitor", read: readProxmox },
+  [MonitorType.OpenStack]: {
+    stepKey: "openstackMonitor",
+    read: readOpenStack,
+  },
+  [MonitorType.VMware]: { stepKey: "vmwareMonitor", read: readVMware },
+  [MonitorType.Ceph]: { stepKey: "cephMonitor", read: readCeph },
+  [MonitorType.StorageArray]: {
+    stepKey: "storageArrayMonitor",
+    read: readStorageArray,
+  },
+  [MonitorType.IoTDevice]: { stepKey: "iotMonitor", read: readIoT },
+};
 
 export default class MonitorStepMetricQueries {
   // The monitor types this reads the steps of: every metric-backed one.
@@ -847,7 +848,10 @@ export default class MonitorStepMetricQueries {
    * three hours), or the whole window for a step that reads it as one value.
    */
   public static getEvaluationInterval(
-    reads: Pick<MonitorStepMetricReads, "rollingTime" | "aggregatesWholeWindow">,
+    reads: Pick<
+      MonitorStepMetricReads,
+      "rollingTime" | "aggregatesWholeWindow"
+    >,
   ): AggregationInterval {
     if (reads.aggregatesWholeWindow) {
       return AggregationInterval.Total;
@@ -870,7 +874,9 @@ export default class MonitorStepMetricQueries {
   ): MetricQueryConfigData {
     const metricQueryData: MetricQueryConfigData["metricQueryData"] =
       queryConfig.metricQueryData ||
-      ({ filterData: {} } as unknown as MetricQueryConfigData["metricQueryData"]);
+      ({
+        filterData: {},
+      } as unknown as MetricQueryConfigData["metricQueryData"]);
     const filterData: Record<string, unknown> = {
       ...((metricQueryData.filterData as unknown as
         | Record<string, unknown>

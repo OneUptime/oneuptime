@@ -76,19 +76,21 @@ const queryOf: (
   };
 };
 
-const formulaOf: (variable: string, text: string) => MetricFormulaConfigData =
-  (variable: string, text: string): MetricFormulaConfigData => {
-    return {
-      metricAliasData: {
-        metricVariable: variable,
-        title: "",
-        description: "",
-        legend: "",
-        legendUnit: "",
-      },
-      metricFormulaData: { metricFormula: text },
-    };
+const formulaOf: (variable: string, text: string) => MetricFormulaConfigData = (
+  variable: string,
+  text: string,
+): MetricFormulaConfigData => {
+  return {
+    metricAliasData: {
+      metricVariable: variable,
+      title: "",
+      description: "",
+      legend: "",
+      legendUnit: "",
+    },
+    metricFormulaData: { metricFormula: text },
   };
+};
 
 const thresholdOf: (
   variable: string,
@@ -130,12 +132,15 @@ const drawnOf: (data: {
   });
 };
 
-const variablesOf: (thresholds: Array<{ metricVariable: string }>) => Array<string> =
-  (thresholds: Array<{ metricVariable: string }>): Array<string> => {
-    return thresholds.map((threshold: { metricVariable: string }) => {
-      return threshold.metricVariable;
-    });
-  };
+const variablesOf: (
+  thresholds: Array<{ metricVariable: string }>,
+) => Array<string> = (
+  thresholds: Array<{ metricVariable: string }>,
+): Array<string> => {
+  return thresholds.map((threshold: { metricVariable: string }) => {
+    return threshold.metricVariable;
+  });
+};
 
 describe("lines on the metrics the page started from", () => {
   test("are drawn while those metrics are on screen", () => {
@@ -277,9 +282,9 @@ describe("lines on a sum or a count", () => {
       AggregationInterval.Minute,
     );
 
-    expect(variablesOf(drawnOf({ thresholds: [minuteLine], hours: 3 }).drawn)).toEqual(
-      ["a"],
-    );
+    expect(
+      variablesOf(drawnOf({ thresholds: [minuteLine], hours: 3 }).drawn),
+    ).toEqual(["a"]);
 
     const atADay: DrawnThresholds = drawnOf({
       thresholds: [minuteLine, thresholdOf("b")],

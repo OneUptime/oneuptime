@@ -1,6 +1,8 @@
 import BadDataException from "../../Types/Exception/BadDataException";
 import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
-import MonitorType, { MonitorTypeHelper } from "../../Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "../../Types/Monitor/MonitorType";
 import MonitorMetricTypeUtil from "./MonitorMetricType";
 import { translationKey } from "../../Types/Translator";
 

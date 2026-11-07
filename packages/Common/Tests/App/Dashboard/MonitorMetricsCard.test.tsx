@@ -205,10 +205,7 @@ import { JSONObject } from "../../../Types/JSON";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricViewData from "../../../Types/Metrics/MetricViewData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
-import {
-  CheckOn,
-  FilterType,
-} from "../../../Types/Monitor/CriteriaFilter";
+import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
@@ -429,7 +426,9 @@ describe("a Proxmox monitor's overview (the issue's own case)", () => {
 
     expect(screen.getByRole("heading", { name: "Metrics" })).toBeVisible();
     expect(
-      screen.getByText("What this monitor checks, and the values it alerts at."),
+      screen.getByText(
+        "What this monitor checks, and the values it alerts at.",
+      ),
     ).toBeVisible();
     expect(pickerButton()).toHaveTextContent("Past 3 Hours");
     expect(lastFetchedWindow()).toEqual([THREE_HOURS_AGO, NOW.toISOString()]);
@@ -440,9 +439,8 @@ describe("a Proxmox monitor's overview (the issue's own case)", () => {
     expect(fetched.formulaConfigs).toHaveLength(1);
     for (const queryConfig of fetched.queryConfigs) {
       expect(
-        queryConfig.metricQueryData.filterData.attributes as unknown as Dictionary<
-          unknown
-        >,
+        queryConfig.metricQueryData.filterData
+          .attributes as unknown as Dictionary<unknown>,
       ).toMatchObject({
         "resource.proxmox.cluster.name": "pve",
         "pve.scope": "node",
@@ -594,7 +592,10 @@ describe("a threshold on a count", () => {
   };
 
   test("is drawn where each point is a minute, as the monitor counts, and offered back from a longer range", async () => {
-    renderCard({ monitorType: MonitorType.Metrics, monitorSteps: countSteps() });
+    renderCard({
+      monitorType: MonitorType.Metrics,
+      monitorSteps: countSteps(),
+    });
     await chartsShown();
 
     expect(thresholdNames()).toEqual(["Too many"]);
@@ -616,7 +617,9 @@ describe("a threshold on a count", () => {
     );
 
     jest.setSystemTime(NOW);
-    fireEvent.click(within(hint).getByRole("button", { name: "Show Past 3 Hours" }));
+    fireEvent.click(
+      within(hint).getByRole("button", { name: "Show Past 3 Hours" }),
+    );
 
     await waitFor(() => {
       expect(lastFetchedWindow()).toEqual([THREE_HOURS_AGO, NOW.toISOString()]);
@@ -660,15 +663,14 @@ describe("what the reader changes", () => {
         } as never,
       },
     };
-    const params: Dictionary<string | null> = MetricInvestigationUrl.buildParams(
-      {
+    const params: Dictionary<string | null> =
+      MetricInvestigationUrl.buildParams({
         prefix: "metrics",
         state: {
           selection: null,
           queries: { queryConfigs: [changed], formulaConfigs: [] },
         },
-      },
-    );
+      });
     const search: URLSearchParams = new URLSearchParams();
     for (const [name, value] of Object.entries(params)) {
       if (value) {
@@ -744,12 +746,14 @@ describe("a monitor with several criteria steps", () => {
     const picker: HTMLElement = screen.getByTestId(
       MONITOR_METRICS_STEP_PICKER_TEST_ID,
     );
-    expect(within(picker).getByRole("button", { name: "Step 1" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
     expect(
-      String(fetchedData()[0]!.queryConfigs[0]!.metricQueryData.filterData.metricName),
+      within(picker).getByRole("button", { name: "Step 1" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      String(
+        fetchedData()[0]!.queryConfigs[0]!.metricQueryData.filterData
+          .metricName,
+      ),
     ).toBe("cpu.load");
 
     fireEvent.click(within(picker).getByRole("button", { name: "Step 2" }));
@@ -762,9 +766,9 @@ describe("a monitor with several criteria steps", () => {
         ),
       ).toBe("memory.used");
     });
-    expect(
-      new URLSearchParams(window.location.search).get("metricsStep"),
-    ).toBe("2");
+    expect(new URLSearchParams(window.location.search).get("metricsStep")).toBe(
+      "2",
+    );
     expect(lastCharts?.thresholds?.[0]?.["value"]).toBe(90);
 
     // Opened again on that link, it starts on the second step.
@@ -788,7 +792,9 @@ describe("a monitor with several criteria steps", () => {
     });
     await chartsShown();
 
-    expect(screen.queryByTestId(MONITOR_METRICS_STEP_PICKER_TEST_ID)).toBeNull();
+    expect(
+      screen.queryByTestId(MONITOR_METRICS_STEP_PICKER_TEST_ID),
+    ).toBeNull();
   });
 });
 
@@ -844,7 +850,9 @@ describe("the page around the card", () => {
       monitorSteps: stepsOf(metricsStep({ id: "new", metricName: "" })),
     });
 
-    expect(screen.getByTestId(MONITOR_METRICS_NO_METRIC_TEST_ID)).toHaveTextContent(
+    expect(
+      screen.getByTestId(MONITOR_METRICS_NO_METRIC_TEST_ID),
+    ).toHaveTextContent(
       "This monitor has no metric to chart yet. Pick one in its criteria.",
     );
     expect(fetchResultsMock).not.toHaveBeenCalled();
@@ -873,7 +881,9 @@ describe("the page around the card", () => {
       monitorSteps: stepsOf(
         metricsStep({
           id: "rum",
-          settings: { telemetryServiceIds: ["44444444-4444-4444-8444-444444444444"] },
+          settings: {
+            telemetryServiceIds: ["44444444-4444-4444-8444-444444444444"],
+          },
         }),
       ),
     });

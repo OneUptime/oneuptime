@@ -184,7 +184,10 @@ export function getEventMetricThresholds(input: {
         return (
           nowCompares !== null &&
           nowCompares ===
-            getMetricIdentityKey(input.snapshotQueries, threshold.metricVariable)
+            getMetricIdentityKey(
+              input.snapshotQueries,
+              threshold.metricVariable,
+            )
         );
       }),
     );

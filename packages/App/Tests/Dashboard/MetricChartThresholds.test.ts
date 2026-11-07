@@ -42,7 +42,8 @@ const linesOf: (data: {
 }): Array<ChartReferenceLineProps> => {
   return buildMetricChartThresholdLines({
     thresholds: data.thresholds,
-    metricVariable: data.metricVariable === undefined ? "a" : data.metricVariable,
+    metricVariable:
+      data.metricVariable === undefined ? "a" : data.metricVariable,
     unit: data.unit === undefined ? "%" : data.unit,
     formatterOptions: data.metricName
       ? { metricName: data.metricName }
@@ -148,7 +149,15 @@ describe("what a line says beside it", () => {
   });
 
   test("any name keeps its label within bounds and never empty (seeded)", () => {
-    for (const name of generatedTexts(2000, 6250, ["a", " ", "%", "9", "é", ">", "…"])) {
+    for (const name of generatedTexts(2000, 6250, [
+      "a",
+      " ",
+      "%",
+      "9",
+      "é",
+      ">",
+      "…",
+    ])) {
       const label: string = getMetricChartThresholdLabel({
         name,
         filterType: FilterType.GreaterThan,
@@ -183,7 +192,9 @@ describe("the lines one chart draws", () => {
         thresholds: [{ ...THRESHOLD, metricVariable: "b" }],
       }),
     ).toEqual([]);
-    expect(linesOf({ thresholds: [THRESHOLD], metricVariable: "" })).toEqual([]);
+    expect(linesOf({ thresholds: [THRESHOLD], metricVariable: "" })).toEqual(
+      [],
+    );
   });
 
   test("a value typed in another unit of the chart's family is drawn in the chart's", () => {
@@ -208,9 +219,9 @@ describe("the lines one chart draws", () => {
   });
 
   test("a value the chart already draws a line at is not drawn twice", () => {
-    expect(
-      linesOf({ thresholds: [THRESHOLD], drawnValues: [80, 90] }),
-    ).toEqual([]);
+    expect(linesOf({ thresholds: [THRESHOLD], drawnValues: [80, 90] })).toEqual(
+      [],
+    );
     expect(
       linesOf({
         thresholds: [THRESHOLD, { ...THRESHOLD, name: "Again" }],

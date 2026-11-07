@@ -1,7 +1,10 @@
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
-import MonitorType, { MonitorTypeHelper } from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import MonitorStepMetricQueries, {
@@ -54,7 +57,9 @@ export interface MonitorMetricStep {
 }
 
 // Whether the monitor's page charts its metrics: a metric-backed type.
-export function hasMonitorMetrics(monitorType: MonitorType | undefined): boolean {
+export function hasMonitorMetrics(
+  monitorType: MonitorType | undefined,
+): boolean {
   return MonitorTypeHelper.isMetricBackedMonitor(monitorType);
 }
 
@@ -83,7 +88,7 @@ export function getMonitorMetricSteps(input: {
       });
 
     const hasMetric: boolean = Boolean(
-      reads?.queryConfigs.some((queryConfig) => {
+      reads?.queryConfigs.some((queryConfig: MetricQueryConfigData) => {
         return Boolean(
           queryConfig.metricQueryData?.filterData?.metricName?.toString(),
         );
@@ -180,23 +185,25 @@ export interface MonitorStatusChange {
 export const STATUS_CHANGED_LABEL: string = translationKey("Status changed");
 
 // Under every status change's label, telling it from other marks.
-export const STATUS_CHANGE_SUBTITLE: string =
-  translationKey("Monitor status");
+export const STATUS_CHANGE_SUBTITLE: string = translationKey("Monitor status");
 
 // A status change's colour when its status has none.
 export const STATUS_CHANGE_COLOR: string = "#64748b"; // slate-500
 
+// One row of the monitor's status timeline, as it is read.
+export interface MonitorStatusTimelineRow {
+  startsAt?: Date | string | undefined;
+  monitorStatus?:
+    | {
+        name?: string | undefined;
+        color?: { toString: () => string } | string | undefined;
+      }
+    | undefined;
+}
+
 // The rows of the monitor's status timeline the charts mark, in time order.
 export function getMonitorStatusChanges(input: {
-  rows: Array<{
-    startsAt?: Date | string | undefined;
-    monitorStatus?:
-      | {
-          name?: string | undefined;
-          color?: { toString: () => string } | string | undefined;
-        }
-      | undefined;
-  }>;
+  rows: Array<MonitorStatusTimelineRow>;
   window: InBetween<Date> | null | undefined;
 }): Array<MonitorStatusChange> {
   const window: InBetween<Date> | null = MetricInvestigationTime.toUsableWindow(
@@ -211,7 +218,7 @@ export function getMonitorStatusChanges(input: {
   const endMs: number = window.endValue.getTime();
 
   return input.rows
-    .map((row): MonitorStatusChange | null => {
+    .map((row: MonitorStatusTimelineRow): MonitorStatusChange | null => {
       const dateMs: number = row.startsAt
         ? new Date(row.startsAt as Date).getTime()
         : Number.NaN;
@@ -228,9 +235,11 @@ export function getMonitorStatusChanges(input: {
           : "",
       };
     })
-    .filter((change: MonitorStatusChange | null): change is MonitorStatusChange => {
-      return change !== null;
-    })
+    .filter(
+      (change: MonitorStatusChange | null): change is MonitorStatusChange => {
+        return change !== null;
+      },
+    )
     .sort((first: MonitorStatusChange, second: MonitorStatusChange): number => {
       return first.date.getTime() - second.date.getTime();
     });

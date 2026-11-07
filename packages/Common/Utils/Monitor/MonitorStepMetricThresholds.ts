@@ -314,7 +314,10 @@ export default class MonitorStepMetricThresholds {
         return config.metricAliasData?.metricVariable === alias;
       };
 
-      if (input.queryConfigs.some(isNamed) || input.formulaConfigs.some(isNamed)) {
+      if (
+        input.queryConfigs.some(isNamed) ||
+        input.formulaConfigs.some(isNamed)
+      ) {
         return alias;
       }
     }
@@ -335,7 +338,9 @@ export default class MonitorStepMetricThresholds {
   }): boolean {
     const query: MetricQueryConfigData | undefined = input.queryConfigs.find(
       (queryConfig: MetricQueryConfigData): boolean => {
-        return queryConfig.metricAliasData?.metricVariable === input.metricVariable;
+        return (
+          queryConfig.metricAliasData?.metricVariable === input.metricVariable
+        );
       },
     );
 
@@ -357,26 +362,28 @@ export default class MonitorStepMetricThresholds {
       return true;
     }
 
-    const scales: boolean | null = MetricFormulaEvaluator.scalesWithBucketWidth({
-      formula: formula.metricFormulaData?.metricFormula || "",
-      variableScales: (variable: string): boolean | null => {
-        const referenced: MetricQueryConfigData | undefined =
-          input.queryConfigs.find(
-            (queryConfig: MetricQueryConfigData): boolean => {
-              return (
-                (
-                  queryConfig.metricAliasData?.metricVariable || ""
-                ).toLowerCase() === variable
-              );
-            },
-          );
+    const scales: boolean | null = MetricFormulaEvaluator.scalesWithBucketWidth(
+      {
+        formula: formula.metricFormulaData?.metricFormula || "",
+        variableScales: (variable: string): boolean | null => {
+          const referenced: MetricQueryConfigData | undefined =
+            input.queryConfigs.find(
+              (queryConfig: MetricQueryConfigData): boolean => {
+                return (
+                  (
+                    queryConfig.metricAliasData?.metricVariable || ""
+                  ).toLowerCase() === variable
+                );
+              },
+            );
 
-        // A formula of formulas is not read through: taken to grow.
-        return referenced
-          ? MonitorStepMetricThresholds.isScalingQuery(referenced)
-          : null;
+          // A formula of formulas is not read through: taken to grow.
+          return referenced
+            ? MonitorStepMetricThresholds.isScalingQuery(referenced)
+            : null;
+        },
       },
-    });
+    );
 
     return scales !== false;
   }
@@ -387,14 +394,19 @@ export default class MonitorStepMetricThresholds {
     queryConfigs: Array<MetricQueryConfigData>;
     formulaConfigs: Array<MetricFormulaConfigData>;
   }): boolean {
-    const isRate: (queryConfig: MetricQueryConfigData | undefined) => boolean =
-      (queryConfig: MetricQueryConfigData | undefined): boolean => {
-        return queryConfig?.transformAsRate === true;
-      };
+    const isRate: (
+      queryConfig: MetricQueryConfigData | undefined,
+    ) => boolean = (
+      queryConfig: MetricQueryConfigData | undefined,
+    ): boolean => {
+      return queryConfig?.transformAsRate === true;
+    };
 
     const query: MetricQueryConfigData | undefined = input.queryConfigs.find(
       (queryConfig: MetricQueryConfigData): boolean => {
-        return queryConfig.metricAliasData?.metricVariable === input.metricVariable;
+        return (
+          queryConfig.metricAliasData?.metricVariable === input.metricVariable
+        );
       },
     );
 
@@ -583,7 +595,9 @@ export default class MonitorStepMetricThresholds {
 
     const query: MetricQueryConfigData | undefined = input.queryConfigs.find(
       (queryConfig: MetricQueryConfigData): boolean => {
-        return queryConfig.metricAliasData?.metricVariable === input.metricVariable;
+        return (
+          queryConfig.metricAliasData?.metricVariable === input.metricVariable
+        );
       },
     );
 
@@ -607,7 +621,8 @@ export default class MonitorStepMetricThresholds {
         ): number => {
           return (
             OUTCOME_RANK[first.threshold.outcome] -
-              OUTCOME_RANK[second.threshold.outcome] || first.index - second.index
+              OUTCOME_RANK[second.threshold.outcome] ||
+            first.index - second.index
           );
         },
       )

@@ -180,7 +180,11 @@ describe("getReferenceLineShade", () => {
       }),
     ).toBeNull();
     expect(
-      getReferenceLineShade({ value: Number.NaN, color: "red", shade: "above" }),
+      getReferenceLineShade({
+        value: Number.NaN,
+        color: "red",
+        shade: "above",
+      }),
     ).toBeNull();
     expect(
       getReferenceLineShade({
@@ -195,7 +199,9 @@ describe("getReferenceLineShade", () => {
 describe.each(CHARTS)("a %s chart", (_name: string, chart: ChartFunction) => {
   test("shades above a line from the top of the plot down to the line, in its colour", () => {
     const { container } = render(
-      chart([{ value: 45, color: "#ef4444", shade: "above", label: "High CPU" }]),
+      chart([
+        { value: 45, color: "#ef4444", shade: "above", label: "High CPU" },
+      ]),
     );
 
     const bands: Array<Box> = bandsOf(container);
@@ -230,7 +236,9 @@ describe.each(CHARTS)("a %s chart", (_name: string, chart: ChartFunction) => {
     );
 
     expect(bandsOf(container)).toHaveLength(0);
-    expect(container.querySelector(".recharts-reference-line-line")).not.toBeNull();
+    expect(
+      container.querySelector(".recharts-reference-line-line"),
+    ).not.toBeNull();
     expect(container).toHaveTextContent("Critical: 45");
   });
 

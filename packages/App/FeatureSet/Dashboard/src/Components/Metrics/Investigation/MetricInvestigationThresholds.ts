@@ -109,21 +109,23 @@ const getSeriesKey: SeriesKeyFunction = (
 
   const expression: string = formula.metricFormulaData?.metricFormula || "";
 
-  const referenced: Array<string> = MetricFormulaEvaluator.getReferencedVariables(
-    expression,
-  ).map((referencedVariable: string): string => {
-    const referencedQuery: MetricQueryConfigData | undefined =
-      queries.queryConfigs.find(
-        (queryConfig: MetricQueryConfigData): boolean => {
-          return (
-            (queryConfig.metricAliasData?.metricVariable || "").toLowerCase() ===
-            referencedVariable
+  const referenced: Array<string> =
+    MetricFormulaEvaluator.getReferencedVariables(expression).map(
+      (referencedVariable: string): string => {
+        const referencedQuery: MetricQueryConfigData | undefined =
+          queries.queryConfigs.find(
+            (queryConfig: MetricQueryConfigData): boolean => {
+              return (
+                (
+                  queryConfig.metricAliasData?.metricVariable || ""
+                ).toLowerCase() === referencedVariable
+              );
+            },
           );
-        },
-      );
 
-    return referencedQuery ? getQueryDataKey(referencedQuery) : "";
-  });
+        return referencedQuery ? getQueryDataKey(referencedQuery) : "";
+      },
+    );
 
   return `formula:${JSON.stringify({ expression: expression.trim(), referenced })}`;
 };

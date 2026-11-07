@@ -367,31 +367,29 @@ const MonitorMetricsCard: FunctionComponent<ComponentProps> = (
         className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5"
         data-testid={MONITOR_METRICS_STEP_PICKER_TEST_ID}
       >
-        {steps.map(
-          (metricStep: MonitorMetricStep, offeredPosition: number) => {
-            const isPicked: boolean = offeredPosition === position;
+        {steps.map((metricStep: MonitorMetricStep, offeredPosition: number) => {
+          const isPicked: boolean = offeredPosition === position;
 
-            return (
-              <button
-                key={metricStep.step.data?.id || `step-${metricStep.index}`}
-                type="button"
-                aria-pressed={isPicked}
-                className={`${STEP_BUTTON_CLASS_NAME} ${
-                  isPicked
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-                onClick={() => {
-                  pickStep(offeredPosition);
-                }}
-              >
-                {translator.translateTemplate("Step {{number}}", {
-                  number: metricStep.index + 1,
-                })}
-              </button>
-            );
-          },
-        )}
+          return (
+            <button
+              key={metricStep.step.data?.id || `step-${metricStep.index}`}
+              type="button"
+              aria-pressed={isPicked}
+              className={`${STEP_BUTTON_CLASS_NAME} ${
+                isPicked
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+              onClick={() => {
+                pickStep(offeredPosition);
+              }}
+            >
+              {translator.translateTemplate("Step {{number}}", {
+                number: metricStep.index + 1,
+              })}
+            </button>
+          );
+        })}
       </div>
     ) : undefined;
 
@@ -403,9 +401,7 @@ const MonitorMetricsCard: FunctionComponent<ComponentProps> = (
       monitorType={props.monitorType}
       metricStep={current}
       stepPosition={position}
-      defaultMonitorStatusId={
-        props.monitorSteps?.data?.defaultMonitorStatusId
-      }
+      defaultMonitorStatusId={props.monitorSteps?.data?.defaultMonitorStatusId}
       refreshToken={props.refreshToken || 0}
       stepPicker={stepPicker}
     />

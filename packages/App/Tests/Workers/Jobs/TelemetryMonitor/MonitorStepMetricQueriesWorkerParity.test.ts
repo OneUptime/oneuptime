@@ -401,31 +401,36 @@ const METRIC_NAMES: ReadonlyArray<string> = [
   "purefb_hardware_health",
 ];
 
-const queryOf: (random: SeededRandom, index: number) => MetricQueryConfigData =
-  (random: SeededRandom, index: number): MetricQueryConfigData => {
-    const attributes: JSONObject = {};
-    const count: number = random(3);
-    for (let attribute: number = 0; attribute < count; attribute++) {
-      attributes[`own.${textOf(random)}`] = textOf(random);
-    }
+const queryOf: (
+  random: SeededRandom,
+  index: number,
+) => MetricQueryConfigData = (
+  random: SeededRandom,
+  index: number,
+): MetricQueryConfigData => {
+  const attributes: JSONObject = {};
+  const count: number = random(3);
+  for (let attribute: number = 0; attribute < count; attribute++) {
+    attributes[`own.${textOf(random)}`] = textOf(random);
+  }
 
-    return {
-      metricAliasData: {
-        metricVariable: String.fromCharCode(97 + index),
-        title: undefined,
-        description: undefined,
-        legend: undefined,
-        legendUnit: undefined,
+  return {
+    metricAliasData: {
+      metricVariable: String.fromCharCode(97 + index),
+      title: undefined,
+      description: undefined,
+      legend: undefined,
+      legendUnit: undefined,
+    },
+    metricQueryData: {
+      filterData: {
+        metricName: METRIC_NAMES[random(METRIC_NAMES.length)]!,
+        aggegationType: MetricsAggregationType.Avg,
+        ...(count > 0 ? { attributes } : {}),
       },
-      metricQueryData: {
-        filterData: {
-          metricName: METRIC_NAMES[random(METRIC_NAMES.length)]!,
-          aggegationType: MetricsAggregationType.Avg,
-          ...(count > 0 ? { attributes } : {}),
-        },
-      },
-    } as unknown as MetricQueryConfigData;
-  };
+    },
+  } as unknown as MetricQueryConfigData;
+};
 
 const stepOf: (data: {
   monitorType: MonitorType;

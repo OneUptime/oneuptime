@@ -4,8 +4,9 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { MetricInvestigationQueries } from "../Metrics/Investigation/MetricInvestigationQueries";
-import MetricInvestigationQueryUtil from "../Metrics/Investigation/MetricInvestigationQueries";
+import MetricInvestigationQueryUtil, {
+  MetricInvestigationQueries,
+} from "../Metrics/Investigation/MetricInvestigationQueries";
 import { MetricInvestigationThreshold } from "../Metrics/Investigation/MetricInvestigationThresholds";
 import {
   EventRuleMonitor,
@@ -38,79 +39,84 @@ interface ReadResult {
 
 const NO_THRESHOLDS: Array<MetricInvestigationThreshold> = [];
 
-const readMonitor: (monitorId: ObjectID) => Promise<EventRuleMonitor | null> =
-  async (monitorId: ObjectID): Promise<EventRuleMonitor | null> => {
-    try {
-      const monitor: Monitor | null = await ModelAPI.getItem<Monitor>({
-        modelType: Monitor,
-        id: monitorId,
-        select: {
-          _id: true,
-          monitorType: true,
-          monitorSteps: true,
-        },
-      });
+const readMonitor: (
+  monitorId: ObjectID,
+) => Promise<EventRuleMonitor | null> = async (
+  monitorId: ObjectID,
+): Promise<EventRuleMonitor | null> => {
+  try {
+    const monitor: Monitor | null = await ModelAPI.getItem<Monitor>({
+      modelType: Monitor,
+      id: monitorId,
+      select: {
+        _id: true,
+        monitorType: true,
+        monitorSteps: true,
+      },
+    });
 
-      return monitor
-        ? {
-            monitorType: monitor.monitorType,
-            monitorSteps: monitor.monitorSteps,
-          }
-        : null;
-    } catch {
-      return null;
-    }
-  };
+    return monitor
+      ? {
+          monitorType: monitor.monitorType,
+          monitorSteps: monitor.monitorSteps,
+        }
+      : null;
+  } catch {
+    return null;
+  }
+};
 
 // The event's criteria, and the ids of the monitors it is on.
 const readEvent: (input: {
   eventNoun: "incident" | "alert";
   eventId: ObjectID;
-}) => Promise<{ createdCriteriaId: string; monitorIds: Array<ObjectID> }> =
-  async (input: {
-    eventNoun: "incident" | "alert";
-    eventId: ObjectID;
-  }): Promise<{ createdCriteriaId: string; monitorIds: Array<ObjectID> }> => {
-    if (input.eventNoun === "alert") {
-      const alert: Alert | null = await ModelAPI.getItem<Alert>({
-        modelType: Alert,
-        id: input.eventId,
-        select: {
-          _id: true,
-          createdCriteriaId: true,
-          monitorId: true,
-        },
-      });
-
-      return {
-        createdCriteriaId: alert?.createdCriteriaId || "",
-        monitorIds: alert?.monitorId ? [alert.monitorId] : [],
-      };
-    }
-
-    const incident: Incident | null = await ModelAPI.getItem<Incident>({
-      modelType: Incident,
+}) => Promise<{
+  createdCriteriaId: string;
+  monitorIds: Array<ObjectID>;
+}> = async (input: {
+  eventNoun: "incident" | "alert";
+  eventId: ObjectID;
+}): Promise<{ createdCriteriaId: string; monitorIds: Array<ObjectID> }> => {
+  if (input.eventNoun === "alert") {
+    const alert: Alert | null = await ModelAPI.getItem<Alert>({
+      modelType: Alert,
       id: input.eventId,
       select: {
         _id: true,
         createdCriteriaId: true,
-        monitors: {
-          _id: true,
-        },
+        monitorId: true,
       },
     });
 
     return {
-      createdCriteriaId: incident?.createdCriteriaId || "",
-      monitorIds: (incident?.monitors || [])
-        .map((monitor: Monitor): ObjectID | undefined => {
-          return monitor.id || undefined;
-        })
-        .filter((id: ObjectID | undefined): id is ObjectID => {
-          return Boolean(id);
-        }),
+      createdCriteriaId: alert?.createdCriteriaId || "",
+      monitorIds: alert?.monitorId ? [alert.monitorId] : [],
     };
+  }
+
+  const incident: Incident | null = await ModelAPI.getItem<Incident>({
+    modelType: Incident,
+    id: input.eventId,
+    select: {
+      _id: true,
+      createdCriteriaId: true,
+      monitors: {
+        _id: true,
+      },
+    },
+  });
+
+  return {
+    createdCriteriaId: incident?.createdCriteriaId || "",
+    monitorIds: (incident?.monitors || [])
+      .map((monitor: Monitor): ObjectID | undefined => {
+        return monitor.id || undefined;
+      })
+      .filter((id: ObjectID | undefined): id is ObjectID => {
+        return Boolean(id);
+      }),
   };
+};
 
 export default function useEventMetricThresholds(input: {
   eventNoun: "incident" | "alert";
@@ -135,11 +141,13 @@ export default function useEventMetricThresholds(input: {
       let rule: EventRule | null = null;
 
       try {
-        const event: { createdCriteriaId: string; monitorIds: Array<ObjectID> } =
-          await readEvent({
-            eventNoun: input.eventNoun,
-            eventId: new ObjectID(eventId),
-          });
+        const event: {
+          createdCriteriaId: string;
+          monitorIds: Array<ObjectID>;
+        } = await readEvent({
+          eventNoun: input.eventNoun,
+          eventId: new ObjectID(eventId),
+        });
 
         if (event.createdCriteriaId && event.monitorIds.length > 0) {
           const monitors: Array<EventRuleMonitor | null> = await Promise.all(
@@ -153,7 +161,9 @@ export default function useEventMetricThresholds(input: {
           rule = {
             createdCriteriaId: event.createdCriteriaId,
             monitors: monitors.filter(
-              (monitor: EventRuleMonitor | null): monitor is EventRuleMonitor => {
+              (
+                monitor: EventRuleMonitor | null,
+              ): monitor is EventRuleMonitor => {
                 return monitor !== null;
               },
             ),

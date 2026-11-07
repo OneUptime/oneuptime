@@ -63,19 +63,21 @@ const queryOf: (
   };
 };
 
-const formulaOf: (variable: string, text: string) => MetricFormulaConfigData =
-  (variable: string, text: string): MetricFormulaConfigData => {
-    return {
-      metricAliasData: {
-        metricVariable: variable,
-        title: "",
-        description: "",
-        legend: "",
-        legendUnit: "",
-      },
-      metricFormulaData: { metricFormula: text },
-    };
+const formulaOf: (variable: string, text: string) => MetricFormulaConfigData = (
+  variable: string,
+  text: string,
+): MetricFormulaConfigData => {
+  return {
+    metricAliasData: {
+      metricVariable: variable,
+      title: "",
+      description: "",
+      legend: "",
+      legendUnit: "",
+    },
+    metricFormulaData: { metricFormula: text },
   };
+};
 
 const ruleOf: (data: {
   id: string;
@@ -226,15 +228,18 @@ describe("finding the rule that opened the event", () => {
     ["no criteria named", undefined],
     ["an empty criteria id", "  "],
     ["a criteria no step holds any more", "deleted"],
-  ])("draws nothing for %s", (_name: string, criteriaId: string | undefined) => {
-    expect(
-      getEventMetricThresholds({
-        createdCriteriaId: criteriaId,
-        monitors: [monitorOf(stepOf({ rules: [ruleOf({ id: "rule-1" })] }))],
-        snapshotQueries: SNAPSHOT,
-      }),
-    ).toEqual([]);
-  });
+  ])(
+    "draws nothing for %s",
+    (_name: string, criteriaId: string | undefined) => {
+      expect(
+        getEventMetricThresholds({
+          createdCriteriaId: criteriaId,
+          monitors: [monitorOf(stepOf({ rules: [ruleOf({ id: "rule-1" })] }))],
+          snapshotQueries: SNAPSHOT,
+        }),
+      ).toEqual([]);
+    },
+  );
 
   test("draws nothing without a monitor, or for a rule with no number", () => {
     expect(
@@ -251,7 +256,10 @@ describe("finding the rule that opened the event", () => {
           monitorOf(
             stepOf({
               rules: [
-                ruleOf({ id: "rule-1", filterType: FilterType.AnomalouslyHigh }),
+                ruleOf({
+                  id: "rule-1",
+                  filterType: FilterType.AnomalouslyHigh,
+                }),
               ],
             }),
           ),
@@ -365,15 +373,17 @@ describe("an infrastructure monitor's incident", () => {
       monitorName: "Proxmox",
     });
 
-    const criteriaId: string = step.data!.monitorCriteria!.data!
-      .monitorCriteriaInstanceArray[0]!.data!.id;
+    const criteriaId: string =
+      step.data!.monitorCriteria!.data!.monitorCriteriaInstanceArray[0]!.data!
+        .id;
 
     // The snapshot as the incident page shows it: narrowed to node/pve1.
     const snapshot: MetricInvestigationQueries =
       MetricSeriesScope.scopeMetricViewDataToSeries({
         metricViewData: {
           startAndEndDate: null,
-          queryConfigs: step.data!.proxmoxMonitor!.metricViewConfig.queryConfigs,
+          queryConfigs:
+            step.data!.proxmoxMonitor!.metricViewConfig.queryConfigs,
           formulaConfigs:
             step.data!.proxmoxMonitor!.metricViewConfig.formulaConfigs,
         },
@@ -470,7 +480,10 @@ describe("what a series compares", () => {
           second.metricQueryData.filterData.aggegationType;
 
       expect(
-        getMetricIdentityKey({ queryConfigs: [first], formulaConfigs: [] }, "a") ===
+        getMetricIdentityKey(
+          { queryConfigs: [first], formulaConfigs: [] },
+          "a",
+        ) ===
           getMetricIdentityKey(
             { queryConfigs: [second], formulaConfigs: [] },
             "a",

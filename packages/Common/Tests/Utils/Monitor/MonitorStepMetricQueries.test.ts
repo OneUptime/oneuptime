@@ -258,7 +258,10 @@ describe("the filters each monitor type reads its queries with", () => {
       }),
     ).toEqual({});
     expect(
-      readOf({ monitorType: MonitorType.Kubernetes, stepKey: "kubernetesMonitor" }),
+      readOf({
+        monitorType: MonitorType.Kubernetes,
+        stepKey: "kubernetesMonitor",
+      }),
     ).toBeUndefined();
   });
 
@@ -743,9 +746,10 @@ describe("whatever a step holds (seeded)", () => {
     const random: SeededRandom = seededRandom(5759);
 
     for (let round: number = 0; round < 400; round++) {
-      const monitorType: MonitorType = MonitorStepMetricQueries.getMonitorTypes()[
-        random(MonitorStepMetricQueries.getMonitorTypes().length)
-      ]!;
+      const monitorType: MonitorType =
+        MonitorStepMetricQueries.getMonitorTypes()[
+          random(MonitorStepMetricQueries.getMonitorTypes().length)
+        ]!;
       const stepKey: string = MonitorStepMetricQueries.getStepKey(monitorType)!;
 
       const ownAttributes: JSONObject = {};

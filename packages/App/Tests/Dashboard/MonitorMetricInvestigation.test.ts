@@ -5,7 +5,9 @@ import { JSONObject } from "Common/Types/JSON";
 import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
-import MonitorType, { MonitorTypeHelper } from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import {
@@ -334,9 +336,9 @@ describe("what the empty charts say to check", () => {
         clusterIdentifier: " pve ",
       } as never),
     ).toBe("pve");
-    expect(
-      getMonitorResourceName({ hostIdentifier: "web-01" } as never),
-    ).toBe("web-01");
+    expect(getMonitorResourceName({ hostIdentifier: "web-01" } as never)).toBe(
+      "web-01",
+    );
     expect(
       getMonitorResourceName({ fleetIdentifier: "warehouse" } as never),
     ).toBe("warehouse");
@@ -370,9 +372,9 @@ describe("what the empty charts say to check", () => {
 
   test("any name a step holds reads as itself, trimmed (seeded)", () => {
     for (const name of generatedTexts(500, 5759, ["a", " ", "-", "Z", "é"])) {
-      expect(
-        getMonitorResourceName({ clusterIdentifier: name } as never),
-      ).toBe(name.trim());
+      expect(getMonitorResourceName({ clusterIdentifier: name } as never)).toBe(
+        name.trim(),
+      );
     }
   });
 });

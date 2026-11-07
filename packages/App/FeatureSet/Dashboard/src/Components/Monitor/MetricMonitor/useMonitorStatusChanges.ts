@@ -116,5 +116,7 @@ export default function useMonitorStatusChanges(input: {
   }, [requestKey]);
 
   // The changes of this window only: none while a new one is read.
-  return result && result.requestKey === requestKey ? result.changes : NO_CHANGES;
+  return result && result.requestKey === requestKey
+    ? result.changes
+    : NO_CHANGES;
 }

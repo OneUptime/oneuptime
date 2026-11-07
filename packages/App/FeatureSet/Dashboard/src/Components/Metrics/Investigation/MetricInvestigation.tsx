@@ -312,7 +312,10 @@ const MetricInvestigation: FunctionComponent<ComponentProps> = (
               className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600"
               data-testid={METRIC_INVESTIGATION_THRESHOLD_HINT_TEST_ID}
             >
-              <Icon icon={IconProp.Info} className="h-3.5 w-3.5 text-gray-400" />
+              <Icon
+                icon={IconProp.Info}
+                className="h-3.5 w-3.5 text-gray-400"
+              />
               <span>
                 {translator.translateText(
                   "Thresholds on counts show only on ranges whose points cover what the monitor reads.",

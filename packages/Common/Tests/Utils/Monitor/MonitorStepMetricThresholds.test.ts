@@ -78,19 +78,24 @@ const queryOf: (data: {
   } as unknown as MetricQueryConfigData;
 };
 
-const formulaOf: (variable: string, formula: string) => MetricFormulaConfigData =
-  (variable: string, formula: string): MetricFormulaConfigData => {
-    return {
-      metricAliasData: {
-        metricVariable: variable,
-        title: "",
-        description: "",
-        legend: "",
-        legendUnit: "",
-      },
-      metricFormulaData: { metricFormula: formula },
-    } as MetricFormulaConfigData;
-  };
+const formulaOf: (
+  variable: string,
+  formula: string,
+) => MetricFormulaConfigData = (
+  variable: string,
+  formula: string,
+): MetricFormulaConfigData => {
+  return {
+    metricAliasData: {
+      metricVariable: variable,
+      title: "",
+      description: "",
+      legend: "",
+      legendUnit: "",
+    },
+    metricFormulaData: { metricFormula: formula },
+  } as MetricFormulaConfigData;
+};
 
 const filterOf: (data: {
   filterType?: FilterType;
@@ -150,7 +155,9 @@ const criteriaOf: (data: {
     incidents: data.incident
       ? [{ id: "i", title: "t", description: "d" } as never]
       : [],
-    alerts: data.alert ? [{ id: "a", title: "t", description: "d" } as never] : [],
+    alerts: data.alert
+      ? [{ id: "a", title: "t", description: "d" } as never]
+      : [],
     createIncidents: Boolean(data.incident),
     createAlerts: Boolean(data.alert),
     changeMonitorStatus: Boolean(data.statusId),
@@ -315,7 +322,9 @@ describe("what is not drawn", () => {
 
     expect(
       thresholdsOf(
-        stepOf({ criteria: [criteriaOf({ filters: [filter], incident: true })] }),
+        stepOf({
+          criteria: [criteriaOf({ filters: [filter], incident: true })],
+        }),
       ),
     ).toEqual([]);
   });
@@ -358,7 +367,10 @@ describe("what is not drawn", () => {
             criteriaOf({
               name: "Healthy",
               filters: [
-                filterOf({ filterType: FilterType.LessThanOrEqualTo, value: 85 }),
+                filterOf({
+                  filterType: FilterType.LessThanOrEqualTo,
+                  value: 85,
+                }),
               ],
               statusId: ONLINE,
             }),
@@ -386,7 +398,9 @@ describe("what is not drawn", () => {
 
   test("a criteria that does nothing at all", () => {
     expect(
-      thresholdsOf(stepOf({ criteria: [criteriaOf({ filters: [filterOf({})] })] })),
+      thresholdsOf(
+        stepOf({ criteria: [criteriaOf({ filters: [filterOf({})] })] }),
+      ),
     ).toEqual([]);
   });
 
@@ -395,7 +409,9 @@ describe("what is not drawn", () => {
       MonitorStepMetricThresholds.getThresholds({
         monitorType: MonitorType.Metrics,
         monitorStep: stepOf({
-          criteria: [criteriaOf({ filters: [filterOf({})], statusId: DEGRADED })],
+          criteria: [
+            criteriaOf({ filters: [filterOf({})], statusId: DEGRADED }),
+          ],
         }),
         defaultMonitorStatusId: undefined,
       }),
@@ -412,7 +428,10 @@ describe("what is not drawn", () => {
 
     const step: MonitorStep = stepOf({
       queryConfigs: [
-        queryOf({ variable: "samples_received", aggregation: MetricsAggregationType.Count }),
+        queryOf({
+          variable: "samples_received",
+          aggregation: MetricsAggregationType.Count,
+        }),
       ],
       criteria: [criteriaOf({ filters: [heartbeat], incident: true })],
     });
@@ -529,9 +548,21 @@ describe("what a crossing does, and which line wins", () => {
   test("an incident, an alert, or a move away from the default status", () => {
     const step: MonitorStep = stepOf({
       criteria: [
-        criteriaOf({ name: "Warn", filters: [filterOf({ value: 70 })], statusId: DEGRADED }),
-        criteriaOf({ name: "Page", filters: [filterOf({ value: 80 })], alert: true }),
-        criteriaOf({ name: "Wake", filters: [filterOf({ value: 90 })], incident: true }),
+        criteriaOf({
+          name: "Warn",
+          filters: [filterOf({ value: 70 })],
+          statusId: DEGRADED,
+        }),
+        criteriaOf({
+          name: "Page",
+          filters: [filterOf({ value: 80 })],
+          alert: true,
+        }),
+        criteriaOf({
+          name: "Wake",
+          filters: [filterOf({ value: 90 })],
+          incident: true,
+        }),
       ],
     });
 
@@ -549,8 +580,16 @@ describe("what a crossing does, and which line wins", () => {
   test("two criteria on the same line draw it once, for the one that does the most", () => {
     const step: MonitorStep = stepOf({
       criteria: [
-        criteriaOf({ name: "Page", filters: [filterOf({ value: 90 })], alert: true }),
-        criteriaOf({ name: "Wake", filters: [filterOf({ value: 90 })], incident: true }),
+        criteriaOf({
+          name: "Page",
+          filters: [filterOf({ value: 90 })],
+          alert: true,
+        }),
+        criteriaOf({
+          name: "Wake",
+          filters: [filterOf({ value: 90 })],
+          incident: true,
+        }),
         // The opposite side of the same number is a different line.
         criteriaOf({
           name: "Low",
@@ -572,7 +611,11 @@ describe("what a crossing does, and which line wins", () => {
       thresholdsOf(
         stepOf({
           criteria: [
-            criteriaOf({ name: "  Disk  ", filters: [filterOf({})], incident: true }),
+            criteriaOf({
+              name: "  Disk  ",
+              filters: [filterOf({})],
+              incident: true,
+            }),
           ],
         }),
       )[0]!.criteriaName,
@@ -582,7 +625,11 @@ describe("what a crossing does, and which line wins", () => {
   test("named criteria are drawn whatever they do: the one that opened an incident", () => {
     const step: MonitorStep = stepOf({
       criteria: [
-        criteriaOf({ id: "wake", filters: [filterOf({ value: 90 })], incident: true }),
+        criteriaOf({
+          id: "wake",
+          filters: [filterOf({ value: 90 })],
+          incident: true,
+        }),
         criteriaOf({
           id: "healthy",
           name: "Healthy",
@@ -611,7 +658,9 @@ describe("the query or formula a criteria compares", () => {
       stepOf({
         queryConfigs: [queryOf({ variable: "a" }), queryOf({ variable: "b" })],
         formulaConfigs: [formulaOf("c", "a / b * 100")],
-        criteria: [criteriaOf({ filters: [filterOf({ alias })], incident: true })],
+        criteria: [
+          criteriaOf({ filters: [filterOf({ alias })], incident: true }),
+        ],
       }),
     );
   };
@@ -622,12 +671,9 @@ describe("the query or formula a criteria compares", () => {
     ["the first query, for an alias that names nothing", "zzz", "a"],
     ["the first query, for no alias", undefined, "a"],
     ["the first query, for an empty alias", "", "a"],
-  ])(
-    "%s",
-    (_name: string, alias: string | undefined, variable: string) => {
-      expect(step(alias)[0]!.metricVariable).toBe(variable);
-    },
-  );
+  ])("%s", (_name: string, alias: string | undefined, variable: string) => {
+    expect(step(alias)[0]!.metricVariable).toBe(variable);
+  });
 
   test("a query with no variable has no chart to draw the line on", () => {
     const query: MetricQueryConfigData = queryOf({ variable: "a" });
@@ -665,7 +711,10 @@ describe("on the scale a chart draws", () => {
         rollingTime: data.rollingTime,
         settings: data.settings,
         criteria: [
-          criteriaOf({ filters: [filterOf({ alias: data.alias })], incident: true }),
+          criteriaOf({
+            filters: [filterOf({ alias: data.alias })],
+            incident: true,
+          }),
         ],
       }),
     );
@@ -761,7 +810,10 @@ describe("on the scale a chart draws", () => {
           criteria: [
             criteriaOf({
               filters: [
-                filterOf({ alias: "share", evaluation: EvaluateOverTimeType.Sum }),
+                filterOf({
+                  alias: "share",
+                  evaluation: EvaluateOverTimeType.Sum,
+                }),
               ],
               incident: true,
             }),
@@ -811,8 +863,9 @@ describe("the out-of-the-box templates", () => {
   };
 
   test("High Node Memory: a line at 85 on the memory share, its Healthy criteria left out", () => {
-    const template: ProxmoxAlertTemplate =
-      getProxmoxAlertTemplateById("pve-node-high-memory")!;
+    const template: ProxmoxAlertTemplate = getProxmoxAlertTemplateById(
+      "pve-node-high-memory",
+    )!;
     const step: MonitorStep = template.getMonitorStep(proxmoxArgs);
 
     const thresholds: Array<MonitorMetricThreshold> = thresholdsOf(step, {
@@ -895,10 +948,14 @@ describe("the out-of-the-box templates", () => {
 describe("the step holding a criteria", () => {
   test("is found in whichever step holds it, and not at all once it is gone", () => {
     const first: MonitorStep = stepOf({
-      criteria: [criteriaOf({ id: "one", filters: [filterOf({})], incident: true })],
+      criteria: [
+        criteriaOf({ id: "one", filters: [filterOf({})], incident: true }),
+      ],
     });
     const second: MonitorStep = stepOf({
-      criteria: [criteriaOf({ id: "two", filters: [filterOf({})], incident: true })],
+      criteria: [
+        criteriaOf({ id: "two", filters: [filterOf({})], incident: true }),
+      ],
     });
     const steps: MonitorSteps = new MonitorSteps();
     steps.data = {
@@ -951,7 +1008,12 @@ describe("whatever the criteria (seeded)", () => {
     MetricsAggregationType.Count,
     MetricsAggregationType.Max,
   ];
-  const STATUSES: Array<string | undefined> = [undefined, ONLINE, OFFLINE, DEGRADED];
+  const STATUSES: Array<string | undefined> = [
+    undefined,
+    ONLINE,
+    OFFLINE,
+    DEGRADED,
+  ];
 
   test("lines are on the step's own charts, each once, the most a crossing does first", () => {
     const random: SeededRandom = seededRandom(6250);
@@ -976,7 +1038,11 @@ describe("whatever the criteria (seeded)", () => {
       for (let index: number = 0; index < criteriaCount; index++) {
         const filters: Array<CriteriaFilter> = [];
         const filterCount: number = 1 + random(3);
-        for (let filterIndex: number = 0; filterIndex < filterCount; filterIndex++) {
+        for (
+          let filterIndex: number = 0;
+          filterIndex < filterCount;
+          filterIndex++
+        ) {
           filters.push(
             filterOf({
               filterType: FILTER_TYPES[random(FILTER_TYPES.length)]!,
@@ -998,7 +1064,11 @@ describe("whatever the criteria (seeded)", () => {
         );
       }
 
-      const step: MonitorStep = stepOf({ queryConfigs, formulaConfigs, criteria });
+      const step: MonitorStep = stepOf({
+        queryConfigs,
+        formulaConfigs,
+        criteria,
+      });
       const thresholds: Array<MonitorMetricThreshold> = thresholdsOf(step);
 
       const variables: Array<string> = [

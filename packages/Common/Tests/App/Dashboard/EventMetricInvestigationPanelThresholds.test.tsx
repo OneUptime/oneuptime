@@ -469,24 +469,27 @@ describe("no line when the rule cannot be read", () => {
       "the incident was not opened by a criteria",
       { createdCriteriaId: "", monitorSteps: monitorStepsOf({}) },
     ],
-  ])("%s, and nothing else on the card changes", async (_name: string, reads: Reads) => {
-    readsAre(reads);
+  ])(
+    "%s, and nothing else on the card changes",
+    async (_name: string, reads: Reads) => {
+      readsAre(reads);
 
-    renderPanel();
-    await waitFor(() => {
+      renderPanel();
+      await waitFor(() => {
+        expect(fetchResultsMock).toHaveBeenCalled();
+        expect(getItemMock).toHaveBeenCalled();
+        // A criteria to look for has its monitor read.
+        expect(monitorWasRead()).toBe(Boolean(reads.createdCriteriaId));
+      });
+      // Whatever was read has been drawn by now.
+      await settle();
+
+      expect(lastCharts).not.toBeNull();
+      expect(lastCharts?.thresholds).toBeUndefined();
+      // The card is the same card: its charts and their metric.
       expect(fetchResultsMock).toHaveBeenCalled();
-      expect(getItemMock).toHaveBeenCalled();
-      // A criteria to look for has its monitor read.
-      expect(monitorWasRead()).toBe(Boolean(reads.createdCriteriaId));
-    });
-    // Whatever was read has been drawn by now.
-    await settle();
-
-    expect(lastCharts).not.toBeNull();
-    expect(lastCharts?.thresholds).toBeUndefined();
-    // The card is the same card: its charts and their metric.
-    expect(fetchResultsMock).toHaveBeenCalled();
-  });
+    },
+  );
 });
 
 describe("an alert a metrics monitor opened", () => {

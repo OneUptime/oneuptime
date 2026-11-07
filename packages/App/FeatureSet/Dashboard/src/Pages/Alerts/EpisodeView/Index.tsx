@@ -135,9 +135,9 @@ const AlertEpisodeView: FunctionComponent<
     useState<DerivedTelemetrySnapshot>(EMPTY_TELEMETRY_SNAPSHOT);
 
   // The member whose telemetry the snapshot shows: its monitor's rule is drawn.
-  const [snapshotMemberId, setSnapshotMemberId] = useState<
-    string | undefined
-  >(undefined);
+  const [snapshotMemberId, setSnapshotMemberId] = useState<string | undefined>(
+    undefined,
+  );
 
   const requestIdRef: MutableRefObject<number> = useRef<number>(0);
   const hasLoadedRef: MutableRefObject<boolean> = useRef<boolean>(false);

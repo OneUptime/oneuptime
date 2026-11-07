@@ -159,7 +159,10 @@ export function buildMetricChartThresholdLines(input: {
       continue;
     }
 
-    if (typeof threshold.value !== "number" || !Number.isFinite(threshold.value)) {
+    if (
+      typeof threshold.value !== "number" ||
+      !Number.isFinite(threshold.value)
+    ) {
       continue;
     }
 
