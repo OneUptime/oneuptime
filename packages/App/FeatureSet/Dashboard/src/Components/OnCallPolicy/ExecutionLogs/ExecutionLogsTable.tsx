@@ -1,3 +1,4 @@
+import { isOnCallObserverPage } from "Common/Types/OnCallDutyPolicy/OnCallObserverPage";
 import AppLink from "../../../Components/AppLink/AppLink";
 import IncidentView from "../../../Components/Incident/Incident";
 import UserElement from "../../../Components/User/User";
@@ -107,6 +108,16 @@ export const ON_CALL_LOGS_AI_HOLD_OUTCOMES: Record<
  */
 export const ON_CALL_LOGS_PAGED_AGAIN: string = translationKey(
   "Paged again ({{number}} of {{max}})",
+);
+
+/*
+ * Under an observer's page's pill (OnCallObserverPage): its people were
+ * kept informed, and their answer acknowledged nothing - what sets it apart
+ * from the record's responders' runs beside it. Acknowledged By, for it,
+ * is who has seen it.
+ */
+export const ON_CALL_LOGS_PAGED_AS_OBSERVERS: string = translationKey(
+  "Paged as observers: their answer only says they've seen it",
 );
 
 /*
@@ -432,7 +443,22 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
       type: FieldType.Element,
 
       getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
-        const status: ReactElement = getStatusPill(item);
+        const pill: ReactElement = getStatusPill(item);
+
+        // An observer's page says so under its pill, before anything else.
+        const status: ReactElement = isOnCallObserverPage(item) ? (
+          <div>
+            {pill}
+            <p
+              className={ON_CALL_LOGS_WAITING_MESSAGE_CLASS_NAME}
+              data-testid="execution-log-paged-as-observers"
+            >
+              {translator.translateText(ON_CALL_LOGS_PAGED_AS_OBSERVERS)}
+            </p>
+          </div>
+        ) : (
+          pill
+        );
         const aiHoldOutcome: string | undefined =
           item.aiHoldOutcome &&
           item.aiHoldOutcome !== OnCallPolicyAiHoldOutcome.Holding
@@ -528,6 +554,8 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
           aiHoldOutcome: true,
           // A page again says so under its status.
           pageAgainNumber: true,
+          // So does an observer's page (OnCallObserverPage).
+          isObserverPage: true,
           // Read with every row: a row with none is a direct page.
           onCallDutyPolicyId: true,
           // What started a direct page: a workflow, or a person.

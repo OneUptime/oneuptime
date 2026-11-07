@@ -221,6 +221,10 @@ describe("one queue's side menu", () => {
     ]);
     expect(linksIn("Advanced")).toEqual([
       {
+        title: "Audit Logs",
+        href: queueRoute(PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS),
+      },
+      {
         title: "Delete Queue",
         href: queueRoute(PageMap.MESSAGE_QUEUE_VIEW_DELETE),
       },
@@ -248,9 +252,9 @@ describe("one queue's side menu", () => {
     );
 
     expect(developerHrefs).toHaveLength(4);
-    expect(viewPages).toHaveLength(7);
-    expect(hrefs).toHaveLength(7);
-    expect(new Set(hrefs).size).toBe(7);
+    expect(viewPages).toHaveLength(8);
+    expect(hrefs).toHaveLength(8);
+    expect(new Set(hrefs).size).toBe(8);
     for (const key of viewPages) {
       expect(hrefs).toContain(queueRoute(key));
     }
@@ -276,7 +280,7 @@ describe("one queue's side menu", () => {
     expect(iconCountIn("Basic")).toBe(1);
     expect(iconCountIn("Observability")).toBe(2);
     expect(iconCountIn("Settings")).toBe(3);
-    expect(iconCountIn("Advanced")).toBe(1);
+    expect(iconCountIn("Advanced")).toBe(2);
   });
 
   test.each([

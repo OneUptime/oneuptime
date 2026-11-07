@@ -235,6 +235,7 @@ När du skapar ett arbetsflöde har mallarna under **Jour** det här färdigt, o
 | **Page About** | Vad larmet gäller: **A new alert**, **An incident** eller **An alert**. Att bekräfta larmet bekräftar också det. |
 | **Title** och **Message** | För ett nytt larm. OneUptime skapar ett larm av dem, och det finns kvar bland dina larm som alla andra. |
 | **Incident ID** eller **Alert ID** | För en incident eller ett larm som redan finns, oftast det som arbetsflödet startade på: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Page As** | För en incident eller ett larm som redan finns, under **Fler fält**. **Responders** tar sig an den. **Observers** hålls informerade medan andra hanterar den: när de bekräftar sitt larm betyder det bara att de har sett det, och incidenten eller larmet bekräftas inte. |
 | **Severity** | För ett nytt larm, under **Fler fält**. Den avgör vilka av varje persons jourregler som larmar personen. Lämnas den tom är det projektets allvarligaste. |
 
 Ett block som läggs till i ett arbetsflöde som startar på en incident eller ett larm är redan inställt på att larma om den posten, så det frågar bara vem som ska larmas.

@@ -388,3 +388,65 @@ describe("Acknowledge pressed on a record acknowledged already", () => {
     expect(acknowledgePage).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * AN OBSERVER WHO ACKNOWLEDGES THE RECORD HAS SEEN IT (OnCallObserverPage).
+ *
+ * Somebody paged as an observer who steps in - acknowledges the incident
+ * from its channel, the Dashboard or the app - has seen it: their own page
+ * as an observer is answered, so they are not called again ten minutes
+ * later for a page they answered by acting. A responder's page of a policy
+ * stays as it was: the record's acknowledgement ends those runs.
+ */
+describe("an observer who acknowledges the record", () => {
+  function observerPage(
+    startedBy: "person" | "workflow" | "policy",
+  ): UserOnCallLog {
+    const log: UserOnCallLog = page({ startedBy: startedBy });
+    log.onCallDutyPolicyExecutionLog!.isObserverPage = true;
+    return log;
+  }
+
+  test.each(["policy", "workflow", "person"] as const)(
+    "answers their own page as an observer of a %s run",
+    async (startedBy: "person" | "workflow" | "policy") => {
+      const theirs: UserOnCallLog = observerPage(startedBy);
+      logs = [theirs];
+
+      const answered: number =
+        await OnCallPersonPageAnswer.onRecordStateChanged(stateChange());
+
+      expect(answered).toBe(1);
+      expect(acknowledgePage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userOnCallLogId: theirs.id,
+          userId: NITIN,
+          onCallDutyPolicyExecutionLogId: theirs.onCallDutyPolicyExecutionLogId,
+        }),
+      );
+    },
+  );
+
+  test("an observer's page somebody answered already is left alone", async () => {
+    const theirs: UserOnCallLog = observerPage("policy");
+    theirs.onCallDutyPolicyExecutionLog!.acknowledgedAt = new Date();
+    logs = [theirs];
+
+    expect(
+      await OnCallPersonPageAnswer.onRecordStateChanged(stateChange()),
+    ).toBe(0);
+    expect(acknowledgePage).not.toHaveBeenCalled();
+  });
+
+  test("reads each page's run with whether it pages observers", async () => {
+    await OnCallPersonPageAnswer.onRecordStateChanged(stateChange());
+
+    expect(
+      (
+        findBy.mock.calls[0]![0] as unknown as {
+          select: { onCallDutyPolicyExecutionLog: Record<string, unknown> };
+        }
+      ).select.onCallDutyPolicyExecutionLog["isObserverPage"],
+    ).toBe(true);
+  });
+});

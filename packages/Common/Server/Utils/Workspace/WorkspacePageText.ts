@@ -1,3 +1,5 @@
+import OnCallPageAs from "../../../Types/OnCallDutyPolicy/OnCallPageAs";
+
 /*
  * WHAT FOLLOWS "page": WHO TO PAGE, THEN WHAT TO TELL THEM.
  *
@@ -75,7 +77,24 @@ export interface WorkspacePageText {
   unknownNames: Array<string>;
   // The message, as typed, trimmed. Empty when there is none.
   message: string;
+  /*
+   * What the people are paged as (OnCallPageAs): "as observers" right after
+   * them - "@platform as observers: the mesh network is down" - pages them
+   * as observers (OnCallObserverPage), and is not part of the message. Left
+   * out for responders, as every page from a chat was before.
+   */
+  pageAs?: OnCallPageAs | undefined;
 }
+
+/*
+ * What pages the people named as observers when typed right after them
+ * (OnCallObserverPage), longest first.
+ */
+const OBSERVER_PHRASES: ReadonlyArray<string> = [
+  "as an observer",
+  "as observers",
+  "as observer",
+];
 
 // Words that join two people: "@nawaz and @simon".
 const JOINING_WORDS: ReadonlyArray<string> = ["and", "&", "+"];
@@ -282,12 +301,61 @@ export default class WorkspacePageTextReader {
       message += `@${token.name.trim()}`;
     }
 
+    const asWhat: { pageAs: OnCallPageAs; message: string } =
+      WorkspacePageTextReader.readPageAs(
+        WorkspacePageTextReader.withoutSeparator(message),
+      );
+
     return {
       people: people,
       groups: groups,
       unknownNames: unknownNames,
-      message: WorkspacePageTextReader.withoutSeparator(message),
+      message: asWhat.message,
+      ...(asWhat.pageAs === OnCallPageAs.Observers
+        ? { pageAs: OnCallPageAs.Observers }
+        : {}),
     };
+  }
+
+  /*
+   * "as observers: the mesh network is down" is Observers and "the mesh
+   * network is down"; "as an observer", "as observer" too. Anything else is
+   * Responders and the message as it is - "as soon as you can" included.
+   * Read with no regular expression: the text is whatever was typed.
+   */
+  public static readPageAs(message: string): {
+    pageAs: OnCallPageAs;
+    message: string;
+  } {
+    const start: string = message.substring(0, 32).toLowerCase();
+
+    for (const phrase of OBSERVER_PHRASES) {
+      if (!start.startsWith(phrase)) {
+        continue;
+      }
+
+      const next: string | undefined = message[phrase.length];
+
+      if (
+        next === undefined ||
+        isWhiteSpace(next) ||
+        next === "," ||
+        MESSAGE_SEPARATORS.includes(next)
+      ) {
+        let rest: string = message.substring(phrase.length);
+
+        if (rest.startsWith(",")) {
+          rest = rest.substring(1);
+        }
+
+        return {
+          pageAs: OnCallPageAs.Observers,
+          message: WorkspacePageTextReader.withoutSeparator(rest),
+        };
+      }
+    }
+
+    return { pageAs: OnCallPageAs.Responders, message: message };
   }
 
   /*

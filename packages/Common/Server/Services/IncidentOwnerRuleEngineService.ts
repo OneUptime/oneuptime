@@ -158,9 +158,16 @@ class IncidentOwnerRuleEngineServiceClass
    * Evaluates IncidentOwnerRule rows for the given incident and adds matched
    * owner users / teams via IncidentService.addOwners. Rules with notifyOwners
    * set notify the added owners; rules with notifyOwners off add silently.
+   *
+   * `ruleChange` says the incident changed, rather than being declared
+   * (IncidentRulesOnChange): its feed entry then says the rule now matches
+   * it, and why. Owners it has already are not added again.
    */
   @CaptureSpan()
-  public async applyRulesToIncident(incident: Incident): Promise<void> {
+  public async applyRulesToIncident(
+    incident: Incident,
+    ruleChange?: string | undefined,
+  ): Promise<void> {
     if (!incident.id || !incident.projectId) {
       return;
     }
@@ -178,6 +185,7 @@ class IncidentOwnerRuleEngineServiceClass
         incident: incident,
         rules: rules,
         allowOwnerNotification: true,
+        ruleChange: ruleChange,
       });
     } catch (error) {
       logger.error(`Error applying incident owner rules: ${error}`, {
@@ -311,6 +319,8 @@ class IncidentOwnerRuleEngineServiceClass
     incident: Incident;
     rules: Array<IncidentOwnerRule>;
     allowOwnerNotification: boolean;
+    // Why the rules ran again on a change, when they did (IncidentRulesOnChange).
+    ruleChange?: string | undefined;
   }): Promise<RuleApplicationResult> {
     const { incident, rules } = data;
 
@@ -436,6 +446,7 @@ class IncidentOwnerRuleEngineServiceClass
       addedCreatorTeams: addedTeamIds.some((teamId: string): boolean => {
         return plan.creatorTeamIds.has(teamId);
       }),
+      ruleChange: data.ruleChange,
     });
 
     return RuleApplicationResultUtil.updated(ownersAdded);
@@ -455,6 +466,8 @@ class IncidentOwnerRuleEngineServiceClass
     inheritedFromServices: boolean;
     // Some owner it added is a team of the person who declared the incident.
     addedCreatorTeams: boolean;
+    // Why the rules ran again on a change, when they did (IncidentRulesOnChange).
+    ruleChange?: string | undefined;
   }): Promise<void> {
     const {
       incident,
@@ -549,7 +562,13 @@ class IncidentOwnerRuleEngineServiceClass
           ruleKind: "Incident Owner Rule",
           ruleNames: ruleNames,
         },
-      )}\n\nAssigned the following owner${
+      )}${
+        data.ruleChange
+          ? mdText`\n\nThe incident now matches ${
+              ruleNames.length > 1 ? "them" : "it"
+            }: ${data.ruleChange}.`
+          : ""
+      }\n\nAssigned the following owner${
         users.length + teams.length === 1 ? "" : "s"
       } to the incident:\n${RuleFeedMarkdown.ownersList({ users: users, teams: teams })}${inheritedNote}${creatorTeamNote}`;
 

@@ -654,7 +654,7 @@ As regras salvas antes de o formulário perguntar pelos proprietários ainda pod
 
 ## Regras de plantão de incidente
 
-**Incidentes → Regras → Regras de Plantão** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) é onde você torna o acionamento automático. O cartão, **Regras de plantão de incidente**, diz o que elas fazem: acionar políticas de plantão automaticamente para novos incidentes que corresponderem. A página tem duas abas: **Regras de incidentes** e **Regras de episódios**.
+**Incidentes → Regras → Regras de Plantão** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) é onde você torna o acionamento automático. O cartão, **Regras de plantão de incidente**, diz o que elas fazem: acionar políticas de plantão automaticamente para incidentes que corresponderem, para responder ou como observadores mantidos informados. A página tem duas abas: **Regras de incidentes** e **Regras de episódios**.
 
 O formulário de criação tem duas etapas:
 
@@ -664,6 +664,10 @@ O formulário de criação tem duas etapas:
 :::
 
 Uma regra aciona assim que um incidente corresponde a ela. Para que ela aguarde o horário comercial, responda **Quando esta regra deve acionar?** em **Mais campos** com **Somente em horário comercial**. O **Horário comercial** começa de segunda a sexta, das 09:00 às 17:00, no seu próprio fuso horário: escolha outros dias, outra **Hora de início** ou **Horário de término**, ou outro **Fuso horário**, e uma frase abaixo da opção diz o que vai acontecer. Na lista, a regra mostra o horário abaixo do nome. Um incidente que corresponde fora desse horário recebe uma execução que aguarda, como **Aguardando**, e não aciona ninguém; quando o horário começa, a política aciona sua primeira regra de escalonamento e escala como de costume. Se o incidente for confirmado ou resolvido antes, ninguém é acionado. Se o incidente mudar enquanto aguarda e passar a corresponder a uma regra que aciona imediatamente, por exemplo porque sua gravidade foi elevada, a execução começa a acionar na hora, e o feed do incidente diz por quê.
+
+Uma regra aciona as pessoas das suas políticas para que respondam: confirmar o acionamento confirma o incidente. Para manter uma equipe informada enquanto outra responde, como uma equipe de supervisão avisada de cada incidente crítico, responda **Acionar as pessoas destas políticas como** em **Mais campos** com **Observadores**. O acionamento delas diz que são observadoras, e confirmá-lo só diz que o viram: o incidente não é confirmado, o acionamento de mais ninguém para, e ninguém se torna Comandante do incidente. O acionamento delas continua até que uma delas responda ou o incidente seja resolvido, e uma regra do Slack ou do Microsoft Teams que convida os responsáveis de plantão para o canal do incidente as deixa de fora. Na lista, a regra diz abaixo do nome que aciona como observadores. Uma política que uma regra correspondente aciona para responder e outra como observadores aciona para responder.
+
+As regras são executadas quando um incidente é declarado, e de novo sempre que sua gravidade ou seus rótulos mudam enquanto ele está aberto. Quando sua gravidade é elevada a um nível com que uma regra corresponde, ou ele recebe um rótulo com que uma corresponde, as políticas dessa regra acionam na hora, para responder ou como observadores, e o feed do incidente diz que a regra agora corresponde a ele, e por quê. Uma política que já acionou sobre o incidente não aciona de novo, a menos que tenha acionado como observadores e agora seja chamada a responder. Nada é desfeito quando o incidente deixa de corresponder, e mudar o título, a descrição ou o monitor não executa as regras de novo.
 
 ### Como a correspondência é resolvida
 

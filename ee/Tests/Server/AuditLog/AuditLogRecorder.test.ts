@@ -1630,10 +1630,12 @@ describe("relation values are recorded as named references", () => {
       props: USER_PROPS,
     });
 
+    // With the paths that changed (AuditLogValues), never a related name.
     expect(changeFor(onlyEntry(), "metricQueryConfig")).toEqual({
       field: "metricQueryConfig",
       oldValue: { _id: "query-1", query: "a" },
       newValue: { _id: "query-1", query: "b", name: "Errors" },
+      summary: ["Added name", "Changed query"],
     });
     expect(harness.relatedLookups).toHaveLength(0);
   });

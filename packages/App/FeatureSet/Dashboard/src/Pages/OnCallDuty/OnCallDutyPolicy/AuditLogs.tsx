@@ -13,8 +13,7 @@ const OnCallDutyPolicyAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="On-Call Policy Audit Logs"
       description="All changes made to this on-call policy."
-      resourceType="On-Call Policy"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

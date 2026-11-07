@@ -25,6 +25,7 @@ import RumApplicationSessionReplayHealth from "../Pages/Rum/View/SessionReplayHe
 import RumApplicationSessionReplayDocumentation from "../Pages/Rum/View/SessionReplayDocumentation";
 import RumApplicationDocumentation from "../Pages/Rum/View/Documentation";
 import RumApplicationDelete from "../Pages/Rum/View/Delete";
+import RumApplicationAuditLogs from "../Pages/Rum/View/AuditLogs";
 import RumLabelRules from "../Pages/Rum/Settings/LabelRules";
 import RumOwnerRules from "../Pages/Rum/Settings/OwnerRules";
 import RumSessionReplaySettings from "../Pages/Rum/Settings/SessionReplay";
@@ -352,6 +353,20 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <RumApplicationAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.RUM_APPLICATION_VIEW_AUDIT_LOGS] as Route
               }
             />
           }

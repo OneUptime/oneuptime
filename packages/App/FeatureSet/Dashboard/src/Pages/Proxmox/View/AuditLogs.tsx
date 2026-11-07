@@ -13,8 +13,7 @@ const ProxmoxClusterAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Proxmox Cluster Audit Logs"
       description="All changes made to this Proxmox cluster."
-      resourceType="Proxmox Cluster"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

@@ -13,8 +13,7 @@ const RunbookAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Runbook Audit Logs"
       description="All changes made to this runbook."
-      resourceType="Runbook"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

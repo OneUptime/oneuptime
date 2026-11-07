@@ -79,6 +79,7 @@ flowchart TB
   "onCallPolicy": { "id": "1d4e…", "name": "Primary" },
   "escalationRule": { "id": "7b2f…", "name": "Level 1" },
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": {
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
@@ -98,6 +99,7 @@ flowchart TB
 | `recordType`, `record` | 호출 대상이 되는 항목: `incident`, `alert`, `incidentEpisode`, `alertEpisode` 중 하나 |
 | `onCallPolicy`, `escalationRule` | 호출한 정책과 단계 |
 | `isPageAgain` | 레코드가 얼마 전에 확인되었지만 아직 해결되지 않았을 때 `true` |
+| `isObserverPage` | 관찰자로 호출된 경우 `true` 입니다. 다른 사람이 대응하는 동안 상황을 전달받으며, 호출을 확인해도 봤다는 뜻일 뿐입니다 |
 | `actions` | 서비스가 [호출에 대응](#호출에-대응하기)하기 위해 호출하는 링크 |
 
 여러 사람에게 가는 호출은 사람마다 요청 하나이며, 각 요청에는 그 사람만의 링크가 들어 있어 OneUptime이 누가 응답했는지 알 수 있습니다. 제목, 메시지, 설명을 합쳐 16,384자로 제한되며, 더 긴 설명은 잘리고 끝에 "… (truncated — see OneUptime for the full text)"가 붙습니다.
@@ -170,6 +172,7 @@ curl -X POST "https://oneuptime.example.com/api/custom-notification-channel/page
   "onCallPolicy": null,
   "escalationRule": null,
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": null,
   "notificationType": "Send incident state changed notification when I am the owner of the incident",
   "url": "https://oneuptime.example.com/dashboard/8d1f…/incidents/9a3c…"

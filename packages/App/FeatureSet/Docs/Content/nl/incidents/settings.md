@@ -654,7 +654,7 @@ Regels die werden opgeslagen voordat het formulier om eigenaren vroeg, kunnen no
 
 ## Bereikbaarheidsregels voor incidenten
 
-**Incidenten → Regels → Bereikbaarheidsregels** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is waar je het oproepen automatisch maakt. De kaart, **Bereikbaarheidsregels incident**, zegt wat ze doen: automatisch bereikbaarheidsbeleid oproepen voor nieuwe incidenten die overeenkomen. De pagina heeft twee tabbladen: **Incidentregels** en **Episoderegels**.
+**Incidenten → Regels → Bereikbaarheidsregels** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is waar je het oproepen automatisch maakt. De kaart, **Bereikbaarheidsregels incident**, zegt wat ze doen: automatisch bereikbaarheidsbeleid oproepen voor incidenten die overeenkomen, om te reageren of als waarnemers die op de hoogte blijven. De pagina heeft twee tabbladen: **Incidentregels** en **Episoderegels**.
 
 Het aanmaakformulier heeft twee stappen:
 
@@ -664,6 +664,10 @@ Het aanmaakformulier heeft twee stappen:
 :::
 
 Een regel roept op zodra een incident erop past. Om de regel in plaats daarvan op werktijden te laten wachten, beantwoord je **Wanneer moet deze regel oproepen?** onder **Meer velden** met **Alleen tijdens werktijden**. De **Werktijden** beginnen op maandag tot en met vrijdag, 09:00 tot 17:00, in je eigen tijdzone: kies andere dagen, een andere **Starttijd** of **Eindtijd**, of een andere **Tijdzone**, en een zin onder de keuze zegt wat er gebeurt. In de lijst toont de regel zijn tijden onder zijn naam. Een incident dat buiten die tijden past, krijgt een uitvoering die wacht, als **Wachten**, en niemand oproept; zodra de werktijden beginnen, roept het beleid zijn eerste escalatieregel op en escaleert het zoals gewoonlijk. Wordt het incident eerst bevestigd of opgelost, dan wordt niemand opgeroepen. Verandert het incident terwijl het wacht en past het nu op een regel die direct oproept, bijvoorbeeld omdat zijn ernstniveau is verhoogd, dan begint de uitvoering meteen met oproepen, en de feed van het incident zegt waarom.
+
+Een regel roept de mensen van zijn beleid op om te reageren: wie de oproep bevestigt, bevestigt het incident. Om een team op de hoogte te houden terwijl een ander reageert, zoals een toezichtsteam dat van elk kritiek incident moet horen, beantwoord je **De mensen van dit beleid oproepen als** onder **Meer velden** met **Waarnemers**. Hun oproep zegt dat ze waarnemers zijn, en wie hem bevestigt, zegt daarmee alleen dat hij hem heeft gezien: het incident wordt niet bevestigd, geen andere oproep stopt, en niemand wordt er de Incident Commander van. Hun oproep loopt door tot een van hen antwoordt of het incident is opgelost, en een Slack- of Microsoft Teams-regel die bereikbare responders in het kanaal van het incident uitnodigt, laat hen weg. In de lijst zegt de regel onder zijn naam dat hij als waarnemers oproept. Beleid dat de ene passende regel oproept om te reageren en een andere als waarnemers, roept op om te reageren.
+
+Regels draaien wanneer een incident wordt gemeld, en opnieuw telkens wanneer zijn ernstniveau of labels veranderen terwijl het open is. Wordt het verhoogd naar een ernstniveau waarop een regel past, of krijgt het een label waarop er een past, dan roept het beleid van die regel op dat moment op, om te reageren of als waarnemers, en de feed van het incident zegt dat de regel er nu op past, en waarom. Beleid dat al over het incident heeft opgeroepen, roept niet nog eens op, tenzij het als waarnemers opriep en nu wordt gevraagd te reageren. Er wordt niets teruggedraaid wanneer het incident niet meer past, en een gewijzigde titel, beschrijving of monitor laat de regels niet opnieuw draaien.
 
 ### Hoe overeenkomen wordt afgehandeld
 

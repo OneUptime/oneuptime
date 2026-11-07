@@ -654,7 +654,7 @@ Regler som sparades innan formuläret frågade efter ägare kan fortfarande ha e
 
 ## Jourregler för incidenter
 
-**Incidenter → Regler → Jourregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) är där du gör larmning automatisk. Kortet, **Incidentjourregler**, säger vad de gör: larmar automatiskt via jourpolicyer för nya incidenter som matchar. Sidan har två flikar: **Incidentregler** och **Episodregler**.
+**Incidenter → Regler → Jourregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) är där du gör larmning automatisk. Kortet, **Incidentjourregler**, säger vad de gör: larmar automatiskt via jourpolicyer för incidenter som matchar, antingen för att hantera dem eller som observatörer som hålls informerade. Sidan har två flikar: **Incidentregler** och **Episodregler**.
 
 Skapandeformuläret har två steg:
 
@@ -664,6 +664,10 @@ Skapandeformuläret har två steg:
 :::
 
 En regel larmar så snart en incident matchar den. För att låta den vänta på arbetstid i stället svarar du **Endast under arbetstid** på **När ska den här regeln larma?** under **Fler fält**. **Arbetstid** börjar som måndag till fredag, 09:00 till 17:00, i din egen tidszon: välj andra dagar, en annan **Starttid** eller **Sluttid** eller en annan **Tidszon**, så säger en mening under valet vad som händer. I listan visar regeln sin arbetstid under namnet. En incident som matchar utanför de tiderna får en körning som väntar, som **Väntar**, och inte larmar någon; när arbetstiden börjar larmar policyn sin första eskaleringsregel och eskalerar som vanligt. Bekräftas eller löses incidenten först larmas ingen. Ändras incidenten medan den väntar så att den nu matchar en regel som larmar direkt, till exempel för att dess allvarlighetsgrad höjs, börjar körningen larma genast, och incidentens flöde säger varför.
+
+En regel larmar personerna i sina policyer för att hantera incidenten: den som bekräftar larmet bekräftar incidenten. För att hålla ett team informerat medan ett annat hanterar den, till exempel ett tillsynsteam som ska få veta om varje kritisk incident, svarar du **Observatörer** på **Larma personerna i de här policyerna som** under **Fler fält**. Deras larm säger att de är observatörer, och bekräftar de det säger det bara att de har sett det: incidenten bekräftas inte, ingen annans larm stoppas, och ingen blir dess Incidentansvarig. Deras larm fortsätter tills någon av dem svarar eller incidenten är löst, och en Slack- eller Microsoft Teams-regel som bjuder in jourhavande till incidentens kanal utelämnar dem. I listan säger regeln under sitt namn att den larmar som observatörer. En policy som en matchande regel larmar för att hantera incidenten och en annan som observatörer larmar för att hantera den.
+
+Regler körs när en incident deklareras, och igen varje gång dess allvarlighetsgrad eller etiketter ändras medan den är öppen. Höjs den till en allvarlighetsgrad som en regel matchar, eller får den en etikett som en regel matchar, larmar den regelns policyer då, för att hantera incidenten eller som observatörer, och incidentens flöde säger att regeln nu matchar den, och varför. En policy som redan har larmat om incidenten larmar inte igen, om den inte larmade som observatörer och nu ska hantera den. Ingenting görs om när incidenten slutar matcha, och en ändrad titel, beskrivning eller monitor kör inte reglerna igen.
 
 ### Så avgörs matchning
 

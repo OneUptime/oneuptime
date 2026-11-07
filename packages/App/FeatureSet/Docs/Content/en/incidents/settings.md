@@ -656,7 +656,7 @@ Rules saved before the form asked for owners may still have a default team and u
 
 ## Incident on-call rules
 
-**Incidents → Rules → On-Call Rules** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is where you make paging automatic. The card, **Incident On-Call Rules**, says what they do: page on-call policies automatically for new incidents that match. The page has two tabs: **Incident Rules** and **Episode Rules**.
+**Incidents → Rules → On-Call Rules** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is where you make paging automatic. The card, **Incident On-Call Rules**, says what they do: page on-call policies automatically for incidents that match, as responders or as observers kept informed. The page has two tabs: **Incident Rules** and **Episode Rules**.
 
 The create form has two steps:
 
@@ -666,6 +666,10 @@ The create form has two steps:
 :::
 
 A rule pages as soon as an incident matches it. To make it wait for working hours instead, answer **When should this rule page?** under **More fields** with **Only during working hours**. The **Working Hours** start as Monday to Friday, 09:00 to 17:00, in your own time zone: pick other days, another **Start Time** or **End Time**, or another **Timezone**, and a sentence under the choice says what will happen. In the list, the rule shows its hours under its name. An incident that matches outside those hours gets a run that waits, as **Waiting**, and pages nobody; when the hours begin, the policy pages its first escalation rule and escalates as usual. If the incident is acknowledged or resolved first, nobody is paged. If the incident changes while it waits and now matches a rule that pages right away, for example when its severity is raised, the run starts paging at once, and the incident's feed says why.
+
+A rule pages its policies' people to respond: acknowledging the page acknowledges the incident. To keep a team informed while another one responds, such as an oversight team told about every critical incident, answer **Page the people of these policies as** under **More fields** with **Observers**. Their page says they are observers, and acknowledging it only says they have seen it: the incident is not acknowledged, nobody else's page stops, and nobody becomes its Incident Commander. Their page goes on until one of them answers it or the incident is resolved, and a Slack or Microsoft Teams rule that invites on-call responders to the incident's channel leaves them out. In the list, the rule says under its name that it pages as observers. A policy that one matching rule pages as responders and another as observers pages responders.
+
+Rules run when an incident is declared, and again whenever its severity or labels change while it is open. When it is raised to a severity a rule matches, or given a label one matches, that rule's policies page then, as responders or as observers, and the incident's feed says the rule now matches it, and why. A policy that has already paged about the incident does not page again, unless it paged as observers and is now asked to respond. Nothing is undone when the incident stops matching, and a changed title, description or monitor does not run the rules again.
 
 ### How matching resolves
 

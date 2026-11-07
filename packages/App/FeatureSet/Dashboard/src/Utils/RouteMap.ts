@@ -733,6 +733,7 @@ export const DatabaseRoutePath: Dictionary<string> = {
   [PageMap.DATABASE_SERVER_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
   [PageMap.DATABASE_SERVER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.DATABASE_SERVER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.DATABASE_SERVER_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.DATABASE_SERVER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.DATABASE_DOCUMENTATION]: `documentation`,
@@ -755,6 +756,7 @@ export const MessageQueueRoutePath: Dictionary<string> = {
   [PageMap.MESSAGE_QUEUE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.MESSAGE_QUEUE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.MESSAGE_QUEUE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.MESSAGE_QUEUE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.MESSAGE_QUEUES_ARCHIVED]: `archived`,
@@ -812,6 +814,7 @@ export const RumRoutePath: Dictionary<string> = {
   [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION]: `${RouteParams.ModelID}/session-replay-documentation`,
   [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.RUM_APPLICATION_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.RUM_APPLICATION_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.RUM_APPLICATION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.RUM_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.RUM_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
@@ -1561,6 +1564,7 @@ export const TeamsRoutePath: Dictionary<string> = {
   [PageMap.TEAM_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
   [PageMap.TEAM_VIEW_ON_CALL_SCHEDULES]: `${RouteParams.ModelID}/on-call-schedules`,
   [PageMap.TEAM_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
+  [PageMap.TEAM_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.TEAM_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
 
@@ -6827,6 +6831,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DATABASE_SERVER_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/databases/${
       DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION]
@@ -6911,6 +6921,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MESSAGE_QUEUE_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/queues/${
       MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS]
     }`,
   ),
 
@@ -7062,6 +7078,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUM_APPLICATION_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_AUDIT_LOGS]
     }`,
   ),
 
@@ -9133,6 +9155,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TEAM_VIEW_CUSTOM_FIELDS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/teams/${
       TeamsRoutePath[PageMap.TEAM_VIEW_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW_AUDIT_LOGS]
     }`,
   ),
 

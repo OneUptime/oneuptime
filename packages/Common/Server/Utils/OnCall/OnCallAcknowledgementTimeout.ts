@@ -19,6 +19,7 @@ import {
   isOnCallPageAgainRun,
 } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { OnCallPageRecordType } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { isOnCallObserverPage } from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
 import AcknowledgedStateUtil from "../../../Utils/AcknowledgedState";
 import ResolvedStateUtil, {
@@ -422,6 +423,8 @@ const PAIR_RUN_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
   createdAt: true,
   pageAgainNumber: true,
   acknowledgementTimeoutStartedAt: true,
+  // An observer's page never pages again (OnCallObserverPage).
+  isObserverPage: true,
 };
 
 export default class OnCallAcknowledgementTimeout {
@@ -607,6 +610,7 @@ export default class OnCallAcknowledgementTimeout {
             triggeredByAlertId: true,
             triggeredByAlertEpisodeId: true,
             triggeredByIncidentEpisodeId: true,
+            isObserverPage: true,
             onCallDutyPolicy: {
               _id: true,
               isArchived: true,
@@ -988,12 +992,18 @@ export default class OnCallAcknowledgementTimeout {
     return pagesAgain.length;
   }
 
-  // Whether a run's policy pages again after an acknowledgement, as read with it.
+  /*
+   * Whether a run's policy pages again after an acknowledgement, as read with
+   * it. An observer's page never does (OnCallObserverPage): getting the
+   * record resolved is its responders' work, and the run is read with
+   * isObserverPage wherever this is asked.
+   */
   private static doesPolicyPageAgain(
     run: OnCallDutyPolicyExecutionLog,
   ): boolean {
     return Boolean(
-      run.onCallDutyPolicy &&
+      !isOnCallObserverPage(run) &&
+        run.onCallDutyPolicy &&
         run.onCallDutyPolicy.isArchived !== true &&
         getOnCallAcknowledgementTimeoutInMinutes(run.onCallDutyPolicy) !== null,
     );
@@ -1040,6 +1050,7 @@ export default class OnCallAcknowledgementTimeout {
         select: {
           _id: true,
           onCallDutyPolicyId: true,
+          isObserverPage: true,
           onCallDutyPolicy: {
             _id: true,
             isArchived: true,
@@ -1085,8 +1096,16 @@ export default class OnCallAcknowledgementTimeout {
     startedAt: Date;
     onlyOnRunId?: ObjectID | undefined;
   }): Promise<void> {
-    const runs: Array<OnCallDutyPolicyExecutionLog> =
-      await this.readPolicyRunsForRecord(data);
+    /*
+     * The policy's runs that paged responders: an observer's page of the
+     * same policy for the record (OnCallObserverPage) has no clock of its
+     * own, and is no run to page again from.
+     */
+    const runs: Array<OnCallDutyPolicyExecutionLog> = (
+      await this.readPolicyRunsForRecord(data)
+    ).filter((run: OnCallDutyPolicyExecutionLog): boolean => {
+      return !isOnCallObserverPage(run);
+    });
 
     const latest: OnCallDutyPolicyExecutionLog | undefined = runs[0];
 

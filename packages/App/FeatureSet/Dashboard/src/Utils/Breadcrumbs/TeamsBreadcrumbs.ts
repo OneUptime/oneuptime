@@ -57,6 +57,12 @@ export function getTeamsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Team",
       "Custom Fields",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Teams",
+      "View Team",
+      "Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_VIEW_DELETE, [
       "Project",
       "Teams",

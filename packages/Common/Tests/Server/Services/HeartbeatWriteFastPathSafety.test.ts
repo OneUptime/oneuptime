@@ -41,20 +41,25 @@ describe("heartbeat write fast-path safety preconditions", () => {
   describe("MonitorProbe (lastMonitoringLog write in MonitorResource.ts)", () => {
     /*
      * The MonitorProbe conversion dropped NOTHING: the model has no
-     * @EnableWorkflow, no @EnableAuditLog and no realtime events, so the
-     * old updateOneBy pipeline's hooks were inert for this row anyway.
+     * @EnableWorkflow and no realtime events, so the old updateOneBy
+     * pipeline's hooks were inert for this row anyway. It is audited (every
+     * project-scoped model is, Types/AuditLog/AuditLogCoverage), and its
+     * audit trail leaves lastMonitoringLog out: only OneUptime writes it.
      * If any assertion here starts failing, a decorator was added to
-     * MonitorProbe and the fast-path write in MonitorResource.ts now
-     * silently skips it — revisit that call site.
+     * MonitorProbe, or lastMonitoringLog became a column the audit log
+     * records, and the fast-path write in MonitorResource.ts now silently
+     * skips it — revisit that call site.
      */
     test("has no on-update workflow trigger", () => {
       const probe: MonitorProbe = new MonitorProbe();
       expect(probe.enableWorkflowOn?.update).toBeFalsy();
     });
 
-    test("has no on-update audit log", () => {
+    test("its audit trail leaves out the column the fast path writes", () => {
       const probe: MonitorProbe = new MonitorProbe();
-      expect(probe.enableAuditLogOn?.update).toBeFalsy();
+      expect(probe.enableAuditLogOn?.ignoreColumns).toContain(
+        "lastMonitoringLog",
+      );
     });
 
     test("has no realtime events", () => {

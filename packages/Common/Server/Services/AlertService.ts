@@ -109,6 +109,11 @@ import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
 import AlertIncidentRuleEngineService from "./AlertIncidentRuleEngineService";
 import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange";
 import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
+import {
+  OnCallRulesPaging,
+  getNoOnCallRulesPaging,
+} from "../Utils/OnCall/OnCallRulePageAs";
+import OnCallObserverPaging from "../Utils/OnCall/OnCallObserverPaging";
 import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
 import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
@@ -1130,15 +1135,13 @@ export class Service extends ProjectReferencesService<Model> {
     let membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
 
     /*
-     * The holds of the policies the alert's on-call rules added that may not
-     * page yet - a rule that pages only during working hours, matched
-     * outside them (OnCallRulePagingHold): set by the on-call rules step,
-     * read by the on-call step after it.
+     * What the alert's on-call rules page (OnCallRulePageAs): the
+     * responder policies they added, the policies they page as observers,
+     * and the holds of those that may not page yet - a rule that pages only
+     * during working hours, matched outside them (OnCallRulePagingHold): set
+     * by the on-call rules step, read by the on-call step after it.
      */
-    let onCallRulePagingHolds: Map<string, OnCallRulePagingHold> = new Map<
-      string,
-      OnCallRulePagingHold
-    >();
+    let onCallRulesPaging: OnCallRulesPaging = getNoOnCallRulesPaging();
 
     // Execute operations sequentially with error handling
     Promise.resolve()
@@ -1308,10 +1311,10 @@ export class Service extends ProjectReferencesService<Model> {
          * before the fan-out below picks up the merged list.
          */
         try {
-          onCallRulePagingHolds =
+          onCallRulesPaging =
             (await AlertOnCallRuleEngineService.applyRulesToAlert(
               createdItem,
-            )) || onCallRulePagingHolds;
+            )) || onCallRulesPaging;
         } catch (error) {
           logger.error(
             `Apply alert on-call rules failed in AlertService.onCreateSuccess: ${error}`,
@@ -1352,28 +1355,27 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
-        if (
-          createdItem.onCallDutyPolicies?.length &&
-          createdItem.onCallDutyPolicies?.length > 0
-        ) {
-          try {
-            return await this.executeAlertOnCallDutyPoliciesAsync(
-              createdItem,
-              startingStage,
-              onCallRulePagingHolds,
-            );
-          } catch (error) {
-            logger.error(
-              `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`,
-              {
-                projectId: createdItem.projectId?.toString(),
-                alertId: createdItem.id?.toString(),
-              } as LogAttributes,
-            );
-            return Promise.resolve();
-          }
+        /*
+         * The alert's on-call policies, and those its on-call rules page as
+         * observers (OnCallObserverPage): the fan-out pages them when the
+         * alert starts open, and its feed says otherwise.
+         */
+        try {
+          return await this.executeAlertOnCallDutyPoliciesAsync(
+            createdItem,
+            startingStage,
+            onCallRulesPaging,
+          );
+        } catch (error) {
+          logger.error(
+            `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
         }
-        return Promise.resolve();
       })
       .then(async () => {
         /*
@@ -1789,23 +1791,38 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
   private async executeAlertOnCallDutyPoliciesAsync(
     createdItem: Model,
     startingStage: StartingStage,
-    pagingHolds?: Map<string, OnCallRulePagingHold> | undefined,
+    paging: OnCallRulesPaging = getNoOnCallRulesPaging(),
   ): Promise<void> {
+    const pagingHolds: Map<string, OnCallRulePagingHold> = paging.holds;
+
     try {
+      const responderPolicies: Array<OnCallDutyPolicy> =
+        createdItem.onCallDutyPolicies || [];
+
+      if (
+        responderPolicies.length === 0 &&
+        paging.observerPolicyIds.length === 0
+      ) {
+        return;
+      }
+
+      if (!StartingStageUtil.pagesOnCall(startingStage)) {
+        await OnCallNotRunOnCreate.createFeedItem({
+          record: { alertId: createdItem.id! },
+          projectId: createdItem.projectId!,
+          stage: startingStage,
+          policies: [
+            ...responderPolicies,
+            ...OnCallObserverPaging.toPolicies(paging.observerPolicyIds),
+          ],
+        });
+        return;
+      }
+
       if (
         createdItem.onCallDutyPolicies?.length &&
         createdItem.onCallDutyPolicies?.length > 0
       ) {
-        if (!StartingStageUtil.pagesOnCall(startingStage)) {
-          await OnCallNotRunOnCreate.createFeedItem({
-            record: { alertId: createdItem.id! },
-            projectId: createdItem.projectId!,
-            stage: startingStage,
-            policies: createdItem.onCallDutyPolicies,
-          });
-          return;
-        }
-
         // Execute all on-call policies in parallel
         const policyPromises: Promise<void>[] =
           createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
@@ -1829,6 +1846,17 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
 
         await Promise.allSettled(policyPromises);
       }
+
+      // Then those paged as observers, kept informed. Never throws.
+      await OnCallObserverPaging.pagePolicies({
+        projectId: createdItem.projectId!,
+        policyIds: paging.observerPolicyIds,
+        holds: pagingHolds,
+        record: {
+          triggeredByAlertId: createdItem.id!,
+          userNotificationEventType: UserNotificationEventType.AlertCreated,
+        },
+      });
     } catch (error) {
       logger.error(`Error in executeAlertOnCallDutyPoliciesAsync: ${error}`, {
         projectId: createdItem.projectId?.toString(),

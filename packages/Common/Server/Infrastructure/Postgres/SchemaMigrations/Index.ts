@@ -918,6 +918,7 @@ import { WidenGitBranchNameColumns1808995180000 } from "./1808995180000-WidenGit
 import { AddTwoPersonFixApproval1808995185000 } from "./1808995185000-AddTwoPersonFixApproval";
 import { AddFirstApprovedByUserForeignKey1808995190000 } from "./1808995190000-AddFirstApprovedByUserForeignKey";
 import { WidenCodeRepositoryOwnerColumns1808995240000 } from "./1808995240000-WidenCodeRepositoryOwnerColumns";
+import { AddOnCallObserverPages1808995300000 } from "./1808995300000-AddOnCallObserverPages";
 
 export default [
   InitialMigration,
@@ -1840,4 +1841,5 @@ export default [
   AddTwoPersonFixApproval1808995185000,
   AddFirstApprovedByUserForeignKey1808995190000,
   WidenCodeRepositoryOwnerColumns1808995240000,
+  AddOnCallObserverPages1808995300000,
 ];

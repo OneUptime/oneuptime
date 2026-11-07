@@ -11,11 +11,9 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
-import FeedMarkdown, {
-  MarkdownText,
-  mdText,
-} from "../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -29,9 +27,15 @@ import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 import OnCallRulePagingHoldUtil, {
   ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
-  OnCallRulePagingHold,
   OnCallRulePagingHolds,
 } from "../Utils/OnCall/OnCallRulePagingHold";
+import {
+  ON_CALL_RULE_PAGE_AS_SELECT,
+  OnCallRulePageRoles,
+  OnCallRulesPaging,
+  getNoOnCallRulesPaging,
+  splitOnCallRulePolicies,
+} from "../Utils/OnCall/OnCallRulePageAs";
 import OnCallRuleWhenToPage from "../../Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
 import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
 import AiFirstResponderEligibility, {
@@ -41,24 +45,35 @@ import AiFirstResponderEligibility, {
 class IncidentOnCallRuleEngineServiceClass {
   /**
    * Evaluates IncidentOnCallRule rows for the given incident and merges any
-   * matching rules' on-call policies into the incident's onCallDutyPolicies
-   * array (deduped). The caller's existing on-call fan-out then runs the
-   * merged list, so each policy executes at most once per incident.
+   * matching rules' responder policies into the incident's
+   * onCallDutyPolicies array (deduped). The caller's existing on-call
+   * fan-out then runs the merged list, so each policy executes at most once
+   * per incident.
    *
-   * Hands back the holds of the policies it added that may not page yet: a
-   * rule that pages only during working hours, matched outside them, holds
-   * its policies until they begin (OnCallRulePagingHold). The fan-out passes
-   * each to executePolicy. A policy with no hold pages right away.
+   * A rule that pages as observers (OnCallRulePageAs) adds nothing to the
+   * incident: its policies are handed back as observer policies, which the
+   * caller pages by runs of their own that page as observers - unless the
+   * incident has the policy already, or another rule pages it as
+   * responders.
+   *
+   * Hands back what the rules page (OnCallRulesPaging): the responder
+   * policies it added, the observer policies, and the holds of those that
+   * may not page yet - a rule that pages only during working hours, matched
+   * outside them, holds its policies until they begin (OnCallRulePagingHold).
+   * The fan-out passes each to executePolicy. A policy with no hold pages
+   * right away.
+   *
+   * `ruleChange` says the incident changed, rather than being created
+   * (IncidentRulesOnChange): its feed entry then says the rule now matches
+   * it, and why.
    */
   @CaptureSpan()
   @RuleEvaluation()
   public async applyRulesToIncident(
     incident: Incident,
-  ): Promise<Map<string, OnCallRulePagingHold>> {
-    const noHolds: Map<string, OnCallRulePagingHold> = new Map<
-      string,
-      OnCallRulePagingHold
-    >();
+    ruleChange?: string | undefined,
+  ): Promise<OnCallRulesPaging> {
+    const noHolds: OnCallRulesPaging = getNoOnCallRulesPaging();
 
     if (!incident.id || !incident.projectId) {
       return noHolds;
@@ -77,6 +92,8 @@ class IncidentOnCallRuleEngineServiceClass {
       const matchedRules: Array<IncidentOnCallRule> = [];
       // When each matched rule lets its policies page: right away wins.
       const pagingHolds: OnCallRulePagingHolds = new OnCallRulePagingHolds();
+      // What each matched rule pages its policies as: responders win.
+      const pageRoles: OnCallRulePageRoles = new OnCallRulePageRoles();
       /*
        * Whether OneUptime AI may respond first to the incident: asked once, when
        * a rule set to After OneUptime AI matches it (AiFirstResponderEligibility).
@@ -93,21 +110,28 @@ class IncidentOnCallRuleEngineServiceClass {
         }
 
         if (rule.onCallDutyPolicies && rule.onCallDutyPolicies.length > 0) {
+          /*
+           * OneUptime AI responds first to new incidents only: a rule set to
+           * After OneUptime AI that a changed incident now matches pages
+           * right away.
+           */
           if (
             rule.whenToPage === OnCallRuleWhenToPage.AfterOneUptimeAI &&
             !aiHold
           ) {
-            aiHold =
-              await AiFirstResponderEligibility.decideForIncident(incident);
+            aiHold = ruleChange
+              ? { canHold: false }
+              : await AiFirstResponderEligibility.decideForIncident(incident);
           }
 
-          pagingHolds.addRule(
-            rule,
-            rule.onCallDutyPolicies.map((policy: OnCallDutyPolicy): string => {
+          const rulePolicyIds: Array<string> = rule.onCallDutyPolicies.map(
+            (policy: OnCallDutyPolicy): string => {
               return policy.id?.toString() || "";
-            }),
-            aiHold,
+            },
           );
+
+          pagingHolds.addRule(rule, rulePolicyIds, aiHold);
+          pageRoles.addRule(rule, rulePolicyIds);
 
           let ruleAddedAny: boolean = false;
           for (const policy of rule.onCallDutyPolicies) {
@@ -152,13 +176,31 @@ class IncidentOnCallRuleEngineServiceClass {
       const merged: Array<OnCallDutyPolicy> = [
         ...(incident.onCallDutyPolicies || []),
       ];
-      const toAddIds: Array<string> = [];
 
-      for (const [policyId, policy] of matchedPolicies) {
-        if (!existingIds.has(policyId)) {
-          merged.push(policy);
-          toAddIds.push(policyId);
-        }
+      /*
+       * The responder policies are added to the incident; the observer
+       * policies are paged beside it (OnCallRulePageAs).
+       */
+      const { toAddPolicyIds, observerPolicyIds } = splitOnCallRulePolicies({
+        matchedPolicyIds: Array.from(matchedPolicies.keys()),
+        existingPolicyIds: existingIds,
+        roles: pageRoles,
+      });
+
+      /*
+       * Persist the new join rows so the incident detail UI shows the
+       * rule-attached policies alongside any manually-attached ones. A
+       * policy attached already by now - by the rules of a change to the
+       * incident that ran at the same moment (IncidentRulesOnChange) - is
+       * left out: they page it.
+       */
+      const toAddIds: Array<string> = await this.attachPolicies({
+        incident: incident,
+        policyIds: toAddPolicyIds,
+      });
+
+      for (const policyId of toAddIds) {
+        merged.push(matchedPolicies.get(policyId)!);
       }
 
       /*
@@ -167,41 +209,28 @@ class IncidentOnCallRuleEngineServiceClass {
        */
       incident.onCallDutyPolicies = merged;
 
-      /*
-       * Persist the new join rows so the incident detail UI shows the
-       * rule-attached policies alongside any manually-attached ones.
-       */
-      if (toAddIds.length > 0) {
-        try {
-          await IncidentService.getRepository()
-            .createQueryBuilder()
-            .relation(Incident, "onCallDutyPolicies")
-            .of(incident.id.toString())
-            .add(toAddIds);
-        } catch (err) {
-          logger.warn(
-            `IncidentOnCallRuleEngine: failed to persist join rows for incident ${incident.id}: ${
-              err instanceof Error ? err.message : String(err)
-            }`,
-          );
-        }
-      }
-
       logger.debug(
         `IncidentOnCallRuleEngine merged ${matchedPolicies.size} matched policies into incident ${incident.id}`,
         { projectId: incident.projectId.toString() } as LogAttributes,
       );
 
-      if (toAddIds.length > 0) {
+      if (toAddIds.length > 0 || observerPolicyIds.length > 0) {
         await this.createRuleExecutedFeedItem({
           incident,
           matchedRules,
           addedPolicyIds: toAddIds,
+          observerPolicyIds: observerPolicyIds,
+          ruleChange: ruleChange,
         });
       }
 
       // A rule set to After OneUptime AI that paged right away says why.
-      if (aiHold && !aiHold.canHold && aiHold.reason && toAddIds.length > 0) {
+      if (
+        aiHold &&
+        !aiHold.canHold &&
+        aiHold.reason &&
+        (toAddIds.length > 0 || observerPolicyIds.length > 0)
+      ) {
         await AiFirstResponder.sayWhyNotHeld({
           projectId: incident.projectId,
           incidentId: incident.id,
@@ -210,7 +239,11 @@ class IncidentOnCallRuleEngineServiceClass {
       }
 
       // A policy the incident had already pages as it always has: right away.
-      return pagingHolds.getHolds(toAddIds);
+      return {
+        addedPolicyIds: toAddIds,
+        observerPolicyIds: observerPolicyIds,
+        holds: pagingHolds.getHolds([...toAddIds, ...observerPolicyIds]),
+      };
     } catch (error) {
       logger.error(`Error applying incident on-call rules: ${error}`, {
         projectId: incident.projectId?.toString(),
@@ -275,6 +308,47 @@ class IncidentOnCallRuleEngineServiceClass {
     return pagingNow;
   }
 
+  /*
+   * Attaches each policy to the incident, one at a time, and hands back the
+   * ones the incident is to page: a policy attached to it already -
+   * attached by the rules of a change to the incident that ran at the same
+   * moment (IncidentRulesOnChange) - is the other's to page, so it is left
+   * out. Any other failure to attach a policy still pages it, as it always
+   * has: a page matters more than the incident's list.
+   */
+  private async attachPolicies(data: {
+    incident: Incident;
+    policyIds: Array<string>;
+  }): Promise<Array<string>> {
+    const toPage: Array<string> = [];
+
+    for (const policyId of data.policyIds) {
+      try {
+        await IncidentService.getRepository()
+          .createQueryBuilder()
+          .relation(Incident, "onCallDutyPolicies")
+          .of(data.incident.id!.toString())
+          .add(policyId);
+
+        toPage.push(policyId);
+      } catch (err) {
+        if (PostgresErrorTranslator.isUniqueViolation(err)) {
+          continue;
+        }
+
+        logger.warn(
+          `IncidentOnCallRuleEngine: failed to persist join row of policy ${policyId} for incident ${data.incident.id}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+
+        toPage.push(policyId);
+      }
+    }
+
+    return toPage;
+  }
+
   // The project's enabled rules of this kind, with what matching them needs.
   private async findEnabledRules(
     projectId: ObjectID,
@@ -300,6 +374,7 @@ class IncidentOnCallRuleEngineServiceClass {
           monitorDescriptionPattern: true,
           onCallDutyPolicies: { _id: true },
           ...ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
+          ...ON_CALL_RULE_PAGE_AS_SELECT,
         },
         limit: MAX_RULES_EVALUATED_PER_PROJECT,
         skip: 0,
@@ -319,42 +394,61 @@ class IncidentOnCallRuleEngineServiceClass {
     incident: Incident;
     matchedRules: Array<IncidentOnCallRule>;
     addedPolicyIds: Array<string>;
+    // The policies paged as observers (OnCallRulePageAs), not attached.
+    observerPolicyIds: Array<string>;
+    // Why the rules ran again on a change, when they did (IncidentRulesOnChange).
+    ruleChange?: string | undefined;
   }): Promise<void> {
-    const { incident, matchedRules, addedPolicyIds } = data;
+    const { incident, matchedRules, addedPolicyIds, observerPolicyIds } = data;
     if (
       !incident.id ||
       !incident.projectId ||
       matchedRules.length === 0 ||
-      addedPolicyIds.length === 0
+      (addedPolicyIds.length === 0 && observerPolicyIds.length === 0)
     ) {
       return;
     }
 
     try {
-      const policyObjectIds: Array<ObjectID> = addedPolicyIds.map(
-        (id: string) => {
-          return new ObjectID(id);
-        },
-      );
+      const policyObjectIds: Array<ObjectID> = [
+        ...addedPolicyIds,
+        ...observerPolicyIds,
+      ].map((id: string) => {
+        return new ObjectID(id);
+      });
 
       const policies: Array<OnCallDutyPolicy> =
         await OnCallDutyPolicyService.findBy({
           query: {
             _id: QueryHelper.any(policyObjectIds),
           },
-          select: { name: true },
+          select: { _id: true, name: true },
           props: { isRoot: true },
           limit: LIMIT_MAX,
           skip: 0,
         });
 
-      const policyNames: Array<string> = policies
-        .map((p: OnCallDutyPolicy) => {
-          return p.name?.toString() || "";
-        })
-        .filter((n: string) => {
-          return n !== "";
-        });
+      const policyNameById: Map<string, string> = new Map<string, string>();
+
+      for (const policy of policies) {
+        const name: string = policy.name?.toString() || "";
+
+        if (policy.id && name) {
+          policyNameById.set(policy.id.toString(), name);
+        }
+      }
+
+      const namesOf: (ids: Array<string>) => Array<string> = (
+        ids: Array<string>,
+      ): Array<string> => {
+        return ids
+          .map((id: string): string => {
+            return policyNameById.get(id) || "";
+          })
+          .filter((name: string): boolean => {
+            return name !== "";
+          });
+      };
 
       const ruleNames: Array<string> = matchedRules
         .map((r: IncidentOnCallRule) => {
@@ -370,10 +464,16 @@ class IncidentOnCallRuleEngineServiceClass {
           ruleKind: "Incident On-Call Rule",
           ruleNames: ruleNames,
         },
-      )}\n\nAttached the following on-call ${
-        policyNames.length === 1 ? "policy" : "policies"
-      } to the incident:\n${FeedMarkdown.bulletList(policyNames, {
-        whenEmpty: "(no named policies)",
+      )}${
+        data.ruleChange
+          ? mdText`\n\nThe incident now matches ${
+              ruleNames.length > 1 ? "them" : "it"
+            }: ${data.ruleChange}.`
+          : ""
+      }\n\n${RuleFeedMarkdown.onCallRulePolicies({
+        recordNoun: "incident",
+        attachedPolicyNames: namesOf(addedPolicyIds),
+        observerPolicyNames: namesOf(observerPolicyIds),
       })}`;
 
       await IncidentFeedService.createIncidentFeedItem({
