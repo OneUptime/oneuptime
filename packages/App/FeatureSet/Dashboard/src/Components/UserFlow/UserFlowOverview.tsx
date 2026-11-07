@@ -9,9 +9,11 @@ import {
 } from "Common/Utils/Rum/UserFlow";
 import {
   formatUserFlowCount,
+  formatUserFlowSessionsHint,
   formatUserFlowShare,
   truncateUserFlowLabel,
 } from "./UserFlowFormat";
+import { UserFlowScope } from "./UserFlowScope";
 import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
 
 /*
@@ -31,8 +33,12 @@ export const USER_FLOW_MAX_VISIBLE_INSIGHTS: number = 4;
 export interface ComponentProps {
   summary: UserFlowSummary;
   insights: Array<UserFlowInsight>;
+  /* Sessions the read answered with, before the page's filters. */
+  sessionsRead: number;
   sessionsInWindow: number;
   isSampled: boolean;
+  /* Whose sessions these are; absent or null for everyone. */
+  scopeKind?: UserFlowScope["kind"] | null | undefined;
   onFocusPage: (page: string, direction: UserFlowDirection) => void;
 }
 
@@ -111,13 +117,12 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
         <Tile
           label="Sessions analysed"
           value={formatUserFlowCount(summary.sessions)}
-          hint={
-            props.isSampled
-              ? `newest ${formatUserFlowCount(
-                  summary.sessions,
-                )} of ${formatUserFlowCount(props.sessionsInWindow)} recorded`
-              : "recorded sessions in range"
-          }
+          hint={formatUserFlowSessionsHint({
+            sessionsRead: props.sessionsRead,
+            sessionsInWindow: props.sessionsInWindow,
+            isSampled: props.isSampled,
+            scopeKind: props.scopeKind,
+          })}
           icon={IconProp.Film}
           testId="user-flow-tile-sessions"
           tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.sessionsAnalysed}
