@@ -10,15 +10,16 @@ import SlackPageActions, {
 } from "../../../../Server/Utils/Workspace/Slack/Actions/Page";
 import WorkspacePage, {
   WORKSPACE_PAGE_FORM_TEXT,
-  WorkspacePageRecord,
 } from "../../../../Server/Utils/Workspace/WorkspacePage";
 import {
   WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
+  WorkspacePageRecord,
   WorkspacePageSubject,
 } from "../../../../Server/Utils/Workspace/WorkspacePageAbout";
 import { WorkspacePageText } from "../../../../Server/Utils/Workspace/WorkspacePageText";
 import WorkspaceRecordPeople from "../../../../Server/Utils/Workspace/WorkspaceRecordPeople";
 import URL from "../../../../Types/API/URL";
+import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { ON_CALL_OBSERVERS_NEED_A_RECORD_MESSAGE } from "../../../../Types/OnCallDutyPolicy/OnCallObserverPage";
@@ -61,8 +62,8 @@ describe("Page them as, on the forms", () => {
     expect(dropdown.initialValue).toBe(OnCallPageAs.Responders);
     expect(dropdown.multiSelect).toBeFalsy();
     expect(
-      dropdown.options.map((option: { value: string }): string => {
-        return option.value;
+      dropdown.options.map((option: DropdownOption): string => {
+        return String(option.value);
       }),
     ).toEqual([OnCallPageAs.Responders, OnCallPageAs.Observers]);
     expect(dropdown.description).toContain("only says they've seen it");

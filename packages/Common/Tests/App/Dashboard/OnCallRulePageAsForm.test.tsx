@@ -304,8 +304,8 @@ describe("Execute On-Call Policy, on a record's feed", () => {
     expect(switchField.title).toBe(PAGE_AS_OBSERVERS_TITLE);
     expect(PAGE_AS_OBSERVERS_TITLE).toBe("Page them as observers");
     expect(switchField.description).toBe(PAGE_AS_OBSERVERS_DESCRIPTION);
-    expect(PAGE_AS_OBSERVERS_DESCRIPTION).toContain(
-      "nothing is acknowledged, and nobody else's page stops",
+    expect(PAGE_AS_OBSERVERS_DESCRIPTION).toBe(
+      "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged.",
     );
   });
 

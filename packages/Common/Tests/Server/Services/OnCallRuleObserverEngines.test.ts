@@ -586,7 +586,12 @@ describe("incident on-call rules that run again on a change (IncidentRulesOnChan
 
     const decide: jest.SpiedFunction<
       typeof AiFirstResponderEligibility.decideForIncident
-    > = jest.spyOn(AiFirstResponderEligibility, "decideForIncident");
+    > = jest.spyOn(
+      AiFirstResponderEligibility,
+      "decideForIncident",
+    ) as unknown as jest.SpiedFunction<
+      typeof AiFirstResponderEligibility.decideForIncident
+    >;
 
     const paging: OnCallRulesPaging =
       await IncidentOnCallRuleEngineService.applyRulesToIncident(

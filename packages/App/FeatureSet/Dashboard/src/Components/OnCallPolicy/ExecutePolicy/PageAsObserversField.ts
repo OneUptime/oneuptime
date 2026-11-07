@@ -20,7 +20,7 @@ export const PAGE_AS_OBSERVERS_TITLE: string = translationKey(
 );
 
 export const PAGE_AS_OBSERVERS_DESCRIPTION: string = translationKey(
-  "Keep the policy's people informed while the people responding stay on it. Acknowledging their page only says they've seen it: nothing is acknowledged, and nobody else's page stops.",
+  "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged.",
 );
 
 export const getPageAsObserversField: () => ModelField<OnCallDutyPolicyExecutionLog> =

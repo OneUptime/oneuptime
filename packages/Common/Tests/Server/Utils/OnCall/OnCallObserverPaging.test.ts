@@ -40,7 +40,7 @@ let executePolicy: jest.SpiedFunction<
 beforeEach(() => {
   executePolicy = jest
     .spyOn(OnCallDutyPolicyService, "executePolicy")
-    .mockResolvedValue(undefined as never);
+    .mockResolvedValue(undefined as never) as unknown as typeof executePolicy;
 });
 
 afterEach(() => {
@@ -163,7 +163,9 @@ describe("paging a record's observer policies", () => {
       typeof OnCallDutyPolicyExecutionLogService.findBy
     > = jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "findBy")
-      .mockResolvedValue([run] as never);
+      .mockResolvedValue([run] as never) as unknown as jest.SpiedFunction<
+      typeof OnCallDutyPolicyExecutionLogService.findBy
+    >;
 
     const paged: Array<string> = await OnCallObserverPaging.pagePolicies({
       projectId: PROJECT_ID,

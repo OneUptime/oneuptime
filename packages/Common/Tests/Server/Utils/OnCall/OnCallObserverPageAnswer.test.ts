@@ -62,7 +62,12 @@ describe("an observer answers their page", () => {
   test("the incident stays as it was: not acknowledged, no state written", async () => {
     const acknowledgeIncident: jest.SpiedFunction<
       typeof IncidentService.acknowledgeIncident
-    > = jest.spyOn(IncidentService, "acknowledgeIncident");
+    > = jest.spyOn(
+      IncidentService,
+      "acknowledgeIncident",
+    ) as unknown as jest.SpiedFunction<
+      typeof IncidentService.acknowledgeIncident
+    >;
 
     await startObserverRun();
 

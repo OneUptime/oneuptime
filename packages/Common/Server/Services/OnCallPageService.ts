@@ -234,10 +234,11 @@ export interface OnCallPageResult {
   // The direct page's run, when people, teams or schedules were named.
   directPageExecutionLogId: ObjectID | null;
   /*
-   * The whole of it in a few sentences, ready to show or to post.
-   * Whether it paged its people as observers (OnCallObserverPage).
+   * Whether it paged its people as observers (OnCallObserverPage). Left
+   * out, it paged them to respond, as every page did before.
    */
-  isObserverPage: boolean;
+  isObserverPage?: boolean | undefined;
+  // The whole of it in a few sentences, ready to show or to post.
   summary: string;
 }
 

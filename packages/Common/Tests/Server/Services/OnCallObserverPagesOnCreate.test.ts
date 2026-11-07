@@ -43,7 +43,9 @@ jest.mock("../../../Server/Utils/Logger");
 const PROJECT_ID: ObjectID = new ObjectID(
   "0ab00000-0000-4000-8000-000000000001",
 );
-const RECORD_ID: ObjectID = new ObjectID("0ab00000-0000-4000-8000-000000000002");
+const RECORD_ID: ObjectID = new ObjectID(
+  "0ab00000-0000-4000-8000-000000000002",
+);
 const RESPONDERS: string = "0ab00000-0000-4000-8000-00000000000a";
 const OBSERVERS: string = "0ab00000-0000-4000-8000-00000000000b";
 
@@ -136,9 +138,7 @@ const KINDS: Array<RecordKind> = [
     readsItsPolicies: (policyIds: Array<string>): void => {
       const episode: AlertEpisode = withIds(new AlertEpisode());
       episode.onCallDutyPolicies = policies(policyIds);
-      jest
-        .spyOn(AlertEpisodeService, "findOneById")
-        .mockResolvedValue(episode);
+      jest.spyOn(AlertEpisodeService, "findOneById").mockResolvedValue(episode);
       jest
         .spyOn(AlertEpisodeService, "updateOneById")
         .mockResolvedValue(undefined as never);
@@ -194,13 +194,13 @@ let notRun: jest.SpiedFunction<typeof OnCallNotRunOnCreate.createFeedItem>;
 beforeEach(() => {
   executePolicy = jest
     .spyOn(OnCallDutyPolicyService, "executePolicy")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(undefined) as unknown as typeof executePolicy;
   pageObservers = jest
     .spyOn(OnCallObserverPaging, "pagePolicies")
-    .mockResolvedValue([]);
+    .mockResolvedValue([]) as unknown as typeof pageObservers;
   notRun = jest
     .spyOn(OnCallNotRunOnCreate, "createFeedItem")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(undefined) as unknown as typeof notRun;
 });
 
 afterEach(() => {

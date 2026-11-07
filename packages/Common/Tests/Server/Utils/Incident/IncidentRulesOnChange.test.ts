@@ -73,10 +73,12 @@ beforeEach(() => {
     holds: new Map<string, OnCallRulePagingHold>(),
   };
 
-  lock = jest
-    .spyOn(Semaphore, "lock")
-    .mockResolvedValue({ release: async () => {} } as never);
-  release = jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+  lock = jest.spyOn(Semaphore, "lock").mockResolvedValue({
+    release: async () => {},
+  } as never) as unknown as typeof lock;
+  release = jest
+    .spyOn(Semaphore, "release")
+    .mockResolvedValue(undefined) as unknown as typeof release;
 
   jest
     .spyOn(IncidentService, "isIncidentResolved")
@@ -87,18 +89,18 @@ beforeEach(() => {
 
   ownerRules = jest
     .spyOn(IncidentOwnerRuleEngineService, "applyRulesToIncident")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(undefined) as unknown as typeof ownerRules;
   onCallRules = jest
     .spyOn(IncidentOnCallRuleEngineService, "applyRulesToIncident")
     .mockImplementation(async () => {
       return paging;
-    });
+    }) as unknown as typeof onCallRules;
   executePolicy = jest
     .spyOn(OnCallDutyPolicyService, "executePolicy")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(undefined) as unknown as typeof executePolicy;
   pageObservers = jest
     .spyOn(OnCallObserverPaging, "pagePolicies")
-    .mockResolvedValue([]);
+    .mockResolvedValue([]) as unknown as typeof pageObservers;
 });
 
 afterEach(() => {
