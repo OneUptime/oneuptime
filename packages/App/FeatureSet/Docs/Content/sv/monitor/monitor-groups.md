@@ -61,7 +61,7 @@ Gå till **Övervakare → Monitorgrupper**. Kortet **Monitorgrupper** listar va
 
 ### Skapa gruppen
 
-Klicka på **Skapa Monitor Grupp**, ange ett **Namn** och, om du vill, en **Beskrivning**, och klicka på **Skapa Monitor Grupp** längst ned i formuläret. Gruppen börjar utan monitorer.
+Klicka på **Skapa Monitorgrupp**, ange ett **Namn** och, om du vill, en **Beskrivning**, och klicka på **Skapa Monitorgrupp** längst ned i formuläret. Gruppen börjar utan monitorer.
 
 ### Lägg till dess monitorer
 
@@ -101,7 +101,7 @@ Gå till **Statussidor**, öppna sidan och klicka på **Resurser** i dess sidome
 
 ### Byt dialogen till en grupp
 
-Klicka på **Lägg till monitor**. Under listrutan med monitorer klickar du på **Add a Monitor Group instead.** Listrutan blir **Monitor Grupp**.
+Klicka på **Lägg till monitor**. Under listrutan med monitorer klickar du på **Lägg till en monitorgrupp i stället.** Listrutan blir **Monitorgrupp**.
 
 ### Välj gruppen och lägg till den
 
@@ -134,7 +134,7 @@ Det är regeln: gruppen visar sin värsta monitor. Öppna **Monitorer** i gruppe
 :::
 
 :::details En statussida kan inte lägga till gruppen
-**Add a Monitor Group instead.** visas i dialogen bara så länge brytaren **Monitorgrupper** är påslagen för projektet.
+**Lägg till en monitorgrupp i stället.** visas i dialogen bara så länge brytaren **Monitorgrupper** är påslagen för projektet.
 :::
 
 ## Nästa steg

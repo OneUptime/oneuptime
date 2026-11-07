@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### De sjablonen openen
 
-Ga naar **Geplande onderhoud → Instellingen → Gebeurtenis-sjablonen**. **Instellingen** is in het zijmenu eerst ingeklapt: klap het eerst uit. Klik op **Gepland Onderhoud Sjabloon aanmaken**.
+Ga naar **Geplande onderhoud → Instellingen → Gebeurtenis-sjablonen**. **Instellingen** is in het zijmenu eerst ingeklapt: klap het eerst uit. Klik op **Sjabloon voor gepland onderhoud aanmaken**.
 
 ### Het sjabloon een naam geven
 

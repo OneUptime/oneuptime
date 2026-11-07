@@ -928,6 +928,72 @@ test.describe("Code opens on the request box, like Claude Code and Codex", () =>
     await expect(page.getByTestId("code-ask")).toHaveCount(0);
     expect((await recorded(page)).reads.repositories).toBe(0);
   });
+
+  /*
+   * The box sizes itself to its text as it mounts, and on a page whose
+   * styles are still being written (the Tailwind runtime) that read came
+   * before its padding and line height, so its first line - the
+   * placeholder - could sit half hidden until something was typed, as the
+   * AI card's composer did. A floor of its drawn lines keeps it whole: four
+   * on Code's first page, two in a task's reply box.
+   */
+  test("the box opens as tall as it is drawn, its first line whole, and still grows and shrinks with the text", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const expectWholeFromTheStart: (floor: number) => Promise<number> = async (
+      floor: number,
+    ): Promise<number> => {
+      const box: Locator = composerInput(page);
+      await expect(box).toHaveValue("");
+
+      // Nothing of its first line is scrolled out of the box.
+      await expect
+        .poll(async (): Promise<number> => {
+          return box.evaluate((element: Element): number => {
+            const area: HTMLTextAreaElement = element as HTMLTextAreaElement;
+            return area.scrollHeight - area.clientHeight;
+          });
+        })
+        .toBeLessThanOrEqual(0);
+
+      const height: number = await box.evaluate((element: Element): number => {
+        return element.getBoundingClientRect().height;
+      });
+      expect(height).toBeGreaterThanOrEqual(floor - 0.5);
+
+      // It grows with the text, then shrinks back to its floor when cleared.
+      await box.fill("One\nTwo\nThree\nFour\nFive\nSix");
+      await expect
+        .poll(async (): Promise<number> => {
+          return box.evaluate((element: Element): number => {
+            return element.getBoundingClientRect().height;
+          });
+        })
+        .toBeGreaterThan(height);
+      await box.fill("");
+      await expect
+        .poll(async (): Promise<number> => {
+          return box.evaluate((element: Element): number => {
+            return Math.round(element.getBoundingClientRect().height);
+          });
+        })
+        .toBe(Math.round(height));
+
+      return height;
+    };
+
+    // Code's first page: four lines of 28px, 16px over and 8px under them.
+    await openCode(page);
+    await expect(composerInput(page)).toBeEditable();
+    await expectWholeFromTheStart(136);
+
+    // A task's reply box: two lines of 24px, 14px over and 8px under them.
+    await openTask(page, TASK.retries);
+    await expect(composerInput(page)).toBeEditable();
+    await expectWholeFromTheStart(70);
+  });
 });
 
 /*

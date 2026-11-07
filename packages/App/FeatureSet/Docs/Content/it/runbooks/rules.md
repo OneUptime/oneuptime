@@ -77,7 +77,7 @@ Ogni condizione confronta un aspetto dell'incidente, dell'avviso o dell'evento d
 | Criterio | Cosa controlla |
 | --- | --- |
 | **Monitor** | I monitor coinvolti dall'incidente o dall'evento di manutenzione programmata, oppure il monitor che ha generato l'avviso. |
-| **Incidente Gravità** / **Avviso Gravità** | La gravità dell'incidente o dell'avviso. Gli eventi di manutenzione programmata non hanno gravità, quindi le loro regole non la offrono. |
+| **Gravità degli incidenti** / **Gravità degli avvisi** | La gravità dell'incidente o dell'avviso. Gli eventi di manutenzione programmata non hanno gravità, quindi le loro regole non la offrono. |
 | **Etichette dell'incidente** / **Etichette dell'avviso** / **Etichette evento** | Le etichette dell'incidente, dell'avviso o dell'evento stesso, comprese quelle che le regole sulle etichette hanno aggiunto alla creazione. |
 | **Etichette del monitor** | Le etichette dei suoi monitor. Etichetta i tuoi monitor `production` o `staging` per eseguire un runbook in un solo ambiente. |
 | **Titolo dell'incidente** / **Titolo dell'avviso** / **Titolo evento** | Il suo titolo. |
@@ -98,7 +98,7 @@ Con due o più condizioni, scegli **Soddisfa tutte** (ogni condizione deve esser
 - Le condizioni sui monitor vengono controllate un monitor alla volta. Con **Soddisfa tutte**, «**Nome del monitor** contiene `api`» e «**Etichette del monitor** ha uno qualsiasi di _Production_» richiedono un monitor che soddisfi entrambe, non un monitor per ciascuna.
 - Le regole di runbook vengono eseguite dopo le regole sulle etichette, quindi un'etichetta che una regola sulle etichette aggiunge a un nuovo incidente, avviso o evento può avviare un runbook.
 - Un incidente o un avviso creato già risolto non avvia alcun runbook: era finito prima di essere registrato. Vedi [Dichiarato già riconosciuto o risolto](/docs/incidents/declaring-incidents#dichiarato-già-riconosciuto-o-risolto).
-- Una condizione sulla gravità di un altro prodotto — **Avviso Gravità** in una regola per gli incidenti, ad esempio — non può mai essere vera, quindi l'API rifiuta di salvarla.
+- Una condizione sulla gravità di un altro prodotto — **Gravità degli avvisi** in una regola per gli incidenti, ad esempio — non può mai essere vera, quindi l'API rifiuta di salvarla.
 - Le regole vengono valutate una sola volta, alla creazione dell'evento. Modificare in seguito il titolo, la gravità o le etichette di un incidente non fa scattare di nuovo le regole.
 
 ## Esempi
@@ -165,7 +165,7 @@ Le regole vedono l'evento così come è stato creato, con le etichette che le re
 :::
 
 :::details L'API rifiuta una regola con "can only be used by"
-Un criterio di gravità appartiene a un solo prodotto. **Avviso Gravità** in una regola per gli incidenti, o **Incidente Gravità** in una regola per gli avvisi, non potrebbe mai corrispondere, quindi la regola viene rifiutata con un messaggio come "Alert Severities can only be used by alert runbook rules." Rimuovi quella condizione. La dashboard offre solo i criteri propri di ogni prodotto.
+Un criterio di gravità appartiene a un solo prodotto. **Gravità degli avvisi** in una regola per gli incidenti, o **Gravità degli incidenti** in una regola per gli avvisi, non potrebbe mai corrispondere, quindi la regola viene rifiutata con un messaggio come "Alert Severities can only be used by alert runbook rules." Rimuovi quella condizione. La dashboard offre solo i criteri propri di ogni prodotto.
 :::
 
 ## Prossimi passi

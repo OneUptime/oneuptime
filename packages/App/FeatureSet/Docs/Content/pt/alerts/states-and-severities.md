@@ -65,7 +65,7 @@ Um estado que você adiciona é uma etapa pela qual sua equipe passa e que os tr
 :::steps
 ### Abrir a lista de estados
 
-Vá para **Alertas → Configurações → Estado do alerta**. O cartão **Alerta Estados** lista seus estados na ordem deles. Cada linha mostra sua cor e seu nome, como **Conta como** um alerta que está nele, e sua descrição.
+Vá para **Alertas → Configurações → Estado do alerta**. O cartão **Estados do alerta** lista seus estados na ordem deles. Cada linha mostra sua cor e seu nome, como **Conta como** um alerta que está nele, e sua descrição.
 
 ### Criar o estado
 
@@ -106,11 +106,11 @@ Os incidentes começam com três gravidades e os alertas com duas. Quando o mode
 
 ## Editar as gravidades
 
-Vá para **Alertas → Configurações → Severidade do alerta**. O cartão **Alerta Severidades** as lista da mais grave para a menos grave; arraste uma linha para mudar sua posição. **Criar: Severidade do alerta** adiciona uma no fim da lista, a menos grave, com os mesmos **Nome**, **Descrição** e **Cor** de um estado.
+Vá para **Alertas → Configurações → Severidade do alerta**. O cartão **Severidades dos alertas** as lista da mais grave para a menos grave; arraste uma linha para mudar sua posição. **Criar: Severidade do alerta** adiciona uma no fim da lista, a menos grave, com os mesmos **Nome**, **Descrição** e **Cor** de um estado.
 
 A posição decide qual gravidade prevalece onde o OneUptime as compara: a gravidade de um episódio sobe até a do alerta mais grave que entra nele. As gravidades não têm sinalizadores nem bloqueio de exclusão: qualquer gravidade pode ser excluída, inclusive as duas predefinidas.
 
-Uma gravidade sozinha não aciona ninguém. Para acionar conforme a gravidade, adicione uma regra de plantão cujas **Alerta Severidades** correspondam a ela: veja [Regras e configurações de alertas](/docs/alerts/settings). Alterar a gravidade de um alerta escreve uma entrada no feed dele e faz sua regra de lembrete corresponder novamente.
+Uma gravidade sozinha não aciona ninguém. Para acionar conforme a gravidade, adicione uma regra de plantão cujas **Severidades dos alertas** correspondam a ela: veja [Regras e configurações de alertas](/docs/alerts/settings). Alterar a gravidade de um alerta escreve uma entrada no feed dele e faz sua regra de lembrete corresponder novamente.
 
 ## Arquivar um estado ou uma severidade
 

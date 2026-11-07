@@ -39,7 +39,7 @@ Et kriterium, der matcher, men ikke ændrer nogen status, afgør stadig kontroll
 | Del | Hvad den indeholder |
 | --- | --- |
 | **Kriterienavn** | Navnet i listen over kriterier og i grundårsagen til hver hændelse og advarsel, som kriteriet åbner. **Tilføj kriterier** navngiver et nyt kriterium efter dets filtre, og navnet følger dem, indtil du skriver dit eget. |
-| **Filtre** | Hvad kontrollen skal vise, som et eller flere filtre. Kubernetes- og metrikmonitorer kalder dem **Alert Rules**. |
+| **Filtre** | Hvad kontrollen skal vise, som et eller flere filtre. Kubernetes- og metrikmonitorer kalder dem **Advarselsregler**. |
 | **Handlinger** | Hvad der sker, når filtrene matcher: skift status, opret en advarsel, erklær en hændelse eller en kombination. |
 | **Indstillinger** | **Aktivér disse kriterier**, en valgfri **Beskrivelse** og, på monitorer for indgående anmodninger, **Group incidents and alerts by a payload field**. |
 
@@ -88,7 +88,7 @@ flowchart TB
 - **Én ad gangen.** Så længe en hændelse, som et kriterium har erklæret, stadig er åben, erklærer det samme kriterium ingen ny, når det matcher igen. Advarsler fungerer på samme måde. En monitor, der grupperer efter vært eller payload-felt, holder én åben pr. vært eller værdi, og et kriterium på en monitor for indgående e-mail med **Åbn en ny hændelse for hver e-mail** åbner én pr. e-mail.
 - **Lukning.** Ved en senere kontrol, hvor et andet kriterium matcher, eller intet, løses en hændelse, hvis kriterium har **Løs hændelse automatisk** slået til, og det samme gælder en advarsel med **Løs advarsel automatisk**. Begge ligger under **Flere felter** i hændelsen eller advarslen, og de kriterier, en ny monitor starter med, har dem slået til.
 - **Flere sonder.** En monitor, som mere end én sonde kontrollerer, skifter kun, når dens sonder er enige. Se [Sådan evalueres kriterierne](/docs/monitor/create-monitor#sådan-evalueres-kriterier).
-- **En overordnet monitor, der er nede.** På en monitors side **Konfiguration → Afhængigheder** angiver **Depends On Monitors** de monitorer, den afhænger af. Så længe en af dem er i en status, der står i **Suppress When Parent Status Is** (enhver offline-status, hvis feltet står tomt), åbner monitoren ingen hændelser eller advarsler. Dens status skifter stadig, og det, der er åbent, løses stadig.
+- **En overordnet monitor, der er nede.** På en monitors side **Konfiguration → Afhængigheder** angiver **Afhænger af monitorer** de monitorer, den afhænger af. Så længe en af dem er i en status, der står i **Undertryk, når den overordnedes status er** (enhver offline-status, hvis feltet står tomt), åbner monitoren ingen hændelser eller advarsler. Dens status skifter stadig, og det, der er åbent, løses stadig.
 - **Planlagt vedligeholdelse.** En monitor i en vedligeholdelsesbegivenhed, der er i gang, kontrolleres ikke, så dens kriterier kører ikke. Se [Planlagt vedligeholdelse – Oversigt](/docs/scheduled-maintenance/index).
 
 For at se, hvordan en kontrol blev vurderet, skal du åbne monitorens **Oversigt**: kortet **Monitor-resumé** viser, hvilket kriterium der matchede, og hvad hvert kriterium gjorde, også en hændelse, der blev sprunget over, fordi der allerede var en åben.
@@ -148,7 +148,7 @@ En status, du tilføjer senere, kommer ikke med på listen **Tæller som nedetid
 :::steps
 ### Åbn Monitorstatus
 
-Gå til **Overvågninger → Indstillinger → Monitorstatus**. **Indstillinger** er foldet sammen i sidemenuen: fold den ud først. Kortet **Monitor Statusser** viser statusserne fra den sundeste til den værste.
+Gå til **Overvågninger → Indstillinger → Monitorstatus**. **Indstillinger** er foldet sammen i sidemenuen: fold den ud først. Kortet **Monitorstatusser** viser statusserne fra den sundeste til den værste.
 
 ### Opret statussen
 
@@ -167,7 +167,7 @@ Den driftsklare status og offline-statussen er markeret som **Indbygget**: du ka
 
 ### Statustidslinjen
 
-Hver statusændring gemmes på monitorens **Statustidslinje**: hvornår den startede, hvor længe den varede, og **Vis årsag** for det kriterium, der satte den. **Opret Monitor Status Begivenhed** tilføjer en status manuelt. På en monitor, som sonder kontrollerer, sætter den næste kontrol, der matcher et kriterium med en status, den status igen.
+Hver statusændring gemmes på monitorens **Statustidslinje**: hvornår den startede, hvor længe den varede, og **Vis årsag** for det kriterium, der satte den. **Opret Statusbegivenhed for monitor** tilføjer en status manuelt. På en monitor, som sonder kontrollerer, sætter den næste kontrol, der matcher et kriterium med en status, den status igen.
 
 En statusændring giver kun monitorens ejere besked, hvis de har slået **Overvågningsstatus ændret** til i deres notifikationsindstillinger: den er slået fra fra start. En monitor, der går tilbage til sin **Standardstatus for overvågning**, fordi intet kriterium matchede, giver ingen besked. Se [Hvad der er slået til for et nyt medlem](/docs/notifications/notification-settings#hvad-der-er-slået-til-for-et-nyt-medlem).
 
@@ -187,7 +187,7 @@ Et kriterium højere oppe på listen matchede først. Åbn **Konfiguration → K
 :::
 
 :::details Der blev ikke åbnet nogen hændelse, da monitoren gik ned
-Tjek det kriterium, der matchede: **Når filtre matcher, erklæres en hændelse.** skal være slået til. Der erklæres ingen hændelse, så længe det samme kriteriums hændelse stadig er åben, så længe en overordnet monitor i **Depends On Monitors** er nede, eller så længe monitoren er i planlagt vedligeholdelse. Kortet **Monitor-resumé** på monitorens **Oversigt** fortæller, hvilken det var.
+Tjek det kriterium, der matchede: **Når filtre matcher, erklæres en hændelse.** skal være slået til. Der erklæres ingen hændelse, så længe det samme kriteriums hændelse stadig er åben, så længe en overordnet monitor i **Afhænger af monitorer** er nede, eller så længe monitoren er i planlagt vedligeholdelse. Kortet **Monitor-resumé** på monitorens **Oversigt** fortæller, hvilken det var.
 :::
 
 :::details Hændelsen forbliver åben, efter at monitoren er kommet sig

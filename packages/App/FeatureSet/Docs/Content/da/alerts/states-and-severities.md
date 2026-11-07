@@ -65,7 +65,7 @@ En tilstand, du tilføjer, er et trin, dit team går igennem, som de tre forudop
 :::steps
 ### Åbn listen over tilstande
 
-Gå til **Advarsler → Indstillinger → Advarselsstatus**. Kortet **Advarsel Tilstande** viser dine tilstande i deres rækkefølge. Hver række viser sin farve og sit navn, hvad en advarsel i den **Tæller som**, og sin beskrivelse.
+Gå til **Advarsler → Indstillinger → Advarselsstatus**. Kortet **Advarselsstatusser** viser dine tilstande i deres rækkefølge. Hver række viser sin farve og sit navn, hvad en advarsel i den **Tæller som**, og sin beskrivelse.
 
 ### Opret tilstanden
 
@@ -106,11 +106,11 @@ Hændelser starter med tre alvorsgrader og advarsler med to. Når skabelonen i e
 
 ## Rediger alvorsgrader
 
-Gå til **Advarsler → Indstillinger → Advarselsalvor**. Kortet **Advarsel Alvorligheder** viser dem med den mest alvorlige først; træk en række for at ændre dens rang. **Opret Advarselsalvor** tilføjer en sidst i listen, som den mindst alvorlige, med de samme **Navn**, **Beskrivelse** og **Farve** som en tilstand.
+Gå til **Advarsler → Indstillinger → Advarselsalvor**. Kortet **Alvorlighedsgrader for advarsler** viser dem med den mest alvorlige først; træk en række for at ændre dens rang. **Opret Advarselsalvor** tilføjer en sidst i listen, som den mindst alvorlige, med de samme **Navn**, **Beskrivelse** og **Farve** som en tilstand.
 
 Rangen afgør, hvilken alvorsgrad der vinder, hvor OneUptime sammenligner dem: En episodes alvorsgrad stiger til den mest alvorlige advarsel, der slutter sig til den. Alvorsgrader har ingen flag og ingen slettelås: Enhver alvorsgrad kan slettes, også de to forudoprettede.
 
-En alvorsgrad tilkalder ingen af sig selv. For at tilkalde efter alvorsgrad tilføjer du en vagtregel, hvis **Advarsel Alvorligheder** matcher den: se [Advarselsregler og indstillinger](/docs/alerts/settings). Ændrer du en advarsels alvorsgrad, skrives en post i dens feed, og dens påmindelsesregel matches igen.
+En alvorsgrad tilkalder ingen af sig selv. For at tilkalde efter alvorsgrad tilføjer du en vagtregel, hvis **Alvorlighedsgrader for advarsler** matcher den: se [Advarselsregler og indstillinger](/docs/alerts/settings). Ændrer du en advarsels alvorsgrad, skrives en post i dens feed, og dens påmindelsesregel matches igen.
 
 ## Arkivér en status eller alvorsgrad
 

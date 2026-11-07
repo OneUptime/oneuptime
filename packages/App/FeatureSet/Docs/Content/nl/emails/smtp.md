@@ -34,7 +34,7 @@ Voeg de mailserver van een project toe via **Projectinstellingen > Meldingen > M
 
 :::tabs
 @tab Project
-Open via **Projectinstellingen > Meldingen > Meldingsinstellingen** het onderdeel **Meer instellingen** en klik op **SMTP Configuratie aanmaken** in de kaart **Aangepaste SMTP-configuraties**.
+Open via **Projectinstellingen > Meldingen > Meldingsinstellingen** het onderdeel **Meer instellingen** en klik op **SMTP-configuratie aanmaken** in de kaart **Aangepaste SMTP-configuraties**.
 @tab Zelf gehoste instantie
 Open in het Admin Dashboard **Instellingen** en daarna **Meldingen > E-mails** in het zijmenu (**Meldingen** is eerst ingeklapt). Klik in de kaart **E-mailserverinstellingen** op **Server bewerken** en zet **Type e-mailserver** op `Custom SMTP`. Klik daarna op **SMTP-config bewerken** in de kaart **Aangepaste e-mail- en SMTP-instellingen**, die eronder verschijnt.
 :::

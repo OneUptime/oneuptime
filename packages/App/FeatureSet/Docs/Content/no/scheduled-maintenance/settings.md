@@ -92,7 +92,7 @@ Disse påminnelsene er for teamet ditt. Påminnelsene statussideabonnentene dine
 
 ### Notatmaler
 
-**Planlagt vedlikehold → Innstillinger → Notatmaler** rommer ferdigskrevet tekst for oppdateringer om vedlikehold. Kortet **Maler for offentlige eller private notater for planlagte vedlikeholdshendelser** viser dem; **Opprett Planlagt Vedlikehold Notat Mal** ber om et **Malnavn**, en **Malbeskrivelse** og **Notat**. En mal tilbys når noen skriver et offentlig eller privat notat på en hendelse, og når de endrer tilstanden, og teksten kan redigeres før den publiseres. I motsetning til notatmalene for uplanlagte hendelser fyller notatmaler for vedlikehold ikke ut noen variabler.
+**Planlagt vedlikehold → Innstillinger → Notatmaler** rommer ferdigskrevet tekst for oppdateringer om vedlikehold. Kortet **Maler for offentlige eller private notater for planlagte vedlikeholdshendelser** viser dem; **Opprett Notatmal for planlagt vedlikehold** ber om et **Malnavn**, en **Malbeskrivelse** og **Notat**. En mal tilbys når noen skriver et offentlig eller privat notat på en hendelse, og når de endrer tilstanden, og teksten kan redigeres før den publiseres. I motsetning til notatmalene for uplanlagte hendelser fyller notatmaler for vedlikehold ikke ut noen variabler.
 
 ### Egendefinerte felt
 

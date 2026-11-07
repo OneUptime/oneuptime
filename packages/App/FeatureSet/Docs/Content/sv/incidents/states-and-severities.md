@@ -37,7 +37,7 @@ flowchart TB
 
 Modellen `IncidentState` har `name`, `description`, `color` och `order`, plus tre booleans: `isCreatedState`, `isAcknowledgedState` och `isResolvedState`. Allt som produkten gör med tillstånd utgår från de booleans och från `order` — aldrig från tillståndets namn. Därför kan du byta namn på **Löst** till "Closed" utan att något går sönder: flaggan följer med raden.
 
-Modellen `IncidentSeverity` har `name`, `description`, `color` och `order` och inget annat. Det finns inga flaggor. Inget i OneUptime behandlar av sig självt **Critical Incident** annorlunda än **Minor Incident** — allvarlighetsgraden spelar bara roll där du riktar något mot den, som matchningskriteriet **Incident Allvarligheter** i en jourregel.
+Modellen `IncidentSeverity` har `name`, `description`, `color` och `order` och inget annat. Det finns inga flaggor. Inget i OneUptime behandlar av sig självt **Critical Incident** annorlunda än **Minor Incident** — allvarlighetsgraden spelar bara roll där du riktar något mot den, som matchningskriteriet **Allvarlighetsgrader för incidenter** i en jourregel.
 
 Några snabba regler:
 
@@ -83,7 +83,7 @@ Ett tillstånd som du lägger till är ett steg i din insats som de tre förskap
 :::steps
 ### Öppna listan över tillstånd
 
-Gå till **Incidenter → Inställningar → Incidentstatus**. Kortet **Incident Tillstånd** visar dina tillstånd i deras ordning, en rad var: ett grepp att dra det i, dess färg och namn, vad en incident i det **Räknas som**, och dess beskrivning. Meningen under titeln säger det rakt ut: incidenter rör sig bara nedåt i den här listan.
+Gå till **Incidenter → Inställningar → Incidentstatus**. Kortet **Incidentstatusar** visar dina tillstånd i deras ordning, en rad var: ett grepp att dra det i, dess färg och namn, vad en incident i det **Räknas som**, och dess beskrivning. Meningen under titeln säger det rakt ut: incidenter rör sig bara nedåt i den här listan.
 
 ### Skapa tillståndet
 
@@ -149,7 +149,7 @@ Två skillnader mot tillstånd:
 - **Det finns inget skydd mot borttagning.** Vilken allvarlighetsgrad som helst kan tas bort, även de tre förskapade.
 - **Det finns inga flaggor att ärva och inget "Räknas som".** En ny allvarlighetsgrad beter sig exakt som de förskapade — den är en etikett med en färg och en rang.
 
-Där allvarlighetsgraden gör mer än att beskriva: under **Incidenter → Regler → Jourregler** är en regels fält **Incident Allvarligheter** ett matchningskriterium. Att ange **Critical Incident** där är hur "larma databasteamet vid allt kritiskt" uttrycks — jourpolicyn sitter på regeln, inte på allvarlighetsgraden.
+Där allvarlighetsgraden gör mer än att beskriva: under **Incidenter → Regler → Jourregler** är en regels fält **Allvarlighetsgrader för incidenter** ett matchningskriterium. Att ange **Critical Incident** där är hur "larma databasteamet vid allt kritiskt" uttrycks — jourpolicyn sitter på regeln, inte på allvarlighetsgraden.
 
 **Att ändra en incidents allvarlighetsgrad** — under **Redigera** på incidentens kort **Incidentdetaljer**, via API:t eller Terraform (`incidentSeverityId`), med ett arbetsflöde eller med AI-verktygen — gör samma fyra saker oavsett hur det skickas: incidentens flöde får en post **Incident updated** som nämner den nya allvarlighetsgraden, incidentens SLA-tidsgränser räknas om, dess påminnelseregel matchas igen, och incidentmåtten räknar en ändring av allvarlighetsgrad. Att spara den allvarlighetsgrad som incidenten redan har gör ingen av dem, så redigerar du bara titeln på en incident förblir dess SLA-tidsgränser, påminnelser och antal ändringar av allvarlighetsgrad som de var. Ett larms allvarlighetsgrad fungerar på samma sätt för dess flödespost och dess påminnelser.
 

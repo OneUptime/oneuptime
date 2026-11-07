@@ -113,7 +113,7 @@ En mal og et skjema sparer deg begge for å skrive den samme hendelsen to ganger
 | Hva man ser | Monitorene, policyene, eierne og hvert felt | Skjemaets navn, beskrivelse og spørsmål, og bare alternativene du tilbyr |
 | Statussider | Det malen og opprettingsskjemaet sier | Skjult til en som håndterer hendelsen, publiserer den |
 
-De virker sammen. Gi et hendelsesskjema en **Hendelse Mal** på siden **Ved innsending**, så opprettes hver hendelse det oppretter, fra den malen: bygg malen for det teamet ditt trenger på hendelsen, og skjemaet for det du vil spørre innsenderen om.
+De virker sammen. Gi et hendelsesskjema en **Hendelsesmal** på siden **Ved innsending**, så opprettes hver hendelse det oppretter, fra den malen: bygg malen for det teamet ditt trenger på hendelsen, og skjemaet for det du vil spørre innsenderen om.
 
 ## Innsendinger
 

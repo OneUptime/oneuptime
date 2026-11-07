@@ -67,7 +67,7 @@ Klik op **Beginnen met sjabloon**, of op **Sjabloon toepassen** in het menu **‚ã
 
 ### Het met AI genereren
 
-Klik op **Generate with AI**. Het dialoogvenster **Generate Postmortem with AI** biedt een opzet aan onder **Selecteer sjabloon**: **Standard Postmortem**, **Detailed Technical Postmortem** of **Brief Postmortem**, daarna uw eigen postmortem-sjablonen. **Template Preview** toont de opzet, en u kunt die wijzigen voordat u genereert.
+Klik op **Generate with AI**. Het dialoogvenster **Postmortem maken met AI** biedt een opzet aan onder **Selecteer sjabloon**: **Standard Postmortem**, **Detailed Technical Postmortem** of **Brief Postmortem**, daarna uw eigen postmortem-sjablonen. **Template Preview** toont de opzet, en u kunt die wijzigen voordat u genereert.
 
 Klik onderaan het dialoogvenster op **Generate with AI**. OneUptime AI leest het incident (de beschrijving, de oorzaak en de oplossing, de statustijdlijn, de openbare en priv√©notities, de berichten in het Slack- of Microsoft Teams-kanaal, en wat er in [de gesprekken](/docs/workspace-connections/video-calls#transcripties-van-gesprekken) is gezegd) en schrijft het postmortem in uw opzet. Daarna opent de editor met het resultaat.
 

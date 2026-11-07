@@ -36,8 +36,8 @@ OneUptime leest maar een paar dingen uit de assertion die uw IdP stuurt:
 | --- | --- |
 | Handtekening | Controleert die met het **Openbaar certificaat** van de provider. Het antwoord moet ondertekend zijn en mag niet versleuteld zijn. |
 | Issuer | Moet exact overeenkomen met de **Uitgever** van de provider. |
-| Audience | Moet de **Identifier (Entity ID)** van de provider zijn. Een antwoord dat uw IdP voor een andere applicatie heeft gemaakt, wordt geweigerd. |
-| Recipient en Destination | Moeten de **Reply URL** van de provider zijn, het adres waarnaar het antwoord is gestuurd. |
+| Audience | Moet de **Identificatie (Entity ID)** van de provider zijn. Een antwoord dat uw IdP voor een andere applicatie heeft gemaakt, wordt geweigerd. |
+| Recipient en Destination | Moeten de **Antwoord-URL** van de provider zijn, het adres waarnaar het antwoord is gestuurd. |
 | `NotBefore` en `NotOnOrAfter` | Het antwoord wordt alleen aangenomen zolang die het toestaan, en uiterlijk 10 minuten nadat het is uitgegeven, met 3 minuten speling voor klokken die niet gelijklopen. |
 | Name ID | Het e-mailadres van de persoon. Het moet een geldig e-mailadres zijn. |
 | Naamattributen | De naam van de persoon, gebruikt wanneer OneUptime het account aanmaakt: een weergavenaam (`displayName`, of `http://schemas.microsoft.com/identity/claims/displayname`), of een voor- en achternaam (`firstName` en `lastName`, of de claims `givenname` en `surname` die Microsoft Entra ID standaard stuurt). Optioneel. |
@@ -73,9 +73,9 @@ U hebt toestemming nodig om SSO-providers toe te voegen — **Projecteigenaar**,
    - De rest staat al ingevuld onder **Meer velden**: de **Handtekeningmethode** (`RSA-SHA256`), de **Digest-methode** (`SHA256`) en een beschrijving ("Sign in with" en de naam). Wijzig ze alleen als uw identiteitsprovider dat vraagt
 
 3. **De SSO-metadata van OneUptime ophalen**
-   - Bij het opslaan opent het dialoogvenster **SSO Configuration**. U opent het opnieuw met de knop **SSO-configuratie bekijken**
-   - Kopieer de **Identifier (Entity ID)**, zoals `https://oneuptime.com/<project-id>/<provider-id>` — die is nodig in de configuratie van uw IdP
-   - Kopieer de **Reply URL (Assertion Consumer Service URL)**, zoals `https://oneuptime.com/identity/idp-login/<project-id>/<provider-id>` — die is nodig in de configuratie van uw IdP
+   - Bij het opslaan opent het dialoogvenster **SSO-configuratie**. U opent het opnieuw met de knop **SSO-configuratie bekijken**
+   - Kopieer de **Identificatie (Entity ID)**, zoals `https://oneuptime.com/<project-id>/<provider-id>` — die is nodig in de configuratie van uw IdP
+   - Kopieer de **Antwoord-URL (Assertion Consumer Service-URL)**, zoals `https://oneuptime.com/identity/idp-login/<project-id>/<provider-id>` — die is nodig in de configuratie van uw IdP
    - Een nieuwe provider staat eerst uit. Zodra uw IdP deze twee waarden heeft, bewerkt u de provider en zet u **Ingeschakeld** aan
 
 4. **De provider testen**
@@ -85,7 +85,7 @@ U hebt toestemming nodig om SSO-providers toe te voegen — **Projecteigenaar**,
 
 ## Handleidingen per identiteitsprovider
 
-Kies uw identiteitsprovider. Elke handleiding haalt de waarden van de IdP op, maakt de provider aan in OneUptime en geeft de IdP vervolgens de **Identifier (Entity ID)** en de **Reply URL** van OneUptime.
+Kies uw identiteitsprovider. Elke handleiding haalt de waarden van de IdP op, maakt de provider aan in OneUptime en geeft de IdP vervolgens de **Identificatie (Entity ID)** en de **Antwoord-URL** van OneUptime.
 
 :::tabs
 @tab Keycloak
@@ -114,15 +114,15 @@ Keycloak is een veelgebruikte opensourceoplossing voor identiteits- en toegangsb
    - **Openbaar certificaat**: het certificaat, tussen zijn eigen regels `BEGIN CERTIFICATE` en `END CERTIFICATE`
    - **Handtekeningmethode** en **Digest-methode**: al ingesteld onder **Meer velden** (`RSA-SHA256` en `SHA256`)
 
-   Sla op en kopieer de **Identifier (Entity ID)** en de **Reply URL (Assertion Consumer Service URL)** uit het dialoogvenster dat opent.
+   Sla op en kopieer de **Identificatie (Entity ID)** en de **Antwoord-URL (Assertion Consumer Service-URL)** uit het dialoogvenster dat opent.
 
 3. **De Keycloak-client aanmaken**
 
    Open in Keycloak **Clients** in uw realm en maak een client aan, of bewerk een bestaande:
    - **Client Protocol** (clienttype): `saml`
-   - **Client ID**: de **Identifier (Entity ID)** uit OneUptime
+   - **Client ID**: de **Identificatie (Entity ID)** uit OneUptime
    - **Root URL** en **Valid Redirect URIs**: uw OneUptime-URL
-   - **Assertion Consumer Service POST Binding URL**: de **Reply URL (Assertion Consumer Service URL)** uit OneUptime
+   - **Assertion Consumer Service POST Binding URL**: de **Antwoord-URL (Assertion Consumer Service-URL)** uit OneUptime
 
 4. **De clientinstellingen aanpassen**
 
@@ -159,13 +159,13 @@ Microsoft Entra ID (voorheen Azure AD / Active Directory) is de cloudidentiteits
    - **Openbaar certificaat**: het Base64-certificaat, inclusief de regels `BEGIN CERTIFICATE` en `END CERTIFICATE`
    - **Handtekeningmethode** en **Digest-methode**: al ingesteld onder **Meer velden** (`RSA-SHA256` en `SHA256`)
 
-   Sla op en kopieer de **Identifier (Entity ID)** en de **Reply URL (Assertion Consumer Service URL)** uit het dialoogvenster dat opent.
+   Sla op en kopieer de **Identificatie (Entity ID)** en de **Antwoord-URL (Assertion Consumer Service-URL)** uit het dialoogvenster dat opent.
 
 4. **Entra ID de URL's van OneUptime geven**
 
    Klik onder **Basic SAML Configuration** op **Edit** en stel in:
-   - **Identifier (Entity ID)**: de **Identifier (Entity ID)** uit OneUptime
-   - **Reply URL (Assertion Consumer Service URL)**: de **Reply URL** uit OneUptime
+   - **Identifier (Entity ID)**: de **Identificatie (Entity ID)** uit OneUptime
+   - **Reply URL (Assertion Consumer Service URL)**: de **Antwoord-URL** uit OneUptime
 
    Klik op **Save**.
 
@@ -211,18 +211,18 @@ Okta is een veelgebruikt identiteitsplatform met SAML-SSO. U hebt een Okta-organ
    - **Openbaar certificaat**: het certificaat, inclusief de regels `BEGIN CERTIFICATE` en `END CERTIFICATE`
    - **Handtekeningmethode** en **Digest-methode**: al ingesteld onder **Meer velden** (`RSA-SHA256` en `SHA256`)
 
-   Sla op en kopieer de **Identifier (Entity ID)** en de **Reply URL (Assertion Consumer Service URL)** uit het dialoogvenster dat opent.
+   Sla op en kopieer de **Identificatie (Entity ID)** en de **Antwoord-URL (Assertion Consumer Service-URL)** uit het dialoogvenster dat opent.
 
 4. **Okta de URL's van OneUptime geven**
 
    Klik voor de applicatie uit het Okta Integration Network op het tabblad **General** bij **App Settings** op **Edit** en stel in:
-   - **OneUptime Project ID** en **OneUptime SSO Provider ID**: de twee ID's in de **Identifier (Entity ID)** uit OneUptime, `https://oneuptime.com/<project-id>/<provider-id>`
+   - **OneUptime Project ID** en **OneUptime SSO Provider ID**: de twee ID's in de **Identificatie (Entity ID)** uit OneUptime, `https://oneuptime.com/<project-id>/<provider-id>`
 
    Klik op **Save** en controleer op het tabblad **Sign On** of **Application username format** op `Email` staat.
 
    Klik voor uw eigen applicatie op het tabblad **General** bij **SAML Settings** op **Edit** en daarna op **Next**, en stel in:
-   - **Single sign-on URL**: de **Reply URL (Assertion Consumer Service URL)** uit OneUptime
-   - **Audience URI (SP Entity ID)**: de **Identifier (Entity ID)** uit OneUptime
+   - **Single sign-on URL**: de **Antwoord-URL (Assertion Consumer Service-URL)** uit OneUptime
+   - **Audience URI (SP Entity ID)**: de **Identificatie (Entity ID)** uit OneUptime
 
    Voeg eventueel de attribute statements `firstName`, met de waarde `user.firstName`, en `lastName`, met de waarde `user.lastName`, toe, zodat nieuwe accounts de naam van de persoon krijgen. Klik op **Next** en daarna op **Finish**.
 
@@ -239,7 +239,7 @@ De SSO van OneUptime gebruikt SAML 2.0 en werkt met elke conforme identiteitspro
 
 :::steps
 1. Haal de **Aanmeldings-URL** (het SSO-eindpunt), de **Uitgever** (de Entity ID) en het **Openbaar certificaat** (het X.509-ondertekeningscertificaat) van uw identiteitsprovider op. Toont uw IdP ze pas als er een applicatie bestaat, maak de applicatie dan aan met uw OneUptime-adres als tijdelijke URL's.
-2. Maak in OneUptime de provider aan met die waarden en kopieer de **Identifier (Entity ID)** en de **Reply URL (Assertion Consumer Service URL)** uit het dialoogvenster **SSO Configuration** (of via **SSO-configuratie bekijken**).
+2. Maak in OneUptime de provider aan met die waarden en kopieer de **Identificatie (Entity ID)** en de **Antwoord-URL (Assertion Consumer Service-URL)** uit het dialoogvenster **SSO-configuratie** (of via **SSO-configuratie bekijken**).
 3. Stel in de SAML-applicatie van uw identiteitsprovider de **Assertion Consumer Service URL / Reply URL** en de **Entity ID / Audience URI** in op de waarden van OneUptime, en het **Name ID Format** op e-mailadres.
 4. De **Handtekeningmethode** (`RSA-SHA256`) en de **Digest-methode** (`SHA256`) staan al ingesteld onder **Meer velden**; wijzig ze alleen als uw identiteitsprovider anders ondertekent
 5. Zet **Ingeschakeld** aan voor de provider en test hem met de link in de kaart **Test Single Sign On (SSO)**.
@@ -255,7 +255,7 @@ Een project kan zich ook aanmelden via een OpenID Connect-provider, zoals Google
 2. Ga in OneUptime naar **Projectinstellingen** > **Beveiliging** > **SSO**. Klik onder de SAML-providers op **OIDC-provider toevoegen**.
 3. Voer een **Naam** in (wat mensen op de aanmeldpagina zien), de **Uitgever-URL**, de **Client-ID** en het **Client-secret**. U kunt ook de discovery-URL van de provider in **Uitgever-URL** plakken.
 4. In de stap **Aanmelden** begint **Teams** met het ledenteam van uw project: wie zich voor het eerst aanmeldt, komt in deze teams. De rest staat al ingevuld onder **Meer velden**: de **Discovery-URL** (de uitgever gevolgd door `/.well-known/openid-configuration`), de **Bereiken** (`openid email profile`), de claimnamen `email` en `name`, en een beschrijving ("Sign in with" en de naam). Wijzig ze alleen als uw provider dat vraagt. Alleen teams waarvoor u zelf iemand zou kunnen uitnodigen worden geaccepteerd: een team dat meer toegang geeft dan u hebt, wordt onder **Teams** genoemd.
-5. Sla op. Het dialoogvenster **OIDC Configuration** opent met de **Redirect URI**: voeg die toe aan de toegestane redirect-URI's van uw app. Een nieuwe provider staat eerst uit, dus bewerk hem daarna en zet **Ingeschakeld** aan.
+5. Sla op. Het dialoogvenster **OIDC-configuratie** opent met de **Redirect URI**: voeg die toe aan de toegestane redirect-URI's van uw app. Een nieuwe provider staat eerst uit, dus bewerk hem daarna en zet **Ingeschakeld** aan.
 6. Open de link in de kaart **Test Single Sign On (SSO)** en kies de provider, om u er via aan te melden voordat u voor het project SSO verplicht.
 :::
 
@@ -342,11 +342,11 @@ De issuer in de assertion van uw IdP is niet de **Uitgever** van de provider. Ko
 :::
 
 :::details "SAML Audience does not match"
-Het antwoord is voor een andere applicatie gemaakt: de audience ervan is niet de **Identifier (Entity ID)** van deze provider. Stel in uw IdP de entity ID van de applicatie in op de **Identifier (Entity ID)** uit **SSO-configuratie bekijken**: de **Client ID** in Keycloak, de **Identifier (Entity ID)** in Entra ID, de **Audience URI (SP Entity ID)** in Okta. Een IdP die is ingesteld met alleen het adres van OneUptime als entity ID, zoals `https://oneuptime.com`, blijft werken.
+Het antwoord is voor een andere applicatie gemaakt: de audience ervan is niet de **Identificatie (Entity ID)** van deze provider. Stel in uw IdP de entity ID van de applicatie in op de **Identificatie (Entity ID)** uit **SSO-configuratie bekijken**: de **Client ID** in Keycloak, de **Identifier (Entity ID)** in Entra ID, de **Audience URI (SP Entity ID)** in Okta. Een IdP die is ingesteld met alleen het adres van OneUptime als entity ID, zoals `https://oneuptime.com`, blijft werken.
 :::
 
 :::details "SAML Recipient does not match"
-Het antwoord is voor een ander adres verstuurd: de recipient ervan is niet de **Reply URL** van deze provider. Stel in uw IdP de reply URL van de applicatie in op de **Reply URL (Assertion Consumer Service URL)** uit **SSO-configuratie bekijken**: de **Assertion Consumer Service POST Binding URL** in Keycloak, de **Reply URL (Assertion Consumer Service URL)** in Entra ID, de **Single sign-on URL** in Okta. "SAML Destination does not match" heeft dezelfde oorzaak en dezelfde oplossing.
+Het antwoord is voor een ander adres verstuurd: de recipient ervan is niet de **Antwoord-URL** van deze provider. Stel in uw IdP de reply URL van de applicatie in op de **Antwoord-URL (Assertion Consumer Service-URL)** uit **SSO-configuratie bekijken**: de **Assertion Consumer Service POST Binding URL** in Keycloak, de **Reply URL (Assertion Consumer Service URL)** in Entra ID, de **Single sign-on URL** in Okta. "SAML Destination does not match" heeft dezelfde oorzaak en dezelfde oplossing.
 :::
 
 :::details "SAML response has expired"
@@ -378,7 +378,7 @@ De **Identifier (Entity ID)** in Entra ID komt niet overeen met die van OneUptim
 :::
 
 :::details Okta: 404, of een audience die niet overeenkomt
-De **Single sign-on URL** in Okta moet exact de **Reply URL** van OneUptime zijn, en de **Audience URI** exact de **Identifier (Entity ID)** van OneUptime. Controleer of beide de tijdelijke waarden hebben vervangen.
+De **Single sign-on URL** in Okta moet exact de **Antwoord-URL** van OneUptime zijn, en de **Audience URI** exact de **Identificatie (Entity ID)** van OneUptime. Controleer of beide de tijdelijke waarden hebben vervangen.
 :::
 
 :::details De gebruiker is niet aan de applicatie toegewezen

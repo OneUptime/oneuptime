@@ -67,7 +67,7 @@ Klikk på **Start fra mal**, eller på **Bruk mal** i menyen **⋯**, velg en un
 
 ### Generer den med KI
 
-Klikk på **Generate with AI**. Dialogen **Generate Postmortem with AI** tilbyr en disposisjon under **Velg mal**: **Standard Postmortem**, **Detailed Technical Postmortem** eller **Brief Postmortem**, og deretter dine egne maler for etteranalyse. **Template Preview** viser disposisjonen, og du kan endre den før du genererer.
+Klikk på **Generate with AI**. Dialogen **Lag etteranalyse med AI** tilbyr en disposisjon under **Velg mal**: **Standard Postmortem**, **Detailed Technical Postmortem** eller **Brief Postmortem**, og deretter dine egne maler for etteranalyse. **Template Preview** viser disposisjonen, og du kan endre den før du genererer.
 
 Klikk på **Generate with AI** nederst i dialogen. OneUptime AI leser hendelsen (beskrivelsen, rotårsaken og utbedringen, statustidslinjen, de offentlige og private notatene, meldingene i hendelsens Slack- eller Microsoft Teams-kanal og det som ble sagt i [samtalene](/docs/workspace-connections/video-calls#transkripsjoner-av-samtaler)) og skriver etteranalysen etter disposisjonen din. Deretter åpnes editoren med resultatet.
 

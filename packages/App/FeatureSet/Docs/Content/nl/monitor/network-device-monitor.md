@@ -790,12 +790,12 @@ De pagina's **Incidenten** en **Waarschuwingen** van het apparaat, onder **Activ
 
 ### Standaardwaarden voor aangepaste velden
 
-Als je project aangepaste monitorvelden definieert — leverancier, configuratie-item, verantwoordelijke dienst, wat je CMDB ook nodig heeft —, kan een monitorsjabloon ze invullen. Open het sjabloon vanuit **Monitoren → Instellingen → Sjablonen** en stel de **Custom Field Defaults** in.
+Als je project aangepaste monitorvelden definieert — leverancier, configuratie-item, verantwoordelijke dienst, wat je CMDB ook nodig heeft —, kan een monitorsjabloon ze invullen. Open het sjabloon vanuit **Monitoren → Instellingen → Sjablonen** en stel de **Standaardwaarden voor aangepaste velden** in.
 
 Elke monitor die daarna uit dat sjabloon wordt gemaakt, krijgt die waarden mee: monitors die je maakt met **Monitor aanmaken vanaf sjabloon**, en monitors die een auto-importregel of een waarschuwingsbeleid maakt als een [discovery-scan](#apparaten-ontdekken-met-een-netwerkscan) duizend apparaten tegelijk binnenbrengt.
 
 - Een veld dat leeg blijft op het sjabloon, is geen standaard: elke monitor blijft het zelf invullen, dus een sjabloon kan de leverancier voor een hele switchvloot instellen terwijl het configuratie-item per apparaat blijft.
-- Standaarden gelden bij het maken van een monitor, niet voor monitors die al bestaan. **Sync Custom Fields to Linked Monitors**, op dezelfde kaart, zet ze op de bestaande monitors. Het overschrijft de velden die het sjabloon instelt, ook met de hand getypte waarden, en de bevestiging noemt die velden eerst; velden die het sjabloon leeg laat, worden nooit aangeraakt.
+- Standaarden gelden bij het maken van een monitor, niet voor monitors die al bestaan. **Aangepaste velden synchroniseren naar gekoppelde monitors**, op dezelfde kaart, zet ze op de bestaande monitors. Het overschrijft de velden die het sjabloon instelt, ook met de hand getypte waarden, en de bevestiging noemt die velden eerst; velden die het sjabloon leeg laat, worden nooit aangeraakt.
 
 Een gewone **Synchroniseren vanuit sjabloon** laat aangepaste velden met rust: criteria of een interval doorzetten, herschrijft nooit de waarden op je monitors.
 

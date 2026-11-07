@@ -54,7 +54,7 @@ flowchart TB
 :::steps
 ### Opprett pipelinen
 
-Gå til **Logger → Innstillinger → Pipelines**, og klikk på **Opprett Logg Pipeline**. Gi den et **Navn**, for eksempel *Tolk brannmurlogger*, og opprett den. Pipelinens side åpnes.
+Gå til **Logger → Innstillinger → Pipelines**, og klikk på **Opprett Logg-pipeline**. Gi den et **Navn**, for eksempel *Tolk brannmurlogger*, og opprett den. Pipelinens side åpnes.
 
 ### Velg hvilke logger den gjelder for
 

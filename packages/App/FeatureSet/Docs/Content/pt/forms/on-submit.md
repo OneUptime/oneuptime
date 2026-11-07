@@ -50,7 +50,7 @@ O cartão lista cada campo do novo incidente e de onde vem o valor dele:
 | **Monitores** | Os monitores que o remetente escolheu, junto com os que as configurações sempre anexam. Sem nenhum dos dois, os do modelo de incidente. |
 | **Rótulos** | Os rótulos que o remetente escolheu, junto com os que as configurações sempre adicionam. Sem nenhum dos dois, os do modelo de incidente. |
 | **Início do impacto** | A resposta a **Início do impacto**, quando o formulário a faz. |
-| **Incidente Modelo** | A configuração **Incidente Modelo** do formulário. Ela preenche tudo o que as respostas e as configurações deixam sem definir. |
+| **Modelo de incidente** | A configuração **Modelo de incidente** do formulário. Ela preenche tudo o que as respostas e as configurações deixam sem definir. |
 | **Políticas de plantão** | As políticas que as configurações indicam, executadas para cada incidente que o formulário declara. Sem nenhuma, as do modelo de incidente. |
 | **Proprietários** | As pessoas e equipes que as configurações indicam, junto com os proprietários do modelo. Elas são avisadas de cada incidente. |
 | **Campos personalizados** | A resposta de cada pergunta de campo personalizado — a menos que o campo copie o seu valor de um campo personalizado de monitor e os monitores do incidente tenham um; o modelo preenche o resto. |
@@ -62,7 +62,7 @@ O cartão lista cada campo do novo incidente e de onde vem o valor dele:
 
 ### O modelo de incidente
 
-Escolha um **Incidente Modelo** nas configurações e cada incidente que o formulário declara é declarado a partir dele, do jeito que o servidor aplica um modelo em qualquer lugar — consulte [Como um modelo é aplicado](/docs/incidents/settings#como-um-modelo-é-aplicado). As respostas e as configurações do formulário vêm primeiro, e o modelo preenche todo o resto: o estado inicial, a descrição, a gravidade, os recursos afetados, as políticas de plantão, os proprietários, os rótulos, os valores dos campos personalizados e uma mudança de status de monitor.
+Escolha um **Modelo de incidente** nas configurações e cada incidente que o formulário declara é declarado a partir dele, do jeito que o servidor aplica um modelo em qualquer lugar — consulte [Como um modelo é aplicado](/docs/incidents/settings#como-um-modelo-é-aplicado). As respostas e as configurações do formulário vêm primeiro, e o modelo preenche todo o resto: o estado inicial, a descrição, a gravidade, os recursos afetados, as políticas de plantão, os proprietários, os rótulos, os valores dos campos personalizados e uma mudança de status de monitor.
 
 > [!WARNING]
 > **Cuidado com os monitores.** Declarar um incidente em um monitor por meio de um formulário afeta o monitor exatamente como declarar um incidente nele manualmente: o monitoramento ativo do monitor é pausado até que o incidente seja resolvido, e o **Alterar status do monitor para** de um modelo muda o status do monitor na hora — em cada página de status que lista o monitor, mesmo enquanto o próprio incidente está oculto. Com um formulário, qualquer pessoa com o link pode fazer isso. Anexe monitores por meio de um formulário só quando cada envio deva pausá-los.
@@ -118,7 +118,7 @@ Um envio é a solicitação de alguém, e uma solicitação é revisada antes de
 
 | Etapa | Formulário de incidente | Formulário de manutenção |
 | --- | --- | --- |
-| **Valores predefinidos** | **Título predefinido**, **Gravidade**, **Incidente Modelo** | **Título predefinido** |
+| **Valores predefinidos** | **Título predefinido**, **Gravidade**, **Modelo de incidente** | **Título predefinido** |
 | **Associar sempre** | **Monitores**, **Rótulos**, **Políticas de plantão** | **Monitores**, **Páginas de status**, **Rótulos** |
 | **Proprietários** | **Proprietários** | **Proprietários** |
 | **Publicação** | — | **Mostrar nas páginas de status**, **Notificar assinantes** |

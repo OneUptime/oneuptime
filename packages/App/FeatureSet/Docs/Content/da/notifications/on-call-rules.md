@@ -33,9 +33,9 @@ De fleste beskeder kan bekræfte tilkaldet: e-mails, sms'er og beskeder i WhatsA
 | Fane | Tilkald for | Kort for |
 | --- | --- | --- |
 | **Hændelser** | Hændelser | Hændelsers alvorligheder |
-| **Hændelse Episoder** | Episoder, der samler hændelser | Hændelsers alvorligheder |
+| **Hændelsesepisoder** | Episoder, der samler hændelser | Hændelsers alvorligheder |
 | **Advarsler** | Advarsler | Advarslers alvorligheder |
-| **Advarsel Episoder** | Episoder, der samler advarsler | Advarslers alvorligheder |
+| **Advarselsepisoder** | Episoder, der samler advarsler | Advarslers alvorligheder |
 
 En episode tilkalder dig gennem sine egne vagtpolitikker, adskilt fra hændelserne eller advarslerne i den, og derfor har dens regler deres egen fane. Sidens adresse angiver den åbne fane, for eksempel `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; de andre værdier er `incident-episodes` og `alert-episodes`, og uden `type` åbner siden på **Hændelser**.
 
