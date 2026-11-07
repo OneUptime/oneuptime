@@ -203,7 +203,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             title: "Public Note Approval",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_PUBLIC_NOTE_APPROVAL
+                PageMap
+                  .SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_PUBLIC_NOTE_APPROVAL
               ] as Route,
             ),
           },

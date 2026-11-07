@@ -12,7 +12,11 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  composedValue,
+  formatList,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -130,7 +134,10 @@ const NoteApprovalPanel: FunctionComponent<ComponentProps> = (
         />
         <span>
           {translator.translateTemplate(PublicNoteApprovalCopy.approvedBy, {
-            names: approvers.join(", "),
+            // People's names, with the sentence's language's separator.
+            names: composedValue((sentence: Translator): string => {
+              return formatList(approvers, sentence);
+            }),
           })}
         </span>
       </div>
@@ -180,7 +187,13 @@ const NoteApprovalPanel: FunctionComponent<ComponentProps> = (
                 {approverNames.length > 0
                   ? translator.translateTemplate(
                       PublicNoteApprovalCopy.waitingFor,
-                      { approvers: approverNames.join(", ") },
+                      {
+                        approvers: composedValue(
+                          (sentence: Translator): string => {
+                            return formatList(approverNames, sentence);
+                          },
+                        ),
+                      },
                     )
                   : tx(PublicNoteApprovalCopy.nobodyToApprove)}
               </p>

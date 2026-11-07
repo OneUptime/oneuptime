@@ -22,7 +22,12 @@ import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope"
 import useTranslateValue from "Common/UI/Utils/Translation";
 import User from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  composedValue,
+  formatList,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import React, {
   ReactElement,
   useEffect,
@@ -232,7 +237,11 @@ function EventNoteComposer<TNote extends BaseModel>(
       {firstStepApprovers.length > 0
         ? ` ${translator.translateTemplate(
             PublicNoteApprovalCopy.composerNoticeApprovers,
-            { approvers: firstStepApprovers.join(", ") },
+            {
+              approvers: composedValue((sentence: Translator): string => {
+                return formatList(firstStepApprovers, sentence);
+              }),
+            },
           )}`
         : ""}
     </p>

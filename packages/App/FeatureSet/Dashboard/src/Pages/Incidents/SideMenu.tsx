@@ -295,7 +295,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           link: {
             title: "Public Note Approval",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL] as Route,
+              RouteMap[
+                PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL
+              ] as Route,
             ),
           },
           icon: IconProp.ShieldCheck,

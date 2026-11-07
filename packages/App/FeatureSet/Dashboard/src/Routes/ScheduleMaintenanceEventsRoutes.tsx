@@ -549,7 +549,8 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[
-                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_PUBLIC_NOTE_APPROVAL
+                  PageMap
+                    .SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_PUBLIC_NOTE_APPROVAL
                 ] as Route
               }
             />
