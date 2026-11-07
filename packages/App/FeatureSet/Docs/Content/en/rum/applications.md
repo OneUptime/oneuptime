@@ -23,7 +23,7 @@ flowchart TB
 ```
 
 - The `service.name` is the application's identity, compared without regard to case: `Storefront-Web` and `storefront-web` are one application.
-- A new `service.name` starts a new application. The old one keeps its history and turns **Disconnected**, the new one starts empty, and the two are never merged.
+- A new `service.name` starts a new application. The old one keeps its history and shows **No recent traffic** once its data stops, the new one starts empty, and the two are never merged.
 - Use one `service.name` per app, not one per environment. Tell environments apart with a label such as `oneuptime.label.env=production`, so they share one application and one history.
 
 ### Rename an application
@@ -52,13 +52,19 @@ Its setup guide then opens on its own, with the app name as the snippet's `servi
 
 If the project already has an application with that `service.name`, whether discovered, added before or archived, the form says so instead of creating a second one.
 
-## Connection status
+## Status
 
-An application shows **Connected** while telemetry arrives and **Disconnected** after 15 minutes without any. OpenTelemetry telemetry and Session Replay traffic both count.
+An application's **Status** says whether its data is arriving, and hovering over it says what it means. OpenTelemetry telemetry and Session Replay traffic both count.
+
+| Status | What it means |
+| --- | --- |
+| **Receiving data** | Telemetry arrived in the last 15 minutes. |
+| **No recent traffic** | Telemetry arrived before, but none in the last 15 minutes. An app sends data only while people use it, so this is normal when nobody does, such as overnight. |
+| **Waiting for data** | Nothing has arrived yet: the application was added by hand, and its app has not sent anything. Its **Overview** shows how to set it up. |
 
 **Last Seen** is refreshed every few minutes rather than on every batch, so it can trail live traffic by up to about five minutes, and the 15 minutes leave room for that. Time when OneUptime itself was down or catching up on its ingest queue does not count towards them.
 
-**Disconnected** is not an error on its own: an internal tool with no visitors overnight is genuinely disconnected. If people are using the app, see [RUM Troubleshooting](/docs/rum/troubleshooting).
+**No recent traffic** is not an error. If people are using the app right now, the application's **Overview** lists what to check, and [RUM Troubleshooting](/docs/rum/troubleshooting) goes through each check.
 
 ## Labels
 
@@ -180,5 +186,5 @@ Scope a monitor you build to the application, so that a backend service with a s
 - [Session Replay](/docs/telemetry/session-replay): Record what users saw, with its own policy and retention.
 - [Label and Owner Rules](/docs/configuration/label-and-owner-rules): Both rule forms, step by step.
 - [Run Rules on Existing Resources](/docs/configuration/run-rules-now): Apply a new rule to the applications you already have.
-- [RUM Troubleshooting](/docs/rum/troubleshooting): When an application is missing, empty or Disconnected.
+- [RUM Troubleshooting](/docs/rum/troubleshooting): When an application is missing or empty, or has no recent traffic while people use it.
 :::

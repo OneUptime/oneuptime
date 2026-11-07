@@ -1,6 +1,6 @@
 # Solución de problemas de RUM
 
-Cuando una aplicación RUM falta, está vacía o muestra **Desconectado**, recorre esta página en orden. Cada comprobación descarta una parte del camino entre tu aplicación y OneUptime, en el orden en que suelen ocurrir estos problemas.
+Cuando una aplicación RUM falta o está vacía, o muestra **Sin tráfico reciente** mientras la gente la usa, recorre esta página en orden. Cada comprobación descarta una parte del camino entre tu aplicación y OneUptime, en el orden en que suelen ocurrir estos problemas.
 
 :::cards
 - [Comprobar la clave](#comprobar-la-clave): La comprobación más rápida, y todo lo que sigue depende de ella.
@@ -120,15 +120,15 @@ La página **Clientes** lista `browser.platform` en la web y `device.model.ident
 
 La tarjeta solo se llena con las métricas que envía tu aplicación, así que las trazas por sí solas nunca la llenan. Comprueba que exportas métricas, que sus nombres son de los que OneUptime lee y que aparecen en la página **Métricas** de la aplicación. [La tarjeta dice «No web vitals reported yet»](/docs/rum/web-vitals#solución-de-problemas) repasa cada comprobación, incluidos los valores que se pierden cuando un visitante cierra la pestaña antes de la siguiente exportación.
 
-## El estado dice Desconectado mientras la gente usa la aplicación
+## El estado dice Sin tráfico reciente mientras la gente usa la aplicación
 
-Una aplicación pasa a **Desconectado** tras 15 minutos sin telemetría. Si hay gente usando la aplicación:
+Una aplicación pasa a **Sin tráfico reciente** tras 15 minutos sin telemetría. Si hay gente usando la aplicación:
 
 - **Puede que un muestreador lo descarte todo.** Comprueba que no definiste un muestreador siempre apagado, ni una proporción muy baja.
 - **Puede que la aplicación solo envíe telemetría en algunas interacciones**, y nadie las usó en ese tiempo.
 - **Puede que la clave se revocara o desactivara** después del despliegue: vuelve a ejecutar la [comprobación de la clave](#comprobar-la-clave).
 
-Una aplicación interna o de poco tráfico sin visitantes por la noche está realmente desconectada. No es un fallo.
+Una aplicación interna o de poco tráfico sin visitantes por la noche también muestra **Sin tráfico reciente**. Es normal, no un fallo.
 
 ## Problemas de reproducción de sesiones
 

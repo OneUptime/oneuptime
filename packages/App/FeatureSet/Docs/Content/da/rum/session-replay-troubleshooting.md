@@ -402,11 +402,11 @@ En optagelse gemmer adressen på hvert billede, og på hvert typografiark, som o
 
 Portaloptagelser, der blev lavet, før OneUptime indlæste disse filer under afspilning, dem, der viste offlinebjælken ved hver afspilning, afspilles nu også med den skjult, så længe det typografiark, de nævner, stadig leveres: der er intet at ændre i en optagelse.
 
-## RUM-appen siger «Afbrudt»
+## RUM-appen siger «Ingen nylig trafik»
 
-Statusetiketten og **Sidst set** på applikationens side rapporterer, hvornår der sidst kom telemetri ind for den applikation. Sessionsafspilning tæller med: både en optager, der henter sin politik, og en accepteret chunk opdaterer dem, så en applikation, der kun er instrumenteret med afspilningssnippetten, forbliver Forbundet. I tidligere versioner gjorde kun RUM-telemetri fra OpenTelemetry det, så en applikation med kun afspilning viste «Afbrudt» med et Sidst set fra dage før, mens dens optagere virkede fint.
+Statusetiketten og **Sidst set** på applikationens side rapporterer, hvornår der sidst kom telemetri ind for den applikation. Sessionsafspilning tæller med: både en optager, der henter sin politik, og en accepteret chunk opdaterer dem, så en applikation, der kun er instrumenteret med afspilningssnippetten, viser **Modtager data**, mens folk bruger sitet. I tidligere versioner gjorde kun RUM-telemetri fra OpenTelemetry det, så en applikation med kun afspilning så inaktiv ud, med et Sidst set fra dage før, mens dens optagere virkede fint.
 
-Så «Forbundet» betyder, at *noget* rapporterer — ikke at alt gør. Sidevisninger, fejlrate, p95-varighed og klienter kommer fra OpenTelemetry-browser-SDK'et, som installeres separat; når de står på nul, mens optagelser kommer ind, siger applikationens side Oversigt det direkte.
+Så **Modtager data** betyder, at *noget* rapporterer — ikke at alt gør. Sidevisninger, fejlrate, p95-varighed og klienter kommer fra OpenTelemetry-browser-SDK'et, som installeres separat; når de står på nul, mens optagelser kommer ind, siger applikationens side Oversigt det direkte.
 
 ## RUM-telemetri er adskilt
 

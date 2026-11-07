@@ -402,11 +402,11 @@ Eine Aufzeichnung behält die Adresse jedes Bildes und jedes Stylesheets, das de
 
 Aufzeichnungen eines Portals, die entstanden, bevor OneUptime diese Dateien bei der Wiedergabe lud — die, die die Offline-Leiste in jeder Wiedergabe zeigten —, werden jetzt ebenfalls mit ausgeblendeter Leiste abgespielt, solange das Stylesheet, das sie nennen, noch ausgeliefert wird: An einer Aufzeichnung muss sich nichts ändern.
 
-## Die RUM-Anwendung zeigt „Getrennt“
+## Die RUM-Anwendung zeigt „Kein aktueller Datenverkehr“
 
-Die Status-Pille und **Zuletzt gesehen** auf der Seite der Anwendung zeigen, wann zuletzt Telemetrie für diese Anwendung ankam. Die Sitzungswiedergabe zählt mit: Sowohl ein Recorder, der seine Richtlinie abruft, als auch ein angenommenes Chunk aktualisieren sie, daher bleibt eine nur mit dem Wiedergabe-Snippet instrumentierte Anwendung verbunden. In älteren Versionen zählte nur OpenTelemetry-RUM-Telemetrie, daher zeigte eine reine Wiedergabe-Anwendung „Getrennt“ mit einem Tage alten Zuletzt-gesehen-Wert, während ihre Recorder einwandfrei arbeiteten.
+Die Status-Pille und **Zuletzt gesehen** auf der Seite der Anwendung zeigen, wann zuletzt Telemetrie für diese Anwendung ankam. Die Sitzungswiedergabe zählt mit: Sowohl ein Recorder, der seine Richtlinie abruft, als auch ein angenommenes Chunk aktualisieren sie, daher zeigt eine nur mit dem Wiedergabe-Snippet instrumentierte Anwendung **Empfängt Daten**, solange Menschen die Website nutzen. In älteren Versionen zählte nur OpenTelemetry-RUM-Telemetrie, daher wirkte eine reine Wiedergabe-Anwendung untätig, mit einem Tage alten Zuletzt-gesehen-Wert, während ihre Recorder einwandfrei arbeiteten.
 
-„Verbunden“ bedeutet also, dass *etwas* meldet — nicht, dass alles meldet. Seitenaufrufe, Fehlerrate, p95-Dauer und Clients stammen vom OpenTelemetry-Browser-SDK, einer separaten Installation; stehen diese auf null, während Aufzeichnungen ankommen, sagt die Übersichtsseite der Anwendung das direkt.
+**Empfängt Daten** bedeutet also, dass *etwas* meldet — nicht, dass alles meldet. Seitenaufrufe, Fehlerrate, p95-Dauer und Clients stammen vom OpenTelemetry-Browser-SDK, einer separaten Installation; stehen diese auf null, während Aufzeichnungen ankommen, sagt die Übersichtsseite der Anwendung das direkt.
 
 ## RUM-Telemetrie ist getrennt
 

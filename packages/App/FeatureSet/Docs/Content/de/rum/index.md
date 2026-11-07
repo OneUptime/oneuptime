@@ -86,7 +86,7 @@ OneUptime findet die Anwendung über `service.name`, ohne Rücksicht auf Groß- 
 
 Die Zahlen stammen aus den Spans, die Ihre Instrumentierung sendet. **Seitenaufrufe** zählt den Span `documentLoad`, den die Seitenlade-Instrumentierung bei jedem vollständigen Laden aufzeichnet; ein Routenwechsel innerhalb einer Single-Page-App ist also kein Seitenaufruf.
 
-Eine Anwendung zeigt **Verbunden**, solange Telemetrie eintrifft, und **Getrennt** nach 15 Minuten ohne Telemetrie. Zeit, in der OneUptime selbst ausgefallen war oder seine Eingangswarteschlange abarbeitete, zählt nicht zu diesen 15 Minuten.
+Eine Anwendung zeigt **Empfängt Daten**, solange Telemetrie eintrifft, und **Kein aktueller Datenverkehr** nach 15 Minuten ohne Telemetrie, was normal ist, solange niemand die App nutzt. Eine von Hand angelegte Anwendung zeigt **Warten auf Daten**, bis ihre ersten Daten eintreffen. Zeit, in der OneUptime selbst ausgefallen war oder seine Eingangswarteschlange abarbeitete, zählt nicht zu diesen 15 Minuten.
 
 ## Erste Schritte
 

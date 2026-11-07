@@ -215,8 +215,8 @@ Il servizio già creato non diventa un'applicazione RUM, quindi eliminalo in **P
 Le righe dei client derivano solo da `device.model.identifier`. Un SDK che imposta solo `device.id` o `device.manufacturer` classifica l'app come RUM mobile, ma non elenca client: imposta anche `device.model.identifier`.
 :::
 
-:::details Lo stato dice Disconnesso mentre le persone usano l'app
-Lo stato passa a **Disconnesso** dopo 15 minuti senza telemetria. Se le persone stanno usando l'app:
+:::details Lo stato dice Nessun traffico recente mentre le persone usano l'app
+Lo stato passa a **Nessun traffico recente** dopo 15 minuti senza telemetria. Se le persone stanno usando l'app:
 
 - Un sampler potrebbe scartare tutto: cerca un sampler always-off o un rapporto molto basso.
 - L'app potrebbe inviare telemetria solo per azioni che nessuno ha compiuto in quel lasso di tempo.

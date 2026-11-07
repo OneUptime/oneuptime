@@ -1,6 +1,6 @@
 # RUM Troubleshooting
 
-When a RUM application is missing, empty or **Disconnected**, work down this page in order. Each check rules out one part of the path from your app to OneUptime, in the order these problems usually happen.
+When a RUM application is missing or empty, or shows **No recent traffic** while people use it, work down this page in order. Each check rules out one part of the path from your app to OneUptime, in the order these problems usually happen.
 
 :::cards
 - [Check the key](#check-the-key): The quickest check, and everything after it depends on it.
@@ -120,15 +120,15 @@ The **Clients** page lists `browser.platform` on the web and `device.model.ident
 
 The card fills only from metrics your app sends, so traces alone never fill it. Check that you export metrics at all, that the metric names are ones OneUptime reads, and that they are on the application's **Metrics** page. [The card says "No web vitals reported yet"](/docs/rum/web-vitals#troubleshooting) goes through each check, including values lost when a visitor closes the tab before the next export.
 
-## The status says Disconnected while people use the app
+## The status says No recent traffic while people use the app
 
-An application turns **Disconnected** after 15 minutes with no telemetry. If people are using the app:
+An application shows **No recent traffic** after 15 minutes with no telemetry. If people are using the app:
 
 - **A sampler may drop everything.** Check that you did not set an always-off sampler, or a very low ratio.
 - **The app may send telemetry only on some interactions**, and nobody used them in that time.
 - **The key may have been revoked or switched off** after you deployed: run the [key check](#check-the-key) again.
 
-An internal or low-traffic app with no visitors overnight is genuinely disconnected. That is not a fault.
+An internal or low-traffic app with no visitors overnight shows **No recent traffic** too. That is normal, not a fault.
 
 ## Session Replay problems
 

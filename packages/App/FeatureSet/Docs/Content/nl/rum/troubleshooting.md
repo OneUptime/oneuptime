@@ -1,6 +1,6 @@
 # RUM-probleemoplossing
 
-Wanneer een RUM-applicatie ontbreekt, leeg is of **Verbinding verbroken** toont, loop je deze pagina in volgorde door. Elke controle sluit een deel van de weg tussen je app en OneUptime uit, in de volgorde waarin deze problemen meestal optreden.
+Wanneer een RUM-applicatie ontbreekt of leeg is, of **Geen recent verkeer** toont terwijl mensen haar gebruiken, loop je deze pagina in volgorde door. Elke controle sluit een deel van de weg tussen je app en OneUptime uit, in de volgorde waarin deze problemen meestal optreden.
 
 :::cards
 - [De sleutel controleren](#de-sleutel-controleren): De snelste controle, en al het andere hangt ervan af.
@@ -120,15 +120,15 @@ De pagina **Clients** toont `browser.platform` op het web en `device.model.ident
 
 De kaart vult zich alleen met metrieken die je app verstuurt, dus traces alleen vullen haar nooit. Controleer of je metrieken exporteert, of de namen ervan bij de namen horen die OneUptime leest en of ze op de pagina **Metrieken** van de applicatie verschijnen. [De kaart zegt «No web vitals reported yet»](/docs/rum/web-vitals#probleemoplossing) loopt elke controle door, inclusief waarden die verloren gaan wanneer een bezoeker het tabblad sluit voor de volgende export.
 
-## De status zegt Verbinding verbroken terwijl mensen de app gebruiken
+## De status zegt Geen recent verkeer terwijl mensen de app gebruiken
 
-Een applicatie gaat naar **Verbinding verbroken** na 15 minuten zonder telemetrie. Als mensen de app gebruiken:
+Een applicatie gaat naar **Geen recent verkeer** na 15 minuten zonder telemetrie. Als mensen de app gebruiken:
 
 - **Een sampler gooit misschien alles weg.** Controleer of je geen sampler hebt ingesteld die altijd uit staat, of een heel lage verhouding.
 - **De app verstuurt misschien alleen telemetrie bij bepaalde interacties**, en niemand heeft die in die tijd gebruikt.
 - **De sleutel is misschien ingetrokken of uitgeschakeld** na de uitrol: voer de [sleutelcontrole](#de-sleutel-controleren) opnieuw uit.
 
-Een interne app of een app met weinig verkeer zonder bezoekers 's nachts is echt niet verbonden. Dat is geen storing.
+Een interne app of een app met weinig verkeer zonder bezoekers 's nachts toont ook **Geen recent verkeer**. Dat is normaal, geen storing.
 
 ## Problemen met sessieherhaling
 

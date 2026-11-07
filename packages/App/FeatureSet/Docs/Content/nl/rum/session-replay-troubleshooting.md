@@ -402,11 +402,11 @@ Open de ontwikkelaarstools van je browser op het tabblad van het dashboard (F12,
 
 Portalopnamen die zijn gemaakt voordat OneUptime deze bestanden tijdens het afspelen laadde, de opnamen die bij elk afspelen de offlinebalk toonden, spelen nu ook met de balk verborgen af, zolang de stylesheet die ze noemen nog wordt geleverd: aan een opname hoeft niets te veranderen.
 
-## De RUM-app zegt «Verbinding verbroken»
+## De RUM-app zegt «Geen recent verkeer»
 
-Het statuslabel en **Laatst gezien** op de pagina van de applicatie melden wanneer er voor het laatst telemetrie voor die applicatie binnenkwam. Sessieherhaling telt mee: zowel een recorder die zijn beleid ophaalt als een geaccepteerde chunk werkt ze bij, dus een applicatie die alleen met de herhalingssnippet is geïnstrumenteerd blijft Verbonden. In eerdere versies deed alleen RUM-telemetrie van OpenTelemetry dat, dus een applicatie met alleen herhaling toonde «Verbinding verbroken» met een Laatst gezien van dagen geleden terwijl de recorders prima werkten.
+Het statuslabel en **Laatst gezien** op de pagina van de applicatie melden wanneer er voor het laatst telemetrie voor die applicatie binnenkwam. Sessieherhaling telt mee: zowel een recorder die zijn beleid ophaalt als een geaccepteerde chunk werkt ze bij, dus een applicatie die alleen met de herhalingssnippet is geïnstrumenteerd toont **Ontvangt gegevens** zolang mensen de site gebruiken. In eerdere versies deed alleen RUM-telemetrie van OpenTelemetry dat, dus een applicatie met alleen herhaling leek inactief, met een Laatst gezien van dagen geleden, terwijl de recorders prima werkten.
 
-«Verbonden» betekent dus dat er *iets* rapporteert — niet dat alles dat doet. Paginaweergaven, foutpercentage, p95-duur en clients komen van de OpenTelemetry-browser-SDK, die apart wordt geïnstalleerd; wanneer die op nul staan terwijl er opnamen binnenkomen, zegt de pagina Overzicht van de applicatie dat zonder omwegen.
+**Ontvangt gegevens** betekent dus dat er *iets* rapporteert — niet dat alles dat doet. Paginaweergaven, foutpercentage, p95-duur en clients komen van de OpenTelemetry-browser-SDK, die apart wordt geïnstalleerd; wanneer die op nul staan terwijl er opnamen binnenkomen, zegt de pagina Overzicht van de applicatie dat zonder omwegen.
 
 ## RUM-telemetrie staat los
 

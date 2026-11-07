@@ -215,8 +215,8 @@ El servicio ya creado no se convierte en una aplicación RUM, así que elimínal
 Las filas de clientes salen solo de `device.model.identifier`. Un SDK que solo define `device.id` o `device.manufacturer` archiva la aplicación como RUM móvil, pero no lista clientes: define también `device.model.identifier`.
 :::
 
-:::details El estado dice Desconectado aunque la gente usa la aplicación
-El estado pasa a **Desconectado** tras 15 minutos sin telemetría. Si la gente está usando la aplicación:
+:::details El estado dice Sin tráfico reciente aunque la gente usa la aplicación
+El estado pasa a **Sin tráfico reciente** tras 15 minutos sin telemetría. Si la gente está usando la aplicación:
 
 - Puede que un muestreador lo descarte todo: busca un muestreador always-off o una proporción muy baja.
 - Puede que la aplicación solo envíe telemetría por acciones que nadie hizo en ese tiempo.

@@ -215,8 +215,8 @@ Tjenesten som allerede ble opprettet, blir ikke til en RUM-applikasjon, så slet
 Klientrader kommer bare fra `device.model.identifier`. Et SDK som bare setter `device.id` eller `device.manufacturer`, arkiverer appen som mobil-RUM, men viser ingen klienter: Sett også `device.model.identifier`.
 :::
 
-:::details Statusen sier Frakoblet mens folk bruker appen
-Statusen går over til **Frakoblet** etter 15 minutter uten telemetri. Hvis folk bruker appen:
+:::details Statusen sier Ingen nylig trafikk mens folk bruker appen
+Statusen går over til **Ingen nylig trafikk** etter 15 minutter uten telemetri. Hvis folk bruker appen:
 
 - En sampler forkaster kanskje alt: Se etter en always-off-sampler eller en svært lav rate.
 - Appen sender kanskje telemetri bare for handlinger ingen utførte i den perioden.

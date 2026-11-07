@@ -86,7 +86,7 @@ O OneUptime encontra a aplicação pelo `service.name`, sem diferenciar maiúscu
 
 As contagens vêm dos spans que a sua instrumentação envia. **Carregamentos de página** conta o span `documentLoad` que a instrumentação de carregamento de página registra em cada carregamento completo, então uma mudança de rota dentro de um aplicativo de página única não é um carregamento de página.
 
-Uma aplicação mostra **Conectado** enquanto a telemetria chega e **Desconectado** depois de 15 minutos sem ela. O tempo em que o próprio OneUptime estava fora do ar ou colocando em dia sua fila de ingestão não conta para esses 15 minutos.
+Uma aplicação mostra **Recebendo dados** enquanto a telemetria chega e **Sem tráfego recente** depois de 15 minutos sem ela, o que é normal enquanto ninguém usa o aplicativo. Uma aplicação adicionada manualmente mostra **Aguardando dados** até chegarem os primeiros dados. O tempo em que o próprio OneUptime estava fora do ar ou colocando em dia sua fila de ingestão não conta para esses 15 minutos.
 
 ## Primeiros passos
 

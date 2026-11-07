@@ -252,10 +252,11 @@ const DETAILS_WORDS: Record<
         return drawnDashboardLabel(language, "Clients");
       },
     },
+    // The status's own words: an app nobody is using is idle (#6191).
     {
-      english: "Disconnected",
+      english: "No recent traffic",
       drawn: (language: string): string => {
-        return drawnDashboardLabel(language, "Disconnected");
+        return drawnDashboardLabel(language, "No recent traffic");
       },
     },
   ],
