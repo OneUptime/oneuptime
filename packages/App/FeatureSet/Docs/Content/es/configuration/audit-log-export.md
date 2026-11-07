@@ -121,7 +121,7 @@ La **Credencial**, como `Bearer <token>`, se envía en el encabezado que elija e
 Cada entrada es un mensaje RFC 5424 al **Host** y al **Puerto**, por TLS en el puerto `6514` salvo que **Protocolo** indique TCP, con facility 13 (log audit) y severity 6 (informational):
 
 ```text
-<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":1,"id":"..."}
+<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
 Los mensajes se delimitan por conteo de octetos (RFC 5425), salvo que **Delimitación** indique un mensaje por línea. Un receptor cuyo certificado firmó una CA privada necesita el certificado de esa CA en **Certificado de la CA**. Ambos esperan en **Más campos**.
@@ -132,7 +132,7 @@ Cada entrada es un objeto JSON, con sus claves siempre en este orden:
 
 | Clave | Qué contiene |
 | --- | --- |
-| `schemaVersion` | `1`. Un cambio en el esquema llega con una versión nueva. |
+| `schemaVersion` | `2` para una exportación nueva, `1` para una guardada antes de la versión 2. Una versión solo añade claves. |
 | `id` | El id de la entrada. La misma entrada enviada dos veces tiene el mismo id. |
 | `createdAt` | Cuándo se registró el cambio, en UTC. |
 | `projectId` | El proyecto en el que se hizo el cambio. |
@@ -143,11 +143,20 @@ Cada entrada es un objeto JSON, con sus claves siempre en este orden:
 | `apiKeyId`, `apiKeyName` | La clave de API con la que se hizo, si la hubo. |
 | `mcpOAuthGrantId`, `mcpClientName` | El cliente MCP a través del cual se hizo, si lo hubo. |
 | `workflowId`, `workflowName` | El flujo de trabajo que lo hizo, si lo hubo. |
-| `changes` | Cada campo cambiado: `field`, con `oldValue` y `newValue`. |
+| `changes` | Cada campo cambiado: `field`, con `oldValue` y `newValue`, y en la versión 2 `summary`. |
 
 Un archivo contiene una entrada por línea, comprimido con gzip, y se archiva por la hora de su primera entrada: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
 
 Las claves, los tokens y las contraseñas nunca salen: se registran como `[REDACTED]`, y los campos que nadie puede leer quedan fuera de todas las entradas.
+
+## Versiones del registro
+
+| Versión | Lo que envía |
+| --- | --- |
+| `2` | Cada cambio lleva además `summary`: lo que cambió, en las líneas que muestra el registro de auditoría, como `Added "Send Email" (send-email-1)` para un paso de un flujo de trabajo o la ruta que cambió en JSON, o `null`. Las líneas nombran ajustes y rutas, nunca valores. |
+| `1` | La entrada tal como se envió al principio, sin `summary`. Los pasos de un flujo de trabajo salen como su tamaño antes y después, como `3 steps and 2 connections`. |
+
+Una exportación nueva envía la versión 2. Una exportación guardada antes de la versión 2 sigue enviando la versión 1, así que lo que la lee no necesita ningún cambio: cuando esté listo para `summary`, haga clic en **Editar** en la exportación y elija la versión 2 en **Versión del registro**, dentro de **Más campos**. La versión se aplica a las entradas enviadas desde entonces, y cada entrada indica la suya en `schemaVersion`.
 
 ## Cuándo se envían las entradas
 
