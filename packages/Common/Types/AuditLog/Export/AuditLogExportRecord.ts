@@ -220,11 +220,13 @@ export function readAuditLogExportSummary(
     return null;
   }
 
-  const lines: Array<string> = value.filter(
-    (line: JSONValue): line is string => {
-      return typeof line === "string" && line.trim().length > 0;
-    },
-  );
+  const lines: Array<string> = [];
+
+  for (const line of value as Array<JSONValue>) {
+    if (typeof line === "string" && line.trim().length > 0) {
+      lines.push(line);
+    }
+  }
 
   return lines.length > 0 ? lines : null;
 }
