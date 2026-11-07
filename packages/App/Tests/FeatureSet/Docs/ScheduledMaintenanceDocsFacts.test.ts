@@ -3241,8 +3241,9 @@ describe("where maintenance settings live", () => {
       "ScheduledMaintenanceEventsRoutePath",
     );
     const keys: Array<string> = Array.from(
+      // A long key is broken across lines by the formatter: PageMap\n.KEY.
       MAINTENANCE_MENU_SOURCE.matchAll(
-        /PageMap\.(SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_\w+)/g,
+        /PageMap\s*\.\s*(SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_\w+)/g,
       ),
     ).map((match: RegExpMatchArray): string => {
       return match[1] as string;
