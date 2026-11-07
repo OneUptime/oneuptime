@@ -424,7 +424,7 @@ describe("the incident and alert pages rebuild the window's Date bounds", () => 
     ["incident", INCIDENT_VIEW],
     ["alert", ALERT_VIEW],
   ])(
-    "%s page shows the window on all four preview cards, not just metrics",
+    "%s page shows the window on every preview card, not just metrics",
     (_name: string, source: string) => {
       /*
        * The log card's absence of any window indicator is what made the bug
@@ -435,10 +435,44 @@ describe("the incident and alert pages rebuild the window's Date bounds", () => 
         "rightElement={snapshotWindowAlert}",
       ).length;
 
-      // Logs, traces, metrics, exceptions.
-      expect(occurrences - 1).toBe(4);
+      /*
+       * Logs, traces, exceptions. A metric snapshot is the metric
+       * investigation (issue #5954), whose every card names the time range
+       * it shows with its picker; see the panel's test below.
+       */
+      expect(occurrences - 1).toBe(3);
+      expect(source).toContain("<EventMetricInvestigationPanel");
     },
   );
+
+  test("a metric snapshot's cards all name the time range they show", () => {
+    const panel: string = fs
+      .readFileSync(
+        path.join(
+          __dirname,
+          "../../FeatureSet/Dashboard/src/Components/Telemetry/EventMetricInvestigationPanel.tsx",
+        ),
+        "utf8",
+      )
+      .replace(/\s+/g, " ");
+    const card: string = fs
+      .readFileSync(
+        path.join(
+          __dirname,
+          "../../FeatureSet/Dashboard/src/Components/Metrics/Investigation/MetricInvestigation.tsx",
+        ),
+        "utf8",
+      )
+      .replace(/\s+/g, " ");
+
+    // The other tabs' cards: the picker in the badge's place.
+    expect(panel).toContain("snapshotWindowAlert={timePicker}");
+    // The metrics card: the picker first in its header.
+    expect(card).toContain("rightElement={header}");
+    expect(card).toContain(
+      '<div className="flex flex-wrap items-center justify-end gap-2"> <MetricInvestigationTimePicker',
+    );
+  });
 
   test.each([
     ["incident", INCIDENT_VIEW],
