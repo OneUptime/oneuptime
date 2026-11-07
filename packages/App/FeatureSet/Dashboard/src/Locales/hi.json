@@ -24225,7 +24225,6 @@
   "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.": "जब कोई आपको किसी प्रोजेक्ट या टीम में आमंत्रित करता है, तो आमंत्रण यहां तब तक रहता है जब तक आप उसे स्वीकार या अस्वीकार नहीं करते।",
   "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.": "इस सुविधा का उपयोग करने से पहले आपको Twilio कॉन्फ़िगरेशन जोड़ना होगा। अपना Twilio Account SID और Auth Token जोड़ने के लिए प्रोजेक्ट सेटिंग्स → सूचनाएं → सूचना सेटिंग्स पर जाएं।",
   "Your apps and collectors send this key with their telemetry, so it lands in this project.": "आपके ऐप और कलेक्टर अपनी टेलीमेट्री के साथ यह कुंजी भेजते हैं, ताकि वह इस प्रोजेक्ट में पहुंचे।",
-  "Your name and email as your team sees them, and the time zone OneUptime shows times in.": "आपका नाम और ईमेल जैसा आपकी टीम उन्हें देखती है, और वह टाइमज़ोन जिसमें OneUptime समय दिखाता है।",
   "Your probe connects to OneUptime with this ID and key. Keep the key secret.": "आपका प्रोब इस ID और कुंजी से OneUptime से जुड़ता है। कुंजी को गुप्त रखें।",
   "Your team's measurements, worked out for this alert.": "इस अलर्ट के लिए निकाले गए आपकी टीम के माप।",
   "Your team's measurements, worked out for this incident.": "इस घटना के लिए निकाले गए आपकी टीम के माप।",
@@ -46020,5 +46019,8 @@
   "The security events of this device could not be read.": "The security events of this device could not be read.",
   "They appear here when OneUptime finds them in the syslog this device sends a probe - blocked connections and threats, VPN and administrator sign-ins - or when events from any other source name this device.": "They appear here when OneUptime finds them in the syslog this device sends a probe - blocked connections and threats, VPN and administrator sign-ins - or when events from any other source name this device.",
   "Turn on Your logs, on the Security Events {{connections}} page.": "Turn on Your logs, on the Security Events {{connections}} page.",
-  "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.": "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page."
+  "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.": "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.",
+  "Not set (English)": "सेट नहीं (अंग्रेज़ी)",
+  "The Dashboard and your on-call pages are in this language, on every browser. Not set: English pages, and the Dashboard follows your browser.": "डैशबोर्ड और आपके ऑन-कॉल पेज हर ब्राउज़र में इसी भाषा में होते हैं। सेट न होने पर: पेज अंग्रेज़ी में, और डैशबोर्ड आपके ब्राउज़र की भाषा में।",
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "आपका नाम और ईमेल जैसा आपकी टीम उन्हें देखती है, और वह टाइमज़ोन और भाषा जिसे OneUptime आपके लिए इस्तेमाल करता है।"
 }

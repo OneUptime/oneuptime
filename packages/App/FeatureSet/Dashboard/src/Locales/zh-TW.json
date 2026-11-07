@@ -24225,7 +24225,6 @@
   "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.": "當有人邀請您加入專案或團隊時，邀請會在此等候，直到您接受或拒絕。",
   "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.": "使用此功能前需要新增 Twilio 設定。請前往「專案設定 → 通知 → 通知設定」，新增您的 Twilio Account SID 與 Auth Token。",
   "Your apps and collectors send this key with their telemetry, so it lands in this project.": "您的應用程式和收集器會隨遙測資料一起傳送此金鑰，讓資料進入此專案。",
-  "Your name and email as your team sees them, and the time zone OneUptime shows times in.": "團隊看到的您的姓名和電子郵件，以及 OneUptime 顯示時間所用的時區。",
   "Your probe connects to OneUptime with this ID and key. Keep the key secret.": "您的探測器會使用此 ID 和金鑰連線到 OneUptime。請妥善保管金鑰。",
   "Your team's measurements, worked out for this alert.": "為此警示計算的團隊測量。",
   "Your team's measurements, worked out for this incident.": "為此事件計算的團隊測量。",
@@ -46020,5 +46019,8 @@
   "The security events of this device could not be read.": "The security events of this device could not be read.",
   "They appear here when OneUptime finds them in the syslog this device sends a probe - blocked connections and threats, VPN and administrator sign-ins - or when events from any other source name this device.": "They appear here when OneUptime finds them in the syslog this device sends a probe - blocked connections and threats, VPN and administrator sign-ins - or when events from any other source name this device.",
   "Turn on Your logs, on the Security Events {{connections}} page.": "Turn on Your logs, on the Security Events {{connections}} page.",
-  "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.": "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page."
+  "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.": "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.",
+  "Not set (English)": "未設定（英文）",
+  "The Dashboard and your on-call pages are in this language, on every browser. Not set: English pages, and the Dashboard follows your browser.": "儀表板和你的待命呼叫在任何瀏覽器中都使用此語言。未設定時，呼叫為英文，儀表板跟隨你的瀏覽器。",
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "團隊看到的您的姓名和電子郵件，以及 OneUptime 對您使用的時區和語言。"
 }

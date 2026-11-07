@@ -61,6 +61,7 @@ import {
 } from "Common/Types/NotificationRule/NotificationRepeat";
 import PushNotificationLevel from "Common/Types/NotificationRule/PushNotificationLevel";
 import {
+  CANT_TAKE_IT_ESCALATE,
   ON_CALL_PAGE_CALL_PASS_ON_DIGIT,
   getOnCallPageCallPassOnPrompt,
 } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
@@ -79,6 +80,13 @@ import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
 import UserWebhook from "Common/Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "Common/Models/DatabaseModels/UserWhatsApp";
 import { ON_CALL_PAGE_SMS_ACTION } from "Common/Utils/Sms/OnCallPageSms";
+import {
+  getEnglishPageTranslator,
+  getOnCallPageAcknowledge,
+  getOnCallPageCantTakeItEscalate,
+  getOnCallPageTapToAcknowledge,
+} from "Common/Types/OnCallDutyPolicy/OnCallPageWords";
+import { getServerTranslator } from "Common/Server/Utils/ServerTranslation";
 import { describe, expect, it } from "@jest/globals";
 import crypto from "crypto";
 import fs from "fs";
@@ -1716,8 +1724,19 @@ describe("personal on-call rules", () => {
     expect(ruleService).toContain(
       "link: await this.buildOnCallAcknowledgeShortUrl(",
     );
-    expect(ruleService).toContain(">Tap to acknowledge</a>");
-    expect(ruleService).toContain("[Acknowledge](${data.ackUrl.toString()})");
+    // In the person's language (OnCallPageWords): English reads as it did.
+    expect(ruleService).toContain(
+      "${this.escapeTelegramHtml(getOnCallPageTapToAcknowledge(translator))}</a>",
+    );
+    expect(getOnCallPageTapToAcknowledge(getEnglishPageTranslator())).toBe(
+      "Tap to acknowledge",
+    );
+    expect(ruleService).toContain(
+      "[${getOnCallPageAcknowledge(data.translator)}](${data.ackUrl.toString()})",
+    );
+    expect(getOnCallPageAcknowledge(getEnglishPageTranslator())).toBe(
+      "Acknowledge",
+    );
     expect(ruleService).toContain(
       "acknowledge_url: acknowledgeUrl.toString(),",
     );
@@ -1741,10 +1760,14 @@ describe("personal on-call rules", () => {
       `If you can't take it, press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT} to escalate.`,
     );
     expect(ruleService).toContain(
-      '`⬆️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_ESCALATE}</a>`',
+      '`⬆️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${this.escapeTelegramHtml(getOnCallPageCantTakeItEscalate(translator))}</a>`',
     );
     expect(ruleService).toContain(
-      "mdText`⬆️ [${CANT_TAKE_IT_ESCALATE}](${data.passOnUrl.toString()})`",
+      "mdText`⬆️ [${getOnCallPageCantTakeItEscalate(data.translator)}](${data.passOnUrl.toString()})`",
+    );
+    // The same words as everywhere else says them, in English.
+    expect(getOnCallPageCantTakeItEscalate(getEnglishPageTranslator())).toBe(
+      CANT_TAKE_IT_ESCALATE,
     );
     expect(rules).toContain(
       `When you cannot take a page, the same messages let you escalate it, and a call asks you to press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT}: the policy pages its next level straight away, and you are not paged again for it. See [Escalating a page](/docs/on-call/escalation-rules#escalating-a-page).`,
@@ -2231,6 +2254,101 @@ describe("notification settings", () => {
 });
 
 // ---- The On-Call Logs a person reads ------------------------------------------
+
+/*
+ * Task fu-i18n-larger: a person's on-call pages are written in their own
+ * language (User.language), on every channel whose words OneUptime writes
+ * itself; a call and WhatsApp stay English. How OneUptime Reaches You says
+ * which, and Your Account says where the language is picked.
+ */
+describe("the language of your pages", () => {
+  const ruleService: string = readCommonSource(
+    "Server/Services/UserNotificationRuleService.ts",
+  );
+  const reachingYou: string = english(REACHING_YOU);
+  const languageSection: string = section(
+    reachingYou,
+    "## The language of your pages",
+  );
+
+  it("reads the person's language once a delivery, and writes in it", () => {
+    expect(ruleService).toContain(
+      "await UserLanguage.getLanguage(notificationRuleItem.userId),",
+    );
+    expect(ruleService).toContain(
+      "const translator: Translator = getServerTranslator(",
+    );
+    expect(languageSection).toContain(
+      "Until you pick one, they are in English.",
+    );
+  });
+
+  it("lists the channels in the person's language, and keeps calls and WhatsApp in English", () => {
+    const rows: Array<string> = tableRows(languageSection);
+
+    expect(rows).toEqual([
+      "| Email, SMS, push notifications and Telegram | Your language |",
+      "| Your own Slack, Microsoft Teams and Mattermost messages | Your language |",
+      "| Phone calls and WhatsApp | English |",
+    ]);
+
+    // Email, SMS, push, Telegram and chat generators take the translator...
+    for (const generator of [
+      "generateEmailTemplateForIncidentCreated(",
+      "generateSmsTemplateForIncidentCreated(",
+      "generateTelegramBodyForIncidentCreated(",
+      "generateWorkspaceMessageBlocksForIncidentCreated(",
+    ]) {
+      const start: number = ruleService.indexOf(`public async ${generator}`);
+
+      expect([generator, start >= 0]).toEqual([generator, true]);
+      expect([
+        generator,
+        ruleService.slice(start, ruleService.indexOf("{", start)),
+      ]).toEqual([generator, expect.stringContaining("translator")]);
+    }
+
+    // ...and a call's and WhatsApp's do not: they stay English.
+    for (const generator of [
+      "generateCallTemplateForIncidentCreated(",
+      "generateWhatsAppTemplateForIncidentCreated(",
+    ]) {
+      const start: number = ruleService.indexOf(`public async ${generator}`);
+
+      expect([generator, start >= 0]).toEqual([generator, true]);
+      expect([
+        generator,
+        ruleService.slice(start, ruleService.indexOf("): Promise<", start)),
+      ]).toEqual([generator, expect.not.stringContaining("translator")]);
+    }
+  });
+
+  it("names a default state as the person's language writes it, and leaves the team's words as written", () => {
+    const german: string = getServerTranslator("de").translateText(
+      "Critical Incident",
+    ) as string;
+
+    expect(german).not.toBe("Critical Incident");
+    expect(languageSection).toContain(
+      "such as Identified and Critical Incident",
+    );
+    expect(languageSection).toContain("What your team wrote reads as written");
+  });
+
+  it("points a reader whose pages are English to where the language is picked", () => {
+    expect(reachingYou).toContain(
+      ":::details My pages are in English, though the dashboard is not",
+    );
+    expect(reachingYou).toContain(
+      "Pick it in the language menu at the bottom of any page, or under **Language** on **User Profile**.",
+    );
+    expect(
+      readPackageFile(
+        "App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/Index.tsx",
+      ),
+    ).toContain('title: "Language",');
+  });
+});
 
 describe("the On-Call Logs a page leaves", () => {
   it("lists every page with View Timeline and View Status Message", () => {

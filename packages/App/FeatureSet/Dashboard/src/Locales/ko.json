@@ -24225,7 +24225,6 @@
   "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.": "누군가 프로젝트나 팀에 초대하면, 수락하거나 거절할 때까지 초대가 여기에서 기다립니다.",
   "You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notifications → Notification Settings to add your Twilio Account SID and Auth Token.": "이 기능을 사용하기 전에 Twilio 구성을 추가해야 합니다. 프로젝트 설정 → 알림 → 알림 설정으로 이동하여 Twilio Account SID와 Auth Token을 추가하세요.",
   "Your apps and collectors send this key with their telemetry, so it lands in this project.": "앱과 수집기가 텔레메트리와 함께 이 키를 보내면, 데이터가 이 프로젝트로 들어옵니다.",
-  "Your name and email as your team sees them, and the time zone OneUptime shows times in.": "팀에 보이는 이름과 이메일, 그리고 OneUptime이 시간을 표시하는 시간대입니다.",
   "Your probe connects to OneUptime with this ID and key. Keep the key secret.": "프로브는 이 ID와 키로 OneUptime에 연결합니다. 키는 비밀로 유지하세요.",
   "Your team's measurements, worked out for this alert.": "이 알림에 대해 계산한 팀의 측정값입니다.",
   "Your team's measurements, worked out for this incident.": "이 인시던트에 대해 계산한 팀의 측정값입니다.",
@@ -46020,5 +46019,8 @@
   "The security events of this device could not be read.": "The security events of this device could not be read.",
   "They appear here when OneUptime finds them in the syslog this device sends a probe - blocked connections and threats, VPN and administrator sign-ins - or when events from any other source name this device.": "They appear here when OneUptime finds them in the syslog this device sends a probe - blocked connections and threats, VPN and administrator sign-ins - or when events from any other source name this device.",
   "Turn on Your logs, on the Security Events {{connections}} page.": "Turn on Your logs, on the Security Events {{connections}} page.",
-  "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.": "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page."
+  "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.": "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.",
+  "Not set (English)": "설정 안 됨 (영어)",
+  "The Dashboard and your on-call pages are in this language, on every browser. Not set: English pages, and the Dashboard follows your browser.": "대시보드와 온콜 호출이 모든 브라우저에서 이 언어로 표시됩니다. 설정하지 않으면 호출은 영어로, 대시보드는 브라우저 언어를 따릅니다.",
+  "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.": "팀에 보이는 이름과 이메일, 그리고 OneUptime이 사용하는 시간대와 언어입니다."
 }

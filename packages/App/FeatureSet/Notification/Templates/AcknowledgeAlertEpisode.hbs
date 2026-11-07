@@ -2,27 +2,27 @@
 
 
 {{> Logo this}}
-{{> EmailTitle title=(concat "Alert Episode " episodeNumber ": " alertEpisodeTitle) }}
+{{> EmailTitle title=(tt "Alert Episode {{number}}: {{title}}" number=episodeNumber title=alertEpisodeTitle) }}
 
 {{#if pageAgainInfo}}
 {{> InfoBlock plainInfo=pageAgainInfo}}
 {{else}}
-{{> InfoBlock plainInfo=(concat "A new alert episode has been created in the project - " projectName)}}
+{{> InfoBlock plainInfo=(tt "A new alert episode has been created in the project - {{projectName}}" projectName=projectName)}}
 {{/if}}
 
-{{> InfoBlock info="Here are the details: "}}
+{{> InfoBlock info=(tHtml "Here are the details:")}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Alert Episode Title:" plainText=alertEpisodeTitle }}
-{{> DetailBoxField title="Current State: " plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
-{{> DetailBoxField title="Resources Affected: " plainText=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " plainText=alertEpisodeSeverity color=alertEpisodeSeverityColor textColor=alertEpisodeSeverityTextColor }}
-{{> DetailBoxField title="Root Cause: " blockText=rootCause  }}
-{{> DetailBoxField title="Description: " blockText=alertEpisodeDescription  }}
+{{> DetailBoxField title=(t "Alert Episode Title") plainText=alertEpisodeTitle }}
+{{> DetailBoxField title=(t "Current State") plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
+{{> DetailBoxField title=(t "Resources Affected") plainText=resourcesAffected  }}
+{{> DetailBoxField title=(t "Severity") plainText=alertEpisodeSeverity color=alertEpisodeSeverityColor textColor=alertEpisodeSeverityTextColor }}
+{{> DetailBoxField title=(t "Root Cause") blockText=rootCause  }}
+{{> DetailBoxField title=(t "Description") blockText=alertEpisodeDescription  }}
 {{> DetailBoxEnd this }}
 
 {{#if alertsList}}
-{{> TitleBlock title=(concat "Alerts in this Episode (" alertsCount ")") }}
+{{> TitleBlock title=(ttHtml "Alerts in this Episode ({{count}})" count=alertsCount) }}
 <!-- Alerts List Container -->
 <table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0"
   width="100%" style="width: 100%; max-width: 100%; table-layout: fixed;">
@@ -53,22 +53,22 @@
 <!-- /Alerts List Container -->
 {{/if}}
 
-{{> InfoBlock info="ACTION REQUIRED: Please acknowledge this alert episode by clicking on the button below - "}}
+{{> InfoBlock info=(tHtml "ACTION REQUIRED: Please acknowledge this alert episode by clicking on the button below.")}}
 
-{{> ButtonBlock buttonUrl=acknowledgeAlertEpisodeLink buttonText="Acknowledge Alert Episode"}}
+{{> ButtonBlock buttonUrl=acknowledgeAlertEpisodeLink buttonText=(t "Acknowledge Alert Episode")}}
 
-{{> LinkBlock linkUrl=acknowledgeAlertEpisodeLink linkLabel="You can also copy and paste this link:"}}
+{{> LinkBlock linkUrl=acknowledgeAlertEpisodeLink linkLabel=(t "You can also copy and paste this link:")}}
 
 {{#if passOnLink}}
-{{> InfoBlock info="Can't take it? Escalate it, and you will not be paged again for this alert episode."}}
+{{> InfoBlock info=(tHtml "Can't take it? Escalate it, and you will not be paged again for this alert episode.")}}
 
-{{> ButtonBlock buttonUrl=passOnLink buttonText="Escalate" secondary=true}}
+{{> ButtonBlock buttonUrl=passOnLink buttonText=(t "Escalate") secondary=true}}
 {{/if}}
 
-{{> InfoBlock info="You will be notified when the status of this alert episode changes."}}
+{{> InfoBlock info=(tHtml "You will be notified when the status of this alert episode changes.")}}
 
-{{> TitleBlock title="Why am I receiving this email?"}}
-{{> InfoBlock info="You are receiving this email because you are a member of the team that is responsible for this alert episode or you are currently on-call."}}
+{{> TitleBlock title=(tHtml "Why am I receiving this email?")}}
+{{> InfoBlock info=(tHtml "You are receiving this email because you are a member of the team that is responsible for this alert episode or you are currently on-call.")}}
 
 {{> Footer this }}
 

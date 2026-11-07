@@ -1,4 +1,13 @@
 import ObjectID from "../ObjectID";
+import {
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translatableTerm,
+  TranslatableTerm,
+  translationKey,
+  Translator,
+} from "../Translator";
 
 /*
  * A PAGE A PERSON ASKED FOR.
@@ -34,7 +43,24 @@ import ObjectID from "../ObjectID";
  * This file holds the rule and its words, for the server (the workers that
  * end runs, the notifications, the runs' chat messages) and for the docs
  * tests. It imports nothing that needs a server or React.
+ *
+ * The words a person's page sends the people it pages are written in each
+ * one's language (Types/UserLanguage): each function that writes one takes
+ * the translator of their language, and writes English - exactly as it
+ * always has - without one. A call's words stay English: a call is spoken
+ * by a voice that speaks English.
  */
+
+// The translator of what nobody asked to read in another language: English.
+let englishTranslator: Translator | null = null;
+
+const getEnglishTranslator: () => Translator = (): Translator => {
+  if (!englishTranslator) {
+    englishTranslator = createTranslator(undefined, DEFAULT_LANGUAGE);
+  }
+
+  return englishTranslator;
+};
 
 // A run, read with what tells a person's page apart.
 export interface OnCallPersonPageRun {
@@ -114,35 +140,50 @@ function pager(notice: OnCallPersonPageNotice): string {
 }
 
 /*
- * Who was paged, as the person who paged named them - the team first, then
- * the person reading it is one of its members: "you", "Team Platform",
- * "whoever is on call in Primary".
+ * The name of who paged as a sentence's value: their name as written, or
+ * "Someone" in the sentence's language.
  */
-function paged(notice: OnCallPersonPageNotice): string {
-  const teamName: string = (notice.teamName || "").trim();
+function pagerValue(notice: OnCallPersonPageNotice): string | TranslatableTerm {
+  const name: string = notice.pagedByName.trim();
 
-  if (teamName) {
-    return teamName;
-  }
-
-  const scheduleName: string = (notice.scheduleName || "").trim();
-
-  if (scheduleName) {
-    return `whoever is on call in ${scheduleName}`;
-  }
-
-  return "you";
+  return name || translatableTerm(translationKey("Someone"));
 }
 
 /*
  * The page's first words, where a page OneUptime starts says "New incident
  * assigned to you": "Alice Kim paged you", "Alice Kim paged Platform",
- * "Alice Kim paged whoever is on call in Primary".
+ * "Alice Kim paged whoever is on call in Primary" - who was paged as the
+ * person who paged named them: the team first, then the person reading it
+ * is one of its members.
  */
 export function getOnCallPersonPageLead(
   notice: OnCallPersonPageNotice,
+  translator: Translator = getEnglishTranslator(),
 ): string {
-  return `${pager(notice)} paged ${paged(notice)}`;
+  const teamName: string = (notice.teamName || "").trim();
+
+  if (teamName) {
+    return translator.translateTemplate("{{pager}} paged {{team}}", {
+      pager: pagerValue(notice),
+      team: teamName,
+    });
+  }
+
+  const scheduleName: string = (notice.scheduleName || "").trim();
+
+  if (scheduleName) {
+    return translator.translateTemplate(
+      "{{pager}} paged whoever is on call in {{schedule}}",
+      {
+        pager: pagerValue(notice),
+        schedule: scheduleName,
+      },
+    );
+  }
+
+  return translator.translateTemplate("{{pager}} paged you", {
+    pager: pagerValue(notice),
+  });
 }
 
 /*
@@ -153,20 +194,30 @@ export function getOnCallPersonPageLead(
  */
 export function getOnCallPersonPageWhyLine(
   notice: OnCallPersonPageNotice,
+  translator: Translator = getEnglishTranslator(),
 ): string {
   const teamName: string = (notice.teamName || "").trim();
 
   if (teamName) {
-    return `You're getting this because you're a member of ${teamName}.`;
+    return translator.translateTemplate(
+      "You're getting this because you're a member of {{team}}.",
+      { team: teamName },
+    );
   }
 
   const scheduleName: string = (notice.scheduleName || "").trim();
 
   if (scheduleName) {
-    return `You're getting this because you're on call in ${scheduleName}.`;
+    return translator.translateTemplate(
+      "You're getting this because you're on call in {{schedule}}.",
+      { schedule: scheduleName },
+    );
   }
 
-  return `You're getting this because ${pager(notice)} paged you by name.`;
+  return translator.translateTemplate(
+    "You're getting this because {{pager}} paged you by name.",
+    { pager: pagerValue(notice) },
+  );
 }
 
 // The page's message, when it has one: what the person who paged wrote.
@@ -184,8 +235,16 @@ export function getOnCallPersonPageMessage(
 export function getOnCallPersonPagePushTitle(data: {
   recordLabel: string;
   notice: OnCallPersonPageNotice;
+  translator?: Translator | undefined;
 }): string {
-  return `${getOnCallPersonPageLead(data.notice)}: ${data.recordLabel.trim()}`;
+  const translator: Translator = data.translator || getEnglishTranslator();
+
+  return translator.translateTemplate("{{lead}}: {{record}}", {
+    lead: composedValue((sentence: Translator): string => {
+      return getOnCallPersonPageLead(data.notice, sentence);
+    }),
+    record: data.recordLabel.trim(),
+  });
 }
 
 /*
@@ -197,14 +256,26 @@ export function getOnCallPersonPagePushBody(data: {
   recordTitle: string;
   projectName: string;
   notice: OnCallPersonPageNotice;
+  translator?: Translator | undefined;
 }): string {
+  const translator: Translator = data.translator || getEnglishTranslator();
   const title: string = data.recordTitle.trim();
   const project: string = data.projectName.trim();
   const message: string = getOnCallPersonPageMessage(data.notice);
 
-  const what: string = project ? `${title}, in ${project}.` : `${title}.`;
+  const what: string = project
+    ? translator.translateTemplate("{{title}}, in {{project}}.", {
+        title: title,
+        project: project,
+      })
+    : translator.translateTemplate("{{title}}.", { title: title });
 
-  return message ? `${what} “${message}”` : what;
+  return message
+    ? translator.translateTemplate("{{what}} “{{message}}”", {
+        what: what,
+        message: message,
+      })
+    : what;
 }
 
 /*
@@ -237,28 +308,92 @@ export function getOnCallPersonPageCallMessage(
  * incident in the project Acme.", "Alice Kim paged Platform about this
  * incident in the project Acme. You're a member of Platform."
  */
+/*
+ * The first sentence of a person's page's email, for each kind of record
+ * a person can page about, each whole so a language words it for its own
+ * noun.
+ */
+interface PersonPageRecordWords {
+  inProject: string;
+  alone: string;
+}
+
+const PERSON_PAGE_RECORD_WORDS: Readonly<
+  Record<string, PersonPageRecordWords>
+> = {
+  incident: {
+    inProject: translationKey(
+      "{{lead}} about this incident in the project {{project}}.",
+    ),
+    alone: translationKey("{{lead}} about this incident."),
+  },
+  alert: {
+    inProject: translationKey(
+      "{{lead}} about this alert in the project {{project}}.",
+    ),
+    alone: translationKey("{{lead}} about this alert."),
+  },
+};
+
 export function getOnCallPersonPageEmailLine(data: {
   recordNoun: string;
   projectName: string;
   notice: OnCallPersonPageNotice;
+  translator?: Translator | undefined;
 }): string {
   const project: string = data.projectName.trim();
   const teamName: string = (data.notice.teamName || "").trim();
   const scheduleName: string = (data.notice.scheduleName || "").trim();
+  const words: PersonPageRecordWords | undefined =
+    PERSON_PAGE_RECORD_WORDS[data.recordNoun.trim()];
 
-  const first: string = `${getOnCallPersonPageLead(data.notice)} about this ${
-    data.recordNoun
-  }${project ? ` in the project ${project}` : ""}.`;
+  if (!words) {
+    const first: string = `${getOnCallPersonPageLead(data.notice)} about this ${
+      data.recordNoun
+    }${project ? ` in the project ${project}` : ""}.`;
 
-  if (teamName) {
-    return `${first} You're a member of ${teamName}.`;
+    if (teamName) {
+      return `${first} You're a member of ${teamName}.`;
+    }
+
+    if (scheduleName) {
+      return `${first} You're on call in ${scheduleName}.`;
+    }
+
+    return first;
   }
 
-  if (scheduleName) {
-    return `${first} You're on call in ${scheduleName}.`;
+  const translator: Translator = data.translator || getEnglishTranslator();
+
+  const first: string = translator.translateTemplate(
+    project ? words.inProject : words.alone,
+    {
+      lead: composedValue((sentence: Translator): string => {
+        return getOnCallPersonPageLead(data.notice, sentence);
+      }),
+      project: project,
+    },
+  );
+
+  const second: string = teamName
+    ? translator.translateTemplate("You're a member of {{team}}.", {
+        team: teamName,
+      })
+    : scheduleName
+      ? translator.translateTemplate("You're on call in {{schedule}}.", {
+          schedule: scheduleName,
+        })
+      : "";
+
+  if (!second) {
+    return first;
   }
 
-  return first;
+  // Two sentences, as the language puts one after another.
+  return translator.translateTemplate("{{first}} {{second}}", {
+    first: first,
+    second: second,
+  });
 }
 
 /*
@@ -267,10 +402,16 @@ export function getOnCallPersonPageEmailLine(data: {
  */
 export function getOnCallPersonPageEmailMessageLine(
   notice: OnCallPersonPageNotice,
+  translator: Translator = getEnglishTranslator(),
 ): string {
   const message: string = getOnCallPersonPageMessage(notice);
 
-  return message ? `${pager(notice)} wrote: “${message}”` : "";
+  return message
+    ? translator.translateTemplate("{{pager}} wrote: “{{message}}”", {
+        pager: pagerValue(notice),
+        message: message,
+      })
+    : "";
 }
 
 /*
@@ -282,8 +423,18 @@ export function getOnCallPersonPageEmailSubject(data: {
   recordLabel: string;
   recordTitle: string;
   notice: OnCallPersonPageNotice;
+  translator?: Translator | undefined;
 }): string {
-  return `ACTION REQUIRED: ${getOnCallPersonPageLead(
-    data.notice,
-  )} about ${data.recordLabel.trim()} - ${data.recordTitle.trim()}`;
+  const translator: Translator = data.translator || getEnglishTranslator();
+
+  return translator.translateTemplate(
+    "ACTION REQUIRED: {{lead}} about {{record}} - {{title}}",
+    {
+      lead: composedValue((sentence: Translator): string => {
+        return getOnCallPersonPageLead(data.notice, sentence);
+      }),
+      record: data.recordLabel.trim(),
+      title: data.recordTitle.trim(),
+    },
+  );
 }

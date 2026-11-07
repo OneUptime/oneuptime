@@ -2,7 +2,7 @@
 
 
 {{> Logo this}}
-{{> EmailTitle title=(concat "Incident " incidentNumber ": " incidentTitle) }}
+{{> EmailTitle title=(tt "Incident {{number}}: {{title}}" number=incidentNumber title=incidentTitle) }}
 
 {{#if pageAgainInfo}}
 {{> InfoBlock plainInfo=pageAgainInfo}}
@@ -12,37 +12,37 @@
 {{> InfoBlock plainInfo=personPageMessage}}
 {{/if}}
 {{else}}
-{{> InfoBlock plainInfo=(concat "A new incident has been created in the project - " projectName)}}
+{{> InfoBlock plainInfo=(tt "A new incident has been created in the project - {{projectName}}" projectName=projectName)}}
 {{/if}}
 
-{{> InfoBlock info="Here are the details: "}}
+{{> InfoBlock info=(tHtml "Here are the details:")}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Incident Title:" plainText=incidentTitle }}
-{{> DetailBoxField title="Current State: " plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
-{{> DetailBoxField title="Resources Affected: " plainText=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
-{{> DetailBoxField title="Root Cause: " blockText=rootCause  }}
-{{> DetailBoxField title="Description: " blockText=incidentDescription  }}
+{{> DetailBoxField title=(t "Incident Title") plainText=incidentTitle }}
+{{> DetailBoxField title=(t "Current State") plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
+{{> DetailBoxField title=(t "Resources Affected") plainText=resourcesAffected  }}
+{{> DetailBoxField title=(t "Severity") plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
+{{> DetailBoxField title=(t "Root Cause") blockText=rootCause  }}
+{{> DetailBoxField title=(t "Description") blockText=incidentDescription  }}
 {{> DetailBoxEnd this }}
 
 
-{{> InfoBlock info="ACTION REQUIRED: Please acknowledge this incident by clicking on the button below - "}}
+{{> InfoBlock info=(tHtml "ACTION REQUIRED: Please acknowledge this incident by clicking on the button below.")}}
 
-{{> ButtonBlock buttonUrl=acknowledgeIncidentLink buttonText="Acknowledge Incident"}}
+{{> ButtonBlock buttonUrl=acknowledgeIncidentLink buttonText=(t "Acknowledge Incident")}}
 
-{{> LinkBlock linkUrl=acknowledgeIncidentLink linkLabel="You can also copy and paste this link:"}}
+{{> LinkBlock linkUrl=acknowledgeIncidentLink linkLabel=(t "You can also copy and paste this link:")}}
 
 {{#if passOnLink}}
-{{> InfoBlock info="Can't take it? Escalate it, and you will not be paged again for this incident."}}
+{{> InfoBlock info=(tHtml "Can't take it? Escalate it, and you will not be paged again for this incident.")}}
 
-{{> ButtonBlock buttonUrl=passOnLink buttonText="Escalate" secondary=true}}
+{{> ButtonBlock buttonUrl=passOnLink buttonText=(t "Escalate") secondary=true}}
 {{/if}}
 
-{{> InfoBlock info="You will be notified when the status of this incident changes."}}
+{{> InfoBlock info=(tHtml "You will be notified when the status of this incident changes.")}}
 
-{{> TitleBlock title="Why am I receiving this email?"}}
-{{> InfoBlock info="You are receiving this email because you are a member of the team that is responsible for this incident or you are currently on-call."}}
+{{> TitleBlock title=(tHtml "Why am I receiving this email?")}}
+{{> InfoBlock info=(tHtml "You are receiving this email because you are a member of the team that is responsible for this incident or you are currently on-call.")}}
 
 {{> Footer this }}
 
