@@ -49,12 +49,14 @@ import {
 import AIChatMessageRole from "../../../Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "../../../Types/AI/AIChatMessageStatus";
 import {
+  AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME,
   AIChatToolAction,
   AIChatToolActionStatus,
   AIChatWidget,
   AIChatWidgetType,
 } from "../../../Types/AI/AIChatTypes";
 import { JSONObject } from "../../../Types/JSON";
+import { WORKFLOW_DRAFT_PROPOSED_ON_KEY } from "../../../Types/Workflow/WorkflowDraftProposedOnKey";
 import ObjectID from "../../../Types/ObjectID";
 import {
   DASHBOARD_LANGUAGES,
@@ -335,5 +337,71 @@ describe("the approval card's line of arguments, in the reader's words", () => {
         }).toEqual({ language, label, worded: true });
       }
     }
+  });
+});
+
+/*
+ * Issue #6274: what an Ask AI change to a workflow was proposed on - its
+ * graph revision and its steps' fingerprints - is kept in the action's
+ * arguments by OneUptime, for the approval to be checked against. It is
+ * nothing a person decides by, and the card never draws it.
+ */
+describe("what OneUptime keeps in an action for itself", () => {
+  const PROPOSED_ON: JSONObject = {
+    graphRevision: 7,
+    steps: [{ id: "log-1", fingerprint: "0123456789abcdef" }],
+  };
+
+  test("is no argument of the card's line, whatever else the line leaves out", () => {
+    const parts: Array<ActionArgumentPart> = getActionArgumentParts(
+      {
+        workflowId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        name: "Tickets",
+        [AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME[0]!]: PROPOSED_ON,
+      },
+      {},
+      dashboardTranslator("en"),
+    );
+
+    expect(
+      parts.map((part: ActionArgumentPart): string => {
+        return part.key;
+      }),
+    ).toEqual(["workflowId", "name"]);
+  });
+
+  test("a workflow change with no line under its title still never shows it", () => {
+    render(
+      <ToolApprovalCard
+        toolActions={[
+          action({
+            toolName: "update_workflow",
+            title: "Update workflow Tickets",
+            arguments: {
+              steps: [{ id: "webhook-1", componentId: "webhook" }],
+              connections: [],
+              [AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME[0]!]: PROPOSED_ON,
+            },
+            status: AIChatToolActionStatus.Pending,
+          }),
+        ]}
+        interactive={true}
+        isSubmitting={false}
+        onRespond={(): void => {}}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId("tool-approval-arguments");
+
+    expect(line).toHaveTextContent("steps");
+    expect(line).not.toHaveTextContent("proposedOn");
+    expect(line).not.toHaveTextContent("graphRevision");
+    expect(line).not.toHaveTextContent("0123456789abcdef");
+  });
+
+  test("names only what update_workflow writes for itself", () => {
+    expect([...AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME]).toEqual([
+      WORKFLOW_DRAFT_PROPOSED_ON_KEY,
+    ]);
   });
 });

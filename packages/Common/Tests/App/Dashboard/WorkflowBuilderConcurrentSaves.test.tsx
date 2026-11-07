@@ -247,6 +247,8 @@ import Builder from "../../../../App/FeatureSet/Dashboard/src/Pages/Workflow/Vie
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import WorkflowModel from "../../../Models/DatabaseModels/Workflow";
+import WorkflowVersion from "../../../Models/DatabaseModels/WorkflowVersion";
+import WriteSource from "../../../Types/BaseDatabase/WriteSource";
 import Route from "../../../Types/API/Route";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import { JSONObject } from "../../../Types/JSON";
@@ -314,6 +316,13 @@ const EMAIL_STEP: JSONObject = graphNode({
   metadataId: "send-email",
   componentType: ComponentType.Component,
   y: 576,
+});
+
+const IF_ELSE_STEP: JSONObject = graphNode({
+  id: "if-else-1",
+  metadataId: "if-else",
+  componentType: ComponentType.Component,
+  y: 816,
 });
 
 const CONNECTION: JSONObject = {
@@ -799,5 +808,184 @@ describe("one builder on a workflow", () => {
 
     expect(namedRevisions()).toEqual([1]);
     expect(builder.dialog()).toBeNull();
+  });
+});
+
+/*
+ * Issue #6274: a teammate saved the workflow before Ask AI's change was
+ * approved, and the change was made on top of their save. The builder had
+ * seen neither: Undo takes back Ask AI's change alone, and their save is a
+ * step of its own, as the version history has them.
+ */
+describe("Ask AI's change made on top of a save the builder had not seen", () => {
+  const THEIRS: JSONObject = {
+    nodes: [MANUAL_TRIGGER, LOG_STEP, EMAIL_STEP],
+    edges: [CONNECTION],
+  };
+  const ASK_AIS: JSONObject = {
+    nodes: [MANUAL_TRIGGER, LOG_STEP, EMAIL_STEP, IF_ELSE_STEP],
+    edges: [CONNECTION],
+  };
+
+  // The version history, newest first, as WorkflowVersionService keeps it.
+  const versionsRead: () => Array<{ limit: number }> = (): Array<{
+    limit: number;
+  }> => {
+    return mockGetList.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as { modelType: unknown; limit: number };
+      })
+      .filter((request: { modelType: unknown }) => {
+        return request.modelType === WorkflowVersion;
+      });
+  };
+
+  const historyOf: (
+    versions: Array<{ graph: JSONObject; savedThrough?: WriteSource }>,
+  ) => void = (
+    versions: Array<{ graph: JSONObject; savedThrough?: WriteSource }>,
+  ): void => {
+    mockGetList.mockImplementation(async (request: { modelType: unknown }) => {
+      if (request.modelType !== WorkflowVersion) {
+        return { data: [], count: 0, skip: 0, limit: 20 };
+      }
+
+      const data: Array<WorkflowVersion> = versions.map(
+        (
+          each: { graph: JSONObject; savedThrough?: WriteSource },
+          index: number,
+        ): WorkflowVersion => {
+          const version: WorkflowVersion = new WorkflowVersion();
+          version.versionNumber = versions.length - index;
+          version.graph = copyOf(each.graph);
+
+          if (each.savedThrough) {
+            version.savedThrough = each.savedThrough;
+          }
+
+          return version;
+        },
+      );
+
+      return { data, count: data.length, skip: 0, limit: 20 };
+    });
+  };
+
+  test("Undo takes back Ask AI's change alone: the teammate's step stays, and is saved as it was", async () => {
+    const builder: OpenBuilder = await openBuilder();
+
+    // A teammate adds the email step; then Ask AI's change lands on top of it.
+    saveElsewhere(THEIRS);
+    saveElsewhere(ASK_AIS);
+    historyOf([
+      { graph: ASK_AIS, savedThrough: WriteSource.AskAi },
+      { graph: THEIRS },
+      { graph: STORED },
+    ]);
+
+    act(() => {
+      GlobalEvents.dispatchEvent(EventName.WORKFLOW_CHANGED_BY_AI, {
+        workflowId: WORKFLOW_ID.toString(),
+      });
+    });
+
+    await waitFor(() => {
+      expect(
+        builder.view.getByTestId("workflow-node-if-else-1"),
+      ).toBeInTheDocument();
+    });
+
+    // Read for the two saves, and the version that held what the builder knew.
+    expect(
+      versionsRead().map((request: { limit: number }) => {
+        return request.limit;
+      }),
+    ).toEqual([3]);
+    expect(builder.undoButton()).toHaveAttribute(
+      "aria-label",
+      "Undo Ask AI's change",
+    );
+
+    // Nothing is saved over what the server has.
+    await wait(1300);
+    expect(sentSaves()).toHaveLength(0);
+
+    fireEvent.click(builder.undoButton());
+
+    await waitFor(() => {
+      expect(builder.view.queryByTestId("workflow-node-if-else-1")).toBeNull();
+    });
+
+    // The teammate's step is still on the canvas, and what is saved keeps it.
+    expect(
+      builder.view.getByTestId("workflow-node-send-email-1"),
+    ).toBeInTheDocument();
+    await waitFor(
+      () => {
+        expect(server.revision).toBe(3);
+      },
+      { timeout: 4000 },
+    );
+    expect(namedRevisions()).toEqual([2]);
+    expect(stepIdsOf(server.graph)).toEqual([
+      "log-1",
+      "manual-1",
+      "send-email-1",
+    ]);
+
+    // Their change is the next step back, named as theirs.
+    expect(builder.undoButton()).toHaveAttribute(
+      "aria-label",
+      "Undo showing their changes",
+    );
+    expect(builder.dialog()).toBeNull();
+  });
+
+  test("with no version to tell them apart, what was saved is one step, named as their changes", async () => {
+    const builder: OpenBuilder = await openBuilder();
+
+    saveElsewhere(THEIRS);
+    saveElsewhere(ASK_AIS);
+
+    act(() => {
+      GlobalEvents.dispatchEvent(EventName.WORKFLOW_CHANGED_BY_AI, {
+        workflowId: WORKFLOW_ID.toString(),
+      });
+    });
+
+    await waitFor(() => {
+      expect(
+        builder.view.getByTestId("workflow-node-if-else-1"),
+      ).toBeInTheDocument();
+    });
+
+    expect(builder.undoButton()).toHaveAttribute(
+      "aria-label",
+      "Undo showing their changes",
+    );
+  });
+
+  test("Ask AI's change alone - the revision moved by one - reads no version, and is Ask AI's change", async () => {
+    const builder: OpenBuilder = await openBuilder();
+
+    saveElsewhere(ASK_AIS);
+
+    act(() => {
+      GlobalEvents.dispatchEvent(EventName.WORKFLOW_CHANGED_BY_AI, {
+        workflowId: WORKFLOW_ID.toString(),
+      });
+    });
+
+    await waitFor(() => {
+      expect(
+        builder.view.getByTestId("workflow-node-if-else-1"),
+      ).toBeInTheDocument();
+    });
+
+    expect(versionsRead()).toHaveLength(0);
+    expect(builder.undoButton()).toHaveAttribute(
+      "aria-label",
+      "Undo Ask AI's change",
+    );
   });
 });

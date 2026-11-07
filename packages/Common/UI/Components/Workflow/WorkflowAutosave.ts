@@ -220,6 +220,16 @@ export default class WorkflowAutosave {
     return this.status;
   }
 
+  /*
+   * The graph the server has, as far as this builder knows, and its
+   * revision; null before the workflow is opened.
+   */
+  public getSaved(): WorkflowSavedGraphRead | null {
+    return this.saved
+      ? { graph: this.saved.graph, revision: this.saved.revision }
+      : null;
+  }
+
   // The workflow as opened: what the server has. Nothing is waiting to save.
   public start(
     graph: SavedWorkflowGraph,
