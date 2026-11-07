@@ -8,6 +8,7 @@ import {
   isKnownAIActionWords,
 } from "Common/Types/AI/AIActionWords";
 import {
+  AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME,
   AIChatToolAction,
   AIChatToolActionStatus,
   AIChatWidget,
@@ -295,6 +296,11 @@ export function getActionArgumentParts(
     const value: unknown = args[key];
 
     if (value === undefined || value === null || value === "") {
+      continue;
+    }
+
+    // What OneUptime keeps in the action for itself, not for the person to decide by.
+    if (AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME.includes(key)) {
       continue;
     }
 
