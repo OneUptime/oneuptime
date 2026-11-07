@@ -477,7 +477,7 @@ export class Service extends ProjectReferencesService<Model> {
 
   @CaptureSpan()
   public override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     /*
@@ -488,6 +488,7 @@ export class Service extends ProjectReferencesService<Model> {
       await PublicNoteApprovalEngine.afterCreate({
         host: this.getApprovalHost(),
         note: createdItem,
+        props: onCreate.createBy.props,
       })
     ) {
       return createdItem;

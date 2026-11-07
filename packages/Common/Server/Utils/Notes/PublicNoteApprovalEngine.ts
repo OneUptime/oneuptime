@@ -2,6 +2,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import File from "../../../Models/DatabaseModels/File";
 import Team from "../../../Models/DatabaseModels/Team";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import FeedApiKeyActorUtil, { FeedApiKeyActor } from "../Feed/FeedApiKeyActor";
 import { Gray500, Green500, Red500, Yellow500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
@@ -106,12 +107,16 @@ export interface PublicNoteApprovalHost<TNote extends BaseModel> {
     projectId: ObjectID;
     parentId: ObjectID;
   }) => Promise<PublicNoteApprovalRecordInfo | null>;
-  // An entry on the record's feed, never posted to a chat channel.
+  /*
+   * An entry on the record's feed, never posted to a chat channel - by the
+   * API key the request was made with, when it was (a feed that names keys).
+   */
   addFeedItem: (data: {
     projectId: ObjectID;
     parentId: ObjectID;
     markdown: MarkdownText;
     userId?: ObjectID | undefined;
+    apiKeyActor?: FeedApiKeyActor | undefined;
     color: Color;
   }) => Promise<void>;
   /*
@@ -277,6 +282,8 @@ export default class PublicNoteApprovalEngine {
   public static async afterCreate<TNote extends BaseModel>(data: {
     host: PublicNoteApprovalHost<TNote>;
     note: TNote;
+    // The create's: whose request it was, for the feed to name.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<boolean> {
     const created: NoteFields = data.note as unknown as NoteFields;
 
@@ -295,6 +302,7 @@ export default class PublicNoteApprovalEngine {
         host: data.host,
         noteId: new ObjectID(noteId),
         isAgain: false,
+        props: data.props,
       });
     } catch (error) {
       logger.error("Public note approval: could not record a held note.");
@@ -561,6 +569,7 @@ export default class PublicNoteApprovalEngine {
           host: data.host,
           noteId: new ObjectID(noteId),
           isAgain: data.update.resentNoteIds.includes(noteId),
+          props: data.props,
         });
       }
 
@@ -581,6 +590,7 @@ export default class PublicNoteApprovalEngine {
             return PublicNoteApprovalFeed.editWithdrawn({ record });
           },
           userId: data.props.userId,
+          props: data.props,
           color: Gray500,
         });
       }
@@ -823,6 +833,7 @@ export default class PublicNoteApprovalEngine {
           });
         },
         userId: data.props.userId,
+        props: data.props,
         color: Green500,
       });
 
@@ -861,6 +872,7 @@ export default class PublicNoteApprovalEngine {
       host: data.host,
       noteId: data.noteId,
       isAgain: true,
+      props: data.props,
     });
 
     return {
@@ -908,6 +920,7 @@ export default class PublicNoteApprovalEngine {
         return PublicNoteApprovalFeed.editWithdrawn({ record });
       },
       userId: data.props.userId,
+      props: data.props,
       color: Gray500,
     });
 
@@ -1211,6 +1224,7 @@ export default class PublicNoteApprovalEngine {
           });
         },
         userId: data.props.userId,
+        props: data.props,
         color: Red500,
       });
 
@@ -1266,6 +1280,7 @@ export default class PublicNoteApprovalEngine {
           });
         },
         userId: data.props.userId,
+        props: data.props,
         color: Green500,
       });
 
@@ -1309,6 +1324,7 @@ export default class PublicNoteApprovalEngine {
           });
         },
         userId: data.approverUserId,
+        props: data.props,
         color: Green500,
       });
     } catch (error) {
@@ -1422,6 +1438,7 @@ export default class PublicNoteApprovalEngine {
     host: PublicNoteApprovalHost<TNote>;
     noteId: ObjectID;
     isAgain: boolean;
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<void> {
     const note: NoteFields | null = await this.readNote(
       data.host,
@@ -1463,6 +1480,7 @@ export default class PublicNoteApprovalEngine {
       userId: round?.submittedByUserId
         ? new ObjectID(round.submittedByUserId)
         : undefined,
+      props: data.props,
       color: Yellow500,
     });
 
@@ -1740,6 +1758,8 @@ export default class PublicNoteApprovalEngine {
     note: NoteFields;
     markdown: (record: PublicNoteApprovalFeedRecord) => MarkdownText;
     userId?: ObjectID | undefined;
+    // The request's: the API key it was made with, when it was.
+    props?: DatabaseCommonInteractionProps | undefined;
     color: Color;
   }): Promise<void> {
     const parentId: ObjectID | null = this.parentIdOf(data.host, data.note);
@@ -1763,6 +1783,9 @@ export default class PublicNoteApprovalEngine {
       parentId,
       markdown: data.markdown({ label: record.label, url: record.url }),
       userId: data.userId,
+      apiKeyActor: data.props
+        ? FeedApiKeyActorUtil.fromProps(data.props)
+        : undefined,
       color: data.color,
     });
   }

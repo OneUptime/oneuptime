@@ -107,6 +107,7 @@ export class Service extends ProjectReferencesService<Model> {
         parentId: ObjectID;
         markdown: MarkdownText;
         userId?: ObjectID | undefined;
+        apiKeyActor?: FeedApiKeyActor | undefined;
         color: Color;
       }): Promise<void> => {
         await IncidentFeedService.createIncidentFeedItem({
@@ -115,6 +116,7 @@ export class Service extends ProjectReferencesService<Model> {
           incidentFeedEventType: IncidentFeedEventType.PublicNoteApproval,
           displayColor: data.color,
           userId: data.userId,
+          apiKeyActor: data.apiKeyActor,
           feedInfoInMarkdown: data.markdown.toString(),
           workspaceNotification: {
             sendWorkspaceNotification: false,
@@ -503,6 +505,7 @@ export class Service extends ProjectReferencesService<Model> {
       await PublicNoteApprovalEngine.afterCreate({
         host: this.getApprovalHost(),
         note: createdItem,
+        props: onCreate.createBy.props,
       })
     ) {
       return createdItem;
