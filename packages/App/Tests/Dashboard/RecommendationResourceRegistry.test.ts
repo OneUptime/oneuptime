@@ -63,7 +63,13 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
 
 import RecommendationResourceRegistry, {
   RecommendationResourceDefinition,
+  joinCloudRecommendationNotes,
 } from "../../FeatureSet/Dashboard/src/Components/Recommendations/RecommendationResourceRegistry";
+import {
+  RdsConnectionEngine,
+  RdsConnectionLimitGap,
+} from "Common/Types/Cloud/RdsConnectionLimits";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import CloudApp from "Common/Models/DatabaseModels/CloudApp";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -2033,7 +2039,214 @@ describe("RecommendationResourceRegistry", () => {
           },
         },
         cloudAllocatedStorageGiB: 200,
+        // Its class and engine are not listed yet (RdsConnectionLimits).
+        cloudConnectionLimit: {
+          gap: RdsConnectionLimitGap.NotListed,
+          instanceClass: null,
+          engine: null,
+        },
         cloudReadByConnection: true,
+      });
+    });
+    /*
+     * An RDS instance's Connections Near the Limit is a share of its own
+     * connection limit, which its inventory's class, engine and parameter
+     * group say (RdsConnectionLimits): offered once that is known, and its
+     * page says why it is not, or what the line assumes when the instance's
+     * parameter group is the team's own.
+     */
+    describe("an RDS instance's connection limit", () => {
+      const RDS_ATTRIBUTES: Record<string, string> = {
+        Namespace: "AWS/RDS",
+        "Dimensions.DBInstanceIdentifier": "orders-db",
+        "resource.cloud.account.id": "123456789012",
+        "resource.cloud.region": "eu-west-1",
+      };
+
+      function rds(
+        properties: Record<string, unknown>,
+      ): MonitorRecommendationContext {
+        return readCloudContext({
+          cloudProvider: "aws",
+          cloudResourceType: "AWS::RDS::DBInstance",
+          telemetryAttributes: RDS_ATTRIBUTES,
+          cloudProperties: properties,
+        });
+      }
+
+      const LISTED: Record<string, unknown> = {
+        DBInstanceClass: "db.r6g.large",
+        Engine: "postgres",
+        EngineVersion: "16.4",
+        AllocatedStorage: 200,
+      };
+
+      test("is read from the inventory's class, engine and parameter group", () => {
+        expect(
+          rds({ ...LISTED, DBParameterGroupName: "default.postgres16" })
+            .cloudConnectionLimit,
+        ).toEqual({
+          limit: {
+            limit: 1691,
+            instanceClass: "db.r6g.large",
+            engine: RdsConnectionEngine.PostgreSql,
+            parameterGroup: "default.postgres16",
+            isOwnParameterGroup: false,
+          },
+        });
+        expect(
+          rds({ ...LISTED, DBParameterGroupName: "prod-postgres16" })
+            .cloudConnectionLimit?.limit?.isOwnParameterGroup,
+        ).toBe(true);
+        // Not listed yet: why, with what is known.
+        expect(rds({}).cloudConnectionLimit).toEqual({
+          gap: RdsConnectionLimitGap.NotListed,
+          instanceClass: null,
+          engine: null,
+        });
+      });
+
+      test("no other resource carries one", () => {
+        const ec2: MonitorRecommendationContext = readCloudContext({
+          cloudProvider: "aws",
+          cloudResourceType: "AWS::EC2::Instance",
+          telemetryAttributes: EC2_ATTRIBUTES,
+          cloudProperties: LISTED,
+        });
+        const azure: MonitorRecommendationContext = readCloudContext({
+          cloudProvider: "azure",
+          cloudResourceType: "AWS::RDS::DBInstance",
+          cloudProperties: LISTED,
+        });
+
+        expect("cloudConnectionLimit" in ec2).toBe(false);
+        expect("cloudConnectionLimit" in azure).toBe(false);
+      });
+
+      test("Connections Near the Limit is offered once the limit is known, with 90% of it as its line", () => {
+        expect(templateIdsFor(rds(LISTED))).toEqual([
+          "cloud-aws-rds-high-cpu",
+          "cloud-aws-rds-low-storage",
+          "cloud-aws-rds-connections-near-limit",
+        ]);
+        expect(templateIdsFor(rds({ AllocatedStorage: 200 }))).toEqual([
+          "cloud-aws-rds-high-cpu",
+          "cloud-aws-rds-low-storage",
+        ]);
+        expect(
+          templateIdsFor(rds({ ...LISTED, Engine: "sqlserver-se" })),
+        ).not.toContain("cloud-aws-rds-connections-near-limit");
+        expect(
+          templateIdsFor(rds({ ...LISTED, DBInstanceClass: "db.serverless" })),
+        ).not.toContain("cloud-aws-rds-connections-near-limit");
+
+        // The monitor it makes alerts at 90% of the instance's own limit.
+        const recommendation: MonitorRecommendation | undefined =
+          MonitorRecommendationCatalog.getRecommendations(
+            MonitorRecommendationResourceType.CloudResource,
+            rds(LISTED),
+          ).find((candidate: MonitorRecommendation): boolean => {
+            return (
+              candidate.templateId === "cloud-aws-rds-connections-near-limit"
+            );
+          });
+        const step: MonitorStep = recommendation!.getMonitorStep({
+          resourceIdentifier: CLOUD_RESOURCE_ID,
+          onlineMonitorStatusId: ObjectID.generate(),
+          offlineMonitorStatusId: ObjectID.generate(),
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+          monitorName: "orders-db",
+        });
+
+        expect(
+          Number(
+            step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[0]!
+              .data!.filters[0]!.value,
+          ),
+        ).toBe(1521);
+      });
+
+      test("says once that both wait for an instance the inventory has not listed", () => {
+        expect(describeCloud(rds({}))).toBe(
+          "Low Free Storage and Connections Near the Limit are offered once the account's inventory lists the instance.",
+        );
+      });
+
+      test("says what waits when only its class and engine are missing, or only its storage", () => {
+        expect(describeCloud(rds({ AllocatedStorage: 200 }))).toBe(
+          "Connections Near the Limit is offered once the account's inventory lists the instance's class and engine.",
+        );
+        expect(
+          describeCloud(
+            rds({ DBInstanceClass: "db.r6g.large", Engine: "postgres" }),
+          ),
+        ).toBe(
+          "Low Free Storage is offered once the account's inventory lists the instance's allocated storage.",
+        );
+      });
+
+      test("says plainly a class whose limit it does not know, and an engine its class does not limit", () => {
+        expect(
+          describeCloud(rds({ ...LISTED, DBInstanceClass: "db.serverless" })),
+        ).toBe(
+          "Connections Near the Limit is not offered: OneUptime does not know the connection limit of a db.serverless instance yet. You can still alert on its connections: open DatabaseConnections on its Metrics tab and create a monitor from the view.",
+        );
+        expect(describeCloud(rds({ ...LISTED, Engine: "sqlserver-se" }))).toBe(
+          "Connections Near the Limit is for MySQL, MariaDB, PostgreSQL and Aurora, whose connection limit follows their class. You can still alert on this instance's connections: open DatabaseConnections on its Metrics tab and create a monitor from the view.",
+        );
+        /*
+         * The engine is never named as the inventory writes it: AWS's
+         * identifiers ("oracle-se2-cdb") read as code in a sentence.
+         */
+        for (const engine of ["sqlserver-se", "oracle-se2-cdb", "db2-ae"]) {
+          expect(
+            describeCloud(rds({ ...LISTED, Engine: engine })),
+          ).not.toContain(engine);
+        }
+      });
+
+      test("names the limit its line assumes when the parameter group is the team's own, and says nothing on an engine's default group", () => {
+        expect(
+          describeCloud(
+            rds({ ...LISTED, DBParameterGroupName: "prod-postgres16" }),
+          ),
+        ).toBe(
+          "Connections Near the Limit alerts at 1,521 connections: 90% of 1,691, the default limit of a db.r6g.large instance running PostgreSQL. If its parameter group, prod-postgres16, sets max_connections, change the monitor's threshold to 90% of that.",
+        );
+        expect(
+          describeCloud(
+            rds({ ...LISTED, DBParameterGroupName: "default.postgres16" }),
+          ),
+        ).toBeUndefined();
+        // A group it does not know of: the card's description says the rest.
+        expect(describeCloud(rds(LISTED))).toBeUndefined();
+      });
+
+      test("says both, one after the other, when its storage waits and its group is its own", () => {
+        expect(
+          describeCloud(
+            rds({
+              DBInstanceClass: "db.t3.micro",
+              Engine: "mysql",
+              DBParameterGroupName: "orders-mysql8",
+            }),
+          ),
+        ).toBe(
+          "Low Free Storage is offered once the account's inventory lists the instance's allocated storage. Connections Near the Limit alerts at 54 connections: 90% of 60, the default limit of a db.t3.micro instance running MySQL. If its parameter group, orders-mysql8, sets max_connections, change the monitor's threshold to 90% of that.",
+        );
+      });
+
+      test("joins sentences as each language writes them: no space after a full-width full stop", () => {
+        expect(joinCloudRecommendationNotes([])).toBeUndefined();
+        expect(joinCloudRecommendationNotes(["One."])).toBe("One.");
+        expect(joinCloudRecommendationNotes(["One.", "Two."])).toBe(
+          "One. Two.",
+        );
+        expect(joinCloudRecommendationNotes(["あります。", "ない。"])).toBe(
+          "あります。ない。",
+        );
+        expect(joinCloudRecommendationNotes(["是？", "对。"])).toBe("是？对。");
       });
     });
 
@@ -2108,7 +2321,7 @@ describe("RecommendationResourceRegistry", () => {
         ),
       ).toContain("JSON stream");
 
-      // An RDS instance whose allocated storage the inventory has not listed.
+      // An RDS instance the inventory has not listed: storage and connections wait.
       expect(
         describeCloud(
           readCloudContext({
@@ -2117,7 +2330,7 @@ describe("RecommendationResourceRegistry", () => {
             telemetryAttributes: { Namespace: "AWS/RDS" },
           }),
         ),
-      ).toContain("Low Free Storage");
+      ).toContain("Low Free Storage and Connections Near the Limit");
 
       // An Azure resource its connection read before readings kept names.
       expect(
