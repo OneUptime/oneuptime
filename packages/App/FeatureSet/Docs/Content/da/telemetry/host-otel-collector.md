@@ -858,6 +858,35 @@ docker run -d \
 
 `--network host`, `--pid host`, monteringen `/hostfs` og variablerne `HOST_*` lader `hostmetrics` og `process` læse værtens kerne i stedet for containerens. Brug kun konfigurationens metrics-pipeline: imaget har ingen `journalctl`, og receiveren `systemd` har brug for værtens D-Bus.
 
+Eller med Docker Compose, gem dette som `docker-compose.yml` ved siden af `config.yaml`:
+
+```yaml title="docker-compose.yml"
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    container_name: otel-collector
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    volumes:
+      - ./config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - /:/hostfs:ro,rslave
+    environment:
+      - HOST_PROC=/hostfs/proc
+      - HOST_SYS=/hostfs/sys
+      - HOST_ETC=/hostfs/etc
+      - HOST_VAR=/hostfs/var
+      - HOST_RUN=/hostfs/run
+      - HOST_DEV=/hostfs/dev
+    command: ["--config", "/etc/otelcol-contrib/config.yaml"]
+```
+
+Start den med:
+
+```bash
+docker compose up -d
+```
+
 ### Fra udgivelsens tarball
 
 Hvor pakker ikke er en mulighed, skal du udpakke den statiske binærfil og give den sin egen systemd-enhed:

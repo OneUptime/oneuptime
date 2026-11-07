@@ -858,6 +858,35 @@ docker run -d \
 
 `--network host`، `--pid host`، سوار کردن `/hostfs` و متغیرهای `HOST_*` به `hostmetrics` و `process` اجازه می‌دهند هسته میزبان را بخوانند، نه هسته کانتینر را. فقط خط لوله متریک پیکربندی را به کار ببرید: ایمیج `journalctl` ندارد و گیرنده `systemd` به D-Bus میزبان نیاز دارد.
 
+یا با Docker Compose، این را به عنوان `docker-compose.yml` در کنار `config.yaml` ذخیره کنید:
+
+```yaml title="docker-compose.yml"
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    container_name: otel-collector
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    volumes:
+      - ./config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - /:/hostfs:ro,rslave
+    environment:
+      - HOST_PROC=/hostfs/proc
+      - HOST_SYS=/hostfs/sys
+      - HOST_ETC=/hostfs/etc
+      - HOST_VAR=/hostfs/var
+      - HOST_RUN=/hostfs/run
+      - HOST_DEV=/hostfs/dev
+    command: ["--config", "/etc/otelcol-contrib/config.yaml"]
+```
+
+آن را با این فرمان شروع کنید:
+
+```bash
+docker compose up -d
+```
+
 ### از بایگانی tarball انتشار
 
 جایی که بسته‌ها گزینه نیستند، فایل دودویی ایستا را باز کنید و یک واحد systemd جداگانه برایش بسازید:

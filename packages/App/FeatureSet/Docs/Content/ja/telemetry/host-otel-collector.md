@@ -858,6 +858,35 @@ docker run -d \
 
 `--network host`、`--pid host`、`/hostfs` のマウント、`HOST_*` 変数により、`hostmetrics` と `process` はコンテナではなくホストのカーネルを読み取ります。設定のメトリクスパイプラインだけを使ってください。イメージには `journalctl` がなく、`systemd` レシーバーにはホストの D-Bus が必要です。
 
+または Docker Compose を使用する場合は、これを `config.yaml` と同じ場所に `docker-compose.yml` として保存します。
+
+```yaml title="docker-compose.yml"
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    container_name: otel-collector
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    volumes:
+      - ./config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - /:/hostfs:ro,rslave
+    environment:
+      - HOST_PROC=/hostfs/proc
+      - HOST_SYS=/hostfs/sys
+      - HOST_ETC=/hostfs/etc
+      - HOST_VAR=/hostfs/var
+      - HOST_RUN=/hostfs/run
+      - HOST_DEV=/hostfs/dev
+    command: ["--config", "/etc/otelcol-contrib/config.yaml"]
+```
+
+次のように起動します。
+
+```bash
+docker compose up -d
+```
+
 ### リリースの tarball から
 
 パッケージを使えない場合は、静的バイナリを展開し、専用の systemd ユニットを用意します:
