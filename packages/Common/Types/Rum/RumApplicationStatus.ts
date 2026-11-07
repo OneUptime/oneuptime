@@ -132,11 +132,15 @@ const RUM_APPLICATION_STATUS_WORDS: Record<
   },
 };
 
-// "connected" and "active" are receiving, whatever their case.
+/*
+ * "connected" and "active" are receiving, whatever their case - and nothing
+ * else is, not even with spaces around it: the card under the pill reads the
+ * value exactly so (isResourceStatusConnected), and the two must agree.
+ */
 export const isRumApplicationStatusReceiving: (
   otelCollectorStatus: string | null | undefined,
 ) => boolean = (otelCollectorStatus: string | null | undefined): boolean => {
-  const normalized: string = (otelCollectorStatus || "").trim().toLowerCase();
+  const normalized: string = (otelCollectorStatus || "").toLowerCase();
 
   return normalized === "connected" || normalized === "active";
 };
