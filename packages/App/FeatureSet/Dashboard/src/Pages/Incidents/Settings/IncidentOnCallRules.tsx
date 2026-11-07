@@ -9,6 +9,12 @@ import Tabs from "Common/UI/Components/Tabs/Tabs";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule";
 import IncidentEpisodeOnCallRule from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRule";
+import IncidentOnCallRuleOwningTeam from "Common/Models/DatabaseModels/IncidentOnCallRuleOwningTeam";
+import IncidentEpisodeOnCallRuleOwningTeam from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRuleOwningTeam";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import useRuleOwningTeams, {
+  RuleOwningTeamsTable,
+} from "../../../Components/TeamOwnedRule/RuleOwningTeams";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -54,6 +60,10 @@ Rules run when an incident is declared, and again whenever its severity or label
 ### Several Matching Rules
 
 Every rule that matches runs: there is no order and no first match. Their policies are added to any added by hand or by a template, and each policy runs once. A policy that one rule pages as responders and another as observers pages responders.
+
+### Rules That Belong to Teams
+
+Under More fields, **Owning Teams** keeps a rule to the teams you pick: only their members, with those teams' permissions, and project admins can edit or delete it. Everyone else who can see rules still sees it, read-only. A rule with no owning teams can be changed by everyone who can edit rules.
 `;
 
 const incidentEpisodeOnCallDocumentation: string = `
@@ -71,9 +81,20 @@ When a rule matches, each of its on-call policies pages its people for the episo
 `;
 
 const IncidentRulesTable: FunctionComponent = (): ReactElement => {
+  // Who owns each rule: its column, its form field and its row locks.
+  const owningTeams: RuleOwningTeamsTable<IncidentOnCallRule> =
+    useRuleOwningTeams<IncidentOnCallRule>({
+      ruleModelType: IncidentOnCallRule,
+      owningTeamModelType: IncidentOnCallRuleOwningTeam,
+    });
+
   return (
     <ModelTable<IncidentOnCallRule>
       modelType={IncidentOnCallRule}
+      onFetchSuccess={owningTeams.onRulesFetched}
+      getEditDisabledReason={owningTeams.getEditDisabledReason}
+      getDeleteDisabledReason={owningTeams.getDeleteDisabledReason}
+      onEditFormItemFetched={owningTeams.onEditFormItemFetched}
       // Enable or Disable in each row's ⋯ menu: the one that changes the row.
       rowSwitch={{ column: "isEnabled" }}
       id="incident-on-call-rules-table"
@@ -142,6 +163,7 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
             return <Pill color={Red} text="Disabled" />;
           },
         },
+        owningTeams.owningTeamsColumn,
       ]}
       viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={getOnCallRuleFormSteps<IncidentOnCallRule>()}
@@ -243,6 +265,11 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
         ...getOnCallRuleActionFields<IncidentOnCallRule>(
           OnCallRuleRecord.Incident,
         ),
+        // Last under More fields: which teams alone may change the rule.
+        owningTeams.getFormField({
+          stepId: "on-call",
+          collapsibleSection: getAdvancedFormSection<IncidentOnCallRule>(),
+        }),
       ]}
       showRefreshButton={true}
     />
@@ -250,9 +277,20 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
 };
 
 const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
+  // Who owns each rule: its column, its form field and its row locks.
+  const owningTeams: RuleOwningTeamsTable<IncidentEpisodeOnCallRule> =
+    useRuleOwningTeams<IncidentEpisodeOnCallRule>({
+      ruleModelType: IncidentEpisodeOnCallRule,
+      owningTeamModelType: IncidentEpisodeOnCallRuleOwningTeam,
+    });
+
   return (
     <ModelTable<IncidentEpisodeOnCallRule>
       modelType={IncidentEpisodeOnCallRule}
+      onFetchSuccess={owningTeams.onRulesFetched}
+      getEditDisabledReason={owningTeams.getEditDisabledReason}
+      getDeleteDisabledReason={owningTeams.getDeleteDisabledReason}
+      onEditFormItemFetched={owningTeams.onEditFormItemFetched}
       // Enable or Disable in each row's ⋯ menu: the one that changes the row.
       rowSwitch={{ column: "isEnabled" }}
       id="incident-episode-on-call-rules-table"
@@ -318,6 +356,7 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
             );
           },
         },
+        owningTeams.owningTeamsColumn,
       ]}
       viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={getOnCallRuleFormSteps<IncidentEpisodeOnCallRule>()}
@@ -376,6 +415,12 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
         ...getOnCallRuleActionFields<IncidentEpisodeOnCallRule>(
           OnCallRuleRecord.IncidentEpisode,
         ),
+        // Last under More fields: which teams alone may change the rule.
+        owningTeams.getFormField({
+          stepId: "on-call",
+          collapsibleSection:
+            getAdvancedFormSection<IncidentEpisodeOnCallRule>(),
+        }),
       ]}
       showRefreshButton={true}
     />

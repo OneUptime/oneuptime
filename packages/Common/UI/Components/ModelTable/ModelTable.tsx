@@ -207,7 +207,33 @@ const ModelTable: <TBaseModel extends BaseModel>(
             getItemName: props.rowSwitch.getItemName || props.getItemName,
           },
           translator,
-        ).rowActions
+        ).rowActions.map(
+          (
+            action: ActionButtonSchema<TBaseModel>,
+          ): ActionButtonSchema<TBaseModel> => {
+            /*
+             * A row the reader may not change (getEditDisabledReason) keeps
+             * its switch locked, with the same reason as its Edit.
+             */
+            const getEditDisabledReason:
+              | ((item: TBaseModel) => string | undefined)
+              | undefined = props.getEditDisabledReason;
+
+            if (!getEditDisabledReason) {
+              return action;
+            }
+
+            const ownReason: ((item: TBaseModel) => string | undefined) | undefined =
+              action.getDisabledReason;
+
+            return {
+              ...action,
+              getDisabledReason: (item: TBaseModel): string | undefined => {
+                return getEditDisabledReason(item) || ownReason?.(item);
+              },
+            };
+          },
+        )
       : [];
 
   let bulkActions: BulkActionProps<TBaseModel> | undefined = props.bulkActions;
@@ -469,6 +495,11 @@ const ModelTable: <TBaseModel extends BaseModel>(
                   existingItems:
                     modalType === ModalType.Create ? existingItems : undefined,
                   ruleCriteriaSubject: props.ruleCriteriaSubject,
+                  // The Edit form's fields that are no columns, filled in.
+                  onItemFetched:
+                    modalType === ModalType.Edit
+                      ? props.onEditFormItemFetched
+                      : undefined,
                 }}
                 modelIdToEdit={modelIdToEdit}
               />

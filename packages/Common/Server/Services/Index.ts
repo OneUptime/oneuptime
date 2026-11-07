@@ -26,6 +26,7 @@ import GreenlockCertificateService from "./GreenlockCertificateService";
 import GreenlockChallengeService from "./GreenlockChallengeService";
 import IncidentCustomFieldService from "./IncidentCustomFieldService";
 import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
+import IncidentOnCallRuleOwningTeamService from "./IncidentOnCallRuleOwningTeamService";
 import IncidentPrivacyRuleService from "./IncidentPrivacyRuleService";
 import IncidentPostmortemTemplateService from "./IncidentPostmortemTemplateService";
 import IncidentPostmortemStatusService from "./IncidentPostmortemStatusService";
@@ -41,6 +42,7 @@ import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService
 import IncidentInternalNoteService from "./IncidentInternalNoteService";
 import IncidentOwnerTeamService from "./IncidentOwnerTeamService";
 import IncidentOwnerRuleService from "./IncidentOwnerRuleService";
+import IncidentOwnerRuleOwningTeamService from "./IncidentOwnerRuleOwningTeamService";
 import IncidentOwnerUserService from "./IncidentOwnerUserService";
 import IncidentRoleService from "./IncidentRoleService";
 import IncidentMemberService from "./IncidentMemberService";
@@ -382,6 +384,7 @@ import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenance
 // Alert Services
 import AlertStateService from "./AlertStateService";
 import AlertOnCallRuleService from "./AlertOnCallRuleService";
+import AlertOnCallRuleOwningTeamService from "./AlertOnCallRuleOwningTeamService";
 import AlertIncidentRuleService from "./AlertIncidentRuleService";
 import AlertPrivacyRuleService from "./AlertPrivacyRuleService";
 import AlertLabelRuleService from "./AlertLabelRuleService";
@@ -465,6 +468,7 @@ import AlertNoteTemplateService from "./AlertNoteTemplateService";
 // AlertEpisode Services
 import AlertEpisodeService from "./AlertEpisodeService";
 import AlertEpisodeOnCallRuleService from "./AlertEpisodeOnCallRuleService";
+import AlertEpisodeOnCallRuleOwningTeamService from "./AlertEpisodeOnCallRuleOwningTeamService";
 import AlertEpisodePrivacyRuleService from "./AlertEpisodePrivacyRuleService";
 import AlertEpisodeLabelRuleService from "./AlertEpisodeLabelRuleService";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
@@ -478,6 +482,7 @@ import AlertEpisodeStateTimelineService from "./AlertEpisodeStateTimelineService
 // IncidentEpisode Services
 import IncidentEpisodeService from "./IncidentEpisodeService";
 import IncidentEpisodeOnCallRuleService from "./IncidentEpisodeOnCallRuleService";
+import IncidentEpisodeOnCallRuleOwningTeamService from "./IncidentEpisodeOnCallRuleOwningTeamService";
 import IncidentEpisodePrivacyRuleService from "./IncidentEpisodePrivacyRuleService";
 import IncidentEpisodeLabelRuleService from "./IncidentEpisodeLabelRuleService";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
@@ -526,6 +531,7 @@ import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import WorkspaceSettingService from "./WorkspaceSettingService";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import WorkspaceNotificationRuleOwningTeamService from "./WorkspaceNotificationRuleOwningTeamService";
 import VideoCallConnectionService from "./VideoCallConnectionService";
 import IncidentVideoCallService from "./IncidentVideoCallService";
 import AlertVideoCallService from "./AlertVideoCallService";
@@ -642,6 +648,7 @@ const services: Array<BaseService> = [
 
   IncidentCustomFieldService,
   IncidentOnCallRuleService,
+  IncidentOnCallRuleOwningTeamService,
   IncidentPrivacyRuleService,
   IncidentPostmortemTemplateService,
   IncidentPostmortemStatusService,
@@ -657,6 +664,7 @@ const services: Array<BaseService> = [
   IncidentInternalNoteService,
   IncidentOwnerTeamService,
   IncidentOwnerRuleService,
+  IncidentOwnerRuleOwningTeamService,
   IncidentOwnerUserService,
   IncidentRoleService,
   IncidentMemberService,
@@ -961,6 +969,7 @@ const services: Array<BaseService> = [
 
   AlertStateService,
   AlertOnCallRuleService,
+  AlertOnCallRuleOwningTeamService,
   AlertIncidentRuleService,
   AlertPrivacyRuleService,
   AlertLabelRuleService,
@@ -1046,6 +1055,7 @@ const services: Array<BaseService> = [
   // AlertEpisode Services
   AlertEpisodeService,
   AlertEpisodeOnCallRuleService,
+  AlertEpisodeOnCallRuleOwningTeamService,
   AlertEpisodePrivacyRuleService,
   AlertEpisodeLabelRuleService,
   AlertEpisodeFeedService,
@@ -1059,6 +1069,7 @@ const services: Array<BaseService> = [
   // IncidentEpisode Services
   IncidentEpisodeService,
   IncidentEpisodeOnCallRuleService,
+  IncidentEpisodeOnCallRuleOwningTeamService,
   IncidentEpisodePrivacyRuleService,
   IncidentEpisodeLabelRuleService,
   IncidentEpisodeFeedService,
@@ -1103,6 +1114,7 @@ const services: Array<BaseService> = [
   WorkspaceUserAuthTokenService,
   WorkspaceSettingService,
   WorkspaceNotificationRuleService,
+  WorkspaceNotificationRuleOwningTeamService,
   VideoCallConnectionService,
   IncidentVideoCallService,
   AlertVideoCallService,

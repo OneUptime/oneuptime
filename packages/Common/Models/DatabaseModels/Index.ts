@@ -501,11 +501,13 @@ import AlertEpisodeInternalNote from "./AlertEpisodeInternalNote";
 import AlertEpisodeFeed from "./AlertEpisodeFeed";
 import AlertGroupingRule from "./AlertGroupingRule";
 import AlertOnCallRule from "./AlertOnCallRule";
+import AlertOnCallRuleOwningTeam from "./AlertOnCallRuleOwningTeam";
 import AlertIncidentRule from "./AlertIncidentRule";
 import AlertOwnerRule from "./AlertOwnerRule";
 import AlertPrivacyRule from "./AlertPrivacyRule";
 import AlertLabelRule from "./AlertLabelRule";
 import AlertEpisodeOnCallRule from "./AlertEpisodeOnCallRule";
+import AlertEpisodeOnCallRuleOwningTeam from "./AlertEpisodeOnCallRuleOwningTeam";
 import AlertEpisodeOwnerRule from "./AlertEpisodeOwnerRule";
 import AlertEpisodePrivacyRule from "./AlertEpisodePrivacyRule";
 import AlertEpisodeLabelRule from "./AlertEpisodeLabelRule";
@@ -522,12 +524,15 @@ import IncidentEpisodeFeed from "./IncidentEpisodeFeed";
 import IncidentEpisodePublicNote from "./IncidentEpisodePublicNote";
 import IncidentGroupingRule from "./IncidentGroupingRule";
 import IncidentOnCallRule from "./IncidentOnCallRule";
+import IncidentOnCallRuleOwningTeam from "./IncidentOnCallRuleOwningTeam";
 import IncidentOwnerRule from "./IncidentOwnerRule";
+import IncidentOwnerRuleOwningTeam from "./IncidentOwnerRuleOwningTeam";
 import IncidentPrivacyRule from "./IncidentPrivacyRule";
 import IncidentLabelRule from "./IncidentLabelRule";
 import ScheduledMaintenanceOwnerRule from "./ScheduledMaintenanceOwnerRule";
 import ScheduledMaintenanceLabelRule from "./ScheduledMaintenanceLabelRule";
 import IncidentEpisodeOnCallRule from "./IncidentEpisodeOnCallRule";
+import IncidentEpisodeOnCallRuleOwningTeam from "./IncidentEpisodeOnCallRuleOwningTeam";
 import IncidentEpisodeOwnerRule from "./IncidentEpisodeOwnerRule";
 import IncidentEpisodePrivacyRule from "./IncidentEpisodePrivacyRule";
 import IncidentEpisodeLabelRule from "./IncidentEpisodeLabelRule";
@@ -600,6 +605,7 @@ import WorkspaceUserAuthToken from "./WorkspaceUserAuthToken";
 import WorkspaceProjectAuthToken from "./WorkspaceProjectAuthToken";
 import WorkspaceSetting from "./WorkspaceSetting";
 import WorkspaceNotificationRule from "./WorkspaceNotificationRule";
+import WorkspaceNotificationRuleOwningTeam from "./WorkspaceNotificationRuleOwningTeam";
 import VideoCallConnection from "./VideoCallConnection";
 import IncidentVideoCall from "./IncidentVideoCall";
 import AlertVideoCall from "./AlertVideoCall";
@@ -816,11 +822,13 @@ const AllModelTypes: Array<{
   AlertEpisodeFeed,
   AlertGroupingRule,
   AlertOnCallRule,
+  AlertOnCallRuleOwningTeam,
   AlertIncidentRule,
   AlertOwnerRule,
   AlertPrivacyRule,
   AlertLabelRule,
   AlertEpisodeOnCallRule,
+  AlertEpisodeOnCallRuleOwningTeam,
   AlertEpisodeOwnerRule,
   AlertEpisodePrivacyRule,
   AlertEpisodeLabelRule,
@@ -837,12 +845,15 @@ const AllModelTypes: Array<{
   IncidentEpisodePublicNote,
   IncidentGroupingRule,
   IncidentOnCallRule,
+  IncidentOnCallRuleOwningTeam,
   IncidentOwnerRule,
+  IncidentOwnerRuleOwningTeam,
   IncidentPrivacyRule,
   IncidentLabelRule,
   ScheduledMaintenanceOwnerRule,
   ScheduledMaintenanceLabelRule,
   IncidentEpisodeOnCallRule,
+  IncidentEpisodeOnCallRuleOwningTeam,
   IncidentEpisodeOwnerRule,
   IncidentEpisodePrivacyRule,
   IncidentEpisodeLabelRule,
@@ -1130,6 +1141,7 @@ const AllModelTypes: Array<{
 
   WorkspaceSetting,
   WorkspaceNotificationRule,
+  WorkspaceNotificationRuleOwningTeam,
   VideoCallConnection,
   IncidentVideoCall,
   AlertVideoCall,
