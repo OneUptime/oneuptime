@@ -9,8 +9,8 @@ import {
 } from "../oncall/pushPageAction";
 
 /*
- * A push's Acknowledge or Escalate, done on the record's screen
- * (oncall/pushPageAction.ts).
+ * A push's Acknowledge, Escalate or "I've seen it", done on the record's
+ * screen (oncall/pushPageAction.ts).
  *
  * The push opens the screen with the action in its params. The screen waits
  * until it knows enough to answer - the record, its states, and the reader's
@@ -33,13 +33,15 @@ export interface PushPageActionOptions {
   acknowledgeAgain: () => Promise<void> | void;
   // Escalate's question, as the screen's button asks it.
   askToEscalate: () => void;
+  // "I've seen it", for the reader's page as an observer: never the record's Acknowledge.
+  markSeen: () => Promise<void> | void;
 }
 
 export function runPushPageAnswer(
   answer: PushPageAnswer,
   handlers: Pick<
     PushPageActionOptions,
-    "acknowledge" | "acknowledgeAgain" | "askToEscalate"
+    "acknowledge" | "acknowledgeAgain" | "askToEscalate" | "markSeen"
   >,
 ): void {
   switch (answer.kind) {
@@ -51,6 +53,9 @@ export function runPushPageAnswer(
       return;
     case "askToEscalate":
       handlers.askToEscalate();
+      return;
+    case "markSeen":
+      void handlers.markSeen();
       return;
     case "explain":
       Alert.alert(answer.title, answer.message);
