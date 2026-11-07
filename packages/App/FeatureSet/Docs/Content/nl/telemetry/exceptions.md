@@ -82,7 +82,7 @@ Het zijmenu van de pagina groepeert wat u met een uitzondering doet:
 | **Logboeken** | De logboeken die rond het laatste voorval zijn geschreven. |
 | **AI-assistentie** | AI-taken die de uitzondering verhelpen of testen. |
 | **Instellingen** | De uitzondering oplossen of archiveren. Staat onder **Beheren**, dat eerst ingeklapt is. |
-| **Auditlogboeken** | Wie de uitzondering heeft opgelost, gearchiveerd of toegewezen, en wanneer. Staat ook onder **Beheren**. |
+| **Auditlogboeken** | Wie de uitzondering heeft opgelost, gearchiveerd, toegewezen of samengevoegd, en wanneer. Staat ook onder **Beheren**. |
 
 ## Oplossen, heropenen en archiveren
 
@@ -138,7 +138,7 @@ ID's, e-mail- en IP-adressen en tokens worden verwijderd uit alles wat wordt ver
 
 Onder de kaarten toont **Vergelijkbare uitzonderingen** tot vijf andere uitzonderingen die op deze lijken: het **Zelfde bericht** zodra de waarden eruit zijn, de **Zelfde plek in de code** in uw code, of een **Vergelijkbaar bericht** met grotendeels dezelfde woorden. Eén oorzaak kan in meerdere uitzonderingen terechtkomen, dus **Controleren met OneUptime AI** zegt van elke of het **Waarschijnlijk dezelfde bug**, **Een verwante bug** of **Een andere bug** is, en waarom. De controle gebruikt de AI-tegoeden van het project en wordt niet aangeboden zolang **AI inschakelen** uit staat. Het antwoord wordt bewaard tot de volgende keer dat er een uitzondering optreedt.
 
-Voeg een uitzondering die OneUptime AI **Waarschijnlijk dezelfde bug** noemt en die bij dezelfde service hoort, met deze samen via **Samenvoegen** ernaast: haar voorvallen, de eerdere en elk nieuw, tellen vanaf dan bij deze uitzondering en staan op haar pagina, en ze verdwijnt uit de lijst. **Samengevoegd met deze uitzondering** eronder toont wat is samengevoegd, en **Splitsen** ernaast, of op de eigen pagina van een samengevoegde uitzondering, geeft haar haar eigen plek in de lijst terug, met haar voorvallen sindsdien. Samenvoegen en splitsen vereisen toestemming om uitzonderingen te bewerken.
+Voeg een uitzondering die OneUptime AI **Waarschijnlijk dezelfde bug** noemt en die bij dezelfde service hoort, met deze samen via **Samenvoegen** ernaast: haar voorvallen, de eerdere en elk nieuw, tellen vanaf dan bij deze uitzondering en staan op haar pagina, en ze verdwijnt uit de lijst. **Samengevoegd met deze uitzondering** eronder toont wat is samengevoegd, en **Splitsen** ernaast, of op de eigen pagina van een samengevoegde uitzondering, geeft haar haar eigen plek in de lijst terug, met haar voorvallen sindsdien. Samenvoegen en splitsen vereisen toestemming om uitzonderingen te bewerken. Wie een uitzondering heeft samengevoegd, en wie haar heeft gesplitst, staat op haar pagina **Auditlogboeken**; de uitzondering waarmee ze is samengevoegd krijgt geen vermelding, want er is niets veranderd wat iemand erop had ingesteld.
 
 ## Verhelpen met AI
 

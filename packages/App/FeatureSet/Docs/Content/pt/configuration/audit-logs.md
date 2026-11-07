@@ -88,7 +88,7 @@ Tudo o que as pessoas criam, alteram ou excluem em um projeto é registrado: mon
 
 Também fica registrado quando um administrador adiciona ou remove um método de notificação ou uma regra de plantão pessoal na conta de outra pessoa, sem o endereço ou o número em si.
 
-Os campos que só o OneUptime escreve, como quando um host foi visto pela última vez, ficam de fora de toda entrada, assim como os campos que ninguém pode ler. Chaves, tokens e senhas são registrados como `[REDACTED]`: a entrada mostra que mudaram, nunca o seu valor. Os passos de um fluxo de trabalho são registrados como o que mudou, com os nomes das configurações de um passo, mas nunca o que foi digitado nelas, e mover um passo na tela de edição não é registrado.
+Os campos que só o OneUptime escreve, como quando um host foi visto pela última vez, ficam de fora de toda entrada, assim como os campos que ninguém pode ler. Quando o OneUptime escreve um deles porque alguém pediu, como ao mesclar uma exceção a outra ou redefinir a URL de um webhook, a entrada o registra como uma alteração dessa pessoa. Chaves, tokens e senhas são registrados como `[REDACTED]`: a entrada mostra que mudaram, nunca o seu valor. Os passos de um fluxo de trabalho são registrados como o que mudou, com os nomes das configurações de um passo, mas nunca o que foi digitado nelas, e mover um passo na tela de edição não é registrado.
 
 ## Por quanto tempo as entradas ficam
 

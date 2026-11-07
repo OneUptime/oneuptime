@@ -82,7 +82,7 @@ The page's side menu groups what you do with an exception:
 | **Logs** | The logs written around the latest occurrence. |
 | **AI Assistance** | AI tasks that fix the exception or test it. |
 | **Settings** | Resolve or archive the exception. It is under **Manage**, which starts collapsed. |
-| **Audit Logs** | Who resolved, archived or assigned the exception, and when. It is under **Manage** too. |
+| **Audit Logs** | Who resolved, archived, assigned or merged the exception, and when. It is under **Manage** too. |
 
 ## Resolve, reopen and archive
 
@@ -138,7 +138,7 @@ IDs, email and IP addresses and tokens are taken out of everything that is sent,
 
 Below the cards, **Similar exceptions** lists up to five other exceptions that look like this one: the **Same message** once the values are taken out, the **Same code location** in your code, or a **Similar message** with most of the same words. One root cause can land in several exceptions, so **Check with OneUptime AI** says of each whether it is **Likely the same bug**, **A related bug** or **A different bug**, and why. The check uses the project's AI credits and is not offered while **Enable AI** is off. Its answer is kept until a new occurrence arrives.
 
-Merge one that OneUptime AI calls **Likely the same bug**, in the same service, into this exception with **Merge** beside it: its occurrences, those so far and every new one, count on this exception from then on and show on its page, and it leaves the list. **Merged into this exception** below lists what was merged in, and **Unmerge** beside each, or on a merged exception's own page, gives it back its own place in the list, its occurrences since included. Merging and unmerging take permission to edit exceptions.
+Merge one that OneUptime AI calls **Likely the same bug**, in the same service, into this exception with **Merge** beside it: its occurrences, those so far and every new one, count on this exception from then on and show on its page, and it leaves the list. **Merged into this exception** below lists what was merged in, and **Unmerge** beside each, or on a merged exception's own page, gives it back its own place in the list, its occurrences since included. Merging and unmerging take permission to edit exceptions. Who merged an exception, and who unmerged it, is on its **Audit Logs** page; the exception it was merged into gets no entry, as nothing anyone set on it changed.
 
 ## Fix it with AI
 

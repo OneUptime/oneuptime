@@ -46420,7 +46420,7 @@
   "Saved by Ask AI": "Enregistré par Ask AI",
   "Site Audit Logs": "Site Audit Logs",
   "Table Audit Logs": "Table Audit Logs",
-  "Every change made to this exception: who resolved, archived or assigned it, when, and what changed.": "Every change made to this exception: who resolved, archived or assigned it, when, and what changed.",
+  "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.": "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.",
   "Charted for what this monitor checks now.": "Charted for what this monitor checks now.",
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
   "Only chart this metric from these services.": "Only chart this metric from these services."
