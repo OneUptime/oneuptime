@@ -1014,6 +1014,41 @@ describe("a health event's title", () => {
     ).toBe(`AWS Health: ${isolated(`مشکل عملیاتی ${isolated("EC2")}`)} (باز)`);
   });
 
+  /*
+   * #6149's UI review: a resource's states, before and now, with the arrow
+   * pointing the way its language reads - a health title is laid out the
+   * reader's way (getChangeTitleDirection), so a Persian title read from
+   * the right needs "←" to lead from the state before to the state now.
+   * An arrow is never mirrored by the browser.
+   */
+  test("the arrow between a resource's states points the way its language reads", () => {
+    for (const language of [...DASHBOARD_LANGUAGES, "en"]) {
+      const sentence: string =
+        readDashboardLocale(language)[AZURE_RESOURCE_HEALTH_CHANGE_SENTENCE] ||
+        "";
+      const isRightToLeft: boolean = language === "fa";
+
+      expect({
+        language,
+        forward: sentence.includes(isRightToLeft ? "←" : "→"),
+        backward: sentence.includes(isRightToLeft ? "→" : "←"),
+      }).toEqual({ language, forward: true, backward: false });
+    }
+
+    expect(
+      withoutIsolateMarks(
+        getCloudHealthTitle(
+          factsOf(
+            "Azure Resource Health: Available → Unavailable",
+            "ResourceHealth Unavailable",
+          ),
+          dashboardTranslator("fa"),
+          { setsValuesApart: true },
+        ),
+      ),
+    ).toBe("Azure Resource Health: در دسترس ← در دسترس نیست");
+  });
+
   test("every language has each sentence with its values, worded its own way", () => {
     for (const language of DASHBOARD_LANGUAGES) {
       const words: Record<string, string> = readDashboardLocale(language);

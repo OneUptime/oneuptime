@@ -360,6 +360,37 @@ const AUTO_REMEDIATION_ROUTES: Array<HumanOnlyRoute> = [
     notAUserMessage: USER_SESSION_REQUIRED,
     firstRead: "incidentRead",
   },
+  /*
+   * A fix that lasts (DeclaredCodeChanges, #6186): the repositories that
+   * may hold a declared resource's code, the pull request asked for in the
+   * one a person picks - a Code task, so OneUptime AI - and where each
+   * step's stands. Each reads the fix under the person's own props first.
+   */
+  {
+    uri: "/auto-remediation/declared-code-owner",
+    params: {},
+    body: { suggestionId: SUGGESTION_ID.toString(), sequence: 1 },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "suggestionRead",
+  },
+  {
+    uri: "/auto-remediation/declared-code-change",
+    params: {},
+    body: {
+      suggestionId: SUGGESTION_ID.toString(),
+      sequence: 1,
+      codeRepositoryId: "0193c0de-2222-4aaa-8bbb-000000000102",
+    },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "suggestionRead",
+  },
+  {
+    uri: "/auto-remediation/declared-code-changes",
+    params: {},
+    body: { suggestionId: SUGGESTION_ID.toString() },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "suggestionRead",
+  },
 ];
 
 const CODE_FIX_RUN_ROUTES: Array<HumanOnlyRoute> = [

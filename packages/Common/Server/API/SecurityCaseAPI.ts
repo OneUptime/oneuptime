@@ -84,6 +84,7 @@ import { TelemetryServiceFilter } from "../Utils/Telemetry/TelemetryReadScope";
 import {
   IncidentSecurityJson,
   ResourceSecurityJson,
+  ResourceSecurityScopeJson,
   SECURITY_CONNECTION_MAX_ENTITIES,
   SecurityConnectionKind,
   SecurityConnectionsJson,
@@ -237,6 +238,9 @@ function readWholeNumber(
  *                                          the logs and traces themselves
  *   POST /security-case/resource-security  what Security Events says about a
  *                                          host, cluster, service or member
+ *   POST /security-case/resource-security-scope
+ *                                          what a record's own Security
+ *                                          Events page reads under
  *   POST /security-case/incident-security  the cases behind an incident and
  *                                          naming what it affects
  *   POST /security-case/:caseId/declare-incident
@@ -532,6 +536,65 @@ export default class SecurityCaseAPI extends BaseAPI<
             req,
             res,
             security as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * A record's own Security Events page (issue #5769): the scope its
+     * explorer reads under - the events naming the record's identities, or
+     * read from its own logs. Takes the right to read security events, and
+     * the right to read the record.
+     */
+    this.router.post(
+      `${basePath}/resource-security-scope`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          this.assertCanReadSecurityEvents(props);
+
+          const body: JSONObject = readBody(req);
+          const kind: JSONValue | undefined = body["kind"];
+          const id: JSONValue | undefined = body["id"];
+
+          if (
+            typeof kind !== "string" ||
+            !(Object.values(SecurityConnectionKind) as Array<string>).includes(
+              kind,
+            )
+          ) {
+            throw new BadDataException("Name the kind of record to read.");
+          }
+
+          if (typeof id !== "string" || !ObjectID.isValidUUID(id)) {
+            throw new BadDataException("A valid record ID is required.");
+          }
+
+          const scope: ResourceSecurityScopeJson | null =
+            await ResourceSecurity.readScope({
+              projectId,
+              kind: kind as SecurityConnectionKind,
+              id: new ObjectID(id),
+              props,
+            });
+
+          if (!scope) {
+            throw new NotFoundException("This record could not be found.");
+          }
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            scope as unknown as JSONObject,
           );
         } catch (error) {
           next(error);

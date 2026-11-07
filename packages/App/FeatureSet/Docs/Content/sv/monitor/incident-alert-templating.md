@@ -32,7 +32,7 @@ flowchart TB
 :::steps
 ### Öppna monitorns kriterier
 
-Gå till **Monitorer**, öppna monitorn och klicka på **Kriterier** i dess sidomeny. Klicka på **Redigera Övervakningskriterier**.
+Gå till **Monitorer**, öppna monitorn och klicka på **Kriterier** i dess sidomeny. Klicka på **Redigera övervakningskriterier**.
 
 ### Slå på incidenten eller larmet
 

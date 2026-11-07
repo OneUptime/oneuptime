@@ -413,6 +413,8 @@ test.describe("one paste, whatever the cloud", () => {
         readScope: "account",
         roleArn: ROLE_ARN,
         readIntervalInMinutes: "10",
+        // AWS's costs per resource, under More fields: off until turned on.
+        resourceCosts: "off",
         // Data Security's levels, under More fields: off until chosen.
         dataSecurity: "off",
         dataSecurityResponse: "off",
@@ -1658,7 +1660,12 @@ test.describe("an account's pages", () => {
      * read again until the table has fitted its columns to the new width,
      * which it does a frame after the window changes (useTableBoxWidth): one
      * read right after the resize found the old frame, or no cells at all,
-     * one run in 97 under load (2026-11-02).
+     * one run in 97 under load (2026-11-02). Beside the side menu the box is
+     * narrower than 48rem, so whether the rows fit there turns on how wide
+     * the times are, and the fixture's times are its clock's: when they did
+     * not fit, the list was drawn as cards and a read of row cells alone
+     * found none (main, 2026-11-06). The time is read wherever it is drawn:
+     * a row's second cell, or the value under a card's Time.
      */
     for (const width of [1280, 1024]) {
       await page.setViewportSize({ width, height: 900 });
@@ -1666,7 +1673,9 @@ test.describe("an account's pages", () => {
         .poll(
           (): Promise<Array<boolean>> => {
             return page
-              .locator("tbody tr td:nth-child(2) > div")
+              .locator(
+                'tbody tr td:nth-child(2) > div, dl > div:has(> dt:text-is("Time")) > dd',
+              )
               .evaluateAll((cells: Array<Element>): Array<boolean> => {
                 return cells.map((cell: Element): boolean => {
                   return cell.scrollWidth > cell.clientWidth + 1;
@@ -2008,6 +2017,59 @@ function readLocale(language: string): Record<string, string> {
 const GERMAN: Record<string, string> = readLocale("de");
 const PERSIAN: Record<string, string> = readLocale("fa");
 
+// The Cloud AI agent's image, as Run the agent somewhere else names it.
+const AGENT_IMAGE: string = "docker.io/oneuptime/resource-ai-agent:release";
+
+/*
+ * Run the agent somewhere else on Google Cloud: the image's line over the
+ * variables, the line over the list, and the list's two identities.
+ */
+const GCP_ELSEWHERE: string =
+  "Deploy the image {{image}} your own way in Google Cloud, with these variables:";
+const ELSEWHERE_IDENTITIES: string =
+  "Give it two identities, as the setup command does:";
+const GCP_ELSEWHERE_OWN: string =
+  "A service account of its own that only reads, with Service Account Token Creator on the write account.";
+const GCP_ELSEWHERE_WRITE: string =
+  "The write account {{writeAccount}}, which holds the permissions of the changes AI may make.";
+
+/*
+ * The names Run the agent somewhere else draws as code, and the lines each
+ * takes: one, at desktop and phone width - a name is never broken at a
+ * hyphen ("oneuptime-ai-agent-" / "write").
+ */
+async function elsewhereNameLines(
+  page: Page,
+): Promise<Array<{ name: string; lines: number }>> {
+  return await page.evaluate(() => {
+    return Array.from(
+      document.querySelectorAll(
+        '[data-testid="cloud-ai-agent-setup-elsewhere-name"]',
+      ),
+    ).map((element: Element): { name: string; lines: number } => {
+      const name: HTMLElement = element as HTMLElement;
+      const lineHeight: number = parseFloat(
+        window.getComputedStyle(name).lineHeight,
+      );
+
+      return {
+        name: name.textContent || "",
+        lines: Math.round(name.offsetHeight / lineHeight),
+      };
+    });
+  });
+}
+
+/*
+ * A name drawn in a sentence of the language: set apart from the words
+ * around it where the sentence reads right to left.
+ */
+function nameIn(locale: Record<string, string>, value: string): string {
+  return locale === PERSIAN
+    ? `${FIRST_STRONG_ISOLATE}${value}${POP_DIRECTIONAL_ISOLATE}`
+    : value;
+}
+
 // A word as a locale draws it (a template's {{values}} filled in).
 function wordIn(
   locale: Record<string, string>,
@@ -2215,10 +2277,38 @@ test.describe("OneUptime AI on a cloud account", () => {
     await expect(setupDialog(page)).toContainText(
       "ONEUPTIME_AI_FIXES=automatic",
     );
+    // The image's line over them.
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere"),
+    ).toHaveText(
+      `Deploy the image ${AGENT_IMAGE} your own way, with these variables:`,
+    );
+    // And its two identities on AWS: a role of its own that may only assume the write role.
+    await expect(
+      setupDialog(page)
+        .getByTestId("cloud-ai-agent-setup-elsewhere-identities")
+        .locator("li"),
+    ).toHaveText([
+      "A role of its own that may only assume the write role.",
+      "The write role OneUptimeAiAgentWrite, which trusts the agent's role and holds the permissions of the changes AI may make.",
+    ]);
+    // Each name whole on its line, a phone's included.
+    await expect
+      .poll(async () => {
+        return await elsewhereNameLines(page);
+      })
+      .toEqual([
+        { name: AGENT_IMAGE, lines: 1 },
+        { name: "OneUptimeAiAgentWrite", lines: 1 },
+      ]);
 
     // A phone: the dialog fits its width, long lines scroll in their box.
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup");
+    await setupDialog(page)
+      .getByTestId("cloud-ai-agent-setup-elsewhere-identities")
+      .scrollIntoViewIfNeeded();
+    await shoot(page, "account-ai-setup-elsewhere");
   });
 
   test("the agent connects on its own: the dialog that waits for it says Connected", async ({
@@ -3131,9 +3221,14 @@ const READERS: Array<{ code: string; locale: Record<string, string> }> = [
 /*
  * #5702's review: the hero's identifier line is monospace, both its label
  * and its value - set apart in elements of their own, each took the page's
- * universal Inter rule until each said font-mono.
+ * universal Inter rule until each said font-mono. #6149's follow-up: a label
+ * that reads right to left (Persian) takes the page's font instead, as no
+ * monospace font draws its letters; the identifier stays monospace.
  */
-async function expectIdentifierInMonospace(page: Page): Promise<void> {
+async function expectIdentifierInMonospace(
+  page: Page,
+  readerCode: string,
+): Promise<void> {
   const fonts: Array<string> = await page
     .getByTestId("resource-overview-identifier")
     .evaluate((line: Element): Array<string> => {
@@ -3143,8 +3238,15 @@ async function expectIdentifierInMonospace(page: Page): Promise<void> {
     });
 
   expect(fonts).toHaveLength(2);
-  for (const font of fonts) {
-    expect(font).toMatch(/mono/i);
+  const [labelFont, identifierFont] = fonts as [string, string];
+
+  expect(identifierFont).toMatch(/mono/i);
+
+  if (readerCode === "fa") {
+    expect(labelFont).not.toMatch(/mono/i);
+    expect(labelFont).toMatch(/Inter/);
+  } else {
+    expect(labelFont).toMatch(/mono/i);
   }
 }
 
@@ -3191,7 +3293,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
       expect(await readText(identifier)).toBe(
         `${wordIn(reader.locale, "account")}: 123456789012`,
       );
-      await expectIdentifierInMonospace(page);
+      await expectIdentifierInMonospace(page, reader.code);
       // Its status says what it means, under the pointer.
       await expect(
         page.getByTestId("resource-overview-status"),
@@ -3270,6 +3372,16 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
         "direction",
         "ltr",
       );
+      /*
+       * #6149's follow-up: AWS's own words are drawn as written - never
+       * translated or rewritten - and marked as the English they are.
+       */
+      await expect(
+        page.getByTestId("cloud-change-detail-written"),
+      ).toHaveAttribute("lang", "en");
+      await expect(page.getByTestId("cloud-change-detail-worded")).toHaveCount(
+        0,
+      );
       await expectNoSidewaysScroll(page, { tolerance: 1 });
       await shoot(page, `account-changes-${reader.code}`);
     });
@@ -3321,7 +3433,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
           },
         );
       expect(reading).toEqual({ direction: "ltr", startVisible: true });
-      await expectIdentifierInMonospace(page);
+      await expectIdentifierInMonospace(page, reader.code);
 
       // How it is run, in words.
       await expect(
@@ -3374,6 +3486,127 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
         }),
       ]);
       await expectNoSidewaysScroll(page, { tolerance: 1 });
+    });
+
+    /*
+     * #6149's follow-up: what Azure published about its health
+     * (?changes=health). The sentences OneUptime writes about an event -
+     * who published it, its tracking id, what caused a resource's change -
+     * read in the reader's words, from the English the row keeps; Azure's
+     * own words are drawn as written, marked as the English they are, set
+     * apart in the reader's line.
+     */
+    test(`${reader.code}: what Azure published about its health`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openAccounts(
+        page,
+        `${ACCOUNTS_PATH}/${AZURE_ACCOUNT}/changes?state=connected&changes=health&lang=${reader.code}`,
+      );
+
+      expect(await changeTitles(page)).toEqual([
+        wordIn(reader.locale, "Azure Service Health: {{event}} (Active)", {
+          event: "Network connectivity issues in West Europe",
+        }),
+        wordIn(reader.locale, "Azure Resource Health: {{status}} → {{event}}", {
+          status: wordIn(reader.locale, "Available"),
+          event: wordIn(reader.locale, "Unavailable"),
+        }),
+      ]);
+
+      const details: Locator = page.getByTestId("cloud-change-detail");
+      await expect(details).toHaveCount(2);
+      const readerDirection: string = reader.code === "fa" ? "rtl" : "ltr";
+
+      // The incident's line is all OneUptime's: in the reader's words.
+      const published: Locator = details.nth(0);
+      expect(await readText(published)).toBe(
+        `${wordIn(reader.locale, "Azure published an incident.")} ${wordIn(
+          reader.locale,
+          "Tracking ID: {{trackingId}}.",
+          { trackingId: "7NQ8-TX0" },
+        )}`,
+      );
+      await expect(
+        published.getByTestId("cloud-change-detail-written"),
+      ).toHaveCount(0);
+      await expect(published).toHaveCSS("direction", readerDirection);
+      /*
+       * #6149's UI review: Azure's tracking id is kept whole on its line,
+       * never broken at its hyphen ("7NQ8-" over "TX0." in German).
+       */
+      const identifier: Locator = published.getByTestId(
+        "cloud-change-detail-identifier",
+      );
+      await expect(identifier).toHaveText("7NQ8-TX0");
+      await expect(identifier).toHaveCSS("white-space", "nowrap");
+      expect(
+        await identifier.evaluate((element: Element): number => {
+          return element.getClientRects().length;
+        }),
+      ).toBe(1);
+
+      // The resource's: Azure's title as written, then what caused it.
+      const caused: Locator = details.nth(1);
+      const written: Locator = caused.getByTestId(
+        "cloud-change-detail-written",
+      );
+      await expect(written).toHaveText(
+        "The virtual machine is being restarted for a planned platform update.",
+      );
+      await expect(written).toHaveAttribute("lang", "en");
+      await expect(written).toHaveCSS("direction", "ltr");
+      const worded: Locator = caused.getByTestId("cloud-change-detail-worded");
+      await expect(worded).toHaveText(
+        wordIn(reader.locale, "Azure caused it."),
+      );
+      await expect(caused).toHaveCSS("direction", readerDirection);
+
+      // Never the stored English sentences.
+      await expect(
+        page.getByText("Incident published by Azure", { exact: false }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByText("Azure caused it.", { exact: true }),
+      ).toHaveCount(0);
+
+      /*
+       * Read from the reader's end: Azure's words start the line - at its
+       * right on a Persian page - and the reader's follow them, further
+       * along the same line or on the next; both are seen, within the two
+       * lines the list gives what was said about a change.
+       */
+      const [lineBox, writtenBox, wordedBox]: Array<FrameBox> =
+        await boxesInOneFrame([caused, written, worded]);
+      if (reader.code === "fa") {
+        expect(
+          Math.abs(
+            lineBox!.x + lineBox!.width - (writtenBox!.x + writtenBox!.width),
+          ),
+        ).toBeLessThan(1.5);
+      } else {
+        expect(Math.abs(lineBox!.x - writtenBox!.x)).toBeLessThan(1.5);
+      }
+      if (Math.abs(writtenBox!.y - wordedBox!.y) < 2) {
+        if (reader.code === "fa") {
+          expect(writtenBox!.x).toBeGreaterThanOrEqual(
+            wordedBox!.x + wordedBox!.width,
+          );
+        } else {
+          expect(wordedBox!.x).toBeGreaterThanOrEqual(
+            writtenBox!.x + writtenBox!.width,
+          );
+        }
+      } else {
+        expect(wordedBox!.y).toBeGreaterThan(writtenBox!.y);
+      }
+      expect(wordedBox!.y + wordedBox!.height).toBeLessThanOrEqual(
+        lineBox!.y + lineBox!.height + 0.5,
+      );
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await shoot(page, `azure-health-${reader.code}`);
     });
   }
 });
@@ -3789,7 +4022,34 @@ test.describe("where Google Cloud's agent runs", () => {
     await expect(hostChoice(page)).toContainText(
       "A Cloud Run service with CPU always allocated: about $45 a month. For a project that allows no VM an external IP address.",
     );
+    // Running it somewhere else: the image in Google Cloud, with its variables...
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere"),
+    ).toHaveText(wordIn({}, GCP_ELSEWHERE, { image: AGENT_IMAGE }));
+    // ...and its two identities: Token Creator on the write account, as the command makes them.
+    await expect(
+      setupDialog(page)
+        .getByTestId("cloud-ai-agent-setup-elsewhere-identities")
+        .locator("li"),
+    ).toHaveText([
+      GCP_ELSEWHERE_OWN,
+      wordIn({}, GCP_ELSEWHERE_WRITE, {
+        writeAccount: "oneuptime-ai-agent-write",
+      }),
+    ]);
+    await expect
+      .poll(async () => {
+        return await elsewhereNameLines(page);
+      })
+      .toEqual([
+        { name: AGENT_IMAGE, lines: 1 },
+        { name: "oneuptime-ai-agent-write", lines: 1 },
+      ]);
     await shoot(page, "account-ai-setup-gcp-host");
+    await setupDialog(page)
+      .getByTestId("cloud-ai-agent-setup-elsewhere-identities")
+      .scrollIntoViewIfNeeded();
+    await shoot(page, "account-ai-setup-gcp-elsewhere");
 
     // Cloud Run: its command, its price and its logs.
     await setupDialog(page)
@@ -3847,6 +4107,47 @@ test.describe("where Google Cloud's agent runs", () => {
         wordIn(locale, "A small VM"),
       );
       expect(wordIn(locale, "A small VM")).not.toBe("A small VM");
+      // Running it somewhere else, in the language's words, with the names as they are.
+      await expect(
+        setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere"),
+      ).toHaveText(
+        wordIn(locale, GCP_ELSEWHERE, {
+          image: nameIn(locale, AGENT_IMAGE),
+        }),
+      );
+      const identities: Locator = setupDialog(page).getByTestId(
+        "cloud-ai-agent-setup-elsewhere-identities",
+      );
+      await expect(
+        identities.locator("xpath=preceding-sibling::p[1]"),
+      ).toHaveText(wordIn(locale, ELSEWHERE_IDENTITIES));
+      await expect(identities.locator("li")).toHaveText([
+        wordIn(locale, GCP_ELSEWHERE_OWN),
+        wordIn(locale, GCP_ELSEWHERE_WRITE, {
+          writeAccount: nameIn(locale, "oneuptime-ai-agent-write"),
+        }),
+      ]);
+      // The names are code, as the changes' names above them are, and each whole on its line.
+      await expect(
+        setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere-name"),
+      ).toHaveText([AGENT_IMAGE, "oneuptime-ai-agent-write"]);
+      await expect
+        .poll(async () => {
+          return await elsewhereNameLines(page);
+        })
+        .toEqual([
+          { name: AGENT_IMAGE, lines: 1 },
+          { name: "oneuptime-ai-agent-write", lines: 1 },
+        ]);
+
+      for (const english of [
+        GCP_ELSEWHERE,
+        ELSEWHERE_IDENTITIES,
+        GCP_ELSEWHERE_OWN,
+        GCP_ELSEWHERE_WRITE,
+      ]) {
+        expect(wordIn(locale, english)).not.toBe(english);
+      }
       await expect(hostChoice(page)).toContainText(
         wordIn(
           locale,
@@ -3856,8 +4157,77 @@ test.describe("where Google Cloud's agent runs", () => {
       );
       await expectNoSidewaysScroll(page, { tolerance: 1 });
       await shoot(page, `account-ai-setup-gcp-${language}`);
+      await identities.scrollIntoViewIfNeeded();
+      await shoot(page, `account-ai-setup-gcp-elsewhere-${language}`);
     });
   }
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Azure's agent runs as two identities: its Container App's own, which
+ * only reads, and the write identity oneuptime-ai-agent-write, which its
+ * changes run as. The command makes both, and running the agent somewhere
+ * else says what it needs, as the command makes it (#6156).
+ * ---------------------------------------------------------------------------
+ */
+test.describe("Azure's agent: an identity that reads, and one for changes", () => {
+  test("the command makes the write identity, and running it somewhere else needs both", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "What it says: a desktop's.");
+
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AZURE_ACCOUNT}?state=connected`,
+    );
+    await openSetup(page);
+
+    // The write identity, attached to the agent's Container App with its own.
+    const command: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-command",
+    );
+    await expect(command).toContainText(
+      'az identity create --subscription "$SUBSCRIPTION" --name oneuptime-ai-agent-write',
+    );
+    await expect(command).toContainText(
+      "--system-assigned --user-assigned /subscriptions/7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b/resourceGroups/oneuptime-ai-agent/providers/Microsoft.ManagedIdentity/userAssignedIdentities/oneuptime-ai-agent-write",
+    );
+
+    await setupDialog(page)
+      .getByRole("button", { name: "More fields" })
+      .click();
+    // The variables name it, by resource ID, as the agent asks for its token.
+    await expect(setupDialog(page)).toContainText(
+      "ONEUPTIME_AI_AZURE_WRITE_IDENTITY=/subscriptions/7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b/resourceGroups/oneuptime-ai-agent/providers/Microsoft.ManagedIdentity/userAssignedIdentities/oneuptime-ai-agent-write",
+    );
+    // Running it somewhere else: the image in Azure, over those variables...
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere"),
+    ).toHaveText(
+      `Deploy the image ${AGENT_IMAGE} your own way in Azure, with these variables:`,
+    );
+    // ...and its two identities: one of its own that only reads, and the write identity attached.
+    const identities: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-elsewhere-identities",
+    );
+    await expect(
+      identities.locator("xpath=preceding-sibling::p[1]"),
+    ).toHaveText(ELSEWHERE_IDENTITIES);
+    await expect(identities.locator("li")).toHaveText([
+      "A managed identity of its own that only reads.",
+      "The write identity oneuptime-ai-agent-write, attached where the agent runs, which holds the permissions of the changes AI may make.",
+    ]);
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere-name"),
+    ).toHaveText([AGENT_IMAGE, "oneuptime-ai-agent-write"]);
+
+    await identities.scrollIntoViewIfNeeded();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-ai-setup-azure-elsewhere");
+  });
 });
 
 /*

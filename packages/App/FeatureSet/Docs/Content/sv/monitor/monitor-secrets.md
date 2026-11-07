@@ -32,9 +32,9 @@ Sonden som kör kontrollen tar emot värdet, så en monitor som använder en hem
 ### Lägg till en hemlighet
 
 :::steps
-1. Gå till **Monitorer → Inställningar → Hemligheter** och klicka på **Skapa Monitor Hemlighet**.
+1. Gå till **Monitorer → Inställningar → Hemligheter** och klicka på **Skapa Monitorhemlighet**.
 2. Ange ett **Namn** och **Värde för hemlighet**. Namnet är det du hänvisar till, till exempel `ApiKey`. Det får bara innehålla bokstäver, siffror, bindestreck (`-`) och understreck (`_`), och två hemligheter i ett projekt kan inte ha samma namn.
-3. Välj i steget **Åtkomst** vilka monitorer som får använda den (se nästa avsnitt) och klicka sedan på **Skapa Monitor Hemlighet**.
+3. Välj i steget **Åtkomst** vilka monitorer som får använda den (se nästa avsnitt) och klicka sedan på **Skapa Monitorhemlighet**.
 :::
 
 > [!IMPORTANT]

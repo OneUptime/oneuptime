@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import useFacetSidebarWidth, {
@@ -390,9 +391,8 @@ describe("the same person's page in another tab", () => {
   });
 
   test("a sidebar no longer drawn stops listening", () => {
-    const removeListener: jest.SpiedFunction<
-      typeof window.removeEventListener
-    > = jest.spyOn(window, "removeEventListener");
+    const removeListener: SpyInstance<Window["removeEventListener"]> =
+      jest.spyOn(window, "removeEventListener");
 
     render(<Reader name="a" />);
     cleanup();

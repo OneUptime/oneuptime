@@ -32,9 +32,9 @@ A sonda que executa a verificação recebe o valor, então um monitor que usa um
 ### Adicionar um segredo
 
 :::steps
-1. Vá em **Monitores → Configurações → Segredos** e clique em **Criar: Monitor Segredo**.
+1. Vá em **Monitores → Configurações → Segredos** e clique em **Criar: Segredo do monitor**.
 2. Digite um **Nome** e o **Valor do segredo**. O nome é o que você referencia, por exemplo `ApiKey`. Ele só pode conter letras, números, hifens (`-`) e sublinhados (`_`), e dois segredos de um mesmo projeto não podem ter o mesmo.
-3. No passo **Acesso**, escolha quais monitores podem usá-lo (veja a próxima seção) e clique em **Criar: Monitor Segredo**.
+3. No passo **Acesso**, escolha quais monitores podem usá-lo (veja a próxima seção) e clique em **Criar: Segredo do monitor**.
 :::
 
 > [!IMPORTANT]

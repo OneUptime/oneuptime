@@ -77,7 +77,7 @@ Elke voorwaarde vergelijkt één eigenschap van het incident, de waarschuwing of
 | Criterium | Wat het controleert |
 | --- | --- |
 | **Monitoren** | De monitoren die het incident of het geplande onderhoudsevenement raakt, of de monitor die de waarschuwing gaf. |
-| **Incident Ernsten** / **Waarschuwing Ernsten** | De ernst van het incident of de waarschuwing. Geplande onderhoudsevenementen hebben geen ernst, dus hun regels bieden die niet aan. |
+| **Ernstniveaus van incidenten** / **Ernstniveaus van waarschuwingen** | De ernst van het incident of de waarschuwing. Geplande onderhoudsevenementen hebben geen ernst, dus hun regels bieden die niet aan. |
 | **Incident-labels** / **Waarschuwingslabels** / **Gebeurtenislabels** | De labels van het incident, de waarschuwing of het evenement zelf, inclusief de labels die labelregels bij het aanmaken toevoegden. |
 | **Monitorlabels** | De labels van de monitoren. Geef uw monitoren het label `production` of `staging` om een runbook voor één omgeving uit te voeren. |
 | **Incidenttitel** / **Waarschuwingstitel** / **Gebeurtenistitel** | De titel. |
@@ -98,7 +98,7 @@ Kies bij twee of meer voorwaarden **Voldoet aan alle** (elke voorwaarde moet waa
 - Monitorvoorwaarden worden per monitor gecontroleerd. Met **Voldoet aan alle** hebben "**Monitornaam** bevat `api`" en "**Monitorlabels** heeft een van _Production_" één monitor nodig die aan beide voldoet, niet één monitor per voorwaarde.
 - Runbook-regels lopen na de labelregels, dus een label dat een labelregel aan een nieuw incident, een nieuwe waarschuwing of een nieuw evenement hangt, kan een runbook starten.
 - Een incident of waarschuwing dat al opgelost wordt aangemaakt, start geen runbook: het was voorbij voordat het werd vastgelegd. Zie [Al bevestigd of opgelost gemeld](/docs/incidents/declaring-incidents#al-bevestigd-of-opgelost-gemeld).
-- Een voorwaarde op de ernst van een ander product — **Waarschuwing Ernsten** in een incidentregel, bijvoorbeeld — kan nooit waar zijn, dus de API weigert die op te slaan.
+- Een voorwaarde op de ernst van een ander product — **Ernstniveaus van waarschuwingen** in een incidentregel, bijvoorbeeld — kan nooit waar zijn, dus de API weigert die op te slaan.
 - Regels worden één keer geëvalueerd, wanneer het evenement ontstaat. De titel, ernst of labels van een incident later bewerken, laat de regels niet opnieuw afgaan.
 
 ## Voorbeelden
@@ -165,7 +165,7 @@ Regels zien het evenement zoals het werd aangemaakt, met de labels die labelrege
 :::
 
 :::details De API weigert een regel met "can only be used by"
-Een ernstcriterium hoort bij één product. **Waarschuwing Ernsten** in een incidentregel, of **Incident Ernsten** in een waarschuwingsregel, zou nooit kunnen matchen, dus de regel wordt geweigerd met een melding als "Alert Severities can only be used by alert runbook rules." Verwijder die voorwaarde. Het dashboard biedt alleen de eigen criteria van elk product aan.
+Een ernstcriterium hoort bij één product. **Ernstniveaus van waarschuwingen** in een incidentregel, of **Ernstniveaus van incidenten** in een waarschuwingsregel, zou nooit kunnen matchen, dus de regel wordt geweigerd met een melding als "Alert Severities can only be used by alert runbook rules." Verwijder die voorwaarde. Het dashboard biedt alleen de eigen criteria van elk product aan.
 :::
 
 ## Volgende stappen

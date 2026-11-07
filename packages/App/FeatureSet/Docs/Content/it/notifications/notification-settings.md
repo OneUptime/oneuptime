@@ -34,7 +34,7 @@ Andate in **Impostazioni utente → Impostazioni notifiche**. Le schede sono **I
 
 ### Trovate l'evento
 
-Ogni scheda contiene uno o più riquadri, come **Incidente Episodi** nella scheda **Incidenti**. Ogni riga è un evento, con una frase che dice quando viene inviato.
+Ogni scheda contiene uno o più riquadri, come **Episodi di incidenti** nella scheda **Incidenti**. Ogni riga è un evento, con una frase che dice quando viene inviato.
 
 ### Fate clic su un canale
 

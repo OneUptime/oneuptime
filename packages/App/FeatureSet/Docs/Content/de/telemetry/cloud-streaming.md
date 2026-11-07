@@ -68,6 +68,7 @@ Der Dialog fragt alle paar Sekunden, was angekommen ist. Firehose stellt innerha
 | --- | --- |
 | **Jede Metrik, nicht nur die Schlüsselmetriken** | Streamt jede Metrik, die CloudWatch für das Konto hat, auch Ihre eigenen. AWS berechnet jede Metrikaktualisierung, die ein Stream sendet, daher kann es ein Vielfaches kosten |
 | **Regionen** | Woher gestreamt wird: zunächst die Regionen, in denen die Verbindung Ressourcen gefunden hat. Leer gelassen, streamt der Befehl aus der eigenen Region von AWS CloudShell. Höchstens 30 |
+| **Jedes Konto der Organisation** | Für eine Verbindung, die eine AWS Organization liest: Der Befehl, im Verwaltungskonto ausgeführt, legt über ein StackSet dieselben Stacks auch in jedem Mitgliedskonto an, auch in später beitretenden Konten. Alle Protokollgruppen oder keine: Benannte Protokollgruppen gehören zu einem Konto |
 | **Auf andere Weise einrichten** | Die Endpunkte für Metriken und Protokolle und der Schlüssel, um die Streams mit Terraform oder der Konsole einzurichten |
 
 **Vorlage herunterladen** speichert die Vorlage, die der Befehl bereitstellt, um sie auf Ihre eigene Weise bereitzustellen.
@@ -133,6 +134,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+Führen Sie bei einer Verbindung, die eine AWS Organization liest, den Befehl des Dialogs im Verwaltungskonto aus: Wurde die Organisation gestreamt, löscht er auch die Stacks jedes Mitgliedskontos und das StackSet.
 :::
 
 Um zu ändern, was ein Stack streamt, öffnen Sie erneut **Metriken und Protokolle streamen**, wählen Sie **Neuen Schlüssel erstellen** und führen Sie den neuen Befehl aus. Der Schlüssel, den er ersetzt, funktioniert noch 24 Stunden, sodass keine Zustellung abgelehnt wird, während die Stacks aktualisiert werden. Höchstens 3 ersetzte Schlüssel funktionieren gleichzeitig.

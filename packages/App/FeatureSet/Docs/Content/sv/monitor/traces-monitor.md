@@ -154,7 +154,7 @@ Med 30 misslyckade förfrågningar matchar regeln och incidenten deklareras. Nä
 ## Felsökning
 
 :::details Monitorn räknar inga spans för min slutpunkt
-**Spannamnet innehåller** jämförs med spanens namn, och instrumentering namnger ofta server-spans efter routen (`POST /api/checkout`) eller bara efter metoden (`GET`). Leta upp det exakta namnet i spårningsutforskaren. Öppna sedan monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Edit Monitoring Criteria**: **Matchande spans** visar vad filtren matchar just nu.
+**Spannamnet innehåller** jämförs med spanens namn, och instrumentering namnger ofta server-spans efter routen (`POST /api/checkout`) eller bara efter metoden (`GET`). Leta upp det exakta namnet i spårningsutforskaren. Öppna sedan monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Redigera övervakningskriterier**: **Matchande spans** visar vad filtren matchar just nu.
 :::
 
 :::details Lyckade förfrågningar räknas inte när jag filtrerar på Ok

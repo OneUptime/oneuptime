@@ -168,6 +168,8 @@ const AI_FEATURES_COLUMNS: Array<string> = [
   "aiContext",
   "aiDailyTokenLimit",
   "aiDailySpendLimitInUSD",
+  // Fix approvals, under More settings (#6148's follow-up).
+  "requireTwoApprovalsForRiskierFixes",
 ];
 
 let project: Project;
@@ -586,7 +588,7 @@ describe("AI Features page", () => {
     expectNoRetiredSwitch(document.body);
   });
 
-  test("reads the project it is on: Enable AI, the AI context and the daily AI limits, nothing else", async () => {
+  test("reads the project it is on: Enable AI, the AI context, the daily AI limits and fix approvals, nothing else", async () => {
     openAiFeatures();
     await enableAiSwitch();
 
@@ -603,8 +605,15 @@ describe("AI Features page", () => {
       { timeout: WAIT_TIMEOUT },
     );
 
-    // Enable AI's switch reads its own column, and the AI context card its own.
-    for (const column of ["enableAi", "aiContext"]) {
+    /*
+     * Enable AI's switch reads its own column, the AI context card its own,
+     * and Fix approvals' switch whether two people approve a riskier fix.
+     */
+    for (const column of [
+      "enableAi",
+      "aiContext",
+      "requireTwoApprovalsForRiskierFixes",
+    ]) {
       await waitFor(
         () => {
           expect(

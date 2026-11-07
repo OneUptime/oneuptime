@@ -41,12 +41,12 @@ Skærmen er delt i to:
 
 | Del | Hvad den indeholder |
 | ---- | ------------- |
-| **Gruppenavigator** (til venstre) | Alle sidens grupper som et træ, med feltet **Search groups...** over og en optælling under, såsom `3 groups · 12 resources`. En lang liste slutter med knappen **Show N more of M**. |
+| **Gruppenavigator** (til venstre) | Alle sidens grupper som et træ, med feltet **Søg i grupper...** over og en optælling under, såsom `3 groups · 12 resources`. En lang liste slutter med knappen **Show N more of M**. |
 | **Øverst på siden** | Navigatorens første række: ressourcer uden gruppe, som besøgende ser først, over alle grupper. På en side uden grupper hedder det højre panel i stedet **Alle ressourcer**. |
-| **Ressourcepanel** (til højre) | Den valgte gruppes ressourcer. Dets overskrift indeholder **Edit Group**, den primære knap **Tilføj monitor** og menuen **Flere handlinger**. |
-| Kortets overskrift | **New Group** og en menu med tre prikker med **Import groups from CSV** og **Opdater**. |
+| **Ressourcepanel** (til højre) | Den valgte gruppes ressourcer. Dets overskrift indeholder **Rediger gruppe**, den primære knap **Tilføj monitor** og menuen **Flere handlinger**. |
+| Kortets overskrift | **Ny gruppe** og en menu med tre prikker med **Importér grupper fra CSV** og **Opdater**. |
 
-**Tomme tilstande fortæller dig, hvad du skal gøre.** En tom gruppe viser **No monitors here yet** med **Tilføj monitor**, **Add Multiple** og, kun så længe siden slet ingen grupper har, **Create a Group**. En søgning uden resultater viser **Ingen ressourcer matcher din søgning**.
+**Tomme tilstande fortæller dig, hvad du skal gøre.** En tom gruppe viser **Ingen monitorer her endnu** med **Tilføj monitor**, **Tilføj flere** og, kun så længe siden slet ingen grupper har, **Opret en gruppe**. En søgning uden resultater viser **Ingen ressourcer matcher din søgning**.
 
 ## Tilføj en monitor
 
@@ -75,11 +75,11 @@ Klik på **Tilføj monitor**. Rækken vises i gruppen og på statussiden.
 I en gittergruppe beder dialogen også om den række og kolonne, monitoren skal stå i, over **Flere felter**; se [Listelayout eller gitterlayout](#listelayout-eller-gitterlayout).
 
 > [!TIP]
-> For at vise flere tjek som én række tilføjer du en [monitorgruppe](/docs/monitor/monitor-groups). Med kontakten **Monitorgrupper** slået til (**Projektindstillinger** > **Avanceret** > **Funktionsflag**, som gemmes, så snart du slår den om) står der et link under rullelisten: **Add a Monitor Group instead.** Klik på det, og **Overvågning** bliver til **Monitor Gruppe** (**Vælg overvågningsgruppe**); **Add a Monitor instead.** skifter tilbage.
+> For at vise flere tjek som én række tilføjer du en [monitorgruppe](/docs/monitor/monitor-groups). Med kontakten **Monitorgrupper** slået til (**Projektindstillinger** > **Avanceret** > **Funktionsflag**, som gemmes, så snart du slår den om) står der et link under rullelisten: **Tilføj en monitorgruppe i stedet.** Klik på det, og **Overvågning** bliver til **Monitorgruppe** (**Vælg overvågningsgruppe**); **Tilføj en monitor i stedet.** skifter tilbage.
 
 ### Tilføj flere på én gang
 
-**Add Multiple** (også **Add multiple monitors** i menuen **Flere handlinger**) åbner **Add Multiple Monitors**. Den er også én side: en flervalgsliste **Monitorer**, derefter de samme sammenfoldede **Flere felter**, hvis visningsindstillinger gælder for hver monitor, du vælger. Hver ressource får sit visningsnavn og sin beskrivelse fra sin monitor, og **Tilføj monitorer** tilføjer dem alle. Det er den hurtigste måde at fylde en ny side på.
+**Tilføj flere** (også **Tilføj flere monitorer** i menuen **Flere handlinger**) åbner **Tilføj flere monitorer**. Den er også én side: en flervalgsliste **Monitorer**, derefter de samme sammenfoldede **Flere felter**, hvis visningsindstillinger gælder for hver monitor, du vælger. Hver ressource får sit visningsnavn og sin beskrivelse fra sin monitor, og **Tilføj monitorer** tilføjer dem alle. Det er den hurtigste måde at fylde en ny side på.
 
 Flervalgslisten har fanen **Etiketter**: klik på en etiket, og alle monitorer med den vælges på én gang.
 
@@ -124,7 +124,7 @@ De fleste grupper behøver kun et navn.
 :::steps
 ### Klik på New Group
 
-**Create New Status Page Group** åbner: to felter og derefter to sammenfoldede sektioner.
+**Opret ny gruppe på statusside** åbner: to felter og derefter to sammenfoldede sektioner.
 
 ### Navngiv gruppen
 
@@ -132,14 +132,14 @@ Skriv **Gruppenavn**: den sektionsoverskrift, besøgende ser.
 
 ### Indlejr den, hvis den hører til i en anden gruppe
 
-Vælg en **Parent Group**, eller lad den stå på **No parent group (top level)**. **Add a sub group** i en gruppes menuer udfylder dette for dig.
+Vælg en **Overordnet gruppe**, eller lad den stå på **Ingen overordnet gruppe (øverste niveau)**. **Tilføj en undergruppe** i en gruppes menuer udfylder dette for dig.
 
 ### Opret gruppen
 
-Klik på **Create Status Page Group**. Gruppen vises i navigatoren, klar til monitorer.
+Klik på **Opret gruppe på statusside**. Gruppen vises i navigatoren, klar til monitorer.
 :::
 
-De to felter er **Gruppenavn** (`name`) og **Parent Group** (`parentStatusPageGroupId`). De to sammenfoldede sektioner indeholder resten:
+De to felter er **Gruppenavn** (`name`) og **Overordnet gruppe** (`parentStatusPageGroupId`). De to sammenfoldede sektioner indeholder resten:
 
 - **Layout**: dens sammenfoldede overskrift siger **Liste** eller **Gitter**. Den indeholder **Visningstilstand** og et gitters akser (se [Listelayout eller gitterlayout](#listelayout-eller-gitterlayout)), og den åbner af sig selv på en gittergruppe.
 - **Flere felter**: gruppeniveauets udgaver af ressourceindstillingerne:
@@ -148,22 +148,22 @@ De to felter er **Gruppenavn** (`name`) og **Parent Group** (`parentStatusPageGr
   - **Vis aktuel gruppestatus** (`showCurrentStatus`): til som standard. Viser en status ved siden af gruppeoverskriften.
   - **Vis oppetid %** (`showUptimePercent`): fra som standard, med **Vælg oppetidspræcision**, når den er slået til.
 
-For at ændre en gruppe bruger du **Edit Group** i panelets overskrift eller **Edit group** i navigatorens rækkemenu: **Edit Status Page Group** åbner med knappen **Gem ændringer**. Panelets overskrift viser mærker for de indstillinger, der er slået til (**Gitter**, **Collapsed by default**, **Uptime %**), så du kan se, hvordan en gruppe er sat op, uden at åbne formularen.
+For at ændre en gruppe bruger du **Rediger gruppe** i panelets overskrift eller **Edit group** i navigatorens rækkemenu: **Rediger gruppe på statusside** åbner med knappen **Gem ændringer**. Panelets overskrift viser mærker for de indstillinger, der er slået til (**Gitter**, **Skjult som standard**, **Oppetid %**), så du kan se, hvordan en gruppe er sat op, uden at åbne formularen.
 
 ### Administrer en gruppe
 
 | Hvor | Handlinger |
 | ----- | ------- |
 | Navigatorens rækkemenu | **Edit group**, **Flyt op**, **Flyt ned**, **Vis ID**, **Delete group** |
-| Panelets menu **Flere handlinger** | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Opdater**, **Delete this group** |
+| Panelets menu **Flere handlinger** | **Rediger denne gruppe**, **Tilføj en undergruppe**, **Flyt gruppen op**, **Flyt gruppen ned**, **Vis gruppe-ID**, **Opdater**, **Slet denne gruppe** |
 
-En gruppe, der er gemt uden navn, vises som **Untitled group**, et godt tegn på, at du ville skrive noget.
+En gruppe, der er gemt uden navn, vises som **Gruppe uden titel**, et godt tegn på, at du ville skrive noget.
 
 ## Indlejring af grupper
 
-Grupper kan indlejres: angiv **Parent Group** på undergruppen, eller brug **Add a sub group inside this group** i navigatoren. Formularens hjælpetekst beskriver den form, den er bygget til (noget i retning af Forretningsenheder › Region › Marked), og hvert niveau viser den samlede status og oppetid for alt under det.
+Grupper kan indlejres: angiv **Overordnet gruppe** på undergruppen, eller brug **Add a sub group inside this group** i navigatoren. Formularens hjælpetekst beskriver den form, den er bygget til (noget i retning af Forretningsenheder › Region › Marked), og hvert niveau viser den samlede status og oppetid for alt under det.
 
-Når en gruppe har undergrupper, viser ressourcepanelet en række mærker **Sub groups**, der linker direkte til hver undergruppe, så du kan gå gennem hierarkiet uden at vende tilbage til navigatoren.
+Når en gruppe har undergrupper, viser ressourcepanelet en række mærker **Undergrupper**, der linker direkte til hver undergruppe, så du kan gå gennem hierarkiet uden at vende tilbage til navigatoren.
 
 Indlejring betaler sig på store sider: en hostingudbyder med regioner inde i produkter eller en detailhandel med markeder inde i forretningsenheder. På en side med tolv monitorer er ét fladt niveau venligere.
 
@@ -188,7 +188,7 @@ Vælg **Gitter**, og der vises fire felter mere:
 Hver monitor i en gittergruppe står i en celle, så **Tilføj monitor** og dialogen til flere beder om rækken og kolonnen sammen med monitoren og bruger dine egne aksenavne.
 
 > [!IMPORTANT]
-> Opsæt akserne, før du tilføjer monitorer. En gittergruppe uden rækker eller kolonner viser en besked om, at der endnu ikke er noget sted at sætte en monitor, med knappen **Set up the grid**, der åbner gruppens formular på sektionen **Layout**, og gruppens knap **Tilføj monitor** er væk, indtil du har gjort det.
+> Opsæt akserne, før du tilføjer monitorer. En gittergruppe uden rækker eller kolonner viser en besked om, at der endnu ikke er noget sted at sætte en monitor, med knappen **Opsæt gitteret**, der åbner gruppens formular på sektionen **Layout**, og gruppens knap **Tilføj monitor** er væk, indtil du har gjort det.
 
 ## Rækkefølgen af det, besøgende ser
 
@@ -196,8 +196,8 @@ Rækkefølgen bestemmer du selv, ikke alfabetet:
 
 | Hvad | Sådan ændrer du rækkefølgen |
 | ---- | ----------------- |
-| Ressourcer i en gruppe | Træk en række. Panelet siger det: **Drag a row to change the order visitors see**. |
-| Grupper i forhold til hinanden | **Flyt op** / **Flyt ned** i navigatorens rækkemenu eller **Move group up** / **Move group down** i **Flere handlinger**. |
+| Ressourcer i en gruppe | Træk en række. Panelet siger det: **Træk en række for at ændre den rækkefølge, besøgende ser**. |
+| Grupper i forhold til hinanden | **Flyt op** / **Flyt ned** i navigatorens rækkemenu eller **Flyt gruppen op** / **Flyt gruppen ned** i **Flere handlinger**. |
 | Ressourcer uden gruppe | De står i **Øverst på siden** og vises altid over alle grupper, så sæt det, som alle tjekker først, dér. |
 
 **To tilfælde, hvor træk er slået fra.** En søgning i feltet **Search in {group}...** slår omrokering fra (panelet siger `N of M shown · drag to reorder is off while filtering`), så ryd søgningen først. Og gittergrupper omrokeres aldrig ved at trække, fordi en monitors plads kommer fra dens række og kolonne.
@@ -230,12 +230,12 @@ Derefter kører en regel igen for en monitor, hver gang en oprettes, eller når 
 
 ## Import af grupper fra CSV
 
-Det er besværligt at bygge et dybt hierarki i hånden. **Import groups from CSV** i kortoverskriftens menu med tre prikker åbner dialogen **Import Groups from CSV**.
+Det er besværligt at bygge et dybt hierarki i hånden. **Importér grupper fra CSV** i kortoverskriftens menu med tre prikker åbner dialogen **Importér grupper fra CSV**.
 
 :::steps
 ### Download skabelonen
 
-Klik på **Download CSV Template** for at hente `status-page-groups-template.csv`.
+Klik på **Hent CSV-skabelon** for at hente `status-page-groups-template.csv`.
 
 ### Udfyld den
 
@@ -243,11 +243,11 @@ Klik på **Download CSV Template** for at hente `status-page-groups-template.csv
 
 ### Upload, og se forhåndsvisningen
 
-Klik på **Choose CSV File**, vælg din fil, og derefter **Preview Import** for at tjekke, hvad der bliver oprettet, før noget skrives.
+Klik på **Vælg CSV-fil**, vælg din fil, og derefter **Vis importen** for at tjekke, hvad der bliver oprettet, før noget skrives.
 
 ### Importér
 
-Kør importen. Tabellen **Import results** viser hver række som **Oprettet**, **Mislykkedes** eller **Sprunget over** med årsagen, så en forkert række aldrig forsvinder i stilhed.
+Kør importen. Tabellen **Importresultater** viser hver række som **Oprettet**, **Mislykkedes** eller **Sprunget over** med årsagen, så en forkert række aldrig forsvinder i stilhed.
 :::
 
 | Kolonne | Hvad den angiver |
@@ -265,7 +265,7 @@ Kør importen. Tabellen **Import results** viser hver række som **Oprettet**, *
 | `columnAxisLabel` | Kolonnedimensionens navn for en gittergruppe. |
 | `columnAxisValues` | Kolonneværdierne for en gittergruppe. |
 
-Importen opretter grupper, ikke ressourcer: tilføj monitorer bagefter med **Tilføj monitor**, **Add Multiple** eller en monitorregel.
+Importen opretter grupper, ikke ressourcer: tilføj monitorer bagefter med **Tilføj monitor**, **Tilføj flere** eller en monitorregel.
 
 ## Fejlfinding
 
@@ -278,7 +278,7 @@ Tjek, om monitoren er arkiveret: en arkiveret monitors række udelades, indtil d
 :::
 
 :::details Der er ingen knap Tilføj monitor i en gittergruppe
-Gitteret har endnu ingen rækker eller kolonner. Klik på **Set up the grid**, tilføj akseværdierne i sektionen **Layout**, og **Tilføj monitor** kommer tilbage.
+Gitteret har endnu ingen rækker eller kolonner. Klik på **Opsæt gitteret**, tilføj akseværdierne i sektionen **Layout**, og **Tilføj monitor** kommer tilbage.
 :::
 
 :::details Jeg kan ikke trække rækker

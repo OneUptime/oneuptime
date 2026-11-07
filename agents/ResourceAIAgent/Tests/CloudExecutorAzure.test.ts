@@ -240,6 +240,8 @@ describe("Azure: whoami", () => {
       "Cloud: Azure",
       `Subscription: ${SUB} (Shop production), Enabled`,
       `Signed in as: ${IDENTITY}`,
+      // An agent set up before its write identity changes as itself.
+      "Write identity: none (ONEUPTIME_AI_AZURE_WRITE_IDENTITY is not set): changes use the agent's own identity, with whatever it allows",
       "Changes: allowed (ONEUPTIME_AI_ALLOW_WRITES=true)",
       "Enabled changes: restart-service, start-instance, scale-out, scale-in, reboot-instance, roll-back-service, fail-over-database, stop-instance (every change of the catalog: ONEUPTIME_AI_CLOUD_OPERATIONS is not set)",
       "Required tag: none (ONEUPTIME_AI_CLOUD_REQUIRED_TAG is not set)",

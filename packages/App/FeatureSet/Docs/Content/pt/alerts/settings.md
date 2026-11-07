@@ -58,7 +58,7 @@ As regras diferem na forma como várias correspondências são resolvidas:
 - **Regras de agrupamento**, **Regras de incidentes** e **Regras de lembrete** são verificadas de cima para baixo na lista, e a primeira correspondência vence. Arraste uma regra para mudar sua posição; uma regra nova vai para o fim.
 - **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de privacidade** e **Regras de runbook** atuam todas quando correspondem. Políticas de plantão, proprietários e rótulos que várias regras adicionam são adicionados uma única vez.
 
-**Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm duas abas: **Alert Rules**, para alertas, e **Episode Rules**, que atuam da mesma forma sobre cada novo episódio de alerta. Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição para pausá-la, e a lista mostra um **Habilitado** verde ou um **Desabilitado** vermelho para cada regra.
+**Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm duas abas: **Regras de alertas**, para alertas, e **Regras de episódios**, que atuam da mesma forma sobre cada novo episódio de alerta. Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição para pausá-la, e a lista mostra um **Habilitado** verde ou um **Desabilitado** vermelho para cada regra.
 
 A maioria das regras atua sobre alertas e episódios criados depois que você as salva. Para aplicar uma regra de proprietário, de rótulos ou de privacidade aos que você já tem, use **Executar agora**: veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now). As regras de lembrete são a exceção: salvar uma faz todos os alertas abertos corresponderem novamente.
 
@@ -68,7 +68,7 @@ As condições de uma regra decidem sobre quais alertas ela atua, e se leem como
 
 | Condição                                                      | Compara com                                                                                                    |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Monitores**, **Alerta Severidades**, **Rótulos de alerta**, **Rótulos do Monitor** | **Tem algum de**, **Tem todos os** ou **Não tem nenhum de** os valores que você escolher.         |
+| **Monitores**, **Severidades dos alertas**, **Rótulos de alerta**, **Rótulos do Monitor** | **Tem algum de**, **Tem todos os** ou **Não tem nenhum de** os valores que você escolher.         |
 | **Título do alerta**, **Descrição do alerta**, **Nome do Monitor**, **Descrição do Monitor** | **Contém**, **Não contém**, **Igual a**, **Diferente de**, **Começa com**, **Termina com**, sem diferenciar maiúsculas, ou **Corresponde ao padrão** e **Não corresponde ao padrão**, para uma expressão regular ou um curinga `*`. |
 
 Com duas ou mais condições, escolha **Corresponder a todas**, em que todas precisam valer, ou **Corresponder a qualquer**, em que uma basta. As regras de episódio correspondem, em vez disso, à gravidade, aos rótulos, ao título e à descrição de um episódio.
@@ -87,7 +87,7 @@ Clique em **Criar: Alert On-Call Rule**. Em **Corresponder**, **Todos os alertas
 Em **Políticas de plantão**, escolha as **Políticas de plantão** que a regra aciona. O **Nome** dela as acompanha, como "Acionar Platform on-call", até você digitar um próprio, e uma **Descrição** fica em **Mais campos**. Depois crie a regra.
 :::
 
-Uma gravidade sozinha não aciona ninguém: uma regra de plantão que corresponde a **Alerta Severidades** é a forma de configurar "acionar a equipe de banco de dados para cada alerta High". Para ver o que foi executado para um alerta, abra a página **Execuções de plantão** dele. Cada pessoa é então contatada do jeito que configurou em **Configurações do usuário → Regras de Plantão**, na aba **Alertas**; veja [Regras de escalonamento](/docs/on-call/escalation-rules).
+Uma gravidade sozinha não aciona ninguém: uma regra de plantão que corresponde a **Severidades dos alertas** é a forma de configurar "acionar a equipe de banco de dados para cada alerta High". Para ver o que foi executado para um alerta, abra a página **Execuções de plantão** dele. Cada pessoa é então contatada do jeito que configurou em **Configurações do usuário → Regras de Plantão**, na aba **Alertas**; veja [Regras de escalonamento](/docs/on-call/escalation-rules).
 
 Uma regra aciona assim que um alerta corresponde a ela. Para que ela aguarde o horário comercial, responda **Quando esta regra deve acionar?** em **Mais campos** com **Somente em horário comercial**. O **Horário comercial** começa de segunda a sexta, das 09:00 às 17:00, no seu próprio fuso horário: escolha outros dias, outra **Hora de início** ou **Horário de término**, ou outro **Fuso horário**, e uma frase abaixo da opção diz o que vai acontecer. Na lista, a regra mostra o horário abaixo do nome. Um alerta que corresponde fora desse horário recebe uma execução que aguarda e não aciona ninguém; quando o horário começa, a política aciona sua primeira regra de escalonamento e escala como de costume. Se o alerta for confirmado ou resolvido antes, ninguém é acionado. Se o alerta mudar enquanto aguarda e passar a corresponder a uma regra que aciona imediatamente, por exemplo porque sua gravidade foi elevada, a execução começa a acionar na hora, e o feed do alerta diz por quê. Duas regras que acionam a mesma política a acionam assim que qualquer uma delas permitir: uma regra para as gravidades mais altas que aciona imediatamente, ao lado de uma regra para o resto que aguarda o horário comercial, mantém as noites tranquilas.
 
@@ -132,7 +132,7 @@ As **Regras de runbook** iniciam um runbook quando um novo alerta corresponde, a
 :::steps
 ### Escolher sobre quais alertas lembrar
 
-Clique em **Criar: Alert Reminder Rule**. Em **Corresponder**, deixe **Todos os alertas** selecionado para lembrar sobre todo alerta, ou escolha **Somente os alertas que atendem às condições** e depois as **Alerta Severidades** e os **Rótulos** aos quais ela se aplica.
+Clique em **Criar: Alert Reminder Rule**. Em **Corresponder**, deixe **Todos os alertas** selecionado para lembrar sobre todo alerta, ou escolha **Somente os alertas que atendem às condições** e depois as **Severidades dos alertas** e os **Rótulos** aos quais ela se aplica.
 
 ### Definir o intervalo
 
@@ -145,7 +145,7 @@ Os proprietários recebem cada lembrete como **Lembrete de alerta**, que fica at
 
 ### Modelos de notas
 
-**Alertas → Configurações → Modelos de notas** contém textos prontos para notas privadas. O cartão **Modelos de nota privada para alertas** os lista; **Criar: Alerta Nota Modelo** pede um **Nome do modelo**, uma **Descrição do modelo** e a **Nota**. Um modelo é oferecido quando alguém escreve uma nota privada em um alerta ou episódio, e quando confirma ou resolve um, e seu texto pode ser editado antes de ser publicado. Os modelos de notas de alerta são texto simples: ao contrário dos modelos de notas de incidente, eles não preenchem variáveis.
+**Alertas → Configurações → Modelos de notas** contém textos prontos para notas privadas. O cartão **Modelos de nota privada para alertas** os lista; **Criar: Modelo de nota de alerta** pede um **Nome do modelo**, uma **Descrição do modelo** e a **Nota**. Um modelo é oferecido quando alguém escreve uma nota privada em um alerta ou episódio, e quando confirma ou resolve um, e seu texto pode ser editado antes de ser publicado. Os modelos de notas de alerta são texto simples: ao contrário dos modelos de notas de incidente, eles não preenchem variáveis.
 
 ### Campos personalizados
 
@@ -172,7 +172,7 @@ O cartão **Próximo número** abaixo define o número que o próximo alerta e o
 
 ## Workflows
 
-Cada modelo de alerta tem gatilhos e ações de workflow com o seu nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, o mesmo para **Alerta Episódio**, **Alerta Estado Linha do tempo** e os demais, e ações como **Create One Alert** e **Update One Alert**. As definições de campos personalizados de alerta são a única exceção: elas não têm gatilhos de workflow. Veja [Visão geral dos workflows](/docs/workflows/index).
+Cada modelo de alerta tem gatilhos e ações de workflow com o seu nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, o mesmo para **Episódio de alertas**, **Linha do tempo de estado do alerta** e os demais, e ações como **Create One Alert** e **Update One Alert**. As definições de campos personalizados de alerta são a única exceção: elas não têm gatilhos de workflow. Veja [Visão geral dos workflows](/docs/workflows/index).
 
 ## Quem pode alterar isso
 

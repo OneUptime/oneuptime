@@ -97,7 +97,7 @@ I det øjeblik en advarsel oprettes, gennemgår OneUptime disse trin i denne ræ
 
 1. **Den får et nummer og en tilstand.** Advarselsnummeret kommer fra en tæller pr. projekt og vises med dit præfiks (`ALT-42`). Advarslen starter i din oprettelsestilstand, medmindre formularen, API'et, et workflow eller Spørg AI valgte en anden.
 2. **Privatlivsregler kører først**, så alt efter dem ved, om advarslen er privat.
-3. **Feedet og dine chatværktøjer hører om den.** En post **Advarsel oprettet** skrives i **Advarsel Feed**, og de kanaler, dine Slack- og Microsoft Teams-regler nævner, får besked; en regel kan oprette en kanal til advarslen.
+3. **Feedet og dine chatværktøjer hører om den.** En post **Advarsel oprettet** skrives i **Advarselsfeed**, og de kanaler, dine Slack- og Microsoft Teams-regler nævner, får besked; en regel kan oprette en kanal til advarslen.
 4. **Ejere og etiketter tilføjes**: dem, monitorens kriterier eller forespørgslen nævner, derefter dem fra matchende ejer- og etiketregler.
 5. **Vagtregler tilføjer deres politikker**, derefter starter runbook-regler de runbooks, der matcher.
 6. **Vagtpolitikker kører.** Hver politik på advarslen tilkalder sine personer parallelt; at én fejler, stopper ikke de andre. Derefter erklærer den første matchende hændelsesregel en hændelse ud fra advarslen, med det samme eller når dens ventetid er gået.
@@ -126,7 +126,7 @@ Dens regler, dens ejere, dens feed og dens første tilstand sker stadig i begge 
 
 Et skift til en anden tilstand beder dig bekræfte, med en valgfri privat note foldet sammen under **Tilføj en privat note**. Hvad hver tilstand gør, står på [Advarselstilstande og alvorsgrader](/docs/alerts/states-and-severities).
 
-Mens du arbejder med den, skriver du det, du lærer, ned som **Private noter**, udfylder dens sider **Grundårsag** og **Afhjælpning** og tilføjer **Ejere**. Menuen **Handlinger** i **Advarsel Feed** kører også en runbook med **Execute Runbook** eller tilkalder flere personer med **Udfør vagtpolitik**.
+Mens du arbejder med den, skriver du det, du lærer, ned som **Private noter**, udfylder dens sider **Grundårsag** og **Afhjælpning** og tilføjer **Ejere**. Menuen **Handlinger** i **Advarselsfeed** kører også en runbook med **Kør runbook** eller tilkalder flere personer med **Udfør vagtpolitik**.
 
 ## Hvad hver side af en advarsel viser
 
@@ -142,7 +142,7 @@ Mens du arbejder med den, skriver du det, du lærer, ned som **Private noter**, 
 
 **Oversigt**, **Undersøgelse**, **Team** og **Noter** er åbne; de andre sektioner er foldet sammen, indtil du klikker på dem.
 
-- **Oversigt** — hovedet nævner advarslens **Ejere**, teams først, ved siden af dens monitor og episode. Feltet **Oprettet** viser, hvornår og af hvad den blev oprettet, to andre, hvor lang tid det tog at bekræfte og løse advarslen; hvor længe den har varet, står først i hovedet. Kortet **Hvad der skete** står øverst på siden — advarslens beskrivelse og dens **Grundårsag** — derefter kortet **OneUptime AI** med **Spørg OneUptime AI** nederst, og **Advarsel Feed** registrerer alt, hvad der skete med advarslen. Ved siden af dem står kortet **Berørte ressourcer**, kortet **Advarselsdetaljer** og advarslens målinger.
+- **Oversigt** — hovedet nævner advarslens **Ejere**, teams først, ved siden af dens monitor og episode. Feltet **Oprettet** viser, hvornår og af hvad den blev oprettet, to andre, hvor lang tid det tog at bekræfte og løse advarslen; hvor længe den har varet, står først i hovedet. Kortet **Hvad der skete** står øverst på siden — advarslens beskrivelse og dens **Grundårsag** — derefter kortet **OneUptime AI** med **Spørg OneUptime AI** nederst, og **Advarselsfeed** registrerer alt, hvad der skete med advarslen. Ved siden af dem står kortet **Berørte ressourcer**, kortet **Advarselsdetaljer** og advarslens målinger.
 - **Tilstandstidslinje** — hver tilstand, advarslen har været i, hvornår og hvor længe. Se [Tilstandstidslinjen](/docs/alerts/states-and-severities#tilstandstidslinjen).
 - **Tilknyttede hændelser** — de hændelser, advarslen er en del af, med **Tilknyt hændelse** og **Erklær hændelse**.
 - **Indstillinger** — **Hvem kan se denne advarsel** med kontakten **Privat advarsel** og **Påmindelser** med **Send påmindelser**. Hver kontakt gemmer i det øjeblik, du slår den om.

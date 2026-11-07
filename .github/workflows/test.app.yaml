@@ -977,7 +977,12 @@ jobs:
           # streaming for each, the Logs tabs, dark German and Persian; about
           # 1.9 minutes on a runner): the suite 12.1, the group 23.3, so Host
           # Collectors (1.2) moved to group 3 and VMware Host Page (1.4) to
-          # group 14: 20.7.
+          # group 14: 20.7. Azure's write identity added 1 test the same day
+          # (a desktop's only, about 0.1): the suite 12.2, the group 20.8.
+          # What Azure published about its health, in German and in Persian,
+          # added 1 test to Cloud Connect the same day (4 runs on its desktop
+          # and phone, about 4 seconds each locally; about 0.3 minutes on a
+          # runner): the suite 12.5, the group 21.1.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
@@ -1203,6 +1208,8 @@ jobs:
           # Security Operations gained two tests on 2026-11-06 (#6025: the
           # Russian case queue's titles and assignees whole at a 1280 and a
           # 1216 laptop, about 6 seconds locally): 21.0.
+          # And one more the same day (#6158: a case's Story and Impact in
+          # German and in Persian, six pages, about 14 seconds locally): 21.3.
           - group: 11
             suites: >-
               test-security-operations-ui
@@ -1318,7 +1325,6 @@ jobs:
               test-llm-connect-ui
               test-bulk-actions-ui
               test-status-page-search-ui
-              test-reading-direction-ui
               test-accounts-theme-ui
               test-data-security-ui
           # Added on 2026-10-29, when group 3's run step reached its 28 minutes
@@ -1544,12 +1550,23 @@ jobs:
           # Host Pages (1.6) joined this one from group 15 the same day, when
           # Model Tables' second half and Metrics AI grew there: about 15.7
           # with Dashboard Templates.
+          # Reading Direction joined it from group 13, at the line (22.0), the
+          # same day, when fu-rtl-next gave it 13 tests (a calendar read right
+          # to left - its days' names in a narrow and a wide month and a
+          # phone's week, the current-time dot, the lines between days and the
+          # blocks' stripes - and a canvas's zoom buttons in three languages,
+          # about 40 seconds locally): its 4.4 minutes planned as 5.0, this
+          # group about 20.7 and group 13 about 17.6. Its UI review added 5
+          # more the same day (two blocks at once in a Persian and an English
+          # week, and a chart's time axis in three languages, about 18
+          # seconds locally): planned as 5.3, this group about 21.0.
           - group: 20
             openstack_pages_shard: 2/2
             suites: >-
               test-openstack-pages-ui
               test-dashboard-templates-ui
               test-host-pages-ui
+              test-reading-direction-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

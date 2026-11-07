@@ -46,6 +46,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * THE READINESS WARNING, ON THE PAGE RATHER THAN IN THE MODAL.
@@ -1152,7 +1153,7 @@ export const describeResponderVia: (via: Array<ResponderVia>) => string = (
 
   return translateTemplate("Reached {{routes}}.", {
     routes: translateTemplate("{{items}} and {{last}}", {
-      items: parts.slice(0, -1).join(", "),
+      items: joinList(parts.slice(0, -1)),
       last: parts[parts.length - 1]!,
     }),
   });
@@ -1374,13 +1375,13 @@ const getMethodSummary: (
   return (
     <p className="mt-1.5 text-xs text-gray-500">
       {translator.translateTemplate("Verified: {{methods}}.", {
-        methods: verified
-          .map((method: ReadinessMethodWire): string => {
+        methods: joinList(
+          verified.map((method: ReadinessMethodWire): string => {
             return `${translator.translateTerm(method.methodType)} ${
               method.maskedIdentifier
             }`.trim();
-          })
-          .join(", "),
+          }),
+        ),
       })}
     </p>
   );

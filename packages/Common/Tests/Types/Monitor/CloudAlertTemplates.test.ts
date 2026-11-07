@@ -42,8 +42,12 @@ import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import {
   CLOUD_ALERT_MONITORING_INTERVAL,
   CLOUD_ALERT_WINDOWS,
+  CLOUD_CERTIFICATE_EXPIRY_DAYS,
   CLOUD_COMPUTE_CPU_HIGH_PERCENT,
+  CLOUD_CONNECTIONS_HIGH_PERCENT,
   CLOUD_RDS_FREE_STORAGE_LOW_PERCENT,
+  CLOUD_SLOW_METRIC_MONITORING_INTERVAL,
+  CLOUD_SLOW_METRIC_WINDOW,
   CloudAlertMetric,
   CloudAlertQuery,
   CloudAlertTemplate,
@@ -57,10 +61,13 @@ import {
   getCloudAlertTemplatesFor,
   getCloudAlertTemplatesForType,
   getCloudMonitoringServiceName,
+  getCloudConnectionsThreshold,
   getCloudResourceTypesWithAlertTemplates,
+  isCloudSlowMetricTemplate,
   readAllocatedStorageGiB,
   readCloudTelemetryAttributes,
 } from "../../../Types/Monitor/CloudAlertTemplates";
+import { getRdsDefaultConnectionLimit } from "../../../Types/Cloud/RdsConnectionLimits";
 import {
   CriteriaFilter,
   EvaluateOverTimeType,
@@ -134,6 +141,22 @@ const RDS_ATTRIBUTES: Dictionary<string> = {
   "resource.cloud.account.id": "123456789012",
   "resource.cloud.region": "eu-west-1",
 };
+
+const CERTIFICATE_ARN: string =
+  "arn:aws:acm:us-east-1:123456789012:certificate/0f4a8f3e-6c2b-4e7a-9d1c-2b3a4c5d6e7f";
+
+const ACM_ATTRIBUTES: Dictionary<string> = {
+  [AWS_CLOUDWATCH_NAMESPACE_ATTRIBUTE]: "AWS/CertificateManager",
+  "Dimensions.CertificateArn": CERTIFICATE_ARN,
+  "resource.cloud.account.id": "123456789012",
+  "resource.cloud.region": "us-east-1",
+};
+
+// A db.r6g.large running PostgreSQL: about 1,700 connections by default.
+const R6G_LARGE_POSTGRES_LIMIT: number = getRdsDefaultConnectionLimit({
+  instanceClass: "db.r6g.large",
+  engine: "postgres",
+})!;
 
 const AZURE_SQL_ID: string =
   "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod/providers/Microsoft.Sql/servers/sql-prod/databases/orders";
@@ -216,7 +239,10 @@ function attributesFor(cloudTemplate: CloudAlertTemplate): Dictionary<string> {
 
 function stepOf(cloudTemplate: CloudAlertTemplate): MonitorStep {
   return cloudTemplate.getMonitorStep(
-    argsFor(attributesFor(cloudTemplate), { allocatedStorageGiB: 100 }),
+    argsFor(attributesFor(cloudTemplate), {
+      allocatedStorageGiB: 100,
+      connectionLimit: R6G_LARGE_POSTGRES_LIMIT,
+    }),
   );
 }
 
@@ -266,17 +292,27 @@ describe("the cloud alert template library", () => {
       },
     ),
   )(
-    "%s is a Metrics monitor on its cloud's window, every five minutes",
+    "%s is a Metrics monitor on its metric's window and schedule",
     (_id: string, cloudTemplate: CloudAlertTemplate) => {
+      const isSlow: boolean = isCloudSlowMetricTemplate(cloudTemplate);
+
       expect(cloudTemplate.monitorType).toBe(MonitorType.Metrics);
+      /*
+       * Every five minutes over its cloud's window - but a metric published
+       * a few times a day, read once an hour: over 2 days, once an hour.
+       */
       expect(cloudTemplate.rollingTime).toBe(
-        CLOUD_ALERT_WINDOWS[cloudTemplate.provider],
+        isSlow
+          ? CLOUD_SLOW_METRIC_WINDOW
+          : CLOUD_ALERT_WINDOWS[cloudTemplate.provider],
       );
       expect(cloudTemplate.monitoringInterval).toBe(
-        CLOUD_ALERT_MONITORING_INTERVAL,
+        isSlow
+          ? CLOUD_SLOW_METRIC_MONITORING_INTERVAL
+          : CLOUD_ALERT_MONITORING_INTERVAL,
       );
       expect(cloudTemplate.isBetterStreamed).toBe(
-        cloudTemplate.provider === CloudProvider.AWS,
+        cloudTemplate.provider === CloudProvider.AWS && !isSlow,
       );
       expect(cloudTemplate.name.trim().length).toBeGreaterThan(0);
       expect(cloudTemplate.summary.trim().length).toBeGreaterThan(0);
@@ -301,6 +337,28 @@ describe("the cloud alert template library", () => {
     expect(CLOUD_ALERT_MONITORING_INTERVAL).toBe("*/5 * * * *");
   });
 
+  test("a metric published a few times a day is read over 2 days, once an hour - and only ACM's is", () => {
+    expect(CLOUD_SLOW_METRIC_WINDOW).toBe(RollingTime.Past2Days);
+    expect(CLOUD_SLOW_METRIC_MONITORING_INTERVAL).toBe("0 * * * *");
+    expect(
+      ALL.filter((cloudTemplate: CloudAlertTemplate): boolean => {
+        return isCloudSlowMetricTemplate(cloudTemplate);
+      }).map((cloudTemplate: CloudAlertTemplate): string => {
+        return cloudTemplate.id;
+      }),
+    ).toEqual(["cloud-aws-acm-certificate-expiring"]);
+    // Azure and Google Cloud are read a minute at a time: never slow.
+    expect(
+      isCloudSlowMetricTemplate({
+        provider: CloudProvider.Azure,
+        queries: template("cloud-aws-acm-certificate-expiring").queries,
+      }),
+    ).toBe(false);
+    expect(
+      isCloudSlowMetricTemplate({ provider: CloudProvider.AWS, queries: [] }),
+    ).toBe(false);
+  });
+
   test("every description says where its numbers come from", () => {
     const sources: Record<CloudProvider, string> = {
       // Every AWS template says it works better streamed (isBetterStreamed).
@@ -311,10 +369,15 @@ describe("the cloud alert template library", () => {
       [CloudProvider.GCP]:
         "Read from Google Cloud Monitoring by the project's connection.",
     };
+    // But one over a metric published a few times a day, which a stream makes no sooner that matters.
+    const slowSource: string =
+      "Read from Amazon CloudWatch by the account's connection once an hour, whether or not the account streams its metrics: a stream would not make it fire sooner.";
 
     for (const cloudTemplate of ALL) {
       expect(cloudTemplate.description).toContain(
-        sources[cloudTemplate.provider],
+        isCloudSlowMetricTemplate(cloudTemplate)
+          ? slowSource
+          : sources[cloudTemplate.provider],
       );
       // Only a template that works better streamed says so.
       expect(
@@ -474,16 +537,28 @@ describe("the cloud alert template library", () => {
     }
   });
 
-  test("a level judged a point at a time must hold for the whole window; a broken state, an age and a window read whole fire on a point", () => {
+  test("a level judged a point at a time must hold for the whole window; a broken state, an age and a window read whole fire on a point; a countdown is its window's largest reading", () => {
     for (const cloudTemplate of ALL) {
       const step: MonitorStep = stepOf(cloudTemplate);
       const [unhealthy] = instancesOf(step);
       const fires: CriteriaFilter = unhealthy!.data!.filters[0]!;
 
       expect(fires.metricMonitorOptions?.metricAggregationType).toBe(
-        cloudTemplate.measure === "sustained"
-          ? EvaluateOverTimeType.AllValues
-          : EvaluateOverTimeType.AnyValue,
+        cloudTemplate.measure === "countdown"
+          ? EvaluateOverTimeType.MaximumValue
+          : cloudTemplate.measure === "sustained"
+            ? EvaluateOverTimeType.AllValues
+            : EvaluateOverTimeType.AnyValue,
+      );
+      // Only a countdown fires on an empty window: what it counts down to stops it.
+      expect(
+        `${cloudTemplate.id}: ${fires.metricMonitorOptions?.onNoDataPolicy}`,
+      ).toBe(
+        `${cloudTemplate.id}: ${
+          cloudTemplate.measure === "countdown"
+            ? NoDataPolicy.Trigger
+            : undefined
+        }`,
       );
       expect(fires.metricMonitorOptions?.metricAlias).toBe(
         cloudTemplate.comparedAlias,
@@ -553,6 +628,8 @@ describe("the cloud alert template library", () => {
     ["an Azure VM's CPU", "cloud-azure-vm-high-cpu"],
     ["a Compute Engine VM's CPU", "cloud-gcp-compute-high-cpu"],
     ["an RDS instance's storage", "cloud-aws-rds-low-storage"],
+    ["an RDS instance's connections", "cloud-aws-rds-connections-near-limit"],
+    ["an ACM certificate's expiry", "cloud-aws-acm-certificate-expiring"],
     ["an Azure SQL database's storage", "cloud-azure-sql-storage-full"],
     ["an Azure SQL database's sessions", "cloud-azure-sql-sessions-high"],
     [
@@ -720,6 +797,22 @@ describe("getCloudAlertTemplatesFor", () => {
     expect(withStorage).toEqual([
       "cloud-aws-rds-high-cpu",
       "cloud-aws-rds-low-storage",
+    ]);
+    // And Connections Near the Limit once its connection limit is known.
+    expect(
+      idsOf(
+        getCloudAlertTemplatesFor({
+          provider: "aws",
+          resourceType: "AWS::RDS::DBInstance",
+          telemetryAttributes: RDS_ATTRIBUTES,
+          allocatedStorageGiB: 200,
+          connectionLimit: R6G_LARGE_POSTGRES_LIMIT,
+        }),
+      ),
+    ).toEqual([
+      "cloud-aws-rds-high-cpu",
+      "cloud-aws-rds-low-storage",
+      "cloud-aws-rds-connections-near-limit",
     ]);
     // An Aurora cluster has no allocated storage: its storage grows itself.
     expect(
@@ -1625,6 +1718,429 @@ describe("a resource's own threshold (Low Free Storage)", () => {
       await evaluate({
         id,
         pointsByAlias: { value: readOnly([50 * gib, 50 * gib, 49 * gib]) },
+      }),
+    ).toEqual({ breached: false, healthy: true });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Connections Near the Limit: a share of the instance's own limit
+ * ---------------------------------------------------------------------------
+ *
+ * An RDS instance refuses connections past max_connections, which RDS sets
+ * from the memory of its class, by its engine's formula - about 60 on a
+ * db.t3.micro running MySQL, about 1,700 on a db.r6g.large running
+ * PostgreSQL. One count for every database would be wrong for most of
+ * them: the line is 90% of the instance's own limit (RdsConnectionLimits).
+ */
+describe("Connections Near the Limit", () => {
+  const id: string = "cloud-aws-rds-connections-near-limit";
+
+  function lineOf(connectionLimit: number): number {
+    const step: MonitorStep = template(id).getMonitorStep(
+      argsFor(RDS_ATTRIBUTES, { connectionLimit: connectionLimit }),
+    );
+    const [unhealthy] = instancesOf(step);
+
+    return Number(unhealthy!.data!.filters[0]!.value);
+  }
+
+  test("reads DatabaseConnections, an average held for the window, and is offered only with a limit", () => {
+    const cloudTemplate: CloudAlertTemplate = template(id);
+
+    expect(
+      cloudTemplate.queries.map((query: CloudAlertQuery) => {
+        return [query.metric.namespace, query.metric.metricName];
+      }),
+    ).toEqual([["AWS/RDS", "DatabaseConnections"]]);
+    expect(cloudTemplate.measure).toBe("sustained");
+    expect(cloudTemplate.requiresConnectionLimit).toBe(true);
+    expect(cloudTemplate.resourceTypes).toEqual(["AWS::RDS::DBInstance"]);
+    expect(cloudTemplate.rollingTime).toBe(RollingTime.Past30Minutes);
+    expect(cloudTemplate.severity).toBe("Warning");
+    expect(CLOUD_CONNECTIONS_HIGH_PERCENT).toBe(90);
+    expect(cloudTemplate.thresholdLabel).toBe(
+      "at or above 90% of its connection limit",
+    );
+
+    // Without a usable limit it is never offered: a line at 0 would always fire.
+    for (const connectionLimit of [undefined, null, 0, -5, Number.NaN]) {
+      expect(
+        idsOf(
+          getCloudAlertTemplatesFor({
+            provider: "aws",
+            resourceType: "AWS::RDS::DBInstance",
+            telemetryAttributes: RDS_ATTRIBUTES,
+            connectionLimit: connectionLimit as number | null | undefined,
+          }),
+        ),
+      ).not.toContain(id);
+    }
+
+    // Nor to an Aurora cluster: each of its instances has a limit of its own.
+    expect(
+      idsOf(
+        getCloudAlertTemplatesFor({
+          provider: "aws",
+          resourceType: "AWS::RDS::DBCluster",
+          telemetryAttributes: RDS_ATTRIBUTES,
+          connectionLimit: 1000,
+        }),
+      ),
+    ).not.toContain(id);
+  });
+
+  /*
+   * The share for several classes and engines: 90% of each one's default,
+   * in whole connections.
+   */
+  test.each([
+    ["db.t3.micro", "mysql", undefined, 60, 54],
+    ["db.m7g.large", "mysql", undefined, 629, 566],
+    ["db.t3.micro", "postgres", undefined, 79, 71],
+    ["db.r6g.large", "postgres", undefined, 1691, 1521],
+    ["db.r6g.xlarge", "postgres", undefined, 3410, 3069],
+    // PostgreSQL's default stops at 5,000.
+    ["db.r6g.2xlarge", "postgres", undefined, 5000, 4500],
+    ["db.t3.micro", "mariadb", "10.11.8", 30, 27],
+    ["db.t3.micro", "mariadb", "10.4.30", 60, 54],
+    ["db.r6g.large", "aurora-mysql", undefined, 1000, 900],
+    ["db.t4g.medium", "aurora-mysql", undefined, 90, 81],
+    ["db.r6g.large", "aurora-postgresql", undefined, 1691, 1521],
+  ])(
+    "a %s running %s %s: a limit of %i, a line at %i",
+    (
+      instanceClass: string,
+      engine: string,
+      engineVersion: string | undefined,
+      limit: number,
+      line: number,
+    ) => {
+      expect(
+        getRdsDefaultConnectionLimit({ instanceClass, engine, engineVersion }),
+      ).toBe(limit);
+      expect(getCloudConnectionsThreshold(limit)).toBe(line);
+      expect(lineOf(limit)).toBe(line);
+    },
+  );
+
+  test("its criteria say the line and the limit in connections, and it clears below a dead band", () => {
+    const step: MonitorStep = template(id).getMonitorStep(
+      argsFor(RDS_ATTRIBUTES, { connectionLimit: R6G_LARGE_POSTGRES_LIMIT }),
+    );
+    const [unhealthy, healthy] = instancesOf(step);
+    const fires: CriteriaFilter = unhealthy!.data!.filters[0]!;
+    const clears: CriteriaFilter = healthy!.data!.filters[0]!;
+
+    expect(fires.filterType).toBe(FilterType.GreaterThanOrEqualTo);
+    expect(Number(fires.value)).toBe(1521);
+    expect(fires.metricMonitorOptions?.metricAggregationType).toBe(
+      EvaluateOverTimeType.AllValues,
+    );
+    expect(unhealthy!.data!.description).toBe(
+      "Triggers when every reading of the past 30 minutes is at or above 90% of its connection limit (1,521 of 1,691 connections).",
+    );
+    expect(unhealthy!.data!.name).toBe(
+      "Connections Near the Limit - at or above 90% of its connection limit",
+    );
+    // A level near its line does not flap: it clears 10% under it.
+    expect(clears.filterType).toBe(FilterType.LessThan);
+    expect(Number(clears.value)).toBeCloseTo(1521 * 0.9, 6);
+  });
+
+  test("read-only: every period at 90% or more of the limit fires", async () => {
+    expect(
+      await evaluate({
+        id,
+        pointsByAlias: { value: readOnly([1530, 1560, 1600]) },
+        args: { connectionLimit: R6G_LARGE_POSTGRES_LIMIT },
+      }),
+    ).toEqual({ breached: true, healthy: false });
+  });
+
+  test("read-only: one period under the line is no breach", async () => {
+    expect(
+      (
+        await evaluate({
+          id,
+          pointsByAlias: { value: readOnly([1400, 1560, 1600]) },
+          args: { connectionLimit: R6G_LARGE_POSTGRES_LIMIT },
+        })
+      ).breached,
+    ).toBe(false);
+  });
+
+  test("streamed: every minute at the line fires, a burst of a few minutes does not", async () => {
+    expect(
+      await evaluate({
+        id,
+        pointsByAlias: {
+          value: everyMinute({ from: 1, to: 27, value: 1600 }),
+        },
+        args: { connectionLimit: R6G_LARGE_POSTGRES_LIMIT },
+      }),
+    ).toEqual({ breached: true, healthy: false });
+    expect(
+      (
+        await evaluate({
+          id,
+          pointsByAlias: {
+            value: everyMinute({
+              from: 1,
+              to: 27,
+              value: (minute: number): number => {
+                return minute >= 20 && minute <= 23 ? 1690 : 900;
+              },
+            }),
+          },
+          args: { connectionLimit: R6G_LARGE_POSTGRES_LIMIT },
+        })
+      ).breached,
+    ).toBe(false);
+  });
+
+  /*
+   * The same connections are a breach on one class and nothing on another:
+   * what one count would get wrong.
+   */
+  test("the same 1,600 connections fire on a db.r6g.large and are healthy on a db.r6g.2xlarge", async () => {
+    const points: Array<Point> = readOnly([1600, 1600, 1600]);
+
+    expect(
+      await evaluate({
+        id,
+        pointsByAlias: { value: points },
+        args: { connectionLimit: R6G_LARGE_POSTGRES_LIMIT },
+      }),
+    ).toEqual({ breached: true, healthy: false });
+    expect(
+      await evaluate({
+        id,
+        pointsByAlias: { value: points },
+        args: {
+          connectionLimit: getRdsDefaultConnectionLimit({
+            instanceClass: "db.r6g.2xlarge",
+            engine: "postgres",
+          })!,
+        },
+      }),
+    ).toEqual({ breached: false, healthy: true });
+    // And 55 connections are a breach on a db.t3.micro running MySQL (60).
+    expect(
+      (
+        await evaluate({
+          id,
+          pointsByAlias: { value: readOnly([55, 56, 58]) },
+          args: { connectionLimit: 60 },
+        })
+      ).breached,
+    ).toBe(true);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Certificate Expiring: a countdown published twice a day
+ * ---------------------------------------------------------------------------
+ *
+ * ACM publishes a certificate's DaysToExpiry twice a day, and stops once it
+ * expires. The connection reads it once an hour, so a read-only account
+ * stores each reading at the start of the hour it was published in; a
+ * stream stores it at the minute. The monitor reads the last 2 days once an
+ * hour: about four readings, and still one when a read or two were missed.
+ */
+
+// Twice a day, the newest at 07:00 (07:10 streamed) today, oldest first.
+function twiceADay(
+  values: Array<number>,
+  options: { streamed?: boolean | undefined } = {},
+): Array<Point> {
+  // 07:00 is 300 minutes before 12:00.
+  const newest: number = -300 + (options.streamed ? 10 : 0);
+
+  return values.map((value: number, index: number): Point => {
+    return {
+      minute: newest - (values.length - 1 - index) * 12 * 60,
+      value: value,
+    };
+  });
+}
+
+describe("Certificate Expiring", () => {
+  const id: string = "cloud-aws-acm-certificate-expiring";
+
+  async function judge(
+    values: Array<number>,
+    options: { streamed?: boolean | undefined } = {},
+  ): Promise<Outcome> {
+    return await evaluate({
+      id,
+      pointsByAlias: { value: twiceADay(values, options) },
+    });
+  }
+
+  test("reads DaysToExpiry over 2 days, once an hour, at 30 days or fewer", () => {
+    const cloudTemplate: CloudAlertTemplate = template(id);
+
+    expect(
+      cloudTemplate.queries.map((query: CloudAlertQuery) => {
+        return [
+          query.metric.namespace,
+          query.metric.metricName,
+          query.metric.aggregationType,
+        ];
+      }),
+    ).toEqual([
+      ["AWS/CertificateManager", "DaysToExpiry", AggregationType.Min],
+    ]);
+    expect(cloudTemplate.resourceTypes).toEqual([
+      "AWS::CertificateManager::Certificate",
+    ]);
+    expect(cloudTemplate.measure).toBe("countdown");
+    expect(cloudTemplate.rollingTime).toBe(RollingTime.Past2Days);
+    expect(cloudTemplate.monitoringInterval).toBe("0 * * * *");
+    expect(cloudTemplate.isBetterStreamed).toBe(false);
+    expect(CLOUD_CERTIFICATE_EXPIRY_DAYS).toBe(30);
+    expect(cloudTemplate.threshold).toBe(30);
+    expect(cloudTemplate.thresholdLabel).toBe("30 days or fewer");
+    expect(cloudTemplate.summary).toBe(
+      "The certificate expires in 30 days or fewer.",
+    );
+    expect(cloudTemplate.incidentDescription).toContain(
+      "expires in 30 days or fewer",
+    );
+  });
+
+  test("is offered to a certificate whose days have arrived, and to nothing before", () => {
+    expect(
+      idsOf(
+        getCloudAlertTemplatesFor({
+          provider: "aws",
+          resourceType: "AWS::CertificateManager::Certificate",
+          telemetryAttributes: ACM_ATTRIBUTES,
+        }),
+      ),
+    ).toEqual([id]);
+    expect(
+      getCloudAlertTemplatesFor({
+        provider: "aws",
+        resourceType: "AWS::CertificateManager::Certificate",
+        telemetryAttributes: {},
+      }),
+    ).toEqual([]);
+  });
+
+  test("fires on its window's largest reading at or under the line, or on none; clears on the first above it", () => {
+    const step: MonitorStep = template(id).getMonitorStep(
+      argsFor(ACM_ATTRIBUTES),
+    );
+    const [unhealthy, healthy] = instancesOf(step);
+    const fires: CriteriaFilter = unhealthy!.data!.filters[0]!;
+    const clears: CriteriaFilter = healthy!.data!.filters[0]!;
+
+    expect(fires.filterType).toBe(FilterType.LessThanOrEqualTo);
+    expect(Number(fires.value)).toBe(30);
+    expect(fires.metricMonitorOptions?.metricAggregationType).toBe(
+      EvaluateOverTimeType.MaximumValue,
+    );
+    expect(fires.metricMonitorOptions?.onNoDataPolicy).toBe(
+      NoDataPolicy.Trigger,
+    );
+    // A count of days only rises when renewed: no dead band to wait out.
+    expect(clears.filterType).toBe(FilterType.GreaterThan);
+    expect(Number(clears.value)).toBe(30);
+    expect(clears.metricMonitorOptions?.metricAggregationType).toBe(
+      EvaluateOverTimeType.MaximumValue,
+    );
+    expect(clears.metricMonitorOptions?.onNoDataPolicy).toBeUndefined();
+    expect(unhealthy!.data!.description).toBe(
+      "Triggers when every reading of the past 2 days is 30 days or fewer, or the past 2 days hold no reading.",
+    );
+    expect(unhealthy!.data!.incidents[0]!.title).toBe(
+      "[Cloud] Certificate Expiring - orders",
+    );
+  });
+
+  test("a certificate far from expiry is healthy", async () => {
+    expect(await judge([301, 301, 300, 300])).toEqual({
+      breached: false,
+      healthy: true,
+    });
+  });
+
+  test("31 days left is not yet 30", async () => {
+    expect(await judge([32, 32, 31, 31])).toEqual({
+      breached: false,
+      healthy: true,
+    });
+  });
+
+  test("days from expiry, every reading of the 2 days at 30 or fewer: fires", async () => {
+    expect(await judge([30, 30, 29, 29])).toEqual({
+      breached: true,
+      healthy: false,
+    });
+    expect(await judge([6, 6, 5, 5])).toEqual({
+      breached: true,
+      healthy: false,
+    });
+  });
+
+  test("it fires once the 2 days are all at 30 or fewer, not on the first reading there", async () => {
+    // The newest is 29, but the window still holds 31: not yet.
+    expect((await judge([31, 30, 30, 29])).breached).toBe(false);
+    expect((await judge([30, 30, 29, 29])).breached).toBe(true);
+  });
+
+  test("renewed: the first reading after it clears it at once, though the window still holds the old days", async () => {
+    expect(await judge([29, 29, 28, 395])).toEqual({
+      breached: false,
+      healthy: true,
+    });
+  });
+
+  test("expired: ACM stops publishing, and the silence fires", async () => {
+    expect(await evaluate({ id, pointsByAlias: { value: [] } })).toEqual({
+      breached: true,
+      healthy: false,
+    });
+  });
+
+  test("a reading older than the 2 days is not judged", async () => {
+    // Three days ago it read 25, before it was renewed: only the newer count.
+    expect(
+      await evaluate({
+        id,
+        pointsByAlias: {
+          value: [
+            { minute: -3 * 24 * 60, value: 25 },
+            ...twiceADay([390, 390, 389]),
+          ],
+        },
+      }),
+    ).toEqual({ breached: false, healthy: true });
+  });
+
+  test("streamed, each reading stamped at its minute, it reads the same", async () => {
+    for (const values of [
+      [301, 301, 300, 300],
+      [30, 30, 29, 29],
+      [31, 30, 30, 29],
+      [29, 29, 28, 395],
+    ]) {
+      expect(await judge(values, { streamed: true })).toEqual(
+        await judge(values),
+      );
+    }
+  });
+
+  test("a read or two missed still leaves a reading in the window", async () => {
+    // Only yesterday morning's reading arrived: still judged on it.
+    expect(
+      await evaluate({
+        id,
+        pointsByAlias: { value: [{ minute: -300 - 24 * 60, value: 120 }] },
       }),
     ).toEqual({ breached: false, healthy: true });
   });

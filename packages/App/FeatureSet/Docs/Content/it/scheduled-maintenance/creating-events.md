@@ -113,20 +113,20 @@ Tutto ciò che c'è nel modulo si può cambiare sulle pagine dell'evento, tranne
 
 | Per cambiare                                | Andate a                                                                       |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Il titolo, la finestra o le etichette       | **Modifica** sulla scheda **Maintenance Details** della sua **Panoramica**, passo **Evento** |
+| Il titolo, la finestra o le etichette       | **Modifica** sulla scheda **Dettagli della manutenzione** della sua **Panoramica**, passo **Evento** |
 | Le pagine di stato, quando viene pubblicato, o i promemoria | Lo stesso **Modifica**, passo **Pagine di stato**                  |
 | I monitor, il loro stato o le altre risorse | **Modifica** sulla scheda **Risorse interessate**                               |
 | La descrizione                              | **Descrizione** nel suo menu laterale                                          |
 | I proprietari                               | **Proprietari** nel suo menu laterale                                          |
 
-**Cambia lo stato del monitor in** si può cambiare finché l'evento non inizia. Dopo, la scheda lo mostra in sola lettura, perché i monitor sono già in quello stato. Una modifica aggiunge al **Pianificato Manutenzione Feed** una voce che nomina ciò che ha cambiato; salvare senza cambiare nulla non ne aggiunge.
+**Cambia lo stato del monitor in** si può cambiare finché l'evento non inizia. Dopo, la scheda lo mostra in sola lettura, perché i monitor sono già in quello stato. Una modifica aggiunge al **Feed della manutenzione programmata** una voce che nomina ciò che ha cambiato; salvare senza cambiare nulla non ne aggiunge.
 
 ## Pubblicare note mentre il lavoro procede
 
-- Le **Note pubbliche** sono aggiornamenti per i vostri clienti: vengono mostrate sulle pagine di stato dell'evento, e ognuna può avvisare i loro iscritti con **Notify status page subscribers**.
+- Le **Note pubbliche** sono aggiornamenti per i vostri clienti: vengono mostrate sulle pagine di stato dell'evento, e ognuna può avvisare i loro iscritti con **Avvisa gli iscritti della pagina di stato**.
 - Le **Note private** sono solo per il vostro team.
 
-Scrivetene una sulla pagina **Note pubbliche** o **Note private** dell'evento, oppure dal menu **Azioni** del **Pianificato Manutenzione Feed** con **Add Public Note** o **Aggiungi nota privata**. Lo stesso menu esegue un runbook con **Execute Runbook**. Un modello di nota compila un testo che il vostro team scrive spesso: vedere [Regole e impostazioni della manutenzione](/docs/scheduled-maintenance/settings#modelli-di-note).
+Scrivetene una sulla pagina **Note pubbliche** o **Note private** dell'evento, oppure dal menu **Azioni** del **Feed della manutenzione programmata** con **Aggiungi nota pubblica** o **Aggiungi nota privata**. Lo stesso menu esegue un runbook con **Esegui runbook**. Un modello di nota compila un testo che il vostro team scrive spesso: vedere [Regole e impostazioni della manutenzione](/docs/scheduled-maintenance/settings#modelli-di-note).
 
 ## Creare eventi dal codice
 

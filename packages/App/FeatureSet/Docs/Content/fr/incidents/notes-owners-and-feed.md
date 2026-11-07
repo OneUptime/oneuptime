@@ -72,7 +72,7 @@ Laissez **Notifier les abonnés à la page de statut** cochée pour notifier les
 
 ### La publier
 
-Cliquez sur **Post update**, ou appuyez sur Ctrl+Entrée (⌘+Entrée sur Mac). La note apparaît en haut de la liste, avec un badge qui suit sa notification.
+Cliquez sur **Publier la mise à jour**, ou appuyez sur Ctrl+Entrée (⌘+Entrée sur Mac). La note apparaît en haut de la liste, avec un badge qui suit sa notification.
 :::
 
 Le même éditeur s'ouvre dans une boîte de dialogue depuis **Ajouter une note publique** dans le menu **Actions** du fil d'activité de l'incident (voir [Le fil d'activité de l'incident](#le-fil-dactivité-de-lincident)) ; une note s'écrit donc de la même façon depuis l'un ou l'autre endroit.
@@ -83,7 +83,7 @@ Le même éditeur s'ouvre dans une boîte de dialogue depuis **Ajouter une note 
 | **Modèles**                                 | Insère l'un de vos modèles de notes dans la note, après ce que vous avez déjà tapé. Voir [Modèles de notes](#modèles-de-notes).                 |
 | **Rédiger avec l'IA**                       | Rédige la note à partir de l'incident, pour que vous la modifiiez. Voir [Générer une note avec l'IA](#générer-une-note-avec-lia).            |
 | **Rattacher**                               | Des fichiers partagés avec les abonnés sur la page de statut. Facultatif.                                                                     |
-| **Posted now**                              | L'heure de publication qu'indique la note : le moment où vous la publiez, sauf si vous choisissez ici une heure antérieure, dans votre fuseau horaire actuel. |
+| **Publiée maintenant**                              | L'heure de publication qu'indique la note : le moment où vous la publiez, sauf si vous choisissez ici une heure antérieure, dans votre fuseau horaire actuel. |
 | **Notifier les abonnés à la page de statut** | Case à cocher. Cochée par défaut, sauf si l'incident a été déclaré sans notifier les abonnés — elle démarre alors décochée. Décochez-la pour publier discrètement. |
 
 **Les incidents discrets restent discrets.** Si un incident a été déclaré avec **Notifier les abonnés de la page de statut** désactivé (ou comme incident privé), ses abonnés n'en ont jamais été informés ; une note publique ne devrait donc pas être la première chose qu'ils apprennent. Sur un tel incident, la case démarre décochée, avec une ligne en dessous qui explique pourquoi. Vous pouvez toujours la cocher pour notifier les abonnés de cette note. Les notes publiées sans choix explicite suivent la même règle : les notes Slack et Microsoft Teams, les workflows, et les requêtes d'API qui omettent `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. Un `true` ou un `false` explicite est toujours conservé. Les notes publiques des [événements de maintenance planifiée](/docs/status-pages/subscribers#événements-de-maintenance-planifiée) et des [épisodes d'incident](/docs/status-pages/subscribers#épisodes-dincident) suivent une règle semblable, selon que l'événement ou l'épisode lui-même a notifié les abonnés à sa création. Un incident ou un épisode privé n'accepte aucune note publique.
@@ -93,9 +93,9 @@ Le même éditeur s'ouvre dans une boîte de dialogue depuis **Ajouter une note 
 **Voir ce qu'ils recevront.** À côté de la même case, **Aperçu** montre l'e-mail que recevront les abonnés de chacune de ces pages de statut pour la note que vous rédigez, ainsi que le modèle qu'il utilise et pourquoi. Le lien reste grisé tant que la note n'a pas de texte. **M'envoyer un test** envoie cet e-mail à l'adresse de votre propre compte, et à personne d'autre. Voir [Abonnés et annonces](/docs/status-pages/subscribers#prévisualiser-le-mail-avant-son-envoi).
 
 > [!TIP]
-> **L'heure de publication est le véritable horodatage de la note.** Les pages de statut trient et affichent les notes publiques par `postedAt`, pas selon le moment où vous les avez tapées — si vous rattrapez sur la page de statut une mise à jour envoyée il y a 40 minutes, choisissez **Posted now** et indiquez quand elle a réellement eu lieu. Si une note arrive par l'API (`/api/incident-public-note`) sans heure, OneUptime y met l'heure actuelle.
+> **L'heure de publication est le véritable horodatage de la note.** Les pages de statut trient et affichent les notes publiques par `postedAt`, pas selon le moment où vous les avez tapées — si vous rattrapez sur la page de statut une mise à jour envoyée il y a 40 minutes, choisissez **Publiée maintenant** et indiquez quand elle a réellement eu lieu. Si une note arrive par l'API (`/api/incident-public-note`) sans heure, OneUptime y met l'heure actuelle.
 
-Chaque note montre qui l'a écrite, son heure de publication, le Markdown rendu avec ses pièces jointes et, dans son en-tête, où en est sa notification aux abonnés. **Search notes…** trouve les notes d'après ce qu'elles disent, et le fil peut se lire du plus récent au plus ancien ou l'inverse. Les liens vers d'autres sites et vers les pièces jointes s'ouvrent dans un nouvel onglet. Les lignes qui commencent par `>` s'affichent comme une citation ; commencez-la par une ligne à part, `> [!NOTE]`, `> [!TIP]` ou `> [!WARNING]`, pour l'afficher plutôt comme un encadré.
+Chaque note montre qui l'a écrite, son heure de publication, le Markdown rendu avec ses pièces jointes et, dans son en-tête, où en est sa notification aux abonnés. **Rechercher dans les notes…** trouve les notes d'après ce qu'elles disent, et le fil peut se lire du plus récent au plus ancien ou l'inverse. Les liens vers d'autres sites et vers les pièces jointes s'ouvrent dans un nouvel onglet. Les lignes qui commencent par `>` s'affichent comme une citation ; commencez-la par une ligne à part, `> [!NOTE]`, `> [!TIP]` ou `> [!WARNING]`, pour l'afficher plutôt comme un encadré.
 
 ## Publier une note privée
 
@@ -202,10 +202,10 @@ L'en-tête d'une note publique suit tout le parcours avec un badge. Cliquez dess
 
 | Badge                                     | Ce que cela veut dire                                                                                                                             |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Subscribers not notified**              | Rien n'a été envoyé : la note a été publiée avec **Notifier les abonnés de la page de statut** décochée, ou l'une des barrières ci-dessus s'est fermée. La raison est consignée. |
+| **Abonnés non avertis**              | Rien n'a été envoyé : la note a été publiée avec **Notifier les abonnés de la page de statut** décochée, ou l'une des barrières ci-dessus s'est fermée. La raison est consignée. |
 | **Notification prochaine des abonnés**    | En file d'attente, en attente de la prochaine exécution de la tâche d'envoi.                                                                      |
 | **Notification des abonnés**              | La tâche parcourt la liste des abonnés.                                                                                                           |
-| **Subscribers notified**                  | Le message de chaque abonné a été envoyé. Le message de statut indique, par page de statut, combien sont partis sur chaque canal.                 |
+| **Abonnés avertis**                  | Le message de chaque abonné a été envoyé. Le message de statut indique, par page de statut, combien sont partis sur chaque canal.                 |
 | **Échec de la notification**              | Tous les abonnés ne l'ont pas reçu, ou la tâche s'est arrêtée sur une erreur. Le message de statut dit lequel des deux.                           |
 
 **Envoyé veut dire envoyé.** La tâche attend chaque message : un e-mail ou un SMS compte comme envoyé dès que le serveur de messagerie ou le fournisseur de SMS l'a pris en charge, et un message Slack, Microsoft Teams ou webhook dès que l'autre bout a répondu. Un message refusé, en erreur, ou sans réponse sous 4 minutes compte comme en échec, et un seul échec fait passer le badge à **Échec de la notification** ; les autres abonnés le reçoivent tout de même. Le message de statut ressemble alors à `Not every subscriber was sent this notification: 2 of 61 messages failed. Site 03: 41 email sent. Site 07: 16 email, 2 SMS sent; 2 email failed.` « Envoyé » s'arrête là où OneUptime peut voir : un serveur de messagerie peut encore renvoyer un e-mail plus tard.
@@ -250,8 +250,8 @@ L'en-tête de la carte a aussi un menu **Actions** pour agir sans quitter la chr
 
 - **Exécuter le runbook** — lance un [runbook](/docs/runbooks/index) sur cet incident.
 - **Exécuter la politique d'astreinte** — alerte une politique à la demande. Une politique archivée n'alerte personne : son journal d'exécution sur l'incident indique qu'elle n'a pas été exécutée parce que la politique est archivée. Activez **Les alerter comme observateurs** pour plutôt tenir informées les personnes de la politique : leur réponse indique seulement qu'elles ont vu l'alerte, et l'incident n'est pas pris en compte.
-- **Ajouter une note publique** — l'éditeur de la page **Notes publiques**, dans une boîte de dialogue : rédigez la note, puis **Post update**. Les modèles, **Rédiger avec l'IA**, les pièces jointes, **Notifier les abonnés à la page de statut** avec qui elle atteindra, et **Aperçu** sont tous là. La note est publiée maintenant ; pour l'antidater, choisissez **Posted now**.
-- **Ajouter une note privée** — l'éditeur de la page **Notes privées**, dans une boîte de dialogue : rédigez la note, puis **Add note**.
+- **Ajouter une note publique** — l'éditeur de la page **Notes publiques**, dans une boîte de dialogue : rédigez la note, puis **Publier la mise à jour**. Les modèles, **Rédiger avec l'IA**, les pièces jointes, **Notifier les abonnés à la page de statut** avec qui elle atteindra, et **Aperçu** sont tous là. La note est publiée maintenant ; pour l'antidater, choisissez **Publiée maintenant**.
+- **Ajouter une note privée** — l'éditeur de la page **Notes privées**, dans une boîte de dialogue : rédigez la note, puis **Ajouter la note**.
 
 Les deux actions de note sont verrouillées, avec le nom de l'autorisation manquante, pour une personne qui ne peut pas écrire de notes. Une fois une note publiée, la boîte de dialogue se ferme et le fil l'affiche.
 

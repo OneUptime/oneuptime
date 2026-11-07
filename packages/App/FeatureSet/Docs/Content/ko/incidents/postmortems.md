@@ -67,7 +67,7 @@ flowchart TB
 
 ### AI로 생성
 
-**Generate with AI**를 클릭합니다. **Generate Postmortem with AI** 대화 상자의 **템플릿 선택**에는 개요로 **Standard Postmortem**, **Detailed Technical Postmortem**, **Brief Postmortem**이 있고, 그 뒤에 직접 만든 포스트모템 템플릿이 나옵니다. **Template Preview**에 개요가 표시되며, 생성하기 전에 바꿀 수 있습니다.
+**Generate with AI**를 클릭합니다. **AI로 포스트모템 생성** 대화 상자의 **템플릿 선택**에는 개요로 **Standard Postmortem**, **Detailed Technical Postmortem**, **Brief Postmortem**이 있고, 그 뒤에 직접 만든 포스트모템 템플릿이 나옵니다. **Template Preview**에 개요가 표시되며, 생성하기 전에 바꿀 수 있습니다.
 
 대화 상자 아래쪽의 **Generate with AI**를 클릭합니다. OneUptime AI가 인시던트(설명, 근본 원인과 해결 조치, 상태 타임라인, 공개 메모와 비공개 메모, Slack 또는 Microsoft Teams 채널의 메시지, [통화](/docs/workspace-connections/video-calls#통화-녹취록)에서 오간 말)를 읽고 개요에 맞춰 포스트모템을 씁니다. 그런 다음 그 결과로 편집기가 열립니다.
 

@@ -158,8 +158,14 @@ not_ready_facts() { # not_ready_facts <namespace> <deploy/name>
     echo "=== ${node}: the runtime's containers in namespace $1"
     node_sh "${node}" "NS='$1' CRICTL='$(crictl_cmd)'; $(cat "${HERE}/container-facts.sh")"
   done
+  # Every exec, the readiness probes' included, logs a change_onexec AUDIT line
+  # on ubuntu-26.04: two each probe, so a tail of them alone pushed the lines
+  # from when a container started out of the capture. They are counted, and
+  # the rest kept from the first.
   echo "=== kernel messages (AppArmor, seccomp, audit, oops)"
-  sudo dmesg | grep -iE 'apparmor|audit|denied|seccomp|segfault|oops|call trace' | tail -n 100
+  echo "change_onexec lines: $(sudo dmesg | grep -c 'operation="change_onexec"')"
+  sudo dmesg | grep -iE 'apparmor|audit|denied|seccomp|segfault|oops|call trace' |
+    grep -v 'operation="change_onexec"' | head -n 300
   case "${PLATFORM}" in
     k3s)
       echo "=== k3s's journal"

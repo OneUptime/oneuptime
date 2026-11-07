@@ -98,6 +98,10 @@ export function getNetworkDeviceBreadcrumbs(
       "View Device",
       "Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS,
+      ["Project", "Network", "View Device", "Security Events"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_OWNERS, [
       "Project",
       "Network",

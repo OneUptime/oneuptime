@@ -197,7 +197,7 @@ describe("the grammar of a dry run", () => {
       /^the dry run's change is refused: "delete-instance" is not available: deleting, terminating or purging anything is never available/,
     );
     expect(refusal("aws", `cloud dry-run scale-out ${EC2} --count 2`)).toMatch(
-      /^the dry run's change is refused: cloud scale-out is not available for a EC2 instance/,
+      /^the dry run's change is refused: cloud scale-out is not available for an EC2 instance/,
     );
     expect(refusal("aws", `cloud dry-run restart-service ${SITE}`)).toMatch(
       /^the dry run's change is refused: an AWS resource is named by its ARN/,

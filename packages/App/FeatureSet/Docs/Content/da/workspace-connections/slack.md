@@ -72,8 +72,8 @@ En notifikationsregel siger, hvilke begivenheder der slås op i Slack, og hvor. 
 
 | Produkt | Faner på dets **Slack**-side |
 | --- | --- |
-| **Hændelser** | **Hændelser**, **Hændelse Episoder**, **Oversigt** |
-| **Advarsler** | **Advarsler**, **Advarsel Episoder**, **Oversigt** |
+| **Hændelser** | **Hændelser**, **Hændelsesepisoder**, **Oversigt** |
+| **Advarsler** | **Advarsler**, **Advarselsepisoder**, **Oversigt** |
 | **Planlagt vedligeholdelse** | Én liste med regler |
 | **Monitorer** | Én liste med regler |
 | **Vagtordning** | Én liste med regler |

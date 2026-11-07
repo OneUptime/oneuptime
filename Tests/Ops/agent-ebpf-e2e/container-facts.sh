@@ -16,6 +16,17 @@ for id in $(${CRICTL} ps -a -q --label "io.kubernetes.pod.namespace=${NS}"); do
     echo "wchan: $(cat "/proc/${pid}/wchan" 2>/dev/null)"
     head -n 20 "/proc/${pid}/stack" 2>/dev/null
     ps -o pid,stat,wchan:32,args --ppid "${pid}" 2>&1
+    # A process on the CPU that never gets on (k3s on ubuntu-26.04: postgres's
+    # gosu in state R, #6184) is told apart by what confines it, its limits,
+    # the call it is in, and each thread's state and signals: one waiting on
+    # a signal its threads never receive, or one closing every descriptor up
+    # to a limit of a billion.
+    echo "apparmor: $(cat "/proc/${pid}/attr/current" 2>/dev/null)"
+    grep -E '^Max open files' "/proc/${pid}/limits"
+    echo "syscall: $(cat "/proc/${pid}/syscall" 2>/dev/null)"
+    for task in "/proc/${pid}"/task/*; do
+      echo "thread ${task##*/}: $(grep -E '^(State|SigQ|SigPnd|ShdPnd|SigBlk|SigIgn|SigCgt):' "${task}/status" | tr '\t\n' '  ')"
+    done
   fi
   echo "--- its last lines"
   ${CRICTL} logs --tail 50 "${id}" 2>&1

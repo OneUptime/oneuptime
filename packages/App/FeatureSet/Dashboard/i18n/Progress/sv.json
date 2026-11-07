@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45581,
-    "untranslated": 11559
+    "keys": 45951,
+    "untranslated": 11020
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -78,6 +78,7 @@
     "Export",
     "Fahrenheit",
     "Failover",
+    "Favicon",
     "Feed",
     "Filter",
     "Filter:",
@@ -122,6 +123,7 @@
     "Info",
     "Information",
     "Integration",
+    "Internet",
     "IoT",
     "Israel (+972)",
     "Japan (+81)",
@@ -196,6 +198,7 @@
     "Portugal (+351)",
     "Position",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Powered by OneUptime",
     "Precision",
     "Problem",
     "Process",
@@ -212,6 +215,7 @@
     "Region",
     "RegionOne",
     "Relation",
+    "Reserved Instances",
     "Revision",
     "Revision {{revision}}",
     "Risk",
@@ -279,6 +283,7 @@
     "VMware vCenter",
     "Version",
     "Version {{number}}",
+    "Version {{version}}",
     "Vital",
     "Webhook",
     "Webhooks",
@@ -324,6 +329,7 @@
     "message",
     "min",
     "mm",
+    "monitor",
     "ms",
     "name",
     "nova-compute",
@@ -400,6 +406,7 @@
     "{{count}} manager",
     "{{count}} managers",
     "{{count}} mon",
+    "{{count}} monitor",
     "{{count}} mons",
     "{{count}} person",
     "{{count}} placement group",

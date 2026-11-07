@@ -318,10 +318,11 @@ describe("a Persian page writes every count in Persian digits", () => {
 
   /*
    * Persian writes zero as a dot: "۴ اعمال‌شده · ۲ ..." read "۴۰" and
-   * "۲۰" when its facts were joined with a middle dot. They are joined
-   * with the Persian comma, as Persian lists them.
+   * "۲۰" when its facts were joined with a middle dot. They are set apart
+   * with a bullet, as every line of Persian facts in the product is
+   * (getInlineSeparator, InlineSeparator).
    */
-  test("the facts lines are joined with the Persian comma: no middle dot beside a Persian digit", async () => {
+  test("the facts lines are set apart with a bullet: no middle dot beside a Persian digit", async () => {
     await inLanguage("fa");
     renderView(incidentInsights(), "incident");
 
@@ -342,10 +343,10 @@ describe("a Persian page writes every count in Persian digits", () => {
         dotBesideDigit: false,
       });
     }
-    // The problem's fixes: several facts, joined as Persian lists them.
+    // The problem's fixes: several facts, set apart as on every Persian line.
     expect(
       textsOf(screen.getAllByTestId("ai-insights-insight-fixes")).join(" "),
-    ).toContain("\u{60C} ");
+    ).toContain(" \u{2022} ");
   });
 
   test("each bar of the trend says its day and its counts the reader's way", async () => {

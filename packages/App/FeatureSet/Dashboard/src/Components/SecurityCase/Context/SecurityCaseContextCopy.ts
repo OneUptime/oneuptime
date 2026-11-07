@@ -34,7 +34,12 @@ export const STORY_FILTER_LABELS: Record<SecurityCaseStoryFilter, string> = {
   [SecurityCaseStoryFilter.Changes]: translationKey("Changes"),
   [SecurityCaseStoryFilter.IncidentsAndAlerts]:
     translationKey("Incidents & alerts"),
-  [SecurityCaseStoryFilter.Response]: translationKey("Response"),
+  /*
+   * "Response activity", not "Response": the one word reads as an answer
+   * (an HTTP response's "Antwort", "Ответ", "レスポンス") in the languages
+   * that say the two apart, and the Dashboard keys a word by its English.
+   */
+  [SecurityCaseStoryFilter.Response]: translationKey("Response activity"),
 };
 
 export const STORY_FILTERS_ARIA_LABEL: string = translationKey(
@@ -47,7 +52,11 @@ export const STORY_KIND_LABELS: Record<SecurityCaseStoryItemKind, string> = {
   [SecurityCaseStoryItemKind.Detection]: translationKey("Detection"),
   [SecurityCaseStoryItemKind.Events]: translationKey("Security events"),
   [SecurityCaseStoryItemKind.Exception]: translationKey("Exception"),
-  [SecurityCaseStoryItemKind.Change]: translationKey("Change"),
+  /*
+   * "Change event", a noun in every language: "Change" alone is the
+   * Dashboard's button word, a verb in most of them ("Ändern").
+   */
+  [SecurityCaseStoryItemKind.Change]: translationKey("Change event"),
   [SecurityCaseStoryItemKind.Incident]: translationKey("Incident"),
   [SecurityCaseStoryItemKind.Alert]: translationKey("Alert"),
   [SecurityCaseStoryItemKind.PlaybookRun]: translationKey("Playbook"),
@@ -343,6 +352,8 @@ export const SECURITY_CASE_CONTEXT_TEST_IDS: {
   impactInternet: string;
   impactOwners: string;
   impactLastChange: string;
+  impactLastChangeTitle: string;
+  impactLastChangeVersion: string;
   impactDetails: string;
   impactToggle: string;
   impactRecord: string;
@@ -367,6 +378,8 @@ export const SECURITY_CASE_CONTEXT_TEST_IDS: {
   impactInternet: "security-case-impact-internet",
   impactOwners: "security-case-impact-owners",
   impactLastChange: "security-case-impact-last-change",
+  impactLastChangeTitle: "security-case-impact-last-change-title",
+  impactLastChangeVersion: "security-case-impact-last-change-version",
   impactDetails: "security-case-impact-details",
   impactToggle: "security-case-impact-toggle",
   impactRecord: "security-case-impact-record",

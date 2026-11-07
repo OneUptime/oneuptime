@@ -41,12 +41,12 @@ Skjermen er delt i to:
 
 | Del | Hva den inneholder |
 | ---- | ------------- |
-| **Gruppenavigator** (til venstre) | Alle gruppene på siden som et tre, med feltet **Search groups...** over og en telling under, som `3 groups · 12 resources`. En lang liste slutter med knappen **Show N more of M**. |
+| **Gruppenavigator** (til venstre) | Alle gruppene på siden som et tre, med feltet **Søk i grupper...** over og en telling under, som `3 groups · 12 resources`. En lang liste slutter med knappen **Show N more of M**. |
 | **Øverst på siden** | Navigatorens første rad: ressurser uten gruppe, som besøkende ser først, over alle grupper. På en side uten grupper heter det høyre panelet i stedet **Alle ressurser**. |
-| **Ressurspanel** (til høyre) | Ressursene i den valgte gruppen. Overskriften inneholder **Edit Group**, hovedknappen **Legg til monitor** og menyen **Flere handlinger**. |
-| Kortets overskrift | **New Group** og en meny med tre prikker med **Import groups from CSV** og **Oppdater**. |
+| **Ressurspanel** (til høyre) | Ressursene i den valgte gruppen. Overskriften inneholder **Rediger gruppe**, hovedknappen **Legg til monitor** og menyen **Flere handlinger**. |
+| Kortets overskrift | **Ny gruppe** og en meny med tre prikker med **Importer grupper fra CSV** og **Oppdater**. |
 
-**Tomme tilstander forteller deg hva du skal gjøre.** En tom gruppe viser **No monitors here yet** med **Legg til monitor**, **Add Multiple** og, bare så lenge siden ikke har noen grupper, **Create a Group**. Et søk uten treff viser **Ingen ressurser samsvarer med søket ditt**.
+**Tomme tilstander forteller deg hva du skal gjøre.** En tom gruppe viser **Ingen monitorer her ennå** med **Legg til monitor**, **Legg til flere** og, bare så lenge siden ikke har noen grupper, **Opprett en gruppe**. Et søk uten treff viser **Ingen ressurser samsvarer med søket ditt**.
 
 ## Legg til en monitor
 
@@ -75,11 +75,11 @@ Klikk på **Legg til monitor**. Raden vises i gruppen og på statussiden.
 I en rutenettgruppe ber dialogen også om raden og kolonnen monitoren skal stå i, over **Flere felt**; se [Listeoppsett eller rutenettoppsett](#listeoppsett-eller-rutenettoppsett).
 
 > [!TIP]
-> For å vise flere sjekker som én rad legger du til en [monitorgruppe](/docs/monitor/monitor-groups). Med bryteren **Monitorgrupper** slått på (**Prosjektinnstillinger** > **Avansert** > **Funksjonsflagg**, som lagres så snart du slår den om) står det en lenke under nedtrekkslisten: **Add a Monitor Group instead.** Klikk på den, så blir **Overvåking** til **Monitor Gruppe** (**Velg overvåkingsgruppe**); **Add a Monitor instead.** bytter tilbake.
+> For å vise flere sjekker som én rad legger du til en [monitorgruppe](/docs/monitor/monitor-groups). Med bryteren **Monitorgrupper** slått på (**Prosjektinnstillinger** > **Avansert** > **Funksjonsflagg**, som lagres så snart du slår den om) står det en lenke under nedtrekkslisten: **Legg heller til en monitorgruppe.** Klikk på den, så blir **Overvåking** til **Monitorgruppe** (**Velg overvåkingsgruppe**); **Legg heller til en monitor.** bytter tilbake.
 
 ### Legg til flere på én gang
 
-**Add Multiple** (også **Add multiple monitors** i menyen **Flere handlinger**) åpner **Add Multiple Monitors**. Den er også én side: en flervalgsliste **Monitorer**, deretter de samme sammenslåtte **Flere felt**, der visningsalternativene gjelder for hver monitor du velger. Hver ressurs får visningsnavn og beskrivelse fra monitoren sin, og **Legg til monitorer** legger til alle. Det er den raskeste måten å fylle en ny side på.
+**Legg til flere** (også **Legg til flere monitorer** i menyen **Flere handlinger**) åpner **Legg til flere monitorer**. Den er også én side: en flervalgsliste **Monitorer**, deretter de samme sammenslåtte **Flere felt**, der visningsalternativene gjelder for hver monitor du velger. Hver ressurs får visningsnavn og beskrivelse fra monitoren sin, og **Legg til monitorer** legger til alle. Det er den raskeste måten å fylle en ny side på.
 
 Flervalgslisten har fanen **Etiketter**: klikk på en etikett, så velges alle monitorer med den på én gang.
 
@@ -124,7 +124,7 @@ De fleste grupper trenger bare et navn.
 :::steps
 ### Klikk på New Group
 
-**Create New Status Page Group** åpnes: to felt og deretter to sammenslåtte seksjoner.
+**Opprett ny gruppe på statussiden** åpnes: to felt og deretter to sammenslåtte seksjoner.
 
 ### Gi gruppen et navn
 
@@ -132,14 +132,14 @@ Skriv **Gruppenavn**: seksjonsoverskriften besøkende ser.
 
 ### Nøst den, hvis den hører til i en annen gruppe
 
-Velg en **Parent Group**, eller la den stå på **No parent group (top level)**. **Add a sub group** i en gruppes menyer fyller ut dette for deg.
+Velg en **Overordnet gruppe**, eller la den stå på **Ingen overordnet gruppe (øverste nivå)**. **Legg til en undergruppe** i en gruppes menyer fyller ut dette for deg.
 
 ### Opprett gruppen
 
-Klikk på **Create Status Page Group**. Gruppen vises i navigatoren, klar for monitorer.
+Klikk på **Opprett gruppe på statussiden**. Gruppen vises i navigatoren, klar for monitorer.
 :::
 
-De to feltene er **Gruppenavn** (`name`) og **Parent Group** (`parentStatusPageGroupId`). De to sammenslåtte seksjonene inneholder resten:
+De to feltene er **Gruppenavn** (`name`) og **Overordnet gruppe** (`parentStatusPageGroupId`). De to sammenslåtte seksjonene inneholder resten:
 
 - **Oppsett**: den sammenslåtte overskriften sier **Liste** eller **Rutenett**. Den inneholder **Visningsmodus** og aksene til et rutenett (se [Listeoppsett eller rutenettoppsett](#listeoppsett-eller-rutenettoppsett)), og den åpner seg selv på en rutenettgruppe.
 - **Flere felt**: gruppenivåets utgaver av ressursalternativene:
@@ -148,22 +148,22 @@ De to feltene er **Gruppenavn** (`name`) og **Parent Group** (`parentStatusPageG
   - **Vis gjeldende gruppestatus** (`showCurrentStatus`): på som standard. Viser en status ved siden av gruppeoverskriften.
   - **Vis oppetid %** (`showUptimePercent`): av som standard, med **Velg presisjon for oppetid** når den er slått på.
 
-For å endre en gruppe bruker du **Edit Group** i panelets overskrift, eller **Edit group** i navigatorens radmeny: **Edit Status Page Group** åpnes med knappen **Lagre endringer**. Panelets overskrift viser merker for innstillingene som er slått på (**Rutenett**, **Collapsed by default**, **Uptime %**), så du ser hvordan en gruppe er satt opp uten å åpne skjemaet.
+For å endre en gruppe bruker du **Rediger gruppe** i panelets overskrift, eller **Edit group** i navigatorens radmeny: **Rediger gruppe på statussiden** åpnes med knappen **Lagre endringer**. Panelets overskrift viser merker for innstillingene som er slått på (**Rutenett**, **Skjult som standard**, **Oppetid %**), så du ser hvordan en gruppe er satt opp uten å åpne skjemaet.
 
 ### Administrer en gruppe
 
 | Hvor | Handlinger |
 | ----- | ------- |
 | Navigatorens radmeny | **Edit group**, **Flytt opp**, **Flytt ned**, **Vis ID**, **Delete group** |
-| Panelets meny **Flere handlinger** | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Oppdater**, **Delete this group** |
+| Panelets meny **Flere handlinger** | **Rediger denne gruppen**, **Legg til en undergruppe**, **Flytt gruppen opp**, **Flytt gruppen ned**, **Vis gruppe-ID**, **Oppdater**, **Slett denne gruppen** |
 
-En gruppe som er lagret uten navn, vises som **Untitled group**, et godt tegn på at du mente å skrive noe.
+En gruppe som er lagret uten navn, vises som **Gruppe uten tittel**, et godt tegn på at du mente å skrive noe.
 
 ## Nøsting av grupper
 
-Grupper kan nøstes: angi **Parent Group** på undergruppen, eller bruk **Add a sub group inside this group** i navigatoren. Skjemaets hjelpetekst beskriver formen det er laget for (noe i retning av Forretningsenheter › Region › Marked), og hvert nivå viser samlet status og oppetid for alt under.
+Grupper kan nøstes: angi **Overordnet gruppe** på undergruppen, eller bruk **Add a sub group inside this group** i navigatoren. Skjemaets hjelpetekst beskriver formen det er laget for (noe i retning av Forretningsenheter › Region › Marked), og hvert nivå viser samlet status og oppetid for alt under.
 
-Når en gruppe har undergrupper, viser ressurspanelet en rad med merker **Sub groups** som lenker rett til hver undergruppe, så du kan gå gjennom hierarkiet uten å gå tilbake til navigatoren.
+Når en gruppe har undergrupper, viser ressurspanelet en rad med merker **Undergrupper** som lenker rett til hver undergruppe, så du kan gå gjennom hierarkiet uten å gå tilbake til navigatoren.
 
 Nøsting lønner seg på store sider: en vertsleverandør med regioner inne i produkter, eller en forhandler med markeder inne i forretningsenheter. På en side med tolv monitorer er ett flatt nivå vennligere.
 
@@ -188,7 +188,7 @@ Velg **Rutenett**, så vises fire felt til:
 Hver monitor i en rutenettgruppe står i en celle, så **Legg til monitor** og dialogen for flere ber om raden og kolonnen sammen med monitoren, med dine egne akseetiketter.
 
 > [!IMPORTANT]
-> Sett opp aksene før du legger til monitorer. En rutenettgruppe uten rader eller kolonner viser en melding om at det ennå ikke finnes noe sted å sette en monitor, med knappen **Set up the grid** som åpner gruppens skjema på seksjonen **Oppsett**, og gruppens knapp **Legg til monitor** er borte til du har gjort det.
+> Sett opp aksene før du legger til monitorer. En rutenettgruppe uten rader eller kolonner viser en melding om at det ennå ikke finnes noe sted å sette en monitor, med knappen **Sett opp rutenettet** som åpner gruppens skjema på seksjonen **Oppsett**, og gruppens knapp **Legg til monitor** er borte til du har gjort det.
 
 ## Rekkefølgen på det besøkende ser
 
@@ -196,8 +196,8 @@ Rekkefølgen bestemmer du selv, ikke alfabetet:
 
 | Hva | Slik endrer du rekkefølgen |
 | ---- | ----------------- |
-| Ressurser i en gruppe | Dra en rad. Panelet sier det: **Drag a row to change the order visitors see**. |
-| Grupper i forhold til hverandre | **Flytt opp** / **Flytt ned** i navigatorens radmeny, eller **Move group up** / **Move group down** i **Flere handlinger**. |
+| Ressurser i en gruppe | Dra en rad. Panelet sier det: **Dra en rad for å endre rekkefølgen besøkende ser**. |
+| Grupper i forhold til hverandre | **Flytt opp** / **Flytt ned** i navigatorens radmeny, eller **Flytt gruppen opp** / **Flytt gruppen ned** i **Flere handlinger**. |
 | Ressurser uten gruppe | De står i **Øverst på siden** og vises alltid over alle grupper, så legg det alle sjekker først, der. |
 
 **To tilfeller der dra er slått av.** Et søk i feltet **Search in {group}...** slår av omorganisering (panelet sier `N of M shown · drag to reorder is off while filtering`), så tøm søket først. Og rutenettgrupper omorganiseres aldri ved å dra, fordi plassen til en monitor kommer fra raden og kolonnen.
@@ -230,12 +230,12 @@ Etter det kjøres en regel på nytt for en monitor hver gang en opprettes, eller
 
 ## Import av grupper fra CSV
 
-Det er tungvint å bygge et dypt hierarki for hånd. **Import groups from CSV** i kortoverskriftens meny med tre prikker åpner dialogen **Import Groups from CSV**.
+Det er tungvint å bygge et dypt hierarki for hånd. **Importer grupper fra CSV** i kortoverskriftens meny med tre prikker åpner dialogen **Importer grupper fra CSV**.
 
 :::steps
 ### Last ned malen
 
-Klikk på **Download CSV Template** for å hente `status-page-groups-template.csv`.
+Klikk på **Last ned CSV-mal** for å hente `status-page-groups-template.csv`.
 
 ### Fyll den ut
 
@@ -243,11 +243,11 @@ Klikk på **Download CSV Template** for å hente `status-page-groups-template.cs
 
 ### Last opp og forhåndsvis
 
-Klikk på **Choose CSV File**, velg filen din, og deretter **Preview Import** for å sjekke hva som blir opprettet før noe skrives.
+Klikk på **Velg CSV-fil**, velg filen din, og deretter **Forhåndsvis import** for å sjekke hva som blir opprettet før noe skrives.
 
 ### Importer
 
-Kjør importen. Tabellen **Import results** viser hver rad som **Opprettet**, **Mislyktes** eller **Hoppet over**, med årsaken, så en feil rad aldri forsvinner i stillhet.
+Kjør importen. Tabellen **Importresultater** viser hver rad som **Opprettet**, **Mislyktes** eller **Hoppet over**, med årsaken, så en feil rad aldri forsvinner i stillhet.
 :::
 
 | Kolonne | Hva den angir |
@@ -265,7 +265,7 @@ Kjør importen. Tabellen **Import results** viser hver rad som **Opprettet**, **
 | `columnAxisLabel` | Navnet på kolonnedimensjonen, for en rutenettgruppe. |
 | `columnAxisValues` | Kolonneverdiene, for en rutenettgruppe. |
 
-Importen oppretter grupper, ikke ressurser: legg til monitorer etterpå med **Legg til monitor**, **Add Multiple** eller en monitorregel.
+Importen oppretter grupper, ikke ressurser: legg til monitorer etterpå med **Legg til monitor**, **Legg til flere** eller en monitorregel.
 
 ## Feilsøking
 
@@ -278,7 +278,7 @@ Sjekk om monitoren er arkivert: raden til en arkivert monitor utelates til du ta
 :::
 
 :::details Det finnes ingen knapp Legg til monitor i en rutenettgruppe
-Rutenettet har ennå ingen rader eller kolonner. Klikk på **Set up the grid**, legg til akseverdiene i seksjonen **Oppsett**, så kommer **Legg til monitor** tilbake.
+Rutenettet har ennå ingen rader eller kolonner. Klikk på **Sett opp rutenettet**, legg til akseverdiene i seksjonen **Oppsett**, så kommer **Legg til monitor** tilbake.
 :::
 
 :::details Jeg kan ikke dra rader

@@ -294,8 +294,14 @@ describe("AWS rules", () => {
         accountId: "123456789012",
         dimensions: dimensions,
       });
-      if (rule.type === "AWS::AppRunner::Service") {
-        // Needs ServiceID, which the sample does not carry.
+      if (
+        rule.type === "AWS::AppRunner::Service" ||
+        rule.type === "AWS::ElasticBeanstalk::Environment"
+      ) {
+        /*
+         * Needs ServiceID, or the environment's ApplicationName, which the
+         * sample does not carry (AwsInventoryAppPlatforms has both).
+         */
         expect(arn).toBeNull();
         continue;
       }

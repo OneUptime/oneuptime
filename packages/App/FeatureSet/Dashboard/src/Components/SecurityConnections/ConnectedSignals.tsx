@@ -519,12 +519,20 @@ const ConnectedRecord: FunctionComponent<{
               className="mt-0.5 text-sm text-gray-600 text-pretty [overflow-wrap:anywhere]"
               data-testid={SECURITY_CONNECTIONS_TEST_IDS.recordReason}
             >
+              {/*
+               * Drawn and nothing else, so its values are set apart: in a
+               * Persian sentence what the case named and what the record
+               * holds - an address, a URL, a host - are each an isolate,
+               * read left to right in one piece, its punctuation at its
+               * own ends.
+               */}
               {translator.translateTemplate(
                 getConnectionReasonTemplate({ kind: resource.kind, match }),
                 {
                   value: match.entityValue,
                   matched: match.matchedValue,
                 },
+                { setsValuesApart: true },
               )}
             </p>
           ) : (

@@ -354,6 +354,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * What each cloud calls its commitments - Savings Plans, reservations,
+   * committed use discounts - on Savings' and an account's Commitments
+   * card. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudCommitments.ts",
+    kind: "keys",
+  },
+  /*
    * A resource's right-sizing from OneUptime's own readings: its verdict,
    * what to change and why, on its Overview. Only the words the file marks
    * are read: a size is its cloud's own name, drawn as written.
@@ -371,6 +380,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Utils/Telemetry/CloudChangeTitle.ts",
+    kind: "keys",
+  },
+  /*
+   * A cloud health event's description: OneUptime's own sentences in it -
+   * an Azure event's kind and tracking id, what caused a resource's change,
+   * the products an incident affects - in the reader's language. Only the
+   * sentences are keys: the provider's own words are drawn as written.
+   */
+  {
+    directory: "packages/Common/Utils/Telemetry/CloudHealthDescription.ts",
     kind: "keys",
   },
   /*

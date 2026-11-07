@@ -50,7 +50,7 @@ Kortet viser hvert felt på den nye hændelse, og hvor dets værdi kommer fra:
 | **Monitorer** | De monitorer, indsenderen valgte, sammen med dem, indstillingerne altid tilknytter. Uden nogen af delene, hændelsesskabelonens. |
 | **Etiketter** | De etiketter, indsenderen valgte, sammen med dem, indstillingerne altid tilføjer. Uden nogen af delene, hændelsesskabelonens. |
 | **Påvirkning startede** | Svaret på **Påvirkning startede**, når formularen spørger om det. |
-| **Hændelse Skabelon** | Formularens indstilling **Hændelse Skabelon**. Den udfylder alt, hvad svarene og indstillingerne lader stå uangivet. |
+| **Hændelsesskabelon** | Formularens indstilling **Hændelsesskabelon**. Den udfylder alt, hvad svarene og indstillingerne lader stå uangivet. |
 | **Vagtpolitikker** | De politikker, indstillingerne nævner, kørt for hver hændelse, formularen opretter. Uden nogen, hændelsesskabelonens. |
 | **Ejere** | De personer og teams, indstillingerne nævner, sammen med skabelonens ejere. De får besked om hver hændelse. |
 | **Brugerdefinerede felter** | Hvert spørgsmål om et brugerdefineret felt får sit svar — medmindre feltet kopierer sin værdi fra et brugerdefineret monitorfelt, og hændelsens monitorer har en; skabelonen udfylder resten. |
@@ -62,7 +62,7 @@ Kortet viser hvert felt på den nye hændelse, og hvor dets værdi kommer fra:
 
 ### Hændelsesskabelonen
 
-Vælg en **Hændelse Skabelon** i indstillingerne, så oprettes hver hændelse, formularen opretter, ud fra den, på samme måde som serveren anvender en skabelon overalt — se [Sådan anvendes en skabelon](/docs/incidents/settings#sådan-anvendes-en-skabelon). Svarene og formularens indstillinger kommer først, og skabelonen udfylder alt andet: den indledende tilstand, beskrivelsen, alvorligheden, de berørte ressourcer, vagtpolitikkerne, ejerne, etiketterne, værdierne i brugerdefinerede felter og en ændring af monitorstatus.
+Vælg en **Hændelsesskabelon** i indstillingerne, så oprettes hver hændelse, formularen opretter, ud fra den, på samme måde som serveren anvender en skabelon overalt — se [Sådan anvendes en skabelon](/docs/incidents/settings#sådan-anvendes-en-skabelon). Svarene og formularens indstillinger kommer først, og skabelonen udfylder alt andet: den indledende tilstand, beskrivelsen, alvorligheden, de berørte ressourcer, vagtpolitikkerne, ejerne, etiketterne, værdierne i brugerdefinerede felter og en ændring af monitorstatus.
 
 > [!WARNING]
 > **Pas på monitorerne.** At oprette en hændelse på en monitor via en formular påvirker monitoren præcis som at oprette en hændelse på den manuelt: den aktive overvågning af monitoren sættes på pause, indtil hændelsen er løst, og en skabelons **Skift overvågningsstatus til** ændrer monitorens status med det samme — på hver statusside, der viser monitoren, selv mens selve hændelsen er skjult. Med en formular kan alle med linket gøre dette. Tilknyt kun monitorer via en formular, når hver indsendelse skal sætte dem på pause.
@@ -118,7 +118,7 @@ En indsendelse er nogens anmodning, og en anmodning gennemgås, før den offentl
 
 | Trin | Hændelsesformular | Vedligeholdelsesformular |
 | --- | --- | --- |
-| **Standardværdier** | **Standardtitel**, **Alvorlighed**, **Hændelse Skabelon** | **Standardtitel** |
+| **Standardværdier** | **Standardtitel**, **Alvorlighed**, **Hændelsesskabelon** | **Standardtitel** |
 | **Knyt altid til** | **Monitorer**, **Etiketter**, **Vagtpolitikker** | **Monitorer**, **Statussider**, **Etiketter** |
 | **Ejere** | **Ejere** | **Ejere** |
 | **Offentliggørelse** | — | **Vis på statussider**, **Underret abonnenter** |

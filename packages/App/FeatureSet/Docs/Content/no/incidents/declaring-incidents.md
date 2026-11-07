@@ -34,7 +34,7 @@ Skjemaet **Erklær ny hendelse** spør om en hendelse i tre trinn — **Hendelse
 1. Åpne **Hendelser → Alle hendelser**, og klikk på **Erklær hendelse** øverst til høyre i listen **Hendelser**. Skjemaet åpner på **Hendelsesdetaljer**.
 2. Skriv inn en **Tittel**, og velg en **Hendelsesalvor**. Resten av skjemaet er valgfritt.
 3. Klikk deg gjennom de resterende trinnene med **Neste**, og fyll ut det du vet nå: monitorer og andre ressurser, vaktpolicyer, roller.
-4. Les sammendraget, og klikk på **Erklær hendelse**. Du havner på den nye hendelsen, og **Hendelse Feed** begynner å registrere.
+4. Les sammendraget, og klikk på **Erklær hendelse**. Du havner på den nye hendelsen, og **Hendelsesfeed** begynner å registrere.
 :::
 
 Bare det første trinnet har påkrevde felt, pluss ethvert egendefinert felt administratorene dine har merket som **Påkrevd ved opprettelse**, som trinnet **Detaljer** spør om. Hvert trinn før sammendraget har en vanlig **Neste**, og **Erklær hendelse** står på sammendraget, det siste trinnet. Har du det travelt, fyller du ut **Hendelsesdetaljer** og trykker **Neste** gjennom de andre trinnene uten å fylle dem ut: å legge til ressurser, legge til vaktpolicyer og tildele roller kan også vente til hendelsens egne sider. Trykker du på **Enter** i et felt, går det også videre; det erklærer aldri før sammendraget.
@@ -142,7 +142,7 @@ Fortsetter du å erklære den samme typen hendelse — det samme tittelmønstere
 3. Endre det som er annerledes denne gangen, gå deretter gjennom trinnene, og erklær som vanlig.
 :::
 
-Har prosjektet ditt ingen maler ennå, får du i stedet en dialog **No Incident Templates** med en knapp **Create Template** som tar deg til **Hendelser → Innstillinger → Hendelsesmaler**.
+Har prosjektet ditt ingen maler ennå, får du i stedet en dialog **Ingen hendelsesmaler** med en knapp **Create Template** som tar deg til **Hendelser → Innstillinger → Hendelsesmaler**.
 
 Maler bygges med en egen veiviser i fire trinn — **Malinformasjon**, **Hendelsesdetaljer**, **Berørte ressurser**, **Vakt** — pluss trinnene **Egendefinerte felt** og **Egendefinerte felt ved opprettelse** etter **Berørte ressurser** når prosjektet ditt har egendefinerte hendelsesfelt. Malens **Innledende hendelsestilstand**, **Eiere** og **Etiketter** ligger under **Flere felt** på slutten av **Hendelsesdetaljer**. **Berørte ressurser** spør som erklæringsskjemaet gjør — **Monitorer**, deretter **Endre overvåkingsstatus til**, deretter **Andre berørte ressurser**, med **Begrens til disse statussidene** under **Flere felt** — bortsett fra at en mal alltid spør om monitorstatusen: den gjelder også monitorene som velges når en hendelse erklæres fra malen. Dette er feltene:
 
@@ -178,7 +178,7 @@ Noen raske regler:
 De fleste hendelser burde ikke kreve at et menneske skriver dem inn. Kriteriene til en monitor kan erklære en i det øyeblikket et filter samsvarer:
 
 :::steps
-1. Åpne monitoren, velg **Kriterier** i sidemenyen, og klikk på **Edit Monitoring Criteria**. (En ny monitor spør om de samme kriteriene mens du oppretter den.)
+1. Åpne monitoren, velg **Kriterier** i sidemenyen, og klikk på **Rediger overvåkingskriterier**. (En ny monitor spør om de samme kriteriene mens du oppretter den.)
 2. Slå på **Når filtre samsvarer, erklær en hendelse.** i kriteriefilteret som skal erklære. En seksjon **Opprett hendelse** vises med en knapp **Legg til hendelse** — ett kriteriefilter kan erklære mer enn én hendelse.
 3. Fyll ut hendelsens felt (se nedenfor), og lagre. Neste gang filteret samsvarer, erklæres hendelsen og tilkaller vaktpolicyene sine.
 :::

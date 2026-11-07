@@ -321,7 +321,7 @@ Mens rettelse er slået til, sætter en undersøgelse, der ender med en sikker, 
 Alt andet svarer til knappen:
 
 - Pull requesten åbnes klar til gennemgang, skrevet ud fra den offentliggjorte analyse, og kræver et forbundet repositorie, et af dem, de matchende regler nævner, når de nævner nogen, og en Runner, der er online til at arbejde i det: den, repositoriet vælger, eller en global Runner.
-- Den tæller med i signalets daglige grænse for rettelsesopgaver (**Daily Incident AI Fix Task Limit** eller **Daily Alert AI Fix Task Limit**, under **Yderligere indstillinger** på dets AI-indstillingsside) og i repositoriets loft over åbne pull requests, når et af dem er sat. Uden at være sat begrænser ingen af dem noget.
+- Den tæller med i signalets daglige grænse for rettelsesopgaver (**Dagligt loft for AI-rettelsesopgaver for hændelser** eller **Dagligt loft for AI-rettelsesopgaver for advarsler**, under **Yderligere indstillinger** på dets AI-indstillingsside) og i repositoriets loft over åbne pull requests, når et af dem er sat. Uden at være sat begrænser ingen af dem noget.
 - Hver udløser leder først efter en rettelsesopgave, der allerede står i kø eller kører for den samme hændelse eller advarsel, så en automatisk udløser og et klik normalt bliver til én opgave, ikke to pull requests. Kontrollen er en læsning før skrivningen, ikke en lås, så to udløsere i præcis samme øjeblik stadig begge kan komme igennem.
 - Kørslen skrives af systemet, krediteres ingen, og intet merges af sig selv.
 

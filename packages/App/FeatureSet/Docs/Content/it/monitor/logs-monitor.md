@@ -240,7 +240,7 @@ Il valore di ogni attributo di Group By è una [variabile di modello](/docs/moni
 ## Risoluzione dei problemi
 
 :::details Il monitor è offline, ma il mio servizio scrive log
-Il conteggio era 0, quindi i filtri non corrispondono a nessuno dei log che il servizio invia. Aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Edit Monitoring Criteria**: **Log corrispondenti** mostra a cosa corrispondono i filtri in questo momento, e il grafico in **Quando avvisare** li conta in ogni finestra. Le cause più comuni sono una gravità scelta in base al testo stampato dal logger invece che al suo numero di gravità (vedete [Gravità dei log](#gravità-dei-log)), un filtro di servizio o di attributo che non corrisponde, e una finestra di tempo più breve dell'intervallo tra i log del servizio.
+Il conteggio era 0, quindi i filtri non corrispondono a nessuno dei log che il servizio invia. Aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Modifica criteri di monitoraggio**: **Log corrispondenti** mostra a cosa corrispondono i filtri in questo momento, e il grafico in **Quando avvisare** li conta in ogni finestra. Le cause più comuni sono una gravità scelta in base al testo stampato dal logger invece che al suo numero di gravità (vedete [Gravità dei log](#gravità-dei-log)), un filtro di servizio o di attributo che non corrisponde, e una finestra di tempo più breve dell'intervallo tra i log del servizio.
 :::
 
 :::details C'è stato un picco, ma nessun avviso

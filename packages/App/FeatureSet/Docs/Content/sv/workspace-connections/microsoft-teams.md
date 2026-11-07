@@ -84,8 +84,8 @@ En aviseringsregel anger vilka händelser som publiceras i Microsoft Teams, och 
 
 | Produkt | Flikar på produktens **Microsoft Teams**-sida |
 | --- | --- |
-| **Incidenter** | **Incidenter**, **Incident Episoder**, **Sammanfattning** |
-| **Larm** | **Larm**, **Larm Episoder**, **Sammanfattning** |
+| **Incidenter** | **Incidenter**, **Incidentepisoder**, **Sammanfattning** |
+| **Larm** | **Larm**, **Larmepisoder**, **Sammanfattning** |
 | **Schemalagt underhåll** | En lista med regler |
 | **Monitorer** | En lista med regler |
 | **Jourtjänst** | En lista med regler |

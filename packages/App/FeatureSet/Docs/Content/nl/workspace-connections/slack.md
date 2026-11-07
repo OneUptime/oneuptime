@@ -73,7 +73,7 @@ Een meldingsregel bepaalt welke gebeurtenissen in Slack worden geplaatst, en waa
 | Product | Tabbladen op zijn **Slack**-pagina |
 | --- | --- |
 | **Incidenten** | **Incidenten**, **Incidentepisodes**, **Samenvatting** |
-| **Waarschuwingen** | **Waarschuwingen**, **Waarschuwing Episodes**, **Samenvatting** |
+| **Waarschuwingen** | **Waarschuwingen**, **Waarschuwingsepisodes**, **Samenvatting** |
 | **Geplande onderhoud** | Eén lijst met regels |
 | **Monitoren** | Eén lijst met regels |
 | **Bereikbaarheidsdienst** | Eén lijst met regels |

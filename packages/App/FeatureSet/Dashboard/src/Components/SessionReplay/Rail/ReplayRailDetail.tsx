@@ -44,6 +44,7 @@ import {
   pairClientAndServerErrors,
   showsVitalView,
 } from "./ReplaySignals";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The inline detail under a selected rail row, rendered by kind.
@@ -585,7 +586,8 @@ const NavigationDetail: FunctionComponent<{
                     {vital.subtitle ? ` ${vital.subtitle}` : ""}
                     {updatedVitalIds.has(vital.id) && (
                       <span className="text-gray-400">
-                        {" · "}updated later
+                        <InlineSeparator />
+                        updated later
                       </span>
                     )}
                   </button>

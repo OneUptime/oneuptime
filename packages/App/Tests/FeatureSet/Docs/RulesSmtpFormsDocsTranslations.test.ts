@@ -1545,7 +1545,7 @@ describe("the helpers, on these pages' shapes", () => {
     // Italian has no wording for "Create SMTP Config": the template is filled.
     expect(dashboardLocale("it")["Create SMTP Config"]).toBeUndefined();
     expect(drawnLabel("it", SMTP, "Create SMTP Config")).toBe(
-      "Crea: SMTP Configurazione",
+      "Crea: Configurazione SMTP",
     );
     // A whole phrase the locale words is taken as it is.
     expect(drawnLabel("de", FORMS, "Create Form")).toBe("Formular erstellen");
