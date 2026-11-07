@@ -867,9 +867,9 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
   }
 
   /*
-   * The columns of `includeColumns` an entry may record: the model's own
-   * columns, never its id, timestamps or version (SKIPPED_FIELDS), which no
-   * entry records whoever asks.
+   * The columns of `includeColumns` that are the model's own. Its id,
+   * timestamps and version stay out of every entry whoever names them
+   * (SKIPPED_FIELDS, which getExcludedFields always leaves out).
    */
   private getIncludedColumns<TModel extends BaseModel>(
     model: TModel,
@@ -878,11 +878,7 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     const included: Set<string> = new Set<string>();
 
     for (const column of includeColumns || []) {
-      if (
-        typeof column === "string" &&
-        !SKIPPED_FIELDS.has(column) &&
-        model.isTableColumn(column)
-      ) {
+      if (typeof column === "string" && model.isTableColumn(column)) {
         included.add(column);
       }
     }

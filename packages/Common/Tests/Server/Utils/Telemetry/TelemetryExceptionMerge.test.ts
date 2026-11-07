@@ -1408,8 +1408,14 @@ describe("the audit log entries a merge or an unmerge leaves", () => {
         } else {
           await unmerge(ids[random(ids.length)]!);
         }
-      } catch {
+      } catch (err) {
         // A refused merge: the table is as it was, and nothing is entered.
+        if (
+          !(err instanceof BadDataException) &&
+          !(err instanceof NotAuthorizedException)
+        ) {
+          throw err;
+        }
       }
 
       const moved: Array<[string, string | null, string | null]> = rows
