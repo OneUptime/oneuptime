@@ -100,7 +100,7 @@ const formulaOf: (
 const filterOf: (data: {
   filterType?: FilterType;
   value?: unknown;
-  alias?: string;
+  alias?: string | undefined;
   evaluation?: EvaluateOverTimeType;
   unit?: string;
   noData?: NoDataPolicy;
@@ -108,7 +108,7 @@ const filterOf: (data: {
 }) => CriteriaFilter = (data: {
   filterType?: FilterType;
   value?: unknown;
-  alias?: string;
+  alias?: string | undefined;
   evaluation?: EvaluateOverTimeType;
   unit?: string;
   noData?: NoDataPolicy;
@@ -172,16 +172,16 @@ const stepOf: (data: {
   queryConfigs?: Array<MetricQueryConfigData>;
   formulaConfigs?: Array<MetricFormulaConfigData>;
   criteria: Array<MonitorCriteriaInstance>;
-  rollingTime?: RollingTime;
+  rollingTime?: RollingTime | undefined;
   stepKey?: string;
-  settings?: JSONObject;
+  settings?: JSONObject | undefined;
 }) => MonitorStep = (data: {
   queryConfigs?: Array<MetricQueryConfigData>;
   formulaConfigs?: Array<MetricFormulaConfigData>;
   criteria: Array<MonitorCriteriaInstance>;
-  rollingTime?: RollingTime;
+  rollingTime?: RollingTime | undefined;
   stepKey?: string;
-  settings?: JSONObject;
+  settings?: JSONObject | undefined;
 }): MonitorStep => {
   const step: MonitorStep = new MonitorStep();
 
