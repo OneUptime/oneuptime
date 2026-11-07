@@ -11,6 +11,12 @@ import StorageSystem from "Common/Types/StorageArray/StorageSystem";
 import MonitorStepMetricQueries, {
   MonitorStepMetricReads,
 } from "Common/Utils/Monitor/MonitorStepMetricQueries";
+import MetricTelemetrySnapshot from "Common/Utils/Monitor/MetricTelemetrySnapshot";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
+import KubernetesFinishedPods, {
+  POD_UID_ATTRIBUTE,
+} from "Common/Server/Utils/Monitor/KubernetesFinishedPods";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -515,6 +521,31 @@ describe("the dashboard reads every metric-backed step as the worker does", () =
 
         expect(response.queryAttributes).toHaveLength(queryConfigs.length);
 
+        /*
+         * What an incident or alert this check opened keeps of it (issue
+         * #6265): its card charts the same as the monitor's page.
+         */
+        const snapshot: TelemetryQuery =
+          MetricTelemetrySnapshot.fromResponse(response);
+        // Its queries as the step keeps them, each charted with its scope.
+        expect(snapshot.metricViewData?.queryConfigs).toBe(
+          response.metricViewConfig.queryConfigs,
+        );
+        const snapshotCharted: Array<MetricQueryConfigData> =
+          MetricTelemetrySnapshot.applyScopes({
+            queryConfigs: snapshot.metricViewData!.queryConfigs,
+            scopes: MetricTelemetrySnapshot.getStoredScopes(snapshot)!,
+          });
+
+        for (let index: number = 0; index < queryConfigs.length; index++) {
+          expect(
+            snapshotCharted[index]!.metricQueryData.filterData.attributes || {},
+          ).toEqual(
+            reads.queryConfigs[index]!.metricQueryData.filterData.attributes ||
+              {},
+          );
+        }
+
         for (let index: number = 0; index < queryConfigs.length; index++) {
           const workerRead: Dictionary<unknown> | undefined =
             response.queryAttributes?.[index];
@@ -538,4 +569,65 @@ describe("the dashboard reads every metric-backed step as the worker does", () =
       }
     },
   );
+
+  /*
+   * A Kubernetes check of a request metric leaves out the pods that
+   * finished in its window (KubernetesFinishedPods): the list describes that
+   * window only, so the worker does not say it read the query with it, and
+   * neither the monitor's charts nor an event's snapshot repeat it.
+   */
+  test("Kubernetes: the finished pods a request read leaves out are not kept in the snapshot", async () => {
+    const finishedPods: jest.SpiedFunction<
+      typeof KubernetesFinishedPods.readFinishedPodUids
+    > = jest
+      .spyOn(KubernetesFinishedPods, "readFinishedPodUids")
+      .mockResolvedValue(["finished-pod-uid"]);
+
+    try {
+      const request: MetricQueryConfigData = {
+        metricAliasData: {
+          metricVariable: "a",
+          title: undefined,
+          description: undefined,
+          legend: undefined,
+          legendUnit: undefined,
+        },
+        metricQueryData: {
+          filterData: {
+            metricName: "k8s.container.cpu_request",
+            aggegationType: MetricsAggregationType.Sum,
+          },
+        },
+      } as unknown as MetricQueryConfigData;
+
+      const step: MonitorStep = stepOf({
+        monitorType: MonitorType.Kubernetes,
+        settings: { clusterIdentifier: "prod" },
+        queryConfigs: [request],
+      });
+
+      const response: MetricMonitorResponse = await monitorKubernetes({
+        monitorStep: step,
+        monitorId: ObjectID.generate(),
+        projectId: ObjectID.generate(),
+      });
+
+      // The read itself left the finished pod out...
+      const read: { query: { attributes: Dictionary<unknown> } } = (
+        MetricService.aggregateBy as unknown as jest.Mock
+      ).mock.calls[0]![0] as never;
+      expect(read.query.attributes[POD_UID_ATTRIBUTE]).toBeInstanceOf(
+        IncludesNone,
+      );
+
+      // ...and what the event keeps names the cluster only.
+      const snapshot: TelemetryQuery =
+        MetricTelemetrySnapshot.fromResponse(response);
+      expect(snapshot.metricQueryScopes).toEqual([
+        { "resource.k8s.cluster.name": "prod" },
+      ]);
+    } finally {
+      finishedPods.mockRestore();
+    }
+  });
 });

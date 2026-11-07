@@ -82,6 +82,7 @@ Le menu latéral de la page regroupe ce que vous faites d'une exception :
 | **Journaux** | Les journaux écrits autour de la dernière occurrence. |
 | **Assistance IA** | Des tâches IA qui corrigent l'exception ou la testent. |
 | **Paramètres** | Résoudre ou archiver l'exception. Elle se trouve sous **Gérer**, replié au départ. |
+| **Journaux d'audit** | Qui a résolu, archivé ou attribué l'exception, et quand. Elle se trouve aussi sous **Gérer**. |
 
 ## Résoudre, rouvrir et archiver
 
