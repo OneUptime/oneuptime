@@ -993,6 +993,46 @@ describe("summary and findings", () => {
     expect(insights).toEqual([]);
   });
 
+  /*
+   * Narrowed to one session, or to a person seen once, the page drew "Most
+   * sessions start on /pricing" from that one session, under a tile that
+   * already names its landing page.
+   */
+  test("one session leads nothing, so it names no landing page", () => {
+    for (const pages of [["/pricing"], ["/", "/cart", "/checkout"]]) {
+      expect(
+        analyzeUserFlow(response([{ id: "1", pages: pages }]), {}).insights,
+      ).toEqual([]);
+    }
+
+    /* Nor does one session left by the Sessions and Device filters. */
+    expect(
+      analyzeUserFlow(
+        response([
+          { id: "1", pages: ["/a"], deviceType: "mobile" },
+          { id: "2", pages: ["/a"] },
+        ]),
+        { deviceType: "mobile" },
+      ).insights,
+    ).toEqual([]);
+  });
+
+  test("two sessions on one landing page are a lead", () => {
+    const insights: Array<UserFlowInsight> = analyzeUserFlow(
+      response([
+        { id: "1", pages: ["/a"] },
+        { id: "2", pages: ["/a", "/b"] },
+      ]),
+      {},
+    ).insights;
+
+    expect(
+      insights.map((insight: UserFlowInsight): string => {
+        return `${insight.kind} ${insight.page} ${insight.sessions}`;
+      }),
+    ).toEqual(["top-entry /a 2"]);
+  });
+
   test("a clear lead is still named, whatever the sample", () => {
     const insights: Array<UserFlowInsight> = analyzeUserFlow(
       response([
