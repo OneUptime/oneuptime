@@ -82,7 +82,7 @@ O menu lateral da página agrupa o que você faz com uma exceção:
 | **Registros** | Os registros escritos em torno da ocorrência mais recente. |
 | **Assistência de IA** | Tarefas de IA que corrigem a exceção ou a testam. |
 | **Configurações** | Resolver ou arquivar a exceção. Fica em **Gerenciar**, que começa recolhido. |
-| **Registros de auditoria** | Quem resolveu, arquivou ou atribuiu a exceção, e quando. Também fica em **Gerenciar**. |
+| **Registros de auditoria** | Quem resolveu, arquivou, atribuiu ou mesclou a exceção, e quando. Também fica em **Gerenciar**. |
 
 ## Resolver, reabrir e arquivar
 
@@ -138,7 +138,7 @@ IDs, endereços de e-mail e IP e tokens são retirados de tudo o que é enviado,
 
 Abaixo dos cartões, **Exceções semelhantes** lista até cinco outras exceções parecidas com esta: a **Mesma mensagem** depois de tirados os valores, o **Mesmo local no código** do seu código, ou uma **Mensagem semelhante** com a maioria das mesmas palavras. Uma mesma causa pode cair em várias exceções, então **Verificar com a OneUptime AI** diz de cada uma se é **Provavelmente o mesmo bug**, **Um bug relacionado** ou **Um bug diferente**, e por quê. A verificação usa os créditos de IA do projeto e não é oferecida enquanto **Habilitar IA** está desligado. A resposta é guardada até a próxima ocorrência.
 
-Mescle a esta exceção uma que a OneUptime AI chame de **Provavelmente o mesmo bug**, do mesmo serviço, com **Mesclar** ao lado: suas ocorrências, as anteriores e cada nova, passam a contar nesta exceção e aparecem na página dela, e ela sai da lista. **Mescladas a esta exceção**, abaixo, lista o que foi mesclado, e **Desfazer mesclagem** ao lado de cada uma, ou na página de uma exceção mesclada, devolve a ela o seu lugar na lista, com as ocorrências desde então. Mesclar e desfazer a mesclagem exigem permissão para editar exceções.
+Mescle a esta exceção uma que a OneUptime AI chame de **Provavelmente o mesmo bug**, do mesmo serviço, com **Mesclar** ao lado: suas ocorrências, as anteriores e cada nova, passam a contar nesta exceção e aparecem na página dela, e ela sai da lista. **Mescladas a esta exceção**, abaixo, lista o que foi mesclado, e **Desfazer mesclagem** ao lado de cada uma, ou na página de uma exceção mesclada, devolve a ela o seu lugar na lista, com as ocorrências desde então. Mesclar e desfazer a mesclagem exigem permissão para editar exceções. Quem mesclou uma exceção, e quem desfez a mesclagem, aparece na página **Registros de auditoria** dela; a exceção à qual foi mesclada não recebe entrada, pois nada que alguém tenha definido nela mudou.
 
 ## Corrigir com IA
 

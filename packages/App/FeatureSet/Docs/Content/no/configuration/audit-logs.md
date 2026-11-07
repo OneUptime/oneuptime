@@ -88,7 +88,7 @@ Alt folk oppretter, endrer eller sletter i et prosjekt, registreres: monitorer, 
 
 Det registreres også når en administrator legger til eller fjerner en varslingsmetode eller en personlig vaktregel på en annens konto, uten selve adressen eller nummeret.
 
-Felt som bare OneUptime skriver, for eksempel når en vert sist ble sett, utelates fra alle oppføringer, og det samme gjør felt som ingen kan lese. Nøkler, tokener og passord registreres som `[REDACTED]`: oppføringen viser at de er endret, aldri verdien deres. Trinnene i en arbeidsflyt registreres som det som endret seg, med navnene på et trinns innstillinger, men aldri det som ble skrevet inn i dem, og å flytte et trinn på lerretet registreres ikke.
+Felt som bare OneUptime skriver, for eksempel når en vert sist ble sett, utelates fra alle oppføringer, og det samme gjør felt som ingen kan lese. Når OneUptime skriver et av dem fordi noen ba om det, for eksempel når et unntak slås sammen med et annet eller en webhook-URL tilbakestilles, registrerer oppføringen det som den personens endring. Nøkler, tokener og passord registreres som `[REDACTED]`: oppføringen viser at de er endret, aldri verdien deres. Trinnene i en arbeidsflyt registreres som det som endret seg, med navnene på et trinns innstillinger, men aldri det som ble skrevet inn i dem, og å flytte et trinn på lerretet registreres ikke.
 
 ## Hvor lenge oppføringer beholdes
 

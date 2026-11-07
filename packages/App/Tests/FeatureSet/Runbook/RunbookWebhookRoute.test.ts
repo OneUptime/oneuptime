@@ -6,6 +6,7 @@ import RunbookWebhookAPI, {
 import CommonAPI from "Common/Server/API/CommonAPI";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
+import AuditLogService from "Common/Server/Services/AuditLogService";
 import RunbookService, {
   Service as RunbookServiceClass,
 } from "Common/Server/Services/RunbookService";
@@ -751,6 +752,57 @@ describe("the key routes", () => {
     expect(result.headers["Cache-Control"]).toBe("no-store");
     expect((reset.mock.calls[0]![0] as ObjectID).toString()).toBe(
       RUNBOOK_ID.toString(),
+    );
+  });
+
+  /*
+   * The reset writes round DatabaseService's hooks, and the key is
+   * OneUptime's to write and nobody's to read, so the route records who
+   * reset the URL itself (issue #6276). The recorder writes the key as
+   * changed, never with its value (ee's AuditLogWritesRoundTheHooks).
+   */
+  test("reset the key, and record in the audit log who reset it", async () => {
+    const caller: DatabaseCommonInteractionProps = signedIn();
+    (
+      CommonAPI.getDatabaseCommonInteractionProps as unknown as jest.Mock
+    ).mockResolvedValue(caller);
+    const reset: jest.SpyInstance = jest
+      .spyOn(RunbookService, "resetWebhookSecretKey")
+      .mockResolvedValue("n".repeat(43));
+    const record: jest.SpyInstance = jest
+      .spyOn(AuditLogService, "recordUpdate")
+      .mockResolvedValue(undefined);
+
+    const result: CallResult = await call({
+      uri: RUNBOOK_WEBHOOK_SECRET_RESET_ROUTE,
+      params: { runbookId: RUNBOOK_ID.toString() },
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(record).toHaveBeenCalledTimes(1);
+
+    const recorded: {
+      model: unknown;
+      before: Runbook;
+      updatedFields: JSONObject;
+      itemId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+      includeColumns: Array<string>;
+    } = record.mock.calls[0]![0];
+
+    expect(recorded.model).toBeInstanceOf(Runbook);
+    // The runbook as it was, named, with the key it had.
+    expect(recorded.before.name).toBe("Clear the disk");
+    expect(recorded.before.webhookSecretKey).toBe(SECRET_KEY);
+    expect(recorded.updatedFields).toEqual({
+      webhookSecretKey: "n".repeat(43),
+    });
+    expect(recorded.itemId.toString()).toBe(RUNBOOK_ID.toString());
+    expect(recorded.props).toBe(caller);
+    expect(recorded.includeColumns).toEqual(["webhookSecretKey"]);
+    // Recorded once the reset is written.
+    expect(record.mock.invocationCallOrder[0]!).toBeGreaterThan(
+      reset.mock.invocationCallOrder[0]!,
     );
   });
 

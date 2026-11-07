@@ -88,7 +88,7 @@ Everything people create, change or delete in a project is recorded: monitors, i
 
 An administrator adding or removing a notification method or a personal on-call rule on someone else's account is recorded too, without the address or number itself.
 
-Fields only OneUptime writes, such as when a host was last seen, are left out of every entry, and so are fields nobody may read. Keys, tokens and passwords are recorded as `[REDACTED]`: the entry shows they changed, never their value. A workflow's steps are recorded as what changed, naming a step's settings but never what was typed into them, and moving a step on the canvas is not recorded.
+Fields only OneUptime writes, such as when a host was last seen, are left out of every entry, and so are fields nobody may read. When OneUptime writes one because someone asked it to, such as merging an exception into another or resetting a webhook URL, the entry records it as their change. Keys, tokens and passwords are recorded as `[REDACTED]`: the entry shows they changed, never their value. A workflow's steps are recorded as what changed, naming a step's settings but never what was typed into them, and moving a step on the canvas is not recorded.
 
 ## How long entries are kept
 

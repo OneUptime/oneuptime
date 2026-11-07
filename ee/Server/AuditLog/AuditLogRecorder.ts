@@ -29,6 +29,10 @@ import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
 import {
+  AUDIT_LOG_SECRET_COLUMNS,
+  looksLikeSecretColumn,
+} from "Common/Types/AuditLog/AuditLogCoverage";
+import {
   getAuditLogRedactedColumns,
   redactAuditLogValue,
 } from "Common/Types/AuditLog/AuditLogRedaction";
@@ -95,6 +99,14 @@ import {
  *     the paths that changed, and is recorded by its size when it is large;
  *   - long text keeps the part around the first difference
  *     (Common/Utils/AuditLog/AuditLogValues).
+ *
+ * WHAT A WRITE ROUND THE HOOKS RECORDS (recordUpdate's includeColumns): a
+ * write OneUptime makes for a person outside DatabaseService - a merge of
+ * exceptions, a webhook URL reset - records the change itself, and names
+ * the columns that say what the person did. They are recorded although the
+ * model's configuration leaves them out as OneUptime's own bookkeeping, on
+ * that entry only; one nobody may read, or a secret, as changed and never
+ * with its value. The row's id and timestamps are never recorded.
  */
 
 // Where an entry is written: core's AuditLog analytics service by default.
@@ -235,6 +247,7 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     updatedFields: JSONObject;
     itemId: ObjectID;
     props: DatabaseCommonInteractionProps;
+    includeColumns?: Array<string> | undefined;
   }): Promise<void> {
     try {
       /*
@@ -247,6 +260,7 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
         model: data.model,
         before: data.before,
         updatedFields: data.updatedFields,
+        includeColumns: data.includeColumns,
       });
 
       if (changes.length === 0) {
@@ -783,22 +797,93 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
   /*
    * Everything an entry leaves out: bookkeeping fields, columns nobody may read
    * (read ACL `[]`, so recording them would leak them to audit readers), and
-   * the model's ignored columns.
+   * the model's ignored columns - but for the columns a write round the hooks
+   * names as what a person did (`included`, see getIncludedColumns).
    */
   private getExcludedFields<TModel extends BaseModel>(
     model: TModel,
+    included: ReadonlySet<string> = new Set<string>(),
   ): Set<string> {
     const excluded: Set<string> = new Set<string>(SKIPPED_FIELDS);
 
     for (const field of this.getRedactedFields(model)) {
-      excluded.add(field);
+      if (!included.has(field)) {
+        excluded.add(field);
+      }
     }
 
     for (const field of model.enableAuditLogOn?.ignoreColumns || []) {
-      excluded.add(field);
+      if (!included.has(field)) {
+        excluded.add(field);
+      }
     }
 
     return excluded;
+  }
+
+  /*
+   * The included columns whose values an entry never carries: one nobody
+   * may read (a runbook's webhook key), and one holding a secret by the
+   * rules the defaults redact by - its type or its name says so, or
+   * AUDIT_LOG_SECRET_COLUMNS lists it. The defaults leave a secret only
+   * OneUptime writes out of entries (a data product's badge token), so they
+   * never list it to redact; included, it is redacted here. Each is recorded
+   * as changed - who reset it, and when - never with its value.
+   */
+  private getIncludedSecrets<TModel extends BaseModel>(
+    model: TModel,
+    included: ReadonlySet<string>,
+  ): Set<string> {
+    const secrets: Set<string> = new Set<string>();
+
+    if (included.size === 0) {
+      return secrets;
+    }
+
+    const unreadable: Set<string> = this.getRedactedFields(model);
+    const listed: ReadonlyArray<string> =
+      (model.tableName &&
+      Object.prototype.hasOwnProperty.call(
+        AUDIT_LOG_SECRET_COLUMNS,
+        model.tableName,
+      )
+        ? AUDIT_LOG_SECRET_COLUMNS[model.tableName]
+        : undefined) || [];
+
+    for (const column of included) {
+      if (
+        unreadable.has(column) ||
+        listed.includes(column) ||
+        looksLikeSecretColumn(
+          column,
+          model.getTableColumnMetadata(column)?.type,
+        )
+      ) {
+        secrets.add(column);
+      }
+    }
+
+    return secrets;
+  }
+
+  /*
+   * The columns of `includeColumns` that are the model's own. Its id,
+   * timestamps and version stay out of every entry whoever names them
+   * (SKIPPED_FIELDS, which getExcludedFields always leaves out).
+   */
+  private getIncludedColumns<TModel extends BaseModel>(
+    model: TModel,
+    includeColumns: Array<string> | undefined,
+  ): Set<string> {
+    const included: Set<string> = new Set<string>();
+
+    for (const column of includeColumns || []) {
+      if (typeof column === "string" && model.isTableColumn(column)) {
+        included.add(column);
+      }
+    }
+
+    return included;
   }
 
   private getRedactedFields<TModel extends BaseModel>(
@@ -986,10 +1071,22 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     model: TModel;
     before: TModel;
     updatedFields: JSONObject;
+    includeColumns?: Array<string> | undefined;
   }): JSONArray {
     const changes: JSONArray = [];
-    const excludedFields: Set<string> = this.getExcludedFields(data.model);
+    const included: Set<string> = this.getIncludedColumns(
+      data.model,
+      data.includeColumns,
+    );
+    const excludedFields: Set<string> = this.getExcludedFields(
+      data.model,
+      included,
+    );
     const redactedFields: Set<string> = getAuditLogRedactedColumns(data.model);
+
+    for (const field of this.getIncludedSecrets(data.model, included)) {
+      redactedFields.add(field);
+    }
     const beforeRecord: Record<string, unknown> =
       data.before as unknown as Record<string, unknown>;
 
