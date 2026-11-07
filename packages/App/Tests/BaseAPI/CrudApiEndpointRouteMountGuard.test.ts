@@ -748,7 +748,7 @@ describe("CrudApiEndpoint route mount guard (#5803)", () => {
   });
 
   test("it reads every model with a route, and every mount it follows ends at one", () => {
-    // 571 on 2026-11-07: all but the four exceptions mounted.
+    // 577 on 2026-11-07: all but the four exceptions mounted.
     expect(CRUD_MODELS.length).toBeGreaterThan(500);
 
     const names: Set<string> = new Set<string>(
