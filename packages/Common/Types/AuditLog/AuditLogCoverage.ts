@@ -211,6 +211,7 @@ export const AUDIT_LOG_EXEMPT_TABLES: Readonly<
   StatusPagePrivateUserSession: AuditLogExemptionKind.WorkingState,
   UserNotificationEmailRollupBatch: AuditLogExemptionKind.WorkingState,
   UserNotificationEmailRollupItem: AuditLogExemptionKind.WorkingState,
+  WorkflowVersion: AuditLogExemptionKind.WorkingState,
   WorkspaceHomeChoice: AuditLogExemptionKind.WorkingState,
   WorkspaceLiveMessage: AuditLogExemptionKind.WorkingState,
   WorkspaceSetting: AuditLogExemptionKind.WorkingState,

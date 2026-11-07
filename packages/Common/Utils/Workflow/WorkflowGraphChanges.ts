@@ -30,9 +30,12 @@ import { getComponentOutPorts } from "../../Types/Workflow/ComponentOutPorts";
  * here. A setting is named, never quoted: its value may be a password, a
  * token or a webhook address typed into the step.
  *
- * The audit log records a workflow's graph this way (AuditLogRecorder); a
- * workflow's version history can say what changed between versions with the
- * same lines. Pure: no DOM, no server.
+ * The audit log records a workflow's graph this way (AuditLogRecorder). A
+ * workflow's version history says what changed between versions with the
+ * same lines, and asks for cards moved too (includeMoves): a version puts
+ * back where each card sat, so a version that only moved cards says so. The
+ * builder's Undo and Redo name what they would undo from the same changes,
+ * by kind (`changes`). Pure: no DOM, no server.
  */
 
 // What the lines need of a step's component: its title, settings and outputs.
@@ -64,11 +67,48 @@ export interface WorkflowGraphContent {
   connections: Array<WorkflowGraphConnection>;
 }
 
+// What kind of change a line says.
+export enum WorkflowGraphChangeKind {
+  Added = "Added",
+  Removed = "Removed",
+  Renamed = "Renamed",
+  // Another component under the same card: "Replaced "Log" with ...".
+  Replaced = "Replaced",
+  SettingsChanged = "SettingsChanged",
+  // A part of the step other than its settings: "Changed how ... is set up".
+  SetUpChanged = "SetUpChanged",
+  Connected = "Connected",
+  Disconnected = "Disconnected",
+  // Only with includeMoves: the cards that moved, in one line.
+  Moved = "Moved",
+}
+
+// A step a change is about: its canvas key, and how the lines name it.
+export interface WorkflowGraphChangedStep {
+  key: string;
+  label: string;
+}
+
+export interface WorkflowGraphChange {
+  kind: WorkflowGraphChangeKind;
+  line: string;
+  /*
+   * The steps the line is about: the step added, removed or changed, both
+   * ends of a connection (where it leaves first), every card that moved.
+   */
+  steps: Array<WorkflowGraphChangedStep>;
+}
+
 export interface WorkflowGraphChanges {
   // Every change, in plain words, in the order the lines below say.
   lines: Array<string>;
   // How many lines there were before they were cut to the limit.
   totalChanges: number;
+  /*
+   * Every change, uncut, in the order of the lines: what kind it is and
+   * which steps it is about, for a caller that words a change its own way.
+   */
+  changes: Array<WorkflowGraphChange>;
 }
 
 // A summary longer than this ends with "and N more changes".
@@ -126,15 +166,52 @@ const toGraphObject: (graph: unknown) => JSONObject | null = (
   return isObject(graph) ? graph : null;
 };
 
-// The steps and connections of a saved graph, the way a run reads them.
-export const readWorkflowGraph: (graph: unknown) => WorkflowGraphContent = (
+// Where a card sits on the canvas.
+interface CardPosition {
+  x: number;
+  y: number;
+}
+
+const readCardPosition: (node: JSONObject) => CardPosition | null = (
+  node: JSONObject,
+): CardPosition | null => {
+  const position: unknown = node["position"];
+
+  if (!isObject(position)) {
+    return null;
+  }
+
+  const x: unknown = position["x"];
+  const y: unknown = position["y"];
+
+  return typeof x === "number" &&
+    typeof y === "number" &&
+    Number.isFinite(x) &&
+    Number.isFinite(y)
+    ? { x, y }
+    : null;
+};
+
+/*
+ * The steps and connections of a saved graph, and where each step's card
+ * sits (for includeMoves). One reading for both, so a card that moved is
+ * the step the other lines name.
+ */
+const readWorkflowGraphAndPositions: (graph: unknown) => {
+  content: WorkflowGraphContent;
+  positions: Map<string, CardPosition>;
+} = (
   graph: unknown,
-): WorkflowGraphContent => {
+): {
+  content: WorkflowGraphContent;
+  positions: Map<string, CardPosition>;
+} => {
   const content: WorkflowGraphContent = { steps: [], connections: [] };
+  const positions: Map<string, CardPosition> = new Map<string, CardPosition>();
   const graphObject: JSONObject | null = toGraphObject(graph);
 
   if (!graphObject) {
-    return content;
+    return { content, positions };
   }
 
   const nodes: unknown = graphObject["nodes"];
@@ -161,6 +238,12 @@ export const readWorkflowGraph: (graph: unknown) => WorkflowGraphContent = (
     }
 
     seen.add(key);
+
+    const position: CardPosition | null = readCardPosition(node);
+
+    if (position) {
+      positions.set(key, position);
+    }
 
     const otherData: JSONObject = {};
 
@@ -199,7 +282,14 @@ export const readWorkflowGraph: (graph: unknown) => WorkflowGraphContent = (
     });
   }
 
-  return content;
+  return { content, positions };
+};
+
+// The steps and connections of a saved graph, the way a run reads them.
+export const readWorkflowGraph: (graph: unknown) => WorkflowGraphContent = (
+  graph: unknown,
+): WorkflowGraphContent => {
+  return readWorkflowGraphAndPositions(graph).content;
 };
 
 /*
@@ -356,15 +446,21 @@ const connectionKey: (connection: WorkflowGraphConnection) => string = (
   ].join("\u0000");
 };
 
+interface DescribedConnection {
+  text: string;
+  from: WorkflowGraphStep;
+  to: WorkflowGraphStep;
+}
+
 const describeConnection: (data: {
   wording: GraphWording;
   connection: WorkflowGraphConnection;
   steps: Map<string, WorkflowGraphStep>;
-}) => string | null = (data: {
+}) => DescribedConnection | null = (data: {
   wording: GraphWording;
   connection: WorkflowGraphConnection;
   steps: Map<string, WorkflowGraphStep>;
-}): string | null => {
+}): DescribedConnection | null => {
   const from: WorkflowGraphStep | undefined = data.steps.get(
     data.connection.from,
   );
@@ -381,9 +477,13 @@ const describeConnection: (data: {
   );
   const fromLabel: string = data.wording.stepLabel(from);
 
-  return output
-    ? `the ${output} output of ${fromLabel} to ${data.wording.stepLabel(to)}`
-    : `${fromLabel} to ${data.wording.stepLabel(to)}`;
+  return {
+    text: output
+      ? `the ${output} output of ${fromLabel} to ${data.wording.stepLabel(to)}`
+      : `${fromLabel} to ${data.wording.stepLabel(to)}`,
+    from,
+    to,
+  };
 };
 
 const byText: (a: string, b: string) => number = (
@@ -393,26 +493,66 @@ const byText: (a: string, b: string) => number = (
   return a.localeCompare(b);
 };
 
+const byLine: (a: WorkflowGraphChange, b: WorkflowGraphChange) => number = (
+  a: WorkflowGraphChange,
+  b: WorkflowGraphChange,
+): number => {
+  return byText(a.line, b.line);
+};
+
+const isSamePosition: (
+  first: CardPosition | undefined,
+  second: CardPosition | undefined,
+) => boolean = (
+  first: CardPosition | undefined,
+  second: CardPosition | undefined,
+): boolean => {
+  // A card with no position read on either side is not said to have moved.
+  if (!first || !second) {
+    return true;
+  }
+
+  return first.x === second.x && first.y === second.y;
+};
+
+// How many moved cards a line names before it counts them instead.
+const MOVED_CARDS_NAMED_PER_LINE: number = 2;
+
 /*
  * What changed from one saved graph to the next, in plain lines: steps added
  * and removed, renamed, reconfigured (by the names of the settings that
  * changed), and connections made and removed. No lines when the two do the
  * same thing - a card moved or selected, a graph saved again.
+ *
+ * With includeMoves, the cards that moved are one more line, last: "Moved
+ * "Log" (log-1)", "Moved "Log" (log-1) and "Webhook" (webhook-1)", "Moved 4
+ * steps". For a version history, whose versions put each card back where it
+ * sat; the audit log, which records what a workflow does, leaves it out.
  */
 export const getWorkflowGraphChanges: (data: {
   before: unknown;
   after: unknown;
   lookup?: WorkflowComponentLookup | undefined;
   lineLimit?: number | undefined;
+  includeMoves?: boolean | undefined;
 }) => WorkflowGraphChanges = (data: {
   before: unknown;
   after: unknown;
   lookup?: WorkflowComponentLookup | undefined;
   lineLimit?: number | undefined;
+  includeMoves?: boolean | undefined;
 }): WorkflowGraphChanges => {
   const wording: GraphWording = new GraphWording(data.lookup);
-  const before: WorkflowGraphContent = readWorkflowGraph(data.before);
-  const after: WorkflowGraphContent = readWorkflowGraph(data.after);
+  const readBefore: {
+    content: WorkflowGraphContent;
+    positions: Map<string, CardPosition>;
+  } = readWorkflowGraphAndPositions(data.before);
+  const readAfter: {
+    content: WorkflowGraphContent;
+    positions: Map<string, CardPosition>;
+  } = readWorkflowGraphAndPositions(data.after);
+  const before: WorkflowGraphContent = readBefore.content;
+  const after: WorkflowGraphContent = readAfter.content;
 
   const stepsBefore: Map<string, WorkflowGraphStep> = new Map(
     before.steps.map((step: WorkflowGraphStep): [string, WorkflowGraphStep] => {
@@ -425,30 +565,55 @@ export const getWorkflowGraphChanges: (data: {
     }),
   );
 
-  const added: Array<string> = [];
-  const removed: Array<string> = [];
-  const renamed: Array<string> = [];
-  const reconfigured: Array<string> = [];
+  const named: (step: WorkflowGraphStep) => WorkflowGraphChangedStep = (
+    step: WorkflowGraphStep,
+  ): WorkflowGraphChangedStep => {
+    return { key: step.key, label: wording.stepLabel(step) };
+  };
+
+  const added: Array<WorkflowGraphChange> = [];
+  const removed: Array<WorkflowGraphChange> = [];
+  const renamed: Array<WorkflowGraphChange> = [];
+  const reconfigured: Array<WorkflowGraphChange> = [];
+  const moved: Array<WorkflowGraphStep> = [];
 
   for (const step of after.steps) {
     const previous: WorkflowGraphStep | undefined = stepsBefore.get(step.key);
 
     if (!previous) {
-      added.push(`Added ${wording.stepLabel(step)}`);
+      added.push({
+        kind: WorkflowGraphChangeKind.Added,
+        line: `Added ${wording.stepLabel(step)}`,
+        steps: [named(step)],
+      });
       continue;
     }
 
     if (previous.componentId !== step.componentId) {
-      reconfigured.push(
-        `Replaced ${wording.stepLabel(previous)} with ${wording.stepLabel(step)}`,
-      );
+      reconfigured.push({
+        kind: WorkflowGraphChangeKind.Replaced,
+        line: `Replaced ${wording.stepLabel(previous)} with ${wording.stepLabel(step)}`,
+        steps: [named(step)],
+      });
       continue;
     }
 
+    if (
+      data.includeMoves &&
+      !isSamePosition(
+        readBefore.positions.get(step.key),
+        readAfter.positions.get(step.key),
+      )
+    ) {
+      moved.push(step);
+    }
+
     if (previous.stepId !== step.stepId) {
-      renamed.push(
-        `Renamed ${wording.stepLabel(previous)} to ${quote(step.stepId || "no id")}`,
-      );
+      renamed.push({
+        kind: WorkflowGraphChangeKind.Renamed,
+        line: `Renamed ${wording.stepLabel(previous)} to ${quote(step.stepId || "no id")}`,
+        steps: [named(previous)],
+      });
     }
 
     const settingIds: Array<string> = Array.from(
@@ -469,7 +634,7 @@ export const getWorkflowGraphChanges: (data: {
           return wording.settingName(step, settingId);
         })
         .sort(byText);
-      const named: Array<string> =
+      const shown: Array<string> =
         names.length > SETTINGS_NAMED_PER_LINE
           ? [
               ...names.slice(0, SETTINGS_NAMED_PER_LINE - 1),
@@ -477,21 +642,31 @@ export const getWorkflowGraphChanges: (data: {
             ]
           : names;
 
-      reconfigured.push(
-        `Changed ${joinWithAnd(named)} in ${wording.stepLabel(step)}`,
-      );
+      reconfigured.push({
+        kind: WorkflowGraphChangeKind.SettingsChanged,
+        line: `Changed ${joinWithAnd(shown)} in ${wording.stepLabel(step)}`,
+        steps: [named(step)],
+      });
     }
 
     if (
       toComparableJson(previous.otherData) !== toComparableJson(step.otherData)
     ) {
-      reconfigured.push(`Changed how ${wording.stepLabel(step)} is set up`);
+      reconfigured.push({
+        kind: WorkflowGraphChangeKind.SetUpChanged,
+        line: `Changed how ${wording.stepLabel(step)} is set up`,
+        steps: [named(step)],
+      });
     }
   }
 
   for (const step of before.steps) {
     if (!stepsAfter.has(step.key)) {
-      removed.push(`Removed ${wording.stepLabel(step)}`);
+      removed.push({
+        kind: WorkflowGraphChangeKind.Removed,
+        line: `Removed ${wording.stepLabel(step)}`,
+        steps: [named(step)],
+      });
     }
   }
 
@@ -502,22 +677,26 @@ export const getWorkflowGraphChanges: (data: {
     after.connections.map(connectionKey),
   );
 
-  const connected: Array<string> = [];
-  const disconnected: Array<string> = [];
+  const connected: Array<WorkflowGraphChange> = [];
+  const disconnected: Array<WorkflowGraphChange> = [];
 
   for (const connection of after.connections) {
     if (connectionsBefore.has(connectionKey(connection))) {
       continue;
     }
 
-    const described: string | null = describeConnection({
+    const described: DescribedConnection | null = describeConnection({
       wording,
       connection,
       steps: stepsAfter,
     });
 
     if (described) {
-      connected.push(`Connected ${described}`);
+      connected.push({
+        kind: WorkflowGraphChangeKind.Connected,
+        line: `Connected ${described.text}`,
+        steps: [named(described.from), named(described.to)],
+      });
     }
   }
 
@@ -531,25 +710,59 @@ export const getWorkflowGraphChanges: (data: {
       continue;
     }
 
-    const described: string | null = describeConnection({
+    const described: DescribedConnection | null = describeConnection({
       wording,
       connection,
       steps: stepsBefore,
     });
 
     if (described) {
-      disconnected.push(`Removed the connection from ${described}`);
+      disconnected.push({
+        kind: WorkflowGraphChangeKind.Disconnected,
+        line: `Removed the connection from ${described.text}`,
+        steps: [named(described.from), named(described.to)],
+      });
     }
   }
 
-  const lines: Array<string> = [
-    ...added.sort(byText),
-    ...removed.sort(byText),
-    ...renamed.sort(byText),
-    ...reconfigured.sort(byText),
-    ...connected.sort(byText),
-    ...disconnected.sort(byText),
+  const movedLine: Array<WorkflowGraphChange> = [];
+
+  if (moved.length > 0) {
+    const movedSteps: Array<WorkflowGraphChangedStep> = moved
+      .map(named)
+      .sort((a: WorkflowGraphChangedStep, b: WorkflowGraphChangedStep) => {
+        return byText(a.label, b.label);
+      });
+
+    movedLine.push({
+      kind: WorkflowGraphChangeKind.Moved,
+      line:
+        movedSteps.length > MOVED_CARDS_NAMED_PER_LINE
+          ? `Moved ${movedSteps.length} steps`
+          : `Moved ${joinWithAnd(
+              movedSteps.map((step: WorkflowGraphChangedStep): string => {
+                return step.label;
+              }),
+            )}`,
+      steps: movedSteps,
+    });
+  }
+
+  const changes: Array<WorkflowGraphChange> = [
+    ...added.sort(byLine),
+    ...removed.sort(byLine),
+    ...renamed.sort(byLine),
+    ...reconfigured.sort(byLine),
+    ...connected.sort(byLine),
+    ...disconnected.sort(byLine),
+    ...movedLine,
   ];
+
+  const lines: Array<string> = changes.map(
+    (change: WorkflowGraphChange): string => {
+      return change.line;
+    },
+  );
 
   return {
     lines: limitLines({
@@ -558,6 +771,7 @@ export const getWorkflowGraphChanges: (data: {
       noun: "change",
     }),
     totalChanges: lines.length,
+    changes,
   };
 };
 
