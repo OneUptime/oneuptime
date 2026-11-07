@@ -37,7 +37,7 @@ flowchart TB
 
 Het model `IncidentState` heeft `name`, `description`, `color` en `order`, plus drie booleans: `isCreatedState`, `isAcknowledgedState` en `isResolvedState`. Alles wat het product met statussen doet, gaat uit van die booleans en van `order` — nooit van de naam van de status. Daarom kun je **Opgelost** hernoemen naar "Closed" zonder dat er iets breekt: de vlag reist mee met de rij.
 
-Het model `IncidentSeverity` heeft `name`, `description`, `color` en `order`, en verder niets. Er zijn geen vlaggen. Niets in OneUptime behandelt **Critical Incident** uit zichzelf anders dan **Minor Incident** — ernst doet er alleen toe waar je er iets op richt, zoals het criterium **Incident Ernsten** van een bereikbaarheidsregel.
+Het model `IncidentSeverity` heeft `name`, `description`, `color` en `order`, en verder niets. Er zijn geen vlaggen. Niets in OneUptime behandelt **Critical Incident** uit zichzelf anders dan **Minor Incident** — ernst doet er alleen toe waar je er iets op richt, zoals het criterium **Ernstniveaus van incidenten** van een bereikbaarheidsregel.
 
 Een paar korte regels:
 
@@ -83,7 +83,7 @@ Een status die je toevoegt, is een stap in je respons die de drie vooraf aangema
 :::steps
 ### Open de statuslijst
 
-Ga naar **Incidenten → Instellingen → Status incident**. De kaart **Incident Statussen** toont je statussen in hun volgorde, één rij per status: een greep om hem aan te slepen, zijn kleur en naam, waarvoor een incident erin **Telt als**, en zijn beschrijving. De zin onder de titel zegt het duidelijk: incidenten gaan in deze lijst alleen omlaag.
+Ga naar **Incidenten → Instellingen → Status incident**. De kaart **Incidentstatussen** toont je statussen in hun volgorde, één rij per status: een greep om hem aan te slepen, zijn kleur en naam, waarvoor een incident erin **Telt als**, en zijn beschrijving. De zin onder de titel zegt het duidelijk: incidenten gaan in deze lijst alleen omlaag.
 
 ### Maak de status aan
 
@@ -149,7 +149,7 @@ Twee verschillen met statussen:
 - **Er is geen beveiliging tegen verwijderen.** Elke ernst kan worden verwijderd, ook de drie vooraf aangemaakte.
 - **Er zijn geen vlaggen om over te nemen, en er is geen "Telt als".** Een nieuwe ernst gedraagt zich precies als de vooraf aangemaakte — het is een label met een kleur en een rang.
 
-Waar ernst meer doet dan beschrijven: onder **Incidenten → Regels → Bereikbaarheidsregels** is het veld **Incident Ernsten** van een regel een criterium. **Critical Incident** daar opnemen is hoe "roep het databaseteam op voor alles wat kritiek is" wordt uitgedrukt — het bereikbaarheidsbeleid zit op de regel, niet op de ernst.
+Waar ernst meer doet dan beschrijven: onder **Incidenten → Regels → Bereikbaarheidsregels** is het veld **Ernstniveaus van incidenten** van een regel een criterium. **Critical Incident** daar opnemen is hoe "roep het databaseteam op voor alles wat kritiek is" wordt uitgedrukt — het bereikbaarheidsbeleid zit op de regel, niet op de ernst.
 
 **De ernst van een incident wijzigen** — onder **Bewerken** op de kaart **Incidentdetails** van het incident, via de API of Terraform (`incidentSeverityId`), met een workflow of met de AI-tools — doet dezelfde vier dingen, hoe het ook wordt verstuurd: de incidentfeed krijgt een item **Incident updated** dat de nieuwe ernst noemt, de SLA-deadlines van het incident worden opnieuw berekend, zijn herinneringsregel wordt opnieuw gezocht, en de incidentstatistieken tellen één ernstwijziging. De ernst opslaan die het incident al heeft, doet geen van deze dingen, dus alleen de titel van een incident bewerken laat zijn SLA-deadlines, herinneringen en aantal ernstwijzigingen zoals ze waren. De ernst van een waarschuwing werkt op dezelfde manier voor haar feeditem en haar herinneringen.
 

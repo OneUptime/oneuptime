@@ -1,4 +1,5 @@
 import { ReplayTimelineEventKind } from "../ReplayTimelineTypes";
+import { PluralTemplate, Translator } from "Common/Types/Translator";
 import {
   ReplayBackendSignalKind,
   ReplayBackendSignalsSlot,
@@ -340,9 +341,21 @@ export function tabsWithTruncatedRecordingRows(
  * Null once every segment is loaded (nothing to qualify) or when the
  * total is unknown (a claim about M we cannot make).
  */
+/*
+ * How much of the footage the recording rows come from, while it loads.
+ * Counted by the whole, so a language words its own "one" and other forms.
+ */
+export const RAIL_COVERAGE_NOTE: PluralTemplate = {
+  one: "Recording rows come from {{loaded}} of {{count}} segment loaded so far; they fill in as footage loads",
+  other:
+    "Recording rows come from {{loaded}} of {{count}} segments loaded so far; they fill in as footage loads",
+};
+
 export function describeRailCoverage(args: {
   loadedChunkCount: number | null | undefined;
   totalChunkCount: number | null | undefined;
+  // The reader's; without one, the English it always was.
+  translator?: Translator | undefined;
 }): string | null {
   const loaded: number | null =
     typeof args.loadedChunkCount === "number" &&
@@ -361,6 +374,12 @@ export function describeRailCoverage(args: {
 
   if (loaded >= total) {
     return null;
+  }
+
+  if (args.translator) {
+    return args.translator.translatePlural(RAIL_COVERAGE_NOTE, total, {
+      loaded: args.translator.formatNumber(loaded),
+    });
   }
 
   const noun: string = total === 1 ? "segment" : "segments";

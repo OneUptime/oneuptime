@@ -7,17 +7,24 @@ import CodeHostAccess from "../../../../../Server/Utils/CodeRepository/CodeHost/
 import CodeRepository from "../../../../../Models/DatabaseModels/CodeRepository";
 import CodeRepositoryConnection from "../../../../../Models/DatabaseModels/CodeRepositoryConnection";
 import URL from "../../../../../Types/API/URL";
+import { CodeHostUrl } from "../../../../../Types/CodeRepository/CodeHost";
 import CodeRepositoryType from "../../../../../Types/CodeRepository/CodeRepositoryType";
 import ObjectID from "../../../../../Types/ObjectID";
 import { FakeCodeHost, FakeRoute, fakeCodeHost } from "./FakeCodeHost";
 
 /*
- * A GitLab or Forgejo repository connected to a project, the way the
+ * A GitLab, Forgejo or Git repository connected to a project, the way the
  * server reads one - its row and its connection, read as root - with the
  * host's API faked at the transport (FakeCodeHost). What reads it goes the
  * whole real way: CodeHostAccess reads the row's connection, checks it is
- * the project's and usable, builds GitLabApi or ForgejoApi with its token,
- * and marks the connection refused when the server refuses the token.
+ * the project's and usable, builds GitLabApi or ForgejoApi with its token
+ * (for a Git repository, Git's own protocol, and Azure DevOps' file API on
+ * Azure DevOps), and marks the connection refused when the server refuses
+ * the token.
+ *
+ * A Git repository is on Azure DevOps Services unless its row says another
+ * address: its routes are under Azure DevOps' API for it ("/items"), and
+ * on any other Git server under the address it is cloned by.
  *
  * Not a test file itself (jest only collects *.test.ts). Call
  * disconnectRepository() after each test.
@@ -44,22 +51,28 @@ export interface ConnectedRepository {
 }
 
 export function connectRepository(data: {
-  provider: CodeRepositoryType.GitLab | CodeRepositoryType.Forgejo;
+  provider:
+    | CodeRepositoryType.GitLab
+    | CodeRepositoryType.Forgejo
+    | CodeRepositoryType.Git;
   routes: Array<FakeRoute>;
   repository?: Partial<CodeRepository> | undefined;
   connection?: Partial<CodeRepositoryConnection> | undefined;
 }): ConnectedRepository {
   const isGitLab: boolean = data.provider === CodeRepositoryType.GitLab;
+  const isGit: boolean = data.provider === CodeRepositoryType.Git;
   const hostUrl: string = isGitLab
     ? "https://gitlab.example.com"
-    : "https://git.example.com";
+    : isGit
+      ? "https://dev.azure.com"
+      : "https://git.example.com";
 
   const connection: CodeRepositoryConnection = new CodeRepositoryConnection();
   connection._id = CONNECTION_ID.toString();
   connection.projectId = CONNECTED_PROJECT_ID;
   connection.provider = data.provider;
   connection.hostUrl = hostUrl;
-  if (!isGitLab) {
+  if (data.provider === CodeRepositoryType.Forgejo) {
     connection.hostProduct = "Forgejo";
   }
   connection.accountLogin = "oneuptime-bot";
@@ -76,18 +89,25 @@ export function connectRepository(data: {
   repository.projectId = CONNECTED_PROJECT_ID;
   repository.name = "checkout";
   repository.repositoryHostedAt = data.provider;
-  repository.organizationName = "acme";
+  repository.organizationName = isGit ? "acme/Shop/_git" : "acme";
   repository.repositoryName = "checkout";
   repository.mainBranchName = "main";
-  repository.repositoryUrl = URL.fromString(`${hostUrl}/acme/checkout`);
+  repository.repositoryUrl = URL.fromString(
+    isGit ? `${hostUrl}/acme/Shop/_git/checkout` : `${hostUrl}/acme/checkout`,
+  );
   if (isGitLab) {
     repository.gitLabProjectId = "4217";
   }
   repository.codeRepositoryConnectionId = CONNECTION_ID;
   Object.assign(repository, data.repository || {});
 
+  const repositoryUrl: string = repository.repositoryUrl?.toString() || "";
+
   const host: FakeCodeHost = fakeCodeHost({
-    apiBaseUrl: `${hostUrl}${isGitLab ? "/api/v4" : "/api/v1"}`,
+    apiBaseUrl: isGit
+      ? CodeHostUrl.readAzureDevOpsRepository(repositoryUrl)?.apiUrl ||
+        repositoryUrl
+      : `${hostUrl}${isGitLab ? "/api/v4" : "/api/v1"}`,
     routes: data.routes,
   });
 

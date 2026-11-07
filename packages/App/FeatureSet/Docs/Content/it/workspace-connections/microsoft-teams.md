@@ -84,8 +84,8 @@ Una regola di notifica dice quali eventi vengono pubblicati in Microsoft Teams, 
 
 | Prodotto | Schede della sua pagina **Microsoft Teams** |
 | --- | --- |
-| **Incidenti** | **Incidenti**, **Incidente Episodi**, **Riepilogo** |
-| **Avvisi** | **Avvisi**, **Avviso Episodi**, **Riepilogo** |
+| **Incidenti** | **Incidenti**, **Episodi di incidenti**, **Riepilogo** |
+| **Avvisi** | **Avvisi**, **Episodi di avvisi**, **Riepilogo** |
 | **Manutenzione programmata** | Un elenco di regole |
 | **Monitor** | Un elenco di regole |
 | **Reperibilità** | Un elenco di regole |

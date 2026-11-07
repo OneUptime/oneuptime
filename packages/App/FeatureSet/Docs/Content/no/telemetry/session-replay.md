@@ -744,7 +744,7 @@ Ved siden av scenen viser panelet alt som skjedde, på opptakets klokke, med en 
 
 Logs, Traces og serverhalvdelen av Errors leses med de samme tillatelsene som sidene Logs, Traces og Exceptions; en rolle uten dem ser en låst fane som nevner tillatelsen. Rader som serveren har merket, plasseres på opptakets klokke ved å forankre dem til spor som opptaket selv observerte; panelet sier om forankringen lyktes («server times anchored via 6 traces»), eller om radens tid er omtrentlig.
 
-Panelets søkefelt (`/`) godtar fritekst og tokener: `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. En omfangsvelger snevrer enhver fane inn til ±30 sekunder rundt avspillingshodet. Panelet følger avspillingshodet til du ruller det; en etikett **Resume following** (eller `M`) slår følgefunksjonen på igjen.
+Panelets søkefelt (`/`) godtar fritekst og tokener: `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. En omfangsvelger snevrer enhver fane inn til ±30 sekunder rundt avspillingshodet. Panelet følger avspillingshodet til du ruller det; en etikett **Følg igjen** (eller `M`) slår følgefunksjonen på igjen.
 
 ### Hurtigtaster
 

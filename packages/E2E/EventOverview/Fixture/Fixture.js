@@ -225,7 +225,7 @@
  *            (not found): a comma list of maya, sam, jordan, alex. Alex by
  *            default.
  *   ?role=   owner (default) | alert-member | member | owner-people | viewer
- *            | loading
+ *            | loading | runbook-blocked
  *            Who is signed in. "owner" is a master admin who is also the
  *            Project Owner, so every permission gate is open. "alert-member"
  *            is not a master admin and holds only Alert Member: it may
@@ -241,7 +241,11 @@
  *            (?hold=1) is said to it with Page now locked, saying why.
  *            "loading" is the moment before the permission snapshot arrives
  *            (no permissions yet), when gated actions are hidden rather
- *            than refused.
+ *            than refused. "runbook-blocked" is Maya as a Project Member
+ *            (through Incident Response) whose team Checkout SRE blocks
+ *            Create Runbook Execution: she reads fixes and may not approve
+ *            or dismiss them - the reader the AI card's fix buttons are
+ *            hidden from, with a line saying who may act.
  *   ?ai=     ... also off-switch | off-project | off-rules | off-severity:
  *            OneUptime AI did not investigate Incident #1042 or Alert #311
  *            because something was off for them, as the server records it
@@ -327,6 +331,16 @@
  *            (approvedFrom), verified fixed. Dismiss fix dismisses the
  *            runbook; ?fail=dismiss refuses it, as the server refuses
  *            someone who may not start runbook executions.
+ *   ?approvals= on | first | mine: with ?fixes=many, the project asks two
+ *            people to approve a riskier fix (requireTwoApprovalsForRiskier
+ *            Fixes, #6148's follow-ups), and the kubectl fix holds one (its
+ *            scale is RiskyWrite). on: nobody has approved it yet, and
+ *            Maya's Approve records the first approval and runs nothing;
+ *            first: Jordan Patel approved it first, from its Slack message,
+ *            and Maya's Approve & Run runs it; mine: Maya approved it
+ *            first, so it waits for someone else's, and a press of hers
+ *            again is refused with the server's words
+ *            (RemediationApproval.approve).
  *   Try again (POST /auto-remediation/try-again) decides again for an open
  *            record, as AutoRemediationRuleEngineService.tryAgain does:
  *            the record's decision is written afresh - OneUptime AI started
@@ -390,6 +404,7 @@ import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
+import { ALREADY_APPROVED_FIRST_MESSAGE } from "Common/Types/AutoRemediation/RemediationApprovals";
 import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import DataAlert from "Common/Models/DatabaseModels/DataAlert";
@@ -504,6 +519,11 @@ import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MeasurementEvaluator from "Common/Utils/Measurement/MeasurementEvaluator";
+import {
+  describeInvestigationImpactNumbers,
+  InvestigationImpactCounted,
+  investigationImpactNumbersToJSON,
+} from "Common/Utils/AI/InvestigationImpactNumbers";
 import TranscriptText from "Common/Utils/VideoCall/TranscriptText";
 import CallSummaryFeedMarkdown from "Common/Utils/VideoCall/CallSummaryFeedMarkdown";
 import UserUtil from "Common/UI/Utils/User";
@@ -649,6 +669,7 @@ const roleMode = [
   "loading",
   "view-only-owner",
   "editor-owner",
+  "runbook-blocked",
 ].includes(params.get("role"))
   ? params.get("role")
   : "owner";
@@ -730,6 +751,15 @@ const codeFixMode = CODE_FIX_MODES.includes(params.get("codefix"))
 const FIXES_MODES = ["many", "rolled-back", "runbook"];
 const fixesMode = FIXES_MODES.includes(params.get("fixes"))
   ? params.get("fixes")
+  : "";
+/*
+ * ?approvals=: the project asks two people to approve a riskier fix, and
+ * how far ?fixes=many's kubectl fix has come: nobody has approved it (on),
+ * someone else approved it first (first), or the reader did (mine).
+ */
+const APPROVALS_MODES = ["on", "first", "mine"];
+const approvalsMode = APPROVALS_MODES.includes(params.get("approvals"))
+  ? params.get("approvals")
   : "";
 // Enable AI is off now only for off-project while the switches stay off.
 const isProjectAiOff = aiMode === "off-project" && switchesMode !== "on";
@@ -1198,6 +1228,8 @@ table(Project).push({
   _id: PROJECT_ID,
   name: "Acme Commerce",
   ...PROJECT_AI_SWITCHES,
+  // ?approvals=: two people approve a riskier fix (useTwoApprovalsRule).
+  requireTwoApprovalsForRiskierFixes: Boolean(approvalsMode),
 });
 
 const team = insert(Team, {
@@ -4506,6 +4538,27 @@ function stallSummary(investigation) {
   };
 }
 
+/*
+ * ?impact=on: the numbers Incident #1042's run recorded with its report's
+ * Impact section, as the engine records the block it takes off the
+ * answer (Utils/AI/InvestigationImpactNumbers): an InvestigationImpact
+ * event, which the folded Investigation step draws under the summary -
+ * requests, not users, the two services and one of the two SLOs that
+ * count checkout.
+ */
+function impactSummary() {
+  const numbers = {
+    users: { count: 1240, counted: InvestigationImpactCounted.Requests },
+    services: { count: 2 },
+    slos: { affected: 1, total: 2 },
+  };
+
+  return {
+    message: describeInvestigationImpactNumbers(numbers),
+    impactNumbers: investigationImpactNumbersToJSON(numbers),
+  };
+}
+
 function defineInvestigation(spec) {
   if (stallMode) {
     spec = {
@@ -4904,6 +4957,14 @@ if (fixesMode === "many") {
       "The pool exhaustion follows the 17:52 restart. Restarting the deployment brings the configured pool back.",
     commandPlan: kubectlFixPlan(false),
     createdAt: at("18:04", 10),
+    // ?approvals=first|mine: who approved it first, where and when.
+    ...(approvalsMode === "first" || approvalsMode === "mine"
+      ? firstApproval(
+          approvalsMode === "first" ? people.jordan : people.maya,
+          approvalsMode === "first" ? "Slack" : "Dashboard",
+          at("18:06", 20),
+        )
+      : {}),
   });
   insert(AutoRemediationSuggestion, {
     _id: MCP_FIX_SUGGESTION_ID,
@@ -5120,6 +5181,20 @@ if (fixesMode === "runbook") {
   });
 }
 
+/*
+ * The first of two approvals, as the server records it
+ * (AutoRemediationSuggestionService.attemptFirstApproval): who, from where
+ * and when.
+ */
+function firstApproval(user, from, when) {
+  return {
+    firstApprovedByUser: user,
+    firstApprovedByUserId: user.id,
+    firstApprovedFrom: from,
+    firstApprovedAt: when,
+  };
+}
+
 // Approve & Run (POST /auto-remediation/approve) on a fix that waits.
 function approveFix(suggestionId) {
   const record = table(AutoRemediationSuggestion).find((row) => {
@@ -5134,6 +5209,29 @@ function approveFix(suggestionId) {
   if (!record || record.status !== "Suggested") {
     throw fail(400, "Only suggested remediations can be approved.");
   }
+  /*
+   * ?approvals=: the kubectl fix holds a riskier change and the project
+   * asks two people to approve one, as RemediationApproval.approve
+   * decides: the first approval is recorded and runs nothing, the first
+   * approver's own press again is refused, and someone else's runs it.
+   */
+  if (approvalsMode && String(record._id) === KUBECTL_FIX_SUGGESTION_ID) {
+    if (!record.firstApprovedByUserId) {
+      Object.assign(
+        record,
+        firstApproval(people.maya, "Dashboard", new Date()),
+      );
+      return {
+        suggestionId: String(record._id),
+        status: "Suggested",
+        suggestionType: "CommandPlan",
+        isWaitingForSecondApproval: true,
+      };
+    }
+    if (String(record.firstApprovedByUserId) === String(people.maya.id)) {
+      throw fail(400, ALREADY_APPROVED_FIRST_MESSAGE);
+    }
+  }
   record.status = "Approved";
   // Who approved it and when, as the server stamps them.
   record.approvedAt = new Date();
@@ -5142,6 +5240,11 @@ function approveFix(suggestionId) {
   if (String(record._id) === KUBECTL_FIX_SUGGESTION_ID) {
     record.commandPlan = kubectlFixPlan(true);
   }
+  return {
+    suggestionId: String(record._id),
+    status: "Approved",
+    suggestionType: record.suggestionType,
+  };
 }
 
 // Dismiss (POST /auto-remediation/dismiss) on a fix that waits.
@@ -5827,6 +5930,14 @@ function buildEvents(investigation, options) {
         0,
       );
     }
+    // After the TL;DR, as the engine records it.
+    if (options.impact) {
+      push(
+        AIRunEventType.InvestigationImpact,
+        { resultSummary: options.impact },
+        0,
+      );
+    }
     if (!options.skipRunCompleted) {
       push(AIRunEventType.RunCompleted, {}, 0);
     }
@@ -6058,6 +6169,11 @@ function investigationPayload(investigation) {
       ending: "completed",
       skipRunCompleted: isPending,
       stall: stallMode ? stallSummary(investigation) : null,
+      // Only the run whose report has the Impact section: #1042's first.
+      impact:
+        impactMode && investigation.analysis === INCIDENT_ANALYSIS
+          ? impactSummary()
+          : null,
     });
     if (isPending) {
       isAnalysisPending = true;
@@ -6182,7 +6298,11 @@ UserUtil.getEmail = () => people.maya.email;
  * ?private=1 incident #1042 is private, and only Checkout SRE's permissions
  * reach it: its page locks what Checkout SRE may not do, saying why.
  */
-const SNAPSHOT_ROLE_MODES = ["view-only-owner", "editor-owner"];
+const SNAPSHOT_ROLE_MODES = [
+  "view-only-owner",
+  "editor-owner",
+  "runbook-blocked",
+];
 const isSnapshotRoleMode = SNAPSHOT_ROLE_MODES.includes(roleMode);
 const INCIDENT_RESPONSE_TEAM_ID = ID.team(5);
 const GLOBAL_PERMISSIONS = [
@@ -6205,7 +6325,14 @@ const snapshotRows = isSnapshotRoleMode
       permissionRow(Permission.UnAuthorizedSsoUser),
       permissionRow(Permission.ProjectUser),
       permissionRow(Permission.ProjectMember, INCIDENT_RESPONSE_TEAM_ID),
-      permissionRow(Permission.Viewer, ID.team(1)),
+      ...(roleMode === "runbook-blocked"
+        ? [
+            {
+              ...permissionRow(Permission.CreateRunbookExecution, ID.team(1)),
+              isBlockPermission: true,
+            },
+          ]
+        : [permissionRow(Permission.Viewer, ID.team(1))]),
       ...(roleMode === "editor-owner"
         ? [permissionRow(Permission.IncidentMember, ID.team(1))]
         : []),
@@ -8454,8 +8581,7 @@ async function handleApi(method, options) {
 
   // Approve & Run and Dismiss on a fix that waits (?fixes=many).
   if (method === "POST" && url.endsWith("/auto-remediation/approve")) {
-    approveFix(body.suggestionId);
-    return ok({});
+    return ok(approveFix(body.suggestionId));
   }
 
   if (method === "POST" && url.endsWith("/auto-remediation/dismiss")) {

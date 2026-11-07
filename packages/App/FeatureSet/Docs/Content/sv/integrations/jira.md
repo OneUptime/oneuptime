@@ -296,7 +296,7 @@ Mallarna täcker de vanliga fallen. För att bygga en riktning själv, eller än
 
 Jira Cloud tar emot Basic-autentisering som byggs av kontots e-postadress och en API-token, kodade tillsammans, som i [Vad mallarna frågar efter](#vad-mallarna-frågar-efter).
 
-1. Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflöde Variabel**. Ge den namnet `JIRA_AUTH`, klistra in det kodade värdet i **Innehåll**, slå på **Hemlighet** och skapa den.
+1. Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflödesvariabel**. Ge den namnet `JIRA_AUTH`, klistra in det kodade värdet i **Innehåll**, slå på **Hemlighet** och skapa den.
 2. Skapa en andra variabel, `JIRA_URL`, med `https://your-domain.atlassian.net` utan snedstreck på slutet, och låt **Hemlighet** vara avstängd.
 
 Alla block kan då skicka `Basic {{global.variables.JIRA_AUTH}}` som sin `Authorization`-rubrik, och token syns aldrig i arbetsflödet eller dess körningar. Med en token med scopes är `JIRA_URL` i stället `https://api.atlassian.com/ex/jira/<cloudId>`, och varje sökväg nedan hänger oförändrad på den.

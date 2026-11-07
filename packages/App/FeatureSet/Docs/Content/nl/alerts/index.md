@@ -97,7 +97,7 @@ Zodra een waarschuwing wordt aangemaakt, doorloopt OneUptime deze stappen, in de
 
 1. **Ze krijgt een nummer en een status.** Het waarschuwingsnummer komt van een teller per project en wordt met je voorvoegsel getoond (`ALT-42`). De waarschuwing begint in je aanmaakstatus, tenzij het formulier, de API, een workflow of AI vragen een andere koos.
 2. **Privacyregels draaien eerst**, zodat alles daarna weet of de waarschuwing privé is.
-3. **De feed en je chattools horen ervan.** Een vermelding **Waarschuwing aangemaakt** wordt in **Waarschuwing Feed** geschreven, en de kanalen die je Slack- en Microsoft Teams-regels noemen, worden ingelicht; een regel kan een kanaal voor de waarschuwing aanmaken.
+3. **De feed en je chattools horen ervan.** Een vermelding **Waarschuwing aangemaakt** wordt in **Waarschuwingsfeed** geschreven, en de kanalen die je Slack- en Microsoft Teams-regels noemen, worden ingelicht; een regel kan een kanaal voor de waarschuwing aanmaken.
 4. **Eigenaren en labels worden toegevoegd**: die welke de criteria van de monitor of het verzoek noemen, daarna die van overeenkomende eigenaars- en labelregels.
 5. **Bereikbaarheidsregels voegen hun beleid toe**, daarna starten runbook-regels de runbooks die overeenkomen.
 6. **Bereikbaarheidsbeleid draait.** Elk beleid op de waarschuwing roept zijn mensen tegelijk op; als er één faalt, stopt dat de andere niet. Daarna meldt de eerste passende incidentregel een incident uit de waarschuwing, meteen of zodra de wachttijd om is.
@@ -126,7 +126,7 @@ Open de waarschuwing. De kop toont haar status, haar ernst, hoe lang ze al duurt
 
 Een overgang naar een andere status vraagt om bevestiging, met een optionele privénotitie ingeklapt onder **Privénotitie toevoegen**. Wat elke status doet, staat op [Waarschuwingsstatussen en ernstniveaus](/docs/alerts/states-and-severities).
 
-Terwijl je eraan werkt, leg je wat je leert vast als **Privénotities**, vul je de pagina's **Hoofdoorzaak** en **Herstel** in en voeg je **Eigenaren** toe. Het menu **Acties** van **Waarschuwing Feed** voert ook een runbook uit met **Execute Runbook**, of roept meer mensen op met **Bereikbaarheidsdienstbeleid uitvoeren**.
+Terwijl je eraan werkt, leg je wat je leert vast als **Privénotities**, vul je de pagina's **Hoofdoorzaak** en **Herstel** in en voeg je **Eigenaren** toe. Het menu **Acties** van **Waarschuwingsfeed** voert ook een runbook uit met **Runbook uitvoeren**, of roept meer mensen op met **Bereikbaarheidsdienstbeleid uitvoeren**.
 
 ## Wat elke pagina van een waarschuwing toont
 
@@ -142,7 +142,7 @@ Terwijl je eraan werkt, leg je wat je leert vast als **Privénotities**, vul je 
 
 **Overzicht**, **Onderzoek**, **Team** en **Notities** zijn open; de andere secties blijven ingeklapt tot je erop klikt.
 
-- **Overzicht** — de kop noemt de **Eigenaren** van de waarschuwing, teams eerst, naast haar monitor en episode. De tegel **Aangemaakt** toont wanneer en waardoor ze werd aangemaakt, twee andere hoe lang het duurde voordat ze werd bevestigd en opgelost; hoe lang ze duurt staat als eerste in de kop. De kaart **Wat er gebeurde** staat bovenaan de pagina — de beschrijving van de waarschuwing en haar **Hoofdoorzaak** — dan de kaart **OneUptime AI**, met **OneUptime AI vragen** onderaan, en **Waarschuwing Feed** legt alles vast wat met de waarschuwing gebeurde. Daarnaast staan de kaart **Getroffen resources**, de kaart **Waarschuwingsdetails** en de metingen van de waarschuwing.
+- **Overzicht** — de kop noemt de **Eigenaren** van de waarschuwing, teams eerst, naast haar monitor en episode. De tegel **Aangemaakt** toont wanneer en waardoor ze werd aangemaakt, twee andere hoe lang het duurde voordat ze werd bevestigd en opgelost; hoe lang ze duurt staat als eerste in de kop. De kaart **Wat er gebeurde** staat bovenaan de pagina — de beschrijving van de waarschuwing en haar **Hoofdoorzaak** — dan de kaart **OneUptime AI**, met **OneUptime AI vragen** onderaan, en **Waarschuwingsfeed** legt alles vast wat met de waarschuwing gebeurde. Daarnaast staan de kaart **Getroffen resources**, de kaart **Waarschuwingsdetails** en de metingen van de waarschuwing.
 - **Statustijdlijn** — elke status waarin de waarschuwing heeft gestaan, wanneer en hoe lang. Zie [De statustijdlijn](/docs/alerts/states-and-severities#de-statustijdlijn).
 - **Gekoppelde incidenten** — de incidenten waar deze waarschuwing deel van uitmaakt, met **Incident koppelen** en **Incident melden**.
 - **Instellingen** — **Wie deze waarschuwing kan zien**, met de schakelaar **Privéwaarschuwing**, en **Herinneringen**, met **Herinneringen sturen**. Elke schakelaar slaat op zodra je hem omzet.

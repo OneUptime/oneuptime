@@ -116,7 +116,7 @@ A requisição sai do OneUptime. No OneUptime Cloud, o seu endpoint precisa ser 
 
 ## Crie o fluxo de trabalho
 
-Primeiro guarde o token do endpoint onde o fluxo de trabalho possa usá-lo sem exibi-lo: abra **Fluxos de trabalho → Variáveis globais**, clique em **Criar: Fluxo de trabalho Variável**, dê a ela o nome `AGENT_KILL_TOKEN`, coloque o token em **Conteúdo** e ative **Segredo**. Um valor secreto é removido dos registros das execuções e dos rastros das etapas.
+Primeiro guarde o token do endpoint onde o fluxo de trabalho possa usá-lo sem exibi-lo: abra **Fluxos de trabalho → Variáveis globais**, clique em **Criar: Variável do fluxo de trabalho**, dê a ela o nome `AGENT_KILL_TOKEN`, coloque o token em **Conteúdo** e ative **Segredo**. Um valor secreto é removido dos registros das execuções e dos rastros das etapas.
 
 :::steps
 ### Crie o fluxo

@@ -20,6 +20,7 @@ import React, {
 } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
@@ -307,7 +308,7 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
               {selectedUserId ? (
                 <>
                   {translator.translateText("1 selected")}
-                  {" · "}
+                  <InlineSeparator />
                 </>
               ) : null}
               {visibleUsers.length}

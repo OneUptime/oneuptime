@@ -55,7 +55,7 @@ Comece pelo modelo, que monta o workflow inteiro para alertas, ou do zero.
 
 O workflow abre no **Construtor** com duas etapas: **On Create Alert** e **Send Message to Telegram**, que envia o número, o título, a gravidade e o estado do alerta. O token é salvo como a variável secreta `telegramBotToken` do workflow, e o ID como `telegramChatId`.
 @tab Do zero
-1. Salve o token como uma variável global secreta: vá em **Fluxos de trabalho → Variáveis globais**, clique em **Criar: Fluxo de trabalho Variável**, dê o nome `TELEGRAM_BOT_TOKEN` e clique em **Próximo**. Cole o token em **Conteúdo**, ative **Segredo** e clique em **Criar: Fluxo de trabalho Variável**.
+1. Salve o token como uma variável global secreta: vá em **Fluxos de trabalho → Variáveis globais**, clique em **Criar: Variável do fluxo de trabalho**, dê o nome `TELEGRAM_BOT_TOKEN` e clique em **Próximo**. Cole o token em **Conteúdo**, ative **Segredo** e clique em **Criar: Variável do fluxo de trabalho**.
 2. Vá em **Fluxos de trabalho**, clique em **Criar fluxo de trabalho**, escolha **Começar do zero**, dê um nome ao workflow e clique em **Criar fluxo de trabalho**.
 3. No **Construtor**, clique em **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Alert** em **Populares**. Clique no gatilho: os seus **Fields to pass on** começam com **Título**, então clique em **Adicionar campo** e escolha os outros campos que a sua mensagem mostra, por exemplo **Alert Number With Prefix**.
 4. Clique em **Adicionar componente**, pesquise `telegram` e clique em **Send Message to Telegram**. Conecte a saída **Success** do gatilho a ela.

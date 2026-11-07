@@ -183,6 +183,8 @@ const ALLOWLIST_STAND_INS: Readonly<
       `arn:aws:lambda:us-east-1:123456789012:function:stand-in-${n}`,
       `arn:aws:lambda:us-east-1:123456789012:function:stand-in:alias-${n}`,
       `arn:aws:sqs:us-east-1:123456789012:stand-in-${n}`,
+      `arn:aws:apprunner:us-east-1:123456789012:service/stand-in-${n}/0000000000000000000000000000000${n}`,
+      `arn:aws:elasticbeanstalk:us-east-1:123456789012:environment/stand-in/stand-in-${n}`,
     ];
   }),
   azure: [1, 2].flatMap((n: number): Array<string> => {
@@ -192,6 +194,7 @@ const ALLOWLIST_STAND_INS: Readonly<
       `${group}/Microsoft.Web/sites/site-${n}`,
       `${group}/Microsoft.Web/serverfarms/plan-${n}`,
       `${group}/Microsoft.App/containerApps/app-${n}`,
+      `${group}/Microsoft.ContainerInstance/containerGroups/group-${n}`,
       `${group}/Microsoft.Compute/virtualMachines/vm-${n}`,
       `${group}/Microsoft.Compute/virtualMachineScaleSets/vmss-${n}`,
       `${group}/Microsoft.DBforPostgreSQL/flexibleServers/pg-${n}`,
@@ -205,6 +208,7 @@ const ALLOWLIST_STAND_INS: Readonly<
       `//compute.googleapis.com/projects/stand-in/zones/us-central1-a/instanceGroupManagers/group-${n}`,
       `//run.googleapis.com/projects/stand-in/locations/us-central1/services/service-${n}`,
       `//cloudsql.googleapis.com/projects/stand-in/instances/sql-${n}`,
+      `//appengine.googleapis.com/apps/stand-in/services/service-${n}`,
     ];
   }),
 };

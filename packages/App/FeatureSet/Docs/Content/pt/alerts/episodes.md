@@ -20,12 +20,15 @@ flowchart TB
     open -->|Sim| join["Entra nele"]
     open -->|Não| reopen(["Um resolvido dentro da<br/>janela de reabertura?"])
     reopen -->|Sim| reopened["Reabre-o"]
-    reopen -->|Não| created["Abre um<br/>novo episódio"]
+    reopen -->|Não| enough(["Alertas correspondentes<br/>suficientes em andamento?"])
+    enough -->|Sim| created["Abre um novo episódio<br/>com todos eles"]
+    enough -->|Ainda não| waits["Aguarda sozinho"]
 ```
 
 - **As condições da regra** decidem a quais alertas ela se aplica. Uma regra sem condições se aplica a todo alerta novo.
 - **A chave de agrupamento** decide quais alertas compartilham um episódio: os que têm o mesmo monitor, a mesma gravidade, o mesmo título ou a combinação pela qual a regra agrupa. Uma regra que não agrupa por nada coloca em um único episódio todo alerta que corresponde a ela.
 - **A janela de tempo** decide por quanto tempo um episódio continua aceitando alertas. Ativada, um alerta só entra se chegar dentro da janela após o último alerta do episódio. Desativada, os alertas correspondentes continuam entrando até o episódio ser resolvido.
+- **Aguardar mais alertas** decide quando um novo episódio é aberto. Desativado, que é como uma regra nova começa, o primeiro alerta correspondente abre um. Ativado, um alerta aguarda sozinho até que estejam em andamento tantos alertas correspondentes do seu grupo quanto você definiu, e então um único episódio é aberto com todos eles. Veja [Abrir um episódio apenas para vários alertas](#abrir-um-episódio-apenas-para-vários-alertas).
 
 O agrupamento acontece quando um alerta é criado. Uma regra que você adiciona hoje agrupa os alertas criados depois dela; ela não reagrupa os que já existem.
 
@@ -72,10 +75,21 @@ Todo o resto que uma regra pode fazer fica recolhido em **Mais campos**, no fim 
 | Grupo                            | Configurações                                                                                              |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **Plantão e propriedade**        | **Políticas de plantão** a executar quando a regra abre um episódio, e **Proprietários do episódio**.      |
-| **Ciclo de vida do episódio**    | **Reabrir episódios resolvidos recentemente**, **Aguardar antes de resolver um episódio** e **Resolver episódios inativos**, cada um com um interruptor e seus minutos. |
+| **Ciclo de vida do episódio**    | **Aguardar mais alertas**, com um interruptor e uma contagem, depois **Reabrir episódios resolvidos recentemente**, **Aguardar antes de resolver um episódio** e **Resolver episódios inativos**, cada um com um interruptor e seus minutos. |
 | **Detalhes**                     | A **Descrição** da regra, o **Modelo de título do episódio**, o **Modelo de descrição do episódio** e os **Rótulos do episódio**. |
 
 As regras são verificadas de cima para baixo na lista, e a primeira correspondência vence: arraste uma regra para mudar sua posição. Coloque regras específicas acima das amplas. A coluna **Agrupamento** da lista diz em uma frase o que cada regra faz, como "Um episódio por monitor".
+
+### Abrir um episódio apenas para vários alertas
+
+**Aguardar mais alertas**, em **Ciclo de vida do episódio**, mantém um alerta isolado fora dos episódios. Ative-o e diga quantos: **Abrir um episódio quando 3 alertas correspondentes estiverem em andamento**, de 2 a 100.
+
+- **Até lá, cada alerta aguarda sozinho.** Um alerta que não encontra nenhum episódio aberto do seu grupo para entrar, nem um resolvido para reabrir, não abre nada e executa apenas suas próprias políticas de plantão, como um alerta ao qual nenhuma regra corresponde.
+- **Então um único episódio é aberto com todos eles.** O alerta que completa a contagem abre o episódio com cada alerta que aguardava. O episódio assume o título, o monitor e a gravidade do primeiro deles e sobe para o mais grave, e os alertas seguintes entram nele normalmente.
+- **Só contam os alertas em andamento.** Um que tenha sido resolvido nesse meio-tempo já terminou, então um monitor que fica falhando e se recuperando nunca abre um episódio sozinho. Enquanto **Agrupar apenas alertas que chegam próximos** estiver ativado, os alertas também precisam ter chegado dentro da janela dele uns em relação aos outros.
+- **A contagem é por grupo.** Com **Tudo junto**, quaisquer alertas correspondentes contam, então um episódio só é aberto para uma queda que dispara vários monitores ao mesmo tempo. Com **Monitor**, o episódio de um monitor é aberto quando esse monitor tem vários alertas em andamento.
+
+A coluna **Agrupamento** da lista diz "Abre um episódio quando 3 alertas correspondentes estão em andamento". Pela API e pelo Terraform, são `enableMinimumAlertCount` e `minimumAlertCount`.
 
 ## Títulos dos episódios
 
@@ -115,8 +129,9 @@ flowchart TB
     grouped -->|"Entra em um episódio"| none["Nada mais é executado"]
 ```
 
-- **Um novo episódio** executa as **Políticas de plantão** da regra, mais as de qualquer regra correspondente na aba **Episode Rules** de **Alertas → Regras → Regras de Plantão**.
+- **Um novo episódio** executa as **Políticas de plantão** da regra, mais as de qualquer regra correspondente na aba **Regras de episódios** de **Alertas → Regras → Regras de Plantão**.
 - **Um alerta que entra em um episódio aberto** executa apenas suas próprias políticas. As do episódio não são executadas de novo.
+- **Um alerta que aguarda mais alertas** também executa apenas suas próprias políticas. Quando **Aguardar mais alertas** está ativado e as políticas da regra são as únicas que acionam, um alerta isolado não aciona ninguém até que haja alertas suficientes em andamento.
 - **Responder ao acionamento de um episódio** confirma o episódio e, com ele, cada alerta que ele contém.
 
 > [!TIP]
@@ -160,7 +175,7 @@ Um episódio que você cria não tem regra de agrupamento, então a lista mostra
 | **Desenvolvedores** | **Terraform**, **API**, **CLI**, **Assistentes de IA** |
 | **Avançado** | **Registros de auditoria**, **Excluir episódio** |
 
-**Desenvolvedores** e **Avançado** começam recolhidas. Na **Visão geral**, o cabeçalho mostra os **Proprietários** do episódio, equipes primeiro, e o primeiro bloco, **Criado**, diz quando o episódio foi criado — **Automaticamente**, quando uma regra de agrupamento o abriu. O cartão **O que aconteceu** abre a página — a descrição do episódio e a sua **Causa raiz** — depois **Alerts in this episode** e o **Feed do episódio**, ao lado do cartão **Detalhes do episódio**: seu número, estado, gravidade, quantidade de alertas, regra de agrupamento e políticas de plantão. Seu cabeçalho tem **Confirmar** e **Resolver**, e **Mover episódio para** no menu **⋯**.
+**Desenvolvedores** e **Avançado** começam recolhidas. Na **Visão geral**, o cabeçalho mostra os **Proprietários** do episódio, equipes primeiro, e o primeiro bloco, **Criado**, diz quando o episódio foi criado — **Automaticamente**, quando uma regra de agrupamento o abriu. O cartão **O que aconteceu** abre a página — a descrição do episódio e a sua **Causa raiz** — depois **Alertas neste episódio** e o **Feed do episódio**, ao lado do cartão **Detalhes do episódio**: seu número, estado, gravidade, quantidade de alertas, regra de agrupamento e políticas de plantão. Seu cabeçalho tem **Confirmar** e **Resolver**, e **Mover episódio para** no menu **⋯**.
 
 **Alertas → Episódios ativos** lista os episódios que ainda não foram resolvidos, e o selo ao lado os conta.
 

@@ -34,7 +34,7 @@ Gå till **Användarinställningar → Aviseringsinställningar**. Flikarna är 
 
 ### Hitta händelsen
 
-Varje flik har ett eller flera kort, som **Incident Episoder** på fliken **Incidenter**. Varje rad är en händelse, med en rad text som säger när den skickas.
+Varje flik har ett eller flera kort, som **Incidentepisoder** på fliken **Incidenter**. Varje rad är en händelse, med en rad text som säger när den skickas.
 
 ### Klicka på en kanal
 

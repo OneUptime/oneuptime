@@ -29,10 +29,14 @@ import { Gray500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  DOT_ZERO_INLINE_SEPARATOR,
   getGlobalTranslator,
+  INLINE_SEPARATOR,
+  PluralTemplate,
+  TemplateValues,
   translatableTerm,
-  translatePlural,
-  translateTemplate,
+  translatePlural as translatePluralAsGiven,
+  translateTemplate as translateTemplateAsGiven,
   translateTerm,
   translationKey,
   Translator,
@@ -67,6 +71,73 @@ import {
  */
 
 export const AI_INSIGHTS_PAGE_TITLE: string = translationKey("AI Insights");
+
+/*
+ * EVERY COUNT IN THE READER'S DIGITS. A template writes a value as it is
+ * given, and only a plural's own {{count}} was written the reader's way:
+ * a Persian page read "It happened ۱۲ times in the last 30 days" and "۳ of
+ * them were in the last 7 days, up from 1", and a German one "1240" where
+ * it writes "1.240". So every sentence of the page is filled through these
+ * two: each number among its values is a count, written as the reader's
+ * language writes numbers. A record's number ("#1042") is an identifier,
+ * not a count, and goes in as text (describeSubject).
+ */
+export function countsInReaderDigits(
+  values: TemplateValues | undefined,
+  translator: Translator = getGlobalTranslator(),
+): TemplateValues | undefined {
+  if (!values) {
+    return values;
+  }
+
+  const written: TemplateValues = {};
+
+  for (const name of Object.keys(values)) {
+    const value: TemplateValues[string] = values[name]!;
+
+    written[name] =
+      typeof value === "number" ? translator.formatNumber(value) : value;
+  }
+
+  return written;
+}
+
+function translateTemplate(template: string, values?: TemplateValues): string {
+  return translateTemplateAsGiven(template, countsInReaderDigits(values));
+}
+
+function translatePlural(
+  template: PluralTemplate,
+  count: number,
+  values?: TemplateValues,
+): string {
+  return translatePluralAsGiven(template, count, countsInReaderDigits(values));
+}
+
+/*
+ * FACTS ON ONE LINE - "3 fixes proposed · 2 applied" - with a middle dot
+ * between them, and with a bullet on a Persian line, as every line of facts
+ * in the product sets them apart there (Types/Translator's
+ * getInlineSeparator, InlineSeparator): Persian writes zero as a dot
+ * ("۰"), so a middle dot beside a count read as one more digit of it, "۴
+ * applied · ۲ verified" as "۴۰" and "۲۰". Read from the facts themselves,
+ * as ListSeparator reads a list, so a line a locale has not translated yet
+ * keeps its English dots.
+ */
+export const AI_INSIGHTS_FACT_SEPARATOR: string = INLINE_SEPARATOR;
+
+// Persian (and Arabic and Urdu) facts are set apart with a bullet.
+const ARABIC_SCRIPT_REGEX: RegExp = /\p{Script=Arabic}/u;
+
+export function joinFacts(facts: ReadonlyArray<string>): string {
+  const isArabicScript: boolean = facts.some((fact: string): boolean => {
+    return ARABIC_SCRIPT_REGEX.test(fact);
+  });
+
+  return facts.join(
+    isArabicScript ? DOT_ZERO_INLINE_SEPARATOR : AI_INSIGHTS_FACT_SEPARATOR,
+  );
+}
 
 export const AI_INSIGHTS_EMPTY_TITLE: string = translationKey(
   "Nothing to show yet",
@@ -733,13 +804,15 @@ export function describeSubject(subject: AiActivitySubject): string {
 
     if (number !== undefined && title) {
       return translateTemplate("Incident #{{number}}: {{title}}", {
-        number,
+        number: number.toString(),
         title,
       });
     }
 
     if (number !== undefined) {
-      return translateTemplate("Incident #{{number}}", { number });
+      return translateTemplate("Incident #{{number}}", {
+        number: number.toString(),
+      });
     }
 
     return title
@@ -759,11 +832,16 @@ export function describeSubject(subject: AiActivitySubject): string {
   }
 
   if (number !== undefined && title) {
-    return translateTemplate("Alert #{{number}}: {{title}}", { number, title });
+    return translateTemplate("Alert #{{number}}: {{title}}", {
+      number: number.toString(),
+      title,
+    });
   }
 
   if (number !== undefined) {
-    return translateTemplate("Alert #{{number}}", { number });
+    return translateTemplate("Alert #{{number}}", {
+      number: number.toString(),
+    });
   }
 
   return title
@@ -867,6 +945,13 @@ export interface AiInsightWordingContext {
   noun: string;
   // When the insights were made: what "this week" and "new" are measured from.
   generatedAt?: string | undefined;
+  /*
+   * Whether the reader may approve the fixes that wait, as the server asks
+   * (RemediationFixActGate): false when their permissions certainly do not
+   * let them, and a fix then waits for approval - not theirs, as the AI
+   * card's Remediation step says it to them. Left out, theirs.
+   */
+  mayApproveFixes?: boolean | undefined;
 }
 
 // A short badge beside an insight's or a problem's heading.
@@ -1075,13 +1160,21 @@ export function describeInsightHeadline(
       );
 
     case AiActivityInsightKind.FixesAwaitingApproval:
-      return translatePlural(
-        {
-          one: "A fix is waiting for your approval",
-          other: "{{count}} fixes are waiting for your approval",
-        },
-        insight.count,
-      );
+      return context.mayApproveFixes === false
+        ? translatePlural(
+            {
+              one: "A fix is waiting for approval",
+              other: "{{count}} fixes are waiting for approval",
+            },
+            insight.count,
+          )
+        : translatePlural(
+            {
+              one: "A fix is waiting for your approval",
+              other: "{{count}} fixes are waiting for your approval",
+            },
+            insight.count,
+          );
 
     case AiActivityInsightKind.ReadyForAutomaticFixes:
       return translateTemplate(
@@ -1598,7 +1691,7 @@ export function describeProblemCount(problem: AiActivityProblem): string {
     parts.push(lastSeen);
   }
 
-  return parts.join(" · ");
+  return joinFacts(parts);
 }
 
 // A preventive insight's line: how often it was seen, and when last.
@@ -1622,7 +1715,7 @@ export function describePreventiveInsight(
     parts.push(lastSeen);
   }
 
-  return parts.join(" · ");
+  return joinFacts(parts);
 }
 
 /*
@@ -1671,7 +1764,7 @@ export function describeProblemFixes(
     );
   }
 
-  return parts.join(" · ");
+  return joinFacts(parts);
 }
 
 /*
@@ -1733,7 +1826,7 @@ export function describeProblemVerdicts(
     );
   }
 
-  return parts.length > 0 ? parts.join(" · ") : null;
+  return parts.length > 0 ? joinFacts(parts) : null;
 }
 
 /*
@@ -1757,7 +1850,7 @@ export function describeHotspot(hotspot: AiActivityHotspot): string {
     parts.push(lastSeen);
   }
 
-  return parts.join(" · ");
+  return joinFacts(parts);
 }
 
 /*
@@ -1789,7 +1882,7 @@ export function describeResourceHotspot(
     parts.push(lastSeen);
   }
 
-  return parts.join(" · ");
+  return joinFacts(parts);
 }
 
 /*
@@ -2032,6 +2125,44 @@ export function describeTrendWeeks(trend: Array<AiActivityTrendDay>): string {
   );
 }
 
+// A trend day's key: the UTC day it counts, as the server writes it.
+const TREND_DAY_REGEX: RegExp = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/*
+ * A trend day as the reader's calendar writes it - "07 Oct", "07. Okt.",
+ * "۰۷ اکتبر" - where the chart's ends and each bar's hover said "2026-10-07"
+ * in every language. The trend counts UTC days, so the day is read at its
+ * own noon UTC and shown as that same day wherever the reader is (as the
+ * cloud costs' Daily spend does): never the day before in America, or the
+ * day after in New Zealand. A key it cannot read is shown as written.
+ */
+export function describeTrendDate(date: string): string {
+  const parts: RegExpExecArray | null = TREND_DAY_REGEX.exec(date);
+
+  if (!parts) {
+    return date;
+  }
+
+  const utcNoon: Date = new Date(
+    Date.UTC(
+      Number(parts[1]),
+      Number(parts[2]) - 1,
+      Number(parts[3]),
+      12,
+      0,
+      0,
+    ),
+  );
+
+  if (Number.isNaN(utcNoon.getTime())) {
+    return date;
+  }
+
+  return OneUptimeDate.getDateAsLocalDayMonthString(
+    OneUptimeDate.getLocalDateFromWallClockInTimezone(utcNoon, "UTC"),
+  );
+}
+
 /*
  * A day's bar, on hover. Without the fixes for a reader who may not see
  * them: their 0 would read as "no fixes".
@@ -2044,7 +2175,7 @@ export function describeTrendDay(
     return translateTemplate(
       "{{date}}: {{investigations}} investigations, {{failed}} failed",
       {
-        date: day.date,
+        date: describeTrendDate(day.date),
         investigations: day.investigations,
         failed: day.failedInvestigations,
       },
@@ -2054,7 +2185,7 @@ export function describeTrendDay(
   return translateTemplate(
     "{{date}}: {{investigations}} investigations, {{failed}} failed, {{fixes}} fixes",
     {
-      date: day.date,
+      date: describeTrendDate(day.date),
       investigations: day.investigations,
       failed: day.failedInvestigations,
       fixes: day.fixes,

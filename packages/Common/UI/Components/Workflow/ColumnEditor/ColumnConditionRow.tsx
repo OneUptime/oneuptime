@@ -44,7 +44,10 @@ import { rowIssue } from "./ColumnRowSerialization";
 import ColumnValueInput from "./ColumnValueInput";
 import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
 import React, { FunctionComponent, ReactElement, useContext } from "react";
-import { Translator } from "../../../Utils/TranslateTemplate";
+import {
+  getInlineSeparator,
+  Translator,
+} from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 
 /*
@@ -119,7 +122,7 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
           .filter((part: string) => {
             return part !== "";
           })
-          .join(" · "),
+          .join(getInlineSeparator(translator.language)),
       };
     },
   );

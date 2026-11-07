@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.104",
+  "version": "14.0.105",
   "description": "",
   "repository": {
     "type": "git",
@@ -96,6 +96,7 @@
     "test-app-platforms-ui": "playwright test --config playwright.app-platforms-ui.config.ts",
     "test-cloud-recommendations-ui": "playwright test --config playwright.cloud-recommendations-ui.config.ts",
     "test-cloud-spend-ui": "playwright test --config playwright.cloud-spend-ui.config.ts",
+    "test-ai-insights-ui": "playwright test --config playwright.ai-insights-ui.config.ts",
     "test-profiles-ui": "playwright test --config playwright.profiles-ui.config.ts",
     "test-traces-ai-ui": "playwright test --config playwright.traces-ai-ui.config.ts",
     "test-exceptions-ai-ui": "playwright test --config playwright.exceptions-ai-ui.config.ts",

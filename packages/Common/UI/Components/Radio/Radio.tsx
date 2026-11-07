@@ -1,4 +1,7 @@
 import FieldError from "../Forms/Fields/FieldError";
+import readAsWritten from "../IsolatedText/ReadAsWritten";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import joinAriaIds from "../../Utils/AriaIds";
 import Text from "../../../Types/Text";
@@ -36,6 +39,8 @@ const Radio: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const uniqueId: string = useId();
   const errorId: string = `radio-error-${uniqueId}`;
+  // The page's language: the way its lines read.
+  const translator: Translator = useTranslator();
   const [value, setValue] = useState<RadioValue | undefined>(
     props.initialValue || props.value || undefined,
   );
@@ -115,7 +120,7 @@ const Radio: FunctionComponent<ComponentProps> = (
                   {option.label}
                 </label>
                 <p id={descriptionId} className="text-sm text-gray-500">
-                  {option.description}
+                  {readAsWritten(option.description, translator.language)}
                 </p>
               </div>
             ) : (

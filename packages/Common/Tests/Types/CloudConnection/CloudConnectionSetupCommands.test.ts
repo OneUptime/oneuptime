@@ -35,7 +35,10 @@ import {
   getCloudConnectionSetupCommand,
   getGcpSetupCommand,
 } from "../../../Types/CloudConnection/CloudConnectionSetupCommands";
+import escapeRegExp from "../../../Utils/RegExpEscape";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * The one command each cloud's setup step shows creates access that can
@@ -197,14 +200,17 @@ describe("AWS", () => {
     ]);
   });
 
-  test("no action is one no reader calls: of billing, only the daily costs and the ways to spend less; no health entities", () => {
+  test("no action is one no reader calls: of billing, only the daily costs, each resource's, the commitments' coverage and use, and the ways to spend less; no health entities", () => {
     /*
-     * The costs lane reads Cost Explorer's daily costs and Cost
-     * Optimization Hub's recommendations, and nothing else of billing:
-     * no budgets, no invoices, no payment details (aws-portal).
+     * The costs lane reads Cost Explorer's daily costs (each resource's
+     * too, for a connection with Costs per resource on), the savings lane
+     * how much of them the Savings Plans and Reserved Instances cover and
+     * how much of those is used, and Cost Optimization Hub's
+     * recommendations - and nothing else of billing: no budgets, no
+     * invoices, no payment details (aws-portal).
      */
-    expect(
-      AWS_READ_ONLY_ACTIONS.filter((action: string): boolean => {
+    const billing: Array<string> = AWS_READ_ONLY_ACTIONS.filter(
+      (action: string): boolean => {
         return (
           action.startsWith("ce:") ||
           action.startsWith("cost-optimization-hub:") ||
@@ -212,11 +218,43 @@ describe("AWS", () => {
           action.startsWith("budgets:") ||
           action.startsWith("billing:")
         );
-      }),
-    ).toEqual([
+      },
+    );
+
+    expect(billing).toEqual([
       "ce:GetCostAndUsage",
+      "ce:GetCostAndUsageWithResources",
+      "ce:GetSavingsPlansCoverage",
+      "ce:GetSavingsPlansUtilization",
+      "ce:GetReservationCoverage",
+      "ce:GetReservationUtilization",
       "cost-optimization-hub:ListRecommendations",
     ]);
+
+    // Each Cost Explorer action is one a reader sends, as its target.
+    const readers: string = [
+      "Aws/AwsCosts.ts",
+      "Aws/AwsResourceCosts.ts",
+      "Aws/AwsCommitments.ts",
+    ]
+      .map((file: string): string => {
+        return fs.readFileSync(
+          path.join(__dirname, "../../../Server/Utils/CloudConnection", file),
+          "utf8",
+        );
+      })
+      .join("\n");
+
+    for (const action of billing.filter((entry: string): boolean => {
+      return entry.startsWith("ce:");
+    })) {
+      expect({
+        action,
+        sent: readers.includes(
+          `"AWSInsightsIndexService.${action.slice("ce:".length)}"`,
+        ),
+      }).toEqual({ action, sent: true });
+    }
     expect(
       AWS_READ_ONLY_ACTION_GROUPS.map((group: { purpose: string }): string => {
         return group.purpose;
@@ -289,7 +327,64 @@ describe("AWS", () => {
 
     for (const resource of AWS_SCOPED_READ_RESOURCES["apigateway:GET"]!) {
       expect(resource).not.toContain("apikeys");
-      expect(resource).toMatch(/::\/(restapis|apis)(\/\*)?$/);
+      expect(resource).toMatch(/::\/(restapis|apis)\*$/);
+    }
+  });
+
+  /*
+   * What the API Gateway patterns cover, as IAM reads a resource pattern:
+   * * is any run of characters, slashes too, and ? any one character.
+   */
+  function isCoveredByApiGatewayRead(apiPath: string): boolean {
+    const arn: string = `arn:aws:apigateway:us-east-1::${apiPath}`;
+
+    return AWS_SCOPED_READ_RESOURCES["apigateway:GET"]!.some(
+      (pattern: string): boolean => {
+        const expression: string = pattern
+          .split("")
+          .map((character: string): string => {
+            if (character === "*") {
+              return ".*";
+            }
+
+            if (character === "?") {
+              return ".";
+            }
+
+            return escapeRegExp(character);
+          })
+          .join("");
+
+        return new RegExp(`^${expression}$`).test(arn);
+      },
+    );
+  }
+
+  test("API Gateway's read covers every path of an API's definition, and no key, usage plan or account path", () => {
+    for (const apiPath of [
+      "/restapis",
+      "/restapis/a1b2c3d4e5",
+      "/restapis/a1b2c3d4e5/stages/prod",
+      "/restapis/a1b2c3d4e5/resources/abc123/methods/GET",
+      "/apis",
+      "/apis/a1b2c3d4e5",
+      "/apis/a1b2c3d4e5/routes/r1",
+    ]) {
+      expect(isCoveredByApiGatewayRead(apiPath)).toBe(true);
+    }
+
+    for (const apiPath of [
+      "/apikeys",
+      "/apikeys/k1",
+      "/usageplans",
+      "/usageplans/u1/keys",
+      "/clientcertificates",
+      "/domainnames",
+      "/account",
+      "/vpclinks",
+      "/tags/arn",
+    ]) {
+      expect(isCoveredByApiGatewayRead(apiPath)).toBe(false);
     }
   });
 

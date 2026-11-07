@@ -4,7 +4,12 @@ import {
   FaasCloudPlatform,
   ManagedCloudPlatform,
 } from "./CloudPlatform";
-import { getAwsPartitionForRegion } from "./CloudResourceCatalog";
+import {
+  AZURE_RESOURCE_TYPES,
+  CloudResourceTypeDescriptor,
+  getAwsPartitionForRegion,
+  getGcpMonitoredResourceRule,
+} from "./CloudResourceCatalog";
 import {
   AWS_CLOUDWATCH_DIMENSION_PREFIX,
   AWS_CLOUDWATCH_METRIC_NAME_PREFIX,
@@ -418,15 +423,81 @@ export const AWS_LOG_GROUP_RESOURCE_TYPES: ReadonlySet<string> =
     }),
   );
 
-// Whether a resource's page has a Logs tab: its type is one a log group names.
+/*
+ * Azure: the types of the catalog with no resource logs of their own, so
+ * their pages have no Logs tab. A virtual machine's logs need an agent in
+ * it; disks, network interfaces, private endpoints, NAT gateways, DNS zones
+ * and App Service plans send metrics only; a storage account's logs are its
+ * blob, queue, table and file services', a container app's its
+ * environment's. Every other type of the catalog the stream's diagnostic
+ * settings send the logs of, filed under its ARM id.
+ */
+export const AZURE_TYPES_WITHOUT_RESOURCE_LOGS: ReadonlySet<string> =
+  new Set<string>([
+    "microsoft.compute/virtualmachines",
+    "microsoft.compute/virtualmachinescalesets",
+    "microsoft.compute/disks",
+    "microsoft.network/networkinterfaces",
+    "microsoft.network/virtualnetworks",
+    "microsoft.network/privateendpoints",
+    "microsoft.network/natgateways",
+    "microsoft.network/dnszones",
+    "microsoft.web/serverfarms",
+    "microsoft.storage/storageaccounts",
+    "microsoft.app/containerapps",
+  ]);
+
+const AZURE_TYPES: ReadonlySet<string> = new Set<string>(
+  AZURE_RESOURCE_TYPES.map(
+    (descriptor: CloudResourceTypeDescriptor): string => {
+      return descriptor.type.toLowerCase();
+    },
+  ),
+);
+
+/*
+ * Google Cloud: the monitored resource types of the catalog Cloud Logging
+ * files no log under - an instance group's are its VMs' and its manager's.
+ * An external load balancer's are filed as http_load_balancer's, of the
+ * same URL map, which the stream files under its https_lb_rule
+ * (CloudLoggingEntries' aliases).
+ */
+export const GCP_TYPES_WITHOUT_LOGS: ReadonlySet<string> = new Set<string>([
+  "instance_group",
+]);
+
+/*
+ * Whether a resource's page has a Logs tab: an AWS type a log group names
+ * (CloudLogGroups' rules), an Azure type that writes resource logs, or a
+ * Google Cloud type whose logs Cloud Logging files under it.
+ */
 export function canCloudResourceHaveStreamedLogs(data: {
   provider: string | null | undefined;
   type: string | null | undefined;
 }): boolean {
-  return (
-    (data.provider || "").toLowerCase() === CloudProvider.AWS &&
-    AWS_LOG_GROUP_RESOURCE_TYPES.has(data.type || "")
-  );
+  const provider: string = (data.provider || "").toLowerCase();
+  const type: string = data.type || "";
+
+  if (provider === CloudProvider.AWS) {
+    return AWS_LOG_GROUP_RESOURCE_TYPES.has(type);
+  }
+
+  if (provider === CloudProvider.Azure) {
+    const lower: string = type.toLowerCase();
+
+    return (
+      AZURE_TYPES.has(lower) && !AZURE_TYPES_WITHOUT_RESOURCE_LOGS.has(lower)
+    );
+  }
+
+  if (provider === CloudProvider.GCP) {
+    return (
+      Boolean(getGcpMonitoredResourceRule(type)) &&
+      !GCP_TYPES_WITHOUT_LOGS.has(type)
+    );
+  }
+
+  return false;
 }
 
 export interface CloudLogGroupResource {

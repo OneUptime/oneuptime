@@ -308,9 +308,12 @@ export const SMTP_REQUIRE_TLS_DESCRIPTION: string = translationKey(
   "Send mail only over an encrypted connection with a valid certificate. When off, the certificate is not checked. Port 465 is always encrypted.",
 );
 
-// The scope each OAuth app takes, on both forms: Graph's, Microsoft 365 SMTP's, Google's.
+/*
+ * The scope each OAuth app takes, on both forms: Graph's, Microsoft 365 SMTP's, Google's. Each scope is written
+ * whole, so the labels stay short to keep it within ShortDescriptionsGuard's 150 characters.
+ */
 export const SMTP_OAUTH_SCOPE_DESCRIPTION: string =
-  "For Microsoft Graph: https://graph.microsoft.com/.default. For Microsoft 365 SMTP: https://outlook.office365.com/.default. For Google: https://mail.google.com/";
+  "Microsoft Graph: https://graph.microsoft.com/.default. Microsoft 365 SMTP: https://outlook.office365.com/.default. Google: https://mail.google.com/";
 
 export const SMTP_FROM_EMAIL_DESCRIPTION: string = translationKey(
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.",

@@ -6,6 +6,7 @@ import Link from "Common/UI/Components/Link/Link";
 import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import { connectorDocsUrl } from "./SecurityEventConnectionDiagnosticsUtil";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   // Prefix of the element ids, so two galleries on a page cannot collide.
@@ -81,7 +82,9 @@ const SecurityEventProviderTile: FunctionComponent<ComponentProps> = (
         <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs leading-5 text-gray-500">
           <span id={categoryId}>{translateString(definition.category)}</span>
           {/* A dot, not a slash: "EDR / XDR" already has one. */}
-          <span aria-hidden="true">&middot;</span>
+          <span aria-hidden="true">
+            <InlineSeparator markOnly />
+          </span>
           <Link
             to={connectorDocsUrl(definition)}
             openInNewTab={true}

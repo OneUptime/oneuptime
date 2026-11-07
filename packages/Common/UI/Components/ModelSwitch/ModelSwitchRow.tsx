@@ -1,3 +1,4 @@
+import readAsWritten from "../IsolatedText/ReadAsWritten";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { Yellow } from "../../../Types/BrandColors";
@@ -546,9 +547,19 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
   const description: ReactElement | undefined =
     descriptionText || props.note || leftoverNote || warningLine ? (
       <>
-        {descriptionText ? translator.translateText(descriptionText) : ""}
+        {descriptionText
+          ? readAsWritten(
+              translator.translateText(descriptionText),
+              translator.language,
+            )
+          : ""}
         {descriptionText && props.note ? " " : ""}
-        {props.note ? translator.translateText(props.note) : ""}
+        {props.note
+          ? readAsWritten(
+              translator.translateText(props.note),
+              translator.language,
+            )
+          : ""}
         {leftoverNote || ""}
         {warningLine || ""}
       </>

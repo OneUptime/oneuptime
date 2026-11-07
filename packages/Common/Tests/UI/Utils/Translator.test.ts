@@ -4,6 +4,7 @@ import {
   fillTemplate,
   getPluralCategory,
   isComposedValue,
+  isOneFormOnlyForOne,
   isTranslatableTerm,
   PluralTemplate,
   TextLookup,
@@ -434,6 +435,159 @@ describe("translatePlural", () => {
     expect(frenchPlaceholders.translatePlural(ROWS, 0)).toBe("0 rows");
     expect(russianPlaceholders.translatePlural(ROWS, 21)).toBe("21 rows");
     expect(russianPlaceholders.translatePlural(ROWS, 1)).toBe("1 row");
+  });
+
+  /*
+   * A one form written for an English one that names no count ("Fired
+   * once") can only say one. Russian puts 21, 31 and 101 in its "one"
+   * form, French puts 0 and 1.5 there: such a count reads the language's
+   * general form, which reads right for any count - never "fired once" for
+   * 31 (#6149's follow-up: a security case's detection that fired 31 times).
+   */
+  describe("a one form that names no count", () => {
+    const FIRED: PluralTemplate = {
+      one: "Fired once",
+      other: "Fired {{count}} times",
+    };
+    const russianFired: Translator = createTranslator(
+      lookupFrom(
+        {
+          [FIRED.other]: "Срабатываний: {{count}}",
+          [`${FIRED.other}_one`]: "Сработало один раз",
+        },
+        ENGLISH,
+      ),
+      "ru",
+    );
+    const frenchFired: Translator = createTranslator(
+      lookupFrom(
+        {
+          [FIRED.other]: "Déclenchée {{count}} fois",
+          [`${FIRED.other}_one`]: "Déclenchée une fois",
+        },
+        ENGLISH,
+      ),
+      "fr",
+    );
+
+    test("is said for one", () => {
+      expect(russianFired.translatePlural(FIRED, 1)).toBe("Сработало один раз");
+      expect(frenchFired.translatePlural(FIRED, 1)).toBe("Déclenchée une fois");
+      expect(english.translatePlural(FIRED, 1)).toBe("Fired once");
+    });
+
+    test.each([21, 31, 101, 1001])(
+      "never for %d, which Russian counts as one: its general form names the count",
+      (count: number) => {
+        expect(getPluralCategory("ru", count)).toBe("one");
+        expect(russianFired.translatePlural(FIRED, count)).toBe(
+          `Срабатываний: ${russianFired.formatNumber(count)}`,
+        );
+      },
+    );
+
+    test("nor for a fraction French counts as one", () => {
+      expect(getPluralCategory("fr", 1.5)).toBe("one");
+      expect(frenchFired.translatePlural(FIRED, 1.5)).toBe(
+        "Déclenchée 1,5 fois",
+      );
+    });
+
+    test("nor for zero, which French counts as one", () => {
+      expect(getPluralCategory("fr", 0)).toBe("one");
+      expect(frenchFired.translatePlural(FIRED, 0)).toBe("Déclenchée 0 fois");
+    });
+
+    test("the other counts read the general form, as before", () => {
+      expect(russianFired.translatePlural(FIRED, 5)).toBe("Срабатываний: 5");
+      expect(russianFired.translatePlural(FIRED, 22)).toBe("Срабатываний: 22");
+    });
+
+    test("a one form that names the count still holds 21 in Russian", () => {
+      expect(russian.translatePlural(ROWS, 21)).toBe("21 строка");
+    });
+
+    test("English is untouched", () => {
+      expect(english.translatePlural(FIRED, 21)).toBe("Fired 21 times");
+      expect(english.translatePlural(FIRED, 0)).toBe("Fired 0 times");
+    });
+  });
+
+  /*
+   * The UI review of #6149's follow-up: a pair that names the count in
+   * neither form is a word drawn beside a number shown on its own - "21"
+   * over "days" on a countdown, a log total over "logs" - or a number
+   * another value holds. Its one form is the language's form for that
+   * number: Russian says "21 день" and "21 журнал", never "21 дней".
+   */
+  describe("a word beside a number shown on its own", () => {
+    const DAYS: PluralTemplate = { one: "day", other: "days" };
+    const EVENTS: PluralTemplate = {
+      one: "{{number}} event",
+      other: "{{number}} events",
+    };
+    const russianWords: Translator = createTranslator(
+      lookupFrom({
+        [DAYS.other]: "дней",
+        [`${DAYS.other}_one`]: "день",
+        [`${DAYS.other}_few`]: "дня",
+        [EVENTS.other]: "Событий: {{number}}",
+        [`${EVENTS.other}_one`]: "{{number}} событие",
+      }),
+      "ru",
+    );
+    const frenchWords: Translator = createTranslator(
+      lookupFrom({
+        [DAYS.other]: "jours",
+        [`${DAYS.other}_one`]: "jour",
+      }),
+      "fr",
+    );
+
+    test("says only one when the other form names the count and the one form does not", () => {
+      expect(
+        isOneFormOnlyForOne({
+          one: "Fired once",
+          other: "Fired {{count}} times",
+        }),
+      ).toBe(true);
+      expect(
+        isOneFormOnlyForOne({
+          one: "Show the host",
+          other: "Show every host ({{count}})",
+        }),
+      ).toBe(true);
+      expect(isOneFormOnlyForOne(ROWS)).toBe(false);
+      expect(isOneFormOnlyForOne(DAYS)).toBe(false);
+      expect(isOneFormOnlyForOne(EVENTS)).toBe(false);
+    });
+
+    test.each([1, 21, 31, 101])(
+      "Russian draws %d's word in its one form",
+      (count: number) => {
+        expect(getPluralCategory("ru", count)).toBe("one");
+        expect(russianWords.translatePlural(DAYS, count)).toBe("день");
+        expect(
+          russianWords.translatePlural(EVENTS, count, {
+            number: String(count),
+          }),
+        ).toBe(`${count} событие`);
+      },
+    );
+
+    test("and the other counts in their own forms", () => {
+      expect(russianWords.translatePlural(DAYS, 22)).toBe("дня");
+      expect(russianWords.translatePlural(DAYS, 25)).toBe("дней");
+      expect(russianWords.translatePlural(EVENTS, 25, { number: "25" })).toBe(
+        "Событий: 25",
+      );
+    });
+
+    test("French draws zero's word in its one form", () => {
+      expect(getPluralCategory("fr", 0)).toBe("one");
+      expect(frenchWords.translatePlural(DAYS, 0)).toBe("jour");
+      expect(frenchWords.translatePlural(DAYS, 2)).toBe("jours");
+    });
   });
 
   test("a locale without the template gives the English sentence", () => {

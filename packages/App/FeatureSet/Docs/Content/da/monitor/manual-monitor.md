@@ -65,9 +65,9 @@ En ændring, der begyndte tidligere, registreres i stedet på monitorens statust
 
 :::steps
 1. Åbn monitoren, og klik på **Statustidslinje** i dens sidemenu.
-2. Klik på **Opret Monitor Status Begivenhed**.
+2. Klik på **Opret Statusbegivenhed for monitor**.
 3. Vælg **Monitorstatus**. **Begynder den** er nu; angiv et tidligere tidspunkt, hvis ændringen skete tidligere.
-4. Klik på **Opret Monitor Status Begivenhed**. Den nye status vises med det samme på monitoren og på hver statusside, der viser den.
+4. Klik på **Opret Statusbegivenhed for monitor**. Den nye status vises med det samme på monitoren og på hver statusside, der viser den.
 :::
 
 ### Via API'et

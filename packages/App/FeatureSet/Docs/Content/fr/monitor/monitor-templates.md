@@ -68,7 +68,7 @@ Modifier un modèle ne change que le modèle. Pour copier une modification sur l
 | **Synchroniser les critères vers les moniteurs liés** | Les critères et les réglages d'étape, comme les destinations et les options de requête, sauf les champs protégés | L'intervalle de surveillance, l'accord minimum des sondes, le nom, la description, les étiquettes et les valeurs des champs personnalisés |
 | **Synchroniser l'intervalle vers les moniteurs liés** | L'intervalle de surveillance et l'accord minimum des sondes | Les critères, le nom, la description, les étiquettes et les valeurs des champs personnalisés |
 | **Synchroniser les étiquettes vers les moniteurs liés** | Les étiquettes, et rien d'autre | Tout le reste |
-| **Sync Custom Fields to Linked Monitors** | Les champs personnalisés pour lesquels le modèle a une valeur par défaut, à la place de ce que chaque moniteur avait | Les champs personnalisés que le modèle laisse vides, et tout le reste |
+| **Synchroniser les champs personnalisés avec les moniteurs liés** | Les champs personnalisés pour lesquels le modèle a une valeur par défaut, à la place de ce que chaque moniteur avait | Les champs personnalisés que le modèle laisse vides, et tout le reste |
 
 Pour synchroniser un seul moniteur, cliquez sur **Synchroniser depuis le modèle** sur sa ligne dans **Moniteurs liés**. Cela copie les critères et les réglages d'étape (sauf les champs protégés), l'intervalle de surveillance, l'accord minimum des sondes et les étiquettes, et laisse intacts le nom, la description et les valeurs des champs personnalisés du moniteur. **Dissocier du modèle** déconnecte un moniteur ; il garde ses réglages.
 

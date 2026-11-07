@@ -296,7 +296,7 @@ const STATE_TO_JIRA_STATUS = {
 
 Jira Cloud 接受由帳戶的電子郵件和 API 權杖編碼在一起構成的 Basic 驗證，與 [範本需要的設定](#範本需要的設定) 中的相同。
 
-1. 前往 **工作流程 → 全域變數**，點選 **建立工作流程 變數**。將其命名為 `JIRA_AUTH`，把編碼後的值貼上到 **內容** 中，開啟 **密鑰**，然後建立它。
+1. 前往 **工作流程 → 全域變數**，點選 **建立工作流程變數**。將其命名為 `JIRA_AUTH`，把編碼後的值貼上到 **內容** 中，開啟 **密鑰**，然後建立它。
 2. 再建立一個變數 `JIRA_URL`，值為不帶末尾斜線的 `https://your-domain.atlassian.net`，並保持 **密鑰** 關閉。
 
 之後任何區塊都可以把 `Basic {{global.variables.JIRA_AUTH}}` 作為它的 `Authorization` 標頭髮送，權杖永遠不會出現在工作流程或其執行中。使用帶範圍的權杖時，`JIRA_URL` 改為 `https://api.atlassian.com/ex/jira/<cloudId>`，下面的每個路徑都原樣接在它後面。

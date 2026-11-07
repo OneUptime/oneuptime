@@ -39,7 +39,7 @@ Open een criterium: het heeft een naam en drie secties, die elk inklappen tot ee
 | Onderdeel | Wat het bevat |
 | --- | --- |
 | **Criterianaam** | De naam in de lijst met criteria, en in de oorzaak van elk incident en elke waarschuwing die het criterium opent. **Criteria toevoegen** noemt een nieuw criterium naar zijn filters, en de naam volgt ze tot u er zelf een typt. |
-| **Filters** | Wat de controle moet laten zien, als een of meer filters. Kubernetes- en metriekmonitoren noemen ze **Alert Rules**. |
+| **Filters** | Wat de controle moet laten zien, als een of meer filters. Kubernetes- en metriekmonitoren noemen ze **Waarschuwingsregels**. |
 | **Acties** | Wat er gebeurt als de filters overeenkomen: de status wijzigen, een waarschuwing maken, een incident melden, of een combinatie daarvan. |
 | **Instellingen** | **Schakel dit criterium in**, een optionele **Beschrijving** en, bij monitoren voor inkomende verzoeken, **Group incidents and alerts by a payload field**. |
 
@@ -88,7 +88,7 @@ flowchart TB
 - **Eén tegelijk.** Zolang een incident dat een criterium heeft gemeld nog open is, meldt hetzelfde criterium bij een nieuwe overeenkomst geen tweede. Waarschuwingen werken net zo. Een monitor die op host of payloadveld groepeert, houdt er één open per host of waarde, en een criterium van een monitor voor inkomende e-mail met **Voor elke e-mail een nieuw incident openen** opent er één per e-mail.
 - **Sluiten.** Bij een latere controle waarbij een ander criterium overeenkomt, of geen, wordt een incident opgelost waarvan het criterium **Incident automatisch oplossen** aan heeft, en ook een waarschuwing met **Waarschuwing automatisch oplossen**. Beide staan onder **Meer velden** in het incident of de waarschuwing, en de criteria waarmee een nieuwe monitor begint, hebben ze aan.
 - **Meerdere sondes.** Een monitor die door meer dan één sonde wordt gecontroleerd, verandert alleen als zijn sondes het eens zijn. Zie [Hoe criteria worden geëvalueerd](/docs/monitor/create-monitor#hoe-criteria-worden-geëvalueerd).
-- **Een bovenliggende monitor die uitvalt.** Op de pagina **Configuratie → Afhankelijkheden** van een monitor noemt **Depends On Monitors** de monitoren waarvan hij afhangt. Zolang een van die monitoren een status heeft die onder **Suppress When Parent Status Is** staat (elke offline-status als dat leeg blijft), opent de monitor geen incidenten of waarschuwingen. Zijn status verandert nog steeds, en wat open staat, wordt nog steeds opgelost.
+- **Een bovenliggende monitor die uitvalt.** Op de pagina **Configuratie → Afhankelijkheden** van een monitor noemt **Afhankelijk van monitors** de monitoren waarvan hij afhangt. Zolang een van die monitoren een status heeft die onder **Onderdrukken als status van bovenliggende monitor is** staat (elke offline-status als dat leeg blijft), opent de monitor geen incidenten of waarschuwingen. Zijn status verandert nog steeds, en wat open staat, wordt nog steeds opgelost.
 - **Gepland onderhoud.** Een monitor in een lopend onderhoudsevenement wordt niet gecontroleerd, dus zijn criteria draaien niet. Zie [Geplande onderhoud – Overzicht](/docs/scheduled-maintenance/index).
 
 Om te zien hoe een controle is beoordeeld, opent u het **Overzicht** van de monitor: de kaart **Monitorsamenvatting** toont welk criterium overeenkwam en wat elk criterium deed, inclusief een incident dat werd overgeslagen omdat er al een open stond.
@@ -148,7 +148,7 @@ Een status die u later toevoegt, wordt niet toegevoegd aan de lijst **Telt als d
 :::steps
 ### Monitorstatus openen
 
-Ga naar **Monitoren → Instellingen → Monitorstatus**. **Instellingen** is ingeklapt in het zijmenu: klap het eerst uit. De kaart **Monitor Statussen** toont de statussen van gezondst tot slechtst.
+Ga naar **Monitoren → Instellingen → Monitorstatus**. **Instellingen** is ingeklapt in het zijmenu: klap het eerst uit. De kaart **Monitorstatussen** toont de statussen van gezondst tot slechtst.
 
 ### De status maken
 
@@ -167,7 +167,7 @@ De operationele en de offline-status zijn gemarkeerd als **Ingebouwd**: u kunt z
 
 ### De statustijdlijn
 
-Elke statuswijziging blijft bewaard in de **Statustijdlijn** van de monitor: wanneer ze begon, hoe lang ze duurde, en **Oorzaak bekijken** voor het criterium dat haar instelde. **Monitor Status Gebeurtenis aanmaken** voegt handmatig een status toe. Bij een monitor die sondes controleren, zet de volgende controle die overeenkomt met een criterium met een status die status opnieuw.
+Elke statuswijziging blijft bewaard in de **Statustijdlijn** van de monitor: wanneer ze begon, hoe lang ze duurde, en **Oorzaak bekijken** voor het criterium dat haar instelde. **Monitorstatusgebeurtenis aanmaken** voegt handmatig een status toe. Bij een monitor die sondes controleren, zet de volgende controle die overeenkomt met een criterium met een status die status opnieuw.
 
 Een statuswijziging brengt de eigenaren van de monitor alleen op de hoogte als zij **Monitorstatus gewijzigd** in hun meldingsinstellingen hebben ingeschakeld: het staat in het begin uit. Een monitor die teruggaat naar zijn **Standaard monitorstatus** omdat geen criterium overeenkwam, brengt niemand op de hoogte. Zie [Wat aan staat voor een nieuw lid](/docs/notifications/notification-settings#wat-er-aanstaat-voor-een-nieuw-lid).
 
@@ -187,7 +187,7 @@ Een criterium hoger in de lijst kwam eerst overeen. Open **Configuratie → Crit
 :::
 
 :::details Er werd geen incident geopend toen de monitor uitviel
-Controleer het criterium dat overeenkwam: **Wanneer filters overeenkomen, verklaar een incident.** moet aan staan. Er wordt geen incident gemeld zolang het incident van hetzelfde criterium nog open is, zolang een bovenliggende monitor uit **Depends On Monitors** is uitgevallen, of zolang de monitor in gepland onderhoud is. De kaart **Monitorsamenvatting** in het **Overzicht** van de monitor vertelt welke het was.
+Controleer het criterium dat overeenkwam: **Wanneer filters overeenkomen, verklaar een incident.** moet aan staan. Er wordt geen incident gemeld zolang het incident van hetzelfde criterium nog open is, zolang een bovenliggende monitor uit **Afhankelijk van monitors** is uitgevallen, of zolang de monitor in gepland onderhoud is. De kaart **Monitorsamenvatting** in het **Overzicht** van de monitor vertelt welke het was.
 :::
 
 :::details Het incident blijft open nadat de monitor herstelde

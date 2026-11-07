@@ -33,7 +33,8 @@ import { getTemplatePlaceholders } from "../../../Types/Translator";
  * its digit groups the wrong way round ("8841-2277-4109"): the browser
  * read its digits as Persian ones, and its hyphens as the sentence's.
  * Now what is picked is set apart from the chip's name, and every word the
- * chip says is the reader's.
+ * chip says is the reader's - its separator too: a bullet on a Persian page
+ * (InlineSeparator), where the middle dot beside digits read as a zero.
  */
 
 const ACCOUNT: string = "4109-2277-8841";
@@ -127,7 +128,7 @@ describe("what the chip is set to", () => {
     expect(value.tagName).toBe("BDI");
     expect(value).not.toHaveAttribute("dir");
     expect(value.textContent).toBe(ACCOUNT);
-    expect(chipButton()).toHaveAccessibleName(`حساب ابری · ${ACCOUNT}`);
+    expect(chipButton()).toHaveAccessibleName(`حساب ابری \u{2022} ${ACCOUNT}`);
   });
 
   test("several picks are one isolate, in the order they were listed", () => {
@@ -160,7 +161,7 @@ describe("what the chip is set to", () => {
     const words: string = chipButton().textContent || "";
 
     expect(withoutIsolateMarks(words)).toBe(
-      `حساب ابری · ${persianLocale["not {{value}}"].replace("{{value}}", ACCOUNT)}`,
+      `حساب ابری \u{2022} ${persianLocale["not {{value}}"].replace("{{value}}", ACCOUNT)}`,
     );
     // Its digits keep their order inside the Persian words.
     expect(words).toContain(isolated(ACCOUNT));

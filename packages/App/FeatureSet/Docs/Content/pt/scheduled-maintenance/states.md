@@ -106,11 +106,11 @@ Um estado que você adiciona é uma etapa pela qual sua equipe passa e que os qu
 :::steps
 ### Abrir a lista de estados
 
-Vá em **Manutenção programada → Configurações → Estado do evento**. O cartão **Agendado Manutenção Estados** lista seus estados na ordem deles. Cada linha mostra a cor e o nome, como conta um evento que está nele (coluna **Conta como**) e a descrição.
+Vá em **Manutenção programada → Configurações → Estado do evento**. O cartão **Estados da manutenção programada** lista seus estados na ordem deles. Cada linha mostra a cor e o nome, como conta um evento que está nele (coluna **Conta como**) e a descrição.
 
 ### Criar o estado
 
-Clique em **Criar: Agendado Manutenção Estado** e preencha o **Nome**, a **Descrição** e a **Cor**. O estado novo é adicionado logo acima do estado concluído.
+Clique em **Criar: Estado da manutenção programada** e preencha o **Nome**, a **Descrição** e a **Cor**. O estado novo é adicionado logo acima do estado concluído.
 
 ### Arrastá-lo para o lugar
 

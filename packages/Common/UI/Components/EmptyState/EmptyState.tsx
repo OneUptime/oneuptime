@@ -1,3 +1,6 @@
+import readAsWritten from "../IsolatedText/ReadAsWritten";
+import useTranslator from "../../Utils/UseTranslator";
+import { Translator } from "../../Utils/TranslateTemplate";
 import Icon from "../Icon/Icon";
 import ProviderLogoImage from "../ProviderLogo/ProviderLogoImage";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -31,6 +34,7 @@ const EmptyState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateValue } = useTranslateValue();
+  const translator: Translator = useTranslator();
   return (
     <React.Fragment>
       <div
@@ -85,7 +89,10 @@ const EmptyState: FunctionComponent<ComponentProps> = (
             className="mx-auto mt-1 max-w-xl text-balance text-sm leading-6 text-gray-500"
             data-testid={`${props.id}-description`}
           >
-            {translateValue(props.description)}
+            {readAsWritten(
+              translateValue(props.description),
+              translator.language,
+            )}
           </p>
           {/*
            * A flex row, so a footer that is itself a block-level flex box

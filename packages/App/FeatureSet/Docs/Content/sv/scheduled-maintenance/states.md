@@ -106,11 +106,11 @@ Ett tillstånd som du lägger till är ett steg som ditt team går igenom och so
 :::steps
 ### Öppna tillståndslistan
 
-Gå till **Schemalagt underhåll → Inställningar → Händelsestatus**. Kortet **Schemalagd Underhåll Tillstånd** listar dina tillstånd i ordning. Varje rad visar sin färg och sitt namn, vad en händelse i det räknas som (kolumnen **Räknas som**) och sin beskrivning.
+Gå till **Schemalagt underhåll → Inställningar → Händelsestatus**. Kortet **Tillstånd för schemalagt underhåll** listar dina tillstånd i ordning. Varje rad visar sin färg och sitt namn, vad en händelse i det räknas som (kolumnen **Räknas som**) och sin beskrivning.
 
 ### Skapa tillståndet
 
-Klicka på **Skapa Schemalagd Underhåll Tillstånd** och fyll i dess **Namn**, **Beskrivning** och **Färg**. Det nya tillståndet läggs till precis ovanför det slutförda tillståndet.
+Klicka på **Skapa Tillstånd för schemalagt underhåll** och fyll i dess **Namn**, **Beskrivning** och **Färg**. Det nya tillståndet läggs till precis ovanför det slutförda tillståndet.
 
 ### Dra det på plats
 

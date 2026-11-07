@@ -1,3 +1,6 @@
+import readAsWritten from "../IsolatedText/ReadAsWritten";
+import useTranslator from "../../Utils/UseTranslator";
+import { Translator } from "../../Utils/TranslateTemplate";
 import FieldError from "../Forms/Fields/FieldError";
 import React, { FunctionComponent, ReactElement } from "react";
 import useTranslateValue from "../../Utils/Translation";
@@ -41,6 +44,7 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
   props: CategoryProps,
 ): ReactElement => {
   const { translateValue } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const checkboxId: string = React.useId();
   const descriptionId: string = `${checkboxId}-description`;
   const [value, setValue] = React.useState<boolean>(
@@ -103,7 +107,10 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
           </label>
           {props.description && (
             <div id={descriptionId} className="text-gray-500">
-              {translateValue(props.description)}
+              {readAsWritten(
+                translateValue(props.description),
+                translator.language,
+              )}
             </div>
           )}
         </div>

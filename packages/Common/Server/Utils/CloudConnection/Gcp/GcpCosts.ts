@@ -4,8 +4,14 @@ import {
   CloudCostState,
   CloudSavingKind,
   getCloudCostResourceKey,
+  getMostCommonCloudCurrency,
+  roundCost,
   toCloudCostDay,
 } from "../../../../Types/Cloud/CloudCost";
+import {
+  CloudCommitmentKind,
+  CloudCommitmentKindFigures,
+} from "../../../../Types/Cloud/CloudCommitments";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import { JSONObject } from "../../../../Types/JSON";
 import GoogleServiceAccountToken from "../../LlmObservability/Connectors/GoogleVertexAI/GoogleServiceAccountToken";
@@ -37,8 +43,13 @@ import GcpInventoryClient, {
  *   (its billingExportTable setting, "project.dataset.table"). A read runs
  *   one query over the window (BigQuery jobs.query, a read-only standard
  *   SQL query with named parameters) - grouped by day, project, service,
- *   Region and, with the detailed export, resource. A query of a month of
- *   a billing export reads a few megabytes to a few gigabytes.
+ *   Region, the cost's labels and, with the detailed export, resource. A
+ *   query of a month of a billing export reads a few megabytes to a few
+ *   gigabytes.
+ *
+ *   Commitments: the same export says what the committed use discounts
+ *   paid for (their credits) and what they cost (their fees), read once a
+ *   day with the ways to spend less (readCommitments).
  *
  *   Savings: the Recommender API (recommender.googleapis.com), in each
  *   place a project's resources are: a machine type smaller than a VM's,
@@ -89,15 +100,180 @@ export function buildGcpBillingExportQuery(table: string): string {
       ? "IFNULL(resource.global_name, '') AS resource_id,"
       : "'' AS resource_id,",
     "currency,",
-    "SUM(cost) AS cost",
+    "SUM(cost) AS cost,",
+    // Its labels, the keys in order, so one set of labels is one group.
+    "TO_JSON_STRING(ARRAY(SELECT AS STRUCT label.key, label.value FROM UNNEST(labels) AS label ORDER BY label.key)) AS labels_json",
     `FROM \`${table.trim()}\``,
     "WHERE usage_start_time >= TIMESTAMP(@start)",
     "AND usage_start_time < TIMESTAMP(@end)",
     // The export's partitions: a day's usage lands in its day's or a later one.
     "AND _PARTITIONTIME >= TIMESTAMP_SUB(TIMESTAMP(@start), INTERVAL 1 DAY)",
-    "GROUP BY day, project_id, service, region, resource_id, currency",
+    "GROUP BY day, project_id, service, region, resource_id, currency, labels_json",
     "HAVING cost != 0",
   ].join(" ");
+}
+
+/*
+ * A cost's labels as the query writes them - [{"key":"team","value":"web"}]
+ * - as tags. Anything else is no tags.
+ */
+export function readGcpLabels(value: string): Record<string, string> {
+  const tags: Record<string, string> = {};
+
+  if (!value || !value.trim().startsWith("[")) {
+    return tags;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+
+    if (!Array.isArray(parsed)) {
+      return tags;
+    }
+
+    for (const entry of parsed as Array<unknown>) {
+      const label: JSONObject = readObject(entry);
+      const key: string = readText(label["key"]);
+
+      if (key) {
+        tags[key] = readText(label["value"]);
+      }
+    }
+  } catch {
+    return {};
+  }
+
+  return tags;
+}
+
+/*
+ * WHAT THE COMMITTED USE DISCOUNTS PAID FOR, AND COST: one query over the
+ * export's window, by project, service and currency - the usage's cost
+ * (on-demand, before credits), the credits the discounts gave it, and the
+ * commitments' own fees (their SKUs are "Commitment ...").
+ */
+export const GCP_COMMITMENT_CREDIT_TYPES: ReadonlyArray<string> = [
+  "COMMITTED_USAGE_DISCOUNT",
+  "COMMITTED_USAGE_DISCOUNT_DOLLAR_BASE",
+];
+
+export function buildGcpCommitmentQuery(table: string): string {
+  const types: string = GCP_COMMITMENT_CREDIT_TYPES.map(
+    (type: string): string => {
+      return `'${type}'`;
+    },
+  ).join(", ");
+  const isFee: string =
+    "STARTS_WITH(LOWER(IFNULL(sku.description, '')), 'commitment')";
+
+  return [
+    "SELECT IFNULL(project.id, '') AS project_id,",
+    "IFNULL(service.description, '') AS service,",
+    "currency,",
+    `SUM(IF(${isFee}, 0, cost)) AS usage_cost,`,
+    `SUM(IF(${isFee}, cost, 0)) AS fees,`,
+    `SUM((SELECT IFNULL(SUM(credit.amount), 0) FROM UNNEST(credits) AS credit WHERE credit.type IN (${types}))) AS commitment_credits`,
+    `FROM \`${table.trim()}\``,
+    "WHERE usage_start_time >= TIMESTAMP(@start)",
+    "AND usage_start_time < TIMESTAMP(@end)",
+    "AND _PARTITIONTIME >= TIMESTAMP_SUB(TIMESTAMP(@start), INTERVAL 1 DAY)",
+    "GROUP BY project_id, service, currency",
+    "HAVING usage_cost != 0 OR fees != 0 OR commitment_credits != 0",
+  ].join(" ");
+}
+
+// One row of the commitments query.
+export interface GcpCommitmentRow {
+  projectId: string;
+  service: string;
+  currency: string;
+  usageCost: number;
+  fees: number;
+  // The discounts' credits: negative, as the export writes credits.
+  credits: number;
+}
+
+/*
+ * The services committed use discounts are bought for most: what a project
+ * without one could cover - Compute Engine's machines, Cloud SQL, Cloud
+ * Run and GKE.
+ */
+export const GCP_COMMITMENT_SERVICES: ReadonlyArray<string> = [
+  "Compute Engine",
+  "Cloud SQL",
+  "Cloud Run",
+  "Kubernetes Engine",
+];
+
+/*
+ * A project's committed use discounts from its rows (pure, so a test reads
+ * it without BigQuery): what they paid for (their credits, at on-demand
+ * prices), what the services they apply to - or are bought for - ran at
+ * on-demand prices besides, and what the commitments cost. The export does
+ * not say how much of a commitment went unused.
+ */
+export function summarizeGcpCommitmentRows(rows: Array<GcpCommitmentRow>): {
+  currency: string;
+  figures: CloudCommitmentKindFigures;
+} {
+  const currencies: Map<string, number> = new Map();
+
+  for (const row of rows) {
+    if (row.currency) {
+      currencies.set(
+        row.currency.toUpperCase(),
+        (currencies.get(row.currency.toUpperCase()) || 0) + 1,
+      );
+    }
+  }
+
+  const currency: string =
+    currencies.size > 0
+      ? getMostCommonCloudCurrency(currencies)
+      : CLOUD_COST_DEFAULT_CURRENCY;
+  const inCurrency: Array<GcpCommitmentRow> = rows.filter(
+    (row: GcpCommitmentRow): boolean => {
+      return !row.currency || row.currency.toUpperCase() === currency;
+    },
+  );
+  const services: Set<string> = new Set<string>(
+    [
+      ...GCP_COMMITMENT_SERVICES,
+      ...inCurrency
+        .filter((row: GcpCommitmentRow): boolean => {
+          return row.credits < 0;
+        })
+        .map((row: GcpCommitmentRow): string => {
+          return row.service;
+        }),
+    ].map((service: string): string => {
+      return service.toLowerCase();
+    }),
+  );
+
+  let covered: number = 0;
+  let usage: number = 0;
+  let fees: number = 0;
+
+  for (const row of inCurrency) {
+    covered += Math.max(0, -row.credits);
+    fees += Math.max(0, row.fees);
+
+    if (services.has(row.service.toLowerCase())) {
+      usage += Math.max(0, row.usageCost);
+    }
+  }
+
+  return {
+    currency,
+    figures: {
+      kind: CloudCommitmentKind.CommittedUseDiscounts,
+      coveredSpend: roundCost(covered),
+      onDemandSpend: roundCost(Math.max(0, usage - covered)),
+      commitmentSpend: roundCost(fees),
+      unusedSpend: null,
+    },
+  };
 }
 
 export interface GcpCostClientOptions {
@@ -176,6 +352,94 @@ export default class GcpCostClient {
   }): Promise<{ records: Array<CloudCostRecord>; complete: boolean }> {
     const records: Array<CloudCostRecord> = [];
     const detailed: boolean = isDetailedGcpBillingExport(data.table);
+    const read: { rows: Array<Array<string>>; complete: boolean } =
+      await this.runQuery({
+        queryProject: data.queryProject,
+        query: buildGcpBillingExportQuery(data.table),
+        start: data.start,
+        end: data.end,
+        step: "billing export query",
+      });
+
+    for (const cells of read.rows) {
+      const amount: number = Number(cells[6]);
+
+      if (!cells[0] || !Number.isFinite(amount) || amount === 0) {
+        continue;
+      }
+
+      const tags: Record<string, string> = readGcpLabels(cells[7] || "");
+
+      records.push({
+        day: cells[0],
+        accountId: cells[1] || "",
+        service: cells[2] || "",
+        region: cells[3] || "",
+        resourceId: detailed
+          ? getCloudCostResourceKey("gcp", cells[4] || "")
+          : "",
+        currency: cells[5] || CLOUD_COST_DEFAULT_CURRENCY,
+        amount,
+        ...(Object.keys(tags).length > 0 ? { tags } : {}),
+      });
+    }
+
+    return { records, complete: read.complete };
+  }
+
+  /*
+   * What the committed use discounts paid for and cost over a window, by
+   * project, service and currency (buildGcpCommitmentQuery).
+   */
+  public async readCommitments(data: {
+    queryProject: string;
+    table: string;
+    start: Date;
+    end: Date;
+  }): Promise<{ rows: Array<GcpCommitmentRow>; complete: boolean }> {
+    const read: { rows: Array<Array<string>>; complete: boolean } =
+      await this.runQuery({
+        queryProject: data.queryProject,
+        query: buildGcpCommitmentQuery(data.table),
+        start: data.start,
+        end: data.end,
+        step: "commitments query",
+      });
+    const number: (value: string | undefined) => number = (
+      value: string | undefined,
+    ): number => {
+      const amount: number = Number(value);
+      return Number.isFinite(amount) ? amount : 0;
+    };
+
+    return {
+      rows: read.rows.map((cells: Array<string>): GcpCommitmentRow => {
+        return {
+          projectId: cells[0] || "",
+          service: cells[1] || "",
+          currency: cells[2] || "",
+          usageCost: number(cells[3]),
+          fees: number(cells[4]),
+          credits: number(cells[5]),
+        };
+      }),
+      complete: read.complete,
+    };
+  }
+
+  /*
+   * A read-only query over the window (@start, @end as named parameters),
+   * run as a job in `queryProject`, followed to its last page: each row's
+   * cells as text. `complete` is false when it stopped at GCP_COST_MAX_CALLS.
+   */
+  private async runQuery(data: {
+    queryProject: string;
+    query: string;
+    start: Date;
+    end: Date;
+    step: string;
+  }): Promise<{ rows: Array<Array<string>>; complete: boolean }> {
+    const rows: Array<Array<string>> = [];
     const base: string = `${BIGQUERY_BASE_URL}/projects/${encodeURIComponent(
       data.queryProject,
     )}/queries`;
@@ -184,7 +448,7 @@ export default class GcpCostClient {
       method: "POST",
       url: base,
       body: {
-        query: buildGcpBillingExportQuery(data.table),
+        query: data.query,
         useLegacySql: false,
         parameterMode: "NAMED",
         queryParameters: [
@@ -202,7 +466,7 @@ export default class GcpCostClient {
         timeoutMs: QUERY_WAIT_MS,
         maxResults: QUERY_MAX_ROWS,
       },
-      step: "billing export query",
+      step: data.step,
       api: "bigquery.googleapis.com",
     });
 
@@ -213,34 +477,17 @@ export default class GcpCostClient {
     for (let call: number = 0; call < GCP_COST_MAX_CALLS; call++) {
       if (answer["jobComplete"] !== false) {
         for (const rawRow of readArray(answer["rows"])) {
-          const cells: Array<string> = readArray(readObject(rawRow)["f"]).map(
-            (cell: unknown): string => {
+          rows.push(
+            readArray(readObject(rawRow)["f"]).map((cell: unknown): string => {
               return readText(readObject(cell)["v"]);
-            },
+            }),
           );
-          const amount: number = Number(cells[6]);
-
-          if (!cells[0] || !Number.isFinite(amount) || amount === 0) {
-            continue;
-          }
-
-          records.push({
-            day: cells[0],
-            accountId: cells[1] || "",
-            service: cells[2] || "",
-            region: cells[3] || "",
-            resourceId: detailed
-              ? getCloudCostResourceKey("gcp", cells[4] || "")
-              : "",
-            currency: cells[5] || CLOUD_COST_DEFAULT_CURRENCY,
-            amount,
-          });
         }
 
         const pageToken: string = readText(answer["pageToken"]);
 
         if (!pageToken) {
-          return { records, complete: true };
+          return { rows, complete: true };
         }
 
         answer = await this.request({
@@ -270,7 +517,7 @@ export default class GcpCostClient {
       });
     }
 
-    return { records, complete: false };
+    return { rows, complete: false };
   }
 
   /*

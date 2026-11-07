@@ -11,6 +11,7 @@ import YAxis, {
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
+import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
 import OneUptimeDate from "Common/Types/Date";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -33,6 +34,10 @@ import { formatCloudMoney } from "./CloudCostWords";
  * spend that fell. Those days are a series of their own, drawn lighter and
  * named in the legend (Still being reported), in the same place as the
  * rest: the two series are stacked, and a day is in one of them only.
+ *
+ * Marks on the chart's annotation rail, when it is handed any, sit above
+ * the bars they are about: the days that cost far more than usual
+ * (CloudUnusualDayMarkers), as Costs' Unusual days card lists them.
  */
 
 export const DAILY_SPEND_SERIES: string = translationKey("Spend");
@@ -121,6 +126,8 @@ export function getCloudDailySpendChart(data: {
 export interface ComponentProps {
   points: Array<CloudCostPoint>;
   currency: string;
+  // Marks above the bars: the unusual days, each at its day's bar.
+  markers?: Array<ChartTimeReferenceLineProps> | undefined;
 }
 
 const CloudDailySpendChart: FunctionComponent<ComponentProps> = (
@@ -178,6 +185,7 @@ const CloudDailySpendChart: FunctionComponent<ComponentProps> = (
       style={{ height: `${DAILY_SPEND_CHART_HEIGHT_IN_PX}px` }}
       data-testid="cloud-daily-spend-chart"
       data-partly-reported={chart.series.length > 1 ? "true" : "false"}
+      data-marks={String(props.markers?.length || 0)}
     >
       <BarChartElement
         data={chart.series}
@@ -191,6 +199,9 @@ const CloudDailySpendChart: FunctionComponent<ComponentProps> = (
         colors={DAILY_SPEND_COLORS}
         stacked={true}
         disableTimeRangeZoom={true}
+        timeReferenceLines={
+          props.markers && props.markers.length > 0 ? props.markers : undefined
+        }
       />
     </div>
   );

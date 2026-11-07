@@ -291,6 +291,7 @@ describe("the catalog is well formed", () => {
       "start-instance:aws:ec2-instance",
       "start-instance:aws:rds-instance",
       "start-instance:azure:virtual-machine",
+      "start-instance:azure:container-group",
       "start-instance:gcp:compute-instance",
       "scale-out:aws:ecs-service",
       "scale-out:aws:autoscaling-group",
@@ -298,6 +299,7 @@ describe("the catalog is well formed", () => {
       "scale-out:azure:vm-scale-set",
       "scale-out:gcp:cloud-run-service",
       "scale-out:gcp:managed-instance-group",
+      "scale-out:gcp:app-engine-service",
     ]);
   });
 

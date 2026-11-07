@@ -149,6 +149,8 @@ export const AWS_READ_ONLY_ACTION_GROUPS: Array<AwsReadOnlyActionGroup> = [
       "es:DescribeDomains",
       "apprunner:ListServices",
       "apprunner:DescribeService",
+      // Elastic Beanstalk's own list, which names each environment's ARN.
+      "elasticbeanstalk:DescribeEnvironments",
       "apigateway:GET",
     ],
   },
@@ -162,12 +164,22 @@ export const AWS_READ_ONLY_ACTION_GROUPS: Array<AwsReadOnlyActionGroup> = [
   },
   /*
    * What the account costs and how to spend less: Cost Explorer's daily
-   * costs ($0.01 a request, a few requests twice a day) and Cost
-   * Optimization Hub's recommendations (free).
+   * costs ($0.01 a request, a few requests twice a day) - each resource's
+   * too, for a connection that turns Costs per resource on - and how much
+   * of them its Savings Plans and Reserved Instances cover and how much of
+   * those is used (four requests a day), and Cost Optimization Hub's
+   * recommendations (free).
    */
   {
     purpose: "Read what the account costs, from Cost Explorer",
-    actions: ["ce:GetCostAndUsage"],
+    actions: [
+      "ce:GetCostAndUsage",
+      "ce:GetCostAndUsageWithResources",
+      "ce:GetSavingsPlansCoverage",
+      "ce:GetSavingsPlansUtilization",
+      "ce:GetReservationCoverage",
+      "ce:GetReservationUtilization",
+    ],
   },
   {
     purpose: "Read the ways to spend less, from Cost Optimization Hub",
@@ -214,13 +226,18 @@ export const AWS_READ_ONLY_ACTIONS: Array<string> =
  * Actions allowed only on some resources. API Gateway's reads are one
  * action for every path, so it is allowed on the APIs' own definitions
  * only - never on /apikeys, which can return a key's value.
+ *
+ * One pattern a kind of API: /restapis* is /restapis and every path under
+ * it, as /restapis and /restapis/* were, since no other path of API
+ * Gateway's starts with /restapis (nor with /apis). The access key's user
+ * holds this policy inline, where IAM allows 2,048 characters in all:
+ * with Cost Explorer's commitment reads and Elastic Beanstalk's list, the
+ * four patterns took it to 2,070.
  */
 export const AWS_SCOPED_READ_RESOURCES: Record<string, Array<string>> = {
   "apigateway:GET": [
-    "arn:aws:apigateway:*::/restapis",
-    "arn:aws:apigateway:*::/restapis/*",
-    "arn:aws:apigateway:*::/apis",
-    "arn:aws:apigateway:*::/apis/*",
+    "arn:aws:apigateway:*::/restapis*",
+    "arn:aws:apigateway:*::/apis*",
   ],
 };
 

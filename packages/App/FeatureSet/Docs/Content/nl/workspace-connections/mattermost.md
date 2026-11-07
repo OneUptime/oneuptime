@@ -90,7 +90,7 @@ Toevoegen zet het meteen in je bereikbaarheidsregels, dus vanaf dan bereiken opr
 
 ## Meldingsregels
 
-Een meldingsregel bepaalt welke gebeurtenissen in Mattermost worden geplaatst, en waar. Elk product heeft zijn eigen regels, onder **Werkruimte** > **Mattermost** in zijn menu: **Incidenten** (met **Incidentepisodes** en een tabblad **Samenvatting**), **Waarschuwingen** (met **Waarschuwing Episodes** en **Samenvatting**), **Geplande onderhoud**, **Monitoren**, **Bereikbaarheidsdienst** en **Beveiligingsgebeurtenissen**. Ze werken zoals die van Slack: zie [Meldingsregels](/docs/workspace-connections/slack#meldingsregels) voor voorwaarden, bestemmingen en wie lid wordt van een kanaal.
+Een meldingsregel bepaalt welke gebeurtenissen in Mattermost worden geplaatst, en waar. Elk product heeft zijn eigen regels, onder **Werkruimte** > **Mattermost** in zijn menu: **Incidenten** (met **Incidentepisodes** en een tabblad **Samenvatting**), **Waarschuwingen** (met **Waarschuwingsepisodes** en **Samenvatting**), **Geplande onderhoud**, **Monitoren**, **Bereikbaarheidsdienst** en **Beveiligingsgebeurtenissen**. Ze werken zoals die van Slack: zie [Meldingsregels](/docs/workspace-connections/slack#meldingsregels) voor voorwaarden, bestemmingen en wie lid wordt van een kanaal.
 
 Een kanaal dat een regel aanmaakt, krijgt de naam van zijn record: incident INC-42 krijgt `inc-42`. Mattermost neemt kleine letters, cijfers, `-` en `_`, tot 64 tekens, beginnend en eindigend met een letter of een cijfer, en het regelformulier toont de naam terwijl je typt. Bestaat er al een kanaal met die naam, zoals een gearchiveerd kanaal, dan voegt OneUptime `-2`, `-3` enzovoort toe. Een privé-incident, -waarschuwing of -episode krijgt een privékanaal.
 

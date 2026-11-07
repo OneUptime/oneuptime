@@ -28,6 +28,21 @@ export const ARABIC_LIST_SEPARATOR: string = "، ";
 
 export type GetListSeparatorFunction = (texts: ReadonlyArray<string>) => string;
 
+export type JoinListFunction = (texts: ReadonlyArray<string>) => string;
+
+/*
+ * Words listed one after another with the comma of the script they are
+ * written in (getListSeparator): "Description, Labels", "توضیحات، برچسب‌ها",
+ * "説明、ラベル". For a list of words the reader's language may word - its
+ * own labels, counts and phrases - never of codes, addresses or names
+ * someone typed.
+ */
+export const joinList: JoinListFunction = (
+  texts: ReadonlyArray<string>,
+): string => {
+  return texts.join(getListSeparator(texts));
+};
+
 // The separator for a list of these texts: ", ", "、" or "، ".
 export const getListSeparator: GetListSeparatorFunction = (
   texts: ReadonlyArray<string>,

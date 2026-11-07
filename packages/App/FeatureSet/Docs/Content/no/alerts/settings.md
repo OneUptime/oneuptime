@@ -58,7 +58,7 @@ Reglene skiller seg i hvordan flere samsvar avgjøres:
 - **Grupperingsregler**, **Hendelsesregler** og **Påminnelsesregler** kontrolleres ovenfra og ned i listen sin, og det første samsvaret vinner. Dra en regel for å endre plassen; en ny regel havner sist.
 - **Vaktregler**, **Eierregler**, **Etikettregler**, **Personvernregler** og **Runbook-regler** virker alle når de samsvarer. Vaktpolicyer, eiere og etiketter som flere regler legger til, legges til én gang.
 
-**Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har to faner: **Alert Rules** for varsler og **Episode Rules**, som virker på samme måte på hver ny varselepisode. En ny regel starter aktivert; slå av **Aktivert** i redigeringsskjemaet for å sette den på pause, og listen viser en grønn **Aktivert** eller en rød **Deaktivert** for hver regel.
+**Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har to faner: **Varselsregler** for varsler og **Episoderegler**, som virker på samme måte på hver ny varselepisode. En ny regel starter aktivert; slå av **Aktivert** i redigeringsskjemaet for å sette den på pause, og listen viser en grønn **Aktivert** eller en rød **Deaktivert** for hver regel.
 
 De fleste regler virker på varsler og episoder som opprettes etter at du har lagret dem. For å bruke en eier-, etikett- eller personvernregel på dem du allerede har, bruker du **Kjør nå**: se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now). Påminnelsesregler er unntaket: Når du lagrer en, samsvares hvert åpent varsel på nytt.
 
@@ -68,7 +68,7 @@ Betingelsene i en regel avgjør hvilke varsler den virker på, og leses som setn
 
 | Betingelse                                                    | Sammenligner med                                                                                               |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Monitorer**, **Varsel Alvorligheter**, **Varseletiketter**, **Overvåkingsetiketter** | **Har en av**, **Har alle** eller **Har ingen av** verdiene du velger.                         |
+| **Monitorer**, **Alvorlighetsgrader for varsler**, **Varseletiketter**, **Overvåkingsetiketter** | **Har en av**, **Har alle** eller **Har ingen av** verdiene du velger.                         |
 | **Varseltittel**, **Varselbeskrivelse**, **Overvåkingsnavn**, **Overvåkingsbeskrivelse** | **Inneholder**, **Inneholder ikke**, **Er lik**, **Er ikke lik**, **Starter med**, **Slutter med**, uten hensyn til store og små bokstaver, eller **Samsvarer med mønster** og **Samsvarer ikke med mønster** for et regulært uttrykk eller et `*`-jokertegn. |
 
 Med to eller flere betingelser velger du **Samsvar med alle**, der hver må stemme, eller **Samsvar med én**, der én er nok. Episoderegler samsvarer i stedet med en episodes alvorlighetsgrad, etiketter, tittel og beskrivelse.
@@ -87,7 +87,7 @@ Klikk på **Opprett Alert On-Call Rule**. Under **Treff** samsvarer **Alle varsl
 Under **Vaktretningslinjer** velger du **Vaktpolicyer** regelen tilkaller. **Navn** følger dem, for eksempel "Tilkall Platform on-call", til du skriver inn ditt eget, og en **Beskrivelse** venter under **Flere felt**. Opprett deretter regelen.
 :::
 
-En alvorlighetsgrad tilkaller ingen på egen hånd: En vaktregel som samsvarer på **Varsel Alvorligheter**, er måten å sette opp "tilkall databaseteamet for hvert High-varsel" på. For å se hva som kjørte for ett varsel, åpner du siden **Vaktutførelser**. Hver person nås deretter på den måten de har satt opp under **Brukerinnstillinger → Vaktregler** på fanen **Varsler**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
+En alvorlighetsgrad tilkaller ingen på egen hånd: En vaktregel som samsvarer på **Alvorlighetsgrader for varsler**, er måten å sette opp "tilkall databaseteamet for hvert High-varsel" på. For å se hva som kjørte for ett varsel, åpner du siden **Vaktutførelser**. Hver person nås deretter på den måten de har satt opp under **Brukerinnstillinger → Vaktregler** på fanen **Varsler**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
 En regel tilkaller så snart et varsel samsvarer med den. For å la den vente på arbeidstiden i stedet, svarer du **Bare i arbeidstiden** på **Når skal denne regelen tilkalle?** under **Flere felt**. **Arbeidstid** starter som mandag til fredag, 09:00 til 17:00, i din egen tidssone: velg andre dager, et annet **Starttidspunkt** eller **Sluttidspunkt** eller en annen **Tidssone**, og en setning under valget forteller hva som skjer. I listen viser regelen arbeidstiden under navnet. Et varsel som samsvarer utenfor disse tidene, får en kjøring som venter og ikke tilkaller noen; når arbeidstiden begynner, tilkaller retningslinjen sin første eskaleringsregel og eskalerer som vanlig. Blir varselet bekreftet eller løst først, blir ingen tilkalt. Endrer varselet seg mens det venter, slik at det nå samsvarer med en regel som tilkaller med en gang, for eksempel fordi alvorlighetsgraden heves, begynner kjøringen å tilkalle straks, og feeden til varselet forteller hvorfor. To regler som tilkaller den samme retningslinjen, tilkaller den så snart en av dem tillater det: en regel for de høyeste alvorlighetsgradene som tilkaller med en gang, ved siden av en regel for resten som venter på arbeidstiden, holder nettene rolige.
 
@@ -130,7 +130,7 @@ Hendelsen får varselets tittel, beskrivelse, monitor, berørte ressurser og eti
 :::steps
 ### Velg hvilke varsler det skal minnes om
 
-Klikk på **Opprett Alert Reminder Rule**. Under **Treff** lar du **Alle varsler** være valgt for å minne om hvert varsel, eller du velger **Bare varsler som oppfyller betingelsene** og deretter **Varsel Alvorligheter** og **Etiketter** den gjelder for.
+Klikk på **Opprett Alert Reminder Rule**. Under **Treff** lar du **Alle varsler** være valgt for å minne om hvert varsel, eller du velger **Bare varsler som oppfyller betingelsene** og deretter **Alvorlighetsgrader for varsler** og **Etiketter** den gjelder for.
 
 ### Angi intervallet
 
@@ -143,7 +143,7 @@ Eiere får hver påminnelse som **Påminnelse om varsel**, som er slått på via
 
 ### Notatmaler
 
-**Varsler → Innstillinger → Notatmaler** inneholder ferdig tekst for private notater. Kortet **Maler for private notater for varsler** viser dem; **Opprett Varsel Notat Mal** ber om **Malnavn**, **Malbeskrivelse** og **Notat**. En mal tilbys når noen skriver et privat notat på et varsel eller en episode, og når de bekrefter eller løser en, og teksten kan redigeres før den publiseres. Notatmaler for varsler er ren tekst: I motsetning til notatmaler for hendelser fyller de ikke ut noen variabler.
+**Varsler → Innstillinger → Notatmaler** inneholder ferdig tekst for private notater. Kortet **Maler for private notater for varsler** viser dem; **Opprett Notatmal for varsler** ber om **Malnavn**, **Malbeskrivelse** og **Notat**. En mal tilbys når noen skriver et privat notat på et varsel eller en episode, og når de bekrefter eller løser en, og teksten kan redigeres før den publiseres. Notatmaler for varsler er ren tekst: I motsetning til notatmaler for hendelser fyller de ikke ut noen variabler.
 
 ### Egendefinerte felt
 
@@ -170,7 +170,7 @@ Kortet **Neste nummer** under setter nummeret det neste varselet og den neste ep
 
 ## Arbeidsflyter
 
-Hver varselmodell har arbeidsflytutløsere og -handlinger oppkalt etter seg: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** og **On Delete Alert**, det samme for **Varsel Episode**, **Varsel Tilstand Tidslinje** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definisjonene av egendefinerte felt for varsler er det eneste unntaket: De har ingen arbeidsflytutløsere. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
+Hver varselmodell har arbeidsflytutløsere og -handlinger oppkalt etter seg: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** og **On Delete Alert**, det samme for **Varselsepisode**, **Tilstandstidslinje for varsel** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definisjonene av egendefinerte felt for varsler er det eneste unntaket: De har ingen arbeidsflytutløsere. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
 
 ## Hvem som kan endre dem
 

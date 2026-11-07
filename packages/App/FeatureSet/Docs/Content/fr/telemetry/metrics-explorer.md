@@ -108,7 +108,7 @@ Faites glisser la souris sur un graphique pour zoomer sur un moment, et double-c
 
 ## Analyses des métriques
 
-L'onglet **Analyses** compte les métriques d'une plage de temps : **Métriques actives**, **Services de reporting** et la moyenne par service. Il range les métriques par catégories, et liste les services qui les rapportent.
+L'onglet **Analyses** compte les métriques d'une plage de temps : **Métriques actives**, **Services émetteurs** et la moyenne par service. Il range les métriques par catégories, et liste les services qui les rapportent.
 
 ## Améliorer les métriques et ajouter celles qui manquent avec l'IA
 

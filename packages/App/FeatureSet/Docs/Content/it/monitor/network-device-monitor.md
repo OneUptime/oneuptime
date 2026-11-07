@@ -790,12 +790,12 @@ Le pagine **Incidenti** e **Avvisi** del dispositivo, sotto **Attività** nel su
 
 ### Valori predefiniti dei campi personalizzati
 
-Se il tuo progetto definisce campi personalizzati dei monitor — produttore, elemento di configurazione, servizio responsabile, qualunque cosa serva al tuo CMDB —, un modello di monitor può compilarli. Apri il modello da **Monitor → Impostazioni → Modelli** e imposta i suoi **Custom Field Defaults**.
+Se il tuo progetto definisce campi personalizzati dei monitor — produttore, elemento di configurazione, servizio responsabile, qualunque cosa serva al tuo CMDB —, un modello di monitor può compilarli. Apri il modello da **Monitor → Impostazioni → Modelli** e imposta i suoi **Valori predefiniti dei campi personalizzati**.
 
 Ogni monitor creato da quel modello in seguito porta quei valori: quelli che crei con **Crea Monitor da modello**, e quelli che crea una regola di importazione automatica o una policy di avviso quando una [scansione di rilevamento](#rilevare-i-dispositivi-con-una-scansione-di-rete) porta dentro mille dispositivi in una volta.
 
 - Un campo lasciato vuoto nel modello non è un valore predefinito: ogni monitor continua a compilarlo per conto suo, così un modello può impostare il produttore per un'intera flotta di switch mentre l'elemento di configurazione resta specifico di ogni dispositivo.
-- I valori predefiniti si applicano quando viene creato un monitor, non ai monitor che esistono già. **Sync Custom Fields to Linked Monitors**, nella stessa scheda, li porta sui monitor esistenti. Sovrascrive i campi che il modello imposta, compresi i valori digitati a mano, e la sua conferma indica prima quei campi; i campi che il modello lascia vuoti non vengono mai toccati.
+- I valori predefiniti si applicano quando viene creato un monitor, non ai monitor che esistono già. **Sincronizza i campi personalizzati con i monitor collegati**, nella stessa scheda, li porta sui monitor esistenti. Sovrascrive i campi che il modello imposta, compresi i valori digitati a mano, e la sua conferma indica prima quei campi; i campi che il modello lascia vuoti non vengono mai toccati.
 
 Un semplice **Sincronizza dal modello** lascia stare i campi personalizzati: inviare i criteri o un intervallo non riscrive mai i valori sui tuoi monitor.
 

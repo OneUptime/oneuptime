@@ -736,7 +736,7 @@ Il ne passe jamais outre vos choix. Un onglet que vous avez mis en pause à sa f
 | **Console** | La sortie `console.error` et `console.warn`, avec des arguments sérialisés en surface et masqués. |
 | **Réseau** | Chaque `fetch` et XHR : méthode, URL, statut, durée, octets de requête et de réponse, initiateur. Quand une trace backend existe pour la requête, la ligne l'affiche en ligne : span racine, service, durée, statut, nombre de spans et tout journal d'erreur de cette trace. L'enregistreur capture au plus 500 requêtes par session. |
 | **Nav** | Les changements de route, les chargements de page complets et les restaurations depuis le cache back/forward, avec le LCP de la page quand il a été mesuré. |
-| **Interagir** | Les clics avec le sélecteur et le libellé de l'élément, plus les clics de rage, morts et d'erreur et la rage de rechargement. Les enregistrements faits avant l'existence des libellés de clic n'affichent que des coordonnées. |
+| **Interactions** | Les clics avec le sélecteur et le libellé de l'élément, plus les clics de rage, morts et d'erreur et la rage de rechargement. Les enregistrements faits avant l'existence des libellés de clic n'affichent que des coordonnées. |
 | **Perf** | Les web vitals (LCP, CLS, INP, FCP, TTFB avec leurs évaluations) et les événements de budget de performance qui se sont déclenchés. |
 | **Erreurs** | Les erreurs côté client de l'enregistrement fusionnées avec les exceptions côté serveur liées à la session, marquées de son id ou présentes sur l'une de ses traces ; une erreur client et une exception serveur au même message à moins de deux secondes d'écart sont mises en correspondance, jamais fusionnées. |
 | **Journaux** | Les journaux de votre backend sur les traces de cette session, rattachés par id de trace, plus tout journal qui porte lui-même l'id de session, depuis l'explorateur de journaux. Voir [Corréler avec le reste de votre télémétrie](#corréler-avec-le-reste-de-votre-télémétrie). |
@@ -744,7 +744,7 @@ Il ne passe jamais outre vos choix. Un onglet que vous avez mis en pause à sa f
 
 Logs, Traces et la moitié serveur de Errors sont lus avec les mêmes autorisations que les pages Logs, Traces et Exceptions ; un rôle qui ne les a pas voit un onglet verrouillé qui nomme l'autorisation. Les lignes marquées par le serveur sont placées sur l'horloge de l'enregistrement en les ancrant aux traces que l'enregistrement lui-même a observées ; le rail dit si cet ancrage a réussi (« server times anchored via 6 traces ») ou si l'heure de la ligne est approximative.
 
-Le champ de recherche du rail (`/`) accepte du texte libre et des jetons : `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. Un sélecteur de portée réduit n'importe quel onglet à ±30 secondes autour de la tête de lecture. Le rail suit la tête de lecture jusqu'à ce que vous le fassiez défiler ; une puce **Resume following** (ou `M`) réactive le suivi.
+Le champ de recherche du rail (`/`) accepte du texte libre et des jetons : `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. Un sélecteur de portée réduit n'importe quel onglet à ±30 secondes autour de la tête de lecture. Le rail suit la tête de lecture jusqu'à ce que vous le fassiez défiler ; une puce **Reprendre le suivi** (ou `M`) réactive le suivi.
 
 ### Raccourcis clavier
 

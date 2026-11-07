@@ -1,5 +1,6 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import { toPeoplePickerIds } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 import {
   DEFAULT_RECORDS_TO_OPEN_EPISODE,
   MAX_RECORDS_TO_OPEN_EPISODE,
@@ -1229,7 +1230,7 @@ export const getGroupingRuleSummary: (data: {
       }
 
       grouping = translate(GROUPING_SUMMARY_COPY.perCombination, {
-        fields: fields.join(", "),
+        fields: joinList(fields),
       });
       break;
     }

@@ -25,12 +25,14 @@ import {
 import {
   parseIncidentSecurity,
   parseResourceSecurity,
+  parseResourceSecurityScope,
   parseSecurityConnections,
   parseSecurityTelemetryMentions,
 } from "../SecurityConnections/SecurityConnectionsModel";
 import {
   IncidentSecurityJson,
   ResourceSecurityJson,
+  ResourceSecurityScopeJson,
   SecurityConnectionKind,
   SecurityConnectionsJson,
   SecurityTelemetryMentionsJson,
@@ -251,6 +253,22 @@ export default class SecurityCaseApi {
   }): Promise<ResourceSecurityJson> {
     return parseResourceSecurity(
       await post("/security-case/resource-security", {
+        kind: data.kind,
+        id: data.id.toString(),
+      }),
+    );
+  }
+
+  /*
+   * What a record's own Security Events page reads under: the events naming
+   * its identities, or read from its own logs (issue #5769).
+   */
+  public static async getResourceSecurityScope(data: {
+    kind: SecurityConnectionKind;
+    id: ObjectID;
+  }): Promise<ResourceSecurityScopeJson> {
+    return parseResourceSecurityScope(
+      await post("/security-case/resource-security-scope", {
         kind: data.kind,
         id: data.id.toString(),
       }),

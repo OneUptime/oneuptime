@@ -1,4 +1,6 @@
-import CloudRoundContext from "../../../../../Server/Utils/AI/Remediation/CloudRoundContext";
+import CloudRoundContext, {
+  getEnvironmentChangeTarget,
+} from "../../../../../Server/Utils/AI/Remediation/CloudRoundContext";
 import AlertService from "../../../../../Server/Services/AlertService";
 import CloudAccountService from "../../../../../Server/Services/CloudAccountService";
 import CloudResourceService from "../../../../../Server/Services/CloudResourceService";
@@ -201,7 +203,61 @@ describe("what a cloud round is told it is about", () => {
       '- Cloud environment "checkout · us-east-1" (App Platforms: AWS ECS in us-east-1): where the signal\'s services run. It is not one resource, so a change never names it',
     );
     expect(text).toContain(
-      "find the service running there - its ECS service, Cloud Run service, Container App or App Service - with query_cloud_resource or query_telemetry_resources, and change that service by its id.",
+      "find the service running there - its ECS service - with query_cloud_resource or query_telemetry_resources, and change that service by its id.",
+    );
+  });
+
+  test.each([
+    ["aws_app_runner", "AWS App Runner", "its App Runner service"],
+    [
+      "aws_elastic_beanstalk",
+      "AWS Elastic Beanstalk",
+      "its Elastic Beanstalk environment",
+    ],
+    ["gcp_app_engine", "GCP App Engine", "its App Engine service"],
+    [
+      "azure_container_instances",
+      "Azure Container Instances",
+      "its container group",
+    ],
+  ])(
+    "an environment on %s names the one resource a change takes there",
+    async (platform: string, label: string, target: string) => {
+      link(2);
+      rows = [
+        cloudRow(2, {
+          name: `shop · ${platform}`,
+          cloudResourceKind: CloudResourceKind.Environment,
+          cloudPlatform: platform,
+          providerResourceId: undefined,
+          cloudResourceType: undefined,
+        }),
+      ];
+
+      const text: string = (
+        await CloudRoundContext.describeLinkedCloudResources({
+          projectId: PROJECT_ID,
+          cloudAccountId: ACCOUNT_ROW_ID,
+          incidentId: INCIDENT_ID,
+        })
+      ).join("\n");
+
+      expect(text).toContain(`(App Platforms: ${label} in us-east-1)`);
+      expect(text).toContain(
+        `find the service running there - ${target} - with query_cloud_resource or query_telemetry_resources, and change that service by its id.`,
+      );
+    },
+  );
+
+  test("a platform it does not know names every resource a change may take", () => {
+    expect(getEnvironmentChangeTarget("tencent_cloud_tke")).toBe(
+      "its ECS service, App Runner service, Elastic Beanstalk environment, Cloud Run service, App Engine service, Container App, container group or App Service",
+    );
+    expect(getEnvironmentChangeTarget(undefined)).toBe(
+      getEnvironmentChangeTarget("tencent_cloud_tke"),
+    );
+    expect(getEnvironmentChangeTarget("constructor")).toBe(
+      getEnvironmentChangeTarget("tencent_cloud_tke"),
     );
   });
 
