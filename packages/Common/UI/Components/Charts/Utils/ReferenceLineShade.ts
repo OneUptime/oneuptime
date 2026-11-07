@@ -15,13 +15,17 @@ import ChartReferenceLineProps from "../Types/ReferenceLineProps";
 // Light enough to read the series through, in a line's own colour.
 export const REFERENCE_LINE_SHADE_OPACITY: number = 0.07;
 
+/*
+ * Bounds are left out, never undefined: recharts reads a bound that is
+ * there as one to draw to.
+ */
 export interface ReferenceLineShade {
-  y1?: number | undefined;
-  y2?: number | undefined;
+  y1?: number;
+  y2?: number;
   fill: string;
   fillOpacity: number;
   // A band shows where its line does: the axis takes it in when the line's does.
-  ifOverflow?: "extendDomain" | undefined;
+  ifOverflow?: "extendDomain";
 }
 
 export function getReferenceLineShade(

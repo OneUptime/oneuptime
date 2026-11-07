@@ -54,6 +54,7 @@ import TimeRangeZoomUtil from "Common/UI/Components/Charts/TimeRangeZoom/TimeRan
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricViewTimeRange from "./Utils/MetricViewTimeRange";
+import { MetricChartThreshold } from "./Utils/MetricChartThresholds";
 import {
   getMetricResultsState,
   MetricResultsState,
@@ -178,6 +179,12 @@ interface MetricViewBodyProps {
    * the value the rule compares with, sets it.
    */
   thresholdLinesExtendAxis?: boolean | undefined;
+  /*
+   * Lines for values that are not the queries' own, such as a monitor's
+   * criteria thresholds, each on its query's or formula's chart
+   * (MetricCharts). Drawn only: never handed back through onChange.
+   */
+  thresholds?: Array<MetricChartThreshold> | undefined;
   /*
    * Cache-bypass nonce. Bumping it forces a refetch (and a fresh network
    * fetch past the aggregate result cache) even when the fetch-relevant
@@ -1562,6 +1569,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                     aggregationInterval={aggregationInterval}
                     chartCssClass={props.chartCssClass}
                     thresholdLinesExtendAxis={props.thresholdLinesExtendAxis}
+                    thresholds={props.thresholds}
                     enableSeriesActions={props.enableSeriesActions}
                     metricResultsPrevious={
                       props.compareWithPreviousPeriod && metricResultsPrevious
