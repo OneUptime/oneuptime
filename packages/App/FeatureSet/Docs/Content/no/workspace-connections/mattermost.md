@@ -131,7 +131,7 @@ Meldingene fra OneUptime har knapper, og en meny **More actions** for det færre
 | **Hendelsesepisode, varselepisode** | **Acknowledge**, **Resolve**, **Add Note**, **Change State**, **Execute On-Call Policy** |
 | **Planlagt vedlikehold** | **Mark as Ongoing**, **Mark as Complete**, **Add Note**, **Change State** |
 
-**Add Note**, **Change State**, **Change Severity** og **Execute On-Call Policy** åpner et skjema i Mattermost. Et notat på en hendelse eller en planlagt vedlikeholdsbegivenhet kan være offentlig, vist på statussiden, eller privat; et notat på en privat hendelse er alltid privat, og på et varsel også alltid privat. Hver melding har også en lenke som åpner posten i OneUptime, for alt annet.
+**Add Note**, **Change State**, **Change Severity** og **Execute On-Call Policy** åpner et skjema i Mattermost. Et notat på en hendelse eller en planlagt vedlikeholdsbegivenhet kan være offentlig, vist på statussiden, eller privat; et notat på en privat hendelse er alltid privat, og på et varsel også alltid privat. Hver melding har også en lenke som åpner posten i OneUptime, for alt annet. Når prosjektets offentlige notater krever godkjenning, venter et offentlig notat fra skjemaet på den, og en melding bare du ser, sier hvem det venter på: se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
 
 Hvis Mattermost-kontoen din ikke er koblet til ennå, sier en knapp fra om det, med en lenke til **Brukerinnstillinger** > **Arbeidsområde** > **Mattermost**. Koble til kontoen din, og trykk deretter på knappen igjen.
 

@@ -131,7 +131,7 @@ OneUptime 的訊息附有按鈕，以及一個 **More actions** 選單，用於�
 | **事件片段、警示片段** | **Acknowledge**、 **Resolve**、 **Add Note**、 **Change State**、 **Execute On-Call Policy** |
 | **排定維護** | **Mark as Ongoing**、 **Mark as Complete**、 **Add Note**、 **Change State** |
 
-**Add Note**、 **Change State**、 **Change Severity** 和 **Execute On-Call Policy** 會在 Mattermost 中開啟一個表單。事件或排定維護活動上的備註可以是公開的（顯示在狀態頁面上），也可以是私人的；私人事件上的備註一律是私人的，警示上的備註也一律是私人的。每則訊息還有一個在 OneUptime 中開啟其紀錄的連結，用於其他所有操作。
+**Add Note**、 **Change State**、 **Change Severity** 和 **Execute On-Call Policy** 會在 Mattermost 中開啟一個表單。事件或排定維護活動上的備註可以是公開的（顯示在狀態頁面上），也可以是私人的；私人事件上的備註一律是私人的，警示上的備註也一律是私人的。每則訊息還有一個在 OneUptime 中開啟其紀錄的連結，用於其他所有操作。如果專案的公開備註需要核准，從表單送出的公開備註會等待核准，並有一則只有你能看到的訊息說明它在等待誰：請參閱 [公開備註核准](/docs/incidents/notes-owners-and-feed#公開備註核准)。
 
 如果您的 Mattermost 帳戶尚未連接，按鈕會告訴您這一點，並附上前往 **使用者設定** > **工作區** > **Mattermost** 的連結。連接您的帳戶後，再按一次按鈕。
 

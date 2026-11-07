@@ -131,7 +131,7 @@ De berichten van OneUptime hebben knoppen, en een menu **More actions** voor wat
 | **Incidentepisode, waarschuwingsepisode** | **Acknowledge**, **Resolve**, **Add Note**, **Change State**, **Execute On-Call Policy** |
 | **Gepland onderhoud** | **Mark as Ongoing**, **Mark as Complete**, **Add Note**, **Change State** |
 
-**Add Note**, **Change State**, **Change Severity** en **Execute On-Call Policy** openen een formulier in Mattermost. Een notitie bij een incident of een geplande onderhoudsgebeurtenis kan openbaar zijn, getoond op de statuspagina, of privé; een notitie bij een privé-incident is altijd privé, en bij een waarschuwing ook altijd privé. Elk bericht heeft ook een link die zijn record in OneUptime opent, voor al het andere.
+**Add Note**, **Change State**, **Change Severity** en **Execute On-Call Policy** openen een formulier in Mattermost. Een notitie bij een incident of een geplande onderhoudsgebeurtenis kan openbaar zijn, getoond op de statuspagina, of privé; een notitie bij een privé-incident is altijd privé, en bij een waarschuwing ook altijd privé. Elk bericht heeft ook een link die zijn record in OneUptime opent, voor al het andere. Als openbare notities in het project goedkeuring nodig hebben, wacht een openbare notitie uit het formulier daarop, en een bericht dat alleen jij ziet, zegt op wie ze wacht: zie [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities).
 
 Is je Mattermost-account nog niet gekoppeld, dan zegt een knop je dat, met een link naar **Gebruikersinstellingen** > **Werkruimte** > **Mattermost**. Koppel je account en druk daarna opnieuw op de knop.
 

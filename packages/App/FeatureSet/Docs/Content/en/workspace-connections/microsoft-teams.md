@@ -156,7 +156,7 @@ React to a message, or a reply, in the channel OneUptime created for an incident
 | Reaction | Saved as |
 | --- | --- |
 | 📌 or 📍 | A private note, seen only by your team |
-| 📣 or 📢 | A public note, shown on the status page. Incidents and scheduled maintenance events only. On a private incident, a private note, and the confirmation says why. |
+| 📣 or 📢 | A public note, shown on the status page. Incidents and scheduled maintenance events only. On a private incident, a private note, and the confirmation says why. When the project's public notes need approval, it is shown once approved, and the confirmation says who it waits for: see [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval). |
 
 The note keeps the message as Microsoft Teams showed it: its formatting, links and code, the people it mentions by name, and its files and images as links to them. A public note leaves the files and images out, since they open only for your team.
 
