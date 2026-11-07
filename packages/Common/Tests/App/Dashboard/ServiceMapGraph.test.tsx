@@ -2083,7 +2083,7 @@ describe("keeping the map on screen (issue #4117)", () => {
     expect(outOfViewNotice()).not.toBeInTheDocument();
   });
 
-  test("the notice sits on the canvas's left, clear of a drawer, and still announces itself", async () => {
+  test("the notice sits on the canvas's start side, clear of a drawer, and still announces itself", async () => {
     jest.useFakeTimers();
     await renderGraph();
     reportDrawingInView(false);
@@ -2099,13 +2099,16 @@ describe("keeping the map on screen (issue #4117)", () => {
     const box: HTMLElement = outOfViewNoticeBox();
     expect(box).toHaveClass("pointer-events-auto", "absolute");
     /*
-     * On the canvas's left, clear of a drawer open on the right, and never
-     * wider than the canvas less an inset on each side. How far down is for
+     * On the canvas's start side - its left, or its right on a page read
+     * right to left - clear of a drawer, which opens at the page's end, and
+     * never wider than the canvas less an inset on each side. A physical
+     * left put it under the drawer on a Persian page. How far down is for
      * the part of the canvas on screen to say (see noticeOffsetInCanvas); a
      * canvas with no height, which is all jsdom lays out, keeps the notice
      * at the inset.
      */
-    expect(box.style.left).toBe("16px");
+    expect(box.style.insetInlineStart).toBe("16px");
+    expect(box.style.left).toBe("");
     expect(box.style.maxWidth).toBe("calc(100% - 32px)");
     expect(box.style.top).toBe("16px");
     expect(box).toHaveTextContent("The map is out of view.");

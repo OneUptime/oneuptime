@@ -41,7 +41,7 @@ L'écran est divisé en deux :
 
 | Partie | Ce qu'elle contient |
 | ---- | ------------- |
-| **Navigateur de groupes** (à gauche) | Chaque groupe de la page, en arbre, avec un champ **Search groups...** au-dessus et un décompte en dessous, comme `3 groups · 12 resources`. Une longue liste se termine par un bouton **Show N more of M**. |
+| **Navigateur de groupes** (à gauche) | Chaque groupe de la page, en arbre, avec un champ **Rechercher des groupes...** au-dessus et un décompte en dessous, comme `3 groups · 12 resources`. Une longue liste se termine par un bouton **Show N more of M**. |
 | **Haut de la page** | La première ligne du navigateur : les ressources sans groupe, que les visiteurs voient en premier, au-dessus de chaque groupe. Sur une page sans groupe, le volet de droite s'intitule plutôt **Toutes les ressources**. |
 | **Volet des ressources** (à droite) | Les ressources du groupe sélectionné. Son en-tête contient **Modifier le groupe**, le bouton principal **Ajouter un moniteur** et un menu **Plus d'actions**. |
 | En-tête de la carte | **Nouveau groupe**, et un menu à trois points avec **Importer des groupes depuis un CSV** et **Actualiser**. |
@@ -132,14 +132,14 @@ Saisissez le **Nom du groupe** : le titre de section que voient les visiteurs.
 
 ### L'imbriquer, s'il appartient à un autre groupe
 
-Choisissez un **Parent Group**, ou laissez **Aucun groupe parent (premier niveau)**. **Ajouter un sous-groupe** dans les menus d'un groupe le remplit pour vous.
+Choisissez un **Groupe parent**, ou laissez **Aucun groupe parent (premier niveau)**. **Ajouter un sous-groupe** dans les menus d'un groupe le remplit pour vous.
 
 ### Créer le groupe
 
 Cliquez sur **Créer un groupe de page de statut**. Le groupe apparaît dans le navigateur, prêt à recevoir des moniteurs.
 :::
 
-Les deux champs sont **Nom du groupe** (`name`) et **Parent Group** (`parentStatusPageGroupId`). Les deux sections repliées contiennent tout le reste :
+Les deux champs sont **Nom du groupe** (`name`) et **Groupe parent** (`parentStatusPageGroupId`). Les deux sections repliées contiennent tout le reste :
 
 - **Mise en page** – son en-tête replié indique **Liste** ou **Grille**. Elle contient **Mode d'affichage** et les axes d'une grille (voir [Disposition en liste ou en grille](#disposition-en-liste-ou-en-grille)), et s'ouvre d'elle-même pour un groupe en grille.
 - **Plus de champs** – les copies, au niveau du groupe, des options de ressource :
@@ -148,22 +148,22 @@ Les deux champs sont **Nom du groupe** (`name`) et **Parent Group** (`parentStat
   - **Afficher l'état actuel du groupe** (`showCurrentStatus`) – activé par défaut. Affiche un statut à côté du titre du groupe.
   - **Afficher le % de disponibilité** (`showUptimePercent`) – désactivé par défaut, avec **Sélectionner la précision de disponibilité** dès qu'il est activé.
 
-Pour modifier un groupe, utilisez **Modifier le groupe** dans l'en-tête du volet, ou **Modifier le groupe** dans le menu de ligne du navigateur : **Modifier le groupe de la page de statut** s'ouvre, avec un bouton **Enregistrer les modifications**. L'en-tête du volet affiche des pastilles pour les réglages activés – **Grille**, **Réduit par défaut**, **Uptime %** –, pour que vous voyiez comment un groupe est configuré sans ouvrir le formulaire.
+Pour modifier un groupe, utilisez **Modifier le groupe** dans l'en-tête du volet, ou **Modifier le groupe** dans le menu de ligne du navigateur : **Modifier le groupe de la page de statut** s'ouvre, avec un bouton **Enregistrer les modifications**. L'en-tête du volet affiche des pastilles pour les réglages activés – **Grille**, **Réduit par défaut**, **Disponibilité %** –, pour que vous voyiez comment un groupe est configuré sans ouvrir le formulaire.
 
 ### Gérer un groupe
 
 | Où | Actions |
 | ----- | ------- |
 | Le menu de ligne du navigateur | **Modifier le groupe**, **Monter**, **Descendre**, **Afficher l'ID**, **Supprimer le groupe** |
-| Le menu **Plus d'actions** du volet | **Modifier ce groupe**, **Ajouter un sous-groupe**, **Monter le groupe**, **Descendre le groupe**, **Show group ID**, **Actualiser**, **Supprimer ce groupe** |
+| Le menu **Plus d'actions** du volet | **Modifier ce groupe**, **Ajouter un sous-groupe**, **Monter le groupe**, **Descendre le groupe**, **Afficher l'ID du groupe**, **Actualiser**, **Supprimer ce groupe** |
 
-Un groupe enregistré sans nom s'affiche comme **Untitled group**, bon signe que vous vouliez saisir quelque chose.
+Un groupe enregistré sans nom s'affiche comme **Groupe sans titre**, bon signe que vous vouliez saisir quelque chose.
 
 ## Imbriquer des groupes
 
-Les groupes s'imbriquent : définissez **Parent Group** sur l'enfant, ou utilisez **Ajouter un sous-groupe dans ce groupe** dans le navigateur. Le texte d'aide du formulaire décrit la forme pour laquelle il est conçu – quelque chose comme Unités › Région › Marché –, et chaque niveau montre le statut et la disponibilité consolidés de tout ce qui se trouve en dessous.
+Les groupes s'imbriquent : définissez **Groupe parent** sur l'enfant, ou utilisez **Ajouter un sous-groupe dans ce groupe** dans le navigateur. Le texte d'aide du formulaire décrit la forme pour laquelle il est conçu – quelque chose comme Unités › Région › Marché –, et chaque niveau montre le statut et la disponibilité consolidés de tout ce qui se trouve en dessous.
 
-Quand un groupe a des enfants, le volet des ressources affiche une rangée de pastilles **Sub groups** qui mène directement à chacun, pour que vous parcouriez la hiérarchie sans revenir au navigateur.
+Quand un groupe a des enfants, le volet des ressources affiche une rangée de pastilles **Sous-groupes** qui mène directement à chacun, pour que vous parcouriez la hiérarchie sans revenir au navigateur.
 
 L'imbrication est rentable sur les grandes pages : un hébergeur avec des régions au sein de produits, ou un distributeur avec des marchés au sein d'unités commerciales. Sur une page de douze moniteurs, un seul niveau plat est plus accueillant.
 
@@ -188,7 +188,7 @@ Choisissez **Grille** et quatre champs de plus apparaissent :
 Chaque moniteur d'un groupe en grille occupe une cellule : **Ajouter un moniteur** et la boîte de dialogue groupée demandent donc la ligne et la colonne en plus du moniteur, avec vos propres libellés d'axes.
 
 > [!IMPORTANT]
-> Définissez les axes avant d'ajouter des moniteurs. Un groupe en grille sans lignes ni colonnes affiche un avis indiquant qu'il n'y a encore nulle part où placer un moniteur, avec un bouton **Set up the grid** qui ouvre le formulaire du groupe sur sa section **Mise en page**, et son bouton **Ajouter un moniteur** est retiré jusqu'à ce que ce soit fait.
+> Définissez les axes avant d'ajouter des moniteurs. Un groupe en grille sans lignes ni colonnes affiche un avis indiquant qu'il n'y a encore nulle part où placer un moniteur, avec un bouton **Configurer la grille** qui ouvre le formulaire du groupe sur sa section **Mise en page**, et son bouton **Ajouter un moniteur** est retiré jusqu'à ce que ce soit fait.
 
 ## Ordonner ce que voient les visiteurs
 
@@ -243,7 +243,7 @@ Une ligne par groupe. Seul `name` est obligatoire ; les colonnes sont listées c
 
 ### Téléverser et prévisualiser
 
-Cliquez sur **Choisir un fichier CSV**, choisissez votre fichier, puis **Preview Import** pour vérifier ce qui sera créé avant que quoi que ce soit ne soit écrit.
+Cliquez sur **Choisir un fichier CSV**, choisissez votre fichier, puis **Aperçu de l'import** pour vérifier ce qui sera créé avant que quoi que ce soit ne soit écrit.
 
 ### Importer
 
@@ -278,7 +278,7 @@ Vérifiez si le moniteur est archivé : la ligne d'un moniteur archivé est omis
 :::
 
 :::details Il n'y a pas de bouton Ajouter un moniteur dans un groupe en grille
-La grille n'a encore ni lignes ni colonnes. Cliquez sur **Set up the grid**, ajoutez les valeurs des axes dans la section **Mise en page**, et **Ajouter un moniteur** revient.
+La grille n'a encore ni lignes ni colonnes. Cliquez sur **Configurer la grille**, ajoutez les valeurs des axes dans la section **Mise en page**, et **Ajouter un moniteur** revient.
 :::
 
 :::details Je ne peux pas faire glisser les lignes

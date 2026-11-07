@@ -14,6 +14,7 @@ import {
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useId, useMemo } from "react";
+import InlineSeparator from "../InlineSeparator/InlineSeparator";
 
 /*
  * The list under the band: every entry the band draws, newest first, under
@@ -219,7 +220,7 @@ const EntryRow: FunctionComponent<{
             </time>
           </Tooltip>
           <span aria-hidden="true" className="max-sm:hidden">
-            ·
+            <InlineSeparator markOnly />
           </span>
           <span className="flex flex-wrap items-center gap-x-1.5">
             <StateTimelineDuration
@@ -228,7 +229,9 @@ const EntryRow: FunctionComponent<{
             />
             {entry.changedBy && (
               <>
-                <span aria-hidden="true">·</span>
+                <span aria-hidden="true">
+                  <InlineSeparator markOnly />
+                </span>
                 <span data-testid="status-timeline-entry-changed-by">
                   {translator.translateTemplate("by {{name}}", {
                     name: entry.changedBy,

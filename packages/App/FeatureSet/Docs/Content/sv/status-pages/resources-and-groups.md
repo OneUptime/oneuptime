@@ -41,12 +41,12 @@ Skärmen är delad i två:
 
 | Del | Vad den innehåller |
 | ---- | ------------- |
-| **Gruppnavigator** (till vänster) | Alla sidans grupper som ett träd, med rutan **Search groups...** ovanför och en räkning nedanför, som `3 groups · 12 resources`. En lång lista slutar med knappen **Show N more of M**. |
+| **Gruppnavigator** (till vänster) | Alla sidans grupper som ett träd, med rutan **Sök grupper...** ovanför och en räkning nedanför, som `3 groups · 12 resources`. En lång lista slutar med knappen **Show N more of M**. |
 | **Överst på sidan** | Navigatorns första rad: resurser utan grupp, som besökare ser först, ovanför alla grupper. På en sida utan grupper heter den högra panelen i stället **Alla resurser**. |
-| **Resurspanel** (till höger) | Den valda gruppens resurser. Dess rubrik innehåller **Edit Group**, huvudknappen **Lägg till monitor** och menyn **Fler åtgärder**. |
-| Kortets rubrik | **New Group** och en meny med tre punkter med **Import groups from CSV** och **Uppdatera**. |
+| **Resurspanel** (till höger) | Den valda gruppens resurser. Dess rubrik innehåller **Redigera grupp**, huvudknappen **Lägg till monitor** och menyn **Fler åtgärder**. |
+| Kortets rubrik | **Ny grupp** och en meny med tre punkter med **Importera grupper från CSV** och **Uppdatera**. |
 
-**Tomma lägen berättar vad du ska göra.** En tom grupp visar **No monitors here yet** med **Lägg till monitor**, **Add Multiple** och, bara så länge sidan inte har några grupper alls, **Create a Group**. En sökning utan träffar visar **Inga resurser matchar din sökning**.
+**Tomma lägen berättar vad du ska göra.** En tom grupp visar **Inga monitorer här än** med **Lägg till monitor**, **Lägg till flera** och, bara så länge sidan inte har några grupper alls, **Skapa en grupp**. En sökning utan träffar visar **Inga resurser matchar din sökning**.
 
 ## Lägg till en monitor
 
@@ -75,11 +75,11 @@ Klicka på **Lägg till monitor**. Raden visas i gruppen och på statussidan.
 I en rutnätsgrupp ber dialogrutan också om raden och kolumnen som monitorn ska stå i, ovanför **Fler fält**; se [Listlayout eller rutnätslayout](#listlayout-eller-rutnätslayout).
 
 > [!TIP]
-> För att visa flera kontroller som en rad lägger du till en [monitorgrupp](/docs/monitor/monitor-groups). Med reglaget **Monitorgrupper** aktiverat (**Projektinställningar** > **Avancerad** > **Funktionsflaggor**, som sparas så snart du slår om det) står det en länk under listrutan: **Add a Monitor Group instead.** Klicka på den så blir **Övervakning** till **Monitor Grupp** (**Välj övervakningsgrupp**); **Add a Monitor instead.** växlar tillbaka.
+> För att visa flera kontroller som en rad lägger du till en [monitorgrupp](/docs/monitor/monitor-groups). Med reglaget **Monitorgrupper** aktiverat (**Projektinställningar** > **Avancerad** > **Funktionsflaggor**, som sparas så snart du slår om det) står det en länk under listrutan: **Lägg till en monitorgrupp i stället.** Klicka på den så blir **Övervakning** till **Monitorgrupp** (**Välj övervakningsgrupp**); **Lägg till en monitor i stället.** växlar tillbaka.
 
 ### Lägg till flera på en gång
 
-**Add Multiple** (även **Add multiple monitors** i menyn **Fler åtgärder**) öppnar **Add Multiple Monitors**. Den är också en sida: en flervalslista **Monitorer**, sedan samma hopfällda **Fler fält**, vars visningsalternativ gäller för varje monitor som du väljer. Varje resurs får sitt visningsnamn och sin beskrivning från sin monitor, och **Lägg till monitorer** lägger till alla. Det är det snabbaste sättet att fylla en ny sida.
+**Lägg till flera** (även **Lägg till flera monitorer** i menyn **Fler åtgärder**) öppnar **Lägg till flera monitorer**. Den är också en sida: en flervalslista **Monitorer**, sedan samma hopfällda **Fler fält**, vars visningsalternativ gäller för varje monitor som du väljer. Varje resurs får sitt visningsnamn och sin beskrivning från sin monitor, och **Lägg till monitorer** lägger till alla. Det är det snabbaste sättet att fylla en ny sida.
 
 Flervalslistan har fliken **Etiketter**: klicka på en etikett så väljs alla monitorer med den på en gång.
 
@@ -124,7 +124,7 @@ De flesta grupper behöver bara ett namn.
 :::steps
 ### Klicka på New Group
 
-**Create New Status Page Group** öppnas: två fält och sedan två hopfällda sektioner.
+**Skapa ny grupp på statussidan** öppnas: två fält och sedan två hopfällda sektioner.
 
 ### Namnge gruppen
 
@@ -132,14 +132,14 @@ Skriv **Gruppnamn**: den sektionsrubrik som besökarna ser.
 
 ### Nästla den, om den hör hemma i en annan grupp
 
-Välj en **Parent Group**, eller låt den stå på **No parent group (top level)**. **Add a sub group** i en grupps menyer fyller i det här åt dig.
+Välj en **Överordnad grupp**, eller låt den stå på **Ingen överordnad grupp (översta nivån)**. **Lägg till en undergrupp** i en grupps menyer fyller i det här åt dig.
 
 ### Skapa gruppen
 
-Klicka på **Create Status Page Group**. Gruppen visas i navigatorn, redo för monitorer.
+Klicka på **Skapa grupp på statussidan**. Gruppen visas i navigatorn, redo för monitorer.
 :::
 
-De två fälten är **Gruppnamn** (`name`) och **Parent Group** (`parentStatusPageGroupId`). De två hopfällda sektionerna innehåller resten:
+De två fälten är **Gruppnamn** (`name`) och **Överordnad grupp** (`parentStatusPageGroupId`). De två hopfällda sektionerna innehåller resten:
 
 - **Layout**: dess hopfällda rubrik säger **Lista** eller **Rutnät**. Den innehåller **Visningsläge** och ett rutnäts axlar (se [Listlayout eller rutnätslayout](#listlayout-eller-rutnätslayout)), och den öppnas av sig själv på en rutnätsgrupp.
 - **Fler fält**: gruppnivåns varianter av resursalternativen:
@@ -148,22 +148,22 @@ De två fälten är **Gruppnamn** (`name`) och **Parent Group** (`parentStatusPa
   - **Visa aktuell gruppstatus** (`showCurrentStatus`): på som standard. Visar en status bredvid grupprubriken.
   - **Visa upptid %** (`showUptimePercent`): av som standard, med **Välj precision för drifttid** när det är aktiverat.
 
-För att ändra en grupp använder du **Edit Group** i panelens rubrik, eller **Edit group** i navigatorns radmeny: **Edit Status Page Group** öppnas, med knappen **Spara ändringar**. Panelens rubrik visar märken för de inställningar som är på (**Rutnät**, **Collapsed by default**, **Uptime %**), så att du ser hur en grupp är inställd utan att öppna formuläret.
+För att ändra en grupp använder du **Redigera grupp** i panelens rubrik, eller **Edit group** i navigatorns radmeny: **Redigera grupp på statussidan** öppnas, med knappen **Spara ändringar**. Panelens rubrik visar märken för de inställningar som är på (**Rutnät**, **Hopfälld som standard**, **Drifttid %**), så att du ser hur en grupp är inställd utan att öppna formuläret.
 
 ### Hantera en grupp
 
 | Var | Åtgärder |
 | ----- | ------- |
 | Navigatorns radmeny | **Edit group**, **Flytta upp**, **Flytta ned**, **Visa ID**, **Delete group** |
-| Panelens meny **Fler åtgärder** | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Uppdatera**, **Delete this group** |
+| Panelens meny **Fler åtgärder** | **Redigera den här gruppen**, **Lägg till en undergrupp**, **Flytta upp gruppen**, **Flytta ned gruppen**, **Visa grupp-ID**, **Uppdatera**, **Ta bort den här gruppen** |
 
-En grupp som sparats utan namn visas som **Untitled group**, ett gott tecken på att du tänkte skriva något.
+En grupp som sparats utan namn visas som **Namnlös grupp**, ett gott tecken på att du tänkte skriva något.
 
 ## Nästla grupper
 
-Grupper kan nästlas: ange **Parent Group** på undergruppen, eller använd **Add a sub group inside this group** i navigatorn. Formulärets hjälptext beskriver den form som det är byggt för (ungefär Affärsenheter › Region › Marknad), och varje nivå visar den sammanlagda statusen och upptiden för allt under den.
+Grupper kan nästlas: ange **Överordnad grupp** på undergruppen, eller använd **Add a sub group inside this group** i navigatorn. Formulärets hjälptext beskriver den form som det är byggt för (ungefär Affärsenheter › Region › Marknad), och varje nivå visar den sammanlagda statusen och upptiden för allt under den.
 
-När en grupp har undergrupper visar resurspanelen en rad med märken **Sub groups** som länkar direkt till varje undergrupp, så att du kan gå igenom hierarkin utan att gå tillbaka till navigatorn.
+När en grupp har undergrupper visar resurspanelen en rad med märken **Undergrupper** som länkar direkt till varje undergrupp, så att du kan gå igenom hierarkin utan att gå tillbaka till navigatorn.
 
 Nästling lönar sig på stora sidor: en hostingleverantör med regioner inuti produkter, eller en återförsäljare med marknader inuti affärsenheter. På en sida med tolv monitorer är en enda platt nivå vänligare.
 
@@ -188,7 +188,7 @@ Välj **Rutnät** så visas ytterligare fyra fält:
 Varje monitor i en rutnätsgrupp står i en cell, så **Lägg till monitor** och dialogrutan för flera ber om raden och kolumnen tillsammans med monitorn, med dina egna axeletiketter.
 
 > [!IMPORTANT]
-> Ställ in axlarna innan du lägger till monitorer. En rutnätsgrupp utan rader eller kolumner visar ett meddelande om att det ännu inte finns någonstans att lägga en monitor, med knappen **Set up the grid** som öppnar gruppens formulär på sektionen **Layout**, och gruppens knapp **Lägg till monitor** är borta tills du har gjort det.
+> Ställ in axlarna innan du lägger till monitorer. En rutnätsgrupp utan rader eller kolumner visar ett meddelande om att det ännu inte finns någonstans att lägga en monitor, med knappen **Ställ in rutnätet** som öppnar gruppens formulär på sektionen **Layout**, och gruppens knapp **Lägg till monitor** är borta tills du har gjort det.
 
 ## Ordningen på det som besökarna ser
 
@@ -196,8 +196,8 @@ Ordningen bestämmer du själv, inte alfabetet:
 
 | Vad | Så ändrar du ordningen |
 | ---- | ----------------- |
-| Resurser i en grupp | Dra en rad. Panelen säger det: **Drag a row to change the order visitors see**. |
-| Grupper i förhållande till varandra | **Flytta upp** / **Flytta ned** i navigatorns radmeny, eller **Move group up** / **Move group down** i **Fler åtgärder**. |
+| Resurser i en grupp | Dra en rad. Panelen säger det: **Dra en rad för att ändra ordningen som besökare ser**. |
+| Grupper i förhållande till varandra | **Flytta upp** / **Flytta ned** i navigatorns radmeny, eller **Flytta upp gruppen** / **Flytta ned gruppen** i **Fler åtgärder**. |
 | Resurser utan grupp | De står i **Överst på sidan** och visas alltid ovanför alla grupper, så lägg det som alla kontrollerar först där. |
 
 **Två fall där dragning är avstängd.** En sökning i rutan **Search in {group}...** stänger av omordning (panelen säger `N of M shown · drag to reorder is off while filtering`), så rensa sökningen först. Och rutnätsgrupper ordnas aldrig om genom att dra, eftersom en monitors plats kommer från dess rad och kolumn.
@@ -230,12 +230,12 @@ Därefter körs en regel igen för en monitor varje gång en skapas eller när d
 
 ## Importera grupper från CSV
 
-Det är mödosamt att bygga en djup hierarki för hand. **Import groups from CSV** i kortrubrikens meny med tre punkter öppnar dialogrutan **Import Groups from CSV**.
+Det är mödosamt att bygga en djup hierarki för hand. **Importera grupper från CSV** i kortrubrikens meny med tre punkter öppnar dialogrutan **Importera grupper från CSV**.
 
 :::steps
 ### Ladda ned mallen
 
-Klicka på **Download CSV Template** för att hämta `status-page-groups-template.csv`.
+Klicka på **Ladda ned CSV-mall** för att hämta `status-page-groups-template.csv`.
 
 ### Fyll i den
 
@@ -243,11 +243,11 @@ En rad per grupp. Bara `name` är obligatoriskt; kolumnerna listas nedan.
 
 ### Ladda upp och förhandsgranska
 
-Klicka på **Choose CSV File**, välj din fil och sedan **Preview Import** för att kontrollera vad som kommer att skapas innan något skrivs.
+Klicka på **Välj CSV-fil**, välj din fil och sedan **Förhandsgranska import** för att kontrollera vad som kommer att skapas innan något skrivs.
 
 ### Importera
 
-Kör importen. Tabellen **Import results** listar varje rad som **Skapad**, **Misslyckades** eller **Hoppade över**, med orsaken, så att en felaktig rad aldrig försvinner i tysthet.
+Kör importen. Tabellen **Importresultat** listar varje rad som **Skapad**, **Misslyckades** eller **Hoppade över**, med orsaken, så att en felaktig rad aldrig försvinner i tysthet.
 :::
 
 | Kolumn | Vad den anger |
@@ -265,7 +265,7 @@ Kör importen. Tabellen **Import results** listar varje rad som **Skapad**, **Mi
 | `columnAxisLabel` | Kolumndimensionens namn, för en rutnätsgrupp. |
 | `columnAxisValues` | Kolumnvärdena, för en rutnätsgrupp. |
 
-Importen skapar grupper, inte resurser: lägg till monitorer efteråt med **Lägg till monitor**, **Add Multiple** eller en monitorregel.
+Importen skapar grupper, inte resurser: lägg till monitorer efteråt med **Lägg till monitor**, **Lägg till flera** eller en monitorregel.
 
 ## Felsökning
 
@@ -278,7 +278,7 @@ Kontrollera om monitorn är arkiverad: en arkiverad monitors rad utelämnas till
 :::
 
 :::details Det finns ingen knapp Lägg till monitor i en rutnätsgrupp
-Rutnätet har ännu inga rader eller kolumner. Klicka på **Set up the grid**, lägg till axelvärdena i sektionen **Layout**, så kommer **Lägg till monitor** tillbaka.
+Rutnätet har ännu inga rader eller kolumner. Klicka på **Ställ in rutnätet**, lägg till axelvärdena i sektionen **Layout**, så kommer **Lägg till monitor** tillbaka.
 :::
 
 :::details Jag kan inte dra rader

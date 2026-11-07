@@ -258,7 +258,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 把權杖作為 [OAuth 2.0 變數](/docs/workflows/variables#oauth-20-變數會自動重新整理的權杖) 建立一次，供所有工作流程使用：
 
-1. 前往 **工作流程 → 全域變數**，開啟 **建立工作流程 變數** 旁邊的 **更多** 選單（**⋯**），選擇 **Create OAuth 2.0 Variable**。將其命名為 `DYNAMICS_TOKEN`。
+1. 前往 **工作流程 → 全域變數**，開啟 **建立工作流程變數** 旁邊的 **更多** 選單（**⋯**），選擇 **Create OAuth 2.0 Variable**。將其命名為 `DYNAMICS_TOKEN`。
 2. 在 **提供者** 中選擇 **Microsoft Entra ID**，把 **權杖 URL** 中的 `{tenant-id}` 替換為你的 Directory (tenant) ID，然後選擇 **Client Credentials**。
 3. 在 **憑證** 中輸入 **用戶端 ID** 和 **用戶端密鑰**。在 **進階** 中把範圍設為 `https://yourorg.crm.dynamics.com/.default`，然後建立變數。
 

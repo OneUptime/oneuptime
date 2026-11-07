@@ -32,7 +32,7 @@ flowchart TB
 :::steps
 ### Abrir os critérios do monitor
 
-Vá em **Monitores**, abra o monitor e clique em **Critérios** no menu lateral dele. Clique em **Editar: Critérios de Monitoramento**.
+Vá em **Monitores**, abra o monitor e clique em **Critérios** no menu lateral dele. Clique em **Editar critérios de monitoramento**.
 
 ### Ativar o incidente ou o alerta
 

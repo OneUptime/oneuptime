@@ -41,8 +41,8 @@ La Table API accetta l'autenticazione Basic: il nome e la password dell'utente, 
 
    Usa `printf`, non `echo`: `echo` aggiunge un a capo, che viene codificato con il resto e rende le credenziali non valide.
 
-2. In OneUptime, vai su **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Flusso di lavoro Variabile**. Chiamala `SERVICENOW_AUTH` e fai clic su **Avanti**.
-3. Incolla il valore codificato in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Flusso di lavoro Variabile**.
+2. In OneUptime, vai su **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Variabile del flusso di lavoro**. Chiamala `SERVICENOW_AUTH` e fai clic su **Avanti**.
+3. Incolla il valore codificato in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Variabile del flusso di lavoro**.
 :::
 
 ## Aprire un incidente ServiceNow per ogni incidente

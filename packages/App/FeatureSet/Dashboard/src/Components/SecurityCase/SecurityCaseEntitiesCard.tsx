@@ -45,6 +45,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 // How far back the card looks: a week, long enough to see an attack's run-up.
 export const ENTITY_ACTIVITY_HOURS: number = 24 * 7;
@@ -522,7 +523,7 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                             {type}
                             {lastSeen ? (
                               <>
-                                {" · "}
+                                <InlineSeparator />
                                 {translator.translateTemplate(
                                   "last seen {{when}}",
                                   { when: lastSeen },

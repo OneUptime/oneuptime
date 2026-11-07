@@ -544,23 +544,20 @@ const ViewportController: FunctionComponent<{
 
 /*
  * Zoom in, zoom out and fit, at the corner where a line of text starts: the
- * bottom left, or the bottom right on a page read from right to left. Fit
- * frames the drawing the way the map does, from the top.
+ * bottom left, or the bottom right on a page read from right to left, where
+ * Theme.css mirrors every canvas's panels. Fit frames the drawing the way
+ * the map does, from the top.
  */
 const MapControls: FunctionComponent<{
   layout: ResourceTopologyLayout;
-  direction: ResourceTopologyDirection;
-}> = (props: {
-  layout: ResourceTopologyLayout;
-  direction: ResourceTopologyDirection;
-}): ReactElement => {
+}> = (props: { layout: ResourceTopologyLayout }): ReactElement => {
   const instance: ReactFlowInstance = useReactFlow();
   const store: ReturnType<typeof useStoreApi> = useStoreApi();
 
   return (
     <Controls
       showInteractive={false}
-      position={props.direction === "rtl" ? "bottom-right" : "bottom-left"}
+      position="bottom-left"
       onFitView={() => {
         const state: ReturnType<typeof store.getState> = store.getState();
 
@@ -1017,7 +1014,7 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
          */
         onNodeClick={ignoreNodeClick}
       >
-        <MapControls layout={props.layout} direction={direction} />
+        <MapControls layout={props.layout} />
         <Background
           variant={BackgroundVariant.Dots}
           gap={22}

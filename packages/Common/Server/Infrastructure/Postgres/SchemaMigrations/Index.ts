@@ -915,6 +915,8 @@ import { AddGroupingRuleMinimumCount1808994700000 } from "./1808994700000-AddGro
 import { AddGroupingWaitKeyIndexes1808994710000 } from "./1808994710000-AddGroupingWaitKeyIndexes";
 import { AddCloudConnectionStreamState1808995100000 } from "./1808995100000-AddCloudConnectionStreamState";
 import { WidenGitBranchNameColumns1808995180000 } from "./1808995180000-WidenGitBranchNameColumns";
+import { AddTwoPersonFixApproval1808995185000 } from "./1808995185000-AddTwoPersonFixApproval";
+import { AddFirstApprovedByUserForeignKey1808995190000 } from "./1808995190000-AddFirstApprovedByUserForeignKey";
 import { WidenCodeRepositoryOwnerColumns1808995240000 } from "./1808995240000-WidenCodeRepositoryOwnerColumns";
 
 export default [
@@ -1835,5 +1837,7 @@ export default [
   AddGroupingWaitKeyIndexes1808994710000,
   AddCloudConnectionStreamState1808995100000,
   WidenGitBranchNameColumns1808995180000,
+  AddTwoPersonFixApproval1808995185000,
+  AddFirstApprovedByUserForeignKey1808995190000,
   WidenCodeRepositoryOwnerColumns1808995240000,
 ];

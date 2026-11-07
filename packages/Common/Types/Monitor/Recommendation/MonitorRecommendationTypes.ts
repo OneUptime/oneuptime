@@ -2,6 +2,7 @@ import ObjectID from "../../ObjectID";
 import Dictionary from "../../Dictionary";
 // A type only: the catalog stays free of the health rules' code.
 import type { CloudResourceReadings } from "../../Cloud/CloudResourceHealth";
+import type { RdsConnectionLimitReading } from "../../Cloud/RdsConnectionLimits";
 import RecommendationType from "../../Recommendation/RecommendationType";
 import { ServiceLanguage } from "../../Service/ServiceLanguage";
 import MonitorStep from "../MonitorStep";
@@ -235,6 +236,14 @@ export interface MonitorRecommendationContext {
    * share of it, and waits for it.
    */
   cloudAllocatedStorageGiB?: number | null | undefined;
+  /*
+   * An RDS instance's connection limit, from its inventory's class, engine
+   * and parameter group (readRdsConnectionLimit) - or why it is not known.
+   * Its connections template is a share of it, and waits for it; the
+   * resource's page says why it waits, and that a parameter group of the
+   * team's own may set another. Absent for every other resource.
+   */
+  cloudConnectionLimit?: RdsConnectionLimitReading | null | undefined;
   /*
    * An App Platforms app's telemetry filter: its environment's
    * resource.cloud.* attributes and its own resource.* attributes, as its

@@ -61,7 +61,7 @@ Vá para **Monitores → Grupos de monitores**. O cartão **Grupos de monitores*
 
 ### Criar o grupo
 
-Clique em **Criar: Monitor Grupo**, digite um **Nome** e, se quiser, uma **Descrição**, e clique em **Criar: Monitor Grupo** no final do formulário. O grupo começa sem monitores.
+Clique em **Criar: Grupo de monitores**, digite um **Nome** e, se quiser, uma **Descrição**, e clique em **Criar: Grupo de monitores** no final do formulário. O grupo começa sem monitores.
 
 ### Adicionar os monitores
 
@@ -101,7 +101,7 @@ Vá para **Páginas de status**, abra a página e clique em **Recursos** no menu
 
 ### Trocar o diálogo para um grupo
 
-Clique em **Adicionar monitor**. Abaixo da lista suspensa de monitores, clique em **Add a Monitor Group instead.** A lista suspensa vira **Monitor Grupo**.
+Clique em **Adicionar monitor**. Abaixo da lista suspensa de monitores, clique em **Adicione um grupo de monitores em vez disso.** A lista suspensa vira **Grupo de monitores**.
 
 ### Escolher o grupo e adicioná-lo
 
@@ -134,7 +134,7 @@ A chave **Grupos de monitores** está desligada. Ligue-a em **Configurações do
 :::
 
 :::details Uma página de status não consegue adicionar o grupo
-**Add a Monitor Group instead.** só aparece no diálogo enquanto a chave **Grupos de monitores** estiver ligada para o projeto.
+**Adicione um grupo de monitores em vez disso.** só aparece no diálogo enquanto a chave **Grupos de monitores** estiver ligada para o projeto.
 :::
 
 ## Próximos passos

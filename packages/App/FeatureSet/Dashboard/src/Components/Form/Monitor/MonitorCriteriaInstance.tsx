@@ -61,6 +61,7 @@ import Link from "Common/UI/Components/Link/Link";
 import URL from "Common/Types/API/URL";
 import { DOCS_URL } from "Common/UI/Config";
 import { OPEN_FOR_EVERY_EMAIL_DOCS_PATH } from "Common/Types/Monitor/IncomingEmailMonitor/OpenForEveryEmail";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -348,7 +349,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
       );
     }
     return actions.length > 0
-      ? actions.join(", ")
+      ? joinList(actions)
       : translator.translateText("No actions") || "No actions";
   };
 

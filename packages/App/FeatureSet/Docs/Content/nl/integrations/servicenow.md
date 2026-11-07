@@ -41,8 +41,8 @@ De Table API accepteert Basic-authenticatie: de naam en het wachtwoord van de ge
 
    Gebruik `printf`, niet `echo`: `echo` voegt een regeleinde toe, dat samen met de rest wordt gecodeerd en de inloggegevens ongeldig maakt.
 
-2. Ga in OneUptime naar **Workflows → Globale variabelen** en klik op **Workflow Variabele aanmaken**. Noem hem `SERVICENOW_AUTH` en klik op **Volgende**.
-3. Plak de gecodeerde waarde in **Inhoud**, zet **Geheim** aan en klik op **Workflow Variabele aanmaken**.
+2. Ga in OneUptime naar **Workflows → Globale variabelen** en klik op **Workflowvariabele aanmaken**. Noem hem `SERVICENOW_AUTH` en klik op **Volgende**.
+3. Plak de gecodeerde waarde in **Inhoud**, zet **Geheim** aan en klik op **Workflowvariabele aanmaken**.
 :::
 
 ## Een ServiceNow-incident openen voor elk incident

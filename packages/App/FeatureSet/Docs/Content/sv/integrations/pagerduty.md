@@ -32,9 +32,9 @@ Båda arbetsflödena anropar PagerDutys [Events API v2](https://developer.pagerd
 ## Spara routing key
 
 :::steps
-1. Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflöde Variabel**.
+1. Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflödesvariabel**.
 2. Ge den namnet `PAGERDUTY_ROUTING_KEY` och klicka på **Nästa**.
-3. Klistra in integrationsnyckeln i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflöde Variabel**.
+3. Klistra in integrationsnyckeln i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflödesvariabel**.
 :::
 
 En hemlig variabel ersätts med `[REDACTED]` i körningsloggar, så nyckeln syns aldrig i en körning.

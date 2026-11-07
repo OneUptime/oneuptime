@@ -51,6 +51,7 @@ import {
   parseSessionReplaySummary,
   SessionReplaySummary,
 } from "./SessionReplayTable";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * "Watch what the user saw" - the embeddable card for the exception and
@@ -770,12 +771,12 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
                               row.summary.startTime,
                               translator,
                             )}{" "}
-                            ·{" "}
+                            <InlineSeparator markOnly />{" "}
                             {describeReplayDuration(
                               row.summary.durationMs,
                               translator,
                             )}{" "}
-                            ·{" "}
+                            <InlineSeparator markOnly />{" "}
                             <ReplayDevice
                               summary={row.summary}
                               translator={translator}

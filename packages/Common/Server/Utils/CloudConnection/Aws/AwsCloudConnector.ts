@@ -155,11 +155,19 @@ import {
  *      the fewest dimensions - the resource's own aggregate, not its
  *      per-target or per-zone splits.
  *   3. Reads those series' values since the last read (GetMetricData, one
- *      statistic each, 500 a call) and builds the export the CloudWatch
+ *      statistic each, 500 a call), each period from its own cursor - five
+ *      minutes for most, an hour for a metric published a few times a day,
+ *      a day for S3's storage - and builds the export the CloudWatch
  *      receivers send (Namespace and Dimensions on each datapoint, the
  *      account and Region on the resource).
  *   4. Names resources CloudWatch knows by an id (an EC2 instance, a
  *      volume) by their Name tag, every hour.
+ *
+ * A namespace whose metrics are published a few times a day (ACM's
+ * DaysToExpiry, twice) is swept and listed whatever its last point's age
+ * (isListedWhenQuiet): the last three hours' listing would hold a
+ * certificate for a few hours after each point and lose it the rest of
+ * the day.
  *
  * A resource is found once it reports a key metric: AWS has no free call
  * that lists everything an account holds.
@@ -445,6 +453,7 @@ export default class AwsCloudConnector implements CloudConnector {
         namespace: data.namespace.namespace,
         metricName: data.namespace.metrics[0]!.metricName,
         firstPageOnly: true,
+        includeQuiet: data.namespace.isListedWhenQuiet,
       },
     );
 
@@ -604,6 +613,7 @@ export default class AwsCloudConnector implements CloudConnector {
         {
           namespace: data.pair.namespace.namespace,
           metricName: keyMetric.metricName,
+          includeQuiet: data.pair.namespace.isListedWhenQuiet,
         },
       );
 
@@ -732,6 +742,7 @@ export default class AwsCloudConnector implements CloudConnector {
                 namespace: pair.namespace.namespace,
                 metricName: pair.namespace.metrics[0]!.metricName,
                 firstPageOnly: true,
+                includeQuiet: pair.namespace.isListedWhenQuiet,
               },
             );
           },

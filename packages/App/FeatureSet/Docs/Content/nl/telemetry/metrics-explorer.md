@@ -108,7 +108,7 @@ Sleep over een grafiek om op een moment in te zoomen, en dubbelklik om weer uit 
 
 ## Inzichten in metrieken
 
-Het tabblad **Inzichten** telt de metrieken in een tijdsbereik: **Actieve metrieken**, **Rapportageservices** en het gemiddelde per service. Het deelt de metrieken in categorieën in en toont de services die ze melden.
+Het tabblad **Inzichten** telt de metrieken in een tijdsbereik: **Actieve metrieken**, **Rapporterende services** en het gemiddelde per service. Het deelt de metrieken in categorieën in en toont de services die ze melden.
 
 ## Metrieken verbeteren en ontbrekende toevoegen met AI
 

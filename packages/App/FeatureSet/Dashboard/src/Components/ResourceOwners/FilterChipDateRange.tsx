@@ -28,6 +28,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The facet bar's chip for a date column.
@@ -151,7 +152,7 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
                   isChipActive ? "text-indigo-300" : "text-gray-300"
                 }`}
               >
-                ·
+                <InlineSeparator markOnly />
               </span>
               <span className="font-semibold">
                 {valueless

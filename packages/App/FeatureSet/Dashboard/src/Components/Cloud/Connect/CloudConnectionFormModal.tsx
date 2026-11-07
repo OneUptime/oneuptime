@@ -33,6 +33,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import {
   Translator,
   composedValue,
+  formatList,
   translatableTerm,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -377,11 +378,12 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
 
       return translator.translateTemplate(PASTE_STILL_MISSING, {
         fields: composedValue((inSentence: Translator): string => {
-          return missing
-            .map((field: CloudConnectionField): string => {
+          return formatList(
+            missing.map((field: CloudConnectionField): string => {
               return inSentence.translateText(field.title) || field.title;
-            })
-            .join(", ");
+            }),
+            inSentence,
+          );
         }),
       });
     },
@@ -431,11 +433,12 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
           <span>
             {translator.translateTemplate("Found: {{fields}}", {
               fields: composedValue((inSentence: Translator): string => {
-                return found
-                  .map((fieldTitle: string): string => {
+                return formatList(
+                  found.map((fieldTitle: string): string => {
                     return inSentence.translateText(fieldTitle) || fieldTitle;
-                  })
-                  .join(", ");
+                  }),
+                  inSentence,
+                );
               }),
             })}
           </span>
@@ -590,13 +593,14 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
             missing.length > 0
               ? translator.translateTemplate("Fill in {{fields}} to test.", {
                   fields: composedValue((inSentence: Translator): string => {
-                    return missing
-                      .map((field: CloudConnectionField): string => {
+                    return formatList(
+                      missing.map((field: CloudConnectionField): string => {
                         return (
                           inSentence.translateText(field.title) || field.title
                         );
-                      })
-                      .join(", ");
+                      }),
+                      inSentence,
+                    );
                   }),
                 })
               : undefined

@@ -54,7 +54,7 @@ flowchart TB
 :::steps
 ### De pipeline aanmaken
 
-Ga naar **Logboeken → Instellingen → Pipelines** en klik op **Logboek Pipeline aanmaken**. Geef hem een **Naam**, zoals *Firewall-logboeken parsen*, en maak hem aan. De pagina van de pipeline opent.
+Ga naar **Logboeken → Instellingen → Pipelines** en klik op **Logpipeline aanmaken**. Geef hem een **Naam**, zoals *Firewall-logboeken parsen*, en maak hem aan. De pagina van de pipeline opent.
 
 ### Kiezen op welke logboeken hij van toepassing is
 

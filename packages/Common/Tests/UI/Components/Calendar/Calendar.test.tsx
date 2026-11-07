@@ -1337,7 +1337,7 @@ describe("Calendar.css", () => {
       expect(
         cascadedValue(
           getBlock(saturday, "Blair (covering Alex)"),
-          "padding-left",
+          "padding-inline-start",
         ),
       ).toBe("0.75rem");
 

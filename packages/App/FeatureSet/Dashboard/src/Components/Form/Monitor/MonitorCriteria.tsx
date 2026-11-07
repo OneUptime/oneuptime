@@ -45,6 +45,7 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { SnmpTableDefinition } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 export interface ComponentProps {
   value: MonitorCriteria | undefined;
@@ -224,7 +225,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
     }
 
     if (actions.length > 0) {
-      parts.push(actions.join(", "));
+      parts.push(joinList(actions));
     }
 
     return parts.join(" | ");

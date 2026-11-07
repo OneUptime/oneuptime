@@ -10,6 +10,7 @@ import { getMitreAttackUrl } from "../SecurityCase/MitreAttackChips";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   tactics: Array<TacticCoverageView>;
@@ -57,7 +58,7 @@ const AttackCoverageMatrix: FunctionComponent<ComponentProps> = (
                 <span className="mt-0.5 block text-[10px] tabular-nums text-gray-300">
                   {translator.formatNumber(view.coveredCount)}/
                   {translator.formatNumber(view.techniqueCount)}
-                  {" · "}
+                  <InlineSeparator />
                   {translator.formatNumber(percent)}%
                 </span>
                 <span className="mt-1 block h-1 overflow-hidden rounded-full bg-gray-700">

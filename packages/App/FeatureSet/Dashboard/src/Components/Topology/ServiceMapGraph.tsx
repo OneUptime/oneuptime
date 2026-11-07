@@ -1436,9 +1436,11 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
               </ReactFlow>
               {showOutOfView && (
                 /*
-                 * On the left of the canvas, clear of a drawer open on the
-                 * right, and as high as the part of the canvas on screen puts
-                 * it (its top is set by the layout effect above).
+                 * On the canvas's start side - its left, or its right on a
+                 * page read right to left - clear of a drawer, which opens
+                 * at the page's end, and as high as the part of the canvas
+                 * on screen puts it (its top is set by the layout effect
+                 * above).
                  */
                 <div
                   className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
@@ -1449,7 +1451,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                     role="status"
                     className="pointer-events-auto absolute flex flex-wrap items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
                     style={{
-                      left: OUT_OF_VIEW_NOTICE_INSET_PX,
+                      insetInlineStart: OUT_OF_VIEW_NOTICE_INSET_PX,
                       maxWidth: `calc(100% - ${2 * OUT_OF_VIEW_NOTICE_INSET_PX}px)`,
                     }}
                   >

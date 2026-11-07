@@ -49,6 +49,7 @@ import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../Components/MetricDescri
 import StorageArrayResourceUtils from "./Utils/StorageArrayResourceUtils";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * Pure raises its own capacity alerts at 80% and 90% used, so the bar
@@ -427,7 +428,9 @@ const StorageArrays: FunctionComponent<
                     { one: "{{count}} volume", other: "{{count}} volumes" },
                     item.volumeCount,
                   )}
-                  <span className="text-gray-400"> · </span>
+                  <span className="text-gray-400">
+                    <InlineSeparator />
+                  </span>
                   {translator.translatePlural(
                     { one: "{{count}} host", other: "{{count}} hosts" },
                     item.hostCount || 0,

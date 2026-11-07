@@ -1,4 +1,5 @@
 import { SecurityEntity } from "./SecurityEntity";
+import type { SecurityEventScope } from "../SecurityEvent/SecurityEventScope";
 import type {
   CloudChangeTitleFacts,
   CloudHealthTitleFacts,
@@ -200,6 +201,23 @@ export const RESOURCE_SECURITY_WINDOW_IN_DAYS: number = 7;
 
 // The most open cases a resource's page lists.
 export const RESOURCE_SECURITY_MAX_CASES: number = 3;
+
+/*
+ * What a record's own Security Events page reads under (issue #5769): the
+ * scope every list, count, chart and facet on it carries
+ * (Types/SecurityEvent/SecurityEventScope), the record's name for the
+ * page's locked chip, and the identities the scope searches for.
+ */
+export interface ResourceSecurityScopeJson {
+  kind: SecurityConnectionKind;
+  id: string;
+  name: string;
+  // The record's exact identities, as searched for: names folded, public addresses its own.
+  values: Array<string>;
+  // Searched for by the events read from its logs alone.
+  isSearchedByLogs: boolean;
+  scope: SecurityEventScope;
+}
 
 /*
  * The attributes every event read from a log line carries about the log's

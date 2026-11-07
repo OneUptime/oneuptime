@@ -39,17 +39,70 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
+/* The lines between the days are on each day's start side, so a page
+   read right to left draws them between its days too: drawn on the left,
+   they stood one day off - none between the first two days, two at the
+   last one's far edge. Each rule clears react-big-calendar's own left line
+   first. */
 .oneuptime-calendar .rbc-header + .rbc-header,
 .oneuptime-calendar .rbc-time-header-content .rbc-header + .rbc-header {
-  border-left: 1px solid #f3f4f6; /* gray-100 */
+  border-left: none;
+  border-inline-start: 1px solid #f3f4f6; /* gray-100 */
 }
 
+/* ---------- A day's name in a narrow column ----------
+   In a language with no short names for its days (Persian: Calendar.tsx's
+   CalendarDayName), each name above a column is written whole and in one
+   letter, and the column shows the one it has room for: the whole name
+   ("چهارشنبه") where it fits, its one letter ("چ") in a narrow month, a
+   phone's or one beside the side menu, where the whole name was cut to
+   "چها…". The column measures itself (a container query): the widest name,
+   "چهارشنبه", takes about 58px of the header's type, and 75px with its day
+   of the month in a week; each switch sits some 15% above that, for a
+   reader's font wider than the one measured. */
+.oneuptime-calendar.oneuptime-calendar--long-day-names .rbc-header {
+  container-type: inline-size;
+}
+
+.oneuptime-calendar .oneuptime-calendar-day-name__narrow {
+  display: none;
+}
+
+@container (max-width: 4.25rem) {
+  .oneuptime-calendar .rbc-month-header .oneuptime-calendar-day-name__full {
+    display: none;
+  }
+
+  .oneuptime-calendar .rbc-month-header .oneuptime-calendar-day-name__narrow {
+    display: inline;
+  }
+}
+
+/* A week's column names its day of the month as well ("چهارشنبه ۲۸"). */
+@container (max-width: 5.25rem) {
+  .oneuptime-calendar
+    .rbc-time-header-content
+    .oneuptime-calendar-day-name__full {
+    display: none;
+  }
+
+  .oneuptime-calendar
+    .rbc-time-header-content
+    .oneuptime-calendar-day-name__narrow {
+    display: inline;
+  }
+}
+
+/* react-big-calendar's line over the scrollbar of a week that scrolls, on
+   its end side: the right, or the left on a page read right to left, where
+   the scrollbar is (Calendar.tsx tells it the page's way, rtl). */
 .oneuptime-calendar .rbc-time-header.rbc-overflowing {
-  border-right: none;
+  border-inline-end: none;
 }
 
 .oneuptime-calendar .rbc-time-header-content {
-  border-left: 1px solid #e5e7eb;
+  border-left: none;
+  border-inline-start: 1px solid #e5e7eb;
 }
 
 /* ---------- Month grid ---------- */
@@ -58,7 +111,8 @@
 }
 
 .oneuptime-calendar .rbc-day-bg + .rbc-day-bg {
-  border-left: 1px solid #f3f4f6;
+  border-left: none;
+  border-inline-start: 1px solid #f3f4f6;
 }
 
 .oneuptime-calendar .rbc-date-cell {
@@ -113,7 +167,10 @@
     display: none;
   }
 
-  .oneuptime-calendar .rbc-month-view .rbc-header {
+  /* A week's day names give up theirs too: a narrow column's one-letter
+     name and its day ("س ۲۷") had 32px between its paddings and was cut. */
+  .oneuptime-calendar .rbc-month-view .rbc-header,
+  .oneuptime-calendar .rbc-time-header-content > .rbc-row > .rbc-header {
     padding: 0.5rem 0.125rem;
     letter-spacing: 0;
   }
@@ -131,7 +188,7 @@
   .oneuptime-calendar
     .rbc-month-view
     .rbc-event.oneuptime-calendar-event--soft {
-    padding-left: calc(0.25rem + 3px);
+    padding-inline-start: calc(0.25rem + 3px);
   }
 }
 
@@ -224,7 +281,18 @@
 }
 
 .oneuptime-calendar .rbc-time-content > * + * > * {
-  border-left: 1px solid #f3f4f6;
+  border-left: none;
+  border-inline-start: 1px solid #f3f4f6;
+}
+
+/* A day's blocks leave their gap at the day's end, as react-big-calendar's
+   own right margin does on a page read left to right; on a page read right
+   to left that is the left. Their box starts where the day does, so its
+   line (the rule above) lies on the day's own: set in by a margin on the
+   right, it drew a second line inside every day. */
+.oneuptime-calendar .rbc-day-slot .rbc-events-container {
+  margin-right: 0;
+  margin-inline-end: 10px;
 }
 
 /* ---------- Whole day in view ----------
@@ -244,7 +312,7 @@
    - It must be `clip`, not `hidden`: `hidden` makes the column a scroll
      container, so tabbing onto a late block would scroll every block in that
      column off the hour lines. `clip` also leaves the other axis visible, so
-     the dot can still sit across the column's left edge.
+     the dot can still sit across the column's start edge.
    The focus ring below is drawn inside the block so the clip cannot cut it
    off. */
 .oneuptime-calendar .rbc-time-view .rbc-day-slot {
@@ -270,8 +338,10 @@
    plain red line vanished into a red shift. The white halo keeps the line
    visible on red and dark blocks, the red core keeps it visible on light
    ones and the white grid, and the thin dark outer ring separates the two.
-   The dot at the left edge marks the line even where a narrow column hides
-   most of it. */
+   The dot at the line's start - the day's edge beside the hours, the left
+   one on a page read left to right and the right one on a page read right
+   to left, where it sat at the far end - marks the line even where a
+   narrow column hides most of it. */
 .oneuptime-calendar .rbc-current-time-indicator {
   background-color: #ef4444; /* red-500 */
   height: 2px;
@@ -284,7 +354,7 @@
   content: "";
   position: absolute;
   top: 50%;
-  left: -0.3125rem;
+  inset-inline-start: -0.3125rem;
   width: 0.625rem;
   height: 0.625rem;
   margin-top: -0.3125rem;
@@ -348,14 +418,14 @@
 }
 
 /* ---------- Soft blocks (CalendarEventTone) ----------
-   A pale wash of the event's colour, a stripe of it down the left edge and
-   a ring, all written inline by the event's style; here only the room the
-   stripe takes, and a quieter hover than a solid block's. The same rules
-   hold in the "+N more" list, which react-big-calendar draws outside the
-   calendar's wrapper. */
+   A pale wash of the event's colour, a stripe of it down the leading edge
+   (the right one on a page read right to left) and a ring, all written
+   inline by the event's style; here only the room the stripe takes, and a
+   quieter hover than a solid block's. The same rules hold in the "+N more"
+   list, which react-big-calendar draws outside the calendar's wrapper. */
 .oneuptime-calendar .rbc-event.oneuptime-calendar-event--soft,
 .rbc-overlay .rbc-event.oneuptime-calendar-event--soft {
-  padding-left: calc(0.5rem + 3px);
+  padding-inline-start: calc(0.5rem + 3px);
   font-weight: 500;
 }
 
@@ -497,7 +567,7 @@
     transparent 7px
   );
   border: none;
-  border-left: 2px solid rgba(217, 119, 6, 0.35); /* amber-600 */
+  border-inline-start: 2px solid rgba(217, 119, 6, 0.35); /* amber-600 */
   border-radius: 0;
   box-shadow: none;
   padding: 0;
@@ -550,7 +620,7 @@
    caller sets the class without a colour. */
 .oneuptime-calendar .rbc-event.oneuptime-calendar-event--override {
   position: relative;
-  padding-left: 0.75rem;
+  padding-inline-start: 0.75rem;
   overflow: hidden;
 }
 
@@ -571,7 +641,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 0;
+  inset-inline-start: 0;
   width: 0.3125rem;
   background-color: var(--oneuptime-event-accent, #6b7280);
   /* Sits above the label so a long name cannot paint over the cue. */
@@ -583,22 +653,22 @@
   position: absolute;
   top: 0.15rem;
   bottom: 0.15rem;
-  left: 0.4375rem;
-  border-left: 1px dotted currentColor;
+  inset-inline-start: 0.4375rem;
+  border-inline-start: 1px dotted currentColor;
   opacity: 0.65;
   z-index: 1;
 }
 
 /* The agenda view renders events as table rows, where an absolutely positioned
-   stripe has nothing to anchor to. Give that view a plain left border instead
-   so the same event is still marked there. */
+   stripe has nothing to anchor to. Give that view a plain border on its
+   leading edge instead so the same event is still marked there. */
 .oneuptime-calendar
   .rbc-agenda-view
   table.rbc-agenda-table
   tbody
   > tr.oneuptime-calendar-event--override
   > td:first-child {
-  border-left: 0.25rem solid var(--oneuptime-event-accent, #6b7280);
+  border-inline-start: 0.25rem solid var(--oneuptime-event-accent, #6b7280);
 }
 
 /* Legend swatch for the override key. The block it names is drawn in two
@@ -616,7 +686,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 0;
+  inset-inline-start: 0;
   width: 45%;
   /* Stands for the person who was overridden. */
   background-color: #9ca3af; /* gray-400 */

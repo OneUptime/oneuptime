@@ -744,7 +744,7 @@ Accanto alla scena, il pannello elenca tutto ciò che è successo, sull'orologio
 
 Logs, Traces e la metà server di Errors vengono letti con le stesse autorizzazioni delle pagine Logs, Traces ed Exceptions; un ruolo senza di esse vede una scheda bloccata che indica l'autorizzazione. Le righe marcate dal server vengono collocate sull'orologio della registrazione ancorandole alle tracce che la registrazione stessa ha osservato; il pannello dice se quell'ancoraggio ha funzionato («server times anchored via 6 traces») o se l'ora della riga è approssimativa.
 
-La casella di ricerca del pannello (`/`) accetta testo libero e token: `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. Un selettore di portata limita qualsiasi scheda a ±30 secondi intorno alla testina. Il pannello segue la testina finché non lo scorri; un'etichetta **Resume following** (o `M`) riattiva il seguimento.
+La casella di ricerca del pannello (`/`) accetta testo libero e token: `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. Un selettore di portata limita qualsiasi scheda a ±30 secondi intorno alla testina. Il pannello segue la testina finché non lo scorri; un'etichetta **Riprendi a seguire** (o `M`) riattiva il seguimento.
 
 ### Scorciatoie da tastiera
 

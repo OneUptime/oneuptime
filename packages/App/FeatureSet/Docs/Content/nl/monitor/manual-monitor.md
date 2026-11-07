@@ -65,9 +65,9 @@ Een wijziging die eerder begon, legt u in plaats daarvan vast in de statustijdli
 
 :::steps
 1. Open de monitor en klik in het zijmenu op **Statustijdlijn**.
-2. Klik op **Monitor Status Gebeurtenis aanmaken**.
+2. Klik op **Monitorstatusgebeurtenis aanmaken**.
 3. Kies de **Monitorstatus**. **Begint op** is nu; stel een eerder tijdstip in als de wijziging eerder plaatsvond.
-4. Klik op **Monitor Status Gebeurtenis aanmaken**. De nieuwe status verschijnt meteen bij de monitor, en op elke statuspagina die hem toont.
+4. Klik op **Monitorstatusgebeurtenis aanmaken**. De nieuwe status verschijnt meteen bij de monitor, en op elke statuspagina die hem toont.
 :::
 
 ### Via de API

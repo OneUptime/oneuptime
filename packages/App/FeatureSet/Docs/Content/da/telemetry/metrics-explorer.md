@@ -108,7 +108,7 @@ Træk hen over et diagram for at zoome ind på et øjeblik, og dobbeltklik for a
 
 ## Indsigter i metrikker
 
-Fanen **Indsigter** tæller metrikkerne i et tidsinterval: **Aktive målinger**, **Rapporteringstjenester** og gennemsnittet pr. tjeneste. Den inddeler metrikkerne i kategorier og viser de tjenester, der rapporterer dem.
+Fanen **Indsigter** tæller metrikkerne i et tidsinterval: **Aktive målinger**, **Rapporterende tjenester** og gennemsnittet pr. tjeneste. Den inddeler metrikkerne i kategorier og viser de tjenester, der rapporterer dem.
 
 ## Forbedr metrikker og tilføj de manglende med AI
 

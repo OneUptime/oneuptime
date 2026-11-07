@@ -33,6 +33,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * WHO AN ADDRESS IS, when a Traffic page is narrowed to it (issue #5340):
@@ -245,7 +246,13 @@ const TrafficAddressCard: FunctionComponent<ComponentProps> = (
               {facts.map((fact: ReactElement, index: number): ReactElement => {
                 return (
                   <Fragment key={index}>
-                    {index > 0 ? <span aria-hidden="true">·</span> : <></>}
+                    {index > 0 ? (
+                      <span aria-hidden="true">
+                        <InlineSeparator markOnly />
+                      </span>
+                    ) : (
+                      <></>
+                    )}
                     {fact}
                   </Fragment>
                 );

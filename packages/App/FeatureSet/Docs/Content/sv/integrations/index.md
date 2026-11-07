@@ -141,9 +141,9 @@ När verktyget behöver datan i en annan form lägger du till ett [Run Custom Ja
 Klistra aldrig in en API-nyckel eller en token i ett block. Spara den en gång som en hemlig global variabel:
 
 :::steps
-1. Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflöde Variabel**.
+1. Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflödesvariabel**.
 2. Ge den ett namn, t.ex. `JIRA_AUTH`, och klicka på **Nästa**.
-3. Klistra in nyckeln i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflöde Variabel**.
+3. Klistra in nyckeln i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflödesvariabel**.
 :::
 
 Alla block läser den som `{{global.variables.JIRA_AUTH}}`. En variabels innehåll kan inte läsas igen när det har sparats, och innehållet i en hemlig variabel ersätts med `[REDACTED]` i körningsloggar. För tokens som löper ut, som de från Microsoft Entra ID, hämtar en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-token-som-förnyar-sig-själva) en ny själv. Se [Arbetsflödesvariabler](/docs/workflows/variables#globala-variabler).
