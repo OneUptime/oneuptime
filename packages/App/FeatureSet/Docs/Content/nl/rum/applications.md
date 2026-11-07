@@ -23,7 +23,7 @@ flowchart TB
 ```
 
 - De `service.name` is de identiteit van de applicatie en wordt zonder onderscheid tussen hoofdletters en kleine letters vergeleken: `Storefront-Web` en `storefront-web` zijn één applicatie.
-- Een nieuwe `service.name` start een nieuwe applicatie. De oude behoudt haar geschiedenis en gaat naar **Verbinding verbroken**, de nieuwe begint leeg, en de twee worden nooit samengevoegd.
+- Een nieuwe `service.name` start een nieuwe applicatie. De oude behoudt haar geschiedenis en toont **Geen recent verkeer** zodra haar gegevens wegblijven, de nieuwe begint leeg, en de twee worden nooit samengevoegd.
 - Gebruik één `service.name` per app, niet één per omgeving. Onderscheid omgevingen met een label zoals `oneuptime.label.env=production`, zodat ze één applicatie en één geschiedenis delen.
 
 ### Een applicatie hernoemen
@@ -52,13 +52,19 @@ Daarna gaat de installatiegids van de applicatie vanzelf open, met de app-naam a
 
 Als het project al een applicatie met die `service.name` heeft, ontdekt, eerder toegevoegd of gearchiveerd, meldt het formulier dat in plaats van een tweede aan te maken.
 
-## Verbindingsstatus
+## Status
 
-Een applicatie toont **Verbonden** zolang er telemetrie binnenkomt en **Verbinding verbroken** na 15 minuten zonder. Zowel OpenTelemetry-telemetrie als verkeer van sessieherhalingen telt mee.
+De **Status** van een applicatie zegt of haar gegevens binnenkomen, en als je eroverheen beweegt, wat die betekent. Zowel OpenTelemetry-telemetrie als verkeer van sessieherhalingen telt mee.
+
+| Status | Wat het betekent |
+| --- | --- |
+| **Ontvangt gegevens** | Er is in de afgelopen 15 minuten telemetrie binnengekomen. |
+| **Geen recent verkeer** | Er is eerder telemetrie binnengekomen, maar niet in de afgelopen 15 minuten. Een app stuurt alleen gegevens terwijl mensen hem gebruiken, dus dit is normaal als niemand dat doet, bijvoorbeeld 's nachts. |
+| **Wachten op gegevens** | Er is nog niets binnengekomen: de applicatie is met de hand toegevoegd en haar app heeft nog niets gestuurd. Haar **Overzicht** laat zien hoe je haar instelt. |
 
 **Laatst gezien** wordt om de paar minuten bijgewerkt in plaats van bij elke batch, dus het kan tot ongeveer vijf minuten achterlopen op het echte verkeer, en de 15 minuten laten daar ruimte voor. Tijd waarin OneUptime zelf plat lag of zijn ingestiewachtrij aan het inhalen was, telt niet mee.
 
-**Verbinding verbroken** is op zich geen fout: een interne tool zonder bezoekers 's nachts is echt niet verbonden. Als er mensen de app gebruiken, zie [RUM-probleemoplossing](/docs/rum/troubleshooting).
+**Geen recent verkeer** is geen fout. Als mensen de app op dit moment gebruiken, staat op het **Overzicht** van de applicatie wat je kunt controleren, en [RUM-probleemoplossing](/docs/rum/troubleshooting) loopt elke controle door.
 
 ## Labels
 
@@ -180,5 +186,5 @@ Beperk elke monitor die je maakt tot de applicatie, zodat een backend-service me
 - [Sessieherhaling](/docs/telemetry/session-replay): Neem op wat gebruikers zagen, met een eigen beleid en eigen bewaring.
 - [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules): De twee regelformulieren, stap voor stap.
 - [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now): Pas een nieuwe regel toe op de applicaties die je al hebt.
-- [RUM-probleemoplossing](/docs/rum/troubleshooting): Wanneer een applicatie ontbreekt, leeg is of Verbinding verbroken toont.
+- [RUM-probleemoplossing](/docs/rum/troubleshooting): Wanneer een applicatie ontbreekt of leeg is, of geen recent verkeer heeft terwijl mensen haar gebruiken.
 :::

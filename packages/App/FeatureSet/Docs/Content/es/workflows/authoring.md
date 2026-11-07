@@ -23,6 +23,8 @@ Todo flujo de trabajo tiene exactamente un **disparador** en la parte superior. 
 
 Los cambios se guardan automáticamente, un momento después de hacerlos. Una píldora en la barra de herramientas lo indica: **Guardando…** mientras el cambio está en camino, después **Guardado**. Si un cambio no se pudo guardar, la píldora dice **No se pudo guardar**, con el motivo al pasar el cursor por encima, y **Volver a intentar** al lado. Mientras tanto, tus cambios se quedan en el lienzo, y el siguiente cambio que hagas vuelve a intentarlo. Si sales de la página antes de que se guarde un cambio, primero se te pregunta. El lienzo no tiene botón de guardar ni un paso de publicación aparte. Un error también se guarda, así que el Constructor conserva cada cambio para que puedas revertirlo: consulta [Deshacer, rehacer e historial de versiones](#deshacer-rehacer-e-historial-de-versiones).
 
+Dos personas pueden tener abierto el mismo flujo de trabajo. Si otra persona lo guarda después de que lo abrieras, en otro Constructor o a través de la API, el Constructor no guarda tu cambio encima del suyo: la píldora dice **No guardada** y un diálogo enumera lo que cambiaron. **Mostrar sus cambios** pone su versión en el lienzo y **Deshacer** recupera la tuya. **Conservar la mía** guarda tu versión, y la suya se queda en el historial de versiones. No se pierde nada, elijas lo que elijas.
+
 ## Añadir bloques
 
 | Para añadir            | Haz clic en                                                    | Panel que se abre               |

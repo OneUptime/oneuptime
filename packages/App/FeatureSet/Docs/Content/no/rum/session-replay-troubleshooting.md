@@ -402,11 +402,11 @@ Et opptak tar vare på adressen til hvert bilde, og til hvert stilark som opptak
 
 Portalopptak som ble gjort før OneUptime lastet inn disse filene under avspilling, de som viste offlinelinjen ved hver avspilling, spilles nå også av med den skjult, så lenge stilarket de nevner, fortsatt leveres: det er ingenting å endre i et opptak.
 
-## RUM-appen sier «Frakoblet»
+## RUM-appen sier «Ingen nylig trafikk»
 
-Statusetiketten og **Sist sett** på applikasjonens side rapporterer når det sist kom telemetri for den applikasjonen. Øktavspilling teller med: både en opptaker som henter retningslinjen sin og en godtatt chunk oppdaterer dem, så en applikasjon som bare er instrumentert med avspillingssnippeten, forblir Tilkoblet. I tidligere versjoner gjorde bare RUM-telemetri fra OpenTelemetry det, så en applikasjon med bare avspilling viste «Frakoblet» med en Sist sett fra dager før, mens opptakerne fungerte fint.
+Statusetiketten og **Sist sett** på applikasjonens side rapporterer når det sist kom telemetri for den applikasjonen. Øktavspilling teller med: både en opptaker som henter retningslinjen sin og en godtatt chunk oppdaterer dem, så en applikasjon som bare er instrumentert med avspillingssnippeten, viser **Mottar data** mens folk bruker nettstedet. I tidligere versjoner gjorde bare RUM-telemetri fra OpenTelemetry det, så en applikasjon med bare avspilling så inaktiv ut, med en Sist sett fra dager før, mens opptakerne fungerte fint.
 
-Så «Tilkoblet» betyr at *noe* rapporterer — ikke at alt gjør det. Sidevisninger, feilrate, p95-varighet og klienter kommer fra OpenTelemetry-SDK-et for nettleser, som installeres separat; når de står på null mens opptak kommer inn, sier applikasjonens side Oversikt det rett ut.
+Så **Mottar data** betyr at *noe* rapporterer — ikke at alt gjør det. Sidevisninger, feilrate, p95-varighet og klienter kommer fra OpenTelemetry-SDK-et for nettleser, som installeres separat; når de står på null mens opptak kommer inn, sier applikasjonens side Oversikt det rett ut.
 
 ## RUM-telemetri er atskilt
 

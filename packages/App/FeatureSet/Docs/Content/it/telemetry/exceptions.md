@@ -82,6 +82,7 @@ Il menu laterale della pagina raggruppa ciò che fate con un'eccezione:
 | **Registri** | I log scritti intorno all'ultima occorrenza. |
 | **Assistenza IA** | Attività di IA che correggono l'eccezione o la testano. |
 | **Impostazioni** | Risolvere o archiviare l'eccezione. Si trova sotto **Gestisci**, inizialmente compresso. |
+| **Registri di audit** | Chi ha risolto, archiviato o assegnato l'eccezione, e quando. Si trova anch'essa sotto **Gestisci**. |
 
 ## Risolvere, riaprire e archiviare
 

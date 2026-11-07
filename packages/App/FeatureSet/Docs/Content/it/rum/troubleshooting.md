@@ -1,6 +1,6 @@
 # Risoluzione dei problemi RUM
 
-Quando un'applicazione RUM manca, è vuota o mostra **Disconnesso**, segui questa pagina in ordine. Ogni verifica esclude una parte del percorso tra la tua app e OneUptime, nell'ordine in cui questi problemi si presentano di solito.
+Quando un'applicazione RUM manca o è vuota, oppure mostra **Nessun traffico recente** mentre le persone la usano, segui questa pagina in ordine. Ogni verifica esclude una parte del percorso tra la tua app e OneUptime, nell'ordine in cui questi problemi si presentano di solito.
 
 :::cards
 - [Verificare la chiave](#verificare-la-chiave): La verifica più rapida, e tutto il resto dipende da essa.
@@ -120,15 +120,15 @@ La pagina **Client** elenca `browser.platform` sul web e `device.model.identifie
 
 La scheda si riempie solo con le metriche che la tua app invia, quindi le tracce da sole non la riempiono mai. Verifica di esportare metriche, che i loro nomi siano tra quelli che OneUptime legge e che compaiano nella pagina **Metriche** dell'applicazione. [La scheda dice «No web vitals reported yet»](/docs/rum/web-vitals#risoluzione-dei-problemi) ripercorre ogni verifica, compresi i valori persi quando un visitatore chiude la scheda prima dell'esportazione successiva.
 
-## Lo stato dice Disconnesso mentre le persone usano l'app
+## Lo stato dice Nessun traffico recente mentre le persone usano l'app
 
-Un'applicazione passa a **Disconnesso** dopo 15 minuti senza telemetria. Se le persone stanno usando l'app:
+Un'applicazione passa a **Nessun traffico recente** dopo 15 minuti senza telemetria. Se le persone stanno usando l'app:
 
 - **Un campionatore potrebbe scartare tutto.** Verifica di non aver impostato un campionatore sempre spento, né una proporzione molto bassa.
 - **L'app potrebbe inviare telemetria solo per alcune interazioni**, e nessuno le ha usate in quel periodo.
 - **La chiave potrebbe essere stata revocata o disattivata** dopo il deploy: esegui di nuovo la [verifica della chiave](#verificare-la-chiave).
 
-Un'app interna o a basso traffico senza visitatori di notte è davvero disconnessa. Non è un guasto.
+Anche un'app interna o a basso traffico senza visitatori di notte mostra **Nessun traffico recente**. È normale, non è un guasto.
 
 ## Problemi della riproduzione delle sessioni
 

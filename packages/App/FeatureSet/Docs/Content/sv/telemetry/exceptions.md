@@ -82,6 +82,7 @@ Sidans sidomeny samlar det du gör med ett undantag:
 | **Loggar** | Loggarna som skrevs runt den senaste förekomsten. |
 | **AI-hjälp** | AI-uppgifter som rättar undantaget eller testar det. |
 | **Inställningar** | Lös eller arkivera undantaget. Sidan ligger under **Hantera**, som är hopfällt från början. |
+| **Granskningsloggar** | Vem som löste, arkiverade eller tilldelade undantaget, och när. Sidan ligger också under **Hantera**. |
 
 ## Lös, öppna igen och arkivera
 

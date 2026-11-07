@@ -39,7 +39,8 @@ export interface ComponentProps {
  * (Overview), its ports, its numbers, its traffic and logs, the security
  * events about it (issue #5769), and what alerts on it. Folded: the vendor tables some devices report and the SNMP walk
  * that finds what a device exposes (More), managing it from code
- * (Developer), and its owners, settings and delete (Manage). Activity is
+ * (Developer), and its owners, settings, who changed it (Audit Logs) and
+ * delete (Manage). Activity is
  * the incidents and alerts linked to it (issue #5341), each with how many
  * are open, as a host's and a cloud resource's menus have them.
  */
@@ -307,6 +308,16 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Settings}
+        />
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
         />
         <SideMenuItem
           link={{

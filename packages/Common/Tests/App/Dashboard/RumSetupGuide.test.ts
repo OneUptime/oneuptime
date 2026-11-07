@@ -447,7 +447,7 @@ describe("the browser guide", () => {
       "The Clients tab is empty on Safari or Firefox",
       'Core Web Vitals say "No web vitals reported yet"',
       "The application's tabs are empty",
-      'Status shows "Disconnected" while the app is live',
+      'Status shows "No recent traffic" while people use the app',
     ]);
     expect(
       topicNamed(guide.troubleshooting, "The request is blocked or refused"),
@@ -534,9 +534,39 @@ describe("the mobile guide", () => {
       "The app shows up under Services instead of Real User Monitoring",
       "The Clients tab is empty",
       "The application's tabs are empty",
-      'Status shows "Disconnected" while the app is live',
+      'Status shows "No recent traffic" while people use the app',
     ]);
   });
+});
+
+/*
+ * Issue #6191: the guide names the status the way the application's pill
+ * says it - Receiving data, and No recent traffic once nobody has used the
+ * app for fifteen minutes, which it says is normal - and never calls an
+ * application Connected or Disconnected.
+ */
+describe("the status the guide names", () => {
+  test.each(CLIENT_KEYS)(
+    "the %s guide says Receiving data and No recent traffic, and that quiet is normal",
+    (client: RumClient) => {
+      const content: SetupGuideContent = guideFor(client);
+      const whatYouGet: string = topicNamed(content.advanced, "What you get");
+      const quiet: string = topicNamed(
+        content.troubleshooting,
+        'Status shows "No recent traffic" while people use the app',
+      );
+
+      expect(whatYouGet).toContain(
+        "The application shows **Receiving data** while telemetry keeps arriving, and **No recent traffic** after 15 minutes without any, which is normal while nobody is using the app.",
+      );
+      expect(quiet).toContain(
+        "Status turns to **No recent traffic** after 15 minutes without telemetry. That is expected while nobody uses the app.",
+      );
+      expect(getSetupGuideMarkdown(content)).not.toMatch(
+        /\*\*(Connected|Disconnected)\*\*|"Disconnected"/,
+      );
+    },
+  );
 });
 
 describe("the application name", () => {

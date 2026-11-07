@@ -96,6 +96,12 @@ export default class ModelAPI {
     modelType: { new (): TBaseModel };
     id: ObjectID;
     data: JSONObject;
+    /*
+     * What the service's update hooks read beside the columns - the revision
+     * of the graph a workflow's save was made to, for one. Sent only when
+     * given.
+     */
+    miscDataProps?: JSONObject | undefined;
     apiUrlOverride?: URL;
     requestOptions?: RequestOptions;
   }): Promise<
@@ -126,6 +132,7 @@ export default class ModelAPI {
       url: apiUrl,
       data: {
         data: data.data,
+        ...(data.miscDataProps ? { miscDataProps: data.miscDataProps } : {}),
       },
       headers: this.getCommonHeaders(data.requestOptions),
       ...(data.requestOptions?.apiRequestOptions

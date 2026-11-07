@@ -92,6 +92,7 @@ const SOURCES: Record<string, string> = {
   rumSessionModel: "packages/Common/Models/AnalyticsModels/RumSession.ts",
   rumApplicationService:
     "packages/Common/Server/Services/RumApplicationService.ts",
+  rumApplicationStatus: "packages/Common/Types/Rum/RumApplicationStatus.ts",
   otelIngestBase:
     "packages/App/FeatureSet/Telemetry/Services/OtelIngestBaseService.ts",
   otelIngest: "packages/App/FeatureSet/Telemetry/API/OTelIngest.ts",
@@ -490,18 +491,63 @@ describe("Managing Applications: how an application is created", () => {
   });
 });
 
-describe("Managing Applications: connection status", () => {
-  const status: string = section(RUM_APPLICATIONS, "## Connection status");
+/*
+ * Issue #6191: the status says what is true. An application nobody has used
+ * for a while shows No recent traffic, which is normal, never Disconnected.
+ */
+describe("Managing Applications: status", () => {
+  const status: string = section(RUM_APPLICATIONS, "## Status");
+  const statusSource: string = source("rumApplicationStatus");
 
-  it("turns Disconnected after 15 minutes of silence, counted only while OneUptime was receiving", () => {
+  it("turns No recent traffic after 15 minutes of silence, counted only while OneUptime was receiving", () => {
     const service: string = source("rumApplicationService");
 
-    expect(service).toContain("silenceInMinutes: 15,");
+    expect(service).toContain(
+      "silenceInMinutes: RUM_APPLICATION_NO_RECENT_TRAFFIC_AFTER_MINUTES,",
+    );
     expect(service).toContain("ReceivingCoverage.getSilenceCutoff({");
-    expect(status).toContain("**Disconnected** after 15 minutes without any");
+    expect(statusSource).toContain(
+      "export const RUM_APPLICATION_NO_RECENT_TRAFFIC_AFTER_MINUTES: number = 15;",
+    );
+    expect(status).toContain(
+      "| **No recent traffic** | Telemetry arrived before, but none in the last 15 minutes.",
+    );
     expect(status).toContain(
       "Time when OneUptime itself was down or catching up on its ingest queue does not count",
     );
+  });
+
+  it("names the three statuses as the Dashboard draws them, in its order, each with what it means", () => {
+    const rows: Array<string> = status
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("| **");
+      });
+
+    expect(
+      rows.map((row: string): string => {
+        return (row.match(/^\| \*\*([^*]+)\*\*/) as RegExpMatchArray)[1]!;
+      }),
+    ).toEqual(["Receiving data", "No recent traffic", "Waiting for data"]);
+    for (const label of [
+      "Receiving data",
+      "No recent traffic",
+      "Waiting for data",
+    ]) {
+      expect(statusSource).toContain(`translationKey("${label}")`);
+    }
+    expect(rows[1]).toContain(
+      "An app sends data only while people use it, so this is normal when nobody does, such as overnight.",
+    );
+    expect(rows[2]).toContain("the application was added by hand");
+  });
+
+  it("says No recent traffic is not an error, and where to look when people are using the app", () => {
+    expect(status).toContain("**No recent traffic** is not an error.");
+    expect(status).toContain(
+      "the application's **Overview** lists what to check, and [RUM Troubleshooting](/docs/rum/troubleshooting) goes through each check.",
+    );
+    expect(status).not.toMatch(/disconnected/i);
   });
 
   it("says Last Seen can trail by about five minutes, the OpenTelemetry ingest's maintenance window", () => {

@@ -32,6 +32,11 @@ export enum WorkflowSaveState {
   Saving = "Saving",
   Saved = "Saved",
   Error = "Error",
+  /*
+   * Someone else saved the workflow after the canvas's change was made to
+   * it: nothing is saved until the person chooses (WorkflowAutosave).
+   */
+  Conflict = "Conflict",
 }
 
 export interface SaveStatePresentation {
@@ -67,6 +72,15 @@ export const getWorkflowSaveStatePresentation: GetSaveStatePresentationFunction 
         label: translationKey("Could not save"),
         dotClassName: "bg-red-500",
         textClassName: "text-red-700",
+      };
+    }
+
+    // Not a failure: the change waits, on the canvas, for the person to choose.
+    if (state === WorkflowSaveState.Conflict) {
+      return {
+        label: translationKey("Not saved"),
+        dotClassName: "bg-amber-500",
+        textClassName: "text-amber-800",
       };
     }
 

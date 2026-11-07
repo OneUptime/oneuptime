@@ -41,6 +41,11 @@ export enum WorkflowEditCause {
   Restore = "Restore",
   // What Ask AI saved, from the panel beside the builder.
   AskAi = "AskAi",
+  /*
+   * What someone else saved over the change on the canvas, shown when the
+   * person chose to see their changes (issue #6257).
+   */
+  TheirChanges = "TheirChanges",
 }
 
 export interface WorkflowEditHistoryEntry {

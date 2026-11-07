@@ -97,6 +97,7 @@ Under **Dela** kopierar du länken och skickar den till dem som ska använda for
 | **Anpassade domäner** | Formulärets egna domäner, som `report.acme.com`, med deras DNS-poster och certifikat. Se [Anpassade domäner](/docs/forms/sharing-and-security#anpassade-domäner). |
 | **Inlämningar** | Varje inlämning via formuläret, den senaste först, med dess svar och det som den skapade. |
 | **Duplicera formulär** | Under **Avancerad**: en kopia av formuläret, namngiven åt dig, med dess frågor, mallar, inställningar under Vid inlämning, varumärke, tackmeddelande och IP-tillåtelselista, och en egen länk. Kopian är avstängd från början och öppnas i sin redigerare. |
+| **Granskningsloggar** | Under **Avancerad**: varje ändring av formuläret, dess anpassade domäner och dess inlämningar, vem som gjorde den och när. |
 | **Ta bort formulär** | Borttagning av formuläret, under **Avancerad**. Dess inlämningar tas bort med det; de incidenter och händelser som det skapade gör det inte. |
 
 Avsnittet **Utvecklare** i formulärets meny innehåller dess sidor för Terraform, API och AI-assistenter, precis som för alla andra resurser.

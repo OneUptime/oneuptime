@@ -86,7 +86,7 @@ OneUptime trova l'applicazione tramite `service.name`, senza distinguere maiusco
 
 I conteggi derivano dagli span che la tua strumentazione invia. **Caricamenti di pagina** conta lo span `documentLoad` che la strumentazione di caricamento pagina registra a ogni caricamento completo, quindi un cambio di route dentro un'app a pagina singola non è un caricamento di pagina.
 
-Un'applicazione mostra **Connesso** finché arriva telemetria e **Disconnesso** dopo 15 minuti senza. Il tempo in cui OneUptime stesso era fermo o stava smaltendo la sua coda di acquisizione non conta in quei 15 minuti.
+Un'applicazione mostra **Riceve dati** finché arriva telemetria e **Nessun traffico recente** dopo 15 minuti senza, il che è normale mentre nessuno usa l'app. Un'applicazione aggiunta a mano mostra **In attesa di dati** finché non arrivano i suoi primi dati. Il tempo in cui OneUptime stesso era fermo o stava smaltendo la sua coda di acquisizione non conta in quei 15 minuti.
 
 ## Per iniziare
 

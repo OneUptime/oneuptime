@@ -1,6 +1,6 @@
 # RUM-feilsøking
 
-Når en RUM-applikasjon mangler, er tom eller viser **Frakoblet**, går du gjennom denne siden i rekkefølge. Hver sjekk utelukker en del av veien mellom appen din og OneUptime, i den rekkefølgen disse problemene vanligvis oppstår.
+Når en RUM-applikasjon mangler eller er tom, eller viser **Ingen nylig trafikk** mens folk bruker den, går du gjennom denne siden i rekkefølge. Hver sjekk utelukker en del av veien mellom appen din og OneUptime, i den rekkefølgen disse problemene vanligvis oppstår.
 
 :::cards
 - [Sjekk nøkkelen](#sjekk-nøkkelen): Den raskeste sjekken, og alt annet avhenger av den.
@@ -120,15 +120,15 @@ Siden **Klienter** viser `browser.platform` på web og `device.model.identifier`
 
 Kortet fylles bare med målingene appen din sender, så spor alene fyller det aldri. Sjekk at du eksporterer målinger, at navnene deres er blant dem OneUptime leser, og at de vises på applikasjonens side **Målinger**. [Kortet sier «No web vitals reported yet»](/docs/rum/web-vitals#feilsøking) går gjennom hver sjekk, inkludert verdier som går tapt når en besøkende lukker fanen før neste eksport.
 
-## Statusen sier Frakoblet mens folk bruker appen
+## Statusen sier Ingen nylig trafikk mens folk bruker appen
 
-En applikasjon går over til **Frakoblet** etter 15 minutter uten telemetri. Hvis folk bruker appen:
+En applikasjon viser **Ingen nylig trafikk** etter 15 minutter uten telemetri. Hvis folk bruker appen:
 
 - **En sampler kaster kanskje alt.** Sjekk at du ikke har satt en sampler som alltid er av, eller et svært lavt forhold.
 - **Appen sender kanskje bare telemetri ved enkelte interaksjoner**, og ingen brukte dem i det tidsrommet.
 - **Nøkkelen kan ha blitt tilbakekalt eller deaktivert** etter utrullingen: kjør [nøkkelsjekken](#sjekk-nøkkelen) på nytt.
 
-En intern app eller en app med lite trafikk uten besøkende om natten er virkelig frakoblet. Det er ikke en feil.
+En intern app eller en app med lite trafikk uten besøkende om natten viser også **Ingen nylig trafikk**. Det er normalt, ikke en feil.
 
 ## Problemer med øktavspilling
 

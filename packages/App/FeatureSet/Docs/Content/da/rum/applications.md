@@ -23,7 +23,7 @@ flowchart TB
 ```
 
 - `service.name` er applikationens identitet og sammenlignes uden forskel på store og små bogstaver: `Storefront-Web` og `storefront-web` er én applikation.
-- Et nyt `service.name` starter en ny applikation. Den gamle beholder sin historik og skifter til **Afbrudt**, den nye starter tom, og de to bliver aldrig slået sammen.
+- Et nyt `service.name` starter en ny applikation. Den gamle beholder sin historik og viser **Ingen nylig trafik**, når dens data holder op, den nye starter tom, og de to bliver aldrig slået sammen.
 - Brug ét `service.name` pr. app, ikke ét pr. miljø. Skeln mellem miljøer med en etiket som `oneuptime.label.env=production`, så de deler én applikation og én historik.
 
 ### Omdøb en applikation
@@ -52,13 +52,19 @@ Derefter åbner applikationens opsætningsvejledning af sig selv, med app-navnet
 
 Hvis projektet allerede har en applikation med det `service.name`, opdaget, tilføjet tidligere eller arkiveret, siger formularen det i stedet for at oprette en til.
 
-## Forbindelsesstatus
+## Status
 
-En applikation viser **Forbundet**, mens der kommer telemetri ind, og **Afbrudt** efter 15 minutter uden. Både OpenTelemetry-telemetri og trafik fra sessionsafspilning tæller med.
+En applikations **Status** siger, om dens data kommer ind, og når du holder musen over den, hvad den betyder. Både OpenTelemetry-telemetri og trafik fra sessionsafspilning tæller med.
+
+| Status | Hvad det betyder |
+| --- | --- |
+| **Modtager data** | Der er kommet telemetri inden for de sidste 15 minutter. |
+| **Ingen nylig trafik** | Der er kommet telemetri før, men ingen inden for de sidste 15 minutter. En app sender kun data, mens folk bruger den, så det er normalt, når ingen gør, for eksempel om natten. |
+| **Venter på data** | Der er endnu ikke kommet noget: applikationen blev tilføjet manuelt, og dens app har ikke sendt noget. Dens **Oversigt** viser, hvordan du sætter den op. |
 
 **Sidst set** opdateres med få minutters mellemrum i stedet for ved hver batch, så den kan halte op til omkring fem minutter efter den reelle trafik, og de 15 minutter giver plads til det. Tid, hvor OneUptime selv var nede eller var ved at indhente sin indtagelseskø, tæller ikke.
 
-**Afbrudt** er ikke en fejl i sig selv: et internt værktøj uden besøgende om natten er virkelig afbrudt. Hvis folk bruger appen, så se [RUM-fejlfinding](/docs/rum/troubleshooting).
+**Ingen nylig trafik** er ikke en fejl. Hvis folk bruger appen lige nu, viser applikationens **Oversigt**, hvad du skal tjekke, og [RUM-fejlfinding](/docs/rum/troubleshooting) gennemgår hvert tjek.
 
 ## Etiketter
 
@@ -180,5 +186,5 @@ Afgræns den monitor, du opretter, til applikationen, så en backend-tjeneste me
 - [Sessionsafspilning](/docs/telemetry/session-replay): Optag, hvad brugerne så, med sin egen politik og opbevaring.
 - [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules): De to regelformularer, trin for trin.
 - [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now): Anvend en ny regel på de applikationer, du allerede har.
-- [RUM-fejlfinding](/docs/rum/troubleshooting): Når en applikation mangler, er tom eller viser Afbrudt.
+- [RUM-fejlfinding](/docs/rum/troubleshooting): Når en applikation mangler eller er tom, eller ikke har nylig trafik, mens folk bruger den.
 :::

@@ -1975,7 +1975,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     );
   });
 
-  it("describes the exception's own menu, with Settings under a folded Manage", () => {
+  it("describes the exception's own menu, with Settings and Audit Logs under a folded Manage", () => {
     const menuSource: string = readDashboardSource(
       "Pages/Exceptions/View/SideMenu.tsx",
     );
@@ -1988,10 +1988,14 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(firstColumn(section(page, "## An exception's page"))).toEqual(items);
     expect(sectionByTitle(menuSections(menuSource), "Manage").items).toEqual([
       "Settings",
+      "Audit Logs",
     ]);
     expect(startsCollapsed(menuSource, "Manage")).toBe(true);
     expect(page).toContain(
       "| **Settings** | Resolve or archive the exception. It is under **Manage**, which starts collapsed. |",
+    );
+    expect(page).toContain(
+      "| **Audit Logs** | Who resolved, archived or assigned the exception, and when. It is under **Manage** too. |",
     );
   });
 

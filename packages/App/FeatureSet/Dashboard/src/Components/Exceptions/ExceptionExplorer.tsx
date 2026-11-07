@@ -63,6 +63,7 @@ import { getMergedFingerprints } from "../../Utils/ExceptionGroupFingerprints";
 import ExceptionAssignee from "./ExceptionAssignee";
 import { ExceptionAssignmentWrite } from "../../Utils/ExceptionAssignment";
 import ExceptionSettings from "./ExceptionSettings";
+import AuditLogsTable from "../AuditLogs/AuditLogsTable";
 import { getExceptionTriageWrite } from "./ExceptionRowActions";
 import {
   buildBreadcrumbEventsFromSpans,
@@ -938,6 +939,19 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             setActionError(undefined);
           }}
           onAction={onTriageAction}
+        />
+      )}
+
+      {/*
+       * Who resolved, archived or assigned it, and when: the exception's
+       * audit log entries, under the summary every page of the exception
+       * shows. A merge is OneUptime's own write, so it is not one of them.
+       */}
+      {props.section === ExceptionDetailSection.AuditLogs && (
+        <AuditLogsTable
+          title="Exception Audit Logs"
+          description="Every change made to this exception: who resolved, archived or assigned it, when, and what changed."
+          rootResourceId={props.telemetryExceptionId}
         />
       )}
     </div>

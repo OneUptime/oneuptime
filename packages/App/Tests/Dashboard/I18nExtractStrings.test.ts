@@ -1042,6 +1042,50 @@ describe("a root that marks its keys", () => {
     ).toBe("keys");
   });
 
+  /*
+   * Issue #6191: a RUM application's pill says what is true - Receiving
+   * data, No recent traffic, Waiting for data - and its tooltip what that
+   * means, in the reader's language. The stored values the status is read
+   * from ("connected", "disconnected") are never words a reader sees.
+   */
+  test("RumApplicationStatus gives the locales its three statuses and what each means, and none of its stored values", () => {
+    const file: string = "packages/Common/Types/Rum/RumApplicationStatus.ts";
+    const result: SourceScanResult = scanSourceRoots(
+      [{ directory: file, kind: "keys" }],
+      path.join(__dirname, "..", "..", "..", ".."),
+    );
+
+    expect([...textsOf(result)].sort()).toEqual(
+      [
+        "Receiving data",
+        "No recent traffic",
+        "Waiting for data",
+        "Data has arrived from this application in the last 15 minutes.",
+        "Nothing has arrived in the last 15 minutes. An application sends data only while people use it, so this is normal when nobody is, for example overnight. If people are using it right now, its Overview lists what to check.",
+        "Nothing has arrived from this application yet. Add the OpenTelemetry SDK or the Session Replay snippet to your app; its Documentation tab shows how.",
+      ].sort(),
+    );
+    for (const unmarked of [
+      "connected",
+      "disconnected",
+      "active",
+      "Disconnected",
+      "receiving-data",
+      "no-recent-traffic",
+      "waiting-for-data",
+      "positive",
+      "neutral",
+    ]) {
+      expect(textsOf(result)).not.toContain(unmarked);
+    }
+    expect(result.hardcoded).toEqual([]);
+    expect(
+      SOURCE_ROOTS.find((root: { directory: string }): boolean => {
+        return root.directory === file;
+      })?.kind,
+    ).toBe("keys");
+  });
+
   test("TraceSpanType gives the locales its sentences and none of its names", () => {
     const file: string = "packages/Common/Types/Telemetry/TraceSpanType.ts";
     const result: SourceScanResult = scanSourceRoots(
@@ -1370,6 +1414,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Host/HostHealth.ts",
       // A database's status and reasons - not its alert templates' ids.
       "keys packages/Common/Types/DatabaseServer/DatabaseHealth.ts",
+      // A RUM application's status and what each means - not its stored values.
+      "keys packages/Common/Types/Rum/RumApplicationStatus.ts",
       // Where a database or a queue was found, and what kind of cloud resource one is.
       "keys packages/Common/Types/DatabaseServer/DatabaseServerDiscoverySource.ts",
       "keys packages/Common/Models/DatabaseModels/MessageQueue.ts",

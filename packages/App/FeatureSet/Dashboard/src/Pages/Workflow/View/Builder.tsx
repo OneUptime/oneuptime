@@ -42,10 +42,22 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import WorkflowStatusBar from "Common/UI/Components/Workflow/WorkflowStatusBar";
+import WorkflowStatusBar, {
+  WorkflowSaveState,
+} from "Common/UI/Components/Workflow/WorkflowStatusBar";
 import useWorkflowEditing, {
   UseWorkflowEditingResult,
 } from "Common/UI/Components/Workflow/UseWorkflowEditing";
+import {
+  WorkflowGraphRevision,
+  WorkflowSavedGraphRead,
+} from "Common/UI/Components/Workflow/WorkflowAutosave";
+import { isWorkflowSaveConflict } from "Common/UI/Components/Workflow/WorkflowSaveConflict";
+import WorkflowSaveConflictModal from "Common/UI/Components/Workflow/WorkflowSaveConflictModal";
+import {
+  WORKFLOW_GRAPH_REVISION_KEY,
+  readWorkflowGraphRevision,
+} from "Common/Types/Workflow/WorkflowGraphRevision";
 import WorkflowUndoRedoButtons from "Common/UI/Components/Workflow/WorkflowUndoRedoButtons";
 import WorkflowVersionHistory from "Common/UI/Components/Workflow/WorkflowVersionHistory";
 import { WorkflowVersionCopy } from "Common/UI/Components/Workflow/WorkflowVersionPresentation";
@@ -102,6 +114,17 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
  */
 const TOOLBAR_BUTTON_STYLE: React.CSSProperties = {
   marginInlineStart: "0px",
+};
+
+/*
+ * The revision of the graph a workflow was read at (Workflow.graphRevision),
+ * or null when it did not say: a save then says nothing of the graph it was
+ * made to, and is made over whatever the workflow holds, as before.
+ */
+const getGraphRevision: (workflow: WorkflowModel) => WorkflowGraphRevision = (
+  workflow: WorkflowModel,
+): WorkflowGraphRevision => {
+  return readWorkflowGraphRevision(workflow.graphRevision) ?? null;
 };
 
 const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -270,17 +293,52 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * that fails is said once, here, and the save pill keeps saying it with a
    * Try again; the canvas keeps what was not saved. Nothing is saved for a
    * view, or before the workflow has opened. See UseWorkflowEditing.
+   *
+   * Each save names the revision of the graph it was made to (issue #6257),
+   * so one made to an older graph than the workflow holds - a teammate
+   * saved since, or the API - is refused instead of replacing their change.
+   * The workflow is read then, and the dialog below says what they changed
+   * and lets the person choose. Alone on a workflow, a save is one request,
+   * as it always was: the revision it lands at is one more than it named.
    */
   const editing: UseWorkflowEditingResult = useWorkflowEditing({
     isEnabled: !isViewOnly && !isLoading,
-    save: async (graph: SavedWorkflowGraph): Promise<void> => {
+    save: async (
+      graph: SavedWorkflowGraph,
+      basedOn: WorkflowGraphRevision,
+    ): Promise<WorkflowGraphRevision> => {
       await ModelAPI.updateById({
         modelType: WorkflowModel,
         id: modelId,
         data: {
           graph: graph as unknown as JSONObject,
         },
+        miscDataProps:
+          basedOn === null
+            ? undefined
+            : { [WORKFLOW_GRAPH_REVISION_KEY]: basedOn },
       });
+
+      return basedOn === null ? null : basedOn + 1;
+    },
+    isConflict: isWorkflowSaveConflict,
+    readSaved: async (): Promise<WorkflowSavedGraphRead | null> => {
+      const workflow: WorkflowModel | null = await ModelAPI.getItem({
+        modelType: WorkflowModel,
+        id: modelId,
+        select: {
+          graph: true,
+          graphRevision: true,
+        },
+        requestOptions: {},
+      });
+
+      return workflow
+        ? {
+            graph: workflow.graph || null,
+            revision: getGraphRevision(workflow),
+          }
+        : null;
     },
     describeError: (error: unknown): string => {
       return API.getFriendlyMessage(error);
@@ -298,13 +356,15 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   /*
    * Ask AI changed this workflow, from the panel beside this page: what is on
-   * the canvas is out of date, and the next save would write it back over that
-   * change. A save still waiting for its moment is dropped: what Ask AI read to
-   * change it did not have it, but what was typed a moment before is not worth
-   * losing what was just approved. Ask AI's change is drawn where the canvas
-   * is, as a step of its own, so Undo takes it back - and what was dropped
-   * with it. Read through a ref, as the page's functions are rebuilt on every
-   * render.
+   * the canvas is out of date, and a save made to it would be refused as made
+   * to an older graph. A save still waiting for its moment is dropped: what
+   * Ask AI read to change it did not have it, but what was typed a moment
+   * before is not worth losing what was just approved. Ask AI's change is
+   * drawn where the canvas is, as a step of its own, so Undo takes it back -
+   * and what was dropped with it. It is never asked about as someone else's
+   * change: a save refused for it meanwhile is answered by this, and its
+   * dialog closes. Read through a ref, as the page's functions are rebuilt
+   * on every render.
    */
   const reloadGraph: React.MutableRefObject<() => void> = useRef<() => void>(
     () => {},
@@ -362,6 +422,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id: modelId,
         select: {
           graph: true,
+          // Which graph the first save is made to.
+          graphRevision: true,
           name: true,
           // Read by the Enabled switch and the notice shown while it is off.
           isEnabled: true,
@@ -402,7 +464,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           components: editing.components,
         });
 
-        editing.start(canvasGraph);
+        editing.start(canvasGraph, getGraphRevision(workflow));
         setNodes(canvasGraph.nodes);
         setEdges(canvasGraph.edges);
       } else {
@@ -427,6 +489,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id: modelId,
         select: {
           graph: true,
+          graphRevision: true,
           name: true,
         },
         requestOptions: {},
@@ -438,7 +501,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
       }
 
       setWorkflowName(workflow.name || "");
-      editing.showSavedGraph(workflow.graph || null);
+      editing.showSavedGraph(workflow.graph || null, getGraphRevision(workflow));
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -941,6 +1004,28 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               setShowRunLogModal(false);
             }}
           />
+        )}
+
+        {/*
+         * Someone else saved the workflow first: nothing is saved until the
+         * person chooses. Behind an error, which is read first - one about
+         * their version, say, that cannot be drawn.
+         */}
+        {editing.saveStatus.state === WorkflowSaveState.Conflict &&
+        editing.saveStatus.conflict &&
+        !error ? (
+          <WorkflowSaveConflictModal
+            conflict={editing.saveStatus.conflict}
+            components={editing.components}
+            onShowTheirChanges={() => {
+              editing.showTheirChanges();
+            }}
+            onKeepMine={() => {
+              editing.keepMine();
+            }}
+          />
+        ) : (
+          <></>
         )}
 
         {error && (

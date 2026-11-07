@@ -437,6 +437,34 @@ describe("what the defaults leave out, redact and roll up", () => {
       "On-Call Policy Schedule",
       "onCallDutyPolicyScheduleId",
     ],
+    // The resources that gained an Audit Logs page after the Queues (#6246).
+    ["NetworkDeviceOwnerUser", "Network Device", "networkDeviceId"],
+    ["NetworkDeviceOwnerTeam", "Network Device", "networkDeviceId"],
+    // A ping, traceroute or SNMP walk run against a device, as a monitor's test is its monitor's.
+    ["NetworkDeviceDiagnostic", "Network Device", "networkDeviceId"],
+    ["MonitorTest", "Monitor", "monitorId"],
+    ["NetworkSiteAssignmentRule", "Network Site", "siteId"],
+    ["NetworkSiteStatusTimeline", "Network Site", "siteId"],
+    ["FormDomain", "Form", "formId"],
+    ["FormSubmission", "Form", "formId"],
+    ["CloudResourceOwnerUser", "Cloud Resource", "cloudResourceId"],
+    ["CloudResourceOwnerTeam", "Cloud Resource", "cloudResourceId"],
+    [
+      "ServerlessFunctionOwnerUser",
+      "Serverless Function",
+      "serverlessFunctionId",
+    ],
+    [
+      "ServerlessFunctionOwnerTeam",
+      "Serverless Function",
+      "serverlessFunctionId",
+    ],
+    ["DataAssetOwnerUser", "Data Asset", "dataAssetId"],
+    ["DataAssetOwnerTeam", "Data Asset", "dataAssetId"],
+    ["DataStoreOwnerUser", "Data Store", "dataStoreId"],
+    ["DataStoreOwnerTeam", "Data Store", "dataStoreId"],
+    // Declared: a person's verdict on what a scan found is its store's history.
+    ["DataStoreFinding", "Data Store", "dataStoreId"],
   ])(
     "%s rolls up to its %s through %s",
     (tableName: string, resourceType: string, column: string) => {
@@ -447,9 +475,29 @@ describe("what the defaults leave out, redact and roll up", () => {
     },
   );
 
-  test.each(["IncidentState", "MonitorStatus", "IncidentSeverity", "Label"])(
+  test.each([
+    "IncidentState",
+    "MonitorStatus",
+    "IncidentSeverity",
+    "Label",
+    // Rules and templates for every row of a kind, not one row's.
+    "NetworkDeviceOwnerRule",
+    "DataAssetLabelRule",
+    "CloudResourceOwnerRule",
+    "StatusPageAnnouncementTemplate",
+  ])(
     "%s is a setting of the project, not a part of a resource: it has no root",
     (tableName: string) => {
+      expect(
+        BY_TABLE.get(tableName)!.enableAuditLogOn?.rootResource,
+      ).toBeUndefined();
+    },
+  );
+
+  test.each(["NetworkDeviceLink", "NetworkSiteLink"])(
+    "%s joins two rows of one root, so it belongs to neither: it has no root",
+    (tableName: string) => {
+      expect(BY_TABLE.get(tableName)!.enableAuditLogOn?.update).toBe(true);
       expect(
         BY_TABLE.get(tableName)!.enableAuditLogOn?.rootResource,
       ).toBeUndefined();
