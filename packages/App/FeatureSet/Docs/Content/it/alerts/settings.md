@@ -93,6 +93,8 @@ Una regola chiama appena un avviso corrisponde. Perché attenda invece l'orario 
 
 Una regola chiama le persone delle sue policy perché rispondano: riconoscere la chiamata riconosce l'avviso. Per tenere informato un team mentre un altro risponde, rispondete **Osservatori** a **Chiama le persone di queste policy come** sotto **Altri campi**. La loro chiamata dice che sono osservatori, e riconoscerla dice solo che l'hanno vista: l'avviso non viene riconosciuto e la chiamata di nessun altro si ferma. La loro chiamata continua finché uno di loro risponde o l'avviso viene risolto, e nell'elenco la regola dice sotto il nome che chiama come osservatori. Una policy che una regola corrispondente chiama per rispondere e un'altra come osservatori chiama per rispondere.
 
+Una regola può appartenere a dei team. **Team responsabili**, sotto **Altri campi**, la riserva ai team che scegli: solo i loro membri e gli amministratori del progetto possono modificarla o eliminarla, e tutti gli altri che vedono le regole la vedono in sola lettura. Una regola che non appartiene a nessun team può essere modificata da chiunque possa modificare le regole di reperibilità, e anche le regole degli episodi possono appartenere a dei team. Vedi [Regole che appartengono a dei team](/docs/permissions/index#regole-che-appartengono-a-dei-team).
+
 ## Regole degli incidenti
 
 **Avvisi → Regole → Regole degli incidenti** trasforma da sole gli avvisi in incidenti. La prima regola che corrisponde a un nuovo avviso, dall'alto verso il basso dell'elenco, ne dichiara un incidente, come farebbe **Dichiara incidente** sulla pagina dell'avviso, e vi collega l'avviso.

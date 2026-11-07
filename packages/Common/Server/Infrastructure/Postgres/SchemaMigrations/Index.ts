@@ -920,6 +920,8 @@ import { AddFirstApprovedByUserForeignKey1808995190000 } from "./1808995190000-A
 import { WidenCodeRepositoryOwnerColumns1808995240000 } from "./1808995240000-WidenCodeRepositoryOwnerColumns";
 import { AddOnCallObserverPages1808995300000 } from "./1808995300000-AddOnCallObserverPages";
 import { AddPublicNoteApproval1808995720000 } from "./1808995720000-AddPublicNoteApproval";
+import { AddWorkflowVersions1808995761880 } from "./1808995761880-AddWorkflowVersions";
+import { AddRuleOwningTeams1808995800000 } from "./1808995800000-AddRuleOwningTeams";
 
 export default [
   InitialMigration,
@@ -1844,4 +1846,6 @@ export default [
   WidenCodeRepositoryOwnerColumns1808995240000,
   AddOnCallObserverPages1808995300000,
   AddPublicNoteApproval1808995720000,
+  AddWorkflowVersions1808995761880,
+  AddRuleOwningTeams1808995800000,
 ];

@@ -21,7 +21,7 @@ En arbeidsflyt fra bunnen åpnes med én enkelt stiplet blokk med teksten **Velg
 
 Hver arbeidsflyt har nøyaktig én **trigger** øverst. Alt annet er en **komponent** som gjør noe. For å bytte trigger sletter du den: den stiplede plassholderen kommer tilbake på plassen dens, og et klikk på den lar deg velge en annen. Når du sletter en blokk, slettes linjene dens også, så koble den nye triggeren til den første blokken igjen.
 
-Endringer lagres automatisk. En pille i verktøylinjen følger med på det: **Lagrer…** mens endringen er på vei, deretter **Lagret**, eller **Kunne ikke lagre** hvis det ikke lyktes. Lerretet har ingen lagreknapp og ikke noe eget publiseringstrinn.
+Endringer lagres automatisk, et øyeblikk etter at du har gjort dem. En pille i verktøylinjen følger med på det: **Lagrer…** mens endringen er på vei, deretter **Lagret**. Hvis en endring ikke kunne lagres, står det **Kunne ikke lagre** på pillen, med årsaken når du holder musen over den, og **Prøv igjen** ved siden av. Endringene dine blir værende på lerretet i mellomtiden, og neste endring du gjør, prøver igjen. Forlater du siden før en endring er lagret, blir du spurt først. Lerretet har ingen lagreknapp og ikke noe eget publiseringstrinn. En feil blir også lagret, og derfor tar Bygger vare på hver endring, så du kan ta den tilbake: se [Angre, gjør om og versjonshistorikk](#angre-gjør-om-og-versjonshistorikk).
 
 ## Legg til blokker
 
@@ -169,6 +169,26 @@ For å sette en arbeidsflyt på pause uten å slette den slår du av **Aktivert*
 - For å slette en blokk klikker du på den og bruker **Slett** nederst i innstillingsdialogen. Å merke en blokk eller en linje og trykke på Backspace fjerner den også.
 - Det finnes ingen måte å duplisere én enkelt blokk på. **Dupliser Arbeidsflyt** på arbeidsflytens side **Innstillinger** kopierer alt. Navnet på kopien er fylt ut og nummerert forbi prosjektets arbeidsflyter ("Nightly Sync" kopieres som "Nightly Sync 2"), og kopien åpnes, deaktivert.
 - Plasser blokkene ovenfra og ned, slik at de leses i den retningen de kjører — inngangen er på den øverste kanten, utgangene på den nederste, så flyten naturlig går nedover.
+
+## Angre, gjør om og versjonshistorikk
+
+Hver endring du gjør på lerretet, kan tas tilbake, selv om den ble lagret med en gang.
+
+- **Angre** og **Gjør om** sitter først i verktøylinjen. Hold musen over en av dem for å se hva den ville tatt tilbake eller gjort på nytt, og hvilken blokk det gjelder. Hver endring er ett steg: å legge til, slette eller flytte en blokk, å koble sammen to blokker eller koble dem fra hverandre, og å lagre innstillingene til en blokk. Å dra en blokk er ett steg, uansett hvor langt du drar den.
+- Tastaturet virker også: ⌘Z på en Mac, eller Ctrl+Z, angrer, og ⇧⌘Z, Ctrl+Shift+Z eller Ctrl+Y gjør om. Mens du skriver i et felt eller en kodeeditor, angrer de samme tastene i stedet det du har skrevet.
+- Det du angrer, lagres som enhver annen endring. Angre rekker bare tilbake til det du har gjort siden du åpnet Bygger; versjonshistorikken går lenger tilbake.
+
+**Versjonshistorikk**, i verktøylinjen, viser hver lagret versjon av arbeidsflyten, med den nyeste først: hvem som lagret den, når, og hva den endret, for eksempel `Added "Send Email" (send-email-1)`. Endringene du lagrer innen 10 minutter etter hverandre, blir én versjon, så en versjon er et stykke arbeid og ikke hvert eneste klikk. Endringer Ask AI gjør, og endringer gjort via API-et, er også versjoner.
+
+For å gå tilbake til en tidligere versjon:
+
+:::steps
+1. Klikk på **Versjonshistorikk** i verktøylinjen.
+2. Klikk på **Forhåndsvisning** ved versjonen. Forhåndsvisningen viser hva en gjenoppretting ville endret, og viser versjonen på et eget lerret. Klikk på en blokk der for å lese innstillingene.
+3. Klikk på **Gjenopprett denne versjonen**. Versjonen kommer tilbake på lerretet og lagres med en gang.
+:::
+
+En gjenoppretting er en endring som enhver annen. Den lagres som en ny versjon som sier hvilken versjon den gjenopprettet, så du kan angre den eller gjenopprette versjonen du hadde før. Alle som kan åpne arbeidsflyten, kan se historikken; bare personer som har lov til å redigere arbeidsflyten, kan gjenopprette en versjon. De 100 nyeste versjonene av hver arbeidsflyt beholdes.
 
 ## Neste trinn
 

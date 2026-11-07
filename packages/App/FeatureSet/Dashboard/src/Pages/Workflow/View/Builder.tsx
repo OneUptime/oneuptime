@@ -1,11 +1,9 @@
 import PageComponentProps from "../../PageComponentProps";
 import EventName from "../../../Utils/EventName";
 import URL from "Common/Types/API/URL";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import useRunWatch, {
   FetchLatestRunFunction,
@@ -18,13 +16,11 @@ import {
   fetchLatestWorkflowRun,
   sendRunAgain,
 } from "Common/UI/Components/Workflow/RunAgain/RunAgainSource";
-import ComponentMetadata, {
-  ComponentCategory,
-  ComponentType,
-  NodeDataProp,
-  NodeType,
-} from "Common/Types/Workflow/Component";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { NodeDataProp } from "Common/Types/Workflow/Component";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Dictionary from "Common/Types/Dictionary";
@@ -46,19 +42,24 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import WorkflowStatusBar, {
-  WorkflowSaveState,
-} from "Common/UI/Components/Workflow/WorkflowStatusBar";
-import { loadComponentsAndCategories } from "Common/UI/Components/Workflow/Utils";
+import WorkflowStatusBar from "Common/UI/Components/Workflow/WorkflowStatusBar";
+import useWorkflowEditing, {
+  UseWorkflowEditingResult,
+} from "Common/UI/Components/Workflow/UseWorkflowEditing";
+import WorkflowUndoRedoButtons from "Common/UI/Components/Workflow/WorkflowUndoRedoButtons";
+import WorkflowVersionHistory from "Common/UI/Components/Workflow/WorkflowVersionHistory";
+import { WorkflowVersionCopy } from "Common/UI/Components/Workflow/WorkflowVersionPresentation";
+import {
+  WorkflowCanvasGraph,
+  toWorkflowCanvasGraph,
+} from "Common/UI/Components/Workflow/WorkflowCanvasGraph";
+import { SavedWorkflowGraph } from "Common/Utils/Workflow/WorkflowGraphSnapshot";
 import {
   WorkflowAddButton,
   getWorkflowAddButton,
   workflowHasTrigger,
 } from "Common/UI/Components/Workflow/WorkflowAddButton";
-import Workflow, {
-  getEdgeDefaultProps,
-  getPlaceholderTriggerNode,
-} from "Common/UI/Components/Workflow/Workflow";
+import Workflow from "Common/UI/Components/Workflow/Workflow";
 import {
   getWebhookSecretKeySelect,
   resetWebhookSecretKey,
@@ -105,12 +106,6 @@ const TOOLBAR_BUTTON_STYLE: React.CSSProperties = {
 
 const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [saveState, setSaveState] = useState<WorkflowSaveState>(
-    WorkflowSaveState.Idle,
-  );
-  const [saveTimeout, setSaveTimeout] = useState<ReturnType<
-    typeof setTimeout
-  > | null>(null);
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [nodes, setNodes] = useState<Array<Node>>([]);
   const [edges, setEdges] = useState<Array<Edge>>([]);
@@ -268,12 +263,48 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const isViewOnly: boolean = Boolean(editLockedReason);
 
   /*
+   * Undo, Redo and the autosave (issue #6188): what the canvas reports is
+   * taken into the undo history and saved a moment later, one save at a
+   * time, so what is saved is always what the canvas shows; Undo and Redo
+   * hand the canvas the graph to show, which is saved the same way. A save
+   * that fails is said once, here, and the save pill keeps saying it with a
+   * Try again; the canvas keeps what was not saved. Nothing is saved for a
+   * view, or before the workflow has opened. See UseWorkflowEditing.
+   */
+  const editing: UseWorkflowEditingResult = useWorkflowEditing({
+    isEnabled: !isViewOnly && !isLoading,
+    save: async (graph: SavedWorkflowGraph): Promise<void> => {
+      await ModelAPI.updateById({
+        modelType: WorkflowModel,
+        id: modelId,
+        data: {
+          graph: graph as unknown as JSONObject,
+        },
+      });
+    },
+    describeError: (error: unknown): string => {
+      return API.getFriendlyMessage(error);
+    },
+    onSaveFailed: (message: string): void => {
+      setError(message);
+    },
+    onError: (message: string): void => {
+      setError(message);
+    },
+  });
+
+  // The Version history panel, beside the canvas.
+  const [showVersionHistory, setShowVersionHistory] = useState<boolean>(false);
+
+  /*
    * Ask AI changed this workflow, from the panel beside this page: what is on
    * the canvas is out of date, and the next save would write it back over that
    * change. A save still waiting for its moment is dropped: what Ask AI read to
    * change it did not have it, but what was typed a moment before is not worth
-   * losing what was just approved. Read through a ref, as the page's functions
-   * are rebuilt on every render.
+   * losing what was just approved. Ask AI's change is drawn where the canvas
+   * is, as a step of its own, so Undo takes it back - and what was dropped
+   * with it. Read through a ref, as the page's functions are rebuilt on every
+   * render.
    */
   const reloadGraph: React.MutableRefObject<() => void> = useRef<() => void>(
     () => {},
@@ -358,105 +389,22 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           typeof workflow.isEnabled === "boolean" ? workflow.isEnabled : null,
         );
 
-        const allComponents: {
-          components: Array<ComponentMetadata>;
-          categories: Array<ComponentCategory>;
-        } = loadComponentsAndCategories();
+        /*
+         * The graph as the canvas draws it: each step with its component's
+         * catalog entry, what its checks said when it was saved cleared (it
+         * is stale by definition, and the checks run again as it is drawn),
+         * and the dashed card where there is no trigger yet
+         * (WorkflowCanvasGraph). It is where Undo starts, and what the
+         * server has.
+         */
+        const canvasGraph: WorkflowCanvasGraph = toWorkflowCanvasGraph({
+          graph: workflow.graph,
+          components: editing.components,
+        });
 
-        if (workflow.graph && (workflow.graph as JSONObject)["nodes"]) {
-          if (((workflow.graph as any)["nodes"] as Array<Node>).length === 0) {
-            // add a placeholder trigger node.
-            setNodes([getPlaceholderTriggerNode()]);
-          } else {
-            let nodes: Array<Node> = (workflow.graph as any)[
-              "nodes"
-            ] as Array<Node>;
-
-            // Fill nodes.
-
-            for (let i: number = 0; i < nodes.length; i++) {
-              if (!nodes[i]) {
-                continue;
-              }
-
-              if (nodes[i]?.data.nodeType === NodeType.PlaceholderNode) {
-                nodes[i] = {
-                  ...nodes[i],
-                  ...getPlaceholderTriggerNode(),
-                };
-                continue;
-              }
-
-              let componentMetdata: ComponentMetadata | undefined = undefined;
-
-              for (const component of allComponents.components) {
-                if (component.id === nodes[i]?.data.metadataId) {
-                  componentMetdata = component;
-                }
-              }
-
-              if (!componentMetdata) {
-                throw new BadDataException(
-                  "Component Metadata not found for node " +
-                    nodes[i]?.data.metadataId,
-                );
-              }
-
-              nodes[i]!.data.metadata = {
-                ...componentMetdata,
-              };
-
-              /*
-               * Any error text in a stored graph is stale by definition — it
-               * describes what the builder said about a draft at some past
-               * moment, and the checks re-run on load anyway. Clearing it here
-               * means a graph that was saved with an error in it (possible
-               * before saveGraph started stripping the field) heals itself
-               * rather than showing a badge for a problem that is long fixed.
-               */
-              nodes[i]!.data.error = "";
-            }
-
-            // see if it has the trigger node.
-
-            if (
-              !nodes.find((node: Node) => {
-                return (
-                  node.data.nodeType === NodeType.PlaceholderNode ||
-                  node.data.componentType === ComponentType.Trigger
-                );
-              })
-            ) {
-              nodes = [...nodes, getPlaceholderTriggerNode()];
-            }
-
-            setNodes(nodes);
-          }
-        } else {
-          // add a placeholder trigger node.
-          setNodes([getPlaceholderTriggerNode()]);
-        }
-
-        if (workflow.graph && (workflow.graph as JSONObject)["edges"]) {
-          const edges: Array<Edge> = (workflow.graph as any)[
-            "edges"
-          ] as Array<Edge>;
-
-          for (let i: number = 0; i < edges.length; i++) {
-            if (!edges[i]) {
-              continue;
-            }
-
-            edges[i] = {
-              ...edges[i],
-              ...getEdgeDefaultProps(false),
-            } as Edge;
-          }
-
-          setEdges(edges);
-        } else {
-          setEdges([]);
-        }
+        editing.start(canvasGraph);
+        setNodes(canvasGraph.nodes);
+        setEdges(canvasGraph.edges);
       } else {
         setError("Workflow not found");
       }
@@ -467,100 +415,42 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     setIsLoading(false);
   };
 
-  reloadGraph.current = (): void => {
-    if (saveTimeout) {
-      clearTimeout(saveTimeout);
-      setSaveTimeout(null);
-    }
+  /*
+   * What Ask AI saved, drawn where the canvas is: a step of its own, which
+   * Undo takes back. The workflow is read again for its graph and its name,
+   * all Ask AI changes; before the canvas has opened it is simply opened.
+   */
+  const showWhatAskAiSaved: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      const workflow: WorkflowModel | null = await ModelAPI.getItem({
+        modelType: WorkflowModel,
+        id: modelId,
+        select: {
+          graph: true,
+          name: true,
+        },
+        requestOptions: {},
+      });
 
-    void loadGraph();
+      if (!workflow) {
+        setError("Workflow not found");
+        return;
+      }
+
+      setWorkflowName(workflow.name || "");
+      editing.showSavedGraph(workflow.graph || null);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
   };
 
-  type SaveGraphFunction = (
-    nodes: Array<Node>,
-    edges: Array<Edge>,
-  ) => Promise<void>;
-
-  const saveGraph: SaveGraphFunction = async (
-    nodes: Array<Node>,
-    edges: Array<Edge>,
-  ): Promise<void> => {
-    setSaveState(WorkflowSaveState.Saving);
-
-    if (saveTimeout) {
-      clearTimeout(saveTimeout);
-      setSaveTimeout(null);
+  reloadGraph.current = (): void => {
+    if (isLoading) {
+      void loadGraph();
+      return;
     }
 
-    setSaveTimeout(
-      setTimeout(async () => {
-        try {
-          const graph: any = JSONFunctions.parse(
-            JSON.stringify({ nodes, edges }),
-          ); // deep copy
-
-          // clean up.
-
-          if (graph["nodes"]) {
-            for (
-              let i: number = 0;
-              i < (graph["nodes"] as Array<Node>).length;
-              i++
-            ) {
-              (graph["nodes"] as Array<Node>)[i] = {
-                ...((graph["nodes"] as Array<Node>)[i] as Node),
-              };
-
-              delete ((graph["nodes"] as Array<Node>)[i] as Node).data.metadata;
-
-              /*
-               * data.error holds whatever the builder's static checks are
-               * saying about this node right now. That is a property of the
-               * current draft, not of the workflow, and saving it means a
-               * message survives the fix that resolved it and comes back on
-               * the next load. Drop it on the way out.
-               */
-              delete ((graph["nodes"] as Array<Node>)[i] as Node).data.error;
-            }
-          }
-
-          if (graph["edges"]) {
-            for (
-              let i: number = 0;
-              i < (graph["edges"] as Array<Edge>).length;
-              i++
-            ) {
-              (graph["edges"] as Array<Edge>)[i] = {
-                ...((graph["edges"] as Array<Edge>)[i] as Edge),
-              };
-
-              delete ((graph["edges"] as Array<Edge>)[i] as Edge).type;
-              delete ((graph["edges"] as Array<Edge>)[i] as Edge).style;
-              delete ((graph["edges"] as Array<Edge>)[i] as Edge).markerEnd;
-            }
-          }
-
-          await ModelAPI.updateById({
-            modelType: WorkflowModel,
-            id: modelId,
-            data: {
-              graph,
-            },
-          });
-
-          setSaveState(WorkflowSaveState.Saved);
-        } catch (err) {
-          setError(API.getFriendlyMessage(err));
-
-          setSaveState(WorkflowSaveState.Error);
-        }
-
-        if (saveTimeout) {
-          clearTimeout(saveTimeout);
-          setSaveTimeout(null);
-        }
-      }, 1000),
-    );
+    void showWhatAskAiSaved();
   };
 
   useAsyncEffect(async () => {
@@ -710,24 +600,72 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           }}
         >
           {/*
-            Save state, the run this builder started, and what the static
-            checks make of the graph. Both the run and the checks open
-            something: the run its log, the checks the list where a step's
-            problems can be fixed.
-          */}
-          <WorkflowStatusBar
-            saveState={saveState}
-            readOnlyReason={editLockedReason}
-            lintResult={lintResult}
-            runStatusMessage={runWatch.message}
-            runStatusFailed={runWatch.hasFailed}
-            onShowRunLog={() => {
-              setShowRunLogModal(true);
+           * Undo and Redo, the Version history, and then the save state, the
+           * run this builder started, and what the static checks make of the
+           * graph: what has been done to the workflow, on the toolbar's
+           * start, and what can be run, on its end. Undo and Redo are for
+           * whoever may change the workflow; anyone who may open it may read
+           * its history. They wait for the workflow to open, like the add
+           * button.
+           */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: "0.5rem 0.75rem",
             }}
-            onShowIssues={() => {
-              setShowIssuesModal(true);
-            }}
-          />
+            data-testid="workflow-toolbar-history"
+          >
+            {!isLoading && !isViewOnly ? (
+              <WorkflowUndoRedoButtons
+                undoStep={editing.undoStep}
+                redoStep={editing.redoStep}
+                onUndo={editing.undo}
+                onRedo={editing.redo}
+              />
+            ) : (
+              <></>
+            )}
+            {!isLoading ? (
+              <Button
+                title={WorkflowVersionCopy.openButton}
+                icon={IconProp.Clock}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                buttonSize={ButtonSize.Small}
+                className="whitespace-nowrap"
+                dataTestId="workflow-version-history-button"
+                ariaHaspopup="dialog"
+                ariaExpanded={showVersionHistory}
+                onClick={() => {
+                  setShowVersionHistory(true);
+                }}
+              />
+            ) : (
+              <></>
+            )}
+            {/*
+              Save state, the run this builder started, and what the static
+              checks make of the graph. Both the run and the checks open
+              something: the run its log, the checks the list where a step's
+              problems can be fixed.
+            */}
+            <WorkflowStatusBar
+              saveState={editing.saveStatus.state}
+              saveError={editing.saveStatus.error}
+              onRetrySave={editing.retrySave}
+              readOnlyReason={editLockedReason}
+              lintResult={lintResult}
+              runStatusMessage={runWatch.message}
+              runStatusFailed={runWatch.hasFailed}
+              onShowRunLog={() => {
+                setShowRunLogModal(true);
+              }}
+              onShowIssues={() => {
+                setShowIssuesModal(true);
+              }}
+            />
+          </div>
 
           <div
             style={{
@@ -932,25 +870,21 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               setStepToOpenNodeId(null);
             }}
             initialEdges={edges}
+            // Undo, Redo, a restored version, what Ask AI saved.
+            graphToShow={editing.graphToShow}
             // A view: nothing on the canvas changes, and nothing is saved.
             editDisabledReason={editLockedReason}
-            onWorkflowUpdated={async (
-              nodes: Array<Node>,
-              edges: Array<Edge>,
-            ) => {
+            onWorkflowUpdated={(nodes: Array<Node>, edges: Array<Edge>) => {
               setNodes(nodes);
               setEdges(edges);
 
               /*
                * The canvas reports its graph as it draws it, a step's
-               * selection included, even where nothing can change: saved,
-               * each report would be refused.
+               * selection included, even where nothing can change: taken in
+               * only where it can (editing.isEnabled), and only what changed
+               * the workflow is saved.
                */
-              if (isViewOnly) {
-                return;
-              }
-
-              await saveGraph(nodes, edges);
+              editing.onCanvasUpdated(nodes, edges);
             }}
             runStepDisabledReason={stepRunLockedReason}
             runDisabledReason={runLockedReason}
@@ -1019,6 +953,24 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }}
             submitButtonType={ButtonStyleType.NORMAL}
           />
+        )}
+
+        {showVersionHistory ? (
+          <WorkflowVersionHistory
+            workflowId={modelId}
+            refreshToken={editing.saveStatus.savedCount}
+            currentGraph={editing.shownGraph}
+            components={editing.components}
+            restoreDisabledReason={editLockedReason}
+            onRestore={(data: { versionNumber: number; graph: JSONObject }) => {
+              editing.restoreVersion(data);
+            }}
+            onClose={() => {
+              setShowVersionHistory(false);
+            }}
+          />
+        ) : (
+          <></>
         )}
 
         {showIssuesModal && lintResult && (

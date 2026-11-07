@@ -21,7 +21,7 @@ Een workflow vanaf nul opent met één gestippeld blok met de tekst **Kies wat d
 
 Elke workflow heeft precies één **trigger** bovenaan. Al het andere is een **component** dat iets doet. Om de trigger te wisselen verwijder je hem: de gestippelde plaatshouder komt terug op zijn plek, en als je erop klikt kies je een andere. Als je een blok verwijdert, verdwijnen ook de lijnen ervan, dus verbind de nieuwe trigger opnieuw met het eerste blok.
 
-Wijzigingen worden automatisch opgeslagen. Een label in de werkbalk houdt het bij: **Opslaan…** terwijl de wijziging onderweg is, daarna **Opgeslagen**, of **Kon niet opslaan** als het niet lukte. Het canvas heeft geen opslaan-knop en geen aparte publicatiestap.
+Wijzigingen worden automatisch opgeslagen, een moment nadat je ze maakt. Een label in de werkbalk houdt het bij: **Opslaan…** terwijl de wijziging onderweg is, daarna **Opgeslagen**. Kon een wijziging niet worden opgeslagen, dan staat op het label **Kon niet opslaan**, met de reden als je de muis erboven houdt, en ernaast **Opnieuw proberen**. Je wijzigingen blijven intussen op het canvas staan, en de volgende wijziging die je maakt, probeert het opnieuw. Verlaat je de pagina voordat een wijziging is opgeslagen, dan word je eerst gevraagd of je dat zeker weet. Het canvas heeft geen opslaan-knop en geen aparte publicatiestap. Ook een vergissing wordt opgeslagen, dus de Bouwer houdt elke wijziging bij, zodat je die kunt terugdraaien: zie [Ongedaan maken, opnieuw doen en versiegeschiedenis](#ongedaan-maken-opnieuw-doen-en-versiegeschiedenis).
 
 ## Blokken toevoegen
 
@@ -169,6 +169,26 @@ Wil je een workflow pauzeren zonder hem te verwijderen, zet dan **Ingeschakeld**
 - Om een blok te verwijderen klik je erop en gebruik je **Verwijderen** onderaan het instellingenvenster. Een blok of lijn selecteren en op Backspace drukken verwijdert het ook.
 - Eén blok dupliceren kan niet. **Workflow dupliceren** op de pagina **Instellingen** van de workflow kopieert het geheel. De naam van de kopie is al ingevuld, doorgenummerd voorbij de workflows van het project ("Nightly Sync" wordt gekopieerd als "Nightly Sync 2"), en de kopie opent, uitgeschakeld.
 - Stapel blokken van boven naar beneden, zodat ze lezen in de richting waarin ze draaien — ingangen zitten aan de bovenrand, uitgangen aan de onderrand, dus de stroom gaat vanzelf naar beneden.
+
+## Ongedaan maken, opnieuw doen en versiegeschiedenis
+
+Elke wijziging die je op het canvas maakt, kun je terugdraaien, ook al is die meteen opgeslagen.
+
+- **Ongedaan maken** en **Opnieuw doen** staan aan het begin van de werkbalk. Houd de muis boven een van beide om te zien wat die zou terugdraaien of opnieuw zou doen, en om welk blok het gaat. Per keer maak je één wijziging ongedaan: een blok toevoegen, verwijderen of verplaatsen, twee blokken verbinden of loskoppelen, of de instellingen van een blok opslaan. Een blok slepen is één wijziging, hoe ver je het ook sleept.
+- Het toetsenbord werkt ook: ⌘Z op een Mac, of Ctrl+Z, maakt ongedaan, en ⇧⌘Z, Ctrl+Shift+Z of Ctrl+Y doet het opnieuw. Terwijl je in een veld of een code-editor typt, maken dezelfde toetsen in plaats daarvan je typwerk ongedaan.
+- Ook ongedaan maken wordt opgeslagen, net als elke andere wijziging. Ongedaan maken gaat alleen terug tot het moment waarop je de Bouwer opende; de versiegeschiedenis gaat verder terug.
+
+**Versiegeschiedenis**, in de werkbalk, toont elke opgeslagen versie van de workflow, de nieuwste eerst: wie die opsloeg, wanneer en wat er veranderde, zoals `Added "Send Email" (send-email-1)`. Wijzigingen die je binnen 10 minuten na elkaar opslaat, vormen één versie, dus een versie is een stuk werk en niet elke klik. Wijzigingen die Ask AI maakt, en wijzigingen via de API, zijn ook versies.
+
+Om terug te gaan naar een eerdere versie:
+
+:::steps
+1. Klik op **Versiegeschiedenis** in de werkbalk.
+2. Klik bij de versie op **Voorbeeld**. Het voorbeeld laat zien wat herstellen zou veranderen, en toont de versie op een eigen canvas. Klik op een blok op dat canvas om de instellingen ervan te lezen.
+3. Klik op **Deze versie herstellen**. De versie komt terug op het canvas en wordt meteen opgeslagen.
+:::
+
+Herstellen is een wijziging zoals elke andere. Het wordt opgeslagen als een nieuwe versie die zegt welke versie is hersteld, zodat je het ongedaan kunt maken of de versie kunt herstellen die je daarvoor had. Iedereen die de workflow kan openen, kan de geschiedenis ervan zien; alleen wie de workflow mag bewerken, kan een versie herstellen. De nieuwste 100 versies van elke workflow worden bewaard.
 
 ## Volgende stappen
 

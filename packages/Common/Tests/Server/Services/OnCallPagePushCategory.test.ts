@@ -23,7 +23,11 @@ import ObjectID from "../../../Types/ObjectID";
 import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
 import PushNotificationRequest from "../../../Types/PushNotification/PushNotificationRequest";
-import { ON_CALL_PAGE_PUSH_CATEGORY } from "../../../Types/PushNotification/PushNotificationCategory";
+import {
+  ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY,
+  ON_CALL_PAGE_PUSH_CATEGORY,
+} from "../../../Types/PushNotification/PushNotificationCategory";
+import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import API, { APIRequestOptions } from "../../../Utils/API";
 import { Expo, ExpoPushMessage } from "expo-server-sdk";
@@ -48,6 +52,11 @@ import type { SpyInstance } from "jest-mock";
  * deployment's own Expo access token, or through the push relay, which
  * passes on only a category it knows. A notification that is not a page -
  * an owner's, a note posted - names none, and keeps no buttons.
+ *
+ * An observer's page (OnCallObserverPage) names a category of its own,
+ * whose one action is "I've seen it": the responder's Acknowledge would
+ * acknowledge the record itself. Its run says what it is; every other run's
+ * pages are a responder's, and keep Acknowledge and Escalate as before.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -71,6 +80,7 @@ const TIMELINE_ID: ObjectID = new ObjectID(
 const PUSH_METHOD_ID: ObjectID = new ObjectID(
   "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
 );
+const RUN_ID: ObjectID = new ObjectID("eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee");
 
 const DEVICE_TOKEN: string = "ExponentPushToken[category-on-call-0001]";
 
@@ -249,6 +259,108 @@ describe("every on-call page names the category", () => {
     },
   );
 
+  /*
+   * The page's run, as UserNotificationRuleService reads it: whether it pages
+   * as observers, and nothing that makes it a page again or a person's page.
+   */
+  function pageOfRun(isObserverPage: boolean): void {
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue({
+        _id: RUN_ID.toString(),
+        id: RUN_ID,
+        isObserverPage: isObserverPage,
+      } as never);
+  }
+
+  async function deliverPageOfRun(
+    eventType: UserNotificationEventType,
+    deviceType: PushDeviceType,
+    critical: boolean,
+  ): Promise<PushNotificationRequest> {
+    await deliveryHalf().deliverNotificationForRule(
+      pushRule(deviceType, critical),
+      {
+        projectId: PROJECT_ID,
+        userNotificationEventType: eventType,
+        userNotificationLogId: LOG_ID,
+        onCallPolicyExecutionLogId: RUN_ID,
+        ...TRIGGER_ID_FOR_EVENT[eventType],
+      } as ExecuteOptions,
+    );
+
+    expect(pushSpy).toHaveBeenCalledTimes(1);
+    return pushSpy.mock.calls[0]![0] as PushNotificationRequest;
+  }
+
+  test.each(PAGES)(
+    "%s, of a run that pages as observers: I've seen it under it - the observer's category, on its way to Expo",
+    async (
+      _name: string,
+      eventType: UserNotificationEventType,
+      deviceType: PushDeviceType,
+      critical: boolean,
+    ) => {
+      pageOfRun(true);
+
+      const request: PushNotificationRequest = await deliverPageOfRun(
+        eventType,
+        deviceType,
+        critical,
+      );
+
+      expect(request.message.categoryId).toBe(
+        ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY,
+      );
+      expect(
+        PushNotificationService.getExpoDeliveryOptions(
+          request.message,
+          request.deviceType,
+        ).categoryId,
+      ).toBe(ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY);
+      // It is the observer's page, in its own words.
+      expect(request.message.title.startsWith("FYI: ")).toBe(true);
+      // The critical sound and channel are as they were.
+      expect(request.message.isCriticalAlert).toBe(critical);
+    },
+  );
+
+  test.each(PAGES)(
+    "%s, of a run that pages responders: Acknowledge and Escalate, exactly as before",
+    async (
+      _name: string,
+      eventType: UserNotificationEventType,
+      deviceType: PushDeviceType,
+      critical: boolean,
+    ) => {
+      pageOfRun(false);
+
+      const request: PushNotificationRequest = await deliverPageOfRun(
+        eventType,
+        deviceType,
+        critical,
+      );
+
+      expect(request.message.categoryId).toBe(ON_CALL_PAGE_PUSH_CATEGORY);
+      expect(request.message.title.startsWith("FYI")).toBe(false);
+      expect(request.message.isCriticalAlert).toBe(critical);
+    },
+  );
+
+  test("a run that cannot be read is worded, and answered, as a responder's page", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockRejectedValue(new Error("database unavailable") as never);
+
+    const request: PushNotificationRequest = await deliverPageOfRun(
+      UserNotificationEventType.IncidentCreated,
+      PushDeviceType.iOS,
+      false,
+    );
+
+    expect(request.message.categoryId).toBe(ON_CALL_PAGE_PUSH_CATEGORY);
+  });
+
   test("a notification that is not a page - an owner's - names no category", () => {
     const ownerNotification: PushNotificationMessage =
       PushNotificationUtil.createIncidentCreatedNotification({
@@ -406,6 +518,45 @@ describe("the category travels whichever way the push goes", () => {
     );
     expect(relayPosts[1]!.data as JSONObject).not.toHaveProperty("categoryId");
     expect(expoMessages).toHaveLength(0);
+  });
+
+  test("an observer's category travels both ways too", async () => {
+    jest
+      .spyOn(PushNotificationService, "hasExpoAccessToken")
+      .mockReturnValue(true);
+    await send(ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY);
+
+    jest
+      .spyOn(PushNotificationService, "hasExpoAccessToken")
+      .mockReturnValue(false);
+    await send(ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY);
+
+    expect(expoMessages).toHaveLength(1);
+    expect(expoMessages[0]!.categoryId).toBe(
+      ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY,
+    );
+    expect(relayPosts).toHaveLength(1);
+    expect((relayPosts[0]!.data as JSONObject)["categoryId"]).toBe(
+      ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY,
+    );
+  });
+
+  test("the relay passes on the observer's category, as it does the responder's", async () => {
+    jest
+      .spyOn(PushNotificationService, "hasExpoAccessToken")
+      .mockReturnValue(true);
+
+    await PushNotificationService.sendRelayPushNotification({
+      to: DEVICE_TOKEN,
+      title: "FYI: Incident INC-42: Checkout is down",
+      body: "You're paged as an observer.",
+      categoryId: ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY,
+    });
+
+    expect(expoMessages).toHaveLength(1);
+    expect(expoMessages[0]!.categoryId).toBe(
+      ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY,
+    );
   });
 
   test("the relay passes on a category it knows, and leaves out one it does not - the page still goes", async () => {

@@ -68,8 +68,10 @@ export default class PushNotificationUtil {
    * INC-42: <title>", and that they are kept informed while the people
    * responding stay on it - with who paged them, for a person's page.
    * Tapped, it opens the record, and it carries the record's own type and
-   * data, as any page's push does. The service sends it with no category:
-   * the app's Acknowledge under a page acknowledges the record itself.
+   * data, as any page's push does. The service names the observer's
+   * category (PushNotificationCategory): its one action, "I've seen it",
+   * only says they have seen it - a responder's Acknowledge would
+   * acknowledge the record itself.
    */
   private static getObserverPageNotification(data: {
     recordLabel: string;

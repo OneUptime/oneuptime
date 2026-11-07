@@ -93,6 +93,8 @@ En regel larmar så snart ett larm matchar den. För att låta den vänta på ar
 
 En regel larmar personerna i sina policyer för att hantera larmet: den som bekräftar larmningen bekräftar larmet. För att hålla ett team informerat medan ett annat hanterar det svarar du **Observatörer** på **Larma personerna i de här policyerna som** under **Fler fält**. Deras larmning säger att de är observatörer, och bekräftar de den säger det bara att de har sett den: larmet bekräftas inte, och ingen annans larmning stoppas. Deras larmning fortsätter tills någon av dem svarar eller larmet är löst, och i listan säger regeln under sitt namn att den larmar som observatörer. En policy som en matchande regel larmar för att hantera larmet och en annan som observatörer larmar för att hantera det.
 
+En regel kan tillhöra team. **Ansvariga team** under **Fler fält** förbehåller den de team du väljer: bara deras medlemmar och projektadministratörer kan redigera eller ta bort den, och alla andra som ser regler ser den skrivskyddad. En regel som inget team äger kan ändras av alla som får redigera jourregler, och episodregler kan också tillhöra team. Se [Regler som tillhör team](/docs/permissions/index#regler-som-tillhör-team).
+
 ## Incidentregler
 
 **Larm → Regler → Incidentregler** gör själv om larm till incidenter. Den första regeln som matchar ett nytt larm, uppifrån och ned i listan, deklarerar en incident från det, som **Deklarera incident** på larmets sida skulle göra, och kopplar larmet till den.

@@ -8,6 +8,7 @@ import OwnedScopePermission from "./OwnedScopePermission";
 import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
 import PermissionUtil from "./PermissionsUtil";
 import PrivateRecordPermission from "./PrivateRecordPermission";
+import TeamOwnedRulePermission from "./TeamOwnedRulePermission";
 import PublicPermission from "./PublicPermission";
 import QueryPermission from "./QueryPermission";
 import ReadPermission, { RecordOperation } from "./ReadPermission";
@@ -170,6 +171,9 @@ export default class BasePermission {
    *   - on an update and a delete, a private incident, alert or episode,
    *     and the parts of one, only where the caller owns it or a team
    *     granting the operation does (PrivateRecordPermission);
+   *   - on an update and a delete, a rule some teams own (an on-call, owner
+   *     or workspace notification rule) and its owning teams, only where a
+   *     team granting the operation owns it (TeamOwnedRulePermission);
    *   - the record a model is read through (@CanAccessIfCanReadOn): one the
    *     caller may read, and on an update one they may update - by the
    *     labels and the owners the caller's grants on it are limited to
@@ -357,6 +361,20 @@ export default class BasePermission {
      * to the privacy filters.
      */
     query = PrivateRecordPermission.addPrivateRecordScopeToQuery(
+      modelType,
+      query,
+      props,
+      type,
+    );
+
+    /*
+     * A rule some teams own - an incident on-call rule an oversight team
+     * keeps - and its owning teams are changed and deleted only through the
+     * teams that own it, and by the project's owners and admins: each team's
+     * permission reaches the rules that team owns and every rule no team
+     * owns (TeamOwnedRulePermission). Reads are left alone.
+     */
+    query = TeamOwnedRulePermission.addTeamOwnedRuleScopeToQuery(
       modelType,
       query,
       props,

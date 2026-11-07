@@ -199,7 +199,7 @@ import {
   OnCallPageSmsKind,
 } from "../../Utils/Sms/OnCallPageSms";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
-import { ON_CALL_PAGE_PUSH_CATEGORY } from "../../Types/PushNotification/PushNotificationCategory";
+import { getOnCallPagePushCategory } from "../../Types/PushNotification/PushNotificationCategory";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -2985,14 +2985,15 @@ export class Service extends ProjectReferencesService<Model> {
           notificationRuleItem.userPush.criticalAlertSound;
         pushMessage.criticalAlertVolume =
           notificationRuleItem.userPush.criticalAlertVolume;
-        // Acknowledge and Escalate under the page (PushNotificationCategory).
         /*
-         * Not under an observer's page (OnCallObserverPage): the app's
-         * Acknowledge acknowledges the record itself, which is not theirs to.
+         * Acknowledge and Escalate under a responder's page, and "I've seen
+         * it" under an observer's (PushNotificationCategory): the app's
+         * Acknowledge acknowledges the record itself, which is not an
+         * observer's to.
          */
-        if (!isObserverPage) {
-          pushMessage.categoryId = ON_CALL_PAGE_PUSH_CATEGORY;
-        }
+        pushMessage.categoryId = getOnCallPagePushCategory({
+          isObserverPage: isObserverPage,
+        });
 
         // send push notification.
         PushNotificationService.sendPushNotification(
@@ -3089,14 +3090,15 @@ export class Service extends ProjectReferencesService<Model> {
           notificationRuleItem.userPush.criticalAlertSound;
         pushMessage.criticalAlertVolume =
           notificationRuleItem.userPush.criticalAlertVolume;
-        // Acknowledge and Escalate under the page (PushNotificationCategory).
         /*
-         * Not under an observer's page (OnCallObserverPage): the app's
-         * Acknowledge acknowledges the record itself, which is not theirs to.
+         * Acknowledge and Escalate under a responder's page, and "I've seen
+         * it" under an observer's (PushNotificationCategory): the app's
+         * Acknowledge acknowledges the record itself, which is not an
+         * observer's to.
          */
-        if (!isObserverPage) {
-          pushMessage.categoryId = ON_CALL_PAGE_PUSH_CATEGORY;
-        }
+        pushMessage.categoryId = getOnCallPagePushCategory({
+          isObserverPage: isObserverPage,
+        });
 
         // send push notification.
         PushNotificationService.sendPushNotification(
@@ -3191,14 +3193,15 @@ export class Service extends ProjectReferencesService<Model> {
           notificationRuleItem.userPush.criticalAlertSound;
         pushMessage.criticalAlertVolume =
           notificationRuleItem.userPush.criticalAlertVolume;
-        // Acknowledge and Escalate under the page (PushNotificationCategory).
         /*
-         * Not under an observer's page (OnCallObserverPage): the app's
-         * Acknowledge acknowledges the record itself, which is not theirs to.
+         * Acknowledge and Escalate under a responder's page, and "I've seen
+         * it" under an observer's (PushNotificationCategory): the app's
+         * Acknowledge acknowledges the record itself, which is not an
+         * observer's to.
          */
-        if (!isObserverPage) {
-          pushMessage.categoryId = ON_CALL_PAGE_PUSH_CATEGORY;
-        }
+        pushMessage.categoryId = getOnCallPagePushCategory({
+          isObserverPage: isObserverPage,
+        });
 
         PushNotificationService.sendPushNotification(
           {
@@ -3292,14 +3295,15 @@ export class Service extends ProjectReferencesService<Model> {
           notificationRuleItem.userPush.criticalAlertSound;
         pushMessage.criticalAlertVolume =
           notificationRuleItem.userPush.criticalAlertVolume;
-        // Acknowledge and Escalate under the page (PushNotificationCategory).
         /*
-         * Not under an observer's page (OnCallObserverPage): the app's
-         * Acknowledge acknowledges the record itself, which is not theirs to.
+         * Acknowledge and Escalate under a responder's page, and "I've seen
+         * it" under an observer's (PushNotificationCategory): the app's
+         * Acknowledge acknowledges the record itself, which is not an
+         * observer's to.
          */
-        if (!isObserverPage) {
-          pushMessage.categoryId = ON_CALL_PAGE_PUSH_CATEGORY;
-        }
+        pushMessage.categoryId = getOnCallPagePushCategory({
+          isObserverPage: isObserverPage,
+        });
 
         PushNotificationService.sendPushNotification(
           {

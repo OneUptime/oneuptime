@@ -68,17 +68,21 @@ describe("the Queues product side menu", () => {
     ]);
   });
 
-  test("the Queues section reaches the list and the install guide", async () => {
+  test("the Queues section reaches the list, the topology and the install guide", async () => {
     await renderMenu(<MessageQueueSideMenu />);
 
     expect(linksIn("Queues")).toEqual([
       { title: "All Queues", href: routeFor(PageMap.MESSAGE_QUEUES) },
       {
+        title: "Topology",
+        href: routeFor(PageMap.MESSAGE_QUEUES_TOPOLOGY),
+      },
+      {
         title: "Documentation",
         href: routeFor(PageMap.MESSAGE_QUEUES_DOCUMENTATION),
       },
     ]);
-    expect(iconCountIn("Queues")).toBe(2);
+    expect(iconCountIn("Queues")).toBe(3);
   });
 
   test("the archive waits in Advanced, which starts collapsed", async () => {
@@ -157,7 +161,7 @@ describe("the Queues product side menu", () => {
       }),
     ];
 
-    expect(productPages).toHaveLength(5);
+    expect(productPages).toHaveLength(6);
     for (const key of productPages) {
       expect(hrefs).toContain(routeFor(key));
     }
@@ -200,6 +204,10 @@ describe("one queue's side menu", () => {
 
     expect(linksIn("Basic")).toEqual([
       { title: "Overview", href: queueRoute(PageMap.MESSAGE_QUEUE_VIEW) },
+      {
+        title: "Topology",
+        href: queueRoute(PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY),
+      },
     ]);
     expect(linksIn("Observability")).toEqual([
       { title: "Traces", href: queueRoute(PageMap.MESSAGE_QUEUE_VIEW_TRACES) },
@@ -252,9 +260,9 @@ describe("one queue's side menu", () => {
     );
 
     expect(developerHrefs).toHaveLength(4);
-    expect(viewPages).toHaveLength(8);
-    expect(hrefs).toHaveLength(8);
-    expect(new Set(hrefs).size).toBe(8);
+    expect(viewPages).toHaveLength(9);
+    expect(hrefs).toHaveLength(9);
+    expect(new Set(hrefs).size).toBe(9);
     for (const key of viewPages) {
       expect(hrefs).toContain(queueRoute(key));
     }
@@ -277,13 +285,14 @@ describe("one queue's side menu", () => {
   test("every entry carries an icon", async () => {
     await renderMenu(<MessageQueueViewSideMenu modelId={QUEUE_ID} />);
 
-    expect(iconCountIn("Basic")).toBe(1);
+    expect(iconCountIn("Basic")).toBe(2);
     expect(iconCountIn("Observability")).toBe(2);
     expect(iconCountIn("Settings")).toBe(3);
     expect(iconCountIn("Advanced")).toBe(2);
   });
 
   test.each([
+    [PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY, "Topology", "Basic"],
     [PageMap.MESSAGE_QUEUE_VIEW_TRACES, "Traces", "Observability"],
     [PageMap.MESSAGE_QUEUE_VIEW_METRICS, "Metrics", "Observability"],
     [PageMap.MESSAGE_QUEUE_VIEW_OWNERS, "Owners", "Settings"],

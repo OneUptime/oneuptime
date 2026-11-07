@@ -54,6 +54,7 @@ import OnCallAcknowledgementTimeout, {
   OnCallTimeoutRecordState,
 } from "./OnCallAcknowledgementTimeout";
 import { isOnCallPageAgainRun } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import { isOnCallObserverPage } from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
 
 /*
  * PASSING A PAGE ON - THE SERVER SIDE OF "CAN'T TAKE IT? ESCALATE."
@@ -118,6 +119,8 @@ const RUN_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
   // A page again is taken when it is acknowledged, not its record.
   pageAgainNumber: true,
   acknowledgedAt: true,
+  // An observer's page says so in the open pages (OnCallObserverPage).
+  isObserverPage: true,
   onCallDutyPolicy: {
     _id: true,
     name: true,
@@ -409,6 +412,14 @@ export default class OnCallPagePassOn {
          */
         ...(isOnCallPageAgainRun(read.state.run)
           ? { isPageAgain: true as const }
+          : {}),
+        /*
+         * An observer's page (OnCallObserverPage): the person is kept
+         * informed, and answers it by saying they have seen it - the mobile
+         * app offers no Escalate for it.
+         */
+        ...(isOnCallObserverPage(read.state.run)
+          ? { isObserverPage: true as const }
           : {}),
       });
     }

@@ -38,6 +38,16 @@ type TabNavProp = BottomTabNavigationProp<MainTabParamList>;
 type PageFilter = "all" | "unacknowledged";
 
 /*
+ * A page that waits on the reader: a responder's they have not acknowledged.
+ * An observer's page (oncall/observerPage.ts) only keeps them informed -
+ * nothing is required of them - so it is in the full list, saying whether
+ * they have seen it, and never among the pages that need a response.
+ */
+function needsResponse(page: OnCallPageItem): boolean {
+  return !page.acknowledgedAt && !page.isObserverPage;
+}
+
+/*
  * "Did that page reach me, and did anyone answer it?"
  *
  * The unacknowledged filter is the reason this screen exists. A responder
@@ -60,15 +70,18 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
       return pages;
     }
 
-    return pages.filter((page: OnCallPageItem) => {
-      return !page.acknowledgedAt;
-    });
+    return pages.filter(needsResponse);
   }, [pages, filter]);
 
   const unacknowledgedCount: number = useMemo(() => {
-    return pages.filter((page: OnCallPageItem) => {
-      return !page.acknowledgedAt;
-    }).length;
+    return pages.filter(needsResponse).length;
+  }, [pages]);
+
+  // An observer's page is never "acknowledged": the summary says so.
+  const hasObserverPages: boolean = useMemo(() => {
+    return pages.some((page: OnCallPageItem) => {
+      return Boolean(page.isObserverPage);
+    });
   }, [pages]);
 
   const { refreshing, onRefresh } = useRefresh(async (): Promise<void> => {
@@ -233,7 +246,9 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
         icon={unacknowledgedCount > 0 ? "alert-circle" : "checkmark-circle"}
         title={
           unacknowledgedCount === 0
-            ? "All listed pages acknowledged"
+            ? hasObserverPages
+              ? "No pages need a response"
+              : "All listed pages acknowledged"
             : `${unacknowledgedCount} ${unacknowledgedCount === 1 ? "page needs" : "pages need"} a response`
         }
         message={

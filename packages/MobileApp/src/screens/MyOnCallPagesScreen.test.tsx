@@ -271,6 +271,103 @@ describe("Refresh recovery", () => {
   );
 });
 
+/*
+ * An observer's page (oncall/observerPage.ts) only keeps the reader
+ * informed: it is in the full list, saying FYI (observer) and whether they
+ * have seen it, and never among the pages that need a response.
+ */
+describe("an observer's page in My pages", () => {
+  beforeEach(() => {
+    mockNavigate.mockReset();
+    mockRefetch.mockReset();
+    mockPages.current = {
+      pages: [],
+      isLoading: false,
+      isError: false,
+      refetch: mockRefetch,
+    };
+  });
+
+  test("is listed, saying FYI (observer), and never counted as needing a response", async (): Promise<void> => {
+    mockPages.current.pages = [
+      page({
+        _id: "observer",
+        isObserverPage: true,
+        triggeredByIncident: { _id: "incident", title: "Checkout down" },
+      }),
+      page({
+        _id: "responder",
+        triggeredByIncident: { _id: "incident", title: "Checkout down" },
+      }),
+    ];
+
+    await render(<MyOnCallPagesScreen />);
+
+    expect(screen.getByText("1 page needs a response")).toBeTruthy();
+    expect(screen.getByTestId("page-observer-observer")).toBeTruthy();
+    expect(screen.getByText("FYI (observer)")).toBeTruthy();
+    expect(screen.getByText("Not seen yet")).toBeTruthy();
+    expect(screen.queryByTestId("page-observer-responder")).toBeNull();
+
+    await fireEvent.press(screen.getByText("Unacknowledged (1)"));
+    expect(screen.queryByTestId("page-card-observer")).toBeNull();
+    expect(screen.getByTestId("page-card-responder")).toBeTruthy();
+
+    await fireEvent.press(screen.getByText("All (2)"));
+    expect(screen.getByTestId("page-card-observer")).toBeTruthy();
+  });
+
+  test("with only observers' pages waiting, nothing needs a response - and the summary does not call them acknowledged", async (): Promise<void> => {
+    mockPages.current.pages = [
+      page({ _id: "observer", isObserverPage: true }),
+      page({ _id: "done", acknowledgedAt: "2026-09-10T09:05:00Z" }),
+    ];
+
+    await render(<MyOnCallPagesScreen />);
+
+    const summary: HostElement = screen.getByTestId("pages-summary");
+    expect(within(summary).getByText("No pages need a response")).toBeTruthy();
+    expect(
+      within(summary).queryByText("All listed pages acknowledged"),
+    ).toBeNull();
+    expect(flatStyle("pages-summary").backgroundColor).toBe(
+      lightColors.statusSuccessBg,
+    );
+    expect(screen.getByText("Unacknowledged (0)")).toBeTruthy();
+  });
+
+  test("seen, it says Seen - never Acknowledged", async (): Promise<void> => {
+    mockPages.current.pages = [
+      page({
+        _id: "observer",
+        isObserverPage: true,
+        acknowledgedAt: "2026-09-10T09:05:00Z",
+      }),
+    ];
+
+    await render(<MyOnCallPagesScreen />);
+
+    expect(screen.getByText("Seen")).toBeTruthy();
+    expect(screen.queryByText("Acknowledged")).toBeNull();
+  });
+
+  test("tapped, it opens its record, as any page does", async (): Promise<void> => {
+    mockPages.current.pages = [
+      page({
+        _id: "observer",
+        isObserverPage: true,
+        triggeredByAlert: { _id: "alert-7", title: "Disk full" },
+      }),
+    ];
+
+    await render(<MyOnCallPagesScreen />);
+    await fireEvent.press(screen.getByTestId("page-card-observer"));
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(mockNavigate.mock.calls[0])).toContain("alert-7");
+  });
+});
+
 describe("My pages layout", () => {
   beforeEach(() => {
     mockNavigate.mockReset();

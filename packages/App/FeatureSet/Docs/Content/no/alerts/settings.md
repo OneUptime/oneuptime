@@ -93,6 +93,8 @@ En regel tilkaller så snart et varsel samsvarer med den. For å la den vente p�
 
 En regel tilkaller personene i policyene sine for å håndtere varselet: Den som bekrefter tilkallingen, bekrefter varselet. For å holde et team orientert mens et annet håndterer det, svarer du **Observatører** på **Tilkall personene i disse retningslinjene som** under **Flere felt**. Tilkallingen deres sier at de er observatører, og bekrefter de den, sier det bare at de har sett den: Varselet blir ikke bekreftet, og ingen andres tilkalling stopper. Tilkallingen deres fortsetter til en av dem svarer eller varselet er løst, og i listen sier regelen under navnet at den tilkaller som observatører. En policy som én samsvarende regel tilkaller for å håndtere varselet og en annen som observatører, tilkaller for å håndtere det.
 
+En regel kan tilhøre team. **Ansvarlige team** under **Flere felt** forbeholder den teamene du velger: bare medlemmene deres og prosjektadministratorer kan redigere eller slette den, og alle andre som ser regler, ser den skrivebeskyttet. En regel som ikke tilhører noe team, kan endres av alle som kan redigere vaktregler, og episoderegler kan også tilhøre team. Se [Regler som tilhører team](/docs/permissions/index#regler-som-tilhører-team).
+
 ## Hendelsesregler
 
 **Varsler → Regler → Hendelsesregler** gjør selv varsler om til hendelser. Den første regelen som samsvarer med et nytt varsel, ovenfra og ned i listen, erklærer en hendelse ut fra det, slik **Erklær hendelse** på varselets side ville gjort, og knytter varselet til den.

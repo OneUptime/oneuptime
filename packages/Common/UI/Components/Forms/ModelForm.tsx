@@ -183,6 +183,14 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onSubmitError?: ((error: string) => void) | undefined;
   onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
   onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
+  /*
+   * An Update form's record as it was fetched, before the form opens on it:
+   * a form with a field that is no column of the record - a rule's owning
+   * teams, kept in a table of their own and sent as misc data - fills it in
+   * here, so the form opens on what is saved and a save that leaves the
+   * field alone keeps it. What it returns is what the form opens on.
+   */
+  onItemFetched?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
   saveRequestOptions?: RequestOptions | undefined;
   doNotFetchExistingModel?: boolean | undefined;
   /*
@@ -884,6 +892,10 @@ const ModelForm: <TBaseModel extends BaseModel>(
           }
         }
       }
+    }
+
+    if (item && props.onItemFetched) {
+      item = await props.onItemFetched(item as TBaseModel);
     }
 
     setItemToEdit(item as TBaseModel);

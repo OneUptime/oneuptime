@@ -103,6 +103,8 @@ Un canale resta leggibile: ogni evento viene pubblicato una volta sola, e il pri
 
 **Impostazioni del progetto** > **Area di lavoro** > **Slack** elenca i canali che OneUptime può vedere, con **Invia prova** accanto a ciascuno. OneUptime entra da solo in un canale pubblico la prima volta che vi pubblica. Un canale privato viene elencato, e può ricevere messaggi, solo dopo che l'app di OneUptime vi è stata invitata in Slack.
 
+Una regola di notifica può appartenere a dei team. **Team responsabili**, sotto **Altri campi**, la riserva ai team che scegli: solo i loro membri e gli amministratori del progetto possono modificarla o eliminarla, e tutti gli altri che vedono le regole la vedono in sola lettura. Vedi [Regole che appartengono a dei team](/docs/permissions/index#regole-che-appartengono-a-dei-team).
+
 ## Chi è nel canale di un record
 
 Un incidente, un avviso, un episodio o un evento di manutenzione pianificata con un canale Slack tutto suo ha una scheda **Canale Slack** nella sua pagina in OneUptime. La scheda mostra il canale, come link che lo apre in Slack, se è privato e chi c'è, tu per primo. Dalla scheda, senza un amministratore di Slack:
