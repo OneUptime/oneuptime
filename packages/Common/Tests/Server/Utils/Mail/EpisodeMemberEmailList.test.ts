@@ -252,6 +252,8 @@ describe("in the language of the person it pages", () => {
   });
 
   test("every language OneUptime writes in has a View word of its own", () => {
+    const LETTER: RegExp = /\p{L}/u;
+
     for (const code of READER_LANGUAGE_CODES) {
       const html: string = EpisodeMemberEmailList.toHtml(
         items(1),
@@ -266,7 +268,7 @@ describe("in the language of the person it pages", () => {
           ?.trim() || "";
 
       // A word before (or, read from the right, after) its arrow.
-      expect([code, /\p{L}/u.test(linkText)]).toEqual([code, true]);
+      expect([code, LETTER.test(linkText)]).toEqual([code, true]);
       expect([code, code === "en" || linkText !== "View →"]).toEqual([
         code,
         true,

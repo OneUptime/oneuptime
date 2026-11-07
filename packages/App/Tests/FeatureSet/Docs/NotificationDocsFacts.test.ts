@@ -61,6 +61,7 @@ import {
 } from "Common/Types/NotificationRule/NotificationRepeat";
 import PushNotificationLevel from "Common/Types/NotificationRule/PushNotificationLevel";
 import {
+  CANT_TAKE_IT_ESCALATE,
   ON_CALL_PAGE_CALL_PASS_ON_DIGIT,
   getOnCallPageCallPassOnPrompt,
 } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
@@ -85,7 +86,6 @@ import {
   getOnCallPageCantTakeItEscalate,
   getOnCallPageTapToAcknowledge,
 } from "Common/Types/OnCallDutyPolicy/OnCallPageWords";
-import { CANT_TAKE_IT_ESCALATE } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { getServerTranslator } from "Common/Server/Utils/ServerTranslation";
 import { describe, expect, it } from "@jest/globals";
 import crypto from "crypto";
