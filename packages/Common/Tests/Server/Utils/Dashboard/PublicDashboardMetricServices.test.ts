@@ -358,6 +358,10 @@ describe("what a public read cannot do", () => {
       ],
       ["an empty Includes", new Includes([])],
       ["an Includes of ObjectIDs", new Includes([new ObjectID(API)])],
+      [
+        "an Includes of the ObjectIDs of exactly its services",
+        new Includes([new ObjectID(API), new ObjectID(CHECKOUT)]),
+      ],
       ["an Includes of numbers", new Includes([42] as Array<number>)],
       [
         "an Includes with a number among the ids",
