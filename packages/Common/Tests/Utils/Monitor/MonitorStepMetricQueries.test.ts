@@ -1030,8 +1030,9 @@ describe("a step form's queries as the monitor reads them, one for one", () => {
         queryConfigs.push(
           queryOf({
             variable: String.fromCharCode(97 + index),
-            attributes:
-              random(2) === 0 ? undefined : { [`own.${index}`]: `${round}` },
+            ...(random(2) === 0
+              ? {}
+              : { attributes: { [`own.${index}`]: `${round}` } }),
           }),
         );
       }

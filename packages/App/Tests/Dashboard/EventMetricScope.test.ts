@@ -112,7 +112,7 @@ const monitorOf: (
 
 const snapshotOf: (
   queryConfigs: Array<MetricQueryConfigData>,
-  formulaConfigs: Array<MetricFormulaConfigData> = [],
+  formulaConfigs?: Array<MetricFormulaConfigData>,
 ) => MetricInvestigationQueries = (
   queryConfigs: Array<MetricQueryConfigData>,
   formulaConfigs: Array<MetricFormulaConfigData> = [],
@@ -571,7 +571,7 @@ describe("whatever an old snapshot and its monitor hold (seeded)", () => {
 
       const snapshotQuery: MetricQueryConfigData = queryOf({
         metricName: `metric.${random(2)}`,
-        attributes: Object.keys(own).length > 0 ? { ...own } : undefined,
+        ...(Object.keys(own).length > 0 ? { attributes: { ...own } } : {}),
       });
       const stepQuery: MetricQueryConfigData = queryOf({
         metricName: `metric.${random(2)}`,

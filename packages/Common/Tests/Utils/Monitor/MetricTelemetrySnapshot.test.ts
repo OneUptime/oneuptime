@@ -536,7 +536,7 @@ describe("whatever a check read (seeded)", () => {
         queryConfigs.push(
           queryOf({
             variable: String.fromCharCode(97 + index),
-            attributes: random(2) === 0 ? undefined : own,
+            ...(random(2) === 0 ? {} : { attributes: own }),
           }),
         );
 
