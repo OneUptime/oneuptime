@@ -46040,5 +46040,18 @@
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "आप इस सुधार को पहले ही स्वीकृत कर चुके हैं। इसमें ज़्यादा जोखिम वाला बदलाव है, और यह प्रोजेक्ट ऐसे सुधार के लिए दो लोगों की स्वीकृति माँगता है, इसलिए यह तभी चलेगा जब कोई और भी इसे स्वीकृत करे।",
   "You approved it first. It runs once someone else approves it too.": "आपने इसे सबसे पहले स्वीकृत किया। यह तभी चलेगा जब कोई और भी इसे स्वीकृत करे।",
   "Your approval alone runs nothing: the fix runs once someone else approves it too.": "केवल आपकी स्वीकृति से कुछ नहीं चलता: यह सुधार तभी चलेगा जब कोई और भी इसे स्वीकृत करे।",
-  "You already approved this fix": "आप इस सुधार को पहले ही स्वीकृत कर चुके हैं"
+  "You already approved this fix": "आप इस सुधार को पहले ही स्वीकृत कर चुके हैं",
+  "As observers": "पर्यवेक्षकों के रूप में",
+  "Everyone paged by an on-call policy to respond. People paged as observers are not added.": "हर वह व्यक्ति जिसे कोई ऑन-कॉल नीति जवाब देने के लिए पेज करती है। पर्यवेक्षकों के रूप में पेज किए गए लोग नहीं जोड़े जाते।",
+  "Observers": "पर्यवेक्षक",
+  "Page As": "Page As",
+  "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.": "मेल खाने वाली घटनाओं के लिए ऑन-कॉल नीतियों को अपने आप बुलाएँ - प्रतिक्रियाकर्ताओं के रूप में, या जानकारी में रखे जाने वाले पर्यवेक्षकों के रूप में।",
+  "Page the people of these policies as": "इन नीतियों के लोगों को इस रूप में बुलाएँ",
+  "Page them as observers": "उन्हें पर्यवेक्षकों के रूप में बुलाएँ",
+  "Paged as Observers": "Paged as Observers",
+  "Paged as observers: their answer only says they've seen it": "पर्यवेक्षकों के रूप में बुलाए गए: उनका जवाब केवल बताता है कि उन्होंने इसे देख लिया है",
+  "Pages as observers: kept informed, nothing is acknowledged": "पर्यवेक्षकों के रूप में बुलाता है: जानकारी में रखता है, कुछ भी स्वीकार नहीं होता",
+  "They take it on. Acknowledging the page acknowledges it and stops every other page about it.": "वे इसे संभालते हैं। पेज स्वीकार करने से यह स्वीकार हो जाता है और इसके बारे में बाकी सभी पेज रुक जाते हैं।",
+  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "जवाब देने वाले लोग इस पर काम करते रहते हैं, और इन्हें जानकारी मिलती रहती है। स्वीकार करना केवल बताता है कि उन्होंने इसे देख लिया है: और कुछ स्वीकार नहीं होता, किसी और का पेज नहीं रुकता, और उन्हें प्रतिक्रियाकर्ताओं के रूप में इसके चैनल में नहीं जोड़ा जाता।",
+  "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged.": "दूसरे जवाब दें, तब तक जानकारी में रहते हैं: उनका जवाब केवल बताता है कि उन्होंने इसे देख लिया है, और कुछ भी स्वीकार नहीं होता।"
 }

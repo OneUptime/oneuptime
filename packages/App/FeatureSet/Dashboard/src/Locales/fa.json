@@ -46040,5 +46040,18 @@
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "شما این اصلاح را پیش‌تر تأیید کرده‌اید. این اصلاح تغییری پرخطرتر دارد و این پروژه برای چنین اصلاحی تأیید دو نفر را می‌خواهد، پس وقتی کس دیگری هم آن را تأیید کند اجرا می‌شود.",
   "You approved it first. It runs once someone else approves it too.": "شما نخستین تأییدکننده بودید. وقتی کس دیگری هم آن را تأیید کند اجرا می‌شود.",
   "Your approval alone runs nothing: the fix runs once someone else approves it too.": "تأیید شما به‌تنهایی چیزی را اجرا نمی‌کند: این اصلاح وقتی کس دیگری هم آن را تأیید کند اجرا می‌شود.",
-  "You already approved this fix": "شما این اصلاح را پیش‌تر تأیید کرده‌اید"
+  "You already approved this fix": "شما این اصلاح را پیش‌تر تأیید کرده‌اید",
+  "As observers": "به‌عنوان ناظر",
+  "Everyone paged by an on-call policy to respond. People paged as observers are not added.": "هر کسی که یک سیاست آنکال او را برای پاسخ‌گویی فرا می‌خواند. کسانی که به‌عنوان ناظر فراخوانده می‌شوند افزوده نمی‌شوند.",
+  "Observers": "ناظران",
+  "Page As": "Page As",
+  "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.": "برای حادثه‌هایی که مطابقت دارند، سیاست‌های آنکال را خودکار فرا بخوانید؛ به‌عنوان پاسخ‌دهنده، یا به‌عنوان ناظرانی که در جریان نگه داشته می‌شوند.",
+  "Page the people of these policies as": "افراد این سیاست‌ها را به این عنوان فرا بخوان",
+  "Page them as observers": "آن‌ها را به‌عنوان ناظر فرا بخوان",
+  "Paged as Observers": "Paged as Observers",
+  "Paged as observers: their answer only says they've seen it": "به‌عنوان ناظر فراخوانده شدند: پاسخشان فقط می‌گوید که آن را دیده‌اند",
+  "Pages as observers: kept informed, nothing is acknowledged": "به‌عنوان ناظر فرا می‌خواند: در جریان نگه می‌دارد، چیزی تأیید نمی‌شود",
+  "They take it on. Acknowledging the page acknowledges it and stops every other page about it.": "آن‌ها رسیدگی را به عهده می‌گیرند. تأیید فراخوان آن را تأیید می‌کند و هر فراخوان دیگری درباره‌اش را متوقف می‌کند.",
+  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "تا وقتی پاسخ‌دهندگان به کار ادامه می‌دهند، این افراد در جریان نگه داشته می‌شوند. تأیید فقط می‌گوید که آن را دیده‌اند: چیز دیگری تأیید نمی‌شود، فراخوان هیچ‌کس دیگری متوقف نمی‌شود، و به‌عنوان پاسخ‌دهنده به کانال آن افزوده نمی‌شوند.",
+  "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged.": "تا دیگران پاسخ می‌دهند در جریان می‌مانند: پاسخشان فقط می‌گوید که آن را دیده‌اند، و چیزی تأیید نمی‌شود."
 }

@@ -654,7 +654,7 @@ Le regole salvate prima che il modulo chiedesse i proprietari possono avere anco
 
 ## Regole di reperibilità degli incidenti
 
-**Incidenti → Regole → Regole di reperibilità** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) è dove rendete automatici gli avvisi. La scheda, **Regole di reperibilità incidente**, dice cosa fanno: attivare automaticamente le policy di reperibilità per i nuovi incidenti che corrispondono. La pagina ha due schede: **Regole degli incidenti** ed **Regole degli episodi**.
+**Incidenti → Regole → Regole di reperibilità** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) è dove rendete automatici gli avvisi. La scheda, **Regole di reperibilità incidente**, dice cosa fanno: attivare automaticamente le policy di reperibilità per gli incidenti che corrispondono, per rispondere o come osservatori tenuti informati. La pagina ha due schede: **Regole degli incidenti** ed **Regole degli episodi**.
 
 Il modulo di creazione ha due passaggi:
 
@@ -664,6 +664,10 @@ Il modulo di creazione ha due passaggi:
 :::
 
 Una regola chiama appena un incidente corrisponde. Perché attenda invece l'orario di lavoro, rispondete **Solo durante l'orario di lavoro** a **Quando deve chiamare questa regola?** sotto **Altri campi**. L'**Orario di lavoro** parte dal lunedì al venerdì, dalle 09:00 alle 17:00, nel vostro fuso orario: scegliete altri giorni, un'altra **Ora di inizio** o **Ora di fine**, o un altro **Fuso orario**, e una frase sotto la scelta dice cosa succederà. Nell'elenco, la regola mostra il suo orario sotto il nome. Un incidente che corrisponde fuori da quell'orario riceve un'esecuzione che attende, come **In attesa**, e non chiama nessuno; quando inizia l'orario, la policy chiama con la sua prima regola di escalation ed esegue l'escalation come sempre. Se l'incidente viene riconosciuto o risolto prima, nessuno viene chiamato. Se l'incidente cambia mentre attende e ora corrisponde a una regola che chiama subito, per esempio perché ne è stata alzata la gravità, l'esecuzione inizia a chiamare in quel momento, e il feed dell'incidente dice perché.
+
+Una regola chiama le persone delle sue policy perché rispondano: riconoscere la chiamata riconosce l'incidente. Per tenere informato un team mentre un altro risponde, come un team di supervisione avvisato di ogni incidente critico, rispondete **Osservatori** a **Chiama le persone di queste policy come** sotto **Altri campi**. La loro chiamata dice che sono osservatori, e riconoscerla dice solo che l'hanno vista: l'incidente non viene riconosciuto, la chiamata di nessun altro si ferma e nessuno diventa il suo Comandante dell'incidente. La loro chiamata continua finché uno di loro risponde o l'incidente viene risolto, e una regola di Slack o Microsoft Teams che invita i reperibili nel canale dell'incidente li lascia fuori. Nell'elenco, la regola dice sotto il nome che chiama come osservatori. Una policy che una regola corrispondente chiama per rispondere e un'altra come osservatori chiama per rispondere.
+
+Le regole vengono eseguite quando un incidente viene dichiarato, e di nuovo ogni volta che la sua gravità o le sue etichette cambiano mentre è aperto. Quando la sua gravità viene alzata a un livello a cui corrisponde una regola, o riceve un'etichetta a cui ne corrisponde una, le policy di quella regola chiamano in quel momento, per rispondere o come osservatori, e il feed dell'incidente dice che la regola ora gli corrisponde, e perché. Una policy che ha già chiamato per l'incidente non chiama di nuovo, a meno che non abbia chiamato come osservatori e ora le venga chiesto di rispondere. Nulla viene annullato quando l'incidente smette di corrispondere, e cambiare il titolo, la descrizione o il monitor non riesegue le regole.
 
 ### Come si risolve la corrispondenza
 

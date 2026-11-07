@@ -46040,5 +46040,18 @@
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "Você já aprovou esta correção. Ela contém uma alteração mais arriscada e este projeto pede que duas pessoas aprovem uma assim, então ela será executada quando outra pessoa também a aprovar.",
   "You approved it first. It runs once someone else approves it too.": "Você a aprovou primeiro. Ela será executada quando outra pessoa também a aprovar.",
   "Your approval alone runs nothing: the fix runs once someone else approves it too.": "Sua aprovação sozinha não executa nada: a correção será executada quando outra pessoa também a aprovar.",
-  "You already approved this fix": "Você já aprovou esta correção"
+  "You already approved this fix": "Você já aprovou esta correção",
+  "As observers": "Como observadores",
+  "Everyone paged by an on-call policy to respond. People paged as observers are not added.": "Todas as pessoas acionadas por uma política de plantão para responder. Quem é acionado como observador não é adicionado.",
+  "Observers": "Observadores",
+  "Page As": "Page As",
+  "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.": "Acione políticas de plantão automaticamente para incidentes que corresponderem, para responder ou como observadores mantidos informados.",
+  "Page the people of these policies as": "Acionar as pessoas destas políticas como",
+  "Page them as observers": "Acioná-las como observadoras",
+  "Paged as Observers": "Paged as Observers",
+  "Paged as observers: their answer only says they've seen it": "Acionados como observadores: a resposta deles só diz que viram",
+  "Pages as observers: kept informed, nothing is acknowledged": "Aciona como observadores: informados, nada é confirmado",
+  "They take it on. Acknowledging the page acknowledges it and stops every other page about it.": "Elas assumem. Confirmar o acionamento o confirma e para todos os outros acionamentos sobre ele.",
+  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "Elas são mantidas informadas enquanto quem responde continua cuidando disso. Confirmar só diz que elas viram: nada mais é confirmado, o acionamento de mais ninguém para, e elas não são adicionadas ao canal como quem responde.",
+  "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged.": "Mantidos informados enquanto outros respondem: a resposta deles só diz que viram, e nada é confirmado."
 }

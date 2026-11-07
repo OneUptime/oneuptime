@@ -46040,5 +46040,18 @@
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "Sie haben diese Korrektur bereits genehmigt. Sie enthält eine riskantere Änderung, und dieses Projekt verlangt dafür die Genehmigung von zwei Personen. Sie läuft also erst, wenn auch jemand anderes sie genehmigt.",
   "You approved it first. It runs once someone else approves it too.": "Sie haben zuerst genehmigt. Die Korrektur läuft, sobald auch jemand anderes sie genehmigt.",
   "Your approval alone runs nothing: the fix runs once someone else approves it too.": "Ihre Genehmigung allein führt nichts aus: Die Korrektur läuft, sobald auch jemand anderes sie genehmigt.",
-  "You already approved this fix": "Sie haben diese Korrektur bereits genehmigt"
+  "You already approved this fix": "Sie haben diese Korrektur bereits genehmigt",
+  "As observers": "Als Beobachter",
+  "Everyone paged by an on-call policy to respond. People paged as observers are not added.": "Alle, die von einer Bereitschaftsrichtlinie zum Bearbeiten alarmiert werden. Als Beobachter Alarmierte werden nicht hinzugefügt.",
+  "Observers": "Beobachter",
+  "Page As": "Page As",
+  "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.": "Bei passenden Vorfällen automatisch über Bereitschaftsrichtlinien alarmieren – als Bearbeiter oder als informierte Beobachter.",
+  "Page the people of these policies as": "Die Personen dieser Richtlinien alarmieren als",
+  "Page them as observers": "Als Beobachter alarmieren",
+  "Paged as Observers": "Paged as Observers",
+  "Paged as observers: their answer only says they've seen it": "Als Beobachter alarmiert: Ihre Antwort sagt nur, dass sie es gesehen haben",
+  "Pages as observers: kept informed, nothing is acknowledged": "Alarmiert als Beobachter: informiert, nichts wird bestätigt",
+  "They take it on. Acknowledging the page acknowledges it and stops every other page about it.": "Sie übernehmen es. Wer die Alarmierung bestätigt, bestätigt es und beendet jede andere Alarmierung dazu.",
+  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "Sie bleiben auf dem Laufenden, während die Bearbeiter dranbleiben. Eine Bestätigung sagt nur, dass sie es gesehen haben: Sonst wird nichts bestätigt, keine andere Alarmierung endet, und sie werden nicht als Bearbeiter in den Kanal aufgenommen.",
+  "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged.": "Auf dem Laufenden gehalten, während andere reagieren: Ihre Antwort sagt nur, dass sie es gesehen haben, und nichts wird bestätigt."
 }

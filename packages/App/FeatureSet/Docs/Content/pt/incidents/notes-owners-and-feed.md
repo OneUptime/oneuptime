@@ -249,7 +249,7 @@ Alguns itens trazem detalhes extras — uma notificação aos proprietários lis
 O cabeçalho do cartão também tem um menu **Ações** para você agir sem sair da linha do tempo:
 
 - **Executar runbook** — inicia um [runbook](/docs/runbooks/index) neste incidente.
-- **Executar política de plantão** — aciona uma política sob demanda. Uma política arquivada não aciona ninguém: seu log de execução no incidente diz que ela não foi executada porque a política está arquivada.
+- **Executar política de plantão** — aciona uma política sob demanda. Uma política arquivada não aciona ninguém: seu log de execução no incidente diz que ela não foi executada porque a política está arquivada. Ative **Acioná-las como observadoras** para, em vez disso, manter as pessoas da política informadas: a resposta delas só diz que viram o acionamento, e o incidente não é confirmado.
 - **Adicionar nota pública** — o editor da página **Notas públicas**, em uma caixa de diálogo: escreva a nota e depois **Publicar atualização**. Os modelos, **Rascunho com IA**, os anexos, **Notificar os assinantes da página de status** com quem ela alcançará, e **Pré-visualização** estão todos ali. A nota é publicada agora; para retroagi-la, escolha **Publicada agora**.
 - **Adicionar nota privada** — o editor da página **Notas privadas**, em uma caixa de diálogo: escreva a nota e depois **Adicionar nota**.
 
@@ -304,7 +304,7 @@ Há cinco caminhos para a lista de proprietários:
 
 - **Ao declarar** — a pessoa que declara um incidente vira proprietária, e **Proprietários**, em **Mais campos** de **Declarar incidente**, adiciona mais: cada equipe de que ela é membro fica a um clique, logo abaixo do campo. Veja [Quem será o proprietário](/docs/incidents/declaring-incidents#quem-será-o-proprietário).
 - **A partir de um modelo de incidente** — os modelos têm um campo **Proprietários**: as pessoas e equipes proprietárias do incidente, que serão notificadas quando ele for criado ou atualizado, escolhidas da mesma lista de **Adicionar proprietário**. Criar um incidente a partir do modelo as preenche, e elas são adicionadas depois que os canais do Slack e do Microsoft Teams do incidente existem, então uma regra de notificação que convida os proprietários do incidente para um canal novo também as convida. O painel, e a etapa **Create One Incident** de um workflow com um **Incident Template** escolhido, as adicionam sem a notificação «você foi adicionado»; um [formulário](/docs/forms/on-submit) com um modelo as notifica, e segura a notificação **Incidente criado** do incidente até que elas sejam adicionadas. Veja [Declarar um incidente](/docs/incidents/declaring-incidents).
-- **A partir das regras de proprietário de incidentes** — as regras correspondentes adicionam proprietários automaticamente no momento da criação.
+- **A partir das regras de proprietário de incidentes** — as regras correspondentes adicionam proprietários automaticamente no momento da criação, e de novo quando a gravidade ou os rótulos do incidente mudam.
 - **Na criação pela API** — os usuários e equipes proprietários passados com a chamada de criação são adicionados do mesmo jeito, depois que os canais existem, e sem a notificação «você foi adicionado».
 - **Manualmente** — o controle **Adicionar proprietário** na página **Proprietários**, a qualquer momento do incidente, ou **Adicionar** abaixo dos proprietários no cabeçalho da **Visão geral** enquanto ele está aberto.
 
@@ -324,6 +324,8 @@ Uma regra nova precisa adicionar alguém: escolha pelo menos um proprietário, a
 **Notificar proprietários**, em **Mais campos**, controla se as pessoas ficam sabendo. Deixe-o ativado para um roteamento de verdade; desative-o para adicionar proprietários em silêncio — útil quando uma regra é uma conveniência de registro, e não um acionamento.
 
 Toda execução de regra é gravada no feed do incidente, então você sempre pode saber se uma pessoa foi adicionada por uma regra ou por um humano.
+
+As regras são executadas quando um incidente é declarado, e de novo sempre que sua gravidade ou seus rótulos mudam enquanto ele está aberto. Um incidente cuja gravidade é elevada a um nível com que uma regra corresponde, ou que recebe um rótulo com que uma corresponde, recebe na hora os proprietários dessa regra, notificados como a regra diz, e seu feed diz que a regra agora corresponde a ele, e por quê: é assim que uma equipe assume um incidente assim que se descobre que ele afeta toda a organização. Os proprietários nunca são removidos quando o incidente deixa de corresponder.
 
 ## Sobre o que os proprietários são notificados
 

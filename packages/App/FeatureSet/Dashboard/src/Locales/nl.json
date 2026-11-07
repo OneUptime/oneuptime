@@ -46040,5 +46040,18 @@
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "Je hebt deze oplossing al goedgekeurd. Hij bevat een riskantere wijziging en dit project vraagt twee mensen om zo'n oplossing goed te keuren, dus hij wordt uitgevoerd zodra iemand anders hem ook goedkeurt.",
   "You approved it first. It runs once someone else approves it too.": "Je hebt hem als eerste goedgekeurd. Hij wordt uitgevoerd zodra iemand anders hem ook goedkeurt.",
   "Your approval alone runs nothing: the fix runs once someone else approves it too.": "Je goedkeuring alleen voert niets uit: de oplossing wordt uitgevoerd zodra iemand anders hem ook goedkeurt.",
-  "You already approved this fix": "Je hebt deze oplossing al goedgekeurd"
+  "You already approved this fix": "Je hebt deze oplossing al goedgekeurd",
+  "As observers": "Als waarnemers",
+  "Everyone paged by an on-call policy to respond. People paged as observers are not added.": "Iedereen die door een bereikbaarheidsbeleid wordt opgeroepen om te reageren. Wie als waarnemer wordt opgeroepen, wordt niet toegevoegd.",
+  "Observers": "Waarnemers",
+  "Page As": "Page As",
+  "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.": "Roep automatisch bereikbaarheidsbeleid op voor incidenten die overeenkomen, om te reageren of als waarnemers die op de hoogte blijven.",
+  "Page the people of these policies as": "De mensen van dit beleid oproepen als",
+  "Page them as observers": "Als waarnemers oproepen",
+  "Paged as Observers": "Paged as Observers",
+  "Paged as observers: their answer only says they've seen it": "Opgeroepen als waarnemers: hun antwoord zegt alleen dat ze het hebben gezien",
+  "Pages as observers: kept informed, nothing is acknowledged": "Roept op als waarnemers: op de hoogte, niets wordt bevestigd",
+  "They take it on. Acknowledging the page acknowledges it and stops every other page about it.": "Zij nemen het op zich. Wie de oproep bevestigt, bevestigt het en stopt elke andere oproep erover.",
+  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "Zij blijven op de hoogte terwijl de mensen die reageren ermee bezig blijven. Bevestigen zegt alleen dat ze het hebben gezien: verder wordt niets bevestigd, geen andere oproep stopt, en ze worden niet als reageerders aan het kanaal toegevoegd.",
+  "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged.": "Op de hoogte gehouden terwijl anderen reageren: hun antwoord zegt alleen dat ze het hebben gezien, en niets wordt bevestigd."
 }

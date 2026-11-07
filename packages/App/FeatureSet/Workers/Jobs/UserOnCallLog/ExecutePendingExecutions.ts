@@ -33,6 +33,7 @@ import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDut
 import ObjectID from "Common/Types/ObjectID";
 import { isOnCallPageAgainRun } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { isOnCallPersonPage } from "Common/Types/OnCallDutyPolicy/OnCallPersonPage";
+import { isOnCallObserverPage } from "Common/Types/OnCallDutyPolicy/OnCallObserverPage";
 import OnCallAcknowledgementTimeout, {
   OnCallTimeoutRecordKind,
 } from "Common/Server/Utils/OnCall/OnCallAcknowledgementTimeout";
@@ -70,7 +71,8 @@ RunCron(
            * A page again goes on until the run itself is acknowledged
            * (OnCallAcknowledgementTimeout): its record was acknowledged all
            * along. So does a page a person asked for (OnCallPersonPage),
-           * told apart by who started it.
+           * told apart by who started it, and an observer's page
+           * (OnCallObserverPage).
            */
           onCallDutyPolicyExecutionLog: {
             pageAgainNumber: true,
@@ -78,6 +80,7 @@ RunCron(
             onCallDutyPolicyId: true,
             triggeredByUserId: true,
             triggeredByWorkflowId: true,
+            isObserverPage: true,
           },
         },
         props: {
@@ -251,12 +254,17 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
        * (OnCallPersonPage): somebody else acknowledging the record does not
        * mean the people they paged have seen it - the record is often
        * acknowledged before they page at all.
+       *
+       * And so does an observer's page (OnCallObserverPage): the responders
+       * acknowledging the record is no sign the observers have seen it.
        */
       const pageRun: OnCallDutyPolicyExecutionLog | undefined =
         pendingNotificationLog.onCallDutyPolicyExecutionLog;
       const isPageAgain: boolean = isOnCallPageAgainRun(pageRun);
       const isPersonPage: boolean = isOnCallPersonPage(pageRun);
-      const endsWhenAnsweredOrResolved: boolean = isPageAgain || isPersonPage;
+      const isObserverPage: boolean = isOnCallObserverPage(pageRun);
+      const endsWhenAnsweredOrResolved: boolean =
+        isPageAgain || isPersonPage || isObserverPage;
 
       if (endsWhenAnsweredOrResolved) {
         const record: {

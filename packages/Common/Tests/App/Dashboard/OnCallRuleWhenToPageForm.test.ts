@@ -131,6 +131,8 @@ describe("the fields", () => {
 
     expect(keys.slice(keys.indexOf("description"))).toEqual([
       "description",
+      // What the policies' people are paged as (OnCallRulePageAsForm).
+      "pageAs",
       "whenToPage",
       "aiHoldTimeInMinutes",
       "workingHours",

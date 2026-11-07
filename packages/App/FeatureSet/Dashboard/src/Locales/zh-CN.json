@@ -46040,5 +46040,18 @@
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "你已批准此修复。它包含风险较高的变更，而此项目要求两人批准此类修复，因此在其他人也批准后它才会运行。",
   "You approved it first. It runs once someone else approves it too.": "你已率先批准。在其他人也批准后它才会运行。",
   "Your approval alone runs nothing: the fix runs once someone else approves it too.": "仅凭你的批准不会运行任何内容：在其他人也批准后，修复才会运行。",
-  "You already approved this fix": "你已批准此修复"
+  "You already approved this fix": "你已批准此修复",
+  "As observers": "以观察者身份",
+  "Everyone paged by an on-call policy to respond. People paged as observers are not added.": "值班策略为响应而呼叫的所有人。以观察者身份被呼叫的人不会被加入。",
+  "Observers": "观察者",
+  "Page As": "Page As",
+  "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.": "为匹配的事件自动呼叫值班策略，以响应人身份，或作为随时知情的观察者。",
+  "Page the people of these policies as": "以何种身份呼叫这些策略中的人员",
+  "Page them as observers": "以观察者身份呼叫他们",
+  "Paged as Observers": "Paged as Observers",
+  "Paged as observers: their answer only says they've seen it": "以观察者身份呼叫：他们的回应只表示已经看到",
+  "Pages as observers: kept informed, nothing is acknowledged": "以观察者身份呼叫：随时知情，不确认任何内容",
+  "They take it on. Acknowledging the page acknowledges it and stops every other page about it.": "由他们负责处理。确认呼叫即确认该事项，并停止与之相关的所有其他呼叫。",
+  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "在响应人继续处理时，他们会随时知情。确认只表示他们已经看到：不会确认其他任何内容，其他人的呼叫不会停止，他们也不会作为响应人被加入其频道。",
+  "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged.": "在他人响应时随时知情：他们的回应只表示已经看到，不会确认任何内容。"
 }

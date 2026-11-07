@@ -43,9 +43,17 @@ The conditions a new incident must meet.
 
 When a rule matches, each of its on-call policies pages its people for the incident. A policy already on the incident is not run twice.
 
+### Responders or Observers
+
+A rule pages its policies' people as **responders** - they take the incident on, and acknowledging the page acknowledges it - or, under More fields, as **observers**: kept informed while the people responding stay on it. An observer's answer only says they've seen the page: the incident is not acknowledged, nobody else's page stops, and they don't become its Incident Commander. Use it to tell an oversight team about every critical incident another team owns.
+
+### When the Severity or Labels Change
+
+Rules run when an incident is declared, and again whenever its severity or labels change while it is open: raised to a severity a rule pages for, or labelled org-wide, the incident pages that rule's policies then. Nothing is undone when it stops matching.
+
 ### Several Matching Rules
 
-Every rule that matches runs: there is no order and no first match. Their policies are added to any added by hand or by a template, and each policy runs once.
+Every rule that matches runs: there is no order and no first match. Their policies are added to any added by hand or by a template, and each policy runs once. A policy that one rule pages as responders and another as observers pages responders.
 `;
 
 const incidentEpisodeOnCallDocumentation: string = `
@@ -81,7 +89,7 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
       cardProps={{
         title: "Incident On-Call Rules",
         description:
-          "Page on-call policies automatically for new incidents that match.",
+          "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.",
       }}
       helpContent={{
         title: "How Incident On-Call Rules Work",
@@ -95,6 +103,7 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
         whenToPage: true,
         workingHours: true,
         workingHoursTimezone: true,
+        pageAs: true,
       }}
       filters={[
         {
@@ -273,6 +282,7 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
         whenToPage: true,
         workingHours: true,
         workingHoursTimezone: true,
+        pageAs: true,
       }}
       filters={[
         { field: { name: true }, title: "Name", type: FieldType.Text },

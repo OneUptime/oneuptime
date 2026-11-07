@@ -589,6 +589,10 @@ describe("a responder acknowledging their page: on-call stops as for Acknowledge
     jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "updateOneById")
       .mockResolvedValue(undefined as never);
+    // A responder's run: answering it acknowledges the record (OnCallObserverPage).
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue(null as never);
     jest
       .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "updateOneById")
       .mockResolvedValue(undefined as never);

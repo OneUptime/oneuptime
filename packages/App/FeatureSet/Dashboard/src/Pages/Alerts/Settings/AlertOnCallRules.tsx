@@ -95,6 +95,7 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
         whenToPage: true,
         workingHours: true,
         workingHoursTimezone: true,
+        pageAs: true,
       }}
       filters={[
         {
@@ -271,6 +272,7 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
         whenToPage: true,
         workingHours: true,
         workingHoursTimezone: true,
+        pageAs: true,
       }}
       filters={[
         { field: { name: true }, title: "Name", type: FieldType.Text },

@@ -46040,5 +46040,18 @@
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.",
   "You approved it first. It runs once someone else approves it too.": "You approved it first. It runs once someone else approves it too.",
   "Your approval alone runs nothing: the fix runs once someone else approves it too.": "Your approval alone runs nothing: the fix runs once someone else approves it too.",
-  "You already approved this fix": "You already approved this fix"
+  "You already approved this fix": "You already approved this fix",
+  "As observers": "As observers",
+  "Everyone paged by an on-call policy to respond. People paged as observers are not added.": "Everyone paged by an on-call policy to respond. People paged as observers are not added.",
+  "Observers": "Observers",
+  "Page As": "Page As",
+  "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.": "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.",
+  "Page the people of these policies as": "Page the people of these policies as",
+  "Page them as observers": "Page them as observers",
+  "Paged as Observers": "Paged as Observers",
+  "Paged as observers: their answer only says they've seen it": "Paged as observers: their answer only says they've seen it",
+  "Pages as observers: kept informed, nothing is acknowledged": "Pages as observers: kept informed, nothing is acknowledged",
+  "They take it on. Acknowledging the page acknowledges it and stops every other page about it.": "They take it on. Acknowledging the page acknowledges it and stops every other page about it.",
+  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.",
+  "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged.": "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged."
 }

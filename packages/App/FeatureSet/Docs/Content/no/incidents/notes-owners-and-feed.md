@@ -249,7 +249,7 @@ Noen oppføringer har ekstra detaljer — et varsel til eierne viser for eksempe
 Kortets overskrift har også en meny **Handlinger**, så du kan handle uten å forlate tidslinjen:
 
 - **Kjør runbook** — start et [runbook](/docs/runbooks/index) for denne hendelsen.
-- **Kjør vakttjenesteretningslinje** — tilkall en policy ved behov. En arkivert policy tilkaller ingen: kjøringsloggen på hendelsen sier at den ikke ble kjørt fordi policyen er arkivert.
+- **Kjør vakttjenesteretningslinje** — tilkall en policy ved behov. En arkivert policy tilkaller ingen: kjøringsloggen på hendelsen sier at den ikke ble kjørt fordi policyen er arkivert. Slå på **Tilkall dem som observatører** for i stedet å holde personene i policyen orientert: Svaret deres sier bare at de har sett tilkallingen, og hendelsen blir ikke bekreftet.
 - **Legg til offentlig notat** — redigeringsverktøyet fra siden **Offentlige notater**, i en dialog: skriv notatet, og deretter **Publiser oppdatering**. Maler, **Utkast med KI**, vedlegg, **Varsle abonnentene på statussiden** med hvem det når, og **Forhåndsvisning** er der alle sammen. Notatet publiseres nå; for å tilbakedatere det velger du **Publisert nå**.
 - **Legg til privat notat** — redigeringsverktøyet fra siden **Private notater**, i en dialog: skriv notatet, og deretter **Legg til notat**.
 
@@ -304,7 +304,7 @@ Det er fem veier inn på listen over eiere:
 
 - **Ved erklæring** — den som erklærer en hendelse, blir eier, og **Eiere** under **Flere felt** i **Erklær hendelse** legger til flere: hvert team personen er medlem av, er ett klikk unna under feltet. Se [Hvem som eier den](/docs/incidents/declaring-incidents#hvem-som-eier-den).
 - **Fra en hendelsesmal** — maler har et felt **Eiere**: personene og teamene som eier hendelsen og får beskjed når den opprettes eller oppdateres, valgt fra den samme listen som **Legg til eier**. Å opprette en hendelse fra malen forhåndsutfyller dem, og de legges til når hendelsens Slack- og Microsoft Teams-kanaler finnes, slik at en varselregel som inviterer hendelsens eiere til en ny kanal, også inviterer dem. Dashbordet, og trinnet **Create One Incident** i en arbeidsflyt med en valgt **Incident Template**, legger dem til uten varselet «du er lagt til»; et [skjema](/docs/forms/on-submit) med en mal gir dem beskjed og holder hendelsens varsel **Hendelse opprettet** tilbake til de er lagt til. Se [Opprette en hendelse](/docs/incidents/declaring-incidents).
-- **Fra Eierregler for hendelse** — samsvarende regler legger til eiere automatisk ved opprettelsen.
+- **Fra Eierregler for hendelse** — samsvarende regler legger til eiere automatisk ved opprettelsen, og igjen når alvorlighetsgraden eller etikettene til hendelsen endres.
 - **Ved opprettelse via API-et** — brukere og team som oppgis som eiere med opprettelseskallet, legges til på samme måte, når kanalene finnes, og uten varselet «du er lagt til».
 - **By hand** — elementet **Legg til eier** på siden **Eiere**, når som helst under hendelsen, eller **Legg til** under eierne i toppen av **Oversikt** så lenge den er åpen.
 
@@ -324,6 +324,8 @@ En ny regel må legge til noen: velg minst én eier, slå på en bryter under **
 **Varsle eiere**, under **Flere felt**, styrer om folk får vite det. La den være slått på for ekte ruting; slå den av for å legge til eiere stille — nyttig når en regel er en administrativ bekvemmelighet og ikke en tilkalling.
 
 Hver kjøring av en regel skrives i hendelsens feed, så du alltid kan se om en person ble lagt til av en regel eller av et menneske.
+
+Regler kjører når en hendelse opprettes, og igjen hver gang alvorlighetsgraden eller etikettene endres mens den er åpen. En hendelse som heves til en alvorlighetsgrad som en regel samsvarer med, eller får en etikett som en regel samsvarer med, får den regelens eiere med en gang, varslet slik regelen sier, og feeden forteller at regelen nå samsvarer med den, og hvorfor: Slik overtar et team en hendelse når det viser seg at den rammer hele organisasjonen. Eiere fjernes aldri når hendelsen ikke lenger samsvarer.
 
 ## Hva eierne får beskjed om
 

@@ -249,7 +249,7 @@ Sommige items dragen extra details — een melding aan eigenaren noemt bijvoorbe
 De kop van de kaart heeft ook een menu **Acties**, zodat je kunt handelen zonder de tijdlijn te verlaten:
 
 - **Runbook uitvoeren** — start een [runbook](/docs/runbooks/index) voor dit incident.
-- **Bereikbaarheidsdienstbeleid uitvoeren** — roep op verzoek een beleid op. Een gearchiveerd beleid roept niemand op: zijn uitvoeringslogboek op het incident zegt dat het niet is uitgevoerd omdat het beleid gearchiveerd is.
+- **Bereikbaarheidsdienstbeleid uitvoeren** — roep op verzoek een beleid op. Een gearchiveerd beleid roept niemand op: zijn uitvoeringslogboek op het incident zegt dat het niet is uitgevoerd omdat het beleid gearchiveerd is. Zet **Als waarnemers oproepen** aan om de mensen van het beleid in plaats daarvan op de hoogte te houden: hun antwoord zegt alleen dat ze de oproep hebben gezien, en het incident wordt niet bevestigd.
 - **Openbare notitie toevoegen** — de editor van de pagina **Openbare notities**, in een dialoogvenster: schrijf de notitie, en daarna **Update plaatsen**. Sjablonen, **Concept met AI**, bijlagen, **Abonnees van de statuspagina een melding sturen** met wie de notitie bereikt, en **Voorbeeld** zijn er allemaal. De notitie wordt nu geplaatst; om haar terug te dateren, kies je **Nu geplaatst**.
 - **Privénotitie toevoegen** — de editor van de pagina **Privénotities**, in een dialoogvenster: schrijf de notitie, en daarna **Notitie toevoegen**.
 
@@ -304,7 +304,7 @@ Er zijn vijf routes naar de lijst met eigenaren:
 
 - **Bij het melden** — wie een incident meldt, wordt eigenaar, en **Eigenaren**, onder **Meer velden** in **Incident melden**, voegt er meer toe: elk team waarvan diegene lid is, staat er één klik onder. Zie [Wie de eigenaar wordt](/docs/incidents/declaring-incidents#wie-de-eigenaar-wordt).
 - **Vanuit een incidentsjabloon** — sjablonen hebben een veld **Eigenaren**: de mensen en teams die eigenaar zijn van het incident en bericht krijgen als het wordt aangemaakt of bijgewerkt, gekozen uit dezelfde lijst als **Eigenaar toevoegen**. Een incident aanmaken vanuit het sjabloon vult ze vooraf in, en ze worden toegevoegd zodra de Slack- en Microsoft Teams-kanalen van het incident bestaan, zodat een meldingsregel die de eigenaren van een incident in een nieuw kanaal uitnodigt, hen ook uitnodigt. Het dashboard, en de stap **Create One Incident** van een workflow met een gekozen **Incident Template**, voegen ze toe zonder de melding "je bent toegevoegd"; een [formulier](/docs/forms/on-submit) met een sjabloon laat het hun wel weten, en houdt de melding **Incident aangemaakt** van het incident vast tot ze zijn toegevoegd. Zie [Een incident melden](/docs/incidents/declaring-incidents).
-- **Vanuit Incident-eigenaarregels** — overeenkomende regels voegen bij het aanmaken automatisch eigenaren toe.
+- **Vanuit Incident-eigenaarregels** — overeenkomende regels voegen bij het aanmaken automatisch eigenaren toe, en opnieuw wanneer het ernstniveau of de labels van het incident veranderen.
 - **Bij het aanmaken via de API** — gebruikers en teams die als eigenaar met de aanmaakaanroep worden meegegeven, worden op dezelfde manier toegevoegd, zodra de kanalen bestaan, en zonder de melding "je bent toegevoegd".
 - **By hand** — het element **Eigenaar toevoegen** op de pagina **Eigenaren**, op elk moment tijdens het incident, of **Toevoegen** onder de eigenaren in de kop van het **Overzicht** zolang het open is.
 
@@ -324,6 +324,8 @@ Een nieuwe regel moet iemand toevoegen: kies minstens één eigenaar, zet een sc
 **Eigenaren op de hoogte stellen**, onder **Meer velden**, bepaalt of mensen het te weten komen. Laat het aan voor echte routering; zet het uit om eigenaren stil toe te voegen — handig als een regel een administratief gemak is en geen oproep.
 
 Elke uitvoering van een regel wordt in de incidentfeed geschreven, zodat je altijd kunt zien of iemand door een regel of door een mens is toegevoegd.
+
+Regels draaien wanneer een incident wordt gemeld, en opnieuw telkens wanneer zijn ernstniveau of labels veranderen terwijl het open is. Een incident dat wordt verhoogd naar een ernstniveau waarop een regel past, of een label krijgt waarop er een past, krijgt op dat moment de eigenaren van die regel, gemeld zoals de regel zegt, en zijn feed zegt dat de regel er nu op past, en waarom: zo neemt een team een incident over zodra blijkt dat het de hele organisatie raakt. Eigenaren worden nooit verwijderd wanneer het incident niet meer past.
 
 ## Waarover eigenaren een melding krijgen
 

@@ -46040,5 +46040,18 @@
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "이미 이 수정을 승인했습니다. 위험이 큰 변경이 포함되어 있고 이 프로젝트는 이런 수정에 두 사람의 승인을 요구하므로, 다른 사람도 승인하면 실행됩니다.",
   "You approved it first. It runs once someone else approves it too.": "먼저 승인했습니다. 다른 사람도 승인하면 실행됩니다.",
   "Your approval alone runs nothing: the fix runs once someone else approves it too.": "승인만으로는 아무것도 실행되지 않습니다. 다른 사람도 승인하면 수정이 실행됩니다.",
-  "You already approved this fix": "이미 이 수정을 승인했습니다"
+  "You already approved this fix": "이미 이 수정을 승인했습니다",
+  "As observers": "관찰자로",
+  "Everyone paged by an on-call policy to respond. People paged as observers are not added.": "대응하도록 온콜 정책이 호출하는 모든 사람. 관찰자로 호출된 사람은 추가되지 않습니다.",
+  "Observers": "관찰자",
+  "Page As": "Page As",
+  "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.": "일치하는 인시던트에 대해 온콜 정책을 대응자로, 또는 상황을 전달받는 관찰자로 자동 호출합니다.",
+  "Page the people of these policies as": "이 정책의 사람들을 호출할 역할",
+  "Page them as observers": "관찰자로 호출",
+  "Paged as Observers": "Paged as Observers",
+  "Paged as observers: their answer only says they've seen it": "관찰자로 호출됨: 응답은 봤다는 뜻일 뿐입니다",
+  "Pages as observers: kept informed, nothing is acknowledged": "관찰자로 호출: 상황만 전달하며 아무것도 인지되지 않음",
+  "They take it on. Acknowledging the page acknowledges it and stops every other page about it.": "직접 대응합니다. 호출을 인지하면 해당 항목이 인지되고, 관련된 다른 모든 호출이 멈춥니다.",
+  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "대응자가 대응하는 동안 상황을 전달받습니다. 인지해도 봤다는 뜻일 뿐입니다. 다른 것은 인지되지 않고, 다른 사람의 호출도 멈추지 않으며, 대응자로 채널에 추가되지도 않습니다.",
+  "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged.": "다른 사람이 대응하는 동안 상황을 전달받습니다. 응답은 봤다는 뜻일 뿐이며, 아무것도 인지되지 않습니다."
 }

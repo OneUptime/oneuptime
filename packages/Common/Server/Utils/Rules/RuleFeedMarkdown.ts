@@ -110,4 +110,54 @@ export default class RuleFeedMarkdown {
       }),
     )}`;
   }
+
+  /*
+   * What an on-call rule engine did with the policies its rules matched,
+   * under the line naming the rules (OnCallRulePageAs):
+   *
+   *   Attached the following on-call policy to the incident:
+   *   - Platform on-call
+   *
+   *   Paging the following on-call policy as observers - kept informed,
+   *   while the people responding stay on the incident:
+   *   - Oversight on-call
+   *
+   * Either part is left out when it names nothing. `recordNoun` is "incident",
+   * "alert" or "episode".
+   */
+  public static onCallRulePolicies(data: {
+    recordNoun: string;
+    attachedPolicyNames: Array<string>;
+    observerPolicyNames: Array<string>;
+  }): MarkdownText {
+    const parts: Array<MarkdownText> = [];
+
+    if (data.attachedPolicyNames.length > 0) {
+      parts.push(
+        mdText`Attached the following on-call ${
+          data.attachedPolicyNames.length === 1 ? "policy" : "policies"
+        } to the ${data.recordNoun}:\n${FeedMarkdown.bulletList(
+          data.attachedPolicyNames,
+        )}`,
+      );
+    }
+
+    if (data.observerPolicyNames.length > 0) {
+      parts.push(
+        mdText`Paging the following on-call ${
+          data.observerPolicyNames.length === 1 ? "policy" : "policies"
+        } as observers - kept informed, while the people responding stay on the ${
+          data.recordNoun
+        }:\n${FeedMarkdown.bulletList(data.observerPolicyNames)}`,
+      );
+    }
+
+    if (parts.length === 0) {
+      return mdText`Attached the following on-call policies to the ${
+        data.recordNoun
+      }:\n${FeedMarkdown.bulletList([], { whenEmpty: "(no named policies)" })}`;
+    }
+
+    return FeedMarkdown.join(parts, "\n\n");
+  }
 }

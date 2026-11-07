@@ -46040,5 +46040,18 @@
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "Du har allerede godkendt denne rettelse. Den indeholder en mere risikabel ændring, og dette projekt kræver, at to personer godkender sådan en, så den kører, når en anden også godkender den.",
   "You approved it first. It runs once someone else approves it too.": "Du godkendte den først. Den kører, når en anden også godkender den.",
   "Your approval alone runs nothing: the fix runs once someone else approves it too.": "Din godkendelse alene kører intet: rettelsen kører, når en anden også godkender den.",
-  "You already approved this fix": "Du har allerede godkendt denne rettelse"
+  "You already approved this fix": "Du har allerede godkendt denne rettelse",
+  "As observers": "Som observatører",
+  "Everyone paged by an on-call policy to respond. People paged as observers are not added.": "Alle, som en vagtpolitik tilkalder for at håndtere det. Personer, der tilkaldes som observatører, tilføjes ikke.",
+  "Observers": "Observatører",
+  "Page As": "Page As",
+  "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.": "Tilkald automatisk via vagtpolitikker for hændelser, der matcher – til at håndtere dem eller som observatører, der holdes orienteret.",
+  "Page the people of these policies as": "Tilkald personerne i disse politikker som",
+  "Page them as observers": "Tilkald dem som observatører",
+  "Paged as Observers": "Paged as Observers",
+  "Paged as observers: their answer only says they've seen it": "Tilkaldt som observatører: Deres svar siger kun, at de har set det",
+  "Pages as observers: kept informed, nothing is acknowledged": "Tilkalder som observatører: holdes orienteret, intet bekræftes",
+  "They take it on. Acknowledging the page acknowledges it and stops every other page about it.": "De tager sig af det. Bekræftes tilkaldet, bekræftes det, og alle andre tilkald om det stopper.",
+  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "De holdes orienteret, mens dem, der håndterer det, bliver ved. En bekræftelse siger kun, at de har set det: Intet andet bekræftes, ingen andres tilkald stopper, og de føjes ikke til kanalen som dem, der håndterer det.",
+  "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged.": "Holdes orienteret, mens andre håndterer det: Deres svar siger kun, at de har set det, og intet bekræftes."
 }

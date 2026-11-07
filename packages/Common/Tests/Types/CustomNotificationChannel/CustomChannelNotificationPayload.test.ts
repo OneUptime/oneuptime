@@ -173,6 +173,7 @@ describe("buildCustomChannelNotificationPayload", () => {
       onCallPolicy: null,
       escalationRule: null,
       isPageAgain: false,
+      isObserverPage: false,
       actions: null,
       notificationType:
         "Send incident state changed notification when I am the owner of the incident",
@@ -214,6 +215,7 @@ describe("buildCustomChannelNotificationPayload", () => {
     expect(payload["actions"]).toBeNull();
     // Not a page, so never a page again: false, as a test's, not null.
     expect(payload["isPageAgain"]).toBe(false);
+    expect(payload["isObserverPage"]).toBe(false);
   });
 
   test("is payload version 1, the version every request carries", () => {

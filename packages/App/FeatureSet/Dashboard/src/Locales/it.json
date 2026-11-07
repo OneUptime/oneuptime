@@ -46040,5 +46040,18 @@
   "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.": "Hai già approvato questa correzione. Contiene una modifica più rischiosa e questo progetto chiede che due persone approvino una correzione simile, quindi verrà eseguita quando anche un'altra persona la approverà.",
   "You approved it first. It runs once someone else approves it too.": "L'hai approvata per primo. Verrà eseguita quando anche un'altra persona la approverà.",
   "Your approval alone runs nothing: the fix runs once someone else approves it too.": "La tua approvazione da sola non esegue nulla: la correzione verrà eseguita quando anche un'altra persona la approverà.",
-  "You already approved this fix": "Hai già approvato questa correzione"
+  "You already approved this fix": "Hai già approvato questa correzione",
+  "As observers": "Come osservatori",
+  "Everyone paged by an on-call policy to respond. People paged as observers are not added.": "Tutte le persone allertate da una policy di reperibilità per rispondere. Chi è allertato come osservatore non viene aggiunto.",
+  "Observers": "Osservatori",
+  "Page As": "Page As",
+  "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.": "Attiva automaticamente le policy di reperibilità per gli incidenti che corrispondono, per rispondere o come osservatori tenuti informati.",
+  "Page the people of these policies as": "Chiama le persone di queste policy come",
+  "Page them as observers": "Chiamali come osservatori",
+  "Paged as Observers": "Paged as Observers",
+  "Paged as observers: their answer only says they've seen it": "Chiamati come osservatori: la loro risposta dice solo che l'hanno visto",
+  "Pages as observers: kept informed, nothing is acknowledged": "Chiama come osservatori: informati, nulla viene riconosciuto",
+  "They take it on. Acknowledging the page acknowledges it and stops every other page about it.": "Se ne fanno carico. Riconoscere la chiamata lo riconosce e ferma ogni altra chiamata al riguardo.",
+  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "Vengono tenuti informati mentre chi risponde se ne occupa. Riconoscere dice solo che l'hanno visto: nient'altro viene riconosciuto, la chiamata di nessun altro si ferma e non vengono aggiunti al suo canale come persone che rispondono.",
+  "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged.": "Tenuti informati mentre altri rispondono: la loro risposta dice solo che l'hanno visto, e nulla viene riconosciuto."
 }
