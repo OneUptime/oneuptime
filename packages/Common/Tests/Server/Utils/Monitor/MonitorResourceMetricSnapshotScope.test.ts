@@ -465,3 +465,56 @@ describe("a Metrics monitor's incident", () => {
     });
   });
 });
+
+// Issue #6266: a Metrics monitor limited to some services.
+describe("a service-limited Metrics monitor's incident and alert", () => {
+  const SERVICES: Array<string> = [
+    "77777777-7777-4777-8777-777777777777",
+    "88888888-8888-4888-8888-888888888888",
+  ];
+
+  test("keep the services every query was read for", async () => {
+    const metricsCase: MonitorCase = {
+      name: "Metrics",
+      monitorType: MonitorType.Metrics,
+      settings: { telemetryServiceIds: SERVICES },
+      query: queryOf({ metricName: "http.server.duration" }),
+      read: undefined,
+      scope: {},
+    };
+    setUpMonitor(metricsCase);
+
+    await MonitorResourceUtil.monitorResource({
+      ...responseOf(metricsCase, [undefined]),
+      queryServiceIds: SERVICES,
+    });
+
+    const { incident, alert } = handedSnapshots();
+    for (const snapshot of [incident, alert]) {
+      expect(snapshot?.metricServiceIds).toEqual(SERVICES);
+      // The queries as the step keeps them.
+      expect(snapshot?.metricViewData?.queryConfigs).toEqual([
+        metricsCase.query,
+      ]);
+    }
+  });
+
+  test("a check that read every service keeps none", async () => {
+    const metricsCase: MonitorCase = {
+      name: "Metrics",
+      monitorType: MonitorType.Metrics,
+      settings: {},
+      query: queryOf({ metricName: "http.server.duration" }),
+      read: undefined,
+      scope: {},
+    };
+    setUpMonitor(metricsCase);
+
+    await MonitorResourceUtil.monitorResource(
+      responseOf(metricsCase, [undefined]),
+    );
+
+    const { incident } = handedSnapshots();
+    expect(incident?.metricServiceIds).toBeUndefined();
+  });
+});

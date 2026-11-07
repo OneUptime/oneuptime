@@ -307,6 +307,54 @@ describe("a MetricView handed the queries its charts read", () => {
     ]);
   });
 
+  // Issue #6266: a Metrics monitor's chart reads for the services it is limited to.
+  test("a chart read for some services fetches for them, and a Top-N on it saves no services", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+    const forServices: MetricQueryConfigData = {
+      ...WRITTEN,
+      metricQueryData: {
+        ...WRITTEN.metricQueryData,
+        filterData: {
+          ...WRITTEN.metricQueryData.filterData,
+          telemetryServiceIds: ["service-a"],
+        } as never,
+      },
+    };
+
+    render(viewOf({ chartQueryConfigs: [forServices], onChange }));
+    await waitFor(() => {
+      expect(lastCharts?.onQueryConfigsChange).toBeDefined();
+    });
+
+    for (const call of fetchResultsMock.mock.calls) {
+      expect(
+        (call[0] as { metricViewData: MetricViewData }).metricViewData
+          .queryConfigs[0]?.metricQueryData.filterData.telemetryServiceIds,
+      ).toEqual(["service-a"]);
+    }
+
+    const charted: MetricQueryConfigData =
+      lastCharts!.metricViewData.queryConfigs[0]!;
+    act(() => {
+      lastCharts!.onQueryConfigsChange!([
+        {
+          ...charted,
+          metricQueryData: { ...charted.metricQueryData, topN: 3 },
+        },
+      ]);
+    });
+
+    const saved: MetricViewData = onChange.mock.calls[
+      onChange.mock.calls.length - 1
+    ]![0] as MetricViewData;
+    expect(saved.queryConfigs).toEqual([
+      {
+        ...WRITTEN,
+        metricQueryData: { ...WRITTEN.metricQueryData, topN: 3 },
+      },
+    ]);
+  });
+
   test("a new cluster is fetched at once; the same scope worked out again is not fetched twice", async () => {
     const view: ReturnType<typeof render> = render(
       viewOf({ chartQueryConfigs: [chartedFor("pve-prod")] }),

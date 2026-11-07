@@ -200,6 +200,12 @@ import {
   METRIC_INVESTIGATION_THRESHOLD_HINT_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Investigation/MetricInvestigation";
 import MetricInvestigationUrl from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Investigation/MetricInvestigationUrl";
+import ExplorerLink from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/ExplorerLink";
+import { buildQueryConfigsFromSerializedQueries } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/MetricConfigReconstruct";
+import MetricExplorerUrl, {
+  MetricExplorerUrlParam,
+} from "../../../Utils/Metrics/MetricExplorerUrl";
+import MetricQueryServices from "../../../Utils/Metrics/MetricQueryServices";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import { JSONObject } from "../../../Types/JSON";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
@@ -875,24 +881,103 @@ describe("the page around the card", () => {
     expect(getListMock).not.toHaveBeenCalled();
   });
 
-  test("a Metrics monitor read for some services says the charts show every service", async () => {
+  /*
+   * Issue #6266: a Metrics monitor limited to services A and B charts A's
+   * and B's series only - it used to say its charts showed every service.
+   */
+  test("a Metrics monitor limited to some services charts those services only, and says nothing about it", async () => {
+    const services: Array<string> = [
+      "44444444-4444-4444-8444-444444444444",
+      "55555555-5555-4555-8555-555555555555",
+    ];
+
     renderCard({
       monitorType: MonitorType.Metrics,
       monitorSteps: stepsOf(
         metricsStep({
           id: "rum",
-          settings: {
-            telemetryServiceIds: ["44444444-4444-4444-8444-444444444444"],
-          },
+          settings: { telemetryServiceIds: services },
         }),
       ),
     });
     await chartsShown();
 
+    // Every read, and what the charts draw, is for those services.
+    for (const data of fetchedData()) {
+      for (const query of data.queryConfigs) {
+        expect(MetricQueryServices.getServiceIds(query)).toEqual(services);
+      }
+    }
     expect(
-      screen.getByText(
-        "This monitor checks these metrics for 1 service. The charts show them for every service.",
+      MetricQueryServices.getServiceIds(
+        lastCharts!.metricViewData.queryConfigs[0] as never,
       ),
-    ).toBeVisible();
+    ).toEqual(services);
+
+    expect(screen.queryByText(/for every service/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/This monitor checks these metrics for/),
+    ).not.toBeInTheDocument();
+  });
+
+  test("Open in Metric Explorer opens on the monitor's services only", async () => {
+    const services: Array<string> = ["44444444-4444-4444-8444-444444444444"];
+    const opened: Array<MetricViewData> = [];
+    const openInExplorer: jest.SpiedFunction<
+      typeof ExplorerLink.openInExplorer
+    > = jest
+      .spyOn(ExplorerLink, "openInExplorer")
+      .mockImplementation((data: MetricViewData): void => {
+        opened.push(data);
+      });
+
+    renderCard({
+      monitorType: MonitorType.Metrics,
+      monitorSteps: stepsOf(
+        metricsStep({
+          id: "rum",
+          settings: { telemetryServiceIds: services },
+        }),
+      ),
+    });
+    await chartsShown();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open in Metric Explorer" }),
+    );
+
+    expect(opened).toHaveLength(1);
+
+    // The explorer, opened on the link's params, reads them for that service.
+    const params: Dictionary<string> =
+      MetricExplorerUrl.buildQueryParamsFromMetricViewData(opened[0]!);
+    const explorerQueries: Array<MetricQueryConfigData> =
+      buildQueryConfigsFromSerializedQueries(
+        MetricExplorerUrl.parseMetricQueriesParam(
+          params[MetricExplorerUrlParam.MetricQueries]!,
+        ),
+      );
+    expect(explorerQueries).toHaveLength(1);
+    expect(MetricQueryServices.getServiceIds(explorerQueries[0])).toEqual(
+      services,
+    );
+
+    openInExplorer.mockRestore();
+  });
+
+  test("a Metrics monitor read for every service charts every service, as before", async () => {
+    renderCard({
+      monitorType: MonitorType.Metrics,
+      monitorSteps: stepsOf(metricsStep({ id: "all" })),
+    });
+    await chartsShown();
+
+    for (const data of fetchedData()) {
+      for (const query of data.queryConfigs) {
+        expect(
+          Object.keys(query.metricQueryData.filterData),
+        ).not.toContain("telemetryServiceIds");
+      }
+    }
   });
 });

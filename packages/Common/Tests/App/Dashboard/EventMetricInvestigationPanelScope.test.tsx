@@ -698,3 +698,79 @@ describe("charted as the snapshot keeps it, with nothing said", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+/*
+ * Issue #6266: an incident a Metrics monitor limited to some services
+ * opened charts those services only.
+ */
+describe("an incident of a Metrics monitor limited to some services", () => {
+  const API: string = "44444444-4444-4444-8444-444444444444";
+  const CHECKOUT: string = "55555555-5555-4555-8555-555555555555";
+
+  const QUERY: MetricQueryConfigData = queryOf({
+    metricName: "http.server.duration",
+  });
+
+  function lastFetchedServices(): unknown {
+    const calls: Array<Array<unknown>> = fetchResultsMock.mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    return (calls[calls.length - 1]![0] as { metricViewData: MetricViewData })
+      .metricViewData.queryConfigs[0]?.metricQueryData.filterData
+      .telemetryServiceIds;
+  }
+
+  test("a snapshot that keeps its services charts them from the first read, and says nothing", async () => {
+    readsAre({
+      monitorType: MonitorType.Metrics,
+      monitorSteps: monitorStepsOf({
+        monitorType: MonitorType.Metrics,
+        settings: { telemetryServiceIds: [CHECKOUT] },
+        query: QUERY,
+      }),
+    });
+
+    renderPanel({
+      ...snapshotOf({ queryConfigs: [QUERY], scopes: [null] }),
+      metricServiceIds: [API],
+    });
+
+    await waitFor(() => {
+      expect(fetchResultsMock).toHaveBeenCalled();
+    });
+    expect(
+      (fetchResultsMock.mock.calls[0]![0] as { metricViewData: MetricViewData })
+        .metricViewData.queryConfigs[0]?.metricQueryData.filterData
+        .telemetryServiceIds,
+    ).toEqual([API]);
+
+    await waitFor(() => {
+      expect(monitorWasRead()).toBe(true);
+    });
+    await settle();
+    // Still the services it was read for, not the monitor's now.
+    expect(lastFetchedServices()).toEqual([API]);
+    expect(
+      screen.queryByTestId(EVENT_METRIC_SCOPE_NOTE_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("one stored before charts the services the monitor is limited to now, and says so", async () => {
+    readsAre({
+      monitorType: MonitorType.Metrics,
+      monitorSteps: monitorStepsOf({
+        monitorType: MonitorType.Metrics,
+        settings: { telemetryServiceIds: [API, CHECKOUT] },
+        query: QUERY,
+      }),
+    });
+
+    renderPanel(snapshotOf({ queryConfigs: [QUERY] }));
+
+    await waitFor(() => {
+      expect(lastFetchedServices()).toEqual([API, CHECKOUT]);
+    });
+    expect(
+      await screen.findByTestId(EVENT_METRIC_SCOPE_NOTE_TEST_ID),
+    ).toHaveTextContent("Charted for what this monitor checks now.");
+  });
+});

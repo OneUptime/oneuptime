@@ -134,6 +134,15 @@ describe("incident Root Cause metric chart is scoped to the incident's series", 
     ).toContain("seriesLabels: true,");
   });
 
+  test("reads the monitor's step as the monitor reads it: for the services it is limited to (issue #6266)", () => {
+    expect(ROOT_CAUSE_CHART).toContain(
+      'import MonitorStepMetricQueries from "Common/Utils/Monitor/MonitorStepMetricQueries";',
+    );
+    expect(ROOT_CAUSE_CHART).toContain(
+      "queryConfigs = MonitorStepMetricQueries.getReadQueryConfigs({ monitorType: MonitorType.Metrics, settings: step.data?.metricMonitor, });",
+    );
+  });
+
   test("narrows the monitor step's query configs before charting them", () => {
     /*
      * The assignment is the load-bearing part: calling the util and

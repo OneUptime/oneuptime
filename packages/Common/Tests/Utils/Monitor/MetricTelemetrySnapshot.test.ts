@@ -575,3 +575,133 @@ describe("whatever a check read (seeded)", () => {
     }
   });
 });
+
+/*
+ * Issue #6266: a Metrics monitor limited to some services read every query
+ * for those services only; the incident or alert it opens keeps them, and
+ * its card charts the queries for them.
+ */
+describe("a snapshot of a check limited to some services", () => {
+  const API: string = "44444444-4444-4444-8444-444444444444";
+  const CHECKOUT: string = "55555555-5555-4555-8555-555555555555";
+
+  test("keeps the services every query was read for", () => {
+    const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse({
+      ...responseOf({ queryConfigs: [queryOf({})], queryAttributes: [undefined] }),
+      queryServiceIds: [API, CHECKOUT, API, ""],
+    });
+
+    expect(snapshot.metricServiceIds).toEqual([API, CHECKOUT]);
+    expect(MetricTelemetrySnapshot.getStoredServiceIds(snapshot)).toEqual([
+      API,
+      CHECKOUT,
+    ]);
+  });
+
+  test("a check that read every service keeps none, as before", () => {
+    for (const queryServiceIds of [undefined, []]) {
+      const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse({
+        ...responseOf({ queryConfigs: [queryOf({})], queryAttributes: [undefined] }),
+        ...(queryServiceIds ? { queryServiceIds } : {}),
+      });
+
+      expect("metricServiceIds" in snapshot).toBe(false);
+      expect(MetricTelemetrySnapshot.getStoredServiceIds(snapshot)).toEqual(
+        [],
+      );
+    }
+  });
+
+  test.each([
+    ["no snapshot", null],
+    [
+      "a log snapshot",
+      {
+        telemetryType: TelemetryType.Log,
+        telemetryQuery: null,
+        metricViewData: null,
+        metricServiceIds: [API],
+      },
+    ],
+    [
+      "services that are not a list",
+      {
+        telemetryType: TelemetryType.Metric,
+        telemetryQuery: null,
+        metricViewData: null,
+        metricServiceIds: API,
+      },
+    ],
+  ])("%s says every service", (_name: string, snapshot: unknown) => {
+    expect(
+      MetricTelemetrySnapshot.getStoredServiceIds(snapshot as TelemetryQuery),
+    ).toEqual([]);
+  });
+
+  test("its queries are charted for those services, and stay as the step keeps them", () => {
+    const query: MetricQueryConfigData = queryOf({
+      attributes: { "resource.service.name": "api" },
+    });
+    const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse({
+      ...responseOf({
+        queryConfigs: [query],
+        queryAttributes: [{ "resource.service.name": "api" }],
+      }),
+      queryServiceIds: [API],
+    });
+
+    expect(snapshot.metricViewData?.queryConfigs[0]).toBe(query);
+
+    const [charted] = MetricTelemetrySnapshot.applyServices({
+      queryConfigs: snapshot.metricViewData!.queryConfigs,
+      serviceIds: MetricTelemetrySnapshot.getStoredServiceIds(snapshot),
+    });
+    expect(charted!.metricQueryData.filterData.telemetryServiceIds).toEqual([
+      API,
+    ]);
+    expect(charted!.metricQueryData.filterData.attributes).toEqual({
+      "resource.service.name": "api",
+    });
+  });
+
+  test("no services, or queries that read for them already, leave the list as it is", () => {
+    const queryConfigs: Array<MetricQueryConfigData> = [queryOf({})];
+
+    expect(
+      MetricTelemetrySnapshot.applyServices({ queryConfigs, serviceIds: [] }),
+    ).toBe(queryConfigs);
+
+    const read: Array<MetricQueryConfigData> =
+      MetricTelemetrySnapshot.applyServices({
+        queryConfigs,
+        serviceIds: [API],
+      });
+    expect(
+      MetricTelemetrySnapshot.applyServices({
+        queryConfigs: read,
+        serviceIds: [API],
+      }),
+    ).toBe(read);
+    expect(
+      MetricTelemetrySnapshot.applyServices({
+        queryConfigs: [null as never],
+        serviceIds: [API],
+      })[0],
+    ).toBeNull();
+  });
+
+  test("the services survive being stored and read back", () => {
+    const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse({
+      ...responseOf({ queryConfigs: [queryOf({})], queryAttributes: [undefined] }),
+      queryServiceIds: [API],
+    });
+
+    const readBack: TelemetryQuery = JSONFunctions.deserialize(
+      JSON.parse(JSON.stringify(snapshot)),
+    ) as unknown as TelemetryQuery;
+
+    expect(MetricTelemetrySnapshot.getStoredServiceIds(readBack)).toEqual([
+      API,
+    ]);
+  });
+});
