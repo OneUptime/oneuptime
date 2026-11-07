@@ -5,6 +5,7 @@ import Workflow from "../../../Models/DatabaseModels/Workflow";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../../Utils/API";
+import WriteSource from "../../../Types/BaseDatabase/WriteSource";
 import {
   afterEach,
   beforeEach,
@@ -304,5 +305,96 @@ describe("once a graph is saved", () => {
     );
 
     expect(recordSave).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Ask AI saves as the person who asked, and says so (issue #6258): what the
+ * props say made the write reaches the version history, for it to keep Ask
+ * AI's change as a version of its own. Nothing else is read from it.
+ */
+describe("a save Ask AI makes for the person", () => {
+  test("is recorded as Ask AI's, by that person", async () => {
+    heldRows = [row(WORKFLOW_ID)];
+    const updateBy: { query: JSONObject; data: JSONObject; props: JSONObject } =
+      {
+        ...anUpdate({ graph: GRAPH }),
+        props: {
+          userId: USER_ID,
+          tenantId: PROJECT_ID,
+          writeSource: WriteSource.AskAi,
+        },
+      };
+
+    await hook("onUpdatePermitted")(updateBy);
+    await hook("onUpdateSuccess")({ updateBy, carryForward: null }, [
+      WORKFLOW_ID,
+    ]);
+
+    expect(recordSave).toHaveBeenCalledWith({
+      workflowId: WORKFLOW_ID,
+      projectId: PROJECT_ID,
+      graph: GRAPH,
+      userId: USER_ID,
+      savedThrough: WriteSource.AskAi,
+    });
+  });
+
+  test("a person's own save says nothing of Ask AI, and neither does a source that is not one", async () => {
+    for (const writeSource of [undefined, "Someone"]) {
+      recordSave.mockClear();
+      heldRows = [row(WORKFLOW_ID)];
+      const updateBy: {
+        query: JSONObject;
+        data: JSONObject;
+        props: JSONObject;
+      } = {
+        ...anUpdate({ graph: GRAPH }),
+        props: {
+          userId: USER_ID,
+          tenantId: PROJECT_ID,
+          ...(writeSource ? { writeSource } : {}),
+        },
+      };
+
+      await hook("onUpdatePermitted")(updateBy);
+      await hook("onUpdateSuccess")({ updateBy, carryForward: null }, [
+        WORKFLOW_ID,
+      ]);
+
+      expect(
+        (recordSave.mock.calls[0]?.[0] as { savedThrough?: unknown })
+          .savedThrough,
+      ).toBeUndefined();
+    }
+  });
+
+  test("a workflow Ask AI creates is its first version, by the person, saying Ask AI made it", async () => {
+    const created: Workflow = {
+      _id: WORKFLOW_ID.toString(),
+      id: WORKFLOW_ID,
+      webhookSecretKey: "already-set",
+      graph: GRAPH,
+    } as unknown as Workflow;
+    created.projectId = PROJECT_ID;
+
+    await hook("onCreateSuccess")(
+      {
+        createBy: {
+          data: created,
+          props: { userId: USER_ID, writeSource: WriteSource.AskAi },
+        },
+        carryForward: null,
+      },
+      created,
+    );
+
+    expect(recordCreated).toHaveBeenCalledWith({
+      workflowId: WORKFLOW_ID,
+      projectId: PROJECT_ID,
+      graph: GRAPH,
+      userId: USER_ID,
+      savedThrough: WriteSource.AskAi,
+    });
   });
 });

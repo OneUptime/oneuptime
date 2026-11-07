@@ -89,6 +89,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import ComponentMetadata from "../../../../Types/Workflow/Component";
 import { WorkflowVersionType } from "../../../../Types/Workflow/WorkflowVersion";
+import WriteSource from "../../../../Types/BaseDatabase/WriteSource";
 import {
   SavedWorkflowGraph,
   toSavedWorkflowGraph,
@@ -126,6 +127,7 @@ const version: (data: {
   changeCount?: number;
   restoredFrom?: number;
   savedBy?: string;
+  savedThrough?: WriteSource;
   updatedAt?: Date;
 }) => WorkflowVersion = (data: {
   number: number;
@@ -134,6 +136,7 @@ const version: (data: {
   changeCount?: number;
   restoredFrom?: number;
   savedBy?: string;
+  savedThrough?: WriteSource;
   updatedAt?: Date;
 }): WorkflowVersion => {
   const model: WorkflowVersion = new WorkflowVersion();
@@ -149,6 +152,10 @@ const version: (data: {
 
   if (data.savedBy) {
     model.createdByUser = { name: data.savedBy } as never;
+  }
+
+  if (data.savedThrough) {
+    model.savedThrough = data.savedThrough;
   }
 
   return model;
@@ -337,6 +344,61 @@ describe("the list", () => {
       "The workflow before version history began",
     );
     expect(row(1)).not.toHaveTextContent("Saved through the API");
+  });
+
+  // Issue #6258: each change Ask AI makes is a version of its own, saying so.
+  test("a version Ask AI saved says it made it for the person who asked - in the row and in its preview", async () => {
+    serve([
+      version({
+        number: 3,
+        type: WorkflowVersionType.Changed,
+        changes: ['Added "Log" (log-2)'],
+        savedBy: "Ada Lovelace",
+        savedThrough: WriteSource.AskAi,
+      }),
+      version({
+        number: 2,
+        type: WorkflowVersionType.Changed,
+        changes: ['Added "Send Email" (send-email-1)'],
+        savedBy: "Ada Lovelace",
+      }),
+      version({
+        number: 1,
+        type: WorkflowVersionType.Changed,
+        changes: ['Added "Log" (log-1)'],
+        savedThrough: WriteSource.AskAi,
+      }),
+    ]);
+    renderPanel();
+
+    await waitFor(() => {
+      expect(row(3)).toBeInTheDocument();
+    });
+
+    const request: { select: JSONObject } = mockGetList.mock
+      .calls[0]?.[0] as never;
+
+    expect(request.select["savedThrough"]).toBe(true);
+    expect(
+      within(row(3)).getByTestId("workflow-version-saved-by"),
+    ).toHaveTextContent(/^Ask AI, for Ada Lovelace$/);
+    // The person's own version just before it says only their name.
+    expect(
+      within(row(2)).getByTestId("workflow-version-saved-by"),
+    ).toHaveTextContent(/^Ada Lovelace$/);
+    // Ask AI's, for someone no longer known.
+    expect(
+      within(row(1)).getByTestId("workflow-version-saved-by"),
+    ).toHaveTextContent(/^Saved by Ask AI$/);
+
+    // The preview of an earlier one of Ask AI's says it in its description too.
+    fireEvent.click(screen.getByTestId("workflow-version-preview-1"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("dialog", { name: "Version 1" }),
+      ).toHaveTextContent("Saved by Ask AI");
+    });
   });
 
   test("offers a preview of every version but the newest", async () => {

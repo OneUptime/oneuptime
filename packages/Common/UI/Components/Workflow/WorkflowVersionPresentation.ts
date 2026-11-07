@@ -1,4 +1,9 @@
-import { PluralTemplate, translationKey } from "../../Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
+import WriteSource from "../../../Types/BaseDatabase/WriteSource";
 import { WorkflowVersionType } from "../../../Types/Workflow/WorkflowVersion";
 
 /*
@@ -20,6 +25,8 @@ export const WorkflowVersionCopy: {
   readonly earlier: string;
   readonly changedWithoutLines: string;
   readonly savedWithoutPerson: string;
+  readonly savedByAskAiFor: string;
+  readonly savedByAskAi: string;
   readonly moreChanges: PluralTemplate;
   readonly preview: string;
   readonly showMore: string;
@@ -43,6 +50,10 @@ export const WorkflowVersionCopy: {
   earlier: translationKey("The workflow before version history began"),
   changedWithoutLines: translationKey("Changed the workflow"),
   savedWithoutPerson: translationKey("Saved through the API"),
+  // A change Ask AI made for the person who asked (issue #6258); their name stays as written.
+  savedByAskAiFor: translationKey("Ask AI, for {{person}}"),
+  // The same, once that person is no longer known.
+  savedByAskAi: translationKey("Saved by Ask AI"),
   moreChanges: {
     one: translationKey("And {{count}} more change"),
     other: translationKey("And {{count}} more changes"),
@@ -85,6 +96,11 @@ export interface WorkflowVersionRow {
   restoredFromVersionNumber: number | null;
   // Who saved it, by name or email, or "" for nobody known.
   savedBy: string;
+  /*
+   * What saved it for them, when it was not their own hand: Ask AI
+   * (WorkflowVersion.savedThrough). Null for their own saves and the API's.
+   */
+  savedThrough?: WriteSource | string | null | undefined;
 }
 
 // A sentence, and the version number it names, if it names one.
@@ -155,19 +171,26 @@ export const getWorkflowVersionLines: (row: WorkflowVersionRow) => {
 
 export type WorkflowVersionSavedBy =
   | { person: string }
+  | { askAiFor: string }
   | { sentence: string }
   | null;
 
 /*
- * Who saved a version: a person, by name; nobody to name for the workflow as
- * it was before version history began; and otherwise the API (an API key
- * saves as nobody).
+ * Who saved a version: Ask AI, for the person who asked; a person, by name;
+ * nobody to name for the workflow as it was before version history began;
+ * and otherwise the API (an API key saves as nobody).
  */
 export const getWorkflowVersionSavedBy: (
   row: WorkflowVersionRow,
 ) => WorkflowVersionSavedBy = (
   row: WorkflowVersionRow,
 ): WorkflowVersionSavedBy => {
+  if (row.savedThrough === WriteSource.AskAi) {
+    return row.savedBy
+      ? { askAiFor: row.savedBy }
+      : { sentence: WorkflowVersionCopy.savedByAskAi };
+  }
+
   if (row.savedBy) {
     return { person: row.savedBy };
   }
@@ -177,6 +200,38 @@ export const getWorkflowVersionSavedBy: (
   }
 
   return { sentence: WorkflowVersionCopy.savedWithoutPerson };
+};
+
+/*
+ * Who saved a version, in the reader's language: "Ada Lovelace", "Ask AI,
+ * for Ada Lovelace", "Saved through the API" - or "" for nobody to name. A
+ * person's name is theirs, as written.
+ */
+export const describeWorkflowVersionSavedBy: (data: {
+  savedBy: WorkflowVersionSavedBy;
+  translator: Translator;
+}) => string = (data: {
+  savedBy: WorkflowVersionSavedBy;
+  translator: Translator;
+}): string => {
+  const savedBy: WorkflowVersionSavedBy = data.savedBy;
+
+  if (!savedBy) {
+    return "";
+  }
+
+  if ("person" in savedBy) {
+    return savedBy.person;
+  }
+
+  if ("askAiFor" in savedBy) {
+    return data.translator.translateTemplate(
+      WorkflowVersionCopy.savedByAskAiFor,
+      { person: savedBy.askAiFor },
+    );
+  }
+
+  return data.translator.translateText(savedBy.sentence) || savedBy.sentence;
 };
 
 /*

@@ -180,7 +180,7 @@ Cada cambio que haces en el lienzo se puede revertir, aunque se haya guardado al
 - El teclado también funciona: ⌘Z en un Mac, o Ctrl+Z, deshace, y ⇧⌘Z, Ctrl+Shift+Z o Ctrl+Y rehace. Mientras escribes en un campo o en un editor de código, las mismas teclas deshacen lo que has escrito.
 - Lo que deshaces se guarda como cualquier otro cambio. Deshacer abarca lo que has hecho desde que abriste el Constructor; el historial de versiones llega más atrás.
 
-**Historial de versiones**, en la barra de herramientas, muestra cada versión guardada del flujo de trabajo, la más reciente primero: quién la guardó, cuándo y qué cambió, como `Added "Send Email" (send-email-1)`. Los cambios que guardas con menos de 10 minutos de diferencia entre sí forman una sola versión, así que una versión es una parte del trabajo y no cada clic. Los cambios que hace Ask AI, y los que se hacen mediante la API, también son versiones.
+**Historial de versiones**, en la barra de herramientas, muestra cada versión guardada del flujo de trabajo, la más reciente primero: quién la guardó, cuándo y qué cambió, como `Added "Send Email" (send-email-1)`. Los cambios que guardas con menos de 10 minutos de diferencia entre sí forman una sola versión, así que una versión es una parte del trabajo y no cada clic. Los cambios que se hacen mediante la API también son versiones, y cada cambio que hace Ask AI es una versión propia, que indica que Ask AI lo hizo por ti. Restaurar la versión anterior deshace exactamente lo que hizo Ask AI.
 
 Para volver a una versión anterior:
 

@@ -180,7 +180,7 @@ Hver endring du gjør på lerretet, kan tas tilbake, selv om den ble lagret med 
 - Tastaturet virker også: ⌘Z på en Mac, eller Ctrl+Z, angrer, og ⇧⌘Z, Ctrl+Shift+Z eller Ctrl+Y gjør om. Mens du skriver i et felt eller en kodeeditor, angrer de samme tastene i stedet det du har skrevet.
 - Det du angrer, lagres som enhver annen endring. Angre rekker bare tilbake til det du har gjort siden du åpnet Bygger; versjonshistorikken går lenger tilbake.
 
-**Versjonshistorikk**, i verktøylinjen, viser hver lagret versjon av arbeidsflyten, med den nyeste først: hvem som lagret den, når, og hva den endret, for eksempel `Added "Send Email" (send-email-1)`. Endringene du lagrer innen 10 minutter etter hverandre, blir én versjon, så en versjon er et stykke arbeid og ikke hvert eneste klikk. Endringer Ask AI gjør, og endringer gjort via API-et, er også versjoner.
+**Versjonshistorikk**, i verktøylinjen, viser hver lagret versjon av arbeidsflyten, med den nyeste først: hvem som lagret den, når, og hva den endret, for eksempel `Added "Send Email" (send-email-1)`. Endringene du lagrer innen 10 minutter etter hverandre, blir én versjon, så en versjon er et stykke arbeid og ikke hvert eneste klikk. Endringer gjort via API-et er også versjoner, og hver endring Ask AI gjør, er en egen versjon som sier at Ask AI gjorde den for deg. Gjenoppretter du versjonen før den, tar du tilbake nøyaktig det Ask AI gjorde.
 
 For å gå tilbake til en tidligere versjon:
 

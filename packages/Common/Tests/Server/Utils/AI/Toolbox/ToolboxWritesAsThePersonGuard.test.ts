@@ -21,9 +21,12 @@ import { describe, expect, test } from "@jest/globals";
  *      WorkspaceMemberActions, of the GitHub client, of the investigation
  *      queue, or of a repository's host writer (CodeHostWriter: GitHub,
  *      GitLab, Forgejo or Gitea), other than a read (find*, count*, get*,
- *      ...) - passes `props: ctx.props`, or is in ALLOWED with the reason
- *      OneUptime makes it itself, after the person's own checks. ALLOWED
- *      only shrinks: an entry no call matches fails.
+ *      ...) - passes `props: ctx.props`, or the person's props with no more
+ *      than where the change came from added
+ *      (`props: { ...ctx.props, writeSource: ... }`, issue #6258: the write
+ *      is still theirs, and only says Ask AI made it), or is in ALLOWED with
+ *      the reason OneUptime makes it itself, after the person's own checks.
+ *      ALLOWED only shrinks: an entry no call matches fails.
  *   B. Those modules are called through their default export only - never
  *      through a named import, an alias or a method passed around - so the
  *      scan sees every call.
@@ -84,6 +87,37 @@ const OTHER_READS: Record<string, string> = {
 
 // What every write passes: the props of the person who asked.
 const PERSON_PROPS: string = "ctx.props";
+
+/*
+ * What a write may add to the person's props: where the change came from,
+ * for attribution only (DatabaseCommonInteractionProps.writeSource). Never
+ * a permission - isRoot, a tenant, a user - which would make the write
+ * someone else's.
+ */
+const ATTRIBUTION_ONLY_PROPS: ReadonlySet<string> = new Set<string>([
+  "writeSource",
+]);
+
+// `{ ...ctx.props, writeSource: ... }`: the person's props, saying only where the change came from.
+function isPersonPropsWithAttribution(expression: ts.Expression): boolean {
+  if (!ts.isObjectLiteralExpression(expression)) {
+    return false;
+  }
+
+  const [first, ...rest] = expression.properties;
+
+  return (
+    first !== undefined &&
+    ts.isSpreadAssignment(first) &&
+    first.expression.getText() === PERSON_PROPS &&
+    rest.every((property: ts.ObjectLiteralElementLike): boolean => {
+      return (
+        ts.isPropertyAssignment(property) &&
+        ATTRIBUTION_ONLY_PROPS.has(property.name.getText())
+      );
+    })
+  );
+}
 
 interface AllowedWrite {
   file: string;
@@ -232,7 +266,8 @@ function passesPersonProps(call: ts.CallExpression): boolean {
     return (
       ts.isPropertyAssignment(property) &&
       property.name.getText() === "props" &&
-      property.initializer.getText() === PERSON_PROPS
+      (property.initializer.getText() === PERSON_PROPS ||
+        isPersonPropsWithAttribution(property.initializer))
     );
   });
 }
@@ -737,6 +772,31 @@ describe("the scan's negative controls", () => {
       "Snippet.ts:7: IncidentService.updateOneById",
     );
     expect(result.notAMutationTool).toEqual([]);
+  });
+
+  test("D: takes the person's props saying only where the change came from, and nothing more", () => {
+    const result: GuardResult = checkSnippet(
+      SERVICE_IMPORT +
+        `export const AskAiTool: ObservabilityTool = {
+  name: "ask_ai_change",
+  isMutation: true,
+  execute: async (args: JSONObject, ctx: ToolContext) => {
+    await IncidentService.updateOneById({ id: args.id, data: { title: "x" }, props: { ...ctx.props, writeSource: WriteSource.AskAi } });
+    await IncidentService.updateOneById({ id: args.id, data: { title: "x" }, props: { ...ctx.props, writeSource: WriteSource.AskAi, isRoot: true } });
+    await IncidentService.updateOneById({ id: args.id, data: { title: "x" }, props: { ...ctx.props, isRoot: true } });
+    await IncidentService.updateOneById({ id: args.id, data: { title: "x" }, props: { isRoot: true, ...ctx.props } });
+    await IncidentService.updateOneById({ id: args.id, data: { title: "x" }, props: { writeSource: WriteSource.AskAi } });
+  },
+};
+`,
+    );
+
+    // The first (line 6) is the person's; every other is someone else's, or nobody's.
+    expect(
+      result.notAsThePerson.map((problem: string): string => {
+        return problem.split(":")[1] as string;
+      }),
+    ).toEqual(["7", "8", "9", "10"]);
   });
 
   test("D: finds a write that passes no props", () => {
