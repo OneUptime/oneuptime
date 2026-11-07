@@ -1027,6 +1027,41 @@ export default class MattermostUtil extends WorkspaceBase {
     return Array.from(members.values()).slice(0, data.max);
   }
 
+  /*
+   * A post only `userId` sees, in `channelId`: Mattermost's ephemeral post,
+   * shown to them as "(Only visible to you)" and gone when they reload. It
+   * answers a form somebody sent - the form closes when it is done and
+   * says nothing itself - where they opened it, as a press's
+   * `ephemeral_text` answers a press. Held to what a post takes, with its
+   * mentions broken (getMessageText).
+   */
+  @CaptureSpan()
+  public static async postEphemeral(data: {
+    authToken: string;
+    userId: string;
+    channelId: string;
+    markdown: string;
+  }): Promise<void> {
+    const connection: MattermostConnectionData =
+      MattermostConnection.fromAuthToken(data.authToken);
+
+    await MattermostUtil.callServer<JSONObject>({
+      ...connection,
+      method: HTTPMethod.POST,
+      path: "/api/v4/posts/ephemeral",
+      body: {
+        user_id: MattermostConnection.assertMattermostId(data.userId, "user"),
+        post: {
+          channel_id: MattermostConnection.assertMattermostId(
+            data.channelId,
+            "channel",
+          ),
+          message: MattermostUtil.getMessageText(data.markdown),
+        },
+      },
+    });
+  }
+
   // The bot joins a public channel, so it may post there.
   @CaptureSpan()
   public static override async joinChannel(data: {

@@ -36,6 +36,11 @@ import WorkspaceMemberActions, {
  * "public": that note is saved as a private note too, and the answer says
  * so (getSubmittedNoteType) - the person's words are kept, for the people
  * who can see the record, and nothing reaches anyone else.
+ *
+ * While the project asks for public notes to be approved, the public
+ * option says the note is posted once it is approved (getPublicOption),
+ * and the answer once it is sent says who it waits for
+ * (WorkspaceHeldPublicNote).
  */
 
 // The words of the form, shared by both chats.
@@ -45,6 +50,7 @@ export const WORKSPACE_NOTE_FORM_TEXT: {
   noteTypeLabel: string;
   noteTypePlaceholder: string;
   publicOption: string;
+  publicOptionWithApproval: string;
   privateOption: string;
   noteLabel: string;
   notePlaceholder: string;
@@ -57,6 +63,7 @@ export const WORKSPACE_NOTE_FORM_TEXT: {
   noteTypeLabel: "Note Type",
   noteTypePlaceholder: "Select Note Type",
   publicOption: "Public Note (Will be posted on Status Page)",
+  publicOptionWithApproval: "Public Note (Posted on Status Page once approved)",
   privateOption: "Private Note (Only visible to team members)",
   noteLabel: "Note",
   notePlaceholder: "Note",
@@ -184,12 +191,24 @@ export default class WorkspaceNoteForm {
   }
 
   /*
+   * The form's public option: posted on the status page, or - while the
+   * project asks for public notes to be approved - posted once approved.
+   */
+  public static getPublicOption(isApprovalRequired: boolean): string {
+    return isApprovalRequired
+      ? WORKSPACE_NOTE_FORM_TEXT.publicOptionWithApproval
+      : WORKSPACE_NOTE_FORM_TEXT.publicOption;
+  }
+
+  /*
    * A Slack form's title, and its blocks: the Note Type and the note, or -
    * for a private record - its one line and the note.
    */
   public static getSlackForm(data: {
     kind: PrivateRecordKind;
     isPrivateRecord: boolean;
+    // The project asks for public notes to be approved (getPublicOption).
+    isPublicNoteApprovalRequired?: boolean | undefined;
   }): { title: string; blocks: Array<WorkspaceMessageBlock> } {
     const noteTextArea: WorkspaceTextAreaBlock = {
       _type: "WorkspaceTextAreaBlock",
@@ -220,7 +239,9 @@ export default class WorkspaceNoteForm {
       placeholder: WORKSPACE_NOTE_FORM_TEXT.noteTypePlaceholder,
       options: [
         {
-          label: WORKSPACE_NOTE_FORM_TEXT.publicOption,
+          label: WorkspaceNoteForm.getPublicOption(
+            Boolean(data.isPublicNoteApprovalRequired),
+          ),
           value: WorkspaceNoteFormType.Public,
         },
         {
