@@ -1,5 +1,10 @@
 import { WorkflowGraphToShow } from "./Workflow";
-import WorkflowAutosave, { WorkflowAutosaveStatus } from "./WorkflowAutosave";
+import WorkflowAutosave, {
+  WorkflowAutosaveStatus,
+  WorkflowGraphRevision,
+  WorkflowSaveConflict,
+  WorkflowSavedGraphRead,
+} from "./WorkflowAutosave";
 import {
   WorkflowCanvasGraph,
   isAnyCardBeingDragged,
@@ -48,14 +53,31 @@ import { Edge, Node } from "reactflow";
  * leaving the page asks first, and OneUptime does not reload the page for a
  * new version. Leaving the builder sends what is waiting at once.
  *
+ * Every save says which graph it was made to (issue #6257). When someone
+ * else saved the workflow since, nothing is saved over their change: the
+ * save state is Conflict, with what they saved, until the person chooses -
+ * their changes on the canvas, as a step Undo takes back
+ * (showTheirChanges), or their own saved over them (keepMine).
+ *
  * Nothing is taken in or saved while `isEnabled` is false: before the
  * workflow has opened, and for someone who may only look at it.
  */
 
 export interface UseWorkflowEditingOptions {
   isEnabled: boolean;
-  // Saves the graph to the workflow; throws when the server refuses it.
-  save: (graph: SavedWorkflowGraph) => Promise<void>;
+  /*
+   * Saves the graph to the workflow, made to the graph the server had at
+   * `basedOn`, and resolves with the revision the server is at then; throws
+   * when the server refuses it.
+   */
+  save: (
+    graph: SavedWorkflowGraph,
+    basedOn: WorkflowGraphRevision,
+  ) => Promise<WorkflowGraphRevision | void>;
+  // Whether a refusal says someone else saved a newer graph first.
+  isConflict?: ((error: unknown) => boolean) | undefined;
+  // What the server has now, read when that happens; null when the workflow is gone.
+  readSaved?: (() => Promise<WorkflowSavedGraphRead | null>) | undefined;
   // Why a save failed, in the reader's words.
   describeError: (error: unknown) => string;
   // A failed save, said once as it fails; the status pill keeps saying it.
@@ -65,8 +87,8 @@ export interface UseWorkflowEditingOptions {
 }
 
 export interface UseWorkflowEditingResult {
-  // The workflow as it opened, which the canvas starts from.
-  start: (graph: WorkflowCanvasGraph) => void;
+  // The workflow as it opened, at its revision, which the canvas starts from.
+  start: (graph: WorkflowCanvasGraph, revision?: WorkflowGraphRevision) => void;
   // Everything the canvas reports, as it draws it.
   onCanvasUpdated: (nodes: Array<Node>, edges: Array<Edge>) => void;
   // The graph the canvas is handed to draw, or null.
@@ -82,7 +104,16 @@ export interface UseWorkflowEditingResult {
    */
   restoreVersion: (data: { versionNumber: number; graph: unknown }) => boolean;
   // What Ask AI saved, on the canvas: a step of its own, already saved.
-  showSavedGraph: (graph: unknown) => boolean;
+  showSavedGraph: (graph: unknown, revision?: WorkflowGraphRevision) => boolean;
+  /*
+   * While someone else's save stands between the canvas and the server
+   * (saveStatus.conflict): their graph on the canvas, as a step Undo takes
+   * back - Undo then saves the person's own over theirs - and nothing left
+   * to save. False when it cannot be drawn.
+   */
+  showTheirChanges: () => boolean;
+  // Or the canvas's graph saved over theirs, which stays in the version history.
+  keepMine: () => void;
   saveStatus: WorkflowAutosaveStatus;
   retrySave: () => void;
   // The graph the canvas shows, as it is saved.
@@ -147,6 +178,7 @@ const useWorkflowEditing: (
     error: "",
     hasUnsavedChanges: false,
     savedCount: 0,
+    conflict: null,
   });
 
   const autosaveRef: MutableRefObject<WorkflowAutosave | null> =
@@ -154,8 +186,25 @@ const useWorkflowEditing: (
 
   if (!autosaveRef.current) {
     autosaveRef.current = new WorkflowAutosave({
-      save: (graph: SavedWorkflowGraph): Promise<void> => {
-        return optionsRef.current.save(graph);
+      save: (
+        graph: SavedWorkflowGraph,
+        basedOn: WorkflowGraphRevision,
+      ): Promise<WorkflowGraphRevision | void> => {
+        return optionsRef.current.save(graph, basedOn);
+      },
+      isConflict: (error: unknown): boolean => {
+        return Boolean(optionsRef.current.isConflict?.(error));
+      },
+      readSaved: async (): Promise<WorkflowSavedGraphRead | null> => {
+        const readSaved:
+          | (() => Promise<WorkflowSavedGraphRead | null>)
+          | undefined = optionsRef.current.readSaved;
+
+        if (!readSaved) {
+          throw new Error("What the workflow holds now cannot be read.");
+        }
+
+        return await readSaved();
       },
       describeError: (error: unknown): string => {
         return optionsRef.current.describeError(error);
@@ -250,13 +299,17 @@ const useWorkflowEditing: (
     });
   };
 
-  const start: (graph: WorkflowCanvasGraph) => void = (
+  const start: (
     graph: WorkflowCanvasGraph,
+    revision?: WorkflowGraphRevision,
+  ) => void = (
+    graph: WorkflowCanvasGraph,
+    revision?: WorkflowGraphRevision,
   ): void => {
     const saved: SavedWorkflowGraph = toSavedWorkflowGraph(graph);
 
     setHistory(startWorkflowEditHistory({ graph: saved, now: Date.now() }));
-    autosave.start(saved);
+    autosave.start(saved, revision ?? null);
   };
 
   const onCanvasUpdated: (nodes: Array<Node>, edges: Array<Edge>) => void = (
@@ -364,10 +417,20 @@ const useWorkflowEditing: (
     return true;
   };
 
-  const showSavedGraph: (graph: unknown) => boolean = (
-    graph: unknown,
-  ): boolean => {
-    const canvasGraph: WorkflowCanvasGraph | null = draw(graph);
+  /*
+   * A graph someone else saved, on the canvas where it is: a step of its own
+   * (Ask AI's change, their changes), which the server has already.
+   */
+  const showGraphSavedElsewhere: (data: {
+    graph: unknown;
+    revision: WorkflowGraphRevision;
+    cause: WorkflowEditCause;
+  }) => boolean = (data: {
+    graph: unknown;
+    revision: WorkflowGraphRevision;
+    cause: WorkflowEditCause;
+  }): boolean => {
+    const canvasGraph: WorkflowCanvasGraph | null = draw(data.graph);
 
     if (!canvasGraph) {
       return false;
@@ -380,7 +443,7 @@ const useWorkflowEditing: (
       const next: WorkflowEditHistory = recordWorkflowEdit(current, {
         graph: saved,
         now: Date.now(),
-        cause: WorkflowEditCause.AskAi,
+        cause: data.cause,
       });
 
       if (next !== current) {
@@ -388,10 +451,44 @@ const useWorkflowEditing: (
       }
     }
 
-    autosave.acceptSavedGraph(saved);
+    autosave.acceptSavedGraph(saved, data.revision);
     handToCanvas(canvasGraph);
 
     return true;
+  };
+
+  const showSavedGraph: (
+    graph: unknown,
+    revision?: WorkflowGraphRevision,
+  ) => boolean = (graph: unknown, revision?: WorkflowGraphRevision): boolean => {
+    return showGraphSavedElsewhere({
+      graph,
+      revision: revision ?? null,
+      cause: WorkflowEditCause.AskAi,
+    });
+  };
+
+  const showTheirChanges: () => boolean = (): boolean => {
+    const conflict: WorkflowSaveConflict | null =
+      autosave.getStatus().conflict;
+
+    if (!optionsRef.current.isEnabled || !conflict) {
+      return false;
+    }
+
+    return showGraphSavedElsewhere({
+      graph: conflict.theirs,
+      revision: conflict.revision,
+      cause: WorkflowEditCause.TheirChanges,
+    });
+  };
+
+  const keepMine: () => void = (): void => {
+    if (!optionsRef.current.isEnabled) {
+      return;
+    }
+
+    void autosave.keepMine();
   };
 
   // The latest undo and redo, for the shortcut handler kept from the first render.
@@ -470,6 +567,8 @@ const useWorkflowEditing: (
     redoStep,
     restoreVersion,
     showSavedGraph,
+    showTheirChanges,
+    keepMine,
     saveStatus,
     retrySave: (): void => {
       void autosave.retry();
