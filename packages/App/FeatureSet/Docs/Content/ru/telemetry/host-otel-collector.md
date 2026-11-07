@@ -858,6 +858,35 @@ docker run -d \
 
 `--network host`, `--pid host`, монтирование `/hostfs` и переменные `HOST_*` позволяют `hostmetrics` и `process` читать ядро хоста, а не контейнера. Используйте только пайплайн метрик из конфигурации: в образе нет `journalctl`, а приёмнику `systemd` нужна D-Bus хоста.
 
+Или с помощью Docker Compose сохраните это как `docker-compose.yml` рядом с `config.yaml`:
+
+```yaml title="docker-compose.yml"
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    container_name: otel-collector
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    volumes:
+      - ./config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - /:/hostfs:ro,rslave
+    environment:
+      - HOST_PROC=/hostfs/proc
+      - HOST_SYS=/hostfs/sys
+      - HOST_ETC=/hostfs/etc
+      - HOST_VAR=/hostfs/var
+      - HOST_RUN=/hostfs/run
+      - HOST_DEV=/hostfs/dev
+    command: ["--config", "/etc/otelcol-contrib/config.yaml"]
+```
+
+Запустите его с помощью:
+
+```bash
+docker compose up -d
+```
+
 ### Из архива выпуска
 
 Там, где пакеты не подходят, распакуйте статический бинарный файл и создайте для него собственный юнит systemd:
