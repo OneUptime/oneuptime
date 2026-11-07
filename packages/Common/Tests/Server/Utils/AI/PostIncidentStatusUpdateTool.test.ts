@@ -58,6 +58,8 @@ async function runTool(
   incident: Incident | null,
   extraArgs: JSONObject = {},
   toolCtx: ToolContext = ctx,
+  // The note as the service stores it: published, unless it is held for approval.
+  stored: IncidentPublicNote = new IncidentPublicNote(),
 ): Promise<ToolRun> {
   const findSpy: jest.SpyInstance = jest
     .spyOn(IncidentService, "findOneById")
@@ -65,7 +67,7 @@ async function runTool(
 
   const createSpy: jest.SpyInstance = jest
     .spyOn(IncidentPublicNoteService, "create")
-    .mockResolvedValue(new IncidentPublicNote() as never);
+    .mockResolvedValue(stored as never);
 
   const result: ToolExecutionResult =
     await PostIncidentStatusUpdateTool.execute(
@@ -427,9 +429,13 @@ describe("post_incident_status_update - created note", () => {
     expect(run.data.projectId).toBe(ctx.projectId);
     expect(run.data.note).toBe(NOTE_TEXT);
     expect(run.data.createdByUserId).toBe(USER_ID);
-    expect(run.data.postedAt).toBeInstanceOf(Date);
-    expect(run.data.postedAt!.getTime()).toBeGreaterThanOrEqual(before);
-    expect(run.data.postedAt!.getTime()).toBeLessThanOrEqual(after);
+    /*
+     * No time of its own: the service files it as posted now - or, when the
+     * project asks for public notes to be approved, when it is approved
+     * (#5720). A time chosen here would be kept through the approval.
+     */
+    expect(run.data.postedAt).toBeUndefined();
+    expect(before).toBeLessThanOrEqual(after);
     expect(run.createArgs["props"]).toBe(ctx.props);
   });
 
@@ -462,6 +468,65 @@ describe("post_incident_status_update - created note", () => {
       params: { incidentId: INCIDENT_ID.toString() },
     });
     expect(run.result.widget).toBeDefined();
+  });
+});
+
+/*
+ * Issue #5720: when the project asks for public notes to be approved, the
+ * update the assistant posts waits like anyone's - and it says so, rather
+ * than telling the person the update is on status pages.
+ */
+describe("post_incident_status_update - held for approval", () => {
+  function heldNote(): IncidentPublicNote {
+    const held: IncidentPublicNote = new IncidentPublicNote();
+    held.isPublished = false;
+    return held;
+  }
+
+  test("says it was sent for approval, not posted, and that nobody is told yet", async () => {
+    const run: ToolRun = await runTool(
+      buildIncident(true),
+      { notifySubscribers: true },
+      ctx,
+      heldNote(),
+    );
+
+    expect(run.result.dataForLlm).toContain(
+      "Sent a public status update on incident #42 for approval",
+    );
+    expect(run.result.dataForLlm).toContain("subscribers are not told");
+    expect(run.result.dataForLlm).not.toContain("Posted a public status update");
+    expect(run.result.dataForLlm).not.toContain("notified subscribers");
+    expect(widgetSubheading(run.result)).toBe(
+      "Status update sent for approval, not published yet",
+    );
+    expect(run.result.widget?.title).toBe("Status update sent for approval");
+  });
+
+  test("a quiet update held for approval does not mention subscribers", async () => {
+    const run: ToolRun = await runTool(
+      buildIncident(false),
+      {},
+      ctx,
+      heldNote(),
+    );
+
+    expect(run.result.dataForLlm).toContain("for approval");
+    expect(run.result.dataForLlm).not.toContain("subscribers are not told");
+  });
+
+  test("a published note reads as posted, as before", async () => {
+    const published: IncidentPublicNote = new IncidentPublicNote();
+    published.isPublished = true;
+
+    const run: ToolRun = await runTool(buildIncident(true), {}, ctx, published);
+
+    expect(run.result.dataForLlm).toContain(
+      "Posted a public status update on incident #42",
+    );
+    expect(widgetSubheading(run.result)).toBe(
+      "Status update posted, subscribers notified",
+    );
   });
 });
 
