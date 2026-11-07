@@ -21,7 +21,7 @@ Ein Workflow ohne Vorlage öffnet sich mit einem einzigen gestrichelten Baustein
 
 Jeder Workflow hat genau einen **Trigger** oben. Alles andere ist eine **Komponente**, die etwas tut. Um den Trigger zu wechseln, löschen Sie ihn: Der gestrichelte Platzhalter kehrt an seine Stelle zurück, und ein Klick darauf lässt Sie einen anderen wählen. Wenn Sie einen Baustein löschen, verschwinden auch seine Linien; verbinden Sie den neuen Trigger also wieder mit dem ersten Baustein.
 
-Änderungen werden automatisch gespeichert. Eine Pille in der Werkzeugleiste zeigt es an: **Wird gespeichert…**, solange die Änderung unterwegs ist, dann **Gespeichert** oder **Konnte nicht gespeichert werden**, wenn es nicht geklappt hat. Die Arbeitsfläche hat keine Speichern-Schaltfläche und keinen eigenen Veröffentlichungsschritt.
+Änderungen werden automatisch gespeichert, einen Moment nachdem Sie sie vorgenommen haben. Eine Pille in der Werkzeugleiste zeigt es an: **Wird gespeichert…**, solange die Änderung unterwegs ist, dann **Gespeichert**. Konnte eine Änderung nicht gespeichert werden, zeigt die Pille **Konnte nicht gespeichert werden**, mit dem Grund, wenn Sie mit der Maus darüberfahren, und daneben **Erneut versuchen**. Ihre Änderungen bleiben in der Zwischenzeit auf der Arbeitsfläche, und die nächste Änderung, die Sie vornehmen, versucht es erneut. Wenn Sie die Seite verlassen, bevor eine Änderung gespeichert ist, werden Sie vorher gefragt. Die Arbeitsfläche hat keine Speichern-Schaltfläche und keinen eigenen Veröffentlichungsschritt. Auch ein Fehler wird gespeichert, deshalb merkt sich der Editor jede Änderung, sodass Sie sie zurücknehmen können: siehe [Rückgängig machen, wiederholen und Versionsverlauf](#rückgängig-machen-wiederholen-und-versionsverlauf).
 
 ## Bausteine hinzufügen
 
@@ -169,6 +169,26 @@ Um einen Workflow zu pausieren, ohne ihn zu löschen, schalten Sie **Aktiviert**
 - Um einen Baustein zu löschen, klicken Sie darauf und verwenden **Löschen** unten in seinem Einstellungsdialog. Einen Baustein oder eine Linie auswählen und Backspace drücken entfernt sie ebenfalls.
 - Einen einzelnen Baustein können Sie nicht duplizieren. **Arbeitsablauf duplizieren** auf der Seite **Einstellungen** des Workflows kopiert das Ganze. Der Name der Kopie ist vorausgefüllt und über die Workflows des Projekts hinaus durchnummeriert ("Nightly Sync" wird zu "Nightly Sync 2"), und die Kopie öffnet sich, deaktiviert.
 - Ordnen Sie Bausteine von oben nach unten an, damit sie sich in der Richtung lesen, in der sie laufen – Eingänge sind am oberen Rand, Ausgänge am unteren, sodass der Ablauf ganz natürlich nach unten geht.
+
+## Rückgängig machen, wiederholen und Versionsverlauf
+
+Jede Änderung, die Sie auf der Arbeitsfläche vornehmen, lässt sich zurücknehmen, auch wenn sie sofort gespeichert wurde.
+
+- **Rückgängig** und **Wiederholen** stehen am Anfang der Werkzeugleiste. Fahren Sie mit der Maus über eine der beiden Schaltflächen, um zu sehen, was sie zurücknehmen oder erneut ausführen würde und welcher Baustein das ist. Jede Änderung ist ein Schritt: einen Baustein hinzufügen, löschen oder verschieben, zwei Bausteine verbinden oder trennen und die Einstellungen eines Bausteins speichern. Einen Baustein zu ziehen ist ein einziger Schritt, egal wie weit Sie ihn ziehen.
+- Auch die Tastatur funktioniert: ⌘Z auf einem Mac oder Ctrl+Z macht rückgängig, und ⇧⌘Z, Ctrl+Shift+Z oder Ctrl+Y wiederholt. Während Sie in einem Feld oder einem Code-Editor tippen, machen dieselben Tasten stattdessen Ihre Eingabe rückgängig.
+- Ein Rückgängigmachen wird wie jede andere Änderung gespeichert. Rückgängig machen können Sie alles, was Sie seit dem Öffnen des Editors getan haben; der Versionsverlauf reicht weiter zurück.
+
+**Versionsverlauf** in der Werkzeugleiste listet jede gespeicherte Version des Workflows auf, die neueste zuerst: wer sie gespeichert hat, wann und was sie geändert hat, etwa `Added "Send Email" (send-email-1)`. Die Änderungen, die Sie innerhalb von 10 Minuten nacheinander speichern, bilden eine Version, sodass eine Version ein Stück Arbeit ist und nicht jeder einzelne Klick. Änderungen, die Ask AI vornimmt, und Änderungen über die API sind ebenfalls Versionen.
+
+So kehren Sie zu einer früheren Version zurück:
+
+:::steps
+1. Klicken Sie in der Werkzeugleiste auf **Versionsverlauf**.
+2. Klicken Sie bei der Version auf **Vorschau**. Die Vorschau listet auf, was das Wiederherstellen ändern würde, und zeigt die Version auf einer eigenen Arbeitsfläche. Klicken Sie dort auf einen Baustein, um seine Einstellungen zu lesen.
+3. Klicken Sie auf **Diese Version wiederherstellen**. Die Version kommt zurück auf die Arbeitsfläche und wird sofort gespeichert.
+:::
+
+Wiederherstellen ist eine Änderung wie jede andere. Es wird als neue Version gespeichert, die angibt, welche Version sie wiederhergestellt hat, sodass Sie es rückgängig machen oder die Version wiederherstellen können, die Sie vorher hatten. Jeder, der den Workflow öffnen kann, kann seinen Verlauf sehen; um eine Version wiederherzustellen, brauchen Sie die Berechtigung, den Workflow zu bearbeiten. Die neuesten 100 Versionen jedes Workflows werden aufbewahrt.
 
 ## Nächste Schritte
 

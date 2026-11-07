@@ -21,7 +21,7 @@ Um workflow criado do zero abre com um único bloco tracejado escrito **Escolha 
 
 Todo workflow tem exatamente um **gatilho** no topo. Todo o resto é um **componente** que faz alguma coisa. Para trocar o gatilho, exclua-o: o espaço reservado tracejado volta ao lugar dele, e clicar nele permite escolher outro. Excluir um bloco também exclui as linhas dele, então ligue de novo o novo gatilho ao primeiro bloco.
 
-As alterações são salvas automaticamente. Um selo na barra de ferramentas acompanha isso: **Salvando…** enquanto a alteração está a caminho, depois **Salvo**, ou **Não foi possível salvar** se não deu certo. O canvas não tem botão de salvar nem uma etapa de publicação separada.
+As alterações são salvas automaticamente, um instante depois de você fazê-las. Um selo na barra de ferramentas acompanha isso: **Salvando…** enquanto a alteração está a caminho, depois **Salvo**. Se uma alteração não puder ser salva, o selo mostra **Não foi possível salvar**, com o motivo quando você passa o mouse por cima, e **Tentar novamente** ao lado. Enquanto isso, as suas alterações continuam no canvas, e a próxima alteração que você fizer tenta de novo. Se você sair da página antes de uma alteração ser salva, precisa confirmar antes. O canvas não tem botão de salvar nem uma etapa de publicação separada. Um erro também é salvo, por isso o Construtor guarda cada alteração para que você possa desfazê-la: veja [Desfazer, refazer e histórico de versões](#desfazer-refazer-e-histórico-de-versões).
 
 ## Adicionar blocos
 
@@ -169,6 +169,26 @@ Para pausar um workflow sem excluí-lo, desligue **Habilitado**. O gatilho dele 
 - Para excluir um bloco, clique nele e use **Excluir** no rodapé da caixa de diálogo de configurações. Selecionar um bloco ou uma linha e pressionar Backspace também o remove.
 - Não há como duplicar um único bloco. **Duplicar: Fluxo de trabalho** na página **Configurações** do workflow copia tudo. O nome da cópia vem preenchido, numerado a partir dos workflows do projeto ("Nightly Sync" é copiado como "Nightly Sync 2"), e a cópia se abre, desabilitada.
 - Empilhe os blocos de cima para baixo para que eles sejam lidos na direção em que rodam — as entradas ficam na borda de cima e as saídas na de baixo, então o fluxo desce naturalmente.
+
+## Desfazer, refazer e histórico de versões
+
+Toda alteração que você faz no canvas pode ser desfeita, mesmo que já tenha sido salva na hora.
+
+- **Desfazer** e **Refazer** ficam no início da barra de ferramentas. Passe o mouse sobre um deles para ver o que ele desfaria ou refaria, e em qual bloco. Cada alteração é um passo: adicionar, excluir ou mover um bloco, ligar dois blocos ou remover a ligação entre eles, e salvar as configurações de um bloco. Arrastar um bloco é um passo só, por mais longe que você o arraste.
+- O teclado também funciona: ⌘Z no Mac, ou Ctrl+Z, desfaz, e ⇧⌘Z, Ctrl+Shift+Z ou Ctrl+Y refaz. Enquanto você digita em um campo ou em um editor de código, as mesmas teclas desfazem o que você digitou.
+- O que você desfaz é salvo como qualquer outra alteração. Desfazer só volta até o momento em que você abriu o Construtor; o histórico de versões vai mais longe.
+
+**Histórico de versões**, na barra de ferramentas, lista cada versão salva do workflow, da mais recente para a mais antiga: quem a salvou, quando e o que ela alterou, como `Added "Send Email" (send-email-1)`. As alterações que você salva com menos de 10 minutos de intervalo entre elas formam uma única versão, então uma versão é um trecho de trabalho, e não cada clique. As alterações que o Ask AI faz e as feitas pela API também são versões.
+
+Para voltar a uma versão anterior:
+
+:::steps
+1. Clique em **Histórico de versões** na barra de ferramentas.
+2. Clique em **Pré-visualização** na versão. A pré-visualização lista o que a restauração mudaria e mostra a versão em um canvas próprio. Clique em um bloco desse canvas para ler as configurações dele.
+3. Clique em **Restaurar esta versão**. A versão volta para o canvas e é salva na hora.
+:::
+
+A restauração é uma alteração como qualquer outra. Ela é salva como uma nova versão que indica qual versão foi restaurada, então você pode desfazê-la ou restaurar a versão que tinha antes. Qualquer pessoa que possa abrir o workflow pode ver o histórico dele; restaurar uma versão exige permissão para editar o workflow. As 100 versões mais recentes de cada workflow são mantidas.
 
 ## Próximos passos
 

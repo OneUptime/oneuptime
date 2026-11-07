@@ -1413,6 +1413,9 @@ import UserOnCallLogService, {
 import WorkflowLogService, {
   Service as WorkflowLogServiceType,
 } from "Common/Server/Services/WorkflowLogService";
+import WorkflowVersionService, {
+  Service as WorkflowVersionServiceType,
+} from "Common/Server/Services/WorkflowVersionService";
 import WorkflowService, {
   Service as WorkflowServiceType,
 } from "Common/Server/Services/WorkflowService";
@@ -1811,6 +1814,7 @@ import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationR
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
+import WorkflowVersion from "Common/Models/DatabaseModels/WorkflowVersion";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookOwnerTeam from "Common/Models/DatabaseModels/RunbookOwnerTeam";
@@ -5036,6 +5040,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<WorkflowLog, WorkflowLogServiceType>(
         WorkflowLog,
         WorkflowLogService,
+      ).getRouter(),
+    );
+
+    // A workflow's versions: read only, written by WorkflowService's saves.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<WorkflowVersion, WorkflowVersionServiceType>(
+        WorkflowVersion,
+        WorkflowVersionService,
       ).getRouter(),
     );
 
