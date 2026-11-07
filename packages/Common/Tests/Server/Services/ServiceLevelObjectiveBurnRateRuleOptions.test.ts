@@ -1361,7 +1361,7 @@ describe("ServiceLevelObjectiveService - seeded default rules keep today's behav
     const seeded: Array<ServiceLevelObjectiveBurnRateRule> =
       await seedDefaultRules();
 
-    expect(seeded).toHaveLength(2);
+    expect(seeded).toHaveLength(3);
 
     for (const rule of seeded) {
       const fields: Record<string, unknown> = rule as unknown as Record<

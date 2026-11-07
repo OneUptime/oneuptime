@@ -959,6 +959,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
    * Thresholds are the documented formula evaluated by hand:
    *   fast = round2(0.02 * windowHours / 1)
    *   slow = round2(0.05 * windowHours / 6)
+   *   slowLeak = round2(0.10 * windowHours / 72)
    * Hard-coded numbers on purpose - re-deriving the formula in the test would
    * not catch a change to the formula itself.
    */
@@ -968,34 +969,39 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
     windowHours: number;
     fastBurnThreshold: number;
     slowBurnThreshold: number;
+    slowLeakThreshold: number;
   }> = [
     {
-      label: "a 30 day rolling window reproduces the textbook 14.4x and 6x",
+      label: "a 30 day rolling window reproduces the textbook 14.4x, 6x and 1x",
       fields: { windowType: SloWindowType.Rolling, windowDays: 30 },
       windowHours: 720,
       fastBurnThreshold: 14.4,
       slowBurnThreshold: 6,
+      slowLeakThreshold: 1,
     },
     {
-      label: "a 7 day rolling window scales down to 3.36x and 1.4x",
+      label: "a 7 day rolling window scales down to 3.36x, 1.4x and 0.23x",
       fields: { windowType: SloWindowType.Rolling, windowDays: 7 },
       windowHours: 168,
       fastBurnThreshold: 3.36,
       slowBurnThreshold: 1.4,
+      slowLeakThreshold: 0.23,
     },
     {
-      label: "a 28 day rolling window scales to 13.44x and 5.6x",
+      label: "a 28 day rolling window scales to 13.44x, 5.6x and 0.93x",
       fields: { windowType: SloWindowType.Rolling, windowDays: 28 },
       windowHours: 672,
       fastBurnThreshold: 13.44,
       slowBurnThreshold: 5.6,
+      slowLeakThreshold: 0.93,
     },
     {
-      label: "a 90 day rolling window scales up to 43.2x and 18x",
+      label: "a 90 day rolling window scales up to 43.2x, 18x and 3x",
       fields: { windowType: SloWindowType.Rolling, windowDays: 90 },
       windowHours: 2160,
       fastBurnThreshold: 43.2,
       slowBurnThreshold: 18,
+      slowLeakThreshold: 3,
     },
     {
       label: "a rolling window with no windowDays falls back to 30 days",
@@ -1003,6 +1009,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
       windowHours: 720,
       fastBurnThreshold: 14.4,
       slowBurnThreshold: 6,
+      slowLeakThreshold: 1,
     },
     {
       label: "a CalendarMonth window uses a flat 720 hours",
@@ -1010,6 +1017,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
       windowHours: 720,
       fastBurnThreshold: 14.4,
       slowBurnThreshold: 6,
+      slowLeakThreshold: 1,
     },
     {
       label: "a CalendarMonth window ignores a stale windowDays column",
@@ -1017,15 +1025,16 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
       windowHours: 720,
       fastBurnThreshold: 14.4,
       slowBurnThreshold: 6,
+      slowLeakThreshold: 1,
     },
   ];
 
   for (const seedingCase of seedingCases) {
-    it(`seeds Fast burn and Slow burn so that ${seedingCase.label}`, async () => {
+    it(`seeds Fast burn, Slow burn, and Slow leak so that ${seedingCase.label}`, async () => {
       await runOnCreateSuccess(seedingCase.fields);
 
       const rules: Array<ServiceLevelObjectiveBurnRateRule> = seededRules();
-      expect(rules).toHaveLength(2);
+      expect(rules).toHaveLength(3);
 
       const fastBurn: ServiceLevelObjectiveBurnRateRule = rules[0]!;
       expect(fastBurn.name).toBe("Fast burn");
@@ -1038,11 +1047,17 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
       expect(slowBurn.burnRateThreshold).toBe(seedingCase.slowBurnThreshold);
       expect(slowBurn.longWindowInMinutes).toBe(360);
       expect(slowBurn.shortWindowInMinutes).toBe(30);
+
+      const slowLeak: ServiceLevelObjectiveBurnRateRule = rules[2]!;
+      expect(slowLeak.name).toBe("Slow leak");
+      expect(slowLeak.burnRateThreshold).toBe(seedingCase.slowLeakThreshold);
+      expect(slowLeak.longWindowInMinutes).toBe(4320);
+      expect(slowLeak.shortWindowInMinutes).toBe(360);
     });
   }
 
   /*
-   * The seeder sets NEITHER output flag, so both rules take the column
+   * The seeder sets NEITHER output flag, so all rules take the column
    * defaults - shouldCreateAlert true, shouldCreateIncident false. That
    * omission is the whole safety property of the incident feature: an existing
    * install that upgrades keeps seeding alert-only rules, and OneUptime never
@@ -1058,7 +1073,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
     });
 
     const rules: Array<ServiceLevelObjectiveBurnRateRule> = seededRules();
-    expect(rules).toHaveLength(2);
+    expect(rules).toHaveLength(3);
 
     for (const rule of rules) {
       expect(rule.shouldCreateIncident).toBeUndefined();
@@ -1071,7 +1086,10 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
   });
 
   it("keeps every seeded threshold rounded to two decimals", async () => {
-    // 0.02 * 24 * 13 = 6.24 and 0.05 * 24 * 13 / 6 = 2.6 in exact arithmetic.
+    /*
+     * 0.02 * 24 * 13 = 6.24 and 0.05 * 24 * 13 / 6 = 2.6 in exact arithmetic.
+     * 0.10 * 24 * 13 / 72 = 31.2 / 72 = 0.4333... -> 0.43.
+     */
     await runOnCreateSuccess({
       windowType: SloWindowType.Rolling,
       windowDays: 13,
@@ -1080,9 +1098,10 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
     const rules: Array<ServiceLevelObjectiveBurnRateRule> = seededRules();
     expect(rules[0]!.burnRateThreshold).toBe(6.24);
     expect(rules[1]!.burnRateThreshold).toBe(2.6);
+    expect(rules[2]!.burnRateThreshold).toBe(0.43);
   });
 
-  it("scopes both seeded rules to the SLO and its project, and enables them", async () => {
+  it("scopes all three seeded rules to the SLO and its project, and enables them", async () => {
     await runOnCreateSuccess({
       windowType: SloWindowType.Rolling,
       windowDays: 30,
@@ -1142,7 +1161,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
       }),
     ).resolves.toBeUndefined();
 
-    expect(seededRules()).toHaveLength(2);
+    expect(seededRules()).toHaveLength(3);
   });
 
   it("does not fail the SLO create when seeding a burn rate rule throws", async () => {
@@ -1157,8 +1176,8 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
       }),
     ).resolves.toBeUndefined();
 
-    // Both rules were still attempted - the first failure does not abort the loop.
-    expect(burnRateRuleCreateSpy).toHaveBeenCalledTimes(2);
+    // All rules were still attempted - the first failure does not abort the loop.
+    expect(burnRateRuleCreateSpy).toHaveBeenCalledTimes(3);
   });
 
   /*
@@ -1167,7 +1186,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
    * the lowest order severity when it raises the alert), and nothing retries
    * seeding, so losing them here would leave the SLO silently unalertable.
    */
-  it("still seeds both burn rate rules when the severity lookup throws", async () => {
+  it("still seeds all three burn rate rules when the severity lookup throws", async () => {
     jest
       .spyOn(AlertSeverityService, "findOneBy")
       .mockRejectedValue(new Error("severity lookup exploded"));
@@ -1179,7 +1198,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
       }),
     ).resolves.toBeUndefined();
 
-    expect(burnRateRuleCreateSpy).toHaveBeenCalledTimes(2);
+    expect(burnRateRuleCreateSpy).toHaveBeenCalledTimes(3);
 
     for (const call of burnRateRuleCreateSpy.mock.calls) {
       expect(
@@ -1298,12 +1317,12 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - default alert severity"
     }
   });
 
-  it("still seeds both rules with no severity when the project has none", async () => {
+  it("still seeds all three rules with no severity when the project has none", async () => {
     jest.spyOn(AlertSeverityService, "findOneBy").mockResolvedValue(null);
 
     await expect(runOnCreateSuccess()).resolves.toBeUndefined();
 
-    expect(burnRateRuleCreateSpy).toHaveBeenCalledTimes(2);
+    expect(burnRateRuleCreateSpy).toHaveBeenCalledTimes(3);
 
     for (const call of burnRateRuleCreateSpy.mock.calls) {
       const createBy: CreateBy<ServiceLevelObjectiveBurnRateRule> = (

@@ -116,20 +116,28 @@ describe("SLO evaluation cadence constants", () => {
     });
 
     /*
-     * Slow burn is the deliberately longer pair. Pinned only as an ordering
-     * against fast burn: if the two ever crossed over, the names would be
-     * backwards and the rule an operator reaches for in an incident would be
-     * the slower of the two.
+     * Slow burn is the deliberately longer pair, and slow leak is the
+     * multi-day ticket alert. Pinned only as an ordering against each other:
+     * if they ever crossed over, the names would be backwards and the rule
+     * an operator reaches for in an incident would be the slower of the rules.
      */
-    test("slow burn is genuinely slower than fast burn", () => {
+    test("slow burn is genuinely slower than fast burn, and slow leak is slower than slow burn", () => {
       const fast: string = seededRuleBlock("Fast burn");
       const slow: string = seededRuleBlock("Slow burn");
+      const leak: string = seededRuleBlock("Slow leak");
 
       expect(minutesFieldIn(slow, "longWindowInMinutes")).toBeGreaterThan(
         minutesFieldIn(fast, "longWindowInMinutes"),
       );
       expect(minutesFieldIn(slow, "shortWindowInMinutes")).toBeGreaterThan(
         minutesFieldIn(fast, "shortWindowInMinutes"),
+      );
+
+      expect(minutesFieldIn(leak, "longWindowInMinutes")).toBeGreaterThan(
+        minutesFieldIn(slow, "longWindowInMinutes"),
+      );
+      expect(minutesFieldIn(leak, "shortWindowInMinutes")).toBeGreaterThan(
+        minutesFieldIn(slow, "shortWindowInMinutes"),
       );
     });
   });
