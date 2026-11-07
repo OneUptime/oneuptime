@@ -9,6 +9,8 @@ import { CRITICAL_CHANNEL } from "./channels";
 import {
   ACKNOWLEDGE_PAGE_ACTION,
   ESCALATE_PAGE_ACTION,
+  MARK_PAGE_SEEN_ACTION,
+  ON_CALL_OBSERVER_PAGE_CATEGORY,
   ON_CALL_PAGE_CATEGORY,
 } from "./categories";
 import logger from "../utils/logger";
@@ -157,10 +159,11 @@ describe("setupNotificationChannels", () => {
  */
 describe("setupNotificationCategories", () => {
   /*
-   * The server names ON_CALL_PAGE on every page's push; without it on the
-   * phone the push arrives with no actions, as before. The two categories
-   * earlier builds registered - which no server ever named, and whose
-   * Acknowledge did nothing - are taken off.
+   * The server names ON_CALL_PAGE on every responder's page and
+   * ON_CALL_OBSERVER_PAGE on every observer's; without them on the phone the
+   * push arrives with no actions, as before. The two categories earlier
+   * builds registered - which no server ever named, and whose Acknowledge
+   * did nothing - are taken off.
    */
   let categorySpy: jest.SpyInstance;
   let deleteSpy: jest.SpyInstance;
@@ -179,25 +182,50 @@ describe("setupNotificationCategories", () => {
   });
 
   test.each(["ios", "android"] as Array<"ios" | "android">)(
-    "on %s, registers the page's category with Acknowledge and Escalate",
+    "on %s, registers the responder's category with Acknowledge and Escalate, and the observer's with I've seen it",
     async (os: "ios" | "android") => {
       setPlatform(os);
 
       await setupNotificationCategories();
 
-      expect(categorySpy).toHaveBeenCalledTimes(1);
-      const [identifier, actions] = categorySpy.mock.calls[0]! as [
-        string,
-        Array<{ identifier: string; buttonTitle: string; options: unknown }>,
-      ];
-      expect(identifier).toBe(ON_CALL_PAGE_CATEGORY);
       expect(
-        actions.map((action: { identifier: string }) => {
-          return action.identifier;
+        categorySpy.mock.calls.map((call: Array<unknown>) => {
+          const [identifier, actions] = call as [
+            string,
+            Array<{ identifier: string; buttonTitle: string }>,
+          ];
+
+          return [
+            identifier,
+            actions.map((action: { identifier: string }) => {
+              return action.identifier;
+            }),
+          ];
         }),
-      ).toEqual([ACKNOWLEDGE_PAGE_ACTION, ESCALATE_PAGE_ACTION]);
+      ).toEqual([
+        [
+          ON_CALL_PAGE_CATEGORY,
+          [ACKNOWLEDGE_PAGE_ACTION, ESCALATE_PAGE_ACTION],
+        ],
+        [ON_CALL_OBSERVER_PAGE_CATEGORY, [MARK_PAGE_SEEN_ACTION]],
+      ]);
     },
   );
+
+  test("a category the phone refuses leaves the other in place", async () => {
+    const errorSpy: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {
+        return undefined;
+      });
+    categorySpy.mockRejectedValueOnce(new Error("not allowed"));
+
+    await setupNotificationCategories();
+
+    expect(categorySpy).toHaveBeenCalledTimes(2);
+    expect(categorySpy.mock.calls[1]![0]).toBe(ON_CALL_OBSERVER_PAGE_CATEGORY);
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+  });
 
   test("takes the categories no server ever named off the phone", async () => {
     await setupNotificationCategories();

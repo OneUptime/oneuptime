@@ -37,7 +37,7 @@ interface NotificationData {
   entityType?: string;
   entityId?: string;
   projectId?: string;
-  // Acknowledge or Escalate, tapped under a page's push (categories.ts).
+  // Acknowledge, Escalate or I've seen it, tapped under a page's push (categories.ts).
   pushAction?: PushPageActionRequest;
   [key: string]: any;
 }
@@ -360,9 +360,10 @@ export function handleNotificationResponse(
 
   if (actionKind) {
     /*
-     * Acknowledge or Escalate under a page's push: the record opens, and its
-     * screen does the action once, as its own button would. The id is the
-     * tap's, so a second tap on another push is a new action.
+     * Acknowledge or Escalate under a responder's page's push, or I've seen
+     * it under an observer's: the record opens, and its screen does the
+     * action once, as its own button would. The id is the tap's, so a second
+     * tap on another push is a new action.
      */
     void dismissAnsweredPage(response.notification.request.identifier);
     navigateToEntity({
