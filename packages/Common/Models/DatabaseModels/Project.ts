@@ -4839,5 +4839,6 @@ export default class Project extends TenantModel {
     default: false,
     type: ColumnType.Boolean,
   })
-  public requireApprovalForScheduledMaintenancePublicNotes?: boolean = undefined;
+  public requireApprovalForScheduledMaintenancePublicNotes?: boolean =
+    undefined;
 }

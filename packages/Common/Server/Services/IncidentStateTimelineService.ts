@@ -416,18 +416,16 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
        */
       const noteTellsSubscribers: boolean =
         Boolean(publicNote) &&
-        !(await StateChangeSubscriberNotification.isPublicNoteHeldForApproval(
-          {
-            projectId: createBy.data.projectId || createBy.props.tenantId,
-            isApprovalRequired: (query: {
-              projectId: ObjectID;
-              eventType: PublicNoteApprovalEventType;
-            }): Promise<boolean> => {
-              return PublicNoteApprovalPolicy.isRequired(query);
-            },
-            eventType: PublicNoteApprovalEventType.Incident,
+        !(await StateChangeSubscriberNotification.isPublicNoteHeldForApproval({
+          projectId: createBy.data.projectId || createBy.props.tenantId,
+          isApprovalRequired: (query: {
+            projectId: ObjectID;
+            eventType: PublicNoteApprovalEventType;
+          }): Promise<boolean> => {
+            return PublicNoteApprovalPolicy.isRequired(query);
           },
-        ));
+          eventType: PublicNoteApprovalEventType.Incident,
+        }));
 
       StateChangeSubscriberNotification.applyToStateChange({
         stateChange: createBy.data,

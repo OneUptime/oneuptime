@@ -1,7 +1,12 @@
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import {
+  DatabaseTriggerType,
+  OnCreate,
+  OnFind,
+  OnUpdate,
+} from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
 import OneUptimeDate from "../../Types/Date";
 import Model from "../../Models/DatabaseModels/IncidentPublicNote";
@@ -26,7 +31,9 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../Utils/Markdown/FeedMarkdown";
-import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
+import FeedApiKeyActorUtil, {
+  FeedApiKeyActor,
+} from "../Utils/Feed/FeedApiKeyActor";
 import SavedChatMessage from "../../Types/Workspace/SavedChatMessage";
 import SavedChatMessageNote, {
   SavedChatMessageNoteKind,
@@ -37,10 +44,8 @@ import FindBy from "../Types/Database/FindBy";
 import CountBy from "../Types/Database/CountBy";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
-import { DatabaseTriggerType } from "../Types/Database/Hooks";
 import { JSONObject } from "../../Types/JSON";
 import Color from "../../Types/Color";
-import { FeedApiKeyActor } from "../Utils/Feed/FeedApiKeyActor";
 import { PublicNoteApprovalEventType } from "../../Types/StatusPage/PublicNoteApproval";
 import PublicNoteApprovalEngine, {
   PublicNoteApprovalHost,

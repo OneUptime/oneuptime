@@ -329,9 +329,7 @@ export function getNoteIdsToDescribe(
 // ---------- calls ----------
 
 function getUrl(apiPath: string, route: string): URL {
-  return URL.fromString(APP_API_URL.toString()).addRoute(
-    `${apiPath}${route}`,
-  );
+  return URL.fromString(APP_API_URL.toString()).addRoute(`${apiPath}${route}`);
 }
 
 async function post(
@@ -339,12 +337,13 @@ async function post(
   route: string,
   body: JSONObject,
 ): Promise<JSONObject> {
-  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-    await API.post({
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+    {
       url: getUrl(apiPath, route),
       data: body,
       headers: ModelAPI.getCommonHeaders(),
-    });
+    },
+  );
 
   if (response instanceof HTTPErrorResponse) {
     throw new Error(API.getFriendlyMessage(response));

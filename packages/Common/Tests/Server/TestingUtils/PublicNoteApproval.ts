@@ -50,9 +50,11 @@ export function stubPublicNoteApproval(world: PublicNoteApprovalWorld): void {
 
   jest
     .spyOn(PublicNoteApprovalPolicy, "getSteps")
-    .mockImplementation(async (): Promise<Array<PublicNoteApprovalStepRule>> => {
-      return world.steps || [];
-    });
+    .mockImplementation(
+      async (): Promise<Array<PublicNoteApprovalStepRule>> => {
+        return world.steps || [];
+      },
+    );
 
   jest
     .spyOn(PublicNoteApprovalPolicy, "getUserTeamIds")

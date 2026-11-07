@@ -182,9 +182,7 @@ export default class PublicNoteApprovalWrites {
           now: data.now,
           submittedByUserId: data.submittedByUserId,
           isEdit: isEdit,
-          notifySubscribersOfEdit: Boolean(
-            data.round?.notifySubscribersOfEdit,
-          ),
+          notifySubscribersOfEdit: Boolean(data.round?.notifySubscribersOfEdit),
           keepPostedAt: Boolean(data.round?.keepPostedAt),
           before: data.round?.before,
         }),

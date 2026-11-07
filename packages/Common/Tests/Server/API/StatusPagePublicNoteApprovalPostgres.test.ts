@@ -248,9 +248,7 @@ describePostgres(
       parentColumn: string,
       parentId: ObjectID,
     ): Promise<void> {
-      const minutesAgo: (minutes: number) => Date = (
-        minutes: number,
-      ): Date => {
+      const minutesAgo: (minutes: number) => Date = (minutes: number): Date => {
         return new Date(Date.now() - minutes * 60 * 1000);
       };
 
@@ -600,9 +598,9 @@ describePostgres(
       ] as Array<[string, Dictionary<string>]>) {
         const payload: JSONObject = await getJson(route, params);
 
-        expect(notesOf(payload, "scheduledMaintenanceEventsPublicNotes")).toEqual(
-          SHOWN,
-        );
+        expect(
+          notesOf(payload, "scheduledMaintenanceEventsPublicNotes"),
+        ).toEqual(SHOWN);
         expectNothingUnpublished(payload);
       }
     });

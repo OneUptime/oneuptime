@@ -1,7 +1,12 @@
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import {
+  DatabaseTriggerType,
+  OnCreate,
+  OnFind,
+  OnUpdate,
+} from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
 import OneUptimeDate from "../../Types/Date";
 import Model from "../../Models/DatabaseModels/IncidentEpisodePublicNote";
@@ -34,7 +39,6 @@ import FindBy from "../Types/Database/FindBy";
 import CountBy from "../Types/Database/CountBy";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { applyIncidentEpisodeRelatedRecordPrivacyFilter } from "../Utils/IncidentEpisode/IncidentEpisodePrivacyFilter";
-import { DatabaseTriggerType } from "../Types/Database/Hooks";
 import { JSONObject } from "../../Types/JSON";
 import Color from "../../Types/Color";
 import { PublicNoteApprovalEventType } from "../../Types/StatusPage/PublicNoteApproval";

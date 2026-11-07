@@ -170,7 +170,9 @@ describe("buildApprovalDecidedMessage", () => {
     expect(message.pushBody).toBe("Rejected by Bob. Do not name the vendor.");
     expect(message.pushType).toBe("public-note-approval-rejected");
     // A call does not read a reason out; it says where to see it.
-    expect(message.callText).toContain("To see why, go to the OneUptime Dashboard.");
+    expect(message.callText).toContain(
+      "To see why, go to the OneUptime Dashboard.",
+    );
     expect(message.callText).not.toContain("vendor");
   });
 });
@@ -187,7 +189,10 @@ describe("PublicNoteApprovalNotifications: who is told", () => {
     settingsAdded = [];
 
     jest
-      .spyOn(AccessTokenService, "getDatabaseCommonInteractionPropsByUserAndProject")
+      .spyOn(
+        AccessTokenService,
+        "getDatabaseCommonInteractionPropsByUserAndProject",
+      )
       .mockImplementation((async (data: {
         userId: ObjectID;
         projectId: ObjectID;
@@ -222,7 +227,9 @@ describe("PublicNoteApprovalNotifications: who is told", () => {
         });
       }) as never);
 
-    jest.spyOn(UserService, "findBy").mockImplementation((async (query: any) => {
+    jest.spyOn(UserService, "findBy").mockImplementation((async (
+      query: any,
+    ) => {
       const users: Array<User> = [];
 
       for (const [id, name] of [

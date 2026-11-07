@@ -811,8 +811,7 @@ function EventNotes<TNote extends BaseModel>(
                                 : undefined,
                               isRequired: isApprovalRequired,
                               isEditHeld: isEditHeldForApproval(note),
-                              canEdit:
-                                editGate.isShown && !editGate.isDisabled,
+                              canEdit: editGate.isShown && !editGate.isDisabled,
                               onApprove: () => {
                                 return runApprovalAction(approveNote, note);
                               },

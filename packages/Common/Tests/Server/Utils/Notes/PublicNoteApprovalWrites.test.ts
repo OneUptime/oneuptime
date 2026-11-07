@@ -264,7 +264,10 @@ describe("PublicNoteApprovalWrites.forDroppedEdit", () => {
       PublicNoteApprovalWrites.forDroppedEdit(
         round({
           isEdit: true,
-          before: { status: PublicNoteApprovalStatus.Approved, round: original },
+          before: {
+            status: PublicNoteApprovalStatus.Approved,
+            round: original,
+          },
         }),
       );
 
@@ -350,7 +353,10 @@ describe("PublicNoteApprovalWrites.forResubmission", () => {
         round: round({
           isEdit: true,
           notifySubscribersOfEdit: true,
-          before: { status: PublicNoteApprovalStatus.Approved, round: original },
+          before: {
+            status: PublicNoteApprovalStatus.Approved,
+            round: original,
+          },
           rejection: {
             userId: BOB,
             at: EARLIER.toISOString(),
@@ -419,8 +425,12 @@ describe("PublicNoteApprovalWrites.forPublish", () => {
       now: NOW,
     });
 
-    expect(write).not.toHaveProperty("subscriberNotificationStatusOnNoteCreated");
-    expect(write).not.toHaveProperty("subscriberNotificationStatusOnNoteUpdated");
+    expect(write).not.toHaveProperty(
+      "subscriberNotificationStatusOnNoteCreated",
+    );
+    expect(write).not.toHaveProperty(
+      "subscriberNotificationStatusOnNoteUpdated",
+    );
   });
 
   test("an edit approved takes the note's place, and its waiting text is cleared", () => {
@@ -531,9 +541,9 @@ describe("PublicNoteApprovalWrites: what an edit changes", () => {
     expect(
       PublicNoteApprovalWrites.isChangedFiles(["aaa", "bbb", "ccc"], stored),
     ).toBe(true);
-    expect(PublicNoteApprovalWrites.isChangedFiles(["aaa", "ccc"], stored)).toBe(
-      true,
-    );
+    expect(
+      PublicNoteApprovalWrites.isChangedFiles(["aaa", "ccc"], stored),
+    ).toBe(true);
     expect(PublicNoteApprovalWrites.isChangedFiles([], [])).toBe(false);
     expect(PublicNoteApprovalWrites.isChangedFiles(null, [])).toBe(false);
     expect(PublicNoteApprovalWrites.isChangedFiles(null, ["aaa"])).toBe(true);

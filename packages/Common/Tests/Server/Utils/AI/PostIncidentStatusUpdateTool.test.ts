@@ -495,7 +495,9 @@ describe("post_incident_status_update - held for approval", () => {
       "Sent a public status update on incident #42 for approval",
     );
     expect(run.result.dataForLlm).toContain("subscribers are not told");
-    expect(run.result.dataForLlm).not.toContain("Posted a public status update");
+    expect(run.result.dataForLlm).not.toContain(
+      "Posted a public status update",
+    );
     expect(run.result.dataForLlm).not.toContain("notified subscribers");
     expect(widgetSubheading(run.result)).toBe(
       "Status update sent for approval, not published yet",

@@ -205,7 +205,8 @@ export default class PublicNoteApprovalRoutes {
           // Who approves is told to those who read the notes they approve.
           CommonAPI.assertPermittedInProject({
             databaseProps: props,
-            allowedPermissions: new (data.getHost().modelType)().getReadPermissions(),
+            allowedPermissions:
+              new (data.getHost().modelType)().getReadPermissions(),
             errorMessage:
               "Reading who approves public notes takes a role that can read them.",
           });

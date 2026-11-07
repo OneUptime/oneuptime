@@ -99,7 +99,9 @@ describe("PublicNoteApprovalFeed.waitingFor", () => {
       PublicNoteApprovalFeed.waitingFor(
         waiting({ approverNames: [] }),
       ).toString(),
-    ).toBe("It waits for the approvers, which names nobody who can approve it yet.");
+    ).toBe(
+      "It waits for the approvers, which names nobody who can approve it yet.",
+    );
   });
 
   test("names and step names are text: a name cannot make Markdown", () => {

@@ -346,7 +346,9 @@ describe.each(SERVICE_CASES)(
             update({ props: makeProps([serviceCase.memberRole]) }),
           ),
         ).rejects.toThrow(
-          new BadDataException(SubscriberNotificationResend.notPublishedMessage),
+          new BadDataException(
+            SubscriberNotificationResend.notPublishedMessage,
+          ),
         );
       }
     });

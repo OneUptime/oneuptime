@@ -3218,6 +3218,7 @@ describe("where maintenance settings live", () => {
       "Event State",
       "Event Templates",
       "Note Templates",
+      "Public Note Approval",
       "Custom Fields",
       "Measurements",
       "Calendar Settings",
@@ -3248,8 +3249,8 @@ describe("where maintenance settings live", () => {
     });
     const routeMap: string = readDashboardSource("Utils/RouteMap.ts");
 
-    // Four Rules pages and seven Settings pages, Calendar Settings among them.
-    expect(keys.length).toBe(11);
+    // Four Rules pages and eight Settings pages, Calendar Settings among them.
+    expect(keys.length).toBe(12);
     expect(keys).toContain("SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR");
 
     for (const key of keys) {

@@ -694,12 +694,10 @@ export const PostIncidentStatusUpdateTool: ObservabilityTool = {
     publicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
       notifySubscribers;
 
-    const created: IncidentPublicNote = await IncidentPublicNoteService.create(
-      {
-        data: publicNote,
-        props: ctx.props,
-      },
-    );
+    const created: IncidentPublicNote = await IncidentPublicNoteService.create({
+      data: publicNote,
+      props: ctx.props,
+    });
 
     // Held for approval: nothing is published, and nobody is told, yet.
     const isWaitingForApproval: boolean = created.isPublished === false;

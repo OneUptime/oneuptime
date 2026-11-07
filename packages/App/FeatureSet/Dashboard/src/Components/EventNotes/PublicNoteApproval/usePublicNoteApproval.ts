@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { MutableRefObject, useEffect, useRef, useState } from "react";
 import {
   PublicNoteApprovalNoteSummary,
   PublicNoteApprovalPolicySummary,
@@ -37,7 +37,7 @@ export default function usePublicNoteApproval(data: {
   >({});
 
   // Every read takes a number; an answer older than the latest is dropped.
-  const generation: React.MutableRefObject<number> = useRef<number>(0);
+  const generation: MutableRefObject<number> = useRef<number>(0);
 
   const noteIds: Array<string> = data.apiPath
     ? getNoteIdsToDescribe(data.notes)

@@ -3,7 +3,12 @@ import File from "../../../Models/DatabaseModels/File";
 import Team from "../../../Models/DatabaseModels/Team";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import FeedApiKeyActorUtil, { FeedApiKeyActor } from "../Feed/FeedApiKeyActor";
-import { Gray500, Green500, Red500, Yellow500 } from "../../../Types/BrandColors";
+import {
+  Gray500,
+  Green500,
+  Red500,
+  Yellow500,
+} from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -370,9 +375,8 @@ export default class PublicNoteApprovalEngine {
 
     const writesText: boolean = written["note"] !== undefined;
     const writesFiles: boolean = written["attachments"] !== undefined;
-    const asksUpdateNotification: boolean = SubscriberUpdateNotification.isRequested(
-      data.updateBy.miscDataProps,
-    );
+    const asksUpdateNotification: boolean =
+      SubscriberUpdateNotification.isRequested(data.updateBy.miscDataProps);
 
     /*
      * Nothing approval governs: the note's notifications sent again are
@@ -734,14 +738,16 @@ export default class PublicNoteApprovalEngine {
       };
     }
 
-    const approved: PublicNoteApprovalRound = PublicNoteApproval.recordApproval({
-      round,
-      step: position.step!,
-      userId,
-      now,
-      comment: data.text,
-      isFinal: position.isFinal,
-    });
+    const approved: PublicNoteApprovalRound = PublicNoteApproval.recordApproval(
+      {
+        round,
+        step: position.step!,
+        userId,
+        now,
+        comment: data.text,
+        isFinal: position.isFinal,
+      },
+    );
 
     if (!position.isFinal) {
       await this.writeOnce(
@@ -1130,17 +1136,20 @@ export default class PublicNoteApprovalEngine {
             };
           }
 
-          const refusalOf: (decision: PublicNoteApprovalDecision) => string | null =
-            (decision: PublicNoteApprovalDecision): string | null => {
-              return PublicNoteApproval.getDecisionRefusal({
-                state,
-                round,
-                steps,
-                userId: data.props.userId?.toString(),
-                userTeamIds,
-                decision,
-              });
-            };
+          const refusalOf: (
+            decision: PublicNoteApprovalDecision,
+          ) => string | null = (
+            decision: PublicNoteApprovalDecision,
+          ): string | null => {
+            return PublicNoteApproval.getDecisionRefusal({
+              state,
+              round,
+              steps,
+              userId: data.props.userId?.toString(),
+              userTeamIds,
+              decision,
+            });
+          };
 
           const approveRefusal: string | null = refusalOf(
             PublicNoteApprovalDecision.Approve,
@@ -1276,9 +1285,8 @@ export default class PublicNoteApprovalEngine {
         data.round,
         data.steps,
       );
-      const waitingFor: PublicNoteApprovalWaitingFor = await this.getWaitingFor(
-        next,
-      );
+      const waitingFor: PublicNoteApprovalWaitingFor =
+        await this.getWaitingFor(next);
 
       await this.addFeedItem({
         host: data.host,
@@ -1394,9 +1402,7 @@ export default class PublicNoteApprovalEngine {
     approvedByNames: Array<string>;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    const noteId: ObjectID | null = this.idOf(
-      data.note as unknown as BaseModel,
-    )
+    const noteId: ObjectID | null = this.idOf(data.note as unknown as BaseModel)
       ? new ObjectID(this.idOf(data.note as unknown as BaseModel)!)
       : null;
 
@@ -1452,10 +1458,7 @@ export default class PublicNoteApprovalEngine {
     isAgain: boolean;
     props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<void> {
-    const note: NoteFields | null = await this.readNote(
-      data.host,
-      data.noteId,
-    );
+    const note: NoteFields | null = await this.readNote(data.host, data.noteId);
 
     if (!note || !note.projectId) {
       return;
@@ -1516,11 +1519,13 @@ export default class PublicNoteApprovalEngine {
       return;
     }
 
-    const teamMembers: Record<string, Array<string>> =
-      await PublicNoteApprovalPolicy.getTeamMemberIds({
-        projectId: data.note.projectId,
-        teamIds: data.position.step.teamIds,
-      });
+    const teamMembers: Record<
+      string,
+      Array<string>
+    > = await PublicNoteApprovalPolicy.getTeamMemberIds({
+      projectId: data.note.projectId,
+      teamIds: data.position.step.teamIds,
+    });
 
     const people: Array<string> = PublicNoteApproval.getPeopleToAsk({
       step: data.position.step,
@@ -1643,23 +1648,22 @@ export default class PublicNoteApprovalEngine {
     noteId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<NoteFields> {
-    const editable: TNote | null =
-      await data.host.service.findOneUpdatableById({
+    const editable: TNote | null = await data.host.service.findOneUpdatableById(
+      {
         id: data.noteId,
         select: {
           _id: true,
         } as Select<TNote>,
         props: data.props,
-      });
+      },
+    );
 
     if (!editable) {
-      const refusal: Exception = await data.host.service.getUnwrittenByIdError(
-        {
-          id: data.noteId,
-          props: data.props,
-          type: DatabaseRequestType.Update,
-        },
-      );
+      const refusal: Exception = await data.host.service.getUnwrittenByIdError({
+        id: data.noteId,
+        props: data.props,
+        type: DatabaseRequestType.Update,
+      });
 
       throw refusal;
     }
@@ -1672,10 +1676,7 @@ export default class PublicNoteApprovalEngine {
     noteId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<NoteFields> {
-    const note: NoteFields | null = await this.readNote(
-      data.host,
-      data.noteId,
-    );
+    const note: NoteFields | null = await this.readNote(data.host, data.noteId);
 
     if (
       !note ||
@@ -1907,10 +1908,7 @@ export default class PublicNoteApprovalEngine {
   }
 
   // Writes `write` onto a create's or an update's data, null clearing.
-  private static assign(
-    target: unknown,
-    write: PublicNoteApprovalWrite,
-  ): void {
+  private static assign(target: unknown, write: PublicNoteApprovalWrite): void {
     const record: Record<string, unknown> = target as Record<string, unknown>;
 
     for (const [column, value] of Object.entries(write)) {

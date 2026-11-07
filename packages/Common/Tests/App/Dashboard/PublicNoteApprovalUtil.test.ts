@@ -96,9 +96,9 @@ describe("where a note stands", () => {
 
 describe("getApprovalBadge", () => {
   test("each state that waits or was rejected says so", () => {
-    expect(getApprovalBadge(PublicNoteApprovalState.WaitingForApproval)).toEqual(
-      { label: PublicNoteApprovalCopy.waiting, tone: "waiting" },
-    );
+    expect(
+      getApprovalBadge(PublicNoteApprovalState.WaitingForApproval),
+    ).toEqual({ label: PublicNoteApprovalCopy.waiting, tone: "waiting" });
     expect(getApprovalBadge(PublicNoteApprovalState.Rejected)).toEqual({
       label: PublicNoteApprovalCopy.rejected,
       tone: "rejected",
@@ -183,13 +183,14 @@ describe("the step a note waits for", () => {
 describe("getApprovalActions", () => {
   test("Approve and Reject only on a note that waits, and only as the server allows", () => {
     for (const state of ALL_STATES) {
-      const actions: ReturnType<typeof getApprovalActions> =
-        getApprovalActions({
+      const actions: ReturnType<typeof getApprovalActions> = getApprovalActions(
+        {
           state,
           summary: summary(),
           isRequired: true,
           canEdit: true,
-        });
+        },
+      );
       const waits: boolean =
         state === PublicNoteApprovalState.WaitingForApproval ||
         state === PublicNoteApprovalState.EditWaitingForApproval;
@@ -201,14 +202,12 @@ describe("getApprovalActions", () => {
       ]);
     }
 
-    const refused: ReturnType<typeof getApprovalActions> = getApprovalActions(
-      {
-        state: PublicNoteApprovalState.WaitingForApproval,
-        summary: summary({ canApprove: false, canReject: false }),
-        isRequired: true,
-        canEdit: true,
-      },
-    );
+    const refused: ReturnType<typeof getApprovalActions> = getApprovalActions({
+      state: PublicNoteApprovalState.WaitingForApproval,
+      summary: summary({ canApprove: false, canReject: false }),
+      isRequired: true,
+      canEdit: true,
+    });
     expect(refused.canApprove).toBe(false);
     expect(refused.canReject).toBe(false);
 
@@ -315,7 +314,11 @@ describe("getNoteIdsToDescribe", () => {
         },
         // Published by an approval: its "Approved by" is asked about.
         {
-          id: { toString: () => OTHER_ID },
+          id: {
+            toString: () => {
+              return OTHER_ID;
+            },
+          },
           isPublished: true,
           approvalStatus: PublicNoteApprovalStatus.Approved,
         },

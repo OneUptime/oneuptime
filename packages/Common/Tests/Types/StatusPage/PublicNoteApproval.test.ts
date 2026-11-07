@@ -9,7 +9,11 @@ import PublicNoteApproval, {
   PublicNoteApprovalStatus,
   PublicNoteApprovalStepRule,
 } from "../../../Types/StatusPage/PublicNoteApproval";
-import { SeededRandom, seededRandom, shuffled } from "../../Helpers/SeededRandom";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "../../Helpers/SeededRandom";
 
 /*
  * PUBLIC NOTE APPROVAL, THE RULES THEMSELVES (Types/StatusPage/PublicNoteApproval).
@@ -75,19 +79,31 @@ describe("getState: where a note stands, from its columns", () => {
     [true, undefined, PublicNoteApprovalState.Published],
     [undefined, undefined, PublicNoteApprovalState.Published],
     [null, null, PublicNoteApprovalState.Published],
-    [true, PublicNoteApprovalStatus.Approved, PublicNoteApprovalState.Published],
+    [
+      true,
+      PublicNoteApprovalStatus.Approved,
+      PublicNoteApprovalState.Published,
+    ],
     [
       true,
       PublicNoteApprovalStatus.WaitingForApproval,
       PublicNoteApprovalState.EditWaitingForApproval,
     ],
-    [true, PublicNoteApprovalStatus.Rejected, PublicNoteApprovalState.EditRejected],
+    [
+      true,
+      PublicNoteApprovalStatus.Rejected,
+      PublicNoteApprovalState.EditRejected,
+    ],
     [
       false,
       PublicNoteApprovalStatus.WaitingForApproval,
       PublicNoteApprovalState.WaitingForApproval,
     ],
-    [false, PublicNoteApprovalStatus.Rejected, PublicNoteApprovalState.Rejected],
+    [
+      false,
+      PublicNoteApprovalStatus.Rejected,
+      PublicNoteApprovalState.Rejected,
+    ],
   ])(
     "isPublished %p with status %p reads as %p",
     (
@@ -114,7 +130,10 @@ describe("getState: where a note stands, from its columns", () => {
       "garbage",
     ]) {
       expect(
-        PublicNoteApproval.getState({ isPublished: false, approvalStatus: status }),
+        PublicNoteApproval.getState({
+          isPublished: false,
+          approvalStatus: status,
+        }),
       ).toBe(PublicNoteApprovalState.WaitingForApproval);
     }
   });
@@ -154,9 +173,9 @@ describe("getState: where a note stands, from its columns", () => {
       PublicNoteApprovalState.EditRejected,
     ]);
 
-    expect(PublicNoteApproval.isWaiting(PublicNoteApprovalState.Published)).toBe(
-      false,
-    );
+    expect(
+      PublicNoteApproval.isWaiting(PublicNoteApprovalState.Published),
+    ).toBe(false);
     expect(
       PublicNoteApproval.isRejected(PublicNoteApprovalState.Published),
     ).toBe(false);
@@ -273,7 +292,13 @@ describe("getPosition: the step a note waits for", () => {
 
       // Approvals of some of the steps, and of some that no longer exist.
       const approved: Array<string> = shuffled(
-        [...steps.map((rule: PublicNoteApprovalStepRule) => rule.id), "gone-1", "gone-2"],
+        [
+          ...steps.map((rule: PublicNoteApprovalStepRule) => {
+            return rule.id;
+          }),
+          "gone-1",
+          "gone-2",
+        ],
         random,
       ).slice(0, random(count + 3));
 
@@ -284,10 +309,8 @@ describe("getPosition: the step a note waits for", () => {
         }),
       );
 
-      const position: PublicNoteApprovalPosition = PublicNoteApproval.getPosition(
-        round,
-        shuffled(steps, random),
-      );
+      const position: PublicNoteApprovalPosition =
+        PublicNoteApproval.getPosition(round, shuffled(steps, random));
 
       if (steps.length === 0) {
         expect(position.step).toBeNull();
@@ -329,7 +352,13 @@ describe("getStepLabel: how a sentence names a step", () => {
       "an approval step",
     ],
     [
-      { step: SUPPORT, number: 1, count: 1, isFinal: true, isAskedAgain: false },
+      {
+        step: SUPPORT,
+        number: 1,
+        count: 1,
+        isFinal: true,
+        isAskedAgain: false,
+      },
       "the approval step",
     ],
     [
@@ -337,16 +366,25 @@ describe("getStepLabel: how a sentence names a step", () => {
       'the approval step "Legal"',
     ],
     [
-      { step: SUPPORT, number: 1, count: 2, isFinal: false, isAskedAgain: false },
+      {
+        step: SUPPORT,
+        number: 1,
+        count: 2,
+        isFinal: false,
+        isAskedAgain: false,
+      },
       "step 1",
     ],
     [
       { step: LEGAL, number: 2, count: 2, isFinal: true, isAskedAgain: false },
       'step 2 ("Legal")',
     ],
-  ])("%j reads as %p", (position: PublicNoteApprovalPosition, label: string) => {
-    expect(PublicNoteApproval.getStepLabel(position)).toBe(label);
-  });
+  ])(
+    "%j reads as %p",
+    (position: PublicNoteApprovalPosition, label: string) => {
+      expect(PublicNoteApproval.getStepLabel(position)).toBe(label);
+    },
+  );
 });
 
 describe("getDecisionRefusal: who may decide on a note", () => {
@@ -591,9 +629,11 @@ describe("rounds: written, decided and read back", () => {
       approvals: [],
     });
 
-    expect(
-      PublicNoteApproval.startRound({ now: NOW, isEdit: false }),
-    ).toEqual({ submittedAt: NOW.toISOString(), isEdit: false, approvals: [] });
+    expect(PublicNoteApproval.startRound({ now: NOW, isEdit: false })).toEqual({
+      submittedAt: NOW.toISOString(),
+      isEdit: false,
+      approvals: [],
+    });
   });
 
   test("an edit keeps its notify request and what came before; a new note keeps its chosen time", () => {

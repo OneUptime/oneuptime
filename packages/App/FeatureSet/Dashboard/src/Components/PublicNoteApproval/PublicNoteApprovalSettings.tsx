@@ -156,7 +156,9 @@ const PublicNoteApprovalSettings: FunctionComponent<ComponentProps> = (
             type: FieldType.EntityArray,
             getElement: (item: PublicNoteApprovalStep): ReactElement => {
               return (
-                <UsersElement users={(item.approverUsers || []) as Array<User>} />
+                <UsersElement
+                  users={(item.approverUsers || []) as Array<User>}
+                />
               );
             },
           },
@@ -171,7 +173,9 @@ const PublicNoteApprovalSettings: FunctionComponent<ComponentProps> = (
             type: FieldType.EntityArray,
             getElement: (item: PublicNoteApprovalStep): ReactElement => {
               return (
-                <TeamsElement teams={(item.approverTeams || []) as Array<Team>} />
+                <TeamsElement
+                  teams={(item.approverTeams || []) as Array<Team>}
+                />
               );
             },
           },

@@ -337,7 +337,8 @@ describe("PublicNoteApprovalStepService: every step names somebody", () => {
     }>;
   }
 
-  const hooks: StepHooks = PublicNoteApprovalStepService as unknown as StepHooks;
+  const hooks: StepHooks =
+    PublicNoteApprovalStepService as unknown as StepHooks;
 
   function passReferences(): void {
     getJestSpyOn(

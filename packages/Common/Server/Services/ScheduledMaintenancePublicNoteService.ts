@@ -1,7 +1,11 @@
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import {
+  DatabaseTriggerType,
+  OnCreate,
+  OnUpdate,
+} from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
 import OneUptimeDate from "../../Types/Date";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
@@ -30,7 +34,6 @@ import SavedChatMessage from "../../Types/Workspace/SavedChatMessage";
 import SavedChatMessageNote, {
   SavedChatMessageNoteKind,
 } from "../Utils/Notes/SavedChatMessageNote";
-import { DatabaseTriggerType } from "../Types/Database/Hooks";
 import { JSONObject } from "../../Types/JSON";
 import Color from "../../Types/Color";
 import { PublicNoteApprovalEventType } from "../../Types/StatusPage/PublicNoteApproval";
@@ -588,27 +591,25 @@ ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}${approvedBy}
           "/scheduled-maintenance-public-note/attachment",
         );
 
-      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
-        {
-          scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
-          projectId: updatedItem.projectId!,
-          // An edit to a public note is a public note event, not a private one.
-          scheduledMaintenanceFeedEventType:
-            ScheduledMaintenanceFeedEventType.PublicNote,
-          displayColor: Blue500,
-          userId: data.userId || undefined,
+      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
+        scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
+        projectId: updatedItem.projectId!,
+        // An edit to a public note is a public note event, not a private one.
+        scheduledMaintenanceFeedEventType:
+          ScheduledMaintenanceFeedEventType.PublicNote,
+        displayColor: Blue500,
+        userId: data.userId || undefined,
 
-          feedInfoInMarkdown:
-            mdText`📄 updated **Public Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || "#" + scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
+        feedInfoInMarkdown:
+          mdText`📄 updated **Public Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || "#" + scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
         
 ${FeedMarkdown.asMarkdown(updatedItem.note)}${attachmentsMarkdown}${approvedBy}
                   `.toString(),
-          workspaceNotification: {
-            sendWorkspaceNotification: true,
-            leadWithAuthor: true,
-          },
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+          leadWithAuthor: true,
         },
-      );
+      });
     }
   }
 

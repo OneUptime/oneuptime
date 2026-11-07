@@ -97,7 +97,11 @@ interface World {
   editsPublished: Array<{ noteId: string; approvedByNames: Array<string> }>;
   workflows: Array<string>;
   asked: Array<Array<string>>;
-  told: Array<{ userId: string | undefined; isApproved: boolean; reason?: string | undefined }>;
+  told: Array<{
+    userId: string | undefined;
+    isApproved: boolean;
+    reason?: string | undefined;
+  }>;
   // The note as the next read finds it: as it was before a write that landed first (a race).
   staleNote: StoredNote | null;
 }
@@ -332,26 +336,28 @@ beforeEach(() => {
     }
     return found;
   }) as never);
-  getJestSpyOn(PublicNoteApprovalNotifications, "askApprovers").mockImplementation(
-    (async (data: { userIds: ReadonlyArray<string> }) => {
-      world.asked.push([...data.userIds]);
-      return [];
-    }) as never,
-  );
-  getJestSpyOn(PublicNoteApprovalNotifications, "tellSender").mockImplementation(
-    (async (data: {
-      sentByUserId: string | undefined;
-      isApproved: boolean;
-      reason?: string | undefined;
-    }) => {
-      world.told.push({
-        userId: data.sentByUserId,
-        isApproved: data.isApproved,
-        reason: data.reason,
-      });
-      return true;
-    }) as never,
-  );
+  getJestSpyOn(
+    PublicNoteApprovalNotifications,
+    "askApprovers",
+  ).mockImplementation((async (data: { userIds: ReadonlyArray<string> }) => {
+    world.asked.push([...data.userIds]);
+    return [];
+  }) as never);
+  getJestSpyOn(
+    PublicNoteApprovalNotifications,
+    "tellSender",
+  ).mockImplementation((async (data: {
+    sentByUserId: string | undefined;
+    isApproved: boolean;
+    reason?: string | undefined;
+  }) => {
+    world.told.push({
+      userId: data.sentByUserId,
+      isApproved: data.isApproved,
+      reason: data.reason,
+    });
+    return true;
+  }) as never);
 });
 
 afterEach(() => {
@@ -375,9 +381,11 @@ describe("a note approved step by step", () => {
       PublicNoteApprovalStatus.WaitingForApproval,
     );
     expect(
-      storedRound().approvals.map((given: { userId: string; stepId: string }) => {
-        return [given.stepId, given.userId];
-      }),
+      storedRound().approvals.map(
+        (given: { userId: string; stepId: string }) => {
+          return [given.stepId, given.userId];
+        },
+      ),
     ).toEqual([["s1", BOB]]);
 
     // The incident's feed says so, and Legal is asked.
@@ -418,9 +426,11 @@ describe("a note approved step by step", () => {
     expect(world.stored.postedAt).toBeInstanceOf(Date);
     expect(storedRound().publishedAt).toBeDefined();
 
-    expect(world.feed.map((entry: { markdown: string }) => {
-      return entry.markdown;
-    })).toEqual([
+    expect(
+      world.feed.map((entry: { markdown: string }) => {
+        return entry.markdown;
+      }),
+    ).toEqual([
       "✅ approved a **public note** on [Incident INC-42](https://oneuptime.example/incidents/i). It is now published on status pages.",
     ]);
     expect(world.published).toEqual([
@@ -504,9 +514,9 @@ describe("who may decide", () => {
   test("someone on a team the step names, now", async () => {
     const TEAM: string = "e6e6e6e6-0000-4000-8000-000000000006";
     steps = [{ ...SUPPORT, userIds: [], teamIds: [TEAM] }];
-    getJestSpyOn(PublicNoteApprovalPolicy, "getUserTeamIds").mockResolvedValue(
-      [TEAM],
-    );
+    getJestSpyOn(PublicNoteApprovalPolicy, "getUserTeamIds").mockResolvedValue([
+      TEAM,
+    ]);
 
     await expect(
       decide(DAVE, PublicNoteApprovalDecision.Approve),
@@ -522,7 +532,9 @@ describe("who may decide", () => {
       return decide(BOB, PublicNoteApprovalDecision.Approve);
     });
 
-    expect(refusal.message).toBe(PublicNoteApprovalMessages.approvedEarlierStep);
+    expect(refusal.message).toBe(
+      PublicNoteApprovalMessages.approvedEarlierStep,
+    );
   });
 
   test("a person who cannot read the note does not find it", async () => {

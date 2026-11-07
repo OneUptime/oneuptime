@@ -136,7 +136,8 @@ async function call(
     }) as never,
   );
 
-  const sent: jest.Mock = Response.sendJsonObjectResponse as unknown as jest.Mock;
+  const sent: jest.Mock =
+    Response.sendJsonObjectResponse as unknown as jest.Mock;
 
   return {
     error,
@@ -162,16 +163,15 @@ beforeEach(() => {
     },
   });
 
-  getJestSpyOn(CommonAPI, "getDatabaseCommonInteractionProps").mockImplementation(
-    (async () => {
-      return props;
-    }) as never,
-  );
-  getJestSpyOn(Response, "sendJsonObjectResponse").mockImplementation(
-    (() => {
-      return undefined;
-    }) as never,
-  );
+  getJestSpyOn(
+    CommonAPI,
+    "getDatabaseCommonInteractionProps",
+  ).mockImplementation((async () => {
+    return props;
+  }) as never);
+  getJestSpyOn(Response, "sendJsonObjectResponse").mockImplementation((() => {
+    return undefined;
+  }) as never);
 });
 
 afterEach(() => {

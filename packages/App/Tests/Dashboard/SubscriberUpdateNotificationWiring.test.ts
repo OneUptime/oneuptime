@@ -235,9 +235,13 @@ describe("the shared notes feed", () => {
     );
   });
 
+  /*
+   * On published notes: a note waiting for approval, or rejected, tells
+   * nobody yet, so it has no notification to show (#5720).
+   */
   test("shows the update notification status on public notes", () => {
     expect(card).toContain(
-      'props.visibility === "public" ? getUpdateNotificationSummary( props.note.subscriberNotificationStatusOnNoteUpdated, props.note.subscriberNotificationStatusMessageOnNoteUpdated, ) : null;',
+      'props.visibility === "public" && isPublished ? getUpdateNotificationSummary( props.note.subscriberNotificationStatusOnNoteUpdated, props.note.subscriberNotificationStatusMessageOnNoteUpdated, ) : null;',
     );
   });
 

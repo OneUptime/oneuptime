@@ -2084,8 +2084,9 @@ describe("notification settings", () => {
     }
 
     /*
-     * The two shift reminders, the five security case events and a hunt's
-     * finds start on by push too, and they alone.
+     * The two shift reminders, the five security case events, a hunt's
+     * finds and a public note waiting for the person's approval start on by
+     * push too, and they alone.
      */
     const byPush: Array<string> = Array.from(push).map(
       (type: string): string => {
@@ -2103,6 +2104,7 @@ describe("notification settings", () => {
         "Security case response target",
         "Security case task assigned to me",
         "Hunt found security events",
+        "Public note waiting for my approval",
       ].sort(),
     );
     expect(settings).toContain(
