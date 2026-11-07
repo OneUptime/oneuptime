@@ -65,7 +65,18 @@ import {
   WorkflowCanvasGraph,
   toWorkflowCanvasGraph,
 } from "Common/UI/Components/Workflow/WorkflowCanvasGraph";
-import { SavedWorkflowGraph } from "Common/Utils/Workflow/WorkflowGraphSnapshot";
+import {
+  SavedWorkflowGraph,
+  toSavedWorkflowGraph,
+} from "Common/Utils/Workflow/WorkflowGraphSnapshot";
+import {
+  WorkflowVersionOfSave,
+  getStepsSavedElsewhere,
+  getWorkflowVersionsToRead,
+  isAskAiSaveAlone,
+} from "Common/UI/Components/Workflow/WorkflowSavedElsewhere";
+import WorkflowVersion from "Common/Models/DatabaseModels/WorkflowVersion";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
   WorkflowAddButton,
   getWorkflowAddButton,
@@ -84,7 +95,7 @@ import Select from "Common/Types/BaseDatabase/Select";
 import { WORKFLOW_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import WorkflowModel from "Common/Models/DatabaseModels/Workflow";
 import { WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE } from "Common/Types/Workflow/WorkflowArchive";
@@ -478,9 +489,57 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   };
 
   /*
+   * The newest versions of the workflow, for whose each save was; none when
+   * they cannot be read, and what was saved is then drawn as one step.
+   */
+  const readNewestVersions: (
+    limit: number,
+  ) => Promise<Array<WorkflowVersionOfSave>> = async (
+    limit: number,
+  ): Promise<Array<WorkflowVersionOfSave>> => {
+    try {
+      const result: ListResult<WorkflowVersion> =
+        await ModelAPI.getList<WorkflowVersion>({
+          modelType: WorkflowVersion,
+          query: {
+            workflowId: modelId,
+          },
+          skip: 0,
+          limit: limit,
+          select: {
+            versionNumber: true,
+            graph: true,
+            savedThrough: true,
+          },
+          sort: {
+            versionNumber: SortOrder.Descending,
+          },
+        });
+
+      return result.data.map(
+        (version: WorkflowVersion): WorkflowVersionOfSave => {
+          return {
+            versionNumber: version.versionNumber || 0,
+            graph: version.graph,
+            savedThrough: version.savedThrough || null,
+          };
+        },
+      );
+    } catch {
+      return [];
+    }
+  };
+
+  /*
    * What Ask AI saved, drawn where the canvas is: a step of its own, which
    * Undo takes back. The workflow is read again for its graph and its name,
    * all Ask AI changes; before the canvas has opened it is simply opened.
+   *
+   * Saved more than once since this Builder knew it - someone saved before
+   * Ask AI's change was approved, and it was made on top of their save
+   * (issue #6274) - the newest versions say whose each save was, and each
+   * is a step of its own: Undo takes back Ask AI's change alone, and their
+   * work only when the person undoes that too (WorkflowSavedElsewhere).
    */
   const showWhatAskAiSaved: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -501,7 +560,30 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
       }
 
       setWorkflowName(workflow.name || "");
-      editing.showSavedGraph(workflow.graph || null, getGraphRevision(workflow));
+
+      const revision: WorkflowGraphRevision = getGraphRevision(workflow);
+      const known: WorkflowSavedGraphRead | null = editing.getKnownSaved();
+      const knownRevision: WorkflowGraphRevision = known
+        ? known.revision
+        : null;
+
+      if (isAskAiSaveAlone({ known: knownRevision, server: revision })) {
+        editing.showSavedGraph(workflow.graph || null, revision);
+        return;
+      }
+
+      const versions: Array<WorkflowVersionOfSave> = await readNewestVersions(
+        getWorkflowVersionsToRead({ known: knownRevision, server: revision }),
+      );
+
+      editing.showSavedGraphs(
+        getStepsSavedElsewhere({
+          known: known ? toSavedWorkflowGraph(known.graph) : null,
+          server: workflow.graph || null,
+          versions: versions,
+        }),
+        revision,
+      );
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
