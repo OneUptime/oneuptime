@@ -192,7 +192,7 @@ describe("MonitorOverviewFamilyUtil.getLayout", () => {
     }
   });
 
-  it("previews only for Logs, Metrics, Traces, SecurityEvents", () => {
+  it("previews only for Logs, Traces, SecurityEvents", () => {
     const withPreview: Array<[MonitorType, string | null]> = ALL_TYPES.map(
       (type: MonitorType): [MonitorType, string | null] => {
         return [
@@ -207,10 +207,36 @@ describe("MonitorOverviewFamilyUtil.getLayout", () => {
     expect(withPreview.sort()).toEqual(
       [
         [MonitorType.Logs, "Logs"],
-        [MonitorType.Metrics, "Metrics"],
         [MonitorType.Traces, "Traces"],
         [MonitorType.SecurityEvents, "SecurityEvents"],
       ].sort(),
+    );
+  });
+
+  /*
+   * Issue #5759: a Proxmox monitor's overview charted nothing at all, and a
+   * Metrics monitor's had a preview below its summary. Every metric-backed
+   * monitor charts what it checks, first.
+   */
+  it("charts the metrics of every metric-backed monitor, and only theirs", () => {
+    const withCharts: Array<MonitorType> = ALL_TYPES.filter(
+      (type: MonitorType): boolean => {
+        return MonitorOverviewFamilyUtil.getLayout(type).metricCharts;
+      },
+    );
+
+    expect(withCharts.sort()).toEqual(
+      MonitorTypeHelper.getMetricBackedMonitorTypes().sort(),
+    );
+    expect(MonitorOverviewFamilyUtil.getLayout(MonitorType.Proxmox)).toEqual(
+      expect.objectContaining({
+        family: MonitorOverviewFamily.Infrastructure,
+        metricCharts: true,
+        telemetryPreview: null,
+      }),
+    );
+    expect(MonitorOverviewFamilyUtil.getLayout(MonitorType.Metrics)).toEqual(
+      expect.objectContaining({ metricCharts: true, telemetryPreview: null }),
     );
   });
 

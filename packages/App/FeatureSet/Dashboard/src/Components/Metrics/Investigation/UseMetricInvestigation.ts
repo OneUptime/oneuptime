@@ -73,6 +73,11 @@ export interface MetricInvestigationState {
   // The pick as the time picker's value.
   pickerValue: RangeStartAndEndDateTime;
   queries: MetricInvestigationQueries;
+  /*
+   * The page's metrics, which Reset goes back to: what lines drawn for the
+   * page's own metrics (a monitor's thresholds) are drawn on.
+   */
+  defaultQueries: MetricInvestigationQueries;
   // The window and the queries, for MetricView and the explorer link.
   metricViewData: MetricViewData;
   // Bumped by Refresh, so the charts read again past their cache.
@@ -620,6 +625,7 @@ const useMetricInvestigation: (
     window: shownWindow,
     pickerValue: pickerValue,
     queries: queries,
+    defaultQueries: defaultQueries,
     metricViewData: metricViewData,
     refreshNonce: state.refreshNonce,
     isTimeChanged: isTimeChanged,

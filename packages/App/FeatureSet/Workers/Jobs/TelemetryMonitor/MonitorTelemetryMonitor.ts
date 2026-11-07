@@ -163,16 +163,11 @@ import MonitorStepOpenStackMonitor, {
   getOpenStackGroupByKeysForMetric,
 } from "Common/Types/Monitor/MonitorStepOpenStackMonitor";
 import { OPENSTACK_ANCHOR_METRIC_ALIAS } from "Common/Types/Monitor/OpenStackAlertTemplates";
-import MonitorStepVMwareMonitor, {
-  VMwareResourceFilters,
-} from "Common/Types/Monitor/MonitorStepVMwareMonitor";
+import MonitorStepVMwareMonitor from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import MonitorStepCephMonitor, {
   CephResourceFilters,
 } from "Common/Types/Monitor/MonitorStepCephMonitor";
-import MonitorStepStorageArrayMonitor, {
-  StorageArrayResourceFilters,
-  StorageArrayResourceScope,
-} from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
+import MonitorStepStorageArrayMonitor from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
 import MonitorStepDockerSwarmMonitor, {
   DockerSwarmResourceFilters,
   MonitorStepDockerSwarmMonitorUtil,
@@ -183,15 +178,18 @@ import MonitorStepIoTMonitor, {
   MonitorStepIoTMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepIoTMonitor";
 import { escapeWildcards } from "Common/Types/BaseDatabase/WildcardPattern";
+import {
+  StorageArrayResourceFilterScopes,
+  VMwareResourceFilterAttributeKeys,
+  applyStorageArrayResourceFilters,
+  applyVMwareResourceFilters,
+} from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import { getKubernetesMetricByMetricName } from "Common/Types/Monitor/KubernetesMetricCatalog";
 import { getProxmoxMetricByMetricName } from "Common/Types/Monitor/ProxmoxMetricCatalog";
 import { getOpenStackMetricByMetricName } from "Common/Types/Monitor/OpenStackMetricCatalog";
 import { getVMwareMetricByMetricName } from "Common/Types/Monitor/VMwareMetricCatalog";
 import { getCephMetricByMetricName } from "Common/Types/Monitor/CephMetricCatalog";
-import {
-  getStorageArrayMetric,
-  getStorageArrayObjectLabel,
-} from "Common/Types/Monitor/StorageArrayMetricCatalog";
+import { getStorageArrayMetric } from "Common/Types/Monitor/StorageArrayMetricCatalog";
 import { getDockerSwarmMetricByMetricName } from "Common/Types/Monitor/DockerSwarmMetricCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -205,6 +203,18 @@ import {
   stepJudgesFreshness,
 } from "./MetricSeriesArrivals";
 import { readResourceStillReporting } from "./ResourceStillReporting";
+
+/*
+ * How a VMware or Storage Array step's resource filters become attribute
+ * equalities: shared with the dashboard's charts of a monitor's metrics, so
+ * both read a step the same way. Re-exported for the worker's tests.
+ */
+export {
+  StorageArrayResourceFilterScopes,
+  VMwareResourceFilterAttributeKeys,
+  applyStorageArrayResourceFilters,
+  applyVMwareResourceFilters,
+};
 
 type TelemetryMonitorResponse =
   | LogMonitorResponse
@@ -3392,70 +3402,6 @@ type MonitorVMwareFunction = (data: {
   evaluateUntil?: Date | undefined;
 }) => Promise<MetricMonitorResponse>;
 
-/*
- * Map a VMware monitor step's resource filters onto the ClickHouse
- * attribute equalities the query runs with. The OpenTelemetry Collector
- * `vcenter` receiver stamps a vSphere object's identity as OTel RESOURCE
- * attributes (one OTLP resource per datacenter / cluster / host / VM /
- * datastore / resource pool), which OtelMetricsIngestService stores
- * `resource.`-prefixed — so, unlike pve-exporter's bare datapoint
- * labels, every key here carries the `resource.` prefix. The filters are
- * independent equalities (a host filter narrows to that ESXi host's own
- * series AND to the series of every VM it runs, because the receiver
- * stamps the parent host on VM resources; add `vmName` to target one VM).
- *
- * Exported for the worker test; the step-config identity path
- * (MonitorStepResourceIdentity) and the root-cause renderer
- * (MonitorCriteriaEvaluator.buildVMwareRootCauseContext) surface the
- * same fields, so the three cannot drift apart.
- */
-export const VMwareResourceFilterAttributeKeys: Record<
-  keyof VMwareResourceFilters,
-  string
-> = {
-  datacenterName: "resource.vcenter.datacenter.name",
-  clusterName: "resource.vcenter.cluster.name",
-  hostName: "resource.vcenter.host.name",
-  vmName: "resource.vcenter.vm.name",
-  datastoreName: "resource.vcenter.datastore.name",
-  resourcePoolPath: "resource.vcenter.resource_pool.inventory_path",
-};
-
-export const applyVMwareResourceFilters: (input: {
-  attributes: Dictionary<string>;
-  resourceFilters: VMwareResourceFilters | undefined;
-}) => void = (input: {
-  attributes: Dictionary<string>;
-  resourceFilters: VMwareResourceFilters | undefined;
-}): void => {
-  if (!input.resourceFilters) {
-    return;
-  }
-
-  for (const filterKey of Object.keys(
-    VMwareResourceFilterAttributeKeys,
-  ) as Array<keyof VMwareResourceFilters>) {
-    const filterValue: unknown = input.resourceFilters[filterKey];
-
-    /*
-     * `typeof` rather than truthiness: step JSON is not schema-checked,
-     * so a filter written by the API or an import can be a number or an
-     * object, and neither is an attribute equality ClickHouse can run.
-     */
-    if (typeof filterValue !== "string") {
-      continue;
-    }
-
-    const trimmed: string = filterValue.trim();
-
-    if (trimmed.length === 0) {
-      continue;
-    }
-
-    input.attributes[VMwareResourceFilterAttributeKeys[filterKey]] = trimmed;
-  }
-};
-
 export const monitorVMware: MonitorVMwareFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
@@ -4434,81 +4380,6 @@ type MonitorStorageArrayFunction = (data: {
   projectId: ObjectID;
   evaluateUntil?: Date | undefined;
 }) => Promise<MetricMonitorResponse>;
-
-/*
- * Map a Storage Array monitor step's resource filters onto the ClickHouse
- * attribute equalities the query runs with. Like ceph-mgr, Pure Storage
- * keeps object identity in DATAPOINT labels (stored unprefixed), and the
- * label differs per object and platform — a FlashArray volume or pod is
- * `name`, a host `host`, a hardware component `component_name`; every
- * FlashBlade object is `name` — so each filter resolves its label through
- * the catalog (getStorageArrayObjectLabel), with the query's metric name
- * for the few series that name their object differently (replica links
- * carry the pod as `local_pod`). Two filters that resolve to the same
- * label on one query cannot both hold; the later one in this map wins.
- *
- * Exported for the worker test; the root-cause renderer
- * (MonitorCriteriaEvaluator.buildStorageArrayRootCauseContext) surfaces the
- * same filters.
- */
-export const StorageArrayResourceFilterScopes: Record<
-  keyof StorageArrayResourceFilters,
-  StorageArrayResourceScope
-> = {
-  volumeName: StorageArrayResourceScope.Volume,
-  hostName: StorageArrayResourceScope.Host,
-  podName: StorageArrayResourceScope.Pod,
-  componentName: StorageArrayResourceScope.Hardware,
-  fileSystemName: StorageArrayResourceScope.FileSystem,
-  bucketName: StorageArrayResourceScope.Bucket,
-};
-
-export const applyStorageArrayResourceFilters: (input: {
-  attributes: Dictionary<string>;
-  resourceFilters: StorageArrayResourceFilters | undefined;
-  storageSystem: string | undefined;
-  metricName: string;
-}) => void = (input: {
-  attributes: Dictionary<string>;
-  resourceFilters: StorageArrayResourceFilters | undefined;
-  storageSystem: string | undefined;
-  metricName: string;
-}): void => {
-  if (!input.resourceFilters || typeof input.resourceFilters !== "object") {
-    return;
-  }
-
-  for (const filterKey of Object.keys(
-    StorageArrayResourceFilterScopes,
-  ) as Array<keyof StorageArrayResourceFilters>) {
-    const filterValue: unknown = input.resourceFilters[filterKey];
-
-    /*
-     * `typeof` rather than truthiness: step JSON is not schema-checked,
-     * so a filter written by the API or an import can be a number or an
-     * object, and neither is an attribute equality ClickHouse can run.
-     */
-    if (typeof filterValue !== "string") {
-      continue;
-    }
-
-    const trimmed: string = filterValue.trim();
-
-    if (trimmed.length === 0) {
-      continue;
-    }
-
-    const label: string | null = getStorageArrayObjectLabel(
-      StorageArrayResourceFilterScopes[filterKey],
-      input.storageSystem,
-      input.metricName || undefined,
-    );
-
-    if (label) {
-      input.attributes[label] = trimmed;
-    }
-  }
-};
 
 export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
   monitorStep: MonitorStep;

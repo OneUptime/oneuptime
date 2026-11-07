@@ -89,11 +89,20 @@ const METRIC_INVESTIGATION_PANEL: string = readSource(
   "EventMetricInvestigationPanel.tsx",
 );
 
-const MONITOR_METRIC_PREVIEW: string = readSource(
+/*
+ * A monitor's own metrics card (issue #5759), and what it charts: the
+ * monitor's queries as it reads them.
+ */
+const MONITOR_METRICS_CARD: string = readSource(
   "Components",
   "Monitor",
   "MetricMonitor",
-  "MetricMonitorPreview.tsx",
+  "MonitorMetricsCard.tsx",
+);
+
+const MONITOR_METRIC_INVESTIGATION: string = readSource(
+  "Utils",
+  "MonitorMetricInvestigation.ts",
 );
 
 /*
@@ -223,15 +232,17 @@ describe("alert overview Metrics card is scoped to the alert's series", () => {
   });
 });
 
-describe("the monitor-level metrics preview stays unscoped", () => {
+describe("the monitor's own metrics stay unscoped", () => {
   test("does not narrow to any single series", () => {
     /*
-     * This one previews the monitor's own criteria, not one incident —
+     * This one charts the monitor's own criteria, not one incident —
      * showing every group is the entire point of it. Scoping it would
      * hide the very series a user is checking their criteria against.
      */
-    expect(MONITOR_METRIC_PREVIEW).not.toContain("MetricSeriesScope");
-    expect(MONITOR_METRIC_PREVIEW).not.toContain("seriesLabels");
+    for (const source of [MONITOR_METRICS_CARD, MONITOR_METRIC_INVESTIGATION]) {
+      expect(source).not.toContain("MetricSeriesScope");
+      expect(source).not.toContain("seriesLabels");
+    }
   });
 });
 
