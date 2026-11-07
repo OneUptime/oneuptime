@@ -350,19 +350,16 @@ export default class PublicNoteApprovalEngine {
 
     const writesText: boolean = written["note"] !== undefined;
     const writesFiles: boolean = written["attachments"] !== undefined;
-    const writesNotification: boolean =
-      written["subscriberNotificationStatusOnNoteCreated"] !== undefined ||
-      written["subscriberNotificationStatusOnNoteUpdated"] !== undefined;
     const asksUpdateNotification: boolean = SubscriberUpdateNotification.isRequested(
       data.updateBy.miscDataProps,
     );
 
-    if (
-      !writesText &&
-      !writesFiles &&
-      !writesNotification &&
-      !asksUpdateNotification
-    ) {
+    /*
+     * Nothing approval governs: the note's notifications sent again are
+     * held to it where they are checked (SubscriberNotificationResendAccess:
+     * a note that is not published has told nobody yet).
+     */
+    if (!writesText && !writesFiles && !asksUpdateNotification) {
       return result;
     }
 
@@ -382,12 +379,7 @@ export default class PublicNoteApprovalEngine {
       return note.isPublished === false;
     });
 
-    if (writesNotification && isAnyUnpublished) {
-      throw new BadDataException(
-        "Subscribers are told about this public note once it is published. It is waiting for approval.",
-      );
-    }
-
+    // An edit of no text or files: told only about a published note.
     if (!writesText && !writesFiles) {
       result.isUpdateNotificationHeld = isAnyUnpublished;
       return result;

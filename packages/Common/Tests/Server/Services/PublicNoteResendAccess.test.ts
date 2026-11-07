@@ -38,6 +38,7 @@ import {
   stubRowsCallerMayWrite,
 } from "../TestingUtils/RowsCallerMayWrite";
 import { idsNamedBy } from "../TestingUtils/QueryConditions";
+import { stubPublicNoteApproval } from "../TestingUtils/PublicNoteApproval";
 
 /*
  * Sending a public note's 'posted' notification again - Retry after a
@@ -197,6 +198,8 @@ describe.each(SERVICE_CASES)(
   "$name: sending the posted notification again",
   (serviceCase: ServiceCase) => {
     beforeEach(() => {
+      // Public note approval off: every note is published as it is posted.
+      stubPublicNoteApproval({});
       storedNotes = [storedNote(serviceCase)];
 
       noteFindBy = getJestMockFunction();
@@ -518,6 +521,8 @@ describe.each(SERVICE_CASES)(
     const EDIT: JSONObject = { note: "The fix is rolling out, ETA 14:00 UTC." };
 
     beforeEach(() => {
+      // Public note approval off: every note is published as it is posted.
+      stubPublicNoteApproval({});
       storedNotes = [storedNote(serviceCase)];
 
       noteFindBy = getJestMockFunction();
@@ -869,6 +874,8 @@ describe("IncidentPublicNoteService.updateOneById: sending a note's notification
   let updateMock: MockFunction;
 
   beforeEach(() => {
+    // Public note approval off: every note is published as it is posted.
+    stubPublicNoteApproval({});
     saveMock = getJestMockFunction();
     saveMock.mockImplementation((item: unknown) => {
       return Promise.resolve(item);

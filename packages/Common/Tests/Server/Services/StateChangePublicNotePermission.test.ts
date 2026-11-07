@@ -36,6 +36,7 @@ import {
   StoredRow,
   useInMemoryTable,
 } from "../TestingUtils/InMemoryRepository";
+import { stubPublicNoteApproval } from "../TestingUtils/PublicNoteApproval";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { stubReadableParents } from "../TestingUtils/ReadableParents";
 import { stubPrivateRecords } from "../TestingUtils/PrivateRecords";
@@ -315,6 +316,8 @@ let lock: jest.SpyInstance;
 let release: jest.SpyInstance;
 
 beforeEach(() => {
+  // Public note approval off: every note is published as it is posted.
+  stubPublicNoteApproval({});
   /*
    * The project's incident and alert states: open records are read by
    * the states that are not resolved (Common/Utils/ResolvedState).

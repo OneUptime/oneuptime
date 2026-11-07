@@ -29,6 +29,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubPublicNoteApproval } from "../TestingUtils/PublicNoteApproval";
 
 /*
  * Editing an announcement or a public note notifies subscribers only when the
@@ -298,6 +299,8 @@ describe.each(SERVICE_CASES)(
 
     beforeEach(() => {
       jest.restoreAllMocks();
+      // Public note approval off: every note is published as it is posted.
+      stubPublicNoteApproval({});
 
       const foundItem: BaseModel = new serviceCase.modelType();
       foundItem._id = ROW_ID.toString();

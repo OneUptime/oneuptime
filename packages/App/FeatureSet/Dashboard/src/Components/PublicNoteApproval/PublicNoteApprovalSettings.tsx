@@ -111,6 +111,8 @@ const PublicNoteApprovalSettings: FunctionComponent<ComponentProps> = (
         noItemsMessage={translationKey(
           "Nobody approves public notes yet. Add the people or teams who approve them, then turn on approval above.",
         )}
+        // A handful of steps at most: nothing to filter.
+        filters={[]}
         sortBy="order"
         sortOrder={SortOrder.Ascending}
         enableDragAndDrop={true}

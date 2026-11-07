@@ -28,12 +28,15 @@ import {
   test,
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubPublicNoteApproval } from "../TestingUtils/PublicNoteApproval";
 
 /*
  * The records these tests name are their project's own: the services check
  * every reference against the project (ProjectReferencesService).
  */
 beforeEach(() => {
+  // Public note approval off: every note is published as it is posted.
+  stubPublicNoteApproval({});
   stubProjectDirectory({});
 });
 
