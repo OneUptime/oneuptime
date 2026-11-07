@@ -441,12 +441,15 @@ describe("an exported entry carries no secret", () => {
       const keys: number = 1 + random(4);
 
       for (let index: number = 0; index < keys; index++) {
-        if (random() < 0.4) {
+        const draw: number = random();
+
+        if (draw < 0.4) {
           node[SECRET_KEYS[random(SECRET_KEYS.length)]!] = secretValue();
-        } else if (depth < 3 && random() < 0.4) {
+        } else if (depth < 3 && draw < 0.64) {
           node[PLAIN_KEYS[random(PLAIN_KEYS.length)]!] = json(depth + 1);
         } else {
-          node[PLAIN_KEYS[random(PLAIN_KEYS.length)]!] = `plain-${random(1000)}`;
+          node[PLAIN_KEYS[random(PLAIN_KEYS.length)]!] =
+            `plain-${random(1000)}`;
         }
       }
 

@@ -342,7 +342,9 @@ describe("the versions an export can send", () => {
     expect([...AUDIT_LOG_EXPORT_SCHEMA_VERSIONS]).toEqual([1, 2]);
     expect(AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION).toBe(1);
     expect(AUDIT_LOG_EXPORT_SCHEMA_VERSION).toBe(
-      AUDIT_LOG_EXPORT_SCHEMA_VERSIONS[AUDIT_LOG_EXPORT_SCHEMA_VERSIONS.length - 1],
+      AUDIT_LOG_EXPORT_SCHEMA_VERSIONS[
+        AUDIT_LOG_EXPORT_SCHEMA_VERSIONS.length - 1
+      ],
     );
     expect(AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION).toBe(2);
   });
@@ -366,7 +368,21 @@ describe("the versions an export can send", () => {
     expect(readAuditLogExportSchemaVersion("2")).toBe(2);
     expect(readAuditLogExportSchemaVersion(" 2 ")).toBe(2);
 
-    for (const value of [undefined, null, "", "  ", 0, 3, 9, "3", "two", NaN, true, [2], { version: 2 }]) {
+    for (const value of [
+      undefined,
+      null,
+      "",
+      "  ",
+      0,
+      3,
+      9,
+      "3",
+      "two",
+      NaN,
+      true,
+      [2],
+      { version: 2 },
+    ]) {
       expect([value, readAuditLogExportSchemaVersion(value)]).toEqual([
         value,
         1,
@@ -398,8 +414,7 @@ describe("version 2: what changed, in plain lines", () => {
   function rowWith(changes: JSONArray | string): JSONObject {
     return {
       ...clickhouseRow(),
-      changes:
-        typeof changes === "string" ? changes : JSON.stringify(changes),
+      changes: typeof changes === "string" ? changes : JSON.stringify(changes),
     };
   }
 
@@ -466,7 +481,15 @@ describe("version 2: what changed, in plain lines", () => {
       "Removed requestHeaders › X-Old",
     ]);
 
-    for (const value of [undefined, null, "a line", 7, { 0: "a" }, [], [1, 2]]) {
+    for (const value of [
+      undefined,
+      null,
+      "a line",
+      7,
+      { 0: "a" },
+      [],
+      [1, 2],
+    ]) {
       expect([value, readAuditLogExportSummary(value as JSONValue)]).toEqual([
         value,
         null,
@@ -475,7 +498,7 @@ describe("version 2: what changed, in plain lines", () => {
   });
 
   test("a line is sent as it was recorded: never trimmed, never rewritten", () => {
-    expect(readAuditLogExportSummary(["  Added \"Log\" (log-1)  "])).toEqual([
+    expect(readAuditLogExportSummary(['  Added "Log" (log-1)  '])).toEqual([
       '  Added "Log" (log-1)  ',
     ]);
   });
@@ -759,12 +782,24 @@ describe("version 1 is the record as it was first sent", () => {
     switch (random(10)) {
       // Not a change at all, or one with no field: left out.
       case 0:
-        return pick(random, [null, "text", 3, [], ["graph"]] as Array<JSONValue>);
+        return pick(random, [
+          null,
+          "text",
+          3,
+          [],
+          ["graph"],
+        ] as Array<JSONValue>);
       case 1:
         return { oldValue: "a", newValue: "b" };
       default: {
         const entry: JSONObject = {
-          field: pick(random, ["graph", "name", "requestHeaders", "", "isEnabled"]),
+          field: pick(random, [
+            "graph",
+            "name",
+            "requestHeaders",
+            "",
+            "isEnabled",
+          ]),
         };
 
         if (random() < 0.7) {
@@ -887,7 +922,8 @@ describe("version 1 is the record as it was first sent", () => {
                   })),
             ).toBe(true);
 
-            const { summary: _summary, ...rest } = entry;
+            const rest: AuditLogExportChange = { ...entry };
+            delete rest.summary;
             return rest;
           },
         ),

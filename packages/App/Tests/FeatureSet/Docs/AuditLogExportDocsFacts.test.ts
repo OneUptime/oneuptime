@@ -525,7 +525,9 @@ describe("the Audit Log Export page's entries", () => {
     expect(versions).toContain(
       `choose version ${AUDIT_LOG_EXPORT_SCHEMA_VERSION} in **Record version**, under **${MORE_FIELDS_SECTION_TITLE}**.`,
     );
-    expect(copy).toContain('schemaVersionField: translationKey("Record version")');
+    expect(copy).toContain(
+      'schemaVersionField: translationKey("Record version")',
+    );
     expect(modal).toContain("title: AuditLogExportCopy.schemaVersionField");
     expect(
       modal.slice(modal.indexOf("field: { schemaVersion: true }")),

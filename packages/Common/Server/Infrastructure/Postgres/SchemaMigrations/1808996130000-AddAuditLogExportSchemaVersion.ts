@@ -13,7 +13,9 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * is rewritten. A new export is given the newest version when it is created
  * (AuditLogExportService), never this default.
  */
-export class AddAuditLogExportSchemaVersion1808996130000 implements MigrationInterface {
+export class AddAuditLogExportSchemaVersion1808996130000
+  implements MigrationInterface
+{
   public name: string = "AddAuditLogExportSchemaVersion1808996130000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {

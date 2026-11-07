@@ -300,10 +300,7 @@ export function readAuditLogExportChanges(
   const changes: Array<AuditLogExportChange> = [];
 
   for (const item of parsed as JSONArray) {
-    const change: AuditLogExportChange | null = readChange(
-      item,
-      schemaVersion,
-    );
+    const change: AuditLogExportChange | null = readChange(item, schemaVersion);
 
     if (change) {
       changes.push(change);

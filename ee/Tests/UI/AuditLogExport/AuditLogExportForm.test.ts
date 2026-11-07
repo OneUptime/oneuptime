@@ -503,9 +503,9 @@ describe("the record version", () => {
     expect(update(s3Values({ schemaVersion: "1" }), saved)).not.toHaveProperty(
       "schemaVersion",
     );
-    expect(update(s3Values({ schemaVersion: "2" }), saved)["schemaVersion"]).toBe(
-      2,
-    );
+    expect(
+      update(s3Values({ schemaVersion: "2" }), saved)["schemaVersion"],
+    ).toBe(2);
     expect(update(s3Values(), saved)).not.toHaveProperty("schemaVersion");
   });
 
@@ -532,9 +532,9 @@ describe("the record version", () => {
     expect(
       getAuditLogExportInitialValues(savedExport({ destinationType: S3 }), S3),
     ).not.toHaveProperty("schemaVersion");
-    expect(getAuditLogExportInitialValues(undefined, undefined)).not.toHaveProperty(
-      "schemaVersion",
-    );
+    expect(
+      getAuditLogExportInitialValues(undefined, undefined),
+    ).not.toHaveProperty("schemaVersion");
   });
 
   test("the table reads each export's version, so the edit form shows and keeps it", () => {

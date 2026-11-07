@@ -357,9 +357,7 @@ export function auditLogExportUpdatePayload(data: {
     ...(startsAtMoved && data.submission.startsAt
       ? { startsAt: data.submission.startsAt.toISOString() }
       : {}),
-    ...(versionChanged
-      ? { schemaVersion: data.submission.schemaVersion }
-      : {}),
+    ...(versionChanged ? { schemaVersion: data.submission.schemaVersion } : {}),
   };
 }
 

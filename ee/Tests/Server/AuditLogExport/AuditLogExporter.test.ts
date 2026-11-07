@@ -818,19 +818,23 @@ describe("the audit log exporter", () => {
     };
 
     function sentChanges(): Array<unknown> {
-      return webhook.batches.flatMap((batch: { records: Array<AuditLogExportRecord> }) => {
-        return batch.records.flatMap((record: AuditLogExportRecord) => {
-          return record.changes;
-        });
-      });
+      return webhook.batches.flatMap(
+        (batch: { records: Array<AuditLogExportRecord> }) => {
+          return batch.records.flatMap((record: AuditLogExportRecord) => {
+            return record.changes;
+          });
+        },
+      );
     }
 
     function sentVersions(): Array<number> {
-      return webhook.batches.flatMap((batch: { records: Array<AuditLogExportRecord> }) => {
-        return batch.records.map((record: AuditLogExportRecord): number => {
-          return record.schemaVersion;
-        });
-      });
+      return webhook.batches.flatMap(
+        (batch: { records: Array<AuditLogExportRecord> }) => {
+          return batch.records.map((record: AuditLogExportRecord): number => {
+            return record.schemaVersion;
+          });
+        },
+      );
     }
 
     test("an export saved before version 2 sends version 1, as it always did", async () => {
@@ -1047,9 +1051,9 @@ describe("the audit log exporter", () => {
           now: NOW,
         });
 
-        expect(
-          destination.deliveries[0]!.batch.records[0]!.schemaVersion,
-        ).toBe(schemaVersion || 1);
+        expect(destination.deliveries[0]!.batch.records[0]!.schemaVersion).toBe(
+          schemaVersion || 1,
+        );
       }
     });
 
