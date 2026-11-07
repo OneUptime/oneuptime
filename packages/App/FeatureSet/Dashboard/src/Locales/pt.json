@@ -46419,5 +46419,5 @@
   "Resource Audit Logs": "Resource Audit Logs",
   "Site Audit Logs": "Site Audit Logs",
   "Table Audit Logs": "Table Audit Logs",
-  "Every change made to this exception: who resolved, archived or assigned it, when, and what changed.": "Every change made to this exception: who resolved, archived or assigned it, when, and what changed."
+  "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed.": "Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed."
 }

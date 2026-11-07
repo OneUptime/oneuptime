@@ -1995,7 +1995,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       "| **Settings** | Resolve or archive the exception. It is under **Manage**, which starts collapsed. |",
     );
     expect(page).toContain(
-      "| **Audit Logs** | Who resolved, archived or assigned the exception, and when. It is under **Manage** too. |",
+      "| **Audit Logs** | Who resolved, archived, assigned or merged the exception, and when. It is under **Manage** too. |",
     );
   });
 
@@ -2629,6 +2629,36 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(panel).toContain('title="Unmerge"');
     expect(panel).toContain(
       'template="This exception was merged into {{exception}}. Its occurrences count there."',
+    );
+  });
+
+  /*
+   * Issue #6276: a merge is written with raw SQL, round DatabaseService's
+   * audit hook, so it records its entries itself, on the exceptions it
+   * moved - and nothing on the one they were merged into.
+   */
+  it("says who merged or unmerged an exception is on its Audit Logs, and why the one it was merged into has no entry", () => {
+    const merge: string = readCommonSource(
+      "Server/Utils/Telemetry/TelemetryExceptionMerge.ts",
+    );
+    const explorer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionExplorer.tsx",
+    );
+
+    expect(section(page, "## Explain it with AI")).toContain(
+      "Who merged an exception, and who unmerged it, is on its **Audit Logs** page; the exception it was merged into gets no entry, as nothing anyone set on it changed.",
+    );
+
+    // The merge and the unmerge each record, once they commit.
+    expect(
+      merge.split("await TelemetryExceptionMerge.recordInAuditLog({").length -
+        1,
+    ).toBe(2);
+    expect(merge).toContain(
+      'includeColumns: ["mergedIntoTelemetryExceptionId"]',
+    );
+    expect(explorer).toContain(
+      'description="Every change made to this exception: who resolved, archived, assigned or merged it, when, and what changed."',
     );
   });
 

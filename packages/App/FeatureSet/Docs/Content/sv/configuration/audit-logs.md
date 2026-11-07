@@ -88,7 +88,7 @@ Allt som personer skapar, ändrar eller tar bort i ett projekt registreras: öve
 
 Det registreras också när en administratör lägger till eller tar bort en aviseringsmetod eller en personlig jourregel på någon annans konto, utan själva adressen eller numret.
 
-Fält som bara OneUptime skriver, till exempel när en värd senast sågs, utelämnas från alla poster, och det gör även fält som ingen får läsa. Nycklar, tokens och lösenord registreras som `[REDACTED]`: posten visar att de har ändrats, aldrig deras värde. Ett arbetsflödes steg registreras som det som ändrades, med namnen på ett stegs inställningar men aldrig det som skrevs i dem, och att flytta ett steg på arbetsytan registreras inte.
+Fält som bara OneUptime skriver, till exempel när en värd senast sågs, utelämnas från alla poster, och det gör även fält som ingen får läsa. När OneUptime skriver ett av dem för att någon bad om det, till exempel när ett undantag slås ihop med ett annat eller en webhook-URL återställs, registrerar posten det som den personens ändring. Nycklar, tokens och lösenord registreras som `[REDACTED]`: posten visar att de har ändrats, aldrig deras värde. Ett arbetsflödes steg registreras som det som ändrades, med namnen på ett stegs inställningar men aldrig det som skrevs i dem, och att flytta ett steg på arbetsytan registreras inte.
 
 ## Hur länge poster behålls
 

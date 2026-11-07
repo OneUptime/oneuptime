@@ -88,7 +88,7 @@ Alles wat mensen in een project maken, wijzigen of verwijderen, wordt vastgelegd
 
 Ook wordt vastgelegd wanneer een beheerder een meldingsmethode of een persoonlijke piketregel aan het account van iemand anders toevoegt of ervan verwijdert, zonder het adres of nummer zelf.
 
-Velden die alleen OneUptime schrijft, zoals wanneer een host voor het laatst is gezien, ontbreken in elke vermelding, net als velden die niemand mag lezen. Sleutels, tokens en wachtwoorden worden vastgelegd als `[REDACTED]`: de vermelding laat zien dat ze zijn gewijzigd, nooit hun waarde. De stappen van een workflow worden vastgelegd als wat er veranderde, met de namen van de instellingen van een stap maar nooit wat erin is getypt, en het verplaatsen van een stap op het canvas wordt niet vastgelegd.
+Velden die alleen OneUptime schrijft, zoals wanneer een host voor het laatst is gezien, ontbreken in elke vermelding, net als velden die niemand mag lezen. Schrijft OneUptime er een omdat iemand erom vroeg, zoals bij het samenvoegen van een uitzondering met een andere of het opnieuw instellen van een webhook-URL, dan legt de vermelding het vast als een wijziging van die persoon. Sleutels, tokens en wachtwoorden worden vastgelegd als `[REDACTED]`: de vermelding laat zien dat ze zijn gewijzigd, nooit hun waarde. De stappen van een workflow worden vastgelegd als wat er veranderde, met de namen van de instellingen van een stap maar nooit wat erin is getypt, en het verplaatsen van een stap op het canvas wordt niet vastgelegd.
 
 ## Hoe lang vermeldingen blijven
 

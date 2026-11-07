@@ -82,7 +82,7 @@ Das Seitenmenü der Seite ordnet, was Sie mit einer Ausnahme tun:
 | **Protokolle** | Die Protokolle, die um das letzte Vorkommen herum geschrieben wurden. |
 | **KI-Unterstützung** | KI-Aufgaben, die die Ausnahme beheben oder testen. |
 | **Einstellungen** | Die Ausnahme beheben oder archivieren. Sie liegt unter **Verwalten**, das anfangs eingeklappt ist. |
-| **Audit-Protokolle** | Wer die Ausnahme wann behoben, archiviert oder zugewiesen hat. Sie liegt ebenfalls unter **Verwalten**. |
+| **Audit-Protokolle** | Wer die Ausnahme wann behoben, archiviert, zugewiesen oder zusammengeführt hat. Sie liegt ebenfalls unter **Verwalten**. |
 
 ## Beheben, wieder öffnen und archivieren
 
@@ -138,7 +138,7 @@ IDs, E-Mail- und IP-Adressen sowie Tokens werden aus allem entfernt, was gesende
 
 Unter den Karten listet **Ähnliche Ausnahmen** bis zu fünf andere Ausnahmen, die dieser ähneln: die **Gleiche Meldung**, sobald die Werte entfernt sind, die **Gleiche Codestelle** in Ihrem Code oder eine **Ähnliche Meldung** mit größtenteils denselben Wörtern. Eine Ursache kann in mehreren Ausnahmen landen, daher sagt **Mit OneUptime AI prüfen** zu jeder, ob sie **Wahrscheinlich derselbe Fehler**, **Ein verwandter Fehler** oder **Ein anderer Fehler** ist, und warum. Die Prüfung nutzt die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist. Ihre Antwort wird bis zum nächsten Auftreten gespeichert.
 
-Eine, die OneUptime AI **Wahrscheinlich derselbe Fehler** nennt und die zum selben Dienst gehört, führen Sie mit **Zusammenführen** daneben mit dieser Ausnahme zusammen: Ihre Vorkommen, die bisherigen und jedes neue, zählen von da an bei dieser Ausnahme und erscheinen auf ihrer Seite, und sie verschwindet aus der Liste. **Mit dieser Ausnahme zusammengeführt** darunter listet, was zusammengeführt wurde, und **Trennen** daneben, oder auf der eigenen Seite einer zusammengeführten Ausnahme, gibt ihr ihren eigenen Platz in der Liste zurück, samt ihrer Vorkommen seither. Zusammenführen und Trennen erfordern die Berechtigung, Ausnahmen zu bearbeiten.
+Eine, die OneUptime AI **Wahrscheinlich derselbe Fehler** nennt und die zum selben Dienst gehört, führen Sie mit **Zusammenführen** daneben mit dieser Ausnahme zusammen: Ihre Vorkommen, die bisherigen und jedes neue, zählen von da an bei dieser Ausnahme und erscheinen auf ihrer Seite, und sie verschwindet aus der Liste. **Mit dieser Ausnahme zusammengeführt** darunter listet, was zusammengeführt wurde, und **Trennen** daneben, oder auf der eigenen Seite einer zusammengeführten Ausnahme, gibt ihr ihren eigenen Platz in der Liste zurück, samt ihrer Vorkommen seither. Zusammenführen und Trennen erfordern die Berechtigung, Ausnahmen zu bearbeiten. Wer eine Ausnahme zusammengeführt und wer sie wieder getrennt hat, steht auf ihrer Seite **Audit-Protokolle**; die Ausnahme, mit der sie zusammengeführt wurde, erhält keinen Eintrag, denn an ihr hat sich nichts geändert, was jemand eingestellt hat.
 
 ## Mit KI beheben
 

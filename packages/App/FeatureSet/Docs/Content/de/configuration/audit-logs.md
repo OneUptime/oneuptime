@@ -88,7 +88,7 @@ Alles, was Personen in einem Projekt anlegen, ändern oder löschen, wird erfass
 
 Fügt ein Administrator eine Benachrichtigungsmethode oder eine persönliche Bereitschaftsregel zum Konto einer anderen Person hinzu oder entfernt sie, wird das ebenfalls erfasst, ohne die Adresse oder Nummer selbst.
 
-Felder, die nur OneUptime schreibt, etwa wann ein Host zuletzt gesehen wurde, fehlen in jedem Eintrag, ebenso Felder, die niemand lesen darf. Schlüssel, Tokens und Passwörter werden als `[REDACTED]` erfasst: Der Eintrag zeigt, dass sie sich geändert haben, nie ihren Wert. Die Schritte eines Workflows werden als das erfasst, was sich geändert hat, mit den Namen der Einstellungen eines Schritts, aber nie dem, was in sie eingegeben wurde, und das Verschieben eines Schritts auf der Arbeitsfläche wird nicht erfasst.
+Felder, die nur OneUptime schreibt, etwa wann ein Host zuletzt gesehen wurde, fehlen in jedem Eintrag, ebenso Felder, die niemand lesen darf. Schreibt OneUptime eines davon, weil jemand darum gebeten hat, etwa wenn eine Ausnahme mit einer anderen zusammengeführt oder eine Webhook-URL zurückgesetzt wird, erfasst der Eintrag es als Änderung dieser Person. Schlüssel, Tokens und Passwörter werden als `[REDACTED]` erfasst: Der Eintrag zeigt, dass sie sich geändert haben, nie ihren Wert. Die Schritte eines Workflows werden als das erfasst, was sich geändert hat, mit den Namen der Einstellungen eines Schritts, aber nie dem, was in sie eingegeben wurde, und das Verschieben eines Schritts auf der Arbeitsfläche wird nicht erfasst.
 
 ## Wie lange Einträge bleiben
 

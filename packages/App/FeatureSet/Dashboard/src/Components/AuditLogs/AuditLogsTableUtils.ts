@@ -366,8 +366,8 @@ export const RESOURCE_META: { [key: string]: ResourceMeta } = {
     viewRoute: PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW,
   },
   /*
-   * An exception (TelemetryException): who resolved, archived or assigned
-   * it.
+   * An exception (TelemetryException): who resolved, archived, assigned or
+   * merged it.
    */
   Exception: {
     icon: IconProp.Error,
