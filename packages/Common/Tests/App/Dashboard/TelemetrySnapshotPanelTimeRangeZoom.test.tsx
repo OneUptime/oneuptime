@@ -582,9 +582,8 @@ describe("the episode overview's snapshot panel: a metric snapshot's investigati
      * above move the fake clock on by a few ticks.
      */
     await waitFor(() => {
-      const [startMs, endMs]: [number, number] = lastFetchedWindowFor(
-        PRIMARY_METRIC,
-      )!;
+      const [startMs, endMs]: [number, number] =
+        lastFetchedWindowFor(PRIMARY_METRIC)!;
 
       expect(startMs).toBe(new Date("2026-09-14T18:15:00.000Z").getTime());
       expect(endMs).toBeGreaterThanOrEqual(NOW.getTime());

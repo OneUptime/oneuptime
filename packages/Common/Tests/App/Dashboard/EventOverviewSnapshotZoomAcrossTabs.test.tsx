@@ -446,7 +446,6 @@ const SNAPSHOT_TEXT: string = `${SNAPSHOT_START.toISOString()}..${SNAPSHOT_END.t
 const AROUND_START_TEXT: string =
   "2026-09-14T17:30:00.000Z..2026-09-14T18:30:00.000Z";
 const SLICE_TEXT: string = `${MOCK_DRAG.start.toISOString()}..${MOCK_DRAG.end.toISOString()}`;
-const NEXT_TEXT: string = `${NEXT_START.toISOString()}..${NEXT_END.toISOString()}`;
 
 const PAGE_PROPS: PageComponentProps = {
   pageRoute: new Route("/overview"),

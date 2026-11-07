@@ -278,10 +278,14 @@ describe("the time ranges around an event", () => {
       const evaluationEndMs: number = startMs - random(5) * MINUTE_MS;
       const evaluationStartMs: number =
         evaluationEndMs - (1 + random(24 * 60)) * MINUTE_MS;
-      // Now is at or after everything the event knows of.
+      /*
+       * Now is at or after everything the event knows of: half the time
+       * within the hour after it, where "never past now" cuts windows short.
+       */
+      const lagMinutes: number =
+        random(2) === 0 ? random(60) : random(7 * 24 * 60);
       const nowMs: number =
-        Math.max(startMs, hasEnd ? endMs : startMs) +
-        random(7 * 24 * 60) * MINUTE_MS;
+        Math.max(startMs, hasEnd ? endMs : startMs) + lagMinutes * MINUTE_MS;
 
       const presets: Array<MetricInvestigationTimePreset> =
         getEventMetricTimePresets(
