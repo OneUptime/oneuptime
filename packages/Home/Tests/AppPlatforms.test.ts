@@ -7,6 +7,7 @@ import {
   getAppPlatformsPageContent,
 } from "../Utils/AppPlatforms";
 import PageSEOConfig, { PageSEOData, getPageSEO } from "../Utils/PageSEO";
+import { getCloudRecommendedMonitorsContent } from "../Utils/CloudRecommendedMonitors";
 import { isRedirectPath } from "../Utils/Sitemap";
 import {
   MANAGED_CLOUD_PLATFORMS,
@@ -231,6 +232,7 @@ describe("cloud.ejs, after the split", () => {
       enableGoogleTagManager: false,
       seo: seoFor("/product/cloud"),
       homeUrl: HOME_URL,
+      cloudRecommendedMonitors: getCloudRecommendedMonitorsContent(),
     });
   });
 
