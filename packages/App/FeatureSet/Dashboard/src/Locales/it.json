@@ -46043,7 +46043,6 @@
   "You already approved this fix": "Hai già approvato questa correzione",
   "As observers": "Come osservatori",
   "Everyone paged by an on-call policy to respond. People paged as observers are not added.": "Tutte le persone allertate da una policy di reperibilità per rispondere. Chi è allertato come osservatore non viene aggiunto.",
-  "Keep the policy's people informed while the people responding stay on it. Acknowledging their page only says they've seen it: nothing is acknowledged, and nobody else's page stops.": "Tieni informate le persone della policy mentre chi risponde se ne occupa. Riconoscere la loro chiamata dice solo che l'hanno vista: nulla viene riconosciuto e la chiamata di nessun altro si ferma.",
   "Observers": "Osservatori",
   "Page As": "Page As",
   "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.": "Attiva automaticamente le policy di reperibilità per gli incidenti che corrispondono, per rispondere o come osservatori tenuti informati.",
@@ -46053,5 +46052,6 @@
   "Paged as observers: their answer only says they've seen it": "Chiamati come osservatori: la loro risposta dice solo che l'hanno visto",
   "Pages as observers: kept informed, nothing is acknowledged": "Chiama come osservatori: informati, nulla viene riconosciuto",
   "They take it on. Acknowledging the page acknowledges it and stops every other page about it.": "Se ne fanno carico. Riconoscere la chiamata lo riconosce e ferma ogni altra chiamata al riguardo.",
-  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "Vengono tenuti informati mentre chi risponde se ne occupa. Riconoscere dice solo che l'hanno visto: nient'altro viene riconosciuto, la chiamata di nessun altro si ferma e non vengono aggiunti al suo canale come persone che rispondono."
+  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "Vengono tenuti informati mentre chi risponde se ne occupa. Riconoscere dice solo che l'hanno visto: nient'altro viene riconosciuto, la chiamata di nessun altro si ferma e non vengono aggiunti al suo canale come persone che rispondono.",
+  "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged.": "Tenuti informati mentre altri rispondono: la loro risposta dice solo che l'hanno visto, e nulla viene riconosciuto."
 }

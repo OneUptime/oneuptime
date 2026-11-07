@@ -46043,7 +46043,6 @@
   "You already approved this fix": "Vous avez déjà approuvé ce correctif",
   "As observers": "Comme observateurs",
   "Everyone paged by an on-call policy to respond. People paged as observers are not added.": "Toutes les personnes appelées par une politique d'astreinte pour intervenir. Les personnes appelées comme observateurs ne sont pas ajoutées.",
-  "Keep the policy's people informed while the people responding stay on it. Acknowledging their page only says they've seen it: nothing is acknowledged, and nobody else's page stops.": "Tenir les personnes de la politique informées pendant que les intervenants restent dessus. Prendre en compte leur alerte indique seulement qu'elles l'ont vue : rien n'est pris en compte, et l'alerte de personne d'autre ne s'arrête.",
   "Observers": "Observateurs",
   "Page As": "Page As",
   "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.": "Déclenchez automatiquement des politiques d'astreinte pour les incidents qui correspondent, en tant qu'intervenants ou comme observateurs tenus informés.",
@@ -46053,5 +46052,6 @@
   "Paged as observers: their answer only says they've seen it": "Alertés comme observateurs : leur réponse indique seulement qu'ils l'ont vu",
   "Pages as observers: kept informed, nothing is acknowledged": "Alerte comme observateurs : tenus informés, rien n'est pris en compte",
   "They take it on. Acknowledging the page acknowledges it and stops every other page about it.": "Elles le prennent en charge. Prendre en compte l'alerte le prend en compte et arrête toutes les autres alertes à son sujet.",
-  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "Elles sont tenues informées pendant que les intervenants restent dessus. Prendre en compte indique seulement qu'elles l'ont vu : rien d'autre n'est pris en compte, l'alerte de personne d'autre ne s'arrête, et elles ne sont pas ajoutées à son canal comme intervenants."
+  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "Elles sont tenues informées pendant que les intervenants restent dessus. Prendre en compte indique seulement qu'elles l'ont vu : rien d'autre n'est pris en compte, l'alerte de personne d'autre ne s'arrête, et elles ne sont pas ajoutées à son canal comme intervenants.",
+  "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged.": "Tenus informés pendant que d'autres interviennent : leur réponse indique seulement qu'ils l'ont vu, et rien n'est pris en compte."
 }

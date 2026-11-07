@@ -46043,7 +46043,6 @@
   "You already approved this fix": "Sie haben diese Korrektur bereits genehmigt",
   "As observers": "Als Beobachter",
   "Everyone paged by an on-call policy to respond. People paged as observers are not added.": "Alle, die von einer Bereitschaftsrichtlinie zum Bearbeiten alarmiert werden. Als Beobachter Alarmierte werden nicht hinzugefügt.",
-  "Keep the policy's people informed while the people responding stay on it. Acknowledging their page only says they've seen it: nothing is acknowledged, and nobody else's page stops.": "Die Personen der Richtlinie auf dem Laufenden halten, während die Bearbeiter dranbleiben. Eine Bestätigung ihrer Alarmierung sagt nur, dass sie sie gesehen haben: Nichts wird bestätigt, und keine andere Alarmierung endet.",
   "Observers": "Beobachter",
   "Page As": "Page As",
   "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.": "Bei passenden Vorfällen automatisch über Bereitschaftsrichtlinien alarmieren – als Bearbeiter oder als informierte Beobachter.",
@@ -46053,5 +46052,6 @@
   "Paged as observers: their answer only says they've seen it": "Als Beobachter alarmiert: Ihre Antwort sagt nur, dass sie es gesehen haben",
   "Pages as observers: kept informed, nothing is acknowledged": "Alarmiert als Beobachter: informiert, nichts wird bestätigt",
   "They take it on. Acknowledging the page acknowledges it and stops every other page about it.": "Sie übernehmen es. Wer die Alarmierung bestätigt, bestätigt es und beendet jede andere Alarmierung dazu.",
-  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "Sie bleiben auf dem Laufenden, während die Bearbeiter dranbleiben. Eine Bestätigung sagt nur, dass sie es gesehen haben: Sonst wird nichts bestätigt, keine andere Alarmierung endet, und sie werden nicht als Bearbeiter in den Kanal aufgenommen."
+  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "Sie bleiben auf dem Laufenden, während die Bearbeiter dranbleiben. Eine Bestätigung sagt nur, dass sie es gesehen haben: Sonst wird nichts bestätigt, keine andere Alarmierung endet, und sie werden nicht als Bearbeiter in den Kanal aufgenommen.",
+  "Kept informed while others respond: their answer only says they've seen it, and nothing is acknowledged.": "Auf dem Laufenden gehalten, während andere reagieren: Ihre Antwort sagt nur, dass sie es gesehen haben, und nichts wird bestätigt."
 }
