@@ -6,6 +6,7 @@ import {
   MESSAGE_QUEUE_TOPOLOGY_STATUS_COLORS,
   MESSAGE_QUEUE_TOPOLOGY_STATUS_LABELS,
   MESSAGE_QUEUE_TOPOLOGY_UNKNOWN_SERVICE,
+  MessageQueueTopologyBrokerGroup,
   MessageQueueTopologyBrokerNode,
   MessageQueueTopologyEdge,
   MessageQueueTopologyFilters,
@@ -38,12 +39,19 @@ import {
   resolveMessageQueueTopologyVisibility,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/Topology/MessageQueueTopologyModel";
 import { healthForErrorRate } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/TopologyMeta";
+
+// What a queue's status is read from.
+type QueueFigures = Parameters<typeof getMessageQueueTopologyQueueStatus>[0];
 import {
   MessageQueueTopologyFlow,
   MessageQueueTopologyQueue,
   MessageQueueTopologyResponse,
 } from "../../../Types/MessageQueue/MessageQueueTopology";
-import { SeededRandom, seededRandom, shuffled } from "../../Helpers/SeededRandom";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "../../Helpers/SeededRandom";
 
 /*
  * The Queues topology's view model: what the map draws, worked out from the
@@ -154,7 +162,11 @@ function pipeline(): MessageQueueTopologyModel {
 describe("the model", () => {
   test("queues and services are nodes; a publish points from the service, a consume from the queue", () => {
     const model: MessageQueueTopologyModel = pipeline();
-    expect(model.nodes.map((node) => node.key)).toEqual([
+    expect(
+      model.nodes.map((node: MessageQueueTopologyNode) => {
+        return node.key;
+      }),
+    ).toEqual([
       Q("orders"),
       Q("shipments"),
       Q("audit"),
@@ -163,14 +175,18 @@ describe("the model", () => {
       S("fulfilment"),
       S("notifier"),
     ]);
-    const publish: MessageQueueTopologyEdge = model.edges.find((edge) => {
-      return edge.direction === "publish" && edge.queueKey === Q("orders");
-    })!;
+    const publish: MessageQueueTopologyEdge = model.edges.find(
+      (edge: MessageQueueTopologyEdge) => {
+        return edge.direction === "publish" && edge.queueKey === Q("orders");
+      },
+    )!;
     expect(publish.from).toBe(S("checkout"));
     expect(publish.to).toBe(Q("orders"));
-    const consume: MessageQueueTopologyEdge = model.edges.find((edge) => {
-      return edge.direction === "consume" && edge.serviceKey === S("billing");
-    })!;
+    const consume: MessageQueueTopologyEdge = model.edges.find(
+      (edge: MessageQueueTopologyEdge) => {
+        return edge.direction === "consume" && edge.serviceKey === S("billing");
+      },
+    )!;
     expect(consume.from).toBe(Q("orders"));
     expect(consume.to).toBe(S("billing"));
   });
@@ -208,9 +224,10 @@ describe("the model", () => {
   });
 
   test("a service's node sums what it published and consumed, and on how many queues", () => {
-    const fulfilment: MessageQueueTopologyServiceNode = pipeline().nodeByKey.get(
-      S("fulfilment"),
-    ) as MessageQueueTopologyServiceNode;
+    const fulfilment: MessageQueueTopologyServiceNode =
+      pipeline().nodeByKey.get(
+        S("fulfilment"),
+      ) as MessageQueueTopologyServiceNode;
     expect(fulfilment.published.messages).toBe(580);
     expect(fulfilment.consumed.messages).toBe(590);
     expect(fulfilment.publishesTo).toBe(1);
@@ -278,12 +295,20 @@ describe("the model", () => {
       expect(model.edges).toEqual(reference.edges);
       expect(
         model.nodes
-          .filter((node) => node.kind === "service")
-          .map((node) => node.key),
+          .filter((node: MessageQueueTopologyNode) => {
+            return node.kind === "service";
+          })
+          .map((node: MessageQueueTopologyNode) => {
+            return node.key;
+          }),
       ).toEqual(
         reference.nodes
-          .filter((node) => node.kind === "service")
-          .map((node) => node.key),
+          .filter((node: MessageQueueTopologyNode) => {
+            return node.kind === "service";
+          })
+          .map((node: MessageQueueTopologyNode) => {
+            return node.key;
+          }),
       );
     }
   });
@@ -302,7 +327,7 @@ describe("health stays calm unless something is wrong", () => {
     [{ spans: 100, errors: 30, published: 50, consumed: 0 }, "critical"],
     // Spans, but none a publish or a consume: nothing to say against it.
     [{ spans: 10, errors: 0, published: 0, consumed: 0 }, "flowing"],
-  ])("a queue with %j is %s", (figures, status: string) => {
+  ])("a queue with %j is %s", (figures: QueueFigures, status: string) => {
     expect(getMessageQueueTopologyQueueStatus(figures)).toBe(status);
   });
 
@@ -318,17 +343,31 @@ describe("health stays calm unless something is wrong", () => {
       ),
     );
     expect(
-      model.nodes.filter((node) => node.needsAttention).map((node) => node.key),
+      model.nodes
+        .filter((node: MessageQueueTopologyNode) => {
+          return node.needsAttention;
+        })
+        .map((node: MessageQueueTopologyNode) => {
+          return node.key;
+        }),
     ).toEqual([Q("failing")]);
     expect(model.attentionCount).toBe(1);
     // Neither healthy nor quiet is green, and quiet is not amber or red.
     expect(MESSAGE_QUEUE_TOPOLOGY_STATUS_COLORS.flowing).toBe("#94a3b8");
-    for (const quiet of ["noConsumers", "noProducers", "idle"] as Array<MessageQueueTopologyStatus>) {
+    for (const quiet of [
+      "noConsumers",
+      "noProducers",
+      "idle",
+    ] as Array<MessageQueueTopologyStatus>) {
       expect(MESSAGE_QUEUE_TOPOLOGY_STATUS_COLORS[quiet]).toBe("#cbd5e1");
     }
     expect(MESSAGE_QUEUE_TOPOLOGY_EDGE_COLORS.healthy).not.toBe("#16a34a");
     for (const status of Object.keys(MESSAGE_QUEUE_TOPOLOGY_STATUS_LABELS)) {
-      expect(MESSAGE_QUEUE_TOPOLOGY_STATUS_LABELS[status as MessageQueueTopologyStatus]).toBeTruthy();
+      expect(
+        MESSAGE_QUEUE_TOPOLOGY_STATUS_LABELS[
+          status as MessageQueueTopologyStatus
+        ],
+      ).toBeTruthy();
     }
   });
 
@@ -348,7 +387,11 @@ describe("health stays calm unless something is wrong", () => {
     const model: MessageQueueTopologyModel = buildMessageQueueTopologyModel(
       answer(
         [queue("orders")],
-        [flow("orders", "azure-sender", "publish", 13, 31, { errorRatePercent: 77.5 })],
+        [
+          flow("orders", "azure-sender", "publish", 13, 31, {
+            errorRatePercent: 77.5,
+          }),
+        ],
       ),
     );
     const edge: MessageQueueTopologyEdge = model.edges[0]!;
@@ -378,13 +421,25 @@ describe("health stays calm unless something is wrong", () => {
 
   test("a flow's attempts are worked back from its rate when it failed some", () => {
     expect(
-      getMessageQueueTopologyFlowAttempts({ messages: 13, errors: 31, errorRatePercent: 77.5 }),
+      getMessageQueueTopologyFlowAttempts({
+        messages: 13,
+        errors: 31,
+        errorRatePercent: 77.5,
+      }),
     ).toBeCloseTo(40, 10);
     expect(
-      getMessageQueueTopologyFlowAttempts({ messages: 13, errors: 0, errorRatePercent: 0 }),
+      getMessageQueueTopologyFlowAttempts({
+        messages: 13,
+        errors: 0,
+        errorRatePercent: 0,
+      }),
     ).toBe(13);
     expect(
-      getMessageQueueTopologyFlowAttempts({ messages: 13, errors: 2, errorRatePercent: null }),
+      getMessageQueueTopologyFlowAttempts({
+        messages: 13,
+        errors: 2,
+        errorRatePercent: null,
+      }),
     ).toBe(13);
   });
 });
@@ -392,7 +447,10 @@ describe("health stays calm unless something is wrong", () => {
 describe("brokers", () => {
   test("a broker is a system, and for Azure its namespace", () => {
     expect(
-      getMessageQueueTopologyGroupKey({ messagingSystem: "Kafka", brokerScope: "" }),
+      getMessageQueueTopologyGroupKey({
+        messagingSystem: "Kafka",
+        brokerScope: "",
+      }),
     ).toBe("kafka|");
     expect(
       getMessageQueueTopologyGroupKey({
@@ -406,7 +464,10 @@ describe("brokers", () => {
     const model: MessageQueueTopologyModel = buildMessageQueueTopologyModel(
       answer(
         [
-          queue("a", { messagingSystem: "servicebus", brokerScope: "orders-prod" }),
+          queue("a", {
+            messagingSystem: "servicebus",
+            brokerScope: "orders-prod",
+          }),
           queue("b", { messagingSystem: "kafka" }),
           queue("c", { messagingSystem: "kafka" }),
           queue("d", { messagingSystem: "servicebus", brokerScope: "billing" }),
@@ -414,16 +475,24 @@ describe("brokers", () => {
         [],
       ),
     );
-    expect(model.brokerGroups.map((group) => [group.key, group.label, group.queueCount])).toEqual([
+    expect(
+      model.brokerGroups.map((group: MessageQueueTopologyBrokerGroup) => {
+        return [group.key, group.label, group.queueCount];
+      }),
+    ).toEqual([
       ["kafka|", "Apache Kafka", 2],
       ["servicebus|billing", "Azure Service Bus · billing", 1],
       ["servicebus|orders-prod", "Azure Service Bus · orders-prod", 1],
     ]);
-    model.brokerGroups.forEach((group, index: number) => {
-      expect(group.color).toBe(MESSAGE_QUEUE_TOPOLOGY_BROKER_COLORS[index]);
-    });
+    model.brokerGroups.forEach(
+      (group: MessageQueueTopologyBrokerGroup, index: number) => {
+        expect(group.color).toBe(MESSAGE_QUEUE_TOPOLOGY_BROKER_COLORS[index]);
+      },
+    );
     // A queue's tint is its broker's.
-    expect(model.nodeByKey.get(Q("b"))!.color).toBe(model.brokerGroups[0]!.color);
+    expect(model.nodeByKey.get(Q("b"))!.color).toBe(
+      model.brokerGroups[0]!.color,
+    );
   });
 
   test("a queue's subtitle names its broker; its label is its name, else its destination", () => {
@@ -599,10 +668,7 @@ describe("what is shown", () => {
     const model: MessageQueueTopologyModel = buildMessageQueueTopologyModel(
       answer(queues, flows),
     );
-    const lineage: Set<string> = getMessageQueueTopologyLineage(
-      model,
-      Q("q0"),
-    );
+    const lineage: Set<string> = getMessageQueueTopologyLineage(model, Q("q0"));
     // Six edges each way, at most.
     expect(lineage.size).toBeLessThanOrEqual(
       1 + 2 * MESSAGE_QUEUE_TOPOLOGY_FOCUS_DEPTH,
@@ -630,9 +696,22 @@ describe("folding by broker", () => {
     return buildMessageQueueTopologyModel(
       answer(
         [
-          queue("orders", { messagingSystem: "kafka", published: 10, consumed: 9 }),
-          queue("payments", { messagingSystem: "kafka", published: 5, consumed: 5, errors: 20 }),
-          queue("emails", { messagingSystem: "rabbitmq", published: 3, consumed: 3 }),
+          queue("orders", {
+            messagingSystem: "kafka",
+            published: 10,
+            consumed: 9,
+          }),
+          queue("payments", {
+            messagingSystem: "kafka",
+            published: 5,
+            consumed: 5,
+            errors: 20,
+          }),
+          queue("emails", {
+            messagingSystem: "rabbitmq",
+            published: 3,
+            consumed: 3,
+          }),
         ],
         [
           flow("orders", "checkout", "publish", 10),
@@ -645,9 +724,8 @@ describe("folding by broker", () => {
   }
 
   test("a broker stands for its queues, a line for every service and way", () => {
-    const folded: MessageQueueTopologyModel = groupMessageQueueTopologyByBroker(
-      twoBrokers(),
-    );
+    const folded: MessageQueueTopologyModel =
+      groupMessageQueueTopologyByBroker(twoBrokers());
     const kafka: MessageQueueTopologyBrokerNode = folded.nodeByKey.get(
       getMessageQueueTopologyBrokerKey("kafka|"),
     ) as MessageQueueTopologyBrokerNode;
@@ -660,12 +738,22 @@ describe("folding by broker", () => {
     expect(kafka.status).toBe("critical");
     expect(kafka.needsAttention).toBe(true);
     // No queue node is left; the services are as they were.
-    expect(folded.nodes.filter((node) => node.kind === "queue")).toEqual([]);
-    expect(folded.nodes.filter((node) => node.kind === "service")).toHaveLength(2);
+    expect(
+      folded.nodes.filter((node: MessageQueueTopologyNode) => {
+        return node.kind === "queue";
+      }),
+    ).toEqual([]);
+    expect(
+      folded.nodes.filter((node: MessageQueueTopologyNode) => {
+        return node.kind === "service";
+      }),
+    ).toHaveLength(2);
 
-    const checkoutToKafka: MessageQueueTopologyEdge = folded.edges.find((edge) => {
-      return edge.from === S("checkout") && edge.to === kafka.key;
-    })!;
+    const checkoutToKafka: MessageQueueTopologyEdge = folded.edges.find(
+      (edge: MessageQueueTopologyEdge) => {
+        return edge.from === S("checkout") && edge.to === kafka.key;
+      },
+    )!;
     expect(checkoutToKafka.messages).toBe(15);
     expect(checkoutToKafka.errors).toBe(1);
     expect(checkoutToKafka.p95DurationMs).toBeNull();
@@ -684,15 +772,14 @@ describe("folding by broker", () => {
         ...NO_FILTERS,
         search: "payments",
       });
-    expect(visibility.matchedKeys.has(getMessageQueueTopologyBrokerKey("kafka|"))).toBe(
-      true,
-    );
+    expect(
+      visibility.matchedKeys.has(getMessageQueueTopologyBrokerKey("kafka|")),
+    ).toBe(true);
   });
 
   test("a broker filter keeps the folded broker and the services on it", () => {
-    const folded: MessageQueueTopologyModel = groupMessageQueueTopologyByBroker(
-      twoBrokers(),
-    );
+    const folded: MessageQueueTopologyModel =
+      groupMessageQueueTopologyByBroker(twoBrokers());
     const visibility: MessageQueueTopologyVisibility =
       resolveMessageQueueTopologyVisibility(folded, {
         ...NO_FILTERS,
@@ -718,7 +805,11 @@ describe("the layout", () => {
       ),
     );
     const layout: MessageQueueTopologyLayout = layoutMessageQueueTopology({
-      visibleKeys: new Set(model.nodes.map((node) => node.key)),
+      visibleKeys: new Set(
+        model.nodes.map((node: MessageQueueTopologyNode) => {
+          return node.key;
+        }),
+      ),
       edges: model.edges,
       columnGap: 300,
       rowGap: 150,
@@ -762,7 +853,11 @@ describe("the layout", () => {
         ],
       ),
     );
-    const visible: Set<string> = new Set(model.nodes.map((node) => node.key));
+    const visible: Set<string> = new Set(
+      model.nodes.map((node: MessageQueueTopologyNode) => {
+        return node.key;
+      }),
+    );
     const first: MessageQueueTopologyLayout = layoutMessageQueueTopology({
       visibleKeys: visible,
       edges: model.edges,
@@ -790,22 +885,31 @@ describe("the table", () => {
         model,
         resolveMessageQueueTopologyVisibility(model, NO_FILTERS),
       );
-    expect(rows.map((row) => row.node.key)).toEqual([
-      Q("orders"),
-      Q("shipments"),
-      Q("audit"),
-    ].sort((a, b) => {
-      // All three answer 100 messages a side here: then by name.
-      return a.localeCompare(b);
-    }));
-    const orders: MessageQueueTopologyTableRow = rows.find((row) => {
-      return row.node.key === Q("orders");
-    })!;
-    expect(orders.producers.map((node) => node.key)).toEqual([S("checkout")]);
-    expect(orders.consumers.map((node) => node.key)).toEqual([
-      S("billing"),
-      S("fulfilment"),
-    ]);
+    expect(
+      rows.map((row: MessageQueueTopologyTableRow) => {
+        return row.node.key;
+      }),
+    ).toEqual(
+      [Q("orders"), Q("shipments"), Q("audit")].sort((a: string, b: string) => {
+        // All three answer 100 messages a side here: then by name.
+        return a.localeCompare(b);
+      }),
+    );
+    const orders: MessageQueueTopologyTableRow = rows.find(
+      (row: MessageQueueTopologyTableRow) => {
+        return row.node.key === Q("orders");
+      },
+    )!;
+    expect(
+      orders.producers.map((node: MessageQueueTopologyNode) => {
+        return node.key;
+      }),
+    ).toEqual([S("checkout")]);
+    expect(
+      orders.consumers.map((node: MessageQueueTopologyNode) => {
+        return node.key;
+      }),
+    ).toEqual([S("billing"), S("fulfilment")]);
   });
 
   test("a search for a service lists the queues it is on", () => {
@@ -818,7 +922,11 @@ describe("the table", () => {
           search: "notifier",
         }),
       );
-    expect(rows.map((row) => row.node.key)).toEqual([Q("shipments")]);
+    expect(
+      rows.map((row: MessageQueueTopologyTableRow) => {
+        return row.node.key;
+      }),
+    ).toEqual([Q("shipments")]);
   });
 });
 
@@ -835,9 +943,12 @@ describe("numbers", () => {
     [2 * 60, 3600, "2.0/min"],
     [6, 3600, "0.1/min"],
     [1, 3600, "<0.1/min"],
-  ])("%d messages over %d s read %s", (messages: number, seconds: number, text: string) => {
-    expect(formatMessageQueueTopologyRate(messages, seconds)).toBe(text);
-  });
+  ])(
+    "%d messages over %d s read %s",
+    (messages: number, seconds: number, text: string) => {
+      expect(formatMessageQueueTopologyRate(messages, seconds)).toBe(text);
+    },
+  );
 
   test.each([
     [null, "—"],
@@ -944,12 +1055,18 @@ describe("over random topologies", () => {
       }
       const folded: MessageQueueTopologyModel =
         groupMessageQueueTopologyByBroker(model);
-      const foldedMessages: number = folded.edges.reduce((total, edge) => {
-        return total + edge.messages;
-      }, 0);
-      const messages: number = model.edges.reduce((total, edge) => {
-        return total + edge.messages;
-      }, 0);
+      const foldedMessages: number = folded.edges.reduce(
+        (total: number, edge: MessageQueueTopologyEdge) => {
+          return total + edge.messages;
+        },
+        0,
+      );
+      const messages: number = model.edges.reduce(
+        (total: number, edge: MessageQueueTopologyEdge) => {
+          return total + edge.messages;
+        },
+        0,
+      );
       expect(foldedMessages).toBe(messages);
     }
   });

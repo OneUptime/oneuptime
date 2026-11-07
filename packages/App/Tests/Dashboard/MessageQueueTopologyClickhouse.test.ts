@@ -1286,8 +1286,10 @@ integration("The Queues topology's read against ClickHouse", () => {
       })!;
     };
 
-    // Both ends, the one with another key, the one with two queue keys, the
-    // service-less one; and the three consumes.
+    /*
+     * Both ends, the one with another key, the one with two queue keys, the
+     * service-less one; and the three consumes.
+     */
     expect(byName("audit")).toMatchObject({
       spans: 8,
       errors: 1,

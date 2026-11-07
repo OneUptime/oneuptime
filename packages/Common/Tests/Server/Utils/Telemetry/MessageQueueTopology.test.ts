@@ -4,6 +4,7 @@ import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement"
 import {
   MESSAGE_QUEUE_TOPOLOGY_DEFAULT_RANGE_MS,
   MESSAGE_QUEUE_TOPOLOGY_GROUPS,
+  MessageQueueTopologyGroupFigures,
   MessageQueueTopologyKeys,
   MessageQueueTopologyPairRow,
   MessageQueueTopologyQueueRow,
@@ -21,10 +22,16 @@ import { parseMessageQueueIdentifier } from "../../../../Types/MessageQueue/Mess
 import {
   MESSAGE_QUEUE_TOPOLOGY_MAX_RANGE_MS,
   MessageQueueTopologyFlow,
+  MessageQueueTopologyQueue,
   MessageQueueTopologyResponse,
+  MessageQueueTopologyService,
 } from "../../../../Types/MessageQueue/MessageQueueTopology";
 import {
   MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
+  MessageQueueProducerServices,
+  MessageQueueServiceFigures,
+  MessageQueueServiceFiguresList,
+  MessageQueueServiceSpanFigures,
   combineMessageQueueConsumerServices,
   combineMessageQueueProducerServices,
 } from "../../../../Types/MessageQueue/MessageQueueSpanPopulation";
@@ -255,7 +262,9 @@ describe("the queue keys the read is scoped by", () => {
     const keys: MessageQueueTopologyKeys = buildMessageQueueTopologyKeys(
       PROJECT_ID,
       [
-        queue("q1", "kafka", "orders", { queueIdentifier: "not-an-identifier" }),
+        queue("q1", "kafka", "orders", {
+          queueIdentifier: "not-an-identifier",
+        }),
         queue("q2", "kafka", "orders", { queueIdentifier: null }),
         queue("", "kafka", "payments"),
         queue("q4", "kafka", "events"),
@@ -267,9 +276,14 @@ describe("the queue keys the read is scoped by", () => {
 
   test("two rows that build one key keep the first", () => {
     const first: MessageQueueTopologyQueueRow = queue("q1", "kafka", "orders");
-    const second: MessageQueueTopologyQueueRow = queue("q2", "kafka", "ORDERS", {
-      queueIdentifier: "Kafka||Orders",
-    });
+    const second: MessageQueueTopologyQueueRow = queue(
+      "q2",
+      "kafka",
+      "ORDERS",
+      {
+        queueIdentifier: "Kafka||Orders",
+      },
+    );
     const keys: MessageQueueTopologyKeys = buildMessageQueueTopologyKeys(
       PROJECT_ID,
       [first, second],
@@ -297,7 +311,10 @@ describe("the queue keys the read is scoped by", () => {
 
 function statementFor(
   queues: Array<MessageQueueTopologyQueueRow>,
-  serviceFilter?: { serviceIds?: Array<ObjectID>; excludedServiceIds?: Array<ObjectID> },
+  serviceFilter?: {
+    serviceIds?: Array<ObjectID>;
+    excludedServiceIds?: Array<ObjectID>;
+  },
 ): Statement {
   return buildMessageQueueTopologyStatement({
     generator: generator(),
@@ -350,7 +367,9 @@ describe("the statement", () => {
     const statement: Statement = statementFor([queue("q1", "kafka", "orders")]);
     const query: string = statement.query;
 
-    expect(query).toMatch(/^SELECT queueKey, primaryEntityId AS serviceId, count\(\) AS spanCount, /);
+    expect(query).toMatch(
+      /^SELECT queueKey, primaryEntityId AS serviceId, count\(\) AS spanCount, /,
+    );
     expect(query).toContain("ARRAY JOIN entityKeys AS queueKey WHERE TRUE");
     expect(query).toContain(
       "GROUP BY queueKey, serviceId ORDER BY spanCount DESC, queueKey ASC, serviceId ASC LIMIT",
@@ -383,7 +402,9 @@ describe("the statement", () => {
     expect(named).toMatch(
       /WHERE TRUE AND projectId = \{p\d+:String\} AND startTime >= \{p\d+:DateTime64\(9\)\} AND startTime <= \{p\d+:DateTime64\(9\)\} AND hasAny\(entityKeys, \{p\d+:Array\(String\)\}\) AND queueKey IN \{p\d+:Array\(String\)\}/,
     );
-    expect(named).toContain("FROM SpanItemV3 ARRAY JOIN entityKeys AS queueKey");
+    expect(named).toContain(
+      "FROM SpanItemV3 ARRAY JOIN entityKeys AS queueKey",
+    );
     expect(query).toMatch(/AND queueKey IN \{p\d+:Array\(String\)\}/);
 
     const values: Array<unknown> = Object.values(params);
@@ -424,7 +445,11 @@ describe("the statement", () => {
 
   test("SQS reads its receives apart: one branch per filter, each over its own queues' keys", () => {
     const kafka: MessageQueueTopologyQueueRow = queue("q1", "kafka", "orders");
-    const sqs: MessageQueueTopologyQueueRow = queue("q2", "aws_sqs", "payments");
+    const sqs: MessageQueueTopologyQueueRow = queue(
+      "q2",
+      "aws_sqs",
+      "payments",
+    );
     const statement: Statement = statementFor([kafka, sqs]);
     const query: string = statement.query;
     const params: Record<string, unknown> = statement.query_params;
@@ -434,7 +459,9 @@ describe("the statement", () => {
       query.indexOf("AS consumeCount"),
     );
     // Two branches, each `has(<its keys>, queueKey)`.
-    expect(consume.match(/has\(\{p\d+:Array\(String\)\}, queueKey\)/g)).toHaveLength(2);
+    expect(
+      consume.match(/has\(\{p\d+:Array\(String\)\}, queueKey\)/g),
+    ).toHaveLength(2);
 
     // The received batches: SQS only, so a branch over the SQS key alone.
     const batches: string = query.slice(
@@ -527,7 +554,6 @@ describe("the statement", () => {
     expect(statement.query).toMatch(/LIMIT \{p\d+:Int32\}/);
     expect(Object.values(statement.query_params)).toContain(1234);
   });
-
 });
 
 describe("the rows", () => {
@@ -575,7 +601,7 @@ describe("the rows", () => {
      * million and multiplying by its reciprocal - as the cards do - give
      * two different doubles, and a line would not be its row.
      */
-    const p95s: Array<number> = [22807691318, 13577981454.5, 9549999.999999999];
+    const p95s: Array<number> = [22807691318, 13577981454.5, 19699393595.5];
     const rows: Array<MessageQueueTopologyPairRow> =
       readMessageQueueTopologyRows(
         p95s.map((p95: number, index: number): JSONObject => {
@@ -611,7 +637,11 @@ describe("the rows", () => {
         } as JSONObject,
       ]);
     expect(rows[0]!.errors).toBe(3);
-    expect(rows[0]!.groups["send"]).toEqual({ count: 2, errors: 2, p95Ms: null });
+    expect(rows[0]!.groups["send"]).toEqual({
+      count: 2,
+      errors: 2,
+      p95Ms: null,
+    });
   });
 
   test("a row without a queue key is left out; a row without a service is the service-less row", () => {
@@ -628,12 +658,23 @@ describe("the rows", () => {
     expect(rows[1]!.serviceId).toBe("");
   });
 
-  test.each([["-4"], ["abc"], [""], [null], [Number.POSITIVE_INFINITY], ["7.9"]])(
+  test.each([
+    ["-4"],
+    ["abc"],
+    [""],
+    [null],
+    [Number.POSITIVE_INFINITY],
+    ["7.9"],
+  ])(
     "a count of %j reads as a whole number of at least 0",
     (value: unknown) => {
       const rows: Array<MessageQueueTopologyPairRow> =
         readMessageQueueTopologyRows([
-          { queueKey: "k1", serviceId: SERVICE_A, spanCount: value } as JSONObject,
+          {
+            queueKey: "k1",
+            serviceId: SERVICE_A,
+            spanCount: value,
+          } as JSONObject,
         ]);
       expect(Number.isInteger(rows[0]!.spans)).toBe(true);
       expect(rows[0]!.spans).toBeGreaterThanOrEqual(0);
@@ -733,7 +774,10 @@ describe("the map", () => {
       "q1",
       "servicebus",
       "orders",
-      { brokerScope: "orders-prod", queueIdentifier: "servicebus|orders-prod|orders" },
+      {
+        brokerScope: "orders-prod",
+        queueIdentifier: "servicebus|orders-prod|orders",
+      },
     );
     const key: string = keyOf(orders);
     const response: MessageQueueTopologyResponse = assemble(
@@ -817,7 +861,11 @@ describe("the map", () => {
       consumed: 3,
     });
     expect(response.flows).toHaveLength(1);
-    expect(response.services.map((service) => service.id)).toEqual([SERVICE_A]);
+    expect(
+      response.services.map((service: MessageQueueTopologyService) => {
+        return service.id;
+      }),
+    ).toEqual([SERVICE_A]);
   });
 
   test("a queue with no span is listed with nothing on it; a row for a key of no queue is left out", () => {
@@ -903,7 +951,10 @@ describe("the map", () => {
           if (random(3) === 0) {
             continue;
           }
-          const groups: Record<string, { count: number; errors: number; p95Ms: number }> = {};
+          const groups: Record<
+            string,
+            { count: number; errors: number; p95Ms: number }
+          > = {};
           let spans: number = 0;
           let errors: number = 0;
           for (const population of MESSAGE_QUEUE_TOPOLOGY_GROUPS) {
@@ -913,7 +964,9 @@ describe("the map", () => {
             spans += count;
             errors += failed;
           }
-          pairs.push(pair(keyOf(row), service, groups, spans + random(5), errors));
+          pairs.push(
+            pair(keyOf(row), service, groups, spans + random(5), errors),
+          );
         }
       }
       const response: MessageQueueTopologyResponse = assemble(queues, pairs);
@@ -924,12 +977,17 @@ describe("the map", () => {
             return candidate.queueKey === keyOf(row);
           },
         );
-        const figures = (population: string) => {
+        const figures: (
+          population: string,
+        ) => MessageQueueServiceSpanFigures = (
+          population: string,
+        ): MessageQueueServiceSpanFigures => {
           const counts: Map<string, number> = new Map();
           const errorsByService: Map<string, number> = new Map();
           const p95: Map<string, number> = new Map();
           for (const candidate of own) {
-            const group = candidate.groups[population]!;
+            const group: MessageQueueTopologyGroupFigures =
+              candidate.groups[population]!;
             if (!candidate.serviceId || group.count <= 0) {
               continue;
             }
@@ -941,44 +999,72 @@ describe("the map", () => {
           }
           return { counts, errors: errorsByService, p95Ms: p95 };
         };
-        const producers = combineMessageQueueProducerServices({
-          producer: figures("publish"),
-          sends: [figures("send"), figures("awsSend")],
-          limit: Number.POSITIVE_INFINITY,
-        });
-        const consumers = combineMessageQueueConsumerServices({
-          consume: figures("consume"),
-          receivedBatches: figures("receivedBatch"),
-          limit: Number.POSITIVE_INFINITY,
-        });
+        const producers: MessageQueueProducerServices =
+          combineMessageQueueProducerServices({
+            producer: figures("publish"),
+            sends: [figures("send"), figures("awsSend")],
+            limit: Number.POSITIVE_INFINITY,
+          });
+        const consumers: MessageQueueServiceFiguresList =
+          combineMessageQueueConsumerServices({
+            consume: figures("consume"),
+            receivedBatches: figures("receivedBatch"),
+            limit: Number.POSITIVE_INFINITY,
+          });
         expect(
-          flowsOf(response, row.id, "publish").map((flow) => {
-            return [flow.serviceId, flow.messages, flow.errors, flow.p95DurationMs];
-          }),
+          flowsOf(response, row.id, "publish").map(
+            (flow: MessageQueueTopologyFlow) => {
+              return [
+                flow.serviceId,
+                flow.messages,
+                flow.errors,
+                flow.p95DurationMs,
+              ];
+            },
+          ),
         ).toEqual(
-          producers.services.map((service) => {
-            return [service.serviceId, service.calls, service.errors, service.p95DurationMs];
+          producers.services.map((service: MessageQueueServiceFigures) => {
+            return [
+              service.serviceId,
+              service.calls,
+              service.errors,
+              service.p95DurationMs,
+            ];
           }),
         );
         expect(
-          flowsOf(response, row.id, "consume").map((flow) => {
-            return [flow.serviceId, flow.messages, flow.errors, flow.p95DurationMs];
-          }),
+          flowsOf(response, row.id, "consume").map(
+            (flow: MessageQueueTopologyFlow) => {
+              return [
+                flow.serviceId,
+                flow.messages,
+                flow.errors,
+                flow.p95DurationMs,
+              ];
+            },
+          ),
         ).toEqual(
-          consumers.services.map((service) => {
-            return [service.serviceId, service.calls, service.errors, service.p95DurationMs];
+          consumers.services.map((service: MessageQueueServiceFigures) => {
+            return [
+              service.serviceId,
+              service.calls,
+              service.errors,
+              service.p95DurationMs,
+            ];
           }),
         );
-        const assembled = response.queues.find((candidate) => {
-          return candidate.id === row.id;
-        })!;
+        const assembled: MessageQueueTopologyQueue = response.queues.find(
+          (candidate: MessageQueueTopologyQueue) => {
+            return candidate.id === row.id;
+          },
+        )!;
         expect(assembled.errors).toBeLessThanOrEqual(assembled.spans);
         expect(assembled.published).toBeGreaterThanOrEqual(
           flowsOf(response, row.id, "publish")
-            .filter((flow) => {
+            .filter((flow: MessageQueueTopologyFlow) => {
               return !producers.clientOnlyServiceIds.includes(flow.serviceId);
             })
-            .reduce((total: number, flow) => {
+            .reduce((total: number, flow: MessageQueueTopologyFlow) => {
               return total + flow.messages;
             }, 0),
         );
@@ -994,7 +1080,7 @@ describe("the map", () => {
         }
         expect(flow.messages).toBeGreaterThan(0);
         expect(
-          response.services.some((service) => {
+          response.services.some((service: MessageQueueTopologyService) => {
             return service.id === flow.serviceId;
           }),
         ).toBe(true);

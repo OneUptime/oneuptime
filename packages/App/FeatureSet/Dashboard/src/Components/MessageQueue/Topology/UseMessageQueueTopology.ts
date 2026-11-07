@@ -34,9 +34,7 @@ export default function useMessageQueueTopology(
   timeRange: RangeStartAndEndDateTime,
 ): MessageQueueTopologyLoad {
   const [data, setData] = useState<MessageQueueTopologyResponse | null>(null);
-  const [window, setWindow] = useState<{ start: Date; end: Date } | null>(
-    null,
-  );
+  const [window, setWindow] = useState<{ start: Date; end: Date } | null>(null);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadedAt, setLoadedAt] = useState<Date | null>(null);

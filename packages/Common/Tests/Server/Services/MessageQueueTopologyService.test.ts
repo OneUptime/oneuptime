@@ -1,5 +1,12 @@
 import "../TestingUtils/Init";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import MessageQueueService from "../../../Server/Services/MessageQueueService";
 import MessageQueueTopologyService, {
   MessageQueueTopologyRequest,
@@ -18,6 +25,7 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import {
   MESSAGE_QUEUE_TOPOLOGY_MAX_PAIRS,
   MESSAGE_QUEUE_TOPOLOGY_MAX_QUEUES,
+  MessageQueueTopologyQueue,
   MessageQueueTopologyResponse,
 } from "../../../Types/MessageQueue/MessageQueueTopology";
 import { parseMessageQueueIdentifier } from "../../../Types/MessageQueue/MessageQueueIdentity";
@@ -137,7 +145,10 @@ describe("MessageQueueTopologyService", () => {
     await MessageQueueTopologyService.getTopology(request());
     expect(findQueues.mock.calls).toHaveLength(1);
     const findBy: JSONObject = findQueues.mock.calls[0]![0] as JSONObject;
-    expect(findBy["query"]).toEqual({ projectId: PROJECT_ID, isArchived: false });
+    expect(findBy["query"]).toEqual({
+      projectId: PROJECT_ID,
+      isArchived: false,
+    });
     expect(findBy["props"]).toBe(PROPS);
     expect(findBy["limit"]).toBe(MESSAGE_QUEUE_TOPOLOGY_MAX_QUEUES);
     expect(findBy["skip"]).toBe(0);
@@ -173,7 +184,11 @@ describe("MessageQueueTopologyService", () => {
     const topology: MessageQueueTopologyResponse =
       await MessageQueueTopologyService.getTopology(request());
     expect(executeQuery.mock.calls).toHaveLength(0);
-    expect(topology.queues.map((queue) => queue.id)).toEqual(["q1"]);
+    expect(
+      topology.queues.map((queue: MessageQueueTopologyQueue) => {
+        return queue.id;
+      }),
+    ).toEqual(["q1"]);
   });
 
   test("one span read over every queue's key, under the caller's scope; the rows become the map", async () => {
@@ -209,7 +224,9 @@ describe("MessageQueueTopologyService", () => {
     const topology: MessageQueueTopologyResponse =
       await MessageQueueTopologyService.getTopology(
         request({
-          serviceFilter: { serviceIds: [new ObjectID(SERVICE_A), new ObjectID(SERVICE_B)] },
+          serviceFilter: {
+            serviceIds: [new ObjectID(SERVICE_A), new ObjectID(SERVICE_B)],
+          },
         }),
       );
 
@@ -217,18 +234,29 @@ describe("MessageQueueTopologyService", () => {
     const statement: Statement = executeQuery.mock.calls[0]![0] as Statement;
     const params: Array<unknown> = Object.values(statement.query_params);
     expect(params).toContainEqual(
-      expect.arrayContaining([keyOf("kafka||orders"), keyOf("aws_sqs||payments")]),
+      expect.arrayContaining([
+        keyOf("kafka||orders"),
+        keyOf("aws_sqs||payments"),
+      ]),
     );
     expect(params).toContainEqual([SERVICE_A, SERVICE_B]);
     expect(params).toContain(MESSAGE_QUEUE_TOPOLOGY_MAX_PAIRS);
 
-    expect(topology.queues.find((queue) => queue.id === "q1")).toMatchObject({
+    expect(
+      topology.queues.find((queue: MessageQueueTopologyQueue) => {
+        return queue.id === "q1";
+      }),
+    ).toMatchObject({
       spans: 18,
       errors: 1,
       published: 10,
       consumed: 8,
     });
-    expect(topology.queues.find((queue) => queue.id === "q2")).toMatchObject({
+    expect(
+      topology.queues.find((queue: MessageQueueTopologyQueue) => {
+        return queue.id === "q2";
+      }),
+    ).toMatchObject({
       spans: 0,
       published: 0,
     });
@@ -261,15 +289,32 @@ describe("MessageQueueTopologyService", () => {
   test("the names are read with the caller's props, only for the services found, only real ids", async () => {
     findQueues.mockResolvedValue([queueRow("q1", "kafka||orders", "kafka")]);
     answerRows([
-      { queueKey: keyOf("kafka||orders"), serviceId: SERVICE_A, spanCount: "1", publishCount: "1" },
-      { queueKey: keyOf("kafka||orders"), serviceId: "", spanCount: "1", publishCount: "1" },
-      { queueKey: keyOf("kafka||orders"), serviceId: "not-an-id", spanCount: "1", publishCount: "1" },
+      {
+        queueKey: keyOf("kafka||orders"),
+        serviceId: SERVICE_A,
+        spanCount: "1",
+        publishCount: "1",
+      },
+      {
+        queueKey: keyOf("kafka||orders"),
+        serviceId: "",
+        spanCount: "1",
+        publishCount: "1",
+      },
+      {
+        queueKey: keyOf("kafka||orders"),
+        serviceId: "not-an-id",
+        spanCount: "1",
+        publishCount: "1",
+      },
     ]);
     await MessageQueueTopologyService.getTopology(request());
     expect(findServices.mock.calls).toHaveLength(1);
     const findBy: JSONObject = findServices.mock.calls[0]![0] as JSONObject;
     expect(findBy["props"]).toBe(PROPS);
-    const ids: Includes = (findBy["query"] as JSONObject)["_id"] as unknown as Includes;
+    const ids: Includes = (findBy["query"] as JSONObject)[
+      "_id"
+    ] as unknown as Includes;
     expect(
       ids.values.map((value: unknown) => {
         return String(value);
@@ -281,7 +326,12 @@ describe("MessageQueueTopologyService", () => {
   test("a failed name lookup leaves the services unnamed; the map still stands", async () => {
     findQueues.mockResolvedValue([queueRow("q1", "kafka||orders", "kafka")]);
     answerRows([
-      { queueKey: keyOf("kafka||orders"), serviceId: SERVICE_A, spanCount: "1", publishCount: "1" },
+      {
+        queueKey: keyOf("kafka||orders"),
+        serviceId: SERVICE_A,
+        spanCount: "1",
+        publishCount: "1",
+      },
     ]);
     findServices.mockRejectedValue(new Error("not allowed to read services"));
     const topology: MessageQueueTopologyResponse =
@@ -292,14 +342,18 @@ describe("MessageQueueTopologyService", () => {
 
   test("a span read that fails, fails the topology (the route answers with its error)", async () => {
     findQueues.mockResolvedValue([queueRow("q1", "kafka||orders", "kafka")]);
-    executeQuery.mockRejectedValue(new Error("This query took longer than 45 seconds"));
+    executeQuery.mockRejectedValue(
+      new Error("This query took longer than 45 seconds"),
+    );
     await expect(
       MessageQueueTopologyService.getTopology(request()),
     ).rejects.toThrow("This query took longer than 45 seconds");
   });
 
   test("a queue read the caller may not make is refused before any span is read", async () => {
-    findQueues.mockRejectedValue(new Error("You do not have permission to read Queues"));
+    findQueues.mockRejectedValue(
+      new Error("You do not have permission to read Queues"),
+    );
     await expect(
       MessageQueueTopologyService.getTopology(request()),
     ).rejects.toThrow("permission");
@@ -326,13 +380,17 @@ describe("MessageQueueTopologyService", () => {
       },
     );
     findQueues.mockResolvedValue(full);
-    countQueues.mockResolvedValue(new PositiveNumber(MESSAGE_QUEUE_TOPOLOGY_MAX_QUEUES + 5));
+    countQueues.mockResolvedValue(
+      new PositiveNumber(MESSAGE_QUEUE_TOPOLOGY_MAX_QUEUES + 5),
+    );
     topology = await MessageQueueTopologyService.getTopology(request());
     expect(countQueues.mock.calls).toHaveLength(1);
     expect(topology.truncation.queues).toBe(true);
 
     // Exactly at the limit is the whole list.
-    countQueues.mockResolvedValue(new PositiveNumber(MESSAGE_QUEUE_TOPOLOGY_MAX_QUEUES));
+    countQueues.mockResolvedValue(
+      new PositiveNumber(MESSAGE_QUEUE_TOPOLOGY_MAX_QUEUES),
+    );
     topology = await MessageQueueTopologyService.getTopology(request());
     expect(topology.truncation.queues).toBe(false);
   });
@@ -342,7 +400,11 @@ describe("MessageQueueTopologyService", () => {
     const rows: Array<JSONObject> = Array.from(
       { length: MESSAGE_QUEUE_TOPOLOGY_MAX_PAIRS },
       (): JSONObject => {
-        return { queueKey: keyOf("kafka||orders"), serviceId: "", spanCount: "1" };
+        return {
+          queueKey: keyOf("kafka||orders"),
+          serviceId: "",
+          spanCount: "1",
+        };
       },
     );
     answerRows(rows);

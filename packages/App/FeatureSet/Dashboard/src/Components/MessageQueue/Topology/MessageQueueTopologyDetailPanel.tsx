@@ -1,19 +1,16 @@
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import AppLink from "../../AppLink/AppLink";
-import { getMessageQueueBrokerMetricTitle } from "../MessageQueueOverviewPresentation";
 import {
   formatMessageQueueCount,
   formatMessageQueueDurationMs,
+  getMessageQueueBrokerMetricTitle,
 } from "../MessageQueueOverviewPresentation";
 import {
   MessageQueueHeadlineValue,
@@ -85,9 +82,12 @@ function queueRoute(page: PageMap, queueId: string): Route {
 }
 
 function serviceRoute(serviceId: string): Route {
-  return RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICE_VIEW] as Route, {
-    modelId: new ObjectID(serviceId),
-  });
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SERVICE_VIEW] as Route,
+    {
+      modelId: new ObjectID(serviceId),
+    },
+  );
 }
 
 // How a share of failures (0 to 1) reads: red at 5%, amber past 1%.
@@ -253,7 +253,9 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
       props.model.nodeByKey.get(otherKey);
     return {
       key: otherKey,
-      name: other ? getMessageQueueTopologyNodeLabel(other, translator) : otherKey,
+      name: other
+        ? getMessageQueueTopologyNodeLabel(other, translator)
+        : otherKey,
       detail:
         edge.p95DurationMs === null
           ? other?.kind === "queue"
@@ -292,56 +294,54 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const headlineFigures: (node: MessageQueueTopologyQueueNode) => Array<Figure> =
-    (node: MessageQueueTopologyQueueNode): Array<Figure> => {
-      const entry: MessageQueueHeadlineEntry | undefined = props.headlines.get(
-        node.queue.id,
-      );
-      const descriptors: ReturnType<typeof getMessageQueueHeadlineDescriptors> =
-        getMessageQueueHeadlineDescriptors(node.queue.messagingSystem);
-      const figures: Array<Figure> = [];
-      const add: (
-        kind: "waiting" | "deadLetter",
-        value: MessageQueueHeadlineValue | null,
-      ) => void = (
-        kind: "waiting" | "deadLetter",
-        value: MessageQueueHeadlineValue | null,
-      ): void => {
-        const first: (typeof descriptors.waiting)[number] | undefined =
-          descriptors[kind][0];
-        if (!first) {
-          return;
-        }
-        figures.push({
-          label: getMessageQueueBrokerMetricTitle(
-            value ? value.descriptor : first,
-            translator,
-          ),
-          value:
-            entry?.status === "loading"
-              ? "…"
-              : value
-                ? formatMessageQueueHeadlineFull(value)
-                : "—",
-          detail:
-            entry?.status === "ready" && !value
-              ? translator.translateText("Not reported in this range")
-              : !entry
-                ? translator.translateText("No broker metrics lately")
-                : undefined,
-          testId: `message-queue-topology-drawer-${kind}`,
-        });
-      };
-      add(
-        "waiting",
-        entry?.status === "ready" ? entry.headline.waiting : null,
-      );
-      add(
-        "deadLetter",
-        entry?.status === "ready" ? entry.headline.deadLetter : null,
-      );
-      return figures;
+  const headlineFigures: (
+    node: MessageQueueTopologyQueueNode,
+  ) => Array<Figure> = (node: MessageQueueTopologyQueueNode): Array<Figure> => {
+    const entry: MessageQueueHeadlineEntry | undefined = props.headlines.get(
+      node.queue.id,
+    );
+    const descriptors: ReturnType<typeof getMessageQueueHeadlineDescriptors> =
+      getMessageQueueHeadlineDescriptors(node.queue.messagingSystem);
+    const figures: Array<Figure> = [];
+    const add: (
+      kind: "waiting" | "deadLetter",
+      value: MessageQueueHeadlineValue | null,
+    ) => void = (
+      kind: "waiting" | "deadLetter",
+      value: MessageQueueHeadlineValue | null,
+    ): void => {
+      const first: (typeof descriptors.waiting)[number] | undefined =
+        descriptors[kind][0];
+      if (!first) {
+        return;
+      }
+      figures.push({
+        label: getMessageQueueBrokerMetricTitle(
+          value ? value.descriptor : first,
+          translator,
+        ),
+        value:
+          entry?.status === "loading"
+            ? "…"
+            : value
+              ? formatMessageQueueHeadlineFull(value)
+              : "—",
+        detail:
+          entry?.status === "ready" && !value
+            ? translator.translateText("Not reported in this range")
+            : !entry
+              ? translator.translateText("No broker metrics lately")
+              : undefined,
+        testId: `message-queue-topology-drawer-${kind}`,
+      });
     };
+    add("waiting", entry?.status === "ready" ? entry.headline.waiting : null);
+    add(
+      "deadLetter",
+      entry?.status === "ready" ? entry.headline.deadLetter : null,
+    );
+    return figures;
+  };
 
   const renderQueue: (node: MessageQueueTopologyQueueNode) => ReactElement = (
     node: MessageQueueTopologyQueueNode,
@@ -374,12 +374,16 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
       ...headlineFigures(node),
     ];
     return (
-      <div className="space-y-5" data-testid="message-queue-topology-drawer-queue">
+      <div
+        className="space-y-5"
+        data-testid="message-queue-topology-drawer-queue"
+      >
         <p className="flex items-center gap-2 text-sm text-gray-700">
           <span
             className="h-2 w-2 shrink-0 rounded-full"
             style={{
-              backgroundColor: MESSAGE_QUEUE_TOPOLOGY_STATUS_COLORS[node.status],
+              backgroundColor:
+                MESSAGE_QUEUE_TOPOLOGY_STATUS_COLORS[node.status],
             }}
             aria-hidden={true}
           />
@@ -451,110 +455,105 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderService: (node: MessageQueueTopologyServiceNode) => ReactElement =
-    (node: MessageQueueTopologyServiceNode): ReactElement => {
-      const edges: Array<MessageQueueTopologyEdge> = edgesOf(node.key);
-      const figures: Array<Figure> = [
-        {
-          label: translator.translateText("Published") || "Published",
-          value: formatMessageQueueCount(node.published.messages),
-          detail: formatMessageQueueTopologyRate(
-            node.published.messages,
-            windowSeconds,
-          ),
-          testId: "message-queue-topology-drawer-published",
-          tone: toneOf(node.published.attempts, node.published.errors),
-        },
-        {
-          label: translator.translateText("Consumed") || "Consumed",
-          value: formatMessageQueueCount(node.consumed.messages),
-          detail: formatMessageQueueTopologyRate(
-            node.consumed.messages,
-            windowSeconds,
-          ),
-          testId: "message-queue-topology-drawer-consumed",
-          tone: toneOf(node.consumed.attempts, node.consumed.errors),
-        },
-      ];
-      const reach: string | undefined = getMessageQueueTopologyServiceReach(
-        node,
-        translator,
-      );
-      return (
-        <div
-          className="space-y-5"
-          data-testid="message-queue-topology-drawer-service"
-        >
-          <p className="flex items-center gap-2 text-sm text-gray-700">
-            <span
-              className="h-2 w-2 shrink-0 rounded-full"
-              style={{
-                backgroundColor:
-                  MESSAGE_QUEUE_TOPOLOGY_STATUS_COLORS[node.status],
-              }}
-              aria-hidden={true}
-            />
-            {getMessageQueueTopologyStatusLabel(node.status, translator)}
-            {reach ? (
-              <span className="text-gray-500">· {reach}</span>
-            ) : (
-              <></>
-            )}
-          </p>
-          <FigureGrid figures={figures} />
-          <LinkedList
-            title={translator.translateText("Publishes to") || "Publishes to"}
-            empty={
-              translator.translateText(
-                "It published to no queue in this range.",
-              ) || ""
-            }
-            testId="message-queue-topology-drawer-publishes-to"
-            rows={edges
-              .filter((edge: MessageQueueTopologyEdge): boolean => {
-                return edge.direction === "publish";
-              })
-              .map((edge: MessageQueueTopologyEdge): ListRow => {
-                return rowFor(edge, edge.queueKey, P95_PUBLISH_TEMPLATE);
-              })}
-            onSelect={props.onSelectNode}
+  const renderService: (
+    node: MessageQueueTopologyServiceNode,
+  ) => ReactElement = (node: MessageQueueTopologyServiceNode): ReactElement => {
+    const edges: Array<MessageQueueTopologyEdge> = edgesOf(node.key);
+    const figures: Array<Figure> = [
+      {
+        label: translator.translateText("Published") || "Published",
+        value: formatMessageQueueCount(node.published.messages),
+        detail: formatMessageQueueTopologyRate(
+          node.published.messages,
+          windowSeconds,
+        ),
+        testId: "message-queue-topology-drawer-published",
+        tone: toneOf(node.published.attempts, node.published.errors),
+      },
+      {
+        label: translator.translateText("Consumed") || "Consumed",
+        value: formatMessageQueueCount(node.consumed.messages),
+        detail: formatMessageQueueTopologyRate(
+          node.consumed.messages,
+          windowSeconds,
+        ),
+        testId: "message-queue-topology-drawer-consumed",
+        tone: toneOf(node.consumed.attempts, node.consumed.errors),
+      },
+    ];
+    const reach: string | undefined = getMessageQueueTopologyServiceReach(
+      node,
+      translator,
+    );
+    return (
+      <div
+        className="space-y-5"
+        data-testid="message-queue-topology-drawer-service"
+      >
+        <p className="flex items-center gap-2 text-sm text-gray-700">
+          <span
+            className="h-2 w-2 shrink-0 rounded-full"
+            style={{
+              backgroundColor:
+                MESSAGE_QUEUE_TOPOLOGY_STATUS_COLORS[node.status],
+            }}
+            aria-hidden={true}
           />
-          <LinkedList
-            title={
-              translator.translateText("Consumes from") || "Consumes from"
-            }
-            empty={
-              translator.translateText(
-                "It consumed from no queue in this range.",
-              ) || ""
-            }
-            testId="message-queue-topology-drawer-consumes-from"
-            rows={edges
-              .filter((edge: MessageQueueTopologyEdge): boolean => {
-                return edge.direction === "consume";
-              })
-              .map((edge: MessageQueueTopologyEdge): ListRow => {
-                return rowFor(edge, edge.queueKey, P95_PROCESSING_TEMPLATE);
-              })}
-            onSelect={props.onSelectNode}
-          />
-          <div className="flex flex-wrap items-center gap-3">
-            {node.isNamed ? (
-              <AppLink
-                to={serviceRoute(node.service.id)}
-                dataTestId="message-queue-topology-drawer-open-service"
-                className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
-              >
-                {translator.translateText("Open service") || "Open service"}
-              </AppLink>
-            ) : (
-              <></>
-            )}
-            {focusButton(node.key)}
-          </div>
+          {getMessageQueueTopologyStatusLabel(node.status, translator)}
+          {reach ? <span className="text-gray-500">· {reach}</span> : <></>}
+        </p>
+        <FigureGrid figures={figures} />
+        <LinkedList
+          title={translator.translateText("Publishes to") || "Publishes to"}
+          empty={
+            translator.translateText(
+              "It published to no queue in this range.",
+            ) || ""
+          }
+          testId="message-queue-topology-drawer-publishes-to"
+          rows={edges
+            .filter((edge: MessageQueueTopologyEdge): boolean => {
+              return edge.direction === "publish";
+            })
+            .map((edge: MessageQueueTopologyEdge): ListRow => {
+              return rowFor(edge, edge.queueKey, P95_PUBLISH_TEMPLATE);
+            })}
+          onSelect={props.onSelectNode}
+        />
+        <LinkedList
+          title={translator.translateText("Consumes from") || "Consumes from"}
+          empty={
+            translator.translateText(
+              "It consumed from no queue in this range.",
+            ) || ""
+          }
+          testId="message-queue-topology-drawer-consumes-from"
+          rows={edges
+            .filter((edge: MessageQueueTopologyEdge): boolean => {
+              return edge.direction === "consume";
+            })
+            .map((edge: MessageQueueTopologyEdge): ListRow => {
+              return rowFor(edge, edge.queueKey, P95_PROCESSING_TEMPLATE);
+            })}
+          onSelect={props.onSelectNode}
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          {node.isNamed ? (
+            <AppLink
+              to={serviceRoute(node.service.id)}
+              dataTestId="message-queue-topology-drawer-open-service"
+              className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+            >
+              {translator.translateText("Open service") || "Open service"}
+            </AppLink>
+          ) : (
+            <></>
+          )}
+          {focusButton(node.key)}
         </div>
-      );
-    };
+      </div>
+    );
+  };
 
   const renderEdge: (edge: MessageQueueTopologyEdge) => ReactElement = (
     edge: MessageQueueTopologyEdge,
@@ -589,7 +588,10 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
       });
     }
     return (
-      <div className="space-y-5" data-testid="message-queue-topology-drawer-edge">
+      <div
+        className="space-y-5"
+        data-testid="message-queue-topology-drawer-edge"
+      >
         <FigureGrid figures={figures} />
         <div className="flex flex-wrap items-center gap-3">
           {queue?.kind === "queue" ? (
@@ -627,10 +629,13 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
     const edge: MessageQueueTopologyEdge = props.selection.edge;
     const from: MessageQueueTopologyNode | undefined =
       props.model.nodeByKey.get(edge.from);
-    const to: MessageQueueTopologyNode | undefined =
-      props.model.nodeByKey.get(edge.to);
+    const to: MessageQueueTopologyNode | undefined = props.model.nodeByKey.get(
+      edge.to,
+    );
     title = translator.translateTemplate("{{from}} → {{to}}", {
-      from: from ? getMessageQueueTopologyNodeLabel(from, translator) : edge.from,
+      from: from
+        ? getMessageQueueTopologyNodeLabel(from, translator)
+        : edge.from,
       to: to ? getMessageQueueTopologyNodeLabel(to, translator) : edge.to,
     });
     description =
@@ -649,11 +654,13 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
       title = getMessageQueueTopologyNodeLabel(node, translator);
       description = getMessageQueueTopologySubtitle(node, translator);
       body =
-        node.kind === "queue"
-          ? renderQueue(node)
-          : node.kind === "service"
-            ? renderService(node)
-            : <></>;
+        node.kind === "queue" ? (
+          renderQueue(node)
+        ) : node.kind === "service" ? (
+          renderService(node)
+        ) : (
+          <></>
+        );
     }
   }
 

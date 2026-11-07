@@ -245,7 +245,9 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
   const selectedQueueNode: MessageQueueTopologyQueueNode | null =
     selection?.kind === "node" &&
     baseModel.nodeByKey.get(selection.key)?.kind === "queue"
-      ? (baseModel.nodeByKey.get(selection.key) as MessageQueueTopologyQueueNode)
+      ? (baseModel.nodeByKey.get(
+          selection.key,
+        ) as MessageQueueTopologyQueueNode)
       : null;
   const onScreenQueues: Array<MessageQueueHeadlineQueue> = useMemo(() => {
     const keys: Set<string> = new Set<string>();
@@ -345,7 +347,9 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
 
   const renderGuidance: (
     reason: MessageQueueTopologyEmptyReason,
-  ) => ReactElement = (reason: MessageQueueTopologyEmptyReason): ReactElement => {
+  ) => ReactElement = (
+    reason: MessageQueueTopologyEmptyReason,
+  ): ReactElement => {
     const copy: Record<
       MessageQueueTopologyEmptyReason,
       { title: string; text: string }
@@ -549,72 +553,78 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {pageRows.map((row: MessageQueueTopologyTableRow): ReactElement => {
-                const queue: MessageQueueTopologyQueueNode["queue"] =
-                  row.node.queue;
-                return (
-                  <tr
-                    key={row.node.key}
-                    className="hover:bg-gray-50"
-                    data-testid="message-queue-topology-table-row"
-                  >
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
-                        {statusDot(row.node)}
-                        <span className="min-w-0">
-                          <button
-                            type="button"
-                            className="max-w-xs break-words text-left font-semibold text-gray-900 hover:text-indigo-600"
-                            onClick={() => {
-                              selectNode(row.node.key);
-                            }}
-                          >
-                            {row.node.label}
-                          </button>
-                          <span className="mt-0.5 block text-xs text-gray-500">
-                            {row.node.subtitle}
+              {pageRows.map(
+                (row: MessageQueueTopologyTableRow): ReactElement => {
+                  const queue: MessageQueueTopologyQueueNode["queue"] =
+                    row.node.queue;
+                  return (
+                    <tr
+                      key={row.node.key}
+                      className="hover:bg-gray-50"
+                      data-testid="message-queue-topology-table-row"
+                    >
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2">
+                          {statusDot(row.node)}
+                          <span className="min-w-0">
+                            <button
+                              type="button"
+                              className="max-w-xs break-words text-left font-semibold text-gray-900 hover:text-indigo-600"
+                              onClick={() => {
+                                selectNode(row.node.key);
+                              }}
+                            >
+                              {row.node.label}
+                            </button>
+                            <span className="mt-0.5 block text-xs text-gray-500">
+                              {row.node.subtitle}
+                            </span>
                           </span>
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">{serviceNames(row.producers)}</td>
-                    <td className="px-4 py-3">{serviceNames(row.consumers)}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                      {formatMessageQueueTopologyRate(
-                        queue.published,
-                        windowSeconds,
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                      {formatMessageQueueTopologyRate(
-                        queue.consumed,
-                        windowSeconds,
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                      {formatMessageQueueTopologyErrorRate(
-                        queue.spans,
-                        queue.errors,
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                      {waitingCell(row.node)}
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <button
-                        type="button"
-                        className="whitespace-nowrap text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                        data-testid="message-queue-topology-show-on-map"
-                        onClick={() => {
-                          focusOn(row.node.key);
-                        }}
-                      >
-                        {t("Show its flow")} <span aria-hidden={true}>→</span>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {serviceNames(row.producers)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {serviceNames(row.consumers)}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                        {formatMessageQueueTopologyRate(
+                          queue.published,
+                          windowSeconds,
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                        {formatMessageQueueTopologyRate(
+                          queue.consumed,
+                          windowSeconds,
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                        {formatMessageQueueTopologyErrorRate(
+                          queue.spans,
+                          queue.errors,
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                        {waitingCell(row.node)}
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <button
+                          type="button"
+                          className="whitespace-nowrap text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                          data-testid="message-queue-topology-show-on-map"
+                          onClick={() => {
+                            focusOn(row.node.key);
+                          }}
+                        >
+                          {t("Show its flow")} <span aria-hidden={true}>→</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                },
+              )}
             </tbody>
           </table>
         </div>
@@ -624,13 +634,19 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
             data-testid="message-queue-topology-pagination"
           >
             <p>
-              {translator.translateTemplate("Showing {{from}}–{{to}} of {{total}}", {
-                from: String(currentPage * ROWS_PER_PAGE + 1),
-                to: String(
-                  Math.min((currentPage + 1) * ROWS_PER_PAGE, tableRows.length),
-                ),
-                total: String(tableRows.length),
-              })}
+              {translator.translateTemplate(
+                "Showing {{from}}–{{to}} of {{total}}",
+                {
+                  from: String(currentPage * ROWS_PER_PAGE + 1),
+                  to: String(
+                    Math.min(
+                      (currentPage + 1) * ROWS_PER_PAGE,
+                      tableRows.length,
+                    ),
+                  ),
+                  total: String(tableRows.length),
+                },
+              )}
             </p>
             <div className="flex items-center gap-3">
               <button
@@ -664,12 +680,18 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
     .map((key: string): MessageQueueTopologyNode | undefined => {
       return model.nodeByKey.get(key);
     })
-    .filter((node: MessageQueueTopologyNode | undefined): node is MessageQueueTopologyNode => {
-      return Boolean(node);
-    })
-    .sort((a: MessageQueueTopologyNode, b: MessageQueueTopologyNode): number => {
-      return a.label.localeCompare(b.label);
-    });
+    .filter(
+      (
+        node: MessageQueueTopologyNode | undefined,
+      ): node is MessageQueueTopologyNode => {
+        return Boolean(node);
+      },
+    )
+    .sort(
+      (a: MessageQueueTopologyNode, b: MessageQueueTopologyNode): number => {
+        return a.label.localeCompare(b.label);
+      },
+    );
 
   const renderUnconnected: () => ReactElement = (): ReactElement => {
     if (unconnected.length === 0) {
@@ -714,7 +736,10 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
                     {getMessageQueueTopologyNodeLabel(node, translator)}
                   </span>
                   <span className="block truncate text-xs text-gray-500">
-                    {getMessageQueueTopologyStatusLabel(node.status, translator)}
+                    {getMessageQueueTopologyStatusLabel(
+                      node.status,
+                      translator,
+                    )}
                     {node.subtitle ? ` · ${node.subtitle}` : ""}
                   </span>
                 </span>
@@ -1202,7 +1227,9 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
                     model={model}
                     visibility={visibility}
                     layout={layout}
-                    selectedKey={selection?.kind === "node" ? selection.key : null}
+                    selectedKey={
+                      selection?.kind === "node" ? selection.key : null
+                    }
                     selectedEdgeId={
                       selection?.kind === "edge" ? selection.edge.id : null
                     }
@@ -1239,7 +1266,6 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
       )}
     </div>
   );
-
 };
 
 export default MessageQueueTopologyExplorer;

@@ -60,7 +60,10 @@ function idText(value: ObjectID | string): string {
   return value.toString().toLowerCase();
 }
 
-function inScope(row: MessageQueueSpanRow, filter: TelemetryServiceFilter): boolean {
+function inScope(
+  row: MessageQueueSpanRow,
+  filter: TelemetryServiceFilter,
+): boolean {
   const service: string = row.serviceId.toLowerCase();
   if (
     filter.serviceIds &&
@@ -83,7 +86,10 @@ interface PairState {
   serviceId: string;
   spans: number;
   errors: number;
-  groups: Map<string, { count: number; errors: number; durations: Array<number> }>;
+  groups: Map<
+    string,
+    { count: number; errors: number; durations: Array<number> }
+  >;
 }
 
 export function readMessageQueueTopologyTwin(data: {
@@ -143,8 +149,15 @@ export function readMessageQueueTopologyTwin(data: {
         ) {
           continue;
         }
-        const group: { count: number; errors: number; durations: Array<number> } =
-          pair.groups.get(population) || { count: 0, errors: 0, durations: [] };
+        const group: {
+          count: number;
+          errors: number;
+          durations: Array<number>;
+        } = pair.groups.get(population) || {
+          count: 0,
+          errors: 0,
+          durations: [],
+        };
         group.count += 1;
         group.errors += failed ? 1 : 0;
         group.durations.push(Math.round(row.durationMs * 1_000_000));

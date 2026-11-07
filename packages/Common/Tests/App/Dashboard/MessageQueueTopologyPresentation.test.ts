@@ -38,6 +38,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/Topology/MessageQueueTopologyModel";
 import {
   MessageQueueBrokerHeadline,
+  MessageQueueHeadlineValue,
   getMessageQueueHeadlineDescriptors,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/Topology/MessageQueueBrokerHeadlines";
 import { HEALTH_COLORS } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/TopologyMeta";
@@ -46,6 +47,9 @@ import {
   MessageQueueTopologyQueue,
   MessageQueueTopologyResponse,
 } from "../../../Types/MessageQueue/MessageQueueTopology";
+
+// One of the three numbers on a card.
+type CardStat = MessageQueueTopologyCard["stats"][number];
 
 const english: Translator = createTranslator(undefined, "en");
 
@@ -168,12 +172,18 @@ describe("a queue's card", () => {
         translator: english,
       },
     );
-    expect(card.stats.map((stat) => stat.label)).toEqual(["in", "out", "lag"]);
+    expect(
+      card.stats.map((stat: CardStat) => {
+        return stat.label;
+      }),
+    ).toEqual(["in", "out", "lag"]);
     expect(card.stats[2]!.value).toBe("1.2k");
   });
 
   test("errors keep their place when the queue needs attention, in their colour", () => {
-    const m: MessageQueueTopologyModel = model([queue("orders", { errors: 720 })]);
+    const m: MessageQueueTopologyModel = model([
+      queue("orders", { errors: 720 }),
+    ]);
     const card: MessageQueueTopologyCard = getMessageQueueTopologyCard(
       m.nodeByKey.get(getMessageQueueTopologyQueueKey("orders"))!,
       {
@@ -182,7 +192,11 @@ describe("a queue's card", () => {
         translator: english,
       },
     );
-    expect(card.stats.map((stat) => stat.label)).toEqual(["in", "out", "errors"]);
+    expect(
+      card.stats.map((stat: CardStat) => {
+        return stat.label;
+      }),
+    ).toEqual(["in", "out", "errors"]);
     expect(card.stats[2]!.value).toBe("20.0%");
     expect(card.stats[2]!.color).toBe(HEALTH_COLORS.critical);
     expect(card.statusLabel).toBe("High error rate");
@@ -225,12 +239,18 @@ describe("a queue's card", () => {
   });
 
   test("in German, each sentence and word is looked up whole", () => {
-    const m: MessageQueueTopologyModel = model([queue("orders", { consumed: 0 })]);
+    const m: MessageQueueTopologyModel = model([
+      queue("orders", { consumed: 0 }),
+    ]);
     const card: MessageQueueTopologyCard = getMessageQueueTopologyCard(
       m.nodeByKey.get(getMessageQueueTopologyQueueKey("orders"))!,
       { windowSeconds: m.windowSeconds, translator: german },
     );
-    expect(card.stats.map((stat) => stat.label)).toEqual(["ein", "aus", "Fehler"]);
+    expect(
+      card.stats.map((stat: CardStat) => {
+        return stat.label;
+      }),
+    ).toEqual(["ein", "aus", "Fehler"]);
     expect(card.footer).toBe("1 Produzent · 1 Konsument");
     expect(card.statusLabel).toBe("Kein Konsument gesehen");
   });
@@ -307,14 +327,20 @@ describe("a broker's card", () => {
     const folded: MessageQueueTopologyModel = groupMessageQueueTopologyByBroker(
       model([queue("orders"), queue("payments")]),
     );
-    const broker: MessageQueueTopologyNode = folded.nodes.find((node) => {
-      return node.kind === "broker";
-    })!;
+    const broker: MessageQueueTopologyNode = folded.nodes.find(
+      (node: MessageQueueTopologyNode) => {
+        return node.kind === "broker";
+      },
+    )!;
     const card: MessageQueueTopologyCard = getMessageQueueTopologyCard(broker, {
       windowSeconds: folded.windowSeconds,
       translator: english,
     });
-    expect(card.stats.map((stat) => stat.label)).toEqual(["in", "out", "errors"]);
+    expect(
+      card.stats.map((stat: CardStat) => {
+        return stat.label;
+      }),
+    ).toEqual(["in", "out", "errors"]);
     expect(card.stats[0]!.value).toBe("2.0/s");
     expect(card.footer).toBe("Select to see its queues");
     expect(getMessageQueueTopologySubtitle(broker, english)).toBe("2 queues");
@@ -323,12 +349,16 @@ describe("a broker's card", () => {
 
 describe("a line's label", () => {
   const m: MessageQueueTopologyModel = model([queue("orders")]);
-  const publish: MessageQueueTopologyEdge = m.edges.find((edge) => {
-    return edge.direction === "publish";
-  })!;
-  const consume: MessageQueueTopologyEdge = m.edges.find((edge) => {
-    return edge.direction === "consume";
-  })!;
+  const publish: MessageQueueTopologyEdge = m.edges.find(
+    (edge: MessageQueueTopologyEdge) => {
+      return edge.direction === "publish";
+    },
+  )!;
+  const consume: MessageQueueTopologyEdge = m.edges.find(
+    (edge: MessageQueueTopologyEdge) => {
+      return edge.direction === "consume";
+    },
+  )!;
 
   test("the picked metric", () => {
     expect(getMessageQueueTopologyEdgeLabel(publish, "rate", 3600, false)).toBe(
@@ -375,17 +405,31 @@ describe("words", () => {
 
   test("a queue seen from one side, or not at all, says what to instrument, whatever its errors", () => {
     expect(
-      getMessageQueueTopologyQueueHint({ spans: 10, published: 10, consumed: 0 }),
-    ).toContain("instrument it with OpenTelemetry to see where these messages go");
+      getMessageQueueTopologyQueueHint({
+        spans: 10,
+        published: 10,
+        consumed: 0,
+      }),
+    ).toContain(
+      "instrument it with OpenTelemetry to see where these messages go",
+    );
     expect(
-      getMessageQueueTopologyQueueHint({ spans: 10, published: 0, consumed: 10 }),
+      getMessageQueueTopologyQueueHint({
+        spans: 10,
+        published: 0,
+        consumed: 10,
+      }),
     ).toContain("to see where they come from");
     expect(
       getMessageQueueTopologyQueueHint({ spans: 0, published: 0, consumed: 0 }),
     ).toContain("No instrumented service");
     // Both sides seen: nothing to add.
     expect(
-      getMessageQueueTopologyQueueHint({ spans: 20, published: 10, consumed: 10 }),
+      getMessageQueueTopologyQueueHint({
+        spans: 20,
+        published: 10,
+        consumed: 10,
+      }),
     ).toBeNull();
     // Spans, but neither side's: nothing either side can be told.
     expect(
@@ -397,14 +441,16 @@ describe("words", () => {
     expect(getMessageQueueTopologyErrorColor(null)).toBeUndefined();
     expect(getMessageQueueTopologyErrorColor(0.01)).toBeUndefined();
     expect(getMessageQueueTopologyErrorColor(0.02)).toBe("#b45309");
-    expect(getMessageQueueTopologyErrorColor(0.05)).toBe(HEALTH_COLORS.critical);
+    expect(getMessageQueueTopologyErrorColor(0.05)).toBe(
+      HEALTH_COLORS.critical,
+    );
   });
 
   test("a headline's number: short on a card, in its unit in the drawer", () => {
     const lag: MessageQueueBrokerHeadline = lagHeadline(1500);
     expect(formatMessageQueueHeadlineShort(lag.waiting!)).toBe("1.5k");
     expect(formatMessageQueueHeadlineFull(lag.waiting!)).toBe("1.5k messages");
-    const dlq: { descriptor: (typeof lag.waiting)["descriptor"] & object; value: number } = {
+    const dlq: MessageQueueHeadlineValue = {
       descriptor: getMessageQueueHeadlineDescriptors("rocketmq").deadLetter[0]!,
       value: 0.25,
     };
@@ -412,7 +458,9 @@ describe("words", () => {
   });
 
   test("a queue node's card is never more than three numbers", () => {
-    const m: MessageQueueTopologyModel = model([queue("orders", { errors: 720 })]);
+    const m: MessageQueueTopologyModel = model([
+      queue("orders", { errors: 720 }),
+    ]);
     const node: MessageQueueTopologyQueueNode = m.nodeByKey.get(
       getMessageQueueTopologyQueueKey("orders"),
     ) as MessageQueueTopologyQueueNode;

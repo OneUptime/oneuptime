@@ -23,10 +23,9 @@ import useMessageQueueTopology, {
  * queue.
  */
 
-export const MESSAGE_QUEUE_TOPOLOGY_DEFAULT_RANGE: RangeStartAndEndDateTime =
-  {
-    range: TimeRange.PAST_ONE_HOUR,
-  };
+export const MESSAGE_QUEUE_TOPOLOGY_DEFAULT_RANGE: RangeStartAndEndDateTime = {
+  range: TimeRange.PAST_ONE_HOUR,
+};
 
 export interface ComponentProps {
   anchorQueueId?: string | undefined;

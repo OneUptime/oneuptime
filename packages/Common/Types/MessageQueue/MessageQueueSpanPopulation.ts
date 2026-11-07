@@ -304,11 +304,7 @@ function sortedServiceRows(
       if (b.calls !== a.calls) {
         return b.calls - a.calls;
       }
-      return a.serviceId < b.serviceId
-        ? -1
-        : a.serviceId > b.serviceId
-          ? 1
-          : 0;
+      return a.serviceId < b.serviceId ? -1 : a.serviceId > b.serviceId ? 1 : 0;
     },
   );
   return { services: busy.slice(0, limit), total: busy.length };
@@ -343,7 +339,8 @@ function limitOf(limit: number | undefined): number {
  *     service has sends of both client groups (it never has in practice),
  *     the busier group's p95 stands for its sends.
  */
-export interface MessageQueueProducerServices extends MessageQueueServiceFiguresList {
+export interface MessageQueueProducerServices
+  extends MessageQueueServiceFiguresList {
   // Services counted from client send spans alone, busiest first.
   clientOnlyServiceIds: Array<string>;
   // Their send spans, all of them: what Published adds for them.

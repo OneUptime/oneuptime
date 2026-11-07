@@ -6,6 +6,7 @@ import {
   MESSAGE_QUEUE_AWS_RPC_SYSTEMS,
   MESSAGE_QUEUE_POLLED_RECEIVE_SYSTEMS,
   MESSAGE_QUEUE_SERVICE_LIMIT,
+  MessageQueueServiceFigures,
   MessageQueueServiceSpanFigures,
   MessageQueueSpanPopulation,
   combineMessageQueueConsumerServices,
@@ -135,9 +136,10 @@ describe("the filters", () => {
   test("an AWS send names the operation alone", () => {
     const awsSend: Record<string, unknown> =
       getMessageQueueSpanPopulationFilter("awsSend", "aws_sqs");
-    const attributes: Record<string, unknown> = awsSend[
-      "attributes"
-    ] as Record<string, unknown>;
+    const attributes: Record<string, unknown> = awsSend["attributes"] as Record<
+      string,
+      unknown
+    >;
     expect(attributes["messaging.operation.type"]).toBe("");
     expect(attributes["messaging.operation"]).toBe("");
     expect((attributes["rpc.method"] as Includes).values).toContain(
@@ -155,9 +157,9 @@ describe("the filters", () => {
       "aws_sqs",
     );
     expect(kafka["kind"]).toBe(SpanKind.Consumer);
-    expect(Object.keys(kafka["attributes"] as object)).toEqual([
-      "messaging.batch.message_count",
-    ]);
+    expect(Object.keys(kafka["attributes"] as Record<string, unknown>)).toEqual(
+      ["messaging.batch.message_count"],
+    );
     expect(
       (
         (kafka["attributes"] as Record<string, unknown>)[
@@ -165,7 +167,9 @@ describe("the filters", () => {
         ] as IncludesNone
       ).values,
     ).toEqual(["0"]);
-    expect(Object.keys(sqs["attributes"] as object).sort()).toEqual([
+    expect(
+      Object.keys(sqs["attributes"] as Record<string, unknown>).sort(),
+    ).toEqual([
       "messaging.batch.message_count",
       "messaging.operation",
       "messaging.operation.type",
@@ -207,7 +211,10 @@ describe("a service's row on either side", () => {
           ["a", 13, 0, 0],
           ["b", 40, 4, 6],
         ]),
-        sends: [figures([["a", 40, 31, 50]]), emptyMessageQueueServiceSpanFigures()],
+        sends: [
+          figures([["a", 40, 31, 50]]),
+          emptyMessageQueueServiceSpanFigures(),
+        ],
       });
     expect(rows.services).toEqual([
       {
@@ -270,7 +277,10 @@ describe("a service's row on either side", () => {
   test("the cards keep the busiest ten; a limit of every service keeps them all, busiest first, ties by id", () => {
     const many: MessageQueueServiceSpanFigures = figures(
       Array.from({ length: 14 }, (_value: unknown, index: number) => {
-        return [`s${String(index).padStart(2, "0")}`, index % 3 === 0 ? 5 : index];
+        return [
+          `s${String(index).padStart(2, "0")}`,
+          index % 3 === 0 ? 5 : index,
+        ];
       }) as Array<[string, number]>,
     );
     const carded: ReturnType<typeof combineMessageQueueConsumerServices> =
@@ -284,16 +294,22 @@ describe("a service's row on either side", () => {
         limit: Number.POSITIVE_INFINITY,
       });
     expect(all.services).toHaveLength(14);
-    const calls: Array<number> = all.services.map((row) => {
-      return row.calls;
-    });
-    expect(calls).toEqual([...calls].sort((a: number, b: number) => b - a));
+    const calls: Array<number> = all.services.map(
+      (row: MessageQueueServiceFigures) => {
+        return row.calls;
+      },
+    );
+    expect(calls).toEqual(
+      [...calls].sort((a: number, b: number) => {
+        return b - a;
+      }),
+    );
     // Equal calls: by id.
     const fives: Array<string> = all.services
-      .filter((row) => {
+      .filter((row: MessageQueueServiceFigures) => {
         return row.calls === 5;
       })
-      .map((row) => {
+      .map((row: MessageQueueServiceFigures) => {
         return row.serviceId;
       });
     expect(fives).toEqual([...fives].sort());

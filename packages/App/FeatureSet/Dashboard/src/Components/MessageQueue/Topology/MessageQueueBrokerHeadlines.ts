@@ -72,7 +72,8 @@ function pick(
       return metrics.filter(
         (descriptor: MessageQueueMetricDescriptor): boolean => {
           return (
-            descriptor.signal === signal && baseTitle(descriptor.title) === title
+            descriptor.signal === signal &&
+            baseTitle(descriptor.title) === title
           );
         },
       );

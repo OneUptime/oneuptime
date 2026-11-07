@@ -21,7 +21,7 @@ import {
  * from the API's answer (Common/Types/MessageQueue/MessageQueueTopology) and
  * never from what is filtered, so searching or focusing can never change a
  * node's health. Pure - no React, no API - so every decision the map makes is
- * unit-tested (App/Tests/Dashboard/MessageQueueTopologyModel.test).
+ * unit-tested (Common/Tests/App/Dashboard/MessageQueueTopologyModel.test).
  *
  * The map reads the way messages travel, left to right: a service that
  * publishes, the queue it publishes to, the service that consumes from it,
@@ -189,8 +189,10 @@ export type MessageQueueTopologyNode =
 
 export interface MessageQueueTopologyEdge {
   id: string;
-  // Node keys: the service then the queue for a publish, the queue then the
-  // service for a consume.
+  /*
+   * Node keys: the service then the queue for a publish, the queue then the
+   * service for a consume.
+   */
   from: string;
   to: string;
   direction: MessageQueueFlowDirection;
@@ -300,7 +302,10 @@ export function getMessageQueueTopologyRateHealth(
  * has more or fewer sends than messages), else its messages.
  */
 export function getMessageQueueTopologyFlowAttempts(
-  flow: Pick<MessageQueueTopologyFlow, "messages" | "errors" | "errorRatePercent">,
+  flow: Pick<
+    MessageQueueTopologyFlow,
+    "messages" | "errors" | "errorRatePercent"
+  >,
 ): number {
   if (
     flow.errors > 0 &&
@@ -461,13 +466,15 @@ export function buildMessageQueueTopologyModel(
     .filter((flow: MessageQueueTopologyFlow): boolean => {
       return queueById.has(flow.queueId) && flow.messages > 0;
     })
-    .sort((a: MessageQueueTopologyFlow, b: MessageQueueTopologyFlow): number => {
-      return (
-        sortedText(a.queueId, b.queueId) ||
-        sortedText(a.direction, b.direction) ||
-        sortedText(a.serviceId, b.serviceId)
-      );
-    });
+    .sort(
+      (a: MessageQueueTopologyFlow, b: MessageQueueTopologyFlow): number => {
+        return (
+          sortedText(a.queueId, b.queueId) ||
+          sortedText(a.direction, b.direction) ||
+          sortedText(a.serviceId, b.serviceId)
+        );
+      },
+    );
 
   const seenEdges: Set<string> = new Set<string>();
   for (const flow of flows) {
@@ -556,7 +563,8 @@ export function buildMessageQueueTopologyModel(
       status: status,
       health: health,
       needsAttention: status === "critical" || status === "degraded",
-      color: groupColor.get(groupKey) || MESSAGE_QUEUE_TOPOLOGY_BROKER_COLORS[0]!,
+      color:
+        groupColor.get(groupKey) || MESSAGE_QUEUE_TOPOLOGY_BROKER_COLORS[0]!,
       systemLabel: systemLabel,
       brokerLabel: brokerLabel,
       groupKey: groupKey,
@@ -576,11 +584,13 @@ export function buildMessageQueueTopologyModel(
   }
 
   const serviceIds: Array<string> = Array.from(
-    new Set<string>([...producersOf.values(), ...consumersOf.values()].flatMap(
-      (set: Set<string>): Array<string> => {
-        return Array.from(set);
-      },
-    )),
+    new Set<string>(
+      [...producersOf.values(), ...consumersOf.values()].flatMap(
+        (set: Set<string>): Array<string> => {
+          return Array.from(set);
+        },
+      ),
+    ),
   );
   const serviceNodes: Array<MessageQueueTopologyServiceNode> = serviceIds.map(
     (id: string): MessageQueueTopologyServiceNode => {
@@ -592,9 +602,11 @@ export function buildMessageQueueTopologyModel(
       const published: MessageQueueTopologyTraffic = servicePublished.get(
         id,
       ) || { messages: 0, errors: 0, attempts: 0 };
-      const consumed: MessageQueueTopologyTraffic = serviceConsumed.get(
-        id,
-      ) || { messages: 0, errors: 0, attempts: 0 };
+      const consumed: MessageQueueTopologyTraffic = serviceConsumed.get(id) || {
+        messages: 0,
+        errors: 0,
+        attempts: 0,
+      };
       const both: MessageQueueTopologyTraffic = {
         messages: published.messages + consumed.messages,
         errors: published.errors + consumed.errors,
@@ -1212,7 +1224,10 @@ export function getMessageQueueTopologyTableRows(
   }
 
   rows.sort(
-    (a: MessageQueueTopologyTableRow, b: MessageQueueTopologyTableRow): number => {
+    (
+      a: MessageQueueTopologyTableRow,
+      b: MessageQueueTopologyTableRow,
+    ): number => {
       return (
         b.node.queue.published +
           b.node.queue.consumed -

@@ -410,7 +410,10 @@ const MessageQueueTopologyMap: FunctionComponent<ComponentProps> = (
           nodesConnectable={false}
           elementsSelectable={true}
           proOptions={{ hideAttribution: true }}
-          onMoveStart={(_event: MouseEvent | TouchEvent, viewport: Viewport) => {
+          onMoveStart={(
+            _event: MouseEvent | TouchEvent,
+            viewport: Viewport,
+          ) => {
             gestureStart.current = viewport;
           }}
           onMoveEnd={(_event: MouseEvent | TouchEvent, viewport: Viewport) => {
@@ -486,7 +489,9 @@ const MessageQueueTopologyMap: FunctionComponent<ComponentProps> = (
         <span className="inline-flex items-center gap-1.5">
           <span
             className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: MESSAGE_QUEUE_TOPOLOGY_EDGE_COLORS.healthy }}
+            style={{
+              backgroundColor: MESSAGE_QUEUE_TOPOLOGY_EDGE_COLORS.healthy,
+            }}
             aria-hidden={true}
           />
           {translator.translateText("Healthy")}

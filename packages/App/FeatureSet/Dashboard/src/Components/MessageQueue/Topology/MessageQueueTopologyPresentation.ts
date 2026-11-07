@@ -34,7 +34,7 @@ import {
  * language: a node's numbers and footer, a line's label, a status in words
  * and what to do about a queue seen from one side only. Pure, with the
  * reader's translator handed in (English without one), so every sentence is
- * unit-tested (App/Tests/Dashboard/MessageQueueTopologyPresentation.test).
+ * unit-tested (Common/Tests/App/Dashboard/MessageQueueTopologyPresentation.test).
  */
 
 // What the lines are labelled with.
@@ -84,9 +84,7 @@ function errorStat(
   const rate: number | null = attempts > 0 ? errors / attempts : null;
   return {
     label: translator.translateText("errors") || "errors",
-    value: formatMessageQueueTopologyPercent(
-      rate === null ? null : rate * 100,
-    ),
+    value: formatMessageQueueTopologyPercent(rate === null ? null : rate * 100),
     color: getMessageQueueTopologyErrorColor(rate),
   };
 }

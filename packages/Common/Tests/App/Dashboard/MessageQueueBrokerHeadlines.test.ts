@@ -213,7 +213,11 @@ describe("where a read can answer", () => {
   test("not a queue whose system has no such metric", () => {
     expect(
       isMessageQueueHeadlineReadable(
-        queue({ messagingSystem: "eventhubs", queueIdentifier: "eventhubs|ns|orders", brokerScope: "ns" }),
+        queue({
+          messagingSystem: "eventhubs",
+          queueIdentifier: "eventhubs|ns|orders",
+          brokerScope: "ns",
+        }),
         START,
       ),
     ).toBe(false);
@@ -231,7 +235,11 @@ describe("where a read can answer", () => {
     expect(isMessageQueueHeadlineReadable(serviceBus, START)).toBe(true);
     expect(
       isMessageQueueHeadlineReadable(
-        { ...serviceBus, brokerScope: "", queueIdentifier: "servicebus||orders" },
+        {
+          ...serviceBus,
+          brokerScope: "",
+          queueIdentifier: "servicebus||orders",
+        },
         START,
       ),
     ).toBe(false);
@@ -239,13 +247,14 @@ describe("where a read can answer", () => {
 });
 
 describe("reading a queue's numbers", () => {
-  function reader(
-    answers: Record<string, Array<MessageQueueTimePoint>>,
-  ): { read: MessageQueueSeriesReader; calls: Array<{ metric: string; keys: ReadonlyArray<string> }> } {
+  function reader(answers: Record<string, Array<MessageQueueTimePoint>>): {
+    read: MessageQueueSeriesReader;
+    calls: Array<{ metric: string; keys: ReadonlyArray<string> }>;
+  } {
     const calls: Array<{ metric: string; keys: ReadonlyArray<string> }> = [];
     return {
       calls: calls,
-      read: async (data) => {
+      read: async (data: Parameters<MessageQueueSeriesReader>[0]) => {
         calls.push({ metric: data.descriptor.metricName, keys: data.keys });
         return answers[data.descriptor.metricName] || [];
       },
@@ -304,7 +313,11 @@ describe("reading a queue's numbers", () => {
     expect(headline.waiting?.descriptor.metricName).toBe(
       "approximatenumberofmessagesvisible",
     );
-    expect(calls.map((call) => call.metric)).toEqual([
+    expect(
+      calls.map((call: { metric: string }) => {
+        return call.metric;
+      }),
+    ).toEqual([
       "amazonaws.com/aws/sqs/approximatenumberofmessagesvisible",
       "approximatenumberofmessagesvisible",
     ]);
@@ -375,9 +388,11 @@ describe("a few at a time", () => {
       },
     );
     expect(most).toBe(3);
-    expect(done.sort((a: number, b: number) => a - b)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-    ]);
+    expect(
+      done.sort((a: number, b: number) => {
+        return a - b;
+      }),
+    ).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   });
 
   test("one failure leaves the others; a cancel starts nothing more", async () => {

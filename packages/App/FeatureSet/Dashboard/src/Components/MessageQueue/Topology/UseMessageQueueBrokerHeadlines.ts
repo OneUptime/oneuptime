@@ -1,5 +1,5 @@
 import ObjectID from "Common/Types/ObjectID";
-import { useEffect, useRef, useState } from "react";
+import { MutableRefObject, useEffect, useRef, useState } from "react";
 import {
   EMPTY_MESSAGE_QUEUE_BROKER_HEADLINE,
   MESSAGE_QUEUE_HEADLINE_CONCURRENCY,
@@ -27,14 +27,14 @@ export default function useMessageQueueBrokerHeadlines(data: {
   queues: ReadonlyArray<MessageQueueHeadlineQueue>;
   window: { start: Date; end: Date } | null;
 }): Map<string, MessageQueueHeadlineEntry> {
-  const [entries, setEntries] = useState<Map<string, MessageQueueHeadlineEntry>>(
-    new Map<string, MessageQueueHeadlineEntry>(),
-  );
+  const [entries, setEntries] = useState<
+    Map<string, MessageQueueHeadlineEntry>
+  >(new Map<string, MessageQueueHeadlineEntry>());
   // What is read or being read for the current range, by queue id.
-  const requested: React.MutableRefObject<Set<string>> = useRef<Set<string>>(
+  const requested: MutableRefObject<Set<string>> = useRef<Set<string>>(
     new Set<string>(),
   );
-  const entriesRange: React.MutableRefObject<string> = useRef<string>("");
+  const entriesRange: MutableRefObject<string> = useRef<string>("");
 
   const rangeKey: string = data.window
     ? `${data.window.start.getTime()}-${data.window.end.getTime()}`

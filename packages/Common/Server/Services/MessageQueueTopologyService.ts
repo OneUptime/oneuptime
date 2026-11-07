@@ -63,7 +63,9 @@ export class MessageQueueTopologyService {
    * The live queues the caller may read, oldest first, at most
    * MESSAGE_QUEUE_TOPOLOGY_MAX_QUEUES of them, and whether there were more.
    */
-  public static async readQueues(request: MessageQueueTopologyRequest): Promise<{
+  public static async readQueues(
+    request: MessageQueueTopologyRequest,
+  ): Promise<{
     queues: Array<MessageQueueTopologyQueueRow>;
     truncated: boolean;
   }> {

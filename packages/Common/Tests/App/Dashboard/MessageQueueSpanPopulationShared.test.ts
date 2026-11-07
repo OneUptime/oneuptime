@@ -98,7 +98,9 @@ describe("the Overview and the topology read one definition", () => {
     expect(read).toContain(
       "getMessageQueueSpanPopulationFilter(population, system)",
     );
-    expect(read).toContain("isMessageQueueSpanPopulationRead(population, system)");
+    expect(read).toContain(
+      "isMessageQueueSpanPopulationRead(population, system)",
+    );
     expect(read).toContain("combineMessageQueueProducerServices({");
     expect(read).toContain("combineMessageQueueConsumerServices({");
     // No filter of its own: every condition is compiled by the query builder.
@@ -131,19 +133,25 @@ describe("the Overview and the topology read one definition", () => {
     ]) {
       expect(overview).toMatch(use);
     }
-    expect(read).toContain("number * MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND");
+    expect(read).toContain(
+      "number * MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND",
+    );
+    const divides: RegExp = /\/\s*(1_000_000|1000000|1e6|NANOSECONDS)/;
     for (const [name, text] of [
       ["the Overview", overview],
       ["the topology", read],
     ] as Array<[string, string]>) {
-      expect({ name, divides: /\/\s*(1_000_000|1000000|1e6|NANOSECONDS)/.test(text) }).toEqual({
+      expect({
+        name,
+        divides: divides.test(text),
+      }).toEqual({
         name,
         divides: false,
       });
     }
     // The two differ in the last bit for values an interpolated p95 takes.
-    expect(22807691318 * Shared.MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND).not.toBe(
-      22807691318 / 1_000_000,
-    );
+    expect(
+      22807691318 * Shared.MESSAGE_QUEUE_MILLISECONDS_PER_NANOSECOND,
+    ).not.toBe(22807691318 / 1_000_000);
   });
 });

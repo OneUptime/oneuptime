@@ -83,7 +83,11 @@ jest.mock("../../../UI/Utils/Navigation", () => {
       },
       navigate: () => {},
       getCurrentRoute: () => {
-        return { toString: () => "/" };
+        return {
+          toString: () => {
+            return "/";
+          },
+        };
       },
     },
   };
@@ -117,7 +121,11 @@ jest.mock(
       __esModule: true,
       default: (props: FlowViewportGuardProps) => {
         React.useEffect(() => {
-          props.onInstance({ fitView: () => true } as never);
+          props.onInstance({
+            fitView: () => {
+              return true;
+            },
+          } as never);
         }, []);
         return <></>;
       },
@@ -279,15 +287,22 @@ function answer(
   };
 }
 
-// checkout -> orders -> fulfilment -> shipments -> notifier; billing also
-// consumes orders; audit (RabbitMQ) is fed by checkout and fails a lot;
-// archive has no traced message.
+/*
+ * checkout -> orders -> fulfilment -> shipments -> notifier; billing also
+ * consumes orders; audit (RabbitMQ) is fed by checkout and fails a lot;
+ * archive has no traced message.
+ */
 function pipeline(): MessageQueueTopologyResponse {
   return answer(
     [
       queue("orders"),
       queue("shipments"),
-      queue("audit", { messagingSystem: "rabbitmq", queueIdentifier: "rabbitmq||audit", errors: 720, consumed: 0 }),
+      queue("audit", {
+        messagingSystem: "rabbitmq",
+        queueIdentifier: "rabbitmq||audit",
+        errors: 720,
+        consumed: 0,
+      }),
       queue("archive", { spans: 0, published: 0, consumed: 0 }),
     ],
     [
@@ -375,7 +390,9 @@ describe("what a person sees first", () => {
       "message-queue-topology-unconnected",
     );
     expect(
-      within(unconnected).getAllByTestId("message-queue-topology-unconnected-item"),
+      within(unconnected).getAllByTestId(
+        "message-queue-topology-unconnected-item",
+      ),
     ).toHaveLength(1);
     expect(unconnected).toHaveTextContent("archive");
     expect(unconnected).toHaveTextContent("No traced messages");
@@ -420,7 +437,8 @@ describe("what a person sees first", () => {
           status: "ready",
           headline: {
             waiting: {
-              descriptor: getMessageQueueHeadlineDescriptors("kafka").waiting[0]!,
+              descriptor:
+                getMessageQueueHeadlineDescriptors("kafka").waiting[0]!,
               value: 4200,
             },
             deadLetter: null,
@@ -553,9 +571,7 @@ describe("following one queue's messages", () => {
     );
     expect(
       screen.getByTestId("message-queue-topology-focus"),
-    ).toHaveTextContent(
-      "Where messages through shipments come from and go",
-    );
+    ).toHaveTextContent("Where messages through shipments come from and go");
     expect(new URLSearchParams(window.location.search).get("focus")).toBe(
       "queue:shipments",
     );
@@ -598,13 +614,17 @@ describe("following one queue's messages", () => {
     );
     expect(open.getAttribute("href")).toContain("/queues/topology");
     expect(open.getAttribute("href")).toContain("focus=queue%3Aorders");
-    expect(screen.queryByTestId("message-queue-topology-back-to-anchor")).toBeNull();
+    expect(
+      screen.queryByTestId("message-queue-topology-back-to-anchor"),
+    ).toBeNull();
     // The anchor's focus is not written to the URL: it is the tab's own.
     expect(new URLSearchParams(window.location.search).get("focus")).toBeNull();
 
     fireEvent.click(node("service:notifier"));
     fireEvent.click(screen.getByTestId("message-queue-topology-drawer-focus"));
-    fireEvent.click(screen.getByTestId("message-queue-topology-back-to-anchor"));
+    fireEvent.click(
+      screen.getByTestId("message-queue-topology-back-to-anchor"),
+    );
     expect(
       screen.getByTestId("message-queue-topology-focus"),
     ).toHaveTextContent("Where messages through orders come from and go");
@@ -721,8 +741,22 @@ describe("a project too large to draw", () => {
           consumed: 100 + index,
         }),
       );
-      flows.push(flow(`topic-${String(index).padStart(2, "0")}`, `producer-${index % 20}`, "publish", 100 + index));
-      flows.push(flow(`topic-${String(index).padStart(2, "0")}`, `consumer-${index % 10}`, "consume", 100 + index));
+      flows.push(
+        flow(
+          `topic-${String(index).padStart(2, "0")}`,
+          `producer-${index % 20}`,
+          "publish",
+          100 + index,
+        ),
+      );
+      flows.push(
+        flow(
+          `topic-${String(index).padStart(2, "0")}`,
+          `consumer-${index % 10}`,
+          "consume",
+          100 + index,
+        ),
+      );
     }
     return answer(queues, flows);
   }
@@ -730,7 +764,9 @@ describe("a project too large to draw", () => {
   test("opens as a table of queues, busiest first, a page at a time, and says why", () => {
     show(large());
     expect(screen.queryByTestId("rendered-graph")).toBeNull();
-    expect(screen.getAllByTestId("message-queue-topology-table-row")).toHaveLength(40);
+    expect(
+      screen.getAllByTestId("message-queue-topology-table-row"),
+    ).toHaveLength(40);
     expect(
       screen.getAllByTestId("message-queue-topology-table-row")[0],
     ).toHaveTextContent("topic-44");
@@ -738,7 +774,9 @@ describe("a project too large to draw", () => {
       screen.getByText(/too many queues and services to draw at once/),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByText("Next"));
-    expect(screen.getAllByTestId("message-queue-topology-table-row")).toHaveLength(5);
+    expect(
+      screen.getAllByTestId("message-queue-topology-table-row"),
+    ).toHaveLength(5);
   });
 
   test("Show its flow on a row draws a readable map of that queue's part", () => {
@@ -747,9 +785,11 @@ describe("a project too large to draw", () => {
       screen.getAllByTestId("message-queue-topology-show-on-map")[0]!,
     );
     expect(drawnNodes()).toEqual(
-      ["consumer-4", "producer-4", "topic-44"].map((name: string) => {
-        return name.startsWith("topic") ? `queue:${name}` : `service:${name}`;
-      }).sort(),
+      ["consumer-4", "producer-4", "topic-44"]
+        .map((name: string) => {
+          return name.startsWith("topic") ? `queue:${name}` : `service:${name}`;
+        })
+        .sort(),
     );
   });
 });
@@ -762,7 +802,9 @@ describe("when there is nothing to draw", () => {
     );
     expect(empty).toHaveTextContent("No queues yet");
     expect(empty).toHaveTextContent("messaging.destination.name");
-    expect(screen.getByText("How to instrument applications →")).toBeInTheDocument();
+    expect(
+      screen.getByText("How to instrument applications →"),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId("message-queue-topology-search")).toBeNull();
   });
 

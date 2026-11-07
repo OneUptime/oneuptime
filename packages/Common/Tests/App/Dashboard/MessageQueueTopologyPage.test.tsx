@@ -69,7 +69,8 @@ jest.mock(
         mockExplorer(props);
         return (
           <div data-testid="explorer">
-            {props.data.queues.length} queues · anchor {props.anchorQueueId || "none"}
+            {props.data.queues.length} queues · anchor{" "}
+            {props.anchorQueueId || "none"}
           </div>
         );
       },
@@ -77,26 +78,29 @@ jest.mock(
   },
 );
 
-jest.mock("../../../UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker", () => {
-  return {
-    __esModule: true,
-    default: (props: { onChange: (value: unknown) => void }) => {
-      const { default: Ranges } = jest.requireActual(
-        "../../../Types/Time/TimeRange",
-      ) as { default: { PAST_ONE_DAY: string } };
-      return (
-        <button
-          data-testid="pick-range"
-          onClick={() => {
-            props.onChange({ range: Ranges.PAST_ONE_DAY });
-          }}
-        >
-          pick
-        </button>
-      );
-    },
-  };
-});
+jest.mock(
+  "../../../UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: { onChange: (value: unknown) => void }) => {
+        const { default: Ranges } = jest.requireActual(
+          "../../../Types/Time/TimeRange",
+        ) as { default: { PAST_ONE_DAY: string } };
+        return (
+          <button
+            data-testid="pick-range"
+            onClick={() => {
+              props.onChange({ range: Ranges.PAST_ONE_DAY });
+            }}
+          >
+            pick
+          </button>
+        );
+      },
+    };
+  },
+);
 
 jest.mock("../../../UI/Utils/Navigation", () => {
   return {
@@ -173,9 +177,9 @@ describe("the Queues topology page", () => {
     const pending: ReturnType<typeof deferred> = deferred();
     mockFetch.mockReturnValue(pending.promise);
     show(<MessageQueueTopologyPage />);
-    expect(screen.getByTestId("message-queue-topology-loading")).toHaveTextContent(
-      "Loading the message flow…",
-    );
+    expect(
+      screen.getByTestId("message-queue-topology-loading"),
+    ).toHaveTextContent("Loading the message flow…");
     const window: { start: Date; end: Date } = mockFetch.mock.calls[0]![0] as {
       start: Date;
       end: Date;
@@ -189,11 +193,13 @@ describe("the Queues topology page", () => {
     await act(async () => {
       pending.resolve(ANSWER);
     });
-    expect(screen.getByTestId("explorer")).toHaveTextContent("2 queues · anchor none");
-    const props: { window: { start: Date; end: Date } } =
-      mockExplorer.mock.calls[mockExplorer.mock.calls.length - 1]![0] as {
-        window: { start: Date; end: Date };
-      };
+    expect(screen.getByTestId("explorer")).toHaveTextContent(
+      "2 queues · anchor none",
+    );
+    const props: { window: { start: Date; end: Date } } = mockExplorer.mock
+      .calls[mockExplorer.mock.calls.length - 1]![0] as {
+      window: { start: Date; end: Date };
+    };
     expect(props.window).toEqual(window);
   });
 
@@ -201,11 +207,13 @@ describe("the Queues topology page", () => {
     mockFetch.mockRejectedValueOnce(new Error("ClickHouse is away"));
     show(<MessageQueueTopologyPage />);
     await waitFor(() => {
-      expect(screen.getByTestId("message-queue-topology-error")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("message-queue-topology-error"),
+      ).toBeInTheDocument();
     });
-    expect(screen.getByTestId("message-queue-topology-error")).toHaveTextContent(
-      "ClickHouse is away",
-    );
+    expect(
+      screen.getByTestId("message-queue-topology-error"),
+    ).toHaveTextContent("ClickHouse is away");
     mockFetch.mockResolvedValueOnce(ANSWER);
     await act(async () => {
       fireEvent.click(screen.getByText("Try again"));

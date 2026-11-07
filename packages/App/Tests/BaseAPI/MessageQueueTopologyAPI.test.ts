@@ -252,9 +252,9 @@ describe("POST /telemetry/message-queues/topology", () => {
     await call({});
     const read: MessageQueueTopologyRequest = request();
     expect(read.window.endTime.toISOString()).toBe("2026-11-07T12:00:00.000Z");
-    expect(read.window.endTime.getTime() - read.window.startTime.getTime()).toBe(
-      60 * 60 * 1000,
-    );
+    expect(
+      read.window.endTime.getTime() - read.window.startTime.getTime(),
+    ).toBe(60 * 60 * 1000);
   });
 
   test("a project-wide reader's read names no service", async () => {

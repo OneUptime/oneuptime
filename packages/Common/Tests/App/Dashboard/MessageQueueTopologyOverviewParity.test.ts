@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { MessageQueueSpanStore } from "./MessageQueueSpanStore";
 
@@ -266,7 +273,9 @@ async function expectTopologyToBeTheOverviews(): Promise<number> {
       consumed: overview.metrics.consumed,
     });
 
-    const lines: (direction: "publish" | "consume") => Array<MessageQueueTopologyFlow> = (
+    const lines: (
+      direction: "publish" | "consume",
+    ) => Array<MessageQueueTopologyFlow> = (
       direction: "publish" | "consume",
     ): Array<MessageQueueTopologyFlow> => {
       return map.flows.filter((flow: MessageQueueTopologyFlow): boolean => {
@@ -327,11 +336,53 @@ describe("the topology says what each queue's Overview says", () => {
       "messaging.operation.type": "process",
       "messaging.consumer.group.name": "fulfilment",
     };
-    addSpans({ kind: SpanKind.Producer, attributes: topic, service: SERVICES[0]!, durationMs: 4 }, 120);
-    addSpans({ kind: SpanKind.Producer, attributes: topic, service: SERVICES[0]!, durationMs: 9, failed: true }, 3);
-    addSpans({ kind: SpanKind.Producer, attributes: topic, service: SERVICES[1]!, durationMs: 2 }, 40);
-    addSpans({ kind: SpanKind.Consumer, attributes: consumed, service: SERVICES[2]!, durationMs: 30 }, 150);
-    addSpans({ kind: SpanKind.Consumer, attributes: consumed, service: SERVICES[2]!, durationMs: 80, failed: true }, 10);
+    addSpans(
+      {
+        kind: SpanKind.Producer,
+        attributes: topic,
+        service: SERVICES[0]!,
+        durationMs: 4,
+      },
+      120,
+    );
+    addSpans(
+      {
+        kind: SpanKind.Producer,
+        attributes: topic,
+        service: SERVICES[0]!,
+        durationMs: 9,
+        failed: true,
+      },
+      3,
+    );
+    addSpans(
+      {
+        kind: SpanKind.Producer,
+        attributes: topic,
+        service: SERVICES[1]!,
+        durationMs: 2,
+      },
+      40,
+    );
+    addSpans(
+      {
+        kind: SpanKind.Consumer,
+        attributes: consumed,
+        service: SERVICES[2]!,
+        durationMs: 30,
+      },
+      150,
+    );
+    addSpans(
+      {
+        kind: SpanKind.Consumer,
+        attributes: consumed,
+        service: SERVICES[2]!,
+        durationMs: 80,
+        failed: true,
+      },
+      10,
+    );
 
     expect(await expectTopologyToBeTheOverviews()).toBe(1);
   });
@@ -352,13 +403,31 @@ describe("the topology says what each queue's Overview says", () => {
         "messaging.batch.message_count": messages,
       };
     };
-    addSpans({ kind: SpanKind.Consumer, attributes: receive(0), service: SERVICES[2]!, durationMs: 20000 }, 90);
-    addSpans({ kind: SpanKind.Consumer, attributes: receive(4), service: SERVICES[2]!, durationMs: 3000 }, 30);
+    addSpans(
+      {
+        kind: SpanKind.Consumer,
+        attributes: receive(0),
+        service: SERVICES[2]!,
+        durationMs: 20000,
+      },
+      90,
+    );
+    addSpans(
+      {
+        kind: SpanKind.Consumer,
+        attributes: receive(4),
+        service: SERVICES[2]!,
+        durationMs: 3000,
+      },
+      30,
+    );
     // boto3sqs: its receive spans, and a process span per message.
     addSpans(
       {
         kind: SpanKind.Consumer,
-        attributes: fixture("Python boto3sqs receive (queue URL in messaging.url)").attributes,
+        attributes: fixture(
+          "Python boto3sqs receive (queue URL in messaging.url)",
+        ).attributes,
         service: SERVICES[3]!,
         durationMs: 5000,
       },
@@ -371,7 +440,8 @@ describe("the topology says what each queue's Overview says", () => {
           "messaging.system": "aws.sqs",
           "messaging.destination": "orders",
           "messaging.destination_kind": "queue",
-          "messaging.url": "https://sqs.eu-west-1.amazonaws.com/123456789012/orders",
+          "messaging.url":
+            "https://sqs.eu-west-1.amazonaws.com/123456789012/orders",
           "messaging.operation": "process",
         },
         service: SERVICES[3]!,
@@ -458,12 +528,54 @@ describe("the topology says what each queue's Overview says", () => {
       "server.address": "orders-prod.servicebus.windows.net",
       "messaging.operation": "process",
     };
-    addSpans({ kind: SpanKind.Producer, attributes: marker, service: SERVICES[0]!, durationMs: 0 }, 13);
-    addSpans({ kind: SpanKind.Client, attributes: send, service: SERVICES[0]!, durationMs: 18 }, 9);
+    addSpans(
+      {
+        kind: SpanKind.Producer,
+        attributes: marker,
+        service: SERVICES[0]!,
+        durationMs: 0,
+      },
+      13,
+    );
+    addSpans(
+      {
+        kind: SpanKind.Client,
+        attributes: send,
+        service: SERVICES[0]!,
+        durationMs: 18,
+      },
+      9,
+    );
     // More failed sends than messages: the card's rate is a share of sends.
-    addSpans({ kind: SpanKind.Client, attributes: send, service: SERVICES[0]!, durationMs: 50, failed: true }, 31);
-    addSpans({ kind: SpanKind.Consumer, attributes: process, service: SERVICES[1]!, durationMs: 45 }, 12);
-    addSpans({ kind: SpanKind.Client, attributes: settle, service: SERVICES[1]!, durationMs: 3, failed: true }, 2);
+    addSpans(
+      {
+        kind: SpanKind.Client,
+        attributes: send,
+        service: SERVICES[0]!,
+        durationMs: 50,
+        failed: true,
+      },
+      31,
+    );
+    addSpans(
+      {
+        kind: SpanKind.Consumer,
+        attributes: process,
+        service: SERVICES[1]!,
+        durationMs: 45,
+      },
+      12,
+    );
+    addSpans(
+      {
+        kind: SpanKind.Client,
+        attributes: settle,
+        service: SERVICES[1]!,
+        durationMs: 3,
+        failed: true,
+      },
+      2,
+    );
 
     expect(await expectTopologyToBeTheOverviews()).toBe(1);
   });
@@ -494,12 +606,44 @@ describe("the topology says what each queue's Overview says", () => {
       "messaging.operation.type": "receive",
       "messaging.batch.message_count": 2,
     };
-    addSpans({ kind: SpanKind.Producer, attributes: kafka, service: SERVICES[0]!, durationMs: 3 }, 50);
-    addSpans({ kind: SpanKind.Consumer, attributes: kafkaConsume, service: SERVICES[1]!, durationMs: 20 }, 48);
+    addSpans(
+      {
+        kind: SpanKind.Producer,
+        attributes: kafka,
+        service: SERVICES[0]!,
+        durationMs: 3,
+      },
+      50,
+    );
+    addSpans(
+      {
+        kind: SpanKind.Consumer,
+        attributes: kafkaConsume,
+        service: SERVICES[1]!,
+        durationMs: 20,
+      },
+      48,
+    );
     // A RabbitMQ receive is a delivery (pika): consumed, not a poll.
-    addSpans({ kind: SpanKind.Consumer, attributes: rabbit, service: SERVICES[1]!, durationMs: 11 }, 33);
+    addSpans(
+      {
+        kind: SpanKind.Consumer,
+        attributes: rabbit,
+        service: SERVICES[1]!,
+        durationMs: 11,
+      },
+      33,
+    );
     // The same service consumes SQS receives: polls there.
-    addSpans({ kind: SpanKind.Consumer, attributes: sqsReceive, service: SERVICES[1]!, durationMs: 2000 }, 7);
+    addSpans(
+      {
+        kind: SpanKind.Consumer,
+        attributes: sqsReceive,
+        service: SERVICES[1]!,
+        durationMs: 2000,
+      },
+      7,
+    );
 
     expect(await expectTopologyToBeTheOverviews()).toBe(3);
   });

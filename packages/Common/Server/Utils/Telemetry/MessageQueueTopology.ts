@@ -612,8 +612,10 @@ export interface MessageQueueTopologyAssemblyInput {
 export function assembleMessageQueueTopology(
   input: MessageQueueTopologyAssemblyInput,
 ): MessageQueueTopologyResponse {
-  const pairsByQueue: Map<string, Array<MessageQueueTopologyPairRow>> =
-    new Map<string, Array<MessageQueueTopologyPairRow>>();
+  const pairsByQueue: Map<string, Array<MessageQueueTopologyPairRow>> = new Map<
+    string,
+    Array<MessageQueueTopologyPairRow>
+  >();
   for (const pair of input.pairs) {
     const queueId: string | undefined = input.keys.queueIdByKey.get(
       pair.queueKey,

@@ -6,6 +6,7 @@ import {
   MESSAGE_QUEUE_TOPOLOGY_MAX_RANGE_MS,
   MessageQueueTopologyFlow,
   MessageQueueTopologyResponse,
+  MessageQueueTopologyService,
   getMessageQueueTopologyFlowKey,
   readMessageQueueTopologyResponse,
 } from "../../../Types/MessageQueue/MessageQueueTopology";
@@ -48,9 +49,7 @@ const FLOW: Record<string, unknown> = {
   p95DurationMs: 4.5,
 };
 
-function answer(
-  overrides?: Record<string, unknown>,
-): Record<string, unknown> {
+function answer(overrides?: Record<string, unknown>): Record<string, unknown> {
   return {
     startTime: "2026-11-07T11:00:00.000Z",
     endTime: "2026-11-07T12:00:00.000Z",
@@ -95,9 +94,8 @@ describe("the contract", () => {
 
 describe("reading an answer", () => {
   test("a whole answer reads as it was sent", () => {
-    const read: MessageQueueTopologyResponse = readMessageQueueTopologyResponse(
-      answer(),
-    );
+    const read: MessageQueueTopologyResponse =
+      readMessageQueueTopologyResponse(answer());
     expect(read).toEqual({
       startTime: "2026-11-07T11:00:00.000Z",
       endTime: "2026-11-07T12:00:00.000Z",
@@ -260,7 +258,8 @@ describe("reading an answer", () => {
       ).truncation,
     ).toEqual({ queues: false, flows: true });
     expect(
-      readMessageQueueTopologyResponse(answer({ truncation: "all" })).truncation,
+      readMessageQueueTopologyResponse(answer({ truncation: "all" }))
+        .truncation,
     ).toEqual({ queues: false, flows: false });
   });
 
@@ -350,7 +349,7 @@ describe("reading an answer", () => {
         expect(["publish", "consume"]).toContain(flow.direction);
         expect(flow.messages).toBeGreaterThan(0);
         expect(
-          read.services.some((service) => {
+          read.services.some((service: MessageQueueTopologyService) => {
             return service.id === flow.serviceId;
           }),
         ).toBe(true);
