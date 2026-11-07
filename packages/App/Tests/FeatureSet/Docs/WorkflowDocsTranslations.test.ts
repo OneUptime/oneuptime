@@ -189,8 +189,9 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Message",
     "Incident ID",
     "Alert ID",
-    // Page As's choice that is a Dashboard label too: the Builder names it in English.
+    // Page As's choices, Dashboard labels too: the Builder names them in English.
     "Responders",
+    "Observers",
     "Severity",
     "Summary",
     // The record steps.

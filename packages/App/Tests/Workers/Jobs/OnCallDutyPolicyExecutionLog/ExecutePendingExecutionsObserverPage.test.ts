@@ -266,7 +266,8 @@ describe("an observer's page about a record its responders acknowledged", () => 
       about: "incident",
       isObserverPage: true,
     });
-    log.onCallDutyPolicyId = undefined;
+    // A direct page has no policy.
+    delete log.onCallDutyPolicyId;
     log.triggeredByWorkflowId = WORKFLOW;
     executionLogService.findAllBy.mockResolvedValue([log]);
 
