@@ -559,7 +559,8 @@ describe("charted as it is", () => {
 describe("whatever an old snapshot and its monitor hold (seeded)", () => {
   test("each narrowed query reads its own filters and what the monitor adds; nothing handed in changes", () => {
     const random: SeededRandom = seededRandom(6265);
-    const types: Array<MonitorType> = MonitorStepMetricQueries.getMonitorTypes();
+    const types: Array<MonitorType> =
+      MonitorStepMetricQueries.getMonitorTypes();
 
     for (let round: number = 0; round < 300; round++) {
       const monitorType: MonitorType = types[random(types.length)]!;

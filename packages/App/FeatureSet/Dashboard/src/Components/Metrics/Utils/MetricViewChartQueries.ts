@@ -33,22 +33,28 @@ type Attributes = Dictionary<unknown>;
 // A query's attribute filters, or none when they are not a map.
 const getAttributes: (
   queryConfig: MetricQueryConfigData | undefined,
-) => Attributes = (queryConfig: MetricQueryConfigData | undefined): Attributes => {
+) => Attributes = (
+  queryConfig: MetricQueryConfigData | undefined,
+): Attributes => {
   const attributes: unknown =
     queryConfig?.metricQueryData?.filterData?.attributes;
 
-  if (!attributes || typeof attributes !== "object" || Array.isArray(attributes)) {
+  if (
+    !attributes ||
+    typeof attributes !== "object" ||
+    Array.isArray(attributes)
+  ) {
     return {};
   }
 
   return attributes as Attributes;
 };
 
-const hasOwnKey: (object: object, key: string) => boolean = (
-  object: object,
+const hasOwnKey: (map: Record<string, unknown>, key: string) => boolean = (
+  map: Record<string, unknown>,
   key: string,
 ): boolean => {
-  return Object.prototype.hasOwnProperty.call(object, key);
+  return Object.prototype.hasOwnProperty.call(map, key);
 };
 
 /*
@@ -107,7 +113,9 @@ const toEditorQueryConfig: (input: {
    */
   const editorValue: unknown = editorFilterData["attributes"];
   const editorHadMap: boolean = Boolean(
-    editorValue && typeof editorValue === "object" && !Array.isArray(editorValue),
+    editorValue &&
+      typeof editorValue === "object" &&
+      !Array.isArray(editorValue),
   );
 
   if (Object.keys(attributes).length > 0 || editorHadMap) {
@@ -194,7 +202,10 @@ export default class MetricViewChartQueries {
     }
 
     return input.changedQueryConfigs.map(
-      (changed: MetricQueryConfigData, index: number): MetricQueryConfigData => {
+      (
+        changed: MetricQueryConfigData,
+        index: number,
+      ): MetricQueryConfigData => {
         const editor: MetricQueryConfigData | undefined =
           input.editorQueryConfigs[index];
         const charted: MetricQueryConfigData | undefined =

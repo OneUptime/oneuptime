@@ -660,10 +660,12 @@ describe("the chart follows the resource filters as they are typed", () => {
     render(
       <StatefulForm
         formCase={proxmox}
-        initial={{
-          ...proxmox.settings,
-          resourceFilters: {},
-        } as unknown as Settings}
+        initial={
+          {
+            ...proxmox.settings,
+            resourceFilters: {},
+          } as unknown as Settings
+        }
         onChange={onChange}
       />,
     );
@@ -703,11 +705,13 @@ describe("the chart follows the resource filters as they are typed", () => {
     render(
       <StatefulForm
         formCase={kubernetes}
-        initial={{
-          ...kubernetes.settings,
-          resourceScope: KubernetesResourceScope.Namespace,
-          resourceFilters: {},
-        } as unknown as Settings}
+        initial={
+          {
+            ...kubernetes.settings,
+            resourceScope: KubernetesResourceScope.Namespace,
+            resourceFilters: {},
+          } as unknown as Settings
+        }
         onChange={onChange}
       />,
     );
@@ -755,7 +759,11 @@ describe("the chart follows the resource filters as they are typed", () => {
     });
 
     render(
-      <StatefulForm formCase={host} initial={host.settings} onChange={onChange} />,
+      <StatefulForm
+        formCase={host}
+        initial={host.settings}
+        onChange={onChange}
+      />,
     );
     await settle();
     await openQueryBuilder();
@@ -782,8 +790,6 @@ describe("the chart follows the resource filters as they are typed", () => {
       ...OWN_FILTER,
       "resource.host.name": "db-01",
     });
-    expect(lastSaved(onChange).metricViewConfig?.queryConfigs).toEqual([
-      QUERY,
-    ]);
+    expect(lastSaved(onChange).metricViewConfig?.queryConfigs).toEqual([QUERY]);
   });
 });

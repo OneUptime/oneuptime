@@ -41,7 +41,8 @@ import useEventMetricRule, { EventMetricRule } from "./useEventMetricRule";
 // Where an event page keeps its metric investigation in its URL.
 export const EVENT_METRIC_INVESTIGATION_URL_PREFIX: string = "metrics";
 
-export const EVENT_METRIC_SCOPE_NOTE_TEST_ID: string = "event-metric-scope-note";
+export const EVENT_METRIC_SCOPE_NOTE_TEST_ID: string =
+  "event-metric-scope-note";
 
 export interface ComponentProps {
   /*

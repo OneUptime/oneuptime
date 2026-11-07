@@ -1649,13 +1649,12 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                          * the host gets the editor's, with that change and
                          * without what the charts were narrowed to.
                          */
-                        queryConfigs: MetricViewChartQueries.toEditorQueryConfigs(
-                          {
+                        queryConfigs:
+                          MetricViewChartQueries.toEditorQueryConfigs({
                             editorQueryConfigs: props.data.queryConfigs,
                             chartQueryConfigs: effectiveData.queryConfigs,
                             changedQueryConfigs: queryConfigs,
-                          },
-                        ),
+                          }),
                       });
                     }}
                     onTimeRangeSelect={

@@ -116,7 +116,10 @@ export default class MetricTelemetrySnapshot {
     }
 
     return (queryConfigs as Array<MetricQueryConfigData>).map(
-      (queryConfig: MetricQueryConfigData, index: number): Attributes | null => {
+      (
+        queryConfig: MetricQueryConfigData,
+        index: number,
+      ): Attributes | null => {
         const own: Attributes =
           queryConfig && typeof queryConfig === "object"
             ? getOwnAttributes(queryConfig)
@@ -164,10 +167,12 @@ export default class MetricTelemetrySnapshot {
       return null;
     }
 
-    return (scopes as Array<unknown>).map((scope: unknown): Attributes | null => {
-      const attributes: Attributes = asAttributes(scope);
-      return Object.keys(attributes).length > 0 ? attributes : null;
-    });
+    return (scopes as Array<unknown>).map(
+      (scope: unknown): Attributes | null => {
+        const attributes: Attributes = asAttributes(scope);
+        return Object.keys(attributes).length > 0 ? attributes : null;
+      },
+    );
   }
 
   /*

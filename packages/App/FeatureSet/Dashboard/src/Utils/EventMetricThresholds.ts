@@ -52,9 +52,9 @@ export interface EventRuleMonitor {
  * filters are left out, so an event's query (with its own series' filter,
  * and the scope its monitor read it with) matches its monitor's step query.
  */
-export const getQueryIdentity: (queryConfig: MetricQueryConfigData) => string = (
+export const getQueryIdentity: (
   queryConfig: MetricQueryConfigData,
-): string => {
+) => string = (queryConfig: MetricQueryConfigData): string => {
   const filterData: Record<string, unknown> =
     (queryConfig.metricQueryData?.filterData as unknown as Record<
       string,

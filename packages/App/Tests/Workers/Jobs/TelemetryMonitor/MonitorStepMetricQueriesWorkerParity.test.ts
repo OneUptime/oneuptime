@@ -539,8 +539,7 @@ describe("the dashboard reads every metric-backed step as the worker does", () =
 
         for (let index: number = 0; index < queryConfigs.length; index++) {
           expect(
-            snapshotCharted[index]!.metricQueryData.filterData.attributes ||
-              {},
+            snapshotCharted[index]!.metricQueryData.filterData.attributes || {},
           ).toEqual(
             reads.queryConfigs[index]!.metricQueryData.filterData.attributes ||
               {},

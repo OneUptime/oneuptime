@@ -202,7 +202,10 @@ describe("what the charts fetch and draw", () => {
 
   test("a view with no query yet and no chart query lines up", () => {
     expect(
-      MetricViewChartQueries.isUsable({ queryConfigs: [], chartQueryConfigs: [] }),
+      MetricViewChartQueries.isUsable({
+        queryConfigs: [],
+        chartQueryConfigs: [],
+      }),
     ).toBe(true);
     expect(
       MetricViewChartQueries.isUsable({

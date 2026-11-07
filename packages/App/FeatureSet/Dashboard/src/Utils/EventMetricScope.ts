@@ -63,7 +63,9 @@ const getAttributes: (queryConfig: MetricQueryConfigData) => Attributes = (
   const attributes: unknown =
     queryConfig.metricQueryData?.filterData?.attributes;
 
-  return attributes && typeof attributes === "object" && !Array.isArray(attributes)
+  return attributes &&
+    typeof attributes === "object" &&
+    !Array.isArray(attributes)
     ? (attributes as Attributes)
     : {};
 };
@@ -251,7 +253,9 @@ export function getEventMetricScope(input: {
           const attributes: Attributes = getAttributes(queryConfig);
 
           // Only what it would change: a snapshot that reads it already is kept.
-          if (JSONFunctions.deepEqual({ ...attributes, ...added }, attributes)) {
+          if (
+            JSONFunctions.deepEqual({ ...attributes, ...added }, attributes)
+          ) {
             return null;
           }
 

@@ -226,8 +226,8 @@ export default function useEventMetricRule(input: {
     });
   }, [rule, snapshotKey, storedScopesKey]);
 
-  const thresholds: Array<MetricInvestigationThreshold> = useMemo(
-    (): Array<MetricInvestigationThreshold> => {
+  const thresholds: Array<MetricInvestigationThreshold> =
+    useMemo((): Array<MetricInvestigationThreshold> => {
       if (!rule) {
         return NO_THRESHOLDS;
       }
@@ -240,9 +240,7 @@ export default function useEventMetricRule(input: {
         });
 
       return lines.length > 0 ? lines : NO_THRESHOLDS;
-    },
-    [rule, scope],
-  );
+    }, [rule, scope]);
 
   return useMemo((): EventMetricRule => {
     return { thresholds: thresholds, scope: scope };

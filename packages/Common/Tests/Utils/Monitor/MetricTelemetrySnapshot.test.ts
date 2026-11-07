@@ -348,7 +348,11 @@ describe("the scopes a stored snapshot keeps", () => {
       stored({ metricQueryScopes: [{ a: "1" }] }),
       null,
     ],
-    ["scopes that are not a list", stored({ metricQueryScopes: "x" as never }), null],
+    [
+      "scopes that are not a list",
+      stored({ metricQueryScopes: "x" as never }),
+      null,
+    ],
     [
       "a log snapshot, which no metric card reads",
       stored({
@@ -474,12 +478,14 @@ describe("operator-valued scopes survive being stored and read back", () => {
   test("Docker Swarm's image globs and tasks-only filter, and an IoT fleet", () => {
     const readBack: TelemetryQuery = storeAndRead(swarmAndIoT());
     const charted: Array<MetricQueryConfigData> = chartedOf(readBack);
-    const swarm: Dictionary<unknown> = attributesOf(charted, 0) as Dictionary<
-      unknown
-    >;
-    const iot: Dictionary<unknown> = attributesOf(charted, 1) as Dictionary<
-      unknown
-    >;
+    const swarm: Dictionary<unknown> = attributesOf(
+      charted,
+      0,
+    ) as Dictionary<unknown>;
+    const iot: Dictionary<unknown> = attributesOf(
+      charted,
+      1,
+    ) as Dictionary<unknown>;
 
     expect(swarm["resource.docker.swarm.cluster.name"]).toBe("swarm-1");
     expect(swarm["resource.container.image.name"]).toBeInstanceOf(Wildcard);
@@ -494,21 +500,21 @@ describe("operator-valued scopes survive being stored and read back", () => {
   });
 
   test("what is stored is the operators' own JSON", () => {
-    expect(
-      JSON.parse(JSON.stringify(swarmAndIoT())).metricQueryScopes,
-    ).toEqual([
-      {
-        "resource.docker.swarm.cluster.name": "swarm-1",
-        "resource.container.image.name": {
-          _type: "Wildcard",
-          value: ["nginx", "nginx@*"],
+    expect(JSON.parse(JSON.stringify(swarmAndIoT())).metricQueryScopes).toEqual(
+      [
+        {
+          "resource.docker.swarm.cluster.name": "swarm-1",
+          "resource.container.image.name": {
+            _type: "Wildcard",
+            value: ["nginx", "nginx@*"],
+          },
+          "resource.docker.swarm.task.id": { _type: "NotNull", value: null },
         },
-        "resource.docker.swarm.task.id": { _type: "NotNull", value: null },
-      },
-      {
-        "resource.iot.fleet.name": { _type: "Wildcard", value: ["Sensors"] },
-      },
-    ]);
+        {
+          "resource.iot.fleet.name": { _type: "Wildcard", value: ["Sensors"] },
+        },
+      ],
+    );
   });
 });
 
