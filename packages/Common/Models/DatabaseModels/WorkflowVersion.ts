@@ -348,13 +348,20 @@ export default class WorkflowVersion extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * A default-value column: a version that changed nothing a line says - the
+   * workflow before version history began, one created empty - has 0, which
+   * the required check would otherwise read as no value at all.
+   */
   @TableColumn({
+    isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Number,
     title: "Number of Changes",
     description:
       "How many changes this version made, counted before its lines were cut to 25.",
     defaultValue: 0,
+    example: 3,
   })
   @Column({
     type: ColumnType.Number,

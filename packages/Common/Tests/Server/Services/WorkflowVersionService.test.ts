@@ -194,20 +194,24 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-const save: (graph: JSONObject, userId?: ObjectID, now?: Date) => Promise<void> =
-  async (
-    graph: JSONObject,
-    userId: ObjectID | undefined = ALICE,
-    now: Date = NOW,
-  ): Promise<void> => {
-    await WorkflowVersionService.recordGraphSave({
-      workflowId: WORKFLOW_ID,
-      projectId: PROJECT_ID,
-      graph,
-      userId,
-      now,
-    });
-  };
+// A save of `graph` by `userId`; null is a save by nobody (an API key).
+const save: (
+  graph: JSONObject,
+  userId?: ObjectID | null,
+  now?: Date,
+) => Promise<void> = async (
+  graph: JSONObject,
+  userId: ObjectID | null = ALICE,
+  now: Date = NOW,
+): Promise<void> => {
+  await WorkflowVersionService.recordGraphSave({
+    workflowId: WORKFLOW_ID,
+    projectId: PROJECT_ID,
+    graph,
+    userId: userId || undefined,
+    now,
+  });
+};
 
 describe("a graph's fingerprint", () => {
   test("is SHA-256, the same for the same workflow however it is ordered, selected or styled", () => {
@@ -289,6 +293,38 @@ describe("a workflow created", () => {
     expect(text).not.toContain('"selected"');
     expect(text).not.toContain('"metadata"');
     expect(text).not.toContain('"width"');
+  });
+});
+
+describe("a version that changed nothing a line says", () => {
+  /*
+   * Regression: the workflow before version history began, and one created
+   * empty, have 0 changes - and the create's required check read 0 as no
+   * value, refusing the version ("changeCount is required"). Found against a
+   * real database (WorkflowVersionPostgres); the stand-ins above never run
+   * the check.
+   */
+  test("passes the create's required check with 0 changes", () => {
+    const version: WorkflowVersion = new WorkflowVersion();
+    version.projectId = PROJECT_ID;
+    version.workflowId = WORKFLOW_ID;
+    version.versionNumber = 1;
+    version.versionType = WorkflowVersionType.Earlier;
+    version.graph = { nodes: [], edges: [] };
+    version.graphFingerprint = fingerprint({ nodes: [], edges: [] });
+    version.changes = [];
+    version.changeCount = 0;
+
+    const checkRequiredFields: (data: WorkflowVersion) => WorkflowVersion = (
+      WorkflowVersionService as unknown as {
+        checkRequiredFields: (data: WorkflowVersion) => WorkflowVersion;
+      }
+    ).checkRequiredFields.bind(WorkflowVersionService);
+
+    expect(() => {
+      checkRequiredFields(version);
+    }).not.toThrow();
+    expect(version.isDefaultValueColumn("changeCount")).toBe(true);
   });
 });
 
@@ -420,7 +456,7 @@ describe("a save of the graph", () => {
   test("a save through the API, by nobody, is always a version of its own", async () => {
     history = [stored({ number: 3, type: WorkflowVersionType.Changed, graph: GRAPH_1 })];
 
-    await save(GRAPH_2, undefined);
+    await save(GRAPH_2, null);
 
     expect(created[0]).toMatchObject({ versionNumber: 4 });
     expect(created[0]?.createdByUserId).toBeUndefined();
