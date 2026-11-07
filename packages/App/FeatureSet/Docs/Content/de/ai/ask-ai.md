@@ -50,7 +50,7 @@ KI fragen liest Ihr Projekt mit Ihren eigenen Berechtigungen und sieht daher gen
 | Vorfallreaktion | Vorfälle und Warnungen, mit Statusfiltern („was ist gerade aktiv?“), ihren Aktivitätszeitleisten (Statuswechsel, interne und öffentliche Notizen, der Feed) und Verantwortlichen sowie eine Suche in früheren Vorfällen, um ihre Lösung wiederzuverwenden. |
 | Bereitschaft | Wer gerade Bereitschaft hat, Richtlinien und Eskalationsketten und ob die letzten Benachrichtigungen zugestellt und bestätigt wurden. |
 | Die eigene Arbeit der KI | Die Ergebnisse der Untersuchungen von AI SRE und der KI-Einblicke, sodass „was hat die KI gefunden?“ aus der veröffentlichten Analyse beantwortet wird, statt es neu zu erarbeiten. |
-| Plattform | Monitore (mit Statusfiltern), geplante Wartungen, Statusseiten und ihre Ankündigungen, SLOs, Runbooks, Workflow-Ausführungen, der Zustand der Probes, Teams und der Code verbundener Repositories auf GitHub, GitLab, Forgejo und Gitea (siehe [Was die KI in einem Git-Repository liest](/docs/ai/ai-agent#was-die-ki-in-einem-git-repository-liest)). |
+| Plattform | Monitore (mit Statusfiltern), geplante Wartungen, Statusseiten und ihre Ankündigungen, SLOs, Runbooks, Workflow-Ausführungen, der Zustand der Probes, Teams und der Code verbundener Repositories auf GitHub, GitLab, Forgejo, Gitea und Azure DevOps (siehe [Was die KI in einem Git-Repository liest](/docs/ai/ai-agent#was-die-ki-in-einem-git-repository-liest)). |
 
 ## Seitenkontext
 

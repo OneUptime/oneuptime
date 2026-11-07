@@ -77,6 +77,7 @@ import {
 import {
   CODE_CONNECT_COPY,
   CODE_HOST_GITHUB_ONLY_NOTE,
+  CODE_REPOSITORY_CONNECTION_COPY,
   getCodeHostName,
   getDefaultHostUrl,
   getHostLabel,
@@ -1274,6 +1275,92 @@ describe("a repository's connection, in its settings", () => {
     expect(screen.getByTestId("code-repository-github-only")).toHaveTextContent(
       CODE_HOST_GITHUB_ONLY_NOTE[CodeRepositoryType.Git],
     );
+  });
+
+  // A Git repository on an Azure DevOps Server, as Code reads it.
+  function onAzureDevOps(
+    overrides: Partial<CodeTaskRepositoryJSON> = {},
+  ): CodeTaskRepositoryJSON {
+    return repository({
+      provider: CodeRepositoryType.Git,
+      organizationName: "tfs/DefaultCollection/Shop/_git",
+      repositoryUrl:
+        "https://tfs.example.com/tfs/DefaultCollection/Shop/_git/checkout",
+      connection: {
+        id: CONNECTION_ID,
+        hostUrl: "https://tfs.example.com",
+        accountLogin: "deploy",
+        credentialHint: "9z9z",
+        isTokenRefused: false,
+        isReachableFromServer: true,
+      },
+      ...overrides,
+    });
+  }
+
+  test("a Git repository on Azure DevOps says OneUptime reads its code, beside what a Git server lacks", () => {
+    draw(
+      <CodeRepositoryConnection
+        repository={onAzureDevOps()}
+        onReplaced={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("code-repository-reads-code")).toHaveTextContent(
+      CODE_REPOSITORY_CONNECTION_COPY.readsCodeOnAzureDevOps,
+    );
+    expect(screen.getByTestId("code-repository-github-only")).toHaveTextContent(
+      CODE_HOST_GITHUB_ONLY_NOTE[CodeRepositoryType.Git],
+    );
+  });
+
+  test("says it in the reader's language", () => {
+    drawInGerman(
+      <CodeRepositoryConnection
+        repository={onAzureDevOps({
+          repositoryUrl: "https://dev.azure.com/acme/Shop/_git/checkout",
+        })}
+        onReplaced={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("code-repository-reads-code")).toHaveTextContent(
+      "OneUptime liest den Code dieses Repositorys über Azure DevOps, daher verlinken Stack-Traces und Profile auf seine Zeilen, und OneUptime AI liest seine Dateien.",
+    );
+  });
+
+  test("a Git repository anywhere else, one only a Runner reaches, one whose token was refused and a GitLab one say nothing of the kind", () => {
+    for (const shown of [
+      onAzureDevOps({
+        repositoryUrl: "https://git.example.com/team/checkout.git",
+      }),
+      onAzureDevOps({
+        connection: {
+          id: CONNECTION_ID,
+          hostUrl: "https://tfs.example.com",
+          isTokenRefused: false,
+          isReachableFromServer: false,
+        },
+      }),
+      onAzureDevOps({
+        connection: {
+          id: CONNECTION_ID,
+          hostUrl: "https://tfs.example.com",
+          isTokenRefused: true,
+          isReachableFromServer: true,
+        },
+      }),
+      repository(),
+    ]) {
+      draw(
+        <CodeRepositoryConnection repository={shown} onReplaced={jest.fn()} />,
+      );
+
+      expect(screen.getByTestId("code-repository-connection")).toBeTruthy();
+      expect(screen.queryByTestId("code-repository-reads-code")).toBeNull();
+
+      cleanup();
+    }
   });
 
   test("Replace access token asks for the new one, sends it once, and the page reads the repository again", async () => {

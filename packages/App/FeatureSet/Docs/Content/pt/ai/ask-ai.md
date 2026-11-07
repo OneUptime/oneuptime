@@ -50,7 +50,7 @@ O Pergunte à IA lê o seu projeto com as suas próprias permissões, então vê
 | Resposta a incidentes | Incidentes e alertas, com filtros de estado ("o que está ativo agora?"), as linhas do tempo de atividade (mudanças de estado, notas internas e públicas, o feed) e os responsáveis, e uma busca em incidentes anteriores para reaproveitar como foram resolvidos. |
 | Plantão | Quem está de plantão agora, políticas e cadeias de escalonamento, e se os acionamentos recentes foram entregues e confirmados. |
 | O trabalho da própria IA | Os resultados das investigações do AI SRE e do AI Insights, para que "o que a IA encontrou?" seja respondido a partir da análise publicada em vez de ser refeito. |
-| Plataforma | Monitores (com filtros de status), manutenção programada, páginas de status e seus anúncios, SLOs, runbooks, execuções de fluxos de trabalho, saúde das sondas, equipes e o código dos repositórios conectados no GitHub, GitLab, Forgejo e Gitea (veja [O que a IA lê num repositório Git](/docs/ai/ai-agent#o-que-a-ia-lê-num-repositório-git)). |
+| Plataforma | Monitores (com filtros de status), manutenção programada, páginas de status e seus anúncios, SLOs, runbooks, execuções de fluxos de trabalho, saúde das sondas, equipes e o código dos repositórios conectados no GitHub, GitLab, Forgejo, Gitea e Azure DevOps (veja [O que a IA lê num repositório Git](/docs/ai/ai-agent#o-que-a-ia-lê-num-repositório-git)). |
 
 ## Contexto da página
 

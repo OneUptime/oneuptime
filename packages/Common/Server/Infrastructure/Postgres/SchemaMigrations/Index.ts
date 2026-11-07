@@ -917,6 +917,7 @@ import { AddCloudConnectionStreamState1808995100000 } from "./1808995100000-AddC
 import { WidenGitBranchNameColumns1808995180000 } from "./1808995180000-WidenGitBranchNameColumns";
 import { AddTwoPersonFixApproval1808995185000 } from "./1808995185000-AddTwoPersonFixApproval";
 import { AddFirstApprovedByUserForeignKey1808995190000 } from "./1808995190000-AddFirstApprovedByUserForeignKey";
+import { WidenCodeRepositoryOwnerColumns1808995240000 } from "./1808995240000-WidenCodeRepositoryOwnerColumns";
 
 export default [
   InitialMigration,
@@ -1838,4 +1839,5 @@ export default [
   WidenGitBranchNameColumns1808995180000,
   AddTwoPersonFixApproval1808995185000,
   AddFirstApprovedByUserForeignKey1808995190000,
+  WidenCodeRepositoryOwnerColumns1808995240000,
 ];
