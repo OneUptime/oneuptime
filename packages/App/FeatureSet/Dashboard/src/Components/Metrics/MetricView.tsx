@@ -56,6 +56,7 @@ import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime
 import MetricViewTimeRange from "./Utils/MetricViewTimeRange";
 import { MetricChartThreshold } from "./Utils/MetricChartThresholds";
 import MetricViewChartQueries from "./Utils/MetricViewChartQueries";
+import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
 import {
   getMetricResultsState,
   MetricResultsState,
@@ -1113,6 +1114,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                     {};
                   const defaultShowAdvancedFilters: boolean =
                     Object.keys(configuredAttributes).length > 0 ||
+                    MetricQueryServices.getServiceIds(queryConfig).length > 0 ||
                     (queryConfig.metricQueryData?.groupByAttributeKeys || [])
                       .length > 0;
 

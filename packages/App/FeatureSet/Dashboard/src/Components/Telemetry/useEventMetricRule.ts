@@ -144,6 +144,11 @@ export default function useEventMetricRule(input: {
    * which is narrowed to what its monitor watches now.
    */
   storedScopes: Array<Dictionary<unknown> | null> | null;
+  /*
+   * The services the snapshot says every query was read for
+   * (MetricTelemetrySnapshot.getStoredServiceIds); none: every service.
+   */
+  storedServiceIds?: Array<string> | undefined;
 }): EventMetricRule {
   const [result, setResult] = useState<ReadResult | null>(null);
 
@@ -215,12 +220,16 @@ export default function useEventMetricRule(input: {
   );
 
   // By value too: operators are written as their own JSON.
-  const storedScopesKey: string = JSON.stringify(input.storedScopes);
+  const storedScopesKey: string = JSON.stringify({
+    scopes: input.storedScopes,
+    serviceIds: input.storedServiceIds || [],
+  });
 
   const scope: EventMetricScope = useMemo((): EventMetricScope => {
     return getEventMetricScope({
       snapshotQueries: input.snapshotQueries,
       storedScopes: input.storedScopes,
+      storedServiceIds: input.storedServiceIds,
       createdCriteriaId: rule?.createdCriteriaId,
       monitors: rule?.monitors || [],
     });

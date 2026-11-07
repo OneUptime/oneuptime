@@ -131,6 +131,7 @@ import KubernetesFinishedPods, {
   POD_UID_ATTRIBUTE as FINISHED_POD_UID_ATTRIBUTE,
 } from "Common/Server/Utils/Monitor/KubernetesFinishedPods";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
 import Wildcard from "Common/Types/BaseDatabase/Wildcard";
 import ProfileMonitorResponse, {
   ProfileFunctionShareReading,
@@ -1935,6 +1936,15 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
     }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
+    // The services every query was read for, when it was limited to some.
+    ...(metricMonitorConfig.telemetryServiceIds &&
+    metricMonitorConfig.telemetryServiceIds.length > 0
+      ? {
+          queryServiceIds: MetricQueryServices.normalize(
+            metricMonitorConfig.telemetryServiceIds,
+          ),
+        }
+      : {}),
     monitorId: data.monitorId,
     seriesBreakdown: seriesBreakdown,
     nativeUnitsByMetricName: buildNativeUnitsByMetricName({

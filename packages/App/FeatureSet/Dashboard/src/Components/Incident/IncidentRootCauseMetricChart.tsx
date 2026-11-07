@@ -14,6 +14,7 @@ import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
+import MonitorStepMetricQueries from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import { JSONObject } from "Common/Types/JSON";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
@@ -114,7 +115,14 @@ const IncidentRootCauseMetricChart: FunctionComponent<ComponentProps> = (
           const config: MetricQueryConfigData[] | undefined =
             step.data?.metricMonitor?.metricViewConfig?.queryConfigs;
           if (config && config.length > 0) {
-            queryConfigs = config;
+            /*
+             * As the monitor reads them: for the services it is limited to,
+             * which the step keeps apart from its queries (issue #6266).
+             */
+            queryConfigs = MonitorStepMetricQueries.getReadQueryConfigs({
+              monitorType: MonitorType.Metrics,
+              settings: step.data?.metricMonitor,
+            });
             formulaConfigs =
               step.data?.metricMonitor?.metricViewConfig?.formulaConfigs || [];
             break;

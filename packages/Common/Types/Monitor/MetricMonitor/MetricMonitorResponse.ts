@@ -311,6 +311,14 @@ export default interface MetricMonitorResponse {
    * that history, and treats it as it would any query it cannot read back.
    */
   queryAttributes?: Array<Dictionary<unknown> | undefined> | undefined;
+  /*
+   * The telemetry services every query was read for, by id: a Metrics
+   * monitor limited to some services (MonitorStepMetricMonitor
+   * .telemetryServiceIds) reads its rows for those only. Absent when the
+   * check read every service. An incident or alert it opens keeps them, so
+   * its metric card charts those services only (issue #6266).
+   */
+  queryServiceIds?: Array<string> | undefined;
   monitorId: ObjectID;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
   kubernetesResourceBreakdown?: KubernetesResourceBreakdown | undefined;

@@ -349,6 +349,58 @@ describe("a change the charts make reaches the host on the editor's queries", ()
     expect(saved).toEqual(withTopN(editor, 4));
   });
 
+  /*
+   * Issue #6266: a Metrics monitor's chart reads its queries for the
+   * services it is limited to, which the step keeps apart from them.
+   */
+  test("the services the chart's copy is read for are not saved, unless the charts changed them", () => {
+    const editor: MetricQueryConfigData = queryOf({
+      attributes: { "own.key": "kept" },
+    });
+    const charted: MetricQueryConfigData = {
+      ...editor,
+      metricQueryData: {
+        ...editor.metricQueryData,
+        filterData: {
+          ...editor.metricQueryData.filterData,
+          telemetryServiceIds: ["service-a", "service-b"],
+        } as never,
+      },
+    };
+
+    // A Top-N: the editor's query with it, read for every service as saved.
+    const [topN] = MetricViewChartQueries.toEditorQueryConfigs({
+      editorQueryConfigs: [editor],
+      chartQueryConfigs: [charted],
+      changedQueryConfigs: [withTopN(charted, 5)],
+    });
+    expect(topN).toEqual(withTopN(editor, 5));
+    expect(Object.keys(topN!.metricQueryData.filterData)).not.toContain(
+      "telemetryServiceIds",
+    );
+
+    // A change the charts made to the services themselves is the reader's.
+    const [changed] = MetricViewChartQueries.toEditorQueryConfigs({
+      editorQueryConfigs: [editor],
+      chartQueryConfigs: [charted],
+      changedQueryConfigs: [
+        {
+          ...charted,
+          metricQueryData: {
+            ...charted.metricQueryData,
+            filterData: {
+              ...charted.metricQueryData.filterData,
+              telemetryServiceIds: ["service-a"],
+            } as never,
+          },
+        },
+      ],
+    });
+    expect(changed!.metricQueryData.filterData.telemetryServiceIds).toEqual([
+      "service-a",
+    ]);
+  });
+
   test("a query the charts did not touch is the written one, the same object", () => {
     const first: MetricQueryConfigData = queryOf({ variable: "a" });
     const second: MetricQueryConfigData = queryOf({ variable: "b" });

@@ -12,6 +12,7 @@ import MetricQueryConfigData, {
 import MetricViewData from "../../Types/Metrics/MetricViewData";
 import MetricsAggregationType from "../../Types/Metrics/MetricsAggregationType";
 import TimeRange from "../../Types/Time/TimeRange";
+import MetricQueryServices from "./MetricQueryServices";
 
 /*
  * Single source of truth for the metric explorer's URL schema — the
@@ -74,6 +75,13 @@ export interface SerializedMetricQuery {
    */
   variable?: string | undefined;
   attributes?: Dictionary<SerializedMetricAttributeValue> | undefined;
+  /*
+   * The services the query reads its metric for, by id
+   * (MetricsQuery.telemetryServiceIds, issue #6266): kept so a link to a
+   * chart of a Metrics monitor limited to some services opens the same
+   * series. Absent: every service.
+   */
+  serviceIds?: Array<string> | undefined;
   eventScope?: Dictionary<SerializedMetricAttributeValue> | undefined;
   aggregationType?: MetricsAggregationType | undefined;
   alias?: SerializedMetricQueryAlias | undefined;
@@ -124,6 +132,12 @@ export type SerializedMetricAttributeValue =
   | QueryOperator<string>;
 
 const MAX_SERVICES_PARAM_ENTRIES: number = 20;
+
+/*
+ * The most services one query of a link keeps. A monitor names a handful;
+ * a hand-made link that names thousands is cut, never read whole.
+ */
+const MAX_QUERY_SERVICE_IDS: number = 200;
 
 export default class MetricExplorerUrl {
   /**
@@ -299,12 +313,16 @@ export default class MetricExplorerUrl {
         queryConfig.metricQueryData.topN,
       );
 
+    const serviceIds: Array<string> =
+      MetricQueryServices.getServiceIds(queryConfig);
+
     return {
       metricName,
       ...(queryConfig.metricAliasData?.metricVariable
         ? { variable: queryConfig.metricAliasData.metricVariable }
         : {}),
       attributes,
+      ...(serviceIds.length > 0 ? { serviceIds } : {}),
       ...(queryConfig.eventScope !== undefined
         ? {
             eventScope: MetricExplorerUrl.sanitizeAttributes(
@@ -455,10 +473,15 @@ export default class MetricExplorerUrl {
       const topN: number | undefined =
         MetricExplorerUrl.getPositiveIntegerFromValue(entryRecord["topN"]);
 
+      const serviceIds: Array<string> = MetricQueryServices.normalize(
+        entryRecord["serviceIds"],
+      ).slice(0, MAX_QUERY_SERVICE_IDS);
+
       sanitizedQueries.push({
         metricName,
         ...(variable ? { variable } : {}),
         attributes,
+        ...(serviceIds.length > 0 ? { serviceIds } : {}),
         ...(Object.prototype.hasOwnProperty.call(entryRecord, "eventScope")
           ? {
               eventScope: MetricExplorerUrl.sanitizeAttributes(
@@ -581,6 +604,10 @@ export default class MetricExplorerUrl {
     }
 
     if (query.attributes && Object.keys(query.attributes).length > 0) {
+      return true;
+    }
+
+    if (query.serviceIds && query.serviceIds.length > 0) {
       return true;
     }
 
