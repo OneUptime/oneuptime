@@ -245,6 +245,10 @@ import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenancePublicNote from "../../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import PublicNoteApprovalEngine from "../../../../Server/Utils/Notes/PublicNoteApprovalEngine";
+import { PublicNoteApprovalWaitingFor } from "../../../../Server/Utils/Notes/PublicNoteApprovalFeed";
+import PublicNoteApprovalPolicy from "../../../../Server/Utils/Notes/PublicNoteApprovalPolicy";
+import WorkspaceActionAnswers from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import URL from "../../../../Types/API/URL";
@@ -5404,5 +5408,233 @@ describe("Add Note on a private incident: one kind of note, and the card says wh
     ]);
     expect(labelsOf(view.deletes)).toEqual([formId]);
     expect(loggedErrors).toEqual([]);
+  });
+});
+
+/*
+ * ADD NOTE WHILE PUBLIC NOTES NEED APPROVAL, THROUGH THE REAL BOTBUILDER
+ * STACK (#6254).
+ *
+ * A public note sent from the Add Note card while the project asks for
+ * public notes to be approved is held: posted to no channel until it is
+ * approved. Its one answer said "Note added successfully" as if it were on
+ * the status page; now it says the note was sent for approval, is published
+ * once approved, and who it waits for. The card's public option says the
+ * note is posted once approved while approval is on.
+ */
+describe("Add Note while public notes need approval: the answer says it waits, and for whom", () => {
+  const RECORD: string = ObjectID.generate().toString();
+  const NOTE: string = "We are rolling back the deploy.";
+  const WAITING_FOR: PublicNoteApprovalWaitingFor = {
+    position: {
+      step: { id: "s1", name: "Support", order: 1, userIds: [], teamIds: [] },
+      number: 1,
+      count: 2,
+      isFinal: false,
+      isAskedAgain: false,
+    },
+    approverNames: ["Bob", "Platform"],
+  };
+  const RECORD_LINK: string = "https://oneuptime.example/record";
+
+  function submit(value: JSONObject, formId: string): Promise<Array<DeliveryRecord>> {
+    return deliverLikeTeams(
+      buildCardSubmitActivity({
+        id: nextActivityId("held-note-submit"),
+        replyToId: formId,
+        value: value,
+      }),
+    );
+  }
+
+  function press(value: JSONObject): Promise<Array<DeliveryRecord>> {
+    return deliverLikeTeams(
+      buildCardSubmitActivity({
+        id: nextActivityId("held-note-press"),
+        replyToId: `msg-record-card-${nextActivityId("card")}`,
+        value: value,
+      }),
+    );
+  }
+
+  function written<T extends { isPublished?: boolean | undefined }>(
+    note: T,
+    isPublished: boolean,
+  ): T {
+    note.isPublished = isPublished;
+    return note;
+  }
+
+  function stubRecordName(label: string): void {
+    jest
+      .spyOn(WorkspaceActionAnswers, "getRecordName")
+      .mockResolvedValue({ label: label, link: RECORD_LINK });
+  }
+
+  beforeEach(() => {
+    stubPrivateRecords();
+    jest
+      .spyOn(PublicNoteApprovalEngine, "getWaitingForNote")
+      .mockResolvedValue(WAITING_FOR);
+    jest.spyOn(PublicNoteApprovalPolicy, "isRequired").mockResolvedValue(true);
+    jest
+      .spyOn(WorkspaceMemberActions, "findEventForMember")
+      .mockImplementation((async (data: { event: WorkspaceEvent }) => {
+        return {
+          record: new Incident(),
+          event: {
+            type: data.event.type,
+            id: data.event.id,
+            projectId: projectId,
+            currentStateId: undefined,
+            number: 42,
+            numberWithPrefix: "INC-42",
+          },
+        };
+      }) as never);
+  });
+
+  test("incident: held, one answer says it waits and for whom - not that it was added - and the card is removed", async () => {
+    stubRecordName("Incident INC-42");
+    const publicAdd: SpyInstance<typeof IncidentPublicNoteService.addNote> =
+      jest
+        .spyOn(IncidentPublicNoteService, "addNote")
+        .mockResolvedValue(written(new IncidentPublicNote(), false));
+    const formId: string = `msg-form-${nextActivityId("held-incident-note")}`;
+
+    const view: TeamsView = viewOf(
+      await submit(
+        {
+          action: MicrosoftTeamsIncidentActionType.SubmitIncidentNote,
+          actionValue: RECORD,
+          noteType: "public",
+          note: NOTE,
+        },
+        formId,
+      ),
+    );
+
+    expect(view.httpStatuses).toEqual([200]);
+    expect(publicAdd).toHaveBeenCalledTimes(1);
+    expect(publicAdd.mock.calls[0]![0]).toMatchObject({
+      note: NOTE,
+      props: { userId: ONEUPTIME_USER_ID },
+    });
+    expect(view.bubbles).toHaveLength(1);
+    expect(answersOf(view.bubbles)).toEqual([
+      `⏳ Sent for approval: your public note on **[Incident INC-42](${RECORD_LINK})** is published on status pages once it is approved. It waits for step 1 of 2 (Support): Bob, Platform.`,
+    ]);
+    expect(labelsOf(view.deletes)).toEqual([formId]);
+    expect(loggedErrors).toEqual([]);
+  });
+
+  test("scheduled maintenance: held, the same one answer, and the card is removed", async () => {
+    stubRecordName("Scheduled Maintenance #7");
+    const maintenance: ScheduledMaintenance = new ScheduledMaintenance();
+    maintenance.id = new ObjectID(RECORD);
+    maintenance.projectId = projectId;
+    maintenance.title = "Database upgrade";
+    jest
+      .spyOn(ScheduledMaintenanceService, "findOneBy")
+      .mockResolvedValue(maintenance);
+    jest
+      .spyOn(ScheduledMaintenancePublicNoteService, "addNote")
+      .mockResolvedValue(written(new ScheduledMaintenancePublicNote(), false));
+    const formId: string = `msg-form-${nextActivityId("held-maintenance-note")}`;
+
+    const view: TeamsView = viewOf(
+      await submit(
+        {
+          action:
+            MicrosoftTeamsScheduledMaintenanceActionType.SubmitScheduledMaintenanceNote,
+          scheduledMaintenanceId: RECORD,
+          noteType: "public",
+          note: NOTE,
+        },
+        formId,
+      ),
+    );
+
+    expect(view.httpStatuses).toEqual([200]);
+    expect(answersOf(view.bubbles)).toEqual([
+      `⏳ Sent for approval: your public note on **[Scheduled Maintenance #7](${RECORD_LINK})** is published on status pages once it is approved. It waits for step 1 of 2 (Support): Bob, Platform.`,
+    ]);
+    expect(labelsOf(view.deletes)).toEqual([formId]);
+  });
+
+  test("a public note published as it was posted is confirmed as it always was", async () => {
+    jest
+      .spyOn(IncidentPublicNoteService, "addNote")
+      .mockResolvedValue(written(new IncidentPublicNote(), true));
+    const formId: string = `msg-form-${nextActivityId("published-note")}`;
+
+    const view: TeamsView = viewOf(
+      await submit(
+        {
+          action: MicrosoftTeamsIncidentActionType.SubmitIncidentNote,
+          actionValue: RECORD,
+          noteType: "public",
+          note: NOTE,
+        },
+        formId,
+      ),
+    );
+
+    expect(labelsOf(view.bubbles)).toEqual(["✅ Note added successfully."]);
+  });
+
+  test("incident: the card's public option says the note is posted once approved", async () => {
+    const view: TeamsView = viewOf(
+      await press({
+        action: MicrosoftTeamsIncidentActionType.ViewAddIncidentNote,
+        actionValue: RECORD,
+      }),
+    );
+
+    const card: JSONObject = cardOf(view.bubbles[0]);
+
+    expect(getChoices(card, "noteType")).toEqual([
+      {
+        title: "Public Note (Posted on Status Page once approved)",
+        value: "public",
+      },
+      {
+        title: "Private Note (Only visible to team members)",
+        value: "private",
+      },
+    ]);
+  });
+
+  test("scheduled maintenance: the card's public option says it too, and as always once approval is off", async () => {
+    const maintenance: ScheduledMaintenance = new ScheduledMaintenance();
+    maintenance.id = new ObjectID(RECORD);
+    maintenance.projectId = projectId;
+    jest
+      .spyOn(ScheduledMaintenanceService, "findOneBy")
+      .mockResolvedValue(maintenance);
+
+    const pressAddNote: () => Promise<Array<DeliveryRecord>> = () => {
+      return press({
+        action:
+          MicrosoftTeamsScheduledMaintenanceActionType.ViewAddScheduledMaintenanceNote,
+        scheduledMaintenanceId: RECORD,
+      });
+    };
+
+    const held: JSONObject = cardOf(viewOf(await pressAddNote()).bubbles[0]);
+
+    expect(getChoices(held, "noteType")[0]).toEqual({
+      title: "Public Note (Posted on Status Page once approved)",
+      value: "public",
+    });
+
+    jest.spyOn(PublicNoteApprovalPolicy, "isRequired").mockResolvedValue(false);
+
+    const open: JSONObject = cardOf(viewOf(await pressAddNote()).bubbles[0]);
+
+    expect(getChoices(open, "noteType")[0]).toEqual({
+      title: "Public Note (Will be posted on Status Page)",
+      value: "public",
+    });
   });
 });

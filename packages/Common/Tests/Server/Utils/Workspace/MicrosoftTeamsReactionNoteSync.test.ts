@@ -731,6 +731,63 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
   });
 
   /*
+   * A public note that waits for approval (#6254) is on no status page yet:
+   * its confirmation says it was sent for approval, is shown once approved,
+   * and who it waits for.
+   */
+  test("a megaphone while public notes need approval says it was sent for approval, and who it waits for", async () => {
+    saveSpy.mockResolvedValue(WorkspaceNoteSaveResult.SavedForApproval);
+    const waitingSpy: jest.SpyInstance = jest
+      .spyOn(WorkspaceReactionNote, "getApprovalWaitingFor")
+      .mockResolvedValue({
+        position: {
+          step: {
+            id: "s1",
+            name: "Support",
+            order: 1,
+            userIds: [],
+            teamIds: [],
+          },
+          number: 1,
+          count: 2,
+          isFinal: false,
+          isAskedAgain: false,
+        },
+        approverNames: ["Bob"],
+      });
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({ noteType: WorkspaceNoteType.Public }),
+      now: NOW,
+    });
+
+    expect(waitingSpy).toHaveBeenCalledWith({
+      resource: watchedChannel().resource,
+      sourceMessageKey: saveSpy.mock.calls[0]![0].sourceMessageKey,
+    });
+    expect(replySpy).toHaveBeenCalledTimes(1);
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      "⏳ Saved as a **public note** on [Incident #42](https://oneuptime.test/incidents/42) and sent for approval: it is shown on the status page once it is approved. It waits for step 1 of 2 (Support): Bob.",
+    );
+  });
+
+  test("a note published as it was posted reads nothing about approval", async () => {
+    const waitingSpy: jest.SpyInstance = jest.spyOn(
+      WorkspaceReactionNote,
+      "getApprovalWaitingFor",
+    );
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({ noteType: WorkspaceNoteType.Public }),
+      now: NOW,
+    });
+
+    expect(waitingSpy).not.toHaveBeenCalled();
+  });
+
+  /*
    * A private incident takes no public notes (Types/StatusPage/
    * PrivateRecordPublicNotes): a 📣 in its channel is saved as a private
    * note - checked, authorized and saved as one - and the confirmation says

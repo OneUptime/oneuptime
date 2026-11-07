@@ -772,10 +772,24 @@ export default class WorkspaceReactionNote {
    * Who the public note saved from a message waits for, while it waits for
    * approval: its confirmation names them (getConfirmationMessage). Read as
    * OneUptime, as hasNote reads the notes saved from a message. Null when
-   * no public note saved from it waits.
+   * no public note saved from it waits - or when it could not be read: the
+   * note is saved by now, and its confirmation is still sent, without them.
    */
   @CaptureSpan()
   public static async getApprovalWaitingFor(data: {
+    resource: WorkspaceNoteResource;
+    sourceMessageKey: string;
+  }): Promise<PublicNoteApprovalWaitingFor | null> {
+    try {
+      return await this.readApprovalWaitingFor(data);
+    } catch (err) {
+      logger.error("Could not read who a public note saved from chat waits for.");
+      logger.error(err);
+      return null;
+    }
+  }
+
+  private static async readApprovalWaitingFor(data: {
     resource: WorkspaceNoteResource;
     sourceMessageKey: string;
   }): Promise<PublicNoteApprovalWaitingFor | null> {

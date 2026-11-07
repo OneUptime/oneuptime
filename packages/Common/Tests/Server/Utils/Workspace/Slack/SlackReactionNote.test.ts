@@ -15,6 +15,7 @@ import User from "../../../../../Models/DatabaseModels/User";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import GlobalCache from "../../../../../Server/Infrastructure/GlobalCache";
+import IncidentPublicNoteService from "../../../../../Server/Services/IncidentPublicNoteService";
 import AlertEpisodeService from "../../../../../Server/Services/AlertEpisodeService";
 import AlertService from "../../../../../Server/Services/AlertService";
 import IncidentEpisodeInternalNoteService from "../../../../../Server/Services/IncidentEpisodeInternalNoteService";
@@ -442,6 +443,77 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
     expect(threadReplySpy.mock.calls[0]![0].text).toBe(
       "✅ Saved as a ​*public note*​ on <https://oneuptime.test/incidents/42|Incident #42>. It is shown on the status page.",
     );
+  });
+
+  /*
+   * A public note that waits for approval (#6254) is on no status page yet:
+   * its confirmation says it was sent for approval, is shown once approved,
+   * and who it waits for - never that it is on the status page.
+   */
+  test("a megaphone while public notes need approval says it was sent for approval, and who it waits for", async () => {
+    saveSpy.mockResolvedValue(WorkspaceNoteSaveResult.SavedForApproval);
+    const waitingSpy: AnySpy = jest
+      .spyOn(WorkspaceReactionNote, "getApprovalWaitingFor")
+      .mockResolvedValue({
+        position: {
+          step: {
+            id: "s1",
+            name: "Support",
+            order: 1,
+            userIds: [],
+            teamIds: [],
+          },
+          number: 1,
+          count: 2,
+          isFinal: false,
+          isAskedAgain: false,
+        },
+        approverNames: ["Bob"],
+      }) as AnySpy;
+
+    await SlackReactionNoteActions.handleEmojiReaction(
+      reaction({ reaction: "mega" }),
+    );
+
+    // Read by the message the note was saved from.
+    expect(waitingSpy).toHaveBeenCalledWith({
+      resource: incidentResource(),
+      sourceMessageKey: saveSpy.mock.calls[0]![0].sourceMessageKey,
+    });
+    expect(threadReplySpy).toHaveBeenCalledTimes(1);
+    expect(threadReplySpy.mock.calls[0]![0].text).toBe(
+      "⏳ Saved as a ​*public note*​ on <https://oneuptime.test/incidents/42|Incident #42> and sent for approval: it is shown on the status page once it is approved. It waits for step 1 of 2 (Support): Bob.",
+    );
+  });
+
+  test("who a held note waits for, when it cannot be read, is left out of a confirmation still sent", async () => {
+    saveSpy.mockResolvedValue(WorkspaceNoteSaveResult.SavedForApproval);
+    // The note's read fails; getApprovalWaitingFor says nobody rather than failing.
+    jest
+      .spyOn(IncidentPublicNoteService, "findOneBy")
+      .mockRejectedValue(new Error("database is down"));
+
+    await SlackReactionNoteActions.handleEmojiReaction(
+      reaction({ reaction: "mega" }),
+    );
+
+    expect(threadReplySpy).toHaveBeenCalledTimes(1);
+    expect(threadReplySpy.mock.calls[0]![0].text).toBe(
+      "⏳ Saved as a ​*public note*​ on <https://oneuptime.test/incidents/42|Incident #42> and sent for approval: it is shown on the status page once it is approved.",
+    );
+  });
+
+  test("a note published as it was posted reads nothing about approval", async () => {
+    const waitingSpy: AnySpy = jest.spyOn(
+      WorkspaceReactionNote,
+      "getApprovalWaitingFor",
+    ) as AnySpy;
+
+    await SlackReactionNoteActions.handleEmojiReaction(
+      reaction({ reaction: "mega" }),
+    );
+
+    expect(waitingSpy).not.toHaveBeenCalled();
   });
 
   test("authorization is asked for the note row and the resource it lands on", async () => {
