@@ -437,16 +437,6 @@ const DockerSwarmClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Audit Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AUDIT_LOGS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.List}
-        />
-        <SideMenuItem
-          link={{
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[
@@ -456,6 +446,16 @@ const DockerSwarmClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Book}
+        />
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
         />
         <SideMenuItem
           link={{
