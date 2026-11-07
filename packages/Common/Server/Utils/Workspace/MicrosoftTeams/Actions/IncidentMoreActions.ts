@@ -903,7 +903,8 @@ export default class MicrosoftTeamsIncidentMoreActions {
       event: incident.event,
       targets: WorkspacePage.readTargets(picked),
       props: data.databaseProps,
-      pageAs: pageAs,
+      // Observers only when picked: responders, as every page was, otherwise.
+      ...(pageAs === OnCallPageAs.Observers ? { pageAs: pageAs } : {}),
       // The page's own message, when they wrote one.
       ...(message.trim() ? { message: message } : {}),
     });

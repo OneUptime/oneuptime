@@ -1,3 +1,4 @@
+import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
@@ -124,6 +125,20 @@ export default class OnCallObserverPaging {
     );
 
     return paged;
+  }
+
+  /*
+   * The policies of `policyIds` as a record lists its on-call policies, for
+   * OnCallNotRunOnCreate, which reads only their ids: a record created
+   * already acknowledged or resolved pages no one, and its feed names the
+   * policies its rules would have paged as observers with the rest.
+   */
+  public static toPolicies(policyIds: Array<string>): Array<OnCallDutyPolicy> {
+    return policyIds.map((policyId: string): OnCallDutyPolicy => {
+      const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+      policy._id = policyId;
+      return policy;
+    });
   }
 
   // The policies of `policyIds` that have a run about the record already.

@@ -3955,35 +3955,15 @@ export class Service extends ProjectReferencesService<Model> {
       .then(async () => {
         try {
           /*
-           * The policies the on-call rules page as observers
-           * (OnCallObserverPage): kept informed about an incident that is
-           * still going on, whoever is responding to it - one declared
-           * acknowledged too. One declared resolved is over.
+           * The incident's on-call policies, and those its on-call rules
+           * page as observers (OnCallObserverPage): the fan-out pages them
+           * when the incident starts open, and its feed says otherwise.
            */
-          if (isOngoing && onCallRulesPaging.observerPolicyIds.length > 0) {
-            await OnCallObserverPaging.pagePolicies({
-              projectId: createdItem.projectId!,
-              policyIds: onCallRulesPaging.observerPolicyIds,
-              holds: onCallRulesPaging.holds,
-              record: {
-                triggeredByIncidentId: createdItem.id!,
-                userNotificationEventType:
-                  UserNotificationEventType.IncidentCreated,
-              },
-            });
-          }
-
-          if (
-            createdItem.onCallDutyPolicies?.length &&
-            createdItem.onCallDutyPolicies?.length > 0
-          ) {
-            return await this.executeOnCallDutyPoliciesAsync(
-              createdItem,
-              startingStage,
-              onCallRulesPaging.holds,
-            );
-          }
-          return Promise.resolve();
+          return await this.executeOnCallDutyPoliciesAsync(
+            createdItem,
+            startingStage,
+            onCallRulesPaging,
+          );
         } catch (error) {
           logger.error(
             `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
@@ -4693,31 +4673,51 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
    * it or it is over: none of them runs, and its feed says so instead,
    * naming them (OnCallNotRunOnCreate).
    *
-   * A policy one of its on-call rules holds until working hours
-   * (`pagingHolds`, by policy id) runs held: it waits, paging nobody, until
+   * A policy one of its on-call rules holds until working hours (the
+   * paging's holds, by policy id) runs held: it waits, paging nobody, until
    * they begin (OnCallDutyPolicyRunWait). Every other policy pages now.
+   *
+   * The policies its on-call rules page as observers (OnCallObserverPage)
+   * page with them, kept informed, under the same rule: an incident
+   * declared already acknowledged or resolved pages no one, and its feed
+   * names them with the rest.
    */
   @CaptureSpan()
   private async executeOnCallDutyPoliciesAsync(
     createdItem: Model,
     startingStage: StartingStage,
-    pagingHolds?: Map<string, OnCallRulePagingHold> | undefined,
+    paging: OnCallRulesPaging = getNoOnCallRulesPaging(),
   ): Promise<void> {
+    const pagingHolds: Map<string, OnCallRulePagingHold> = paging.holds;
+
     try {
+      const responderPolicies: Array<OnCallDutyPolicy> =
+        createdItem.onCallDutyPolicies || [];
+
+      if (
+        responderPolicies.length === 0 &&
+        paging.observerPolicyIds.length === 0
+      ) {
+        return;
+      }
+
+      if (!StartingStageUtil.pagesOnCall(startingStage)) {
+        await OnCallNotRunOnCreate.createFeedItem({
+          record: { incidentId: createdItem.id! },
+          projectId: createdItem.projectId!,
+          stage: startingStage,
+          policies: [
+            ...responderPolicies,
+            ...OnCallObserverPaging.toPolicies(paging.observerPolicyIds),
+          ],
+        });
+        return;
+      }
+
       if (
         createdItem.onCallDutyPolicies?.length &&
         createdItem.onCallDutyPolicies?.length > 0
       ) {
-        if (!StartingStageUtil.pagesOnCall(startingStage)) {
-          await OnCallNotRunOnCreate.createFeedItem({
-            record: { incidentId: createdItem.id! },
-            projectId: createdItem.projectId!,
-            stage: startingStage,
-            policies: createdItem.onCallDutyPolicies,
-          });
-          return;
-        }
-
         // Execute all on-call policies in parallel
         const policyPromises: Promise<void>[] =
           createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
@@ -4742,6 +4742,17 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
 
         await Promise.allSettled(policyPromises);
       }
+
+      // Then those paged as observers, kept informed. Never throws.
+      await OnCallObserverPaging.pagePolicies({
+        projectId: createdItem.projectId!,
+        policyIds: paging.observerPolicyIds,
+        holds: pagingHolds,
+        record: {
+          triggeredByIncidentId: createdItem.id!,
+          userNotificationEventType: UserNotificationEventType.IncidentCreated,
+        },
+      });
     } catch (error) {
       logger.error(`Error in executeOnCallDutyPoliciesAsync: ${error}`, {
         projectId: createdItem.projectId?.toString(),

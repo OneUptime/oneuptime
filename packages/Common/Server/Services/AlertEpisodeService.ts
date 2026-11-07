@@ -731,34 +731,16 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
-        // Execute on-call duty policies
+        /*
+         * Execute on-call duty policies: the episode's, and those its
+         * on-call rules page as observers (OnCallObserverPage), when it
+         * starts open.
+         */
         try {
-          /*
-           * The policies the on-call rules page as observers
-           * (OnCallObserverPage): kept informed about an episode that is
-           * still going on, whoever is responding to it. One created
-           * resolved is over.
-           */
-          if (
-            StartingStageUtil.isOngoing(startingStage) &&
-            onCallRulesPaging.observerPolicyIds.length > 0
-          ) {
-            await OnCallObserverPaging.pagePolicies({
-              projectId: createdItem.projectId!,
-              policyIds: onCallRulesPaging.observerPolicyIds,
-              holds: onCallRulesPaging.holds,
-              record: {
-                triggeredByAlertEpisodeId: createdItem.id!,
-                userNotificationEventType:
-                  UserNotificationEventType.AlertEpisodeCreated,
-              },
-            });
-          }
-
           await this.executeEpisodeOnCallDutyPoliciesAsync(
             createdItem,
             startingStage,
-            onCallRulesPaging.holds,
+            onCallRulesPaging,
           );
         } catch (error) {
           logger.error(
@@ -934,17 +916,24 @@ export class Service extends ProjectReferencesService<Model> {
    * acknowledged or resolved, somebody is on it or it is over: none of them
    * runs, and its feed says so instead, naming them (OnCallNotRunOnCreate).
    *
-   * A policy one of its on-call rules holds until working hours
-   * (`pagingHolds`, by policy id) runs held: it waits, paging nobody, until
+   * A policy one of its on-call rules holds until working hours (the
+   * paging's holds, by policy id) runs held: it waits, paging nobody, until
    * they begin (OnCallDutyPolicyRunWait), and the feed says so beside it.
    * Every other policy pages now.
+   *
+   * The policies its on-call rules page as observers (OnCallObserverPage)
+   * page after them, kept informed, under the same rule: an episode
+   * created already acknowledged or resolved pages no one, and its feed
+   * names them with the rest.
    */
   @CaptureSpan()
   private async executeEpisodeOnCallDutyPoliciesAsync(
     createdItem: Model,
     startingStage: StartingStage,
-    pagingHolds?: Map<string, OnCallRulePagingHold> | undefined,
+    paging: OnCallRulesPaging = getNoOnCallRulesPaging(),
   ): Promise<void> {
+    const pagingHolds: Map<string, OnCallRulePagingHold> = paging.holds;
+
     if (!createdItem.id || !createdItem.projectId) {
       return;
     }
@@ -964,9 +953,12 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
+      const responderPolicies: Array<OnCallDutyPolicy> =
+        episodeWithPolicies?.onCallDutyPolicies || [];
+
       if (
-        !episodeWithPolicies?.onCallDutyPolicies?.length ||
-        episodeWithPolicies.onCallDutyPolicies.length === 0
+        responderPolicies.length === 0 &&
+        paging.observerPolicyIds.length === 0
       ) {
         return;
       }
@@ -976,17 +968,20 @@ export class Service extends ProjectReferencesService<Model> {
           record: { alertEpisodeId: createdItem.id },
           projectId: createdItem.projectId,
           stage: startingStage,
-          policies: episodeWithPolicies.onCallDutyPolicies,
+          policies: [
+            ...responderPolicies,
+            ...OnCallObserverPaging.toPolicies(paging.observerPolicyIds),
+          ],
         });
         return;
       }
 
-      // Execute all on-call policies in parallel
-      const policyPromises: Promise<void>[] =
-        episodeWithPolicies.onCallDutyPolicies.map(
+      if (responderPolicies.length > 0) {
+        // Execute all on-call policies in parallel
+        const policyPromises: Promise<void>[] = responderPolicies.map(
           (policy: OnCallDutyPolicy) => {
             const policyId: ObjectID = new ObjectID(policy._id as string);
-            const hold: OnCallRulePagingHold | undefined = pagingHolds?.get(
+            const hold: OnCallRulePagingHold | undefined = pagingHolds.get(
               policyId.toString(),
             );
 
@@ -1004,27 +999,26 @@ export class Service extends ProjectReferencesService<Model> {
           },
         );
 
-      await Promise.allSettled(policyPromises);
+        await Promise.allSettled(policyPromises);
 
-      // Update the flag to indicate on-call policy has been executed
-      await this.updateOneById({
-        id: createdItem.id,
-        data: {
-          isOnCallPolicyExecuted: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+        // Update the flag to indicate on-call policy has been executed
+        await this.updateOneById({
+          id: createdItem.id,
+          data: {
+            isOnCallPolicyExecuted: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
-      /*
-       * Create feed entry for on-call policy execution. A policy held until
-       * working hours says so after its name: it is not paging yet.
-       */
-      const policyLines: Array<{ name: string; waitingMessage?: string }> =
-        episodeWithPolicies.onCallDutyPolicies.map(
-          (policy: OnCallDutyPolicy) => {
-            const hold: OnCallRulePagingHold | undefined = pagingHolds?.get(
+        /*
+         * Create feed entry for on-call policy execution. A policy held
+         * until working hours says so after its name: it is not paging yet.
+         */
+        const policyLines: Array<{ name: string; waitingMessage?: string }> =
+          responderPolicies.map((policy: OnCallDutyPolicy) => {
+            const hold: OnCallRulePagingHold | undefined = pagingHolds.get(
               new ObjectID(policy._id as string).toString(),
             );
 
@@ -1032,25 +1026,37 @@ export class Service extends ProjectReferencesService<Model> {
               name: policy.name || "Unnamed Policy",
               ...(hold ? { waitingMessage: hold.waitingStatusMessage } : {}),
             };
-          },
-        );
+          });
 
-      let feedInfoInMarkdown: string = `#### On-Call Policy Executed\n\n`;
-      feedInfoInMarkdown += mdText`The following on-call ${policyLines.length === 1 ? "policy has" : "policies have"} been executed for this episode:\n\n`;
+        let feedInfoInMarkdown: string = `#### On-Call Policy Executed\n\n`;
+        feedInfoInMarkdown += mdText`The following on-call ${policyLines.length === 1 ? "policy has" : "policies have"} been executed for this episode:\n\n`;
 
-      // Each policy name is plain text.
-      for (const policyLine of policyLines) {
-        feedInfoInMarkdown += policyLine.waitingMessage
-          ? mdText`- ${policyLine.name}: not paging yet. ${policyLine.waitingMessage}\n`
-          : mdText`- ${policyLine.name}\n`;
+        // Each policy name is plain text.
+        for (const policyLine of policyLines) {
+          feedInfoInMarkdown += policyLine.waitingMessage
+            ? mdText`- ${policyLine.name}: not paging yet. ${policyLine.waitingMessage}\n`
+            : mdText`- ${policyLine.name}\n`;
+        }
+
+        await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
+          alertEpisodeId: createdItem.id,
+          projectId: createdItem.projectId,
+          alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OnCallPolicy,
+          displayColor: Purple500,
+          feedInfoInMarkdown: feedInfoInMarkdown,
+        });
       }
 
-      await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
-        alertEpisodeId: createdItem.id,
+      // Then those paged as observers, kept informed. Never throws.
+      await OnCallObserverPaging.pagePolicies({
         projectId: createdItem.projectId,
-        alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OnCallPolicy,
-        displayColor: Purple500,
-        feedInfoInMarkdown: feedInfoInMarkdown,
+        policyIds: paging.observerPolicyIds,
+        holds: pagingHolds,
+        record: {
+          triggeredByAlertEpisodeId: createdItem.id,
+          userNotificationEventType:
+            UserNotificationEventType.AlertEpisodeCreated,
+        },
       });
     } catch (error) {
       logger.error(`Error in executeEpisodeOnCallDutyPoliciesAsync: ${error}`, {
