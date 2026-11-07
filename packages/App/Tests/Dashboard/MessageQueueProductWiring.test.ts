@@ -73,6 +73,7 @@ const MESSAGE_QUEUE_PAGE_KEYS: ReadonlyArray<string> = [
   "MESSAGE_QUEUE_VIEW_METRICS",
   "MESSAGE_QUEUE_VIEW_OWNERS",
   "MESSAGE_QUEUE_VIEW_SETTINGS",
+  "MESSAGE_QUEUE_VIEW_AUDIT_LOGS",
   "MESSAGE_QUEUE_VIEW_DELETE",
   "MESSAGE_QUEUE_VIEW_DOCUMENTATION",
 ];
@@ -91,6 +92,7 @@ const VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Owners.tsx", "MESSAGE_QUEUE_VIEW_OWNERS"],
   ["Settings.tsx", "MESSAGE_QUEUE_VIEW_SETTINGS"],
   ["Documentation.tsx", "MESSAGE_QUEUE_VIEW_DOCUMENTATION"],
+  ["AuditLogs.tsx", "MESSAGE_QUEUE_VIEW_AUDIT_LOGS"],
   ["Delete.tsx", "MESSAGE_QUEUE_VIEW_DELETE"],
 ];
 
@@ -109,6 +111,7 @@ const VIEW_TAB_SEGMENTS: ReadonlyArray<[string, string]> = [
   ["MESSAGE_QUEUE_VIEW_METRICS", "metrics"],
   ["MESSAGE_QUEUE_VIEW_OWNERS", "owners"],
   ["MESSAGE_QUEUE_VIEW_SETTINGS", "settings"],
+  ["MESSAGE_QUEUE_VIEW_AUDIT_LOGS", "audit-logs"],
   ["MESSAGE_QUEUE_VIEW_DELETE", "delete"],
   ["MESSAGE_QUEUE_VIEW_DOCUMENTATION", "documentation"],
 ];
@@ -443,6 +446,10 @@ describe("every navigable page has breadcrumbs", () => {
     [
       "MESSAGE_QUEUE_VIEW_DOCUMENTATION",
       ["Project", "Queues", "View Queue", "Documentation"],
+    ],
+    [
+      "MESSAGE_QUEUE_VIEW_AUDIT_LOGS",
+      ["Project", "Queues", "View Queue", "Audit Logs"],
     ],
     [
       "MESSAGE_QUEUE_VIEW_DELETE",

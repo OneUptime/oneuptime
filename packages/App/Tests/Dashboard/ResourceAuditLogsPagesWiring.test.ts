@@ -54,6 +54,16 @@ const readCode: ReadCodeFunction = (...segments: Array<string>): string => {
     .replace(/\s+/g, " ");
 };
 
+/*
+ * A source file with only its white space collapsed: RouteMap's paths hold
+ * "/*" (a mount's wildcard), which readCode would take for a comment.
+ */
+const readDense: ReadCodeFunction = (...segments: Array<string>): string => {
+  return fs
+    .readFileSync(path.join(DASHBOARD_SRC, ...segments), "utf8")
+    .replace(/\s+/g, " ");
+};
+
 // Every resource's Audit Logs page: Pages/<Product>/<View>/AuditLogs.tsx.
 function resourceAuditLogPages(): Array<string> {
   const pages: Array<string> = [];
@@ -170,7 +180,7 @@ describe("the resources that had no Audit Logs page", () => {
         data.key,
       );
 
-      const routeMap: string = readCode("Utils", "RouteMap.ts");
+      const routeMap: string = readDense("Utils", "RouteMap.ts");
 
       expect(routeMap).toContain(
         `[PageMap.${data.key}]: \`\${RouteParams.ModelID}/audit-logs\``,
