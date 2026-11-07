@@ -15,8 +15,12 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+import useTableBoxWidth, {
+  TableBoxWidth,
+} from "Common/UI/Components/Table/useTableBoxWidth";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -560,10 +564,42 @@ const buildSection: SectionFactory = (
   };
 };
 
+/*
+ * WHERE THE MATRIX FITS.
+ *
+ * The table gives each channel a column of its own (a 36px switch with 12px
+ * either side) and the event's name and description what is left. On a
+ * phone, or beside the side menu on a tablet, that left the event's column
+ * a word a line wide beside eight channels. Below the width the table needs
+ * - the event's column at least 13rem, and each channel 60px - each event
+ * is drawn on its own instead: its name and description across the card,
+ * and its channels under them as switches that say their names.
+ */
+export const NOTIFICATION_MATRIX_EVENT_COLUMN_MIN_WIDTH_PX: number = 208;
+export const NOTIFICATION_MATRIX_CHANNEL_COLUMN_WIDTH_PX: number = 60;
+
+export const doesNotificationMatrixTableFit: (data: {
+  // The matrix's box, in pixels.
+  width: number;
+  // How many channels it shows.
+  channelCount: number;
+}) => boolean = (data: { width: number; channelCount: number }): boolean => {
+  return (
+    data.width >=
+    NOTIFICATION_MATRIX_EVENT_COLUMN_MIN_WIDTH_PX +
+      data.channelCount * NOTIFICATION_MATRIX_CHANNEL_COLUMN_WIDTH_PX
+  );
+};
+
 interface ChannelCellProps {
   channel: ChannelDef;
   enabled: boolean;
   onChange: (next: boolean) => Promise<void>;
+  /*
+   * "chip": the narrow layout's switch, which names its channel beside its
+   * state (Email ✓), where no column header says what it switches.
+   */
+  variant?: "cell" | "chip" | undefined;
 }
 
 const ChannelCell: FunctionComponent<ChannelCellProps> = (
@@ -584,9 +620,18 @@ const ChannelCell: FunctionComponent<ChannelCellProps> = (
     }
   };
 
+  const isChip: boolean = props.variant === "chip";
+
   const stateClasses: string = props.enabled
     ? "border-emerald-500/70 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-    : "border-gray-200 bg-white text-gray-400 hover:bg-gray-50 hover:border-gray-300";
+    : isChip
+      ? "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+      : "border-gray-200 bg-white text-gray-400 hover:bg-gray-50 hover:border-gray-300";
+
+  // A chip is as tall as a cell's switch, and as wide as its channel's name.
+  const shapeClasses: string = isChip
+    ? "h-9 max-w-full gap-1.5 px-3 text-xs font-medium"
+    : "h-9 w-9 justify-center";
 
   return (
     <button
@@ -602,9 +647,10 @@ const ChannelCell: FunctionComponent<ChannelCellProps> = (
               channel: translatableTerm(props.channel.label),
             })
       }
+      data-testid={isChip ? "notification-channel-chip" : undefined}
       onClick={handleClick}
       disabled={isBusy}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 ${getHandDrawnLookClassName(
+      className={`inline-flex items-center rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 ${shapeClasses} ${getHandDrawnLookClassName(
         {
           // While it saves it is busy: as it is, with no hover.
           className: stateClasses,
@@ -613,9 +659,20 @@ const ChannelCell: FunctionComponent<ChannelCellProps> = (
       )}`}
     >
       {props.enabled ? (
-        <Icon icon={IconProp.Check} className="h-4 w-4" size={SizeProp.Small} />
+        <Icon
+          icon={IconProp.Check}
+          className="h-4 w-4 flex-shrink-0"
+          size={SizeProp.Small}
+        />
       ) : (
-        <span className="block h-1.5 w-1.5 rounded-full bg-gray-300" />
+        <span className="block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-300" />
+      )}
+      {isChip ? (
+        <span className="min-w-0 truncate">
+          {translator.translateText(props.channel.label)}
+        </span>
+      ) : (
+        <></>
       )}
     </button>
   );
@@ -730,6 +787,18 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
   >(new Map());
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  /*
+   * The matrix's box, always drawn so its width is read from the first
+   * paint - the window's where nothing is laid out (a test).
+   */
+  const matrixBoxRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const matrixBoxWidth: TableBoxWidth = useTableBoxWidth(matrixBoxRef);
+  const isTableShown: boolean = doesNotificationMatrixTableFit({
+    width: matrixBoxWidth.boxWidth ?? matrixBoxWidth.windowWidth,
+    channelCount: shownChannels.length,
+  });
 
   const fetchSettings: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -944,136 +1013,208 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
     }
   };
 
+  /*
+   * The narrow layout: each event across the card, its channels under it as
+   * switches that name their channel, wrapping as the card allows.
+   */
+  const eventList: ReactElement = (
+    <ul
+      className="divide-y divide-gray-100"
+      data-testid="notification-matrix-list"
+    >
+      {props.section.events.map((event: EventDef) => {
+        const row: UserNotificationSetting | undefined = rowsByEvent.get(
+          event.type,
+        );
+        const eventName: string = translateString(event.label) || event.label;
+
+        return (
+          <li
+            key={event.type}
+            className="py-4 first:pt-0 last:pb-0"
+            data-testid="notification-matrix-event"
+          >
+            <div className="text-sm font-medium text-gray-900">{eventName}</div>
+            <div className="mt-0.5 text-xs text-gray-500">
+              {translateString(event.description)}
+            </div>
+            {event.hasPriorityChoice ? (
+              <PriorityChoice
+                priorities={caseValues ? caseValues.priorities : null}
+                chosenId={row?.minimumSecurityCasePriorityId}
+                onChange={async (next: string): Promise<void> => {
+                  await persistPriority(event.type, next);
+                }}
+              />
+            ) : null}
+            <div
+              role="group"
+              aria-label={eventName}
+              className="mt-3 flex flex-wrap gap-2"
+            >
+              {shownChannels.map((channel: ChannelDef) => {
+                const enabled: boolean = Boolean(
+                  row &&
+                    (row as unknown as Record<string, boolean>)[channel.key],
+                );
+
+                return (
+                  <ChannelCell
+                    key={channel.key}
+                    variant="chip"
+                    channel={channel}
+                    enabled={enabled}
+                    onChange={async (nextValue: boolean): Promise<void> => {
+                      await persistToggle(event.type, channel.key, nextValue);
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
   return (
     <Card
       title={props.section.title}
       description={props.section.description}
       bodyClassName="mt-5"
     >
-      {isLoading || !offeredWorkspaces || !customChannels.channels ? (
-        <ComponentLoader />
-      ) : (
-        <Fragment>
-          {error ? (
-            <div className="mb-4">
-              <ErrorMessage
-                message={error}
-                onRefreshClick={() => {
-                  fetchSettings().catch((err: Error) => {
-                    setError(API.getFriendlyMessage(err));
-                  });
-                }}
-              />
-            </div>
-          ) : null}
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th
-                    scope="col"
-                    className="sticky left-0 z-0 bg-white py-3 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500"
-                  >
-                    {translateString("Event")}
-                  </th>
-                  {shownChannels.map((channel: ChannelDef) => {
-                    /*
-                     * Top-aligned, so the icons stay in one row when a
-                     * label takes two lines ("Microsoft Teams" in a narrow
-                     * column, or a long translation such as "Correo
-                     * electronico"); the Event header, centred, then sits
-                     * level with the labels' first line.
-                     */
-                    return (
+      <div ref={matrixBoxRef} data-testid="notification-matrix">
+        {isLoading || !offeredWorkspaces || !customChannels.channels ? (
+          <ComponentLoader />
+        ) : (
+          <Fragment>
+            {error ? (
+              <div className="mb-4">
+                <ErrorMessage
+                  message={error}
+                  onRefreshClick={() => {
+                    fetchSettings().catch((err: Error) => {
+                      setError(API.getFriendlyMessage(err));
+                    });
+                  }}
+                />
+              </div>
+            ) : null}
+            {isTableShown ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
                       <th
-                        key={channel.key}
                         scope="col"
-                        className="px-3 py-3 text-center align-top"
+                        className="sticky left-0 z-0 bg-white py-3 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500"
                       >
-                        <div className="flex flex-col items-center gap-1">
-                          <Icon
-                            icon={channel.icon}
-                            className="h-4 w-4 text-gray-500"
-                            size={SizeProp.Regular}
-                          />
-                          <span className="text-[11px] font-medium text-gray-600">
-                            {translateString(channel.label)}
-                          </span>
-                        </div>
+                        {translateString("Event")}
                       </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {props.section.events.map((event: EventDef) => {
-                  const row: UserNotificationSetting | undefined =
-                    rowsByEvent.get(event.type);
-                  return (
-                    <tr
-                      key={event.type}
-                      className="group hover:bg-gray-50/60 transition-colors"
-                    >
-                      <td className="sticky left-0 z-0 bg-white py-4 pr-4 align-top group-hover:bg-gray-50/60 transition-colors">
-                        <div className="text-sm font-medium text-gray-900">
-                          {translateString(event.label)}
-                        </div>
-                        <div className="mt-0.5 text-xs text-gray-500 max-w-md">
-                          {translateString(event.description)}
-                        </div>
-                        {event.hasPriorityChoice ? (
-                          <PriorityChoice
-                            priorities={
-                              caseValues ? caseValues.priorities : null
-                            }
-                            chosenId={row?.minimumSecurityCasePriorityId}
-                            onChange={async (next: string): Promise<void> => {
-                              await persistPriority(event.type, next);
-                            }}
-                          />
-                        ) : null}
-                      </td>
                       {shownChannels.map((channel: ChannelDef) => {
-                        const enabled: boolean = Boolean(
-                          row &&
-                            (row as unknown as Record<string, boolean>)[
-                              channel.key
-                            ],
-                        );
+                        /*
+                         * Top-aligned, so the icons stay in one row when a
+                         * label takes two lines ("Microsoft Teams" in a narrow
+                         * column, or a long translation such as "Correo
+                         * electronico"); the Event header, centred, then sits
+                         * level with the labels' first line.
+                         */
                         return (
-                          <td
+                          <th
                             key={channel.key}
-                            className="px-3 py-4 text-center align-middle"
+                            scope="col"
+                            className="px-3 py-3 text-center align-top"
                           >
-                            <ChannelCell
-                              channel={channel}
-                              enabled={enabled}
-                              onChange={async (
-                                nextValue: boolean,
-                              ): Promise<void> => {
-                                await persistToggle(
-                                  event.type,
-                                  channel.key,
-                                  nextValue,
-                                );
-                              }}
-                            />
-                          </td>
+                            <div className="flex flex-col items-center gap-1">
+                              <Icon
+                                icon={channel.icon}
+                                className="h-4 w-4 text-gray-500"
+                                size={SizeProp.Regular}
+                              />
+                              <span className="text-[11px] font-medium text-gray-600">
+                                {translateString(channel.label)}
+                              </span>
+                            </div>
+                          </th>
                         );
                       })}
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <p className="mt-4 text-xs text-gray-500">
-            {translator.translateText(
-              "Click any channel to switch it on or off. Changes save automatically.",
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {props.section.events.map((event: EventDef) => {
+                      const row: UserNotificationSetting | undefined =
+                        rowsByEvent.get(event.type);
+                      return (
+                        <tr
+                          key={event.type}
+                          className="group hover:bg-gray-50/60 transition-colors"
+                        >
+                          <td className="sticky left-0 z-0 bg-white py-4 pr-4 align-top group-hover:bg-gray-50/60 transition-colors">
+                            <div className="text-sm font-medium text-gray-900">
+                              {translateString(event.label)}
+                            </div>
+                            <div className="mt-0.5 text-xs text-gray-500 max-w-md">
+                              {translateString(event.description)}
+                            </div>
+                            {event.hasPriorityChoice ? (
+                              <PriorityChoice
+                                priorities={
+                                  caseValues ? caseValues.priorities : null
+                                }
+                                chosenId={row?.minimumSecurityCasePriorityId}
+                                onChange={async (
+                                  next: string,
+                                ): Promise<void> => {
+                                  await persistPriority(event.type, next);
+                                }}
+                              />
+                            ) : null}
+                          </td>
+                          {shownChannels.map((channel: ChannelDef) => {
+                            const enabled: boolean = Boolean(
+                              row &&
+                                (row as unknown as Record<string, boolean>)[
+                                  channel.key
+                                ],
+                            );
+                            return (
+                              <td
+                                key={channel.key}
+                                className="px-3 py-4 text-center align-middle"
+                              >
+                                <ChannelCell
+                                  channel={channel}
+                                  enabled={enabled}
+                                  onChange={async (
+                                    nextValue: boolean,
+                                  ): Promise<void> => {
+                                    await persistToggle(
+                                      event.type,
+                                      channel.key,
+                                      nextValue,
+                                    );
+                                  }}
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              eventList
             )}
-          </p>
-        </Fragment>
-      )}
+            <p className="mt-4 text-xs text-gray-500">
+              {translator.translateText(
+                "Click any channel to switch it on or off. Changes save automatically.",
+              )}
+            </p>
+          </Fragment>
+        )}
+      </div>
     </Card>
   );
 };
@@ -1337,6 +1478,13 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             children: renderSections(security),
           },
         ]}
+        /*
+         * Seven areas: beside the side menu on a tablet, or on a phone, one
+         * row of them ran past the page (Security and On-Call out of sight,
+         * the page scrolling sideways). They wrap onto a second row
+         * instead, every area in sight, as the matrix below them does.
+         */
+        wrap={true}
         onTabChange={() => {}}
       />
     </Fragment>

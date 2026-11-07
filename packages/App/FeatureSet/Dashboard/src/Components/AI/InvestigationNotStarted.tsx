@@ -21,6 +21,7 @@ import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 interface ComponentProps {
   subjectType: "incident" | "alert";
@@ -338,7 +339,9 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
             <span>{sourceLabel}</span>
             {checkedAt && reason ? (
               <>
-                <span aria-hidden="true">·</span>
+                <span aria-hidden="true">
+                  <InlineSeparator markOnly />
+                </span>
                 <time dateTime={reason.evaluatedAt}>{checkedAt}</time>
               </>
             ) : null}

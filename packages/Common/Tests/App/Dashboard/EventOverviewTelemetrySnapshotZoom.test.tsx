@@ -33,6 +33,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * - the page's background refresh (any state change or note) rebuilds the
  *   snapshot and must not throw the zoom away.
  *
+ * Issue #5954 made a metrics monitor's snapshot a metric investigation: it
+ * charts the metric around the event's start rather than the window the
+ * monitor evaluated (which it shades), names that range on its picker, and
+ * zooms, resets and keeps its zoom across the refresh as above, every tab
+ * following it.
+ *
  * The pages are rendered for real with every heavy card stubbed (the same
  * stubs as EventOverviewPages.test). The snapshot card hands the page's
  * primary element through untouched and records the window the page hands
@@ -71,6 +77,8 @@ function stubModule(key: string): {
 interface MockChartsProps {
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
   onTimeRangeReset?: (() => void) | undefined;
+  timeReferenceLines?: Array<{ label?: string; subtitle?: string }> | undefined;
+  referenceRegions?: Array<{ label?: string }> | undefined;
 }
 
 let mockLatestCharts: MockChartsProps | null = null;
@@ -130,6 +138,19 @@ jest.mock(
         clearQueryTopNOverridesForScope: () => {
           return undefined;
         },
+      },
+    };
+  },
+);
+
+// Other incidents, alerts and changes on the charts: none here.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/UseEventTimeReferenceLines",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return { lines: [], markerCount: 0 };
       },
     };
   },
@@ -362,7 +383,6 @@ import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import Route from "../../../Types/API/Route";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
-import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import MetricViewData from "../../../Types/Metrics/MetricViewData";
@@ -379,6 +399,12 @@ const NOW: Date = new Date("2026-09-14T19:00:00.000Z");
 // The window the monitor evaluated over when it opened the event.
 const SNAPSHOT_START: Date = new Date("2026-09-14T17:45:00.000Z");
 const SNAPSHOT_END: Date = new Date("2026-09-14T18:00:00.000Z");
+/*
+ * What the investigation charts first: thirty minutes either side of the
+ * event's start (SNAPSHOT_END), which takes in all that was evaluated.
+ */
+const AROUND_START_START: Date = new Date("2026-09-14T17:30:00.000Z");
+const AROUND_START_END: Date = new Date("2026-09-14T18:30:00.000Z");
 
 const PAGE_PROPS: PageComponentProps = {
   pageRoute: new Route("/overview"),
@@ -574,15 +600,18 @@ async function press(label: string): Promise<void> {
   fireEvent.click(await screen.findByRole("button", { name: label }));
 }
 
-function snapshotBadgeTitle(): string {
-  return OneUptimeDate.getInBetweenDatesAsFormattedString(
-    new InBetween<Date>(SNAPSHOT_START, SNAPSHOT_END),
+// The range the investigation's picker names.
+function pickedRange(): string {
+  return (
+    screen.getByTestId("metric-investigation-time-button").textContent || ""
   );
 }
 
 beforeEach(() => {
   jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
   jest.setSystemTime(NOW);
+  // The investigation keeps what the reader changed in the page's URL.
+  window.history.replaceState({}, "", "/");
   mockLatestCharts = null;
   fetchResultsMock.mockReset();
   fetchResultsMock.mockImplementation(() => {
@@ -614,28 +643,39 @@ describe.each([
 ])(
   "the %s overview's telemetry snapshot",
   (_name: string, pageCase: PageCase) => {
-    test("charts the snapshot window, names it in the badge, and offers a drag", async () => {
+    test("charts the metric around the start, names the range on its picker, and offers a drag", async () => {
       await renderSettled(pageCase);
 
       expect(lastFetchedWindow()).toEqual(
-        windowOf(SNAPSHOT_START, SNAPSHOT_END),
+        windowOf(AROUND_START_START, AROUND_START_END),
       );
-      expect(screen.getByText(snapshotBadgeTitle())).toBeInTheDocument();
-      // The chart used to refuse a drag on this page.
+      expect(pickedRange()).toContain("Around the start");
+      // What the monitor evaluated is shaded, not the whole chart.
+      expect(
+        (charts().referenceRegions || []).map(
+          (region: { label?: string }): string => {
+            return region.label || "";
+          },
+        ),
+      ).toEqual(["What the monitor saw"]);
+      // Its start is marked as its own page names it.
+      expect(charts().timeReferenceLines?.[0]?.label).toBe(
+        pageCase.noun === "incident" ? "Declared" : "Created",
+      );
       expect(charts().onTimeRangeSelect).toBeInstanceOf(Function);
       expect(charts().onTimeRangeReset).toBeUndefined();
       expect(
         screen.queryByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
       ).toBeNull();
+      // The other tabs are handed the same range.
+      expect(windowHandedToTheTabs()).toEqual(
+        windowOf(AROUND_START_START, AROUND_START_END),
+      );
     });
 
-    test("a drag zooms the whole snapshot: no page reload, the badge unchanged, the other tabs handed the slice", async () => {
+    test("a drag zooms the whole card: no page reload, the other tabs handed the slice", async () => {
       await renderSettled(pageCase);
       const pageReads: number = getItemMock.mock.calls.length;
-      // Before the drag, the other tabs are handed the snapshot window.
-      expect(windowHandedToTheTabs()).toEqual(
-        windowOf(SNAPSHOT_START, SNAPSHOT_END),
-      );
 
       await press("Drag across the snapshot chart");
 
@@ -645,8 +685,8 @@ describe.each([
         );
       });
       expect(getItemMock.mock.calls.length).toBe(pageReads);
-      expect(screen.getByText(snapshotBadgeTitle())).toBeInTheDocument();
-      // The snapshot's other tabs follow the zoom: they show the slice.
+      expect(pickedRange()).not.toContain("Around the start");
+      // The card's other tabs follow the zoom: they show the slice.
       expect(windowHandedToTheTabs()).toEqual(
         windowOf(MOCK_DRAG.start, MOCK_DRAG.end),
       );
@@ -656,7 +696,7 @@ describe.each([
       expect(charts().onTimeRangeReset).toBeInstanceOf(Function);
     });
 
-    test("a reset hands the other tabs the snapshot window again", async () => {
+    test("a reset hands the other tabs the range picked before again", async () => {
       await renderSettled(pageCase);
       await press("Drag across the snapshot chart");
       await waitFor(() => {
@@ -671,12 +711,13 @@ describe.each([
 
       await waitFor(() => {
         expect(windowHandedToTheTabs()).toEqual(
-          windowOf(SNAPSHOT_START, SNAPSHOT_END),
+          windowOf(AROUND_START_START, AROUND_START_END),
         );
       });
+      expect(pickedRange()).toContain("Around the start");
     });
 
-    test("a double-click returns to the snapshot window", async () => {
+    test("a double-click returns to the range picked before", async () => {
       await renderSettled(pageCase);
 
       await press("Drag across the snapshot chart");
@@ -687,7 +728,7 @@ describe.each([
 
       await waitFor(() => {
         expect(lastFetchedWindow()).toEqual(
-          windowOf(SNAPSHOT_START, SNAPSHOT_END),
+          windowOf(AROUND_START_START, AROUND_START_END),
         );
       });
       expect(charts().onTimeRangeReset).toBeUndefined();
@@ -696,7 +737,7 @@ describe.each([
       ).toBeNull();
     });
 
-    test("Reset zoom returns to the snapshot window too", async () => {
+    test("Reset zoom returns to it too", async () => {
       await renderSettled(pageCase);
 
       await press("Drag across the snapshot chart");
@@ -706,7 +747,7 @@ describe.each([
 
       await waitFor(() => {
         expect(lastFetchedWindow()).toEqual(
-          windowOf(SNAPSHOT_START, SNAPSHOT_END),
+          windowOf(AROUND_START_START, AROUND_START_END),
         );
       });
     });
@@ -746,6 +787,31 @@ describe.each([
       expect(windowHandedToTheTabs()).toEqual(
         windowOf(MOCK_DRAG.start, MOCK_DRAG.end),
       );
+    });
+
+    test("what the reader changed is in the page's address, and only that", async () => {
+      await renderSettled(pageCase);
+
+      expect(window.location.search).toBe("");
+
+      await press("Drag across the snapshot chart");
+
+      await waitFor(() => {
+        expect(
+          new URLSearchParams(window.location.search).get("metricsTime"),
+        ).toBe("custom");
+      });
+      expect(
+        new URLSearchParams(window.location.search).get("metricsStart"),
+      ).toBe(MOCK_DRAG.start.toISOString());
+
+      fireEvent.click(
+        await screen.findByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
+      );
+
+      await waitFor(() => {
+        expect(window.location.search).toBe("");
+      });
     });
   },
 );

@@ -185,17 +185,20 @@ describe("the snapshot window stays visible on every card", () => {
     ["incident page", INCIDENT_VIEW],
     ["shared snapshot panel", SNAPSHOT_PANEL],
   ])(
-    "%s badges all four preview cards with the window",
+    "%s badges every preview card with the window",
     (_name: string, source: string) => {
       /*
        * Card ownership moved from the components to the hosts when the tables
        * were swapped out — the tables drew their own card, the explorers do
        * not. The badge had to move with it: a snapshot with nothing on screen
-       * claiming a window reads as live data.
+       * claiming a window reads as live data. Logs, spans and exceptions: a
+       * metric snapshot is the metric investigation (issue #5954), whose
+       * cards carry its time picker instead.
        */
       expect(
         countOccurrences(source, "rightElement={snapshotWindowAlert}"),
-      ).toBe(4);
+      ).toBe(3);
+      expect(source).toContain("<EventMetricInvestigationPanel");
     },
   );
 

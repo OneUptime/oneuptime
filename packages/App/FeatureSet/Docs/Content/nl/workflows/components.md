@@ -235,6 +235,7 @@ Als je een workflow maakt, hebben de sjablonen onder **Bereikbaarheid** deze kla
 | **Page About** | Waar de oproep over gaat: **A new alert**, **An incident** of **An alert**. De oproep bevestigen bevestigt dat ook. |
 | **Title** en **Message** | Voor een nieuwe waarschuwing. OneUptime maakt er een waarschuwing van, en die blijft tussen je waarschuwingen staan zoals elke andere. |
 | **Incident ID** of **Alert ID** | Voor een incident of een waarschuwing die er al is, meestal die waarmee de workflow begon: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Page As** | Voor een incident of een waarschuwing die er al is, onder **Meer velden**. **Responders** nemen het op zich. **Observers** worden op de hoogte gehouden terwijl anderen reageren: hun oproep bevestigen zegt alleen dat ze die gezien hebben, en het incident of de waarschuwing wordt niet bevestigd. |
 | **Severity** | Voor een nieuwe waarschuwing, onder **Meer velden**. Die bepaalt welke bereikbaarheidsregels van ieder persoon hem of haar oproepen. Leeg gelaten is het de ernstigste van het project. |
 
 Een blok dat wordt toegevoegd aan een workflow die met een incident of een waarschuwing begint, is al ingesteld om over dat record op te roepen, zodat het alleen nog vraagt wie wordt opgeroepen.

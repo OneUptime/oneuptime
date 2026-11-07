@@ -1,4 +1,5 @@
 import CloudAiTargets, {
+  BEANSTALK_LISTING_NOTE,
   CloudChangeTarget,
   CloudChangeTargetCheck,
   getCloudUndoCommandText,
@@ -230,7 +231,34 @@ describe("a change's target in the account's inventory", () => {
     expect(check.refusal).toContain(ECS);
     expect(check.refusal).toContain("not in this AWS account's inventory");
     expect(check.refusal).toContain("query_cloud_resource");
+    expect(check.refusal).not.toContain(BEANSTALK_LISTING_NOTE);
     expect(check.target).toBeNull();
+  });
+
+  test("an Elastic Beanstalk environment the inventory does not list says how its connection lists them", async () => {
+    resourceFind.mockResolvedValue(null);
+
+    const environment: string =
+      "arn:aws:elasticbeanstalk:us-east-1:123456789012:environment/shop/shop-prod";
+    const check: CloudChangeTargetCheck = await CloudAiTargets.checkChange({
+      projectId: PROJECT_ID,
+      resourceType: AiResourceType.AwsAccount,
+      cloudAccountId: ACCOUNT_ROW_ID,
+      tier: ResourceCommandTier.RiskyWrite,
+      command: `cloud restart-service ${environment}`,
+    });
+
+    expect(check.refusal).toContain(
+      `${environment} is not in this AWS account's inventory`,
+    );
+    expect(check.refusal?.endsWith(BEANSTALK_LISTING_NOTE)).toBe(true);
+    expect(BEANSTALK_LISTING_NOTE).toBe(
+      "OneUptime lists an account's Elastic Beanstalk environments once its cloud connection may read them (elasticbeanstalk:DescribeEnvironments): run the connection's setup command again to allow it.",
+    );
+    expect(CloudAiTargets.isBeanstalkEnvironmentId("aws", environment)).toBe(
+      true,
+    );
+    expect(CloudAiTargets.isBeanstalkEnvironmentId("aws", ECS)).toBe(false);
   });
 
   test("a read is never checked", async () => {

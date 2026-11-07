@@ -79,6 +79,12 @@ export function getMessageQueueBreadcrumbs(
       "View Queue",
       "Documentation",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Queues",
+      "View Queue",
+      "Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MESSAGE_QUEUE_VIEW_DELETE, [
       "Project",
       "Queues",

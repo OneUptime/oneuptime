@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  AzureDevOpsRepositoryAddress,
   CODE_HOST_FACTS,
   CodeHost,
   CodeHostCapability,
@@ -277,7 +278,26 @@ describe("a repository's web pages", () => {
     ).toBeNull();
   });
 
-  test("a Git server's pages are known only for the public services OneUptime names", () => {
+  test("a Git server's pages are known only for the public services OneUptime names, and an Azure DevOps Server's by its _git", () => {
+    expect(
+      CodeHost.getWebFlavor(
+        CodeRepositoryType.Git,
+        "https://tfs.example.com/tfs/DefaultCollection/Shop/_git/checkout",
+      ),
+    ).toBe(CodeHostWebFlavor.AzureDevOps);
+    expect(
+      CodeHost.getWebFlavor(
+        CodeRepositoryType.Git,
+        "https://tfs.example.com/DefaultCollection/_git/checkout",
+      ),
+    ).toBe(CodeHostWebFlavor.AzureDevOps);
+    // _git with no collection before it is no Azure DevOps address.
+    expect(
+      CodeHost.getWebFlavor(
+        CodeRepositoryType.Git,
+        "https://git.example.com/_git/checkout",
+      ),
+    ).toBeNull();
     expect(
       CodeHost.getWebFlavor(CodeRepositoryType.Git, "https://github.com/a/b"),
     ).toBe(CodeHostWebFlavor.GitHub);
@@ -300,6 +320,252 @@ describe("a repository's web pages", () => {
         "https://gitlab.example.com/a/b",
       ),
     ).toBe(CodeHostWebFlavor.GitLab);
+  });
+});
+
+describe("a Git repository on Azure DevOps, by the address it is cloned by", () => {
+  function read(address: string): AzureDevOpsRepositoryAddress | null {
+    return CodeHostUrl.readAzureDevOpsRepository(address);
+  }
+
+  test("on Azure DevOps Services, its project's API and its page", () => {
+    expect(read("https://dev.azure.com/acme/Shop/_git/checkout")).toEqual({
+      isServices: true,
+      projectName: "Shop",
+      repositoryName: "checkout",
+      apiUrl: "https://dev.azure.com/acme/Shop/_apis/git/repositories/checkout",
+      webUrl: "https://dev.azure.com/acme/Shop/_git/checkout",
+    });
+
+    // The older address, with the collection it may still name or without.
+    expect(read("https://acme.visualstudio.com/Shop/_git/checkout")).toEqual({
+      isServices: true,
+      projectName: "Shop",
+      repositoryName: "checkout",
+      apiUrl:
+        "https://acme.visualstudio.com/Shop/_apis/git/repositories/checkout",
+      webUrl: "https://acme.visualstudio.com/Shop/_git/checkout",
+    });
+    expect(
+      read("https://acme.visualstudio.com/DefaultCollection/Shop/_git/checkout")
+        ?.apiUrl,
+    ).toBe(
+      "https://acme.visualstudio.com/DefaultCollection/Shop/_apis/git/repositories/checkout",
+    );
+  });
+
+  test("on an Azure DevOps Server, with its /tfs virtual directory or without, and on its own port", () => {
+    expect(
+      read("https://tfs.example.com/DefaultCollection/Shop/_git/checkout"),
+    ).toEqual({
+      isServices: false,
+      projectName: "Shop",
+      repositoryName: "checkout",
+      apiUrl:
+        "https://tfs.example.com/DefaultCollection/Shop/_apis/git/repositories/checkout",
+      webUrl: "https://tfs.example.com/DefaultCollection/Shop/_git/checkout",
+    });
+    expect(
+      read("https://tfs.example.com/tfs/DefaultCollection/Shop/_git/checkout"),
+    ).toEqual({
+      isServices: false,
+      projectName: "Shop",
+      repositoryName: "checkout",
+      apiUrl:
+        "https://tfs.example.com/tfs/DefaultCollection/Shop/_apis/git/repositories/checkout",
+      webUrl:
+        "https://tfs.example.com/tfs/DefaultCollection/Shop/_git/checkout",
+    });
+    expect(
+      read("http://TFS.example.com:8080/tfs/Fabrikam/Shop/_git/checkout")
+        ?.apiUrl,
+    ).toBe(
+      "http://tfs.example.com:8080/tfs/Fabrikam/Shop/_apis/git/repositories/checkout",
+    );
+    // Another virtual directory: everything before the project is the collection's.
+    expect(
+      read("https://devops.example.com/azure/tfs/Fabrikam/Shop/_git/checkout")
+        ?.apiUrl,
+    ).toBe(
+      "https://devops.example.com/azure/tfs/Fabrikam/Shop/_apis/git/repositories/checkout",
+    );
+  });
+
+  test("a repository named as its project is, whose address leaves the project out, is read in that project", () => {
+    for (const [address, apiUrl] of [
+      [
+        "https://dev.azure.com/acme/_git/Shop",
+        "https://dev.azure.com/acme/Shop/_apis/git/repositories/Shop",
+      ],
+      [
+        "https://acme.visualstudio.com/_git/Shop",
+        "https://acme.visualstudio.com/Shop/_apis/git/repositories/Shop",
+      ],
+      [
+        "https://acme.visualstudio.com/DefaultCollection/_git/Shop",
+        "https://acme.visualstudio.com/DefaultCollection/Shop/_apis/git/repositories/Shop",
+      ],
+      [
+        "https://tfs.example.com/DefaultCollection/_git/Shop",
+        "https://tfs.example.com/DefaultCollection/Shop/_apis/git/repositories/Shop",
+      ],
+      [
+        "https://tfs.example.com/tfs/DefaultCollection/_git/Shop",
+        "https://tfs.example.com/tfs/DefaultCollection/Shop/_apis/git/repositories/Shop",
+      ],
+    ] as Array<[string, string]>) {
+      const repository: AzureDevOpsRepositoryAddress | null = read(address);
+
+      expect(repository?.projectName).toBe("Shop");
+      expect(repository?.repositoryName).toBe("Shop");
+      expect(repository?.apiUrl).toBe(apiUrl);
+      // Its page is the address it was given.
+      expect(repository?.webUrl).toBe(address);
+    }
+  });
+
+  test("names with spaces are read whole and written back encoded", () => {
+    const repository: AzureDevOpsRepositoryAddress | null = read(
+      "https://dev.azure.com/acme/My%20Shop/_git/Check%20Out",
+    );
+
+    expect(repository?.projectName).toBe("My Shop");
+    expect(repository?.repositoryName).toBe("Check Out");
+    expect(repository?.apiUrl).toBe(
+      "https://dev.azure.com/acme/My%20Shop/_apis/git/repositories/Check%20Out",
+    );
+  });
+
+  test("a clone option before the name, or .git after it, is not part of the repository", () => {
+    for (const address of [
+      "https://dev.azure.com/acme/Shop/_git/_full/checkout",
+      "https://dev.azure.com/acme/Shop/_git/_optimized/checkout",
+      "https://dev.azure.com/acme/Shop/_git/checkout.git",
+    ]) {
+      expect(read(address)?.repositoryName).toBe("checkout");
+      expect(read(address)?.webUrl).toBe(
+        "https://dev.azure.com/acme/Shop/_git/checkout",
+      );
+    }
+  });
+
+  test("any other address is not Azure DevOps", () => {
+    for (const address of [
+      "https://git.example.com/team/app.git",
+      "https://github.com/acme/app",
+      "https://bitbucket.org/acme/app.git",
+      // _git with no collection before it, or only the virtual directory.
+      "https://git.example.com/_git/app",
+      "https://tfs.example.com/tfs/_git/app",
+      // Something after the repository's name, or no name.
+      "https://tfs.example.com/DefaultCollection/Shop/_git/app/extra",
+      "https://tfs.example.com/DefaultCollection/Shop/_git",
+      "https://tfs.example.com/DefaultCollection/Shop/_git/.git",
+      // dev.azure.com names one organization and one project, no more.
+      "https://dev.azure.com/acme/Shop/More/_git/app",
+      "https://dev.azure.com/_git/app",
+      "https://acme.visualstudio.com/One/Two/_git/app",
+      "ssh://git@ssh.dev.azure.com/v3/acme/Shop/checkout",
+      "git@ssh.dev.azure.com:v3/acme/Shop/checkout",
+      "https://tfs.example.com/Coll/Shop/_git/%E0%A4%A",
+      "",
+      "not an address",
+    ]) {
+      expect(read(address)).toBeNull();
+    }
+  });
+
+  test("OneUptime reads the code of a GitHub, GitLab or Forgejo repository, and of a Git repository on Azure DevOps alone", () => {
+    const can: (
+      type: CodeRepositoryType,
+      repositoryUrl: string | null,
+    ) => boolean = (
+      type: CodeRepositoryType,
+      repositoryUrl: string | null,
+    ): boolean => {
+      return CodeHost.canReadRepositoryCode({ type, repositoryUrl });
+    };
+
+    for (const type of [
+      CodeRepositoryType.GitHub,
+      CodeRepositoryType.GitLab,
+      CodeRepositoryType.Forgejo,
+    ]) {
+      expect(can(type, null)).toBe(true);
+      expect(can(type, "https://git.example.com/team/app")).toBe(true);
+    }
+
+    expect(
+      can(CodeRepositoryType.Git, "https://dev.azure.com/acme/Shop/_git/app"),
+    ).toBe(true);
+    expect(
+      can(
+        CodeRepositoryType.Git,
+        "https://acme.visualstudio.com/Shop/_git/app",
+      ),
+    ).toBe(true);
+    expect(
+      can(
+        CodeRepositoryType.Git,
+        "https://tfs.example.com/tfs/DefaultCollection/Shop/_git/app",
+      ),
+    ).toBe(true);
+    expect(
+      can(CodeRepositoryType.Git, "https://git.example.com/team/app.git"),
+    ).toBe(false);
+    expect(
+      can(CodeRepositoryType.Git, "https://bitbucket.org/acme/app.git"),
+    ).toBe(false);
+    expect(can(CodeRepositoryType.Git, null)).toBe(false);
+    // The capability table itself stays the host's: a Git server reads branches.
+    expect(
+      CodeHost.can(CodeRepositoryType.Git, CodeHostCapability.ReadCode),
+    ).toBe(false);
+  });
+
+  test("an Azure DevOps Server repository's links are Azure DevOps', on the repository's page", () => {
+    const webUrl: string =
+      "https://tfs.example.com/tfs/DefaultCollection/Shop/_git/checkout";
+
+    expect(
+      CodeHost.getFileWebUrl({
+        type: CodeRepositoryType.Git,
+        webUrl,
+        branchName: "main",
+        path: "src/Billing/Charge Card.cs",
+        lineNumber: 42,
+      }),
+    ).toBe(
+      `${webUrl}?path=%2Fsrc%2FBilling%2FCharge%20Card.cs&version=GBmain&line=42`,
+    );
+    expect(
+      CodeHost.getBranchWebUrl({
+        type: CodeRepositoryType.Git,
+        webUrl,
+        branchName: "oneuptime/fix-42",
+      }),
+    ).toBe(`${webUrl}?version=GBoneuptime%2Ffix-42`);
+    expect(
+      CodeHost.getNewPullRequestWebUrl({
+        type: CodeRepositoryType.Git,
+        webUrl,
+        branchName: "oneuptime/fix-42",
+        baseBranchName: "main",
+      }),
+    ).toBe(
+      `${webUrl}/pullrequestcreate?sourceRef=oneuptime%2Ffix-42&targetRef=main`,
+    );
+    // A clone option is the clone's, not the page's.
+    expect(
+      CodeHost.getFileWebUrl({
+        type: CodeRepositoryType.Git,
+        webUrl: "https://dev.azure.com/acme/Shop/_git/_full/checkout",
+        branchName: "main",
+        path: "README.md",
+      }),
+    ).toBe(
+      "https://dev.azure.com/acme/Shop/_git/checkout?path=%2FREADME.md&version=GBmain",
+    );
   });
 });
 

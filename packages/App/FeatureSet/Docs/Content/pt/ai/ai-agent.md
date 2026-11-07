@@ -221,11 +221,19 @@ Abra **Repositórios** no menu lateral do Código e clique em **Conectar reposit
 | **GitHub** | A GitHub App do OneUptime, instalada nos repositórios que ela escolhe. | Tudo o que esta página descreve, com os comandos do GitHub (veja [GitHub App](/docs/ai/github-app)) e um check em cada [revisão de produção](#revisão-de-produção-de-pull-requests). |
 | **GitLab**, no GitLab.com ou no seu | Um token de acesso: um token pessoal, de grupo ou de projeto com os escopos `api` e `write_repository`, e pelo menos o papel Developer. | Tarefas e correções, cada alteração num merge request; as [revisões de produção](#revisão-de-produção-de-pull-requests); o seletor de branch; o código por onde passa um stack trace ou um perfil; os commits de um deploy; se uma correção foi mesclada e o que a produção mostrou depois que ela foi entregue. |
 | **Forgejo ou Gitea**, no Codeberg ou no seu | Um token de acesso com acesso de leitura e escrita aos repositórios e às issues, e de leitura ao usuário. | O mesmo que no GitLab, cada alteração num pull request. |
-| **Qualquer servidor Git**, por HTTPS | O endereço com que você clona o repositório, um nome de usuário e uma senha ou token de acesso que possa ler o repositório e enviar para ele. | A IA clona o repositório e envia cada alteração para um novo branch, que a resposta dela nomeia: você abre o pull request. No Bitbucket e no Azure DevOps, ela leva até onde você o abre. |
+| **Qualquer servidor Git**, por HTTPS | O endereço com que você clona o repositório, um nome de usuário e uma senha ou token de acesso que possa ler o repositório e enviar para ele. | A IA clona o repositório e envia cada alteração para um novo branch, que a resposta dela nomeia: você abre o pull request. No Bitbucket e no Azure DevOps, ela leva até onde você o abre. No Azure DevOps (Services, ou Server 2019 e posteriores), o OneUptime também lê o código, com as mesmas credenciais: o código por onde passa um stack trace ou um perfil, e os arquivos que a OneUptime AI lê. |
 
 Comandos em comentários precisam da GitHub App, por isso só funcionam, por enquanto, em repositórios do GitHub, e as **Configurações** do repositório dizem isso. Um servidor Git não tem pull requests, então também não tem revisão de produção.
 
 Para GitLab, Forgejo ou Gitea, insira o endereço do servidor (GitLab.com e Codeberg vêm preenchidos) e o token, e escolha os repositórios a conectar: a lista oferece só aqueles para os quais o token pode enviar, e conectar mais depois pode reaproveitar o token. O OneUptime verifica cada token com o servidor dele antes de guardá-lo, guarda-o criptografado e nunca mais o mostra. As **Configurações** do repositório mostram o servidor, a conta e os últimos caracteres do token, com **Substituir o token de acesso**. Quando o servidor recusa um token expirado ou revogado, os repositórios dele mostram **Token recusado** e a IA para de trabalhar neles, até que substituir o token conecte de novo todos os repositórios que o usam. Em um repositório do GitLab, as configurações falam em merge requests, como o GitLab: **Merge requests**, **Merge requests de correção de IA** e **Máximo de merge requests de correção abertos**.
+
+### Entrar num servidor Git
+
+O OneUptime entra num repositório de qualquer servidor Git com o nome de usuário e a senha ou o token de acesso com que ele está conectado. A menos que só os seus próprios Runners alcancem o servidor, o OneUptime os verifica antes de conectar o repositório, pedindo ao servidor os branches do repositório: a requisição com que todo clone começa. Um Runner os envia do mesmo jeito, com a primeira requisição do Git ao servidor, como HTTP Basic, então um servidor que oferece primeiro o login do Windows, como o Azure DevOps Server, também aceita um token de acesso pessoal. O Git os recebe pelo seu ambiente, só para esse servidor: nunca na sua linha de comando, e nunca no `.git/config` do clone, onde o agente de código trabalha.
+
+### O que a IA lê num repositório Git
+
+Um servidor Git não tem uma API pela qual ler os arquivos de um repositório, então o OneUptime lê só os branches de um repositório num servidor assim, para o seletor de branch. O Azure DevOps é a exceção: no Azure DevOps Services, e no Azure DevOps Server 2019 e posteriores, o OneUptime também lê o código de um repositório, pela própria API do Azure DevOps e com as mesmas credenciais. [Pergunte à IA](/docs/ai/ask-ai) e as [investigações de IA](/docs/ai/ai-sre) leem o código dos repositórios do GitHub, GitLab, Forgejo, Gitea e Azure DevOps; perguntadas sobre o código de outro repositório Git, dizem que não conseguem abri-lo. Uma tarefa no Código continua funcionando num repositório Git: o Runner o clona, a IA lê e altera o código no clone e envia a alteração para um novo branch.
 
 ### Um servidor Git numa rede privada
 
@@ -313,7 +321,7 @@ Enquanto a correção estiver ativada, uma investigação que termina com uma ca
 Todo o resto é igual ao botão:
 
 - O pull request abre pronto para revisão, escrito a partir da análise publicada, e precisa de um repositório conectado, um dos que as regras correspondentes nomeiam quando nomeiam algum, e de um Runner online para trabalhar nele: o que o repositório escolhe, ou um Runner global.
-- Ele conta para o limite diário de tarefas de correção daquele sinal (**Daily Incident AI Fix Task Limit** ou **Daily Alert AI Fix Task Limit**, em **Mais configurações** na página de configurações de IA dele) e para o teto de pull requests abertos do repositório, quando algum deles está definido. Sem definição, nenhum deles limita nada.
+- Ele conta para o limite diário de tarefas de correção daquele sinal (**Limite diário de tarefas de correção com IA para incidentes** ou **Limite diário de tarefas de correção com IA para alertas**, em **Mais configurações** na página de configurações de IA dele) e para o teto de pull requests abertos do repositório, quando algum deles está definido. Sem definição, nenhum deles limita nada.
 - Cada gatilho procura primeiro uma tarefa de correção já na fila ou em execução para o mesmo incidente ou alerta, então um gatilho automático e um clique normalmente viram uma única tarefa, não dois pull requests. A verificação é uma leitura antes da escrita, não um bloqueio, então dois gatilhos no mesmo instante ainda podem passar os dois.
 - A execução é escrita pelo sistema, não é atribuída a ninguém, e nada é mesclado sozinho.
 
@@ -329,6 +337,10 @@ Uma execução cujo heartbeat está em silêncio há mais de 12 minutos é encer
 
 :::details Nenhum Runner assume a tarefa
 Uma tarefa que espera mais de 30 minutos enquanto o Runner que deve assumi-la não está conectado - o que o repositório dela escolhe, o Runner padrão do projeto para um repositório que não escolhe nenhum, ou um Runner global - falha, com uma mensagem que diz qual, então ela nunca aparece em andamento para sempre. Um Runner que não assume correções de código conta como não conectado: um iniciado com `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, ou um Runner global anterior a 14.0.94. O Código diz isso antes de você pedir uma tarefa. Quando um Runner está online mas ocupado, as tarefas na fila esperam a vez delas. Um Runner anterior a Código nunca recebe um pedido de Código: atualize um Runner que você mesmo executa junto com o servidor.
+:::
+
+:::details O servidor recusa as credenciais
+A tarefa falha e diz qual servidor recusou as credenciais com que o OneUptime entrou, e qual repositório ela não conseguiu clonar ou para qual não conseguiu enviar seu branch. Ela não é tentada de novo no branch padrão do repositório: num servidor em que as pessoas entram com contas do Windows, como o Azure DevOps Server, um segundo login recusado pode contar para o bloqueio da conta. No GitHub, verifique se a GitHub App do OneUptime ainda está instalada com acesso ao repositório. Nos outros, verifique se o nome de usuário e a senha ou o token ainda conseguem ler o repositório e enviar para ele, e dê novos com **Substituir o token de acesso** na página **Configurações** do repositório. Depois tente a tarefa de novo.
 :::
 
 ## Privacidade

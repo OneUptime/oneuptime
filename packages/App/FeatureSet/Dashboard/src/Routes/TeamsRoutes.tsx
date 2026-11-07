@@ -13,6 +13,7 @@ import TeamsViewCompliance from "../Pages/Teams/View/Compliance";
 import TeamsViewOnCallSchedules from "../Pages/Teams/View/OnCallSchedules";
 import TeamsViewCustomFields from "../Pages/Teams/View/CustomFields";
 import TeamsViewDelete from "../Pages/Teams/View/Delete";
+import TeamsViewAuditLogs from "../Pages/Teams/View/AuditLogs";
 
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, TeamsRoutePath } from "../Utils/RouteMap";
@@ -102,6 +103,15 @@ const TeamsRoutes: FunctionComponent<ComponentProps> = (
             <TeamsViewCustomFields
               {...props}
               pageRoute={RouteMap[PageMap.TEAM_VIEW_CUSTOM_FIELDS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.TEAM_VIEW_AUDIT_LOGS)}
+          element={
+            <TeamsViewAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.TEAM_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

@@ -50,7 +50,7 @@ De kaart toont elk veld van het nieuwe incident en waar de waarde ervan vandaan 
 | **Monitoren** | De monitoren die de inzender koos, samen met de monitoren die de instellingen altijd koppelen. Zonder een van beide, die van het incidentsjabloon. |
 | **Labels** | De labels die de inzender koos, samen met de labels die de instellingen altijd toevoegen. Zonder een van beide, die van het incidentsjabloon. |
 | **Begin van de impact** | Het antwoord op **Begin van de impact**, als het formulier ernaar vraagt. |
-| **Incident Sjabloon** | De instelling **Incident Sjabloon** van het formulier. Die vult alles in wat de antwoorden en de instellingen niet hebben ingesteld. |
+| **Incidentsjabloon** | De instelling **Incidentsjabloon** van het formulier. Die vult alles in wat de antwoorden en de instellingen niet hebben ingesteld. |
 | **Bereikbaarheidsbeleid** | Het beleid dat de instellingen noemen, uitgevoerd voor elk incident dat het formulier meldt. Zonder beleid, dat van het incidentsjabloon. |
 | **Eigenaren** | De mensen en teams die de instellingen noemen, samen met de eigenaren van het sjabloon. Zij worden over elk incident ingelicht. |
 | **Aangepaste velden** | Het antwoord op elke vraag van een aangepast veld — tenzij het veld zijn waarde overneemt van een aangepast monitorveld en de monitoren van het incident er een hebben; het sjabloon vult de rest in. |
@@ -62,7 +62,7 @@ De kaart toont elk veld van het nieuwe incident en waar de waarde ervan vandaan 
 
 ### Het incidentsjabloon
 
-Kies een **Incident Sjabloon** in de instellingen en elk incident dat het formulier meldt, wordt vanuit dat sjabloon gemeld, zoals de server overal een sjabloon toepast — zie [Hoe een sjabloon wordt toegepast](/docs/incidents/settings#hoe-een-sjabloon-wordt-toegepast). De antwoorden en de instellingen van het formulier gaan voor, en het sjabloon vult al het andere in: de beginstatus, de beschrijving, het ernstniveau, de getroffen resources, het bereikbaarheidsbeleid, de eigenaren, de labels, de waarden van aangepaste velden en een wijziging van de monitorstatus.
+Kies een **Incidentsjabloon** in de instellingen en elk incident dat het formulier meldt, wordt vanuit dat sjabloon gemeld, zoals de server overal een sjabloon toepast — zie [Hoe een sjabloon wordt toegepast](/docs/incidents/settings#hoe-een-sjabloon-wordt-toegepast). De antwoorden en de instellingen van het formulier gaan voor, en het sjabloon vult al het andere in: de beginstatus, de beschrijving, het ernstniveau, de getroffen resources, het bereikbaarheidsbeleid, de eigenaren, de labels, de waarden van aangepaste velden en een wijziging van de monitorstatus.
 
 > [!WARNING]
 > **Let op de monitoren.** Een incident op een monitor melden via een formulier heeft precies hetzelfde effect op de monitor als het handmatig melden: het actief bewaken van de monitor pauzeert tot het incident is opgelost, en de **Monitorstatus wijzigen naar** van een sjabloon wijzigt meteen de status van de monitor — op elke statuspagina die de monitor toont, zelfs als het incident zelf verborgen is. Met een formulier kan iedereen met de link dit doen. Koppel monitoren via een formulier alleen als elke inzending ze moet pauzeren.
@@ -118,7 +118,7 @@ Een inzending is iemands verzoek, en een verzoek wordt beoordeeld voordat het wo
 
 | Stap | Incidentformulier | Onderhoudsformulier |
 | --- | --- | --- |
-| **Standaardwaarden** | **Standaardtitel**, **Ernst**, **Incident Sjabloon** | **Standaardtitel** |
+| **Standaardwaarden** | **Standaardtitel**, **Ernst**, **Incidentsjabloon** | **Standaardtitel** |
 | **Altijd koppelen** | **Monitoren**, **Labels**, **Bereikbaarheidsbeleid** | **Monitoren**, **Statuspagina's**, **Labels** |
 | **Eigenaren** | **Eigenaren** | **Eigenaren** |
 | **Publicatie** | — | **Tonen op statuspagina's**, **Abonnees op de hoogte stellen** |

@@ -21,6 +21,7 @@ import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import IncidentGroupingEngineService from "../../../Server/Services/IncidentGroupingEngineService";
 import IncidentLabelRuleEngineService from "../../../Server/Services/IncidentLabelRuleEngineService";
 import IncidentOnCallRuleEngineService from "../../../Server/Services/IncidentOnCallRuleEngineService";
+import { getNoOnCallRulesPaging } from "../../../Server/Utils/OnCall/OnCallRulePageAs";
 import IncidentOwnerRuleEngineService from "../../../Server/Services/IncidentOwnerRuleEngineService";
 import IncidentOwnerUserService from "../../../Server/Services/IncidentOwnerUserService";
 import IncidentPrivacyRuleEngineService from "../../../Server/Services/IncidentPrivacyRuleEngineService";
@@ -1168,7 +1169,7 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
       own(
         jest
           .spyOn(IncidentOnCallRuleEngineService, "applyRulesToIncident")
-          .mockResolvedValue(new Map()),
+          .mockResolvedValue(getNoOnCallRulesPaging()),
       );
       own(
         jest

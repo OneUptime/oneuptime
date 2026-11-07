@@ -39,6 +39,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 interface ServiceExceptionSummary {
   /*
@@ -588,7 +589,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                 )}
                                 {exception.lastSeenAt && (
                                   <span className="text-gray-400">
-                                    ·{" "}
+                                    <InlineSeparator markOnly />{" "}
                                     {OneUptimeDate.fromNow(
                                       new Date(exception.lastSeenAt),
                                     )}
@@ -759,7 +760,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                               })()}
                               {exception.lastSeenAt && (
                                 <span className="text-gray-400">
-                                  ·{" "}
+                                  <InlineSeparator markOnly />{" "}
                                   {OneUptimeDate.fromNow(
                                     new Date(exception.lastSeenAt),
                                   )}

@@ -71,7 +71,7 @@ Sla deze stap over als je server, netwerk en kanaal geen wachtwoord nodig hebben
 | **SASL Password**   | Het netwerk wil dat je je aanmeldt bij je account. **SASL Username** krijgt de naam van het account. | `IRC_SASL_PASSWORD`     |
 | **Channel Key**     | Het kanaal een sleutel heeft (modus `+k`).                                                           | `IRC_CHANNEL_KEY`       |
 
-Om er een op te slaan, open je **Workflows → Globale variabelen** en klik je op **Workflow Variabele aanmaken**. Vul de naam in bij **Naam** en klik op **Volgende**. Plak het wachtwoord in **Inhoud**, zet **Geheim** aan en klik op **Workflow Variabele aanmaken**. Run-logboeken tonen `[REDACTED]` in plaats van de waarde van een geheime variabele.
+Om er een op te slaan, open je **Workflows → Globale variabelen** en klik je op **Workflowvariabele aanmaken**. Vul de naam in bij **Naam** en klik op **Volgende**. Plak het wachtwoord in **Inhoud**, zet **Geheim** aan en klik op **Workflowvariabele aanmaken**. Run-logboeken tonen `[REDACTED]` in plaats van de waarde van een geheime variabele.
 
 ### De workflow bouwen
 

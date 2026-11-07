@@ -72,8 +72,8 @@ En notifikationsregel siger, hvilke begivenheder der slås op i Slack, og hvor. 
 
 | Produkt | Faner på dets **Slack**-side |
 | --- | --- |
-| **Hændelser** | **Hændelser**, **Hændelse Episoder**, **Oversigt** |
-| **Advarsler** | **Advarsler**, **Advarsel Episoder**, **Oversigt** |
+| **Hændelser** | **Hændelser**, **Hændelsesepisoder**, **Oversigt** |
+| **Advarsler** | **Advarsler**, **Advarselsepisoder**, **Oversigt** |
 | **Planlagt vedligeholdelse** | Én liste med regler |
 | **Monitorer** | Én liste med regler |
 | **Vagtordning** | Én liste med regler |
@@ -228,6 +228,8 @@ OneUptime svarer kun på det, der er rettet til den.
 - **Alt andet åbner en formular.** Hvis ingen er nævnt med @, der ikke er nogen besked, hvor tilkaldet kræver en, du nævner `@here` eller en brugergruppe, der ikke følger nogen vagtplan, du kan se, eller OneUptime ikke kan se, hvem en person er, åbner formularen **Page someone** med det, du skrev, udfyldt, og den siger, hvem den ikke kunne vælge. I en hændelses eller en advarsels egen kanal åbner den med den hændelse eller advarsel. Vælg personer, et team, en vagtplan, som tilkalder den, der har vagt i den nu, eller en vagtpolitik, som tilkalder via sine eskaleringsregler, og indsend den. Et navn, du skriver først, som i `/oneuptime page Primary The disk is full`, vælger vagtplanen, teamet eller politikken med det navn.
 - **Hvor det vises.** Kanalen viser tilkaldet som én besked, der holdes opdateret: hvem der blev tilkaldt og hvordan, hvert team med sit navn og sine personer efter, din besked, og hvem der kvitterede. Hvor OneUptime ikke kan skrive, som i en privat kanal, den ikke er inviteret til, fortæller en besked, kun du kan se, hvem der blev tilkaldt, med et link til hændelsen eller advarslen.
 - **Hvem der må tilkalde.** I en hændelses eller en advarsels egen kanal alle, der må køre en vagtpolitik (**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Execute On-Call Duty Policy** i en brugerdefineret rolle) og læse den hændelse eller advarsel. Alle andre steder opretter tilkaldet en advarsel, så det kræver også rettighed til at oprette en: **Projektejer**, **Projektadministrator** og **Projektmedlem**, eller **Vagtmedlem** sammen med **Advarselsmedlem** (**Execute On-Call Duty Policy** og **Create Alert** i en brugerdefineret rolle). At tilkalde personer, et team eller en vagtplan direkte, uden en vagtpolitik bag tilkaldet, kræver også adgang til alle projektets vagtpolitikker. Alle andre får det at vide der, hvor de kørte kommandoen, og ingen tilkaldes. På OneUptime Cloud kræver tilkald Growth-planen: under den siger OneUptime, hvilken plan der kræves, og ingen tilkaldes.
+
+For at holde personer orienteret, mens andre håndterer det, kan du tilkalde dem som observatører. I en hændelses eller en advarsels egen kanal skriver du `as observers` efter, hvem der skal tilkaldes, som i `/oneuptime page @oversight as observers Team Y is on it`, eller vælger **Observers: keep them informed** under **Page them as** i formularen. Deres tilkald siger, at de er observatører, og kvitterer de for det, siger det kun, at de har set det: Der bliver ikke kvitteret for hændelsen eller advarslen, ingen andres tilkald stopper, og hvor tilkaldet vises, står der, at de tilkaldes som observatører. Et tilkald om noget nyt kræver, at nogen håndterer det, så alle andre steder afvises `as observers`, og ingen tilkaldes.
 
 ## Vagt-brugergrupper
 

@@ -30,6 +30,7 @@ import {
 } from "../../Pages/OpenStack/Utils/OpenStackServices";
 import { OPENSTACK_QUIET_LABEL } from "./OpenStackStatus";
 import OpenStackStatusCell from "./OpenStackStatusCell";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * One OpenStack service in one region, in its own words: the API from Keystone's catalog
@@ -140,7 +141,7 @@ export const OpenStackWorkerRow: FunctionComponent<WorkerRowProps> = (
             </bdi>
             {zone ? (
               <>
-                {" · "}
+                <InlineSeparator />
                 <bdi>{zone}</bdi>
               </>
             ) : (

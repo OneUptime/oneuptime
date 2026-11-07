@@ -169,6 +169,11 @@ export interface OnCallStepFeedTextInput {
   overriddenUser?: MarkdownText | undefined;
   // What the step itself says: "Notification sent by SMS.", why it was skipped.
   statusMessage?: string | undefined;
+  /*
+   * An observer's page (OnCallObserverPage): answered, the person has seen
+   * it - the record is not acknowledged by that.
+   */
+  isObserverPage?: boolean | undefined;
 }
 
 export interface OnCallRunStatusFeedTextInput {
@@ -202,6 +207,8 @@ export interface OnCallDirectPageStepFeedTextInput {
   overriddenUser?: MarkdownText | undefined;
   // What the step itself says: "Notification sent by SMS.", why it was skipped.
   statusMessage?: string | undefined;
+  // An observer's page (OnCallObserverPage): answered, the person has seen it.
+  isObserverPage?: boolean | undefined;
 }
 
 export interface OnCallDirectPageStatusFeedTextInput {
@@ -467,6 +474,14 @@ const getStepHeadline: (input: OnCallStepFeedTextInput) => MarkdownText = (
 
   switch (input.status) {
     case OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged:
+      // An observer saw it: they did not take the record on.
+      if (input.isObserverPage) {
+        return mdText`${recipient} has seen the page from ${getPolicy(
+          input.policyLink,
+          { isInSentence: true },
+        )} at ${rule}, as an observer.`;
+      }
+
       return mdText`${recipient} acknowledged the page from ${getPolicy(
         input.policyLink,
         { isInSentence: true },
@@ -664,6 +679,14 @@ const getDirectPageStepHeadline: (
 
   switch (input.status) {
     case OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged:
+      // An observer saw it: they did not take the record on.
+      if (input.isObserverPage) {
+        return mdText`${recipient} has seen the page from ${getDirectPagePager(
+          input.pager,
+          { isInSentence: true },
+        )}, as an observer.`;
+      }
+
       return mdText`${recipient} acknowledged the page from ${getDirectPagePager(
         input.pager,
         { isInSentence: true },
@@ -804,15 +827,24 @@ export default class OnCallFeedText {
     isStartedBySomeone: boolean;
     startedByWorkflowName?: string | undefined;
     startedEarlyReason?: string | undefined;
+    /*
+     * An observer's page (OnCallObserverPage): "On-call policy PolicyX
+     * started paging as observers." - its people are kept informed.
+     */
+    isObserverPage?: boolean | undefined;
   }): string {
+    const asObservers: MarkdownText = data.isObserverPage
+      ? mdText` as observers`
+      : FeedMarkdown.empty();
+
     if (data.isStartedBySomeone) {
-      return mdText`started on-call policy **${data.policyLink}**.`.toString();
+      return mdText`started on-call policy **${data.policyLink}**${asObservers}.`.toString();
     }
 
     const workflowName: string = (data.startedByWorkflowName || "").trim();
 
     if (workflowName) {
-      return mdText`Workflow **${workflowName}** started on-call policy **${data.policyLink}**.`.toString();
+      return mdText`Workflow **${workflowName}** started on-call policy **${data.policyLink}**${asObservers}.`.toString();
     }
 
     const startedEarlyReason: string = (data.startedEarlyReason || "").trim();
@@ -820,14 +852,14 @@ export default class OnCallFeedText {
     if (startedEarlyReason) {
       return FeedMarkdown.join(
         [
-          mdText`${getPolicy(data.policyLink)} started paging early.`,
+          mdText`${getPolicy(data.policyLink)} started paging${asObservers} early.`,
           asSentence(startedEarlyReason),
         ],
         " ",
       ).toString();
     }
 
-    return mdText`${getPolicy(data.policyLink)} started paging.`.toString();
+    return mdText`${getPolicy(data.policyLink)} started paging${asObservers}.`.toString();
   }
 
   /*
@@ -873,21 +905,28 @@ export default class OnCallFeedText {
     isStartedBySomeone: boolean;
     startedByWorkflowName?: string | undefined;
     waitingMessage?: string | undefined;
+    // An observer's page (OnCallObserverPage): it will page as observers.
+    isObserverPage?: boolean | undefined;
   }): string {
     const message: string = (data.waitingMessage || "").trim();
     const sentences: Array<MarkdownText> = [];
     const workflowName: string = (data.startedByWorkflowName || "").trim();
+    const asObservers: MarkdownText = data.isObserverPage
+      ? mdText` as observers`
+      : FeedMarkdown.empty();
 
     if (data.isStartedBySomeone) {
       sentences.push(
-        mdText`started on-call policy **${data.policyLink}**. It is not paging yet.`,
+        mdText`started on-call policy **${data.policyLink}**${asObservers}. It is not paging yet.`,
       );
     } else if (workflowName) {
       sentences.push(
-        mdText`Workflow **${workflowName}** started on-call policy **${data.policyLink}**. It is not paging yet.`,
+        mdText`Workflow **${workflowName}** started on-call policy **${data.policyLink}**${asObservers}. It is not paging yet.`,
       );
     } else {
-      sentences.push(mdText`${getPolicy(data.policyLink)} is not paging yet.`);
+      sentences.push(
+        mdText`${getPolicy(data.policyLink)} is not paging${asObservers} yet.`,
+      );
     }
 
     if (message) {

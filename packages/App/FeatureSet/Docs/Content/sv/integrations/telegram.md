@@ -55,7 +55,7 @@ Börja från mallen, som bygger hela arbetsflödet för larm, eller från grunde
 
 Arbetsflödet öppnas i **Byggare** med två steg: **On Create Alert** och **Send Message to Telegram**, som skickar larmets nummer, titel, allvarlighetsgrad och tillstånd. Token sparas som arbetsflödets hemliga variabel `telegramBotToken`, och ID:t som `telegramChatId`.
 @tab Från grunden
-1. Spara token som en hemlig global variabel: gå till **Arbetsflöden → Globala variabler**, klicka på **Skapa Arbetsflöde Variabel**, ge den namnet `TELEGRAM_BOT_TOKEN` och klicka på **Nästa**. Klistra in token i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflöde Variabel**.
+1. Spara token som en hemlig global variabel: gå till **Arbetsflöden → Globala variabler**, klicka på **Skapa Arbetsflödesvariabel**, ge den namnet `TELEGRAM_BOT_TOKEN` och klicka på **Nästa**. Klistra in token i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflödesvariabel**.
 2. Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde**, välj **Börja från grunden**, ge arbetsflödet ett namn och klicka på **Skapa arbetsflöde**.
 3. Klicka på **Välj vad som startar det här arbetsflödet** i **Byggare** och välj **On Create Alert** under **Populära**. Klicka på utlösaren: dess **Fields to pass on** börjar med **Titel**, så klicka på **Lägg till fält** och välj de andra fält som ditt meddelande visar, till exempel **Alert Number With Prefix**.
 4. Klicka på **Lägg till komponent**, sök efter `telegram` och klicka på **Send Message to Telegram**. Anslut utlösarens utgång **Success** till det.

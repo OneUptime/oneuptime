@@ -72,8 +72,8 @@ Una regola di notifica dice quali eventi vengono pubblicati in Slack, e dove. Og
 
 | Prodotto | Schede della sua pagina **Slack** |
 | --- | --- |
-| **Incidenti** | **Incidenti**, **Incidente Episodi**, **Riepilogo** |
-| **Avvisi** | **Avvisi**, **Avviso Episodi**, **Riepilogo** |
+| **Incidenti** | **Incidenti**, **Episodi di incidenti**, **Riepilogo** |
+| **Avvisi** | **Avvisi**, **Episodi di avvisi**, **Riepilogo** |
 | **Manutenzione programmata** | Un elenco di regole |
 | **Monitor** | Un elenco di regole |
 | **Reperibilità** | Un elenco di regole |
@@ -228,6 +228,8 @@ OneUptime risponde solo a ciò che è rivolto a lui.
 - **Tutto il resto apre un modulo.** Senza nessuno menzionato con @, senza messaggio dove la chiamata ne richiede uno, con `@here`, con un gruppo di utenti che non segue nessuna pianificazione di reperibilità che puoi vedere, o con una persona che OneUptime non riesce a riconoscere, si apre il modulo **Page someone** con quello che hai scritto già compilato, e dice chi non è riuscito a scegliere. Nel canale proprio di un incidente o di un avviso, si apre con quell'incidente o quell'avviso. Scegli persone, un team, una pianificazione di reperibilità, che chiama chi è reperibile in essa in quel momento, o una policy di reperibilità, che chiama tramite le sue regole di escalation, e invialo. Un nome che scrivi per primo, come in `/oneuptime page Primary The disk is full`, sceglie la pianificazione, il team o la policy con quel nome.
 - **Dove si vede.** Il canale mostra la chiamata come un solo messaggio, tenuto aggiornato: chi è stato chiamato e come, ogni team con il suo nome seguito dalle sue persone, il tuo messaggio, e chi ha confermato. Dove OneUptime non può pubblicare, come in un canale privato in cui non è stato invitato, un messaggio che vedi solo tu dice chi è stato chiamato, con un link all'incidente o all'avviso.
 - **Chi può chiamare.** Nel canale proprio di un incidente o di un avviso, chiunque possa eseguire una policy di reperibilità (**Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore della reperibilità** e **Membro della reperibilità**, oppure **Execute On-Call Duty Policy** in un ruolo personalizzato) e leggere quell'incidente o quell'avviso. Ovunque altrove la chiamata crea un avviso, quindi richiede anche il permesso di crearne uno: **Proprietario del progetto**, **Amministratore del progetto** e **Membro del progetto**, oppure **Membro della reperibilità** insieme ad **Membro degli avvisi** (**Execute On-Call Duty Policy** e **Create Alert** in un ruolo personalizzato). Chiamare direttamente persone, un team o una pianificazione, senza una policy di reperibilità dietro la chiamata, richiede anche l'accesso a tutte le policy di reperibilità del progetto. A chiunque altro viene detto dove ha eseguito il comando, e nessuno viene chiamato. Su OneUptime Cloud, chiamare richiede il piano Growth: al di sotto, OneUptime indica il piano necessario, e nessuno viene chiamato.
+
+Per tenere informate alcune persone mentre altre rispondono, chiamale come osservatori. Nel canale proprio di un incidente o di un avviso, scrivi `as observers` dopo chi chiamare, come in `/oneuptime page @oversight as observers Team Y is on it`, oppure scegli **Observers: keep them informed** sotto **Page them as** nel modulo. La loro chiamata dice che sono osservatori, e confermarla dice solo che l'hanno vista: l'incidente o l'avviso non viene confermato, la chiamata di nessun altro si ferma, e dove la chiamata è mostrata, dice che sono chiamati come osservatori. Una chiamata per qualcosa di nuovo ha bisogno di qualcuno che risponda, quindi altrove `as observers` viene rifiutato e nessuno viene chiamato.
 
 ## Gruppi di utenti di reperibilità
 

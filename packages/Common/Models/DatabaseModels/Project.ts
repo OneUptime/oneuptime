@@ -2458,6 +2458,53 @@ export default class Project extends TenantModel {
   public enableAutomaticAlertRemediation?: boolean = undefined;
 
   /*
+   * Two people approve a riskier fix (#6148's follow-up, which #5519
+   * proposed): with this on, a fix OneUptime AI proposes that holds a
+   * riskier change (a RiskyWrite command, on a Kubernetes cluster or on a
+   * resource, a cloud account included) runs only once two different people
+   * approve it - on the incident's or alert's AI card, or from the fix's
+   * Slack or Microsoft Teams message. The first approval is recorded on the
+   * fix (AutoRemediationSuggestion.firstApprovedBy*), and the second, by
+   * someone else, runs it. RemediationApproval.approve decides it on the
+   * server, so every way to approve reaches the same rule.
+   *
+   * Off by default, for new projects too, and never among the switches a
+   * new project starts with on: a team that wants it turns it on. It is a
+   * rule on who approves, not an AI feature - Enable AI stays the one
+   * switch that turns OneUptime AI on and off. Project owners and admins
+   * change it, as they change whether new incidents and alerts are fixed.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Require Two Approvals for Riskier Fixes",
+    description:
+      "When enabled, a fix OneUptime AI proposes that holds a riskier change runs only once two different people approve it. Off by default.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public requireTwoApprovalsForRiskierFixes?: boolean = undefined;
+
+  /*
    * Drafting a postmortem when an incident resolves used to ride on
    * enableAutomaticIncidentInvestigation. It is its own switch now, on for
    * new projects like the rest. The migration that added it copied each

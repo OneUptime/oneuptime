@@ -58,7 +58,7 @@ Le regole differiscono nel modo in cui si risolvono più corrispondenze:
 - **Regole di raggruppamento**, **Regole degli incidenti** e **Regole dei promemoria** vengono controllate dall'alto verso il basso del loro elenco, e vince la prima corrispondenza. Trascinate una regola per cambiarne la posizione; una nuova regola va in fondo.
 - **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette**, **Regole di privacy** e **Regole di runbook** agiscono tutte quando corrispondono. Policy di reperibilità, proprietari ed etichette aggiunti da più regole vengono aggiunti una sola volta.
 
-**Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno due schede: **Alert Rules**, per gli avvisi, ed **Episode Rules**, che agiscono allo stesso modo su ogni nuovo episodio di avviso. Una nuova regola parte abilitata; disattivate **Abilitato** nel suo modulo di modifica per sospenderla, e l'elenco mostra un **Abilitato** verde o un **Disabilitato** rosso per ogni regola.
+**Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno due schede: **Regole degli avvisi**, per gli avvisi, ed **Regole degli episodi**, che agiscono allo stesso modo su ogni nuovo episodio di avviso. Una nuova regola parte abilitata; disattivate **Abilitato** nel suo modulo di modifica per sospenderla, e l'elenco mostra un **Abilitato** verde o un **Disabilitato** rosso per ogni regola.
 
 La maggior parte delle regole agisce sugli avvisi e sugli episodi creati dopo il salvataggio. Per applicare una regola del proprietario, delle etichette o di privacy a quelli che avete già, usate **Esegui ora**: vedere [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now). Le regole di promemoria sono l'eccezione: salvarne una ricalcola ogni avviso aperto.
 
@@ -68,7 +68,7 @@ Le condizioni di una regola decidono su quali avvisi agisce, e si leggono come f
 
 | Condizione                                                    | Confronta con                                                                                                  |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Monitor**, **Avviso Gravità**, **Etichette dell'avviso**, **Etichette del monitor** | **Ha uno qualsiasi di**, **Ha tutti i** o **Non ha nessuno di**, rispetto ai valori che scegliete.     |
+| **Monitor**, **Gravità degli avvisi**, **Etichette dell'avviso**, **Etichette del monitor** | **Ha uno qualsiasi di**, **Ha tutti i** o **Non ha nessuno di**, rispetto ai valori che scegliete.     |
 | **Titolo dell'avviso**, **Descrizione dell'avviso**, **Nome del monitor**, **Descrizione del monitor** | **Contiene**, **Non contiene**, **Uguale a**, **Diverso da**, **Inizia con**, **Termina con**, senza distinguere maiuscole e minuscole, oppure **Corrisponde al pattern** e **Non corrisponde al pattern**, per un'espressione regolare o un carattere jolly `*`. |
 
 Con due o più condizioni, scegliete **Soddisfa tutte**, dove ognuna deve valere, oppure **Soddisfa almeno una**, dove ne basta una. Le regole degli episodi corrispondono invece a gravità, etichette, titolo e descrizione di un episodio.
@@ -87,9 +87,11 @@ Fate clic su **Crea: Alert On-Call Rule**. In **Corrispondenza**, **Tutti gli av
 In **Policy di reperibilità**, scegliete le **Policy di reperibilità** che la regola attiva. Il suo **Nome** le segue, come «Chiama Platform on-call», finché non ne digitate uno vostro, e una **Descrizione** attende sotto **Altri campi**. Poi create la regola.
 :::
 
-Una gravità da sola non chiama nessuno: una regola di reperibilità che corrisponde su **Avviso Gravità** è il modo per impostare «chiamare il team del database per ogni avviso High». Per vedere che cosa è stato eseguito per un avviso, aprite la sua pagina **Esecuzioni di reperibilità**. Ogni persona viene poi raggiunta nel modo impostato in **Impostazioni utente → Regole di reperibilità**, nella scheda **Avvisi**; vedere [Regole di escalation](/docs/on-call/escalation-rules).
+Una gravità da sola non chiama nessuno: una regola di reperibilità che corrisponde su **Gravità degli avvisi** è il modo per impostare «chiamare il team del database per ogni avviso High». Per vedere che cosa è stato eseguito per un avviso, aprite la sua pagina **Esecuzioni di reperibilità**. Ogni persona viene poi raggiunta nel modo impostato in **Impostazioni utente → Regole di reperibilità**, nella scheda **Avvisi**; vedere [Regole di escalation](/docs/on-call/escalation-rules).
 
 Una regola chiama appena un avviso corrisponde. Perché attenda invece l'orario di lavoro, rispondete **Solo durante l'orario di lavoro** a **Quando deve chiamare questa regola?** sotto **Altri campi**. L'**Orario di lavoro** parte dal lunedì al venerdì, dalle 09:00 alle 17:00, nel vostro fuso orario: scegliete altri giorni, un'altra **Ora di inizio** o **Ora di fine**, o un altro **Fuso orario**, e una frase sotto la scelta dice cosa succederà. Nell'elenco, la regola mostra il suo orario sotto il nome. Un avviso che corrisponde fuori da quell'orario riceve un'esecuzione che attende e non chiama nessuno; quando inizia l'orario, la policy chiama con la sua prima regola di escalation ed esegue l'escalation come sempre. Se l'avviso viene riconosciuto o risolto prima, nessuno viene chiamato. Se l'avviso cambia mentre attende e ora corrisponde a una regola che chiama subito, per esempio perché ne è stata alzata la gravità, l'esecuzione inizia a chiamare in quel momento, e il feed dell'avviso dice perché. Due regole che attivano la stessa policy la attivano appena una delle due lo consente: una regola per le gravità più alte che chiama subito, accanto a una regola per il resto che attende l'orario di lavoro, tiene tranquille le notti.
+
+Una regola chiama le persone delle sue policy perché rispondano: riconoscere la chiamata riconosce l'avviso. Per tenere informato un team mentre un altro risponde, rispondete **Osservatori** a **Chiama le persone di queste policy come** sotto **Altri campi**. La loro chiamata dice che sono osservatori, e riconoscerla dice solo che l'hanno vista: l'avviso non viene riconosciuto e la chiamata di nessun altro si ferma. La loro chiamata continua finché uno di loro risponde o l'avviso viene risolto, e nell'elenco la regola dice sotto il nome che chiama come osservatori. Una policy che una regola corrispondente chiama per rispondere e un'altra come osservatori chiama per rispondere.
 
 ## Regole degli incidenti
 
@@ -130,7 +132,7 @@ Le **Regole di runbook** avviano un runbook quando un nuovo avviso corrisponde, 
 :::steps
 ### Scegliere gli avvisi da ricordare
 
-Fate clic su **Crea: Alert Reminder Rule**. In **Corrispondenza**, lasciate selezionato **Tutti gli avvisi** per ricordare ogni avviso, oppure scegliete **Solo gli avvisi che soddisfano le condizioni** e poi le **Avviso Gravità** e le **Etichette** a cui si applica.
+Fate clic su **Crea: Alert Reminder Rule**. In **Corrispondenza**, lasciate selezionato **Tutti gli avvisi** per ricordare ogni avviso, oppure scegliete **Solo gli avvisi che soddisfano le condizioni** e poi le **Gravità degli avvisi** e le **Etichette** a cui si applica.
 
 ### Impostare l'intervallo
 
@@ -143,7 +145,7 @@ I proprietari ricevono ogni promemoria come **Promemoria avviso**, attivo via e-
 
 ### Modelli di note
 
-**Avvisi → Impostazioni → Modelli di note** contiene testo già pronto per le note private. La scheda **Modelli di nota privata per gli avvisi** li elenca; **Crea: Avviso Nota Modello** chiede un **Nome del modello**, una **Descrizione del modello** e la **Nota**. Un modello viene proposto quando qualcuno scrive una nota privata su un avviso o un episodio, e quando ne riconosce o ne risolve uno, e il suo testo può essere modificato prima della pubblicazione. I modelli di nota degli avvisi sono testo semplice: a differenza dei modelli di nota degli incidenti, non compilano variabili.
+**Avvisi → Impostazioni → Modelli di note** contiene testo già pronto per le note private. La scheda **Modelli di nota privata per gli avvisi** li elenca; **Crea: Modello di nota per avvisi** chiede un **Nome del modello**, una **Descrizione del modello** e la **Nota**. Un modello viene proposto quando qualcuno scrive una nota privata su un avviso o un episodio, e quando ne riconosce o ne risolve uno, e il suo testo può essere modificato prima della pubblicazione. I modelli di nota degli avvisi sono testo semplice: a differenza dei modelli di nota degli incidenti, non compilano variabili.
 
 ### Campi personalizzati
 
@@ -170,7 +172,7 @@ La scheda **Numero successivo** sotto imposta il numero che ricevono il prossimo
 
 ## Workflow
 
-Ogni modello di avviso ha trigger e azioni di workflow che portano il suo nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, lo stesso per **Avviso Episodio**, **Avviso Stato Cronologia** e gli altri, e azioni come **Create One Alert** e **Update One Alert**. Le definizioni dei campi personalizzati degli avvisi sono l'unica eccezione: non hanno trigger di workflow. Vedere [Panoramica dei workflow](/docs/workflows/index).
+Ogni modello di avviso ha trigger e azioni di workflow che portano il suo nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, lo stesso per **Episodio di avvisi**, **Cronologia stati dell'avviso** e gli altri, e azioni come **Create One Alert** e **Update One Alert**. Le definizioni dei campi personalizzati degli avvisi sono l'unica eccezione: non hanno trigger di workflow. Vedere [Panoramica dei workflow](/docs/workflows/index).
 
 ## Chi può modificarle
 

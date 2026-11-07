@@ -22,6 +22,14 @@ import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../../Types/JSON";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import logger from "../Logger";
+import {
+  ExceptionTakeIn,
+  ExceptionTakeInStatement,
+  NOTHING_TAKEN_IN,
+  getTakeBackStatement,
+  getTakeInStatement,
+  takeIn,
+} from "./ExceptionTakeIn";
 import { EntityManager } from "typeorm";
 
 /*
@@ -51,6 +59,11 @@ import { EntityManager } from "typeorm";
  * own and its other merged ones', where the one taken out had set them
  * (getSurvivorSeenAfterUnmerge): its own occurrences keep its fingerprint in
  * ClickHouse, and each merged one keeps its own seen times.
+ *
+ * What the survivor takes in is added up by ExceptionTakeIn, which the
+ * merge of two copies of one exception shares: when the two copies of a
+ * resource a race made twice merge, an exception both had becomes one the
+ * same way (ExceptionTwinMerge, in DuplicateRowMerge).
  *
  * Only exceptions of one service merge, so the survivor's page, which reads
  * its occurrences by service, shows them all. Both need permission to edit
@@ -223,26 +236,6 @@ function sameId(
   b: string | null | undefined,
 ): boolean {
   return Boolean(a) && Boolean(b) && a!.toLowerCase() === b!.toLowerCase();
-}
-
-function earliest(a: Date | null, b: Date | null): Date | null {
-  if (!a) {
-    return b;
-  }
-  if (!b) {
-    return a;
-  }
-  return new Date(a).getTime() <= new Date(b).getTime() ? a : b;
-}
-
-function latest(a: Date | null, b: Date | null): Date | null {
-  if (!a) {
-    return b;
-  }
-  if (!b) {
-    return a;
-  }
-  return new Date(a).getTime() >= new Date(b).getTime() ? a : b;
 }
 
 export default class TelemetryExceptionMerge {
@@ -478,12 +471,8 @@ export default class TelemetryExceptionMerge {
             merged: [],
           };
 
-          let addedCount: number = 0;
-          let firstSeenAt: Date | null = null;
-          let lastSeenAt: Date | null = null;
-          let firstSeenInRelease: string = "";
-          let lastSeenInRelease: string = "";
-          let unhandled: boolean = false;
+          // What the survivor takes in, from every one merged now.
+          let takenIn: ExceptionTakeIn = NOTHING_TAKEN_IN;
 
           for (const mergedId of mergedIds) {
             const merged: LockedRow | undefined = rows.find(
@@ -534,26 +523,8 @@ export default class TelemetryExceptionMerge {
               0,
             );
 
-            addedCount += merged.occuranceCount;
-            firstSeenAt = earliest(firstSeenAt, merged.firstSeenAt);
-
-            if (
-              merged.firstSeenInRelease &&
-              sameDate(firstSeenAt, merged.firstSeenAt)
-            ) {
-              firstSeenInRelease = merged.firstSeenInRelease;
-            }
-
-            lastSeenAt = latest(lastSeenAt, merged.lastSeenAt);
-
-            if (
-              merged.lastSeenInRelease &&
-              sameDate(lastSeenAt, merged.lastSeenAt)
-            ) {
-              lastSeenInRelease = merged.lastSeenInRelease;
-            }
-
-            unhandled = unhandled || merged.unhandled;
+            // Its whole count: its own, and its members' that come along.
+            takenIn = takeIn(takenIn, merged);
 
             await manager.query(
               `UPDATE "TelemetryException" SET "mergedIntoTelemetryExceptionId" = $1, "mergedAt" = now(), "mergedByUserId" = $2, "occuranceCount" = GREATEST(0, COALESCE("occuranceCount", 0) - $3), "updatedAt" = now() WHERE "_id" = $4`,
@@ -600,29 +571,15 @@ export default class TelemetryExceptionMerge {
               },
             )
           ) {
+            const takeInStatement: ExceptionTakeInStatement =
+              getTakeInStatement({
+                exceptionId: survivor.id,
+                takenIn: takenIn,
+              });
+
             await manager.query(
-              `UPDATE "TelemetryException" SET
-              "occuranceCount" = COALESCE("occuranceCount", 0) + $1,
-              "firstSeenInRelease" = CASE
-                WHEN $2::text <> '' AND ("firstSeenAt" IS NULL OR $3::timestamptz < "firstSeenAt") THEN $2::text
-                ELSE "firstSeenInRelease" END,
-              "lastSeenInRelease" = CASE
-                WHEN $4::text <> '' AND ("lastSeenAt" IS NULL OR $5::timestamptz > "lastSeenAt") THEN $4::text
-                ELSE "lastSeenInRelease" END,
-              "firstSeenAt" = LEAST("firstSeenAt", $3::timestamptz),
-              "lastSeenAt" = GREATEST("lastSeenAt", $5::timestamptz),
-              "unhandled" = COALESCE("unhandled", false) OR $6::boolean,
-              "updatedAt" = now()
-            WHERE "_id" = $7`,
-              [
-                addedCount,
-                firstSeenInRelease,
-                firstSeenAt,
-                lastSeenInRelease,
-                lastSeenAt,
-                unhandled,
-                survivor.id,
-              ],
+              takeInStatement.query,
+              takeInStatement.parameters,
             );
           }
 
@@ -779,9 +736,15 @@ export default class TelemetryExceptionMerge {
             );
           } else {
             // Merged into another one meanwhile: its count is taken back off.
+            const takeBackStatement: ExceptionTakeInStatement =
+              getTakeBackStatement({
+                exceptionId: lockedMerged.mergedIntoId,
+                occuranceCount: lockedMerged.occuranceCount,
+              });
+
             await manager.query(
-              `UPDATE "TelemetryException" SET "occuranceCount" = GREATEST(0, COALESCE("occuranceCount", 0) - $1), "updatedAt" = now() WHERE "_id" = $2`,
-              [lockedMerged.occuranceCount, lockedMerged.mergedIntoId],
+              takeBackStatement.query,
+              takeBackStatement.parameters,
             );
           }
 
@@ -839,12 +802,4 @@ export default class TelemetryExceptionMerge {
 
     return unmergeResult;
   }
-}
-
-function sameDate(a: Date | null, b: Date | null): boolean {
-  return (
-    Boolean(a) &&
-    Boolean(b) &&
-    new Date(a!).getTime() === new Date(b!).getTime()
-  );
 }

@@ -34,7 +34,7 @@ Gå til **Brukerinnstillinger → Varselinnstillinger**. Fanene er **Hendelser**
 
 ### Finn hendelsen
 
-Hver fane har ett eller flere kort, som **Hendelse Episoder** på fanen **Hendelser**. Hver rad er en hendelse, med en linje som sier når den sendes.
+Hver fane har ett eller flere kort, som **Hendelsesepisoder** på fanen **Hendelser**. Hver rad er en hendelse, med en linje som sier når den sendes.
 
 ### Klikk på en kanal
 

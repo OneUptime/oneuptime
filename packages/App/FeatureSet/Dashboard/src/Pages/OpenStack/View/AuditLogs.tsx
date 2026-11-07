@@ -13,8 +13,7 @@ const OpenStackCloudAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="OpenStack Cloud Audit Logs"
       description="All changes made to this OpenStack cloud."
-      resourceType="OpenStack Cloud"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

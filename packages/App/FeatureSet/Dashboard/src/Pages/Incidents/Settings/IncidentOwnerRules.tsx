@@ -49,6 +49,10 @@ When a rule matches:
 - Under \`Creator's Team\`, each listed team that the person who declares the incident is a member of is also added. An incident declared by a monitor, a workflow or an API key has no creator, so it gets none of these teams.
 
 Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned. Whoever declares an incident becomes one of its owners whatever the rules say, and the summary step of Declare Incident lists each rule that will run, and whom it will add.
+
+### When the Severity or Labels Change
+
+Rules run when an incident is declared, and again whenever its severity or labels change while it is open. Raised to a severity a rule matches, or labelled org-wide, the incident gets that rule's owners then - how an oversight team takes over an incident that grows. Owners are never removed when it stops matching.
 `;
 
 const incidentEpisodeOwnerDocumentation: string = `

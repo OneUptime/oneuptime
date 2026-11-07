@@ -1,4 +1,5 @@
 import IconProp from "../../Icon/IconProp";
+import OnCallPageAs from "../../OnCallDutyPolicy/OnCallPageAs";
 import ComponentID from "../ComponentID";
 import ComponentMetadata, {
   Argument,
@@ -69,7 +70,7 @@ const getAboutArguments: () => Array<Argument> = (): Array<Argument> => {
       id: PAGE_ARGUMENT_IDS.about,
       name: "Page About",
       description:
-        "What the page is about. The people paged are told this, and acknowledging the page acknowledges it.",
+        "What the page is about. The people paged are told this, and a responder acknowledging the page acknowledges it.",
       type: ComponentInputType.Choice,
       // An empty one is a new alert, so there is always a choice made.
       required: false,
@@ -140,6 +141,35 @@ const getAboutArguments: () => Array<Argument> = (): Array<Argument> => {
       shownWhen: {
         argumentId: PAGE_ARGUMENT_IDS.about,
         values: [PageAbout.Alert],
+      },
+    },
+    {
+      id: PAGE_ARGUMENT_IDS.pageAs,
+      name: "Page As",
+      description:
+        "What the people paged are asked to do. Responders take it on. Observers are kept informed while somebody else responds (an oversight team told about every critical incident, say).",
+      type: ComponentInputType.Choice,
+      // An empty one pages responders, as every page step did before.
+      required: false,
+      choices: [
+        {
+          value: OnCallPageAs.Responders,
+          label: "Responders",
+          description:
+            "They take it on: acknowledging the page acknowledges it and stops every other page about it.",
+        },
+        {
+          value: OnCallPageAs.Observers,
+          label: "Observers",
+          description:
+            "They are kept informed: acknowledging their page only says they have seen it. Nothing else is acknowledged.",
+        },
+      ],
+      isAdvanced: true,
+      // Observers are told about something that is already there.
+      shownWhen: {
+        argumentId: PAGE_ARGUMENT_IDS.about,
+        values: [PageAbout.Incident, PageAbout.Alert],
       },
     },
     {

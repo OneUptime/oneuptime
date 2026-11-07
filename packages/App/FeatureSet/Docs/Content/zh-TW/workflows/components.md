@@ -235,6 +235,7 @@ flowchart TB
 | **Page About** | 呼叫是關於什麼的： **A new alert**、**An incident** 或 **An alert**。確認呼叫也就確認了它。 |
 | **Title** 和 **Message** | 用於新警示。OneUptime 會用它們建立一個警示，它和其他警示一樣留在你的警示清單中。 |
 | **Incident ID** 或 **Alert ID** | 用於已經存在的事件或警示，通常是啟動這個工作流程的那一個：`{{local.components.incident-on-create-1.returnValues.model._id}}`。 |
+| **Page As** | 用於已存在的事件或警示，位於 **更多欄位** 底下。 **Responders** 負責處理。 **Observers** 在其他人處理時獲知進展：他們確認呼叫只表示已看到，事件或警示不會因此被確認。 |
 | **Severity** | 用於新警示，位於 **更多欄位** 底下。它決定每個人的哪些待命規則會呼叫他們。留空時，使用專案中最嚴重的等級。 |
 
 新增到由事件或警示啟動的工作流程中的區塊，已經設定為針對該記錄進行呼叫，因此只需要指定呼叫誰。

@@ -49,6 +49,7 @@ import ChangeEpisodeState from "../../../Components/IncidentEpisode/ChangeState"
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
 import TelemetrySnapshotPanel from "../../../Components/Telemetry/TelemetrySnapshotPanel";
+import { EventMetricSubject } from "../../../Utils/EventMetricInvestigation";
 import {
   DerivedTelemetrySnapshot,
   EMPTY_TELEMETRY_SNAPSHOT,
@@ -93,6 +94,7 @@ import {
 } from "../../../Components/EpisodeView/EpisodeTiming";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import { EventStateTimelineDate } from "../../../Utils/EventDuration";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   translatableTerm,
@@ -417,6 +419,16 @@ const IncidentEpisodeView: FunctionComponent<
     );
   }
 
+  const episodeTimelineDates: Array<EventStateTimelineDate> =
+    episodeStateTimeline.map(
+      (timeline: IncidentEpisodeStateTimeline): EventStateTimelineDate => {
+        return {
+          stateId: timeline.incidentStateId?.toString(),
+          startsAt: timeline.startsAt,
+        };
+      },
+    );
+
   const timing: EpisodeTiming = getEpisodeTiming({
     // Older episodes predate declaredAt; they started when they were created.
     startedAt: episode?.declaredAt || episode?.createdAt || undefined,
@@ -431,14 +443,7 @@ const IncidentEpisodeView: FunctionComponent<
         isResolvedState: state.isResolvedState,
       };
     }),
-    timelines: episodeStateTimeline.map(
-      (timeline: IncidentEpisodeStateTimeline) => {
-        return {
-          stateId: timeline.incidentStateId?.toString(),
-          startsAt: timeline.startsAt,
-        };
-      },
-    ),
+    timelines: episodeTimelineDates,
   });
 
   const incidentCount: number | undefined =
@@ -707,6 +712,12 @@ const IncidentEpisodeView: FunctionComponent<
                 snapshotWindow={telemetrySnapshot.snapshotWindow}
                 seriesSummary={telemetrySnapshot.seriesSummary}
                 eventNoun="incident"
+                // A metric snapshot's investigation is anchored on the episode.
+                metricSubject={EventMetricSubject.IncidentEpisode}
+                startedAt={timing.durationStartsAt}
+                endedAt={timing.durationEndsAt}
+                stateTimeline={episodeTimelineDates}
+                states={incidentStates}
               />
             </div>
           )}

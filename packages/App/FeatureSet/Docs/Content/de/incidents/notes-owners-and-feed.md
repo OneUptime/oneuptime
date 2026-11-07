@@ -72,7 +72,7 @@ Lassen Sie **Statusseiten-Abonnenten benachrichtigen** angehakt, um Abonnenten z
 
 ### Posten
 
-Klicken Sie auf **Post update** oder drücken Sie Ctrl+Enter (⌘+Enter auf dem Mac). Die Notiz erscheint oben in der Liste, mit einem Badge, das ihre Benachrichtigung verfolgt.
+Klicken Sie auf **Update veröffentlichen** oder drücken Sie Ctrl+Enter (⌘+Enter auf dem Mac). Die Notiz erscheint oben in der Liste, mit einem Badge, das ihre Benachrichtigung verfolgt.
 :::
 
 Dasselbe Eingabefeld öffnet sich in einem Dialog über **Öffentliche Notiz hinzufügen** im Menü **Aktionen** des Vorfall-Feeds (siehe [Der Vorfall-Feed](#der-vorfall-feed)), eine Notiz wird also von beiden Stellen aus gleich geschrieben.
@@ -83,7 +83,7 @@ Dasselbe Eingabefeld öffnet sich in einem Dialog über **Öffentliche Notiz hin
 | **Vorlagen**                       | Fügt eine Ihrer Notizvorlagen in die Notiz ein, nach dem, was Sie schon getippt haben. Siehe [Notizvorlagen](#notizvorlagen). |
 | **Mit KI entwerfen**               | Entwirft die Notiz aus dem Vorfall, zum Bearbeiten. Siehe [Eine Notiz mit KI erzeugen](#eine-notiz-mit-ki-erzeugen). |
 | **Anhängen**                       | Dateien, die auf der Statusseite mit Abonnenten geteilt werden. Optional. |
-| **Posted now**                     | Wann die Notiz laut ihrer Angabe gepostet wurde: im Moment des Postens, sofern Sie hier keinen früheren Zeitpunkt wählen, in Ihrer aktuellen Zeitzone. |
+| **Jetzt veröffentlicht**                     | Wann die Notiz laut ihrer Angabe gepostet wurde: im Moment des Postens, sofern Sie hier keinen früheren Zeitpunkt wählen, in Ihrer aktuellen Zeitzone. |
 | **Statusseiten-Abonnenten benachrichtigen** | Kontrollkästchen. Standardmäßig an, außer der Vorfall wurde gemeldet, ohne Abonnenten zu benachrichtigen – dann beginnt es aus. Schalten Sie es aus, um still zu veröffentlichen. |
 
 **Stille Vorfälle bleiben still.** Wurde ein Vorfall mit ausgeschaltetem **Statusseiten-Abonnenten benachrichtigen** (oder als privater Vorfall) gemeldet, haben seine Abonnenten nie von ihm erfahren – eine öffentliche Notiz sollte also nicht das Erste sein, was sie hören. Bei einem solchen Vorfall beginnt das Kontrollkästchen aus, mit einer Zeile darunter, die erklärt, warum. Sie können es trotzdem anhaken, um Abonnenten über diese Notiz zu informieren. Notizen ohne ausdrückliche Wahl folgen derselben Regel: Notizen aus Slack und Microsoft Teams, Workflows und API-Anfragen ohne `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. Ein ausdrückliches `true` oder `false` wird immer beibehalten. Öffentliche Notizen an [geplanten Wartungsereignissen](/docs/status-pages/subscribers#geplante-wartungsereignisse) und [Vorfallsepisoden](/docs/status-pages/subscribers#vorfall-episoden) folgen einer ähnlichen Regel, je nachdem, ob das Ereignis oder die Episode selbst beim Anlegen Abonnenten benachrichtigt hat. Ein privater Vorfall oder eine private Episode erhält überhaupt keine öffentlichen Notizen.
@@ -93,7 +93,7 @@ Dasselbe Eingabefeld öffnet sich in einem Dialog über **Öffentliche Notiz hin
 **Sehen, was sie erhalten.** Neben demselben Kontrollkästchen zeigt **Vorschau** die E-Mail, die die Abonnenten jeder dieser Statusseiten für die Notiz erhalten, die Sie gerade schreiben, und welche Vorlage sie verwendet und warum. Sie bleibt grau, bis die Notiz Text enthält. **Test an mich senden** schickt diese E-Mail an die E-Mail-Adresse Ihres eigenen Kontos und an niemanden sonst. Siehe [Abonnenten & Ankündigungen](/docs/status-pages/subscribers#die-e-mail-vor-dem-versand-in-der-vorschau-ansehen).
 
 > [!TIP]
-> **Der Zeitpunkt des Postens ist der echte Zeitstempel der Notiz.** Statusseiten sortieren und zeigen öffentliche Notizen nach `postedAt`, nicht danach, wann Sie sie getippt haben – wenn Sie die Statusseite also mit einem Update nachziehen, das Sie vor 40 Minuten verschickt haben, wählen Sie **Posted now** und setzen den tatsächlichen Zeitpunkt. Kommt eine Notiz über die API (`/api/incident-public-note`) ohne ihn an, stempelt OneUptime die aktuelle Zeit.
+> **Der Zeitpunkt des Postens ist der echte Zeitstempel der Notiz.** Statusseiten sortieren und zeigen öffentliche Notizen nach `postedAt`, nicht danach, wann Sie sie getippt haben – wenn Sie die Statusseite also mit einem Update nachziehen, das Sie vor 40 Minuten verschickt haben, wählen Sie **Jetzt veröffentlicht** und setzen den tatsächlichen Zeitpunkt. Kommt eine Notiz über die API (`/api/incident-public-note`) ohne ihn an, stempelt OneUptime die aktuelle Zeit.
 
 Jede Notiz zeigt, wer sie geschrieben hat, ihren Zeitpunkt, das gerenderte Markdown mit ihren Anhängen und in ihrer Kopfzeile den Stand ihrer Abonnentenbenachrichtigung. **Notizen durchsuchen…** findet Notizen nach ihrem Inhalt, und der Feed lässt sich mit den neuesten oder ältesten zuerst lesen. Links zu anderen Websites und zu Anhängen öffnen sich in einem neuen Tab. Zeilen, die mit `>` beginnen, werden als Zitat angezeigt; beginnen Sie es mit einer eigenen Zeile `> [!NOTE]`, `> [!TIP]` oder `> [!WARNING]`, um es stattdessen als Hinweisfeld anzuzeigen.
 
@@ -249,9 +249,9 @@ Manche Einträge tragen zusätzliche Details – eine Eigentümerbenachrichtigun
 Die Kopfzeile der Karte hat außerdem ein Menü **Aktionen**, damit Sie handeln können, ohne die Zeitachse zu verlassen:
 
 - **Runbook ausführen** – startet ein [Runbook](/docs/runbooks/index) für diesen Vorfall.
-- **Bereitschaftsdienst-Richtlinie ausführen** – alarmiert eine Richtlinie auf Abruf. Eine archivierte Richtlinie alarmiert niemanden: Ihr Ausführungsprotokoll am Vorfall sagt, dass sie nicht ausgeführt wurde, weil die Richtlinie archiviert ist.
-- **Öffentliche Notiz hinzufügen** – das Eingabefeld der Seite **Öffentliche Notizen** in einem Dialog: Notiz schreiben, dann **Post update**. Vorlagen, **Mit KI entwerfen**, Anhänge, **Statusseiten-Abonnenten benachrichtigen** samt Empfängern und **Vorschau** sind alle dabei. Die Notiz wird jetzt gepostet; um sie zurückzudatieren, wählen Sie **Posted now**.
-- **Private Notiz hinzufügen** – das Eingabefeld der Seite **Private Notizen** in einem Dialog: Notiz schreiben, dann **Add note**.
+- **Bereitschaftsdienst-Richtlinie ausführen** – alarmiert eine Richtlinie auf Abruf. Eine archivierte Richtlinie alarmiert niemanden: Ihr Ausführungsprotokoll am Vorfall sagt, dass sie nicht ausgeführt wurde, weil die Richtlinie archiviert ist. Schalten Sie **Als Beobachter alarmieren** ein, um die Personen der Richtlinie stattdessen nur auf dem Laufenden zu halten: Ihre Antwort sagt nur, dass sie die Alarmierung gesehen haben, und der Vorfall wird nicht bestätigt.
+- **Öffentliche Notiz hinzufügen** – das Eingabefeld der Seite **Öffentliche Notizen** in einem Dialog: Notiz schreiben, dann **Update veröffentlichen**. Vorlagen, **Mit KI entwerfen**, Anhänge, **Statusseiten-Abonnenten benachrichtigen** samt Empfängern und **Vorschau** sind alle dabei. Die Notiz wird jetzt gepostet; um sie zurückzudatieren, wählen Sie **Jetzt veröffentlicht**.
+- **Private Notiz hinzufügen** – das Eingabefeld der Seite **Private Notizen** in einem Dialog: Notiz schreiben, dann **Notiz hinzufügen**.
 
 Beide Notizaktionen sind für jemanden gesperrt, der keine Notizen schreiben darf, und nennen die fehlende Berechtigung. Nach dem Posten einer Notiz schließt sich der Dialog, und der Feed zeigt sie.
 
@@ -304,7 +304,7 @@ Es gibt fünf Wege auf die Eigentümerliste:
 
 - **Beim Melden** – die Person, die einen Vorfall meldet, wird Eigentümer, und **Eigentümer** unter **Weitere Felder** in **Vorfall melden** fügt weitere hinzu: Jedes Team, in dem sie Mitglied ist, ist darunter nur einen Klick entfernt. Siehe [Wem der Vorfall gehören wird](/docs/incidents/declaring-incidents#wem-der-vorfall-gehören-wird).
 - **Aus einer Vorfallsvorlage** – Vorlagen haben ein Feld **Eigentümer**: die Personen und Teams, denen der Vorfall gehört und die beim Anlegen oder Aktualisieren benachrichtigt werden, aus derselben Liste gewählt wie bei **Eigentümer hinzufügen**. Das Anlegen eines Vorfalls aus der Vorlage füllt sie vor, und sie werden hinzugefügt, sobald die Slack- und Microsoft-Teams-Kanäle des Vorfalls existieren, sodass eine Benachrichtigungsregel, die Vorfalleigentümer in einen neuen Kanal einlädt, auch sie einlädt. Das Dashboard und ein Workflow-Schritt **Create One Incident** mit gewählter **Incident Template** fügen sie ohne die Benachrichtigung „Sie wurden hinzugefügt“ hinzu; ein [Formular](/docs/forms/on-submit) mit einer Vorlage benachrichtigt sie und hält die Benachrichtigung **Vorfall erstellt** des Vorfalls zurück, bis sie hinzugefügt sind. Siehe [Einen Vorfall melden](/docs/incidents/declaring-incidents).
-- **Aus Vorfall-Eigentümerregeln** – zutreffende Regeln fügen beim Anlegen automatisch Eigentümer hinzu.
+- **Aus Vorfall-Eigentümerregeln** – zutreffende Regeln fügen beim Anlegen automatisch Eigentümer hinzu, und erneut, wenn sich der Schweregrad oder die Labels des Vorfalls ändern.
 - **Beim Anlegen über die API** – mit dem Erstellungsaufruf übergebene Eigentümer-Benutzer und -Teams werden genauso hinzugefügt, sobald die Kanäle existieren, und ohne die Benachrichtigung „Sie wurden hinzugefügt“.
 - **Von Hand** – das Steuerelement **Eigentümer hinzufügen** auf der Seite **Eigentümer**, zu jedem Zeitpunkt des Vorfalls, oder **Hinzufügen** unter den Eigentümern in der Kopfzeile der **Übersicht**, solange er offen ist.
 
@@ -324,6 +324,8 @@ Eine neue Regel muss jemanden hinzufügen: Wählen Sie mindestens einen Eigentü
 **Eigentümer benachrichtigen**, unter **Weitere Felder**, steuert, ob die Leute es erfahren. Lassen Sie es für echte Zuständigkeiten an; schalten Sie es aus, um Eigentümer still hinzuzufügen – nützlich, wenn eine Regel eine Verwaltungshilfe ist statt einer Alarmierung.
 
 Jede Regelausführung wird in den Vorfall-Feed geschrieben, sodass Sie immer erkennen, ob eine Person von einer Regel oder von einem Menschen hinzugefügt wurde.
+
+Regeln laufen, wenn ein Vorfall gemeldet wird, und erneut, sobald sich sein Schweregrad oder seine Labels ändern, solange er offen ist. Ein Vorfall, der auf einen Schweregrad hochgestuft wird, zu dem eine Regel passt, oder ein Label bekommt, zu dem eine passt, bekommt dann die Eigentümer dieser Regel, benachrichtigt, wie die Regel es sagt, und sein Feed sagt, dass die Regel nun zu ihm passt, und warum: So übernimmt ein Team einen Vorfall, sobald sich zeigt, dass er die ganze Organisation betrifft. Eigentümer werden nie entfernt, wenn der Vorfall nicht mehr passt.
 
 ## Worüber Eigentümer benachrichtigt werden
 

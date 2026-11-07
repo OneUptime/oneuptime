@@ -79,6 +79,16 @@ const INCIDENT_VIEW: string = readSource(
 
 const ALERT_VIEW: string = readSource("Pages", "Alerts", "View", "Index.tsx");
 
+/*
+ * The card of a metric snapshot (issue #5954): the pages hand it the
+ * narrowing they worked out, and it says it.
+ */
+const METRIC_INVESTIGATION_PANEL: string = readSource(
+  "Components",
+  "Telemetry",
+  "EventMetricInvestigationPanel.tsx",
+);
+
 const MONITOR_METRIC_PREVIEW: string = readSource(
   "Components",
   "Monitor",
@@ -162,7 +172,17 @@ describe("incident overview Metrics card is scoped to the incident's series", ()
     expect(INCIDENT_VIEW).toContain(
       "MetricSeriesScope.getAppliedSeriesLabelSummary({",
     );
-    expect(INCIDENT_VIEW).toContain("scoped to the affected series");
+    /*
+     * The metric investigation's card says it, from the summary the page
+     * worked out: never from the raw labels.
+     */
+    expect(INCIDENT_VIEW).toContain("seriesSummary={seriesSummary}");
+    expect(METRIC_INVESTIGATION_PANEL).toContain(
+      "scoped to the affected series ({{seriesSummary}})",
+    );
+    expect(METRIC_INVESTIGATION_PANEL).toContain(
+      "{ seriesSummary: props.seriesSummary }",
+    );
   });
 });
 
@@ -189,7 +209,17 @@ describe("alert overview Metrics card is scoped to the alert's series", () => {
     expect(ALERT_VIEW).toContain(
       "MetricSeriesScope.getAppliedSeriesLabelSummary({",
     );
-    expect(ALERT_VIEW).toContain("scoped to the affected series");
+    /*
+     * The metric investigation's card says it, from the summary the page
+     * worked out: never from the raw labels.
+     */
+    expect(ALERT_VIEW).toContain("seriesSummary={seriesSummary}");
+    expect(METRIC_INVESTIGATION_PANEL).toContain(
+      "scoped to the affected series ({{seriesSummary}})",
+    );
+    expect(METRIC_INVESTIGATION_PANEL).toContain(
+      "{ seriesSummary: props.seriesSummary }",
+    );
   });
 });
 

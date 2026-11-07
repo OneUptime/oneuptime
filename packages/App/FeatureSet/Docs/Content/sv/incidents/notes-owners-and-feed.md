@@ -27,7 +27,7 @@ flowchart TB
     private --> feed
 ```
 
-**Offentliga anteckningar** publiceras på din statussida och kan meddela prenumeranterna. **Privata anteckningar** (modellen `IncidentInternalNote`) stannar inne i instrumentpanelen. Under båda ligger **Incident Flöde**, en tidslinje som bara kan växa och som registrerar allt som hände med incidenten, och listan **Ägare**, som avgör vem som får besked.
+**Offentliga anteckningar** publiceras på din statussida och kan meddela prenumeranterna. **Privata anteckningar** (modellen `IncidentInternalNote`) stannar inne i instrumentpanelen. Under båda ligger **Incidentflöde**, en tidslinje som bara kan växa och som registrerar allt som hände med incidenten, och listan **Ägare**, som avgör vem som får besked.
 
 Allt hänger på incidentens sidomeny: **Anteckningar → Offentliga anteckningar**, **Anteckningar → Privata anteckningar** och **Team → Ägare**. Flödet finns på incidentens sida **Översikt**.
 
@@ -40,7 +40,7 @@ De två sorternas anteckningar ser likadana ut i instrumentpanelen och beter sig
 | Modell                   | `IncidentPublicNote`                                                | `IncidentInternalNote`                                          |
 | Visas på statussidor     | Ja, som en del av incidentens tidslinje                             | Aldrig — inget i statussideappen läser dem                      |
 | Publiceringstid          | `postedAt`, som du själv kan sätta                                  | Ingen: stämplad och sorterad efter `createdAt`                  |
-| Meddelar prenumeranter   | När **Notify status page subscribers** är påslagen                  | Aldrig: den har inga fält för prenumeranter alls                |
+| Meddelar prenumeranter   | När **Avisera statussidans prenumeranter** är påslagen                  | Aldrig: den har inga fält för prenumeranter alls                |
 | Bilagor nåbara för       | Statussidans besökare, via en väg på statussidan                    | Bara det autentiserade instrumentpanels-API:t                   |
 | Meddelar ägare           | Ja                                                                  | Ja                                                              |
 
@@ -64,42 +64,42 @@ De två sorternas anteckningar ser likadana ut i instrumentpanelen och beter sig
 
 ### Skriv uppdateringen
 
-Skriv anteckningen i Markdown, eller börja från en av dina **Mallar** eller från **Utkast med AI**. Lägg till filer med **Attach** om prenumeranterna ska se dem.
+Skriv anteckningen i Markdown, eller börja från en av dina **Mallar** eller från **Utkast med AI**. Lägg till filer med **Bifoga** om prenumeranterna ska se dem.
 
 ### Bestäm vem som får besked
 
-Låt **Notify status page subscribers** vara ikryssad för att meddela prenumeranterna, eller kryssa ur den för att publicera tyst. **Will notify** under den visar vilka statussidor anteckningen når, och **Förhandsgranskning** visar e-postmeddelandet de får.
+Låt **Avisera statussidans prenumeranter** vara ikryssad för att meddela prenumeranterna, eller kryssa ur den för att publicera tyst. **Will notify** under den visar vilka statussidor anteckningen når, och **Förhandsgranskning** visar e-postmeddelandet de får.
 
 ### Publicera den
 
-Klicka på **Post update**, eller tryck på Ctrl+Enter (⌘+Enter på en Mac). Anteckningen visas överst i listan, med ett märke som följer dess avisering.
+Klicka på **Publicera uppdatering**, eller tryck på Ctrl+Enter (⌘+Enter på en Mac). Anteckningen visas överst i listan, med ett märke som följer dess avisering.
 :::
 
-Samma redigerare öppnas i en dialog från **Add Public Note** i menyn **Åtgärder** i incidentens flöde (se [Incidentens flöde](#incidentens-flöde)), så en anteckning skrivs på samma sätt från båda ställena.
+Samma redigerare öppnas i en dialog från **Lägg till offentlig anteckning** i menyn **Åtgärder** i incidentens flöde (se [Incidentens flöde](#incidentens-flöde)), så en anteckning skrivs på samma sätt från båda ställena.
 
 | Kontroll                           | Syfte                                                                                                                                         |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | Anteckningen                       | Texten, i Markdown. Obligatoriskt.                                                                                                            |
 | **Mallar**                         | Infogar en av dina anteckningsmallar i anteckningen, efter det du redan har skrivit. Se [Anteckningsmallar](#anteckningsmallar).                 |
 | **Utkast med AI**                  | Skriver ett utkast till anteckningen utifrån incidenten, som du redigerar. Se [Generera en anteckning med AI](#generera-en-anteckning-med-ai).     |
-| **Attach**                         | Filer som delas med prenumeranterna på statussidan. Valfritt.                                                                                 |
-| **Posted now**                     | När anteckningen säger att den publicerades: ögonblicket då du publicerar den, om du inte väljer en tidigare tidpunkt här, i din aktuella tidszon. |
-| **Notify status page subscribers** | Kryssruta. Påslagen som standard, om inte incidenten deklarerades utan att meddela prenumeranterna — då börjar den avstängd. Stäng av den för att publicera tyst. |
+| **Bifoga**                         | Filer som delas med prenumeranterna på statussidan. Valfritt.                                                                                 |
+| **Publicerad nu**                     | När anteckningen säger att den publicerades: ögonblicket då du publicerar den, om du inte väljer en tidigare tidpunkt här, i din aktuella tidszon. |
+| **Avisera statussidans prenumeranter** | Kryssruta. Påslagen som standard, om inte incidenten deklarerades utan att meddela prenumeranterna — då börjar den avstängd. Stäng av den för att publicera tyst. |
 
 **Tysta incidenter förblir tysta.** Deklarerades en incident med **Meddela statussideprenumeranter** avstängt (eller som en privat incident) har dess prenumeranter aldrig fått veta om den, så en offentlig anteckning bör inte vara det första de hör. På en sådan incident börjar kryssrutan avstängd, med en rad under som förklarar varför. Du kan fortfarande kryssa i den för att meddela prenumeranterna om den anteckningen. Anteckningar som publiceras utan ett uttryckligt val följer samma regel: anteckningar från Slack och Microsoft Teams, arbetsflöden och API-begäranden som utelämnar `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. Ett uttryckligt `true` eller `false` behålls alltid. Offentliga anteckningar på [schemalagda underhållshändelser](/docs/status-pages/subscribers#schemalagda-underhållshändelser) och [incidentepisoder](/docs/status-pages/subscribers#incidentepisoder) följer en liknande regel, baserad på om händelsen eller episoden själv meddelade prenumeranterna när den skapades. En privat incident eller episod tar inga offentliga anteckningar alls.
 
-**Se vem anteckningen når.** Medan **Notify status page subscribers** är ikryssad visar en rad **Will notify** under den statussidorna som anteckningen går till, med ett "upp till"-antal prenumeranter per kanal, och sidorna som visar incidentens monitorer men inte får besked, med orsaken. Får ingen besked visar den ingenting, om inte incidenten är dold för statussidor eller dess statussideomfång är orsaken. Den följer incidentens statussideomfång, så en anteckning på en incident som är begränsad till två platssidor säger att den når de två. Se [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience).
+**Se vem anteckningen når.** Medan **Avisera statussidans prenumeranter** är ikryssad visar en rad **Will notify** under den statussidorna som anteckningen går till, med ett "upp till"-antal prenumeranter per kanal, och sidorna som visar incidentens monitorer men inte får besked, med orsaken. Får ingen besked visar den ingenting, om inte incidenten är dold för statussidor eller dess statussideomfång är orsaken. Den följer incidentens statussideomfång, så en anteckning på en incident som är begränsad till två platssidor säger att den når de två. Se [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience).
 
 **Se vad de får.** Bredvid samma kryssruta visar **Förhandsgranskning** e-postmeddelandet som prenumeranterna på var och en av de statussidorna får för anteckningen du skriver, och vilken mall det använder och varför. Den förblir grå tills anteckningen har lite text. **Skicka test till mig** skickar det e-postmeddelandet till ditt eget kontos e-postadress, och till ingen annan. Se [Prenumeranter och meddelanden](/docs/status-pages/subscribers#förhandsgranska-e-postmeddelandet-innan-det-skickas).
 
 > [!TIP]
-> **Publiceringstiden är anteckningens verkliga tidsstämpel.** Statussidor sorterar och visar offentliga anteckningar efter `postedAt`, inte efter när du skrev dem — så om du uppdaterar statussidan med en uppdatering som du skickade för 40 minuter sedan väljer du **Posted now** och anger när det faktiskt hände. Kommer en anteckning in via API:t (`/api/incident-public-note`) utan en tidpunkt stämplar OneUptime aktuell tid.
+> **Publiceringstiden är anteckningens verkliga tidsstämpel.** Statussidor sorterar och visar offentliga anteckningar efter `postedAt`, inte efter när du skrev dem — så om du uppdaterar statussidan med en uppdatering som du skickade för 40 minuter sedan väljer du **Publicerad nu** och anger när det faktiskt hände. Kommer en anteckning in via API:t (`/api/incident-public-note`) utan en tidpunkt stämplar OneUptime aktuell tid.
 
-Varje anteckning visar vem som skrev den, dess publiceringstid, den återgivna Markdown-texten med dess bilagor och, i dess rubrik, hur det står till med aviseringen till prenumeranterna. **Search notes…** hittar anteckningar utifrån vad de säger, och flödet kan läsas med de senaste eller de äldsta först. Länkar till andra webbplatser och till bilagor öppnas i en ny flik. Rader som börjar med `>` visas som ett citat; inled det med en egen rad, `> [!NOTE]`, `> [!TIP]` eller `> [!WARNING]`, för att i stället visa det som en framhävd ruta.
+Varje anteckning visar vem som skrev den, dess publiceringstid, den återgivna Markdown-texten med dess bilagor och, i dess rubrik, hur det står till med aviseringen till prenumeranterna. **Sök i anteckningar…** hittar anteckningar utifrån vad de säger, och flödet kan läsas med de senaste eller de äldsta först. Länkar till andra webbplatser och till bilagor öppnas i en ny flik. Rader som börjar med `>` visas som ett citat; inled det med en egen rad, `> [!NOTE]`, `> [!TIP]` eller `> [!WARNING]`, för att i stället visa det som en framhävd ruta.
 
 ## Publicera en privat anteckning
 
-**Anteckningar → Privata anteckningar** är medvetet enklare. Det är samma redigerare, som säger **Private · Only your team can see this**, med anteckningen, **Mallar**, **Utkast med AI** och **Attach** för filer som är avsedda för teamet som ingriper i incidenten. **Lägg till privat anteckning** i menyn **Åtgärder** i incidentens flöde öppnar den i en dialog. Via API:t är privata anteckningar `/api/incident-internal-note`.
+**Anteckningar → Privata anteckningar** är medvetet enklare. Det är samma redigerare, som säger **Private · Only your team can see this**, med anteckningen, **Mallar**, **Utkast med AI** och **Bifoga** för filer som är avsedda för teamet som ingriper i incidenten. **Lägg till privat anteckning** i menyn **Åtgärder** i incidentens flöde öppnar den i en dialog. Via API:t är privata anteckningar `/api/incident-internal-note`.
 
 Ingen publiceringstid, ingen kryssruta för prenumeranter — anteckningen stämplas när den skapas.
 
@@ -109,7 +109,7 @@ Båda sorternas anteckningar skrivs i Markdown-redigeraren, som kapslar listpunk
 
 En privat incident finns inte på någon statussida och meddelar inga prenumeranter (se [Håll en incident borta från statussidan](/docs/incidents/states-and-severities#håll-en-incident-borta-från-statussidan)), så en offentlig anteckning på den skulle inte nå någon av dem den skrevs för. OneUptime erbjuder därför ingen:
 
-- **Sidan med offentliga anteckningar** säger "Den här incidenten är privat, så det går inte att lägga till offentliga anteckningar på den. Använd en privat anteckning." där redigeraren fanns, med knappen **Lägg till privat anteckning** som öppnar dess privata anteckningar. **Add Public Note** i flödets meny **Åtgärder** är låst och säger samma sak.
+- **Sidan med offentliga anteckningar** säger "Den här incidenten är privat, så det går inte att lägga till offentliga anteckningar på den. Använd en privat anteckning." där redigeraren fanns, med knappen **Lägg till privat anteckning** som öppnar dess privata anteckningar. **Lägg till offentlig anteckning** i flödets meny **Åtgärder** är låst och säger samma sak.
 - **När dess tillstånd ändras** fäller dialogrutan in en privat anteckning under **Lägg till en privat anteckning** i stället för den offentliga, och frågar inte om prenumeranter. Massåtgärden **Ändra tillstånd** lägger till sin anteckning som en privat anteckning på varje privat incident den flyttar, och meddelar ingen om dem.
 - **I Slack och Microsoft Teams** sparar en 📣 eller 📢 på ett meddelande i dess kanal meddelandet som en privat anteckning, och bekräftelsen säger varför.
 - **Via API:et, arbetsflöden och OneUptime AI** avvisas en offentlig anteckning på den med samma mening, och en tillståndsändring som skickas med en sådan avvisas helt, så tillståndet ändras inte. En SLA-regels påminnelser om offentliga anteckningar väntar tills den är offentlig igen; dess privata påminnelser publiceras som vanligt.
@@ -118,7 +118,7 @@ Offentliga anteckningar som publicerades innan incidenten gjordes privat finns k
 
 ## Bilagor på anteckningar
 
-Båda sorternas anteckningar tar emot bifogade filer via redigerarens knapp **Attach**, och båda visar en lista över bilagor under anteckningens text med en länk **Download attachment** per fil.
+Båda sorternas anteckningar tar emot bifogade filer via redigerarens knapp **Bifoga**, och båda visar en lista över bilagor under anteckningens text med en länk **Download attachment** per fil.
 
 Där de skiljer sig åt är vem som kan hämta filen:
 
@@ -138,12 +138,12 @@ Att läsa en anteckning via API:t, Terraform eller ett arbetsflöde visar bara b
 
 ## Generera en anteckning med AI
 
-Redigeraren har en knapp **Utkast med AI**, på båda anteckningssidorna och i flödets dialoger **Add Public Note** och **Lägg till privat anteckning**. Den skickar incidenten till ditt projekts AI-leverantör och lägger in den genererade Markdown-texten i anteckningen, där du redigerar den innan du publicerar — inget publiceras automatiskt.
+Redigeraren har en knapp **Utkast med AI**, på båda anteckningssidorna och i flödets dialoger **Lägg till offentlig anteckning** och **Lägg till privat anteckning**. Den skickar incidenten till ditt projekts AI-leverantör och lägger in den genererade Markdown-texten i anteckningen, där du redigerar den innan du publicerar — inget publiceras automatiskt.
 
 | Dialog                             | Vad den skriver                                                      | Mallar                                                            |
 | ---------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Generate Public Note with AI**   | En anteckning till kunderna, utifrån en analys av incidentens data.  | **Status Update**, **Resolution Notice**, **Maintenance Update**  |
-| **Generate Private Note with AI**  | En intern teknisk anteckning.                                        | **Investigation Update**, **Technical Analysis**, **Shift Handoff** |
+| **Skapa offentlig anteckning med AI**   | En anteckning till kunderna, utifrån en analys av incidentens data.  | **Status Update**, **Resolution Notice**, **Maintenance Update**  |
+| **Skapa privat anteckning med AI**  | En intern teknisk anteckning.                                        | **Investigation Update**, **Technical Analysis**, **Shift Handoff** |
 
 Bakom knappen skickar instrumentpanelen en begäran till `/incident/generate-note-from-ai/{incidentId}` med den valda mallen och en anteckningstyp `public` eller `internal`.
 
@@ -196,22 +196,22 @@ flowchart TB
 6. Varje prenumerant måste klara sina egna inställningar — inte avregistrerad, och prenumererande på den här resursen och på händelsetypen `Incident` där sidan låter prenumeranterna välja.
 
 > [!NOTE]
-> **Aviseringar är inte omedelbara.** Jobbet som skickar dem körs en gång i minuten, så räkna med upp till ungefär en minut mellan att anteckningen sparas och att e-posten går iväg. Det är vad **Notifying subscribers soon** betyder på en anteckning, och **Sending Soon** på incidentens egna aviseringar.
+> **Aviseringar är inte omedelbara.** Jobbet som skickar dem körs en gång i minuten, så räkna med upp till ungefär en minut mellan att anteckningen sparas och att e-posten går iväg. Det är vad **Aviserar prenumeranter snart** betyder på en anteckning, och **Sending Soon** på incidentens egna aviseringar.
 
 En offentlig antecknings rubrik följer hela resan med ett märke. Klicka på det för aviseringens statusmeddelande, som säger vad som hände:
 
 | Märke                          | Vad det betyder                                                                                                                                   |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Subscribers not notified**   | Inget skickades: anteckningen publicerades med **Meddela statussideprenumeranter** urkryssat, eller en av spärrarna ovan stängde. Orsaken är registrerad. |
-| **Notifying subscribers soon** | Köad, väntar på nästa körning av utskicksjobbet.                                                                                                  |
-| **Notifying subscribers**      | Jobbet arbetar sig igenom listan över prenumeranter.                                                                                              |
-| **Subscribers notified**       | Varje prenumerants meddelande skickades. Statusmeddelandet visar per statussida hur många som gick ut på varje kanal.                             |
-| **Notification failed**        | Inte alla prenumeranter fick det skickat, eller jobbet stoppades med ett fel. Statusmeddelandet säger vilket.                                     |
+| **Prenumeranterna har inte aviserats**   | Inget skickades: anteckningen publicerades med **Meddela statussideprenumeranter** urkryssat, eller en av spärrarna ovan stängde. Orsaken är registrerad. |
+| **Aviserar prenumeranter snart** | Köad, väntar på nästa körning av utskicksjobbet.                                                                                                  |
+| **Aviserar prenumeranter**      | Jobbet arbetar sig igenom listan över prenumeranter.                                                                                              |
+| **Prenumeranterna har aviserats**       | Varje prenumerants meddelande skickades. Statusmeddelandet visar per statussida hur många som gick ut på varje kanal.                             |
+| **Aviseringen misslyckades**        | Inte alla prenumeranter fick det skickat, eller jobbet stoppades med ett fel. Statusmeddelandet säger vilket.                                     |
 
-**Skickat betyder skickat.** Jobbet väntar på varje meddelande: ett e-postmeddelande eller ett sms räknas som skickat när e-postservern eller sms-leverantören har tagit emot det, och ett meddelande till Slack, Microsoft Teams eller en webhook när den andra sidan har svarat. Ett meddelande som avvisas, ger ett fel eller inte får något svar inom 4 minuter räknas som misslyckat, och ett misslyckande sätter märket till **Notification failed**; de andra prenumeranterna får det fortfarande skickat. Statusmeddelandet lyder då till exempel `Not every subscriber was sent this notification: 2 of 61 messages failed. Site 03: 41 email sent. Site 07: 16 email, 2 SMS sent; 2 email failed.` "Skickat" är så långt som OneUptime kan se: en e-postserver kan fortfarande studsa ett e-postmeddelande senare.
+**Skickat betyder skickat.** Jobbet väntar på varje meddelande: ett e-postmeddelande eller ett sms räknas som skickat när e-postservern eller sms-leverantören har tagit emot det, och ett meddelande till Slack, Microsoft Teams eller en webhook när den andra sidan har svarat. Ett meddelande som avvisas, ger ett fel eller inte får något svar inom 4 minuter räknas som misslyckat, och ett misslyckande sätter märket till **Aviseringen misslyckades**; de andra prenumeranterna får det fortfarande skickat. Statusmeddelandet lyder då till exempel `Not every subscriber was sent this notification: 2 of 61 messages failed. Site 03: 41 email sent. Site 07: 16 email, 2 SMS sent; 2 email failed.` "Skickat" är så långt som OneUptime kan se: en e-postserver kan fortfarande studsa ett e-postmeddelande senare.
 
 :::details Stora sidor och långa utskick
-En statussidas prenumeranter läses 10 000 åt gången tills alla har nåtts, och 20 meddelanden är på väg samtidigt. En avisering slutar starta nya meddelanden efter 20 minuter: det som den inte hade nått dittills listas, och den markeras som **Notification failed**. Ett utskick som avbröts halvvägs — dess server startades om eller slutade svara — markeras också som **Notification failed**, med ett meddelande som börjar med `Interrupted:`, när det har stått på **Notifying subscribers** i 40 minuter, så att det aldrig blir hängande för evigt. Se [Prenumeranter och meddelanden](/docs/status-pages/subscribers#kontrollera-vad-som-skickades).
+En statussidas prenumeranter läses 10 000 åt gången tills alla har nåtts, och 20 meddelanden är på väg samtidigt. En avisering slutar starta nya meddelanden efter 20 minuter: det som den inte hade nått dittills listas, och den markeras som **Aviseringen misslyckades**. Ett utskick som avbröts halvvägs — dess server startades om eller slutade svara — markeras också som **Aviseringen misslyckades**, med ett meddelande som börjar med `Interrupted:`, när det har stått på **Aviserar prenumeranter** i 40 minuter, så att det aldrig blir hängande för evigt. Se [Prenumeranter och meddelanden](/docs/status-pages/subscribers#kontrollera-vad-som-skickades).
 :::
 
 ### Skicka en antecknings avisering igen
@@ -242,16 +242,16 @@ Det faktiska meddelandet som prenumeranterna får byggs med en mall per statussi
 
 ## Incidentens flöde
 
-Kortet **Incident Flöde** står längst ner i den vänstra kolumnen på incidentens sida **Översikt**. Det är incidentens historia som en tidslinje. Varje dag har en rubrik med sitt datum, säger när det är i dag eller i går och anger tidszonen som tiderna står i: den från dina användarinställningar, annars webbläsarens. Varje post visar tiden då den hände, om inte posten ovanför hände samma minut, och under den senaste timmen även hur länge sedan; peka på tiden för fullständigt datum och klockslag. Bredvid tiden står ikonen för postens typ och en mening som börjar med avataren och namnet på den som orsakade den. Det som någon har skrivit, som en anteckning eller en grundorsak, står för sig i ett kort under meningen. Tre eller fler poster av samma typ i rad inom fem minuter, som jouruppdateringar, aviseringar till ägare eller prenumeranter eller regler som kördes, fälls ihop under den första, bakom en knapp som visar resten. Som standard står de senaste posterna överst.
+Kortet **Incidentflöde** står längst ner i den vänstra kolumnen på incidentens sida **Översikt**. Det är incidentens historia som en tidslinje. Varje dag har en rubrik med sitt datum, säger när det är i dag eller i går och anger tidszonen som tiderna står i: den från dina användarinställningar, annars webbläsarens. Varje post visar tiden då den hände, om inte posten ovanför hände samma minut, och under den senaste timmen även hur länge sedan; peka på tiden för fullständigt datum och klockslag. Bredvid tiden står ikonen för postens typ och en mening som börjar med avataren och namnet på den som orsakade den. Det som någon har skrivit, som en anteckning eller en grundorsak, står för sig i ett kort under meningen. Tre eller fler poster av samma typ i rad inom fem minuter, som jouruppdateringar, aviseringar till ägare eller prenumeranter eller regler som kördes, fälls ihop under den första, bakom en knapp som visar resten. Som standard står de senaste posterna överst.
 
 Vissa poster har extra detaljer — en avisering till ägarna listar till exempel alla som fick e-post, och en avisering till prenumeranterna listar varje statussida som den gick till, med antalet skickade och misslyckade meddelanden på varje kanal och ämnet som dess e-post gick ut med, följt, när den skickade några, av värdena i anpassade fält som den lade in i ett meddelande, under **Custom fields sent**. De detaljerna fälls ut under posten: **Visa vem som aviserades** på en avisering till ägarna, **Visa hela rapporten** på grundorsaken som en AI-utredning publicerade och **Visa detaljer** på de övriga. **Dölj detaljer** fäller ihop dem igen.
 
 Kortets rubrik har också en meny **Åtgärder**, så att du kan agera utan att lämna tidslinjen:
 
-- **Execute Runbook** — starta ett [runbook](/docs/runbooks/index) för den här incidenten.
-- **Kör jourpolicy** — larma en policy på begäran. En arkiverad policy larmar ingen: dess körningslogg på incidenten säger att den inte kördes eftersom policyn är arkiverad.
-- **Add Public Note** — redigeraren från sidan **Offentliga anteckningar**, i en dialog: skriv anteckningen, och sedan **Post update**. Mallar, **Utkast med AI**, bilagor, **Notify status page subscribers** med vem den når, och **Förhandsgranskning** finns alla där. Anteckningen publiceras nu; för att bakåtdatera den väljer du **Posted now**.
-- **Lägg till privat anteckning** — redigeraren från sidan **Privata anteckningar**, i en dialog: skriv anteckningen, och sedan **Add note**.
+- **Kör runbook** — starta ett [runbook](/docs/runbooks/index) för den här incidenten.
+- **Kör jourpolicy** — larma en policy på begäran. En arkiverad policy larmar ingen: dess körningslogg på incidenten säger att den inte kördes eftersom policyn är arkiverad. Slå på **Larma dem som observatörer** för att i stället hålla policyns personer informerade: deras svar säger bara att de har sett larmet, och incidenten bekräftas inte.
+- **Lägg till offentlig anteckning** — redigeraren från sidan **Offentliga anteckningar**, i en dialog: skriv anteckningen, och sedan **Publicera uppdatering**. Mallar, **Utkast med AI**, bilagor, **Avisera statussidans prenumeranter** med vem den når, och **Förhandsgranskning** finns alla där. Anteckningen publiceras nu; för att bakåtdatera den väljer du **Publicerad nu**.
+- **Lägg till privat anteckning** — redigeraren från sidan **Privata anteckningar**, i en dialog: skriv anteckningen, och sedan **Lägg till anteckning**.
 
 Båda anteckningsåtgärderna är låsta, med namnet på den saknade behörigheten, för någon som inte får skriva anteckningar. När en anteckning har publicerats stängs dialogen och flödet visar den.
 
@@ -304,7 +304,7 @@ Det finns fem vägar in på listan över ägare:
 
 - **Vid deklarering** — den som deklarerar en incident blir ägare, och **Ägare** under **Fler fält** i **Deklarera incident** lägger till fler: varje team som personen är medlem i finns ett klick bort under fältet. Se [Vem som äger den](/docs/incidents/declaring-incidents#vem-som-äger-den).
 - **Från en incidentmall** — mallar har ett fält **Ägare**: personerna och teamen som äger incidenten och meddelas när den skapas eller uppdateras, valda från samma lista som **Lägg till ägare**. Att skapa en incident från mallen förifyller dem, och de läggs till när incidentens Slack- och Microsoft Teams-kanaler finns, så att en aviseringsregel som bjuder in incidentens ägare till en ny kanal också bjuder in dem. Instrumentpanelen, och ett arbetsflödes steg **Create One Incident** med en vald **Incident Template**, lägger till dem utan aviseringen "du har lagts till"; ett [formulär](/docs/forms/on-submit) med en mall meddelar dem och håller tillbaka incidentens avisering **Incident skapad** tills de har lagts till. Se [Deklarera en incident](/docs/incidents/declaring-incidents).
-- **Från Ägarregler för incidenter** — matchande regler lägger till ägare automatiskt när incidenten skapas.
+- **Från Ägarregler för incidenter** — matchande regler lägger till ägare automatiskt när incidenten skapas, och igen när dess allvarlighetsgrad eller etiketter ändras.
 - **Vid skapande via API:t** — användare och team som anges som ägare med skapandeanropet läggs till på samma sätt, när kanalerna finns, och utan aviseringen "du har lagts till".
 - **By hand** — kontrollen **Lägg till ägare** på sidan **Ägare**, när som helst under incidenten, eller **Lägg till** under ägarna i rubriken på **Översikt** så länge den är öppen.
 
@@ -324,6 +324,8 @@ En ny regel måste lägga till någon: välj minst en ägare, slå på ett regla
 **Avisera ägare**, under **Fler fält**, styr om folk får veta det. Låt det vara påslaget för riktig dirigering; stäng av det för att lägga till ägare tyst — användbart när en regel är en administrativ bekvämlighet och inte ett larm.
 
 Varje körning av en regel skrivs i incidentens flöde, så att du alltid kan se om en person lades till av en regel eller av en människa.
+
+Regler körs när en incident deklareras, och igen varje gång dess allvarlighetsgrad eller etiketter ändras medan den är öppen. En incident som höjs till en allvarlighetsgrad som en regel matchar, eller får en etikett som en regel matchar, får då den regelns ägare, aviserade som regeln säger, och dess flöde säger att regeln nu matchar den, och varför: så tar ett team över en incident så snart det visar sig att den berör hela organisationen. Ägare tas aldrig bort när incidenten slutar matcha.
 
 ## Vad ägarna meddelas om
 

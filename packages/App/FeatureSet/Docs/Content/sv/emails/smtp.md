@@ -34,7 +34,7 @@ Lägg till ett projekts e-postserver under **Projektinställningar > Aviseringar
 
 :::tabs
 @tab Projekt
-Öppna **Fler inställningar** under **Projektinställningar > Aviseringar > Aviseringsinställningar** och klicka på **Skapa SMTP Konfiguration** i kortet **Anpassade SMTP-konfigurationer**.
+Öppna **Fler inställningar** under **Projektinställningar > Aviseringar > Aviseringsinställningar** och klicka på **Skapa SMTP-konfiguration** i kortet **Anpassade SMTP-konfigurationer**.
 @tab Egenvärdad instans
 Öppna **Inställningar** i Admin Dashboard och sedan **Notifieringar > E-post** i sidomenyn (**Notifieringar** är hopfällt från början). Klicka i kortet **E-post-serverinställningar** på **Redigera server** och sätt **Typ av e-postserver** till `Custom SMTP`. Klicka sedan på **Redigera SMTP-konfig** i kortet **Anpassade e-post- och SMTP-inställningar**, som visas nedanför.
 :::

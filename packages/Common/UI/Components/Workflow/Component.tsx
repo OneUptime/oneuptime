@@ -24,7 +24,10 @@ import {
   Port,
 } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
-import { getComponentOutPorts } from "../../../Types/Workflow/ComponentOutPorts";
+import {
+  getComponentOutPorts,
+  isOutPortFromSettings,
+} from "../../../Types/Workflow/ComponentOutPorts";
 import React, {
   FunctionComponent,
   useContext,
@@ -514,6 +517,21 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
   const stepSummary: string | null = getStepSummary(props.data);
 
+  /*
+   * The step's name and what it does in the reader's language, where the
+   * step catalogue has their words - as the component picker writes them
+   * (PickerItems) and the step's settings title them - so a step reads the
+   * same on the canvas as where it was picked. The card showed the
+   * catalogue's English on every page. Words a language has not translated
+   * yet stay the catalogue's English.
+   */
+  const stepTitle: string =
+    translator.translateText(props.data.metadata.title) ||
+    props.data.metadata.title;
+  const stepDescription: string =
+    translator.translateText(props.data.metadata.description) ||
+    props.data.metadata.description;
+
   return (
     <div
       className="cursor-pointer"
@@ -696,16 +714,13 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         */}
         <span
           data-testid="workflow-node-title"
-          title={props.data.metadata.title}
+          title={stepTitle}
           /*
            * Read the way most of its words are written, as the description
            * below is: the card itself is laid out as the canvas is, left to
            * right, in every language.
            */
-          dir={
-            getTextReadingDirectionByMostLetters(props.data.metadata.title) ||
-            undefined
-          }
+          dir={getTextReadingDirectionByMostLetters(stepTitle) || undefined}
           style={{
             color: colors.headerText,
             fontSize: "0.8125rem",
@@ -720,7 +735,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             WebkitBoxOrient: "vertical",
           }}
         >
-          {props.data.metadata.title}
+          {stepTitle}
         </span>
       </div>
 
@@ -775,7 +790,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
            */
           dir={
             getTextReadingDirectionByMostLetters(
-              stepSummary || props.data.metadata.description,
+              stepSummary || stepDescription,
             ) || undefined
           }
           style={{
@@ -789,7 +804,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             overflow: "hidden",
           }}
         >
-          {stepSummary || props.data.metadata.description}
+          {stepSummary || stepDescription}
         </p>
 
         {/*
@@ -882,7 +897,17 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                         fontWeight: 500,
                       }}
                     >
-                      {port.title}
+                      {/*
+                       * The step's own outputs - Success, Error, Yes, No -
+                       * in the reader's words; a Switch / Case's cases are
+                       * named in the person's own, as written.
+                       */}
+                      {isOutPortFromSettings({
+                        metadata: props.data.metadata,
+                        portId: port.id,
+                      })
+                        ? port.title
+                        : translator.translateText(port.title) || port.title}
                     </span>
                   </Tooltip>
                 </div>

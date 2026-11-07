@@ -213,9 +213,15 @@ const TEAMS_CONNECT_BUTTON: Array<string> = ["Connect Microsoft Teams account"];
 
 /*
  * The form a page from the chat opens - Slack's modal, Microsoft Teams'
- * card - as the server titles it, in English (SlackPageActions.FORM_TITLE).
+ * card - as the server titles it, in English (SlackPageActions.FORM_TITLE),
+ * and its Page them as choice, as the server words it
+ * (WORKSPACE_PAGE_FORM_TEXT).
  */
-const PAGE_FORM: Array<string> = ["Page someone"];
+const PAGE_FORM: Array<string> = [
+  "Page someone",
+  "Page them as",
+  "Observers: keep them informed",
+];
 
 // Slack's own controls and the app's shortcuts, by the names Slack shows.
 const SLACK_CONTROLS: Array<string> = [

@@ -13,8 +13,7 @@ const KubernetesClusterAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Kubernetes Cluster Audit Logs"
       description="All changes made to this Kubernetes cluster."
-      resourceType="Kubernetes Cluster"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

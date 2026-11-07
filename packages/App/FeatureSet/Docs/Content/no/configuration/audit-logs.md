@@ -75,45 +75,20 @@ Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har 
 
 ## Hva som registreres
 
-| Ressurs | **Ressurstype** i loggen |
+Alt folk oppretter, endrer eller sletter i et prosjekt, registreres: monitorer, hendelser, varsler, statussider, arbeidsflyter og trinnene deres, køer, dashbord, vaktpolicyer, team og hvem som er med i dem, API-nøkler og alle innstillinger. **Ressurstype** sier hva en oppføring gjelder, for eksempel `Monitor`, `Workflow` eller `Queue`.
+
+| Registreres ikke | Hvorfor |
 | --- | --- |
-| Monitorer | `Monitor` |
-| Hendelser | `Incident` |
-| Varsler | `Alert` |
-| Statussider | `Status Page` |
-| Planlagte vedlikeholdshendelser | `Scheduled Maintenance Event` |
-| Vaktretningslinjer | `On-Call Policy` |
-| SLO-er | `Service Level Objective` |
-| Reglene og eierne til et SLO | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
-| Team | `Team` |
-| Egendefinerte roller, og teamene og API-nøklene som får en | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
-| Etiketter | `Label` |
-| Statuser og alvorlighetsgrader for hendelser | `Incident State`, `Incident Severity` |
-| Statuser og alvorlighetsgrader for varsler | `Alert State`, `Alert Severity` |
-| Monitorstatuser | `Monitor Status` |
-| Statuser for planlagt vedlikehold | `Scheduled Maintenance State` |
-| Hendelsesroller | `Incident Role` |
-| Statuser for etteranalyse | `Postmortem Status` |
-| API-nøkler | `API Key` |
-| MCP-klienter som folk kobler til | `MCP Client Authorization` |
-| Inventarelementer | `Inventory Item` |
-| Innsamlerkonfigurasjoner | `Collector Config` |
-| vCenter-servere | `vCenter` |
-| OpenStack-skyer og kontrollene som kjører mot dem | `OpenStack Cloud`, `OpenStack Cloud Check` |
-| Pakkeopptak og nedlastingene av dem | `Packet Capture` |
-| Sikkerhetssaker og prioritetene og statusene deres, playbooks og kjøringene deres, beskyttede enheter, entitetskritikalitet, og risikoen for en entitet når noen tilbakestiller den | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
-| Regelunntak | `Rule Exception` |
-| Overvåkingslister | `Watchlist` |
-| Overvåkingslisteverdier | `Watchlist Value` |
-| Hunts | `Hunt` |
-| Oppgaver og bevis i sikkerhetssaker | `Security Case Task`, `Security Case Evidence` |
-| Datalagre og funnene deres, og problemene, innstillingene, kontrollinnstillingene, de egendefinerte datatypene og residensreglene i Datasikkerhet | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
-| Innstillinger for Dataobserverbarhet | `Data Observability Setting` |
-| Eksporter av revisjonsloggen | `Audit Log Export` |
+| Logger over meldinger | Hver av dem er allerede registreringen av en e-post, SMS, en samtale, et pushvarsel eller en chatmelding OneUptime har sendt eller mottatt. |
+| Registreringer av kjøringer | Hver av dem er allerede registreringen av en kjøring av en arbeidsflyt, en vakteskalering, en skanning, en import eller en AI-kjøring. |
+| Det agenter og telemetri rapporterer | Oppdagede ressurser, målinger og forbruk endrer seg med hver rapport, ikke fordi noen har endret dem. |
+| Aktivitetsfeeder | En feed viser endringer som revisjonsloggen allerede registrerer. |
+| OneUptimes arbeidstilstand | Økter, jobber i kø og annen tilstand OneUptime holder mens det arbeider. |
+| En persons egen varslingsoppsett | Hver persons adresser, numre og personlige vaktregler tilhører bare dem. |
 
 Det registreres også når en administrator legger til eller fjerner en varslingsmetode eller en personlig vaktregel på en annens konto, uten selve adressen eller nummeret.
 
-Andre data er ikke i revisjonsloggen, som hvem som er med i et team, eller en tillatelse som er lagt til et team for seg. Felt som ingen kan lese, utelates fra alle oppføringer, og nøkler, tokener og passord registreres som `[REDACTED]`: oppføringen viser at de er endret, aldri verdien deres.
+Felt som bare OneUptime skriver, for eksempel når en vert sist ble sett, utelates fra alle oppføringer, og det samme gjør felt som ingen kan lese. Nøkler, tokener og passord registreres som `[REDACTED]`: oppføringen viser at de er endret, aldri verdien deres. Trinnene i en arbeidsflyt registreres som det som endret seg, med navnene på et trinns innstillinger, men aldri det som ble skrevet inn i dem, og å flytte et trinn på lerretet registreres ikke.
 
 ## Hvor lenge oppføringer beholdes
 

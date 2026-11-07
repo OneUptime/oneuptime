@@ -16,6 +16,7 @@ import { getListSeparator } from "./ListSeparator";
 import PrivateRecordHeld from "../../Types/PrivateRecord/PrivateRecordHeld";
 import {
   getGlobalTranslator,
+  SentenceOptions,
   translatableTerm,
   translationKey,
   Translator,
@@ -93,6 +94,22 @@ export const NEEDS_ROLE_TEMPLATE: string = translationKey(
 export const NEEDS_ONE_OF_ROLES_TEMPLATE: string = translationKey(
   "You need one of these roles: {{roles}}.",
 );
+
+/*
+ * A LOCK IS DRAWN, NEVER STORED: ITS NAMES ARE SET APART.
+ *
+ * Every sentence of a lock - its first, the permissions or roles that
+ * would allow it, the team block that refuses it - is a tooltip's, a
+ * locked row's or a no-access state's words, and nothing else. So its
+ * values are set apart from its words as a drawn sentence's are
+ * (SentenceOptions' setsValuesApart): in a Persian sentence a permission's
+ * English title - "Read Runbook Execution", "Manage Billing, Edit
+ * Project" - is a value of its own, read left to right where the sentence
+ * reads right to left, and a title that ends in a bracket or a digit keeps
+ * it at its end. A name the sentence's language writes (a role's Persian
+ * name) reads with the sentence, with no mark.
+ */
+const LOCK_SENTENCE_OPTIONS: SentenceOptions = { setsValuesApart: true };
 
 // What a lock names: the permissions' titles in English, and of what kind.
 export interface PermissionsToName {
@@ -913,15 +930,20 @@ export default class PermissionGate {
     return ownSentence
       ? translator.translateText(ownSentence) || ownSentence
       : template
-        ? translator.translateTemplate(template, {
-            itemName: translatableTerm(singularName),
-          })
+        ? translator.translateTemplate(
+            template,
+            {
+              itemName: translatableTerm(singularName),
+            },
+            LOCK_SENTENCE_OPTIONS,
+          )
         : translator.translateTemplate(
             "You do not have permission to {{action}} this {{itemName}}.",
             {
               action: translatableTerm(verb),
               itemName: translatableTerm(singularName),
             },
+            LOCK_SENTENCE_OPTIONS,
           );
   }
 
@@ -996,6 +1018,7 @@ export default class PermissionGate {
             translator,
           ),
         },
+        LOCK_SENTENCE_OPTIONS,
       )}`;
     }
 
@@ -1129,19 +1152,29 @@ export default class PermissionGate {
 
     if (named.areRoles) {
       return named.titles.length === 1
-        ? words.translateTemplate(NEEDS_ROLE_TEMPLATE, { role: titles })
-        : words.translateTemplate(NEEDS_ONE_OF_ROLES_TEMPLATE, {
-            roles: titles,
-          });
+        ? words.translateTemplate(
+            NEEDS_ROLE_TEMPLATE,
+            { role: titles },
+            LOCK_SENTENCE_OPTIONS,
+          )
+        : words.translateTemplate(
+            NEEDS_ONE_OF_ROLES_TEMPLATE,
+            { roles: titles },
+            LOCK_SENTENCE_OPTIONS,
+          );
     }
 
     return named.titles.length === 1
-      ? words.translateTemplate(NEEDS_PERMISSION_TEMPLATE, {
-          permission: titles,
-        })
-      : words.translateTemplate(NEEDS_ONE_OF_PERMISSIONS_TEMPLATE, {
-          permissions: titles,
-        });
+      ? words.translateTemplate(
+          NEEDS_PERMISSION_TEMPLATE,
+          { permission: titles },
+          LOCK_SENTENCE_OPTIONS,
+        )
+      : words.translateTemplate(
+          NEEDS_ONE_OF_PERMISSIONS_TEMPLATE,
+          { permissions: titles },
+          LOCK_SENTENCE_OPTIONS,
+        );
   }
 
   /*

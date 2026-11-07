@@ -58,7 +58,7 @@ De regels verschillen in hoe meerdere overeenkomsten worden afgehandeld:
 - **Groeperingsregels**, **Incidentregels** en **Herinneringsregels** worden van boven naar beneden in hun lijst gecontroleerd, en de eerste overeenkomst wint. Sleep een regel om haar plek te wijzigen; een nieuwe regel komt aan het einde.
 - **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels**, **Privacyregels** en **Runbook-regels** werken allemaal wanneer ze overeenkomen. Bereikbaarheidsbeleid, eigenaren en labels die meerdere regels toevoegen, worden één keer toegevoegd.
 
-**Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben twee tabbladen: **Alert Rules**, voor waarschuwingen, en **Episode Rules**, die op dezelfde manier op elke nieuwe waarschuwingsepisode werken. Een nieuwe regel begint ingeschakeld; zet **Ingeschakeld** uit in haar bewerkformulier om haar te pauzeren, en de lijst toont per regel een groen **Ingeschakeld** of een rood **Uitgeschakeld**.
+**Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben twee tabbladen: **Waarschuwingsregels**, voor waarschuwingen, en **Episoderegels**, die op dezelfde manier op elke nieuwe waarschuwingsepisode werken. Een nieuwe regel begint ingeschakeld; zet **Ingeschakeld** uit in haar bewerkformulier om haar te pauzeren, en de lijst toont per regel een groen **Ingeschakeld** of een rood **Uitgeschakeld**.
 
 De meeste regels werken op waarschuwingen en episodes die na het opslaan worden aangemaakt. Om een eigenaars-, label- of privacyregel toe te passen op wat je al hebt, gebruik je **Nu uitvoeren**: zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now). Herinneringsregels zijn de uitzondering: als je er een opslaat, wordt elke open waarschuwing opnieuw gematcht.
 
@@ -68,7 +68,7 @@ De voorwaarden van een regel bepalen op welke waarschuwingen ze werkt, en lezen 
 
 | Voorwaarde                                                    | Vergelijkt met                                                                                                 |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Monitoren**, **Waarschuwing Ernsten**, **Waarschuwingslabels**, **Monitorlabels** | **Heeft een van**, **Heeft alle** of **Heeft geen van** de waarden die je kiest.                 |
+| **Monitoren**, **Ernstniveaus van waarschuwingen**, **Waarschuwingslabels**, **Monitorlabels** | **Heeft een van**, **Heeft alle** of **Heeft geen van** de waarden die je kiest.                 |
 | **Waarschuwingstitel**, **Waarschuwingsbeschrijving**, **Monitornaam**, **Monitorbeschrijving** | **Bevat**, **Bevat niet**, **Is gelijk aan**, **Is niet gelijk aan**, **Begint met**, **Eindigt met**, zonder op hoofdletters te letten, of **Komt overeen met patroon** en **Komt niet overeen met patroon**, voor een reguliere expressie of een `*`-jokerteken. |
 
 Met twee of meer voorwaarden kies je **Voldoet aan alle**, waarbij elke voorwaarde moet gelden, of **Voldoet aan één**, waarbij één genoeg is. Episoderegels matchen in plaats daarvan op de ernst, labels, titel en beschrijving van een episode.
@@ -87,9 +87,11 @@ Klik op **Alert On-Call Rule aanmaken**. Bij **Overeenkomst** komt **Alle waarsc
 Kies bij **Bereikbaarheidsbeleid** het **Bereikbaarheidsbeleid** dat de regel oproept. De **Naam** volgt dat, zoals "Platform on-call oproepen", totdat je zelf een naam typt, en een **Beschrijving** wacht onder **Meer velden**. Maak daarna de regel aan.
 :::
 
-Een ernstniveau roept op zichzelf niemand op: een bereikbaarheidsregel die op **Waarschuwing Ernsten** matcht, is de manier om "roep het databaseteam op bij elke High-waarschuwing" in te stellen. Om te zien wat er voor één waarschuwing draaide, open je haar pagina **Bereikbaarheidsuitvoeringen**. Elke persoon wordt daarna bereikt zoals die het heeft ingesteld onder **Gebruikersinstellingen → Bereikbaarheidsregels**, op het tabblad **Waarschuwingen**; zie [Escalatieregels](/docs/on-call/escalation-rules).
+Een ernstniveau roept op zichzelf niemand op: een bereikbaarheidsregel die op **Ernstniveaus van waarschuwingen** matcht, is de manier om "roep het databaseteam op bij elke High-waarschuwing" in te stellen. Om te zien wat er voor één waarschuwing draaide, open je haar pagina **Bereikbaarheidsuitvoeringen**. Elke persoon wordt daarna bereikt zoals die het heeft ingesteld onder **Gebruikersinstellingen → Bereikbaarheidsregels**, op het tabblad **Waarschuwingen**; zie [Escalatieregels](/docs/on-call/escalation-rules).
 
 Een regel roept op zodra een waarschuwing erop past. Om de regel in plaats daarvan op werktijden te laten wachten, beantwoord je **Wanneer moet deze regel oproepen?** onder **Meer velden** met **Alleen tijdens werktijden**. De **Werktijden** beginnen op maandag tot en met vrijdag, 09:00 tot 17:00, in je eigen tijdzone: kies andere dagen, een andere **Starttijd** of **Eindtijd**, of een andere **Tijdzone**, en een zin onder de keuze zegt wat er gebeurt. In de lijst toont de regel zijn tijden onder zijn naam. Een waarschuwing die buiten die tijden past, krijgt een uitvoering die wacht en niemand oproept; zodra de werktijden beginnen, roept het beleid zijn eerste escalatieregel op en escaleert het zoals gewoonlijk. Wordt de waarschuwing eerst bevestigd of opgelost, dan wordt niemand opgeroepen. Verandert de waarschuwing terwijl ze wacht en past ze nu op een regel die direct oproept, bijvoorbeeld omdat haar ernstniveau is verhoogd, dan begint de uitvoering meteen met oproepen, en de feed van de waarschuwing zegt waarom. Twee regels die hetzelfde beleid oproepen, roepen het op zodra een van beide het toelaat: een regel voor je hoogste ernstniveaus die direct oproept, naast een regel voor de rest die op werktijden wacht, houdt de nachten rustig.
+
+Een regel roept de mensen van zijn beleid op om te reageren: wie de oproep bevestigt, bevestigt de waarschuwing. Om een team op de hoogte te houden terwijl een ander reageert, beantwoord je **De mensen van dit beleid oproepen als** onder **Meer velden** met **Waarnemers**. Hun oproep zegt dat ze waarnemers zijn, en wie hem bevestigt, zegt daarmee alleen dat hij hem heeft gezien: de waarschuwing wordt niet bevestigd en geen andere oproep stopt. Hun oproep loopt door tot een van hen antwoordt of de waarschuwing is opgelost, en in de lijst zegt de regel onder zijn naam dat hij als waarnemers oproept. Beleid dat de ene passende regel oproept om te reageren en een andere als waarnemers, roept op om te reageren.
 
 ## Incidentregels
 
@@ -130,7 +132,7 @@ Het incident neemt de titel, beschrijving, monitor, getroffen resources en label
 :::steps
 ### Kiezen voor welke waarschuwingen je herinnert
 
-Klik op **Alert Reminder Rule aanmaken**. Laat bij **Overeenkomst** de keuze **Alle waarschuwingen** staan om voor elke waarschuwing te herinneren, of kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en dan de **Waarschuwing Ernsten** en **Labels** waarvoor ze geldt.
+Klik op **Alert Reminder Rule aanmaken**. Laat bij **Overeenkomst** de keuze **Alle waarschuwingen** staan om voor elke waarschuwing te herinneren, of kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en dan de **Ernstniveaus van waarschuwingen** en **Labels** waarvoor ze geldt.
 
 ### Het interval instellen
 
@@ -143,7 +145,7 @@ Eigenaren krijgen elke herinnering als **Waarschuwingsherinnering**, dat standaa
 
 ### Notitie-sjablonen
 
-**Waarschuwingen → Instellingen → Notitie-sjablonen** bevat kant-en-klare tekst voor privénotities. De kaart **Privénotitiesjablonen voor waarschuwingen** toont ze; **Waarschuwing Notitie Sjabloon aanmaken** vraagt om een **Sjabloonnaam**, een **Sjabloonbeschrijving** en de **Notitie**. Een sjabloon wordt aangeboden wanneer iemand een privénotitie schrijft bij een waarschuwing of een episode, en wanneer iemand er een bevestigt of oplost, en de tekst kan worden bewerkt voordat ze wordt geplaatst. Notitie-sjablonen voor waarschuwingen zijn platte tekst: anders dan notitie-sjablonen voor incidenten vullen ze geen variabelen in.
+**Waarschuwingen → Instellingen → Notitie-sjablonen** bevat kant-en-klare tekst voor privénotities. De kaart **Privénotitiesjablonen voor waarschuwingen** toont ze; **Notitiesjabloon voor waarschuwingen aanmaken** vraagt om een **Sjabloonnaam**, een **Sjabloonbeschrijving** en de **Notitie**. Een sjabloon wordt aangeboden wanneer iemand een privénotitie schrijft bij een waarschuwing of een episode, en wanneer iemand er een bevestigt of oplost, en de tekst kan worden bewerkt voordat ze wordt geplaatst. Notitie-sjablonen voor waarschuwingen zijn platte tekst: anders dan notitie-sjablonen voor incidenten vullen ze geen variabelen in.
 
 ### Aangepaste velden
 
@@ -170,7 +172,7 @@ De kaart **Volgend nummer** eronder stelt het nummer in dat de volgende waarschu
 
 ## Workflows
 
-Elk waarschuwingsmodel heeft workflowtriggers en -acties die naar het model zijn genoemd: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** en **On Delete Alert**, hetzelfde voor **Waarschuwing Episode**, **Waarschuwing Status Tijdlijn** en de andere, en acties zoals **Create One Alert** en **Update One Alert**. De definities van aangepaste velden voor waarschuwingen zijn de enige uitzondering: ze hebben geen workflowtriggers. Zie [Workflows – Overzicht](/docs/workflows/index).
+Elk waarschuwingsmodel heeft workflowtriggers en -acties die naar het model zijn genoemd: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** en **On Delete Alert**, hetzelfde voor **Waarschuwingsepisode**, **Statustijdlijn van waarschuwing** en de andere, en acties zoals **Create One Alert** en **Update One Alert**. De definities van aangepaste velden voor waarschuwingen zijn de enige uitzondering: ze hebben geen workflowtriggers. Zie [Workflows – Overzicht](/docs/workflows/index).
 
 ## Wie dit kan wijzigen
 

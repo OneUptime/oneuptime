@@ -4,6 +4,8 @@ Um **Ambiente de nuvem** é o lugar onde seus contêineres rodam em uma platafor
 
 Os ambientes são listados em Plataformas de aplicativos, um produto próprio: **Plataformas de aplicativos → Visão geral** os agrupa por plataforma e mostra primeiro os que pararam de enviar dados, **Plataformas de aplicativos → Todos os apps** lista cada app que eles executam, e **Plataformas de aplicativos → Todos os ambientes** lista todos eles. Os recursos das suas contas de nuvem, como máquinas virtuais, buckets e bancos de dados gerenciados, ficam em Nuvem: veja [Recursos de nuvem](/docs/telemetry/cloud-resources).
 
+Para ver os ambientes ou os apps de uma conta de nuvem, filtre **Todos os ambientes** ou **Todos os apps** com o chip de filtro **Conta de nuvem**: ele lista cada conta em que os ambientes estão, sob a sua nuvem, e mantém as contas que você escolher, ou todas as outras. Em **Nuvem → Visão geral**, o cartão **Plataformas de aplicativos** conta os ambientes e os apps das suas contas de nuvem conectadas, e cada contagem abre a sua lista com o chip já definido para essas contas. Remova o chip para ver a lista inteira.
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Tarefas no Fargate ou no EC2, com a CPU e a memória de cada tarefa.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Serviços e jobs, também listados como funções serverless.

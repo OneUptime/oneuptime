@@ -34,7 +34,7 @@ Vá até **Configurações do usuário → Configurações de notificação**. A
 
 ### Encontre o evento
 
-Cada aba tem um ou mais cartões, como **Incidente Episódios** na aba **Incidentes**. Cada linha é um evento, com uma frase que diz quando ele é enviado.
+Cada aba tem um ou mais cartões, como **Episódios de incidentes** na aba **Incidentes**. Cada linha é um evento, com uma frase que diz quando ele é enviado.
 
 ### Clique em um canal
 

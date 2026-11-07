@@ -68,6 +68,7 @@ The dialog asks every few seconds what arrived. Firehose delivers within a few m
 | --- | --- |
 | **Every metric, not only the key ones** | Streams every metric CloudWatch has for the account, your own included. AWS bills each metric update a stream sends, so it can cost many times more |
 | **Regions** | Where to stream from: at first, the Regions the connection found resources in. Left empty, the command streams from AWS CloudShell's own Region. At most 30 |
+| **Every account of the organization** | For a connection that reads an AWS Organization: the command, run in its management account, also makes the same stacks in every member account through a StackSet, and in accounts that join later. Every log group or none: named log groups are one account's |
 | **Set it up another way** | The metrics and logs endpoints and the key, to set the streams up with Terraform or the console |
 
 **Download the template** saves the template the command deploys, to deploy it your own way.
@@ -133,6 +134,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+For a connection that reads an AWS Organization, run the dialog's command in the management account: when the organization was streamed, it also deletes every member account's stacks and the StackSet.
 :::
 
 To change what a stack streams, open **Stream metrics and logs** again, choose **Make a new key** and run the new command. The key it replaces keeps working for 24 hours, so no delivery is refused while the stacks update. At most 3 replaced keys work at once.

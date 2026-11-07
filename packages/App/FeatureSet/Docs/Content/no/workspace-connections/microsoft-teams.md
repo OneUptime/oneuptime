@@ -84,8 +84,8 @@ En varslingsregel sier hvilke hendelser som publiseres i Microsoft Teams, og hvo
 
 | Produkt | Faner på produktets **Microsoft Teams**-side |
 | --- | --- |
-| **Hendelser** | **Hendelser**, **Hendelse Episoder**, **Sammendrag** |
-| **Varsler** | **Varsler**, **Varsel Episoder**, **Sammendrag** |
+| **Hendelser** | **Hendelser**, **Hendelsesepisoder**, **Sammendrag** |
+| **Varsler** | **Varsler**, **Varselsepisoder**, **Sammendrag** |
 | **Planlagt vedlikehold** | Én liste med regler |
 | **Monitorer** | Én liste med regler |
 | **Vakttjeneste** | Én liste med regler |
@@ -215,6 +215,8 @@ I en kanal eller en gruppechat tilkaller `@OneUptime page @Nawaz Dhandala The ch
 - **Alt annet gir et kort.** Uten noen nevnt med @, som i en personlig chat med boten, uten melding der tilkallingen trenger en, med en tagg som ikke følger noen vaktplan du kan se, eller med en person OneUptime ikke kjenner igjen, svarer boten med kortet **Page someone**, med det du skrev ferdig utfylt, og sier hvem den ikke kunne velge. I en hendelses eller et varsels egen kanal åpnes kortet med den hendelsen eller det varselet. Velg personer, et team, en vaktplan, som tilkaller den som har vakt i den nå, eller en vaktpolicy, som tilkaller gjennom eskaleringsreglene sine, og send det inn. Alle i samtalen kan sende inn kortet, som seg selv. Når det har tilkalt, fjernes kortet, så ingen tilkaller med det to ganger.
 - **Hvor det vises.** Samtalen viser tilkallingen som ett kort som holdes oppdatert: hvem som ble tilkalt og hvordan, hvert team med navnet og personene sine etter, meldingen din, og hvem som bekreftet. Der boten ikke kan poste det, sier svaret dens hvem som ble tilkalt, med en lenke til hendelsen eller varselet.
 - **Hvem som kan tilkalle.** I en hendelses eller et varsels egen kanal alle som kan kjøre en vaktpolicy (**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem**, eller **Execute On-Call Duty Policy** i en egendefinert rolle) og lese den hendelsen eller det varselet. Alle andre steder oppretter tilkallingen et varsel, så den krever også tillatelse til å opprette et: **Prosjekteier**, **Prosjektadministrator** og **Prosjektmedlem**, eller **Vaktmedlem** sammen med **Varselmedlem** (**Execute On-Call Duty Policy** og **Create Alert** i en egendefinert rolle). Å tilkalle personer, et team eller en vaktplan direkte, uten en vaktpolicy bak tilkallingen, krever også tilgang til alle vaktpolicyene i prosjektet. Alle andre får beskjed om det i et svar, og ingen tilkalles. På OneUptime Cloud krever tilkalling Growth-planen: under den sier OneUptime hvilken plan som kreves, og ingen tilkalles.
+
+For å holde personer orientert mens andre håndterer det, tilkaller du dem som observatører. I en hendelses eller et varsels egen kanal skriver du `as observers` etter hvem som skal tilkalles, som i `@OneUptime page @Oversight as observers Team Y is on it`, eller velger **Observers: keep them informed** under **Page them as** på kortet. Tilkallingen deres sier at de er observatører, og bekrefter de den, sier det bare at de har sett den: Hendelsen eller varselet blir ikke bekreftet, ingen andres tilkalling stopper, og der tilkallingen vises, står det at de tilkalles som observatører. En tilkalling om noe nytt trenger noen som håndterer det, så alle andre steder avvises `as observers`, og ingen tilkalles.
 
 ## Vakt-tagger
 

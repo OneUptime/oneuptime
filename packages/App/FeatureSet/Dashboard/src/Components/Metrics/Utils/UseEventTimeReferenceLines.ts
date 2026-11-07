@@ -256,6 +256,13 @@ export default function useEventTimeReferenceLines(input: {
   queryConfigs?: Array<MetricQueryConfigData> | undefined;
   /** Bump to re-fetch (dashboards pass their auto-refresh tick). */
   refreshTick?: number | undefined;
+  /*
+   * Incidents and alerts left off the charts: the one a page is about,
+   * whose own moments the page marks itself (declared, acknowledged,
+   * resolved), would otherwise be marked twice where it started.
+   */
+  excludedIncidentIds?: Array<string> | undefined;
+  excludedAlertIds?: Array<string> | undefined;
 }): EventTimeReferenceLines {
   const [result, setResult] = useState<{
     requestKey: string;
@@ -290,6 +297,9 @@ export default function useEventTimeReferenceLines(input: {
     windowEndMs !== undefined &&
     !isPublicDashboard();
 
+  const excludedIncidentIds: Array<string> = input.excludedIncidentIds || [];
+  const excludedAlertIds: Array<string> = input.excludedAlertIds || [];
+
   const requestKey: string = JSON.stringify([
     enabled,
     projectIdString,
@@ -297,6 +307,9 @@ export default function useEventTimeReferenceLines(input: {
     windowStartMs,
     windowEndMs,
     input.refreshTick,
+    ...(excludedIncidentIds.length > 0 || excludedAlertIds.length > 0
+      ? [excludedIncidentIds, excludedAlertIds]
+      : []),
   ]);
 
   useEffect(() => {
@@ -420,6 +433,9 @@ export default function useEventTimeReferenceLines(input: {
         if (!incident.createdAt || !incident.id) {
           continue;
         }
+        if (excludedIncidentIds.includes(incident.id.toString())) {
+          continue;
+        }
         markers.push({
           date: OneUptimeDate.fromString(
             incident.createdAt as unknown as string,
@@ -445,6 +461,9 @@ export default function useEventTimeReferenceLines(input: {
 
       for (const alert of mergeEventResults(alerts, "createdAt")) {
         if (!alert.createdAt || !alert.id) {
+          continue;
+        }
+        if (excludedAlertIds.includes(alert.id.toString())) {
           continue;
         }
         markers.push({

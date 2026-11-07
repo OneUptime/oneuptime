@@ -14,6 +14,9 @@
 {{else}}
 {{> InfoBlock plainInfo=(concat "A new alert has been created in the project - " projectName)}}
 {{/if}}
+{{#if observerPageInfo}}
+{{> InfoBlock plainInfo=observerPageInfo}}
+{{/if}}
 
 {{> InfoBlock info="Here are the details: "}}
 
@@ -27,6 +30,13 @@
 {{> DetailBoxEnd this }}
 
 
+{{#if observerPageInfo}}
+{{> InfoBlock info="Seen it? Let the people responding know. This does not acknowledge the alert."}}
+
+{{> ButtonBlock buttonUrl=acknowledgeAlertLink buttonText="I've seen it"}}
+
+{{> LinkBlock linkUrl=acknowledgeAlertLink linkLabel="You can also copy and paste this link:"}}
+{{else}}
 {{> InfoBlock info="ACTION REQUIRED: Please acknowledge this alert by clicking on the button below - "}}
 
 {{> ButtonBlock buttonUrl=acknowledgeAlertLink buttonText="Acknowledge Alert"}}
@@ -38,11 +48,16 @@
 
 {{> ButtonBlock buttonUrl=passOnLink buttonText="Escalate" secondary=true}}
 {{/if}}
+{{/if}}
 
 {{> InfoBlock info="You will be notified when the status of this alert changes."}}
 
 {{> TitleBlock title="Why am I receiving this email?"}}
+{{#if observerPageWhy}}
+{{> InfoBlock plainInfo=observerPageWhy}}
+{{else}}
 {{> InfoBlock info="You are receiving this email because you are a member of the team that is responsible for this alert or you are currently on-call."}}
+{{/if}}
 
 {{> Footer this }}
 

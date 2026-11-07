@@ -13,8 +13,7 @@ const DockerSwarmClusterAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Docker Swarm Cluster Audit Logs"
       description="All changes made to this Docker Swarm cluster."
-      resourceType="Docker Swarm Cluster"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

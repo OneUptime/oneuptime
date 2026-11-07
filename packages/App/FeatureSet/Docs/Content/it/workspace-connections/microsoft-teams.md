@@ -84,8 +84,8 @@ Una regola di notifica dice quali eventi vengono pubblicati in Microsoft Teams, 
 
 | Prodotto | Schede della sua pagina **Microsoft Teams** |
 | --- | --- |
-| **Incidenti** | **Incidenti**, **Incidente Episodi**, **Riepilogo** |
-| **Avvisi** | **Avvisi**, **Avviso Episodi**, **Riepilogo** |
+| **Incidenti** | **Incidenti**, **Episodi di incidenti**, **Riepilogo** |
+| **Avvisi** | **Avvisi**, **Episodi di avvisi**, **Riepilogo** |
 | **Manutenzione programmata** | Un elenco di regole |
 | **Monitor** | Un elenco di regole |
 | **Reperibilità** | Un elenco di regole |
@@ -215,6 +215,8 @@ In un canale o in una chat di gruppo, `@OneUptime page @Nawaz Dhandala The check
 - **Tutto il resto riceve una scheda.** Senza nessuno menzionato con @, come in una chat personale con il bot, senza messaggio dove la chiamata ne richiede uno, con un tag che non segue nessuna pianificazione di reperibilità che puoi vedere, o con una persona che OneUptime non riesce a riconoscere, il bot risponde con la scheda **Page someone**, con quello che hai scritto già compilato, e dice chi non è riuscito a scegliere. Nel canale proprio di un incidente o di un avviso, la scheda si apre con quell'incidente o quell'avviso. Scegli persone, un team, una pianificazione di reperibilità, che chiama chi è reperibile in essa in quel momento, o una policy di reperibilità, che chiama tramite le sue regole di escalation, e inviala. Chiunque nella conversazione può inviare la scheda, a proprio nome. Una volta che ha chiamato, la scheda viene rimossa, così nessuno chiama due volte con essa.
 - **Dove si vede.** La conversazione mostra la chiamata come una sola scheda, tenuta aggiornata: chi è stato chiamato e come, ogni team con il suo nome seguito dalle sue persone, il tuo messaggio, e chi ha confermato. Dove il bot non può pubblicarla, la sua risposta dice chi è stato chiamato, con un link all'incidente o all'avviso.
 - **Chi può chiamare.** Nel canale proprio di un incidente o di un avviso, chiunque possa eseguire una policy di reperibilità (**Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore della reperibilità** e **Membro della reperibilità**, oppure **Execute On-Call Duty Policy** in un ruolo personalizzato) e leggere quell'incidente o quell'avviso. Ovunque altrove la chiamata crea un avviso, quindi richiede anche il permesso di crearne uno: **Proprietario del progetto**, **Amministratore del progetto** e **Membro del progetto**, oppure **Membro della reperibilità** insieme ad **Membro degli avvisi** (**Execute On-Call Duty Policy** e **Create Alert** in un ruolo personalizzato). Chiamare direttamente persone, un team o una pianificazione, senza una policy di reperibilità dietro la chiamata, richiede anche l'accesso a tutte le policy di reperibilità del progetto. A chiunque altro viene detto in una risposta, e nessuno viene chiamato. Su OneUptime Cloud, chiamare richiede il piano Growth: al di sotto, OneUptime indica il piano necessario, e nessuno viene chiamato.
+
+Per tenere informate alcune persone mentre altre rispondono, chiamale come osservatori. Nel canale proprio di un incidente o di un avviso, scrivi `as observers` dopo chi chiamare, come in `@OneUptime page @Oversight as observers Team Y is on it`, oppure scegli **Observers: keep them informed** sotto **Page them as** nella scheda. La loro chiamata dice che sono osservatori, e confermarla dice solo che l'hanno vista: l'incidente o l'avviso non viene confermato, la chiamata di nessun altro si ferma, e dove la chiamata è mostrata, dice che sono chiamati come osservatori. Una chiamata per qualcosa di nuovo ha bisogno di qualcuno che risponda, quindi altrove `as observers` viene rifiutato e nessuno viene chiamato.
 
 ## Tag di reperibilità
 

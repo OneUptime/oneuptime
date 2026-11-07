@@ -235,6 +235,7 @@ Quando você cria um workflow, os modelos em **Plantão** têm este pronto, e um
 | **Page About** | Do que trata o acionamento: **A new alert**, **An incident** ou **An alert**. Confirmar o acionamento também o confirma. |
 | **Title** e **Message** | Para um alerta novo. O OneUptime cria um alerta com eles, e ele fica entre os seus alertas como qualquer outro. |
 | **Incident ID** ou **Alert ID** | Para um incidente ou um alerta que já existe, normalmente aquele com que o workflow começou: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Page As** | Para um incidente ou um alerta que já existe, em **Mais campos**. Os **Responders** assumem o atendimento. Os **Observers** são mantidos informados enquanto outras pessoas respondem: confirmar o aviso deles só indica que o viram, e o incidente ou o alerta não é confirmado. |
 | **Severity** | Para um alerta novo, em **Mais campos**. Ela decide quais regras de plantão de cada pessoa a acionam. Deixada vazia, é a mais grave do projeto. |
 
 Um bloco adicionado a um workflow que começa em um incidente ou em um alerta já vem configurado para acionar sobre esse registro, então só pergunta quem acionar.

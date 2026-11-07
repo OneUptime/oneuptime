@@ -108,7 +108,7 @@ Dra över ett diagram för att zooma in på ett ögonblick, och dubbelklicka fö
 
 ## Insikter i mätvärden
 
-Fliken **Insikter** räknar mätvärdena i ett tidsintervall: **Aktiva mått**, **Rapporteringstjänster** och genomsnittet per tjänst. Den delar in mätvärdena i kategorier och visar tjänsterna som rapporterar dem.
+Fliken **Insikter** räknar mätvärdena i ett tidsintervall: **Aktiva mått**, **Rapporterande tjänster** och genomsnittet per tjänst. Den delar in mätvärdena i kategorier och visar tjänsterna som rapporterar dem.
 
 ## Förbättra mätvärden och lägg till de som saknas med AI
 

@@ -72,7 +72,7 @@ Deja **Notificar a los suscriptores de la página de estado** marcada para notif
 
 ### Publicarla
 
-Haz clic en **Post update**, o pulsa Ctrl+Intro (⌘+Intro en un Mac). La nota aparece arriba de la lista, con una insignia que sigue su notificación.
+Haz clic en **Publicar actualización**, o pulsa Ctrl+Intro (⌘+Intro en un Mac). La nota aparece arriba de la lista, con una insignia que sigue su notificación.
 :::
 
 El mismo editor se abre en un diálogo desde **Añadir nota pública** en el menú **Acciones** del feed del incidente (consulta [El feed del incidente](#el-feed-del-incidente)), así que una nota se escribe igual desde cualquiera de los dos sitios.
@@ -83,7 +83,7 @@ El mismo editor se abre en un diálogo desde **Añadir nota pública** en el men
 | **Plantillas**                                         | Inserta una de tus plantillas de notas en la nota, después de lo que ya has escrito. Consulta [Plantillas de notas](#plantillas-de-notas).         |
 | **Redactar con IA**                                    | Redacta la nota a partir del incidente, para que la edites. Consulta [Generar una nota con IA](#generar-una-nota-con-ia).                   |
 | **Asociar**                                            | Archivos compartidos con los suscriptores en la página de estado. Opcional.                                                                   |
-| **Posted now**                                         | Cuándo dice la nota que se publicó: el momento en que la publicas, salvo que elijas aquí una hora anterior, en tu zona horaria actual.        |
+| **Publicada ahora**                                         | Cuándo dice la nota que se publicó: el momento en que la publicas, salvo que elijas aquí una hora anterior, en tu zona horaria actual.        |
 | **Notificar a los suscriptores de la página de estado** | Casilla. Activada por defecto, salvo que el incidente se declarara sin notificar a los suscriptores; entonces empieza desactivada. Desactívala para publicar sin hacer ruido. |
 
 **Los incidentes silenciosos siguen en silencio.** Si un incidente se declaró con **Notificar a suscriptores de la página de estado** desactivado (o como incidente privado), a sus suscriptores nunca se les avisó de él, así que una nota pública no debería ser lo primero que oigan. En un incidente así la casilla empieza desactivada, con una línea debajo que explica por qué. Puedes marcarla de todos modos para notificar a los suscriptores esa nota. Las notas publicadas sin una elección explícita siguen la misma regla: las notas de Slack y Microsoft Teams, los flujos de trabajo y las solicitudes a la API que omiten `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. Un `true` o un `false` explícitos siempre se respetan. Las notas públicas de los [eventos de mantenimiento programado](/docs/status-pages/subscribers#eventos-de-mantenimiento-programado) y de los [episodios de incidente](/docs/status-pages/subscribers#episodios-de-incidentes) siguen una regla parecida, según si el propio evento o episodio notificó a los suscriptores al crearse. Un incidente o episodio privado no admite ninguna nota pública.
@@ -93,7 +93,7 @@ El mismo editor se abre en un diálogo desde **Añadir nota pública** en el men
 **Ver qué recibirán.** Junto a la misma casilla, **Vista previa** muestra el correo que recibirán los suscriptores de cada una de esas páginas de estado por la nota que estás escribiendo, y qué plantilla usa y por qué. Se queda en gris hasta que la nota tiene algo de texto. **Enviarme una prueba** envía ese correo a la dirección de tu propia cuenta, y a nadie más. Consulta [Suscriptores y anuncios](/docs/status-pages/subscribers#previsualizar-el-correo-antes-de-enviarlo).
 
 > [!TIP]
-> **La hora de publicación es la marca de tiempo real de la nota.** Las páginas de estado ordenan y muestran las notas públicas por `postedAt`, no por cuándo las escribiste; así que, si estás poniendo al día la página de estado con una actualización que enviaste hace 40 minutos, elige **Posted now** y fija cuándo ocurrió de verdad. Si una nota llega por la API (`/api/incident-public-note`) sin hora, OneUptime le pone la hora actual.
+> **La hora de publicación es la marca de tiempo real de la nota.** Las páginas de estado ordenan y muestran las notas públicas por `postedAt`, no por cuándo las escribiste; así que, si estás poniendo al día la página de estado con una actualización que enviaste hace 40 minutos, elige **Publicada ahora** y fija cuándo ocurrió de verdad. Si una nota llega por la API (`/api/incident-public-note`) sin hora, OneUptime le pone la hora actual.
 
 Cada nota muestra quién la escribió, su hora de publicación, el Markdown renderizado con sus adjuntos y, en su cabecera, en qué punto está su notificación a los suscriptores. **Buscar notas…** encuentra notas por lo que dicen, y el feed se puede leer de más reciente a más antiguo o al revés. Los enlaces a otros sitios y a los adjuntos se abren en una pestaña nueva. Las líneas que empiezan por `>` se muestran como una cita; empiécela con una línea propia, `> [!NOTE]`, `> [!TIP]` o `> [!WARNING]`, para mostrarla en cambio como un recuadro destacado.
 
@@ -249,9 +249,9 @@ Algunos elementos llevan detalles adicionales —una notificación a propietario
 La cabecera de la tarjeta también tiene un menú **Acciones** para que puedas actuar sin salir de la cronología:
 
 - **Ejecutar runbook** — inicia un [runbook](/docs/runbooks/index) sobre este incidente.
-- **Ejecutar política de guardia** — avisa a una política bajo demanda. Una política archivada no avisa a nadie: su registro de ejecución en el incidente dice que no se ejecutó porque la política está archivada.
-- **Añadir nota pública** — el editor de la página **Notas públicas**, en un diálogo: escribe la nota y luego **Post update**. Las plantillas, **Redactar con IA**, los adjuntos, **Notificar a los suscriptores de la página de estado** con a quién llegará, y **Vista previa** están todos ahí. La nota se publica ahora; para ponerle una fecha anterior, elige **Posted now**.
-- **Añadir nota privada** — el editor de la página **Notas privadas**, en un diálogo: escribe la nota y luego **Add note**.
+- **Ejecutar política de guardia** — avisa a una política bajo demanda. Una política archivada no avisa a nadie: su registro de ejecución en el incidente dice que no se ejecutó porque la política está archivada. Activa **Avisarles como observadores** para mantener informadas a las personas de la política en su lugar: su respuesta solo dice que han visto el aviso, y el incidente no se reconoce.
+- **Añadir nota pública** — el editor de la página **Notas públicas**, en un diálogo: escribe la nota y luego **Publicar actualización**. Las plantillas, **Redactar con IA**, los adjuntos, **Notificar a los suscriptores de la página de estado** con a quién llegará, y **Vista previa** están todos ahí. La nota se publica ahora; para ponerle una fecha anterior, elige **Publicada ahora**.
+- **Añadir nota privada** — el editor de la página **Notas privadas**, en un diálogo: escribe la nota y luego **Añadir nota**.
 
 Ambas acciones de nota están bloqueadas, nombrando el permiso que falta, para quien no puede escribir notas. Después de publicar una nota, el diálogo se cierra y el feed la muestra.
 
@@ -304,7 +304,7 @@ Hay cinco caminos para llegar a la lista de propietarios:
 
 - **Al declararlo** — la persona que declara un incidente pasa a ser propietaria, y **Propietarios**, en **Más campos** de **Declarar incidente**, añade más: cada equipo del que es miembro está a un clic, debajo del campo. Consulta [Quién será su propietario](/docs/incidents/declaring-incidents#quién-será-su-propietario).
 - **Desde una plantilla de incidente** — las plantillas llevan un campo **Propietarios**: las personas y los equipos propietarios del incidente, a los que se notificará cuando se cree o se actualice, elegidos de la misma lista que **Añadir propietario**. Crear un incidente desde la plantilla los rellena, y se añaden una vez que existen los canales de Slack y Microsoft Teams del incidente, así que una regla de notificación que invita a los propietarios del incidente a un canal nuevo también los invita a ellos. El panel, y el paso **Create One Incident** de un flujo de trabajo con un **Incident Template** elegido, los añaden sin la notificación de «te han añadido»; un [formulario](/docs/forms/on-submit) con plantilla los notifica, y retiene la notificación **Incidente creado** del incidente hasta que se añaden. Consulta [Declarar un incidente](/docs/incidents/declaring-incidents).
-- **Desde las reglas de propietario de incidentes** — las reglas que coinciden añaden propietarios automáticamente en el momento de la creación.
+- **Desde las reglas de propietario de incidentes** — las reglas que coinciden añaden propietarios automáticamente en el momento de la creación, y de nuevo cuando cambian la gravedad o las etiquetas del incidente.
 - **En la creación por la API** — los usuarios y equipos propietarios que se pasan con la llamada de creación se añaden de la misma forma, una vez que existen los canales, y sin la notificación de «te han añadido».
 - **A mano** — el control **Añadir propietario** de la página **Propietarios**, en cualquier momento del incidente, o **Añadir** debajo de los propietarios en la cabecera de la **Vista general** mientras está abierto.
 
@@ -324,6 +324,8 @@ Una regla nueva tiene que añadir a alguien: elige al menos un propietario, acti
 **Notificar a los propietarios**, en **Más campos**, controla si las personas se enteran. Déjalo activado para un enrutamiento real; desactívalo para añadir propietarios en silencio, útil cuando una regla es una comodidad de registro más que un aviso.
 
 Cada ejecución de una regla se escribe en el feed del incidente, así que siempre puedes saber si a una persona la añadió una regla o un humano.
+
+Las reglas se ejecutan cuando se declara un incidente, y de nuevo cada vez que cambian su gravedad o sus etiquetas mientras está abierto. Un incidente que se sube a una gravedad con la que coincide una regla, o que recibe una etiqueta con la que coincide alguna, recibe en ese momento los propietarios de esa regla, notificados como dice la regla, y su feed dice que la regla ahora coincide con él, y por qué: así un equipo se hace cargo de un incidente en cuanto resulta afectar a toda la organización. Los propietarios nunca se quitan cuando el incidente deja de coincidir.
 
 ## De qué se notifica a los propietarios
 

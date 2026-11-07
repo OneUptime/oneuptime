@@ -106,11 +106,11 @@ En tilstand, du tilføjer, er et trin, dit team gennemgår, og som de fire stand
 :::steps
 ### Åbn tilstandslisten
 
-Gå til **Planlagt vedligeholdelse → Indstillinger → Begivenhedsstatus**. Kortet **Planlagt Vedligeholdelse Tilstande** viser dine tilstande i deres rækkefølge. Hver række viser sin farve og sit navn, hvad en begivenhed i den tæller som (kolonnen **Tæller som**) og sin beskrivelse.
+Gå til **Planlagt vedligeholdelse → Indstillinger → Begivenhedsstatus**. Kortet **Tilstande for planlagt vedligeholdelse** viser dine tilstande i deres rækkefølge. Hver række viser sin farve og sit navn, hvad en begivenhed i den tæller som (kolonnen **Tæller som**) og sin beskrivelse.
 
 ### Opret tilstanden
 
-Klik på **Opret Planlagt Vedligeholdelse Tilstand**, og udfyld dens **Navn**, **Beskrivelse** og **Farve**. Den nye tilstand tilføjes lige over den fuldførte tilstand.
+Klik på **Opret Tilstand for planlagt vedligeholdelse**, og udfyld dens **Navn**, **Beskrivelse** og **Farve**. Den nye tilstand tilføjes lige over den fuldførte tilstand.
 
 ### Træk den på plads
 

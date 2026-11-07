@@ -27,7 +27,7 @@ flowchart TB
     private --> feed
 ```
 
-**Offentlige notater** publiseres på statussiden din og kan gi abonnentene beskjed. **Private notater** (modellen `IncidentInternalNote`) blir værende inne i dashbordet. Under begge ligger **Hendelse Feed**, en tidslinje du bare kan legge til i, som registrerer alt som skjedde med hendelsen, og listen **Eiere**, som avgjør hvem som får beskjed.
+**Offentlige notater** publiseres på statussiden din og kan gi abonnentene beskjed. **Private notater** (modellen `IncidentInternalNote`) blir værende inne i dashbordet. Under begge ligger **Hendelsesfeed**, en tidslinje du bare kan legge til i, som registrerer alt som skjedde med hendelsen, og listen **Eiere**, som avgjør hvem som får beskjed.
 
 Alt henger på hendelsens sidemeny: **Notater → Offentlige notater**, **Notater → Private notater** og **Team → Eiere**. Feeden ligger på hendelsens side **Oversikt**.
 
@@ -40,7 +40,7 @@ De to typene notater ser like ut i dashbordet og oppfører seg svært forskjelli
 | Modell                   | `IncidentPublicNote`                                                | `IncidentInternalNote`                                          |
 | Vises på statussider     | Ja, som en del av hendelsens tidslinje                              | Aldri — ingenting i statussideappen leser dem                   |
 | Publiseringstidspunkt    | `postedAt`, som du kan sette selv                                   | Ingen: stemplet og sortert etter `createdAt`                    |
-| Gir abonnenter beskjed   | Når **Notify status page subscribers** er slått på                  | Aldri: det har ingen felt for abonnenter i det hele tatt        |
+| Gir abonnenter beskjed   | Når **Varsle abonnentene på statussiden** er slått på                  | Aldri: det har ingen felt for abonnenter i det hele tatt        |
 | Vedlegg tilgjengelige for | Statussidens besøkende, via en rute på statussiden                 | Bare det autentiserte dashbord-API-et                           |
 | Gir eiere beskjed        | Ja                                                                  | Ja                                                              |
 
@@ -64,42 +64,42 @@ De to typene notater ser like ut i dashbordet og oppfører seg svært forskjelli
 
 ### Skriv oppdateringen
 
-Skriv notatet i Markdown, eller start fra en av **Maler** eller fra **Utkast med KI**. Legg til filer med **Attach** hvis abonnentene skal se dem.
+Skriv notatet i Markdown, eller start fra en av **Maler** eller fra **Utkast med KI**. Legg til filer med **Legg ved** hvis abonnentene skal se dem.
 
 ### Bestem hvem som får beskjed
 
-La **Notify status page subscribers** være avkrysset for å gi abonnentene beskjed, eller fjern haken for å publisere stille. **Will notify** under den viser hvilke statussider notatet når, og **Forhåndsvisning** viser e-posten de får.
+La **Varsle abonnentene på statussiden** være avkrysset for å gi abonnentene beskjed, eller fjern haken for å publisere stille. **Will notify** under den viser hvilke statussider notatet når, og **Forhåndsvisning** viser e-posten de får.
 
 ### Publiser det
 
-Klikk på **Post update**, eller trykk Ctrl+Enter (⌘+Enter på en Mac). Notatet vises øverst i listen, med et merke som følger varselet.
+Klikk på **Publiser oppdatering**, eller trykk Ctrl+Enter (⌘+Enter på en Mac). Notatet vises øverst i listen, med et merke som følger varselet.
 :::
 
-Det samme redigeringsverktøyet åpner i en dialog fra **Add Public Note** i menyen **Handlinger** i hendelsens feed (se [Hendelsens feed](#hendelsens-feed)), så et notat skrives på samme måte fra begge steder.
+Det samme redigeringsverktøyet åpner i en dialog fra **Legg til offentlig notat** i menyen **Handlinger** i hendelsens feed (se [Hendelsens feed](#hendelsens-feed)), så et notat skrives på samme måte fra begge steder.
 
 | Element                            | Formål                                                                                                                                        |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | Notatet                            | Teksten, i Markdown. Påkrevd.                                                                                                                 |
 | **Maler**                          | Setter en av notatmalene dine inn i notatet, etter det du allerede har skrevet. Se [Notatmaler](#notatmaler).                             |
 | **Utkast med KI**                  | Skriver et utkast til notatet ut fra hendelsen, som du redigerer. Se [Generer et notat med KI](#generer-et-notat-med-ki).                    |
-| **Attach**                         | Filer som deles med abonnentene på statussiden. Valgfritt.                                                                                    |
-| **Posted now**                     | Når notatet sier at det ble publisert: øyeblikket du publiserer det, med mindre du velger et tidligere tidspunkt her, i din gjeldende tidssone. |
-| **Notify status page subscribers** | Avkrysningsboks. Slått på som standard, med mindre hendelsen ble erklært uten å gi abonnentene beskjed — da starter den slått av. Slå den av for å publisere stille. |
+| **Legg ved**                         | Filer som deles med abonnentene på statussiden. Valgfritt.                                                                                    |
+| **Publisert nå**                     | Når notatet sier at det ble publisert: øyeblikket du publiserer det, med mindre du velger et tidligere tidspunkt her, i din gjeldende tidssone. |
+| **Varsle abonnentene på statussiden** | Avkrysningsboks. Slått på som standard, med mindre hendelsen ble erklært uten å gi abonnentene beskjed — da starter den slått av. Slå den av for å publisere stille. |
 
 **Stille hendelser forblir stille.** Ble en hendelse erklært med **Varsle statussideabonnenter** slått av (eller som en privat hendelse), har abonnentene aldri fått beskjed om den, så et offentlig notat bør ikke være det første de hører. På en slik hendelse starter avkrysningsboksen slått av, med en linje under som forklarer hvorfor. Du kan fortsatt krysse av for å gi abonnentene beskjed om det notatet. Notater som publiseres uten et uttrykkelig valg, følger samme regel: notater fra Slack og Microsoft Teams, arbeidsflyter og API-forespørsler som utelater `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. En uttrykkelig `true` eller `false` beholdes alltid. Offentlige notater på [planlagte vedlikeholdshendelser](/docs/status-pages/subscribers#planlagte-vedlikeholdshendelser) og [hendelsesepisoder](/docs/status-pages/subscribers#hendelsesepisoder) følger en lignende regel, basert på om hendelsen eller episoden selv ga abonnentene beskjed da den ble opprettet. En privat hendelse eller episode tar ingen offentlige notater i det hele tatt.
 
-**Se hvem notatet når.** Mens **Notify status page subscribers** er avkrysset, viser en linje **Will notify** under den statussidene notatet går til, med et «opptil»-antall abonnenter per kanal, og sidene som viser hendelsens monitorer, men ikke får beskjed, med årsaken. Får ingen beskjed, viser den ingenting, med mindre hendelsen er skjult for statussider eller statussideomfanget er årsaken. Den følger hendelsens statussideomfang, så et notat på en hendelse som er begrenset til to lokasjonssider, sier at det når de to. Se [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience).
+**Se hvem notatet når.** Mens **Varsle abonnentene på statussiden** er avkrysset, viser en linje **Will notify** under den statussidene notatet går til, med et «opptil»-antall abonnenter per kanal, og sidene som viser hendelsens monitorer, men ikke får beskjed, med årsaken. Får ingen beskjed, viser den ingenting, med mindre hendelsen er skjult for statussider eller statussideomfanget er årsaken. Den følger hendelsens statussideomfang, så et notat på en hendelse som er begrenset til to lokasjonssider, sier at det når de to. Se [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience).
 
 **Se hva de får.** Ved siden av den samme avkrysningsboksen viser **Forhåndsvisning** e-posten abonnentene på hver av de statussidene får for notatet du skriver, og hvilken mal den bruker og hvorfor. Den forblir grå til notatet har litt tekst. **Send test til meg** sender den e-posten til e-postadressen til din egen konto, og til ingen andre. Se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers#forhåndsvis-e-posten-før-den-sendes).
 
 > [!TIP]
-> **Publiseringstidspunktet er notatets egentlige tidsstempel.** Statussider sorterer og viser offentlige notater etter `postedAt`, ikke etter når du skrev dem — så hvis du oppdaterer statussiden med en oppdatering du sendte for 40 minutter siden, velger du **Posted now** og setter når det faktisk skjedde. Kommer et notat inn via API-et (`/api/incident-public-note`) uten et tidspunkt, stempler OneUptime gjeldende tidspunkt.
+> **Publiseringstidspunktet er notatets egentlige tidsstempel.** Statussider sorterer og viser offentlige notater etter `postedAt`, ikke etter når du skrev dem — så hvis du oppdaterer statussiden med en oppdatering du sendte for 40 minutter siden, velger du **Publisert nå** og setter når det faktisk skjedde. Kommer et notat inn via API-et (`/api/incident-public-note`) uten et tidspunkt, stempler OneUptime gjeldende tidspunkt.
 
-Hvert notat viser hvem som skrev det, publiseringstidspunktet, den gjengitte Markdown-en med vedleggene og, i overskriften, hvordan det står til med varselet til abonnentene. **Search notes…** finner notater etter hva de sier, og feeden kan leses med de nyeste eller de eldste først. Lenker til andre nettsteder og til vedlegg åpnes i en ny fane. Linjer som begynner med `>`, vises som et sitat; start det med en egen linje, `> [!NOTE]`, `> [!TIP]` eller `> [!WARNING]`, for å vise det som en uthevet boks i stedet.
+Hvert notat viser hvem som skrev det, publiseringstidspunktet, den gjengitte Markdown-en med vedleggene og, i overskriften, hvordan det står til med varselet til abonnentene. **Søk i notater…** finner notater etter hva de sier, og feeden kan leses med de nyeste eller de eldste først. Lenker til andre nettsteder og til vedlegg åpnes i en ny fane. Linjer som begynner med `>`, vises som et sitat; start det med en egen linje, `> [!NOTE]`, `> [!TIP]` eller `> [!WARNING]`, for å vise det som en uthevet boks i stedet.
 
 ## Publiser et privat notat
 
-**Notater → Private notater** er bevisst enklere. Det er det samme redigeringsverktøyet, som sier **Private · Only your team can see this**, med notatet, **Maler**, **Utkast med KI** og **Attach** for filer som er ment for teamet som responderer på hendelsen. **Legg til privat notat** i menyen **Handlinger** i hendelsens feed åpner det i en dialog. Via API-et er private notater `/api/incident-internal-note`.
+**Notater → Private notater** er bevisst enklere. Det er det samme redigeringsverktøyet, som sier **Private · Only your team can see this**, med notatet, **Maler**, **Utkast med KI** og **Legg ved** for filer som er ment for teamet som responderer på hendelsen. **Legg til privat notat** i menyen **Handlinger** i hendelsens feed åpner det i en dialog. Via API-et er private notater `/api/incident-internal-note`.
 
 Ikke noe publiseringstidspunkt, ingen avkrysningsboks for abonnenter — notatet stemples når det opprettes.
 
@@ -109,7 +109,7 @@ Begge typer notater skrives i Markdown-redigeringsverktøyet, som nester listepu
 
 En privat hendelse er ikke på noen statusside og gir ingen abonnenter beskjed (se [Hold en hendelse borte fra statussiden](/docs/incidents/states-and-severities#hold-en-hendelse-borte-fra-statussiden)), så et offentlig notat på den ville ikke nå noen av dem det ble skrevet for. OneUptime tilbyr derfor ikke noe:
 
-- **Siden med offentlige notater** sier "Denne hendelsen er privat, så det kan ikke legges til offentlige notater på den. Bruk et privat notat." der redigeringsfeltet var, med knappen **Legg til privat notat**, som åpner de private notatene. **Add Public Note** i feedens meny **Handlinger** er låst og sier det samme.
+- **Siden med offentlige notater** sier "Denne hendelsen er privat, så det kan ikke legges til offentlige notater på den. Bruk et privat notat." der redigeringsfeltet var, med knappen **Legg til privat notat**, som åpner de private notatene. **Legg til offentlig notat** i feedens meny **Handlinger** er låst og sier det samme.
 - **Når tilstanden endres**, bretter dialogen et privat notat inn under **Legg til et privat notat** i stedet for det offentlige, og spør ikke om abonnenter. Massehandlingen **Endre tilstand** legger notatet sitt til som et privat notat på hver private hendelse den flytter, og gir ingen beskjed om dem.
 - **I Slack og Microsoft Teams** lagrer en 📣 eller 📢 på en melding i kanalen meldingen som et privat notat, og bekreftelsen sier hvorfor.
 - **Gjennom API-et, arbeidsflyter og OneUptime AI** avvises et offentlig notat på den med den samme setningen, og en tilstandsendring sendt med et slikt notat avvises i sin helhet, så tilstanden ikke endres. En SLA-regels påminnelser om offentlige notater venter til den er offentlig igjen; de private påminnelsene publiseres som vanlig.
@@ -118,7 +118,7 @@ Offentlige notater som ble publisert før hendelsen ble gjort privat, blir være
 
 ## Vedlegg på notater
 
-Begge typer notater tar imot vedlegg via redigeringsverktøyets knapp **Attach**, og begge viser en liste over vedlegg under notatets tekst med en lenke **Download attachment** per fil.
+Begge typer notater tar imot vedlegg via redigeringsverktøyets knapp **Legg ved**, og begge viser en liste over vedlegg under notatets tekst med en lenke **Download attachment** per fil.
 
 Der de skiller lag, er hvem som kan hente filen:
 
@@ -138,12 +138,12 @@ Hver opplasting starter privat, fra dashbordet og fra API-et. Et bilde kan bare 
 
 ## Generer et notat med KI
 
-Redigeringsverktøyet har en knapp **Utkast med KI**, på begge notatsidene og i feedens dialoger **Add Public Note** og **Legg til privat notat**. Den sender hendelsen til prosjektets KI-leverandør og setter den genererte Markdown-en inn i notatet, der du redigerer den før du publiserer — ingenting publiseres automatisk.
+Redigeringsverktøyet har en knapp **Utkast med KI**, på begge notatsidene og i feedens dialoger **Legg til offentlig notat** og **Legg til privat notat**. Den sender hendelsen til prosjektets KI-leverandør og setter den genererte Markdown-en inn i notatet, der du redigerer den før du publiserer — ingenting publiseres automatisk.
 
 | Dialog                             | Hva den skriver                                                      | Maler                                                             |
 | ---------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Generate Public Note with AI**   | Et notat til kundene, ut fra en analyse av hendelsens data.          | **Status Update**, **Resolution Notice**, **Maintenance Update**  |
-| **Generate Private Note with AI**  | Et internt teknisk notat.                                            | **Investigation Update**, **Technical Analysis**, **Shift Handoff** |
+| **Lag offentlig notat med AI**   | Et notat til kundene, ut fra en analyse av hendelsens data.          | **Status Update**, **Resolution Notice**, **Maintenance Update**  |
+| **Lag privat notat med AI**  | Et internt teknisk notat.                                            | **Investigation Update**, **Technical Analysis**, **Shift Handoff** |
 
 Bak knappen sender dashbordet en forespørsel til `/incident/generate-note-from-ai/{incidentId}` med den valgte malen og en notattype `public` eller `internal`.
 
@@ -196,22 +196,22 @@ flowchart TB
 6. Hver abonnent må komme gjennom sine egne preferanser — ikke avmeldt, og påmeldt denne ressursen og hendelsestypen `Incident` der siden lar abonnentene velge.
 
 > [!NOTE]
-> **Varsler er ikke umiddelbare.** Jobben som sender dem, kjører én gang i minuttet, så regn med opptil omtrent ett minutt mellom lagring av notatet og at e-posten går. Det er det **Notifying subscribers soon** betyr på et notat, og **Sending Soon** på hendelsens egne varsler.
+> **Varsler er ikke umiddelbare.** Jobben som sender dem, kjører én gang i minuttet, så regn med opptil omtrent ett minutt mellom lagring av notatet og at e-posten går. Det er det **Varsler abonnentene snart** betyr på et notat, og **Sending Soon** på hendelsens egne varsler.
 
 Overskriften til et offentlig notat følger hele reisen med et merke. Klikk på det for varselets statusmelding, som sier hva som skjedde:
 
 | Merke                          | Hva det betyr                                                                                                                                     |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Subscribers not notified**   | Ingenting ble sendt: notatet ble publisert med **Varsle statussideabonnenter** uten hake, eller en av portene ovenfor stengte. Årsaken er registrert. |
-| **Notifying subscribers soon** | I kø, venter på neste kjøring av sendejobben.                                                                                                     |
-| **Notifying subscribers**      | Jobben arbeider seg gjennom listen over abonnenter.                                                                                               |
-| **Subscribers notified**       | Meldingen til hver abonnent ble sendt. Statusmeldingen viser per statusside hvor mange som gikk på hver kanal.                                    |
-| **Notification failed**        | Ikke alle abonnentene fikk den sendt, eller jobben stoppet med en feil. Statusmeldingen sier hvilken.                                             |
+| **Abonnentene er ikke varslet**   | Ingenting ble sendt: notatet ble publisert med **Varsle statussideabonnenter** uten hake, eller en av portene ovenfor stengte. Årsaken er registrert. |
+| **Varsler abonnentene snart** | I kø, venter på neste kjøring av sendejobben.                                                                                                     |
+| **Varsler abonnentene**      | Jobben arbeider seg gjennom listen over abonnenter.                                                                                               |
+| **Abonnentene er varslet**       | Meldingen til hver abonnent ble sendt. Statusmeldingen viser per statusside hvor mange som gikk på hver kanal.                                    |
+| **Varsling mislyktes**        | Ikke alle abonnentene fikk den sendt, eller jobben stoppet med en feil. Statusmeldingen sier hvilken.                                             |
 
-**Sendt betyr sendt.** Jobben venter på hver melding: en e-post eller en SMS teller som sendt når e-postserveren eller SMS-leverandøren har tatt imot den, og en melding til Slack, Microsoft Teams eller en webhook når den andre siden har svart. En melding som avvises, gir en feil eller ikke får svar innen 4 minutter, teller som feilet, og én feil setter merket til **Notification failed**; de andre abonnentene får den fortsatt sendt. Statusmeldingen lyder da for eksempel `Not every subscriber was sent this notification: 2 of 61 messages failed. Site 03: 41 email sent. Site 07: 16 email, 2 SMS sent; 2 email failed.` "Sendt" er så langt OneUptime kan se: en e-postserver kan fortsatt returnere en e-post senere.
+**Sendt betyr sendt.** Jobben venter på hver melding: en e-post eller en SMS teller som sendt når e-postserveren eller SMS-leverandøren har tatt imot den, og en melding til Slack, Microsoft Teams eller en webhook når den andre siden har svart. En melding som avvises, gir en feil eller ikke får svar innen 4 minutter, teller som feilet, og én feil setter merket til **Varsling mislyktes**; de andre abonnentene får den fortsatt sendt. Statusmeldingen lyder da for eksempel `Not every subscriber was sent this notification: 2 of 61 messages failed. Site 03: 41 email sent. Site 07: 16 email, 2 SMS sent; 2 email failed.` "Sendt" er så langt OneUptime kan se: en e-postserver kan fortsatt returnere en e-post senere.
 
 :::details Store sider og lange sendinger
-Abonnentene til en statusside leses 10 000 om gangen til alle er nådd, og 20 meldinger er underveis samtidig. Ett varsel slutter å starte nye meldinger etter 20 minutter: det som ikke ble nådd innen da, listes opp, og varselet merkes som **Notification failed**. En sending som ble avbrutt underveis — serveren startet på nytt eller sluttet å svare — merkes også som **Notification failed**, med en melding som begynner med `Interrupted:`, når den har stått på **Notifying subscribers** i 40 minutter, slik at den aldri blir hengende for alltid. Se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers#sjekk-hva-som-ble-sendt).
+Abonnentene til en statusside leses 10 000 om gangen til alle er nådd, og 20 meldinger er underveis samtidig. Ett varsel slutter å starte nye meldinger etter 20 minutter: det som ikke ble nådd innen da, listes opp, og varselet merkes som **Varsling mislyktes**. En sending som ble avbrutt underveis — serveren startet på nytt eller sluttet å svare — merkes også som **Varsling mislyktes**, med en melding som begynner med `Interrupted:`, når den har stått på **Varsler abonnentene** i 40 minutter, slik at den aldri blir hengende for alltid. Se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers#sjekk-hva-som-ble-sendt).
 :::
 
 ### Send varselet for et notat på nytt
@@ -242,16 +242,16 @@ Den faktiske meldingen abonnentene får, bygges med en mal per statusside og per
 
 ## Hendelsens feed
 
-Kortet **Hendelse Feed** står nederst i venstre kolonne på hendelsens side **Oversikt**. Det er hendelsens historie som en tidslinje. Hver dag har en overskrift med datoen sin, sier når det er i dag eller i går, og nevner tidssonen tidene står i: den fra brukerinnstillingene dine, ellers nettleserens. Hver oppføring viser klokkeslettet den skjedde, med mindre oppføringen over skjedde i samme minutt, og i den siste timen også hvor lenge siden; pek på klokkeslettet for full dato og tid. Ved siden av klokkeslettet står ikonet for oppføringens type og en setning som begynner med avataren og navnet til den som forårsaket den. Det noen har skrevet, som et notat eller en rotårsak, står for seg selv i et kort under setningen. Tre eller flere oppføringer av samme type på rad innen fem minutter, som vaktoppdateringer, varsler til eiere eller abonnenter eller regler som kjørte, brettes sammen under den første, bak en knapp som viser resten. Som standard står de nyeste oppføringene øverst.
+Kortet **Hendelsesfeed** står nederst i venstre kolonne på hendelsens side **Oversikt**. Det er hendelsens historie som en tidslinje. Hver dag har en overskrift med datoen sin, sier når det er i dag eller i går, og nevner tidssonen tidene står i: den fra brukerinnstillingene dine, ellers nettleserens. Hver oppføring viser klokkeslettet den skjedde, med mindre oppføringen over skjedde i samme minutt, og i den siste timen også hvor lenge siden; pek på klokkeslettet for full dato og tid. Ved siden av klokkeslettet står ikonet for oppføringens type og en setning som begynner med avataren og navnet til den som forårsaket den. Det noen har skrevet, som et notat eller en rotårsak, står for seg selv i et kort under setningen. Tre eller flere oppføringer av samme type på rad innen fem minutter, som vaktoppdateringer, varsler til eiere eller abonnenter eller regler som kjørte, brettes sammen under den første, bak en knapp som viser resten. Som standard står de nyeste oppføringene øverst.
 
 Noen oppføringer har ekstra detaljer — et varsel til eierne viser for eksempel alle som fikk e-post, og et varsel til abonnentene viser hver statusside det gikk til, med antallet sendte og feilede meldinger på hver kanal og emnet e-posten gikk ut med, etterfulgt, når det sendte noen, av verdiene i egendefinerte felt det satte inn i en melding, under **Custom fields sent**. Disse detaljene brettes ut under oppføringen: **Vis hvem som ble varslet** på et varsel til eierne, **Vis hele rapporten** på rotårsaken en KI-undersøkelse la ut, og **Vis detaljer** på de andre. **Skjul detaljer** bretter dem sammen igjen.
 
 Kortets overskrift har også en meny **Handlinger**, så du kan handle uten å forlate tidslinjen:
 
-- **Execute Runbook** — start et [runbook](/docs/runbooks/index) for denne hendelsen.
-- **Kjør vakttjenesteretningslinje** — tilkall en policy ved behov. En arkivert policy tilkaller ingen: kjøringsloggen på hendelsen sier at den ikke ble kjørt fordi policyen er arkivert.
-- **Add Public Note** — redigeringsverktøyet fra siden **Offentlige notater**, i en dialog: skriv notatet, og deretter **Post update**. Maler, **Utkast med KI**, vedlegg, **Notify status page subscribers** med hvem det når, og **Forhåndsvisning** er der alle sammen. Notatet publiseres nå; for å tilbakedatere det velger du **Posted now**.
-- **Legg til privat notat** — redigeringsverktøyet fra siden **Private notater**, i en dialog: skriv notatet, og deretter **Add note**.
+- **Kjør runbook** — start et [runbook](/docs/runbooks/index) for denne hendelsen.
+- **Kjør vakttjenesteretningslinje** — tilkall en policy ved behov. En arkivert policy tilkaller ingen: kjøringsloggen på hendelsen sier at den ikke ble kjørt fordi policyen er arkivert. Slå på **Tilkall dem som observatører** for i stedet å holde personene i policyen orientert: Svaret deres sier bare at de har sett tilkallingen, og hendelsen blir ikke bekreftet.
+- **Legg til offentlig notat** — redigeringsverktøyet fra siden **Offentlige notater**, i en dialog: skriv notatet, og deretter **Publiser oppdatering**. Maler, **Utkast med KI**, vedlegg, **Varsle abonnentene på statussiden** med hvem det når, og **Forhåndsvisning** er der alle sammen. Notatet publiseres nå; for å tilbakedatere det velger du **Publisert nå**.
+- **Legg til privat notat** — redigeringsverktøyet fra siden **Private notater**, i en dialog: skriv notatet, og deretter **Legg til notat**.
 
 Begge notathandlingene er låst, med navnet på den manglende tillatelsen, for noen som ikke kan skrive notater. Når et notat er publisert, lukkes dialogen, og feeden viser det.
 
@@ -304,7 +304,7 @@ Det er fem veier inn på listen over eiere:
 
 - **Ved erklæring** — den som erklærer en hendelse, blir eier, og **Eiere** under **Flere felt** i **Erklær hendelse** legger til flere: hvert team personen er medlem av, er ett klikk unna under feltet. Se [Hvem som eier den](/docs/incidents/declaring-incidents#hvem-som-eier-den).
 - **Fra en hendelsesmal** — maler har et felt **Eiere**: personene og teamene som eier hendelsen og får beskjed når den opprettes eller oppdateres, valgt fra den samme listen som **Legg til eier**. Å opprette en hendelse fra malen forhåndsutfyller dem, og de legges til når hendelsens Slack- og Microsoft Teams-kanaler finnes, slik at en varselregel som inviterer hendelsens eiere til en ny kanal, også inviterer dem. Dashbordet, og trinnet **Create One Incident** i en arbeidsflyt med en valgt **Incident Template**, legger dem til uten varselet «du er lagt til»; et [skjema](/docs/forms/on-submit) med en mal gir dem beskjed og holder hendelsens varsel **Hendelse opprettet** tilbake til de er lagt til. Se [Opprette en hendelse](/docs/incidents/declaring-incidents).
-- **Fra Eierregler for hendelse** — samsvarende regler legger til eiere automatisk ved opprettelsen.
+- **Fra Eierregler for hendelse** — samsvarende regler legger til eiere automatisk ved opprettelsen, og igjen når alvorlighetsgraden eller etikettene til hendelsen endres.
 - **Ved opprettelse via API-et** — brukere og team som oppgis som eiere med opprettelseskallet, legges til på samme måte, når kanalene finnes, og uten varselet «du er lagt til».
 - **By hand** — elementet **Legg til eier** på siden **Eiere**, når som helst under hendelsen, eller **Legg til** under eierne i toppen av **Oversikt** så lenge den er åpen.
 
@@ -324,6 +324,8 @@ En ny regel må legge til noen: velg minst én eier, slå på en bryter under **
 **Varsle eiere**, under **Flere felt**, styrer om folk får vite det. La den være slått på for ekte ruting; slå den av for å legge til eiere stille — nyttig når en regel er en administrativ bekvemmelighet og ikke en tilkalling.
 
 Hver kjøring av en regel skrives i hendelsens feed, så du alltid kan se om en person ble lagt til av en regel eller av et menneske.
+
+Regler kjører når en hendelse opprettes, og igjen hver gang alvorlighetsgraden eller etikettene endres mens den er åpen. En hendelse som heves til en alvorlighetsgrad som en regel samsvarer med, eller får en etikett som en regel samsvarer med, får den regelens eiere med en gang, varslet slik regelen sier, og feeden forteller at regelen nå samsvarer med den, og hvorfor: Slik overtar et team en hendelse når det viser seg at den rammer hele organisasjonen. Eiere fjernes aldri når hendelsen ikke lenger samsvarer.
 
 ## Hva eierne får beskjed om
 

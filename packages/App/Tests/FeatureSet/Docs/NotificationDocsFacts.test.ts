@@ -1740,8 +1740,9 @@ describe("personal on-call rules", () => {
     expect(getOnCallPageCallPassOnPrompt()).toBe(
       `If you can't take it, press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT} to escalate.`,
     );
+    // Telegram's links, one place for every record a page is about.
     expect(ruleService).toContain(
-      '`⬆️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_ESCALATE}</a>`',
+      '`⬆️ <a href="${this.escapeTelegramHtml(data.passOnUrl.toString())}">${CANT_TAKE_IT_ESCALATE}</a>`',
     );
     expect(ruleService).toContain(
       "mdText`⬆️ [${CANT_TAKE_IT_ESCALATE}](${data.passOnUrl.toString()})`",

@@ -13,8 +13,7 @@ const DockerHostAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Docker Host Audit Logs"
       description="All changes made to this Docker host."
-      resourceType="Docker Host"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

@@ -60,6 +60,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   scope: AuditLogExportScope;
@@ -448,7 +449,12 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
                                 {index === 0
                                   ? translator.translateText(part)
                                   : part}
-                                {isLast ? "" : " ·"}
+                                {isLast ? null : (
+                                  <>
+                                    {" "}
+                                    <InlineSeparator markOnly />
+                                  </>
+                                )}
                               </span>
                               {isLast ? "" : " "}
                             </Fragment>

@@ -28,6 +28,7 @@ import { COSTS_NOT_READ_YET } from "./CloudOverviewTiles";
 import { CloudCardFooterLink } from "./CloudSpendCard";
 import CloudConnectionLogo from "./Connect/CloudConnectionLogo";
 import { CloudAccountRow } from "./UseCloudAccounts";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * Cloud Overview's Accounts: each connected account with whether a
@@ -158,7 +159,7 @@ const CloudAccountsCard: FunctionComponent<ComponentProps> = (
                   </div>
                   <div className="mt-0.5 text-xs text-gray-500">
                     <bdi className="break-all">{where}</bdi>
-                    {" · "}
+                    <InlineSeparator />
                     {translator.translatePlural(
                       ACCOUNT_RESOURCES,
                       account.resourceCount,

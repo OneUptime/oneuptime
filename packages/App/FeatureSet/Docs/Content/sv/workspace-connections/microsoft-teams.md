@@ -84,8 +84,8 @@ En aviseringsregel anger vilka händelser som publiceras i Microsoft Teams, och 
 
 | Produkt | Flikar på produktens **Microsoft Teams**-sida |
 | --- | --- |
-| **Incidenter** | **Incidenter**, **Incident Episoder**, **Sammanfattning** |
-| **Larm** | **Larm**, **Larm Episoder**, **Sammanfattning** |
+| **Incidenter** | **Incidenter**, **Incidentepisoder**, **Sammanfattning** |
+| **Larm** | **Larm**, **Larmepisoder**, **Sammanfattning** |
 | **Schemalagt underhåll** | En lista med regler |
 | **Monitorer** | En lista med regler |
 | **Jourtjänst** | En lista med regler |
@@ -215,6 +215,8 @@ I en kanal eller en gruppchatt larmar `@OneUptime page @Nawaz Dhandala The check
 - **Allt annat får ett kort.** Utan någon nämnd med @, som i en personlig chatt med boten, utan meddelande där larmningen behöver ett, med en tagg som inte följer något jourschema du kan se, eller med en person som OneUptime inte känner igen, svarar boten med kortet **Page someone**, med det du skrev ifyllt, och säger vem den inte kunde välja. I en incidents eller ett larms egen kanal öppnas kortet med den incidenten eller det larmet. Välj personer, ett team, ett jourschema, som larmar den som har jour i det just nu, eller en jourpolicy, som larmar genom sina eskaleringsregler, och skicka kortet. Alla i konversationen får skicka kortet, som sig själva. När det har larmat tas kortet bort, så att ingen larmar med det två gånger.
 - **Var det syns.** Konversationen visar larmningen som ett enda kort som hålls uppdaterat: vem som larmades och hur, varje team med sitt namn och sina personer efter, ditt meddelande, och vem som bekräftade. Där boten inte kan posta det, säger dess svar vem som larmades, med en länk till incidenten eller larmet.
 - **Vem som får larma.** I en incidents eller ett larms egen kanal alla som får köra en jourpolicy (**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Execute On-Call Duty Policy** i en anpassad roll) och läsa den incidenten eller det larmet. Överallt annars skapar larmningen ett larm, så den kräver också behörighet att skapa ett: **Projektägare**, **Projektadministratör** och **Projektmedlem**, eller **Jourmedlem** tillsammans med **Larmmedlem** (**Execute On-Call Duty Policy** och **Create Alert** i en anpassad roll). Att larma personer, ett team eller ett schema direkt, utan en jourpolicy bakom larmningen, kräver också åtkomst till alla projektets jourpolicyer. Alla andra får veta det i ett svar, och ingen larmas. På OneUptime Cloud kräver larmning Growth-planen: under den säger OneUptime vilken plan som krävs, och ingen larmas.
+
+För att hålla personer informerade medan andra hanterar det larmar du dem som observatörer. Skriv `as observers` efter vem du larmar i en incidents eller ett larms egen kanal, som i `@OneUptime page @Oversight as observers Team Y is on it`, eller välj **Observers: keep them informed** under **Page them as** på kortet. Deras larmning säger att de är observatörer, och bekräftar de den säger det bara att de har sett den: incidenten eller larmet bekräftas inte, ingen annans larmning stoppas, och där larmningen visas står det att de larmas som observatörer. En larmning om något nytt behöver någon som hanterar det, så överallt annars avvisas `as observers`, och ingen larmas.
 
 ## Jourtaggar
 

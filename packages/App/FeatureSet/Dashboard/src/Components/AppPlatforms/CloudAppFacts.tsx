@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * A line of short facts about an app, a dot between two: "AWS ECS / Fargate
@@ -76,7 +77,7 @@ const CloudAppFacts: FunctionComponent<ComponentProps> = (
                   className={CLOUD_APP_FACT_SEPARATOR_CLASS_NAME}
                   data-testid="cloud-app-fact-separator"
                 >
-                  {" · "}
+                  <InlineSeparator />
                 </span>
               ) : (
                 <></>

@@ -139,6 +139,12 @@ export function getDatabaseBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION,
       ["Project", "Databases", "View Database", "Documentation"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATABASE_SERVER_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Databases",
+      "View Database",
+      "Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATABASE_SERVER_VIEW_DELETE, [
       "Project",
       "Databases",
