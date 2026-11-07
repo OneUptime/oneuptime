@@ -22,6 +22,7 @@ import DiscoveredResourceCreate, {
 } from "../Utils/Telemetry/DiscoveredResourceCreate";
 import RumApplicationLabelRuleEngineService from "./RumApplicationLabelRuleEngineService";
 import RumApplicationOwnerRuleEngineService from "./RumApplicationOwnerRuleEngineService";
+import { RUM_APPLICATION_NO_RECENT_TRAFFIC_AFTER_MINUTES } from "../../Types/Rum/RumApplicationStatus";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "rum-application-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -536,6 +537,12 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * "disconnected" is the stored value; the Dashboard says "No recent
+   * traffic", in grey (RumApplicationStatus, issue #6191). A RUM
+   * application's data comes from the people using the app, so fifteen
+   * minutes with nothing is usually nobody using it, not a broken link.
+   */
   @CaptureSpan()
   public async markDisconnectedApplications(): Promise<void> {
     /*
@@ -544,7 +551,8 @@ export class Service extends ProjectReferencesService<Model> {
      * OtelIngestBaseService) — lastSeenAt is legitimately up to
      * ~5 minutes stale during continuous telemetry, so a threshold
      * equal to the fence TTL flaps healthy resources. 15 minutes
-     * gives 3x headroom.
+     * gives 3x headroom. The status's words say the same number, so
+     * both read it from RumApplicationStatus.
      */
     /*
      * Measured in time OneUptime was receiving: a stretch when OneUptime
@@ -553,7 +561,7 @@ export class Service extends ProjectReferencesService<Model> {
      * stretch this is exactly 15 minutes ago.
      */
     const silenceCutoff: Date = await ReceivingCoverage.getSilenceCutoff({
-      silenceInMinutes: 15,
+      silenceInMinutes: RUM_APPLICATION_NO_RECENT_TRAFFIC_AFTER_MINUTES,
     });
 
     const connectedApps: Array<Model> = await this.findBy({

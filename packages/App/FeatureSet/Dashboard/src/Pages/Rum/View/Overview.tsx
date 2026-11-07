@@ -9,6 +9,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
+import {
+  RumApplicationStatusDescription,
+  describeRumApplicationStatus,
+} from "Common/Types/Rum/RumApplicationStatus";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -518,6 +522,13 @@ const RumApplicationOverview: FunctionComponent<
   }
 
   const a: RumApplication = rumApplication;
+  // The hero's pill, read as the connection card under it reads the record.
+  const status: RumApplicationStatusDescription = describeRumApplicationStatus(
+    {
+      otelCollectorStatus: a.otelCollectorStatus,
+      lastSeenAt: a.lastSeenAt,
+    },
+  );
   /*
    * A failed span lookup is unknown, not zero (correlation-14): the span
    * tiles read "could not load" rather than a confident 0.
@@ -849,6 +860,14 @@ const RumApplicationOverview: FunctionComponent<
         identifier={(a.appIdentifier as string) || ""}
         identifierLabel="service.name"
         status={a.otelCollectorStatus}
+        /*
+         * Receiving data, No recent traffic or Waiting for data - never
+         * "Disconnected": an application nobody is using is idle, not
+         * broken (RumApplicationStatus, issue #6191).
+         */
+        statusLabel={status.label}
+        statusTone={status.tone}
+        statusDescription={status.description}
         lastSeenAt={a.lastSeenAt}
         connectionGuide={
           <ResourceConnectionGuideCard

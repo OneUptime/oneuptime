@@ -74,6 +74,25 @@ export interface ResourceConnectionGuide {
         description: string;
       }
     | undefined;
+  /*
+   * For a resource that sends data only while people use it - a RUM
+   * application, whose data comes from its visitors' browsers and phones.
+   * A stretch with nothing arriving is then the resource being idle, not
+   * broken, and its pill says "No recent traffic" rather than
+   * "Disconnected" (issue #6191). The card says so too: in grey, with
+   * when data last arrived, and with the troubleshooting steps folded
+   * behind `checksLabel` for when people are using it. Before its first
+   * data the card asks for the setup without calling it "Disconnected".
+   * English translation keys; {{lastHeard}} in the description is when
+   * data last arrived ("3 hours ago").
+   */
+  idleCopy?:
+    | {
+        title: string;
+        description: string;
+        checksLabel: string;
+      }
+    | undefined;
   // What the card's link says: "Open the setup guide" when left out.
   linkText?: string | undefined;
 }
@@ -850,6 +869,22 @@ export const getCloudResourceConnectionGuide: (
 
 // ---- RUM applications -------------------------------------------------------
 
+/*
+ * A RUM application's data comes from the people using the app, so fifteen
+ * minutes with nothing is usually nobody using it (RumApplicationStatus,
+ * issue #6191): the card says that, calmly, and keeps the checks for when
+ * people are using it one click away.
+ */
+export const RUM_APPLICATION_IDLE_COPY: NonNullable<
+  ResourceConnectionGuide["idleCopy"]
+> = {
+  title: translationKey("No traffic in the last 15 minutes"),
+  description: translationKey(
+    "OneUptime last heard from this application {{lastHeard}}. It sends data only while people use it, so this is normal when nobody is, such as overnight.",
+  ),
+  checksLabel: translationKey("What to check if people are using it"),
+};
+
 export const getRumApplicationConnectionGuide: (
   appIdentifier: string,
 ) => ResourceConnectionGuide = (
@@ -870,8 +905,17 @@ export const getRumApplicationConnectionGuide: (
           "Add the browser (or mobile) SDK from the setup guide to your app, with the browser resource detector on. Set service.name so the data lands on this application:",
         code: `service.name=${encodeResourceAttributeValue(appIdentifier)}`,
       },
-      waitForDataStep("application"),
+      /*
+       * Its data comes from a visit, so the step asks for one, and names
+       * the status the application's pill will switch to.
+       */
+      {
+        title: "Wait for the first data",
+        description:
+          "Open your app so it sends its first data, then refresh this page. The application switches to Receiving data.",
+      },
     ],
+    idleCopy: RUM_APPLICATION_IDLE_COPY,
     troubleshootingSteps: [
       {
         title: "Check the app is still instrumented",
