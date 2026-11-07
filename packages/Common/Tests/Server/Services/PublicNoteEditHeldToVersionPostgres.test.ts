@@ -1,6 +1,5 @@
 import Entities from "../../../Models/DatabaseModels/Index";
 import File from "../../../Models/DatabaseModels/File";
-import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import AuditLogService from "../../../Server/Services/AuditLogService";
 import IncidentPublicNoteService from "../../../Server/Services/IncidentPublicNoteService";
@@ -95,8 +94,7 @@ describePostgres(
       database = new DataSource({
         type: "postgres",
         host:
-          process.env["PUBLIC_NOTE_APPROVAL_TEST_DATABASE_HOST"] ||
-          "localhost",
+          process.env["PUBLIC_NOTE_APPROVAL_TEST_DATABASE_HOST"] || "localhost",
         port: Number(
           process.env["PUBLIC_NOTE_APPROVAL_TEST_DATABASE_PORT"] || "5400",
         ),

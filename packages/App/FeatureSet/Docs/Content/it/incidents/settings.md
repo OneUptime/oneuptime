@@ -19,7 +19,7 @@ Aprite **Incidenti** dal menu **Prodotti** nella barra superiore, poi espandete 
 | **Gravità incidente**           | Aggiungere, rinominare, ricolorare e riordinare i livelli di gravità.                              |
 | **Modelli di incidenti**        | Precompilare un intero incidente — titolo, descrizione, risorse, policy di reperibilità, proprietari, etichette. |
 | **Modelli di note**             | Testo riutilizzabile per note pubbliche e private.                                                 |
-| **Public Note Approval** | Fai approvare le note pubbliche prima che vengano pubblicate e scegli chi le approva. |
+| **Approvazione delle note pubbliche** | Fai approvare le note pubbliche prima che vengano pubblicate e scegli chi le approva. |
 | **Modelli post-mortem**         | Strutture di post-mortem riutilizzabili.                                                           |
 | **Stati del post-mortem** | Gli stati che un post-mortem attraversa, da Non iniziato a Completato. |
 | **Campi personalizzati**        | Definire campi aggiuntivi che compaiono su ogni incidente.                                         |

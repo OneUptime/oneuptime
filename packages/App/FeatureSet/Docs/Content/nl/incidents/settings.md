@@ -19,7 +19,7 @@ Open **Incidenten** vanuit het menu **Producten** in de bovenbalk en klap dan **
 | **Ernst van incident**       | Ernstniveaus toevoegen, hernoemen, een andere kleur geven en anders ordenen.                 |
 | **Incident-sjablonen**       | Een heel incident vooraf invullen — titel, beschrijving, middelen, bereikbaarheidsbeleid, eigenaren, labels. |
 | **Notitie-sjablonen**        | Herbruikbare tekst voor openbare en privénotities.                                           |
-| **Public Note Approval** | Laat openbare notities goedkeuren voordat ze worden gepubliceerd en kies wie ze goedkeurt. |
+| **Goedkeuring van openbare notities** | Laat openbare notities goedkeuren voordat ze worden gepubliceerd en kies wie ze goedkeurt. |
 | **Postmortem-sjablonen**     | Herbruikbare structuren voor postmortems.                                                    |
 | **Postmortem-statussen** | De statussen die een postmortem doorloopt, van Niet gestart tot Voltooid. |
 | **Aangepaste velden**        | Extra velden definiëren die op elk incident verschijnen.                                     |

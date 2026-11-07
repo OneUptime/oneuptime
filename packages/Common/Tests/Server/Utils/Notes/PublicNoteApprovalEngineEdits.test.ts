@@ -344,8 +344,8 @@ async function runEdit(
 
   const handled: boolean = await PublicNoteApprovalEngine.afterUpdate({
     host: host(),
-    update: PublicNoteApprovalEngine.getCarryForward(update)
-      ?.publicNoteApproval,
+    update:
+      PublicNoteApprovalEngine.getCarryForward(update)?.publicNoteApproval,
     updatedNoteIds: written,
     props: updateBy.props,
   });
@@ -610,15 +610,12 @@ describe("an edit of a note waiting for approval", () => {
 
   test("a rejection landing first stands too", async () => {
     const refusal: Error = await refusalOf(() => {
-      return runEdit(
-        editOf({ note: NEW_TEXT }),
-        async (): Promise<void> => {
-          await decide(
-            PublicNoteApprovalDecision.Reject,
-            "Do not name the vendor.",
-          );
-        },
-      );
+      return runEdit(editOf({ note: NEW_TEXT }), async (): Promise<void> => {
+        await decide(
+          PublicNoteApprovalDecision.Reject,
+          "Do not name the vendor.",
+        );
+      });
     });
 
     expect(refusal.message).toBe(PublicNoteApprovalMessages.changedMeanwhile);
@@ -626,9 +623,9 @@ describe("an edit of a note waiting for approval", () => {
     const note: StoredNote = stored();
     expect(stateOf(note)).toBe(PublicNoteApprovalState.Rejected);
     expect(note.note).toBe(APPROVED_TEXT);
-    expect(
-      PublicNoteApproval.readRound(note.approval)?.rejection?.reason,
-    ).toBe("Do not name the vendor.");
+    expect(PublicNoteApproval.readRound(note.approval)?.rejection?.reason).toBe(
+      "Do not name the vendor.",
+    );
   });
 
   test("an edit that lands first stands, and an approval of the note as it was before is told it was decided meanwhile", async () => {
@@ -679,12 +676,9 @@ describe("an edit of a published note, while public notes need approval", () => 
     world.notes = [publishedWithWaitingEdit()];
 
     const refusal: Error = await refusalOf(() => {
-      return runEdit(
-        editOf({ note: NEW_TEXT }),
-        async (): Promise<void> => {
-          await decide(PublicNoteApprovalDecision.Approve);
-        },
-      );
+      return runEdit(editOf({ note: NEW_TEXT }), async (): Promise<void> => {
+        await decide(PublicNoteApprovalDecision.Approve);
+      });
     });
 
     expect(refusal.message).toBe(PublicNoteApprovalMessages.changedMeanwhile);
@@ -792,9 +786,7 @@ describe("PublicNoteApprovalEngine.afterUpdate", () => {
       });
 
       expect(refusal).toBeInstanceOf(BadDataException);
-      expect(refusal.message).toBe(
-        PublicNoteApprovalMessages.changedMeanwhile,
-      );
+      expect(refusal.message).toBe(PublicNoteApprovalMessages.changedMeanwhile);
     }
 
     expect(world.feed).toEqual([]);
