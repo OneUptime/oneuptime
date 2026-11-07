@@ -367,6 +367,7 @@ export const AI_ACTION_CARD_LINES: {
   playbookStepsWaitForApproval: string;
   workflowTurnedOff: string;
   workflowOnNextRun: string;
+  workflowSavedSinceKept: string;
 } = {
   // The severity a new record took, or the one it was changed to.
   severity: translationKey("Severity: {{severity}}"),
@@ -411,6 +412,13 @@ export const AI_ACTION_CARD_LINES: {
   ),
   workflowTurnedOff: translationKey("Turned off until someone turns it on"),
   workflowOnNextRun: translationKey("Turned on: its next run uses this"),
+  /*
+   * The workflow was saved again between the change being proposed and
+   * approved, and the change was made on top of that save (issue #6274).
+   */
+  workflowSavedSinceKept: translationKey(
+    "Changes saved after this was proposed were kept",
+  ),
 };
 
 // The names of a card's facts.

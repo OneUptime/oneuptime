@@ -18,6 +18,7 @@ import NotFoundException from "../../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import PublicNoteApproval, {
+  PublicNoteApprovalColumns,
   PublicNoteApprovalDecision,
   PublicNoteApprovalEventType,
   PublicNoteApprovalGiven,
@@ -1046,6 +1047,45 @@ export default class PublicNoteApprovalEngine {
       logger.error(error);
       return false;
     }
+  }
+
+  // ---------- who a note waits for ----------
+
+  /*
+   * Who a note waits for now, for a message that names them - the answer a
+   * note sent from Slack, Microsoft Teams or Mattermost gets while it waits
+   * (WorkspaceHeldPublicNote): the step it waits for among the steps as they
+   * are now, and the people and teams that step names, as the record's feed
+   * names them. Null for a note nobody is asked about: one published with
+   * no edit waiting, or one rejected.
+   */
+  @CaptureSpan()
+  public static async getWaitingForNote(data: {
+    eventType: PublicNoteApprovalEventType;
+    note: PublicNoteApprovalColumns & {
+      projectId?: ObjectID | null | undefined;
+    };
+  }): Promise<PublicNoteApprovalWaitingFor | null> {
+    const state: PublicNoteApprovalState = PublicNoteApproval.getState(
+      data.note,
+    );
+
+    if (!PublicNoteApproval.isWaiting(state) || !data.note.projectId) {
+      return null;
+    }
+
+    const steps: Array<PublicNoteApprovalStepRule> =
+      await PublicNoteApprovalPolicy.getSteps({
+        projectId: data.note.projectId,
+        eventType: data.eventType,
+      });
+
+    const position: PublicNoteApprovalPosition = PublicNoteApproval.getPosition(
+      PublicNoteApproval.readRound(data.note.approval),
+      steps,
+    );
+
+    return await this.getWaitingFor(position);
   }
 
   // ---------- what the Dashboard is told ----------

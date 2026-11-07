@@ -1,4 +1,5 @@
 import { JSONObject } from "../JSON";
+import { WORKFLOW_DRAFT_PROPOSED_ON_KEY } from "../Workflow/WorkflowDraftProposedOnKey";
 import { AIActionCardWords, AIActionWords } from "./AIActionWords";
 import { AiContextActivity } from "./AiContext";
 import { LlmProviderActivity } from "./LlmProviderChoice";
@@ -254,6 +255,16 @@ export interface AIChatToolAction {
    */
   widgetId?: string | undefined;
 }
+
+/*
+ * Arguments OneUptime writes into an action for itself, never the model or
+ * the person: what an Ask AI change to a workflow was proposed on (issue
+ * #6274), which its approval is checked against. Nothing in them is for a
+ * person to decide by, so the approval card and the exports leave them out.
+ */
+export const AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME: ReadonlyArray<string> = [
+  WORKFLOW_DRAFT_PROPOSED_ON_KEY,
+];
 
 /*
  * Why a tool call was refused rather than run (the AI toolbox's gate and

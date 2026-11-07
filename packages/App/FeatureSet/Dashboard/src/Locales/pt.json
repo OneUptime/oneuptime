@@ -46428,5 +46428,6 @@
   "Charted for what this monitor checks now.": "Charted for what this monitor checks now.",
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
   "Only chart this metric from these services.": "Only chart this metric from these services.",
-  "Record Version": "Record Version"
+  "Record Version": "Record Version",
+  "Changes saved after this was proposed were kept": "As alterações salvas depois desta proposta foram mantidas"
 }

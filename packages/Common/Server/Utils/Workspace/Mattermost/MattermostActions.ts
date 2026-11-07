@@ -2,7 +2,9 @@ import AlertEpisodeInternalNote from "../../../../Models/DatabaseModels/AlertEpi
 import AlertEpisodeStateTimeline from "../../../../Models/DatabaseModels/AlertEpisodeStateTimeline";
 import AlertInternalNote from "../../../../Models/DatabaseModels/AlertInternalNote";
 import AlertStateTimeline from "../../../../Models/DatabaseModels/AlertStateTimeline";
-import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseBaseModel, {
+  DatabaseBaseModelType,
+} from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentEpisodeInternalNote from "../../../../Models/DatabaseModels/IncidentEpisodeInternalNote";
 import IncidentEpisodePublicNote from "../../../../Models/DatabaseModels/IncidentEpisodePublicNote";
 import IncidentEpisodeStateTimeline from "../../../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
@@ -76,6 +78,7 @@ import WorkspaceIncidentActions, {
   WorkspaceIncidentFormCheck,
 } from "../WorkspaceIncidentActions";
 import WorkspaceMemberActions, {
+  WorkspaceEvent,
   WorkspaceEventRecord,
   WorkspaceEventStanding,
   WorkspaceEventStateOption,
@@ -87,6 +90,7 @@ import WorkspaceNoteForm, {
   WorkspaceNoteFormType,
   WorkspaceSubmittedNote,
 } from "../WorkspaceNoteForm";
+import WorkspaceHeldPublicNote from "../WorkspaceHeldPublicNote";
 import MattermostUtil from "./Mattermost";
 import MattermostActionContext, {
   MattermostPressedAction,
@@ -144,6 +148,8 @@ export interface MattermostDialogAnswer {
 interface MattermostRequester {
   projectId: ObjectID;
   userId: ObjectID;
+  // Their Mattermost account, which an answer only they see is posted to.
+  mattermostUserId: string;
   props: DatabaseCommonInteractionProps;
   // The project's connection: what OneUptime calls Mattermost with.
   authToken: string;
@@ -521,6 +527,7 @@ export default class MattermostActions {
     return {
       projectId: projectId,
       userId: userAuth.userId,
+      mattermostUserId: mattermostUserId,
       props: props,
       authToken: projectAuth.authToken,
       channelId: MattermostConnection.isMattermostId(data.body["channel_id"])
@@ -1100,6 +1107,11 @@ export default class MattermostActions {
           recordId: data.recordId,
           projectId: data.projectId,
         }),
+        isPublicNoteApprovalRequired:
+          await WorkspaceHeldPublicNote.isApprovalRequired({
+            type: RECORD_TYPES[data.recordType].eventType,
+            projectId: data.projectId,
+          }),
       });
     }
 
@@ -1114,7 +1126,12 @@ export default class MattermostActions {
             placeholder: WORKSPACE_NOTE_FORM_TEXT.noteTypePlaceholder,
             options: [
               {
-                label: WORKSPACE_NOTE_FORM_TEXT.publicOption,
+                label: WorkspaceNoteForm.getPublicOption(
+                  await WorkspaceHeldPublicNote.isApprovalRequired({
+                    type: WorkspaceEventType.ScheduledMaintenance,
+                    projectId: data.projectId,
+                  }),
+                ),
                 value: WorkspaceNoteFormType.Public,
               },
               {
@@ -1185,6 +1202,13 @@ export default class MattermostActions {
     const props: DatabaseCommonInteractionProps = data.requester.props;
     const projectId: ObjectID = data.requester.projectId;
 
+    // The public note written, if one was: held for approval, it is answered below.
+    let publicNote:
+      | IncidentPublicNote
+      | IncidentEpisodePublicNote
+      | ScheduledMaintenancePublicNote
+      | null = null;
+
     switch (data.spec.recordType) {
       case MattermostRecordType.Incident:
         await WorkspaceActionAuthorization.assertCanCreate({
@@ -1195,7 +1219,7 @@ export default class MattermostActions {
         });
 
         if (isPublic) {
-          await IncidentPublicNoteService.addNote({
+          publicNote = await IncidentPublicNoteService.addNote({
             incidentId: data.recordId,
             projectId: projectId,
             note: note,
@@ -1221,7 +1245,7 @@ export default class MattermostActions {
         });
 
         if (isPublic) {
-          await IncidentEpisodePublicNoteService.addNote({
+          publicNote = await IncidentEpisodePublicNoteService.addNote({
             incidentEpisodeId: data.recordId,
             projectId: projectId,
             note: note,
@@ -1249,7 +1273,7 @@ export default class MattermostActions {
         });
 
         if (isPublic) {
-          await ScheduledMaintenancePublicNoteService.addNote({
+          publicNote = await ScheduledMaintenancePublicNoteService.addNote({
             scheduledMaintenanceId: data.recordId,
             projectId: projectId,
             note: note,
@@ -1303,7 +1327,54 @@ export default class MattermostActions {
       buttonAction: `add_${RECORD_TYPES[data.spec.recordType].loggedName}_note`,
     });
 
+    await MattermostActions.answerHeldNote({
+      requester: data.requester,
+      event: {
+        type: RECORD_TYPES[data.spec.recordType].eventType,
+        id: data.recordId,
+      },
+      note: publicNote,
+    });
+
     return {};
+  }
+
+  /*
+   * A public note held for approval is posted to no channel until it is
+   * approved, so the person who sent it is told - in the channel they sent
+   * it from, in a post only they see - that it waits, and for whom
+   * (WorkspaceHeldPublicNote). The note is written by now: an answer that
+   * cannot be posted is logged, and the form still closes as done.
+   */
+  private static async answerHeldNote(data: {
+    requester: MattermostRequester;
+    event: WorkspaceEvent;
+    note: DatabaseBaseModel | null;
+  }): Promise<void> {
+    try {
+      const answer: WorkspaceAnswer | null =
+        await WorkspaceHeldPublicNote.getAnswerForAddedNote({
+          event: data.event,
+          note: data.note,
+          props: data.requester.props,
+        });
+
+      if (!answer || !data.requester.channelId) {
+        return;
+      }
+
+      await MattermostUtil.postEphemeral({
+        authToken: data.requester.authToken,
+        userId: data.requester.mattermostUserId,
+        channelId: data.requester.channelId,
+        markdown: answer.markdown,
+      });
+    } catch (err) {
+      logger.error(
+        "Could not tell a Mattermost member their public note waits for approval.",
+      );
+      logger.error(err);
+    }
   }
 
   /*
