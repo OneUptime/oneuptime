@@ -410,6 +410,18 @@ const EVENT_LIBRARY: Record<
     label: "Added as status page owner",
     description: "You are added as an owner of a status page.",
   },
+  [NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_REQUESTED_NOTIFICATION]:
+    {
+      label: "Public note waiting for my approval",
+      description:
+        "A public note on an incident, episode or maintenance event waits for you, or a team you are on, to approve it. It reaches status pages and subscribers only once it is approved.",
+    },
+  [NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_DECIDED_NOTIFICATION]:
+    {
+      label: "My public note approved or rejected",
+      description:
+        "A public note you sent for approval is approved and published, or rejected with a reason.",
+    },
 
   [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION]:
     {
@@ -1313,6 +1325,16 @@ const statusPages: Array<SectionDef> = [
       NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
+  buildSection(
+    translationKey("Public Note Approval"),
+    translationKey(
+      "Notify me about public notes that wait for approval before they are published on status pages.",
+    ),
+    [
+      NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_REQUESTED_NOTIFICATION,
+      NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_DECIDED_NOTIFICATION,
     ],
   ),
 ];

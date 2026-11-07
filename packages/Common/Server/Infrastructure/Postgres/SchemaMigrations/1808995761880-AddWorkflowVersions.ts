@@ -10,8 +10,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * workflow saved before this release gets its first version - its graph as
  * it is then - the next time its graph is saved (WorkflowVersionService).
  */
-export class AddWorkflowVersions1808995461880 implements MigrationInterface {
-  public name: string = "AddWorkflowVersions1808995461880";
+export class AddWorkflowVersions1808995761880 implements MigrationInterface {
+  public name: string = "AddWorkflowVersions1808995761880";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

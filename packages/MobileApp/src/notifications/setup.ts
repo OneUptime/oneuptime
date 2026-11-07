@@ -5,11 +5,7 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { PermissionStatus } from "expo-modules-core";
 import { NOTIFICATION_CHANNELS } from "./channels";
-import {
-  ON_CALL_PAGE_ACTIONS,
-  ON_CALL_PAGE_CATEGORY,
-  RETIRED_CATEGORIES,
-} from "./categories";
+import { NOTIFICATION_CATEGORIES, RETIRED_CATEGORIES } from "./categories";
 import logger from "../utils/logger";
 
 // Show notifications when app is in foreground
@@ -50,20 +46,23 @@ export async function setupNotificationChannels(): Promise<void> {
 }
 
 /*
- * Acknowledge and Escalate under every page's push (categories.ts). Set on
- * every launch, like the channels: a phone restored from a backup, or a
- * reinstall, has none until the app says.
+ * Acknowledge and Escalate under a responder's page, "I've seen it" under
+ * an observer's (categories.ts). Set on every launch, like the channels: a
+ * phone restored from a backup, or a reinstall, has none until the app
+ * says. One the phone refuses leaves the other in place.
  */
 export async function setupNotificationCategories(): Promise<void> {
-  try {
-    await Notifications.setNotificationCategoryAsync(ON_CALL_PAGE_CATEGORY, [
-      ...ON_CALL_PAGE_ACTIONS,
-    ]);
-  } catch (error: unknown) {
-    logger.error(
-      `[PushNotifications] Failed to set notification category ${ON_CALL_PAGE_CATEGORY}:`,
-      error,
-    );
+  for (const { identifier, actions } of NOTIFICATION_CATEGORIES) {
+    try {
+      await Notifications.setNotificationCategoryAsync(identifier, [
+        ...actions,
+      ]);
+    } catch (error: unknown) {
+      logger.error(
+        `[PushNotifications] Failed to set notification category ${identifier}:`,
+        error,
+      );
+    }
   }
 
   for (const category of RETIRED_CATEGORIES) {

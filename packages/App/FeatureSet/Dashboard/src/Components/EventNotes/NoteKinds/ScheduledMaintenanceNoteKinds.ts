@@ -69,6 +69,9 @@ export function getScheduledMaintenancePublicNoteKind(data: {
       RouteMap[PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE] as Route,
       { modelId: scheduledMaintenanceId },
     ),
+    approval: {
+      apiPath: "/scheduled-maintenance-public-note",
+    },
   };
 }
 
