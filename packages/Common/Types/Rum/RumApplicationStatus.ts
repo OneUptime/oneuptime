@@ -152,7 +152,9 @@ export const isRumApplicationStatusReceiving: (
  */
 export const getRumApplicationLastDataAt: (
   lastSeenAt: Date | string | null | undefined,
-) => Date | null = (lastSeenAt: Date | string | null | undefined): Date | null => {
+) => Date | null = (
+  lastSeenAt: Date | string | null | undefined,
+): Date | null => {
   if (!lastSeenAt) {
     return null;
   }

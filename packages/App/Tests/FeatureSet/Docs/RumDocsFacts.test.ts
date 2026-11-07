@@ -752,13 +752,13 @@ describe("RUM Overview: what you get", () => {
   });
 
   it("no RUM page calls an application Connected or Disconnected", () => {
-    for (const page of [
-      RUM_INDEX,
-      BROWSER_SETUP,
-      MOBILE_SETUP,
-      WEB_VITALS,
-    ]) {
-      expect({ page, says: /\bdisconnected\b|\*\*Connected\*\*/i.test(englishPage(page)) }).toEqual({
+    const connectionWord: RegExp = /\bdisconnected\b|\*\*Connected\*\*/i;
+
+    for (const page of [RUM_INDEX, BROWSER_SETUP, MOBILE_SETUP, WEB_VITALS]) {
+      expect({
+        page,
+        says: connectionWord.test(englishPage(page)),
+      }).toEqual({
         page,
         says: false,
       });

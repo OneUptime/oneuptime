@@ -171,10 +171,7 @@ async function tableProps(): Promise<Record<string, unknown>> {
     expect(screen.getByTestId("model-table")).toBeInTheDocument();
   });
 
-  return modelTableCalls[modelTableCalls.length - 1] as Record<
-    string,
-    unknown
-  >;
+  return modelTableCalls[modelTableCalls.length - 1] as Record<string, unknown>;
 }
 
 async function statusColumn(): Promise<Column> {
@@ -218,11 +215,11 @@ afterEach(() => {
 describe("the RUM Applications list's Status column", () => {
   test("is read from the stored status, and the list always loads when data last arrived", async () => {
     const props: Record<string, unknown> = await tableProps();
-    const column: Column | undefined = (
-      props["columns"] as Array<Column>
-    ).find((candidate: Column): boolean => {
-      return candidate.title === "Status";
-    });
+    const column: Column | undefined = (props["columns"] as Array<Column>).find(
+      (candidate: Column): boolean => {
+        return candidate.title === "Status";
+      },
+    );
 
     expect(column?.field).toEqual({ otelCollectorStatus: true });
     /*

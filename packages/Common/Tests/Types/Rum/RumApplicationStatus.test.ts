@@ -343,10 +343,16 @@ describe("the status's words", () => {
   test("a status it does not know reads as waiting, the state that claims least", () => {
     expect(
       getRumApplicationStatusWords("disconnected" as RumApplicationStatus),
-    ).toEqual(getRumApplicationStatusWords(RumApplicationStatus.WaitingForData));
+    ).toEqual(
+      getRumApplicationStatusWords(RumApplicationStatus.WaitingForData),
+    );
     expect(
-      getRumApplicationStatusWords(undefined as unknown as RumApplicationStatus),
-    ).toEqual(getRumApplicationStatusWords(RumApplicationStatus.WaitingForData));
+      getRumApplicationStatusWords(
+        undefined as unknown as RumApplicationStatus,
+      ),
+    ).toEqual(
+      getRumApplicationStatusWords(RumApplicationStatus.WaitingForData),
+    );
   });
 });
 
@@ -425,7 +431,9 @@ describe("a sweep of drawn records", () => {
         otelCollectorStatus: STATUS_VALUES[random(STATUS_VALUES.length)],
         lastSeenAt: drawLastSeenAt(random),
       };
-      const normalized: string = (input.otelCollectorStatus || "").toLowerCase();
+      const normalized: string = (
+        input.otelCollectorStatus || ""
+      ).toLowerCase();
       const hasRealDate: boolean =
         input.lastSeenAt instanceof Date
           ? !isNaN(input.lastSeenAt.getTime())

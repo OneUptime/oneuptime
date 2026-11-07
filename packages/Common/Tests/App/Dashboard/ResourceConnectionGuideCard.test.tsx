@@ -534,7 +534,9 @@ describe("ResourceConnectionGuideCard for a resource that is idle when unused", 
     expect(
       screen.getByRole("heading", { name: "Connect this widget" }),
     ).toBeInTheDocument();
-    expect(card()).toHaveTextContent("No data from this widget yet. Set it up.");
+    expect(card()).toHaveTextContent(
+      "No data from this widget yet. Set it up.",
+    );
     expect(card()).not.toHaveTextContent(/disconnected/i);
     // What to do now is not folded away.
     expect(

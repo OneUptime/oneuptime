@@ -184,9 +184,9 @@ describe("the RUM guide: idle when nobody uses the app", () => {
   });
 
   test("its description puts when data last arrived in once, and no noun", () => {
-    expect(
-      RUM_APPLICATION_IDLE_COPY.description.match(/\{\{\w+\}\}/g),
-    ).toEqual(["{{lastHeard}}"]);
+    expect(RUM_APPLICATION_IDLE_COPY.description.match(/\{\{\w+\}\}/g)).toEqual(
+      ["{{lastHeard}}"],
+    );
     expect(RUM_APPLICATION_IDLE_COPY.waitingDescription).not.toMatch(/\{\{/);
     expect(RUM_APPLICATION_IDLE_COPY.title).not.toMatch(/\{\{/);
     expect(RUM_APPLICATION_IDLE_COPY.checksLabel).not.toMatch(/\{\{/);
@@ -204,7 +204,9 @@ describe("the RUM guide: idle when nobody uses the app", () => {
     expect(waitStep.description).toBe(
       "Open your app so it sends its first data, then refresh this page. The application switches to Receiving data.",
     );
-    expect(waitStep.description).toContain(RUM_APPLICATION_RECEIVING_DATA_LABEL);
+    expect(waitStep.description).toContain(
+      RUM_APPLICATION_RECEIVING_DATA_LABEL,
+    );
     expect(waitStep.code).toBeUndefined();
   });
 

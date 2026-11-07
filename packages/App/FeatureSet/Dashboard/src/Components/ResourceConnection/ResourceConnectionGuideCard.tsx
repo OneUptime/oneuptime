@@ -1,9 +1,4 @@
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useId,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";

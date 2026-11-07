@@ -866,7 +866,9 @@ describe("RUM application overview: idle, never Disconnected", () => {
       "No data has arrived from this application yet. Set up the OpenTelemetry browser or mobile SDK — it takes a few minutes.",
     );
     // Its steps are what to do now, so they are not folded.
-    expect(within(element).queryByTestId("resource-connection-guide-steps-toggle")).toBeNull();
+    expect(
+      within(element).queryByTestId("resource-connection-guide-steps-toggle"),
+    ).toBeNull();
     expect(shownSteps()).toHaveLength(3);
     expect(element).toHaveTextContent(
       "Open your app so it sends its first data, then refresh this page. The application switches to Receiving data.",

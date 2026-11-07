@@ -92,6 +92,10 @@ const EVERY_WORD: Array<string> = [
   SETUP_GUIDE_TOPIC,
 ];
 
+// A status word left in English, new or old, inside a translation.
+const ENGLISH_STATUS_WORD: RegExp =
+  /Receiving data|No recent traffic|Waiting for data|Disconnected|Connected/;
+
 function placeholdersOf(text: string): Array<string> {
   return (text.match(/\{\{\w+\}\}/g) || []).sort();
 }
@@ -133,9 +137,11 @@ describe("a RUM application's status words", () => {
 
   test.each(LANGUAGES)("%s words every one of them", (language: string) => {
     const words: Locale = localeOf(language);
-    const english: Array<string> = EVERY_WORD.filter((text: string): boolean => {
-      return typeof words[text] !== "string" || words[text] === text;
-    });
+    const english: Array<string> = EVERY_WORD.filter(
+      (text: string): boolean => {
+        return typeof words[text] !== "string" || words[text] === text;
+      },
+    );
 
     expect({ language, english }).toEqual({ language, english: [] });
   });
@@ -148,15 +154,15 @@ describe("a RUM application's status words", () => {
       for (const text of EVERY_WORD) {
         const worded: string = String(words[text]);
 
-        expect({ language, text, placeholders: placeholdersOf(worded) }).toEqual(
-          { language, text, placeholders: placeholdersOf(text) },
-        );
         expect({
           language,
           text,
-          english: /Receiving data|No recent traffic|Waiting for data|Disconnected|Connected/.test(
-            worded,
-          ),
+          placeholders: placeholdersOf(worded),
+        }).toEqual({ language, text, placeholders: placeholdersOf(text) });
+        expect({
+          language,
+          text,
+          english: ENGLISH_STATUS_WORD.test(worded),
         }).toEqual({ language, text, english: false });
       }
     },

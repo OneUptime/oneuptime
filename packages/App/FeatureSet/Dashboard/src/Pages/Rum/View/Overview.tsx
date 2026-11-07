@@ -523,12 +523,10 @@ const RumApplicationOverview: FunctionComponent<
 
   const a: RumApplication = rumApplication;
   // The hero's pill, read as the connection card under it reads the record.
-  const status: RumApplicationStatusDescription = describeRumApplicationStatus(
-    {
-      otelCollectorStatus: a.otelCollectorStatus,
-      lastSeenAt: a.lastSeenAt,
-    },
-  );
+  const status: RumApplicationStatusDescription = describeRumApplicationStatus({
+    otelCollectorStatus: a.otelCollectorStatus,
+    lastSeenAt: a.lastSeenAt,
+  });
   /*
    * A failed span lookup is unknown, not zero (correlation-14): the span
    * tiles read "could not load" rather than a confident 0.
