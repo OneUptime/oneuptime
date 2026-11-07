@@ -194,11 +194,23 @@ export default class SubscriberNotificationResendAccess {
         _id: true,
         subscriberNotificationStatusOnNoteCreated: true,
         shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
+        isPublished: true,
       } as unknown as Select<TNote>,
     );
 
     for (const note of notes) {
       const record: JSONObject = note as unknown as JSONObject;
+
+      /*
+       * A note waiting for approval, or rejected, has told nobody yet: its
+       * notification goes out once it is published (PublicNoteApproval),
+       * and nothing sends it before.
+       */
+      if (record["isPublished"] === false) {
+        throw new BadDataException(
+          SubscriberNotificationResend.notPublishedMessage,
+        );
+      }
 
       const refusal: string | null =
         SubscriberNotificationResend.getPublicNoteResendRefusal({

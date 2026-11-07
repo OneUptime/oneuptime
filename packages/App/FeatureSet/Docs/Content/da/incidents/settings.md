@@ -19,6 +19,7 @@ Konfigurationen af hændelser ligger under **Hændelser**, ikke under **Projekti
 | **Hændelsesalvor**           | Tilføje, omdøbe, give nye farver og ændre rækkefølgen på alvorsgraderne.                     |
 | **Hændelsesskabeloner**      | Udfylde en hel hændelse på forhånd — titel, beskrivelse, ressourcer, vagtpolitikker, ejere, etiketter. |
 | **Noteskabeloner**           | Genbrugelig tekst til offentlige og private noter.                                           |
+| **Public Note Approval** | Lad offentlige noter blive godkendt, før de offentliggøres, og vælg, hvem der godkender dem. |
 | **Postmortem-skabeloner**    | Genbrugelige strukturer til postmortems.                                                     |
 | **Postmortem-statusser** | De statusser, en postmortem bevæger sig igennem, fra Ikke startet til Fuldført. |
 | **Brugerdefinerede felter**  | Definere ekstra felter, der vises på hver hændelse.                                          |

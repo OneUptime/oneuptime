@@ -29,6 +29,7 @@ import StateChangeSubscriberNotification from "../../../Types/StatusPage/StateCh
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubPublicNoteApproval } from "../TestingUtils/PublicNoteApproval";
 import { stubPrivateRecords } from "../TestingUtils/PrivateRecords";
 import {
   afterEach,
@@ -119,6 +120,8 @@ function isQueued(row: NotifyingRow): boolean {
 }
 
 beforeEach(() => {
+  // Public note approval off: every note is published as it is posted.
+  stubPublicNoteApproval({});
   /*
    * The project's incident and alert states: open records are read by
    * the states that are not resolved (Common/Utils/ResolvedState).

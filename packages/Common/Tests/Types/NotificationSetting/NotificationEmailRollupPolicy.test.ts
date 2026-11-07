@@ -36,7 +36,7 @@ import {
  * No mocks: both modules under test are pure and import nothing but the enum.
  */
 describe("NotificationEmailRollupPolicy - the two sets partition the enum", () => {
-  test("the enum still has exactly 56 members, split 7 / 49", () => {
+  test("the enum still has exactly 58 members, split 8 / 50", () => {
     const allEventTypes: Array<NotificationSettingEventType> = Object.values(
       NotificationSettingEventType,
     );
@@ -54,14 +54,17 @@ describe("NotificationEmailRollupPolicy - the two sets partition the enum", () =
      * own: what a hunt finds is for reading, not paging. 56 with an
      * exception assigned to the person or their team, which rolls up in a
      * section of its own like an owner-added email: twenty handed over at
-     * once from Bulk Actions are one email.
+     * once from Bulk Actions are one email. 58 with public note approval: a
+     * note waiting for the person's approval, never rolled up - customers
+     * wait for it - and how a note they sent was decided, which rolls up
+     * with the status pages' emails.
      */
-    expect(allEventTypes.length).toBe(56);
-    expect(NEVER_ROLLED_UP_EVENT_TYPES.size).toBe(7);
-    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(49);
+    expect(allEventTypes.length).toBe(58);
+    expect(NEVER_ROLLED_UP_EVENT_TYPES.size).toBe(8);
+    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(50);
   });
 
-  test("their union is exactly the enum, so a 57th member fails CI until classified", () => {
+  test("their union is exactly the enum, so a 59th member fails CI until classified", () => {
     const allEventTypes: Array<NotificationSettingEventType> = Object.values(
       NotificationSettingEventType,
     );
@@ -87,7 +90,7 @@ describe("NotificationEmailRollupPolicy - the two sets partition the enum", () =
 });
 
 describe("NotificationEmailRollupPolicy - never rolled up", () => {
-  test("holds exactly the five time-critical on-call events, the SLA breach and a security case's response target, and nothing else", () => {
+  test("holds exactly the five time-critical on-call events, the SLA breach, a security case's response target and a public note waiting for approval, and nothing else", () => {
     expect(Array.from(NEVER_ROLLED_UP_EVENT_TYPES).sort()).toEqual(
       [
         NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER,
@@ -97,8 +100,32 @@ describe("NotificationEmailRollupPolicy - never rolled up", () => {
         NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
         NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION,
         NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
+        NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_REQUESTED_NOTIFICATION,
       ].sort(),
     );
+  });
+
+  test("how a public note was decided rolls up with the status pages' emails; the request to approve one never waits", () => {
+    expect(
+      isRollupEligible(
+        NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_DECIDED_NOTIFICATION,
+      ),
+    ).toBe(true);
+    expect(
+      isRollupEligible(
+        NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_REQUESTED_NOTIFICATION,
+      ),
+    ).toBe(false);
+    expect(
+      getRollupCategory(
+        NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_DECIDED_NOTIFICATION,
+      ),
+    ).toBe(RollupCategory.StatusPages);
+    expect(
+      getRollupCategory(
+        NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_REQUESTED_NOTIFICATION,
+      ),
+    ).toBe(RollupCategory.StatusPages);
   });
 
   test("a task handed to somebody rolls up with the other security case emails", () => {
@@ -109,7 +136,7 @@ describe("NotificationEmailRollupPolicy - never rolled up", () => {
     ).toBe(true);
   });
 
-  test("none of the seven is rollup eligible", () => {
+  test("none of the eight is rollup eligible", () => {
     for (const eventType of Array.from(NEVER_ROLLED_UP_EVENT_TYPES)) {
       expect(isRollupEligible(eventType)).toBe(false);
     }

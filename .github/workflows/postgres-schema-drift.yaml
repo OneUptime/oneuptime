@@ -884,6 +884,24 @@ jobs:
           Tests/Server/API/StatusPageIncidentScopePostgres.test.ts
           Tests/Server/Services/StatusPageVisibilityWritePostgres.test.ts --forceExit
 
+      # A public note is on status pages only once it is published (#5720):
+      # every public page read - the overview, the incident, episode and
+      # maintenance lists and each one opened - runs on clones of the tables
+      # it reads, with notes in every approval state, and shows the
+      # published ones (an edited one as it was approved) and nothing of
+      # the rest.
+      - name: Test public note approval on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PUBLIC_NOTE_APPROVAL_TESTS: "true"
+          PUBLIC_NOTE_APPROVAL_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PUBLIC_NOTE_APPROVAL_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PUBLIC_NOTE_APPROVAL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/StatusPagePublicNoteApprovalPostgres.test.ts --forceExit
+
       # Clones the migrated Project, StatusPage and
       # StatusPageHistoryChartBarColorRule tables (with the rules' foreign
       # keys) into an isolated schema, and makes a new status page's

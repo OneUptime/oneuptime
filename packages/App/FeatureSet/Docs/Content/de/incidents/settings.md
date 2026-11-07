@@ -19,6 +19,7 @@ Die Vorfallkonfiguration liegt in **Vorfälle**, nicht in den **Projekteinstellu
 | **Vorfallsschweregrad**       | Schweregrade hinzufügen, umbenennen, neu einfärben und neu anordnen.                               |
 | **Vorfall-Vorlagen**          | Einen ganzen Vorfall vorausfüllen – Titel, Beschreibung, Ressourcen, Bereitschaftsrichtlinien, Eigentümer, Beschriftungen. |
 | **Notiz-Vorlagen**            | Wiederverwendbarer Text für öffentliche und private Notizen.                                       |
+| **Public Note Approval** | Öffentliche Notizen vor der Veröffentlichung freigeben lassen und festlegen, wer sie freigibt. |
 | **Postmortem-Vorlagen**       | Wiederverwendbare Postmortem-Strukturen.                                                           |
 | **Postmortem-Status** | Die Status, die ein Postmortem durchläuft, von Nicht gestartet bis Abgeschlossen. |
 | **Benutzerdefinierte Felder** | Zusätzliche Felder definieren, die an jedem Vorfall erscheinen.                                    |

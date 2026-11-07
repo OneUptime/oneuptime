@@ -58,7 +58,7 @@ Meddelelser beskrives i [Abonnenter og meddelelser](/docs/status-pages/subscribe
 | **Kalender** | **Vedligeholdelseskalender**: hver begivenhed på en måned, en uge eller en dag, ved siden af de kalendere uden for projektet, du tilføjer. |
 | **Arbejdsområde** | **Slack**, **Microsoft Teams** og **Mattermost**, alt efter hvad projektet har forbundet, eller **Forbind et arbejdsområde**, når det ikke har nogen af dem. |
 | **Regler**    | **Ejerregler**, **Runbook-regler**, **Etiketregler**, **Påmindelsesregler**.                                                   |
-| **Indstillinger** | **Begivenhedsstatus**, **Begivenhedsskabeloner**, **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Kalenderindstillinger**, **Nummerering**. |
+| **Indstillinger** | **Begivenhedsstatus**, **Begivenhedsskabeloner**, **Noteskabeloner**, **Public Note Approval**, **Brugerdefinerede felter**, **Målinger**, **Kalenderindstillinger**, **Nummerering**. |
 
 **Oversigt** og **Kalender** er åbne; **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Udvikler** rummer **Terraform**, **API**, **CLI** og **AI-assistenter** til at styre vedligeholdelse fra kode. Alt om vedligeholdelse ligger her, ikke i **Projektindstillinger**.
 

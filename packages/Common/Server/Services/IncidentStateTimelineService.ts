@@ -69,6 +69,8 @@ import IncidentRoleFeedText from "../Utils/Incident/IncidentRoleFeedText";
 import FindBy from "../Types/Database/FindBy";
 import CountBy from "../Types/Database/CountBy";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
+import PublicNoteApprovalPolicy from "../Utils/Notes/PublicNoteApprovalPolicy";
+import { PublicNoteApprovalEventType } from "../../Types/StatusPage/PublicNoteApproval";
 
 export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   public constructor() {
@@ -406,11 +408,28 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
       /*
        * The change's own notification, decided once: when it notifies
        * subscribers and a note comes with it, the note is the one message
-       * they get (StateChangeSubscriberNotification).
+       * they get (StateChangeSubscriberNotification) - unless the note
+       * waits for approval. A held note tells nobody until it is approved,
+       * and never if it is rejected, so the change tells subscribers
+       * itself, now, and the note follows once it is published
+       * (PublicNoteApproval).
        */
+      const noteTellsSubscribers: boolean =
+        Boolean(publicNote) &&
+        !(await StateChangeSubscriberNotification.isPublicNoteHeldForApproval({
+          projectId: createBy.data.projectId || createBy.props.tenantId,
+          isApprovalRequired: (query: {
+            projectId: ObjectID;
+            eventType: PublicNoteApprovalEventType;
+          }): Promise<boolean> => {
+            return PublicNoteApprovalPolicy.isRequired(query);
+          },
+          eventType: PublicNoteApprovalEventType.Incident,
+        }));
+
       StateChangeSubscriberNotification.applyToStateChange({
         stateChange: createBy.data,
-        hasPublicNote: Boolean(publicNote),
+        hasPublicNote: noteTellsSubscribers,
         skippedMessage:
           "Notifications skipped as subscribers are not to be notified for this incident state change.",
       });
