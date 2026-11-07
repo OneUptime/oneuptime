@@ -2,6 +2,8 @@
 
 **Colas** da a cada cola de mensajes, topic y suscripción que usan tus aplicaciones su propia página: qué servicios publican en ella y cuáles consumen de ella, cuántos mensajes pasan, cuántos fallan y cuánto tarda el procesamiento, sus trazas y métricas y, en cuanto las métricas propias del broker llegan a OneUptime, su acumulación, el retraso de los consumidores, los mensajes fallidos y la limitación. Las colas tienen etiquetas, propietarios, reglas de etiquetas y de propietarios y archivado, como cualquier otro recurso. Ábrelas en **Productos → Recursos → Colas**.
 
+**Colas → Topología** muestra cómo fluyen los mensajes entre tus servicios: cada cola entre los servicios que publican en ella y los que consumen de ella. Cada línea muestra su tasa de mensajes, su tasa de errores y su tiempo p95, contados como los cuentan las tarjetas **Productores** y **Consumidores** de la cola, y en cuanto las métricas de un broker llegan a OneUptime, sus colas muestran el retraso de los consumidores o su acumulación, y sus mensajes fallidos. Busca en el mapa, fíltralo por broker o quédate solo con lo que necesita atención. La pestaña **Topología** de cada cola muestra de dónde vienen sus mensajes y adónde van.
+
 :::cards
 - [Instrumentar aplicaciones](#instrumentar-aplicaciones): Los spans de mensajería que tu instrumentación de OpenTelemetry ya envía.
 - [Métricas de salud del broker](#métricas-de-salud-del-broker): Acumulación, retraso y mensajes fallidos de tu broker, sistema por sistema.
