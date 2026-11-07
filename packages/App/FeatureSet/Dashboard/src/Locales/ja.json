@@ -46367,5 +46367,7 @@
   "{{count}} queues": "{{count}} queues",
   "{{count}} queues_one": "{{count}} queue",
   "{{count}} shown for context": "{{count}} shown for context",
-  "{{rate}} of its spans": "{{rate}} of its spans"
+  "{{rate}} of its spans": "{{rate}} of its spans",
+  "Charted for what this monitor checks now.": "Charted for what this monitor checks now.",
+  "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now."
 }
