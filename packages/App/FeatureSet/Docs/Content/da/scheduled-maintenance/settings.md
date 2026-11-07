@@ -94,6 +94,10 @@ Disse påmindelser er til dit team. De påmindelser, dine statussideabonnenter f
 
 **Planlagt vedligeholdelse → Indstillinger → Noteskabeloner** rummer færdigskrevet tekst til opdateringer om vedligeholdelse. Kortet **Skabeloner til offentlige eller private noter for planlagte vedligeholdelseshændelser** viser dem; **Opret Noteskabelon for planlagt vedligeholdelse** beder om et **Skabelonnavn**, en **Skabelonbeskrivelse** og **Note**. En skabelon tilbydes, når nogen skriver en offentlig eller privat note på en begivenhed, og når de ændrer dens tilstand, og dens tekst kan redigeres, før den postes. I modsætning til noteskabeloner for hændelser udfylder noteskabeloner for vedligeholdelse ingen variabler.
 
+### Godkendelse af offentlige noter
+
+**Planlagt vedligeholdelse → Indstillinger → Godkendelse af offentlige noter** får de offentlige noter på planlagte vedligeholdelsesbegivenheder godkendt, før de offentliggøres. Siden fungerer som hændelsernes, med sin egen kontakt og sine egne trin: slå **Kræv godkendelse, før offentlige noter offentliggøres** til, og vælg under **Hvem godkender**, hvem der godkender. Så kan vedligeholdelsesnoter kræve godkendelse, mens hændelsesnoter ikke gør, eller godkendes af andre personer. Kun **Projektejer** og **Projektadministrator** kan ændre den. Se [Godkendelse af offentlige noter](/docs/incidents/settings#godkendelse-af-offentlige-noter) for trinnene, og [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godkendelse-af-offentlige-noter) for, hvad en note gør, mens den venter.
+
 ### Brugerdefinerede felter
 
 **Planlagt vedligeholdelse → Indstillinger → Brugerdefinerede felter** tilføjer dine egne felter til hver begivenhed, for eksempel en ændringssag eller et kundeniveau. Udfyld dem på en begivenheds side **Brugerdefinerede felter** eller via API'et som `customFields`. Et felt kan kopiere sin værdi fra et brugerdefineret felt på en monitor i stedet for at blive skrevet ind: se [Felter kopieret fra en monitor](/docs/incidents/settings#felter-der-kopieres-fra-en-monitor), som fungerer på samme måde for begivenheder.

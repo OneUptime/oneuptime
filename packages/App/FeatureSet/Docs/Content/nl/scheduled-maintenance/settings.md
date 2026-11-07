@@ -94,6 +94,10 @@ Deze herinneringen zijn voor je team. De herinneringen die de abonnees van je st
 
 **Geplande onderhoud → Instellingen → Notitie-sjablonen** bevat kant-en-klare tekst voor onderhoudsupdates. De kaart **Openbare of privénotitiesjablonen voor geplande onderhoudsevenementen** toont ze; **Notitiesjabloon voor gepland onderhoud aanmaken** vraagt om een **Sjabloonnaam**, een **Sjabloonbeschrijving** en de **Notitie**. Een sjabloon wordt aangeboden wanneer iemand een openbare of privénotitie bij een gebeurtenis schrijft en wanneer iemand haar status wijzigt, en de tekst kan vóór het plaatsen worden bewerkt. Anders dan notitiesjablonen voor incidenten vullen notitiesjablonen voor onderhoud geen variabelen in.
 
+### Goedkeuring van openbare notities
+
+**Geplande onderhoud → Instellingen → Goedkeuring van openbare notities** laat de openbare notities van geplande onderhoudsevenementen goedkeuren voordat ze worden gepubliceerd. De pagina werkt zoals die van de incidenten, met een eigen schakelaar en eigen stappen: zet **Goedkeuring vereisen voordat openbare notities worden gepubliceerd** aan en kies onder **Wie keurt goed** wie goedkeurt. Zo kunnen onderhoudsnotities goedkeuring nodig hebben terwijl incidentnotities dat niet hebben, of door andere mensen worden goedgekeurd. Alleen **Projecteigenaar** en **Projectbeheerder** kunnen haar wijzigen. Zie [Goedkeuring van openbare notities](/docs/incidents/settings#goedkeuring-van-openbare-notities) voor de stappen, en [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities) voor wat een notitie doet terwijl ze wacht.
+
 ### Aangepaste velden
 
 **Geplande onderhoud → Instellingen → Aangepaste velden** voegt eigen velden toe aan elke gebeurtenis, zoals een wijzigingsticket of een klantniveau. Vul ze in op de pagina **Aangepaste velden** van een gebeurtenis, of via de API als `customFields`. Een veld kan zijn waarde kopiëren uit een aangepast veld van een monitor in plaats van getypt te worden: zie [Velden gekopieerd van een monitor](/docs/incidents/settings#velden-die-uit-een-monitor-worden-gekopieerd), wat voor gebeurtenissen net zo werkt.

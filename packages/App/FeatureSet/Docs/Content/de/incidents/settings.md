@@ -164,6 +164,25 @@ Dieselbe Liste, Schaltfläche und `{{` gibt es bei den anderen Vorlagen mit Vari
 
 Notiz-Vorlagen tauchen dort auf, wo Sie sie wirklich brauchen: Die Bestätigungsdialoge **Vorfall bestätigen** und **Vorfall beheben** bieten beide über dem Feld **Öffentliche Notiz** die Auswahl **Notizvorlage auswählen**, eingeklappt unter **Öffentliche Notiz hinzufügen**. Wie sich öffentliche und private Notizen unterscheiden, steht unter [Vorfallnotizen, Eigentümer & Feed](/docs/incidents/notes-owners-and-feed).
 
+## Genehmigung öffentlicher Notizen
+
+**Genehmigung öffentlicher Notizen** lässt öffentliche Notizen zu Vorfällen und Vorfall-Episoden genehmigen, bevor sie veröffentlicht werden, für die Updates, die ein zweites Paar Augen brauchen, bevor Kunden sie lesen. Sie ist in jedem Projekt aus, bis Sie sie einschalten.
+
+:::steps
+1. Gehen Sie zu **Vorfälle → Einstellungen → Genehmigung öffentlicher Notizen** (`/dashboard/{projectId}/incidents/settings/public-note-approval`).
+2. Klicken Sie unter **Wer genehmigt** auf **Genehmigungsschritt hinzufügen** und wählen Sie die **Genehmigende** des Schritts: Personen, Teams oder beides, von denen jede eine Notiz für den Schritt genehmigen kann. Ein **Name**, etwa Rechtsabteilung, ist optional: Notizen, die auf den Schritt warten, zeigen ihn.
+3. Schalten Sie **Genehmigung verlangen, bevor öffentliche Notizen veröffentlicht werden** ein. Von da an wartet eine neue öffentliche Notiz, ebenso wie die Bearbeitung einer veröffentlichten, bis sie genehmigt ist.
+:::
+
+Die meisten Projekte brauchen einen Schritt. Fügen Sie einen weiteren hinzu, wenn eine Notiz eine zweite Genehmigung braucht, zum Beispiel von Ihrer Rechtsabteilung nach Ihrer Support-Leitung. Die Schritte werden in der Reihenfolge der Liste genehmigt, die Sie per Ziehen umordnen, und eine Notiz wird veröffentlicht, wenn der letzte sie genehmigt.
+
+- **Jeder Schritt nennt jemanden.** Ein Schritt braucht mindestens eine Person oder ein Team, und die Genehmigung lässt sich erst einschalten, wenn ein Schritt jemanden nennt.
+- **Der letzte Schritt bleibt, solange die Genehmigung eingeschaltet ist.** Um ihn zu löschen, schalten Sie zuerst die Genehmigung aus oder fügen einen weiteren Schritt hinzu.
+- **Änderungen gelten sofort.** Wer genehmigen darf, wird gelesen, wenn jemand entscheidet. Wer zu einem Schritt hinzugefügt wird oder zu einem Team, das ein Schritt nennt, kann über die bereits wartenden Notizen entscheiden; wer entfernt wird, nicht mehr. Eine Notiz behält die Genehmigungen, die sie hat.
+- **Niemand genehmigt die eigene Notiz oder zwei Schritte einer Notiz.** Wer eine Notiz zur Genehmigung gesendet hat, kann sie weder genehmigen noch ablehnen, und wer einen ihrer Schritte genehmigt hat, kann keinen weiteren genehmigen.
+
+Nur Projektinhaber und -administratoren können diese Einstellungen ändern, und alle, die die Notizen lesen, sehen, wer sie genehmigt. **Geplante Wartung → Einstellungen → Genehmigung öffentlicher Notizen** ist dieselbe Seite für geplante Wartungsereignisse, mit eigenem Schalter und eigenen Schritten. Was eine Notiz tut, während sie wartet, und wie Genehmigende entscheiden, steht unter [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen).
+
 ## Postmortem-Vorlagen
 
 Eine Postmortem-Vorlage ist das Gerüst der Aufarbeitung, die Sie nach einem Vorfall schreiben – Ihre Überschriften, Ihre Denkanstöße, Ihre Standardfragen –, damit jede Nachbetrachtung im Projekt derselben Form folgt.

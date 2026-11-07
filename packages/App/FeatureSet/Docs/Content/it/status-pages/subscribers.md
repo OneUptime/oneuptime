@@ -329,6 +329,14 @@ Tramite l'API, inviate la scelta accanto ai campi che cambiate, in `miscDataProp
 
 come corpo di `PUT /api/status-page-announcement/<announcement-id>` (o di `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Omettete `miscDataProps` e la modifica resta silenziosa, come prima.
 
+### Note pubbliche in attesa di approvazione
+
+Un progetto può far approvare le note pubbliche prima che vengano pubblicate: vedete [Approvazione delle note pubbliche](/docs/incidents/notes-owners-and-feed#approvazione-delle-note-pubbliche). Una nota in attesa non avvisa nessun iscritto. La sua notifica viene inviata quando viene pubblicata, come quella di una nota inserita in quel momento, e solo se la sua scelta su **Notifica gli iscritti alla pagina di stato** lo prevede; una nota rifiutata non viene mai inviata. Fino ad allora non ha nessuna notifica da riprovare o inviare di nuovo.
+
+Anche la modifica di una nota pubblicata attende. Se **Notifica gli iscritti di questo aggiornamento** era selezionato, il suo aggiornamento viene inviato una volta approvata la modifica, e mai se la modifica viene rifiutata o ritirata.
+
+Un cambio di stato inviato con una nota pubblica in attesa di approvazione non viene portato dalla nota: il cambio di stato avvisa da solo gli iscritti, come farebbe senza nota, e la nota segue una volta pubblicata.
+
 ## La lingua dei messaggi agli iscritti
 
 Ogni iscritto riceve i messaggi nella propria lingua: l'email o l'SMS che conferma l'iscrizione, il benvenuto e il link per gestirla, ogni notifica su un incidente, un episodio di incidente, un evento di manutenzione programmata o un annuncio, via email, SMS, Slack e Microsoft Teams, e il report via email.

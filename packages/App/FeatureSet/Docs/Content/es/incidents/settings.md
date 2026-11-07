@@ -164,6 +164,25 @@ La misma lista, el mismo botón y el mismo `{{` vienen con las demás plantillas
 
 Las plantillas de notas aparecen donde de verdad las necesitas: los diálogos de confirmación **Reconocer incidente** y **Resolver incidente** ofrecen ambos **Seleccionar plantilla de nota** sobre el campo **Nota pública**, plegado en **Añadir una nota pública**. Consulta [Notas, responsables y actividad de incidentes](/docs/incidents/notes-owners-and-feed) para ver en qué se diferencian las notas públicas y las privadas.
 
+## Aprobación de notas públicas
+
+**Aprobación de notas públicas** hace que las notas públicas de los incidentes y de los episodios de incidente se aprueben antes de publicarse, para las actualizaciones que necesitan un segundo par de ojos antes de que las lean los clientes. Está desactivada en todos los proyectos hasta que la activas.
+
+:::steps
+1. Ve a **Incidentes → Ajustes → Aprobación de notas públicas** (`/dashboard/{projectId}/incidents/settings/public-note-approval`).
+2. En **Quién aprueba**, haz clic en **Añadir Paso de aprobación** y elige los **Aprobadores** del paso: personas, equipos o ambos, cualquiera de los cuales puede aprobar una nota para ese paso. Un **Nombre**, como Legal, es opcional: las notas que esperan al paso lo muestran.
+3. Activa **Exigir aprobación antes de publicar las notas públicas**. Desde entonces, una nota pública nueva, igual que la edición de una publicada, espera hasta que se aprueba.
+:::
+
+La mayoría de los proyectos necesitan un solo paso. Añade otro cuando una nota necesite una segunda aprobación, por ejemplo de tu equipo legal después de tu responsable de soporte. Los pasos se aprueban en el orden de la lista, que reordenas arrastrándolos, y una nota se publica cuando el último la aprueba.
+
+- **Cada paso nombra a alguien.** Un paso necesita al menos una persona o un equipo, y la aprobación no puede activarse hasta que un paso nombre a alguien.
+- **El último paso se queda mientras la aprobación esté activada.** Para eliminarlo, desactiva antes la aprobación o añade otro paso.
+- **Los cambios cuentan al instante.** Quién puede aprobar se lee cuando alguien decide. Añadir a una persona a un paso, o a un equipo que nombra un paso, le permite decidir sobre las notas que ya esperan; quitarla se lo impide. Una nota conserva las aprobaciones que tiene.
+- **Nadie aprueba su propia nota, ni dos pasos de una misma nota.** Quien envió una nota para aprobación no puede aprobarla ni rechazarla, y quien aprobó uno de sus pasos no puede aprobar otro.
+
+Solo los propietarios y los administradores del proyecto pueden cambiar estos ajustes, y todos los que leen las notas ven quién las aprueba. **Mantenimiento programado → Ajustes → Aprobación de notas públicas** es la misma página para los eventos de mantenimiento programado, con su propio interruptor y sus propios pasos. Lo que hace una nota mientras espera, y cómo deciden quienes aprueban, se explica en [Aprobación de notas públicas](/docs/incidents/notes-owners-and-feed#aprobación-de-notas-públicas).
+
 ## Plantillas de post mortem
 
 Una plantilla de post mortem es el esqueleto del informe que escribes después de un incidente —tus encabezados, tus indicaciones, tus preguntas de siempre—, para que cada revisión del proyecto siga la misma forma.

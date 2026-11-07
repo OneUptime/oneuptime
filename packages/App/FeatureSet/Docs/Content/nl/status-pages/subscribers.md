@@ -329,6 +329,14 @@ Stuur via de API de keuze mee naast de velden die u wijzigt, in `miscDataProps`:
 
 als body van `PUT /api/status-page-announcement/<announcement-id>` (of `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Laat `miscDataProps` weg en de bewerking blijft stil, zoals voorheen.
 
+### Openbare notities die op goedkeuring wachten
+
+Een project kan openbare notities laten goedkeuren voordat ze worden gepubliceerd: zie [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities). Een notitie die wacht, laat geen abonnee iets weten. Haar melding wordt verstuurd wanneer ze wordt gepubliceerd, zoals bij een notitie die op dat moment wordt geplaatst, en alleen als haar keuze bij **Statuspagina-abonnees op de hoogte stellen** dat zegt; een afgewezen notitie wordt nooit verstuurd. Tot dan heeft ze geen melding om opnieuw te proberen of opnieuw te versturen.
+
+Ook een bewerking van een gepubliceerde notitie wacht. Was **Abonnees op de hoogte stellen van deze update** aangevinkt, dan wordt haar update verstuurd zodra de bewerking is goedgekeurd, en nooit als de bewerking wordt afgewezen of ingetrokken.
+
+Een statuswijziging die wordt verstuurd met een openbare notitie die op goedkeuring wacht, wordt niet door de notitie gedragen: de statuswijziging laat de abonnees zelf iets weten, zoals ze zonder notitie zou doen, en de notitie volgt zodra ze is gepubliceerd.
+
 ## De taal van berichten aan abonnees
 
 Elke abonnee krijgt zijn berichten in zijn eigen taal: de e-mail of sms die het abonnement bevestigt, het welkomstbericht en de link om het te beheren, elke melding over een incident, een incidentepisode, een geplande onderhoudsgebeurtenis of een aankondiging, per e-mail, sms, Slack en Microsoft Teams, en het e-mailrapport.

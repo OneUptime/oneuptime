@@ -164,6 +164,25 @@ Den samme liste, knap og `{{` følger med de andre skabeloner, der har variabler
 
 Noteskabeloner dukker op, hvor du faktisk har brug for dem: bekræftelsesdialogerne **Bekræft hændelse** og **Løs hændelse** tilbyder begge **Vælg noteskabelon** over feltet **Offentlig note**, foldet sammen under **Tilføj en offentlig note**. Se [Hændelsesnoter, ejere og feed](/docs/incidents/notes-owners-and-feed) for, hvordan offentlige og private noter adskiller sig.
 
+## Godkendelse af offentlige noter
+
+**Godkendelse af offentlige noter** får offentlige noter på hændelser og hændelsesepisoder godkendt, før de offentliggøres, til de opdateringer, der har brug for et ekstra sæt øjne, før kunderne læser dem. Den er slået fra i alle projekter, indtil du slår den til.
+
+:::steps
+1. Gå til **Hændelser → Indstillinger → Godkendelse af offentlige noter** (`/dashboard/{projectId}/incidents/settings/public-note-approval`).
+2. Klik under **Hvem godkender** på **Tilføj Godkendelsestrin**, og vælg trinnets **Godkendere**: personer, teams eller begge, hvoraf enhver kan godkende en note for trinnet. Et **Navn**, som Juridisk, er valgfrit: noter, der venter på trinnet, viser det.
+3. Slå **Kræv godkendelse, før offentlige noter offentliggøres** til. Fra da af venter en ny offentlig note, ligesom en redigering af en offentliggjort, indtil den er godkendt.
+:::
+
+De fleste projekter har brug for ét trin. Tilføj endnu et, når en note har brug for en ekstra godkendelse, for eksempel fra jeres juridiske team efter jeres supportleder. Trinnene godkendes i listens rækkefølge, som du ændrer ved at trække, og en note offentliggøres, når det sidste godkender den.
+
+- **Hvert trin nævner nogen.** Et trin skal have mindst én person eller ét team, og godkendelse kan ikke slås til, før et trin nævner nogen.
+- **Det sidste trin bliver, mens godkendelse er slået til.** For at slette det skal du først slå godkendelse fra eller tilføje et andet trin.
+- **Ændringer gælder med det samme.** Hvem der må godkende, læses, når nogen tager stilling. Tilføjes en person til et trin, eller til et team, et trin nævner, kan vedkommende tage stilling til de noter, der allerede venter; fjernes personen, kan vedkommende ikke længere. En note beholder de godkendelser, den har.
+- **Ingen godkender deres egen note eller to trin af én note.** Den, der sendte en note til godkendelse, kan hverken godkende eller afvise den, og den, der godkendte et af dens trin, kan ikke godkende et andet.
+
+Kun projektejere og -administratorer kan ændre disse indstillinger, og alle, der læser noterne, kan se, hvem der godkender dem. **Planlagt vedligeholdelse → Indstillinger → Godkendelse af offentlige noter** er den samme side for planlagte vedligeholdelsesbegivenheder, med sin egen kontakt og sine egne trin. Hvad en note gør, mens den venter, og hvordan godkendere tager stilling, står under [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godkendelse-af-offentlige-noter).
+
 ## Postmortem-skabeloner
 
 En postmortem-skabelon er skelettet til den rapport, du laver efter en hændelse — dine overskrifter, dine opfordringer, dine faste spørgsmål — så hver gennemgang i projektet følger samme form.

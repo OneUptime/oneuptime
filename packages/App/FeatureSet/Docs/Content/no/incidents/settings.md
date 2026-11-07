@@ -164,6 +164,25 @@ Den samme listen, knappen og `{{` følger med de andre malene som har variabler:
 
 Notatmaler dukker opp der du faktisk trenger dem: bekreftelsesdialogene **Bekreft hendelse** og **Løs hendelse** tilbyr begge **Velg notatmal** over feltet **Offentlig notat**, brettet sammen under **Legg til et offentlig notat**. Se [Hendelsesnotater, eiere og feed](/docs/incidents/notes-owners-and-feed) for hvordan offentlige og private notater skiller seg.
 
+## Godkjenning av offentlige notater
+
+**Godkjenning av offentlige notater** får offentlige notater på hendelser og hendelsesepisoder godkjent før de publiseres, for oppdateringene som trenger et ekstra par øyne før kundene leser dem. Den er slått av i alle prosjekter til du slår den på.
+
+:::steps
+1. Gå til **Hendelser → Innstillinger → Godkjenning av offentlige notater** (`/dashboard/{projectId}/incidents/settings/public-note-approval`).
+2. Klikk på **Legg til Godkjenningstrinn** under **Hvem godkjenner**, og velg trinnets **Godkjennere**: personer, team eller begge, der hvem som helst av dem kan godkjenne et notat for trinnet. Et **Navn**, som Juridisk, er valgfritt: notater som venter på trinnet, viser det.
+3. Slå på **Krev godkjenning før offentlige notater publiseres**. Fra da av venter et nytt offentlig notat, i likhet med en redigering av et publisert, til det er godkjent.
+:::
+
+De fleste prosjekter trenger ett trinn. Legg til ett til når et notat trenger en ekstra godkjenning, for eksempel fra juridisk team etter supportlederen deres. Trinnene godkjennes i listens rekkefølge, som du endrer ved å dra, og et notat publiseres når det siste godkjenner det.
+
+- **Hvert trinn nevner noen.** Et trinn trenger minst én person eller ett team, og godkjenning kan ikke slås på før et trinn nevner noen.
+- **Det siste trinnet blir værende mens godkjenning er slått på.** For å slette det må du først slå av godkjenning eller legge til et annet trinn.
+- **Endringer gjelder med en gang.** Hvem som kan godkjenne, leses når noen tar stilling. Legges en person til et trinn, eller til et team et trinn nevner, kan vedkommende ta stilling til notatene som allerede venter; fjernes personen, kan vedkommende ikke lenger det. Et notat beholder godkjenningene det har.
+- **Ingen godkjenner sitt eget notat, eller to trinn av ett notat.** Den som sendte et notat til godkjenning, kan verken godkjenne eller avvise det, og den som godkjente ett av trinnene, kan ikke godkjenne et annet.
+
+Bare prosjekteiere og -administratorer kan endre disse innstillingene, og alle som leser notatene, kan se hvem som godkjenner dem. **Planlagt vedlikehold → Innstillinger → Godkjenning av offentlige notater** er den samme siden for planlagte vedlikeholdshendelser, med egen bryter og egne trinn. Hva et notat gjør mens det venter, og hvordan godkjennere tar stilling, står under [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
+
 ## Maler for etteranalyse
 
 En mal for etteranalyse er skjelettet til rapporten du lager etter en hendelse — overskriftene, oppfordringene, de faste spørsmålene — slik at hver gjennomgang i prosjektet følger samme form.
