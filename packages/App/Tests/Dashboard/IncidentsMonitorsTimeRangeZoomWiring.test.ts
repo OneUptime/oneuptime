@@ -10,7 +10,7 @@ import path from "path";
  * rendered for real in Common/Tests/App/Dashboard:
  *
  *   MonitorMetricsTabsTimeRangeZoom.test.tsx      (monitor Metrics page)
- *   MonitorOverviewChartsTimeRangeZoom.test.tsx   (response time, preview)
+ *   MonitorOverviewChartsTimeRangeZoom.test.tsx   (response time, metrics card)
  *   MonitorStepPreviewsTimeRangeZoom.test.tsx     (10 step forms, Criteria)
  *   IncidentRootCauseTimeRangeZoom.test.tsx       (Root Cause page)
  *   EventOverviewTelemetrySnapshotZoom.test.tsx   (incident / alert pages)
@@ -418,14 +418,22 @@ describe("a metric snapshot's investigation zooms as one, every tab of it (issue
       "<TimeRangeZoomProvider zoom={investigation.zoom}> <ResetTimeRangeZoomButton /> </TimeRangeZoomProvider>",
     );
   });
+
+  test("a metric monitor's own card zooms through the same investigation (issue #5759)", () => {
+    const card: string = readSquashed(
+      `${DASHBOARD}/Components/Monitor/MetricMonitor/MonitorMetricsCard.tsx`,
+    );
+
+    // No chart of its own: the investigation draws them, zoom and all.
+    expect(metricViewElements(card)).toHaveLength(0);
+    expect(card).toContain(
+      "<MetricInvestigation investigation={investigation}",
+    );
+  });
 });
 
 describe("charts whose host round-trips the window zoom through MetricView's own zoom", () => {
   test.each([
-    [
-      "the metric monitor preview",
-      `${DASHBOARD}/Components/Monitor/MetricMonitor/MetricMonitorPreview.tsx`,
-    ],
     [
       "the incident Root Cause chart",
       `${DASHBOARD}/Components/Incident/IncidentRootCauseMetricChart.tsx`,
@@ -444,30 +452,6 @@ describe("charts whose host round-trips the window zoom through MetricView's own
       expect(view).not.toContain("onTimeRangeSelect");
     },
   );
-
-  test("the metric monitor preview's header names a zoom, and picking a range ends it", () => {
-    const source: string = readSquashed(
-      `${DASHBOARD}/Components/Monitor/MetricMonitor/MetricMonitorPreview.tsx`,
-    );
-
-    expect(source).toContain(
-      "setZoomedWindow( getZoomedWindow({ shownWindow: data.startAndEndDate, rollingWindow: startAndEndDate, }), );",
-    );
-    expect(source).toContain(
-      "zoomedWindow ? getZoomedWindowLabel(zoomedWindow) : `${rollingTime}`",
-    );
-    expect(source).toContain(
-      "if (zoomedWindow && modalTempRollingTime === rollingTime) { setStartAndEndDate(",
-    );
-    // A freshly resolved rolling window is never a zoom.
-    expect(
-      sliceBetween(
-        source,
-        "useEffect(() => { setMetricViewData({",
-        "}, [startAndEndDate]);",
-      ),
-    ).toContain("setZoomedWindow(null);");
-  });
 });
 
 describe("uptime day strips and non-time-series bars stay out of the zoom", () => {

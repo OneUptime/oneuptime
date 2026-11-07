@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
@@ -213,6 +214,30 @@ export interface EventTimeReferenceLines {
   markerCount: number;
 }
 
+/*
+ * A monitor's own incidents and alerts, and the changes the charts' resource
+ * filters find (the monitor's page): the incidents that list the monitor,
+ * the alerts it opened.
+ */
+export function getMonitorEventOverlayScope(
+  queryScope: EventOverlayScope,
+  monitorId: string,
+): EventOverlayScope {
+  let id: ObjectID;
+
+  try {
+    id = new ObjectID(monitorId);
+  } catch {
+    return queryScope;
+  }
+
+  return {
+    incidentQueries: [{ monitors: new Includes([id]) } as Query<Incident>],
+    alertQueries: [{ monitorId: id } as Query<Alert>],
+    changeEventQueries: queryScope.changeEventQueries,
+  };
+}
+
 /** Merge overlapping resource queries without duplicating an event on the chart. */
 function mergeEventResults<T extends { id?: ObjectID | null | undefined }>(
   results: Array<{ data: Array<T> }>,
@@ -263,15 +288,25 @@ export default function useEventTimeReferenceLines(input: {
    */
   excludedIncidentIds?: Array<string> | undefined;
   excludedAlertIds?: Array<string> | undefined;
+  /*
+   * The incidents and alerts of this monitor, rather than those the
+   * charts' resource filters find: a monitor's page marks what the monitor
+   * opened. Changes are still found by the charts' filters.
+   */
+  monitorId?: string | undefined;
 }): EventTimeReferenceLines {
   const [result, setResult] = useState<{
     requestKey: string;
     markers: Array<EventMarker>;
   } | null>(null);
 
-  const scope: EventOverlayScope = getEventOverlayScope(
+  const queryScope: EventOverlayScope = getEventOverlayScope(
     input.queryConfigs || [],
   );
+  const monitorId: string = (input.monitorId || "").trim();
+  const scope: EventOverlayScope = monitorId
+    ? getMonitorEventOverlayScope(queryScope, monitorId)
+    : queryScope;
   const scopeKey: string = JSON.stringify(scope);
   const projectIdString: string | undefined =
     ProjectUtil.getCurrentProjectId()?.toString();

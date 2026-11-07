@@ -475,8 +475,15 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
       {showMetricPreview && (
         <MonitorStepMetricPreview
-          metricsViewConfig={MonitorStepViewModel.getMetricsViewConfig(
-            props.monitorStep,
+          /*
+           * What the monitor evaluates: an infrastructure monitor's queries
+           * narrowed to the resource it watches, as the worker reads them.
+           */
+          metricsViewConfig={MonitorStepViewModel.getEvaluatedMetricsViewConfig(
+            {
+              monitorType: props.monitorType,
+              monitorStep: props.monitorStep,
+            },
           )}
           rollingTime={MonitorStepViewModel.getRollingTime(props.monitorStep)}
         />
