@@ -690,9 +690,14 @@ describe("each other page of a case", () => {
 
     const props: Record<string, unknown> = lastProps("AuditLogsTable");
 
-    expect(props["resourceType"]).toBe(new SecurityCase().singularName);
-    expect(props["resourceType"]).toBe("Security Case");
-    expect((props["resourceId"] as ObjectID).toString()).toBe(CASE_ID);
+    /*
+     * By what rolls up to the case: its own entries, and its tasks',
+     * evidence's and playbook runs' (AuditLogCoverage, issue #6187).
+     */
+    expect(new SecurityCase().singularName).toBe("Security Case");
+    expect((props["rootResourceId"] as ObjectID).toString()).toBe(CASE_ID);
+    expect(props["resourceType"]).toBeUndefined();
+    expect(props["resourceId"]).toBeUndefined();
     expect(props["title"]).toBe("Case Audit Logs");
   });
 });

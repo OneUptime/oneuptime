@@ -21,7 +21,25 @@ interface ChangeRow {
   field: string;
   oldValue: JSONValue | undefined;
   newValue: JSONValue | undefined;
+  /*
+   * What changed, in plain lines, for a field the entry describes rather
+   * than copies (a workflow's steps) and for JSON (the paths that changed).
+   */
+  summary: Array<string>;
 }
+
+// The lines of a change's summary: text only, anything else left out.
+export const readChangeSummary: (value: unknown) => Array<string> = (
+  value: unknown,
+): Array<string> => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((line: unknown): line is string => {
+    return typeof line === "string" && line.trim().length > 0;
+  });
+};
 
 const humanizeFieldName: (field: string) => string = (
   field: string,
@@ -114,6 +132,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
         field,
         oldValue: entry["oldValue"] as JSONValue | undefined,
         newValue: entry["newValue"] as JSONValue | undefined,
+        summary: readChangeSummary(entry["summary"]),
       });
     }
     mapped.sort((a: ChangeRow, b: ChangeRow) => {
@@ -180,6 +199,26 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                       {row.field}
                     </span>
                   </div>
+
+                  {row.summary.length > 0 ? (
+                    <ul
+                      className="mb-2 list-disc space-y-1 pl-5 text-sm text-gray-800"
+                      data-testid="audit-log-change-summary"
+                    >
+                      {row.summary.map((line: string, index: number) => {
+                        return (
+                          <li
+                            key={`${row.field}-${index}`}
+                            className="break-words"
+                          >
+                            {line}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <></>
+                  )}
 
                   {showBoth ? (
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-2 md:gap-3 items-start">

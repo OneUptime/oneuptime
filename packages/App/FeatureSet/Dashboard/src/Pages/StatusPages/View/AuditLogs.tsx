@@ -13,8 +13,7 @@ const StatusPageAuditLogs: FunctionComponent<
     <AuditLogsTable
       title="Status Page Audit Logs"
       description="All changes made to this status page."
-      resourceType="Status Page"
-      resourceId={modelId}
+      rootResourceId={modelId}
     />
   );
 };

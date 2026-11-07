@@ -49,8 +49,10 @@ beforeEach(() => {
  *       seconds for the whole length of a sweep, which is why it may not pay
  *       for the full pipeline either.
  *
- * The conversion dropped NOTHING: the model declares no update workflow, no
- * audit logging and no realtime events. But the fast path skips hooks
+ * The conversion dropped NOTHING: the model declares no update workflow and
+ * no realtime events, and while it is audited (every project-scoped model is,
+ * Types/AuditLog/AuditLogCoverage) its audit trail leaves out every column
+ * these writes stamp - only OneUptime writes them. But the fast path skips hooks
  * UNCONDITIONALLY: if someone adds a decorator to NetworkDeviceDiscoveryScan,
  * or an update-hook override to its service that cares about a column the
  * claim write stamps, nothing at the call site fails — the hook is just
@@ -113,9 +115,27 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
       expect(scan.enableWorkflowOn?.update).toBeFalsy();
     });
 
-    test("has no on-update audit log", () => {
+    /*
+     * Audited, so a person's changes to a scan (its targets, schedule and
+     * SNMP settings) are recorded - and every column the hookless writes
+     * stamp is one the audit trail leaves out, so skipping the audit hook
+     * drops no entry. If this starts failing, a column these writes stamp
+     * became one the audit log records: revisit the call sites.
+     */
+    test("its audit trail leaves out every column the hookless writes stamp", () => {
       const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
-      expect(scan.enableAuditLogOn?.update).toBeFalsy();
+      const ignored: ReadonlyArray<string> =
+        scan.enableAuditLogOn?.ignoreColumns || [];
+
+      for (const column of [
+        "status",
+        "startedAt",
+        "statusMessage",
+        ...PROGRESS_WRITE_COLUMNS,
+        ...REAPER_WRITE_COLUMNS,
+      ]) {
+        expect([column, ignored.includes(column)]).toEqual([column, true]);
+      }
     });
 
     test("has no realtime events", () => {

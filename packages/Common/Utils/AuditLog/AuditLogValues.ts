@@ -267,7 +267,10 @@ const getItemIdKey: (items: Array<unknown>) => string | null = (
     for (const item of items) {
       const id: unknown = isPlainObject(item) ? item[idKey] : undefined;
 
-      if ((typeof id !== "string" && typeof id !== "number") || ids.has(String(id))) {
+      if (
+        (typeof id !== "string" && typeof id !== "number") ||
+        ids.has(String(id))
+      ) {
         isEveryItemNamed = false;
         break;
       }
@@ -497,12 +500,15 @@ const excerpt: (text: string, start: number, limit: number) => string = (
     from += 1;
   }
 
-  if (to < text.length && to > from && isHighSurrogate(text.charCodeAt(to - 1))) {
+  if (
+    to < text.length &&
+    to > from &&
+    isHighSurrogate(text.charCodeAt(to - 1))
+  ) {
     to -= 1;
   }
 
-  const before: string =
-    from > 0 ? `[… ${formatCount(from)} characters] ` : "";
+  const before: string = from > 0 ? `[… ${formatCount(from)} characters] ` : "";
   const after: string =
     to < text.length
       ? ` [… ${formatCount(text.length - to)} more characters]`

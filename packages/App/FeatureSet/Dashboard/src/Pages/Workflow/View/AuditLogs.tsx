@@ -12,9 +12,8 @@ const WorkflowAuditLogs: FunctionComponent<
   return (
     <AuditLogsTable
       title="Workflow Audit Logs"
-      description="All changes made to this workflow."
-      resourceType="Workflow"
-      resourceId={modelId}
+      description="Every change made to this workflow, its steps, variables and owners: who made it, when, and what changed."
+      rootResourceId={modelId}
     />
   );
 };

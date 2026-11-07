@@ -19,6 +19,7 @@ import MessageQueueOwners from "../Pages/MessageQueue/View/Owners";
 import MessageQueueSettings from "../Pages/MessageQueue/View/Settings";
 import MessageQueueDocumentation from "../Pages/MessageQueue/View/Documentation";
 import MessageQueueDelete from "../Pages/MessageQueue/View/Delete";
+import MessageQueueAuditLogs from "../Pages/MessageQueue/View/AuditLogs";
 import MessageQueueLabelRule from "Common/Models/DatabaseModels/MessageQueueLabelRule";
 import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwnerRule";
 import MessageQueueModel from "Common/Models/DatabaseModels/MessageQueue";
@@ -202,6 +203,20 @@ const MessageQueueRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <MessageQueueAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS] as Route
               }
             />
           }

@@ -119,7 +119,10 @@ describe("secrets in JSON are redacted wherever they sit", () => {
 
   test("a secret holding an object or a list is redacted whole", () => {
     expect(
-      redactSecretsInJson({ credentials: { user: "u", pass: "p" }, tokens: ["a"] }),
+      redactSecretsInJson({
+        credentials: { user: "u", pass: "p" },
+        tokens: ["a"],
+      }),
     ).toEqual({
       credentials: AUDIT_LOG_REDACTED_VALUE,
       tokens: AUDIT_LOG_REDACTED_VALUE,
@@ -159,7 +162,11 @@ describe("secrets in JSON are redacted wherever they sit", () => {
         steps: [{ data: { requestHeaders: { authorization: "x" } } }],
       }),
     ).toEqual({
-      steps: [{ data: { requestHeaders: { authorization: AUDIT_LOG_REDACTED_VALUE } } }],
+      steps: [
+        {
+          data: { requestHeaders: { authorization: AUDIT_LOG_REDACTED_VALUE } },
+        },
+      ],
     });
   });
 
@@ -228,7 +235,12 @@ describe("the paths that changed in JSON", () => {
   test("lists whose items have ids are compared by id, so an insert at the top is one line", () => {
     expect(
       getJsonChangeLines({
-        before: { widgets: [{ id: "a", t: 1 }, { id: "b", t: 2 }] },
+        before: {
+          widgets: [
+            { id: "a", t: 1 },
+            { id: "b", t: 2 },
+          ],
+        },
         after: {
           widgets: [
             { id: "new", t: 0 },
@@ -252,16 +264,22 @@ describe("the paths that changed in JSON", () => {
   test("ids that repeat are not ids", () => {
     expect(
       getJsonChangeLines({
-        before: [{ id: "a", v: 1 }, { id: "a", v: 2 }],
-        after: [{ id: "a", v: 1 }, { id: "a", v: 3 }],
+        before: [
+          { id: "a", v: 1 },
+          { id: "a", v: 2 },
+        ],
+        after: [
+          { id: "a", v: 1 },
+          { id: "a", v: 3 },
+        ],
       }),
     ).toEqual(["Changed 2 › v"]);
   });
 
   test("a value that changes type, and a whole value that changes", () => {
-    expect(getJsonChangeLines({ before: { a: [1] }, after: { a: { b: 1 } } })).toEqual([
-      "Changed a",
-    ]);
+    expect(
+      getJsonChangeLines({ before: { a: [1] }, after: { a: { b: 1 } } }),
+    ).toEqual(["Changed a"]);
     expect(getJsonChangeLines({ before: 1, after: 2 })).toEqual([
       "Changed the value",
     ]);
@@ -348,9 +366,10 @@ describe("large JSON is recorded by its size", () => {
 describe("long text keeps the part around where it changed", () => {
   test("text that fits is kept whole", () => {
     expect(limitText("short")).toBe("short");
-    expect(
-      limitChangedText({ before: "a", after: "b" }),
-    ).toEqual({ before: "a", after: "b" });
+    expect(limitChangedText({ before: "a", after: "b" })).toEqual({
+      before: "a",
+      after: "b",
+    });
   });
 
   test("a long text keeps its start and says how much is left out", () => {
@@ -514,9 +533,9 @@ describe("property: every recorded change says nothing a secret holds", () => {
       expect(JSON.stringify(redactSecretsInJson(before) ?? null)).not.toContain(
         SECRET_MARKER,
       );
-      expect(
-        getJsonChangeLines({ before, after }).join("\n"),
-      ).not.toContain(SECRET_MARKER);
+      expect(getJsonChangeLines({ before, after }).join("\n")).not.toContain(
+        SECRET_MARKER,
+      );
       expect(getJsonChangeLines({ before, after: before })).toEqual([]);
     }
   });
@@ -533,7 +552,9 @@ describe("property: every recorded change says nothing a secret holds", () => {
     ]);
 
     for (const text of texts) {
-      const longText: string = text.repeat(1 + Math.floor(20_000 / (text.length || 1)));
+      const longText: string = text.repeat(
+        1 + Math.floor(20_000 / (text.length || 1)),
+      );
       const limited: string = limitText(longText, 500);
 
       expect(limited.length).toBeLessThanOrEqual(500 + 60);

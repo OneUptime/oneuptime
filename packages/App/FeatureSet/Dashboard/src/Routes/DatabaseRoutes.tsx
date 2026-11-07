@@ -29,6 +29,7 @@ import DatabaseServerAiLogs from "../Pages/Database/View/AI/Logs";
 import DatabaseServerAiAgent from "../Pages/Database/View/AI/Agent";
 import DatabaseServerDocumentation from "../Pages/Database/View/Documentation";
 import DatabaseServerDelete from "../Pages/Database/View/Delete";
+import DatabaseServerAuditLogs from "../Pages/Database/View/AuditLogs";
 import DatabaseServerLabelRule from "Common/Models/DatabaseModels/DatabaseServerLabelRule";
 import DatabaseServerOwnerRule from "Common/Models/DatabaseModels/DatabaseServerOwnerRule";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
@@ -338,6 +339,20 @@ const DatabaseRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATABASE_SERVER_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <DatabaseServerAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATABASE_SERVER_VIEW_AUDIT_LOGS] as Route
               }
             />
           }

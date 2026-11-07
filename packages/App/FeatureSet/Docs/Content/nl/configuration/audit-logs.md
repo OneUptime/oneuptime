@@ -75,45 +75,20 @@ Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resou
 
 ## Wat wordt vastgelegd
 
-| Resource | **Resourcetype** in het logboek |
+Alles wat mensen in een project maken, wijzigen of verwijderen, wordt vastgelegd: monitors, incidenten, waarschuwingen, statuspagina's, workflows en hun stappen, wachtrijen, dashboards, piketbeleid, teams en wie erin zit, API-sleutels en elke instelling. **Resourcetype** zegt waar een vermelding over gaat, bijvoorbeeld `Monitor`, `Workflow` of `Queue`.
+
+| Niet vastgelegd | Waarom |
 | --- | --- |
-| Monitors | `Monitor` |
-| Incidenten | `Incident` |
-| Waarschuwingen | `Alert` |
-| Statuspagina's | `Status Page` |
-| Geplande onderhoudsgebeurtenissen | `Scheduled Maintenance Event` |
-| Piketbeleid | `On-Call Policy` |
-| SLO's | `Service Level Objective` |
-| De regels en eigenaren van een SLO | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
-| Teams | `Team` |
-| Aangepaste rollen, en de teams en API-sleutels die er een krijgen | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
-| Labels | `Label` |
-| Statussen en ernstniveaus van incidenten | `Incident State`, `Incident Severity` |
-| Statussen en ernstniveaus van waarschuwingen | `Alert State`, `Alert Severity` |
-| Monitorstatussen | `Monitor Status` |
-| Statussen van gepland onderhoud | `Scheduled Maintenance State` |
-| Incidentrollen | `Incident Role` |
-| Postmortem-statussen | `Postmortem Status` |
-| API-sleutels | `API Key` |
-| MCP-clients die mensen koppelen | `MCP Client Authorization` |
-| Inventarisitems | `Inventory Item` |
-| Collectorconfiguraties | `Collector Config` |
-| vCenters | `vCenter` |
-| OpenStack-clouds, en de controles die ertegen draaien | `OpenStack Cloud`, `OpenStack Cloud Check` |
-| Pakketopnames, en hun downloads | `Packet Capture` |
-| Beveiligingszaken en hun prioriteiten en statussen, playbooks en hun uitvoeringen, beschermde entiteiten, entiteitkritikaliteit, en het risico van een entiteit als iemand het reset | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
-| Regeluitzonderingen | `Rule Exception` |
-| Volglijsten | `Watchlist` |
-| Volglijstwaarden | `Watchlist Value` |
-| Hunts | `Hunt` |
-| Taken en bewijs van beveiligingszaken | `Security Case Task`, `Security Case Evidence` |
-| Gegevensopslagen en hun bevindingen, en de problemen, instellingen, controle-instellingen, aangepaste gegevenstypen en residentieregels van Gegevensbeveiliging | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
-| Instellingen van Data-observability | `Data Observability Setting` |
-| Exports van het auditlogboek | `Audit Log Export` |
+| Logboeken van berichten | Elk is al de vastlegging van een e-mail, sms, oproep, pushmelding of chatbericht dat OneUptime heeft verzonden of ontvangen. |
+| Vastleggingen van uitvoeringen | Elk is al de vastlegging van een workflowuitvoering, een piketescalatie, een scan, een import of een AI-uitvoering. |
+| Wat agents en telemetrie rapporteren | Gevonden resources, metingen en gebruik veranderen bij elk rapport, niet omdat iemand ze heeft gewijzigd. |
+| Activiteitenfeeds | Een feed toont wijzigingen die het auditlogboek al vastlegt. |
+| De werkstatus van OneUptime | Sessies, taken in de wachtrij en andere status die OneUptime bijhoudt terwijl het werkt. |
+| De eigen meldingsinstellingen van een persoon | De adressen, nummers en persoonlijke piketregels van ieder persoon zijn alleen van hem of haar. |
 
 Ook wordt vastgelegd wanneer een beheerder een meldingsmethode of een persoonlijke piketregel aan het account van iemand anders toevoegt of ervan verwijdert, zonder het adres of nummer zelf.
 
-Andere gegevens staan niet in het auditlogboek, zoals wie in een team zit, of een machtiging die los aan een team is toegevoegd. Velden die niemand mag lezen, ontbreken in elke vermelding, en sleutels, tokens en wachtwoorden worden vastgelegd als `[REDACTED]`: de vermelding laat zien dat ze zijn gewijzigd, nooit hun waarde.
+Velden die alleen OneUptime schrijft, zoals wanneer een host voor het laatst is gezien, ontbreken in elke vermelding, net als velden die niemand mag lezen. Sleutels, tokens en wachtwoorden worden vastgelegd als `[REDACTED]`: de vermelding laat zien dat ze zijn gewijzigd, nooit hun waarde. De stappen van een workflow worden vastgelegd als wat er veranderde, met de namen van de instellingen van een stap maar nooit wat erin is getypt, en het verplaatsen van een stap op het canvas wordt niet vastgelegd.
 
 ## Hoe lang vermeldingen blijven
 

@@ -63,7 +63,7 @@ export const AUDIT_LOG_EXEMPTION_KINDS: Readonly<
   [AuditLogExemptionKind.RunRecord]: {
     title: "Records of runs",
     reason:
-      "A record OneUptime writes of something as it happens: a workflow run, an on-call escalation, a scan, an import, an AI run or conversation, a provisioning request, a session replay someone watched. It is already the record of that event.",
+      "A record OneUptime writes of something as it happens: a workflow run, an on-call escalation, who was on call when, a scan, an import, an AI run or conversation, a provisioning request, a session replay someone watched. It is already the record of that event.",
   },
   [AuditLogExemptionKind.Reported]: {
     title: "What agents and telemetry report",
@@ -124,6 +124,7 @@ export const AUDIT_LOG_EXEMPT_TABLES: Readonly<
   NetworkDeviceDiscoveryImport: AuditLogExemptionKind.RunRecord,
   OnCallDutyPolicyExecutionLog: AuditLogExemptionKind.RunRecord,
   OnCallDutyPolicyExecutionLogTimeline: AuditLogExemptionKind.RunRecord,
+  OnCallDutyPolicyTimeLog: AuditLogExemptionKind.RunRecord,
   ProjectSCIMLog: AuditLogExemptionKind.RunRecord,
   RumSessionReplayView: AuditLogExemptionKind.RunRecord,
   SecurityEventConnectionRun: AuditLogExemptionKind.RunRecord,
@@ -158,6 +159,7 @@ export const AUDIT_LOG_EXEMPT_TABLES: Readonly<
   KubernetesAiAgent: AuditLogExemptionKind.Reported,
   KubernetesContainer: AuditLogExemptionKind.Reported,
   KubernetesResource: AuditLogExemptionKind.Reported,
+  NetworkEndpoint: AuditLogExemptionKind.Reported,
   OpenStackProjectUsage: AuditLogExemptionKind.Reported,
   OpenStackResource: AuditLogExemptionKind.Reported,
   PodmanResource: AuditLogExemptionKind.Reported,
@@ -271,6 +273,7 @@ export const AUDIT_LOG_ROOT_RESOURCE_TABLES: ReadonlySet<string> =
     "ServiceLevelObjective",
     "StatusPage",
     "StorageArray",
+    "Team",
     "VMwareVCenter",
     "Workflow",
   ]);
@@ -611,9 +614,9 @@ const isEmptyList: (value: Array<unknown> | undefined) => boolean = (
  * is left out of entries. A column nobody may read is left out already
  * (AuditLogRecorder); one people can read but not write is this.
  */
-const isWrittenOnlyByOneUptime: (access: ColumnAccess | undefined) => boolean = (
+const isWrittenOnlyByOneUptime: (
   access: ColumnAccess | undefined,
-): boolean => {
+) => boolean = (access: ColumnAccess | undefined): boolean => {
   return Boolean(
     access && isEmptyList(access.create) && isEmptyList(access.update),
   );
@@ -647,8 +650,9 @@ const NAME_COLUMNS: ReadonlyArray<string> = ["name", "title", "displayName"];
  * belongs to its MessageQueue through messageQueueId, a StatusPageDomain to
  * its StatusPage, a WorkflowVariable to its Workflow. When several roots
  * start the name, the longest wins (an IncidentEpisodeMember belongs to its
- * episode, not to the incident it adds), and a root is only ever its own
- * root.
+ * episode, not to the incident it adds); two relations to the same root
+ * (a link between two of them) name neither, as nothing says which it
+ * belongs to; and a root is only ever its own root.
  */
 export const inferRootResource: (
   model: AuditLogCoverageModel,
@@ -661,9 +665,9 @@ export const inferRootResource: (
     return undefined;
   }
 
-  let found:
-    | { tableLength: number; root: AuditLogRootResource }
-    | undefined = undefined;
+  let found: { tableLength: number; root: AuditLogRootResource } | undefined =
+    undefined;
+  let isTied: boolean = false;
 
   for (const column of model.getTableColumns().columns) {
     const metadata: TableColumnMetadata | undefined =
@@ -702,15 +706,21 @@ export const inferRootResource: (
       continue;
     }
 
+    if (found && rootTable.length === found.tableLength) {
+      isTied = isTied || found.root.column !== idColumn;
+      continue;
+    }
+
     if (!found || rootTable.length > found.tableLength) {
       found = {
         tableLength: rootTable.length,
         root: { resourceType: root.singularName, column: idColumn },
       };
+      isTied = false;
     }
   }
 
-  return found?.root;
+  return isTied ? undefined : found?.root;
 };
 
 /*
@@ -761,12 +771,10 @@ export const getAuditLogExemption: (
     return null;
   }
 
-  const kind: AuditLogExemptionKind | undefined = Object.prototype.hasOwnProperty.call(
-    AUDIT_LOG_EXEMPT_TABLES,
-    tableName,
-  )
-    ? AUDIT_LOG_EXEMPT_TABLES[tableName]
-    : undefined;
+  const kind: AuditLogExemptionKind | undefined =
+    Object.prototype.hasOwnProperty.call(AUDIT_LOG_EXEMPT_TABLES, tableName)
+      ? AUDIT_LOG_EXEMPT_TABLES[tableName]
+      : undefined;
 
   return kind ? AUDIT_LOG_EXEMPTION_KINDS[kind] : null;
 };
@@ -887,8 +895,8 @@ const freezeAuditLogOn: (config: EnableAuditLogOn) => EnableAuditLogOn = (
  * off an instance (the prototype has none of the columns' own keys). Keyed by
  * constructor, so the prototype and every instance share it.
  */
-const defaultsByModelType: WeakMap<object, EnableAuditLogOn | null> =
-  new WeakMap<object, EnableAuditLogOn | null>();
+const defaultsByModelType: WeakMap<CoverageModelType, EnableAuditLogOn | null> =
+  new WeakMap<CoverageModelType, EnableAuditLogOn | null>();
 
 export const getCachedDefaultAuditLogOn: (
   model: AuditLogCoverageModel,

@@ -70,7 +70,7 @@ const tableOf: (modelType: ModelType) => BaseModel = (
 const declaredOf: (model: BaseModel) => EnableAuditLogOn | undefined = (
   model: BaseModel,
 ): EnableAuditLogOn | undefined => {
-  let prototype: object | null = Object.getPrototypeOf(model);
+  let prototype: unknown = Object.getPrototypeOf(model);
 
   while (prototype && prototype !== BaseModel.prototype) {
     const descriptor: PropertyDescriptor | undefined =
@@ -344,24 +344,27 @@ describe("what the defaults leave out, redact and roll up", () => {
     defaulted.map((model: BaseModel): [string, BaseModel] => {
       return [model.tableName as string, model];
     }),
-  )("%s: every column it names is a real column", (_name: string, model: BaseModel) => {
-    const config: EnableAuditLogOn = model.enableAuditLogOn as EnableAuditLogOn;
+  )(
+    "%s: every column it names is a real column",
+    (_name: string, model: BaseModel) => {
+      const config: EnableAuditLogOn =
+        model.enableAuditLogOn as EnableAuditLogOn;
 
-    for (const column of [
-      ...(config.ignoreColumns || []),
-      ...(config.redactColumns || []),
-    ]) {
-      expect([column, model.isTableColumn(column)]).toEqual([column, true]);
-    }
+      for (const column of [
+        ...(config.ignoreColumns || []),
+        ...(config.redactColumns || []),
+      ]) {
+        expect([column, model.isTableColumn(column)]).toEqual([column, true]);
+      }
 
-    // A column is either left out or recorded redacted, never both.
-    for (const column of config.redactColumns || []) {
-      expect([column, (config.ignoreColumns || []).includes(column)]).toEqual([
-        column,
-        false,
-      ]);
-    }
-  });
+      // A column is either left out or recorded redacted, never both.
+      for (const column of config.redactColumns || []) {
+        expect([column, (config.ignoreColumns || []).includes(column)]).toEqual(
+          [column, false],
+        );
+      }
+    },
+  );
 
   test.each(
     defaulted.map((model: BaseModel): [string, BaseModel] => {
@@ -370,7 +373,8 @@ describe("what the defaults leave out, redact and roll up", () => {
   )(
     "%s: a root it rolls up to is an audited root, through an ObjectID column it keeps",
     (_name: string, model: BaseModel) => {
-      const config: EnableAuditLogOn = model.enableAuditLogOn as EnableAuditLogOn;
+      const config: EnableAuditLogOn =
+        model.enableAuditLogOn as EnableAuditLogOn;
 
       if (!config.rootResource) {
         return;
@@ -383,9 +387,9 @@ describe("what the defaults leave out, redact and roll up", () => {
       );
 
       expect(root).toBeDefined();
-      expect(AUDIT_LOG_ROOT_RESOURCE_TABLES.has(root!.tableName as string)).toBe(
-        true,
-      );
+      expect(
+        AUDIT_LOG_ROOT_RESOURCE_TABLES.has(root!.tableName as string),
+      ).toBe(true);
       expect(root!.enableAuditLogOn?.update).toBe(true);
       expect(
         model.getTableColumnMetadata(config.rootResource.column).type,
@@ -446,22 +450,28 @@ describe("what the defaults leave out, redact and roll up", () => {
   test.each(["IncidentState", "MonitorStatus", "IncidentSeverity", "Label"])(
     "%s is a setting of the project, not a part of a resource: it has no root",
     (tableName: string) => {
-      expect(BY_TABLE.get(tableName)!.enableAuditLogOn?.rootResource).toBeUndefined();
+      expect(
+        BY_TABLE.get(tableName)!.enableAuditLogOn?.rootResource,
+      ).toBeUndefined();
     },
   );
 
   test("a row with no name is named after the person, else the team, it is about", () => {
-    expect(BY_TABLE.get("MessageQueueOwnerUser")!.enableAuditLogOn?.resourceNameRelation).toBe(
-      "user",
-    );
-    expect(BY_TABLE.get("MessageQueueOwnerTeam")!.enableAuditLogOn?.resourceNameRelation).toBe(
-      "team",
-    );
-    expect(BY_TABLE.get("TeamMember")!.enableAuditLogOn?.resourceNameRelation).toBe(
-      "user",
-    );
+    expect(
+      BY_TABLE.get("MessageQueueOwnerUser")!.enableAuditLogOn
+        ?.resourceNameRelation,
+    ).toBe("user");
+    expect(
+      BY_TABLE.get("MessageQueueOwnerTeam")!.enableAuditLogOn
+        ?.resourceNameRelation,
+    ).toBe("team");
+    expect(
+      BY_TABLE.get("TeamMember")!.enableAuditLogOn?.resourceNameRelation,
+    ).toBe("user");
     // A row with a name of its own keeps it.
-    expect(BY_TABLE.get("Workflow")!.enableAuditLogOn?.resourceNameRelation).toBeUndefined();
+    expect(
+      BY_TABLE.get("Workflow")!.enableAuditLogOn?.resourceNameRelation,
+    ).toBeUndefined();
   });
 
   test("what only OneUptime writes, and what agents report, is left out", () => {
@@ -500,23 +510,49 @@ describe("what the defaults leave out, redact and roll up", () => {
   });
 
   test.each([
-    ["Workflow", ["name", "description", "graph", "isEnabled", "labels", "isArchived"]],
+    [
+      "Workflow",
+      ["name", "description", "graph", "isEnabled", "labels", "isArchived"],
+    ],
     [
       "MessageQueue",
-      ["name", "description", "labels", "isArchived", "messagingSystem", "destinationName"],
+      [
+        "name",
+        "description",
+        "labels",
+        "isArchived",
+        "messagingSystem",
+        "destinationName",
+      ],
     ],
     ["MonitorProbe", ["isEnabled", "probeId", "monitorId"]],
     ["TeamMember", ["teamId", "userId"]],
-    ["Project", ["name", "enableAuditLogs", "auditLogsRetentionInDays", "storeSystemEventsInAuditLogs", "requireSsoForLogin"]],
-  ])("%s never leaves out what a person edits", (tableName: string, columns: Array<string>) => {
-    const model: BaseModel = BY_TABLE.get(tableName)!;
+    [
+      "Project",
+      [
+        "name",
+        "enableAuditLogs",
+        "auditLogsRetentionInDays",
+        "storeSystemEventsInAuditLogs",
+        "requireSsoForLogin",
+      ],
+    ],
+  ])(
+    "%s never leaves out what a person edits",
+    (tableName: string, columns: Array<string>) => {
+      const model: BaseModel = BY_TABLE.get(tableName)!;
 
-    for (const column of columns) {
-      expect([column, model.isTableColumn(column)]).toEqual([column, true]);
-      expect(model.enableAuditLogOn?.ignoreColumns || []).not.toContain(column);
-      expect(model.enableAuditLogOn?.redactColumns || []).not.toContain(column);
-    }
-  });
+      for (const column of columns) {
+        expect([column, model.isTableColumn(column)]).toEqual([column, true]);
+        expect(model.enableAuditLogOn?.ignoreColumns || []).not.toContain(
+          column,
+        );
+        expect(model.enableAuditLogOn?.redactColumns || []).not.toContain(
+          column,
+        );
+      }
+    },
+  );
 
   test("the reported and secret lists name models audited by these defaults, and real columns", () => {
     for (const list of [AUDIT_LOG_REPORTED_COLUMNS, AUDIT_LOG_SECRET_COLUMNS]) {
@@ -542,7 +578,9 @@ describe("what the defaults leave out, redact and roll up", () => {
   });
 
   test("every listed secret is recorded redacted, or left out altogether", () => {
-    for (const [tableName, columns] of Object.entries(AUDIT_LOG_SECRET_COLUMNS)) {
+    for (const [tableName, columns] of Object.entries(
+      AUDIT_LOG_SECRET_COLUMNS,
+    )) {
       const model: BaseModel = BY_TABLE.get(tableName)!;
       const redacted: Set<string> = getAuditLogRedactedColumns(model);
       const ignored: ReadonlyArray<string> =
@@ -562,9 +600,9 @@ describe("what the defaults leave out, redact and roll up", () => {
       BY_TABLE.get("IoTDeviceCredential")!.enableAuditLogOn?.ignoreColumns,
     ).toContain("secretKey");
     // One a person sets is recorded redacted: a probe's key, an SNMP community.
-    expect(
-      getAuditLogRedactedColumns(BY_TABLE.get("Probe")!).has("key"),
-    ).toBe(true);
+    expect(getAuditLogRedactedColumns(BY_TABLE.get("Probe")!).has("key")).toBe(
+      true,
+    );
     expect(
       getAuditLogRedactedColumns(BY_TABLE.get("NetworkDevice")!).has(
         "snmpCommunityString",
@@ -578,12 +616,15 @@ describe("what the defaults leave out, redact and roll up", () => {
       update: true,
       delete: true,
     });
-    expect(tableOf(Monitor).enableAuditLogOn).toBe(declaredOf(tableOf(Monitor)));
+    expect(tableOf(Monitor).enableAuditLogOn).toBe(
+      declaredOf(tableOf(Monitor)),
+    );
     expect(tableOf(Monitor).enableAuditLogOn?.ignoreColumns).toBeUndefined();
   });
 
   test("the defaults are worked out once, shared, and cannot be changed through what is shared", () => {
-    const first: EnableAuditLogOn | undefined = tableOf(Workflow).enableAuditLogOn;
+    const first: EnableAuditLogOn | undefined =
+      tableOf(Workflow).enableAuditLogOn;
 
     expect(tableOf(Workflow).enableAuditLogOn).toBe(first);
     expect((Workflow.prototype as BaseModel).enableAuditLogOn).toBe(first);
@@ -596,7 +637,11 @@ describe("what the defaults leave out, redact and roll up", () => {
 
   test("an own value set on a model is the model's, as a plain assignment made it", () => {
     const queue: MessageQueue = new MessageQueue();
-    const declared: EnableAuditLogOn = { create: false, update: true, delete: true };
+    const declared: EnableAuditLogOn = {
+      create: false,
+      update: true,
+      delete: true,
+    };
 
     queue.enableAuditLogOn = declared;
 
@@ -633,7 +678,15 @@ describe("the rules, one by one", () => {
       expect([name, looksLikeSecretName(name)]).toEqual([name, true]);
     }
 
-    for (const name of ["name", "description", "key", "monitorKey", "url", "graph", ""]) {
+    for (const name of [
+      "name",
+      "description",
+      "key",
+      "monitorKey",
+      "url",
+      "graph",
+      "",
+    ]) {
       expect([name, looksLikeSecretName(name)]).toEqual([name, false]);
     }
 
@@ -642,19 +695,31 @@ describe("the rules, one by one", () => {
   });
 
   test("a column holds a secret by its type, or by its name on a type that can", () => {
-    expect(looksLikeSecretColumn("anything", TableColumnType.Password)).toBe(true);
-    expect(looksLikeSecretColumn("anything", TableColumnType.OTP)).toBe(true);
-    expect(looksLikeSecretColumn("anything", TableColumnType.HashedString)).toBe(
+    expect(looksLikeSecretColumn("anything", TableColumnType.Password)).toBe(
       true,
     );
-    expect(looksLikeSecretColumn("secretKey", TableColumnType.ObjectID)).toBe(true);
-    expect(looksLikeSecretColumn("apiKey", TableColumnType.ObjectID)).toBe(true);
-    expect(looksLikeSecretColumn("apiKeyId", TableColumnType.ObjectID)).toBe(false);
-    expect(looksLikeSecretColumn("isTokenSet", TableColumnType.Boolean)).toBe(false);
+    expect(looksLikeSecretColumn("anything", TableColumnType.OTP)).toBe(true);
     expect(
-      looksLikeSecretColumn("tokenExpiresAt", TableColumnType.Date),
-    ).toBe(false);
-    expect(looksLikeSecretColumn("tokenCount", TableColumnType.Number)).toBe(false);
+      looksLikeSecretColumn("anything", TableColumnType.HashedString),
+    ).toBe(true);
+    expect(looksLikeSecretColumn("secretKey", TableColumnType.ObjectID)).toBe(
+      true,
+    );
+    expect(looksLikeSecretColumn("apiKey", TableColumnType.ObjectID)).toBe(
+      true,
+    );
+    expect(looksLikeSecretColumn("apiKeyId", TableColumnType.ObjectID)).toBe(
+      false,
+    );
+    expect(looksLikeSecretColumn("isTokenSet", TableColumnType.Boolean)).toBe(
+      false,
+    );
+    expect(looksLikeSecretColumn("tokenExpiresAt", TableColumnType.Date)).toBe(
+      false,
+    );
+    expect(looksLikeSecretColumn("tokenCount", TableColumnType.Number)).toBe(
+      false,
+    );
     expect(looksLikeSecretColumn("apiKey", TableColumnType.Entity)).toBe(false);
     expect(looksLikeSecretColumn("bearerToken", TableColumnType.LongText)).toBe(
       true,
@@ -693,12 +758,16 @@ describe("the rules, one by one", () => {
       column: "workflowId",
     });
     // A root is never rolled up into another root, even one its name starts with.
-    expect(inferRootResource(BY_TABLE.get("OnCallDutyPolicySchedule")!)).toBeUndefined();
+    expect(
+      inferRootResource(BY_TABLE.get("OnCallDutyPolicySchedule")!),
+    ).toBeUndefined();
     expect(inferRootResource(BY_TABLE.get("Workflow")!)).toBeUndefined();
     expect(inferResourceNameRelation(BY_TABLE.get("WorkflowOwnerTeam")!)).toBe(
       "team",
     );
-    expect(inferResourceNameRelation(BY_TABLE.get("Workflow")!)).toBeUndefined();
+    expect(
+      inferResourceNameRelation(BY_TABLE.get("Workflow")!),
+    ).toBeUndefined();
   });
 
   test("a column that holds a file's bytes is never recorded", () => {
@@ -710,7 +779,8 @@ describe("the rules, one by one", () => {
       }
 
       for (const column of model.getTableColumns().columns) {
-        const metadata: TableColumnMetadata = model.getTableColumnMetadata(column);
+        const metadata: TableColumnMetadata =
+          model.getTableColumnMetadata(column);
 
         if (
           metadata.type === TableColumnType.Buffer ||
@@ -724,5 +794,180 @@ describe("the rules, one by one", () => {
         }
       }
     }
+  });
+});
+
+describe("root inference on models made for the test", () => {
+  /*
+   * The smallest models the rule reads: a table name, columns and their
+   * metadata. The roots they point at are real root tables, so the rule's
+   * list of roots decides as it does for real models.
+   */
+  class FakeMonitor {
+    public tableName: string = "Monitor";
+    public singularName: string = "Monitor";
+  }
+
+  class FakeMonitorGroup {
+    public tableName: string = "MonitorGroup";
+    public singularName: string = "Monitor Group";
+  }
+
+  class FakeLabel {
+    public tableName: string = "Label";
+    public singularName: string = "Label";
+  }
+
+  type ColumnSpec = Record<string, Partial<TableColumnMetadata>>;
+
+  const fakeModel: (
+    tableName: string,
+    columns: ColumnSpec,
+  ) => Parameters<typeof inferRootResource>[0] = (
+    tableName: string,
+    columns: ColumnSpec,
+  ): Parameters<typeof inferRootResource>[0] => {
+    return {
+      tableName,
+      singularName: tableName,
+      getTenantColumn: (): string => {
+        return "projectId";
+      },
+      getTableColumns: (): { columns: Array<string> } => {
+        return { columns: Object.keys(columns) };
+      },
+      getTableColumnMetadata: (column: string): TableColumnMetadata => {
+        return columns[column] as TableColumnMetadata;
+      },
+      isTableColumn: (column: string): boolean => {
+        return Boolean(columns[column]);
+      },
+    };
+  };
+
+  const relationTo: (
+    modelType: unknown,
+    idColumn: string,
+  ) => Partial<TableColumnMetadata> = (
+    modelType: unknown,
+    idColumn: string,
+  ): Partial<TableColumnMetadata> => {
+    return {
+      type: TableColumnType.Entity,
+      modelType: modelType as never,
+      manyToOneRelationColumn: idColumn,
+    };
+  };
+
+  const ID: Partial<TableColumnMetadata> = { type: TableColumnType.ObjectID };
+
+  test("the longest root that starts the table's name wins", () => {
+    expect(
+      inferRootResource(
+        fakeModel("MonitorGroupThing", {
+          monitor: relationTo(FakeMonitor, "monitorId"),
+          monitorId: ID,
+          monitorGroup: relationTo(FakeMonitorGroup, "monitorGroupId"),
+          monitorGroupId: ID,
+        }),
+      ),
+    ).toEqual({ resourceType: "Monitor Group", column: "monitorGroupId" });
+  });
+
+  test("two relations to the same root name neither", () => {
+    expect(
+      inferRootResource(
+        fakeModel("MonitorLink", {
+          fromMonitor: relationTo(FakeMonitor, "fromMonitorId"),
+          fromMonitorId: ID,
+          toMonitor: relationTo(FakeMonitor, "toMonitorId"),
+          toMonitorId: ID,
+        }),
+      ),
+    ).toBeUndefined();
+  });
+
+  test("a tie under a longer root does not stop the longer root", () => {
+    expect(
+      inferRootResource(
+        fakeModel("MonitorGroupLink", {
+          fromMonitor: relationTo(FakeMonitor, "fromMonitorId"),
+          fromMonitorId: ID,
+          toMonitor: relationTo(FakeMonitor, "toMonitorId"),
+          toMonitorId: ID,
+          monitorGroup: relationTo(FakeMonitorGroup, "monitorGroupId"),
+          monitorGroupId: ID,
+        }),
+      ),
+    ).toEqual({ resourceType: "Monitor Group", column: "monitorGroupId" });
+  });
+
+  test("a model that is not a root's, or whose id is not an ObjectID, has no root", () => {
+    // Its name does not start with the root's.
+    expect(
+      inferRootResource(
+        fakeModel("ProbeThing", {
+          monitor: relationTo(FakeMonitor, "monitorId"),
+          monitorId: ID,
+        }),
+      ),
+    ).toBeUndefined();
+    // Not a root table at all.
+    expect(
+      inferRootResource(
+        fakeModel("LabelThing", {
+          label: relationTo(FakeLabel, "labelId"),
+          labelId: ID,
+        }),
+      ),
+    ).toBeUndefined();
+    // The id it would roll up through is not an id.
+    expect(
+      inferRootResource(
+        fakeModel("MonitorThing", {
+          monitor: relationTo(FakeMonitor, "monitorId"),
+          monitorId: { type: TableColumnType.ShortText },
+        }),
+      ),
+    ).toBeUndefined();
+    // A root is its own root.
+    expect(
+      inferRootResource(
+        fakeModel("MonitorGroup", {
+          monitor: relationTo(FakeMonitor, "monitorId"),
+          monitorId: ID,
+        }),
+      ),
+    ).toBeUndefined();
+  });
+
+  test("a nameless row is named after its user, else its team; a named one keeps its name", () => {
+    const user: Partial<TableColumnMetadata> = relationTo(
+      FakeMonitor,
+      "userId",
+    );
+    const team: Partial<TableColumnMetadata> = relationTo(
+      FakeMonitor,
+      "teamId",
+    );
+
+    expect(
+      inferResourceNameRelation(
+        fakeModel("X", { user, userId: ID, team, teamId: ID }),
+      ),
+    ).toBe("user");
+    expect(
+      inferResourceNameRelation(fakeModel("X", { team, teamId: ID })),
+    ).toBe("team");
+    expect(
+      inferResourceNameRelation(
+        fakeModel("X", {
+          name: { type: TableColumnType.ShortText },
+          user,
+          userId: ID,
+        }),
+      ),
+    ).toBeUndefined();
+    expect(inferResourceNameRelation(fakeModel("X", {}))).toBeUndefined();
   });
 });

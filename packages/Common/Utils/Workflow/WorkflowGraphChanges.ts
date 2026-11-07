@@ -296,9 +296,7 @@ class GraphWording {
     const title: string =
       this.getComponent(step.componentId)?.title || step.componentId || "Step";
 
-    return step.stepId
-      ? `${quote(title)} (${step.stepId})`
-      : quote(title);
+    return step.stepId ? `${quote(title)} (${step.stepId})` : quote(title);
   }
 
   public settingName(step: WorkflowGraphStep, argumentId: string): string {
@@ -529,10 +527,7 @@ export const getWorkflowGraphChanges: (data: {
     }
 
     // Removing a step removes its connections: the step's line says so.
-    if (
-      !stepsAfter.has(connection.from) ||
-      !stepsAfter.has(connection.to)
-    ) {
+    if (!stepsAfter.has(connection.from) || !stepsAfter.has(connection.to)) {
       continue;
     }
 

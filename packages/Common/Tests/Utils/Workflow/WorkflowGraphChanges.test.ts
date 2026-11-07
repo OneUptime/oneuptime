@@ -13,7 +13,11 @@ import {
   listWorkflowGraphSteps,
   readWorkflowGraph,
 } from "../../../Utils/Workflow/WorkflowGraphChanges";
-import { SeededRandom, seededRandom, shuffled } from "../../Helpers/SeededRandom";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "../../Helpers/SeededRandom";
 
 /*
  * What a workflow save says in the audit log (issue #6187): the steps and
@@ -26,9 +30,11 @@ const COMPONENTS: Map<string, ComponentMetadata> = new Map<
   string,
   ComponentMetadata
 >(
-  Components.map((component: ComponentMetadata): [string, ComponentMetadata] => {
-    return [component.id, component];
-  }),
+  Components.map(
+    (component: ComponentMetadata): [string, ComponentMetadata] => {
+      return [component.id, component];
+    },
+  ),
 );
 
 const lookup: WorkflowComponentLookup = (
@@ -276,7 +282,13 @@ describe("the steps that changed", () => {
       [
         {
           ...EMAIL,
-          args: { from: "a", to: "b", subject: "c", "email-body": "d", "smtp-host": "e" },
+          args: {
+            from: "a",
+            to: "b",
+            subject: "c",
+            "email-body": "d",
+            "smtp-host": "e",
+          },
         },
       ],
       [],
@@ -285,7 +297,13 @@ describe("the steps that changed", () => {
       [
         {
           ...EMAIL,
-          args: { from: "1", to: "2", subject: "3", "email-body": "4", "smtp-host": "5" },
+          args: {
+            from: "1",
+            to: "2",
+            subject: "3",
+            "email-body": "4",
+            "smtp-host": "5",
+          },
         },
       ],
       [],
@@ -298,10 +316,8 @@ describe("the steps that changed", () => {
 
   test("a step renamed says its old and new ids", () => {
     expect(
-      changes(
-        graph([LOG], []),
-        graph([{ ...LOG, stepId: "log-final" }], []),
-      ).lines,
+      changes(graph([LOG], []), graph([{ ...LOG, stepId: "log-final" }], []))
+        .lines,
     ).toEqual(['Renamed "Log" (log-1) to "log-final"']);
   });
 
@@ -495,7 +511,10 @@ describe("a graph that cannot be read is an empty one, never an error", () => {
   });
 
   test("a graph saved as JSON text is read like the object", () => {
-    const value: JSONObject = graph([MANUAL, LOG], [{ from: MANUAL.key, to: LOG.key }]);
+    const value: JSONObject = graph(
+      [MANUAL, LOG],
+      [{ from: MANUAL.key, to: LOG.key }],
+    );
 
     expect(readWorkflowGraph(JSON.stringify(value))).toEqual(
       readWorkflowGraph(value),
@@ -535,12 +554,15 @@ describe("a long list of changes is cut, and says how many more there were", () 
   });
 
   test("limitLines keeps a list that fits whole, and counts what it cuts", () => {
-    expect(limitLines({ lines: ["a", "b"], limit: 2, noun: "change" })).toEqual([
-      "a",
-      "b",
-    ]);
+    expect(limitLines({ lines: ["a", "b"], limit: 2, noun: "change" })).toEqual(
+      ["a", "b"],
+    );
     expect(
-      limitLines({ lines: ["a", "b", "c", "d", "e"], limit: 4, noun: "change" }),
+      limitLines({
+        lines: ["a", "b", "c", "d", "e"],
+        limit: 4,
+        noun: "change",
+      }),
     ).toEqual(["a", "b", "c", "and 2 more changes"]);
     expect(
       limitLines({ lines: ["a", "b", "c", "d"], limit: 3, noun: "step" }),
@@ -551,9 +573,9 @@ describe("a long list of changes is cut, and says how many more there were", () 
     expect(limitLines({ lines: ["a", "b"], limit: 0, noun: "step" })).toEqual([
       "and 2 more steps",
     ]);
-    expect(limitLines({ lines: ["a", "b"], limit: 1, noun: "change" })).toEqual([
-      "and 2 more changes",
-    ]);
+    expect(limitLines({ lines: ["a", "b"], limit: 1, noun: "change" })).toEqual(
+      ["and 2 more changes"],
+    );
     expect(
       limitLines({ lines: ["a", "b", "c"], limit: 2.9, noun: "step" }),
     ).toEqual(["a", "and 2 more steps"]);
@@ -598,11 +620,11 @@ describe("property: random edits are reported, and only they", () => {
 
     for (let run: number = 0; run < 500; run++) {
       const steps: Array<NodeSpec> = randomGraph(random);
-      const edges: Array<EdgeSpec> = steps.slice(1).map(
-        (step: NodeSpec, index: number): EdgeSpec => {
+      const edges: Array<EdgeSpec> = steps
+        .slice(1)
+        .map((step: NodeSpec, index: number): EdgeSpec => {
           return { from: (steps[index] as NodeSpec).key, to: step.key };
-        },
-      );
+        });
       const before: JSONObject = graph(steps, edges);
 
       // Cosmetic: every card moved and one selected.
@@ -650,7 +672,11 @@ describe("property: random edits are reported, and only they", () => {
       } else {
         after = graph(steps, [
           ...edges,
-          { from: (steps[steps.length - 1] as NodeSpec).key, to: (steps[0] as NodeSpec).key, fromPort: "loop" },
+          {
+            from: (steps[steps.length - 1] as NodeSpec).key,
+            to: (steps[0] as NodeSpec).key,
+            fromPort: "loop",
+          },
         ]);
       }
 

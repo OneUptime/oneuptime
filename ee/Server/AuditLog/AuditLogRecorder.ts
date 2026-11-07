@@ -869,7 +869,11 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
         continue;
       }
 
-      const serialized: unknown = this.serializeValue(data.model, column, value);
+      const serialized: unknown = this.serializeValue(
+        data.model,
+        column,
+        value,
+      );
 
       changes.push({
         field: column,
@@ -960,8 +964,14 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
 
       return {
         field,
-        oldValue: typeof oldValue === "string" ? limited.before : (oldValue as JSONValue),
-        newValue: typeof newValue === "string" ? limited.after : (newValue as JSONValue),
+        oldValue:
+          typeof oldValue === "string"
+            ? limited.before
+            : (oldValue as JSONValue),
+        newValue:
+          typeof newValue === "string"
+            ? limited.after
+            : (newValue as JSONValue),
       };
     }
 

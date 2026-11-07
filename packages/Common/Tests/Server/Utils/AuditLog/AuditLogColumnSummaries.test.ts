@@ -118,7 +118,15 @@ describe("a workflow's graph in an entry", () => {
       graph([MANUAL], []),
       graph(
         [MANUAL, WEBHOOK_POST],
-        [{ id: "e", source: "a", target: "b", sourceHandle: "success", targetHandle: "in" }],
+        [
+          {
+            id: "e",
+            source: "a",
+            target: "b",
+            sourceHandle: "success",
+            targetHandle: "in",
+          },
+        ],
       ),
     );
 

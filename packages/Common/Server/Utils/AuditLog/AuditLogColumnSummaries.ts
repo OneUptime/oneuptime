@@ -56,40 +56,42 @@ let componentsById: Map<string, ComponentMetadata> | null = null;
  * model's record triggers and data steps. Built once, on the first workflow
  * an entry describes.
  */
-const getComponentsById: () => Map<string, ComponentMetadata> =
-  (): Map<string, ComponentMetadata> => {
-    if (componentsById) {
-      return componentsById;
-    }
+const getComponentsById: () => Map<string, ComponentMetadata> = (): Map<
+  string,
+  ComponentMetadata
+> => {
+  if (componentsById) {
+    return componentsById;
+  }
 
-    const map: Map<string, ComponentMetadata> = new Map<
-      string,
-      ComponentMetadata
-    >();
+  const map: Map<string, ComponentMetadata> = new Map<
+    string,
+    ComponentMetadata
+  >();
 
-    for (const component of Components) {
-      map.set(component.id, component);
-    }
+  for (const component of Components) {
+    map.set(component.id, component);
+  }
 
-    for (const modelType of AllModelTypes as Array<{ new (): BaseModel }>) {
-      try {
-        for (const component of BaseModelComponentFactory.getComponents(
-          new modelType(),
-        )) {
-          map.set(component.id, component);
-        }
-      } catch (err) {
-        logger.debug(
-          "AuditLog: a model's workflow steps could not be listed; its steps are named by their ids",
-        );
-        logger.debug(err);
+  for (const modelType of AllModelTypes as Array<{ new (): BaseModel }>) {
+    try {
+      for (const component of BaseModelComponentFactory.getComponents(
+        new modelType(),
+      )) {
+        map.set(component.id, component);
       }
+    } catch (err) {
+      logger.debug(
+        "AuditLog: a model's workflow steps could not be listed; its steps are named by their ids",
+      );
+      logger.debug(err);
     }
+  }
 
-    componentsById = map;
+  componentsById = map;
 
-    return map;
-  };
+  return map;
+};
 
 export const lookUpWorkflowComponent: WorkflowComponentLookup = (
   componentId: string,
