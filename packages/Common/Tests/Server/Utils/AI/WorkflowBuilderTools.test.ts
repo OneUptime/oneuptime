@@ -716,14 +716,21 @@ describe("update_workflow", () => {
     ctx?: ToolContext,
   ) => Promise<ToolExecutionResult>;
 
+  /*
+   * As the chat runs it: prepared as the model asks for it, then run with
+   * the arguments the prepare wrote (issue #6274: what the change is
+   * proposed on is among them).
+   */
   const run: UpdateFunction = async (
     args: JSONObject = {},
     ctx: ToolContext = CTX,
   ): Promise<ToolExecutionResult> => {
-    return await UpdateWorkflowTool.execute(
+    const prepared: PreparedMutation = await UpdateWorkflowTool.prepareMutation!(
       { workflowId: WORKFLOW_ID.toString(), ...args },
       ctx,
     );
+
+    return await UpdateWorkflowTool.execute(prepared.arguments, ctx);
   };
 
   test("reads and writes as the person", async () => {

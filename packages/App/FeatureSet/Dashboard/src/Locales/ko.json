@@ -46423,5 +46423,6 @@
   "Every change made to this exception: who resolved, archived or assigned it, when, and what changed.": "Every change made to this exception: who resolved, archived or assigned it, when, and what changed.",
   "Charted for what this monitor checks now.": "Charted for what this monitor checks now.",
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
-  "Only chart this metric from these services.": "Only chart this metric from these services."
+  "Only chart this metric from these services.": "Only chart this metric from these services.",
+  "Changes saved after this was proposed were kept": "이 제안 이후에 저장된 변경 사항은 유지되었습니다"
 }
