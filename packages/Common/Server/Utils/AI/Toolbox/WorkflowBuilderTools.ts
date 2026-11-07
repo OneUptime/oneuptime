@@ -18,6 +18,7 @@ import {
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import Dictionary from "../../../../Types/Dictionary";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import ConflictException from "../../../../Types/Exception/ConflictException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
@@ -58,6 +59,20 @@ import {
   getDraftFromGraph,
   readWorkflowDraft,
 } from "../../../../Types/Workflow/WorkflowDraft";
+import {
+  WORKFLOW_DRAFT_PROPOSED_ON_KEY,
+  WorkflowDraftDigestFunction,
+  WorkflowDraftProposedOn,
+  WorkflowDraftRebase,
+  WorkflowDraftRebaseKind,
+  proposeWorkflowDraft,
+  readWorkflowDraftProposedOn,
+  rebaseWorkflowDraft,
+} from "../../../../Types/Workflow/WorkflowDraftRebase";
+import {
+  WORKFLOW_GRAPH_REVISION_KEY,
+  readWorkflowGraphRevision,
+} from "../../../../Types/Workflow/WorkflowGraphRevision";
 import lintWorkflowGraph, {
   LintGraphEdge,
   LintGraphNode,
@@ -77,6 +92,7 @@ import StatusPageCustomFieldService from "../../../Services/StatusPageCustomFiel
 import TeamCustomFieldService from "../../../Services/TeamCustomFieldService";
 import TeamMemberCustomFieldService from "../../../Services/TeamMemberCustomFieldService";
 import WorkflowService from "../../../Services/WorkflowService";
+import TokenSigningKey from "../../TokenSigningKey";
 import {
   ObservabilityTool,
   PreparedMutation,
@@ -85,6 +101,7 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import WidgetBuilder from "./WidgetBuilder";
+import crypto from "crypto";
 
 /*
  * ASK AI BUILDS A WORKFLOW, AND CHANGES ONE.
@@ -1074,11 +1091,437 @@ const readWorkflowToChange: ReadWorkflowToChangeFunction = async (data: {
       _id: true,
       name: true,
       graph: true,
+      // Which graph a change is proposed on, and saved over (issue #6274).
+      graphRevision: true,
       isEnabled: true,
       isArchived: true,
     },
     props: data.ctx.props,
   });
+};
+
+type ReadWorkflowToSaveFunction = (data: {
+  workflowId: ObjectID;
+  ctx: ToolContext;
+}) => Promise<Workflow>;
+
+// The workflow a change is saved to: one the person can read, and not archived.
+const readWorkflowToSave: ReadWorkflowToSaveFunction = async (data: {
+  workflowId: ObjectID;
+  ctx: ToolContext;
+}): Promise<Workflow> => {
+  const workflow: Workflow | null = await readWorkflowToChange(data);
+
+  if (!workflow) {
+    throw new BadDataException(
+      `There is no workflow ${data.workflowId.toString()} that this user can read.`,
+    );
+  }
+
+  if (workflow.isArchived) {
+    throw new BadDataException(
+      "This workflow is archived. Ask the user to unarchive it first.",
+    );
+  }
+
+  return workflow;
+};
+
+type GetGraphRevisionFunction = (workflow: Workflow) => number;
+
+// A workflow's graph revision as read: 0 for one saved before they were counted.
+const getGraphRevision: GetGraphRevisionFunction = (
+  workflow: Workflow,
+): number => {
+  return readWorkflowGraphRevision(workflow.graphRevision) ?? 0;
+};
+
+const STEP_FINGERPRINT_KEY_LABEL: string = "workflow-draft-step-fingerprint";
+
+// 64 bits: enough to tell a step that changed from one that did not.
+const STEP_FINGERPRINT_LENGTH: number = 16;
+
+/*
+ * A step's fingerprint (WorkflowDraftRebase): what a change is proposed on
+ * is kept in its arguments, and so goes back to the model with the change,
+ * and the text is a step's settings as saved, a secret's too. So it is keyed,
+ * with a key of the installation's own for this alone (TokenSigningKey).
+ */
+export const fingerprintWorkflowStep: WorkflowDraftDigestFunction = (
+  text: string,
+): string => {
+  return crypto
+    .createHmac("sha256", TokenSigningKey.deriveKey(STEP_FINGERPRINT_KEY_LABEL))
+    .update(text, "utf8")
+    .digest("hex")
+    .slice(0, STEP_FINGERPRINT_LENGTH);
+};
+
+// A change is made again this many times while the workflow is saved under it.
+const MAX_SAVE_ATTEMPTS: number = 3;
+
+const MAX_STEPS_NAMED: number = 5;
+
+const PROPOSE_AGAIN: string =
+  "Read the workflow again with query_workflows and includeSteps, tell the user it changed after you proposed this, and propose the change again on the workflow as it is now.";
+
+// Why a change to a workflow's steps was not made, for the model and the person.
+export const UPDATE_WORKFLOW_PROBLEMS: {
+  notProposed: string;
+  keptBeingSaved: string;
+} = {
+  /*
+   * A change with no record of what it was proposed on: proposed before
+   * OneUptime kept one, or one whose prepare did not run.
+   */
+  notProposed:
+    "OneUptime cannot tell which version of this workflow this change was proposed on, so it was not made, and nothing was changed. Read the workflow again with query_workflows and includeSteps, and propose the change again.",
+  keptBeingSaved: `This workflow kept being saved while this change was being made, so it was not made, and nothing was changed. ${PROPOSE_AGAIN}`,
+};
+
+type NameStepsFunction = (data: {
+  stepIds: Array<string>;
+  graph: JSONObject | null | undefined;
+  draft: WorkflowDraft;
+}) => string;
+
+// Steps as a version's changes name them, "Log" (log-1): the first few, and how many more.
+const nameSteps: NameStepsFunction = (data: {
+  stepIds: Array<string>;
+  graph: JSONObject | null | undefined;
+  draft: WorkflowDraft;
+}): string => {
+  const current: WorkflowDraft = getDraftFromGraph({
+    graph: data.graph,
+    getComponent: getWorkflowComponent,
+  });
+
+  const named: Array<string> = data.stepIds
+    .slice(0, MAX_STEPS_NAMED)
+    .map((stepId: string): string => {
+      const step: WorkflowDraftStep | undefined = [
+        ...current.steps,
+        ...data.draft.steps,
+      ].find((candidate: WorkflowDraftStep): boolean => {
+        return candidate.id === stepId;
+      });
+
+      return `"${step ? titleOfStep(step) : stepId}" (${stepId})`;
+    });
+
+  const more: number = data.stepIds.length - named.length;
+
+  return more > 0
+    ? `${named.join(", ")} and ${more} more`
+    : named.join(", ");
+};
+
+type DescribeConflictFunction = (steps: string) => string;
+
+export const describeStepsChangedSince: DescribeConflictFunction = (
+  steps: string,
+): string => {
+  return `This workflow was saved again after this change was proposed, and that save changed steps this change touches too: ${steps}. So this change was not made, and nothing was changed. ${PROPOSE_AGAIN}`;
+};
+
+type DescribeProblemsFunction = (problems: Array<string>) => string;
+
+export const describeNotMadeOnTop: DescribeProblemsFunction = (
+  problems: Array<string>,
+): string => {
+  return `This workflow was saved again after this change was proposed, and this change cannot be made on top of what was saved: ${problems.join(" ")} Nothing was changed. ${PROPOSE_AGAIN}`;
+};
+
+type DescribeIssueLeftFunction = (issue: WorkflowLintIssue) => string;
+
+export const describeIssueLeftByBoth: DescribeIssueLeftFunction = (
+  issue: WorkflowLintIssue,
+): string => {
+  return `This workflow was saved again after this change was proposed. Made on top of what was saved, this change would leave something to fix that neither had on its own: ${issue.componentId ? `${issue.componentId}: ` : ""}${issue.message} So it was not made, and nothing was changed. ${PROPOSE_AGAIN}`;
+};
+
+// When a graph cannot be checked at all: nothing is saved that was not checked.
+const CANNOT_BE_CHECKED: string =
+  "The Builder's checks could not be run on the two together.";
+
+type DescribeKeptFunction = (kept: WorkflowDraftChanges) => string;
+
+// For the model: what was saved since the change was proposed, and kept.
+export const describeKeptSince: DescribeKeptFunction = (
+  kept: WorkflowDraftChanges,
+): string => {
+  const parts: Array<string> = [
+    ...(kept.added.length > 0 ? [`it added ${kept.added.join(", ")}`] : []),
+    ...(kept.removed.length > 0
+      ? [`it removed ${kept.removed.join(", ")}`]
+      : []),
+    ...(kept.changed.length > 0
+      ? [`it changed ${kept.changed.join(", ")}`]
+      : []),
+  ];
+
+  return `It had been saved again after this change was proposed${
+    parts.length > 0 ? ` (${parts.join("; ")})` : ""
+  }. That save changed other steps, so it was kept, and this change was made on top of it. Tell the user the workflow had changed since you proposed this, and that what was saved then was kept.`;
+};
+
+type GetIssuesByKeyFunction = (
+  graph: JSONObject | null | undefined,
+) => Map<string, WorkflowLintIssue> | null;
+
+/*
+ * What the Builder's checks say of a graph, each by what it says; null when
+ * they cannot be run. A step of a component OneUptime no longer has is left
+ * out: no check can read it.
+ */
+const getIssuesByKey: GetIssuesByKeyFunction = (
+  graph: JSONObject | null | undefined,
+): Map<string, WorkflowLintIssue> | null => {
+  try {
+    const nodes: Array<{ data?: NodeDataProp }> = (
+      Array.isArray(graph?.["nodes"]) ? graph?.["nodes"] : []
+    ) as unknown as Array<{ data?: NodeDataProp }>;
+
+    const issues: Array<WorkflowLintIssue> = getLintIssues({
+      nodes: nodes.filter((node: { data?: NodeDataProp }): boolean => {
+        return Boolean(
+          node?.data?.metadataId &&
+            getWorkflowComponent(node.data.metadataId),
+        );
+      }) as unknown as JSONObject,
+      edges: (Array.isArray(graph?.["edges"])
+        ? graph?.["edges"]
+        : []) as unknown as JSONObject,
+    });
+
+    const byKey: Map<string, WorkflowLintIssue> = new Map<
+      string,
+      WorkflowLintIssue
+    >();
+
+    for (const issue of issues) {
+      byKey.set(
+        [
+          issue.rule,
+          issue.componentId || "",
+          issue.argumentId || "",
+          issue.message,
+        ].join("\u0000"),
+        issue,
+      );
+    }
+
+    return byKey;
+  } catch {
+    return null;
+  }
+};
+
+type FindIssueOfRebaseFunction = (data: {
+  rebased: JSONObject;
+  replacing: JSONObject;
+  current: JSONObject | null | undefined;
+}) => WorkflowLintIssue | null | undefined;
+
+/*
+ * The first thing the Builder's checks would say of the change made on top
+ * of what was saved that they say neither of the change saved as it is nor
+ * of the workflow as it is: what the two changes leave between them - a
+ * step one adds reading a step the other takes out, a step that runs before
+ * the one it reads. Null when there is none; undefined when the checks
+ * cannot be run.
+ */
+const findIssueOfRebase: FindIssueOfRebaseFunction = (data: {
+  rebased: JSONObject;
+  replacing: JSONObject;
+  current: JSONObject | null | undefined;
+}): WorkflowLintIssue | null | undefined => {
+  const rebased: Map<string, WorkflowLintIssue> | null = getIssuesByKey(
+    data.rebased,
+  );
+  const replacing: Map<string, WorkflowLintIssue> | null = getIssuesByKey(
+    data.replacing,
+  );
+  const current: Map<string, WorkflowLintIssue> | null = getIssuesByKey(
+    data.current,
+  );
+
+  if (!rebased || !replacing || !current) {
+    return undefined;
+  }
+
+  for (const [key, issue] of rebased) {
+    if (!replacing.has(key) && !current.has(key)) {
+      return issue;
+    }
+  }
+
+  return null;
+};
+
+// A change to a workflow's graph, as it is saved.
+interface GraphChange {
+  graph: JSONObject;
+  // The revision of the graph it is saved over: it is saved only while the workflow is at it.
+  revision: number;
+  // What was saved since the change was proposed, and kept; null when nothing was.
+  keptSince: WorkflowDraftChanges | null;
+}
+
+type MakeGraphChangeFunction = (data: {
+  draft: WorkflowDraft;
+  proposedOn: WorkflowDraftProposedOn;
+  workflow: Workflow;
+}) => GraphChange;
+
+/*
+ * The graph a change saves, over the workflow as it was just read. Nobody
+ * saved it since the change was proposed: the draft, as the card said.
+ * Somebody did: the change made on top of what they saved, when the two
+ * touch different steps and leave nothing between them to fix; otherwise
+ * a ConflictException, saving nothing (issue #6274).
+ */
+const makeGraphChange: MakeGraphChangeFunction = (data: {
+  draft: WorkflowDraft;
+  proposedOn: WorkflowDraftProposedOn;
+  workflow: Workflow;
+}): GraphChange => {
+  const revision: number = getGraphRevision(data.workflow);
+
+  // The draft saved as it is: what Ask AI saved before issue #6274.
+  const replacing: JSONObject = buildGraphFromDraft({
+    draft: data.draft,
+    getComponent: getWorkflowComponent,
+    generateId: UUID.generate,
+    existingGraph: data.workflow.graph,
+  });
+
+  if (revision === data.proposedOn.graphRevision) {
+    return { graph: replacing, revision: revision, keptSince: null };
+  }
+
+  const rebase: WorkflowDraftRebase = rebaseWorkflowDraft({
+    draft: data.draft,
+    proposedOn: data.proposedOn,
+    graph: data.workflow.graph,
+    getComponent: getWorkflowComponent,
+    generateId: UUID.generate,
+    digest: fingerprintWorkflowStep,
+  });
+
+  if (rebase.kind === WorkflowDraftRebaseKind.Conflict) {
+    throw new ConflictException(
+      rebase.stepIds.length > 0
+        ? describeStepsChangedSince(
+            nameSteps({
+              stepIds: rebase.stepIds,
+              graph: data.workflow.graph,
+              draft: data.draft,
+            }),
+          )
+        : describeNotMadeOnTop(rebase.problems),
+    );
+  }
+
+  const issue: WorkflowLintIssue | null | undefined = findIssueOfRebase({
+    rebased: rebase.graph,
+    replacing: replacing,
+    current: data.workflow.graph,
+  });
+
+  if (issue === undefined) {
+    throw new ConflictException(describeNotMadeOnTop([CANNOT_BE_CHECKED]));
+  }
+
+  if (issue) {
+    throw new ConflictException(describeIssueLeftByBoth(issue));
+  }
+
+  return {
+    graph: rebase.graph,
+    revision: revision,
+    keptSince: describeDraftChanges({
+      before: getDraftFromGraph({
+        graph: replacing,
+        getComponent: getWorkflowComponent,
+      }),
+      after: getDraftFromGraph({
+        graph: rebase.graph,
+        getComponent: getWorkflowComponent,
+      }),
+      titleOf: titleOfStep,
+    }),
+  };
+};
+
+type SaveGraphChangeFunction = (
+  data: {
+    workflowId: ObjectID;
+    workflow: Workflow;
+    draft: WorkflowDraft;
+    proposedOn: WorkflowDraftProposedOn;
+    // The rest of the change: a name, a description.
+    data: Record<string, unknown>;
+  },
+  ctx: ToolContext,
+) => Promise<{ change: GraphChange; workflow: Workflow }>;
+
+/*
+ * A change to the steps, saved only while the workflow is at the revision
+ * its graph was made over (miscDataProps.graphRevision, issue #6257): a
+ * save that lands in between is never replaced unseen. Refused for that, it
+ * is made again over the workflow as it is then, a few times at most.
+ */
+const saveGraphChange: SaveGraphChangeFunction = async (
+  data: {
+    workflowId: ObjectID;
+    workflow: Workflow;
+    draft: WorkflowDraft;
+    proposedOn: WorkflowDraftProposedOn;
+    data: Record<string, unknown>;
+  },
+  ctx: ToolContext,
+): Promise<{ change: GraphChange; workflow: Workflow }> => {
+  let workflow: Workflow = data.workflow;
+
+  for (let attempt: number = 1; ; attempt++) {
+    const change: GraphChange = makeGraphChange({
+      draft: data.draft,
+      proposedOn: data.proposedOn,
+      workflow: workflow,
+    });
+
+    try {
+      /*
+       * As the person: what they may not change in the Builder, this does
+       * not. Saying the change is Ask AI's (writeSource: attribution only),
+       * so the version history keeps it as a version of its own (issue
+       * #6258), and the version before it is the workflow just as Ask AI
+       * found it.
+       */
+      await WorkflowService.updateOneById({
+        id: data.workflowId,
+        data: { ...data.data, graph: change.graph } as never,
+        miscDataProps: { [WORKFLOW_GRAPH_REVISION_KEY]: change.revision },
+        props: { ...ctx.props, writeSource: WriteSource.AskAi },
+      });
+
+      return { change: change, workflow: workflow };
+    } catch (error) {
+      if (!(error instanceof ConflictException)) {
+        throw error;
+      }
+
+      if (attempt >= MAX_SAVE_ATTEMPTS) {
+        throw new ConflictException(UPDATE_WORKFLOW_PROBLEMS.keptBeingSaved);
+      }
+    }
+
+    workflow = await readWorkflowToSave({
+      workflowId: data.workflowId,
+      ctx: ctx,
+    });
+  }
 };
 
 type DescribeChangesFunction = (
@@ -1143,15 +1586,26 @@ export const UpdateWorkflowTool: ObservabilityTool = {
    * The workflow on screen written out, and what the change does to its steps
    * in the Builder's words, read as the person. A workflow that is on takes the
    * change at its next run, so the card says that before anyone approves it.
+   *
+   * And what the change is proposed on (issue #6274): the workflow's graph
+   * revision, and the fingerprints of the steps the change touches, written
+   * by OneUptime into the arguments that run once it is approved - over
+   * whatever the model sent, which could only make a stale change look like
+   * a current one. Approved after someone saved the workflow, the change is
+   * made on top of what they saved, or not at all (execute).
    */
   prepareMutation: async (
     args: JSONObject,
     ctx: ToolContext,
   ): Promise<PreparedMutation> => {
     const workflowId: ObjectID | undefined = getWorkflowId(args, ctx);
-    const prepared: JSONObject = workflowId
-      ? { ...args, workflowId: workflowId.toString() }
-      : args;
+    const prepared: JSONObject = { ...args };
+
+    delete prepared[WORKFLOW_DRAFT_PROPOSED_ON_KEY];
+
+    if (workflowId) {
+      prepared["workflowId"] = workflowId.toString();
+    }
 
     let workflow: Workflow | null = null;
 
@@ -1178,27 +1632,43 @@ export const UpdateWorkflowTool: ObservabilityTool = {
         getComponent: getWorkflowComponent,
       }).length === 0;
 
-    const description: Array<AIActionSentence> = [
-      ...(workflow && draft && canCompare
-        ? describeChangesForPerson(
-            describeDraftChanges({
-              before: getDraftFromGraph({
-                graph: workflow.graph,
-                getComponent: getWorkflowComponent,
-              }),
-              after: getDraftFromGraph({
-                graph: buildGraphFromDraft({
-                  draft: draft,
-                  getComponent: getWorkflowComponent,
-                  generateId: UUID.generate,
-                  existingGraph: workflow.graph,
-                }),
-                getComponent: getWorkflowComponent,
-              }),
-              titleOf: titleOfStep,
+    let changes: Array<AIActionSentence> = [];
+
+    if (workflow && draft && canCompare) {
+      changes = describeChangesForPerson(
+        describeDraftChanges({
+          before: getDraftFromGraph({
+            graph: workflow.graph,
+            getComponent: getWorkflowComponent,
+          }),
+          after: getDraftFromGraph({
+            graph: buildGraphFromDraft({
+              draft: draft,
+              getComponent: getWorkflowComponent,
+              generateId: UUID.generate,
+              existingGraph: workflow.graph,
             }),
-          )
-        : []),
+            getComponent: getWorkflowComponent,
+          }),
+          titleOf: titleOfStep,
+        }),
+      );
+
+      const proposedOn: WorkflowDraftProposedOn = proposeWorkflowDraft({
+        draft: draft,
+        graph: workflow.graph,
+        graphRevision: getGraphRevision(workflow),
+        getComponent: getWorkflowComponent,
+        generateId: UUID.generate,
+        digest: fingerprintWorkflowStep,
+      });
+
+      prepared[WORKFLOW_DRAFT_PROPOSED_ON_KEY] =
+        proposedOn as unknown as JSONObject;
+    }
+
+    const description: Array<AIActionSentence> = [
+      ...changes,
       ...(workflow?.isEnabled
         ? [aiActionSentence(AI_ACTION_LINES.workflowIsOn)]
         : []),
@@ -1230,22 +1700,10 @@ export const UpdateWorkflowTool: ObservabilityTool = {
       );
     }
 
-    const workflow: Workflow | null = await readWorkflowToChange({
+    let workflow: Workflow = await readWorkflowToSave({
       workflowId: workflowId,
       ctx: ctx,
     });
-
-    if (!workflow) {
-      throw new BadDataException(
-        `There is no workflow ${workflowId.toString()} that this user can read.`,
-      );
-    }
-
-    if (workflow.isArchived) {
-      throw new BadDataException(
-        "This workflow is archived. Ask the user to unarchive it first.",
-      );
-    }
 
     const data: Record<string, unknown> = {};
     const name: string | undefined = ToolArgs.getString(args, "name");
@@ -1262,48 +1720,75 @@ export const UpdateWorkflowTool: ObservabilityTool = {
       data["description"] = description;
     }
 
-    let graph: JSONObject | null = null;
-    let draft: WorkflowDraft | null = null;
+    const draft: WorkflowDraft | null = Array.isArray(args["steps"])
+      ? readWorkflowDraft(args)
+      : null;
 
-    if (Array.isArray(args["steps"])) {
-      draft = readWorkflowDraft(args);
+    if (draft) {
       assertDraftCanBeSaved(draft);
-
-      graph = buildGraphFromDraft({
-        draft: draft,
-        getComponent: getWorkflowComponent,
-        generateId: UUID.generate,
-        existingGraph: workflow.graph,
-      });
-
-      data["graph"] = graph;
     }
 
-    if (Object.keys(data).length === 0) {
+    if (Object.keys(data).length === 0 && !draft) {
       throw new BadDataException(
         "Nothing to change: pass a name, a description, or steps and connections.",
       );
     }
 
-    /*
-     * As the person: what they may not change in the Builder, this does not.
-     * Saying the change is Ask AI's (writeSource: attribution only), so the
-     * version history keeps it as a version of its own (issue #6258), and
-     * the version before it is the workflow just as Ask AI found it.
-     */
-    await WorkflowService.updateOneById({
-      id: workflowId,
-      data: data as never,
-      props: { ...ctx.props, writeSource: WriteSource.AskAi },
-    });
+    let change: GraphChange | null = null;
+
+    if (draft) {
+      // OneUptime's record of what the change was proposed on, written as it was proposed.
+      const proposedOn: WorkflowDraftProposedOn | null =
+        readWorkflowDraftProposedOn(args[WORKFLOW_DRAFT_PROPOSED_ON_KEY]);
+
+      if (!proposedOn) {
+        throw new BadDataException(UPDATE_WORKFLOW_PROBLEMS.notProposed);
+      }
+
+      const saved: { change: GraphChange; workflow: Workflow } =
+        await saveGraphChange(
+          {
+            workflowId: workflowId,
+            workflow: workflow,
+            draft: draft,
+            proposedOn: proposedOn,
+            data: data,
+          },
+          ctx,
+        );
+
+      change = saved.change;
+      workflow = saved.workflow;
+    } else {
+      /*
+       * A name or a description alone saves no graph, so it names no
+       * revision: saved over whatever the workflow holds, as it always was.
+       * As the person, saying the change is Ask AI's (issue #6258).
+       */
+      await WorkflowService.updateOneById({
+        id: workflowId,
+        data: data as never,
+        props: { ...ctx.props, writeSource: WriteSource.AskAi },
+      });
+    }
 
     const shownName: string = name || workflow.name || "";
     const id: string = workflowId.toString();
+    const graph: JSONObject | null = change ? change.graph : null;
     const issues: Array<WorkflowLintIssue> = graph ? getLintIssues(graph) : [];
+    // The steps the workflow has now: with what was kept, when it was made on top of a save.
+    const steps: WorkflowDraft | null = graph
+      ? getDraftFromGraph({ graph: graph, getComponent: getWorkflowComponent })
+      : null;
+    const keptSince: WorkflowDraftChanges | null = change
+      ? change.keptSince
+      : null;
 
     return {
       dataForLlm: describeSaved({
-        saved: `Updated workflow "${shownName}".`,
+        saved: `Updated workflow "${shownName}".${
+          keptSince ? ` ${describeKeptSince(keptSince)}` : ""
+        }`,
         id: id,
         issues: issues,
         isOn: Boolean(workflow.isEnabled),
@@ -1327,9 +1812,12 @@ export const UpdateWorkflowTool: ObservabilityTool = {
                 ? AI_ACTION_CARD_LINES.workflowOnNextRun
                 : AI_ACTION_CARD_LINES.workflowTurnedOff,
             ),
+            ...(keptSince
+              ? [aiActionSentence(AI_ACTION_CARD_LINES.workflowSavedSinceKept)]
+              : []),
           ],
-          ...(draft
-            ? { facts: getCardFacts({ draft: draft, issues: issues }) }
+          ...(steps
+            ? { facts: getCardFacts({ draft: steps, issues: issues }) }
             : {}),
         },
         link: {
