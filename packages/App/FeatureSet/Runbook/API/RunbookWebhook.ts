@@ -419,7 +419,12 @@ export default class RunbookWebhookAPI {
       // What the entry names: the runbook, and whether it had a key.
       const before: Runbook | null = await RunbookService.findOneById({
         id: target.runbookId,
-        select: { _id: true, projectId: true, name: true, webhookSecretKey: true },
+        select: {
+          _id: true,
+          projectId: true,
+          name: true,
+          webhookSecretKey: true,
+        },
         props: { isRoot: true },
       });
 

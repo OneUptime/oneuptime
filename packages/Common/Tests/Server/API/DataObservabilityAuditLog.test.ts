@@ -159,25 +159,21 @@ beforeEach(() => {
     .spyOn(CommonAPI, "assertPermittedInProject")
     .mockImplementation(() => {});
 
-  jest
-    .spyOn(DataStoreService, "findOneBy")
-    .mockImplementation((async () => {
-      const copy: DataStore = new DataStore();
-      Object.assign(copy, store);
-      return copy;
-    }) as never);
+  jest.spyOn(DataStoreService, "findOneBy").mockImplementation((async () => {
+    const copy: DataStore = new DataStore();
+    Object.assign(copy, store);
+    return copy;
+  }) as never);
   jest
     .spyOn(DataStoreService, "updateColumnsByIdWithoutHooks")
     .mockImplementation((async (data: { data: JSONObject }) => {
       writes.push(data.data);
     }) as never);
-  jest
-    .spyOn(DataProductService, "findOneBy")
-    .mockImplementation((async () => {
-      const copy: DataProduct = new DataProduct();
-      Object.assign(copy, product);
-      return copy;
-    }) as never);
+  jest.spyOn(DataProductService, "findOneBy").mockImplementation((async () => {
+    const copy: DataProduct = new DataProduct();
+    Object.assign(copy, product);
+    return copy;
+  }) as never);
   jest
     .spyOn(DataProductService, "updateColumnsByIdWithoutHooks")
     .mockImplementation((async (data: { data: JSONObject }) => {
@@ -186,11 +182,11 @@ beforeEach(() => {
   jest
     .spyOn(TableHealthIngest, "recordSnapshot")
     .mockResolvedValue(undefined as never);
-  jest
-    .spyOn(AuditLogService, "recordUpdate")
-    .mockImplementation((async (data: Recorded) => {
-      recorded.push(data);
-    }) as never);
+  jest.spyOn(AuditLogService, "recordUpdate").mockImplementation((async (
+    data: Recorded,
+  ) => {
+    recorded.push(data);
+  }) as never);
 });
 
 afterEach(() => {
@@ -242,7 +238,10 @@ describe("watching a data store's tables", () => {
       recorded.map((entry: Recorded): JSONObject => {
         return entry.updatedFields;
       }),
-    ).toEqual([{ isTableHealthEnabled: false }, { isTableHealthEnabled: true }]);
+    ).toEqual([
+      { isTableHealthEnabled: false },
+      { isTableHealthEnabled: true },
+    ]);
     expect(writes[1]!["nextTableHealthCollectionAt"]).toBeInstanceOf(Date);
   });
 
@@ -251,7 +250,11 @@ describe("watching a data store's tables", () => {
       null,
     );
 
-    await watch()(request({ id: STORE.toString() }, { isWatched: true }), res, next);
+    await watch()(
+      request({ id: STORE.toString() }, { isWatched: true }),
+      res,
+      next,
+    );
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
     expect(recorded).toHaveLength(0);

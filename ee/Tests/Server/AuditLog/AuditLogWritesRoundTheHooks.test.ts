@@ -493,11 +493,12 @@ describe("merging and unmerging exceptions", () => {
     jest
       .spyOn(TelemetryExceptionService, "forgetGroupFingerprints")
       .mockResolvedValue(undefined as never);
-    jest
-      .spyOn(ModelPermission, "getUpdatableQuery")
-      .mockImplementation((async (_type: unknown, query: unknown) => {
-        return query;
-      }) as never);
+    jest.spyOn(ModelPermission, "getUpdatableQuery").mockImplementation((async (
+      _type: unknown,
+      query: unknown,
+    ) => {
+      return query;
+    }) as never);
     jest
       .spyOn(TelemetryExceptionService, "addExceptionScope")
       .mockImplementation((async (query: unknown) => {

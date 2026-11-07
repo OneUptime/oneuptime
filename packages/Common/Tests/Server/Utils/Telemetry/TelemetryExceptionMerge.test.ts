@@ -1082,11 +1082,11 @@ describe("the audit log entries a merge or an unmerge leaves", () => {
   beforeEach(() => {
     recorded = [];
 
-    jest
-      .spyOn(AuditLogService, "recordUpdate")
-      .mockImplementation((async (data: RecordedUpdate) => {
-        recorded.push(data);
-      }) as never);
+    jest.spyOn(AuditLogService, "recordUpdate").mockImplementation((async (
+      data: RecordedUpdate,
+    ) => {
+      recorded.push(data);
+    }) as never);
     jest
       .spyOn(TelemetryExceptionService, "forgetGroupFingerprints")
       .mockResolvedValue(undefined);
@@ -1175,7 +1175,11 @@ describe("the audit log entries a merge or an unmerge leaves", () => {
 
     rows = [row(A)];
 
-    for (let index: number = 0; index < MAX_EXCEPTIONS_MERGED_AT_ONCE; index++) {
+    for (
+      let index: number = 0;
+      index < MAX_EXCEPTIONS_MERGED_AT_ONCE;
+      index++
+    ) {
       const mergedId: string = id(index * 3);
       merged.push(mergedId);
       rows.push(row(mergedId));
@@ -1276,9 +1280,15 @@ describe("the audit log entries a merge or an unmerge leaves", () => {
    */
   test("a seeded sweep: every exception a merge or an unmerge moved is entered once, from where to where", async () => {
     const random: SeededRandom = seededRandom(6276);
-    const ids: Array<string> = [A, B, C, D, ...[1, 2, 3, 4].map((n: number) => {
-      return `50000000-0000-4000-8000-00000000000${n}`;
-    })];
+    const ids: Array<string> = [
+      A,
+      B,
+      C,
+      D,
+      ...[1, 2, 3, 4].map((n: number) => {
+        return `50000000-0000-4000-8000-00000000000${n}`;
+      }),
+    ];
 
     rows = ids.map((id: string): Row => {
       return row(id);
@@ -1328,7 +1338,9 @@ describe("the audit log entries a merge or an unmerge leaves", () => {
       }
 
       if (
-        text.startsWith(`UPDATE "TelemetryException" SET "${MERGED_INTO}" = NULL`) &&
+        text.startsWith(
+          `UPDATE "TelemetryException" SET "${MERGED_INTO}" = NULL`,
+        ) &&
         text.endsWith(`WHERE "_id" = $1`)
       ) {
         rows.find((candidate: Row): boolean => {
@@ -1352,7 +1364,8 @@ describe("the audit log entries a merge or an unmerge leaves", () => {
           return await run({
             query: async (sql: string, params: Array<unknown>) => {
               if (sql.trim().startsWith("SELECT")) {
-                const locked: Array<string> = (params[0] as Array<string>) || [];
+                const locked: Array<string> =
+                  (params[0] as Array<string>) || [];
                 const into: Array<string> = (params[1] as Array<string>) || [];
 
                 return rows
@@ -1423,7 +1436,11 @@ describe("the audit log entries a merge or an unmerge leaves", () => {
           return before.get(candidate.id) !== candidate.mergedIntoId;
         })
         .map((candidate: Row): [string, string | null, string | null] => {
-          return [candidate.id, before.get(candidate.id)!, candidate.mergedIntoId];
+          return [
+            candidate.id,
+            before.get(candidate.id)!,
+            candidate.mergedIntoId,
+          ];
         });
 
       const sort: (

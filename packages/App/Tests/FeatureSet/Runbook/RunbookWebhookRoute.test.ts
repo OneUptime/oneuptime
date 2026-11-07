@@ -794,7 +794,9 @@ describe("the key routes", () => {
     // The runbook as it was, named, with the key it had.
     expect(recorded.before.name).toBe("Clear the disk");
     expect(recorded.before.webhookSecretKey).toBe(SECRET_KEY);
-    expect(recorded.updatedFields).toEqual({ webhookSecretKey: "n".repeat(43) });
+    expect(recorded.updatedFields).toEqual({
+      webhookSecretKey: "n".repeat(43),
+    });
     expect(recorded.itemId.toString()).toBe(RUNBOOK_ID.toString());
     expect(recorded.props).toBe(caller);
     expect(recorded.includeColumns).toEqual(["webhookSecretKey"]);

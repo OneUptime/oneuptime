@@ -900,9 +900,7 @@ export default class TelemetryExceptionMerge {
             before.projectId = new ObjectID(change.projectId);
 
             if (change.from) {
-              before.mergedIntoTelemetryExceptionId = new ObjectID(
-                change.from,
-              );
+              before.mergedIntoTelemetryExceptionId = new ObjectID(change.from);
             }
 
             await AuditLogService.recordUpdate({

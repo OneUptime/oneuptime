@@ -664,11 +664,11 @@ describe("the audit log", () => {
   beforeEach(() => {
     recorded = [];
 
-    jest
-      .spyOn(AuditLogService, "recordUpdate")
-      .mockImplementation((async (data: Recorded) => {
-        recorded.push(data);
-      }) as never);
+    jest.spyOn(AuditLogService, "recordUpdate").mockImplementation((async (
+      data: Recorded,
+    ) => {
+      recorded.push(data);
+    }) as never);
 
     // A read answers the row as it was then, as Postgres does.
     jest
@@ -760,7 +760,9 @@ describe("the audit log", () => {
   });
 
   test("streaming stopped: the hashes and when they were made, from what they were to none", async () => {
-    stored.streamKeyHashes = { current: { hash: "h" } } as unknown as JSONObject;
+    stored.streamKeyHashes = {
+      current: { hash: "h" },
+    } as unknown as JSONObject;
     stored.streamKeyCreatedAt = new Date("2026-11-01T10:00:00.000Z");
 
     await stopHandler(
