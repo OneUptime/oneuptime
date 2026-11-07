@@ -422,12 +422,19 @@ export default class RumApplication extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * The stored values are unchanged; the Dashboard words them
+   * (RumApplicationStatus): "connected" is Receiving data, "disconnected"
+   * is No recent traffic - nobody has used the app for fifteen minutes,
+   * which is normal - and no value, with no lastSeenAt, is Waiting for
+   * data.
+   */
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
     title: "OTel Collector Status",
     description:
-      "Whether telemetry is currently being received (connected) or has gone stale (disconnected).",
+      "connected while data has arrived in the last 15 minutes, disconnected once nothing has for 15 minutes (normal while nobody uses the app), and empty until the first data arrives. The Dashboard shows these as Receiving data, No recent traffic and Waiting for data.",
   })
   @Column({
     nullable: true,

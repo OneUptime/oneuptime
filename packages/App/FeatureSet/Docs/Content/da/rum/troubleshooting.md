@@ -1,6 +1,6 @@
 # RUM-fejlfinding
 
-Når en RUM-applikation mangler, er tom eller viser **Afbrudt**, så gå denne side igennem i rækkefølge. Hvert tjek udelukker en del af vejen mellem din app og OneUptime, i den rækkefølge disse problemer normalt opstår.
+Når en RUM-applikation mangler eller er tom, eller viser **Ingen nylig trafik**, mens folk bruger den, så gå denne side igennem i rækkefølge. Hvert tjek udelukker en del af vejen mellem din app og OneUptime, i den rækkefølge disse problemer normalt opstår.
 
 :::cards
 - [Tjek nøglen](#tjek-nøglen): Det hurtigste tjek, og alt andet afhænger af det.
@@ -120,15 +120,15 @@ Siden **Klienter** viser `browser.platform` på web og `device.model.identifier`
 
 Kortet fyldes kun med de metrikker, din app sender, så spor alene fylder det aldrig. Tjek, at du eksporterer metrikker, at deres navne er blandt dem, OneUptime læser, og at de vises på applikationens side **Metrikker**. [Kortet siger «No web vitals reported yet»](/docs/rum/web-vitals#fejlfinding) gennemgår hvert tjek, herunder værdier, der går tabt, når en besøgende lukker fanen før næste eksport.
 
-## Status siger Afbrudt, mens folk bruger appen
+## Status siger Ingen nylig trafik, mens folk bruger appen
 
-En applikation skifter til **Afbrudt** efter 15 minutter uden telemetri. Hvis folk bruger appen:
+En applikation viser **Ingen nylig trafik** efter 15 minutter uden telemetri. Hvis folk bruger appen:
 
 - **En sampler smider måske alt væk.** Tjek, at du ikke har sat en sampler, der altid er slået fra, eller en meget lav ratio.
 - **Appen sender måske kun telemetri ved nogle interaktioner**, og ingen brugte dem i den periode.
 - **Nøglen er måske blevet tilbagekaldt eller deaktiveret** efter udrulningen: kør [nøgletjekket](#tjek-nøglen) igen.
 
-En intern app eller en app med lav trafik uden besøgende om natten er virkelig afbrudt. Det er ikke en fejl.
+En intern app eller en app med lav trafik uden besøgende om natten viser også **Ingen nylig trafik**. Det er normalt og ikke en fejl.
 
 ## Problemer med sessionsafspilning
 

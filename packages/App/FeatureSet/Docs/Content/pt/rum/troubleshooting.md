@@ -1,6 +1,6 @@
 # Solução de problemas de RUM
 
-Quando uma aplicação RUM está faltando, está vazia ou mostra **Desconectado**, siga esta página em ordem. Cada verificação descarta uma parte do caminho entre o seu aplicativo e o OneUptime, na ordem em que esses problemas costumam acontecer.
+Quando uma aplicação RUM está faltando ou vazia, ou mostra **Sem tráfego recente** enquanto as pessoas a usam, siga esta página em ordem. Cada verificação descarta uma parte do caminho entre o seu aplicativo e o OneUptime, na ordem em que esses problemas costumam acontecer.
 
 :::cards
 - [Verificar a chave](#verificar-a-chave): A verificação mais rápida, e todo o resto depende dela.
@@ -120,15 +120,15 @@ A página **Clientes** lista `browser.platform` na web e `device.model.identifie
 
 O cartão só se preenche com as métricas que o seu aplicativo envia, então traços sozinhos nunca o preenchem. Verifique se você exporta métricas, se os nomes delas estão entre os que o OneUptime lê e se elas aparecem na página **Métricas** da aplicação. [O cartão diz «No web vitals reported yet»](/docs/rum/web-vitals#solução-de-problemas) passa por cada verificação, incluindo os valores perdidos quando um visitante fecha a aba antes da próxima exportação.
 
-## O status diz Desconectado enquanto as pessoas usam o aplicativo
+## O status diz Sem tráfego recente enquanto as pessoas usam o aplicativo
 
-Uma aplicação passa para **Desconectado** após 15 minutos sem telemetria. Se há pessoas usando o aplicativo:
+Uma aplicação passa para **Sem tráfego recente** após 15 minutos sem telemetria. Se há pessoas usando o aplicativo:
 
 - **Um amostrador pode estar descartando tudo.** Verifique se você não definiu um amostrador sempre desligado, nem uma proporção muito baixa.
 - **O aplicativo pode enviar telemetria só em algumas interações**, e ninguém as usou nesse período.
 - **A chave pode ter sido revogada ou desativada** depois do deploy: execute de novo a [verificação da chave](#verificar-a-chave).
 
-Um aplicativo interno ou de pouco tráfego sem visitantes à noite está realmente desconectado. Não é uma falha.
+Um aplicativo interno ou de pouco tráfego sem visitantes à noite também mostra **Sem tráfego recente**. Isso é normal, não uma falha.
 
 ## Problemas de reprodução de sessões
 

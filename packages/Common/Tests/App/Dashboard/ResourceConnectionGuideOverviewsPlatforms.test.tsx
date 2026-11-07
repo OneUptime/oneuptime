@@ -302,6 +302,50 @@ interface OverviewCase {
   heroStatus: (title: HTMLElement) => HTMLElement;
   // The first tile of the section the page draws after the card.
   firstTile: string;
+  // What the pill and the card say; an agent-fed resource's when left out.
+  words?: OverviewWords | undefined;
+}
+
+/*
+ * What the hero's pill says in each state, and the heading of the card for
+ * one whose data stopped. An agent-fed resource is Connected or
+ * Disconnected, and has stopped sending data when nothing arrives. A RUM
+ * application's data comes from the people using it, so it is Receiving
+ * data, No recent traffic or Waiting for data, and is idle - not stopped -
+ * when nobody has used it for a while (issue #6191).
+ */
+interface OverviewWords {
+  connected: string;
+  disconnected: string;
+  neverConnected: string;
+  stoppedHeading: (noun: string) => string;
+}
+
+const AGENT_WORDS: OverviewWords = {
+  connected: "Connected",
+  disconnected: "Disconnected",
+  neverConnected: "Disconnected",
+  stoppedHeading: (noun: string): string => {
+    return `This ${noun} stopped sending data`;
+  },
+};
+
+const RUM_WORDS: OverviewWords = {
+  connected: "Receiving data",
+  disconnected: "No recent traffic",
+  neverConnected: "Waiting for data",
+  stoppedHeading: (): string => {
+    return "No traffic in the last 15 minutes";
+  },
+};
+
+function wordsOf(overview: OverviewCase): OverviewWords {
+  return overview.words || AGENT_WORDS;
+}
+
+// The whole of an element's words, as a regular expression would match them.
+function exactly(text: string): RegExp {
+  return new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
 }
 
 // Proxmox, Ceph and VMware draw their own hero: the pill sits beside the h1.
@@ -402,6 +446,7 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
       documentationPage: PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION,
       heroStatus: resourceOverviewPill,
       firstTile: "Page loads",
+      words: RUM_WORDS,
     },
   ],
   [
@@ -579,13 +624,15 @@ describe.each(OVERVIEWS)(
       await expectDirectlyUnderHero(overview, element);
     });
 
-    test("its hero agrees: Disconnected, never seen", async () => {
+    test("its hero agrees: not connected yet, never seen", async () => {
       await mount(overview, handMade());
 
       const element: HTMLElement = shownCard();
       const title: HTMLElement = heroTitle(overview);
 
-      expect(overview.heroStatus(title)).toHaveTextContent(/^Disconnected$/);
+      expect(overview.heroStatus(title)).toHaveTextContent(
+        exactly(wordsOf(overview).neverConnected),
+      );
       /*
        * One whole sentence, not "Last seen never": a language that words
        * "Last seen" would read an English "never" inside it.
@@ -639,12 +686,18 @@ describe.each(OVERVIEWS)(
       expect(
         within(element).getByRole("heading", {
           level: 2,
-          name: `This ${overview.noun} stopped sending data`,
+          name: wordsOf(overview).stoppedHeading(overview.noun),
         }),
       ).toBeInTheDocument();
       expect(element).toHaveTextContent(
         `OneUptime last heard from this ${overview.noun} 3 hours ago.`,
       );
+      // An idle resource's checks wait, folded, until someone asks for them.
+      if (overview.guide.idleCopy) {
+        fireEvent.click(
+          within(element).getByTestId("resource-connection-guide-steps-toggle"),
+        );
+      }
       expect(stepTitles(element)).toEqual(
         titlesOf(overview.guide.troubleshootingSteps),
       );
@@ -653,9 +706,9 @@ describe.each(OVERVIEWS)(
       ).toHaveAttribute("href", documentationHref(overview.documentationPage));
       await expectDirectlyUnderHero(overview, element);
 
-      // The hero says the same: Disconnected, last seen 3 hours ago.
+      // The hero says the same, last seen 3 hours ago.
       expect(overview.heroStatus(heroTitle(overview))).toHaveTextContent(
-        /^Disconnected$/,
+        exactly(wordsOf(overview).disconnected),
       );
       expect(
         within(element.previousElementSibling as HTMLElement).getByText(
@@ -664,7 +717,7 @@ describe.each(OVERVIEWS)(
       ).toBeInTheDocument();
     });
 
-    test("a connected one has no card, and its hero reads Connected", async () => {
+    test("a connected one has no card, and its hero says data arrives", async () => {
       await mount(overview, {
         otelCollectorStatus: "connected",
         lastSeenAt: A_MINUTE_AGO,
@@ -682,10 +735,184 @@ describe.each(OVERVIEWS)(
       expect(
         screen.queryByRole("link", { name: "Open the setup guide" }),
       ).toBeNull();
-      expect(overview.heroStatus(title)).toHaveTextContent(/^Connected$/);
+      expect(overview.heroStatus(title)).toHaveTextContent(
+        exactly(wordsOf(overview).connected),
+      );
     });
   },
 );
+
+/*
+ * Issue #6191: a RUM application's data comes from the people using it, so
+ * one nobody has used for a while is idle, not broken. Its Overview says so:
+ * the hero's pill reads "No recent traffic" in grey, never "Disconnected" in
+ * any colour, and the card under it says when data last arrived, that this
+ * is normal, and keeps the checks folded until someone asks for them.
+ */
+describe("RUM application overview: idle, never Disconnected", () => {
+  const RUM: OverviewCase = (
+    OVERVIEWS.find(([name]: [string, OverviewCase]): boolean => {
+      return name === "RUM application";
+    }) as [string, OverviewCase]
+  )[1];
+
+  const IDLE: Record<string, unknown> = {
+    otelCollectorStatus: "disconnected",
+    lastSeenAt: THREE_HOURS_AGO,
+  };
+
+  function toggle(): HTMLElement {
+    return within(shownCard()).getByTestId(
+      "resource-connection-guide-steps-toggle",
+    );
+  }
+
+  function shownSteps(): Array<HTMLElement> {
+    return within(shownCard())
+      .queryAllByTestId("resource-connection-guide-step")
+      .filter((step: HTMLElement): boolean => {
+        // jsdom has no stylesheet: the list is hidden by its attribute.
+        return !step.closest("[hidden]");
+      });
+  }
+
+  test.each([
+    ["waiting for its first data", { otelCollectorStatus: undefined }],
+    ["idle", IDLE],
+    [
+      "receiving data",
+      { otelCollectorStatus: "connected", lastSeenAt: A_MINUTE_AGO },
+    ],
+  ])(
+    "nothing on the page says Disconnected while it is %s",
+    async (_state: string, connection: Record<string, unknown>) => {
+      await mount(RUM, connection);
+      await firstTileOfNextSection(RUM);
+
+      expect(document.body.textContent).not.toMatch(/disconnected/i);
+      expect(resourceOverviewPill().getAttribute("title") || "").not.toMatch(
+        /disconnected/i,
+      );
+    },
+  );
+
+  test("the idle card is grey and says that this is normal", async () => {
+    await mount(RUM, IDLE);
+
+    const element: HTMLElement = shownCard();
+
+    expect(element).toHaveAttribute("data-variant", "idle");
+    expect(element).toHaveClass("border-gray-200");
+    expect(element.className).not.toMatch(/amber|red/);
+    expect(element).toHaveTextContent(
+      "OneUptime last heard from this application 3 hours ago. It sends data only while people use it, so this is normal when nobody is, such as overnight.",
+    );
+    // Not the agent's "stopped sending data" card.
+    expect(element).not.toHaveTextContent(/stopped sending data/);
+    expect(element).not.toHaveTextContent(/no longer reporting/);
+  });
+
+  test("its checks stay folded until asked for, then fold away again", async () => {
+    await mount(RUM, IDLE);
+
+    expect(toggle()).toHaveTextContent("What to check if people are using it");
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+    expect(shownSteps()).toHaveLength(0);
+
+    const list: HTMLElement = document.getElementById(
+      toggle().getAttribute("aria-controls") as string,
+    ) as HTMLElement;
+    expect(list).not.toBeNull();
+    expect(list).toHaveAttribute("hidden");
+
+    fireEvent.click(toggle());
+
+    expect(toggle()).toHaveAttribute("aria-expanded", "true");
+    expect(list).not.toHaveAttribute("hidden");
+    expect(
+      shownSteps().map((step: HTMLElement): string => {
+        return within(step).getByRole("heading").textContent || "";
+      }),
+    ).toEqual(titlesOf(RUM.guide.troubleshootingSteps));
+
+    fireEvent.click(toggle());
+
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+    expect(shownSteps()).toHaveLength(0);
+  });
+
+  test("its link to the setup guide is the quieter, outlined button", async () => {
+    await mount(RUM, IDLE);
+
+    const link: HTMLElement = within(shownCard()).getByRole("link", {
+      name: "Open the setup guide",
+    });
+
+    expect(link).toHaveClass("bg-white");
+    expect(link).not.toHaveClass("bg-indigo-600");
+    expect(link).toHaveAttribute(
+      "href",
+      documentationHref(RUM.documentationPage),
+    );
+  });
+
+  test("before its first data the setup card does not call it Disconnected either", async () => {
+    await mount(RUM, { otelCollectorStatus: undefined, lastSeenAt: undefined });
+
+    const element: HTMLElement = shownCard();
+
+    expect(element).toHaveAttribute("data-variant", "setup");
+    expect(element).toHaveTextContent(
+      "No data has arrived from this application yet. Set up the OpenTelemetry browser or mobile SDK — it takes a few minutes.",
+    );
+    // Its steps are what to do now, so they are not folded.
+    expect(
+      within(element).queryByTestId("resource-connection-guide-steps-toggle"),
+    ).toBeNull();
+    expect(shownSteps()).toHaveLength(3);
+    expect(element).toHaveTextContent(
+      "Open your app so it sends its first data, then refresh this page. The application switches to Receiving data.",
+    );
+  });
+
+  test.each([
+    [
+      "Receiving data",
+      { otelCollectorStatus: "connected", lastSeenAt: A_MINUTE_AGO },
+      "bg-emerald-50",
+      "Data has arrived from this application in the last 15 minutes.",
+    ],
+    [
+      "No recent traffic",
+      IDLE,
+      "bg-gray-50",
+      "Nothing has arrived in the last 15 minutes. An application sends data only while people use it, so this is normal when nobody is, for example overnight. If people are using it right now, its Overview lists what to check.",
+    ],
+    [
+      "Waiting for data",
+      { otelCollectorStatus: undefined, lastSeenAt: undefined },
+      "bg-gray-50",
+      "Nothing has arrived from this application yet. Add the OpenTelemetry SDK or the Session Replay snippet to your app; its Documentation tab shows how.",
+    ],
+  ])(
+    "the hero's %s pill is coloured as it should be and says what it means on hover",
+    async (
+      label: string,
+      connection: Record<string, unknown>,
+      background: string,
+      description: string,
+    ) => {
+      await mount(RUM, connection);
+
+      const pill: HTMLElement = resourceOverviewPill();
+
+      expect(pill).toHaveTextContent(exactly(label));
+      expect(pill).toHaveClass(background);
+      expect(pill.className).not.toMatch(/amber|red/);
+      expect(pill).toHaveAttribute("title", description);
+    },
+  );
+});
 
 describe("Cloud environment overview with no cloud.platform", () => {
   const UNSCOPED: Record<string, unknown> = {

@@ -46367,5 +46367,18 @@
   "{{count}} queues": "{{count}} queues",
   "{{count}} queues_one": "{{count}} queue",
   "{{count}} shown for context": "{{count}} shown for context",
-  "{{rate}} of its spans": "{{rate}} of its spans"
+  "{{rate}} of its spans": "{{rate}} of its spans",
+  "Data has arrived from this application in the last 15 minutes.": "Chegaram dados desta aplicação nos últimos 15 minutos.",
+  "No data has arrived from this application yet. Set up the OpenTelemetry browser or mobile SDK — it takes a few minutes.": "Nenhum dado chegou desta aplicação ainda. Configure o SDK do OpenTelemetry para navegador ou dispositivos móveis — leva só alguns minutos.",
+  "No recent traffic": "Sem tráfego recente",
+  "No traffic in the last 15 minutes": "Sem tráfego nos últimos 15 minutos",
+  "Nothing has arrived from this application yet. Add the OpenTelemetry SDK or the Session Replay snippet to your app; its Documentation tab shows how.": "Nada chegou desta aplicação ainda. Adicione ao seu app o SDK do OpenTelemetry ou o snippet de Reprodução de sessões; a aba Documentação dela mostra como.",
+  "Nothing has arrived in the last 15 minutes. An application sends data only while people use it, so this is normal when nobody is, for example overnight. If people are using it right now, its Overview lists what to check.": "Nada chegou nos últimos 15 minutos. Uma aplicação só envia dados enquanto as pessoas a usam, então isso é normal quando ninguém a está usando, por exemplo à noite. Se as pessoas a estiverem usando agora, a Visão geral dela mostra o que verificar.",
+  "OneUptime last heard from this application {{lastHeard}}. It sends data only while people use it, so this is normal when nobody is, such as overnight.": "O OneUptime recebeu dados desta aplicação pela última vez {{lastHeard}}. Ela só envia dados enquanto as pessoas a usam, então isso é normal quando ninguém a está usando, por exemplo à noite.",
+  "Open your app so it sends its first data, then refresh this page. The application switches to Receiving data.": "Abra seu app para que ele envie os primeiros dados e depois atualize esta página. A aplicação muda para \"Recebendo dados\".",
+  "Receiving data": "Recebendo dados",
+  "Status shows \"No recent traffic\" while people use the app": "O status mostra \"Sem tráfego recente\" enquanto as pessoas usam o app",
+  "What to check if people are using it": "O que verificar se as pessoas a estiverem usando",
+  "No session matches these filters": "No session matches these filters",
+  "Sessions were recorded in this range, but none of them match the filters above.": "Sessions were recorded in this range, but none of them match the filters above."
 }

@@ -1,6 +1,6 @@
 # RUM-felsökning
 
-När en RUM-applikation saknas, är tom eller visar **Frånkopplad** går du igenom den här sidan i ordning. Varje kontroll utesluter en del av vägen mellan din app och OneUptime, i den ordning som de här problemen brukar uppstå.
+När en RUM-applikation saknas eller är tom, eller visar **Ingen trafik nyligen** medan folk använder den, går du igenom den här sidan i ordning. Varje kontroll utesluter en del av vägen mellan din app och OneUptime, i den ordning som de här problemen brukar uppstå.
 
 :::cards
 - [Kontrollera nyckeln](#kontrollera-nyckeln): Den snabbaste kontrollen, och allt annat beror på den.
@@ -120,15 +120,15 @@ Sidan **Klienter** listar `browser.platform` på webben och `device.model.identi
 
 Kortet fylls bara med de mätvärden som din app skickar, så spår ensamma fyller det aldrig. Kontrollera att du exporterar mätvärden, att deras namn är bland dem som OneUptime läser och att de visas på applikationens sida **Mätvärden**. [Kortet säger «No web vitals reported yet»](/docs/rum/web-vitals#felsökning) går igenom varje kontroll, inklusive värden som går förlorade när en besökare stänger fliken före nästa export.
 
-## Statusen säger Frånkopplad medan folk använder appen
+## Statusen säger Ingen trafik nyligen medan folk använder appen
 
-En applikation går över till **Frånkopplad** efter 15 minuter utan telemetri. Om folk använder appen:
+En applikation visar **Ingen trafik nyligen** efter 15 minuter utan telemetri. Om folk använder appen:
 
 - **En sampler kanske kastar allt.** Kontrollera att du inte har satt en sampler som alltid är av, eller ett mycket lågt förhållande.
 - **Appen skickar kanske bara telemetri vid vissa interaktioner**, och ingen använde dem under den tiden.
 - **Nyckeln kan ha återkallats eller inaktiverats** efter driftsättningen: kör [nyckelkontrollen](#kontrollera-nyckeln) igen.
 
-En intern app eller en app med lite trafik utan besökare på natten är verkligen frånkopplad. Det är inget fel.
+En intern app eller en app med lite trafik utan besökare på natten visar också **Ingen trafik nyligen**. Det är normalt, inget fel.
 
 ## Problem med sessionsuppspelning
 

@@ -402,11 +402,11 @@ Open your browser's developer tools on the dashboard tab (F12, or Cmd+Option+I o
 
 Recordings of a portal made before OneUptime loaded these files during playback, the ones that showed the offline bar on every replay, now play back with it hidden too, as long as the stylesheet they name is still served: nothing in a recording has to change.
 
-## The RUM application says "Disconnected"
+## The RUM application says "No recent traffic"
 
-The status pill and **Last Seen** on the application's page report when telemetry last arrived for that application. Session replay counts: both a recorder fetching its policy and an accepted chunk refresh it, so an application instrumented with the replay snippet alone stays Connected. In older versions only OpenTelemetry RUM telemetry did, so a replay-only application read "Disconnected" with a Last Seen days old while its recorders were working perfectly.
+The status pill and **Last Seen** on the application's page report when telemetry last arrived for that application. Session replay counts: both a recorder fetching its policy and an accepted chunk refresh it, so an application instrumented with the replay snippet alone shows **Receiving data** while people use the site. In older versions only OpenTelemetry RUM telemetry did, so a replay-only application looked idle, with a Last Seen days old, while its recorders were working perfectly.
 
-"Connected" therefore means *something* is reporting — not that everything is. Page views, error rate, p95 duration and clients come from the OpenTelemetry browser SDK, which is a separate install; when those read zero while recordings are arriving, the application's Overview page says so directly.
+**Receiving data** therefore means *something* is reporting — not that everything is. Page views, error rate, p95 duration and clients come from the OpenTelemetry browser SDK, which is a separate install; when those read zero while recordings are arriving, the application's Overview page says so directly.
 
 ## RUM telemetry is separate
 

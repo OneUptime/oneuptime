@@ -419,7 +419,7 @@ To label applications or assign owners by name, use **Real User Monitoring → S
 - **Clients** — the browser platforms the application has been seen on, from \`browser.platform\`. Coarse by platform, never per end user.
 - **Session Replay** — a separate, optional recorder with its own script tag and privacy controls: [Session Replay](${SESSION_REPLAY_DOCS_URL}).
 
-The application shows **Connected** while telemetry keeps arriving, and **Disconnected** after 15 minutes without any.`,
+The application shows **Receiving data** while telemetry keeps arriving, and **No recent traffic** after 15 minutes without any, which is normal while nobody is using the app.`,
     },
   ];
 }
@@ -474,8 +474,8 @@ The Service that was already created does not turn into a RUM application — th
 - **Check the project.** The key decides which project the telemetry lands in.`,
     },
     {
-      title: 'Status shows "Disconnected" while the app is live',
-      markdown: `Status flips to **Disconnected** after 15 minutes without telemetry. If your app has traffic:
+      title: 'Status shows "No recent traffic" while people use the app',
+      markdown: `Status turns to **No recent traffic** after 15 minutes without telemetry. That is expected while nobody uses the app. If your app has traffic:
 
 - A **sampler** may be dropping everything — check you have not set an always-off or very low ratio sampler.
 - The app may only emit on interactions nobody triggered in that window.
@@ -591,7 +591,7 @@ To label applications or assign owners by name, use **Real User Monitoring → S
 - **Logs**, **Traces** and **Metrics** — the telemetry explorers, scoped to this application.
 - **Clients** — the device models the application has been seen on, from \`device.model.identifier\`. Coarse by model, never per end user.
 
-The application shows **Connected** while telemetry keeps arriving, and **Disconnected** after 15 minutes without any.`,
+The application shows **Receiving data** while telemetry keeps arriving, and **No recent traffic** after 15 minutes without any, which is normal while nobody is using the app.`,
     },
   ];
 }
@@ -624,8 +624,8 @@ The Service that was already created does not turn into a RUM application — th
 - **Check the project.** The key decides which project the telemetry lands in.`,
     },
     {
-      title: 'Status shows "Disconnected" while the app is live',
-      markdown: `Status flips to **Disconnected** after 15 minutes without telemetry. If your app is in use:
+      title: 'Status shows "No recent traffic" while people use the app',
+      markdown: `Status turns to **No recent traffic** after 15 minutes without telemetry. That is expected while nobody uses the app. If your app is in use:
 
 - A **sampler** may be dropping everything — check you have not set an always-off or very low ratio sampler.
 - The app may only emit on interactions nobody triggered in that window.

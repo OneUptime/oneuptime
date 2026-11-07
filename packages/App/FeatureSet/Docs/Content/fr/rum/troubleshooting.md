@@ -1,6 +1,6 @@
 # Dépannage RUM
 
-Lorsqu'une application RUM manque, est vide ou affiche **Déconnecté**, parcourez cette page dans l'ordre. Chaque vérification écarte une partie du chemin entre votre application et OneUptime, dans l'ordre où ces problèmes surviennent d'habitude.
+Lorsqu'une application RUM manque ou est vide, ou affiche **Aucun trafic récent** alors que des gens l'utilisent, parcourez cette page dans l'ordre. Chaque vérification écarte une partie du chemin entre votre application et OneUptime, dans l'ordre où ces problèmes surviennent d'habitude.
 
 :::cards
 - [Vérifier la clé](#vérifier-la-clé): La vérification la plus rapide, et tout ce qui suit en dépend.
@@ -120,15 +120,15 @@ La page **Clients** liste `browser.platform` sur le web et `device.model.identif
 
 La carte ne se remplit qu'à partir des métriques que votre application envoie : les traces seules ne la remplissent jamais. Vérifiez que vous exportez bien des métriques, que leurs noms sont de ceux que OneUptime lit, et qu'elles figurent sur la page **Métriques** de l'application. [La carte affiche « No web vitals reported yet »](/docs/rum/web-vitals#dépannage) passe en revue chaque vérification, y compris les valeurs perdues quand un visiteur ferme l'onglet avant l'export suivant.
 
-## L'état indique Déconnecté alors que des gens utilisent l'application
+## L'état indique Aucun trafic récent alors que des gens utilisent l'application
 
-Une application passe à **Déconnecté** après 15 minutes sans télémétrie. Si des gens utilisent l'application :
+Une application affiche **Aucun trafic récent** après 15 minutes sans télémétrie. Si des gens utilisent l'application :
 
 - **Un échantillonneur écarte peut-être tout.** Vérifiez que vous n'avez pas défini un échantillonneur toujours désactivé, ou un ratio très bas.
 - **L'application n'envoie peut-être de la télémétrie que lors de certaines interactions**, et personne ne les a utilisées pendant ce temps.
 - **La clé a peut-être été révoquée ou désactivée** après votre déploiement : relancez la [vérification de la clé](#vérifier-la-clé).
 
-Une application interne ou à faible trafic sans visiteurs la nuit est réellement déconnectée. Ce n'est pas une panne.
+Une application interne ou à faible trafic sans visiteurs la nuit affiche elle aussi **Aucun trafic récent**. C'est normal, ce n'est pas une panne.
 
 ## Problèmes de relecture de session
 
