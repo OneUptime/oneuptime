@@ -11,11 +11,11 @@ import Metric from "Common/Models/AnalyticsModels/Metric";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import IconProp from "Common/Types/Icon/IconProp";
+
 import Card from "Common/UI/Components/Card/Card";
 import ChartEventKind from "Common/UI/Components/Charts/Types/ChartEventKind";
 import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
-import Icon from "Common/UI/Components/Icon/Icon";
+
 import Link from "Common/UI/Components/Link/Link";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, {
@@ -230,35 +230,12 @@ const MonitorStepMetrics: FunctionComponent<StepMetricsProps> = (
     </div>
   );
 
-  const serviceCount: number = reads.telemetryServiceIds.length;
-
   /*
-   * A Metrics monitor read for some services only narrows its rows by a
-   * field a chart's filters cannot name: say so, rather than let the chart
-   * pass for what the monitor saw.
+   * A Metrics monitor limited to some services charts those services only:
+   * each of its queries carries them (MonitorStepMetricQueries, issue
+   * #6266), so there is nothing to explain here any more.
    */
-  const serviceNote: ReactElement | null =
-    serviceCount > 0 ? (
-      <p className="flex items-center gap-1.5 text-xs text-gray-500">
-        <Icon icon={IconProp.Info} className="h-3.5 w-3.5 text-gray-400" />
-        {translator.translatePlural(
-          {
-            one: "This monitor checks these metrics for {{count}} service. The charts show them for every service.",
-            other:
-              "This monitor checks these metrics for {{count}} services. The charts show them for every service.",
-          },
-          serviceCount,
-        )}
-      </p>
-    ) : null;
-
-  const beforeToolbar: ReactElement | undefined =
-    props.stepPicker || serviceNote ? (
-      <div className="space-y-2">
-        {props.stepPicker || <></>}
-        {serviceNote || <></>}
-      </div>
-    ) : undefined;
+  const beforeToolbar: ReactElement | undefined = props.stepPicker;
 
   return (
     <MetricInvestigation

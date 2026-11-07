@@ -634,3 +634,115 @@ describe("whatever an old snapshot and its monitor hold (seeded)", () => {
     }
   });
 });
+
+/*
+ * Issue #6266: a Metrics monitor limited to some services read every query
+ * for those services only.
+ */
+describe("the services a snapshot's queries were read for", () => {
+  const API: string = "44444444-4444-4444-8444-444444444444";
+  const CHECKOUT: string = "55555555-5555-4555-8555-555555555555";
+
+  const servicesOf: (scope: EventMetricScope, index?: number) => unknown = (
+    scope: EventMetricScope,
+    index: number = 0,
+  ): unknown => {
+    return scope.queries.queryConfigs[index]?.metricQueryData.filterData
+      .telemetryServiceIds;
+  };
+
+  const METRICS_NOW: EventRuleMonitor = monitorOf(MonitorType.Metrics, [
+    {
+      settings: { telemetryServiceIds: [API, CHECKOUT] },
+      queryConfigs: [queryOf({ metricName: "http.server.duration" })],
+      criteriaIds: [RULE_ID],
+    },
+  ]);
+
+  test("a snapshot that keeps them: every query charted for them, and nothing said", () => {
+    const scope: EventMetricScope = getEventMetricScope({
+      snapshotQueries: snapshotOf([
+        queryOf({ metricName: "http.server.duration" }),
+        queryOf({ variable: "b", metricName: "http.server.requests" }),
+      ]),
+      storedScopes: [null, null],
+      storedServiceIds: [API],
+      createdCriteriaId: RULE_ID,
+      monitors: [METRICS_NOW],
+    });
+
+    expect(servicesOf(scope, 0)).toEqual([API]);
+    expect(servicesOf(scope, 1)).toEqual([API]);
+    expect(scope.isFromMonitorNow).toBe(false);
+  });
+
+  test("a snapshot that keeps none read every service, whatever the monitor reads now", () => {
+    const snapshot: MetricInvestigationQueries = snapshotOf([
+      queryOf({ metricName: "http.server.duration" }),
+    ]);
+
+    const scope: EventMetricScope = getEventMetricScope({
+      snapshotQueries: snapshot,
+      storedScopes: [null],
+      createdCriteriaId: RULE_ID,
+      monitors: [METRICS_NOW],
+    });
+
+    expect(scope.queries).toBe(snapshot);
+  });
+
+  test("one stored before: the services the monitor is limited to now, and the card says so", () => {
+    const scope: EventMetricScope = getEventMetricScope({
+      snapshotQueries: snapshotOf([
+        queryOf({ metricName: "http.server.duration" }),
+      ]),
+      storedScopes: null,
+      createdCriteriaId: RULE_ID,
+      monitors: [METRICS_NOW],
+    });
+
+    expect(servicesOf(scope)).toEqual([API, CHECKOUT]);
+    expect(scope.isFromMonitorNow).toBe(true);
+    // A Metrics monitor names no resource: the card says it plainly.
+    expect(scope.resourceName).toBe("");
+  });
+
+  test("one stored before, of a monitor that reads every service: charted as it is", () => {
+    const snapshot: MetricInvestigationQueries = snapshotOf([
+      queryOf({ metricName: "http.server.duration" }),
+    ]);
+
+    const scope: EventMetricScope = getEventMetricScope({
+      snapshotQueries: snapshot,
+      storedScopes: null,
+      createdCriteriaId: RULE_ID,
+      monitors: [
+        monitorOf(MonitorType.Metrics, [
+          {
+            settings: {},
+            queryConfigs: [queryOf({ metricName: "http.server.duration" })],
+            criteriaIds: [RULE_ID],
+          },
+        ]),
+      ],
+    });
+
+    expect(scope.queries).toBe(snapshot);
+    expect(scope.isFromMonitorNow).toBe(false);
+  });
+
+  test("one stored before whose query no step reads any more: charted as it is", () => {
+    const snapshot: MetricInvestigationQueries = snapshotOf([
+      queryOf({ metricName: "gone.metric" }),
+    ]);
+
+    expect(
+      getEventMetricScope({
+        snapshotQueries: snapshot,
+        storedScopes: null,
+        createdCriteriaId: RULE_ID,
+        monitors: [METRICS_NOW],
+      }).queries,
+    ).toBe(snapshot);
+  });
+});

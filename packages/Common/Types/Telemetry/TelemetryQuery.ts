@@ -24,4 +24,12 @@ export interface TelemetryQuery {
    * watches now.
    */
   metricQueryScopes?: Array<Dictionary<unknown> | null> | undefined;
+  /*
+   * On a metric snapshot: the telemetry services every query was read for,
+   * by id, when its Metrics monitor was limited to some
+   * (MetricMonitorResponse.queryServiceIds). Absent: every service. The
+   * event's metric card charts its queries for those services only (issue
+   * #6266).
+   */
+  metricServiceIds?: Array<string> | undefined;
 }

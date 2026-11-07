@@ -14,6 +14,7 @@ import { OPENSTACK_REGION_ATTRIBUTE } from "../../../Types/Monitor/MonitorStepOp
 import MonitorType, {
   MonitorTypeHelper,
 } from "../../../Types/Monitor/MonitorType";
+import ObjectID from "../../../Types/ObjectID";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import MonitorStepMetricQueries, {
@@ -1060,5 +1061,146 @@ describe("a step form's queries as the monitor reads them, one for one", () => {
       });
       expect(JSON.stringify(settings)).toBe(before);
     }
+  });
+});
+
+/*
+ * Issue #6266: a Metrics monitor limited to some services reads every query
+ * for those services only, so each of its read queries carries them, and a
+ * chart of them shows those services' series only.
+ */
+describe("the services each query is read for", () => {
+  const SERVICES: Array<string> = [
+    "44444444-4444-4444-8444-444444444444",
+    "55555555-5555-4555-8555-555555555555",
+  ];
+
+  const servicesOf: (query: MetricQueryConfigData | undefined) => unknown = (
+    query: MetricQueryConfigData | undefined,
+  ): unknown => {
+    return query?.metricQueryData.filterData.telemetryServiceIds;
+  };
+
+  test("a Metrics step's services, on every one of its queries", () => {
+    const reads: MonitorStepMetricReads = MonitorStepMetricQueries.getReads({
+      monitorType: MonitorType.Metrics,
+      monitorStep: stepOf({
+        stepKey: "metricMonitor",
+        settings: { telemetryServiceIds: SERVICES as never },
+        queryConfigs: [
+          queryOf({ variable: "a" }),
+          queryOf({ variable: "b", attributes: { "own.key": "x" } }),
+        ],
+      }),
+    })!;
+
+    expect(reads.queryConfigs.map(servicesOf)).toEqual([SERVICES, SERVICES]);
+    expect(reads.telemetryServiceIds).toEqual(SERVICES);
+    // Its own filters with them, as the worker reads them.
+    expect(
+      reads.queryConfigs[1]!.metricQueryData.filterData.attributes,
+    ).toEqual({ "own.key": "x" });
+  });
+
+  test("ObjectIDs as their ids, each once, as the step stores them", () => {
+    const [query] = MonitorStepMetricQueries.getReadQueryConfigs({
+      monitorType: MonitorType.Metrics,
+      settings: {
+        telemetryServiceIds: [
+          new ObjectID(SERVICES[0]!),
+          SERVICES[0],
+          "",
+        ] as never,
+        metricViewConfig: { queryConfigs: [queryOf({})], formulaConfigs: [] },
+      } as never,
+    });
+
+    expect(servicesOf(query)).toEqual([SERVICES[0]]);
+  });
+
+  test("a Metrics step read for every service: no service filter at all", () => {
+    for (const telemetryServiceIds of [undefined, [], null]) {
+      const [query] = MonitorStepMetricQueries.getReadQueryConfigs({
+        monitorType: MonitorType.Metrics,
+        settings: {
+          ...(telemetryServiceIds !== undefined
+            ? { telemetryServiceIds: telemetryServiceIds }
+            : {}),
+          metricViewConfig: {
+            queryConfigs: [queryOf({})],
+            formulaConfigs: [],
+          },
+        } as never,
+      });
+
+      expect(Object.keys(query!.metricQueryData.filterData)).not.toContain(
+        "telemetryServiceIds",
+      );
+    }
+  });
+
+  test("a filter a query was saved with by other means is read as the worker reads it", () => {
+    const saved: MetricQueryConfigData = {
+      ...queryOf({}),
+      metricQueryData: {
+        ...queryOf({}).metricQueryData,
+        filterData: {
+          ...queryOf({}).metricQueryData.filterData,
+          telemetryServiceIds: ["someone-else"],
+        } as never,
+      },
+    };
+
+    // A Metrics step: the step's services, not the query's.
+    expect(
+      servicesOf(
+        MonitorStepMetricQueries.getReadQueryConfigs({
+          monitorType: MonitorType.Metrics,
+          settings: {
+            telemetryServiceIds: SERVICES as never,
+            metricViewConfig: { queryConfigs: [saved], formulaConfigs: [] },
+          } as never,
+        })[0],
+      ),
+    ).toEqual(SERVICES);
+
+    // Any other type reads every service: none.
+    for (const monitorType of MonitorStepMetricQueries.getMonitorTypes()) {
+      if (monitorType === MonitorType.Metrics) {
+        continue;
+      }
+
+      const [query] = MonitorStepMetricQueries.getReadQueryConfigs({
+        monitorType: monitorType,
+        settings: {
+          clusterIdentifier: "prod",
+          hostIdentifier: "web-01",
+          telemetryServiceIds: SERVICES as never,
+          metricViewConfig: { queryConfigs: [saved], formulaConfigs: [] },
+        } as never,
+      });
+
+      expect(Object.keys(query!.metricQueryData.filterData)).not.toContain(
+        "telemetryServiceIds",
+      );
+    }
+  });
+
+  test("only a Metrics step reads for some services", () => {
+    for (const monitorType of MonitorStepMetricQueries.getMonitorTypes()) {
+      expect(
+        MonitorStepMetricQueries.getReadServiceIds({
+          monitorType: monitorType,
+          settings: { telemetryServiceIds: SERVICES } as never,
+        }),
+      ).toEqual(monitorType === MonitorType.Metrics ? SERVICES : []);
+    }
+
+    expect(
+      MonitorStepMetricQueries.getReadServiceIds({
+        monitorType: MonitorType.Metrics,
+        settings: undefined,
+      }),
+    ).toEqual([]);
   });
 });

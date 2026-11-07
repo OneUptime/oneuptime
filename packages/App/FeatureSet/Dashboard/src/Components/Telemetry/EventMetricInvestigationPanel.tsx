@@ -123,6 +123,9 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
       formulaConfigs: formulaConfigs,
     },
     storedScopes: MetricTelemetrySnapshot.getStoredScopes(props.telemetryQuery),
+    storedServiceIds: MetricTelemetrySnapshot.getStoredServiceIds(
+      props.telemetryQuery,
+    ),
   });
 
   const investigation: MetricInvestigationState = useMetricInvestigation({

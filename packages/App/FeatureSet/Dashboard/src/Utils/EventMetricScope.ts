@@ -11,6 +11,7 @@ import MonitorStepMetricQueries, {
 } from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import MonitorStepMetricThresholds from "Common/Utils/Monitor/MonitorStepMetricThresholds";
 import MetricTelemetrySnapshot from "Common/Utils/Monitor/MetricTelemetrySnapshot";
+import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
 import { MetricInvestigationQueries } from "../Components/Metrics/Investigation/MetricInvestigationQueries";
 import { EventRuleMonitor, getQueryIdentity } from "./EventMetricThresholds";
 import { getMonitorResourceName } from "./MonitorMetricInvestigation";
@@ -26,14 +27,15 @@ import { getMonitorResourceName } from "./MonitorMetricInvestigation";
  * project.
  *
  * - A snapshot stored since keeps beside each query the filters the
- *   monitor added (MetricTelemetrySnapshot): the card charts each query
- *   with them, as the check read it.
+ *   monitor added (MetricTelemetrySnapshot), and the services a Metrics
+ *   monitor limited to some read every query for (issue #6266): the card
+ *   charts each query with them, as the check read it.
  * - One stored before keeps none. It is narrowed from its monitor as it is
  *   now: each of its queries that a step of the monitor still reads - the
  *   same metric, aggregation and grouping, its filters aside, as the event's
- *   rule line is matched (EventMetricThresholds) - takes the filters that
- *   step's monitor adds to it (MonitorStepMetricQueries, held to the
- *   worker), the step holding the event's criteria first. The card says so:
+ *   rule line is matched (EventMetricThresholds) - takes the filters and the
+ *   services that step's monitor adds to it (MonitorStepMetricQueries, held
+ *   to the worker), the step holding the event's criteria first. The card says so:
  *   the monitor may have watched another resource when it opened the event.
  *   A query no step reads any more, and a monitor that cannot be read, are
  *   charted as they are.
@@ -180,22 +182,27 @@ export function getEventMetricScope(input: {
    * (MetricTelemetrySnapshot.getStoredScopes); null for one stored before.
    */
   storedScopes: Array<Dictionary<unknown> | null> | null;
+  /*
+   * The services the snapshot says every query was read for
+   * (MetricTelemetrySnapshot.getStoredServiceIds); none: every service.
+   */
+  storedServiceIds?: Array<string> | undefined;
   // The criteria that opened the event (Incident / Alert createdCriteriaId).
   createdCriteriaId: string | null | undefined;
   // The monitors the event is on, as they are now.
   monitors: Array<EventRuleMonitor>;
 }): EventMetricScope {
-  const scopedBy: (
-    scopes: Array<Dictionary<unknown> | null>,
-  ) => MetricInvestigationQueries = (
-    scopes: Array<Dictionary<unknown> | null>,
-  ): MetricInvestigationQueries => {
-    const queryConfigs: Array<MetricQueryConfigData> =
-      MetricTelemetrySnapshot.applyScopes({
-        queryConfigs: input.snapshotQueries.queryConfigs,
-        scopes: scopes,
-      });
+  const unchanged: EventMetricScope = {
+    queries: input.snapshotQueries,
+    isFromMonitorNow: false,
+    resourceName: "",
+  };
 
+  const withQueries: (
+    queryConfigs: Array<MetricQueryConfigData>,
+  ) => MetricInvestigationQueries = (
+    queryConfigs: Array<MetricQueryConfigData>,
+  ): MetricInvestigationQueries => {
     return queryConfigs === input.snapshotQueries.queryConfigs
       ? input.snapshotQueries
       : {
@@ -207,17 +214,18 @@ export function getEventMetricScope(input: {
   // Kept with the snapshot: each query as the check read it.
   if (input.storedScopes) {
     return {
-      queries: scopedBy(input.storedScopes),
-      isFromMonitorNow: false,
-      resourceName: "",
+      ...unchanged,
+      queries: withQueries(
+        MetricTelemetrySnapshot.applyServices({
+          queryConfigs: MetricTelemetrySnapshot.applyScopes({
+            queryConfigs: input.snapshotQueries.queryConfigs,
+            scopes: input.storedScopes,
+          }),
+          serviceIds: input.storedServiceIds || [],
+        }),
+      ),
     };
   }
-
-  const unchanged: EventMetricScope = {
-    queries: input.snapshotQueries,
-    isFromMonitorNow: false,
-    resourceName: "",
-  };
 
   const sources: Array<ScopeSource> = getScopeSources({
     createdCriteriaId: (input.createdCriteriaId || "").trim(),
@@ -228,14 +236,19 @@ export function getEventMetricScope(input: {
     return unchanged;
   }
 
+  let isFromMonitorNow: boolean = false;
   let resourceName: string = "";
 
-  // Stored before: what the monitor adds to each query now.
-  const scopes: Array<Dictionary<unknown> | null> =
+  /*
+   * Stored before: each query with what its monitor adds to it now - the
+   * filters, and the services a Metrics monitor is limited to - where it
+   * does not read that already.
+   */
+  const queryConfigs: Array<MetricQueryConfigData> =
     input.snapshotQueries.queryConfigs.map(
-      (queryConfig: MetricQueryConfigData): Dictionary<unknown> | null => {
+      (queryConfig: MetricQueryConfigData): MetricQueryConfigData => {
         if (!queryConfig || typeof queryConfig !== "object") {
-          return null;
+          return queryConfig;
         }
 
         const identity: string = getQueryIdentity(queryConfig);
@@ -250,33 +263,39 @@ export function getEventMetricScope(input: {
             continue;
           }
 
-          const attributes: Attributes = getAttributes(queryConfig);
+          const [scoped] = MetricTelemetrySnapshot.applyScopes({
+            queryConfigs: [queryConfig],
+            scopes: [added],
+          });
 
-          // Only what it would change: a snapshot that reads it already is kept.
-          if (
-            JSONFunctions.deepEqual({ ...attributes, ...added }, attributes)
-          ) {
-            return null;
+          const serviceIds: Array<string> =
+            MonitorStepMetricQueries.getReadServiceIds(source);
+
+          const narrowed: MetricQueryConfigData =
+            serviceIds.length > 0 &&
+            MetricQueryServices.getServiceIds(scoped!).length === 0
+              ? MetricQueryServices.withServiceIds(scoped!, serviceIds)
+              : scoped!;
+
+          if (narrowed !== queryConfig) {
+            isFromMonitorNow = true;
+            resourceName =
+              resourceName || getMonitorResourceName(source.settings);
           }
 
-          resourceName =
-            resourceName || getMonitorResourceName(source.settings);
-
-          return added;
+          return narrowed;
         }
 
-        return null;
+        return queryConfig;
       },
     );
 
-  const queries: MetricInvestigationQueries = scopedBy(scopes);
-
-  if (queries === input.snapshotQueries) {
+  if (!isFromMonitorNow) {
     return unchanged;
   }
 
   return {
-    queries: queries,
+    queries: withQueries(queryConfigs),
     isFromMonitorNow: true,
     resourceName: resourceName,
   };

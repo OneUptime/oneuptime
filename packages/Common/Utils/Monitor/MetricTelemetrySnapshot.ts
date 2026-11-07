@@ -4,6 +4,7 @@ import MetricQueryConfigData from "../../Types/Metrics/MetricQueryConfigData";
 import MetricMonitorResponse from "../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
+import MetricQueryServices from "../Metrics/MetricQueryServices";
 import MonitorStepMetricQueries from "./MonitorStepMetricQueries";
 
 /*
@@ -80,6 +81,11 @@ export default class MetricTelemetrySnapshot {
         queryAttributes: response.queryAttributes,
       });
 
+    // A Metrics monitor limited to some services read every query for them.
+    const serviceIds: Array<string> = MetricQueryServices.normalize(
+      response.queryServiceIds,
+    );
+
     return {
       telemetryQuery: null,
       telemetryType: TelemetryType.Metric,
@@ -89,7 +95,58 @@ export default class MetricTelemetrySnapshot {
         formulaConfigs: response.metricViewConfig.formulaConfigs,
       },
       ...(scopes ? { metricQueryScopes: scopes } : {}),
+      ...(serviceIds.length > 0 ? { metricServiceIds: serviceIds } : {}),
     };
+  }
+
+  /*
+   * The services a stored snapshot says every query was read for (issue
+   * #6266): none for every service, and for any snapshot that does not say.
+   */
+  public static getStoredServiceIds(
+    telemetryQuery: TelemetryQuery | null | undefined,
+  ): Array<string> {
+    if (
+      !telemetryQuery ||
+      telemetryQuery.telemetryType !== TelemetryType.Metric
+    ) {
+      return [];
+    }
+
+    return MetricQueryServices.normalize(telemetryQuery.metricServiceIds);
+  }
+
+  /*
+   * Each query read for these services only, as the check read it: the
+   * very same list when there are none, or every query reads for them
+   * already.
+   */
+  public static applyServices(input: {
+    queryConfigs: Array<MetricQueryConfigData>;
+    serviceIds: Array<string>;
+  }): Array<MetricQueryConfigData> {
+    if (input.serviceIds.length === 0) {
+      return input.queryConfigs;
+    }
+
+    let didApplyAny: boolean = false;
+
+    const queryConfigs: Array<MetricQueryConfigData> = input.queryConfigs.map(
+      (queryConfig: MetricQueryConfigData): MetricQueryConfigData => {
+        if (!queryConfig || typeof queryConfig !== "object") {
+          return queryConfig;
+        }
+
+        const scoped: MetricQueryConfigData =
+          MetricQueryServices.withServiceIds(queryConfig, input.serviceIds);
+
+        didApplyAny = didApplyAny || scoped !== queryConfig;
+
+        return scoped;
+      },
+    );
+
+    return didApplyAny ? queryConfigs : input.queryConfigs;
   }
 
   /*

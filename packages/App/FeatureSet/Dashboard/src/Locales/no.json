@@ -46302,8 +46302,6 @@
   "The metrics you picked. Reset brings back the metrics this monitor checks.": "The metrics you picked. Reset brings back the metrics this monitor checks.",
   "The workflow before version history began": "Arbeidsflyten før versjonshistorikken begynte",
   "This is an earlier version of the workflow. Restore it to make changes to it.": "Dette er en tidligere versjon av arbeidsflyten. Gjenopprett den for å gjøre endringer i den.",
-  "This monitor checks these metrics for {{count}} services. The charts show them for every service.": "This monitor checks these metrics for {{count}} services. The charts show them for every service.",
-  "This monitor checks these metrics for {{count}} services. The charts show them for every service._one": "This monitor checks these metrics for {{count}} service. The charts show them for every service.",
   "This monitor has no metric to chart yet. Pick one in its criteria.": "This monitor has no metric to chart yet. Pick one in its criteria.",
   "This project has more queues than the map reads at once. It shows the 10,000 oldest live queues.": "This project has more queues than the map reads at once. It shows the 10,000 oldest live queues.",
   "This project has too many queues and services to draw at once. Search, pick a broker, or use “Show its flow” on a row to see a readable map of part of it.": "This project has too many queues and services to draw at once. Search, pick a broker, or use “Show its flow” on a row to see a readable map of part of it.",
@@ -46424,5 +46422,6 @@
   "Table Audit Logs": "Table Audit Logs",
   "Every change made to this exception: who resolved, archived or assigned it, when, and what changed.": "Every change made to this exception: who resolved, archived or assigned it, when, and what changed.",
   "Charted for what this monitor checks now.": "Charted for what this monitor checks now.",
-  "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now."
+  "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
+  "Only chart this metric from these services.": "Only chart this metric from these services."
 }

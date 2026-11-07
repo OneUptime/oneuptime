@@ -12,6 +12,8 @@ import MonitorStepMetricQueries, {
   MonitorStepMetricReads,
 } from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import MetricTelemetrySnapshot from "Common/Utils/Monitor/MetricTelemetrySnapshot";
+import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import KubernetesFinishedPods, {
@@ -134,8 +136,18 @@ const CASES: Array<WorkerCase> = [
   {
     monitorType: MonitorType.Metrics,
     run: monitorMetric,
-    settings: (): JSONObject => {
-      return {};
+    // Limited to some services about as often as not (issue #6266).
+    settings: (random: SeededRandom): JSONObject => {
+      const services: Array<string> = [];
+      const count: number = random(3);
+      for (let index: number = 0; index < count; index++) {
+        services.push(ObjectID.generate().toString());
+      }
+      return withoutUndefined({
+        telemetryServiceIds: maybe(random, () => {
+          return services;
+        }) as Array<string>,
+      });
     },
   },
   {
@@ -506,11 +518,31 @@ describe("the dashboard reads every metric-backed step as the worker does", () =
           queryConfigs,
         });
 
+        const readsBefore: number = (
+          MetricService.aggregateBy as unknown as jest.Mock
+        ).mock.calls.length;
+
         const response: MetricMonitorResponse = await entry.run({
           monitorStep: step,
           monitorId: ObjectID.generate(),
           projectId: ObjectID.generate(),
         });
+
+        // The services this round's reads were made for, read by read.
+        const readServices: Array<unknown> = (
+          MetricService.aggregateBy as unknown as jest.Mock
+        ).mock.calls
+          .slice(readsBefore)
+          .map((call: Array<unknown>): unknown => {
+            const primaryEntityId: unknown = (
+              call[0] as { query: { primaryEntityId?: unknown } }
+            ).query.primaryEntityId;
+            return primaryEntityId instanceof Includes
+              ? primaryEntityId.values.map((id: unknown): string => {
+                  return String(id);
+                })
+              : undefined;
+          });
 
         const reads: MonitorStepMetricReads = MonitorStepMetricQueries.getReads(
           {
@@ -522,6 +554,28 @@ describe("the dashboard reads every metric-backed step as the worker does", () =
         expect(response.queryAttributes).toHaveLength(queryConfigs.length);
 
         /*
+         * Every read of the step's queries is for the services the twin
+         * puts on each charted query, and the worker says so (issue #6266).
+         */
+        const twinServices: Array<string> = MetricQueryServices.getServiceIds(
+          reads.queryConfigs[0],
+        );
+        for (const charted of reads.queryConfigs) {
+          expect(MetricQueryServices.getServiceIds(charted)).toEqual(
+            twinServices,
+          );
+        }
+        expect(readServices.length).toBeGreaterThanOrEqual(queryConfigs.length);
+        for (const services of readServices) {
+          expect(services).toEqual(
+            twinServices.length > 0 ? twinServices : undefined,
+          );
+        }
+        expect(response.queryServiceIds).toEqual(
+          twinServices.length > 0 ? twinServices : undefined,
+        );
+
+        /*
          * What an incident or alert this check opened keeps of it (issue
          * #6265): its card charts the same as the monitor's page.
          */
@@ -530,6 +584,10 @@ describe("the dashboard reads every metric-backed step as the worker does", () =
         // Its queries as the step keeps them, each charted with its scope.
         expect(snapshot.metricViewData?.queryConfigs).toBe(
           response.metricViewConfig.queryConfigs,
+        );
+        // And the services they were read for.
+        expect(MetricTelemetrySnapshot.getStoredServiceIds(snapshot)).toEqual(
+          twinServices,
         );
         const snapshotCharted: Array<MetricQueryConfigData> =
           MetricTelemetrySnapshot.applyScopes({

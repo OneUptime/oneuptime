@@ -51,6 +51,7 @@ import {
 import { LineChartPalette } from "Common/UI/Components/Charts/Line/LineChart";
 import { AreaChartPalette } from "Common/UI/Components/Charts/Area/AreaChart";
 import { BarChartPalette } from "Common/UI/Components/Charts/Bar/BarChart";
+import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
 import MetricUtil, {
   DEFAULT_TOP_N_SERIES,
   SHOW_ALL_SERIES_TOP_N,
@@ -615,7 +616,10 @@ function navigateMenuWithKeyboard(input: {
   items[nextIndex]?.focus();
 }
 
-// Composite key for exemplar fetch/state: metric name + sanitized filters.
+/*
+ * Composite key for exemplar fetch/state: metric name + sanitized filters,
+ * and the services the query reads for (issue #6266).
+ */
 function getExemplarStateKey(queryConfig: MetricQueryConfigData): string {
   const metricName: string =
     queryConfig.metricQueryData.filterData.metricName?.toString() || "";
@@ -625,7 +629,11 @@ function getExemplarStateKey(queryConfig: MetricQueryConfigData): string {
         | Dictionary<DictionaryEntryValue>
         | undefined,
     );
-  return `${metricName}::${MetricUtil.serializeAttributeFiltersForKey(sanitized)}`;
+  const serviceIds: Array<string> =
+    MetricQueryServices.getServiceIds(queryConfig);
+  return `${metricName}::${MetricUtil.serializeAttributeFiltersForKey(sanitized)}${
+    serviceIds.length > 0 ? `::${serviceIds.join(",")}` : ""
+  }`;
 }
 
 function getXAxisAggregationTypeForQuery(
@@ -1618,6 +1626,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     key: string;
     metricName: string;
     attributes: Dictionary<DictionaryEntryValue> | undefined;
+    serviceIds: Array<string>;
   }
 
   const exemplarTargets: Array<ExemplarTarget> = (() => {
@@ -1643,6 +1652,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             | Dictionary<DictionaryEntryValue>
             | undefined,
         ),
+        serviceIds: MetricQueryServices.getServiceIds(queryConfig),
       });
     }
     return Array.from(targetsByKey.values());
@@ -1680,6 +1690,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         metricName: target.metricName,
         startAndEndDate,
         attributes: target.attributes,
+        serviceIds: target.serviceIds,
       })
         .then((exemplars: Array<ExemplarPoint>) => {
           setExemplarsByQueryKey(

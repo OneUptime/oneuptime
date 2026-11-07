@@ -126,6 +126,38 @@ const toEditorQueryConfig: (input: {
     delete filterData["attributes"];
   }
 
+  /*
+   * Every other filter the chart's copy was read with - the services a
+   * Metrics monitor reads its queries for (issue #6266) - is the editor's
+   * own unless the charts changed it.
+   */
+  const chartedFilterData: Record<string, unknown> =
+    (input.charted.metricQueryData?.filterData as unknown as
+      | Record<string, unknown>
+      | undefined) || {};
+  const changedFilterData: Record<string, unknown> =
+    (input.changed.metricQueryData?.filterData as unknown as
+      | Record<string, unknown>
+      | undefined) || {};
+
+  for (const key of new Set<string>([
+    ...Object.keys(chartedFilterData),
+    ...Object.keys(changedFilterData),
+  ])) {
+    if (
+      key === "attributes" ||
+      !JSONFunctions.deepEqual(changedFilterData[key], chartedFilterData[key])
+    ) {
+      continue;
+    }
+
+    if (hasOwnKey(editorFilterData, key)) {
+      filterData[key] = editorFilterData[key];
+    } else {
+      delete filterData[key];
+    }
+  }
+
   return {
     ...input.changed,
     metricQueryData: {

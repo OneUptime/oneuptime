@@ -27,6 +27,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Navigation from "Common/UI/Utils/Navigation";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ObjectID from "Common/Types/ObjectID";
+import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -479,8 +480,18 @@ const MonitorCreate: FunctionComponent<
       ? MetricExplorerUrl.parseMetricFormulasParam(rawMetricFormulas)
       : [];
 
-    const queryConfigs: Array<MetricQueryConfigData> =
-      buildQueryConfigsFromSerializedQueries(serializedQueries);
+    /*
+     * A view read for some services (issue #6266) makes a monitor limited to
+     * them: a Metrics monitor keeps its services on its step and reads every
+     * query for them, never a query's own.
+     */
+    const fromView: {
+      queryConfigs: Array<MetricQueryConfigData>;
+      serviceIds: Array<string>;
+    } = MetricQueryServices.takeServiceIds(
+      buildQueryConfigsFromSerializedQueries(serializedQueries),
+    );
+    const queryConfigs: Array<MetricQueryConfigData> = fromView.queryConfigs;
     const formulaConfigs: Array<MetricFormulaConfigData> =
       buildFormulaConfigsFromSerializedFormulas(
         serializedFormulas,
@@ -501,6 +512,15 @@ const MonitorCreate: FunctionComponent<
         formulaConfigs: formulaConfigs,
       },
       rollingTime: getNearestRollingTimeForWindow(),
+      ...(fromView.serviceIds.length > 0
+        ? {
+            telemetryServiceIds: fromView.serviceIds.map(
+              (serviceId: string): ObjectID => {
+                return new ObjectID(serviceId);
+              },
+            ),
+          }
+        : {}),
     };
 
     /*
