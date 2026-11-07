@@ -868,14 +868,26 @@ export const getShownParentsSql: (parent: PublishedParent) => string = (
 
 /*
  * The rows of a source shown under other records (shownUnder) that carry an
- * image, of those records: $1 is their ids.
+ * image, of those records: $1 is their ids. With the rows' own switches, so
+ * a record shown again publishes only what its rows show themselves: a note
+ * waiting for approval, or rejected, shows nothing (isPublished).
  */
 export const getRowsShownUnderSql: (source: PublishedMarkdown) => string = (
   source: PublishedMarkdown,
 ): string => {
   const foreignKey: string = source.shownUnder?.foreignKey || "";
 
-  return `SELECT ${["_id", "projectId", foreignKey, ...source.markdownColumns]
+  return `SELECT ${Array.from(
+    new Set([
+      "_id",
+      "projectId",
+      foreignKey,
+      ...source.shownWhen,
+      ...(source.hiddenWhen || []),
+      ...(source.shownFrom ? [source.shownFrom] : []),
+      ...source.markdownColumns,
+    ]),
+  )
     .map((column: string): string => {
       return quote(column);
     })
@@ -1422,9 +1434,15 @@ export default class PublishedImages {
           normalizeFileId(record[parent.foreignKey]),
         );
         const tokens: Array<string> = this.getTokensOf(source, record);
+        // Shown under a record shown now, of its project - and by its own switches.
         const isShown: boolean =
           Boolean(shownProjectId) &&
-          shownProjectId === normalizeFileId(record["projectId"]);
+          shownProjectId === normalizeFileId(record["projectId"]) &&
+          this.areSwitchesShowing(
+            { shownWhen: source.shownWhen, hiddenWhen: source.hiddenWhen },
+            record,
+          ) &&
+          this.hasTimeCome(source, record);
 
         this.addChanges(data.changes, record["projectId"], {
           publish: isShown ? tokens : [],
