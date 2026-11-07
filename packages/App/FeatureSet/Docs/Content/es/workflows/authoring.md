@@ -21,7 +21,7 @@ Un flujo de trabajo creado desde cero se abre con un único bloque discontinuo q
 
 Todo flujo de trabajo tiene exactamente un **disparador** en la parte superior. Todo lo demás es un **componente** que hace algo. Para cambiar el disparador, elimínalo: el marcador discontinuo vuelve a su lugar y, al hacer clic en él, puedes elegir otro. Al eliminar un bloque también se eliminan sus líneas, así que vuelve a conectar el nuevo disparador al primer bloque.
 
-Los cambios se guardan automáticamente. Una píldora en la barra de herramientas lo indica: **Guardando…** mientras el cambio está en curso, después **Guardado**, o **No se pudo guardar** si no ha funcionado. El lienzo no tiene botón de guardar ni un paso de publicación aparte.
+Los cambios se guardan automáticamente, un momento después de hacerlos. Una píldora en la barra de herramientas lo indica: **Guardando…** mientras el cambio está en camino, después **Guardado**. Si un cambio no se pudo guardar, la píldora dice **No se pudo guardar**, con el motivo al pasar el cursor por encima, y **Volver a intentar** al lado. Mientras tanto, tus cambios se quedan en el lienzo, y el siguiente cambio que hagas vuelve a intentarlo. Si sales de la página antes de que se guarde un cambio, primero se te pregunta. El lienzo no tiene botón de guardar ni un paso de publicación aparte. Un error también se guarda, así que el Constructor conserva cada cambio para que puedas revertirlo: consulta [Deshacer, rehacer e historial de versiones](#deshacer-rehacer-e-historial-de-versiones).
 
 ## Añadir bloques
 
@@ -169,6 +169,26 @@ Para pausar un flujo de trabajo sin eliminarlo, desactiva **Habilitado**. Su dis
 - Para eliminar un bloque, haz clic en él y usa **Eliminar** al pie de su diálogo de ajustes. Seleccionar un bloque o una línea y pulsar la tecla de retroceso también lo quita.
 - No hay forma de duplicar un solo bloque. **Duplicar Flujo de trabajo** en la página **Ajustes** del flujo de trabajo copia todo. El nombre de la copia viene rellenado, numerado a partir de los flujos de trabajo del proyecto ("Nightly Sync" se copia como "Nightly Sync 2"), y la copia se abre, deshabilitada.
 - Apila los bloques de arriba abajo para que se lean en la dirección en la que se ejecutan: las entradas están en el borde superior y las salidas en el inferior, así que el flujo va naturalmente hacia abajo.
+
+## Deshacer, rehacer e historial de versiones
+
+Cada cambio que haces en el lienzo se puede revertir, aunque se haya guardado al instante.
+
+- **Deshacer** y **Rehacer** están al principio de la barra de herramientas. Pasa el cursor por cualquiera de los dos para ver qué revertiría o volvería a hacer, y de qué bloque se trata. Cada cambio se deshace de una vez: añadir, eliminar o mover un bloque, conectar o desconectar dos bloques y guardar los ajustes de un bloque. Arrastrar un bloque cuenta como un solo cambio, por lejos que lo arrastres.
+- El teclado también funciona: ⌘Z en un Mac, o Ctrl+Z, deshace, y ⇧⌘Z, Ctrl+Shift+Z o Ctrl+Y rehace. Mientras escribes en un campo o en un editor de código, las mismas teclas deshacen lo que has escrito.
+- Lo que deshaces se guarda como cualquier otro cambio. Deshacer abarca lo que has hecho desde que abriste el Constructor; el historial de versiones llega más atrás.
+
+**Historial de versiones**, en la barra de herramientas, muestra cada versión guardada del flujo de trabajo, la más reciente primero: quién la guardó, cuándo y qué cambió, como `Added "Send Email" (send-email-1)`. Los cambios que guardas con menos de 10 minutos de diferencia entre sí forman una sola versión, así que una versión es una parte del trabajo y no cada clic. Los cambios que hace Ask AI, y los que se hacen mediante la API, también son versiones.
+
+Para volver a una versión anterior:
+
+:::steps
+1. Haz clic en **Historial de versiones** en la barra de herramientas.
+2. Haz clic en **Vista previa** en la versión. La vista previa muestra qué cambiaría al restaurarla y presenta la versión en un lienzo propio. Haz clic en un bloque de ese lienzo para leer sus ajustes.
+3. Haz clic en **Restaurar esta versión**. La versión vuelve al lienzo y se guarda al instante.
+:::
+
+Restaurar es un cambio como cualquier otro. Se guarda como una versión nueva que indica qué versión restauró, así que puedes deshacerlo o restaurar la versión que tenías antes. Cualquier persona que pueda abrir el flujo de trabajo puede ver su historial; restaurar una versión requiere permiso para editar el flujo de trabajo. Se conservan las 100 versiones más recientes de cada flujo de trabajo.
 
 ## Siguientes pasos
 

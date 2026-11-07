@@ -1679,6 +1679,10 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
    * from Slack or Microsoft Teams, or whoever executes a policy on a record
    * from the Dashboard or the API - and never changed after. False for every
    * run that existed before, which all paged responders.
+   *
+   * Read on a relation too: it is what a page is, for the people it paged,
+   * and the mobile app's My Pages reads it through each person's own page
+   * (UserOnCallLog.onCallDutyPolicyExecutionLog) to say "FYI (observer)".
    */
   @ColumnAccessControl({
     create: [
@@ -1706,6 +1710,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     required: false,
     isDefaultValueColumn: true,
     defaultValue: false,
+    canReadOnRelationQuery: true,
     title: "Paged as Observers",
     description:
       "Whether this run pages its people as observers: they are kept informed, and acknowledging their page only says they have seen it - the incident or alert is not acknowledged, and nobody else's page stops.",

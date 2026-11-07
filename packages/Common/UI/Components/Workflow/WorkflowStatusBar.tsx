@@ -142,7 +142,24 @@ export interface ComponentProps {
    * pointer and read out after it.
    */
   readOnlyReason?: string | undefined;
+  /*
+   * While the save state is Error: why the last save failed, under the
+   * pointer and read out after the pill, and what tries it again - the
+   * canvas keeps what was not saved, so nothing is lost meanwhile.
+   */
+  saveError?: string | undefined;
+  onRetrySave?: (() => void) | undefined;
 }
+
+export const WorkflowStatusBarCopy: {
+  readonly retrySave: string;
+  readonly retrySaveDescription: string;
+} = {
+  retrySave: translationKey("Try again"),
+  retrySaveDescription: translationKey(
+    "Save the workflow again. Your changes stay on the canvas until it is saved.",
+  ),
+};
 
 const WorkflowStatusBar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -186,6 +203,15 @@ const WorkflowStatusBar: FunctionComponent<ComponentProps> = (
       ) : (
         <span
           className={`${PILL_CLASS_NAME} border-gray-200 bg-white ${savePresentation.textClassName}`}
+          title={
+            props.saveState === WorkflowSaveState.Error && props.saveError
+              ? props.saveError
+              : undefined
+          }
+          // A save that failed is said once, as it happens; saving is not.
+          role={
+            props.saveState === WorkflowSaveState.Error ? "alert" : undefined
+          }
           data-testid="workflow-save-status"
         >
           <span
@@ -193,7 +219,35 @@ const WorkflowStatusBar: FunctionComponent<ComponentProps> = (
             aria-hidden="true"
           />
           {translator.translateText(savePresentation.label)}
+          {props.saveState === WorkflowSaveState.Error && props.saveError ? (
+            <span className="sr-only">{props.saveError}</span>
+          ) : (
+            <></>
+          )}
         </span>
+      )}
+
+      {!props.readOnlyReason &&
+      props.saveState === WorkflowSaveState.Error &&
+      props.onRetrySave ? (
+        <button
+          type="button"
+          onClick={props.onRetrySave}
+          title={translator.translateText(
+            WorkflowStatusBarCopy.retrySaveDescription,
+          )}
+          data-testid="workflow-save-retry-button"
+          className={`${PILL_CLASS_NAME} cursor-pointer border-red-200 bg-red-50 text-red-700 transition-colors hover:border-red-300 hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1`}
+        >
+          <Icon
+            icon={IconProp.Refresh}
+            size={SizeProp.ExtraSmall}
+            className="h-3 w-3 shrink-0"
+          />
+          {translator.translateText(WorkflowStatusBarCopy.retrySave)}
+        </button>
+      ) : (
+        <></>
       )}
 
       {props.runStatusMessage &&

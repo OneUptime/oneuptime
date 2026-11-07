@@ -21,7 +21,7 @@ A workflow from scratch opens with a single dashed block reading **Choose what s
 
 Every workflow has exactly one **trigger** at the top. Everything else is a **component** that does something. To change the trigger, delete it: the dashed placeholder comes back in its place, and clicking it lets you pick another. Deleting a block deletes its lines too, so connect the new trigger to the first block again.
 
-Changes save automatically. A pill in the toolbar tracks it: **Saving…** while the change is in flight, then **Saved**, or **Could not save** if it didn't work. The canvas has no Save button and no separate publish step.
+Changes save automatically, a moment after you make them. A pill in the toolbar tracks it: **Saving…** while the change is on its way, then **Saved**. If a change could not be saved, the pill says **Could not save**, with the reason when you hover it, and **Try again** beside it. Your changes stay on the canvas meanwhile, and the next change you make tries again. Leaving the page before a change is saved asks you first. The canvas has no Save button and no separate publish step. A mistake is saved too, so the Builder keeps every change you can take back: see [Undo, redo and version history](#undo-redo-and-version-history).
 
 ## Add blocks
 
@@ -169,6 +169,26 @@ To pause a workflow without deleting it, switch **Enabled** off. Its trigger sto
 - To delete a block, click it and use **Delete** at the bottom of its settings dialog. Selecting a block or a line and pressing Backspace also removes it.
 - There's no way to duplicate a single block. **Duplicate Workflow** on the workflow's **Settings** page copies the whole thing. The copy's name is filled in, numbered past the project's workflows ("Nightly Sync" is copied as "Nightly Sync 2"), and the copy opens, disabled.
 - Stack blocks top to bottom so they read in the direction they run — inputs are on the top edge, outputs on the bottom, so the flow naturally goes downward.
+
+## Undo, redo and version history
+
+Every change you make on the canvas can be taken back, even though it was saved straight away.
+
+- **Undo** and **Redo** are at the start of the toolbar. Hover either one to see what it would take back or make again, and which block that is. Each change is one step: adding, deleting or moving a block, connecting or disconnecting two blocks, and saving a block's settings. Dragging a block is one step, however far you drag it.
+- The keyboard works too: ⌘Z on a Mac, or Ctrl+Z, undoes, and ⇧⌘Z, Ctrl+Shift+Z or Ctrl+Y redoes. While you type in a field or a code editor, the same keys undo your typing instead.
+- An undo is saved like any other change. Undo goes back over what you did since you opened the Builder; the version history goes back further.
+
+**Version history**, in the toolbar, lists every saved version of the workflow, newest first: who saved it, when, and what it changed, such as `Added "Send Email" (send-email-1)`. The changes you save within 10 minutes of each other are one version, so a version is a piece of work rather than every click. Changes Ask AI makes, and changes made through the API, are versions too.
+
+To go back to an earlier version:
+
+:::steps
+1. Click **Version history** in the toolbar.
+2. Click **Preview** on the version. The preview lists what restoring it would change, and shows the version on a canvas of its own. Click a block on it to read its settings.
+3. Click **Restore this version**. The version goes back on the canvas and is saved straight away.
+:::
+
+Restoring is a change like any other. It is saved as a new version that says which version it restored, so you can undo it, or restore the version you had before. Anyone who can open the workflow can see its history; restoring a version takes permission to edit the workflow. The newest 100 versions of each workflow are kept.
 
 ## Next steps
 

@@ -239,6 +239,44 @@ export const ON_CALL_OBSERVER_PAGE_SMS_LEAD: string = "FYI (observer)";
 export const ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL: string = "I've seen it";
 
 /*
+ * "I'VE SEEN IT" FROM THE MOBILE APP: the person answers their own page as
+ * an observer about a record, signed in as them - from the action under its
+ * push, which opens the record's screen, or from the screen's own button -
+ * as its link, a call's 1 or a text would. The record is not acknowledged,
+ * and nobody else's page stops.
+ *
+ * GET  <api>/on-call-page/seen/<record type>/<record id>
+ *   The signed-in person's observer pages about the record that they can
+ *   still say they have seen: { pages: [...] }, one for each run. Empty for
+ *   everybody else.
+ * POST the same route
+ *   Says they have seen them: { seen: N }, how many - 0 when there was none
+ *   to answer: seen already, by them or by somebody else the page reached,
+ *   or over, as its record is resolved.
+ *
+ * Only ever the caller's own pages, in the project they are signed in to:
+ * nothing is sent but the record.
+ */
+export const ON_CALL_OBSERVER_PAGE_SEEN_ROUTE: string = "/on-call-page/seen";
+
+// One observer's page the person can still say they have seen: a run's.
+export interface OnCallObserverOpenPage {
+  executionLogId: string;
+  // The policy paging them; empty for a direct page.
+  policyName: string;
+}
+
+// The GET answer: the person's observer pages about the record.
+export interface OnCallObserverOpenPagesAnswer {
+  pages: Array<OnCallObserverOpenPage>;
+}
+
+// The POST answer: how many of them it said the person has seen.
+export interface OnCallObserverPageSeenAnswer {
+  seen: number;
+}
+
+/*
  * Why the person gets an observer's email, where a responder's says they are
  * responsible for the incident or on call.
  */

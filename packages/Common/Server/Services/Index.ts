@@ -368,6 +368,7 @@ import WorkflowLabelRuleService from "./WorkflowLabelRuleService";
 // Workflows.
 import WorkflowService from "./WorkflowService";
 import WorkflowVariablesService from "./WorkflowVariableService";
+import WorkflowVersionService from "./WorkflowVersionService";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import TelemetryExceptionService from "./TelemetryExceptionService";
 import TelemetrySourceMapService from "./TelemetrySourceMapService";
@@ -921,6 +922,7 @@ const services: Array<BaseService> = [
   WorkflowLabelRuleService,
   WorkflowService,
   WorkflowVariablesService,
+  WorkflowVersionService,
 
   // Monitor Group Service
   MonitorGroupService,

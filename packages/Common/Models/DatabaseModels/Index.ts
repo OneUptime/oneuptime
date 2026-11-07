@@ -442,6 +442,7 @@ import UserIncomingCallNumber from "./UserIncomingCallNumber";
 // Workflows.
 import Workflow from "./Workflow";
 import WorkflowLog from "./WorkflowLog";
+import WorkflowVersion from "./WorkflowVersion";
 import WorkflowVariables from "./WorkflowVariable";
 import WorkflowOwnerTeam from "./WorkflowOwnerTeam";
 import WorkflowOwnerUser from "./WorkflowOwnerUser";
@@ -953,6 +954,7 @@ const AllModelTypes: Array<{
   Workflow,
   WorkflowVariables,
   WorkflowLog,
+  WorkflowVersion,
   WorkflowOwnerTeam,
   WorkflowOwnerUser,
 

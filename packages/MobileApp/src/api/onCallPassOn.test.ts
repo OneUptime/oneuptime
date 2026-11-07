@@ -240,6 +240,31 @@ describe("reading the answers", () => {
     ]);
   });
 
+  test("pages: an observer's page is marked as one, and only by a true isObserverPage - a responder's says nothing", () => {
+    const pages: ReturnType<typeof toOnCallPassOnPages> = toOnCallPassOnPages({
+      pages: [
+        { executionLogId: "observer", preview: PREVIEW, isObserverPage: true },
+        { executionLogId: "responder", preview: PREVIEW },
+        { executionLogId: "text", preview: PREVIEW, isObserverPage: "true" },
+        { executionLogId: "one", preview: PREVIEW, isObserverPage: 1 },
+      ],
+    });
+
+    expect(
+      pages.map(
+        (page: { executionLogId: string; isObserverPage?: boolean }) => {
+          return [page.executionLogId, page.isObserverPage];
+        },
+      ),
+    ).toEqual([
+      ["observer", true],
+      ["responder", undefined],
+      ["text", undefined],
+      ["one", undefined],
+    ]);
+    expect(pages[1]).not.toHaveProperty("isObserverPage");
+  });
+
   test("acknowledged: a count of pages again, and anything else is none", () => {
     expect(toAcknowledgedCount({ acknowledged: 2 })).toBe(2);
     expect(toAcknowledgedCount({ acknowledged: 1.7 })).toBe(1);

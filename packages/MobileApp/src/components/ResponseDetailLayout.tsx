@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { elevation, radius, spacing, typography } from "../theme/tokens";
 import { formatDateTime, formatRelativeTime } from "../utils/date";
+import { OBSERVER_PAGE_TEXT } from "../oncall/observerPage";
 import IconBadge from "./IconBadge";
 import SectionHeader from "./SectionHeader";
 import { getToneColors, type StatusTone } from "./StatusPill";
@@ -54,19 +55,31 @@ export function describeResponseAge(
  * Where a record stands for the reader. "pagedAgain": it is acknowledged and
  * still not resolved, and its policy is paging the reader again about it
  * (the acknowledgement timeout) - the reader has a page to answer.
+ * "observer": the reader is paged about it only as an observer
+ * (oncall/observerPage.ts) and has not said they have seen it yet - they
+ * are kept informed while others respond, whatever state it is in.
  */
-export type ResponseStage = "open" | "acknowledged" | "pagedAgain" | "resolved";
+export type ResponseStage =
+  | "open"
+  | "acknowledged"
+  | "pagedAgain"
+  | "observer"
+  | "resolved";
 
 export function getResponseStage(
   isResolved: boolean,
   isAcknowledged: boolean,
   isPagedAgain: boolean = false,
+  isObserver: boolean = false,
 ): ResponseStage {
   if (isResolved) {
     return "resolved";
   }
   if (isAcknowledged && isPagedAgain) {
     return "pagedAgain";
+  }
+  if (isObserver) {
+    return "observer";
   }
   return isAcknowledged ? "acknowledged" : "open";
 }
@@ -94,6 +107,12 @@ const stageAppearance: Record<
     tone: "warning",
     icon: "alarm-outline",
     title: "You're being paged again",
+  },
+  // The server's own words for an observer's page (oncall/observerPage.ts).
+  observer: {
+    tone: "info",
+    icon: "eye-outline",
+    title: OBSERVER_PAGE_TEXT.label,
   },
   resolved: {
     tone: "success",
