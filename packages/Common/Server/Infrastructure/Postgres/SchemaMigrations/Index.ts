@@ -923,6 +923,7 @@ import { AddPublicNoteApproval1808995720000 } from "./1808995720000-AddPublicNot
 import { AddWorkflowVersions1808995761880 } from "./1808995761880-AddWorkflowVersions";
 import { AddRuleOwningTeams1808995800000 } from "./1808995800000-AddRuleOwningTeams";
 import { AddWorkflowGraphRevision1808995900000 } from "./1808995900000-AddWorkflowGraphRevision";
+import { AddWorkflowVersionSavedThrough1808996000000 } from "./1808996000000-AddWorkflowVersionSavedThrough";
 
 export default [
   InitialMigration,
@@ -1850,4 +1851,5 @@ export default [
   AddWorkflowVersions1808995761880,
   AddRuleOwningTeams1808995800000,
   AddWorkflowGraphRevision1808995900000,
+  AddWorkflowVersionSavedThrough1808996000000,
 ];

@@ -19,6 +19,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import WriteSource from "../../Types/BaseDatabase/WriteSource";
 import { WorkflowVersionType } from "../../Types/Workflow/WorkflowVersion";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
@@ -459,4 +460,41 @@ export default class WorkflowVersion extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
+
+  /*
+   * Ask AI, when Ask AI saved this version for the person in createdByUser
+   * (issue #6258): a change of Ask AI's is a version of its own, never one
+   * the person's own saves are folded into, so the version before it is the
+   * workflow just as it was before Ask AI changed it. Empty for a person's
+   * own saves and the API's.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(WriteSource),
+    title: "Saved Through",
+    description:
+      "AskAi when Ask AI saved this version for the person in Saved by User: each change Ask AI makes is a version of its own. Empty when the person saved it themselves, or the API did.",
+    example: "AskAi",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public savedThrough?: WriteSource = undefined;
 }

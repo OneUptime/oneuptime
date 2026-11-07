@@ -8,6 +8,7 @@ import {
   canPreviewWorkflowVersion,
   getWorkflowVersionHeadline,
   getWorkflowVersionLines,
+  describeWorkflowVersionSavedBy,
   getWorkflowVersionSavedBy,
 } from "./WorkflowVersionPresentation";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
@@ -81,6 +82,8 @@ const VERSION_SELECT: Select<WorkflowVersion> = {
     name: true,
     email: true,
   },
+  // Ask AI, when it saved the version for that person (issue #6258).
+  savedThrough: true,
 };
 
 const toRow: (version: WorkflowVersion) => WorkflowVersionRow = (
@@ -103,6 +106,7 @@ const toRow: (version: WorkflowVersion) => WorkflowVersionRow = (
       version.createdByUser?.name?.toString() ||
       version.createdByUser?.email?.toString() ||
       "",
+    savedThrough: version.savedThrough || null,
   };
 };
 
@@ -133,10 +137,11 @@ const SavedByAndWhen: FunctionComponent<{
   return (
     <p className="mt-0.5 text-xs text-gray-500">
       {savedBy ? (
-        <span dir="auto">
-          {"person" in savedBy
-            ? savedBy.person
-            : props.translator.translateText(savedBy.sentence)}
+        <span dir="auto" data-testid="workflow-version-saved-by">
+          {describeWorkflowVersionSavedBy({
+            savedBy,
+            translator: props.translator,
+          })}
         </span>
       ) : (
         <></>
@@ -174,11 +179,7 @@ const describeSavedByAndWhen: (
   const clock: FeedClock = getFeedClock({ language: translator.language });
 
   return [
-    savedBy
-      ? "person" in savedBy
-        ? savedBy.person
-        : translator.translateText(savedBy.sentence) || ""
-      : "",
+    describeWorkflowVersionSavedBy({ savedBy, translator }),
     savedAt
       ? formatFeedTimeAgo(savedAt, clock) || OneUptimeDate.fromNow(savedAt)
       : "",

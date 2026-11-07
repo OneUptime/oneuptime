@@ -13,6 +13,7 @@ import {
   WorkflowVersionType,
 } from "../../../Types/Workflow/WorkflowVersion";
 import API from "../../../Utils/API";
+import WriteSource from "../../../Types/BaseDatabase/WriteSource";
 import {
   EMAIL,
   LOG,
@@ -158,6 +159,7 @@ describePostgres("a workflow's version history, in Postgres", () => {
     changeCount: number;
     restoredFromVersionNumber: number | null;
     createdByUserId: string | null;
+    savedThrough: string | null;
     graphFingerprint: string;
     graph: JSONObject;
   }
@@ -168,26 +170,35 @@ describePostgres("a workflow's version history, in Postgres", () => {
     workflowId: ObjectID,
   ): Promise<Array<VersionRow>> => {
     return await database.query(
-      `SELECT "versionNumber", "versionType", "changes", "changeCount", "restoredFromVersionNumber", "createdByUserId", "graphFingerprint", "graph"
+      `SELECT "versionNumber", "versionType", "changes", "changeCount", "restoredFromVersionNumber", "createdByUserId", "savedThrough", "graphFingerprint", "graph"
         FROM "${schema}"."WorkflowVersion" WHERE "workflowId" = $1 ORDER BY "versionNumber" ASC`,
       [workflowId.toString()],
     );
   };
 
-  // A save of the graph through WorkflowService, by `userId`, as the builder makes it.
+  /*
+   * A save of the graph through WorkflowService, by `userId`, as the builder
+   * makes it - or as Ask AI makes it for them (`writeSource`).
+   */
   const saveGraph: (data: {
     workflowId: ObjectID;
     graph: JSONObject;
     userId?: ObjectID | undefined;
+    writeSource?: WriteSource | undefined;
   }) => Promise<void> = async (data: {
     workflowId: ObjectID;
     graph: JSONObject;
     userId?: ObjectID | undefined;
+    writeSource?: WriteSource | undefined;
   }): Promise<void> => {
     await WorkflowService.updateOneById({
       id: data.workflowId,
       data: { graph: data.graph } as never,
-      props: { isRoot: true, userId: data.userId },
+      props: {
+        isRoot: true,
+        userId: data.userId,
+        ...(data.writeSource ? { writeSource: data.writeSource } : {}),
+      },
     });
   };
 
@@ -396,5 +407,153 @@ describePostgres("a workflow's version history, in Postgres", () => {
         }),
       ),
     ).toEqual(new Set([ALICE.toString(), BOB.toString()]));
+  });
+  /*
+   * Issue #6258: Ask AI saves as the person who asked, so by person alone
+   * its change was folded into the person's own version within ten
+   * minutes, and nothing could take back just Ask AI's change.
+   */
+  const GRAPH_ASK_AI_CHANGED: JSONObject = graphOf(
+    [
+      MANUAL,
+      LOG,
+      EMAIL,
+      { ...LOG, key: "card-log-2", stepId: "log-2", y: 704 },
+    ],
+    [
+      { from: MANUAL.key, to: LOG.key },
+      { from: LOG.key, to: EMAIL.key },
+    ],
+  ) as unknown as JSONObject;
+
+  test("the person edits, then Ask AI changes the workflow within 10 minutes: two versions, and restoring the first undoes exactly Ask AI's change", async () => {
+    const workflowId: ObjectID = await insertWorkflow(GRAPH_BEFORE);
+
+    await saveGraph({ workflowId, graph: GRAPH_WITH_EMAIL, userId: ALICE });
+    // A moment later, Ask AI changes it for Alice.
+    await saveGraph({
+      workflowId,
+      graph: GRAPH_ASK_AI_CHANGED,
+      userId: ALICE,
+      writeSource: WriteSource.AskAi,
+    });
+
+    let versions: Array<VersionRow> = await versionsOf(workflowId);
+
+    expect(
+      versions.map((version: VersionRow) => {
+        return {
+          versionNumber: version.versionNumber,
+          versionType: version.versionType,
+          createdByUserId: version.createdByUserId,
+          savedThrough: version.savedThrough,
+          changes: version.changes,
+        };
+      }),
+    ).toEqual([
+      {
+        versionNumber: 1,
+        versionType: WorkflowVersionType.Earlier,
+        createdByUserId: null,
+        savedThrough: null,
+        changes: [],
+      },
+      // Alice's own change.
+      {
+        versionNumber: 2,
+        versionType: WorkflowVersionType.Changed,
+        createdByUserId: ALICE.toString(),
+        savedThrough: null,
+        changes: [
+          'Added "Send Email" (send-email-1)',
+          'Connected "Log" (log-1) to "Send Email" (send-email-1)',
+        ],
+      },
+      // Ask AI's, for Alice: a version of its own.
+      {
+        versionNumber: 3,
+        versionType: WorkflowVersionType.Changed,
+        createdByUserId: ALICE.toString(),
+        savedThrough: WriteSource.AskAi,
+        changes: ['Added "Log" (log-2)'],
+      },
+    ]);
+
+    // Restore the version before Ask AI's change.
+    await saveGraph({
+      workflowId,
+      graph: versions[1]?.graph as JSONObject,
+      userId: ALICE,
+    });
+
+    versions = await versionsOf(workflowId);
+
+    expect(versions[3]).toMatchObject({
+      versionNumber: 4,
+      versionType: WorkflowVersionType.Restored,
+      restoredFromVersionNumber: 2,
+      createdByUserId: ALICE.toString(),
+      savedThrough: null,
+      // Exactly Ask AI's change, taken back.
+      changes: ['Removed "Log" (log-2)'],
+    });
+    expect(versions[3]?.graphFingerprint).toBe(versions[1]?.graphFingerprint);
+  });
+
+  test("the person's next edit after Ask AI's change is a version of its own, and their burst after that is one version again", async () => {
+    const workflowId: ObjectID = await insertWorkflow(GRAPH_BEFORE);
+
+    await saveGraph({
+      workflowId,
+      graph: GRAPH_ASK_AI_CHANGED,
+      userId: ALICE,
+      writeSource: WriteSource.AskAi,
+    });
+    await saveGraph({ workflowId, graph: GRAPH_WITH_EMAIL, userId: ALICE });
+    await saveGraph({
+      workflowId,
+      graph: graphOf(
+        [MANUAL, LOG, EMAIL],
+        [{ from: MANUAL.key, to: LOG.key }],
+      ) as unknown as JSONObject,
+      userId: ALICE,
+    });
+
+    const versions: Array<VersionRow> = await versionsOf(workflowId);
+
+    expect(
+      versions.map((version: VersionRow) => {
+        return [version.versionNumber, version.savedThrough];
+      }),
+    ).toEqual([
+      [1, null],
+      [2, WriteSource.AskAi],
+      [3, null],
+    ]);
+  });
+
+  test("a workflow Ask AI creates is version 1, by the person who asked, saying Ask AI made it", async () => {
+    const workflow: Workflow = new Workflow();
+    workflow.projectId = PROJECT_ID;
+    workflow.name = "Made by Ask AI";
+    workflow.graph = GRAPH_BEFORE;
+    workflow.webhookSecretKey = "set";
+
+    const created: Workflow = await WorkflowService.create({
+      data: workflow,
+      props: { isRoot: true, userId: ALICE, writeSource: WriteSource.AskAi },
+    });
+
+    const versions: Array<VersionRow> = await versionsOf(
+      created.id as ObjectID,
+    );
+
+    expect(versions).toHaveLength(1);
+    expect(versions[0]).toMatchObject({
+      versionNumber: 1,
+      versionType: WorkflowVersionType.Created,
+      createdByUserId: ALICE.toString(),
+      savedThrough: WriteSource.AskAi,
+    });
   });
 });

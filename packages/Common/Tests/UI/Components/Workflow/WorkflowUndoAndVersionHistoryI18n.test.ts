@@ -162,6 +162,9 @@ describe("Undo, Redo and the Version history in every dashboard language", () =>
     expect(KEYS).toContain("Keep mine");
     expect(KEYS).toContain("Undo showing their changes");
     expect(KEYS).toContain("Not saved");
+    // Ask AI's changes, as versions of their own (issue #6258).
+    expect(KEYS).toContain("Ask AI, for {{person}}");
+    expect(KEYS).toContain("Saved by Ask AI");
   });
 
   test("English has every key", () => {

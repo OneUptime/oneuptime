@@ -15,6 +15,7 @@ import {
   isWorkflowVersionType,
 } from "../../../../Types/Workflow/WorkflowVersion";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
+import WriteSource from "../../../../Types/BaseDatabase/WriteSource";
 
 /*
  * What a save of a workflow's graph does to its version history (issue
@@ -49,12 +50,14 @@ const decide: (data: {
   graphFingerprint?: string | undefined;
   earlier?: number | null | undefined;
   savedBy?: string | null | undefined;
+  savedThrough?: WriteSource | null | undefined;
   now?: Date | undefined;
 }) => WorkflowVersionWrite = (data: {
   newest?: WorkflowVersionSeen | null | undefined;
   graphFingerprint?: string | undefined;
   earlier?: number | null | undefined;
   savedBy?: string | null | undefined;
+  savedThrough?: WriteSource | null | undefined;
   now?: Date | undefined;
 }): WorkflowVersionWrite => {
   return decideWorkflowVersionWrite({
@@ -63,6 +66,7 @@ const decide: (data: {
     earlierWithSameGraph:
       typeof data.earlier === "number" ? { versionNumber: data.earlier } : null,
     savedByUserId: data.savedBy === undefined ? ALICE : data.savedBy,
+    savedThrough: data.savedThrough,
     now: data.now || NOW,
   });
 };
@@ -318,5 +322,222 @@ describe("the version types", () => {
     for (const value of ["changed", "", null, undefined, 3, {}]) {
       expect(isWorkflowVersionType(value)).toBe(false);
     }
+  });
+});
+
+/*
+ * ASK AI'S CHANGES ARE VERSIONS OF THEIR OWN (issue #6258). Ask AI saves a
+ * workflow as the person who asked, so by person alone a change of its made
+ * within the window of the person's last edit was folded into the person's
+ * version: there was no version from just before it to restore, and the
+ * version said the person made it.
+ */
+const NEW_VERSION: WorkflowVersionWrite = {
+  kind: WorkflowVersionWriteKind.Add,
+  versionNumber: 8,
+  versionType: WorkflowVersionType.Changed,
+  restoredFromVersionNumber: null,
+};
+
+describe("Ask AI's changes are versions of their own", () => {
+  test("a change Ask AI saves for the person is never taken into the person's own version", () => {
+    // The very burst it would have joined: same person, a minute in.
+    expect(decide({ savedThrough: WriteSource.AskAi })).toEqual(NEW_VERSION);
+    expect(
+      decide({
+        savedThrough: WriteSource.AskAi,
+        newest: newest({ createdAt: ago(1) }),
+      }),
+    ).toEqual(NEW_VERSION);
+  });
+
+  test("the person's next edit is never taken into Ask AI's version", () => {
+    expect(
+      decide({ newest: newest({ savedThrough: WriteSource.AskAi }) }),
+    ).toEqual(NEW_VERSION);
+    expect(
+      decide({
+        newest: newest({ savedThrough: WriteSource.AskAi, createdAt: ago(1) }),
+      }),
+    ).toEqual(NEW_VERSION);
+  });
+
+  test("nor is Ask AI's next change: each one can be undone on its own", () => {
+    expect(
+      decide({
+        savedThrough: WriteSource.AskAi,
+        newest: newest({ savedThrough: WriteSource.AskAi }),
+      }),
+    ).toEqual(NEW_VERSION);
+  });
+
+  test("the person's own saves after that are one version again", () => {
+    // Version 8 is Ask AI's; version 9, the person's, takes in their next save.
+    expect(
+      decide({
+        newest: newest({ versionNumber: 9, savedThrough: null }),
+      }),
+    ).toEqual({ kind: WorkflowVersionWriteKind.TakeIntoNewest });
+  });
+
+  test("Ask AI putting back an earlier version's graph is a Restored version, as anyone's", () => {
+    expect(decide({ savedThrough: WriteSource.AskAi, earlier: 3 })).toEqual({
+      kind: WorkflowVersionWriteKind.Add,
+      versionNumber: 8,
+      versionType: WorkflowVersionType.Restored,
+      restoredFromVersionNumber: 3,
+    });
+  });
+
+  test("Ask AI saving the newest version's graph again is no version", () => {
+    expect(
+      decide({
+        savedThrough: WriteSource.AskAi,
+        graphFingerprint: "fingerprint-7",
+      }),
+    ).toEqual({ kind: WorkflowVersionWriteKind.Nothing });
+  });
+
+  test("Ask AI's first change of a workflow with no version yet is version 1", () => {
+    expect(decide({ savedThrough: WriteSource.AskAi, newest: null })).toEqual({
+      kind: WorkflowVersionWriteKind.Add,
+      versionNumber: 1,
+      versionType: WorkflowVersionType.Changed,
+      restoredFromVersionNumber: null,
+    });
+  });
+
+  test("doesNewestVersionTakeInSave says the same", () => {
+    for (const [seen, save, takesIn] of [
+      [null, null, true],
+      [null, WriteSource.AskAi, false],
+      [WriteSource.AskAi, null, false],
+      [WriteSource.AskAi, WriteSource.AskAi, false],
+    ] as Array<[WriteSource | null, WriteSource | null, boolean]>) {
+      expect({
+        seen,
+        save,
+        takesIn: doesNewestVersionTakeInSave({
+          newest: newest({ savedThrough: seen }),
+          savedByUserId: ALICE,
+          savedThrough: save,
+          now: NOW,
+        }),
+      }).toEqual({ seen, save, takesIn });
+    }
+  });
+});
+
+describe("property: Ask AI's changes, and everyone else's grouped exactly as before", () => {
+  // The rule before issue #6258, written out: by person, window and type alone.
+  const takenInBefore: (data: {
+    seen: WorkflowVersionSeen;
+    savedBy: string | null;
+  }) => boolean = (data: {
+    seen: WorkflowVersionSeen;
+    savedBy: string | null;
+  }): boolean => {
+    const age: number = NOW.getTime() - (data.seen.createdAt as Date).getTime();
+
+    return (
+      data.seen.versionType === WorkflowVersionType.Changed &&
+      data.savedBy !== null &&
+      data.savedBy === data.seen.savedByUserId &&
+      age >= 0 &&
+      age < WORKFLOW_VERSION_GROUPING_WINDOW_IN_MS
+    );
+  };
+
+  test("over 6000 seeded saves", () => {
+    const random: SeededRandom = seededRandom(6258);
+    const people: Array<string | null> = [ALICE, BOB, null];
+    const sources: Array<WriteSource | null | undefined> = [
+      null,
+      undefined,
+      WriteSource.AskAi,
+    ];
+    const fingerprints: Array<string> = ["a", "b", "c", "d"];
+    let askAiSaves: number = 0;
+    let keptApart: number = 0;
+
+    for (let attempt: number = 0; attempt < 6000; attempt++) {
+      const seen: WorkflowVersionSeen = {
+        versionNumber: 1 + random(150),
+        versionType:
+          WORKFLOW_VERSION_TYPES[random(WORKFLOW_VERSION_TYPES.length)],
+        graphFingerprint: fingerprints[random(fingerprints.length)],
+        savedByUserId: people[random(people.length)] as string | null,
+        savedThrough: sources[random(sources.length)],
+        createdAt: ago(random(2 * WORKFLOW_VERSION_GROUPING_WINDOW_IN_MS)),
+      };
+      const fingerprint: string = fingerprints[
+        random(fingerprints.length)
+      ] as string;
+      const earlier: number | null =
+        random(2) === 0 ? 1 + random(seen.versionNumber + 3) : null;
+      const savedBy: string | null = people[random(people.length)] as
+        | string
+        | null;
+      const savedThrough: WriteSource | null | undefined =
+        sources[random(sources.length)];
+
+      const write: WorkflowVersionWrite = decideWorkflowVersionWrite({
+        newest: seen,
+        graphFingerprint: fingerprint,
+        earlierWithSameGraph:
+          earlier === null ? null : { versionNumber: earlier },
+        savedByUserId: savedBy,
+        savedThrough,
+        now: NOW,
+      });
+
+      const isAskAiInvolved: boolean = Boolean(
+        savedThrough || seen.savedThrough,
+      );
+
+      if (savedThrough) {
+        askAiSaves++;
+      }
+
+      // Ask AI's change never joins anything, and nothing joins it.
+      if (isAskAiInvolved) {
+        expect(write.kind).not.toBe(WorkflowVersionWriteKind.TakeIntoNewest);
+
+        if (
+          takenInBefore({ seen, savedBy }) &&
+          fingerprint !== seen.graphFingerprint &&
+          !(earlier !== null && earlier < seen.versionNumber)
+        ) {
+          keptApart++;
+        }
+
+        continue;
+      }
+
+      // Everyone else's saves are decided exactly as before.
+      const before: WorkflowVersionWrite = decideWorkflowVersionWrite({
+        newest: { ...seen, savedThrough: undefined },
+        graphFingerprint: fingerprint,
+        earlierWithSameGraph:
+          earlier === null ? null : { versionNumber: earlier },
+        savedByUserId: savedBy,
+        now: NOW,
+      });
+
+      expect(write).toEqual(before);
+
+      if (
+        fingerprint !== seen.graphFingerprint &&
+        !(earlier !== null && earlier < seen.versionNumber)
+      ) {
+        expect(write.kind === WorkflowVersionWriteKind.TakeIntoNewest).toBe(
+          takenInBefore({ seen, savedBy }),
+        );
+      }
+    }
+
+    // Not vacuous: many of Ask AI's saves, and many it would once have been folded into.
+    expect(askAiSaves).toBeGreaterThan(1000);
+    expect(keptApart).toBeGreaterThan(20);
   });
 });
