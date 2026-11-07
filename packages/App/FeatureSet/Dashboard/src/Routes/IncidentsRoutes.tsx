@@ -98,6 +98,7 @@ import IncidentSettingsRoles from "../Pages/Incidents/Settings/IncidentRoles";
 import IncidentSettingsMeasurements from "../Pages/Incidents/Settings/IncidentMeasurements";
 
 import IncidentSettingsLinkedAlerts from "../Pages/Incidents/Settings/IncidentLinkedAlertsSettings";
+import IncidentSettingsPublicNoteApproval from "../Pages/Incidents/Settings/IncidentPublicNoteApproval";
 
 import IncidentSettingsEpisodeMembership from "../Pages/Incidents/Settings/IncidentEpisodeMembershipSettings";
 
@@ -764,6 +765,24 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[
+              PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL
+            ] || ""
+          }
+          element={
+            <IncidentSettingsPublicNoteApproval
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.INCIDENTS_SETTINGS_PUBLIC_NOTE_APPROVAL
+                ] as Route
               }
             />
           }

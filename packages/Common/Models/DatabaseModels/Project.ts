@@ -4816,4 +4816,76 @@ export default class Project extends TenantModel {
     default: false,
   })
   public recordAndTranscribeIncidentCalls?: boolean = undefined;
+
+  /*
+   * Public Note Approval (Incidents > Settings > Public Note Approval): a
+   * public note on an incident or an episode waits for the project's
+   * approvers before anything outside the team sees it
+   * (Types/StatusPage/PublicNoteApproval). Off by default, for new projects
+   * too: a project that never turns it on posts public notes as before.
+   * Project Owner or Project Admin, like the other switches of how a
+   * project's incidents behave; turning it on needs an approval step that
+   * names somebody (ProjectService).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Require Approval for Incident Public Notes",
+    description:
+      "When enabled, a public note on an incident or an incident episode is published - shown on status pages, sent to subscribers and posted to chat channels - only once the project's incident approvers approve it (PublicNoteApprovalStep). Edits of published notes wait for approval too. Off by default. Turning it on needs at least one approval step.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public requireApprovalForIncidentPublicNotes?: boolean = undefined;
+
+  // The same, for scheduled maintenance events' public notes.
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Require Approval for Scheduled Maintenance Public Notes",
+    description:
+      "When enabled, a public note on a scheduled maintenance event is published - shown on status pages, sent to subscribers and posted to chat channels - only once the project's scheduled maintenance approvers approve it (PublicNoteApprovalStep). Edits of published notes wait for approval too. Off by default. Turning it on needs at least one approval step.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public requireApprovalForScheduledMaintenancePublicNotes?: boolean =
+    undefined;
 }

@@ -120,6 +120,7 @@ export interface FeedEntryKind {
  */
 export const SHARED_FEED_ENTRY_KINDS: {
   PublicNote: FeedEntryKind;
+  PublicNoteApproval: FeedEntryKind;
   PrivateNote: FeedEntryKind;
   RootCause: FeedEntryKind;
   AIRootCause: FeedEntryKind;
@@ -162,6 +163,12 @@ export const SHARED_FEED_ENTRY_KINDS: {
     tone: FeedTone.Info,
     isNote: true,
   },
+  /*
+   * A public note's approval: sent for approval, approved for a step,
+   * rejected, an edit withdrawn - in the colour the server chose for it
+   * (waiting, approved, rejected).
+   */
+  PublicNoteApproval: { icon: IconProp.ShieldCheck, tone: FeedTone.Record },
   PrivateNote: { icon: IconProp.Lock, tone: FeedTone.Info, isNote: true },
   RootCause: { icon: IconProp.LightBulb, tone: FeedTone.Info, isNote: true },
   // A root cause an AI investigation wrote.

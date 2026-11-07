@@ -19,6 +19,7 @@ Open **Incidents** from the **Products** menu in the top bar, then expand **Sett
 | **Incident Severity**    | Add, rename, recolor and reorder severity levels.                                            |
 | **Incident Templates**   | Pre-fill a whole incident — title, description, resources, on-call policies, owners, labels. |
 | **Note Templates**       | Reusable text for public and private notes.                                                  |
+| **Public Note Approval** | Have public notes approved before they are published, and choose who approves them. |
 | **Postmortem Templates** | Reusable postmortem structures.                                                              |
 | **Postmortem Statuses** | The statuses a postmortem moves through, from Not Started to Completed. |
 | **Custom Fields**        | Define extra fields that appear on every incident.                                           |

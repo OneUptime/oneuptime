@@ -12,8 +12,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * admins; a rule with none is the project's, as every rule is today. Six new
  * tables, empty: nothing existing changes.
  */
-export class AddRuleOwningTeams1808995400000 implements MigrationInterface {
-  public name = "AddRuleOwningTeams1808995400000";
+export class AddRuleOwningTeams1808995800000 implements MigrationInterface {
+  public name = "AddRuleOwningTeams1808995800000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

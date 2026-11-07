@@ -919,7 +919,8 @@ import { AddTwoPersonFixApproval1808995185000 } from "./1808995185000-AddTwoPers
 import { AddFirstApprovedByUserForeignKey1808995190000 } from "./1808995190000-AddFirstApprovedByUserForeignKey";
 import { WidenCodeRepositoryOwnerColumns1808995240000 } from "./1808995240000-WidenCodeRepositoryOwnerColumns";
 import { AddOnCallObserverPages1808995300000 } from "./1808995300000-AddOnCallObserverPages";
-import { AddRuleOwningTeams1808995400000 } from "./1808995400000-AddRuleOwningTeams";
+import { AddPublicNoteApproval1808995720000 } from "./1808995720000-AddPublicNoteApproval";
+import { AddRuleOwningTeams1808995800000 } from "./1808995800000-AddRuleOwningTeams";
 
 export default [
   InitialMigration,
@@ -1843,5 +1844,6 @@ export default [
   AddFirstApprovedByUserForeignKey1808995190000,
   WidenCodeRepositoryOwnerColumns1808995240000,
   AddOnCallObserverPages1808995300000,
-  AddRuleOwningTeams1808995400000,
+  AddPublicNoteApproval1808995720000,
+  AddRuleOwningTeams1808995800000,
 ];

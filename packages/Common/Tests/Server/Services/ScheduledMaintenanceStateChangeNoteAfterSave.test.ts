@@ -34,6 +34,7 @@ import {
   StoredRow,
   useInMemoryTable,
 } from "../TestingUtils/InMemoryRepository";
+import { stubPublicNoteApproval } from "../TestingUtils/PublicNoteApproval";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { stubReadableParents } from "../TestingUtils/ReadableParents";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
@@ -362,6 +363,8 @@ async function changeState(data: {
 }
 
 beforeEach(() => {
+  // Public note approval off: every note is published as it is posted.
+  stubPublicNoteApproval({});
   writes = [];
 
   /*
