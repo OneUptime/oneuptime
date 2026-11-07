@@ -1,5 +1,4 @@
 import LogMonitorPreview from "../LogMonitor/LogMonitorPreview";
-import MetricMonitorPreview from "../MetricMonitor/MetricMonitorPreview";
 import SecurityEventsMonitorPreview from "../SecurityEventsMonitor/SecurityEventsMonitorPreview";
 import TraceMonitorPreview from "../TraceMonitor/TraceMonitorPreview";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
@@ -34,7 +33,8 @@ export const getTelemetryPreviewDescription: (stepCount: number) => string = (
 /*
  * What a telemetry monitor's filter matches right now, so a reader can see
  * the data the criteria are judging. Only the first criteria step is
- * previewed, and the description says so when there are more.
+ * previewed, and the description says so when there are more. A metric
+ * monitor's metrics are charted on a card of their own (MonitorMetricsCard).
  */
 const MonitorTelemetryPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -69,14 +69,6 @@ const MonitorTelemetryPreview: FunctionComponent<ComponentProps> = (
             }
           />
         </Card>
-      );
-
-    case MonitorType.Metrics:
-      // The metrics preview is a card of its own, with its own range picker.
-      return (
-        <MetricMonitorPreview
-          monitorStepMetricMonitor={firstStep.data.metricMonitor}
-        />
       );
 
     case MonitorType.Traces:

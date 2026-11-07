@@ -4,6 +4,7 @@ import DependencySuppressionWarning from "../../../Components/Monitor/Dependency
 import MonitorActivityCard from "../../../Components/Monitor/Overview/MonitorActivityCard";
 import MonitorConnectionCard from "../../../Components/Monitor/Overview/MonitorConnectionCard";
 import MonitorLinkedResourcesCard from "../../../Components/Monitor/Overview/MonitorLinkedResourcesCard";
+import MonitorMetricsCard from "../../../Components/Monitor/MetricMonitor/MonitorMetricsCard";
 import MonitorManualGuideCard from "../../../Components/Monitor/Overview/MonitorManualGuideCard";
 import MonitorOpenWorkCard from "../../../Components/Monitor/Overview/MonitorOpenWorkCard";
 import MonitorOverviewDetailsCard from "../../../Components/Monitor/Overview/MonitorOverviewDetailsCard";
@@ -78,8 +79,9 @@ import { useOutletContext } from "react-router-dom";
  * Top to bottom: the dependency notice; the hero, which owns the state (run
  * state, status, what is checked and when, owners); the uptime and open-work
  * stat bar; then the house two-thirds / one-third grid. The main column
- * holds what the monitor measured (setup while it waits for data, 90 days of
- * uptime, response time, the latest summary, a telemetry preview, activity);
+ * holds what the monitor measured (setup while it waits for data, a metric
+ * monitor's metrics with its thresholds, 90 days of uptime, response time,
+ * the latest summary, a telemetry preview, activity);
  * the side column holds what is open, recent status changes, the family's
  * own card (probes, connection or the manual guide), the editable details
  * and custom fields.
@@ -352,6 +354,23 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               monitorId={modelId}
               kind={sections.setup}
               monitor={monitor}
+            />
+          ) : (
+            <></>
+          )}
+
+          {/*
+           * A metric monitor's metrics, with the values it alerts at, are
+           * what its readers look for first (issue #5759). They are read
+           * again on Refresh and when the status changes, not on every
+           * poll.
+           */}
+          {sections.showMetricCharts ? (
+            <MonitorMetricsCard
+              monitorId={modelId}
+              monitorType={monitorType}
+              monitorSteps={monitor.monitorSteps}
+              refreshToken={data.statusChangeCount + data.manualRefreshCount}
             />
           ) : (
             <></>

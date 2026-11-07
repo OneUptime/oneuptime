@@ -321,7 +321,7 @@ const MetricInvestigation: FunctionComponent<ComponentProps> = (
               {rangeShowingHiddenThresholds ? (
                 <button
                   type="button"
-                  className="font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
+                  className="font-medium text-indigo-600 hover:underline focus:outline-none focus-visible:underline"
                   onClick={() => {
                     investigation.selectPickerValue({
                       range: rangeShowingHiddenThresholds,
