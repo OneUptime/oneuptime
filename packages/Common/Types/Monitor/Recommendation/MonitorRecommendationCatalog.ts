@@ -875,8 +875,9 @@ function getDataPipelineRecommendations(): Array<MonitorRecommendation> {
  * resource be offered": its cloud's and its type's templates, once its
  * metrics' attributes are recorded (getCloudAlertTemplatesFor); each one's
  * monitor is built on those attributes, its readings (an Azure metric's
- * stored name) and its allocated storage, which is why the context is
- * captured here rather than passed per monitor. With no context, a
+ * stored name), its allocated storage and its connection limit, which is
+ * why the context is captured here rather than passed per monitor. With
+ * no context, a
  * resource is offered nothing: there is no cloud-agnostic template.
  * `getAllCloudResourceRecommendations` answers "what can a cloud resource
  * ever be offered", for resolving an id and the registry-wide checks.
@@ -895,6 +896,7 @@ function normalizeCloudTemplate(
         telemetryAttributes: context?.cloudTelemetryAttributes || {},
         readings: context?.cloudReadings,
         allocatedStorageGiB: context?.cloudAllocatedStorageGiB,
+        connectionLimit: context?.cloudConnectionLimit?.limit?.limit,
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         offlineMonitorStatusId: args.offlineMonitorStatusId,
         defaultIncidentSeverityId: args.defaultIncidentSeverityId,
@@ -913,6 +915,7 @@ function getCloudResourceRecommendations(
     resourceType: context?.cloudResourceType,
     telemetryAttributes: context?.cloudTelemetryAttributes,
     allocatedStorageGiB: context?.cloudAllocatedStorageGiB,
+    connectionLimit: context?.cloudConnectionLimit?.limit?.limit,
     readings: context?.cloudReadings,
     isReadByConnection: context?.cloudReadByConnection === true,
   }).map((template: CloudAlertTemplate) => {

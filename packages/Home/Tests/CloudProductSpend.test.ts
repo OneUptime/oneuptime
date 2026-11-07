@@ -1,4 +1,5 @@
 import PageSEOConfig, { PageSEOData, getPageSEO } from "../Utils/PageSEO";
+import { getCloudRecommendedMonitorsContent } from "../Utils/CloudRecommendedMonitors";
 import { CLOUD_BUDGET_DEFAULT_THRESHOLDS } from "Common/Types/Cloud/CloudCost";
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import ejs from "ejs";
@@ -60,6 +61,7 @@ describe("the Cloud product page: what it costs, and how to spend less", () => {
         enableGoogleTagManager: false,
         seo: seoFor("/product/cloud"),
         homeUrl: HOME_URL,
+        cloudRecommendedMonitors: getCloudRecommendedMonitorsContent(),
       }),
     );
     spend = html.slice(

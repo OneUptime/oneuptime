@@ -8,6 +8,7 @@ import {
   AwsNamespaceKeyMetrics,
   AzureTypeKeyMetrics,
   DAILY_PERIOD_SECONDS,
+  HOURLY_PERIOD_SECONDS,
   GCP_KEY_METRICS,
   GcpKeyMetric,
   GcpTypeKeyMetrics,
@@ -69,15 +70,17 @@ describe("AWS", () => {
     }
   });
 
-  test("each metric reads one statistic, every 5 minutes or once a day", () => {
+  test("each metric reads one statistic, every 5 minutes, once an hour or once a day", () => {
     for (const entry of AWS_KEY_METRICS) {
       for (const metric of entry.metrics) {
         expect(["Average", "Sum", "Maximum", "Minimum"]).toContain(
           metric.statistic,
         );
-        expect([AWS_DEFAULT_PERIOD_SECONDS, DAILY_PERIOD_SECONDS]).toContain(
-          metric.periodSeconds,
-        );
+        expect([
+          AWS_DEFAULT_PERIOD_SECONDS,
+          HOURLY_PERIOD_SECONDS,
+          DAILY_PERIOD_SECONDS,
+        ]).toContain(metric.periodSeconds);
         expect(metric.unit.length).toBeGreaterThan(0);
       }
     }
@@ -88,6 +91,70 @@ describe("AWS", () => {
         return metric.periodSeconds;
       }),
     ).toEqual([DAILY_PERIOD_SECONDS, DAILY_PERIOD_SECONDS]);
+    expect(HOURLY_PERIOD_SECONDS).toBe(3600);
+  });
+
+  /*
+   * ACM publishes DaysToExpiry twice a day for every certificate, and stops
+   * once one expires: read once an hour, a 5-minute period would hold it
+   * for one period in 144, and listed only when it reported in the last
+   * three hours, a certificate would be found for a few hours after each
+   * point and lost for the rest of the day.
+   */
+  test("a certificate's days to expiry are read once an hour, and listed whatever their last point's age", () => {
+    const acm: AwsNamespaceKeyMetrics | undefined = getAwsKeyMetrics(
+      "AWS/CertificateManager",
+    );
+
+    expect(acm).toEqual({
+      namespace: "AWS/CertificateManager",
+      isListedWhenQuiet: true,
+      metrics: [
+        {
+          metricName: "DaysToExpiry",
+          statistic: "Minimum",
+          unit: "None",
+          periodSeconds: HOURLY_PERIOD_SECONDS,
+        },
+      ],
+    });
+    // Certificates are a Region's own, read in every Region.
+    expect(acm!.onlyRegion).toBeUndefined();
+    // The catalog finds a certificate from the namespace, by its ARN.
+    expect(getAwsNamespaceOfType("AWS::CertificateManager::Certificate")).toBe(
+      "AWS/CertificateManager",
+    );
+    expect(
+      getKeyMetricCount(
+        CloudProvider.AWS,
+        "AWS::CertificateManager::Certificate",
+      ),
+    ).toBe(1);
+  });
+
+  test("only a namespace published a few times a day is listed when quiet: every other keeps the last three hours", () => {
+    const quiet: Array<string> = AWS_KEY_METRICS.filter(
+      (entry: AwsNamespaceKeyMetrics): boolean => {
+        return Boolean(entry.isListedWhenQuiet);
+      },
+    ).map((entry: AwsNamespaceKeyMetrics): string => {
+      return entry.namespace;
+    });
+
+    expect(quiet).toEqual(["AWS/CertificateManager"]);
+
+    // And each of its metrics is read less often than every 5 minutes.
+    for (const entry of AWS_KEY_METRICS) {
+      if (!entry.isListedWhenQuiet) {
+        continue;
+      }
+
+      for (const metric of entry.metrics) {
+        expect(metric.periodSeconds).toBeGreaterThanOrEqual(
+          HOURLY_PERIOD_SECONDS,
+        );
+      }
+    }
   });
 
   test("the global services are read where CloudWatch keeps them", () => {
