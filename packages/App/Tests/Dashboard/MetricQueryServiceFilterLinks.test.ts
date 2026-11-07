@@ -101,9 +101,7 @@ describe("Open in Metric Explorer, and the explorer's own URL", () => {
 
   test("a query without services is serialized exactly as before", () => {
     const params: Dictionary<string> =
-      MetricExplorerUrl.buildQueryParamsFromMetricViewData(
-        dataOf([queryOf()]),
-      );
+      MetricExplorerUrl.buildQueryParamsFromMetricViewData(dataOf([queryOf()]));
 
     const serialized: Array<Record<string, unknown>> = JSON.parse(
       params[MetricExplorerUrlParam.MetricQueries]!,
@@ -117,9 +115,9 @@ describe("Open in Metric Explorer, and the explorer's own URL", () => {
     });
 
     const [opened] = openedFrom(params);
-    expect(
-      Object.keys(opened!.metricQueryData.filterData),
-    ).not.toContain("telemetryServiceIds");
+    expect(Object.keys(opened!.metricQueryData.filterData)).not.toContain(
+      "telemetryServiceIds",
+    );
   });
 
   test("a query whose only filter is its services is still kept in a link", () => {
@@ -187,9 +185,9 @@ describe("a metric investigation's URL (Edit metrics, Copy link)", () => {
     const readBack: MetricInvestigationQueries | null =
       MetricInvestigationQueryUtil.fromUrlValue(urlValue!);
 
-    expect(MetricQueryServices.getServiceIds(readBack!.queryConfigs[0])).toEqual(
-      [API],
-    );
+    expect(
+      MetricQueryServices.getServiceIds(readBack!.queryConfigs[0]),
+    ).toEqual([API]);
     expect(MetricInvestigationQueryUtil.isSame(readBack, queries)).toBe(true);
   });
 

@@ -73,9 +73,9 @@ describe("the services a query reads for", () => {
   });
 
   test("a query with it reads those", () => {
-    expect(
-      MetricQueryServices.getServiceIds(queryOf([API, CHECKOUT])),
-    ).toEqual([API, CHECKOUT]);
+    expect(MetricQueryServices.getServiceIds(queryOf([API, CHECKOUT]))).toEqual(
+      [API, CHECKOUT],
+    );
   });
 });
 
@@ -93,9 +93,9 @@ describe("setting the services a query reads for", () => {
       telemetryServiceIds: [API],
     });
     // The query handed in is left as it was.
-    expect(
-      Object.keys(query.metricQueryData.filterData),
-    ).not.toContain("telemetryServiceIds");
+    expect(Object.keys(query.metricQueryData.filterData)).not.toContain(
+      "telemetryServiceIds",
+    );
   });
 
   test("none takes the filter out", () => {
@@ -124,9 +124,9 @@ describe("setting the services a query reads for", () => {
     );
     expect(MetricQueryServices.withServiceIds(bare, [])).toBe(bare);
     // Another order is another list.
-    expect(
-      MetricQueryServices.withServiceIds(query, [CHECKOUT, API]),
-    ).not.toBe(query);
+    expect(MetricQueryServices.withServiceIds(query, [CHECKOUT, API])).not.toBe(
+      query,
+    );
   });
 });
 
@@ -142,9 +142,7 @@ describe("what the metric store reads the rows with", () => {
   test("nothing for a query that reads every service, as before", () => {
     expect(MetricQueryServices.getServiceQuery(queryOf())).toEqual({});
     expect(MetricQueryServices.getServiceQuery(queryOf([]))).toEqual({});
-    expect(MetricQueryServices.getServiceQuery(queryOf("garbage"))).toEqual(
-      {},
-    );
+    expect(MetricQueryServices.getServiceQuery(queryOf("garbage"))).toEqual({});
   });
 });
 

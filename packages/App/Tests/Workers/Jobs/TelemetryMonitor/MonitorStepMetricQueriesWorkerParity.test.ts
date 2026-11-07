@@ -557,16 +557,15 @@ describe("the dashboard reads every metric-backed step as the worker does", () =
          * Every read of the step's queries is for the services the twin
          * puts on each charted query, and the worker says so (issue #6266).
          */
-        const twinServices: Array<string> =
-          MetricQueryServices.getServiceIds(reads.queryConfigs[0]);
+        const twinServices: Array<string> = MetricQueryServices.getServiceIds(
+          reads.queryConfigs[0],
+        );
         for (const charted of reads.queryConfigs) {
           expect(MetricQueryServices.getServiceIds(charted)).toEqual(
             twinServices,
           );
         }
-        expect(readServices.length).toBeGreaterThanOrEqual(
-          queryConfigs.length,
-        );
+        expect(readServices.length).toBeGreaterThanOrEqual(queryConfigs.length);
         for (const services of readServices) {
           expect(services).toEqual(
             twinServices.length > 0 ? twinServices : undefined,

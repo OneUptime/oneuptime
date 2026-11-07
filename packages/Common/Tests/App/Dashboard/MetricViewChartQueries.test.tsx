@@ -243,9 +243,7 @@ describe("a MetricView handed the queries its charts read", () => {
   test("an edit in the query editor hands back the written queries, without the narrowing", async () => {
     const onChange: MockFunction = getJestMockFunction();
 
-    render(
-      viewOf({ chartQueryConfigs: [chartedFor("pve-prod")], onChange }),
-    );
+    render(viewOf({ chartQueryConfigs: [chartedFor("pve-prod")], onChange }));
     await waitFor(() => {
       expect(editors.length).toBeGreaterThan(0);
     });
@@ -269,17 +267,15 @@ describe("a MetricView handed the queries its charts read", () => {
       onChange.mock.calls.length - 1
     ]![0] as MetricViewData;
     expect(saved.queryConfigs).toEqual([edited]);
-    expect(saved.queryConfigs[0]!.metricQueryData.filterData.attributes).toEqual(
-      { "pve.scope": "node" },
-    );
+    expect(
+      saved.queryConfigs[0]!.metricQueryData.filterData.attributes,
+    ).toEqual({ "pve.scope": "node" });
   });
 
   test("a Top-N set on a chart is saved on the written query, without the narrowing", async () => {
     const onChange: MockFunction = getJestMockFunction();
 
-    render(
-      viewOf({ chartQueryConfigs: [chartedFor("pve-prod")], onChange }),
-    );
+    render(viewOf({ chartQueryConfigs: [chartedFor("pve-prod")], onChange }));
     await waitFor(() => {
       expect(lastCharts?.onQueryConfigsChange).toBeDefined();
     });
@@ -395,9 +391,9 @@ describe("a MetricView handed the queries its charts read", () => {
       expect(fetchResultsMock).toHaveBeenCalled();
     });
 
-    const fleet: unknown = (
-      fetchedAttributes()[0] as Dictionary<unknown>
-    )["resource.iot.fleet.name"];
+    const fleet: unknown = (fetchedAttributes()[0] as Dictionary<unknown>)[
+      "resource.iot.fleet.name"
+    ];
     expect(fleet).toBeInstanceOf(Wildcard);
     expect((fleet as Wildcard<string>).values).toEqual(["sensors"]);
   });

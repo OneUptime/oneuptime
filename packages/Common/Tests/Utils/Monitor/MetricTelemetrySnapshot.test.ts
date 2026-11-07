@@ -587,7 +587,10 @@ describe("a snapshot of a check limited to some services", () => {
 
   test("keeps the services every query was read for", () => {
     const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse({
-      ...responseOf({ queryConfigs: [queryOf({})], queryAttributes: [undefined] }),
+      ...responseOf({
+        queryConfigs: [queryOf({})],
+        queryAttributes: [undefined],
+      }),
       queryServiceIds: [API, CHECKOUT, API, ""],
     });
 
@@ -601,14 +604,15 @@ describe("a snapshot of a check limited to some services", () => {
   test("a check that read every service keeps none, as before", () => {
     for (const queryServiceIds of [undefined, []]) {
       const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse({
-        ...responseOf({ queryConfigs: [queryOf({})], queryAttributes: [undefined] }),
+        ...responseOf({
+          queryConfigs: [queryOf({})],
+          queryAttributes: [undefined],
+        }),
         ...(queryServiceIds ? { queryServiceIds } : {}),
       });
 
       expect("metricServiceIds" in snapshot).toBe(false);
-      expect(MetricTelemetrySnapshot.getStoredServiceIds(snapshot)).toEqual(
-        [],
-      );
+      expect(MetricTelemetrySnapshot.getStoredServiceIds(snapshot)).toEqual([]);
     }
   });
 
@@ -692,7 +696,10 @@ describe("a snapshot of a check limited to some services", () => {
 
   test("the services survive being stored and read back", () => {
     const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse({
-      ...responseOf({ queryConfigs: [queryOf({})], queryAttributes: [undefined] }),
+      ...responseOf({
+        queryConfigs: [queryOf({})],
+        queryAttributes: [undefined],
+      }),
       queryServiceIds: [API],
     });
 

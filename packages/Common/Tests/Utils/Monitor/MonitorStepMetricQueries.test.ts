@@ -1097,9 +1097,9 @@ describe("the services each query is read for", () => {
     expect(reads.queryConfigs.map(servicesOf)).toEqual([SERVICES, SERVICES]);
     expect(reads.telemetryServiceIds).toEqual(SERVICES);
     // Its own filters with them, as the worker reads them.
-    expect(reads.queryConfigs[1]!.metricQueryData.filterData.attributes).toEqual(
-      { "own.key": "x" },
-    );
+    expect(
+      reads.queryConfigs[1]!.metricQueryData.filterData.attributes,
+    ).toEqual({ "own.key": "x" });
   });
 
   test("ObjectIDs as their ids, each once, as the step stores them", () => {

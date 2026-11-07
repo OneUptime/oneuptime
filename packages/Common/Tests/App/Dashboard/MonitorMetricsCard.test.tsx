@@ -17,6 +17,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import Permission from "../../../Types/Permission";
@@ -923,9 +924,7 @@ describe("the page around the card", () => {
   test("Open in Metric Explorer opens on the monitor's services only", async () => {
     const services: Array<string> = ["44444444-4444-4444-8444-444444444444"];
     const opened: Array<MetricViewData> = [];
-    const openInExplorer: jest.SpiedFunction<
-      typeof ExplorerLink.openInExplorer
-    > = jest
+    const openInExplorer: SpyInstance<typeof ExplorerLink.openInExplorer> = jest
       .spyOn(ExplorerLink, "openInExplorer")
       .mockImplementation((data: MetricViewData): void => {
         opened.push(data);
@@ -974,9 +973,9 @@ describe("the page around the card", () => {
 
     for (const data of fetchedData()) {
       for (const query of data.queryConfigs) {
-        expect(
-          Object.keys(query.metricQueryData.filterData),
-        ).not.toContain("telemetryServiceIds");
+        expect(Object.keys(query.metricQueryData.filterData)).not.toContain(
+          "telemetryServiceIds",
+        );
       }
     }
   });

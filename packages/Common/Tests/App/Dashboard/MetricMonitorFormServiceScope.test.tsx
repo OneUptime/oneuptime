@@ -105,9 +105,9 @@ describe("a Metrics monitor limited to some services, in its form", () => {
         return MetricQueryServices.getServiceIds(query);
       }),
     ).toEqual([[API, CHECKOUT]]);
-    expect(view().chartQueryConfigs![0]!.metricQueryData.filterData.attributes).toEqual(
-      { "http.route": "/pay" },
-    );
+    expect(
+      view().chartQueryConfigs![0]!.metricQueryData.filterData.attributes,
+    ).toEqual({ "http.route": "/pay" });
     expect(view().data.queryConfigs).toEqual([QUERY]);
   });
 
@@ -141,7 +141,9 @@ describe("a Metrics monitor limited to some services, in its form", () => {
     ]![0] as MonitorStepMetricMonitor;
     expect(saved.metricViewConfig.queryConfigs).toEqual([edited]);
     expect(
-      Object.keys(saved.metricViewConfig.queryConfigs[0]!.metricQueryData.filterData),
+      Object.keys(
+        saved.metricViewConfig.queryConfigs[0]!.metricQueryData.filterData,
+      ),
     ).not.toContain("telemetryServiceIds");
     expect(saved.telemetryServiceIds).toEqual([new ObjectID(API)]);
   });

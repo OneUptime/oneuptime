@@ -138,9 +138,9 @@ describe("a query read for some services, in the query editor", () => {
     renderEditor(dataOf([API]), onDataChanged);
     fireEvent.click(screen.getByRole("button", { name: "Remove api" }));
 
-    expect(
-      Object.keys(lastChange(onDataChanged).filterData),
-    ).not.toContain("telemetryServiceIds");
+    expect(Object.keys(lastChange(onDataChanged).filterData)).not.toContain(
+      "telemetryServiceIds",
+    );
   });
 
   test("folded away, the section's dot says there is a filter", () => {

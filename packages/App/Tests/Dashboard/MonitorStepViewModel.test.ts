@@ -1960,9 +1960,11 @@ describe("MonitorStepViewModel.getEvaluatedMetricsViewConfig", () => {
       config.queryConfigs.map((queryConfig: MetricQueryConfigData) => {
         return queryConfig.metricQueryData.filterData.telemetryServiceIds;
       }),
-    ).toEqual(METRIC_VIEW_CONFIG.queryConfigs.map(() => {
-      return services;
-    }));
+    ).toEqual(
+      METRIC_VIEW_CONFIG.queryConfigs.map(() => {
+        return services;
+      }),
+    );
 
     // One read for every service carries no service filter, as before.
     const everyService: MetricsViewConfig = evaluated(
@@ -1975,9 +1977,9 @@ describe("MonitorStepViewModel.getEvaluatedMetricsViewConfig", () => {
       }),
     );
     for (const queryConfig of everyService.queryConfigs) {
-      expect(
-        Object.keys(queryConfig.metricQueryData.filterData),
-      ).not.toContain("telemetryServiceIds");
+      expect(Object.keys(queryConfig.metricQueryData.filterData)).not.toContain(
+        "telemetryServiceIds",
+      );
     }
   });
 

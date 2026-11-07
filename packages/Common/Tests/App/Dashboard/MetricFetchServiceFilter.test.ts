@@ -103,9 +103,8 @@ const queryOf: (serviceIds?: Array<string>) => MetricQueryConfigData = (
 // The query each aggregate read ran with.
 function aggregateQueries(): Array<Record<string, unknown>> {
   return aggregateMock.mock.calls.map((call: Array<unknown>) => {
-    return (
-      call[0] as { aggregateBy: { query: Record<string, unknown> } }
-    ).aggregateBy.query;
+    return (call[0] as { aggregateBy: { query: Record<string, unknown> } })
+      .aggregateBy.query;
   });
 }
 
@@ -176,11 +175,17 @@ describe("a chart's metric read", () => {
           queryOf([API]),
           {
             ...queryOf([CHECKOUT]),
-            metricAliasData: { ...queryOf().metricAliasData!, metricVariable: "b" },
+            metricAliasData: {
+              ...queryOf().metricAliasData!,
+              metricVariable: "b",
+            },
           },
           {
             ...queryOf(),
-            metricAliasData: { ...queryOf().metricAliasData!, metricVariable: "c" },
+            metricAliasData: {
+              ...queryOf().metricAliasData!,
+              metricVariable: "c",
+            },
           },
         ],
         formulaConfigs: [],

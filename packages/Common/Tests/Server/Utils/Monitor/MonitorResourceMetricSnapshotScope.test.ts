@@ -317,7 +317,9 @@ beforeEach(() => {
     .spyOn(MonitorService, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined as never);
   jest.spyOn(MonitorProbeService, "findBy").mockResolvedValue([] as never);
-  jest.spyOn(MonitorStatusService, "findOneBy").mockResolvedValue(null as never);
+  jest
+    .spyOn(MonitorStatusService, "findOneBy")
+    .mockResolvedValue(null as never);
   jest
     .spyOn(MonitorStatusTimelineService, "findOneBy")
     .mockImplementation(() => {

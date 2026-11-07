@@ -24,7 +24,8 @@ const toServiceId: (value: unknown) => string = (value: unknown): string => {
     return value.trim();
   }
 
-  if (typeof value === "object" && "toString" in (value as object)) {
+  // An ObjectID, say, is its id; a list or a plain map is none.
+  if (typeof value === "object" && !Array.isArray(value)) {
     const text: string = String(value);
     return text === "[object Object]" ? "" : text.trim();
   }

@@ -823,9 +823,11 @@ export default class MonitorStepMetricQueries {
     const settings: MetricMonitorStepSettings | undefined | null =
       input.settings;
 
-    const serviceIds: Array<string> = MonitorStepMetricQueries.getReadServiceIds(
-      { monitorType: input.monitorType, settings: settings },
-    );
+    const serviceIds: Array<string> =
+      MonitorStepMetricQueries.getReadServiceIds({
+        monitorType: input.monitorType,
+        settings: settings,
+      });
 
     return (queryConfigs as Array<MetricQueryConfigData>).map(
       (queryConfig: MetricQueryConfigData): MetricQueryConfigData => {
