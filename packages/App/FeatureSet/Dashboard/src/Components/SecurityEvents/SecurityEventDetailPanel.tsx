@@ -36,7 +36,7 @@ import { getSecurityEventEntities } from "../SecurityConnections/SecurityConnect
 import { SecurityEntity } from "Common/Types/SecurityCase/SecurityEntity";
 import {
   SecurityLogResource,
-  readSecurityLogResource,
+  readSecurityEventLogResources,
 } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -245,11 +245,13 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
     );
   }, [event]);
 
+  /*
+   * The record its log line was sent under, and the network device the line
+   * came from (issue #5769): a firewall's own event is connected to the
+   * firewall, with its open incidents and alerts.
+   */
   const logResources: Array<SecurityLogResource> = useMemo(() => {
-    const resource: SecurityLogResource | null =
-      readSecurityLogResource(attributes);
-
-    return resource ? [resource] : [];
+    return readSecurityEventLogResources(attributes);
   }, [attributes]);
 
   const observables: Array<string> = useMemo(() => {
