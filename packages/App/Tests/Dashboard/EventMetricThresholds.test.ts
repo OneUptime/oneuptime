@@ -95,6 +95,7 @@ const ruleOf: (data: {
     id: data.id,
     name: `Rule ${data.id}`,
     description: "",
+    monitorStatusId: undefined,
     filterCondition: "Any" as never,
     filters: [
       {
@@ -285,7 +286,7 @@ describe("a monitor edited since the event", () => {
       monitors: [
         monitorOf(
           stepOf({
-            rules: [ruleOf({ id: "rule-1", alias })],
+            rules: [ruleOf({ id: "rule-1", ...(alias ? { alias } : {}) })],
             queryConfigs,
             formulaConfigs: formulaConfigs || [],
           }),
