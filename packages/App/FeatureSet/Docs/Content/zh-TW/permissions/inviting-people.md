@@ -26,7 +26,7 @@ flowchart TB
 
 ## 開始之前
 
-- **可以邀請他人的角色。** Project Owner、Project Admin，或擁有 **Invite New Members** 權限的角色。你只能把人邀請到你自己擁有其權限的團隊，因為邀請會給予對方該團隊的存取權限。
+- **可以邀請他人的角色。** Project Owner、Project Admin，或擁有 **Invite New Members** 權限的角色。你只能把人邀請到你自己擁有其權限的團隊，因為邀請會給予對方該團隊的存取權限。沒有任何封鎖的 Project Admin，在這裡視為擁有 Project Admin 本來就能做的一切：可以邀請他人加入 **Members** 或任何角色更窄的團隊，但不能邀請加入擁有 Project Owner、帳單權限、**Delete Project**、**Edit Project**、**Edit Team** 或 **Invite New Members** 的團隊。
 - **在 OneUptime Cloud 上：方案中有空餘席次。** 專案中的每個人從被邀請那一刻起就是帳單上的一個席次。Free 方案只能容納一個人。請參閱[帳單與用量](/docs/configuration/billing#你的方案和席次)。
 - **未使用 SCIM Push Groups。** 只要你的身分提供者透過 SCIM Push Groups 管理專案的團隊，就需要在身分提供者中邀請和移除人員，而不是在 OneUptime 中。
 

@@ -26,7 +26,7 @@ flowchart TB
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Personen einladen darf.** Project Owner, Project Admin oder eine Rolle mit der Berechtigung **Invite New Members**. Sie können Personen nur in ein Team einladen, dessen Berechtigungen Sie selbst haben, denn eine Einladung gibt ihnen den Zugriff des Teams.
+- **Eine Rolle, die Personen einladen darf.** Project Owner, Project Admin oder eine Rolle mit der Berechtigung **Invite New Members**. Sie können Personen nur in ein Team einladen, dessen Berechtigungen Sie selbst haben, denn eine Einladung gibt ihnen den Zugriff des Teams. Wer Project Admin ist und keiner Sperre unterliegt, hat dafür alles, was Project Admin ohnehin kann: Personen lassen sich zu **Members** oder in ein Team mit jeder engeren Rolle einladen, aber nicht in ein Team mit Project Owner, einer Abrechnungsberechtigung, **Delete Project**, **Edit Project**, **Edit Team** oder **Invite New Members**.
 - **In OneUptime Cloud, Platz in Ihrem Tarif.** Jede Person im Projekt ist ein Platz auf seiner Rechnung, ab dem Moment der Einladung. Der Free-Tarif hat Platz für eine Person. Siehe [Abrechnung & Nutzung](/docs/configuration/billing#ihr-tarif-und-ihre-plätze).
 - **Keine SCIM Push Groups.** Solange Ihr Identitätsanbieter die Teams des Projekts über SCIM Push Groups verwaltet, laden Sie Personen dort ein und entfernen sie dort, nicht in OneUptime.
 

@@ -26,7 +26,7 @@ flowchart TB
 
 ## Innan du börjar
 
-- **En roll som kan bjuda in.** Project Owner, Project Admin eller en roll med behörigheten **Invite New Members**. Du kan bara bjuda in personer till ett team där du själv har behörigheterna, eftersom en inbjudan ger dem teamets åtkomst.
+- **En roll som kan bjuda in.** Project Owner, Project Admin eller en roll med behörigheten **Invite New Members**. Du kan bara bjuda in personer till ett team där du själv har behörigheterna, eftersom en inbjudan ger dem teamets åtkomst. En Project Admin utan någon blockering räknas här som innehavare av allt Project Admin redan kan: de kan bjuda in personer till **Members** eller till ett team med en snävare roll, men inte till ett team som har Project Owner, en faktureringsbehörighet, **Delete Project**, **Edit Project**, **Edit Team** eller **Invite New Members**.
 - **I OneUptime Cloud: plats i din plan.** Varje person i projektet är en plats på fakturan, från det ögonblick personen bjuds in. Free-planen har plats för en person. Se [Fakturering och användning](/docs/configuration/billing#din-plan-och-dina-platser).
 - **Inga SCIM Push Groups.** Så länge din identitetsleverantör styr projektets team via SCIM Push Groups bjuder du in och tar bort personer där, inte i OneUptime.
 

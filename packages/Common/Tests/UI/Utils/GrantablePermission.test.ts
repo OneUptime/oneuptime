@@ -274,15 +274,49 @@ describe("what a user may hand on", () => {
     expect(canGrant(Permission.Viewer, rows)).toBe(false);
   });
 
-  test("a project admin may hand on Project Admin, but not Project Member or Viewer", () => {
+  test("a project admin may hand on what Project Admin does, but not Project Owner or billing", () => {
     const admin: Array<UserPermission> = [
       row({ permission: Permission.ProjectAdmin, scope: PermissionScope.All }),
     ];
 
     expect(canGrant(Permission.ProjectAdmin, admin)).toBe(true);
-    expect(canGrant(Permission.ProjectMember, admin)).toBe(false);
-    expect(canGrant(Permission.Viewer, admin)).toBe(false);
+    expect(canGrant(Permission.ProjectMember, admin)).toBe(true);
+    expect(canGrant(Permission.Viewer, admin)).toBe(true);
+    expect(canGrant(Permission.IncidentMember, admin)).toBe(true);
     expect(canGrant(Permission.ProjectOwner, admin)).toBe(false);
+    expect(canGrant(Permission.BillingViewer, admin)).toBe(false);
+    expect(canGrant(Permission.InviteProjectTeamMembers, admin)).toBe(false);
+  });
+
+  test("a project admin with any block hands on only what they hold", () => {
+    const admin: Array<UserPermission> = [
+      row({ permission: Permission.ProjectAdmin, scope: PermissionScope.All }),
+      row({
+        permission: Permission.ReadProjectIncident,
+        isBlockPermission: true,
+        labels: [LABEL_ID],
+      }),
+    ];
+
+    expect(canGrant(Permission.ProjectAdmin, admin)).toBe(true);
+    expect(canGrant(Permission.ProjectMember, admin)).toBe(false);
+    expect(canGrant(Permission.IncidentMember, admin)).toBe(false);
+  });
+
+  test("Project Admin for some labels or owned resources hands on only what it holds", () => {
+    for (const adminRow of [
+      row({
+        permission: Permission.ProjectAdmin,
+        scope: PermissionScope.Labels,
+        labels: [LABEL_ID],
+      }),
+      row({
+        permission: Permission.ProjectAdmin,
+        scope: PermissionScope.Owned,
+      }),
+    ]) {
+      expect(canGrant(Permission.ProjectMember, [adminRow])).toBe(false);
+    }
   });
 
   test("a project admin who is also in Members may hand on Project Member", () => {
@@ -557,6 +591,27 @@ const CALLERS: Array<{ name: string; rows: Array<UserPermission> }> = [
     ],
   },
   {
+    name: "a project admin blocked from incidents on some labels",
+    rows: [
+      row({ permission: Permission.ProjectAdmin, scope: PermissionScope.All }),
+      row({
+        permission: Permission.ReadProjectIncident,
+        isBlockPermission: true,
+        labels: [LABEL_ID],
+      }),
+    ],
+  },
+  {
+    name: "a project admin for some labels only",
+    rows: [
+      row({
+        permission: Permission.ProjectAdmin,
+        scope: PermissionScope.Labels,
+        labels: [LABEL_ID],
+      }),
+    ],
+  },
+  {
     name: "a member",
     rows: [
       row({ permission: Permission.ProjectMember, scope: PermissionScope.All }),
@@ -613,6 +668,8 @@ const TARGETS: Array<Permission> = [
   Permission.ProjectMember,
   Permission.Viewer,
   Permission.IncidentMember,
+  Permission.BillingViewer,
+  Permission.InviteProjectTeamMembers,
 ];
 
 describe("side by side with the server, for grants to the whole project", () => {

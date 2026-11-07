@@ -26,7 +26,7 @@ flowchart TB
 
 ## Avant de commencer
 
-- **Un rôle qui peut inviter.** Project Owner, Project Admin, ou un rôle avec l'autorisation **Invite New Members**. Vous ne pouvez inviter des personnes que dans une équipe dont vous détenez vous-même les autorisations, car une invitation leur donne l'accès de l'équipe.
+- **Un rôle qui peut inviter.** Project Owner, Project Admin, ou un rôle avec l'autorisation **Invite New Members**. Vous ne pouvez inviter des personnes que dans une équipe dont vous détenez vous-même les autorisations, car une invitation leur donne l'accès de l'équipe. Un Project Admin qu'aucun blocage ne vise est considéré comme détenant tout ce que Project Admin peut déjà faire : il est alors possible d'inviter des personnes dans **Members** ou dans une équipe ayant un rôle plus restreint, mais pas dans une équipe qui détient Project Owner, une permission de facturation, **Delete Project**, **Edit Project**, **Edit Team** ou **Invite New Members**.
 - **Sur OneUptime Cloud, de la place dans votre forfait.** Chaque personne du projet est un siège sur sa facture, dès le moment où elle est invitée. Le forfait Free a de la place pour une personne. Voir [Facturation et utilisation](/docs/configuration/billing#votre-forfait-et-vos-sièges).
 - **Pas de SCIM Push Groups.** Tant que votre fournisseur d'identité gère les équipes du projet via SCIM Push Groups, vous invitez et retirez les personnes là-bas, pas dans OneUptime.
 

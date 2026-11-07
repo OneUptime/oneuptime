@@ -26,7 +26,7 @@ flowchart TB
 
 ## Antes de empezar
 
-- **Un rol que pueda invitar.** Project Owner, Project Admin o un rol con el permiso **Invite New Members**. Solo puede invitar a personas a un equipo cuyos permisos usted mismo tenga, porque una invitación les da el acceso del equipo.
+- **Un rol que pueda invitar.** Project Owner, Project Admin o un rol con el permiso **Invite New Members**. Solo puede invitar a personas a un equipo cuyos permisos usted mismo tenga, porque una invitación les da el acceso del equipo. Un Project Admin sin ningún bloqueo cuenta, a estos efectos, con todo lo que Project Admin ya puede hacer: puede invitar a personas a **Members** o a un equipo con cualquier rol más limitado, pero no a un equipo que tenga Project Owner, un permiso de facturación, **Delete Project**, **Edit Project**, **Edit Team** o **Invite New Members**.
 - **En OneUptime Cloud, espacio en su plan.** Cada persona del proyecto es un asiento en su factura desde el momento en que se la invita. El plan Free tiene espacio para una persona. Consulte [Facturación y uso](/docs/configuration/billing#su-plan-y-sus-asientos).
 - **Sin SCIM Push Groups.** Mientras su proveedor de identidad gestione los equipos del proyecto mediante SCIM Push Groups, las personas se invitan y se quitan allí, no en OneUptime.
 

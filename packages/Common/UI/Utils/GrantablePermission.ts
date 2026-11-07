@@ -23,6 +23,8 @@ import User from "./User";
  *
  *   - a project owner may hand on anything, unless something blocks their
  *     ProjectOwner;
+ *   - a project admin nothing blocks may hand on what Project Admin already
+ *     does (PermissionHelper.isCoveredByProjectAdmin);
  *   - anyone else only a permission they hold for the whole project (scope
  *     All, or no label restriction - never Owned), and not one they are
  *     blocked from.
@@ -108,6 +110,32 @@ const holdsUnblocked: HoldsUnblockedFunction = (data: {
   });
 };
 
+type HandsOnAsProjectAdminFunction = (data: {
+  permission: Permission;
+  rows: PermissionRows;
+}) => boolean;
+
+/*
+ * Project Admin held for the whole project, with no block at all, and a
+ * permission Project Admin already covers: handed on at any scope, as the
+ * server allows it.
+ */
+const handsOnAsProjectAdmin: HandsOnAsProjectAdminFunction = (data: {
+  permission: Permission;
+  rows: PermissionRows;
+}): boolean => {
+  return (
+    PermissionHelper.isCoveredByProjectAdmin(data.permission) &&
+    data.rows.block.length === 0 &&
+    data.rows.allow.some((row: UserPermission): boolean => {
+      return (
+        row.permission === Permission.ProjectAdmin &&
+        isUnrestrictedPermission(row)
+      );
+    })
+  );
+};
+
 type CanGrantPermissionFunction = (data: {
   permission: Permission;
   rows: PermissionRows;
@@ -125,7 +153,8 @@ export const canGrantPermission: CanGrantPermissionFunction = (data: {
     holdsUnblocked({
       permission: Permission.ProjectOwner,
       rows: data.rows,
-    })
+    }) ||
+    handsOnAsProjectAdmin(data)
   ) {
     return true;
   }
@@ -209,6 +238,8 @@ type CanGrantTeamPermissionFunction = (data: {
  *
  *   - a project owner may hand on anything, unless something blocks their
  *     ProjectOwner;
+ *   - a project admin nothing blocks may hand on what Project Admin already
+ *     does, at any scope;
  *   - anyone else needs the same permission at an equal or broader reach -
  *     project-wide, or limited to every label the row is limited to - and no
  *     block on it that reaches what the row grants.
@@ -220,6 +251,10 @@ export const canGrantTeamPermission: CanGrantTeamPermissionFunction = (data: {
   if (
     holdsUnblocked({
       permission: Permission.ProjectOwner,
+      rows: data.rows,
+    }) ||
+    handsOnAsProjectAdmin({
+      permission: data.grant.permission,
       rows: data.rows,
     })
   ) {

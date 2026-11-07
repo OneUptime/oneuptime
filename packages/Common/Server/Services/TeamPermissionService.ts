@@ -127,6 +127,29 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * ProjectAdmin held for the whole project by someone nothing blocks at
+   * all: they may hand on what Project Admin already does
+   * (PermissionHelper.isCoveredByProjectAdmin) - Members, a viewer, a
+   * domain role - at any scope. Any block, on whatever permission, takes
+   * part of that away from them, so a blocked admin is held to what they
+   * hold exactly.
+   */
+  private holdsProjectAdminWithNothingBlocked(
+    callerPermissions: Array<UserPermission>,
+    callerBlocks: Array<UserPermission>,
+  ): boolean {
+    return (
+      callerBlocks.length === 0 &&
+      callerPermissions.some((permission: UserPermission) => {
+        return (
+          permission.permission === Permission.ProjectAdmin &&
+          this.permissionCoversGrant(permission, PermissionScope.All, [])
+        );
+      })
+    );
+  }
+
+  /*
    * A team's copy of a custom role's permission (CustomRoleSync) is the
    * role's: it is changed and removed through the role - or by taking the
    * role from the team - never on its own, or the team would no longer
@@ -206,14 +229,20 @@ export class Service extends ProjectReferencesService<Model> {
       );
 
     /*
-     * ProjectOwner is the sole tenant-level delegation override. In
-     * particular, ProjectAdmin is not a synonym for every project
-     * permission: destructive and billing capabilities such as
-     * DeleteProject and ManageProjectBilling are intentionally withheld from
-     * it. Every non-owner therefore falls through to the exact permission and
-     * scope comparison below, including ProjectAdmin.
+     * ProjectOwner may hand on anything. ProjectAdmin is not a synonym for
+     * every project permission: destructive and billing capabilities such as
+     * DeleteProject and ManageProjectBilling are withheld from it, so an
+     * admin hands on only what Project Admin already does. Everyone else
+     * falls through to the exact permission and scope comparison below.
      */
     if (this.holdsUnblockedProjectOwner(callerPermissions, callerBlocks)) {
+      return;
+    }
+
+    if (
+      PermissionHelper.isCoveredByProjectAdmin(data.permission) &&
+      this.holdsProjectAdminWithNothingBlocked(callerPermissions, callerBlocks)
+    ) {
       return;
     }
 

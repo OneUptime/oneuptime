@@ -798,13 +798,15 @@ describe("a role the server refuses", () => {
 });
 
 describe("who is asked what", () => {
-  test("a project admin is offered the role they hold, and Choose permissions later", async () => {
+  test("a project admin is offered every role, since Project Admin does what the others do, and Choose permissions later", async () => {
     holding([Permission.ProjectAdmin]);
 
     const modal: HTMLElement = await openCreateForm();
 
     expect(accessCardValues(modal)).toEqual([
       Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
       ROLE_ACCESS_LATER,
     ]);
   });

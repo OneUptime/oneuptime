@@ -26,7 +26,7 @@ flowchart TB
 
 ## Voordat u begint
 
-- **Een rol die mensen mag uitnodigen.** Project Owner, Project Admin of een rol met de machtiging **Invite New Members**. U kunt mensen alleen uitnodigen voor een team waarvan u zelf de machtigingen hebt, omdat een uitnodiging hun de toegang van het team geeft.
+- **Een rol die mensen mag uitnodigen.** Project Owner, Project Admin of een rol met de machtiging **Invite New Members**. U kunt mensen alleen uitnodigen voor een team waarvan u zelf de machtigingen hebt, omdat een uitnodiging hun de toegang van het team geeft. Een Project Admin zonder enige blokkering geldt hierbij als houder van alles wat Project Admin al kan: die kan mensen uitnodigen voor **Members** of voor een team met een beperktere rol, maar niet voor een team met Project Owner, een factureringsrecht, **Delete Project**, **Edit Project**, **Edit Team** of **Invite New Members**.
 - **In OneUptime Cloud: ruimte in uw abonnement.** Iedereen in het project is een plaats op de factuur, vanaf het moment van de uitnodiging. Het Free-abonnement heeft ruimte voor één persoon. Zie [Facturering en gebruik](/docs/configuration/billing#uw-abonnement-en-plaatsen).
 - **Geen SCIM Push Groups.** Zolang uw identiteitsprovider de teams van het project via SCIM Push Groups beheert, nodigt u mensen daar uit en verwijdert u ze daar, niet in OneUptime.
 

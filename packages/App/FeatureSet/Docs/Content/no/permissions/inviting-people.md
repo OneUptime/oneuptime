@@ -26,7 +26,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **En rolle som kan invitere.** Project Owner, Project Admin eller en rolle med tillatelsen **Invite New Members**. Du kan bare invitere folk til et team der du selv har tillatelsene, fordi en invitasjon gir dem teamets tilgang.
+- **En rolle som kan invitere.** Project Owner, Project Admin eller en rolle med tillatelsen **Invite New Members**. Du kan bare invitere folk til et team der du selv har tillatelsene, fordi en invitasjon gir dem teamets tilgang. En Project Admin uten noen blokkering regnes her som innehaver av alt Project Admin allerede kan: de kan invitere folk til **Members** eller til et team med en hvilken som helst smalere rolle, men ikke til et team som har Project Owner, en faktureringstillatelse, **Delete Project**, **Edit Project**, **Edit Team** eller **Invite New Members**.
 - **I OneUptime Cloud: plass i abonnementet ditt.** Hver person i prosjektet er en plass på regningen, fra det øyeblikket personen blir invitert. Free-abonnementet har plass til én person. Se [Fakturering og bruk](/docs/configuration/billing#abonnementet-og-plassene-dine).
 - **Ingen SCIM Push Groups.** Så lenge identitetsleverandøren din styrer prosjektets team via SCIM Push Groups, inviterer og fjerner du folk der, ikke i OneUptime.
 
