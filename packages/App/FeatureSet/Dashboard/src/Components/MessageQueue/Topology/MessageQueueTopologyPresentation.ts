@@ -381,26 +381,31 @@ export function getMessageQueueTopologyEdgeLabel(
 }
 
 /*
- * What to do about a queue seen from one side only, or not at all. English
- * keys, translated where drawn; null when there is nothing to add.
+ * What to do about a queue seen from one side only, or not at all - by the
+ * messages seen on each side, whatever its errors say (a failing queue no one
+ * is seen consuming still has untraced consumers to instrument). English
+ * keys, translated where drawn; null when both sides are seen.
  */
 export function getMessageQueueTopologyQueueHint(
-  status: MessageQueueTopologyStatus,
+  queue: Pick<
+    MessageQueueTopologyQueueNode["queue"],
+    "spans" | "published" | "consumed"
+  >,
 ): string | null {
-  switch (status) {
-    case "noConsumers":
-      return translationKey(
-        "Messages are published here, but no traced service consumed any in this range. If something does consume them, instrument it with OpenTelemetry to see where these messages go.",
-      );
-    case "noProducers":
-      return translationKey(
-        "Messages are consumed from here, but no traced service published any in this range. If something does publish them, instrument it with OpenTelemetry to see where they come from.",
-      );
-    case "idle":
-      return translationKey(
-        "No instrumented service published to or consumed from this queue in this range.",
-      );
-    default:
-      return null;
+  if (queue.spans <= 0) {
+    return translationKey(
+      "No instrumented service published to or consumed from this queue in this range.",
+    );
   }
+  if (queue.published > 0 && queue.consumed <= 0) {
+    return translationKey(
+      "Messages are published here, but no traced service consumed any in this range. If something does consume them, instrument it with OpenTelemetry to see where these messages go.",
+    );
+  }
+  if (queue.consumed > 0 && queue.published <= 0) {
+    return translationKey(
+      "Messages are consumed from here, but no traced service published any in this range. If something does publish them, instrument it with OpenTelemetry to see where they come from.",
+    );
+  }
+  return null;
 }

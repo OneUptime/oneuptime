@@ -338,11 +338,13 @@ describe("POST /telemetry/message-queues/topology", () => {
     expect(getTopology.mock.calls).toHaveLength(1);
   });
 
-  test("root reads it without a project permission", async () => {
-    const { next } = await call(
-      {},
-      { tenantId: PROJECT_ID, isRoot: true } as DatabaseCommonInteractionProps,
-    );
+  test("a master admin reads it without a project permission", async () => {
+    const { next } = await call({}, {
+      tenantId: PROJECT_ID,
+      userId: ObjectID.generate(),
+      userType: UserType.User,
+      isMasterAdmin: true,
+    } as DatabaseCommonInteractionProps);
     expect(next).not.toHaveBeenCalled();
     expect(getTopology.mock.calls).toHaveLength(1);
   });

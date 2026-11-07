@@ -348,7 +348,7 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const queue: MessageQueueTopologyQueueNode["queue"] = node.queue;
     const edges: Array<MessageQueueTopologyEdge> = edgesOf(node.key);
-    const hint: string | null = getMessageQueueTopologyQueueHint(node.status);
+    const hint: string | null = getMessageQueueTopologyQueueHint(queue);
     const figures: Array<Figure> = [
       {
         label: translator.translateText("Published") || "Published",

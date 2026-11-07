@@ -2863,6 +2863,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Queues",
         pages: [
           allListPage(PageMap.MESSAGE_QUEUES, "All Queues"),
+          {
+            page: PageMap.MESSAGE_QUEUES_TOPOLOGY,
+            title: "Topology",
+            icon: IconProp.FlowDiagram,
+            keywords: [
+              "message flow",
+              "producers",
+              "consumers",
+              "publishers",
+              "subscribers",
+              "queue map",
+              "data flow",
+            ],
+          },
           documentation(PageMap.MESSAGE_QUEUES_DOCUMENTATION),
         ],
       },

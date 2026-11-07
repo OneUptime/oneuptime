@@ -373,18 +373,24 @@ describe("words", () => {
     );
   });
 
-  test("a queue seen from one side, or not at all, says what to instrument", () => {
-    expect(getMessageQueueTopologyQueueHint("noConsumers")).toContain(
-      "instrument it with OpenTelemetry to see where these messages go",
-    );
-    expect(getMessageQueueTopologyQueueHint("noProducers")).toContain(
-      "to see where they come from",
-    );
-    expect(getMessageQueueTopologyQueueHint("idle")).toContain(
-      "No instrumented service",
-    );
-    expect(getMessageQueueTopologyQueueHint("flowing")).toBeNull();
-    expect(getMessageQueueTopologyQueueHint("critical")).toBeNull();
+  test("a queue seen from one side, or not at all, says what to instrument, whatever its errors", () => {
+    expect(
+      getMessageQueueTopologyQueueHint({ spans: 10, published: 10, consumed: 0 }),
+    ).toContain("instrument it with OpenTelemetry to see where these messages go");
+    expect(
+      getMessageQueueTopologyQueueHint({ spans: 10, published: 0, consumed: 10 }),
+    ).toContain("to see where they come from");
+    expect(
+      getMessageQueueTopologyQueueHint({ spans: 0, published: 0, consumed: 0 }),
+    ).toContain("No instrumented service");
+    // Both sides seen: nothing to add.
+    expect(
+      getMessageQueueTopologyQueueHint({ spans: 20, published: 10, consumed: 10 }),
+    ).toBeNull();
+    // Spans, but neither side's: nothing either side can be told.
+    expect(
+      getMessageQueueTopologyQueueHint({ spans: 5, published: 0, consumed: 0 }),
+    ).toBeNull();
   });
 
   test("an error rate is coloured only when it matters", () => {
