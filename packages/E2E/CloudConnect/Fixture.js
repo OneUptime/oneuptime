@@ -26,6 +26,7 @@ import CloudAccountAiAgentPage from "../../App/FeatureSet/Dashboard/src/Pages/Cl
 import CloudAccountAiLogsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/AI/Logs";
 import CloudAccountFeedPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Feed";
 import CloudResourceViewLayout from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Layout";
+import CloudMonitoredResourcesPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/MonitoredResources";
 import CloudResourceOverviewPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/MonitoredResourceOverview";
 import CloudResourceIncidentsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Incidents";
 import CloudResourceAlertsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Alerts";
@@ -58,6 +59,7 @@ import { getCloudAiAgentKeyEditRefusal } from "Common/Types/AI/ResourceAiAccessP
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
@@ -149,6 +151,22 @@ import {
  *   ?changes=ai the AWS account's Changes also hold two changes OneUptime
  *               AI made through its Cloud AI agent, as the recorder marks
  *               them: the approved fix of incident #18 and its rollback
+ *   ?accounts=refused  the reader may not read Cloud Accounts: every read
+ *               of them is refused, as the server refuses it (a 422)
+ *
+ * Cloud > All Resources (/dashboard/<project>/cloud/resources) lists every
+ * resource of every account - the AWS account's, the Azure subscription's
+ * and the Google Cloud project's - and its Cloud Account chip offers their
+ * accounts, by the names Cloud > Accounts gives them: its list, its count
+ * and the chip's reads are answered as the server answers them (by kind,
+ * whether archived, and an account Includes or IncludesNone, whose NOT IN
+ * never matches a resource that names no account).
+ *
+ *   ?accountreads=held  the chip's reads of the accounts (two fields of
+ *               each resource) wait until
+ *               window.__cloudConnectFixture.releaseAccountReads()
+ *   ?accountreads=fail  its first read of them fails, as a busy server's
+ *               may (a 502); every later one works
  *
  * window.__cloudConnectFixture.connectAgent() makes the agent connect, as
  * it does a few minutes after the setup command finished.
@@ -1169,71 +1187,90 @@ function cloudChange(minutesAgo, fields, attributes) {
 const MAYA = "maya.lopez";
 const DEPLOY_ROLE = "GitHubActions";
 
+// The load balancer's ARN, as CloudTrail names it in the events that changed it.
+const WEB_ALB_ARN =
+  "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/web-alb/50dc6c495c0c9188";
+
+/*
+ * One operation the activity log recorded, as the recorder writes it
+ * (buildCloudChangeEntry): its operation is CloudTrail's service and event
+ * name ("ec2:AuthorizeSecurityGroupIngress", awsOperationOf), its kind is
+ * what classifyCloudChange makes of that, its title and description are
+ * the recorder's, and the cloud's own id for what it changed is kept
+ * (cloud.resource_id). These rows were written before the resource's name
+ * was kept beside the title (oneuptime.cloud.resource_name), as old rows
+ * were: each page reads it back from the title.
+ */
+function operationChange(minutesAgo, change) {
+  const attributes = {
+    "oneuptime.change.status": change.failed ? "failed" : "succeeded",
+    "cloud.region": change.region,
+    "oneuptime.cloud.actor": change.actor,
+    "oneuptime.cloud.operation": change.operation,
+    "oneuptime.cloud.event_id": change.eventId,
+    "cloud.resource_id": change.cloudResourceId,
+  };
+  if (change.resourceId) {
+    attributes["oneuptime.resource.type"] = "CloudResource";
+    attributes["oneuptime.resource.id"] = change.resourceId;
+  }
+  const failed = change.failed ? "Failed: " : "";
+  const ran = change.failed ? "tried to run" : "ran";
+  return cloudChange(
+    minutesAgo,
+    {
+      eventType: change.eventType,
+      title: `${failed}${change.operation} on ${change.subject}`,
+      description: `${change.actor} ${ran} ${change.operation} in account 123456789012 (${change.region}), on ${change.cloudResourceId}.`,
+    },
+    attributes,
+  );
+}
+
 const CHANGES =
   dataState === "connected"
     ? [
-        cloudChange(
-          12,
-          {
-            eventType: "config-change",
-            title: `AuthorizeSecurityGroupIngress on ${WEB_SECURITY_GROUP}`,
-            description: `${MAYA} ran AuthorizeSecurityGroupIngress in account 123456789012 (us-east-1), on ${WEB_SECURITY_GROUP}.`,
-          },
-          {
-            "oneuptime.change.status": "succeeded",
-            "cloud.region": "us-east-1",
-            "oneuptime.cloud.actor": MAYA,
-            "oneuptime.cloud.operation": "AuthorizeSecurityGroupIngress",
-          },
-        ),
-        cloudChange(
-          25,
-          {
-            eventType: "deployment",
-            title: "UpdateFunctionCode20150331v2 on nightly-export",
-            description: `${DEPLOY_ROLE} ran UpdateFunctionCode20150331v2 in account 123456789012 (us-east-1), on nightly-export.`,
-          },
-          {
-            "oneuptime.change.status": "succeeded",
-            "cloud.region": "us-east-1",
-            "oneuptime.cloud.actor": DEPLOY_ROLE,
-            "oneuptime.cloud.operation": "UpdateFunctionCode20150331v2",
-            "oneuptime.resource.type": "CloudResource",
-            "oneuptime.resource.id": NIGHTLY_EXPORT_ID,
-          },
-        ),
-        cloudChange(
-          40,
-          {
-            eventType: "scaling",
-            title: "ModifyDBInstance on orders-db",
-            description: `${MAYA} ran ModifyDBInstance in account 123456789012 (eu-west-1), on orders-db.`,
-          },
-          {
-            "oneuptime.change.status": "succeeded",
-            "cloud.region": "eu-west-1",
-            "oneuptime.cloud.actor": MAYA,
-            "oneuptime.cloud.operation": "ModifyDBInstance",
-            "oneuptime.resource.type": "CloudResource",
-            "oneuptime.resource.id": ORDERS_DB_ID,
-          },
-        ),
-        cloudChange(
-          55,
-          {
-            eventType: "config-change",
-            title: "Failed: DeleteLoadBalancer on web-alb",
-            description: `${MAYA} tried to run DeleteLoadBalancer in account 123456789012 (us-east-1), on arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/web-alb/50dc6c495c0c9188.`,
-          },
-          {
-            "oneuptime.change.status": "failed",
-            "cloud.region": "us-east-1",
-            "oneuptime.cloud.actor": MAYA,
-            "oneuptime.cloud.operation": "DeleteLoadBalancer",
-            "oneuptime.resource.type": "CloudResource",
-            "oneuptime.resource.id": WEB_ALB_ID,
-          },
-        ),
+        operationChange(12, {
+          eventType: "config-change",
+          operation: "ec2:AuthorizeSecurityGroupIngress",
+          subject: WEB_SECURITY_GROUP,
+          region: "us-east-1",
+          actor: MAYA,
+          eventId: "6f1c2b3a-4d5e-4f60-8a7b-9c0d1e2f3a01",
+          cloudResourceId: WEB_SECURITY_GROUP,
+        }),
+        operationChange(25, {
+          eventType: "deployment",
+          operation: "lambda:UpdateFunctionCode20150331v2",
+          subject: "nightly-export",
+          region: "us-east-1",
+          actor: DEPLOY_ROLE,
+          eventId: "6f1c2b3a-4d5e-4f60-8a7b-9c0d1e2f3a02",
+          cloudResourceId: "nightly-export",
+          resourceId: NIGHTLY_EXPORT_ID,
+        }),
+        // A change of the database's settings: no verb of scaling or a deploy.
+        operationChange(40, {
+          eventType: "config-change",
+          operation: "rds:ModifyDBInstance",
+          subject: "orders-db",
+          region: "eu-west-1",
+          actor: MAYA,
+          eventId: "6f1c2b3a-4d5e-4f60-8a7b-9c0d1e2f3a03",
+          cloudResourceId: "orders-db",
+          resourceId: ORDERS_DB_ID,
+        }),
+        operationChange(55, {
+          eventType: "config-change",
+          operation: "elasticloadbalancing:DeleteLoadBalancer",
+          subject: "web-alb",
+          region: "us-east-1",
+          actor: MAYA,
+          failed: true,
+          eventId: "6f1c2b3a-4d5e-4f60-8a7b-9c0d1e2f3a04",
+          cloudResourceId: WEB_ALB_ARN,
+          resourceId: WEB_ALB_ID,
+        }),
         cloudChange(
           75,
           {
@@ -1248,22 +1285,16 @@ const CHANGES =
             "oneuptime.cloud.operation": "AWS_EC2_OPERATIONAL_ISSUE",
           },
         ),
-        cloudChange(
-          95,
-          {
-            eventType: "config-change",
-            title: "ModifyLoadBalancerAttributes on web-alb",
-            description: `${DEPLOY_ROLE} ran ModifyLoadBalancerAttributes in account 123456789012 (us-east-1), on arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/web-alb/50dc6c495c0c9188.`,
-          },
-          {
-            "oneuptime.change.status": "succeeded",
-            "cloud.region": "us-east-1",
-            "oneuptime.cloud.actor": DEPLOY_ROLE,
-            "oneuptime.cloud.operation": "ModifyLoadBalancerAttributes",
-            "oneuptime.resource.type": "CloudResource",
-            "oneuptime.resource.id": WEB_ALB_ID,
-          },
-        ),
+        operationChange(95, {
+          eventType: "config-change",
+          operation: "elasticloadbalancing:ModifyLoadBalancerAttributes",
+          subject: "web-alb",
+          region: "us-east-1",
+          actor: DEPLOY_ROLE,
+          eventId: "6f1c2b3a-4d5e-4f60-8a7b-9c0d1e2f3a06",
+          cloudResourceId: WEB_ALB_ARN,
+          resourceId: WEB_ALB_ID,
+        }),
       ]
     : [];
 
@@ -1286,17 +1317,19 @@ const CHECKOUT_SERVICE_ID = "40000000-0000-4000-8000-0000000000c1";
 /*
  * One change the agent made, exactly as the recorder writes it
  * (buildCloudChangeEntry): CloudTrail's operation is the service and the
- * event name ("ecs:UpdateService"), which classifyCloudChange calls a
- * deploy; the title names the resource by the name the inventory holds,
- * which is kept beside it with the resource's row; the description says
- * who ran it on the cloud's id. The fix and its rollback are two jobs of
- * the agent's, each its own CloudTrail event.
+ * event name ("ecs:UpdateService"); the agent's scale-out set the service's
+ * desired count and nothing else, so classifyCloudChange calls it scaling,
+ * not a deploy (isAwsScaleOnlyUpdate) - and its rollback, which set the
+ * count back, too. The title names the resource by the name the inventory
+ * holds, which is kept beside it with the resource's row; the description
+ * says who ran it on the cloud's id. The fix and its rollback are two jobs
+ * of the agent's, each its own CloudTrail event.
  */
 function aiChange(minutesAgo, step, jobId, eventId) {
   return cloudChange(
     minutesAgo,
     {
-      eventType: "deployment",
+      eventType: "scaling",
       title: "ecs:UpdateService on checkout",
       description: `${AI_SESSION} ran ecs:UpdateService in account 123456789012 (us-east-1), on ${CHECKOUT_SERVICE_ARN}.`,
     },
@@ -1987,6 +2020,10 @@ window.__cloudConnectFixture = {
       entry.resolve(answer(name, entry.provider));
     }
   },
+  // ?accountreads=held: All Resources' chip's reads of its accounts go on.
+  releaseAccountReads: () => {
+    releaseAccountReads();
+  },
   // A read the page started (Read now) ends: the connection was read now.
   finishRead: (id) => {
     const found = connections.find((item) => {
@@ -2024,6 +2061,116 @@ function copy(item) {
   return Object.assign(new CloudConnection(), item);
 }
 
+// ?accounts=refused: the reader may not read Cloud Accounts.
+const refusesAccounts = params.get("accounts") === "refused";
+
+/*
+ * ?accountreads=held|fail: All Resources' Cloud Account chip's reads of its
+ * accounts - each resource's cloud and account, and nothing else - wait to
+ * be let through, or fail once.
+ */
+const accountReadsMode = params.get("accountreads") || "";
+let releaseAccountReads = () => {};
+const accountReadsHeld =
+  accountReadsMode === "held"
+    ? new Promise((resolve) => {
+        releaseAccountReads = resolve;
+      })
+    : null;
+let accountReadFailures = accountReadsMode === "fail" ? 1 : 0;
+
+function isAccountRead(args) {
+  return (
+    Object.keys(args.select || {})
+      .sort()
+      .join(",") === "cloudAccountId,cloudProvider"
+  );
+}
+const ACCOUNTS_REFUSAL =
+  "You do not have permissions to read Cloud Account. You need one of these permissions: Read Cloud Resource";
+
+// Every resource the project holds, as Cloud > All Resources lists them.
+const ALL_RESOURCES =
+  dataState === "connected" ? [...AWS_RESOURCES, ...OTHER_CLOUD_RESOURCES] : [];
+
+/*
+ * Whether a resource is in the accounts a query names: one of an Includes'
+ * ids, none of an IncludesNone's - and, as the server's NOT IN answers, never
+ * a resource that names no account - or the one id given.
+ */
+function isInAccounts(resource, wanted) {
+  const accountId = resource.cloudAccountId;
+  if (wanted === undefined || wanted === null) {
+    return true;
+  }
+  if (wanted instanceof IncludesNone) {
+    return (
+      accountId !== undefined &&
+      accountId !== null &&
+      !wanted.values.map(String).includes(String(accountId))
+    );
+  }
+  if (wanted instanceof Includes) {
+    return wanted.values.map(String).includes(String(accountId ?? ""));
+  }
+  return String(accountId ?? "") === String(wanted);
+}
+
+function allResourcesMatching(query) {
+  return ALL_RESOURCES.filter((resource) => {
+    return (
+      resource.cloudResourceKind === query.cloudResourceKind &&
+      (query.isArchived === undefined ||
+        Boolean(resource.isArchived) === query.isArchived) &&
+      (query.cloudProvider === undefined ||
+        resource.cloudProvider === query.cloudProvider) &&
+      isInAccounts(resource, query.cloudAccountId)
+    );
+  });
+}
+
+// The account filter a read sent, as a spec reads it.
+function accountFilterOf(wanted) {
+  if (wanted instanceof IncludesNone) {
+    return { includesNone: wanted.values.map(String) };
+  }
+  if (wanted instanceof Includes) {
+    return { includes: wanted.values.map(String) };
+  }
+  return wanted === undefined ? undefined : { is: String(wanted) };
+}
+
+/*
+ * A list of resources by kind - Cloud > All Resources' list and its chip's
+ * reads, and an account's recommendations' read of its resources - a page
+ * at a time. Recorded as every resource read is, and with the kind, the
+ * account filter and what it selects.
+ */
+function listAllResources(args) {
+  const query = args.query || {};
+  state.listRequests.push({
+    model: "CloudResource",
+    cloudProvider: String(query.cloudProvider || ""),
+    cloudAccountIds: plainValues(query.cloudAccountId),
+    cloudResourceKind: query.cloudResourceKind,
+    isArchived: query.isArchived,
+    accountFilter: accountFilterOf(query.cloudAccountId),
+    select: Object.keys(args.select || {}).sort(),
+    limit: args.limit,
+  });
+  const rows = allResourcesMatching(query);
+  const skip = Number(args.skip || 0);
+  const limit = Number(args.limit || 10);
+  return {
+    data: rows.slice(skip, skip + limit).map((item) => {
+      return Object.assign(new CloudResource(), item);
+    }),
+    count: rows.length,
+    skip: skip,
+    limit: limit,
+  };
+}
+
 ModelAPI.getList = async (args) => {
   if (args.modelType === CloudConnection) {
     const data = connections.map(copy);
@@ -2032,6 +2179,9 @@ ModelAPI.getList = async (args) => {
 
   if (args.modelType === CloudAccount) {
     state.listRequests.push({ model: "CloudAccount" });
+    if (refusesAccounts) {
+      throw new HTTPErrorResponse(422, { message: ACCOUNTS_REFUSAL }, {});
+    }
     const data = accounts.map((item) => {
       return Object.assign(new CloudAccount(), item);
     });
@@ -2040,6 +2190,25 @@ ModelAPI.getList = async (args) => {
 
   if (args.modelType === CloudResource) {
     const query = args.query || {};
+    // Cloud > All Resources and its Cloud Account chip: the list by kind.
+    if (query.cloudResourceKind !== undefined) {
+      if (isAccountRead(args)) {
+        if (accountReadsHeld) {
+          await accountReadsHeld;
+        }
+        if (accountReadFailures > 0) {
+          accountReadFailures--;
+          state.listRequests.push({
+            model: "CloudResource",
+            cloudResourceKind: query.cloudResourceKind,
+            select: Object.keys(args.select || {}).sort(),
+            failed: true,
+          });
+          throw new HTTPErrorResponse(502, { message: "Bad Gateway" }, {});
+        }
+      }
+      return listAllResources(args);
+    }
     const provider = String(query.cloudProvider || "");
     const accountIds = plainValues(query.cloudAccountId);
     state.listRequests.push({
@@ -2214,6 +2383,14 @@ ModelAPI.getItem = async (args) => {
 ModelAPI.count = async (args) => {
   if (args.modelType === CloudConnection) {
     return connections.length;
+  }
+  // Whether All Resources has anything yet: its resources, by kind.
+  if (
+    args.modelType === CloudResource &&
+    args.query &&
+    args.query.cloudResourceKind !== undefined
+  ) {
+    return allResourcesMatching(args.query).length;
   }
   if (args.modelType === CloudAccount) {
     return accounts.length;
@@ -2685,6 +2862,11 @@ function withNavigation(Component, pageRoute) {
 
 const FixtureAccountsLayout = withNavigation(CloudLayout, ACCOUNTS_ROUTE);
 const FixtureAccounts = withNavigation(CloudAccountsPage, ACCOUNTS_ROUTE);
+const ALL_RESOURCES_ROUTE = RouteMap[PageMap.CLOUD_MONITORED_RESOURCES];
+const FixtureAllResources = withNavigation(
+  CloudMonitoredResourcesPage,
+  ALL_RESOURCES_ROUTE,
+);
 const FixtureAccountLayout = withNavigation(
   CloudAccountViewLayout,
   ACCOUNT_ROUTE,
@@ -2801,6 +2983,10 @@ function FixtureApp() {
           <Route
             path={ACCOUNTS_ROUTE.toString()}
             element={<FixtureAccounts />}
+          />
+          <Route
+            path={ALL_RESOURCES_ROUTE.toString()}
+            element={<FixtureAllResources />}
           />
         </Route>
         <Route element={<FixtureAccountLayout />}>

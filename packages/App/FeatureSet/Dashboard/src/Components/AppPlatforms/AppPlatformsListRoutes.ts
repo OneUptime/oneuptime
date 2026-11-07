@@ -16,13 +16,14 @@ import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
  * holds exactly that. The chip travels in the list's own URL namespace, the
  * parameter its facet bar writes when someone sets it by hand, so the list
  * arrives with it visibly set, editable and clearable
- * (AppPlatformsAccountFacet). No account, no chip: the whole list.
+ * (AppPlatformsAccountFacet). No account, no chip: the whole list. Cloud's
+ * All Resources is linked to the same way (CloudResourcesListRoute).
  *
  * Kept apart from AppPlatformsAccountFacet: the route map reads the app's
  * config, which reads `window` when it loads.
  */
 
-function withAccounts(data: {
+export function getRouteWithCloudAccountChip(data: {
   route: Route;
   tableId: string;
   accountIds: ReadonlyArray<string>;
@@ -65,7 +66,7 @@ function withAccounts(data: {
 export function getAppPlatformsEnvironmentsRoute(
   accountIds: ReadonlyArray<string> = [],
 ): Route {
-  return withAccounts({
+  return getRouteWithCloudAccountChip({
     route: RouteUtil.populateRouteParams(
       RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENTS] as Route,
     ),
@@ -78,7 +79,7 @@ export function getAppPlatformsEnvironmentsRoute(
 export function getAppPlatformsAppsRoute(
   accountIds: ReadonlyArray<string> = [],
 ): Route {
-  return withAccounts({
+  return getRouteWithCloudAccountChip({
     route: RouteUtil.populateRouteParams(
       RouteMap[PageMap.APP_PLATFORMS_APPS] as Route,
     ),

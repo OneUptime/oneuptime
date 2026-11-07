@@ -51,7 +51,7 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 
 앱 배포에는 [관리형 앱 플랫폼](/docs/telemetry/cloud-environments#앱과-배포)에서 실행되는 앱이 필요합니다. 배포는 앱의 환경에 기록되고 환경 차트와 앱 자체의 차트에 그려지며, 그곳에서는 앱이 이전에 실행하던 리비전으로의 롤백도 기록됩니다.
 
-클라우드 변경과 공급자 이벤트에는 [연결된 클라우드 계정](/docs/telemetry/cloud-accounts)이 필요합니다. 각각은 OneUptime이 그 리소스를 나열하고 있으면 이름이 나온 클라우드 리소스에 연결되고, 그 리소스의 차트에 그려집니다. 유형은 작업에서 정해집니다. 작업 이름이 그렇게 말하면 `deployment`, `scaling` 또는 `rollback`, 그 밖에는 `config-change`, 상태 이벤트는 `provider-event`입니다. 어떤 리소스로도 필터링되지 않은 차트에는 클라우드 계정의 활동 로그와 OpenStack 클라우드의 변경이 나오지 않으므로, 바쁜 계정이 배포를 밀어내지 않습니다. 공급자의 상태 이벤트는 그대로 표시됩니다.
+클라우드 변경과 공급자 이벤트에는 [연결된 클라우드 계정](/docs/telemetry/cloud-accounts)이 필요합니다. 각각은 OneUptime이 그 리소스를 나열하고 있으면 이름이 나온 클라우드 리소스에 연결되고, 그 리소스의 차트에 그려집니다. 유형은 작업에서 정해집니다. 작업 이름이 그렇게 말하면 `deployment`, `scaling` 또는 `rollback`, 그 밖에는 `config-change`, 상태 이벤트는 `provider-event`입니다. 서비스의 원하는 개수만 바꾸는 ECS `UpdateService`는 Application Auto Scaling이 하는 것처럼 배포가 아니라 `scaling`입니다. 어떤 리소스로도 필터링되지 않은 차트에는 클라우드 계정의 활동 로그와 OpenStack 클라우드의 변경이 나오지 않으므로, 바쁜 계정이 배포를 밀어내지 않습니다. 공급자의 상태 이벤트는 그대로 표시됩니다.
 
 ## 파이프라인에서 배포 기록하기
 

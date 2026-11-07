@@ -1,3 +1,9 @@
+import { ReadingDirection } from "Common/Types/ReadingDirection";
+import {
+  getLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "Common/UI/Utils/LineDirection";
+
 /*
  * The chip's look, in one place because there is now more than one kind of chip
  * in the bar.
@@ -98,3 +104,45 @@ export const FILTER_CHIP_CLEAR_CLASSES: string =
 
 export const FILTER_CHIP_OPERATOR_SELECT_CLASSES: string =
   "cursor-pointer rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs font-medium text-gray-700 hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400";
+
+/*
+ * An option's lines in the popover: its name, and what it says under the
+ * name (an account's id under its name, an email under a person's) - each
+ * on one line, ending in "..." where the list does.
+ */
+export const FILTER_CHIP_OPTION_LABEL_CLASS_NAME: string =
+  "block truncate font-medium";
+
+export const FILTER_CHIP_OPTION_SUBLABEL_CLASS_NAME: string =
+  "block truncate text-xs text-gray-400";
+
+export interface FilterChipOptionLine {
+  dir: ReadingDirection | undefined;
+  className: string;
+}
+
+/*
+ * One of an option's lines, read the way what it holds is written where
+ * the page reads the other way (LineDirection): an account's name or id in
+ * Latin letters on a Persian page is cut short at its own end
+ * ("7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f...") rather than losing its start, and
+ * still starts beside the option's icon, lined up as the page's lines are.
+ * On a page that reads the way the line does, it is drawn as before.
+ */
+export function getFilterChipOptionLine(data: {
+  text: string | undefined;
+  language: string | undefined;
+  className: string;
+}): FilterChipOptionLine {
+  const dir: ReadingDirection | undefined = getLineDirection(
+    data.text,
+    data.language,
+  );
+
+  return {
+    dir: dir,
+    className: dir
+      ? `${data.className} ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}`
+      : data.className,
+  };
+}

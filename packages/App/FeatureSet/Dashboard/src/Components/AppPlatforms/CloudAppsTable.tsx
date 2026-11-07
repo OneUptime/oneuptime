@@ -48,6 +48,7 @@ import {
 } from "./CloudAppCells";
 import CloudAppFacts, { CloudAppFact } from "./CloudAppFacts";
 import { getAppsCloudAccountFacet } from "./AppPlatformsAccountFacet";
+import { fetchCloudAccountNames } from "../Cloud/CloudAccountChipReads";
 import useResourceOwners, {
   UseResourceOwnersResult,
 } from "../ResourceOwners/useResourceOwners";
@@ -145,7 +146,8 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
     }, [environmentId, props.environment, props.environments]);
 
   /*
-   * All Apps' chips: the account an app's environment is in. An
+   * All Apps' chips: the account an app's environment is in, named as
+   * Cloud > Accounts names it where the reader may read that. An
    * environment's own Apps tab has one environment, and no chip.
    */
   const accountChips: UseResourceOwnersResult<CloudApp> =
@@ -155,7 +157,12 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
       extraFacets:
         environmentId || !props.environments
           ? []
-          : [getAppsCloudAccountFacet(props.environments)],
+          : [
+              getAppsCloudAccountFacet(
+                props.environments,
+                fetchCloudAccountNames,
+              ),
+            ],
     });
 
   const baseQuery: Query<CloudApp> = useMemo((): Query<CloudApp> => {

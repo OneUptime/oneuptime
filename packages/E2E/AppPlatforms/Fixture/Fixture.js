@@ -14,6 +14,12 @@
  *             quiet) | empty (no environment yet)
  *   ?lang=    de | fa (Persian, laid out right to left, as production does)
  *   ?theme=   dark adds html.dark (handled by server.js)
+ *   ?accounts= (default: Cloud > Accounts names none of the environments'
+ *             accounts) | named (it names the AWS account and the Azure
+ *             subscription; the Google Cloud project no connection reads
+ *             has no name) | refused (the reader may not read Cloud
+ *             Accounts: the read is refused with a 422, as the server
+ *             refuses it)
  *
  * Every read is recorded on window.__appPlatformsFixture: listRequests,
  * countRequests, itemRequests, apiRequests and unhandled - anything the
@@ -641,8 +647,42 @@ const ALERT_SEVERITIES = [
 
 const MONITORS = [];
 
+/*
+ * Cloud > Accounts: the accounts the Cloud Account chips name (?accounts=).
+ * Each named as its cloud names it until someone renames it; the Google
+ * Cloud project the Cloud Run environments are in is read by no connection,
+ * so it has no row.
+ */
+const ACCOUNTS_STATE = ["named", "refused"].includes(params.get("accounts"))
+  ? params.get("accounts")
+  : "none";
+
+const CLOUD_ACCOUNTS =
+  ACCOUNTS_STATE === "named"
+    ? [
+        {
+          _id: uuid("7a000000", 1),
+          projectId: PROJECT_ID,
+          provider: "aws",
+          accountId: "4109-2277-8841",
+          name: "Checkout production",
+        },
+        {
+          _id: uuid("7a000000", 2),
+          projectId: PROJECT_ID,
+          provider: "azure",
+          accountId: "core-prod-sub",
+          name: "Core production",
+        },
+      ]
+    : [];
+
+const ACCOUNTS_REFUSAL =
+  "You do not have permissions to read Cloud Account. You need one of these permissions: Read Cloud Resource";
+
 const TABLES = {
   CloudResource: [...ENVIRONMENTS, RESOURCE],
+  CloudAccount: CLOUD_ACCOUNTS,
   Service: SERVICES,
   CloudResourceInstance: [...INSTANCES, ...OTHER_INSTANCES],
   CloudApp: APPS,
@@ -855,6 +895,10 @@ ModelAPI.getList = async (options) => {
 
   if (!isModelled(options.modelType)) {
     fixture.unhandled.push({ kind: "list", modelName: name });
+  }
+
+  if (name === "CloudAccount" && ACCOUNTS_STATE === "refused") {
+    throw new HTTPErrorResponse(422, { message: ACCOUNTS_REFUSAL }, {});
   }
 
   let rows = rowsOf(options.modelType, options.query);

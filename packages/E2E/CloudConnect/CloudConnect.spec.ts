@@ -5,6 +5,7 @@ import {
   FIRST_STRONG_ISOLATE,
   POP_DIRECTIONAL_ISOLATE,
 } from "Common/Types/ReadingDirection";
+import { getInlineSeparator } from "Common/Types/Translator";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
@@ -23,7 +24,7 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * in Japanese. What to read - one account, or every account of its
  * organization - changes the command and what the read asks for. And
  * Cloud > Accounts: the accounts the connections read, each one's
- * Overview and Resources.
+ * Overview and Resources; and Cloud > All Resources by cloud account.
  *
  * The screenshots under output/playwright/cloud-connect-ui are for the
  * people who review the page.
@@ -642,9 +643,27 @@ test.describe("the connected accounts", () => {
       .getByTestId("cloud-connection-resource-count")
       .first();
     await expect(count).toHaveText("46 resources");
-    await expect(
-      page.getByRole("link", { name: "46 resources" }),
-    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/cloud/resources`);
+    /*
+     * The way to them is All Resources with its Cloud Account chip set to
+     * the account the connection reads (#6149's follow-up): the count opens
+     * what it counted.
+     */
+    const resources: URL = new URL(
+      (await page
+        .getByRole("link", { name: "46 resources" })
+        .getAttribute("href")) || "",
+      "http://127.0.0.1",
+    );
+    expect(resources.pathname).toBe(`/dashboard/${PROJECT_ID}/cloud/resources`);
+    expect(
+      JSON.parse(
+        resources.searchParams.get("cloud-monitored-resources-table-facets") ||
+          "{}",
+      ),
+    ).toEqual({
+      facetSelections: { cloudAccountId: ["123456789012"] },
+      facetOperators: { cloudAccountId: "is" },
+    });
     await expect(
       page.getByTestId("cloud-connection-regions").first(),
     ).toHaveText("us-east-1, eu-west-1");
@@ -1354,6 +1373,122 @@ interface ChangeListRequest {
   attributes?: Record<string, string>;
 }
 
+/*
+ * The clock an account's Changes are read by, so its times read the same on
+ * every run: the fixture stamps each change so many minutes before its own
+ * clock, and how wide the times read - "Nov 6, 09:05" or "Nov 26, 23:46" -
+ * decided whether the list kept its rows beside the side menu (it did not,
+ * and a check of row cells alone found none, on main on 2026-11-06). A day
+ * of two digits and an hour of two: the widest a time reads.
+ */
+const CHANGES_CLOCK: Date = new Date("2026-11-26T23:58:00Z");
+
+// Its changes' times as the list draws them (en-GB, UTC), newest first.
+const CHANGES_CLOCK_TIMES: Array<string> = [
+  "Nov 26, 23:46",
+  "Nov 26, 23:33",
+  "Nov 26, 23:18",
+  "Nov 26, 23:03",
+  "Nov 26, 22:43",
+  "Nov 26, 22:23",
+];
+
+interface DrawnChangeTime {
+  text: string;
+  // Its text runs past its box: the time is cut short.
+  isCut: boolean;
+}
+
+interface DrawnChangeTimes {
+  layout: "rows" | "cards";
+  times: Array<DrawnChangeTime>;
+}
+
+/*
+ * An account's Changes list's times as it draws them once it has settled
+ * at the window's width - as rows (each row's second cell) or as cards (the
+ * value under a card's Time). The list fits its columns to its box a frame
+ * or more after the window changes (useTableBoxWidth), hides its rows while
+ * it measures them (Table's data-settling) and beside the side menu turns
+ * into cards a frame later (TableFit): so it is read in one frame and again
+ * two frames later, until both agree with each other and with the read
+ * before - a list that has stopped changing - and none of it is hidden.
+ */
+async function settledChangeTimes(page: Page): Promise<DrawnChangeTimes> {
+  let previous: string = "";
+  let settled: DrawnChangeTimes | null = null;
+
+  await expect
+    .poll(
+      async (): Promise<boolean> => {
+        const drawn: string = await page.evaluate(async (): Promise<string> => {
+          const read: () => string = (): string => {
+            const rowTimes: Array<Element> = Array.from(
+              document.querySelectorAll("tbody tr td:nth-child(2) > div"),
+            );
+            const cardTimes: Array<Element> = Array.from(
+              document.querySelectorAll("dl > div"),
+            )
+              .filter((field: Element): boolean => {
+                const name: Element | null = field.querySelector(":scope > dt");
+                return (name?.textContent || "").trim() === "Time";
+              })
+              .map((field: Element): Element => {
+                return field.querySelector(":scope > dd") as Element;
+              });
+            const times: Array<Element> =
+              rowTimes.length > 0 ? rowTimes : cardTimes;
+
+            return JSON.stringify({
+              layout: rowTimes.length > 0 ? "rows" : "cards",
+              isSettling:
+                document.querySelector('[data-settling="true"]') !== null,
+              times: times.map(
+                (time: Element): { text: string; isCut: boolean } => {
+                  return {
+                    text: (time.textContent || "").trim(),
+                    isCut: time.scrollWidth > time.clientWidth + 1,
+                  };
+                },
+              ),
+            });
+          };
+
+          const first: string = read();
+          await new Promise<void>((resolve: () => void): void => {
+            window.requestAnimationFrame((): void => {
+              window.requestAnimationFrame((): void => {
+                resolve();
+              });
+            });
+          });
+          const second: string = read();
+
+          return first === second ? second : "";
+        });
+
+        const isAtRest: boolean =
+          drawn !== "" &&
+          drawn === previous &&
+          !(JSON.parse(drawn) as { isSettling: boolean }).isSettling;
+        previous = drawn;
+
+        if (isAtRest) {
+          const at: DrawnChangeTimes & { isSettling?: boolean } = JSON.parse(
+            drawn,
+          ) as DrawnChangeTimes & { isSettling?: boolean };
+          settled = { layout: at.layout, times: at.times };
+        }
+
+        return isAtRest && settled !== null && settled.times.length > 0;
+      },
+      { message: "the changes list settled at the window's width" },
+    )
+    .toBe(true);
+
+  return settled as unknown as DrawnChangeTimes;
+}
+
 // The map's count of Regions: its number, then its word.
 const TWO_REGIONS: RegExp = /^\s*2\s*Regions\s*$/;
 
@@ -1604,13 +1739,17 @@ test.describe("an account's pages", () => {
   }: {
     page: Page;
   }) => {
+    await page.clock.setFixedTime(CHANGES_CLOCK);
     await openAccounts(
       page,
       `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/changes?state=connected`,
     );
 
+    // Titled as the recorder titles it: CloudTrail's service and event name.
     await expect(
-      page.getByText("AuthorizeSecurityGroupIngress on sg-0f1e2d3c4b5a69788"),
+      page.getByText(
+        "ec2:AuthorizeSecurityGroupIngress on sg-0f1e2d3c4b5a69788",
+      ),
     ).toBeVisible();
 
     // Read by the account's own row.
@@ -1631,7 +1770,7 @@ test.describe("an account's pages", () => {
       "We are investigating increased API error rates",
     );
     await expect(
-      page.getByText("ran AuthorizeSecurityGroupIngress"),
+      page.getByText("ran ec2:AuthorizeSecurityGroupIngress"),
     ).toHaveCount(0);
 
     if (!isDesktop()) {
@@ -1656,35 +1795,30 @@ test.describe("an account's pages", () => {
     ).toBeVisible();
 
     /*
-     * The time is never cut short, at 1280 or beside the side menu at 1024 -
-     * read again until the table has fitted its columns to the new width,
-     * which it does a frame after the window changes (useTableBoxWidth): one
-     * read right after the resize found the old frame, or no cells at all,
-     * one run in 97 under load (2026-11-02). Beside the side menu the box is
-     * narrower than 48rem, so whether the rows fit there turns on how wide
-     * the times are, and the fixture's times are its clock's: when they did
-     * not fit, the list was drawn as cards and a read of row cells alone
-     * found none (main, 2026-11-06). The time is read wherever it is drawn:
-     * a row's second cell, or the value under a card's Time.
+     * The time is never cut short, at 1280 or beside the side menu at 1024,
+     * read once the list has settled at the new width (settledChangeTimes):
+     * a read right after the resize found the old frame, or no cells at all,
+     * one run in 97 under load (2026-11-02), and a read that passed on the
+     * frame before the table fitted itself checked nothing of the new
+     * width. Beside the side menu the box is narrower than 48rem, so the
+     * list keeps its rows there only while they fit, and is otherwise drawn
+     * as cards (TableFit): the time is read wherever it is drawn, a row's
+     * second cell or the value under a card's Time. The times read the same
+     * on every run (CHANGES_CLOCK).
      */
     for (const width of [1280, 1024]) {
       await page.setViewportSize({ width, height: 900 });
-      await expect
-        .poll(
-          (): Promise<Array<boolean>> => {
-            return page
-              .locator(
-                'tbody tr td:nth-child(2) > div, dl > div:has(> dt:text-is("Time")) > dd',
-              )
-              .evaluateAll((cells: Array<Element>): Array<boolean> => {
-                return cells.map((cell: Element): boolean => {
-                  return cell.scrollWidth > cell.clientWidth + 1;
-                });
-              });
-          },
-          { message: `the change times cut short at ${width} pixels` },
-        )
-        .toEqual([false, false, false, false, false, false]);
+      const drawn: DrawnChangeTimes = await settledChangeTimes(page);
+
+      expect(
+        { width, times: drawn.times },
+        `the change times at ${width} pixels, drawn as ${drawn.layout}`,
+      ).toEqual({
+        width,
+        times: CHANGES_CLOCK_TIMES.map((text: string): DrawnChangeTime => {
+          return { text, isCut: false };
+        }),
+      });
     }
 
     await shoot(page, "account-changes");
@@ -1704,10 +1838,14 @@ test.describe("an account's pages", () => {
 
     await expect(page.locator("tbody tr")).toHaveCount(2);
     await expect(
-      page.getByText("Failed: DeleteLoadBalancer on web-alb"),
+      page.getByText(
+        "Failed: elasticloadbalancing:DeleteLoadBalancer on web-alb",
+      ),
     ).toBeVisible();
     await expect(
-      page.getByText("ModifyLoadBalancerAttributes on web-alb"),
+      page.getByText(
+        "elasticloadbalancing:ModifyLoadBalancerAttributes on web-alb",
+      ),
     ).toBeVisible();
     // One place: no Region column.
     expect(await headerTexts(page)).not.toContain("Region");
@@ -3251,25 +3389,152 @@ async function expectIdentifierInMonospace(
 }
 
 /*
- * Each value of a change's title - its operation, its resource - is one
- * line: it moves to the next line whole, never breaking at its hyphen
- * ("nightly-" / "export", "sg-" / "0f1e2d3c..." on a phone).
+ * Each value of a change's title - its operation, its resource - moves to
+ * the next line whole, never breaking at its hyphen ("nightly-" / "export",
+ * "sg-" / "0f1e2d3c..." on a phone). An operation the cloud writes as one
+ * long word breaks only between its pieces - after its service's colon
+ * ("elasticloadbalancing:" / "ModifyLoadBalancerAttributes"), a slash or a
+ * dot - and each piece is one line: read from each piece's own letters, in
+ * one frame. The value itself is no box, so the sentence's words go on
+ * beside its last piece: held in one box that broke inside it, an operation
+ * took the column's whole width and "on web-alb" went to a line of its own.
  */
 async function expectTitleValuesWhole(page: Page): Promise<void> {
-  const values: Array<Locator> = await page
-    .getByTestId("cloud-change-title-value")
-    .all();
-  expect(values.length).toBeGreaterThan(0);
+  const drawn: {
+    values: Array<string>;
+    pieces: Array<{ text: string; lines: number }>;
+  } = await page.evaluate(
+    (): {
+      values: Array<string>;
+      pieces: Array<{ text: string; lines: number }>;
+    } => {
+      const pieces: Array<{ text: string; lines: number }> = [];
 
-  const lineHeight: number = await page
+      for (const piece of Array.from(
+        document.querySelectorAll('[data-testid="cloud-change-title-piece"]'),
+      )) {
+        const text: string = piece.textContent || "";
+        const range: Range = document.createRange();
+        range.selectNodeContents(piece);
+        // Where each line its letters are on starts, top to bottom.
+        const tops: Array<number> = Array.from(range.getClientRects())
+          .filter((rect: DOMRect): boolean => {
+            return rect.width > 0;
+          })
+          .map((rect: DOMRect): number => {
+            return rect.top;
+          })
+          .sort((first: number, second: number): number => {
+            return first - second;
+          });
+        const lines: number = tops.filter(
+          (top: number, index: number): boolean => {
+            return index === 0 || top - tops[index - 1]! > 4;
+          },
+        ).length;
+
+        pieces.push({ text, lines });
+      }
+
+      return {
+        values: Array.from(
+          document.querySelectorAll('[data-testid="cloud-change-title-value"]'),
+        ).map((value: Element): string => {
+          return getComputedStyle(value).display;
+        }),
+        pieces,
+      };
+    },
+  );
+
+  expect(drawn.pieces.length).toBeGreaterThan(0);
+  for (const piece of drawn.pieces) {
+    expect(piece).toEqual({ text: piece.text, lines: 1 });
+  }
+  expect(drawn.values.length).toBeGreaterThan(0);
+  expect(new Set(drawn.values)).toEqual(new Set(["inline"]));
+}
+
+/*
+ * Every line of every change's title starts where its line does - at the
+ * left, or at the right on a page read right to left - read from the
+ * letters on it. On a Persian page an operation held in one box that broke
+ * inside it started its first line at the left, away from the sentence it
+ * is part of ("elasticloadbalancing:" on the far side of the column, "روی
+ * web-alb" under it at the right).
+ */
+async function expectTitleLinesFromTheirStart(page: Page): Promise<void> {
+  const offsets: Array<{ title: string; offsets: Array<number> }> = await page
     .getByTestId("cloud-change-title")
-    .first()
-    .evaluate((title: Element): number => {
-      return parseFloat(getComputedStyle(title).lineHeight);
-    });
+    .evaluateAll(
+      (
+        titles: Array<Element>,
+      ): Array<{ title: string; offsets: Array<number> }> => {
+        return titles.map((title: Element) => {
+          const isRightToLeft: boolean =
+            getComputedStyle(title).direction === "rtl";
+          const box: DOMRect = title.getBoundingClientRect();
+          const range: Range = document.createRange();
+          range.selectNodeContents(title);
+          // Each line's letters, by where the line is.
+          const lines: Map<number, Array<DOMRect>> = new Map();
 
-  for (const box of await boxesInOneFrame(values)) {
-    expect(box.height).toBeLessThanOrEqual(lineHeight + 1);
+          for (const rect of Array.from(range.getClientRects())) {
+            if (rect.width <= 0) {
+              continue;
+            }
+            const line: number | undefined = Array.from(lines.keys()).find(
+              (top: number): boolean => {
+                return Math.abs(top - rect.top) <= 4;
+              },
+            );
+            lines.set(line === undefined ? rect.top : line, [
+              ...(line === undefined ? [] : lines.get(line) || []),
+              rect,
+            ]);
+          }
+
+          // How far each line's first letter is from where the line starts.
+          return {
+            title: (title.textContent || "").trim(),
+            offsets: Array.from(lines.values()).map(
+              (rects: Array<DOMRect>): number => {
+                return Math.round(
+                  isRightToLeft
+                    ? box.right -
+                        Math.max(
+                          ...rects.map((rect: DOMRect): number => {
+                            return rect.right;
+                          }),
+                        )
+                    : Math.min(
+                        ...rects.map((rect: DOMRect): number => {
+                          return rect.left;
+                        }),
+                      ) - box.left,
+                );
+              },
+            ),
+          };
+        });
+      },
+    );
+
+  expect(offsets.length).toBeGreaterThan(0);
+  for (const title of offsets) {
+    expect(title.offsets.length).toBeGreaterThan(0);
+    // Within a pixel of the line's start: a letter's box is rounded.
+    expect({
+      title: title.title,
+      offsets: title.offsets.map((offset: number): number => {
+        return Math.abs(offset) <= 1 ? 0 : offset;
+      }),
+    }).toEqual({
+      title: title.title,
+      offsets: title.offsets.map((): number => {
+        return 0;
+      }),
+    });
   }
 }
 
@@ -3316,17 +3581,19 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
       const titles: Array<string> = await changeTitles(page);
       expect(titles).toContain(
         wordIn(reader.locale, "Failed: {{operation}} on {{resource}}", {
-          operation: "DeleteLoadBalancer",
+          operation: "elasticloadbalancing:DeleteLoadBalancer",
           resource: "web-alb",
         }),
       );
       expect(titles).toContain(
         wordIn(reader.locale, "{{operation}} on {{resource}}", {
-          operation: "AuthorizeSecurityGroupIngress",
+          operation: "ec2:AuthorizeSecurityGroupIngress",
           resource: "sg-0f1e2d3c4b5a69788",
         }),
       );
-      expect(titles).not.toContain("Failed: DeleteLoadBalancer on web-alb");
+      expect(titles).not.toContain(
+        "Failed: elasticloadbalancing:DeleteLoadBalancer on web-alb",
+      );
       /*
        * What AWS Health published: its frame, its state and its kind of
        * event in the reader's words, the service as AWS names it - from the
@@ -3341,6 +3608,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
       );
       expect(titles).not.toContain("AWS Health: EC2 operational issue (open)");
       await expectTitleValuesWhole(page);
+      await expectTitleLinesFromTheirStart(page);
       /*
        * Each line the way its words read: every title here is worded in
        * the reader's language, so in Persian every one reads right to left
@@ -3477,11 +3745,11 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
 
       expect(await changeTitles(page)).toEqual([
         wordIn(reader.locale, "Failed: {{operation}} on {{resource}}", {
-          operation: "DeleteLoadBalancer",
+          operation: "elasticloadbalancing:DeleteLoadBalancer",
           resource: "web-alb",
         }),
         wordIn(reader.locale, "{{operation}} on {{resource}}", {
-          operation: "ModifyLoadBalancerAttributes",
+          operation: "elasticloadbalancing:ModifyLoadBalancerAttributes",
           resource: "web-alb",
         }),
       ]);
@@ -3690,7 +3958,9 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
      * undid the fix: no word is added to its title. Both rows are as the
      * recorder writes them: CloudTrail's operation with its service, the
      * resource by the name the inventory holds, and the kind of change
-     * classifyCloudChange gives an ECS UpdateService - a deploy.
+     * classifyCloudChange gives an ECS UpdateService that set only the
+     * desired count - scaling, though UpdateService is how ECS deploys too
+     * (isAwsScaleOnlyUpdate).
      */
     if (isDesktop()) {
       const aiRows: Locator = page
@@ -3709,7 +3979,8 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
         await expect(row.getByTestId("cloud-change-title")).toHaveText(
           "ecs:UpdateService on checkout",
         );
-        await expect(row.getByText("Deploy", { exact: true })).toBeVisible();
+        await expect(row.getByText("Scaling", { exact: true })).toBeVisible();
+        await expect(row.getByText("Deploy", { exact: true })).toHaveCount(0);
         await expect(row).not.toContainText("rolled back");
       }
     }
@@ -5889,4 +6160,520 @@ test.describe("a cloud resource's streamed Logs", () => {
     );
     await shoot(page, "resource-logs-empty-fa");
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Cloud > All Resources, by cloud account (#6149's follow-up). The list has
+ * the Cloud Account chip App Platforms' lists have, in place of its typed
+ * Account filter: each account its resources are in, by the name Cloud >
+ * Accounts gives it with its id under it, under its cloud; the Google Cloud
+ * project no connection names (acme-prod) by its id, and every account by
+ * its id for a reader who may not read Cloud Accounts. A connection's
+ * resource count on Cloud > Connect opens the list with the chip set to the
+ * accounts it reads. Turned to "is not", set to an account that holds none
+ * of the list (the filters' empty state), and in German (dark) and Persian,
+ * at a desktop's width and a phone's.
+ * ---------------------------------------------------------------------------
+ */
+
+const ALL_RESOURCES_PATH: string = `/dashboard/${PROJECT_ID}/cloud/resources`;
+const ALL_RESOURCES_TABLE: string = "cloud-monitored-resources-table";
+const AWS_ACCOUNT_ID: string = "123456789012";
+const AZURE_SUBSCRIPTION_ID: string = "7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b";
+
+// The AWS account's resources, and the Azure subscription's and Google Cloud project's.
+const AWS_RESOURCE_NAMES: Array<string> = [
+  "web-alb",
+  "orders-db",
+  "nightly-export",
+  "web-1",
+  "web-2",
+  "prod-vpc",
+  "orders-queue",
+  "orders-dlq",
+];
+const OTHER_RESOURCE_NAMES: Array<string> = [
+  "checkout-web",
+  "build-agent-1",
+  "orders-worker-1",
+  "orders-workers",
+];
+
+interface ResourceListRequest {
+  model: string;
+  cloudResourceKind?: string;
+  isArchived?: boolean;
+  accountFilter?: {
+    includes?: Array<string>;
+    includesNone?: Array<string>;
+    is?: string;
+  };
+  select?: Array<string>;
+  limit?: number;
+}
+
+/*
+ * All Resources' address with its Cloud Account chip set, as a link sets
+ * it: the list's facet state under the URL parameter its chip bar reads.
+ */
+function allResourcesPath(
+  accountIds: Array<string>,
+  operator: "is" | "is_not" = "is",
+  query: string = "state=connected",
+): string {
+  return `${ALL_RESOURCES_PATH}?${query}&${ALL_RESOURCES_TABLE}-facets=${encodeURIComponent(
+    JSON.stringify({
+      facetSelections: { cloudAccountId: accountIds },
+      facetOperators: { cloudAccountId: operator },
+    }),
+  )}`;
+}
+
+async function openAllResources(page: Page, address: string): Promise<void> {
+  await page.goto(address);
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+}
+
+/*
+ * The list's chips: a phone folds them behind Filter (FacetFilterBar), and
+ * one press on it draws them.
+ */
+async function resourceChips(page: Page): Promise<Locator> {
+  const bar: Locator = page.getByTestId("facet-filter-bar");
+
+  if (!isDesktop()) {
+    const filter: Locator = bar.getByTestId("facet-filter-bar-toggle");
+
+    if ((await filter.getAttribute("aria-expanded")) !== "true") {
+      await filter.click();
+    }
+
+    await expect(filter).toHaveAttribute("aria-expanded", "true");
+  }
+
+  return bar;
+}
+
+// A resource's name in the list, as the link to its page.
+function resourceLink(page: Page, name: string): Locator {
+  return page.getByRole("link", { name: name, exact: true });
+}
+
+async function expectResourcesListed(
+  page: Page,
+  listed: Array<string>,
+  leftOut: Array<string>,
+): Promise<void> {
+  for (const name of listed) {
+    await expect(resourceLink(page, name).first()).toBeVisible();
+  }
+  for (const name of leftOut) {
+    await expect(resourceLink(page, name)).toHaveCount(0);
+  }
+}
+
+// The list's own reads of its rows - not its chip's, which ask for two fields.
+async function resourceListReads(
+  page: Page,
+): Promise<Array<ResourceListRequest>> {
+  return ((await listRequests(page)) as Array<ResourceListRequest>).filter(
+    (request: ResourceListRequest): boolean => {
+      return (
+        request.model === "CloudResource" &&
+        request.cloudResourceKind === "resource" &&
+        (request.select || []).length > 2
+      );
+    },
+  );
+}
+
+// The chip's own reads: the accounts the list's resources are in.
+async function resourceAccountReads(
+  page: Page,
+): Promise<Array<ResourceListRequest>> {
+  return ((await listRequests(page)) as Array<ResourceListRequest>).filter(
+    (request: ResourceListRequest): boolean => {
+      return (
+        request.model === "CloudResource" &&
+        request.cloudResourceKind === "resource" &&
+        (request.select || []).join(",") === "cloudAccountId,cloudProvider"
+      );
+    },
+  );
+}
+
+/*
+ * The chip's popover once it is at rest: a dialog grows in, and Tailwind's
+ * runtime writes its rules a moment after it mounts. A finite animation
+ * only: the spinner of a list still being read turns until it is in.
+ */
+async function openChipPopover(chip: Locator): Promise<Locator> {
+  await chip.click();
+  const popover: Locator = chip.page().getByRole("dialog");
+  await expect(popover.getByRole("textbox")).toBeVisible();
+  await expect
+    .poll(async (): Promise<number> => {
+      return await popover.evaluate((element: Element): number => {
+        return element
+          .getAnimations({ subtree: true })
+          .filter((animation: Animation): boolean => {
+            return animation.effect?.getTiming().iterations !== Infinity;
+          }).length;
+      });
+    })
+    .toBe(0);
+  return popover;
+}
+
+test.describe("Cloud's All Resources, by cloud account", () => {
+  test("the Cloud Account chip: each account its resources are in, by its name in Cloud > Accounts with its id under it; one no connection names, by its id", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAllResources(page, `${ALL_RESOURCES_PATH}?state=connected`);
+    await expect(resourceLink(page, "web-alb").first()).toBeVisible();
+
+    // Found from the list's own resources: archived ones left out.
+    const accountReads: Array<ResourceListRequest> =
+      await resourceAccountReads(page);
+    expect(accountReads.length).toBeGreaterThan(0);
+    expect(accountReads[0]).toMatchObject({
+      isArchived: false,
+      accountFilter: { includesNone: [""] },
+    });
+
+    const bar: Locator = await resourceChips(page);
+    const popover: Locator = await openChipPopover(
+      bar.getByRole("button", { name: /^Cloud Account$/ }),
+    );
+
+    // Each account once, under its cloud: the name first, its id under it.
+    const offered: Locator = popover.getByRole("listbox").getByRole("option");
+    await expect(offered).toHaveText([
+      /^Production\s*123456789012$/,
+      /^Contoso production\s*7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b$/,
+      /^acme-prod$/,
+    ]);
+    await expect(popover.getByTestId("filter-chip-group-heading")).toHaveText([
+      "AWS",
+      "Azure",
+      "Google Cloud",
+    ]);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "all-resources-account-chip-open");
+
+    // Its id finds an account too.
+    await popover.getByRole("textbox").fill("7c4a1f2e");
+    await expect(offered).toHaveText([/^Contoso production/]);
+    await popover.getByRole("textbox").fill("");
+
+    // Picked: the chip says the account's name, and the list holds its resources.
+    await offered.nth(0).click();
+    await page.keyboard.press("Escape");
+    await expect(
+      bar.getByRole("button", { name: "Cloud Account · Production" }),
+    ).toBeVisible();
+    await expectResourcesListed(page, AWS_RESOURCE_NAMES, OTHER_RESOURCE_NAMES);
+    const reads: Array<ResourceListRequest> = await resourceListReads(page);
+    expect(reads[reads.length - 1]!.accountFilter).toEqual({
+      includes: [AWS_ACCOUNT_ID],
+    });
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "all-resources-account-chip");
+  });
+
+  test("set from a link: a connection's resource count on Cloud > Connect opens the list with the chip set to the accounts it reads", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected");
+    await page.getByRole("link", { name: "46 resources" }).click();
+
+    await expect(page).toHaveURL((url: URL): boolean => {
+      return (
+        url.pathname === ALL_RESOURCES_PATH &&
+        url.searchParams.has(`${ALL_RESOURCES_TABLE}-facets`)
+      );
+    });
+    const bar: Locator = await resourceChips(page);
+    await expect(
+      bar.getByRole("button", { name: "Cloud Account · Production" }),
+    ).toBeVisible();
+    await expectResourcesListed(page, AWS_RESOURCE_NAMES, OTHER_RESOURCE_NAMES);
+
+    // Its first read is already of the account's resources: none without the chip.
+    const reads: Array<ResourceListRequest> = await resourceListReads(page);
+    expect(reads.length).toBeGreaterThan(0);
+    for (const read of reads) {
+      expect(read.accountFilter).toEqual({ includes: [AWS_ACCOUNT_ID] });
+    }
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "all-resources-from-connection-count");
+
+    // Cleared: every account's resources again.
+    await bar.getByRole("button", { name: /^Clear Cloud Account/ }).click();
+    await expectResourcesListed(page, ["web-alb", "checkout-web"], []);
+  });
+
+  test("turned to 'is not', every other account's; set to an account that holds none of them, the filters' empty state and the way back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAllResources(page, allResourcesPath([AWS_ACCOUNT_ID], "is_not"));
+
+    const bar: Locator = await resourceChips(page);
+    await expect(
+      bar.getByRole("button", { name: "Cloud Account · not Production" }),
+    ).toBeVisible();
+    await expectResourcesListed(page, OTHER_RESOURCE_NAMES, AWS_RESOURCE_NAMES);
+    const reads: Array<ResourceListRequest> = await resourceListReads(page);
+    expect(reads[reads.length - 1]!.accountFilter).toEqual({
+      includesNone: [AWS_ACCOUNT_ID],
+    });
+    await shoot(page, "all-resources-account-chip-not");
+
+    /*
+     * The Azure subscription's id in another case is the same account: the
+     * list asks for it written both ways.
+     */
+    await openAllResources(
+      page,
+      allResourcesPath([AZURE_SUBSCRIPTION_ID.toUpperCase()]),
+    );
+    await expectResourcesListed(
+      page,
+      ["checkout-web", "build-agent-1"],
+      ["web-alb", "orders-worker-1"],
+    );
+    const azureReads: Array<ResourceListRequest> =
+      await resourceListReads(page);
+    expect(azureReads[azureReads.length - 1]!.accountFilter).toEqual({
+      includes: [AZURE_SUBSCRIPTION_ID.toUpperCase(), AZURE_SUBSCRIPTION_ID],
+    });
+
+    // A Google Cloud project that holds none of the list's resources.
+    await openAllResources(page, allResourcesPath(["acme-legacy"]));
+    const clear: Locator = page.getByTestId("empty-table-clear-filters-button");
+    await expect(clear).toBeVisible();
+    await expect(
+      bar.getByRole("button", { name: "Cloud Account · acme-legacy" }),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "all-resources-account-chip-empty");
+    await clear.click();
+    await expectResourcesListed(page, ["web-alb", "checkout-web"], []);
+  });
+
+  test("a reader who may not read Cloud Accounts: each account by its id, as before, and the chip filters all the same", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAllResources(
+      page,
+      allResourcesPath(
+        [AWS_ACCOUNT_ID],
+        "is",
+        "state=connected&accounts=refused",
+      ),
+    );
+
+    const bar: Locator = await resourceChips(page);
+    await expect(
+      bar.getByRole("button", { name: `Cloud Account · ${AWS_ACCOUNT_ID}` }),
+    ).toBeVisible();
+    await expectResourcesListed(page, AWS_RESOURCE_NAMES, OTHER_RESOURCE_NAMES);
+
+    const popover: Locator = await openChipPopover(
+      bar.getByRole("button", { name: /^Cloud Account · / }),
+    );
+    await expect(popover.getByRole("listbox").getByRole("option")).toHaveText([
+      /^123456789012$/,
+      /^7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b$/,
+      /^acme-prod$/,
+    ]);
+    // The names were asked for, and refused.
+    expect(
+      (await listRequests(page)).some((request: ListRequest): boolean => {
+        return request.model === "CloudAccount";
+      }),
+    ).toBe(true);
+    await shoot(page, "all-resources-account-chip-ids");
+  });
+
+  /*
+   * The UI review of #6227: the chip's accounts are read a few rows at a
+   * time, one read after another, so on a big project they take a while.
+   * Opened before they were in, the chip said "Nothing to show - No options
+   * available", and a read that failed left it saying so for good. It says
+   * Loading... while they are read, and that they could not be read - with
+   * Try again, which reads them once more.
+   */
+  test("while its accounts are read the chip says so, and a read that failed says so, with Try again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAllResources(
+      page,
+      `${ALL_RESOURCES_PATH}?state=connected&accountreads=held`,
+    );
+    await expect(resourceLink(page, "web-alb").first()).toBeVisible();
+
+    let bar: Locator = await resourceChips(page);
+    let popover: Locator = await openChipPopover(
+      bar.getByRole("button", { name: /^Cloud Account$/ }),
+    );
+    await expect(popover.getByText("Loading...")).toBeVisible();
+    await expect(popover.getByText("Nothing to show")).toHaveCount(0);
+    await shoot(page, "all-resources-account-chip-loading");
+
+    // Read: the accounts, named.
+    await page.evaluate(() => {
+      (
+        window as unknown as {
+          __cloudConnectFixture: { releaseAccountReads: () => void };
+        }
+      ).__cloudConnectFixture.releaseAccountReads();
+    });
+    await expect(popover.getByRole("listbox").getByRole("option")).toHaveText([
+      /^Production\s*123456789012$/,
+      /^Contoso production\s*7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b$/,
+      /^acme-prod$/,
+    ]);
+    await expect(popover.getByText("Loading...")).toHaveCount(0);
+
+    // A read that failed: the list could not be loaded, and Try again reads it.
+    await openAllResources(
+      page,
+      `${ALL_RESOURCES_PATH}?state=connected&accountreads=fail`,
+    );
+    await expect(resourceLink(page, "web-alb").first()).toBeVisible();
+    bar = await resourceChips(page);
+    popover = await openChipPopover(
+      bar.getByRole("button", { name: /^Cloud Account$/ }),
+    );
+    await expect(popover.getByTestId("filter-chip-load-error")).toBeVisible();
+    await expect(popover.getByText("Couldn't load this list.")).toBeVisible();
+    await expect(popover.getByText("Nothing to show")).toHaveCount(0);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "all-resources-account-chip-load-error");
+
+    await popover.getByRole("button", { name: "Try again" }).click();
+    await expect(popover.getByRole("listbox").getByRole("option")).toHaveCount(
+      3,
+    );
+    await expect(popover.getByTestId("filter-chip-load-error")).toHaveCount(0);
+    // The read that failed, then the one Try again asked for.
+    const accountReads: Array<ResourceListRequest> =
+      await resourceAccountReads(page);
+    expect(accountReads[0]).toMatchObject({ failed: true });
+    expect(accountReads.length).toBeGreaterThan(1);
+    expect(accountReads[accountReads.length - 1]).not.toMatchObject({
+      failed: true,
+    });
+  });
+
+  for (const reader of [
+    { code: "de", locale: GERMAN, theme: "dark" },
+    { code: "fa", locale: PERSIAN, theme: "light" },
+  ]) {
+    test(`${reader.code}: the chip in the reader's words, its account's name set apart, its popover on the screen`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openAllResources(
+        page,
+        allResourcesPath(
+          [AWS_ACCOUNT_ID],
+          "is_not",
+          `state=connected&lang=${reader.code}&theme=${reader.theme}`,
+        ),
+      );
+
+      const label: string = wordIn(reader.locale, "Cloud Account");
+      expect(label).not.toBe("Cloud Account");
+      // Between the chip's name and its value, the language's own mark (a bullet in Persian).
+      const separator: string = getInlineSeparator(reader.code);
+      const bar: Locator = await resourceChips(page);
+      const chip: Locator = bar.getByRole("button", {
+        name: `${label}${separator}`,
+      });
+      await expect(chip).toBeVisible();
+      // "not Production" in the reader's words, the name set apart within them.
+      expect(await readText(chip)).toBe(
+        `${label}${separator}${wordIn(reader.locale, "not {{value}}", { value: "Production" })}`,
+      );
+      await expectResourcesListed(
+        page,
+        OTHER_RESOURCE_NAMES,
+        AWS_RESOURCE_NAMES,
+      );
+
+      if (reader.code === "fa") {
+        await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+      } else {
+        await expect(page.locator("html")).toHaveClass(/dark/);
+      }
+
+      const popover: Locator = await openChipPopover(chip);
+      // Its search box names the chip in the reader's words.
+      expect(
+        await popover.getByRole("textbox").getAttribute("placeholder"),
+      ).toContain(label);
+      if (reader.code === "de") {
+        await expect(popover.getByRole("textbox")).toHaveAttribute(
+          "placeholder",
+          `${label} suchen...`,
+        );
+      }
+      await expect(
+        popover.getByRole("listbox").getByRole("option").first(),
+      ).toContainText("Production");
+
+      /*
+       * The Azure subscription's id under its name reads its own way, left
+       * to right, and is cut short at its own end: on a Persian page it was
+       * cut at its start ("...f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b"), the part
+       * that tells two subscriptions apart left out. Read from its first
+       * letter, in sight inside its line.
+       */
+      const azureId: Locator = popover
+        .getByRole("option", { name: /Contoso production/ })
+        .getByTestId("filter-chip-option-sublabel");
+      await expect(azureId).toHaveText(AZURE_SUBSCRIPTION_ID);
+      expect(
+        await azureId.evaluate(
+          (line: Element): { direction: string; isStartInSight: boolean } => {
+            const range: Range = document.createRange();
+            range.setStart(line.firstChild as Node, 0);
+            range.setEnd(line.firstChild as Node, 1);
+            const first: DOMRect = range.getBoundingClientRect();
+            const box: DOMRect = line.getBoundingClientRect();
+
+            return {
+              direction: getComputedStyle(line).direction,
+              isStartInSight:
+                first.left >= box.left - 0.5 && first.right <= box.right + 0.5,
+            };
+          },
+        ),
+      ).toEqual({ direction: "ltr", isStartInSight: true });
+
+      // The popover keeps the page's 16px margin, and nothing scrolls sideways.
+      const [box] = await boxesInOneFrame([popover]);
+      const width: number = page.viewportSize()!.width;
+      expect(box!.x).toBeGreaterThanOrEqual(16 - 0.5);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(width - 16 + 0.5);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await shoot(page, `all-resources-account-chip-${reader.code}`);
+    });
+  }
 });

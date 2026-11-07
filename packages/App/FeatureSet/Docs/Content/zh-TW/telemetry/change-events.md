@@ -51,7 +51,7 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 
 應用程式部署需要應用程式在 [受管理的應用程式平台](/docs/telemetry/cloud-environments#應用程式與部署) 上執行。它會記錄在應用程式所屬的環境下，並繪製在環境的圖表與應用程式自己的圖表上；在那裡，回復到應用程式先前執行過的修訂版本也會被記錄。
 
-雲端變更和供應商事件需要一個[已連線的雲端帳戶](/docs/telemetry/cloud-accounts)。當 OneUptime 列出了相應資源時，每一項都會連結到它所指的雲端資源，並繪製在該資源的圖表上。其類型取決於操作：操作名稱表明時為 `deployment`、`scaling` 或 `rollback`，否則為 `config-change`，健康事件則為 `provider-event`。未篩選到任何資源的圖表不會顯示雲端帳戶的活動記錄和 OpenStack 雲端的變更，這樣忙碌的帳戶就不會擠掉你的部署；供應商的健康事件仍會保留在這些圖表上。
+雲端變更和供應商事件需要一個[已連線的雲端帳戶](/docs/telemetry/cloud-accounts)。當 OneUptime 列出了相應資源時，每一項都會連結到它所指的雲端資源，並繪製在該資源的圖表上。其類型取決於操作：操作名稱表明時為 `deployment`、`scaling` 或 `rollback`，否則為 `config-change`，健康事件則為 `provider-event`。只變更服務所需數量的 ECS `UpdateService`（例如 Application Auto Scaling 所做的）為 `scaling`，而不是部署。未篩選到任何資源的圖表不會顯示雲端帳戶的活動記錄和 OpenStack 雲端的變更，這樣忙碌的帳戶就不會擠掉你的部署；供應商的健康事件仍會保留在這些圖表上。
 
 ## 從管線記錄部署
 

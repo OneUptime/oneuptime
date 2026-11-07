@@ -9,8 +9,8 @@ import path from "path";
  * its own shell, one paste, a test with what it found and what it costs -
  * an AWS role or an access key, one account or its whole organization, the
  * list's status and actions, Cloud > Accounts with an account's Overview
- * and Resources, and all of it at desktop and phone width, in the dark
- * theme, in German and in Japanese.
+ * and Resources, Cloud > All Resources by cloud account, and all of it at
+ * desktop and phone width, in the dark theme, in German and in Japanese.
  *
  * CLOUD_CONNECT_FIXTURE_PORT moves the fixture off 4399, so a second
  * checkout can run the suite beside this one.

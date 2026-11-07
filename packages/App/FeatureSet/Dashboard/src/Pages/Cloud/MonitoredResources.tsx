@@ -51,6 +51,11 @@ import CloudMonitoringDocumentationCard from "../../Components/Cloud/CloudMonito
 import CloudConnectCallout from "../../Components/Cloud/Connect/CloudConnectCallout";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  CLOUD_RESOURCES_TABLE_ID,
+  getResourcesCloudAccountFacet,
+} from "../../Components/AppPlatforms/AppPlatformsAccountFacet";
+import { fetchResourcesCloudAccountOptions } from "../../Components/Cloud/CloudAccountChipReads";
 
 /*
  * Cloud → All Resources: the IaaS and PaaS resources discovered from the
@@ -119,9 +124,13 @@ const CloudMonitoredResources: FunctionComponent<
     });
 
   /*
-   * The Owner and Labels chips above the table: a resource can be found by the
-   * person or the team that owns it - the server answers the Owner chip in
-   * the list's own query - and the Owners column shows who that is.
+   * The Owner, Labels and Cloud Account chips above the table: a resource
+   * can be found by the person or the team that owns it - the server
+   * answers the Owner chip in the list's own query - and the Owners column
+   * shows who that is; or by the account it is in, offered by the name
+   * Cloud > Accounts gives it, as App Platforms' lists offer theirs
+   * (AppPlatformsAccountFacet). A connection's resource count on Cloud >
+   * Connect opens the list with it set to the accounts the connection reads.
    */
   const {
     getOwnersForResource,
@@ -133,11 +142,14 @@ const CloudMonitoredResources: FunctionComponent<
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<CloudResource>({
-    persistKey: "cloud-monitored-resources-table",
+    persistKey: CLOUD_RESOURCES_TABLE_ID,
     ownerUserModelType: CloudResourceOwnerUser,
     ownerTeamModelType: CloudResourceOwnerTeam,
     resourceIdField: "cloudResourceId",
     showLabelsFacet: true,
+    extraFacets: [
+      getResourcesCloudAccountFacet(fetchResourcesCloudAccountOptions),
+    ],
   });
 
   if (firstRecordWatch.error) {
@@ -160,8 +172,8 @@ const CloudMonitoredResources: FunctionComponent<
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
         refreshToggle={firstRecordWatch.refreshToken}
-        id="cloud-monitored-resources-table"
-        userPreferencesKey="cloud-monitored-resources-table"
+        id={CLOUD_RESOURCES_TABLE_ID}
+        userPreferencesKey={CLOUD_RESOURCES_TABLE_ID}
         topContent={getFirstRunTopContent({
           topContent: filterBar,
           count: firstRecordWatch.count,
@@ -251,13 +263,6 @@ const CloudMonitoredResources: FunctionComponent<
               cloudRegion: true,
             },
             title: "Region",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              cloudAccountId: true,
-            },
-            title: "Account",
             type: FieldType.Text,
           },
           {

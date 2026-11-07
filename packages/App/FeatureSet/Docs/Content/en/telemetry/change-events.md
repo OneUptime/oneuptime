@@ -51,7 +51,7 @@ A rollout needs the [Kubernetes agent](/docs/telemetry/kubernetes-agent), which 
 
 An app deploy needs the app to run on a [managed app platform](/docs/telemetry/cloud-environments#apps-and-deploys). It is recorded under the app's environment and drawn on the environment's charts and the app's own, and there a rollback to a revision the app ran before is recorded too.
 
-A cloud change or a provider event needs a [connected cloud account](/docs/telemetry/cloud-accounts). Each is tied to the cloud resource it names, when OneUptime lists that resource, and drawn on the resource's charts. Its type comes from the operation: `deployment`, `scaling` or `rollback` when the operation's name says so, `config-change` otherwise, and `provider-event` for a health event. Charts filtered to no resource leave a cloud account's activity log and an OpenStack cloud's changes out, so a busy account cannot crowd out your deploys; the provider's health events stay on them.
+A cloud change or a provider event needs a [connected cloud account](/docs/telemetry/cloud-accounts). Each is tied to the cloud resource it names, when OneUptime lists that resource, and drawn on the resource's charts. Its type comes from the operation: `deployment`, `scaling` or `rollback` when the operation's name says so, `config-change` otherwise, and `provider-event` for a health event. An ECS `UpdateService` that only changes a service's desired count, as Application Auto Scaling does, is `scaling`, not a deploy. Charts filtered to no resource leave a cloud account's activity log and an OpenStack cloud's changes out, so a busy account cannot crowd out your deploys; the provider's health events stay on them.
 
 ## Record a deploy from a pipeline
 

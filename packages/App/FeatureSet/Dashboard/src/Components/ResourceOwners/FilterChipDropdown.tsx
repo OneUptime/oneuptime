@@ -15,9 +15,13 @@ import {
 } from "./FilterChipDropdownTypes";
 import {
   FILTER_CHIP_OPERATOR_SELECT_CLASSES,
+  FILTER_CHIP_OPTION_LABEL_CLASS_NAME,
+  FILTER_CHIP_OPTION_SUBLABEL_CLASS_NAME,
   FILTER_CHIP_PLACE_CLASSES,
   FILTER_CHIP_POPOVER_CLASSES,
   FILTER_CHIP_TEXT_CLASSES,
+  FilterChipOptionLine,
+  getFilterChipOptionLine,
 } from "./FilterChipStyles";
 import { showFullValueWhenCutShort } from "Common/UI/Components/Table/FullValueTitle";
 import { COULD_NOT_LOAD_THIS_LIST } from "Common/UI/Components/Table/EmptyTableMessage";
@@ -115,6 +119,19 @@ export interface ComponentProps {
    * Add "is_empty" / "is_not_empty" for nullable / optional fields.
    */
   supportedOperators?: Array<FilterOperator> | undefined;
+  /*
+   * A static option list its owner is still reading (a facet's
+   * fetchOptions, read once by useResourceOwners): the popover says
+   * Loading..., as an async chip's does, not "Nothing to show - No options
+   * available", which read as though there was nothing to pick.
+   */
+  isLoadingOptions?: boolean | undefined;
+  /*
+   * ...or could not read: the popover says so, with Try again, which asks
+   * the owner to read it once more (onRetryLoadOptions).
+   */
+  hasOptionsLoadFailed?: boolean | undefined;
+  onRetryLoadOptions?: (() => void) | undefined;
 }
 
 const AVATAR_PALETTE: Array<string> = [
@@ -262,6 +279,18 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
   const [hasLoadFailed, setHasLoadFailed] = useState<boolean>(false);
   // Bumped by Try again, to read the options once more.
   const [loadAttempt, setLoadAttempt] = useState<number>(0);
+
+  /*
+   * What the list says of its options: being read, or not read - the
+   * chip's own read (async), or its owner's read of a static list.
+   */
+  const isListLoading: boolean =
+    isLoading || (!isAsync && Boolean(props.isLoadingOptions));
+  const hasListLoadFailed: boolean =
+    hasLoadFailed || (!isAsync && Boolean(props.hasOptionsLoadFailed));
+  // Try again: the chip reads once more, or asks its owner to.
+  const canRetryListLoad: boolean =
+    isAsync || Boolean(props.onRetryLoadOptions);
 
   /**
    * Cache of values → resolved option, populated lazily for selections
@@ -695,13 +724,13 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
             role="listbox"
             aria-multiselectable={isMulti}
           >
-            {isLoading && (
+            {isListLoading && (
               <div className="flex items-center justify-center gap-2 px-3 py-3 text-xs text-gray-500">
                 <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-500" />
                 {translator.translateText("Loading...")}
               </div>
             )}
-            {!isLoading && hasLoadFailed && (
+            {!isListLoading && hasListLoadFailed && (
               <div
                 className="flex flex-col items-center gap-2 px-3 py-6 text-center"
                 data-testid="filter-chip-load-error"
@@ -715,44 +744,53 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                 <p className="text-sm font-medium text-gray-700">
                   {translator.translateText(COULD_NOT_LOAD_THIS_LIST)}
                 </p>
-                <button
-                  type="button"
-                  data-testid="filter-chip-load-retry"
-                  onClick={() => {
-                    setLoadAttempt((attempt: number): number => {
-                      return attempt + 1;
-                    });
-                  }}
-                  className="rounded-md px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                >
-                  {translator.translateText("Try again")}
-                </button>
+                {canRetryListLoad && (
+                  <button
+                    type="button"
+                    data-testid="filter-chip-load-retry"
+                    onClick={() => {
+                      if (!isAsync && props.onRetryLoadOptions) {
+                        props.onRetryLoadOptions();
+                        return;
+                      }
+
+                      setLoadAttempt((attempt: number): number => {
+                        return attempt + 1;
+                      });
+                    }}
+                    className="rounded-md px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                  >
+                    {translator.translateText("Try again")}
+                  </button>
+                )}
               </div>
             )}
-            {!isLoading && !hasLoadFailed && filteredOptions.length === 0 && (
-              <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100">
-                  <Icon
-                    icon={IconProp.Search}
-                    className="h-4 w-4 text-gray-400"
-                  />
+            {!isListLoading &&
+              !hasListLoadFailed &&
+              filteredOptions.length === 0 && (
+                <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100">
+                    <Icon
+                      icon={IconProp.Search}
+                      className="h-4 w-4 text-gray-400"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      {translator.translateText(
+                        searchText.trim() ? "No matches" : "Nothing to show",
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {translator.translateText(
+                        searchText.trim()
+                          ? "Try a different search term"
+                          : "No options available",
+                      )}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700">
-                    {translator.translateText(
-                      searchText.trim() ? "No matches" : "Nothing to show",
-                    )}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    {translator.translateText(
-                      searchText.trim()
-                        ? "Try a different search term"
-                        : "No options available",
-                    )}
-                  </p>
-                </div>
-              </div>
-            )}
+              )}
             {groupedOptions.map(
               (
                 section: {
@@ -787,6 +825,18 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                       const optionValue: string = option.value;
                       const isSelected: boolean =
                         selectedValues.includes(optionValue);
+                      const labelLine: FilterChipOptionLine =
+                        getFilterChipOptionLine({
+                          text: option.label,
+                          language: translator.language,
+                          className: FILTER_CHIP_OPTION_LABEL_CLASS_NAME,
+                        });
+                      const sublabelLine: FilterChipOptionLine =
+                        getFilterChipOptionLine({
+                          text: option.sublabel,
+                          language: translator.language,
+                          className: FILTER_CHIP_OPTION_SUBLABEL_CLASS_NAME,
+                        });
                       return (
                         <button
                           key={optionValue}
@@ -807,18 +857,23 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                             {/*
                              * A name wider than the list - "oneuptime-test -
                              * Pod CPU Satu..." - ends in "...", the whole of
-                             * it under the pointer.
+                             * it under the pointer: at its own end, in the
+                             * direction it is written (getFilterChipOptionLine).
                              */}
                             <span className="min-w-0">
                               <span
-                                className="block truncate font-medium"
+                                className={labelLine.className}
+                                dir={labelLine.dir}
+                                data-testid="filter-chip-option-label"
                                 onMouseEnter={showFullValueWhenCutShort}
                               >
                                 {option.label}
                               </span>
                               {option.sublabel && (
                                 <span
-                                  className="block truncate text-xs text-gray-400"
+                                  className={sublabelLine.className}
+                                  dir={sublabelLine.dir}
+                                  data-testid="filter-chip-option-sublabel"
                                   onMouseEnter={showFullValueWhenCutShort}
                                 >
                                   {option.sublabel}
