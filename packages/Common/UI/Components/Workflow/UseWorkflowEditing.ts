@@ -176,19 +176,32 @@ const useWorkflowEditing: (
 
   const autosave: WorkflowAutosave = autosaveRef.current;
 
-  // A save that fails is said once, as it fails.
-  const lastSaveStateRef: MutableRefObject<WorkflowSaveState> =
-    useRef<WorkflowSaveState>(saveStatus.state);
+  /*
+   * A save that fails is said once, as it fails - not again with every edit
+   * that fails the same way while the server is down. Once a save lands, or
+   * nothing is left unsaved, the next failure is said again; so is one that
+   * fails for another reason.
+   */
+  const toldFailureRef: MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
 
   useEffect(() => {
-    const wasFailed: boolean =
-      lastSaveStateRef.current === WorkflowSaveState.Error;
-    lastSaveStateRef.current = saveStatus.state;
+    if (saveStatus.state !== WorkflowSaveState.Error) {
+      if (!saveStatus.hasUnsavedChanges) {
+        toldFailureRef.current = null;
+      }
 
-    if (saveStatus.state === WorkflowSaveState.Error && !wasFailed) {
-      optionsRef.current.onSaveFailed?.(saveStatus.error);
+      return;
     }
-  }, [saveStatus.state]);
+
+    if (toldFailureRef.current === saveStatus.error) {
+      return;
+    }
+
+    toldFailureRef.current = saveStatus.error;
+    optionsRef.current.onSaveFailed?.(saveStatus.error);
+  }, [saveStatus.state, saveStatus.error, saveStatus.hasUnsavedChanges]);
 
   // Leaving the builder sends what is waiting at once.
   useEffect(() => {

@@ -52,7 +52,9 @@ export const WorkflowVersionCopy: {
   noVersions: translationKey(
     "No versions yet. Every change you make from now on is kept here.",
   ),
-  previewChangesTitle: translationKey("Restoring this version will:"),
+  previewChangesTitle: translationKey(
+    "Restoring this version makes these changes:",
+  ),
   sameAsNow: translationKey(
     "This version is the same as the workflow on the canvas.",
   ),
