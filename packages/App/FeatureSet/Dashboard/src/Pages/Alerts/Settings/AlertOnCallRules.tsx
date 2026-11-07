@@ -11,7 +11,6 @@ import AlertOnCallRule from "Common/Models/DatabaseModels/AlertOnCallRule";
 import AlertEpisodeOnCallRule from "Common/Models/DatabaseModels/AlertEpisodeOnCallRule";
 import AlertOnCallRuleOwningTeam from "Common/Models/DatabaseModels/AlertOnCallRuleOwningTeam";
 import AlertEpisodeOnCallRuleOwningTeam from "Common/Models/DatabaseModels/AlertEpisodeOnCallRuleOwningTeam";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import useRuleOwningTeams, {
   RuleOwningTeamsTable,
 } from "../../../Components/TeamOwnedRule/RuleOwningTeams";
@@ -255,11 +254,6 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
           placeholder: "production|critical",
         },
         ...getOnCallRuleActionFields<AlertOnCallRule>(OnCallRuleRecord.Alert),
-        // Last under More fields: which teams alone may change the rule.
-        owningTeams.getFormField({
-          stepId: "on-call",
-          collapsibleSection: getAdvancedFormSection<AlertOnCallRule>(),
-        }),
       ]}
       showRefreshButton={true}
     />
@@ -405,11 +399,6 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
         ...getOnCallRuleActionFields<AlertEpisodeOnCallRule>(
           OnCallRuleRecord.AlertEpisode,
         ),
-        // Last under More fields: which teams alone may change the rule.
-        owningTeams.getFormField({
-          stepId: "on-call",
-          collapsibleSection: getAdvancedFormSection<AlertEpisodeOnCallRule>(),
-        }),
       ]}
       showRefreshButton={true}
     />

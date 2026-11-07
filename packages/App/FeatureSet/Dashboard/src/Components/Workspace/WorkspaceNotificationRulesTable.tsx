@@ -17,6 +17,7 @@ import WorkspaceNotificationRuleOwningTeam from "Common/Models/DatabaseModels/Wo
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import useRuleOwningTeams, {
   RuleOwningTeamsTable,
+  getRuleOwningTeamsFormField,
 } from "../TeamOwnedRule/RuleOwningTeams";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -883,8 +884,9 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             required: false,
             placeholder: "Notify DevOps Team when a new incident is created.",
           },
-          // Under More fields: which teams alone may change the rule.
-          owningTeams.getFormField({
+          // Under More fields: the teams that alone may change the rule.
+          getRuleOwningTeamsFormField<WorkspaceNotificationRule>({
+            owningTeamModelType: WorkspaceNotificationRuleOwningTeam,
             stepId: "basic",
             collapsibleSection:
               getAdvancedFormSection<WorkspaceNotificationRule>(),
@@ -1117,27 +1119,27 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
          */
         columns={[
           ...getNotificationRuleCardColumns({
-          eventType: props.eventType,
-          canStartVideoCall: canRuleStartVideoCall(props.eventType),
-          workspaceType: props.workspaceType,
-          monitors: monitors,
-          labels: labels,
-          alertStates: alertStates,
-          alertSeverities: alertSeverities,
-          incidentSeverities: incidentSeverities,
-          incidentStates: incidentStates,
-          scheduledMaintenanceStates: scheduledMaintenanceStates,
-          securityCasePriorities: securityCasePriorities,
-          securityCaseStatuses: securityCaseStatuses,
-          monitorStatus: monitorStatus,
-          teams: teams,
-          users: users,
-          onCallSchedules: onCallSchedules,
-          microsoftTeamsTeams: microsoftTeamsTeams,
-          microsoftTeamsChats: microsoftTeamsChats,
-          videoCallConnections: videoCallConnections,
-          numberPrefixes: numberPrefixes,
-          exampleRecordName: exampleRecordName,
+            eventType: props.eventType,
+            canStartVideoCall: canRuleStartVideoCall(props.eventType),
+            workspaceType: props.workspaceType,
+            monitors: monitors,
+            labels: labels,
+            alertStates: alertStates,
+            alertSeverities: alertSeverities,
+            incidentSeverities: incidentSeverities,
+            incidentStates: incidentStates,
+            scheduledMaintenanceStates: scheduledMaintenanceStates,
+            securityCasePriorities: securityCasePriorities,
+            securityCaseStatuses: securityCaseStatuses,
+            monitorStatus: monitorStatus,
+            teams: teams,
+            users: users,
+            onCallSchedules: onCallSchedules,
+            microsoftTeamsTeams: microsoftTeamsTeams,
+            microsoftTeamsChats: microsoftTeamsChats,
+            videoCallConnections: videoCallConnections,
+            numberPrefixes: numberPrefixes,
+            exampleRecordName: exampleRecordName,
           }),
           // On a rule's card when teams own it.
           owningTeams.owningTeamsColumn,

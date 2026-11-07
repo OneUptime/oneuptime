@@ -5,6 +5,7 @@ import {
   getCreatorTeamOwnerRuleActionFields,
   getOwnerRuleActionFields,
   getOwnerRuleFormSteps,
+  getOwnerRuleOwningTeamsFields,
 } from "../../../Utils/Form/ResourceRuleForm";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -18,7 +19,6 @@ import Tabs from "Common/UI/Components/Tabs/Tabs";
 import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
 import IncidentEpisodeOwnerRule from "Common/Models/DatabaseModels/IncidentEpisodeOwnerRule";
 import IncidentOwnerRuleOwningTeam from "Common/Models/DatabaseModels/IncidentOwnerRuleOwningTeam";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import useRuleOwningTeams, {
   RuleOwningTeamsTable,
 } from "../../../Components/TeamOwnedRule/RuleOwningTeams";
@@ -258,11 +258,9 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
           placeholder: "production|critical",
         },
         ...getCreatorTeamOwnerRuleActionFields<IncidentOwnerRule>("incident"),
-        // Last under More fields: which teams alone may change the rule.
-        owningTeams.getFormField({
-          stepId: "owners",
-          collapsibleSection: getAdvancedFormSection<IncidentOwnerRule>(),
-        }),
+        ...getOwnerRuleOwningTeamsFields<IncidentOwnerRule>(
+          IncidentOwnerRuleOwningTeam,
+        ),
       ]}
       showRefreshButton={true}
     />

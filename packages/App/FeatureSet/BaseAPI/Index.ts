@@ -3085,7 +3085,10 @@ const BaseAPIFeatureSet: FeatureSet = {
      */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentOnCallRuleOwningTeam, IncidentOnCallRuleOwningTeamServiceType>(
+      new BaseAPI<
+        IncidentOnCallRuleOwningTeam,
+        IncidentOnCallRuleOwningTeamServiceType
+      >(
         IncidentOnCallRuleOwningTeam,
         IncidentOnCallRuleOwningTeamService,
       ).getRouter(),
@@ -3093,7 +3096,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentOwnerRuleOwningTeam, IncidentOwnerRuleOwningTeamServiceType>(
+      new BaseAPI<
+        IncidentOwnerRuleOwningTeam,
+        IncidentOwnerRuleOwningTeamServiceType
+      >(
         IncidentOwnerRuleOwningTeam,
         IncidentOwnerRuleOwningTeamService,
       ).getRouter(),
@@ -3101,7 +3107,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<WorkspaceNotificationRuleOwningTeam, WorkspaceNotificationRuleOwningTeamServiceType>(
+      new BaseAPI<
+        WorkspaceNotificationRuleOwningTeam,
+        WorkspaceNotificationRuleOwningTeamServiceType
+      >(
         WorkspaceNotificationRuleOwningTeam,
         WorkspaceNotificationRuleOwningTeamService,
       ).getRouter(),
@@ -3109,7 +3118,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertOnCallRuleOwningTeam, AlertOnCallRuleOwningTeamServiceType>(
+      new BaseAPI<
+        AlertOnCallRuleOwningTeam,
+        AlertOnCallRuleOwningTeamServiceType
+      >(
         AlertOnCallRuleOwningTeam,
         AlertOnCallRuleOwningTeamService,
       ).getRouter(),
@@ -3117,7 +3129,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentEpisodeOnCallRuleOwningTeam, IncidentEpisodeOnCallRuleOwningTeamServiceType>(
+      new BaseAPI<
+        IncidentEpisodeOnCallRuleOwningTeam,
+        IncidentEpisodeOnCallRuleOwningTeamServiceType
+      >(
         IncidentEpisodeOnCallRuleOwningTeam,
         IncidentEpisodeOnCallRuleOwningTeamService,
       ).getRouter(),
@@ -3125,7 +3140,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertEpisodeOnCallRuleOwningTeam, AlertEpisodeOnCallRuleOwningTeamServiceType>(
+      new BaseAPI<
+        AlertEpisodeOnCallRuleOwningTeam,
+        AlertEpisodeOnCallRuleOwningTeamServiceType
+      >(
         AlertEpisodeOnCallRuleOwningTeam,
         AlertEpisodeOnCallRuleOwningTeamService,
       ).getRouter(),

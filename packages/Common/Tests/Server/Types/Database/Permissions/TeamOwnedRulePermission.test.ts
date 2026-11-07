@@ -369,9 +369,7 @@ describe("the SQL an update or a delete is held to", () => {
         DatabaseRequestType.Update,
       );
 
-    const parts: RawParts = rawParts(
-      (query as Record<string, unknown>)["_id"],
-    );
+    const parts: RawParts = rawParts((query as Record<string, unknown>)["_id"]);
 
     expect(parts.sql).toContain(
       `COLUMN IN (SELECT r."_id" FROM "IncidentOnCallRule" r WHERE r."deletedAt" IS NULL AND (NOT EXISTS (SELECT 1 FROM "IncidentOnCallRuleOwningTeam" rot WHERE rot."incidentOnCallRuleId" = r."_id" AND rot."deletedAt" IS NULL) OR EXISTS (SELECT 1 FROM "IncidentOnCallRuleOwningTeam" rto WHERE rto."incidentOnCallRuleId" = r."_id" AND rto."deletedAt" IS NULL AND rto."teamId" IN (:...`,
@@ -392,9 +390,7 @@ describe("the SQL an update or a delete is held to", () => {
         DatabaseRequestType.Delete,
       );
 
-    const parts: RawParts = rawParts(
-      (query as Record<string, unknown>)["_id"],
-    );
+    const parts: RawParts = rawParts((query as Record<string, unknown>)["_id"]);
 
     expect(parts.sql).toContain("NOT EXISTS");
     expect(parts.sql).not.toContain(" OR EXISTS");

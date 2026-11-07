@@ -264,10 +264,11 @@ describePostgres(
       owners: Array<TeamName>,
       permission: Permission,
     ): boolean => {
-      const teams: Array<TeamName> = (["teamX", "teamY"] as Array<TeamName>)
-        .filter((team: TeamName): boolean => {
-          return config[team] !== "not a member";
-        });
+      const teams: Array<TeamName> = (
+        ["teamX", "teamY"] as Array<TeamName>
+      ).filter((team: TeamName): boolean => {
+        return config[team] !== "not a member";
+      });
 
       const grantsOf: (team: TeamName) => Array<Permission> = (
         team: TeamName,
@@ -295,10 +296,7 @@ describePostgres(
     const canRead: (config: Config) => boolean = (config: Config): boolean => {
       return (["teamX", "teamY"] as Array<TeamName>).some(
         (team: TeamName): boolean => {
-          return (
-            config[team] !== "not a member" &&
-            config[team] !== "none"
-          );
+          return config[team] !== "not a member" && config[team] !== "none";
         },
       );
     };
@@ -314,7 +312,11 @@ describePostgres(
     ): boolean => {
       switch (write) {
         case "edit the rule":
-          return canChange(config, rule.owners, Permission.EditIncidentOnCallRule);
+          return canChange(
+            config,
+            rule.owners,
+            Permission.EditIncidentOnCallRule,
+          );
         case "delete the rule":
           return canChange(
             config,
@@ -388,9 +390,7 @@ describePostgres(
       sql: string,
       values: Array<unknown>,
     ): Promise<Array<Dictionary<unknown>>> => {
-      return (await database.query(sql, values)) as Array<
-        Dictionary<unknown>
-      >;
+      return (await database.query(sql, values)) as Array<Dictionary<unknown>>;
     };
 
     const descriptionOf: (rule: RuleFixture) => Promise<unknown> = async (
@@ -433,7 +433,10 @@ describePostgres(
 
     // Every rule, and who owns it, made again from nothing.
     const seedRules: () => Promise<void> = async (): Promise<void> => {
-      for (const table of ["IncidentOnCallRuleOwningTeam", "IncidentOnCallRule"]) {
+      for (const table of [
+        "IncidentOnCallRuleOwningTeam",
+        "IncidentOnCallRule",
+      ]) {
         await database.query(`DELETE FROM "${schema}"."${table}"`);
       }
 
@@ -611,99 +614,104 @@ describePostgres(
      * Tries one write on one rule as the member and says whether it was
      * made - checking the database, never the answer alone.
      */
-    const tryWrite: (write: Write, rule: RuleFixture) => Promise<boolean> =
-      async (write: Write, rule: RuleFixture): Promise<boolean> => {
-        switch (write) {
-          case "edit the rule": {
-            const outcome: Outcome = await send({
-              uri: "/incident-on-call-rule/:id/update-item",
-              id: rule.id,
-              body: {
-                data: JSONFunctions.serialize({ description: "Changed" }),
-              },
-            });
+    const tryWrite: (
+      write: Write,
+      rule: RuleFixture,
+    ) => Promise<boolean> = async (
+      write: Write,
+      rule: RuleFixture,
+    ): Promise<boolean> => {
+      switch (write) {
+        case "edit the rule": {
+          const outcome: Outcome = await send({
+            uri: "/incident-on-call-rule/:id/update-item",
+            id: rule.id,
+            body: {
+              data: JSONFunctions.serialize({ description: "Changed" }),
+            },
+          });
 
-            const isMade: boolean = (await descriptionOf(rule)) === "Changed";
+          const isMade: boolean = (await descriptionOf(rule)) === "Changed";
 
-            expect(Boolean(outcome.isEmptySuccess)).toBe(isMade);
-            return isMade;
-          }
-          case "delete the rule": {
-            const outcome: Outcome = await send({
-              uri: "/incident-on-call-rule/:id/delete-item",
-              id: rule.id,
-            });
-
-            const isMade: boolean = !(await isRuleThere(rule));
-
-            expect(Boolean(outcome.isEmptySuccess)).toBe(isMade);
-            return isMade;
-          }
-          case "add Team Z as an owning team": {
-            const outcome: Outcome = await send({
-              uri: "/incident-on-call-rule-owning-team",
-              body: {
-                data: JSONFunctions.serialize({
-                  incidentOnCallRuleId: rule.id.toString(),
-                  projectId: projectId.toString(),
-                  teamId: teamZId.toString(),
-                }),
-              },
-            });
-
-            const isMade: boolean = (await ownersOf(rule)).includes(
-              teamZId.toString().toLowerCase(),
-            );
-
-            expect(outcome.error === undefined).toBe(isMade);
-            return isMade;
-          }
-          case "remove an owning team": {
-            const rows: Array<Dictionary<unknown>> = await query(
-              `SELECT "_id" FROM "${schema}"."IncidentOnCallRuleOwningTeam" WHERE "incidentOnCallRuleId" = $1 ORDER BY "teamId" LIMIT 1`,
-              [rule.id.toString()],
-            );
-
-            if (rows.length === 0) {
-              return false;
-            }
-
-            const before: number = (await ownersOf(rule)).length;
-
-            const outcome: Outcome = await send({
-              uri: "/incident-on-call-rule-owning-team/:id/delete-item",
-              id: new ObjectID(String(rows[0]!["_id"])),
-            });
-
-            const isMade: boolean = (await ownersOf(rule)).length < before;
-
-            expect(Boolean(outcome.isEmptySuccess)).toBe(isMade);
-            return isMade;
-          }
-          case "hand the rule to Team Z on its form": {
-            const outcome: Outcome = await send({
-              uri: "/incident-on-call-rule/:id/update-item",
-              id: rule.id,
-              body: {
-                data: JSONFunctions.serialize({ description: "Handed over" }),
-                miscDataProps: { owningTeams: [teamZId.toString()] },
-              },
-            });
-
-            const owners: Array<string> = await ownersOf(rule);
-            const isHandedOver: boolean =
-              owners.length === 1 &&
-              owners[0] === teamZId.toString().toLowerCase();
-            const isChanged: boolean =
-              (await descriptionOf(rule)) === "Handed over";
-
-            // All of it or, refused before anything is saved, none of it.
-            expect(isChanged).toBe(isHandedOver);
-            expect(Boolean(outcome.isEmptySuccess)).toBe(isHandedOver);
-            return isHandedOver;
-          }
+          expect(Boolean(outcome.isEmptySuccess)).toBe(isMade);
+          return isMade;
         }
-      };
+        case "delete the rule": {
+          const outcome: Outcome = await send({
+            uri: "/incident-on-call-rule/:id/delete-item",
+            id: rule.id,
+          });
+
+          const isMade: boolean = !(await isRuleThere(rule));
+
+          expect(Boolean(outcome.isEmptySuccess)).toBe(isMade);
+          return isMade;
+        }
+        case "add Team Z as an owning team": {
+          const outcome: Outcome = await send({
+            uri: "/incident-on-call-rule-owning-team",
+            body: {
+              data: JSONFunctions.serialize({
+                incidentOnCallRuleId: rule.id.toString(),
+                projectId: projectId.toString(),
+                teamId: teamZId.toString(),
+              }),
+            },
+          });
+
+          const isMade: boolean = (await ownersOf(rule)).includes(
+            teamZId.toString().toLowerCase(),
+          );
+
+          expect(outcome.error === undefined).toBe(isMade);
+          return isMade;
+        }
+        case "remove an owning team": {
+          const rows: Array<Dictionary<unknown>> = await query(
+            `SELECT "_id" FROM "${schema}"."IncidentOnCallRuleOwningTeam" WHERE "incidentOnCallRuleId" = $1 ORDER BY "teamId" LIMIT 1`,
+            [rule.id.toString()],
+          );
+
+          if (rows.length === 0) {
+            return false;
+          }
+
+          const before: number = (await ownersOf(rule)).length;
+
+          const outcome: Outcome = await send({
+            uri: "/incident-on-call-rule-owning-team/:id/delete-item",
+            id: new ObjectID(String(rows[0]!["_id"])),
+          });
+
+          const isMade: boolean = (await ownersOf(rule)).length < before;
+
+          expect(Boolean(outcome.isEmptySuccess)).toBe(isMade);
+          return isMade;
+        }
+        case "hand the rule to Team Z on its form": {
+          const outcome: Outcome = await send({
+            uri: "/incident-on-call-rule/:id/update-item",
+            id: rule.id,
+            body: {
+              data: JSONFunctions.serialize({ description: "Handed over" }),
+              miscDataProps: { owningTeams: [teamZId.toString()] },
+            },
+          });
+
+          const owners: Array<string> = await ownersOf(rule);
+          const isHandedOver: boolean =
+            owners.length === 1 &&
+            owners[0] === teamZId.toString().toLowerCase();
+          const isChanged: boolean =
+            (await descriptionOf(rule)) === "Handed over";
+
+          // All of it or, refused before anything is saved, none of it.
+          expect(isChanged).toBe(isHandedOver);
+          expect(Boolean(outcome.isEmptySuccess)).toBe(isHandedOver);
+          return isHandedOver;
+        }
+      }
+    };
 
     const describeConfig: (config: Config) => string = (
       config: Config,
@@ -712,7 +720,9 @@ describePostgres(
         name: string,
         grant: Config["teamX"],
       ): string => {
-        return grant === "not a member" ? `not on ${name}` : `on ${name} (${grant})`;
+        return grant === "not a member"
+          ? `not on ${name}`
+          : `on ${name} (${grant})`;
       };
 
       return `${team("Team X", config.teamX)}, ${team("Team Y", config.teamY)}`;
@@ -897,18 +907,23 @@ describePostgres(
             return [write, rule.key];
           });
         }),
-      )(`${describeConfig(config)}: %s on %s`, async (write: Write, key: string) => {
-        await applyConfig(config);
-        await seedRules();
+      )(
+        `${describeConfig(config)}: %s on %s`,
+        async (write: Write, key: string) => {
+          await applyConfig(config);
+          await seedRules();
 
-        const rule: RuleFixture = RULES.find((fixture: RuleFixture): boolean => {
-          return fixture.key === key;
-        })!;
+          const rule: RuleFixture = RULES.find(
+            (fixture: RuleFixture): boolean => {
+              return fixture.key === key;
+            },
+          )!;
 
-        expect(await tryWrite(write, rule)).toBe(
-          expectedOutcome(config, write, rule),
-        );
-      });
+          expect(await tryWrite(write, rule)).toBe(
+            expectedOutcome(config, write, rule),
+          );
+        },
+      );
     });
 
     test("a member of Team Y is told why Team X's rule is read-only to them", async () => {

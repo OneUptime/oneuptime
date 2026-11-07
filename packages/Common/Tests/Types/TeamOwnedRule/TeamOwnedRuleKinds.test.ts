@@ -102,9 +102,9 @@ describe("TEAM_OWNED_RULE_KINDS", () => {
   test("finds a kind by its rule's table and by its owning teams' table", () => {
     for (const kind of TEAM_OWNED_RULE_KINDS) {
       expect(TeamOwnedRuleKinds.getKindOfRule(kind.tableName)).toBe(kind);
-      expect(TeamOwnedRuleKinds.getKindOfOwningTeams(kind.owningTeamTable)).toBe(
-        kind,
-      );
+      expect(
+        TeamOwnedRuleKinds.getKindOfOwningTeams(kind.owningTeamTable),
+      ).toBe(kind);
       expect(TeamOwnedRuleKinds.getKindOfRule(kind.owningTeamTable)).toBeNull();
     }
 
@@ -115,9 +115,10 @@ describe("TEAM_OWNED_RULE_KINDS", () => {
 
   test("leaves the Owned scope's owner tables alone", () => {
     for (const kind of TEAM_OWNED_RULE_KINDS) {
-      expect([kind.tableName, OwnerTableRegistry.has(kind.tableName)]).toEqual(
-        [kind.tableName, false],
-      );
+      expect([kind.tableName, OwnerTableRegistry.has(kind.tableName)]).toEqual([
+        kind.tableName,
+        false,
+      ]);
     }
   });
 });

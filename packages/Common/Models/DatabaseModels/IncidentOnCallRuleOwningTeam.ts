@@ -38,29 +38,29 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateIncidentOnCallRuleOwningTeam,
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.CreateIncidentOnCallRuleOwningTeam,
   ],
   read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.IncidentViewer,
-      Permission.ReadIncidentOnCallRuleOwningTeam,
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
+    Permission.IncidentViewer,
+    Permission.ReadIncidentOnCallRuleOwningTeam,
   ],
   delete: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.DeleteIncidentOnCallRuleOwningTeam,
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.DeleteIncidentOnCallRuleOwningTeam,
   ],
   update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditIncidentOnCallRuleOwningTeam,
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.EditIncidentOnCallRuleOwningTeam,
   ],
 })
 @CrudApiEndpoint(new Route("/incident-on-call-rule-owning-team"))

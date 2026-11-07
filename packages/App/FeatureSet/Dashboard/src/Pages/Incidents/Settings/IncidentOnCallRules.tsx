@@ -11,7 +11,6 @@ import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule"
 import IncidentEpisodeOnCallRule from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRule";
 import IncidentOnCallRuleOwningTeam from "Common/Models/DatabaseModels/IncidentOnCallRuleOwningTeam";
 import IncidentEpisodeOnCallRuleOwningTeam from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRuleOwningTeam";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import useRuleOwningTeams, {
   RuleOwningTeamsTable,
 } from "../../../Components/TeamOwnedRule/RuleOwningTeams";
@@ -265,11 +264,6 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
         ...getOnCallRuleActionFields<IncidentOnCallRule>(
           OnCallRuleRecord.Incident,
         ),
-        // Last under More fields: which teams alone may change the rule.
-        owningTeams.getFormField({
-          stepId: "on-call",
-          collapsibleSection: getAdvancedFormSection<IncidentOnCallRule>(),
-        }),
       ]}
       showRefreshButton={true}
     />
@@ -415,12 +409,6 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
         ...getOnCallRuleActionFields<IncidentEpisodeOnCallRule>(
           OnCallRuleRecord.IncidentEpisode,
         ),
-        // Last under More fields: which teams alone may change the rule.
-        owningTeams.getFormField({
-          stepId: "on-call",
-          collapsibleSection:
-            getAdvancedFormSection<IncidentEpisodeOnCallRule>(),
-        }),
       ]}
       showRefreshButton={true}
     />

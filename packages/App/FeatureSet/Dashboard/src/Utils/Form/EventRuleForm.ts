@@ -1,4 +1,9 @@
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import AlertEpisodeOnCallRuleOwningTeam from "Common/Models/DatabaseModels/AlertEpisodeOnCallRuleOwningTeam";
+import AlertOnCallRuleOwningTeam from "Common/Models/DatabaseModels/AlertOnCallRuleOwningTeam";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentEpisodeOnCallRuleOwningTeam from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRuleOwningTeam";
+import IncidentOnCallRuleOwningTeam from "Common/Models/DatabaseModels/IncidentOnCallRuleOwningTeam";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import OneUptimeDate from "Common/Types/Date";
 import OnCallRuleWhenToPage from "Common/Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
@@ -38,6 +43,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import React, { ReactElement } from "react";
 import WorkingHoursPicker from "../../Components/OnCallRule/WorkingHoursPicker";
+import { getRuleOwningTeamsFormField } from "../../Components/TeamOwnedRule/RuleOwningTeams";
 import WorkingHoursSummary from "../../Components/OnCallRule/WorkingHoursSummary";
 import AiFirstResponderSummary, {
   ComponentProps as AiFirstResponderSummaryProps,
@@ -734,6 +740,19 @@ const isNeverListedWhileFolded: () => boolean = (): boolean => {
  * pages for: the sentence under the choice names it ("Alerts that match
  * this rule ...").
  */
+/*
+ * The table of the teams that own an on-call rule of each kind: every
+ * on-call rule can belong to teams (TEAM_OWNED_RULE_KINDS).
+ */
+export const ON_CALL_RULE_OWNING_TEAMS: Readonly<
+  Record<OnCallRuleRecord, { new (): BaseModel }>
+> = {
+  [OnCallRuleRecord.Incident]: IncidentOnCallRuleOwningTeam,
+  [OnCallRuleRecord.IncidentEpisode]: IncidentEpisodeOnCallRuleOwningTeam,
+  [OnCallRuleRecord.Alert]: AlertOnCallRuleOwningTeam,
+  [OnCallRuleRecord.AlertEpisode]: AlertEpisodeOnCallRuleOwningTeam,
+};
+
 export const getOnCallRuleActionFields: <TEntity>(
   record: OnCallRuleRecord,
 ) => Array<Field<TEntity>> = <TEntity>(
@@ -947,6 +966,12 @@ export const getOnCallRuleActionFields: <TEntity>(
       isListedWhileFolded: isNeverListedWhileFolded,
       onChange: keepWorkingHoursOnTheClock,
     },
+    // Last under More fields: the teams that alone may change the rule.
+    getRuleOwningTeamsFormField<TEntity>({
+      owningTeamModelType: ON_CALL_RULE_OWNING_TEAMS[record],
+      stepId: "on-call",
+      collapsibleSection: moreFields,
+    }),
   ];
 };
 

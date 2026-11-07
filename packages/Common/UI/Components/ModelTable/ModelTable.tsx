@@ -223,8 +223,9 @@ const ModelTable: <TBaseModel extends BaseModel>(
               return action;
             }
 
-            const ownReason: ((item: TBaseModel) => string | undefined) | undefined =
-              action.getDisabledReason;
+            const ownReason:
+              | ((item: TBaseModel) => string | undefined)
+              | undefined = action.getDisabledReason;
 
             return {
               ...action,

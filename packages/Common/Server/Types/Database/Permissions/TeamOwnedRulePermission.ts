@@ -98,6 +98,27 @@ export default class TeamOwnedRulePermission {
   public static getRuleColumn(modelType: {
     new (): BaseModel;
   }): TeamOwnedRuleColumn | null {
+    // Asked of every update and delete: read off the model once.
+    if (TeamOwnedRulePermission.columnsByModel.has(modelType)) {
+      return TeamOwnedRulePermission.columnsByModel.get(modelType) || null;
+    }
+
+    const column: TeamOwnedRuleColumn | null =
+      TeamOwnedRulePermission.readRuleColumn(modelType);
+
+    TeamOwnedRulePermission.columnsByModel.set(modelType, column);
+
+    return column;
+  }
+
+  private static columnsByModel: Map<
+    { new (): BaseModel },
+    TeamOwnedRuleColumn | null
+  > = new Map();
+
+  private static readRuleColumn(modelType: {
+    new (): BaseModel;
+  }): TeamOwnedRuleColumn | null {
     const tableName: string | null = new modelType().tableName;
 
     const ruleKind: TeamOwnedRuleKind | null =

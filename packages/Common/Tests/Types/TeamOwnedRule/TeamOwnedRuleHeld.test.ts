@@ -98,7 +98,10 @@ describe("TeamOwnedRuleHeld.getHeldOnRule", () => {
   });
 
   test("a Project Owner or Admin over the whole project: everything they hold", () => {
-    for (const permission of [Permission.ProjectOwner, Permission.ProjectAdmin]) {
+    for (const permission of [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+    ]) {
       expect(
         TeamOwnedRuleHeld.getHeldOnRule({
           rows: [row(permission, { teamId: TEAM_X })],

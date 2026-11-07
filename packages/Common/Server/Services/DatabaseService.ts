@@ -5996,13 +5996,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     });
 
     /*
-     * The create's one OnCreate, from here to its end: the object
-     * onBeforeCreate hands back is the very one onCreatePermitted,
-     * onCreateSuccess and onCreateError are handed (see create), so whatever
-     * a hook takes for the write is given back through it, however the
-     * create ends.
-     */
-    /*
      * The teams picked on a rule's form to own it: whether the person may
      * add owning teams at all, before anything is saved (RuleOwningTeams).
      */
@@ -6012,6 +6005,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       props: createBy.props,
     });
 
+    /*
+     * The create's one OnCreate, from here to its end: the object
+     * onBeforeCreate hands back is the very one onCreatePermitted,
+     * onCreateSuccess and onCreateError are handed (see create), so whatever
+     * a hook takes for the write is given back through it, however the
+     * create ends.
+     */
     const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
       ? { createBy, carryForward: [] }
       : await this._onBeforeCreate(createBy);

@@ -176,7 +176,30 @@ export const getRuleLockReason: (data: {
   return result.isAllowed ? undefined : result.disabledReason;
 };
 
-// The Owning Teams field of a rule's form: teams only, from one picker.
+/*
+ * Whether the reader may pick a rule's owning teams: add them (the
+ * owning-team table's create permission) or, on an Edit form, take them off
+ * (its delete permission). The server asks again, team by team.
+ */
+export const canPickRuleOwningTeams: (owningTeamModelType: {
+  new (): BaseModel;
+}) => boolean = (owningTeamModelType: { new (): BaseModel }): boolean => {
+  const owningTeam: BaseModel = new owningTeamModelType();
+
+  return (
+    PermissionGate.check(owningTeam, ModelAction.Create).isAllowed ||
+    PermissionGate.check(owningTeam, ModelAction.Delete).isAllowed
+  );
+};
+
+/*
+ * The Owning Teams field of a rule's form: teams only, from one picker, kept
+ * in owningTeams and sent as misc data. The shared rule forms fold it last
+ * under their More fields (EventRuleForm's on-call rules, ResourceRuleForm's
+ * incident owner rules); the workspace notification rules under the Basic
+ * step's. Returned as written, so the form scanner reads it as a field
+ * (Common/Tests/Helpers/FormStepsScan).
+ */
 export const getRuleOwningTeamsFormField: <TEntity>(options: {
   owningTeamModelType: { new (): BaseModel };
   stepId: string;
@@ -186,25 +209,14 @@ export const getRuleOwningTeamsFormField: <TEntity>(options: {
   stepId: string;
   collapsibleSection?: FormFieldCollapsibleSection<TEntity> | undefined;
 }): Field<TEntity> => {
-  const owningTeam: BaseModel = new options.owningTeamModelType();
-
-  // Who may add owning teams sees the field; on Edit, also who may remove them.
-  const mayAdd: boolean = PermissionGate.check(
-    owningTeam,
-    ModelAction.Create,
-  ).isAllowed;
-  const mayRemove: boolean = PermissionGate.check(
-    owningTeam,
-    ModelAction.Delete,
-  ).isAllowed;
-
-  const field: Field<TEntity> = {
+  return {
     title: RULE_OWNING_TEAMS_TITLE,
     description: RULE_OWNING_TEAMS_DESCRIPTION,
     required: false,
     stepId: options.stepId,
+    // Written out (RULE_OWNING_TEAMS_FIELD_KEY), so the form scanner reads it.
     field: {
-      [RULE_OWNING_TEAMS_FIELD_KEY]: true,
+      ruleOwningTeams: true,
     } as unknown as SelectFormFields<TEntity>,
     fieldType: FormFieldSchemaType.PeoplePicker,
     peoplePicker: {
@@ -216,19 +228,14 @@ export const getRuleOwningTeamsFormField: <TEntity>(options: {
       ],
       addButtonText: "Add team",
       searchPlaceholder: "Search teams...",
-      emptyText: "No teams available.",
+      emptyText: "No teams found.",
     },
     formOnly: true,
     showIf: (): boolean => {
-      return mayAdd || mayRemove;
+      return canPickRuleOwningTeams(options.owningTeamModelType);
     },
+    collapsibleSection: options.collapsibleSection,
   };
-
-  if (options.collapsibleSection) {
-    field.collapsibleSection = options.collapsibleSection;
-  }
-
-  return field;
 };
 
 export interface RuleOwningTeamsTable<TRule extends BaseModel> {
@@ -241,11 +248,6 @@ export interface RuleOwningTeamsTable<TRule extends BaseModel> {
   getDeleteDisabledReason: (rule: TRule) => string | undefined;
   // For the table's onEditFormItemFetched: the Edit form opens on them.
   onEditFormItemFetched: (rule: TRule) => Promise<TRule>;
-  // The form's Owning Teams field.
-  getFormField: (options: {
-    stepId: string;
-    collapsibleSection?: FormFieldCollapsibleSection<TRule> | undefined;
-  }) => Field<TRule>;
 }
 
 // The owning teams of each rule, read off the owning-team rows.
@@ -474,28 +476,12 @@ export function useRuleOwningTeams<TRule extends BaseModel>(data: {
     };
   }, [getOwningTeams, isLoading]);
 
-  const getFormField: RuleOwningTeamsTable<TRule>["getFormField"] =
-    useCallback(
-      (options: {
-        stepId: string;
-        collapsibleSection?: FormFieldCollapsibleSection<TRule> | undefined;
-      }): Field<TRule> => {
-        return getRuleOwningTeamsFormField<TRule>({
-          owningTeamModelType: data.owningTeamModelType,
-          stepId: options.stepId,
-          collapsibleSection: options.collapsibleSection,
-        });
-      },
-      [data.owningTeamModelType],
-    );
-
   return {
     onRulesFetched,
     owningTeamsColumn,
     getEditDisabledReason,
     getDeleteDisabledReason,
     onEditFormItemFetched,
-    getFormField,
   };
 }
 

@@ -58,8 +58,21 @@ export default class RuleOwningTeams {
   public static getKind(modelType: {
     new (): BaseModel;
   }): TeamOwnedRuleKind | null {
-    return TeamOwnedRuleKinds.getKindOfRule(new modelType().tableName);
+    // Asked of every create and update: read off the model once.
+    if (!RuleOwningTeams.kindsByModel.has(modelType)) {
+      RuleOwningTeams.kindsByModel.set(
+        modelType,
+        TeamOwnedRuleKinds.getKindOfRule(new modelType().tableName),
+      );
+    }
+
+    return RuleOwningTeams.kindsByModel.get(modelType) || null;
   }
+
+  private static kindsByModel: Map<
+    { new (): BaseModel },
+    TeamOwnedRuleKind | null
+  > = new Map();
 
   /*
    * The owning teams a write sent: null when it sent none - the rule's
@@ -92,9 +105,7 @@ export default class RuleOwningTeams {
       const id: string | null = RuleOwningTeams.readId(item);
 
       if (!id || !ObjectID.isValidUUID(id)) {
-        throw new BadDataException(
-          "Owning teams must be a list of team IDs.",
-        );
+        throw new BadDataException("Owning teams must be a list of team IDs.");
       }
 
       teamIds.set(id.toLowerCase(), new ObjectID(id));
@@ -134,17 +145,21 @@ export default class RuleOwningTeams {
     return null;
   }
 
+  /*
+   * The owning-team services (TeamOwnedRuleServices), loaded on first use:
+   * they extend DatabaseService, which imports this module as it loads.
+   */
+  private static loadServices(): Record<string, DatabaseService<BaseModel>> {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    return require("./TeamOwnedRuleServices").default;
+  }
+
   // The service of a kind's owning teams (TeamOwnedRuleServices, loaded late).
   public static getOwningTeamService(
     kind: TeamOwnedRuleKind,
   ): DatabaseService<BaseModel> {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-    const services: Record<string, DatabaseService<BaseModel>> = require(
-      "./TeamOwnedRuleServices",
-    ).default;
-
     const service: DatabaseService<BaseModel> | undefined =
-      services[kind.owningTeamTable];
+      RuleOwningTeams.loadServices()[kind.owningTeamTable];
 
     if (!service) {
       throw new BadDataException(
