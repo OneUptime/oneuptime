@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import MetricInvestigationQueryUtil, {
@@ -138,11 +139,11 @@ export default function useEventMetricRule(input: {
   // The metrics the event's snapshot keeps.
   snapshotQueries: MetricInvestigationQueries;
   /*
-   * Whether the snapshot keeps its queries as the check read them
-   * (MetricTelemetrySnapshot.isAsRead): one stored before is narrowed to
-   * what its monitor watches now.
+   * The filters the snapshot keeps beside its queries
+   * (MetricTelemetrySnapshot.getStoredScopes): null for one stored before,
+   * which is narrowed to what its monitor watches now.
    */
-  isScopeKept: boolean;
+  storedScopes: Array<Dictionary<unknown> | null> | null;
 }): EventMetricRule {
   const [result, setResult] = useState<ReadResult | null>(null);
 
@@ -213,14 +214,17 @@ export default function useEventMetricRule(input: {
     input.snapshotQueries,
   );
 
+  // By value too: operators are written as their own JSON.
+  const storedScopesKey: string = JSON.stringify(input.storedScopes);
+
   const scope: EventMetricScope = useMemo((): EventMetricScope => {
     return getEventMetricScope({
       snapshotQueries: input.snapshotQueries,
-      isAsRead: input.isScopeKept,
+      storedScopes: input.storedScopes,
       createdCriteriaId: rule?.createdCriteriaId,
       monitors: rule?.monitors || [],
     });
-  }, [rule, snapshotKey, input.isScopeKept]);
+  }, [rule, snapshotKey, storedScopesKey]);
 
   const thresholds: Array<MetricInvestigationThreshold> = useMemo(
     (): Array<MetricInvestigationThreshold> => {

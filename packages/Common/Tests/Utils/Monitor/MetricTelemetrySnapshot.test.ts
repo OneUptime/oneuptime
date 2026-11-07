@@ -16,10 +16,12 @@ import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * Issue #6265: what an incident or alert keeps of the metric check that
- * opened it. Each query with the filters the check read it with - its own
- * and the cluster, host or fleet an infrastructure monitor narrows it to -
- * so the event's card charts the resource the monitor watches, not every
- * one in the project.
+ * opened it. Its queries as the step keeps them, and beside each one the
+ * filters the monitor added when it read it - the cluster, host or fleet an
+ * infrastructure monitor narrows it to - so the event's card charts the
+ * resource the monitor watches, not every one in the project, while what
+ * reads the queries' own filters (the event's Logs, Traces and Exceptions
+ * tabs) reads what it always did.
  */
 
 const WINDOW: InBetween<Date> = new InBetween<Date>(
@@ -91,29 +93,47 @@ const responseOf: (data: {
   };
 };
 
-const attributesOf: (
+// The snapshot's queries as the event's card charts them.
+const chartedOf: (snapshot: TelemetryQuery) => Array<MetricQueryConfigData> = (
   snapshot: TelemetryQuery,
+): Array<MetricQueryConfigData> => {
+  return MetricTelemetrySnapshot.applyScopes({
+    queryConfigs: snapshot.metricViewData!.queryConfigs,
+    scopes: MetricTelemetrySnapshot.getStoredScopes(snapshot)!,
+  });
+};
+
+const attributesOf: (
+  queryConfigs: Array<MetricQueryConfigData>,
   index?: number,
-) => unknown = (snapshot: TelemetryQuery, index: number = 0): unknown => {
-  return snapshot.metricViewData?.queryConfigs[index]?.metricQueryData
-    .filterData.attributes;
+) => unknown = (
+  queryConfigs: Array<MetricQueryConfigData>,
+  index: number = 0,
+): unknown => {
+  return queryConfigs[index]?.metricQueryData.filterData.attributes;
 };
 
 describe("an infrastructure check's snapshot keeps the resource each query was read for", () => {
-  test("Host: the host the monitor watches", () => {
+  test("Host: the host, beside the query; the query as the step keeps it", () => {
+    const query: MetricQueryConfigData = queryOf({});
+
     const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse(
       responseOf({
-        queryConfigs: [queryOf({})],
+        queryConfigs: [query],
         queryAttributes: [{ "resource.host.name": "web-01" }],
       }),
     );
 
-    expect(attributesOf(snapshot)).toEqual({ "resource.host.name": "web-01" });
-    expect(snapshot.metricQueriesAsRead).toBe(true);
-    expect(MetricTelemetrySnapshot.isAsRead(snapshot)).toBe(true);
+    expect(snapshot.metricQueryScopes).toEqual([
+      { "resource.host.name": "web-01" },
+    ]);
+    expect(snapshot.metricViewData?.queryConfigs[0]).toBe(query);
+    expect(attributesOf(chartedOf(snapshot))).toEqual({
+      "resource.host.name": "web-01",
+    });
   });
 
-  test("Kubernetes: its own filters with the cluster and resource filters, the formula as it was", () => {
+  test("Kubernetes: the cluster and resource filters, beside each query's own filters", () => {
     const used: MetricQueryConfigData = queryOf({
       variable: "a",
       metricName: "k8s.node.memory.working_set",
@@ -142,19 +162,26 @@ describe("an infrastructure check's snapshot keeps the resource each query was r
       }),
     );
 
-    expect(attributesOf(snapshot, 0)).toEqual({
+    // Only what the monitor added: the query's own filter is its own.
+    expect(snapshot.metricQueryScopes).toEqual([
+      {
+        "resource.k8s.cluster.name": "prod",
+        "resource.k8s.namespace.name": "payments",
+      },
+      {
+        "resource.k8s.cluster.name": "prod",
+        "resource.k8s.namespace.name": "payments",
+      },
+    ]);
+    expect(attributesOf(chartedOf(snapshot), 0)).toEqual({
       "resource.k8s.node.name": "node-1",
-      "resource.k8s.cluster.name": "prod",
-      "resource.k8s.namespace.name": "payments",
-    });
-    expect(attributesOf(snapshot, 1)).toEqual({
       "resource.k8s.cluster.name": "prod",
       "resource.k8s.namespace.name": "payments",
     });
     expect(snapshot.metricViewData?.formulaConfigs).toEqual([FORMULA]);
   });
 
-  test("Proxmox: the cluster and its node; everything else about the query is kept", () => {
+  test("Proxmox: the cluster and its node; the window and the rest as they were", () => {
     const query: MetricQueryConfigData = queryOf({
       metricName: "pve_cpu_usage_ratio",
     });
@@ -172,7 +199,7 @@ describe("an infrastructure check's snapshot keeps the resource each query was r
       }),
     );
 
-    expect(snapshot.metricViewData?.queryConfigs).toEqual([
+    expect(chartedOf(snapshot)).toEqual([
       {
         ...query,
         metricQueryData: {
@@ -193,7 +220,7 @@ describe("an infrastructure check's snapshot keeps the resource each query was r
     expect(snapshot.metricViewData?.startAndEndDate).toBe(WINDOW);
   });
 
-  test("the monitor's filter wins where it names an attribute the query also filters on, as the worker read it", () => {
+  test("a filter of the query's own the monitor read with another value is part of its scope", () => {
     const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse(
       responseOf({
         queryConfigs: [
@@ -203,28 +230,17 @@ describe("an infrastructure check's snapshot keeps the resource each query was r
       }),
     );
 
-    expect(attributesOf(snapshot)).toEqual({
+    expect(snapshot.metricQueryScopes).toEqual([
+      { "resource.k8s.cluster.name": "prod" },
+    ]);
+    expect(attributesOf(chartedOf(snapshot))).toEqual({
       "resource.k8s.cluster.name": "prod",
     });
-  });
-
-  test("a query read with nothing keeps no filter map at all", () => {
-    const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse(
-      responseOf({
-        queryConfigs: [queryOf({ attributes: { stale: "x" } })],
-        queryAttributes: [undefined],
-      }),
-    );
-
-    expect(
-      Object.keys(snapshot.metricViewData!.queryConfigs[0]!.metricQueryData.filterData),
-    ).not.toContain("attributes");
-    expect(snapshot.metricQueriesAsRead).toBe(true);
   });
 });
 
 describe("a Metrics monitor's snapshot is as it was", () => {
-  test("each query is the step's own, the same object, read with its own filters", () => {
+  test("its queries are the step's own, the same objects, with no scope beside them", () => {
     const filtered: MetricQueryConfigData = queryOf({
       attributes: { "resource.service.name": "checkout" },
     });
@@ -233,10 +249,15 @@ describe("a Metrics monitor's snapshot is as it was", () => {
       attributes: {},
     });
     const bare: MetricQueryConfigData = queryOf({ variable: "c" });
+    const queryConfigs: Array<MetricQueryConfigData> = [
+      filtered,
+      unfiltered,
+      bare,
+    ];
 
     const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse(
       responseOf({
-        queryConfigs: [filtered, unfiltered, bare],
+        queryConfigs: queryConfigs,
         // What the Metrics worker says: its own filters, or none.
         queryAttributes: [
           filtered.metricQueryData.filterData.attributes as never,
@@ -246,36 +267,34 @@ describe("a Metrics monitor's snapshot is as it was", () => {
       }),
     );
 
-    expect(snapshot.metricViewData?.queryConfigs[0]).toBe(filtered);
-    expect(snapshot.metricViewData?.queryConfigs[1]).toBe(unfiltered);
-    expect(snapshot.metricViewData?.queryConfigs[2]).toBe(bare);
+    expect(snapshot.metricViewData?.queryConfigs).toBe(queryConfigs);
+    expect(snapshot.metricQueryScopes).toEqual([null, null, null]);
+    // Charted as they are: the very same list.
+    expect(chartedOf(snapshot)).toBe(queryConfigs);
   });
 
-  test("an equal copy of its own filters keeps the query as it is too", () => {
-    const query: MetricQueryConfigData = queryOf({
-      attributes: { "resource.service.name": "checkout" },
-    });
-
-    const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse(
-      responseOf({
-        queryConfigs: [query],
+  test("an equal copy of its own filters adds nothing", () => {
+    expect(
+      MetricTelemetrySnapshot.getQueryScopes({
+        queryConfigs: [
+          queryOf({ attributes: { "resource.service.name": "checkout" } }),
+        ],
         queryAttributes: [{ "resource.service.name": "checkout" }],
       }),
-    );
-
-    expect(snapshot.metricViewData?.queryConfigs[0]).toBe(query);
+    ).toEqual([null]);
   });
 });
 
-describe("a response that does not say what it read with keeps the step's queries, unmarked", () => {
+describe("a response that does not say what it read with keeps no scopes, as before", () => {
   test.each([
     ["no reads", undefined],
     ["not a list", "garbage" as never],
     ["fewer reads than queries", [{ "resource.host.name": "web-01" }]],
   ])("%s", (_name: string, queryAttributes: unknown) => {
-    const first: MetricQueryConfigData = queryOf({});
-    const second: MetricQueryConfigData = queryOf({ variable: "b" });
-    const queryConfigs: Array<MetricQueryConfigData> = [first, second];
+    const queryConfigs: Array<MetricQueryConfigData> = [
+      queryOf({}),
+      queryOf({ variable: "b" }),
+    ];
 
     const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse(
       responseOf({
@@ -285,34 +304,19 @@ describe("a response that does not say what it read with keeps the step's querie
     );
 
     expect(snapshot.metricViewData?.queryConfigs).toBe(queryConfigs);
-    expect(snapshot.metricQueriesAsRead).toBeUndefined();
-    expect("metricQueriesAsRead" in snapshot).toBe(false);
-    expect(MetricTelemetrySnapshot.isAsRead(snapshot)).toBe(false);
+    expect("metricQueryScopes" in snapshot).toBe(false);
+    expect(MetricTelemetrySnapshot.getStoredScopes(snapshot)).toBeNull();
   });
 
-  test("a stored query that is not a query stays where it is", () => {
-    const query: MetricQueryConfigData = queryOf({});
-
+  test("a stored query that is not a query has no scope", () => {
     expect(
-      MetricTelemetrySnapshot.getReadQueryConfigs({
-        queryConfigs: [null as never, query],
+      MetricTelemetrySnapshot.getQueryScopes({
+        queryConfigs: [null as never, queryOf({})],
         queryAttributes: [{ a: "1" }, { "resource.host.name": "web-01" }],
       }),
-    ).toEqual([
-      null,
-      {
-        ...query,
-        metricQueryData: {
-          ...query.metricQueryData,
-          filterData: {
-            ...query.metricQueryData.filterData,
-            attributes: { "resource.host.name": "web-01" },
-          },
-        },
-      },
-    ]);
+    ).toEqual([{ a: "1" }, { "resource.host.name": "web-01" }]);
     expect(
-      MetricTelemetrySnapshot.getReadQueryConfigs({
+      MetricTelemetrySnapshot.getQueryScopes({
         queryConfigs: undefined,
         queryAttributes: [],
       }),
@@ -320,10 +324,122 @@ describe("a response that does not say what it read with keeps the step's querie
   });
 });
 
+describe("the scopes a stored snapshot keeps", () => {
+  const stored: (data: Partial<TelemetryQuery>) => TelemetryQuery = (
+    data: Partial<TelemetryQuery>,
+  ): TelemetryQuery => {
+    return {
+      telemetryType: TelemetryType.Metric,
+      telemetryQuery: null,
+      metricViewData: {
+        startAndEndDate: WINDOW,
+        queryConfigs: [queryOf({}), queryOf({ variable: "b" })],
+        formulaConfigs: [],
+      },
+      ...data,
+    };
+  };
+
+  test.each([
+    ["no snapshot", null, null],
+    ["one stored before #6265", stored({}), null],
+    [
+      "scopes that do not line up with the queries",
+      stored({ metricQueryScopes: [{ a: "1" }] }),
+      null,
+    ],
+    ["scopes that are not a list", stored({ metricQueryScopes: "x" as never }), null],
+    [
+      "a log snapshot, which no metric card reads",
+      stored({
+        telemetryType: TelemetryType.Log,
+        metricQueryScopes: [null, null],
+      }),
+      null,
+    ],
+    [
+      "one per query, an empty or broken one read as none",
+      stored({ metricQueryScopes: [{ a: "1" }, {} as never] }),
+      [{ a: "1" }, null],
+    ],
+    [
+      "none added to any query",
+      stored({ metricQueryScopes: [null, "x" as never] }),
+      [null, null],
+    ],
+  ])("%s", (_name: string, snapshot: unknown, expected: unknown) => {
+    expect(
+      MetricTelemetrySnapshot.getStoredScopes(snapshot as TelemetryQuery),
+    ).toEqual(expected);
+  });
+});
+
+describe("charting each query with its scope", () => {
+  test("the scope over the query's own filters and its series filter, as the check read it", () => {
+    const query: MetricQueryConfigData = queryOf({
+      attributes: {
+        "resource.k8s.node.name": "node-7",
+        "resource.k8s.cluster.name": "typed",
+      },
+    });
+
+    const [charted] = MetricTelemetrySnapshot.applyScopes({
+      queryConfigs: [query],
+      scopes: [{ "resource.k8s.cluster.name": "prod" }],
+    });
+
+    expect(attributesOf([charted!])).toEqual({
+      "resource.k8s.node.name": "node-7",
+      "resource.k8s.cluster.name": "prod",
+    });
+    // A copy: the query it was handed is left as it was.
+    expect(query.metricQueryData.filterData.attributes).toEqual({
+      "resource.k8s.node.name": "node-7",
+      "resource.k8s.cluster.name": "typed",
+    });
+  });
+
+  test("a query with no scope, or one it reads already, is kept as it is", () => {
+    const first: MetricQueryConfigData = queryOf({});
+    const second: MetricQueryConfigData = queryOf({
+      variable: "b",
+      attributes: { "resource.host.name": "web-01" },
+    });
+    const queryConfigs: Array<MetricQueryConfigData> = [first, second];
+
+    expect(
+      MetricTelemetrySnapshot.applyScopes({
+        queryConfigs: queryConfigs,
+        scopes: [null, { "resource.host.name": "web-01" }],
+      }),
+    ).toBe(queryConfigs);
+
+    const mixed: Array<MetricQueryConfigData> =
+      MetricTelemetrySnapshot.applyScopes({
+        queryConfigs: queryConfigs,
+        scopes: [{ "resource.host.name": "web-01" }, null],
+      });
+    expect(mixed).not.toBe(queryConfigs);
+    expect(mixed[1]).toBe(second);
+  });
+
+  test("what is not a query, and scopes that run out, leave the queries be", () => {
+    const query: MetricQueryConfigData = queryOf({});
+    const queryConfigs: Array<MetricQueryConfigData> = [null as never, query];
+
+    expect(
+      MetricTelemetrySnapshot.applyScopes({
+        queryConfigs: queryConfigs,
+        scopes: [{ a: "1" }],
+      }),
+    ).toBe(queryConfigs);
+  });
+});
+
 describe("operator-valued scopes survive being stored and read back", () => {
   /*
    * The event's JSON column is written with JSON.stringify (each operator's
-   * toJSON) and the incident and alert pages read it back with
+   * toJSON), and the incident and alert pages read it back with
    * JSONFunctions.deserialize.
    */
   const storeAndRead: (snapshot: TelemetryQuery) => TelemetryQuery = (
@@ -334,8 +450,8 @@ describe("operator-valued scopes survive being stored and read back", () => {
     ) as unknown as TelemetryQuery;
   };
 
-  test("Docker Swarm's image globs and tasks-only filter, and an IoT fleet", () => {
-    const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse(
+  const swarmAndIoT: () => TelemetryQuery = (): TelemetryQuery => {
+    return MetricTelemetrySnapshot.fromResponse(
       responseOf({
         queryConfigs: [queryOf({}), queryOf({ variable: "b" })],
         queryAttributes: [
@@ -353,12 +469,15 @@ describe("operator-valued scopes survive being stored and read back", () => {
         ],
       }),
     );
+  };
 
-    const readBack: TelemetryQuery = storeAndRead(snapshot);
-    const swarm: Dictionary<unknown> = attributesOf(readBack, 0) as Dictionary<
+  test("Docker Swarm's image globs and tasks-only filter, and an IoT fleet", () => {
+    const readBack: TelemetryQuery = storeAndRead(swarmAndIoT());
+    const charted: Array<MetricQueryConfigData> = chartedOf(readBack);
+    const swarm: Dictionary<unknown> = attributesOf(charted, 0) as Dictionary<
       unknown
     >;
-    const iot: Dictionary<unknown> = attributesOf(readBack, 1) as Dictionary<
+    const iot: Dictionary<unknown> = attributesOf(charted, 1) as Dictionary<
       unknown
     >;
 
@@ -372,34 +491,29 @@ describe("operator-valued scopes survive being stored and read back", () => {
     expect((iot["resource.iot.fleet.name"] as Wildcard<string>).values).toEqual(
       ["Sensors"],
     );
-    expect(readBack.metricQueriesAsRead).toBe(true);
   });
 
   test("what is stored is the operators' own JSON", () => {
-    const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse(
-      responseOf({
-        queryConfigs: [queryOf({})],
-        queryAttributes: [
-          {
-            "resource.iot.fleet.name": new Wildcard<string>(["Sensors"]),
-            "resource.docker.swarm.task.id": new NotNull(),
-          },
-        ],
-      }),
-    );
-
     expect(
-      JSON.parse(JSON.stringify(snapshot)).metricViewData.queryConfigs[0]
-        .metricQueryData.filterData.attributes,
-    ).toEqual({
-      "resource.iot.fleet.name": { _type: "Wildcard", value: ["Sensors"] },
-      "resource.docker.swarm.task.id": { _type: "NotNull", value: null },
-    });
+      JSON.parse(JSON.stringify(swarmAndIoT())).metricQueryScopes,
+    ).toEqual([
+      {
+        "resource.docker.swarm.cluster.name": "swarm-1",
+        "resource.container.image.name": {
+          _type: "Wildcard",
+          value: ["nginx", "nginx@*"],
+        },
+        "resource.docker.swarm.task.id": { _type: "NotNull", value: null },
+      },
+      {
+        "resource.iot.fleet.name": { _type: "Wildcard", value: ["Sensors"] },
+      },
+    ]);
   });
 });
 
 describe("whatever a check read (seeded)", () => {
-  test("each query keeps exactly what it was read with, and nothing it is handed changes", () => {
+  test("each query is charted with exactly what it was read with, and nothing it is handed changes", () => {
     const random: SeededRandom = seededRandom(6265);
 
     for (let round: number = 0; round < 300; round++) {
@@ -409,7 +523,8 @@ describe("whatever a check read (seeded)", () => {
 
       for (let index: number = 0; index < count; index++) {
         const own: Dictionary<unknown> = {};
-        for (let key: number = 0; key < random(3); key++) {
+        const ownCount: number = random(3);
+        for (let key: number = 0; key < ownCount; key++) {
           own[`own.${key}`] = `v${random(4)}`;
         }
         queryConfigs.push(
@@ -419,9 +534,12 @@ describe("whatever a check read (seeded)", () => {
           }),
         );
 
+        // The worker starts from the query's own filters and adds its scope.
         const read: Dictionary<unknown> = { ...own };
-        for (let key: number = 0; key < random(3); key++) {
-          read[`scope.${key}`] = `s${random(4)}`;
+        const scopeCount: number = random(3);
+        for (let key: number = 0; key < scopeCount; key++) {
+          read[random(2) === 0 ? `scope.${key}` : `own.${key}`] =
+            `s${random(4)}`;
         }
         queryAttributes.push(
           Object.keys(read).length === 0 && random(2) === 0 ? undefined : read,
@@ -433,66 +551,21 @@ describe("whatever a check read (seeded)", () => {
       const snapshot: TelemetryQuery = MetricTelemetrySnapshot.fromResponse(
         responseOf({ queryConfigs, queryAttributes }),
       );
+      const charted: Array<MetricQueryConfigData> = chartedOf(snapshot);
 
-      expect(snapshot.metricViewData?.queryConfigs).toHaveLength(count);
+      expect(snapshot.metricViewData?.queryConfigs).toBe(queryConfigs);
+      expect(charted).toHaveLength(count);
       for (let index: number = 0; index < count; index++) {
-        expect(attributesOf(snapshot, index) || {}).toEqual(
-          queryAttributes[index] || {},
-        );
-        expect(
-          snapshot.metricViewData?.queryConfigs[index]?.metricAliasData,
-        ).toEqual(queryConfigs[index]!.metricAliasData);
+        // Only the reads of queries that had their own filters are complete.
+        const own: Dictionary<unknown> =
+          (queryConfigs[index]!.metricQueryData.filterData
+            .attributes as Dictionary<unknown>) || {};
+        expect(attributesOf(charted, index) || {}).toEqual({
+          ...own,
+          ...(queryAttributes[index] || {}),
+        });
       }
       expect(JSON.stringify({ queryConfigs, queryAttributes })).toBe(before);
     }
-  });
-});
-
-describe("telling a snapshot stored before apart", () => {
-  test.each([
-    ["no snapshot", null, false],
-    [
-      "a metric snapshot stored before",
-      {
-        telemetryType: TelemetryType.Metric,
-        telemetryQuery: null,
-        metricViewData: null,
-      },
-      false,
-    ],
-    [
-      "a metric snapshot kept as read",
-      {
-        telemetryType: TelemetryType.Metric,
-        telemetryQuery: null,
-        metricViewData: null,
-        metricQueriesAsRead: true,
-      },
-      true,
-    ],
-    [
-      "a log snapshot that says so, which no metric card reads",
-      {
-        telemetryType: TelemetryType.Log,
-        telemetryQuery: null,
-        metricViewData: null,
-        metricQueriesAsRead: true,
-      },
-      false,
-    ],
-    [
-      "a mark that is not true",
-      {
-        telemetryType: TelemetryType.Metric,
-        telemetryQuery: null,
-        metricViewData: null,
-        metricQueriesAsRead: "yes",
-      },
-      false,
-    ],
-  ])("%s", (_name: string, snapshot: unknown, isAsRead: boolean) => {
-    expect(MetricTelemetrySnapshot.isAsRead(snapshot as TelemetryQuery)).toBe(
-      isAsRead,
-    );
   });
 });

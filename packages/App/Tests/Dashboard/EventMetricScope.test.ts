@@ -143,7 +143,7 @@ describe("a snapshot stored before is narrowed to what its monitor watches now",
   test("Proxmox: the cluster and node it watches, and the card can name the cluster", () => {
     const scope: EventMetricScope = getEventMetricScope({
       snapshotQueries: snapshotOf([queryOf({})]),
-      isAsRead: false,
+      storedScopes: null,
       createdCriteriaId: RULE_ID,
       monitors: [PROXMOX],
     });
@@ -162,7 +162,7 @@ describe("a snapshot stored before is narrowed to what its monitor watches now",
       snapshotQueries: snapshotOf([
         queryOf({ metricName: "system.cpu.utilization" }),
       ]),
-      isAsRead: false,
+      storedScopes: null,
       createdCriteriaId: RULE_ID,
       monitors: [
         monitorOf(MonitorType.Host, [
@@ -194,7 +194,7 @@ describe("a snapshot stored before is narrowed to what its monitor watches now",
           attributes: { "resource.k8s.node.name": "node-7" },
         }),
       ]),
-      isAsRead: false,
+      storedScopes: null,
       createdCriteriaId: RULE_ID,
       monitors: [
         monitorOf(MonitorType.Kubernetes, [
@@ -220,7 +220,7 @@ describe("a snapshot stored before is narrowed to what its monitor watches now",
   test("IoT: the fleet whatever its case, as the operator the worker reads it with", () => {
     const scope: EventMetricScope = getEventMetricScope({
       snapshotQueries: snapshotOf([queryOf({ metricName: "iot.temperature" })]),
-      isAsRead: false,
+      storedScopes: null,
       createdCriteriaId: RULE_ID,
       monitors: [
         monitorOf(MonitorType.IoTDevice, [
@@ -245,7 +245,7 @@ describe("a snapshot stored before is narrowed to what its monitor watches now",
       snapshotQueries: snapshotOf([
         queryOf({ attributes: { "resource.proxmox.cluster.name": "typed" } }),
       ]),
-      isAsRead: false,
+      storedScopes: null,
       createdCriteriaId: RULE_ID,
       monitors: [PROXMOX],
     });
@@ -275,7 +275,7 @@ describe("a snapshot stored before is narrowed to what its monitor watches now",
 
     const scope: EventMetricScope = getEventMetricScope({
       snapshotQueries: snapshotOf([queryOf({}), gone], [formula]),
-      isAsRead: false,
+      storedScopes: null,
       createdCriteriaId: RULE_ID,
       monitors: [PROXMOX],
     });
@@ -303,7 +303,7 @@ describe("a snapshot stored before is narrowed to what its monitor watches now",
 
     const scope: EventMetricScope = getEventMetricScope({
       snapshotQueries: snapshotOf([queryOf({})]),
-      isAsRead: false,
+      storedScopes: null,
       createdCriteriaId: RULE_ID,
       monitors: [monitor],
     });
@@ -316,7 +316,7 @@ describe("a snapshot stored before is narrowed to what its monitor watches now",
   test("a criteria gone from the monitor: any of its steps that reads the metric", () => {
     const scope: EventMetricScope = getEventMetricScope({
       snapshotQueries: snapshotOf([queryOf({})]),
-      isAsRead: false,
+      storedScopes: null,
       createdCriteriaId: "deleted-rule",
       monitors: [PROXMOX],
     });
@@ -336,7 +336,7 @@ describe("a snapshot stored before is narrowed to what its monitor watches now",
 
     const scope: EventMetricScope = getEventMetricScope({
       snapshotQueries: snapshotOf([queryOf({})]),
-      isAsRead: false,
+      storedScopes: null,
       createdCriteriaId: RULE_ID,
       monitors: [other, PROXMOX],
     });
@@ -348,21 +348,98 @@ describe("a snapshot stored before is narrowed to what its monitor watches now",
   });
 });
 
+describe("a snapshot stored since keeps its scope beside its queries", () => {
+  test("each query is charted with the scope it was read with, whatever the monitor watches now", () => {
+    const scope: EventMetricScope = getEventMetricScope({
+      snapshotQueries: snapshotOf([queryOf({})]),
+      storedScopes: [{ "resource.proxmox.cluster.name": "pve-old" }],
+      createdCriteriaId: RULE_ID,
+      monitors: [PROXMOX],
+    });
+
+    expect(attributesOf(scope)).toEqual({
+      "resource.proxmox.cluster.name": "pve-old",
+    });
+    // Nothing to say: this is what the check read.
+    expect(scope.isFromMonitorNow).toBe(false);
+    expect(scope.resourceName).toBe("");
+  });
+
+  test("its scope sits beside the event's own series filter and the query's own filters", () => {
+    const scope: EventMetricScope = getEventMetricScope({
+      snapshotQueries: snapshotOf([
+        queryOf({
+          metricName: "k8s.node.cpu.utilization",
+          groupBy: ["resource.k8s.node.name"],
+          attributes: {
+            "own.key": "x",
+            "resource.k8s.node.name": "node-7",
+          },
+        }),
+      ]),
+      storedScopes: [{ "resource.k8s.cluster.name": "prod" }],
+      createdCriteriaId: RULE_ID,
+      monitors: [],
+    });
+
+    expect(attributesOf(scope)).toEqual({
+      "own.key": "x",
+      "resource.k8s.node.name": "node-7",
+      "resource.k8s.cluster.name": "prod",
+    });
+  });
+
+  test("with or without its monitor: the monitor is not needed", () => {
+    const withMonitor: EventMetricScope = getEventMetricScope({
+      snapshotQueries: snapshotOf([queryOf({})]),
+      storedScopes: [{ "resource.host.name": "web-01" }],
+      createdCriteriaId: RULE_ID,
+      monitors: [PROXMOX],
+    });
+    const withoutMonitor: EventMetricScope = getEventMetricScope({
+      snapshotQueries: snapshotOf([queryOf({})]),
+      storedScopes: [{ "resource.host.name": "web-01" }],
+      createdCriteriaId: undefined,
+      monitors: [],
+    });
+
+    expect(withMonitor.queries).toEqual(withoutMonitor.queries);
+    expect(attributesOf(withoutMonitor)).toEqual({
+      "resource.host.name": "web-01",
+    });
+  });
+
+  test("a scope that is an operator is charted as that operator", () => {
+    const scope: EventMetricScope = getEventMetricScope({
+      snapshotQueries: snapshotOf([queryOf({ metricName: "iot.temperature" })]),
+      storedScopes: [
+        { "resource.iot.fleet.name": new Wildcard<string>(["Sensors"]) },
+      ],
+      createdCriteriaId: RULE_ID,
+      monitors: [],
+    });
+
+    expect(
+      (attributesOf(scope) as Dictionary<unknown>)["resource.iot.fleet.name"],
+    ).toBeInstanceOf(Wildcard);
+  });
+});
+
 describe("charted as it is", () => {
   const unchanged: (input: {
     snapshotQueries: MetricInvestigationQueries;
-    isAsRead?: boolean;
+    storedScopes?: Array<Dictionary<unknown> | null>;
     monitors: Array<EventRuleMonitor>;
     createdCriteriaId?: string;
   }) => void = (input: {
     snapshotQueries: MetricInvestigationQueries;
-    isAsRead?: boolean;
+    storedScopes?: Array<Dictionary<unknown> | null>;
     monitors: Array<EventRuleMonitor>;
     createdCriteriaId?: string;
   }): void => {
     const scope: EventMetricScope = getEventMetricScope({
       snapshotQueries: input.snapshotQueries,
-      isAsRead: input.isAsRead === true,
+      storedScopes: input.storedScopes || null,
       createdCriteriaId:
         input.createdCriteriaId === undefined
           ? RULE_ID
@@ -375,14 +452,10 @@ describe("charted as it is", () => {
     expect(scope.resourceName).toBe("");
   };
 
-  test("a snapshot that keeps its scope, even when the monitor watches another resource now", () => {
+  test("a snapshot that keeps its scope, and its monitor added nothing", () => {
     unchanged({
-      snapshotQueries: snapshotOf([
-        queryOf({
-          attributes: { "resource.proxmox.cluster.name": "pve-old" },
-        }),
-      ]),
-      isAsRead: true,
+      snapshotQueries: snapshotOf([queryOf({})]),
+      storedScopes: [null],
       monitors: [PROXMOX],
     });
   });
@@ -471,7 +544,7 @@ describe("charted as it is", () => {
   test("what is not a query is left where it is", () => {
     const scope: EventMetricScope = getEventMetricScope({
       snapshotQueries: snapshotOf([null as never, queryOf({})]),
-      isAsRead: false,
+      storedScopes: null,
       createdCriteriaId: RULE_ID,
       monitors: [PROXMOX],
     });
@@ -527,7 +600,7 @@ describe("whatever an old snapshot and its monitor hold (seeded)", () => {
 
       const scope: EventMetricScope = getEventMetricScope({
         snapshotQueries: snapshot,
-        isAsRead: false,
+        storedScopes: null,
         createdCriteriaId: RULE_ID,
         monitors: [monitor],
       });

@@ -527,15 +527,20 @@ describe("the dashboard reads every metric-backed step as the worker does", () =
          */
         const snapshot: TelemetryQuery =
           MetricTelemetrySnapshot.fromResponse(response);
-        expect(snapshot.metricQueriesAsRead).toBe(true);
-        expect(snapshot.metricViewData?.queryConfigs).toHaveLength(
-          queryConfigs.length,
+        // Its queries as the step keeps them, each charted with its scope.
+        expect(snapshot.metricViewData?.queryConfigs).toBe(
+          response.metricViewConfig.queryConfigs,
         );
+        const snapshotCharted: Array<MetricQueryConfigData> =
+          MetricTelemetrySnapshot.applyScopes({
+            queryConfigs: snapshot.metricViewData!.queryConfigs,
+            scopes: MetricTelemetrySnapshot.getStoredScopes(snapshot)!,
+          });
 
         for (let index: number = 0; index < queryConfigs.length; index++) {
           expect(
-            snapshot.metricViewData!.queryConfigs[index]!.metricQueryData
-              .filterData.attributes || {},
+            snapshotCharted[index]!.metricQueryData.filterData.attributes ||
+              {},
           ).toEqual(
             reads.queryConfigs[index]!.metricQueryData.filterData.attributes ||
               {},
@@ -619,10 +624,9 @@ describe("the dashboard reads every metric-backed step as the worker does", () =
       // ...and what the event keeps names the cluster only.
       const snapshot: TelemetryQuery =
         MetricTelemetrySnapshot.fromResponse(response);
-      expect(
-        snapshot.metricViewData?.queryConfigs[0]?.metricQueryData.filterData
-          .attributes,
-      ).toEqual({ "resource.k8s.cluster.name": "prod" });
+      expect(snapshot.metricQueryScopes).toEqual([
+        { "resource.k8s.cluster.name": "prod" },
+      ]);
     } finally {
       finishedPods.mockRestore();
     }

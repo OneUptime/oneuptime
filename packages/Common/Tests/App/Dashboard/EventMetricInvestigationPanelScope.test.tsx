@@ -23,8 +23,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * monitor opened charts the resource the monitor watches - its cluster,
  * host or fleet - not the metric for every one in the project.
  *
- * - A snapshot that keeps its scope (MetricTelemetrySnapshot) is charted as
- *   it is, whatever the monitor watches now.
+ * - A snapshot stored since keeps beside its queries the filters its
+ *   monitor read them with (MetricTelemetrySnapshot): it is charted with
+ *   them, whatever the monitor watches now.
  * - One stored before is narrowed to what the monitor watches now, read off
  *   its current step, and the card says so.
  *
@@ -221,10 +222,10 @@ const queryOf: (data: {
 
 const snapshotOf: (data: {
   queryConfigs: Array<MetricQueryConfigData>;
-  isAsRead?: boolean;
+  scopes?: Array<Dictionary<unknown> | null>;
 }) => TelemetryQuery = (data: {
   queryConfigs: Array<MetricQueryConfigData>;
-  isAsRead?: boolean;
+  scopes?: Array<Dictionary<unknown> | null>;
 }): TelemetryQuery => {
   return {
     telemetryType: TelemetryType.Metric,
@@ -234,7 +235,7 @@ const snapshotOf: (data: {
       queryConfigs: data.queryConfigs,
       formulaConfigs: [],
     },
-    ...(data.isAsRead ? { metricQueriesAsRead: true } : {}),
+    ...(data.scopes ? { metricQueryScopes: data.scopes } : {}),
   };
 };
 
@@ -568,19 +569,67 @@ describe("an incident opened before its snapshot kept its monitor's scope", () =
   });
 });
 
+describe("an incident whose snapshot keeps its monitor's scope", () => {
+  test("charts each query with the scope it was read with, and says nothing", async () => {
+    readsAre(PROXMOX_NOW);
+
+    renderPanel(
+      snapshotOf({
+        queryConfigs: [PROXMOX_QUERY],
+        scopes: [
+          {
+            "resource.proxmox.cluster.name": "pve-prod",
+            "pve.scope": "node",
+            "pve.id": "pve1",
+          },
+        ],
+      }),
+    );
+
+    await waitFor(() => {
+      expect(lastFetchedAttributes()).toEqual({
+        "resource.proxmox.cluster.name": "pve-prod",
+        "pve.scope": "node",
+        "pve.id": "pve1",
+      });
+    });
+    await waitFor(() => {
+      expect(lastCharts?.thresholds?.[0]).toMatchObject({ value: 90 });
+    });
+    expect(
+      screen.queryByTestId(EVENT_METRIC_SCOPE_NOTE_TEST_ID),
+    ).not.toBeInTheDocument();
+    expect(window.location.search).toBe("");
+  });
+
+  test("charts it from the start: the first fetch is already narrowed", async () => {
+    readsAre(PROXMOX_NOW);
+
+    renderPanel(
+      snapshotOf({
+        queryConfigs: [PROXMOX_QUERY],
+        scopes: [{ "resource.proxmox.cluster.name": "pve-prod" }],
+      }),
+    );
+
+    await waitFor(() => {
+      expect(fetchResultsMock).toHaveBeenCalled();
+    });
+    expect(
+      (fetchResultsMock.mock.calls[0]![0] as { metricViewData: MetricViewData })
+        .metricViewData.queryConfigs[0]?.metricQueryData.filterData.attributes,
+    ).toEqual({ "resource.proxmox.cluster.name": "pve-prod" });
+  });
+});
+
 describe("charted as the snapshot keeps it, with nothing said", () => {
   test("a snapshot that keeps its scope, though the monitor watches another cluster now", async () => {
     readsAre(PROXMOX_NOW);
 
     renderPanel(
       snapshotOf({
-        isAsRead: true,
-        queryConfigs: [
-          queryOf({
-            metricName: "pve_cpu_usage_ratio",
-            attributes: { "resource.proxmox.cluster.name": "pve-old" },
-          }),
-        ],
+        queryConfigs: [PROXMOX_QUERY],
+        scopes: [{ "resource.proxmox.cluster.name": "pve-old" }],
       }),
     );
 

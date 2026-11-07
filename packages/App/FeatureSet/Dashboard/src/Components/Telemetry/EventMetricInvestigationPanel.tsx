@@ -109,9 +109,10 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
 
   /*
    * The value the monitor compared the metric with when it opened the event
-   * (issue #6250), and the metrics the card starts from: the snapshot's, or
-   * for one stored before it kept its monitor's scope, narrowed to what the
-   * monitor watches now (issue #6265).
+   * (issue #6250), and the metrics the card starts from (issue #6265): each
+   * query with the cluster, host or fleet its monitor read it for, which
+   * the snapshot keeps beside it - or, for one stored before, narrowed to
+   * what the monitor watches now.
    */
   const rule: EventMetricRule = useEventMetricRule({
     eventNoun: words.telemetryNoun,
@@ -120,7 +121,7 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
       queryConfigs: queryConfigs,
       formulaConfigs: formulaConfigs,
     },
-    isScopeKept: MetricTelemetrySnapshot.isAsRead(props.telemetryQuery),
+    storedScopes: MetricTelemetrySnapshot.getStoredScopes(props.telemetryQuery),
   });
 
   const investigation: MetricInvestigationState = useMetricInvestigation({

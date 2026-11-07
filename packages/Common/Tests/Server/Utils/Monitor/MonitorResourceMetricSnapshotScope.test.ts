@@ -52,6 +52,7 @@ import RollingTimeUtil from "../../../../Types/RollingTime/RollingTimeUtil";
 import { TelemetryQuery } from "../../../../Types/Telemetry/TelemetryQuery";
 import TelemetryType from "../../../../Types/Telemetry/TelemetryType";
 import MonitorStepMetricQueries from "../../../../Utils/Monitor/MonitorStepMetricQueries";
+import MetricTelemetrySnapshot from "../../../../Utils/Monitor/MetricTelemetrySnapshot";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -59,10 +60,10 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * for a metric monitor goes into MonitorResourceUtil.monitorResource,
  * through the real criteria evaluator, and the incident and alert it opens
  * are handed the snapshot their metric card charts. An infrastructure
- * monitor's snapshot keeps each query as the check read it - narrowed to
- * the host, cluster or fleet it watches - and a Metrics monitor's is as it
- * always was. Postgres, Redis and the incident and alert machinery are
- * stood in for.
+ * monitor's snapshot keeps beside each query the filters the check read it
+ * with - the host, cluster or fleet it watches - and a Metrics monitor's is
+ * as it always was. Postgres, Redis and the incident and alert machinery
+ * are stood in for.
  */
 
 const NOW: Date = new Date(Date.UTC(2026, 10, 7, 12, 15, 30));
@@ -146,6 +147,8 @@ interface MonitorCase {
   query: MetricQueryConfigData;
   // What the worker said it read the query with.
   read: Dictionary<unknown> | undefined;
+  // What the monitor added to the query's own filters.
+  scope: Dictionary<unknown>;
 }
 
 const CASES: Array<MonitorCase> = [
@@ -155,6 +158,7 @@ const CASES: Array<MonitorCase> = [
     settings: { hostIdentifier: "web-01" },
     query: queryOf({ metricName: "system.cpu.utilization" }),
     read: { "resource.host.name": "web-01" },
+    scope: { "resource.host.name": "web-01" },
   },
   {
     name: "Kubernetes",
@@ -172,6 +176,10 @@ const CASES: Array<MonitorCase> = [
       "resource.k8s.cluster.name": "prod",
       "resource.k8s.namespace.name": "payments",
     },
+    scope: {
+      "resource.k8s.cluster.name": "prod",
+      "resource.k8s.namespace.name": "payments",
+    },
   },
   {
     name: "Proxmox",
@@ -186,6 +194,11 @@ const CASES: Array<MonitorCase> = [
       "pve.scope": "node",
       "pve.id": "pve1",
     },
+    scope: {
+      "resource.proxmox.cluster.name": "pve-prod",
+      "pve.scope": "node",
+      "pve.id": "pve1",
+    },
   },
   {
     name: "IoT Device",
@@ -193,6 +206,9 @@ const CASES: Array<MonitorCase> = [
     settings: { fleetIdentifier: "Sensors" },
     query: queryOf({ metricName: "iot.temperature" }),
     read: {
+      "resource.iot.fleet.name": new Wildcard<string>(["Sensors"]),
+    },
+    scope: {
       "resource.iot.fleet.name": new Wildcard<string>(["Sensors"]),
     },
   },
@@ -279,9 +295,12 @@ function handedSnapshots(): {
   return { incident: propsOf(openIncidents), alert: propsOf(openAlerts) };
 }
 
-function attributesOf(snapshot: TelemetryQuery | undefined): unknown {
-  return snapshot?.metricViewData?.queryConfigs[0]?.metricQueryData.filterData
-    .attributes;
+// What the event's card charts the snapshot's first query with.
+function chartedAttributesOf(snapshot: TelemetryQuery | undefined): unknown {
+  return MetricTelemetrySnapshot.applyScopes({
+    queryConfigs: snapshot!.metricViewData!.queryConfigs,
+    scopes: MetricTelemetrySnapshot.getStoredScopes(snapshot) || [],
+  })[0]?.metricQueryData.filterData.attributes;
 }
 
 beforeEach(() => {
@@ -367,13 +386,12 @@ describe.each(CASES)(
 
       for (const snapshot of [incident, alert]) {
         expect(snapshot?.telemetryType).toBe(TelemetryType.Metric);
-        expect(snapshot?.metricQueriesAsRead).toBe(true);
-        expect(attributesOf(snapshot)).toEqual(monitorCase.read);
-        // The step's query otherwise, and the window it read.
-        expect(
-          snapshot?.metricViewData?.queryConfigs[0]?.metricQueryData.filterData
-            .metricName,
-        ).toBe(monitorCase.query.metricQueryData.filterData.metricName);
+        expect(snapshot?.metricQueryScopes).toEqual([monitorCase.scope]);
+        expect(chartedAttributesOf(snapshot)).toEqual(monitorCase.read);
+        // The step's query as it keeps it, and the window it read.
+        expect(snapshot?.metricViewData?.queryConfigs).toEqual([
+          monitorCase.query,
+        ]);
         expect(snapshot?.metricViewData?.startAndEndDate).toEqual(
           RollingTimeUtil.convertToStartAndEndDate(
             RollingTime.Past5Minutes,
@@ -383,7 +401,7 @@ describe.each(CASES)(
       }
 
       // What the dashboard twin says this monitor reads (held to the worker).
-      expect(attributesOf(incident)).toEqual(
+      expect(chartedAttributesOf(incident)).toEqual(
         MonitorStepMetricQueries.getReads({
           monitorType: monitorCase.monitorType,
           monitorStep:
@@ -401,7 +419,7 @@ describe.each(CASES)(
       });
     });
 
-    test("a response that does not say what it read with keeps the step's queries, unmarked", async () => {
+    test("a response that does not say what it read with keeps no scope, as before", async () => {
       setUpMonitor(monitorCase);
 
       await MonitorResourceUtil.monitorResource(
@@ -409,7 +427,7 @@ describe.each(CASES)(
       );
 
       const { incident } = handedSnapshots();
-      expect(incident?.metricQueriesAsRead).toBeUndefined();
+      expect(incident?.metricQueryScopes).toBeUndefined();
       expect(incident?.metricViewData?.queryConfigs).toEqual([
         monitorCase.query,
       ]);
@@ -428,6 +446,7 @@ describe("a Metrics monitor's incident", () => {
         attributes: { "resource.service.name": "checkout" },
       }),
       read: undefined,
+      scope: {},
     };
     setUpMonitor(metricsCase);
 
@@ -439,7 +458,9 @@ describe("a Metrics monitor's incident", () => {
 
     const { incident } = handedSnapshots();
     expect(incident?.metricViewData?.queryConfigs[0]).toBe(metricsCase.query);
-    expect(attributesOf(incident)).toEqual({
+    // Nothing added to the query's own filters.
+    expect(incident?.metricQueryScopes).toEqual([null]);
+    expect(chartedAttributesOf(incident)).toEqual({
       "resource.service.name": "checkout",
     });
   });
