@@ -177,7 +177,8 @@ describe("before a graph is saved", () => {
 
     expect(WorkflowService.findRowsAndHoldUpdateToThem).toHaveBeenCalledWith(
       updateBy,
-      { _id: true, projectId: true },
+      // With what a save made to a revision is checked against (issue #6257).
+      { _id: true, projectId: true, graphRevision: true, version: true },
     );
     expect(recordEarlier).toHaveBeenCalledTimes(2);
     expect(recordEarlier.mock.calls[0]?.[0]).toMatchObject({

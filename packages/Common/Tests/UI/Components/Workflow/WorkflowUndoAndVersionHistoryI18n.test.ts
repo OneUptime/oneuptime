@@ -1,7 +1,9 @@
 /*
  * Undo, Redo and the Version history in every dashboard language (issue
  * #6188): every sentence the toolbar's Undo and Redo say, the save pill's
- * Try again, and the Version history's panel and preview.
+ * Try again, and the Version history's panel and preview - and, when
+ * someone else saved the workflow first (issue #6257), the dialog that asks
+ * whose version to keep and the save pill meanwhile.
  *
  * The dashboard looks each sentence up by its English text, and a sentence
  * with no entry silently stays English - so every one of them is held to all
@@ -18,7 +20,12 @@ import {
   WorkflowUndoCopy,
 } from "../../../../UI/Components/Workflow/WorkflowHistoryLabels";
 import { WorkflowVersionCopy } from "../../../../UI/Components/Workflow/WorkflowVersionPresentation";
-import { WorkflowStatusBarCopy } from "../../../../UI/Components/Workflow/WorkflowStatusBar";
+import {
+  WorkflowSaveState,
+  WorkflowStatusBarCopy,
+  getWorkflowSaveStatePresentation,
+} from "../../../../UI/Components/Workflow/WorkflowStatusBar";
+import { WorkflowSaveConflictCopy } from "../../../../UI/Components/Workflow/WorkflowSaveConflict";
 import { WorkflowUndoRedoCopy } from "../../../../UI/Components/Workflow/WorkflowUndoRedoButtons";
 import { WorkflowVersionPreviewCopy } from "../../../../UI/Components/Workflow/WorkflowVersionPreview";
 import { PluralTemplate } from "../../../../UI/Utils/TranslateTemplate";
@@ -131,6 +138,8 @@ const KEYS: Array<string> = Array.from(
     ...keysOf(WorkflowUndoRedoCopy as unknown as Record<string, unknown>),
     ...keysOf(WorkflowVersionPreviewCopy as unknown as Record<string, unknown>),
     ...keysOf(WorkflowStatusBarCopy as unknown as Record<string, unknown>),
+    ...keysOf(WorkflowSaveConflictCopy as unknown as Record<string, unknown>),
+    getWorkflowSaveStatePresentation(WorkflowSaveState.Conflict).label,
   ]),
 );
 
@@ -149,6 +158,10 @@ describe("Undo, Redo and the Version history in every dashboard language", () =>
     expect(KEYS).toContain(
       "Save the workflow again. Your changes stay on the canvas until it is saved.",
     );
+    expect(KEYS).toContain("Someone else changed this workflow");
+    expect(KEYS).toContain("Keep mine");
+    expect(KEYS).toContain("Undo showing their changes");
+    expect(KEYS).toContain("Not saved");
   });
 
   test("English has every key", () => {

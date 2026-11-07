@@ -12,6 +12,11 @@ import {
   WorkflowUndoCopy,
 } from "Common/UI/Components/Workflow/WorkflowHistoryLabels";
 import { getWorkflowHistoryShortcut } from "Common/UI/Components/Workflow/WorkflowHistoryShortcuts";
+import { WorkflowSaveConflictCopy } from "Common/UI/Components/Workflow/WorkflowSaveConflict";
+import {
+  WorkflowSaveState,
+  getWorkflowSaveStatePresentation,
+} from "Common/UI/Components/Workflow/WorkflowStatusBar";
 import { WorkflowVersionCopy } from "Common/UI/Components/Workflow/WorkflowVersionPresentation";
 import { getWorkflowGraphChanges } from "Common/Utils/Workflow/WorkflowGraphChanges";
 import { describe, expect, it } from "@jest/globals";
@@ -147,5 +152,29 @@ describe("the authoring page on undo, redo and version history", () => {
     }
 
     expect(canvas).toContain("(#undo-redo-and-version-history)");
+  });
+
+  it("says what happens when someone else saved the workflow first, naming what the Builder draws (issue #6257)", () => {
+    const canvas: string = section(AUTHORING, "## The canvas");
+    const notSaved: string = getWorkflowSaveStatePresentation(
+      WorkflowSaveState.Conflict,
+    ).label;
+
+    for (const label of [
+      notSaved,
+      WorkflowSaveConflictCopy.showTheirChanges,
+      WorkflowSaveConflictCopy.keepMine,
+      WorkflowUndoCopy.plain,
+    ]) {
+      expect({ label, named: canvas.includes(`**${label}**`) }).toEqual({
+        label,
+        named: true,
+      });
+    }
+
+    expect(STATUS_BAR).toContain(`translationKey("${notSaved}")`);
+    // The page and the dialog say the same: nothing is lost either way.
+    expect(WorkflowSaveConflictCopy.note.startsWith("Nothing is lost either way.")).toBe(true);
+    expect(canvas).toContain("Nothing is lost either way.");
   });
 });

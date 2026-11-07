@@ -23,6 +23,8 @@ Every workflow has exactly one **trigger** at the top. Everything else is a **co
 
 Changes save automatically, a moment after you make them. A pill in the toolbar tracks it: **Saving…** while the change is on its way, then **Saved**. If a change could not be saved, the pill says **Could not save**, with the reason when you hover it, and **Try again** beside it. Your changes stay on the canvas meanwhile, and the next change you make tries again. Leaving the page before a change is saved asks you first. The canvas has no Save button and no separate publish step. A mistake is saved too, so the Builder keeps every change you can take back: see [Undo, redo and version history](#undo-redo-and-version-history).
 
+Two people can have the same workflow open. If someone else saves it after you opened it, in another Builder or through the API, the Builder does not save your change over theirs: the pill says **Not saved**, and a dialog lists what they changed. **Show their changes** puts their version on the canvas, and **Undo** brings yours back. **Keep mine** saves your version, and theirs stays in the version history. Nothing is lost either way.
+
 ## Add blocks
 
 | To add          | Click                                                           | Panel that opens  |
