@@ -60,6 +60,28 @@ const QUERIES: string = readSquashed(
   "MessageQueue",
   "MessageQueueTelemetryQueries.ts",
 );
+/*
+ * Which spans are publishes and consumes, and how a service's spans make
+ * its card row, are defined once in Common (MessageQueueSpanPopulation) for
+ * the Overview and the Queues topology alike: the texts are held to them
+ * there.
+ */
+const POPULATIONS: string = fs
+  .readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "Types",
+      "MessageQueue",
+      "MessageQueueSpanPopulation.ts",
+    ),
+    "utf8",
+  )
+  .replace(/\/\*[\s\S]*?\*\//g, " ")
+  .replace(/(^|[^:])\/\/[^\n]*/g, "$1")
+  .replace(/\s+/g, " ");
 const BROKER_HEALTH: string = readSquashed(
   "Components",
   "MessageQueue",
@@ -153,10 +175,10 @@ describe("the queue Overview's descriptions", () => {
     expect(TEXT.published).toContain("client spans");
     expect(TEXT.consumed).toContain("client spans");
 
-    expect(QUERIES).toContain(
+    expect(POPULATIONS).toContain(
       "MESSAGE_QUEUE_PUBLISH_SPAN_KIND: SpanKind = SpanKind.Producer",
     );
-    expect(QUERIES).toContain(
+    expect(POPULATIONS).toContain(
       "MESSAGE_QUEUE_CONSUME_SPAN_KIND: SpanKind = SpanKind.Consumer",
     );
 
@@ -169,7 +191,7 @@ describe("the queue Overview's descriptions", () => {
     expect(TEXT.consumed).toContain(
       "Receives that returned nothing are left out",
     );
-    expect(QUERIES).toContain(
+    expect(POPULATIONS).toContain(
       '[MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]: new IncludesNone(["0"]),',
     );
     // SQS's receive calls: a batch at most, never a processing time.
@@ -188,19 +210,19 @@ describe("the queue Overview's descriptions", () => {
    */
   test("the Consumers card says what a row counts, as the card combines a service's spans", () => {
     const combine: string = between(
-      QUERIES,
+      POPULATIONS,
       "export function combineMessageQueueConsumerServices(",
       "return sortedServiceRows(",
     );
 
     // A receive that returned nothing is in no part of a row, the count too.
     expect(TEXT.consumers).toContain("messages taken");
-    expect(QUERIES).toContain(
+    expect(POPULATIONS).toContain(
       '[MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]: new IncludesNone(["0"]),',
     );
 
     // An SQS receive that returned messages is counted, once per batch...
-    expect(QUERIES).toContain(
+    expect(POPULATIONS).toContain(
       "[MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]: new GreaterThan<number>(0),",
     );
     expect(QUERIES).toContain(
@@ -224,7 +246,7 @@ describe("the queue Overview's descriptions", () => {
     expect(QUERIES).toContain(
       'const errorQuery: Record<string, unknown> = queryOf("all", true)!;',
     );
-    expect(QUERIES).toContain("default: return {};");
+    expect(POPULATIONS).toContain("default: return {};");
   });
 
   test("the p95 tile is one percentile over the range, the chart one per interval", () => {

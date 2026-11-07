@@ -2,6 +2,8 @@
 
 **Code** dà a ogni coda di messaggi, topic e sottoscrizione che le tue applicazioni usano una pagina propria: quali servizi vi pubblicano e quali ne consumano, quanti messaggi passano, quanti falliscono e quanto dura l'elaborazione, le sue tracce e metriche e, non appena le metriche del broker raggiungono OneUptime, il suo arretrato, il lag dei consumer, i dead letter e la limitazione. Le code hanno etichette, proprietari, regole di etichette e di proprietari e archiviazione, come ogni altra risorsa. Aprile da **Prodotti → Risorse → Code**.
 
+**Code → Topologia** mostra come scorrono i messaggi tra i tuoi servizi: ogni coda tra i servizi che vi pubblicano e quelli che ne consumano. Ogni linea indica il suo tasso di messaggi, il suo tasso di errori e il suo tempo p95, contati come li contano i riquadri **Produttori** e **Consumatori** della coda, e non appena le metriche di un broker raggiungono OneUptime, le sue code mostrano il lag dei consumer o il loro arretrato, e i loro dead letter. Cerca nella mappa, filtrala per broker o tieni solo ciò che richiede attenzione. La scheda **Topologia** di ogni coda mostra da dove arrivano i suoi messaggi e dove vanno.
+
 :::cards
 - [Strumentare le applicazioni](#strumentare-le-applicazioni): Gli span di messaggistica che la tua strumentazione OpenTelemetry invia già.
 - [Metriche di salute del broker](#metriche-di-salute-del-broker): Arretrato, lag e dead letter dal tuo broker, sistema per sistema.

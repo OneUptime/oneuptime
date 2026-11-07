@@ -115,6 +115,8 @@ Les canaux et les conversations restent lisibles : chaque événement est publi�
 
 **Paramètres du projet** > **Espace de travail** > **Microsoft Teams** liste les canaux que OneUptime voit dans vos équipes, et les conversations auxquelles il a été ajouté, avec **Envoyer le test** à côté de chacun. Une conversation apparaît dès que l'application OneUptime y est ajoutée dans Microsoft Teams ; **Refresh Chats** récupère les nouvelles conversations et leurs noms actuels.
 
+Une règle de notification peut appartenir à des équipes. **Équipes responsables**, sous **Plus de champs**, la réserve aux équipes que vous choisissez : seuls leurs membres et les administrateurs du projet peuvent la modifier ou la supprimer, et tous les autres qui voient les règles la voient en lecture seule. Voir [Règles appartenant à des équipes](/docs/permissions/index#règles-appartenant-à-des-équipes).
+
 ## Tester une règle
 
 **Tester la règle** sur la ligne d'une règle publie un message de test pour cette règle dans les canaux qu'elle nomme, pour que vous le voyiez arriver. Si la règle crée un canal pour chaque événement, le test en crée un aussi et y invite les personnes de la règle.

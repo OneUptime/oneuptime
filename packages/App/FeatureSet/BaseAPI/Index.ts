@@ -146,6 +146,7 @@ import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
 import NetworkSummaryAPI from "./API/NetworkSummary";
 import InventoryOverviewAPI from "./API/InventoryOverview";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
+import MessageQueueTopologyAPI from "./API/MessageQueueTopology";
 import ReceivingGapsAPI from "./API/ReceivingGaps";
 import ServiceOperationalStatusAPI from "./API/ServiceOperationalStatus";
 import TopologyAPI from "./API/Topology";
@@ -340,6 +341,24 @@ import AlertEpisodeLabelRuleService, {
 import IncidentOnCallRuleService, {
   Service as IncidentOnCallRuleServiceType,
 } from "Common/Server/Services/IncidentOnCallRuleService";
+import IncidentOnCallRuleOwningTeamService, {
+  Service as IncidentOnCallRuleOwningTeamServiceType,
+} from "Common/Server/Services/IncidentOnCallRuleOwningTeamService";
+import IncidentOwnerRuleOwningTeamService, {
+  Service as IncidentOwnerRuleOwningTeamServiceType,
+} from "Common/Server/Services/IncidentOwnerRuleOwningTeamService";
+import WorkspaceNotificationRuleOwningTeamService, {
+  Service as WorkspaceNotificationRuleOwningTeamServiceType,
+} from "Common/Server/Services/WorkspaceNotificationRuleOwningTeamService";
+import AlertOnCallRuleOwningTeamService, {
+  Service as AlertOnCallRuleOwningTeamServiceType,
+} from "Common/Server/Services/AlertOnCallRuleOwningTeamService";
+import IncidentEpisodeOnCallRuleOwningTeamService, {
+  Service as IncidentEpisodeOnCallRuleOwningTeamServiceType,
+} from "Common/Server/Services/IncidentEpisodeOnCallRuleOwningTeamService";
+import AlertEpisodeOnCallRuleOwningTeamService, {
+  Service as AlertEpisodeOnCallRuleOwningTeamServiceType,
+} from "Common/Server/Services/AlertEpisodeOnCallRuleOwningTeamService";
 
 import IncidentOwnerRuleService, {
   Service as IncidentOwnerRuleServiceType,
@@ -1549,6 +1568,12 @@ import AlertEpisodePrivacyRule from "Common/Models/DatabaseModels/AlertEpisodePr
 import AlertEpisodeLabelRule from "Common/Models/DatabaseModels/AlertEpisodeLabelRule";
 import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
 import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule";
+import IncidentOnCallRuleOwningTeam from "Common/Models/DatabaseModels/IncidentOnCallRuleOwningTeam";
+import IncidentOwnerRuleOwningTeam from "Common/Models/DatabaseModels/IncidentOwnerRuleOwningTeam";
+import WorkspaceNotificationRuleOwningTeam from "Common/Models/DatabaseModels/WorkspaceNotificationRuleOwningTeam";
+import AlertOnCallRuleOwningTeam from "Common/Models/DatabaseModels/AlertOnCallRuleOwningTeam";
+import IncidentEpisodeOnCallRuleOwningTeam from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRuleOwningTeam";
+import AlertEpisodeOnCallRuleOwningTeam from "Common/Models/DatabaseModels/AlertEpisodeOnCallRuleOwningTeam";
 import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
 import IncidentPrivacyRule from "Common/Models/DatabaseModels/IncidentPrivacyRule";
 import IncidentLabelRule from "Common/Models/DatabaseModels/IncidentLabelRule";
@@ -3060,6 +3085,76 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<IncidentOnCallRule, IncidentOnCallRuleServiceType>(
         IncidentOnCallRule,
         IncidentOnCallRuleService,
+      ).getRouter(),
+    );
+
+    /*
+     * The teams that own a rule: only they, and the project's owners and
+     * admins, change or delete a rule that has any (TeamOwnedRulePermission).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentOnCallRuleOwningTeam,
+        IncidentOnCallRuleOwningTeamServiceType
+      >(
+        IncidentOnCallRuleOwningTeam,
+        IncidentOnCallRuleOwningTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentOwnerRuleOwningTeam,
+        IncidentOwnerRuleOwningTeamServiceType
+      >(
+        IncidentOwnerRuleOwningTeam,
+        IncidentOwnerRuleOwningTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        WorkspaceNotificationRuleOwningTeam,
+        WorkspaceNotificationRuleOwningTeamServiceType
+      >(
+        WorkspaceNotificationRuleOwningTeam,
+        WorkspaceNotificationRuleOwningTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        AlertOnCallRuleOwningTeam,
+        AlertOnCallRuleOwningTeamServiceType
+      >(
+        AlertOnCallRuleOwningTeam,
+        AlertOnCallRuleOwningTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentEpisodeOnCallRuleOwningTeam,
+        IncidentEpisodeOnCallRuleOwningTeamServiceType
+      >(
+        IncidentEpisodeOnCallRuleOwningTeam,
+        IncidentEpisodeOnCallRuleOwningTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        AlertEpisodeOnCallRuleOwningTeam,
+        AlertEpisodeOnCallRuleOwningTeamServiceType
+      >(
+        AlertEpisodeOnCallRuleOwningTeam,
+        AlertEpisodeOnCallRuleOwningTeamService,
       ).getRouter(),
     );
 
@@ -7488,6 +7583,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ServiceDependencyTimeseriesAPI().getRouter(),
+    );
+    /*
+     * The Queues topology: how messages flow between services and queues,
+     * read from spans (POST /telemetry/message-queues/topology, which no
+     * CRUD router claims).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new MessageQueueTopologyAPI().getRouter(),
     );
     /*
      * When OneUptime itself was not receiving data, for the availability

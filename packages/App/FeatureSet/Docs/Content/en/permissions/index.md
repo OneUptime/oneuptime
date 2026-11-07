@@ -340,6 +340,14 @@ It is changed only with the permissions of the teams that own it and of the peop
 
 A team that owns private records but holds no permissions, one used only to group people, lets its members see them and change none of them. On a private record's page, a change the person's teams that own it may not make is locked, saying why. To let them make it, give a team that owns it the permission, make a team that holds the permission an owner, or make the person an owner.
 
+### Rules owned by teams
+
+An incident or alert on-call rule, an episode on-call rule, an incident owner rule and a Slack or Microsoft Teams notification rule can belong to teams. A rule no team owns is the project's: everyone whose permissions let them change rules of its kind changes it. A rule some teams own is changed and deleted only with the permissions of the teams that own it, and by the project's owners and admins. Everyone who may read rules still reads it, and sees which teams own it.
+
+Pick the teams on the rule's form, in **Owning Teams** under **More fields**. Picking them takes the owning-team permission of the rule's kind, such as `CreateIncidentOnCallRuleOwningTeam`, which project owners and admins hold. Adding or removing a rule's owning teams changes the rule, so once teams own a rule, only they and project owners and admins change who owns it. In a list of rules, a rule only other teams own is read-only to you: its edit and delete actions are locked and name the teams that own it.
+
+Each team's permission reaches the rules that team owns. Someone on two teams, one allowed to edit on-call rules and one allowed only to read them, edits every rule no team owns and the rules the first team owns, and only reads the rules only the second team owns. An API key changes a rule teams own only with `ProjectOwner` or `ProjectAdmin`; a workflow step acts as a project admin. Through the API and Terraform, a rule's owning teams are records of their own, such as `oneuptime_incident_on_call_rule_owning_team`.
+
 ## Recipes
 
 **A team that only watches.** Create the team with **Viewer** under **Access**. For just some areas, pick **Choose permissions later** and add the per-area `*Viewer` roles they should see.

@@ -64,11 +64,13 @@ const MESSAGE_QUEUE_PAGE_KEYS: ReadonlyArray<string> = [
   "MESSAGE_QUEUES",
   "MESSAGE_QUEUES_ARCHIVED",
   "MESSAGE_QUEUES_DOCUMENTATION",
+  "MESSAGE_QUEUES_TOPOLOGY",
   "MESSAGE_QUEUES_SETTINGS_LABEL_RULES",
   "MESSAGE_QUEUES_SETTINGS_LABEL_RULES_VIEW",
   "MESSAGE_QUEUES_SETTINGS_OWNER_RULES",
   "MESSAGE_QUEUES_SETTINGS_OWNER_RULES_VIEW",
   "MESSAGE_QUEUE_VIEW",
+  "MESSAGE_QUEUE_VIEW_TOPOLOGY",
   "MESSAGE_QUEUE_VIEW_TRACES",
   "MESSAGE_QUEUE_VIEW_METRICS",
   "MESSAGE_QUEUE_VIEW_OWNERS",
@@ -87,6 +89,7 @@ const NAVIGABLE_PAGE_KEYS: ReadonlyArray<string> =
 /** Every View page module and the PageMap key whose PageRoute renders it. */
 const VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Overview.tsx", "MESSAGE_QUEUE_VIEW"],
+  ["Topology.tsx", "MESSAGE_QUEUE_VIEW_TOPOLOGY"],
   ["Traces.tsx", "MESSAGE_QUEUE_VIEW_TRACES"],
   ["Metrics.tsx", "MESSAGE_QUEUE_VIEW_METRICS"],
   ["Owners.tsx", "MESSAGE_QUEUE_VIEW_OWNERS"],
@@ -100,6 +103,7 @@ const VIEW_PAGES: ReadonlyArray<[string, string]> = [
 const PRODUCT_PAGES: ReadonlyArray<[Array<string>, string]> = [
   [["MessageQueues.tsx"], "MESSAGE_QUEUES"],
   [["Documentation.tsx"], "MESSAGE_QUEUES_DOCUMENTATION"],
+  [["Topology.tsx"], "MESSAGE_QUEUES_TOPOLOGY"],
   [["Archived.tsx"], "MESSAGE_QUEUES_ARCHIVED"],
   [["Settings", "OwnerRules.tsx"], "MESSAGE_QUEUES_SETTINGS_OWNER_RULES"],
   [["Settings", "LabelRules.tsx"], "MESSAGE_QUEUES_SETTINGS_LABEL_RULES"],
@@ -107,6 +111,7 @@ const PRODUCT_PAGES: ReadonlyArray<[Array<string>, string]> = [
 
 /** The view's tabs and the URL segment each lives at. */
 const VIEW_TAB_SEGMENTS: ReadonlyArray<[string, string]> = [
+  ["MESSAGE_QUEUE_VIEW_TOPOLOGY", "topology"],
   ["MESSAGE_QUEUE_VIEW_TRACES", "traces"],
   ["MESSAGE_QUEUE_VIEW_METRICS", "metrics"],
   ["MESSAGE_QUEUE_VIEW_OWNERS", "owners"],
@@ -120,6 +125,7 @@ const VIEW_TAB_SEGMENTS: ReadonlyArray<[string, string]> = [
 const PRODUCT_PATHS: ReadonlyArray<[string, string]> = [
   ["MESSAGE_QUEUES_ARCHIVED", "archived"],
   ["MESSAGE_QUEUES_DOCUMENTATION", "documentation"],
+  ["MESSAGE_QUEUES_TOPOLOGY", "topology"],
   ["MESSAGE_QUEUES_SETTINGS_LABEL_RULES", "settings/label-rules"],
   [
     "MESSAGE_QUEUES_SETTINGS_LABEL_RULES_VIEW",
@@ -410,6 +416,7 @@ describe("every navigable page has breadcrumbs", () => {
     ["MESSAGE_QUEUES", ["Project", "Queues"]],
     ["MESSAGE_QUEUES_ARCHIVED", ["Project", "Queues", "Archived"]],
     ["MESSAGE_QUEUES_DOCUMENTATION", ["Project", "Queues", "Documentation"]],
+    ["MESSAGE_QUEUES_TOPOLOGY", ["Project", "Queues", "Topology"]],
     [
       "MESSAGE_QUEUES_SETTINGS_LABEL_RULES",
       ["Project", "Queues", "Label Rules"],
@@ -427,6 +434,10 @@ describe("every navigable page has breadcrumbs", () => {
       ["Project", "Queues", "Owner Rules", "View Rule"],
     ],
     ["MESSAGE_QUEUE_VIEW", ["Project", "Queues", "View Queue"]],
+    [
+      "MESSAGE_QUEUE_VIEW_TOPOLOGY",
+      ["Project", "Queues", "View Queue", "Topology"],
+    ],
     [
       "MESSAGE_QUEUE_VIEW_TRACES",
       ["Project", "Queues", "View Queue", "Traces"],
@@ -500,6 +511,7 @@ describe("the side menus reach the whole product", () => {
       "MESSAGE_QUEUES",
       "MESSAGE_QUEUES_ARCHIVED",
       "MESSAGE_QUEUES_DOCUMENTATION",
+      "MESSAGE_QUEUES_TOPOLOGY",
       "MESSAGE_QUEUES_SETTINGS_OWNER_RULES",
       "MESSAGE_QUEUES_SETTINGS_LABEL_RULES",
     ]) {

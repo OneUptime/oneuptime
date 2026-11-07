@@ -115,6 +115,8 @@ Kanaler och chattar förblir läsbara: varje händelse publiceras en gång, och 
 
 **Projektinställningar** > **Arbetsyta** > **Microsoft Teams** visar de kanaler som OneUptime ser i dina team, och de chattar som den har lagts till i, med **Skicka test** bredvid var och en. En chatt visas så snart OneUptime-appen har lagts till i den i Microsoft Teams; **Refresh Chats** hämtar nya chattar och deras aktuella namn.
 
+En aviseringsregel kan tillhöra team. **Ansvariga team** under **Fler fält** förbehåller den de team du väljer: bara deras medlemmar och projektadministratörer kan redigera eller ta bort den, och alla andra som ser reglerna ser den skrivskyddad. Se [Regler som tillhör team](/docs/permissions/index#regler-som-tillhör-team).
+
 ## Testa en regel
 
 **Testregel** på en regels rad publicerar ett testmeddelande för den regeln i de kanaler den anger, så att du ser att det kommer fram. Om regeln skapar en kanal för varje händelse skapar testet också en och bjuder in regelns personer till den.

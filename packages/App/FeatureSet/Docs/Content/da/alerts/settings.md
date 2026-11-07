@@ -93,6 +93,8 @@ En regel tilkalder, så snart en advarsel matcher den. For at lade den vente på
 
 En regel tilkalder sine politikkers personer for at håndtere advarslen: Den, der bekræfter tilkaldelsen, bekræfter advarslen. For at holde et team orienteret, mens et andet håndterer den, svarer du **Observatører** på **Tilkald personerne i disse politikker som** under **Flere felter**. Deres tilkaldelse siger, at de er observatører, og bekræfter de den, siger det kun, at de har set den: Advarslen bliver ikke bekræftet, og ingen andres tilkaldelse stopper. Deres tilkaldelse fortsætter, indtil en af dem svarer, eller advarslen er løst, og på listen siger reglen under sit navn, at den tilkalder som observatører. En politik, som én matchende regel tilkalder til at håndtere advarslen og en anden som observatører, tilkalder til at håndtere den.
 
+En regel kan tilhøre teams. **Ansvarlige teams** under **Flere felter** forbeholder den de teams, du vælger: kun deres medlemmer og projektadministratorer kan redigere eller slette den, og alle andre, der kan se regler, ser den skrivebeskyttet. En regel, som intet team ejer, kan ændres af alle, der må redigere vagtregler, og episoderegler kan også tilhøre teams. Se [Regler, der tilhører teams](/docs/permissions/index#regler-der-tilhører-teams).
+
 ## Hændelsesregler
 
 **Advarsler → Regler → Hændelsesregler** gør selv advarsler til hændelser. Den første regel, der matcher en ny advarsel, oppefra og ned i listen, erklærer en hændelse ud fra den, som **Erklær hændelse** på advarslens side ville gøre, og knytter advarslen til den.

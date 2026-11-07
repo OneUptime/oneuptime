@@ -76,6 +76,10 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   ruleCriteriaSubject?: RuleCriteriaSubject | undefined;
   ruleRunNouns?: RuleRunResourceNouns | undefined;
   ruleWording?: RuleWording<TBaseModel> | undefined;
+  // The Edit form's fields that are no columns, filled in (ModelForm's onItemFetched).
+  onEditFormItemFetched?:
+    | ((item: TBaseModel) => Promise<TBaseModel>)
+    | undefined;
 }
 
 /*
@@ -188,6 +192,7 @@ const RuleView: <TBaseModel extends BaseModel>(
         formFields={props.formFields}
         createEditModalWidth={props.createEditModalWidth}
         modelAPI={props.modelAPI}
+        onEditFormItemFetched={props.onEditFormItemFetched}
         modelDetailProps={{
           modelType: props.modelType,
           id: "rule-view-detail",

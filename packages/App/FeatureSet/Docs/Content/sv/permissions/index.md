@@ -340,6 +340,14 @@ En sådan post ändras bara med behörigheterna för de team som äger den och f
 
 Ett team som äger privata poster men inte har några behörigheter, ett team som bara används för att samla personer, låter sina medlemmar se dem och ändra ingen av dem. På en privat posts sida är en ändring som personens team som äger den inte får göra låst och säger varför. För att tillåta den ger du ett team som äger den behörigheten, gör ett team med behörigheten till ägare eller gör personen till ägare.
 
+### Regler som tillhör team
+
+En jourregel för incidenter eller larm, en jourregel för episoder, en ägarregel för incidenter och en aviseringsregel för Slack eller Microsoft Teams kan tillhöra team. En regel som inget team äger tillhör projektet: alla vars behörigheter låter dem ändra regler av det slaget kan ändra den. En regel som team äger ändras och tas bort bara med behörigheterna för de team som äger den, och av projektets ägare och administratörer. Alla som får läsa regler läser den fortfarande och ser vilka team som äger den.
+
+Välj teamen i regelns formulär, i **Ansvariga team** under **Fler fält**. Det kräver regeltypens behörighet för ansvariga team, till exempel `CreateIncidentOnCallRuleOwningTeam`, som projektägare och projektadministratörer har. Att lägga till eller ta bort en regels team ändrar regeln, så när team äger en regel är det bara de teamen och projektägare och projektadministratörer som ändrar vem som äger den. I en lista över regler är en regel som bara andra team äger skrivskyddad för dig: dess åtgärder för att redigera och ta bort är låsta och nämner de team som äger den.
+
+Varje teams behörighet når de regler som teamet äger. Den som är med i två team, där det ena får redigera jourregler och det andra bara läsa dem, redigerar alla regler som inget team äger och det första teamets regler, och läser bara de regler som bara det andra teamet äger. En API-nyckel ändrar en regel som team äger bara med `ProjectOwner` eller `ProjectAdmin`; ett arbetsflödessteg agerar som projektadministratör. Via API:et och Terraform är en regels ansvariga team egna poster, till exempel `oneuptime_incident_on_call_rule_owning_team`.
+
 ## Recept
 
 **Ett team som bara tittar.** Skapa teamet med **Tittare** under **Åtkomst**. För bara vissa områden väljer du **Välj behörigheter senare** och lägger till de områdesvisa `*Viewer`-rollerna som teamet ska se.

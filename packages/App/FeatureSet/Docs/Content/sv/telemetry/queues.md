@@ -2,6 +2,8 @@
 
 **Köer** ger varje meddelandekö, varje topic och varje prenumeration som dina applikationer använder en egen sida: vilka tjänster som publicerar till den och vilka som konsumerar från den, hur många meddelanden som passerar, hur många som misslyckas och hur lång tid bearbetningen tar, dess spår och mätvärden och, så snart brokerns egna mätvärden når OneUptime, dess eftersläpning, konsumentlagg, dead letters och strypning. Köer har etiketter, ägare, etikett- och ägarregler och arkivering, precis som alla andra resurser. Öppna dem under **Produkter → Resurser → Köer**.
 
+**Köer → Topologi** visar hur meddelanden flödar mellan dina tjänster: varje kö mellan tjänsterna som publicerar till den och de som konsumerar från den. Varje linje visar sin meddelandetakt, sin felfrekvens och sin p95-tid, räknade som köns kort **Producenter** och **Konsumenter** räknar dem, och så snart en brokers mätvärden når OneUptime visar dess köer sin konsumentlagg eller eftersläpning och sina dead letters. Sök i vyn, filtrera den efter broker eller behåll bara det som behöver uppmärksamhet. Köns egen flik **Topologi** visar varifrån dess meddelanden kommer och vart de går.
+
 :::cards
 - [Instrumentera applikationer](#instrumentera-applikationer): De meddelandespan som din OpenTelemetry-instrumentering redan skickar.
 - [Brokerns hälsomätvärden](#brokerns-hälsomätvärden): Eftersläpning, lagg och dead letters från din broker, system för system.
