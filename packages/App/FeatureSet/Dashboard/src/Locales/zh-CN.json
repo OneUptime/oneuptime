@@ -45755,6 +45755,7 @@
   "OneUptime could not reach the event hubs.": "OneUptime 无法访问事件中心。",
   "OneUptime reads the event hubs in subscription {{current}}, and this command makes them in {{next}}, the first listed. Read them there before you run it.": "OneUptime 正在读取订阅 {{current}} 中的事件中心，而此命令会在列表中第一个订阅 {{next}} 中创建它们。运行前请改为在那里读取。",
   "Every minute, OneUptime reads the event hubs the command makes, signed in as the connection's app. Turn reading on first: until they are there, it waits for them.": "OneUptime 以连接的应用身份登录，每分钟读取命令创建的事件中心。请先开启读取：在事件中心建好之前，它会一直等待。",
+  "OneUptime reads this repository's code through Azure DevOps, so stack traces and profiles link to its lines and OneUptime AI reads its files.": "OneUptime 通过 Azure DevOps 读取此存储库的代码，因此堆栈跟踪和性能剖析会链接到对应的代码行，OneUptime AI 也会读取其中的文件。",
   "OneUptime stops reading the event hubs of {{name}} at once, and the connection reads all its metrics on its schedule again. What was read stays.": "OneUptime 会立即停止读取 {{name}} 的事件中心，连接会重新按计划读取其所有指标。已读取的内容会保留。",
   "Project IDs, separated by commas: at first, the ones this connection reads. The topic is made in the project of the connection's service account.": "项目 ID，用逗号分隔：起初为此连接读取的项目。主题会创建在连接的服务账号所在的项目中。",
   "Pub/Sub pushes to https:// addresses only, and this OneUptime is not served over HTTPS. Serve it over HTTPS, with a certificate Google trusts, to stream.": "Pub/Sub 只推送到 https:// 地址，而此 OneUptime 未通过 HTTPS 提供服务。如需流式传输，请使用 Google 信任的证书通过 HTTPS 提供服务。",

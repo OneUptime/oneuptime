@@ -221,7 +221,7 @@ GitHub에서는 각 리뷰가 풀 리퀘스트의 최신 커밋에 체크 **OneU
 | **GitHub** | OneUptime GitHub App. 앱이 선택한 저장소에 설치됩니다. | 이 페이지의 모든 것과 함께 GitHub에서의 명령([GitHub App](/docs/ai/github-app) 참조), 그리고 각 [프로덕션 리뷰](#풀-리퀘스트의-프로덕션-리뷰)의 체크. |
 | **GitLab**, GitLab.com 또는 자체 GitLab | 접근 토큰: `api` 및 `write_repository` 범위와 Developer 이상의 역할을 가진 개인, 그룹 또는 프로젝트 토큰. | 작업과 수정(변경마다 머지 리퀘스트), [프로덕션 리뷰](#풀-리퀘스트의-프로덕션-리뷰), 브랜치 선택, 스택 트레이스나 프로파일이 거쳐 가는 코드, 배포의 커밋, 수정이 병합되었는지와 배포 후 프로덕션이 보여 준 것. |
 | **Forgejo 또는 Gitea**, Codeberg 또는 자체 서버 | 저장소와 이슈 읽기·쓰기 권한과 사용자 읽기 권한이 있는 접근 토큰. | GitLab과 같으며, 변경마다 풀 리퀘스트를 엽니다. |
-| **모든 Git 서버**, HTTPS 사용 | 저장소를 복제할 때 쓰는 주소, 사용자 이름, 저장소를 읽고 푸시할 수 있는 비밀번호 또는 접근 토큰. | AI가 저장소를 복제하고 변경마다 새 브랜치에 푸시한 뒤 답변에서 그 브랜치를 알려 줍니다. 풀 리퀘스트는 직접 엽니다. Bitbucket과 Azure DevOps에서는 여는 곳으로 가는 링크도 줍니다. |
+| **모든 Git 서버**, HTTPS 사용 | 저장소를 복제할 때 쓰는 주소, 사용자 이름, 저장소를 읽고 푸시할 수 있는 비밀번호 또는 접근 토큰. | AI가 저장소를 복제하고 변경마다 새 브랜치에 푸시한 뒤 답변에서 그 브랜치를 알려 줍니다. 풀 리퀘스트는 직접 엽니다. Bitbucket과 Azure DevOps에서는 여는 곳으로 가는 링크도 줍니다. Azure DevOps(Services, 또는 Server 2019 이상)에서는 OneUptime이 같은 자격 증명으로 코드도 읽습니다. 스택 트레이스나 프로파일이 거쳐 가는 코드와 OneUptime AI가 읽는 파일입니다. |
 
 댓글 명령에는 GitHub App이 필요하므로 현재는 GitHub 저장소에서만 동작하며, 저장소의 **설정** 에도 그렇게 표시됩니다. Git 서버에는 풀 리퀘스트가 없으므로 프로덕션 리뷰도 없습니다.
 
@@ -233,7 +233,7 @@ OneUptime은 모든 Git 서버의 저장소에, 그 저장소를 연결할 때 �
 
 ### Git 저장소에서 AI가 읽는 것
 
-Git 서버에는 저장소의 파일을 읽을 API가 없으므로, OneUptime은 그런 서버의 저장소에서는 브랜치 선택에 쓸 브랜치만 읽습니다. [AI에게 질문](/docs/ai/ask-ai)과 [AI 조사](/docs/ai/ai-sre)는 GitHub, GitLab, Forgejo, Gitea 저장소의 코드를 읽습니다. Git 저장소의 코드에 대해 물으면 열 수 없다고 알려 줍니다. 코드의 작업은 Git 저장소에서도 동작합니다. Runner가 저장소를 복제하고, AI가 복제본의 코드를 읽고 바꾼 뒤, 변경을 새 브랜치에 푸시합니다.
+Git 서버에는 저장소의 파일을 읽을 API가 없으므로, OneUptime은 그런 서버의 저장소에서는 브랜치 선택에 쓸 브랜치만 읽습니다. 예외는 Azure DevOps입니다. Azure DevOps Services와 Azure DevOps Server 2019 이상에서는 OneUptime이 Azure DevOps 자체의 API를 통해 같은 자격 증명으로 저장소의 코드도 읽습니다. [AI에게 질문](/docs/ai/ask-ai)과 [AI 조사](/docs/ai/ai-sre)는 GitHub, GitLab, Forgejo, Gitea, Azure DevOps 저장소의 코드를 읽습니다. 그 밖의 Git 저장소의 코드에 대해 물으면 열 수 없다고 알려 줍니다. 코드의 작업은 Git 저장소에서도 동작합니다. Runner가 저장소를 복제하고, AI가 복제본의 코드를 읽고 바꾼 뒤, 변경을 새 브랜치에 푸시합니다.
 
 ### 사설 네트워크의 Git 서버
 

@@ -50,7 +50,7 @@ Demander à l'IA lit votre projet avec vos propres autorisations : il voit ce qu
 | Réponse aux incidents | Incidents et alertes, avec des filtres d'état (« qu'est-ce qui est actif en ce moment ? »), leurs chronologies d'activité (changements d'état, notes internes et publiques, le fil) et leurs propriétaires, et une recherche dans les incidents passés pour réutiliser leur résolution. |
 | Astreinte | Qui est d'astreinte maintenant, les politiques et chaînes d'escalade, et si les derniers appels ont été remis et acquittés. |
 | Le travail de l'IA elle-même | Les résultats des investigations d'AI SRE et des AI Insights, pour que « qu'a trouvé l'IA ? » soit répondu à partir de l'analyse publiée au lieu d'être refait. |
-| Plateforme | Moniteurs (avec filtres d'état), maintenance planifiée, pages de statut et leurs annonces, SLO, runbooks, exécutions de flux de travail, santé des sondes, équipes, et le code des dépôts connectés sur GitHub, GitLab, Forgejo et Gitea (voir [Ce que l'IA lit dans un dépôt Git](/docs/ai/ai-agent#ce-que-lia-lit-dans-un-dépôt-git)). |
+| Plateforme | Moniteurs (avec filtres d'état), maintenance planifiée, pages de statut et leurs annonces, SLO, runbooks, exécutions de flux de travail, santé des sondes, équipes, et le code des dépôts connectés sur GitHub, GitLab, Forgejo, Gitea et Azure DevOps (voir [Ce que l'IA lit dans un dépôt Git](/docs/ai/ai-agent#ce-que-lia-lit-dans-un-dépôt-git)). |
 
 ## Contexte de la page
 
