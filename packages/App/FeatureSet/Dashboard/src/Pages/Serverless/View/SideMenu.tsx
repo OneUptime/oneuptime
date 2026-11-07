@@ -108,6 +108,16 @@ const ServerlessFunctionViewSideMenu: FunctionComponent<ComponentProps> = (
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
+        />
+        <SideMenuItem
+          link={{
             title: "Delete Function",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_DELETE] as Route,

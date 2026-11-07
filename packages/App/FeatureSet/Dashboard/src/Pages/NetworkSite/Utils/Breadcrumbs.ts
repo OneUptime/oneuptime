@@ -57,6 +57,12 @@ export function getNetworkSiteBreadcrumbs(
       "View Site",
       "Settings",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Network",
+      "View Site",
+      "Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_VIEW_DELETE, [
       "Project",
       "Network",

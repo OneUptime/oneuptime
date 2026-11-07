@@ -14,7 +14,10 @@ export interface ComponentProps {
   modelId: ObjectID;
 }
 
-// One pipeline's pages: its runs, and the monitors recommended for them.
+/*
+ * One pipeline's pages: its runs, the monitors recommended for them and,
+ * folded under Advanced, who changed it (Audit Logs).
+ */
 const PipelineViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -43,6 +46,16 @@ const PipelineViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           resourceType={MonitorRecommendationResourceType.DataPipeline}
           resourceId={props.modelId}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_AUDIT_LOGS),
+          }}
+          icon={IconProp.List}
         />
       </SideMenuSection>
     </SideMenu>

@@ -20,8 +20,8 @@ import path from "path";
  *     page keys, files or breadcrumbs - and the old URLs forward to the same
  *     form in Forms, outside the Incidents layout;
  *   - a form's menu walks the order a form is set up in - its own domain
- *     right after its link - and Duplicate Form and Delete Form are in
- *     Advanced.
+ *     right after its link - and Duplicate Form, Audit Logs and Delete Form
+ *     are in Advanced.
  *
  * The behaviour behind these is covered by jsdom tests in Common
  * (FormsPages, FormShareLinkCard, FormBuilderState, FormOnSubmit,
@@ -175,6 +175,14 @@ const PAGES: Array<FormsPageCase> = [
     page: "Pages/Forms/View/Duplicate",
     layout: "view",
     breadcrumb: ["Project", "Forms", "View Form", "Duplicate Form"],
+  },
+  {
+    pageKey: "FORM_VIEW_AUDIT_LOGS",
+    relativePath: "`${RouteParams.ModelID}/audit-logs`",
+    pageComponent: "FormAuditLogs",
+    page: "Pages/Forms/View/AuditLogs",
+    layout: "view",
+    breadcrumb: ["Project", "Forms", "View Form", "Audit Logs"],
   },
   {
     pageKey: "FORM_VIEW_DELETE",
@@ -351,6 +359,7 @@ describe("the menus", () => {
       "Submissions",
       "Advanced",
       "DuplicateForm",
+      "AuditLogs",
       "DeleteForm",
     ]);
 

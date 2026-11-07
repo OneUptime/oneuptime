@@ -82,6 +82,7 @@ Das Seitenmenü der Seite ordnet, was Sie mit einer Ausnahme tun:
 | **Protokolle** | Die Protokolle, die um das letzte Vorkommen herum geschrieben wurden. |
 | **KI-Unterstützung** | KI-Aufgaben, die die Ausnahme beheben oder testen. |
 | **Einstellungen** | Die Ausnahme beheben oder archivieren. Sie liegt unter **Verwalten**, das anfangs eingeklappt ist. |
+| **Audit-Protokolle** | Wer die Ausnahme wann behoben, archiviert oder zugewiesen hat. Sie liegt ebenfalls unter **Verwalten**. |
 
 ## Beheben, wieder öffnen und archivieren
 

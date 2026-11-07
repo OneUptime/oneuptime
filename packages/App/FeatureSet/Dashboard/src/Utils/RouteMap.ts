@@ -87,6 +87,7 @@ export const ServiceRoutePath: Dictionary<string> = {
 export const CodeRoutePath: Dictionary<string> = {
   [PageMap.CODE_REPOSITORIES]: `repositories`,
   [PageMap.CODE_REPOSITORY_VIEW]: `repositories/${RouteParams.ModelID}`,
+  [PageMap.CODE_REPOSITORY_VIEW_AUDIT_LOGS]: `repositories/${RouteParams.ModelID}/audit-logs`,
   [PageMap.CODE_REPOSITORY_VIEW_DELETE]: `repositories/${RouteParams.ModelID}/delete`,
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: `repositories/${RouteParams.ModelID}/settings`,
   [PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS]: `repositories/${RouteParams.ModelID}/production-reviews`,
@@ -179,6 +180,7 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
   [PageMap.NETWORK_DEVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.NETWORK_DEVICE_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.NETWORK_DEVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.NETWORK_DEVICE_ARCHIVED]: `archived`,
   [PageMap.NETWORK_DEVICE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -242,6 +244,7 @@ export const NetworkSiteRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE]: `view/${RouteParams.ModelID}/status-timeline`,
   [PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE]: `view/${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.NETWORK_SITE_VIEW_SETTINGS]: `view/${RouteParams.ModelID}/settings`,
+  [PageMap.NETWORK_SITE_VIEW_AUDIT_LOGS]: `view/${RouteParams.ModelID}/audit-logs`,
   [PageMap.NETWORK_SITE_VIEW_DELETE]: `view/${RouteParams.ModelID}/delete`,
   [PageMap.NETWORK_SITE_MAP]: `map`,
   [PageMap.NETWORK_SITE_ASSIGNMENT_RULES]: `assignment-rules`,
@@ -641,6 +644,7 @@ export const ServerlessRoutePath: Dictionary<string> = {
   [PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES]: `${RouteParams.ModelID}/instances`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.SERVERLESS_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.SERVERLESS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
@@ -669,6 +673,7 @@ export const AppPlatformsRoutePath: Dictionary<string> = {
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
@@ -687,6 +692,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_RESOURCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.CLOUD_RESOURCE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.CLOUD_RESOURCE_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.CLOUD_RESOURCE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.CLOUD_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.CLOUD_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
@@ -709,6 +715,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_ACCOUNT_VIEW_CHANGES]: `accounts/${RouteParams.ModelID}/changes`,
   [PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY]: `accounts/${RouteParams.ModelID}/topology`,
   [PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS]: `accounts/${RouteParams.ModelID}/settings`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_AUDIT_LOGS]: `accounts/${RouteParams.ModelID}/audit-logs`,
   [PageMap.CLOUD_ACCOUNT_VIEW_DELETE]: `accounts/${RouteParams.ModelID}/delete`,
   [PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT]: `accounts/${RouteParams.ModelID}/ai/agent`,
   [PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS]: `accounts/${RouteParams.ModelID}/ai/logs`,
@@ -886,6 +893,7 @@ export const FormsRoutePath: Dictionary<string> = {
   [PageMap.FORM_VIEW_CUSTOM_DOMAINS]: `${RouteParams.ModelID}/custom-domains`,
   [PageMap.FORM_VIEW_SUBMISSIONS]: `${RouteParams.ModelID}/submissions`,
   [PageMap.FORM_VIEW_DUPLICATE]: `${RouteParams.ModelID}/duplicate`,
+  [PageMap.FORM_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.FORM_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
 
@@ -1026,10 +1034,12 @@ export const DataSecurityRoutePath: Dictionary<string> = {
   [PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE]: `stores/${RouteParams.ModelID}/timeline`,
   [PageMap.DATA_SECURITY_STORE_VIEW_OWNERS]: `stores/${RouteParams.ModelID}/owners`,
   [PageMap.DATA_SECURITY_STORE_VIEW_SETTINGS]: `stores/${RouteParams.ModelID}/settings`,
+  [PageMap.DATA_SECURITY_STORE_VIEW_AUDIT_LOGS]: `stores/${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATA_SECURITY_STORE_VIEW_DELETE]: `stores/${RouteParams.ModelID}/delete`,
   [PageMap.DATA_SECURITY_ISSUES]: "issues",
   [PageMap.DATA_SECURITY_ISSUE_VIEW]: `issues/${RouteParams.ModelID}`,
   [PageMap.DATA_SECURITY_ISSUE_VIEW_TIMELINE]: `issues/${RouteParams.ModelID}/timeline`,
+  [PageMap.DATA_SECURITY_ISSUE_VIEW_AUDIT_LOGS]: `issues/${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATA_SECURITY_ISSUE_VIEW_DELETE]: `issues/${RouteParams.ModelID}/delete`,
   [PageMap.DATA_SECURITY_SENSITIVE_DATA]: "sensitive-data",
   [PageMap.DATA_SECURITY_TELEMETRY]: "telemetry",
@@ -1065,6 +1075,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE]: `tables/${RouteParams.ModelID}/lineage`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_OWNERS]: `tables/${RouteParams.ModelID}/owners`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS]: `tables/${RouteParams.ModelID}/settings`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_AUDIT_LOGS]: `tables/${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE]: `tables/${RouteParams.ModelID}/delete`,
   [PageMap.DATA_OBSERVABILITY_STORES]: "stores",
   [PageMap.DATA_OBSERVABILITY_STORE_VIEW]: `stores/${RouteParams.ModelID}`,
@@ -1075,6 +1086,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_PIPELINES]: "pipelines",
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW]: `pipelines/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS]: `pipelines/${RouteParams.ModelID}/recommendations`,
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_AUDIT_LOGS]: `pipelines/${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS]: "data-products",
   [PageMap.DATA_OBSERVABILITY_RECONCILIATIONS]: "reconciliations",
   [PageMap.DATA_OBSERVABILITY_SETTINGS]: "settings",
@@ -1087,6 +1099,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_SPEND]: "spend",
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW]: `data-products/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS]: `data-products/${RouteParams.ModelID}/settings`,
+  [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_AUDIT_LOGS]: `data-products/${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_DELETE]: `data-products/${RouteParams.ModelID}/delete`,
   [PageMap.DATA_OBSERVABILITY_DOCUMENTATION]: "documentation",
 };
@@ -1181,6 +1194,7 @@ export const ExceptionsRoutePath: Dictionary<string> = {
   [PageMap.EXCEPTIONS_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.EXCEPTIONS_VIEW_AI_ASSISTANCE]: `${RouteParams.ModelID}/ai-assistance`,
   [PageMap.EXCEPTIONS_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.EXCEPTIONS_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.EXCEPTIONS_DOCUMENTATION]: "documentation",
   /*
    * The AI section: static paths, so they outrank an exception's own pages
@@ -1248,6 +1262,7 @@ export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES]: "settings/label-rules",
   [PageMap.STATUS_PAGES_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS]: `announcements/${RouteParams.ModelID}/notification-logs`,
+  [PageMap.ANNOUNCEMENT_VIEW_AUDIT_LOGS]: `announcements/${RouteParams.ModelID}/audit-logs`,
   [PageMap.ANNOUNCEMENT_VIEW_DELETE]: `announcements/${RouteParams.ModelID}/delete`,
   [PageMap.STATUS_PAGE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.STATUS_PAGE_VIEW_BRANDING]: `${RouteParams.ModelID}/branding`,
@@ -3265,6 +3280,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CODE_REPOSITORY_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/code/${
+      CodeRoutePath[PageMap.CODE_REPOSITORY_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.CODE_REPOSITORY_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/code/${
       CodeRoutePath[PageMap.CODE_REPOSITORY_VIEW_DELETE]
@@ -3811,6 +3832,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.NETWORK_DEVICE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.NETWORK_DEVICE_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_DELETE]
@@ -3988,6 +4015,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_SITE_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-sites/${
       NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_AUDIT_LOGS]
     }`,
   ),
 
@@ -6361,6 +6394,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SERVERLESS_FUNCTION_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/serverless/${
       ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]
@@ -6482,6 +6521,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/app-platforms/${
       AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_AUDIT_LOGS]
     }`,
   ),
 
@@ -6616,6 +6661,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CLOUD_RESOURCE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.CLOUD_RESOURCE_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_DELETE]
@@ -6714,6 +6765,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_AUDIT_LOGS]
     }`,
   ),
 
@@ -7316,6 +7373,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS]
+    }`,
+  ),
+
+  [PageMap.ANNOUNCEMENT_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW_AUDIT_LOGS]
     }`,
   ),
 
@@ -8406,6 +8469,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DATA_SECURITY_STORE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.DATA_SECURITY_STORE_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-security/${
       DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW_DELETE]
@@ -8427,6 +8496,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_SECURITY_ISSUE_VIEW_TIMELINE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-security/${
       DataSecurityRoutePath[PageMap.DATA_SECURITY_ISSUE_VIEW_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_ISSUE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_ISSUE_VIEW_AUDIT_LOGS]
     }`,
   ),
 
@@ -8619,6 +8694,14 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_TABLE_VIEW_AUDIT_LOGS
+      ]
+    }`,
+  ),
+
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE]
@@ -8667,6 +8750,14 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[
         PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS
+      ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_AUDIT_LOGS
       ]
     }`,
   ),
@@ -8755,6 +8846,14 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[
         PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS
+      ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_AUDIT_LOGS
       ]
     }`,
   ),
@@ -9565,6 +9664,12 @@ const RouteMap: Dictionary<Route> = {
       FormsRoutePath[PageMap.FORM_VIEW_DUPLICATE]
     }`,
   ),
+  [PageMap.FORM_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.FORM_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/forms/${
       FormsRoutePath[PageMap.FORM_VIEW_DELETE]
@@ -10029,6 +10134,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.EXCEPTIONS_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/exceptions/${
       ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW_AUDIT_LOGS]
     }`,
   ),
 

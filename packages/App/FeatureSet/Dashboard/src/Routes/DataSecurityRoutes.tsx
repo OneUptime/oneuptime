@@ -39,9 +39,11 @@ import DataStoreTimelinePage from "../Pages/DataSecurity/StoreView/Timeline";
 import DataStoreOwnersPage from "../Pages/DataSecurity/StoreView/Owners";
 import DataStoreSettingsPage from "../Pages/DataSecurity/StoreView/Settings";
 import DataStoreDeletePage from "../Pages/DataSecurity/StoreView/Delete";
+import DataStoreAuditLogsPage from "../Pages/DataSecurity/StoreView/AuditLogs";
 import DataSecurityIssueOverviewPage from "../Pages/DataSecurity/IssueView/Overview";
 import DataSecurityIssueTimelinePage from "../Pages/DataSecurity/IssueView/Timeline";
 import DataSecurityIssueDeletePage from "../Pages/DataSecurity/IssueView/Delete";
+import DataSecurityIssueAuditLogsPage from "../Pages/DataSecurity/IssueView/AuditLogs";
 
 /*
  * Every page under the product's side menu renders inside its layout, the
@@ -428,6 +430,20 @@ const DataSecurityRoutes: FunctionComponent<ComponentProps> = (
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_SECURITY_STORE_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <DataStoreAuditLogsPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATA_SECURITY_STORE_VIEW_AUDIT_LOGS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
             PageMap.DATA_SECURITY_STORE_VIEW_DELETE,
           )}
           element={
@@ -468,6 +484,20 @@ const DataSecurityRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_SECURITY_ISSUE_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <DataSecurityIssueAuditLogsPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATA_SECURITY_ISSUE_VIEW_AUDIT_LOGS] as Route
+              }
+            />
+          }
+        />
+
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.DATA_SECURITY_ISSUE_VIEW_DELETE,

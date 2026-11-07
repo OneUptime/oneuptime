@@ -212,6 +212,17 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.EXCEPTIONS_VIEW_AUDIT_LOGS)}
+          element={
+            <ExceptionView
+              {...props}
+              pageRoute={RouteMap[PageMap.EXCEPTIONS_VIEW_AUDIT_LOGS] as Route}
+              section={ExceptionDetailSection.AuditLogs}
+            />
+          }
+        />
       </PageRoute>
     </Routes>
   );

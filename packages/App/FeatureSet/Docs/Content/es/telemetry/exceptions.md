@@ -82,6 +82,7 @@ El menú lateral de la página agrupa lo que hace con una excepción:
 | **Registros** | Los registros escritos alrededor de la última ocurrencia. |
 | **Asistencia de IA** | Tareas de IA que corrigen la excepción o la prueban. |
 | **Ajustes** | Resolver o archivar la excepción. Está en **Gestionar**, que empieza contraído. |
+| **Registros de auditoría** | Quién resolvió, archivó o asignó la excepción, y cuándo. También está en **Gestionar**. |
 
 ## Resolver, reabrir y archivar
 
