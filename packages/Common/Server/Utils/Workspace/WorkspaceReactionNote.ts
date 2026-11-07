@@ -1,4 +1,6 @@
-import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseBaseModel, {
+  DatabaseBaseModelType,
+} from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeInternalNote from "../../../Models/DatabaseModels/AlertEpisodeInternalNote";
@@ -47,6 +49,10 @@ import SavedChatMessage, {
 } from "../../../Types/Workspace/SavedChatMessage";
 import { PrivateRecordKind } from "../../../Types/StatusPage/PrivateRecordPublicNotes";
 import PrivateRecordPublicNoteRule from "../Notes/PrivateRecordPublicNoteRule";
+import PublicNoteApprovalFeed, {
+  PublicNoteApprovalWaitingFor,
+} from "../Notes/PublicNoteApprovalFeed";
+import WorkspaceHeldPublicNote from "./WorkspaceHeldPublicNote";
 
 // A save of a message as a note, claimed while it runs (saveNote).
 const SAVE_CLAIM_NAMESPACE: string = "workspace-reaction-note-save";
@@ -69,6 +75,11 @@ export interface WorkspaceNoteResource {
 
 export enum WorkspaceNoteSaveResult {
   Saved = "Saved",
+  /*
+   * Saved as a public note that waits for approval: on no status page until
+   * it is approved, which its confirmation says (getConfirmationMessage).
+   */
+  SavedForApproval = "SavedForApproval",
   // A note was already saved from this message.
   Duplicate = "Duplicate",
 }
@@ -580,9 +591,11 @@ export default class WorkspaceReactionNote {
         return WorkspaceNoteSaveResult.Duplicate;
       }
 
-      await this.addNote(data);
+      const publicNote: DatabaseBaseModel | null = await this.addNote(data);
 
-      return WorkspaceNoteSaveResult.Saved;
+      return WorkspaceHeldPublicNote.isHeldForApproval(publicNote)
+        ? WorkspaceNoteSaveResult.SavedForApproval
+        : WorkspaceNoteSaveResult.Saved;
     } finally {
       if (isClaimed) {
         try {
@@ -671,6 +684,7 @@ export default class WorkspaceReactionNote {
     }
   }
 
+  // The note written - and, when it is a public one, the note: it may wait for approval.
   private static async addNote(data: {
     resource: WorkspaceNoteResource;
     noteType: WorkspaceNoteType;
@@ -678,7 +692,7 @@ export default class WorkspaceReactionNote {
     note: string;
     sourceMessageKey: string;
     savedFromChatMessage?: SavedChatMessage | undefined;
-  }): Promise<void> {
+  }): Promise<DatabaseBaseModel | null> {
     const id: ObjectID = data.resource.resourceId;
     const isPublic: boolean = data.noteType === WorkspaceNoteType.Public;
     const common: {
@@ -704,11 +718,10 @@ export default class WorkspaceReactionNote {
     switch (data.resource.resourceType) {
       case WorkspaceNoteResourceType.Incident:
         if (isPublic) {
-          await IncidentPublicNoteService.addNote({
+          return await IncidentPublicNoteService.addNote({
             ...common,
             incidentId: id,
           });
-          return;
         }
 
         await IncidentInternalNoteService.addNote({
@@ -716,14 +729,13 @@ export default class WorkspaceReactionNote {
           incidentId: id,
           postedAt: postedAt,
         });
-        return;
+        return null;
       case WorkspaceNoteResourceType.ScheduledMaintenance:
         if (isPublic) {
-          await ScheduledMaintenancePublicNoteService.addNote({
+          return await ScheduledMaintenancePublicNoteService.addNote({
             ...common,
             scheduledMaintenanceId: id,
           });
-          return;
         }
 
         await ScheduledMaintenanceInternalNoteService.addNote({
@@ -731,29 +743,87 @@ export default class WorkspaceReactionNote {
           scheduledMaintenanceId: id,
           postedAt: postedAt,
         });
-        return;
+        return null;
       case WorkspaceNoteResourceType.Alert:
         await AlertInternalNoteService.addNote({
           ...common,
           alertId: id,
           postedAt: postedAt,
         });
-        return;
+        return null;
       case WorkspaceNoteResourceType.IncidentEpisode:
         await IncidentEpisodeInternalNoteService.addNote({
           ...common,
           incidentEpisodeId: id,
           postedAt: postedAt,
         });
-        return;
+        return null;
       case WorkspaceNoteResourceType.AlertEpisode:
         await AlertEpisodeInternalNoteService.addNote({
           ...common,
           alertEpisodeId: id,
           postedAt: postedAt,
         });
-        return;
+        return null;
     }
+  }
+
+  /*
+   * Who the public note saved from a message waits for, while it waits for
+   * approval: its confirmation names them (getConfirmationMessage). Read as
+   * OneUptime, as hasNote reads the notes saved from a message. Null when
+   * no public note saved from it waits.
+   */
+  @CaptureSpan()
+  public static async getApprovalWaitingFor(data: {
+    resource: WorkspaceNoteResource;
+    sourceMessageKey: string;
+  }): Promise<PublicNoteApprovalWaitingFor | null> {
+    const select: {
+      _id: true;
+      projectId: true;
+      isPublished: true;
+      approvalStatus: true;
+      approval: true;
+    } = {
+      _id: true,
+      projectId: true,
+      isPublished: true,
+      approvalStatus: true,
+      approval: true,
+    };
+
+    let note: DatabaseBaseModel | null = null;
+
+    switch (data.resource.resourceType) {
+      case WorkspaceNoteResourceType.Incident:
+        note = await IncidentPublicNoteService.findOneBy({
+          query: {
+            incidentId: data.resource.resourceId,
+            postedFromSlackMessageId: data.sourceMessageKey,
+          },
+          select: select,
+          props: { isRoot: true },
+        });
+        break;
+      case WorkspaceNoteResourceType.ScheduledMaintenance:
+        note = await ScheduledMaintenancePublicNoteService.findOneBy({
+          query: {
+            scheduledMaintenanceId: data.resource.resourceId,
+            postedFromSlackMessageId: data.sourceMessageKey,
+          },
+          select: select,
+          props: { isRoot: true },
+        });
+        break;
+      default:
+        return null;
+    }
+
+    return await WorkspaceHeldPublicNote.getWaitingFor({
+      type: RESOURCE_TYPES[data.resource.resourceType].eventType,
+      note: note,
+    });
   }
 
   // "Incident #42" and its dashboard link, for the confirmation reply.
@@ -846,6 +916,12 @@ export default class WorkspaceReactionNote {
    * `noteType` private) says why it is a private note: "✅ Saved as a
    * private note on Incident INC-42. The incident is private, so public
    * notes cannot be added to it."
+   *
+   * A public note that waits for approval (SavedForApproval) is on no
+   * status page yet, and says so, with who it waits for: "⏳ Saved as a
+   * public note on Incident INC-42 and sent for approval: it is shown on the
+   * status page once it is approved. It waits for step 1 of 2 (Support):
+   * Bob."
    */
   public static getConfirmationMessage(data: {
     noteType: WorkspaceNoteType;
@@ -853,7 +929,18 @@ export default class WorkspaceReactionNote {
     resourceLink: string;
     askedNoteType?: WorkspaceNoteType | undefined;
     resourceType?: WorkspaceNoteResourceType | undefined;
+    isHeldForApproval?: boolean | undefined;
+    // Who it waits for, when that could be read.
+    waitingFor?: PublicNoteApprovalWaitingFor | null | undefined;
   }): MarkdownText {
+    if (data.noteType === WorkspaceNoteType.Public && data.isHeldForApproval) {
+      const held: MarkdownText = mdText`⏳ Saved as a **public note** on [${data.resourceLabel}](${data.resourceLink}) and sent for approval: it is shown on the status page once it is approved.`;
+
+      return data.waitingFor
+        ? mdText`${held} ${PublicNoteApprovalFeed.waitingFor(data.waitingFor)}`
+        : held;
+    }
+
     if (data.noteType === WorkspaceNoteType.Public) {
       return mdText`✅ Saved as a **public note** on [${data.resourceLabel}](${data.resourceLink}). It is shown on the status page.`;
     }
@@ -899,7 +986,12 @@ export default class WorkspaceReactionNote {
   public static getConfirmationText(data: {
     noteType: WorkspaceNoteType;
     resourceLabel: string;
+    isHeldForApproval?: boolean | undefined;
   }): string {
+    if (data.noteType === WorkspaceNoteType.Public && data.isHeldForApproval) {
+      return `Saved as a public note on ${data.resourceLabel} and sent for approval`;
+    }
+
     return data.noteType === WorkspaceNoteType.Public
       ? `Saved as a public note on ${data.resourceLabel}`
       : `Saved as a private note on ${data.resourceLabel}`;

@@ -42,7 +42,12 @@ import WorkspaceMemberActions, {
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
 import SlackActionAnswer, { SlackAnswerPlace } from "./Answer";
-import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
+import {
+  WorkspaceAnswer,
+  WorkspaceLatePress,
+} from "../../WorkspaceActionAnswers";
+import WorkspaceHeldPublicNote from "../../WorkspaceHeldPublicNote";
+import WorkspaceNoteForm from "../../WorkspaceNoteForm";
 import Dictionary from "../../../../../Types/Dictionary";
 import ScheduledMaintenanceStateTimeline from "../../../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import ScheduledMaintenancePublicNote from "../../../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
@@ -1185,28 +1190,64 @@ export default class SlackScheduledMaintenanceActions {
     }
 
     // Posted by the member, as the dashboard posts it for them.
-    await SlackActionAuthorization.runForRequester({
-      requester: data.slackRequest,
-      action: "add the note",
-      run: async (): Promise<void> => {
-        if (noteType === "public") {
-          await ScheduledMaintenancePublicNoteService.addNote({
+    const added: { publicNote: ScheduledMaintenancePublicNote | null } | null =
+      await SlackActionAuthorization.runForRequester({
+        requester: data.slackRequest,
+        action: "add the note",
+        run: async (): Promise<{
+          publicNote: ScheduledMaintenancePublicNote | null;
+        }> => {
+          if (noteType === "public") {
+            return {
+              publicNote: await ScheduledMaintenancePublicNoteService.addNote({
+                scheduledMaintenanceId: scheduledMaintenanceId,
+                note: note,
+                projectId: data.slackRequest.projectId!,
+                props: props,
+              }),
+            };
+          }
+
+          await ScheduledMaintenanceInternalNoteService.addNote({
             scheduledMaintenanceId: scheduledMaintenanceId,
             note: note,
             projectId: data.slackRequest.projectId!,
             props: props,
           });
-          return;
-        }
+          return { publicNote: null };
+        },
+      });
 
-        await ScheduledMaintenanceInternalNoteService.addNote({
-          scheduledMaintenanceId: scheduledMaintenanceId,
-          note: note,
-          projectId: data.slackRequest.projectId!,
-          props: props,
-        });
-      },
-    });
+    if (!added) {
+      return;
+    }
+
+    /*
+     * Held for approval: posted to no channel until it is approved, so told
+     * here - where they opened the form, to them alone - that it waits, and
+     * for whom (WorkspaceHeldPublicNote).
+     */
+    const heldAnswer: WorkspaceAnswer | null =
+      await WorkspaceHeldPublicNote.getAnswerForAddedNote({
+        event: {
+          type: WorkspaceEventType.ScheduledMaintenance,
+          id: scheduledMaintenanceId,
+        },
+        note: added.publicNote,
+        props: props,
+      });
+
+    if (!heldAnswer) {
+      return;
+    }
+
+    const place: SlackAnswerPlace | null = SlackActionAnswer.getPlace(
+      data.slackRequest,
+    );
+
+    if (place) {
+      await SlackActionAnswer.answer({ place: place, answer: heldAnswer });
+    }
   }
 
   @CaptureSpan()
@@ -1243,7 +1284,12 @@ export default class SlackScheduledMaintenanceActions {
       placeholder: "Select Note Type",
       options: [
         {
-          label: "Public Note (Will be posted on Status Page)",
+          label: WorkspaceNoteForm.getPublicOption(
+            await WorkspaceHeldPublicNote.isApprovalRequired({
+              type: WorkspaceEventType.ScheduledMaintenance,
+              projectId: data.slackRequest.projectId,
+            }),
+          ),
           value: "public",
         },
         {
