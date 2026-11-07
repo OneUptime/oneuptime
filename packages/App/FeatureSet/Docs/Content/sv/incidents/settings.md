@@ -19,7 +19,7 @@ Konfigurationen av incidenter finns under **Incidenter**, inte under **Projektin
 | **Incidentallvar**           | Lägga till, byta namn på, byta färg på och ändra ordningen på allvarlighetsgraderna.         |
 | **Incidentmallar**           | Förifylla en hel incident — titel, beskrivning, resurser, jourpolicyer, ägare, etiketter.    |
 | **Anteckningsmallar**        | Återanvändbar text för offentliga och privata anteckningar.                                  |
-| **Public Note Approval** | Låt offentliga anteckningar godkännas innan de publiceras och välj vem som godkänner dem. |
+| **Godkännande av offentliga anteckningar** | Låt offentliga anteckningar godkännas innan de publiceras och välj vem som godkänner dem. |
 | **Postmortem-mallar**        | Återanvändbara strukturer för efteranalyser.                                                 |
 | **Efteranalysstatusar** | De statusar en efteranalys går igenom, från Inte påbörjad till Slutförd. |
 | **Anpassade fält**           | Definiera extra fält som visas på varje incident.                                            |

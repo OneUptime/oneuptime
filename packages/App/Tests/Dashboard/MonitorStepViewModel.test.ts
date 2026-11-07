@@ -1938,6 +1938,51 @@ describe("MonitorStepViewModel.getEvaluatedMetricsViewConfig", () => {
     });
   };
 
+  // Issue #6266: the criteria page's Metric Preview of a service-limited monitor.
+  it("reads a Metrics monitor limited to some services for those services only", () => {
+    const services: Array<string> = [
+      "44444444-4444-4444-8444-444444444444",
+      "55555555-5555-4555-8555-555555555555",
+    ];
+
+    const config: MetricsViewConfig = evaluated(
+      MonitorType.Metrics,
+      buildStep({
+        metricMonitor: {
+          telemetryServiceIds: services as never,
+          metricViewConfig: METRIC_VIEW_CONFIG,
+          rollingTime: RollingTime.Past15Minutes,
+        },
+      }),
+    );
+
+    expect(
+      config.queryConfigs.map((queryConfig: MetricQueryConfigData) => {
+        return queryConfig.metricQueryData.filterData.telemetryServiceIds;
+      }),
+    ).toEqual(
+      METRIC_VIEW_CONFIG.queryConfigs.map(() => {
+        return services;
+      }),
+    );
+
+    // One read for every service carries no service filter, as before.
+    const everyService: MetricsViewConfig = evaluated(
+      MonitorType.Metrics,
+      buildStep({
+        metricMonitor: {
+          metricViewConfig: METRIC_VIEW_CONFIG,
+          rollingTime: RollingTime.Past15Minutes,
+        },
+      }),
+    );
+    for (const queryConfig of everyService.queryConfigs) {
+      expect(Object.keys(queryConfig.metricQueryData.filterData)).not.toContain(
+        "telemetryServiceIds",
+      );
+    }
+  });
+
   it("narrows a Host monitor's queries to its host, named as the worker resolves it", () => {
     const config: MetricsViewConfig = evaluated(
       MonitorType.Host,
@@ -2018,14 +2063,37 @@ describe("MonitorStepViewModel.getEvaluatedMetricsViewConfig", () => {
     }
   });
 
-  it("keeps a Metrics monitor's queries as written", () => {
+  it("keeps a Metrics monitor's queries as written, read for the services it is limited to", () => {
     const monitorStep: MonitorStep = buildStepForMonitorType(
       MonitorType.Metrics,
     );
+    const written: MetricsViewConfig =
+      MonitorStepViewModel.getMetricsViewConfig(monitorStep);
+    const services: Array<string> = (
+      monitorStep.data!.metricMonitor!.telemetryServiceIds || []
+    ).map((serviceId: unknown): string => {
+      return String(serviceId);
+    });
 
-    expect(evaluated(MonitorType.Metrics, monitorStep)).toEqual(
-      MonitorStepViewModel.getMetricsViewConfig(monitorStep),
-    );
+    // The step this suite builds is limited to a service (issue #6266).
+    expect(services.length).toBeGreaterThan(0);
+    expect(evaluated(MonitorType.Metrics, monitorStep)).toEqual({
+      ...written,
+      queryConfigs: written.queryConfigs.map(
+        (queryConfig: MetricQueryConfigData): MetricQueryConfigData => {
+          return {
+            ...queryConfig,
+            metricQueryData: {
+              ...queryConfig.metricQueryData,
+              filterData: {
+                ...queryConfig.metricQueryData.filterData,
+                telemetryServiceIds: services,
+              },
+            },
+          };
+        },
+      ),
+    });
   });
 
   it("falls back to the step's own config for a type that is not metric-backed, and to nothing without a step", () => {

@@ -14,6 +14,7 @@ import { OPENSTACK_REGION_ATTRIBUTE } from "../../../Types/Monitor/MonitorStepOp
 import MonitorType, {
   MonitorTypeHelper,
 } from "../../../Types/Monitor/MonitorType";
+import ObjectID from "../../../Types/ObjectID";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import MonitorStepMetricQueries, {
@@ -796,5 +797,410 @@ describe("whatever a step holds (seeded)", () => {
 
       expect(JSON.stringify(step.data)).toBe(before);
     }
+  });
+});
+
+/*
+ * Issue #6264: a step form's chart reads the queries it edits as the
+ * monitor reads them, one for one, so the query editor and the chart stay
+ * lined up while what is saved stays as written.
+ */
+describe("a step form's queries as the monitor reads them, one for one", () => {
+  test("each query of the settings, in order, with the monitor's filters", () => {
+    const first: MetricQueryConfigData = queryOf({
+      variable: "a",
+      metricName: "pve_cpu_usage_ratio",
+    });
+    const second: MetricQueryConfigData = queryOf({
+      variable: "b",
+      metricName: "pve_memory_usage_bytes",
+      attributes: { "pve.scope": "node" },
+    });
+
+    const charted: Array<MetricQueryConfigData> =
+      MonitorStepMetricQueries.getReadQueryConfigs({
+        monitorType: MonitorType.Proxmox,
+        settings: {
+          clusterIdentifier: "pve-prod",
+          resourceFilters: { guestId: "qemu/100" },
+          metricViewConfig: {
+            queryConfigs: [first, second],
+            formulaConfigs: [],
+          },
+        } as never,
+      });
+
+    expect(
+      charted.map((query: MetricQueryConfigData) => {
+        return query.metricQueryData.filterData.attributes;
+      }),
+    ).toEqual([
+      { "resource.proxmox.cluster.name": "pve-prod", id: "qemu/100" },
+      {
+        "pve.scope": "node",
+        "resource.proxmox.cluster.name": "pve-prod",
+        id: "qemu/100",
+      },
+    ]);
+    expect(
+      charted.map((query: MetricQueryConfigData) => {
+        return query.metricAliasData?.metricVariable;
+      }),
+    ).toEqual(["a", "b"]);
+    // Everything but the filters is the query's own.
+    expect(charted[1]!.criticalThreshold).toBe(95);
+    expect(charted[1]!.metricQueryData.groupByAttributeKeys).toEqual([
+      "host.name",
+    ]);
+  });
+
+  test("the same queries getReads charts, for a step with nothing broken in it", () => {
+    for (const monitorType of MonitorStepMetricQueries.getMonitorTypes()) {
+      const step: MonitorStep = stepOf({
+        stepKey: MonitorStepMetricQueries.getStepKey(monitorType)!,
+        settings: {
+          hostIdentifier: "Web-01",
+          clusterIdentifier: "prod",
+          cloudIdentifier: "cloud",
+          vcenterIdentifier: "vc",
+          arrayIdentifier: "array",
+          fleetIdentifier: "Sensors",
+        },
+        queryConfigs: [
+          queryOf({ variable: "a" }),
+          queryOf({ variable: "b", attributes: { "own.key": "x" } }),
+        ],
+      });
+
+      expect(
+        MonitorStepMetricQueries.getReadQueryConfigs({
+          monitorType: monitorType,
+          settings: MonitorStepMetricQueries.getSettings({
+            monitorType: monitorType,
+            monitorStep: step,
+          }),
+        }),
+      ).toEqual(
+        MonitorStepMetricQueries.getReads({
+          monitorType: monitorType,
+          monitorStep: step,
+        })!.queryConfigs,
+      );
+    }
+  });
+
+  test("what is not a query stays where it is, so the list lines up with the editor's", () => {
+    const query: MetricQueryConfigData = queryOf({});
+
+    const charted: Array<MetricQueryConfigData> =
+      MonitorStepMetricQueries.getReadQueryConfigs({
+        monitorType: MonitorType.Host,
+        settings: {
+          hostIdentifier: "web-01",
+          metricViewConfig: {
+            queryConfigs: [null, query, "broken"] as never,
+            formulaConfigs: [],
+          },
+        } as never,
+      });
+
+    expect(charted).toHaveLength(3);
+    expect(charted[0]).toBeNull();
+    expect(charted[2]).toBe("broken");
+    expect(charted[1]!.metricQueryData.filterData.attributes).toEqual({
+      "resource.host.name": "web-01",
+    });
+  });
+
+  test("queries handed in are read in place of the settings' own", () => {
+    const handedIn: MetricQueryConfigData = queryOf({ metricName: "other" });
+
+    const charted: Array<MetricQueryConfigData> =
+      MonitorStepMetricQueries.getReadQueryConfigs({
+        monitorType: MonitorType.Ceph,
+        settings: {
+          clusterIdentifier: "ceph-1",
+          metricViewConfig: {
+            queryConfigs: [queryOf({}), queryOf({})],
+            formulaConfigs: [],
+          },
+        } as never,
+        queryConfigs: [handedIn],
+      });
+
+    expect(charted).toHaveLength(1);
+    expect(charted[0]!.metricQueryData.filterData.metricName).toBe("other");
+    expect(charted[0]!.metricQueryData.filterData.attributes).toEqual({
+      "resource.ceph.cluster.name": "ceph-1",
+    });
+  });
+
+  test("no settings, no queries, or a type it cannot read", () => {
+    const query: MetricQueryConfigData = queryOf({ attributes: { a: "b" } });
+
+    expect(
+      MonitorStepMetricQueries.getReadQueryConfigs({
+        monitorType: MonitorType.Host,
+        settings: undefined,
+      }),
+    ).toEqual([]);
+    expect(
+      MonitorStepMetricQueries.getReadQueryConfigs({
+        monitorType: MonitorType.Host,
+        settings: { metricViewConfig: { queryConfigs: "x" } } as never,
+      }),
+    ).toEqual([]);
+    // Without settings the queries are as handed in.
+    expect(
+      MonitorStepMetricQueries.getReadQueryConfigs({
+        monitorType: MonitorType.Host,
+        settings: null,
+        queryConfigs: [query],
+      })[0],
+    ).toBe(query);
+    // A type that is not metric-backed reads every query with nothing.
+    expect(
+      Object.keys(
+        MonitorStepMetricQueries.getReadQueryConfigs({
+          monitorType: MonitorType.Website,
+          settings: { metricViewConfig: { queryConfigs: [query] } } as never,
+        })[0]!.metricQueryData.filterData,
+      ),
+    ).not.toContain("attributes");
+  });
+
+  test("an empty filter map is read as none, as the worker reads it", () => {
+    const charted: Array<MetricQueryConfigData> =
+      MonitorStepMetricQueries.getReadQueryConfigs({
+        monitorType: MonitorType.Kubernetes,
+        settings: {
+          clusterIdentifier: "",
+          metricViewConfig: {
+            queryConfigs: [queryOf({ attributes: {} })],
+            formulaConfigs: [],
+          },
+        } as never,
+      });
+
+    expect(Object.keys(charted[0]!.metricQueryData.filterData)).not.toContain(
+      "attributes",
+    );
+  });
+
+  test("operator-valued scopes are the worker's own operators", () => {
+    const [iot] = MonitorStepMetricQueries.getReadQueryConfigs({
+      monitorType: MonitorType.IoTDevice,
+      settings: {
+        fleetIdentifier: " Warehouse*1 ",
+        metricViewConfig: { queryConfigs: [queryOf({})], formulaConfigs: [] },
+      } as never,
+    });
+    const [swarm] = MonitorStepMetricQueries.getReadQueryConfigs({
+      monitorType: MonitorType.DockerSwarm,
+      settings: {
+        clusterIdentifier: "swarm",
+        resourceFilters: { tasksOnly: true },
+        metricViewConfig: { queryConfigs: [queryOf({})], formulaConfigs: [] },
+      } as never,
+    });
+
+    const fleet: unknown = (
+      iot!.metricQueryData.filterData.attributes as Dictionary<unknown>
+    )["resource.iot.fleet.name"];
+    expect(fleet).toBeInstanceOf(Wildcard);
+    // Trimmed, and matched as written: its own "*" is no wildcard.
+    expect((fleet as Wildcard<string>).values).toEqual(["Warehouse\\*1"]);
+    expect(
+      (swarm!.metricQueryData.filterData.attributes as Dictionary<unknown>)[
+        SWARM_TASK_SERVICE_ATTRIBUTE
+      ],
+    ).toBeInstanceOf(NotNull);
+  });
+
+  test("the settings and their queries are left as they were (seeded)", () => {
+    const random: SeededRandom = seededRandom(6264);
+
+    for (let round: number = 0; round < 200; round++) {
+      const monitorType: MonitorType =
+        MonitorStepMetricQueries.getMonitorTypes()[
+          random(MonitorStepMetricQueries.getMonitorTypes().length)
+        ]!;
+      const queryConfigs: Array<MetricQueryConfigData> = [];
+      const count: number = random(4);
+      for (let index: number = 0; index < count; index++) {
+        queryConfigs.push(
+          queryOf({
+            variable: String.fromCharCode(97 + index),
+            ...(random(2) === 0
+              ? {}
+              : { attributes: { [`own.${index}`]: `${round}` } }),
+          }),
+        );
+      }
+      const settings: JSONObject = {
+        hostIdentifier: `host-${random(5)}`,
+        clusterIdentifier: `cluster-${random(5)}`,
+        fleetIdentifier: `fleet-${random(5)}`,
+        metricViewConfig: { queryConfigs, formulaConfigs: [] },
+      } as unknown as JSONObject;
+      const before: string = JSON.stringify(settings);
+
+      const charted: Array<MetricQueryConfigData> =
+        MonitorStepMetricQueries.getReadQueryConfigs({
+          monitorType: monitorType,
+          settings: settings as never,
+        });
+
+      expect(charted).toHaveLength(count);
+      charted.forEach((query: MetricQueryConfigData, index: number) => {
+        // Never the editor's own object: a change to one is not the other.
+        expect(query).not.toBe(queryConfigs[index]);
+        expect(query.metricAliasData?.metricVariable).toBe(
+          queryConfigs[index]!.metricAliasData?.metricVariable,
+        );
+      });
+      expect(JSON.stringify(settings)).toBe(before);
+    }
+  });
+});
+
+/*
+ * Issue #6266: a Metrics monitor limited to some services reads every query
+ * for those services only, so each of its read queries carries them, and a
+ * chart of them shows those services' series only.
+ */
+describe("the services each query is read for", () => {
+  const SERVICES: Array<string> = [
+    "44444444-4444-4444-8444-444444444444",
+    "55555555-5555-4555-8555-555555555555",
+  ];
+
+  const servicesOf: (query: MetricQueryConfigData | undefined) => unknown = (
+    query: MetricQueryConfigData | undefined,
+  ): unknown => {
+    return query?.metricQueryData.filterData.telemetryServiceIds;
+  };
+
+  test("a Metrics step's services, on every one of its queries", () => {
+    const reads: MonitorStepMetricReads = MonitorStepMetricQueries.getReads({
+      monitorType: MonitorType.Metrics,
+      monitorStep: stepOf({
+        stepKey: "metricMonitor",
+        settings: { telemetryServiceIds: SERVICES as never },
+        queryConfigs: [
+          queryOf({ variable: "a" }),
+          queryOf({ variable: "b", attributes: { "own.key": "x" } }),
+        ],
+      }),
+    })!;
+
+    expect(reads.queryConfigs.map(servicesOf)).toEqual([SERVICES, SERVICES]);
+    expect(reads.telemetryServiceIds).toEqual(SERVICES);
+    // Its own filters with them, as the worker reads them.
+    expect(
+      reads.queryConfigs[1]!.metricQueryData.filterData.attributes,
+    ).toEqual({ "own.key": "x" });
+  });
+
+  test("ObjectIDs as their ids, each once, as the step stores them", () => {
+    const [query] = MonitorStepMetricQueries.getReadQueryConfigs({
+      monitorType: MonitorType.Metrics,
+      settings: {
+        telemetryServiceIds: [
+          new ObjectID(SERVICES[0]!),
+          SERVICES[0],
+          "",
+        ] as never,
+        metricViewConfig: { queryConfigs: [queryOf({})], formulaConfigs: [] },
+      } as never,
+    });
+
+    expect(servicesOf(query)).toEqual([SERVICES[0]]);
+  });
+
+  test("a Metrics step read for every service: no service filter at all", () => {
+    for (const telemetryServiceIds of [undefined, [], null]) {
+      const [query] = MonitorStepMetricQueries.getReadQueryConfigs({
+        monitorType: MonitorType.Metrics,
+        settings: {
+          ...(telemetryServiceIds !== undefined
+            ? { telemetryServiceIds: telemetryServiceIds }
+            : {}),
+          metricViewConfig: {
+            queryConfigs: [queryOf({})],
+            formulaConfigs: [],
+          },
+        } as never,
+      });
+
+      expect(Object.keys(query!.metricQueryData.filterData)).not.toContain(
+        "telemetryServiceIds",
+      );
+    }
+  });
+
+  test("a filter a query was saved with by other means is read as the worker reads it", () => {
+    const saved: MetricQueryConfigData = {
+      ...queryOf({}),
+      metricQueryData: {
+        ...queryOf({}).metricQueryData,
+        filterData: {
+          ...queryOf({}).metricQueryData.filterData,
+          telemetryServiceIds: ["someone-else"],
+        } as never,
+      },
+    };
+
+    // A Metrics step: the step's services, not the query's.
+    expect(
+      servicesOf(
+        MonitorStepMetricQueries.getReadQueryConfigs({
+          monitorType: MonitorType.Metrics,
+          settings: {
+            telemetryServiceIds: SERVICES as never,
+            metricViewConfig: { queryConfigs: [saved], formulaConfigs: [] },
+          } as never,
+        })[0],
+      ),
+    ).toEqual(SERVICES);
+
+    // Any other type reads every service: none.
+    for (const monitorType of MonitorStepMetricQueries.getMonitorTypes()) {
+      if (monitorType === MonitorType.Metrics) {
+        continue;
+      }
+
+      const [query] = MonitorStepMetricQueries.getReadQueryConfigs({
+        monitorType: monitorType,
+        settings: {
+          clusterIdentifier: "prod",
+          hostIdentifier: "web-01",
+          telemetryServiceIds: SERVICES as never,
+          metricViewConfig: { queryConfigs: [saved], formulaConfigs: [] },
+        } as never,
+      });
+
+      expect(Object.keys(query!.metricQueryData.filterData)).not.toContain(
+        "telemetryServiceIds",
+      );
+    }
+  });
+
+  test("only a Metrics step reads for some services", () => {
+    for (const monitorType of MonitorStepMetricQueries.getMonitorTypes()) {
+      expect(
+        MonitorStepMetricQueries.getReadServiceIds({
+          monitorType: monitorType,
+          settings: { telemetryServiceIds: SERVICES } as never,
+        }),
+      ).toEqual(monitorType === MonitorType.Metrics ? SERVICES : []);
+    }
+
+    expect(
+      MonitorStepMetricQueries.getReadServiceIds({
+        monitorType: MonitorType.Metrics,
+        settings: undefined,
+      }),
+    ).toEqual([]);
   });
 });

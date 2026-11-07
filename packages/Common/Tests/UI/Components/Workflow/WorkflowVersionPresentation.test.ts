@@ -6,10 +6,13 @@ import {
   WorkflowVersionRow,
   canPreviewWorkflowVersion,
   getWorkflowVersionHeadline,
+  describeWorkflowVersionSavedBy,
   getWorkflowVersionLines,
   getWorkflowVersionSavedBy,
 } from "../../../../UI/Components/Workflow/WorkflowVersionPresentation";
 import { WorkflowVersionType } from "../../../../Types/Workflow/WorkflowVersion";
+import WriteSource from "../../../../Types/BaseDatabase/WriteSource";
+import { getGlobalTranslator } from "../../../../UI/Utils/TranslateTemplate";
 
 /*
  * What the version history says of each version (issue #6188).
@@ -135,6 +138,79 @@ describe("who saved a version", () => {
         row({ savedBy: "", versionType: WorkflowVersionType.Earlier }),
       ),
     ).toBeNull();
+  });
+
+  // Issue #6258: Ask AI saves as the person who asked, and the version says so.
+  test("Ask AI, for the person who asked", () => {
+    expect(
+      getWorkflowVersionSavedBy(row({ savedThrough: WriteSource.AskAi })),
+    ).toEqual({ askAiFor: "Ada Lovelace" });
+    expect(
+      getWorkflowVersionSavedBy(
+        row({
+          savedThrough: WriteSource.AskAi,
+          versionType: WorkflowVersionType.Created,
+        }),
+      ),
+    ).toEqual({ askAiFor: "Ada Lovelace" });
+  });
+
+  test("Ask AI, once that person is no longer known", () => {
+    expect(
+      getWorkflowVersionSavedBy(
+        row({ savedThrough: WriteSource.AskAi, savedBy: "" }),
+      ),
+    ).toEqual({ sentence: WorkflowVersionCopy.savedByAskAi });
+  });
+
+  test("a person's own version, and the API's, are as before", () => {
+    for (const savedThrough of [null, undefined]) {
+      expect(getWorkflowVersionSavedBy(row({ savedThrough }))).toEqual({
+        person: "Ada Lovelace",
+      });
+      expect(
+        getWorkflowVersionSavedBy(row({ savedThrough, savedBy: "" })),
+      ).toEqual({ sentence: WorkflowVersionCopy.savedWithoutPerson });
+    }
+  });
+
+  test("said in words: the person's name as written, Ask AI's sentence around it", () => {
+    const translator: ReturnType<typeof getGlobalTranslator> =
+      getGlobalTranslator();
+
+    expect(
+      describeWorkflowVersionSavedBy({
+        savedBy: { askAiFor: "Ada Lovelace" },
+        translator,
+      }),
+    ).toBe("Ask AI, for Ada Lovelace");
+    expect(
+      describeWorkflowVersionSavedBy({
+        savedBy: { askAiFor: "{{person}} <b>Eve</b>" },
+        translator,
+      }),
+    ).toBe("Ask AI, for {{person}} <b>Eve</b>");
+    expect(
+      describeWorkflowVersionSavedBy({
+        savedBy: { person: "Grace Hopper" },
+        translator,
+      }),
+    ).toBe("Grace Hopper");
+    expect(
+      describeWorkflowVersionSavedBy({
+        savedBy: { sentence: WorkflowVersionCopy.savedByAskAi },
+        translator,
+      }),
+    ).toBe("Saved by Ask AI");
+    expect(
+      describeWorkflowVersionSavedBy({
+        savedBy: { sentence: WorkflowVersionCopy.savedWithoutPerson },
+        translator,
+      }),
+    ).toBe("Saved through the API");
+    expect(describeWorkflowVersionSavedBy({ savedBy: null, translator })).toBe(
+      "",
+    );
   });
 });
 

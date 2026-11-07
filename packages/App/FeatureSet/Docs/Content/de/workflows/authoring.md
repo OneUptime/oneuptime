@@ -180,7 +180,7 @@ Jede Änderung, die Sie auf der Arbeitsfläche vornehmen, lässt sich zurückneh
 - Auch die Tastatur funktioniert: ⌘Z auf einem Mac oder Ctrl+Z macht rückgängig, und ⇧⌘Z, Ctrl+Shift+Z oder Ctrl+Y wiederholt. Während Sie in einem Feld oder einem Code-Editor tippen, machen dieselben Tasten stattdessen Ihre Eingabe rückgängig.
 - Ein Rückgängigmachen wird wie jede andere Änderung gespeichert. Rückgängig machen können Sie alles, was Sie seit dem Öffnen des Editors getan haben; der Versionsverlauf reicht weiter zurück.
 
-**Versionsverlauf** in der Werkzeugleiste listet jede gespeicherte Version des Workflows auf, die neueste zuerst: wer sie gespeichert hat, wann und was sie geändert hat, etwa `Added "Send Email" (send-email-1)`. Die Änderungen, die Sie innerhalb von 10 Minuten nacheinander speichern, bilden eine Version, sodass eine Version ein Stück Arbeit ist und nicht jeder einzelne Klick. Änderungen, die Ask AI vornimmt, und Änderungen über die API sind ebenfalls Versionen.
+**Versionsverlauf** in der Werkzeugleiste listet jede gespeicherte Version des Workflows auf, die neueste zuerst: wer sie gespeichert hat, wann und was sie geändert hat, etwa `Added "Send Email" (send-email-1)`. Die Änderungen, die Sie innerhalb von 10 Minuten nacheinander speichern, bilden eine Version, sodass eine Version ein Stück Arbeit ist und nicht jeder einzelne Klick. Änderungen über die API sind ebenfalls Versionen, und jede Änderung, die Ask AI vornimmt, ist eine eigene Version, die sagt, dass Ask AI sie für Sie vorgenommen hat. Wenn Sie die Version davor wiederherstellen, nehmen Sie genau das zurück, was Ask AI getan hat.
 
 So kehren Sie zu einer früheren Version zurück:
 

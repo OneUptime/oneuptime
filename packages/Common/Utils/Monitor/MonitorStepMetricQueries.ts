@@ -42,6 +42,7 @@ import { getOpenStackMetricByMetricName } from "../../Types/Monitor/OpenStackMet
 import { getStorageArrayObjectLabel } from "../../Types/Monitor/StorageArrayMetricCatalog";
 import RollingTime from "../../Types/RollingTime/RollingTime";
 import RollingTimeUtil from "../../Types/RollingTime/RollingTimeUtil";
+import MetricQueryServices from "../Metrics/MetricQueryServices";
 import { canonicalizeEntityValue } from "../Telemetry/EntityKey";
 
 /*
@@ -232,8 +233,8 @@ export interface MonitorStepMetricReads {
   /*
    * The telemetry services a Metrics step reads its metric for, by id
    * (MonitorStepMetricMonitor.telemetryServiceIds). The worker narrows by
-   * the rows' service, which a metric chart's attribute filters cannot
-   * say: a chart of these queries shows every service's series.
+   * the rows' service; each of the queries above carries the same filter
+   * (MetricsQuery.telemetryServiceIds, issue #6266). Empty: every service.
    */
   telemetryServiceIds: Array<string>;
 }
@@ -776,6 +777,85 @@ export default class MonitorStepMetricQueries {
   }
 
   /*
+   * The services the worker reads every query of a step for: a Metrics
+   * step's own (MonitorStepMetricMonitor.telemetryServiceIds), and none for
+   * any other type, whose worker reads every service.
+   */
+  public static getReadServiceIds(input: {
+    monitorType: MonitorType | undefined | null;
+    settings: MetricMonitorStepSettings | undefined | null;
+  }): Array<string> {
+    if (input.monitorType !== MonitorType.Metrics || !input.settings) {
+      return [];
+    }
+
+    return MetricQueryServices.normalize(
+      (input.settings as MonitorStepMetricMonitor).telemetryServiceIds,
+    );
+  }
+
+  /*
+   * The step's queries, each as its monitor reads it, index for index: a
+   * query with the attribute filters the worker reads it with in place of
+   * its own, and for the services it reads it for (none: every service).
+   * The queries are the settings' own unless others are given;
+   * what is not a query is handed back as it is, so the list lines up with
+   * the one it was made from.
+   *
+   * A step form's chart reads its queries through this (issue #6264): the
+   * query editor keeps the queries as the step saves them, and the chart
+   * shows what the monitor will read - the cluster, host or fleet it
+   * watches and its resource filters, which the worker adds before each
+   * check and the step never stores.
+   */
+  public static getReadQueryConfigs(input: {
+    monitorType: MonitorType | undefined | null;
+    settings: MetricMonitorStepSettings | undefined | null;
+    queryConfigs?: Array<MetricQueryConfigData> | undefined;
+  }): Array<MetricQueryConfigData> {
+    const queryConfigs: unknown =
+      input.queryConfigs || input.settings?.metricViewConfig?.queryConfigs;
+
+    if (!Array.isArray(queryConfigs)) {
+      return [];
+    }
+
+    const settings: MetricMonitorStepSettings | undefined | null =
+      input.settings;
+
+    const serviceIds: Array<string> =
+      MonitorStepMetricQueries.getReadServiceIds({
+        monitorType: input.monitorType,
+        settings: settings,
+      });
+
+    return (queryConfigs as Array<MetricQueryConfigData>).map(
+      (queryConfig: MetricQueryConfigData): MetricQueryConfigData => {
+        if (!settings || !queryConfig || typeof queryConfig !== "object") {
+          return queryConfig;
+        }
+
+        /*
+         * The worker reads the step's services, never a query's own: a
+         * service filter a query was saved with by other means is read as
+         * the worker reads it, not charted.
+         */
+        return MetricQueryServices.withServiceIds(
+          MonitorStepMetricQueries.withAttributes(
+            queryConfig,
+            MonitorStepMetricQueries.getReadAttributes({
+              monitorType: input.monitorType,
+              settings: settings,
+              queryConfig: queryConfig,
+            }),
+          ),
+          serviceIds,
+        );
+      },
+    );
+  }
+
+  /*
    * The step's queries as its monitor reads them, or null when the step is
    * not a metric-backed one of this monitor type.
    */
@@ -797,27 +877,20 @@ export default class MonitorStepMetricQueries {
       );
 
     const queryConfigs: Array<MetricQueryConfigData> =
-      metricViewConfig.queryConfigs
-        .filter((queryConfig: MetricQueryConfigData): boolean => {
-          return Boolean(queryConfig && typeof queryConfig === "object");
-        })
-        .map((queryConfig: MetricQueryConfigData): MetricQueryConfigData => {
-          return MonitorStepMetricQueries.withAttributes(
-            queryConfig,
-            MonitorStepMetricQueries.getReadAttributes({
-              monitorType: input.monitorType,
-              settings: settings,
-              queryConfig: queryConfig,
-            }),
-          );
-        });
+      MonitorStepMetricQueries.getReadQueryConfigs({
+        monitorType: input.monitorType,
+        settings: settings,
+        queryConfigs: metricViewConfig.queryConfigs.filter(
+          (queryConfig: MetricQueryConfigData): boolean => {
+            return Boolean(queryConfig && typeof queryConfig === "object");
+          },
+        ),
+      });
 
     const metricMonitor: MonitorStepMetricMonitor | undefined =
       input.monitorType === MonitorType.Metrics
         ? (settings as MonitorStepMetricMonitor)
         : undefined;
-
-    const telemetryServiceIds: unknown = metricMonitor?.telemetryServiceIds;
 
     return {
       queryConfigs: queryConfigs,
@@ -829,16 +902,10 @@ export default class MonitorStepMetricQueries {
       rollingTime: settings.rollingTime || RollingTime.Past1Minute,
       aggregatesWholeWindow:
         MonitorStepMetricMonitorUtil.aggregatesWholeWindow(metricMonitor),
-      telemetryServiceIds: (Array.isArray(telemetryServiceIds)
-        ? telemetryServiceIds
-        : []
-      )
-        .map((serviceId: unknown): string => {
-          return serviceId ? String(serviceId) : "";
-        })
-        .filter((serviceId: string): boolean => {
-          return serviceId !== "";
-        }),
+      telemetryServiceIds: MonitorStepMetricQueries.getReadServiceIds({
+        monitorType: input.monitorType,
+        settings: settings,
+      }),
     };
   }
 
@@ -867,8 +934,11 @@ export default class MonitorStepMetricQueries {
     });
   }
 
-  // A copy of the query that reads with these attributes, and only these.
-  private static withAttributes(
+  /*
+   * A copy of the query that reads with these attributes, and only these:
+   * none at all when there are none. Read by MetricTelemetrySnapshot too.
+   */
+  public static withAttributes(
     queryConfig: MetricQueryConfigData,
     attributes: Dictionary<unknown> | undefined,
   ): MetricQueryConfigData {

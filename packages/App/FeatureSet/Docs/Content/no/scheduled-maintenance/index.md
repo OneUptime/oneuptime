@@ -58,7 +58,7 @@ Kunngjøringer beskrives på [Abonnenter og kunngjøringer](/docs/status-pages/s
 | **Kalender** | **Vedlikeholdskalender**: hver hendelse på en måned, en uke eller en dag, ved siden av kalenderne utenfor prosjektet som du legger til. |
 | **Arbeidsområde** | **Slack**, **Microsoft Teams** og **Mattermost**, avhengig av hva prosjektet har koblet til, eller **Koble til et arbeidsområde** når det ikke har noen av dem. |
 | **Regler**    | **Eierregler**, **Runbook-regler**, **Etikettregler**, **Påminnelsesregler**.                                                  |
-| **Innstillinger** | **Hendelsesstatus**, **Hendelsesmaler**, **Notatmaler**, **Public Note Approval**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger**, **Nummerering**.       |
+| **Innstillinger** | **Hendelsesstatus**, **Hendelsesmaler**, **Notatmaler**, **Godkjenning av offentlige notater**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger**, **Nummerering**.       |
 
 **Oversikt** og **Kalender** er åpne; **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** starter sammenslått, og en seksjon åpner seg av seg selv når du er på en av sidene dens. **Utvikler** rommer **Terraform**, **API**, **CLI** og **AI-assistenter**, for å styre vedlikehold fra kode. Alt om vedlikehold ligger her, ikke i **Prosjektinnstillinger**.
 

@@ -73,7 +73,10 @@ import PublicNoteApprovalWrites, {
  *    asked.
  *  - An edit of a held note sends it for approval again; an edit of a
  *    published note waits in pendingNote while its project asks for
- *    approval (beforeUpdate).
+ *    approval (beforeUpdate). What such an edit writes is worked out from
+ *    the note as it was read, so it is written only while the note is
+ *    still at that version: a decision written in between is never
+ *    overwritten by it (holdToVersionRead).
  *  - A decision (decide) is the only thing that publishes a note: the last
  *    step's approval. It is written in one update that holds only while the
  *    note is at the version the decision read, so two people deciding at
@@ -174,7 +177,11 @@ interface NoteFields {
   version?: number | undefined;
 }
 
-// What onBeforeUpdate hands onUpdateSuccess (carryForward.publicNoteApproval).
+/*
+ * What onBeforeUpdate hands onUpdateSuccess (carryForward.publicNoteApproval).
+ * Every note named here was held to the version it was read at
+ * (holdToVersionRead): one the update did not write was changed meanwhile.
+ */
 export interface PublicNoteApprovalUpdate {
   // Published notes whose edit now waits for approval.
   heldEditNoteIds: Array<string>;
@@ -347,6 +354,11 @@ export default class PublicNoteApprovalEngine {
    *    edit back to the published text drops a waiting one;
    *  - while the project no longer asks, an edit of a published note
    *    applies as it always has, and a waiting edit it replaces is dropped.
+   *
+   * The notes are the very rows the update writes, and the update is held
+   * to them (readNotesOfUpdate). An edit whose approval is worked out here
+   * is also held to the version of the note it was worked out from
+   * (holdToVersionRead).
    */
   @CaptureSpan()
   public static async beforeUpdate<TNote extends BaseModel>(data: {
@@ -418,7 +430,7 @@ export default class PublicNoteApprovalEngine {
           PublicNoteApprovalState.Published
         );
       }) ||
-      (await this.isRequiredFor(data.host, notes[0]!));
+      (await this.isRequiredForAnyOf(data.host, notes));
 
     if (!isGoverned) {
       return result;
@@ -460,6 +472,7 @@ export default class PublicNoteApprovalEngine {
             editorUserId,
           }),
         );
+        this.holdToVersionRead(data.updateBy, note);
         result.resentNoteIds.push(noteId);
       }
 
@@ -505,6 +518,7 @@ export default class PublicNoteApprovalEngine {
           data.updateBy.data,
           PublicNoteApprovalWrites.forDroppedEdit(round),
         );
+        this.holdToVersionRead(data.updateBy, note);
         result.droppedEditNoteIds.push(noteId);
         result.isUpdateNotificationHeld = true;
       }
@@ -530,10 +544,39 @@ export default class PublicNoteApprovalEngine {
       }),
     );
 
+    this.holdToVersionRead(data.updateBy, note);
     result.heldEditNoteIds.push(noteId);
     result.isUpdateNotificationHeld = true;
 
     return result;
+  }
+
+  /*
+   * What an edit of a note writes to its approval - sent again, held in
+   * pendingNote, a waiting edit dropped - is worked out from the note as
+   * beforeUpdate read it, and the note can change before the edit is
+   * written: the last step's approval publishes it, an approver rejects it,
+   * another edit sends it again. So the edit is written only while the note
+   * is still at the version it was read at: the update's query names that
+   * version, and DatabaseService writes such a query as a compare-and-set,
+   * in the UPDATE itself. A decision written in between stands, and the
+   * edit writes nothing; afterUpdate tells its author to look again. Were
+   * the edit written anyway, an edit of a waiting note would land on the
+   * published note - on status pages unapproved, and read as an edit
+   * waiting with no text, which approving would publish as an empty note.
+   */
+  private static holdToVersionRead<TNote extends BaseModel>(
+    updateBy: UpdateBy<TNote>,
+    note: NoteFields,
+  ): void {
+    if (typeof note.version !== "number") {
+      throw new BadDataException(PublicNoteApprovalMessages.changedMeanwhile);
+    }
+
+    updateBy.query = {
+      ...updateBy.query,
+      version: note.version,
+    } as Query<TNote>;
   }
 
   /*
@@ -560,21 +603,45 @@ export default class PublicNoteApprovalEngine {
    * dropped says that. True when the update was one of those, so the
    * caller posts nothing more - an edit is announced, to the feed and the
    * chat channels, only once it is approved.
+   *
+   * An edit held to a note's version (holdToVersionRead) that did not
+   * write it found the note changed meanwhile: nothing of it was saved, so
+   * nothing is announced, and its author is told to look again - rather
+   * than told the edit was saved, or that they may not edit the note.
    */
   @CaptureSpan()
   public static async afterUpdate<TNote extends BaseModel>(data: {
     host: PublicNoteApprovalHost<TNote>;
     update: PublicNoteApprovalUpdate | null | undefined;
+    // The notes the update wrote (onUpdateSuccess's updatedItemIds).
+    updatedNoteIds: Array<ObjectID>;
     props: DatabaseCommonInteractionProps;
   }): Promise<boolean> {
     if (!data.update) {
       return false;
     }
 
-    const handled: boolean =
-      data.update.heldEditNoteIds.length > 0 ||
-      data.update.resentNoteIds.length > 0 ||
-      data.update.droppedEditNoteIds.length > 0;
+    const written: Set<string> = new Set<string>(
+      data.updatedNoteIds.map((id: ObjectID): string => {
+        return id.toString().toLowerCase();
+      }),
+    );
+
+    const heldNoteIds: Array<string> = [
+      ...data.update.heldEditNoteIds,
+      ...data.update.resentNoteIds,
+      ...data.update.droppedEditNoteIds,
+    ];
+
+    if (
+      heldNoteIds.some((noteId: string): boolean => {
+        return !written.has(noteId.toLowerCase());
+      })
+    ) {
+      throw new BadDataException(PublicNoteApprovalMessages.changedMeanwhile);
+    }
+
+    const handled: boolean = heldNoteIds.length > 0;
 
     try {
       for (const noteId of [
@@ -619,22 +686,22 @@ export default class PublicNoteApprovalEngine {
   }
 
   /*
-   * The notes an update writes, as they are, for beforeUpdate: at most two
-   * (an edit approval governs names one note). Read as OneUptime: the
-   * update's query is already held to the rows its caller may write.
+   * The notes an update writes, as they are, for beforeUpdate - and the
+   * update held to them (DatabaseService.findRowsAndHoldUpdateToThem): the
+   * rows the caller may write, in the update's own window, every one of
+   * them. So the notes approval judges are the notes written: none the
+   * caller may not write, none outside the window, and none left unread -
+   * an update of three notes is judged by all three, not by two of them.
    */
   @CaptureSpan()
   public static async readNotesOfUpdate<TNote extends BaseModel>(data: {
     host: PublicNoteApprovalKind<TNote>;
     updateBy: UpdateBy<TNote>;
   }): Promise<Array<TNote>> {
-    return await data.host.service.findBy({
-      query: data.updateBy.query,
-      select: this.noteSelect(data.host),
-      limit: 2,
-      skip: 0,
-      props: ROOT,
-    });
+    return await data.host.service.findRowsAndHoldUpdateToThem(
+      data.updateBy,
+      this.noteSelect(data.host),
+    );
   }
 
   // ---------- deciding ----------
@@ -1764,6 +1831,30 @@ export default class PublicNoteApprovalEngine {
       projectId: note.projectId,
       eventType: host.eventType,
     });
+  }
+
+  // Whether the project of any of these notes asks for approval: each project asked once.
+  private static async isRequiredForAnyOf<TNote extends BaseModel>(
+    host: PublicNoteApprovalKind<TNote>,
+    notes: Array<NoteFields>,
+  ): Promise<boolean> {
+    const asked: Set<string> = new Set<string>();
+
+    for (const note of notes) {
+      const projectId: string = note.projectId?.toString() || "";
+
+      if (!projectId || asked.has(projectId)) {
+        continue;
+      }
+
+      asked.add(projectId);
+
+      if (await this.isRequiredFor(host, note)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private static async addFeedItem<TNote extends BaseModel>(data: {

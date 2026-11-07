@@ -19,7 +19,7 @@ Abra **Incidentes** no menu **Produtos** da barra superior e expanda **Configura
 | **Severidade do incidente**     | Adicionar, renomear, recolorir e reordenar os níveis de severidade.                                |
 | **Modelos de incidentes**       | Preencher um incidente inteiro — título, descrição, recursos, políticas de plantão, proprietários, rótulos. |
 | **Modelos de notas**            | Texto reutilizável para notas públicas e privadas.                                                 |
-| **Public Note Approval** | Faça com que as notas públicas sejam aprovadas antes de serem publicadas e escolha quem as aprova. |
+| **Aprovação de notas públicas** | Faça com que as notas públicas sejam aprovadas antes de serem publicadas e escolha quem as aprova. |
 | **Modelos de post-mortem**      | Estruturas de post-mortem reutilizáveis.                                                           |
 | **Status de post-mortem** | Os status pelos quais um post-mortem passa, de Não iniciado a Concluído. |
 | **Campos personalizados**       | Definir campos extras que aparecem em todo incidente.                                              |

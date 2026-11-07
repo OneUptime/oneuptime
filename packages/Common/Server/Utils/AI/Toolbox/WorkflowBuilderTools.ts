@@ -5,6 +5,7 @@ import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/Datab
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
 import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessControl";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import WriteSource from "../../../../Types/BaseDatabase/WriteSource";
 import { getCustomFieldRecordKind } from "../../../../Types/CustomField/CustomFieldRecordKinds";
 import {
   CustomFieldDropdownOption,
@@ -1013,10 +1014,14 @@ export const CreateWorkflowTool: ObservabilityTool = {
       workflow.description = description;
     }
 
-    // As the person: what they may not create in the dashboard, this does not.
+    /*
+     * As the person: what they may not create in the dashboard, this does
+     * not. Saying the workflow is Ask AI's work, for its first version
+     * (writeSource: attribution only, issue #6258).
+     */
     const created: Workflow = await WorkflowService.create({
       data: workflow,
-      props: ctx.props,
+      props: { ...ctx.props, writeSource: WriteSource.AskAi },
     });
 
     const id: string = created.id!.toString();
@@ -1280,11 +1285,16 @@ export const UpdateWorkflowTool: ObservabilityTool = {
       );
     }
 
-    // As the person: what they may not change in the Builder, this does not.
+    /*
+     * As the person: what they may not change in the Builder, this does not.
+     * Saying the change is Ask AI's (writeSource: attribution only), so the
+     * version history keeps it as a version of its own (issue #6258), and
+     * the version before it is the workflow just as Ask AI found it.
+     */
     await WorkflowService.updateOneById({
       id: workflowId,
       data: data as never,
-      props: ctx.props,
+      props: { ...ctx.props, writeSource: WriteSource.AskAi },
     });
 
     const shownName: string = name || workflow.name || "";

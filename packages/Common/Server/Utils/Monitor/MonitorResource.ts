@@ -53,6 +53,7 @@ import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
+import MetricTelemetrySnapshot from "../../../Utils/Monitor/MetricTelemetrySnapshot";
 import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
 import MonitorSummaryCapture from "./MonitorSummaryCapture";
@@ -1207,21 +1208,16 @@ export default class MonitorResourceUtil {
           (dataToProcess as MetricMonitorResponse).metricViewConfig &&
           (dataToProcess as MetricMonitorResponse).startAndEndDate
         ) {
-          telemetryQuery = {
-            telemetryQuery: null,
-            telemetryType: TelemetryType.Metric,
-            metricViewData: {
-              startAndEndDate:
-                (dataToProcess as MetricMonitorResponse).startAndEndDate ||
-                null,
-              queryConfigs: (dataToProcess as MetricMonitorResponse)
-                .metricViewConfig.queryConfigs,
-              formulaConfigs: (dataToProcess as MetricMonitorResponse)
-                .metricViewConfig.formulaConfigs,
-            },
-          };
+          /*
+           * Each query as the check read it: with the cluster, host or
+           * fleet an infrastructure monitor narrows it to, so the event's
+           * card charts what the monitor evaluated (issue #6265).
+           */
+          telemetryQuery = MetricTelemetrySnapshot.fromResponse(
+            dataToProcess as MetricMonitorResponse,
+          );
           logger.debug(
-            `${dataToProcess.monitorId.toString()} - Span query found.`,
+            `${dataToProcess.monitorId.toString()} - Metric query found.`,
           );
         }
 

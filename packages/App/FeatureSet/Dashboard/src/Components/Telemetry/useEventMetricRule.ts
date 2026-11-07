@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import MetricInvestigationQueryUtil, {
@@ -12,16 +13,22 @@ import {
   EventRuleMonitor,
   getEventMetricThresholds,
 } from "../../Utils/EventMetricThresholds";
+import {
+  EventMetricScope,
+  getEventMetricScope,
+} from "../../Utils/EventMetricScope";
 
 /*
- * The rule that opened an incident or alert, for its metric charts to draw
- * (issue #6250; see EventMetricThresholds): the criteria the event names,
- * read off its monitor's steps.
+ * The rule that opened an incident or alert, and the monitor it is on, for
+ * the event's metric card: the line its charts draw (issue #6250; see
+ * EventMetricThresholds), and the metrics they start from - the snapshot's,
+ * narrowed to what the monitor watches now when the snapshot was stored
+ * before it kept its monitor's scope (issue #6265; see EventMetricScope).
  *
  * Read once per event: the event's criteria and monitor, then the monitor's
  * steps. Best effort - a reader who may not read the monitor, a monitor
- * since deleted, or a read that fails, leaves the charts without the line,
- * never with an error.
+ * since deleted, or a read that fails, leaves the charts without the line
+ * and the snapshot as it is, never with an error.
  */
 
 // The most monitors read for one event's rule.
@@ -38,6 +45,13 @@ interface ReadResult {
 }
 
 const NO_THRESHOLDS: Array<MetricInvestigationThreshold> = [];
+
+export interface EventMetricRule {
+  // The rule's line on the charts; none when it cannot be read or drawn.
+  thresholds: Array<MetricInvestigationThreshold>;
+  // The metrics the card starts from, and whether they were narrowed now.
+  scope: EventMetricScope;
+}
 
 const readMonitor: (
   monitorId: ObjectID,
@@ -118,13 +132,24 @@ const readEvent: (input: {
   };
 };
 
-export default function useEventMetricThresholds(input: {
+export default function useEventMetricRule(input: {
   eventNoun: "incident" | "alert";
   // The incident or alert whose rule is drawn; none, no line.
   eventId: string | undefined;
-  // The metrics the event's card starts from: its snapshot's.
+  // The metrics the event's snapshot keeps.
   snapshotQueries: MetricInvestigationQueries;
-}): Array<MetricInvestigationThreshold> {
+  /*
+   * The filters the snapshot keeps beside its queries
+   * (MetricTelemetrySnapshot.getStoredScopes): null for one stored before,
+   * which is narrowed to what its monitor watches now.
+   */
+  storedScopes: Array<Dictionary<unknown> | null> | null;
+  /*
+   * The services the snapshot says every query was read for
+   * (MetricTelemetrySnapshot.getStoredServiceIds); none: every service.
+   */
+  storedServiceIds?: Array<string> | undefined;
+}): EventMetricRule {
   const [result, setResult] = useState<ReadResult | null>(null);
 
   const eventId: string = (input.eventId || "").trim();
@@ -194,18 +219,39 @@ export default function useEventMetricThresholds(input: {
     input.snapshotQueries,
   );
 
-  return useMemo((): Array<MetricInvestigationThreshold> => {
-    if (!rule) {
-      return NO_THRESHOLDS;
-    }
+  // By value too: operators are written as their own JSON.
+  const storedScopesKey: string = JSON.stringify({
+    scopes: input.storedScopes,
+    serviceIds: input.storedServiceIds || [],
+  });
 
-    const thresholds: Array<MetricInvestigationThreshold> =
-      getEventMetricThresholds({
-        createdCriteriaId: rule.createdCriteriaId,
-        monitors: rule.monitors,
-        snapshotQueries: input.snapshotQueries,
-      });
+  const scope: EventMetricScope = useMemo((): EventMetricScope => {
+    return getEventMetricScope({
+      snapshotQueries: input.snapshotQueries,
+      storedScopes: input.storedScopes,
+      storedServiceIds: input.storedServiceIds,
+      createdCriteriaId: rule?.createdCriteriaId,
+      monitors: rule?.monitors || [],
+    });
+  }, [rule, snapshotKey, storedScopesKey]);
 
-    return thresholds.length > 0 ? thresholds : NO_THRESHOLDS;
-  }, [rule, snapshotKey]);
+  const thresholds: Array<MetricInvestigationThreshold> =
+    useMemo((): Array<MetricInvestigationThreshold> => {
+      if (!rule) {
+        return NO_THRESHOLDS;
+      }
+
+      const lines: Array<MetricInvestigationThreshold> =
+        getEventMetricThresholds({
+          createdCriteriaId: rule.createdCriteriaId,
+          monitors: rule.monitors,
+          snapshotQueries: scope.queries,
+        });
+
+      return lines.length > 0 ? lines : NO_THRESHOLDS;
+    }, [rule, scope]);
+
+  return useMemo((): EventMetricRule => {
+    return { thresholds: thresholds, scope: scope };
+  }, [thresholds, scope]);
 }
