@@ -14,6 +14,11 @@ import InventoryAssetDetailsCard from "../../App/FeatureSet/Dashboard/src/Compon
 import DeviceInventoryCard from "../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceInventoryCard";
 import NetworkDeviceView from "../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/View/Index";
 import InventoryItemOverview from "../../App/FeatureSet/Dashboard/src/Pages/Inventory/View/Index";
+import NetworkDeviceSecurityEvents from "../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/View/SecurityEvents";
+import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
+import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
+import Service from "Common/Models/DatabaseModels/Service";
+import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import FA from "../../App/FeatureSet/Dashboard/src/Locales/fa.json";
@@ -60,6 +65,13 @@ import {
  *
  *   ?page=      item (default: Inventory's Asset Details card)
  *               | device (the device Overview's Inventory card)
+ *               | security-events (the device's Security Events page,
+ *               opened at /network-devices/<device id>/security-events:
+ *               the real explorer on the events about the device, its
+ *               reads answered here - with ?security=news its firewall's
+ *               blocked connections and failed sign-ins, with
+ *               ?security=quiet none ever, and the device's empty state;
+ *               ?logs=on says Your logs is on, issue #5769)
  *               | overview (the device's Overview page, opened at
  *               /network-devices/<device id>; server.js stands its other
  *               cards in with placeholders, each a story of its own)
@@ -502,6 +514,14 @@ const state = {
   itemReloads: 0,
   // What a Security card asked Security Events about: { kind, id }.
   securityAsks: [],
+  // What the device's Security Events page asked its scope of: { kind, id }.
+  securityScopeAsks: [],
+  /*
+   * Every read of security events the page made - "list", "newest" (the
+   * empty state's probe) or "aggregate" (the chart and the facets) - and
+   * the scope it carried.
+   */
+  securityEventReads: [],
 };
 
 /*
@@ -686,11 +706,202 @@ ModelAPI.getList = async (args) => {
     };
   }
 
+  /*
+   * The device's empty state reads whether Your logs is on (?logs=on), and
+   * the explorer names its Source facet from the project's services.
+   */
+  if (args.modelType === SecurityLogSource) {
+    const source = new SecurityLogSource();
+    source.isEnabled = params.get("logs") === "on";
+    return { data: [source], count: 1, skip: 0, limit: args.limit };
+  }
+
+  if (args.modelType === Service) {
+    return { data: [], count: 0, skip: 0, limit: args.limit };
+  }
+
   throw new Error(`The fixture models no list of ${args.modelType.name}.`);
 };
 
 ModelAPI.getCommonHeaders = () => {
   return {};
+};
+
+/*
+ * The firewall's own security events this week (?page=security-events&
+ * security=news), as the log scan reads them out of its syslog: an
+ * intrusion it dropped, a connection it denied, a failed administrator
+ * sign-in and a failed VPN sign-in. None names the firewall itself - each
+ * carries its networkDevice.id, which is what puts it on this page.
+ */
+function deviceSecurityEvents() {
+  const device = DEVICES[scenario] || {};
+  const rows = [
+    {
+      eventUid: "log:0192f1a0-0000-7000-8000-000000000101",
+      time: minutesAgo(12),
+      severityName: "Critical",
+      severityId: 5,
+      categoryName: "Findings",
+      className: "Detection Finding",
+      activityName: "Create",
+      statusName: "Blocked",
+      message:
+        "Apache.Log4j.Error.Log.Remote.Code.Execution dropped: 203.0.113.7 to 192.0.2.20:80",
+      vendorName: "Palo Alto Networks",
+      productName: "PAN-OS",
+      ruleName: "Apache.Log4j.Error.Log.Remote.Code.Execution",
+      principalIp: "203.0.113.7",
+      targetIp: "192.0.2.20",
+      targetPort: 80,
+      observables: ["203.0.113.7", "192.0.2.20"],
+    },
+    {
+      eventUid: "log:0192f1a0-0000-7000-8000-000000000102",
+      time: minutesAgo(31),
+      severityName: "Medium",
+      severityId: 3,
+      categoryName: "Network Activity",
+      className: "Network Activity",
+      activityName: "Refuse",
+      statusName: "Blocked",
+      message: "Denied connection from 203.0.113.99 to 192.0.2.5:3389 (RDP)",
+      vendorName: "Palo Alto Networks",
+      productName: "PAN-OS",
+      principalIp: "203.0.113.99",
+      targetIp: "192.0.2.5",
+      targetPort: 3389,
+      observables: ["203.0.113.99", "192.0.2.5"],
+    },
+    {
+      eventUid: "log:0192f1a0-0000-7000-8000-000000000103",
+      time: minutesAgo(48),
+      severityName: "High",
+      severityId: 4,
+      categoryName: "Identity & Access Management",
+      className: "Authentication",
+      activityName: "Logon",
+      statusName: "Failure",
+      message: "Failed sign-in for admin from 203.0.113.7",
+      vendorName: "Palo Alto Networks",
+      productName: "PAN-OS",
+      principalUser: "admin",
+      principalIp: "203.0.113.7",
+      targetHost: device.name || "",
+      observables: ["admin", "203.0.113.7", device.name || ""],
+    },
+    {
+      eventUid: "log:0192f1a0-0000-7000-8000-000000000104",
+      time: minutesAgo(95),
+      severityName: "Medium",
+      severityId: 3,
+      categoryName: "Identity & Access Management",
+      className: "Authentication",
+      activityName: "Logon",
+      statusName: "Failure",
+      message: "Failed GlobalProtect sign-in for j.lee from 198.51.100.40",
+      vendorName: "Palo Alto Networks",
+      productName: "GlobalProtect",
+      principalUser: "j.lee",
+      principalIp: "198.51.100.40",
+      observables: ["j.lee", "198.51.100.40"],
+    },
+  ];
+
+  return rows.map((row) => {
+    return Object.assign(new SecurityEvent(), {
+      ...row,
+      time: new Date(row.time),
+      mitreTactics: [],
+      mitreTechniques: [],
+      attributes: {
+        "networkDevice.id": DEVICE_ID,
+        "networkDevice.name": device.name || "",
+        "oneuptime.security.source": "logs",
+      },
+    });
+  });
+}
+
+function readSecurityEventScope(query) {
+  return query && query.securityEventScope ? query.securityEventScope : null;
+}
+
+AnalyticsModelAPI.getList = async (args) => {
+  if (args.modelType !== SecurityEvent) {
+    throw new Error(`The fixture models no list of ${args.modelType.name}.`);
+  }
+
+  state.securityEventReads.push({
+    read: args.limit === 1 ? "newest" : "list",
+    scope: readSecurityEventScope(args.query),
+  });
+
+  const events = securityMode === "news" ? deviceSecurityEvents() : [];
+
+  if (args.limit === 1) {
+    return {
+      data: events.slice(0, 1),
+      count: events.length > 0 ? 1 : 0,
+      skip: 0,
+      limit: 1,
+    };
+  }
+
+  return {
+    data: events,
+    count: events.length,
+    skip: 0,
+    limit: args.limit,
+    hasMore: false,
+  };
+};
+
+/*
+ * The volume chart's buckets and each facet's values, counted from the
+ * same events the list shows.
+ */
+AnalyticsModelAPI.aggregate = async (args) => {
+  state.securityEventReads.push({
+    read: "aggregate",
+    scope: readSecurityEventScope(args.aggregateBy?.query),
+  });
+
+  const events = securityMode === "news" ? deviceSecurityEvents() : [];
+  const groupBy = Object.keys(args.aggregateBy?.groupBy || {});
+  const facetKey = groupBy[0];
+
+  if (String(args.aggregateBy?.aggregationInterval) === "Total") {
+    const counts = new Map();
+
+    for (const event of events) {
+      const value = facetKey ? event[facetKey] : undefined;
+
+      if (typeof value === "string" && value) {
+        counts.set(value, (counts.get(value) || 0) + 1);
+      }
+    }
+
+    return {
+      data: Array.from(counts.entries()).map(([value, count]) => {
+        return {
+          timestamp: new Date(Date.now()).toISOString(),
+          value: count,
+          [facetKey]: value,
+        };
+      }),
+    };
+  }
+
+  return {
+    data: events.map((event) => {
+      return {
+        timestamp: new Date(event.time).toISOString(),
+        value: 1,
+        severityName: event.severityName,
+      };
+    }),
+  };
 };
 
 /*
@@ -739,6 +950,37 @@ API.post = async (options) => {
           ? { controllerName: merakiConnection.name }
           : {}),
         wasAlreadyRequested: false,
+      },
+      {},
+    );
+  }
+
+  /*
+   * The device's Security Events page (?page=security-events): what it
+   * reads under, as the server tells a network device - its name, and the
+   * events read from its own syslog.
+   */
+  if (url.endsWith("/security-case/resource-security-scope")) {
+    state.securityScopeAsks.push({
+      kind: options.data?.kind,
+      id: options.data?.id,
+    });
+    const name = DEVICES[scenario]?.name || "";
+    const folded = name.toLowerCase();
+
+    return new HTTPResponse(
+      200,
+      {
+        kind: "NetworkDevice",
+        id: DEVICE_ID,
+        name,
+        values: folded ? [folded] : [],
+        isSearchedByLogs: false,
+        scope: {
+          observables: folded ? [folded, folded.toUpperCase()] : [],
+          attributeKey: "networkDevice.id",
+          attributeValues: [DEVICE_ID],
+        },
       },
       {},
     );
@@ -888,6 +1130,11 @@ function Shell() {
           <NetworkDeviceView />
         ) : page === "inventory" ? (
           <InventoryItemOverview />
+        ) : page === "security-events" ? (
+          <NetworkDeviceSecurityEvents
+            currentProject={project}
+            hasPaymentMethod={true}
+          />
         ) : (
           <InventoryAssetDetailsCard
             item={scenario === "host" ? hostItem() : mirroredItem()}
