@@ -82,6 +82,7 @@ O menu lateral da página agrupa o que você faz com uma exceção:
 | **Registros** | Os registros escritos em torno da ocorrência mais recente. |
 | **Assistência de IA** | Tarefas de IA que corrigem a exceção ou a testam. |
 | **Configurações** | Resolver ou arquivar a exceção. Fica em **Gerenciar**, que começa recolhido. |
+| **Registros de auditoria** | Quem resolveu, arquivou, atribuiu ou mesclou a exceção, e quando. Também fica em **Gerenciar**. |
 
 ## Resolver, reabrir e arquivar
 

@@ -71,6 +71,11 @@ const DETAIL_PAGES: ReadonlyArray<DetailPage> = [
     section: "Manage",
     path: `${EXCEPTION_PATH}/settings`,
   },
+  {
+    title: "Audit Logs",
+    section: "Manage",
+    path: `${EXCEPTION_PATH}/audit-logs`,
+  },
 ];
 
 async function renderExceptionMenu(): Promise<void> {
@@ -156,10 +161,11 @@ describe("exception detail side menu", () => {
     ]);
     expect(linksIn("Manage")).toEqual([
       { title: "Settings", href: `${EXCEPTION_PATH}/settings` },
+      { title: "Audit Logs", href: `${EXCEPTION_PATH}/audit-logs` },
     ]);
   });
 
-  test("lists seven unique, fully populated destinations", async () => {
+  test("lists eight unique, fully populated destinations", async () => {
     await renderExceptionMenu();
 
     const hrefs: Array<string> = hrefsInMenu();

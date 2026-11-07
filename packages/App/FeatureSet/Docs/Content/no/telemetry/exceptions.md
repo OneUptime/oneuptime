@@ -82,6 +82,7 @@ Sidemenyen på siden samler det du gjør med et unntak:
 | **Logger** | Loggene som ble skrevet rundt den siste forekomsten. |
 | **AI-hjelp** | AI-oppgaver som retter unntaket eller tester det. |
 | **Innstillinger** | Løs eller arkiver unntaket. Den ligger under **Administrer**, som er lukket i starten. |
+| **Revisjonslogger** | Hvem som løste, arkiverte, tildelte eller slo sammen unntaket, og når. Den ligger også under **Administrer**. |
 
 ## Løs, gjenåpne og arkiver
 

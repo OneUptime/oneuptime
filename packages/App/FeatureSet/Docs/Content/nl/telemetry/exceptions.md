@@ -82,6 +82,7 @@ Het zijmenu van de pagina groepeert wat u met een uitzondering doet:
 | **Logboeken** | De logboeken die rond het laatste voorval zijn geschreven. |
 | **AI-assistentie** | AI-taken die de uitzondering verhelpen of testen. |
 | **Instellingen** | De uitzondering oplossen of archiveren. Staat onder **Beheren**, dat eerst ingeklapt is. |
+| **Auditlogboeken** | Wie de uitzondering heeft opgelost, gearchiveerd, toegewezen of samengevoegd, en wanneer. Staat ook onder **Beheren**. |
 
 ## Oplossen, heropenen en archiveren
 
