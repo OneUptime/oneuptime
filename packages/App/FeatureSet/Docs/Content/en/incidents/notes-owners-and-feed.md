@@ -169,7 +169,7 @@ If you've connected a workspace, responders never have to leave the channel. Bot
 Three details worth knowing:
 
 - **Duplicate protection** — each note records the Slack message it came from (`postedFromSlackMessageId`, formatted `channel_id:message_ts`), so several people reacting to the same message produce one note, not five.
-- **Notes echo back** — posting either kind of note also pushes a message into the connected incident channel, because the note's feed item is created with workspace notification enabled.
+- **Notes echo back** — posting either kind of note also pushes a message into the connected incident channel, because the note's feed item is created with workspace notification enabled. A public note that waits for approval is pushed there once it is published: see [Public note approval](#public-note-approval).
 - **Posted as the person who asked** — a note from the modal or from a reaction is posted with that person's OneUptime permissions, so it needs their permission to post that kind of note on the incident. When it is refused, they are told why — in a direct message in Slack, and in the conversation in Microsoft Teams (in the message's thread, for a reaction) — and nothing is posted.
 
 ## When a public note actually reaches subscribers
@@ -239,6 +239,32 @@ Only the incident's 'created' notification resumes where it stopped: it keeps a 
 A sent update is not offered again: edit the note with the checkbox ticked to send the latest text, or resend the note itself. If the original notification has not been sent yet, no separate update goes out — the original carries the edit. If it is being sent right then, the update waits for it to finish and then goes out. The checkbox and the update's **Retry notification** need the same permissions as sending the note's notification again; without them you can still edit the note, without notifying anyone. See [Telling subscribers about an edit](/docs/status-pages/subscribers#telling-subscribers-about-an-edit).
 
 The actual message subscribers get is templated per status page and per channel — email, SMS, Slack and Microsoft Teams each have their own template for the **Subscriber Incident Note Created** event, with variables for the status page name and URL, the details link, the resources affected, the incident severity and title, the note body, the incident's labels, affected status pages and custom fields, and a per-subscriber unsubscribe link. The default email, Slack and Microsoft Teams messages also list the incident's custom fields marked **Include in Subscriber Notifications**, with their current values. See [Subscribers & Announcements](/docs/status-pages/subscribers) for how those templates and channels are configured.
+
+## Public note approval
+
+A project can have its public notes approved before customers read them, so that somebody checks an update, such as one about a breach, before it goes out. It is off until a project owner or admin turns it on and chooses who approves: at **Incidents → Settings → Public Note Approval** for incidents and incident episodes, and at **Scheduled Maintenance → Settings → Public Note Approval** for scheduled maintenance events. See [Public note approval](/docs/incidents/settings#public-note-approval).
+
+While it is on, the composer says the note is published once it is approved and names who approves it, and **Post update** reads **Send for approval**. The note is saved with a **Waiting for approval** badge, and says under it which step it waits for and who can approve it. Until it is approved, a note:
+
+- is shown on no status page, and in none of their RSS and Atom feeds;
+- tells no subscriber: its notification goes out when it is published, if **Notify status page subscribers** was ticked. See [Public notes that wait for approval](/docs/status-pages/subscribers#public-notes-that-wait-for-approval);
+- is not posted to the incident's Slack, Microsoft Teams or Mattermost channels, and its owners are told about it only once it is published;
+- starts no workflow, and is left out of what OneUptime AI reads, so it never turns up in a drafted note;
+- shows its images to the project's members only.
+
+Every new public note waits, wherever it is written: in the dashboard, through the API, by a workflow or OneUptime AI, from Slack, Microsoft Teams or Mattermost, by an SLA rule's reminder or with a state change.
+
+**Approving and rejecting.** The people a step names, and the members of the teams it names, see **Approve** and **Reject** on the note, and are told it is waiting through the notification settings they chose: see [Public note approval](/docs/notifications/notification-settings#public-note-approval). On the last step **Approve** reads **Approve and publish**, and the note is published at once, dated the moment it is published unless its time was chosen when it was written. Its entry in the feed, and its message in the incident's channels, end with who approved it. **Reject** asks **Why are you rejecting it?**, and the note's author sees the reason. Nobody approves or rejects a note they sent, nobody approves two steps of the same note, and an API key approves nothing: approvers are people.
+
+**Sending it again.** A rejected note stays off status pages, marked **Rejected**. Whoever may edit it can change it, or send it as it is with **Send for approval again**; either way its approval starts again from the first step. Editing a note that is still waiting starts its approval again too: an approval is of the words it was given.
+
+**Editing a published note.** An edit waits as well. The edit form says so, and **Send edit for approval** saves it. Status pages keep showing the note as it was approved, the note shows the edit under **Proposed edit**, marked **Edit waiting for approval** or, once rejected, **Edit rejected**, and **Withdraw edit** drops it. A published note's files cannot change while approval is on: post a new note with the files instead. An edit sent while somebody decides on the note is not saved: refresh the page, and make it again.
+
+**Turning approval off.** From then on, new notes are published as soon as they are posted. A note that was still waiting, or was rejected, offers **Publish now** to whoever may edit it, which publishes it as it is, without an approval, and the feed says so.
+
+**From Slack, Microsoft Teams and Mattermost.** The add-note form says a public note is posted on the status page once it is approved. Whoever sends one is told that it was sent for approval and who it waits for: in a message only they can see in Slack and Mattermost, and in the conversation in Microsoft Teams. A note saved from a 📣 or 📢 reaction says the same in its confirmation. The channel hears of the note when it is published.
+
+The feed records each step as a `PublicNoteApproval` entry: a note sent for approval, approved, rejected, an edit withdrawn, or a note published without approval. These entries are not posted to chat channels; the published note is.
 
 ## The incident feed
 
