@@ -14,12 +14,19 @@ export const REMEDIATION_CHAT_WORDS: {
   dismiss: string;
   dialogTitle: string;
   approveAndRun: string;
+  /*
+   * The dialog's press when it is the first of the two approvals a riskier
+   * fix needs (Project.requireTwoApprovalsForRiskierFixes): it runs
+   * nothing, so it never says "and run".
+   */
+  approve: string;
   cancel: string;
 } = {
   reviewAndApprove: "Review and approve",
   dismiss: "Dismiss",
   dialogTitle: "Approve this fix?",
   approveAndRun: "Approve and run",
+  approve: "Approve",
   cancel: "Cancel",
 };
 
@@ -37,8 +44,20 @@ export function getViewInProductTitle(): string {
 export const APPROVAL_MESSAGE_NOTE: string =
   "Review and approve shows the whole fix first. Nothing runs until you approve it.";
 
-export function getApprovalMessageNote(): string {
-  return APPROVAL_MESSAGE_NOTE;
+/*
+ * The same line for a fix two people must approve: a riskier change, in a
+ * project that asks two people to approve one. Said when the message is
+ * posted, so the first person to press knows their approval alone runs
+ * nothing.
+ */
+export const TWO_APPROVALS_MESSAGE_NOTE: string =
+  "Review and approve shows the whole fix first. Nothing runs until two people approve it.";
+
+// The line under a fix's buttons, for the approvals it needs.
+export function getApprovalMessageNote(approvalsNeeded: number = 1): string {
+  return approvalsNeeded > 1
+    ? TWO_APPROVALS_MESSAGE_NOTE
+    : APPROVAL_MESSAGE_NOTE;
 }
 
 /*

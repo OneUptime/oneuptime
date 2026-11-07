@@ -18,6 +18,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import logger from "../../../../Server/Utils/Logger";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import GitOpsInspector from "../../../../Server/Utils/AI/Remediation/GitOpsInspector";
+import KubectlPolicy from "../../../../Utils/AiRemediation/KubectlPolicy";
 
 /*
  * An approved kubectl change's object is read through the cluster before
@@ -2021,6 +2022,55 @@ describe("CommandPlanExecutor re-checks the cluster before a kubectl rollback ru
 
     expectSkipped("its AI remediation mode is now Automatic");
   });
+
+  /*
+   * #6148's follow-up: the policy's reason ends with a full stop of its
+   * own, and an undo left for a person read "... must approve it.. Undo it
+   * manually: ...". One full stop now, in the record and on the timeline.
+   */
+  it.each([
+    KubernetesAiRemediationMode.Automatic,
+    KubernetesAiRemediationMode.RequireApproval,
+  ])(
+    "ends the reason with one full stop before Undo it manually (%s)",
+    async (remediationMode: KubernetesAiRemediationMode) => {
+      mockClusterStatus(clusterStatus({ remediationMode }));
+
+      const reason: string = KubectlPolicy.evaluateForAutoExecution({
+        command: KUBECTL_SET_IMAGE_BACK,
+        allowlistPatterns: [],
+        bypassApproval: false,
+      }).reason;
+
+      // What made it read "..": the policy ends its reason itself.
+      expect(reason.endsWith(".")).toBe(true);
+
+      await CommandPlanExecutor.executeRollback({
+        suggestion: failedPlan([executedSetImage()]),
+      });
+
+      const errorMessage: string = String(
+        (
+          commandInPlan(lastPersistedPlan(update), 0)[
+            "rollbackExecution"
+          ] as Record<string, unknown>
+        )["errorMessage"],
+      );
+
+      expect(errorMessage).toBe(
+        `Rollback not run: cluster "prod-us" no longer allows this change unattended (its AI remediation mode is now ${remediationMode}): ${reason.slice(
+          0,
+          -1,
+        )}. Undo it manually: ${KUBECTL_SET_IMAGE_BACK}`,
+      );
+      expect(errorMessage).not.toContain("..");
+      // The timeline quotes the same sentence, ended once.
+      expect(feedMarkdown(feed)).toContain(
+        `${reason.slice(0, -1)}. Undo it manually:`,
+      );
+      expect(feedMarkdown(feed)).not.toContain(".. Undo");
+    },
+  );
 
   it("still runs the RiskyWrite rollback while the cluster bypasses approvals", async () => {
     mockClusterStatus(

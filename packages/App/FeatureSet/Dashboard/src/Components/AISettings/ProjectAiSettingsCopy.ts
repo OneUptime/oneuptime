@@ -1194,8 +1194,12 @@ export const ProjectAiDailyLimitsCopy: {
   reachedSummary: string;
   fieldError: string;
 } = {
+  /*
+   * The section holds the Daily limits and, since #6148's follow-up, Fix
+   * approvals (FixApprovalsCopy): what it is for says both.
+   */
   sectionDescription: translationKey(
-    "Limits on how much OneUptime AI uses across the whole project each day, above the incident and alert limits.",
+    "Limits on how much OneUptime AI uses across the whole project each day, and how many people approve its riskier fixes.",
   ),
   // The same title as the incident and alert pages' daily limits.
   cardTitle: translationKey("Daily limits"),
