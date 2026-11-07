@@ -1,5 +1,9 @@
 import IP from "../../../Types/IP/IP";
 import { JSONObject } from "../../../Types/JSON";
+import {
+  NETWORK_DEVICE_ID_ATTRIBUTE,
+  NETWORK_DEVICE_NAME_ATTRIBUTE,
+} from "../../../Types/NetworkDevice/NetworkDeviceTelemetryAttribute";
 import ObjectID from "../../../Types/ObjectID";
 import {
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
@@ -246,6 +250,44 @@ export function readLogHost(line: SecurityLogLine): string {
   ]);
 }
 
+/*
+ * The network device a line came from, when ingest matched it to one: its
+ * `networkDevice.id` (a real id, else nothing) and its name. Ingest sets
+ * both on every syslog line and trap it matched to a device, over whatever
+ * the line said under those names, so a device's own messages carry its
+ * real id. Every event read from the line carries them too, which puts a
+ * firewall's denied connections - naming the hosts on either side of it,
+ * never the firewall - on that firewall's Security Events page
+ * (Types/SecurityEvent/SecurityEventScope).
+ */
+export function readLogNetworkDevice(
+  attributes: JSONObject | undefined | null,
+): JSONObject {
+  if (!attributes || typeof attributes !== "object") {
+    return {};
+  }
+
+  const id: unknown = attributes[NETWORK_DEVICE_ID_ATTRIBUTE];
+
+  if (typeof id !== "string" || !ObjectID.isValidUUID(id.trim())) {
+    return {};
+  }
+
+  const device: JSONObject = {
+    [NETWORK_DEVICE_ID_ATTRIBUTE]: id.trim(),
+  };
+  const name: unknown = attributes[NETWORK_DEVICE_NAME_ATTRIBUTE];
+
+  if (typeof name === "string" && name.trim()) {
+    device[NETWORK_DEVICE_NAME_ATTRIBUTE] = cutText(
+      name.trim(),
+      MAX_TOKEN_LENGTH,
+    );
+  }
+
+  return device;
+}
+
 export interface LogSecurityEventInput {
   line: SecurityLogLine;
   format: SecurityLogFormat;
@@ -344,6 +386,8 @@ export function buildLogSecurityEvent(
     attributes[SECURITY_LOG_RESOURCE_ID_ATTRIBUTE] = resourceId;
     attributes[SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE] = resourceType;
   }
+
+  Object.assign(attributes, readLogNetworkDevice(input.line.attributes));
 
   const recordSuffix: string =
     input.recordIndex !== undefined ? `:${input.recordIndex}` : "";

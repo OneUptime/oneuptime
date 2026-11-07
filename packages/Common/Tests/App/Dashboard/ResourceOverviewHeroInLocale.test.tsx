@@ -7,8 +7,10 @@ import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
 import ResourceOverview, {
   getResourceOverviewIdentifierWords,
+  getResourceOverviewIdentifierWordsClassName,
   RESOURCE_OVERVIEW_DETAILS_DESCRIPTION,
   RESOURCE_OVERVIEW_IDENTIFIER_SENTENCE,
+  RESOURCE_OVERVIEW_IDENTIFIER_WORDS_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
@@ -408,6 +410,96 @@ describe("the hero's identifier line", () => {
     expect(line.firstElementChild?.textContent).toBe("service.name: ");
     expect(line.firstElementChild).toHaveClass("whitespace-pre");
     expect(line.className).not.toMatch(/(^| )gap-/);
+  });
+
+  /*
+   * #6149's review: a Persian label was drawn in monospace too, its joined
+   * letters set in a borrowed font's fixed-width cells beside the page's
+   * Persian. Words that read right to left take the page's font; the
+   * identifier stays monospace, and so does an attribute's name, which is
+   * code on any page.
+   */
+  describe("its label's font", () => {
+    test("a Persian label is drawn in the page's font, the identifier in monospace", () => {
+      renderHero("fa", {
+        lastSeenAt: FIVE_HOURS_AGO(),
+        status: "connected",
+        identifierLabel: "type",
+        identifier: "Elastic Load Balancer (ALB, NLB, GWLB)",
+      });
+
+      const label: HTMLElement = screen.getByTestId(
+        "resource-overview-identifier-label",
+      );
+
+      expect(label.textContent).toBe("نوع: ");
+      expect(label).not.toHaveClass("font-mono");
+      // Still whole, with the space the sentence writes after its colon.
+      expect(label).toHaveClass("flex-none", "whitespace-pre");
+      expect(
+        screen.getByTestId("resource-overview-identifier-value"),
+      ).toHaveClass("font-mono");
+    });
+
+    test("an attribute's name on a Persian page is code, in monospace", () => {
+      renderHero("fa", {
+        lastSeenAt: FIVE_HOURS_AGO(),
+        status: "connected",
+        identifierLabel: "service.name",
+        identifier: "checkout",
+      });
+
+      expect(
+        screen.getByTestId("resource-overview-identifier-label"),
+      ).toHaveClass("font-mono");
+    });
+
+    test("every label of every language: monospace unless it reads right to left", () => {
+      for (const label of [
+        "type",
+        "account",
+        "endpoint",
+        "destination",
+        "platform",
+        "workload",
+        "service.name",
+      ]) {
+        for (const language of ["en", ...DASHBOARD_LANGUAGES]) {
+          const translator: Translator = dashboardTranslator(language);
+          const words: { before: string } = getResourceOverviewIdentifierWords(
+            translator,
+            translator.translateText(label) || label,
+          );
+          const isMonospace: boolean =
+            getResourceOverviewIdentifierWordsClassName(words.before)
+              .split(" ")
+              .includes("font-mono");
+
+          expect({ label, language, isMonospace }).toEqual({
+            label,
+            language,
+            // Persian is the Dashboard's one language read right to left.
+            isMonospace: language !== "fa" || label === "service.name",
+          });
+        }
+      }
+    });
+
+    test("the class says whole words first, then the font", () => {
+      expect(RESOURCE_OVERVIEW_IDENTIFIER_WORDS_CLASS_NAME).toBe(
+        "flex-none whitespace-pre",
+      );
+      expect(getResourceOverviewIdentifierWordsClassName("type: ")).toBe(
+        "flex-none whitespace-pre font-mono",
+      );
+      expect(getResourceOverviewIdentifierWordsClassName("نوع: ")).toBe(
+        "flex-none whitespace-pre",
+      );
+      // A label with no letters (a colon alone) keeps the line's monospace.
+      expect(getResourceOverviewIdentifierWordsClassName(": ")).toBe(
+        "flex-none whitespace-pre font-mono",
+      );
+    });
   });
 
   /*

@@ -218,3 +218,116 @@ describe("Apps and deploys, on Cloud Environments", () => {
     );
   });
 });
+
+/*
+ * #6149's follow-up: All Environments and All Apps filter by a Cloud Account
+ * chip, and Cloud's Overview links its App Platforms counts to those lists
+ * with the chip already set. The hub says so, and Cloud's own page names
+ * the card - each against the code that draws it, read as text (the
+ * Dashboard's modules reach React).
+ */
+describe("the lists by cloud account, on Cloud Environments", () => {
+  const DASHBOARD: string = path.join(PACKAGES, "App/FeatureSet/Dashboard/src");
+  const FACET: string = fs.readFileSync(
+    path.join(DASHBOARD, "Components/AppPlatforms/AppPlatformsAccountFacet.ts"),
+    "utf8",
+  );
+  const ROUTES: string = fs.readFileSync(
+    path.join(DASHBOARD, "Components/AppPlatforms/AppPlatformsListRoutes.ts"),
+    "utf8",
+  );
+  const CARD: string = fs.readFileSync(
+    path.join(DASHBOARD, "Components/Cloud/CloudAppPlatformsCard.tsx"),
+    "utf8",
+  );
+  const ACCOUNTS: string = fs.readFileSync(
+    path.join(
+      PACKAGES,
+      "App/FeatureSet/Docs/Content/en/telemetry/cloud-accounts.md",
+    ),
+    "utf8",
+  );
+  const paragraph: string | undefined = hub
+    .split("\n")
+    .find((line: string): boolean => {
+      return line.includes("**Cloud Account** chip");
+    });
+
+  it("sits under the opening paragraph that lists the two lists", () => {
+    const lines: Array<string> = hub.split("\n");
+    const at: number = lines.indexOf(paragraph as string);
+
+    expect(paragraph).toBeDefined();
+    expect(lines[at - 2]).toContain(
+      "**App Platforms → All Environments** lists every one.",
+    );
+  });
+
+  it("names the chip as both lists draw it, with what it keeps", () => {
+    expect(FACET).toContain(
+      'CLOUD_ACCOUNT_FACET_LABEL: string =\n  translationKey("Cloud Account");',
+    );
+    // "is" and "is not": the accounts picked, or every other one.
+    expect(FACET).toContain(
+      'CLOUD_ACCOUNT_FACET_OPERATORS: Array<FilterOperator> = [\n  "is",\n  "is_not",\n];',
+    );
+    // Each account under its cloud: the option's group.
+    expect(FACET).toContain("...(provider ? { group: provider } : {}),");
+    expect(paragraph).toContain(
+      "filter **All Environments** or **All Apps** by the **Cloud Account** chip",
+    );
+    expect(paragraph).toContain(
+      "it lists each account the environments are in, under its cloud, and keeps the accounts you pick, or every other one.",
+    );
+    // Both lists draw it.
+    expect(
+      fs.readFileSync(
+        path.join(DASHBOARD, "Pages/AppPlatforms/Environments.tsx"),
+        "utf8",
+      ),
+    ).toContain("getEnvironmentsCloudAccountFacet(");
+    expect(
+      fs.readFileSync(
+        path.join(DASHBOARD, "Components/AppPlatforms/CloudAppsTable.tsx"),
+        "utf8",
+      ),
+    ).toContain("getAppsCloudAccountFacet(props.environments)");
+  });
+
+  it("says Cloud's Overview counts link to the lists with the chip set, as the card's links are built", () => {
+    expect(CARD).toContain(
+      'APP_PLATFORMS_CARD_TITLE: string = translationKey("App Platforms");',
+    );
+    expect(CARD).toContain(
+      "to={getAppPlatformsEnvironmentsRoute(counts.accountIds)}",
+    );
+    expect(CARD).toContain("to={getAppPlatformsAppsRoute(counts.accountIds)}");
+    // The link sets the chip to "is" those accounts, visibly and clearably.
+    expect(ROUTES).toContain("[CLOUD_ACCOUNT_FACET_KEY]: accountIds,");
+    expect(ROUTES).toContain('[CLOUD_ACCOUNT_FACET_KEY]: "is",');
+    expect(
+      fs.readFileSync(path.join(DASHBOARD, "Pages/Cloud/Overview.tsx"), "utf8"),
+    ).toContain("<CloudAppPlatformsCard accounts={read.accounts} />");
+    expect(paragraph).toContain(
+      "On **Cloud → Overview**, the **App Platforms** card counts the environments and apps in your connected cloud accounts, and each count opens its list with the chip already set to those accounts.",
+    );
+    expect(paragraph).toContain("Clear the chip to see the whole list.");
+  });
+
+  it("is named on Cloud's own page, where its Overview is", () => {
+    const bullet: string | undefined = ACCOUNTS.split("\n").find(
+      (line: string): boolean => {
+        return line.startsWith("- **Cloud opens on its Overview.**");
+      },
+    );
+
+    expect(bullet).toContain(
+      "its **App Platforms** card counts their environments and apps, and each count opens that list in App Platforms, already filtered to those accounts.",
+    );
+    // Drawn only while the accounts run something there.
+    expect(CARD).toContain("if (!counts || counts.environments === 0) {");
+    expect(bullet).toContain(
+      "When your accounts run apps on managed app platforms,",
+    );
+  });
+});

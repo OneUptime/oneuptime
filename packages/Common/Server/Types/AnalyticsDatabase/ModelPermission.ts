@@ -12,6 +12,7 @@ import BaseModel, {
 } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import { EXCEPTION_SPAN_SCOPE_QUERY_KEY } from "../../../Types/Telemetry/ExceptionSpanScope";
+import { SECURITY_EVENT_SCOPE_QUERY_KEY } from "../../../Types/SecurityEvent/SecurityEventScope";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
@@ -815,6 +816,14 @@ export default class ModelPermission {
        * in, and the subquery is pinned to the query's own project.
        */
       EXCEPTION_SPAN_SCOPE_QUERY_KEY,
+      /*
+       * Synthetic query key compiled by StatementGenerator to the security
+       * events about one record: (hasAny(observables, ...) OR its attribute
+       * IN ...), or AND 0 when nothing is left to match. Not a real column;
+       * it only narrows a read of security events to a record's own page,
+       * and authorization still runs on the query's project and sources.
+       */
+      SECURITY_EVENT_SCOPE_QUERY_KEY,
     ];
 
     return returnArr;

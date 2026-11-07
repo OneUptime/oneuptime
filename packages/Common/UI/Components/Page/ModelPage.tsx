@@ -1,6 +1,7 @@
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
-import Page, { PageRecordHeading } from "./Page";
+import Page, { PageRecordHeading, PageRecordTitle } from "./Page";
+import { PAGE_RECORD_TITLE_SENTENCE } from "./PageRecordTitle";
 import { subscribeToModelHeaderChanged } from "./ModelHeaderEvents";
 import { nameRecordInTrail } from "./RecordNameInTrail";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
@@ -308,7 +309,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
       return header.headingName;
     }
 
-    return translator.translateTemplate("{{title}} - {{name}}", {
+    return translator.translateTemplate(PAGE_RECORD_TITLE_SENTENCE, {
       title: translatableTerm(props.title),
       name: header.headingName,
     });
@@ -329,6 +330,20 @@ const ModelPage: <TBaseModel extends BaseModel>(
     shownHeader.recordName &&
     shownHeader.recordName.trim()
       ? { number: shownHeader.recordNumber, name: shownHeader.recordName }
+      : undefined;
+
+  /*
+   * "Cloud Environment - prod-eu-1": drawn with the name set apart from
+   * the title around it (Page's recordTitle), so a Persian heading keeps
+   * the name's digits in their place. Its text is getLoadedTitle's.
+   */
+  const recordTitle: PageRecordTitle | undefined =
+    !recordHeading &&
+    shownHeader &&
+    props.title &&
+    shownHeader.headingName !== undefined &&
+    shownHeader.headingName.trim()
+      ? { title: props.title, name: shownHeader.headingName }
       : undefined;
 
   /*
@@ -353,6 +368,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
       error={isCurrentModelLoaded ? loadedHeader!.error : ""}
       title={isCurrentModelLoaded ? getLoadedTitle(loadedHeader!) : props.title}
       recordHeading={recordHeading}
+      recordTitle={recordTitle}
     />
   );
 };
