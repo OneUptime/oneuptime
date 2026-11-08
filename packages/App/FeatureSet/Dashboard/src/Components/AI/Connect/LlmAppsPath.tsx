@@ -50,7 +50,7 @@ const HINTS: Array<Hint> = [
     key: "record",
     title: translationKey("Record what was said"),
     body: translationKey(
-      "OpenLLMetry records prompts and answers by default. The OpenTelemetry instrumentations record them with OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true.",
+      "OpenLLMetry records prompts and answers by default. The OpenTelemetry instrumentations record them with OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT (span_only for Python's, true for the others), and Azure's AI Inference SDK with AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true.",
     ),
   },
   {

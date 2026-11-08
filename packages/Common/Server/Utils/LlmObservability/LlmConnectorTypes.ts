@@ -63,6 +63,14 @@ export interface LlmUsageFetchResult {
   requestCount: number;
   // Things the person should know that did not stop the read.
   warnings: Array<string>;
+  /*
+   * How many of the provider's resources the read covered, for a provider
+   * read resource by resource (Azure: the Azure OpenAI and Foundry
+   * resources the credential can see). Undefined for a provider that
+   * reports one account. A read of 0 resources is a read that could not
+   * find anything to read - not a quiet account - and the connection says so.
+   */
+  resources?: number | undefined;
 }
 
 export interface LlmChatFetchOptions extends LlmConnectorCallOptions {

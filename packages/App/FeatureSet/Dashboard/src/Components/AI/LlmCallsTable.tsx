@@ -25,6 +25,17 @@ import SpanStatusElement from "../Span/SpanStatusElement";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import OneUptimeDate from "Common/Types/Date";
+import IconProp from "Common/Types/Icon/IconProp";
+import { getLlmProviderTitle } from "Common/Types/Telemetry/LlmProviders";
+import { formatLlmDuration } from "../LlmConversations/LlmConversationFormat";
+import {
+  LlmEmptyViewState,
+  getLlmEmptyViewState,
+} from "./SetupCheck/LlmEmptyViewDiagnosis";
+import useLlmSetupCheck, {
+  LlmSetupCheckState,
+} from "./SetupCheck/useLlmSetupCheck";
 
 export interface ComponentProps {
   // Extra query (merged with isLlmSpan + projectId).
@@ -39,6 +50,14 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [telemetryServices, setServices] = useState<Array<Service>>([]);
+  /*
+   * The list came back with nothing: ask the project's setup check why,
+   * and lead the empty state with what it finds (LlmEmptyViewDiagnosis).
+   */
+  const [isEmpty, setIsEmpty] = useState<boolean>(false);
+  const setupCheck: LlmSetupCheckState = useLlmSetupCheck({
+    enabled: isEmpty,
+  });
 
   useEffect(() => {
     const loadServices: () => Promise<void> = async (): Promise<void> => {
@@ -120,6 +139,62 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const emptyView: LlmEmptyViewState = getLlmEmptyViewState({
+    view: "calls",
+    check: setupCheck,
+    translator: translator,
+    serviceName: (serviceId: string): string => {
+      return (
+        telemetryServices
+          .find((service: Service): boolean => {
+            return service.id?.toString() === serviceId;
+          })
+          ?.name?.toString() || ""
+      );
+    },
+    now: OneUptimeDate.getCurrentDate(),
+  });
+
+  /*
+   * The model a call asked for and, when it differs, the one that served
+   * it: an Azure OpenAI call names its deployment ("support-chat") and is
+   * served - and priced - by a model ("gpt-4o-2024-08-06"). A dated
+   * snapshot of the model asked for ("gpt-4o" served by
+   * "gpt-4o-2024-08-06") is the same model and is not repeated.
+   */
+  const renderModelElement: (span: Span) => ReactElement = (
+    span: Span,
+  ): ReactElement => {
+    const requested: string = span.llmRequestModel?.toString().trim() || "";
+    const served: string = span.llmResponseModel?.toString().trim() || "";
+    const shown: string = requested || served;
+
+    if (!shown) {
+      return <span className="text-gray-400">—</span>;
+    }
+
+    const showsServed: boolean =
+      Boolean(requested) &&
+      Boolean(served) &&
+      !served.toLowerCase().startsWith(requested.toLowerCase());
+
+    return (
+      <div className="min-w-0">
+        <div className="text-sm text-gray-900">{shown}</div>
+        {showsServed ? (
+          <div
+            className="text-xs text-gray-500"
+            data-testid="llm-call-served-model"
+          >
+            {served}
+          </div>
+        ) : (
+          <></>
+        )}
+      </div>
+    );
+  };
+
   const renderUserElement: (span: Span) => ReactElement = (
     span: Span,
   ): ReactElement => {
@@ -154,7 +229,18 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
       query={computedQuery}
       sortBy="startTime"
       sortOrder={SortOrder.Descending}
-      noItemsMessage="No LLM calls found. Instrument your app with the OpenTelemetry GenAI conventions to see calls here."
+      emptyState={{
+        title: emptyView.title,
+        description: (
+          <span data-testid="llm-calls-diagnosis">{emptyView.description}</span>
+        ),
+        icon: IconProp.Sparkles,
+        actions: emptyView.actions,
+        hideCreateButton: true,
+      }}
+      onFetchSuccess={(_data: Array<Span>, totalCount: number) => {
+        setIsEmpty(totalCount === 0);
+      }}
       showRefreshButton={true}
       showViewIdButton={true}
       onViewPage={(span: Span) => {
@@ -312,15 +398,34 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
             llmSystem: true,
           },
           title: "Provider",
-          type: FieldType.Text,
+          type: FieldType.Element,
           isHiddenByDefault: true,
+          // "Azure OpenAI", not "azure.ai.openai".
+          getElement: (span: Span): ReactElement => {
+            const title: string = getLlmProviderTitle(
+              span.llmSystem?.toString(),
+            );
+
+            return title ? (
+              <span className="text-sm text-gray-900">{title}</span>
+            ) : (
+              <span className="text-gray-400">—</span>
+            );
+          },
+          getExportValue: (span: Span): string => {
+            return span.llmSystem?.toString() || "";
+          },
         },
         {
           field: {
             llmRequestModel: true,
           },
           title: "Model",
-          type: FieldType.Text,
+          type: FieldType.Element,
+          getElement: renderModelElement,
+          getExportValue: (span: Span): string => {
+            return span.llmRequestModel?.toString() || "";
+          },
         },
         {
           field: {
@@ -340,12 +445,19 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
           // The cell renders a fallback the declared field does not carry.
           getExportValue: getUserLabel,
         },
+        /*
+         * Shipped hidden, as Provider and Operation are, to make room for
+         * Duration: a team is set by a gateway or an operator, so most
+         * apps' calls carry none. Still in the column picker and the
+         * filters.
+         */
         {
           field: {
             llmTeam: true,
           },
           title: "Team",
           type: FieldType.Text,
+          isHiddenByDefault: true,
         },
         {
           field: {
@@ -384,6 +496,32 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
                 ${cost.toFixed(6)}
               </span>
             );
+          },
+        },
+        {
+          field: {
+            durationUnixNano: true,
+          },
+          title: "Duration",
+          type: FieldType.Element,
+          getElement: (span: Span): ReactElement => {
+            const nanos: number = Number(span.durationUnixNano || 0);
+
+            if (!Number.isFinite(nanos) || nanos <= 0) {
+              return <span className="text-gray-400">—</span>;
+            }
+
+            return (
+              <span className="font-mono text-xs text-gray-700">
+                {formatLlmDuration(nanos / 1_000_000)}
+              </span>
+            );
+          },
+          getExportValue: (span: Span): string => {
+            const nanos: number = Number(span.durationUnixNano || 0);
+            return Number.isFinite(nanos) && nanos > 0
+              ? formatLlmDuration(nanos / 1_000_000)
+              : "";
           },
         },
         {

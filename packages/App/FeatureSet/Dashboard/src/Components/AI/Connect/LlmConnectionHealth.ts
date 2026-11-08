@@ -3,7 +3,10 @@ import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How a connection is doing, from its last reads: off, waiting for its
@@ -103,7 +106,7 @@ function readNumber(result: JSONObject, key: string): number | undefined {
  */
 export function getLlmConnectionLastReadSummary(
   connection: LlmObservabilityConnection,
-): { template: string; values: Record<string, string> } | undefined {
+): LlmConnectionSummary | undefined {
   const result: JSONObject | undefined = connection.lastPullResult;
 
   if (!result || result["status"] === "failed") {
@@ -157,8 +160,104 @@ export function getLlmConnectionLastReadSummary(
       };
     }
 
-    return { template: translationKey("No usage yet"), values: {} };
+    return getLlmConnectionNoUsageSummary(result);
   }
 
   return undefined;
+}
+
+/*
+ * What a provider account's quiet last read means, instead of a bare "No
+ * usage yet". A read after the first covers only the last few days, so it
+ * says what the reads found overall (LlmConnectionPullRunner keeps it on the
+ * result):
+ *
+ *   - "No Azure OpenAI or Foundry resource found": Azure listed none the
+ *     app registration can see - a role in the wrong place, not a quiet
+ *     subscription;
+ *   - "Last used Oct 28": usage was read before, none since;
+ *   - "3 resources read, no usage since Oct 5" (Azure) or "No usage since
+ *     Oct 5": every day since the first read was read, and none was used.
+ *
+ * A result from before reads kept this says "No usage yet", as it did.
+ */
+export const LLM_CONNECTION_NO_RESOURCES: string = translationKey(
+  "No Azure OpenAI or Foundry resource found",
+);
+export const LLM_CONNECTION_LAST_USED: string =
+  translationKey("Last used {{date}}");
+export const LLM_CONNECTION_NO_USAGE_SINCE: string = translationKey(
+  "No usage since {{date}}",
+);
+export const LLM_CONNECTION_RESOURCES_NO_USAGE_SINCE: PluralTemplate = {
+  one: "{{count}} resource read, no usage since {{date}}",
+  other: "{{count}} resources read, no usage since {{date}}",
+};
+export const LLM_CONNECTION_NO_USAGE_YET: string =
+  translationKey("No usage yet");
+
+/*
+ * A UTC day as the reader's calendar writes it. A provider's day starts at
+ * midnight UTC; written from its noon, it is the same date in every
+ * timezone from UTC-12 to UTC+11, where its midnight would be the day
+ * before in the Americas.
+ */
+export function formatLlmUsageDay(isoDay: string): string {
+  const time: number = Date.parse(isoDay);
+
+  if (!Number.isFinite(time)) {
+    return "";
+  }
+
+  return OneUptimeDate.getDateAsCompactLocalString(
+    new Date(time + 12 * 60 * 60 * 1000),
+    { onlyShowDate: true },
+  );
+}
+
+export interface LlmConnectionSummary {
+  template: string;
+  values: Record<string, string>;
+  // A count-dependent sentence: shown with translatePlural.
+  plural?: PluralTemplate | undefined;
+  count?: number | undefined;
+}
+
+export function getLlmConnectionNoUsageSummary(
+  result: JSONObject,
+): LlmConnectionSummary {
+  const resources: number | undefined = readNumber(result, "resources");
+
+  if (resources === 0) {
+    return { template: LLM_CONNECTION_NO_RESOURCES, values: {} };
+  }
+
+  const newest: unknown = result["newestUsageDay"];
+
+  if (typeof newest === "string" && formatLlmUsageDay(newest)) {
+    return {
+      template: LLM_CONNECTION_LAST_USED,
+      values: { date: formatLlmUsageDay(newest) },
+    };
+  }
+
+  const since: unknown = result["readSince"];
+
+  if (typeof since === "string" && formatLlmUsageDay(since)) {
+    if (resources !== undefined && resources > 0) {
+      return {
+        template: LLM_CONNECTION_RESOURCES_NO_USAGE_SINCE.other,
+        values: { date: formatLlmUsageDay(since) },
+        plural: LLM_CONNECTION_RESOURCES_NO_USAGE_SINCE,
+        count: resources,
+      };
+    }
+
+    return {
+      template: LLM_CONNECTION_NO_USAGE_SINCE,
+      values: { date: formatLlmUsageDay(since) },
+    };
+  }
+
+  return { template: LLM_CONNECTION_NO_USAGE_YET, values: {} };
 }

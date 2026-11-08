@@ -150,6 +150,17 @@ import {
   readConversationSort,
   readFilterText,
 } from "../../Types/Telemetry/LlmConversationApi";
+import {
+  LLM_METRIC_USAGE_ROUTE,
+  LlmMetricUsageResponse,
+  readLlmMetricUsageDimension,
+} from "../../Types/Telemetry/LlmMetricUsageApi";
+import {
+  LLM_SETUP_CHECK_ROUTE,
+  LlmSetupCheckResponse,
+} from "../../Types/Telemetry/LlmSetupCheckApi";
+import LlmMetricUsageReader from "../Utils/Telemetry/LlmMetricUsageReader";
+import LlmSetupCheckReader from "../Utils/Telemetry/LlmSetupCheckReader";
 import PromiseCache from "../Utils/PromiseCache";
 import TelemetryReadScopeUtil, {
   TelemetryReadScope,
@@ -2403,6 +2414,179 @@ router.post(
         req,
         res,
         response as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * What the GenAI metrics of a range add up to - tokens and cost, in total
+ * or by person, team or model - counted the way a counter counts
+ * (LlmMetricUsageReader): the Usage tab's figures for the coding assistants
+ * and the SDKs that send metrics. Same read access as the metrics model;
+ * the caller's service scope narrows the read.
+ */
+router.post(
+  LLM_METRIC_USAGE_ROUTE,
+  ...requireMetricReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = (req.body as JSONObject) || {};
+      const endTime: Date = readBodyDate(
+        body["endTime"],
+        OneUptimeDate.getCurrentDate(),
+      );
+      const startTime: Date = readBodyDate(
+        body["startTime"],
+        OneUptimeDate.addRemoveDays(endTime, -7),
+      );
+
+      if (startTime.getTime() > endTime.getTime()) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("startTime must be before endTime"),
+        );
+      }
+
+      const serviceFilter: TelemetryServiceFilter =
+        await TelemetryReadAccess.getServiceFilter({
+          modelType: Metric,
+          props: databaseProps,
+        });
+
+      const usage: LlmMetricUsageResponse = await LlmMetricUsageReader.read({
+        projectId: databaseProps.tenantId,
+        startTime: startTime,
+        endTime: endTime,
+        dimension: readLlmMetricUsageDimension(body["dimension"]),
+        serviceIds: serviceFilter.serviceIds,
+        excludedServiceIds: serviceFilter.excludedServiceIds,
+      });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        usage as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * The AI / LLM setup check: what the project's AI is sending, way by way -
+ * the apps' AI calls (and whether their prompts were recorded), coding
+ * tools' metrics, provider accounts and company AI tools - for the empty
+ * Conversations and Calls views and the Connect page (LlmSetupCheckApi).
+ * Same read access as the AI calls (spans); the metrics and logs parts are
+ * read only when the caller may read those, each narrowed to the caller's
+ * services, and the connections with the caller's own permissions.
+ */
+router.post(
+  LLM_SETUP_CHECK_ROUTE,
+  ...requireTraceReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = (req.body as JSONObject) || {};
+      const now: Date = OneUptimeDate.getCurrentDate();
+      const windowEnd: Date | null =
+        typeof body["endTime"] === "string"
+          ? readBodyDate(body["endTime"], now)
+          : null;
+      const windowStart: Date | null =
+        typeof body["startTime"] === "string" && windowEnd
+          ? readBodyDate(body["startTime"], windowEnd)
+          : null;
+
+      if (
+        windowStart &&
+        windowEnd &&
+        windowStart.getTime() > windowEnd.getTime()
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("startTime must be before endTime"),
+        );
+      }
+
+      const spanFilter: TelemetryServiceFilter =
+        await TelemetryReadAccess.getServiceFilter({
+          modelType: Span,
+          props: databaseProps,
+        });
+
+      // A signal the caller may not read is left out of the check.
+      const filterOrNull: (
+        modelType: typeof Metric | typeof Log,
+      ) => Promise<TelemetryServiceFilter | null> = async (
+        modelType: typeof Metric | typeof Log,
+      ): Promise<TelemetryServiceFilter | null> => {
+        try {
+          return await TelemetryReadAccess.getServiceFilter({
+            modelType: modelType,
+            props: databaseProps,
+          });
+        } catch {
+          return null;
+        }
+      };
+
+      const [metricFilter, logFilter] = await Promise.all([
+        filterOrNull(Metric),
+        filterOrNull(Log),
+      ]);
+
+      const check: LlmSetupCheckResponse = await LlmSetupCheckReader.read({
+        projectId: databaseProps.tenantId,
+        now: now,
+        windowStart: windowStart && windowEnd ? windowStart : undefined,
+        windowEnd: windowStart && windowEnd ? windowEnd : undefined,
+        serviceIds: spanFilter.serviceIds,
+        excludedServiceIds: spanFilter.excludedServiceIds,
+        metricFilter: metricFilter,
+        logFilter: logFilter,
+        props: databaseProps,
+      });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        check as unknown as JSONObject,
       );
     } catch (err: unknown) {
       next(err);

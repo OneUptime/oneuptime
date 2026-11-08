@@ -11,7 +11,6 @@ import React, {
   useState,
 } from "react";
 import Span from "Common/Models/AnalyticsModels/Span";
-import Metric from "Common/Models/AnalyticsModels/Metric";
 import Service from "Common/Models/DatabaseModels/Service";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -26,7 +25,6 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -36,13 +34,11 @@ import StartAndEndDate, {
   StartAndEndDateType,
 } from "Common/UI/Components/Date/StartAndEndDate";
 import {
-  LlmMetricModelAttributeKeys,
-  LlmMetricTeamAttributeKeys,
-  LlmMetricUserAttributeKeys,
-} from "Common/Types/Telemetry/LlmMetricConventions";
-import LlmMetricQuery, {
-  LlmMetricScope,
-} from "Common/Utils/Telemetry/LlmMetricQuery";
+  LlmMetricUsageDimension,
+  LlmMetricUsageGroup,
+  LlmMetricUsageResponse,
+} from "Common/Types/Telemetry/LlmMetricUsageApi";
+import { fetchLlmMetricUsage } from "./LlmObservabilityReads";
 import ServiceElement from "../Service/ServiceElement";
 import LlmUsageTotalsTiles from "./LlmUsageTotals";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -107,22 +103,20 @@ interface LlmUsageDimension {
   getGroupKey: (row: AggregatedModel) => string;
   /*
    * The metric-stream counterpart of `groupBy`, for the fallback that makes
-   * metrics-only coding agents visible. Metric DOES carry an attributes map,
-   * so grouping there goes through groupByAttributeKeys — the mirror image of
-   * the span path, which must use real columns.
-   *
-   * Ordered preferred-first: the group row carries every key that was grouped
-   * on, and the LABEL is the first non-empty one, exactly as getGroupKey
-   * prefers the email column over the id column on the span side.
+   * metrics-only coding agents visible: the dimension the metric usage read
+   * groups by (/telemetry/llm/metric-usage). The server picks each point's
+   * group from every recognized spelling of the dimension's keys, preferred
+   * first (LlmMetricUsageUtil.getGroupKeys), exactly as getGroupKey prefers
+   * the email column over the id column on the span side.
    *
    * Undefined means "this dimension has no metric fallback because the signal
    * does not exist" — see noMetricSignalNote, which is what the UI shows
    * instead of a bare empty state.
    */
-  metricAttributeKeys?: Array<string> | undefined;
+  metricDimension?: LlmMetricUsageDimension | undefined;
   /*
    * Why this dimension has no metric fallback, in the user's words. Present
-   * exactly when metricAttributeKeys is absent. An empty table with no
+   * exactly when metricDimension is absent. An empty table with no
    * explanation reads as "OneUptime lost my data"; the truth is that the
    * vendor counters never carried this field.
    */
@@ -209,20 +203,14 @@ const DIMENSIONS: Array<LlmUsageDimension> = [
       );
     },
     /*
-     * Every recognized metric identity spelling, not just the email.
-     * Grouping on user.email alone collapses the ENTIRE spend of a
-     * Cursor-only project (identity is an opaque cursor.user.id, no email
-     * anywhere) or a Claude Code fleet on API-key auth (user.account_uuid,
-     * no email) into a single Unattributed row — precisely the failure the
-     * span groupBy above is written to avoid.
-     *
-     * This list is 10 keys, which is exactly MetricService's
-     * MAX_GROUP_BY_ATTRIBUTE_KEYS. If a future spelling is added to
-     * LlmMetricUserAttributeKeys the query starts throwing BadDataException,
-     * so a length guard is asserted in the tests rather than discovered in
-     * production.
+     * Every recognized metric identity spelling, not just the email
+     * (LlmMetricUserAttributeKeys). Grouping on user.email alone collapses
+     * the ENTIRE spend of a Cursor project that sends no email (identity is
+     * an opaque cursor.user.id) or a Claude Code fleet on API-key auth
+     * (user.account_uuid, no email) into a single Unattributed row —
+     * precisely the failure the span groupBy above is written to avoid.
      */
-    metricAttributeKeys: LlmMetricUserAttributeKeys,
+    metricDimension: LlmMetricUsageDimension.Employee,
   },
   {
     key: "team",
@@ -240,7 +228,7 @@ const DIMENSIONS: Array<LlmUsageDimension> = [
      * which is exactly why the resource-prefixed spellings in this list
      * matter on the metric stream too.
      */
-    metricAttributeKeys: LlmMetricTeamAttributeKeys,
+    metricDimension: LlmMetricUsageDimension.Team,
   },
   {
     key: "model",
@@ -258,7 +246,7 @@ const DIMENSIONS: Array<LlmUsageDimension> = [
      * `cursor.model.name` — so this dimension is answerable from metrics even
      * though provider and service are not.
      */
-    metricAttributeKeys: LlmMetricModelAttributeKeys,
+    metricDimension: LlmMetricUsageDimension.Model,
   },
   {
     key: "provider",
@@ -388,50 +376,6 @@ const sortUsageRows: SortUsageRowsFunction = (
 
     return a.key.localeCompare(b.key);
   });
-};
-
-type ReadMetricGroupKeyFunction = (
-  row: AggregatedModel,
-  keys: Array<string>,
-) => string;
-
-/*
- * The label for a grouped metric row: the FIRST non-empty value among the
- * keys that were grouped on, in the list's documented preference order.
- *
- * First-match-wins rather than "the one key we asked for", because the
- * grouped row carries every requested key and an emitter populates whichever
- * subset it knows about — Claude Code sends user.email, Cursor sends only
- * cursor.user.id, an operator sends resource.user.email. Reading one key and
- * ignoring the rest is what makes an id-only fleet read as Unattributed.
- *
- * MetricService returns the grouped keys as a map of exactly the requested
- * keys, with an absent attribute surfacing as an empty string, so "missing"
- * has one representation here just as readRowColumn gives it one on the span
- * side.
- */
-const readMetricGroupKey: ReadMetricGroupKeyFunction = (
-  row: AggregatedModel,
-  keys: Array<string>,
-): string => {
-  const attributes: JSONObject =
-    (row["attributes"] as JSONObject | undefined) || {};
-
-  for (const key of keys) {
-    const value: unknown = attributes[key];
-
-    if (value === null || value === undefined) {
-      continue;
-    }
-
-    const text: string = String(value).trim();
-
-    if (text) {
-      return text;
-    }
-  }
-
-  return "";
 };
 
 type FormatNumberFunction = (value: number | null) => string;
@@ -757,7 +701,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
 
       /*
        * The metric fallback, for every dimension the metric stream can
-       * actually answer (employee, team, model — see metricAttributeKeys).
+       * actually answer (employee, team, model — see metricDimension).
        *
        * This is the path that makes Claude Code, Cursor, OpenAI Codex and the
        * Gemini CLI visible at all: they export OpenTelemetry natively, but
@@ -772,121 +716,64 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
        * reaches here at all (it returned above), so metrics can never be
        * substituted for an error.
        */
-      const metricAttributeKeys: Array<string> | undefined =
-        dimension.metricAttributeKeys;
+      const metricDimension: LlmMetricUsageDimension | undefined =
+        dimension.metricDimension;
 
-      if (metricAttributeKeys && allRows.length === 0) {
-        const metricScope: LlmMetricScope = {
-          projectId: projectId,
-          startTime: startDate,
-          endTime: endDate,
-        };
-
-        type SafeMetricCostFunction = (
-          query: Query<Metric>,
-        ) => Promise<Array<AggregatedModel> | null>;
-
-        const safeMetricCost: SafeMetricCostFunction = async (
-          query: Query<Metric>,
-        ): Promise<Array<AggregatedModel> | null> => {
-          try {
-            const result: AggregatedResult =
-              await AnalyticsModelAPI.aggregate<Metric>({
-                modelType: Metric,
-                aggregateBy: {
-                  query: query,
-                  aggregationType: AggregationType.Sum,
-                  aggregateColumnName: "value",
-                  aggregationTimestampColumnName: "time",
-                  startTimestamp: startDate,
-                  endTimestamp: endDate,
-                  aggregationInterval: AggregationInterval.Total,
-                  /*
-                   * Metric DOES carry an attributes map, so grouping goes
-                   * through groupByAttributeKeys here — the mirror image of
-                   * the span path above, which must use real columns.
-                   *
-                   * ALL the recognized spellings, not just the preferred one.
-                   * MetricService produces exactly one group row per
-                   * datapoint regardless of how many keys are listed, so this
-                   * cannot double-count; grouping on one key and ignoring the
-                   * rest is what makes an id-only emitter vanish.
-                   */
-                  groupByAttributeKeys: [...metricAttributeKeys],
-                  limit: AGGREGATE_ROW_LIMIT,
-                  skip: 0,
-                } as AggregateBy<Metric>,
-              });
-
-            return result.data || [];
-          } catch {
-            return null;
-          }
-        };
-
+      if (metricDimension && allRows.length === 0) {
         /*
-         * Two queries, two units. Codex reports spend in MILLIONTHS of a
-         * dollar, so its counter cannot share a Sum with genuinely-USD
-         * counters — combineCostTotals applies the scale per list, before the
-         * addition, in the one place a test pins it.
+         * One read for the whole table: each group's tokens and cost,
+         * counted the way a counter counts (a cumulative counter by what it
+         * grew in the range, never the sum of its running totals), USD and
+         * Codex's millionths of a dollar scaled apart on the server. The
+         * group is the first identity, team or model key a point carries.
          */
-        const [usdRows, microUsdRows] = await Promise.all([
-          safeMetricCost(LlmMetricQuery.buildCostQuery(metricScope)),
-          safeMetricCost(LlmMetricQuery.buildMicroUsdCostQuery(metricScope)),
-        ]);
+        let metricUsage: LlmMetricUsageResponse | null = null;
 
-        const usdByGroup: Map<string, number> = new Map<string, number>();
-        const microUsdByGroup: Map<string, number> = new Map<string, number>();
-
-        for (const metricRow of usdRows || []) {
-          const key: string = readMetricGroupKey(
-            metricRow,
-            metricAttributeKeys,
-          );
-          const value: number = Number(metricRow.value ?? 0);
-          usdByGroup.set(
-            key,
-            (usdByGroup.get(key) || 0) + (isFinite(value) ? value : 0),
-          );
-        }
-
-        for (const metricRow of microUsdRows || []) {
-          const key: string = readMetricGroupKey(
-            metricRow,
-            metricAttributeKeys,
-          );
-          const value: number = Number(metricRow.value ?? 0);
-          microUsdByGroup.set(
-            key,
-            (microUsdByGroup.get(key) || 0) + (isFinite(value) ? value : 0),
-          );
-        }
-
-        const metricKeys: Set<string> = new Set<string>([
-          ...usdByGroup.keys(),
-          ...microUsdByGroup.keys(),
-        ]);
-
-        const metricRows: Array<LlmUsageRow> = [];
-
-        for (const key of metricKeys) {
-          metricRows.push({
-            key: key,
-            /*
-             * The metric stream carries spend, not per-call detail. Null (an
-             * em dash on screen) rather than 0, which would claim this person
-             * made no calls and used no tokens.
-             */
-            calls: null,
-            inputTokens: null,
-            outputTokens: null,
-            totalTokens: null,
-            cost: LlmMetricQuery.combineCostTotals({
-              usd: usdByGroup.get(key) || 0,
-              microUsd: microUsdByGroup.get(key) || 0,
-            }),
+        try {
+          metricUsage = await fetchLlmMetricUsage({
+            range: range,
+            dimension: metricDimension,
           });
+        } catch {
+          metricUsage = null;
         }
+
+        if (!metricUsage) {
+          /*
+           * The spans had nothing and the metrics could not be read: the
+           * error state, never an empty table that reads as "no spend".
+           */
+          if (!cancelled) {
+            setUsage({
+              ...EMPTY_STATE,
+              isLoading: false,
+              hasError: true,
+            });
+          }
+
+          return;
+        }
+
+        const metricRows: Array<LlmUsageRow> = metricUsage.groups.map(
+          (group: LlmMetricUsageGroup): LlmUsageRow => {
+            return {
+              key: group.key,
+              /*
+               * The metric stream carries no per-call detail: null (an em
+               * dash on screen) rather than 0, which would claim this person
+               * made no calls. Tokens show when the group's metrics counted
+               * some.
+               */
+              calls: null,
+              inputTokens: group.hasTokens ? group.inputTokens : null,
+              outputTokens: group.hasTokens ? group.outputTokens : null,
+              totalTokens: group.hasTokens
+                ? group.inputTokens + group.outputTokens
+                : null,
+              cost: group.costUsd,
+            };
+          },
+        );
 
         if (metricRows.length > 0) {
           allRows = sortUsageRows(metricRows);
