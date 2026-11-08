@@ -20,6 +20,7 @@ import {
   DashboardTemplateType,
   getTemplateConfig,
 } from "../../../Types/Dashboard/DashboardTemplates";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import Email from "../../../Types/Email";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
@@ -28,6 +29,7 @@ import TimeRange from "../../../Types/Time/TimeRange";
 import DashboardVariableUrlState from "../../../Utils/Dashboard/VariableUrlState";
 import GridLayoutUtil from "../../../Utils/Dashboard/GridLayout";
 import DashboardViewConfigUtil from "../../../Utils/Dashboard/DashboardViewConfig";
+import MetricQueryServices from "../../../Utils/Metrics/MetricQueryServices";
 
 /*
  * Issue #4571: a dashboard did not open - "Cannot read properties of
@@ -861,6 +863,175 @@ describe("widgets", () => {
       expect((widgetArguments["owner"] as Email).isMalformed()).toBe(true);
       expect(String(widgetArguments["owner"])).toBe("ops <ops@acme.example>");
       expect(widgetArguments["monitorId"]).toBeInstanceOf(ObjectID);
+    });
+
+    /*
+     * Issue #6297: arguments written as JSON text are the same arguments as
+     * that object, and read exactly alike - ObjectIDs, query operators and
+     * dates revived - so a chart whose arguments are text reads the services
+     * it is saved with, as the chart stored as an object does. Read after
+     * the rest of the widget, they stayed JSON: an ObjectID's JSON is no id
+     * to MetricQueryServices, and the chart charted every service.
+     */
+    describe("arguments stored as JSON text (issue #6297)", () => {
+      const API_SERVICE: string = "0f8fad5b-d9cb-469f-a165-70867728950e";
+      const CHECKOUT_SERVICE: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+
+      // A chart's arguments, as an API user stores a serialized one.
+      const chartArguments: () => JSONObject = (): JSONObject => {
+        return {
+          chartTitle: "Latency",
+          monitorId: { _type: "ObjectID", value: SECOND_WIDGET_ID },
+          since: { _type: "DateTime", value: "2026-01-01T00:00:00.000Z" },
+          metricQueryConfig: {
+            metricQueryData: {
+              filterData: {
+                metricName: "http.server.duration",
+                attributes: {
+                  "host.name": { _type: "Includes", value: ["web-1", "web-2"] },
+                },
+                telemetryServiceIds: [
+                  API_SERVICE,
+                  { _type: "ObjectID", value: CHECKOUT_SERVICE },
+                ],
+              },
+              groupByAttributeKeys: ["host.name"],
+            },
+          },
+        };
+      };
+
+      const chartWith: (widgetArguments: unknown) => JSONObject = (
+        widgetArguments: unknown,
+      ): JSONObject => {
+        return {
+          ...apiTextWidget(),
+          componentType: DashboardComponentType.Chart,
+          arguments: widgetArguments as JSONObject,
+        };
+      };
+
+      const filterDataOf: (config: DashboardViewConfig) => JSONObject = (
+        config: DashboardViewConfig,
+      ): JSONObject => {
+        return (
+          (
+            (config.components[0]!.arguments as JSONObject)[
+              "metricQueryConfig"
+            ] as JSONObject
+          )["metricQueryData"] as JSONObject
+        )["filterData"] as JSONObject;
+      };
+
+      test("are read exactly as the same arguments stored as an object", () => {
+        const asObject: DashboardViewConfig = StoredDashboardViewConfig.read({
+          components: [chartWith(chartArguments())],
+        });
+        const asText: DashboardViewConfig = StoredDashboardViewConfig.read({
+          components: [chartWith(JSON.stringify(chartArguments()))],
+        });
+
+        expect(asText).toEqual(asObject);
+
+        const widgetArguments: JSONObject = asText.components[0]!
+          .arguments as JSONObject;
+
+        expect(widgetArguments["monitorId"]).toBeInstanceOf(ObjectID);
+        expect(String(widgetArguments["monitorId"])).toBe(SECOND_WIDGET_ID);
+        expect(widgetArguments["since"]).toBeInstanceOf(Date);
+
+        const filterData: JSONObject = filterDataOf(asText);
+
+        expect(
+          (filterData["attributes"] as JSONObject)["host.name"],
+        ).toBeInstanceOf(Includes);
+
+        // The services the chart is saved with, as the chart reads them.
+        expect(
+          MetricQueryServices.normalize(filterData["telemetryServiceIds"]),
+        ).toEqual([API_SERVICE, CHECKOUT_SERVICE]);
+      });
+
+      test("are read alike in every shape the widget itself is stored in", () => {
+        const expected: DashboardViewConfig = StoredDashboardViewConfig.read({
+          components: [chartWith(chartArguments())],
+        });
+        const widget: JSONObject = chartWith(JSON.stringify(chartArguments()));
+
+        for (const [label, components] of [
+          ["the widget as JSON text", [JSON.stringify(widget)]],
+          [
+            "the DashboardComponent envelope",
+            [{ _type: "DashboardComponent", value: widget }],
+          ],
+          [
+            "the envelope, its value as JSON text",
+            [{ _type: "DashboardComponent", value: JSON.stringify(widget) }],
+          ],
+          ["the widget list as JSON text", JSON.stringify([widget])],
+        ] as Array<[string, unknown]>) {
+          expect([
+            label,
+            StoredDashboardViewConfig.read({ components: components }),
+          ]).toEqual([label, expected]);
+        }
+      });
+
+      test("that cannot be revived are kept as their JSON, as when stored as an object", () => {
+        const unrevivable: () => JSONObject = (): JSONObject => {
+          return {
+            ...chartArguments(),
+            // An address that is not text was never one: it cannot be read.
+            owner: { _type: "Email", value: 42 },
+          };
+        };
+
+        const asObject: DashboardViewConfig = StoredDashboardViewConfig.read({
+          components: [chartWith(unrevivable())],
+        });
+        const asText: DashboardViewConfig = StoredDashboardViewConfig.read({
+          components: [chartWith(JSON.stringify(unrevivable()))],
+        });
+
+        expect(asText).toEqual(asObject);
+        expect(asText.components[0]!.arguments).toEqual(unrevivable());
+
+        // Then the chart reads, as the page reads it, only the text id.
+        expect(
+          MetricQueryServices.normalize(
+            filterDataOf(asText)["telemetryServiceIds"],
+          ),
+        ).toEqual([API_SERVICE]);
+      });
+
+      test.each([
+        ["text of text", JSON.stringify(JSON.stringify({ text: "Twice" }))],
+        ["a list", JSON.stringify([{ text: "In a list" }])],
+        ["a number", "5"],
+        ["true", "true"],
+        ["null", "null"],
+        ["JSON cut short", '{"text": "Cut'],
+        ["blank", "   "],
+      ])(
+        "text that says no object - %s - is none",
+        (_name: string, text: string) => {
+          const config: DashboardViewConfig = StoredDashboardViewConfig.read({
+            components: [{ ...apiTextWidget(), arguments: text }],
+          });
+
+          expect(config.components[0]!.arguments).toEqual({});
+        },
+      );
+
+      test("the stored widget is left as it was", () => {
+        const entry: JSONObject = chartWith(JSON.stringify(chartArguments()));
+        const before: string = JSON.stringify(entry);
+
+        StoredDashboardViewConfig.read({ components: [entry] });
+
+        expect(JSON.stringify(entry)).toBe(before);
+        expect(typeof entry["arguments"]).toBe("string");
+      });
     });
   });
 });
