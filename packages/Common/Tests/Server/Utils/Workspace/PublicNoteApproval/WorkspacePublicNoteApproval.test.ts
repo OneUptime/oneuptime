@@ -419,12 +419,19 @@ describe("the message an approver gets", () => {
 
     const intro: string = markdownOf(message, 0);
 
-    expect(intro).not.toContain("](https://evil.example)");
-    expect(intro).not.toContain("![x]");
-    expect(intro).not.toContain("**down**");
+    // Each bracket, star and underscore of theirs is escaped: none opens anything.
+    expect(intro).not.toMatch(/(?<!\\)\]\(https:\/\/evil\.example/);
+    expect(intro).not.toMatch(/(?<!\\)!\[x/);
+    expect(intro).not.toMatch(/(?<!\\)\*\*down/);
+    expect(intro).not.toMatch(/(?<!\\)\*Mallory/);
+    expect(intro).not.toMatch(/(?<!\\)_Bob_/);
+    expect(intro).not.toMatch(/(?<!\\)`Platform/);
+    // Mentions are broken: Slack reads none of them.
     expect(intro).not.toContain("<!channel>");
     expect(intro).not.toContain("<@U012>");
+    // The one link is the record's, to its public notes.
     expect(intro).toContain(`](${NOTES_URL})`);
+    expect(intro.match(/(?<!\\)\]\(/g)).toHaveLength(1);
   });
 
   test("an image a data: URL carries in the note is its alt text: a chat shows no such image", () => {

@@ -121,6 +121,8 @@ export interface ChatWorld {
   published: Array<{ noteId: string; approvedByNames: Array<string> }>;
   workflows: Array<string>;
   asked: Array<Array<string>>;
+  // What each ask handed the chat message: the note, round, step and finality.
+  askedChat: Array<unknown>;
   told: Array<{ userId: string | undefined; isApproved: boolean }>;
   logged: Array<string>;
   /*
@@ -360,6 +362,7 @@ export function startWorld(): void {
     published: [],
     workflows: [],
     asked: [],
+    askedChat: [],
     told: [],
     logged: [],
     readsAsOf: null,
@@ -413,8 +416,12 @@ export function startWorld(): void {
   getJestSpyOn(
     PublicNoteApprovalNotifications,
     "askApprovers",
-  ).mockImplementation((async (data: { userIds: ReadonlyArray<string> }) => {
+  ).mockImplementation((async (data: {
+    userIds: ReadonlyArray<string>;
+    chat?: unknown;
+  }) => {
     world.asked.push([...data.userIds]);
+    world.askedChat.push(data.chat);
     return [];
   }) as never);
   getJestSpyOn(

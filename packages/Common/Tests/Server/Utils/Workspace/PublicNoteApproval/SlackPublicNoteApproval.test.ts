@@ -152,6 +152,15 @@ function answers(): Array<string> {
   );
 }
 
+// The same, as the plain text its notification shows: a refusal's own words.
+function answerTexts(): Array<string> {
+  return [...answered.mock.calls, ...ephemeral.mock.calls].map(
+    (call: Array<any>): string => {
+      return (call[0] as { text: string }).text;
+    },
+  );
+}
+
 function slackResponses(): Array<unknown> {
   return responded.mock.calls.map((call: Array<any>) => {
     return call[2];
@@ -229,7 +238,7 @@ describe("Approve, in a direct message", () => {
 
     await press(userId, SlackActionType.ApprovePublicNote, encodedValue());
 
-    expect(answers()).toEqual([told]);
+    expect(answerTexts()).toEqual([told]);
     expect(world.writes).toEqual([]);
     expect(world.logged).toEqual([]);
   });
@@ -240,7 +249,9 @@ describe("Approve, in a direct message", () => {
 
     await press(BOB, SlackActionType.ApprovePublicNote, encodedValue());
 
-    expect(answers()[1]).toBe(PublicNoteApprovalMessages.approvedEarlierStep);
+    expect(answerTexts()[1]).toBe(
+      PublicNoteApprovalMessages.approvedEarlierStep,
+    );
     expect(world.writes).toHaveLength(1);
   });
 
@@ -251,7 +262,7 @@ describe("Approve, in a direct message", () => {
     world.exists = false;
     await press(BOB, SlackActionType.ApprovePublicNote, encodedValue());
 
-    expect(answers()).toEqual([
+    expect(answerTexts()).toEqual([
       `You do not have permission to approve this public note: ${WorkspaceActionAuthorization.getNotIncludedReason("incident public note")}`,
       "This public note is no longer in OneUptime. It may have been deleted.",
     ]);
@@ -269,7 +280,7 @@ describe("Approve, in a direct message", () => {
 
     await press(BOB, SlackActionType.ApprovePublicNote, encodedValue());
 
-    expect(answers()).toEqual([
+    expect(answerTexts()).toEqual([
       WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
     ]);
     expect(world.writes).toEqual([]);
@@ -308,16 +319,31 @@ describe("Approve, in a direct message", () => {
 
 describe("forged, replayed and stale presses", () => {
   test.each([
-    ["an id where a value belongs", "44444444-4444-4444-8444-444444444444"],
-    ["a value with its signature changed", `${encodedValue().slice(0, -3)}abc`],
-    ["nothing at all", ""],
-  ])("%s: told the button could not be verified, and nothing is read", async (_label: string, actionValue: string) => {
+    [
+      "an id where a value belongs",
+      (): string => {
+        return "44444444-4444-4444-8444-444444444444";
+      },
+    ],
+    [
+      "a value with its signature changed",
+      (): string => {
+        return `${encodedValue().slice(0, -3)}abc`;
+      },
+    ],
+    [
+      "nothing at all",
+      (): string => {
+        return "";
+      },
+    ],
+  ])("%s: told the button could not be verified, and nothing is read", async (_label: string, actionValue: () => string) => {
     const getHost: AnySpy = WorkspacePublicNoteApprovalActions.getHost as unknown as AnySpy;
     getHost.mockClear();
 
-    await press(BOB, SlackActionType.ApprovePublicNote, actionValue);
+    await press(BOB, SlackActionType.ApprovePublicNote, actionValue());
 
-    expect(answers()).toEqual([
+    expect(answerTexts()).toEqual([
       WorkspacePublicNoteApprovalActions.getUnverifiedMessage(),
     ]);
     expect(getHost).not.toHaveBeenCalled();
@@ -331,7 +357,7 @@ describe("forged, replayed and stale presses", () => {
       encodedValue({ projectId: OTHER_PROJECT_ID }),
     );
 
-    expect(answers()).toEqual([
+    expect(answerTexts()).toEqual([
       WorkspacePublicNoteApprovalActions.getUnverifiedMessage(),
     ]);
     expect(world.writes).toEqual([]);
@@ -380,7 +406,7 @@ describe("Reject, and its modal", () => {
     await press(ALICE, SlackActionType.ViewRejectPublicNote, encodedValue());
 
     expect(modal).not.toHaveBeenCalled();
-    expect(answers()).toEqual([PublicNoteApprovalMessages.sentByYou]);
+    expect(answerTexts()).toEqual([PublicNoteApprovalMessages.sentByYou]);
   });
 
   test.each([
