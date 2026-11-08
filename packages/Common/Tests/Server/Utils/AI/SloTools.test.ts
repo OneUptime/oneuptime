@@ -6,6 +6,9 @@ import {
 import ServiceLevelObjectiveService from "../../../../Server/Services/ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "../../../../Server/Services/ServiceLevelObjectiveBurnRateRuleService";
 import ServiceLevelObjectiveMonitorRuleService from "../../../../Server/Services/ServiceLevelObjectiveMonitorRuleService";
+import ServiceLevelObjectiveErrorBudgetPolicyTierService from "../../../../Server/Services/ServiceLevelObjectiveErrorBudgetPolicyTierService";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "../../../../Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import LabelService from "../../../../Server/Services/LabelService";
 import ServiceLevelObjectiveMonitorRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import Label from "../../../../Models/DatabaseModels/Label";
@@ -151,6 +154,10 @@ function buildRule(data?: {
 beforeEach(() => {
   jest
     .spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy")
+    .mockResolvedValue([] as never);
+  // And no error budget policy, unless a case below gives it one.
+  jest
+    .spyOn(ServiceLevelObjectiveErrorBudgetPolicyTierService, "findBy")
     .mockResolvedValue([] as never);
 });
 
@@ -1050,5 +1057,334 @@ describe("query_slos — recommended burn-rate rules the SLO is missing", () => 
     expect(QuerySlosTool.description).toContain(
       "which of OneUptime's recommended burn-rate rules (Fast burn, Slow burn, Slow leak) the SLO is missing",
     );
+  });
+});
+
+describe("query_slos — error budget policy", () => {
+  const CAUTION_ID: ObjectID = ObjectID.generate();
+  const RELIABILITY_FIRST_ID: ObjectID = ObjectID.generate();
+  const EXHAUSTED_ID: ObjectID = ObjectID.generate();
+
+  function buildTier(data: {
+    id: ObjectID;
+    name: string;
+    thresholdPercentage: number;
+    whatWeDo?: string;
+    isEnabled?: boolean;
+    shouldCreateAlert?: boolean;
+    shouldCreateIncident?: boolean;
+  }): ServiceLevelObjectiveErrorBudgetPolicyTier {
+    const tier: ServiceLevelObjectiveErrorBudgetPolicyTier =
+      new ServiceLevelObjectiveErrorBudgetPolicyTier();
+    tier._id = data.id.toString();
+    tier.name = data.name;
+    tier.thresholdPercentage = data.thresholdPercentage;
+    tier.whatWeDo = data.whatWeDo ?? `${data.name}: what the team does.`;
+    tier.isEnabled = data.isEnabled ?? true;
+
+    if (data.shouldCreateAlert !== undefined) {
+      tier.shouldCreateAlert = data.shouldCreateAlert;
+    }
+
+    if (data.shouldCreateIncident !== undefined) {
+      tier.shouldCreateIncident = data.shouldCreateIncident;
+    }
+
+    return tier;
+  }
+
+  // The recommended policy, read back from the database in no useful order.
+  function policy(): Array<ServiceLevelObjectiveErrorBudgetPolicyTier> {
+    return [
+      buildTier({
+        id: EXHAUSTED_ID,
+        name: "Budget exhausted",
+        thresholdPercentage: 0,
+        shouldCreateIncident: true,
+      }),
+      buildTier({
+        id: CAUTION_ID,
+        name: "Caution",
+        thresholdPercentage: 50,
+      }),
+      buildTier({
+        id: RELIABILITY_FIRST_ID,
+        name: "Reliability first",
+        thresholdPercentage: 25,
+        shouldCreateAlert: true,
+      }),
+    ];
+  }
+
+  function sloInTier(
+    tierId: ObjectID | null,
+    tierName: string | null,
+  ): ServiceLevelObjective {
+    const slo: ServiceLevelObjective = buildSlo();
+
+    if (tierId && tierName) {
+      slo.currentErrorBudgetPolicyTierId = tierId;
+      slo.currentErrorBudgetPolicyTierName = tierName;
+      slo.currentErrorBudgetPolicyTierEnteredAt = new Date(
+        "2026-08-13T10:00:00Z",
+      );
+    }
+
+    return slo;
+  }
+
+  async function detail(data: {
+    slo: ServiceLevelObjective;
+    tiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> | "denied";
+  }): Promise<{ result: ToolExecutionResult; tiersSpy: jest.SpyInstance }> {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(data.slo as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const tiersSpy: jest.SpyInstance = jest.spyOn(
+      ServiceLevelObjectiveErrorBudgetPolicyTierService,
+      "findBy",
+    );
+
+    if (data.tiers === "denied") {
+      tiersSpy.mockRejectedValue(
+        new NotAuthorizedException(
+          "You do not have permission to read SLO Error Budget Policy Tiers.",
+        ) as never,
+      );
+    } else {
+      tiersSpy.mockResolvedValue(data.tiers as never);
+    }
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    return { result, tiersSpy };
+  }
+
+  function widgetField(
+    result: ToolExecutionResult,
+    label: string,
+  ): string | undefined {
+    const widget: {
+      data?: { fields?: Array<{ label: string; value: string }> };
+    } =
+      (result.widget as unknown as {
+        data?: { fields?: Array<{ label: string; value: string }> };
+      }) || {};
+    const fields: Array<{ label: string; value: string }> =
+      widget.data?.fields || [];
+
+    return fields.find((field: { label: string }): boolean => {
+      return field.label === label;
+    })?.value;
+  }
+
+  test("returns the tiers, most budget left first, and marks the one the SLO is in", async () => {
+    const { result } = await detail({
+      slo: sloInTier(RELIABILITY_FIRST_ID, "Reliability first"),
+      tiers: policy(),
+    });
+
+    const text: string = result.dataForLlm;
+
+    // SLO row, then the three tiers in the order the budget reaches them.
+    expect(result.rowCount).toBe(4);
+    expect(text.indexOf("Caution")).toBeLessThan(
+      text.indexOf("Reliability first: what the team does."),
+    );
+    expect(text.indexOf("Reliability first: what the team does.")).toBeLessThan(
+      text.indexOf("Budget exhausted"),
+    );
+    expect(text).toContain("error budget left at or below 25%");
+    expect(text).toContain("error budget left at or below 0%");
+    expect(text).toContain("Reliability first: what the team does.");
+    // The SLO row names the tier it is in.
+    expect(text).toContain("currentErrorBudgetPolicyTier");
+    expect(text).toContain("isCurrentTier");
+    // The model is told how to read a tier.
+    expect(text).toContain("errorBudgetPolicyTier rows are the SLO's error budget policy");
+    expect(widgetField(result, "Error budget policy tier")).toBe(
+      "Reliability first",
+    );
+  });
+
+  test("reads the tiers as the caller, only for the SLO asked about", async () => {
+    const { tiersSpy } = await detail({
+      slo: sloInTier(null, null),
+      tiers: policy(),
+    });
+
+    const callArgs: JSONObject = tiersSpy.mock.calls[0]?.[0] as JSONObject;
+    expect(callArgs["props"]).toBe(ctx.props);
+    expect(
+      (callArgs["query"] as JSONObject)["serviceLevelObjectiveId"]?.toString(),
+    ).toBe(SLO_ID.toString());
+  });
+
+  test("a tier's outputs read with the tier's defaults: off unless switched on", async () => {
+    const { result } = await detail({
+      slo: sloInTier(null, null),
+      tiers: [
+        buildTier({
+          id: CAUTION_ID,
+          name: "Caution",
+          thresholdPercentage: 50,
+        }),
+      ],
+    });
+
+    const tierRow: string =
+      result.dataForLlm
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.includes("errorBudgetPolicyTier") && line.includes("Caution");
+        }) || result.dataForLlm;
+
+    expect(tierRow).toContain("createsAlert");
+    expect(result.dataForLlm).not.toMatch(/createsAlert[^,\n]*true/);
+    expect(result.dataForLlm).not.toMatch(/createsIncident[^,\n]*true/);
+  });
+
+  test("an SLO above every tier says so, and one without a policy says that", async () => {
+    const { result: aboveEveryTier } = await detail({
+      slo: sloInTier(null, null),
+      tiers: policy(),
+    });
+
+    expect(widgetField(aboveEveryTier, "Error budget policy tier")).toBe(
+      "none - the budget is above every tier",
+    );
+
+    jest.restoreAllMocks();
+    jest
+      .spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const { result: noPolicy } = await detail({
+      slo: sloInTier(null, null),
+      tiers: [],
+    });
+
+    expect(widgetField(noPolicy, "Error budget policy tier")).toBe(
+      "no error budget policy",
+    );
+    // No tiers, no note about reading them.
+    expect(noPolicy.dataForLlm).not.toContain(
+      "errorBudgetPolicyTier rows are",
+    );
+  });
+
+  test("a caller who may not read tiers still gets the SLO, and the tier it is in", async () => {
+    const { result } = await detail({
+      slo: sloInTier(EXHAUSTED_ID, "Budget exhausted"),
+      tiers: "denied",
+    });
+
+    expect(result.rowCount).toBe(1);
+    expect(result.dataForLlm).toContain(
+      "error budget policy tiers are left out because the current user does not have permission to read SLO Error Budget Policy Tiers (ReadServiceLevelObjectiveErrorBudgetPolicyTier)",
+    );
+    // The tier is SLO data: still there, on the SLO row and in the card.
+    expect(result.dataForLlm).toContain("Budget exhausted");
+    expect(widgetField(result, "Error budget policy tier")).toBe(
+      "Budget exhausted",
+    );
+  });
+
+  test("a caller who may not read tiers, for an SLO in none, is told it cannot see them", async () => {
+    const { result } = await detail({
+      slo: sloInTier(null, null),
+      tiers: "denied",
+    });
+
+    expect(widgetField(result, "Error budget policy tier")).toBe(
+      "not visible to you",
+    );
+  });
+
+  test("a failure that is not a permission denial still fails the call", async () => {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(sloInTier(null, null) as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(ServiceLevelObjectiveErrorBudgetPolicyTierService, "findBy")
+      .mockRejectedValue(new Error("connection lost") as never);
+
+    await expect(
+      QuerySlosTool.execute({ sloId: SLO_ID.toString() }, ctx),
+    ).rejects.toThrow("connection lost");
+  });
+
+  test("a long \"what we do\" is cut, so one tier cannot crowd out the rest", async () => {
+    const { result } = await detail({
+      slo: sloInTier(null, null),
+      tiers: [
+        buildTier({
+          id: CAUTION_ID,
+          name: "Caution",
+          thresholdPercentage: 50,
+          whatWeDo: "x".repeat(5000),
+        }),
+      ],
+    });
+
+    expect(result.dataForLlm).toContain(`${"x".repeat(1000)}…`);
+    expect(result.dataForLlm).not.toContain("x".repeat(1001));
+  });
+
+  test("the tiers of an SLO the caller cannot see are never read", async () => {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(null as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([] as never);
+    const tiersSpy: jest.SpyInstance = jest
+      .spyOn(ServiceLevelObjectiveErrorBudgetPolicyTierService, "findBy")
+      .mockResolvedValue(policy() as never);
+
+    await QuerySlosTool.execute({ sloId: SLO_ID.toString() }, ctx);
+
+    expect(tiersSpy).not.toHaveBeenCalled();
+  });
+
+  test("list mode names the tier each SLO is in", async () => {
+    const inTier: ServiceLevelObjective = sloInTier(
+      CAUTION_ID,
+      "Caution",
+    );
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(ServiceLevelObjectiveService, "findBy")
+      .mockResolvedValue([
+        inTier,
+        buildSlo({ id: ObjectID.generate(), name: "Search latency" }),
+      ] as never);
+    jest
+      .spyOn(ServiceLevelObjectiveService, "countBy")
+      .mockResolvedValue(new PositiveNumber(2) as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute({}, ctx);
+
+    expect(result.dataForLlm).toContain("currentErrorBudgetPolicyTier");
+    expect(result.dataForLlm).toContain("Caution");
+
+    const select: JSONObject = (findBySpy.mock.calls[0]?.[0] as JSONObject)[
+      "select"
+    ] as JSONObject;
+    expect(select["currentErrorBudgetPolicyTierName"]).toBe(true);
+  });
+
+  test("the tool description says it reports the error budget policy", () => {
+    expect(QuerySlosTool.description).toContain("error budget policy");
+    expect(QuerySlosTool.description).toContain("the tier the SLO is in now");
   });
 });
