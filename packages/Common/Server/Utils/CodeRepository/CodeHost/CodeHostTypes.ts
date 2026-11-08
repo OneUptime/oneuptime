@@ -64,7 +64,22 @@ export interface CodeHostFileContent {
   sizeInBytes: number;
   totalLines: number;
   htmlUrl: string;
+  /*
+   * The file's git blob SHA, as the host answers it with the contents:
+   * the version read, which a commit written from it is checked against
+   * (issue #6313). Absent where the host does not say.
+   */
+  blobSha?: string | undefined;
 }
+
+/*
+ * What is at a path on a branch, as a commit would find it (issue #6313):
+ * the git blob SHA of the file there, null where there is no file - or
+ * why it could not be read.
+ */
+export type CodeHostFileBlob =
+  | { filePath: string; blobSha: string | null }
+  | { filePath: string; failure: string };
 
 // A pull (or merge) request's state, with its merge commit once merged.
 export interface CodeHostPullRequestState {

@@ -100,8 +100,9 @@ export interface PreparedMutation {
   describedArguments?: Array<string> | undefined;
   /*
    * Set when the action would undo what was saved after the model last saw
-   * the record - a workflow saved after Ask AI read it (issue #6291) - so
-   * it is made only once a person approves it. Asked for approval, the card
+   * the record - a workflow saved after Ask AI read it (issue #6291), a
+   * file pushed to after Ask AI read it (issue #6313) - so it is made only
+   * once a person approves it. Asked for approval, the card
    * says so (description). In a conversation that runs actions without
    * asking (Auto-run) nobody would, so it is not run: the model is told
    * this instead, and reads the record again before it changes it.
@@ -134,10 +135,12 @@ export interface ToolExecutionResult {
   /*
    * What the result showed the model of a record it may change from it
    * later (Types/AI/AIChatRecordSeen): a workflow's steps, read or as Ask AI
-   * saved them. Built by the tool from its own read, never from the
-   * model's arguments, and kept with the citation (issue #6291).
+   * saved them, or a repository's file on a branch, read or as a commit of
+   * Ask AI's own wrote it - a list for a commit's files. Built by the tool
+   * from its own read, never from the model's arguments, and kept with the
+   * citation (issues #6291 and #6313).
    */
-  recordSeen?: AIChatRecordSeen | undefined;
+  recordSeen?: AIChatRecordSeen | Array<AIChatRecordSeen> | undefined;
 }
 
 export interface ObservabilityTool {
