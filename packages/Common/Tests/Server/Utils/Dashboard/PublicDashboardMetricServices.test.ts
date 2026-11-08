@@ -818,10 +818,15 @@ describe("the services are read where the public page draws them (issue #6297)",
   });
 
   test("a widget the page cannot revive is read as the page reads it, and its services never revived here", () => {
-    // An address that is not text cannot be revived: the page then draws the widget as stored.
+    /*
+     * An address that is not text cannot be revived: the page then draws the
+     * widget as stored. It sits in a setting a chart has, its description:
+     * a public dashboard serves a widget only the settings its type has
+     * (issue #6338), so one beside them is not served, and stops nothing.
+     */
     const widget: JSONObject = chart(savedQuery(LATENCY, STORED_SERVICES));
 
-    (widget["arguments"] as JSONObject)["owner"] = {
+    (widget["arguments"] as JSONObject)["chartDescription"] = {
       _type: "Email",
       value: 42,
     };
@@ -847,19 +852,32 @@ describe("the services are read where the public page draws them (issue #6297)",
   });
 
   test("a value under a __proto__ key, which JSON keeps as an ordinary key, is never read", () => {
-    // The widget cannot be revived, so the page draws its stored JSON, key and all.
+    /*
+     * The widget cannot be revived (its description is an address that is
+     * not text), so the page draws its stored JSON, key and all. The key
+     * sits inside the chart's query, a setting the chart is served; beside
+     * its settings it is not served at all (issue #6338).
+     */
     const config: JSONObject = JSON.parse(
-      JSON.stringify(dashboardOf(chart(savedQuery(LATENCY, [API])))).replace(
-        '"metricQueryConfig"',
-        `"owner": {"_type": "Email", "value": 42}, "__proto__": ${JSON.stringify(
-          { metricQueryConfig: savedQuery(CPU, [FOREIGN]) },
-        )}, "metricQueryConfig"`,
-      ),
+      JSON.stringify(dashboardOf(chart(savedQuery(LATENCY, [API]))))
+        .replace(
+          '"metricQueryData"',
+          `"__proto__": ${JSON.stringify(savedQuery(CPU, [FOREIGN]))}, "metricQueryData"`,
+        )
+        .replace(
+          '"metricQueryConfig"',
+          `"chartDescription": {"_type": "Email", "value": 42}, "__proto__": ${JSON.stringify(
+            { metricQueryConfig: savedQuery(CPU, [FOREIGN]) },
+          )}, "metricQueryConfig"`,
+        ),
     ) as JSONObject;
 
     const drawn: JSONObject = drawnSettingsOf(config)[0]!;
 
-    expect(Object.keys(drawn)).toContain("__proto__");
+    expect(Object.keys(drawn)).not.toContain("__proto__");
+    expect(Object.keys(drawn["metricQueryConfig"] as JSONObject)).toContain(
+      "__proto__",
+    );
     expect(savedServicesOf(config)).toEqual([[LATENCY, [[API]]]]);
     expect(readFor(config, CPU, servicesFilter([FOREIGN]))).toBe("refused");
   });
