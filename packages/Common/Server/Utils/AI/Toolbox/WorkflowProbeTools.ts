@@ -35,7 +35,9 @@ import {
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
 import { getDraftFromGraph } from "../../../../Types/Workflow/WorkflowDraft";
-import { getWorkflowComponent } from "./WorkflowBuilderTools";
+import { readWorkflowGraphRevision } from "../../../../Types/Workflow/WorkflowGraphRevision";
+import { AIChatRecordSeen } from "../../../../Types/AI/AIChatRecordSeen";
+import { getWorkflowComponent, getWorkflowSeen } from "./WorkflowBuilderTools";
 
 /*
  * Derived from the model ACLs so the tool gates can never drift from RBAC.
@@ -280,10 +282,16 @@ const MAX_WORKFLOW_STEPS_TEXT_LENGTH: number = 48 * 1024;
  * saved password reads [hidden], and what else looks like one is redacted
  * (Serializer), which the draft keeps as saved when it is written back. Whole or
  * not at all: a draft cut short and written back would remove the rest.
+ *
+ * Shown, they are what a change the model writes from them is checked
+ * against before anyone approves it (issue #6291): every step, by its
+ * keyed fingerprint, and the graph revision they were read at, kept with
+ * the result's citation (recordSeen) - by OneUptime, never the model.
  */
 function describeWorkflowSteps(workflow: Workflow): {
   text: string;
   redactionCount: number;
+  recordSeen?: AIChatRecordSeen | undefined;
 } {
   const redacted: { text: string; count: number } = ToolResultSerializer.redact(
     JSON.stringify(
@@ -304,6 +312,16 @@ function describeWorkflowSteps(workflow: Workflow): {
   return {
     text: `\nIts steps and connections, as update_workflow takes them:\n${redacted.text}`,
     redactionCount: redacted.count,
+    ...(workflow.id
+      ? {
+          recordSeen: getWorkflowSeen({
+            workflowId: workflow.id.toString(),
+            graph: workflow.graph,
+            // 0 for a workflow saved before revisions were counted, as update_workflow reads it.
+            revision: readWorkflowGraphRevision(workflow.graphRevision) ?? 0,
+          }),
+        }
+      : {}),
   };
 }
 
@@ -362,7 +380,9 @@ export const QueryWorkflowsTool: ObservabilityTool = {
           isEnabled: true,
           isArchived: true,
           createdAt: true,
-          ...(ToolArgs.getBoolean(args, "includeSteps") ? { graph: true } : {}),
+          ...(ToolArgs.getBoolean(args, "includeSteps")
+            ? { graph: true, graphRevision: true }
+            : {}),
         },
         props: ctx.props,
       });
@@ -427,10 +447,13 @@ export const QueryWorkflowsTool: ObservabilityTool = {
         createdAt: workflow.createdAt,
       };
 
-      const steps: { text: string; redactionCount: number } =
-        ToolArgs.getBoolean(args, "includeSteps")
-          ? describeWorkflowSteps(workflow)
-          : { text: "", redactionCount: 0 };
+      const steps: {
+        text: string;
+        redactionCount: number;
+        recordSeen?: AIChatRecordSeen | undefined;
+      } = ToolArgs.getBoolean(args, "includeSteps")
+        ? describeWorkflowSteps(workflow)
+        : { text: "", redactionCount: 0 };
 
       const runRows: Array<JSONObject> = runs.map((run: WorkflowLog) => {
         const isFailedRun: boolean = run.workflowStatus
@@ -481,6 +504,7 @@ export const QueryWorkflowsTool: ObservabilityTool = {
         },
         redactionCount: serialized.redactionCount + steps.redactionCount,
         isTruncated: serialized.isTruncated,
+        ...(steps.recordSeen ? { recordSeen: steps.recordSeen } : {}),
         widget:
           runRows.length > 0
             ? WidgetBuilder.table({

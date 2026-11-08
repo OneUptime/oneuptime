@@ -23,6 +23,12 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import {
+  AIChatRecordKnown,
+  AIChatRecordSeen,
+  AIChatRecordSeenType,
+  getAIChatRecordKnown,
+} from "../../../../Types/AI/AIChatRecordSeen";
 import AIChatPageContextType from "../../../../Types/AI/AIChatPageContext";
 import {
   AI_ACTION_CARD_FACTS,
@@ -65,10 +71,16 @@ import {
   WorkflowDraftProposedOn,
   WorkflowDraftRebase,
   WorkflowDraftRebaseKind,
+  fingerprintWorkflowSteps,
   proposeWorkflowDraft,
   readWorkflowDraftProposedOn,
   rebaseWorkflowDraft,
 } from "../../../../Types/Workflow/WorkflowDraftRebase";
+import {
+  WorkflowStepsUndone,
+  findWorkflowStepsUndoneUnseen,
+  fingerprintEveryWorkflowStep,
+} from "../../../../Types/Workflow/WorkflowDraftSeen";
 import {
   WORKFLOW_GRAPH_REVISION_KEY,
   readWorkflowGraphRevision,
@@ -1072,6 +1084,15 @@ export const CreateWorkflowTool: ObservabilityTool = {
           params: { workflowId: id },
         },
       }),
+      /*
+       * Ask AI knows the steps it made, as they were saved: a new workflow's
+       * graph has been saved no times yet (issue #6291).
+       */
+      recordSeen: getWorkflowSeen({
+        workflowId: id,
+        graph: graph,
+        revision: readWorkflowGraphRevision(created.graphRevision) ?? 0,
+      }),
     };
   },
 };
@@ -1157,6 +1178,36 @@ export const fingerprintWorkflowStep: WorkflowDraftDigestFunction = (
     .slice(0, STEP_FINGERPRINT_LENGTH);
 };
 
+type GetWorkflowSeenFunction = (data: {
+  workflowId: string;
+  graph: JSONObject | null | undefined;
+  revision: number;
+}) => AIChatRecordSeen;
+
+/*
+ * What a result showed the model of a workflow: every step of it, by the
+ * fingerprint a change's record uses (fingerprintWorkflowStep), at the
+ * revision read - its steps read by query_workflows, or the workflow
+ * create_workflow made. Kept with the result's citation, so a change Ask
+ * AI proposes later can say what it would undo that was saved since
+ * (AIChatRecordSeen, issue #6291).
+ */
+export const getWorkflowSeen: GetWorkflowSeenFunction = (data: {
+  workflowId: string;
+  graph: JSONObject | null | undefined;
+  revision: number;
+}): AIChatRecordSeen => {
+  return {
+    recordType: AIChatRecordSeenType.Workflow,
+    recordId: data.workflowId,
+    revision: data.revision,
+    parts: fingerprintEveryWorkflowStep({
+      graph: data.graph,
+      digest: fingerprintWorkflowStep,
+    }),
+  };
+};
+
 // A change is made again this many times while the workflow is saved under it.
 const MAX_SAVE_ATTEMPTS: number = 3;
 
@@ -1236,6 +1287,152 @@ export const describeIssueLeftByBoth: DescribeIssueLeftFunction = (
   issue: WorkflowLintIssue,
 ): string => {
   return `This workflow was saved again after this change was proposed. Made on top of what was saved, this change would leave something to fix that neither had on its own: ${issue.componentId ? `${issue.componentId}: ` : ""}${issue.message} So it was not made, and nothing was changed. ${PROPOSE_AGAIN}`;
+};
+
+type DescribeUnseenFunction = (steps: string) => string;
+
+/*
+ * For the model, in a conversation that runs actions without asking: the
+ * change was written from steps it read before someone saved the workflow,
+ * and would undo their save, so it was not made (issue #6291).
+ */
+export const describeSavedSinceRead: DescribeUnseenFunction = (
+  steps: string,
+): string => {
+  return `This workflow was saved after you last read its steps, and this change would undo what was saved since: ${steps}. So it was not made, and nothing was changed. Read the workflow again with query_workflows and includeSteps, tell the user it changed since you read it, and make your change on the workflow as it is now.`;
+};
+
+// Or it never read the steps at all.
+export const describeStepsNotRead: DescribeUnseenFunction = (
+  steps: string,
+): string => {
+  return `You have not read this workflow's steps, so this change would remove or change steps you have not seen: ${steps}. So it was not made, and nothing was changed. Read its steps with query_workflows and includeSteps first, then make your change on the workflow as it is.`;
+};
+
+// What the record of such an action says of it (resultSummary): it was not made.
+export const UNSEEN_CHANGE_SUMMARIES: {
+  savedSinceRead: string;
+  stepsNotRead: string;
+} = {
+  savedSinceRead: "Not made: the workflow was saved after Ask AI read it.",
+  stepsNotRead: "Not made: Ask AI had not read the workflow's steps.",
+};
+
+type TitlesOfStepsFunction = (data: {
+  stepIds: Array<string>;
+  graph: JSONObject | null | undefined;
+  draft: WorkflowDraft;
+}) => string;
+
+// Steps by the Builder's titles for them, as the card's lines name steps.
+const titlesOfSteps: TitlesOfStepsFunction = (data: {
+  stepIds: Array<string>;
+  graph: JSONObject | null | undefined;
+  draft: WorkflowDraft;
+}): string => {
+  const steps: Array<WorkflowDraftStep> = [
+    ...getDraftFromGraph({
+      graph: data.graph,
+      getComponent: getWorkflowComponent,
+    }).steps,
+    ...data.draft.steps,
+  ];
+
+  return data.stepIds
+    .map((stepId: string): string => {
+      const step: WorkflowDraftStep | undefined = steps.find(
+        (candidate: WorkflowDraftStep): boolean => {
+          return candidate.id === stepId;
+        },
+      );
+
+      return step ? titleOfStep(step) : stepId;
+    })
+    .join(", ");
+};
+
+// What a change undoes of what Ask AI never saw, and what that means for it.
+interface UnseenChange {
+  line: AIActionSentence;
+  notRunWithoutApproval: { toldModel: string; summary: string };
+}
+
+type FindUnseenChangeFunction = (data: {
+  workflowId: ObjectID;
+  // The workflow as it is now, read as the person.
+  workflow: Workflow;
+  draft: WorkflowDraft;
+  // The draft built over it: the workflow as the change leaves it.
+  changed: JSONObject;
+  ctx: ToolContext;
+}) => UnseenChange | null;
+
+/*
+ * What the change would undo that was saved after Ask AI last saw the
+ * workflow's steps (issue #6291): from what the conversation showed the
+ * model (ToolContext.recordsSeen) - its read, or the workflow as it created
+ * or changed it itself - never from anything the model says. Null when it
+ * undoes nothing of the kind: nobody saved since, only cards moved, or the
+ * change leaves alone each step that was saved. Null too for a caller that
+ * keeps no record of what the model saw, whose card is as it always was.
+ */
+const findUnseenChange: FindUnseenChangeFunction = (data: {
+  workflowId: ObjectID;
+  workflow: Workflow;
+  draft: WorkflowDraft;
+  changed: JSONObject;
+  ctx: ToolContext;
+}): UnseenChange | null => {
+  if (!data.ctx.recordsSeen) {
+    return null;
+  }
+
+  const known: AIChatRecordKnown | null = getAIChatRecordKnown({
+    records: data.ctx.recordsSeen,
+    recordType: AIChatRecordSeenType.Workflow,
+    recordId: data.workflowId.toString(),
+  });
+
+  const undone: WorkflowStepsUndone = findWorkflowStepsUndoneUnseen({
+    seen: known ? known.parts : null,
+    graph: data.workflow.graph,
+    changed: data.changed,
+    digest: fingerprintWorkflowStep,
+  });
+
+  if (undone.stepIds.length === 0) {
+    return null;
+  }
+
+  const named: string = nameSteps({
+    stepIds: undone.namedStepIds,
+    graph: data.workflow.graph,
+    draft: data.draft,
+  });
+
+  if (!known) {
+    return {
+      line: aiActionSentence(AI_ACTION_LINES.workflowNotRead),
+      notRunWithoutApproval: {
+        toldModel: `Not done: ${describeStepsNotRead(named)}`,
+        summary: UNSEEN_CHANGE_SUMMARIES.stepsNotRead,
+      },
+    };
+  }
+
+  return {
+    line: aiActionSentence(AI_ACTION_LINES.workflowUndoesSavedSince, {
+      steps: titlesOfSteps({
+        stepIds: undone.namedStepIds,
+        graph: data.workflow.graph,
+        draft: data.draft,
+      }),
+    }),
+    notRunWithoutApproval: {
+      toldModel: `Not done: ${describeSavedSinceRead(named)}`,
+      summary: UNSEEN_CHANGE_SUMMARIES.savedSinceRead,
+    },
+  };
 };
 
 // When a graph cannot be checked at all: nothing is saved that was not checked.
@@ -1592,6 +1789,15 @@ export const UpdateWorkflowTool: ObservabilityTool = {
    * whatever the model sent, which could only make a stale change look like
    * a current one. Approved after someone saved the workflow, the change is
    * made on top of what they saved, or not at all (execute).
+   *
+   * And what it would undo that was saved before it was proposed, after Ask
+   * AI last saw the steps (issue #6291): the model writes the draft from
+   * what it read, which knows nothing of a step added since. From what the
+   * conversation showed the model (ToolContext.recordsSeen), the card names
+   * the steps it would take out or put back as they were, before anyone
+   * approves it; in Auto-run it is not made unasked (notRunWithoutApproval).
+   * It only ever adds a line: what is saved is still held to what the change
+   * was proposed on, as above.
    */
   prepareMutation: async (
     args: JSONObject,
@@ -1632,8 +1838,17 @@ export const UpdateWorkflowTool: ObservabilityTool = {
       }).length === 0;
 
     let changes: Array<AIActionSentence> = [];
+    // What it would undo that was saved after Ask AI saw the steps (issue #6291).
+    let unseen: UnseenChange | null = null;
 
-    if (workflow && draft && canCompare) {
+    if (workflowId && workflow && draft && canCompare) {
+      const changed: JSONObject = buildGraphFromDraft({
+        draft: draft,
+        getComponent: getWorkflowComponent,
+        generateId: UUID.generate,
+        existingGraph: workflow.graph,
+      });
+
       changes = describeChangesForPerson(
         describeDraftChanges({
           before: getDraftFromGraph({
@@ -1641,17 +1856,20 @@ export const UpdateWorkflowTool: ObservabilityTool = {
             getComponent: getWorkflowComponent,
           }),
           after: getDraftFromGraph({
-            graph: buildGraphFromDraft({
-              draft: draft,
-              getComponent: getWorkflowComponent,
-              generateId: UUID.generate,
-              existingGraph: workflow.graph,
-            }),
+            graph: changed,
             getComponent: getWorkflowComponent,
           }),
           titleOf: titleOfStep,
         }),
       );
+
+      unseen = findUnseenChange({
+        workflowId: workflowId,
+        workflow: workflow,
+        draft: draft,
+        changed: changed,
+        ctx: ctx,
+      });
 
       const proposedOn: WorkflowDraftProposedOn = proposeWorkflowDraft({
         draft: draft,
@@ -1668,6 +1886,7 @@ export const UpdateWorkflowTool: ObservabilityTool = {
 
     const description: Array<AIActionSentence> = [
       ...changes,
+      ...(unseen ? [unseen.line] : []),
       ...(workflow?.isEnabled
         ? [aiActionSentence(AI_ACTION_LINES.workflowIsOn)]
         : []),
@@ -1685,6 +1904,9 @@ export const UpdateWorkflowTool: ObservabilityTool = {
           }
         : {}),
       description: description,
+      ...(unseen
+        ? { notRunWithoutApproval: unseen.notRunWithoutApproval }
+        : {}),
     };
   },
   execute: async (
@@ -1734,6 +1956,8 @@ export const UpdateWorkflowTool: ObservabilityTool = {
     }
 
     let change: GraphChange | null = null;
+    // What Ask AI now knows of the steps: the ones this change wrote, as saved.
+    let seen: AIChatRecordSeen | null = null;
 
     if (draft) {
       // OneUptime's record of what the change was proposed on, written as it was proposed.
@@ -1758,6 +1982,28 @@ export const UpdateWorkflowTool: ObservabilityTool = {
 
       change = saved.change;
       workflow = saved.workflow;
+
+      /*
+       * Ask AI saw the steps this change touches as it saved them, and every
+       * other step as it saw it before - whatever this save kept of someone
+       * else's (issue #6291). The save was held to change.revision, so it
+       * left the workflow at the next one.
+       */
+      seen = {
+        recordType: AIChatRecordSeenType.Workflow,
+        recordId: workflowId.toString(),
+        revision: change.revision + 1,
+        isPartial: true,
+        parts: fingerprintWorkflowSteps({
+          graph: change.graph,
+          stepIds: proposedOn.steps.map(
+            (step: { id: string }): string => {
+              return step.id;
+            },
+          ),
+          digest: fingerprintWorkflowStep,
+        }),
+      };
     } else {
       /*
        * A name or a description alone saves no graph, so it names no
@@ -1824,6 +2070,7 @@ export const UpdateWorkflowTool: ObservabilityTool = {
           params: { workflowId: id },
         },
       }),
+      ...(seen ? { recordSeen: seen } : {}),
     };
   },
 };
