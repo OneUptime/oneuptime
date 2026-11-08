@@ -30,10 +30,10 @@ export const RESPONSE_CONTENT_SWITCH_COPY: ResponseContentSwitchCopyForType = {
   ),
   switchTitle: translationKey("Keep response content on incidents and alerts"),
   onDescription: translationKey(
-    "They show the part of the response that matched and the response body, with secrets and personal data masked.",
+    "Incidents and alerts show the part of the response that matched, and the response body, with secrets and personal data masked.",
   ),
   offDescription: translationKey(
-    "They keep no part of the response: only which filters matched, the status code and the response time.",
+    "Incidents and alerts keep no part of the response: only which filters matched, the status code and the response time.",
   ),
 };
 
@@ -45,10 +45,10 @@ export const REQUEST_CONTENT_SWITCH_COPY: ResponseContentSwitchCopyForType = {
   ),
   switchTitle: translationKey("Keep request content on incidents and alerts"),
   onDescription: translationKey(
-    "They show the part of the request that matched and the request body, with secrets and personal data masked.",
+    "Incidents and alerts show the part of the request that matched, and the request body, with secrets and personal data masked.",
   ),
   offDescription: translationKey(
-    "They keep no part of the request: only which filters matched.",
+    "Incidents and alerts keep no part of the request: only which filters matched.",
   ),
 };
 

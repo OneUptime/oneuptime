@@ -100,7 +100,7 @@ export const WINDOW_SENTENCE: { one: string; other: string } = {
 };
 
 export const RESPONSE_CONTENT_NOT_KEPT: string = translationKey(
-  "This monitor keeps no response content on its incidents and alerts.",
+  "The monitor keeps no response content on its incidents and alerts.",
 );
 
 export const MATCHED_TEXT_MASKED: string = translationKey(
