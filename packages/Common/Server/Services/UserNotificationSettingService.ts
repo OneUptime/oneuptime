@@ -198,6 +198,21 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     whatsAppMessage?: WhatsAppMessagePayload | undefined;
     telegramMessage?: TelegramMessagePayload | undefined;
     /*
+     * Optional: the direct message the person's chat accounts get - Slack,
+     * Microsoft Teams and Mattermost, each as the person turned it on - for
+     * an event that has one of its own: a public note waiting for their
+     * approval, with Approve and Reject on it (WorkspacePublicNoteApproval).
+     * Left out, the chat message is made from the email's subject and the
+     * SMS, as for every other event.
+     */
+    workspaceMessage?:
+      | {
+          messageBlocks: Array<WorkspaceMessageBlock>;
+          // What the message's notification says.
+          notificationText: string;
+        }
+      | undefined;
+    /*
      * Bypasses burst coalescing for this send, before any rollup bookkeeping
      * runs: for a message that is urgent although its event type can be
      * rolled up - a critical security case's (SecurityCaseNotifications), for
@@ -633,7 +648,15 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           workspaceMarkdown = lines.join("\n");
         }
 
-        if (!workspaceMarkdown) {
+        // The event's own chat message, when it has one.
+        const ownMessageBlocks: Array<WorkspaceMessageBlock> =
+          data.workspaceMessage?.messageBlocks || [];
+        const notificationText: string | undefined =
+          ownMessageBlocks.length > 0
+            ? data.workspaceMessage?.notificationText || undefined
+            : undefined;
+
+        if (!workspaceMarkdown && ownMessageBlocks.length === 0) {
           logger.warn(
             "Skipping workspace notification because message body is empty.",
           );
@@ -642,7 +665,8 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             _type: "WorkspacePayloadMarkdown",
             text: workspaceMarkdown,
           };
-          const messageBlocks: Array<WorkspaceMessageBlock> = [markdownBlock];
+          const messageBlocks: Array<WorkspaceMessageBlock> =
+            ownMessageBlocks.length > 0 ? ownMessageBlocks : [markdownBlock];
 
           if (notificationSettings.alertBySlack) {
             const userSlacks: Array<UserSlack> = await UserSlackService.findBy({
@@ -671,6 +695,9 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 workspaceType: WorkspaceType.Slack,
                 workspaceUserId: userSlack.slackUserId,
                 messageBlocks: messageBlocks,
+                ...(notificationText
+                  ? { notificationText: notificationText }
+                  : {}),
                 messageSummary: subject || smsBody,
                 userId: data.userId,
                 incidentId: data.incidentId,
@@ -715,6 +742,9 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 workspaceType: WorkspaceType.MicrosoftTeams,
                 workspaceUserId: userMicrosoftTeams.microsoftTeamsUserId,
                 messageBlocks: messageBlocks,
+                ...(notificationText
+                  ? { notificationText: notificationText }
+                  : {}),
                 messageSummary: subject || smsBody,
                 userId: data.userId,
                 incidentId: data.incidentId,
@@ -759,6 +789,9 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 workspaceType: WorkspaceType.Mattermost,
                 workspaceUserId: userMattermost.mattermostUserId,
                 messageBlocks: messageBlocks,
+                ...(notificationText
+                  ? { notificationText: notificationText }
+                  : {}),
                 messageSummary: subject || smsBody,
                 userId: data.userId,
                 incidentId: data.incidentId,

@@ -1602,7 +1602,11 @@ export default class MattermostUtil extends WorkspaceBase {
     return MattermostUtil.isNotFoundError(error);
   }
 
-  // A direct message from the bot to an account.
+  /*
+   * A direct message from the bot to an account. Its buttons are signed for
+   * its own channel (MattermostActionContext): a press in a direct message
+   * names no team.
+   */
   @CaptureSpan()
   public static override async sendDirectMessageToUser(data: {
     authToken: string;
@@ -1627,6 +1631,7 @@ export default class MattermostUtil extends WorkspaceBase {
           ),
         }),
         teamId: connection.teamId,
+        directMessageChannelId: channelId,
       }),
     });
   }
@@ -1672,6 +1677,11 @@ export default class MattermostUtil extends WorkspaceBase {
     authToken: string;
     triggerId: string;
     modalBlock: WorkspaceModalBlock;
+    /*
+     * The direct message the press that opens it was made in: the form is
+     * held to its channel, as the message's buttons are.
+     */
+    directMessageChannelId?: string | undefined;
   }): Promise<void> {
     const connection: MattermostConnectionData =
       MattermostConnection.fromAuthToken(data.authToken);
@@ -1687,6 +1697,7 @@ export default class MattermostUtil extends WorkspaceBase {
     const dialog: JSONObject = MattermostUtil.getDialog({
       modalBlock: data.modalBlock,
       teamId: connection.teamId,
+      directMessageChannelId: data.directMessageChannelId,
     });
 
     await MattermostUtil.callServer<JSONObject>({
@@ -1859,6 +1870,8 @@ export default class MattermostUtil extends WorkspaceBase {
     teamId: string;
     // What a notification shows when the post has no Markdown of its own.
     text?: string | undefined;
+    // A direct message's channel: its buttons are signed for it.
+    directMessageChannelId?: string | undefined;
   }): JSONObject {
     const texts: Array<string> = [];
     const actions: Array<JSONObject> = [];
@@ -1900,6 +1913,7 @@ export default class MattermostUtil extends WorkspaceBase {
             url: integrationUrl,
             context: MattermostActionContext.toContext({
               teamId: data.teamId,
+              channelId: data.directMessageChannelId,
               actions: [{ actionId: button.actionId, value: button.value }],
             }),
           },
@@ -1931,6 +1945,7 @@ export default class MattermostUtil extends WorkspaceBase {
             url: integrationUrl,
             context: MattermostActionContext.toContext({
               teamId: data.teamId,
+              channelId: data.directMessageChannelId,
               actions: menu.map((option: MattermostButtonPiece) => {
                 return { actionId: option.actionId, value: option.value };
               }),
@@ -2139,11 +2154,16 @@ export default class MattermostUtil extends WorkspaceBase {
   public static getDialog(data: {
     modalBlock: WorkspaceModalBlock;
     teamId: string;
+    // Opened from a direct message: held to its channel.
+    directMessageChannelId?: string | undefined;
   }): JSONObject {
     return {
       ...MattermostUtil.getDialogWithoutState(data.modalBlock),
       state: MattermostActionContext.toDialogState({
         teamId: data.teamId,
+        ...(data.directMessageChannelId
+          ? { channelId: data.directMessageChannelId }
+          : {}),
         actionId: data.modalBlock.actionId,
         value: data.modalBlock.actionValue || "",
       }),

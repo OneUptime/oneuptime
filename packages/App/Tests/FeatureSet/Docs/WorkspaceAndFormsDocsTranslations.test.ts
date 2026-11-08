@@ -46,6 +46,7 @@ import {
   REMEDIATION_CHAT_WORDS,
 } from "Common/Server/Utils/AutoRemediation/RemediationChatWords";
 import SlackIncidentActions from "Common/Server/Utils/Workspace/Slack/Actions/Incident";
+import { PUBLIC_NOTE_APPROVAL_CHAT_WORDS } from "Common/Server/Utils/Workspace/WorkspacePublicNoteApproval";
 import { WORKSPACE_AFFECTED_RESOURCES_TEXT } from "Common/Server/Utils/Workspace/WorkspaceAffectedResources";
 import WorkspaceActionAuthorization from "Common/Server/Utils/Workspace/WorkspaceActionAuthorization";
 import {
@@ -174,6 +175,18 @@ const FIX_MESSAGE_BUTTONS: Array<string> = [
   REMEDIATION_CHAT_WORDS.approveAndRun,
   REMEDIATION_CHAT_WORDS.dismiss,
   getViewInProductTitle(),
+];
+
+/*
+ * A public note's approval message - Slack's, and Microsoft Teams' card of
+ * it - and the question the form its Reject opens asks, as the server
+ * writes them, in English (PUBLIC_NOTE_APPROVAL_CHAT_WORDS).
+ */
+const PUBLIC_NOTE_APPROVAL_CHAT: Array<string> = [
+  PUBLIC_NOTE_APPROVAL_CHAT_WORDS.approve,
+  PUBLIC_NOTE_APPROVAL_CHAT_WORDS.approveAndPublish,
+  PUBLIC_NOTE_APPROVAL_CHAT_WORDS.reject,
+  PUBLIC_NOTE_APPROVAL_CHAT_WORDS.rejectReasonLabel,
 ];
 
 /*
@@ -358,6 +371,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Growth",
     ...CHAT_BUTTONS,
     ...FIX_MESSAGE_BUTTONS,
+    ...PUBLIC_NOTE_APPROVAL_CHAT,
     ...INCIDENT_MESSAGE_BUTTONS,
     ...INCIDENT_FORM_FIELDS,
     ...SEEDED_INCIDENT_ROLES,
@@ -372,6 +386,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Growth",
     ...CHAT_BUTTONS,
     ...FIX_MESSAGE_BUTTONS,
+    ...PUBLIC_NOTE_APPROVAL_CHAT,
     ...INCIDENT_MESSAGE_BUTTONS,
     ...INCIDENT_FORM_FIELDS,
     ...SEEDED_INCIDENT_ROLES,
@@ -1272,6 +1287,7 @@ describe("the lists this test keeps", () => {
       ...PLANS,
       ...CHAT_BUTTONS,
       ...FIX_MESSAGE_BUTTONS,
+      ...PUBLIC_NOTE_APPROVAL_CHAT,
       ...INCIDENT_MESSAGE_BUTTONS,
       ...INCIDENT_FORM_FIELDS,
       ...SEEDED_INCIDENT_ROLES,

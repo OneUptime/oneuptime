@@ -37,6 +37,7 @@ import {
   RemediationPress,
 } from "../../AutoRemediation/RemediationChatWords";
 import MicrosoftTeamsServiceUrl from "./MicrosoftTeamsServiceUrl";
+import WorkspacePublicNoteApproval from "../WorkspacePublicNoteApproval";
 
 /*
  * "CONNECT YOUR MICROSOFT TEAMS ACCOUNT TO ACKNOWLEDGE THIS INCIDENT."
@@ -437,6 +438,21 @@ export default class MicrosoftTeamsConnectPrompt {
       }
 
       return { purpose: purpose };
+    }
+
+    /*
+     * A public note waiting for approval: Approve is decided for them once
+     * they connect, only while the note is what its message showed; Reject
+     * asks why in a card, so it is pressed again.
+     */
+    const approvalPress: WorkspacePressDescription | null =
+      WorkspacePublicNoteApproval.describePress({
+        actionType: data.actionType,
+        actionValue: data.actionValue,
+      });
+
+    if (approvalPress) {
+      return approvalPress;
     }
 
     const form: FormPress | undefined = FORM_PRESSES.get(data.actionType);

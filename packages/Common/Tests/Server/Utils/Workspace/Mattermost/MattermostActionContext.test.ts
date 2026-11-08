@@ -342,3 +342,164 @@ describe("MattermostActionContext: a dialog's state", () => {
     },
   );
 });
+
+/*
+ * A direct message belongs to no team: Mattermost names none for a press
+ * in a direct or group channel, so its buttons are signed for the
+ * channel instead (#6289) - and a team's context is read exactly as before.
+ */
+describe("MattermostActionContext: a direct message's button", () => {
+  const DIRECT_CHANNEL_ID: string = "d".repeat(26);
+  const OTHER_CHANNEL_ID: string = "x".repeat(26);
+
+  function directContext(): JSONObject {
+    return MattermostActionContext.toContext({
+      teamId: TEAM_ID,
+      channelId: DIRECT_CHANNEL_ID,
+      actions: [{ actionId: "ApprovePublicNote", value: "signed-value" }],
+    });
+  }
+
+  test("pressed in its direct message, which names no team, it is read back with its channel", () => {
+    expect(
+      MattermostActionContext.readPress({
+        context: directContext(),
+        teamId: "",
+        channelId: DIRECT_CHANNEL_ID,
+      }),
+    ).toEqual({
+      teamId: TEAM_ID,
+      channelId: DIRECT_CHANNEL_ID,
+      actionId: "ApprovePublicNote",
+      value: "signed-value",
+    });
+  });
+
+  test("pressed from any other channel it is refused, whatever team is named", () => {
+    for (const teamId of ["", TEAM_ID, OTHER_TEAM_ID, undefined]) {
+      expect(
+        MattermostActionContext.readPress({
+          context: directContext(),
+          teamId: teamId,
+          channelId: OTHER_CHANNEL_ID,
+        }),
+      ).toBeNull();
+    }
+
+    expect(
+      MattermostActionContext.readPress({
+        context: directContext(),
+        teamId: TEAM_ID,
+      }),
+    ).toBeNull();
+  });
+
+  test("a direct message's context with its channel taken off reads as no team's: refused", () => {
+    const context: JSONObject = directContext();
+    delete context["channelId"];
+
+    expect(
+      MattermostActionContext.readPress({
+        context: context,
+        teamId: TEAM_ID,
+        channelId: DIRECT_CHANNEL_ID,
+      }),
+    ).toBeNull();
+  });
+
+  test("a team's context with a channel put on it is refused: the channel is signed", () => {
+    const context: JSONObject = MattermostActionContext.toContext({
+      teamId: TEAM_ID,
+      actions: [{ actionId: "AcknowledgeIncident", value: INCIDENT_ID }],
+    });
+    context["channelId"] = DIRECT_CHANNEL_ID;
+
+    expect(
+      MattermostActionContext.readPress({
+        context: context,
+        teamId: "",
+        channelId: DIRECT_CHANNEL_ID,
+      }),
+    ).toBeNull();
+  });
+
+  test("a direct message's context moved to another channel is refused", () => {
+    const context: JSONObject = directContext();
+    context["channelId"] = OTHER_CHANNEL_ID;
+
+    expect(
+      MattermostActionContext.readPress({
+        context: context,
+        teamId: "",
+        channelId: OTHER_CHANNEL_ID,
+      }),
+    ).toBeNull();
+  });
+
+  test.each([null, "", 42, "not-an-id"])(
+    "a channel that is %j is refused",
+    (channelId: unknown) => {
+      const context: JSONObject = directContext();
+      context["channelId"] = channelId as never;
+
+      expect(
+        MattermostActionContext.readPress({
+          context: context,
+          teamId: "",
+          channelId: channelId,
+        }),
+      ).toBeNull();
+    },
+  );
+
+  test("a team's button is still read as it always was, and signs what it always signed", () => {
+    const context: JSONObject = MattermostActionContext.toContext({
+      teamId: TEAM_ID,
+      actions: [{ actionId: "AcknowledgeIncident", value: INCIDENT_ID }],
+    });
+
+    expect(context["channelId"]).toBeUndefined();
+    expect(
+      MattermostActionContext.readPress({
+        context: context,
+        teamId: TEAM_ID,
+        channelId: DIRECT_CHANNEL_ID,
+      })?.actionId,
+    ).toBe("AcknowledgeIncident");
+  });
+
+  test("refuses to sign for a channel id Mattermost could not have made", () => {
+    expect(() => {
+      return MattermostActionContext.toContext({
+        teamId: TEAM_ID,
+        channelId: "not-an-id",
+        actions: [{ actionId: "ApprovePublicNote", value: "v" }],
+      });
+    }).toThrow("The Mattermost channel id is not valid.");
+  });
+
+  test("a form opened from a direct message is held to its channel too", () => {
+    const state: string = MattermostActionContext.toDialogState({
+      teamId: TEAM_ID,
+      channelId: DIRECT_CHANNEL_ID,
+      actionId: "SubmitRejectPublicNote",
+      value: "signed-value",
+    });
+
+    // A dialog's submission names the team its person is looking at, any of theirs.
+    expect(
+      MattermostActionContext.readDialogState({
+        state: state,
+        teamId: OTHER_TEAM_ID,
+        channelId: DIRECT_CHANNEL_ID,
+      })?.value,
+    ).toBe("signed-value");
+    expect(
+      MattermostActionContext.readDialogState({
+        state: state,
+        teamId: TEAM_ID,
+        channelId: OTHER_CHANNEL_ID,
+      }),
+    ).toBeNull();
+  });
+});
