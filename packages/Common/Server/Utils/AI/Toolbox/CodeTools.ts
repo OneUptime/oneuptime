@@ -38,6 +38,9 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { AIChatRecordSeen } from "../../../../Types/AI/AIChatRecordSeen";
+import { normalizeCodeBranchName } from "../../../../Types/CodeRepository/CodeFileSeen";
+import { getCodeFileSeenFromRead } from "./CodeFilesSeen";
 
 /*
  * Tools that let the chat agent read the project's linked source code and
@@ -1083,7 +1086,7 @@ export const SearchCodeTool: ObservabilityTool = {
 export const ReadCodeFileTool: ObservabilityTool = {
   name: "read_code_file",
   description:
-    "Read the source of one file from a connected repository, with line numbers. Pass startLine/endLine to read the region around a stack-trace line rather than the whole file. Quote only the few lines that matter in your answer.",
+    "Read the source of one file from a connected repository, with line numbers. Pass startLine/endLine to read the region around a stack-trace line rather than the whole file. Quote only the few lines that matter in your answer. It reads the repository's main branch unless you pass branchName: before you change a file with commit_code_to_branch, read it on the branch you commit to.",
   inputSchema: {
     type: "object",
     properties: {
@@ -1110,6 +1113,11 @@ export const ReadCodeFileTool: ObservabilityTool = {
         type: "number",
         description: `Read a window centred on this line — the convenient way to inspect a stack-trace frame. Returns ${DEFAULT_CONTEXT_LINES} lines either side. Ignored when startLine is given.`,
       },
+      branchName: {
+        type: "string",
+        description:
+          "The branch to read the file on. Defaults to the repository's main branch.",
+      },
     },
     required: ["filePath"],
   },
@@ -1127,7 +1135,10 @@ export const ReadCodeFileTool: ObservabilityTool = {
     }
 
     const repository: CodeRepository = await resolveTargetRepository(ctx, args);
-    const branchName: string = repository.mainBranchName || "main";
+    const branchName: string =
+      normalizeCodeBranchName(ToolArgs.getString(args, "branchName") || "") ||
+      repository.mainBranchName ||
+      "main";
 
     const file: CodeHostFileContent | null = await readRepositoryFile({
       ctx,
@@ -1142,6 +1153,22 @@ export const ReadCodeFileTool: ObservabilityTool = {
       );
     }
 
+    /*
+     * What this showed the model of the file: its version on the branch
+     * read, kept with the citation by OneUptime - never the model - so a
+     * commit written from it later says, before anyone approves it, what
+     * was pushed to the file since (issue #6313). Whichever lines it shows,
+     * the version is the file's.
+     */
+    const recordSeen: AIChatRecordSeen | null = repository.id
+      ? getCodeFileSeenFromRead({
+          repositoryId: repository.id.toString(),
+          branchName: branchName,
+          filePath: filePath,
+          file: file,
+        })
+      : null;
+
     const allLines: Array<string> = splitIntoLines(file.content);
 
     if (allLines.length === 0) {
@@ -1151,6 +1178,7 @@ export const ReadCodeFileTool: ObservabilityTool = {
         citationLabel: `${filePath} (empty)`,
         redactionCount: 0,
         isTruncated: false,
+        ...(recordSeen ? { recordSeen: recordSeen } : {}),
       };
     }
 
@@ -1247,6 +1275,7 @@ export const ReadCodeFileTool: ObservabilityTool = {
       citationLabel: `${filePath}:${startLine}-${actualEndLine} (${repository.organizationName}/${repository.repositoryName})`,
       redactionCount: serialized.redactionCount,
       isTruncated: isTruncated || serialized.isTruncated,
+      ...(recordSeen ? { recordSeen: recordSeen } : {}),
     };
   },
 };
