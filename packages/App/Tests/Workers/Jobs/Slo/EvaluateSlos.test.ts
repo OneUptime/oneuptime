@@ -6006,7 +6006,10 @@ describe("Slo:EvaluateSlos worker", () => {
 
     // The three default rules a 99.9% / 30-day SLO is created with.
     function seededRules(
-      overrides: Record<string, Partial<ServiceLevelObjectiveBurnRateRule>> = {},
+      overrides: Record<
+        string,
+        Partial<ServiceLevelObjectiveBurnRateRule>
+      > = {},
       windowDays: number = 30,
     ): Array<ServiceLevelObjectiveBurnRateRule> {
       return getSloRecommendedBurnRateRules({

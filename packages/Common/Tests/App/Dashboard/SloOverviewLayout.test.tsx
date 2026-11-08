@@ -700,7 +700,9 @@ describe("the burn rate tile's rule threshold", () => {
     renderPage();
     await waitForDetails();
 
-    return screen.getByTestId("kpi-strip").getAttribute("data-lowest-threshold");
+    return screen
+      .getByTestId("kpi-strip")
+      .getAttribute("data-lowest-threshold");
   }
 
   test("is the lowest among the enabled rules that look back 6 hours or less - never Slow leak's 1x", async () => {

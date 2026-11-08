@@ -55,7 +55,10 @@ export default class ServiceLevelObjectiveBurnRateRuleAPI extends BaseAPI<
   ServiceLevelObjectiveBurnRateRuleServiceType
 > {
   public constructor() {
-    super(ServiceLevelObjectiveBurnRateRule, ServiceLevelObjectiveBurnRateRuleService);
+    super(
+      ServiceLevelObjectiveBurnRateRule,
+      ServiceLevelObjectiveBurnRateRuleService,
+    );
 
     const basePath: string =
       new this.entityType().getCrudApiPath()?.toString() || "";

@@ -355,7 +355,9 @@ describe("SloBurnRateRulesSummaryCard", () => {
     const [fast, slow, leak]: Array<HTMLElement> =
       screen.getAllByTestId("slo-burn-rule-row");
 
-    expect(within(leak!).getByText("At 1× or faster over 3d and 6h")).toBeInTheDocument();
+    expect(
+      within(leak!).getByText("At 1× or faster over 3d and 6h"),
+    ).toBeInTheDocument();
     expect(within(leak!).queryByRole("progressbar")).toBeNull();
     expect(within(leak!).queryByText("At threshold")).toBeNull();
     expect(within(leak!).queryByText("6× now")).toBeNull();
@@ -382,9 +384,7 @@ describe("SloBurnRateRulesSummaryCard", () => {
       />,
     );
 
-    expect(
-      screen.queryByText(/are not compared with it/),
-    ).toBeNull();
+    expect(screen.queryByText(/are not compared with it/)).toBeNull();
   });
 
   test("a rule of exactly 6 hours is still compared", () => {

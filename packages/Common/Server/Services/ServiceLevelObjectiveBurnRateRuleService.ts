@@ -481,7 +481,9 @@ export class Service extends ProjectReferencesService<Model> {
       serviceLevelObjectiveId: slo.id,
       projectId: projectId,
       rules: missing.map(
-        (recommended: SloRecommendedBurnRateRule): SloMissingRecommendedRule => {
+        (
+          recommended: SloRecommendedBurnRateRule,
+        ): SloMissingRecommendedRule => {
           return {
             recommended: recommended,
             alertSeverity:

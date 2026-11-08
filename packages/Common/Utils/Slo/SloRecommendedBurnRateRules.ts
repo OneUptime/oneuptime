@@ -372,8 +372,7 @@ export function pickSloRecommendedAlertSeverities<
   const orderOf: (severity: T) => number | null = (
     severity: T,
   ): number | null => {
-    return typeof severity.order === "number" &&
-      Number.isFinite(severity.order)
+    return typeof severity.order === "number" && Number.isFinite(severity.order)
       ? severity.order
       : null;
   };

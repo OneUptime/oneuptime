@@ -195,9 +195,12 @@ describe("SLO evaluation cadence constants", () => {
       [361, false],
       [1440, false],
       [4320, false],
-    ])("a rule looking back %p minutes is compared: %p", (minutes: number, compared: boolean) => {
-      expect(isComparedWithCurrentBurnRate(minutes)).toBe(compared);
-    });
+    ])(
+      "a rule looking back %p minutes is compared: %p",
+      (minutes: number, compared: boolean) => {
+        expect(isComparedWithCurrentBurnRate(minutes)).toBe(compared);
+      },
+    );
 
     test("a rule whose long window is unknown is compared, as every rule was", () => {
       for (const minutes of [undefined, null, 0, -5, Number.NaN]) {

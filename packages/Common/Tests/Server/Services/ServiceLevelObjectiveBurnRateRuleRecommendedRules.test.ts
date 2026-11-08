@@ -536,8 +536,8 @@ describe("adding the missing recommended rules", () => {
 
     expect(createSpy).toHaveBeenCalledTimes(1);
 
-    const createBy: CreateBy<ServiceLevelObjectiveBurnRateRule> = createSpy
-      .mock.calls[0]![0] as CreateBy<ServiceLevelObjectiveBurnRateRule>;
+    const createBy: CreateBy<ServiceLevelObjectiveBurnRateRule> = createSpy.mock
+      .calls[0]![0] as CreateBy<ServiceLevelObjectiveBurnRateRule>;
 
     // The caller's own props: their permissions, their name on the feed item and the audit log.
     expect(createBy.props).toBe(props);

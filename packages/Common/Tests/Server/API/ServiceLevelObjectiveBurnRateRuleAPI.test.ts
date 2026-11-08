@@ -255,9 +255,9 @@ describe("which recommended rules an SLO is missing", () => {
       serviceLevelObjectiveId: SLO_ID,
       props: props,
     });
-    expect(
-      (previewSpy.mock.calls[0]![0] as { props: unknown }).props,
-    ).toBe(props);
+    expect((previewSpy.mock.calls[0]![0] as { props: unknown }).props).toBe(
+      props,
+    );
     expect(answered()).toEqual({ rules: [SLOW_LEAK_JSON] });
     expect(addSpy).not.toHaveBeenCalled();
   });
@@ -293,14 +293,17 @@ describe("which recommended rules an SLO is missing", () => {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ReadServiceLevelObjectiveBurnRateRule,
-  ])("%s may ask: it reads SLO burn rate rules", async (permission: Permission) => {
-    withPermissions([permission]);
+  ])(
+    "%s may ask: it reads SLO burn rate rules",
+    async (permission: Permission) => {
+      withPermissions([permission]);
 
-    await post(PREVIEW, { serviceLevelObjectiveId: SLO_ID.toString() });
+      await post(PREVIEW, { serviceLevelObjectiveId: SLO_ID.toString() });
 
-    expect(next).not.toHaveBeenCalled();
-    expect(previewSpy).toHaveBeenCalledTimes(1);
-  });
+      expect(next).not.toHaveBeenCalled();
+      expect(previewSpy).toHaveBeenCalledTimes(1);
+    },
+  );
 
   test("a role that reads SLOs but not their burn rate rules may not ask", async () => {
     withPermissions([Permission.ReadServiceLevelObjective]);
@@ -407,14 +410,17 @@ describe("adding the missing recommended rules", () => {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.CreateServiceLevelObjectiveBurnRateRule,
-  ])("%s may add them: it creates SLO burn rate rules", async (permission: Permission) => {
-    withPermissions([permission]);
+  ])(
+    "%s may add them: it creates SLO burn rate rules",
+    async (permission: Permission) => {
+      withPermissions([permission]);
 
-    await post(ADD, { serviceLevelObjectiveId: SLO_ID.toString() });
+      await post(ADD, { serviceLevelObjectiveId: SLO_ID.toString() });
 
-    expect(next).not.toHaveBeenCalled();
-    expect(addSpy).toHaveBeenCalledTimes(1);
-  });
+      expect(next).not.toHaveBeenCalled();
+      expect(addSpy).toHaveBeenCalledTimes(1);
+    },
+  );
 
   test("a role that only reads the rules may not add them", async () => {
     withPermissions([Permission.ReadServiceLevelObjectiveBurnRateRule]);

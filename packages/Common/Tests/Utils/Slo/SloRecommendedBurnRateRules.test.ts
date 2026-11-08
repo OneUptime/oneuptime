@@ -328,8 +328,12 @@ describe("the three recommended rules", () => {
   test("are scaled to a calendar month as to 30 days", () => {
     const rules: RulesByName = rulesOfCalendarMonth();
 
-    expect(shapeOf(rules["Fast burn"])).toEqual(shapeOf(rulesFor(30)["Fast burn"]));
-    expect(shapeOf(rules["Slow burn"])).toEqual(shapeOf(rulesFor(30)["Slow burn"]));
+    expect(shapeOf(rules["Fast burn"])).toEqual(
+      shapeOf(rulesFor(30)["Fast burn"]),
+    );
+    expect(shapeOf(rules["Slow burn"])).toEqual(
+      shapeOf(rulesFor(30)["Slow burn"]),
+    );
     expect(shapeOf(rules["Slow leak"])).toEqual({
       burnRateThreshold: 1,
       longWindowInMinutes: 4320,
@@ -339,7 +343,9 @@ describe("the three recommended rules", () => {
   });
 
   test("are scaled to 30 days for a rolling window with no length", () => {
-    expect(getSloRecommendedBurnRateRules({ windowType: SloWindowType.Rolling })).toEqual(
+    expect(
+      getSloRecommendedBurnRateRules({ windowType: SloWindowType.Rolling }),
+    ).toEqual(
       getSloRecommendedBurnRateRules({
         windowType: SloWindowType.Rolling,
         windowDays: 30,
@@ -452,7 +458,10 @@ describe("the three recommended rules", () => {
       }
 
       expect(leak.refireSuppressionMinutes).toBe(
-        Math.min(SLO_SLOW_LEAK_REFIRE_SUPPRESSION_MINUTES, leak.longWindowInMinutes),
+        Math.min(
+          SLO_SLOW_LEAK_REFIRE_SUPPRESSION_MINUTES,
+          leak.longWindowInMinutes,
+        ),
       );
       expect(Number.isInteger(leak.refireSuppressionMinutes)).toBe(true);
     }
@@ -702,13 +711,15 @@ describe("the alert severities the recommended rules raise at", () => {
   });
 
   test("most severe is the lowest order and least severe the highest, in whatever order they arrive", () => {
-    const picked: { mostSevere: Severity | null; leastSevere: Severity | null } =
-      pickSloRecommendedAlertSeverities<Severity>([
-        severity("Minor", 3),
-        severity("Critical", 1),
-        severity("Low", 4),
-        severity("Major", 2),
-      ]);
+    const picked: {
+      mostSevere: Severity | null;
+      leastSevere: Severity | null;
+    } = pickSloRecommendedAlertSeverities<Severity>([
+      severity("Minor", 3),
+      severity("Critical", 1),
+      severity("Low", 4),
+      severity("Major", 2),
+    ]);
 
     expect(picked.mostSevere?.name).toBe("Critical");
     expect(picked.leastSevere?.name).toBe("Low");
@@ -724,13 +735,15 @@ describe("the alert severities the recommended rules raise at", () => {
   });
 
   test("a severity with no order is never taken for the least severe", () => {
-    const picked: { mostSevere: Severity | null; leastSevere: Severity | null } =
-      pickSloRecommendedAlertSeverities<Severity>([
-        severity("Unordered", null),
-        severity("Critical", 1),
-        severity("Also unordered"),
-        severity("Warning", 2),
-      ]);
+    const picked: {
+      mostSevere: Severity | null;
+      leastSevere: Severity | null;
+    } = pickSloRecommendedAlertSeverities<Severity>([
+      severity("Unordered", null),
+      severity("Critical", 1),
+      severity("Also unordered"),
+      severity("Warning", 2),
+    ]);
 
     expect(picked.mostSevere?.name).toBe("Critical");
     expect(picked.leastSevere?.name).toBe("Warning");
@@ -748,13 +761,15 @@ describe("the alert severities the recommended rules raise at", () => {
   });
 
   test("ties keep the order they arrived in", () => {
-    const picked: { mostSevere: Severity | null; leastSevere: Severity | null } =
-      pickSloRecommendedAlertSeverities<Severity>([
-        severity("Critical A", 1),
-        severity("Critical B", 1),
-        severity("Low A", 5),
-        severity("Low B", 5),
-      ]);
+    const picked: {
+      mostSevere: Severity | null;
+      leastSevere: Severity | null;
+    } = pickSloRecommendedAlertSeverities<Severity>([
+      severity("Critical A", 1),
+      severity("Critical B", 1),
+      severity("Low A", 5),
+      severity("Low B", 5),
+    ]);
 
     expect(picked.mostSevere?.name).toBe("Critical A");
     expect(picked.leastSevere?.name).toBe("Low B");
