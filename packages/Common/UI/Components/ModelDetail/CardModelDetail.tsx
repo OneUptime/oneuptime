@@ -77,6 +77,15 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onEditFormItemFetched?:
     | ((item: TBaseModel) => Promise<TBaseModel>)
     | undefined;
+  /*
+   * What locks this record's Edit beyond the permissions of its kind, once
+   * those allow it: a rule teams own, changed only with the permissions of
+   * the teams that own it (RuleView, PermissionGate.checkTeamOwnedRule).
+   * Refused with a reason, Edit stays, locked, with the reason as its
+   * tooltip; refused with none - still reading who owns it - Edit is held
+   * back, as it is while the permission snapshot loads.
+   */
+  editLock?: PermissionGateResult | undefined;
   className?: string | undefined;
   name: string;
   modelAPI?: typeof ModelAPI | undefined;
@@ -197,13 +206,19 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
      * Edit button that opened an empty form. The button now locks for them
      * too, naming what would open it (PermissionGate.checkFormUpdate).
      */
-    const updateGate: PermissionGateResult = props.formFields
+    const kindGate: PermissionGateResult = props.formFields
       ? PermissionGate.checkFormUpdate(
           model,
           props.formFields,
           privateRecordOptions,
         )
       : PermissionGate.check(model, ModelAction.Update, privateRecordOptions);
+
+    // The kind's refusal names what is missing, so it is said first.
+    const updateGate: PermissionGateResult =
+      kindGate.isAllowed && props.editLock && !props.editLock.isAllowed
+        ? props.editLock
+        : kindGate;
 
     let cardButtons: Array<CardButtonSchema | ReactElement> = [];
 
@@ -294,6 +309,8 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
      */
   }, [
     privateRecordOptions,
+    props.editLock?.isAllowed,
+    props.editLock?.disabledReason,
     props.refresher,
     props.isEditable,
     props.editButtonText,
