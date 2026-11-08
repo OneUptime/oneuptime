@@ -188,6 +188,56 @@ describe("ChatWidgetMarkdown", () => {
     test("is empty when there are no actions", () => {
       expect(toolActionsToMarkdown([])).toBe("");
     });
+
+    test("a title, line or outcome with Markdown in it - the files a commit names - reads as written", () => {
+      const markdown: string = toolActionsToMarkdown([
+        {
+          id: "t2",
+          toolName: "commit_code_to_branch",
+          title: "Commit 3 files to fix/__login__",
+          description:
+            "These 3 files changed on fix/login after Ask AI read them, and Ask AI's versions undo those changes: src/__init__.py, pages/[slug].tsx, docs/*.md.",
+          arguments: {},
+          isMutation: true,
+          requiresApproval: true,
+          status: AIChatToolActionStatus.Skipped,
+          resultSummary: "Not committed: *a* file changed.",
+        },
+      ]);
+
+      expect(markdown).toContain(
+        "- **Skipped** — Commit 3 files to fix/\\_\\_login\\_\\_",
+      );
+      expect(markdown).toContain(
+        "src/\\_\\_init\\_\\_.py, pages/\\[slug\\].tsx, docs/\\*.md.",
+      );
+      expect(markdown).toContain("  - _Not committed: \\*a\\* file changed._");
+      expect(markdown).not.toContain("__init__");
+    });
+
+    test("an ordinary title and line are written exactly as they were", () => {
+      expect(
+        toolActionsToMarkdown([
+          {
+            id: "t3",
+            toolName: "create_incident",
+            title: "Create incident: Checkout down",
+            description: 'Severity: High. Linked to host "test01".',
+            arguments: {},
+            isMutation: true,
+            requiresApproval: true,
+            status: AIChatToolActionStatus.Executed,
+          },
+        ]),
+      ).toBe(
+        [
+          "#### Actions",
+          "",
+          "- **Executed** — Create incident: Checkout down",
+          '  - Severity: High. Linked to host "test01".',
+        ].join("\n"),
+      );
+    });
   });
 
   describe("citationsToMarkdown", () => {
