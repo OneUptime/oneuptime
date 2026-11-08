@@ -1746,7 +1746,10 @@ describe("when an episode's card's ranges start and end, as its Overview works t
     ).toBe(CREATED_AT);
   });
 
-  test.each([StateListType.IncidentState, StateListType.AlertState])(
+  test.each<ResolvedStateList>([
+    StateListType.IncidentState,
+    StateListType.AlertState,
+  ])(
     "%s: open, resolved, Closed after Resolved, reopened and resolved again",
     (list: ResolvedStateList) => {
       const episode: IncidentEpisodeRootCauseRow = { createdAt: CREATED_AT };

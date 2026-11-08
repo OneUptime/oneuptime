@@ -178,7 +178,12 @@ function serve(
   members: Array<ServedMember>,
 ): void {
   getListMock.mockImplementation(async (...args: Array<any>) => {
-    const request: Record<string, any> = args[0];
+    const request: {
+      modelType: unknown;
+      query: Record<string, unknown>;
+      skip: number;
+      limit: number;
+    } = args[0];
 
     if (request.modelType === episodeKind.membershipModel) {
       const page: Array<string> = membership.slice(
@@ -197,7 +202,7 @@ function serve(
     }
 
     if (request.modelType === episodeKind.memberModel) {
-      const ids: Array<string> = (request.query._id as Includes).values.map(
+      const ids: Array<string> = (request.query["_id"] as Includes).values.map(
         (id: unknown): string => {
           return String(id);
         },
