@@ -928,6 +928,7 @@ import { AddAuditLogExportSchemaVersion1808996130000 } from "./1808996130000-Add
 import { AddAiAgentResetAt1808996200000 } from "./1808996200000-AddAiAgentResetAt";
 import { AddSloErrorBudgetPolicyTiers1808996325825 } from "./1808996325825-AddSloErrorBudgetPolicyTiers";
 import { AddEvaluationDetailsAndKeepResponseContent1808997300000 } from "./1808997300000-AddEvaluationDetailsAndKeepResponseContent";
+import { AddRumSignalArrivals1808997510000 } from "./1808997510000-AddRumSignalArrivals";
 
 export default [
   InitialMigration,
@@ -1860,4 +1861,5 @@ export default [
   AddAiAgentResetAt1808996200000,
   AddSloErrorBudgetPolicyTiers1808996325825,
   AddEvaluationDetailsAndKeepResponseContent1808997300000,
+  AddRumSignalArrivals1808997510000,
 ];

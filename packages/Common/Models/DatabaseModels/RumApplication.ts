@@ -497,6 +497,138 @@ export default class RumApplication extends BaseModel {
   })
   public lastSeenAt?: Date = undefined;
 
+  /*
+   * When each kind of telemetry last arrived from this application (issue
+   * #5770): page loads and requests (traces), logs and metrics. lastSeenAt
+   * says the application is reporting; these say WHAT it reports, so an
+   * empty Logs chart can say "logs are not set up" - the browser SDK sends
+   * traces on its own and logs only once a log pipeline is added - rather
+   * than "no data in this time range" for an app that has never sent one.
+   *
+   * Written by the OpenTelemetry ingest path as root, at most once per
+   * signal per maintenance-fence window (OtelIngestBaseService), so each
+   * trails live traffic by the same few minutes lastSeenAt does. No
+   * create/update ACL: nobody sets them by hand.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Traces Last Received At",
+    description:
+      "When page loads, requests or other spans last arrived from this application.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public tracesLastReceivedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Logs Last Received At",
+    description: "When log records last arrived from this application.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public logsLastReceivedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Metrics Last Received At",
+    description:
+      "When metrics, such as Core Web Vitals, last arrived from this application.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public metricsLastReceivedAt?: Date = undefined;
+
+  /*
+   * Since when the three columns above are kept: when the application was
+   * created, or - for an application that existed before they were - when
+   * this install started keeping them (the migration gives every existing
+   * row that moment). A column that is still empty means "nothing of that
+   * kind since this date", never "nothing ever": an app that sent logs only
+   * before the upgrade has no logsLastReceivedAt, and the Dashboard says
+   * "no logs have arrived since <this date>" for it, which stays true.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Signal Arrivals Tracked Since",
+    description:
+      "Since when OneUptime has recorded when traces, logs and metrics last arrived from this application.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+    default: () => {
+      return "now()";
+    },
+  })
+  public signalArrivalsTrackedSince?: Date = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
