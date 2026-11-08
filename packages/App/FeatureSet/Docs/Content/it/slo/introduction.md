@@ -84,7 +84,7 @@ Tutto ciò che decide come misura lo SLO parte da un valore predefinito che camb
 | Stati di inattività | Tutti gli stati non operativi del progetto | **Impostazioni** → **Calcolo del downtime** |
 | Modalità multi-monitor | **Qualsiasi monitor inattivo** | **Impostazioni** → **Calcolo del downtime** |
 | Valutazione | Attiva | **Impostazioni** → **Valutazione** |
-| Regole del tasso di consumo | Una regola **Fast burn** e una regola **Slow burn**, adattate alla finestra | **Regole di tasso di consumo** |
+| Regole del tasso di consumo | Una regola **Fast burn**, una regola **Slow burn** e una regola **Slow leak**, adattate alla finestra | **Regole di tasso di consumo** |
 
 ## Di cosa è fatto uno SLO
 
@@ -176,13 +176,13 @@ La **Panoramica** risponde a «siamo dentro il budget?», dall'alto in basso:
 - **I numeri principali**:
   - **SLI**: la quota di tempo buono nella finestra, e quanto è sopra o sotto l'obiettivo.
   - **Budget di errore rimasto**: una percentuale, una durata come "12m 30s left of 43m 12s" e una barra con un segno alla soglia a rischio. Quando il budget è superato mostra **Budget exceeded** e di quanto.
-  - **Tasso di consumo**: con che velocità si spende il budget negli ultimi 60 minuti, il periodo usato dalla regola di consumo rapido predefinita. Diventa ambra sopra 1× e rossa, con **Soglia della regola raggiunta**, alla soglia più bassa delle regole del tasso di consumo abilitate dello SLO.
+  - **Tasso di consumo**: con che velocità si spende il budget negli ultimi 60 minuti, il periodo usato dalla regola di consumo rapido predefinita. Diventa ambra sopra 1× e rossa, con **Soglia della regola raggiunta**, alla soglia più bassa delle regole del tasso di consumo abilitate dello SLO il cui periodo è di 6 ore o meno. Un'ora dice poco di una regola il cui periodo si misura in giorni, come **Slow leak**, quindi il confronto con una regola del genere non si fa.
   - **Autonomia del budget**: quanto dura il budget a questo ritmo. Vedi [Budget di errore](/docs/slo/error-budget#autonomia-del-budget).
 - **Burn-down del budget di errore**: il budget rimanente lungo la finestra attuale. Vedi [Budget di errore](/docs/slo/error-budget#consumo-del-budget-di-errore).
 - **Attività recente**: gli ultimi elementi del feed dello SLO.
 - **Dettagli dello SLO**: nome, descrizione ed etichette, le sole impostazioni modificate nella panoramica.
 - **Avvisi e incidenti aperti**: cosa hanno aperto adesso le regole del tasso di consumo.
-- **Burn rate rules**: la soglia di ogni regola abilitata accanto al tasso di consumo attuale, e cosa dichiara la regola.
+- **Burn rate rules**: la soglia di ogni regola abilitata accanto al tasso di consumo attuale, per le regole il cui periodo è di 6 ore o meno, e cosa dichiara la regola.
 
 ### Impostazioni
 

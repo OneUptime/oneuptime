@@ -11,7 +11,12 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
+import {
+  SloRecommendedAlertSeverities,
+  SloRecommendedAlertSeverity,
+  SloRecommendedBurnRateRule,
+  getSloRecommendedBurnRateRules,
+} from "../../Utils/Slo/SloRecommendedBurnRateRules";
 import DatabaseConfig from "../DatabaseConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -21,7 +26,6 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceValidator";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import AlertSeverityService from "./AlertSeverityService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectService from "./ProjectService";
@@ -250,14 +254,14 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    // Seed the two canonical multi-window burn rate rules. Non-fatal.
+    // Seed the three recommended multi-window burn rate rules. Non-fatal.
     let seededBurnRateRules: Array<ServiceLevelObjectiveBurnRateRule> = [];
 
     try {
       /*
        * Marked as seeding so the burn rate rule service does not post its own
-       * "rule added" items for these two: they are part of creating the SLO
-       * and are described by its "created" item (see SloFeedUtil for why this
+       * "rule added" items for these: they are part of creating the SLO and
+       * are described by its "created" item (see SloFeedUtil for why this
        * signal and not "root with no user").
        */
       seededBurnRateRules = createdItem.id
@@ -1048,12 +1052,18 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Seed the two canonical Google-SRE multi-window burn rate rules, with
-   * thresholds scaled to the SLO's compliance window. The textbook constants
-   * (14.4x over 1h/5m, 6x over 6h/30m) are derived from spending 2% / 5% of a
-   * 30-day budget: threshold = budgetFraction * windowHours / longWindowHours.
-   * A 30-day window reproduces exactly 14.4 and 6; shorter or longer windows
-   * stay correctly calibrated.
+   * Seed the Google SRE Workbook's three multi-window burn rate rules - Fast
+   * burn and Slow burn, the two page tiers, and Slow leak, the ticket tier -
+   * scaled to the SLO's compliance window. What each rule is, and why Slow
+   * leak scales as it does, is Common/Utils/Slo/SloRecommendedBurnRateRules:
+   * the same recommendation "Add recommended rules" offers an existing SLO.
+   *
+   * Fast burn and Slow burn raise at the project's most severe alert
+   * severity, Slow leak at its least severe. A failed severity lookup must
+   * not cost the SLO its burn-rate rules - the rules are still useful without
+   * a severity (the worker falls back to the most severe one when it creates
+   * the alert) - so a transient error degrades to "no default severity"
+   * rather than "no rules at all".
    */
   private async seedDefaultBurnRateRules(
     createdItem: Model,
@@ -1065,79 +1075,43 @@ export class Service extends ProjectReferencesService<Model> {
       return seededRules;
     }
 
-    const windowHours: number =
-      createdItem.windowType === SloWindowType.CalendarMonth
-        ? 720
-        : (createdItem.windowDays || 30) * 24;
-
-    /*
-     * Default severity: the project's lowest-order (most severe) severity.
-     * A failure here must not cost the SLO its burn-rate rules — the rules are
-     * still useful without a severity (the worker falls back to the lowest
-     * order severity when it creates the alert), so a transient lookup error
-     * degrades to "no default severity" rather than "no rules at all".
-     */
-    let severity: AlertSeverity | null = null;
+    let severities: SloRecommendedAlertSeverities<AlertSeverity> = {
+      mostSevere: null,
+      leastSevere: null,
+    };
 
     try {
-      severity = await AlertSeverityService.findOneBy({
-        query: {
-          projectId: createdItem.projectId,
-          // A default OneUptime picks itself: never an archived severity.
-          isArchived: false,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      severities =
+        await ServiceLevelObjectiveBurnRateRuleService.getRecommendedRuleAlertSeverities(
+          createdItem.projectId,
+        );
     } catch (error) {
       logger.error(
-        `Could not look up the default alert severity for SLO ${createdItem.id.toString()}. Seeding burn rate rules without one.`,
+        `Could not look up the default alert severities for SLO ${createdItem.id.toString()}. Seeding burn rate rules without them.`,
       );
       logger.error(error);
     }
 
-    const defaultRules: Array<{
-      name: string;
-      burnRateThreshold: number;
-      longWindowInMinutes: number;
-      shortWindowInMinutes: number;
-    }> = [
-      {
-        name: "Fast burn",
-        burnRateThreshold: this.roundToTwoDecimals((0.02 * windowHours) / 1),
-        longWindowInMinutes: 60,
-        shortWindowInMinutes: 5,
-      },
-      {
-        name: "Slow burn",
-        burnRateThreshold: this.roundToTwoDecimals((0.05 * windowHours) / 6),
-        longWindowInMinutes: 360,
-        shortWindowInMinutes: 30,
-      },
-    ];
+    const defaultRules: Array<SloRecommendedBurnRateRule> =
+      getSloRecommendedBurnRateRules({
+        windowType: createdItem.windowType,
+        windowDays: createdItem.windowDays,
+      });
 
     for (const defaultRule of defaultRules) {
       try {
-        const rule: ServiceLevelObjectiveBurnRateRule =
-          new ServiceLevelObjectiveBurnRateRule();
-        rule.projectId = createdItem.projectId;
-        rule.serviceLevelObjectiveId = createdItem.id;
-        rule.name = defaultRule.name;
-        rule.isEnabled = true;
-        rule.burnRateThreshold = defaultRule.burnRateThreshold;
-        rule.longWindowInMinutes = defaultRule.longWindowInMinutes;
-        rule.shortWindowInMinutes = defaultRule.shortWindowInMinutes;
+        const severity: AlertSeverity | null =
+          defaultRule.alertSeverity === SloRecommendedAlertSeverity.LeastSevere
+            ? severities.leastSevere
+            : severities.mostSevere;
 
-        if (severity && severity.id) {
-          rule.alertSeverityId = severity.id;
-        }
+        const rule: ServiceLevelObjectiveBurnRateRule =
+          ServiceLevelObjectiveBurnRateRuleService.buildRecommendedRule({
+            projectId: createdItem.projectId,
+            serviceLevelObjectiveId: createdItem.id,
+            recommended: defaultRule,
+            alertSeverityId: severity?.id || undefined,
+          });
 
         await ServiceLevelObjectiveBurnRateRuleService.create({
           data: rule,
@@ -1161,7 +1135,7 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * The SLO's "created" feed item: who created it, what it promises, and the
    * default burn rate rules that came with it (folded in here rather than
-   * posted as two more items underneath).
+   * posted as three more items underneath).
    */
   private async writeSloCreatedFeed(data: {
     onCreate: OnCreate<Model>;
@@ -2006,10 +1980,6 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return ids;
-  }
-
-  private roundToTwoDecimals(value: number): number {
-    return Math.round(value * 100) / 100;
   }
 
   /*

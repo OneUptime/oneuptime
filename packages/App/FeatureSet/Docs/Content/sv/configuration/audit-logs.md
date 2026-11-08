@@ -71,6 +71,8 @@ En ändring av de här inställningarna träder i kraft inom en minut.
 
 Filtrera efter **Resurstyp**, **Resursnamn**, **Åtgärd**, **Användares e-post** eller **Tid**. En ändring visar bara de fält som ändrades, före och efter, och en sparning som inte ändrar något lägger inte till någon post.
 
+En resurs utan eget namn får namn efter det som namnger den i OneUptime: ett undantag efter sin typ och början av sitt meddelande, med id:n, adresser och allt som liknar en hemlighet maskerat, en körning av en runbook efter sin runbook, och en mall eller en domän efter sitt eget namn.
+
 Monitorer, incidenter, larm, statussidor, SLO:er och många andra resurser har också en egen sida **Granskningsloggar** i ett hopfällt avsnitt av sin sidomeny, som **Avancerad**. Den visar bara den resursens poster, tillsammans med posterna för det som hör till den: ett SLO:s sida visar också dess regler och ägare.
 
 ## Vad som registreras

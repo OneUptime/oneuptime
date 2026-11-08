@@ -4,7 +4,7 @@ Feilbudsjetter forteller deg hvor du står; forbruksrateregler forteller deg nå
 
 :::cards
 - [Hvordan en regel bestemmer seg](#hvordan-en-regel-bestemmer-seg-for-å-utløses): To vinduer, begge over terskelen.
-- [Standardregler](#standardregler): Fast burn og Slow burn, tilpasset vinduet til SLO-et.
+- [Standardregler](#standardregler): Fast burn, Slow burn og Slow leak, tilpasset vinduet til SLO-et.
 - [Opprett en regel](#opprett-eller-rediger-en-regel): Fem trinn på siden Burn Rate Rules til SLO-et.
 - [Malvariabler](#hva-hvert-varsel-og-hver-hendelse-sier): Skriv dine egne titler og beskrivelser.
 :::
@@ -46,18 +46,21 @@ flowchart TB
     short -->|"Ja"| fire["Utløs varselet,<br/>erklær hendelsen<br/>eller begge"]
 ```
 
-En regel kan ikke utløses før SLO-et har et helt langt vindu med overvåkingshistorikk: ellers ville den aller første mislykkede sjekken til en monitor, delt på noen få minutter med historikk, gi en enorm forbruksrate. Et nytt SLO kan derfor ikke utløse regelen **Fast burn** den første timen, og heller ikke regelen **Slow burn** de første seks. Har et SLO senere ikke lenger så mye historikk, for eksempel etter at monitorene er byttet ut med nye, løser regelen det den hadde åpnet, i stedet for å la det henge. En regel utløses heller ikke mens en av monitorene til SLO-et er i planlagt vedlikehold: se [Planlagt vedlikehold](#planlagt-vedlikehold).
+En regel kan ikke utløses før SLO-et har et helt langt vindu med overvåkingshistorikk: ellers ville den aller første mislykkede sjekken til en monitor, delt på noen få minutter med historikk, gi en enorm forbruksrate. Et nytt SLO kan derfor ikke utløse regelen **Fast burn** den første timen, regelen **Slow burn** de første seks eller regelen **Slow leak** de første tre dagene. Har et SLO senere ikke lenger så mye historikk, for eksempel etter at monitorene er byttet ut med nye, løser regelen det den hadde åpnet, i stedet for å la det henge. En regel utløses heller ikke mens en av monitorene til SLO-et er i planlagt vedlikehold: se [Planlagt vedlikehold](#planlagt-vedlikehold).
 
 ## Standardregler
 
-Hvert nytt SLO får to forbruksrateregler. For et vindu på 30 dager:
+Hvert nytt SLO får tre forbruksrateregler. For et vindu på 30 dager:
 
 | Regel | Terskel | Langt vindu | Kort vindu | Utløses når |
 | --- | --- | --- | --- | --- |
 | **Fast burn** | 14.4× | 1 time | 5 minutter | Omtrent 2 % av budsjettet brukes på en time: det ville vært brukt opp på omtrent 2 dager. |
 | **Slow burn** | 6× | 6 timer | 30 minutter | Omtrent 5 % av budsjettet brukes på seks timer: det ville vært brukt opp på omtrent 5 dager. |
+| **Slow leak** | 1× | 3 dager | 6 timer | Omtrent 10 % av budsjettet brukes på tre dager: det ville vært brukt opp når vinduet slutter. |
 
-Tersklene på 14.4× og 6× er regnet ut for et budsjett på 30 dager, så OneUptime tilpasser dem til vinduet til SLO-et ditt. Hver regel betyr alltid «2 % av budsjettet på 1 time» eller «5 % av budsjettet på 6 timer»:
+Fast burn og Slow burn er tilkallinger: de utløser et varsel med prosjektets høyeste varselsalvorsgrad. Slow leak er en sak: den utløser varselet sitt med prosjektets laveste varselsalvorsgrad. Den fanger opp et jevnt forbruk som de to andre aldri når: ved 3× er et budsjett på 99,9 % brukt opp på 10 dager, men bare Slow leak utløses. Når varselet er løst, venter den 24 timer, ikke det lange vinduet sitt på 3 dager, før den utløser et nytt.
+
+Tersklene er regnet ut for et budsjett på 30 dager, så OneUptime tilpasser dem til vinduet til SLO-et ditt. Fast burn og Slow burn betyr alltid «2 % av budsjettet på 1 time» og «5 % av budsjettet på 6 timer»:
 
 | Vinduet til SLO-et | Terskel for Fast burn | Terskel for Slow burn |
 | --- | --- | --- |
@@ -66,7 +69,22 @@ Tersklene på 14.4× og 6× er regnet ut for et budsjett på 30 dager, så OneUp
 | 30 dager | 14.4× | 6× |
 | 90 dager | 43.2× | 18× |
 
-SLO-er med kalendermåned får verdiene for 30 dager. Begge reglene utløser et varsel med prosjektets høyeste varselsalvorsgrad, med standardtittelen og -beskrivelsen, løser det automatisk og legger ikke til eiere eller etiketter. De erklærer ikke hendelser, så en oppgradering av OneUptime begynner aldri å erklære hendelser for deg. Rediger dem, slett dem eller legg til dine egne.
+Slow leak betyr alltid «10 % av budsjettet på det lange vinduet». Med et vindu på 30 dager eller mer forblir vinduene 3 dager og 6 timer, og terskelen vokser med vinduet. Med et kortere vindu er det lange vinduet en tidel av vinduet til SLO-et og det korte vinduet en tolvtedel av det, så terskelen blir liggende på 1×. Ble det lange vinduet holdt på 3 dager, ville terskelen falt under 1×, og regelen ville blitt utløst for et SLO som er i rute til å nå målet sitt.
+
+| Vinduet til SLO-et | Terskel for Slow leak | Langt vindu | Kort vindu |
+| --- | --- | --- | --- |
+| 7 dager | 1× | 16.8 timer | 84 minutter |
+| 28 dager | 1× | 2.8 dager | 5.6 timer |
+| 30 dager | 1× | 3 dager | 6 timer |
+| 90 dager | 3× | 3 dager | 6 timer |
+
+SLO-er med kalendermåned får verdiene for 30 dager. Reglene bruker standardtittelen og -beskrivelsen, løser varslene sine automatisk og legger ikke til eiere eller etiketter. Ingen av dem erklærer en hendelse, så en oppgradering av OneUptime begynner aldri å erklære hendelser for deg. Rediger dem, slett dem eller legg til dine egne.
+
+### Legg til de anbefalte reglene på et eksisterende SLO
+
+SLO-er som ble opprettet før Slow leak fantes, har bare Fast burn og Slow burn: en oppgradering av OneUptime legger aldri til en regel som ville begynt å utløse varsler av seg selv. Så lenge et SLO mangler en av de tre standardreglene, nevner siden **Forbruksrateregler** til SLO-et dem i en merknad over tabellen. Klikk på knappen **Legg til anbefalte regler** i merknaden for å se nøyaktig hva den legger til, tilpasset vinduet til SLO-et, og bekreft. Den legger bare til reglene som mangler, og klikker du på den igjen, legger den ikke til noe.
+
+En regel teller som allerede på plass når SLO-et har en regel med samme navn, eller en med samme lange vindu, enten den er slått på eller av. En standardregel du har gitt nytt navn eller justert, legges derfor aldri til to ganger. Vil du ikke ha en av standardreglene, så behold regelen og deaktiver den i stedet for å slette den, så tilbyr merknaden den ikke lenger. Du trenger tillatelse til å opprette SLO-forbruksrateregler. Hver regel knappen legger til, publiseres i feeden til SLO-et og registreres i revisjonsloggene, som en regel du oppretter selv.
 
 ## Opprett eller rediger en regel
 
@@ -108,7 +126,7 @@ Hvert svar på **Når den utløses** åpner noe. API-et avviser en regel som ver
 Regeltabellen viser for hver regel terskelen, vinduene og undertrykkingen, hva den erklærer (og om varselet eller hendelsen bare løses for hånd, eller er privat), alvorsgradene, vaktpolicyene, eierne og etikettene.
 
 > [!TIP]
-> Et godt utgangspunkt: behold de to standardreglene, send regelen for raskt forbruk til vaktpolicyen som tilkaller folk, med høy alvorsgrad, og la regelen for sakte forbruk utløse et varsel med lavere alvorsgrad for arbeidstiden. Jobber teamet ditt med hendelser, velger du **Erklær en hendelse** for regelen for raskt forbruk, eller **Begge** for også å få et varsel.
+> Et godt utgangspunkt: behold de tre standardreglene, send regelen for raskt forbruk til vaktpolicyen som tilkaller folk, med høy alvorsgrad, la regelen for sakte forbruk utløse et varsel med lavere alvorsgrad for arbeidstiden, og la regelen for sakte lekkasje være en sak for teamet som eier tjenesten. Jobber teamet ditt med hendelser, velger du **Erklær en hendelse** for regelen for raskt forbruk, eller **Begge** for også å få et varsel.
 
 ## Hva en regel erklærer
 
@@ -191,7 +209,7 @@ Etiketter, eierteam og vaktpolicyer må høre til prosjektet til SLO-et.
 
 - **Løsning følger det lange vinduet.** Med automatisk løsning på (standard) løser OneUptime varselet og hendelsen til en regel så snart forbruksraten i det lange vinduet faller under terskelen. Å løse på det korte vinduet ville gitt flimring: et brudd som kommer og går, ville blitt løst etter fem rolige minutter og tilkalt folk igjen hele natten.
 - **Automatisk løsning av.** Slå av **Løs varsel automatisk** eller **Løs hendelse automatisk**, så blir den posten stående åpen til noen løser den, også etter at forbruket har hentet seg inn. Regelen åpner ikke en ny oppå den, og når den er løst for hånd og det lange vinduet er under terskelen, kan regelen utløses igjen etter undertrykkingen.
-- **Undertrykking av nye utløsninger.** Etter at en post er løst, erklærer ikke regelen den typen post igjen i undertrykkingsperioden, som standard lengden på det lange vinduet. Da får et system som henter seg inn, tid til det uten å tilkalle noen for støyen som er igjen.
+- **Undertrykking av nye utløsninger.** Etter at en post er løst, erklærer ikke regelen den typen post igjen i undertrykkingsperioden, som standard lengden på det lange vinduet. Da får et system som henter seg inn, tid til det uten å tilkalle noen for støyen som er igjen. Slow leak opprettes med 24 timer i stedet for det lange vinduet sitt på 3 dager, så en lekkasje som kommer tilbake, rapporteres igjen dagen etter.
 
 Noen endringer løser alltid det en regel har åpnet, uansett hva innstillingene for automatisk løsning sier, så ingenting fortsetter å eskalere for en regel som ikke lenger kan begrunne det:
 
@@ -212,7 +230,7 @@ Mens en monitor i SLO-et er i et pågående planlagt vedlikehold, utløser ikke 
 ## Feilsøking
 
 :::details En regel ble ikke utløst rett etter at SLO-et ble opprettet
-En regel utløses bare når SLO-et har et helt langt vindu med overvåkingshistorikk: én time for standardregelen for raskt forbruk, seks timer for den for sakte forbruk.
+En regel utløses bare når SLO-et har et helt langt vindu med overvåkingshistorikk: én time for standardregelen for raskt forbruk, seks timer for den for sakte forbruk og tre dager for den for sakte lekkasje, eller en tidel av vinduet til SLO-et når det er kortere enn 30 dager.
 :::
 
 :::details Et varsel ble løst mens bruddet fortsatt pågikk

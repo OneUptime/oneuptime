@@ -84,7 +84,7 @@ Tudo o que define como o SLO mede começa com um valor padrão que você muda de
 | Status de indisponibilidade | Todos os status não operacionais do projeto | **Configurações** → **Cálculo de inatividade** |
 | Modo de vários monitores | **Qualquer monitor fora do ar** | **Configurações** → **Cálculo de inatividade** |
 | Avaliação | Ligada | **Configurações** → **Avaliação** |
-| Regras de taxa de consumo | Uma regra **Fast burn** e uma regra **Slow burn**, ajustadas à janela | **Regras de taxa de consumo** |
+| Regras de taxa de consumo | Uma regra **Fast burn**, uma regra **Slow burn** e uma regra **Slow leak**, ajustadas à janela | **Regras de taxa de consumo** |
 
 ## Do que um SLO é feito
 
@@ -176,13 +176,13 @@ A **Visão geral** responde a "estamos dentro do orçamento?", de cima para baix
 - **Os números principais**:
   - **SLI**: a parcela de tempo bom na janela, e quanto ela está acima ou abaixo da meta.
   - **Orçamento de erros restante**: uma porcentagem, uma duração como "12m 30s left of 43m 12s" e uma barra com uma marca no limite de risco. Quando o orçamento é ultrapassado, mostra **Budget exceeded** e por quanto.
-  - **Taxa de consumo**: a velocidade com que o orçamento é gasto nos últimos 60 minutos, o período que a regra de consumo rápido padrão usa. Fica âmbar acima de 1× e vermelho, com **Limite da regra atingido**, no limite mais baixo das regras de taxa de consumo habilitadas do SLO.
+  - **Taxa de consumo**: a velocidade com que o orçamento é gasto nos últimos 60 minutos, o período que a regra de consumo rápido padrão usa. Fica âmbar acima de 1× e vermelho, com **Limite da regra atingido**, no limite mais baixo das regras de taxa de consumo habilitadas do SLO cujo período é de 6 horas ou menos. Uma hora diz pouco sobre uma regra cujo período é de dias, como **Slow leak**, por isso a taxa não é comparada com regras assim.
   - **Autonomia do orçamento**: quanto o orçamento dura nesse ritmo. Veja [Orçamentos de erros](/docs/slo/error-budget#autonomia-do-orçamento).
 - **Burn-down do orçamento de erros**: o orçamento restante ao longo da janela atual. Veja [Orçamentos de erros](/docs/slo/error-budget#consumo-do-orçamento-de-erros).
 - **Atividade recente**: os itens mais recentes do feed do SLO.
 - **Detalhes do SLO**: o nome, a descrição e os rótulos, as únicas configurações editadas na visão geral.
 - **Alertas e incidentes abertos**: o que as regras de taxa de consumo têm aberto agora.
-- **Burn rate rules**: o limite de cada regra habilitada ao lado da taxa de consumo atual, e o que a regra declara.
+- **Burn rate rules**: o limite de cada regra habilitada ao lado da taxa de consumo atual, para as regras cujo período é de 6 horas ou menos, e o que a regra declara.
 
 ### Configurações
 

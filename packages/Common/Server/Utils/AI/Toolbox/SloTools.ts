@@ -30,6 +30,11 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import {
+  SloRecommendedAlertSeverity,
+  SloRecommendedBurnRateRule,
+  getMissingSloRecommendedBurnRateRules,
+} from "../../../../Utils/Slo/SloRecommendedBurnRateRules";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -179,6 +184,36 @@ const BURN_RATE_RULES_NOT_VISIBLE_NOTE: string =
 
 const NOT_VISIBLE_WIDGET_VALUE: string = "not visible to you";
 
+// The most burn-rate rules one SLO read returns.
+const BURN_RATE_RULES_READ_LIMIT: number = 25;
+
+/*
+ * The recommended burn-rate rules (Fast burn, Slow burn, Slow leak) this SLO
+ * does not have, scaled to its window, as a note rather than rows: they are
+ * not records of the SLO, and the model must never report one as a rule that
+ * is set up. An SLO created before Slow leak existed is missing it.
+ */
+function getMissingRecommendedRulesNote(
+  missing: Array<SloRecommendedBurnRateRule>,
+): string {
+  if (missing.length === 0) {
+    return "";
+  }
+
+  const rules: string = missing
+    .map((rule: SloRecommendedBurnRateRule): string => {
+      const severity: string =
+        rule.alertSeverity === SloRecommendedAlertSeverity.LeastSevere
+          ? "least"
+          : "most";
+
+      return `${rule.name} (burn rate ${rule.burnRateThreshold}x over ${rule.longWindowInMinutes} minutes, confirmed over ${rule.shortWindowInMinutes} minutes; raises an alert at the project's ${severity} severe alert severity and declares no incident; waits ${rule.refireSuppressionMinutes ?? rule.longWindowInMinutes} minutes after an alert resolves before raising another)`;
+    })
+    .join("; ");
+
+  return `Note: this SLO does not have ${missing.length === 1 ? "this burn-rate rule" : "these burn-rate rules"} OneUptime recommends for every SLO (Fast burn and Slow burn page someone; Slow leak is a low-severity ticket for a slow, steady burn), scaled to its window: ${rules}. ${missing.length === 1 ? "It is" : "They are"} not set up and never fire. Anyone who can create SLO burn rate rules can add ${missing.length === 1 ? "it" : "them"} on the SLO's Burn Rate Rules page with Add recommended rules.\n`;
+}
+
 /*
  * Label names for the monitor rule descriptions. Legacy rules carry their
  * label names in the select already; rules on configurable criteria store
@@ -240,7 +275,7 @@ async function resolveMonitorRuleLabelNames(data: {
 export const QuerySlosTool: ObservabilityTool = {
   name: "query_slos",
   description:
-    "List Service Level Objectives (SLOs) in this project: what each one measures (monitor uptime or a metric SLI), its target percentage, compliance window, attached monitors, and the latest persisted compliance status — current SLI %, error budget remaining and burn rate as computed by the platform at its last evaluation (this tool never recomputes compliance live). Pass sloId (an SLO ID from this tool's own list results) to get one SLO's full definition plus its burn-rate rules, their thresholds, whether each raises an alert, declares an incident, or both, and what each output is created with (custom title/description templates, label and owner counts, private and auto-resolve settings, and whether the SLO's owners are added). Use query_alerts to see alerts those burn-rate rules raised, query_incidents for the incidents they declared, and query_monitors for the current status of an SLO's monitors. Archived SLOs (retired: hidden from the SLO list and no longer evaluated) are left out of lists unless includeArchived is true; looking one up by sloId still works and says it is archived.",
+    "List Service Level Objectives (SLOs) in this project: what each one measures (monitor uptime or a metric SLI), its target percentage, compliance window, attached monitors, and the latest persisted compliance status — current SLI %, error budget remaining and burn rate as computed by the platform at its last evaluation (this tool never recomputes compliance live). Pass sloId (an SLO ID from this tool's own list results) to get one SLO's full definition plus its burn-rate rules, their thresholds, whether each raises an alert, declares an incident, or both, and what each output is created with (custom title/description templates, label and owner counts, private and auto-resolve settings, and whether the SLO's owners are added), and which of OneUptime's recommended burn-rate rules (Fast burn, Slow burn, Slow leak) the SLO is missing. Use query_alerts to see alerts those burn-rate rules raised, query_incidents for the incidents they declared, and query_monitors for the current status of an SLO's monitors. Archived SLOs (retired: hidden from the SLO list and no longer evaluated) are left out of lists unless includeArchived is true; looking one up by sloId still works and says it is archived.",
   inputSchema: {
     type: "object",
     properties: {
@@ -500,7 +535,7 @@ export const QuerySlosTool: ObservabilityTool = {
                 sort: {
                   burnRateThreshold: SortOrder.Descending,
                 },
-                limit: 25,
+                limit: BURN_RATE_RULES_READ_LIMIT,
                 skip: 0,
                 props: ctx.props,
               });
@@ -586,13 +621,33 @@ export const QuerySlosTool: ObservabilityTool = {
         rows.push(row);
       }
 
+      /*
+       * The rules OneUptime recommends (Fast burn, Slow burn, Slow leak) that
+       * this SLO does not have, scaled to its window - an SLO created before
+       * Slow leak existed is missing it - so the model can say so, and where
+       * they are added. Worked out only from every rule of the SLO: from a
+       * read the limit cut short, a rule that is there could read as missing.
+       */
+      const missingRecommendedRules: Array<SloRecommendedBurnRateRule> =
+        slo &&
+        areBurnRateRulesVisible &&
+        rules.length < BURN_RATE_RULES_READ_LIMIT
+          ? getMissingSloRecommendedBurnRateRules({
+              window: {
+                windowType: slo.windowType,
+                windowDays: slo.windowDays,
+              },
+              existingRules: rules,
+            })
+          : [];
+
       const serialized: SerializedResult =
         ToolResultSerializer.serializeRows(rows);
 
       return {
         dataForLlm:
           rows.length > 0
-            ? `${slo?.isArchived === true ? ARCHIVED_NOTE : ""}${areMonitorRulesVisible ? "" : MONITOR_RULES_NOT_VISIBLE_NOTE}${areBurnRateRulesVisible ? "" : BURN_RATE_RULES_NOT_VISIBLE_NOTE}${COMPLIANCE_NOTE}${serialized.text}`
+            ? `${slo?.isArchived === true ? ARCHIVED_NOTE : ""}${areMonitorRulesVisible ? "" : MONITOR_RULES_NOT_VISIBLE_NOTE}${areBurnRateRulesVisible ? "" : BURN_RATE_RULES_NOT_VISIBLE_NOTE}${getMissingRecommendedRulesNote(missingRecommendedRules)}${COMPLIANCE_NOTE}${serialized.text}`
             : serialized.text,
         rowCount: serialized.rowCount,
         citationLabel: `SLO ${slo?.name || sloId.toString()}`,

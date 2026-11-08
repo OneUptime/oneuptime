@@ -295,3 +295,34 @@ describe("query_slos detail mode when a rule table is not readable", () => {
     expect(burnRateRules).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * Which recommended burn-rate rules an SLO is missing is worked out from its
+ * rules. A caller who may not read them is told so, and nothing about which
+ * recommended ones are missing: that would be a guess, and "missing all
+ * three" would be a wrong one.
+ */
+describe("query_slos detail mode and the recommended burn-rate rules", () => {
+  test("a caller who may not read the burn-rate rules hears nothing about which recommended ones are missing", async () => {
+    mockReads({ monitorRules: "allowed", burnRateRules: "denied" });
+
+    const result: ToolExecutionResult = await runDetail();
+
+    expect(result.dataForLlm).toContain(BURN_RATE_RULES_PERMISSION);
+    expect(result.dataForLlm).not.toContain("OneUptime recommends");
+  });
+
+  test("a caller who may read them hears which ones are missing", async () => {
+    mockReads({ monitorRules: "allowed", burnRateRules: "allowed" });
+
+    const result: ToolExecutionResult = await runDetail();
+
+    // The one rule read is Fast burn: Slow burn and Slow leak are missing.
+    expect(result.dataForLlm).toContain(
+      "Note: this SLO does not have these burn-rate rules OneUptime recommends for every SLO",
+    );
+    expect(result.dataForLlm).toContain("Slow burn (burn rate 6x");
+    expect(result.dataForLlm).toContain("Slow leak (burn rate 1x");
+    expect(result.dataForLlm).not.toContain("Fast burn (burn rate");
+  });
+});

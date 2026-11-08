@@ -24,6 +24,7 @@ import { UseSloOverviewDataResult } from "../../../../App/FeatureSet/Dashboard/s
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveBurnRateRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import Route from "../../../Types/API/Route";
 import { Red } from "../../../Types/BrandColors";
 import ObjectID from "../../../Types/ObjectID";
@@ -178,8 +179,15 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (): React.ReactElement => {
-        return <div data-testid="kpi-strip" />;
+      default: (props: {
+        lowestEnabledBurnRateThreshold: number | null;
+      }): React.ReactElement => {
+        return (
+          <div
+            data-testid="kpi-strip"
+            data-lowest-threshold={String(props.lowestEnabledBurnRateThreshold)}
+          />
+        );
       },
     };
   },
@@ -658,4 +666,68 @@ describe("SLO overview details sidebar", () => {
       expect(getItemMock).not.toHaveBeenCalled();
     },
   );
+});
+
+/*
+ * The burn rate tile is an hour's reading, and turns red at the lowest
+ * threshold among the rules that hour can speak for: those that look back 6
+ * hours or less, like Fast burn and Slow burn. The default slow-leak rule
+ * fires at 1x over 3 days; compared with an hour, it would turn the tile red
+ * for any hour that burned at all.
+ */
+describe("the burn rate tile's rule threshold", () => {
+  function burnRule(
+    name: string,
+    threshold: number,
+    longWindowInMinutes: number | undefined,
+    isEnabled: boolean = true,
+  ): ServiceLevelObjectiveBurnRateRule {
+    const rule: ServiceLevelObjectiveBurnRateRule =
+      new ServiceLevelObjectiveBurnRateRule();
+    rule._id = ObjectID.generate().toString();
+    rule.name = name;
+    rule.burnRateThreshold = threshold;
+    rule.isEnabled = isEnabled;
+
+    if (longWindowInMinutes !== undefined) {
+      rule.longWindowInMinutes = longWindowInMinutes;
+    }
+
+    return rule;
+  }
+
+  async function tileThreshold(): Promise<string | null> {
+    renderPage();
+    await waitForDetails();
+
+    return screen
+      .getByTestId("kpi-strip")
+      .getAttribute("data-lowest-threshold");
+  }
+
+  test("is the lowest among the enabled rules that look back 6 hours or less - never Slow leak's 1x", async () => {
+    overviewData.burnRateRules = [
+      burnRule("Fast burn", 14.4, 60),
+      burnRule("Slow burn", 6, 360),
+      burnRule("Slow leak", 1, 4320),
+      burnRule("Switched off", 0.5, 60, false),
+    ];
+
+    expect(await tileThreshold()).toBe("6");
+  });
+
+  test("with only a slow leak enabled, the tile has no rule threshold to reach", async () => {
+    overviewData.burnRateRules = [burnRule("Slow leak", 1, 4320)];
+
+    expect(await tileThreshold()).toBe("null");
+  });
+
+  test("a rule whose long window is unknown is compared, as every rule was", async () => {
+    overviewData.burnRateRules = [
+      burnRule("Slow burn", 6, 360),
+      burnRule("Imported", 2, undefined),
+    ];
+
+    expect(await tileThreshold()).toBe("2");
+  });
 });

@@ -4,7 +4,7 @@ Los presupuestos de errores te dicen dónde estás; las reglas de tasa de consum
 
 :::cards
 - [Cómo decide una regla](#cómo-decide-una-regla-si-se-activa): Dos ventanas, ambas por encima del umbral.
-- [Reglas predeterminadas](#reglas-predeterminadas): Fast burn y Slow burn, ajustadas a la ventana del SLO.
+- [Reglas predeterminadas](#reglas-predeterminadas): Fast burn, Slow burn y Slow leak, ajustadas a la ventana del SLO.
 - [Crear una regla](#crear-o-editar-una-regla): Cinco pasos en la página Reglas de tasa de consumo del SLO.
 - [Variables de plantilla](#qué-dice-cada-alerta-e-incidente): Escribe tus propios títulos y descripciones.
 :::
@@ -46,18 +46,21 @@ flowchart TB
     short -->|"Sí"| fire["Generar la alerta,<br/>declarar el incidente<br/>o ambas cosas"]
 ```
 
-Una regla no puede activarse hasta que el SLO tenga una ventana larga completa de historial de supervisión: si no, la primera comprobación fallida de un monitor, dividida entre unos pocos minutos de historial, daría una tasa de consumo enorme. Así que un SLO nuevo no puede activar su regla **Fast burn** durante su primera hora, ni su regla **Slow burn** durante las seis primeras. Si más adelante un SLO deja de tener tanto historial, por ejemplo después de cambiar sus monitores por otros nuevos, la regla resuelve lo que tiene abierto en lugar de dejarlo colgado. Una regla tampoco se activa mientras alguno de los monitores del SLO esté en un mantenimiento programado: consulta [Mantenimiento programado](#mantenimiento-programado).
+Una regla no puede activarse hasta que el SLO tenga una ventana larga completa de historial de supervisión: si no, la primera comprobación fallida de un monitor, dividida entre unos pocos minutos de historial, daría una tasa de consumo enorme. Así que un SLO nuevo no puede activar su regla **Fast burn** durante su primera hora, ni su regla **Slow burn** durante las seis primeras, ni su regla **Slow leak** durante sus tres primeros días. Si más adelante un SLO deja de tener tanto historial, por ejemplo después de cambiar sus monitores por otros nuevos, la regla resuelve lo que tiene abierto en lugar de dejarlo colgado. Una regla tampoco se activa mientras alguno de los monitores del SLO esté en un mantenimiento programado: consulta [Mantenimiento programado](#mantenimiento-programado).
 
 ## Reglas predeterminadas
 
-Cada SLO nuevo recibe dos reglas de tasa de consumo. Para una ventana de 30 días:
+Cada SLO nuevo recibe tres reglas de tasa de consumo. Para una ventana de 30 días:
 
 | Regla | Umbral | Ventana larga | Ventana corta | Se activa cuando |
 | --- | --- | --- | --- | --- |
 | **Fast burn** | 14.4× | 1 hora | 5 minutos | Se consume alrededor del 2 % del presupuesto en una hora: se agotaría en unos 2 días. |
 | **Slow burn** | 6× | 6 horas | 30 minutos | Se consume alrededor del 5 % del presupuesto en seis horas: se agotaría en unos 5 días. |
+| **Slow leak** | 1× | 3 días | 6 horas | Se consume alrededor del 10 % del presupuesto en tres días: se agotaría al final de la ventana. |
 
-Los umbrales de 14.4× y 6× están calculados para un presupuesto de 30 días, así que OneUptime los ajusta a la ventana de tu SLO. Cada regla significa siempre «el 2 % del presupuesto en 1 hora» o «el 5 % del presupuesto en 6 horas»:
+Fast burn y Slow burn sirven para avisar a alguien: generan una alerta con la gravedad de alerta más alta del proyecto. Slow leak sirve como ticket: genera su alerta con la gravedad de alerta más baja del proyecto. Detecta un consumo constante que nunca llega al umbral de las otras dos: a 3×, el presupuesto de un SLO del 99,9 % se agota en 10 días y, aun así, solo se activa Slow leak. Cuando su alerta se resuelve, espera 24 horas, no su ventana larga de 3 días, antes de generar otra.
+
+Los umbrales están calculados para un presupuesto de 30 días, así que OneUptime los ajusta a la ventana de tu SLO. Fast burn y Slow burn significan siempre «el 2 % del presupuesto en 1 hora» y «el 5 % del presupuesto en 6 horas»:
 
 | Ventana del SLO | Umbral de Fast burn | Umbral de Slow burn |
 | --- | --- | --- |
@@ -66,7 +69,22 @@ Los umbrales de 14.4× y 6× están calculados para un presupuesto de 30 días, 
 | 30 días | 14.4× | 6× |
 | 90 días | 43.2× | 18× |
 
-Los SLO de mes natural reciben los valores de 30 días. Las dos reglas generan una alerta con la gravedad de alerta más alta del proyecto, con el título y la descripción integrados, la resuelven automáticamente y no añaden propietarios ni etiquetas. No declaran incidentes, así que actualizar OneUptime nunca empieza a declarar incidentes por ti. Edítalas, elimínalas o añade las tuyas.
+Slow leak significa siempre «el 10 % del presupuesto en su ventana larga». En una ventana de 30 días o más, sus ventanas siguen siendo de 3 días y 6 horas y su umbral crece con la ventana. En una ventana más corta, su ventana larga es una décima parte de la ventana del SLO y su ventana corta, una duodécima parte de esa, así que su umbral se queda en 1×. Si su ventana larga se quedara en 3 días, su umbral bajaría de 1× y se activaría en un SLO que va camino de cumplir su objetivo.
+
+| Ventana del SLO | Umbral de Slow leak | Ventana larga | Ventana corta |
+| --- | --- | --- | --- |
+| 7 días | 1× | 16,8 horas | 84 minutos |
+| 28 días | 1× | 2,8 días | 5,6 horas |
+| 30 días | 1× | 3 días | 6 horas |
+| 90 días | 3× | 3 días | 6 horas |
+
+Los SLO de mes natural reciben los valores de 30 días. Las reglas usan el título y la descripción integrados, resuelven sus alertas automáticamente y no añaden propietarios ni etiquetas. Ninguna de ellas declara un incidente, así que actualizar OneUptime nunca empieza a declarar incidentes por ti. Edítalas, elimínalas o añade las tuyas.
+
+### Añadir las reglas recomendadas a un SLO existente
+
+Los SLO creados antes de que existiera Slow leak solo tienen Fast burn y Slow burn: actualizar OneUptime nunca añade por su cuenta una regla que empezaría a generar alertas. Mientras a un SLO le falte una de las tres reglas predeterminadas, su página **Reglas de tasa de consumo** las nombra en un aviso sobre la tabla. Haz clic en **Agregar reglas recomendadas** en el aviso para ver exactamente lo que añade, ajustado a la ventana del SLO, y confirma. Solo añade las reglas que faltan, y volver a hacer clic no añade nada.
+
+Una regla cuenta como existente cuando el SLO tiene una regla con el mismo nombre, o una con la misma ventana larga, esté activada o no. Así, una regla predeterminada que hayas renombrado o ajustado nunca se añade dos veces. Para que el aviso deje de ofrecer una regla predeterminada que no quieres, conserva la regla y deshabilítala en lugar de eliminarla. Necesitas permiso para crear reglas de tasa de consumo de SLO. Cada regla que se añade así se publica en el feed del SLO y queda en sus registros de auditoría, como una regla que creas tú.
 
 ## Crear o editar una regla
 
@@ -108,7 +126,7 @@ Cada respuesta a **Cuando se dispara** abre algo. La API rechaza una regla que n
 La tabla de reglas muestra, para cada regla, su umbral, sus ventanas y su supresión, qué declara (y si la alerta o el incidente solo se resuelve a mano, o es privado), sus gravedades, políticas de guardia, propietarios y etiquetas.
 
 > [!TIP]
-> Un buen comienzo: conserva las dos reglas predeterminadas, envía la regla de consumo rápido a tu política de guardia que avisa con una gravedad alta, y deja que la regla de consumo lento genere una alerta de gravedad más baja para el horario laboral. Si tu equipo lo gestiona todo con incidentes, elige **Declarar un incidente** para la regla de consumo rápido, o **Ambos** para recibir también una alerta.
+> Un buen comienzo: conserva las tres reglas predeterminadas, envía la regla de consumo rápido a tu política de guardia que avisa con una gravedad alta, deja que la regla de consumo lento genere una alerta de gravedad más baja para el horario laboral, y mantén la regla de fuga lenta como un ticket para el equipo responsable. Si tu equipo lo gestiona todo con incidentes, elige **Declarar un incidente** para la regla de consumo rápido, o **Ambos** para recibir también una alerta.
 
 ## Qué declara una regla
 
@@ -191,7 +209,7 @@ Las etiquetas, los equipos propietarios y las políticas de guardia deben perten
 
 - **La resolución sigue a la ventana larga.** Con la resolución automática activada (lo predeterminado), OneUptime resuelve la alerta y el incidente de una regla en cuanto la tasa de consumo de la ventana larga baja del umbral. Resolver con la ventana corta haría que oscilara: una caída recurrente se resolvería tras cinco minutos tranquilos y volvería a avisar toda la noche.
 - **Resolución automática desactivada.** Desactiva **Resolver alerta automáticamente** o **Resolver incidente automáticamente** y ese registro queda abierto hasta que alguien lo resuelva, aunque el consumo se recupere. La regla no abre otro encima, y una vez resuelto a mano y con la ventana larga por debajo del umbral, la regla puede volver a activarse tras su supresión.
-- **Supresión de nuevas activaciones.** Después de que un registro se resuelve, la regla no vuelve a declarar ese tipo de registro durante el periodo de supresión, de forma predeterminada la duración de la ventana larga. Así un sistema que se recupera tiene margen para hacerlo sin avisar por el ruido que queda.
+- **Supresión de nuevas activaciones.** Después de que un registro se resuelve, la regla no vuelve a declarar ese tipo de registro durante el periodo de supresión, de forma predeterminada la duración de la ventana larga. Así un sistema que se recupera tiene margen para hacerlo sin avisar por el ruido que queda. Slow leak se crea con 24 horas en lugar de su ventana larga de 3 días, así que una fuga que reaparece vuelve a señalarse al día siguiente.
 
 Algunos cambios siempre resuelven lo que una regla tiene abierto, digan lo que digan sus ajustes de resolución automática, para que nada siga escalando por una regla que ya no puede justificarlo:
 
@@ -212,7 +230,7 @@ El **Feed** del SLO publica cada alerta que genera una regla y cada incidente qu
 ## Solución de problemas
 
 :::details Una regla no se activó justo después de crear el SLO
-Una regla solo se activa cuando el SLO tiene una ventana larga completa de historial de supervisión: una hora para la regla de consumo rápido predeterminada, seis horas para la de consumo lento.
+Una regla solo se activa cuando el SLO tiene una ventana larga completa de historial de supervisión: una hora para la regla de consumo rápido predeterminada, seis horas para la de consumo lento y tres días para la de fuga lenta, o una décima parte de la ventana del SLO cuando esta dura menos de 30 días.
 :::
 
 :::details Una alerta se resolvió mientras la caída seguía

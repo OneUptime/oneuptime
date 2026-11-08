@@ -1,19 +1,32 @@
 import Alert from "../../Models/DatabaseModels/Alert";
+import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
 import Model from "../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import {
   SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
   SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
 } from "../../Utils/Slo/SloBurnRateTemplate";
+import {
+  SloRecommendedAlertSeverities,
+  SloRecommendedAlertSeverity,
+  SloRecommendedBurnRateRule,
+  getMissingSloRecommendedBurnRateRules,
+  pickSloRecommendedAlertSeverities,
+} from "../../Utils/Slo/SloRecommendedBurnRateRules";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import ObjectID from "../../Types/ObjectID";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -80,6 +93,40 @@ const WINDOWS_NOT_NUMERIC_ERROR_MESSAGE: string =
   "Long window and short window must be a number of minutes.";
 export const NO_OUTPUT_ERROR_MESSAGE: string =
   "A burn rate rule must create an alert, declare an incident, or both.";
+
+// An SLO the caller may not read is not found either, so it says nothing about itself.
+export const SLO_NOT_FOUND_MESSAGE: string =
+  "Service Level Objective not found.";
+
+/*
+ * The lock "Add recommended rules" holds per SLO, and how long a second
+ * request waits for it: adding three rules takes well under a second.
+ */
+const RECOMMENDED_RULES_LOCK_NAMESPACE: string =
+  "ServiceLevelObjectiveBurnRateRuleService.addMissingRecommendedRules";
+const RECOMMENDED_RULES_LOCK_TIMEOUT_MS: number = 30000;
+
+// A recommended rule an SLO is missing, and the severity it would raise at.
+export interface SloMissingRecommendedRule {
+  recommended: SloRecommendedBurnRateRule;
+  // Null when the project has no alert severity to pick.
+  alertSeverity: AlertSeverity | null;
+}
+
+export interface SloMissingRecommendedRules {
+  serviceLevelObjectiveId: ObjectID;
+  projectId: ObjectID;
+  rules: Array<SloMissingRecommendedRule>;
+}
+
+export interface SloAddedRecommendedRule extends SloMissingRecommendedRule {
+  ruleId: ObjectID | null;
+}
+
+export interface SloAddedRecommendedRules {
+  serviceLevelObjectiveId: ObjectID;
+  rules: Array<SloAddedRecommendedRule>;
+}
 
 /*
  * Mirrors the column defaults on the model. Every rule that predates incident
@@ -278,6 +325,259 @@ export class Service extends ProjectReferencesService<Model> {
     return `slo:${data.serviceLevelObjectiveId.toString()}:burn-rule:${data.burnRateRuleId.toString()}`;
   }
 
+  /*
+   * The project's most and least severe alert severities, for the rules
+   * OneUptime adds itself: Fast burn and Slow burn raise at the most severe,
+   * Slow leak - a ticket, not a page - at the least severe
+   * (pickSloRecommendedAlertSeverities says how each is chosen).
+   *
+   * One read for every rule: projects keep a handful of severities. Archived
+   * ones are left out - a default OneUptime picks itself is never archived.
+   * A failed read throws, and each caller decides what that costs: seeding a
+   * new SLO's rules goes on without severities rather than without rules, and
+   * "Add recommended rules" refuses, so a ticket rule is never added without
+   * the severity that keeps it from paging.
+   */
+  @CaptureSpan()
+  public async getRecommendedRuleAlertSeverities(
+    projectId: ObjectID,
+  ): Promise<SloRecommendedAlertSeverities<AlertSeverity>> {
+    const severities: Array<AlertSeverity> = await AlertSeverityService.findBy({
+      query: {
+        projectId: projectId,
+        isArchived: false,
+      },
+      select: {
+        _id: true,
+        name: true,
+        order: true,
+      },
+      sort: {
+        order: SortOrder.Ascending,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return pickSloRecommendedAlertSeverities<AlertSeverity>(severities);
+  }
+
+  /*
+   * A recommended rule (SloRecommendedBurnRateRules) as the row OneUptime
+   * creates for it. Only what the recommendation says is set: the output
+   * flags and every alert and incident option keep their column defaults, so
+   * the rule raises an alert, declares no incident, and says what a hand-made
+   * rule with no options says.
+   */
+  public buildRecommendedRule(data: {
+    projectId: ObjectID;
+    serviceLevelObjectiveId: ObjectID;
+    recommended: SloRecommendedBurnRateRule;
+    alertSeverityId?: ObjectID | undefined;
+  }): Model {
+    const rule: Model = new Model();
+    rule.projectId = data.projectId;
+    rule.serviceLevelObjectiveId = data.serviceLevelObjectiveId;
+    rule.name = data.recommended.name;
+    rule.isEnabled = true;
+    rule.burnRateThreshold = data.recommended.burnRateThreshold;
+    rule.longWindowInMinutes = data.recommended.longWindowInMinutes;
+    rule.shortWindowInMinutes = data.recommended.shortWindowInMinutes;
+
+    if (data.recommended.refireSuppressionMinutes !== null) {
+      rule.refireSuppressionMinutes = data.recommended.refireSuppressionMinutes;
+    }
+
+    if (data.alertSeverityId) {
+      rule.alertSeverityId = data.alertSeverityId;
+    }
+
+    return rule;
+  }
+
+  /*
+   * The recommended rules an SLO is missing, scaled to its window, each with
+   * the severity it would raise at: what "Add recommended rules" asks about.
+   *
+   * The SLO is read as the caller, so an SLO they may not read - or another
+   * project's - is not found, and says nothing about itself. Its rules are
+   * read as root, all of them: whether a recommended rule is missing has to
+   * be answered from every rule the SLO has, not from the ones this caller
+   * happens to be allowed to see, and the answer names only recommended
+   * rules, never the SLO's own.
+   */
+  @CaptureSpan()
+  public async getMissingRecommendedRules(data: {
+    serviceLevelObjectiveId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<SloMissingRecommendedRules> {
+    const projectId: ObjectID | undefined = data.props.tenantId;
+
+    if (!projectId) {
+      throw new BadDataException("Project ID is required.");
+    }
+
+    const slo: ServiceLevelObjective | null =
+      await ServiceLevelObjectiveService.findOneBy({
+        query: {
+          _id: data.serviceLevelObjectiveId.toString(),
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          windowType: true,
+          windowDays: true,
+        },
+        props: data.props,
+      });
+
+    if (!slo || !slo.id) {
+      throw new NotFoundException(SLO_NOT_FOUND_MESSAGE);
+    }
+
+    const existingRules: Array<Model> = await this.findBy({
+      query: {
+        serviceLevelObjectiveId: slo.id,
+        projectId: projectId,
+      },
+      select: {
+        _id: true,
+        name: true,
+        longWindowInMinutes: true,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const missing: Array<SloRecommendedBurnRateRule> =
+      getMissingSloRecommendedBurnRateRules({
+        window: {
+          windowType: slo.windowType,
+          windowDays: slo.windowDays,
+        },
+        existingRules: existingRules,
+      });
+
+    // Nothing to add asks for no severities.
+    if (missing.length === 0) {
+      return {
+        serviceLevelObjectiveId: slo.id,
+        projectId: projectId,
+        rules: [],
+      };
+    }
+
+    const severities: SloRecommendedAlertSeverities<AlertSeverity> =
+      await this.getRecommendedRuleAlertSeverities(projectId);
+
+    return {
+      serviceLevelObjectiveId: slo.id,
+      projectId: projectId,
+      rules: missing.map(
+        (
+          recommended: SloRecommendedBurnRateRule,
+        ): SloMissingRecommendedRule => {
+          return {
+            recommended: recommended,
+            alertSeverity:
+              recommended.alertSeverity ===
+              SloRecommendedAlertSeverity.LeastSevere
+                ? severities.leastSevere
+                : severities.mostSevere,
+          };
+        },
+      ),
+    };
+  }
+
+  /*
+   * "Add recommended rules": creates the recommended rules the SLO is
+   * missing, and only those, as the caller.
+   *
+   * Each rule is created exactly as one made by hand on the Burn Rate Rules
+   * page: through create() with the caller's props, so the same permission
+   * checks refuse what the caller may not create, the same hooks validate it,
+   * the SLO feed gets its "rule added" item, and the audit log records the
+   * caller creating it.
+   *
+   * Idempotent: what is missing is worked out again inside a lock held per
+   * SLO, so a second request - a double click, a second tab, a retry -
+   * waits for the first and then finds nothing left to add. Without the lock
+   * (Redis unreachable) the request still runs; only two arriving at the same
+   * moment could then both add the same rule. Rules are created one at a
+   * time, and the first that fails stops the request: the ones already added
+   * stay, and asking again adds only what is still missing.
+   */
+  @CaptureSpan()
+  public async addMissingRecommendedRules(data: {
+    serviceLevelObjectiveId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<SloAddedRecommendedRules> {
+    let mutex: SemaphoreMutex | null = null;
+
+    try {
+      mutex = await Semaphore.lock({
+        key: data.serviceLevelObjectiveId.toString(),
+        namespace: RECOMMENDED_RULES_LOCK_NAMESPACE,
+        lockTimeout: RECOMMENDED_RULES_LOCK_TIMEOUT_MS,
+        acquireTimeout: RECOMMENDED_RULES_LOCK_TIMEOUT_MS,
+      });
+    } catch (err) {
+      logger.error(
+        `Could not take the lock for adding the recommended burn rate rules of SLO ${data.serviceLevelObjectiveId.toString()}; adding them without it: ${err}`,
+        { projectId: data.props.tenantId?.toString() } as LogAttributes,
+      );
+    }
+
+    try {
+      const missing: SloMissingRecommendedRules =
+        await this.getMissingRecommendedRules(data);
+
+      const added: Array<SloAddedRecommendedRule> = [];
+
+      for (const rule of missing.rules) {
+        const created: Model = await this.create({
+          data: this.buildRecommendedRule({
+            projectId: missing.projectId,
+            serviceLevelObjectiveId: missing.serviceLevelObjectiveId,
+            recommended: rule.recommended,
+            alertSeverityId: rule.alertSeverity?.id || undefined,
+          }),
+          props: data.props,
+        });
+
+        added.push({
+          ...rule,
+          ruleId: created.id || null,
+        });
+      }
+
+      return {
+        serviceLevelObjectiveId: missing.serviceLevelObjectiveId,
+        rules: added,
+      };
+    } finally {
+      if (mutex) {
+        try {
+          await Semaphore.release(mutex);
+        } catch (err) {
+          // It runs out on its own timeout.
+          logger.error(
+            `Could not release the lock for adding the recommended burn rate rules of SLO ${data.serviceLevelObjectiveId.toString()}: ${err}`,
+            { projectId: data.props.tenantId?.toString() } as LogAttributes,
+          );
+        }
+      }
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -420,7 +720,7 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * BurnRateRuleAdded on the SLO feed. Skipped for the two rules OneUptime
+   * BurnRateRuleAdded on the SLO feed. Skipped for the rules OneUptime
    * seeds while creating an SLO: the SLO's own "created" item already
    * describes them (SloFeedUtil.runWhileSeedingDefaultBurnRateRules explains
    * how they are told apart). Fire-and-forget - the rule exists whether or not

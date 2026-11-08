@@ -4,7 +4,7 @@ Error budgets tell you where you stand; burn rate rules tell you when to get out
 
 :::cards
 - [How a rule decides](#how-a-rule-decides-to-fire): Two windows, both over the threshold.
-- [Default rules](#default-rules): Fast burn and slow burn, scaled to the SLO's window.
+- [Default rules](#default-rules): Fast burn, slow burn and slow leak, scaled to the SLO's window.
 - [Create a rule](#create-or-edit-a-rule): Five steps on the SLO's Burn Rate Rules page.
 - [Template variables](#what-each-alert-and-incident-says): Write your own titles and descriptions.
 :::
@@ -46,18 +46,21 @@ flowchart TB
     short -->|"Yes"| fire["Raise the alert,<br/>declare the incident,<br/>or both"]
 ```
 
-A rule cannot fire until the SLO has a full long window of monitoring history: otherwise a monitor's very first failed check, divided by a few minutes of history, would read as an enormous burn rate. So a new SLO cannot fire its **Fast burn** rule for its first hour, or its **Slow burn** rule for its first six. If an SLO later stops having that much history, for example after its monitors are swapped for new ones, the rule resolves what it has open rather than leaving it hanging. A rule does not fire while any of the SLO's monitors is in scheduled maintenance either: see [Scheduled maintenance](#scheduled-maintenance).
+A rule cannot fire until the SLO has a full long window of monitoring history: otherwise a monitor's very first failed check, divided by a few minutes of history, would read as an enormous burn rate. So a new SLO cannot fire its **Fast burn** rule for its first hour, its **Slow burn** rule for its first six, or its **Slow leak** rule for its first three days. If an SLO later stops having that much history, for example after its monitors are swapped for new ones, the rule resolves what it has open rather than leaving it hanging. A rule does not fire while any of the SLO's monitors is in scheduled maintenance either: see [Scheduled maintenance](#scheduled-maintenance).
 
 ## Default rules
 
-Every new SLO gets two burn rate rules. For a 30-day window:
+Every new SLO gets three burn rate rules. For a 30-day window:
 
 | Rule | Threshold | Long window | Short window | Fires when |
 | --- | --- | --- | --- | --- |
 | **Fast burn** | 14.4× | 1 hour | 5 minutes | About 2% of the budget burns in an hour: it would be gone in about 2 days. |
 | **Slow burn** | 6× | 6 hours | 30 minutes | About 5% of the budget burns in six hours: it would be gone in about 5 days. |
+| **Slow leak** | 1× | 3 days | 6 hours | About 10% of the budget burns in three days: it would be gone by the end of the window. |
 
-The 14.4× and 6× thresholds are worked out for a 30-day budget, so OneUptime scales them to your SLO's window. Each rule always means "2% of the budget in 1 hour" or "5% of the budget in 6 hours":
+Fast burn and Slow burn are pages: they raise an alert at the project's most severe alert severity. Slow leak is a ticket: it raises its alert at the project's least severe alert severity. It catches a steady burn the other two never reach: at 3×, a 99.9% budget is gone in 10 days, yet only Slow leak fires. After its alert resolves, it waits 24 hours, not its 3-day long window, before it raises another.
+
+The thresholds are worked out for a 30-day budget, so OneUptime scales them to your SLO's window. Fast burn and Slow burn always mean "2% of the budget in 1 hour" and "5% of the budget in 6 hours":
 
 | SLO window | Fast burn threshold | Slow burn threshold |
 | --- | --- | --- |
@@ -66,7 +69,22 @@ The 14.4× and 6× thresholds are worked out for a 30-day budget, so OneUptime s
 | 30 days | 14.4× | 6× |
 | 90 days | 43.2× | 18× |
 
-Calendar-month SLOs get the 30-day values. The two rules raise an alert at the project's most severe alert severity, with the built-in title and description, resolve it automatically, and add no owners or labels. They do not declare incidents, so upgrading OneUptime never starts declaring incidents on your behalf. Edit them, delete them or add your own.
+Slow leak always means "10% of the budget in its long window". On a window of 30 days or more, its windows stay 3 days and 6 hours and its threshold grows with the window. On a shorter window, its long window is a tenth of the SLO window and its short window a twelfth of that, so its threshold stays at 1×. Kept at 3 days, it would fall below 1× and fire on an SLO that is on track to meet its target.
+
+| SLO window | Slow leak threshold | Long window | Short window |
+| --- | --- | --- | --- |
+| 7 days | 1× | 16.8 hours | 84 minutes |
+| 28 days | 1× | 2.8 days | 5.6 hours |
+| 30 days | 1× | 3 days | 6 hours |
+| 90 days | 3× | 3 days | 6 hours |
+
+Calendar-month SLOs get the 30-day values. The rules use the built-in title and description, resolve their alerts automatically, and add no owners or labels. None of them declares an incident, so upgrading OneUptime never starts declaring incidents on your behalf. Edit them, delete them or add your own.
+
+### Add the recommended rules to an existing SLO
+
+SLOs created before Slow leak existed have only Fast burn and Slow burn: upgrading OneUptime never adds a rule that would start raising alerts by itself. While an SLO is missing one of the three default rules, its **Burn Rate Rules** page names them in a note above the table. Click **Add recommended rules** in the note to see exactly what it adds, scaled to the SLO's window, and confirm. It adds only the missing rules, and clicking it again adds nothing.
+
+A rule counts as there when the SLO has a rule with the same name, or one with the same long window, whether it is on or off. So a default rule you renamed or tuned is never added twice. To stop the note offering a default rule you do not want, keep the rule and disable it instead of deleting it. You need permission to create SLO burn rate rules. Each rule it adds is posted to the SLO's feed and recorded in its audit logs, like a rule you create yourself.
 
 ## Create or edit a rule
 
@@ -108,7 +126,7 @@ Every answer to **When it fires** opens something. The API refuses a rule that w
 The rules table shows, for each rule, its threshold, its windows and suppression, what it declares (and whether the alert or incident is resolved only by hand, or private), its severities, on-call policies, owners and labels.
 
 > [!TIP]
-> A good start: keep the two default rules, send the fast-burn rule to your paging on-call policy at a high severity, and let the slow-burn rule raise a lower-severity alert for working hours. If your team runs everything through incidents, pick **Declare an incident** for the fast-burn rule, or **Both** to get an alert as well.
+> A good start: keep the three default rules, send the fast-burn rule to your paging on-call policy at a high severity, let the slow-burn rule raise a lower-severity alert for working hours, and leave the slow-leak rule as a ticket for the owning team. If your team runs everything through incidents, pick **Declare an incident** for the fast-burn rule, or **Both** to get an alert as well.
 
 ## What a rule declares
 
@@ -191,7 +209,7 @@ Labels, owner teams and on-call policies must belong to the SLO's project.
 
 - **Resolution follows the long window.** With auto-resolve on (the default), OneUptime resolves a rule's alert and incident once the long-window burn rate drops below the threshold. Resolving on the short window would flap: a recurring outage would resolve after five quiet minutes and page again all night.
 - **Auto-resolve off.** Turn off **Auto Resolve Alert** or **Auto Resolve Incident** and that record stays open until someone resolves it, even after the burn recovers. The rule does not open another one on top of it, and once it is resolved by hand and the long window is below the threshold, the rule can fire again after its suppression.
-- **Re-fire suppression.** After a record resolves, the rule does not declare that kind of record again for the suppression period, by default the length of the long window. This gives a recovering system room to recover without paging on what is left of the noise.
+- **Re-fire suppression.** After a record resolves, the rule does not declare that kind of record again for the suppression period, by default the length of the long window. This gives a recovering system room to recover without paging on what is left of the noise. Slow leak is created with 24 hours instead of its 3-day long window, so a leak that comes back is reported again the next day.
 
 Some changes always resolve what a rule has open, whatever its auto-resolve settings say, so nothing is left escalating for a rule that can no longer justify it:
 
@@ -212,7 +230,7 @@ The SLO's **Feed** posts every alert a rule raises and every incident it declare
 ## Troubleshooting
 
 :::details A rule did not fire right after I created the SLO
-A rule fires only once the SLO has a full long window of monitoring history: an hour for the default fast-burn rule, six hours for the slow-burn rule.
+A rule fires only once the SLO has a full long window of monitoring history: an hour for the default fast-burn rule, six hours for the slow-burn rule and three days for the slow-leak rule, or a tenth of the SLO window when that is shorter than 30 days.
 :::
 
 :::details An alert resolved while the outage was still going on
