@@ -16,8 +16,8 @@
 | 欄位 | 內容 |
 | --- | --- |
 | **名稱** | 團隊為級別取的名字，例如「Reliability first」。 |
-| **Budget Left Threshold (%)** | 剩餘錯誤預算的比例等於或低於此值時，該級別生效。範圍為 0 到 100，可以有小數。SLO 的每個級別都有自己的臨界值。 |
-| **What We Do** | SLO 處於該級別期間團隊約定要做的事，使用 Markdown。必填，最多 10,000 個字元。 |
+| **剩餘預算閾值 (%)** | 剩餘錯誤預算的比例等於或低於此值時，該級別生效。範圍為 0 到 100，可以有小數。SLO 的每個級別都有自己的臨界值。 |
+| **我們的做法** | SLO 處於該級別期間團隊約定要做的事，使用 Markdown。必填，最多 10,000 個字元。 |
 
 只要剩餘預算等於或低於某個級別的臨界值，該級別就生效，因此 0% 的級別就是預算耗盡時的級別。多個級別同時生效時，SLO 處於臨界值最低的級別，也就是最嚴重的級別。沒有級別生效時，SLO 不在任何級別。如果有 50%、25% 和 0% 三個級別，剩餘 30% 預算的 SLO 處於 50% 的級別，剩餘 10% 的 SLO 處於 25% 的級別。
 
@@ -49,17 +49,17 @@ stateDiagram-v2
 你需要建立 SLO 錯誤預算策略級別的權限。
 
 :::steps
-### 開啟 Error Budget Policy
+### 開啟 錯誤預算策略
 
-開啟 SLO，在其側邊選單的 **規則** 區段中前往 **Error Budget Policy**。該頁面列出 SLO 的級別，每個級別都會顯示名稱、生效時的剩餘預算，以及團隊要做的事。
+開啟 SLO，在其側邊選單的 **規則** 區段中前往 **錯誤預算策略**。該頁面列出 SLO 的級別，每個級別都會顯示名稱、生效時的剩餘預算，以及團隊要做的事。
 
 ### 從建議策略開始
 
-只要 SLO 還沒有級別，頁面就會提供 **Use the recommended policy**。按一下它，檢查它列出的三個級別，然後確認。之後再把每個級別的文字改成團隊自己的約定。
+只要 SLO 還沒有級別，頁面就會提供 **使用推薦的策略**。按一下它，檢查它列出的三個級別，然後確認。之後再把每個級別的文字改成團隊自己的約定。
 
 ### 或者自行新增級別
 
-按一下 **建立SLO Error Budget Policy Tier**。輸入 **名稱** 和 **Budget Left Threshold (%)**，並在 **What We Do** 中寫下團隊的約定。
+按一下 **建立SLO 錯誤預算策略級別**。輸入 **名稱** 和 **剩餘預算閾值 (%)**，並在 **我們的做法** 中寫下團隊的約定。
 
 ### 選擇級別要觸發什麼
 
@@ -70,7 +70,7 @@ stateDiagram-v2
 
 ### 建議策略
 
-**Use the recommended policy** 會在預算的一半、四分之一和零處新增三個級別，使用以下英文文字：
+**使用推薦的策略** 會在預算的一半、四分之一和零處新增三個級別，使用以下英文文字：
 
 | 級別 | 生效條件 | 團隊要做的事 |
 | --- | --- | --- |
@@ -156,7 +156,7 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
 | 權限 | 允許角色 |
 | --- | --- |
 | **Read SLO Error Budget Policy Tier** | 檢視 SLO 的級別。 |
-| **Create SLO Error Budget Policy Tier** | 手動或透過 **Use the recommended policy** 新增級別。 |
+| **Create SLO Error Budget Policy Tier** | 手動或透過 **使用推薦的策略** 新增級別。 |
 | **Edit SLO Error Budget Policy Tier** | 變更級別，並開啟或關閉它們。 |
 | **Delete SLO Error Budget Policy Tier** | 移除級別。 |
 

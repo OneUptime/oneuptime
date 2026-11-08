@@ -16,8 +16,8 @@ Una policy è un insieme di livelli. Ogni livello ha tre campi:
 | Campo | Cosa contiene |
 | --- | --- |
 | **Nome** | Come il team chiama il livello, per esempio "Reliability first". |
-| **Budget Left Threshold (%)** | La quota di budget di errore rimanente pari o inferiore alla quale il livello si applica. Da 0 a 100, decimali ammessi. Ogni livello di uno SLO ha una soglia tutta sua. |
-| **What We Do** | Cosa il team ha concordato di fare mentre lo SLO è nel livello, in Markdown. Obbligatorio, fino a 10.000 caratteri. |
+| **Soglia di budget rimasto (%)** | La quota di budget di errore rimanente pari o inferiore alla quale il livello si applica. Da 0 a 100, decimali ammessi. Ogni livello di uno SLO ha una soglia tutta sua. |
+| **Cosa facciamo** | Cosa il team ha concordato di fare mentre lo SLO è nel livello, in Markdown. Obbligatorio, fino a 10.000 caratteri. |
 
 Un livello si applica finché il budget rimanente è pari o inferiore alla sua soglia, quindi un livello allo 0% è quello di un budget esaurito. Quando si applicano più livelli, lo SLO è in quello con la soglia più bassa: il più grave. Quando non se ne applica nessuno, lo SLO non è in nessun livello. Con livelli al 50%, al 25% e allo 0%, uno SLO a cui resta il 30% del budget è nel livello del 50%, e uno a cui resta il 10% è nel livello del 25%.
 
@@ -49,17 +49,17 @@ stateDiagram-v2
 Ti serve l'autorizzazione per creare livelli della policy del budget di errore degli SLO.
 
 :::steps
-### Aprire Error Budget Policy
+### Aprire Policy del budget di errore
 
-Apri lo SLO e vai su **Error Budget Policy** nella sezione **Regole** del suo menu laterale. La pagina elenca i livelli dello SLO, ognuno con il suo nome, il budget rimanente a cui si applica e cosa fa il team.
+Apri lo SLO e vai su **Policy del budget di errore** nella sezione **Regole** del suo menu laterale. La pagina elenca i livelli dello SLO, ognuno con il suo nome, il budget rimanente a cui si applica e cosa fa il team.
 
 ### Partire dalla policy consigliata
 
-Finché lo SLO non ha livelli, la pagina offre **Use the recommended policy**. Fai clic, controlla i tre livelli che elenca e conferma. Poi adatta il testo di ogni livello all'accordo del tuo team.
+Finché lo SLO non ha livelli, la pagina offre **Usa la policy consigliata**. Fai clic, controlla i tre livelli che elenca e conferma. Poi adatta il testo di ogni livello all'accordo del tuo team.
 
 ### Oppure aggiungere un livello da te
 
-Fai clic su **Crea: SLO Error Budget Policy Tier**. Inserisci un **Nome** e un **Budget Left Threshold (%)**, e scrivi l'accordo del team in **What We Do**.
+Fai clic su **Crea: Livello della policy del budget di errore dello SLO**. Inserisci un **Nome** e un **Soglia di budget rimasto (%)**, e scrivi l'accordo del team in **Cosa facciamo**.
 
 ### Scegliere cosa genera il livello
 
@@ -70,7 +70,7 @@ Aggiungere, modificare o eliminare un livello ha effetto subito: OneUptime valut
 
 ### La policy consigliata
 
-**Use the recommended policy** aggiunge tre livelli, a metà del budget, a un quarto e a zero, con questo testo in inglese:
+**Usa la policy consigliata** aggiunge tre livelli, a metà del budget, a un quarto e a zero, con questo testo in inglese:
 
 | Livello | Si applica con | Cosa fa il team |
 | --- | --- | --- |
@@ -156,7 +156,7 @@ I livelli stessi sono una risorsa a sé, `/api/service-level-objective-error-bud
 | Autorizzazione | Permette a un ruolo di |
 | --- | --- |
 | **Read SLO Error Budget Policy Tier** | Vedere i livelli di uno SLO. |
-| **Create SLO Error Budget Policy Tier** | Aggiungere livelli, a mano o con **Use the recommended policy**. |
+| **Create SLO Error Budget Policy Tier** | Aggiungere livelli, a mano o con **Usa la policy consigliata**. |
 | **Edit SLO Error Budget Policy Tier** | Modificare i livelli, e attivarli o disattivarli. |
 | **Delete SLO Error Budget Policy Tier** | Rimuovere livelli. |
 

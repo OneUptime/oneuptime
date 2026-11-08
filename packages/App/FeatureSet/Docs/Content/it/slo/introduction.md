@@ -159,13 +159,13 @@ Apri uno SLO per vedere le sue pagine nel menu laterale:
 | **Monitor** | I monitor che misura, e se ognuno è stato collegato da una persona o da una regola. |
 | **Regole dei monitor** | Le regole che collegano i monitor corrispondenti. |
 | **Regole di tasso di consumo** | Le regole che generano avvisi e dichiarano incidenti quando il budget si consuma troppo in fretta. |
-| **Error Budget Policy** | Cosa il team ha concordato di fare mentre il budget di errore si esaurisce, e gli avvisi e gli incidenti che genera ogni livello della policy. Vedi [Policy del budget di errore](/docs/slo/error-budget-policy). |
+| **Policy del budget di errore** | Cosa il team ha concordato di fare mentre il budget di errore si esaurisce, e gli avvisi e gli incidenti che genera ogni livello della policy. Vedi [Policy del budget di errore](/docs/slo/error-budget-policy). |
 | **Proprietari** | Gli utenti e i team che vengono a sapere dei suoi cambi di stato. |
 | **Impostazioni** | L'obiettivo, il periodo di conformità, il calcolo dell'inattività, l'interruttore di valutazione e la scheda di archiviazione. |
 | **Registri di audit** | Chi ha cambiato lo SLO, le sue regole e i suoi proprietari, e quando. |
 | **Elimina SLO** | Elimina lo SLO definitivamente e risolve gli avvisi e gli incidenti di tasso di consumo che aveva aperti. |
 
-**Monitor** si trova in una sezione **Configurazione**, **Regole dei monitor**, **Regole di tasso di consumo** e **Error Budget Policy** in una sezione **Regole**, e **Proprietari**, **Impostazioni**, **Registri di audit** e **Elimina SLO** in una sezione **Gestione**. Tutte e tre partono chiuse, come una sezione **Sviluppatori** per gestire lo SLO dal codice: fai clic sul titolo di una sezione per aprirla.
+**Monitor** si trova in una sezione **Configurazione**, **Regole dei monitor**, **Regole di tasso di consumo** e **Policy del budget di errore** in una sezione **Regole**, e **Proprietari**, **Impostazioni**, **Registri di audit** e **Elimina SLO** in una sezione **Gestione**. Tutte e tre partono chiuse, come una sezione **Sviluppatori** per gestire lo SLO dal codice: fai clic sul titolo di una sezione per aprirla.
 
 Quando qualcosa impedisce a uno SLO di misurare, un banner in cima a ciascuna delle sue pagine dice cosa non va e rimanda alla pagina che lo risolve: vedi [Risoluzione dei problemi](#risoluzione-dei-problemi).
 

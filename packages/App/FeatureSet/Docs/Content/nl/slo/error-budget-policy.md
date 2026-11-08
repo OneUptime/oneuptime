@@ -16,8 +16,8 @@ Een beleid is een reeks niveaus. Elk niveau heeft drie velden:
 | Veld | Wat het bevat |
 | --- | --- |
 | **Naam** | Hoe het team het niveau noemt, bijvoorbeeld "Reliability first". |
-| **Budget Left Threshold (%)** | Het deel van het resterende foutbudget waarop of waaronder het niveau geldt. Van 0 tot 100, decimalen toegestaan. Elk niveau van een SLO heeft een eigen drempel. |
-| **What We Do** | Wat het team heeft afgesproken te doen zolang de SLO in het niveau zit, in Markdown. Verplicht, tot 10.000 tekens. |
+| **Drempel voor resterend budget (%)** | Het deel van het resterende foutbudget waarop of waaronder het niveau geldt. Van 0 tot 100, decimalen toegestaan. Elk niveau van een SLO heeft een eigen drempel. |
+| **Wat we doen** | Wat het team heeft afgesproken te doen zolang de SLO in het niveau zit, in Markdown. Verplicht, tot 10.000 tekens. |
 
 Een niveau geldt zolang het resterende budget op of onder zijn drempel ligt, dus een niveau op 0% is het niveau van een opgebruikt budget. Als meerdere niveaus gelden, zit de SLO in het niveau met de laagste drempel: het ernstigste. Als er geen geldt, zit de SLO in geen enkel niveau. Met niveaus op 50%, 25% en 0% zit een SLO met nog 30% van zijn budget in het niveau van 50%, en een SLO met nog 10% in het niveau van 25%.
 
@@ -49,17 +49,17 @@ stateDiagram-v2
 U hebt toestemming nodig om niveaus van het foutbudgetbeleid van SLO's aan te maken.
 
 :::steps
-### Error Budget Policy openen
+### Foutbudgetbeleid openen
 
-Open de SLO en ga naar **Error Budget Policy** in de sectie **Regels** van het zijmenu. De pagina toont de niveaus van de SLO, elk met zijn naam, het resterende budget waarop het geldt en wat het team doet.
+Open de SLO en ga naar **Foutbudgetbeleid** in de sectie **Regels** van het zijmenu. De pagina toont de niveaus van de SLO, elk met zijn naam, het resterende budget waarop het geldt en wat het team doet.
 
 ### Beginnen met het aanbevolen beleid
 
-Zolang de SLO geen niveaus heeft, biedt de pagina **Use the recommended policy** aan. Klik erop, controleer de drie niveaus die worden getoond en bevestig. Pas daarna de tekst van elk niveau aan tot de eigen afspraak van uw team.
+Zolang de SLO geen niveaus heeft, biedt de pagina **Aanbevolen beleid gebruiken** aan. Klik erop, controleer de drie niveaus die worden getoond en bevestig. Pas daarna de tekst van elk niveau aan tot de eigen afspraak van uw team.
 
 ### Of zelf een niveau toevoegen
 
-Klik op **SLO Error Budget Policy Tier aanmaken**. Vul een **Naam** en een **Budget Left Threshold (%)** in, en schrijf de afspraak van het team in **What We Do**.
+Klik op **SLO-foutbudgetbeleidsniveau aanmaken**. Vul een **Naam** en een **Drempel voor resterend budget (%)** in, en schrijf de afspraak van het team in **Wat we doen**.
 
 ### Kiezen wat het niveau geeft
 
@@ -70,7 +70,7 @@ Een niveau toevoegen, bewerken of verwijderen werkt meteen: OneUptime evalueert 
 
 ### Het aanbevolen beleid
 
-**Use the recommended policy** voegt drie niveaus toe, op de helft van het budget, een kwart en nul, met deze Engelse tekst:
+**Aanbevolen beleid gebruiken** voegt drie niveaus toe, op de helft van het budget, een kwart en nul, met deze Engelse tekst:
 
 | Niveau | Geldt bij | Wat het team doet |
 | --- | --- | --- |
@@ -156,7 +156,7 @@ De niveaus zelf zijn een eigen resource, `/api/service-level-objective-error-bud
 | Machtiging | Laat een rol |
 | --- | --- |
 | **Read SLO Error Budget Policy Tier** | De niveaus van een SLO zien. |
-| **Create SLO Error Budget Policy Tier** | Niveaus toevoegen, met de hand of met **Use the recommended policy**. |
+| **Create SLO Error Budget Policy Tier** | Niveaus toevoegen, met de hand of met **Aanbevolen beleid gebruiken**. |
 | **Edit SLO Error Budget Policy Tier** | Niveaus wijzigen, en ze aan- of uitzetten. |
 | **Delete SLO Error Budget Policy Tier** | Niveaus verwijderen. |
 

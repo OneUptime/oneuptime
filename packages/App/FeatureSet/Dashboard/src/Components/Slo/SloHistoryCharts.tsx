@@ -2,6 +2,7 @@ import {
   SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME,
   withSloChartZoomHint,
 } from "./SloChartZoomHint";
+import { getSloPolicyTierReferenceLines } from "./SloPolicyTier";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -19,6 +20,7 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
 import { DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE } from "Common/Utils/Slo/SloHealth";
 import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "Common/Utils/Slo/SloEvaluation";
@@ -93,8 +95,9 @@ const BURN_RULE_LINE_COLOR: string = "#ef4444";
 
 /*
  * The SLO's long-range history: SLI, remaining error budget and burn rate from
- * SloHistory (400 days), with the target, the at-risk / exhausted boundaries
- * and every enabled burn-rate rule's threshold drawn as reference lines. It is
+ * SloHistory (400 days), with the target, the at-risk / exhausted boundaries,
+ * every enabled tier of the SLO's error budget policy and every enabled
+ * burn-rate rule's threshold drawn as reference lines. It is
  * the Error Budget History tab of the Metrics page and the whole of the legacy
  * Charts route. The oneuptime.slo.* metrics on the other tab keep only the
  * monitor-metric retention and cannot draw value reference lines, which is why
@@ -157,6 +160,9 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
   >(null);
   const [burnRateRules, setBurnRateRules] = useState<
     Array<ServiceLevelObjectiveBurnRateRule>
+  >([]);
+  const [policyTiers, setPolicyTiers] = useState<
+    Array<ServiceLevelObjectiveErrorBudgetPolicyTier>
   >([]);
   const [sliPoints, setSliPoints] = useState<Array<DataPoint>>([]);
   const [budgetPoints, setBudgetPoints] = useState<Array<DataPoint>>([]);
@@ -292,9 +298,10 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
         const aggregationInterval: AggregationInterval =
           getSloChartAggregationInterval(spanInMinutes);
 
-        const [slo, rules, sli, budget, burnRate]: [
+        const [slo, rules, tiers, sli, budget, burnRate]: [
           ServiceLevelObjective | null,
           ListResult<ServiceLevelObjectiveBurnRateRule>,
+          Array<ServiceLevelObjectiveErrorBudgetPolicyTier>,
           Array<DataPoint>,
           Array<DataPoint>,
           Array<DataPoint>,
@@ -328,6 +335,38 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
               burnRateThreshold: SortOrder.Ascending,
             },
           }),
+          /*
+           * Enabled tiers only, as for the rules. The lines are drawn over
+           * the budget chart, so a tier list that cannot be read leaves them
+           * out rather than the charts.
+           */
+          ModelAPI.getList<ServiceLevelObjectiveErrorBudgetPolicyTier>({
+            modelType: ServiceLevelObjectiveErrorBudgetPolicyTier,
+            query: {
+              serviceLevelObjectiveId: new ObjectID(sloIdString),
+              projectId: ProjectUtil.getCurrentProjectId()!,
+              isEnabled: true,
+            },
+            select: {
+              name: true,
+              thresholdPercentage: true,
+              isEnabled: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              thresholdPercentage: SortOrder.Descending,
+            },
+          }).then(
+            (
+              result: ListResult<ServiceLevelObjectiveErrorBudgetPolicyTier>,
+            ): Array<ServiceLevelObjectiveErrorBudgetPolicyTier> => {
+              return result.data;
+            },
+            (): Array<ServiceLevelObjectiveErrorBudgetPolicyTier> => {
+              return [];
+            },
+          ),
           fetchSeries(SLI_METRIC_NAME, startDate, endDate, aggregationInterval),
           fetchSeries(
             BUDGET_METRIC_NAME,
@@ -359,6 +398,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
         );
 
         setBurnRateRules(rules.data);
+        setPolicyTiers(tiers);
         setSliPoints(sli);
         setBudgetPoints(budget);
         setBurnRatePoints(burnRate);
@@ -512,21 +552,27 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
   /*
    * The two boundaries the SLO's own status is computed against, so a dip
    * on the chart can be read as "that is when it went At Risk" instead of
-   * requiring the reader to remember the threshold.
+   * requiring the reader to remember the threshold - and a line, named for
+   * its tier, at every enabled tier of the SLO's error budget policy.
    */
-  const budgetReferenceLines: Array<ChartReferenceLineProps> = [
-    {
-      value: 0,
-      label: "Budget exhausted",
-      color: EXHAUSTED_LINE_COLOR,
-    },
-    {
-      value: atRiskThresholdPercentage ?? DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
-      label: "At risk",
-      color: AT_RISK_LINE_COLOR,
-      strokeDasharray: "4 4",
-    },
-  ];
+  const budgetReferenceLines: Array<ChartReferenceLineProps> =
+    getSloPolicyTierReferenceLines({
+      lines: [
+        {
+          value: 0,
+          label: "Budget exhausted",
+          color: EXHAUSTED_LINE_COLOR,
+        },
+        {
+          value:
+            atRiskThresholdPercentage ?? DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
+          label: "At risk",
+          color: AT_RISK_LINE_COLOR,
+          strokeDasharray: "4 4",
+        },
+      ],
+      tiers: policyTiers,
+    });
 
   const burnRateReferenceLines: Array<ChartReferenceLineProps> = burnRateRules
     .filter((rule: ServiceLevelObjectiveBurnRateRule) => {

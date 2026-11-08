@@ -16,8 +16,8 @@ En policy är en uppsättning nivåer. Varje nivå har tre fält:
 | Fält | Vad det innehåller |
 | --- | --- |
 | **Namn** | Vad teamet kallar nivån, till exempel "Reliability first". |
-| **Budget Left Threshold (%)** | Den andel av återstående felbudget vid eller under vilken nivån gäller. Från 0 till 100, decimaler tillåtna. Varje nivå i ett SLO har en egen tröskel. |
-| **What We Do** | Vad teamet har kommit överens om att göra medan SLO:et är i nivån, i Markdown. Obligatoriskt, upp till 10 000 tecken. |
+| **Tröskel för kvarvarande budget (%)** | Den andel av återstående felbudget vid eller under vilken nivån gäller. Från 0 till 100, decimaler tillåtna. Varje nivå i ett SLO har en egen tröskel. |
+| **Vad vi gör** | Vad teamet har kommit överens om att göra medan SLO:et är i nivån, i Markdown. Obligatoriskt, upp till 10 000 tecken. |
 
 En nivå gäller så länge återstående budget är vid eller under dess tröskel, så en nivå på 0 % är nivån för en förbrukad budget. När flera nivåer gäller är SLO:et i den med lägst tröskel: den allvarligaste. När ingen gäller är SLO:et inte i någon nivå. Med nivåer på 50 %, 25 % och 0 % är ett SLO med 30 % av budgeten kvar i nivån på 50 %, och ett med 10 % kvar är i nivån på 25 %.
 
@@ -49,17 +49,17 @@ stateDiagram-v2
 Du behöver behörighet att skapa nivåer i SLO:ers felbudgetpolicy.
 
 :::steps
-### Öppna Error Budget Policy
+### Öppna Felbudgetpolicy
 
-Öppna SLO:et och gå till **Error Budget Policy** i avsnittet **Regler** i dess sidomeny. Sidan listar SLO:ets nivåer, var och en med sitt namn, den återstående budget den gäller vid och vad teamet gör.
+Öppna SLO:et och gå till **Felbudgetpolicy** i avsnittet **Regler** i dess sidomeny. Sidan listar SLO:ets nivåer, var och en med sitt namn, den återstående budget den gäller vid och vad teamet gör.
 
 ### Börja med den rekommenderade policyn
 
-Så länge SLO:et inte har några nivåer erbjuder sidan **Use the recommended policy**. Klicka på den, kontrollera de tre nivåer den listar och bekräfta. Anpassa sedan varje nivås text till ditt teams egen överenskommelse.
+Så länge SLO:et inte har några nivåer erbjuder sidan **Använd den rekommenderade policyn**. Klicka på den, kontrollera de tre nivåer den listar och bekräfta. Anpassa sedan varje nivås text till ditt teams egen överenskommelse.
 
 ### Eller lägg till en nivå själv
 
-Klicka på **Skapa SLO Error Budget Policy Tier**. Ange ett **Namn** och en **Budget Left Threshold (%)**, och skriv teamets överenskommelse i **What We Do**.
+Klicka på **Skapa SLO-felbudgetpolicynivå**. Ange ett **Namn** och en **Tröskel för kvarvarande budget (%)**, och skriv teamets överenskommelse i **Vad vi gör**.
 
 ### Välj vad nivån utlöser
 
@@ -70,7 +70,7 @@ Att lägga till, redigera eller ta bort en nivå gäller direkt: OneUptime utvä
 
 ### Den rekommenderade policyn
 
-**Use the recommended policy** lägger till tre nivåer, vid halva budgeten, en fjärdedel och noll, med den här engelska texten:
+**Använd den rekommenderade policyn** lägger till tre nivåer, vid halva budgeten, en fjärdedel och noll, med den här engelska texten:
 
 | Nivå | Gäller vid | Vad teamet gör |
 | --- | --- | --- |
@@ -156,7 +156,7 @@ Själva nivåerna är en egen resurs, `/api/service-level-objective-error-budget
 | Behörighet | Låter en roll |
 | --- | --- |
 | **Read SLO Error Budget Policy Tier** | Se ett SLO:s nivåer. |
-| **Create SLO Error Budget Policy Tier** | Lägga till nivåer, manuellt eller med **Use the recommended policy**. |
+| **Create SLO Error Budget Policy Tier** | Lägga till nivåer, manuellt eller med **Använd den rekommenderade policyn**. |
 | **Edit SLO Error Budget Policy Tier** | Ändra nivåer och slå på eller av dem. |
 | **Delete SLO Error Budget Policy Tier** | Ta bort nivåer. |
 

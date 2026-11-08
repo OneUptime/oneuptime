@@ -159,13 +159,13 @@ Siden **SLOs** viser hvert SLO, der ikke er arkiveret, med status, SLI, resteren
 | **Monitorer** | De monitorer, det måler, og om hver enkelt blev tilknyttet af en person eller en regel. |
 | **Monitorregler** | Reglerne, der tilknytter matchende monitorer. |
 | **Forbrugsrateregler** | Reglerne, der udløser advarsler og erklærer hændelser, når budgettet brændes for hurtigt af. |
-| **Error Budget Policy** | Hvad teamet har aftalt at gøre, mens fejlbudgettet løber ud, og de advarsler og hændelser, hvert niveau i politikken udløser. Se [Fejlbudgetpolitik](/docs/slo/error-budget-policy). |
+| **Fejlbudgetpolitik** | Hvad teamet har aftalt at gøre, mens fejlbudgettet løber ud, og de advarsler og hændelser, hvert niveau i politikken udløser. Se [Fejlbudgetpolitik](/docs/slo/error-budget-policy). |
 | **Ejere** | De brugere og teams, der hører om dets statusændringer. |
 | **Indstillinger** | Målet, complianceperioden, beregningen af nedetid, evalueringskontakten og arkiveringskortet. |
 | **Auditlogs** | Hvem der har ændret SLO'et, dets regler og dets ejere, og hvornår. |
 | **Slet SLO** | Sletter SLO'et permanent og løser de forbrugsrateadvarsler og -hændelser, det havde åbne. |
 
-**Monitorer** ligger i en sektion **Konfiguration**, **Monitorregler**, **Forbrugsrateregler** og **Error Budget Policy** i en sektion **Regler**, og **Ejere**, **Indstillinger**, **Auditlogs** og **Slet SLO** i en sektion **Administration**. Alle tre starter foldet sammen, ligesom en sektion **Udvikler** til at styre SLO'et fra kode: klik på en sektions titel for at åbne den.
+**Monitorer** ligger i en sektion **Konfiguration**, **Monitorregler**, **Forbrugsrateregler** og **Fejlbudgetpolitik** i en sektion **Regler**, og **Ejere**, **Indstillinger**, **Auditlogs** og **Slet SLO** i en sektion **Administration**. Alle tre starter foldet sammen, ligesom en sektion **Udvikler** til at styre SLO'et fra kode: klik på en sektions titel for at åbne den.
 
 Når noget forhindrer et SLO i at måle, fortæller et banner øverst på hver af dets sider, hvad der er galt, og linker til den side, der løser det: se [Fejlfinding](#fejlfinding).
 

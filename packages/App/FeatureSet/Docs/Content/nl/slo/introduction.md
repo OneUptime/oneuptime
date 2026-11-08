@@ -159,13 +159,13 @@ Open een SLO om zijn pagina's in het zijmenu te zien:
 | **Monitoren** | De monitoren die hij meet, en of elke monitor door een persoon of een regel is gekoppeld. |
 | **Monitorregels** | De regels die overeenkomende monitoren koppelen. |
 | **Verbruikssnelheidsregels** | De regels die waarschuwingen geven en incidenten melden als het budget te snel opraakt. |
-| **Error Budget Policy** | Wat het team heeft afgesproken te doen terwijl het foutbudget opraakt, en de waarschuwingen en incidenten die elk niveau van het beleid geeft. Zie [Foutbudgetbeleid](/docs/slo/error-budget-policy). |
+| **Foutbudgetbeleid** | Wat het team heeft afgesproken te doen terwijl het foutbudget opraakt, en de waarschuwingen en incidenten die elk niveau van het beleid geeft. Zie [Foutbudgetbeleid](/docs/slo/error-budget-policy). |
 | **Eigenaren** | De gebruikers en teams die over zijn statuswijzigingen horen. |
 | **Instellingen** | Het doel, de complianceperiode, de downtimeberekening, de evaluatieschakelaar en de archiefkaart. |
 | **Auditlogboeken** | Wie de SLO, zijn regels en zijn eigenaren heeft gewijzigd, en wanneer. |
 | **SLO verwijderen** | Verwijdert de SLO definitief en lost de open waarschuwingen en incidenten voor verbruikssnelheid op. |
 
-**Monitoren** staat in een sectie **Configuratie**, **Monitorregels**, **Verbruikssnelheidsregels** en **Error Budget Policy** in een sectie **Regels**, en **Eigenaren**, **Instellingen**, **Auditlogboeken** en **SLO verwijderen** in een sectie **Beheer**. Alle drie beginnen ingeklapt, net als een sectie **Ontwikkelaars** om de SLO vanuit code te beheren: klik op de titel van een sectie om hem te openen.
+**Monitoren** staat in een sectie **Configuratie**, **Monitorregels**, **Verbruikssnelheidsregels** en **Foutbudgetbeleid** in een sectie **Regels**, en **Eigenaren**, **Instellingen**, **Auditlogboeken** en **SLO verwijderen** in een sectie **Beheer**. Alle drie beginnen ingeklapt, net als een sectie **Ontwikkelaars** om de SLO vanuit code te beheren: klik op de titel van een sectie om hem te openen.
 
 Als iets een SLO verhindert te meten, zegt een banner bovenaan elk van zijn pagina's wat er mis is en linkt hij naar de pagina die het oplost: zie [Problemen oplossen](#problemen-oplossen).
 

@@ -139,6 +139,7 @@ const SOURCES: Record<string, string> = {
   monitorRuleFields: `${DASHBOARD}/Pages/Slo/View/SloMonitorRuleFormFields.ts`,
   monitorSideMenu: `${DASHBOARD}/Pages/Monitor/View/SideMenu.tsx`,
   burnRuleForm: `${DASHBOARD}/Pages/Slo/Utils/BurnRateRuleForm.ts`,
+  sloRecordOutputForm: `${DASHBOARD}/Pages/Slo/Utils/SloRecordOutputForm.ts`,
   burnRulesPage: `${DASHBOARD}/Pages/Slo/View/BurnRateRules.tsx`,
   recommendedRulesModal: `${DASHBOARD}/Components/Slo/SloRecommendedBurnRateRulesModal.tsx`,
   recommendedRulesBanner: `${DASHBOARD}/Components/Slo/SloRecommendedBurnRateRulesBanner.tsx`,
@@ -1743,13 +1744,23 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
       "Incident",
     ]);
 
-    for (const title of ["Description", "Ownership & Labels", "On-Call"]) {
-      expect(form).toContain(`title: "${title}",`);
+    /*
+     * The Alert and Incident steps fold their fields into the sections every
+     * SLO record output shares (an error budget policy tier's too).
+     */
+    const outputForm: string = readSource("sloRecordOutputForm");
+
+    for (const output of ["Alert", "Incident"]) {
+      expect(form).toContain(
+        `getSlo${output}OutputSections<ServiceLevelObjectiveBurnRateRule>()`,
+      );
     }
 
-    expect(form).toContain(
-      "getAdvancedFormSection<ServiceLevelObjectiveBurnRateRule>({",
-    );
+    for (const title of ["Description", "Ownership & Labels", "On-Call"]) {
+      expect(outputForm).toContain(`title: "${title}",`);
+    }
+
+    expect(outputForm).toContain("getAdvancedFormSection<TModel>({");
 
     const create: string = section(page, "Create or edit a rule");
     const button: string = createButton(

@@ -159,13 +159,13 @@ Siden **SLOs** viser hvert SLO som ikke er arkivert, med status, SLI, gjenværen
 | **Monitorer** | Monitorene det måler, og om hver av dem ble knyttet til av en person eller en regel. |
 | **Monitorregler** | Reglene som knytter til monitorer som samsvarer. |
 | **Forbruksrateregler** | Reglene som utløser varsler og erklærer hendelser når budsjettet brennes for fort. |
-| **Error Budget Policy** | Hva teamet har avtalt å gjøre mens feilbudsjettet tømmes, og varslene og hendelsene hvert nivå i policyen utløser. Se [Feilbudsjettpolicy](/docs/slo/error-budget-policy). |
+| **Feilbudsjettpolicy** | Hva teamet har avtalt å gjøre mens feilbudsjettet tømmes, og varslene og hendelsene hvert nivå i policyen utløser. Se [Feilbudsjettpolicy](/docs/slo/error-budget-policy). |
 | **Eiere** | Brukerne og teamene som får høre om statusendringene. |
 | **Innstillinger** | Målet, samsvarsperioden, nedetidsberegningen, evalueringsbryteren og arkiveringskortet. |
 | **Revisjonslogger** | Hvem som har endret SLO-et, reglene og eierne, og når. |
 | **Slett SLO** | Sletter SLO-et for godt og løser forbruksratevarslene og -hendelsene det hadde åpne. |
 
-**Monitorer** ligger i en seksjon **Konfigurasjon**, **Monitorregler**, **Forbruksrateregler** og **Error Budget Policy** i en seksjon **Regler**, og **Eiere**, **Innstillinger**, **Revisjonslogger** og **Slett SLO** i en seksjon **Administrasjon**. Alle tre starter slått sammen, akkurat som en seksjon **Utvikler** for å styre SLO-et fra kode: klikk på tittelen til en seksjon for å åpne den.
+**Monitorer** ligger i en seksjon **Konfigurasjon**, **Monitorregler**, **Forbruksrateregler** og **Feilbudsjettpolicy** i en seksjon **Regler**, og **Eiere**, **Innstillinger**, **Revisjonslogger** og **Slett SLO** i en seksjon **Administrasjon**. Alle tre starter slått sammen, akkurat som en seksjon **Utvikler** for å styre SLO-et fra kode: klikk på tittelen til en seksjon for å åpne den.
 
 Når noe hindrer et SLO i å måle, forteller et banner øverst på hver av sidene hva som er galt, og lenker til siden som løser det: se [Feilsøking](#feilsøking).
 

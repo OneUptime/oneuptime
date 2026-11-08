@@ -159,13 +159,13 @@ Die Seite **SLOs** listet jedes nicht archivierte SLO mit Status, SLI, verbleibe
 | **Monitore** | Die Monitore, die es misst, und ob eine Person oder eine Regel jeden davon zugeordnet hat. |
 | **Monitor-Regeln** | Die Regeln, die passende Monitore zuordnen. |
 | **Burn-Rate-Regeln** | Die Regeln, die Warnungen auslösen und Vorfälle melden, wenn das Budget zu schnell verbrennt. |
-| **Error Budget Policy** | Was das Team vereinbart hat zu tun, während das Fehlerbudget schrumpft, und die Warnungen und Vorfälle, die jede Stufe der Richtlinie auslöst. Siehe [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy). |
+| **Fehlerbudget-Richtlinie** | Was das Team vereinbart hat zu tun, während das Fehlerbudget schrumpft, und die Warnungen und Vorfälle, die jede Stufe der Richtlinie auslöst. Siehe [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy). |
 | **Eigentümer** | Die Benutzer und Teams, die von seinen Statusänderungen erfahren. |
 | **Einstellungen** | Das Ziel, den Compliance-Zeitraum, die Berechnung der Ausfallzeit, den Schalter für die Auswertung und die Archivkarte. |
 | **Audit-Protokolle** | Wer das SLO, seine Regeln und seine Eigentümer geändert hat, und wann. |
 | **SLO löschen** | Löscht das SLO endgültig und löst die Burn-Rate-Warnungen und -Vorfälle auf, die es offen hatte. |
 
-**Monitore** stehen im Bereich **Konfiguration**, **Monitor-Regeln**, **Burn-Rate-Regeln** und **Error Budget Policy** im Bereich **Regeln**, **Eigentümer**, **Einstellungen**, **Audit-Protokolle** und **SLO löschen** im Bereich **Verwaltung**. Alle drei sind anfangs eingeklappt, ebenso ein Bereich **Entwickler**, um das SLO per Code zu verwalten: Klicken Sie auf den Titel eines Bereichs, um ihn zu öffnen.
+**Monitore** stehen im Bereich **Konfiguration**, **Monitor-Regeln**, **Burn-Rate-Regeln** und **Fehlerbudget-Richtlinie** im Bereich **Regeln**, **Eigentümer**, **Einstellungen**, **Audit-Protokolle** und **SLO löschen** im Bereich **Verwaltung**. Alle drei sind anfangs eingeklappt, ebenso ein Bereich **Entwickler**, um das SLO per Code zu verwalten: Klicken Sie auf den Titel eines Bereichs, um ihn zu öffnen.
 
 Wenn etwas ein SLO am Messen hindert, sagt ein Banner oben auf jeder seiner Seiten, was nicht stimmt, und verlinkt die Seite, auf der Sie es beheben: siehe [Fehlerbehebung](#fehlerbehebung).
 

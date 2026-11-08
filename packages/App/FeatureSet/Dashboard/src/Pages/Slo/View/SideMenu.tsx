@@ -176,13 +176,14 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
 
       {/*
        * What the SLO measures, apart from the rules that run on it: its
-       * monitors under Configuration, and its two kinds of rule under Rules
+       * monitors under Configuration, and what runs on it under Rules
        * (Monitor Rules attach every monitor that matches; Burn Rate Rules
-       * raise alerts and declare incidents when the budget burns too fast),
-       * as a status page keeps its Monitor Rules under Rules. Both are set
-       * up rather than visited, so like Management they fold down to their
-       * titles until opened, and each opens by itself on its own pages
-       * (SideMenuSectionState.ts).
+       * raise alerts and declare incidents when the budget burns too fast;
+       * the Error Budget Policy says what the team does as the budget runs
+       * down), as a status page keeps its Monitor Rules under Rules. Both
+       * are set up rather than visited, so like Management they fold down to
+       * their titles until opened, and each opens by itself on its own
+       * pages (SideMenuSectionState.ts).
        */}
       <SideMenuSection title="Configuration">
         <SideMenuItem
@@ -217,6 +218,16 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Fire}
+        />
+        <SideMenuItem
+          link={{
+            title: "Error Budget Policy",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLO_VIEW_ERROR_BUDGET_POLICY] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Scale}
         />
       </SideMenuSection>
 

@@ -16,8 +16,8 @@
 | 字段 | 内容 |
 | --- | --- |
 | **名称** | 团队给级别起的名字，例如“Reliability first”。 |
-| **Budget Left Threshold (%)** | 剩余错误预算的比例等于或低于此值时，该级别生效。范围为 0 到 100，可以有小数。SLO 的每个级别都有自己的阈值。 |
-| **What We Do** | SLO 处于该级别期间团队约定要做的事，使用 Markdown。必填，最多 10,000 个字符。 |
+| **剩余预算阈值 (%)** | 剩余错误预算的比例等于或低于此值时，该级别生效。范围为 0 到 100，可以有小数。SLO 的每个级别都有自己的阈值。 |
+| **我们的做法** | SLO 处于该级别期间团队约定要做的事，使用 Markdown。必填，最多 10,000 个字符。 |
 
 只要剩余预算等于或低于某个级别的阈值，该级别就生效，因此 0% 的级别就是预算耗尽时的级别。多个级别同时生效时，SLO 处于阈值最低的那个级别，也就是最严重的级别。没有级别生效时，SLO 不在任何级别。如果有 50%、25% 和 0% 三个级别，剩余 30% 预算的 SLO 处于 50% 的级别，剩余 10% 的 SLO 处于 25% 的级别。
 
@@ -49,17 +49,17 @@ stateDiagram-v2
 你需要创建 SLO 错误预算策略级别的权限。
 
 :::steps
-### 打开 Error Budget Policy
+### 打开 错误预算策略
 
-打开 SLO，在其侧边菜单的 **规则** 部分中转到 **Error Budget Policy**。该页面列出 SLO 的级别，每个级别都显示名称、生效时的剩余预算以及团队要做的事。
+打开 SLO，在其侧边菜单的 **规则** 部分中转到 **错误预算策略**。该页面列出 SLO 的级别，每个级别都显示名称、生效时的剩余预算以及团队要做的事。
 
 ### 从推荐策略开始
 
-只要 SLO 还没有级别，页面就会提供 **Use the recommended policy**。点击它，检查它列出的三个级别，然后确认。之后把每个级别的文字改成团队自己的约定。
+只要 SLO 还没有级别，页面就会提供 **使用推荐的策略**。点击它，检查它列出的三个级别，然后确认。之后把每个级别的文字改成团队自己的约定。
 
 ### 或者自己添加级别
 
-点击 **创建SLO Error Budget Policy Tier**。输入 **名称** 和 **Budget Left Threshold (%)**，并在 **What We Do** 中写下团队的约定。
+点击 **创建SLO 错误预算策略级别**。输入 **名称** 和 **剩余预算阈值 (%)**，并在 **我们的做法** 中写下团队的约定。
 
 ### 选择级别要触发什么
 
@@ -70,7 +70,7 @@ stateDiagram-v2
 
 ### 推荐策略
 
-**Use the recommended policy** 会在预算的一半、四分之一和零处添加三个级别，使用以下英文文字：
+**使用推荐的策略** 会在预算的一半、四分之一和零处添加三个级别，使用以下英文文字：
 
 | 级别 | 生效条件 | 团队要做的事 |
 | --- | --- | --- |
@@ -156,7 +156,7 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
 | 权限 | 允许角色 |
 | --- | --- |
 | **Read SLO Error Budget Policy Tier** | 查看 SLO 的级别。 |
-| **Create SLO Error Budget Policy Tier** | 手动或通过 **Use the recommended policy** 添加级别。 |
+| **Create SLO Error Budget Policy Tier** | 手动或通过 **使用推荐的策略** 添加级别。 |
 | **Edit SLO Error Budget Policy Tier** | 更改级别，并开启或关闭它们。 |
 | **Delete SLO Error Budget Policy Tier** | 移除级别。 |
 

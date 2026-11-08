@@ -159,13 +159,13 @@ Sidan **SLOs** visar varje SLO som inte är arkiverat, med status, SLI, återst�
 | **Monitorer** | De monitorer som det mäter, och om var och en kopplades av en person eller en regel. |
 | **Monitorregler** | Reglerna som kopplar monitorer som matchar. |
 | **Förbrukningstaktsregler** | Reglerna som utlöser larm och deklarerar incidenter när budgeten förbrukas för snabbt. |
-| **Error Budget Policy** | Vad teamet har kommit överens om att göra medan felbudgeten tar slut, och de larm och incidenter som varje nivå i policyn utlöser. Se [Felbudgetpolicy](/docs/slo/error-budget-policy). |
+| **Felbudgetpolicy** | Vad teamet har kommit överens om att göra medan felbudgeten tar slut, och de larm och incidenter som varje nivå i policyn utlöser. Se [Felbudgetpolicy](/docs/slo/error-budget-policy). |
 | **Ägare** | De användare och team som får höra om dess statusändringar. |
 | **Inställningar** | Målet, efterlevnadsperioden, beräkningen av driftstopp, utvärderingsreglaget och arkivkortet. |
 | **Granskningsloggar** | Vem som ändrade SLO:et, dess regler och dess ägare, och när. |
 | **Ta bort SLO** | Raderar SLO:et permanent och löser de larm och incidenter för förbrukningstakt som det hade öppna. |
 
-**Monitorer** ligger i ett avsnitt **Konfiguration**, **Monitorregler**, **Förbrukningstaktsregler** och **Error Budget Policy** i ett avsnitt **Regler**, och **Ägare**, **Inställningar**, **Granskningsloggar** och **Ta bort SLO** i ett avsnitt **Hantering**. Alla tre börjar hopfällda, precis som ett avsnitt **Utvecklare** för att hantera SLO:et från kod: klicka på ett avsnitts rubrik för att öppna det.
+**Monitorer** ligger i ett avsnitt **Konfiguration**, **Monitorregler**, **Förbrukningstaktsregler** och **Felbudgetpolicy** i ett avsnitt **Regler**, och **Ägare**, **Inställningar**, **Granskningsloggar** och **Ta bort SLO** i ett avsnitt **Hantering**. Alla tre börjar hopfällda, precis som ett avsnitt **Utvecklare** för att hantera SLO:et från kod: klicka på ett avsnitts rubrik för att öppna det.
 
 När något hindrar ett SLO från att mäta talar en banner högst upp på var och en av dess sidor om vad som är fel och länkar till sidan som åtgärdar det: se [Felsökning](#felsökning).
 

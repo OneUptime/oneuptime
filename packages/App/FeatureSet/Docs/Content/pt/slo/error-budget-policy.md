@@ -16,8 +16,8 @@ Uma política é um conjunto de níveis. Cada nível tem três campos:
 | Campo | O que guarda |
 | --- | --- |
 | **Nome** | Como a equipe chama o nível, por exemplo "Reliability first". |
-| **Budget Left Threshold (%)** | A parcela do orçamento de erros restante igual ou abaixo da qual o nível se aplica. De 0 a 100, com decimais. Cada nível de um SLO tem um limite próprio. |
-| **What We Do** | O que a equipe combinou fazer enquanto o SLO está no nível, em Markdown. Obrigatório, até 10.000 caracteres. |
+| **Limite de orçamento restante (%)** | A parcela do orçamento de erros restante igual ou abaixo da qual o nível se aplica. De 0 a 100, com decimais. Cada nível de um SLO tem um limite próprio. |
+| **O que fazemos** | O que a equipe combinou fazer enquanto o SLO está no nível, em Markdown. Obrigatório, até 10.000 caracteres. |
 
 Um nível se aplica enquanto o orçamento restante está no limite dele ou abaixo, então um nível em 0% é o de um orçamento esgotado. Quando vários níveis se aplicam, o SLO fica no de limite mais baixo: o mais grave. Quando nenhum se aplica, o SLO não está em nenhum nível. Com níveis em 50%, 25% e 0%, um SLO com 30% do orçamento restante está no nível de 50%, e um com 10% restante está no nível de 25%.
 
@@ -49,17 +49,17 @@ stateDiagram-v2
 Você precisa de permissão para criar níveis de política de orçamento de erros de SLO.
 
 :::steps
-### Abra Error Budget Policy
+### Abra Política de orçamento de erros
 
-Abra o SLO e vá para **Error Budget Policy** na seção **Regras** do menu lateral dele. A página lista os níveis do SLO, cada um com o nome, o orçamento restante em que se aplica e o que a equipe faz.
+Abra o SLO e vá para **Política de orçamento de erros** na seção **Regras** do menu lateral dele. A página lista os níveis do SLO, cada um com o nome, o orçamento restante em que se aplica e o que a equipe faz.
 
 ### Comece pela política recomendada
 
-Enquanto o SLO não tem níveis, a página oferece **Use the recommended policy**. Clique, confira os três níveis listados e confirme. Depois, ajuste o texto de cada nível ao combinado da sua equipe.
+Enquanto o SLO não tem níveis, a página oferece **Usar a política recomendada**. Clique, confira os três níveis listados e confirme. Depois, ajuste o texto de cada nível ao combinado da sua equipe.
 
 ### Ou adicione um nível você mesmo
 
-Clique em **Criar: SLO Error Budget Policy Tier**. Informe um **Nome** e um **Budget Left Threshold (%)**, e escreva o combinado da equipe em **What We Do**.
+Clique em **Criar: Nível da política de orçamento de erros do SLO**. Informe um **Nome** e um **Limite de orçamento restante (%)**, e escreva o combinado da equipe em **O que fazemos**.
 
 ### Escolha o que o nível gera
 
@@ -70,7 +70,7 @@ Adicionar, editar ou excluir um nível vale na hora: o OneUptime avalia o SLO de
 
 ### A política recomendada
 
-**Use the recommended policy** adiciona três níveis, na metade do orçamento, em um quarto e em zero, com este texto em inglês:
+**Usar a política recomendada** adiciona três níveis, na metade do orçamento, em um quarto e em zero, com este texto em inglês:
 
 | Nível | Aplica-se com | O que a equipe faz |
 | --- | --- | --- |
@@ -156,7 +156,7 @@ Os níveis em si são um recurso próprio, `/api/service-level-objective-error-b
 | Permissão | Permite a uma função |
 | --- | --- |
 | **Read SLO Error Budget Policy Tier** | Ver os níveis de um SLO. |
-| **Create SLO Error Budget Policy Tier** | Adicionar níveis, manualmente ou com **Use the recommended policy**. |
+| **Create SLO Error Budget Policy Tier** | Adicionar níveis, manualmente ou com **Usar a política recomendada**. |
 | **Edit SLO Error Budget Policy Tier** | Alterar níveis e ligá-los ou desligá-los. |
 | **Delete SLO Error Budget Policy Tier** | Remover níveis. |
 

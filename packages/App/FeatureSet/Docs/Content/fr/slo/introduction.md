@@ -159,13 +159,13 @@ Ouvrez un SLO pour voir ses pages dans le menu latéral :
 | **Moniteurs** | Les moniteurs qu'il mesure, et si c'est une personne ou une règle qui a rattaché chacun d'eux. |
 | **Règles de moniteurs** | Les règles qui rattachent les moniteurs correspondants. |
 | **Règles de taux de consommation** | Les règles qui déclenchent des alertes et déclarent des incidents quand le budget se consomme trop vite. |
-| **Error Budget Policy** | Ce que l'équipe s'est engagée à faire à mesure que le budget d'erreur diminue, et les alertes et incidents que déclenche chaque palier de la politique. Voir [Politique de budget d'erreur](/docs/slo/error-budget-policy). |
+| **Politique de budget d'erreur** | Ce que l'équipe s'est engagée à faire à mesure que le budget d'erreur diminue, et les alertes et incidents que déclenche chaque palier de la politique. Voir [Politique de budget d'erreur](/docs/slo/error-budget-policy). |
 | **Propriétaires** | Les utilisateurs et les équipes informés de ses changements de statut. |
 | **Paramètres** | L'objectif, la période de conformité, le calcul de l'indisponibilité, l'interrupteur d'évaluation et la carte d'archivage. |
 | **Journaux d'audit** | Qui a modifié le SLO, ses règles et ses propriétaires, et quand. |
 | **Supprimer le SLO** | Supprime définitivement le SLO et résout les alertes et incidents de taux de consommation qu'il avait ouverts. |
 
-**Moniteurs** se trouve dans une section **Configuration**, **Règles de moniteurs**, **Règles de taux de consommation** et **Error Budget Policy** dans une section **Règles**, et **Propriétaires**, **Paramètres**, **Journaux d'audit** et **Supprimer le SLO** dans une section **Gestion**. Les trois sont repliées au départ, tout comme une section **Développeurs** pour gérer le SLO par le code : cliquez sur le titre d'une section pour l'ouvrir.
+**Moniteurs** se trouve dans une section **Configuration**, **Règles de moniteurs**, **Règles de taux de consommation** et **Politique de budget d'erreur** dans une section **Règles**, et **Propriétaires**, **Paramètres**, **Journaux d'audit** et **Supprimer le SLO** dans une section **Gestion**. Les trois sont repliées au départ, tout comme une section **Développeurs** pour gérer le SLO par le code : cliquez sur le titre d'une section pour l'ouvrir.
 
 Quand quelque chose empêche un SLO de mesurer, un bandeau en haut de chacune de ses pages dit ce qui ne va pas et renvoie vers la page qui permet de le corriger : voir [Dépannage](#dépannage).
 

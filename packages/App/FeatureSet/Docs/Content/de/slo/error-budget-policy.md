@@ -16,8 +16,8 @@ Eine Richtlinie ist eine Reihe von Stufen. Jede Stufe hat drei Felder:
 | Feld | Was es enthält |
 | --- | --- |
 | **Name** | Wie das Team die Stufe nennt, zum Beispiel „Reliability first“. |
-| **Budget Left Threshold (%)** | Der Anteil des verbleibenden Fehlerbudgets, bei dem oder unter dem die Stufe gilt. Von 0 bis 100, Dezimalzahlen erlaubt. Jede Stufe eines SLO hat einen eigenen Schwellenwert. |
-| **What We Do** | Was das Team vereinbart hat zu tun, solange das SLO in der Stufe ist, in Markdown. Pflichtfeld, bis zu 10.000 Zeichen. |
+| **Schwellenwert für verbleibendes Budget (%)** | Der Anteil des verbleibenden Fehlerbudgets, bei dem oder unter dem die Stufe gilt. Von 0 bis 100, Dezimalzahlen erlaubt. Jede Stufe eines SLO hat einen eigenen Schwellenwert. |
+| **Was wir tun** | Was das Team vereinbart hat zu tun, solange das SLO in der Stufe ist, in Markdown. Pflichtfeld, bis zu 10.000 Zeichen. |
 
 Eine Stufe gilt, solange das verbleibende Budget bei ihrem Schwellenwert oder darunter liegt, eine Stufe bei 0 % ist also die Stufe eines aufgebrauchten Budgets. Gelten mehrere Stufen, ist das SLO in der mit dem niedrigsten Schwellenwert: der strengsten. Gilt keine, ist das SLO in keiner Stufe. Mit Stufen bei 50 %, 25 % und 0 % ist ein SLO mit 30 % verbleibendem Budget in der 50-%-Stufe und eines mit 10 % in der 25-%-Stufe.
 
@@ -49,17 +49,17 @@ stateDiagram-v2
 Sie brauchen die Berechtigung, Stufen der Fehlerbudget-Richtlinie von SLOs zu erstellen.
 
 :::steps
-### Error Budget Policy öffnen
+### Fehlerbudget-Richtlinie öffnen
 
-Öffnen Sie das SLO und gehen Sie in seinem Seitenmenü im Bereich **Regeln** zu **Error Budget Policy**. Die Seite listet die Stufen des SLO auf, jede mit ihrem Namen, dem verbleibenden Budget, bei dem sie gilt, und dem, was das Team tut.
+Öffnen Sie das SLO und gehen Sie in seinem Seitenmenü im Bereich **Regeln** zu **Fehlerbudget-Richtlinie**. Die Seite listet die Stufen des SLO auf, jede mit ihrem Namen, dem verbleibenden Budget, bei dem sie gilt, und dem, was das Team tut.
 
 ### Mit der empfohlenen Richtlinie beginnen
 
-Solange das SLO keine Stufen hat, bietet die Seite **Use the recommended policy** an. Klicken Sie darauf, prüfen Sie die drei Stufen, die aufgelistet werden, und bestätigen Sie. Passen Sie danach den Wortlaut jeder Stufe an die eigene Vereinbarung Ihres Teams an.
+Solange das SLO keine Stufen hat, bietet die Seite **Empfohlene Richtlinie verwenden** an. Klicken Sie darauf, prüfen Sie die drei Stufen, die aufgelistet werden, und bestätigen Sie. Passen Sie danach den Wortlaut jeder Stufe an die eigene Vereinbarung Ihres Teams an.
 
 ### Oder selbst eine Stufe hinzufügen
 
-Klicken Sie auf **SLO Error Budget Policy Tier erstellen**. Geben Sie einen **Name** und einen **Budget Left Threshold (%)** ein, und schreiben Sie die Vereinbarung des Teams in **What We Do**.
+Klicken Sie auf **SLO-Fehlerbudget-Richtlinienstufe erstellen**. Geben Sie einen **Name** und einen **Schwellenwert für verbleibendes Budget (%)** ein, und schreiben Sie die Vereinbarung des Teams in **Was wir tun**.
 
 ### Festlegen, was die Stufe auslöst
 
@@ -70,7 +70,7 @@ Das Hinzufügen, Bearbeiten oder Löschen einer Stufe wirkt sofort: OneUptime we
 
 ### Die empfohlene Richtlinie
 
-**Use the recommended policy** fügt drei Stufen hinzu, bei der Hälfte des Budgets, einem Viertel und null, mit diesem englischen Wortlaut:
+**Empfohlene Richtlinie verwenden** fügt drei Stufen hinzu, bei der Hälfte des Budgets, einem Viertel und null, mit diesem englischen Wortlaut:
 
 | Stufe | Gilt bei | Was das Team tut |
 | --- | --- | --- |
@@ -156,7 +156,7 @@ Die Stufen selbst sind eine eigene Ressource, `/api/service-level-objective-erro
 | Berechtigung | Erlaubt einer Rolle |
 | --- | --- |
 | **Read SLO Error Budget Policy Tier** | Die Stufen eines SLO sehen. |
-| **Create SLO Error Budget Policy Tier** | Stufen hinzufügen, von Hand oder mit **Use the recommended policy**. |
+| **Create SLO Error Budget Policy Tier** | Stufen hinzufügen, von Hand oder mit **Empfohlene Richtlinie verwenden**. |
 | **Edit SLO Error Budget Policy Tier** | Stufen ändern und sie ein- oder ausschalten. |
 | **Delete SLO Error Budget Policy Tier** | Stufen entfernen. |
 

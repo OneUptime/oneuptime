@@ -16,8 +16,8 @@ Une politique est un ensemble de paliers. Chaque palier a trois champs :
 | Champ | Ce qu'il contient |
 | --- | --- |
 | **Nom** | Le nom que l'équipe donne au palier, par exemple « Reliability first ». |
-| **Budget Left Threshold (%)** | La part du budget d'erreur restant à partir de laquelle, ou en dessous de laquelle, le palier s'applique. De 0 à 100, décimales autorisées. Chaque palier d'un SLO a son propre seuil. |
-| **What We Do** | Ce que l'équipe s'est engagée à faire tant que le SLO est dans le palier, en Markdown. Obligatoire, jusqu'à 10 000 caractères. |
+| **Seuil de budget restant (%)** | La part du budget d'erreur restant à partir de laquelle, ou en dessous de laquelle, le palier s'applique. De 0 à 100, décimales autorisées. Chaque palier d'un SLO a son propre seuil. |
+| **Ce que nous faisons** | Ce que l'équipe s'est engagée à faire tant que le SLO est dans le palier, en Markdown. Obligatoire, jusqu'à 10 000 caractères. |
 
 Un palier s'applique tant que le budget restant est égal ou inférieur à son seuil : un palier à 0 % est donc celui d'un budget épuisé. Quand plusieurs paliers s'appliquent, le SLO est dans celui qui a le seuil le plus bas : le plus grave. Quand aucun ne s'applique, le SLO n'est dans aucun palier. Avec des paliers à 50 %, 25 % et 0 %, un SLO à qui il reste 30 % de son budget est dans le palier à 50 %, et un SLO à qui il en reste 10 % est dans le palier à 25 %.
 
@@ -49,17 +49,17 @@ stateDiagram-v2
 Vous devez avoir l'autorisation de créer des paliers de politique de budget d'erreur de SLO.
 
 :::steps
-### Ouvrir Error Budget Policy
+### Ouvrir Politique de budget d'erreur
 
-Ouvrez le SLO et allez dans **Error Budget Policy**, dans la section **Règles** de son menu latéral. La page liste les paliers du SLO, chacun avec son nom, le budget restant auquel il s'applique et ce que fait l'équipe.
+Ouvrez le SLO et allez dans **Politique de budget d'erreur**, dans la section **Règles** de son menu latéral. La page liste les paliers du SLO, chacun avec son nom, le budget restant auquel il s'applique et ce que fait l'équipe.
 
 ### Partir de la politique recommandée
 
-Tant que le SLO n'a aucun palier, la page propose **Use the recommended policy**. Cliquez dessus, vérifiez les trois paliers qu'il liste et confirmez. Adaptez ensuite le texte de chaque palier à l'engagement propre à votre équipe.
+Tant que le SLO n'a aucun palier, la page propose **Utiliser la politique recommandée**. Cliquez dessus, vérifiez les trois paliers qu'il liste et confirmez. Adaptez ensuite le texte de chaque palier à l'engagement propre à votre équipe.
 
 ### Ou ajouter un palier vous-même
 
-Cliquez sur **Créer : SLO Error Budget Policy Tier**. Saisissez un **Nom** et un **Budget Left Threshold (%)**, et écrivez l'engagement de l'équipe dans **What We Do**.
+Cliquez sur **Créer : Palier de politique de budget d'erreur du SLO**. Saisissez un **Nom** et un **Seuil de budget restant (%)**, et écrivez l'engagement de l'équipe dans **Ce que nous faisons**.
 
 ### Choisir ce que le palier déclenche
 
@@ -70,7 +70,7 @@ Ajouter, modifier ou supprimer un palier prend effet tout de suite : OneUptime �
 
 ### La politique recommandée
 
-**Use the recommended policy** ajoute trois paliers, à la moitié du budget, au quart et à zéro, avec ce texte en anglais :
+**Utiliser la politique recommandée** ajoute trois paliers, à la moitié du budget, au quart et à zéro, avec ce texte en anglais :
 
 | Palier | S'applique à | Ce que fait l'équipe |
 | --- | --- | --- |
@@ -156,7 +156,7 @@ Les paliers eux-mêmes sont une ressource à part entière, `/api/service-level-
 | Autorisation | Permet à un rôle de |
 | --- | --- |
 | **Read SLO Error Budget Policy Tier** | Voir les paliers d'un SLO. |
-| **Create SLO Error Budget Policy Tier** | Ajouter des paliers, à la main ou avec **Use the recommended policy**. |
+| **Create SLO Error Budget Policy Tier** | Ajouter des paliers, à la main ou avec **Utiliser la politique recommandée**. |
 | **Edit SLO Error Budget Policy Tier** | Modifier des paliers, et les activer ou les désactiver. |
 | **Delete SLO Error Budget Policy Tier** | Supprimer des paliers. |
 
