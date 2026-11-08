@@ -47,6 +47,8 @@ interface FixtureState {
   tests: Array<{ body: Record<string, unknown> }>;
   readNows: Array<string>;
   spanLists: Array<Record<string, unknown>>;
+  setupChecks: Array<Record<string, unknown>>;
+  metricUsages: Array<Record<string, unknown>>;
 }
 
 async function open(page: Page, query: string = ""): Promise<void> {
@@ -533,7 +535,10 @@ test.describe("the list of connections", () => {
   }) => {
     await open(page, "state=connected&way=providers");
 
-    await expect(page.getByText("OpenAI production")).toBeVisible();
+    // The list's own row: the setup check above names the account too.
+    await expect(
+      panel(page, "providers").getByText("OpenAI production"),
+    ).toBeVisible();
     await expect(page.getByText("Working").first()).toBeVisible();
     await expect(
       panel(page, "providers").getByText("Not working").first(),
@@ -633,7 +638,9 @@ test.describe("a connection that is off", () => {
   }) => {
     await open(page, "state=off&way=providers");
 
-    await expect(page.getByText("Bedrock us-east-1")).toBeVisible();
+    await expect(
+      panel(page, "providers").getByText("Bedrock us-east-1"),
+    ).toBeVisible();
     await expect(
       panel(page, "providers").getByText("Off", { exact: true }),
     ).toBeVisible();
@@ -657,6 +664,129 @@ test.describe("a connection that is off", () => {
         data: { isEnabled: true },
       },
     ]);
+  });
+});
+
+/*
+ * #5776: provider accounts connected and working, and empty conversations,
+ * with nothing on the page to say why. The Setup check at the top of
+ * Connect says what each way is bringing in right now.
+ */
+test.describe("the setup check", () => {
+  test("nothing connected: each way says what it would bring, and opens its path", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page);
+
+    const check: Locator = page.getByTestId("llm-setup-check");
+
+    await expect(check.getByText("Setup check", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("llm-setup-check-apps")).toContainText(
+      "No app has sent an AI call yet. Calls and conversations come from your apps.",
+    );
+    await expect(page.getByTestId("llm-setup-check-accounts")).toContainText(
+      "None connected. An account brings its usage and cost by day, with no code.",
+    );
+    await expect(page.getByTestId("llm-setup-check-tools")).toContainText(
+      "None connected. A company AI tool brings what your people ask it, by person.",
+    );
+
+    // The check reads the project, not a view's window.
+    const state: FixtureState = await fixture(page);
+    expect(state.setupChecks).toEqual([{}]);
+
+    await shoot(page, "connect-setup-check-empty");
+
+    await page.getByTestId("llm-setup-check-accounts-action").click();
+    await expect(way(page, "providers")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  test("provider accounts connected and no app sending: each account's line, and the way to send calls", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected");
+
+    const accounts: Locator = page.getByTestId("llm-setup-check-accounts");
+
+    await expect(
+      page.getByTestId("llm-setup-check-line-apps-none"),
+    ).toBeVisible();
+    await expect(page.getByTestId("llm-setup-check-apps-action")).toHaveText(
+      "Send your app's AI calls",
+    );
+
+    const openai: Locator = accounts.getByTestId(
+      "llm-setup-check-connection-20000000-0000-4000-8000-000000000001",
+    );
+    await expect(openai).toContainText("OpenAI production");
+    await expect(openai).toContainText("Last used");
+    // What OpenAI's reports leave out.
+    await expect(openai).toContainText(
+      "Azure OpenAI and ChatGPT use are not in it.",
+    );
+
+    const foundry: Locator = accounts.getByTestId(
+      "llm-setup-check-connection-20000000-0000-4000-8000-000000000002",
+    );
+    await expect(foundry).toContainText("Its last read failed");
+    await expect(
+      foundry.getByTestId(
+        "llm-setup-check-line-connection-20000000-0000-4000-8000-000000000002",
+      ),
+    ).toHaveAttribute("data-tone", "error");
+
+    await expect(page.getByTestId("llm-setup-check-tools")).toContainText(
+      "Waiting for the first read",
+    );
+
+    await shoot(page, "connect-setup-check-connected");
+  });
+
+  test("apps sending AI calls: how many, through which provider, and nothing to open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=done");
+
+    const apps: Locator = page.getByTestId("llm-setup-check-apps");
+
+    await expect(apps).toContainText("AI calls in the past 7 days, from");
+    await expect(apps).toContainText("Through OpenAI.");
+    await expect(apps).toContainText(
+      "Prompts and answers recorded on 100% of answers.",
+    );
+    await expect(page.getByTestId("llm-setup-check-apps-action")).toHaveCount(
+      0,
+    );
+
+    await shoot(page, "connect-setup-check-done");
+  });
+
+  test("Check again reads it again", async ({ page }: { page: Page }) => {
+    await open(page, "state=connected");
+
+    await expect(
+      page.getByTestId("llm-setup-check-line-apps-none"),
+    ).toBeVisible();
+
+    await page
+      .getByTestId("llm-setup-check")
+      .getByRole("button", { name: "Check again" })
+      .click();
+
+    await expect
+      .poll(async () => {
+        return (await fixture(page)).setupChecks.length;
+      })
+      .toBe(2);
   });
 });
 

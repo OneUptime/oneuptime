@@ -218,6 +218,9 @@ const state = {
   aggregates: [],
   // Every list of spans asked for, with its query.
   spanLists: [],
+  // Every setup check and GenAI metric usage read, with what it asked.
+  setupChecks: [],
+  metricUsages: [],
   verdict: params.get("verdict") || "pass",
   held: [],
 };
@@ -522,8 +525,94 @@ AnalyticsModelAPI.aggregate = async (args) => {
   return { data: rows };
 };
 
+const COMPANY_TOOLS = ["claude-enterprise", "microsoft-365-copilot"];
+
+/*
+ * The AI / LLM setup check (Common/Types/Telemetry/LlmSetupCheckApi), as the
+ * server answers it for this state: the connections above, read as they
+ * are, and - once everything is set up - an app sending AI calls through
+ * OpenAI, with what was said recorded.
+ */
+function setupCheck() {
+  const done = dataState === "done";
+  const toIso = (value) => {
+    return value ? new Date(value).toISOString() : null;
+  };
+
+  return {
+    checkedAt: "2026-10-19T12:00:00.000Z",
+    apps: {
+      callsInWindow: null,
+      callsRecently: done ? 1240 : 0,
+      newestCallAt: done ? "2026-10-19T11:58:00.000Z" : null,
+      services: done
+        ? [
+            {
+              serviceId: SERVICE_ID,
+              calls: 1240,
+              newestAt: "2026-10-19T11:58:00.000Z",
+            },
+          ]
+        : [],
+      providers: done ? [{ name: "openai", calls: 1240 }] : [],
+      answersRecently: done ? 1100 : 0,
+      answersWithContent: done ? 1100 : 0,
+      contentInLogs: null,
+      uninstrumented: done ? null : [],
+    },
+    metrics: [],
+    connections: connections.map((item) => {
+      const result = item.lastPullResult || {};
+      const isTool = COMPANY_TOOLS.includes(item.provider);
+      const used =
+        result.status === "success" &&
+        ((result.costUsd || 0) > 0 || (result.inputTokens || 0) > 0);
+
+      return {
+        connectionId: item.id.toString(),
+        name: item.name,
+        provider: item.provider,
+        kind: isTool ? "company-tool" : "provider-account",
+        isEnabled: item.isEnabled !== false,
+        lastReadAt: toIso(item.lastPulledAt),
+        lastSuccessfulReadAt: toIso(item.lastSuccessfulPullAt),
+        lastError: item.lastError || "",
+        newestUsageAt: !isTool && used ? "2026-10-19T00:00:00.000Z" : null,
+        resources: null,
+        readSince: null,
+        callsRecently: isTool ? 0 : null,
+      };
+    }),
+  };
+}
+
 API.post = async (options) => {
   const url = options.url.toString();
+
+  if (url.endsWith("/telemetry/llm/setup-check")) {
+    state.setupChecks.push(JSON.parse(JSON.stringify(options.data || {})));
+    return new HTTPResponse(200, setupCheck(), {});
+  }
+
+  // The GenAI metrics: none in any state; the provider accounts' own are above.
+  if (url.endsWith("/telemetry/llm/metric-usage")) {
+    state.metricUsages.push(JSON.parse(JSON.stringify(options.data || {})));
+    return new HTTPResponse(
+      200,
+      {
+        totals: {
+          inputTokens: 0,
+          outputTokens: 0,
+          costUsd: 0,
+          hasTokens: false,
+          hasCost: false,
+        },
+        groups: [],
+        truncated: false,
+      },
+      {},
+    );
+  }
 
   if (url.endsWith("/llm-observability-connection/test")) {
     state.tests.push({ body: options.data, headers: options.headers || {} });
