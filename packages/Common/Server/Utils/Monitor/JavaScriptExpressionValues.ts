@@ -231,15 +231,21 @@ export default class JavaScriptExpressionValues {
   public static describeMetExpression(input: {
     expression: string;
     storageMap: JSONObject;
+    // False for a monitor that keeps no response content: no values.
+    includeValues?: boolean | undefined;
   }): string {
+    const sentence: string = `JavaScript Expression - ${input.expression} - evaluated to true.`;
+
+    if (input.includeValues === false) {
+      return sentence;
+    }
+
     const { values, isTruncated } = JavaScriptExpressionValues.readReferences({
       expression: input.expression,
       storageMap: input.storageMap,
       maxReferences: SENTENCE_REFERENCES,
       maxValueChars: SENTENCE_VALUE_CHARS,
     });
-
-    const sentence: string = `JavaScript Expression - ${input.expression} - evaluated to true.`;
 
     if (values.length === 0) {
       return sentence;

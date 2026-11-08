@@ -2,6 +2,8 @@ import logger, { LogAttributes } from "../Logger";
 import LogAggregationService from "../../Services/LogAggregationService";
 import VMUtil from "../VM/VMAPI";
 import JavaScriptExpressionValues from "./JavaScriptExpressionValues";
+import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import MonitorEvidenceRedaction from "./MonitorEvidenceRedaction";
 import APIRequestCriteria from "./Criteria/APIRequestCriteria";
 import CustomCodeMonitoringCriteria from "./Criteria/CustomCodeMonitorCriteria";
 import IncomingEmailCriteria from "./Criteria/IncomingEmailCriteria";
@@ -1580,6 +1582,9 @@ ${incomingRequestGrouping.rootCauseNote}
         return JavaScriptExpressionValues.describeMetExpression({
           expression: writtenExpression,
           storageMap: storageMap,
+          includeValues: MonitorRecordEvidence.keepsResponseContent(
+            input.monitor,
+          ),
         });
       }
 
@@ -6797,23 +6802,34 @@ ${incomingRequestGrouping.rootCauseNote}
     return FeedMarkdown.join(lines, "\n");
   }
 
+  /*
+   * Where the check went, as a root cause - sent to email and chat - may say
+   * it: the step's destination as it was configured, {{monitorSecrets.*}}
+   * references as written, before the address the probe echoed back with
+   * the secrets filled in; a password or a secret query value in it masked.
+   */
   private static getMonitorDestinationString(input: {
     monitorStep: MonitorStep;
     probeResponse: ProbeMonitorResponse | null;
   }): string | null {
-    if (input.probeResponse?.monitorDestination) {
-      return MonitorCriteriaEvaluator.stringifyValue(
-        input.probeResponse.monitorDestination,
-      );
+    const destination: string | null = input.monitorStep.data
+      ?.monitorDestination
+      ? MonitorCriteriaEvaluator.stringifyValue(
+          input.monitorStep.data.monitorDestination,
+        )
+      : input.probeResponse?.monitorDestination
+        ? MonitorCriteriaEvaluator.stringifyValue(
+            input.probeResponse.monitorDestination,
+          )
+        : null;
+
+    if (!destination) {
+      return null;
     }
 
-    if (input.monitorStep.data?.monitorDestination) {
-      return MonitorCriteriaEvaluator.stringifyValue(
-        input.monitorStep.data.monitorDestination,
-      );
-    }
-
-    return null;
+    return destination.indexOf("://") === -1
+      ? destination
+      : MonitorEvidenceRedaction.redactUrl(destination);
   }
 
   // The lines an answering NTP server adds to a root cause's response snapshot.

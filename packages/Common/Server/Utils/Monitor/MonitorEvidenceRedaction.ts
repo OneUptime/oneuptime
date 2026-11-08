@@ -62,6 +62,13 @@ import {
 const MAX_DEPTH: number = 12;
 
 /*
+ * Stands in for a [REDACTED] already in a text while the text rules read it:
+ * "token=[REDACTED]" read again would mask "[REDACTED" and leave a stray "]".
+ * A character of the Private Use Area, which no rule is about.
+ */
+const MASKED_PLACEHOLDER: string = "\u{E000}";
+
+/*
  * A name longer than this is not a field anybody named on purpose; its
  * value is masked rather than the whole name read.
  */
@@ -252,16 +259,82 @@ export default class MonitorEvidenceRedaction {
 
   /*
    * Masks what text says that looks like a credential or personal data,
-   * wherever it stands, and leaves the rest as written.
+   * wherever it stands, and leaves the rest as written. Reading a text it
+   * already redacted changes nothing.
    */
   public static redactText(text: string): string {
     if (typeof text !== "string" || !text) {
       return text;
     }
 
-    return MonitorEvidenceRedaction.maskCardNumbers(
-      MonitorEvidenceRedaction.maskEmailAddresses(redactLogString(text)),
+    const hasMasks: boolean = text.indexOf(REDACTED) !== -1;
+    const protectedText: string = hasMasks
+      ? text.split(REDACTED).join(MASKED_PLACEHOLDER)
+      : text;
+
+    const redacted: string = MonitorEvidenceRedaction.maskCardNumbers(
+      MonitorEvidenceRedaction.maskEmailAddresses(
+        MonitorEvidenceRedaction.closeMarkersOnce(
+          protectedText,
+          redactLogString(protectedText),
+        ),
+      ),
     );
+
+    return redacted.indexOf(MASKED_PLACEHOLDER) === -1
+      ? redacted
+      : redacted.split(MASKED_PLACEHOLDER).join(REDACTED);
+  }
+
+  /*
+   * The logger's rules run one after another, and a later one can read the
+   * [REDACTED] an earlier one wrote as the start of a value of its own:
+   * "Authorization: Bearer x" becomes "Authorization: Bearer [REDACTED]",
+   * then "Authorization: [REDACTED]]" - the stray "]" the first marker's.
+   * Every rule writes whole markers, so each such "]" is one more closing
+   * bracket than the text had: as many as there are extra are taken away,
+   * each from after a marker.
+   */
+  private static closeMarkersOnce(before: string, after: string): string {
+    const extra: number =
+      MonitorEvidenceRedaction.countBracketBalance(after) -
+      MonitorEvidenceRedaction.countBracketBalance(before);
+
+    if (extra <= 0) {
+      return after;
+    }
+
+    const doubled: string = `${REDACTED}]`;
+    let result: string = "";
+    let cursor: number = 0;
+    let left: number = extra;
+    let index: number = after.indexOf(doubled);
+
+    while (index !== -1 && left > 0) {
+      result += after.slice(cursor, index) + REDACTED;
+      cursor = index + doubled.length;
+      left--;
+      index = after.indexOf(doubled, cursor);
+    }
+
+    return result + after.slice(cursor);
+  }
+
+  // How many more "]" than "[" a text holds.
+  private static countBracketBalance(text: string): number {
+    let balance: number = 0;
+
+    for (let index: number = 0; index < text.length; index++) {
+      const character: string = text.charAt(index);
+
+      if (character === "]") {
+        balance++;
+      } else if (character === "[") {
+        balance--;
+      }
+    }
+
+    return balance;
   }
 
   /*
@@ -359,7 +432,8 @@ export default class MonitorEvidenceRedaction {
       return url;
     }
 
-    let result: string = url;
+    // What looks like a credential first, then what the URL's parts say.
+    let result: string = MonitorEvidenceRedaction.redactText(url);
 
     // The authority's userinfo: scheme://user:password@host
     const schemeEnd: number = result.indexOf("://");
@@ -425,17 +499,26 @@ export default class MonitorEvidenceRedaction {
         result.slice(0, queryStart + 1) + maskedQuery + result.slice(queryEnd);
     }
 
-    return MonitorEvidenceRedaction.redactText(result);
+    return result;
   }
 
   /*
    * Every http(s) URL inside a text, redacted as redactUrl does. A URL runs
    * to whitespace, a quote or a bracket.
    */
-  public static redactUrlsInText(text: string): string {
-    if (typeof text !== "string" || text.indexOf("://") === -1) {
-      return text;
+  public static redactUrlsInText(input: string): string {
+    if (typeof input !== "string" || input.indexOf("://") === -1) {
+      return input;
     }
+
+    /*
+     * A [REDACTED] already in the text is read as one character, so a URL
+     * runs on through it rather than ending at its "]".
+     */
+    const hasMasks: boolean = input.indexOf(REDACTED) !== -1;
+    const text: string = hasMasks
+      ? input.split(REDACTED).join(MASKED_PLACEHOLDER)
+      : input;
 
     let result: string = "";
     let cursor: number = 0;
@@ -474,7 +557,11 @@ export default class MonitorEvidenceRedaction {
       schemeEnd = text.indexOf("://", end);
     }
 
-    return result + text.slice(cursor);
+    result += text.slice(cursor);
+
+    return result.indexOf(MASKED_PLACEHOLDER) === -1
+      ? result
+      : result.split(MASKED_PLACEHOLDER).join(REDACTED);
   }
 
   /*

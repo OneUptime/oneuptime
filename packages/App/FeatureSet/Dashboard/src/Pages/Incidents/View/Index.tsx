@@ -309,6 +309,10 @@ const IncidentView: FunctionComponent<
   const [incidentRootCause, setIncidentRootCause] = useState<
     string | undefined
   >(undefined);
+  // How the monitor decided, under the root cause (EventEvaluationDetails).
+  const [incidentEvaluationDetails, setIncidentEvaluationDetails] = useState<
+    JSONObject | undefined
+  >(undefined);
   const [incidentImpactStartedAt, setIncidentImpactStartedAt] = useState<
     Date | undefined
   >(undefined);
@@ -607,6 +611,7 @@ const IncidentView: FunctionComponent<
             // The What happened card.
             description: true,
             rootCause: true,
+            evaluationDetails: true,
             incidentNumber: true,
             incidentNumberWithPrefix: true,
             incidentSeverity: {
@@ -691,6 +696,9 @@ const IncidentView: FunctionComponent<
       setIncidentFirstPagedAt(incident?.firstPagedAt || undefined);
       setIncidentDescription(incident?.description || undefined);
       setIncidentRootCause(incident?.rootCause || undefined);
+      setIncidentEvaluationDetails(
+        (incident?.evaluationDetails as JSONObject | undefined) || undefined,
+      );
       setIncidentImpactStartedAt(incident?.impactStartedAt || undefined);
       setIncidentDeclaredBy({
         probe: incident?.createdByProbe,
@@ -1274,6 +1282,7 @@ const IncidentView: FunctionComponent<
             modelId={modelId}
             description={incidentDescription}
             rootCause={incidentRootCause}
+            evaluationDetails={incidentEvaluationDetails}
             statusPageRecord="incident"
             onSaved={() => {
               refreshData();

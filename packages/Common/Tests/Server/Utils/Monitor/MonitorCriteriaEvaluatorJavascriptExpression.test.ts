@@ -79,6 +79,86 @@ describe("MonitorCriteriaEvaluator JavaScript expression criteria", () => {
     expect(result).toContain("evaluated to true");
   });
 
+  test("runs the expression with the response written in, and says it as written", async () => {
+    const sandboxResult: ReturnResult = {
+      returnValue: true,
+      logMessages: [],
+      capturedMetrics: [],
+    };
+    const sandbox: jest.SpiedFunction<typeof VMUtil.runCodeInSandbox> = jest
+      .spyOn(VMUtil, "runCodeInSandbox")
+      .mockResolvedValue(sandboxResult);
+
+    const input: Parameters<
+      EvaluatorPrivate["isMonitorInstanceCriteriaFilterMet"]
+    >[0] = makeInput();
+    input.monitor.monitorType = MonitorType.API;
+    input.dataToProcess = {
+      responseBody: JSON.stringify({
+        status: "down",
+        owner: "ops@example.com",
+        token: "tok_live_123",
+      }),
+      responseHeaders: { "set-cookie": "session=abc" },
+      responseCode: 503,
+      isOnline: true,
+    };
+    input.criteriaFilter = {
+      checkOn: CheckOn.JavaScriptExpression,
+      value:
+        "'{{responseBody.status}}' === 'down' && '{{responseHeaders.set-cookie}}' !== ''",
+    } as CriteriaFilter;
+
+    const result: string | null =
+      await Evaluator.isMonitorInstanceCriteriaFilterMet(input);
+
+    // The sandbox ran the expression with the values written in.
+    expect(sandbox.mock.calls[0]![0].code).toBe(
+      "return Boolean('down' === 'down' && 'session=abc' !== '');",
+    );
+
+    /*
+     * The root cause - shown in email and chat - says the expression as it
+     * was written, and what its references held, the cookie masked.
+     */
+    expect(result).toBe(
+      "JavaScript Expression - '{{responseBody.status}}' === 'down' && '{{responseHeaders.set-cookie}}' !== '' - evaluated to true. Values: responseBody.status = \"down\", responseHeaders.set-cookie = [REDACTED].",
+    );
+    expect(result).not.toContain("session=abc");
+  });
+
+  test("a whole body named in the expression never reaches the root cause", async () => {
+    jest.spyOn(VMUtil, "runCodeInSandbox").mockResolvedValue({
+      returnValue: true,
+      logMessages: [],
+      capturedMetrics: [],
+    });
+
+    const input: Parameters<
+      EvaluatorPrivate["isMonitorInstanceCriteriaFilterMet"]
+    >[0] = makeInput();
+    input.monitor.monitorType = MonitorType.API;
+    input.dataToProcess = {
+      responseBody: JSON.stringify({
+        items: Array.from({ length: 300 }, (_value: unknown, index: number) => {
+          return { id: index, owner: `user${index}@example.com` };
+        }),
+      }),
+      isOnline: true,
+    };
+    input.criteriaFilter = {
+      checkOn: CheckOn.JavaScriptExpression,
+      value: "{{responseBody}}.items.length > 0",
+    } as CriteriaFilter;
+
+    const result: string = (await Evaluator.isMonitorInstanceCriteriaFilterMet(
+      input,
+    ))!;
+
+    expect(result.length).toBeLessThan(400);
+    expect(result).not.toContain("@example.com");
+  });
+
   test("treats a sandbox rejection as criteria not met", async () => {
     jest
       .spyOn(VMUtil, "runCodeInSandbox")

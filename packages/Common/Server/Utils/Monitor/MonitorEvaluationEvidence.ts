@@ -21,7 +21,6 @@ import CustomCodeMonitoringCriteria from "./Criteria/CustomCodeMonitorCriteria";
 import DataToProcess from "./DataToProcess";
 import JavaScriptExpressionValues from "./JavaScriptExpressionValues";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
-import MonitorCriteriaExpectationBuilder from "./MonitorCriteriaExpectationBuilder";
 import MonitorEvidenceRedaction from "./MonitorEvidenceRedaction";
 import ResponseExcerpt, {
   MatchExcerptResult,
@@ -49,7 +48,8 @@ import ResponseExcerpt, {
 export type MonitorEvaluationFilterEvidence = Pick<
   MonitorEvaluationFilterDetails,
   | "actual"
-  | "window"
+  | "windowMinutes"
+  | "windowType"
   | "field"
   | "fieldValues"
   | "areFieldValuesTruncated"
@@ -92,14 +92,21 @@ export default class MonitorEvaluationEvidence {
         input.monitorType,
       )
     ) {
-      const window: string | null =
-        MonitorCriteriaExpectationBuilder.getEvaluationWindowDescription(
-          input.criteriaFilter,
-          input.monitorType,
-        );
+      const minutes: number | undefined =
+        input.criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes;
 
-      if (window) {
-        evidence.window = window;
+      if (typeof minutes === "number" && minutes > 0) {
+        evidence.windowMinutes = minutes;
+
+        const type: string | undefined =
+          CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+            input.criteriaFilter,
+            input.monitorType,
+          );
+
+        if (type) {
+          evidence.windowType = type;
+        }
       }
     }
 

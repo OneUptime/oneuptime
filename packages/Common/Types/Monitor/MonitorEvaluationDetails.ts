@@ -135,10 +135,12 @@ export interface MonitorEvaluationFilterDetails {
    */
   actual?: string | undefined;
   /*
-   * The filter is judged over a time window ("over the last 5 minutes using
-   * average"), so `actual` is the latest check's value, not the window's.
+   * The filter is judged over a time window - its minutes, and how the
+   * window's values are judged (an EvaluateOverTimeType: "Average", "All
+   * Values") - so `actual` is the latest check's value, not the window's.
    */
-  window?: string | undefined;
+  windowMinutes?: number | undefined;
+  windowType?: string | undefined;
   // Where it was found: a JSON path, a header name, a result path.
   field?: string | undefined;
   fieldValues?: Array<MonitorEvaluationFieldValue> | undefined;
