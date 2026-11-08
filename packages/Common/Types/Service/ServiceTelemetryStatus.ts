@@ -149,7 +149,7 @@ export const getServiceLastDataAt: (
  * Whether data that arrived at `lastDataAt` still counts as arriving at
  * `now`: at most SERVICE_NO_RECENT_DATA_AFTER_MINUTES ago, or ahead of the
  * reader's clock. A `now` that is not a real date counts nothing as
- * recent: the reader's clock cannot say.
+ * recent: the age is then not a number, which no window holds.
  */
 export const isServiceDataRecent: (lastDataAt: Date, now: Date) => boolean = (
   lastDataAt: Date,
@@ -157,7 +157,7 @@ export const isServiceDataRecent: (lastDataAt: Date, now: Date) => boolean = (
 ): boolean => {
   const age: number = now.getTime() - lastDataAt.getTime();
 
-  return !isNaN(age) && age <= SERVICE_NO_RECENT_DATA_AFTER_MS;
+  return age <= SERVICE_NO_RECENT_DATA_AFTER_MS;
 };
 
 export const getServiceTelemetryStatus: (

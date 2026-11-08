@@ -109,7 +109,9 @@ const getStateCopy: (
     if (guide.idleCopy) {
       return {
         icon: IconProp.Clock,
-        title: translator.translateText(guide.idleCopy.title),
+        title:
+          translator.translateText(guide.idleCopy.title) ||
+          guide.idleCopy.title,
         description: translator.translateTemplate(guide.idleCopy.description, {
           lastHeard: lastHeard,
         }),
@@ -181,7 +183,8 @@ const getStateCopy: (
      * pill says it is waiting for data, so its sentence does not name it.
      */
     description: guide.idleCopy
-      ? translator.translateText(guide.idleCopy.waitingDescription)
+      ? translator.translateText(guide.idleCopy.waitingDescription) ||
+        guide.idleCopy.waitingDescription
       : translator.translateTemplate(
           "No data has arrived from this {{resourceNoun}} yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
           { resourceNoun: resourceNoun, agentName: agentName },
