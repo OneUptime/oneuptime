@@ -1490,7 +1490,11 @@ describe("responding to an alert", () => {
     );
 
     // Three Markdown pages, as each draws its field.
-    for (const file of ["Description.tsx", "RootCause.tsx", "Remediation.tsx"]) {
+    for (const file of [
+      "Description.tsx",
+      "RootCause.tsx",
+      "Remediation.tsx",
+    ]) {
       expect(readDashboardSource(`Pages/Alerts/View/${file}`)).toContain(
         "fieldType: FieldType.Markdown,",
       );
