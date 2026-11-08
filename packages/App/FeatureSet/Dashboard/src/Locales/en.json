@@ -46441,6 +46441,7 @@
   "Data has arrived from this service in the last 30 minutes.": "Data has arrived from this service in the last 30 minutes.",
   "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.",
   "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.": "Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.",
   "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.",
   "No invocations in the last 15 minutes": "No invocations in the last 15 minutes",
   "No recent data": "No recent data",
@@ -46451,5 +46452,6 @@
   "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.",
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.",
   "Status shows \"No recent invocations\" while the function runs": "Status shows \"No recent invocations\" while the function runs",
+  "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "This change undoes what was saved after Ask AI read the workflow: {{steps}}.",
   "What to check if it should be running": "What to check if it should be running"
 }

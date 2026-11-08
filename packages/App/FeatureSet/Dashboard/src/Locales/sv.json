@@ -46441,6 +46441,7 @@
   "Data has arrived from this service in the last 30 minutes.": "Data har kommit från den här tjänsten under de senaste 30 minuterna.",
   "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "Data skickas när funktionen körs. Anropa den en gång och uppdatera sedan den här sidan efter några minuter. Funktionen växlar till \"Tar emot data\" så snart dess första data kommer.",
   "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.": "AI skrev den här ändringen utan att läsa arbetsflödets steg, så den kan ta bort eller ändra steg som AI inte har sett.",
   "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "Inga data har kommit från den här funktionen ännu. Konfigurera OpenTelemetry SDK:t och anropa funktionen – det tar bara några minuter.",
   "No invocations in the last 15 minutes": "Inga anrop under de senaste 15 minuterna",
   "No recent data": "Inga data nyligen",
@@ -46451,5 +46452,6 @@
   "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "Inget har kommit under de senaste 30 minuterna. En tjänst som bara skickar data medan den hanterar förfrågningar är tyst när ingen anropar den. Om den borde hantera förfrågningar, kontrollera att den körs och fortfarande skickar sin telemetri till OneUptime med det här service.name.",
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime tog senast emot data från den här funktionen {{lastHeard}}. Den skickar bara data medan den körs, så det här är normalt när inget anropar den, till exempel mellan schemalagda körningar.",
   "Status shows \"No recent invocations\" while the function runs": "Statusen visar \"Inga anrop nyligen\" medan funktionen körs",
+  "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Den här ändringen gör ogjort det som sparades efter att AI läste arbetsflödet: {{steps}}.",
   "What to check if it should be running": "Vad du ska kontrollera om den borde köras"
 }

@@ -46441,6 +46441,7 @@
   "Data has arrived from this service in the last 30 minutes.": "पिछले 30 मिनट में इस सेवा से डेटा आया है।",
   "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "फ़ंक्शन चलने पर ही डेटा भेजा जाता है। इसे एक बार इन्वोक करें, फिर कुछ मिनट बाद यह पेज रीफ़्रेश करें। पहला डेटा आते ही फ़ंक्शन \"डेटा मिल रहा है\" पर बदल जाता है।",
   "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.": "AI ने यह बदलाव वर्कफ़्लो के चरण पढ़े बिना लिखा है, इसलिए यह ऐसे चरण हटा या बदल सकता है जिन्हें AI ने नहीं देखा।",
   "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "इस फ़ंक्शन से अभी तक कोई डेटा नहीं आया है। OpenTelemetry SDK सेट अप करें और फ़ंक्शन को इन्वोक करें — इसमें बस कुछ मिनट लगते हैं।",
   "No invocations in the last 15 minutes": "पिछले 15 मिनट में कोई इन्वोकेशन नहीं",
   "No recent data": "हाल में कोई डेटा नहीं",
@@ -46451,5 +46452,6 @@
   "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "पिछले 30 मिनट में कुछ नहीं आया। जो सेवा अनुरोध संभालते समय ही डेटा भेजती है, वह तब शांत रहती है जब उसे कोई कॉल नहीं करता। अगर इसे अनुरोध मिलने चाहिए, तो जाँचें कि यह चल रही है और अब भी इस service.name के साथ अपनी टेलीमेट्री OneUptime को भेज रही है।",
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime को इस फ़ंक्शन से आख़िरी बार {{lastHeard}} डेटा मिला। यह तभी डेटा भेजता है जब यह चलता है, इसलिए जब इसे कोई इन्वोक नहीं करता, जैसे शेड्यूल किए गए रन के बीच, तब यह सामान्य है।",
   "Status shows \"No recent invocations\" while the function runs": "फ़ंक्शन चल रहा है, फिर भी स्थिति \"हाल में कोई इन्वोकेशन नहीं\" दिखाती है",
+  "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "यह बदलाव उसे पूर्ववत कर देता है जो AI के वर्कफ़्लो पढ़ने के बाद सहेजा गया था: {{steps}}।",
   "What to check if it should be running": "अगर इसे चलना चाहिए तो क्या जाँचें"
 }

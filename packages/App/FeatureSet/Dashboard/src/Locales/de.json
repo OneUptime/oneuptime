@@ -46441,6 +46441,7 @@
   "Data has arrived from this service in the last 30 minutes.": "In den letzten 30 Minuten sind Daten von diesem Dienst eingetroffen.",
   "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "Daten werden gesendet, wenn die Funktion läuft. Rufen Sie sie einmal auf und laden Sie diese Seite nach einigen Minuten neu. Die Funktion wechselt zu „Empfängt Daten“, sobald ihre ersten Daten eintreffen.",
   "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.": "Die KI hat diese Änderung geschrieben, ohne die Schritte des Workflows zu lesen, daher kann sie Schritte entfernen oder ändern, die sie nicht gesehen hat.",
   "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "Von dieser Funktion sind noch keine Daten eingetroffen. Richten Sie das OpenTelemetry-SDK ein und rufen Sie die Funktion auf – das dauert nur wenige Minuten.",
   "No invocations in the last 15 minutes": "Keine Aufrufe in den letzten 15 Minuten",
   "No recent data": "Keine aktuellen Daten",
@@ -46451,5 +46452,6 @@
   "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "In den letzten 30 Minuten ist nichts eingetroffen. Ein Dienst, der nur Daten sendet, während er Anfragen bearbeitet, ist still, wenn ihn niemand aufruft. Sollte er gerade Anfragen bearbeiten, prüfen Sie, ob er läuft und seine Telemetrie weiterhin mit diesem service.name an OneUptime sendet.",
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime hat zuletzt {{lastHeard}} Daten von dieser Funktion erhalten. Sie sendet nur Daten, während sie läuft. Das ist also normal, wenn sie niemand aufruft, etwa zwischen geplanten Ausführungen.",
   "Status shows \"No recent invocations\" while the function runs": "Der Status zeigt „Keine aktuellen Aufrufe“, während die Funktion läuft",
+  "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Diese Änderung macht rückgängig, was gespeichert wurde, nachdem die KI den Workflow gelesen hat: {{steps}}.",
   "What to check if it should be running": "Was zu prüfen ist, wenn sie laufen sollte"
 }

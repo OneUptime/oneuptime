@@ -46441,6 +46441,7 @@
   "Data has arrived from this service in the last 30 minutes.": "Han llegado datos de este servicio en los últimos 30 minutos.",
   "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "Los datos se envían cuando se ejecuta la función. Invócala una vez y actualiza esta página al cabo de unos minutos. La función pasa a \"Recibiendo datos\" en cuanto llegan sus primeros datos.",
   "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.": "La IA escribió este cambio sin leer los pasos del flujo de trabajo, así que puede quitar o cambiar pasos que no ha visto.",
   "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "Todavía no han llegado datos de esta función. Configura el SDK de OpenTelemetry e invoca la función; solo lleva unos minutos.",
   "No invocations in the last 15 minutes": "Sin invocaciones en los últimos 15 minutos",
   "No recent data": "Sin datos recientes",
@@ -46451,5 +46452,6 @@
   "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "No ha llegado nada en los últimos 30 minutos. Un servicio que solo envía datos mientras atiende solicitudes está en silencio cuando nadie lo llama. Si debería estar atendiendo solicitudes, comprueba que está en ejecución y que sigue enviando su telemetría a OneUptime con este service.name.",
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime recibió datos de esta función por última vez {{lastHeard}}. Solo envía datos mientras se ejecuta, así que es normal cuando nada la invoca, por ejemplo entre ejecuciones programadas.",
   "Status shows \"No recent invocations\" while the function runs": "El estado muestra \"Sin invocaciones recientes\" mientras la función se ejecuta",
+  "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Este cambio deshace lo que se guardó después de que la IA leyera el flujo de trabajo: {{steps}}.",
   "What to check if it should be running": "Qué comprobar si debería estar ejecutándose"
 }
