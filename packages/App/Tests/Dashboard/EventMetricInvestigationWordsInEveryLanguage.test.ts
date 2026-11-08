@@ -17,11 +17,10 @@ import fs from "fs";
 import path from "path";
 
 /*
- * AN EVENT'S METRIC INVESTIGATION IN THE READER'S LANGUAGE (#6304).
+ * AN EVENT'S METRIC INVESTIGATION IN THE READER'S LANGUAGE (#6304, #6320).
  *
  * The metric card of an incident, an alert or an episode - on its Overview,
- * and beside the root cause on an incident's and an alert's Root Cause
- * page - shares its words: the time picker and the ranges around the event
+ * and beside the root cause on its Root Cause page - shares its words: the time picker and the ranges around the event
  * ("Around the start", "The hour before it started", "What the monitor
  * saw"), Edit metrics, the links' and Reset's tooltips, the note that the
  * charts are the monitor's as it reads them now, and the moments and the
@@ -53,6 +52,8 @@ const INVESTIGATION_ROOTS: Array<SourceRoot> = [
   `${DASHBOARD_SRC}/Components/Telemetry/EventRootCauseMetricChart.tsx`,
   `${DASHBOARD_SRC}/Components/Incident/IncidentRootCauseMetricChart.tsx`,
   `${DASHBOARD_SRC}/Components/Alert/AlertRootCauseMetricChart.tsx`,
+  `${DASHBOARD_SRC}/Components/IncidentEpisode/IncidentEpisodeRootCauseMetricChart.tsx`,
+  `${DASHBOARD_SRC}/Components/AlertEpisode/AlertEpisodeRootCauseMetricChart.tsx`,
   `${DASHBOARD_SRC}/Utils/EventTimePresets.ts`,
   `${DASHBOARD_SRC}/Utils/EventMetricInvestigation.ts`,
 ].map((directory: string): SourceRoot => {
@@ -215,6 +216,11 @@ describe("an event's metric investigation in every language", () => {
       // The Root Cause card, while it reads.
       "Metrics for this alert.",
       "Metrics related to this incident.",
+      // An episode's card, on its Overview and its Root Cause page (#6320).
+      "Metrics related to this episode's first incident.",
+      "Metrics related to this episode's first incident, scoped to the affected series ({{seriesSummary}}).",
+      "Metrics for this episode's first alert.",
+      "Metrics for this episode's first alert, scoped to the affected series ({{seriesSummary}}).",
     ]) {
       expect({ key, found: keys.has(key) }).toEqual({ key, found: true });
     }

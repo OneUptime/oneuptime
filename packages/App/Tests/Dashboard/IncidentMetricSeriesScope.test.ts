@@ -85,6 +85,19 @@ const ALERT_ROOT_CAUSE_READER: string = readSource(
   "AlertRootCauseMetricChart.tsx",
 );
 
+// An episode's card reads its first member (issue #6320).
+const INCIDENT_EPISODE_ROOT_CAUSE_READER: string = readSource(
+  "Components",
+  "IncidentEpisode",
+  "IncidentEpisodeRootCauseMetricChart.tsx",
+);
+
+const ALERT_EPISODE_ROOT_CAUSE_READER: string = readSource(
+  "Components",
+  "AlertEpisode",
+  "AlertEpisodeRootCauseMetricChart.tsx",
+);
+
 // What the Root Cause card charts, worked out apart from it.
 const ROOT_CAUSE_METRICS: string = readSource(
   "Utils",
@@ -304,6 +317,89 @@ describe("alert Root Cause metric chart is scoped to the alert's series", () => 
       // No chart and no narrowing of its own: the card's.
       expect(reader).not.toContain("MetricSeriesScope");
       expect(reader).not.toContain("<EventMetricInvestigationPanel");
+    }
+  });
+});
+
+/*
+ * An episode's Root Cause page shows the same card (issue #6320), reading
+ * its first member: a grouped metric monitor's incidents and alerts are each
+ * about one series, and the episode's card is narrowed to its first
+ * member's, as the episode's Overview narrows it.
+ */
+describe("episode Root Cause metric chart is scoped to its first member's series", () => {
+  test.each([
+    [
+      "an incident episode's",
+      (): string => {
+        return INCIDENT_EPISODE_ROOT_CAUSE_READER;
+      },
+      "kind: INCIDENT_EPISODE_FIRST_MEMBER, select: {",
+      "monitors: { _id: true, monitorType: true, monitorSteps: true, } as never,",
+    ],
+    [
+      "an alert episode's",
+      (): string => {
+        return ALERT_EPISODE_ROOT_CAUSE_READER;
+      },
+      "kind: ALERT_EPISODE_FIRST_MEMBER, select: {",
+      "monitor: { _id: true, monitorType: true, monitorSteps: true, },",
+    ],
+  ])(
+    "%s card asks the API for what its first member keeps: its snapshot, series and criteria, and its monitors' steps",
+    (
+      _name: string,
+      reader: () => string,
+      marker: string,
+      monitorColumns: string,
+    ) => {
+      const select: string = selectBlockAfter(reader(), marker);
+
+      for (const column of [
+        "_id: true,",
+        "telemetryQuery: true,",
+        "seriesLabels: true,",
+        "createdCriteriaId: true,",
+        monitorColumns,
+      ]) {
+        expect({ column, selected: select.includes(column) }).toEqual({
+          column,
+          selected: true,
+        });
+      }
+    },
+  );
+
+  test("hands its first member to what it charts, read as that incident's or alert's own card reads it", () => {
+    expect(INCIDENT_EPISODE_ROOT_CAUSE_READER).toContain(
+      "return member ? getIncidentEpisodeRootCauseEvent(member) : null;",
+    );
+    expect(ALERT_EPISODE_ROOT_CAUSE_READER).toContain(
+      "return member ? getAlertEpisodeRootCauseEvent(member) : null;",
+    );
+    expect(ROOT_CAUSE_METRICS).toContain(
+      "return readEpisodeEvent(member, getIncidentRootCauseEvent(member));",
+    );
+    expect(ROOT_CAUSE_METRICS).toContain(
+      "return readEpisodeEvent(member, getAlertRootCauseEvent(member));",
+    );
+    // The member's event as it is, its moments the episode's own.
+    expect(ROOT_CAUSE_METRICS).toContain(
+      "return { ...memberEvent, startedAt: undefined, impactStartedAt: undefined, ruleEventId: readId(member.id), };",
+    );
+  });
+
+  test("is the incident's card, so it narrows and says it as that one does", () => {
+    for (const reader of [
+      INCIDENT_EPISODE_ROOT_CAUSE_READER,
+      ALERT_EPISODE_ROOT_CAUSE_READER,
+    ]) {
+      expect(reader).toContain("<EventRootCauseMetricChart");
+      // No chart and no narrowing of its own: the card's.
+      expect(reader).not.toContain("MetricSeriesScope");
+      expect(reader).not.toContain("<EventMetricInvestigationPanel");
+      // Its first member as the episode's Overview picks it.
+      expect(reader).toContain("await fetchFirstEpisodeMember<");
     }
   });
 });
