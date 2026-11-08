@@ -161,7 +161,7 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 標準の属性は `session.id`、`app.version`、`app.entrypoint`、`organization.id`、`user.account_uuid`、`user.account_id`、`user.id`、`user.email`、`terminal.type`、および `OTEL_RESOURCE_ATTRIBUTES` です。一部はオフにできます。[メトリクスの量を抑える](#メトリクスの量を抑える)を参照してください。
 
-- キャッシュのトークンの種類はキャメルケースで、`cacheRead` と `cacheCreation` です。OneUptime のトークン合計は `input` と `output` だけを数えます。
+- キャッシュのトークンの種類はキャメルケースで、`cacheRead` と `cacheCreation` です。Claude Code の `input` にはこれらが含まれないため、OneUptime はこれらも入力トークンとして数えます。
 - コストとトークンのメトリクスでは、`OTEL_LOG_TOOL_DETAILS=1` を設定しない限り (Claude Code 2.1.273 以降)、自社のエージェントと MCP サーバー、サードパーティのプラグインとスキルの名前は `custom` または `third-party` と表示されます。
 
 ## イベント
@@ -220,7 +220,7 @@ Claude Code は既定で差分のメトリクスを送ります。各データ�
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-`cumulative` に固定するのは、組織内のすべてのエクスポーターがそれを使う場合だけにし、フリート内で 2 つを混在させないでください。
+`cumulative` に固定するのは、組織内のすべてのエクスポーターがそれを使う場合だけにし、フリート内で 2 つを混在させないでください。OneUptime の使用量タブと予算はどちらも数えます。デルタはポイントを合計し、累積カウンターは期間内に増えた量を数えます。
 
 ## トレース (ベータ)
 

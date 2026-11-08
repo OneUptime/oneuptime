@@ -49,7 +49,7 @@ Dans **Tester**, cliquez sur **Tester la connexion**. OneUptime lit l'utilisatio
 Cliquez sur **Connecter**. La première lecture commence en moins d'une minute et ramène les 30 derniers jours.
 :::
 
-Les comptes connectés sont listés sous les tuiles, avec leur **Statut** et leur **Dernière lecture**. **Lire maintenant** lit tout de suite, **Tester** revérifie les réglages enregistrés, **Désactiver** arrête la lecture et garde ce qui a été lu, et **Modifier** modifie les réglages : un secret laissé vide garde celui qui est enregistré. **Voir l'erreur** montre pourquoi une lecture a échoué, sans aucun secret.
+Les comptes connectés sont listés sous les tuiles, avec leur **Statut** et leur **Dernière lecture**. **Lire maintenant** lit tout de suite, **Tester** revérifie les réglages enregistrés, **Désactiver** arrête la lecture et garde ce qui a été lu, et **Modifier** modifie les réglages : un secret laissé vide garde celui qui est enregistré. **Voir l'erreur** montre pourquoi une lecture a échoué, sans aucun secret. Le statut d'un compte qui fonctionne indique le dernier jour avec utilisation ou, quand ses lectures n'en ont trouvé aucune, le premier jour lu ; une connexion Azure qui ne trouve aucune ressource le signale.
 
 ## Ce que donne chaque fournisseur
 
@@ -187,6 +187,14 @@ Donnez-lui le rôle que cette page nomme pour le fournisseur : Monitoring Reader
 
 :::details Le test réussit, mais rien n'apparaît pour aujourd'hui
 Les fournisseurs déclarent l'utilisation d'une journée des minutes ou des heures après, et la corrigent pendant un jour ou deux. Les lectures suivantes la ramènent.
+:::
+
+:::details Le compte fonctionne, mais son statut n'indique aucune utilisation
+Ses lectures n'en ont trouvé aucune depuis le jour indiqué. Les rapports d'OpenAI comptent les appels d'API faits avec les clés de cette organisation, pas Azure OpenAI ni ChatGPT. Une connexion Azure ne lit que les ressources que son application peut voir : donnez à l'application Monitoring Reader là où elles se trouvent.
+:::
+
+:::details Des comptes sont connectés, mais Conversations et Appels sont vides
+Un compte apporte l'utilisation et le coût par jour, jamais un appel ni une conversation : ceux-ci viennent de vos applications. Voir [Vérifier ce qui arrive](/docs/telemetry/ai-llm-observability#vérifier-ce-qui-arrive).
 :::
 
 :::details Le coût diffère de la facture

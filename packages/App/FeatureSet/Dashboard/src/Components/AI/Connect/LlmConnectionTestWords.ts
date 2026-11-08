@@ -100,6 +100,26 @@ export function getLlmConnectionTestWords(data: {
     };
   }
 
+  /*
+   * Azure lists the subscription's resources without complaint when the
+   * app registration has no role where they are: a test that read none
+   * found nothing to read, not a quiet account.
+   */
+  if (
+    data.result.status === "warn" &&
+    data.definition.provider === LlmConnectionProvider.AzureOpenAI &&
+    data.result.counts?.resources === 0
+  ) {
+    return {
+      headline: translationKey(
+        "It signs in, but it found no Azure OpenAI or Foundry resource in the subscription.",
+      ),
+      advice: translationKey(
+        "Give the app registration the Monitoring Reader role on the subscription, or on the resource groups, that hold them. Then test again.",
+      ),
+    };
+  }
+
   if (data.result.status === "warn") {
     return {
       headline: isTool

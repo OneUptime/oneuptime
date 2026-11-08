@@ -49,7 +49,7 @@ Under **Test** klikker du på **Test tilkoblingen**. OneUptime leser forbruket f
 Klikk på **Koble til**. Den første lesingen starter innen ett minutt og henter de siste 30 dagene.
 :::
 
-Tilkoblede kontoer står under flisene, med **Status** og **Sist lest**. **Les nå** leser med en gang, **Test** sjekker de lagrede innstillingene på nytt, **Slå av** stopper lesingen og beholder det som er lest, og **Rediger** endrer innstillingene: en hemmelighet som står tom, beholder den lagrede. **Vis feil** viser hvorfor en lesing feilet, uten noen hemmelighet.
+Tilkoblede kontoer står under flisene, med **Status** og **Sist lest**. **Les nå** leser med en gang, **Test** sjekker de lagrede innstillingene på nytt, **Slå av** stopper lesingen og beholder det som er lest, og **Rediger** endrer innstillingene: en hemmelighet som står tom, beholder den lagrede. **Vis feil** viser hvorfor en lesing feilet, uten noen hemmelighet. Statusen til en konto som fungerer, nevner den siste dagen med bruk eller, når lesingene ikke fant noen, den første leste dagen; en Azure-tilkobling som ikke finner noen ressurs, sier fra.
 
 ## Hva hver leverandør gir
 
@@ -187,6 +187,14 @@ Gi den rollen denne siden nevner for leverandøren: Monitoring Reader på Azure-
 
 :::details Testen går gjennom, men ingenting vises for i dag
 Leverandørene rapporterer en dags forbruk minutter til timer etterpå og retter det i en dag eller to. De neste lesingene henter det.
+:::
+
+:::details Kontoen fungerer, men statusen sier ingen bruk
+Lesingene fant ingen siden dagen som er nevnt. OpenAIs rapporter teller API-kallene som er gjort med den organisasjonens nøkler, ikke Azure OpenAI eller ChatGPT. En Azure-tilkobling leser bare ressursene appen dens kan se: gi appen Monitoring Reader der de ligger.
+:::
+
+:::details Kontoer er koblet til, men Samtaler og Kall er tomme
+En konto henter forbruk og kostnad per dag, aldri et kall eller en samtale: de kommer fra appene dine. Se [Sjekk hva som kommer inn](/docs/telemetry/ai-llm-observability#sjekk-hva-som-kommer-inn).
 :::
 
 :::details Kostnaden avviker fra fakturaen

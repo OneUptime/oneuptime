@@ -83,7 +83,7 @@ Copilot सिर्फ़ अपनी एजेंट सुविधाओं
 
 | कॉलम | कुंजियाँ, पसंदीदा पहले |
 | --- | --- |
-| कर्मचारी | `user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
+| कर्मचारी | `user.email`, `cursor.user.email`, `user.id`, `user.account_uuid`, `user.account_id`, `cursor.user.id` |
 | टीम / कॉस्ट सेंटर | `team.id`, `team`, `cost_center`, `department`, `cursor.team.id` |
 | मॉडल | `gen_ai.request.model`, `model`, `cursor.model.name` |
 
@@ -138,7 +138,7 @@ OneUptime टोकन `gen_ai.client.token.usage`, `gen_ai.client.token.count`,
 आंकड़े पढ़ने से पहले दो बातें जान लें:
 
 - **`gemini_cli.token.usage` जानबूझकर छोड़ दिया जाता है।** Gemini CLI अपने टोकन दो बार भेजता है, अपने मेट्रिक के रूप में और `gen_ai.client.token.usage` के रूप में, और दोनों पढ़ने से वे दोगुने हो जाएँगे। इसके टोकन `gen_ai.client.token.usage` के ज़रिए एक बार गिने जाते हैं। Gemini CLI कोई लागत मेट्रिक नहीं भेजता: हर कॉल की कीमत लगवाने के लिए इसके ट्रेस चालू करें।
-- **सिर्फ़ इनपुट और आउटपुट टोकन गिने जाते हैं।** टोकन का प्रकार `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` या `token_type` से पढ़ा जाता है, और सिर्फ़ `input` और `output` (या पुराने `prompt` और `completion`) गिने जाते हैं। कैश रीड और राइट, Codex का `total` (जो बाकी को दोहराता है) और `reasoning_output` (`output` का हिस्सा) छोड़ दिए जाते हैं, इसलिए मेट्रिक्स से आया कुल, किसी टूल के भेजे सब कुछ के जोड़ से छोटा होता है।
+- **सिर्फ़ इनपुट और आउटपुट टोकन गिने जाते हैं।** टोकन का प्रकार `gen_ai.token.type`, `llm.token.type`, `type`, `cursor.token.type` या `token_type` से पढ़ा जाता है, और सिर्फ़ `input` और `output` (या पुराने `prompt` और `completion`) गिने जाते हैं, साथ में Claude Code के `cacheRead` और `cacheCreation` इनपुट के रूप में, क्योंकि उसका `input` इन्हें छोड़ देता है। बाकी कैश रीड और राइट, Codex का `total` (जो बाकी को दोहराता है) और `reasoning_output` (`output` का हिस्सा) छोड़ दिए जाते हैं, इसलिए मेट्रिक्स से आया कुल, किसी टूल के भेजे सब कुछ के जोड़ से छोटा होता है।
 
 ## उपयोग टैब
 

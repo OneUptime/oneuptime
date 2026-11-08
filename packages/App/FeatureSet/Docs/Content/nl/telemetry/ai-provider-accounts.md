@@ -49,7 +49,7 @@ Klik bij **Testen** op **Verbinding testen**. OneUptime leest het gebruik van de
 Klik op **Koppelen**. De eerste leesronde start binnen een minuut en haalt de laatste 30 dagen op.
 :::
 
-Gekoppelde accounts staan onder de tegels, met hun **Status** en **Laatst gelezen**. **Nu lezen** leest meteen, **Testen** controleert de opgeslagen instellingen opnieuw, **Uitzetten** stopt met lezen en houdt wat gelezen is, en **Bewerken** wijzigt de instellingen: een leeg gelaten geheim houdt het opgeslagen geheim. **Fout bekijken** toont waarom een leesronde mislukte, zonder enig geheim.
+Gekoppelde accounts staan onder de tegels, met hun **Status** en **Laatst gelezen**. **Nu lezen** leest meteen, **Testen** controleert de opgeslagen instellingen opnieuw, **Uitzetten** stopt met lezen en houdt wat gelezen is, en **Bewerken** wijzigt de instellingen: een leeg gelaten geheim houdt het opgeslagen geheim. **Fout bekijken** toont waarom een leesronde mislukte, zonder enig geheim. De status van een werkend account noemt de laatste dag met gebruik of, als zijn leesrondes er geen vonden, de eerste gelezen dag; een Azure-koppeling die geen resource vindt, zegt dat.
 
 ## Wat elke provider levert
 
@@ -187,6 +187,14 @@ Geef ze de rol die deze pagina voor de provider noemt: Monitoring Reader op het 
 
 :::details De test slaagt, maar voor vandaag verschijnt niets
 Providers rapporteren het gebruik van een dag minuten tot uren later en corrigeren het nog een dag of twee. De volgende leesrondes halen het op.
+:::
+
+:::details Het account werkt, maar zijn status meldt geen gebruik
+Zijn leesrondes vonden er geen sinds de genoemde dag. De rapporten van OpenAI tellen de API-aanroepen met de sleutels van die organisatie, niet Azure OpenAI of ChatGPT. Een Azure-koppeling leest alleen de resources die zijn app kan zien: geef de app Monitoring Reader waar ze staan.
+:::
+
+:::details Accounts zijn gekoppeld, maar Gesprekken en Aanroepen zijn leeg
+Een account brengt gebruik en kosten per dag, nooit een aanroep of een gesprek: die komen uit je apps. Zie [Controleer wat er binnenkomt](/docs/telemetry/ai-llm-observability#controleer-wat-er-binnenkomt).
 :::
 
 :::details De kosten wijken af van de factuur
