@@ -589,7 +589,7 @@ describe("Network automation rule run endpoints", () => {
       autoImportRuleService.findOneBy.mockResolvedValue({
         id: RULE_ID,
         monitorTemplateId: ObjectID.generate(),
-      });
+      } as never);
       const props: DatabaseCommonInteractionProps = propsWith({
         permissions: [
           Permission.EditNetworkDeviceAutoImportRule,
