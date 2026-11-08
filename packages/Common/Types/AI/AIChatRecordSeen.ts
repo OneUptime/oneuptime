@@ -9,10 +9,10 @@
  * undo some of it. The model is told to read first, and usually does, but
  * nothing makes it, and a number it passed back could be left out or made
  * up. So OneUptime keeps, itself, what each tool result showed the model:
- * the record, its revision as shown, and a keyed fingerprint of each of its
- * parts (a workflow's steps, as Types/Workflow/WorkflowDraftRebase
- * fingerprints them: what a step is and what it connects to, never where its
- * card sits, and nothing anybody could work a setting out from).
+ * the record, its revision as shown, and each of its parts - a workflow's
+ * steps, each by a keyed fingerprint of what it is (its component and
+ * settings, never where its card sits, and nothing anybody could work a
+ * setting out from), and its connections (Types/Workflow/WorkflowDraftSeen).
  *
  * A result carries it to the citation the chat runner mints for it
  * (AIChatCitation.recordSeen), which only the server writes and which is
