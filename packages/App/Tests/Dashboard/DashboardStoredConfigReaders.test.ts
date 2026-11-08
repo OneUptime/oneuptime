@@ -121,6 +121,10 @@ const KNOWN_FILES: Record<string, KnownFile> = {
     role: "handed-a-read-config",
     why: "handed DashboardAPI.getStoredViewConfig's located config",
   },
+  "Common/Server/Utils/Dashboard/PublicDashboardMetricServices.ts": {
+    role: "handed-a-read-config",
+    why: "reads each metric's saved services out of DashboardAPI.getStoredViewConfig's located config, where the metric allowlist reads its names",
+  },
   "Common/Utils/Dashboard/DashboardViewConfig.ts": {
     role: "handed-a-read-config",
     why: "layout utilities over a config already read",
