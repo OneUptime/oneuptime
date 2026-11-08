@@ -6,7 +6,7 @@
  *     archived banner, and the status page's side menu, whose Rules section
  *     holds Monitor Rules;
  *   - Pages/Slo/View/Layout: the same for an SLO, whose Rules section holds
- *     Monitor Rules and Burn Rate Rules.
+ *     Monitor Rules, Burn Rate Rules and the Error Budget Policy.
  *
  * Each layout is one route the pages are children of, so it stays mounted
  * while the pages change, as in the Dashboard: a section someone opened

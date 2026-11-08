@@ -7,7 +7,7 @@ Un SLO garde deux traces de son histoire, et elles répondent à des questions d
 | | **Fil d'activité** | **Journaux d'audit** |
 | --- | --- | --- |
 | Répond à | Ce qui est arrivé au SLO | Qui a changé quoi, et quand |
-| Enregistre | Les changements de statut, les alertes et incidents de taux de consommation, et les changements du SLO, de ses règles, de ses moniteurs et de ses propriétaires | Chaque changement fait par une personne sur le SLO, ses règles de taux de consommation, ses règles de moniteurs et ses propriétaires, avec l'ancienne et la nouvelle valeur |
+| Enregistre | Les changements de statut, les changements de palier de la politique de budget d'erreur, les alertes et incidents des règles de taux de consommation et des paliers, et les changements du SLO, de ses règles, de ses moniteurs et de ses propriétaires | Chaque changement fait par une personne sur le SLO, ses règles de taux de consommation, ses règles de moniteurs, ses paliers de politique de budget d'erreur et ses propriétaires, avec l'ancienne et la nouvelle valeur |
 | Inclut le travail de OneUptime lui-même | Oui : les évaluations et les règles de moniteurs qui rattachent des moniteurs | Seulement avec **Stocker les événements système** activé |
 | Offres | Toutes les offres | L'offre Enterprise sur OneUptime Cloud, ou l'Enterprise Edition sur une installation auto-hébergée |
 | Conservation | Trois ans sur OneUptime Cloud | 7 jours par défaut, jusqu'à 180 |
@@ -32,9 +32,13 @@ Le fil d'activité se trouve sur la page **Fil d'activité** du SLO, et ses dern
 | SLO activé ou désactivé | L'évaluation est activée ou désactivée. |
 | SLO archivé ou restauré | Le SLO est archivé ou désarchivé. |
 | Statut modifié | Une évaluation fait passer le SLO à un nouveau statut. Affiche le SLI, le budget d'erreur, le taux de consommation et le seuil à risque qui l'expliquent, et la raison pour **En pause** ou **Mal configuré**. |
+| Palier de politique de budget d'erreur changé | Une évaluation fait entrer le SLO dans un palier de sa politique de budget d'erreur, le fait passer à un autre palier ou sortir de tous les paliers. Affiche le palier quitté et le palier atteint, le budget restant, et ce que l'équipe s'est engagée à faire dans le nouveau palier. Voir [Politique de budget d'erreur](/docs/slo/error-budget-policy). |
 | Alerte de taux de consommation déclenchée | Une règle de taux de consommation crée une alerte. Renvoie vers elle et affiche les taux de consommation qui l'ont déclenchée. |
 | Incident de taux de consommation déclaré | Une règle de taux de consommation déclare un incident. Renvoie vers lui et affiche les taux de consommation qui l'ont déclenché. |
 | Alerte ou incident de taux de consommation résolu | L'alerte ou l'incident d'une règle se ferme : résolu automatiquement, ou à la main pendant que la résolution automatique était désactivée. |
+| Alerte de politique de budget d'erreur déclenchée | Un palier de la politique de budget d'erreur crée une alerte. Renvoie vers elle. |
+| Incident de politique de budget d'erreur déclaré | Un palier de la politique de budget d'erreur déclare un incident. Renvoie vers lui. |
+| Alerte ou incident de politique de budget d'erreur résolu | L'alerte ou l'incident d'un palier se ferme : remplacé par un palier plus grave, résolu automatiquement, ou à la main pendant que la résolution automatique était désactivée. |
 | Règle de taux de consommation ajoutée, modifiée ou supprimée | Quelqu'un crée, modifie ou supprime une règle de taux de consommation. Les règles par défaut d'un nouveau SLO figurent plutôt dans son élément « SLO créé ». |
 | Règle de moniteurs ajoutée, modifiée ou supprimée | Quelqu'un crée, modifie ou supprime une règle de moniteurs. Un enregistrement qui ne change rien d'important n'est pas publié. |
 | Moniteurs rattachés ou détachés | Des moniteurs sont ajoutés au SLO ou retirés, à la main ou par une règle de moniteurs. Les longues listes nomment les premiers moniteurs « et N autres ». |
@@ -55,6 +59,7 @@ La page **Journaux d'audit** du SLO liste les changements apportés :
 
 - au SLO lui-même : ses détails, ses paramètres, ses étiquettes, ses moniteurs et son archivage ;
 - à ses règles de taux de consommation ;
+- à ses paliers de politique de budget d'erreur ;
 - à ses règles de moniteurs ;
 - à ses utilisateurs propriétaires et à ses équipes propriétaires.
 
@@ -62,7 +67,7 @@ Les changements des règles et des propriétaires sont enregistrés sur la règl
 
 Deux choses n'y figurent pas :
 
-- **Les résultats d'évaluation.** Le SLI, le budget d'erreur, le taux de consommation, le statut et les heures d'évaluation changent toutes les quelques minutes. Leur historique se trouve dans la **Vue d'ensemble**, la page **Métriques** et le **Fil d'activité**.
+- **Les résultats d'évaluation.** Le SLI, le budget d'erreur, le taux de consommation, le statut et les heures d'évaluation changent toutes les quelques minutes. Leur historique se trouve dans la **Vue d'ensemble**, la page **Métriques** et le **Fil d'activité**. Le palier de la politique de budget d'erreur dans lequel se trouve le SLO fait exception : un changement de palier est enregistré comme un changement fait par OneUptime lui-même.
 - **Les changements que fait OneUptime lui-même**, comme une règle de moniteurs qui rattache ou détache un moniteur, sauf si **Stocker les événements système** est activé pour le projet. Le **Fil d'activité** enregistre les rattachements et détachements de moniteurs dans tous les cas.
 
 ### Activer les journaux d'audit

@@ -1,6 +1,7 @@
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
 import FeedMarkdown, { MarkdownText, mdText } from "../Markdown/FeedMarkdown";
+import { formatSloPolicyTierThreshold } from "./SloErrorBudgetPolicy";
 
 /*
  * The words of the SLO feed.
@@ -1542,5 +1543,101 @@ export const getBurnRateRuleRemovedFeedMarkdown: GetBurnRateRuleRemovedFeedMarkd
         ],
         "\n\n",
       ).toString(),
+    };
+  };
+
+/*
+ * ---------------------------------------------------------------------------
+ * Error budget policy
+ * ---------------------------------------------------------------------------
+ */
+
+// A tier of the SLO's error budget policy, as the feed shows it.
+export interface SloFeedPolicyTier {
+  name: string | undefined | null;
+  thresholdPercentage: number | string | undefined | null;
+  whatWeDo?: string | undefined | null;
+}
+
+export type GetSloPolicyTierChangedFeedMarkdownFunction = (data: {
+  sloMarkdownLink: MarkdownText;
+  // The tier the SLO was in, by the name it was recorded under; unset for none.
+  previousTierName: string | undefined | null;
+  // The tier it is in now; null for none.
+  newTier: SloFeedPolicyTier | null;
+  // True when the new tier is more severe than the one it was in.
+  isEscalation: boolean;
+  errorBudgetRemainingPercentage: number;
+  errorBudgetRemainingSeconds: number;
+}) => SloFeedMarkdown;
+
+/*
+ * ErrorBudgetPolicyTierChanged: the SLO entered a tier, moved between tiers
+ * or left the last one. The new tier's "what we do" goes in as the Markdown
+ * the team wrote (FeedMarkdown.asMarkdown), so the agreement is right there
+ * in the feed when the tier changes.
+ */
+export const getSloPolicyTierChangedFeedMarkdown: GetSloPolicyTierChangedFeedMarkdownFunction =
+  (data: {
+    sloMarkdownLink: MarkdownText;
+    previousTierName: string | undefined | null;
+    newTier: SloFeedPolicyTier | null;
+    isEscalation: boolean;
+    errorBudgetRemainingPercentage: number;
+    errorBudgetRemainingSeconds: number;
+  }): SloFeedMarkdown => {
+    const previousTierName: string = data.previousTierName?.trim() || "";
+    const newTierName: string = data.newTier?.name?.trim() || "";
+
+    let feedInfo: MarkdownText;
+
+    if (!data.newTier) {
+      feedInfo = previousTierName
+        ? mdText`✅ ${data.sloMarkdownLink} left the **${previousTierName}** tier of its error budget policy: its error budget is above every tier again.`
+        : mdText`✅ ${data.sloMarkdownLink} is in no tier of its error budget policy.`;
+    } else {
+      const was: MarkdownText = previousTierName
+        ? mdText` (was **${previousTierName}**)`
+        : FeedMarkdown.empty();
+
+      feedInfo = data.isEscalation
+        ? mdText`📉 ${data.sloMarkdownLink} entered the **${newTierName}** tier of its error budget policy${was}.`
+        : mdText`📈 ${data.sloMarkdownLink} recovered to the **${newTierName}** tier of its error budget policy${was}.`;
+    }
+
+    const details: Array<MarkdownText> = [
+      mdText`**Error budget policy tier**: ${previousTierName || "none"} → ${newTierName || "none"}`,
+    ];
+
+    const budgetDuration: string = formatSloFeedDuration(
+      data.errorBudgetRemainingSeconds,
+    );
+
+    details.push(
+      data.errorBudgetRemainingSeconds < 0
+        ? mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (over budget by ${budgetDuration})`
+        : mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (${budgetDuration})`,
+    );
+
+    if (data.newTier) {
+      const threshold: string = formatSloPolicyTierThreshold(
+        data.newTier.thresholdPercentage,
+      );
+
+      if (threshold) {
+        details.push(
+          mdText`**Tier applies while**: the error budget left is at or below ${threshold}`,
+        );
+      }
+
+      if (data.newTier.whatWeDo?.trim()) {
+        details.push(mdText`**What we do**:`);
+        details.push(FeedMarkdown.asMarkdown(data.newTier.whatWeDo));
+      }
+    }
+
+    return {
+      feedInfoInMarkdown: feedInfo.toString(),
+      moreInformationInMarkdown: FeedMarkdown.join(details, "\n\n").toString(),
     };
   };

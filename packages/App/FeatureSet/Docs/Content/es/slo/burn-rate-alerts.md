@@ -28,6 +28,8 @@ Con una tasa de consumo de 1 gastas el presupuesto justo a lo largo de la ventan
 
 La tasa de consumo no depende de cuánto presupuesto queda. Responde a «¿qué tan grave es ahora mismo?», que es lo que necesita la decisión de avisar a alguien.
 
+Para actuar en cambio según cuánto presupuesto queda, por ejemplo publicar solo trabajo de fiabilidad cuando queda una cuarta parte, dale al SLO una [política de presupuesto de errores](/docs/slo/error-budget-policy).
+
 ## Cómo decide una regla si se activa
 
 OneUptime comprueba cada regla de tasa de consumo habilitada cada vez que evalúa el SLO, cada 5 minutos. Cada regla mide la tasa de consumo en dos ventanas y solo se activa cuando ambas están en su umbral o por encima:
@@ -184,6 +186,9 @@ Para escribir los tuyos, usa variables de plantilla en el título, la descripci�
 | `{{errorBudgetRemaining}}` | Presupuesto de errores que queda, como duración. Empieza con un signo menos cuando el presupuesto se ha superado. | `18m 22s` |
 | `{{errorBudgetRemainingMinutes}}` | Presupuesto de errores que queda, en minutos. | `18.37` |
 | `{{windowDescription}}` | La ventana de cumplimiento del SLO, en palabras. | `rolling 30-day window` |
+| `{{policyTier}}` | Nombre del nivel de la política de presupuesto de errores en el que está el SLO tras esta evaluación. "None" cuando no está en ningún nivel. | `Reliability first` |
+| `{{policyTierThresholdPercentage}}` | Umbral de presupuesto restante de ese nivel, como porcentaje. Vacío cuando el SLO no está en ningún nivel. | `25` |
+| `{{policyTierWhatWeDo}}` | Lo que el equipo acordó hacer en ese nivel, tal como está escrito en el nivel. Vacío cuando el SLO no está en ningún nivel. | `Only reliability work and critical fixes ship.` |
 
 Por ejemplo, el título `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` se convierte en `Fast burn: Checkout availability is burning 21.5x`.
 
@@ -249,6 +254,7 @@ No para los SLO que se miden con la disponibilidad de los monitores. La disponib
 
 :::cards
 - [Presupuestos de errores](/docs/slo/error-budget): Qué es el presupuesto y cuánto dura.
+- [Política de presupuesto de errores](/docs/slo/error-budget-policy): Actúa según cuánto presupuesto queda, nivel a nivel.
 - [Reglas de escalado](/docs/on-call/escalation-rules): A quién se avisa y en qué orden.
 - [Feed y registros de auditoría de SLO](/docs/slo/feed-and-audit-logs): Cada alerta e incidente que generó una regla.
 :::

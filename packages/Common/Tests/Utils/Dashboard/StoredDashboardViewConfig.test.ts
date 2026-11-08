@@ -30,6 +30,7 @@ import DashboardVariableUrlState from "../../../Utils/Dashboard/VariableUrlState
 import GridLayoutUtil from "../../../Utils/Dashboard/GridLayout";
 import DashboardViewConfigUtil from "../../../Utils/Dashboard/DashboardViewConfig";
 import MetricQueryServices from "../../../Utils/Metrics/MetricQueryServices";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * Issue #4571: a dashboard did not open - "Cannot read properties of
@@ -1580,5 +1581,316 @@ describe("isDashboardComponentType", () => {
     ["an object", { componentType: "Chart" }],
   ])("%s is not", (_name: string, value: unknown) => {
     expect(isDashboardComponentType(value)).toBe(false);
+  });
+});
+
+/*
+ * Issue #6327: the readers every board and the public dashboard's sanitizer
+ * share. `read` takes each widget's type and place, and the board's own
+ * settings, from these; the sanitizer judges and serves every widget by
+ * them - so a widget is served as the type, and in the place, every board
+ * then draws it.
+ */
+describe("the readers every board and the public sanitizer share (issue #6327)", () => {
+  describe("getComponentType", () => {
+    test.each([
+      ["a type this version draws", "Chart", "Chart"],
+      ["a removed type", "HostMetricChart", "HostMetricChart"],
+      ["a padded type, kept as stored", " Chart ", " Chart "],
+      ["the wrong case, kept as stored", "chart", "chart"],
+      ["empty", "", ""],
+      ["nothing", undefined, ""],
+      ["null", null, ""],
+      ["a number", 7, ""],
+      ["a list", ["Chart"], ""],
+      ["an object", { name: "Chart" }, ""],
+      ["a typed value", { _type: "Name", value: "Chart" }, ""],
+    ])("%s", (_name: string, componentType: unknown, expected: string) => {
+      expect(
+        StoredDashboardViewConfig.getComponentType({
+          componentType: componentType as JSONObject,
+        }),
+      ).toBe(expected);
+    });
+  });
+
+  describe("getComponentLayout", () => {
+    test("reads numbers, and numbers written as text", () => {
+      expect(
+        StoredDashboardViewConfig.getComponentLayout({
+          topInDashboardUnits: 3,
+          leftInDashboardUnits: "4",
+          widthInDashboardUnits: " 5 ",
+          heightInDashboardUnits: 2.5,
+          minWidthInDashboardUnits: "2",
+          minHeightInDashboardUnits: 0,
+        }),
+      ).toEqual({
+        topInDashboardUnits: 3,
+        leftInDashboardUnits: 4,
+        widthInDashboardUnits: 5,
+        heightInDashboardUnits: 2.5,
+        minWidthInDashboardUnits: 2,
+        minHeightInDashboardUnits: 0,
+      });
+    });
+
+    test.each([
+      ["nothing", undefined],
+      ["null", null],
+      ["text that is no number", "wide"],
+      ["empty text", " "],
+      ["a number out of range", Infinity],
+      ["a list", [3]],
+      ["an object", { value: 3 }],
+      ["a typed value", { _type: "DateTime", value: "2026-01-01T00:00:00Z" }],
+      ["a boolean", true],
+    ])(
+      "reads %s as the fallback place and size",
+      (_name: string, value: unknown) => {
+        const stored: JSONObject = {
+          topInDashboardUnits: value as JSONObject,
+          leftInDashboardUnits: value as JSONObject,
+          widthInDashboardUnits: value as JSONObject,
+          heightInDashboardUnits: value as JSONObject,
+          minWidthInDashboardUnits: value as JSONObject,
+          minHeightInDashboardUnits: value as JSONObject,
+        };
+
+        expect(StoredDashboardViewConfig.getComponentLayout(stored)).toEqual({
+          topInDashboardUnits: 0,
+          leftInDashboardUnits: 0,
+          widthInDashboardUnits: FALLBACK_WIDGET_WIDTH_IN_DASHBOARD_UNITS,
+          heightInDashboardUnits: FALLBACK_WIDGET_HEIGHT_IN_DASHBOARD_UNITS,
+          minWidthInDashboardUnits: 1,
+          minHeightInDashboardUnits: 1,
+        });
+      },
+    );
+  });
+
+  describe("readBoardSettings", () => {
+    test("reads the height, the defaults and the variables the board reads", () => {
+      expect(
+        StoredDashboardViewConfig.readBoardSettings({
+          heightInDashboardUnits: "30",
+          timeRange: TimeRange.PAST_ONE_WEEK,
+          refreshInterval: AutoRefreshInterval.FIVE_MINUTES,
+          variables: JSON.stringify([
+            { name: "cluster", type: DashboardVariableType.CustomList },
+          ]),
+          components: [apiTextWidget()],
+          layout: "grid",
+        }),
+      ).toEqual({
+        heightInDashboardUnits: 30,
+        timeRange: TimeRange.PAST_ONE_WEEK,
+        refreshInterval: AutoRefreshInterval.FIVE_MINUTES,
+        variables: [
+          {
+            id: "00000000-0000-4000-9000-000000000001",
+            name: "cluster",
+            type: DashboardVariableType.CustomList,
+          },
+        ],
+      });
+    });
+
+    test("leaves out what the board cannot read, and falls back to the default height", () => {
+      expect(
+        StoredDashboardViewConfig.readBoardSettings({
+          heightInDashboardUnits: -4,
+          timeRange: "Custom",
+          refreshInterval: "2s",
+          variables: { id: "not a list" },
+        }),
+      ).toEqual({
+        heightInDashboardUnits: DefaultDashboardSize.heightInDashboardUnits,
+      });
+    });
+
+    test("is what read gives the board, and reading it again changes nothing", () => {
+      const stored: JSONObject = {
+        heightInDashboardUnits: "18",
+        timeRange: TimeRange.PAST_ONE_DAY,
+        variables: [
+          { id: " env ", name: 4, isMultiSelect: "true" },
+          { id: " env ", name: "repeated" },
+          "junk",
+          { name: "no id", customListValues: ["a", 2, true] },
+        ],
+      };
+
+      const board: JSONObject = StoredDashboardViewConfig.readBoardSettings(
+        stored,
+      ) as unknown as JSONObject;
+      const read: DashboardViewConfig = StoredDashboardViewConfig.read(stored);
+
+      expect(board).toEqual({
+        heightInDashboardUnits: read.heightInDashboardUnits,
+        timeRange: read.timeRange,
+        variables: read.variables,
+      });
+
+      // What the public dashboard serves is read again by its page: the same.
+      expect(
+        StoredDashboardViewConfig.readBoardSettings(
+          JSON.parse(JSON.stringify(board)) as JSONObject,
+        ),
+      ).toEqual(board);
+    });
+  });
+
+  test("read takes each widget's type and place from them, whatever deserializing makes of the widget", () => {
+    const random: SeededRandom = seededRandom(6327);
+
+    const VALUES: Array<unknown> = [
+      3,
+      "4",
+      " 5 ",
+      "wide",
+      null,
+      undefined,
+      true,
+      [2],
+      { value: 2 },
+      { _type: "DateTime", value: "2026-01-01T00:00:00.000Z" },
+      { _type: "ObjectID", value: "0f8fad5b-d9cb-469f-a165-70867728950e" },
+      { _type: "Name", value: "Chart" },
+      { _type: "Email", value: "not an email" },
+      "Chart",
+      " Chart ",
+      "HostMetricChart",
+    ];
+
+    const FIELDS: Array<string> = [
+      "componentType",
+      "topInDashboardUnits",
+      "leftInDashboardUnits",
+      "widthInDashboardUnits",
+      "heightInDashboardUnits",
+      "minWidthInDashboardUnits",
+      "minHeightInDashboardUnits",
+    ];
+
+    for (let run: number = 0; run < 400; run++) {
+      const entry: JSONObject = {
+        componentId: ObjectID.generate().toString(),
+        arguments: { text: "Hello" },
+      };
+
+      for (const field of FIELDS) {
+        const value: unknown = VALUES[random(VALUES.length)];
+
+        if (value !== undefined) {
+          entry[field] = value as JSONObject;
+        }
+      }
+
+      // Now and then the widget itself is a typed value, or holds one that cannot be read.
+      const typedRoll: number = random(5);
+
+      if (typedRoll === 0) {
+        entry["_type"] = "ObjectID";
+        entry["value"] = ObjectID.generate().toString();
+      } else if (typedRoll === 1) {
+        entry["contact"] = { _type: "Email", value: "not an email" };
+      }
+
+      const [component] = StoredDashboardViewConfig.read({
+        components: [entry],
+      }).components;
+
+      expect([run, entry, component!.componentType]).toEqual([
+        run,
+        entry,
+        StoredDashboardViewConfig.getComponentType(entry),
+      ]);
+      expect([
+        run,
+        entry,
+        {
+          topInDashboardUnits: component!.topInDashboardUnits,
+          leftInDashboardUnits: component!.leftInDashboardUnits,
+          widthInDashboardUnits: component!.widthInDashboardUnits,
+          heightInDashboardUnits: component!.heightInDashboardUnits,
+          minWidthInDashboardUnits: component!.minWidthInDashboardUnits,
+          minHeightInDashboardUnits: component!.minHeightInDashboardUnits,
+        },
+      ]).toEqual([
+        run,
+        entry,
+        StoredDashboardViewConfig.getComponentLayout(entry),
+      ]);
+    }
+  });
+
+  /*
+   * Past the bound: every reader reads a widget stored in more layers than
+   * it reads through as one of no type - signed in, the board draws "This
+   * widget could not be shown" where it can be removed, and a save keeps
+   * what it holds - and the public dashboard serves its place alone, so
+   * the public page draws the same note in the same place.
+   */
+  describe("a widget stored deeper than every board reads", () => {
+    const envelopes: (widget: unknown, layers: number) => unknown = (
+      widget: unknown,
+      layers: number,
+    ): unknown => {
+      let entry: unknown = widget;
+
+      for (let layer: number = 0; layer < layers; layer++) {
+        entry = { _type: "DashboardComponent", value: entry };
+      }
+
+      return entry;
+    };
+
+    test("is read through five layers of envelope or JSON text", () => {
+      for (const entry of [
+        envelopes(apiTextWidget(), 5),
+        JSON.stringify(envelopes(apiTextWidget(), 4)),
+        {
+          _type: "DashboardComponent",
+          value: JSON.stringify(envelopes(apiTextWidget(), 4)),
+        },
+      ]) {
+        expect(
+          typesOf(StoredDashboardViewConfig.read({ components: [entry] })),
+        ).toEqual([DashboardComponentType.Text]);
+      }
+    });
+
+    test("past them, is a widget of no type, which keeps what it holds for a save", () => {
+      for (const layers of [6, 7, 10, 11, 30]) {
+        const config: DashboardViewConfig = StoredDashboardViewConfig.read({
+          components: [envelopes(apiTextWidget(), layers)],
+        });
+
+        expectDrawable(config);
+        expect([layers, typesOf(config)]).toEqual([layers, [""]]);
+
+        // Saved as drawn, the layers it was not read through are still there.
+        expect(JSON.stringify(savedForm(config))).toContain(
+          "Hello from the envelope",
+        );
+      }
+    });
+
+    test("a config is read through four layers, and past them has no widgets", () => {
+      let config: unknown = { components: [apiTextWidget()] };
+
+      for (let layer: number = 1; layer <= 8; layer++) {
+        config =
+          layer % 2 === 0
+            ? JSON.stringify(config)
+            : { _type: "DashboardViewConfig", value: config };
+
+        expect([
+          layer,
+          typesOf(StoredDashboardViewConfig.read(config)),
+        ]).toEqual([layer, layer <= 4 ? [DashboardComponentType.Text] : []]);
+      }
+    });
   });
 });

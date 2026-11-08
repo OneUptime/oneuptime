@@ -28,6 +28,8 @@ Con un tasso di consumo di 1 spendi il budget esattamente lungo la finestra e ra
 
 Il tasso di consumo non dipende da quanto budget resta. Risponde a «quanto è grave adesso?», ed è ciò che serve per decidere se avvisare qualcuno.
 
+Per agire invece in base a quanto budget resta, per esempio rilasciando solo lavoro di affidabilità quando ne resta un quarto, dai allo SLO una [policy del budget di errore](/docs/slo/error-budget-policy).
+
 ## Come una regola decide di scattare
 
 OneUptime controlla ogni regola del tasso di consumo abilitata a ogni valutazione dello SLO, ogni 5 minuti. Ogni regola misura il tasso di consumo su due finestre e scatta solo quando entrambe sono alla sua soglia o sopra:
@@ -184,6 +186,9 @@ Per scrivere i tuoi, usa le variabili del modello nel titolo, nella descrizione 
 | `{{errorBudgetRemaining}}` | Budget di errore ancora disponibile, come durata. Inizia con un segno meno quando il budget è superato. | `18m 22s` |
 | `{{errorBudgetRemainingMinutes}}` | Budget di errore ancora disponibile, in minuti. | `18.37` |
 | `{{windowDescription}}` | La finestra di conformità dello SLO, a parole. | `rolling 30-day window` |
+| `{{policyTier}}` | Nome del livello della policy del budget di errore in cui si trova lo SLO dopo questa valutazione. "None" quando non è in nessun livello. | `Reliability first` |
+| `{{policyTierThresholdPercentage}}` | Soglia di budget rimanente di quel livello, in percentuale. Vuota quando lo SLO non è in nessun livello. | `25` |
+| `{{policyTierWhatWeDo}}` | Cosa il team ha concordato di fare in quel livello, come è scritto nel livello. Vuoto quando lo SLO non è in nessun livello. | `Only reliability work and critical fixes ship.` |
 
 Per esempio, il titolo `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` diventa `Fast burn: Checkout availability is burning 21.5x`.
 
@@ -249,6 +254,7 @@ Non per gli SLO misurati dalla disponibilità dei monitor. La disponibilità si 
 
 :::cards
 - [Budget di errore](/docs/slo/error-budget): Cos'è il budget e quanto dura.
+- [Policy del budget di errore](/docs/slo/error-budget-policy): Agire in base a quanto budget resta, livello per livello.
 - [Regole di escalation](/docs/on-call/escalation-rules): Chi viene avvisato, e in quale ordine.
 - [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs): Ogni avviso e incidente generato da una regola.
 :::

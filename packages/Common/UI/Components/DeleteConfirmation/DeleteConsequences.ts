@@ -231,9 +231,12 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
     },
     ServiceLevelObjective: {
       sentence: translationKey(
-        "Deleting an SLO also deletes its burn rate rules.",
+        "Deleting an SLO also deletes its burn rate rules and its error budget policy.",
       ),
-      deletedWith: ["ServiceLevelObjectiveBurnRateRule"],
+      deletedWith: [
+        "ServiceLevelObjectiveBurnRateRule",
+        "ServiceLevelObjectiveErrorBudgetPolicyTier",
+      ],
     },
     Service: {
       sentence: translationKey(

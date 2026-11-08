@@ -28,6 +28,8 @@ Bij een verbruikssnelheid van 1 geeft u het budget precies over het venster uit 
 
 De verbruikssnelheid hangt niet af van hoeveel budget er over is. Ze beantwoordt "hoe erg is het nu?", en dat is wat u moet weten om te beslissen of u iemand oproept.
 
+Om in plaats daarvan te handelen naar hoeveel budget er over is, bijvoorbeeld alleen nog betrouwbaarheidswerk uitbrengen zodra er een kwart van over is, geeft u de SLO een [foutbudgetbeleid](/docs/slo/error-budget-policy).
+
 ## Hoe een regel beslist af te gaan
 
 OneUptime controleert elke ingeschakelde regel voor verbruikssnelheid bij elke evaluatie van de SLO, elke 5 minuten. Elke regel meet de verbruikssnelheid over twee vensters en gaat alleen af als beide op of boven zijn drempel zitten:
@@ -184,6 +186,9 @@ Om uw eigen tekst te schrijven, gebruikt u sjabloonvariabelen in de titel, de be
 | `{{errorBudgetRemaining}}` | Foutbudget dat nog beschikbaar is, als duur. Begint met een minteken als het budget is overschreden. | `18m 22s` |
 | `{{errorBudgetRemainingMinutes}}` | Foutbudget dat nog beschikbaar is, in minuten. | `18.37` |
 | `{{windowDescription}}` | Het compliancevenster van de SLO, in woorden. | `rolling 30-day window` |
+| `{{policyTier}}` | Naam van het niveau van het foutbudgetbeleid waarin de SLO na deze evaluatie zit. "None" als hij in geen enkel niveau zit. | `Reliability first` |
+| `{{policyTierThresholdPercentage}}` | Drempel voor het resterende budget van dat niveau, als percentage. Leeg als de SLO in geen enkel niveau zit. | `25` |
+| `{{policyTierWhatWeDo}}` | Wat het team in dat niveau heeft afgesproken, zoals het op het niveau staat. Leeg als de SLO in geen enkel niveau zit. | `Only reliability work and critical fixes ship.` |
 
 Zo wordt de titel `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` bijvoorbeeld `Fast burn: Checkout availability is burning 21.5x`.
 
@@ -249,6 +254,7 @@ Niet voor SLO's die worden gemeten aan de beschikbaarheid van monitoren. Beschik
 
 :::cards
 - [Foutbudgetten](/docs/slo/error-budget): Wat het budget is en hoelang het meegaat.
+- [Foutbudgetbeleid](/docs/slo/error-budget-policy): Handel naar hoeveel budget er over is, niveau voor niveau.
 - [Escalatieregels](/docs/on-call/escalation-rules): Wie wordt opgeroepen, en in welke volgorde.
 - [SLO-feed en auditlogboeken](/docs/slo/feed-and-audit-logs): Elke waarschuwing en elk incident dat een regel geeft.
 :::

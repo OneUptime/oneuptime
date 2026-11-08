@@ -212,6 +212,60 @@ describe("the words for each kind of page", () => {
       getEventMetricWords(EventMetricSubject.Incident),
     );
   });
+
+  /*
+   * What the metric card says it shows, on the Overview and the Root Cause
+   * page alike (issue #6320): an episode's card is its first member's, and
+   * says so, in the words its member's own card uses.
+   */
+  test.each([
+    [
+      EventMetricSubject.Incident,
+      "Metrics related to this incident.",
+      "Metrics related to this incident, scoped to the affected series ({{seriesSummary}}).",
+    ],
+    [
+      EventMetricSubject.Alert,
+      "Metrics for this alert.",
+      "Metrics for this alert, scoped to the affected series ({{seriesSummary}}).",
+    ],
+    [
+      EventMetricSubject.IncidentEpisode,
+      "Metrics related to this episode's first incident.",
+      "Metrics related to this episode's first incident, scoped to the affected series ({{seriesSummary}}).",
+    ],
+    [
+      EventMetricSubject.AlertEpisode,
+      "Metrics for this episode's first alert.",
+      "Metrics for this episode's first alert, scoped to the affected series ({{seriesSummary}}).",
+    ],
+  ])(
+    "%s's card says what it shows",
+    (subject: EventMetricSubject, description: string, scoped: string) => {
+      const words: EventMetricWords = getEventMetricWords(subject);
+
+      expect(words.description).toBe(description);
+      expect(words.scopedDescription).toBe(scoped);
+      // The narrowed sentence is the plain one, narrowed.
+      expect(words.scopedDescription.replace(/, scoped to .*$/, ".")).toBe(
+        words.description,
+      );
+    },
+  );
+
+  test("an episode's card names its first member: the one its evaluated window speaks of too", () => {
+    for (const subject of [
+      EventMetricSubject.IncidentEpisode,
+      EventMetricSubject.AlertEpisode,
+    ]) {
+      const words: EventMetricWords = getEventMetricWords(subject);
+      const member: string = `this episode's first ${words.telemetryNoun}`;
+
+      expect(words.description).toContain(member);
+      expect(words.scopedDescription).toContain(member);
+      expect(words.evaluatedSubtitle).toContain(member);
+    }
+  });
 });
 
 describe("what a moment is called, and its colour", () => {

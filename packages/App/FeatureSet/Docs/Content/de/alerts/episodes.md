@@ -177,6 +177,8 @@ Eine Episode, die Sie erstellen, hat keine Gruppierungsregel, deshalb zeigt die 
 
 **Entwickler** und **Erweitert** sind zunächst eingeklappt. In der **Übersicht** nennt die Kopfzeile die **Eigentümer** der Episode, Teams zuerst, und die erste Kachel, **Erstellt**, sagt, wann die Episode entstand – **Automatisch**, wenn eine Gruppierungsregel sie eröffnet hat. Die Karte **Hergang** führt die Seite an – die Beschreibung der Episode und ihre **Grundursache** –, dann folgen **Warnungen in dieser Episode** und der **Episoden-Feed**, neben der Karte **Episodendetails**: Nummer, Status, Schweregrad, Anzahl der Warnungen, Gruppierungsregel und Bereitschaftsrichtlinien. Ihr Kopfbereich hat **Bestätigen** und **Beheben**, und **Episode verschieben nach** im Menü **⋯**.
 
+Die Seite **Grundursache** zeigt neben der Grundursache die Metriken hinter der Episode: die ihrer ersten Warnung, der am frühesten erstellten, so wie die Telemetriekarte ihrer **Übersicht** sie zeigt, rund um den Beginn der Episode und mit ihren Zeitpunkten markiert, sodass Sie sie über jeden Zeitraum rund um die Episode lesen können, während Sie festhalten, warum sie eingetreten ist. Hat diese Warnung keine Momentaufnahme einer Metrikprüfung behalten (etwa eine, die von Hand für einen Metrik-Monitor erstellt wurde), zeigt die Seite die Metriken dieses Monitors so, wie der Monitor sie jetzt liest, und sagt das.
+
 **Warnungen → Aktive Episoden** listet die Episoden, die noch nicht behoben sind, und das Abzeichen daneben zählt sie.
 
 ## Fehlerbehebung

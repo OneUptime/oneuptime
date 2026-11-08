@@ -177,6 +177,8 @@ Un épisode que vous créez n'a pas de règle de regroupement : la liste affiche
 
 **Développeurs** et **Avancé** commencent repliées. Sur la **Vue d'ensemble**, l'en-tête nomme les **Propriétaires** de l'épisode, équipes d'abord, et la première tuile, **Créé**, indique quand l'épisode a été créé — **Automatiquement**, quand une règle de regroupement l'a ouvert. La carte **Ce qui s'est passé** ouvre la page — la description de l'épisode et sa **Cause racine** — puis **Alertes de cet épisode** et le **Flux de l'épisode**, à côté de la carte **Détails de l'épisode** : son numéro, son état, sa gravité, son nombre d'alertes, sa règle de regroupement et ses politiques d'astreinte. Son en-tête propose **Prendre en compte** et **Résoudre**, et **Passer l'épisode à** dans le menu **⋯**.
 
+La page **Cause racine** trace les métriques derrière l'épisode à côté de sa cause racine : celles de sa première alerte, la plus tôt créée, comme les trace la carte de télémétrie de sa **Vue d'ensemble**, autour du début de l'épisode et avec ses moments marqués, pour que vous puissiez les lire sur n'importe quelle plage autour de lui pendant que vous notez pourquoi il s'est produit. Quand cette alerte n'a gardé aucun instantané d'un contrôle de métriques (une alerte créée à la main sur un moniteur de métriques, par exemple), la page trace les métriques de ce moniteur telles que le moniteur les lit maintenant, et le dit.
+
 **Alertes → Épisodes actifs** liste les épisodes pas encore résolus, et le badge à côté les compte.
 
 ## Dépannage

@@ -28,6 +28,8 @@ Avec un taux de consommation de 1, vous dépensez le budget exactement sur la fe
 
 Le taux de consommation ne dépend pas du budget qui reste. Il répond à « à quel point est-ce grave en ce moment ? », ce dont a besoin la décision d'alerter quelqu'un.
 
+Pour agir plutôt selon le budget qui reste, par exemple ne livrer que du travail de fiabilité une fois qu'il n'en reste qu'un quart, donnez au SLO une [politique de budget d'erreur](/docs/slo/error-budget-policy).
+
 ## Comment une règle décide de se déclencher
 
 OneUptime vérifie chaque règle de taux de consommation activée à chaque évaluation du SLO, toutes les 5 minutes. Chaque règle mesure le taux de consommation sur deux fenêtres et ne se déclenche que si les deux atteignent ou dépassent son seuil :
@@ -184,6 +186,9 @@ Pour écrire les vôtres, utilisez des variables de modèle dans le titre, la de
 | `{{errorBudgetRemaining}}` | Budget d'erreur qui reste, en durée. Commence par un signe moins une fois le budget dépassé. | `18m 22s` |
 | `{{errorBudgetRemainingMinutes}}` | Budget d'erreur qui reste, en minutes. | `18.37` |
 | `{{windowDescription}}` | La fenêtre de conformité du SLO, en toutes lettres. | `rolling 30-day window` |
+| `{{policyTier}}` | Nom du palier de la politique de budget d'erreur dans lequel se trouve le SLO après cette évaluation. « None » quand il n'est dans aucun palier. | `Reliability first` |
+| `{{policyTierThresholdPercentage}}` | Seuil de budget restant de ce palier, en pourcentage. Vide quand le SLO n'est dans aucun palier. | `25` |
+| `{{policyTierWhatWeDo}}` | Ce que l'équipe s'est engagée à faire dans ce palier, tel qu'écrit sur le palier. Vide quand le SLO n'est dans aucun palier. | `Only reliability work and critical fixes ship.` |
 
 Par exemple, le titre `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` devient `Fast burn: Checkout availability is burning 21.5x`.
 
@@ -249,6 +254,7 @@ Pas pour les SLO mesurés à partir de la disponibilité des moniteurs. La dispo
 
 :::cards
 - [Budgets d'erreur](/docs/slo/error-budget): Ce qu'est le budget, et combien de temps il dure.
+- [Politique de budget d'erreur](/docs/slo/error-budget-policy): Agir selon le budget qui reste, palier par palier.
 - [Règles d'escalade](/docs/on-call/escalation-rules): Qui est alerté, et dans quel ordre.
 - [Fil d'activité et journaux d'audit des SLO](/docs/slo/feed-and-audit-logs): Chaque alerte et chaque incident qu'une règle a déclenché.
 :::

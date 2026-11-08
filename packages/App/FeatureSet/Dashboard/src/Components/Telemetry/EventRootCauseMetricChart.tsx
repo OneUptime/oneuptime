@@ -9,10 +9,12 @@ import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { ResolvedStateList } from "Common/Utils/ResolvedState";
 import EventMetricInvestigationPanel from "./EventMetricInvestigationPanel";
-import { EventMetricSubject } from "../../Utils/EventMetricInvestigation";
+import {
+  EventMetricSubject,
+  getEventMetricWords,
+} from "../../Utils/EventMetricInvestigation";
 import { EventStateTimelineDate } from "../../Utils/EventDuration";
 import {
   RootCauseEvent,
@@ -26,45 +28,67 @@ import {
 /*
  * Where a Root Cause page keeps what the reader changed in its URL
  * ("rootCauseMetricsTime=hour-before"): a name of its own, so it never
- * reads what the Overview's card keeps under "metrics". An incident's and
- * an alert's Root Cause pages are routes of their own, so they share it.
+ * reads what the Overview's card keeps under "metrics". An incident's, an
+ * alert's and an episode's Root Cause pages are routes of their own, so
+ * they share it.
  */
 export const ROOT_CAUSE_METRICS_URL_PREFIX: string = "rootCauseMetrics";
 
-// The events a Root Cause page belongs to.
+// The records a Root Cause page belongs to.
 export type RootCauseSubject =
   | EventMetricSubject.Incident
-  | EventMetricSubject.Alert;
+  | EventMetricSubject.Alert
+  | EventMetricSubject.IncidentEpisode
+  | EventMetricSubject.AlertEpisode;
 
 /*
- * What the card says it is while it reads, and when a read fails: the
- * investigation's own words for the event, so the card keeps its title and
- * description when the charts come in.
+ * Whether a Root Cause page is one incident's or one alert's own: the event
+ * whose moments the charts mark - so it is not marked again among the
+ * incidents or alerts in the window - and whose own rule they draw. An
+ * episode's page is none of its members' own: every member is marked, as an
+ * incident or an alert, and its first member's rule is drawn
+ * (RootCauseEvent.ruleEventId), as on the episode's Overview.
  */
-export const ROOT_CAUSE_CARD_DESCRIPTIONS: Record<RootCauseSubject, string> = {
-  [EventMetricSubject.Incident]: translationKey(
-    "Metrics related to this incident.",
-  ),
-  [EventMetricSubject.Alert]: translationKey("Metrics for this alert."),
+export const ROOT_CAUSE_SUBJECT_IS_ONE_EVENT: Record<
+  RootCauseSubject,
+  boolean
+> = {
+  [EventMetricSubject.Incident]: true,
+  [EventMetricSubject.Alert]: true,
+  [EventMetricSubject.IncidentEpisode]: false,
+  [EventMetricSubject.AlertEpisode]: false,
 };
 
-// The event's state timeline and the project's states: its moments.
+/*
+ * The record's state timeline and the project's states: its moments. An
+ * episode's reader hands its start and end with them, worked out from the
+ * episode's own row by its Overview's rule (getEpisodeRootCauseTimes): its
+ * first member's start is not the episode's. Left out, as an incident's and
+ * an alert's readers leave them, they are worked out from the event's start
+ * and its timeline (getRootCauseTimes).
+ */
 export interface RootCauseMoments {
   stateTimeline: Array<EventStateTimelineDate>;
   states: Array<RootCauseState>;
+  times?: RootCauseTimes | undefined;
 }
 
 /*
- * How a Root Cause card reads its event: an incident's card reads an
+ * How a Root Cause card reads its record: an incident's card reads an
  * incident (IncidentRootCauseMetricChart), an alert's an alert
- * (AlertRootCauseMetricChart). Kept as a constant of each, so the card reads
- * its event once per event.
+ * (AlertRootCauseMetricChart), and an episode's card its first member and
+ * then the episode (IncidentEpisodeRootCauseMetricChart,
+ * AlertEpisodeRootCauseMetricChart). Kept as a constant of each, so the card
+ * reads its record once per record.
  */
 export interface RootCauseEventReader {
   subject: RootCauseSubject;
   // Whose states decide when it was resolved.
   stateList: ResolvedStateList;
-  // What decides what it charts, and when it started; null when not found.
+  /*
+   * What decides what it charts (and, for an incident or an alert, when it
+   * started); null when there is nothing to chart it from.
+   */
   readEvent: (eventId: ObjectID) => Promise<RootCauseEvent | null>;
   // Its moments. Read only for a card there is.
   readMoments: (eventId: ObjectID) => Promise<RootCauseMoments>;
@@ -80,6 +104,8 @@ interface LoadedCard {
   times: RootCauseTimes;
   impactStartedAt: Date | undefined;
   moments: RootCauseMoments;
+  // The incident or alert whose rule the charts draw, when not the record.
+  ruleEventId: string | undefined;
 }
 
 interface LoadedRootCause {
@@ -89,24 +115,25 @@ interface LoadedRootCause {
 }
 
 /**
- * The metrics behind an incident or an alert, beside its root cause (issues
- * #6249 and #6304): the same investigation the event's Overview shows
- * (EventMetricInvestigationPanel), metrics only - over the ranges around the
- * event (around its start, the hour or the day before it started, its start
- * to now or to its resolution, what the monitor saw), relative ranges or a
- * range of the reader's own, with the event's moments on the charts, Edit
- * metrics, Copy link, Reset and Open in Metric Explorer.
+ * The metrics behind an incident, an alert or an episode, beside its root
+ * cause (issues #6249, #6304 and #6320): the same investigation its
+ * Overview shows (EventMetricInvestigationPanel), metrics only - over the
+ * ranges around it (around its start, the hour or the day before it
+ * started, its start to now or to its resolution, what the monitor saw),
+ * relative ranges or a range of the reader's own, with its moments on the
+ * charts, Edit metrics, Copy link, Reset and Open in Metric Explorer.
  *
  * It charts what the Overview charts when the event kept a metric snapshot,
  * and otherwise its monitor's metrics as the monitor reads them now (see
- * EventRootCauseMetrics). Nothing at all for an event with no metrics
- * behind it, which costs one read: its moments are read only for a card
+ * EventRootCauseMetrics); an episode, its first member's, anchored on the
+ * episode. Nothing at all for a record with no metrics behind it, which
+ * costs only the reads that decide so: its moments are read only for a card
  * there is. What the reader changes is kept in the page's URL under its own
  * names, so a reload keeps it and a link opens the same charts; an
  * untouched card writes nothing there.
  *
- * One card for both Root Cause pages, so the incident's and the alert's
- * cannot drift apart, as their Overviews share the investigation itself.
+ * One card for all four Root Cause pages, so they cannot drift apart, as
+ * their Overviews share the investigation itself.
  */
 const EventRootCauseMetricChart: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -154,15 +181,21 @@ const EventRootCauseMetricChart: FunctionComponent<ComponentProps> = (
         eventId: eventId,
         card: {
           metrics: metrics,
-          // When it was declared or created, and resolved: as on its Overview.
-          times: getRootCauseTimes({
-            startedAt: event.startedAt,
-            stateTimeline: moments.stateTimeline,
-            states: moments.states,
-            stateList: reader.stateList,
-          }),
+          /*
+           * When it was declared or created, and resolved: as on its
+           * Overview. An episode's moments say so themselves.
+           */
+          times:
+            moments.times ||
+            getRootCauseTimes({
+              startedAt: event.startedAt,
+              stateTimeline: moments.stateTimeline,
+              states: moments.states,
+              stateList: reader.stateList,
+            }),
           impactStartedAt: event.impactStartedAt,
           moments: moments,
+          ruleEventId: event.ruleEventId,
         },
       });
     };
@@ -178,7 +211,12 @@ const EventRootCauseMetricChart: FunctionComponent<ComponentProps> = (
     };
   }, [eventId, reader]);
 
-  const description: string = ROOT_CAUSE_CARD_DESCRIPTIONS[reader.subject];
+  /*
+   * What the card says it is while it reads, and when a read fails: the
+   * investigation's own words for its subject, so the card keeps its title
+   * and description when the charts come in.
+   */
+  const description: string = getEventMetricWords(reader.subject).description;
   const errorText: string = error.eventId === eventId ? error.text : "";
 
   if (errorText) {
@@ -216,7 +254,10 @@ const EventRootCauseMetricChart: FunctionComponent<ComponentProps> = (
       evaluationWindow={card.metrics.evaluationWindow}
       seriesSummary={card.metrics.seriesSummary}
       subject={reader.subject}
-      eventId={eventId}
+      eventId={
+        ROOT_CAUSE_SUBJECT_IS_ONE_EVENT[reader.subject] ? eventId : undefined
+      }
+      ruleEventId={card.ruleEventId}
       startedAt={card.times.startedAt}
       endedAt={card.times.endedAt}
       impactStartedAt={card.impactStartedAt}

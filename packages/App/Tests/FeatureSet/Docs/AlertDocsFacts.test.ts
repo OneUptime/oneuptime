@@ -679,6 +679,71 @@ describe("the episode page's menu table is the episode's own menu", () => {
 });
 
 /*
+ * An episode's Root Cause page charts the metrics behind it (issue #6320):
+ * those of its first alert, as its Overview charts them, around the episode.
+ */
+describe("the episode's Root Cause page charts its first alert's metrics, as its Overview does", () => {
+  const table: string = section(
+    english(ALERT_EPISODES),
+    "## What each page of an episode shows",
+  );
+
+  it("says so, in the words the code holds it to", () => {
+    expect(table).toContain(
+      "The **Root Cause** page charts the metrics behind the episode beside its root cause: those of its first alert, the earliest created, as the telemetry card on its **Overview** charts them, around when the episode started and with its moments marked, so you can read them over any time range around it while you write down why it happened. When that alert kept no snapshot of a metric check (one created by hand on a metrics monitor, say), the page charts that monitor's metrics as the monitor reads them now, and says so.",
+    );
+
+    // The page shows the Root Cause card an alert's page shows...
+    expect(
+      readDashboardSource("Pages/Alerts/EpisodeView/RootCause.tsx"),
+    ).toContain(
+      "<AlertEpisodeRootCauseMetricChart alertEpisodeId={modelId} />",
+    );
+    const reader: string = readDashboardSource(
+      "Components/AlertEpisode/AlertEpisodeRootCauseMetricChart.tsx",
+    );
+    expect(reader).toContain("<EventRootCauseMetricChart");
+    expect(reader).toContain("subject: EventMetricSubject.AlertEpisode,");
+
+    // ...of its first alert, the earliest created, the one its Overview charts...
+    expect(reader).toContain("kind: ALERT_EPISODE_FIRST_MEMBER,");
+    expect(readDashboardSource("Pages/Alerts/EpisodeView/Index.tsx")).toContain(
+      "kind: ALERT_EPISODE_FIRST_MEMBER,",
+    );
+    expect(
+      readDashboardSource("Components/EpisodeView/EpisodeFirstMember.ts"),
+    ).toContain('startedAtField: "createdAt",');
+
+    // ...around when the episode started, with its own moments...
+    const metrics: string = readDashboardSource(
+      "Utils/EventRootCauseMetrics.ts",
+    );
+    expect(metrics).toContain("startedAt: asDate(input.episode?.createdAt),");
+    expect(
+      readDashboardSource("Components/Telemetry/EventRootCauseMetricChart.tsx"),
+    ).toContain("moments.times ||");
+
+    // ...and, with no snapshot, the monitor as it reads now, which it says.
+    expect(metrics).toContain("chartedFromMonitorNow: {");
+  });
+
+  it("names the pages as the episode's menu does", () => {
+    const pages: Array<string> = episodeViewMenu().flatMap(
+      (menuSection: MenuSection): Array<string> => {
+        return menuSection.items;
+      },
+    );
+
+    for (const page of ["Root Cause", "Overview"]) {
+      expect({ page, inMenu: pages.includes(page) }).toEqual({
+        page,
+        inMenu: true,
+      });
+    }
+  });
+});
+
+/*
  * Every bold menu path on the alert pages ("**Alerts → Rules → On-Call
  * Rules**") is a section and page of the menu it starts from. A path names a
  * section and then one of its pages, or a page straight away.

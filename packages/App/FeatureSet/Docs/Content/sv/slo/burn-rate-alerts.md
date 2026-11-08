@@ -28,6 +28,8 @@ Med förbrukningstakten 1 förbrukar du budgeten precis under fönstret och når
 
 Förbrukningstakten beror inte på hur mycket budget som finns kvar. Den svarar på ”hur illa är det just nu?”, och det är vad du behöver veta för att avgöra om du ska larma någon.
 
+För att i stället agera efter hur mycket budget som finns kvar, till exempel bara leverera tillförlitlighetsarbete när en fjärdedel finns kvar, ger du SLO:et en [felbudgetpolicy](/docs/slo/error-budget-policy).
+
 ## Hur en regel bestämmer sig för att utlösas
 
 OneUptime kontrollerar varje aktiverad regel för förbrukningstakt vid varje utvärdering av SLO:et, var 5:e minut. Varje regel mäter förbrukningstakten över två fönster och utlöses bara när båda ligger på dess tröskel eller högre:
@@ -184,6 +186,9 @@ För att skriva egna texter använder du mallvariabler i rubriken, beskrivningen
 | `{{errorBudgetRemaining}}` | Felbudget som fortfarande är tillgänglig, som varaktighet. Börjar med ett minustecken när budgeten är överskriden. | `18m 22s` |
 | `{{errorBudgetRemainingMinutes}}` | Felbudget som fortfarande är tillgänglig, i minuter. | `18.37` |
 | `{{windowDescription}}` | SLO:ets efterlevnadsfönster, i ord. | `rolling 30-day window` |
+| `{{policyTier}}` | Namnet på den nivå i felbudgetpolicyn som SLO:et är i efter den här utvärderingen. "None" när det inte är i någon nivå. | `Reliability first` |
+| `{{policyTierThresholdPercentage}}` | Nivåns tröskel för återstående budget, i procent. Tom när SLO:et inte är i någon nivå. | `25` |
+| `{{policyTierWhatWeDo}}` | Vad teamet har kommit överens om att göra i nivån, så som det står på nivån. Tom när SLO:et inte är i någon nivå. | `Only reliability work and critical fixes ship.` |
 
 Till exempel blir rubriken `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` till `Fast burn: Checkout availability is burning 21.5x`.
 
@@ -249,6 +254,7 @@ Inte för SLO:er som mäts på monitorernas tillgänglighet. Tillgänglighet mä
 
 :::cards
 - [Felbudgetar](/docs/slo/error-budget): Vad budgeten är och hur länge den räcker.
+- [Felbudgetpolicy](/docs/slo/error-budget-policy): Agera efter hur mycket budget som finns kvar, nivå för nivå.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Vem som larmas, och i vilken ordning.
 - [SLO-flöde och granskningsloggar](/docs/slo/feed-and-audit-logs): Varje larm och incident som en regel utlöser.
 :::
