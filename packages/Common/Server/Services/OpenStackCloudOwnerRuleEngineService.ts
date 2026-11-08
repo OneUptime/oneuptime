@@ -25,7 +25,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
@@ -121,6 +123,7 @@ class OpenStackCloudOwnerRuleEngineServiceClass
         openStackCloud: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running OpenStack cloud owner rules: ${error}`, {
@@ -195,6 +198,8 @@ class OpenStackCloudOwnerRuleEngineServiceClass
     openStackCloud: OpenStackCloud;
     rules: Array<OpenStackCloudOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { openStackCloud, rules } = data;
 
@@ -327,7 +332,7 @@ class OpenStackCloudOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: OpenStackCloudOwnerUserService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;
@@ -344,7 +349,7 @@ class OpenStackCloudOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: OpenStackCloudOwnerTeamService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;

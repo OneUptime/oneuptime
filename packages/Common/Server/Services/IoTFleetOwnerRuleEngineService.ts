@@ -22,7 +22,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
@@ -108,6 +110,7 @@ class IoTFleetOwnerRuleEngineServiceClass
         iotFleet: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running IoT fleet owner rules: ${error}`, {
@@ -124,6 +127,8 @@ class IoTFleetOwnerRuleEngineServiceClass
     iotFleet: IoTFleet;
     rules: Array<IoTFleetOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { iotFleet, rules } = data;
 
@@ -250,7 +255,7 @@ class IoTFleetOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: IoTFleetOwnerUserService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;
@@ -267,7 +272,7 @@ class IoTFleetOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: IoTFleetOwnerTeamService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;

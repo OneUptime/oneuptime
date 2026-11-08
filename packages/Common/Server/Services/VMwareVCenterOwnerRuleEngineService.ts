@@ -25,7 +25,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
@@ -118,6 +120,7 @@ class VMwareVCenterOwnerRuleEngineServiceClass
         vmwareVCenter: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running vCenter owner rules: ${error}`, {
@@ -134,6 +137,8 @@ class VMwareVCenterOwnerRuleEngineServiceClass
     vmwareVCenter: VMwareVCenter;
     rules: Array<VMwareVCenterOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { vmwareVCenter, rules } = data;
 
@@ -262,7 +267,7 @@ class VMwareVCenterOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: VMwareVCenterOwnerUserService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;
@@ -279,7 +284,7 @@ class VMwareVCenterOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: VMwareVCenterOwnerTeamService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;

@@ -903,3 +903,251 @@ describe("label rule engines", () => {
     },
   );
 });
+
+/*
+ * Owners an owner rule adds, and records a privacy rule makes private
+ * (issue #6300). Run now writes them through DatabaseService, which records
+ * them - but written as plain root they were System's: kept only when the
+ * project stores system events, and saying nobody ran the rule. Every owner
+ * and privacy rule engine now writes them with RuleRunWriteProps, which
+ * carries who ran the rule (OnBehalfOfProps) and nobody for a rule applied
+ * on create, and hands its Run now's props on to every method that writes.
+ * So a new engine that forgets - a write as plain root, a write round the
+ * hooks, a helper or a run that drops the props - fails here.
+ */
+describe("owner and privacy rule engines", () => {
+  const SERVICES: string = path.join(COMMON_ROOT, "Server/Services");
+  const WRITE_PROPS: string = "RuleRunWriteProps.get(data.props)";
+
+  // Calls that write a row through DatabaseService, or through the owner helpers.
+  const WRITE_METHODS: ReadonlySet<string> = new Set<string>([
+    "addOwners",
+    "create",
+    "createMany",
+    "createOwner",
+    "deleteBy",
+    "deleteOneBy",
+    "deleteOneById",
+    "updateBy",
+    "updateOneBy",
+    "updateOneById",
+  ]);
+
+  const ENGINES: Array<string> = fs
+    .readdirSync(SERVICES)
+    .filter((name: string): boolean => {
+      return (
+        name.endsWith("OwnerRuleEngineService.ts") ||
+        name.endsWith("PrivacyRuleEngineService.ts")
+      );
+    })
+    .sort();
+
+  interface EngineWrites {
+    name: string;
+    // How many rows it writes, and how many of them say who ran the rule.
+    writes: number;
+    writesWithoutWhoRanIt: Array<string>;
+    // Writing methods called without the props they were handed.
+    callsDroppingProps: Array<string>;
+    runPassesProps: boolean;
+  }
+
+  // The object a call is handed, when it is handed one.
+  const objectArgument: (
+    call: ts.CallExpression,
+  ) => ts.ObjectLiteralExpression | null = (
+    call: ts.CallExpression,
+  ): ts.ObjectLiteralExpression | null => {
+    const argument: ts.Expression | undefined = call.arguments[0];
+
+    return argument && ts.isObjectLiteralExpression(argument)
+      ? argument
+      : null;
+  };
+
+  const propertyText: (
+    literal: ts.ObjectLiteralExpression,
+    key: string,
+    source: ts.SourceFile,
+  ) => string | null = (
+    literal: ts.ObjectLiteralExpression,
+    key: string,
+    source: ts.SourceFile,
+  ): string | null => {
+    for (const property of literal.properties) {
+      if (
+        ts.isPropertyAssignment(property) &&
+        ts.isIdentifier(property.name) &&
+        property.name.text === key
+      ) {
+        return property.initializer.getText(source);
+      }
+    }
+
+    return null;
+  };
+
+  const methodOf: (node: ts.Node) => ts.MethodDeclaration | null = (
+    node: ts.Node,
+  ): ts.MethodDeclaration | null => {
+    let current: ts.Node | undefined = node.parent;
+
+    while (current && !ts.isMethodDeclaration(current)) {
+      current = current.parent;
+    }
+
+    return current && ts.isMethodDeclaration(current) ? current : null;
+  };
+
+  function readEngine(name: string): EngineWrites {
+    const text: string = fs.readFileSync(path.join(SERVICES, name), "utf8");
+    const source: ts.SourceFile = ts.createSourceFile(
+      name,
+      text,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    const lineOf: (node: ts.Node) => number = (node: ts.Node): number => {
+      return source.getLineAndCharacterOfPosition(node.getStart()).line + 1;
+    };
+
+    const writesIn: Map<string, number> = new Map<string, number>();
+    const thisCalls: Array<{
+      caller: string;
+      callee: string;
+      call: ts.CallExpression;
+    }> = [];
+    const result: EngineWrites = {
+      name,
+      writes: 0,
+      writesWithoutWhoRanIt: [],
+      callsDroppingProps: [],
+      runPassesProps: false,
+    };
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(node.expression)
+      ) {
+        const method: ts.MethodDeclaration | null = methodOf(node);
+        const caller: string = method ? method.name.getText(source) : "";
+        const called: string = node.expression.name.text;
+
+        if (node.expression.expression.kind === ts.SyntaxKind.ThisKeyword) {
+          thisCalls.push({ caller, callee: called, call: node });
+        } else if (WRITE_METHODS.has(called)) {
+          const literal: ts.ObjectLiteralExpression | null =
+            objectArgument(node);
+          // An object's props, or the last of a list of arguments (addOwners).
+          const last: ts.Expression | undefined =
+            node.arguments[node.arguments.length - 1];
+          const props: string | null = literal
+            ? propertyText(literal, "props", source)
+            : last
+              ? last.getText(source)
+              : null;
+
+          result.writes++;
+          writesIn.set(caller, (writesIn.get(caller) || 0) + 1);
+
+          if (props !== WRITE_PROPS) {
+            result.writesWithoutWhoRanIt.push(
+              `${name}:${lineOf(node)} ${node.expression.getText(source)} with ${props}`,
+            );
+          }
+        }
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(source);
+
+    // The methods that write, by themselves or through another that does.
+    const writing: Set<string> = new Set<string>(writesIn.keys());
+    let grew: boolean = true;
+
+    while (grew) {
+      grew = false;
+
+      for (const thisCall of thisCalls) {
+        if (writing.has(thisCall.callee) && !writing.has(thisCall.caller)) {
+          writing.add(thisCall.caller);
+          grew = true;
+        }
+      }
+    }
+
+    for (const thisCall of thisCalls) {
+      if (!writing.has(thisCall.callee)) {
+        continue;
+      }
+
+      const literal: ts.ObjectLiteralExpression | null = objectArgument(
+        thisCall.call,
+      );
+      const passesProps: boolean = Boolean(
+        literal && propertyText(literal, "props", source) === "data.props",
+      );
+
+      if (thisCall.callee === "applyRules") {
+        // A rule applied on create names nobody; Run now names who ran it.
+        if (thisCall.caller === "applyRulesToExistingResource") {
+          result.runPassesProps = result.runPassesProps || passesProps;
+        }
+
+        continue;
+      }
+
+      if (!passesProps) {
+        result.callsDroppingProps.push(
+          `${name}:${lineOf(thisCall.call)} this.${thisCall.callee} from ${thisCall.caller}`,
+        );
+      }
+    }
+
+    return result;
+  }
+
+  test("are all found", () => {
+    expect(
+      ENGINES.filter((name: string): boolean => {
+        return name.endsWith("OwnerRuleEngineService.ts");
+      }).length,
+    ).toBeGreaterThanOrEqual(34);
+    expect(
+      ENGINES.filter((name: string): boolean => {
+        return name.endsWith("PrivacyRuleEngineService.ts");
+      }).length,
+    ).toBeGreaterThanOrEqual(4);
+  });
+
+  test.each(ENGINES)(
+    "%s writes through DatabaseService, with who ran the rule",
+    (name: string) => {
+      // No owner, and no privacy, is written round DatabaseService's audit hook.
+      expect(
+        sites
+          .filter((site: Site): boolean => {
+            return site.file === `packages/Common/Server/Services/${name}`;
+          })
+          .map((site: Site): string => {
+            return `${site.file}:${site.line} ${site.call}`;
+          }),
+      ).toEqual([]);
+
+      const engine: EngineWrites = readEngine(name);
+
+      expect(engine.writes).toBeGreaterThan(0);
+      expect(engine).toEqual({
+        name,
+        writes: engine.writes,
+        writesWithoutWhoRanIt: [],
+        callsDroppingProps: [],
+        runPassesProps: true,
+      });
+    },
+  );
+});
