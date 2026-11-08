@@ -1733,12 +1733,28 @@ export default class LlmMessageParser {
         ? (unprefix(nested, "message") as Dictionary)
         : {};
 
+    for (const field of [
+      "content",
+      "role",
+      "tool_calls",
+      "id",
+      "tool_call_id",
+      "name",
+      "refusal",
+    ]) {
+      const value: unknown = attributes.get(field);
+
+      if (value !== undefined && source[field] === undefined) {
+        source[field] = toStructured(value, field, maxJsonLength);
+      }
+    }
+
     /*
      * Azure's AI Inference SDK and Semantic Kernel write the whole message
      * as one JSON string under gen_ai.event.content: {"role": "user",
      * "content": "..."} on a message event, {"message": {...},
      * "finish_reason": "stop", "index": 0} on gen_ai.choice. Its fields fill
-     * what the event's own attributes leave out.
+     * only what the event's own attributes (read above) leave out.
      */
     const eventContent: Dictionary | null = asDictionary(
       toStructured(
@@ -1768,22 +1784,6 @@ export default class LlmMessageParser {
         if (source[field] === undefined) {
           source[field] = base[field];
         }
-      }
-    }
-
-    for (const field of [
-      "content",
-      "role",
-      "tool_calls",
-      "id",
-      "tool_call_id",
-      "name",
-      "refusal",
-    ]) {
-      const value: unknown = attributes.get(field);
-
-      if (value !== undefined && source[field] === undefined) {
-        source[field] = toStructured(value, field, maxJsonLength);
       }
     }
 

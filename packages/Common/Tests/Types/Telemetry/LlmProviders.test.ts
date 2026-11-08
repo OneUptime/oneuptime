@@ -15,6 +15,7 @@ import {
   normalizeLlmProvider,
 } from "../../../Types/Telemetry/LlmProviders";
 import { LlmConnectionCatalog } from "../../../Types/LlmObservability/LlmConnectionCatalog";
+import LlmType from "../../../Types/LLM/LlmType";
 
 /*
  * ONE NAME PER AI PROVIDER.
@@ -336,6 +337,45 @@ describe("the list itself", () => {
       for (const alias of definition.aliases) {
         expect(names.has(alias)).toBe(false);
       }
+    }
+  });
+});
+
+/*
+ * OneUptime's own AI features stamp their calls with the LlmType they used
+ * (LLMCallTelemetry), so the project's own AI spend lands under the same
+ * provider rows as an app's calls to the same provider.
+ */
+describe("OneUptime's own AI calls", () => {
+  test.each([
+    [LlmType.OpenAI, LLM_PROVIDER_OPENAI],
+    [LlmType.AzureOpenAI, LLM_PROVIDER_AZURE_OPENAI],
+    [LlmType.Anthropic, "anthropic"],
+    [LlmType.Groq, "groq"],
+    [LlmType.Mistral, "mistral_ai"],
+    [LlmType.Ollama, "ollama"],
+  ])("%s is stored as %s", (llmType: LlmType, expected: string) => {
+    expect(normalizeLlmProvider({ reported: llmType.toString() })).toBe(
+      expected,
+    );
+  });
+
+  test("an OpenAI-compatible server, which the conventions do not name, keeps its own name", () => {
+    expect(
+      normalizeLlmProvider({ reported: LlmType.OpenAICompatible.toString() }),
+    ).toBe(LlmType.OpenAICompatible.toString());
+  });
+
+  test("every LlmType is one of the conventions' names or kept as sent", () => {
+    for (const llmType of Object.values(LlmType)) {
+      const stored: string = normalizeLlmProvider({ reported: llmType });
+      const known: boolean = LlmProviders.some(
+        (definition: LlmProviderDefinition): boolean => {
+          return definition.name === stored;
+        },
+      );
+
+      expect(known || stored === llmType).toBe(true);
     }
   });
 });
