@@ -778,13 +778,14 @@ describe("a row named by other columns than a name", () => {
       exception({
         type: "AuthError",
         message:
-          "user ada@example.com from 203.0.113.7 sent Bearer abcdefghijklmnop1234567890",
+          "order 550e8400-e29b-41d4-a716-446655440000 by ada@example.com from 203.0.113.7 sent Bearer abcdefghijklmnop1234567890",
       }),
     );
 
     const name: string = onlyEntry().resourceName!;
 
-    expect(name.startsWith("AuthError: user ")).toBe(true);
+    expect(name.startsWith("AuthError: order ")).toBe(true);
+    expect(name).not.toContain("550e8400-e29b-41d4-a716-446655440000");
     expect(name).not.toContain("ada@example.com");
     expect(name).not.toContain("203.0.113.7");
     expect(name).not.toContain("abcdefghijklmnop1234567890");

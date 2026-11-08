@@ -63,16 +63,20 @@ describe("an exception's name", () => {
   });
 
   test("masks the ids, addresses and secrets a message can carry", () => {
+    /*
+     * The id comes first: the secret redactor alone keeps ids, so only the
+     * exception sanitizer masks it.
+     */
     const name: string = exception(
       "AuthError",
-      "user ada@example.com from 203.0.113.7 sent Bearer abcdefghijklmnop1234567890 for 550e8400-e29b-41d4-a716-446655440000",
+      "order 550e8400-e29b-41d4-a716-446655440000 by ada@example.com from 203.0.113.7 sent Bearer abcdefghijklmnop1234567890",
     )!;
 
+    expect(name).not.toContain("550e8400-e29b-41d4-a716-446655440000");
     expect(name).not.toContain("ada@example.com");
     expect(name).not.toContain("203.0.113.7");
     expect(name).not.toContain("abcdefghijklmnop1234567890");
-    expect(name).not.toContain("550e8400-e29b-41d4-a716-446655440000");
-    expect(name.startsWith("AuthError: user ")).toBe(true);
+    expect(name.startsWith("AuthError: order ")).toBe(true);
   });
 
   test("a message of several megabytes on one line is named in linear time", () => {
