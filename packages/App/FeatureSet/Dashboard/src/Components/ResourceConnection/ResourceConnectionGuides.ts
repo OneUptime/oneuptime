@@ -75,18 +75,20 @@ export interface ResourceConnectionGuide {
       }
     | undefined;
   /*
-   * For a resource that sends data only while people use it - a RUM
-   * application, whose data comes from its visitors' browsers and phones.
-   * A stretch with nothing arriving is then the resource being idle, not
-   * broken, and its pill says "No recent traffic" rather than
-   * "Disconnected" (issue #6191). The card says so too: in grey, with
-   * when data last arrived, and with the troubleshooting steps folded
-   * behind `checksLabel` for when people are using it. Before its first
-   * data the card asks for the setup with `waitingDescription`, which does
-   * not call it "Disconnected" (its pill says "Waiting for data"). English
-   * translation keys; {{lastHeard}} in the description is when data last
-   * arrived ("3 hours ago"). Whole sentences about the resource, with no
-   * noun put in: a language words "this application" its own way.
+   * For a resource that sends data only while it is used - a RUM
+   * application, whose data comes from its visitors' browsers and phones,
+   * and a serverless function, which sends data only while it runs. A
+   * stretch with nothing arriving is then the resource being idle, not
+   * broken, and its pill says "No recent traffic" or "No recent
+   * invocations" rather than "Disconnected" (issues #6191, #6269). The
+   * card says so too: in grey, with when data last arrived, and with the
+   * troubleshooting steps folded behind `checksLabel` for when it should
+   * be busy. Before its first data the card asks for the setup with
+   * `waitingDescription`, which does not call it "Disconnected" (its pill
+   * says "Waiting for data"). English translation keys; {{lastHeard}} in
+   * the description is when data last arrived ("3 hours ago"). Whole
+   * sentences about the resource, with no noun put in: a language words
+   * "this application" its own way.
    */
   idleCopy?:
     | {
@@ -948,6 +950,25 @@ export const getRumApplicationConnectionGuide: (
 // ---- Serverless functions ---------------------------------------------------
 
 /*
+ * A function sends data only while it runs, so fifteen minutes with
+ * nothing is usually nothing having invoked it (ServerlessFunctionStatus,
+ * issue #6269): the card says that, calmly, and keeps the checks for a
+ * function that should be running one click away.
+ */
+export const SERVERLESS_FUNCTION_IDLE_COPY: NonNullable<
+  ResourceConnectionGuide["idleCopy"]
+> = {
+  title: translationKey("No invocations in the last 15 minutes"),
+  description: translationKey(
+    "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.",
+  ),
+  checksLabel: translationKey("What to check if it should be running"),
+  waitingDescription: translationKey(
+    "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.",
+  ),
+};
+
+/*
  * `cloudPlatform` is the one the function reported. On Azure Functions the
  * function app's service.name names the function, so the setting is
  * OTEL_SERVICE_NAME, as the serverless guide's Azure Functions settings
@@ -986,12 +1007,17 @@ export const getServerlessFunctionConnectionGuide: (
           : "Add the OpenTelemetry SDK for its runtime and set the environment variables from the setup guide. faas.name must match this function:",
         code: attributes,
       },
+      /*
+       * Its data comes from an invocation, so the step asks for one, and
+       * names the status the function's pill will switch to.
+       */
       {
         title: "Deploy and invoke it",
         description:
-          "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes — it switches to Connected once the first data arrives.",
+          "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.",
       },
     ],
+    idleCopy: SERVERLESS_FUNCTION_IDLE_COPY,
     troubleshootingSteps: [
       {
         title: "Check it is being invoked",

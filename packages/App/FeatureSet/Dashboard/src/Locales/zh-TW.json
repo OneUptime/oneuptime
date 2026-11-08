@@ -46431,5 +46431,19 @@
   "Record Version": "Record Version",
   "Changes saved after this was proposed were kept": "保留了此提議之後儲存的變更",
   "Copy a link to this time range": "Copy a link to this time range",
-  "Go back to what the monitor saw": "Go back to what the monitor saw"
+  "Data has arrived from this function in the last 15 minutes.": "過去 15 分鐘內收到了此函式的資料。",
+  "Data has arrived from this service in the last 30 minutes.": "過去 30 分鐘內收到了此服務的資料。",
+  "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "函式執行時才會傳送資料。請呼叫一次，幾分鐘後重新整理此頁面。收到第一批資料後，該函式會切換為「正在接收資料」。",
+  "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "尚未收到此函式的資料。請設定 OpenTelemetry SDK 並呼叫該函式，只需幾分鐘。",
+  "No invocations in the last 15 minutes": "過去 15 分鐘內無呼叫",
+  "No recent data": "近期無資料",
+  "No recent invocations": "近期無呼叫",
+  "Nothing has arrived from this function yet. Add the OpenTelemetry SDK to it and invoke it once; its Documentation tab shows how.": "尚未收到此函式的任何資料。請為它加入 OpenTelemetry SDK 並呼叫一次；它的文件分頁會說明如何操作。",
+  "Nothing has arrived from this service yet. Send its OpenTelemetry data with service.name set to exactly this service's name.": "尚未收到此服務的任何資料。請傳送它的 OpenTelemetry 資料，並將 service.name 設為與此服務的名稱完全一致。",
+  "Nothing has arrived in the last 15 minutes. A function sends data only while it runs, so this is normal when nothing has invoked it, for example between scheduled runs. If it should be running, its Overview lists what to check.": "過去 15 分鐘內沒有收到任何資料。函式只在執行時傳送資料，因此在沒有呼叫時（例如兩次排程執行之間）這是正常的。如果它應該在執行，它的概覽會列出需要檢查的項目。",
+  "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "過去 30 分鐘內沒有收到任何資料。只在處理請求時傳送資料的服務，在沒人呼叫時會保持安靜。如果它應該在處理請求，請檢查它是否在執行，以及是否仍使用此 service.name 向 OneUptime 傳送遙測資料。",
+  "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime 最後一次收到此函式的資料是在 {{lastHeard}}。它只在執行時傳送資料，因此在沒有呼叫時（例如兩次排程執行之間）這是正常的。",
+  "Status shows \"No recent invocations\" while the function runs": "函式在執行時，狀態卻顯示「近期無呼叫」",
+  "What to check if it should be running": "如果它應該在執行，需要檢查什麼"
 }

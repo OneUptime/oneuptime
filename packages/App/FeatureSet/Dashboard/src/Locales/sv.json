@@ -46431,5 +46431,19 @@
   "Record Version": "Record Version",
   "Changes saved after this was proposed were kept": "Ändringar som sparades efter det här förslaget behölls",
   "Copy a link to this time range": "Copy a link to this time range",
-  "Go back to what the monitor saw": "Go back to what the monitor saw"
+  "Data has arrived from this function in the last 15 minutes.": "Data har kommit från den här funktionen under de senaste 15 minuterna.",
+  "Data has arrived from this service in the last 30 minutes.": "Data har kommit från den här tjänsten under de senaste 30 minuterna.",
+  "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "Data skickas när funktionen körs. Anropa den en gång och uppdatera sedan den här sidan efter några minuter. Funktionen växlar till \"Tar emot data\" så snart dess första data kommer.",
+  "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "Inga data har kommit från den här funktionen ännu. Konfigurera OpenTelemetry SDK:t och anropa funktionen – det tar bara några minuter.",
+  "No invocations in the last 15 minutes": "Inga anrop under de senaste 15 minuterna",
+  "No recent data": "Inga data nyligen",
+  "No recent invocations": "Inga anrop nyligen",
+  "Nothing has arrived from this function yet. Add the OpenTelemetry SDK to it and invoke it once; its Documentation tab shows how.": "Inget har kommit från den här funktionen ännu. Lägg till OpenTelemetry SDK:t i den och anropa den en gång; dess flik Dokumentation visar hur.",
+  "Nothing has arrived from this service yet. Send its OpenTelemetry data with service.name set to exactly this service's name.": "Inget har kommit från den här tjänsten ännu. Skicka dess OpenTelemetry-data med ett service.name som är exakt den här tjänstens namn.",
+  "Nothing has arrived in the last 15 minutes. A function sends data only while it runs, so this is normal when nothing has invoked it, for example between scheduled runs. If it should be running, its Overview lists what to check.": "Inget har kommit under de senaste 15 minuterna. En funktion skickar bara data medan den körs, så det här är normalt när inget har anropat den, till exempel mellan schemalagda körningar. Om den borde köras visar dess Översikt vad du ska kontrollera.",
+  "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "Inget har kommit under de senaste 30 minuterna. En tjänst som bara skickar data medan den hanterar förfrågningar är tyst när ingen anropar den. Om den borde hantera förfrågningar, kontrollera att den körs och fortfarande skickar sin telemetri till OneUptime med det här service.name.",
+  "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime tog senast emot data från den här funktionen {{lastHeard}}. Den skickar bara data medan den körs, så det här är normalt när inget anropar den, till exempel mellan schemalagda körningar.",
+  "Status shows \"No recent invocations\" while the function runs": "Statusen visar \"Inga anrop nyligen\" medan funktionen körs",
+  "What to check if it should be running": "Vad du ska kontrollera om den borde köras"
 }

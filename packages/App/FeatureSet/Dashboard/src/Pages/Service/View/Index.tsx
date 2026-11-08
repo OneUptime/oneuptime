@@ -60,13 +60,15 @@ import {
   ServiceLanguage,
 } from "../../../Components/TelemetryResource/serviceGoldenMetrics";
 import { SERVICE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ServiceMetricDescriptions";
+import {
+  ServiceTelemetryStatus,
+  ServiceTelemetryStatusDescription,
+  describeServiceTelemetryStatus,
+} from "Common/Types/Service/ServiceTelemetryStatus";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
 };
-
-// A service is "connected" if telemetry arrived in the last 30 minutes.
-const CONNECTED_WINDOW_MS: number = 30 * 60 * 1000;
 
 const meanOf: (series: Array<TimePoint>) => number | null = (
   series: Array<TimePoint>,
@@ -307,13 +309,17 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     ? SERVICE_LANGUAGE_DISPLAY_NAMES[language]
     : undefined;
 
-  const lastSeen: Date | undefined = r.lastSeenAt
-    ? new Date(r.lastSeenAt as unknown as string)
-    : undefined;
-  const status: string =
-    lastSeen && Date.now() - lastSeen.getTime() < CONNECTED_WINDOW_MS
-      ? "connected"
-      : "disconnected";
+  /*
+   * Receiving data, No recent data or Waiting for data, from when its
+   * telemetry last arrived - never "Disconnected": a service nobody has
+   * called for half an hour is often only idle, and OneUptime cannot tell
+   * idle from stopped (ServiceTelemetryStatus, issue #6270).
+   */
+  const status: ServiceTelemetryStatusDescription =
+    describeServiceTelemetryStatus({
+      lastSeenAt: r.lastSeenAt,
+      now: OneUptimeDate.getCurrentDate(),
+    });
 
   const chips: Array<ResourceOverviewChip> = [];
   if (languageDisplay) {
@@ -586,8 +592,15 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         title={(r.name as string) || "Service"}
         identifier={(r.name as string) || ""}
         identifierLabel="service.name"
-        status={status}
-        lastSeenAt={lastSeen}
+        status={
+          status.status === ServiceTelemetryStatus.ReceivingData
+            ? "active"
+            : "inactive"
+        }
+        statusLabel={status.label}
+        statusTone={status.tone}
+        statusDescription={status.description}
+        lastSeenAt={status.lastDataAt || undefined}
         description={r.description as string}
         chips={chips}
         tiles={tiles}

@@ -46431,5 +46431,19 @@
   "Record Version": "Record Version",
   "Changes saved after this was proposed were kept": "इस प्रस्ताव के बाद सहेजे गए बदलाव बरकरार रखे गए",
   "Copy a link to this time range": "Copy a link to this time range",
-  "Go back to what the monitor saw": "Go back to what the monitor saw"
+  "Data has arrived from this function in the last 15 minutes.": "पिछले 15 मिनट में इस फ़ंक्शन से डेटा आया है।",
+  "Data has arrived from this service in the last 30 minutes.": "पिछले 30 मिनट में इस सेवा से डेटा आया है।",
+  "Data is sent when the function runs. Invoke it once, then refresh this page after a few minutes. The function switches to Receiving data once its first data arrives.": "फ़ंक्शन चलने पर ही डेटा भेजा जाता है। इसे एक बार इन्वोक करें, फिर कुछ मिनट बाद यह पेज रीफ़्रेश करें। पहला डेटा आते ही फ़ंक्शन \"डेटा मिल रहा है\" पर बदल जाता है।",
+  "Go back to what the monitor saw": "Go back to what the monitor saw",
+  "No data has arrived from this function yet. Set up the OpenTelemetry SDK and invoke the function — it takes a few minutes.": "इस फ़ंक्शन से अभी तक कोई डेटा नहीं आया है। OpenTelemetry SDK सेट अप करें और फ़ंक्शन को इन्वोक करें — इसमें बस कुछ मिनट लगते हैं।",
+  "No invocations in the last 15 minutes": "पिछले 15 मिनट में कोई इन्वोकेशन नहीं",
+  "No recent data": "हाल में कोई डेटा नहीं",
+  "No recent invocations": "हाल में कोई इन्वोकेशन नहीं",
+  "Nothing has arrived from this function yet. Add the OpenTelemetry SDK to it and invoke it once; its Documentation tab shows how.": "इस फ़ंक्शन से अभी तक कुछ नहीं आया है। इसमें OpenTelemetry SDK जोड़ें और इसे एक बार इन्वोक करें; इसका दस्तावेज़ीकरण टैब बताता है कि कैसे।",
+  "Nothing has arrived from this service yet. Send its OpenTelemetry data with service.name set to exactly this service's name.": "इस सेवा से अभी तक कुछ नहीं आया है। इसका OpenTelemetry डेटा ऐसे service.name के साथ भेजें जो ठीक इस सेवा का नाम हो।",
+  "Nothing has arrived in the last 15 minutes. A function sends data only while it runs, so this is normal when nothing has invoked it, for example between scheduled runs. If it should be running, its Overview lists what to check.": "पिछले 15 मिनट में कुछ नहीं आया। फ़ंक्शन तभी डेटा भेजता है जब वह चलता है, इसलिए जब उसे किसी ने इन्वोक नहीं किया हो, जैसे शेड्यूल किए गए रन के बीच, तब यह सामान्य है। अगर इसे चलना चाहिए, तो इसका अवलोकन बताता है कि क्या जाँचना है।",
+  "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.": "पिछले 30 मिनट में कुछ नहीं आया। जो सेवा अनुरोध संभालते समय ही डेटा भेजती है, वह तब शांत रहती है जब उसे कोई कॉल नहीं करता। अगर इसे अनुरोध मिलने चाहिए, तो जाँचें कि यह चल रही है और अब भी इस service.name के साथ अपनी टेलीमेट्री OneUptime को भेज रही है।",
+  "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime को इस फ़ंक्शन से आख़िरी बार {{lastHeard}} डेटा मिला। यह तभी डेटा भेजता है जब यह चलता है, इसलिए जब इसे कोई इन्वोक नहीं करता, जैसे शेड्यूल किए गए रन के बीच, तब यह सामान्य है।",
+  "Status shows \"No recent invocations\" while the function runs": "फ़ंक्शन चल रहा है, फिर भी स्थिति \"हाल में कोई इन्वोकेशन नहीं\" दिखाती है",
+  "What to check if it should be running": "अगर इसे चलना चाहिए तो क्या जाँचें"
 }

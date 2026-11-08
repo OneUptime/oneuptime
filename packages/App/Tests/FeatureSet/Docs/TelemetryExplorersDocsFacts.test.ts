@@ -75,6 +75,12 @@ import {
 import LogExceptionExtractor from "Common/Server/Utils/Telemetry/LogExceptionExtractor";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import PinServiceName from "Common/Server/Utils/Telemetry/PinServiceName";
+import {
+  SERVICE_NO_RECENT_DATA_AFTER_MINUTES,
+  SERVICE_NO_RECENT_DATA_LABEL,
+  SERVICE_RECEIVING_DATA_LABEL,
+  SERVICE_WAITING_FOR_DATA_LABEL,
+} from "Common/Types/Service/ServiceTelemetryStatus";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -479,6 +485,36 @@ describe("Service Catalog (telemetry/services)", () => {
     expect(page).toContain(
       "**Last Seen** is updated about once a minute, not on every batch, so it can trail live telemetry by a minute or so.",
     );
+  });
+
+  /*
+   * Issue #6270: a service's Overview says Receiving data, No recent data
+   * or Waiting for data from when its telemetry last arrived - never
+   * "Disconnected" after half an hour of quiet - and the page says so in
+   * the same words and minutes, with what to check when one should be busy.
+   */
+  it("says the Overview's status in the status module's words and minutes, and what a quiet service needs checked", () => {
+    expect(SERVICE_NO_RECENT_DATA_AFTER_MINUTES).toBe(30);
+    expect(page).toContain(
+      `Beside its name, a service's **Overview** says whether its telemetry is arriving: **${SERVICE_RECEIVING_DATA_LABEL}** while something has arrived in the last ${SERVICE_NO_RECENT_DATA_AFTER_MINUTES} minutes, **${SERVICE_NO_RECENT_DATA_LABEL}** once nothing has, and **${SERVICE_WAITING_FOR_DATA_LABEL}** before its first telemetry.`,
+    );
+    expect(page).toContain(
+      `:::details A service shows ${SERVICE_NO_RECENT_DATA_LABEL}\nNothing has arrived for it in the last ${SERVICE_NO_RECENT_DATA_AFTER_MINUTES} minutes.`,
+    );
+    // A new name is a new service, as How a service gets into the catalog says.
+    expect(page).toContain(
+      "and that it still reports the same `service.name`: a new name starts a new service.",
+    );
+    expect(page).not.toMatch(/disconnect/i);
+    expect(page).not.toMatch(/\bConnected\b/);
+
+    // The Overview draws the module's words, not a window of its own.
+    const overview: string = readPackageFile(
+      "App/FeatureSet/Dashboard/src/Pages/Service/View/Index.tsx",
+    );
+    expect(overview).toContain("describeServiceTelemetryStatus({");
+    expect(overview).toContain("statusLabel={status.label}");
+    expect(overview).not.toContain("CONNECTED_WINDOW_MS");
   });
 
   it("runs the label and owner rules on every new service, and gives it a color of its own", () => {

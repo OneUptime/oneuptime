@@ -625,7 +625,7 @@ function getWhatYouGetTopic(): SetupGuideTopic {
 - **Instances** — a live list of the \`faas.instance\` values the function reports.
 - Full **Logs**, **Traces** and **Metrics** tabs scoped to this function.
 
-A function that has sent nothing for 15 minutes shows as **Disconnected** until it runs again.`,
+A function shows **Receiving data** while its telemetry arrives, and **No recent invocations** after 15 minutes without any, which is normal between runs: it sends telemetry only while it runs.`,
   };
 }
 
@@ -712,9 +712,9 @@ A \`200\` whose message says it is a **Browser** key will not work either: a Bro
     getNotShowingUpTopic(data),
     getEmptyTabsTopic(data),
     {
-      title: 'The function shows as "Disconnected"',
+      title: 'Status shows "No recent invocations" while the function runs',
       markdown:
-        "A function shows as **Disconnected** after 15 minutes without telemetry, and it only sends telemetry while it runs — an idle function is legitimately disconnected. Invoke it and it reconnects with its next batch. If it is being invoked, work through **The function does not appear under Serverless Functions** above.",
+        "Status turns to **No recent invocations** after 15 minutes without telemetry. That is expected while nothing invokes the function: it only sends telemetry while it runs, and its next batch turns it back to **Receiving data**. If it is being invoked, work through **The function does not appear under Serverless Functions** above.",
     },
   ];
 }
