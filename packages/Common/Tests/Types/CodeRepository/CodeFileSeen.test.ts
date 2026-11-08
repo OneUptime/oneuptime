@@ -720,10 +720,12 @@ const fingerprintOf: (content: string) => string = (content: string): string => 
   return `fp-${content.length}-${content}`;
 };
 
-describe("every interleaving of reads, pushes, Ask AI's own commits and checks", () => {
+describe("every interleaving of reads, pushes, Ask AI's own commits, proposals and approvals", () => {
   test("agrees with the oracle, kept whole or as the chat runner keeps it", () => {
     const random: SeededRandom = seededRandom(6313);
     let checks: number = 0;
+    let approvals: number = 0;
+    let heldBack: number = 0;
     let said: Record<string, number> = {};
 
     for (let round: number = 0; round < 300; round++) {
@@ -749,6 +751,12 @@ describe("every interleaving of reads, pushes, Ask AI's own commits and checks",
       }
 
       const steps: number = 10 + random(30);
+      // A change shown for approval: its branch, and each file as the branch had it then.
+      let proposal: {
+        branchName: string;
+        files: Map<string, string | null>;
+        proposedOn: CodeChangeProposedOn;
+      } | null = null;
 
       for (let step: number = 0; step < steps; step++) {
         const action: number = random(10);
@@ -791,6 +799,45 @@ describe("every interleaving of reads, pushes, Ask AI's own commits and checks",
             events.push({ branchName, filePath: written, content });
             records.push(see(branchName, written, fingerprintOf(content)));
           }
+        } else if (action < 8 && proposal) {
+          // The person approves the change shown: it is held to what the card was shown on.
+          const approvedOn: Map<string, string> = repository.get(proposal.branchName)!;
+          const unreadable: boolean = random(10) === 0;
+          const now: Array<{ filePath: string; now: CodeFileOnBranch }> = [];
+          const expected: Array<string> = [];
+
+          for (const [checked, then] of proposal.files.entries()) {
+            const content: string | undefined = approvedOn.get(checked);
+
+            now.push({
+              filePath: checked,
+              now: unreadable
+                ? UNREADABLE
+                : content === undefined
+                  ? ABSENT
+                  : file(fingerprintOf(content)),
+            });
+
+            // The oracle: changed since it was shown, or no longer readable.
+            if (unreadable || (content === undefined ? null : content) !== then) {
+              expected.push(checked);
+            }
+          }
+
+          expect({
+            round,
+            step,
+            held: findCodeFilesChangedSinceProposed({
+              proposedOn: proposal.proposedOn,
+              now,
+            }),
+          }).toEqual({ round, step, held: expected });
+
+          approvals++;
+          if (expected.length > 0) {
+            heldBack++;
+          }
+          proposal = null;
         } else {
           // A change Ask AI proposes: every file, as the branch has it now - or unreadable.
           const unreadable: boolean = random(8) === 0;
@@ -832,12 +879,40 @@ describe("every interleaving of reads, pushes, Ask AI's own commits and checks",
             const key: string = expected ? expected.unseen : "nothing";
             said = { ...said, [key]: (said[key] || 0) + 1 };
           }
+
+          // Shown for approval: what the card was shown on, as the prepare keeps it.
+          if (!unreadable) {
+            const shown: Map<string, string | null> = new Map();
+
+            for (const checked of PATHS) {
+              shown.set(checked, files.has(checked) ? files.get(checked)! : null);
+            }
+
+            proposal = {
+              branchName,
+              files: shown,
+              proposedOn: {
+                branchName,
+                files: PATHS.map((checked: string) => {
+                  const content: string | undefined = files.get(checked);
+                  return {
+                    filePath: checked,
+                    fingerprint: content === undefined ? null : fingerprintOf(content),
+                  };
+                }),
+                unseen: [],
+              },
+            };
+          }
         }
       }
     }
 
-    // The draws reach every outcome, many times.
+    // The draws reach every outcome, many times - approvals held back and let through too.
     expect(checks).toBeGreaterThan(5000);
+    expect(approvals).toBeGreaterThan(200);
+    expect(heldBack).toBeGreaterThan(50);
+    expect(approvals - heldBack).toBeGreaterThan(50);
     for (const outcome of ["nothing", ...Object.values(CodeFileUnseen)]) {
       expect({ outcome, count: (said[outcome] || 0) > 100 }).toEqual({
         outcome,

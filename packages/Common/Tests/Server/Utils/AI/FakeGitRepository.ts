@@ -79,6 +79,17 @@ export const blobOf: (content: string) => string = (content: string): string => 
     .digest("hex");
 };
 
+// A file's lines, as the hosts count them: no line after a last newline.
+const linesOf: (content: string) => number = (content: string): number => {
+  if (content === "") {
+    return 0;
+  }
+
+  const lines: number = content.split("\n").length;
+
+  return content.endsWith("\n") ? lines - 1 : lines;
+};
+
 let commitCount: number = 0;
 
 const nextCommitSha: () => string = (): string => {
@@ -297,7 +308,7 @@ export function serveOnGitHub(repository: FakeGitRepository): CodeRepositoryMode
           content,
           filePath: data.filePath,
           sizeInBytes: Buffer.byteLength(content, "utf8"),
-          totalLines: content === "" ? 0 : content.replace(/\n$/, "").split("\n").length,
+          totalLines: linesOf(content),
           htmlUrl: `https://github.com/acme/checkout/blob/${data.branchName}/${data.filePath}`,
           blobSha: blobOf(content),
         };
