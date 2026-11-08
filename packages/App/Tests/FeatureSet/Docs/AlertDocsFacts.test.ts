@@ -1482,6 +1482,49 @@ describe("responding to an alert", () => {
     );
   });
 
+  it("says the Root Cause page charts the metrics behind the alert, with the card an incident's Root Cause page shows", () => {
+    const pages: string = section(page, "## What each page of an alert shows");
+
+    expect(pages).toContain(
+      "- **Description**, **Root Cause**, **Remediation** — three markdown pages. The Root Cause page also charts the metrics behind the alert, as the Overview's telemetry card does, so you can read them over any time range around it while you write down why it happened. When the alert kept no snapshot of a metric check (one created by hand on a metrics monitor, say), it charts that monitor's metrics as the monitor reads them now, and says so.",
+    );
+
+    // Three Markdown pages, as each draws its field.
+    for (const file of ["Description.tsx", "RootCause.tsx", "Remediation.tsx"]) {
+      expect(readDashboardSource(`Pages/Alerts/View/${file}`)).toContain(
+        "fieldType: FieldType.Markdown,",
+      );
+    }
+
+    // The card an incident's Root Cause page shows, reading the alert...
+    expect(readDashboardSource("Pages/Alerts/View/RootCause.tsx")).toContain(
+      "<AlertRootCauseMetricChart alertId={modelId} />",
+    );
+    for (const card of [
+      "Components/Alert/AlertRootCauseMetricChart.tsx",
+      "Components/Incident/IncidentRootCauseMetricChart.tsx",
+    ]) {
+      expect(readDashboardSource(card)).toContain("<EventRootCauseMetricChart");
+    }
+
+    // ...which is the Overview's metric investigation, metrics only...
+    const rootCauseCard: string = readDashboardSource(
+      "Components/Telemetry/EventRootCauseMetricChart.tsx",
+    );
+    expect(rootCauseCard).toContain("<EventMetricInvestigationPanel");
+    expect(rootCauseCard).toContain("showsCompanionTabs={false}");
+
+    // ...and, with no snapshot, the monitor as it reads now, which it says.
+    expect(readDashboardSource("Utils/EventRootCauseMetrics.ts")).toContain(
+      "chartedFromMonitorNow: {",
+    );
+    expect(
+      readDashboardSource(
+        "Components/Telemetry/EventMetricInvestigationPanel.tsx",
+      ),
+    ).toContain('"Charted for what this monitor checks now."');
+  });
+
   it("says who a private alert is seen by, in the product's words", () => {
     const model: string = readCommonSource("Models/DatabaseModels/Alert.ts");
 
