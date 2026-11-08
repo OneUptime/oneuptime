@@ -115,14 +115,20 @@ No puedes definir los tres indicadores desde este formulario: pertenecen a las f
 
 ## El orden es una restricción real, no una preferencia de visualización
 
-El orden se aplica cuando se escribe un cambio de estado, no solo cuando se dibuja la lista:
+El orden se aplica cuando se escribe un cambio de estado, no solo cuando se dibuja la lista. Una misma regla rige cada cambio de estado de un incidente, una alerta, un episodio de incidentes o de alertas y un evento de mantenimiento programado, lo haga quien lo haga —el panel, Slack, Microsoft Teams, la API, Terraform, un flujo de trabajo o el propio OneUptime—, y tanto si se envía como una fila de la cronología de estados del registro como si se envía como una actualización de su estado actual:
 
-- **Se rechazan las transiciones hacia atrás.** Pasar un incidente a un estado que está antes en el orden que su estado actual falla con un error que nombra ambos estados.
+- **Se rechazan las transiciones hacia atrás.** Pasar un incidente a un estado que está antes en el orden que su estado actual falla con un error que nombra ambos estados: «Incident cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states.» Un episodio está sujeto a la misma regla que los incidentes que agrupa, con su propio mensaje de error («Episode cannot transition to …»), así que un episodio resuelto no vuelve a un estado anterior, ni tampoco, a través de él, sus incidentes. Una actualización que haría retroceder un registro se rechaza antes de que se guarde nada.
 - **Se rechaza volver a elegir el estado actual.** Poner un incidente en el estado en el que ya está falla con «Incident state cannot be same as previous state.»
 - **Una fila con fecha anterior no puede duplicar a su vecina.** Insertar una fila de cronología cuyo estado coincide con el de la fila que la sigue también se rechaza.
-- **Los botones de la cabecera siguen la posición de los estados marcados en el orden.** **Reconocer** y **Resolver** se ofrecen según dónde esté el estado actual en la lista ordenada. Un estado personalizado colocado *después* del estado resuelto nunca muestra un botón **Resolver**, porque un incidente en él ya cuenta como resuelto.
+- **Los botones de la cabecera siguen la posición de los estados marcados en el orden.** **Reconocer** y **Resolver** se ofrecen según dónde esté el estado actual en la lista ordenada. Un estado personalizado colocado *después* del estado resuelto nunca muestra un botón **Resolver**, porque un incidente en él ya cuenta como resuelto. El menú de estados de la cabecera y el formulario de cambio de estado de Slack y Microsoft Teams solo ofrecen los estados posteriores al actual; para un registro en el último estado de la lista, Slack y Teams dicen «There is no later state to move this incident to.» en lugar de abrir un formulario vacío.
 
 Así que, cuando añadas un estado, colócalo donde de verdad pasaría un incidente por él. Ordenarlo mal no solo queda raro: hace imposibles algunas transiciones. Mover un estado más abajo cambia cómo cuentan los incidentes que ya están en él, en el momento en que lo sueltas.
+
+Un episodio solo mueve sus incidentes adonde pueden ir. Cuando un episodio cambia de estado, cada uno de sus incidentes se mueve con él solo si el orden propio del incidente permite el cambio: un incidente que ya está en ese estado, o más allá —resuelto por su cuenta, o en un estado personalizado posterior al estado resuelto—, se queda donde está.
+
+Un solo cambio vuelve a subir por la lista: la reapertura de una regla de agrupación. Una regla configurada para reabrir episodios resueltos recientemente reabre un episodio resuelto cuando un incidente que coincide llega dentro de su ventana, y devuelve el episodio a tu estado de creación. Es un cambio que hace el propio OneUptime —nada de lo que envíes puede pedirlo— y no reabre los incidentes del episodio.
+
+Para corregir un estado puesto por error, elimina su fila en la página de la cronología de estados del registro (consulta [La cronología de estados](#la-cronología-de-estados)). El registro vuelve al estado de su última fila restante; un episodio cuya fila de resolución elimines vuelve a estar abierto, y se borra su hora de resolución.
 
 Por la API y Terraform, el orden es la columna `order`: los números más bajos van primero. Un estado creado sin él va justo por encima del estado resuelto; uno creado o actualizado con un número ocupa ese lugar, y los estados que estorban bajan un puesto. Los números que nadie más tiene se conservan tal como se escribieron, así que un estado gestionado con Terraform relee el número que se le dio.
 
