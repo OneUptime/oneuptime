@@ -88,6 +88,35 @@ Slow leak 始终表示“在其长窗口内消耗 10% 的预算”。在 30 天�
 
 如果 SLO 已有一条同名的规则，或一条长窗口相同的规则，无论其处于开启还是关闭状态，该规则都算已存在。因此，您重命名或调整过的默认规则永远不会被重复添加。如果不想要某条默认规则，又不希望提示继续推荐它，请保留该规则并将其禁用，而不是删除。您需要创建 SLO 消耗率规则的权限。它添加的每条规则都会发布到 SLO 的动态中，并记录在其审计日志中，就像您自己创建的规则一样。
 
+### 一次为多个 SLO 添加推荐规则
+
+要为多个 SLO 添加推荐规则，请从 SLO 列表入手，而不是逐个打开每个 SLO 自己的页面。
+
+:::steps
+#### 选择 SLO
+
+打开 **SLOs**，选择要更新的 SLO。要选中筛选器显示的所有 SLO，请先选中整页，再选中列表提供的全部匹配项。
+
+#### 选择添加推荐规则
+
+打开 **批量操作**，选择 **添加推荐规则**。
+
+#### 检查要添加的内容并确认
+
+在添加任何内容之前，确认框会统计所选 SLO 中有多少个会获得每条规则，这些规则已按各 SLO 自己的窗口调整。如果窗口不同的 SLO 获得的同一条规则形式不同，例如 7 天和 30 天 SLO 上的 Slow leak，确认框会列出每种形式及其阈值、窗口以及获得该形式的 SLO。它还会说明有多少个 SLO 已拥有全部推荐规则，以及有多少个无法读取。点击 **添加推荐规则** 即可添加。
+:::
+
+每个 SLO 只会获得它缺少的规则，与它自己的 **消耗速率规则** 页面添加时完全相同：以同样的方式判断规则是否已存在，并为每条规则发布一条动态、记录一条审计日志。结果会针对每个 SLO 说明是添加了规则、它已拥有全部推荐规则，还是未被更改以及原因，例如您无权更改的 SLO。某个 SLO 未被更改永远不会妨碍其他 SLO，对相同的 SLO 再次执行也不会添加任何内容。已归档的 SLO 不在列表中，也永远不会被推荐这些规则，因为它们不会被评估：请先取消归档该 SLO。
+
+脚本也可以使用项目的 [API 密钥](/docs/api-reference/api-reference) 通过 API 完成同样的操作。针对单个 SLO 的请求接收 `{ "serviceLevelObjectiveId": "..." }`，并在 `rules` 中返回规则。批量请求接收 `{ "serviceLevelObjectiveIds": ["..."] }`，每个请求最多 100 个 SLO，并在 `results` 中按请求的顺序为每个 SLO 返回一个条目：
+
+| 请求 | 作用 |
+| --- | --- |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules` | 列出 SLO 缺少的推荐规则。不写入任何内容。 |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/add` | 添加这些规则，并列出添加的内容。再次请求不会添加任何内容。 |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk` | 说明每个 SLO 缺少什么：`Missing` 及缺少的规则、`NothingMissing`，或对您无权读取的 SLO 返回 `Refused`。不写入任何内容。 |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk/add` | 逐个为每个 SLO 添加它缺少的规则：`Added` 及添加的规则、`NothingMissing`、`Refused`，或 `Failed` 及失败前已添加的规则。再次请求只会添加仍然缺少的内容。 |
+
 ## 创建或编辑规则
 
 您需要创建 SLO 消耗率规则的权限。

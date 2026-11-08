@@ -88,6 +88,35 @@ Slow leak이 도입되기 전에 만든 SLO에는 Fast burn과 Slow burn만 있�
 
 SLO에 이름이 같은 규칙이나 긴 기간이 같은 규칙이 있으면, 켜져 있든 꺼져 있든 그 규칙은 이미 있는 것으로 봅니다. 그래서 이름을 바꾸거나 조정한 기본 규칙이 두 번 추가되는 일은 없습니다. 원하지 않는 기본 규칙을 안내가 더 이상 제안하지 않게 하려면, 그 규칙을 삭제하지 말고 남겨 둔 채 비활성화하세요. SLO 소진율 규칙을 만들 권한이 필요합니다. 추가되는 각 규칙은 직접 만든 규칙과 마찬가지로 SLO의 피드에 게시되고 감사 로그에 기록됩니다.
 
+### 여러 SLO에 한꺼번에 추가하기
+
+여러 SLO에 추천 규칙을 추가하려면 각 SLO의 페이지가 아니라 SLO 목록에서 시작하세요.
+
+:::steps
+#### SLO 선택하기
+
+**SLOs** 페이지를 열고 업데이트할 SLO를 선택합니다. 필터에 표시되는 모든 SLO를 대상으로 하려면 페이지 전체를 선택한 다음, 목록이 제안하는 일치 항목 전체를 선택합니다.
+
+#### 추천 규칙 추가 선택하기
+
+**일괄 작업** 을 열고 **추천 규칙 추가** 를 선택합니다.
+
+#### 추가될 내용 확인하고 확정하기
+
+무언가가 추가되기 전에, 확인 창은 선택한 SLO 중 각 규칙을 받는 SLO의 수를 보여 줍니다. 규칙은 각 SLO의 기간에 맞게 조정됩니다. 기간이 다른 SLO가 같은 규칙을 서로 다른 형태로 받는 경우(예: 7일 SLO와 30일 SLO의 Slow leak)에는 형태별로 임계값, 기간, 그 형태를 받는 SLO를 나열합니다. 추천 규칙이 이미 모두 있는 SLO의 수와 읽을 수 없었던 SLO의 수도 알려 줍니다. **추천 규칙 추가** 를 클릭하면 추가됩니다.
+:::
+
+각 SLO에는 없는 규칙만 추가되며, 그 SLO의 **소진율 규칙** 페이지에서 추가할 때와 똑같이 동작합니다. 이미 있는 것으로 보는 기준도 같고, 규칙마다 피드 항목과 감사 로그 항목이 하나씩 생깁니다. 결과에는 SLO마다 규칙이 추가되었는지, 추천 규칙이 이미 모두 있었는지, 아니면 변경되지 않았는지가 표시되고, 변경되지 않았다면 그 이유(예: 변경할 권한이 없는 SLO)도 표시됩니다. 변경되지 않는 SLO가 있어도 다른 SLO의 처리는 멈추지 않으며, 같은 SLO에 다시 실행해도 아무것도 추가되지 않습니다. 보관된 SLO는 평가되지 않으므로 목록에 없고 규칙이 제안되지도 않습니다. 먼저 SLO의 보관을 취소하세요.
+
+스크립트에서도 프로젝트의 [API 키](/docs/api-reference/api-reference)로 API를 통해 같은 작업을 할 수 있습니다. SLO 하나에 대한 요청은 `{ "serviceLevelObjectiveId": "..." }` 를 받고 `rules` 에 규칙을 담아 응답합니다. 일괄 요청은 `{ "serviceLevelObjectiveIds": ["..."] }` 를 받으며(요청당 SLO 최대 100개), 요청한 순서대로 SLO마다 항목 하나씩을 `results` 에 담아 응답합니다:
+
+| 요청 | 하는 일 |
+| --- | --- |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules` | SLO에 없는 추천 규칙을 나열합니다. 아무것도 기록하지 않습니다. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/add` | 그 규칙을 추가하고 추가한 내용을 나열합니다. 다시 요청해도 아무것도 추가되지 않습니다. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk` | 각 SLO에 없는 것을 알려 줍니다. 규칙과 함께 `Missing`, `NothingMissing`, 또는 읽을 권한이 없는 SLO에는 `Refused` 입니다. 아무것도 기록하지 않습니다. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk/add` | 각 SLO에 없는 것을 SLO 하나씩 차례로 추가합니다. 규칙과 함께 `Added`, `NothingMissing`, `Refused`, 또는 실패하기 전에 추가된 규칙과 함께 `Failed` 입니다. 다시 요청하면 아직 없는 것만 추가합니다. |
+
 ## 규칙 만들기 또는 편집하기
 
 SLO 소진율 규칙을 만들 권한이 필요합니다.

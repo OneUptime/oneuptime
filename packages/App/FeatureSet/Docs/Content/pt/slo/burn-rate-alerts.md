@@ -88,6 +88,35 @@ SLOs criados antes de Slow leak existir têm só Fast burn e Slow burn: atualiza
 
 Uma regra conta como já existente quando o SLO tem uma regra com o mesmo nome, ou uma com a mesma janela longa, esteja ela ligada ou desligada. Assim, uma regra padrão que você renomeou ou ajustou nunca é adicionada duas vezes. Para que o aviso deixe de oferecer uma regra padrão que você não quer, mantenha a regra e desabilite-a em vez de excluí-la. Você precisa de permissão para criar regras de taxa de consumo de SLO. Cada regra que o botão adiciona é publicada no feed do SLO e registrada nos registros de auditoria dele, como uma regra que você mesmo cria.
 
+### Adicioná-las a vários SLOs de uma vez
+
+Para dar as regras recomendadas a vários SLOs, comece pela lista de SLOs em vez da página de cada SLO.
+
+:::steps
+#### Selecionar os SLOs
+
+Abra **SLOs** e selecione os SLOs que quer atualizar. Para incluir todos os SLOs que um filtro mostra, selecione a página inteira e depois todas as correspondências que a lista oferece.
+
+#### Escolher Adicionar regras recomendadas
+
+Abra **Ações em massa** e escolha **Adicionar regras recomendadas**.
+
+#### Conferir o que será adicionado e confirmar
+
+Antes que qualquer coisa seja adicionada, a confirmação conta quantos dos SLOs selecionados recebem cada regra, ajustada à janela de cada um. Quando SLOs com janelas diferentes recebem uma regra em versões diferentes, como Slow leak em um SLO de 7 dias e em um de 30 dias, ela lista cada versão com o limite, as janelas e os SLOs que a recebem. Ela também diz quantos já têm todas as regras recomendadas e quantos não puderam ser lidos. Clique em **Adicionar regras recomendadas** para adicioná-las.
+:::
+
+Cada SLO recebe só as regras que lhe faltam, exatamente como a própria página **Regras de taxa de consumo** dele as adicionaria: a mesma verificação do que conta como já existente, e um item no feed e uma entrada nos registros de auditoria para cada regra. O resultado diz, para cada SLO, se regras foram adicionadas, se ele já tinha todas as regras recomendadas ou se ele não foi alterado e por quê, por exemplo um SLO que você não tem permissão para alterar. Um SLO que não é alterado nunca impede os outros, e executar a ação de novo nos mesmos SLOs não adiciona nada. SLOs arquivados não aparecem na lista e as regras nunca são oferecidas a eles, porque eles não são avaliados: desarquive o SLO primeiro.
+
+Scripts podem fazer o mesmo pela API, com uma [chave de API](/docs/api-reference/api-reference) do projeto. As requisições para um único SLO recebem `{ "serviceLevelObjectiveId": "..." }` e respondem com as regras em `rules`. As requisições em massa recebem `{ "serviceLevelObjectiveIds": ["..."] }`, no máximo 100 SLOs por requisição, e respondem com uma entrada para cada SLO em `results`, na ordem pedida:
+
+| Requisição | O que faz |
+| --- | --- |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules` | Lista as regras recomendadas que faltam ao SLO. Não grava nada. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/add` | Adiciona essas regras e lista o que adicionou. Pedir de novo não adiciona nada. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk` | Diz o que falta a cada SLO: `Missing` com as regras, `NothingMissing` ou `Refused` para um SLO que você não tem permissão para ler. Não grava nada. |
+| `POST /api/service-level-objective-burn-rate-rule/recommended-rules/bulk/add` | Adiciona o que falta a cada SLO, um SLO após o outro: `Added` com as regras, `NothingMissing`, `Refused` ou `Failed` com as regras adicionadas antes da falha. Pedir de novo só adiciona o que ainda falta. |
+
 ## Criar ou editar uma regra
 
 Você precisa de permissão para criar regras de taxa de consumo de SLO.
