@@ -84,7 +84,7 @@ Tout ce qui détermine la façon dont le SLO mesure part d'une valeur par défau
 | Statuts d'indisponibilité | Tous les statuts non opérationnels du projet | **Paramètres** → **Calcul de l'indisponibilité** |
 | Mode multi-moniteurs | **Un moniteur hors service** | **Paramètres** → **Calcul de l'indisponibilité** |
 | Évaluation | Activée | **Paramètres** → **Évaluation** |
-| Règles de taux de consommation | Une règle **Fast burn** et une règle **Slow burn**, adaptées à la fenêtre | **Règles de taux de consommation** |
+| Règles de taux de consommation | Une règle **Fast burn**, une règle **Slow burn** et une règle **Slow leak**, adaptées à la fenêtre | **Règles de taux de consommation** |
 
 ## De quoi est fait un SLO
 
@@ -176,13 +176,13 @@ La **Vue d'ensemble** répond à « sommes-nous dans le budget ? », de haut en 
 - **Les chiffres clés** :
   - **SLI** : la part de bon temps dans la fenêtre, et à quelle distance au-dessus ou en dessous de l'objectif elle se trouve.
   - **Budget d'erreur restant** : un pourcentage, une durée comme "12m 30s left of 43m 12s", et une barre avec un repère au seuil à risque. Une fois le budget dépassé, la tuile affiche **Budget exceeded** et de combien.
-  - **Taux de consommation** : la vitesse à laquelle le budget se consomme sur les 60 dernières minutes, la période qu'utilise la règle de consommation rapide par défaut. Il passe à l'orange au-dessus de 1× et au rouge, avec **Seuil de la règle atteint**, au plus bas seuil des règles de taux de consommation activées du SLO.
+  - **Taux de consommation** : la vitesse à laquelle le budget se consomme sur les 60 dernières minutes, la période qu'utilise la règle de consommation rapide par défaut. Il passe à l'orange au-dessus de 1× et au rouge, avec **Seuil de la règle atteint**, au plus bas seuil des règles de taux de consommation activées du SLO dont la période est de 6 heures ou moins. Une heure en dit peu sur une règle dont la période se compte en jours, comme **Slow leak**, il n'est donc pas comparé à une telle règle.
   - **Autonomie du budget** : combien de temps le budget tient à ce rythme. Voir [Budgets d'erreur](/docs/slo/error-budget#autonomie-du-budget).
 - **Consommation du budget d'erreur** : le budget restant sur la fenêtre actuelle. Voir [Budgets d'erreur](/docs/slo/error-budget#consommation-du-budget-derreur).
 - **Activité récente** : les derniers éléments du fil d'activité du SLO.
 - **Détails du SLO** : le nom, la description et les étiquettes, les seuls réglages modifiés dans la vue d'ensemble.
 - **Alertes et incidents ouverts** : ce que les règles de taux de consommation ont d'ouvert en ce moment.
-- **Règles de taux de consommation** : le seuil de chaque règle activée à côté du taux de consommation actuel, et ce que déclare la règle.
+- **Règles de taux de consommation** : le seuil de chaque règle activée à côté du taux de consommation actuel, pour les règles dont la période est de 6 heures ou moins, et ce que déclare la règle.
 
 ### Paramètres
 

@@ -21,9 +21,11 @@ export default class SloFeedUtil {
 
   /*
    * Runs `seed` while marking the SLO as "being seeded", so the burn rate rule
-   * service can tell the two rules OneUptime adds on create from rules a
-   * person adds later - the seeded pair is already described by the SLO's own
-   * "created" item and must not post two more items underneath it.
+   * service can tell the rules OneUptime adds on create from rules a person
+   * adds later - the seeded rules are already described by the SLO's own
+   * "created" item and must not post more items underneath it. (Rules a
+   * person adds with "Add recommended rules" are added later, outside this
+   * flag, and post their items like any rule added by hand.)
    *
    * Why this signal and not the create's props: seeding writes as root with
    * no user, but so do workflows and other automations whose rules DO deserve

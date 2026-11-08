@@ -84,7 +84,7 @@ Alt som bestemmer hvordan SLO-et måler, starter med en standardverdi som du end
 | Nedetidsstatuser | Alle prosjektets ikke-operative statuser | **Innstillinger** → **Beregning av nedetid** |
 | Modus for flere monitorer | **En hvilken som helst monitor nede** | **Innstillinger** → **Beregning av nedetid** |
 | Evaluering | På | **Innstillinger** → **Evaluering** |
-| Forbruksrateregler | En regel **Fast burn** og en regel **Slow burn**, tilpasset vinduet | **Forbruksrateregler** |
+| Forbruksrateregler | En regel **Fast burn**, en regel **Slow burn** og en regel **Slow leak**, tilpasset vinduet | **Forbruksrateregler** |
 
 ## Hva et SLO består av
 
@@ -176,13 +176,13 @@ Når noe hindrer et SLO i å måle, forteller et banner øverst på hver av side
 - **Nøkkeltallene**:
   - **SLI**: andelen god tid i vinduet, og hvor mye den ligger over eller under målet.
   - **Feilbudsjett igjen**: en prosentandel, en varighet som "12m 30s left of 43m 12s" og en stolpe med et merke ved risikoterskelen. Når budsjettet er overskredet, viser den **Budget exceeded** og hvor mye.
-  - **Forbruksrate**: hvor fort budsjettet brukes de siste 60 minuttene, perioden standardregelen for raskt forbruk bruker. Blir gul over 1× og rød, med **Regelterskel nådd**, ved den laveste terskelen blant de aktiverte forbruksratereglene til SLO-et.
+  - **Forbruksrate**: hvor fort budsjettet brukes de siste 60 minuttene, perioden standardregelen for raskt forbruk bruker. Blir gul over 1× og rød, med **Regelterskel nådd**, ved den laveste terskelen blant de aktiverte forbruksratereglene til SLO-et som ser 6 timer eller mindre tilbake. En time sier lite om en regel som ser flere dager tilbake, som **Slow leak**, så den sammenlignes ikke med en slik regel.
   - **Budsjettets rekkevidde**: hvor lenge budsjettet varer i det tempoet. Se [Feilbudsjetter](/docs/slo/error-budget#rekkevidden-til-budsjettet).
 - **Nedbrenning av feilbudsjett**: gjenværende budsjett over det gjeldende vinduet. Se [Feilbudsjetter](/docs/slo/error-budget#forbruket-av-feilbudsjettet).
 - **Nylig aktivitet**: de nyeste elementene i feeden til SLO-et.
 - **SLO-detaljer**: navnet, beskrivelsen og etikettene, de eneste innstillingene som redigeres i oversikten.
 - **Åpne varsler og hendelser**: det forbruksratereglene har åpent akkurat nå.
-- **Burn rate rules**: terskelen til hver aktivert regel ved siden av gjeldende forbruksrate, og hva regelen erklærer.
+- **Burn rate rules**: terskelen til hver aktivert regel ved siden av gjeldende forbruksrate, for regler som ser 6 timer eller mindre tilbake, og hva regelen erklærer.
 
 ### Innstillinger
 

@@ -84,7 +84,7 @@ Todo lo que determina cómo mide el SLO empieza con un valor predeterminado que 
 | Estados de inactividad | Todos los estados no operativos del proyecto | **Ajustes** → **Cálculo del tiempo de inactividad** |
 | Modo de varios monitores | **Cualquier monitor caído** | **Ajustes** → **Cálculo del tiempo de inactividad** |
 | Evaluación | Activada | **Ajustes** → **Evaluación** |
-| Reglas de tasa de consumo | Una regla **Fast burn** y una regla **Slow burn**, ajustadas a la ventana | **Reglas de tasa de consumo** |
+| Reglas de tasa de consumo | Una regla **Fast burn**, una regla **Slow burn** y una regla **Slow leak**, ajustadas a la ventana | **Reglas de tasa de consumo** |
 
 ## De qué está hecho un SLO
 
@@ -176,13 +176,13 @@ La **Vista general** responde a «¿estamos dentro del presupuesto?», de arriba
 - **Las cifras principales**:
   - **SLI**: la parte de tiempo bueno en la ventana, y cuánto está por encima o por debajo del objetivo.
   - **Presupuesto de errores restante**: un porcentaje, una duración como "12m 30s left of 43m 12s" y una barra con una marca en el umbral de riesgo. Cuando el presupuesto se supera, muestra **Budget exceeded** y por cuánto.
-  - **Tasa de consumo**: a qué velocidad se gasta el presupuesto en los últimos 60 minutos, el periodo que usa la regla de consumo rápido predeterminada. Se vuelve ámbar por encima de 1× y roja, con **Se alcanzó el umbral de la regla**, en el umbral más bajo de las reglas de tasa de consumo habilitadas del SLO.
+  - **Tasa de consumo**: a qué velocidad se gasta el presupuesto en los últimos 60 minutos, el periodo que usa la regla de consumo rápido predeterminada. Se vuelve ámbar por encima de 1× y roja, con **Se alcanzó el umbral de la regla**, en el umbral más bajo de las reglas de tasa de consumo habilitadas del SLO cuyo periodo es de 6 horas o menos. Una hora dice poco de una regla cuyo periodo abarca días, como **Slow leak**, así que no se compara con una regla de ese tipo.
   - **Autonomía del presupuesto**: cuánto dura el presupuesto a ese ritmo. Consulta [Presupuestos de errores](/docs/slo/error-budget#autonomía-del-presupuesto).
 - **Consumo del presupuesto de errores**: el presupuesto restante a lo largo de la ventana actual. Consulta [Presupuestos de errores](/docs/slo/error-budget#consumo-del-presupuesto-de-errores).
 - **Actividad reciente**: los últimos elementos del feed del SLO.
 - **Detalles del SLO**: el nombre, la descripción y las etiquetas, los únicos ajustes que se editan en la vista general.
 - **Alertas e incidentes abiertos**: lo que las reglas de tasa de consumo tienen abierto ahora mismo.
-- **Reglas de tasa de consumo**: el umbral de cada regla habilitada junto a la tasa de consumo actual, y lo que declara la regla.
+- **Reglas de tasa de consumo**: el umbral de cada regla habilitada junto a la tasa de consumo actual, para las reglas cuyo periodo es de 6 horas o menos, y lo que declara la regla.
 
 ### Ajustes
 

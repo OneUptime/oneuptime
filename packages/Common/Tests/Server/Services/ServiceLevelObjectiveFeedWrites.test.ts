@@ -257,6 +257,13 @@ describe("ServiceLevelObjectiveService - the created item", () => {
       longWindowInMinutes: 360,
       shortWindowInMinutes: 30,
     }),
+    Object.assign(new ServiceLevelObjectiveBurnRateRule(), {
+      name: "Slow leak",
+      burnRateThreshold: 1,
+      longWindowInMinutes: 4320,
+      shortWindowInMinutes: 360,
+      refireSuppressionMinutes: 1440,
+    }),
   ];
 
   function createdSlo(
@@ -303,7 +310,34 @@ describe("ServiceLevelObjectiveService - the created item", () => {
       "**Compliance window**: Rolling 30 days",
     );
     expect(item.moreInformationInMarkdown).toContain(
-      "**Default burn rate rules**: Fast burn (burn rate above 14.4x over 1 hour, confirmed over 5 minutes); Slow burn (burn rate above 6x over 6 hours, confirmed over 30 minutes)",
+      "**Default burn rate rules**: Fast burn (burn rate above 14.4x over 1 hour, confirmed over 5 minutes); Slow burn (burn rate above 6x over 6 hours, confirmed over 30 minutes); Slow leak (burn rate above 1x over 3 days, confirmed over 6 hours)",
+    );
+  });
+
+  /*
+   * A 7-day SLO's slow leak looks back a tenth of its window: windows that
+   * are no whole number of hours are said in minutes, exactly.
+   */
+  test("lists a short window's slow leak in the minutes it was created with", async () => {
+    await callHook("writeSloCreatedFeed", {
+      onCreate: {
+        createBy: { props: { userId: USER_ID } },
+        carryForward: null,
+      },
+      createdItem: createdSlo({ windowDays: 7 }),
+      seededBurnRateRules: [
+        Object.assign(new ServiceLevelObjectiveBurnRateRule(), {
+          name: "Slow leak",
+          burnRateThreshold: 1,
+          longWindowInMinutes: 1008,
+          shortWindowInMinutes: 84,
+        }),
+      ],
+      postedAt: POSTED_AT,
+    });
+
+    expect(feedCalls[0]!.moreInformationInMarkdown).toContain(
+      "**Default burn rate rules**: Slow leak (burn rate above 1x over 1008 minutes, confirmed over 84 minutes)",
     );
   });
 
@@ -403,7 +437,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - feed wiring", () => {
     jest
       .spyOn(ServiceLevelObjectiveService, "updateOneById")
       .mockResolvedValue(1);
-    jest.spyOn(AlertSeverityService, "findOneBy").mockResolvedValue(null);
+    jest.spyOn(AlertSeverityService, "findBy").mockResolvedValue([]);
     jest
       .spyOn(
         ServiceLevelObjectiveMonitorRuleEngineService,
@@ -444,7 +478,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - feed wiring", () => {
       sloRow({ createdAt: CREATED_AT }),
     );
 
-    expect(seedingFlagsAtRuleCreate).toEqual([true, true]);
+    expect(seedingFlagsAtRuleCreate).toEqual([true, true, true]);
     expect(SloFeedUtil.isSeedingDefaultBurnRateRules(SLO_ID)).toBe(false);
   });
 
@@ -475,7 +509,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - feed wiring", () => {
           return rule.name;
         },
       ),
-    ).toEqual(["Fast burn", "Slow burn"]);
+    ).toEqual(["Fast burn", "Slow burn", "Slow leak"]);
     // The row's time, so the item sorts ahead of the owner the create adds next.
     expect(args.postedAt).toBe(CREATED_AT);
   });
@@ -510,7 +544,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - feed wiring", () => {
           return rule.name;
         },
       ),
-    ).toEqual(["Slow burn"]);
+    ).toEqual(["Slow burn", "Slow leak"]);
   });
 
   test("does not wait for the created item, and a failing one never fails the create", async () => {

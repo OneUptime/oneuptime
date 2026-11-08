@@ -925,3 +925,130 @@ describe("query_slos — monitor rules", () => {
     expect(sloIdDescription).not.toContain("monitor labels");
   });
 });
+
+/*
+ * The burn-rate rules OneUptime recommends for every SLO - Fast burn, Slow
+ * burn and Slow leak - that this SLO does not have. An SLO created before
+ * Slow leak existed is missing it, and "is this SLO covered?" is a question
+ * the model is asked. They travel as a note, never as rows: they are not
+ * records of the SLO, and nothing about them fires.
+ */
+describe("query_slos — recommended burn-rate rules the SLO is missing", () => {
+  function ruleWith(
+    name: string,
+    longWindowInMinutes: number,
+  ): ServiceLevelObjectiveBurnRateRule {
+    const rule: ServiceLevelObjectiveBurnRateRule = buildRule({ name });
+    rule.longWindowInMinutes = longWindowInMinutes;
+    return rule;
+  }
+
+  async function detailWith(
+    rules: Array<ServiceLevelObjectiveBurnRateRule>,
+    slo: ServiceLevelObjective = buildSlo(),
+  ): Promise<ToolExecutionResult> {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(slo as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue(rules as never);
+
+    return await QuerySlosTool.execute({ sloId: SLO_ID.toString() }, ctx);
+  }
+
+  test("an SLO created before Slow leak existed is told it is missing it, scaled to its window, and where it is added", async () => {
+    const result: ToolExecutionResult = await detailWith([
+      ruleWith("Fast burn", 60),
+      ruleWith("Slow burn", 360),
+    ]);
+
+    expect(result.dataForLlm).toContain(
+      "Note: this SLO does not have this burn-rate rule OneUptime recommends for every SLO",
+    );
+    expect(result.dataForLlm).toContain(
+      "Slow leak (burn rate 1x over 4320 minutes, confirmed over 360 minutes; raises an alert at the project's least severe alert severity and declares no incident; waits 1440 minutes after an alert resolves before raising another)",
+    );
+    expect(result.dataForLlm).toContain(
+      "on the SLO's Burn Rate Rules page with Add recommended rules",
+    );
+    expect(result.dataForLlm).toContain("It is not set up and never fire");
+
+    // A note, not a record: the SLO row and its two rules.
+    expect(result.rowCount).toBe(3);
+    expect(result.dataForLlm).not.toContain("Fast burn (burn rate");
+  });
+
+  test("an SLO with every recommended rule carries no note", async () => {
+    const result: ToolExecutionResult = await detailWith([
+      ruleWith("Fast burn", 60),
+      ruleWith("Slow burn", 360),
+      ruleWith("Slow leak", 4320),
+    ]);
+
+    expect(result.dataForLlm).not.toContain("OneUptime recommends");
+    expect(result.rowCount).toBe(4);
+  });
+
+  test("a renamed or tuned default rule still counts as there", async () => {
+    const result: ToolExecutionResult = await detailWith([
+      ruleWith("Paging", 60),
+      ruleWith("Slow burn", 240),
+      ruleWith("Ticket", 4320),
+    ]);
+
+    expect(result.dataForLlm).not.toContain("OneUptime recommends");
+  });
+
+  test("an SLO with no rules is told about all three, the pages at the most severe severity", async () => {
+    const result: ToolExecutionResult = await detailWith([]);
+
+    expect(result.dataForLlm).toContain(
+      "Note: this SLO does not have these burn-rate rules OneUptime recommends for every SLO",
+    );
+    expect(result.dataForLlm).toContain(
+      "Fast burn (burn rate 14.4x over 60 minutes, confirmed over 5 minutes; raises an alert at the project's most severe alert severity and declares no incident; waits 60 minutes after an alert resolves before raising another)",
+    );
+    expect(result.dataForLlm).toContain(
+      "Slow burn (burn rate 6x over 360 minutes, confirmed over 30 minutes; raises an alert at the project's most severe alert severity",
+    );
+    expect(result.dataForLlm).toContain("Slow leak (burn rate 1x over 4320");
+    expect(result.dataForLlm).toContain("They are not set up and never fire");
+  });
+
+  test("a 7-day SLO's slow leak is described as it would be added: 16.8 hours over 84 minutes", async () => {
+    const slo: ServiceLevelObjective = buildSlo();
+    slo.windowDays = 7;
+
+    const result: ToolExecutionResult = await detailWith(
+      [ruleWith("Fast burn", 60), ruleWith("Slow burn", 360)],
+      slo,
+    );
+
+    expect(result.dataForLlm).toContain(
+      "Slow leak (burn rate 1x over 1008 minutes, confirmed over 84 minutes;",
+    );
+    expect(result.dataForLlm).toContain(
+      "waits 1008 minutes after an alert resolves",
+    );
+  });
+
+  test("a read the limit cut short says nothing: a rule that is there could read as missing", async () => {
+    const rules: Array<ServiceLevelObjectiveBurnRateRule> = Array.from(
+      { length: 25 },
+      (_value: unknown, index: number): ServiceLevelObjectiveBurnRateRule => {
+        return ruleWith(`Rule ${index + 1}`, 30);
+      },
+    );
+
+    const result: ToolExecutionResult = await detailWith(rules);
+
+    expect(result.dataForLlm).not.toContain("OneUptime recommends");
+  });
+
+  test("the tool description says it reports the recommended rules an SLO is missing", () => {
+    expect(QuerySlosTool.description).toContain(
+      "which of OneUptime's recommended burn-rate rules (Fast burn, Slow burn, Slow leak) the SLO is missing",
+    );
+  });
+});
