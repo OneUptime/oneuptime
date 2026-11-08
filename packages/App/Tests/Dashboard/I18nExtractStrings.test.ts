@@ -1086,6 +1086,88 @@ describe("a root that marks its keys", () => {
     ).toBe("keys");
   });
 
+  /*
+   * Issues #6269 and #6270: a serverless function's pill and a service's
+   * say what is true - Receiving data, No recent invocations or No recent
+   * data, Waiting for data - and their tooltips what that means, in the
+   * reader's language. The values they are read from ("connected",
+   * "disconnected") and the statuses' own names are never words a reader
+   * sees.
+   */
+  test("ServerlessFunctionStatus gives the locales its three statuses and what each means, and none of its stored values", () => {
+    const file: string =
+      "packages/Common/Types/Serverless/ServerlessFunctionStatus.ts";
+    const result: SourceScanResult = scanSourceRoots(
+      [{ directory: file, kind: "keys" }],
+      path.join(__dirname, "..", "..", "..", ".."),
+    );
+
+    expect([...textsOf(result)].sort()).toEqual(
+      [
+        "Receiving data",
+        "No recent invocations",
+        "Waiting for data",
+        "Data has arrived from this function in the last 15 minutes.",
+        "Nothing has arrived in the last 15 minutes. A function sends data only while it runs, so this is normal when nothing has invoked it, for example between scheduled runs. If it should be running, its Overview lists what to check.",
+        "Nothing has arrived from this function yet. Add the OpenTelemetry SDK to it and invoke it once; its Documentation tab shows how.",
+      ].sort(),
+    );
+    for (const unmarked of [
+      "connected",
+      "disconnected",
+      "active",
+      "Disconnected",
+      "receiving-data",
+      "no-recent-invocations",
+      "waiting-for-data",
+      "positive",
+      "neutral",
+    ]) {
+      expect(textsOf(result)).not.toContain(unmarked);
+    }
+    expect(result.hardcoded).toEqual([]);
+    expect(
+      SOURCE_ROOTS.find((root: { directory: string }): boolean => {
+        return root.directory === file;
+      })?.kind,
+    ).toBe("keys");
+  });
+
+  test("ServiceTelemetryStatus gives the locales its three statuses and what each means, and none of its names", () => {
+    const file: string =
+      "packages/Common/Types/Service/ServiceTelemetryStatus.ts";
+    const result: SourceScanResult = scanSourceRoots(
+      [{ directory: file, kind: "keys" }],
+      path.join(__dirname, "..", "..", "..", ".."),
+    );
+
+    expect([...textsOf(result)].sort()).toEqual(
+      [
+        "Receiving data",
+        "No recent data",
+        "Waiting for data",
+        "Data has arrived from this service in the last 30 minutes.",
+        "Nothing has arrived in the last 30 minutes. A service that sends data only while it handles requests is quiet when nobody calls it. If it should be busy, check that it is running and still sends its telemetry to OneUptime with this service.name.",
+        "Nothing has arrived from this service yet. Send its OpenTelemetry data with service.name set to exactly this service's name.",
+      ].sort(),
+    );
+    for (const unmarked of [
+      "receiving-data",
+      "no-recent-data",
+      "waiting-for-data",
+      "positive",
+      "neutral",
+    ]) {
+      expect(textsOf(result)).not.toContain(unmarked);
+    }
+    expect(result.hardcoded).toEqual([]);
+    expect(
+      SOURCE_ROOTS.find((root: { directory: string }): boolean => {
+        return root.directory === file;
+      })?.kind,
+    ).toBe("keys");
+  });
+
   test("TraceSpanType gives the locales its sentences and none of its names", () => {
     const file: string = "packages/Common/Types/Telemetry/TraceSpanType.ts";
     const result: SourceScanResult = scanSourceRoots(
@@ -1416,6 +1498,9 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/DatabaseServer/DatabaseHealth.ts",
       // A RUM application's status and what each means - not its stored values.
       "keys packages/Common/Types/Rum/RumApplicationStatus.ts",
+      // A serverless function's and a service's status - not their stored values.
+      "keys packages/Common/Types/Serverless/ServerlessFunctionStatus.ts",
+      "keys packages/Common/Types/Service/ServiceTelemetryStatus.ts",
       // Where a database or a queue was found, and what kind of cloud resource one is.
       "keys packages/Common/Types/DatabaseServer/DatabaseServerDiscoverySource.ts",
       "keys packages/Common/Models/DatabaseModels/MessageQueue.ts",
