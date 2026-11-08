@@ -46429,5 +46429,9 @@
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
   "Only chart this metric from these services.": "Only chart this metric from these services.",
   "Record Version": "Record Version",
-  "Changes saved after this was proposed were kept": "Изменения, сохранённые после этого предложения, остались в силе"
+  "Changes saved after this was proposed were kept": "Изменения, сохранённые после этого предложения, остались в силе",
+  "Add recommended rules": "Добавить рекомендуемые правила",
+  "Add rules": "Добавить правила",
+  "Fires when about {{percent}}% of the error budget burns in {{duration}}": "Срабатывает, когда около {{percent}}% бюджета ошибок расходуется за {{duration}}",
+  "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "Это рекомендуемые правила скорости расхода, которых у этого SLO ещё нет, рассчитанные под его окно соответствия. Потом их можно изменить или удалить, как любое другое правило."
 }

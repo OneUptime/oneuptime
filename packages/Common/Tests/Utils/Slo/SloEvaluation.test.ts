@@ -2,9 +2,19 @@ import fs from "fs";
 import path from "path";
 import { describe, expect, test } from "@jest/globals";
 import {
+  SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES,
   SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
   SLO_EVALUATION_CADENCE_MINUTES,
+  isComparedWithCurrentBurnRate,
 } from "../../../Utils/Slo/SloEvaluation";
+import {
+  SLO_FAST_BURN_RULE_NAME,
+  SLO_SLOW_BURN_RULE_NAME,
+  SLO_SLOW_LEAK_RULE_NAME,
+  SloRecommendedBurnRateRule,
+  getSloRecommendedBurnRateRules,
+} from "../../../Utils/Slo/SloRecommendedBurnRateRules";
+import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
 
 /*
  * The SLO cadence constants.
@@ -19,47 +29,26 @@ import {
  *     rule's long window, so the tile and that rule move together", and
  *   - the cadence is how often a due SLO is re-evaluated.
  *
- * Nothing makes either claim fail to compile. The seeded rules are written by
- * ServiceLevelObjectiveService as plain literals, so someone retuning the
+ * Nothing makes either claim fail to compile. The seeded rules are
+ * Common/Utils/Slo/SloRecommendedBurnRateRules, so someone retuning the
  * fast-burn default there would leave an overview tile silently measuring a
- * different span from the rule it is meant to agree with — the two would
+ * different span from the rule it is meant to agree with - the two would
  * disagree on screen with no error anywhere.
- *
- * The defaults are read as text because seeding them is a database write
- * behind a full SLO create, which is not what is under test here.
  */
 
-const SLO_SERVICE_SOURCE: string = fs.readFileSync(
-  path.join(
-    __dirname,
-    "../../../Server/Services/ServiceLevelObjectiveService.ts",
-  ),
-  "utf8",
-);
+// The rule a new 30-day SLO is seeded with, by name.
+function seededRule(ruleName: string): SloRecommendedBurnRateRule {
+  const rule: SloRecommendedBurnRateRule | undefined =
+    getSloRecommendedBurnRateRules({
+      windowType: SloWindowType.Rolling,
+      windowDays: 30,
+    }).find((candidate: SloRecommendedBurnRateRule): boolean => {
+      return candidate.name === ruleName;
+    });
 
-/*
- * The literal block for one seeded rule, so "Fast burn" and "Slow burn"
- * cannot be confused for one another — they differ only in their numbers.
- */
-function seededRuleBlock(ruleName: string): string {
-  const start: number = SLO_SERVICE_SOURCE.indexOf(`name: "${ruleName}"`);
+  expect(rule).toBeDefined();
 
-  expect(start).toBeGreaterThan(-1);
-
-  const end: number = SLO_SERVICE_SOURCE.indexOf("}", start);
-  expect(end).toBeGreaterThan(start);
-
-  return SLO_SERVICE_SOURCE.slice(start, end);
-}
-
-function minutesFieldIn(block: string, field: string): number {
-  const match: RegExpMatchArray | null = block.match(
-    new RegExp(`${field}:\\s*(\\d+)`),
-  );
-
-  expect(match).not.toBeNull();
-
-  return Number(match![1]);
+  return rule!;
 }
 
 describe("SLO evaluation cadence constants", () => {
@@ -99,9 +88,9 @@ describe("SLO evaluation cadence constants", () => {
    */
   describe("the tile and the default fast-burn rule move together", () => {
     test("the burn-rate window equals the fast-burn rule's long window", () => {
-      expect(
-        minutesFieldIn(seededRuleBlock("Fast burn"), "longWindowInMinutes"),
-      ).toBe(SLO_CURRENT_BURN_RATE_WINDOW_MINUTES);
+      expect(seededRule(SLO_FAST_BURN_RULE_NAME).longWindowInMinutes).toBe(
+        SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
+      );
     });
 
     /*
@@ -111,7 +100,7 @@ describe("SLO evaluation cadence constants", () => {
      */
     test("the evaluation cadence keeps up with the fast-burn short window", () => {
       expect(
-        minutesFieldIn(seededRuleBlock("Fast burn"), "shortWindowInMinutes"),
+        seededRule(SLO_FAST_BURN_RULE_NAME).shortWindowInMinutes,
       ).toBeGreaterThanOrEqual(SLO_EVALUATION_CADENCE_MINUTES);
     });
 
@@ -121,16 +110,99 @@ describe("SLO evaluation cadence constants", () => {
      * backwards and the rule an operator reaches for in an incident would be
      * the slower of the two.
      */
-    test("slow burn is genuinely slower than fast burn", () => {
-      const fast: string = seededRuleBlock("Fast burn");
-      const slow: string = seededRuleBlock("Slow burn");
+    test("slow burn is genuinely slower than fast burn, and slow leak slower still", () => {
+      const fast: SloRecommendedBurnRateRule = seededRule(
+        SLO_FAST_BURN_RULE_NAME,
+      );
+      const slow: SloRecommendedBurnRateRule = seededRule(
+        SLO_SLOW_BURN_RULE_NAME,
+      );
+      const leak: SloRecommendedBurnRateRule = seededRule(
+        SLO_SLOW_LEAK_RULE_NAME,
+      );
 
-      expect(minutesFieldIn(slow, "longWindowInMinutes")).toBeGreaterThan(
-        minutesFieldIn(fast, "longWindowInMinutes"),
+      expect(slow.longWindowInMinutes).toBeGreaterThan(
+        fast.longWindowInMinutes,
       );
-      expect(minutesFieldIn(slow, "shortWindowInMinutes")).toBeGreaterThan(
-        minutesFieldIn(fast, "shortWindowInMinutes"),
+      expect(slow.shortWindowInMinutes).toBeGreaterThan(
+        fast.shortWindowInMinutes,
       );
+      expect(leak.longWindowInMinutes).toBeGreaterThan(
+        slow.longWindowInMinutes,
+      );
+      expect(leak.shortWindowInMinutes).toBeGreaterThan(
+        slow.shortWindowInMinutes,
+      );
+    });
+  });
+
+  /*
+   * The tile is an hour's reading. It is compared with the rules that look
+   * back a few hours - the default Fast burn and Slow burn - and not with a
+   * rule that looks back days, like Slow leak, which any hour that burned at
+   * all would otherwise read as "at threshold".
+   */
+  describe("which rules the current burn rate is compared with", () => {
+    test("the cut-off is the slow-burn rule's long window: six hours", () => {
+      expect(SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES).toBe(360);
+      expect(SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES).toBe(
+        seededRule(SLO_SLOW_BURN_RULE_NAME).longWindowInMinutes,
+      );
+      expect(
+        SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES,
+      ).toBeGreaterThanOrEqual(SLO_CURRENT_BURN_RATE_WINDOW_MINUTES);
+    });
+
+    test("Fast burn and Slow burn are compared with it, Slow leak is not", () => {
+      expect(
+        isComparedWithCurrentBurnRate(
+          seededRule(SLO_FAST_BURN_RULE_NAME).longWindowInMinutes,
+        ),
+      ).toBe(true);
+      expect(
+        isComparedWithCurrentBurnRate(
+          seededRule(SLO_SLOW_BURN_RULE_NAME).longWindowInMinutes,
+        ),
+      ).toBe(true);
+      expect(
+        isComparedWithCurrentBurnRate(
+          seededRule(SLO_SLOW_LEAK_RULE_NAME).longWindowInMinutes,
+        ),
+      ).toBe(false);
+    });
+
+    test("whatever the SLO's window, a slow leak of more than six hours is never compared", () => {
+      for (const windowDays of [3, 7, 14, 28, 30, 90, 366]) {
+        const leak: SloRecommendedBurnRateRule | undefined =
+          getSloRecommendedBurnRateRules({
+            windowType: SloWindowType.Rolling,
+            windowDays: windowDays,
+          }).find((rule: SloRecommendedBurnRateRule): boolean => {
+            return rule.name === SLO_SLOW_LEAK_RULE_NAME;
+          });
+
+        expect(isComparedWithCurrentBurnRate(leak!.longWindowInMinutes)).toBe(
+          false,
+        );
+      }
+    });
+
+    test.each([
+      [5, true],
+      [60, true],
+      [359, true],
+      [360, true],
+      [361, false],
+      [1440, false],
+      [4320, false],
+    ])("a rule looking back %p minutes is compared: %p", (minutes: number, compared: boolean) => {
+      expect(isComparedWithCurrentBurnRate(minutes)).toBe(compared);
+    });
+
+    test("a rule whose long window is unknown is compared, as every rule was", () => {
+      for (const minutes of [undefined, null, 0, -5, Number.NaN]) {
+        expect(isComparedWithCurrentBurnRate(minutes)).toBe(true);
+      }
     });
   });
 
@@ -168,8 +240,11 @@ describe("SLO evaluation cadence constants", () => {
         "utf8",
       );
 
-      expect(kpiStrip).toContain(
-        'import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "Common/Utils/Slo/SloEvaluation"',
+      expect(kpiStrip).toMatch(
+        /import \{[^}]*\bSLO_CURRENT_BURN_RATE_WINDOW_MINUTES\b[^}]*\} from "Common\/Utils\/Slo\/SloEvaluation"/,
+      );
+      expect(kpiStrip).toMatch(
+        /import \{[^}]*\bSLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES\b[^}]*\} from "Common\/Utils\/Slo\/SloEvaluation"/,
       );
     });
 

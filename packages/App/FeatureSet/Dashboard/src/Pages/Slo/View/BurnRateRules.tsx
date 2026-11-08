@@ -9,6 +9,10 @@ import {
   willDeclareIncident,
 } from "../Utils/BurnRateRuleForm";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
+import SloRecommendedBurnRateRulesModal from "../../../Components/Slo/SloRecommendedBurnRateRulesModal";
+import useSloRecommendedBurnRateRules, {
+  UseSloRecommendedBurnRateRulesResult,
+} from "../../../Components/Slo/useSloRecommendedBurnRateRules";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
@@ -24,6 +28,14 @@ import {
 } from "Common/Utils/Slo/SloBurnRateRuleState";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import IconProp from "Common/Types/Icon/IconProp";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import API from "Common/UI/Utils/API/API";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -108,14 +120,21 @@ Disabling the rule, switching an output off, deleting the rule, or disabling, ar
 
 ### The Rules You Already Have
 
-Every SLO is created with two rules, with thresholds scaled to its compliance window:
+Every SLO is created with three rules, scaled to its compliance window:
 
 | Rule | Meaning | Long Window | Short Window | 30-day threshold |
 |------|---------|-------------|--------------|------------------|
 | **Fast burn** (page) | 2% of the budget in an hour | 60 min | 5 min | 14.4× |
-| **Slow burn** (warn) | 5% of the budget in six hours | 360 min | 30 min | 6× |
+| **Slow burn** (page) | 5% of the budget in six hours | 360 min | 30 min | 6× |
+| **Slow leak** (ticket) | 10% of the budget in three days | 4320 min | 360 min | 1× |
 
-Route the fast-burn rule to a paging on-call policy at a high severity, and let the slow-burn rule raise a lower-severity alert for working-hours follow-up.
+Fast burn and Slow burn raise their alerts at the project's most severe alert severity; Slow leak raises its alert at the least severe one, and waits 24 hours before raising another, because a slow leak is something to fix during working hours, not something to wake anyone up for. None of them declares an incident.
+
+On SLO windows shorter than 30 days, Slow leak looks back a tenth of the window instead of three days (16.8 hours on a 7-day SLO), so it always fires at 1×.
+
+An SLO created before one of these rules existed, or whose rule was deleted, does not get it by itself. **Add recommended rules** above the table adds the ones it is missing, after showing exactly what it will add. A rule counts as there when the SLO has a rule with the same name or the same long window, so a renamed or tuned default rule is never added twice.
+
+Route the fast-burn rule to a paging on-call policy at a high severity, and keep the slow-leak rule as a ticket for the owning team.
 
 ---
 
@@ -139,8 +158,8 @@ The alert and incident steps appear and disappear with the toggles on **What It 
 
 ### Other Settings
 
-- A rule cannot fire until the SLO has at least a full long window of monitoring history, so a brand-new monitor cannot page you on its first blip. That means a fresh SLO will not fire Fast burn for its first hour, or Slow burn for its first six.
-- **Re-fire Suppression** is the quiet period after an alert or incident resolves before the same rule may declare that record again. Each output is suppressed independently, measured from its own resolve. It defaults to the long window.
+- A rule cannot fire until the SLO has at least a full long window of monitoring history, so a brand-new monitor cannot page you on its first blip. That means a fresh SLO will not fire Fast burn for its first hour, Slow burn for its first six, or Slow leak for its first three days.
+- **Re-fire Suppression** is the quiet period after an alert or incident resolves before the same rule may declare that record again. Each output is suppressed independently, measured from its own resolve. It defaults to the long window; Slow leak is created with 24 hours.
 - Leave a severity blank and the project's most severe one is used.
 - While any monitor on the SLO is under an active scheduled maintenance window, the rule is suppressed entirely — planned work should not page anyone.
 `;
@@ -240,6 +259,65 @@ const SloBurnRateRules: FunctionComponent<
    */
   const [canFire, setCanFire] = useState<boolean>(true);
 
+  /*
+   * "Add recommended rules": offered while the SLO is missing one of the
+   * rules OneUptime recommends (an SLO created before Slow leak existed, or
+   * one whose rule was deleted), with a confirmation of exactly what it adds.
+   * Nothing is added by itself, so upgrading never starts raising alerts.
+   */
+  const recommended: UseSloRecommendedBurnRateRulesResult =
+    useSloRecommendedBurnRateRules(modelId);
+  const [isRecommendedModalOpen, setIsRecommendedModalOpen] =
+    useState<boolean>(false);
+  const [isAddingRecommended, setIsAddingRecommended] =
+    useState<boolean>(false);
+  const [addRecommendedError, setAddRecommendedError] = useState<string>("");
+  const [rulesRefreshToggle, setRulesRefreshToggle] = useState<string>("");
+
+  const addRecommendedRules: PromiseVoidFunction = async (): Promise<void> => {
+    setIsAddingRecommended(true);
+    setAddRecommendedError("");
+
+    try {
+      await recommended.addMissingRules();
+      setIsRecommendedModalOpen(false);
+    } catch (err) {
+      setAddRecommendedError(API.getFriendlyMessage(err));
+    }
+
+    setIsAddingRecommended(false);
+    // The table reads its rows again, and with them what is still missing.
+    setRulesRefreshToggle(OneUptimeDate.getCurrentDate().toISOString());
+  };
+
+  // Locked with the reason, like the table's own Create button.
+  const createGate: PermissionGateResult = PermissionGate.check(
+    new ServiceLevelObjectiveBurnRateRule(),
+    ModelAction.Create,
+  );
+
+  const cardButtons: Array<CardButtonSchema> =
+    recommended.missingRules.length > 0 &&
+    (createGate.isAllowed || createGate.disabledReason)
+      ? [
+          {
+            title: "Add recommended rules",
+            buttonStyle: ButtonStyleType.NORMAL,
+            icon: IconProp.LightBulb,
+            disabled: !createGate.isAllowed,
+            tooltip: createGate.disabledReason,
+            onClick: () => {
+              if (!createGate.isAllowed) {
+                return;
+              }
+
+              setAddRecommendedError("");
+              setIsRecommendedModalOpen(true);
+            },
+          },
+        ]
+      : [];
+
   useEffect(() => {
     let cancelled: boolean = false;
 
@@ -286,6 +364,13 @@ const SloBurnRateRules: FunctionComponent<
         isEditable={true}
         isCreateable={true}
         showRefreshButton={true}
+        refreshToggle={rulesRefreshToggle}
+        onFetchSuccess={(
+          rules: Array<ServiceLevelObjectiveBurnRateRule>,
+          totalCount: number,
+        ) => {
+          recommended.onRulesFetched(rules, totalCount);
+        }}
         query={{
           serviceLevelObjectiveId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -301,6 +386,7 @@ const SloBurnRateRules: FunctionComponent<
           title: "Burn Rate Rules",
           description:
             "Raise alerts and declare incidents when the error budget is being spent too fast. Rules fire only when both the long and short windows exceed the threshold.",
+          buttons: cardButtons,
         }}
         noItemsMessage="No burn rate rules yet, so nothing pages anyone when the error budget burns. Add a fast-burn rule."
         helpContent={{
@@ -754,6 +840,24 @@ const SloBurnRateRules: FunctionComponent<
           },
         }}
       />
+      {isRecommendedModalOpen ? (
+        <SloRecommendedBurnRateRulesModal
+          rules={recommended.missingRules}
+          isLoading={isAddingRecommended}
+          error={addRecommendedError}
+          onSubmit={() => {
+            addRecommendedRules().catch(() => {
+              // addRecommendedRules handles its own errors.
+            });
+          }}
+          onClose={() => {
+            setIsRecommendedModalOpen(false);
+            setAddRecommendedError("");
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </Fragment>
   );
 };

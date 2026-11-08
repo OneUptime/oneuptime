@@ -927,8 +927,8 @@ export const getSloCreatedFeedMarkdown: GetSloCreatedFeedMarkdownFunction =
     }
 
     /*
-     * The two default rules are part of what "creating an SLO" means, so they
-     * are described here rather than as two more items that would bury the
+     * The default rules are part of what "creating an SLO" means, so they
+     * are described here rather than as more items that would bury the
      * creation under its own bookkeeping.
      */
     const rules: Array<MarkdownText> = data.defaultBurnRateRules.map(

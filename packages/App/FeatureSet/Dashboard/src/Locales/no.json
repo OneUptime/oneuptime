@@ -46429,5 +46429,9 @@
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
   "Only chart this metric from these services.": "Only chart this metric from these services.",
   "Record Version": "Record Version",
-  "Changes saved after this was proposed were kept": "Endringer lagret etter dette forslaget ble beholdt"
+  "Changes saved after this was proposed were kept": "Endringer lagret etter dette forslaget ble beholdt",
+  "Add recommended rules": "Legg til anbefalte regler",
+  "Add rules": "Legg til regler",
+  "Fires when about {{percent}}% of the error budget burns in {{duration}}": "Utløses når rundt {{percent}} % av feilbudsjettet brukes på {{duration}}",
+  "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.": "Dette er de anbefalte forbruksratereglene som denne SLO-en ikke har ennå, tilpasset samsvarsvinduet. Rediger eller slett dem etterpå som alle andre regler."
 }

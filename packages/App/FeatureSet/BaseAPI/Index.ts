@@ -556,9 +556,6 @@ import ScheduledMaintenanceMeasurementValueService, {
 import ServiceLevelObjectiveService, {
   Service as ServiceLevelObjectiveServiceType,
 } from "Common/Server/Services/ServiceLevelObjectiveService";
-import ServiceLevelObjectiveBurnRateRuleService, {
-  Service as ServiceLevelObjectiveBurnRateRuleServiceType,
-} from "Common/Server/Services/ServiceLevelObjectiveBurnRateRuleService";
 import LlmCostBudgetService, {
   Service as LlmCostBudgetServiceType,
 } from "Common/Server/Services/LlmCostBudgetService";
@@ -636,6 +633,7 @@ import LogDropFilterService, {
   Service as LogDropFilterServiceType,
 } from "Common/Server/Services/LogDropFilterService";
 import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
+import ServiceLevelObjectiveBurnRateRuleAPI from "Common/Server/API/ServiceLevelObjectiveBurnRateRuleAPI";
 import SecurityWatchlistAPI from "Common/Server/API/SecurityWatchlistAPI";
 import SecurityWatchlistItem from "Common/Models/DatabaseModels/SecurityWatchlistItem";
 import SecurityWatchlistItemService, {
@@ -1628,7 +1626,6 @@ import AlertMeasurementValue from "Common/Models/DatabaseModels/AlertMeasurement
 import ScheduledMaintenanceMeasurement from "Common/Models/DatabaseModels/ScheduledMaintenanceMeasurement";
 import ScheduledMaintenanceMeasurementValue from "Common/Models/DatabaseModels/ScheduledMaintenanceMeasurementValue";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
-import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
 import LlmModelPrice from "Common/Models/DatabaseModels/LlmModelPrice";
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
@@ -3709,16 +3706,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // ServiceLevelObjectiveBurnRateRule
+    // ServiceLevelObjectiveBurnRateRule, and "Add recommended rules"
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        ServiceLevelObjectiveBurnRateRule,
-        ServiceLevelObjectiveBurnRateRuleServiceType
-      >(
-        ServiceLevelObjectiveBurnRateRule,
-        ServiceLevelObjectiveBurnRateRuleService,
-      ).getRouter(),
+      new ServiceLevelObjectiveBurnRateRuleAPI().getRouter(),
     );
 
     // LlmCostBudget

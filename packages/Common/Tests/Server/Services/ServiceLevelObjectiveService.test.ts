@@ -32,6 +32,7 @@ import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import logger from "../../../Server/Utils/Logger";
 import URL from "../../../Types/API/URL";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
@@ -101,6 +102,12 @@ const RESOLVED_INCIDENT_STATE_ID: ObjectID = new ObjectID(
 );
 const THIRD_RULE_ID: ObjectID = new ObjectID(
   "88888888-8888-4888-8888-888888888888",
+);
+const LEAST_SEVERE_ID: ObjectID = new ObjectID(
+  "99999999-9999-4999-8999-999999999999",
+);
+const MIDDLE_SEVERITY_ID: ObjectID = new ObjectID(
+  "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
 );
 
 const TARGET_PERCENTAGE_ERROR_MESSAGE: string =
@@ -203,6 +210,23 @@ function makeBurnRateRule(id: ObjectID): ServiceLevelObjectiveBurnRateRule {
   rule.projectId = PROJECT_ID;
   rule.serviceLevelObjectiveId = SLO_ID;
   return rule;
+}
+
+function makeSeverity(
+  id: ObjectID,
+  name: string,
+  order: number | null,
+): AlertSeverity {
+  const severity: AlertSeverity = new AlertSeverity();
+  severity._id = id.toString();
+  severity.id = id;
+  severity.name = name;
+
+  if (order !== null) {
+    severity.order = order;
+  }
+
+  return severity;
 }
 
 function makeAlert(id: ObjectID): Alert {
@@ -917,11 +941,12 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
       .spyOn(ServiceLevelObjectiveService, "updateOneById")
       .mockResolvedValue(1);
 
-    const severity: AlertSeverity = new AlertSeverity();
-    severity._id = SEVERITY_ID.toString();
-    severity.id = SEVERITY_ID;
-
-    jest.spyOn(AlertSeverityService, "findOneBy").mockResolvedValue(severity);
+    jest
+      .spyOn(AlertSeverityService, "findBy")
+      .mockResolvedValue([
+        makeSeverity(LEAST_SEVERE_ID, "Low", 3),
+        makeSeverity(SEVERITY_ID, "Critical", 1),
+      ]);
 
     burnRateRuleCreateSpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
@@ -955,101 +980,189 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
     await callHook("onCreateSuccess", onCreate, createdItem);
   }
 
+  interface SeededShape {
+    name: string | undefined;
+    burnRateThreshold: number | undefined;
+    longWindowInMinutes: number | undefined;
+    shortWindowInMinutes: number | undefined;
+    refireSuppressionMinutes: number | undefined;
+  }
+
+  function shapeOf(rule: ServiceLevelObjectiveBurnRateRule): SeededShape {
+    return {
+      name: rule.name,
+      burnRateThreshold: rule.burnRateThreshold,
+      longWindowInMinutes: rule.longWindowInMinutes,
+      shortWindowInMinutes: rule.shortWindowInMinutes,
+      refireSuppressionMinutes: rule.refireSuppressionMinutes,
+    };
+  }
+
   /*
    * Thresholds are the documented formula evaluated by hand:
    *   fast = round2(0.02 * windowHours / 1)
    *   slow = round2(0.05 * windowHours / 6)
+   *   leak = round2(0.10 * windowHours / longHours), its long window a tenth
+   *          of the compliance window capped at 3 days, its short window a
+   *          twelfth of that
    * Hard-coded numbers on purpose - re-deriving the formula in the test would
    * not catch a change to the formula itself.
    */
   const seedingCases: Array<{
     label: string;
     fields: SloFields;
-    windowHours: number;
     fastBurnThreshold: number;
     slowBurnThreshold: number;
+    slowLeak: {
+      burnRateThreshold: number;
+      longWindowInMinutes: number;
+      shortWindowInMinutes: number;
+      refireSuppressionMinutes: number;
+    };
   }> = [
     {
-      label: "a 30 day rolling window reproduces the textbook 14.4x and 6x",
+      label:
+        "a 30 day rolling window reproduces the textbook 14.4x, 6x and 1x over 3 days",
       fields: { windowType: SloWindowType.Rolling, windowDays: 30 },
-      windowHours: 720,
       fastBurnThreshold: 14.4,
       slowBurnThreshold: 6,
+      slowLeak: {
+        burnRateThreshold: 1,
+        longWindowInMinutes: 4320,
+        shortWindowInMinutes: 360,
+        refireSuppressionMinutes: 1440,
+      },
     },
     {
-      label: "a 7 day rolling window scales down to 3.36x and 1.4x",
+      label:
+        "a 7 day rolling window scales down to 3.36x and 1.4x, and a slow leak of 1x over 16.8 hours",
       fields: { windowType: SloWindowType.Rolling, windowDays: 7 },
-      windowHours: 168,
       fastBurnThreshold: 3.36,
       slowBurnThreshold: 1.4,
+      slowLeak: {
+        burnRateThreshold: 1,
+        longWindowInMinutes: 1008,
+        shortWindowInMinutes: 84,
+        refireSuppressionMinutes: 1008,
+      },
     },
     {
-      label: "a 28 day rolling window scales to 13.44x and 5.6x",
+      label:
+        "a 14 day rolling window scales to 6.72x and 2.8x, and a slow leak of 1x over 33.6 hours",
+      fields: { windowType: SloWindowType.Rolling, windowDays: 14 },
+      fastBurnThreshold: 6.72,
+      slowBurnThreshold: 2.8,
+      slowLeak: {
+        burnRateThreshold: 1,
+        longWindowInMinutes: 2016,
+        shortWindowInMinutes: 168,
+        refireSuppressionMinutes: 1440,
+      },
+    },
+    {
+      label:
+        "a 28 day rolling window scales to 13.44x and 5.6x, and a slow leak of 1x over 2.8 days rather than 0.93x over 3",
       fields: { windowType: SloWindowType.Rolling, windowDays: 28 },
-      windowHours: 672,
       fastBurnThreshold: 13.44,
       slowBurnThreshold: 5.6,
+      slowLeak: {
+        burnRateThreshold: 1,
+        longWindowInMinutes: 4032,
+        shortWindowInMinutes: 336,
+        refireSuppressionMinutes: 1440,
+      },
     },
     {
-      label: "a 90 day rolling window scales up to 43.2x and 18x",
+      label:
+        "a 90 day rolling window scales up to 43.2x and 18x, and a slow leak of 3x over 3 days",
       fields: { windowType: SloWindowType.Rolling, windowDays: 90 },
-      windowHours: 2160,
       fastBurnThreshold: 43.2,
       slowBurnThreshold: 18,
+      slowLeak: {
+        burnRateThreshold: 3,
+        longWindowInMinutes: 4320,
+        shortWindowInMinutes: 360,
+        refireSuppressionMinutes: 1440,
+      },
     },
     {
       label: "a rolling window with no windowDays falls back to 30 days",
       fields: { windowType: SloWindowType.Rolling },
-      windowHours: 720,
       fastBurnThreshold: 14.4,
       slowBurnThreshold: 6,
+      slowLeak: {
+        burnRateThreshold: 1,
+        longWindowInMinutes: 4320,
+        shortWindowInMinutes: 360,
+        refireSuppressionMinutes: 1440,
+      },
     },
     {
       label: "a CalendarMonth window uses a flat 720 hours",
       fields: { windowType: SloWindowType.CalendarMonth },
-      windowHours: 720,
       fastBurnThreshold: 14.4,
       slowBurnThreshold: 6,
+      slowLeak: {
+        burnRateThreshold: 1,
+        longWindowInMinutes: 4320,
+        shortWindowInMinutes: 360,
+        refireSuppressionMinutes: 1440,
+      },
     },
     {
       label: "a CalendarMonth window ignores a stale windowDays column",
       fields: { windowType: SloWindowType.CalendarMonth, windowDays: 7 },
-      windowHours: 720,
       fastBurnThreshold: 14.4,
       slowBurnThreshold: 6,
+      slowLeak: {
+        burnRateThreshold: 1,
+        longWindowInMinutes: 4320,
+        shortWindowInMinutes: 360,
+        refireSuppressionMinutes: 1440,
+      },
     },
   ];
 
   for (const seedingCase of seedingCases) {
-    it(`seeds Fast burn and Slow burn so that ${seedingCase.label}`, async () => {
+    it(`seeds Fast burn, Slow burn and Slow leak so that ${seedingCase.label}`, async () => {
       await runOnCreateSuccess(seedingCase.fields);
 
       const rules: Array<ServiceLevelObjectiveBurnRateRule> = seededRules();
-      expect(rules).toHaveLength(2);
 
-      const fastBurn: ServiceLevelObjectiveBurnRateRule = rules[0]!;
-      expect(fastBurn.name).toBe("Fast burn");
-      expect(fastBurn.burnRateThreshold).toBe(seedingCase.fastBurnThreshold);
-      expect(fastBurn.longWindowInMinutes).toBe(60);
-      expect(fastBurn.shortWindowInMinutes).toBe(5);
-
-      const slowBurn: ServiceLevelObjectiveBurnRateRule = rules[1]!;
-      expect(slowBurn.name).toBe("Slow burn");
-      expect(slowBurn.burnRateThreshold).toBe(seedingCase.slowBurnThreshold);
-      expect(slowBurn.longWindowInMinutes).toBe(360);
-      expect(slowBurn.shortWindowInMinutes).toBe(30);
+      expect(rules.map(shapeOf)).toEqual([
+        {
+          name: "Fast burn",
+          burnRateThreshold: seedingCase.fastBurnThreshold,
+          longWindowInMinutes: 60,
+          shortWindowInMinutes: 5,
+          // Empty: one long window, as it has always been.
+          refireSuppressionMinutes: undefined,
+        },
+        {
+          name: "Slow burn",
+          burnRateThreshold: seedingCase.slowBurnThreshold,
+          longWindowInMinutes: 360,
+          shortWindowInMinutes: 30,
+          refireSuppressionMinutes: undefined,
+        },
+        {
+          name: "Slow leak",
+          ...seedingCase.slowLeak,
+        },
+      ]);
     });
   }
 
   /*
-   * The seeder sets NEITHER output flag, so both rules take the column
+   * The seeder sets NEITHER output flag, so every rule takes the column
    * defaults - shouldCreateAlert true, shouldCreateIncident false. That
    * omission is the whole safety property of the incident feature: an existing
    * install that upgrades keeps seeding alert-only rules, and OneUptime never
    * starts declaring Incidents on a user's behalf until they turn it on
-   * themselves. Asserting the ABSENCE of the keys (not `false`) is deliberate:
-   * an explicit false here would still be the seeder taking a position on a
-   * column whose default already says it.
+   * themselves. It is also what keeps Slow leak a ticket: it raises an alert
+   * and declares nothing. Asserting the ABSENCE of the keys (not `false`) is
+   * deliberate: an explicit false here would still be the seeder taking a
+   * position on a column whose default already says it.
    */
   it("seeds rules that carry neither output flag, so an upgrade never starts declaring incidents", async () => {
     await runOnCreateSuccess({
@@ -1058,7 +1171,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
     });
 
     const rules: Array<ServiceLevelObjectiveBurnRateRule> = seededRules();
-    expect(rules).toHaveLength(2);
+    expect(rules).toHaveLength(3);
 
     for (const rule of rules) {
       expect(rule.shouldCreateIncident).toBeUndefined();
@@ -1067,6 +1180,9 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
       // And no incident wiring either - severity or on-call policies.
       expect(rule.incidentSeverityId).toBeUndefined();
       expect(rule.incidentOnCallDutyPolicies).toBeUndefined();
+
+      // Nor a sample count: the worker measures time, where every second is one.
+      expect(rule.minimumSampleCount).toBeUndefined();
     }
   });
 
@@ -1080,13 +1196,27 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
     const rules: Array<ServiceLevelObjectiveBurnRateRule> = seededRules();
     expect(rules[0]!.burnRateThreshold).toBe(6.24);
     expect(rules[1]!.burnRateThreshold).toBe(2.6);
+    // 10% of 13 days over a tenth of 13 days: exactly 1x.
+    expect(rules[2]!.burnRateThreshold).toBe(1);
+    expect(rules[2]!.longWindowInMinutes).toBe(1872);
+    expect(rules[2]!.shortWindowInMinutes).toBe(156);
+
+    // 0.1 * 744 / 72 = 1.0333... on a 31-day window.
+    burnRateRuleCreateSpy.mockClear();
+    await runOnCreateSuccess({
+      windowType: SloWindowType.Rolling,
+      windowDays: 31,
+    });
+    expect(seededRules()[2]!.burnRateThreshold).toBe(1.03);
   });
 
-  it("scopes both seeded rules to the SLO and its project, and enables them", async () => {
+  it("scopes all three seeded rules to the SLO and its project, and enables them", async () => {
     await runOnCreateSuccess({
       windowType: SloWindowType.Rolling,
       windowDays: 30,
     });
+
+    expect(seededRules()).toHaveLength(3);
 
     for (const rule of seededRules()) {
       expect(rule.projectId).toEqual(PROJECT_ID);
@@ -1142,7 +1272,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
       }),
     ).resolves.toBeUndefined();
 
-    expect(seededRules()).toHaveLength(2);
+    expect(seededRules()).toHaveLength(3);
   });
 
   it("does not fail the SLO create when seeding a burn rate rule throws", async () => {
@@ -1157,8 +1287,25 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
       }),
     ).resolves.toBeUndefined();
 
-    // Both rules were still attempted - the first failure does not abort the loop.
-    expect(burnRateRuleCreateSpy).toHaveBeenCalledTimes(2);
+    // Every rule was still attempted - the first failure does not abort the loop.
+    expect(burnRateRuleCreateSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it("still seeds Slow burn and Slow leak when Fast burn is refused", async () => {
+    burnRateRuleCreateSpy
+      .mockRejectedValueOnce(new BadDataException("fast burn rejected"))
+      .mockResolvedValue(makeBurnRateRule(RULE_ID));
+
+    await runOnCreateSuccess({
+      windowType: SloWindowType.Rolling,
+      windowDays: 30,
+    });
+
+    expect(
+      seededRules().map((rule: ServiceLevelObjectiveBurnRateRule) => {
+        return rule.name;
+      }),
+    ).toEqual(["Fast burn", "Slow burn", "Slow leak"]);
   });
 
   /*
@@ -1167,9 +1314,9 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
    * the lowest order severity when it raises the alert), and nothing retries
    * seeding, so losing them here would leave the SLO silently unalertable.
    */
-  it("still seeds both burn rate rules when the severity lookup throws", async () => {
+  it("still seeds all three burn rate rules when the severity lookup throws", async () => {
     jest
-      .spyOn(AlertSeverityService, "findOneBy")
+      .spyOn(AlertSeverityService, "findBy")
       .mockRejectedValue(new Error("severity lookup exploded"));
 
     await expect(
@@ -1179,7 +1326,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
       }),
     ).resolves.toBeUndefined();
 
-    expect(burnRateRuleCreateSpy).toHaveBeenCalledTimes(2);
+    expect(burnRateRuleCreateSpy).toHaveBeenCalledTimes(3);
 
     for (const call of burnRateRuleCreateSpy.mock.calls) {
       expect(
@@ -1258,52 +1405,105 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - default alert severity"
     );
   }
 
-  it("picks the project's lowest-order (most severe) severity for both rules", async () => {
-    const severity: AlertSeverity = new AlertSeverity();
-    severity._id = SEVERITY_ID.toString();
-    severity.id = SEVERITY_ID;
-
-    const findOneBySpy: jest.SpyInstance = jest
-      .spyOn(AlertSeverityService, "findOneBy")
-      .mockResolvedValue(severity);
-
-    await runOnCreateSuccess();
-
-    const findOneByArg: {
-      query: Record<string, unknown>;
-      sort: Record<string, unknown>;
-      props: Record<string, unknown>;
-    } = findOneBySpy.mock.calls[0]![0] as {
-      query: Record<string, unknown>;
-      sort: Record<string, unknown>;
-      props: Record<string, unknown>;
-    };
-
-    // The most severe one that is not archived: a default OneUptime picks.
-    expect(findOneByArg.query).toEqual({
-      projectId: PROJECT_ID,
-      isArchived: false,
-    });
-    expect(findOneByArg.sort).toEqual({ order: SortOrder.Ascending });
-    expect(findOneByArg.props).toEqual({ isRoot: true });
-
-    // Looked up once for the pair, not once per rule.
-    expect(findOneBySpy).toHaveBeenCalledTimes(1);
+  // The severity each seeded rule names, by rule.
+  function severityByRule(): Record<string, string | undefined> {
+    const byRule: Record<string, string | undefined> = {};
 
     for (const call of burnRateRuleCreateSpy.mock.calls) {
       const createBy: CreateBy<ServiceLevelObjectiveBurnRateRule> = (
         call as Array<unknown>
       )[0] as CreateBy<ServiceLevelObjectiveBurnRateRule>;
-      expect(createBy.data.alertSeverityId).toEqual(SEVERITY_ID);
+
+      byRule[createBy.data.name || ""] =
+        createBy.data.alertSeverityId?.toString();
     }
+
+    return byRule;
+  }
+
+  it("picks the most severe severity for Fast burn and Slow burn, and the least severe for Slow leak", async () => {
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(AlertSeverityService, "findBy")
+      .mockResolvedValue([
+        makeSeverity(MIDDLE_SEVERITY_ID, "Minor", 2),
+        makeSeverity(SEVERITY_ID, "Critical", 1),
+        makeSeverity(LEAST_SEVERE_ID, "Low", 3),
+      ]);
+
+    await runOnCreateSuccess();
+
+    const findByArg: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+      sort: Record<string, unknown>;
+      props: Record<string, unknown>;
+      limit: number;
+    } = findBySpy.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+      sort: Record<string, unknown>;
+      props: Record<string, unknown>;
+      limit: number;
+    };
+
+    // The project's severities that are not archived: a default OneUptime picks.
+    expect(findByArg.query).toEqual({
+      projectId: PROJECT_ID,
+      isArchived: false,
+    });
+    expect(findByArg.select).toEqual({ _id: true, name: true, order: true });
+    expect(findByArg.sort).toEqual({ order: SortOrder.Ascending });
+    expect(findByArg.props).toEqual({ isRoot: true });
+    expect(findByArg.limit).toBe(LIMIT_PER_PROJECT);
+
+    // Looked up once for all three rules, not once per rule.
+    expect(findBySpy).toHaveBeenCalledTimes(1);
+
+    expect(severityByRule()).toEqual({
+      "Fast burn": SEVERITY_ID.toString(),
+      "Slow burn": SEVERITY_ID.toString(),
+      "Slow leak": LEAST_SEVERE_ID.toString(),
+    });
   });
 
-  it("still seeds both rules with no severity when the project has none", async () => {
-    jest.spyOn(AlertSeverityService, "findOneBy").mockResolvedValue(null);
+  it("never takes a severity with no order for Slow leak's least severe", async () => {
+    jest
+      .spyOn(AlertSeverityService, "findBy")
+      .mockResolvedValue([
+        makeSeverity(SEVERITY_ID, "Critical", 1),
+        makeSeverity(LEAST_SEVERE_ID, "Unordered", null),
+        makeSeverity(MIDDLE_SEVERITY_ID, "Warning", 2),
+      ]);
+
+    await runOnCreateSuccess();
+
+    expect(severityByRule()).toEqual({
+      "Fast burn": SEVERITY_ID.toString(),
+      "Slow burn": SEVERITY_ID.toString(),
+      "Slow leak": MIDDLE_SEVERITY_ID.toString(),
+    });
+  });
+
+  it("raises every rule at the one severity a project with one has", async () => {
+    jest
+      .spyOn(AlertSeverityService, "findBy")
+      .mockResolvedValue([makeSeverity(SEVERITY_ID, "Critical", 1)]);
+
+    await runOnCreateSuccess();
+
+    expect(severityByRule()).toEqual({
+      "Fast burn": SEVERITY_ID.toString(),
+      "Slow burn": SEVERITY_ID.toString(),
+      "Slow leak": SEVERITY_ID.toString(),
+    });
+  });
+
+  it("still seeds all three rules with no severity when the project has none", async () => {
+    jest.spyOn(AlertSeverityService, "findBy").mockResolvedValue([]);
 
     await expect(runOnCreateSuccess()).resolves.toBeUndefined();
 
-    expect(burnRateRuleCreateSpy).toHaveBeenCalledTimes(2);
+    expect(burnRateRuleCreateSpy).toHaveBeenCalledTimes(3);
 
     for (const call of burnRateRuleCreateSpy.mock.calls) {
       const createBy: CreateBy<ServiceLevelObjectiveBurnRateRule> = (
@@ -2519,7 +2719,7 @@ describe("ServiceLevelObjectiveService - applying the monitor rules", () => {
         "resolveOpenBurnRateAlertsAndIncidentsForSlo",
       )
       .mockResolvedValue(undefined);
-    jest.spyOn(AlertSeverityService, "findOneBy").mockResolvedValue(null);
+    jest.spyOn(AlertSeverityService, "findBy").mockResolvedValue([]);
     jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
       .mockResolvedValue(makeBurnRateRule(RULE_ID));
@@ -2700,7 +2900,7 @@ describe("ServiceLevelObjectiveService - applying the label and owner rules", ()
     jest
       .spyOn(ServiceLevelObjectiveService, "findOneById")
       .mockResolvedValue(makeSlo({ projectId: PROJECT_ID }));
-    jest.spyOn(AlertSeverityService, "findOneBy").mockResolvedValue(null);
+    jest.spyOn(AlertSeverityService, "findBy").mockResolvedValue([]);
     jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
       .mockResolvedValue(makeBurnRateRule(RULE_ID));
