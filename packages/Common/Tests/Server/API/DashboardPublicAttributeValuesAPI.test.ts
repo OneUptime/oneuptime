@@ -389,6 +389,67 @@ describe("DashboardAPI public attribute-values", () => {
       }
     });
 
+    it("answers every type of variable as before, whatever else it holds: a Query variable's query is not served, and changes nothing here (issue #6338)", async () => {
+      /*
+       * A public dashboard serves each variable only the fields its toolbar
+       * draws it with (PublicDashboardServedSettings): never a legacy Query
+       * variable's query, and an attribute key only on a Telemetry
+       * Attribute variable. This route reads the variables the page draws,
+       * so it answers exactly as when every field was served.
+       */
+      const types: Array<string> = [
+        ...Object.values(DashboardVariableType),
+        "Some type from the future",
+      ];
+
+      for (const variableType of types) {
+        for (const asText of [false, true]) {
+          jest.clearAllMocks();
+
+          const variables: Array<JSONObject> = [
+            {
+              id: ObjectID.generate().toString(),
+              name: "cluster",
+              label: "Cluster",
+              type: variableType,
+              attributeKey: "k8s.cluster.name",
+              query: "SELECT DISTINCT cluster FROM internal_billing.accounts",
+              customListValues: "prod,staging",
+              labelOptions: [
+                { label: "Production", value: ObjectID.generate().toString() },
+              ],
+              internalNote: "for the owner only",
+            },
+          ];
+
+          dashboard.dashboardViewConfig = {
+            _type: "DashboardViewConfig",
+            heightInDashboardUnits: 24,
+            components: [],
+            variables: asText ? JSON.stringify(variables) : variables,
+          } as unknown as DashboardViewConfig;
+
+          await callRoute({ attributeKey: "k8s.cluster.name" });
+
+          if (variableType === DashboardVariableType.TelemetryAttribute) {
+            expect([variableType, asText, (nextFunction as jest.Mock).mock.calls]).toEqual([
+              variableType,
+              asText,
+              [],
+            ]);
+            expect(getFetchArgs()["attributeKey"]).toBe("k8s.cluster.name");
+          } else {
+            expect([variableType, asText, getThrownError()]).toEqual([
+              variableType,
+              asText,
+              expect.any(BadDataException),
+            ]);
+            expectNothingRead();
+          }
+        }
+      }
+    });
+
     it("ignores a variable whose attribute key is missing or not a string", async () => {
       const badKeys: Array<unknown> = [undefined, null, "", "   ", 42, {}, []];
 
