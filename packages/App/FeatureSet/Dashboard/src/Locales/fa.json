@@ -46454,6 +46454,7 @@
   "Status shows \"No recent invocations\" while the function runs": "با اینکه تابع اجرا می‌شود، وضعیت «بدون فراخوانی اخیر» را نشان می‌دهد",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "این تغییر آنچه را که پس از خواندن گردش کار توسط هوش مصنوعی ذخیره شد پس می‌گیرد: {{steps}}.",
   "What to check if it should be running": "اگر باید در حال اجرا باشد، چه چیزی را بررسی کنید",
+  "AI Agent Reset At": "زمان بازنشانی عامل هوش مصنوعی",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.": "هوش مصنوعی این {{count}} فایل را در {{readBranch}} خوانده است، اما در {{branch}} متفاوت‌اند، پس نسخه‌های هوش مصنوعی ممکن است تغییرهایی را که آنجا انجام شده پس بگیرند: {{files}}.",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}._one": "هوش مصنوعی این فایل را در {{readBranch}} خوانده است، اما در {{branch}} متفاوت است، پس نسخهٔ هوش مصنوعی ممکن است تغییرهایی را که آنجا انجام شده پس بگیرد: {{files}}.",
   "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.": "هوش مصنوعی این فایل را در {{readBranch}} خوانده است، اما در {{branch}} متفاوت است، پس نسخهٔ هوش مصنوعی ممکن است تغییرهایی را که آنجا انجام شده پس بگیرد: {{files}}.",

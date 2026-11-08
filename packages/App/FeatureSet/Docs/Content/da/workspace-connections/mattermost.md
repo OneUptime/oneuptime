@@ -137,6 +137,10 @@ Hvis din Mattermost-konto ikke er forbundet endnu, siger en knap det, med et lin
 
 Hvert tryk registreres under **Projektindstillinger** > **Notifikationer** > **Notifikationslogs** på fanen **Arbejdsområde**, med hvem der trykkede.
 
+## Godkend en offentlig note
+
+Når projektets offentlige noter kræver godkendelse, og du slår Mattermost til for **Godkendelse af offentlige noter** i dine notifikationsindstillinger, kommer hver offentlig note, der venter på et trin, du godkender, til dine direkte beskeder med OneUptimes bot: hvem der sendte den, hvilket trin den venter på, noten, **Approve**, **Reject** og et link til noten i OneUptime. **Approve** godkender den for det trin; på det sidste trin hedder den **Approve and publish**, og noten offentliggøres med det samme. **Reject** åbner en formular, der spørger hvorfor: en begrundelse er påkrævet, og notens forfatter ser den. Knapperne handler som dig, efter de samme regler som i OneUptime, og svarer i en besked, som kun du ser. Et tryk, efter at en anden har afgjort, eller efter at noten eller dens trin er ændret, afgør intet og siger, hvad der skete. Hvis din Mattermost-konto ikke er forbundet, så forbind den under **Brugerindstillinger** > **Arbejdsområde** > **Mattermost**, og tryk så på knappen igen. Se [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godkendelse-af-offentlige-noter).
+
 ## Netværk og selvhosting
 
 To servere taler med hinanden:

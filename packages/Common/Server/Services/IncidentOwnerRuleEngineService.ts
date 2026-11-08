@@ -37,7 +37,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 import OwnerRulePlanBuilder, {
@@ -208,6 +210,7 @@ class IncidentOwnerRuleEngineServiceClass
         incident: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running incident owner rules: ${error}`, {
@@ -321,6 +324,8 @@ class IncidentOwnerRuleEngineServiceClass
     allowOwnerNotification: boolean;
     // Why the rules ran again on a change, when they did (IncidentRulesOnChange).
     ruleChange?: string | undefined;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { incident, rules } = data;
 
@@ -398,7 +403,7 @@ class IncidentOwnerRuleEngineServiceClass
           return new ObjectID(id);
         }),
         notify,
-        { isRoot: true },
+        RuleRunWriteProps.get(data.props),
       );
 
       addedUserIds.push(...userIds);

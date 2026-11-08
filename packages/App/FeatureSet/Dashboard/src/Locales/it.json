@@ -46454,6 +46454,7 @@
   "Status shows \"No recent invocations\" while the function runs": "Lo stato mostra \"Nessuna invocazione recente\" mentre la funzione è in esecuzione",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Questa modifica annulla ciò che è stato salvato dopo che l'IA ha letto il workflow: {{steps}}.",
   "What to check if it should be running": "Cosa controllare se dovrebbe essere in esecuzione",
+  "AI Agent Reset At": "Agente IA reimpostato il",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.": "L'IA ha letto questi {{count}} file su {{readBranch}}, ma su {{branch}} sono diversi, quindi le versioni dell'IA potrebbero annullare modifiche fatte lì: {{files}}.",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}._one": "L'IA ha letto questo file su {{readBranch}}, ma su {{branch}} è diverso, quindi la versione dell'IA potrebbe annullare modifiche fatte lì: {{files}}.",
   "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.": "L'IA ha letto questo file su {{readBranch}}, ma su {{branch}} è diverso, quindi la versione dell'IA potrebbe annullare modifiche fatte lì: {{files}}.",

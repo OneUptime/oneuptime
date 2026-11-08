@@ -46454,6 +46454,7 @@
   "Status shows \"No recent invocations\" while the function runs": "関数が実行されているのにステータスが「最近の呼び出しなし」と表示される",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "この変更は、AI がワークフローを読んだ後に保存された内容を元に戻します: {{steps}}。",
   "What to check if it should be running": "実行されているはずの場合に確認すること",
+  "AI Agent Reset At": "AI エージェントのリセット日時",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.": "AI は {{count}} 個のファイルを {{readBranch}} で読みましたが、{{branch}} では内容が異なるため、AI のバージョンはそこで行われた変更を元に戻す可能性があります: {{files}}。",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}._one": "AI はこのファイルを {{readBranch}} で読みましたが、{{branch}} では内容が異なるため、AI のバージョンはそこで行われた変更を元に戻す可能性があります: {{files}}。",
   "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.": "AI はこのファイルを {{readBranch}} で読みましたが、{{branch}} では内容が異なるため、AI のバージョンはそこで行われた変更を元に戻す可能性があります: {{files}}。",

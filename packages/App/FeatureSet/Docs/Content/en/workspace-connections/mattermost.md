@@ -137,6 +137,10 @@ If your Mattermost account is not connected yet, a button tells you so, with a l
 
 Each press is recorded in **Project Settings** > **Notifications** > **Notification Logs**, on the **Workspace** tab, with who pressed it.
 
+## Approving a public note
+
+When your project's public notes need approval and you turn on Mattermost for **Public Note Approval** in your notification settings, each public note that waits for a step you approve comes to your direct messages with OneUptime's bot: who sent it, the step it waits for, the note, **Approve**, **Reject** and a link to the note in OneUptime. **Approve** approves it for that step; on the last step it reads **Approve and publish**, and the note is published at once. **Reject** opens a form that asks why: a reason is required, and the note's author sees it. The buttons act as you, by the same rules as in OneUptime, and answer in a message only you see. A press after somebody else decided, or after the note or its steps changed, decides nothing and says what happened. If your Mattermost account is not connected, connect it under **User Settings** > **Workspace** > **Mattermost**, then press the button again. See [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
+
 ## Network and self-hosting
 
 Two servers talk to each other:

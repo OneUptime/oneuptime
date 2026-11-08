@@ -46454,6 +46454,7 @@
   "Status shows \"No recent invocations\" while the function runs": "Der Status zeigt „Keine aktuellen Aufrufe“, während die Funktion läuft",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Diese Änderung macht rückgängig, was gespeichert wurde, nachdem die KI den Workflow gelesen hat: {{steps}}.",
   "What to check if it should be running": "Was zu prüfen ist, wenn sie laufen sollte",
+  "AI Agent Reset At": "KI-Agent zurückgesetzt am",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.": "Die KI hat diese {{count}} Dateien auf {{readBranch}} gelesen, aber auf {{branch}} sind sie anders, daher können die Versionen der KI dort gemachte Änderungen rückgängig machen: {{files}}.",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}._one": "Die KI hat diese Datei auf {{readBranch}} gelesen, aber auf {{branch}} ist sie anders, daher kann die Version der KI dort gemachte Änderungen rückgängig machen: {{files}}.",
   "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.": "Die KI hat diese Datei auf {{readBranch}} gelesen, aber auf {{branch}} ist sie anders, daher kann die Version der KI dort gemachte Änderungen rückgängig machen: {{files}}.",

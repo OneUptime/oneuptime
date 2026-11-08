@@ -46454,6 +46454,7 @@
   "Status shows \"No recent invocations\" while the function runs": "Статус «Нет недавних вызовов», хотя функция выполняется",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Это изменение отменяет то, что было сохранено после того, как ИИ прочитал рабочий процесс: {{steps}}.",
   "What to check if it should be running": "Что проверить, если функция должна работать",
+  "AI Agent Reset At": "ИИ-агент сброшен",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.": "ИИ прочитал эти файлы ({{count}}) в {{readBranch}}, но в {{branch}} они отличаются, поэтому версии ИИ могут отменить сделанные там изменения: {{files}}.",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}._one": "ИИ прочитал этот файл в {{readBranch}}, но в {{branch}} он отличается, поэтому версия ИИ может отменить сделанные там изменения: {{files}}.",
   "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.": "ИИ прочитал этот файл в {{readBranch}}, но в {{branch}} он отличается, поэтому версия ИИ может отменить сделанные там изменения: {{files}}.",

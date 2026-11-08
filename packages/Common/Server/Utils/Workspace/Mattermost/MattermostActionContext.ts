@@ -33,6 +33,16 @@ import MattermostConnection from "./MattermostConnection";
  * A form (an interactive dialog) carries its context in the dialog's
  * `state`, a string Mattermost hands back with the submission: the same
  * fields, as a signed token (toDialogState / readDialogState).
+ *
+ * A DIRECT MESSAGE belongs to no team: Mattermost names none for a press
+ * in a direct or group channel (its team_id is empty), so a context signed
+ * for a team never verified there. A direct message's buttons are signed
+ * for its channel instead - the bot's direct message with the one person it
+ * was sent to - with the connection's team beside it, and a press is acted
+ * on only when it comes from that channel: Mattermost names the channel of
+ * a post's press itself, and a form's submission names one its sender may
+ * read. The two kinds sign different fields, so one never reads as the
+ * other.
  */
 export interface MattermostAction {
   // The action, by the ids Slack and Microsoft Teams press: AcknowledgeIncident.
@@ -43,12 +53,16 @@ export interface MattermostAction {
 
 export interface MattermostSignedActions {
   teamId: string;
+  // A direct message's channel, which its presses come from (see above).
+  channelId?: string | undefined;
   actions: Array<MattermostAction>;
 }
 
 // What Mattermost hands back: the context OneUptime wrote, and what was chosen.
 export interface MattermostPressedAction extends MattermostAction {
   teamId: string;
+  // For a direct message's button: its channel.
+  channelId?: string | undefined;
 }
 
 const CONTEXT_VERSION: number = 1;
@@ -80,7 +94,11 @@ export default class MattermostActionContext {
       "team",
     );
 
-    return {
+    const channelId: string | undefined = data.channelId
+      ? MattermostConnection.assertMattermostId(data.channelId, "channel")
+      : undefined;
+
+    const context: JSONObject = {
       v: CONTEXT_VERSION,
       teamId: teamId,
       actions: actions.map((action: MattermostAction): JSONObject => {
@@ -88,20 +106,30 @@ export default class MattermostActionContext {
       }),
       signature: MattermostActionContext.sign({
         teamId: teamId,
+        channelId: channelId,
         actions: actions,
       }),
     };
+
+    if (channelId) {
+      context["channelId"] = channelId;
+    }
+
+    return context;
   }
 
   /*
    * The action a press is for, read from the context Mattermost POSTed:
    * null when the context is not one OneUptime signed, was signed for
-   * another team, or names an option it does not hold.
+   * another team - or, a direct message's, for another channel - or names
+   * an option it does not hold.
    */
   public static readPress(data: {
     context: unknown;
     // The team Mattermost says the press came from.
     teamId: unknown;
+    // The channel it says the press came from.
+    channelId?: unknown;
   }): MattermostPressedAction | null {
     if (
       !data.context ||
@@ -117,6 +145,7 @@ export default class MattermostActionContext {
       MattermostActionContext.readSigned({
         version: context["v"],
         teamId: context["teamId"],
+        channelId: context["channelId"],
         actions: context["actions"],
         signature: context["signature"],
       });
@@ -125,7 +154,12 @@ export default class MattermostActionContext {
       return null;
     }
 
-    if (signed.teamId !== data.teamId) {
+    if (signed.channelId) {
+      // A direct message's: from its own channel, whatever team is named.
+      if (signed.channelId !== data.channelId) {
+        return null;
+      }
+    } else if (signed.teamId !== data.teamId) {
       return null;
     }
 
@@ -151,6 +185,7 @@ export default class MattermostActionContext {
 
     return {
       teamId: signed.teamId,
+      ...(signed.channelId ? { channelId: signed.channelId } : {}),
       actionId: action.actionId,
       value: action.value,
     };
@@ -158,11 +193,13 @@ export default class MattermostActionContext {
 
   /*
    * A form's context, as the `state` of the interactive dialog it opens:
-   * Mattermost hands it back with the form's submission.
+   * Mattermost hands it back with the form's submission. A form opened from
+   * a direct message is held to its channel, as its buttons are.
    */
   public static toDialogState(data: MattermostPressedAction): string {
     const context: JSONObject = MattermostActionContext.toContext({
       teamId: data.teamId,
+      channelId: data.channelId,
       actions: [{ actionId: data.actionId, value: data.value }],
     });
 
@@ -173,6 +210,8 @@ export default class MattermostActionContext {
   public static readDialogState(data: {
     state: unknown;
     teamId: unknown;
+    // The channel the submission says it was made in.
+    channelId?: unknown;
   }): MattermostPressedAction | null {
     if (typeof data.state !== "string" || !data.state) {
       return null;
@@ -201,12 +240,14 @@ export default class MattermostActionContext {
     return MattermostActionContext.readPress({
       context: context,
       teamId: data.teamId,
+      channelId: data.channelId,
     });
   }
 
   private static readSigned(data: {
     version: unknown;
     teamId: unknown;
+    channelId: unknown;
     actions: unknown;
     signature: unknown;
   }): MattermostSignedActions | null {
@@ -217,6 +258,16 @@ export default class MattermostActionContext {
     if (!MattermostConnection.isMattermostId(data.teamId)) {
       return null;
     }
+
+    // A direct message's channel, when the context names one: an id, or nothing.
+    if (
+      data.channelId !== undefined &&
+      !MattermostConnection.isMattermostId(data.channelId)
+    ) {
+      return null;
+    }
+
+    const channelId: string | undefined = data.channelId as string | undefined;
 
     if (!Array.isArray(data.actions) || typeof data.signature !== "string") {
       return null;
@@ -244,6 +295,7 @@ export default class MattermostActionContext {
 
     const expected: string = MattermostActionContext.sign({
       teamId: data.teamId,
+      channelId: channelId,
       actions: actions,
     });
 
@@ -251,7 +303,11 @@ export default class MattermostActionContext {
       return null;
     }
 
-    return { teamId: data.teamId, actions: actions };
+    return {
+      teamId: data.teamId,
+      ...(channelId ? { channelId: channelId } : {}),
+      actions: actions,
+    };
   }
 
   // The actions, refused when one could not have been written by toContext.
@@ -278,14 +334,24 @@ export default class MattermostActionContext {
   }
 
   private static sign(data: MattermostSignedActions): string {
-    // One canonical string per context: JSON of fields in a fixed order.
-    const payload: string = JSON.stringify([
+    /*
+     * One canonical string per context: JSON of fields in a fixed order. A
+     * direct message's channel is one more field at the end, so a team's
+     * context signs exactly what it always did.
+     */
+    const fields: Array<unknown> = [
       CONTEXT_VERSION,
       data.teamId,
       data.actions.map((action: MattermostAction): Array<string> => {
         return [action.actionId, action.value];
       }),
-    ]);
+    ];
+
+    if (data.channelId) {
+      fields.push(data.channelId);
+    }
+
+    const payload: string = JSON.stringify(fields);
 
     return crypto
       .createHmac("sha256", TokenSigningKey.deriveKey(SIGNING_KEY_LABEL))

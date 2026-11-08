@@ -264,6 +264,8 @@ Toda nota pública nueva espera, se escriba donde se escriba: en el panel, a tra
 
 **Desde Slack, Microsoft Teams y Mattermost.** El formulario para añadir una nota dice que una nota pública se publica en la página de estado una vez aprobada. Quien envía una se entera de que se envió para aprobación y de a quién espera: en un mensaje que solo esa persona ve en Slack y Mattermost, y en la conversación en Microsoft Teams. Una nota guardada a partir de una reacción 📣 o 📢 dice lo mismo en su confirmación. El canal se entera de la nota cuando se publica.
 
+**Aprobar desde Slack, Microsoft Teams y Mattermost.** Quienes aprueban y activan Slack, Microsoft Teams o Mattermost para **Aprobación de notas públicas** en **Ajustes de usuario → Ajustes de notificaciones** reciben allí la nota, en un mensaje directo de OneUptime: quién la envió, el paso que espera y botones para aprobarla, rechazarla o abrirla en OneUptime. Una pulsación decide como la cuenta de OneUptime a la que está conectada su cuenta de chat, con las mismas reglas que los botones de la nota, y un rechazo también necesita un motivo. Solo esa persona ve la respuesta. Si alguien decidió antes, o la nota o sus pasos cambiaron después de enviarse el mensaje, no se decide nada y la respuesta dice qué pasó. Consulta [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) y [Mattermost](/docs/workspace-connections/mattermost).
+
 El feed registra cada paso como una entrada `PublicNoteApproval`: una nota enviada para aprobación, aprobada o rechazada, una edición retirada o una nota publicada sin aprobación. Estas entradas no se publican en los canales de chat; la nota publicada, sí.
 
 ## El feed del incidente

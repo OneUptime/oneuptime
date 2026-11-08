@@ -46454,6 +46454,7 @@
   "Status shows \"No recent invocations\" while the function runs": "फ़ंक्शन चल रहा है, फिर भी स्थिति \"हाल में कोई इन्वोकेशन नहीं\" दिखाती है",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "यह बदलाव उसे पूर्ववत कर देता है जो AI के वर्कफ़्लो पढ़ने के बाद सहेजा गया था: {{steps}}।",
   "What to check if it should be running": "अगर इसे चलना चाहिए तो क्या जाँचें",
+  "AI Agent Reset At": "AI एजेंट रीसेट होने का समय",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.": "AI ने ये {{count}} फ़ाइलें {{readBranch}} पर पढ़ी थीं, लेकिन {{branch}} पर ये अलग हैं, इसलिए AI के संस्करण वहाँ किए गए बदलावों को पूर्ववत कर सकते हैं: {{files}}।",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}._one": "AI ने यह फ़ाइल {{readBranch}} पर पढ़ी थी, लेकिन {{branch}} पर यह अलग है, इसलिए AI का संस्करण वहाँ किए गए बदलावों को पूर्ववत कर सकता है: {{files}}।",
   "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.": "AI ने यह फ़ाइल {{readBranch}} पर पढ़ी थी, लेकिन {{branch}} पर यह अलग है, इसलिए AI का संस्करण वहाँ किए गए बदलावों को पूर्ववत कर सकता है: {{files}}।",

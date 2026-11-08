@@ -46454,6 +46454,7 @@
   "Status shows \"No recent invocations\" while the function runs": "Statusen visar \"Inga anrop nyligen\" medan funktionen körs",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Den här ändringen gör ogjort det som sparades efter att AI läste arbetsflödet: {{steps}}.",
   "What to check if it should be running": "Vad du ska kontrollera om den borde köras",
+  "AI Agent Reset At": "AI-agent återställd",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.": "AI läste de här {{count}} filerna på {{readBranch}}, men de är annorlunda på {{branch}}, så AI:s versioner kan göra ändringar som gjorts där ogjorda: {{files}}.",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}._one": "AI läste den här filen på {{readBranch}}, men den är annorlunda på {{branch}}, så AI:s version kan göra ändringar som gjorts där ogjorda: {{files}}.",
   "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.": "AI läste den här filen på {{readBranch}}, men den är annorlunda på {{branch}}, så AI:s version kan göra ändringar som gjorts där ogjorda: {{files}}.",

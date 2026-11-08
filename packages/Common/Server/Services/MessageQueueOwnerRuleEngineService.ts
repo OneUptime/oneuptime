@@ -24,7 +24,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
@@ -113,6 +115,7 @@ class MessageQueueOwnerRuleEngineServiceClass
         messageQueue: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running queue owner rules: ${error}`, {
@@ -129,6 +132,8 @@ class MessageQueueOwnerRuleEngineServiceClass
     messageQueue: MessageQueue;
     rules: Array<MessageQueueOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { messageQueue, rules } = data;
 
@@ -258,7 +263,7 @@ class MessageQueueOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: MessageQueueOwnerUserService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;
@@ -276,7 +281,7 @@ class MessageQueueOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: MessageQueueOwnerTeamService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;

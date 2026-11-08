@@ -46454,6 +46454,7 @@
   "Status shows \"No recent invocations\" while the function runs": "函数在运行时，状态却显示“近期无调用”",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "此更改会撤销 AI 读取工作流之后保存的内容：{{steps}}。",
   "What to check if it should be running": "如果它本应在运行，需要检查什么",
+  "AI Agent Reset At": "AI 代理重置时间",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.": "AI 在 {{readBranch}} 上读取了 {{count}} 个文件，但其内容在 {{branch}} 上不同，因此 AI 的版本可能会撤销那里做出的更改：{{files}}。",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}._one": "AI 在 {{readBranch}} 上读取了此文件，但它在 {{branch}} 上不同，因此 AI 的版本可能会撤销那里做出的更改：{{files}}。",
   "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.": "AI 在 {{readBranch}} 上读取了此文件，但它在 {{branch}} 上不同，因此 AI 的版本可能会撤销那里做出的更改：{{files}}。",

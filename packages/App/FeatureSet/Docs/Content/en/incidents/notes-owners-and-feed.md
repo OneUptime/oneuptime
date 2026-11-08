@@ -264,6 +264,8 @@ Every new public note waits, wherever it is written: in the dashboard, through t
 
 **From Slack, Microsoft Teams and Mattermost.** The add-note form says a public note is posted on the status page once it is approved. Whoever sends one is told that it was sent for approval and who it waits for: in a message only they can see in Slack and Mattermost, and in the conversation in Microsoft Teams. A note saved from a 📣 or 📢 reaction says the same in its confirmation. The channel hears of the note when it is published.
 
+**Approving from Slack, Microsoft Teams and Mattermost.** Approvers who turn on Slack, Microsoft Teams or Mattermost for **Public Note Approval** in **User Settings → Notification Settings** get the note there, in a direct message from OneUptime: who sent it, the step it waits for, and buttons to approve it, reject it or open it in OneUptime. A press decides as the OneUptime account their chat account is connected to, by the same rules as the buttons on the note, and a rejection needs a reason there too. Only they see the answer. If somebody else decided first, or the note or its steps changed after the message was sent, nothing is decided and the answer says what happened. See [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) and [Mattermost](/docs/workspace-connections/mattermost).
+
 The feed records each step as a `PublicNoteApproval` entry: a note sent for approval, approved, rejected, an edit withdrawn, or a note published without approval. These entries are not posted to chat channels; the published note is.
 
 ## The incident feed

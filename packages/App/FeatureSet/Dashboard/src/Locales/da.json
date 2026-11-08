@@ -46454,6 +46454,7 @@
   "Status shows \"No recent invocations\" while the function runs": "Status viser \"Ingen nylige kald\", mens funktionen kører",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Denne ændring fortryder det, der blev gemt, efter at AI læste workflowet: {{steps}}.",
   "What to check if it should be running": "Hvad du skal tjekke, hvis den burde køre",
+  "AI Agent Reset At": "AI-agent nulstillet",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}.": "AI læste disse {{count}} filer på {{readBranch}}, men de er anderledes på {{branch}}, så AI's versioner kan fortryde ændringer, der er lavet der: {{files}}.",
   "Ask AI read these {{count}} files on {{readBranch}}, but they are different on {{branch}}, so Ask AI's versions may undo changes made there: {{files}}._one": "AI læste denne fil på {{readBranch}}, men den er anderledes på {{branch}}, så AI's version kan fortryde ændringer, der er lavet der: {{files}}.",
   "Ask AI read this file on {{readBranch}}, but it is different on {{branch}}, so Ask AI's version may undo changes made there: {{files}}.": "AI læste denne fil på {{readBranch}}, men den er anderledes på {{branch}}, så AI's version kan fortryde ændringer, der er lavet der: {{files}}.",
