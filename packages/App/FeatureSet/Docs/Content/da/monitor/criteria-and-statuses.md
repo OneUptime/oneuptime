@@ -95,7 +95,7 @@ For at se, hvordan en kontrol blev vurderet, skal du åbne monitorens **Oversigt
 
 ## Hvad en hændelse eller advarsel beholder af kontrollen
 
-En hændelse eller advarsel, som en monitor åbner, beholder den kontrol, der åbnede den, så du kan se hvorfor længe efter, at monitorens egne logfiler er væk. Under grundårsagen fortæller **Evalueringsdetaljer**, hvornår kontrollen kørte, fra hvilken sonde og hvad der kom tilbage. **Vis detaljer** tilføjer anmodningen, det kriterium, der matchede, og for hvert filter, hvad det fandt og hvor:
+En hændelse eller advarsel, som en monitor åbner, beholder den kontrol, der åbnede den, så du kan se hvorfor længe efter, at monitorens egne logfiler er væk. Under grundårsagen nævner **Evalueringsdetaljer** det kriterium, der matchede, og for hvert filter, der matchede, hvad kontrollen fandt. **Vis detaljer** tilføjer resten af beviserne, de filtre, der ikke matchede, og selve kontrollen: anmodningen, hvornår den kørte, fra hvilken sonde og hvad der kom tilbage. Det, et filter fandt, kan være:
 
 - **Feltet.** Hvor et filter **Svarets brødtekst** matchede i et JSON-indhold, fx `checks[1].status`, eller den header, hvor et filter **Response Header Value** matchede.
 - **Værdierne.** Hvad hver værdi, en **JavaScript Expression** læser, indeholdt, da den blev evalueret, fx `responseBody.status = "down"`.
@@ -104,7 +104,7 @@ En hændelse eller advarsel, som en monitor åbner, beholder den kontrol, der å
 Hemmeligheder og personoplysninger maskeres, før noget gemmes: headere som `Authorization`, `Cookie` og `Set-Cookie`, felter, hvis navn siger `password`, `token`, `key`, `session` eller `email`, og tekst, der ligner et bearer-token, en JWT, et kortnummer eller en e-mailadresse. Anmodningens URL er den, monitoren blev sat op med, så `{{monitorSecrets.NAME}}` forbliver et navn, og en hemmelig forespørgselsværdi maskeres. En hændelse eller advarsel, der er åbnet manuelt eller før evalueringsdetaljer blev gemt, har ingen.
 
 > [!TIP]
-> Når svarene fra en website- eller API-monitor er følsomme i sig selv, så slå **Behold svarindhold på hændelser og advarsler** fra på kortet **Svarindhold** på dens side **Avanceret → Indstillinger**. Dens hændelser og advarsler beholder så, hvilke filtre der matchede, statuskoden og svartiden, og ingen del af svaret. En monitor for indgående anmodninger har den samme kontakt for de anmodninger, den modtager: **Behold anmodningsindhold på hændelser og advarsler**, på kortet **Anmodningsindhold**.
+> Når svarene fra en website- eller API-monitor er følsomme i sig selv, så slå **Behold svarindhold på hændelser og advarsler** fra på kortet **Svarindhold** på dens side **Avanceret → Indstillinger**. Dens hændelser og advarsler beholder så, hvilke filtre der matchede, statuskoden og svartiden, og ingen del af svaret. En monitor for indgående anmodninger har den samme kontakt for de anmodninger, den modtager: **Behold anmodningsindhold på hændelser og advarsler**, på kortet **Anmodningsindhold**. Kontakten gælder for de hændelser og advarsler, der åbnes, efter du ændrer den.
 
 ## Ændr en monitors kriterier
 

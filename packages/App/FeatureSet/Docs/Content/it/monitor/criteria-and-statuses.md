@@ -95,7 +95,7 @@ Per vedere come è stato giudicato un controllo, aprite la **Panoramica** del mo
 
 ## Che cosa conserva un incidente o un avviso del controllo
 
-Un incidente o un avviso aperto da un monitor conserva il controllo che lo ha aperto, così potete vedere il perché molto dopo che i log del monitor sono stati eliminati. Sotto la sua causa principale, la sezione **Dettagli della valutazione** indica quando è stato eseguito il controllo, da quale sonda e che cosa è tornato. **Mostra dettagli** aggiunge la richiesta, il criterio che ha corrisposto e, per ogni filtro, che cosa ha trovato e dove:
+Un incidente o un avviso aperto da un monitor conserva il controllo che lo ha aperto, così potete vedere il perché molto dopo che i log del monitor sono stati eliminati. Sotto la sua causa principale, la sezione **Dettagli della valutazione** indica il criterio che ha corrisposto e, per ogni filtro che ha corrisposto, che cosa ha trovato il controllo. **Mostra dettagli** aggiunge il resto delle prove, i filtri che non hanno corrisposto e il controllo stesso: la richiesta, quando è stato eseguito, da quale sonda e che cosa è tornato. Ciò che un filtro ha trovato può essere:
 
 - **Il campo.** Il punto di un corpo JSON in cui un filtro **Corpo della Risposta** ha corrisposto, come `checks[1].status`, o l'intestazione in cui ha corrisposto un filtro **Response Header Value**.
 - **I valori.** Che cosa conteneva ogni valore letto da una **JavaScript Expression** quando è stata valutata, come `responseBody.status = "down"`.
@@ -104,7 +104,7 @@ Un incidente o un avviso aperto da un monitor conserva il controllo che lo ha ap
 Segreti e dati personali vengono mascherati prima di conservare qualsiasi cosa: intestazioni come `Authorization`, `Cookie` e `Set-Cookie`, campi il cui nome dice `password`, `token`, `key`, `session` o `email`, e testo che sembra un token bearer, un JWT, un numero di carta o un indirizzo email. L'URL della richiesta è quello con cui è stato configurato il monitor, quindi `{{monitorSecrets.NAME}}` resta un nome e un valore segreto della query viene mascherato. Un incidente o un avviso aperto a mano, o prima che i dettagli della valutazione venissero conservati, non ne ha.
 
 > [!TIP]
-> Quando le risposte di un monitor di siti web o API sono sensibili di per sé, disattivate **Conserva il contenuto della risposta in incidenti e avvisi** nella scheda **Contenuto della risposta** della sua pagina **Avanzato → Impostazioni**. I suoi incidenti e avvisi conservano allora quali filtri hanno corrisposto, il codice di stato e il tempo di risposta, e nessuna parte della risposta. Un monitor di richieste in ingresso ha lo stesso interruttore per le richieste che riceve: **Conserva il contenuto della richiesta in incidenti e avvisi**, nella scheda **Contenuto della richiesta**.
+> Quando le risposte di un monitor di siti web o API sono sensibili di per sé, disattivate **Conserva il contenuto della risposta in incidenti e avvisi** nella scheda **Contenuto della risposta** della sua pagina **Avanzato → Impostazioni**. I suoi incidenti e avvisi conservano allora quali filtri hanno corrisposto, il codice di stato e il tempo di risposta, e nessuna parte della risposta. Un monitor di richieste in ingresso ha lo stesso interruttore per le richieste che riceve: **Conserva il contenuto della richiesta in incidenti e avvisi**, nella scheda **Contenuto della richiesta**. L'interruttore vale per gli incidenti e gli avvisi aperti dopo averlo cambiato.
 
 ## Modificare i criteri di un monitor
 

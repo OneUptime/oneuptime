@@ -95,7 +95,7 @@ To see how a check was judged, open the monitor's **Overview**: the **Monitor Su
 
 ## What an incident or alert keeps of the check
 
-An incident or an alert a monitor opens keeps the check that opened it, so you can see why long after the monitor's own logs are gone. Under its root cause, **Evaluation details** says when the check ran, from which probe and what came back. **Show details** adds the request, the criteria that matched and, for each filter, what it found and where:
+An incident or an alert a monitor opens keeps the check that opened it, so you can see why long after the monitor's own logs are gone. Under its root cause, **Evaluation details** names the criteria that matched and, for each filter that matched, what the check found. **Show details** adds the rest of the evidence, the filters that did not match, and the check itself: the request, when it ran, from which probe and what came back. What a filter found can be:
 
 - **The field.** Where a **Response Body** filter matched in a JSON body, such as `checks[1].status`, or the header a **Response Header Value** filter matched.
 - **The values.** What each value a **JavaScript Expression** reads held when it ran, such as `responseBody.status = "down"`.
@@ -104,7 +104,7 @@ An incident or an alert a monitor opens keeps the check that opened it, so you c
 Secrets and personal data are masked before anything is kept: headers such as `Authorization`, `Cookie` and `Set-Cookie`, fields whose names say `password`, `token`, `key`, `session` or `email`, and text that looks like a bearer token, a JWT, a card number or an email address. The request's URL is the one the monitor was set up with, so `{{monitorSecrets.NAME}}` stays a name, and a secret query value is masked. An incident or alert opened by hand, or before evaluation details were kept, has none.
 
 > [!TIP]
-> When a Website or API monitor's responses are sensitive in themselves, turn off **Keep response content on incidents and alerts** in the **Response content** card on its **Advanced → Settings** page. Its incidents and alerts then keep which filters matched, the status code and the response time, and no part of the response. An Incoming Request monitor has the same switch for the requests it receives: **Keep request content on incidents and alerts**, in the **Request content** card.
+> When a Website or API monitor's responses are sensitive in themselves, turn off **Keep response content on incidents and alerts** in the **Response content** card on its **Advanced → Settings** page. Its incidents and alerts then keep which filters matched, the status code and the response time, and no part of the response. An Incoming Request monitor has the same switch for the requests it receives: **Keep request content on incidents and alerts**, in the **Request content** card. The switch applies to the incidents and alerts opened after you change it.
 
 ## Change a monitor's criteria
 

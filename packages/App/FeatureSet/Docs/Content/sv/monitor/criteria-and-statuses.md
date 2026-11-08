@@ -95,7 +95,7 @@ För att se hur en kontroll bedömdes öppnar du monitorns **Översikt**: kortet
 
 ## Vad en incident eller ett larm behåller av kontrollen
 
-En incident eller ett larm som en monitor öppnar behåller kontrollen som öppnade den, så att du kan se varför långt efter att monitorns egna loggar är borta. Under rotorsaken talar **Utvärderingsdetaljer** om när kontrollen kördes, från vilken sond och vad som kom tillbaka. **Visa detaljer** lägger till förfrågan, kriteriet som matchade och för varje filter vad det hittade och var:
+En incident eller ett larm som en monitor öppnar behåller kontrollen som öppnade den, så att du kan se varför långt efter att monitorns egna loggar är borta. Under rotorsaken nämner **Utvärderingsdetaljer** kriteriet som matchade och, för varje filter som matchade, vad kontrollen hittade. **Visa detaljer** lägger till resten av bevisen, filtren som inte matchade och själva kontrollen: förfrågan, när den kördes, från vilken sond och vad som kom tillbaka. Det ett filter hittade kan vara:
 
 - **Fältet.** Var ett filter **Svarstext** matchade i ett JSON-innehåll, till exempel `checks[1].status`, eller headern där ett filter **Response Header Value** matchade.
 - **Värdena.** Vad varje värde som en **JavaScript Expression** läser innehöll när det utvärderades, till exempel `responseBody.status = "down"`.
@@ -104,7 +104,7 @@ En incident eller ett larm som en monitor öppnar behåller kontrollen som öppn
 Hemligheter och personuppgifter maskeras innan något sparas: headers som `Authorization`, `Cookie` och `Set-Cookie`, fält vars namn säger `password`, `token`, `key`, `session` eller `email`, och text som ser ut som en bearer-token, en JWT, ett kortnummer eller en e-postadress. Förfrågans URL är den som monitorn konfigurerades med, så `{{monitorSecrets.NAME}}` förblir ett namn, och ett hemligt frågevärde maskeras. En incident eller ett larm som öppnades för hand, eller innan utvärderingsdetaljer sparades, har inga.
 
 > [!TIP]
-> När svaren från en webbplats- eller API-monitor är känsliga i sig själva stänger du av **Behåll svarsinnehåll på incidenter och larm** på kortet **Svarsinnehåll** på dess sida **Avancerad → Inställningar**. Dess incidenter och larm behåller då vilka filter som matchade, statuskoden och svarstiden, och ingen del av svaret. En monitor för inkommande förfrågningar har samma reglage för förfrågningarna den tar emot: **Behåll förfrågans innehåll på incidenter och larm**, på kortet **Förfrågans innehåll**.
+> När svaren från en webbplats- eller API-monitor är känsliga i sig själva stänger du av **Behåll svarsinnehåll på incidenter och larm** på kortet **Svarsinnehåll** på dess sida **Avancerad → Inställningar**. Dess incidenter och larm behåller då vilka filter som matchade, statuskoden och svarstiden, och ingen del av svaret. En monitor för inkommande förfrågningar har samma reglage för förfrågningarna den tar emot: **Behåll förfrågans innehåll på incidenter och larm**, på kortet **Förfrågans innehåll**. Reglaget gäller de incidenter och larm som öppnas efter att du ändrar det.
 
 ## Ändra en monitors kriterier
 

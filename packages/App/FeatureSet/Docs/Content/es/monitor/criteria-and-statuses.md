@@ -95,7 +95,7 @@ Para ver cómo se juzgó una comprobación, abra la **Vista general** del monito
 
 ## Qué conserva un incidente o una alerta de la comprobación
 
-Un incidente o una alerta que abre un monitor conserva la comprobación que lo abrió, para que pueda ver el porqué mucho después de que se borren los registros del propio monitor. Bajo su causa raíz, la sección **Detalles de la evaluación** indica cuándo se ejecutó la comprobación, desde qué sonda y qué se recibió. **Mostrar detalles** añade la solicitud, el criterio que coincidió y, para cada filtro, qué encontró y dónde:
+Un incidente o una alerta que abre un monitor conserva la comprobación que lo abrió, para que pueda ver el porqué mucho después de que se borren los registros del propio monitor. Bajo su causa raíz, la sección **Detalles de la evaluación** nombra el criterio que coincidió y, para cada filtro que coincidió, qué encontró la comprobación. **Mostrar detalles** añade el resto de las pruebas, los filtros que no coincidieron y la propia comprobación: la solicitud, cuándo se ejecutó, desde qué sonda y qué se recibió. Lo que encontró un filtro puede ser:
 
 - **El campo.** Dónde coincidió un filtro **Cuerpo de la respuesta** en un cuerpo JSON, como `checks[1].status`, o el encabezado en el que coincidió un filtro **Response Header Value**.
 - **Los valores.** Lo que contenía cada valor que lee una **JavaScript Expression** cuando se evaluó, como `responseBody.status = "down"`.
@@ -104,7 +104,7 @@ Un incidente o una alerta que abre un monitor conserva la comprobación que lo a
 Los secretos y los datos personales se enmascaran antes de conservar nada: encabezados como `Authorization`, `Cookie` y `Set-Cookie`, campos cuyo nombre dice `password`, `token`, `key`, `session` o `email`, y texto que parece un token bearer, un JWT, un número de tarjeta o una dirección de correo electrónico. La URL de la solicitud es la configurada en el monitor, así que `{{monitorSecrets.NAME}}` sigue siendo un nombre, y un valor secreto de la consulta se enmascara. Un incidente o una alerta abiertos a mano, o antes de que se conservaran los detalles de la evaluación, no los tienen.
 
 > [!TIP]
-> Cuando las respuestas de un monitor de sitio web o de API sean sensibles en sí mismas, desactive **Conservar el contenido de la respuesta en incidentes y alertas** en la tarjeta **Contenido de la respuesta** de su página **Avanzado → Ajustes**. Sus incidentes y alertas conservarán entonces qué filtros coincidieron, el código de estado y el tiempo de respuesta, y ninguna parte de la respuesta. Un monitor de solicitudes entrantes tiene el mismo interruptor para las solicitudes que recibe: **Conservar el contenido de la solicitud en incidentes y alertas**, en la tarjeta **Contenido de la solicitud**.
+> Cuando las respuestas de un monitor de sitio web o de API sean sensibles en sí mismas, desactive **Conservar el contenido de la respuesta en incidentes y alertas** en la tarjeta **Contenido de la respuesta** de su página **Avanzado → Ajustes**. Sus incidentes y alertas conservarán entonces qué filtros coincidieron, el código de estado y el tiempo de respuesta, y ninguna parte de la respuesta. Un monitor de solicitudes entrantes tiene el mismo interruptor para las solicitudes que recibe: **Conservar el contenido de la solicitud en incidentes y alertas**, en la tarjeta **Contenido de la solicitud**. El interruptor se aplica a los incidentes y alertas que se abran después de cambiarlo.
 
 ## Cambiar los criterios de un monitor
 

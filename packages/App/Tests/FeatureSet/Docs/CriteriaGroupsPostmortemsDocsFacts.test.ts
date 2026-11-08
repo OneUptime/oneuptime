@@ -44,6 +44,8 @@ import {
   EVALUATION_FACT_LABELS,
   FILTER_FACT_LABELS,
   SHOW_EVALUATION_DETAILS,
+  getShownFilters,
+  hasDetailsToShow,
 } from "../../../FeatureSet/Dashboard/src/Components/EventView/EventEvaluationDetailsCopy";
 import {
   REQUEST_CONTENT_SWITCH_COPY,
@@ -59,8 +61,10 @@ import ResponseExcerpt, {
 } from "Common/Server/Utils/Monitor/ResponseExcerpt";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import {
+  MonitorEvaluationDetailsVersion,
   MonitorEvaluationExcerpt,
   MonitorEvaluationFieldValue,
+  MonitorEvaluationFilterDetails,
 } from "Common/Types/Monitor/MonitorEvaluationDetails";
 import SubscriberNotificationResendCopy from "../../../FeatureSet/Dashboard/src/Components/StatusPageSubscribers/SubscriberNotificationResendCopy";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -1507,32 +1511,55 @@ describe("what an incident or alert keeps of the check", () => {
     );
   });
 
-  it("shows Evaluation details under the root cause: when the check ran, its probe and what came back, the rest behind Show details", () => {
+  it("shows Evaluation details under the root cause: the criteria and what each filter that matched found, the rest and the check itself behind Show details", () => {
     expect(EVALUATION_DETAILS_HEADING).toBe("Evaluation details");
     expect(SHOW_EVALUATION_DETAILS).toBe("Show details");
     expect([
+      EVALUATION_FACT_LABELS.request,
       EVALUATION_FACT_LABELS.checked,
       EVALUATION_FACT_LABELS.probe,
       EVALUATION_FACT_LABELS.statusCode,
       EVALUATION_FACT_LABELS.responseTime,
-    ]).toEqual(["Checked", "Probe", "Status code", "Response time"]);
-    expect(EVALUATION_FACT_LABELS.request).toBe("Request");
+    ]).toEqual(["Request", "Checked", "Probe", "Status code", "Response time"]);
 
-    // The check's facts show folded; the request and the filters once open.
-    const opened: number = EVALUATION_DETAILS_SECTION.indexOf("{isOpen ? (");
+    const matched: MonitorEvaluationFilterDetails = {
+      checkOn: CheckOn.ResponseStatusCode,
+      filterType: FilterType.GreaterThan,
+      value: 499,
+      met: true,
+      message: "Response Status Code was 503, above the 499 threshold.",
+      actual: "503",
+    };
+    const notMatched: MonitorEvaluationFilterDetails = {
+      checkOn: CheckOn.ResponseTime,
+      filterType: FilterType.GreaterThan,
+      value: 5000,
+      met: false,
+      message: "Response Time (in ms) was 120 ms.",
+    };
 
-    expect(opened).toBeGreaterThan(0);
+    // Folded: the filters that matched. Show details adds the others.
+    expect(getShownFilters([notMatched, matched], false)).toEqual([matched]);
+    expect(getShownFilters([notMatched, matched], true)).toEqual([
+      matched,
+      notMatched,
+    ]);
+
+    // The check itself - the request, when, the probe, what came back - opens with them.
+    expect(EVALUATION_DETAILS_SECTION).toContain(
+      "<CheckFacts details={details} isOpen={isShowingDetails} />",
+    );
     expect(
-      EVALUATION_DETAILS_SECTION.indexOf('dataTestId="evaluation-facts"'),
-    ).toBeLessThan(opened);
-    expect(
-      EVALUATION_DETAILS_SECTION.indexOf(
-        'dataTestId="evaluation-request-facts"',
-      ),
-    ).toBeGreaterThan(opened);
-    expect(
-      EVALUATION_DETAILS_SECTION.indexOf('data-testid="evaluation-criteria"'),
-    ).toBeGreaterThan(opened);
+      hasDetailsToShow({
+        version: MonitorEvaluationDetailsVersion,
+        monitorType: MonitorType.API,
+        evaluatedAt: new Date("2026-11-08T10:04:12.000Z"),
+        filterCondition: FilterCondition.All,
+        filters: [matched],
+        request: { method: "GET", url: "https://api.example.com/health" },
+        response: { statusCode: 503, responseTimeInMs: 1234 },
+      }),
+    ).toBe(true);
 
     // Under the root cause of the What happened card, on both pages.
     const rootCause: number = WHAT_HAPPENED_CARD.indexOf(
@@ -1550,7 +1577,7 @@ describe("what an incident or alert keeps of the check", () => {
     }
 
     expect(kept).toContain(
-      "Under its root cause, **Evaluation details** says when the check ran, from which probe and what came back. **Show details** adds the request, the criteria that matched and, for each filter, what it found and where:",
+      "Under its root cause, **Evaluation details** names the criteria that matched and, for each filter that matched, what the check found. **Show details** adds the rest of the evidence, the filters that did not match, and the check itself: the request, when it ran, from which probe and what came back. What a filter found can be:",
     );
   });
 
@@ -1731,8 +1758,16 @@ describe("what an incident or alert keeps of the check", () => {
       compact('title: "Advanced", items: advancedItems,'),
     );
 
+    // What it changes is what a record keeps when it is opened.
+    expect(MONITOR_INCIDENT).toContain(
+      "keepResponseContent: MonitorRecordEvidence.keepsResponseContent(",
+    );
+    expect(MONITOR_ALERT).toContain(
+      "keepResponseContent: MonitorRecordEvidence.keepsResponseContent(",
+    );
+
     expect(kept).toContain(
-      "> When a Website or API monitor's responses are sensitive in themselves, turn off **Keep response content on incidents and alerts** in the **Response content** card on its **Advanced → Settings** page. Its incidents and alerts then keep which filters matched, the status code and the response time, and no part of the response. An Incoming Request monitor has the same switch for the requests it receives: **Keep request content on incidents and alerts**, in the **Request content** card.",
+      "> When a Website or API monitor's responses are sensitive in themselves, turn off **Keep response content on incidents and alerts** in the **Response content** card on its **Advanced → Settings** page. Its incidents and alerts then keep which filters matched, the status code and the response time, and no part of the response. An Incoming Request monitor has the same switch for the requests it receives: **Keep request content on incidents and alerts**, in the **Request content** card. The switch applies to the incidents and alerts opened after you change it.",
     );
   });
 
@@ -1741,10 +1776,10 @@ describe("what an incident or alert keeps of the check", () => {
       "See [What an incident or alert keeps of the check](/docs/monitor/criteria-and-statuses#what-an-incident-or-alert-keeps-of-the-check).";
 
     expect(english("incidents/index")).toContain(
-      `When a monitor declared the incident, **Evaluation details** under its root cause says how the check was judged, and **Show details** adds the filters that matched, what each found and where. ${link}`,
+      `When a monitor declared the incident, **Evaluation details** under its root cause names the filters that matched and what each found, and **Show details** adds an excerpt of the response and the check itself. ${link}`,
     );
     expect(english("alerts/index")).toContain(
-      `When a monitor created the alert, **Evaluation details** under its root cause says how the check was judged, and **Show details** adds the filters that matched, what each found and where. ${link}`,
+      `When a monitor created the alert, **Evaluation details** under its root cause names the filters that matched and what each found, and **Show details** adds an excerpt of the response and the check itself. ${link}`,
     );
   });
 });
