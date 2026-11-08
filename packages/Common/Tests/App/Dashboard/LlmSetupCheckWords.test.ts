@@ -711,9 +711,7 @@ describe("the Setup check card: a connection", () => {
 
     expect(result.tone).toBe("error");
     expect(result.text).toBe("A setting is not right.");
-    expect(result.detail).toBe(
-      "Fix the setting named below, then test again.",
-    );
+    expect(result.detail).toBe("Fix the setting named below, then test again.");
     expect(result.error).toBe(
       "This is a project API key. Reading usage and costs needs an OpenAI admin key, which starts with sk-admin-.",
     );
