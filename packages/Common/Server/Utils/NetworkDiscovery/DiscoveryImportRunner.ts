@@ -27,9 +27,11 @@ import {
   DiscoveryImportMonitorOutcome,
   DiscoveryImportProgress,
   DiscoveryImportSettings,
+  DiscoveryImportSource,
   DiscoveryImportStatus,
   DiscoveryImportView,
   MAX_HOSTS_PER_DISCOVERY_IMPORT,
+  getDiscoveryImportHostKey,
   getRetryableHostResults,
   isDiscoveryImportActive,
   readDiscoveryImportHostResults,
@@ -49,6 +51,17 @@ import {
   buildFallbackDeviceName,
   buildNetworkDeviceFromDiscoveredHost,
 } from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
+import {
+  buildDiscoveredDeviceFallbackName,
+  buildNetworkDeviceFromDiscoveredDevice,
+} from "../../../Utils/NetworkDiscovery/DiscoveredEndpointDeviceBuilder";
+import {
+  DiscoveredDeviceImportFacts,
+  readDiscoveredDeviceIds,
+  readDiscoveredDeviceImportFacts,
+} from "../../../Types/NetworkDevice/DiscoveredDevice";
+import NetworkDeviceRole from "../../../Models/DatabaseModels/NetworkDeviceRole";
+import NetworkSnmpCredentialProfile from "../../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import { normalizeDiscoveredHosts } from "../../../Utils/NetworkDiscovery/DiscoveredHostUtil";
 import { isPingOnlyDiscoveredHost } from "../../../Utils/NetworkDiscovery/DiscoveryImportEligibility";
 import {
@@ -63,6 +76,12 @@ import { AUTO_IMPORT_SCAN_BUILDER_SELECT } from "../../Services/NetworkDeviceAut
 import NetworkDeviceDiscoveryImportService from "../../Services/NetworkDeviceDiscoveryImportService";
 import NetworkDeviceDiscoveryScanService from "../../Services/NetworkDeviceDiscoveryScanService";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
+import NetworkDeviceRoleService from "../../Services/NetworkDeviceRoleService";
+import NetworkSnmpCredentialProfileService from "../../Services/NetworkSnmpCredentialProfileService";
+import QueryHelper from "../../Types/Database/QueryHelper";
+import DiscoveredDevices, {
+  ClassifiedDiscoveredDevice,
+} from "../NetworkDevice/DiscoveredDevices";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import ModelPermission from "../../Types/Database/Permissions/Index";
@@ -278,7 +297,8 @@ interface ImportRunState {
   settings: DiscoveryImportSettings;
   hosts: Array<DiscoveredNetworkDevice>;
   results: Array<DiscoveryImportHostResult>;
-  scan: NetworkDeviceDiscoveryScan;
+  // Null on an import from the Discovered Devices list.
+  scan: NetworkDeviceDiscoveryScan | null;
   template: MonitorTemplate | null;
   props: DatabaseCommonInteractionProps;
   propsReadAt: number;
@@ -438,6 +458,282 @@ export default class DiscoveryImportRunner {
   }
 
   /*
+   * Record an import of devices from the Discovered Devices list (issue
+   * #5775) and queue it: the same import, run by the same worker one host at
+   * a time, as one from a scan. A device is looked for again when its turn
+   * comes - by its MAC, then at its address in its site - so one a person,
+   * a rule or another import added meanwhile is found, not made twice.
+   */
+  public static async startFromDiscoveredDevices(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    endpointIds: unknown;
+    settings: unknown;
+  }): Promise<NetworkDeviceDiscoveryImport> {
+    const userId: ObjectID | undefined = data.props.userId;
+
+    if (!userId) {
+      throw new NotAuthorizedException(
+        "An import acts as the person who asks for it, so it needs a person signed in to the project.",
+      );
+    }
+
+    const endpointIds: Array<string> = readDiscoveredDeviceIds(
+      data.endpointIds,
+    );
+    const settings: DiscoveryImportSettings = readDiscoveryImportSettings(
+      data.settings,
+    );
+
+    DiscoveredDevices.assertCanRead(data.props);
+    this.assertCanCreateDevices(data.props);
+
+    if (settings.alerting === DiscoveryImportAlerting.MonitorTemplate) {
+      this.assertCanCreateMonitors(data.props);
+    }
+
+    await this.assertDiscoveredDeviceSettingsReadable({
+      projectId: data.projectId,
+      props: data.props,
+      settings: settings,
+    });
+
+    const rows: Array<ClassifiedDiscoveredDevice> =
+      await DiscoveredDevices.classify({
+        projectId: data.projectId,
+        endpointIds: endpointIds,
+      });
+
+    const hosts: Array<DiscoveredNetworkDevice> =
+      await this.hostsFromDiscoveredDevices({
+        projectId: data.projectId,
+        endpointIds: endpointIds,
+        rows: rows,
+      });
+
+    if (hosts.length === 0) {
+      throw new BadDataException(
+        rows.length === 0
+          ? "None of the selected devices are in the Discovered Devices list any more. Refresh the list and select them again."
+          : "None of the selected devices has an IP address, so OneUptime cannot check them. A device is listed with its address once a router's ARP table or a network controller reports one.",
+      );
+    }
+
+    let monitorTemplateName: string | undefined = undefined;
+
+    if (settings.alerting === DiscoveryImportAlerting.MonitorTemplate) {
+      const template: MonitorTemplate = await this.readTemplateAsPerson({
+        templateId: new ObjectID(settings.monitorTemplateId!),
+        projectId: data.projectId,
+        props: data.props,
+      });
+
+      monitorTemplateName = template.templateName || undefined;
+
+      await ActiveMonitorLimit.assertRoomFor({
+        projectId: data.projectId,
+      });
+    }
+
+    const row: NetworkDeviceDiscoveryImport =
+      new NetworkDeviceDiscoveryImport();
+    row.projectId = data.projectId;
+    row.status = DiscoveryImportStatus.Queued;
+    row.settings = settings as unknown as JSONObject;
+    row.hosts = hosts;
+    const results: Array<DiscoveryImportHostResult> = this.initialResults({
+      hosts: hosts,
+      scan: null,
+      settings: settings,
+    });
+    row.results = results as unknown as Array<JSONObject>;
+    row.progress = summarizeDiscoveryImportResults(
+      results,
+    ) as unknown as JSONObject;
+    row.createdByUserId = userId;
+    row.resumeCount = 0;
+
+    if (monitorTemplateName) {
+      row.monitorTemplateName = monitorTemplateName.substring(0, 100);
+    }
+
+    const created: NetworkDeviceDiscoveryImport =
+      await NetworkDeviceDiscoveryImportService.create({
+        data: row,
+        props: { isRoot: true },
+      });
+
+    await this.enqueue(data.projectId);
+
+    return created;
+  }
+
+  /*
+   * The hosts an import from the Discovered Devices list carries, in the
+   * order they were selected: each device with an address, with what it is
+   * created from. One with no address cannot be polled and is left out.
+   */
+  private static async hostsFromDiscoveredDevices(data: {
+    projectId: ObjectID;
+    endpointIds: Array<string>;
+    rows: Array<ClassifiedDiscoveredDevice>;
+  }): Promise<Array<DiscoveredNetworkDevice>> {
+    const byId: Map<string, ClassifiedDiscoveredDevice> = new Map<
+      string,
+      ClassifiedDiscoveredDevice
+    >(
+      data.rows.map(
+        (
+          row: ClassifiedDiscoveredDevice,
+        ): [string, ClassifiedDiscoveredDevice] => {
+          return [row.id.toLowerCase(), row];
+        },
+      ),
+    );
+
+    const picked: Array<ClassifiedDiscoveredDevice> = [];
+
+    for (const id of data.endpointIds) {
+      const row: ClassifiedDiscoveredDevice | undefined = byId.get(
+        id.toLowerCase(),
+      );
+
+      if (row?.ipAddress) {
+        picked.push(row);
+      }
+    }
+
+    // The probe that polls the switch each was seen on: it can reach it.
+    const switchIds: Array<string> = Array.from(
+      new Set<string>(
+        picked
+          .map((row: ClassifiedDiscoveredDevice): string => {
+            return row.seenOnDeviceId || "";
+          })
+          .filter((id: string): boolean => {
+            return Boolean(id);
+          }),
+      ),
+    );
+    const probeBySwitch: Map<string, string> = new Map<string, string>();
+
+    if (switchIds.length > 0) {
+      const switches: Array<NetworkDevice> = await NetworkDeviceService.findBy({
+        query: {
+          projectId: data.projectId,
+          _id: QueryHelper.any(switchIds),
+        },
+        select: { _id: true, probeId: true },
+        limit: switchIds.length,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      for (const device of switches) {
+        if (device.id && device.probeId) {
+          probeBySwitch.set(device.id.toString(), device.probeId.toString());
+        }
+      }
+    }
+
+    return picked.map(
+      (row: ClassifiedDiscoveredDevice): DiscoveredNetworkDevice => {
+        const facts: DiscoveredDeviceImportFacts = {
+          endpointId: row.id,
+          name: row.name,
+          macAddress: row.macAddress,
+        };
+
+        if (row.siteId) {
+          facts.siteId = row.siteId;
+        }
+
+        const probeId: string | undefined = row.seenOnDeviceId
+          ? probeBySwitch.get(row.seenOnDeviceId)
+          : undefined;
+
+        if (probeId) {
+          facts.probeId = probeId;
+        }
+
+        return {
+          ipAddress: row.ipAddress!,
+          discoveredDevice: facts,
+        } as unknown as DiscoveredNetworkDevice;
+      },
+    );
+  }
+
+  /*
+   * What an import from the Discovered Devices list says the devices are and
+   * which credentials they are walked with, read as the person: a role or a
+   * credential profile they may not read is not theirs to give a device.
+   */
+  private static async assertDiscoveredDeviceSettingsReadable(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    settings: DiscoveryImportSettings;
+  }): Promise<void> {
+    if (data.settings.networkDeviceRoleId) {
+      let role: NetworkDeviceRole | null;
+
+      try {
+        role = await NetworkDeviceRoleService.findOneBy({
+          query: {
+            _id: data.settings.networkDeviceRoleId,
+            projectId: data.projectId,
+          },
+          select: { _id: true },
+          props: data.props,
+        });
+      } catch (error) {
+        if (isRefusalOfThePerson(error)) {
+          throw new NotAuthorizedException(
+            "You may not read this project's device roles, so you cannot say what the devices are.",
+          );
+        }
+
+        throw error;
+      }
+
+      if (!role) {
+        throw new BadDataException(
+          "This device role was not found. It may have been deleted: pick another one.",
+        );
+      }
+    }
+
+    if (data.settings.snmpCredentialProfileId) {
+      let profile: NetworkSnmpCredentialProfile | null;
+
+      try {
+        profile = await NetworkSnmpCredentialProfileService.findOneBy({
+          query: {
+            _id: data.settings.snmpCredentialProfileId,
+            projectId: data.projectId,
+          },
+          select: { _id: true },
+          props: data.props,
+        });
+      } catch (error) {
+        if (isRefusalOfThePerson(error)) {
+          throw new NotAuthorizedException(
+            "You may not read this project's SNMP credentials, so you cannot pick them for the imported devices.",
+          );
+        }
+
+        throw error;
+      }
+
+      if (!profile) {
+        throw new BadDataException(
+          "These SNMP credentials were not found. They may have been deleted: pick others.",
+        );
+      }
+    }
+  }
+
+  /*
    * A new import of the hosts an earlier one did not finish: devices that
    * failed or were never reached, and devices whose monitor failed. Asked
    * for by anyone who may import - it acts as them - with the earlier
@@ -483,13 +779,13 @@ export default class DiscoveryImportRunner {
       getRetryableHostResults(
         readDiscoveryImportHostResults(earlier.results),
       ).map((result: DiscoveryImportHostResult): string => {
-        return result.ipAddress;
+        return getDiscoveryImportHostKey(result);
       }),
     );
 
     const hosts: Array<DiscoveredNetworkDevice> = earlierHosts.filter(
       (host: DiscoveredNetworkDevice): boolean => {
-        return retryable.has(host.ipAddress);
+        return retryable.has(this.hostKeyOf(host));
       },
     );
 
@@ -502,14 +798,27 @@ export default class DiscoveryImportRunner {
     /*
      * The scan is read again, as the person: it is where the credentials
      * live, and the person retrying must be able to read them as much as
-     * the person who started the import.
+     * the person who started the import. An import from the Discovered
+     * Devices list has no scan: the person must be able to read the list,
+     * and the role and credentials it gives the devices.
      */
-    const scan: NetworkDeviceDiscoveryScan = await this.readScanAsPerson({
-      scanId: earlier.networkDeviceDiscoveryScanId!,
-      projectId: data.projectId,
-      props: data.props,
-      withHosts: false,
-    });
+    let scan: NetworkDeviceDiscoveryScan | null = null;
+
+    if (earlier.networkDeviceDiscoveryScanId) {
+      scan = await this.readScanAsPerson({
+        scanId: earlier.networkDeviceDiscoveryScanId,
+        projectId: data.projectId,
+        props: data.props,
+        withHosts: false,
+      });
+    } else {
+      DiscoveredDevices.assertCanRead(data.props);
+      await this.assertDiscoveredDeviceSettingsReadable({
+        projectId: data.projectId,
+        props: data.props,
+        settings: settings,
+      });
+    }
 
     let monitorTemplateName: string | undefined =
       earlier.monitorTemplateName || undefined;
@@ -527,7 +836,11 @@ export default class DiscoveryImportRunner {
     const row: NetworkDeviceDiscoveryImport =
       new NetworkDeviceDiscoveryImport();
     row.projectId = data.projectId;
-    row.networkDeviceDiscoveryScanId = earlier.networkDeviceDiscoveryScanId!;
+
+    if (earlier.networkDeviceDiscoveryScanId) {
+      row.networkDeviceDiscoveryScanId = earlier.networkDeviceDiscoveryScanId;
+    }
+
     row.status = DiscoveryImportStatus.Queued;
     row.settings = settings as unknown as JSONObject;
     row.hosts = hosts;
@@ -943,6 +1256,9 @@ export default class DiscoveryImportRunner {
     const view: DiscoveryImportView = {
       id: row.id!.toString(),
       scanId: row.networkDeviceDiscoveryScanId?.toString() || "",
+      source: row.networkDeviceDiscoveryScanId
+        ? DiscoveryImportSource.Scan
+        : DiscoveryImportSource.DiscoveredDevices,
       status: row.status!,
       settings: settings,
       progress: progress,
@@ -1253,7 +1569,7 @@ export default class DiscoveryImportRunner {
 
   private static initialResults(data: {
     hosts: Array<DiscoveredNetworkDevice>;
-    scan: NetworkDeviceDiscoveryScan;
+    scan: NetworkDeviceDiscoveryScan | null;
     settings: DiscoveryImportSettings;
   }): Array<DiscoveryImportHostResult> {
     const wantsMonitors: boolean =
@@ -1261,9 +1577,27 @@ export default class DiscoveryImportRunner {
 
     return data.hosts.map(
       (host: DiscoveredNetworkDevice): DiscoveryImportHostResult => {
+        const facts: DiscoveredDeviceImportFacts | null = this.factsOf(host);
+
+        if (facts) {
+          return {
+            ipAddress: host.ipAddress,
+            endpointId: facts.endpointId,
+            name: facts.name || host.ipAddress,
+            // Walked only with the credentials picked, or its site's.
+            isPingOnly: !data.settings.snmpCredentialProfileId,
+            device: DiscoveryImportDeviceOutcome.Pending,
+            monitor: wantsMonitors
+              ? DiscoveryImportMonitorOutcome.Pending
+              : DiscoveryImportMonitorOutcome.NotRequested,
+          };
+        }
+
         return {
           ipAddress: host.ipAddress,
-          name: buildDeviceName(host, data.scan) || host.ipAddress,
+          name:
+            (data.scan ? buildDeviceName(host, data.scan) : "") ||
+            host.ipAddress,
           isPingOnly: isPingOnlyDiscoveredHost(host),
           device: DiscoveryImportDeviceOutcome.Pending,
           monitor: wantsMonitors
@@ -1272,6 +1606,22 @@ export default class DiscoveryImportRunner {
         };
       },
     );
+  }
+
+  // What a host from the Discovered Devices list is created from; null for a scan's.
+  private static factsOf(
+    host: DiscoveredNetworkDevice,
+  ): DiscoveredDeviceImportFacts | null {
+    return readDiscoveredDeviceImportFacts(
+      (host as unknown as Record<string, unknown>)["discoveredDevice"],
+    );
+  }
+
+  private static hostKeyOf(host: DiscoveredNetworkDevice): string {
+    return getDiscoveryImportHostKey({
+      ipAddress: host.ipAddress,
+      endpointId: this.factsOf(host)?.endpointId,
+    });
   }
 
   private static async enqueue(projectId: ObjectID): Promise<void> {
@@ -1349,12 +1699,23 @@ export default class DiscoveryImportRunner {
       this.assertCanCreateMonitors(props);
     }
 
-    const scan: NetworkDeviceDiscoveryScan = await this.readScanAsPerson({
-      scanId: row.networkDeviceDiscoveryScanId!,
-      projectId: row.projectId!,
-      props: props,
-      withHosts: false,
-    });
+    /*
+     * An import from the Discovered Devices list has no scan: what its
+     * devices are created from travels with each host.
+     */
+    const scan: NetworkDeviceDiscoveryScan | null =
+      row.networkDeviceDiscoveryScanId
+        ? await this.readScanAsPerson({
+            scanId: row.networkDeviceDiscoveryScanId,
+            projectId: row.projectId!,
+            props: props,
+            withHosts: false,
+          })
+        : null;
+
+    if (!scan) {
+      DiscoveredDevices.assertCanRead(props);
+    }
 
     let template: MonitorTemplate | null = null;
 
@@ -1374,9 +1735,10 @@ export default class DiscoveryImportRunner {
     /*
      * One result per host, in the hosts' order. A row whose results do not
      * line up with its hosts (written by an older build, or by hand) is
-     * rebuilt from the hosts, keeping what it says about each address.
+     * rebuilt from the hosts, keeping what it says about each host - by
+     * address for a scan's, by discovered device for the list's.
      */
-    const storedByAddress: Map<string, DiscoveryImportHostResult> = new Map<
+    const storedByKey: Map<string, DiscoveryImportHostResult> = new Map<
       string,
       DiscoveryImportHostResult
     >(
@@ -1384,7 +1746,7 @@ export default class DiscoveryImportRunner {
         (
           result: DiscoveryImportHostResult,
         ): [string, DiscoveryImportHostResult] => {
-          return [result.ipAddress, result];
+          return [getDiscoveryImportHostKey(result), result];
         },
       ),
     );
@@ -1395,7 +1757,7 @@ export default class DiscoveryImportRunner {
     });
     const results: Array<DiscoveryImportHostResult> = initial.map(
       (result: DiscoveryImportHostResult): DiscoveryImportHostResult => {
-        return storedByAddress.get(result.ipAddress) || result;
+        return storedByKey.get(getDiscoveryImportHostKey(result)) || result;
       },
     );
 
@@ -1573,6 +1935,58 @@ export default class DiscoveryImportRunner {
   }
 
   /*
+   * The device a discovered device already is, archived ones included -
+   * importing one of those again would make a second: one with its MAC
+   * anywhere in the project, else one at its address in the same site
+   * (every branch has a 10.0.0.5; no site on either side is a site of its
+   * own, as on the map).
+   */
+  private static async findDiscoveredDevice(
+    state: ImportRunState,
+    address: string,
+    facts: DiscoveredDeviceImportFacts,
+  ): Promise<NetworkDevice | null> {
+    const mac: string = (facts.macAddress || "").trim().toLowerCase();
+
+    if (mac) {
+      const byMac: NetworkDevice | null = await NetworkDeviceService.findOneBy({
+        query: {
+          projectId: state.projectId,
+          macAddress: QueryHelper.any(
+            Array.from(new Set<string>([mac, mac.toUpperCase()])),
+          ),
+        },
+        select: IMPORTED_DEVICE_SELECT,
+        props: { isRoot: true },
+      });
+
+      if (byMac?.id) {
+        return byMac;
+      }
+    }
+
+    const atAddress: Array<NetworkDevice> = await NetworkDeviceService.findBy({
+      query: {
+        projectId: state.projectId,
+        hostname: address,
+      },
+      select: { ...IMPORTED_DEVICE_SELECT, siteId: true },
+      sort: { createdAt: SortOrder.Ascending },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const siteKey: string = facts.siteId || "";
+
+    return (
+      atAddress.find((device: NetworkDevice): boolean => {
+        return (device.siteId?.toString() || "") === siteKey;
+      }) || null
+    );
+  }
+
+  /*
    * One host's device: found at its address, or created - under the name
    * the dialog showed, then once more with the address added when another
    * device already has that name (two hosts sharing a name is ordinary: a
@@ -1583,10 +1997,29 @@ export default class DiscoveryImportRunner {
     host: DiscoveredNetworkDevice,
     result: DiscoveryImportHostResult,
   ): Promise<NetworkDevice | null> {
-    const existing: NetworkDevice | null = await this.findDeviceAt(
-      state,
-      host.ipAddress,
-    );
+    const facts: DiscoveredDeviceImportFacts | null = this.factsOf(host);
+    const scan: NetworkDeviceDiscoveryScan | null = state.scan;
+
+    if (!facts && !scan) {
+      result.device = DiscoveryImportDeviceOutcome.Failed;
+      result.deviceError =
+        "This host's scan is gone, so there is nothing to import it from.";
+      return null;
+    }
+
+    /*
+     * A scan's host is found at its address. A discovered device by its MAC
+     * first - it names one box wherever it is - then at its address in its
+     * own site, the way the map recognises it.
+     */
+    const findExisting: () => Promise<NetworkDevice | null> =
+      async (): Promise<NetworkDevice | null> => {
+        return facts
+          ? await this.findDiscoveredDevice(state, host.ipAddress, facts)
+          : await this.findDeviceAt(state, host.ipAddress);
+      };
+
+    const existing: NetworkDevice | null = await findExisting();
 
     if (existing?.id) {
       result.device = DiscoveryImportDeviceOutcome.AlreadyAdded;
@@ -1599,13 +2032,23 @@ export default class DiscoveryImportRunner {
     const build: (name?: string) => NetworkDevice = (
       name?: string,
     ): NetworkDevice => {
+      if (facts) {
+        return buildNetworkDeviceFromDiscoveredDevice({
+          projectId: state.projectId,
+          ipAddress: host.ipAddress,
+          facts: facts,
+          settings: state.settings,
+          name: name,
+        });
+      }
+
       return buildNetworkDeviceFromDiscoveredHost({
         projectId: state.projectId,
         name: name,
         autoApplyVendorHealthTemplate: state.settings.applyVendorTemplates,
         pollingIntervalInMinutes: state.settings.pollingIntervalInMinutes,
         host: host,
-        scan: state.scan,
+        scan: scan!,
       });
     };
 
@@ -1629,10 +2072,7 @@ export default class DiscoveryImportRunner {
       }
 
       // Another import, a rule or a person created it meanwhile.
-      const meanwhile: NetworkDevice | null = await this.findDeviceAt(
-        state,
-        host.ipAddress,
-      );
+      const meanwhile: NetworkDevice | null = await findExisting();
 
       if (meanwhile?.id) {
         result.device = DiscoveryImportDeviceOutcome.AlreadyAdded;
@@ -1642,7 +2082,14 @@ export default class DiscoveryImportRunner {
         return meanwhile;
       }
 
-      attempted = build(buildFallbackDeviceName(host, state.scan));
+      attempted = build(
+        facts
+          ? buildDiscoveredDeviceFallbackName(
+              facts.name || host.ipAddress,
+              host.ipAddress,
+            )
+          : buildFallbackDeviceName(host, scan!),
+      );
 
       try {
         created = await NetworkDeviceService.create({
@@ -1842,10 +2289,10 @@ export default class DiscoveryImportRunner {
    */
   public static getAddressMonitorProbes(data: {
     device: NetworkDevice;
-    scan: NetworkDeviceDiscoveryScan;
+    scan: NetworkDeviceDiscoveryScan | null;
   }): JSONObject {
     const probeId: string =
-      data.device.probeId?.toString() || data.scan.probeId?.toString() || "";
+      data.device.probeId?.toString() || data.scan?.probeId?.toString() || "";
 
     return probeId ? { probes: [probeId] } : {};
   }

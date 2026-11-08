@@ -467,6 +467,22 @@ const BUILT_IN_CORE_LAYER_ROLES: ReadonlySet<string> = new Set<string>([
 const ENDPOINT_FRESH_WINDOW_MS: number =
   DeviceReachabilityUtil.getStaleWindowInMinutes(undefined) * 60 * 1000;
 
+/*
+ * How long one endpoint row's sighting stays current, by who saw it: the
+ * window the map keeps an endpoint "up" for and adopts one by its address
+ * within. The Discovered Devices list asks here too (issue #5775), so the
+ * list and the map agree about which rows are current, and so about which
+ * are monitored.
+ */
+export function getEndpointSightingWindowMs(
+  attachmentSource: string | undefined,
+): number {
+  return EndpointAttachmentUtil.getSightingWindowMs(
+    attachmentSource,
+    ENDPOINT_FRESH_WINDOW_MS,
+  );
+}
+
 export default class NetworkTopologyUtil {
   /*
    * Builds the topology graph from every device in a project. Nodes are the
