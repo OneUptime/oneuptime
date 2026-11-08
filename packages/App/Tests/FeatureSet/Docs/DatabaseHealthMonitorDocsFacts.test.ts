@@ -433,9 +433,14 @@ describe("the Database Health Monitor page's criteria", () => {
   });
 
   it("lists exactly the variables a JavaScript expression gets", () => {
-    const branch: string = braceBlock(
+    // The evaluator fills an expression from JavaScriptExpressionValues' map.
+    expect(
       readSource("Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts"),
-      "if (input.monitor.monitorType === MonitorType.Database) {",
+    ).toContain("JavaScriptExpressionValues.getStorageMap(");
+
+    const branch: string = braceBlock(
+      readSource("Common/Server/Utils/Monitor/JavaScriptExpressionValues.ts"),
+      "if (input.monitorType === MonitorType.Database) {",
     );
     const storageMap: string = braceBlock(
       branch.slice(branch.indexOf("storageMap = {")),

@@ -1,5 +1,8 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import { JSONObject } from "Common/Types/JSON";
+import MonitorEvaluationDetails from "Common/Types/Monitor/MonitorEvaluationDetails";
 import ObjectID from "Common/Types/ObjectID";
+import MonitorEvaluationDetailsUtil from "Common/Utils/Monitor/MonitorEvaluationDetailsUtil";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
@@ -23,9 +26,11 @@ import React, {
   ReactElement,
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
+import EventEvaluationDetails from "./EventEvaluationDetails";
 
 /*
  * "What happened": the first card of an incident's, alert's or episode's
@@ -40,6 +45,12 @@ import React, {
  * hairline, with the same small heading the AI Investigation card's
  * sections use. A long description or root cause shows its first lines and
  * Show more, so it never pushes the rest of the page out of sight.
+ *
+ * An incident or an alert a monitor opened also says how the monitor
+ * decided (EventEvaluationDetails): the check it made, then - folded - the
+ * criteria that matched, what each filter found and a short excerpt of the
+ * response. Only for the records that keep it; the section is absent for
+ * one opened by hand, an episode, or one from before it was kept.
  */
 
 export const WHAT_HAPPENED_CARD_TITLE: string = translationKey("What happened");
@@ -112,6 +123,12 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   statusPageRecord?: StatusPageRecordKind | undefined;
   // After a save: the page reads the record again, and its feed.
   onSaved: () => void;
+  /*
+   * The record's stored evaluation details (Incident.evaluationDetails,
+   * Alert.evaluationDetails), as read. Nothing is shown for none, or for a
+   * record this build cannot read.
+   */
+  evaluationDetails?: JSONObject | null | undefined;
 }
 
 interface ClampedMarkdownProps {
@@ -319,6 +336,10 @@ const EventWhatHappenedCard: <TBaseModel extends BaseModel>(
     });
   }
 
+  const evaluationDetails: MonitorEvaluationDetails | null = useMemo(() => {
+    return MonitorEvaluationDetailsUtil.deserialize(props.evaluationDetails);
+  }, [props.evaluationDetails]);
+
   const description: string = props.description?.trim() || "";
   const storedRootCause: string = props.rootCause?.trim() || "";
   const rootCause: string = isOpenedByRootCause(storedRootCause)
@@ -366,6 +387,12 @@ const EventWhatHappenedCard: <TBaseModel extends BaseModel>(
               )}
             </div>
           </section>
+
+          {evaluationDetails ? (
+            <EventEvaluationDetails details={evaluationDetails} />
+          ) : (
+            <></>
+          )}
         </div>
       </Card>
 
