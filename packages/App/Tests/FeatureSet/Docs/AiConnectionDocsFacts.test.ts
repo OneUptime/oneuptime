@@ -85,6 +85,9 @@ const SOURCES: Record<string, string> = {
   anthropic: `${SERVER}/Connectors/Anthropic/AnthropicConnector.ts`,
   claudeEnterprise: `${SERVER}/Connectors/ClaudeEnterprise/ClaudeEnterpriseConnector.ts`,
   copilot: `${SERVER}/Connectors/Microsoft365Copilot/Microsoft365CopilotConnector.ts`,
+  azure: `${SERVER}/Connectors/AzureOpenAI/AzureOpenAIConnector.ts`,
+  connectionHealth: `${DASHBOARD}/Components/AI/Connect/LlmConnectionHealth.ts`,
+  setupCheckWords: `${DASHBOARD}/Components/AI/SetupCheck/LlmSetupCheckWords.ts`,
 };
 
 const INLINE_CODE: RegExp = /`([^`]+)`/g;
@@ -489,6 +492,65 @@ describe("the AI Provider Accounts page", () => {
       expect(table).toContain(`title: "${column}",`);
       expect(page).toContain(`**${column}**`);
     }
+  });
+});
+
+/*
+ * #5776: an account that read nothing said "No usage yet" whatever its
+ * reads had covered, and an Azure connection that could see no resource
+ * looked like a quiet account. The page now says what a working account's
+ * status names, and what to do when it reads no usage or the views stay
+ * empty.
+ */
+describe("the AI Provider Accounts page: an account that reads no usage", () => {
+  const page: string = englishPage(PROVIDER_ACCOUNTS);
+
+  it("says what a working account's status names", () => {
+    const health: string = source("connectionHealth");
+
+    expect(health).toContain('"Last used {{date}}"');
+    expect(health).toContain('"No usage since {{date}}"');
+    expect(health).toContain('"No Azure OpenAI or Foundry resource found"');
+    // Kept on each read's result by the pull runner.
+    expect(source("pullRunner")).toContain("newestUsageDay");
+    expect(source("pullRunner")).toContain("readSince");
+    expect(page).toContain(
+      "A working account's status names the last day it had usage or, when its reads found none, the first day they read; an Azure connection that finds no resource says so.",
+    );
+  });
+
+  it("says what OpenAI's reports leave out, and the Azure role a resource needs, as the setup check does", () => {
+    expect(source("setupCheckWords")).toContain(
+      "Azure OpenAI and ChatGPT use are not in it.",
+    );
+    expect(source("azure")).toContain(
+      "Give the app registration the Monitoring Reader role on the subscription, or on the resource groups, that hold them.",
+    );
+    expect(page).toContain(
+      ":::details The account works, but its status says no usage",
+    );
+    expect(page).toContain(
+      "OpenAI's reports count the API calls made with that organization's keys, not Azure OpenAI or ChatGPT.",
+    );
+    expect(page).toContain(
+      "An Azure connection reads only the resources its app can see: give the app Monitoring Reader where they are.",
+    );
+  });
+
+  it("says accounts bring no calls or conversations, and links to what is arriving", () => {
+    const llm: Array<string> = scanMarkdown(englishPage(LLM)).headings.map(
+      (heading: DocsHeading): string => {
+        return heading.text;
+      },
+    );
+
+    expect(llm).toContain("Check what is arriving");
+    expect(page).toContain(
+      ":::details Accounts are connected, but Conversations and Calls are empty",
+    );
+    expect(page).toContain(
+      "[Check what is arriving](/docs/telemetry/ai-llm-observability#check-what-is-arriving)",
+    );
   });
 });
 

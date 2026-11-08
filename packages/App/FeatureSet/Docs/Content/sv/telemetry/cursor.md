@@ -108,10 +108,10 @@ Varje post bär de här resursattributen:
 
 ## Tilldelning till anställda
 
-**Cursor anger en person med `cursor.user.id`, ett heltal som bara Cursor kan göra om till ett namn, och utelämnar det ofta för molnagenter.** OneUptime läser det som den anställde och `cursor.team.id` som teamet, så fliken **Användning** rangordnar personer och team utan konfiguration, men personer visas som heltal.
+**Cursor anger en person med `cursor.user.id`, ett heltal som bara Cursor kan göra om till ett namn, och utelämnar det ofta för molnagenter.** OneUptime läser `cursor.user.email` som den anställde när Cursor skickar den, annars `cursor.user.id`, och `cursor.team.id` som teamet, så fliken **Användning** rangordnar personer och team utan konfiguration; personer utan e-post visas som heltal.
 
 - Båda kommer in som resursattribut (`resource.cursor.user.id`, `resource.cursor.team.id`), som OneUptime läser.
-- Cursor kan också skicka `cursor.user.email`, men OneUptime läser den inte ännu, så den anställdes e-postkolumn förblir tom för Cursor.
+- `cursor.user.email` läses före `cursor.user.id`, så en person som Cursor anger med e-post visas med sin e-post.
 - `gen_ai.user`, `llm.user` och LiteLLMs slutanvändar-id:n läses aldrig som den anställde: de anger dina kunder, inte din personal. Se [Tilldelning till anställda och team](/docs/telemetry/ai-coding-assistants#tilldelning-till-anställda-och-team).
 
 ### Var Cursor visas på fliken Användning
@@ -120,7 +120,7 @@ Cursor skickar mätvärden och inga GenAI-spans, och mätvärdena fyller bara i 
 
 | Uppdelning | För Cursor |
 | --- | --- |
-| **Anställd** | Ja, efter `cursor.user.id` |
+| **Anställd** | Ja, efter `cursor.user.email`, annars `cursor.user.id` |
 | **Team** | Ja, efter `cursor.team.id` |
 | **Modell** | Ja, efter `cursor.model.name` |
 | **Leverantör** | Nej: Cursor säger aldrig vilken leverantör som betjänade ett anrop |
@@ -167,7 +167,7 @@ Projektet tar också emot GenAI-spans med kostnad, så Cursors mätvärden läse
 :::
 
 :::details Personer visas som siffror
-Det är `cursor.user.id`: det enda person-id som OneUptime läser från Cursor i dag. Koppla det till namn med Cursors Admin API.
+Det är `cursor.user.id`, som läses när Cursor inte skickar `cursor.user.email`. Koppla det till namn med Cursors Admin API.
 :::
 
 ## Nästa steg

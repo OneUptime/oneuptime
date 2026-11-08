@@ -161,7 +161,7 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 标准属性包括 `session.id`、`app.version`、`app.entrypoint`、`organization.id`、`user.account_uuid`、`user.account_id`、`user.id`、`user.email` 和 `terminal.type`，以及你的 `OTEL_RESOURCE_ATTRIBUTES`。其中一些可以关闭：请参阅 [降低指标量](#降低指标量)。
 
-- 缓存 token 类型使用驼峰命名：`cacheRead` 和 `cacheCreation`。OneUptime 的 token 总数只计算 `input` 和 `output`。
+- 缓存 token 类型使用驼峰命名：`cacheRead` 和 `cacheCreation`。Claude Code 的 `input` 不包含它们，因此 OneUptime 也把它们计为输入 token。
 - 在成本和 token 指标上，除非设置了 `OTEL_LOG_TOOL_DETAILS=1`（Claude Code 2.1.273 或更高版本），否则你自己的代理和 MCP 服务器，以及第三方插件和技能的名称会显示为 `custom` 或 `third-party`。
 
 ## 事件
@@ -220,7 +220,7 @@ Claude Code 默认发送增量指标：每个数据点是自上次导出以来�
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-只有当组织中的每个导出器都使用 `cumulative` 时才固定它，并且不要在同一批机器中混用两种方式。
+只有当组织中的每个导出器都使用 `cumulative` 时才固定它，并且不要在同一批机器中混用两种方式。OneUptime 的用量标签页和预算两种都能计算：delta 把数据点相加，累积计数器按时间范围内增长了多少来计算。
 
 ## 跟踪（测试版）
 

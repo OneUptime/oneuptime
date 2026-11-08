@@ -40,6 +40,7 @@ import {
 } from "./LlmConnectApi";
 import {
   LlmConnectionHealth,
+  LlmConnectionSummary,
   getLlmConnectionHealth,
   getLlmConnectionLastReadSummary,
 } from "./LlmConnectionHealth";
@@ -445,9 +446,8 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
             title: "Last read",
             type: FieldType.Element,
             getElement: (item: LlmObservabilityConnection): ReactElement => {
-              const summary:
-                | { template: string; values: Record<string, string> }
-                | undefined = getLlmConnectionLastReadSummary(item);
+              const summary: LlmConnectionSummary | undefined =
+                getLlmConnectionLastReadSummary(item);
 
               if (!item.lastSuccessfulPullAt) {
                 return (
@@ -465,11 +465,20 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
                     )}
                   </div>
                   {summary ? (
-                    <div className="text-xs text-gray-500">
-                      {translator.translateTemplate(
-                        summary.template,
-                        summary.values,
-                      )}
+                    <div
+                      className="text-xs text-gray-500"
+                      data-testid="llm-connection-last-read-summary"
+                    >
+                      {summary.plural && summary.count !== undefined
+                        ? translator.translatePlural(
+                            summary.plural,
+                            summary.count,
+                            summary.values,
+                          )
+                        : translator.translateTemplate(
+                            summary.template,
+                            summary.values,
+                          )}
                     </div>
                   ) : (
                     <></>

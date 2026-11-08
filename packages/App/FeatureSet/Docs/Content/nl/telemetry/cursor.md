@@ -108,10 +108,10 @@ Elk record draagt deze resource-attributen:
 
 ## Toewijzing aan medewerkers
 
-**Cursor noemt een persoon bij `cursor.user.id`, een geheel getal dat alleen Cursor in een naam kan omzetten, en laat het bij cloudagents vaak weg.** OneUptime leest het als de medewerker, en `cursor.team.id` als het team, dus het tabblad **Gebruik** rangschikt personen en teams zonder instellingen, maar personen verschijnen als gehele getallen.
+**Cursor noemt een persoon bij `cursor.user.id`, een geheel getal dat alleen Cursor in een naam kan omzetten, en laat het bij cloudagents vaak weg.** OneUptime leest `cursor.user.email` als de medewerker als Cursor die stuurt, anders `cursor.user.id`, en `cursor.team.id` als het team, dus het tabblad **Gebruik** rangschikt personen en teams zonder instellingen; personen zonder e-mail verschijnen als gehele getallen.
 
 - Beide komen binnen als resource-attributen (`resource.cursor.user.id`, `resource.cursor.team.id`), die OneUptime leest.
-- Cursor kan ook `cursor.user.email` sturen, maar OneUptime leest dat nog niet, dus de e-mailkolom van de medewerker blijft leeg voor Cursor.
+- `cursor.user.email` wordt vóór `cursor.user.id` gelezen, dus een persoon die Cursor bij e-mail noemt, verschijnt met zijn e-mail.
 - `gen_ai.user`, `llm.user` en de eindgebruikers-id's van LiteLLM worden nooit als de medewerker gelezen: ze noemen je klanten, niet je personeel. Zie [Toewijzing aan medewerkers en teams](/docs/telemetry/ai-coding-assistants#toewijzing-aan-medewerkers-en-teams).
 
 ### Waar Cursor op het tabblad Gebruik verschijnt
@@ -120,7 +120,7 @@ Cursor stuurt metrieken en geen GenAI-spans, en de metrieken vullen alleen spans
 
 | Uitsplitsing | Voor Cursor |
 | --- | --- |
-| **Medewerker** | Ja, op `cursor.user.id` |
+| **Medewerker** | Ja, op `cursor.user.email`, anders `cursor.user.id` |
 | **Team** | Ja, op `cursor.team.id` |
 | **Model** | Ja, op `cursor.model.name` |
 | **Provider** | Nee: Cursor zegt nooit welke provider een aanroep afhandelde |
@@ -167,7 +167,7 @@ Het project ontvangt ook GenAI-spans met kosten, dus de metrieken van Cursor wor
 :::
 
 :::details Personen verschijnen als getallen
-Dat is `cursor.user.id`: het enige persoons-id dat OneUptime vandaag uit Cursor leest. Koppel het aan namen met de Admin API van Cursor.
+Dat is `cursor.user.id`, gelezen als Cursor geen `cursor.user.email` stuurt. Koppel het aan namen met de Admin API van Cursor.
 :::
 
 ## Volgende stappen

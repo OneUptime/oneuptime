@@ -49,7 +49,7 @@ Em **Testar**, clique em **Testar conexão**. O OneUptime lê o uso dos últimos
 Clique em **Conectar**. A primeira leitura começa em até um minuto e traz os últimos 30 dias.
 :::
 
-As contas conectadas aparecem abaixo dos blocos, com **Status** e **Última leitura**. **Ler agora** lê na hora, **Testar** confere de novo as configurações guardadas, **Desativar** para de ler e mantém o que foi lido, e **Editar** muda as configurações: um segredo deixado em branco mantém o guardado. **Ver erro** mostra por que uma leitura falhou, sem nenhum segredo.
+As contas conectadas aparecem abaixo dos blocos, com **Status** e **Última leitura**. **Ler agora** lê na hora, **Testar** confere de novo as configurações guardadas, **Desativar** para de ler e mantém o que foi lido, e **Editar** muda as configurações: um segredo deixado em branco mantém o guardado. **Ver erro** mostra por que uma leitura falhou, sem nenhum segredo. O status de uma conta que funciona cita o último dia com uso ou, quando suas leituras não encontraram nenhum, o primeiro dia lido; uma conexão do Azure que não encontra nenhum recurso avisa.
 
 ## O que cada provedor oferece
 
@@ -187,6 +187,14 @@ Dê a ela a função que esta página cita para o provedor: Monitoring Reader na
 
 :::details O teste passa, mas nada aparece para hoje
 Os provedores informam o uso de um dia minutos ou horas depois e o corrigem por um ou dois dias. As próximas leituras o trazem.
+:::
+
+:::details A conta funciona, mas seu status não mostra uso
+Suas leituras não encontraram nenhum desde o dia citado. Os relatórios da OpenAI contam as chamadas de API feitas com as chaves dessa organização, não o Azure OpenAI nem o ChatGPT. Uma conexão do Azure lê só os recursos que seu aplicativo consegue ver: dê ao aplicativo Monitoring Reader onde eles estão.
+:::
+
+:::details Há contas conectadas, mas Conversas e Chamadas estão vazias
+Uma conta traz uso e custo por dia, nunca uma chamada ou uma conversa: essas vêm dos seus aplicativos. Veja [Verifique o que está chegando](/docs/telemetry/ai-llm-observability#verifique-o-que-está-chegando).
 :::
 
 :::details O custo é diferente da fatura

@@ -161,7 +161,7 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 Стандартные атрибуты — `session.id`, `app.version`, `app.entrypoint`, `organization.id`, `user.account_uuid`, `user.account_id`, `user.id`, `user.email` и `terminal.type`, плюс ваши `OTEL_RESOURCE_ATTRIBUTES`. Некоторые из них можно отключить: см. [Снижайте объём метрик](#снижайте-объём-метрик).
 
-- Типы токенов кэша пишутся в camelCase: `cacheRead` и `cacheCreation`. Итоги токенов в OneUptime учитывают только `input` и `output`.
+- Типы токенов кэша пишутся в camelCase: `cacheRead` и `cacheCreation`. `input` у Claude Code их не включает, поэтому OneUptime тоже считает их входными токенами.
 - В метриках стоимости и токенов имена ваших собственных агентов и MCP-серверов, а также сторонних плагинов и навыков отображаются как `custom` или `third-party`, если не задано `OTEL_LOG_TOOL_DETAILS=1` (Claude Code 2.1.273 или новее).
 
 ## События
@@ -220,7 +220,7 @@ Claude Code не экспортирует промпты, ответы, аргу
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 ```
 
-Фиксируйте `cumulative`, только если его используют все экспортёры вашей организации, и не смешивайте эти режимы в одном парке.
+Фиксируйте `cumulative`, только если его используют все экспортёры вашей организации, и не смешивайте эти режимы в одном парке. Вкладка Использование и бюджеты OneUptime считают оба: дельту — складывая её точки, накопительный счётчик — по тому, насколько он вырос за период.
 
 ## Трассировки (бета)
 
