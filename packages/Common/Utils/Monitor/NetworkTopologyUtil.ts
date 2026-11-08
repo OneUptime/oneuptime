@@ -31,6 +31,10 @@ import DeviceReachabilityUtil, {
   NetworkDeviceReachability,
 } from "../NetworkDevice/DeviceReachabilityUtil";
 import { NetworkDeviceControllerLink } from "../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
+import {
+  getDiscoveredDeviceName,
+  isIpAddressLiteral,
+} from "../NetworkDevice/DiscoveredDeviceIdentity";
 
 export interface TopologyDeviceInput {
   id: string;
@@ -624,6 +628,17 @@ export default class NetworkTopologyUtil {
       };
 
       /*
+       * The address it is polled at, when that is an IP: drawn under its
+       * name and searched by (issue #5775). A device registered by a DNS
+       * name has no address of its own to show here - the endpoint row a
+       * switch learned for it may still lend it one (stampAdoptedIdentity).
+       */
+      const polledAddress: string = (device.hostname || "").trim();
+      if (isIpAddressLiteral(polledAddress)) {
+        deviceNode.ipAddress = polledAddress;
+      }
+
+      /*
        * The configured role, when the project has one for this key. The
        * assignment is looked up ahead of the classifier's answer, so a device
        * an operator gave a CUSTOM role ("PoS Terminal") is drawn as that role
@@ -1138,15 +1153,13 @@ export default class NetworkTopologyUtil {
       const nodeId: string = `endpoint:${endpoint.id}`;
       /*
        * What somebody called it, then what it can be told by: a person's
-       * classification, then the name it has in its controller, ahead of a
-       * maker's name, which every register in a store shares.
+       * classification, the name it has in its controller, its address, its
+       * MAC. Never its maker's name, which every register in a store shares
+       * (issue #5775: a map of identical "Verifone" boxes) - the maker is
+       * the line under an unnamed device's address instead.
        */
       const endpointName: string =
-        endpoint.classification ||
-        endpoint.hostname ||
-        endpoint.vendor ||
-        endpoint.ipAddress ||
-        endpoint.macAddress;
+        getDiscoveredDeviceName(endpoint) || endpoint.macAddress;
       const endpointRole: NetworkTopologyDeviceRole = classifyEndpointRole({
         classification: endpoint.classification,
         vendor: endpoint.vendor,

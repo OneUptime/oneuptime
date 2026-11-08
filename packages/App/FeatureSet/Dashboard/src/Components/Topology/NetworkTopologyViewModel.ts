@@ -29,6 +29,7 @@ import {
 import {
   TopologyNodeFootprint,
   footprintForNode,
+  hasSecondaryLabelLine,
   labelLinesForNode,
 } from "../NetworkDevice/TopologyFootprint";
 import {
@@ -68,6 +69,11 @@ export interface TopologyNodeView {
   /** Glyph geometry, shared with the layout so the two cannot drift. */
   footprint: TopologyNodeFootprint;
   labelLines: Array<string>;
+  /*
+   * The last of labelLines is the line under the name - an address, or an
+   * unnamed device's maker - drawn a shade lighter (issue #5775).
+   */
+  hasSecondaryLabelLine: boolean;
   /** Interface counts badge, when the payload carries them. */
   badge: string | undefined;
   isDimmed: boolean;
@@ -319,6 +325,7 @@ export const buildTopologyViewModel: (
       strokeDashArray: kind === "unmanaged" ? "4 3" : undefined,
       footprint: footprintForNode(node),
       labelLines: labelLinesForNode(node),
+      hasSecondaryLabelLine: hasSecondaryLabelLine(node),
       badge:
         kind !== "endpoint" && hasInterfaceCounts
           ? `${node.interfacesUp ?? 0}/${node.interfacesDown ?? 0}`
