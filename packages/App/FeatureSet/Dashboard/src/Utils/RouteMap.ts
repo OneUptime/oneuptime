@@ -226,6 +226,7 @@ export const SloRoutePath: Dictionary<string> = {
   [PageMap.SLO_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.SLO_VIEW_CHARTS]: `${RouteParams.ModelID}/charts`,
   [PageMap.SLO_VIEW_BURN_RATE_RULES]: `${RouteParams.ModelID}/burn-rate-rules`,
+  [PageMap.SLO_VIEW_ERROR_BUDGET_POLICY]: `${RouteParams.ModelID}/error-budget-policy`,
   [PageMap.SLO_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.SLO_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.SLO_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
@@ -4141,6 +4142,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SLO_VIEW_BURN_RATE_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/slos/${
       SloRoutePath[PageMap.SLO_VIEW_BURN_RATE_RULES]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_ERROR_BUDGET_POLICY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_ERROR_BUDGET_POLICY]
     }`,
   ),
 

@@ -2,6 +2,7 @@ import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import Model from "../../Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "../../Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import ServiceLevelObjectiveOwnerTeam from "../../Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
 import ServiceLevelObjectiveOwnerUser from "../../Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
 import User from "../../Models/DatabaseModels/User";
@@ -30,6 +31,7 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectService from "./ProjectService";
 import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveErrorBudgetPolicyTierService from "./ServiceLevelObjectiveErrorBudgetPolicyTierService";
 import ServiceLevelObjectiveLabelRuleEngineService from "./ServiceLevelObjectiveLabelRuleEngineService";
 import ServiceLevelObjectiveOwnerRuleEngineService from "./ServiceLevelObjectiveOwnerRuleEngineService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
@@ -114,6 +116,8 @@ export const SLO_DISABLED_OR_DELETED_ROOT_CAUSE: string =
 interface SloDeleteCarryForward {
   itemsToDelete: Array<Model>;
   burnRateRules: Array<ServiceLevelObjectiveBurnRateRule>;
+  // The tiers of their error budget policies, read for the same reason.
+  policyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier>;
 }
 
 export class Service extends ProjectReferencesService<Model> {
@@ -482,6 +486,28 @@ export class Service extends ProjectReferencesService<Model> {
             resolveData.rootCause = SLO_ARCHIVED_ROOT_CAUSE;
           }
 
+          /*
+           * What the error budget policy's tiers raised as well, in its own
+           * try below: one failing must not keep the other open.
+           */
+          try {
+            await ServiceLevelObjectiveErrorBudgetPolicyTierService.resolveOpenPolicyTierAlertsAndIncidentsForSlo(
+              {
+                sloId: updatedItemId,
+                projectId: slo.projectId,
+                rootCause: isArchivingSlo
+                  ? SLO_ARCHIVED_ROOT_CAUSE
+                  : SLO_DISABLED_OR_DELETED_ROOT_CAUSE,
+              },
+            );
+          } catch (err) {
+            logger.error(
+              `Error resolving open error budget policy alerts and incidents for ${
+                isArchivingSlo ? "archived" : "disabled"
+              } SLO ${updatedItemId.toString()}: ${err}`,
+            );
+          }
+
           await this.resolveOpenBurnRateAlertsAndIncidentsForSlo(resolveData);
         } catch (err) {
           /*
@@ -608,6 +634,7 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     const burnRateRules: Array<ServiceLevelObjectiveBurnRateRule> = [];
+    const policyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> = [];
 
     for (const item of itemsToDelete) {
       if (!item.id || !item.projectId) {
@@ -633,11 +660,32 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
       burnRateRules.push(...rulesOfSlo);
+
+      const tiersOfSlo: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> =
+        await ServiceLevelObjectiveErrorBudgetPolicyTierService.findBy({
+          query: {
+            serviceLevelObjectiveId: item.id,
+            projectId: item.projectId,
+          },
+          select: {
+            _id: true,
+            projectId: true,
+            serviceLevelObjectiveId: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      policyTiers.push(...tiersOfSlo);
     }
 
     const carryForward: SloDeleteCarryForward = {
       itemsToDelete: itemsToDelete,
       burnRateRules: burnRateRules,
+      policyTiers: policyTiers,
     };
 
     return {
@@ -716,6 +764,38 @@ export class Service extends ProjectReferencesService<Model> {
            */
           logger.error(
             `Error resolving open alerts and incidents for burn rate rule ${rule.id.toString()} of deleted SLO ${sloId.toString()}: ${err}`,
+            { projectId: projectId.toString() } as LogAttributes,
+          );
+        }
+      }
+
+      // And what the tiers of its error budget policy raised, tier by tier.
+      const tiersOfSlo: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> = (
+        carryForward?.policyTiers || []
+      ).filter((tier: ServiceLevelObjectiveErrorBudgetPolicyTier): boolean => {
+        return (
+          tier.serviceLevelObjectiveId?.toString().toLowerCase() ===
+          sloId.toString().toLowerCase()
+        );
+      });
+
+      for (const tier of tiersOfSlo) {
+        if (!tier.id) {
+          continue;
+        }
+
+        try {
+          await ServiceLevelObjectiveErrorBudgetPolicyTierService.resolveOpenAlertsAndIncidentsForTier(
+            {
+              serviceLevelObjectiveId: sloId,
+              policyTierId: tier.id,
+              projectId: projectId,
+              rootCause: SLO_DISABLED_OR_DELETED_ROOT_CAUSE,
+            },
+          );
+        } catch (err) {
+          logger.error(
+            `Error resolving open alerts and incidents for error budget policy tier ${tier.id.toString()} of deleted SLO ${sloId.toString()}: ${err}`,
             { projectId: projectId.toString() } as LogAttributes,
           );
         }
@@ -881,6 +961,10 @@ export class Service extends ProjectReferencesService<Model> {
         currentBurnRate: true,
         sloStatus: true,
         statusChangeNotificationSentAt: true,
+        // The error budget policy tier it is in, for the tier hysteresis.
+        currentErrorBudgetPolicyTierId: true,
+        currentErrorBudgetPolicyTierName: true,
+        currentErrorBudgetPolicyTierEnteredAt: true,
         lastEvaluatedAt: true,
         nextEvaluationAt: true,
         lastAccumulatedBucketEndAt: true,

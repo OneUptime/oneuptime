@@ -4,6 +4,7 @@ import ServiceLevelObjectiveService, {
   SLO_ARCHIVED_ROOT_CAUSE,
   SLO_DISABLED_OR_DELETED_ROOT_CAUSE,
 } from "../../../Server/Services/ServiceLevelObjectiveService";
+import ServiceLevelObjectiveErrorBudgetPolicyTierService from "../../../Server/Services/ServiceLevelObjectiveErrorBudgetPolicyTierService";
 import ServiceLevelObjectiveBurnRateRuleService from "../../../Server/Services/ServiceLevelObjectiveBurnRateRuleService";
 import ServiceLevelObjectiveFeedService from "../../../Server/Services/ServiceLevelObjectiveFeedService";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
@@ -174,6 +175,7 @@ describe("ServiceLevelObjectiveService.getDueSlos - archived SLOs", () => {
 
 describe("ServiceLevelObjectiveService.onUpdateSuccess - archive and unarchive", () => {
   let resolveSpy: jest.SpyInstance;
+  let tierResolveSpy: jest.SpyInstance;
   let updateOneByIdSpy: jest.SpyInstance;
   let findOneByIdSpy: jest.SpyInstance;
 
@@ -192,6 +194,13 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess - archive and unarchive",
     findOneByIdSpy = jest
       .spyOn(ServiceLevelObjectiveService, "findOneById")
       .mockResolvedValue(makeSlo({ projectId: PROJECT_ID }));
+
+    tierResolveSpy = jest
+      .spyOn(
+        ServiceLevelObjectiveErrorBudgetPolicyTierService,
+        "resolveOpenPolicyTierAlertsAndIncidentsForSlo",
+      )
+      .mockResolvedValue(undefined);
 
     /*
      * Collaborators other hooks in onUpdateSuccess may reach; stubbed so this
@@ -232,6 +241,27 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess - archive and unarchive",
         rootCause: SLO_ARCHIVED_ROOT_CAUSE,
       },
     ]);
+  });
+
+  it("resolves what the error budget policy's tiers raised, with the archive root cause", async () => {
+    await callHook("onUpdateSuccess", makeOnUpdate({ isArchived: true }), [
+      SLO_ID,
+    ]);
+
+    expect(tierResolveSpy).toHaveBeenCalledTimes(1);
+    expect(tierResolveSpy).toHaveBeenCalledWith({
+      sloId: SLO_ID,
+      projectId: PROJECT_ID,
+      rootCause: SLO_ARCHIVED_ROOT_CAUSE,
+    });
+  });
+
+  it("unarchiving resolves nothing the tiers raised", async () => {
+    await callHook("onUpdateSuccess", makeOnUpdate({ isArchived: false }), [
+      SLO_ID,
+    ]);
+
+    expect(tierResolveSpy).not.toHaveBeenCalled();
   });
 
   it("says 'archived' in the root cause, distinct from the disable wording", () => {

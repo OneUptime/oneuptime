@@ -67,6 +67,12 @@ export function getSloBreadcrumbs(path: string): Array<Link> | undefined {
       "View SLO",
       "Burn Rate Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SLO_VIEW_ERROR_BUDGET_POLICY, [
+      "Project",
+      "SLOs",
+      "View SLO",
+      "Error Budget Policy",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SLO_VIEW_METRICS, [
       "Project",
       "SLOs",

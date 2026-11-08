@@ -7,6 +7,7 @@ import LabelService from "../../../../Server/Services/LabelService";
 import ServiceLevelObjectiveService from "../../../../Server/Services/ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "../../../../Server/Services/ServiceLevelObjectiveBurnRateRuleService";
 import ServiceLevelObjectiveMonitorRuleService from "../../../../Server/Services/ServiceLevelObjectiveMonitorRuleService";
+import ServiceLevelObjectiveErrorBudgetPolicyTierService from "../../../../Server/Services/ServiceLevelObjectiveErrorBudgetPolicyTierService";
 import ServiceLevelObjective from "../../../../Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import ServiceLevelObjectiveMonitorRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
@@ -127,6 +128,11 @@ function mockReads(data: { monitorRules: RuleRead; burnRateRules: RuleRead }): {
   } else {
     burnRateRules.mockRejectedValue(denied("SLO Burn Rate Rules") as never);
   }
+
+  // The error budget policy has its own suite (SloTools.test.ts): none here.
+  jest
+    .spyOn(ServiceLevelObjectiveErrorBudgetPolicyTierService, "findBy")
+    .mockResolvedValue([] as never);
 
   return { monitorRules, burnRateRules };
 }

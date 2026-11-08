@@ -386,6 +386,12 @@ export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
       "Picks the create form's target and at-risk threshold fields by column (pickSloFormFields): two fields.",
   },
   {
+    file: `${DASHBOARD}/Pages/Slo/View/ErrorBudgetPolicy.tsx`,
+    form: "ModelTable: SLO > Error Budget Policy",
+    reason:
+      "A tier's own three fields - Name, Budget Left Threshold (%) and What We Do, with Enabled on the Edit form - then one folded Alerts and incidents card for everything else. The card's fields come from the SLO record output helpers the burn rate rule form uses too (SloRecordOutputForm), which place each field by an argument, so they are not counted here. A tier is written in one sitting, and the card only opens to make the tier page someone: both of its switches start off. App's SloErrorBudgetPolicyTierForm test pins the shape.",
+  },
+  {
     file: `${DASHBOARD}/Pages/Slo/View/Settings.tsx`,
     form: "CardModelDetail: SLO Compliance Period",
     reason:

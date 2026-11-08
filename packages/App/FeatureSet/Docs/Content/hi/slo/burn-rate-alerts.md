@@ -28,6 +28,8 @@ burn rate = (share of time that was bad) ÷ (share of time the target allows to 
 
 बर्न रेट इस पर निर्भर नहीं करता कि कितना बजट बचा है। यह बताता है कि "अभी हालत कितनी खराब है?", और किसी को बुलाने का फ़ैसला करने के लिए यही जानना ज़रूरी है।
 
+इसके बजाय बचे बजट के आधार पर कदम उठाने के लिए, जैसे बजट का एक चौथाई बचने पर केवल विश्वसनीयता का काम रिलीज़ करना, SLO को एक [एरर बजट नीति](/docs/slo/error-budget-policy) दें।
+
 ## नियम कैसे तय करता है कि ट्रिगर हो
 
 OneUptime हर सक्षम बर्न रेट नियम को SLO के हर मूल्यांकन पर, हर 5 मिनट में, जाँचता है। हर नियम दो विंडो पर बर्न रेट मापता है और तभी ट्रिगर होता है जब दोनों उसकी सीमा पर या उससे ऊपर हों:
@@ -184,6 +186,9 @@ SLO burn rate: {{sloName}} — {{ruleName}}
 | `{{errorBudgetRemaining}}` | अभी उपलब्ध एरर बजट, अवधि के रूप में। बजट से अधिक खर्च होने पर ऋण चिह्न से शुरू होता है। | `18m 22s` |
 | `{{errorBudgetRemainingMinutes}}` | अभी उपलब्ध एरर बजट, मिनटों में। | `18.37` |
 | `{{windowDescription}}` | SLO की अनुपालन विंडो, शब्दों में। | `rolling 30-day window` |
+| `{{policyTier}}` | इस मूल्यांकन के बाद SLO एरर बजट नीति के जिस स्तर में है, उसका नाम। किसी स्तर में न होने पर "None"। | `Reliability first` |
+| `{{policyTierThresholdPercentage}}` | उस स्तर की बचे बजट की सीमा, प्रतिशत में। SLO किसी स्तर में न हो तो खाली। | `25` |
+| `{{policyTierWhatWeDo}}` | उस स्तर में टीम ने क्या करना तय किया है, जैसा स्तर पर लिखा है। SLO किसी स्तर में न हो तो खाली। | `Only reliability work and critical fixes ship.` |
 
 उदाहरण के लिए, शीर्षक `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` बन जाता है `Fast burn: Checkout availability is burning 21.5x`।
 
@@ -249,6 +254,7 @@ SLO की **फ़ीड** नियम द्वारा उठाया ग�
 
 :::cards
 - [एरर बजट](/docs/slo/error-budget): बजट क्या है और यह कितना चलता है।
+- [एरर बजट नीति](/docs/slo/error-budget-policy): बचे बजट के आधार पर, स्तर दर स्तर कदम उठाएँ।
 - [एस्केलेशन नियम](/docs/on-call/escalation-rules): किसे बुलाया जाता है, और किस क्रम में।
 - [SLO फ़ीड और ऑडिट लॉग](/docs/slo/feed-and-audit-logs): नियम द्वारा उठाया गया हर अलर्ट और घटना।
 :::

@@ -153,18 +153,19 @@ Die Seite **SLOs** listet jedes nicht archivierte SLO mit Status, SLI, verbleibe
 | --- | --- |
 | **Übersicht** | Den Status, die wichtigsten Kennzahlen, das Fehlerbudget-Burn-down, die neueste Aktivität, offene Warnungen und Vorfälle sowie die Burn-Rate-Regeln. |
 | **Metriken** | Die `oneuptime.slo.*`-Metriken des SLO, seinen langfristigen Fehlerbudget-Verlauf und Metriken der Vorfälle und Warnungen, die es betreffen. Siehe [SLO-Metriken und -Dashboards](/docs/slo/metrics). |
-| **Vorfälle** | Die Vorfälle, die seine Burn-Rate-Regeln gemeldet haben. Das Badge zählt die offenen. |
-| **Warnungen** | Die Warnungen, die seine Burn-Rate-Regeln ausgelöst haben. Das Badge zählt die offenen. |
+| **Vorfälle** | Die Vorfälle, die seine Burn-Rate-Regeln und seine Fehlerbudget-Richtlinie gemeldet haben. Das Badge zählt die offenen. |
+| **Warnungen** | Die Warnungen, die seine Burn-Rate-Regeln und seine Fehlerbudget-Richtlinie ausgelöst haben. Das Badge zählt die offenen. |
 | **Feed** | Was mit dem SLO passiert ist, als Zeitleiste. Siehe [SLO-Feed und Audit-Protokolle](/docs/slo/feed-and-audit-logs). |
 | **Monitore** | Die Monitore, die es misst, und ob eine Person oder eine Regel jeden davon zugeordnet hat. |
 | **Monitor-Regeln** | Die Regeln, die passende Monitore zuordnen. |
 | **Burn-Rate-Regeln** | Die Regeln, die Warnungen auslösen und Vorfälle melden, wenn das Budget zu schnell verbrennt. |
+| **Fehlerbudget-Richtlinie** | Was das Team vereinbart hat zu tun, während das Fehlerbudget schrumpft, und die Warnungen und Vorfälle, die jede Stufe der Richtlinie auslöst. Siehe [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy). |
 | **Eigentümer** | Die Benutzer und Teams, die von seinen Statusänderungen erfahren. |
 | **Einstellungen** | Das Ziel, den Compliance-Zeitraum, die Berechnung der Ausfallzeit, den Schalter für die Auswertung und die Archivkarte. |
 | **Audit-Protokolle** | Wer das SLO, seine Regeln und seine Eigentümer geändert hat, und wann. |
 | **SLO löschen** | Löscht das SLO endgültig und löst die Burn-Rate-Warnungen und -Vorfälle auf, die es offen hatte. |
 
-**Monitore** stehen im Bereich **Konfiguration**, **Monitor-Regeln** und **Burn-Rate-Regeln** im Bereich **Regeln**, **Eigentümer**, **Einstellungen**, **Audit-Protokolle** und **SLO löschen** im Bereich **Verwaltung**. Alle drei sind anfangs eingeklappt, ebenso ein Bereich **Entwickler**, um das SLO per Code zu verwalten: Klicken Sie auf den Titel eines Bereichs, um ihn zu öffnen.
+**Monitore** stehen im Bereich **Konfiguration**, **Monitor-Regeln**, **Burn-Rate-Regeln** und **Fehlerbudget-Richtlinie** im Bereich **Regeln**, **Eigentümer**, **Einstellungen**, **Audit-Protokolle** und **SLO löschen** im Bereich **Verwaltung**. Alle drei sind anfangs eingeklappt, ebenso ein Bereich **Entwickler**, um das SLO per Code zu verwalten: Klicken Sie auf den Titel eines Bereichs, um ihn zu öffnen.
 
 Wenn etwas ein SLO am Messen hindert, sagt ein Banner oben auf jeder seiner Seiten, was nicht stimmt, und verlinkt die Seite, auf der Sie es beheben: siehe [Fehlerbehebung](#fehlerbehebung).
 
@@ -183,6 +184,8 @@ Die **Übersicht** beantwortet „Sind wir im Budget?“, von oben nach unten:
 - **SLO-Details**: Name, Beschreibung und Beschriftungen, die einzigen Einstellungen, die auf der Übersicht bearbeitet werden.
 - **Offene Warnungen & Vorfälle**: was die Burn-Rate-Regeln gerade offen haben.
 - **Burn-Rate-Regeln**: der Schwellenwert jeder aktivierten Regel neben der aktuellen Burn-Rate, für Regeln, die 6 Stunden oder weniger zurückblicken, und was die Regel meldet.
+
+Ist das SLO in einer Stufe seiner Fehlerbudget-Richtlinie, zeigt die **Übersicht** auch diese Stufe und was das Team in ihr vereinbart hat: siehe [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy).
 
 ### Einstellungen
 

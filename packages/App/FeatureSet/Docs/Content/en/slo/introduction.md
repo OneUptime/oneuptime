@@ -153,18 +153,19 @@ Open an SLO to see its pages in the side menu:
 | --- | --- |
 | **Overview** | The status, the headline numbers, the error budget burn-down, recent activity, open alerts and incidents, and the burn rate rules. |
 | **Metrics** | The SLO's `oneuptime.slo.*` metrics, its long-range error budget history, and metrics of the incidents and alerts that affect it. See [SLO Metrics and Dashboards](/docs/slo/metrics). |
-| **Incidents** | The incidents its burn rate rules declared. The badge counts the open ones. |
-| **Alerts** | The alerts its burn rate rules raised. The badge counts the open ones. |
+| **Incidents** | The incidents its burn rate rules and error budget policy declared. The badge counts the open ones. |
+| **Alerts** | The alerts its burn rate rules and error budget policy raised. The badge counts the open ones. |
 | **Feed** | What happened to the SLO, as a timeline. See [SLO Feed and Audit Logs](/docs/slo/feed-and-audit-logs). |
 | **Monitors** | The monitors it measures, and whether a person or a rule attached each one. |
 | **Monitor Rules** | The rules that attach matching monitors. |
 | **Burn Rate Rules** | The rules that raise alerts and declare incidents when the budget burns too fast. |
+| **Error Budget Policy** | What the team agreed to do as the error budget runs down, and the alerts and incidents each tier of the policy raises. See [Error Budget Policy](/docs/slo/error-budget-policy). |
 | **Owners** | The users and teams who hear about its status changes. |
 | **Settings** | The objective, compliance period, downtime calculation, evaluation switch and archive card. |
 | **Audit Logs** | Who changed the SLO, its rules and its owners, and when. |
 | **Delete SLO** | Deletes the SLO for good, and resolves the burn rate alerts and incidents it had open. |
 
-**Monitors** sits in a **Configuration** section, **Monitor Rules** and **Burn Rate Rules** in a **Rules** section, and **Owners**, **Settings**, **Audit Logs** and **Delete SLO** in a **Management** section. All three start folded, as does a **Developer** section for managing the SLO from code: click a section's title to open it.
+**Monitors** sits in a **Configuration** section, **Monitor Rules**, **Burn Rate Rules** and **Error Budget Policy** in a **Rules** section, and **Owners**, **Settings**, **Audit Logs** and **Delete SLO** in a **Management** section. All three start folded, as does a **Developer** section for managing the SLO from code: click a section's title to open it.
 
 When something stops an SLO from measuring, a banner at the top of each of its pages says what is wrong and links to the page that fixes it: see [Troubleshooting](#troubleshooting).
 
@@ -183,6 +184,8 @@ The **Overview** answers "are we within budget?", from top to bottom:
 - **SLO Details**: the name, description and labels, the only settings edited on the Overview.
 - **Open alerts & incidents**: what the burn rate rules have open right now.
 - **Burn rate rules**: each enabled rule's threshold beside the current burn rate, for rules that look back 6 hours or less, and what the rule declares.
+
+When the SLO is in a tier of its error budget policy, the **Overview** also shows that tier and what the team agreed to do in it: see [Error Budget Policy](/docs/slo/error-budget-policy).
 
 ### Settings
 
