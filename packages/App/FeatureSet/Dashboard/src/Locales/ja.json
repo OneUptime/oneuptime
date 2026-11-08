@@ -46429,5 +46429,7 @@
   "Charted for {{resource}}, which this monitor checks now.": "Charted for {{resource}}, which this monitor checks now.",
   "Only chart this metric from these services.": "Only chart this metric from these services.",
   "Record Version": "Record Version",
-  "Changes saved after this was proposed were kept": "この提案の後に保存された変更は保持されました"
+  "Changes saved after this was proposed were kept": "この提案の後に保存された変更は保持されました",
+  "Copy a link to this time range": "Copy a link to this time range",
+  "Go back to what the monitor saw": "Go back to what the monitor saw"
 }

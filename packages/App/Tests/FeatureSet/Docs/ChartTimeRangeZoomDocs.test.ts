@@ -1161,28 +1161,51 @@ describe("Zooming Into a Time Range docs: what zooms, and how far", () => {
     }
 
     /*
-     * Page text only: the snapshot's zoom lives in the incident, alert and
-     * episode pages and is exercised by Common's
-     * EventOverviewTelemetrySnapshotZoom, TelemetrySnapshotPanelTimeRangeZoom,
-     * SnapshotExplorerPrimaryZoom and EventOverviewSnapshotExplorerZoom
-     * suites (a log, trace or exception primary), and a metric primary's
-     * investigation (issue #5954) by EventMetricInvestigationPanel and
-     * MetricInvestigation.
+     * Page text, held below to the code that does it. The card's time range
+     * and zoom are exercised by Common's SnapshotExplorerPrimaryZoom,
+     * EventOverviewSnapshotExplorerZoom, UseInvestigationTimeRange and
+     * EventTimeRangeControls suites (a log, trace or exception card, issue
+     * #6251), a metric card's investigation (issue #5954) by
+     * EventMetricInvestigationPanel and MetricInvestigation, and the Root
+     * Cause page's (issue #6249) by IncidentRootCauseTimeRangeZoom.
      */
     expect(section).toContain(
-      "The telemetry snapshot on an incident, alert or episode page has a window of its own too. A drag on its chart (the log, trace or exception volume chart when that is what the snapshot shows) zooms the whole snapshot, so its Metrics, Logs, Traces and Exceptions tabs all show the slice you dragged out. **Reset zoom** beside the snapshot's badge, or a double-click on that chart, puts the snapshot window back. When a metrics monitor opened the incident, alert or episode, its card investigates the metrics over a time range you pick instead: a drag on a metric chart zooms that time range, every tab follows it, and Reset zoom beside the time picker, or a double-click on the chart, goes back to the range you picked.",
+      "The telemetry card on an incident, alert or episode page has a time range of its own too, which you pick on the card's time picker, on any of its tabs: the ranges around the event first (around its start, the hour or the day before it started, from its start to now or to its resolution, and what the monitor saw), then ranges relative to now. The card starts on what the monitor saw when a log, trace or exception monitor opened the event, and on 30 minutes either side of its start when a metrics monitor did; an incident's Root Cause page charts its metrics the same way. A drag on the card's chart (the log, trace or exception volume chart, or a metric chart) zooms that range, so its Metrics, Logs, Traces and Exceptions tabs all show the slice you dragged out. **Reset zoom** beside the time picker, or a double-click on that chart, goes back to the range you picked, and **Reset** goes back to where the card started.",
     );
 
-    // What the page says of a metric snapshot, against the code that does it.
-    const investigation: string = readCode(
+    // The picker, with Reset zoom beside it, on every tab of either card.
+    const picker: string = readCode(
       `${DASHBOARD_SRC}/Components/Metrics/Investigation/MetricInvestigationTimePicker.tsx`,
     );
-    expect(investigation).toContain("<ResetTimeRangeZoomButton />");
+    expect(picker).toContain("<ResetTimeRangeZoomButton />");
+    const metricCard: string = readCode(
+      `${DASHBOARD_SRC}/Components/Telemetry/EventMetricInvestigationPanel.tsx`,
+    );
+    expect(metricCard).toContain("snapshotWindow={investigation.window}");
+    expect(metricCard).toContain("snapshotWindowAlert={timePicker}");
+    const explorerCard: string = readCode(
+      `${DASHBOARD_SRC}/Components/Telemetry/TelemetrySnapshotPanel.tsx`,
+    );
+    expect(explorerCard).toContain("snapshotWindowAlert={timeRangeControls}");
+    expect(
+      readCode(`${DASHBOARD_SRC}/Components/Telemetry/EventTimeRangeControls.tsx`),
+    ).toContain("<MetricInvestigationTimePicker");
+
+    // Where each card starts: what the monitor saw, or around the start.
+    expect(explorerCard).toContain(
+      "defaultSelection: EVENT_EVALUATED_SELECTION,",
+    );
+    expect(metricCard).toContain("defaultSelection: EVENT_AROUND_START_SELECTION,");
+    expect(
+      readCode(`${DASHBOARD_SRC}/Utils/EventTimePresets.ts`),
+    ).toContain("export const AROUND_START_MINUTES: number = 30;");
+
+    // The Root Cause page charts the incident's metrics through the same card.
     expect(
       readCode(
-        `${DASHBOARD_SRC}/Components/Telemetry/EventMetricInvestigationPanel.tsx`,
+        `${DASHBOARD_SRC}/Components/Incident/IncidentRootCauseMetricChart.tsx`,
       ),
-    ).toContain("snapshotWindow={investigation.window}");
+    ).toContain("<EventMetricInvestigationPanel");
   });
 
   it("the charts listed as not zooming never take a zoom", () => {
