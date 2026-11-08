@@ -253,6 +253,9 @@ export default class RuleRunner {
    * A status page monitor rule already re-syncs its page whenever it is saved;
    * running it repeats that sync on demand. It is one page, not a walk over
    * resources, so it always finishes in a single pass.
+   *
+   * Handed who ran it, so the resources it adds, moves and removes are theirs
+   * in the audit log (issue #6324); the sync that follows a save names nobody.
    */
   private static async syncStatusPageMonitorRule(
     data: RuleRunPassData,
@@ -278,6 +281,7 @@ export default class RuleRunner {
     const sync: StatusPageMonitorRuleSyncResult =
       await StatusPageMonitorRuleEngineService.syncResourcesForRule({
         statusPageMonitorRuleId: data.ruleId,
+        props: data.props,
       });
 
     return {
@@ -296,6 +300,9 @@ export default class RuleRunner {
    * every enabled rule of that SLO matches, so the sync is the whole SLO's, not
    * this one rule's. It is one SLO, not a walk over resources, so it always
    * finishes in a single pass.
+   *
+   * Handed who ran it, so the SLO's monitors it changes are theirs in the
+   * audit log (issue #6324); the sync that follows a save names nobody.
    */
   private static async syncSloMonitorRule(
     data: RuleRunPassData,
@@ -334,6 +341,7 @@ export default class RuleRunner {
     const sync: SloMonitorSyncResult =
       await ServiceLevelObjectiveMonitorRuleEngineService.syncMonitorsForSlo({
         serviceLevelObjectiveId: serviceLevelObjectiveId,
+        props: data.props,
       });
 
     return {

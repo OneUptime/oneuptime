@@ -15,6 +15,10 @@ import RuleCriteria, {
   RuleCriteriaOperator,
 } from "../../../Types/Rules/RuleCriteria";
 import UptimePrecision from "../../../Types/StatusPage/UptimePrecision";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import WriteSource from "../../../Types/BaseDatabase/WriteSource";
+import UserType from "../../../Types/UserType";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
 
 /*
@@ -1847,5 +1851,401 @@ describe("StatusPageMonitorRuleEngineService.removeResourcesAddedByRule", () => 
 
     expect(removed).toEqual([]);
     expect(resourceDeleteSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * WHO A STATUS PAGE'S RULE-MADE CHANGES ARE BY (issue #6324).
+ *
+ * Every write is root: who may run a rule is asked at its route. A rule's
+ * Run now names who ran it, and every resource its sync adds, moves or
+ * removes - the one another rule takes over when this rule lets a monitor
+ * go included - is written on their behalf (RuleRunWriteProps), so the audit
+ * log records the page's changes as theirs. A sync after a save, a
+ * monitor's own change and a rule's delete name nobody: OneUptime's own.
+ */
+describe("who a status page monitor rule's sync is by (issue #6324)", () => {
+  const RUNNER_ID: ObjectID = new ObjectID(
+    "12121212-1212-4212-8212-121212121212",
+  );
+  const KEY_ID: ObjectID = new ObjectID(
+    "34343434-3434-4434-8434-343434343434",
+  );
+  const RESOURCE_C_ID: ObjectID = new ObjectID(
+    "c1c1c1c1-c1c1-4c1c-8c1c-c1c1c1c1c1c1",
+  );
+
+  const RUNNER: DatabaseCommonInteractionProps = {
+    tenantId: PROJECT_ID,
+    userId: RUNNER_ID,
+    userType: UserType.User,
+    userTenantAccessPermission: {},
+    isMultiTenantRequest: false,
+  };
+
+  const ON_THEIR_BEHALF: DatabaseCommonInteractionProps = {
+    isRoot: true,
+    userId: RUNNER_ID,
+    userType: UserType.User,
+  };
+
+  const OWN: DatabaseCommonInteractionProps = { isRoot: true };
+
+  interface Write {
+    method: string;
+    // The resource deleted or updated, or the monitor a create adds.
+    target: string;
+    props: unknown;
+  }
+
+  let writes: Array<Write>;
+  let ruleFindBySpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    writes = [];
+
+    /*
+     * The rule being run: Production monitors, in the Other group. Monitor A
+     * is new to the page, B's resource is the rule's but B no longer matches,
+     * and C's resource is the rule's, in the wrong group.
+     */
+    jest.spyOn(StatusPageMonitorRuleService, "findOneById").mockResolvedValue(
+      fakeRule({
+        monitorLabels: [LABEL_PRODUCTION_ID],
+        statusPageGroupId: OTHER_GROUP_ID,
+      }),
+    );
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([
+        fakeMonitor(MONITOR_A_ID, { labels: [LABEL_PRODUCTION_ID] }),
+        fakeMonitor(MONITOR_C_ID, { labels: [LABEL_PRODUCTION_ID] }),
+      ]);
+
+    const ownedC: StatusPageResource = fakeResource({
+      id: RESOURCE_C_ID,
+      monitorId: MONITOR_C_ID,
+      statusPageMonitorRuleId: RULE_ID,
+      statusPageGroupId: GROUP_ID,
+    });
+
+    // The page as the rule's pass reads it, then as B's hand-off reads it.
+    jest
+      .spyOn(StatusPageResourceService, "findBy")
+      .mockResolvedValueOnce([
+        fakeResource({
+          id: RESOURCE_B_ID,
+          monitorId: MONITOR_B_ID,
+          statusPageMonitorRuleId: RULE_ID,
+        }),
+        ownedC,
+      ])
+      .mockResolvedValue([ownedC]);
+
+    // B, released, is still claimed by another rule of the page: Staging.
+    jest
+      .spyOn(MonitorService, "findOneById")
+      .mockResolvedValue(
+        fakeMonitor(MONITOR_B_ID, { labels: [LABEL_STAGING_ID] }),
+      );
+    ruleFindBySpy = jest
+      .spyOn(StatusPageMonitorRuleService, "findBy")
+      .mockResolvedValue([
+        fakeRule({ id: OTHER_RULE_ID, monitorLabels: [LABEL_STAGING_ID] }),
+      ]);
+
+    jest
+      .spyOn(StatusPageResourceService, "create")
+      .mockImplementation((async (data: {
+        data: StatusPageResource;
+        props: unknown;
+      }): Promise<StatusPageResource> => {
+        writes.push({
+          method: "create",
+          target: data.data.monitorId!.toString(),
+          props: data.props,
+        });
+        return data.data;
+      }) as never);
+    jest
+      .spyOn(StatusPageResourceService, "deleteOneById")
+      .mockImplementation((async (data: {
+        id: ObjectID;
+        props: unknown;
+      }): Promise<number> => {
+        writes.push({
+          method: "delete",
+          target: data.id.toString(),
+          props: data.props,
+        });
+        return 1;
+      }) as never);
+    jest
+      .spyOn(StatusPageResourceService, "updateOneById")
+      .mockImplementation((async (data: {
+        id: ObjectID;
+        props: unknown;
+      }): Promise<number> => {
+        writes.push({
+          method: "update",
+          target: data.id.toString(),
+          props: data.props,
+        });
+        return 1;
+      }) as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function written(): Array<string> {
+    return writes
+      .map((write: Write): string => {
+        return `${write.method} ${write.target}`;
+      })
+      .sort();
+  }
+
+  // Every change the scenario makes to the page: one of each kind, and B's hand-off.
+  const EVERY_CHANGE: Array<string> = [
+    `create ${MONITOR_A_ID.toString()}`,
+    `create ${MONITOR_B_ID.toString()}`,
+    `delete ${RESOURCE_B_ID.toString()}`,
+    `update ${RESOURCE_C_ID.toString()}`,
+  ].sort();
+
+  it("Run now adds, moves and removes the page's resources on the behalf of whoever ran it", async () => {
+    const result: StatusPageMonitorRuleSyncResult =
+      await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+        statusPageMonitorRuleId: RULE_ID,
+        props: RUNNER,
+      });
+
+    expect(result.monitorIdsAdded).toEqual([MONITOR_A_ID.toString()]);
+    expect(result.statusPageResourceIdsRemoved).toEqual([
+      RESOURCE_B_ID.toString(),
+    ]);
+    expect(result.statusPageResourceIdsUpdated).toEqual([
+      RESOURCE_C_ID.toString(),
+    ]);
+    expect(written()).toEqual(EVERY_CHANGE);
+
+    for (const write of writes) {
+      expect([write.method, write.target, write.props]).toEqual([
+        write.method,
+        write.target,
+        ON_THEIR_BEHALF,
+      ]);
+    }
+  });
+
+  it("the monitor another rule takes over when Run now lets it go is theirs too", async () => {
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+      props: RUNNER,
+    });
+
+    const handOff: Array<Write> = writes.filter((write: Write): boolean => {
+      return (
+        write.method === "create" && write.target === MONITOR_B_ID.toString()
+      );
+    });
+
+    expect(handOff).toHaveLength(1);
+    expect(handOff[0]!.props).toEqual(ON_THEIR_BEHALF);
+    expect(ruleFindBySpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("a sync after the rule is saved is OneUptime's own, every write of it", async () => {
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+    });
+
+    expect(written()).toEqual(EVERY_CHANGE);
+
+    for (const write of writes) {
+      expect([write.method, write.props]).toEqual([write.method, OWN]);
+    }
+  });
+
+  it("an API key that runs the rule is credited as the key", async () => {
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+      props: {
+        tenantId: PROJECT_ID,
+        userType: UserType.API,
+        apiKeyId: KEY_ID,
+        apiKeyName: "Terraform",
+      },
+    });
+
+    expect(written()).toEqual(EVERY_CHANGE);
+
+    for (const write of writes) {
+      expect(write.props).toEqual({
+        isRoot: true,
+        userType: UserType.API,
+        apiKeyId: KEY_ID,
+        apiKeyName: "Terraform",
+      });
+    }
+  });
+
+  it("a monitor's own change re-syncs the page as OneUptime's own", async () => {
+    await StatusPageMonitorRuleEngineService.syncRulesForMonitor({
+      monitorId: MONITOR_B_ID,
+      projectId: PROJECT_ID,
+    });
+
+    expect(writes.length).toBeGreaterThan(0);
+
+    for (const write of writes) {
+      expect(write.props).toEqual(OWN);
+    }
+  });
+
+  it("deleting a rule takes its resources off the page as OneUptime's own", async () => {
+    await StatusPageMonitorRuleEngineService.removeResourcesAddedByRule({
+      statusPageMonitorRuleId: RULE_ID,
+    });
+
+    expect(written()).toEqual([
+      `delete ${RESOURCE_B_ID.toString()}`,
+      `delete ${RESOURCE_C_ID.toString()}`,
+    ]);
+
+    for (const write of writes) {
+      expect(write.props).toEqual(OWN);
+    }
+  });
+
+  it("a Run now that changes nothing writes nothing", async () => {
+    jest.restoreAllMocks();
+    writes = [];
+
+    jest
+      .spyOn(StatusPageMonitorRuleService, "findOneById")
+      .mockResolvedValue(fakeRule({ monitorLabels: [LABEL_PRODUCTION_ID] }));
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([
+        fakeMonitor(MONITOR_A_ID, { labels: [LABEL_PRODUCTION_ID] }),
+      ]);
+    jest.spyOn(StatusPageResourceService, "findBy").mockResolvedValue([
+      fakeResource({
+        id: RESOURCE_A_ID,
+        monitorId: MONITOR_A_ID,
+        statusPageMonitorRuleId: RULE_ID,
+      }),
+    ]);
+    const create: jest.SpyInstance = jest.spyOn(
+      StatusPageResourceService,
+      "create",
+    );
+    const remove: jest.SpyInstance = jest.spyOn(
+      StatusPageResourceService,
+      "deleteOneById",
+    );
+    const update: jest.SpyInstance = jest.spyOn(
+      StatusPageResourceService,
+      "updateOneById",
+    );
+
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+      props: RUNNER,
+    });
+
+    expect(create).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Whoever runs it - a person, an API key, a member through an MCP client
+   * or Ask AI - and whatever else their request carries, each write is root
+   * with exactly who that is, and none of what they may do.
+   */
+  it("whoever runs it and whatever their request carries, each write carries only who ran it", async () => {
+    const random: SeededRandom = seededRandom(6324);
+
+    const identities: Array<DatabaseCommonInteractionProps> = [
+      { userId: RUNNER_ID, userType: UserType.User },
+      { userType: UserType.API, apiKeyId: KEY_ID, apiKeyName: "Deploy bot" },
+      {
+        userId: RUNNER_ID,
+        userType: UserType.User,
+        mcpOAuthGrantId: KEY_ID,
+        mcpClientName: "Claude",
+      },
+      {
+        userId: RUNNER_ID,
+        userType: UserType.User,
+        writeSource: WriteSource.AskAi,
+      },
+    ];
+
+    const extras: Array<DatabaseCommonInteractionProps> = [
+      { tenantId: PROJECT_ID },
+      { isRoot: false },
+      { isMasterAdmin: true },
+      { userTeamIds: [RUNNER_ID] },
+      { isReadOnlyCredential: true },
+      { userTenantAccessPermission: {} },
+    ];
+
+    for (let draw: number = 0; draw < 40; draw++) {
+      const identity: DatabaseCommonInteractionProps =
+        identities[random(identities.length)]!;
+      let props: DatabaseCommonInteractionProps = { ...identity };
+
+      for (const extra of extras) {
+        if (random(2) === 1) {
+          props = { ...props, ...extra };
+        }
+      }
+
+      writes = [];
+      (
+        StatusPageResourceService.findBy as unknown as jest.SpyInstance
+      ).mockReset();
+      (StatusPageResourceService.findBy as unknown as jest.SpyInstance)
+        .mockResolvedValueOnce([
+          fakeResource({
+            id: RESOURCE_B_ID,
+            monitorId: MONITOR_B_ID,
+            statusPageMonitorRuleId: RULE_ID,
+          }),
+          fakeResource({
+            id: RESOURCE_C_ID,
+            monitorId: MONITOR_C_ID,
+            statusPageMonitorRuleId: RULE_ID,
+            statusPageGroupId: GROUP_ID,
+          }),
+        ])
+        .mockResolvedValue([
+          fakeResource({
+            id: RESOURCE_C_ID,
+            monitorId: MONITOR_C_ID,
+            statusPageMonitorRuleId: RULE_ID,
+            statusPageGroupId: GROUP_ID,
+          }),
+        ]);
+
+      await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+        statusPageMonitorRuleId: RULE_ID,
+        props: props,
+      });
+
+      expect([draw, written()]).toEqual([draw, EVERY_CHANGE]);
+
+      for (const write of writes) {
+        expect([draw, write.props]).toEqual([
+          draw,
+          { isRoot: true, ...identity },
+        ]);
+      }
+    }
   });
 });

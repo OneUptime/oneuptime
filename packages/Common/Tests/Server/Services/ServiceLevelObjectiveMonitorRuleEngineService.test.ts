@@ -22,6 +22,10 @@ import RuleCriteria, {
   RuleCriteriaOperator,
 } from "../../../Types/Rules/RuleCriteria";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../Utils/Rules/RuleEngineLimits";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import WriteSource from "../../../Types/BaseDatabase/WriteSource";
+import UserType from "../../../Types/UserType";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
@@ -46,7 +50,9 @@ import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
  *
  * The second half is what ServiceLevelObjective.autoAddedMonitors exists for.
  * Every write is also told to the SLO's feed, without a user, because nobody
- * clicked anything - a rule reacted.
+ * clicked anything - a rule reacted. A rule's Run now is the exception: it
+ * is the person who ran it who changed the SLO (issue #6324), so the write is
+ * made on their behalf and the feed names them.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -2116,5 +2122,254 @@ describe("SLO monitor type matching", () => {
         }),
       }),
     ).toBe(false);
+  });
+});
+
+/*
+ * WHO AN SLO'S RULE-MADE CHANGES ARE BY (issue #6324).
+ *
+ * The SLO's monitors are written as root: who may run a rule is asked at
+ * its route. A rule's Run now names who ran it, so the write is made on
+ * their behalf (RuleRunWriteProps) - the audit log records it as theirs -
+ * and the feed items it posts name them. A sync after a save, and a
+ * monitor's own change, name nobody: OneUptime's own.
+ */
+describe("who an SLO monitor rule's sync is by (issue #6324)", () => {
+  const RUNNER_ID: ObjectID = new ObjectID(
+    "12121212-1212-4212-8212-121212121212",
+  );
+  const KEY_ID: ObjectID = new ObjectID(
+    "34343434-3434-4434-8434-343434343434",
+  );
+
+  const RUNNER: DatabaseCommonInteractionProps = {
+    tenantId: PROJECT_ID,
+    userId: RUNNER_ID,
+    userType: UserType.User,
+    userTenantAccessPermission: {},
+    isMultiTenantRequest: false,
+  };
+
+  const ON_THEIR_BEHALF: DatabaseCommonInteractionProps = {
+    isRoot: true,
+    userId: RUNNER_ID,
+    userType: UserType.User,
+  };
+
+  let spies: SyncSpies;
+
+  /*
+   * The SLO holds B (a rule's, which no longer matches) and C (attached by
+   * hand); the rule matches A, which is new.
+   */
+  beforeEach(() => {
+    spies = installSpies();
+    spies.sloFindOneById.mockResolvedValue(
+      fakeSlo({
+        monitors: [MONITOR_B_ID, MONITOR_C_ID],
+        autoAddedMonitors: [MONITOR_B_ID],
+      }),
+    );
+    spies.ruleFindBy.mockResolvedValue([
+      fakeRule({ monitorNamePattern: "api" }),
+    ]);
+    spies.monitorFindBy.mockImplementation((async (args: {
+      query: Record<string, unknown>;
+    }): Promise<Array<Monitor>> => {
+      // The rule's match, then the names of the monitors it detached.
+      if (args.query["_id"] !== undefined) {
+        return [fakeMonitor(MONITOR_B_ID, { name: "Legacy worker" })];
+      }
+
+      return [fakeMonitor(MONITOR_A_ID, { name: "api-gateway" })];
+    }) as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function updateProps(): Array<unknown> {
+    return spies.sloUpdateOneById.mock.calls.map(
+      (call: Array<unknown>): unknown => {
+        return (call[0] as { props: unknown }).props;
+      },
+    );
+  }
+
+  async function runAs(
+    props: DatabaseCommonInteractionProps | undefined,
+  ): Promise<SloMonitorSyncResult> {
+    return await ServiceLevelObjectiveMonitorRuleEngineService.syncMonitorsForSlo(
+      {
+        serviceLevelObjectiveId: SLO_ID,
+        props: props,
+      },
+    );
+  }
+
+  it("Run now writes the SLO's monitors on the behalf of whoever ran it", async () => {
+    const result: SloMonitorSyncResult = await runAs(RUNNER);
+
+    expect(result).toEqual({
+      monitorIdsAdded: [MONITOR_A_ID.toString()],
+      monitorIdsRemoved: [MONITOR_B_ID.toString()],
+    });
+    expect(writtenIds(spies.sloUpdateOneById, "monitors")).toEqual(
+      sortedIds([MONITOR_A_ID, MONITOR_C_ID]),
+    );
+    expect(updateProps()).toEqual([ON_THEIR_BEHALF]);
+  });
+
+  it("and the feed items it posts name them", async () => {
+    await runAs(RUNNER);
+
+    const calls: Array<FeedCall> = feedCalls(spies.feed);
+
+    expect(
+      calls.map((call: FeedCall): string => {
+        return call.serviceLevelObjectiveFeedEventType;
+      }),
+    ).toEqual([
+      ServiceLevelObjectiveFeedEventType.MonitorsAttached,
+      ServiceLevelObjectiveFeedEventType.MonitorsDetached,
+    ]);
+
+    for (const call of calls) {
+      expect(call.userId).toBe(RUNNER_ID);
+    }
+  });
+
+  it("a sync after a rule is saved is OneUptime's own: root, and a feed that names nobody", async () => {
+    await runAs(undefined);
+
+    expect(updateProps()).toEqual([{ isRoot: true }]);
+    expect(feedCalls(spies.feed)).toHaveLength(2);
+
+    for (const call of feedCalls(spies.feed)) {
+      expect(call.userId).toBeUndefined();
+    }
+  });
+
+  it("an API key that runs the rule is credited as the key; the feed has no person to name", async () => {
+    await runAs({
+      tenantId: PROJECT_ID,
+      userType: UserType.API,
+      apiKeyId: KEY_ID,
+      apiKeyName: "Terraform",
+    });
+
+    expect(updateProps()).toEqual([
+      {
+        isRoot: true,
+        userType: UserType.API,
+        apiKeyId: KEY_ID,
+        apiKeyName: "Terraform",
+      },
+    ]);
+
+    for (const call of feedCalls(spies.feed)) {
+      expect(call.userId).toBeUndefined();
+    }
+  });
+
+  it("a Run now that finds the SLO in step writes nothing and posts nothing", async () => {
+    spies.sloFindOneById.mockResolvedValue(
+      fakeSlo({
+        monitors: [MONITOR_A_ID, MONITOR_C_ID],
+        autoAddedMonitors: [MONITOR_A_ID],
+      }),
+    );
+
+    const result: SloMonitorSyncResult = await runAs(RUNNER);
+
+    expect(result).toEqual({ monitorIdsAdded: [], monitorIdsRemoved: [] });
+    expect(spies.sloUpdateOneById).not.toHaveBeenCalled();
+    expect(spies.feed).not.toHaveBeenCalled();
+  });
+
+  it("a monitor's own change re-syncs its SLOs as OneUptime's own", async () => {
+    spies.monitorFindOneById.mockResolvedValue(
+      fakeMonitor(MONITOR_A_ID, { name: "api-gateway" }),
+    );
+    spies.sloFindBy.mockImplementation(
+      answerSloReads({
+        byId: [fakeSlo({ monitors: [], autoAddedMonitors: [] })],
+      }) as never,
+    );
+
+    const results: Array<SloMonitorSyncResult> =
+      await ServiceLevelObjectiveMonitorRuleEngineService.syncSlosForMonitor({
+        monitorId: MONITOR_A_ID,
+      });
+
+    expect(results).toHaveLength(1);
+    expect(updateProps()).toEqual([{ isRoot: true }]);
+
+    for (const call of feedCalls(spies.feed)) {
+      expect(call.userId).toBeUndefined();
+    }
+  });
+
+  /*
+   * Whoever runs it, and whatever else their request carries: the write is
+   * root with exactly who ran it, and the feed names the person when there
+   * is one.
+   */
+  it("whoever runs it and whatever their request carries, the write carries only who ran it", async () => {
+    const random: SeededRandom = seededRandom(6324);
+
+    const identities: Array<DatabaseCommonInteractionProps> = [
+      { userId: RUNNER_ID, userType: UserType.User },
+      { userType: UserType.API, apiKeyId: KEY_ID, apiKeyName: "Deploy bot" },
+      {
+        userId: RUNNER_ID,
+        userType: UserType.User,
+        mcpOAuthGrantId: KEY_ID,
+        mcpClientName: "Claude",
+      },
+      {
+        userId: RUNNER_ID,
+        userType: UserType.User,
+        writeSource: WriteSource.AskAi,
+      },
+      { userId: RUNNER_ID, userType: UserType.MasterAdmin },
+    ];
+
+    const extras: Array<DatabaseCommonInteractionProps> = [
+      { tenantId: PROJECT_ID },
+      { tenantId: OTHER_PROJECT_ID },
+      { isRoot: false },
+      { isMasterAdmin: true },
+      { userTeamIds: [RUNNER_ID] },
+      { isReadOnlyCredential: true },
+      { userTenantAccessPermission: {} },
+    ];
+
+    for (let draw: number = 0; draw < 50; draw++) {
+      const identity: DatabaseCommonInteractionProps =
+        identities[random(identities.length)]!;
+      let props: DatabaseCommonInteractionProps = { ...identity };
+
+      for (const extra of extras) {
+        if (random(2) === 1) {
+          props = { ...props, ...extra };
+        }
+      }
+
+      spies.sloUpdateOneById.mockClear();
+      spies.feed.mockClear();
+
+      await runAs(props);
+
+      expect([draw, updateProps()]).toEqual([
+        draw,
+        [{ isRoot: true, ...identity }],
+      ]);
+
+      for (const call of feedCalls(spies.feed)) {
+        expect([draw, call.userId]).toEqual([draw, identity.userId]);
+      }
+    }
   });
 });
