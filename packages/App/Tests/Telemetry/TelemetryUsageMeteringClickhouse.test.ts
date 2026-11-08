@@ -461,9 +461,7 @@ integration("Metering without billing against ClickHouse", () => {
     // The usage rows, in memory: none staged before the run.
     jest
       .spyOn(TelemetryUsageBillingService, "findBy")
-      .mockImplementation((async (): Promise<
-        Array<TelemetryUsageBilling>
-      > => {
+      .mockImplementation((async (): Promise<Array<TelemetryUsageBilling>> => {
         return [];
       }) as never);
     jest
@@ -530,9 +528,9 @@ integration("Metering without billing against ClickHouse", () => {
       YESTERDAY,
     );
 
-    expect(
-      Array.from(usage.keys()).sort(),
-    ).toEqual([SERVICE_ID, HOST_ID, PROJECT_ID.toString()].sort());
+    expect(Array.from(usage.keys()).sort()).toEqual(
+      [SERVICE_ID, HOST_ID, PROJECT_ID.toString()].sort(),
+    );
 
     for (const [entityId, resource] of usage) {
       expect({ entityId, bytes: resource.bytes }).toEqual({
@@ -588,17 +586,18 @@ integration("Metering without billing against ClickHouse", () => {
 
   test("meters the week's days that have telemetry, at no cost, and never today, an older day or another project", async () => {
     for (const productType of [ProductType.Logs, ProductType.Traces]) {
-      await TelemetryUsageBillingService.meterUnstagedTelemetryUsageForProject(
-        {
-          projectId: PROJECT_ID,
-          productType: productType,
-        },
-      );
+      await TelemetryUsageBillingService.meterUnstagedTelemetryUsageForProject({
+        projectId: PROJECT_ID,
+        productType: productType,
+      });
     }
 
-    const yesterdayDay: string = OneUptimeDate.getDateAsCustomFormattedStringInTimezone(
-      { date: YESTERDAY, timezone: "UTC", format: "MMM DD, YYYY" },
-    );
+    const yesterdayDay: string =
+      OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+        date: YESTERDAY,
+        timezone: "UTC",
+        format: "MMM DD, YYYY",
+      });
     const threeDaysAgoDay: string =
       OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
         date: THREE_DAYS_AGO,

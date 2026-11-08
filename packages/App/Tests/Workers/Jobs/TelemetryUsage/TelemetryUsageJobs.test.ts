@@ -245,7 +245,8 @@ describe("metering", () => {
       expect.objectContaining({
         key: METER_JOB,
         namespace: "Workers.Cron",
-        lockTimeout: (METER_TELEMETRY_USAGE_DEADLINE_IN_MINUTES + 15) * MINUTE_MS,
+        lockTimeout:
+          (METER_TELEMETRY_USAGE_DEADLINE_IN_MINUTES + 15) * MINUTE_MS,
         acquireAttemptsLimit: 1,
         refreshInterval: 30 * 1000,
       }),
