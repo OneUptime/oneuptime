@@ -104,8 +104,12 @@ const RECORD_ID: ObjectID = new ObjectID(
 const MONITOR_ID: ObjectID = new ObjectID(
   "55555555-5555-4555-8555-555555555555",
 );
-const POLICY_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
-const CONFIG_ID: ObjectID = new ObjectID("77777777-7777-4777-8777-777777777777");
+const POLICY_ID: ObjectID = new ObjectID(
+  "66666666-6666-4666-8666-666666666666",
+);
+const CONFIG_ID: ObjectID = new ObjectID(
+  "77777777-7777-4777-8777-777777777777",
+);
 const TEAM_ID: ObjectID = new ObjectID("88888888-8888-4888-8888-888888888888");
 const KEY_ID: ObjectID = new ObjectID("99999999-9999-4999-8999-999999999999");
 
@@ -201,20 +205,22 @@ beforeEach(() => {
   }) as never);
 
   // The names of related rows the recorder looks up: a policy, a monitor, a team.
-  jest.spyOn(DatabaseService.prototype, "findBy").mockImplementation((async (
-    findBy: { query: { _id: { value?: Array<ObjectID> } } },
-  ): Promise<Array<BaseModel>> => {
-    const rows: Array<BaseModel> = [];
+  jest
+    .spyOn(DatabaseService.prototype, "findBy")
+    .mockImplementation((async (findBy: {
+      query: { _id: { value?: Array<ObjectID> } };
+    }): Promise<Array<BaseModel>> => {
+      const rows: Array<BaseModel> = [];
 
-    for (const [id, name] of relatedNames.entries()) {
-      const row: Team = new Team(new ObjectID(id));
-      row.name = name;
-      rows.push(row);
-    }
+      for (const [id, name] of relatedNames.entries()) {
+        const row: Team = new Team(new ObjectID(id));
+        row.name = name;
+        rows.push(row);
+      }
 
-    void findBy;
-    return rows;
-  }) as never);
+      void findBy;
+      return rows;
+    }) as never);
 
   installFakeEnterpriseModule({ auditLogRecorder: recorder });
 });
