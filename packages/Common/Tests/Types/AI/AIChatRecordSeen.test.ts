@@ -88,9 +88,9 @@ describe("a record as a citation stores it", () => {
     expect(readAIChatRecordSeen(partial(8, [["step:a", null]]))).toEqual(
       partial(8, [["step:a", null]]),
     );
-    expect(
-      readAIChatRecordSeen({ ...whole(8, []), isPartial: false }),
-    ).toEqual(whole(8, []));
+    expect(readAIChatRecordSeen({ ...whole(8, []), isPartial: false })).toEqual(
+      whole(8, []),
+    );
   });
 
   test("revision 0 is a revision: a workflow saved before they were counted", () => {
@@ -236,7 +236,10 @@ describe("what Ask AI knows of a workflow", () => {
       partial(4, [["step:z", null]]),
     ];
 
-    expect(known(records, OTHER_ID)).toEqual({ revision: 3, parts: { "step:z": "fz" } });
+    expect(known(records, OTHER_ID)).toEqual({
+      revision: 3,
+      parts: { "step:z": "fz" },
+    });
     expect(known(records, ` ${WORKFLOW_ID.toUpperCase()} `)).toEqual({
       revision: 4,
       parts: { "step:a": "fa" },

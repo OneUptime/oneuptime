@@ -97,7 +97,12 @@ const readBack: (graph: JSONObject) => WorkflowDraft = (
 interface GraphNode {
   id: string;
   position: { x: number; y: number };
-  data: { id: string; metadataId: string; arguments: JSONObject; nodeType: string };
+  data: {
+    id: string;
+    metadataId: string;
+    arguments: JSONObject;
+    nodeType: string;
+  };
 }
 
 interface GraphEdge {
@@ -304,7 +309,8 @@ describe("what Ask AI is shown of a workflow", () => {
   });
 
   test("a step's settings are in its fingerprint, keyed: nothing of a secret can be read from the record", () => {
-    const secret: string = "https://hooks.slack.com/services/T000/B000/s3cret-token";
+    const secret: string =
+      "https://hooks.slack.com/services/T000/B000/s3cret-token";
     const graph: JSONObject = graphOf({
       steps: [
         ...READ_DRAFT.steps,
@@ -314,7 +320,10 @@ describe("what Ask AI is shown of a workflow", () => {
           arguments: { "webhook-url": secret, text: "hi" },
         },
       ],
-      connections: [...READ_DRAFT.connections, { from: "log-d", to: "slack-1" }],
+      connections: [
+        ...READ_DRAFT.connections,
+        { from: "log-d", to: "slack-1" },
+      ],
     });
     const parts: string = JSON.stringify(seeWorkflowParts({ graph, digest }));
 
@@ -344,11 +353,15 @@ describe("what Ask AI is shown of a workflow", () => {
       },
     });
 
-    expect(seeWorkflowParts({ graph, digest }).map((part: WorkflowPartSeen) => part.id)).not.toContain(
-      getWorkflowStepPartId("trigger-slot"),
-    );
+    expect(
+      seeWorkflowParts({ graph, digest }).map((part: WorkflowPartSeen) => {
+        return part.id;
+      }),
+    ).not.toContain(getWorkflowStepPartId("trigger-slot"));
     expect(seeWorkflowParts({ graph: undefined, digest })).toEqual([]);
-    expect(seeWorkflowParts({ graph: { nodes: "x" } as never, digest })).toEqual([]);
+    expect(
+      seeWorkflowParts({ graph: { nodes: "x" } as never, digest }),
+    ).toEqual([]);
   });
 
   test("a setting left unset is the same as one never written", () => {
@@ -365,17 +378,25 @@ describe("what a change would undo that Ask AI never saw", () => {
     const read: JSONObject = graphOf(READ_DRAFT);
     const drafts: Array<WorkflowDraft> = [
       addLogB(readBack(read)),
-      { ...readBack(read), steps: readBack(read).steps.slice(0, 2), connections: readBack(read).connections.slice(0, 1) },
+      {
+        ...readBack(read),
+        steps: readBack(read).steps.slice(0, 2),
+        connections: readBack(read).connections.slice(0, 1),
+      },
       {
         ...readBack(read),
         steps: readBack(read).steps.map((step: WorkflowDraftStep) => {
-          return step.id === "log-d" ? { ...step, arguments: { value: "Ask AI's" } } : step;
+          return step.id === "log-d"
+            ? { ...step, arguments: { value: "Ask AI's" } }
+            : step;
         }),
       },
     ];
 
     for (const draft of drafts) {
-      expect(undoneOf({ seen: seenOf(read), graph: read, draft })).toEqual(NOTHING);
+      expect(undoneOf({ seen: seenOf(read), graph: read, draft })).toEqual(
+        NOTHING,
+      );
     }
   });
 
@@ -386,7 +407,11 @@ describe("what a change would undo that Ask AI never saw", () => {
     theirs.move(now, "log-d");
 
     expect(
-      undoneOf({ seen: seenOf(read), graph: now, draft: addLogB(readBack(read)) }),
+      undoneOf({
+        seen: seenOf(read),
+        graph: now,
+        draft: addLogB(readBack(read)),
+      }),
     ).toEqual(NOTHING);
   });
 
@@ -410,7 +435,11 @@ describe("what a change would undo that Ask AI never saw", () => {
     expect(undone.namedStepIds).toEqual(["slack-1"]);
     expect(undone.partIds).toEqual([
       getWorkflowStepPartId("slack-1"),
-      getWorkflowConnectionPartId({ from: "log-d", fromOutput: "out", to: "slack-1" }),
+      getWorkflowConnectionPartId({
+        from: "log-d",
+        fromOutput: "out",
+        to: "slack-1",
+      }),
     ]);
   });
 
@@ -422,10 +451,14 @@ describe("what a change would undo that Ask AI never saw", () => {
     // The model leaves out the settings of a step it does not change.
     const draft: WorkflowDraft = addLogB(readBack(read));
     draft.steps = draft.steps.map((step: WorkflowDraftStep) => {
-      return step.id === "log-d" ? { id: step.id, componentId: step.componentId } : step;
+      return step.id === "log-d"
+        ? { id: step.id, componentId: step.componentId }
+        : step;
     });
 
-    expect(undoneOf({ seen: seenOf(read), graph: now, draft })).toEqual(NOTHING);
+    expect(undoneOf({ seen: seenOf(read), graph: now, draft })).toEqual(
+      NOTHING,
+    );
   });
 
   test("a setting changed since, and the change adds a step after that same step: still nothing", () => {
@@ -436,13 +469,17 @@ describe("what a change would undo that Ask AI never saw", () => {
     const draft: WorkflowDraft = readBack(read);
     draft.steps = [
       ...draft.steps.map((step: WorkflowDraftStep) => {
-        return step.id === "log-d" ? { id: step.id, componentId: step.componentId } : step;
+        return step.id === "log-d"
+          ? { id: step.id, componentId: step.componentId }
+          : step;
       }),
       { id: "log-e", componentId: ComponentID.Log, arguments: { value: "e" } },
     ];
     draft.connections = [...draft.connections, { from: "log-d", to: "log-e" }];
 
-    expect(undoneOf({ seen: seenOf(read), graph: now, draft })).toEqual(NOTHING);
+    expect(undoneOf({ seen: seenOf(read), graph: now, draft })).toEqual(
+      NOTHING,
+    );
   });
 
   test("a setting changed since, and the change writes the step back as Ask AI read it: undone", () => {
@@ -451,8 +488,15 @@ describe("what a change would undo that Ask AI never saw", () => {
     theirs.setValue(now, "log-d", "theirs");
 
     expect(
-      undoneOf({ seen: seenOf(read), graph: now, draft: addLogB(readBack(read)) }),
-    ).toEqual({ partIds: [getWorkflowStepPartId("log-d")], namedStepIds: ["log-d"] });
+      undoneOf({
+        seen: seenOf(read),
+        graph: now,
+        draft: addLogB(readBack(read)),
+      }),
+    ).toEqual({
+      partIds: [getWorkflowStepPartId("log-d")],
+      namedStepIds: ["log-d"],
+    });
   });
 
   test("a setting changed since, and the change gives the step a value of its own: undone too", () => {
@@ -462,10 +506,14 @@ describe("what a change would undo that Ask AI never saw", () => {
 
     const draft: WorkflowDraft = readBack(read);
     draft.steps = draft.steps.map((step: WorkflowDraftStep) => {
-      return step.id === "log-a" ? { ...step, arguments: { value: "Ask AI's" } } : step;
+      return step.id === "log-a"
+        ? { ...step, arguments: { value: "Ask AI's" } }
+        : step;
     });
 
-    expect(undoneOf({ seen: seenOf(read), graph: now, draft }).namedStepIds).toEqual(["log-a"]);
+    expect(
+      undoneOf({ seen: seenOf(read), graph: now, draft }).namedStepIds,
+    ).toEqual(["log-a"]);
   });
 
   test("a step taken out since, which the change puts back: undone", () => {
@@ -481,7 +529,11 @@ describe("what a change would undo that Ask AI never saw", () => {
 
     expect(undone.namedStepIds).toEqual(["log-d"]);
     expect(undone.partIds).toContain(
-      getWorkflowConnectionPartId({ from: "manual-1", fromOutput: "success", to: "log-d" }),
+      getWorkflowConnectionPartId({
+        from: "manual-1",
+        fromOutput: "success",
+        to: "log-d",
+      }),
     );
   });
 
@@ -491,12 +543,18 @@ describe("what a change would undo that Ask AI never saw", () => {
     theirs.remove(now, "log-d");
 
     const draft: WorkflowDraft = readBack(read);
-    draft.steps = draft.steps.filter((step: WorkflowDraftStep) => step.id !== "log-d");
+    draft.steps = draft.steps.filter((step: WorkflowDraftStep) => {
+      return step.id !== "log-d";
+    });
     draft.connections = draft.connections.filter(
-      (connection: WorkflowDraftConnection) => connection.to !== "log-d",
+      (connection: WorkflowDraftConnection) => {
+        return connection.to !== "log-d";
+      },
     );
 
-    expect(undoneOf({ seen: seenOf(read), graph: now, draft })).toEqual(NOTHING);
+    expect(undoneOf({ seen: seenOf(read), graph: now, draft })).toEqual(
+      NOTHING,
+    );
   });
 
   test("a connection made since between steps Ask AI saw: the change takes it out, and names the steps it joined", () => {
@@ -511,7 +569,11 @@ describe("what a change would undo that Ask AI never saw", () => {
     });
 
     expect(undone.partIds).toEqual([
-      getWorkflowConnectionPartId({ from: "log-a", fromOutput: "out", to: "log-d" }),
+      getWorkflowConnectionPartId({
+        from: "log-a",
+        fromOutput: "out",
+        to: "log-d",
+      }),
     ]);
     expect(undone.namedStepIds).toEqual(["log-a", "log-d"]);
   });
@@ -535,27 +597,40 @@ describe("what a change would undo that Ask AI never saw", () => {
     const seen: Map<string, string | null> = seenOf(read);
     seen.set(getWorkflowStepPartId("long-gone"), "f00");
 
-    expect(undoneOf({ seen, graph: read, draft: addLogB(readBack(read)) })).toEqual(NOTHING);
+    expect(
+      undoneOf({ seen, graph: read, draft: addLogB(readBack(read)) }),
+    ).toEqual(NOTHING);
   });
 
   test("never seen: what the change takes out or makes something else - never what it only adds", () => {
     const now: JSONObject = graphOf(READ_DRAFT);
 
     // Adds a step after Log a: that is all.
-    expect(undoneOf({ seen: null, graph: now, draft: addLogB(readBack(now)) })).toEqual(NOTHING);
+    expect(
+      undoneOf({ seen: null, graph: now, draft: addLogB(readBack(now)) }),
+    ).toEqual(NOTHING);
 
     // Takes out Log d, and changes Log a.
     const draft: WorkflowDraft = readBack(now);
     draft.steps = draft.steps
-      .filter((step: WorkflowDraftStep) => step.id !== "log-d")
+      .filter((step: WorkflowDraftStep) => {
+        return step.id !== "log-d";
+      })
       .map((step: WorkflowDraftStep) => {
-        return step.id === "log-a" ? { ...step, arguments: { value: "changed" } } : step;
+        return step.id === "log-a"
+          ? { ...step, arguments: { value: "changed" } }
+          : step;
       });
     draft.connections = draft.connections.filter(
-      (connection: WorkflowDraftConnection) => connection.to !== "log-d",
+      (connection: WorkflowDraftConnection) => {
+        return connection.to !== "log-d";
+      },
     );
 
-    expect(undoneOf({ seen: null, graph: now, draft }).namedStepIds).toEqual(["log-a", "log-d"]);
+    expect(undoneOf({ seen: null, graph: now, draft }).namedStepIds).toEqual([
+      "log-a",
+      "log-d",
+    ]);
 
     // A draft of steps it made up: every step the workflow has goes.
     expect(
@@ -579,12 +654,20 @@ describe("what Ask AI sees of a change it saved itself", () => {
 
     const draft: WorkflowDraft = {
       steps: [
-        ...readBack(replaced).steps.filter((step: WorkflowDraftStep) => step.id !== "log-a"),
-        { id: "log-b", componentId: ComponentID.Log, arguments: { value: "b" } },
+        ...readBack(replaced).steps.filter((step: WorkflowDraftStep) => {
+          return step.id !== "log-a";
+        }),
+        {
+          id: "log-b",
+          componentId: ComponentID.Log,
+          arguments: { value: "b" },
+        },
       ],
       connections: [
         ...readBack(replaced).connections.filter(
-          (connection: WorkflowDraftConnection) => connection.to !== "log-a",
+          (connection: WorkflowDraftConnection) => {
+            return connection.to !== "log-a";
+          },
         ),
         { from: "manual-1", to: "log-b" },
       ],
@@ -601,7 +684,9 @@ describe("what Ask AI sees of a change it saved itself", () => {
 
     const parts: Map<string, string | null> = new Map<string, string | null>(
       seeWorkflowPartsSaved({ stepIds: touched, replaced, saved, digest }).map(
-        (part: WorkflowPartSeen): [string, string | null] => [part.id, part.fingerprint],
+        (part: WorkflowPartSeen): [string, string | null] => {
+          return [part.id, part.fingerprint];
+        },
       ),
     );
     const savedSeen: Map<string, string | null> = seenOf(saved);
@@ -611,16 +696,34 @@ describe("what Ask AI sees of a change it saved itself", () => {
       savedSeen.get(getWorkflowStepPartId("log-b")),
     );
     expect(
-      parts.get(getWorkflowConnectionPartId({ from: "manual-1", fromOutput: "success", to: "log-a" })),
+      parts.get(
+        getWorkflowConnectionPartId({
+          from: "manual-1",
+          fromOutput: "success",
+          to: "log-a",
+        }),
+      ),
     ).toBeNull();
     expect(
-      parts.get(getWorkflowConnectionPartId({ from: "manual-1", fromOutput: "success", to: "log-b" })),
+      parts.get(
+        getWorkflowConnectionPartId({
+          from: "manual-1",
+          fromOutput: "success",
+          to: "log-b",
+        }),
+      ),
     ).toBe("connected");
     // What the save kept of someone else's is not what Ask AI saw.
     expect(parts.has(getWorkflowStepPartId("log-x"))).toBe(false);
     expect(parts.has(getWorkflowStepPartId("log-d"))).toBe(false);
     expect(
-      parts.has(getWorkflowConnectionPartId({ from: "log-d", fromOutput: "out", to: "log-x" })),
+      parts.has(
+        getWorkflowConnectionPartId({
+          from: "log-d",
+          fromOutput: "out",
+          to: "log-x",
+        }),
+      ),
     ).toBe(false);
   });
 });
@@ -642,9 +745,14 @@ const stepStateOf: (graph: JSONObject | null, stepId: string) => State = (
   graph: JSONObject | null,
   stepId: string,
 ): State => {
-  const nodes: Array<GraphNode> = (graph ? nodesOf(graph) : []).filter((node: GraphNode) => {
-    return node.data.id === stepId && node.data.nodeType !== NodeType.PlaceholderNode;
-  });
+  const nodes: Array<GraphNode> = (graph ? nodesOf(graph) : []).filter(
+    (node: GraphNode) => {
+      return (
+        node.data.id === stepId &&
+        node.data.nodeType !== NodeType.PlaceholderNode
+      );
+    },
+  );
 
   if (nodes.length === 0) {
     return null;
@@ -672,8 +780,12 @@ const edgeKeysOf: (graph: JSONObject | null) => Array<string> = (
 
   const stepOfNode: Map<string, string> = new Map<string, string>(
     nodesOf(graph)
-      .filter((node: GraphNode) => node.data.nodeType !== NodeType.PlaceholderNode)
-      .map((node: GraphNode): [string, string] => [node.id, node.data.id]),
+      .filter((node: GraphNode) => {
+        return node.data.nodeType !== NodeType.PlaceholderNode;
+      })
+      .map((node: GraphNode): [string, string] => {
+        return [node.id, node.data.id];
+      }),
   );
   const keys: Array<string> = [];
 
@@ -696,8 +808,12 @@ const stepIdsOfGraph: (graph: JSONObject) => Array<string> = (
   return Array.from(
     new Set<string>(
       nodesOf(graph)
-        .filter((node: GraphNode) => node.data.nodeType !== NodeType.PlaceholderNode)
-        .map((node: GraphNode) => node.data.id),
+        .filter((node: GraphNode) => {
+          return node.data.nodeType !== NodeType.PlaceholderNode;
+        })
+        .map((node: GraphNode) => {
+          return node.data.id;
+        }),
     ),
   );
 };
@@ -706,7 +822,11 @@ const oracle: (data: {
   seen: JSONObject | null;
   now: JSONObject;
   after: JSONObject;
-}) => { steps: Array<string>; edges: Array<string>; named: Array<string> } = (data: {
+}) => {
+  steps: Array<string>;
+  edges: Array<string>;
+  named: Array<string>;
+} = (data: {
   seen: JSONObject | null;
   now: JSONObject;
   after: JSONObject;
@@ -736,8 +856,12 @@ const oracle: (data: {
   };
 
   for (const graph of [data.now, data.after]) {
-    stepIdsOfGraph(graph).forEach((id: string) => list("step", id));
-    edgeKeysOf(graph).forEach((key: string) => list("edge", key));
+    stepIdsOfGraph(graph).forEach((id: string) => {
+      return list("step", id);
+    });
+    edgeKeysOf(graph).forEach((key: string) => {
+      return list("edge", key);
+    });
   }
 
   const steps: Array<string> = [];
@@ -747,12 +871,18 @@ const oracle: (data: {
     if (part.kind === "step") {
       const seen: State = data.seen ? stepStateOf(data.seen, part.key) : UNSEEN;
       if (
-        isUndone(seen, stepStateOf(data.now, part.key), stepStateOf(data.after, part.key))
+        isUndone(
+          seen,
+          stepStateOf(data.now, part.key),
+          stepStateOf(data.after, part.key),
+        )
       ) {
         steps.push(part.key);
       }
     } else {
-      const there: (graph: JSONObject | null) => State = (graph: JSONObject | null): State => {
+      const there: (graph: JSONObject | null) => State = (
+        graph: JSONObject | null,
+      ): State => {
         return edgeKeysOf(graph).includes(part.key) ? "there" : null;
       };
       const seen: State = data.seen ? there(data.seen) : UNSEEN;
@@ -821,7 +951,9 @@ describe("at random, against an oracle", () => {
       let onlyMoves: boolean = true;
       for (let save: number = 0; save < saves; save++) {
         const ids: Array<string> = stepIdsOfGraph(now);
-        const logIds: Array<string> = ids.filter((id: string) => id.startsWith("log"));
+        const logIds: Array<string> = ids.filter((id: string) => {
+          return id.startsWith("log");
+        });
         const kind: number = random(6);
 
         if (kind === 0 || logIds.length === 0) {
@@ -838,7 +970,11 @@ describe("at random, against an oracle", () => {
             stepId: `log-theirs-${round}-${save}`,
           });
         } else if (kind === 2) {
-          theirs.setValue(now, logIds[random(logIds.length)]!, `theirs-${save}`);
+          theirs.setValue(
+            now,
+            logIds[random(logIds.length)]!,
+            `theirs-${save}`,
+          );
         } else if (kind === 3) {
           theirs.remove(now, logIds[random(logIds.length)]!);
         } else if (kind === 4) {
@@ -850,7 +986,9 @@ describe("at random, against an oracle", () => {
         } else {
           const edges: Array<string> = edgeKeysOf(now);
           if (edges.length > 0) {
-            const [from, , to] = JSON.parse(edges[random(edges.length)]!) as Array<string>;
+            const [from, , to] = JSON.parse(
+              edges[random(edges.length)]!,
+            ) as Array<string>;
             theirs.disconnect(now, from!, to!);
           }
         }
@@ -859,27 +997,45 @@ describe("at random, against an oracle", () => {
       // Ask AI's change, from what it read: most steps' settings left out.
       const askAi: WorkflowDraft = readBack(read);
       askAi.steps = askAi.steps.map((step: WorkflowDraftStep) => {
-        return random(3) === 0 ? step : { id: step.id, componentId: step.componentId };
+        return random(3) === 0
+          ? step
+          : { id: step.id, componentId: step.componentId };
       });
       const readLogs: Array<string> = askAi.steps
-        .filter((step: WorkflowDraftStep) => step.componentId === ComponentID.Log)
-        .map((step: WorkflowDraftStep) => step.id);
+        .filter((step: WorkflowDraftStep) => {
+          return step.componentId === ComponentID.Log;
+        })
+        .map((step: WorkflowDraftStep) => {
+          return step.id;
+        });
       const change: number = random(4);
 
       if (change === 0) {
-        askAi.steps.push({ id: "log-ai", componentId: ComponentID.Log, arguments: { value: "ai" } });
-        askAi.connections.push({ from: askAi.steps[random(askAi.steps.length - 1)]!.id, to: "log-ai" });
+        askAi.steps.push({
+          id: "log-ai",
+          componentId: ComponentID.Log,
+          arguments: { value: "ai" },
+        });
+        askAi.connections.push({
+          from: askAi.steps[random(askAi.steps.length - 1)]!.id,
+          to: "log-ai",
+        });
       } else if (change === 1) {
         const target: string = readLogs[random(readLogs.length)]!;
         askAi.steps = askAi.steps.map((step: WorkflowDraftStep) => {
-          return step.id === target ? { ...step, arguments: { value: "ai's" } } : step;
+          return step.id === target
+            ? { ...step, arguments: { value: "ai's" } }
+            : step;
         });
       } else if (change === 2) {
         const target: string = readLogs[random(readLogs.length)]!;
-        askAi.steps = askAi.steps.filter((step: WorkflowDraftStep) => step.id !== target);
+        askAi.steps = askAi.steps.filter((step: WorkflowDraftStep) => {
+          return step.id !== target;
+        });
         askAi.connections = askAi.connections.filter(
-          (connection: WorkflowDraftConnection) =>
-            connection.from !== target && connection.to !== target,
+          (connection: WorkflowDraftConnection) => {
+            return connection.from !== target && connection.to !== target;
+          },
         );
       }
 
@@ -890,10 +1046,16 @@ describe("at random, against an oracle", () => {
         changed: after,
         digest,
       });
-      const expected: { steps: Array<string>; edges: Array<string>; named: Array<string> } =
-        oracle({ seen: isNeverSeen ? null : read, now, after });
+      const expected: {
+        steps: Array<string>;
+        edges: Array<string>;
+        named: Array<string>;
+      } = oracle({ seen: isNeverSeen ? null : read, now, after });
 
-      expect({ round, named: undone.namedStepIds }).toEqual({ round, named: expected.named });
+      expect({ round, named: undone.namedStepIds }).toEqual({
+        round,
+        named: expected.named,
+      });
       expect({ round, parts: undone.partIds.length }).toEqual({
         round,
         parts: expected.steps.length + expected.edges.length,
@@ -921,7 +1083,10 @@ describe("at random, against an oracle", () => {
     }
 
     for (const outcome of Object.keys(counts)) {
-      expect({ outcome, enough: counts[outcome]! > 10 }).toEqual({ outcome, enough: true });
+      expect({ outcome, enough: counts[outcome]! > 10 }).toEqual({
+        outcome,
+        enough: true,
+      });
     }
   });
 });

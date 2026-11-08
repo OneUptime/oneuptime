@@ -53,7 +53,7 @@ import {
 import { WORKFLOW_GRAPH_REVISION_KEY } from "../../../../Types/Workflow/WorkflowGraphRevision";
 import { customDomainCaller } from "../../API/CustomDomainCallers";
 import { ON_HIGHEST_PLAN } from "../../TestingUtils/RequestPlan";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * ISSUE #6291, THROUGH THE WHOLE CHAT TURN.
@@ -119,7 +119,10 @@ const copyOf: <T>(value: T) => T = <T>(value: T): T => {
 const readBack: (graph: JSONObject) => WorkflowDraft = (
   graph: JSONObject,
 ): WorkflowDraft => {
-  return getDraftFromGraph({ graph: graph, getComponent: getWorkflowComponent });
+  return getDraftFromGraph({
+    graph: graph,
+    getComponent: getWorkflowComponent,
+  });
 };
 
 interface GraphNode {
@@ -308,18 +311,16 @@ function installSpies(data: {
     .spyOn(AIConversationService, "updateOneById")
     .mockResolvedValue(1 as never);
 
-  jest
-    .spyOn(WorkflowService, "findOneById")
-    .mockImplementation((async () => {
-      const workflow: Workflow = new Workflow();
-      workflow.id = new ObjectID(WORKFLOW_ID);
-      workflow.name = "Tickets";
-      workflow.isEnabled = false;
-      workflow.isArchived = false;
-      workflow.graph = copyOf(server.graph);
-      workflow.graphRevision = server.revision;
-      return workflow;
-    }) as never);
+  jest.spyOn(WorkflowService, "findOneById").mockImplementation((async () => {
+    const workflow: Workflow = new Workflow();
+    workflow.id = new ObjectID(WORKFLOW_ID);
+    workflow.name = "Tickets";
+    workflow.isEnabled = false;
+    workflow.isArchived = false;
+    workflow.graph = copyOf(server.graph);
+    workflow.graphRevision = server.revision;
+    return workflow;
+  }) as never);
   const workflowUpdate: SpyInstance = jest
     .spyOn(WorkflowService, "updateOneById")
     .mockImplementation((async (request: JSONObject) => {
@@ -329,7 +330,9 @@ function installSpies(data: {
       if (typeof heldTo === "number" && heldTo !== server.revision) {
         throw new ConflictException("Someone else saved this workflow.");
       }
-      server.graph = copyOf((request["data"] as JSONObject)["graph"] as JSONObject);
+      server.graph = copyOf(
+        (request["data"] as JSONObject)["graph"] as JSONObject,
+      );
       server.revision++;
       return 1;
     }) as never);
@@ -377,7 +380,9 @@ const toolActionsOf: (spies: Spies) => Array<AIChatToolAction> = (
 
 function pausedStateOf(spies: Spies): AIRunPausedState {
   for (const call of spies.runUpdateOneBy.mock.calls) {
-    const paused: unknown = (call[0] as { data?: JSONObject }).data?.["pausedState"];
+    const paused: unknown = (call[0] as { data?: JSONObject }).data?.[
+      "pausedState"
+    ];
     if (paused) {
       return copyOf(paused) as AIRunPausedState;
     }
@@ -392,11 +397,16 @@ const toldModel: (spies: Spies, toolCallId: string) => string | undefined = (
   toolCallId: string,
 ): string | undefined => {
   for (const call of spies.executeWithLogging.mock.calls) {
-    const messages: Array<JSONObject> = (call[0] as { messages: Array<JSONObject> })
-      .messages;
-    const answer: JSONObject | undefined = messages.find((message: JSONObject) => {
-      return message["role"] === "tool" && message["toolCallId"] === toolCallId;
-    });
+    const messages: Array<JSONObject> = (
+      call[0] as { messages: Array<JSONObject> }
+    ).messages;
+    const answer: JSONObject | undefined = messages.find(
+      (message: JSONObject) => {
+        return (
+          message["role"] === "tool" && message["toolCallId"] === toolCallId
+        );
+      },
+    );
     if (answer) {
       return answer["content"] as string;
     }
@@ -454,7 +464,10 @@ const resumeWith: (data: {
     buildRequest(data.request),
     (data.paused.pendingToolCalls as unknown as Array<{ id: string }>).map(
       (call: { id: string }) => {
-        return { toolCallId: call.id, approved: data.approved.includes(call.id) };
+        return {
+          toolCallId: call.id,
+          approved: data.approved.includes(call.id),
+        };
       },
     ),
   );
@@ -490,7 +503,9 @@ describe("Ask to act: the card says what the change would undo, before anyone ap
       `Adds Log. Removes Send Message to Slack. ${UNDOES_SLACK}`,
     );
     expect(
-      actions[0]!.words!.description!.map((sentence: AIActionSentence) => sentence.template),
+      actions[0]!.words!.description!.map((sentence: AIActionSentence) => {
+        return sentence.template;
+      }),
     ).toEqual([
       AI_ACTION_LINES.workflowAddsSteps,
       AI_ACTION_LINES.workflowRemovesSteps,
@@ -501,11 +516,17 @@ describe("Ask to act: the card says what the change would undo, before anyone ap
     const paused: AIRunPausedState = pausedStateOf(spies);
     expect(paused.citations[0]!.toolName).toBe("query_workflows");
     expect(paused.citations[0]!.recordSeen).toEqual(
-      getWorkflowSeen({ workflowId: WORKFLOW_ID, graph: baseGraph(), revision: 7 }),
+      getWorkflowSeen({
+        workflowId: WORKFLOW_ID,
+        graph: baseGraph(),
+        revision: 7,
+      }),
     );
     expect(paused.recordsSeenBeforeTurn).toEqual([]);
     // And the message the person reads keeps it too.
-    expect(lastSaved<Array<AIChatCitation>>(spies, "citations")![0]!.recordSeen).toBeDefined();
+    expect(
+      lastSaved<Array<AIChatCitation>>(spies, "citations")![0]!.recordSeen,
+    ).toBeDefined();
   });
 
   test("approved, it runs as the card said: the person chose", async () => {
@@ -531,7 +552,9 @@ describe("Ask to act: the card says what the change would undo, before anyone ap
     expect(spies.workflowUpdate).toHaveBeenCalledTimes(1);
     expect(nodeOf(server.graph, "slack-1")).toBeUndefined();
     expect(nodeOf(server.graph, "log-b")).toBeDefined();
-    expect(toolActionsOf(spies)[0]!.status).toBe(AIChatToolActionStatus.Executed);
+    expect(toolActionsOf(spies)[0]!.status).toBe(
+      AIChatToolActionStatus.Executed,
+    );
   });
 
   test("nothing saved since the read: the card is as it always was", async () => {
@@ -591,7 +614,9 @@ describe("Ask to act: the card says what the change would undo, before anyone ap
     await ChatAgentRunner.runTurn(buildRequest());
 
     const update: AIChatToolAction = toolActionsOf(spies).find(
-      (action: AIChatToolAction) => action.toolName === "update_workflow",
+      (action: AIChatToolAction) => {
+        return action.toolName === "update_workflow";
+      },
     )!;
     expect(update.description).toBe(
       "Adds Log. Removes Send Message to Slack. Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.",
@@ -646,7 +671,9 @@ describe("what an earlier turn showed the model counts, as far as the history it
 
     const spies: Spies = installSpies({
       history,
-      turns: [{ answer: response({ toolCalls: [UPDATE_CALL(addLogB(read))] }) }],
+      turns: [
+        { answer: response({ toolCalls: [UPDATE_CALL(addLogB(read))] }) },
+      ],
     });
 
     await ChatAgentRunner.runTurn(buildRequest());
@@ -663,7 +690,9 @@ describe("what an earlier turn showed the model counts, as far as the history it
     startServer();
     const spies: Spies = installSpies({
       history: readInAnEarlierTurn(),
-      turns: [{ answer: response({ toolCalls: [UPDATE_CALL(addLogB(asRead()))] }) }],
+      turns: [
+        { answer: response({ toolCalls: [UPDATE_CALL(addLogB(asRead()))] }) },
+      ],
     });
 
     await ChatAgentRunner.runTurn(buildRequest());
@@ -681,7 +710,9 @@ describe("what an earlier turn showed the model counts, as far as the history it
 
     const spies: Spies = installSpies({
       history,
-      turns: [{ answer: response({ toolCalls: [UPDATE_CALL(addLogB(read))] }) }],
+      turns: [
+        { answer: response({ toolCalls: [UPDATE_CALL(addLogB(read))] }) },
+      ],
     });
 
     await ChatAgentRunner.runTurn(buildRequest());
@@ -703,7 +734,9 @@ describe("what an earlier turn showed the model counts, as far as the history it
 
     const spies: Spies = installSpies({
       history,
-      turns: [{ answer: response({ toolCalls: [UPDATE_CALL(addLogB(read))] }) }],
+      turns: [
+        { answer: response({ toolCalls: [UPDATE_CALL(addLogB(read))] }) },
+      ],
     });
 
     await ChatAgentRunner.runTurn(buildRequest());
@@ -719,7 +752,13 @@ describe("what an earlier turn showed the model counts, as far as the history it
     const read: WorkflowDraft = asRead();
     const first: Spies = installSpies({
       history: readInAnEarlierTurn(),
-      turns: [{ answer: response({ toolCalls: [UPDATE_CALL(addLogB(read), "call-a")] }) }],
+      turns: [
+        {
+          answer: response({
+            toolCalls: [UPDATE_CALL(addLogB(read), "call-a")],
+          }),
+        },
+      ],
     });
     await ChatAgentRunner.runTurn(buildRequest());
     const paused: AIRunPausedState = pausedStateOf(first);
@@ -732,13 +771,17 @@ describe("what an earlier turn showed the model counts, as far as the history it
     const second: WorkflowDraft = {
       ...addLogB(read),
       steps: addLogB(read).steps.map((step: WorkflowDraftStep) => {
-        return step.id === "log-b" ? { ...step, arguments: { value: "b2" } } : step;
+        return step.id === "log-b"
+          ? { ...step, arguments: { value: "b2" } }
+          : step;
       }),
     };
     const spies: Spies = await resumeWith({
       paused,
       approved: ["call-a"],
-      turns: [{ answer: response({ toolCalls: [UPDATE_CALL(second, "call-b")] }) }],
+      turns: [
+        { answer: response({ toolCalls: [UPDATE_CALL(second, "call-b")] }) },
+      ],
     });
 
     expect(nodeOf(server.graph, "slack-1")).toBeDefined();
@@ -748,7 +791,9 @@ describe("what an earlier turn showed the model counts, as far as the history it
       `Removes Send Message to Slack. Changes Log. ${UNDOES_SLACK}`,
     );
     // The turn paused again keeps what it was given.
-    expect(pausedStateOf(spies).recordsSeenBeforeTurn).toEqual(paused.recordsSeenBeforeTurn);
+    expect(pausedStateOf(spies).recordsSeenBeforeTurn).toEqual(
+      paused.recordsSeenBeforeTurn,
+    );
   });
 
   test("resumed, a change from what it read and what it made itself says nothing more", async () => {
@@ -757,7 +802,11 @@ describe("what an earlier turn showed the model counts, as far as the history it
     const first: Spies = installSpies({
       turns: [
         { answer: response({ toolCalls: [READ_CALL()] }) },
-        { answer: response({ toolCalls: [UPDATE_CALL(addLogB(read), "call-a")] }) },
+        {
+          answer: response({
+            toolCalls: [UPDATE_CALL(addLogB(read), "call-a")],
+          }),
+        },
       ],
     });
     await ChatAgentRunner.runTurn(buildRequest());
@@ -765,13 +814,17 @@ describe("what an earlier turn showed the model counts, as far as the history it
     const second: WorkflowDraft = {
       ...addLogB(read),
       steps: addLogB(read).steps.map((step: WorkflowDraftStep) => {
-        return step.id === "log-b" ? { ...step, arguments: { value: "b2" } } : step;
+        return step.id === "log-b"
+          ? { ...step, arguments: { value: "b2" } }
+          : step;
       }),
     };
     const spies: Spies = await resumeWith({
       paused: pausedStateOf(first),
       approved: ["call-a"],
-      turns: [{ answer: response({ toolCalls: [UPDATE_CALL(second, "call-b")] }) }],
+      turns: [
+        { answer: response({ toolCalls: [UPDATE_CALL(second, "call-b")] }) },
+      ],
     });
 
     const actions: Array<AIChatToolAction> = toolActionsOf(spies);
@@ -789,7 +842,9 @@ describe("Auto-run: a change that would undo a save it never saw is not made una
         { answer: response({ toolCalls: [READ_CALL()] }) },
         {
           meanwhile: addSlackInTheBuilder,
-          answer: response({ toolCalls: [UPDATE_CALL(addLogB(read), "call-stale")] }),
+          answer: response({
+            toolCalls: [UPDATE_CALL(addLogB(read), "call-stale")],
+          }),
         },
         { answer: response({ toolCalls: [READ_CALL("call-read-again")] }) },
         {
@@ -800,7 +855,11 @@ describe("Auto-run: a change that would undo a save it never saw is not made una
             });
           },
         },
-        { answer: response({ content: "Added a Log after Log a, and kept your Slack step." }) },
+        {
+          answer: response({
+            content: "Added a Log after Log a, and kept your Slack step.",
+          }),
+        },
       ],
     });
 
@@ -820,12 +879,16 @@ describe("Auto-run: a change that would undo a save it never saw is not made una
 
     const actions: Array<AIChatToolAction> = toolActionsOf(spies);
     expect(
-      actions.map((action: AIChatToolAction) => [action.id, action.status]),
+      actions.map((action: AIChatToolAction) => {
+        return [action.id, action.status];
+      }),
     ).toEqual([
       ["call-stale", AIChatToolActionStatus.Skipped],
       ["call-fresh", AIChatToolActionStatus.Executed],
     ]);
-    expect(actions[0]!.resultSummary).toBe(UNSEEN_CHANGE_SUMMARIES.savedSinceRead);
+    expect(actions[0]!.resultSummary).toBe(
+      UNSEEN_CHANGE_SUMMARIES.savedSinceRead,
+    );
     expect(actions[0]!.requiresApproval).toBe(false);
     // Its record says what it would have done.
     expect(actions[0]!.description).toBe(
@@ -834,7 +897,9 @@ describe("Auto-run: a change that would undo a save it never saw is not made una
 
     // The activity says it was not done.
     const failed: Array<JSONObject> = spies.eventCreate.mock.calls
-      .map((call: Array<unknown>) => (call[0] as { data: JSONObject }).data)
+      .map((call: Array<unknown>) => {
+        return (call[0] as { data: JSONObject }).data;
+      })
       .filter((event: JSONObject) => {
         return (
           event["eventType"] === AIRunEventType.ToolCallFailed &&
@@ -859,7 +924,9 @@ describe("Auto-run: a change that would undo a save it never saw is not made una
     );
 
     expect(spies.workflowUpdate).toHaveBeenCalledTimes(1);
-    expect(toolActionsOf(spies)[0]!.status).toBe(AIChatToolActionStatus.Executed);
+    expect(toolActionsOf(spies)[0]!.status).toBe(
+      AIChatToolActionStatus.Executed,
+    );
     expect(toolActionsOf(spies)[0]!.description).toBe("Adds Log.");
   });
 
@@ -867,16 +934,24 @@ describe("Auto-run: a change that would undo a save it never saw is not made una
     startServer();
     const read: WorkflowDraft = asRead();
     const stale: Turn = {
-      answer: response({ toolCalls: [UPDATE_CALL(addLogB(read), "call-again")] }),
+      answer: response({
+        toolCalls: [UPDATE_CALL(addLogB(read), "call-again")],
+      }),
     };
     const spies: Spies = installSpies({
       turns: [
         { answer: response({ toolCalls: [READ_CALL()] }) },
         {
           meanwhile: addSlackInTheBuilder,
-          answer: response({ toolCalls: [UPDATE_CALL(addLogB(read), "call-1")] }),
+          answer: response({
+            toolCalls: [UPDATE_CALL(addLogB(read), "call-1")],
+          }),
         },
-        { answer: response({ toolCalls: [UPDATE_CALL(addLogB(read), "call-2")] }) },
+        {
+          answer: response({
+            toolCalls: [UPDATE_CALL(addLogB(read), "call-2")],
+          }),
+        },
         stale,
         { answer: response({ content: "I could not make the change." }) },
       ],
@@ -889,7 +964,9 @@ describe("Auto-run: a change that would undo a save it never saw is not made una
     expect(spies.workflowUpdate).not.toHaveBeenCalled();
     expect(nodeOf(server.graph, "slack-1")).toBeDefined();
     expect(
-      toolActionsOf(spies).map((action: AIChatToolAction) => action.status),
+      toolActionsOf(spies).map((action: AIChatToolAction) => {
+        return action.status;
+      }),
     ).toEqual([
       AIChatToolActionStatus.Skipped,
       AIChatToolActionStatus.Skipped,
@@ -897,4 +974,3 @@ describe("Auto-run: a change that would undo a save it never saw is not made una
     ]);
   });
 });
-

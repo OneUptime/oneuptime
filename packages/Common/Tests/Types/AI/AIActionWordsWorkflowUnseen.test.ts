@@ -96,9 +96,9 @@ describe.each(DASHBOARD_LANGUAGES)("%s", (language: string) => {
     expect(drawn).toContain(STEPS);
     expect(drawn).not.toContain("This change undoes");
     expect(drawn).not.toContain("{{");
-    expect(getAIActionSentenceLanguage(UNDOES, dashboardTranslator(language))).toBe(
-      language,
-    );
+    expect(
+      getAIActionSentenceLanguage(UNDOES, dashboardTranslator(language)),
+    ).toBe(language);
   });
 
   test("words the line saying Ask AI never read the steps", () => {

@@ -1064,8 +1064,7 @@ export default class ChatAgentRunner {
          * so not what one of them shows it, which it asked for alongside the
          * others before seeing it (issue #6291).
          */
-        const recordsSeen: Array<AIChatRecordSeen> =
-          this.getRecordsSeen(state);
+        const recordsSeen: Array<AIChatRecordSeen> = this.getRecordsSeen(state);
 
         for (const toolCall of response.toolCalls) {
           // Re-check between tools: a batch can run long and cancel must cut in.

@@ -132,7 +132,11 @@ describe("the authoring page on a change drafted from an older read (issue #6291
     const read: WorkflowDraft = {
       steps: [
         { id: "manual-1", componentId: ComponentID.Manual },
-        { id: "log-1", componentId: ComponentID.Log, arguments: { value: "a" } },
+        {
+          id: "log-1",
+          componentId: ComponentID.Log,
+          arguments: { value: "a" },
+        },
       ],
       connections: [{ from: "manual-1", to: "log-1" }],
     };
@@ -158,7 +162,11 @@ describe("the authoring page on a change drafted from an older read (issue #6291
             ? { id: step.id, componentId: step.componentId }
             : step;
         }),
-        { id: "log-2", componentId: ComponentID.Log, arguments: { value: "b" } },
+        {
+          id: "log-2",
+          componentId: ComponentID.Log,
+          arguments: { value: "b" },
+        },
       ],
       connections: [...read.connections, { from: "log-1", to: "log-2" }],
     };
@@ -199,15 +207,19 @@ describe("the authoring page on a change drafted from an older read (issue #6291
     expect(namedOver(withSlack)).toEqual(["slack-1"]);
 
     // A card moved: nothing.
-    const moved: JSONObject = JSON.parse(JSON.stringify(readGraph)) as JSONObject;
+    const moved: JSONObject = JSON.parse(
+      JSON.stringify(readGraph),
+    ) as JSONObject;
     (moved["nodes"] as Array<JSONObject>)[1]!["position"] = { x: 1, y: 2 };
     expect(namedOver(moved)).toEqual([]);
 
     // A setting changed on the step the change keeps as it is: nothing.
-    const setting: JSONObject = JSON.parse(JSON.stringify(readGraph)) as JSONObject;
-    (
-      ((setting["nodes"] as Array<JSONObject>)[1]!["data"] as JSONObject)
-    )["arguments"] = { value: "theirs" };
+    const setting: JSONObject = JSON.parse(
+      JSON.stringify(readGraph),
+    ) as JSONObject;
+    ((setting["nodes"] as Array<JSONObject>)[1]!["data"] as JSONObject)[
+      "arguments"
+    ] = { value: "theirs" };
     expect(namedOver(setting)).toEqual([]);
   });
 

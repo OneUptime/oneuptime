@@ -473,7 +473,10 @@ export const getWorkflowGraphParts: GetGraphPartsFunction = (data: {
   const steps: Array<{ id: string; fingerprint: string }> = [];
 
   for (const [stepId, group] of groupStepsById(stored.steps)) {
-    steps.push({ id: stepId, fingerprint: data.digest(getStepContentKey(group)) });
+    steps.push({
+      id: stepId,
+      fingerprint: data.digest(getStepContentKey(group)),
+    });
   }
 
   const connections: Array<WorkflowDraftConnection & { fromOutput: string }> =

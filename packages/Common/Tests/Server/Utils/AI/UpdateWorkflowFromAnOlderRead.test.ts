@@ -115,7 +115,10 @@ const graphOf: (draft: WorkflowDraft, existing?: JSONObject) => JSONObject = (
 const readBack: (graph: JSONObject) => WorkflowDraft = (
   graph: JSONObject,
 ): WorkflowDraft => {
-  return getDraftFromGraph({ graph: graph, getComponent: getWorkflowComponent });
+  return getDraftFromGraph({
+    graph: graph,
+    getComponent: getWorkflowComponent,
+  });
 };
 
 const copyOf: <T>(value: T) => T = <T>(value: T): T => {
@@ -368,25 +371,27 @@ afterEach(() => {
  * ---------------------------------------------------------------------------
  */
 
-const STEPS_SHOWN: string = "Its steps and connections, as update_workflow takes them:\n";
+const STEPS_SHOWN: string =
+  "Its steps and connections, as update_workflow takes them:\n";
 
 // The model reads the workflow's steps: what it is shown, as it is shown.
-const readSteps: () => Promise<WorkflowDraft> = async (): Promise<WorkflowDraft> => {
-  const result: ToolExecutionResult = await QueryWorkflowsTool.execute(
-    { workflowId: WORKFLOW_ID.toString(), includeSteps: true },
-    CTX,
-  );
+const readSteps: () => Promise<WorkflowDraft> =
+  async (): Promise<WorkflowDraft> => {
+    const result: ToolExecutionResult = await QueryWorkflowsTool.execute(
+      { workflowId: WORKFLOW_ID.toString(), includeSteps: true },
+      CTX,
+    );
 
-  if (result.recordSeen) {
-    records.push(result.recordSeen);
-  }
+    if (result.recordSeen) {
+      records.push(result.recordSeen);
+    }
 
-  const text: string = result.dataForLlm;
+    const text: string = result.dataForLlm;
 
-  return JSON.parse(
-    text.slice(text.indexOf(STEPS_SHOWN) + STEPS_SHOWN.length),
-  ) as WorkflowDraft;
-};
+    return JSON.parse(
+      text.slice(text.indexOf(STEPS_SHOWN) + STEPS_SHOWN.length),
+    ) as WorkflowDraft;
+  };
 
 const propose: (
   draft: WorkflowDraft | JSONObject,
@@ -420,19 +425,22 @@ const proposeAsBefore: (
   return await propose(draft, extra, null);
 };
 
-const approve: (prepared: PreparedMutation) => Promise<ToolExecutionResult> =
-  async (prepared: PreparedMutation): Promise<ToolExecutionResult> => {
-    const result: ToolExecutionResult = await UpdateWorkflowTool.execute(
-      prepared.arguments,
-      CTX,
-    );
+const approve: (
+  prepared: PreparedMutation,
+) => Promise<ToolExecutionResult> = async (
+  prepared: PreparedMutation,
+): Promise<ToolExecutionResult> => {
+  const result: ToolExecutionResult = await UpdateWorkflowTool.execute(
+    prepared.arguments,
+    CTX,
+  );
 
-    if (result.recordSeen) {
-      records.push(result.recordSeen);
-    }
+  if (result.recordSeen) {
+    records.push(result.recordSeen);
+  }
 
-    return result;
-  };
+  return result;
+};
 
 const refusalOf: (approval: Promise<unknown>) => Promise<unknown> = async (
   approval: Promise<unknown>,
@@ -464,12 +472,13 @@ const UNDOES: (steps: string) => string = (steps: string): string => {
 const NOT_READ: string =
   "Ask AI wrote this change without reading the workflow's steps, so it may remove or change steps it has not seen.";
 
-const proposedOnOf: (prepared: PreparedMutation) => WorkflowDraftProposedOn =
-  (prepared: PreparedMutation): WorkflowDraftProposedOn => {
-    return readWorkflowDraftProposedOn(
-      prepared.arguments[WORKFLOW_DRAFT_PROPOSED_ON_KEY],
-    ) as WorkflowDraftProposedOn;
-  };
+const proposedOnOf: (prepared: PreparedMutation) => WorkflowDraftProposedOn = (
+  prepared: PreparedMutation,
+): WorkflowDraftProposedOn => {
+  return readWorkflowDraftProposedOn(
+    prepared.arguments[WORKFLOW_DRAFT_PROPOSED_ON_KEY],
+  ) as WorkflowDraftProposedOn;
+};
 
 // What Ask AI proposes, from what it read: a Log after Log a.
 const addLogB: (read: WorkflowDraft) => WorkflowDraft = (
@@ -506,7 +515,10 @@ describe("what Ask AI is shown of a workflow is kept by OneUptime, never by the 
     expect(result.recordSeen!.recordType).toBe(AIChatRecordSeenType.Workflow);
     expect(result.recordSeen!.isPartial).toBeUndefined();
     expect(result.recordSeen!.parts).toEqual(
-      seeWorkflowParts({ graph: server.graph, digest: fingerprintWorkflowStep }),
+      seeWorkflowParts({
+        graph: server.graph,
+        digest: fingerprintWorkflowStep,
+      }),
     );
 
     // The model is shown the steps, never the record of them.
@@ -567,7 +579,7 @@ describe("what Ask AI is shown of a workflow is kept by OneUptime, never by the 
   test("a workflow saved before revisions were counted is read at revision 0, as update_workflow reads it", async () => {
     read.mockImplementation(async () => {
       const workflow: Workflow = stored();
-      workflow.graphRevision = undefined;
+      delete workflow.graphRevision;
       return workflow;
     });
 
@@ -608,14 +620,21 @@ describe("what Ask AI is shown of a workflow is kept by OneUptime, never by the 
     expect(server.revision).toBe(8);
 
     const saved: Map<string, string | null> = new Map<string, string | null>(
-      seeWorkflowParts({ graph: server.graph, digest: fingerprintWorkflowStep }).map(
-        (part: WorkflowPartSeen): [string, string | null] => [part.id, part.fingerprint],
-      ),
+      seeWorkflowParts({
+        graph: server.graph,
+        digest: fingerprintWorkflowStep,
+      }).map((part: WorkflowPartSeen): [string, string | null] => {
+        return [part.id, part.fingerprint];
+      }),
     );
 
     // Log a, and Log b after it: as saved. Nothing else: Ask AI saw the rest when it read.
     expect(
-      result.recordSeen!.parts.map((part: { id: string }) => part.id).sort(),
+      result
+        .recordSeen!.parts.map((part: { id: string }) => {
+          return part.id;
+        })
+        .sort(),
     ).toEqual(
       [
         "step:log-a",
@@ -635,15 +654,19 @@ describe("what Ask AI is shown of a workflow is kept by OneUptime, never by the 
     );
     expect(renamed.recordSeen).toBeUndefined();
 
-    const prepared: PreparedMutation = await propose(
-      {
-        ...addLogB(await readSteps()),
-      },
-    );
+    const prepared: PreparedMutation = await propose({
+      ...addLogB(await readSteps()),
+    });
     builder.setValue("log-a", "theirs");
 
-    expect(await refusalOf(approve(prepared))).toBeInstanceOf(ConflictException);
-    expect(records.filter((record: AIChatRecordSeen) => record.isPartial)).toEqual([]);
+    expect(await refusalOf(approve(prepared))).toBeInstanceOf(
+      ConflictException,
+    );
+    expect(
+      records.filter((record: AIChatRecordSeen) => {
+        return record.isPartial;
+      }),
+    ).toEqual([]);
   });
 });
 
@@ -791,9 +814,13 @@ describe("with no save after the read, the card is exactly as it is today", () =
       "a step taken out",
       (read: WorkflowDraft): JSONObject => {
         return {
-          steps: read.steps.filter((step: WorkflowDraftStep) => step.id !== "log-d"),
+          steps: read.steps.filter((step: WorkflowDraftStep) => {
+            return step.id !== "log-d";
+          }),
           connections: read.connections.filter(
-            (connection: WorkflowDraftConnection) => connection.to !== "log-d",
+            (connection: WorkflowDraftConnection) => {
+              return connection.to !== "log-d";
+            },
           ),
         } as unknown as JSONObject;
       },
@@ -810,7 +837,9 @@ describe("with no save after the read, the card is exactly as it is today", () =
         return {
           ...addLogB(read),
           steps: addLogB(read).steps.map((step: WorkflowDraftStep) => {
-            return step.id === "log-b" ? step : { id: step.id, componentId: step.componentId };
+            return step.id === "log-b"
+              ? step
+              : { id: step.id, componentId: step.componentId };
           }),
         } as unknown as JSONObject;
       },
@@ -832,14 +861,17 @@ describe("with no save after the read, the card is exactly as it is today", () =
     ],
   ];
 
-  test.each(drafts)("%s", async (_name: string, draftOf: (read: WorkflowDraft) => JSONObject) => {
-    const earlier: WorkflowDraft = await readSteps();
+  test.each(drafts)(
+    "%s",
+    async (_name: string, draftOf: (read: WorkflowDraft) => JSONObject) => {
+      const earlier: WorkflowDraft = await readSteps();
 
-    const prepared: PreparedMutation = await propose(draftOf(earlier));
+      const prepared: PreparedMutation = await propose(draftOf(earlier));
 
-    expect(prepared).toEqual(await proposeAsBefore(draftOf(earlier)));
-    expect(prepared.notRunWithoutApproval).toBeUndefined();
-  });
+      expect(prepared).toEqual(await proposeAsBefore(draftOf(earlier)));
+      expect(prepared.notRunWithoutApproval).toBeUndefined();
+    },
+  );
 
   test("only cards moved since: the card is as it is today", async () => {
     const earlier: WorkflowDraft = await readSteps();
@@ -860,7 +892,9 @@ describe("with no save after the read, the card is exactly as it is today", () =
     const draft: WorkflowDraft = {
       ...addLogB(earlier),
       steps: addLogB(earlier).steps.map((step: WorkflowDraftStep) => {
-        return step.id === "log-d" ? { id: step.id, componentId: step.componentId } : step;
+        return step.id === "log-d"
+          ? { id: step.id, componentId: step.componentId }
+          : step;
       }),
     };
 
@@ -904,38 +938,46 @@ describe("a revision the model makes up changes nothing at all", () => {
     ],
   ];
 
-  describe.each(situations)("%s", (_situation: string, readOf: () => Promise<WorkflowDraft>) => {
-    test.each(values)("readAtRevision %s", async (_name: string, value: unknown) => {
-      const earlier: WorkflowDraft = await readOf();
+  describe.each(situations)(
+    "%s",
+    (_situation: string, readOf: () => Promise<WorkflowDraft>) => {
+      test.each(values)(
+        "readAtRevision %s",
+        async (_name: string, value: unknown) => {
+          const earlier: WorkflowDraft = await readOf();
 
-      const without: PreparedMutation = await propose(addLogB(earlier));
-      const withIt: PreparedMutation = await propose(addLogB(earlier), {
-        readAtRevision: value as JSONValue,
-        graphRevision: value as JSONValue,
-      });
+          const without: PreparedMutation = await propose(addLogB(earlier));
+          const withIt: PreparedMutation = await propose(addLogB(earlier), {
+            readAtRevision: value as JSONValue,
+            graphRevision: value as JSONValue,
+          });
 
-      // The card, and whether it runs unasked: as without it.
-      expect(withIt.title).toEqual(without.title);
-      expect(withIt.description).toEqual(without.description);
-      expect(withIt.notRunWithoutApproval).toEqual(without.notRunWithoutApproval);
-      // What it is proposed on (#6290): OneUptime's own record, as without it.
-      expect(proposedOnOf(withIt)).toEqual(proposedOnOf(without));
+          // The card, and whether it runs unasked: as without it.
+          expect(withIt.title).toEqual(without.title);
+          expect(withIt.description).toEqual(without.description);
+          expect(withIt.notRunWithoutApproval).toEqual(
+            without.notRunWithoutApproval,
+          );
+          // What it is proposed on (#6290): OneUptime's own record, as without it.
+          expect(proposedOnOf(withIt)).toEqual(proposedOnOf(without));
 
-      // What is saved: the same graph, held to the same revision, from the same workflow.
-      const before: Server = copyOf(server);
-      await approve(without);
-      server = copyOf(before);
-      await approve(withIt);
+          // What is saved: the same graph, held to the same revision, from the same workflow.
+          const before: Server = copyOf(server);
+          await approve(without);
+          server = copyOf(before);
+          await approve(withIt);
 
-      expect(update.mock.calls).toHaveLength(2);
-      expect(readBack(update.mock.calls[1]![0].data.graph)).toEqual(
-        readBack(update.mock.calls[0]![0].data.graph),
+          expect(update.mock.calls).toHaveLength(2);
+          expect(readBack(update.mock.calls[1]![0].data.graph)).toEqual(
+            readBack(update.mock.calls[0]![0].data.graph),
+          );
+          expect(update.mock.calls[1]![0].miscDataProps).toEqual(
+            update.mock.calls[0]![0].miscDataProps,
+          );
+        },
       );
-      expect(update.mock.calls[1]![0].miscDataProps).toEqual(
-        update.mock.calls[0]![0].miscDataProps,
-      );
-    });
-  });
+    },
+  );
 
   test("a record the model writes into its arguments is never read: only what the conversation showed it counts", async () => {
     const earlier: WorkflowDraft = await readSteps();
@@ -964,14 +1006,22 @@ describe("Ask AI never read the steps", () => {
     const blind: WorkflowDraft = {
       steps: [
         { id: "webhook-1", componentId: ComponentID.Webhook },
-        { id: "log-a", componentId: ComponentID.Log, arguments: { value: "made up" } },
+        {
+          id: "log-a",
+          componentId: ComponentID.Log,
+          arguments: { value: "made up" },
+        },
       ],
       connections: [{ from: "webhook-1", to: "log-a" }],
     };
 
     const prepared: PreparedMutation = await propose(blind);
 
-    expect(linesOf(prepared)).toEqual(["Removes Log.", "Changes Log.", NOT_READ]);
+    expect(linesOf(prepared)).toEqual([
+      "Removes Log.",
+      "Changes Log.",
+      NOT_READ,
+    ]);
     expect(prepared.description![2]).toEqual({
       template: AI_ACTION_LINES.workflowNotRead,
     });
@@ -984,14 +1034,19 @@ describe("Ask AI never read the steps", () => {
   test("a change that only adds a step: there is nothing it could undo", async () => {
     records = [];
 
-    const prepared: PreparedMutation = await propose(addLogB(readBack(server.graph)));
+    const prepared: PreparedMutation = await propose(
+      addLogB(readBack(server.graph)),
+    );
 
     expect(linesOf(prepared)).toEqual(["Adds Log."]);
     expect(prepared.notRunWithoutApproval).toBeUndefined();
   });
 
   test("a read of another workflow, or only a change of its own, is no read of this one", async () => {
-    const blind: WorkflowDraft = { steps: [{ id: "w", componentId: ComponentID.Webhook }], connections: [] };
+    const blind: WorkflowDraft = {
+      steps: [{ id: "w", componentId: ComponentID.Webhook }],
+      connections: [],
+    };
 
     for (const seen of [
       [
@@ -1017,7 +1072,10 @@ describe("Ask AI never read the steps", () => {
   });
 
   test("a caller that keeps no record of what the model saw: the card is as it always was", async () => {
-    const blind: WorkflowDraft = { steps: [{ id: "w", componentId: ComponentID.Webhook }], connections: [] };
+    const blind: WorkflowDraft = {
+      steps: [{ id: "w", componentId: ComponentID.Webhook }],
+      connections: [],
+    };
     const prepared: PreparedMutation = await proposeAsBefore(blind);
 
     expect(linesOf(prepared)).not.toContain(NOT_READ);
@@ -1035,7 +1093,9 @@ describe("what Ask AI changed itself, it knows", () => {
     const second: WorkflowDraft = {
       ...first,
       steps: first.steps.map((step: WorkflowDraftStep) => {
-        return step.id === "log-b" ? { ...step, arguments: { value: "b2" } } : step;
+        return step.id === "log-b"
+          ? { ...step, arguments: { value: "b2" } }
+          : step;
       }),
     };
     const prepared: PreparedMutation = await propose(second);
@@ -1045,9 +1105,13 @@ describe("what Ask AI changed itself, it knows", () => {
 
     // And it takes it out again.
     const third: WorkflowDraft = {
-      steps: first.steps.filter((step: WorkflowDraftStep) => step.id !== "log-b"),
+      steps: first.steps.filter((step: WorkflowDraftStep) => {
+        return step.id !== "log-b";
+      }),
       connections: first.connections.filter(
-        (connection: WorkflowDraftConnection) => connection.to !== "log-b",
+        (connection: WorkflowDraftConnection) => {
+          return connection.to !== "log-b";
+        },
       ),
     };
     expect(linesOf(await propose(third))).toEqual(["Removes Log."]);
@@ -1068,7 +1132,9 @@ describe("what Ask AI changed itself, it knows", () => {
     const second: WorkflowDraft = {
       ...first,
       steps: first.steps.map((step: WorkflowDraftStep) => {
-        return step.id === "log-a" ? { ...step, arguments: { value: "a2" } } : step;
+        return step.id === "log-a"
+          ? { ...step, arguments: { value: "a2" } }
+          : step;
       }),
     };
 
@@ -1120,7 +1186,9 @@ describe("#6290's check is never weakened", () => {
         expect(text).not.toContain(part.id);
       }
     }
-    expect(prepared.arguments).toEqual((await proposeAsBefore(addLogB(earlier))).arguments);
+    expect(prepared.arguments).toEqual(
+      (await proposeAsBefore(addLogB(earlier))).arguments,
+    );
   });
 
   test("a fresh read, and a save while the card waits: made on top of it exactly as without the record", async () => {
@@ -1134,7 +1202,13 @@ describe("#6290's check is never weakened", () => {
     expect(update.mock.calls[0]![0].miscDataProps).toEqual({
       [WORKFLOW_GRAPH_REVISION_KEY]: 8,
     });
-    expect(stepIdsOf(server.graph)).toEqual(["log-a", "log-b", "log-c", "log-d", "webhook-1"]);
+    expect(stepIdsOf(server.graph)).toEqual([
+      "log-a",
+      "log-b",
+      "log-c",
+      "log-d",
+      "webhook-1",
+    ]);
   });
 
   test("the line stays true while the card waits: a card moved meanwhile, and approving does what it said", async () => {
@@ -1196,7 +1270,9 @@ describe("#6290's check is never weakened", () => {
 
     builder.setValue("log-a", "theirs");
 
-    expect(await refusalOf(approve(prepared))).toBeInstanceOf(ConflictException);
+    expect(await refusalOf(approve(prepared))).toBeInstanceOf(
+      ConflictException,
+    );
     expect(update.mock.calls).toHaveLength(0);
   });
 });
@@ -1217,7 +1293,9 @@ const stateOfStep: (graph: JSONObject, stepId: string) => State = (
   stepId: string,
 ): State => {
   const nodes: Array<GraphNode> = nodesOf(graph).filter((node: GraphNode) => {
-    return node.data.id === stepId && node.data.nodeType !== NodeType.PlaceholderNode;
+    return (
+      node.data.id === stepId && node.data.nodeType !== NodeType.PlaceholderNode
+    );
   });
 
   if (nodes.length === 0) {
@@ -1237,11 +1315,15 @@ const stateOfStep: (graph: JSONObject, stepId: string) => State = (
   );
 };
 
-const edgesByStep: (graph: JSONObject) => Array<{ key: string; from: string; to: string }> = (
+const edgesByStep: (
+  graph: JSONObject,
+) => Array<{ key: string; from: string; to: string }> = (
   graph: JSONObject,
 ): Array<{ key: string; from: string; to: string }> => {
   const stepOfNode: Map<string, string> = new Map<string, string>(
-    nodesOf(graph).map((node: GraphNode): [string, string] => [node.id, node.data.id]),
+    nodesOf(graph).map((node: GraphNode): [string, string] => {
+      return [node.id, node.data.id];
+    }),
   );
   const edges: Array<{ key: string; from: string; to: string }> = [];
 
@@ -1250,7 +1332,13 @@ const edgesByStep: (graph: JSONObject) => Array<{ key: string; from: string; to:
     const to: string | undefined = stepOfNode.get(edge.target);
     const key: string = JSON.stringify([from, edge.sourceHandle || "", to]);
 
-    if (from && to && !edges.some((each: { key: string }) => each.key === key)) {
+    if (
+      from &&
+      to &&
+      !edges.some((each: { key: string }) => {
+        return each.key === key;
+      })
+    ) {
       edges.push({ key, from, to });
     }
   }
@@ -1290,7 +1378,8 @@ const expectedLine: (data: {
   now: JSONObject;
   after: JSONObject;
 }): string | null => {
-  const parts: Array<{ key: string; steps: Array<string>; isStep: boolean }> = [];
+  const parts: Array<{ key: string; steps: Array<string>; isStep: boolean }> =
+    [];
   const seen: Set<string> = new Set<string>();
 
   for (const graph of [data.now, data.after]) {
@@ -1310,27 +1399,39 @@ const expectedLine: (data: {
     }
   }
 
-  const stateIn: (graph: JSONObject, part: { key: string; steps: Array<string>; isStep: boolean }) => State = (
+  const stateIn: (
+    graph: JSONObject,
+    part: { key: string; steps: Array<string>; isStep: boolean },
+  ) => State = (
     graph: JSONObject,
     part: { key: string; steps: Array<string>; isStep: boolean },
   ): State => {
     if (part.isStep) {
       return stateOfStep(graph, part.steps[0]!);
     }
-    return edgesByStep(graph).some((edge: { key: string }) => `edge ${edge.key}` === part.key)
+    return edgesByStep(graph).some((edge: { key: string }) => {
+      return `edge ${edge.key}` === part.key;
+    })
       ? "there"
       : null;
   };
 
-  const undone: Array<{ key: string; steps: Array<string>; isStep: boolean }> = parts.filter(
-    (part: { key: string; steps: Array<string>; isStep: boolean }): boolean => {
-      const now: State = stateIn(data.now, part);
-      if (stateIn(data.after, part) === now) {
-        return false;
-      }
-      return data.belief ? (data.belief.get(part.key) ?? null) !== now : now !== null;
-    },
-  );
+  const undone: Array<{ key: string; steps: Array<string>; isStep: boolean }> =
+    parts.filter(
+      (part: {
+        key: string;
+        steps: Array<string>;
+        isStep: boolean;
+      }): boolean => {
+        const now: State = stateIn(data.now, part);
+        if (stateIn(data.after, part) === now) {
+          return false;
+        }
+        return data.belief
+          ? (data.belief.get(part.key) ?? null) !== now
+          : now !== null;
+      },
+    );
 
   if (undone.length === 0) {
     return null;
@@ -1341,17 +1442,28 @@ const expectedLine: (data: {
   }
 
   const steps: Array<string> = undone
-    .filter((part: { isStep: boolean }) => part.isStep)
-    .map((part: { steps: Array<string> }) => part.steps[0]!);
+    .filter((part: { isStep: boolean }) => {
+      return part.isStep;
+    })
+    .map((part: { steps: Array<string> }) => {
+      return part.steps[0]!;
+    });
   const named: Array<string> =
     steps.length > 0
       ? steps
-      : Array.from(new Set<string>(undone.flatMap((part: { steps: Array<string> }) => part.steps)));
+      : Array.from(
+          new Set<string>(
+            undone.flatMap((part: { steps: Array<string> }) => {
+              return part.steps;
+            }),
+          ),
+        );
 
   return UNDOES(
     named
       .map((stepId: string): string => {
-        const node: GraphNode | undefined = nodeOf(data.now, stepId) || nodeOf(data.after, stepId);
+        const node: GraphNode | undefined =
+          nodeOf(data.now, stepId) || nodeOf(data.after, stepId);
         return titleOfComponent(node!.data.metadataId);
       })
       .join(", "),
@@ -1375,12 +1487,20 @@ describe("reads, saves, proposals and approvals in any order, at random", () => 
     for (let round: number = 0; round < 250; round++) {
       nextId = 0;
       records = [];
-      server = { graph: graphOf(BASE_DRAFT), revision: 3 + random(5), isEnabled: random(2) === 0 };
+      server = {
+        graph: graphOf(BASE_DRAFT),
+        revision: 3 + random(5),
+        isEnabled: random(2) === 0,
+      };
 
       // What Ask AI believes the workflow is, and what it knows of its parts.
       let believed: WorkflowDraft | null = null;
       let belief: Belief | null = null;
-      let pending: { prepared: PreparedMutation; draft: WorkflowDraft; over: JSONObject } | null = null;
+      let pending: {
+        prepared: PreparedMutation;
+        draft: WorkflowDraft;
+        over: JSONObject;
+      } | null = null;
       let label: number = 0;
 
       for (let event: number = 0; event < 4 + random(7); event++) {
@@ -1396,13 +1516,19 @@ describe("reads, saves, proposals and approvals in any order, at random", () => 
         if (kind <= 4) {
           // A save in the Builder.
           const steps: Array<string> = stepIdsOf(server.graph);
-          const logs: Array<string> = steps.filter((id: string) => id.startsWith("log"));
+          const logs: Array<string> = steps.filter((id: string) => {
+            return id.startsWith("log");
+          });
           // A moved card as often as anything else: the commonest save beside the panel.
           const save: number = random(6);
           label++;
 
           if (save === 0 || logs.length === 0) {
-            builder.addLogAfter(steps[random(steps.length)]!, `log-t${label}`, `t${label}`);
+            builder.addLogAfter(
+              steps[random(steps.length)]!,
+              `log-t${label}`,
+              `t${label}`,
+            );
           } else if (save === 1) {
             builder.setValue(logs[random(logs.length)]!, `theirs ${label}`);
           } else if (save === 2 || save === 5) {
@@ -1411,7 +1537,9 @@ describe("reads, saves, proposals and approvals in any order, at random", () => 
             builder.remove(logs[random(logs.length)]!);
           } else {
             const to: string = logs[random(logs.length)]!;
-            const from: string = steps.filter((id: string) => id !== to)[0]!;
+            const from: string = steps.filter((id: string) => {
+              return id !== to;
+            })[0]!;
             builder.connect(from, to);
           }
           continue;
@@ -1419,34 +1547,59 @@ describe("reads, saves, proposals and approvals in any order, at random", () => 
 
         if (kind <= 7) {
           // Ask AI proposes a change, from what it believes - or blind.
-          const from: WorkflowDraft = copyOf(believed || readBack(graphOf(BASE_DRAFT)));
+          const from: WorkflowDraft = copyOf(
+            believed || readBack(graphOf(BASE_DRAFT)),
+          );
           const logs: Array<string> = from.steps
-            .filter((step: WorkflowDraftStep) => step.componentId === ComponentID.Log)
-            .map((step: WorkflowDraftStep) => step.id);
+            .filter((step: WorkflowDraftStep) => {
+              return step.componentId === ComponentID.Log;
+            })
+            .map((step: WorkflowDraftStep) => {
+              return step.id;
+            });
           const change: number = logs.length === 0 ? 0 : random(3);
           let draft: WorkflowDraft;
 
           if (change === 0) {
             label++;
             draft = {
-              steps: [...from.steps, { id: `log-ai${label}`, componentId: ComponentID.Log, arguments: { value: "ai" } }],
-              connections: [...from.connections, { from: from.steps[random(from.steps.length)]!.id, to: `log-ai${label}` }],
+              steps: [
+                ...from.steps,
+                {
+                  id: `log-ai${label}`,
+                  componentId: ComponentID.Log,
+                  arguments: { value: "ai" },
+                },
+              ],
+              connections: [
+                ...from.connections,
+                {
+                  from: from.steps[random(from.steps.length)]!.id,
+                  to: `log-ai${label}`,
+                },
+              ],
             };
           } else if (change === 1) {
             const target: string = logs[random(logs.length)]!;
+            const value: string = `ai ${label}`;
             draft = {
               ...from,
               steps: from.steps.map((step: WorkflowDraftStep) => {
-                return step.id === target ? { ...step, arguments: { value: `ai ${label}` } } : step;
+                return step.id === target
+                  ? { ...step, arguments: { value: value } }
+                  : step;
               }),
             };
           } else {
             const target: string = logs[random(logs.length)]!;
             draft = {
-              steps: from.steps.filter((step: WorkflowDraftStep) => step.id !== target),
+              steps: from.steps.filter((step: WorkflowDraftStep) => {
+                return step.id !== target;
+              }),
               connections: from.connections.filter(
-                (connection: WorkflowDraftConnection) =>
-                  connection.from !== target && connection.to !== target,
+                (connection: WorkflowDraftConnection) => {
+                  return connection.from !== target && connection.to !== target;
+                },
               ),
             };
           }
@@ -1466,7 +1619,11 @@ describe("reads, saves, proposals and approvals in any order, at random", () => 
             checkWorkflowDraft({ draft, getComponent: getWorkflowComponent })
               .length > 0
           ) {
-            expect({ round, event, prepared }).toEqual({ round, event, prepared: asBefore });
+            expect({ round, event, prepared }).toEqual({
+              round,
+              event,
+              prepared: asBefore,
+            });
             counts["cannotBeSaved"] = (counts["cannotBeSaved"] || 0) + 1;
             pending = null;
             continue;
@@ -1487,8 +1644,15 @@ describe("reads, saves, proposals and approvals in any order, at random", () => 
           expect(prepared.title).toEqual(asBefore.title);
 
           if (line === null) {
-            expect({ round, event, prepared }).toEqual({ round, event, prepared: asBefore });
-            if (belief && server.revision !== (records[records.length - 1]?.revision ?? -1)) {
+            expect({ round, event, prepared }).toEqual({
+              round,
+              event,
+              prepared: asBefore,
+            });
+            if (
+              belief &&
+              server.revision !== (records[records.length - 1]?.revision ?? -1)
+            ) {
               counts["asItAlwaysWasThoughSavedSince"]!++;
             } else {
               counts["asItAlwaysWas"]!++;
@@ -1496,9 +1660,15 @@ describe("reads, saves, proposals and approvals in any order, at random", () => 
           } else {
             // The card is today's, with the one line before "This workflow is on".
             const expected: Array<string> = [...linesBefore];
-            const at: number = expected.indexOf("This workflow is on, so its next run uses the change.");
+            const at: number = expected.indexOf(
+              "This workflow is on, so its next run uses the change.",
+            );
             expected.splice(at < 0 ? expected.length : at, 0, line);
-            expect({ round, event, lines }).toEqual({ round, event, lines: expected });
+            expect({ round, event, lines }).toEqual({
+              round,
+              event,
+              lines: expected,
+            });
             expect(prepared.notRunWithoutApproval).toBeDefined();
             counts[belief ? "namesWhatItUndoes" : "neverRead"]!++;
           }
@@ -1521,18 +1691,27 @@ describe("reads, saves, proposals and approvals in any order, at random", () => 
             expect(refusal).toBeInstanceOf(ConflictException);
             counts["refused"]!++;
           } else {
-            const madeOnTop: boolean = server.revision - 1 !== proposedOnOf(pending.prepared).graphRevision;
+            const madeOnTop: boolean =
+              server.revision - 1 !==
+              proposedOnOf(pending.prepared).graphRevision;
             counts[madeOnTop ? "approvedOnTop" : "approved"]!++;
 
             // Every write held to the revision it was made over.
             for (const call of update.mock.calls.slice(before)) {
-              expect(typeof call[0].miscDataProps[WORKFLOW_GRAPH_REVISION_KEY]).toBe("number");
+              expect(
+                typeof call[0].miscDataProps[WORKFLOW_GRAPH_REVISION_KEY],
+              ).toBe("number");
             }
 
             // It now believes its own draft, with what it left out as it knew it.
-            const known: Map<string, WorkflowDraftStep> = new Map<string, WorkflowDraftStep>(
+            const known: Map<string, WorkflowDraftStep> = new Map<
+              string,
+              WorkflowDraftStep
+            >(
               (believed || readBack(graphOf(BASE_DRAFT))).steps.map(
-                (step: WorkflowDraftStep): [string, WorkflowDraftStep] => [step.id, step],
+                (step: WorkflowDraftStep): [string, WorkflowDraftStep] => {
+                  return [step.id, step];
+                },
               ),
             );
             believed = {
@@ -1545,7 +1724,11 @@ describe("reads, saves, proposals and approvals in any order, at random", () => 
             // And knows the parts it touched as it saved them.
             if (belief) {
               const touched: Set<string> = new Set<string>(
-                proposedOnOf(pending.prepared).steps.map((step: { id: string }) => step.id),
+                proposedOnOf(pending.prepared).steps.map(
+                  (step: { id: string }) => {
+                    return step.id;
+                  },
+                ),
               );
               for (const stepId of touched) {
                 belief.set(`step ${stepId}`, stateOfStep(server.graph, stepId));
@@ -1555,7 +1738,11 @@ describe("reads, saves, proposals and approvals in any order, at random", () => 
                   if (touched.has(edge.from) || touched.has(edge.to)) {
                     belief.set(
                       `edge ${edge.key}`,
-                      edgesByStep(server.graph).some((each: { key: string }) => each.key === edge.key)
+                      edgesByStep(server.graph).some(
+                        (each: { key: string }) => {
+                          return each.key === edge.key;
+                        },
+                      )
                         ? "there"
                         : null,
                     );
