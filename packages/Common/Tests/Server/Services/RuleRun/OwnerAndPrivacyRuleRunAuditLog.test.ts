@@ -191,7 +191,8 @@ describe("every owner and privacy rule's Run now", () => {
 
     jest.spyOn(DatabaseService.prototype, "findOneById").mockImplementation(
       async function (this: DatabaseService<BaseModel>): Promise<BaseModel> {
-        const row: BaseModel = new this.modelType(RESOURCE_ID);
+        const row: BaseModel = new this.modelType();
+        row.id = RESOURCE_ID;
         const record: Record<string, unknown> = row as unknown as Record<
           string,
           unknown
@@ -235,7 +236,8 @@ describe("every owner and privacy rule's Run now", () => {
 
   // A rule with no conditions, naming one user and one team, telling nobody.
   function ruleOf(definition: RuleRunDefinition): BaseModel {
-    const rule: BaseModel = new definition.ruleModelType(RULE_ID);
+    const rule: BaseModel = new definition.ruleModelType();
+    rule.id = RULE_ID;
     const record: Record<string, unknown> = rule as unknown as Record<
       string,
       unknown
@@ -250,7 +252,8 @@ describe("every owner and privacy rule's Run now", () => {
 
   // The record as a pass hands it over: its id and its project.
   function resourceOf(definition: RuleRunDefinition): BaseModel {
-    const resource: BaseModel = new definition.resourceModelType(RESOURCE_ID);
+    const resource: BaseModel = new definition.resourceModelType();
+    resource.id = RESOURCE_ID;
     const record: Record<string, unknown> = resource as unknown as Record<
       string,
       unknown

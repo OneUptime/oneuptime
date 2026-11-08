@@ -11,14 +11,7 @@ import { DataAlertFeedback } from "../../../../Types/DataObservability/DataAlert
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import UserType from "../../../../Types/UserType";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * WHAT SOMEONE SAID ABOUT A DATA ALERT, AND WHOSE THE ALERT'S RESOLUTION IS.

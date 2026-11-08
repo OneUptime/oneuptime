@@ -46453,5 +46453,6 @@
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime がこの関数から最後にデータを受信したのは {{lastHeard}} です。実行中にだけデータを送信するため、スケジュール実行の合間など、呼び出されていないときはこれが普通です。",
   "Status shows \"No recent invocations\" while the function runs": "関数が実行されているのにステータスが「最近の呼び出しなし」と表示される",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "この変更は、AI がワークフローを読んだ後に保存された内容を元に戻します: {{steps}}。",
-  "What to check if it should be running": "実行されているはずの場合に確認すること"
+  "What to check if it should be running": "実行されているはずの場合に確認すること",
+  "AI Agent Reset At": "AI エージェントのリセット日時"
 }

@@ -739,7 +739,7 @@ describe("in the account's audit log", () => {
     props: DatabaseCommonInteractionProps;
   }
 
-  let recordUpdate: jest.SpyInstance;
+  let recordUpdate: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     recordUpdate = jest

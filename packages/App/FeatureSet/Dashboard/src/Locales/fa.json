@@ -46453,5 +46453,6 @@
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime آخرین بار {{lastHeard}} از این تابع داده دریافت کرد. این تابع فقط هنگام اجرا داده می‌فرستد، پس وقتی چیزی آن را فراخوانی نمی‌کند، مثلاً بین اجراهای زمان‌بندی‌شده، این عادی است.",
   "Status shows \"No recent invocations\" while the function runs": "با اینکه تابع اجرا می‌شود، وضعیت «بدون فراخوانی اخیر» را نشان می‌دهد",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "این تغییر آنچه را که پس از خواندن گردش کار توسط هوش مصنوعی ذخیره شد پس می‌گیرد: {{steps}}.",
-  "What to check if it should be running": "اگر باید در حال اجرا باشد، چه چیزی را بررسی کنید"
+  "What to check if it should be running": "اگر باید در حال اجرا باشد، چه چیزی را بررسی کنید",
+  "AI Agent Reset At": "زمان بازنشانی عامل هوش مصنوعی"
 }

@@ -46453,5 +46453,6 @@
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "Последний раз OneUptime получал данные от этой функции {{lastHeard}}. Она отправляет данные, только пока выполняется, поэтому это нормально, когда её никто не вызывает, например между запусками по расписанию.",
   "Status shows \"No recent invocations\" while the function runs": "Статус «Нет недавних вызовов», хотя функция выполняется",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Это изменение отменяет то, что было сохранено после того, как ИИ прочитал рабочий процесс: {{steps}}.",
-  "What to check if it should be running": "Что проверить, если функция должна работать"
+  "What to check if it should be running": "Что проверить, если функция должна работать",
+  "AI Agent Reset At": "ИИ-агент сброшен"
 }

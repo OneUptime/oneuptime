@@ -46453,5 +46453,6 @@
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime 最后一次收到此函数的数据是在 {{lastHeard}}。它只在运行时发送数据，因此在没有调用时（例如两次计划运行之间）这是正常的。",
   "Status shows \"No recent invocations\" while the function runs": "函数在运行时，状态却显示“近期无调用”",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "此更改会撤销 AI 读取工作流之后保存的内容：{{steps}}。",
-  "What to check if it should be running": "如果它本应在运行，需要检查什么"
+  "What to check if it should be running": "如果它本应在运行，需要检查什么",
+  "AI Agent Reset At": "AI 代理重置时间"
 }

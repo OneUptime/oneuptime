@@ -19,14 +19,7 @@ import TableColumnType from "../../../../../Types/Database/TableColumnType";
 import ObjectID from "../../../../../Types/ObjectID";
 import { ALL_AI_RESOURCE_TYPES } from "../../../../../Types/ResourceAiAgent/AiResourceType";
 import UserType from "../../../../../Types/UserType";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * A RESOURCE'S AI AGENT RESET, ON THE RESOURCE'S AUDIT LOGS (issue #6302).

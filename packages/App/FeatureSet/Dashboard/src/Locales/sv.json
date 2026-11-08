@@ -46453,5 +46453,6 @@
   "OneUptime last heard from this function {{lastHeard}}. It sends data only while it runs, so this is normal when nothing invokes it, such as between scheduled runs.": "OneUptime tog senast emot data från den här funktionen {{lastHeard}}. Den skickar bara data medan den körs, så det här är normalt när inget anropar den, till exempel mellan schemalagda körningar.",
   "Status shows \"No recent invocations\" while the function runs": "Statusen visar \"Inga anrop nyligen\" medan funktionen körs",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Den här ändringen gör ogjort det som sparades efter att AI läste arbetsflödet: {{steps}}.",
-  "What to check if it should be running": "Vad du ska kontrollera om den borde köras"
+  "What to check if it should be running": "Vad du ska kontrollera om den borde köras",
+  "AI Agent Reset At": "AI-agent återställd"
 }
