@@ -164,8 +164,8 @@ beforeEach(() => {
   startWorld();
 });
 
-afterEach(() => {
-  restoreWorld();
+afterEach(async () => {
+  await restoreWorld();
 });
 
 describe("the card's buttons", () => {

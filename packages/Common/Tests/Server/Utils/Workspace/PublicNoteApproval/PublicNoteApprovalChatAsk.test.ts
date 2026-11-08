@@ -476,8 +476,8 @@ describe("the engine asks with what the message's buttons need", () => {
     startWorld();
   });
 
-  afterEach(() => {
-    restoreWorld();
+  afterEach(async () => {
+    await restoreWorld();
   });
 
   test("a step approved: the next step is asked, its round, its step, and that approving it publishes the note", async () => {

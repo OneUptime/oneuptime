@@ -20,7 +20,9 @@ import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import WebhookService from "./WebhookService";
 import WhatsAppService from "./WhatsAppService";
-import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
+import WorkspaceUserNotificationService, {
+  WorkspaceSentDirectMessage,
+} from "./WorkspaceUserNotificationService";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import { EmailEnvelope } from "../../Types/Email/EmailMessage";
@@ -210,6 +212,14 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           messageBlocks: Array<WorkspaceMessageBlock>;
           // What the message's notification says.
           notificationText: string;
+          /*
+           * Told where each copy of it landed, to keep it: an approval
+           * message is replaced once its note is decided
+           * (WorkspacePublicNoteApprovalMessages).
+           */
+          onSent?:
+            | ((sent: WorkspaceSentDirectMessage) => Promise<void>)
+            | undefined;
         }
       | undefined;
     /*
@@ -655,6 +665,13 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           ownMessageBlocks.length > 0
             ? data.workspaceMessage?.notificationText || undefined
             : undefined;
+        // Who keeps where the event's own message landed.
+        const onSent:
+          | ((sent: WorkspaceSentDirectMessage) => Promise<void>)
+          | undefined =
+          ownMessageBlocks.length > 0
+            ? data.workspaceMessage?.onSent || undefined
+            : undefined;
 
         if (!workspaceMarkdown && ownMessageBlocks.length === 0) {
           logger.warn(
@@ -698,6 +715,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 ...(notificationText
                   ? { notificationText: notificationText }
                   : {}),
+                ...(onSent ? { onSent: onSent } : {}),
                 messageSummary: subject || smsBody,
                 userId: data.userId,
                 incidentId: data.incidentId,
@@ -745,6 +763,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 ...(notificationText
                   ? { notificationText: notificationText }
                   : {}),
+                ...(onSent ? { onSent: onSent } : {}),
                 messageSummary: subject || smsBody,
                 userId: data.userId,
                 incidentId: data.incidentId,
@@ -792,6 +811,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 ...(notificationText
                   ? { notificationText: notificationText }
                   : {}),
+                ...(onSent ? { onSent: onSent } : {}),
                 messageSummary: subject || smsBody,
                 userId: data.userId,
                 incidentId: data.incidentId,

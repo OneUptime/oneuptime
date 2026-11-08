@@ -191,8 +191,8 @@ beforeEach(() => {
     .mockResolvedValue(undefined as never) as AnySpy;
 });
 
-afterEach(() => {
-  restoreWorld();
+afterEach(async () => {
+  await restoreWorld();
 });
 
 describe("Approve, in a direct message", () => {

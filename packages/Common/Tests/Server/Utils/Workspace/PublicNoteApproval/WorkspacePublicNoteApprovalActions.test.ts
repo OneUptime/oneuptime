@@ -88,8 +88,8 @@ beforeEach(() => {
   startWorld();
 });
 
-afterEach(() => {
-  restoreWorld();
+afterEach(async () => {
+  await restoreWorld();
 });
 
 describe("Approve", () => {

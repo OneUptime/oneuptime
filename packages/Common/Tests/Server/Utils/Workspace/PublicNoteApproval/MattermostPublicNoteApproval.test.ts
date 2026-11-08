@@ -180,8 +180,8 @@ beforeEach(() => {
     .mockResolvedValue(undefined as never) as AnySpy;
 });
 
-afterEach(() => {
-  restoreWorld();
+afterEach(async () => {
+  await restoreWorld();
 });
 
 describe("the buttons of a direct message", () => {

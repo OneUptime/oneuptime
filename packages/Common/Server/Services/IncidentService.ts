@@ -8,6 +8,10 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import PublicNoteApprovalEngine, {
+  PublicNoteApprovalDelete,
+  PublicNoteKind,
+} from "../Utils/Notes/PublicNoteApprovalEngine";
 import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentCustomField from "../../Models/DatabaseModels/IncidentCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
@@ -6825,6 +6829,16 @@ ${incidentSeverity.name}
       deleteBy,
       carryForward: {
         incidents: incidents,
+        /*
+         * The chat copies of the approval messages of their public notes,
+         * which the database deletes with them: replaced once they are gone.
+         */
+        publicNoteApproval: await PublicNoteApprovalEngine.beforeRecordsDelete(
+          {
+            kind: PublicNoteKind.Incident,
+            records: incidents,
+          },
+        ),
       },
     };
   }
@@ -6834,6 +6848,16 @@ ${incidentSeverity.name}
     onDelete: OnDelete<Model>,
     deletedIds: ObjectID[],
   ): Promise<OnDelete<Model>> {
+    // Their public notes' approval messages say the notes were deleted.
+    PublicNoteApprovalEngine.afterRecordsDelete({
+      delete: (
+        onDelete.carryForward as {
+          publicNoteApproval?: PublicNoteApprovalDelete;
+        } | null
+      )?.publicNoteApproval,
+      deletedIds: deletedIds,
+    });
+
     if (onDelete.carryForward && onDelete.carryForward.incidents) {
       // The incidents the delete removed, of those onBeforeDelete read.
       for (const incident of Service.getRowsDeleted<Model>({
