@@ -4,268 +4,282 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import ObjectID from "Common/Types/ObjectID";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import MonitorType from "Common/Types/Monitor/MonitorType";
-import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
-import MonitorStep from "Common/Types/Monitor/MonitorStep";
-import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
-import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
-import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
-import MonitorStepMetricQueries from "Common/Utils/Monitor/MonitorStepMetricQueries";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
-import OneUptimeDate from "Common/Types/Date";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
-/*
- * Sibling-relative on purpose — the `Common` specifier can resolve a
- * checkout that predates this branch-new enum.
- */
-import ChartEventKind from "../../../../../../Common/UI/Components/Charts/Types/ChartEventKind";
+import JSONFunctions from "Common/Types/JSONFunctions";
+import ObjectID from "Common/Types/ObjectID";
+import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import Card from "Common/UI/Components/Card/Card";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import MetricView from "../Metrics/MetricView";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
+import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
+import EventMetricInvestigationPanel from "../Telemetry/EventMetricInvestigationPanel";
+import { EventMetricSubject } from "../../Utils/EventMetricInvestigation";
+import {
+  EventStateTimelineDate,
+  getEventEndDateForCurrentState,
+} from "../../Utils/EventDuration";
+import { getEventResponseTimes } from "../../Utils/EventOverview";
+import {
+  RootCauseMetrics,
+  getRootCauseMetrics,
+} from "../../Utils/IncidentRootCauseMetrics";
+
+/*
+ * Where the Root Cause page keeps what the reader changed in its URL
+ * ("rootCauseMetricsTime=hour-before"): a name of its own, so it never
+ * reads what the Overview's card keeps under "metrics".
+ */
+export const ROOT_CAUSE_METRICS_URL_PREFIX: string = "rootCauseMetrics";
 
 export interface ComponentProps {
   incidentId: ObjectID;
 }
 
-/*
- * Renders the metric that triggered an incident inline with the root
- * cause. The chart is scoped to a window centered on the incident's
- * declared-at time so on-call can see exactly what the evaluator saw
- * without leaving the page.
+interface LoadedRootCause {
+  incidentId: string;
+  metrics: RootCauseMetrics | null;
+  startedAt?: Date | undefined;
+  endedAt?: Date | undefined;
+  impactStartedAt?: Date | undefined;
+  stateTimeline: Array<EventStateTimelineDate>;
+  states: Array<IncidentState>;
+}
+
+/**
+ * The metrics behind an incident, beside its root cause (issue #6249): the
+ * same investigation the incident's Overview shows (EventMetricInvestigationPanel),
+ * metrics only - over the ranges around the incident (around its start, the
+ * hour or the day before it started, its start to now or to its resolution,
+ * what the monitor saw), relative ranges or a range of the reader's own,
+ * with the incident's moments on the charts, Edit metrics, Copy link, Reset
+ * and Open in Metric Explorer.
+ *
+ * It charts what the Overview charts when the incident kept a metric
+ * snapshot, and otherwise its monitor's metrics as the monitor reads them
+ * now (see IncidentRootCauseMetrics). Nothing at all for an incident with
+ * no metrics behind it. What the reader changes is kept in the page's URL
+ * under its own names, so a reload keeps it and a link opens the same
+ * charts; an untouched card writes nothing there.
  */
 const IncidentRootCauseMetricChart: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
-  const translator: Translator = useTranslator();
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
-  const [metricViewData, setMetricViewData] = useState<MetricViewData | null>(
-    null,
-  );
-  // Anchor for the "incident declared" marker on the chart.
-  const [incidentDeclaredAt, setIncidentDeclaredAt] = useState<Date | null>(
-    null,
-  );
-  /*
-   * "host.name = prod-01" when this incident belongs to one series of a
-   * grouped metric monitor — surfaced in the card subtitle so it is
-   * obvious the chart is scoped rather than missing data.
-   */
-  const [seriesSummary, setSeriesSummary] = useState<string>("");
+  const incidentId: string = props.incidentId.toString();
+  const [loaded, setLoaded] = useState<LoadedRootCause | null>(null);
+  const [error, setError] = useState<{ incidentId: string; text: string }>({
+    incidentId: "",
+    text: "",
+  });
 
   useEffect(() => {
+    let isCancelled: boolean = false;
+
     const load: () => Promise<void> = async (): Promise<void> => {
-      try {
-        setLoading(true);
-        setError("");
-        setSeriesSummary("");
+      const incident: Incident | null = await ModelAPI.getItem<Incident>({
+        modelType: Incident,
+        id: new ObjectID(incidentId),
+        select: {
+          declaredAt: true,
+          impactStartedAt: true,
+          telemetryQuery: true,
+          seriesLabels: true,
+          createdCriteriaId: true,
+          monitors: {
+            _id: true,
+            monitorType: true,
+            monitorSteps: true,
+          } as never,
+        },
+      });
 
-        const incident: Incident | null = await ModelAPI.getItem({
-          modelType: Incident,
-          id: props.incidentId,
-          select: {
-            createdAt: true,
-            createdCriteriaId: true,
-            seriesLabels: true,
-            monitors: {
-              _id: true,
-              monitorType: true,
-              monitorSteps: true,
-            } as never,
-          },
-        });
+      /*
+       * Stored as JSON: the window's bounds come back as strings, which
+       * the charts read as Dates (TelemetryQueryTimeRange.hydrate).
+       */
+      const telemetryQuery: TelemetryQuery | null = incident?.telemetryQuery
+        ? TelemetryQueryTimeRange.hydrate(
+            JSONFunctions.deserialize(
+              incident.telemetryQuery as unknown as JSONObject,
+            ) as unknown as TelemetryQuery,
+          )
+        : null;
 
-        if (!incident) {
-          setMetricViewData(null);
-          setLoading(false);
-          return;
+      const metrics: RootCauseMetrics | null = incident
+        ? getRootCauseMetrics({
+            telemetryQuery: telemetryQuery,
+            seriesLabels: incident.seriesLabels as JSONObject | undefined,
+            createdCriteriaId: incident.createdCriteriaId,
+            monitors: (incident.monitors || []).map((monitor: Monitor) => {
+              return {
+                monitorType: monitor.monitorType,
+                monitorSteps: monitor.monitorSteps,
+              };
+            }),
+          })
+        : null;
+
+      if (!incident || !metrics) {
+        if (!isCancelled) {
+          setLoaded({
+            incidentId: incidentId,
+            metrics: null,
+            stateTimeline: [],
+            states: [],
+          });
         }
-
-        const monitors: Array<Monitor> = incident.monitors || [];
-        const metricMonitor: Monitor | undefined = monitors.find(
-          (m: Monitor) => {
-            return m.monitorType === MonitorType.Metrics;
-          },
-        );
-
-        if (!metricMonitor) {
-          // Not a metric monitor incident — render nothing.
-          setMetricViewData(null);
-          setLoading(false);
-          return;
-        }
-
-        const steps: MonitorSteps | undefined = metricMonitor.monitorSteps;
-        const stepsInstanceArray: Array<MonitorStep> =
-          steps?.data?.monitorStepsInstanceArray || [];
-
-        // Pick the first step that has a metric monitor configuration.
-        let queryConfigs: Array<MetricQueryConfigData> = [];
-        let formulaConfigs: Array<MetricFormulaConfigData> = [];
-        for (const step of stepsInstanceArray) {
-          const config: MetricQueryConfigData[] | undefined =
-            step.data?.metricMonitor?.metricViewConfig?.queryConfigs;
-          if (config && config.length > 0) {
-            /*
-             * As the monitor reads them: for the services it is limited to,
-             * which the step keeps apart from its queries (issue #6266).
-             */
-            queryConfigs = MonitorStepMetricQueries.getReadQueryConfigs({
-              monitorType: MonitorType.Metrics,
-              settings: step.data?.metricMonitor,
-            });
-            formulaConfigs =
-              step.data?.metricMonitor?.metricViewConfig?.formulaConfigs || [];
-            break;
-          }
-        }
-
-        if (queryConfigs.length === 0) {
-          setMetricViewData(null);
-          setLoading(false);
-          return;
-        }
-
-        /*
-         * A grouped metric monitor (group by host.name, pod, ...) evaluates
-         * one series per group and opens one incident per BREACHING group,
-         * but every one of those incidents stores the same monitor-wide
-         * query configs. Replaying them as-is charts every group, so the
-         * one series this incident is about is buried — or missing outright
-         * once the Top-N cap kicks in. The incident records its own series
-         * in `seriesLabels`, so push that back onto the query as an
-         * attribute filter.
-         */
-        const seriesLabels: JSONObject | undefined = incident.seriesLabels as
-          | JSONObject
-          | undefined;
-
-        /*
-         * Describe the narrowing that was actually applied, not the raw
-         * labels: a label the queries never grouped by narrows nothing, and
-         * announcing it would have the card vouch for a chart that still
-         * shows every series.
-         */
-        setSeriesSummary(
-          MetricSeriesScope.getAppliedSeriesLabelSummary({
-            queryConfigs: queryConfigs,
-            seriesLabels: seriesLabels,
-          }),
-        );
-
-        queryConfigs = MetricSeriesScope.scopeQueryConfigsToSeries({
-          queryConfigs: queryConfigs,
-          seriesLabels: seriesLabels,
-        });
-
-        /*
-         * Center the chart on the incident's creation time: 30 minutes
-         * before to 15 minutes after. Fall back to last hour if createdAt
-         * is missing.
-         */
-        const anchor: Date = incident.createdAt
-          ? new Date(incident.createdAt as unknown as string | Date)
-          : OneUptimeDate.getCurrentDate();
-
-        const startAndEndDate: InBetween<Date> = new InBetween(
-          OneUptimeDate.addRemoveMinutes(anchor, -30),
-          OneUptimeDate.addRemoveMinutes(anchor, 15),
-        );
-
-        setIncidentDeclaredAt(incident.createdAt ? anchor : null);
-
-        setMetricViewData({
-          startAndEndDate,
-          queryConfigs,
-          formulaConfigs,
-        });
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      } finally {
-        setLoading(false);
+        return;
       }
+
+      /*
+       * The incident's moments, read the way its Overview reads them: its
+       * state timeline and the project's states. Only for a card there is.
+       */
+      const [timelines, states]: [
+        ListResult<IncidentStateTimeline>,
+        ListResult<IncidentState>,
+      ] = await Promise.all([
+        ModelAPI.getList<IncidentStateTimeline>({
+          modelType: IncidentStateTimeline,
+          query: {
+            incidentId: new ObjectID(incidentId),
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            startsAt: true,
+            incidentStateId: true,
+          },
+          sort: {
+            startsAt: SortOrder.Ascending,
+          },
+        }),
+        ModelAPI.getList<IncidentState>({
+          modelType: IncidentState,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            name: true,
+            isAcknowledgedState: true,
+            isResolvedState: true,
+            order: true,
+          },
+          sort: {
+            order: SortOrder.Ascending,
+          },
+        }),
+      ]);
+
+      const stateTimeline: Array<EventStateTimelineDate> = (
+        timelines.data || []
+      ).map((timeline: IncidentStateTimeline): EventStateTimelineDate => {
+        return {
+          stateId: timeline.incidentStateId?.toString(),
+          startsAt: timeline.startsAt,
+        };
+      });
+
+      const resolvedStateIds: Array<string> =
+        ResolvedStateUtil.getResolvedStateIds({
+          list: StateListType.IncidentState,
+          states: states.data || [],
+        }).map((stateId: ObjectID): string => {
+          return stateId.toString();
+        });
+
+      if (isCancelled) {
+        return;
+      }
+
+      setLoaded({
+        incidentId: incidentId,
+        metrics: metrics,
+        // When it was declared, as on its Overview.
+        startedAt: getEventResponseTimes({
+          timelines: stateTimeline,
+          startedAt: incident.declaredAt || undefined,
+          acknowledgedStateIds: [],
+          resolvedStateIds: resolvedStateIds,
+        }).startedAt,
+        // Resolved, while it still is.
+        endedAt: getEventEndDateForCurrentState(
+          stateTimeline,
+          resolvedStateIds,
+        ),
+        impactStartedAt: incident.impactStartedAt || undefined,
+        stateTimeline: stateTimeline,
+        states: (states.data || []) as Array<IncidentState>,
+      });
     };
 
     load().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
+      if (!isCancelled) {
+        setError({ incidentId: incidentId, text: API.getFriendlyMessage(err) });
+      }
     });
-  }, [props.incidentId.toString()]);
 
-  if (loading) {
+    return () => {
+      isCancelled = true;
+    };
+  }, [incidentId]);
+
+  const errorText: string = error.incidentId === incidentId ? error.text : "";
+
+  if (errorText) {
     return (
-      <Card
-        title="Metric at Incident Time"
-        description="Metric data from around when this incident was declared."
-      >
+      <Card title="Metrics" description="Metrics related to this incident.">
+        <ErrorMessage message={errorText} />
+      </Card>
+    );
+  }
+
+  if (!loaded || loaded.incidentId !== incidentId) {
+    return (
+      <Card title="Metrics" description="Metrics related to this incident.">
         <ComponentLoader />
       </Card>
     );
   }
 
-  if (error) {
-    return (
-      <Card
-        title="Metric at Incident Time"
-        description="Metric data from around when this incident was declared."
-      >
-        <ErrorMessage message={error} />
-      </Card>
-    );
-  }
-
-  if (!metricViewData) {
-    // Not a metric incident or no config — do not render anything.
+  if (!loaded.metrics) {
+    // No metrics behind this incident: nothing to show.
     return null;
   }
 
   return (
-    <Card
-      title="Metric at Incident Time"
-      /*
-       * Say so when the chart is narrowed to one series of a grouped
-       * monitor, otherwise "where are my other hosts?" reads as a bug.
-       */
-      description={
-        seriesSummary
-          ? translator.translateTemplate(
-              "Metric data from around when this incident was declared, scoped to the affected series ({{series}}).",
-              { series: seriesSummary },
-            )
-          : "Metric data from around when this incident was declared."
-      }
-    >
-      <MetricView
-        data={metricViewData}
-        hideQueryElements={true}
-        hideStartAndEndDate={true}
-        hideCardInCharts={true}
-        chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-        timeReferenceLines={
-          incidentDeclaredAt
-            ? [
-                {
-                  date: incidentDeclaredAt,
-                  label: "Incident declared",
-                  kind: ChartEventKind.Incident,
-                  color: "#f87171", // muted red — matches explorer markers
-                },
-              ]
-            : undefined
-        }
-        onChange={(data: MetricViewData) => {
-          setMetricViewData(data);
-        }}
-      />
-    </Card>
+    /*
+     * Mounted once the incident is read, as the investigation asks: a link
+     * to one of its ranges is read when it mounts. Another incident mounts
+     * a card of its own, on its own defaults.
+     */
+    <EventMetricInvestigationPanel
+      key={incidentId}
+      telemetryQuery={loaded.metrics.telemetryQuery}
+      evaluationWindow={loaded.metrics.evaluationWindow}
+      seriesSummary={loaded.metrics.seriesSummary}
+      subject={EventMetricSubject.Incident}
+      eventId={incidentId}
+      startedAt={loaded.startedAt}
+      endedAt={loaded.endedAt}
+      impactStartedAt={loaded.impactStartedAt}
+      stateTimeline={loaded.stateTimeline}
+      states={loaded.states}
+      urlParamPrefix={ROOT_CAUSE_METRICS_URL_PREFIX}
+      showsCompanionTabs={false}
+      chartedFromMonitorNow={loaded.metrics.chartedFromMonitorNow}
+    />
   );
 };
 

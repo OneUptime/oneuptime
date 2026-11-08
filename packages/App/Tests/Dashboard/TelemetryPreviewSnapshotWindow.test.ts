@@ -78,6 +78,16 @@ const INCIDENT_VIEW: string = readSource(
   "Index.tsx",
 );
 const ALERT_VIEW: string = readSource("Pages", "Alerts", "View", "Index.tsx");
+/*
+ * The logs, traces or exceptions card every event page mounts (issue
+ * #6251): the incident and alert pages drew a copy of it of their own
+ * before.
+ */
+const SNAPSHOT_PANEL: string = readSource(
+  "Components",
+  "Telemetry",
+  "TelemetrySnapshotPanel.tsx",
+);
 const METRIC_VIEW: string = readSource(
   "Components",
   "Metrics",
@@ -424,26 +434,34 @@ describe("the incident and alert pages rebuild the window's Date bounds", () => 
     ["incident", INCIDENT_VIEW],
     ["alert", ALERT_VIEW],
   ])(
-    "%s page shows the window on every preview card, not just metrics",
+    "%s page hands the window it resolved to the card that shows it",
     (_name: string, source: string) => {
-      /*
-       * The log card's absence of any window indicator is what made the bug
-       * invisible: with nothing on screen claiming a window, rolling
-       * past-1-hour rows read as the incident's own rows.
-       */
-      const occurrences: number = source.split(
-        "rightElement={snapshotWindowAlert}",
-      ).length;
-
-      /*
-       * Logs, traces, exceptions. A metric snapshot is the metric
-       * investigation (issue #5954), whose every card names the time range
-       * it shows with its picker; see the panel's test below.
-       */
-      expect(occurrences - 1).toBe(3);
+      expect(source).toContain("<TelemetrySnapshotPanel");
+      expect(source).toContain("snapshotWindow={telemetrySnapshotWindow}");
       expect(source).toContain("<EventMetricInvestigationPanel");
     },
   );
+
+  test("the logs, traces or exceptions card shows its range on every preview card, not just metrics", () => {
+    /*
+     * The log card's absence of any window indicator is what made the bug
+     * invisible: with nothing on screen claiming a window, rolling
+     * past-1-hour rows read as the incident's own rows. The card's time
+     * picker names it now (issue #6251): what the monitor saw, with its
+     * window as the tooltip, until the reader picks another range.
+     */
+    const occurrences: number = SNAPSHOT_PANEL.split(
+      "rightElement={timeRangeControls}",
+    ).length;
+
+    /*
+     * Logs, traces, exceptions. A metric snapshot is the metric
+     * investigation (issue #5954), whose every card names the time range
+     * it shows with its picker; see the panel's test below.
+     */
+    expect(occurrences - 1).toBe(3);
+    expect(SNAPSHOT_PANEL).toContain("<EventMetricInvestigationPanel");
+  });
 
   test("a metric snapshot's cards all name the time range they show", () => {
     const panel: string = fs
@@ -474,43 +492,32 @@ describe("the incident and alert pages rebuild the window's Date bounds", () => 
     );
   });
 
-  test.each([
-    ["incident", INCIDENT_VIEW],
-    ["alert", ALERT_VIEW],
-  ])(
-    "%s page passes undefined, not an empty element, when no window was stored",
-    (_name: string, source: string) => {
-      /*
-       * Card lays out its right-hand column based on the PRESENCE of
-       * rightElement. An element that renders an empty fragment is still
-       * truthy, so handing one over for an incident with no stored window
-       * leaves an empty block and shifts the title.
-       */
-      expect(source).toContain(
-        "const snapshotWindowAlert: ReactElement | undefined = telemetrySnapshotWindow ?",
-      );
-      expect(source).toContain(": undefined;");
-    },
-  );
+  test("the card passes undefined, not an empty element, when no window was stored", () => {
+    /*
+     * Card lays out its right-hand column based on the PRESENCE of
+     * rightElement. An element that renders an empty fragment is still
+     * truthy, so handing one over for an incident with no stored window
+     * leaves an empty block and shifts the title.
+     */
+    expect(SNAPSHOT_PANEL).toContain(
+      "const timeRangeControls: ReactElement | undefined = hasWindow ? (",
+    );
+    expect(SNAPSHOT_PANEL).toContain(") : undefined;");
+  });
 
-  test.each([
-    ["incident", INCIDENT_VIEW],
-    ["alert", ALERT_VIEW],
-  ])(
-    "%s page stops the span and exception lists restoring a filter over the pin",
-    (_name: string, source: string) => {
-      /*
-       * The two dense tables became the same explorers the /traces and
-       * /exceptions pages use, so the opt-out is spelled the explorers' way
-       * — but the requirement is unchanged: a snapshot pinned to the moment
-       * the monitor fired must not have a filter restored over it from the
-       * host page's query string, and must not write its own state back into
-       * that query string either.
-       */
-      expect(source.split("disableUrlSync={true}").length - 1).toBe(2);
-      expect(source).not.toContain("disableUrlState");
-    },
-  );
+  test("the card stops the span and exception lists restoring a filter over the pin", () => {
+    /*
+     * The two dense tables became the same explorers the /traces and
+     * /exceptions pages use, so the opt-out is spelled the explorers' way
+     * — but the requirement is unchanged: a snapshot pinned to the moment
+     * the monitor fired must not have a filter restored over it from the
+     * host page's query string, and must not write its own state back into
+     * that query string either. (The card keeps its own range in the URL,
+     * under its own names.)
+     */
+    expect(SNAPSHOT_PANEL.split("disableUrlSync={true}").length - 1).toBe(2);
+    expect(SNAPSHOT_PANEL).not.toContain("disableUrlState");
+  });
 });
 
 describe("the tables and charts accept the pinned window", () => {

@@ -26,10 +26,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * snapshot:
  *
  * - it re-queries the metric over the dragged window and hands that window
- *   to the snapshot's other tabs, without the page reloading or the
- *   snapshot badge changing what it names;
- * - a double-click, or Reset zoom beside the badge, returns to the snapshot
- *   window;
+ *   to the snapshot's other tabs, without the page reloading;
+ * - a double-click, or Reset zoom beside the card's time picker, returns to
+ *   the range picked before;
  * - the page's background refresh (any state change or note) rebuilds the
  *   snapshot and must not throw the zoom away.
  *
