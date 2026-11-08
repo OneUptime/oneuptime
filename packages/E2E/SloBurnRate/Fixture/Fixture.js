@@ -1,5 +1,6 @@
 /*
- * Offline fixture for the real SLO Burn Rate Rules and Overview pages.
+ * Offline fixture for the real SLO Burn Rate Rules, Error Budget Policy and
+ * Overview pages.
  *
  * Only the ModelAPI/API data boundary and the synthetic user's permission
  * snapshot are replaced. The page component, its ModelTable, its form and
@@ -24,8 +25,10 @@ import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import SloBurnRateRules from "../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/BurnRateRules";
+import SloErrorBudgetPolicy from "../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/ErrorBudgetPolicy";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -54,6 +57,11 @@ import {
   getMissingSloRecommendedBurnRateRules,
   sloRecommendedBurnRateRuleToJSON,
 } from "Common/Utils/Slo/SloRecommendedBurnRateRules";
+import {
+  SLO_RECOMMENDED_POLICY_TIERS,
+  getMissingSloRecommendedPolicyTiers,
+  sloRecommendedPolicyTierToJSON,
+} from "Common/Utils/Slo/SloErrorBudgetPolicy";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const SLO_ID = "20000000-0000-4000-8000-000000000001";
@@ -328,6 +336,63 @@ const monitor = new Monitor();
 monitor._id = "70000000-0000-4000-8000-000000000001";
 slo.monitors = [monitor];
 
+/*
+ * The SLO's error budget policy: none at first, so the Error Budget Policy
+ * page offers the recommended one. ?policy=recommended starts it with the
+ * recommended tiers, and puts the SLO - 20% of its budget left - in
+ * Reliability first (25%), three hours ago by the browser's own clock, so
+ * the Overview shows the tier it is in.
+ */
+function policyTier(data) {
+  const record = new ServiceLevelObjectiveErrorBudgetPolicyTier();
+  record._id = data.id;
+  record.projectId = new ObjectID(PROJECT_ID);
+  record.serviceLevelObjectiveId = new ObjectID(SLO_ID);
+  record.name = data.name;
+  record.thresholdPercentage = data.thresholdPercentage;
+  record.whatWeDo = data.whatWeDo;
+  record.isEnabled = true;
+  record.shouldCreateAlert = false;
+  record.shouldCreateIncident = false;
+  record.isAlertPrivate = false;
+  record.autoResolveAlert = true;
+  record.isIncidentPrivate = false;
+  record.autoResolveIncident = true;
+  record.addSloOwnersAsOwners = false;
+  return record;
+}
+
+const policyTiers = [];
+
+function nextPolicyTierId() {
+  return `e0000000-0000-4000-8000-${String(policyTiers.length + 1).padStart(12, "0")}`;
+}
+
+// As the API lists them for the page: from the highest threshold down.
+function sortedPolicyTiers() {
+  return [...policyTiers].sort((a, b) => {
+    return b.thresholdPercentage - a.thresholdPercentage;
+  });
+}
+
+if (
+  new URLSearchParams(window.location.search).get("policy") === "recommended"
+) {
+  for (const recommended of SLO_RECOMMENDED_POLICY_TIERS) {
+    policyTiers.push(policyTier({ id: nextPolicyTierId(), ...recommended }));
+  }
+
+  const current = policyTiers.find((item) => {
+    return item.thresholdPercentage === 25;
+  });
+
+  slo.currentErrorBudgetPolicyTierId = new ObjectID(current._id);
+  slo.currentErrorBudgetPolicyTierName = current.name;
+  slo.currentErrorBudgetPolicyTierEnteredAt = new Date(
+    Date.now() - 3 * 60 * 60 * 1000,
+  );
+}
+
 User.isMasterAdmin = () => true;
 User.getUserId = () => new ObjectID("80000000-0000-4000-8000-000000000001");
 PermissionUtil.getAllPermissions = () => [Permission.ProjectOwner];
@@ -342,6 +407,17 @@ ModelAPI.getItem = async (options) => {
     return Object.assign(new ServiceLevelObjective(), slo, {
       labels: [...slo.labels],
     });
+  }
+  if (tableName === "ServiceLevelObjectiveErrorBudgetPolicyTier") {
+    const existing = policyTiers.find(
+      (item) => item._id === options.id.toString(),
+    );
+    return existing
+      ? Object.assign(
+          new ServiceLevelObjectiveErrorBudgetPolicyTier(),
+          existing,
+        )
+      : null;
   }
   if (tableName === "ServiceLevelObjectiveBurnRateRule") {
     const existing = rules.find((item) => item._id === options.id.toString());
@@ -360,6 +436,7 @@ ModelAPI.getList = async (options) => {
   const limit = Number(options.limit || 50);
   const itemsByTable = {
     ServiceLevelObjectiveBurnRateRule: rules,
+    ServiceLevelObjectiveErrorBudgetPolicyTier: sortedPolicyTiers(),
     AlertSeverity: alertSeverities,
     IncidentSeverity: incidentSeverities,
     OnCallDutyPolicy: onCallPolicies,
@@ -380,6 +457,9 @@ ModelAPI.getList = async (options) => {
 
 ModelAPI.getCount = async (options) => {
   const tableName = new options.modelType().tableName;
+  if (tableName === "ServiceLevelObjectiveErrorBudgetPolicyTier") {
+    return policyTiers.length;
+  }
   return tableName === "ServiceLevelObjectiveBurnRateRule" ? rules.length : 0;
 };
 
@@ -407,6 +487,18 @@ ModelAPI.createOrUpdate = async (options) => {
       },
     ];
     return { data: row };
+  }
+  if (record.tableName === "ServiceLevelObjectiveErrorBudgetPolicyTier") {
+    const tierIndex = policyTiers.findIndex((item) => item._id === record._id);
+    if (!record._id) {
+      record._id = nextPolicyTierId();
+    }
+    if (tierIndex < 0) {
+      policyTiers.push(record);
+    } else {
+      policyTiers[tierIndex] = record;
+    }
+    return { data: record };
   }
   if (record.tableName === "ServiceLevelObjective") {
     Object.assign(slo, record, {
@@ -487,9 +579,59 @@ function missingRecommendedRules() {
   });
 }
 
+/*
+ * "Use the recommended policy", as the API answers it: the recommended
+ * tiers the SLO is missing and - on add - each added as a tier the table
+ * then lists, raising nothing. Every add is recorded on
+ * window.__recommendedPolicyAdds.
+ */
+function missingRecommendedPolicyTiers() {
+  return getMissingSloRecommendedPolicyTiers({ existingTiers: policyTiers });
+}
+
 API.get = async () => ({ data: { data: [], count: 0 } });
 API.post = async (options) => {
   const url = options && options.url ? options.url.toString() : "";
+
+  if (
+    url.endsWith(
+      "/service-level-objective-error-budget-policy-tier/recommended-policy",
+    )
+  ) {
+    return {
+      data: {
+        tiers: missingRecommendedPolicyTiers().map(
+          sloRecommendedPolicyTierToJSON,
+        ),
+      },
+    };
+  }
+
+  if (
+    url.endsWith(
+      "/service-level-objective-error-budget-policy-tier/recommended-policy/add",
+    )
+  ) {
+    const added = missingRecommendedPolicyTiers().map((recommended) => {
+      const record = policyTier({ id: nextPolicyTierId(), ...recommended });
+      policyTiers.push(record);
+      return { ...recommended, id: record._id };
+    });
+
+    window.__recommendedPolicyAdds = [
+      ...(window.__recommendedPolicyAdds || []),
+      {
+        serviceLevelObjectiveId: String(
+          options.data && options.data.serviceLevelObjectiveId,
+        ),
+        names: added.map((item) => item.name),
+      },
+    ];
+
+    return {
+      data: { tiers: added.map(sloRecommendedPolicyTierToJSON) },
+    };
+  }
 
   if (url.endsWith("/service-level-objective-burn-rate-rule/recommended-rules")) {
     return {
@@ -557,7 +699,9 @@ function Fixture() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());
   Navigation.setParams(useParams());
-  const isOverview = !useLocation().pathname.endsWith("/burn-rate-rules");
+  const pathname = useLocation().pathname;
+  const isPolicy = pathname.endsWith("/error-budget-policy");
+  const isOverview = !pathname.endsWith("/burn-rate-rules") && !isPolicy;
   return (
     <>
       <header className="flex flex-wrap gap-3 items-center justify-between border-b border-gray-200 bg-white px-8 py-5">
@@ -584,9 +728,10 @@ function Fixture() {
         <main className="mx-auto max-w-[1820px] px-8 py-8">
           <div className="mb-7 text-sm text-gray-500">
             SLOs <span className="mx-2">/</span> Checkout availability{" "}
-            <span className="mx-2">/</span> Burn Rate Rules
+            <span className="mx-2">/</span>{" "}
+            {isPolicy ? "Error Budget Policy" : "Burn Rate Rules"}
           </div>
-          <SloBurnRateRules />
+          {isPolicy ? <SloErrorBudgetPolicy /> : <SloBurnRateRules />}
         </main>
       )}
     </>

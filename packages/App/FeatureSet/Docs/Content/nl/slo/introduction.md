@@ -153,18 +153,19 @@ Open een SLO om zijn pagina's in het zijmenu te zien:
 | --- | --- |
 | **Overzicht** | De status, de kerncijfers, de verbranding van het foutbudget, recente activiteit, open waarschuwingen en incidenten en de regels voor verbruikssnelheid. |
 | **Metrieken** | De `oneuptime.slo.*`-metrics van de SLO, zijn foutbudgetgeschiedenis op lange termijn en de metrics van de incidenten en waarschuwingen die hem raken. Zie [SLO-metrics en -dashboards](/docs/slo/metrics). |
-| **Incidenten** | De incidenten die zijn regels voor verbruikssnelheid hebben gemeld. De badge telt de open incidenten. |
-| **Waarschuwingen** | De waarschuwingen die zijn regels voor verbruikssnelheid hebben gegeven. De badge telt de open waarschuwingen. |
+| **Incidenten** | De incidenten die zijn regels voor verbruikssnelheid en zijn foutbudgetbeleid hebben gemeld. De badge telt de open incidenten. |
+| **Waarschuwingen** | De waarschuwingen die zijn regels voor verbruikssnelheid en zijn foutbudgetbeleid hebben gegeven. De badge telt de open waarschuwingen. |
 | **Feed** | Wat er met de SLO is gebeurd, als tijdlijn. Zie [SLO-feed en auditlogboeken](/docs/slo/feed-and-audit-logs). |
 | **Monitoren** | De monitoren die hij meet, en of elke monitor door een persoon of een regel is gekoppeld. |
 | **Monitorregels** | De regels die overeenkomende monitoren koppelen. |
 | **Verbruikssnelheidsregels** | De regels die waarschuwingen geven en incidenten melden als het budget te snel opraakt. |
+| **Foutbudgetbeleid** | Wat het team heeft afgesproken te doen terwijl het foutbudget opraakt, en de waarschuwingen en incidenten die elk niveau van het beleid geeft. Zie [Foutbudgetbeleid](/docs/slo/error-budget-policy). |
 | **Eigenaren** | De gebruikers en teams die over zijn statuswijzigingen horen. |
 | **Instellingen** | Het doel, de complianceperiode, de downtimeberekening, de evaluatieschakelaar en de archiefkaart. |
 | **Auditlogboeken** | Wie de SLO, zijn regels en zijn eigenaren heeft gewijzigd, en wanneer. |
 | **SLO verwijderen** | Verwijdert de SLO definitief en lost de open waarschuwingen en incidenten voor verbruikssnelheid op. |
 
-**Monitoren** staat in een sectie **Configuratie**, **Monitorregels** en **Verbruikssnelheidsregels** in een sectie **Regels**, en **Eigenaren**, **Instellingen**, **Auditlogboeken** en **SLO verwijderen** in een sectie **Beheer**. Alle drie beginnen ingeklapt, net als een sectie **Ontwikkelaars** om de SLO vanuit code te beheren: klik op de titel van een sectie om hem te openen.
+**Monitoren** staat in een sectie **Configuratie**, **Monitorregels**, **Verbruikssnelheidsregels** en **Foutbudgetbeleid** in een sectie **Regels**, en **Eigenaren**, **Instellingen**, **Auditlogboeken** en **SLO verwijderen** in een sectie **Beheer**. Alle drie beginnen ingeklapt, net als een sectie **Ontwikkelaars** om de SLO vanuit code te beheren: klik op de titel van een sectie om hem te openen.
 
 Als iets een SLO verhindert te meten, zegt een banner bovenaan elk van zijn pagina's wat er mis is en linkt hij naar de pagina die het oplost: zie [Problemen oplossen](#problemen-oplossen).
 
@@ -183,6 +184,8 @@ Het **Overzicht** beantwoordt "zitten we binnen het budget?", van boven naar ben
 - **SLO-details**: de naam, de beschrijving en de labels, de enige instellingen die op het overzicht worden bewerkt.
 - **Open waarschuwingen en incidenten**: wat de regels voor verbruikssnelheid op dit moment open hebben.
 - **Burn rate rules**: de drempel van elke ingeschakelde regel naast de huidige verbruikssnelheid, voor regels die 6 uur of minder terugkijken, en wat de regel meldt.
+
+Als de SLO in een niveau van zijn foutbudgetbeleid zit, toont het **Overzicht** ook dat niveau en wat het team daarin heeft afgesproken: zie [Foutbudgetbeleid](/docs/slo/error-budget-policy).
 
 ### Instellingen
 

@@ -153,18 +153,19 @@ Ouvrez un SLO pour voir ses pages dans le menu latéral :
 | --- | --- |
 | **Vue d'ensemble** | Le statut, les chiffres clés, la consommation du budget d'erreur, l'activité récente, les alertes et incidents ouverts et les règles de taux de consommation. |
 | **Métriques** | Les métriques `oneuptime.slo.*` du SLO, l'historique à long terme de son budget d'erreur, et les métriques des incidents et des alertes qui le concernent. Voir [Métriques et tableaux de bord des SLO](/docs/slo/metrics). |
-| **Incidents** | Les incidents que ses règles de taux de consommation ont déclarés. Le badge compte ceux qui sont ouverts. |
-| **Alertes** | Les alertes que ses règles de taux de consommation ont déclenchées. Le badge compte celles qui sont ouvertes. |
+| **Incidents** | Les incidents que ses règles de taux de consommation et sa politique de budget d'erreur ont déclarés. Le badge compte ceux qui sont ouverts. |
+| **Alertes** | Les alertes que ses règles de taux de consommation et sa politique de budget d'erreur ont déclenchées. Le badge compte celles qui sont ouvertes. |
 | **Fil d'activité** | Ce qui est arrivé au SLO, sous forme de chronologie. Voir [Fil d'activité et journaux d'audit des SLO](/docs/slo/feed-and-audit-logs). |
 | **Moniteurs** | Les moniteurs qu'il mesure, et si c'est une personne ou une règle qui a rattaché chacun d'eux. |
 | **Règles de moniteurs** | Les règles qui rattachent les moniteurs correspondants. |
 | **Règles de taux de consommation** | Les règles qui déclenchent des alertes et déclarent des incidents quand le budget se consomme trop vite. |
+| **Politique de budget d'erreur** | Ce que l'équipe s'est engagée à faire à mesure que le budget d'erreur diminue, et les alertes et incidents que déclenche chaque palier de la politique. Voir [Politique de budget d'erreur](/docs/slo/error-budget-policy). |
 | **Propriétaires** | Les utilisateurs et les équipes informés de ses changements de statut. |
 | **Paramètres** | L'objectif, la période de conformité, le calcul de l'indisponibilité, l'interrupteur d'évaluation et la carte d'archivage. |
 | **Journaux d'audit** | Qui a modifié le SLO, ses règles et ses propriétaires, et quand. |
 | **Supprimer le SLO** | Supprime définitivement le SLO et résout les alertes et incidents de taux de consommation qu'il avait ouverts. |
 
-**Moniteurs** se trouve dans une section **Configuration**, **Règles de moniteurs** et **Règles de taux de consommation** dans une section **Règles**, et **Propriétaires**, **Paramètres**, **Journaux d'audit** et **Supprimer le SLO** dans une section **Gestion**. Les trois sont repliées au départ, tout comme une section **Développeurs** pour gérer le SLO par le code : cliquez sur le titre d'une section pour l'ouvrir.
+**Moniteurs** se trouve dans une section **Configuration**, **Règles de moniteurs**, **Règles de taux de consommation** et **Politique de budget d'erreur** dans une section **Règles**, et **Propriétaires**, **Paramètres**, **Journaux d'audit** et **Supprimer le SLO** dans une section **Gestion**. Les trois sont repliées au départ, tout comme une section **Développeurs** pour gérer le SLO par le code : cliquez sur le titre d'une section pour l'ouvrir.
 
 Quand quelque chose empêche un SLO de mesurer, un bandeau en haut de chacune de ses pages dit ce qui ne va pas et renvoie vers la page qui permet de le corriger : voir [Dépannage](#dépannage).
 
@@ -183,6 +184,8 @@ La **Vue d'ensemble** répond à « sommes-nous dans le budget ? », de haut en 
 - **Détails du SLO** : le nom, la description et les étiquettes, les seuls réglages modifiés dans la vue d'ensemble.
 - **Alertes et incidents ouverts** : ce que les règles de taux de consommation ont d'ouvert en ce moment.
 - **Règles de taux de consommation** : le seuil de chaque règle activée à côté du taux de consommation actuel, pour les règles dont la période est de 6 heures ou moins, et ce que déclare la règle.
+
+Quand le SLO est dans un palier de sa politique de budget d'erreur, la **Vue d'ensemble** affiche aussi ce palier et ce que l'équipe s'est engagée à y faire : voir [Politique de budget d'erreur](/docs/slo/error-budget-policy).
 
 ### Paramètres
 

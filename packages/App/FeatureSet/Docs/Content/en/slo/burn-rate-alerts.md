@@ -28,6 +28,8 @@ At a burn rate of 1 you spend the budget exactly over the window, and reach the 
 
 Burn rate does not depend on how much budget is left. It answers "how bad is it right now?", which is what a decision to page someone needs.
 
+To act on how much budget is left instead, such as shipping only reliability work once a quarter of it is left, give the SLO an [error budget policy](/docs/slo/error-budget-policy).
+
 ## How a rule decides to fire
 
 OneUptime checks every enabled burn rate rule each time it evaluates the SLO, every 5 minutes. Each rule measures the burn rate over two windows and fires only when both are at or above its threshold:
@@ -184,6 +186,9 @@ To write your own, use template variables in the title, the description and the 
 | `{{errorBudgetRemaining}}` | Error budget still left, as a duration. Starts with a minus sign once the budget is overspent. | `18m 22s` |
 | `{{errorBudgetRemainingMinutes}}` | Error budget still left, in minutes. | `18.37` |
 | `{{windowDescription}}` | The SLO's compliance window, in words. | `rolling 30-day window` |
+| `{{policyTier}}` | Name of the error budget policy tier the SLO is in after this evaluation. "None" when it is in no tier. | `Reliability first` |
+| `{{policyTierThresholdPercentage}}` | Budget-left threshold of that tier, as a percentage. Empty when the SLO is in no tier. | `25` |
+| `{{policyTierWhatWeDo}}` | What the team agreed to do in that tier, as written on the tier. Empty when the SLO is in no tier. | `Only reliability work and critical fixes ship.` |
 
 For example, the title `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` becomes `Fast burn: Checkout availability is burning 21.5x`.
 
@@ -249,6 +254,7 @@ Not for SLOs measured from monitor uptime. Uptime is measured in seconds, so eve
 
 :::cards
 - [Error Budgets](/docs/slo/error-budget): What the budget is, and how long it lasts.
+- [Error Budget Policy](/docs/slo/error-budget-policy): Act on how much budget is left, tier by tier.
 - [Escalation Rules](/docs/on-call/escalation-rules): Who gets paged, and in what order.
 - [SLO Feed and Audit Logs](/docs/slo/feed-and-audit-logs): Every alert and incident a rule raised.
 :::

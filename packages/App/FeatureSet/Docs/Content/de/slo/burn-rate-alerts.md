@@ -28,6 +28,8 @@ Bei einer Burn-Rate von 1 verbrauchen Sie das Budget genau über das Zeitfenster
 
 Die Burn-Rate hängt nicht davon ab, wie viel Budget übrig ist. Sie beantwortet „Wie schlimm ist es gerade?“, und genau das braucht die Entscheidung, jemanden zu alarmieren.
 
+Um stattdessen danach zu handeln, wie viel Budget übrig ist, etwa nur noch Zuverlässigkeitsarbeit auszuliefern, sobald ein Viertel davon übrig ist, geben Sie dem SLO eine [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy).
+
 ## Wie eine Regel entscheidet, auszulösen
 
 OneUptime prüft jede aktivierte Burn-Rate-Regel bei jeder Auswertung des SLO, alle 5 Minuten. Jede Regel misst die Burn-Rate über zwei Zeitfenster und löst nur aus, wenn beide bei oder über ihrem Schwellenwert liegen:
@@ -184,6 +186,9 @@ Für eigene Texte verwenden Sie Vorlagenvariablen im Titel, in der Beschreibung 
 | `{{errorBudgetRemaining}}` | Noch verbleibendes Fehlerbudget, als Dauer. Beginnt mit einem Minuszeichen, sobald das Budget überzogen ist. | `18m 22s` |
 | `{{errorBudgetRemainingMinutes}}` | Noch verbleibendes Fehlerbudget, in Minuten. | `18.37` |
 | `{{windowDescription}}` | Das Compliance-Zeitfenster des SLO, in Worten. | `rolling 30-day window` |
+| `{{policyTier}}` | Name der Stufe der Fehlerbudget-Richtlinie, in der das SLO nach dieser Auswertung ist. „None“, wenn es in keiner Stufe ist. | `Reliability first` |
+| `{{policyTierThresholdPercentage}}` | Schwellenwert dieser Stufe für das verbleibende Budget, in Prozent. Leer, wenn das SLO in keiner Stufe ist. | `25` |
+| `{{policyTierWhatWeDo}}` | Was das Team in dieser Stufe vereinbart hat, so wie es in der Stufe steht. Leer, wenn das SLO in keiner Stufe ist. | `Only reliability work and critical fixes ship.` |
 
 Zum Beispiel wird aus dem Titel `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` der Text `Fast burn: Checkout availability is burning 21.5x`.
 
@@ -249,6 +254,7 @@ Nicht für SLOs, die aus der Verfügbarkeit von Monitoren gemessen werden. Verf�
 
 :::cards
 - [Fehlerbudgets](/docs/slo/error-budget): Was das Budget ist und wie lange es reicht.
+- [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy): Danach handeln, wie viel Budget übrig ist, Stufe für Stufe.
 - [Eskalationsregeln](/docs/on-call/escalation-rules): Wer alarmiert wird, und in welcher Reihenfolge.
 - [SLO-Feed und Audit-Protokolle](/docs/slo/feed-and-audit-logs): Jede Warnung und jeder Vorfall, den eine Regel ausgelöst hat.
 :::

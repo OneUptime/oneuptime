@@ -6,6 +6,7 @@ import {
 import ServiceLevelObjectiveService from "../../../../Server/Services/ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "../../../../Server/Services/ServiceLevelObjectiveBurnRateRuleService";
 import ServiceLevelObjectiveMonitorRuleService from "../../../../Server/Services/ServiceLevelObjectiveMonitorRuleService";
+import ServiceLevelObjectiveErrorBudgetPolicyTierService from "../../../../Server/Services/ServiceLevelObjectiveErrorBudgetPolicyTierService";
 import ServiceLevelObjective from "../../../../Models/DatabaseModels/ServiceLevelObjective";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -100,6 +101,10 @@ function stubDetailLookups(
 
   jest
     .spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy")
+    .mockResolvedValue([] as never);
+
+  jest
+    .spyOn(ServiceLevelObjectiveErrorBudgetPolicyTierService, "findBy")
     .mockResolvedValue([] as never);
 
   return findOneByIdSpy;
