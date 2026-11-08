@@ -461,12 +461,15 @@ export default class ForgejoApi {
       return null;
     }
 
+    const blobSha: string = CodeHostText.readString(file["sha"]);
+
     return {
       content,
       filePath: data.filePath,
       sizeInBytes,
       totalLines: CodeHostText.countLines(content),
       htmlUrl: CodeHostText.readString(file["html_url"]),
+      ...(blobSha ? { blobSha } : {}),
     };
   }
 

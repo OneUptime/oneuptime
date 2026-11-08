@@ -8,6 +8,10 @@ import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import UptimeUtil, { UptimeWindow } from "../Uptime/UptimeUtil";
 import MonitorEvent from "../Uptime/MonitorEvent";
+import {
+  SLO_AT_RISK_RECOVERY_MARGIN_PERCENTAGE,
+  SLO_BUDGET_EXHAUSTED_RECOVERY_PERCENTAGE,
+} from "./SloEvaluation";
 
 /**
  * A half-open-ish downtime interval [startDate, endDate]. Intervals produced by this
@@ -527,6 +531,10 @@ export default class SloUtil {
    * - enter AtRisk when remaining <= atRiskThreshold; exit back to Healthy only
    *   when remaining >= atRiskThreshold + 5
    *
+   * The two margins live in SloEvaluation, because error budget policy tiers
+   * use the very same ones (SloErrorBudgetPolicy): a tier at 0% moves with
+   * Budget Exhausted, and a tier at the At Risk threshold with At Risk.
+   *
    * All comparisons use UNROUNDED percentages. This function never emits
    * Misconfigured or Paused - those are set by the caller (zero monitors /
    * all monitors paused) before any math runs.
@@ -547,7 +555,7 @@ export default class SloUtil {
     // hysteresis: stay exhausted until the budget has meaningfully recovered.
     if (
       currentStatus === SloStatus.BudgetExhausted &&
-      budgetRemainingPercentage < 2
+      budgetRemainingPercentage < SLO_BUDGET_EXHAUSTED_RECOVERY_PERCENTAGE
     ) {
       return SloStatus.BudgetExhausted;
     }
@@ -560,7 +568,8 @@ export default class SloUtil {
     // hysteresis: stay at risk until comfortably above the threshold.
     if (
       currentStatus === SloStatus.AtRisk &&
-      budgetRemainingPercentage < threshold + 5
+      budgetRemainingPercentage <
+        threshold + SLO_AT_RISK_RECOVERY_MARGIN_PERCENTAGE
     ) {
       return SloStatus.AtRisk;
     }

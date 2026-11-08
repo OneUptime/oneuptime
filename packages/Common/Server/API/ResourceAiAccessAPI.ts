@@ -1233,11 +1233,12 @@ router.post(
         );
       }
 
+      // Recorded on the resource's Audit Logs as theirs.
       await ResourceAiAgentService.resetAgent({
         projectId: tenantId,
         resourceType: resource.resourceType,
         resourceId: resource.id,
-        userId: props.userId,
+        props: props,
       });
 
       const status: ResourceAiAccessStatus | null =
@@ -1316,6 +1317,8 @@ router.post(
           cloudAccountId: resource.id,
           userId: props.userId,
           now: OneUptimeDate.getCurrentDate(),
+          // In the account's audit log, as theirs.
+          props: props,
         });
 
       Response.sendJsonObjectResponse(req, res, key as unknown as JSONObject);
@@ -1369,6 +1372,8 @@ async function makeOrganizationAccountKey(data: {
       cloudAccountId: data.account.id!,
       userId: data.props.userId,
       now: data.now,
+      // In each account's audit log, as theirs.
+      props: data.props,
     },
   );
 

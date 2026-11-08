@@ -32,7 +32,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 import OwnerRulePlanBuilder, {
@@ -144,6 +146,7 @@ class AlertEpisodeOwnerRuleEngineServiceClass
         episode: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running alert episode owner rules: ${error}`, {
@@ -224,6 +227,8 @@ class AlertEpisodeOwnerRuleEngineServiceClass
     episode: AlertEpisode;
     rules: Array<AlertEpisodeOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { episode, rules } = data;
 
@@ -311,7 +316,7 @@ class AlertEpisodeOwnerRuleEngineServiceClass
           return new ObjectID(id);
         }),
         notify,
-        { isRoot: true },
+        RuleRunWriteProps.get(data.props),
       );
 
       addedUserIds.push(...userIds);

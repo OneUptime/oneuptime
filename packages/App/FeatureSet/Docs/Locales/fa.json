@@ -374,6 +374,7 @@
     "Monitors and Monitor Rules": "مانیتورها و قواعد مانیتور",
     "Error Budgets": "بودجه‌های خطا",
     "Burn Rate Alerts and Incidents": "هشدارها و حوادث نرخ مصرف",
+    "Error Budget Policy": "سیاست بودجه خطا",
     "SLO Metrics and Dashboards": "متریک‌ها و داشبوردهای SLO",
     "SLO Feed and Audit Logs": "فید و گزارش‌های ممیزی SLO",
     "Label and Owner Rules": "قواعد برچسب و مالکیت",

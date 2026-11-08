@@ -24,6 +24,7 @@ import {
 } from "../../../EnvironmentConfig";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
+import ArrayUtil from "../../../../Utils/Array";
 import * as crypto from "crypto";
 
 /**
@@ -75,7 +76,20 @@ export interface GitHubFileContent {
   sizeInBytes: number;
   totalLines: number;
   htmlUrl: string;
+  // The file's git blob SHA, which GitHub answers with its contents.
+  blobSha?: string | undefined;
 }
+
+/*
+ * What is at a path on a branch (getFileBlobShas): the git blob SHA of the
+ * file there, null where there is none - or why it could not be read.
+ */
+export type GitHubFileBlob =
+  | { filePath: string; blobSha: string | null }
+  | { filePath: string; failure: string };
+
+// How many paths getFileBlobShas reads at once.
+const FILE_BLOB_READS_AT_ONCE: number = 4;
 
 // One branch's head, plus whether GitHub considers it protected.
 export interface GitHubBranchInfo {
@@ -1505,13 +1519,88 @@ export default class GitHubUtil extends HostedCodeRepository {
       return null;
     }
 
+    const blobSha: string = (result.data["sha"] as string) || "";
+
     return {
       content: content,
       filePath: data.filePath,
       sizeInBytes: sizeInBytes,
       totalLines: GitHubUtil.countLines(content),
       htmlUrl: (result.data["html_url"] as string) || "",
+      ...(blobSha ? { blobSha: blobSha } : {}),
     };
+  }
+
+  /*
+   * The git blob SHA of the file at each path on a branch, as a commit made
+   * there now would find it (issue #6313): null where there is no file, or
+   * why it could not be read - a folder there, or GitHub's own answer. One
+   * token for every path, read a few at a time over the Contents API, which
+   * answers a file's SHA at any size it serves.
+   */
+  @CaptureSpan()
+  public static async getFileBlobShas(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+    branchName: string;
+    filePaths: Array<string>;
+  }): Promise<Array<GitHubFileBlob>> {
+    if (data.filePaths.length === 0) {
+      return [];
+    }
+
+    const tokenData: GitHubInstallationToken =
+      await GitHubUtil.getInstallationAccessToken(data.installationId, {
+        permissions: { contents: "read", metadata: "read" },
+      });
+
+    return await ArrayUtil.mapWithConcurrency(
+      data.filePaths,
+      FILE_BLOB_READS_AT_ONCE,
+      async (filePath: string): Promise<GitHubFileBlob> => {
+        const encodedPath: string = filePath
+          .split("/")
+          .map((segment: string) => {
+            return encodeURIComponent(segment);
+          })
+          .join("/");
+
+        try {
+          const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            await API.get({
+              url: URL.fromString(
+                `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/contents/${encodedPath}?ref=${encodeURIComponent(data.branchName)}`,
+              ),
+              headers: GitHubUtil.buildApiHeaders(tokenData.token),
+            });
+
+          if (result instanceof HTTPErrorResponse) {
+            return result.statusCode === 404
+              ? { filePath, blobSha: null }
+              : {
+                  filePath,
+                  failure: `GitHub answered ${result.statusCode} for it.`,
+                };
+          }
+
+          // A folder is a list of its entries: no file to write over.
+          if (Array.isArray(result.data)) {
+            return { filePath, failure: "It is a folder on GitHub." };
+          }
+
+          const sha: unknown = result.data["sha"];
+
+          return typeof sha === "string" && sha
+            ? { filePath, blobSha: sha }
+            : { filePath, failure: "GitHub did not say which version it is." };
+        } catch (error) {
+          logger.debug(error);
+
+          return { filePath, failure: "GitHub could not be reached." };
+        }
+      },
+    );
   }
 
   /*

@@ -7,7 +7,8 @@ side menu):
 - a status page's menu (`packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SideMenu.tsx`),
   whose Rules section holds Monitor Rules, right below Resources;
 - an SLO's menu (`Pages/Slo/View/SideMenu.tsx`), whose Rules section holds
-  Monitor Rules and Burn Rate Rules, right below Configuration.
+  Monitor Rules, Burn Rate Rules and Error Budget Policy, right below
+  Configuration.
 
 Both sections start folded ("Create a new section for rules and have monitor
 rules there. The section should be collapsed by default", the maintainer). The
@@ -40,8 +41,9 @@ packages/Common read the classes a folded section carries):
 - with monitor groups on (`?groups=1`) the resources entry reads Resources and
   Rules still holds Monitor Rules;
 - on an SLO's Overview, Configuration, Rules and Management are folded; Rules
-  holds Monitor Rules above Burn Rate Rules, and Burn Rate Rules (or one
-  monitor rule's page) opens it while Configuration stays folded;
+  holds Monitor Rules, then Burn Rate Rules, then Error Budget Policy, and
+  Burn Rate Rules (or one monitor rule's page) opens it while Configuration
+  stays folded;
 - an SLO's Monitors page with nothing attached keeps Rules folded, and its
   empty list offers Create a monitor rule beside Add Monitors (the next Tab
   stop), which opens Monitor Rules with Rules open; while rules are enabled,

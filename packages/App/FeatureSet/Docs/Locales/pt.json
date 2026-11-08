@@ -374,6 +374,7 @@
     "Monitors and Monitor Rules": "Monitores e regras de monitor",
     "Error Budgets": "Orçamentos de erros",
     "Burn Rate Alerts and Incidents": "Alertas e incidentes de taxa de consumo",
+    "Error Budget Policy": "Política de orçamento de erros",
     "SLO Metrics and Dashboards": "Métricas e painéis de SLO",
     "SLO Feed and Audit Logs": "Feed e registros de auditoria de SLO",
     "Label and Owner Rules": "Regras de rótulos e proprietários",

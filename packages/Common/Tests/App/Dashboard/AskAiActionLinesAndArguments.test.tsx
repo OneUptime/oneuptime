@@ -57,6 +57,7 @@ import {
 } from "../../../Types/AI/AIChatTypes";
 import { JSONObject } from "../../../Types/JSON";
 import { WORKFLOW_DRAFT_PROPOSED_ON_KEY } from "../../../Types/Workflow/WorkflowDraftProposedOnKey";
+import { CODE_CHANGE_PROPOSED_ON_KEY } from "../../../Types/CodeRepository/CodeChangeProposedOnKey";
 import ObjectID from "../../../Types/ObjectID";
 import {
   DASHBOARD_LANGUAGES,
@@ -399,9 +400,50 @@ describe("what OneUptime keeps in an action for itself", () => {
     expect(line).not.toHaveTextContent("0123456789abcdef");
   });
 
-  test("names only what update_workflow writes for itself", () => {
+  test("names only what update_workflow and the code changes write for themselves", () => {
     expect([...AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME]).toEqual([
       WORKFLOW_DRAFT_PROPOSED_ON_KEY,
+      CODE_CHANGE_PROPOSED_ON_KEY,
     ]);
+  });
+
+  /*
+   * Issue #6313: the files an Ask AI code change writes, as the branch had
+   * them when its card was shown - keyed fingerprints its approval is held
+   * to - are OneUptime's too, and never drawn.
+   */
+  test("a commit's card never shows the files it was proposed on", () => {
+    render(
+      <ToolApprovalCard
+        toolActions={[
+          action({
+            toolName: "commit_code_to_branch",
+            title: "Commit 1 file to fix/login",
+            arguments: {
+              branchName: "fix/login",
+              commitMessage: "fix: charge",
+              changes: [{ filePath: "src/a.ts", content: "x" }],
+              [CODE_CHANGE_PROPOSED_ON_KEY]: {
+                branchName: "fix/login",
+                files: [
+                  { filePath: "src/a.ts", fingerprint: "fedcba9876543210" },
+                ],
+                unseen: [],
+              },
+            },
+            status: AIChatToolActionStatus.Pending,
+          }),
+        ]}
+        interactive={true}
+        isSubmitting={false}
+        onRespond={(): void => {}}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId("tool-approval-arguments");
+
+    expect(line).toHaveTextContent("fix: charge");
+    expect(line).not.toHaveTextContent(CODE_CHANGE_PROPOSED_ON_KEY);
+    expect(line).not.toHaveTextContent("fedcba9876543210");
   });
 });

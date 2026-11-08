@@ -14,6 +14,7 @@ import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "../../../Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import ServiceLevelObjectiveMonitorRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import ServiceLevelObjectiveOwnerTeam from "../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
 import ServiceLevelObjectiveOwnerUser from "../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
@@ -46,6 +47,9 @@ const SLO_WORKER_COLUMNS: Array<string> = [
   "currentBurnRate",
   "sloStatus",
   "statusChangeNotificationSentAt",
+  // The tier the SLO is in is recorded by its name; its id and entry time are not.
+  "currentErrorBudgetPolicyTierId",
+  "currentErrorBudgetPolicyTierEnteredAt",
   "lastEvaluatedAt",
   "nextEvaluationAt",
   "lastAccumulatedBucketEndAt",
@@ -183,6 +187,19 @@ describe("ServiceLevelObjective audit logging", () => {
     );
   });
 
+  test("records the SLO entering or leaving a tier of its error budget policy, by the tier's name", () => {
+    /*
+     * The one worker column that is audited: a tier change is something the
+     * team agreed to act on, so it lands on the SLO's audit log (as a system
+     * event) under the tier's name - readable after the tier is renamed or
+     * deleted, unlike its id.
+     */
+    expect(slo.isTableColumn("currentErrorBudgetPolicyTierName")).toBe(true);
+    expect(slo.enableAuditLogOn?.ignoreColumns).not.toContain(
+      "currentErrorBudgetPolicyTierName",
+    );
+  });
+
   test("never ignores a column a person edits", () => {
     /*
      * Ignoring any of these would make the audit log lie by omission about
@@ -222,6 +239,10 @@ describe("SLO child models roll their entries up to the SLO", () => {
     {
       name: "ServiceLevelObjectiveMonitorRule",
       model: new ServiceLevelObjectiveMonitorRule(),
+    },
+    {
+      name: "ServiceLevelObjectiveErrorBudgetPolicyTier",
+      model: new ServiceLevelObjectiveErrorBudgetPolicyTier(),
     },
     {
       name: "ServiceLevelObjectiveOwnerUser",
@@ -265,6 +286,15 @@ describe("SLO child models roll their entries up to the SLO", () => {
       new ServiceLevelObjectiveBurnRateRule();
 
     expect(sorted(rule.enableAuditLogOn?.ignoreColumns)).toEqual(
+      sorted(BURN_RATE_RULE_BOOKKEEPING_COLUMNS),
+    );
+  });
+
+  test("error budget policy tiers ignore the same bookkeeping, and nothing else", () => {
+    const tier: ServiceLevelObjectiveErrorBudgetPolicyTier =
+      new ServiceLevelObjectiveErrorBudgetPolicyTier();
+
+    expect(sorted(tier.enableAuditLogOn?.ignoreColumns)).toEqual(
       sorted(BURN_RATE_RULE_BOOKKEEPING_COLUMNS),
     );
   });
@@ -340,6 +370,7 @@ describe("every audited model's configuration is consistent", () => {
       expect.arrayContaining([
         "ServiceLevelObjective",
         "ServiceLevelObjectiveBurnRateRule",
+        "ServiceLevelObjectiveErrorBudgetPolicyTier",
         "ServiceLevelObjectiveMonitorRule",
         "ServiceLevelObjectiveOwnerUser",
         "ServiceLevelObjectiveOwnerTeam",

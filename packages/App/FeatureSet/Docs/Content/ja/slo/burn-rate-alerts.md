@@ -28,6 +28,8 @@ burn rate = (share of time that was bad) ÷ (share of time the target allows to 
 
 バーンレートは予算の残りに左右されません。「今どれだけ悪いか」に答えるもので、誰かを呼び出すかどうかを決めるために必要なのはまさにこれです。
 
+代わりに予算の残りに応じて対応するには、たとえば残りが 4 分の 1 になったら信頼性の作業だけをリリースするといった対応を、SLO の [エラーバジェットポリシー](/docs/slo/error-budget-policy) で決めておきます。
+
 ## ルールが発火を判断する方法
 
 OneUptime は、SLO を評価するたび (5 分ごと) に、有効な各バーンレートルールを確認します。各ルールは 2 つの時間枠でバーンレートを測定し、両方がしきい値以上のときにだけ発火します:
@@ -184,6 +186,9 @@ SLO burn rate: {{sloName}} — {{ruleName}}
 | `{{errorBudgetRemaining}}` | まだ使えるエラーバジェット (期間)。予算を超過するとマイナス記号で始まります。 | `18m 22s` |
 | `{{errorBudgetRemainingMinutes}}` | まだ使えるエラーバジェット (分)。 | `18.37` |
 | `{{windowDescription}}` | SLO のコンプライアンスの時間枠を言葉で表したもの。 | `rolling 30-day window` |
+| `{{policyTier}}` | この評価のあとに SLO がいるエラーバジェットポリシーの段階の名前。どの段階にもいないときは「None」。 | `Reliability first` |
+| `{{policyTierThresholdPercentage}}` | その段階の予算残量のしきい値 (パーセント)。SLO がどの段階にもいないときは空です。 | `25` |
+| `{{policyTierWhatWeDo}}` | その段階でチームが取り決めた対応。段階に書かれたとおりです。SLO がどの段階にもいないときは空です。 | `Only reliability work and critical fixes ship.` |
 
 たとえば、タイトル `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x` は `Fast burn: Checkout availability is burning 21.5x` になります。
 
@@ -249,6 +254,7 @@ SLO のいずれかのモニターが進行中の定期メンテナンスイベ�
 
 :::cards
 - [エラーバジェット](/docs/slo/error-budget): 予算とは何か、どれだけもつか。
+- [エラーバジェットポリシー](/docs/slo/error-budget-policy): 予算の残りに応じて、段階ごとに対応します。
 - [エスカレーションルール](/docs/on-call/escalation-rules): 誰を、どの順番で呼び出すか。
 - [SLO のフィードと監査ログ](/docs/slo/feed-and-audit-logs): ルールが発生させたすべてのアラートとインシデント。
 :::

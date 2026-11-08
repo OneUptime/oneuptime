@@ -23,7 +23,9 @@ import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
   RuleRunEngine,
+  RuleRunWriteProps,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class NetworkDeviceOwnerRuleEngineServiceClass
@@ -113,6 +115,7 @@ class NetworkDeviceOwnerRuleEngineServiceClass
         networkDevice: data.resource,
         rules: data.rules,
         allowOwnerNotification: data.allowOwnerNotification,
+        props: data.props,
       });
     } catch (error) {
       logger.error(`Error running network device owner rules: ${error}`, {
@@ -129,6 +132,8 @@ class NetworkDeviceOwnerRuleEngineServiceClass
     networkDevice: NetworkDevice;
     rules: Array<NetworkDeviceOwnerRule>;
     allowOwnerNotification: boolean;
+    // Who ran the rule (Run now); none for a rule applied on create.
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<RuleApplicationResult> {
     const { networkDevice, rules } = data;
 
@@ -255,7 +260,7 @@ class NetworkDeviceOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: NetworkDeviceOwnerUserService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;
@@ -272,7 +277,7 @@ class NetworkDeviceOwnerRuleEngineServiceClass
           await OwnerRuleAssignment.createOwner({
             ownerService: NetworkDeviceOwnerTeamService,
             owner: owner,
-            props: { isRoot: true },
+            props: RuleRunWriteProps.get(data.props),
           })
         ) {
           ownersAdded++;

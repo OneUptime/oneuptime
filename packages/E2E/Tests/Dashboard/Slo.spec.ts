@@ -76,6 +76,7 @@ const SLO_VIEW_TABS: Array<string> = [
   "Monitors",
   "Monitor Rules",
   "Burn Rate Rules",
+  "Error Budget Policy",
   "Metrics",
   "Alerts",
   "Incidents",
@@ -148,8 +149,8 @@ const openSideMenuAdvanced: OpenSideMenuAdvancedFunction = async (
 
 /*
  * The SLO view menu's sections that start folded on its overview: its
- * monitors (Configuration), its Monitor Rules and Burn Rate Rules (Rules), and
- * its owners, settings and the rest (Management).
+ * monitors (Configuration), its Monitor Rules, Burn Rate Rules and Error
+ * Budget Policy (Rules), and its owners, settings and the rest (Management).
  */
 const SLO_VIEW_FOLDED_SECTIONS: Array<string> = [
   "Configuration",
@@ -614,8 +615,8 @@ test.describe("SLOs", () => {
     await expect(monitorRulesRow).toBeHidden();
 
     /*
-     * Both rules pages sit in the Rules section: the element its toggle
-     * shows and hides holds them.
+     * Both rules pages and the error budget policy sit in the Rules section:
+     * the element its toggle shows and hides holds them.
      */
     const rulesBodyId: string | null = await sideMenuSectionToggle(
       page,
@@ -627,6 +628,9 @@ test.describe("SLOs", () => {
     await expect(rulesBody.locator("a[href$='/burn-rate-rules']")).toHaveCount(
       1,
     );
+    await expect(
+      rulesBody.locator("a[href$='/error-budget-policy']"),
+    ).toHaveCount(1);
 
     for (const section of SLO_VIEW_FOLDED_SECTIONS) {
       await openSideMenuSection(page, section);

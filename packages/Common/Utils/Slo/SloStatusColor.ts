@@ -1,6 +1,7 @@
 import { Gray500, Green, Red, Yellow } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
+import { readSloPolicyTierThreshold } from "./SloErrorBudgetPolicy";
 
 /**
  * The single source of truth for the SloStatus -> pill colour mapping.
@@ -51,4 +52,33 @@ export const getSloStatusText: GetSloStatusTextFunction = (
   status: SloStatus | undefined | null,
 ): string => {
   return status || "Unknown";
+};
+
+export type GetSloPolicyTierColorFunction = (
+  tier:
+    | { thresholdPercentage?: number | string | undefined | null }
+    | null
+    | undefined,
+) => Color;
+
+/*
+ * The color of an error budget policy tier, in the status palette: a tier at
+ * 0% - an exhausted budget - is red like Budget Exhausted, any other tier
+ * yellow like At Risk, and no tier at all green like Healthy.
+ */
+export const getSloPolicyTierColor: GetSloPolicyTierColorFunction = (
+  tier:
+    | { thresholdPercentage?: number | string | undefined | null }
+    | null
+    | undefined,
+): Color => {
+  if (!tier) {
+    return Green;
+  }
+
+  const threshold: number | null = readSloPolicyTierThreshold(
+    tier.thresholdPercentage,
+  );
+
+  return threshold !== null && threshold <= 0 ? Red : Yellow;
 };

@@ -1,6 +1,7 @@
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Select from "../../../Types/Database/Select";
+import OnBehalfOfProps from "../../AuditLog/OnBehalfOfProps";
 
 /*
  * The contract between a rule engine and a rule run.
@@ -36,8 +37,10 @@ export interface ApplyRulesToExistingResourceData<TResource, TRule> {
   allowOwnerNotification: boolean;
   /*
    * Who ran the rule. What the run changes is theirs in the audit log: a
-   * label rule's labels are recorded by them (RuleAddedLabels). Unset, the
-   * changes are OneUptime's own, as a rule applied on create is.
+   * label rule's labels are recorded by them (RuleAddedLabels), and the
+   * owners an owner rule adds and the records a privacy rule makes private
+   * are written on their behalf (RuleRunWriteProps). Unset, the changes are
+   * OneUptime's own, as a rule applied on create is.
    */
   props?: DatabaseCommonInteractionProps | undefined;
 }
@@ -84,5 +87,31 @@ export class RuleApplicationResultUtil {
    */
   public static failed(): RuleApplicationResult {
     return { matched: true, updated: false, itemsAdded: 0, failed: true };
+  }
+}
+
+/*
+ * THE PROPS A RULE'S WRITES ARE MADE WITH (issue #6300).
+ *
+ * A rule writes as OneUptime, root: who may run it is asked once, at the
+ * route (RuleRunPermission), and a rule applied as a record is created asks
+ * nothing. Plain root, though, is OneUptime's own change in the audit log:
+ * the owners an owner rule's Run now added, and the records a privacy
+ * rule's Run now made private, read as System's, kept only when the
+ * project stores system events, and said nobody ran the rule.
+ *
+ * So the writes of a run carry who ran it (OnBehalfOfProps: still root,
+ * with no project on the request, and the person's identity - their user,
+ * the API key or MCP client they acted through - and none of their
+ * permissions), and the entries are theirs. With nobody named - a rule
+ * applied as a record is created or changed - they stay OneUptime's own, a
+ * system event. HookFreeWritesAreRecorded.test.ts holds every owner and
+ * privacy rule engine to writing with these.
+ */
+export class RuleRunWriteProps {
+  public static get(
+    props?: DatabaseCommonInteractionProps | undefined,
+  ): DatabaseCommonInteractionProps {
+    return props ? OnBehalfOfProps.get(props) : { isRoot: true };
   }
 }

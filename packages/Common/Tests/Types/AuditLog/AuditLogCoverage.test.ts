@@ -1101,6 +1101,27 @@ describe("what names a row with no name of its own", () => {
     ).toEqual(["fullDomain"]);
   });
 
+  test("an incoming call policy's number is named by the number, never by its provider's id (issue #6301)", () => {
+    const config: EnableAuditLogOn | undefined = BY_TABLE.get(
+      "IncomingCallPolicyPhoneNumber",
+    )!.enableAuditLogOn;
+
+    expect(config?.resourceNameColumns).toEqual(["phoneNumber"]);
+    // Its entries are on the policy's own Audit Logs page.
+    expect(config?.rootResource).toEqual({
+      resourceType: "Incoming Call Policy",
+      column: "incomingCallPolicyId",
+    });
+    // What only OneUptime writes - the provider's id, its settings - stays out.
+    expect(config?.ignoreColumns).toEqual(
+      expect.arrayContaining([
+        "callProviderPhoneNumberId",
+        "projectCallSMSConfigId",
+        "phoneNumber",
+      ]),
+    );
+  });
+
   test("a model with a name of its own is named by it, and nothing else", () => {
     for (const tableName of ["Monitor", "Incident", "Workflow", "Team"]) {
       expect(
