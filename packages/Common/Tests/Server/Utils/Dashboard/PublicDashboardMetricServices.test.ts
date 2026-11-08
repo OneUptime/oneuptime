@@ -601,9 +601,10 @@ describe("the services a dashboard saves for each metric", () => {
         undefined,
         null,
       ]) {
-        expect([String(notAnId), readFor(config, LATENCY, requested)]).toEqual(
-          [String(notAnId), "refused"],
-        );
+        expect([String(notAnId), readFor(config, LATENCY, requested)]).toEqual([
+          String(notAnId),
+          "refused",
+        ]);
       }
     }
 
