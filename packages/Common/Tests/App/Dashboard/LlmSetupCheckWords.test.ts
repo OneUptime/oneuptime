@@ -698,6 +698,27 @@ describe("the Setup check card: a connection", () => {
     expect(result.error).toBeUndefined();
   });
 
+  // "Fix the setting named below": the server's words are what name it.
+  test("not working, a wrong setting: the advice, and the server's words that name the setting", () => {
+    const result: LlmSetupCheckLine = line(
+      connection({
+        lastError:
+          "This is a project API key. Reading usage and costs needs an OpenAI admin key, which starts with sk-admin-.",
+        failureKind: "settings",
+        lastSuccessfulReadAt: null,
+      }),
+    );
+
+    expect(result.tone).toBe("error");
+    expect(result.text).toBe("A setting is not right.");
+    expect(result.detail).toBe(
+      "Fix the setting named below, then test again.",
+    );
+    expect(result.error).toBe(
+      "This is a project API key. Reading usage and costs needs an OpenAI admin key, which starts with sk-admin-.",
+    );
+  });
+
   test("not working for a reason the product has no words for: the server's own, set apart", () => {
     for (const failureKind of [undefined, "other", "something-new"]) {
       expect(

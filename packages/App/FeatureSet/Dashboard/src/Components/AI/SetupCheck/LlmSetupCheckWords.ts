@@ -4,6 +4,7 @@ import {
   getLlmConnectionTitle,
 } from "Common/Types/LlmObservability/LlmConnectionCatalog";
 import LlmConnectionProvider from "Common/Types/LlmObservability/LlmConnectionProvider";
+import { LlmConnectionFailureKind } from "Common/Types/LlmObservability/LlmConnectionTest";
 import { getLlmProviderTitle } from "Common/Types/Telemetry/LlmProviders";
 import {
   LLM_METRIC_SOURCE_TITLES,
@@ -748,6 +749,15 @@ export function getConnectionLine(data: {
         detail: failure.advice
           ? translator.translateText(failure.advice) || failure.advice
           : undefined,
+        /*
+         * "Fix the setting named below": the server's words name it, so a
+         * settings failure keeps them under its advice.
+         */
+        error:
+          connection.failureKind === LlmConnectionFailureKind.Settings &&
+          connection.lastError
+            ? connection.lastError
+            : undefined,
       };
     }
 
