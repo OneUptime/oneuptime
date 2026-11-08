@@ -85,9 +85,9 @@ import {
   getIncidentEpisodeMemberRow,
 } from "../../../Components/EpisodeView/EpisodeMembers";
 import {
-  FetchedEpisodeMembers,
-  fetchEpisodeMembers,
-} from "../../../Components/EpisodeView/FetchEpisodeMembers";
+  INCIDENT_EPISODE_FIRST_MEMBER,
+  fetchFirstEpisodeMember,
+} from "../../../Components/EpisodeView/EpisodeFirstMember";
 import {
   EpisodeTiming,
   getEpisodeTiming,
@@ -222,8 +222,8 @@ const IncidentEpisodeView: FunctionComponent<
     requestIdRef.current = requestId;
 
     try {
-      const [firstMembers, episodeTimelines, stateList, loaded]: [
-        FetchedEpisodeMembers<Incident> | null,
+      const [firstMember, episodeTimelines, stateList, loaded]: [
+        Incident | null,
         ListResult<IncidentEpisodeStateTimeline>,
         ListResult<IncidentState>,
         IncidentEpisode | null,
@@ -232,20 +232,17 @@ const IncidentEpisodeView: FunctionComponent<
          * The one read here the page can do without: it takes the episode's
          * membership as well as its incidents, and a reader who may not read
          * the membership (a custom role) still gets the overview, without
-         * the panel.
+         * the panel. Its first member is the one the episode's Root Cause
+         * page charts the metrics of, picked by the same rule.
          */
-        fetchEpisodeMembers<Incident, IncidentEpisodeMember>({
+        fetchFirstEpisodeMember<Incident, IncidentEpisodeMember>({
           episodeId: modelId,
-          membership: INCIDENT_EPISODE_MEMBERSHIP,
-          modelType: Incident,
+          kind: INCIDENT_EPISODE_FIRST_MEMBER,
           select: {
             _id: true,
             telemetryQuery: true,
             seriesLabels: true,
           },
-          sortField: "declaredAt",
-          sortOrder: SortOrder.Ascending,
-          limit: 1,
         }).catch((): null => {
           return null;
         }),
@@ -307,8 +304,6 @@ const IncidentEpisodeView: FunctionComponent<
       if (requestId !== requestIdRef.current) {
         return;
       }
-
-      const firstMember: Incident | undefined = firstMembers?.members[0];
 
       setTelemetrySnapshot(
         deriveTelemetrySnapshot({

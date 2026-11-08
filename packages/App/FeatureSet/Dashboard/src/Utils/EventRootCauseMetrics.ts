@@ -15,7 +15,12 @@ import MonitorStepMetricThresholds from "Common/Utils/Monitor/MonitorStepMetricT
 import ResolvedStateUtil, {
   ResolvedStateList,
 } from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
+import {
+  EpisodeTiming,
+  getEpisodeTiming,
+} from "../Components/EpisodeView/EpisodeTiming";
 import {
   EventStateTimelineDate,
   getEventEndDateForCurrentState,
@@ -29,8 +34,8 @@ import {
 } from "./MonitorMetricInvestigation";
 
 /*
- * WHAT AN INCIDENT'S OR AN ALERT'S ROOT CAUSE PAGE CHARTS (issues #6249 and
- * #6304).
+ * WHAT AN INCIDENT'S, AN ALERT'S OR AN EPISODE'S ROOT CAUSE PAGE CHARTS
+ * (issues #6249, #6304 and #6320).
  *
  * The Root Cause page shows the metrics behind the event right beside the
  * root cause, as the metric investigation the event's Overview shows
@@ -52,8 +57,9 @@ import {
  * An incident and an alert are read the same way, by one rule: an alert's
  * one monitor is a list of one (getAlertRootCauseEvent), an incident's list
  * is its monitors (getIncidentRootCauseEvent), and from there both are
- * charted and anchored alike. Pure: the cards and their tests read it the
- * same way.
+ * charted and anchored alike. An episode charts its first member, read as
+ * that incident or alert is read, anchored on the episode itself (see
+ * below). Pure: the cards and their tests read it the same way.
  */
 
 // What it reads of the event's monitors.
@@ -250,6 +256,12 @@ export interface RootCauseEvent extends RootCauseMetricsInput {
   impactStartedAt: Date | undefined;
   createdCriteriaId: string | null;
   monitors: Array<RootCauseMonitor>;
+  /*
+   * The incident or alert whose monitor rule the charts draw, when the card
+   * is not that incident's or alert's own: an episode's first member. Left
+   * out for an incident or an alert, which draws its own.
+   */
+  ruleEventId?: string | undefined;
 }
 
 /*
@@ -375,6 +387,72 @@ export function getAlertRootCauseEvent(
 }
 
 /*
+ * AN EPISODE'S ROOT CAUSE PAGE CHARTS WHAT ITS OVERVIEW CHARTS (issue #6320).
+ *
+ * An episode groups many incidents or alerts from one root cause, and its
+ * Overview charts the telemetry of the first of them - the one that kicked
+ * it off (EpisodeFirstMember) - anchored on the episode: its own start,
+ * state timeline and states, with that member's monitor rule drawn and every
+ * member marked on the charts, as an incident or an alert. The Root Cause
+ * page charts the same member the same way:
+ *
+ * - the member is read as its own Root Cause page reads it (the same
+ *   columns, by the same rule): its snapshot, or, when it kept none, its
+ *   monitor as the monitor reads now, which the card says;
+ * - the moments are the episode's, never the member's: the member's start
+ *   and impact are left out, and the ranges are anchored on when the
+ *   episode started and was resolved, as its Overview works them out
+ *   (getEpisodeTiming).
+ */
+
+// What the card reads of an episode's first member besides its event: its id.
+export interface EpisodeMemberRootCauseRow {
+  id?: ObjectID | string | null | undefined;
+}
+
+type ReadIdFunction = (value: unknown) => string | undefined;
+
+const readId: ReadIdFunction = (value: unknown): string | undefined => {
+  if (value instanceof ObjectID || typeof value === "string") {
+    return value.toString().trim() || undefined;
+  }
+
+  return undefined;
+};
+
+type ReadEpisodeEventFunction = (
+  member: EpisodeMemberRootCauseRow,
+  memberEvent: RootCauseEvent,
+) => RootCauseEvent;
+
+const readEpisodeEvent: ReadEpisodeEventFunction = (
+  member: EpisodeMemberRootCauseRow,
+  memberEvent: RootCauseEvent,
+): RootCauseEvent => {
+  return {
+    ...memberEvent,
+    // The episode's own, read with its moments (getEpisodeRootCauseTimes).
+    startedAt: undefined,
+    impactStartedAt: undefined,
+    ruleEventId: readId(member.id),
+  };
+};
+
+// An incident episode's first member: an incident, read as its page reads it.
+export function getIncidentEpisodeRootCauseEvent(
+  member: IncidentRootCauseRow & EpisodeMemberRootCauseRow,
+): RootCauseEvent {
+  return readEpisodeEvent(member, getIncidentRootCauseEvent(member));
+}
+
+// An alert episode's first member: an alert, on its one monitor.
+export function getAlertEpisodeRootCauseEvent(
+  member: AlertRootCauseRow & EpisodeMemberRootCauseRow,
+): RootCauseEvent {
+  return readEpisodeEvent(member, getAlertRootCauseEvent(member));
+}
+
+/*
  * One of the project's states, as the card reads it: what the moments read
  * (EventMomentState), and its place in the list, which decides the states
  * that count as resolved.
@@ -427,4 +505,98 @@ export function getRootCauseTimes(input: {
       resolvedStateIds,
     ),
   };
+}
+
+/*
+ * The columns the card reads of an incident episode's own row: when it was
+ * declared (or, for one older than declaredAt, created) and resolved, the
+ * columns its Overview reads them from.
+ */
+export interface IncidentEpisodeRootCauseRow {
+  declaredAt?: Date | null | undefined;
+  createdAt?: Date | null | undefined;
+  resolvedAt?: Date | null | undefined;
+}
+
+// An alert episode's: it has no declaredAt, and started when it was created.
+export interface AlertEpisodeRootCauseRow {
+  createdAt?: Date | null | undefined;
+  resolvedAt?: Date | null | undefined;
+}
+
+type AsDateFunction = (value: unknown) => Date | undefined;
+
+// A moment the row holds, as its Overview takes it: a Date, or none.
+const asDate: AsDateFunction = (value: unknown): Date | undefined => {
+  return value instanceof Date ? value : undefined;
+};
+
+/*
+ * When an episode's ranges start and end, worked out by its Overview's own
+ * rule (getEpisodeTiming), from what its Overview hands that rule: the
+ * episode's start, its last resolve (used only when it has no state
+ * timeline), its state timeline and the project's states. It ends when it
+ * was last resolved, only while it still is.
+ */
+export function getEpisodeRootCauseTimes(input: {
+  startedAt: Date | undefined;
+  resolvedAt: Date | undefined;
+  stateTimeline: Array<EventStateTimelineDate>;
+  states: Array<RootCauseState>;
+  stateList: ResolvedStateList;
+}): RootCauseTimes {
+  const timing: EpisodeTiming = getEpisodeTiming({
+    startedAt: input.startedAt,
+    resolvedAt: input.resolvedAt,
+    list: input.stateList,
+    states: input.states.map((state: RootCauseState) => {
+      return {
+        id: state._id?.toString() || "",
+        name: state.name,
+        order: state.order,
+        isAcknowledgedState: state.isAcknowledgedState,
+        isResolvedState: state.isResolvedState,
+      };
+    }),
+    timelines: input.stateTimeline,
+  });
+
+  return {
+    startedAt: timing.durationStartsAt,
+    endedAt: timing.durationEndsAt,
+  };
+}
+
+/*
+ * An incident episode: it started when it was declared or, older than
+ * declaredAt, when it was created, as its Overview says.
+ */
+export function getIncidentEpisodeRootCauseTimes(input: {
+  episode: IncidentEpisodeRootCauseRow | null | undefined;
+  stateTimeline: Array<EventStateTimelineDate>;
+  states: Array<RootCauseState>;
+}): RootCauseTimes {
+  return getEpisodeRootCauseTimes({
+    startedAt:
+      asDate(input.episode?.declaredAt) || asDate(input.episode?.createdAt),
+    resolvedAt: asDate(input.episode?.resolvedAt),
+    stateTimeline: input.stateTimeline,
+    states: input.states,
+    stateList: StateListType.IncidentState,
+  });
+}
+
+// An alert episode: it started when it was created.
+export function getAlertEpisodeRootCauseTimes(input: {
+  episode: AlertEpisodeRootCauseRow | null | undefined;
+  stateTimeline: Array<EventStateTimelineDate>;
+  states: Array<RootCauseState>;
+}): RootCauseTimes {
+  return getEpisodeRootCauseTimes({
+    startedAt: asDate(input.episode?.createdAt),
+    resolvedAt: asDate(input.episode?.resolvedAt),
+    stateTimeline: input.stateTimeline,
+    states: input.states,
+    stateList: StateListType.AlertState,
+  });
 }
