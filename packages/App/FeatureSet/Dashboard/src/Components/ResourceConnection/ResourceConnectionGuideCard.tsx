@@ -36,13 +36,13 @@ import { splitCommandAtAddressSlashes } from "../SetupGuide/CommandDisplay";
  * - never connected: install the agent;
  * - connected once, then stopped: check on the agent.
  *
- * A resource that sends data only while people use it (its guide's
- * idleCopy: a RUM application) is idle, not broken, when nothing has
- * arrived for a while. Its card then says so in grey, with when data last
- * arrived, and folds the checks away behind one line for when people are
- * using it (issue #6191): an amber "stopped sending data" card every night
- * a site has no visitors sent people looking for a fault that was not
- * there.
+ * A resource that sends data only while it is used (its guide's idleCopy:
+ * a RUM application, a serverless function) is idle, not broken, when
+ * nothing has arrived for a while. Its card then says so in grey, with
+ * when data last arrived, and folds the checks away behind one line for
+ * when it should be busy (issues #6191, #6269): an amber "stopped sending
+ * data" card every night a site has no visitors, or between a nightly
+ * job's runs, sent people looking for a fault that was not there.
  */
 
 export interface ComponentProps {
