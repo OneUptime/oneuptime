@@ -111,7 +111,7 @@ function check(
   };
 }
 
-let onPickWay: jest.Mock;
+let onPickWay: MockFunction;
 
 async function renderCard(refreshToken?: number): Promise<{
   rerender: (token: number) => Promise<void>;
@@ -149,7 +149,7 @@ function group(testId: string): HTMLElement {
 
 beforeEach(() => {
   fetchCheckMock.mockReset();
-  onPickWay = jest.fn();
+  onPickWay = getJestMockFunction();
 });
 
 afterEach(() => {

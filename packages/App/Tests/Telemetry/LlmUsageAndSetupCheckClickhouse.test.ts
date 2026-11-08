@@ -129,15 +129,15 @@ const ACCOUNT_CONNECTION: string = "8810000000000000000000c1";
 const TOOL_CONNECTION: string = "8810000000000000000000c2";
 
 interface MetricFixture {
-  projectId?: ObjectID;
-  serviceId?: ObjectID;
+  projectId?: ObjectID | undefined;
+  serviceId?: ObjectID | undefined;
   name: string;
   value: number;
   at: number;
-  temporality?: "Cumulative" | "Delta" | null;
+  temporality?: "Cumulative" | "Delta" | null | undefined;
   // When the series started (epoch ms); none for a delta point.
   startedAt?: number | undefined;
-  attributes?: Record<string, string>;
+  attributes?: Record<string, string> | undefined;
 }
 
 function metricRow(fixture: MetricFixture): JSONObject {
