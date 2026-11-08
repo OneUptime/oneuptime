@@ -2987,9 +2987,10 @@ describe("DashboardAPI public metrics-aggregate", () => {
               await callWithAggregate(pageRequest(componentType));
 
               if (layers <= 5) {
-                expect([layers, (nextFunction as jest.Mock).mock.calls]).toEqual(
-                  [layers, []],
-                );
+                expect([
+                  layers,
+                  (nextFunction as jest.Mock).mock.calls,
+                ]).toEqual([layers, []]);
                 expect(
                   (getAggregateArgs()["query"] as JSONObject)["name"],
                 ).toBe(WIDGET_METRIC);

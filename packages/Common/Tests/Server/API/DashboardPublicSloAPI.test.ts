@@ -1996,8 +1996,9 @@ describe("DashboardAPI public SLO", () => {
             [],
           ]);
           expect(
-            ((getAggregateArgs()["query"] as JSONObject)["sloId"] as ObjectID)
-              .toString(),
+            (
+              (getAggregateArgs()["query"] as JSONObject)["sloId"] as ObjectID
+            ).toString(),
           ).toBe(serviceLevelObjectiveId.toString());
         } else {
           expect([

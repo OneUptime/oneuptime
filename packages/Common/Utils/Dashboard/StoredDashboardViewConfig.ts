@@ -436,7 +436,8 @@ export default class StoredDashboardViewConfig {
   public static getComponentLayout(entry: JSONObject): StoredComponentLayout {
     return {
       topInDashboardUnits: readFiniteNumber(entry["topInDashboardUnits"]) ?? 0,
-      leftInDashboardUnits: readFiniteNumber(entry["leftInDashboardUnits"]) ?? 0,
+      leftInDashboardUnits:
+        readFiniteNumber(entry["leftInDashboardUnits"]) ?? 0,
       widthInDashboardUnits:
         readFiniteNumber(entry["widthInDashboardUnits"]) ??
         FALLBACK_WIDGET_WIDTH_IN_DASHBOARD_UNITS,

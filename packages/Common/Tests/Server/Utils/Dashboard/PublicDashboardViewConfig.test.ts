@@ -1348,8 +1348,7 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
     let textLayers: number = 0;
 
     for (let step: number = 0; step < depth; step++) {
-      const kind: number =
-        textLayers >= MAX_MIXED_TEXT_LAYERS ? 0 : random(3);
+      const kind: number = textLayers >= MAX_MIXED_TEXT_LAYERS ? 0 : random(3);
 
       if (kind === 0) {
         layers.push("envelope");
@@ -1482,9 +1481,8 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
 
   // Everything /view-config sends, as text.
   const servedJSON: (stored: unknown) => string = (stored: unknown): string => {
-    const served: DashboardViewConfig | null = PublicDashboardViewConfig.sanitize(
-      stored as DashboardViewConfig,
-    );
+    const served: DashboardViewConfig | null =
+      PublicDashboardViewConfig.sanitize(stored as DashboardViewConfig);
 
     return JSON.stringify(
       served ? JSONFunctions.serialize(served as unknown as JSONObject) : null,
@@ -1501,11 +1499,9 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
   const typesDrawn: (drawn: DashboardViewConfig) => Array<string> = (
     drawn: DashboardViewConfig,
   ): Array<string> => {
-    return drawn.components.map(
-      (component: DashboardBaseComponent): string => {
-        return component.componentType;
-      },
-    );
+    return drawn.components.map((component: DashboardBaseComponent): string => {
+      return component.componentType;
+    });
   };
 
   // The settings a drawn widget was read with, as their JSON.
@@ -1534,9 +1530,7 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
 
       expect(servedJSON(stored)).not.toContain("internal_table");
       expect(typesDrawn(pageDraws(stored))).toEqual([""]);
-      expect(typesDrawn(StoredDashboardViewConfig.read(stored))).toEqual([
-        "",
-      ]);
+      expect(typesDrawn(StoredDashboardViewConfig.read(stored))).toEqual([""]);
       expect(PublicDashboardViewConfig.getDrawnConfig(stored)).toEqual(
         pageDraws(stored),
       );
@@ -1593,9 +1587,10 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
           // The public routes read exactly what the page draws.
           const drawn: DashboardViewConfig = pageDraws(stored);
 
-          expect([label, PublicDashboardViewConfig.getDrawnConfig(stored)]).toEqual(
-            [label, drawn],
-          );
+          expect([
+            label,
+            PublicDashboardViewConfig.getDrawnConfig(stored),
+          ]).toEqual([label, drawn]);
 
           // The page draws what every board draws, but the Data Source widget.
           const noType: Array<string> =
@@ -1603,7 +1598,11 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
 
           expect([label, typesDrawn(drawn)]).toEqual([
             label,
-            [...noType, DashboardComponentType.Text, DashboardComponentType.Chart],
+            [
+              ...noType,
+              DashboardComponentType.Text,
+              DashboardComponentType.Chart,
+            ],
           ]);
           expect([
             label,
@@ -1620,9 +1619,11 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
           // The rest, with their settings and under the ids the page derives.
           const [text, chart] = drawn.components.slice(noType.length);
 
-          expect([label, text!.componentId.toString(), settingsJSON(text!)]).toEqual(
-            [label, TEXT_WIDGET_ID, textWidget()["arguments"]],
-          );
+          expect([
+            label,
+            text!.componentId.toString(),
+            settingsJSON(text!),
+          ]).toEqual([label, TEXT_WIDGET_ID, textWidget()["arguments"]]);
           expect([
             label,
             chart!.componentId.toString(),
@@ -1677,60 +1678,64 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
     });
   });
 
-  describe.each(WRAPPINGS)("the whole config inside $name", (wrapping: Wrapping) => {
-    it(`never serves a Data Source widget, from 0 to ${wrapping.deepest} layers deep, and opens with its widgets while every board can read it`, () => {
-      for (let depth: number = 0; depth <= wrapping.deepest; depth++) {
-        const layers: Array<Layer> = wrapping.layersAt(depth);
-        const label: string = `${depth} layers (${layers.length} in all)`;
-        const token: string = `configleak${depth}`;
+  describe.each(WRAPPINGS)(
+    "the whole config inside $name",
+    (wrapping: Wrapping) => {
+      it(`never serves a Data Source widget, from 0 to ${wrapping.deepest} layers deep, and opens with its widgets while every board can read it`, () => {
+        for (let depth: number = 0; depth <= wrapping.deepest; depth++) {
+          const layers: Array<Layer> = wrapping.layersAt(depth);
+          const label: string = `${depth} layers (${layers.length} in all)`;
+          const token: string = `configleak${depth}`;
 
-        const stored: unknown = wrapped(
-          {
-            heightInDashboardUnits: 24,
-            timeRange: TimeRange.PAST_ONE_DAY,
-            components: [
-              dataSourceWidget(DashboardComponentType.DataSourceChart, token),
-              textWidget(),
-            ],
-            backup: dataSourceWidget(
-              DashboardComponentType.DataSourceTable,
-              token,
-            ),
-          },
-          layers,
-          "DashboardViewConfig",
-        );
+          const stored: unknown = wrapped(
+            {
+              heightInDashboardUnits: 24,
+              timeRange: TimeRange.PAST_ONE_DAY,
+              components: [
+                dataSourceWidget(DashboardComponentType.DataSourceChart, token),
+                textWidget(),
+              ],
+              backup: dataSourceWidget(
+                DashboardComponentType.DataSourceTable,
+                token,
+              ),
+            },
+            layers,
+            "DashboardViewConfig",
+          );
 
-        expect([label, servedJSON(stored).includes(token)]).toEqual([
-          label,
-          false,
-        ]);
+          expect([label, servedJSON(stored).includes(token)]).toEqual([
+            label,
+            false,
+          ]);
 
-        const drawn: DashboardViewConfig = pageDraws(stored);
-        const isRead: boolean = layers.length <= CONFIG_LAYERS_READ;
+          const drawn: DashboardViewConfig = pageDraws(stored);
+          const isRead: boolean = layers.length <= CONFIG_LAYERS_READ;
 
-        expect([label, typesDrawn(drawn)]).toEqual([
-          label,
-          isRead ? [DashboardComponentType.Text] : [],
-        ]);
-        expect([
-          label,
-          typesDrawn(StoredDashboardViewConfig.read(stored)),
-        ]).toEqual([
-          label,
-          isRead
-            ? [
-                DashboardComponentType.DataSourceChart,
-                DashboardComponentType.Text,
-              ]
-            : [],
-        ]);
-        expect([label, PublicDashboardViewConfig.getDrawnConfig(stored)]).toEqual(
-          [label, drawn],
-        );
-      }
-    });
-  });
+          expect([label, typesDrawn(drawn)]).toEqual([
+            label,
+            isRead ? [DashboardComponentType.Text] : [],
+          ]);
+          expect([
+            label,
+            typesDrawn(StoredDashboardViewConfig.read(stored)),
+          ]).toEqual([
+            label,
+            isRead
+              ? [
+                  DashboardComponentType.DataSourceChart,
+                  DashboardComponentType.Text,
+                ]
+              : [],
+          ]);
+          expect([
+            label,
+            PublicDashboardViewConfig.getDrawnConfig(stored),
+          ]).toEqual([label, drawn]);
+        }
+      });
+    },
+  );
 
   describe("the widget list, in every shape it can be stored in", () => {
     const keyed: (list: Array<unknown>) => JSONObject = (
@@ -1746,56 +1751,79 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
     };
 
     // Each shape, and whether every board reads a widget list out of it.
-    const LIST_SHAPES: Array<[string, (list: Array<unknown>) => unknown, boolean]> =
+    const LIST_SHAPES: Array<
+      [string, (list: Array<unknown>) => unknown, boolean]
+    > = [
       [
-        ["a list", (list: Array<unknown>): unknown => list, true],
-        [
-          "a list written as JSON text",
-          (list: Array<unknown>): unknown => JSON.stringify(list),
-          true,
-        ],
-        ["a list keyed 0, 1, 2", keyed, true],
-        [
-          "a keyed list written as JSON text",
-          (list: Array<unknown>): unknown => JSON.stringify(keyed(list)),
-          true,
-        ],
-        [
-          "a list written as JSON text twice",
-          (list: Array<unknown>): unknown =>
-            JSON.stringify(JSON.stringify(list)),
-          false,
-        ],
-        [
-          "a list in the DashboardComponent envelope",
-          (list: Array<unknown>): unknown => {
-            return { _type: "DashboardComponent", value: list };
-          },
-          false,
-        ],
-        [
-          "a list in the DashboardViewConfig envelope, as JSON text",
-          (list: Array<unknown>): unknown =>
-            JSON.stringify({ _type: "DashboardViewConfig", value: list }),
-          false,
-        ],
-      ];
+        "a list",
+        (list: Array<unknown>): unknown => {
+          return list;
+        },
+        true,
+      ],
+      [
+        "a list written as JSON text",
+        (list: Array<unknown>): unknown => {
+          return JSON.stringify(list);
+        },
+        true,
+      ],
+      ["a list keyed 0, 1, 2", keyed, true],
+      [
+        "a keyed list written as JSON text",
+        (list: Array<unknown>): unknown => {
+          return JSON.stringify(keyed(list));
+        },
+        true,
+      ],
+      [
+        "a list written as JSON text twice",
+        (list: Array<unknown>): unknown => {
+          return JSON.stringify(JSON.stringify(list));
+        },
+        false,
+      ],
+      [
+        "a list in the DashboardComponent envelope",
+        (list: Array<unknown>): unknown => {
+          return { _type: "DashboardComponent", value: list };
+        },
+        false,
+      ],
+      [
+        "a list in the DashboardViewConfig envelope, as JSON text",
+        (list: Array<unknown>): unknown => {
+          return JSON.stringify({ _type: "DashboardViewConfig", value: list });
+        },
+        false,
+      ],
+    ];
 
     // The config around the list: the issue's "inside an envelope inside text".
     const CONFIG_SHAPES: Array<[string, (config: JSONObject) => unknown]> = [
-      ["an object", (config: JSONObject): unknown => config],
+      [
+        "an object",
+        (config: JSONObject): unknown => {
+          return config;
+        },
+      ],
       [
         "the envelope inside JSON text",
-        (config: JSONObject): unknown =>
-          JSON.stringify({ _type: "DashboardViewConfig", value: config }),
+        (config: JSONObject): unknown => {
+          return JSON.stringify({
+            _type: "DashboardViewConfig",
+            value: config,
+          });
+        },
       ],
       [
         "JSON text inside the envelope inside JSON text",
-        (config: JSONObject): unknown =>
-          JSON.stringify({
+        (config: JSONObject): unknown => {
+          return JSON.stringify({
             _type: "DashboardViewConfig",
             value: JSON.stringify(config),
-          }),
+          });
+        },
       ],
     ];
 
@@ -1866,86 +1894,104 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
     const SHAPES: Array<[string, () => Array<unknown>, Array<string>]> = [
       [
         "a Data Source widget written as JSON text twice",
-        (): Array<unknown> => [JSON.stringify(JSON.stringify(DATA_SOURCE()))],
+        (): Array<unknown> => {
+          return [JSON.stringify(JSON.stringify(DATA_SOURCE()))];
+        },
         [],
       ],
       [
         "an envelope whose value is JSON text twice",
-        (): Array<unknown> => [
-          {
-            _type: "DashboardComponent",
-            value: JSON.stringify(JSON.stringify(DATA_SOURCE())),
-          },
-        ],
+        (): Array<unknown> => {
+          return [
+            {
+              _type: "DashboardComponent",
+              value: JSON.stringify(JSON.stringify(DATA_SOURCE())),
+            },
+          ];
+        },
         [""],
       ],
       [
         "an envelope whose value is JSON text cut short",
-        (): Array<unknown> => [
-          {
-            _type: "DashboardComponent",
-            value: JSON.stringify(DATA_SOURCE()).slice(0, -2),
-          },
-        ],
+        (): Array<unknown> => {
+          return [
+            {
+              _type: "DashboardComponent",
+              value: JSON.stringify(DATA_SOURCE()).slice(0, -2),
+            },
+          ];
+        },
         [""],
       ],
       [
         "a list entry holding a Data Source widget",
-        (): Array<unknown> => [[DATA_SOURCE()]],
+        (): Array<unknown> => {
+          return [[DATA_SOURCE()]];
+        },
         [],
       ],
       [
         "a widget's key no board reads, holding a Data Source widget",
-        (): Array<unknown> => [{ ...textWidget(), value: DATA_SOURCE() }],
+        (): Array<unknown> => {
+          return [{ ...textWidget(), value: DATA_SOURCE() }];
+        },
         [DashboardComponentType.Text],
       ],
       [
         "an envelope that also has a type, around a Data Source widget",
-        (): Array<unknown> => [
-          {
-            _type: "DashboardComponent",
-            componentType: DashboardComponentType.Text,
-            value: DATA_SOURCE(),
-          },
-        ],
+        (): Array<unknown> => {
+          return [
+            {
+              _type: "DashboardComponent",
+              componentType: DashboardComponentType.Text,
+              value: DATA_SOURCE(),
+            },
+          ];
+        },
         [DashboardComponentType.Text],
       ],
       [
         "a Data Source type spelt with spaces",
-        (): Array<unknown> => [
-          { ...DATA_SOURCE(), componentType: " DataSourceChart " },
-        ],
+        (): Array<unknown> => {
+          return [{ ...DATA_SOURCE(), componentType: " DataSourceChart " }];
+        },
         [" DataSourceChart "],
       ],
       [
         "a Data Source type spelt in lower case",
-        (): Array<unknown> => [
-          { ...DATA_SOURCE(), componentType: "datasourcechart" },
-        ],
+        (): Array<unknown> => {
+          return [{ ...DATA_SOURCE(), componentType: "datasourcechart" }];
+        },
         ["datasourcechart"],
       ],
       [
         "a Data Source type written as an object",
-        (): Array<unknown> => [
-          {
-            ...DATA_SOURCE(),
-            componentType: { _type: "Name", value: "DataSourceChart" },
-          },
-        ],
+        (): Array<unknown> => {
+          return [
+            {
+              ...DATA_SOURCE(),
+              componentType: { _type: "Name", value: "DataSourceChart" },
+            },
+          ];
+        },
         [""],
       ],
       [
         "a widget of a removed type holding a query",
-        (): Array<unknown> => [
-          { ...DATA_SOURCE(), componentType: "HostMetricChart" },
-        ],
+        (): Array<unknown> => {
+          return [{ ...DATA_SOURCE(), componentType: "HostMetricChart" }];
+        },
         ["HostMetricChart"],
       ],
     ];
 
     it.each(SHAPES)(
       "%s",
-      (_name: string, entries: () => Array<unknown>, drawnTypes: Array<string>) => {
+      (
+        _name: string,
+        entries: () => Array<unknown>,
+        drawnTypes: Array<string>,
+      ) => {
         const stored: JSONObject = {
           components: entries() as Array<JSONObject>,
           // Keys of the config no board reads.
@@ -2039,15 +2085,20 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
       ["an empty id", "  "],
       ["an id that is an object", { nested: { query: "SELECT secret" } }],
       ["an id that is a list", ["abc"]],
-    ])("serves no id for %s, so the page derives one", (_name: string, componentId: unknown) => {
-      const served: JSONObject = PublicDashboardViewConfig.getServedComponent({
-        ...EDITOR_WIDGET(),
-        componentId: componentId as JSONObject,
-      });
+    ])(
+      "serves no id for %s, so the page derives one",
+      (_name: string, componentId: unknown) => {
+        const served: JSONObject = PublicDashboardViewConfig.getServedComponent(
+          {
+            ...EDITOR_WIDGET(),
+            componentId: componentId as JSONObject,
+          },
+        );
 
-      expect(Object.keys(served)).not.toContain("componentId");
-      expect(JSON.stringify(served)).not.toContain("SELECT secret");
-    });
+        expect(Object.keys(served)).not.toContain("componentId");
+        expect(JSON.stringify(served)).not.toContain("SELECT secret");
+      },
+    );
 
     it("reads its place as numbers, and a place it cannot read as the fallback", () => {
       expect(
@@ -2102,11 +2153,13 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
 
     it("keeps no settings for a type the page cannot draw, and no key no board reads", () => {
       for (const componentType of ["HostMetricChart", " Text ", "text", ""]) {
-        const served: JSONObject = PublicDashboardViewConfig.getServedComponent({
-          ...EDITOR_WIDGET(),
-          componentType: componentType,
-          extra: "SELECT secret",
-        });
+        const served: JSONObject = PublicDashboardViewConfig.getServedComponent(
+          {
+            ...EDITOR_WIDGET(),
+            componentType: componentType,
+            extra: "SELECT secret",
+          },
+        );
 
         expect([componentType, Object.keys(served).sort()]).toEqual([
           componentType,
@@ -2602,9 +2655,7 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
         for (const marker of generated.markers) {
           const isDrawn: boolean = generated.expected.some(
             (widget: ExpectedWidget): boolean => {
-              return (
-                JSON.stringify(widget.settings).includes(`"${marker}"`)
-              );
+              return JSON.stringify(widget.settings).includes(`"${marker}"`);
             },
           );
 
@@ -2657,16 +2708,14 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
           }),
         ]).toEqual([
           label,
-          generated.expected.map(
-            (widget: ExpectedWidget, index: number) => {
-              return {
-                id: ids[index],
-                componentType: widget.componentType,
-                layout: widget.layout,
-                settings: widget.settings,
-              };
-            },
-          ),
+          generated.expected.map((widget: ExpectedWidget, index: number) => {
+            return {
+              id: ids[index],
+              componentType: widget.componentType,
+              layout: widget.layout,
+              settings: widget.settings,
+            };
+          }),
         ]);
 
         // And a signed-in board draws the same, with the Data Source widgets.

@@ -3730,7 +3730,8 @@ describe("DashboardAPI public resource-list", () => {
           components: [envelopes(incident.widget, layers) as JSONObject],
         };
 
-        dashboard.dashboardViewConfig = stored as unknown as DashboardViewConfig;
+        dashboard.dashboardViewConfig =
+          stored as unknown as DashboardViewConfig;
 
         const drawn: DashboardViewConfig = pageDraws(stored);
         const isRead: boolean = layers <= 5;

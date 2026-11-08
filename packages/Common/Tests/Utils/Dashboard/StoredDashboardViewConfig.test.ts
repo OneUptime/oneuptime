@@ -1645,25 +1645,28 @@ describe("the readers every board and the public sanitizer share (issue #6327)",
       ["an object", { value: 3 }],
       ["a typed value", { _type: "DateTime", value: "2026-01-01T00:00:00Z" }],
       ["a boolean", true],
-    ])("reads %s as the fallback place and size", (_name: string, value: unknown) => {
-      const stored: JSONObject = {
-        topInDashboardUnits: value as JSONObject,
-        leftInDashboardUnits: value as JSONObject,
-        widthInDashboardUnits: value as JSONObject,
-        heightInDashboardUnits: value as JSONObject,
-        minWidthInDashboardUnits: value as JSONObject,
-        minHeightInDashboardUnits: value as JSONObject,
-      };
+    ])(
+      "reads %s as the fallback place and size",
+      (_name: string, value: unknown) => {
+        const stored: JSONObject = {
+          topInDashboardUnits: value as JSONObject,
+          leftInDashboardUnits: value as JSONObject,
+          widthInDashboardUnits: value as JSONObject,
+          heightInDashboardUnits: value as JSONObject,
+          minWidthInDashboardUnits: value as JSONObject,
+          minHeightInDashboardUnits: value as JSONObject,
+        };
 
-      expect(StoredDashboardViewConfig.getComponentLayout(stored)).toEqual({
-        topInDashboardUnits: 0,
-        leftInDashboardUnits: 0,
-        widthInDashboardUnits: FALLBACK_WIDGET_WIDTH_IN_DASHBOARD_UNITS,
-        heightInDashboardUnits: FALLBACK_WIDGET_HEIGHT_IN_DASHBOARD_UNITS,
-        minWidthInDashboardUnits: 1,
-        minHeightInDashboardUnits: 1,
-      });
-    });
+        expect(StoredDashboardViewConfig.getComponentLayout(stored)).toEqual({
+          topInDashboardUnits: 0,
+          leftInDashboardUnits: 0,
+          widthInDashboardUnits: FALLBACK_WIDGET_WIDTH_IN_DASHBOARD_UNITS,
+          heightInDashboardUnits: FALLBACK_WIDGET_HEIGHT_IN_DASHBOARD_UNITS,
+          minWidthInDashboardUnits: 1,
+          minHeightInDashboardUnits: 1,
+        });
+      },
+    );
   });
 
   describe("readBoardSettings", () => {
@@ -1785,10 +1788,12 @@ describe("the readers every board and the public sanitizer share (issue #6327)",
       }
 
       // Now and then the widget itself is a typed value, or holds one that cannot be read.
-      if (random(5) === 0) {
+      const typedRoll: number = random(5);
+
+      if (typedRoll === 0) {
         entry["_type"] = "ObjectID";
         entry["value"] = ObjectID.generate().toString();
-      } else if (random(5) === 0) {
+      } else if (typedRoll === 1) {
         entry["contact"] = { _type: "Email", value: "not an email" };
       }
 
@@ -1881,10 +1886,10 @@ describe("the readers every board and the public sanitizer share (issue #6327)",
             ? JSON.stringify(config)
             : { _type: "DashboardViewConfig", value: config };
 
-        expect([layer, typesOf(StoredDashboardViewConfig.read(config))]).toEqual([
+        expect([
           layer,
-          layer <= 4 ? [DashboardComponentType.Text] : [],
-        ]);
+          typesOf(StoredDashboardViewConfig.read(config)),
+        ]).toEqual([layer, layer <= 4 ? [DashboardComponentType.Text] : []]);
       }
     });
   });
