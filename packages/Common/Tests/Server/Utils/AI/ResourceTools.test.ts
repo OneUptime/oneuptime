@@ -1025,6 +1025,98 @@ describe("resource membership", () => {
     );
   });
 
+  /*
+   * Issue #6269: a serverless function sends data only while it runs, so
+   * the stored "disconnected" is the Dashboard's No recent invocations -
+   * normal between invocations. The tool hands the model those words and
+   * what they mean, never the raw value it used to repeat as a lost
+   * connection.
+   */
+  test("Serverless function inventory says each status in the Dashboard's words, and what each means", async () => {
+    (ServerlessFunctionService.findBy as jest.Mock).mockResolvedValue([
+      {
+        _id: resourceId.toString(),
+        name: "nightly-report",
+        lastSeenAt: end,
+        isArchived: false,
+        otelCollectorStatus: "disconnected",
+        functionIdentifier: "nightly-report",
+      },
+      {
+        _id: otherId.toString(),
+        name: "checkout-handler",
+        lastSeenAt: end,
+        isArchived: false,
+        otelCollectorStatus: "connected",
+        functionIdentifier: "checkout-handler",
+      },
+      {
+        _id: "44444444-4444-4444-4444-444444444444",
+        name: "added-through-the-api",
+        isArchived: false,
+        functionIdentifier: "added-through-the-api",
+      },
+    ]);
+
+    const result: ToolExecutionResult =
+      await QueryTelemetryResourcesTool.execute(
+        { resourceType: AIResourceType.ServerlessFunction },
+        context([Permission.ReadServerlessFunction]),
+      );
+    const lines: Array<string> = result.dataForLlm.split("\n");
+    const rowOf: (name: string) => string = (name: string): string => {
+      return (
+        lines.find((line: string): boolean => {
+          return line.includes(`name=${name}`);
+        }) || ""
+      );
+    };
+
+    expect(rowOf("nightly-report")).toContain("status=No recent invocations");
+    expect(rowOf("checkout-handler")).toContain("status=Receiving data");
+    expect(rowOf("added-through-the-api")).toContain(
+      "status=Waiting for data",
+    );
+    // The stored value never reaches the model, so it cannot repeat it.
+    expect(result.dataForLlm).not.toMatch(/otelCollectorStatus/);
+    expect(result.dataForLlm).not.toMatch(/=disconnected|=connected/i);
+    // What the words mean, beside the note every resource gets.
+    expect(result.dataForLlm).toContain(
+      "No recent invocations (nothing for 15 minutes: a function sends data only while it runs, so this is normal when nothing has invoked it, and is not a fault or a broken connection on its own)",
+    );
+    expect(result.dataForLlm).toContain(
+      "Collector connection is not workload health",
+    );
+    // It is still read, to work the words out.
+    const call: JSONObject = (ServerlessFunctionService.findBy as jest.Mock)
+      .mock.calls[0]![0] as JSONObject;
+    expect(call["select"]).toEqual(
+      expect.objectContaining({ otelCollectorStatus: true, lastSeenAt: true }),
+    );
+  });
+
+  test("every other resource keeps its collector status as stored, and no status words", async () => {
+    (HostService.findBy as jest.Mock).mockResolvedValue([
+      {
+        _id: resourceId.toString(),
+        name: "web-01",
+        lastSeenAt: end,
+        isArchived: false,
+        otelCollectorStatus: "disconnected",
+      },
+    ]);
+
+    const result: ToolExecutionResult =
+      await QueryTelemetryResourcesTool.execute(
+        { resourceType: AIResourceType.Host },
+        context([Permission.ReadHost]),
+      );
+
+    expect(result.dataForLlm).toContain("otelCollectorStatus=disconnected");
+    expect(result.dataForLlm).not.toContain("status=No recent invocations");
+    expect(result.dataForLlm).not.toContain("A function's status is one of");
+  });
+
   test("Cloud trims known attributes and omits absent account/region", () => {
     const scope: AIResourceTelemetryScope = buildAIResourceTelemetryScope({
       type: AIResourceType.CloudResource,
