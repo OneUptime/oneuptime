@@ -41,6 +41,7 @@ import {
   parseDashboardTheme,
 } from "../../Types/Dashboard/DashboardTheme";
 import PublicDashboardViewConfig from "../Utils/Dashboard/PublicDashboardViewConfig";
+import PublicDashboardMetricServices from "../Utils/Dashboard/PublicDashboardMetricServices";
 import StoredDashboardViewConfig from "../../Utils/Dashboard/StoredDashboardViewConfig";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
@@ -1412,11 +1413,12 @@ export default class DashboardAPI extends BaseAPI<
            * Security: the client does not get to choose what is filtered on a
            * public, unauthenticated endpoint. Rebuild the query from the
            * fields the dashboard's own widgets legitimately send — the
-           * allowlisted metric name, the time window, and attribute filters
-           * on keys those widgets already filter by — and pin the project.
-           * Everything else the client sent is dropped rather than merged: a
-           * foreign projectId, a filter on an arbitrary attribute key used as
-           * a blind ILIKE oracle, a key smuggled in on the prototype
+           * allowlisted metric name, the time window, attribute filters on
+           * keys those widgets already filter by, and the services the
+           * saved query is read for — and pin the project. Everything else
+           * the client sent is dropped rather than merged: a foreign
+           * projectId, a filter on an arbitrary attribute key used as a
+           * blind ILIKE oracle, a key smuggled in on the prototype
            * (GHSA-w332-x78m-vf3v).
            */
           const allowedFilterAttributeKeys: Set<string> =
@@ -1447,6 +1449,27 @@ export default class DashboardAPI extends BaseAPI<
             }
           }
 
+          /*
+           * The services the query is read for come from the saved
+           * dashboard, never from the request (issue #6280). A chart saved
+           * with a service filter charts those services only; a public
+           * request names which saved query of this metric it is - its
+           * services as `primaryEntityId: Includes(ids)`, or none for a
+           * query saved for every service - and is read for that query's
+           * services as saved. Services no query of this metric is saved
+           * with, some or more of them, every service when each of its
+           * queries is limited to some, and any other filter on the column
+           * are refused (PublicDashboardMetricServices).
+           */
+          const serviceQuery: { primaryEntityId?: Includes } =
+            PublicDashboardMetricServices.getServiceQuery({
+              savedServices: PublicDashboardMetricServices.getSavedServices(
+                DashboardAPI.getStoredViewConfig(dashboard),
+              ),
+              metricName: requestedMetricName,
+              requestedServiceFilter: requestedQuery["primaryEntityId"],
+            });
+
           aggregateBy.query = {
             name: requestedMetricName,
             ...(requestedQuery["time"] !== undefined
@@ -1455,6 +1478,7 @@ export default class DashboardAPI extends BaseAPI<
             ...(Object.keys(sanitizedAttributes).length > 0
               ? { attributes: sanitizedAttributes }
               : {}),
+            ...serviceQuery,
             projectId: dashboard.projectId,
           } as unknown as typeof aggregateBy.query;
 
