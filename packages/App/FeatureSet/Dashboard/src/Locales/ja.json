@@ -46454,5 +46454,9 @@
   "Status shows \"No recent invocations\" while the function runs": "関数が実行されているのにステータスが「最近の呼び出しなし」と表示される",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "この変更は、AI がワークフローを読んだ後に保存された内容を元に戻します: {{steps}}。",
   "What to check if it should be running": "実行されているはずの場合に確認すること",
-  "AI Agent Reset At": "AI エージェントのリセット日時"
+  "AI Agent Reset At": "AI エージェントのリセット日時",
+  "Metrics for this episode's first alert, scoped to the affected series ({{seriesSummary}}).": "影響を受けた系列（{{seriesSummary}}）に絞り込んだ、このエピソードの最初のアラートのメトリクス。",
+  "Metrics for this episode's first alert.": "このエピソードの最初のアラートのメトリクス。",
+  "Metrics related to this episode's first incident, scoped to the affected series ({{seriesSummary}}).": "影響を受けた系列（{{seriesSummary}}）に絞り込んだ、このエピソードの最初のインシデントに関連するメトリクス。",
+  "Metrics related to this episode's first incident.": "このエピソードの最初のインシデントに関連するメトリクス。"
 }

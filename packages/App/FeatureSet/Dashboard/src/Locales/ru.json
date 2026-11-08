@@ -46454,5 +46454,9 @@
   "Status shows \"No recent invocations\" while the function runs": "Статус «Нет недавних вызовов», хотя функция выполняется",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Это изменение отменяет то, что было сохранено после того, как ИИ прочитал рабочий процесс: {{steps}}.",
   "What to check if it should be running": "Что проверить, если функция должна работать",
-  "AI Agent Reset At": "ИИ-агент сброшен"
+  "AI Agent Reset At": "ИИ-агент сброшен",
+  "Metrics for this episode's first alert, scoped to the affected series ({{seriesSummary}}).": "Метрики первого оповещения этого эпизода в пределах затронутых рядов ({{seriesSummary}}).",
+  "Metrics for this episode's first alert.": "Метрики для первого оповещения этого эпизода.",
+  "Metrics related to this episode's first incident, scoped to the affected series ({{seriesSummary}}).": "Метрики, связанные с первым инцидентом этого эпизода, в пределах затронутых рядов ({{seriesSummary}}).",
+  "Metrics related to this episode's first incident.": "Метрики, связанные с первым инцидентом этого эпизода."
 }

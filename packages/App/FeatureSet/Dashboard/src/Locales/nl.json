@@ -46454,5 +46454,9 @@
   "Status shows \"No recent invocations\" while the function runs": "De status toont \"Geen recente aanroepen\" terwijl de functie draait",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Deze wijziging maakt ongedaan wat is opgeslagen nadat de AI de workflow las: {{steps}}.",
   "What to check if it should be running": "Wat u controleert als de functie zou moeten draaien",
-  "AI Agent Reset At": "AI-agent gereset op"
+  "AI Agent Reset At": "AI-agent gereset op",
+  "Metrics for this episode's first alert, scoped to the affected series ({{seriesSummary}}).": "Metrieken van de eerste waarschuwing van deze episode, beperkt tot de betrokken reeksen ({{seriesSummary}}).",
+  "Metrics for this episode's first alert.": "Metrieken voor de eerste waarschuwing van deze episode.",
+  "Metrics related to this episode's first incident, scoped to the affected series ({{seriesSummary}}).": "Metrieken die bij het eerste incident van deze episode horen, beperkt tot de betrokken reeksen ({{seriesSummary}}).",
+  "Metrics related to this episode's first incident.": "Metrieken gerelateerd aan het eerste incident van deze episode."
 }

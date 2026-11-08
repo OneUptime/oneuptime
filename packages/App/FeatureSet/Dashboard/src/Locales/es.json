@@ -46454,5 +46454,9 @@
   "Status shows \"No recent invocations\" while the function runs": "El estado muestra \"Sin invocaciones recientes\" mientras la función se ejecuta",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Este cambio deshace lo que se guardó después de que la IA leyera el flujo de trabajo: {{steps}}.",
   "What to check if it should be running": "Qué comprobar si debería estar ejecutándose",
-  "AI Agent Reset At": "Agente de IA restablecido el"
+  "AI Agent Reset At": "Agente de IA restablecido el",
+  "Metrics for this episode's first alert, scoped to the affected series ({{seriesSummary}}).": "Métricas de la primera alerta de este episodio, limitadas a las series afectadas ({{seriesSummary}}).",
+  "Metrics for this episode's first alert.": "Métricas para la primera alerta de este episodio.",
+  "Metrics related to this episode's first incident, scoped to the affected series ({{seriesSummary}}).": "Métricas relacionadas con el primer incidente de este episodio, limitadas a las series afectadas ({{seriesSummary}}).",
+  "Metrics related to this episode's first incident.": "Métricas relacionadas con el primer incidente de este episodio."
 }

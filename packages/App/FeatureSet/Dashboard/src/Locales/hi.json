@@ -46454,5 +46454,9 @@
   "Status shows \"No recent invocations\" while the function runs": "फ़ंक्शन चल रहा है, फिर भी स्थिति \"हाल में कोई इन्वोकेशन नहीं\" दिखाती है",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "यह बदलाव उसे पूर्ववत कर देता है जो AI के वर्कफ़्लो पढ़ने के बाद सहेजा गया था: {{steps}}।",
   "What to check if it should be running": "अगर इसे चलना चाहिए तो क्या जाँचें",
-  "AI Agent Reset At": "AI एजेंट रीसेट होने का समय"
+  "AI Agent Reset At": "AI एजेंट रीसेट होने का समय",
+  "Metrics for this episode's first alert, scoped to the affected series ({{seriesSummary}}).": "इस एपिसोड के पहले अलर्ट के मेट्रिक्स, प्रभावित सीरीज़ ({{seriesSummary}}) तक सीमित।",
+  "Metrics for this episode's first alert.": "इस एपिसोड के पहले अलर्ट के लिए मेट्रिक्स।",
+  "Metrics related to this episode's first incident, scoped to the affected series ({{seriesSummary}}).": "इस एपिसोड की पहली घटना से जुड़े मेट्रिक्स, प्रभावित सीरीज़ ({{seriesSummary}}) तक सीमित।",
+  "Metrics related to this episode's first incident.": "इस एपिसोड की पहली घटना से संबंधित मेट्रिक्स।"
 }

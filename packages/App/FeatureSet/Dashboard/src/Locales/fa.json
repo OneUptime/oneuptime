@@ -46454,5 +46454,9 @@
   "Status shows \"No recent invocations\" while the function runs": "با اینکه تابع اجرا می‌شود، وضعیت «بدون فراخوانی اخیر» را نشان می‌دهد",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "این تغییر آنچه را که پس از خواندن گردش کار توسط هوش مصنوعی ذخیره شد پس می‌گیرد: {{steps}}.",
   "What to check if it should be running": "اگر باید در حال اجرا باشد، چه چیزی را بررسی کنید",
-  "AI Agent Reset At": "زمان بازنشانی عامل هوش مصنوعی"
+  "AI Agent Reset At": "زمان بازنشانی عامل هوش مصنوعی",
+  "Metrics for this episode's first alert, scoped to the affected series ({{seriesSummary}}).": "متریک‌های نخستین هشدار این اپیزود، محدود به سری‌های آسیب‌دیده ({{seriesSummary}}).",
+  "Metrics for this episode's first alert.": "متریک‌های نخستین هشدار این اپیزود.",
+  "Metrics related to this episode's first incident, scoped to the affected series ({{seriesSummary}}).": "متریک‌های مرتبط با نخستین حادثهٔ این اپیزود، محدود به سری‌های آسیب‌دیده ({{seriesSummary}}).",
+  "Metrics related to this episode's first incident.": "متریک‌های مرتبط با نخستین حادثهٔ این اپیزود."
 }

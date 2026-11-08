@@ -111,6 +111,37 @@ const METRIC_INVESTIGATION_PANEL: string = readSource(
 );
 
 /*
+ * The words that card says what it shows in, for each kind of page: an
+ * incident's, an alert's and an episode's (issue #6320).
+ */
+const METRIC_INVESTIGATION_WORDS: string = readSource(
+  "Utils",
+  "EventMetricInvestigation.ts",
+);
+
+// The card says the narrowing it was handed, in its subject's words.
+const PANEL_SAYS_THE_NARROWING: string =
+  "const description: string = props.seriesSummary ? translator.translateTemplate(words.scopedDescription, { seriesSummary: props.seriesSummary, })";
+
+const SCOPED_DESCRIPTIONS: Array<string> = [
+  'scopedDescription: translationKey( "Metrics related to this incident, scoped to the affected series ({{seriesSummary}}).", ),',
+  'scopedDescription: translationKey( "Metrics for this alert, scoped to the affected series ({{seriesSummary}}).", ),',
+  `scopedDescription: translationKey( "Metrics related to this episode's first incident, scoped to the affected series ({{seriesSummary}}).", ),`,
+  `scopedDescription: translationKey( "Metrics for this episode's first alert, scoped to the affected series ({{seriesSummary}}).", ),`,
+];
+
+function expectThePanelSaysTheNarrowing(): void {
+  expect(METRIC_INVESTIGATION_PANEL).toContain(PANEL_SAYS_THE_NARROWING);
+
+  for (const scoped of SCOPED_DESCRIPTIONS) {
+    expect({
+      scoped,
+      worded: METRIC_INVESTIGATION_WORDS.includes(scoped),
+    }).toEqual({ scoped, worded: true });
+  }
+}
+
+/*
  * A monitor's own metrics card (issue #5759), and what it charts: the
  * monitor's queries as it reads them.
  */
@@ -221,9 +252,7 @@ describe("incident Root Cause metric chart is scoped to the incident's series", 
     expect(ROOT_CAUSE_CHART).toContain(
       "seriesSummary={card.metrics.seriesSummary}",
     );
-    expect(METRIC_INVESTIGATION_PANEL).toContain(
-      "scoped to the affected series ({{seriesSummary}})",
-    );
+    expectThePanelSaysTheNarrowing();
   });
 });
 
@@ -307,12 +336,7 @@ describe("incident overview Metrics card is scoped to the incident's series", ()
      * worked out: never from the raw labels.
      */
     expect(INCIDENT_VIEW).toContain("seriesSummary={seriesSummary}");
-    expect(METRIC_INVESTIGATION_PANEL).toContain(
-      "scoped to the affected series ({{seriesSummary}})",
-    );
-    expect(METRIC_INVESTIGATION_PANEL).toContain(
-      "{ seriesSummary: props.seriesSummary }",
-    );
+    expectThePanelSaysTheNarrowing();
   });
 });
 
@@ -344,12 +368,7 @@ describe("alert overview Metrics card is scoped to the alert's series", () => {
      * worked out: never from the raw labels.
      */
     expect(ALERT_VIEW).toContain("seriesSummary={seriesSummary}");
-    expect(METRIC_INVESTIGATION_PANEL).toContain(
-      "scoped to the affected series ({{seriesSummary}})",
-    );
-    expect(METRIC_INVESTIGATION_PANEL).toContain(
-      "{ seriesSummary: props.seriesSummary }",
-    );
+    expectThePanelSaysTheNarrowing();
   });
 });
 

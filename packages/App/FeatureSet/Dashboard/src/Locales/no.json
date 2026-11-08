@@ -46454,5 +46454,9 @@
   "Status shows \"No recent invocations\" while the function runs": "Statusen viser «Ingen nylige anrop» mens funksjonen kjører",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "Denne endringen omgjør det som ble lagret etter at AI leste arbeidsflyten: {{steps}}.",
   "What to check if it should be running": "Hva du bør sjekke hvis den burde kjøre",
-  "AI Agent Reset At": "AI-agent tilbakestilt"
+  "AI Agent Reset At": "AI-agent tilbakestilt",
+  "Metrics for this episode's first alert, scoped to the affected series ({{seriesSummary}}).": "Målinger for episodens første varsel, avgrenset til de berørte seriene ({{seriesSummary}}).",
+  "Metrics for this episode's first alert.": "Målinger for episodens første varsel.",
+  "Metrics related to this episode's first incident, scoped to the affected series ({{seriesSummary}}).": "Målinger for episodens første hendelse, avgrenset til de berørte seriene ({{seriesSummary}}).",
+  "Metrics related to this episode's first incident.": "Målinger knyttet til episodens første hendelse."
 }

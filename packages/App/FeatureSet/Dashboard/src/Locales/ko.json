@@ -46454,5 +46454,9 @@
   "Status shows \"No recent invocations\" while the function runs": "함수가 실행 중인데 상태가 \"최근 호출 없음\"으로 표시됨",
   "This change undoes what was saved after Ask AI read the workflow: {{steps}}.": "이 변경은 AI가 워크플로를 읽은 뒤에 저장된 내용을 되돌립니다: {{steps}}.",
   "What to check if it should be running": "실행 중이어야 할 때 확인할 사항",
-  "AI Agent Reset At": "AI 에이전트 재설정 시각"
+  "AI Agent Reset At": "AI 에이전트 재설정 시각",
+  "Metrics for this episode's first alert, scoped to the affected series ({{seriesSummary}}).": "영향받는 시계열({{seriesSummary}})로 좁힌 이 에피소드의 첫 경고의 메트릭입니다.",
+  "Metrics for this episode's first alert.": "이 에피소드의 첫 경고에 대한 메트릭입니다.",
+  "Metrics related to this episode's first incident, scoped to the affected series ({{seriesSummary}}).": "영향받는 시계열({{seriesSummary}})로 좁힌, 이 에피소드의 첫 인시던트와 관련된 메트릭입니다.",
+  "Metrics related to this episode's first incident.": "이 에피소드의 첫 인시던트와 관련된 메트릭입니다."
 }
