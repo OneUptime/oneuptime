@@ -51,8 +51,9 @@ export interface ViewerTimeRangeZoom {
   /*
    * True while the explorer follows the zoom offered around it instead of
    * keeping one of its own (see useViewerTimeRangeZoom). Whoever offers that
-   * zoom shows its "Reset zoom" (the telemetry snapshot, beside its badge),
-   * so the explorer's picker must not show a second one for the same zoom.
+   * zoom shows its "Reset zoom" (an event's telemetry card, beside its time
+   * picker), so the explorer's picker must not show a second one for the
+   * same zoom.
    */
   followsEnclosingZoom: boolean;
 }

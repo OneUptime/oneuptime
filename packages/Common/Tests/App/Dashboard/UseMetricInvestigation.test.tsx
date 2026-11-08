@@ -19,10 +19,10 @@ import MetricInvestigationQueryUtil, {
   MetricInvestigationQueries,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Investigation/MetricInvestigationQueries";
 import {
-  EVENT_METRIC_DEFAULT_SELECTION,
-  EventMetricPresetId,
-  getEventMetricTimePresets,
-} from "../../../../App/FeatureSet/Dashboard/src/Utils/EventMetricInvestigation";
+  EVENT_AROUND_START_SELECTION,
+  EventTimePresetId,
+  getEventTimePresets,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/EventTimePresets";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
@@ -76,7 +76,7 @@ const CHANGED_QUERIES: MetricInvestigationQueries = {
 };
 
 function incidentPresets(now: Date): Array<MetricInvestigationTimePreset> {
-  return getEventMetricTimePresets(
+  return getEventTimePresets(
     { startedAt: STARTED_AT, evaluationWindow: EVALUATED },
     now,
   );
@@ -88,7 +88,7 @@ function options(
   return {
     defaultQueries: INCIDENT_QUERIES,
     getPresets: incidentPresets,
-    defaultSelection: EVENT_METRIC_DEFAULT_SELECTION,
+    defaultSelection: EVENT_AROUND_START_SELECTION,
     urlParamPrefix: "metrics",
     ...overrides,
   };
@@ -140,7 +140,7 @@ describe("before anybody touches it", () => {
     const rendered: Rendered = renderInvestigation();
     const investigation: MetricInvestigationState = rendered.result.current;
 
-    expect(investigation.selection).toEqual(EVENT_METRIC_DEFAULT_SELECTION);
+    expect(investigation.selection).toEqual(EVENT_AROUND_START_SELECTION);
     expect(shown(rendered)).toEqual([
       "2026-11-05T05:14:00.000Z",
       "2026-11-05T06:14:00.000Z",
@@ -163,11 +163,11 @@ describe("before anybody touches it", () => {
         return preset.id;
       }),
     ).toEqual([
-      EventMetricPresetId.AroundStart,
-      EventMetricPresetId.HourBefore,
-      EventMetricPresetId.DayBefore,
-      EventMetricPresetId.StartToEnd,
-      EventMetricPresetId.Evaluated,
+      EventTimePresetId.AroundStart,
+      EventTimePresetId.HourBefore,
+      EventTimePresetId.DayBefore,
+      EventTimePresetId.StartToEnd,
+      EventTimePresetId.Evaluated,
     ]);
   });
 
@@ -200,7 +200,7 @@ describe("picking a time range", () => {
     const rendered: Rendered = renderInvestigation();
 
     act(() => {
-      rendered.result.current.selectPreset(EventMetricPresetId.HourBefore);
+      rendered.result.current.selectPreset(EventTimePresetId.HourBefore);
     });
 
     expect(shown(rendered)).toEqual([
@@ -219,10 +219,10 @@ describe("picking a time range", () => {
     const rendered: Rendered = renderInvestigation();
 
     act(() => {
-      rendered.result.current.selectPreset(EventMetricPresetId.DayBefore);
+      rendered.result.current.selectPreset(EventTimePresetId.DayBefore);
     });
     act(() => {
-      rendered.result.current.selectPreset(EventMetricPresetId.AroundStart);
+      rendered.result.current.selectPreset(EventTimePresetId.AroundStart);
     });
 
     expect(rendered.result.current.isTimeChanged).toBe(false);
@@ -294,7 +294,7 @@ describe("picking a time range", () => {
     const rendered: Rendered = renderInvestigation();
 
     act(() => {
-      rendered.result.current.selectPreset(EventMetricPresetId.StartToEnd);
+      rendered.result.current.selectPreset(EventTimePresetId.StartToEnd);
     });
 
     expect(shown(rendered)[1]).toBe(NOW.toISOString());
@@ -374,7 +374,7 @@ describe("a drag across a chart", () => {
 
     expect(rendered.result.current.isZoomed).toBe(false);
     expect(rendered.result.current.selection).toEqual(
-      EVENT_METRIC_DEFAULT_SELECTION,
+      EVENT_AROUND_START_SELECTION,
     );
     expect(shown(rendered)).toEqual([
       "2026-11-05T05:14:00.000Z",
@@ -387,7 +387,7 @@ describe("a drag across a chart", () => {
     const rendered: Rendered = renderInvestigation();
 
     act(() => {
-      rendered.result.current.selectPreset(EventMetricPresetId.DayBefore);
+      rendered.result.current.selectPreset(EventTimePresetId.DayBefore);
     });
     act(() => {
       rendered.result.current.zoom.zoomToTimeRange(
@@ -413,7 +413,7 @@ describe("a drag across a chart", () => {
 
     expect(rendered.result.current.selection).toEqual({
       kind: MetricInvestigationTimeKind.Preset,
-      presetId: EventMetricPresetId.DayBefore,
+      presetId: EventTimePresetId.DayBefore,
     });
   });
 
@@ -478,7 +478,7 @@ describe("a drag across a chart", () => {
       );
     });
     act(() => {
-      rendered.result.current.selectPreset(EventMetricPresetId.HourBefore);
+      rendered.result.current.selectPreset(EventTimePresetId.HourBefore);
     });
 
     expect(rendered.result.current.isZoomed).toBe(false);
@@ -489,7 +489,7 @@ describe("a drag across a chart", () => {
 
     expect(rendered.result.current.selection).toEqual({
       kind: MetricInvestigationTimeKind.Preset,
-      presetId: EventMetricPresetId.HourBefore,
+      presetId: EventTimePresetId.HourBefore,
     });
   });
 
@@ -500,7 +500,7 @@ describe("a drag across a chart", () => {
     const resetZoom: () => void = rendered.result.current.zoom.resetZoom;
 
     act(() => {
-      rendered.result.current.selectPreset(EventMetricPresetId.DayBefore);
+      rendered.result.current.selectPreset(EventTimePresetId.DayBefore);
     });
 
     expect(rendered.result.current.zoom.zoomToTimeRange).toBe(zoomToTimeRange);
@@ -538,7 +538,7 @@ describe("changing the metrics", () => {
 
     act(() => {
       rendered.result.current.setQueries(CHANGED_QUERIES);
-      rendered.result.current.selectPreset(EventMetricPresetId.DayBefore);
+      rendered.result.current.selectPreset(EventTimePresetId.DayBefore);
     });
     act(() => {
       rendered.result.current.zoom.zoomToTimeRange(
@@ -570,7 +570,7 @@ describe("a page opened on a link", () => {
 
     expect(rendered.result.current.selection).toEqual({
       kind: MetricInvestigationTimeKind.Preset,
-      presetId: EventMetricPresetId.HourBefore,
+      presetId: EventTimePresetId.HourBefore,
     });
     expect(rendered.result.current.isTimeChanged).toBe(true);
     expect(rendered.result.current.isQueriesChanged).toBe(true);
@@ -626,7 +626,7 @@ describe("a page opened on a link", () => {
     expect(rendered.result.current.shareUrl).toBeNull();
 
     act(() => {
-      rendered.result.current.selectPreset(EventMetricPresetId.DayBefore);
+      rendered.result.current.selectPreset(EventTimePresetId.DayBefore);
     });
 
     expect(window.location.search).toBe("?metricsTime=hour-before");
@@ -663,7 +663,7 @@ describe("the page's defaults", () => {
       options({
         defaultQueries: CHANGED_QUERIES,
         getPresets: (now: Date): Array<MetricInvestigationTimePreset> => {
-          return getEventMetricTimePresets(
+          return getEventTimePresets(
             { startedAt: new Date("2026-11-05T07:00:00.000Z") },
             now,
           );
@@ -683,19 +683,19 @@ describe("the page's defaults", () => {
     const rendered: Rendered = renderInvestigation();
 
     act(() => {
-      rendered.result.current.selectPreset(EventMetricPresetId.Evaluated);
+      rendered.result.current.selectPreset(EventTimePresetId.Evaluated);
     });
 
     rendered.rerender(
       options({
         getPresets: (now: Date): Array<MetricInvestigationTimePreset> => {
-          return getEventMetricTimePresets({ startedAt: STARTED_AT }, now);
+          return getEventTimePresets({ startedAt: STARTED_AT }, now);
         },
       }),
     );
 
     expect(rendered.result.current.selection).toEqual(
-      EVENT_METRIC_DEFAULT_SELECTION,
+      EVENT_AROUND_START_SELECTION,
     );
     expect(rendered.result.current.isTimeChanged).toBe(false);
   });

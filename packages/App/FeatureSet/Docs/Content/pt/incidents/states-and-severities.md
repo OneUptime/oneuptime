@@ -115,14 +115,20 @@ Você não pode definir os três indicadores por este formulário — eles perte
 
 ## A ordem é uma restrição real, não uma preferência de exibição
 
-A ordem é aplicada quando uma mudança de estado é gravada, não só quando a lista é desenhada:
+A ordem é aplicada quando uma mudança de estado é gravada, não só quando a lista é desenhada. Uma mesma regra vale para toda mudança de estado de um incidente, de um alerta, de um episódio de incidentes ou de alertas e de um evento de manutenção programada, quem quer que a faça — o painel, o Slack, o Microsoft Teams, a API, o Terraform, um workflow ou o próprio OneUptime — e seja ela enviada como uma linha da linha do tempo de estados do registro ou como uma atualização do estado atual dele:
 
-- **Transições para trás são rejeitadas.** Mover um incidente para um estado que fica antes, na ordem, do seu estado atual falha com um erro que nomeia os dois estados.
+- **Transições para trás são rejeitadas.** Mover um incidente para um estado que fica antes, na ordem, do seu estado atual falha com um erro que nomeia os dois estados: «Incident cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states.» Um episódio está sujeito à mesma regra que os incidentes que agrupa, com a sua própria mensagem de erro («Episode cannot transition to …»), então um episódio resolvido não volta para um estado anterior — nem, por meio dele, os seus incidentes. Uma atualização que faria um registro voltar é recusada antes que qualquer coisa seja salva.
 - **Selecionar de novo o estado atual é rejeitado.** Colocar um incidente no estado em que ele já está falha com «Incident state cannot be same as previous state.»
 - **Uma linha retroativa não pode duplicar a vizinha.** Inserir uma linha da linha do tempo cujo estado é igual ao da linha seguinte também é recusado.
-- **Os botões do cabeçalho seguem a posição dos estados marcados na ordem.** **Confirmar** e **Resolver** são oferecidos conforme o lugar do estado atual na lista ordenada. Um estado personalizado colocado *depois* do estado resolvido nunca mostra um botão **Resolver**, porque um incidente nele já conta como resolvido.
+- **Os botões do cabeçalho seguem a posição dos estados marcados na ordem.** **Confirmar** e **Resolver** são oferecidos conforme o lugar do estado atual na lista ordenada. Um estado personalizado colocado *depois* do estado resolvido nunca mostra um botão **Resolver**, porque um incidente nele já conta como resolvido. O menu de estados do cabeçalho e o formulário de mudança de estado no Slack e no Microsoft Teams oferecem apenas os estados depois do atual; para um registro no último estado da lista, o Slack e o Teams dizem «There is no later state to move this incident to.» em vez de abrir um formulário vazio.
 
 Então, quando adicionar um estado, coloque-o onde um incidente realmente passaria por ele. Ordená-lo errado não só parece estranho — torna transições impossíveis. Mover um estado para mais adiante muda como contam os incidentes que já estão nele, no momento em que você o solta.
+
+Um episódio só move seus incidentes para onde eles podem ir. Quando um episódio muda de estado, cada um dos seus incidentes só é movido junto se a ordem do próprio incidente permitir a mudança: um incidente que já está nesse estado, ou além dele — resolvido por conta própria, ou em um estado personalizado depois do estado resolvido — fica onde está.
+
+Uma única mudança volta a subir na lista: a reabertura por uma regra de agrupamento. Uma regra configurada para reabrir episódios resolvidos recentemente reabre um episódio resolvido quando um incidente correspondente chega dentro da sua janela, levando o episódio de volta ao seu estado de criação. É uma mudança feita pelo próprio OneUptime — nada do que você envia pode pedi-la — e ela não reabre os incidentes do episódio.
+
+Para corrigir um estado definido por engano, exclua a linha dele na página da linha do tempo de estados do registro (veja [A linha do tempo de estados](#a-linha-do-tempo-de-estados)). O registro volta ao estado da sua última linha restante; um episódio cuja linha de resolução você excluir fica aberto de novo, e o horário de resolução dele é apagado.
 
 Pela API e pelo Terraform, a ordem é a coluna `order`: números menores vêm primeiro. Um estado criado sem ela vai para logo acima do estado resolvido; um criado ou atualizado com um número ocupa esse lugar, e os estados no caminho descem uma posição. Números que ninguém mais tem são mantidos como escritos, então um estado gerenciado pelo Terraform lê de volta o número que recebeu.
 

@@ -556,6 +556,26 @@ export default class PermissionGate {
   }
 
   /*
+   * Whether the reader changes every rule teams own, whichever teams own it:
+   * a master admin, or a Project Owner or Project Admin over the whole
+   * project (TeamOwnedRuleHeld). Who owns a rule locks nothing of theirs, so
+   * a page has nothing to wait for before offering them its changes.
+   */
+  public static actsOnEveryTeamOwnedRule(): boolean {
+    if (User.isMasterAdmin()) {
+      return true;
+    }
+
+    return TeamOwnedRuleHeld.actsOnEveryTeamOwnedRule(
+      HeldPermissionsUtil.fromRows({
+        rows: PermissionUtil.getProjectPermissions()?.permissions || [],
+        globalPermissions:
+          PermissionUtil.getGlobalPermissions()?.globalPermissions || [],
+      }),
+    );
+  }
+
+  /*
    * A change of one rule teams own (TeamOwnedRuleHeld): allowed when the
    * reader's own permissions allow it and - on a rule some teams own - the
    * teams of theirs that own it allow it too, or they change every rule.
@@ -563,12 +583,19 @@ export default class PermissionGate {
    * by who owns the rule, it says so with `reason` (the teams named) after
    * the lock's first sentence - also for a reader on none of the teams that
    * own it, who holds nothing on the rule at all.
+   *
+   * Asked while the page is still reading who owns the rule (owningTeamIds
+   * undefined), it holds the change back with nothing to say yet - as check
+   * does while the permission snapshot loads - so the page offers no change
+   * it may be about to lock. Unless who owns the rule cannot matter: the
+   * reader's own permissions refuse the change, which it says as ever, or
+   * they change every rule.
    */
   public static checkTeamOwnedRule(
     model: PermissionCheckableModel,
     action: ModelAction.Update | ModelAction.Delete,
     data: {
-      owningTeamIds: ReadonlyArray<string>;
+      owningTeamIds: ReadonlyArray<string> | undefined;
       reason: string;
       options?: PermissionGateOptions | undefined;
     },
@@ -581,6 +608,10 @@ export default class PermissionGate {
 
     if (!ownResult.isAllowed || User.isMasterAdmin()) {
       return ownResult;
+    }
+
+    if (data.owningTeamIds === undefined) {
+      return this.actsOnEveryTeamOwnedRule() ? ownResult : { isAllowed: false };
     }
 
     const held: HeldPermissions | null = this.getHeldOnTeamOwnedRule({
