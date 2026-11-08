@@ -18,20 +18,39 @@ import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
 import { StateListType } from "Common/Utils/StateOrder";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import { ResolvedStateList } from "Common/Utils/ResolvedState";
 import {
+  AlertEpisodeRootCauseRow,
   AlertRootCauseRow,
+  EpisodeMemberRootCauseRow,
+  IncidentEpisodeRootCauseRow,
   IncidentRootCauseRow,
   RootCauseEvent,
   RootCauseMetrics,
   RootCauseMonitor,
   RootCauseState,
   RootCauseTimes,
+  getAlertEpisodeRootCauseEvent,
+  getAlertEpisodeRootCauseTimes,
   getAlertRootCauseEvent,
+  getEpisodeRootCauseTimes,
+  getIncidentEpisodeRootCauseEvent,
+  getIncidentEpisodeRootCauseTimes,
   getIncidentRootCauseEvent,
   getRootCauseMetrics,
   getRootCauseTimes,
 } from "../../FeatureSet/Dashboard/src/Utils/EventRootCauseMetrics";
 import { EventStateTimelineDate } from "../../FeatureSet/Dashboard/src/Utils/EventDuration";
+import {
+  EpisodeTiming,
+  getEpisodeTiming,
+} from "../../FeatureSet/Dashboard/src/Components/EpisodeView/EpisodeTiming";
+import {
+  DerivedTelemetrySnapshot,
+  deriveTelemetrySnapshot,
+} from "../../FeatureSet/Dashboard/src/Utils/TelemetrySnapshot";
 
 /*
  * What an incident's or an alert's Root Cause page charts (issues #6249 and
@@ -1345,5 +1364,714 @@ describe("seeded: an alert and an incident with the same data", () => {
     expect(fromMonitorNow).toBeGreaterThan(30);
     expect(cards - fromMonitorNow).toBeGreaterThan(30);
     expect(resolved).toBeGreaterThan(30);
+  });
+});
+
+/*
+ * ISSUE #6320: AN EPISODE'S ROOT CAUSE PAGE CHARTS WHAT ITS OVERVIEW
+ * CHARTS.
+ *
+ * An episode's card charts its first member - read as that incident or
+ * alert is read on its own Root Cause page, so it charts the same - anchored
+ * on the episode: the member's start and impact are left out, its id is the
+ * rule the charts draw, and the ranges start and end when the episode did,
+ * by the rule its Overview works them out by (getEpisodeTiming).
+ */
+
+const MEMBER_ID: string = "66666666-6666-4666-8666-666666666666";
+
+function incidentMember(
+  row: Partial<IncidentRootCauseRow & EpisodeMemberRootCauseRow> = {},
+): IncidentRootCauseRow & EpisodeMemberRootCauseRow {
+  return {
+    id: new ObjectID(MEMBER_ID),
+    declaredAt: CREATED_AT,
+    impactStartedAt: IMPACT_STARTED_AT,
+    telemetryQuery: storedMetricSnapshot([
+      queryOf({ groupBy: ["resource.host.name"] }),
+    ]),
+    seriesLabels: SERIES,
+    createdCriteriaId: RULE_ID,
+    monitors: [
+      monitorOf(MonitorType.Metrics, [
+        { queryConfigs: [queryOf({ metricName: "memory" })] },
+      ]),
+    ],
+    ...row,
+  };
+}
+
+function alertMember(
+  row: Partial<AlertRootCauseRow & EpisodeMemberRootCauseRow> = {},
+): AlertRootCauseRow & EpisodeMemberRootCauseRow {
+  return {
+    id: new ObjectID(MEMBER_ID),
+    createdAt: CREATED_AT,
+    impactStartedAt: IMPACT_STARTED_AT,
+    telemetryQuery: storedMetricSnapshot([
+      queryOf({ groupBy: ["resource.host.name"] }),
+    ]),
+    seriesLabels: SERIES,
+    createdCriteriaId: RULE_ID,
+    monitor: monitorOf(MonitorType.Metrics, [
+      { queryConfigs: [queryOf({ metricName: "memory" })] },
+    ]),
+    ...row,
+  };
+}
+
+describe("an incident episode's first member, read for its Root Cause card", () => {
+  test("read as that incident's own card reads it, anchored on the episode: no start or impact of the member's, and the member's rule", () => {
+    const member: IncidentRootCauseRow & EpisodeMemberRootCauseRow =
+      incidentMember();
+
+    expect(getIncidentEpisodeRootCauseEvent(member)).toEqual({
+      ...getIncidentRootCauseEvent(member),
+      startedAt: undefined,
+      impactStartedAt: undefined,
+      ruleEventId: MEMBER_ID,
+    });
+
+    const event: RootCauseEvent = getIncidentEpisodeRootCauseEvent(member);
+    // The member's snapshot, series, criteria and monitors, as they are.
+    expect(event.telemetryQuery?.metricViewData?.queryConfigs).toHaveLength(1);
+    expect(event.seriesLabels).toEqual(SERIES);
+    expect(event.createdCriteriaId).toBe(RULE_ID);
+    expect(event.monitors).toHaveLength(1);
+    expect(event.monitors[0]).toBe(member.monitors![0]);
+  });
+
+  test("an incident's own event draws its own rule: it names no other", () => {
+    expect(getIncidentRootCauseEvent(incidentMember())).not.toHaveProperty(
+      "ruleEventId",
+    );
+    expect(getAlertRootCauseEvent(alertMember())).not.toHaveProperty(
+      "ruleEventId",
+    );
+  });
+
+  test.each([
+    ["an id", new ObjectID(MEMBER_ID), MEMBER_ID],
+    ["an id as text", MEMBER_ID, MEMBER_ID],
+    ["an id with spaces around it", `  ${MEMBER_ID} `, MEMBER_ID],
+    ["no id", undefined, undefined],
+    ["an empty id", null, undefined],
+    ["blank text", "   ", undefined],
+    ["a number", 7 as unknown as string, undefined],
+    ["an object", {} as unknown as string, undefined],
+  ])(
+    "a member with %s draws the rule of that id, or none",
+    (
+      _name: string,
+      id: ObjectID | string | null | undefined,
+      ruleEventId: string | undefined,
+    ) => {
+      expect(
+        getIncidentEpisodeRootCauseEvent(incidentMember({ id: id }))
+          .ruleEventId,
+      ).toBe(ruleEventId);
+      expect(
+        getAlertEpisodeRootCauseEvent(alertMember({ id: id })).ruleEventId,
+      ).toBe(ruleEventId);
+    },
+  );
+
+  test("what the row does not hold reads as nothing", () => {
+    expect(getIncidentEpisodeRootCauseEvent({})).toEqual({
+      startedAt: undefined,
+      impactStartedAt: undefined,
+      telemetryQuery: null,
+      seriesLabels: null,
+      createdCriteriaId: null,
+      monitors: [],
+      ruleEventId: undefined,
+    });
+  });
+});
+
+describe("an alert episode's first member, read for its Root Cause card", () => {
+  test("read as that alert's own card reads it: its one monitor a list of one, anchored on the episode", () => {
+    const member: AlertRootCauseRow & EpisodeMemberRootCauseRow = alertMember();
+
+    expect(getAlertEpisodeRootCauseEvent(member)).toEqual({
+      ...getAlertRootCauseEvent(member),
+      startedAt: undefined,
+      impactStartedAt: undefined,
+      ruleEventId: MEMBER_ID,
+    });
+    expect(getAlertEpisodeRootCauseEvent(member).monitors).toEqual([
+      member.monitor,
+    ]);
+  });
+
+  test("an alert episode's member reads as an incident episode's would: the same event, the same rule", () => {
+    const monitor: RootCauseMonitor = monitorOf(MonitorType.Host, [
+      { settings: { hostIdentifier: "web-01" }, queryConfigs: [queryOf({})] },
+    ]);
+
+    expect(
+      getAlertEpisodeRootCauseEvent(
+        alertMember({ createdAt: CREATED_AT, monitor: monitor }),
+      ),
+    ).toEqual(
+      getIncidentEpisodeRootCauseEvent(
+        incidentMember({ declaredAt: CREATED_AT, monitors: [monitor] }),
+      ),
+    );
+  });
+
+  test("an alert raised by hand, or whose monitor is gone, is on no monitor", () => {
+    for (const monitor of [null, undefined]) {
+      expect(
+        getAlertEpisodeRootCauseEvent(alertMember({ monitor: monitor }))
+          .monitors,
+      ).toEqual([]);
+    }
+  });
+});
+
+describe("an episode charts its first member as that member's own Root Cause page does", () => {
+  test.each([
+    ["a metric snapshot", {}],
+    ["no snapshot, on a metrics monitor", { telemetryQuery: null }],
+    ["a logs snapshot, on a metrics monitor", { telemetryQuery: STORED_LOGS_SNAPSHOT }],
+    [
+      "no snapshot and no metrics monitor",
+      {
+        telemetryQuery: null,
+        monitors: [
+          monitorOf(MonitorType.API, [{ queryConfigs: [queryOf({})] }]),
+        ],
+      },
+    ],
+    ["no snapshot and no monitor", { telemetryQuery: null, monitors: [] }],
+  ])(
+    "an incident episode's first member with %s",
+    (_name: string, row: Partial<IncidentRootCauseRow>) => {
+      const member: IncidentRootCauseRow & EpisodeMemberRootCauseRow =
+        incidentMember(row);
+
+      expect(
+        getRootCauseMetrics(getIncidentEpisodeRootCauseEvent(member)),
+      ).toEqual(getRootCauseMetrics(getIncidentRootCauseEvent(member)));
+    },
+  );
+
+  test.each([
+    ["a metric snapshot", {}],
+    ["no snapshot, on a metrics monitor", { telemetryQuery: null }],
+    ["a logs snapshot, on a metrics monitor", { telemetryQuery: STORED_LOGS_SNAPSHOT }],
+    ["no snapshot and no monitor", { telemetryQuery: null, monitor: null }],
+  ])(
+    "an alert episode's first member with %s",
+    (_name: string, row: Partial<AlertRootCauseRow>) => {
+      const member: AlertRootCauseRow & EpisodeMemberRootCauseRow =
+        alertMember(row);
+
+      expect(getRootCauseMetrics(getAlertEpisodeRootCauseEvent(member))).toEqual(
+        getRootCauseMetrics(getAlertRootCauseEvent(member)),
+      );
+    },
+  );
+
+  test("with a metric snapshot, exactly what the episode's Overview charts: the same query, window and series", () => {
+    for (const member of [incidentMember(), alertMember()]) {
+      const event: RootCauseEvent =
+        "monitors" in member
+          ? getIncidentEpisodeRootCauseEvent(
+              member as IncidentRootCauseRow & EpisodeMemberRootCauseRow,
+            )
+          : getAlertEpisodeRootCauseEvent(
+              member as AlertRootCauseRow & EpisodeMemberRootCauseRow,
+            );
+      const metrics: RootCauseMetrics | null = getRootCauseMetrics(event);
+
+      // What the episode's Overview works out of the same first member.
+      const overview: DerivedTelemetrySnapshot = deriveTelemetrySnapshot({
+        storedTelemetryQuery: member.telemetryQuery,
+        seriesLabels: member.seriesLabels as JSONObject,
+      });
+
+      expect(metrics).not.toBeNull();
+      expect(metrics!.telemetryQuery).toEqual(overview.telemetryQuery);
+      expect(metrics!.evaluationWindow).toEqual(overview.snapshotWindow);
+      expect(metrics!.seriesSummary).toBe(overview.seriesSummary);
+      expect(metrics!.seriesSummary).toBe("resource.host.name = prod-01");
+      expect(metrics!.chartedFromMonitorNow).toBeUndefined();
+    }
+  });
+});
+
+/*
+ * When an episode's card's ranges start and end. The states are the
+ * project's as ModelAPI hands them back: models, read by their id.
+ */
+function stateModelsOf(
+  list: ResolvedStateList,
+  states: Array<RootCauseState>,
+): Array<IncidentState | AlertState> {
+  return states.map((state: RootCauseState): IncidentState | AlertState => {
+    const model: IncidentState | AlertState =
+      list === StateListType.IncidentState
+        ? new IncidentState()
+        : new AlertState();
+    model.id = new ObjectID(state._id!);
+    model.name = state.name!;
+    model.order = state.order!;
+
+    if (state.isAcknowledgedState) {
+      model.isAcknowledgedState = true;
+    }
+
+    if (state.isResolvedState) {
+      model.isResolvedState = true;
+    }
+
+    return model;
+  });
+}
+
+/*
+ * What the episode's Overview works out of the same episode
+ * (Pages/Incidents/EpisodeView/Index.tsx, Pages/Alerts/EpisodeView/
+ * Index.tsx): its start, its resolvedAt and the project's states, handed to
+ * getEpisodeTiming as the page hands them.
+ */
+function overviewTimesOf(input: {
+  list: ResolvedStateList;
+  episode: IncidentEpisodeRootCauseRow;
+  stateTimeline: Array<EventStateTimelineDate>;
+  states: Array<IncidentState | AlertState>;
+}): RootCauseTimes {
+  const episode: IncidentEpisodeRootCauseRow = input.episode;
+  const timing: EpisodeTiming = getEpisodeTiming({
+    startedAt:
+      input.list === StateListType.IncidentState
+        ? episode?.declaredAt || episode?.createdAt || undefined
+        : episode?.createdAt || undefined,
+    resolvedAt: episode?.resolvedAt || undefined,
+    list: input.list,
+    states: input.states.map((state: IncidentState | AlertState) => {
+      return {
+        id: state.id?.toString() || "",
+        name: state.name,
+        order: state.order,
+        isAcknowledgedState: state.isAcknowledgedState,
+        isResolvedState: state.isResolvedState,
+      };
+    }),
+    timelines: input.stateTimeline,
+  });
+
+  return { startedAt: timing.durationStartsAt, endedAt: timing.durationEndsAt };
+}
+
+function episodeTimesOf(
+  list: ResolvedStateList,
+  episode: IncidentEpisodeRootCauseRow,
+  stateTimeline: Array<EventStateTimelineDate>,
+  states: Array<RootCauseState> = STATES,
+): RootCauseTimes {
+  const models: Array<IncidentState | AlertState> = stateModelsOf(
+    list,
+    states,
+  );
+  const times: RootCauseTimes =
+    list === StateListType.IncidentState
+      ? getIncidentEpisodeRootCauseTimes({
+          episode: episode,
+          stateTimeline: stateTimeline,
+          states: models,
+        })
+      : getAlertEpisodeRootCauseTimes({
+          episode: episode as AlertEpisodeRootCauseRow,
+          stateTimeline: stateTimeline,
+          states: models,
+        });
+
+  // Exactly what the episode's Overview shows for it.
+  expect(times).toEqual(
+    overviewTimesOf({
+      list: list,
+      episode: episode,
+      stateTimeline: stateTimeline,
+      states: models,
+    }),
+  );
+
+  return times;
+}
+
+const DECLARED_AT: Date = minutesAfterCreated(-3);
+
+describe("when an episode's card's ranges start and end, as its Overview works them out", () => {
+  test("an incident episode started when it was declared: not when it was created, nor with its first state", () => {
+    expect(
+      episodeTimesOf(
+        StateListType.IncidentState,
+        { declaredAt: DECLARED_AT, createdAt: CREATED_AT },
+        timelineOf([
+          ["created", 2],
+          ["acknowledged", 10],
+        ]),
+      ),
+    ).toEqual({ startedAt: DECLARED_AT, endedAt: undefined });
+  });
+
+  test("an incident episode older than declaredAt started when it was created", () => {
+    for (const declaredAt of [undefined, null]) {
+      expect(
+        episodeTimesOf(
+          StateListType.IncidentState,
+          { declaredAt: declaredAt, createdAt: CREATED_AT },
+          timelineOf([["created", 2]]),
+        ).startedAt,
+      ).toBe(CREATED_AT);
+    }
+  });
+
+  test("an alert episode started when it was created: it has no declaredAt", () => {
+    expect(
+      episodeTimesOf(
+        StateListType.AlertState,
+        {
+          declaredAt: DECLARED_AT,
+          createdAt: CREATED_AT,
+        } as IncidentEpisodeRootCauseRow,
+        timelineOf([["created", 2]]),
+      ).startedAt,
+    ).toBe(CREATED_AT);
+  });
+
+  test.each([StateListType.IncidentState, StateListType.AlertState])(
+    "%s: open, resolved, Closed after Resolved, reopened and resolved again",
+    (list: ResolvedStateList) => {
+      const episode: IncidentEpisodeRootCauseRow = { createdAt: CREATED_AT };
+
+      expect(
+        episodeTimesOf(
+          list,
+          episode,
+          timelineOf([
+            ["created", 0],
+            ["acknowledged", 10],
+          ]),
+        ).endedAt,
+      ).toBeUndefined();
+      expect(
+        episodeTimesOf(
+          list,
+          episode,
+          timelineOf([
+            ["created", 0],
+            ["resolved", 40],
+          ]),
+        ).endedAt,
+      ).toEqual(minutesAfterCreated(40));
+      expect(
+        episodeTimesOf(
+          list,
+          episode,
+          timelineOf([
+            ["created", 0],
+            ["resolved", 40],
+            ["closed", 90],
+          ]),
+        ).endedAt,
+      ).toEqual(minutesAfterCreated(40));
+      expect(
+        episodeTimesOf(
+          list,
+          episode,
+          timelineOf([
+            ["created", 0],
+            ["resolved", 40],
+            ["acknowledged", 60],
+          ]),
+        ).endedAt,
+      ).toBeUndefined();
+      expect(
+        episodeTimesOf(
+          list,
+          episode,
+          timelineOf([
+            ["acknowledged", 60],
+            ["resolved", 75],
+            ["created", 0],
+            ["resolved", 40],
+          ]),
+        ).endedAt,
+      ).toEqual(minutesAfterCreated(75));
+    },
+  );
+
+  test("with no state timeline it ended when its row says it was resolved; with one, the timeline decides", () => {
+    const resolvedAt: Date = minutesAfterCreated(50);
+
+    expect(
+      episodeTimesOf(
+        StateListType.IncidentState,
+        { createdAt: CREATED_AT, resolvedAt: resolvedAt },
+        [],
+      ),
+    ).toEqual({ startedAt: CREATED_AT, endedAt: resolvedAt });
+    // Reopened since: its row's resolvedAt is not the end any more.
+    expect(
+      episodeTimesOf(
+        StateListType.AlertState,
+        { createdAt: CREATED_AT, resolvedAt: resolvedAt },
+        timelineOf([
+          ["created", 0],
+          ["resolved", 50],
+          ["acknowledged", 70],
+        ]),
+      ).endedAt,
+    ).toBeUndefined();
+  });
+
+  test("no row: no start, and an end only from its timeline", () => {
+    expect(
+      getIncidentEpisodeRootCauseTimes({
+        episode: null,
+        stateTimeline: timelineOf([["resolved", 40]]),
+        states: stateModelsOf(StateListType.IncidentState, STATES),
+      }),
+    ).toEqual({ startedAt: undefined, endedAt: minutesAfterCreated(40) });
+    expect(
+      getAlertEpisodeRootCauseTimes({
+        episode: undefined,
+        stateTimeline: [],
+        states: [],
+      }),
+    ).toEqual({ startedAt: undefined, endedAt: undefined });
+  });
+
+  test("a value of the wrong kind is no moment", () => {
+    expect(
+      getIncidentEpisodeRootCauseTimes({
+        episode: {
+          declaredAt: "2026-11-05T05:41:00.000Z" as unknown as Date,
+          createdAt: CREATED_AT,
+          resolvedAt: "soon" as unknown as Date,
+        },
+        stateTimeline: [],
+        states: [],
+      }),
+    ).toEqual({ startedAt: CREATED_AT, endedAt: undefined });
+  });
+
+  test("without the project's states nothing counts as resolved: no end", () => {
+    expect(
+      episodeTimesOf(
+        StateListType.IncidentState,
+        { createdAt: CREATED_AT },
+        timelineOf([["resolved", 40]]),
+        [],
+      ).endedAt,
+    ).toBeUndefined();
+  });
+
+  test("the episode's rule is not an incident's: its first state never stands in for its start", () => {
+    const timeline: Array<EventStateTimelineDate> = timelineOf([
+      ["created", 5],
+    ]);
+
+    // An incident with no start starts with its first state...
+    expect(
+      getRootCauseTimes({
+        startedAt: undefined,
+        stateTimeline: timeline,
+        states: STATES,
+        stateList: StateListType.IncidentState,
+      }).startedAt,
+    ).toEqual(minutesAfterCreated(5));
+    // ...an episode, as its Overview shows it, with none.
+    expect(
+      getEpisodeRootCauseTimes({
+        startedAt: undefined,
+        resolvedAt: undefined,
+        stateTimeline: timeline,
+        states: STATES,
+        stateList: StateListType.IncidentState,
+      }).startedAt,
+    ).toBeUndefined();
+  });
+});
+
+/*
+ * SEEDED: AN EPISODE'S CARD IS ANCHORED AS ITS OVERVIEW IS, AND CHARTS ITS
+ * FIRST MEMBER AS THAT MEMBER'S OWN PAGE DOES.
+ *
+ * Whatever the episode's row holds - a declared and a created time, either
+ * missing, a resolvedAt, a value of the wrong kind - and whatever its state
+ * timeline and the project's states, its card starts and ends exactly where
+ * its Overview's rule says; and whatever its first member holds, the card
+ * charts what that member's own Root Cause page charts, with the member's
+ * rule drawn and none of its moments.
+ */
+describe("seeded: an episode's card, against its Overview and its first member's own page", () => {
+  const STATE_IDS: Array<string> = [
+    "created",
+    "acknowledged",
+    "resolved",
+    "closed",
+    "deleted-state",
+  ];
+
+  function pick<T>(random: SeededRandom, values: Array<T>): T {
+    return values[random(values.length)]!;
+  }
+
+  test("the same start and end as the Overview, and the same metrics as the member's page, for 500 episodes", () => {
+    const random: SeededRandom = seededRandom(6320);
+    let ended: number = 0;
+    let fromResolvedAt: number = 0;
+    let cards: number = 0;
+    let fromMonitorNow: number = 0;
+
+    for (let draw: number = 0; draw < 500; draw++) {
+      const list: ResolvedStateList = random(2)
+        ? StateListType.IncidentState
+        : StateListType.AlertState;
+
+      const episode: IncidentEpisodeRootCauseRow = {
+        declaredAt: pick(random, [
+          minutesAfterCreated(-random(30)),
+          undefined,
+          null,
+        ]),
+        createdAt: pick(random, [CREATED_AT, CREATED_AT, undefined]),
+        resolvedAt: pick(random, [
+          minutesAfterCreated(random(240)),
+          undefined,
+          null,
+        ]),
+      };
+
+      const timeline: Array<EventStateTimelineDate> = [];
+      const entryCount: number = random(5);
+
+      for (let entry: number = 0; entry < entryCount; entry++) {
+        timeline.push({
+          stateId: pick(random, STATE_IDS),
+          startsAt: minutesAfterCreated(random(240) - 30),
+        });
+      }
+
+      const states: Array<RootCauseState> = random(6)
+        ? STATES
+        : STATES.filter((state: RootCauseState): boolean => {
+            return !state.isResolvedState;
+          });
+
+      const times: RootCauseTimes = episodeTimesOf(
+        list,
+        episode,
+        timeline,
+        states,
+      );
+
+      // It started when the episode did: never with a state of its own.
+      const expectedStart: Date | null | undefined =
+        list === StateListType.IncidentState
+          ? episode.declaredAt || episode.createdAt
+          : episode.createdAt;
+      expect({ draw, start: times.startedAt }).toEqual({
+        draw,
+        start: expectedStart || undefined,
+      });
+
+      if (timeline.length === 0) {
+        // No timeline: its row's resolvedAt, as the Overview reads it.
+        expect({ draw, end: times.endedAt }).toEqual({
+          draw,
+          end: episode.resolvedAt || undefined,
+        });
+        fromResolvedAt += times.endedAt ? 1 : 0;
+      } else if (times.endedAt) {
+        // An end only at a move into a state that counts as resolved.
+        expect(
+          timeline.some((entry: EventStateTimelineDate): boolean => {
+            return entry.startsAt!.getTime() === times.endedAt!.getTime();
+          }),
+        ).toBe(true);
+      }
+
+      ended += times.endedAt ? 1 : 0;
+
+      // Its first member, read as its own Root Cause page reads it.
+      const hasSnapshot: boolean = random(3) === 0;
+      const monitor: RootCauseMonitor | null = random(3)
+        ? monitorOf(pick(random, [MonitorType.Metrics, MonitorType.API]), [
+            {
+              queryConfigs: [
+                queryOf({ metricName: random(4) ? `m-${draw}` : "" }),
+              ],
+            },
+          ])
+        : null;
+      const common: Partial<IncidentRootCauseRow> = {
+        impactStartedAt: random(2) ? IMPACT_STARTED_AT : undefined,
+        telemetryQuery: hasSnapshot
+          ? storedMetricSnapshot([queryOf({ groupBy: ["resource.host.name"] })])
+          : pick(random, [null, STORED_LOGS_SNAPSHOT, "not a snapshot"]),
+        seriesLabels: pick(random, [SERIES, null, undefined]),
+        createdCriteriaId: pick(random, [RULE_ID, undefined, null]),
+      };
+      const id: ObjectID | string | undefined = pick(random, [
+        new ObjectID(MEMBER_ID),
+        MEMBER_ID,
+        undefined,
+      ]);
+
+      const memberEvent: RootCauseEvent =
+        list === StateListType.IncidentState
+          ? getIncidentRootCauseEvent({
+              ...common,
+              declaredAt: CREATED_AT,
+              monitors: monitor ? [monitor] : [],
+            })
+          : getAlertRootCauseEvent({
+              ...common,
+              createdAt: CREATED_AT,
+              monitor: monitor,
+            });
+      const episodeEvent: RootCauseEvent =
+        list === StateListType.IncidentState
+          ? getIncidentEpisodeRootCauseEvent({
+              ...common,
+              id: id,
+              declaredAt: CREATED_AT,
+              monitors: monitor ? [monitor] : [],
+            })
+          : getAlertEpisodeRootCauseEvent({
+              ...common,
+              id: id,
+              createdAt: CREATED_AT,
+              monitor: monitor,
+            });
+
+      expect(episodeEvent).toEqual({
+        ...memberEvent,
+        startedAt: undefined,
+        impactStartedAt: undefined,
+        ruleEventId: id ? MEMBER_ID : undefined,
+      });
+
+      const metrics: RootCauseMetrics | null = getRootCauseMetrics(episodeEvent);
+      expect(metrics).toEqual(getRootCauseMetrics(memberEvent));
+
+      if (metrics) {
+        cards++;
+        fromMonitorNow += metrics.chartedFromMonitorNow ? 1 : 0;
+      }
+    }
+
+    // The draws reach every case, not one of them over and over.
+    expect(ended).toBeGreaterThan(50);
+    expect(fromResolvedAt).toBeGreaterThan(10);
+    expect(cards).toBeGreaterThan(100);
+    expect(fromMonitorNow).toBeGreaterThan(30);
+    expect(cards - fromMonitorNow).toBeGreaterThan(30);
   });
 });

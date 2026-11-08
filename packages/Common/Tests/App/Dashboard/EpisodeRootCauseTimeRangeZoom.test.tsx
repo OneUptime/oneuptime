@@ -239,7 +239,8 @@ const FIRST_STATE_AT: Date = new Date("2026-09-28T11:31:00.000Z");
  * member.
  */
 const MEMBER_STARTED_AT: Date = new Date("2026-09-28T11:10:00.000Z");
-const MEMBER_IMPACT_STARTED_AT: Date = new Date("2026-09-28T10:50:00.000Z");
+// Inside the range the card starts on, so a line for it would be drawn.
+const MEMBER_IMPACT_STARTED_AT: Date = new Date("2026-09-28T11:20:00.000Z");
 const EVALUATED_START: Date = new Date("2026-09-28T11:05:00.000Z");
 // Around the start: 30 minutes on either side of the episode's start.
 const AROUND_START: [string, string] = [
