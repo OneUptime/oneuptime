@@ -83,6 +83,9 @@ export const NO_USAGE_YET_DESCRIPTION: string = translationKey(
 export const NO_USAGE_IN_RANGE_TITLE: string = translationKey(
   "No telemetry usage in this range",
 );
+const RETENTION_TOOLTIP: string = translationKey(
+  "How long the resource's telemetry is kept, as counted on the newest day of the range.",
+);
 export const NO_USAGE_IN_RANGE_DESCRIPTION: string = translationKey(
   "The newest day with usage is {{day}}. Choose a longer range to see it.",
 );
@@ -509,8 +512,7 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
       title: "Retention",
       type: FieldType.Element,
       disableSort: true,
-      headerTooltip:
-        "How long the resource's telemetry is kept, as counted on the newest day of the range.",
+      headerTooltip: translator.translateText(RETENTION_TOOLTIP),
       getElement: (row: TelemetryUsageResourceRow): ReactElement => {
         return (
           <span className="text-gray-700">{row.retention || "—"}</span>

@@ -63,7 +63,8 @@
     "apiKey": "کلید API",
     "more": "بیشتر",
     "sendEmail": "ارسال ایمیل",
-    "logout": "خروج"
+    "logout": "خروج",
+    "telemetryUsage": "Telemetry Usage"
   },
   "topAlert": {
     "title": "داشبورد مدیریت OneUptime",
@@ -131,7 +132,8 @@
     "settingsApiIntegrations": "API و یکپارچه‌سازی‌ها",
     "settingsApiKey": "کلید API",
     "moreCommunication": "ارتباطات",
-    "moreSendEmail": "ارسال ایمیل"
+    "moreSendEmail": "ارسال ایمیل",
+    "telemetryUsage": "Telemetry Usage"
   },
   "pages": {
     "users": {
@@ -581,7 +583,10 @@
         "logEditButton": "ویرایش تنظیمات",
         "metricCardTitle": "نگهداری متریک مانیتور",
         "metricCardDescription": "تعیین کنید متریک‌های مانیتور پیش از حذف خودکار چه مدت نگهداری شوند.",
-        "metricEditButton": "ویرایش تنظیمات"
+        "metricEditButton": "ویرایش تنظیمات",
+        "usageCardTitle": "Telemetry Usage Retention",
+        "usageCardDescription": "How long each project's daily telemetry usage is kept, with billing on or off.",
+        "usageEditButton": "Edit Telemetry Usage Retention"
       },
       "apiKey": {
         "cardTitle": "تنظیمات کلید API ارشد",
@@ -596,6 +601,13 @@
         "cardDescription": "ارائه‌دهندگان LLM سراسری برای قابلیت‌های هوش مصنوعی در دسترس همه پروژه‌ها هستند. OpenAI، Azure OpenAI، Anthropic، Groq، Mistral، Ollama یا سایر ارائه‌دهندگان LLM را پیکربندی کنید.",
         "noItems": "هیچ ارائه‌دهنده LLM پیکربندی نشده است. برای فعال کردن قابلیت‌های هوش مصنوعی یک ارائه‌دهنده LLM اضافه کنید."
       }
+    },
+    "telemetryUsage": {
+      "title": "Telemetry Usage",
+      "cardTitle": "Telemetry Usage by Project",
+      "cardDescription": "How much telemetry each project sent, heaviest first. A day is counted once it has ended in UTC.",
+      "emptyTitle": "No telemetry usage yet",
+      "emptyDescription": "No project has usage counted in this range yet. A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day."
     }
   },
   "Basic": "پایه",
@@ -1859,6 +1871,59 @@
   "This list has default columns for everyone in this project.": "این فهرست برای همه در این پروژه ستون‌های پیش‌فرض دارد.",
   "Remove default": "حذف پیش‌فرض",
   "Reset to project default": "بازنشانی به پیش‌فرض پروژه",
+  "Telemetry Usage": "Telemetry Usage",
+  "How much telemetry this project sent each day, by signal. A day is counted once it has ended in UTC.": "How much telemetry this project sent each day, by signal. A day is counted once it has ended in UTC.",
+  "Usage by Resource": "Usage by Resource",
+  "Which services and resources sent the telemetry, heaviest first, and how long each keeps it.": "Which services and resources sent the telemetry, heaviest first, and how long each keeps it.",
+  "Resource": "Resource",
+  "Resources": "Resources",
+  "Total": "Total",
+  "Cost": "Cost",
+  "Retention": "Retention",
+  "How long the resource's telemetry is kept, as counted on the newest day of the range.": "How long the resource's telemetry is kept, as counted on the newest day of the range.",
+  "Range": "Range",
+  "Last {{count}} days": "Last {{count}} days",
+  "Last {{count}} days_one": "Last {{count}} day",
+  "No telemetry usage yet": "No telemetry usage yet",
+  "A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day. Today's shows up tomorrow.": "A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day. Today's shows up tomorrow.",
+  "No telemetry usage in this range": "No telemetry usage in this range",
+  "The newest day with usage is {{day}}. Choose a longer range to see it.": "The newest day with usage is {{day}}. Choose a longer range to see it.",
+  "Logs": "Logs",
+  "Metrics": "Metrics",
+  "Traces": "Traces",
+  "Profiles": "Profiles",
+  "Session Replays": "Session Replays",
+  "Security Events": "Security Events",
+  "Spans, and the exceptions recorded with them.": "Spans, and the exceptions recorded with them.",
+  "Profiles, and the samples recorded with them.": "Profiles, and the samples recorded with them.",
+  "{{size}} GB": "{{size}} GB",
+  "{{size}} MB": "{{size}} MB",
+  "{{size}} KB": "{{size}} KB",
+  "{{amount}} USD": "{{amount}} USD",
+  "Session replays: {{days}}": "Session replays: {{days}}",
+  "Service": "Service",
+  "RUM Application": "RUM Application",
+  "Docker Host": "Docker Host",
+  "Podman Host": "Podman Host",
+  "Kubernetes Cluster": "Kubernetes Cluster",
+  "Proxmox Cluster": "Proxmox Cluster",
+  "OpenStack Cloud": "OpenStack Cloud",
+  "Ceph Cluster": "Ceph Cluster",
+  "Storage Array": "Storage Array",
+  "Docker Swarm Cluster": "Docker Swarm Cluster",
+  "vCenter": "vCenter",
+  "IoT Fleet": "IoT Fleet",
+  "Serverless Function": "Serverless Function",
+  "Cloud Resource": "Cloud Resource",
+  "Database": "Database",
+  "Network Device": "Network Device",
+  "Unknown Service": "Unknown Service",
+  "Day": "Day",
+  "Data Ingested (in GB)": "Data Ingested (in GB)",
+  "How much telemetry each project sends, heaviest first.": "How much telemetry each project sends, heaviest first.",
+  "Telemetry Usage Retention (Days)": "Telemetry Usage Retention (Days)",
+  "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.",
+  "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.",
   "markdownCallouts": {
     "caution": "احتیاط",
     "danger": "خطر",

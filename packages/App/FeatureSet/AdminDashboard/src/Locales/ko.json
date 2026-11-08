@@ -63,7 +63,8 @@
     "apiKey": "API 키",
     "more": "더 보기",
     "sendEmail": "이메일 보내기",
-    "logout": "로그아웃"
+    "logout": "로그아웃",
+    "telemetryUsage": "Telemetry Usage"
   },
   "topAlert": {
     "title": "OneUptime 관리자 대시보드",
@@ -131,7 +132,8 @@
     "settingsApiIntegrations": "API 및 통합",
     "settingsApiKey": "API 키",
     "moreCommunication": "커뮤니케이션",
-    "moreSendEmail": "이메일 보내기"
+    "moreSendEmail": "이메일 보내기",
+    "telemetryUsage": "Telemetry Usage"
   },
   "pages": {
     "users": {
@@ -581,7 +583,10 @@
         "logEditButton": "설정 편집",
         "metricCardTitle": "모니터 메트릭 보존",
         "metricCardDescription": "모니터 메트릭이 자동으로 삭제되기 전에 보존되는 기간을 구성합니다.",
-        "metricEditButton": "설정 편집"
+        "metricEditButton": "설정 편집",
+        "usageCardTitle": "Telemetry Usage Retention",
+        "usageCardDescription": "How long each project's daily telemetry usage is kept, with billing on or off.",
+        "usageEditButton": "Edit Telemetry Usage Retention"
       },
       "apiKey": {
         "cardTitle": "마스터 API 키 설정",
@@ -596,6 +601,13 @@
         "cardDescription": "글로벌 LLM 공급자는 AI 기능을 위해 모든 프로젝트에서 사용할 수 있습니다. OpenAI, Anthropic, Ollama 또는 기타 LLM 공급자를 구성하세요.",
         "noItems": "구성된 LLM 공급자가 없습니다. AI 기능을 활성화하려면 LLM 공급자를 추가하세요."
       }
+    },
+    "telemetryUsage": {
+      "title": "Telemetry Usage",
+      "cardTitle": "Telemetry Usage by Project",
+      "cardDescription": "How much telemetry each project sent, heaviest first. A day is counted once it has ended in UTC.",
+      "emptyTitle": "No telemetry usage yet",
+      "emptyDescription": "No project has usage counted in this range yet. A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day."
     }
   },
   "Basic": "기본",
@@ -1859,6 +1871,59 @@
   "This list has default columns for everyone in this project.": "이 목록에는 이 프로젝트의 모든 사용자를 위한 기본 열이 있습니다.",
   "Remove default": "기본값 제거",
   "Reset to project default": "프로젝트 기본값으로 재설정",
+  "Telemetry Usage": "Telemetry Usage",
+  "How much telemetry this project sent each day, by signal. A day is counted once it has ended in UTC.": "How much telemetry this project sent each day, by signal. A day is counted once it has ended in UTC.",
+  "Usage by Resource": "Usage by Resource",
+  "Which services and resources sent the telemetry, heaviest first, and how long each keeps it.": "Which services and resources sent the telemetry, heaviest first, and how long each keeps it.",
+  "Resource": "Resource",
+  "Resources": "Resources",
+  "Total": "Total",
+  "Cost": "Cost",
+  "Retention": "Retention",
+  "How long the resource's telemetry is kept, as counted on the newest day of the range.": "How long the resource's telemetry is kept, as counted on the newest day of the range.",
+  "Range": "Range",
+  "Last {{count}} days": "Last {{count}} days",
+  "Last {{count}} days_one": "Last {{count}} day",
+  "No telemetry usage yet": "No telemetry usage yet",
+  "A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day. Today's shows up tomorrow.": "A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day. Today's shows up tomorrow.",
+  "No telemetry usage in this range": "No telemetry usage in this range",
+  "The newest day with usage is {{day}}. Choose a longer range to see it.": "The newest day with usage is {{day}}. Choose a longer range to see it.",
+  "Logs": "Logs",
+  "Metrics": "Metrics",
+  "Traces": "Traces",
+  "Profiles": "Profiles",
+  "Session Replays": "Session Replays",
+  "Security Events": "Security Events",
+  "Spans, and the exceptions recorded with them.": "Spans, and the exceptions recorded with them.",
+  "Profiles, and the samples recorded with them.": "Profiles, and the samples recorded with them.",
+  "{{size}} GB": "{{size}} GB",
+  "{{size}} MB": "{{size}} MB",
+  "{{size}} KB": "{{size}} KB",
+  "{{amount}} USD": "{{amount}} USD",
+  "Session replays: {{days}}": "Session replays: {{days}}",
+  "Service": "Service",
+  "RUM Application": "RUM Application",
+  "Docker Host": "Docker Host",
+  "Podman Host": "Podman Host",
+  "Kubernetes Cluster": "Kubernetes Cluster",
+  "Proxmox Cluster": "Proxmox Cluster",
+  "OpenStack Cloud": "OpenStack Cloud",
+  "Ceph Cluster": "Ceph Cluster",
+  "Storage Array": "Storage Array",
+  "Docker Swarm Cluster": "Docker Swarm Cluster",
+  "vCenter": "vCenter",
+  "IoT Fleet": "IoT Fleet",
+  "Serverless Function": "Serverless Function",
+  "Cloud Resource": "Cloud Resource",
+  "Database": "Database",
+  "Network Device": "Network Device",
+  "Unknown Service": "Unknown Service",
+  "Day": "Day",
+  "Data Ingested (in GB)": "Data Ingested (in GB)",
+  "How much telemetry each project sends, heaviest first.": "How much telemetry each project sends, heaviest first.",
+  "Telemetry Usage Retention (Days)": "Telemetry Usage Retention (Days)",
+  "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.",
+  "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.",
   "markdownCallouts": {
     "caution": "주의",
     "danger": "위험",

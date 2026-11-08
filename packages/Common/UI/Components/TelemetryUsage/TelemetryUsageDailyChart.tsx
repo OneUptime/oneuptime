@@ -121,7 +121,7 @@ const TelemetryUsageDailyChart: FunctionComponent<ComponentProps> = (
   };
 
   const yAxis: YAxis = {
-    legend: "GB",
+    legend: "Data Ingested (in GB)",
     options: {
       type: YAxisType.Number,
       min: 0,

@@ -63,7 +63,8 @@
     "apiKey": "API-sleutel",
     "more": "Meer",
     "sendEmail": "E-mail verzenden",
-    "logout": "Uitloggen"
+    "logout": "Uitloggen",
+    "telemetryUsage": "Telemetry Usage"
   },
   "topAlert": {
     "title": "OneUptime admin-dashboard",
@@ -131,7 +132,8 @@
     "settingsApiIntegrations": "API en integraties",
     "settingsApiKey": "API-sleutel",
     "moreCommunication": "Communicatie",
-    "moreSendEmail": "E-mail verzenden"
+    "moreSendEmail": "E-mail verzenden",
+    "telemetryUsage": "Telemetry Usage"
   },
   "pages": {
     "users": {
@@ -581,7 +583,10 @@
         "logEditButton": "Instellingen bewerken",
         "metricCardTitle": "Monitor-metrische bewaring",
         "metricCardDescription": "Configureer hoe lang monitormetrieken worden bewaard voordat ze automatisch worden verwijderd.",
-        "metricEditButton": "Instellingen bewerken"
+        "metricEditButton": "Instellingen bewerken",
+        "usageCardTitle": "Telemetry Usage Retention",
+        "usageCardDescription": "How long each project's daily telemetry usage is kept, with billing on or off.",
+        "usageEditButton": "Edit Telemetry Usage Retention"
       },
       "apiKey": {
         "cardTitle": "Master-API-sleutelinstellingen",
@@ -596,6 +601,13 @@
         "cardDescription": "Globale LLM-providers zijn beschikbaar voor alle projecten voor AI-functies. Configureer OpenAI, Anthropic, Ollama of andere LLM-providers.",
         "noItems": "Geen LLM-providers geconfigureerd. Voeg een LLM-provider toe om AI-functies in te schakelen."
       }
+    },
+    "telemetryUsage": {
+      "title": "Telemetry Usage",
+      "cardTitle": "Telemetry Usage by Project",
+      "cardDescription": "How much telemetry each project sent, heaviest first. A day is counted once it has ended in UTC.",
+      "emptyTitle": "No telemetry usage yet",
+      "emptyDescription": "No project has usage counted in this range yet. A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day."
     }
   },
   "Basic": "Basis",
@@ -1859,6 +1871,59 @@
   "This list has default columns for everyone in this project.": "Deze lijst heeft standaardkolommen voor iedereen in dit project.",
   "Remove default": "Standaard verwijderen",
   "Reset to project default": "Terugzetten naar projectstandaard",
+  "Telemetry Usage": "Telemetry Usage",
+  "How much telemetry this project sent each day, by signal. A day is counted once it has ended in UTC.": "How much telemetry this project sent each day, by signal. A day is counted once it has ended in UTC.",
+  "Usage by Resource": "Usage by Resource",
+  "Which services and resources sent the telemetry, heaviest first, and how long each keeps it.": "Which services and resources sent the telemetry, heaviest first, and how long each keeps it.",
+  "Resource": "Resource",
+  "Resources": "Resources",
+  "Total": "Total",
+  "Cost": "Cost",
+  "Retention": "Retention",
+  "How long the resource's telemetry is kept, as counted on the newest day of the range.": "How long the resource's telemetry is kept, as counted on the newest day of the range.",
+  "Range": "Range",
+  "Last {{count}} days": "Last {{count}} days",
+  "Last {{count}} days_one": "Last {{count}} day",
+  "No telemetry usage yet": "No telemetry usage yet",
+  "A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day. Today's shows up tomorrow.": "A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day. Today's shows up tomorrow.",
+  "No telemetry usage in this range": "No telemetry usage in this range",
+  "The newest day with usage is {{day}}. Choose a longer range to see it.": "The newest day with usage is {{day}}. Choose a longer range to see it.",
+  "Logs": "Logs",
+  "Metrics": "Metrics",
+  "Traces": "Traces",
+  "Profiles": "Profiles",
+  "Session Replays": "Session Replays",
+  "Security Events": "Security Events",
+  "Spans, and the exceptions recorded with them.": "Spans, and the exceptions recorded with them.",
+  "Profiles, and the samples recorded with them.": "Profiles, and the samples recorded with them.",
+  "{{size}} GB": "{{size}} GB",
+  "{{size}} MB": "{{size}} MB",
+  "{{size}} KB": "{{size}} KB",
+  "{{amount}} USD": "{{amount}} USD",
+  "Session replays: {{days}}": "Session replays: {{days}}",
+  "Service": "Service",
+  "RUM Application": "RUM Application",
+  "Docker Host": "Docker Host",
+  "Podman Host": "Podman Host",
+  "Kubernetes Cluster": "Kubernetes Cluster",
+  "Proxmox Cluster": "Proxmox Cluster",
+  "OpenStack Cloud": "OpenStack Cloud",
+  "Ceph Cluster": "Ceph Cluster",
+  "Storage Array": "Storage Array",
+  "Docker Swarm Cluster": "Docker Swarm Cluster",
+  "vCenter": "vCenter",
+  "IoT Fleet": "IoT Fleet",
+  "Serverless Function": "Serverless Function",
+  "Cloud Resource": "Cloud Resource",
+  "Database": "Database",
+  "Network Device": "Network Device",
+  "Unknown Service": "Unknown Service",
+  "Day": "Day",
+  "Data Ingested (in GB)": "Data Ingested (in GB)",
+  "How much telemetry each project sends, heaviest first.": "How much telemetry each project sends, heaviest first.",
+  "Telemetry Usage Retention (Days)": "Telemetry Usage Retention (Days)",
+  "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.": "How many days each project's daily telemetry usage is kept, from 30 to 1095. Leave empty for 120 days.",
+  "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.": "Number of days to keep each project's daily telemetry usage. Usage older than this is deleted.",
   "markdownCallouts": {
     "caution": "Let op",
     "danger": "Gevaar",
