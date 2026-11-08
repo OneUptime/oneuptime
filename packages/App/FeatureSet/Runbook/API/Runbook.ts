@@ -20,6 +20,8 @@ import Response from "Common/Server/Utils/Response";
 import logger from "Common/Server/Utils/Logger";
 import RunbookService from "Common/Server/Services/RunbookService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
+import AuditLogService from "Common/Server/Services/AuditLogService";
+import OnBehalfOfProps from "Common/Server/Utils/AuditLog/OnBehalfOfProps";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import IncidentService from "Common/Server/Services/IncidentService";
 import AlertService from "Common/Server/Services/AlertService";
@@ -254,9 +256,14 @@ export default class RunbookAPI {
         props: props,
       });
 
+      /*
+       * Written as OneUptime - the run permissions let the caller start it,
+       * not the model's create permission - but in their name, so the audit
+       * log says who started the run, not System.
+       */
       const created: RunbookExecution = await RunbookExecutionService.create({
         data: execution,
-        props: { isRoot: true },
+        props: OnBehalfOfProps.get(props),
       });
 
       await RunRunbook.startExecution({
@@ -431,6 +438,13 @@ export default class RunbookAPI {
         }
       }
 
+      /*
+       * Written as OneUptime - the run permissions above let the caller
+       * cancel it, not the model's update permission - but in their name:
+       * the audit log says who cancelled the run, and that its status went
+       * to Cancelled, which only OneUptime writes and the audit defaults
+       * leave out of every other entry.
+       */
       await RunbookExecutionService.updateOneById({
         id: new ObjectID(executionId),
         data: {
@@ -438,7 +452,8 @@ export default class RunbookAPI {
           completedAt: new Date(),
           stepExecutions: stepExecutions as unknown as JSONArray,
         } as unknown as JSONObject,
-        props: { isRoot: true },
+        props: OnBehalfOfProps.get(props),
+        auditLogIncludeColumns: ["status"],
       });
 
       await RunnerJobService.cancelJobsForExecution({
@@ -520,6 +535,12 @@ async function assertBelongsToProject(data: {
  * until a Worker takes it and marks it Running. Scheduled is what the
  * stuck-execution sweep leaves alone, so a resume waiting behind a busy queue
  * is not failed for making no progress.
+ *
+ * The write goes round DatabaseService's hooks, so its audit entry is
+ * recorded here, by the person (their props), once the action stands: after
+ * the write lands, and, for a step that resumes the run, once the run is
+ * queued or its pause could not be put back. A refused or lost write, and
+ * one whose pause was put back, record nothing.
  */
 async function advanceStep(args: {
   action: RunbookStepAction;
@@ -537,6 +558,7 @@ async function advanceStep(args: {
         _id: true,
         projectId: true,
         runbookId: true,
+        runbookNameSnapshot: true,
         status: true,
         stepExecutions: true,
         version: true,
@@ -625,7 +647,17 @@ async function advanceStep(args: {
     );
   }
 
+  const recordAction: () => Promise<void> = async (): Promise<void> => {
+    await recordStepActionInAuditLog({
+      execution,
+      stepExecutionsBefore,
+      stepExecutionsAfter: stepExecutions,
+      props: args.databaseProps,
+    });
+  };
+
   if (!decision.resumesExecution) {
+    await recordAction();
     return;
   }
 
@@ -640,8 +672,11 @@ async function advanceStep(args: {
      * Put the pause back — unless a Worker has taken the run after all — so
      * the request can simply be retried.
      */
+    let isPauseRestored: boolean = false;
+
     try {
-      await RunbookExecutionService.compareAndSetColumnsByIdWithoutHooks({
+      isPauseRestored =
+        await RunbookExecutionService.compareAndSetColumnsByIdWithoutHooks({
         id: new ObjectID(args.executionId),
         data: {
           stepExecutions: stepExecutionsBefore,
@@ -661,6 +696,62 @@ async function advanceStep(args: {
       logger.error(rollbackError, { service: "runbook" });
     }
 
+    // The pause stayed undone - a Worker took the run - so the action stands.
+    if (!isPauseRestored) {
+      await recordAction();
+    }
+
     throw err;
   }
+
+  await recordAction();
+}
+
+/*
+ * A step approved, completed or skipped, in the run's audit log (it rolls up
+ * to its runbook's Audit Logs): an Update entry by the person, whose step
+ * list reads as what they did - "Approved "Restart the API" (step 3)" - and
+ * never as the list, so no step's output and no note they typed is in it
+ * (AuditLogColumnSummaries). The run's status going back to Scheduled is
+ * OneUptime's bookkeeping of what they did, and stays out, as the audit
+ * defaults leave it out of every entry. Like every audit write, it never
+ * fails the action it records (AuditLogService).
+ */
+async function recordStepActionInAuditLog(data: {
+  execution: RunbookExecution;
+  stepExecutionsBefore: JSONArray;
+  stepExecutionsAfter: Array<RunbookStepExecutionState>;
+  props: DatabaseCommonInteractionProps;
+}): Promise<void> {
+  const before: RunbookExecution = new RunbookExecution(
+    new ObjectID(data.execution._id!.toString()),
+  );
+
+  if (data.execution.projectId) {
+    before.projectId = data.execution.projectId;
+  }
+
+  if (data.execution.runbookId) {
+    before.runbookId = data.execution.runbookId;
+  }
+
+  if (data.execution.runbookNameSnapshot) {
+    before.runbookNameSnapshot = data.execution.runbookNameSnapshot;
+  }
+
+  if (data.execution.status) {
+    before.status = data.execution.status;
+  }
+
+  before.stepExecutions = data.stepExecutionsBefore;
+
+  await AuditLogService.recordUpdate({
+    model: new RunbookExecution(),
+    before,
+    updatedFields: {
+      stepExecutions: data.stepExecutionsAfter as unknown as JSONArray,
+    },
+    itemId: new ObjectID(data.execution._id!.toString()),
+    props: data.props,
+  });
 }

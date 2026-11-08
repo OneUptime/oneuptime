@@ -11,6 +11,11 @@ import {
   getWorkflowGraphChanges,
   listWorkflowGraphSteps,
 } from "../../../Utils/Workflow/WorkflowGraphChanges";
+import {
+  describeRunbookStepExecutions,
+  getRunbookStepExecutionChanges,
+  listRunbookStepExecutions,
+} from "../../../Utils/Runbook/RunbookStepExecutionChanges";
 import logger from "../Logger";
 
 /*
@@ -24,6 +29,12 @@ import logger from "../Logger";
  * described in a few words: an export reads "3 steps and 2 connections" ->
  * "4 steps and 3 connections" in the fields its schema has, and the audit
  * log's own table shows the lines.
+ *
+ * A runbook run's steps are the other: every step's copy of the runbook
+ * step, its status, and what it printed. An entry says what happened to
+ * them - "Approved "Restart the API" (step 3)" - with where the steps stood
+ * before and after in a few words, and never quotes a step's output, its
+ * error or the note someone left with it (RunbookStepExecutionChanges).
  */
 
 export interface AuditLogValueSummary {
@@ -133,9 +144,41 @@ const WorkflowGraphSummarizer: AuditLogColumnSummarizer = {
   },
 };
 
+const RunbookStepExecutionsSummarizer: AuditLogColumnSummarizer = {
+  summarizeUpdate: (
+    before: unknown,
+    after: unknown,
+  ): AuditLogValueSummary | null => {
+    const lines: Array<string> = getRunbookStepExecutionChanges({
+      before,
+      after,
+    }).lines;
+
+    // Only what a step printed, or a note, changed: no step moved on.
+    if (lines.length === 0) {
+      return null;
+    }
+
+    return {
+      oldValue: describeRunbookStepExecutions(before),
+      newValue: describeRunbookStepExecutions(after),
+      summary: lines,
+    };
+  },
+  summarizeSnapshot: (
+    value: unknown,
+  ): { value: JSONValue; summary: Array<string> } => {
+    return {
+      value: describeRunbookStepExecutions(value),
+      summary: listRunbookStepExecutions({ value }),
+    };
+  },
+};
+
 // By "<table name>.<column>".
 const SUMMARIZERS: Readonly<Record<string, AuditLogColumnSummarizer>> = {
   "Workflow.graph": WorkflowGraphSummarizer,
+  "RunbookExecution.stepExecutions": RunbookStepExecutionsSummarizer,
 };
 
 export const getAuditLogColumnSummarizer: (

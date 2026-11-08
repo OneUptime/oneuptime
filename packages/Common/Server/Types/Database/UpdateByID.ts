@@ -9,5 +9,7 @@ export default interface UpdateBy<TBaseModel extends BaseModel> {
   data: QueryDeepPartialEntity<TBaseModel>;
   // See UpdateOneBy.miscDataProps.
   miscDataProps?: JSONObject | undefined;
+  // See UpdateOneBy.auditLogIncludeColumns.
+  auditLogIncludeColumns?: Array<string> | undefined;
   props: DatabaseCommonInteractionProps;
 }
